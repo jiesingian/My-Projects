@@ -35,15 +35,17 @@ export function Icon({
   name,
   size = 17,
   className,
+  style,
 }: {
   name: IconName;
   size?: number;
   className?: string;
+  style?: React.CSSProperties;
 }) {
   return (
     <span
       className={`kin-i inline-flex ${className ?? ""}`}
-      style={{ width: size, height: size }}
+      style={{ width: size, height: size, ...style }}
     >
       <svg
         viewBox="0 0 24 24"
