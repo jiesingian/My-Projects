@@ -1,66 +1,48 @@
 "use client";
 
-import { useActionState, useState, useTransition } from "react";
-import { verifyEmail, resendCode, type ActionState } from "@/lib/actions/auth";
-import { SubmitButton, ErrorText } from "@/components/form";
+import { useState, useTransition } from "react";
+import { resendConfirmation } from "@/lib/actions/auth";
 import { OnboardingShell } from "@/components/onboarding-shell";
-
-const initialState: ActionState = { error: null };
+import { Icon } from "@/components/icons";
 
 export function VerifyForm({ email }: { email: string }) {
-  const [state, formAction] = useActionState(verifyEmail, initialState);
   const [resendNote, setResendNote] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
 
   return (
     <OnboardingShell step="STEP 02 / 05" backHref="/signup">
-      <h2 style={{ fontSize: 34, margin: "0 0 6px" }}>Verify email</h2>
-      <p style={{ fontSize: 13.5, color: "var(--color-neutral-700)", margin: "0 0 30px" }}>
-        Six digits sent to {email || "your email"}.
+      <h2 style={{ fontSize: 34, margin: "0 0 6px" }}>Check your email</h2>
+      <p style={{ fontSize: 13.5, color: "var(--color-neutral-700)", margin: "0 0 24px" }}>
+        We sent a confirmation link to {email || "your email"}. Open it on this device to continue —
+        it signs you in automatically.
       </p>
-      <form action={formAction}>
-        <input type="hidden" name="email" value={email} />
-        <ErrorText message={state.error} />
-        <div className="field" style={{ marginBottom: 18 }}>
-          <label>CODE</label>
-          <input
-            className="input"
-            name="token"
-            inputMode="numeric"
-            pattern="[0-9]*"
-            maxLength={6}
-            required
-            autoFocus
-            style={{
-              fontFamily: "ui-monospace, Menlo, monospace",
-              fontSize: 24,
-              letterSpacing: ".3em",
-              textAlign: "center",
-              minHeight: 54,
-            }}
-          />
-        </div>
-        <button
-          type="button"
-          className="btn btn-ghost"
-          style={{ marginBottom: 18, fontSize: 13 }}
-          disabled={pending || !email}
-          onClick={() =>
-            startTransition(async () => {
-              const res = await resendCode(email);
-              setResendNote(res.error ?? "Code resent — check your inbox.");
-            })
-          }
-        >
-          {pending ? "Resending…" : "Resend code"}
-        </button>
-        {resendNote && (
-          <p style={{ fontSize: 12.5, color: "var(--color-neutral-600)", marginTop: -10, marginBottom: 18 }}>
-            {resendNote}
-          </p>
-        )}
-        <SubmitButton style={{ minHeight: 46, fontSize: 15, letterSpacing: ".04em" }}>VERIFY</SubmitButton>
-      </form>
+      <div
+        className="blueprint"
+        style={{ padding: 14, display: "flex", gap: 10, alignItems: "flex-start", marginBottom: 24, background: "var(--color-accent-100)" }}
+      >
+        <Icon name="shieldCheck" size={16} className="text-[var(--color-accent-700)] mt-1" />
+        <span style={{ fontSize: 12, lineHeight: 1.4 }}>
+          Didn&apos;t get it? Check spam, or resend below. The link expires after a while, so request a
+          fresh one if it&apos;s been sitting a bit.
+        </span>
+      </div>
+      <button
+        type="button"
+        className="btn btn-secondary btn-block"
+        style={{ minHeight: 44, fontSize: 13.5 }}
+        disabled={pending || !email}
+        onClick={() =>
+          startTransition(async () => {
+            const res = await resendConfirmation(email);
+            setResendNote(res.error ?? "Sent — check your inbox.");
+          })
+        }
+      >
+        {pending ? "SENDING…" : "RESEND EMAIL"}
+      </button>
+      {resendNote && (
+        <p style={{ fontSize: 12.5, color: "var(--color-neutral-600)", marginTop: 10 }}>{resendNote}</p>
+      )}
     </OnboardingShell>
   );
 }
