@@ -40,3 +40,11 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# machine-specific graphify Claude Code hook (regenerate per-machine with `graphify claude install`)
+.claude/settings.json
+
+# machine-local graphify pointers and auto-backups (regenerated on any machine)
+graphify-out/.graphify_python
+graphify-out/.graphify_root
+graphify-out/20*/

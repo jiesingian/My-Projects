@@ -1,0 +1,95 @@
+name: Deploy Projects Graph
+
+# Monorepo-wide graphify pipeline. Runs on every push, with no per-project
+# setup: it discovers every top-level project folder (anything with a
+# recognizable manifest file), builds or refreshes that project's own
+# graph (code structure only, no API key needed), merges all of them into
+# a root-level aggregate graph, and republishes every graph.html to Pages.
+# Add a new project folder and push -- it's picked up automatically.
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install graphify
+        run: pip install graphifyy
+
+      - name: Extract each project (code structure only, no API key)
+        run: |
+          set -e
+          for dir in */; do
+            dir="${dir%/}"
+            [[ "$dir" == .* ]] && continue
+            marker=""
+            for f in package.json pyproject.toml go.mod Cargo.toml requirements.txt; do
+              [[ -f "$dir/$f" ]] && marker="$f" && break
+            done
+            [[ -z "$marker" ]] && continue
+            echo "::group::extract $dir (found $marker)"
+            graphify extract "$dir" --code-only
+            echo "::endgroup::"
+          done
+
+      - name: Merge into monorepo-wide graph
+        run: |
+          set -e
+          graphs=()
+          for f in */graphify-out/graph.json; do
+            [[ -f "$f" ]] && graphs+=("$f")
+          done
+          mkdir -p graphify-out
+          if [[ ${#graphs[@]} -eq 1 ]]; then
+            cp "${graphs[0]}" graphify-out/graph.json
+          elif [[ ${#graphs[@]} -gt 1 ]]; then
+            graphify merge-graphs "${graphs[@]}" --out graphify-out/graph.json
+          fi
+
+      - name: Export HTML for the aggregate and every project
+        run: |
+          set -e
+          mkdir -p _site
+          if [[ -f graphify-out/graph.json ]]; then
+            graphify export html --graph graphify-out/graph.json
+            cp graphify-out/graph.html _site/index.html
+          fi
+          for f in */graphify-out/graph.json; do
+            [[ -f "$f" ]] || continue
+            proj_dir="${f%/graphify-out/graph.json}"
+            graphify export html --graph "$f"
+            mkdir -p "_site/$proj_dir"
+            cp "$proj_dir/graphify-out/graph.html" "_site/$proj_dir/index.html"
+          done
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4
