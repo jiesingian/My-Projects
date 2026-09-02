@@ -465,39 +465,45 @@ export type Database = {
           created_at: string
           created_by: string | null
           drive_file_id: string | null
+          drive_thumbnail_link: string | null
+          drive_view_link: string | null
           entry_id: string
           family_id: string
           file_name: string
           id: string
           mime_type: string | null
           size_bytes: number | null
-          storage_path: string
+          storage_path: string | null
           storage_provider: string
         }
         Insert: {
           created_at?: string
           created_by?: string | null
           drive_file_id?: string | null
+          drive_thumbnail_link?: string | null
+          drive_view_link?: string | null
           entry_id: string
           family_id: string
           file_name: string
           id?: string
           mime_type?: string | null
           size_bytes?: number | null
-          storage_path: string
+          storage_path?: string | null
           storage_provider?: string
         }
         Update: {
           created_at?: string
           created_by?: string | null
           drive_file_id?: string | null
+          drive_thumbnail_link?: string | null
+          drive_view_link?: string | null
           entry_id?: string
           family_id?: string
           file_name?: string
           id?: string
           mime_type?: string | null
           size_bytes?: number | null
-          storage_path?: string
+          storage_path?: string | null
           storage_provider?: string
         }
         Relationships: [
@@ -527,18 +533,21 @@ export type Database = {
       doc_folders: {
         Row: {
           created_at: string
+          drive_folder_id: string | null
           family_id: string
           id: string
           name: string
         }
         Insert: {
           created_at?: string
+          drive_folder_id?: string | null
           family_id: string
           id?: string
           name: string
         }
         Update: {
           created_at?: string
+          drive_folder_id?: string | null
           family_id?: string
           id?: string
           name?: string
@@ -557,49 +566,55 @@ export type Database = {
         Row: {
           account_email: string | null
           connected: boolean
+          connected_by_member_id: string | null
           family_id: string
           folder_path: string
           last_synced_at: string | null
-          member_id: string
           quota_bytes: number | null
+          root_folder_id: string | null
+          root_folder_link: string | null
           updated_at: string
           used_bytes: number | null
         }
         Insert: {
           account_email?: string | null
           connected?: boolean
+          connected_by_member_id?: string | null
           family_id: string
           folder_path?: string
           last_synced_at?: string | null
-          member_id: string
           quota_bytes?: number | null
+          root_folder_id?: string | null
+          root_folder_link?: string | null
           updated_at?: string
           used_bytes?: number | null
         }
         Update: {
           account_email?: string | null
           connected?: boolean
+          connected_by_member_id?: string | null
           family_id?: string
           folder_path?: string
           last_synced_at?: string | null
-          member_id?: string
           quota_bytes?: number | null
+          root_folder_id?: string | null
+          root_folder_link?: string | null
           updated_at?: string
           used_bytes?: number | null
         }
         Relationships: [
           {
-            foreignKeyName: "drive_links_family_id_fkey"
-            columns: ["family_id"]
+            foreignKeyName: "drive_links_connected_by_fkey"
+            columns: ["connected_by_member_id"]
             isOneToOne: false
-            referencedRelation: "families"
+            referencedRelation: "members"
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "drive_links_member_id_fkey"
-            columns: ["member_id"]
+            foreignKeyName: "drive_links_family_id_fkey"
+            columns: ["family_id"]
             isOneToOne: true
-            referencedRelation: "members"
+            referencedRelation: "families"
             referencedColumns: ["id"]
           },
         ]
@@ -607,31 +622,31 @@ export type Database = {
       drive_tokens: {
         Row: {
           access_token: string
-          member_id: string
+          family_id: string
           refresh_token: string | null
           token_expires_at: string | null
           updated_at: string
         }
         Insert: {
           access_token: string
-          member_id: string
+          family_id: string
           refresh_token?: string | null
           token_expires_at?: string | null
           updated_at?: string
         }
         Update: {
           access_token?: string
-          member_id?: string
+          family_id?: string
           refresh_token?: string | null
           token_expires_at?: string | null
           updated_at?: string
         }
         Relationships: [
           {
-            foreignKeyName: "drive_tokens_member_id_fkey"
-            columns: ["member_id"]
+            foreignKeyName: "drive_tokens_family_id_fkey"
+            columns: ["family_id"]
             isOneToOne: true
-            referencedRelation: "members"
+            referencedRelation: "families"
             referencedColumns: ["id"]
           },
         ]
@@ -1315,28 +1330,40 @@ export type Database = {
       journal_media: {
         Row: {
           created_at: string
+          drive_file_id: string | null
+          drive_thumbnail_link: string | null
+          drive_view_link: string | null
           family_id: string
           id: string
           media_type: string
-          storage_path: string
+          storage_path: string | null
+          storage_provider: string
           taken_at: string | null
           uploaded_by: string | null
         }
         Insert: {
           created_at?: string
+          drive_file_id?: string | null
+          drive_thumbnail_link?: string | null
+          drive_view_link?: string | null
           family_id: string
           id?: string
           media_type?: string
-          storage_path: string
+          storage_path?: string | null
+          storage_provider?: string
           taken_at?: string | null
           uploaded_by?: string | null
         }
         Update: {
           created_at?: string
+          drive_file_id?: string | null
+          drive_thumbnail_link?: string | null
+          drive_view_link?: string | null
           family_id?: string
           id?: string
           media_type?: string
-          storage_path?: string
+          storage_path?: string | null
+          storage_provider?: string
           taken_at?: string | null
           uploaded_by?: string | null
         }
@@ -1641,6 +1668,8 @@ export type Database = {
           budget_amount: number | null
           created_at: string
           created_by: string | null
+          drive_file_id: string | null
+          drive_view_link: string | null
           end_date: string | null
           family_id: string
           id: string
@@ -1649,12 +1678,15 @@ export type Database = {
           packed_total: number
           photo_storage_path: string | null
           start_date: string
+          storage_provider: string
           title: string
         }
         Insert: {
           budget_amount?: number | null
           created_at?: string
           created_by?: string | null
+          drive_file_id?: string | null
+          drive_view_link?: string | null
           end_date?: string | null
           family_id: string
           id?: string
@@ -1663,12 +1695,15 @@ export type Database = {
           packed_total?: number
           photo_storage_path?: string | null
           start_date: string
+          storage_provider?: string
           title: string
         }
         Update: {
           budget_amount?: number | null
           created_at?: string
           created_by?: string | null
+          drive_file_id?: string | null
+          drive_view_link?: string | null
           end_date?: string | null
           family_id?: string
           id?: string
@@ -1677,6 +1712,7 @@ export type Database = {
           packed_total?: number
           photo_storage_path?: string | null
           start_date?: string
+          storage_provider?: string
           title?: string
         }
         Relationships: [

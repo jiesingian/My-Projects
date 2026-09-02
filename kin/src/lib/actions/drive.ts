@@ -7,11 +7,13 @@ import { requireCurrentMember } from "@/lib/session";
 
 export async function disconnectDriveAction() {
   const me = await requireCurrentMember();
+  if (!me.is_organiser) return;
+
   const supabase = await createClient();
-  await supabase.from("drive_links").update({ connected: false }).eq("member_id", me.id);
+  await supabase.from("drive_links").update({ connected: false }).eq("family_id", me.family_id);
 
   const admin = createAdminClient();
-  if (admin) await admin.from("drive_tokens").delete().eq("member_id", me.id);
+  if (admin) await admin.from("drive_tokens").delete().eq("family_id", me.family_id);
 
   revalidatePath("/settings");
 }

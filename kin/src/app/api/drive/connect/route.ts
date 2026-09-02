@@ -6,6 +6,11 @@ import { getCurrentMember } from "@/lib/session";
 export async function GET(request: Request) {
   const me = await getCurrentMember();
   if (!me) return NextResponse.redirect(new URL("/login", request.url));
+  if (!me.is_organiser) {
+    const url = new URL("/settings", request.url);
+    url.searchParams.set("drive_error", "organiser_only");
+    return NextResponse.redirect(url);
+  }
 
   const clientId = process.env.GOOGLE_CLIENT_ID;
   const redirectUri = process.env.GOOGLE_REDIRECT_URI;

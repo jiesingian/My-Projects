@@ -57,7 +57,7 @@ export default async function DocFolderPage({
             {(entry.doc_files ?? []).length > 0 && (
               <div style={{ marginTop: 8, display: "flex", flexDirection: "column", gap: 6, paddingLeft: 28 }}>
                 {(entry.doc_files ?? []).map((f) => (
-                  <DownloadLink key={f.id} path={f.storage_path} fileName={f.file_name} />
+                  <DownloadLink key={f.id} path={f.storage_path} fileName={f.file_name} driveViewLink={f.drive_view_link} />
                 ))}
               </div>
             )}

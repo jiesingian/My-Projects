@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { requireCurrentMember } from "@/lib/session";
 import type { ActionState } from "@/lib/actions/auth";
+import { getValidDriveAccessToken, ensureDriveFolderStructure, uploadFileToDrive } from "@/lib/google-drive";
 
 export async function createDocEntryAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
   const me = await requireCurrentMember();
@@ -52,7 +53,45 @@ export async function createDocEntryAction(_prev: ActionState, formData: FormDat
   if (entryErr) return { error: entryErr.message };
 
   const files = formData.getAll("files").filter((f): f is File => f instanceof File && f.size > 0);
+  if (files.length === 0) {
+    revalidatePath("/family");
+    redirect(`/family/documents/${folderId}`);
+  }
+
+  const driveToken = await getValidDriveAccessToken(me.family_id);
+  let driveFolderId: string | null = null;
+  if (driveToken) {
+    try {
+      await ensureDriveFolderStructure(me.family_id, driveToken, me.families.name);
+      const { data: folder } = await supabase.from("doc_folders").select("drive_folder_id").eq("id", folderId).single();
+      driveFolderId = folder?.drive_folder_id ?? null;
+    } catch {
+      driveFolderId = null; // Falls back to Supabase Storage below.
+    }
+  }
+
   for (const file of files) {
+    if (driveToken && driveFolderId) {
+      try {
+        const uploaded = await uploadFileToDrive(driveToken, driveFolderId, file);
+        await supabase.from("doc_files").insert({
+          entry_id: entry.id,
+          family_id: me.family_id,
+          file_name: file.name,
+          mime_type: file.type || null,
+          size_bytes: file.size,
+          storage_provider: "google_drive",
+          drive_file_id: uploaded.id,
+          drive_view_link: uploaded.webViewLink ?? null,
+          drive_thumbnail_link: uploaded.thumbnailLink ?? null,
+          created_by: me.id,
+        });
+        continue;
+      } catch (err) {
+        return { error: `Entry saved, but "${file.name}" failed to upload to Drive: ${(err as Error).message}` };
+      }
+    }
+
     const path = `${me.family_id}/${entry.id}/${Date.now()}-${file.name}`;
     const { error: uploadErr } = await supabase.storage.from("documents").upload(path, file, {
       contentType: file.type || undefined,
@@ -65,6 +104,7 @@ export async function createDocEntryAction(_prev: ActionState, formData: FormDat
       file_name: file.name,
       mime_type: file.type || null,
       size_bytes: file.size,
+      storage_provider: "supabase",
       storage_path: path,
       created_by: me.id,
     });
@@ -83,10 +123,12 @@ export async function getDocFileUrl(path: string): Promise<string | null> {
 
 export async function deleteDocFileAction(fileId: string, folderId: string) {
   const supabase = await createClient();
-  const { data: file } = await supabase.from("doc_files").select("storage_path").eq("id", fileId).maybeSingle();
-  if (file) {
+  const { data: file } = await supabase.from("doc_files").select("storage_path, storage_provider").eq("id", fileId).maybeSingle();
+  if (file && file.storage_provider === "supabase" && file.storage_path) {
     await supabase.storage.from("documents").remove([file.storage_path]);
-    await supabase.from("doc_files").delete().eq("id", fileId);
   }
+  // Drive-stored files are left in Drive untouched — only the index entry is removed here;
+  // deleting the actual file is left to the organiser in Drive, matching "Kin keeps only the index."
+  await supabase.from("doc_files").delete().eq("id", fileId);
   revalidatePath(`/family/documents/${folderId}`);
 }

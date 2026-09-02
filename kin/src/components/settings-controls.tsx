@@ -190,7 +190,19 @@ export function HouseholdPrefsForm({
   );
 }
 
-export function DriveConnectedPanel({ email, folderPath, lastSyncedAt }: { email: string | null; folderPath: string; lastSyncedAt: string | null }) {
+export function DriveConnectedPanel({
+  email,
+  rootFolderLink,
+  lastSyncedAt,
+  connectedByName,
+  canManage,
+}: {
+  email: string | null;
+  rootFolderLink: string | null;
+  lastSyncedAt: string | null;
+  connectedByName: string | null;
+  canManage: boolean;
+}) {
   const [pending, startTransition] = useTransition();
   return (
     <>
@@ -200,19 +212,38 @@ export function DriveConnectedPanel({ email, folderPath, lastSyncedAt }: { email
           <div style={{ fontSize: 12.5 }}>{email ?? "—"}</div>
         </div>
         <div style={{ background: "var(--color-bg)", padding: "9px 11px" }}>
-          <div style={{ fontSize: 9, letterSpacing: ".1em", textTransform: "uppercase", color: "var(--color-neutral-600)" }}>Folder</div>
-          <div style={{ fontSize: 12.5, fontFamily: "ui-monospace, Menlo, monospace" }}>{folderPath}</div>
+          <div style={{ fontSize: 9, letterSpacing: ".1em", textTransform: "uppercase", color: "var(--color-neutral-600)" }}>Connected by</div>
+          <div style={{ fontSize: 12.5 }}>{connectedByName ?? "—"}</div>
         </div>
       </div>
-      <button
-        type="button"
-        className="btn btn-secondary btn-block"
-        disabled={pending}
-        style={{ minHeight: 40, fontSize: 12 }}
-        onClick={() => startTransition(() => disconnectDriveAction())}
-      >
-        {pending ? "…" : "DISCONNECT"}
-      </button>
+      {rootFolderLink && (
+        <a
+          href={rootFolderLink}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="btn btn-secondary btn-block"
+          style={{ minHeight: 40, fontSize: 12, marginBottom: canManage ? 9 : 0 }}
+        >
+          OPEN KIN FOLDER IN DRIVE
+        </a>
+      )}
+      {canManage && (
+        <>
+          <p style={{ fontSize: 11, color: "var(--color-neutral-600)", margin: "9px 0" }}>
+            Sharing (who can open the folder link) is set in Google Drive itself, not here — open the folder above and
+            use Drive&apos;s own Share dialog.
+          </p>
+          <button
+            type="button"
+            className="btn btn-secondary btn-block"
+            disabled={pending}
+            style={{ minHeight: 40, fontSize: 12 }}
+            onClick={() => startTransition(() => disconnectDriveAction())}
+          >
+            {pending ? "…" : "DISCONNECT"}
+          </button>
+        </>
+      )}
       {lastSyncedAt && (
         <div style={{ fontSize: 11, color: "var(--color-neutral-600)", marginTop: 10 }}>Last synced {new Date(lastSyncedAt).toLocaleString()}</div>
       )}

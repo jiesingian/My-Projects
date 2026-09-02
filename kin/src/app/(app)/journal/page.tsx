@@ -5,6 +5,7 @@ import { getGallery, getEntries, getMilestones } from "@/lib/queries/journal";
 import { HubHeader } from "@/components/hub-header";
 import { Blueprint, Tag } from "@/components/ui";
 import { GalleryUpload } from "@/components/gallery-upload";
+import { GalleryTile } from "@/components/gallery-tile";
 import { formatDate } from "@/lib/format";
 
 const SEGMENTS = ["gallery", "entries", "milestones"] as const;
@@ -48,15 +49,7 @@ async function GalleryPane({ familyId }: { familyId: string }) {
       ) : (
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 6 }}>
           {media.map((m) => (
-            <div key={m.id} className="duotone" style={{ aspectRatio: "1", border: "1px solid var(--color-divider)", position: "relative", overflow: "hidden" }}>
-              {m.url && (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img src={m.url} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-              )}
-              <span style={{ position: "absolute", bottom: 4, left: 4, font: "400 7.5px/1 ui-monospace, Menlo, monospace", background: "var(--color-bg)", padding: "2px 3px", color: "var(--color-neutral-700)" }}>
-                {m.taken_at ? formatDate(m.taken_at) : ""}
-              </span>
-            </div>
+            <GalleryTile key={m.id} url={m.url} viewLink={m.viewLink} date={m.taken_at ? formatDate(m.taken_at) : ""} mediaType={m.media_type} />
           ))}
         </div>
       )}

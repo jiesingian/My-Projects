@@ -21,6 +21,7 @@ const DRIVE_ERROR_MESSAGES: Record<string, string> = {
   not_configured: "Google Drive linking isn't configured on this server yet — set GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET.",
   invalid_state: "That connection attempt expired — try again.",
   token_exchange_failed: "Google didn't accept that connection attempt — try again.",
+  organiser_only: "Only the household organiser can connect or disconnect Google Drive.",
 };
 
 export default async function SettingsPage({
@@ -35,10 +36,11 @@ export default async function SettingsPage({
   const supabase = await createClient();
   const [{ data: authUser }, { data: driveLink }, { count: memberCount }, { count: managedCount }] = await Promise.all([
     supabase.auth.getUser(),
-    supabase.from("drive_links").select("*").eq("member_id", me.id).maybeSingle(),
+    supabase.from("drive_links").select("*, connected_by:connected_by_member_id(full_name)").eq("family_id", me.family_id).maybeSingle(),
     supabase.from("members").select("id", { count: "exact", head: true }).eq("family_id", me.family_id),
     supabase.from("members").select("id", { count: "exact", head: true }).eq("family_id", me.family_id).eq("status", "managed"),
   ]);
+  const connectedByName = (driveLink?.connected_by as unknown as { full_name: string } | null)?.full_name ?? null;
 
   return (
     <div>
@@ -73,16 +75,28 @@ export default async function SettingsPage({
             <p style={{ fontSize: 12, color: "var(--color-accent-700)", marginBottom: 10 }}>{DRIVE_ERROR_MESSAGES[drive_error] ?? "Something went wrong."}</p>
           )}
           {driveLink?.connected ? (
-            <DriveConnectedPanel email={driveLink.account_email} folderPath={driveLink.folder_path} lastSyncedAt={driveLink.last_synced_at} />
-          ) : (
+            <DriveConnectedPanel
+              email={driveLink.account_email}
+              rootFolderLink={driveLink.root_folder_link}
+              lastSyncedAt={driveLink.last_synced_at}
+              connectedByName={connectedByName}
+              canManage={me.is_organiser}
+            />
+          ) : me.is_organiser ? (
             <>
               <p style={{ fontSize: 12, color: "var(--color-neutral-700)", marginBottom: 12 }}>
-                Kin keeps only the index — file names, dates and expiry reminders. The files themselves live in your own Drive.
+                Connect your Google Drive once, as organiser — Kin creates and organizes the household&apos;s folders
+                there automatically. Everyone else views files through the app or the Drive link, governed by
+                whatever sharing you set on that folder in Drive itself.
               </p>
               <a href="/api/drive/connect" className="btn btn-primary btn-block" style={{ minHeight: 44, fontSize: 13.5, letterSpacing: ".04em" }}>
                 CONNECT GOOGLE DRIVE
               </a>
             </>
+          ) : (
+            <p style={{ fontSize: 12, color: "var(--color-neutral-700)" }}>
+              Not connected yet. Only the household organiser can connect Google Drive.
+            </p>
           )}
         </Blueprint>
 

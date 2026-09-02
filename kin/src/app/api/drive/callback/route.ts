@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { getCurrentMember } from "@/lib/session";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { ensureDriveFolderStructure } from "@/lib/google-drive";
 
 export async function GET(request: Request) {
   const url = new URL(request.url);
@@ -11,6 +12,10 @@ export async function GET(request: Request) {
 
   const me = await getCurrentMember();
   if (!me) return NextResponse.redirect(new URL("/login", request.url));
+  if (!me.is_organiser) {
+    settingsUrl.searchParams.set("drive_error", "organiser_only");
+    return NextResponse.redirect(settingsUrl);
+  }
 
   const cookieStore = await cookies();
   const expectedState = cookieStore.get("kin-drive-oauth-state")?.value;
@@ -63,7 +68,7 @@ export async function GET(request: Request) {
   }
 
   await admin.from("drive_tokens").upsert({
-    member_id: me.id,
+    family_id: me.family_id,
     access_token: tokens.access_token,
     refresh_token: tokens.refresh_token ?? undefined,
     token_expires_at: new Date(Date.now() + tokens.expires_in * 1000).toISOString(),
@@ -71,13 +76,20 @@ export async function GET(request: Request) {
   });
 
   await admin.from("drive_links").upsert({
-    member_id: me.id,
     family_id: me.family_id,
+    connected_by_member_id: me.id,
     connected: true,
     account_email: email,
     last_synced_at: new Date().toISOString(),
     updated_at: new Date().toISOString(),
   });
+
+  try {
+    await ensureDriveFolderStructure(me.family_id, tokens.access_token, me.families.name);
+  } catch (err) {
+    // Connection itself succeeded; folder setup can be retried on next upload.
+    console.error("Drive folder setup failed", err);
+  }
 
   return NextResponse.redirect(settingsUrl);
 }
