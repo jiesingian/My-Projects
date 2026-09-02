@@ -1,3 +1,4 @@
+import { cache } from "react";
 import { createClient } from "@/lib/supabase/server";
 import type { Tables } from "@/lib/database.types";
 
@@ -6,8 +7,12 @@ export type CurrentMember = Tables<"members"> & {
 };
 
 /** The signed-in user's member row plus their family, or null if they haven't
- * finished onboarding (no member row yet) or aren't signed in. */
-export async function getCurrentMember(): Promise<CurrentMember | null> {
+ * finished onboarding (no member row yet) or aren't signed in.
+ *
+ * Wrapped in React's cache() because both the (app) layout and every page
+ * under it call this independently — without memoizing, each navigation was
+ * paying for the auth + DB round trip twice per request. */
+export const getCurrentMember = cache(async (): Promise<CurrentMember | null> => {
   const supabase = await createClient();
   const {
     data: { user },
@@ -21,7 +26,7 @@ export async function getCurrentMember(): Promise<CurrentMember | null> {
     .maybeSingle();
 
   return (data as CurrentMember | null) ?? null;
-}
+});
 
 export async function requireCurrentMember(): Promise<CurrentMember> {
   const member = await getCurrentMember();
