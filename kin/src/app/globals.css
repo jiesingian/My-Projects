@@ -1,11 +1,9 @@
-@import "tailwindcss";
 @import url("https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;700&family=Barlow+Condensed:wght@400;600&display=swap");
+@import "tailwindcss";
 
-/*
- * Industry — the design system carried over from the Claude Design prototype
- * (project/_ds/industry-*/styles.css). Steel-blue blueprint/wireframe style:
- * square corners, hairline dividers, registration-mark corners on cards.
- */
+/* Industry design system, carried over from the Claude Design prototype:
+   steel-blue blueprint/wireframe style, square corners, hairline dividers,
+   registration-mark corners on cards. */
 :root {
   --color-bg: #f2f2f3;
   --color-surface: #e9e9ea;

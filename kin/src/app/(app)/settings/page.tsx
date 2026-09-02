@@ -1,0 +1,133 @@
+import { redirect } from "next/navigation";
+import Link from "next/link";
+import { getCurrentMember } from "@/lib/session";
+import { createClient } from "@/lib/supabase/server";
+import { signOutAction } from "@/lib/actions/auth";
+import { DetailHeader } from "@/components/hub-header";
+import { Blueprint, Tag } from "@/components/ui";
+import { Icon } from "@/components/icons";
+import {
+  ThemeControl,
+  TextSizeControl,
+  NotificationToggles,
+  InviteCodeCard,
+  HouseholdNameForm,
+  HouseholdPrefsForm,
+  DriveConnectedPanel,
+} from "@/components/settings-controls";
+import { initials } from "@/lib/format";
+
+const DRIVE_ERROR_MESSAGES: Record<string, string> = {
+  not_configured: "Google Drive linking isn't configured on this server yet — set GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET.",
+  invalid_state: "That connection attempt expired — try again.",
+  token_exchange_failed: "Google didn't accept that connection attempt — try again.",
+};
+
+export default async function SettingsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ drive_error?: string }>;
+}) {
+  const me = await getCurrentMember();
+  if (!me) redirect("/onboarding/profile");
+  const { drive_error } = await searchParams;
+
+  const supabase = await createClient();
+  const [{ data: authUser }, { data: driveLink }, { count: memberCount }, { count: managedCount }] = await Promise.all([
+    supabase.auth.getUser(),
+    supabase.from("drive_links").select("*").eq("member_id", me.id).maybeSingle(),
+    supabase.from("members").select("id", { count: "exact", head: true }).eq("family_id", me.family_id),
+    supabase.from("members").select("id", { count: "exact", head: true }).eq("family_id", me.family_id).eq("status", "managed"),
+  ]);
+
+  return (
+    <div>
+      <DetailHeader backHref="/today" eyebrow="SETTINGS" />
+      <div style={{ padding: "0 22px 22px" }}>
+        <Blueprint style={{ padding: 14, display: "flex", gap: 13, alignItems: "center", marginBottom: 22 }}>
+          <span
+            className="placeholder-fill blueprint"
+            style={{ width: 48, height: 48, flex: "none", display: "flex", alignItems: "center", justifyContent: "center", font: "600 17px/1 var(--font-heading)", color: "var(--color-neutral-700)" }}
+          >
+            {initials(me.full_name)}
+          </span>
+          <span style={{ flex: 1, minWidth: 0 }}>
+            <span style={{ font: "600 20px/1.05 var(--font-heading)", display: "block" }}>{me.full_name}</span>
+            <span style={{ fontSize: 11.5, color: "var(--color-neutral-600)" }}>
+              {authUser.user?.email} · {authUser.user?.email_confirmed_at ? "verified" : "unverified"}
+            </span>
+          </span>
+          {me.is_organiser && <Tag variant="accent">ORGANISER</Tag>}
+        </Blueprint>
+
+        <div style={{ font: "600 10px/1 var(--font-heading)", letterSpacing: ".16em", color: "var(--color-neutral-600)", marginBottom: 4 }}>
+          CONNECTED STORAGE
+        </div>
+        <Blueprint style={{ padding: 14, marginBottom: 22 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10 }}>
+            <Icon name="hardDrive" size={18} className="text-[var(--color-accent-700)]" />
+            <span style={{ font: "600 18px/1.05 var(--font-heading)", flex: 1 }}>Google Drive</span>
+            <Tag variant={driveLink?.connected ? "accent" : "outline"}>{driveLink?.connected ? "CONNECTED" : "NOT CONNECTED"}</Tag>
+          </div>
+          {drive_error && (
+            <p style={{ fontSize: 12, color: "var(--color-accent-700)", marginBottom: 10 }}>{DRIVE_ERROR_MESSAGES[drive_error] ?? "Something went wrong."}</p>
+          )}
+          {driveLink?.connected ? (
+            <DriveConnectedPanel email={driveLink.account_email} folderPath={driveLink.folder_path} lastSyncedAt={driveLink.last_synced_at} />
+          ) : (
+            <>
+              <p style={{ fontSize: 12, color: "var(--color-neutral-700)", marginBottom: 12 }}>
+                Kin keeps only the index — file names, dates and expiry reminders. The files themselves live in your own Drive.
+              </p>
+              <a href="/api/drive/connect" className="btn btn-primary btn-block" style={{ minHeight: 44, fontSize: 13.5, letterSpacing: ".04em" }}>
+                CONNECT GOOGLE DRIVE
+              </a>
+            </>
+          )}
+        </Blueprint>
+
+        <div style={{ font: "600 10px/1 var(--font-heading)", letterSpacing: ".16em", color: "var(--color-neutral-600)", marginBottom: 8 }}>APPEARANCE</div>
+        <div style={{ fontSize: 11.5, color: "var(--color-neutral-700)", marginBottom: 6 }}>Theme</div>
+        <ThemeControl current={me.theme} />
+        <div style={{ fontSize: 11.5, color: "var(--color-neutral-700)", marginBottom: 6 }}>Text size</div>
+        <TextSizeControl current={me.text_size} />
+
+        <div style={{ font: "600 10px/1 var(--font-heading)", letterSpacing: ".16em", color: "var(--color-neutral-600)", marginBottom: 2 }}>NOTIFICATIONS</div>
+        <NotificationToggles prefs={me.notification_prefs as Record<string, boolean>} />
+
+        <div style={{ font: "600 10px/1 var(--font-heading)", letterSpacing: ".16em", color: "var(--color-neutral-600)", margin: "22px 0 8px" }}>HOUSEHOLD</div>
+        <div style={{ fontSize: 11.5, color: "var(--color-neutral-700)", marginBottom: 6 }}>Household name</div>
+        <HouseholdNameForm familyId={me.family_id} name={me.families.name} />
+        <div style={{ fontSize: 11.5, color: "var(--color-neutral-700)", marginBottom: 6 }}>
+          Members · {memberCount ?? 0} · {managedCount ?? 0} managed profiles
+        </div>
+        <Link href="/family?seg=members" className="btn btn-secondary btn-block" style={{ minHeight: 40, fontSize: 12, marginBottom: 14 }}>
+          VIEW MEMBERS
+        </Link>
+        {me.is_organiser && (
+          <>
+            <div style={{ fontSize: 11.5, color: "var(--color-neutral-700)", marginBottom: 6 }}>Invite code</div>
+            <div style={{ marginBottom: 14 }}>
+              <InviteCodeCard code={me.families.invite_code} />
+            </div>
+          </>
+        )}
+        <div style={{ fontSize: 11.5, color: "var(--color-neutral-700)", marginBottom: 6 }}>Currency, dates and week start</div>
+        <HouseholdPrefsForm familyId={me.family_id} currency={me.families.currency} dateFormat={me.families.date_format} weekStart={me.families.week_start} />
+
+        <div style={{ font: "600 10px/1 var(--font-heading)", letterSpacing: ".16em", color: "var(--color-neutral-600)", margin: "8px 0 2px" }}>ACCOUNT</div>
+        <div style={{ padding: "13px 0", borderBottom: "1px solid color-mix(in srgb, var(--color-text) 10%, transparent)", fontSize: 14 }}>
+          {authUser.user?.email}
+        </div>
+        <form action={signOutAction}>
+          <button type="submit" className="btn btn-secondary btn-block" style={{ minHeight: 46, fontSize: 13.5, letterSpacing: ".04em", marginTop: 20 }}>
+            SIGN OUT
+          </button>
+        </form>
+        <div style={{ font: "400 10px/1.6 ui-monospace, Menlo, monospace", color: "var(--color-neutral-500)", textAlign: "center", marginTop: 14 }}>
+          KIN 1.0.0
+        </div>
+      </div>
+    </div>
+  );
+}
