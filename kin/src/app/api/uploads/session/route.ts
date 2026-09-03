@@ -42,7 +42,8 @@ export async function POST(request: Request) {
         if (!folder?.drive_folder_id) throw new Error("Drive folder missing");
         targetFolderId = folder.drive_folder_id;
       }
-      const uploadUrl = await createResumableUploadSession(driveToken, targetFolderId, fileName, mimeType);
+      const origin = request.headers.get("origin") ?? new URL(request.url).origin;
+      const uploadUrl = await createResumableUploadSession(driveToken, targetFolderId, fileName, mimeType, origin);
       return NextResponse.json({ provider: "google_drive", uploadUrl });
     } catch {
       // Falls through to the Supabase Storage session below.

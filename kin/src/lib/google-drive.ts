@@ -112,12 +112,18 @@ export async function ensureNamedSubfolder(accessToken: string, rootFolderId: st
  * URL the browser can PUT the file bytes to directly — the file itself never
  * passes through our server, so it isn't subject to Vercel's request body
  * limit. `fields` on the initial call carries through to the final response
- * the browser gets back after the PUT completes. */
+ * the browser gets back after the PUT completes.
+ *
+ * Drive only allows cross-origin PUTs to the session URL from the exact
+ * Origin that was present when the session was created — since this call
+ * itself runs server-side (no browser Origin header of its own), we pass
+ * the app's origin explicitly so the browser's follow-up PUT is allowed. */
 export async function createResumableUploadSession(
   accessToken: string,
   folderId: string,
   fileName: string,
   mimeType: string,
+  origin: string,
 ): Promise<string> {
   const res = await fetch(`${DRIVE_UPLOAD_API}/files?uploadType=resumable&fields=id,webViewLink,thumbnailLink`, {
     method: "POST",
@@ -125,6 +131,7 @@ export async function createResumableUploadSession(
       Authorization: `Bearer ${accessToken}`,
       "Content-Type": "application/json; charset=UTF-8",
       "X-Upload-Content-Type": mimeType || "application/octet-stream",
+      Origin: origin,
     },
     body: JSON.stringify({ name: fileName, parents: [folderId] }),
   });

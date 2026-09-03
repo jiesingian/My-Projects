@@ -960,7 +960,7 @@
       "file_type": "code",
       "norm_label": "createresumableuploadsession()",
       "source_file": "src/lib/google-drive.ts",
-      "source_location": "L116"
+      "source_location": "L121"
     },
     {
       "id": "src_lib_google_drive_drivefetch",
@@ -1008,7 +1008,7 @@
       "file_type": "code",
       "norm_label": "fetchdrivefile()",
       "source_file": "src/lib/google-drive.ts",
-      "source_location": "L141"
+      "source_location": "L148"
     },
     {
       "id": "src_lib_google_drive_getvaliddriveaccesstoken",
@@ -5070,7 +5070,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/app/api/uploads/session/route.ts",
-      "source_location": "L45",
+      "source_location": "L46",
       "weight": 1.0
     },
     {
@@ -6954,7 +6954,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/lib/google-drive.ts",
-      "source_location": "L142",
+      "source_location": "L149",
       "weight": 1.0
     },
     {
@@ -16468,17 +16468,6 @@
     },
     {
       "source": "src_lib_google_drive",
-      "target": "src_lib_google_drive_createresumableuploadsession",
-      "relation": "contains",
-      "_origin": "ast",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "source_file": "src/lib/google-drive.ts",
-      "source_location": "L116",
-      "weight": 1.0
-    },
-    {
-      "source": "src_lib_google_drive",
       "target": "src_lib_google_drive_getvaliddriveaccesstoken",
       "relation": "contains",
       "_origin": "ast",
@@ -16490,13 +16479,24 @@
     },
     {
       "source": "src_lib_google_drive",
+      "target": "src_lib_google_drive_createresumableuploadsession",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "src/lib/google-drive.ts",
+      "source_location": "L121",
+      "weight": 1.0
+    },
+    {
+      "source": "src_lib_google_drive",
       "target": "src_lib_google_drive_fetchdrivefile",
       "relation": "contains",
       "_origin": "ast",
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/lib/google-drive.ts",
-      "source_location": "L141",
+      "source_location": "L148",
       "weight": 1.0
     },
     {
@@ -17469,5 +17469,5 @@
       "source_file": "README.md"
     }
   ],
-  "built_at_commit": "120744223eb6468e0f7462506a0632ccb0391e84"
+  "built_at_commit": "be5e436cc180a02ea233ad3ea6871208284f5553"
 }
