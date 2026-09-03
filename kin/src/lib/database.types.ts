@@ -738,26 +738,47 @@ export type Database = {
       family_addresses: {
         Row: {
           address_line: string
+          barangay: string | null
+          building: string | null
+          city: string | null
+          country: string
           created_at: string
           family_id: string
+          house_no: string | null
           id: string
           label: string
+          province: string | null
+          street: string | null
           zip_code: string | null
         }
         Insert: {
           address_line: string
+          barangay?: string | null
+          building?: string | null
+          city?: string | null
+          country?: string
           created_at?: string
           family_id: string
+          house_no?: string | null
           id?: string
           label: string
+          province?: string | null
+          street?: string | null
           zip_code?: string | null
         }
         Update: {
           address_line?: string
+          barangay?: string | null
+          building?: string | null
+          city?: string | null
+          country?: string
           created_at?: string
           family_id?: string
+          house_no?: string | null
           id?: string
           label?: string
+          province?: string | null
+          street?: string | null
           zip_code?: string | null
         }
         Relationships: [

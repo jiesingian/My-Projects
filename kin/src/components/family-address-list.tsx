@@ -2,36 +2,63 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { addFamilyAddressAction, removeFamilyAddressAction } from "@/lib/actions/family";
+import { addFamilyAddressAction, removeFamilyAddressAction, type FamilyAddressFields } from "@/lib/actions/family";
 
-export type FamilyAddress = { id: string; label: string; address_line: string; zip_code: string | null };
+export type FamilyAddress = {
+  id: string;
+  label: string;
+  address_line: string;
+  house_no: string | null;
+  building: string | null;
+  street: string | null;
+  barangay: string | null;
+  city: string | null;
+  province: string | null;
+  country: string | null;
+  zip_code: string | null;
+};
 
 function mapsUrl(address: FamilyAddress) {
-  const query = [address.address_line, address.zip_code].filter(Boolean).join(", ");
+  const query =
+    [[address.house_no, address.building].filter(Boolean).join(" "), address.street, address.barangay, address.city, address.province, address.zip_code, address.country]
+      .filter(Boolean)
+      .join(", ") || address.address_line;
   return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(query)}`;
 }
 
+const emptyFields: FamilyAddressFields = {
+  label: "",
+  houseNo: "",
+  building: "",
+  street: "",
+  barangay: "",
+  city: "",
+  province: "",
+  country: "Philippines",
+  zipCode: "",
+};
+
 export function FamilyAddressList({ addresses, canEdit }: { addresses: FamilyAddress[]; canEdit: boolean }) {
   const [adding, setAdding] = useState(false);
-  const [label, setLabel] = useState("");
-  const [addressLine, setAddressLine] = useState("");
-  const [zipCode, setZipCode] = useState("");
+  const [fields, setFields] = useState<FamilyAddressFields>(emptyFields);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
 
+  function set<K extends keyof FamilyAddressFields>(key: K, value: string) {
+    setFields((f) => ({ ...f, [key]: value }));
+  }
+
   async function add() {
     setBusy(true);
     setError(null);
-    const result = await addFamilyAddressAction(label, addressLine, zipCode);
+    const result = await addFamilyAddressAction(fields);
     setBusy(false);
     if (result.error) {
       setError(result.error);
       return;
     }
-    setLabel("");
-    setAddressLine("");
-    setZipCode("");
+    setFields(emptyFields);
     setAdding(false);
     router.refresh();
   }
@@ -62,13 +89,18 @@ export function FamilyAddressList({ addresses, canEdit }: { addresses: FamilyAdd
               borderRadius: 3,
               padding: "3px 6px",
               flex: "none",
+              alignSelf: "flex-start",
             }}
           >
             {a.label}
           </span>
           <span style={{ flex: 1, minWidth: 0 }}>
-            <span style={{ fontSize: 13, display: "block" }}>{a.address_line}</span>
-            {a.zip_code && <span style={{ fontSize: 11, color: "var(--color-neutral-600)" }}>{a.zip_code}</span>}
+            <span style={{ fontSize: 13, display: "block" }}>
+              {[[a.house_no, a.building].filter(Boolean).join(" "), a.street].filter(Boolean).join(", ") || a.address_line}
+            </span>
+            <span style={{ fontSize: 11, color: "var(--color-neutral-600)" }}>
+              {[a.barangay, a.city, a.province, a.zip_code].filter(Boolean).join(", ")}
+            </span>
           </span>
           <a
             href={mapsUrl(a)}
@@ -94,19 +126,47 @@ export function FamilyAddressList({ addresses, canEdit }: { addresses: FamilyAdd
         <>
           {adding ? (
             <div style={{ marginTop: 10 }}>
+              <div className="field" style={{ marginBottom: 8 }}>
+                <label>TAG</label>
+                <input className="input" placeholder="Home" value={fields.label} onChange={(e) => set("label", e.target.value)} style={{ minHeight: 40 }} disabled={busy} />
+              </div>
               <div style={{ display: "flex", gap: 8, marginBottom: 8 }}>
-                <div className="field" style={{ width: 110 }}>
-                  <label>TAG</label>
-                  <input className="input" placeholder="Home" value={label} onChange={(e) => setLabel(e.target.value)} style={{ minHeight: 40 }} disabled={busy} />
-                </div>
                 <div className="field" style={{ flex: 1 }}>
-                  <label>ADDRESS</label>
-                  <input className="input" value={addressLine} onChange={(e) => setAddressLine(e.target.value)} style={{ minHeight: 40 }} disabled={busy} />
+                  <label>HOUSE / UNIT NO.</label>
+                  <input className="input" value={fields.houseNo} onChange={(e) => set("houseNo", e.target.value)} style={{ minHeight: 40 }} disabled={busy} />
+                </div>
+                <div className="field" style={{ flex: 2 }}>
+                  <label>BUILDING / SUBDIVISION</label>
+                  <input className="input" value={fields.building} onChange={(e) => set("building", e.target.value)} style={{ minHeight: 40 }} disabled={busy} />
                 </div>
               </div>
-              <div className="field" style={{ width: 140, marginBottom: 8 }}>
-                <label>ZIP / POSTAL CODE</label>
-                <input className="input" value={zipCode} onChange={(e) => setZipCode(e.target.value)} style={{ minHeight: 40 }} disabled={busy} />
+              <div className="field" style={{ marginBottom: 8 }}>
+                <label>STREET</label>
+                <input className="input" value={fields.street} onChange={(e) => set("street", e.target.value)} style={{ minHeight: 40 }} disabled={busy} />
+              </div>
+              <div style={{ display: "flex", gap: 8, marginBottom: 8 }}>
+                <div className="field" style={{ flex: 1 }}>
+                  <label>BARANGAY</label>
+                  <input className="input" value={fields.barangay} onChange={(e) => set("barangay", e.target.value)} style={{ minHeight: 40 }} disabled={busy} />
+                </div>
+                <div className="field" style={{ flex: 1 }}>
+                  <label>CITY / MUNICIPALITY</label>
+                  <input className="input" value={fields.city} onChange={(e) => set("city", e.target.value)} style={{ minHeight: 40 }} disabled={busy} />
+                </div>
+              </div>
+              <div style={{ display: "flex", gap: 8, marginBottom: 8 }}>
+                <div className="field" style={{ flex: 1 }}>
+                  <label>PROVINCE</label>
+                  <input className="input" value={fields.province} onChange={(e) => set("province", e.target.value)} style={{ minHeight: 40 }} disabled={busy} />
+                </div>
+                <div className="field" style={{ width: 110 }}>
+                  <label>ZIP CODE</label>
+                  <input className="input" value={fields.zipCode} onChange={(e) => set("zipCode", e.target.value)} style={{ minHeight: 40 }} disabled={busy} />
+                </div>
+              </div>
+              <div className="field" style={{ marginBottom: 8 }}>
+                <label>COUNTRY</label>
+                <input className="input" value={fields.country} onChange={(e) => set("country", e.target.value)} style={{ minHeight: 40 }} disabled={busy} />
               </div>
               {error && <p style={{ color: "var(--color-accent-700)", fontSize: 11.5, margin: "0 0 8px" }}>{error}</p>}
               <div style={{ display: "flex", gap: 8 }}>

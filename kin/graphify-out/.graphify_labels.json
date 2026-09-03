@@ -1,12 +1,12 @@
 {
-  "0": "[folderId]/page.tsx",
-  "1": "wealth/page.tsx",
-  "2": "requireCurrentMember",
+  "0": "icons.tsx",
+  "1": "[id]/page.tsx",
+  "2": "(app)/family/page.tsx",
   "3": "auth.ts",
   "4": "devDependencies",
   "5": "createClient",
   "6": "compilerOptions",
-  "7": "[id]/page.tsx",
+  "7": "profile.ts",
   "8": "household/page.tsx",
   "9": "database.types.ts",
   "10": "Kin — Family Operating System",
@@ -21,6 +21,5 @@
   "19": "Next.js Logo (public/next.svg)",
   "20": "Vercel Logo (UI Icon Asset)",
   "21": "Window Icon",
-  "22": "(app)/family/page.tsx",
-  "23": "actions/health.ts"
+  "22": "requireCurrentMember"
 }

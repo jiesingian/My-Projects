@@ -51,7 +51,7 @@ export function PhotoAlbumViewer({
   const imgStyle: React.CSSProperties =
     shape === "circle"
       ? { width: 240, height: 240, borderRadius: "50%", objectFit: "cover", border: "2px solid #fff" }
-      : { width: 320, height: 180, borderRadius: 4, objectFit: "cover", border: "2px solid #fff" };
+      : { width: "min(90vw, 480px)", aspectRatio: "4 / 3", borderRadius: 4, objectFit: "cover", border: "2px solid #fff" };
 
   return (
     <div role="dialog" aria-modal="true" onClick={onClose} style={overlayStyle}>

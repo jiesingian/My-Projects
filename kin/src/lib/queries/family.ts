@@ -6,7 +6,11 @@ export async function getFamilyProfile(familyId: string) {
   const supabase = await createClient();
   const [{ data: family }, { data: addresses }, { data: backgroundRows }] = await Promise.all([
     supabase.from("families").select("background_url").eq("id", familyId).maybeSingle(),
-    supabase.from("family_addresses").select("id, label, address_line, zip_code").eq("family_id", familyId).order("created_at"),
+    supabase
+      .from("family_addresses")
+      .select("id, label, address_line, house_no, building, street, barangay, city, province, country, zip_code")
+      .eq("family_id", familyId)
+      .order("created_at"),
     supabase.from("family_backgrounds").select("id, storage_path").eq("family_id", familyId).order("created_at", { ascending: false }),
   ]);
   const backgroundPhotos = (backgroundRows ?? []).map((row) => ({
