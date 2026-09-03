@@ -29,29 +29,44 @@ export function GalleryTile({
     return () => window.removeEventListener("keydown", onKey);
   }, [open]);
 
-  const content = (
-    <div className={showImage ? "" : "duotone"} style={{ aspectRatio: "1", border: "1px solid var(--color-divider)", position: "relative", overflow: "hidden", display: "flex", alignItems: "center", justifyContent: "center", background: showImage ? undefined : "repeating-linear-gradient(135deg,var(--color-neutral-300) 0 5px,var(--color-neutral-200) 5px 10px)" }}>
-      {showImage ? (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img src={url} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} onError={() => setBroken(true)} />
-      ) : (
-        <Icon name={mediaType === "video" ? "images" : "hardDrive"} size={22} className="text-[var(--color-neutral-600)]" />
-      )}
-      <span style={{ position: "absolute", bottom: 4, left: 4, font: "400 7.5px/1 ui-monospace, Menlo, monospace", background: "var(--color-bg)", padding: "2px 3px", color: "var(--color-neutral-700)" }}>
-        {date}
-      </span>
-    </div>
-  );
-
   return (
     <>
-      <button
-        type="button"
+      <div
+        role={showImage ? "button" : undefined}
+        tabIndex={showImage ? 0 : undefined}
         onClick={() => showImage && setOpen(true)}
-        style={{ all: "unset", display: "block", width: "100%", cursor: showImage ? "zoom-in" : "default" }}
+        onKeyDown={(e) => showImage && (e.key === "Enter" || e.key === " ") && setOpen(true)}
+        className={showImage ? "" : "duotone"}
+        style={{
+          aspectRatio: "1",
+          border: "1px solid var(--color-divider)",
+          position: "relative",
+          overflow: "hidden",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          cursor: showImage ? "zoom-in" : "default",
+          background: showImage ? undefined : "repeating-linear-gradient(135deg,var(--color-neutral-300) 0 5px,var(--color-neutral-200) 5px 10px)",
+        }}
       >
-        {content}
-      </button>
+        {showImage ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={url} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} onError={() => setBroken(true)} />
+        ) : (
+          <Icon name={mediaType === "video" ? "images" : "hardDrive"} size={22} className="text-[var(--color-neutral-600)]" />
+        )}
+        <span style={{ position: "absolute", bottom: 4, left: 4, font: "400 7.5px/1 ui-monospace, Menlo, monospace", background: "var(--color-bg)", padding: "2px 3px", color: "var(--color-neutral-700)" }}>
+          {date}
+        </span>
+        <DeleteButton
+          label="Delete photo"
+          confirmText="Delete this photo? This can't be undone."
+          onDelete={async () => {
+            await deleteJournalMediaAction(id);
+          }}
+          style={{ position: "absolute", top: 4, right: 4, background: "var(--color-bg)", border: "1px solid var(--color-divider)" }}
+        />
+      </div>
 
       {open && url && (
         <div
@@ -74,28 +89,17 @@ export function GalleryTile({
             // eslint-disable-next-line @next/next/no-img-element
             <img src={url} alt="" style={{ maxWidth: "100%", maxHeight: "100%", objectFit: "contain" }} onClick={(e) => e.stopPropagation()} />
           )}
-          <div style={{ position: "absolute", bottom: 16, right: 20, display: "flex", alignItems: "center", gap: 14 }}>
-            {viewLink && (
-              <a
-                href={viewLink}
-                target="_blank"
-                rel="noopener noreferrer"
-                onClick={(e) => e.stopPropagation()}
-                style={{ color: "#fff", fontSize: 11.5, textDecoration: "underline" }}
-              >
-                Open in Drive
-              </a>
-            )}
-            <DeleteButton
-              label="Delete photo"
-              confirmText="Delete this photo? This can't be undone."
-              onDelete={async () => {
-                await deleteJournalMediaAction(id);
-                setOpen(false);
-              }}
-              style={{ color: "#fff" }}
-            />
-          </div>
+          {viewLink && (
+            <a
+              href={viewLink}
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={(e) => e.stopPropagation()}
+              style={{ position: "absolute", bottom: 16, right: 20, color: "#fff", fontSize: 11.5, textDecoration: "underline" }}
+            >
+              Open in Drive
+            </a>
+          )}
         </div>
       )}
     </>

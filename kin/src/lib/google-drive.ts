@@ -155,3 +155,15 @@ export async function fetchDriveFile(accessToken: string, fileId: string): Promi
 export async function deleteDriveFile(accessToken: string, fileId: string): Promise<void> {
   await driveFetch(accessToken, `/files/${fileId}`, { method: "DELETE" });
 }
+
+/** Lists the ids of files still actually present (not trashed) directly
+ * under a Drive folder — used to reconcile our own index against files a
+ * person deleted straight from Drive, since we have no push notifications
+ * from Drive telling us that happened. */
+export async function listDriveFileIds(accessToken: string, folderId: string): Promise<Set<string>> {
+  const q = encodeURIComponent(`'${folderId}' in parents and trashed = false`);
+  const res = await driveFetch(accessToken, `/files?q=${q}&fields=files(id)&pageSize=1000`);
+  if (!res.ok) throw new Error(`Drive list failed: ${res.status} ${await res.text()}`);
+  const data = (await res.json()) as { files: { id: string }[] };
+  return new Set(data.files.map((f) => f.id));
+}

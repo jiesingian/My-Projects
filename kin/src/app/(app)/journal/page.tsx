@@ -31,16 +31,16 @@ export default async function JournalPage({
     <div>
       <HubHeader n="02" title="Journal" segments={segments} />
       <div style={{ padding: "0 22px 22px" }}>
-        {seg === "gallery" && <GalleryPane familyId={me.family_id} />}
-        {seg === "entries" && <EntriesPane familyId={me.family_id} />}
+        {seg === "gallery" && <GalleryPane familyId={me.family_id} familyName={me.families.name} />}
+        {seg === "entries" && <EntriesPane familyId={me.family_id} familyName={me.families.name} />}
         {seg === "milestones" && <MilestonesPane familyId={me.family_id} />}
       </div>
     </div>
   );
 }
 
-async function GalleryPane({ familyId }: { familyId: string }) {
-  const media = await getGallery(familyId);
+async function GalleryPane({ familyId, familyName }: { familyId: string; familyName: string }) {
+  const media = await getGallery(familyId, familyName);
   return (
     <>
       <GalleryUpload />
@@ -57,8 +57,8 @@ async function GalleryPane({ familyId }: { familyId: string }) {
   );
 }
 
-async function EntriesPane({ familyId }: { familyId: string }) {
-  const entries = await getEntries(familyId);
+async function EntriesPane({ familyId, familyName }: { familyId: string; familyName: string }) {
+  const entries = await getEntries(familyId, familyName);
   return (
     <>
       {entries.length === 0 && <p style={{ fontSize: 12, color: "var(--color-neutral-600)", marginBottom: 16 }}>Nothing logged yet.</p>}

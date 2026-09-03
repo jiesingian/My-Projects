@@ -1,7 +1,39 @@
 import { createClient } from "@/lib/supabase/server";
 import { getSignedUrls } from "@/lib/storage";
+import { getValidDriveAccessToken, ensureDriveFolderStructure, ensureNamedSubfolder, listDriveFileIds } from "@/lib/google-drive";
 
-export async function getGallery(familyId: string) {
+/** Drive has no push notifications wired up here, so a file deleted straight
+ * from Drive (not through the app) would otherwise keep showing up forever.
+ * Reconciles by listing what's actually still in the household's Journal
+ * folder and dropping any index rows Drive no longer has — best effort, and
+ * deliberately gives up rather than mass-deleting if Drive can't be reached. */
+async function pruneDeletedDriveMedia(familyId: string, familyName: string): Promise<void> {
+  const supabase = await createClient();
+  const { data: driveMedia } = await supabase
+    .from("journal_media")
+    .select("id, drive_file_id")
+    .eq("family_id", familyId)
+    .eq("storage_provider", "google_drive");
+  if (!driveMedia || driveMedia.length === 0) return;
+
+  const token = await getValidDriveAccessToken(familyId);
+  if (!token) return;
+
+  try {
+    const { rootFolderId } = await ensureDriveFolderStructure(familyId, token, familyName);
+    const folderId = await ensureNamedSubfolder(token, rootFolderId, "Journal");
+    const liveIds = await listDriveFileIds(token, folderId);
+    const staleIds = driveMedia.filter((m) => m.drive_file_id && !liveIds.has(m.drive_file_id)).map((m) => m.id);
+    if (staleIds.length > 0) {
+      await supabase.from("journal_media").delete().in("id", staleIds);
+    }
+  } catch {
+    // Drive unreachable or erroring — leave the index as-is rather than guess.
+  }
+}
+
+export async function getGallery(familyId: string, familyName: string) {
+  await pruneDeletedDriveMedia(familyId, familyName);
   const supabase = await createClient();
   const { data } = await supabase
     .from("journal_media")
@@ -25,7 +57,8 @@ export async function getGallery(familyId: string) {
   }));
 }
 
-export async function getEntries(familyId: string) {
+export async function getEntries(familyId: string, familyName: string) {
+  await pruneDeletedDriveMedia(familyId, familyName);
   const supabase = await createClient();
   const { data } = await supabase
     .from("journal_entries")
