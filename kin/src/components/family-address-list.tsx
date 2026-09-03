@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { addFamilyAddressAction, removeFamilyAddressAction, type FamilyAddressFields } from "@/lib/actions/family";
+import { addFamilyAddressAction, updateFamilyAddressAction, removeFamilyAddressAction, type FamilyAddressFields } from "@/lib/actions/family";
 
 export type FamilyAddress = {
   id: string;
@@ -38,8 +38,96 @@ const emptyFields: FamilyAddressFields = {
   zipCode: "",
 };
 
+function fieldsFromAddress(a: FamilyAddress): FamilyAddressFields {
+  return {
+    label: a.label,
+    houseNo: a.house_no ?? "",
+    building: a.building ?? "",
+    street: a.street ?? "",
+    barangay: a.barangay ?? "",
+    city: a.city ?? "",
+    province: a.province ?? "",
+    country: a.country ?? "Philippines",
+    zipCode: a.zip_code ?? "",
+  };
+}
+
+function AddressForm({
+  fields,
+  set,
+  busy,
+  error,
+  onCancel,
+  onSave,
+  saveLabel,
+}: {
+  fields: FamilyAddressFields;
+  set: <K extends keyof FamilyAddressFields>(key: K, value: string) => void;
+  busy: boolean;
+  error: string | null;
+  onCancel: () => void;
+  onSave: () => void;
+  saveLabel: string;
+}) {
+  return (
+    <div style={{ marginTop: 10, marginBottom: 10 }}>
+      <div className="field" style={{ marginBottom: 8 }}>
+        <label>TAG</label>
+        <input className="input" placeholder="Home" value={fields.label} onChange={(e) => set("label", e.target.value)} style={{ minHeight: 40 }} disabled={busy} />
+      </div>
+      <div style={{ display: "flex", gap: 8, marginBottom: 8 }}>
+        <div className="field" style={{ flex: 1 }}>
+          <label>HOUSE / UNIT NO.</label>
+          <input className="input" value={fields.houseNo} onChange={(e) => set("houseNo", e.target.value)} style={{ minHeight: 40 }} disabled={busy} />
+        </div>
+        <div className="field" style={{ flex: 2 }}>
+          <label>BUILDING / SUBDIVISION</label>
+          <input className="input" value={fields.building} onChange={(e) => set("building", e.target.value)} style={{ minHeight: 40 }} disabled={busy} />
+        </div>
+      </div>
+      <div className="field" style={{ marginBottom: 8 }}>
+        <label>STREET</label>
+        <input className="input" value={fields.street} onChange={(e) => set("street", e.target.value)} style={{ minHeight: 40 }} disabled={busy} />
+      </div>
+      <div style={{ display: "flex", gap: 8, marginBottom: 8 }}>
+        <div className="field" style={{ flex: 1 }}>
+          <label>BARANGAY</label>
+          <input className="input" value={fields.barangay} onChange={(e) => set("barangay", e.target.value)} style={{ minHeight: 40 }} disabled={busy} />
+        </div>
+        <div className="field" style={{ flex: 1 }}>
+          <label>CITY / MUNICIPALITY</label>
+          <input className="input" value={fields.city} onChange={(e) => set("city", e.target.value)} style={{ minHeight: 40 }} disabled={busy} />
+        </div>
+      </div>
+      <div style={{ display: "flex", gap: 8, marginBottom: 8 }}>
+        <div className="field" style={{ flex: 1 }}>
+          <label>PROVINCE</label>
+          <input className="input" value={fields.province} onChange={(e) => set("province", e.target.value)} style={{ minHeight: 40 }} disabled={busy} />
+        </div>
+        <div className="field" style={{ width: 110 }}>
+          <label>ZIP CODE</label>
+          <input className="input" value={fields.zipCode} onChange={(e) => set("zipCode", e.target.value)} style={{ minHeight: 40 }} disabled={busy} />
+        </div>
+      </div>
+      <div className="field" style={{ marginBottom: 8 }}>
+        <label>COUNTRY</label>
+        <input className="input" value={fields.country} onChange={(e) => set("country", e.target.value)} style={{ minHeight: 40 }} disabled={busy} />
+      </div>
+      {error && <p style={{ color: "var(--color-accent-700)", fontSize: 11.5, margin: "0 0 8px" }}>{error}</p>}
+      <div style={{ display: "flex", gap: 8 }}>
+        <button type="button" className="btn btn-secondary" style={{ flex: 1, minHeight: 38, fontSize: 12 }} disabled={busy} onClick={onCancel}>
+          CANCEL
+        </button>
+        <button type="button" className="btn btn-primary" style={{ flex: 1, minHeight: 38, fontSize: 12 }} disabled={busy} onClick={onSave}>
+          {busy ? "SAVING…" : saveLabel}
+        </button>
+      </div>
+    </div>
+  );
+}
+
 export function FamilyAddressList({ addresses, canEdit }: { addresses: FamilyAddress[]; canEdit: boolean }) {
-  const [adding, setAdding] = useState(false);
+  const [editingId, setEditingId] = useState<string | "new" | null>(null);
   const [fields, setFields] = useState<FamilyAddressFields>(emptyFields);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -49,17 +137,33 @@ export function FamilyAddressList({ addresses, canEdit }: { addresses: FamilyAdd
     setFields((f) => ({ ...f, [key]: value }));
   }
 
-  async function add() {
+  function startAdd() {
+    setFields(emptyFields);
+    setError(null);
+    setEditingId("new");
+  }
+
+  function startEdit(a: FamilyAddress) {
+    setFields(fieldsFromAddress(a));
+    setError(null);
+    setEditingId(a.id);
+  }
+
+  function cancelForm() {
+    setError(null);
+    setEditingId(null);
+  }
+
+  async function save() {
     setBusy(true);
     setError(null);
-    const result = await addFamilyAddressAction(fields);
+    const result = editingId === "new" ? await addFamilyAddressAction(fields) : await updateFamilyAddressAction(editingId!, fields);
     setBusy(false);
     if (result.error) {
       setError(result.error);
       return;
     }
-    setFields(emptyFields);
-    setAdding(false);
+    setEditingId(null);
     router.refresh();
   }
 
@@ -74,117 +178,67 @@ export function FamilyAddressList({ addresses, canEdit }: { addresses: FamilyAdd
       <div style={{ font: "600 10px/1 var(--font-heading)", letterSpacing: ".14em", color: "var(--color-neutral-600)", marginBottom: 8 }}>
         ADDRESSES
       </div>
-      {addresses.length === 0 && !adding && (
+      {addresses.length === 0 && editingId !== "new" && (
         <div style={{ fontSize: 12, color: "var(--color-neutral-600)", marginBottom: 10 }}>No addresses added yet.</div>
       )}
-      {addresses.map((a) => (
-        <div key={a.id} style={{ display: "flex", alignItems: "center", gap: 10, padding: "9px 0", borderBottom: "1px solid var(--color-divider)" }}>
-          <span
-            style={{
-              font: "600 9px/1 var(--font-heading)",
-              letterSpacing: ".08em",
-              textTransform: "uppercase",
-              color: "var(--color-accent-700)",
-              border: "1px solid var(--color-accent-700)",
-              borderRadius: 3,
-              padding: "3px 6px",
-              flex: "none",
-              alignSelf: "flex-start",
-            }}
-          >
-            {a.label}
-          </span>
-          <span style={{ flex: 1, minWidth: 0 }}>
-            <span style={{ fontSize: 13, display: "block" }}>
-              {[[a.house_no, a.building].filter(Boolean).join(" "), a.street].filter(Boolean).join(", ") || a.address_line}
-            </span>
-            <span style={{ fontSize: 11, color: "var(--color-neutral-600)" }}>
-              {[a.barangay, a.city, a.province, a.zip_code].filter(Boolean).join(", ")}
-            </span>
-          </span>
-          <a
-            href={mapsUrl(a)}
-            target="_blank"
-            rel="noopener noreferrer"
-            style={{ fontSize: 11, color: "var(--color-accent-700)", textDecoration: "none", flex: "none" }}
-          >
-            MAP ↗
-          </a>
-          {canEdit && (
-            <button
-              type="button"
-              onClick={() => remove(a.id)}
-              style={{ all: "unset", cursor: "pointer", fontSize: 11, color: "var(--color-accent-700)" }}
+      {addresses.map((a) =>
+        editingId === a.id ? (
+          <AddressForm key={a.id} fields={fields} set={set} busy={busy} error={error} onCancel={cancelForm} onSave={save} saveLabel="SAVE ADDRESS" />
+        ) : (
+          <div key={a.id} style={{ display: "flex", alignItems: "center", gap: 10, padding: "9px 0", borderBottom: "1px solid var(--color-divider)" }}>
+            <span
+              style={{
+                font: "600 9px/1 var(--font-heading)",
+                letterSpacing: ".08em",
+                textTransform: "uppercase",
+                color: "var(--color-accent-700)",
+                border: "1px solid var(--color-accent-700)",
+                borderRadius: 3,
+                padding: "3px 6px",
+                flex: "none",
+                alignSelf: "flex-start",
+              }}
             >
-              REMOVE
-            </button>
-          )}
-        </div>
-      ))}
-
-      {canEdit && (
-        <>
-          {adding ? (
-            <div style={{ marginTop: 10 }}>
-              <div className="field" style={{ marginBottom: 8 }}>
-                <label>TAG</label>
-                <input className="input" placeholder="Home" value={fields.label} onChange={(e) => set("label", e.target.value)} style={{ minHeight: 40 }} disabled={busy} />
-              </div>
-              <div style={{ display: "flex", gap: 8, marginBottom: 8 }}>
-                <div className="field" style={{ flex: 1 }}>
-                  <label>HOUSE / UNIT NO.</label>
-                  <input className="input" value={fields.houseNo} onChange={(e) => set("houseNo", e.target.value)} style={{ minHeight: 40 }} disabled={busy} />
-                </div>
-                <div className="field" style={{ flex: 2 }}>
-                  <label>BUILDING / SUBDIVISION</label>
-                  <input className="input" value={fields.building} onChange={(e) => set("building", e.target.value)} style={{ minHeight: 40 }} disabled={busy} />
-                </div>
-              </div>
-              <div className="field" style={{ marginBottom: 8 }}>
-                <label>STREET</label>
-                <input className="input" value={fields.street} onChange={(e) => set("street", e.target.value)} style={{ minHeight: 40 }} disabled={busy} />
-              </div>
-              <div style={{ display: "flex", gap: 8, marginBottom: 8 }}>
-                <div className="field" style={{ flex: 1 }}>
-                  <label>BARANGAY</label>
-                  <input className="input" value={fields.barangay} onChange={(e) => set("barangay", e.target.value)} style={{ minHeight: 40 }} disabled={busy} />
-                </div>
-                <div className="field" style={{ flex: 1 }}>
-                  <label>CITY / MUNICIPALITY</label>
-                  <input className="input" value={fields.city} onChange={(e) => set("city", e.target.value)} style={{ minHeight: 40 }} disabled={busy} />
-                </div>
-              </div>
-              <div style={{ display: "flex", gap: 8, marginBottom: 8 }}>
-                <div className="field" style={{ flex: 1 }}>
-                  <label>PROVINCE</label>
-                  <input className="input" value={fields.province} onChange={(e) => set("province", e.target.value)} style={{ minHeight: 40 }} disabled={busy} />
-                </div>
-                <div className="field" style={{ width: 110 }}>
-                  <label>ZIP CODE</label>
-                  <input className="input" value={fields.zipCode} onChange={(e) => set("zipCode", e.target.value)} style={{ minHeight: 40 }} disabled={busy} />
-                </div>
-              </div>
-              <div className="field" style={{ marginBottom: 8 }}>
-                <label>COUNTRY</label>
-                <input className="input" value={fields.country} onChange={(e) => set("country", e.target.value)} style={{ minHeight: 40 }} disabled={busy} />
-              </div>
-              {error && <p style={{ color: "var(--color-accent-700)", fontSize: 11.5, margin: "0 0 8px" }}>{error}</p>}
-              <div style={{ display: "flex", gap: 8 }}>
-                <button type="button" className="btn btn-secondary" style={{ flex: 1, minHeight: 38, fontSize: 12 }} disabled={busy} onClick={() => setAdding(false)}>
-                  CANCEL
+              {a.label}
+            </span>
+            <span style={{ flex: 1, minWidth: 0 }}>
+              <span style={{ fontSize: 13, display: "block" }}>
+                {[[a.house_no, a.building].filter(Boolean).join(" "), a.street].filter(Boolean).join(", ") || a.address_line}
+              </span>
+              <span style={{ fontSize: 11, color: "var(--color-neutral-600)" }}>
+                {[a.barangay, a.city, a.province, a.zip_code].filter(Boolean).join(", ")}
+              </span>
+            </span>
+            <a
+              href={mapsUrl(a)}
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{ fontSize: 11, color: "var(--color-accent-700)", textDecoration: "none", flex: "none" }}
+            >
+              MAP ↗
+            </a>
+            {canEdit && (
+              <>
+                <button type="button" onClick={() => startEdit(a)} style={{ all: "unset", cursor: "pointer", fontSize: 11, color: "var(--color-accent-700)" }}>
+                  EDIT
                 </button>
-                <button type="button" className="btn btn-primary" style={{ flex: 1, minHeight: 38, fontSize: 12 }} disabled={busy} onClick={add}>
-                  {busy ? "SAVING…" : "SAVE ADDRESS"}
+                <button type="button" onClick={() => remove(a.id)} style={{ all: "unset", cursor: "pointer", fontSize: 11, color: "var(--color-accent-700)" }}>
+                  REMOVE
                 </button>
-              </div>
-            </div>
-          ) : (
-            <button type="button" className="btn btn-secondary btn-block" style={{ minHeight: 36, fontSize: 11.5, marginTop: 10 }} onClick={() => setAdding(true)}>
-              + ADD ADDRESS
-            </button>
-          )}
-        </>
+              </>
+            )}
+          </div>
+        ),
       )}
+
+      {canEdit &&
+        (editingId === "new" ? (
+          <AddressForm fields={fields} set={set} busy={busy} error={error} onCancel={cancelForm} onSave={save} saveLabel="SAVE ADDRESS" />
+        ) : (
+          <button type="button" className="btn btn-secondary btn-block" style={{ minHeight: 36, fontSize: 11.5, marginTop: 10 }} onClick={startAdd}>
+            + ADD ADDRESS
+          </button>
+        ))}
     </div>
   );
 }

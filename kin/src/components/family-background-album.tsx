@@ -32,12 +32,11 @@ export function FamilyBackgroundAlbum({
           cursor: "pointer",
           display: "block",
           width: "100%",
-          maxWidth: 480,
           position: "relative",
           aspectRatio: "4 / 3",
           borderRadius: 4,
           overflow: "hidden",
-          background: backgroundUrl ? `center/cover no-repeat url(${backgroundUrl})` : "var(--color-neutral-200)",
+          background: backgroundUrl ? `center center / cover no-repeat url(${backgroundUrl})` : "var(--color-neutral-200)",
           border: "1px solid var(--color-divider)",
         }}
         aria-label="View household photos"

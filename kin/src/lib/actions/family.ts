@@ -211,6 +211,18 @@ export async function deleteFamilyBackgroundAction(backgroundId: string): Promis
   return { error: null };
 }
 
+/** Sets the household's "about" blurb shown under the cover photo.
+ * Organizer only — RLS enforces this too via families_update. */
+export async function updateFamilyAboutAction(about: string): Promise<ActionState> {
+  const me = await requireCurrentMember();
+  if (!me.is_organiser) return { error: "Only the organizer can edit the household's about section." };
+
+  const supabase = await createClient();
+  const { error } = await supabase.from("families").update({ about: about.trim() || null }).eq("id", me.family_id);
+  revalidatePath("/family");
+  return { error: error?.message ?? null };
+}
+
 export type FamilyAddressFields = {
   label: string;
   houseNo: string;
@@ -223,6 +235,24 @@ export type FamilyAddressFields = {
   zipCode: string;
 };
 
+function normalizeAddressFields(fields: FamilyAddressFields) {
+  const label = fields.label.trim();
+  const houseNo = fields.houseNo.trim() || null;
+  const building = fields.building.trim() || null;
+  const street = fields.street.trim();
+  const barangay = fields.barangay.trim() || null;
+  const city = fields.city.trim();
+  const province = fields.province.trim() || null;
+  const country = fields.country.trim() || "Philippines";
+  const zipCode = fields.zipCode.trim() || null;
+
+  const addressLine = [[houseNo, building].filter(Boolean).join(" "), street, barangay, city, province, country]
+    .filter(Boolean)
+    .join(", ");
+
+  return { label, houseNo, building, street, barangay, city, province, country, zipCode, addressLine };
+}
+
 /** Adds a tagged address to the household profile (e.g. "Home", "Office"),
  * broken into the fields a Philippine address form typically asks for.
  * `address_line` is kept as a derived, joined string alongside the
@@ -233,42 +263,52 @@ export async function addFamilyAddressAction(fields: FamilyAddressFields): Promi
   const me = await requireCurrentMember();
   if (!me.is_organiser) return { error: "Only the organizer can add household addresses." };
 
-  const label = fields.label.trim();
-  const houseNo = fields.houseNo.trim() || null;
-  const building = fields.building.trim() || null;
-  const street = fields.street.trim();
-  const barangay = fields.barangay.trim() || null;
-  const city = fields.city.trim();
-  const province = fields.province.trim() || null;
-  const country = fields.country.trim() || "Philippines";
-  const zipCode = fields.zipCode.trim() || null;
-  if (!label || !street || !city) return { error: "Tag, street, and city are required." };
-
-  const addressLine = [
-    [houseNo, building].filter(Boolean).join(" "),
-    street,
-    barangay,
-    city,
-    province,
-    country,
-  ]
-    .filter(Boolean)
-    .join(", ");
+  const f = normalizeAddressFields(fields);
+  if (!f.label || !f.street || !f.city) return { error: "Tag, street, and city are required." };
 
   const supabase = await createClient();
   const { error } = await supabase.from("family_addresses").insert({
     family_id: me.family_id,
-    label,
-    house_no: houseNo,
-    building,
-    street,
-    barangay,
-    city,
-    province,
-    country,
-    zip_code: zipCode,
-    address_line: addressLine,
+    label: f.label,
+    house_no: f.houseNo,
+    building: f.building,
+    street: f.street,
+    barangay: f.barangay,
+    city: f.city,
+    province: f.province,
+    country: f.country,
+    zip_code: f.zipCode,
+    address_line: f.addressLine,
   });
+  revalidatePath("/family");
+  return { error: error?.message ?? null };
+}
+
+/** Edits an existing household address in place. Organizer only — RLS
+ * enforces this too. */
+export async function updateFamilyAddressAction(addressId: string, fields: FamilyAddressFields): Promise<ActionState> {
+  const me = await requireCurrentMember();
+  if (!me.is_organiser) return { error: "Only the organizer can edit household addresses." };
+
+  const f = normalizeAddressFields(fields);
+  if (!f.label || !f.street || !f.city) return { error: "Tag, street, and city are required." };
+
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("family_addresses")
+    .update({
+      label: f.label,
+      house_no: f.houseNo,
+      building: f.building,
+      street: f.street,
+      barangay: f.barangay,
+      city: f.city,
+      province: f.province,
+      country: f.country,
+      zip_code: f.zipCode,
+      address_line: f.addressLine,
+    })
+    .eq("id", addressId);
   revalidatePath("/family");
   return { error: error?.message ?? null };
 }

@@ -15,6 +15,7 @@ import { Avatar } from "@/components/avatar";
 import { ProfileEditForm } from "@/components/profile-edit-form";
 import { MemberProfileEditor } from "@/components/member-profile-editor";
 import type { AlbumPhoto } from "@/lib/actions/profile";
+import { memberToProfileFields } from "@/lib/profile-fields";
 
 const SEGMENTS = ["schedule", "conditions", "labs", "vitals"] as const;
 type Seg = (typeof SEGMENTS)[number];
@@ -82,15 +83,7 @@ export default async function MemberDetailPage({
               avatarUrl={member.avatar_url}
               initials={initials(member.full_name)}
               photos={photos}
-              initial={{
-                full_name: member.full_name,
-                dob: member.dob,
-                mobile: member.mobile,
-                blood_type: member.blood_type,
-                allergies: member.allergies,
-                insurance_info: member.insurance_info,
-                physician_name: member.physician_name,
-              }}
+              initial={memberToProfileFields(member)}
             />
           ) : (
             <>
@@ -118,15 +111,7 @@ export default async function MemberDetailPage({
                 memberId={member.id}
                 isSelf={false}
                 canEdit={me.is_organiser}
-                initial={{
-                  full_name: member.full_name,
-                  dob: member.dob,
-                  mobile: member.mobile,
-                  blood_type: member.blood_type,
-                  allergies: member.allergies,
-                  insurance_info: member.insurance_info,
-                  physician_name: member.physician_name,
-                }}
+                initial={memberToProfileFields(member)}
               />
             </>
           )

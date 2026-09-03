@@ -704,6 +704,7 @@ export type Database = {
       }
       families: {
         Row: {
+          about: string | null
           background_url: string | null
           created_at: string
           currency: string
@@ -714,6 +715,7 @@ export type Database = {
           week_start: string
         }
         Insert: {
+          about?: string | null
           background_url?: string | null
           created_at?: string
           currency?: string
@@ -724,6 +726,7 @@ export type Database = {
           week_start?: string
         }
         Update: {
+          about?: string | null
           background_url?: string | null
           created_at?: string
           currency?: string
@@ -1601,63 +1604,117 @@ export type Database = {
           auth_user_id: string | null
           avatar_url: string | null
           blood_type: string | null
+          college: string | null
           created_at: string
           dob: string | null
+          email: string | null
+          employer_name: string | null
+          employment_end_date: string | null
+          employment_start_date: string | null
           family_id: string
           full_name: string
+          height: string | null
+          high_school: string | null
           id: string
           insurance_info: string | null
           is_organiser: boolean
           mobile: string | null
           notification_prefs: Json
+          pagibig_number: string | null
+          pants_size: string | null
+          philhealth_number: string | null
           physician_name: string | null
+          place_of_birth: string | null
           relationship: string | null
           role: string
+          shoe_size: string | null
+          sss_number: string | null
           status: string
           text_size: string
           theme: string
+          tin_number: string | null
+          tshirt_size: string | null
+          weight: string | null
+          work_contact_info: string | null
+          work_email: string | null
         }
         Insert: {
           allergies?: string | null
           auth_user_id?: string | null
           avatar_url?: string | null
           blood_type?: string | null
+          college?: string | null
           created_at?: string
           dob?: string | null
+          email?: string | null
+          employer_name?: string | null
+          employment_end_date?: string | null
+          employment_start_date?: string | null
           family_id: string
           full_name: string
+          height?: string | null
+          high_school?: string | null
           id?: string
           insurance_info?: string | null
           is_organiser?: boolean
           mobile?: string | null
           notification_prefs?: Json
+          pagibig_number?: string | null
+          pants_size?: string | null
+          philhealth_number?: string | null
           physician_name?: string | null
+          place_of_birth?: string | null
           relationship?: string | null
           role: string
+          shoe_size?: string | null
+          sss_number?: string | null
           status?: string
           text_size?: string
           theme?: string
+          tin_number?: string | null
+          tshirt_size?: string | null
+          weight?: string | null
+          work_contact_info?: string | null
+          work_email?: string | null
         }
         Update: {
           allergies?: string | null
           auth_user_id?: string | null
           avatar_url?: string | null
           blood_type?: string | null
+          college?: string | null
           created_at?: string
           dob?: string | null
+          email?: string | null
+          employer_name?: string | null
+          employment_end_date?: string | null
+          employment_start_date?: string | null
           family_id?: string
           full_name?: string
+          height?: string | null
+          high_school?: string | null
           id?: string
           insurance_info?: string | null
           is_organiser?: boolean
           mobile?: string | null
           notification_prefs?: Json
+          pagibig_number?: string | null
+          pants_size?: string | null
+          philhealth_number?: string | null
           physician_name?: string | null
+          place_of_birth?: string | null
           relationship?: string | null
           role?: string
+          shoe_size?: string | null
+          sss_number?: string | null
           status?: string
           text_size?: string
           theme?: string
+          tin_number?: string | null
+          tshirt_size?: string | null
+          weight?: string | null
+          work_contact_info?: string | null
+          work_email?: string | null
         }
         Relationships: [
           {
@@ -1923,21 +1980,39 @@ export type Database = {
           auth_user_id: string | null
           avatar_url: string | null
           blood_type: string | null
+          college: string | null
           created_at: string
           dob: string | null
+          email: string | null
+          employer_name: string | null
+          employment_end_date: string | null
+          employment_start_date: string | null
           family_id: string
           full_name: string
+          height: string | null
+          high_school: string | null
           id: string
           insurance_info: string | null
           is_organiser: boolean
           mobile: string | null
           notification_prefs: Json
+          pagibig_number: string | null
+          pants_size: string | null
+          philhealth_number: string | null
           physician_name: string | null
+          place_of_birth: string | null
           relationship: string | null
           role: string
+          shoe_size: string | null
+          sss_number: string | null
           status: string
           text_size: string
           theme: string
+          tin_number: string | null
+          tshirt_size: string | null
+          weight: string | null
+          work_contact_info: string | null
+          work_email: string | null
         }
         SetofOptions: {
           from: "*"
@@ -1958,21 +2033,39 @@ export type Database = {
           auth_user_id: string | null
           avatar_url: string | null
           blood_type: string | null
+          college: string | null
           created_at: string
           dob: string | null
+          email: string | null
+          employer_name: string | null
+          employment_end_date: string | null
+          employment_start_date: string | null
           family_id: string
           full_name: string
+          height: string | null
+          high_school: string | null
           id: string
           insurance_info: string | null
           is_organiser: boolean
           mobile: string | null
           notification_prefs: Json
+          pagibig_number: string | null
+          pants_size: string | null
+          philhealth_number: string | null
           physician_name: string | null
+          place_of_birth: string | null
           relationship: string | null
           role: string
+          shoe_size: string | null
+          sss_number: string | null
           status: string
           text_size: string
           theme: string
+          tin_number: string | null
+          tshirt_size: string | null
+          weight: string | null
+          work_contact_info: string | null
+          work_email: string | null
         }
         SetofOptions: {
           from: "*"
@@ -1999,21 +2092,39 @@ export type Database = {
           auth_user_id: string | null
           avatar_url: string | null
           blood_type: string | null
+          college: string | null
           created_at: string
           dob: string | null
+          email: string | null
+          employer_name: string | null
+          employment_end_date: string | null
+          employment_start_date: string | null
           family_id: string
           full_name: string
+          height: string | null
+          high_school: string | null
           id: string
           insurance_info: string | null
           is_organiser: boolean
           mobile: string | null
           notification_prefs: Json
+          pagibig_number: string | null
+          pants_size: string | null
+          philhealth_number: string | null
           physician_name: string | null
+          place_of_birth: string | null
           relationship: string | null
           role: string
+          shoe_size: string | null
+          sss_number: string | null
           status: string
           text_size: string
           theme: string
+          tin_number: string | null
+          tshirt_size: string | null
+          weight: string | null
+          work_contact_info: string | null
+          work_email: string | null
         }
         SetofOptions: {
           from: "*"

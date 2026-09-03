@@ -9,6 +9,7 @@ import { PendingMemberActions } from "@/components/pending-member-actions";
 import { RemoveMemberButton, ReinstateMemberButton } from "@/components/member-status-actions";
 import { Avatar } from "@/components/avatar";
 import { FamilyBackgroundAlbum } from "@/components/family-background-album";
+import { FamilyAboutEditor } from "@/components/family-about-editor";
 import { FamilyAddressList } from "@/components/family-address-list";
 import { formatAge, initials } from "@/lib/format";
 
@@ -46,7 +47,7 @@ export default async function FamilyPage({
 }
 
 async function ProfilePane({ familyId, isOrganiser, myId }: { familyId: string; isOrganiser: boolean; myId: string }) {
-  const [allMembers, { backgroundUrl, addresses, backgroundPhotos }] = await Promise.all([getMembers(familyId), getFamilyProfile(familyId)]);
+  const [allMembers, { backgroundUrl, about, addresses, backgroundPhotos }] = await Promise.all([getMembers(familyId), getFamilyProfile(familyId)]);
   const pending = allMembers.filter((m) => m.status === "pending");
   const removed = allMembers.filter((m) => m.status === "removed");
   const members = allMembers.filter((m) => m.status !== "pending" && m.status !== "removed");
@@ -54,6 +55,7 @@ async function ProfilePane({ familyId, isOrganiser, myId }: { familyId: string; 
   return (
     <>
       <FamilyBackgroundAlbum familyId={familyId} backgroundUrl={backgroundUrl} photos={backgroundPhotos} canEdit={isOrganiser} />
+      <FamilyAboutEditor about={about} canEdit={isOrganiser} />
       <FamilyAddressList addresses={addresses} canEdit={isOrganiser} />
       <div style={{ height: 1, background: "var(--color-divider)", margin: "4px 0 18px" }} />
 

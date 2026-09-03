@@ -5,7 +5,7 @@ import type { Tables } from "@/lib/database.types";
 export async function getFamilyProfile(familyId: string) {
   const supabase = await createClient();
   const [{ data: family }, { data: addresses }, { data: backgroundRows }] = await Promise.all([
-    supabase.from("families").select("background_url").eq("id", familyId).maybeSingle(),
+    supabase.from("families").select("background_url, about").eq("id", familyId).maybeSingle(),
     supabase
       .from("family_addresses")
       .select("id, label, address_line, house_no, building, street, barangay, city, province, country, zip_code")
@@ -17,7 +17,7 @@ export async function getFamilyProfile(familyId: string) {
     id: row.id,
     url: supabase.storage.from("avatars").getPublicUrl(row.storage_path).data.publicUrl,
   }));
-  return { backgroundUrl: family?.background_url ?? null, addresses: addresses ?? [], backgroundPhotos };
+  return { backgroundUrl: family?.background_url ?? null, about: family?.about ?? null, addresses: addresses ?? [], backgroundPhotos };
 }
 
 export async function getMembers(familyId: string) {

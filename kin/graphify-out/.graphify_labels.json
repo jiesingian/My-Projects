@@ -1,16 +1,16 @@
 {
-  "0": "icons.tsx",
-  "1": "[id]/page.tsx",
-  "2": "(app)/family/page.tsx",
+  "0": "FamilyBackgroundCropUpload",
+  "1": "getCurrentMember",
+  "2": "requireCurrentMember",
   "3": "auth.ts",
   "4": "devDependencies",
   "5": "createClient",
   "6": "compilerOptions",
   "7": "profile.ts",
   "8": "household/page.tsx",
-  "9": "database.types.ts",
+  "9": "actions/journal.ts",
   "10": "Kin — Family Operating System",
-  "11": "getCurrentMember",
+  "11": "database.types.ts",
   "12": "proxy.ts",
   "13": "app/layout.tsx",
   "14": "eslint.config.mjs",
@@ -21,5 +21,5 @@
   "19": "Next.js Logo (public/next.svg)",
   "20": "Vercel Logo (UI Icon Asset)",
   "21": "Window Icon",
-  "22": "requireCurrentMember"
+  "22": "actions/family.ts"
 }

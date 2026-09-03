@@ -60,15 +60,15 @@
     "semantic_hash": ""
   },
   "src/app/(app)/family/members/[id]/page.tsx": {
-    "mtime": 1788415144.1275327,
-    "seen": 1788415175.781336,
-    "ast_hash": "c7354649d05200adec6641240c9eb6ed",
+    "mtime": 1788420530.472029,
+    "seen": 1788420569.8788655,
+    "ast_hash": "358087a09d96b4d9b8aba995bc0814b6",
     "semantic_hash": ""
   },
   "src/app/(app)/family/page.tsx": {
-    "mtime": 1788417069.8175025,
-    "seen": 1788417132.0062904,
-    "ast_hash": "d631bac5d1875d136e8b4fb9c173011d",
+    "mtime": 1788420237.4760182,
+    "seen": 1788420569.8788676,
+    "ast_hash": "b529c5b92318703a9645f37522e0692d",
     "semantic_hash": ""
   },
   "src/app/(app)/household/meals/new/page.tsx": {
@@ -360,9 +360,9 @@
     "semantic_hash": ""
   },
   "src/lib/actions/family.ts": {
-    "mtime": 1788418109.6843069,
-    "seen": 1788418457.2371087,
-    "ast_hash": "1b410b74a90ce9e7514adb5a2d1283fd",
+    "mtime": 1788420195.3680167,
+    "seen": 1788420569.8790174,
+    "ast_hash": "c73f1ad5df7ce2ccd705a1b1bf2357fd",
     "semantic_hash": ""
   },
   "src/lib/actions/health.ts": {
@@ -402,9 +402,9 @@
     "semantic_hash": ""
   },
   "src/lib/database.types.ts": {
-    "mtime": 1788418095.8267303,
-    "seen": 1788418457.2371151,
-    "ast_hash": "907a51a3df7a49e85b841298b47a132d",
+    "mtime": 1788420163.921342,
+    "seen": 1788420569.8790298,
+    "ast_hash": "e9f07feb470fc3188aa1dae2aa5aec3b",
     "semantic_hash": ""
   },
   "src/lib/format.ts": {
@@ -414,9 +414,9 @@
     "semantic_hash": ""
   },
   "src/lib/queries/family.ts": {
-    "mtime": 1788418116.7923071,
-    "seen": 1788418457.2371185,
-    "ast_hash": "e93adad5c225523b150e570a7eb1a30f",
+    "mtime": 1788420220.5560176,
+    "seen": 1788420569.8790376,
+    "ast_hash": "b95e2901c4956132acc0f03695744b4a",
     "semantic_hash": ""
   },
   "src/lib/queries/health.ts": {
@@ -648,9 +648,9 @@
     "semantic_hash": ""
   },
   "src/components/profile-edit-form.tsx": {
-    "mtime": 1788412474.4358706,
-    "seen": 1788412539.3735874,
-    "ast_hash": "0c08fd43d5bba90b323e98d8261edefc",
+    "mtime": 1788420376.5360231,
+    "seen": 1788420569.8789916,
+    "ast_hash": "b1aed9640291e8a2d365550026e102f9",
     "semantic_hash": ""
   },
   "src/components/transfer-organizer-role.tsx": {
@@ -660,9 +660,9 @@
     "semantic_hash": ""
   },
   "src/lib/actions/profile.ts": {
-    "mtime": 1788413483.7065208,
-    "seen": 1788414302.699092,
-    "ast_hash": "2c310b4353257779fe7674cb1d3d4e86",
+    "mtime": 1788420524.0000286,
+    "seen": 1788420569.8790255,
+    "ast_hash": "cab35d8e3503c38decc16a2c705c151c",
     "semantic_hash": ""
   },
   "src/components/avatar-album-viewer.tsx": {
@@ -678,21 +678,21 @@
     "semantic_hash": ""
   },
   "src/components/member-profile-editor.tsx": {
-    "mtime": 1788414177.4674754,
-    "seen": 1788414302.6990776,
-    "ast_hash": "81b8ca873edd42b2e2aa21babdca1042",
+    "mtime": 1788420356.4880226,
+    "seen": 1788420569.8789823,
+    "ast_hash": "49cc05ce06e6357149f8aa49bb0d13bb",
     "semantic_hash": ""
   },
   "src/components/family-address-list.tsx": {
-    "mtime": 1788418137.9923084,
-    "seen": 1788418457.2370815,
-    "ast_hash": "c847d314f61f301f79da949962d17653",
+    "mtime": 1788420271.6240194,
+    "seen": 1788420569.8789587,
+    "ast_hash": "52b10d3927b8211dde78093b16c6320e",
     "semantic_hash": ""
   },
   "src/components/family-background-album.tsx": {
-    "mtime": 1788418053.1643033,
-    "seen": 1788418457.2370834,
-    "ast_hash": "1d40160c7fb9857321d9be16a9072e50",
+    "mtime": 1788420016.19601,
+    "seen": 1788420569.87896,
+    "ast_hash": "3601f869107ef99578558c2b73b140cf",
     "semantic_hash": ""
   },
   "src/components/photo-album-viewer.tsx": {
@@ -705,6 +705,24 @@
     "mtime": 1788418407.4763246,
     "seen": 1788418457.2370846,
     "ast_hash": "a8c2c7985708be2d07ff979ae0794f88",
+    "semantic_hash": ""
+  },
+  "src/components/family-about-editor.tsx": {
+    "mtime": 1788420204.972017,
+    "seen": 1788420569.8789563,
+    "ast_hash": "ca6d324c4e3a01f028c9c52d21485897",
+    "semantic_hash": ""
+  },
+  "src/components/profile-fields.tsx": {
+    "mtime": 1788420331.4280217,
+    "seen": 1788420569.8789928,
+    "ast_hash": "7a8100f3bdde454e9b640e5fb200096b",
+    "semantic_hash": ""
+  },
+  "src/lib/profile-fields.ts": {
+    "mtime": 1788420512.5240283,
+    "seen": 1788420569.8790364,
+    "ast_hash": "1be434c8c1f3cf76f22523b42cafacbd",
     "semantic_hash": ""
   }
 }

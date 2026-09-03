@@ -6,16 +6,13 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { requireCurrentMember } from "@/lib/session";
 import type { ActionState } from "@/lib/actions/auth";
+import type { ProfileFields } from "@/lib/profile-fields";
 
-export type ProfileFields = {
-  full_name: string;
-  dob: string | null;
-  mobile: string | null;
-  blood_type: string | null;
-  allergies: string | null;
-  insurance_info: string | null;
-  physician_name: string | null;
-};
+// Server Action files may only export async functions, so the ProfileFields
+// type and the memberToProfileFields helper (a plain sync function) live in
+// ./lib/profile-fields.ts — re-exported here so existing imports of the
+// type from this file keep working.
+export type { ProfileFields };
 
 /** Lets a member edit their own profile fields — everything here is
  * already covered by the pre-existing self-update RLS policy. */
