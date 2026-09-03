@@ -77,36 +77,20 @@ export default async function MemberDetailPage({
           </>
         )}
 
-        {isSelf || me.is_organiser ? (
-          <ProfileEditForm
-            memberId={member.id}
-            isSelf={isSelf}
-            initial={{
-              full_name: member.full_name,
-              dob: member.dob,
-              mobile: member.mobile,
-              blood_type: member.blood_type,
-              allergies: member.allergies,
-              insurance_info: member.insurance_info,
-              physician_name: member.physician_name,
-            }}
-          />
-        ) : (
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 1, background: "var(--color-divider)", border: "1px solid var(--color-divider)", marginBottom: 20 }}>
-            {[
-              ["Date of birth", member.dob ? formatDate(member.dob) : "Not recorded"],
-              ["Blood type", member.blood_type ?? "Not recorded"],
-              ["Allergies", member.allergies ?? "None recorded"],
-              ["Insurance", member.insurance_info ?? "Not recorded"],
-              ["Physician", member.physician_name ?? "Not recorded"],
-            ].map(([k, v]) => (
-              <div key={k} style={{ background: "var(--color-bg)", padding: "10px 12px" }}>
-                <div style={{ fontSize: 9, letterSpacing: ".1em", textTransform: "uppercase", color: "var(--color-neutral-600)" }}>{k}</div>
-                <div style={{ fontSize: 13.5 }}>{v}</div>
-              </div>
-            ))}
-          </div>
-        )}
+        <ProfileEditForm
+          memberId={member.id}
+          isSelf={isSelf}
+          canEdit={isSelf || me.is_organiser}
+          initial={{
+            full_name: member.full_name,
+            dob: member.dob,
+            mobile: member.mobile,
+            blood_type: member.blood_type,
+            allergies: member.allergies,
+            insurance_info: member.insurance_info,
+            physician_name: member.physician_name,
+          }}
+        />
 
         <Segmented items={segments} />
         <div style={{ marginTop: 18 }}>

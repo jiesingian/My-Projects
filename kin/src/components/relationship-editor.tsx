@@ -5,10 +5,22 @@ import { useRouter } from "next/navigation";
 import { updateMemberRelationshipAction } from "@/lib/actions/family";
 
 export function RelationshipEditor({ memberId, relationship }: { memberId: string; relationship: string | null }) {
+  const [mode, setMode] = useState<"view" | "edit">("view");
   const [value, setValue] = useState(relationship ?? "");
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const router = useRouter();
+
+  if (mode === "view") {
+    return (
+      <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 20 }}>
+        <span style={{ fontSize: 14, flex: 1 }}>{relationship ?? "Not set"}</span>
+        <button type="button" className="btn btn-ghost" style={{ fontSize: 11 }} onClick={() => setMode("edit")}>
+          Edit
+        </button>
+      </div>
+    );
+  }
 
   return (
     <div style={{ marginBottom: 20 }}>
@@ -31,12 +43,28 @@ export function RelationshipEditor({ memberId, relationship }: { memberId: strin
             const result = await updateMemberRelationshipAction(memberId, value);
             setBusy(false);
             setError(result.error);
-            if (!result.error) router.refresh();
+            if (!result.error) {
+              setMode("view");
+              router.refresh();
+            }
           }}
         >
           {busy ? "…" : "SAVE"}
         </button>
       </div>
+      <button
+        type="button"
+        className="btn btn-ghost"
+        style={{ fontSize: 11, marginTop: 6 }}
+        disabled={busy}
+        onClick={() => {
+          setValue(relationship ?? "");
+          setError(null);
+          setMode("view");
+        }}
+      >
+        Cancel
+      </button>
       {error && <p style={{ color: "var(--color-accent-700)", fontSize: 11.5, margin: "6px 0 0" }}>{error}</p>}
     </div>
   );

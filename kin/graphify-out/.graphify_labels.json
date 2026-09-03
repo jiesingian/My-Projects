@@ -10,7 +10,7 @@
   "8": "household/page.tsx",
   "9": "database.types.ts",
   "10": "Kin — Family Operating System",
-  "11": "getCurrentMember",
+  "11": "actions/journal.ts",
   "12": "proxy.ts",
   "13": "app/layout.tsx",
   "14": "eslint.config.mjs",
@@ -20,5 +20,7 @@
   "18": "Globe Icon",
   "19": "Next.js Logo (public/next.svg)",
   "20": "Vercel Logo (UI Icon Asset)",
-  "21": "Window Icon"
+  "21": "Window Icon",
+  "22": "getCurrentMember",
+  "23": "actions/family.ts"
 }
