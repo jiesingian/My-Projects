@@ -6,10 +6,12 @@ import { DetailHeader } from "@/components/hub-header";
 import { Segmented } from "@/components/segmented";
 import { Blueprint, Tag } from "@/components/ui";
 import { Icon } from "@/components/icons";
-import { formatAge, formatDate } from "@/lib/format";
+import { formatAge, formatDate, initials } from "@/lib/format";
 import { OmronToggle } from "./omron-toggle";
 import { RelationshipEditor } from "@/components/relationship-editor";
 import { RemoveMemberButton } from "@/components/member-status-actions";
+import { Avatar } from "@/components/avatar";
+import { ProfileEditForm } from "@/components/profile-edit-form";
 
 const SEGMENTS = ["schedule", "conditions", "labs", "vitals"] as const;
 type Seg = (typeof SEGMENTS)[number];
@@ -50,17 +52,14 @@ export default async function MemberDetailPage({
       <DetailHeader backHref="/family?seg=members" eyebrow="HUB 01 · MEMBER RECORD" />
       <div style={{ padding: "0 22px 22px" }}>
         <div style={{ display: "flex", gap: 14, alignItems: "flex-end", marginBottom: 18 }}>
-          <div
-            className="placeholder-fill blueprint"
-            style={{ width: 104, height: 120, flex: "none" }}
-          />
+          <Avatar url={member.avatar_url} initials={initials(member.full_name)} size={88} />
           <div>
             <div style={{ font: "600 34px/.98 var(--font-heading)" }}>{member.full_name}</div>
             <div style={{ fontSize: 12, color: "var(--color-neutral-600)", marginTop: 4 }}>
               {formatAge(member.dob)} · {member.relationship ?? member.role.replace("_", " ")}
             </div>
             <Tag variant={member.is_organiser ? "accent" : "neutral"} className="mt-2 inline-flex">
-              {member.is_organiser ? "ORGANISER" : member.status.toUpperCase()}
+              {member.is_organiser ? "ORGANIZER" : member.status.toUpperCase()}
             </Tag>
           </div>
         </div>
@@ -72,20 +71,36 @@ export default async function MemberDetailPage({
           </>
         )}
 
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 1, background: "var(--color-divider)", border: "1px solid var(--color-divider)", marginBottom: 20 }}>
-          {[
-            ["Date of birth", member.dob ? formatDate(member.dob) : "Not recorded"],
-            ["Blood type", member.blood_type ?? "Not recorded"],
-            ["Allergies", member.allergies ?? "None recorded"],
-            ["Insurance", member.insurance_info ?? "Not recorded"],
-            ["Physician", member.physician_name ?? "Not recorded"],
-          ].map(([k, v]) => (
-            <div key={k} style={{ background: "var(--color-bg)", padding: "10px 12px" }}>
-              <div style={{ fontSize: 9, letterSpacing: ".1em", textTransform: "uppercase", color: "var(--color-neutral-600)" }}>{k}</div>
-              <div style={{ fontSize: 13.5 }}>{v}</div>
-            </div>
-          ))}
-        </div>
+        {me.is_organiser && me.id !== member.id ? (
+          <ProfileEditForm
+            memberId={member.id}
+            isSelf={false}
+            initial={{
+              full_name: member.full_name,
+              dob: member.dob,
+              mobile: member.mobile,
+              blood_type: member.blood_type,
+              allergies: member.allergies,
+              insurance_info: member.insurance_info,
+              physician_name: member.physician_name,
+            }}
+          />
+        ) : (
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 1, background: "var(--color-divider)", border: "1px solid var(--color-divider)", marginBottom: 20 }}>
+            {[
+              ["Date of birth", member.dob ? formatDate(member.dob) : "Not recorded"],
+              ["Blood type", member.blood_type ?? "Not recorded"],
+              ["Allergies", member.allergies ?? "None recorded"],
+              ["Insurance", member.insurance_info ?? "Not recorded"],
+              ["Physician", member.physician_name ?? "Not recorded"],
+            ].map(([k, v]) => (
+              <div key={k} style={{ background: "var(--color-bg)", padding: "10px 12px" }}>
+                <div style={{ fontSize: 9, letterSpacing: ".1em", textTransform: "uppercase", color: "var(--color-neutral-600)" }}>{k}</div>
+                <div style={{ fontSize: 13.5 }}>{v}</div>
+              </div>
+            ))}
+          </div>
+        )}
 
         <Segmented items={segments} />
         <div style={{ marginTop: 18 }}>

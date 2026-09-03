@@ -72,7 +72,7 @@ export default async function MembersPage() {
             <div style={{ font: "600 17px/1.1 var(--font-heading)" }}>{m.full_name}</div>
             <div style={{ fontSize: 11.5, color: "var(--color-neutral-600)" }}>
               {formatAge(m.dob)} · {m.role.replace("_", " ")}
-              {m.is_organiser ? " · organiser" : ""}
+              {m.is_organiser ? " · organizer" : ""}
             </div>
           </div>
           <Tag variant={m.auth_user_id === me.auth_user_id ? "accent" : m.status === "managed" ? "neutral" : "outline"}>

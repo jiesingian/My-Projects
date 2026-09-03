@@ -16,13 +16,17 @@ import {
   DriveConnectedPanel,
 } from "@/components/settings-controls";
 import { DeleteHouseholdButton } from "@/components/delete-household-button";
+import { DeleteAccountButton } from "@/components/delete-account-button";
+import { AvatarUpload } from "@/components/avatar-upload";
+import { ProfileEditForm } from "@/components/profile-edit-form";
+import { TransferOrganizerRole } from "@/components/transfer-organizer-role";
 import { initials } from "@/lib/format";
 
 const DRIVE_ERROR_MESSAGES: Record<string, string> = {
   not_configured: "Google Drive linking isn't configured on this server yet — set GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET.",
   invalid_state: "That connection attempt expired — try again.",
   token_exchange_failed: "Google didn't accept that connection attempt — try again.",
-  organiser_only: "Only the household organiser can connect or disconnect Google Drive.",
+  organizer_only: "Only the household organizer can connect or disconnect Google Drive.",
 };
 
 export default async function SettingsPage({
@@ -35,11 +39,24 @@ export default async function SettingsPage({
   const { drive_error } = await searchParams;
 
   const supabase = await createClient();
-  const [{ data: authUser }, { data: driveLink }, { count: memberCount }, { count: managedCount }] = await Promise.all([
+  const [{ data: authUser }, { data: driveLink }, { count: memberCount }, { count: managedCount }, { data: transferCandidates }, { count: otherActiveCount }] = await Promise.all([
     supabase.auth.getUser(),
     supabase.from("drive_links").select("*, connected_by:connected_by_member_id(full_name)").eq("family_id", me.family_id).maybeSingle(),
     supabase.from("members").select("id", { count: "exact", head: true }).eq("family_id", me.family_id),
     supabase.from("members").select("id", { count: "exact", head: true }).eq("family_id", me.family_id).eq("status", "managed"),
+    supabase
+      .from("members")
+      .select("id, full_name")
+      .eq("family_id", me.family_id)
+      .eq("status", "active")
+      .in("role", ["parent", "adult"])
+      .neq("id", me.id),
+    supabase
+      .from("members")
+      .select("id", { count: "exact", head: true })
+      .eq("family_id", me.family_id)
+      .in("status", ["active", "managed"])
+      .neq("id", me.id),
   ]);
   const connectedByName = (driveLink?.connected_by as unknown as { full_name: string } | null)?.full_name ?? null;
 
@@ -48,20 +65,32 @@ export default async function SettingsPage({
       <DetailHeader backHref="/today" eyebrow="SETTINGS" />
       <div style={{ padding: "0 22px 22px" }}>
         <Blueprint style={{ padding: 14, display: "flex", gap: 13, alignItems: "center", marginBottom: 22 }}>
-          <span
-            className="placeholder-fill blueprint"
-            style={{ width: 48, height: 48, flex: "none", display: "flex", alignItems: "center", justifyContent: "center", font: "600 17px/1 var(--font-heading)", color: "var(--color-neutral-700)" }}
-          >
-            {initials(me.full_name)}
-          </span>
+          <AvatarUpload familyId={me.family_id} memberId={me.id} avatarUrl={me.avatar_url} initials={initials(me.full_name)} />
           <span style={{ flex: 1, minWidth: 0 }}>
             <span style={{ font: "600 20px/1.05 var(--font-heading)", display: "block" }}>{me.full_name}</span>
             <span style={{ fontSize: 11.5, color: "var(--color-neutral-600)" }}>
               {authUser.user?.email} · {authUser.user?.email_confirmed_at ? "verified" : "unverified"}
             </span>
           </span>
-          {me.is_organiser && <Tag variant="accent">ORGANISER</Tag>}
+          {me.is_organiser && <Tag variant="accent">ORGANIZER</Tag>}
         </Blueprint>
+
+        <div style={{ font: "600 10px/1 var(--font-heading)", letterSpacing: ".16em", color: "var(--color-neutral-600)", marginBottom: 8 }}>
+          MY PROFILE
+        </div>
+        <ProfileEditForm
+          memberId={me.id}
+          isSelf
+          initial={{
+            full_name: me.full_name,
+            dob: me.dob,
+            mobile: me.mobile,
+            blood_type: me.blood_type,
+            allergies: me.allergies,
+            insurance_info: me.insurance_info,
+            physician_name: me.physician_name,
+          }}
+        />
 
         <div style={{ font: "600 10px/1 var(--font-heading)", letterSpacing: ".16em", color: "var(--color-neutral-600)", marginBottom: 4 }}>
           CONNECTED STORAGE
@@ -86,7 +115,7 @@ export default async function SettingsPage({
           ) : me.is_organiser ? (
             <>
               <p style={{ fontSize: 12, color: "var(--color-neutral-700)", marginBottom: 12 }}>
-                Connect your Google Drive once, as organiser — Kin creates and organizes the household&apos;s folders
+                Connect your Google Drive once, as organizer — Kin creates and organizes the household&apos;s folders
                 there automatically. Everyone else views files through the app or the Drive link, governed by
                 whatever sharing you set on that folder in Drive itself.
               </p>
@@ -96,7 +125,7 @@ export default async function SettingsPage({
             </>
           ) : (
             <p style={{ fontSize: 12, color: "var(--color-neutral-700)" }}>
-              Not connected yet. Only the household organiser can connect Google Drive.
+              Not connected yet. Only the household organizer can connect Google Drive.
             </p>
           )}
         </Blueprint>
@@ -129,6 +158,10 @@ export default async function SettingsPage({
             <div style={{ marginBottom: 14 }}>
               <InviteCodeCard code={me.families.invite_code} />
             </div>
+            <div style={{ fontSize: 11.5, color: "var(--color-neutral-700)", marginBottom: 6 }}>Transfer organizer role</div>
+            <div style={{ marginBottom: 14 }}>
+              <TransferOrganizerRole candidates={transferCandidates ?? []} />
+            </div>
           </>
         )}
         <div style={{ fontSize: 11.5, color: "var(--color-neutral-700)", marginBottom: 6 }}>Currency, dates and week start</div>
@@ -160,6 +193,9 @@ export default async function SettingsPage({
             SIGN OUT
           </button>
         </form>
+        <div style={{ marginTop: 12 }}>
+          <DeleteAccountButton isSoleMember={(otherActiveCount ?? 0) === 0} />
+        </div>
         <div style={{ font: "400 10px/1.6 ui-monospace, Menlo, monospace", color: "var(--color-neutral-500)", textAlign: "center", marginTop: 14 }}>
           KIN 1.0.0
         </div>

@@ -1895,7 +1895,12 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      leave_household_self: { Args: never; Returns: undefined }
       regenerate_invite_code: { Args: never; Returns: string }
+      transfer_organiser_role: {
+        Args: { p_new_organiser_member_id: string }
+        Returns: undefined
+      }
     }
     Enums: {
       [_ in never]: never

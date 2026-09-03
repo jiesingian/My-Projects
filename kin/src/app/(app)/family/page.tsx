@@ -7,6 +7,7 @@ import { ChipRow } from "@/components/segmented";
 import { Blueprint, Tag } from "@/components/ui";
 import { PendingMemberActions } from "@/components/pending-member-actions";
 import { RemoveMemberButton, ReinstateMemberButton } from "@/components/member-status-actions";
+import { Avatar } from "@/components/avatar";
 import { formatAge, initials } from "@/lib/format";
 
 const SEGMENTS = ["members", "health", "documents"] as const;
@@ -57,22 +58,7 @@ async function MembersPane({ familyId, isOrganiser, myId }: { familyId: string; 
           </div>
           {pending.map((m) => (
             <Blueprint key={m.id} className="bg-[var(--color-accent-100)]" style={{ padding: 12, marginBottom: 10, display: "flex", alignItems: "center", gap: 12 }}>
-              <span
-                className="placeholder-fill"
-                style={{
-                  width: 40,
-                  height: 40,
-                  flex: "none",
-                  border: "1px solid var(--color-divider)",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  font: "600 14px/1 var(--font-heading)",
-                  color: "var(--color-neutral-700)",
-                }}
-              >
-                {initials(m.full_name)}
-              </span>
+              <Avatar url={m.avatar_url} initials={initials(m.full_name)} size={40} />
               <span style={{ flex: 1, minWidth: 0 }}>
                 <span style={{ font: "600 15px/1.1 var(--font-heading)", display: "block" }}>{m.full_name}</span>
                 <span style={{ fontSize: 11, color: "var(--color-neutral-600)" }}>
@@ -97,22 +83,7 @@ async function MembersPane({ familyId, isOrganiser, myId }: { familyId: string; 
           }}
         >
           <Link href={`/family/members/${m.id}`} style={{ display: "flex", gap: 12, alignItems: "center", flex: 1, minWidth: 0, textDecoration: "none", color: "inherit" }}>
-            <span
-              className="placeholder-fill"
-              style={{
-                width: 44,
-                height: 44,
-                flex: "none",
-                border: "1px solid var(--color-divider)",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                font: "600 15px/1 var(--font-heading)",
-                color: "var(--color-neutral-700)",
-              }}
-            >
-              {initials(m.full_name)}
-            </span>
+            <Avatar url={m.avatar_url} initials={initials(m.full_name)} size={44} />
             <span style={{ flex: 1, minWidth: 0 }}>
               <span style={{ font: "600 18px/1.1 var(--font-heading)", display: "block" }}>{m.full_name}</span>
               <span style={{ fontSize: 11.5, color: "var(--color-neutral-600)" }}>
@@ -121,7 +92,7 @@ async function MembersPane({ familyId, isOrganiser, myId }: { familyId: string; 
             </span>
           </Link>
           <Tag variant={m.auth_user_id === null ? "neutral" : m.is_organiser ? "accent" : "outline"}>
-            {m.auth_user_id === null ? "MANAGED" : m.is_organiser ? "ORGANISER" : m.status.toUpperCase()}
+            {m.auth_user_id === null ? "MANAGED" : m.is_organiser ? "ORGANIZER" : m.status.toUpperCase()}
           </Tag>
           {isOrganiser && m.id !== myId && !m.is_organiser && <RemoveMemberButton memberId={m.id} fullName={m.full_name} />}
         </div>

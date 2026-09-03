@@ -8,7 +8,7 @@ export async function GET(request: Request) {
   if (!me) return NextResponse.redirect(new URL("/login", request.url));
   if (!me.is_organiser) {
     const url = new URL("/settings", request.url);
-    url.searchParams.set("drive_error", "organiser_only");
+    url.searchParams.set("drive_error", "organizer_only");
     return NextResponse.redirect(url);
   }
 

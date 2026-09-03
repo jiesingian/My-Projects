@@ -88,7 +88,7 @@ export async function regenerateInviteCodeAction(): Promise<ActionState> {
 }
 
 /** Approves a pending join request — RLS restricts this to the household's
- * organiser and only while the row is still 'pending'. */
+ * organizer and only while the row is still 'pending'. */
 export async function approveMemberAction(memberId: string): Promise<ActionState> {
   const supabase = await createClient();
   const { error } = await supabase.from("members").update({ status: "active" }).eq("id", memberId);
@@ -97,7 +97,7 @@ export async function approveMemberAction(memberId: string): Promise<ActionState
 }
 
 /** Rejects a pending join request by removing it — RLS restricts this to
- * the household's organiser and only while the row is still 'pending'. */
+ * the household's organizer and only while the row is still 'pending'. */
 export async function rejectMemberAction(memberId: string): Promise<ActionState> {
   const supabase = await createClient();
   const { error } = await supabase.from("members").delete().eq("id", memberId);
@@ -112,10 +112,10 @@ export async function rejectMemberAction(memberId: string): Promise<ActionState>
  * no cascade). Instead this revokes access the same way 'pending' already
  * does: current_family_id() only resolves for 'active' members, so a
  * removed member's session immediately loses every family-scoped
- * permission. RLS restricts this to the household's organiser. */
+ * permission. RLS restricts this to the household's organizer. */
 export async function removeMemberAction(memberId: string): Promise<ActionState> {
   const me = await requireCurrentMember();
-  if (memberId === me.id) return { error: "You can't remove yourself — leave that to another organiser, or delete the household instead." };
+  if (memberId === me.id) return { error: "You can't remove yourself — leave that to another organizer, or delete the household instead." };
 
   const supabase = await createClient();
   const { error } = await supabase.from("members").update({ status: "removed" }).eq("id", memberId);
@@ -124,7 +124,7 @@ export async function removeMemberAction(memberId: string): Promise<ActionState>
 }
 
 /** Restores a previously removed member to active access. RLS restricts
- * this to the household's organiser. */
+ * this to the household's organizer. */
 export async function reinstateMemberAction(memberId: string): Promise<ActionState> {
   const supabase = await createClient();
   const { error } = await supabase.from("members").update({ status: "active" }).eq("id", memberId);
@@ -134,7 +134,7 @@ export async function reinstateMemberAction(memberId: string): Promise<ActionSta
 
 /** Sets a member's family-relationship label ("Mother", "Son", etc.) —
  * distinct from `role`, which drives permission logic and stays untouched
- * here. RLS lets the organiser edit anyone's; a member can also edit their
+ * here. RLS lets the organizer edit anyone's; a member can also edit their
  * own via the pre-existing self-update policy. */
 export async function updateMemberRelationshipAction(memberId: string, relationship: string): Promise<ActionState> {
   const supabase = await createClient();
@@ -145,13 +145,13 @@ export async function updateMemberRelationshipAction(memberId: string, relations
 
 /** Permanently deletes the entire household — every member, journal entry,
  * document index, health record, bill, account, and every other row this
- * family owns. RLS/the RPC itself restrict this to the organiser. Files
+ * family owns. RLS/the RPC itself restrict this to the organizer. Files
  * actually sitting in Google Drive are left untouched (Kin only ever held
  * the index); best-effort cleanup of Supabase Storage objects happens here
  * since Storage isn't reachable from the RPC's plain SQL. */
 export async function deleteHouseholdAction(): Promise<ActionState> {
   const me = await requireCurrentMember();
-  if (!me.is_organiser) return { error: "Only the organiser can delete the household." };
+  if (!me.is_organiser) return { error: "Only the organizer can delete the household." };
 
   const supabase = await createClient();
   try {

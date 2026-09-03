@@ -35,7 +35,7 @@ export async function toggleNotificationAction(key: string, value: boolean) {
 
 export async function updateHouseholdNameAction(familyId: string, name: string): Promise<ActionState> {
   const me = await requireCurrentMember();
-  if (!me.is_organiser) return { error: "Only the organiser can rename the household." };
+  if (!me.is_organiser) return { error: "Only the organizer can rename the household." };
 
   const supabase = await createClient();
   const { error } = await supabase.from("families").update({ name }).eq("id", familyId);
@@ -46,7 +46,7 @@ export async function updateHouseholdNameAction(familyId: string, name: string):
 
 export async function updateHouseholdPrefsAction(familyId: string, currency: string, dateFormat: string, weekStart: string): Promise<ActionState> {
   const me = await requireCurrentMember();
-  if (!me.is_organiser) return { error: "Only the organiser can change household preferences." };
+  if (!me.is_organiser) return { error: "Only the organizer can change household preferences." };
 
   const supabase = await createClient();
   const { error } = await supabase.from("families").update({ currency, date_format: dateFormat, week_start: weekStart }).eq("id", familyId);

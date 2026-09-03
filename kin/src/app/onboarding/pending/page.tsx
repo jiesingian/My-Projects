@@ -16,7 +16,7 @@ export default async function PendingApprovalPage() {
       <h2 style={{ fontSize: 28, margin: "28px 0 12px" }}>Waiting for approval</h2>
       <Blueprint style={{ padding: 16, marginBottom: 20 }}>
         <p style={{ fontSize: 13.5, lineHeight: 1.5, margin: 0 }}>
-          Your request to join <strong>{me.families.name}</strong> is waiting on the household organiser to approve it.
+          Your request to join <strong>{me.families.name}</strong> is waiting on the household organizer to approve it.
           You&apos;ll get full access as soon as they do — no need to sign up again.
         </p>
       </Blueprint>

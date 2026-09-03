@@ -62,7 +62,7 @@ export function FamilyForkForm({
             Join with a code
           </span>
           <span style={{ fontSize: 12.5, color: "var(--color-neutral-700)", display: "block", marginBottom: 14 }}>
-            Ask the organiser for the six-character invite code.
+            Ask the organizer for the six-character invite code.
           </span>
           <ErrorText message={joinState.error} />
           <div style={{ display: "flex", gap: 9 }}>
@@ -87,7 +87,7 @@ export function FamilyForkForm({
 
       <div style={{ marginTop: "auto", fontSize: 11.5, color: "var(--color-neutral-600)", display: "flex", gap: 8, paddingTop: 20 }}>
         <Icon name="info" size={14} className="text-[var(--color-accent)]" />
-        <span>You can be in one family group at a time. Organisers can transfer the role later.</span>
+        <span>You can be in one family group at a time. Organizers can transfer the role later.</span>
       </div>
     </OnboardingShell>
   );
