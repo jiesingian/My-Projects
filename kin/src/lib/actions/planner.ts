@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { requireCurrentMember } from "@/lib/session";
+import { pushNewRowToCalendar } from "@/lib/actions/calendar-sync";
 import type { ActionState } from "@/lib/actions/auth";
 
 export async function createActivityAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
@@ -43,6 +44,13 @@ export async function createActivityAction(_prev: ActionState, formData: FormDat
     await supabase.from("activity_members").insert(who.map((memberId) => ({ activity_id: activity.id, member_id: memberId })));
   }
 
+  await pushNewRowToCalendar(me.family_id, "activities", activity.id, {
+    title,
+    startAt: new Date(`${date}T${from || "09:00"}`),
+    endAt: to ? new Date(`${date}T${to}`) : null,
+    location,
+  });
+
   revalidatePath("/planner");
   redirect("/planner?seg=calendar");
 }
@@ -58,16 +66,26 @@ export async function createEventAction(_prev: ActionState, formData: FormData):
   const recursYearly = kind === "birthday" || kind === "anniversary";
   if (!title || !date) return { error: "Title and date are required." };
 
-  const { error } = await supabase.from("events").insert({
-    family_id: me.family_id,
-    title,
-    event_date: date,
-    kind,
-    sub_note: subNote,
-    recurs_yearly: recursYearly,
-    created_by: me.id,
-  });
+  const { data: event, error } = await supabase
+    .from("events")
+    .insert({
+      family_id: me.family_id,
+      title,
+      event_date: date,
+      kind,
+      sub_note: subNote,
+      recurs_yearly: recursYearly,
+      created_by: me.id,
+    })
+    .select()
+    .single();
   if (error) return { error: error.message };
+
+  await pushNewRowToCalendar(me.family_id, "events", event.id, {
+    title,
+    startAt: new Date(`${date}T00:00:00`),
+    allDay: true,
+  });
 
   revalidatePath("/planner");
   redirect("/planner?seg=events");

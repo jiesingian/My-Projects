@@ -5,6 +5,7 @@ import { setThemeAction, setTextSizeAction, toggleNotificationAction, updateHous
 import { regenerateInviteCodeAction } from "@/lib/actions/family";
 import { disconnectDriveAction } from "@/lib/actions/drive";
 import { migrateProfilePhotosToDriveAction } from "@/lib/actions/photo-migration";
+import { disconnectCalendarAction, syncGoogleCalendarAction } from "@/lib/actions/calendar-sync";
 import { useState } from "react";
 import { CopyInviteCode } from "@/components/copy-invite-code";
 
@@ -295,6 +296,83 @@ function MigratePhotosButton() {
         }}
       >
         {busy ? "MOVING…" : "MOVE EXISTING PHOTOS TO DRIVE"}
+      </button>
+      {message && (
+        <p style={{ fontSize: 11, color: isError ? "var(--color-accent-700)" : "var(--color-neutral-600)", margin: "6px 0 0" }}>{message}</p>
+      )}
+    </div>
+  );
+}
+
+export function CalendarConnectedPanel({
+  email,
+  lastSyncedAt,
+  connectedByName,
+  canManage,
+}: {
+  email: string | null;
+  lastSyncedAt: string | null;
+  connectedByName: string | null;
+  canManage: boolean;
+}) {
+  const [pending, startTransition] = useTransition();
+  return (
+    <>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 1, background: "var(--color-divider)", border: "1px solid var(--color-divider)", marginBottom: 12 }}>
+        <div style={{ background: "var(--color-bg)", padding: "9px 11px" }}>
+          <div style={{ fontSize: 9, letterSpacing: ".1em", textTransform: "uppercase", color: "var(--color-neutral-600)" }}>Account</div>
+          <div style={{ fontSize: 12.5 }}>{email ?? "—"}</div>
+        </div>
+        <div style={{ background: "var(--color-bg)", padding: "9px 11px" }}>
+          <div style={{ fontSize: 9, letterSpacing: ".1em", textTransform: "uppercase", color: "var(--color-neutral-600)" }}>Connected by</div>
+          <div style={{ fontSize: 12.5 }}>{connectedByName ?? "—"}</div>
+        </div>
+      </div>
+      <SyncCalendarButton />
+      {canManage && (
+        <button
+          type="button"
+          className="btn btn-secondary btn-block"
+          disabled={pending}
+          style={{ minHeight: 40, fontSize: 12, marginTop: 9 }}
+          onClick={() => startTransition(() => disconnectCalendarAction())}
+        >
+          {pending ? "…" : "DISCONNECT"}
+        </button>
+      )}
+      {lastSyncedAt && (
+        <div style={{ fontSize: 11, color: "var(--color-neutral-600)", marginTop: 10 }}>Last synced {new Date(lastSyncedAt).toLocaleString()}</div>
+      )}
+    </>
+  );
+}
+
+/** Runs the full push+pull reconcile on demand. The Planner Calendar tab
+ * also triggers this opportunistically (throttled), so this button is
+ * mainly for "I just changed something in Google Calendar and want it here
+ * now" rather than the only way syncing happens. */
+function SyncCalendarButton() {
+  const [busy, setBusy] = useState(false);
+  const [message, setMessage] = useState<string | null>(null);
+  const [isError, setIsError] = useState(false);
+
+  return (
+    <div>
+      <button
+        type="button"
+        className="btn btn-secondary btn-block"
+        disabled={busy}
+        style={{ minHeight: 40, fontSize: 12 }}
+        onClick={async () => {
+          setBusy(true);
+          setMessage(null);
+          const result = await syncGoogleCalendarAction();
+          setBusy(false);
+          setIsError(!!result.error);
+          setMessage(result.error ?? (result.synced ? `Synced ${result.synced} change${result.synced === 1 ? "" : "s"}.` : "Already up to date."));
+        }}
+      >
+        {busy ? "SYNCING…" : "SYNC NOW"}
       </button>
       {message && (
         <p style={{ fontSize: 11, color: isError ? "var(--color-accent-700)" : "var(--color-neutral-600)", margin: "6px 0 0" }}>{message}</p>

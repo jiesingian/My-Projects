@@ -2,7 +2,9 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getCurrentMember } from "@/lib/session";
 import { getWeekAgenda, getEvents, getGoals, getTrips } from "@/lib/queries/planner";
+import { syncGoogleCalendarIfStale } from "@/lib/actions/calendar-sync";
 import { HubHeader } from "@/components/hub-header";
+import { Icon } from "@/components/icons";
 import { Blueprint, Tag } from "@/components/ui";
 import { formatCurrency, formatDate } from "@/lib/format";
 import { AddToJournalButton } from "@/components/add-to-journal-button";
@@ -19,6 +21,8 @@ export default async function PlannerPage({
   if (!me) redirect("/onboarding/profile");
   const sp = await searchParams;
   const seg: Seg = (SEGMENTS as readonly string[]).includes(sp.seg ?? "") ? (sp.seg as Seg) : "calendar";
+
+  await syncGoogleCalendarIfStale(me.family_id, 5 * 60 * 1000);
 
   const segments = SEGMENTS.map((s) => ({
     label: s[0].toUpperCase() + s.slice(1),
@@ -78,7 +82,10 @@ async function CalendarPane({ familyId }: { familyId: string }) {
                   {new Date(a.start_at).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })}
                 </span>
                 <span style={{ flex: 1, minWidth: 0 }}>
-                  <span style={{ font: "600 17px/1.15 var(--font-heading)", display: "block" }}>{a.title}</span>
+                  <span style={{ font: "600 17px/1.15 var(--font-heading)", display: "flex", alignItems: "center", gap: 5 }}>
+                    {a.title}
+                    {a.google_event_id && <Icon name="calendarDays" size={12} className="text-[var(--color-neutral-600)]" />}
+                  </span>
                   <span style={{ fontSize: 11.5, color: "var(--color-neutral-600)" }}>{a.location ?? ""}</span>
                 </span>
                 <Tag variant="neutral">{a.who}</Tag>

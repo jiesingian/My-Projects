@@ -14,6 +14,7 @@ import {
   HouseholdNameForm,
   HouseholdPrefsForm,
   DriveConnectedPanel,
+  CalendarConnectedPanel,
 } from "@/components/settings-controls";
 import { DeleteHouseholdButton } from "@/components/delete-household-button";
 import { DeleteAccountButton } from "@/components/delete-account-button";
@@ -28,19 +29,35 @@ const DRIVE_ERROR_MESSAGES: Record<string, string> = {
   organizer_only: "Only the household organizer can connect or disconnect Google Drive.",
 };
 
+const CALENDAR_ERROR_MESSAGES: Record<string, string> = {
+  not_configured: "Google Calendar linking isn't configured on this server yet — set GOOGLE_CALENDAR_REDIRECT_URI.",
+  invalid_state: "That connection attempt expired — try again.",
+  token_exchange_failed: "Google didn't accept that connection attempt — try again.",
+  organizer_only: "Only the household organizer can connect or disconnect Google Calendar.",
+};
+
 export default async function SettingsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ drive_error?: string }>;
+  searchParams: Promise<{ drive_error?: string; calendar_error?: string }>;
 }) {
   const me = await getCurrentMember();
   if (!me) redirect("/onboarding/profile");
-  const { drive_error } = await searchParams;
+  const { drive_error, calendar_error } = await searchParams;
 
   const supabase = await createClient();
-  const [{ data: authUser }, { data: driveLink }, { count: memberCount }, { count: managedCount }, { data: transferCandidates }, { count: otherActiveCount }] = await Promise.all([
+  const [
+    { data: authUser },
+    { data: driveLink },
+    { data: calendarLink },
+    { count: memberCount },
+    { count: managedCount },
+    { data: transferCandidates },
+    { count: otherActiveCount },
+  ] = await Promise.all([
     supabase.auth.getUser(),
     supabase.from("drive_links").select("*, connected_by:connected_by_member_id(full_name)").eq("family_id", me.family_id).maybeSingle(),
+    supabase.from("calendar_links").select("*, connected_by:connected_by_member_id(full_name)").eq("family_id", me.family_id).maybeSingle(),
     supabase.from("members").select("id", { count: "exact", head: true }).eq("family_id", me.family_id),
     supabase.from("members").select("id", { count: "exact", head: true }).eq("family_id", me.family_id).eq("status", "managed"),
     supabase
@@ -58,6 +75,7 @@ export default async function SettingsPage({
       .neq("id", me.id),
   ]);
   const connectedByName = (driveLink?.connected_by as unknown as { full_name: string } | null)?.full_name ?? null;
+  const calendarConnectedByName = (calendarLink?.connected_by as unknown as { full_name: string } | null)?.full_name ?? null;
 
   return (
     <div>
@@ -78,7 +96,7 @@ export default async function SettingsPage({
         </Link>
 
         <div style={{ font: "600 10px/1 var(--font-heading)", letterSpacing: ".16em", color: "var(--color-neutral-600)", marginBottom: 4 }}>
-          CONNECTED STORAGE
+          CONNECTED SERVICES
         </div>
         <Blueprint style={{ padding: 14, marginBottom: 22 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10 }}>
@@ -111,6 +129,40 @@ export default async function SettingsPage({
           ) : (
             <p style={{ fontSize: 12, color: "var(--color-neutral-700)" }}>
               Not connected yet. Only the household organizer can connect Google Drive.
+            </p>
+          )}
+        </Blueprint>
+
+        <Blueprint style={{ padding: 14, marginBottom: 22 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10 }}>
+            <Icon name="calendarDays" size={18} className="text-[var(--color-accent-700)]" />
+            <span style={{ font: "600 18px/1.05 var(--font-heading)", flex: 1 }}>Google Calendar</span>
+            <Tag variant={calendarLink?.connected ? "accent" : "outline"}>{calendarLink?.connected ? "CONNECTED" : "NOT CONNECTED"}</Tag>
+          </div>
+          {calendar_error && (
+            <p style={{ fontSize: 12, color: "var(--color-accent-700)", marginBottom: 10 }}>{CALENDAR_ERROR_MESSAGES[calendar_error] ?? "Something went wrong."}</p>
+          )}
+          {calendarLink?.connected ? (
+            <CalendarConnectedPanel
+              email={calendarLink.account_email}
+              lastSyncedAt={calendarLink.last_synced_at}
+              connectedByName={calendarConnectedByName}
+              canManage={me.is_organiser}
+            />
+          ) : me.is_organiser ? (
+            <>
+              <p style={{ fontSize: 12, color: "var(--color-neutral-700)", marginBottom: 12 }}>
+                Connect Google Calendar, as organizer, to keep Planner activities and events, health appointments,
+                and document renewal dates in sync both ways — new items in Kin appear on the calendar, and events
+                added or changed there show up back in Planner.
+              </p>
+              <a href="/api/calendar/connect" className="btn btn-primary btn-block" style={{ minHeight: 44, fontSize: 13.5, letterSpacing: ".04em" }}>
+                CONNECT GOOGLE CALENDAR
+              </a>
+            </>
+          ) : (
+            <p style={{ fontSize: 12, color: "var(--color-neutral-700)" }}>
+              Not connected yet. Only the household organizer can connect Google Calendar.
             </p>
           )}
         </Blueprint>
