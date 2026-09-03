@@ -11,16 +11,23 @@ export function GalleryTile({
   viewLink,
   date,
   mediaType,
+  selectMode = false,
+  selected = false,
+  onToggleSelect,
 }: {
   id: string;
   url: string | null;
   viewLink?: string | null;
   date: string;
   mediaType: string;
+  selectMode?: boolean;
+  selected?: boolean;
+  onToggleSelect?: () => void;
 }) {
   const [broken, setBroken] = useState(false);
   const [open, setOpen] = useState(false);
   const showImage = url && !broken;
+  const clickable = selectMode || showImage;
 
   useEffect(() => {
     if (!open) return;
@@ -29,23 +36,32 @@ export function GalleryTile({
     return () => window.removeEventListener("keydown", onKey);
   }, [open]);
 
+  function handleActivate() {
+    if (selectMode) {
+      onToggleSelect?.();
+    } else if (showImage) {
+      setOpen(true);
+    }
+  }
+
   return (
     <>
       <div
-        role={showImage ? "button" : undefined}
-        tabIndex={showImage ? 0 : undefined}
-        onClick={() => showImage && setOpen(true)}
-        onKeyDown={(e) => showImage && (e.key === "Enter" || e.key === " ") && setOpen(true)}
+        role={clickable ? "button" : undefined}
+        aria-pressed={selectMode ? selected : undefined}
+        tabIndex={clickable ? 0 : undefined}
+        onClick={handleActivate}
+        onKeyDown={(e) => clickable && (e.key === "Enter" || e.key === " ") && handleActivate()}
         className={showImage ? "" : "duotone"}
         style={{
           aspectRatio: "1",
-          border: "1px solid var(--color-divider)",
+          border: selected ? "2px solid var(--color-accent)" : "1px solid var(--color-divider)",
           position: "relative",
           overflow: "hidden",
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
-          cursor: showImage ? "zoom-in" : "default",
+          cursor: clickable ? (selectMode ? "pointer" : "zoom-in") : "default",
           background: showImage ? undefined : "repeating-linear-gradient(135deg,var(--color-neutral-300) 0 5px,var(--color-neutral-200) 5px 10px)",
         }}
       >
@@ -58,15 +74,35 @@ export function GalleryTile({
         <span style={{ position: "absolute", bottom: 4, left: 4, font: "400 7.5px/1 ui-monospace, Menlo, monospace", background: "var(--color-bg)", padding: "2px 3px", color: "var(--color-neutral-700)" }}>
           {date}
         </span>
-        <DeleteButton
-          label="Delete photo"
-          confirmText="Delete this photo? This can't be undone."
-          onDelete={() => deleteJournalMediaAction(id)}
-          style={{ position: "absolute", top: 4, right: 4, background: "var(--color-bg)", border: "1px solid var(--color-divider)" }}
-        />
+        {selectMode ? (
+          <span
+            style={{
+              position: "absolute",
+              top: 4,
+              right: 4,
+              width: 18,
+              height: 18,
+              borderRadius: "50%",
+              border: "1.5px solid #fff",
+              background: selected ? "var(--color-accent)" : "rgba(0,0,0,.35)",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+          >
+            {selected && <Icon name="check" size={11} className="text-white" />}
+          </span>
+        ) : (
+          <DeleteButton
+            label="Delete photo"
+            confirmText="Delete this photo? This can't be undone."
+            onDelete={() => deleteJournalMediaAction(id)}
+            style={{ position: "absolute", top: 4, right: 4, background: "var(--color-bg)", border: "1px solid var(--color-divider)" }}
+          />
+        )}
       </div>
 
-      {open && url && (
+      {!selectMode && open && url && (
         <div
           role="dialog"
           aria-modal="true"

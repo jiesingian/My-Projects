@@ -111,10 +111,10 @@ export async function getDocFileUrl(path: string): Promise<string | null> {
   return data.signedUrl;
 }
 
-export async function deleteDocFileAction(fileId: string, folderId: string): Promise<{ error: string | null }> {
+export async function deleteDocFileAction(fileId: string, folderId: string): Promise<{ error: string | null; driveViewLink?: string | null }> {
   const me = await requireCurrentMember();
   const supabase = await createClient();
-  const { data: file } = await supabase.from("doc_files").select("storage_path, storage_provider, drive_file_id").eq("id", fileId).maybeSingle();
+  const { data: file } = await supabase.from("doc_files").select("storage_path, storage_provider, drive_file_id, drive_view_link").eq("id", fileId).maybeSingle();
   if (!file) return { error: "Not found." };
 
   if (file.storage_provider === "supabase" && file.storage_path) {
@@ -124,7 +124,8 @@ export async function deleteDocFileAction(fileId: string, folderId: string): Pro
     const deleted = token ? await deleteDriveFile(token, file.drive_file_id).catch(() => false) : false;
     if (!deleted) {
       return {
-        error: "Kin can only delete files it uploaded itself — this one was added directly in Drive. Delete it there instead.",
+        error: "Kin can only delete files it uploaded itself — this one was added directly in Drive.",
+        driveViewLink: file.drive_view_link,
       };
     }
   }

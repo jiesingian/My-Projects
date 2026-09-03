@@ -87,13 +87,13 @@ export async function attachJournalMediaAction(input: {
  * stored (Drive or Supabase Storage) as well as our own index. Cascades to
  * journal_entry_media automatically, so this removes it from any entry it
  * was attached to as well. */
-export async function deleteJournalMediaAction(mediaId: string): Promise<{ error: string | null }> {
+export async function deleteJournalMediaAction(mediaId: string): Promise<{ error: string | null; driveViewLink?: string | null }> {
   const me = await requireCurrentMember();
   const supabase = await createClient();
 
   const { data: media } = await supabase
     .from("journal_media")
-    .select("storage_provider, storage_path, drive_file_id")
+    .select("storage_provider, storage_path, drive_file_id, drive_view_link")
     .eq("id", mediaId)
     .eq("family_id", me.family_id)
     .maybeSingle();
@@ -106,7 +106,8 @@ export async function deleteJournalMediaAction(mediaId: string): Promise<{ error
     const deleted = token ? await deleteDriveFile(token, media.drive_file_id).catch(() => false) : false;
     if (!deleted) {
       return {
-        error: "Kin can only delete files it uploaded itself — this one was added directly in Drive. Delete it there instead.",
+        error: "Kin can only delete files it uploaded itself — this one was added directly in Drive.",
+        driveViewLink: media.drive_view_link,
       };
     }
   }

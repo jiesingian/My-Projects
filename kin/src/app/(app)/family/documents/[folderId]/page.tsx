@@ -6,9 +6,8 @@ import { DetailHeader } from "@/components/hub-header";
 import { Tag } from "@/components/ui";
 import { Icon } from "@/components/icons";
 import { formatDate } from "@/lib/format";
-import { DownloadLink } from "@/components/download-link";
-import { DeleteButton } from "@/components/delete-button";
-import { deleteDocFileAction } from "@/lib/actions/documents";
+import { DocFileRow } from "@/components/doc-file-row";
+import { DocSelectionProvider } from "@/lib/doc-selection-context";
 
 export default async function DocFolderPage({
   params,
@@ -41,42 +40,32 @@ export default async function DocFolderPage({
           {(entries ?? []).length} {(entries ?? []).length === 1 ? "entry" : "entries"}
         </div>
 
-        {(entries ?? []).map((entry) => (
-          <div key={entry.id} style={{ padding: "13px 0", borderBottom: "1px solid color-mix(in srgb, var(--color-text) 10%, transparent)" }}>
-            <div style={{ display: "flex", gap: 11, alignItems: "flex-start" }}>
-              <Icon name="fileText" size={17} className="text-[var(--color-neutral-600)] mt-1" />
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontSize: 14.5, fontWeight: 600 }}>{entry.title}</div>
-                <div style={{ fontSize: 10.5, color: "var(--color-neutral-600)" }}>
-                  {(entry.owner as unknown as { full_name: string } | null)?.full_name ?? "Whole family"}
-                  {entry.expires_at ? ` · expires ${formatDate(entry.expires_at)}` : ""}
-                  {entry.reference_no ? ` · ref ${entry.reference_no}` : ""}
-                </div>
-                {entry.note && <div style={{ fontSize: 12, color: "var(--color-neutral-700)", marginTop: 4 }}>{entry.note}</div>}
-              </div>
-              <Tag variant={entry.visibility === "family" ? "neutral" : "outline"}>{entry.visibility}</Tag>
-            </div>
-            {(entry.doc_files ?? []).length > 0 && (
-              <div style={{ marginTop: 8, display: "flex", flexDirection: "column", gap: 6, paddingLeft: 28 }}>
-                {(entry.doc_files ?? []).map((f) => (
-                  <div key={f.id} style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <DownloadLink path={f.storage_path} fileName={f.file_name} driveViewLink={f.drive_view_link} />
-                    </div>
-                    <DeleteButton
-                      label={`Delete ${f.file_name}`}
-                      confirmText={`Delete "${f.file_name}"? This can't be undone.`}
-                      onDelete={async () => {
-                        "use server";
-                        return deleteDocFileAction(f.id, folder.id);
-                      }}
-                    />
+        <DocSelectionProvider folderId={folder.id}>
+          {(entries ?? []).map((entry) => (
+            <div key={entry.id} style={{ padding: "13px 0", borderBottom: "1px solid color-mix(in srgb, var(--color-text) 10%, transparent)" }}>
+              <div style={{ display: "flex", gap: 11, alignItems: "flex-start" }}>
+                <Icon name="fileText" size={17} className="text-[var(--color-neutral-600)] mt-1" />
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: 14.5, fontWeight: 600 }}>{entry.title}</div>
+                  <div style={{ fontSize: 10.5, color: "var(--color-neutral-600)" }}>
+                    {(entry.owner as unknown as { full_name: string } | null)?.full_name ?? "Whole family"}
+                    {entry.expires_at ? ` · expires ${formatDate(entry.expires_at)}` : ""}
+                    {entry.reference_no ? ` · ref ${entry.reference_no}` : ""}
                   </div>
-                ))}
+                  {entry.note && <div style={{ fontSize: 12, color: "var(--color-neutral-700)", marginTop: 4 }}>{entry.note}</div>}
+                </div>
+                <Tag variant={entry.visibility === "family" ? "neutral" : "outline"}>{entry.visibility}</Tag>
               </div>
-            )}
-          </div>
-        ))}
+              {(entry.doc_files ?? []).length > 0 && (
+                <div style={{ marginTop: 8, display: "flex", flexDirection: "column", gap: 6, paddingLeft: 28 }}>
+                  {(entry.doc_files ?? []).map((f) => (
+                    <DocFileRow key={f.id} id={f.id} folderId={folder.id} fileName={f.file_name} path={f.storage_path} driveViewLink={f.drive_view_link} />
+                  ))}
+                </div>
+              )}
+            </div>
+          ))}
+        </DocSelectionProvider>
 
         <Link
           href={`/family/documents/new?folder=${folder.id}`}

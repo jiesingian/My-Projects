@@ -24,9 +24,9 @@
     "semantic_hash": ""
   },
   "src/app/(app)/family/documents/[folderId]/page.tsx": {
-    "mtime": 1788403298.5734606,
-    "seen": 1788403357.546604,
-    "ast_hash": "ef565c739804116934ffd5785e2b339c",
+    "mtime": 1788403840.7934928,
+    "seen": 1788403868.4383912,
+    "ast_hash": "fd5518a9bc1551f87cfd89258137b9d7",
     "semantic_hash": ""
   },
   "src/app/(app)/family/documents/new/new-doc-form.tsx": {
@@ -102,9 +102,9 @@
     "semantic_hash": ""
   },
   "src/app/(app)/journal/page.tsx": {
-    "mtime": 1788400173.9568229,
-    "seen": 1788400253.9554334,
-    "ast_hash": "07b23bbcdff77ca6a521a7db271da4a1",
+    "mtime": 1788403776.6854892,
+    "seen": 1788403868.438405,
+    "ast_hash": "da49a0fa1618ed95d7efcb8cb2b3cc23",
     "semantic_hash": ""
   },
   "src/app/(app)/layout.tsx": {
@@ -348,9 +348,9 @@
     "semantic_hash": ""
   },
   "src/lib/actions/documents.ts": {
-    "mtime": 1788403266.1894588,
-    "seen": 1788403357.5466783,
-    "ast_hash": "5c62e705a48e2df53329e0db476ddb9d",
+    "mtime": 1788403714.2694855,
+    "seen": 1788403868.438447,
+    "ast_hash": "e38ec955985f0afd14ef860aa735ef7b",
     "semantic_hash": ""
   },
   "src/lib/actions/drive.ts": {
@@ -378,9 +378,9 @@
     "semantic_hash": ""
   },
   "src/lib/actions/journal.ts": {
-    "mtime": 1788403260.5534585,
-    "seen": 1788403357.5466828,
-    "ast_hash": "aeae89ca54ab7cf481be6be75352d997",
+    "mtime": 1788403701.9294846,
+    "seen": 1788403868.4384515,
+    "ast_hash": "8c652b10f9273bd1df3c38316d32b38e",
     "semantic_hash": ""
   },
   "src/lib/actions/planner.ts": {
@@ -552,9 +552,9 @@
     "semantic_hash": "a2760511c65806022ad20adf74370ff3"
   },
   "src/components/gallery-tile.tsx": {
-    "mtime": 1788403289.7014601,
-    "seen": 1788403357.5466661,
-    "ast_hash": "b5e681353a8d5f870c37ce62ee2caaf9",
+    "mtime": 1788403747.3134873,
+    "seen": 1788403868.4384363,
+    "ast_hash": "93376607bb67a3c2b974a6581613f4f8",
     "semantic_hash": ""
   },
   "src/lib/google-drive.ts": {
@@ -582,9 +582,27 @@
     "semantic_hash": ""
   },
   "src/components/delete-button.tsx": {
-    "mtime": 1788403279.2814596,
-    "seen": 1788403357.5466628,
-    "ast_hash": "d406140fa6b861a4ea3af9139f856522",
+    "mtime": 1788403725.433486,
+    "seen": 1788403868.4384308,
+    "ast_hash": "8829a9ebb7c59ecff7e0dfae6df4016b",
+    "semantic_hash": ""
+  },
+  "src/components/doc-file-row.tsx": {
+    "mtime": 1788403817.8294916,
+    "seen": 1788403868.438432,
+    "ast_hash": "7309b9c9e04c15d101136958c5f930a2",
+    "semantic_hash": ""
+  },
+  "src/components/gallery-grid.tsx": {
+    "mtime": 1788403762.1214883,
+    "seen": 1788403868.438435,
+    "ast_hash": "a34fae3f8712c4909c6881108e7ceae1",
+    "semantic_hash": ""
+  },
+  "src/lib/doc-selection-context.tsx": {
+    "mtime": 1788403809.765491,
+    "seen": 1788403868.4384558,
+    "ast_hash": "cd394e522e67281063fac4aa2633d95f",
     "semantic_hash": ""
   }
 }

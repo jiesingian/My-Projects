@@ -10,7 +10,7 @@ export function DeleteButton({
   confirmText = "Delete this? This can't be undone.",
   style,
 }: {
-  onDelete: () => Promise<{ error: string | null } | void>;
+  onDelete: () => Promise<{ error: string | null; driveViewLink?: string | null } | void>;
   label?: string;
   confirmText?: string;
   style?: React.CSSProperties;
@@ -31,7 +31,11 @@ export function DeleteButton({
         const result = await onDelete();
         setBusy(false);
         if (result?.error) {
-          window.alert(result.error);
+          if (result.driveViewLink && window.confirm(`${result.error}\n\nOpen it in Google Drive now to delete it there?`)) {
+            window.open(result.driveViewLink, "_blank", "noopener,noreferrer");
+          } else if (!result.driveViewLink) {
+            window.alert(result.error);
+          }
           return;
         }
         router.refresh();

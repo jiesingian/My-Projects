@@ -5,7 +5,7 @@ import { getGallery, getEntries, getMilestones } from "@/lib/queries/journal";
 import { HubHeader } from "@/components/hub-header";
 import { Blueprint, Tag } from "@/components/ui";
 import { GalleryUpload } from "@/components/gallery-upload";
-import { GalleryTile } from "@/components/gallery-tile";
+import { GalleryGrid } from "@/components/gallery-grid";
 import { formatDate } from "@/lib/format";
 
 const SEGMENTS = ["gallery", "entries", "milestones"] as const;
@@ -47,11 +47,9 @@ async function GalleryPane({ familyId, familyName }: { familyId: string; familyN
       {media.length === 0 ? (
         <p style={{ fontSize: 12, color: "var(--color-neutral-600)" }}>No photos or videos yet — upload the first one above.</p>
       ) : (
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 6 }}>
-          {media.map((m) => (
-            <GalleryTile key={m.id} id={m.id} url={m.url} viewLink={m.viewLink} date={m.taken_at ? formatDate(m.taken_at) : ""} mediaType={m.media_type} />
-          ))}
-        </div>
+        <GalleryGrid
+          media={media.map((m) => ({ id: m.id, url: m.url, viewLink: m.viewLink, date: m.taken_at ? formatDate(m.taken_at) : "", media_type: m.media_type }))}
+        />
       )}
     </>
   );
