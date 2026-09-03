@@ -24,15 +24,15 @@
     "semantic_hash": ""
   },
   "src/app/(app)/family/documents/[folderId]/page.tsx": {
-    "mtime": 1788341636.9406583,
-    "seen": 1788341823.9322119,
-    "ast_hash": "3dfabc9cfd93e35287815930f19d31fc",
+    "mtime": 1788399673.6702754,
+    "seen": 1788399709.4602923,
+    "ast_hash": "bd58d5415c27e0ae6323eade141ae5da",
     "semantic_hash": ""
   },
   "src/app/(app)/family/documents/new/new-doc-form.tsx": {
-    "mtime": 1788398691.1663005,
-    "seen": 1788398798.4056368,
-    "ast_hash": "027fc12cfef9f3b6357f0c234b35290b",
+    "mtime": 1788399566.6062782,
+    "seen": 1788399709.4602954,
+    "ast_hash": "eb0886b854a7279aa6bd345528f39932",
     "semantic_hash": ""
   },
   "src/app/(app)/family/documents/new/page.tsx": {
@@ -90,9 +90,9 @@
     "semantic_hash": ""
   },
   "src/app/(app)/journal/new/new-entry-form.tsx": {
-    "mtime": 1788398670.682301,
-    "seen": 1788398798.4056551,
-    "ast_hash": "5bb7779a44632c7b806dbedeae38520c",
+    "mtime": 1788399556.9862785,
+    "seen": 1788399709.4603167,
+    "ast_hash": "8d80da17cf01a167340c7b2d5325ef8d",
     "semantic_hash": ""
   },
   "src/app/(app)/journal/new/page.tsx": {
@@ -102,9 +102,9 @@
     "semantic_hash": ""
   },
   "src/app/(app)/journal/page.tsx": {
-    "mtime": 1788341730.536664,
-    "seen": 1788341823.9322374,
-    "ast_hash": "0c81faa51c9ffebe628c9792cb47b991",
+    "mtime": 1788399643.1742764,
+    "seen": 1788399709.4603205,
+    "ast_hash": "b09bc518af4e8c0f48af2afb89629a99",
     "semantic_hash": ""
   },
   "src/app/(app)/layout.tsx": {
@@ -276,9 +276,9 @@
     "semantic_hash": ""
   },
   "src/components/gallery-upload.tsx": {
-    "mtime": 1788398757.7102988,
-    "seen": 1788398798.4057133,
-    "ast_hash": "7be0189b4c4612485b9ec8359cdb2206",
+    "mtime": 1788399505.5222797,
+    "seen": 1788399709.4603798,
+    "ast_hash": "111ef6c94c8d7c6b860bd978f68da604",
     "semantic_hash": ""
   },
   "src/components/generate-grocery-button.tsx": {
@@ -348,9 +348,9 @@
     "semantic_hash": ""
   },
   "src/lib/actions/documents.ts": {
-    "mtime": 1788398620.7343023,
-    "seen": 1788398798.4057329,
-    "ast_hash": "e5f835dae42e4d5cccc9a05a5357324e",
+    "mtime": 1788399619.7302768,
+    "seen": 1788399709.460403,
+    "ast_hash": "3b5834c8b2a926a7ae294f5ec7ba7025",
     "semantic_hash": ""
   },
   "src/lib/actions/drive.ts": {
@@ -378,9 +378,9 @@
     "semantic_hash": ""
   },
   "src/lib/actions/journal.ts": {
-    "mtime": 1788398592.2183032,
-    "seen": 1788398798.4057412,
-    "ast_hash": "1421ca242dbb60e7055925818a5c1771",
+    "mtime": 1788399598.1462774,
+    "seen": 1788399709.4604125,
+    "ast_hash": "fd1f2adcb92e0d633526c71adafe2458",
     "semantic_hash": ""
   },
   "src/lib/actions/planner.ts": {
@@ -552,21 +552,21 @@
     "semantic_hash": "a2760511c65806022ad20adf74370ff3"
   },
   "src/components/gallery-tile.tsx": {
-    "mtime": 1788341716.0046632,
-    "seen": 1788341823.932286,
-    "ast_hash": "bde46956788d51a3bb5b7305d06528fd",
+    "mtime": 1788399692.254275,
+    "seen": 1788399709.460378,
+    "ast_hash": "44d378d2d15f60cbaee8a5815060dc2f",
     "semantic_hash": ""
   },
   "src/lib/google-drive.ts": {
-    "mtime": 1788399092.1102903,
-    "seen": 1788399131.6687524,
-    "ast_hash": "6494853235c178a8052ac3588983d39b",
+    "mtime": 1788399472.3502805,
+    "seen": 1788399709.460422,
+    "ast_hash": "3f8fe30b489b709cac981f306aab8b7f",
     "semantic_hash": ""
   },
   "src/app/api/drive/file/[fileId]/route.ts": {
-    "mtime": 1788398567.2263038,
-    "seen": 1788398798.4056804,
-    "ast_hash": "47be5ba030687b1a6a14ed3fea7c02e0",
+    "mtime": 1788399483.2902803,
+    "seen": 1788399709.4603388,
+    "ast_hash": "b3721b31515265e965d952c13c06bfbd",
     "semantic_hash": ""
   },
   "src/app/api/uploads/session/route.ts": {
@@ -576,9 +576,15 @@
     "semantic_hash": ""
   },
   "src/lib/upload-client.ts": {
-    "mtime": 1788398575.1223035,
-    "seen": 1788398798.405768,
-    "ast_hash": "7d5532ed8d3592cc11be8a37a379f335",
+    "mtime": 1788399492.8062801,
+    "seen": 1788399709.4604437,
+    "ast_hash": "889e80f68a6ede84223d089fc4e5b267",
+    "semantic_hash": ""
+  },
+  "src/components/delete-button.tsx": {
+    "mtime": 1788399583.1942778,
+    "seen": 1788399709.4603689,
+    "ast_hash": "cf676959228c7963044a6c1e9b75a984",
     "semantic_hash": ""
   }
 }

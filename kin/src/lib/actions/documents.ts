@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { requireCurrentMember } from "@/lib/session";
+import { getValidDriveAccessToken, deleteDriveFile } from "@/lib/google-drive";
 
 type UploadedFile =
   | { provider: "google_drive"; driveFileId: string; driveViewLink: string | null; driveThumbnailLink: string | null }
@@ -110,14 +111,22 @@ export async function getDocFileUrl(path: string): Promise<string | null> {
   return data.signedUrl;
 }
 
-export async function deleteDocFileAction(fileId: string, folderId: string) {
+export async function deleteDocFileAction(fileId: string, folderId: string): Promise<{ error: string | null }> {
+  const me = await requireCurrentMember();
   const supabase = await createClient();
-  const { data: file } = await supabase.from("doc_files").select("storage_path, storage_provider").eq("id", fileId).maybeSingle();
-  if (file && file.storage_provider === "supabase" && file.storage_path) {
+  const { data: file } = await supabase.from("doc_files").select("storage_path, storage_provider, drive_file_id").eq("id", fileId).maybeSingle();
+  if (!file) return { error: "Not found." };
+
+  if (file.storage_provider === "supabase" && file.storage_path) {
     await supabase.storage.from("documents").remove([file.storage_path]);
+  } else if (file.storage_provider === "google_drive" && file.drive_file_id) {
+    const token = await getValidDriveAccessToken(me.family_id);
+    if (token) await deleteDriveFile(token, file.drive_file_id).catch(() => {});
   }
-  // Drive-stored files are left in Drive untouched — only the index entry is removed here;
-  // deleting the actual file is left to the organiser in Drive, matching "Kin keeps only the index."
-  await supabase.from("doc_files").delete().eq("id", fileId);
+
+  const { error } = await supabase.from("doc_files").delete().eq("id", fileId);
+  if (error) return { error: error.message };
+
   revalidatePath(`/family/documents/${folderId}`);
+  return { error: null };
 }

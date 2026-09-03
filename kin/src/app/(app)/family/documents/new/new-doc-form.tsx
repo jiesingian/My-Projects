@@ -3,7 +3,7 @@
 import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createDocEntryAction, attachDocFileAction } from "@/lib/actions/documents";
-import { uploadFileDirect } from "@/lib/upload-client";
+import { uploadFileDirect, rollbackUpload, type UploadedFile } from "@/lib/upload-client";
 import { ErrorText } from "@/components/form";
 import { DetailHeader } from "@/components/hub-header";
 import type { Tables } from "@/lib/database.types";
@@ -56,8 +56,9 @@ export function NewDocForm({
 
     const files = Array.from(fileRef.current?.files ?? []).filter((f) => f.size > 0);
     for (const file of files) {
+      let uploaded: UploadedFile | undefined;
       try {
-        const uploaded = await uploadFileDirect(file, "document", created.folderId);
+        uploaded = await uploadFileDirect(file, "document", created.folderId);
         const result = await attachDocFileAction({
           entryId: created.entryId,
           fileName: file.name,
@@ -67,6 +68,7 @@ export function NewDocForm({
         });
         if (result.error) throw new Error(result.error);
       } catch (err) {
+        if (uploaded) await rollbackUpload(uploaded);
         setError(`Entry saved, but ${(err as Error).message}`);
         setSaving(false);
         return;

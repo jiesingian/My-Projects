@@ -41,3 +41,11 @@ export async function uploadFileDirect(file: File, kind: "journal" | "document",
   if (error) throw new Error(`"${file.name}" failed to upload: ${error.message}`);
   return { provider: "supabase", storagePath: session.path };
 }
+
+/** Cleans up a file that made it to Drive but never got indexed (the
+ * metadata call right after it failed) — otherwise it'd sit there as an
+ * orphan with no record of it anywhere in the app. Best effort. */
+export async function rollbackUpload(uploaded: UploadedFile): Promise<void> {
+  if (uploaded.provider !== "google_drive") return;
+  await fetch(`/api/drive/file/${uploaded.driveFileId}`, { method: "DELETE" }).catch(() => {});
+}

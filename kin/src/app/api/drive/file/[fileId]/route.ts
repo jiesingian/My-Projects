@@ -1,6 +1,6 @@
 import { getCurrentMember } from "@/lib/session";
 import { createClient } from "@/lib/supabase/server";
-import { getValidDriveAccessToken, fetchDriveFile } from "@/lib/google-drive";
+import { getValidDriveAccessToken, fetchDriveFile, deleteDriveFile } from "@/lib/google-drive";
 
 /** Streams a Drive-stored photo/file inline under our own domain, so the
  * gallery can show it directly instead of linking out to Drive — works
@@ -30,4 +30,22 @@ export async function GET(_request: Request, { params }: { params: Promise<{ fil
       "Cache-Control": "private, max-age=3600",
     },
   });
+}
+
+/** Rolls back an upload that reached Drive but never got indexed (the
+ * attach step that follows it failed) — deliberately not restricted to
+ * files this household has already indexed, since an orphan by definition
+ * has no index row yet. Safe regardless: the drive.file scope means a
+ * household's access token can only ever see/delete files created under
+ * its own OAuth grant, never another household's. */
+export async function DELETE(_request: Request, { params }: { params: Promise<{ fileId: string }> }) {
+  const me = await getCurrentMember();
+  if (!me) return new Response("Unauthorized", { status: 401 });
+  const { fileId } = await params;
+
+  const token = await getValidDriveAccessToken(me.family_id);
+  if (!token) return new Response("Drive not connected", { status: 404 });
+
+  await deleteDriveFile(token, fileId);
+  return new Response(null, { status: 204 });
 }

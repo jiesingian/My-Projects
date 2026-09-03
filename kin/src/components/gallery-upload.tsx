@@ -2,7 +2,7 @@
 
 import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { uploadFileDirect } from "@/lib/upload-client";
+import { uploadFileDirect, rollbackUpload, type UploadedFile } from "@/lib/upload-client";
 import { attachJournalMediaAction } from "@/lib/actions/journal";
 import { ErrorText } from "@/components/form";
 
@@ -30,13 +30,15 @@ export function GalleryUpload() {
     setStatus({ uploading: true, done: 0, total: files.length, error: null });
     const today = new Date().toISOString().slice(0, 10);
     for (const file of files) {
+      let uploaded: UploadedFile | undefined;
       try {
-        const uploaded = await uploadFileDirect(file, "journal");
+        uploaded = await uploadFileDirect(file, "journal");
         const mediaType = file.type.startsWith("video") ? "video" : "photo";
         const result = await attachJournalMediaAction({ mediaType, takenAt: today, uploaded });
         if (result.error) throw new Error(result.error);
         setStatus((s) => ({ ...s, done: s.done + 1 }));
       } catch (err) {
+        if (uploaded) await rollbackUpload(uploaded);
         setStatus((s) => ({ ...s, uploading: false, error: (err as Error).message }));
         return;
       }

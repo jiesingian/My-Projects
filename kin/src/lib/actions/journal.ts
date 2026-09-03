@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { requireCurrentMember } from "@/lib/session";
+import { getValidDriveAccessToken, deleteDriveFile } from "@/lib/google-drive";
 
 type UploadedFile =
   | { provider: "google_drive"; driveFileId: string; driveViewLink: string | null; driveThumbnailLink: string | null }
@@ -77,6 +78,36 @@ export async function attachJournalMediaAction(input: {
   if (input.entryId) {
     await supabase.from("journal_entry_media").insert({ entry_id: input.entryId, media_id: media.id, sort_order: input.sortOrder ?? 0 });
   }
+
+  revalidatePath("/journal");
+  return { error: null };
+}
+
+/** Deletes a gallery/entry photo or video — from wherever it's actually
+ * stored (Drive or Supabase Storage) as well as our own index. Cascades to
+ * journal_entry_media automatically, so this removes it from any entry it
+ * was attached to as well. */
+export async function deleteJournalMediaAction(mediaId: string): Promise<{ error: string | null }> {
+  const me = await requireCurrentMember();
+  const supabase = await createClient();
+
+  const { data: media } = await supabase
+    .from("journal_media")
+    .select("storage_provider, storage_path, drive_file_id")
+    .eq("id", mediaId)
+    .eq("family_id", me.family_id)
+    .maybeSingle();
+  if (!media) return { error: "Not found." };
+
+  if (media.storage_provider === "supabase" && media.storage_path) {
+    await supabase.storage.from("journal").remove([media.storage_path]);
+  } else if (media.storage_provider === "google_drive" && media.drive_file_id) {
+    const token = await getValidDriveAccessToken(me.family_id);
+    if (token) await deleteDriveFile(token, media.drive_file_id).catch(() => {});
+  }
+
+  const { error } = await supabase.from("journal_media").delete().eq("id", mediaId);
+  if (error) return { error: error.message };
 
   revalidatePath("/journal");
   return { error: null };

@@ -148,3 +148,10 @@ export async function createResumableUploadSession(
 export async function fetchDriveFile(accessToken: string, fileId: string): Promise<Response> {
   return driveFetch(accessToken, `/files/${fileId}?alt=media`);
 }
+
+/** Used to roll back an upload that succeeded on Drive's side but never got
+ * indexed in our own tables (e.g. the attach step failed right after) — best
+ * effort, errors are swallowed by the caller. */
+export async function deleteDriveFile(accessToken: string, fileId: string): Promise<void> {
+  await driveFetch(accessToken, `/files/${fileId}`, { method: "DELETE" });
+}

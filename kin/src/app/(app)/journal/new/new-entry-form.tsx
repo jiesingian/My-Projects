@@ -3,7 +3,7 @@
 import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createJournalEntryAction, attachJournalMediaAction } from "@/lib/actions/journal";
-import { uploadFileDirect } from "@/lib/upload-client";
+import { uploadFileDirect, rollbackUpload, type UploadedFile } from "@/lib/upload-client";
 import { ErrorText } from "@/components/form";
 import { DetailHeader } from "@/components/hub-header";
 import type { Tables } from "@/lib/database.types";
@@ -41,12 +41,14 @@ export function NewEntryForm({ members }: { members: Tables<"members">[] }) {
 
     const files = Array.from(fileRef.current?.files ?? []).filter((f) => f.size > 0);
     for (let i = 0; i < files.length; i++) {
+      let uploaded: UploadedFile | undefined;
       try {
-        const uploaded = await uploadFileDirect(files[i], "journal");
+        uploaded = await uploadFileDirect(files[i], "journal");
         const mediaType = files[i].type.startsWith("video") ? "video" : "photo";
         const result = await attachJournalMediaAction({ entryId: created.entryId, mediaType, takenAt: date, sortOrder: i, uploaded });
         if (result.error) throw new Error(result.error);
       } catch (err) {
+        if (uploaded) await rollbackUpload(uploaded);
         setError(`Entry saved, but ${(err as Error).message}`);
         setSaving(false);
         return;

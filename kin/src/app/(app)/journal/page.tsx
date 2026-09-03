@@ -49,7 +49,7 @@ async function GalleryPane({ familyId }: { familyId: string }) {
       ) : (
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 6 }}>
           {media.map((m) => (
-            <GalleryTile key={m.id} url={m.url} viewLink={m.viewLink} date={m.taken_at ? formatDate(m.taken_at) : ""} mediaType={m.media_type} />
+            <GalleryTile key={m.id} id={m.id} url={m.url} viewLink={m.viewLink} date={m.taken_at ? formatDate(m.taken_at) : ""} mediaType={m.media_type} />
           ))}
         </div>
       )}

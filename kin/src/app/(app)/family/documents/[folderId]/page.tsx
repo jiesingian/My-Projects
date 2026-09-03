@@ -7,6 +7,8 @@ import { Tag } from "@/components/ui";
 import { Icon } from "@/components/icons";
 import { formatDate } from "@/lib/format";
 import { DownloadLink } from "@/components/download-link";
+import { DeleteButton } from "@/components/delete-button";
+import { deleteDocFileAction } from "@/lib/actions/documents";
 
 export default async function DocFolderPage({
   params,
@@ -57,7 +59,19 @@ export default async function DocFolderPage({
             {(entry.doc_files ?? []).length > 0 && (
               <div style={{ marginTop: 8, display: "flex", flexDirection: "column", gap: 6, paddingLeft: 28 }}>
                 {(entry.doc_files ?? []).map((f) => (
-                  <DownloadLink key={f.id} path={f.storage_path} fileName={f.file_name} driveViewLink={f.drive_view_link} />
+                  <div key={f.id} style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <DownloadLink path={f.storage_path} fileName={f.file_name} driveViewLink={f.drive_view_link} />
+                    </div>
+                    <DeleteButton
+                      label={`Delete ${f.file_name}`}
+                      confirmText={`Delete "${f.file_name}"? This can't be undone.`}
+                      onDelete={async () => {
+                        "use server";
+                        await deleteDocFileAction(f.id, folder.id);
+                      }}
+                    />
+                  </div>
                 ))}
               </div>
             )}
