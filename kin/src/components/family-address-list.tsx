@@ -4,12 +4,18 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { addFamilyAddressAction, removeFamilyAddressAction } from "@/lib/actions/family";
 
-export type FamilyAddress = { id: string; label: string; address_line: string };
+export type FamilyAddress = { id: string; label: string; address_line: string; zip_code: string | null };
+
+function mapsUrl(address: FamilyAddress) {
+  const query = [address.address_line, address.zip_code].filter(Boolean).join(", ");
+  return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(query)}`;
+}
 
 export function FamilyAddressList({ addresses, canEdit }: { addresses: FamilyAddress[]; canEdit: boolean }) {
   const [adding, setAdding] = useState(false);
   const [label, setLabel] = useState("");
   const [addressLine, setAddressLine] = useState("");
+  const [zipCode, setZipCode] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
@@ -17,7 +23,7 @@ export function FamilyAddressList({ addresses, canEdit }: { addresses: FamilyAdd
   async function add() {
     setBusy(true);
     setError(null);
-    const result = await addFamilyAddressAction(label, addressLine);
+    const result = await addFamilyAddressAction(label, addressLine, zipCode);
     setBusy(false);
     if (result.error) {
       setError(result.error);
@@ -25,6 +31,7 @@ export function FamilyAddressList({ addresses, canEdit }: { addresses: FamilyAdd
     }
     setLabel("");
     setAddressLine("");
+    setZipCode("");
     setAdding(false);
     router.refresh();
   }
@@ -59,7 +66,18 @@ export function FamilyAddressList({ addresses, canEdit }: { addresses: FamilyAdd
           >
             {a.label}
           </span>
-          <span style={{ flex: 1, fontSize: 13 }}>{a.address_line}</span>
+          <span style={{ flex: 1, minWidth: 0 }}>
+            <span style={{ fontSize: 13, display: "block" }}>{a.address_line}</span>
+            {a.zip_code && <span style={{ fontSize: 11, color: "var(--color-neutral-600)" }}>{a.zip_code}</span>}
+          </span>
+          <a
+            href={mapsUrl(a)}
+            target="_blank"
+            rel="noopener noreferrer"
+            style={{ fontSize: 11, color: "var(--color-accent-700)", textDecoration: "none", flex: "none" }}
+          >
+            MAP ↗
+          </a>
           {canEdit && (
             <button
               type="button"
@@ -85,6 +103,10 @@ export function FamilyAddressList({ addresses, canEdit }: { addresses: FamilyAdd
                   <label>ADDRESS</label>
                   <input className="input" value={addressLine} onChange={(e) => setAddressLine(e.target.value)} style={{ minHeight: 40 }} disabled={busy} />
                 </div>
+              </div>
+              <div className="field" style={{ width: 140, marginBottom: 8 }}>
+                <label>ZIP / POSTAL CODE</label>
+                <input className="input" value={zipCode} onChange={(e) => setZipCode(e.target.value)} style={{ minHeight: 40 }} disabled={busy} />
               </div>
               {error && <p style={{ color: "var(--color-accent-700)", fontSize: 11.5, margin: "0 0 8px" }}>{error}</p>}
               <div style={{ display: "flex", gap: 8 }}>

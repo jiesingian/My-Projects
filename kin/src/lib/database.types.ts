@@ -742,6 +742,7 @@ export type Database = {
           family_id: string
           id: string
           label: string
+          zip_code: string | null
         }
         Insert: {
           address_line: string
@@ -749,6 +750,7 @@ export type Database = {
           family_id: string
           id?: string
           label: string
+          zip_code?: string | null
         }
         Update: {
           address_line?: string
@@ -756,10 +758,40 @@ export type Database = {
           family_id?: string
           id?: string
           label?: string
+          zip_code?: string | null
         }
         Relationships: [
           {
             foreignKeyName: "family_addresses_family_id_fkey"
+            columns: ["family_id"]
+            isOneToOne: false
+            referencedRelation: "families"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      family_backgrounds: {
+        Row: {
+          created_at: string
+          family_id: string
+          id: string
+          storage_path: string
+        }
+        Insert: {
+          created_at?: string
+          family_id: string
+          id?: string
+          storage_path: string
+        }
+        Update: {
+          created_at?: string
+          family_id?: string
+          id?: string
+          storage_path?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "family_backgrounds_family_id_fkey"
             columns: ["family_id"]
             isOneToOne: false
             referencedRelation: "families"

@@ -66,9 +66,9 @@
     "semantic_hash": ""
   },
   "src/app/(app)/family/page.tsx": {
-    "mtime": 1788415076.6715288,
-    "seen": 1788415175.7813368,
-    "ast_hash": "6d24e14afd6950829c806621135d9f86",
+    "mtime": 1788417069.8175025,
+    "seen": 1788417132.0062904,
+    "ast_hash": "d631bac5d1875d136e8b4fb9c173011d",
     "semantic_hash": ""
   },
   "src/app/(app)/household/meals/new/page.tsx": {
@@ -360,9 +360,9 @@
     "semantic_hash": ""
   },
   "src/lib/actions/family.ts": {
-    "mtime": 1788415014.207525,
-    "seen": 1788415175.7813938,
-    "ast_hash": "7e92b515652aa81791206c7a5efb66a3",
+    "mtime": 1788417027.9534998,
+    "seen": 1788417132.0063674,
+    "ast_hash": "dddb194e6707f8facc95471b8cd2bada",
     "semantic_hash": ""
   },
   "src/lib/actions/health.ts": {
@@ -402,9 +402,9 @@
     "semantic_hash": ""
   },
   "src/lib/database.types.ts": {
-    "mtime": 1788414998.4320488,
-    "seen": 1788415175.781405,
-    "ast_hash": "30d763702de4cd104bd0a98eded50a90",
+    "mtime": 1788416975.5692666,
+    "seen": 1788417132.0063748,
+    "ast_hash": "399e6d5aff2ab37d0ee8f3c9322dde94",
     "semantic_hash": ""
   },
   "src/lib/format.ts": {
@@ -414,9 +414,9 @@
     "semantic_hash": ""
   },
   "src/lib/queries/family.ts": {
-    "mtime": 1788415046.943527,
-    "seen": 1788415175.7814078,
-    "ast_hash": "48b91da0012737bd97bb25212ee3e102",
+    "mtime": 1788417039.5455005,
+    "seen": 1788417132.00638,
+    "ast_hash": "d1706ba828d8867b43579781700d5404",
     "semantic_hash": ""
   },
   "src/lib/queries/health.ts": {
@@ -666,9 +666,9 @@
     "semantic_hash": ""
   },
   "src/components/avatar-album-viewer.tsx": {
-    "mtime": 1788413560.1425254,
-    "seen": 1788414302.6990626,
-    "ast_hash": "2e5b1a9a7ed697c421c8c2416f7d7da1",
+    "mtime": 1788417007.4494987,
+    "seen": 1788417132.0063295,
+    "ast_hash": "84a2048399c469274fcc1b263d0e8f7a",
     "semantic_hash": ""
   },
   "src/components/avatar-crop-upload.tsx": {
@@ -684,15 +684,21 @@
     "semantic_hash": ""
   },
   "src/components/family-address-list.tsx": {
-    "mtime": 1788415041.4875267,
-    "seen": 1788415175.781374,
-    "ast_hash": "593dd2e956b9afe644bd51915f0ea89f",
+    "mtime": 1788417091.8695037,
+    "seen": 1788417132.0063403,
+    "ast_hash": "d7b4a16b73add198dc652478cc028cb4",
     "semantic_hash": ""
   },
-  "src/components/family-background-upload.tsx": {
-    "mtime": 1788415071.9595284,
-    "seen": 1788415175.781375,
-    "ast_hash": "95b1a90cc7b3a5272a1b051bfef6f93f",
+  "src/components/family-background-album.tsx": {
+    "mtime": 1788417052.3015013,
+    "seen": 1788417132.006342,
+    "ast_hash": "57173a44c464b4f46d0bebd072745b58",
+    "semantic_hash": ""
+  },
+  "src/components/photo-album-viewer.tsx": {
+    "mtime": 1788417002.7494984,
+    "seen": 1788417132.0063558,
+    "ast_hash": "075d9b23e805382078032a91e4a1b8b1",
     "semantic_hash": ""
   }
 }

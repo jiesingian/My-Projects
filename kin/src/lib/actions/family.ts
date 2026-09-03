@@ -143,32 +143,87 @@ export async function updateMemberRelationshipAction(memberId: string, relations
   return { error: error?.message ?? null };
 }
 
-/** Sets the household's cover photo — the image itself is uploaded directly
- * to Storage by the client (same pattern as avatars); this just records the
- * resulting path against the family row. Organizer only. */
-export async function updateFamilyBackgroundAction(path: string): Promise<ActionState> {
+/** Records a freshly uploaded household cover photo (already sitting in
+ * Storage — see FamilyBackgroundAlbum) as a new album entry and makes it
+ * the active background. Mirrors the member-avatar album. Organizer only —
+ * RLS enforces this too. */
+export async function addFamilyBackgroundAction(path: string): Promise<ActionState> {
   const me = await requireCurrentMember();
   if (!me.is_organiser) return { error: "Only the organizer can change the household photo." };
 
   const supabase = await createClient();
   const publicUrl = supabase.storage.from("avatars").getPublicUrl(path).data.publicUrl;
+
+  const { error: insertErr } = await supabase.from("family_backgrounds").insert({ family_id: me.family_id, storage_path: path });
+  if (insertErr) return { error: insertErr.message };
+
   const { error } = await supabase.from("families").update({ background_url: publicUrl }).eq("id", me.family_id);
   revalidatePath("/family");
   return { error: error?.message ?? null };
 }
 
+/** Makes a previously uploaded household photo the active background again
+ * without re-uploading it. Organizer only. */
+export async function setActiveFamilyBackgroundAction(backgroundId: string): Promise<ActionState> {
+  const me = await requireCurrentMember();
+  if (!me.is_organiser) return { error: "Only the organizer can change the household photo." };
+
+  const supabase = await createClient();
+  const { data: photo } = await supabase.from("family_backgrounds").select("storage_path, family_id").eq("id", backgroundId).maybeSingle();
+  if (!photo || photo.family_id !== me.family_id) return { error: "Photo not found." };
+
+  const publicUrl = supabase.storage.from("avatars").getPublicUrl(photo.storage_path).data.publicUrl;
+  const { error } = await supabase.from("families").update({ background_url: publicUrl }).eq("id", me.family_id);
+  revalidatePath("/family");
+  return { error: error?.message ?? null };
+}
+
+/** Removes a household photo from the album entirely. If it was the active
+ * background, falls back to the most recent remaining photo, or clears it
+ * if none are left. Organizer only. */
+export async function deleteFamilyBackgroundAction(backgroundId: string): Promise<ActionState> {
+  const me = await requireCurrentMember();
+  if (!me.is_organiser) return { error: "Only the organizer can change the household photo." };
+
+  const supabase = await createClient();
+  const { data: photo } = await supabase.from("family_backgrounds").select("storage_path, family_id").eq("id", backgroundId).maybeSingle();
+  if (!photo || photo.family_id !== me.family_id) return { error: "Photo not found." };
+
+  const deletedUrl = supabase.storage.from("avatars").getPublicUrl(photo.storage_path).data.publicUrl;
+  const { error } = await supabase.from("family_backgrounds").delete().eq("id", backgroundId);
+  if (error) return { error: error.message };
+  await supabase.storage.from("avatars").remove([photo.storage_path]).catch(() => {});
+
+  const { data: family } = await supabase.from("families").select("background_url").eq("id", me.family_id).maybeSingle();
+  if (family?.background_url === deletedUrl) {
+    const { data: remaining } = await supabase
+      .from("family_backgrounds")
+      .select("storage_path")
+      .eq("family_id", me.family_id)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    const fallbackUrl = remaining ? supabase.storage.from("avatars").getPublicUrl(remaining.storage_path).data.publicUrl : null;
+    await supabase.from("families").update({ background_url: fallbackUrl }).eq("id", me.family_id);
+  }
+
+  revalidatePath("/family");
+  return { error: null };
+}
+
 /** Adds a tagged address to the household profile (e.g. "Home", "Office").
  * Organizer only — RLS enforces this too. Purely informational for now;
  * not yet wired into Planner/Household task forms. */
-export async function addFamilyAddressAction(label: string, addressLine: string): Promise<ActionState> {
+export async function addFamilyAddressAction(label: string, addressLine: string, zipCode: string): Promise<ActionState> {
   const me = await requireCurrentMember();
   if (!me.is_organiser) return { error: "Only the organizer can add household addresses." };
   const cleanLabel = label.trim();
   const cleanAddress = addressLine.trim();
+  const cleanZip = zipCode.trim() || null;
   if (!cleanLabel || !cleanAddress) return { error: "Both a tag and an address are required." };
 
   const supabase = await createClient();
-  const { error } = await supabase.from("family_addresses").insert({ family_id: me.family_id, label: cleanLabel, address_line: cleanAddress });
+  const { error } = await supabase.from("family_addresses").insert({ family_id: me.family_id, label: cleanLabel, address_line: cleanAddress, zip_code: cleanZip });
   revalidatePath("/family");
   return { error: error?.message ?? null };
 }
