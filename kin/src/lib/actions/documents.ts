@@ -121,7 +121,12 @@ export async function deleteDocFileAction(fileId: string, folderId: string): Pro
     await supabase.storage.from("documents").remove([file.storage_path]);
   } else if (file.storage_provider === "google_drive" && file.drive_file_id) {
     const token = await getValidDriveAccessToken(me.family_id);
-    if (token) await deleteDriveFile(token, file.drive_file_id).catch(() => {});
+    const deleted = token ? await deleteDriveFile(token, file.drive_file_id).catch(() => false) : false;
+    if (!deleted) {
+      return {
+        error: "Kin can only delete files it uploaded itself — this one was added directly in Drive. Delete it there instead.",
+      };
+    }
   }
 
   const { error } = await supabase.from("doc_files").delete().eq("id", fileId);

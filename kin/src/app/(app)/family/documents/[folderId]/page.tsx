@@ -68,7 +68,7 @@ export default async function DocFolderPage({
                       confirmText={`Delete "${f.file_name}"? This can't be undone.`}
                       onDelete={async () => {
                         "use server";
-                        await deleteDocFileAction(f.id, folder.id);
+                        return deleteDocFileAction(f.id, folder.id);
                       }}
                     />
                   </div>

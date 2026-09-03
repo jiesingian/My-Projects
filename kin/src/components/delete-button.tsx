@@ -10,7 +10,7 @@ export function DeleteButton({
   confirmText = "Delete this? This can't be undone.",
   style,
 }: {
-  onDelete: () => Promise<void>;
+  onDelete: () => Promise<{ error: string | null } | void>;
   label?: string;
   confirmText?: string;
   style?: React.CSSProperties;
@@ -28,7 +28,12 @@ export function DeleteButton({
         e.preventDefault();
         if (!window.confirm(confirmText)) return;
         setBusy(true);
-        await onDelete();
+        const result = await onDelete();
+        setBusy(false);
+        if (result?.error) {
+          window.alert(result.error);
+          return;
+        }
         router.refresh();
       }}
       style={{ background: "none", border: "none", cursor: busy ? "default" : "pointer", color: "inherit", padding: 4, display: "inline-flex", opacity: busy ? 0.5 : 1, ...style }}

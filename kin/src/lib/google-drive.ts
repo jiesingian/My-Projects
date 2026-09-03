@@ -150,10 +150,16 @@ export async function fetchDriveFile(accessToken: string, fileId: string): Promi
 }
 
 /** Used to roll back an upload that succeeded on Drive's side but never got
- * indexed in our own tables (e.g. the attach step failed right after) — best
- * effort, errors are swallowed by the caller. */
-export async function deleteDriveFile(accessToken: string, fileId: string): Promise<void> {
-  await driveFetch(accessToken, `/files/${fileId}`, { method: "DELETE" });
+ * indexed in our own tables, and to actually delete a file when the user
+ * deletes it in the app. Returns whether Drive actually deleted it — the
+ * drive.file scope only grants write access to files this app created, so
+ * this reliably fails (403) for a file someone added directly in Drive and
+ * the app only ever discovered via the read-only sync. Callers must check
+ * this rather than assume success, since a false failure here otherwise
+ * gets silently undone the moment the next sync re-imports the file. */
+export async function deleteDriveFile(accessToken: string, fileId: string): Promise<boolean> {
+  const res = await driveFetch(accessToken, `/files/${fileId}`, { method: "DELETE" });
+  return res.ok || res.status === 404;
 }
 
 export type DriveFolderFile = {

@@ -103,7 +103,12 @@ export async function deleteJournalMediaAction(mediaId: string): Promise<{ error
     await supabase.storage.from("journal").remove([media.storage_path]);
   } else if (media.storage_provider === "google_drive" && media.drive_file_id) {
     const token = await getValidDriveAccessToken(me.family_id);
-    if (token) await deleteDriveFile(token, media.drive_file_id).catch(() => {});
+    const deleted = token ? await deleteDriveFile(token, media.drive_file_id).catch(() => false) : false;
+    if (!deleted) {
+      return {
+        error: "Kin can only delete files it uploaded itself — this one was added directly in Drive. Delete it there instead.",
+      };
+    }
   }
 
   const { error } = await supabase.from("journal_media").delete().eq("id", mediaId);

@@ -61,9 +61,7 @@ export function GalleryTile({
         <DeleteButton
           label="Delete photo"
           confirmText="Delete this photo? This can't be undone."
-          onDelete={async () => {
-            await deleteJournalMediaAction(id);
-          }}
+          onDelete={() => deleteJournalMediaAction(id)}
           style={{ position: "absolute", top: 4, right: 4, background: "var(--color-bg)", border: "1px solid var(--color-divider)" }}
         />
       </div>
