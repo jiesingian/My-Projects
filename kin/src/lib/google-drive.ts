@@ -108,35 +108,36 @@ export async function ensureNamedSubfolder(accessToken: string, rootFolderId: st
   return created.id;
 }
 
-export async function uploadFileToDrive(
+/** Opens a Drive resumable-upload session and returns the one-time session
+ * URL the browser can PUT the file bytes to directly — the file itself never
+ * passes through our server, so it isn't subject to Vercel's request body
+ * limit. `fields` on the initial call carries through to the final response
+ * the browser gets back after the PUT completes. */
+export async function createResumableUploadSession(
   accessToken: string,
   folderId: string,
-  file: File,
-): Promise<DriveFile> {
-  const metadata = { name: file.name, parents: [folderId] };
-  const boundary = `kin-${crypto.randomUUID()}`;
-  const bytes = new Uint8Array(await file.arrayBuffer());
-
-  const encoder = new TextEncoder();
-  const parts = [
-    encoder.encode(`--${boundary}\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n${JSON.stringify(metadata)}\r\n`),
-    encoder.encode(`--${boundary}\r\nContent-Type: ${file.type || "application/octet-stream"}\r\n\r\n`),
-    bytes,
-    encoder.encode(`\r\n--${boundary}--`),
-  ];
-  const body = new Blob(parts);
-
-  const res = await fetch(
-    `${DRIVE_UPLOAD_API}/files?uploadType=multipart&fields=id,webViewLink,thumbnailLink`,
-    {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
-        "Content-Type": `multipart/related; boundary=${boundary}`,
-      },
-      body,
+  fileName: string,
+  mimeType: string,
+): Promise<string> {
+  const res = await fetch(`${DRIVE_UPLOAD_API}/files?uploadType=resumable&fields=id,webViewLink,thumbnailLink`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+      "Content-Type": "application/json; charset=UTF-8",
+      "X-Upload-Content-Type": mimeType || "application/octet-stream",
     },
-  );
-  if (!res.ok) throw new Error(`Drive upload failed: ${res.status} ${await res.text()}`);
-  return res.json();
+    body: JSON.stringify({ name: fileName, parents: [folderId] }),
+  });
+  if (!res.ok) throw new Error(`Drive session creation failed: ${res.status} ${await res.text()}`);
+  const location = res.headers.get("Location");
+  if (!location) throw new Error("Drive did not return an upload session URL");
+  return location;
+}
+
+/** Streams a Drive file's bytes, using the household's own access token —
+ * lets us serve inline previews under our own domain regardless of the
+ * file's Drive sharing settings (the drive.file scope only lets us read
+ * files this app created, which is exactly what we're previewing). */
+export async function fetchDriveFile(accessToken: string, fileId: string): Promise<Response> {
+  return driveFetch(accessToken, `/files/${fileId}?alt=media`);
 }

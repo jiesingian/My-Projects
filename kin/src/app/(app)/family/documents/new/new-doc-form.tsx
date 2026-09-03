@@ -1,13 +1,13 @@
 "use client";
 
-import { useActionState, useState } from "react";
-import { createDocEntryAction } from "@/lib/actions/documents";
-import type { ActionState } from "@/lib/actions/auth";
-import { SubmitButton, ErrorText } from "@/components/form";
+import { useRef, useState } from "react";
+import { useRouter } from "next/navigation";
+import { createDocEntryAction, attachDocFileAction } from "@/lib/actions/documents";
+import { uploadFileDirect } from "@/lib/upload-client";
+import { ErrorText } from "@/components/form";
 import { DetailHeader } from "@/components/hub-header";
 import type { Tables } from "@/lib/database.types";
 
-const initialState: ActionState = { error: null };
 const VISIBILITY = [
   { value: "family", label: "Whole family" },
   { value: "parents", label: "Parents only" },
@@ -23,29 +23,83 @@ export function NewDocForm({
   members: Tables<"members">[];
   defaultFolderId?: string;
 }) {
-  const [state, formAction] = useActionState(createDocEntryAction, initialState);
   const [folderId, setFolderId] = useState(defaultFolderId ?? folders[0]?.id ?? "__new__");
   const [visibility, setVisibility] = useState("family");
+  const [fileNames, setFileNames] = useState<string[]>([]);
+  const [error, setError] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
+  const fileRef = useRef<HTMLInputElement>(null);
+  const router = useRouter();
+
+  async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    setError(null);
+    setSaving(true);
+
+    const fd = new FormData(e.currentTarget);
+    const created = await createDocEntryAction({
+      title: String(fd.get("title") ?? ""),
+      folderId,
+      newFolderName: folderId === "__new__" ? String(fd.get("new_folder_name") ?? "") : null,
+      ownerMemberId: String(fd.get("owner_member_id") ?? "") || null,
+      expiresAt: String(fd.get("expires_at") ?? "") || null,
+      docType: String(fd.get("doc_type") ?? "").trim() || null,
+      referenceNo: String(fd.get("reference_no") ?? "").trim() || null,
+      visibility,
+      note: String(fd.get("note") ?? "").trim() || null,
+    });
+    if (created.error || !created.entryId || !created.folderId) {
+      setError(created.error ?? "Something went wrong.");
+      setSaving(false);
+      return;
+    }
+
+    const files = Array.from(fileRef.current?.files ?? []).filter((f) => f.size > 0);
+    for (const file of files) {
+      try {
+        const uploaded = await uploadFileDirect(file, "document", created.folderId);
+        const result = await attachDocFileAction({
+          entryId: created.entryId,
+          fileName: file.name,
+          mimeType: file.type || null,
+          sizeBytes: file.size,
+          uploaded,
+        });
+        if (result.error) throw new Error(result.error);
+      } catch (err) {
+        setError(`Entry saved, but ${(err as Error).message}`);
+        setSaving(false);
+        return;
+      }
+    }
+
+    router.push(`/family/documents/${created.folderId}`);
+    router.refresh();
+  }
 
   return (
     <div>
       <DetailHeader backHref="/family?seg=documents" eyebrow="HUB 01 · NEW ENTRY" />
       <div style={{ padding: "0 22px 22px" }}>
         <h3 style={{ fontSize: 30, margin: "0 0 16px" }}>Add a document</h3>
-        <form action={formAction}>
-          <input type="hidden" name="folder_id" value={folderId} />
-          <input type="hidden" name="visibility" value={visibility} />
-          <ErrorText message={state.error} />
+        <form onSubmit={onSubmit}>
+          <ErrorText message={error} />
 
-          <div
-            className="blueprint placeholder-fill"
-            style={{ padding: "22px 16px", textAlign: "center", marginBottom: 18 }}
-          >
+          <div className="blueprint placeholder-fill" style={{ padding: "22px 16px", textAlign: "center", marginBottom: 18 }}>
             <div style={{ font: "600 17px/1.15 var(--font-heading)", margin: "0 0 4px" }}>Choose files</div>
-            <div style={{ fontSize: 11.5, color: "var(--color-neutral-700)", marginBottom: 12 }}>
-              PDF, JPG, PNG, HEIC.
-            </div>
-            <input type="file" name="files" multiple accept=".pdf,.jpg,.jpeg,.png,.heic" style={{ margin: "0 auto" }} />
+            <div style={{ fontSize: 11.5, color: "var(--color-neutral-700)", marginBottom: 12 }}>PDF, JPG, PNG, HEIC.</div>
+            <input
+              ref={fileRef}
+              type="file"
+              name="files"
+              multiple
+              accept=".pdf,.jpg,.jpeg,.png,.heic"
+              style={{ margin: "0 auto" }}
+              onChange={() => setFileNames(Array.from(fileRef.current?.files ?? []).map((f) => f.name))}
+            />
+            {fileNames.length > 0 && (
+              <div style={{ fontSize: 11, color: "var(--color-neutral-700)", marginTop: 8 }}>{fileNames.join(", ")}</div>
+            )}
           </div>
 
           <div className="field" style={{ marginBottom: 14 }}>
@@ -56,13 +110,7 @@ export function NewDocForm({
           <div style={{ fontSize: 11.5, color: "var(--color-neutral-700)", marginBottom: 6 }}>Folder</div>
           <div style={{ display: "flex", gap: 7, flexWrap: "wrap", marginBottom: 16 }}>
             {folders.map((f) => (
-              <button
-                key={f.id}
-                type="button"
-                className="chip"
-                data-active={folderId === f.id}
-                onClick={() => setFolderId(f.id)}
-              >
+              <button key={f.id} type="button" className="chip" data-active={folderId === f.id} onClick={() => setFolderId(f.id)}>
                 {f.name}
               </button>
             ))}
@@ -120,7 +168,9 @@ export function NewDocForm({
             <input className="input" name="note" placeholder="Anything worth remembering" style={{ minHeight: 44 }} />
           </div>
 
-          <SubmitButton style={{ minHeight: 46, fontSize: 14, letterSpacing: ".04em" }}>SAVE ENTRY</SubmitButton>
+          <button type="submit" className="btn btn-primary btn-block" style={{ minHeight: 46, fontSize: 14, letterSpacing: ".04em" }} disabled={saving}>
+            {saving ? "SAVING…" : "SAVE ENTRY"}
+          </button>
         </form>
       </div>
     </div>

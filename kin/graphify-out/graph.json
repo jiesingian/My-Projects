@@ -41,11 +41,24 @@
       "_callable_class": true,
       "_origin": "ast",
       "community": 0,
-      "community_name": "requireCurrentMember",
+      "community_name": "add-planner-form.tsx",
       "file_type": "code",
       "norm_label": "plannertype",
       "source_file": "src/app/(app)/planner/add/add-planner-form.tsx",
       "source_location": "L12"
+    },
+    {
+      "id": "src_lib_database_types_tables",
+      "label": "Tables",
+      "_callable": true,
+      "_callable_class": true,
+      "_origin": "ast",
+      "community": 0,
+      "community_name": "add-planner-form.tsx",
+      "file_type": "code",
+      "norm_label": "tables",
+      "source_file": "src/lib/database.types.ts",
+      "source_location": "L1912"
     },
     {
       "id": "src_app_app_family_members_id_page_seg",
@@ -59,19 +72,6 @@
       "norm_label": "seg",
       "source_file": "src/app/(app)/family/members/[id]/page.tsx",
       "source_location": "L13"
-    },
-    {
-      "id": "src_app_app_family_page_seg",
-      "label": "Seg",
-      "_callable": true,
-      "_callable_class": true,
-      "_origin": "ast",
-      "community": 1,
-      "community_name": "[id]/page.tsx",
-      "file_type": "code",
-      "norm_label": "seg",
-      "source_file": "src/app/(app)/family/page.tsx",
-      "source_location": "L11"
     },
     {
       "id": "src_app_app_journal_page_seg",
@@ -113,30 +113,43 @@
       "source_location": "L5"
     },
     {
-      "id": "src_app_app_wealth_page_seg",
-      "label": "Seg",
+      "id": "src_app_api_uploads_session_route_sessionrequest",
+      "label": "SessionRequest",
       "_callable": true,
       "_callable_class": true,
       "_origin": "ast",
       "community": 11,
-      "community_name": "wealth/page.tsx",
+      "community_name": "google-drive.ts",
       "file_type": "code",
-      "norm_label": "seg",
-      "source_file": "src/app/(app)/wealth/page.tsx",
-      "source_location": "L10"
+      "norm_label": "sessionrequest",
+      "source_file": "src/app/api/uploads/session/route.ts",
+      "source_location": "L6"
     },
     {
-      "id": "src_lib_database_types_tables",
-      "label": "Tables",
+      "id": "src_lib_google_drive_drivefile",
+      "label": "DriveFile",
+      "_callable": true,
+      "_callable_class": true,
+      "_origin": "ast",
+      "community": 11,
+      "community_name": "google-drive.ts",
+      "file_type": "code",
+      "norm_label": "drivefile",
+      "source_file": "src/lib/google-drive.ts",
+      "source_location": "L7"
+    },
+    {
+      "id": "src_app_app_family_page_seg",
+      "label": "Seg",
       "_callable": true,
       "_callable_class": true,
       "_origin": "ast",
       "community": 2,
       "community_name": "getCurrentMember",
       "file_type": "code",
-      "norm_label": "tables",
-      "source_file": "src/lib/database.types.ts",
-      "source_location": "L1912"
+      "norm_label": "seg",
+      "source_file": "src/app/(app)/family/page.tsx",
+      "source_location": "L11"
     },
     {
       "id": "src_lib_queries_family_docfolderrow",
@@ -165,6 +178,19 @@
       "source_location": "L15"
     },
     {
+      "id": "src_lib_session_currentmember",
+      "label": "CurrentMember",
+      "_callable": true,
+      "_callable_class": true,
+      "_origin": "ast",
+      "community": 2,
+      "community_name": "getCurrentMember",
+      "file_type": "code",
+      "norm_label": "currentmember",
+      "source_file": "src/lib/session.ts",
+      "source_location": "L5"
+    },
+    {
       "id": "src_lib_actions_auth_actionstate",
       "label": "ActionState",
       "_callable": true,
@@ -189,6 +215,19 @@
       "norm_label": "seg",
       "source_file": "src/app/(app)/planner/page.tsx",
       "source_location": "L11"
+    },
+    {
+      "id": "src_app_app_wealth_page_seg",
+      "label": "Seg",
+      "_callable": true,
+      "_callable_class": true,
+      "_origin": "ast",
+      "community": 7,
+      "community_name": "createClient",
+      "file_type": "code",
+      "norm_label": "seg",
+      "source_file": "src/app/(app)/wealth/page.tsx",
+      "source_location": "L10"
     },
     {
       "id": "src_app_app_household_page_seg",
@@ -217,13 +256,39 @@
       "source_location": "L13"
     },
     {
+      "id": "src_lib_actions_documents_uploadedfile",
+      "label": "UploadedFile",
+      "_callable": true,
+      "_callable_class": true,
+      "_origin": "ast",
+      "community": 9,
+      "community_name": "database.types.ts",
+      "file_type": "code",
+      "norm_label": "uploadedfile",
+      "source_file": "src/lib/actions/documents.ts",
+      "source_location": "L7"
+    },
+    {
+      "id": "src_lib_actions_journal_uploadedfile",
+      "label": "UploadedFile",
+      "_callable": true,
+      "_callable_class": true,
+      "_origin": "ast",
+      "community": 9,
+      "community_name": "database.types.ts",
+      "file_type": "code",
+      "norm_label": "uploadedfile",
+      "source_file": "src/lib/actions/journal.ts",
+      "source_location": "L7"
+    },
+    {
       "id": "src_lib_database_types_compositetypes",
       "label": "CompositeTypes",
       "_callable": true,
       "_callable_class": true,
       "_origin": "ast",
       "community": 9,
-      "community_name": "actions/journal.ts",
+      "community_name": "database.types.ts",
       "file_type": "code",
       "norm_label": "compositetypes",
       "source_file": "src/lib/database.types.ts",
@@ -236,7 +301,7 @@
       "_callable_class": true,
       "_origin": "ast",
       "community": 9,
-      "community_name": "actions/journal.ts",
+      "community_name": "database.types.ts",
       "file_type": "code",
       "norm_label": "database",
       "source_file": "src/lib/database.types.ts",
@@ -249,7 +314,7 @@
       "_callable_class": true,
       "_origin": "ast",
       "community": 9,
-      "community_name": "actions/journal.ts",
+      "community_name": "database.types.ts",
       "file_type": "code",
       "norm_label": "databasewithoutinternals",
       "source_file": "src/lib/database.types.ts",
@@ -262,7 +327,7 @@
       "_callable_class": true,
       "_origin": "ast",
       "community": 9,
-      "community_name": "actions/journal.ts",
+      "community_name": "database.types.ts",
       "file_type": "code",
       "norm_label": "defaultschema",
       "source_file": "src/lib/database.types.ts",
@@ -275,7 +340,7 @@
       "_callable_class": true,
       "_origin": "ast",
       "community": 9,
-      "community_name": "actions/journal.ts",
+      "community_name": "database.types.ts",
       "file_type": "code",
       "norm_label": "enums",
       "source_file": "src/lib/database.types.ts",
@@ -288,7 +353,7 @@
       "_callable_class": true,
       "_origin": "ast",
       "community": 9,
-      "community_name": "actions/journal.ts",
+      "community_name": "database.types.ts",
       "file_type": "code",
       "norm_label": "json",
       "source_file": "src/lib/database.types.ts",
@@ -301,7 +366,7 @@
       "_callable_class": true,
       "_origin": "ast",
       "community": 9,
-      "community_name": "actions/journal.ts",
+      "community_name": "database.types.ts",
       "file_type": "code",
       "norm_label": "tablesinsert",
       "source_file": "src/lib/database.types.ts",
@@ -314,37 +379,24 @@
       "_callable_class": true,
       "_origin": "ast",
       "community": 9,
-      "community_name": "actions/journal.ts",
+      "community_name": "database.types.ts",
       "file_type": "code",
       "norm_label": "tablesupdate",
       "source_file": "src/lib/database.types.ts",
       "source_location": "L1966"
     },
     {
-      "id": "src_lib_google_drive_drivefile",
-      "label": "DriveFile",
+      "id": "src_lib_upload_client_uploadedfile",
+      "label": "UploadedFile",
       "_callable": true,
       "_callable_class": true,
       "_origin": "ast",
       "community": 9,
-      "community_name": "actions/journal.ts",
+      "community_name": "database.types.ts",
       "file_type": "code",
-      "norm_label": "drivefile",
-      "source_file": "src/lib/google-drive.ts",
-      "source_location": "L7"
-    },
-    {
-      "id": "src_lib_session_currentmember",
-      "label": "CurrentMember",
-      "_callable": true,
-      "_callable_class": true,
-      "_origin": "ast",
-      "community": 9,
-      "community_name": "actions/journal.ts",
-      "file_type": "code",
-      "norm_label": "currentmember",
-      "source_file": "src/lib/session.ts",
-      "source_location": "L5"
+      "norm_label": "uploadedfile",
+      "source_file": "src/lib/upload-client.ts",
+      "source_location": "L3"
     },
     {
       "id": "src_app_app_planner_add_add_planner_form_activityform",
@@ -352,7 +404,7 @@
       "_callable": true,
       "_origin": "ast",
       "community": 0,
-      "community_name": "requireCurrentMember",
+      "community_name": "add-planner-form.tsx",
       "file_type": "code",
       "norm_label": "activityform()",
       "source_file": "src/app/(app)/planner/add/add-planner-form.tsx",
@@ -364,7 +416,7 @@
       "_callable": true,
       "_origin": "ast",
       "community": 0,
-      "community_name": "requireCurrentMember",
+      "community_name": "add-planner-form.tsx",
       "file_type": "code",
       "norm_label": "eventform()",
       "source_file": "src/app/(app)/planner/add/add-planner-form.tsx",
@@ -376,7 +428,7 @@
       "_callable": true,
       "_origin": "ast",
       "community": 0,
-      "community_name": "requireCurrentMember",
+      "community_name": "add-planner-form.tsx",
       "file_type": "code",
       "norm_label": "field()",
       "source_file": "src/app/(app)/planner/add/add-planner-form.tsx",
@@ -388,7 +440,7 @@
       "_callable": true,
       "_origin": "ast",
       "community": 0,
-      "community_name": "requireCurrentMember",
+      "community_name": "add-planner-form.tsx",
       "file_type": "code",
       "norm_label": "goalform()",
       "source_file": "src/app/(app)/planner/add/add-planner-form.tsx",
@@ -400,7 +452,7 @@
       "_callable": true,
       "_origin": "ast",
       "community": 0,
-      "community_name": "requireCurrentMember",
+      "community_name": "add-planner-form.tsx",
       "file_type": "code",
       "norm_label": "tripform()",
       "source_file": "src/app/(app)/planner/add/add-planner-form.tsx",
@@ -412,7 +464,7 @@
       "_callable": true,
       "_origin": "ast",
       "community": 0,
-      "community_name": "requireCurrentMember",
+      "community_name": "add-planner-form.tsx",
       "file_type": "code",
       "norm_label": "addtojournalbutton()",
       "source_file": "src/components/add-to-journal-button.tsx",
@@ -424,7 +476,7 @@
       "_callable": true,
       "_origin": "ast",
       "community": 0,
-      "community_name": "requireCurrentMember",
+      "community_name": "add-planner-form.tsx",
       "file_type": "code",
       "norm_label": "addactivitytojournalaction()",
       "source_file": "src/lib/actions/planner.ts",
@@ -436,7 +488,7 @@
       "_callable": true,
       "_origin": "ast",
       "community": 0,
-      "community_name": "requireCurrentMember",
+      "community_name": "add-planner-form.tsx",
       "file_type": "code",
       "norm_label": "createactivityaction()",
       "source_file": "src/lib/actions/planner.ts",
@@ -448,7 +500,7 @@
       "_callable": true,
       "_origin": "ast",
       "community": 0,
-      "community_name": "requireCurrentMember",
+      "community_name": "add-planner-form.tsx",
       "file_type": "code",
       "norm_label": "createeventaction()",
       "source_file": "src/lib/actions/planner.ts",
@@ -460,7 +512,7 @@
       "_callable": true,
       "_origin": "ast",
       "community": 0,
-      "community_name": "requireCurrentMember",
+      "community_name": "add-planner-form.tsx",
       "file_type": "code",
       "norm_label": "creategoalaction()",
       "source_file": "src/lib/actions/planner.ts",
@@ -472,23 +524,11 @@
       "_callable": true,
       "_origin": "ast",
       "community": 0,
-      "community_name": "requireCurrentMember",
+      "community_name": "add-planner-form.tsx",
       "file_type": "code",
       "norm_label": "createtripaction()",
       "source_file": "src/lib/actions/planner.ts",
       "source_location": "L104"
-    },
-    {
-      "id": "src_lib_session_requirecurrentmember",
-      "label": "requireCurrentMember()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 0,
-      "community_name": "requireCurrentMember",
-      "file_type": "code",
-      "norm_label": "requirecurrentmember()",
-      "source_file": "src/lib/session.ts",
-      "source_location": "L31"
     },
     {
       "id": "src_app_app_family_documents_folderid_page_docfolderpage",
@@ -537,54 +577,6 @@
       "norm_label": "memberdetailpage()",
       "source_file": "src/app/(app)/family/members/[id]/page.tsx",
       "source_location": "L15"
-    },
-    {
-      "id": "src_app_app_family_page_documentspane",
-      "label": "DocumentsPane()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 1,
-      "community_name": "[id]/page.tsx",
-      "file_type": "code",
-      "norm_label": "documentspane()",
-      "source_file": "src/app/(app)/family/page.tsx",
-      "source_location": "L146"
-    },
-    {
-      "id": "src_app_app_family_page_fact",
-      "label": "Fact()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 1,
-      "community_name": "[id]/page.tsx",
-      "file_type": "code",
-      "norm_label": "fact()",
-      "source_file": "src/app/(app)/family/page.tsx",
-      "source_location": "L135"
-    },
-    {
-      "id": "src_app_app_family_page_familypage",
-      "label": "FamilyPage()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 1,
-      "community_name": "[id]/page.tsx",
-      "file_type": "code",
-      "norm_label": "familypage()",
-      "source_file": "src/app/(app)/family/page.tsx",
-      "source_location": "L13"
-    },
-    {
-      "id": "src_app_app_family_page_healthpane",
-      "label": "HealthPane()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 1,
-      "community_name": "[id]/page.tsx",
-      "file_type": "code",
-      "norm_label": "healthpane()",
-      "source_file": "src/app/(app)/family/page.tsx",
-      "source_location": "L95"
     },
     {
       "id": "src_app_app_family_page_memberspane",
@@ -645,18 +637,6 @@
       "norm_label": "milestonespane()",
       "source_file": "src/app/(app)/journal/page.tsx",
       "source_location": "L93"
-    },
-    {
-      "id": "src_app_app_planner_page_travelpane",
-      "label": "TravelPane()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 1,
-      "community_name": "[id]/page.tsx",
-      "file_type": "code",
-      "norm_label": "travelpane()",
-      "source_file": "src/app/(app)/planner/page.tsx",
-      "source_location": "L167"
     },
     {
       "id": "src_app_app_settings_page_settingspage",
@@ -729,18 +709,6 @@
       "norm_label": "gallerytile()",
       "source_file": "src/components/gallery-tile.tsx",
       "source_location": "L6"
-    },
-    {
-      "id": "src_components_gallery_upload_galleryupload",
-      "label": "GalleryUpload()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 1,
-      "community_name": "[id]/page.tsx",
-      "file_type": "code",
-      "norm_label": "galleryupload()",
-      "source_file": "src/components/gallery-upload.tsx",
-      "source_location": "L10"
     },
     {
       "id": "src_components_hub_header_hubheader",
@@ -848,7 +816,7 @@
       "file_type": "code",
       "norm_label": "getdocfileurl()",
       "source_file": "src/lib/actions/documents.ts",
-      "source_location": "L117"
+      "source_location": "L106"
     },
     {
       "id": "src_lib_format_formatage",
@@ -887,30 +855,6 @@
       "source_location": "L25"
     },
     {
-      "id": "src_lib_queries_family_getdocfolders",
-      "label": "getDocFolders()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 1,
-      "community_name": "[id]/page.tsx",
-      "file_type": "code",
-      "norm_label": "getdocfolders()",
-      "source_file": "src/lib/queries/family.ts",
-      "source_location": "L47"
-    },
-    {
-      "id": "src_lib_queries_family_gethealthsummary",
-      "label": "getHealthSummary()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 1,
-      "community_name": "[id]/page.tsx",
-      "file_type": "code",
-      "norm_label": "gethealthsummary()",
-      "source_file": "src/lib/queries/family.ts",
-      "source_location": "L21"
-    },
-    {
       "id": "src_lib_queries_health_buildbarseries",
       "label": "buildBarSeries()",
       "_callable": true,
@@ -944,7 +888,7 @@
       "file_type": "code",
       "norm_label": "getmilestones()",
       "source_file": "src/lib/queries/journal.ts",
-      "source_location": "L57"
+      "source_location": "L62"
     },
     {
       "id": "src_lib_queries_today_gethubcards",
@@ -959,160 +903,136 @@
       "source_location": "L16"
     },
     {
-      "id": "src_app_app_wealth_page_jointpane",
-      "label": "JointPane()",
+      "id": "src_app_api_drive_callback_route_get",
+      "label": "GET()",
       "_callable": true,
       "_origin": "ast",
       "community": 11,
-      "community_name": "wealth/page.tsx",
+      "community_name": "google-drive.ts",
       "file_type": "code",
-      "norm_label": "jointpane()",
-      "source_file": "src/app/(app)/wealth/page.tsx",
-      "source_location": "L38"
+      "norm_label": "get()",
+      "source_file": "src/app/api/drive/callback/route.ts",
+      "source_location": "L7"
     },
     {
-      "id": "src_app_app_wealth_page_minepane",
-      "label": "MinePane()",
+      "id": "src_app_api_drive_file_fileid_route_get",
+      "label": "GET()",
       "_callable": true,
       "_origin": "ast",
       "community": 11,
-      "community_name": "wealth/page.tsx",
+      "community_name": "google-drive.ts",
       "file_type": "code",
-      "norm_label": "minepane()",
-      "source_file": "src/app/(app)/wealth/page.tsx",
-      "source_location": "L98"
+      "norm_label": "get()",
+      "source_file": "src/app/api/drive/file/[fileId]/route.ts",
+      "source_location": "L9"
     },
     {
-      "id": "src_app_app_wealth_page_wealthpage",
-      "label": "WealthPage()",
+      "id": "src_app_api_uploads_session_route_post",
+      "label": "POST()",
       "_callable": true,
       "_origin": "ast",
       "community": 11,
-      "community_name": "wealth/page.tsx",
+      "community_name": "google-drive.ts",
       "file_type": "code",
-      "norm_label": "wealthpage()",
-      "source_file": "src/app/(app)/wealth/page.tsx",
-      "source_location": "L12"
+      "norm_label": "post()",
+      "source_file": "src/app/api/uploads/session/route.ts",
+      "source_location": "L17"
     },
     {
-      "id": "src_components_wealth_controls_addaccountform",
-      "label": "AddAccountForm()",
+      "id": "src_lib_google_drive_createfolder",
+      "label": "createFolder()",
       "_callable": true,
       "_origin": "ast",
       "community": 11,
-      "community_name": "wealth/page.tsx",
+      "community_name": "google-drive.ts",
       "file_type": "code",
-      "norm_label": "addaccountform()",
-      "source_file": "src/components/wealth-controls.tsx",
-      "source_location": "L10"
-    },
-    {
-      "id": "src_components_wealth_controls_setbudgetcontrol",
-      "label": "SetBudgetControl()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 11,
-      "community_name": "wealth/page.tsx",
-      "file_type": "code",
-      "norm_label": "setbudgetcontrol()",
-      "source_file": "src/components/wealth-controls.tsx",
+      "norm_label": "createfolder()",
+      "source_file": "src/lib/google-drive.ts",
       "source_location": "L56"
     },
     {
-      "id": "src_components_wealth_controls_settargetcontrol",
-      "label": "SetTargetControl()",
+      "id": "src_lib_google_drive_createresumableuploadsession",
+      "label": "createResumableUploadSession()",
       "_callable": true,
       "_origin": "ast",
       "community": 11,
-      "community_name": "wealth/page.tsx",
+      "community_name": "google-drive.ts",
       "file_type": "code",
-      "norm_label": "settargetcontrol()",
-      "source_file": "src/components/wealth-controls.tsx",
-      "source_location": "L75"
+      "norm_label": "createresumableuploadsession()",
+      "source_file": "src/lib/google-drive.ts",
+      "source_location": "L116"
     },
     {
-      "id": "src_lib_actions_wealth_addaccountaction",
-      "label": "addAccountAction()",
+      "id": "src_lib_google_drive_drivefetch",
+      "label": "driveFetch()",
       "_callable": true,
       "_origin": "ast",
       "community": 11,
-      "community_name": "wealth/page.tsx",
+      "community_name": "google-drive.ts",
       "file_type": "code",
-      "norm_label": "addaccountaction()",
-      "source_file": "src/lib/actions/wealth.ts",
-      "source_location": "L8"
+      "norm_label": "drivefetch()",
+      "source_file": "src/lib/google-drive.ts",
+      "source_location": "L49"
     },
     {
-      "id": "src_lib_actions_wealth_setjointbudgetaction",
-      "label": "setJointBudgetAction()",
+      "id": "src_lib_google_drive_ensuredrivefolderstructure",
+      "label": "ensureDriveFolderStructure()",
       "_callable": true,
       "_origin": "ast",
       "community": 11,
-      "community_name": "wealth/page.tsx",
+      "community_name": "google-drive.ts",
       "file_type": "code",
-      "norm_label": "setjointbudgetaction()",
-      "source_file": "src/lib/actions/wealth.ts",
-      "source_location": "L33"
+      "norm_label": "ensuredrivefolderstructure()",
+      "source_file": "src/lib/google-drive.ts",
+      "source_location": "L68"
     },
     {
-      "id": "src_lib_actions_wealth_setwealthtargetaction",
-      "label": "setWealthTargetAction()",
+      "id": "src_lib_google_drive_ensurenamedsubfolder",
+      "label": "ensureNamedSubfolder()",
       "_callable": true,
       "_origin": "ast",
       "community": 11,
-      "community_name": "wealth/page.tsx",
+      "community_name": "google-drive.ts",
       "file_type": "code",
-      "norm_label": "setwealthtargetaction()",
-      "source_file": "src/lib/actions/wealth.ts",
-      "source_location": "L42"
+      "norm_label": "ensurenamedsubfolder()",
+      "source_file": "src/lib/google-drive.ts",
+      "source_location": "L100"
     },
     {
-      "id": "src_lib_format_formatcurrency",
-      "label": "formatCurrency()",
+      "id": "src_lib_google_drive_fetchdrivefile",
+      "label": "fetchDriveFile()",
       "_callable": true,
       "_origin": "ast",
       "community": 11,
-      "community_name": "wealth/page.tsx",
+      "community_name": "google-drive.ts",
       "file_type": "code",
-      "norm_label": "formatcurrency()",
-      "source_file": "src/lib/format.ts",
-      "source_location": "L11"
+      "norm_label": "fetchdrivefile()",
+      "source_file": "src/lib/google-drive.ts",
+      "source_location": "L141"
     },
     {
-      "id": "src_lib_queries_wealth_currentperiod",
-      "label": "currentPeriod()",
+      "id": "src_lib_google_drive_getvaliddriveaccesstoken",
+      "label": "getValidDriveAccessToken()",
       "_callable": true,
       "_origin": "ast",
       "community": 11,
-      "community_name": "wealth/page.tsx",
+      "community_name": "google-drive.ts",
       "file_type": "code",
-      "norm_label": "currentperiod()",
-      "source_file": "src/lib/queries/wealth.ts",
-      "source_location": "L3"
+      "norm_label": "getvaliddriveaccesstoken()",
+      "source_file": "src/lib/google-drive.ts",
+      "source_location": "L12"
     },
     {
-      "id": "src_lib_queries_wealth_getjointwealth",
-      "label": "getJointWealth()",
+      "id": "src_lib_supabase_admin_createadminclient",
+      "label": "createAdminClient()",
       "_callable": true,
       "_origin": "ast",
       "community": 11,
-      "community_name": "wealth/page.tsx",
+      "community_name": "google-drive.ts",
       "file_type": "code",
-      "norm_label": "getjointwealth()",
-      "source_file": "src/lib/queries/wealth.ts",
-      "source_location": "L8"
-    },
-    {
-      "id": "src_lib_queries_wealth_getmywealth",
-      "label": "getMyWealth()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 11,
-      "community_name": "wealth/page.tsx",
-      "file_type": "code",
-      "norm_label": "getmywealth()",
-      "source_file": "src/lib/queries/wealth.ts",
-      "source_location": "L26"
+      "norm_label": "createadminclient()",
+      "source_file": "src/lib/supabase/admin.ts",
+      "source_location": "L7"
     },
     {
       "id": "src_lib_supabase_middleware_updatesession",
@@ -1175,52 +1095,52 @@
       "source_location": "L7"
     },
     {
-      "id": "src_app_app_family_members_id_health_new_new_health_entry_form_newhealthentryform",
-      "label": "NewHealthEntryForm()",
+      "id": "src_app_app_family_page_documentspane",
+      "label": "DocumentsPane()",
       "_callable": true,
       "_origin": "ast",
       "community": 2,
       "community_name": "getCurrentMember",
       "file_type": "code",
-      "norm_label": "newhealthentryform()",
-      "source_file": "src/app/(app)/family/members/[id]/health/new/new-health-entry-form.tsx",
-      "source_location": "L29"
+      "norm_label": "documentspane()",
+      "source_file": "src/app/(app)/family/page.tsx",
+      "source_location": "L146"
     },
     {
-      "id": "src_app_app_family_members_id_health_new_page_newhealthentrypage",
-      "label": "NewHealthEntryPage()",
+      "id": "src_app_app_family_page_fact",
+      "label": "Fact()",
       "_callable": true,
       "_origin": "ast",
       "community": 2,
       "community_name": "getCurrentMember",
       "file_type": "code",
-      "norm_label": "newhealthentrypage()",
-      "source_file": "src/app/(app)/family/members/[id]/health/new/page.tsx",
-      "source_location": "L6"
+      "norm_label": "fact()",
+      "source_file": "src/app/(app)/family/page.tsx",
+      "source_location": "L135"
     },
     {
-      "id": "src_app_app_family_members_id_omron_toggle_omrontoggle",
-      "label": "OmronToggle()",
+      "id": "src_app_app_family_page_familypage",
+      "label": "FamilyPage()",
       "_callable": true,
       "_origin": "ast",
       "community": 2,
       "community_name": "getCurrentMember",
       "file_type": "code",
-      "norm_label": "omrontoggle()",
-      "source_file": "src/app/(app)/family/members/[id]/omron-toggle.tsx",
-      "source_location": "L6"
+      "norm_label": "familypage()",
+      "source_file": "src/app/(app)/family/page.tsx",
+      "source_location": "L13"
     },
     {
-      "id": "src_app_app_journal_new_new_entry_form_newentryform",
-      "label": "NewEntryForm()",
+      "id": "src_app_app_family_page_healthpane",
+      "label": "HealthPane()",
       "_callable": true,
       "_origin": "ast",
       "community": 2,
       "community_name": "getCurrentMember",
       "file_type": "code",
-      "norm_label": "newentryform()",
-      "source_file": "src/app/(app)/journal/new/new-entry-form.tsx",
-      "source_location": "L12"
+      "norm_label": "healthpane()",
+      "source_file": "src/app/(app)/family/page.tsx",
+      "source_location": "L95"
     },
     {
       "id": "src_app_app_journal_new_page_newjournalentrypage",
@@ -1295,28 +1215,28 @@
       "source_location": "L16"
     },
     {
-      "id": "src_lib_actions_health_createhealthentryaction",
-      "label": "createHealthEntryAction()",
+      "id": "src_lib_queries_family_getdocfolders",
+      "label": "getDocFolders()",
       "_callable": true,
       "_origin": "ast",
       "community": 2,
       "community_name": "getCurrentMember",
       "file_type": "code",
-      "norm_label": "createhealthentryaction()",
-      "source_file": "src/lib/actions/health.ts",
-      "source_location": "L11"
+      "norm_label": "getdocfolders()",
+      "source_file": "src/lib/queries/family.ts",
+      "source_location": "L47"
     },
     {
-      "id": "src_lib_actions_health_toggleomronaction",
-      "label": "toggleOmronAction()",
+      "id": "src_lib_queries_family_gethealthsummary",
+      "label": "getHealthSummary()",
       "_callable": true,
       "_origin": "ast",
       "community": 2,
       "community_name": "getCurrentMember",
       "file_type": "code",
-      "norm_label": "toggleomronaction()",
-      "source_file": "src/lib/actions/health.ts",
-      "source_location": "L87"
+      "norm_label": "gethealthsummary()",
+      "source_file": "src/lib/queries/family.ts",
+      "source_location": "L21"
     },
     {
       "id": "src_lib_queries_family_getmembers",
@@ -1329,6 +1249,66 @@
       "norm_label": "getmembers()",
       "source_file": "src/lib/queries/family.ts",
       "source_location": "L5"
+    },
+    {
+      "id": "src_app_app_family_members_id_health_new_new_health_entry_form_newhealthentryform",
+      "label": "NewHealthEntryForm()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 22,
+      "community_name": "new-health-entry-form.tsx",
+      "file_type": "code",
+      "norm_label": "newhealthentryform()",
+      "source_file": "src/app/(app)/family/members/[id]/health/new/new-health-entry-form.tsx",
+      "source_location": "L29"
+    },
+    {
+      "id": "src_app_app_family_members_id_health_new_page_newhealthentrypage",
+      "label": "NewHealthEntryPage()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 22,
+      "community_name": "new-health-entry-form.tsx",
+      "file_type": "code",
+      "norm_label": "newhealthentrypage()",
+      "source_file": "src/app/(app)/family/members/[id]/health/new/page.tsx",
+      "source_location": "L6"
+    },
+    {
+      "id": "src_app_app_family_members_id_omron_toggle_omrontoggle",
+      "label": "OmronToggle()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 22,
+      "community_name": "new-health-entry-form.tsx",
+      "file_type": "code",
+      "norm_label": "omrontoggle()",
+      "source_file": "src/app/(app)/family/members/[id]/omron-toggle.tsx",
+      "source_location": "L6"
+    },
+    {
+      "id": "src_lib_actions_health_createhealthentryaction",
+      "label": "createHealthEntryAction()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 22,
+      "community_name": "new-health-entry-form.tsx",
+      "file_type": "code",
+      "norm_label": "createhealthentryaction()",
+      "source_file": "src/lib/actions/health.ts",
+      "source_location": "L11"
+    },
+    {
+      "id": "src_lib_actions_health_toggleomronaction",
+      "label": "toggleOmronAction()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 22,
+      "community_name": "new-health-entry-form.tsx",
+      "file_type": "code",
+      "norm_label": "toggleomronaction()",
+      "source_file": "src/lib/actions/health.ts",
+      "source_location": "L87"
     },
     {
       "id": "src_app_app_household_meals_new_page_newmealpage",
@@ -1559,6 +1539,18 @@
       "source_location": "L51"
     },
     {
+      "id": "src_lib_actions_auth_signoutaction",
+      "label": "signOutAction()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 3,
+      "community_name": "auth.ts",
+      "file_type": "code",
+      "norm_label": "signoutaction()",
+      "source_file": "src/lib/actions/auth.ts",
+      "source_location": "L62"
+    },
+    {
       "id": "src_lib_actions_auth_signup",
       "label": "signUp()",
       "_callable": true,
@@ -1640,7 +1632,187 @@
       "file_type": "code",
       "norm_label": "createmilestoneaction()",
       "source_file": "src/lib/actions/journal.ts",
-      "source_location": "L122"
+      "source_location": "L85"
+    },
+    {
+      "id": "src_components_settings_controls_driveconnectedpanel",
+      "label": "DriveConnectedPanel()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 5,
+      "community_name": "requireCurrentMember",
+      "file_type": "code",
+      "norm_label": "driveconnectedpanel()",
+      "source_file": "src/components/settings-controls.tsx",
+      "source_location": "L193"
+    },
+    {
+      "id": "src_components_settings_controls_householdnameform",
+      "label": "HouseholdNameForm()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 5,
+      "community_name": "requireCurrentMember",
+      "file_type": "code",
+      "norm_label": "householdnameform()",
+      "source_file": "src/components/settings-controls.tsx",
+      "source_location": "L129"
+    },
+    {
+      "id": "src_components_settings_controls_householdprefsform",
+      "label": "HouseholdPrefsForm()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 5,
+      "community_name": "requireCurrentMember",
+      "file_type": "code",
+      "norm_label": "householdprefsform()",
+      "source_file": "src/components/settings-controls.tsx",
+      "source_location": "L148"
+    },
+    {
+      "id": "src_components_settings_controls_invitecodecard",
+      "label": "InviteCodeCard()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 5,
+      "community_name": "requireCurrentMember",
+      "file_type": "code",
+      "norm_label": "invitecodecard()",
+      "source_file": "src/components/settings-controls.tsx",
+      "source_location": "L107"
+    },
+    {
+      "id": "src_components_settings_controls_notificationtoggles",
+      "label": "NotificationToggles()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 5,
+      "community_name": "requireCurrentMember",
+      "file_type": "code",
+      "norm_label": "notificationtoggles()",
+      "source_file": "src/components/settings-controls.tsx",
+      "source_location": "L54"
+    },
+    {
+      "id": "src_components_settings_controls_textsizecontrol",
+      "label": "TextSizeControl()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 5,
+      "community_name": "requireCurrentMember",
+      "file_type": "code",
+      "norm_label": "textsizecontrol()",
+      "source_file": "src/components/settings-controls.tsx",
+      "source_location": "L28"
+    },
+    {
+      "id": "src_components_settings_controls_themecontrol",
+      "label": "ThemeControl()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 5,
+      "community_name": "requireCurrentMember",
+      "file_type": "code",
+      "norm_label": "themecontrol()",
+      "source_file": "src/components/settings-controls.tsx",
+      "source_location": "L10"
+    },
+    {
+      "id": "src_lib_actions_drive_disconnectdriveaction",
+      "label": "disconnectDriveAction()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 5,
+      "community_name": "requireCurrentMember",
+      "file_type": "code",
+      "norm_label": "disconnectdriveaction()",
+      "source_file": "src/lib/actions/drive.ts",
+      "source_location": "L8"
+    },
+    {
+      "id": "src_lib_actions_family_regenerateinvitecodeaction",
+      "label": "regenerateInviteCodeAction()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 5,
+      "community_name": "requireCurrentMember",
+      "file_type": "code",
+      "norm_label": "regenerateinvitecodeaction()",
+      "source_file": "src/lib/actions/family.ts",
+      "source_location": "L81"
+    },
+    {
+      "id": "src_lib_actions_settings_settextsizeaction",
+      "label": "setTextSizeAction()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 5,
+      "community_name": "requireCurrentMember",
+      "file_type": "code",
+      "norm_label": "settextsizeaction()",
+      "source_file": "src/lib/actions/settings.ts",
+      "source_location": "L20"
+    },
+    {
+      "id": "src_lib_actions_settings_setthemeaction",
+      "label": "setThemeAction()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 5,
+      "community_name": "requireCurrentMember",
+      "file_type": "code",
+      "norm_label": "setthemeaction()",
+      "source_file": "src/lib/actions/settings.ts",
+      "source_location": "L8"
+    },
+    {
+      "id": "src_lib_actions_settings_togglenotificationaction",
+      "label": "toggleNotificationAction()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 5,
+      "community_name": "requireCurrentMember",
+      "file_type": "code",
+      "norm_label": "togglenotificationaction()",
+      "source_file": "src/lib/actions/settings.ts",
+      "source_location": "L27"
+    },
+    {
+      "id": "src_lib_actions_settings_updatehouseholdnameaction",
+      "label": "updateHouseholdNameAction()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 5,
+      "community_name": "requireCurrentMember",
+      "file_type": "code",
+      "norm_label": "updatehouseholdnameaction()",
+      "source_file": "src/lib/actions/settings.ts",
+      "source_location": "L35"
+    },
+    {
+      "id": "src_lib_actions_settings_updatehouseholdprefsaction",
+      "label": "updateHouseholdPrefsAction()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 5,
+      "community_name": "requireCurrentMember",
+      "file_type": "code",
+      "norm_label": "updatehouseholdprefsaction()",
+      "source_file": "src/lib/actions/settings.ts",
+      "source_location": "L42"
+    },
+    {
+      "id": "src_lib_session_requirecurrentmember",
+      "label": "requireCurrentMember()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 5,
+      "community_name": "requireCurrentMember",
+      "file_type": "code",
+      "norm_label": "requirecurrentmember()",
+      "source_file": "src/lib/session.ts",
+      "source_location": "L31"
     },
     {
       "id": "src_app_app_planner_page_calendarpane",
@@ -1703,6 +1875,54 @@
       "source_location": "L13"
     },
     {
+      "id": "src_app_app_planner_page_travelpane",
+      "label": "TravelPane()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 7,
+      "community_name": "createClient",
+      "file_type": "code",
+      "norm_label": "travelpane()",
+      "source_file": "src/app/(app)/planner/page.tsx",
+      "source_location": "L167"
+    },
+    {
+      "id": "src_app_app_wealth_page_jointpane",
+      "label": "JointPane()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 7,
+      "community_name": "createClient",
+      "file_type": "code",
+      "norm_label": "jointpane()",
+      "source_file": "src/app/(app)/wealth/page.tsx",
+      "source_location": "L38"
+    },
+    {
+      "id": "src_app_app_wealth_page_minepane",
+      "label": "MinePane()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 7,
+      "community_name": "createClient",
+      "file_type": "code",
+      "norm_label": "minepane()",
+      "source_file": "src/app/(app)/wealth/page.tsx",
+      "source_location": "L98"
+    },
+    {
+      "id": "src_app_app_wealth_page_wealthpage",
+      "label": "WealthPage()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 7,
+      "community_name": "createClient",
+      "file_type": "code",
+      "norm_label": "wealthpage()",
+      "source_file": "src/app/(app)/wealth/page.tsx",
+      "source_location": "L12"
+    },
+    {
       "id": "src_app_auth_callback_route_get",
       "label": "GET()",
       "_callable": true,
@@ -1715,172 +1935,88 @@
       "source_location": "L7"
     },
     {
-      "id": "src_components_settings_controls_driveconnectedpanel",
-      "label": "DriveConnectedPanel()",
+      "id": "src_components_wealth_controls_addaccountform",
+      "label": "AddAccountForm()",
       "_callable": true,
       "_origin": "ast",
       "community": 7,
       "community_name": "createClient",
       "file_type": "code",
-      "norm_label": "driveconnectedpanel()",
-      "source_file": "src/components/settings-controls.tsx",
-      "source_location": "L193"
-    },
-    {
-      "id": "src_components_settings_controls_householdnameform",
-      "label": "HouseholdNameForm()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 7,
-      "community_name": "createClient",
-      "file_type": "code",
-      "norm_label": "householdnameform()",
-      "source_file": "src/components/settings-controls.tsx",
-      "source_location": "L129"
-    },
-    {
-      "id": "src_components_settings_controls_householdprefsform",
-      "label": "HouseholdPrefsForm()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 7,
-      "community_name": "createClient",
-      "file_type": "code",
-      "norm_label": "householdprefsform()",
-      "source_file": "src/components/settings-controls.tsx",
-      "source_location": "L148"
-    },
-    {
-      "id": "src_components_settings_controls_invitecodecard",
-      "label": "InviteCodeCard()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 7,
-      "community_name": "createClient",
-      "file_type": "code",
-      "norm_label": "invitecodecard()",
-      "source_file": "src/components/settings-controls.tsx",
-      "source_location": "L107"
-    },
-    {
-      "id": "src_components_settings_controls_notificationtoggles",
-      "label": "NotificationToggles()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 7,
-      "community_name": "createClient",
-      "file_type": "code",
-      "norm_label": "notificationtoggles()",
-      "source_file": "src/components/settings-controls.tsx",
-      "source_location": "L54"
-    },
-    {
-      "id": "src_components_settings_controls_textsizecontrol",
-      "label": "TextSizeControl()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 7,
-      "community_name": "createClient",
-      "file_type": "code",
-      "norm_label": "textsizecontrol()",
-      "source_file": "src/components/settings-controls.tsx",
-      "source_location": "L28"
-    },
-    {
-      "id": "src_components_settings_controls_themecontrol",
-      "label": "ThemeControl()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 7,
-      "community_name": "createClient",
-      "file_type": "code",
-      "norm_label": "themecontrol()",
-      "source_file": "src/components/settings-controls.tsx",
+      "norm_label": "addaccountform()",
+      "source_file": "src/components/wealth-controls.tsx",
       "source_location": "L10"
     },
     {
-      "id": "src_lib_actions_auth_signoutaction",
-      "label": "signOutAction()",
+      "id": "src_components_wealth_controls_setbudgetcontrol",
+      "label": "SetBudgetControl()",
       "_callable": true,
       "_origin": "ast",
       "community": 7,
       "community_name": "createClient",
       "file_type": "code",
-      "norm_label": "signoutaction()",
-      "source_file": "src/lib/actions/auth.ts",
-      "source_location": "L62"
+      "norm_label": "setbudgetcontrol()",
+      "source_file": "src/components/wealth-controls.tsx",
+      "source_location": "L56"
     },
     {
-      "id": "src_lib_actions_family_regenerateinvitecodeaction",
-      "label": "regenerateInviteCodeAction()",
+      "id": "src_components_wealth_controls_settargetcontrol",
+      "label": "SetTargetControl()",
       "_callable": true,
       "_origin": "ast",
       "community": 7,
       "community_name": "createClient",
       "file_type": "code",
-      "norm_label": "regenerateinvitecodeaction()",
-      "source_file": "src/lib/actions/family.ts",
-      "source_location": "L81"
+      "norm_label": "settargetcontrol()",
+      "source_file": "src/components/wealth-controls.tsx",
+      "source_location": "L75"
     },
     {
-      "id": "src_lib_actions_settings_settextsizeaction",
-      "label": "setTextSizeAction()",
+      "id": "src_lib_actions_wealth_addaccountaction",
+      "label": "addAccountAction()",
       "_callable": true,
       "_origin": "ast",
       "community": 7,
       "community_name": "createClient",
       "file_type": "code",
-      "norm_label": "settextsizeaction()",
-      "source_file": "src/lib/actions/settings.ts",
-      "source_location": "L20"
-    },
-    {
-      "id": "src_lib_actions_settings_setthemeaction",
-      "label": "setThemeAction()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 7,
-      "community_name": "createClient",
-      "file_type": "code",
-      "norm_label": "setthemeaction()",
-      "source_file": "src/lib/actions/settings.ts",
+      "norm_label": "addaccountaction()",
+      "source_file": "src/lib/actions/wealth.ts",
       "source_location": "L8"
     },
     {
-      "id": "src_lib_actions_settings_togglenotificationaction",
-      "label": "toggleNotificationAction()",
+      "id": "src_lib_actions_wealth_setjointbudgetaction",
+      "label": "setJointBudgetAction()",
       "_callable": true,
       "_origin": "ast",
       "community": 7,
       "community_name": "createClient",
       "file_type": "code",
-      "norm_label": "togglenotificationaction()",
-      "source_file": "src/lib/actions/settings.ts",
-      "source_location": "L27"
+      "norm_label": "setjointbudgetaction()",
+      "source_file": "src/lib/actions/wealth.ts",
+      "source_location": "L33"
     },
     {
-      "id": "src_lib_actions_settings_updatehouseholdnameaction",
-      "label": "updateHouseholdNameAction()",
+      "id": "src_lib_actions_wealth_setwealthtargetaction",
+      "label": "setWealthTargetAction()",
       "_callable": true,
       "_origin": "ast",
       "community": 7,
       "community_name": "createClient",
       "file_type": "code",
-      "norm_label": "updatehouseholdnameaction()",
-      "source_file": "src/lib/actions/settings.ts",
-      "source_location": "L35"
-    },
-    {
-      "id": "src_lib_actions_settings_updatehouseholdprefsaction",
-      "label": "updateHouseholdPrefsAction()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 7,
-      "community_name": "createClient",
-      "file_type": "code",
-      "norm_label": "updatehouseholdprefsaction()",
-      "source_file": "src/lib/actions/settings.ts",
+      "norm_label": "setwealthtargetaction()",
+      "source_file": "src/lib/actions/wealth.ts",
       "source_location": "L42"
+    },
+    {
+      "id": "src_lib_format_formatcurrency",
+      "label": "formatCurrency()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 7,
+      "community_name": "createClient",
+      "file_type": "code",
+      "norm_label": "formatcurrency()",
+      "source_file": "src/lib/format.ts",
+      "source_location": "L11"
     },
     {
       "id": "src_lib_queries_journal_getentries",
@@ -1892,7 +2028,7 @@
       "file_type": "code",
       "norm_label": "getentries()",
       "source_file": "src/lib/queries/journal.ts",
-      "source_location": "L23"
+      "source_location": "L28"
     },
     {
       "id": "src_lib_queries_journal_getgallery",
@@ -1953,6 +2089,42 @@
       "norm_label": "getweekagenda()",
       "source_file": "src/lib/queries/planner.ts",
       "source_location": "L4"
+    },
+    {
+      "id": "src_lib_queries_wealth_currentperiod",
+      "label": "currentPeriod()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 7,
+      "community_name": "createClient",
+      "file_type": "code",
+      "norm_label": "currentperiod()",
+      "source_file": "src/lib/queries/wealth.ts",
+      "source_location": "L3"
+    },
+    {
+      "id": "src_lib_queries_wealth_getjointwealth",
+      "label": "getJointWealth()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 7,
+      "community_name": "createClient",
+      "file_type": "code",
+      "norm_label": "getjointwealth()",
+      "source_file": "src/lib/queries/wealth.ts",
+      "source_location": "L8"
+    },
+    {
+      "id": "src_lib_queries_wealth_getmywealth",
+      "label": "getMyWealth()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 7,
+      "community_name": "createClient",
+      "file_type": "code",
+      "norm_label": "getmywealth()",
+      "source_file": "src/lib/queries/wealth.ts",
+      "source_location": "L26"
     },
     {
       "id": "src_lib_storage_getsignedurls",
@@ -2183,28 +2355,112 @@
       "source_location": "L33"
     },
     {
-      "id": "src_app_api_drive_callback_route_get",
-      "label": "GET()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 9,
-      "community_name": "actions/journal.ts",
-      "file_type": "code",
-      "norm_label": "get()",
-      "source_file": "src/app/api/drive/callback/route.ts",
-      "source_location": "L7"
-    },
-    {
       "id": "src_app_app_family_documents_new_new_doc_form_newdocform",
       "label": "NewDocForm()",
       "_callable": true,
       "_origin": "ast",
       "community": 9,
-      "community_name": "actions/journal.ts",
+      "community_name": "database.types.ts",
       "file_type": "code",
       "norm_label": "newdocform()",
       "source_file": "src/app/(app)/family/documents/new/new-doc-form.tsx",
       "source_location": "L17"
+    },
+    {
+      "id": "src_app_app_family_documents_new_new_doc_form_newdocform_onsubmit",
+      "label": "onSubmit()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 9,
+      "community_name": "database.types.ts",
+      "file_type": "code",
+      "norm_label": "onsubmit()",
+      "source_file": "src/app/(app)/family/documents/new/new-doc-form.tsx",
+      "source_location": "L34"
+    },
+    {
+      "id": "src_app_app_journal_new_new_entry_form_newentryform",
+      "label": "NewEntryForm()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 9,
+      "community_name": "database.types.ts",
+      "file_type": "code",
+      "norm_label": "newentryform()",
+      "source_file": "src/app/(app)/journal/new/new-entry-form.tsx",
+      "source_location": "L11"
+    },
+    {
+      "id": "src_app_app_journal_new_new_entry_form_newentryform_onfileschosen",
+      "label": "onFilesChosen()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 9,
+      "community_name": "database.types.ts",
+      "file_type": "code",
+      "norm_label": "onfileschosen()",
+      "source_file": "src/app/(app)/journal/new/new-entry-form.tsx",
+      "source_location": "L19"
+    },
+    {
+      "id": "src_app_app_journal_new_new_entry_form_newentryform_onsubmit",
+      "label": "onSubmit()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 9,
+      "community_name": "database.types.ts",
+      "file_type": "code",
+      "norm_label": "onsubmit()",
+      "source_file": "src/app/(app)/journal/new/new-entry-form.tsx",
+      "source_location": "L25"
+    },
+    {
+      "id": "src_components_gallery_upload_galleryupload",
+      "label": "GalleryUpload()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 9,
+      "community_name": "database.types.ts",
+      "file_type": "code",
+      "norm_label": "galleryupload()",
+      "source_file": "src/components/gallery-upload.tsx",
+      "source_location": "L9"
+    },
+    {
+      "id": "src_components_gallery_upload_galleryupload_onfileschosen",
+      "label": "onFilesChosen()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 9,
+      "community_name": "database.types.ts",
+      "file_type": "code",
+      "norm_label": "onfileschosen()",
+      "source_file": "src/components/gallery-upload.tsx",
+      "source_location": "L20"
+    },
+    {
+      "id": "src_components_gallery_upload_galleryupload_onupload",
+      "label": "onUpload()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 9,
+      "community_name": "database.types.ts",
+      "file_type": "code",
+      "norm_label": "onupload()",
+      "source_file": "src/components/gallery-upload.tsx",
+      "source_location": "L26"
+    },
+    {
+      "id": "src_lib_actions_documents_attachdocfileaction",
+      "label": "attachDocFileAction()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 9,
+      "community_name": "database.types.ts",
+      "file_type": "code",
+      "norm_label": "attachdocfileaction()",
+      "source_file": "src/lib/actions/documents.ts",
+      "source_location": "L65"
     },
     {
       "id": "src_lib_actions_documents_createdocentryaction",
@@ -2212,11 +2468,11 @@
       "_callable": true,
       "_origin": "ast",
       "community": 9,
-      "community_name": "actions/journal.ts",
+      "community_name": "database.types.ts",
       "file_type": "code",
       "norm_label": "createdocentryaction()",
       "source_file": "src/lib/actions/documents.ts",
-      "source_location": "L10"
+      "source_location": "L11"
     },
     {
       "id": "src_lib_actions_documents_deletedocfileaction",
@@ -2224,23 +2480,23 @@
       "_callable": true,
       "_origin": "ast",
       "community": 9,
-      "community_name": "actions/journal.ts",
+      "community_name": "database.types.ts",
       "file_type": "code",
       "norm_label": "deletedocfileaction()",
       "source_file": "src/lib/actions/documents.ts",
-      "source_location": "L124"
+      "source_location": "L113"
     },
     {
-      "id": "src_lib_actions_drive_disconnectdriveaction",
-      "label": "disconnectDriveAction()",
+      "id": "src_lib_actions_journal_attachjournalmediaaction",
+      "label": "attachJournalMediaAction()",
       "_callable": true,
       "_origin": "ast",
       "community": 9,
-      "community_name": "actions/journal.ts",
+      "community_name": "database.types.ts",
       "file_type": "code",
-      "norm_label": "disconnectdriveaction()",
-      "source_file": "src/lib/actions/drive.ts",
-      "source_location": "L8"
+      "norm_label": "attachjournalmediaaction()",
+      "source_file": "src/lib/actions/journal.ts",
+      "source_location": "L40"
     },
     {
       "id": "src_lib_actions_journal_createjournalentryaction",
@@ -2248,131 +2504,11 @@
       "_callable": true,
       "_origin": "ast",
       "community": 9,
-      "community_name": "actions/journal.ts",
+      "community_name": "database.types.ts",
       "file_type": "code",
       "norm_label": "createjournalentryaction()",
       "source_file": "src/lib/actions/journal.ts",
-      "source_location": "L87"
-    },
-    {
-      "id": "src_lib_actions_journal_resolvejournaldrivefolder",
-      "label": "resolveJournalDriveFolder()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 9,
-      "community_name": "actions/journal.ts",
-      "file_type": "code",
-      "norm_label": "resolvejournaldrivefolder()",
-      "source_file": "src/lib/actions/journal.ts",
-      "source_location": "L15"
-    },
-    {
-      "id": "src_lib_actions_journal_uploadgalleryphotosaction",
-      "label": "uploadGalleryPhotosAction()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 9,
-      "community_name": "actions/journal.ts",
-      "file_type": "code",
-      "norm_label": "uploadgalleryphotosaction()",
-      "source_file": "src/lib/actions/journal.ts",
-      "source_location": "L70"
-    },
-    {
-      "id": "src_lib_actions_journal_uploadjournalmedia",
-      "label": "uploadJournalMedia()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 9,
-      "community_name": "actions/journal.ts",
-      "file_type": "code",
-      "norm_label": "uploadjournalmedia()",
-      "source_file": "src/lib/actions/journal.ts",
-      "source_location": "L27"
-    },
-    {
-      "id": "src_lib_google_drive_createfolder",
-      "label": "createFolder()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 9,
-      "community_name": "actions/journal.ts",
-      "file_type": "code",
-      "norm_label": "createfolder()",
-      "source_file": "src/lib/google-drive.ts",
-      "source_location": "L56"
-    },
-    {
-      "id": "src_lib_google_drive_drivefetch",
-      "label": "driveFetch()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 9,
-      "community_name": "actions/journal.ts",
-      "file_type": "code",
-      "norm_label": "drivefetch()",
-      "source_file": "src/lib/google-drive.ts",
-      "source_location": "L49"
-    },
-    {
-      "id": "src_lib_google_drive_ensuredrivefolderstructure",
-      "label": "ensureDriveFolderStructure()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 9,
-      "community_name": "actions/journal.ts",
-      "file_type": "code",
-      "norm_label": "ensuredrivefolderstructure()",
-      "source_file": "src/lib/google-drive.ts",
-      "source_location": "L68"
-    },
-    {
-      "id": "src_lib_google_drive_ensurenamedsubfolder",
-      "label": "ensureNamedSubfolder()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 9,
-      "community_name": "actions/journal.ts",
-      "file_type": "code",
-      "norm_label": "ensurenamedsubfolder()",
-      "source_file": "src/lib/google-drive.ts",
-      "source_location": "L100"
-    },
-    {
-      "id": "src_lib_google_drive_getvaliddriveaccesstoken",
-      "label": "getValidDriveAccessToken()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 9,
-      "community_name": "actions/journal.ts",
-      "file_type": "code",
-      "norm_label": "getvaliddriveaccesstoken()",
-      "source_file": "src/lib/google-drive.ts",
-      "source_location": "L12"
-    },
-    {
-      "id": "src_lib_google_drive_uploadfiletodrive",
-      "label": "uploadFileToDrive()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 9,
-      "community_name": "actions/journal.ts",
-      "file_type": "code",
-      "norm_label": "uploadfiletodrive()",
-      "source_file": "src/lib/google-drive.ts",
-      "source_location": "L111"
-    },
-    {
-      "id": "src_lib_supabase_admin_createadminclient",
-      "label": "createAdminClient()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 9,
-      "community_name": "actions/journal.ts",
-      "file_type": "code",
-      "norm_label": "createadminclient()",
-      "source_file": "src/lib/supabase/admin.ts",
-      "source_location": "L7"
+      "source_location": "L11"
     },
     {
       "id": "src_lib_supabase_client_createclient",
@@ -2380,18 +2516,30 @@
       "_callable": true,
       "_origin": "ast",
       "community": 9,
-      "community_name": "actions/journal.ts",
+      "community_name": "database.types.ts",
       "file_type": "code",
       "norm_label": "createclient()",
       "source_file": "src/lib/supabase/client.ts",
       "source_location": "L4"
     },
     {
+      "id": "src_lib_upload_client_uploadfiledirect",
+      "label": "uploadFileDirect()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 9,
+      "community_name": "database.types.ts",
+      "file_type": "code",
+      "norm_label": "uploadfiledirect()",
+      "source_file": "src/lib/upload-client.ts",
+      "source_location": "L12"
+    },
+    {
       "id": "src_app_app_planner_add_add_planner_form",
       "label": "add-planner-form.tsx",
       "_origin": "ast",
       "community": 0,
-      "community_name": "requireCurrentMember",
+      "community_name": "add-planner-form.tsx",
       "file_type": "code",
       "norm_label": "add-planner-form.tsx",
       "source_file": "src/app/(app)/planner/add/add-planner-form.tsx",
@@ -2402,7 +2550,7 @@
       "label": "initialState",
       "_origin": "ast",
       "community": 0,
-      "community_name": "requireCurrentMember",
+      "community_name": "add-planner-form.tsx",
       "file_type": "code",
       "norm_label": "initialstate",
       "source_file": "src/app/(app)/planner/add/add-planner-form.tsx",
@@ -2413,7 +2561,7 @@
       "label": "TYPES",
       "_origin": "ast",
       "community": 0,
-      "community_name": "requireCurrentMember",
+      "community_name": "add-planner-form.tsx",
       "file_type": "code",
       "norm_label": "types",
       "source_file": "src/app/(app)/planner/add/add-planner-form.tsx",
@@ -2424,7 +2572,7 @@
       "label": "add-to-journal-button.tsx",
       "_origin": "ast",
       "community": 0,
-      "community_name": "requireCurrentMember",
+      "community_name": "add-planner-form.tsx",
       "file_type": "code",
       "norm_label": "add-to-journal-button.tsx",
       "source_file": "src/components/add-to-journal-button.tsx",
@@ -2435,7 +2583,7 @@
       "label": "actions/planner.ts",
       "_origin": "ast",
       "community": 0,
-      "community_name": "requireCurrentMember",
+      "community_name": "add-planner-form.tsx",
       "file_type": "code",
       "norm_label": "actions/planner.ts",
       "source_file": "src/lib/actions/planner.ts",
@@ -2473,28 +2621,6 @@
       "norm_label": "segments",
       "source_file": "src/app/(app)/family/members/[id]/page.tsx",
       "source_location": "L12"
-    },
-    {
-      "id": "src_app_app_family_page",
-      "label": "(app)/family/page.tsx",
-      "_origin": "ast",
-      "community": 1,
-      "community_name": "[id]/page.tsx",
-      "file_type": "code",
-      "norm_label": "(app)/family/page.tsx",
-      "source_file": "src/app/(app)/family/page.tsx",
-      "source_location": "L1"
-    },
-    {
-      "id": "src_app_app_family_page_segments",
-      "label": "SEGMENTS",
-      "_origin": "ast",
-      "community": 1,
-      "community_name": "[id]/page.tsx",
-      "file_type": "code",
-      "norm_label": "segments",
-      "source_file": "src/app/(app)/family/page.tsx",
-      "source_location": "L10"
     },
     {
       "id": "src_app_app_journal_page",
@@ -2684,69 +2810,58 @@
       "source_location": "L1"
     },
     {
-      "id": "src_app_app_wealth_page",
-      "label": "wealth/page.tsx",
+      "id": "src_app_api_drive_callback_route",
+      "label": "drive/callback/route.ts",
       "_origin": "ast",
       "community": 11,
-      "community_name": "wealth/page.tsx",
+      "community_name": "google-drive.ts",
       "file_type": "code",
-      "norm_label": "wealth/page.tsx",
-      "source_file": "src/app/(app)/wealth/page.tsx",
+      "norm_label": "drive/callback/route.ts",
+      "source_file": "src/app/api/drive/callback/route.ts",
       "source_location": "L1"
     },
     {
-      "id": "src_app_app_wealth_page_segments",
-      "label": "SEGMENTS",
+      "id": "src_app_api_drive_file_fileid_route",
+      "label": "[fileId]/route.ts",
       "_origin": "ast",
       "community": 11,
-      "community_name": "wealth/page.tsx",
+      "community_name": "google-drive.ts",
       "file_type": "code",
-      "norm_label": "segments",
-      "source_file": "src/app/(app)/wealth/page.tsx",
-      "source_location": "L9"
-    },
-    {
-      "id": "src_components_wealth_controls",
-      "label": "wealth-controls.tsx",
-      "_origin": "ast",
-      "community": 11,
-      "community_name": "wealth/page.tsx",
-      "file_type": "code",
-      "norm_label": "wealth-controls.tsx",
-      "source_file": "src/components/wealth-controls.tsx",
+      "norm_label": "[fileid]/route.ts",
+      "source_file": "src/app/api/drive/file/[fileId]/route.ts",
       "source_location": "L1"
     },
     {
-      "id": "src_components_wealth_controls_initialstate",
-      "label": "initialState",
+      "id": "src_app_api_uploads_session_route",
+      "label": "session/route.ts",
       "_origin": "ast",
       "community": 11,
-      "community_name": "wealth/page.tsx",
+      "community_name": "google-drive.ts",
       "file_type": "code",
-      "norm_label": "initialstate",
-      "source_file": "src/components/wealth-controls.tsx",
-      "source_location": "L8"
-    },
-    {
-      "id": "src_lib_actions_wealth",
-      "label": "actions/wealth.ts",
-      "_origin": "ast",
-      "community": 11,
-      "community_name": "wealth/page.tsx",
-      "file_type": "code",
-      "norm_label": "actions/wealth.ts",
-      "source_file": "src/lib/actions/wealth.ts",
+      "norm_label": "session/route.ts",
+      "source_file": "src/app/api/uploads/session/route.ts",
       "source_location": "L1"
     },
     {
-      "id": "src_lib_queries_wealth",
-      "label": "queries/wealth.ts",
+      "id": "src_lib_google_drive",
+      "label": "google-drive.ts",
       "_origin": "ast",
       "community": 11,
-      "community_name": "wealth/page.tsx",
+      "community_name": "google-drive.ts",
       "file_type": "code",
-      "norm_label": "queries/wealth.ts",
-      "source_file": "src/lib/queries/wealth.ts",
+      "norm_label": "google-drive.ts",
+      "source_file": "src/lib/google-drive.ts",
+      "source_location": "L1"
+    },
+    {
+      "id": "src_lib_supabase_admin",
+      "label": "admin.ts",
+      "_origin": "ast",
+      "community": 11,
+      "community_name": "google-drive.ts",
+      "file_type": "code",
+      "norm_label": "admin.ts",
+      "source_file": "src/lib/supabase/admin.ts",
       "source_location": "L1"
     },
     {
@@ -2904,70 +3019,26 @@
       "source_location": "L1"
     },
     {
-      "id": "src_app_app_family_members_id_health_new_new_health_entry_form",
-      "label": "new-health-entry-form.tsx",
+      "id": "src_app_app_family_page",
+      "label": "(app)/family/page.tsx",
       "_origin": "ast",
       "community": 2,
       "community_name": "getCurrentMember",
       "file_type": "code",
-      "norm_label": "new-health-entry-form.tsx",
-      "source_file": "src/app/(app)/family/members/[id]/health/new/new-health-entry-form.tsx",
+      "norm_label": "(app)/family/page.tsx",
+      "source_file": "src/app/(app)/family/page.tsx",
       "source_location": "L1"
     },
     {
-      "id": "src_app_app_family_members_id_health_new_new_health_entry_form_initialstate",
-      "label": "initialState",
+      "id": "src_app_app_family_page_segments",
+      "label": "SEGMENTS",
       "_origin": "ast",
       "community": 2,
       "community_name": "getCurrentMember",
       "file_type": "code",
-      "norm_label": "initialstate",
-      "source_file": "src/app/(app)/family/members/[id]/health/new/new-health-entry-form.tsx",
-      "source_location": "L11"
-    },
-    {
-      "id": "src_app_app_family_members_id_health_new_new_health_entry_form_types",
-      "label": "TYPES",
-      "_origin": "ast",
-      "community": 2,
-      "community_name": "getCurrentMember",
-      "file_type": "code",
-      "norm_label": "types",
-      "source_file": "src/app/(app)/family/members/[id]/health/new/new-health-entry-form.tsx",
-      "source_location": "L13"
-    },
-    {
-      "id": "src_app_app_family_members_id_health_new_new_health_entry_form_visibility",
-      "label": "VISIBILITY",
-      "_origin": "ast",
-      "community": 2,
-      "community_name": "getCurrentMember",
-      "file_type": "code",
-      "norm_label": "visibility",
-      "source_file": "src/app/(app)/family/members/[id]/health/new/new-health-entry-form.tsx",
-      "source_location": "L23"
-    },
-    {
-      "id": "src_app_app_family_members_id_health_new_page",
-      "label": "health/new/page.tsx",
-      "_origin": "ast",
-      "community": 2,
-      "community_name": "getCurrentMember",
-      "file_type": "code",
-      "norm_label": "health/new/page.tsx",
-      "source_file": "src/app/(app)/family/members/[id]/health/new/page.tsx",
-      "source_location": "L1"
-    },
-    {
-      "id": "src_app_app_family_members_id_omron_toggle",
-      "label": "omron-toggle.tsx",
-      "_origin": "ast",
-      "community": 2,
-      "community_name": "getCurrentMember",
-      "file_type": "code",
-      "norm_label": "omron-toggle.tsx",
-      "source_file": "src/app/(app)/family/members/[id]/omron-toggle.tsx",
-      "source_location": "L1"
+      "norm_label": "segments",
+      "source_file": "src/app/(app)/family/page.tsx",
+      "source_location": "L10"
     },
     {
       "id": "src_app_app_journal_new_page",
@@ -3014,28 +3085,6 @@
       "source_location": "L1"
     },
     {
-      "id": "src_lib_actions_health",
-      "label": "actions/health.ts",
-      "_origin": "ast",
-      "community": 2,
-      "community_name": "getCurrentMember",
-      "file_type": "code",
-      "norm_label": "actions/health.ts",
-      "source_file": "src/lib/actions/health.ts",
-      "source_location": "L1"
-    },
-    {
-      "id": "src_lib_actions_health_grouped_types",
-      "label": "GROUPED_TYPES",
-      "_origin": "ast",
-      "community": 2,
-      "community_name": "getCurrentMember",
-      "file_type": "code",
-      "norm_label": "grouped_types",
-      "source_file": "src/lib/actions/health.ts",
-      "source_location": "L9"
-    },
-    {
       "id": "src_lib_queries_family",
       "label": "queries/family.ts",
       "_origin": "ast",
@@ -3067,6 +3116,94 @@
       "norm_label": "getcurrentmember",
       "source_file": "src/lib/session.ts",
       "source_location": "L15"
+    },
+    {
+      "id": "src_app_app_family_members_id_health_new_new_health_entry_form",
+      "label": "new-health-entry-form.tsx",
+      "_origin": "ast",
+      "community": 22,
+      "community_name": "new-health-entry-form.tsx",
+      "file_type": "code",
+      "norm_label": "new-health-entry-form.tsx",
+      "source_file": "src/app/(app)/family/members/[id]/health/new/new-health-entry-form.tsx",
+      "source_location": "L1"
+    },
+    {
+      "id": "src_app_app_family_members_id_health_new_new_health_entry_form_initialstate",
+      "label": "initialState",
+      "_origin": "ast",
+      "community": 22,
+      "community_name": "new-health-entry-form.tsx",
+      "file_type": "code",
+      "norm_label": "initialstate",
+      "source_file": "src/app/(app)/family/members/[id]/health/new/new-health-entry-form.tsx",
+      "source_location": "L11"
+    },
+    {
+      "id": "src_app_app_family_members_id_health_new_new_health_entry_form_types",
+      "label": "TYPES",
+      "_origin": "ast",
+      "community": 22,
+      "community_name": "new-health-entry-form.tsx",
+      "file_type": "code",
+      "norm_label": "types",
+      "source_file": "src/app/(app)/family/members/[id]/health/new/new-health-entry-form.tsx",
+      "source_location": "L13"
+    },
+    {
+      "id": "src_app_app_family_members_id_health_new_new_health_entry_form_visibility",
+      "label": "VISIBILITY",
+      "_origin": "ast",
+      "community": 22,
+      "community_name": "new-health-entry-form.tsx",
+      "file_type": "code",
+      "norm_label": "visibility",
+      "source_file": "src/app/(app)/family/members/[id]/health/new/new-health-entry-form.tsx",
+      "source_location": "L23"
+    },
+    {
+      "id": "src_app_app_family_members_id_health_new_page",
+      "label": "health/new/page.tsx",
+      "_origin": "ast",
+      "community": 22,
+      "community_name": "new-health-entry-form.tsx",
+      "file_type": "code",
+      "norm_label": "health/new/page.tsx",
+      "source_file": "src/app/(app)/family/members/[id]/health/new/page.tsx",
+      "source_location": "L1"
+    },
+    {
+      "id": "src_app_app_family_members_id_omron_toggle",
+      "label": "omron-toggle.tsx",
+      "_origin": "ast",
+      "community": 22,
+      "community_name": "new-health-entry-form.tsx",
+      "file_type": "code",
+      "norm_label": "omron-toggle.tsx",
+      "source_file": "src/app/(app)/family/members/[id]/omron-toggle.tsx",
+      "source_location": "L1"
+    },
+    {
+      "id": "src_lib_actions_health",
+      "label": "actions/health.ts",
+      "_origin": "ast",
+      "community": 22,
+      "community_name": "new-health-entry-form.tsx",
+      "file_type": "code",
+      "norm_label": "actions/health.ts",
+      "source_file": "src/lib/actions/health.ts",
+      "source_location": "L1"
+    },
+    {
+      "id": "src_lib_actions_health_grouped_types",
+      "label": "GROUPED_TYPES",
+      "_origin": "ast",
+      "community": 22,
+      "community_name": "new-health-entry-form.tsx",
+      "file_type": "code",
+      "norm_label": "grouped_types",
+      "source_file": "src/lib/actions/health.ts",
+      "source_location": "L9"
     },
     {
       "id": "src_app_app_household_meals_new_page",
@@ -3110,28 +3247,6 @@
       "file_type": "code",
       "norm_label": "initialstate",
       "source_file": "src/app/(app)/journal/milestones/new/page.tsx",
-      "source_location": "L10"
-    },
-    {
-      "id": "src_app_app_journal_new_new_entry_form",
-      "label": "new-entry-form.tsx",
-      "_origin": "ast",
-      "community": 3,
-      "community_name": "auth.ts",
-      "file_type": "code",
-      "norm_label": "new-entry-form.tsx",
-      "source_file": "src/app/(app)/journal/new/new-entry-form.tsx",
-      "source_location": "L1"
-    },
-    {
-      "id": "src_app_app_journal_new_new_entry_form_initialstate",
-      "label": "initialState",
-      "_origin": "ast",
-      "community": 3,
-      "community_name": "auth.ts",
-      "file_type": "code",
-      "norm_label": "initialstate",
-      "source_file": "src/app/(app)/journal/new/new-entry-form.tsx",
       "source_location": "L10"
     },
     {
@@ -3331,28 +3446,6 @@
       "norm_label": "form.tsx",
       "source_file": "src/components/form.tsx",
       "source_location": "L1"
-    },
-    {
-      "id": "src_components_gallery_upload",
-      "label": "gallery-upload.tsx",
-      "_origin": "ast",
-      "community": 3,
-      "community_name": "auth.ts",
-      "file_type": "code",
-      "norm_label": "gallery-upload.tsx",
-      "source_file": "src/components/gallery-upload.tsx",
-      "source_location": "L1"
-    },
-    {
-      "id": "src_components_gallery_upload_initialstate",
-      "label": "initialState",
-      "_origin": "ast",
-      "community": 3,
-      "community_name": "auth.ts",
-      "file_type": "code",
-      "norm_label": "initialstate",
-      "source_file": "src/components/gallery-upload.tsx",
-      "source_location": "L8"
     },
     {
       "id": "src_components_onboarding_shell",
@@ -3795,6 +3888,72 @@
       "source_location": "L26"
     },
     {
+      "id": "src_app_app_settings_page",
+      "label": "settings/page.tsx",
+      "_origin": "ast",
+      "community": 5,
+      "community_name": "requireCurrentMember",
+      "file_type": "code",
+      "norm_label": "settings/page.tsx",
+      "source_file": "src/app/(app)/settings/page.tsx",
+      "source_location": "L1"
+    },
+    {
+      "id": "src_app_app_settings_page_drive_error_messages",
+      "label": "DRIVE_ERROR_MESSAGES",
+      "_origin": "ast",
+      "community": 5,
+      "community_name": "requireCurrentMember",
+      "file_type": "code",
+      "norm_label": "drive_error_messages",
+      "source_file": "src/app/(app)/settings/page.tsx",
+      "source_location": "L20"
+    },
+    {
+      "id": "src_components_settings_controls",
+      "label": "settings-controls.tsx",
+      "_origin": "ast",
+      "community": 5,
+      "community_name": "requireCurrentMember",
+      "file_type": "code",
+      "norm_label": "settings-controls.tsx",
+      "source_file": "src/components/settings-controls.tsx",
+      "source_location": "L1"
+    },
+    {
+      "id": "src_components_settings_controls_notif_defs",
+      "label": "NOTIF_DEFS",
+      "_origin": "ast",
+      "community": 5,
+      "community_name": "requireCurrentMember",
+      "file_type": "code",
+      "norm_label": "notif_defs",
+      "source_file": "src/components/settings-controls.tsx",
+      "source_location": "L46"
+    },
+    {
+      "id": "src_lib_actions_drive",
+      "label": "drive.ts",
+      "_origin": "ast",
+      "community": 5,
+      "community_name": "requireCurrentMember",
+      "file_type": "code",
+      "norm_label": "drive.ts",
+      "source_file": "src/lib/actions/drive.ts",
+      "source_location": "L1"
+    },
+    {
+      "id": "src_lib_actions_settings",
+      "label": "settings.ts",
+      "_origin": "ast",
+      "community": 5,
+      "community_name": "requireCurrentMember",
+      "file_type": "code",
+      "norm_label": "settings.ts",
+      "source_file": "src/lib/actions/settings.ts",
+      "source_location": "L1"
+    },
+    {
       "id": "tsconfig",
       "label": "tsconfig.json",
       "_origin": "ast",
@@ -4136,26 +4295,26 @@
       "source_location": "L10"
     },
     {
-      "id": "src_app_app_settings_page",
-      "label": "settings/page.tsx",
+      "id": "src_app_app_wealth_page",
+      "label": "wealth/page.tsx",
       "_origin": "ast",
       "community": 7,
       "community_name": "createClient",
       "file_type": "code",
-      "norm_label": "settings/page.tsx",
-      "source_file": "src/app/(app)/settings/page.tsx",
+      "norm_label": "wealth/page.tsx",
+      "source_file": "src/app/(app)/wealth/page.tsx",
       "source_location": "L1"
     },
     {
-      "id": "src_app_app_settings_page_drive_error_messages",
-      "label": "DRIVE_ERROR_MESSAGES",
+      "id": "src_app_app_wealth_page_segments",
+      "label": "SEGMENTS",
       "_origin": "ast",
       "community": 7,
       "community_name": "createClient",
       "file_type": "code",
-      "norm_label": "drive_error_messages",
-      "source_file": "src/app/(app)/settings/page.tsx",
-      "source_location": "L20"
+      "norm_label": "segments",
+      "source_file": "src/app/(app)/wealth/page.tsx",
+      "source_location": "L9"
     },
     {
       "id": "src_app_auth_callback_route",
@@ -4169,36 +4328,36 @@
       "source_location": "L1"
     },
     {
-      "id": "src_components_settings_controls",
-      "label": "settings-controls.tsx",
+      "id": "src_components_wealth_controls",
+      "label": "wealth-controls.tsx",
       "_origin": "ast",
       "community": 7,
       "community_name": "createClient",
       "file_type": "code",
-      "norm_label": "settings-controls.tsx",
-      "source_file": "src/components/settings-controls.tsx",
+      "norm_label": "wealth-controls.tsx",
+      "source_file": "src/components/wealth-controls.tsx",
       "source_location": "L1"
     },
     {
-      "id": "src_components_settings_controls_notif_defs",
-      "label": "NOTIF_DEFS",
+      "id": "src_components_wealth_controls_initialstate",
+      "label": "initialState",
       "_origin": "ast",
       "community": 7,
       "community_name": "createClient",
       "file_type": "code",
-      "norm_label": "notif_defs",
-      "source_file": "src/components/settings-controls.tsx",
-      "source_location": "L46"
+      "norm_label": "initialstate",
+      "source_file": "src/components/wealth-controls.tsx",
+      "source_location": "L8"
     },
     {
-      "id": "src_lib_actions_settings",
-      "label": "settings.ts",
+      "id": "src_lib_actions_wealth",
+      "label": "actions/wealth.ts",
       "_origin": "ast",
       "community": 7,
       "community_name": "createClient",
       "file_type": "code",
-      "norm_label": "settings.ts",
-      "source_file": "src/lib/actions/settings.ts",
+      "norm_label": "actions/wealth.ts",
+      "source_file": "src/lib/actions/wealth.ts",
       "source_location": "L1"
     },
     {
@@ -4221,6 +4380,17 @@
       "file_type": "code",
       "norm_label": "queries/planner.ts",
       "source_file": "src/lib/queries/planner.ts",
+      "source_location": "L1"
+    },
+    {
+      "id": "src_lib_queries_wealth",
+      "label": "queries/wealth.ts",
+      "_origin": "ast",
+      "community": 7,
+      "community_name": "createClient",
+      "file_type": "code",
+      "norm_label": "queries/wealth.ts",
+      "source_file": "src/lib/queries/wealth.ts",
       "source_location": "L1"
     },
     {
@@ -4345,69 +4515,58 @@
       "source_location": "L1"
     },
     {
-      "id": "src_app_api_drive_callback_route",
-      "label": "drive/callback/route.ts",
-      "_origin": "ast",
-      "community": 9,
-      "community_name": "actions/journal.ts",
-      "file_type": "code",
-      "norm_label": "drive/callback/route.ts",
-      "source_file": "src/app/api/drive/callback/route.ts",
-      "source_location": "L1"
-    },
-    {
       "id": "src_app_app_family_documents_new_new_doc_form",
       "label": "new-doc-form.tsx",
       "_origin": "ast",
       "community": 9,
-      "community_name": "actions/journal.ts",
+      "community_name": "database.types.ts",
       "file_type": "code",
       "norm_label": "new-doc-form.tsx",
       "source_file": "src/app/(app)/family/documents/new/new-doc-form.tsx",
       "source_location": "L1"
     },
     {
-      "id": "src_app_app_family_documents_new_new_doc_form_initialstate",
-      "label": "initialState",
-      "_origin": "ast",
-      "community": 9,
-      "community_name": "actions/journal.ts",
-      "file_type": "code",
-      "norm_label": "initialstate",
-      "source_file": "src/app/(app)/family/documents/new/new-doc-form.tsx",
-      "source_location": "L10"
-    },
-    {
       "id": "src_app_app_family_documents_new_new_doc_form_visibility",
       "label": "VISIBILITY",
       "_origin": "ast",
       "community": 9,
-      "community_name": "actions/journal.ts",
+      "community_name": "database.types.ts",
       "file_type": "code",
       "norm_label": "visibility",
       "source_file": "src/app/(app)/family/documents/new/new-doc-form.tsx",
       "source_location": "L11"
     },
     {
+      "id": "src_app_app_journal_new_new_entry_form",
+      "label": "new-entry-form.tsx",
+      "_origin": "ast",
+      "community": 9,
+      "community_name": "database.types.ts",
+      "file_type": "code",
+      "norm_label": "new-entry-form.tsx",
+      "source_file": "src/app/(app)/journal/new/new-entry-form.tsx",
+      "source_location": "L1"
+    },
+    {
+      "id": "src_components_gallery_upload",
+      "label": "gallery-upload.tsx",
+      "_origin": "ast",
+      "community": 9,
+      "community_name": "database.types.ts",
+      "file_type": "code",
+      "norm_label": "gallery-upload.tsx",
+      "source_file": "src/components/gallery-upload.tsx",
+      "source_location": "L1"
+    },
+    {
       "id": "src_lib_actions_documents",
       "label": "documents.ts",
       "_origin": "ast",
       "community": 9,
-      "community_name": "actions/journal.ts",
+      "community_name": "database.types.ts",
       "file_type": "code",
       "norm_label": "documents.ts",
       "source_file": "src/lib/actions/documents.ts",
-      "source_location": "L1"
-    },
-    {
-      "id": "src_lib_actions_drive",
-      "label": "drive.ts",
-      "_origin": "ast",
-      "community": 9,
-      "community_name": "actions/journal.ts",
-      "file_type": "code",
-      "norm_label": "drive.ts",
-      "source_file": "src/lib/actions/drive.ts",
       "source_location": "L1"
     },
     {
@@ -4415,7 +4574,7 @@
       "label": "actions/journal.ts",
       "_origin": "ast",
       "community": 9,
-      "community_name": "actions/journal.ts",
+      "community_name": "database.types.ts",
       "file_type": "code",
       "norm_label": "actions/journal.ts",
       "source_file": "src/lib/actions/journal.ts",
@@ -4426,7 +4585,7 @@
       "label": "database.types.ts",
       "_origin": "ast",
       "community": 9,
-      "community_name": "actions/journal.ts",
+      "community_name": "database.types.ts",
       "file_type": "code",
       "norm_label": "database.types.ts",
       "source_file": "src/lib/database.types.ts",
@@ -4437,43 +4596,32 @@
       "label": "Constants",
       "_origin": "ast",
       "community": 9,
-      "community_name": "actions/journal.ts",
+      "community_name": "database.types.ts",
       "file_type": "code",
       "norm_label": "constants",
       "source_file": "src/lib/database.types.ts",
       "source_location": "L2025"
     },
     {
-      "id": "src_lib_google_drive",
-      "label": "google-drive.ts",
-      "_origin": "ast",
-      "community": 9,
-      "community_name": "actions/journal.ts",
-      "file_type": "code",
-      "norm_label": "google-drive.ts",
-      "source_file": "src/lib/google-drive.ts",
-      "source_location": "L1"
-    },
-    {
-      "id": "src_lib_supabase_admin",
-      "label": "admin.ts",
-      "_origin": "ast",
-      "community": 9,
-      "community_name": "actions/journal.ts",
-      "file_type": "code",
-      "norm_label": "admin.ts",
-      "source_file": "src/lib/supabase/admin.ts",
-      "source_location": "L1"
-    },
-    {
       "id": "src_lib_supabase_client",
       "label": "client.ts",
       "_origin": "ast",
       "community": 9,
-      "community_name": "actions/journal.ts",
+      "community_name": "database.types.ts",
       "file_type": "code",
       "norm_label": "client.ts",
       "source_file": "src/lib/supabase/client.ts",
+      "source_location": "L1"
+    },
+    {
+      "id": "src_lib_upload_client",
+      "label": "upload-client.ts",
+      "_origin": "ast",
+      "community": 9,
+      "community_name": "database.types.ts",
+      "file_type": "code",
+      "norm_label": "upload-client.ts",
+      "source_file": "src/lib/upload-client.ts",
       "source_location": "L1"
     },
     {
@@ -4806,6 +4954,126 @@
       "weight": 1.0
     },
     {
+      "source": "src_app_api_drive_file_fileid_route_get",
+      "target": "src_lib_session_getcurrentmember",
+      "relation": "calls",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "call",
+      "source_file": "src/app/api/drive/file/[fileId]/route.ts",
+      "source_location": "L10",
+      "weight": 1.0
+    },
+    {
+      "source": "src_app_api_drive_file_fileid_route_get",
+      "target": "src_lib_supabase_server_createclient",
+      "relation": "calls",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "call",
+      "source_file": "src/app/api/drive/file/[fileId]/route.ts",
+      "source_location": "L14",
+      "weight": 1.0
+    },
+    {
+      "source": "src_app_api_drive_file_fileid_route_get",
+      "target": "src_lib_google_drive_getvaliddriveaccesstoken",
+      "relation": "calls",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "call",
+      "source_file": "src/app/api/drive/file/[fileId]/route.ts",
+      "source_location": "L21",
+      "weight": 1.0
+    },
+    {
+      "source": "src_app_api_drive_file_fileid_route_get",
+      "target": "src_lib_google_drive_fetchdrivefile",
+      "relation": "calls",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "call",
+      "source_file": "src/app/api/drive/file/[fileId]/route.ts",
+      "source_location": "L24",
+      "weight": 1.0
+    },
+    {
+      "source": "src_app_api_uploads_session_route_post",
+      "target": "src_lib_session_getcurrentmember",
+      "relation": "calls",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "call",
+      "source_file": "src/app/api/uploads/session/route.ts",
+      "source_location": "L18",
+      "weight": 1.0
+    },
+    {
+      "source": "src_app_api_uploads_session_route_post",
+      "target": "src_lib_google_drive_getvaliddriveaccesstoken",
+      "relation": "calls",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "call",
+      "source_file": "src/app/api/uploads/session/route.ts",
+      "source_location": "L27",
+      "weight": 1.0
+    },
+    {
+      "source": "src_app_api_uploads_session_route_post",
+      "target": "src_lib_google_drive_ensuredrivefolderstructure",
+      "relation": "calls",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "call",
+      "source_file": "src/app/api/uploads/session/route.ts",
+      "source_location": "L30",
+      "weight": 1.0
+    },
+    {
+      "source": "src_app_api_uploads_session_route_post",
+      "target": "src_lib_google_drive_ensurenamedsubfolder",
+      "relation": "calls",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "call",
+      "source_file": "src/app/api/uploads/session/route.ts",
+      "source_location": "L33",
+      "weight": 1.0
+    },
+    {
+      "source": "src_app_api_uploads_session_route_post",
+      "target": "src_lib_supabase_admin_createadminclient",
+      "relation": "calls",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "call",
+      "source_file": "src/app/api/uploads/session/route.ts",
+      "source_location": "L35",
+      "weight": 1.0
+    },
+    {
+      "source": "src_app_api_uploads_session_route_post",
+      "target": "src_lib_google_drive_createresumableuploadsession",
+      "relation": "calls",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "call",
+      "source_file": "src/app/api/uploads/session/route.ts",
+      "source_location": "L45",
+      "weight": 1.0
+    },
+    {
       "source": "src_app_app_family_documents_folderid_page_docfolderpage",
       "target": "src_lib_session_getcurrentmember",
       "relation": "calls",
@@ -4839,6 +5107,42 @@
       "context": "call",
       "source_file": "src/app/(app)/family/documents/[folderId]/page.tsx",
       "source_location": "L50",
+      "weight": 1.0
+    },
+    {
+      "source": "src_app_app_family_documents_new_new_doc_form_newdocform_onsubmit",
+      "target": "src_lib_actions_documents_createdocentryaction",
+      "relation": "calls",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "call",
+      "source_file": "src/app/(app)/family/documents/new/new-doc-form.tsx",
+      "source_location": "L40",
+      "weight": 1.0
+    },
+    {
+      "source": "src_app_app_family_documents_new_new_doc_form_newdocform_onsubmit",
+      "target": "src_lib_upload_client_uploadfiledirect",
+      "relation": "calls",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "call",
+      "source_file": "src/app/(app)/family/documents/new/new-doc-form.tsx",
+      "source_location": "L60",
+      "weight": 1.0
+    },
+    {
+      "source": "src_app_app_family_documents_new_new_doc_form_newdocform_onsubmit",
+      "target": "src_lib_actions_documents_attachdocfileaction",
+      "relation": "calls",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "call",
+      "source_file": "src/app/(app)/family/documents/new/new-doc-form.tsx",
+      "source_location": "L61",
       "weight": 1.0
     },
     {
@@ -5139,6 +5443,42 @@
       "context": "call",
       "source_file": "src/app/(app)/journal/milestones/new/page.tsx",
       "source_location": "L15",
+      "weight": 1.0
+    },
+    {
+      "source": "src_app_app_journal_new_new_entry_form_newentryform_onsubmit",
+      "target": "src_lib_actions_journal_createjournalentryaction",
+      "relation": "calls",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "call",
+      "source_file": "src/app/(app)/journal/new/new-entry-form.tsx",
+      "source_location": "L35",
+      "weight": 1.0
+    },
+    {
+      "source": "src_app_app_journal_new_new_entry_form_newentryform_onsubmit",
+      "target": "src_lib_upload_client_uploadfiledirect",
+      "relation": "calls",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "call",
+      "source_file": "src/app/(app)/journal/new/new-entry-form.tsx",
+      "source_location": "L45",
+      "weight": 1.0
+    },
+    {
+      "source": "src_app_app_journal_new_new_entry_form_newentryform_onsubmit",
+      "target": "src_lib_actions_journal_attachjournalmediaaction",
+      "relation": "calls",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "call",
+      "source_file": "src/app/(app)/journal/new/new-entry-form.tsx",
+      "source_location": "L47",
       "weight": 1.0
     },
     {
@@ -5658,6 +5998,30 @@
       "weight": 1.0
     },
     {
+      "source": "src_components_gallery_upload_galleryupload_onupload",
+      "target": "src_lib_upload_client_uploadfiledirect",
+      "relation": "calls",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "call",
+      "source_file": "src/components/gallery-upload.tsx",
+      "source_location": "L34",
+      "weight": 1.0
+    },
+    {
+      "source": "src_components_gallery_upload_galleryupload_onupload",
+      "target": "src_lib_actions_journal_attachjournalmediaaction",
+      "relation": "calls",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "call",
+      "source_file": "src/components/gallery-upload.tsx",
+      "source_location": "L36",
+      "weight": 1.0
+    },
+    {
       "source": "src_components_generate_grocery_button_generategrocerybutton",
       "target": "src_lib_actions_household_generategrocerylistaction",
       "relation": "calls",
@@ -5874,6 +6238,30 @@
       "weight": 1.0
     },
     {
+      "source": "src_lib_actions_documents_attachdocfileaction",
+      "target": "src_lib_session_requirecurrentmember",
+      "relation": "calls",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "call",
+      "source_file": "src/lib/actions/documents.ts",
+      "source_location": "L72",
+      "weight": 1.0
+    },
+    {
+      "source": "src_lib_actions_documents_attachdocfileaction",
+      "target": "src_lib_supabase_server_createclient",
+      "relation": "calls",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "call",
+      "source_file": "src/lib/actions/documents.ts",
+      "source_location": "L73",
+      "weight": 1.0
+    },
+    {
       "source": "src_lib_actions_documents_createdocentryaction",
       "target": "src_lib_session_requirecurrentmember",
       "relation": "calls",
@@ -5882,7 +6270,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/lib/actions/documents.ts",
-      "source_location": "L11",
+      "source_location": "L22",
       "weight": 1.0
     },
     {
@@ -5894,43 +6282,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/lib/actions/documents.ts",
-      "source_location": "L12",
-      "weight": 1.0
-    },
-    {
-      "source": "src_lib_actions_documents_createdocentryaction",
-      "target": "src_lib_google_drive_getvaliddriveaccesstoken",
-      "relation": "calls",
-      "_origin": "ast",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "context": "call",
-      "source_file": "src/lib/actions/documents.ts",
-      "source_location": "L61",
-      "weight": 1.0
-    },
-    {
-      "source": "src_lib_actions_documents_createdocentryaction",
-      "target": "src_lib_google_drive_ensuredrivefolderstructure",
-      "relation": "calls",
-      "_origin": "ast",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "context": "call",
-      "source_file": "src/lib/actions/documents.ts",
-      "source_location": "L65",
-      "weight": 1.0
-    },
-    {
-      "source": "src_lib_actions_documents_createdocentryaction",
-      "target": "src_lib_google_drive_uploadfiletodrive",
-      "relation": "calls",
-      "_origin": "ast",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "context": "call",
-      "source_file": "src/lib/actions/documents.ts",
-      "source_location": "L76",
+      "source_location": "L23",
       "weight": 1.0
     },
     {
@@ -5942,7 +6294,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/lib/actions/documents.ts",
-      "source_location": "L125",
+      "source_location": "L114",
       "weight": 1.0
     },
     {
@@ -5954,7 +6306,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/lib/actions/documents.ts",
-      "source_location": "L118",
+      "source_location": "L107",
       "weight": 1.0
     },
     {
@@ -6198,27 +6550,27 @@
       "weight": 1.0
     },
     {
-      "source": "src_lib_actions_journal_createjournalentryaction",
-      "target": "src_lib_actions_journal_resolvejournaldrivefolder",
+      "source": "src_lib_actions_journal_attachjournalmediaaction",
+      "target": "src_lib_session_requirecurrentmember",
       "relation": "calls",
       "_origin": "ast",
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/lib/actions/journal.ts",
-      "source_location": "L109",
+      "source_location": "L47",
       "weight": 1.0
     },
     {
-      "source": "src_lib_actions_journal_createjournalentryaction",
-      "target": "src_lib_actions_journal_uploadjournalmedia",
+      "source": "src_lib_actions_journal_attachjournalmediaaction",
+      "target": "src_lib_supabase_server_createclient",
       "relation": "calls",
       "_origin": "ast",
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/lib/actions/journal.ts",
-      "source_location": "L112",
+      "source_location": "L48",
       "weight": 1.0
     },
     {
@@ -6230,7 +6582,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/lib/actions/journal.ts",
-      "source_location": "L88",
+      "source_location": "L17",
       "weight": 1.0
     },
     {
@@ -6242,7 +6594,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/lib/actions/journal.ts",
-      "source_location": "L89",
+      "source_location": "L18",
       "weight": 1.0
     },
     {
@@ -6254,7 +6606,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/lib/actions/journal.ts",
-      "source_location": "L123",
+      "source_location": "L86",
       "weight": 1.0
     },
     {
@@ -6266,103 +6618,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/lib/actions/journal.ts",
-      "source_location": "L124",
-      "weight": 1.0
-    },
-    {
-      "source": "src_lib_actions_journal_resolvejournaldrivefolder",
-      "target": "src_lib_google_drive_getvaliddriveaccesstoken",
-      "relation": "calls",
-      "_origin": "ast",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "context": "call",
-      "source_file": "src/lib/actions/journal.ts",
-      "source_location": "L16",
-      "weight": 1.0
-    },
-    {
-      "source": "src_lib_actions_journal_resolvejournaldrivefolder",
-      "target": "src_lib_google_drive_ensuredrivefolderstructure",
-      "relation": "calls",
-      "_origin": "ast",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "context": "call",
-      "source_file": "src/lib/actions/journal.ts",
-      "source_location": "L19",
-      "weight": 1.0
-    },
-    {
-      "source": "src_lib_actions_journal_resolvejournaldrivefolder",
-      "target": "src_lib_google_drive_ensurenamedsubfolder",
-      "relation": "calls",
-      "_origin": "ast",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "context": "call",
-      "source_file": "src/lib/actions/journal.ts",
-      "source_location": "L20",
-      "weight": 1.0
-    },
-    {
-      "source": "src_lib_actions_journal_uploadgalleryphotosaction",
-      "target": "src_lib_session_requirecurrentmember",
-      "relation": "calls",
-      "_origin": "ast",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "context": "call",
-      "source_file": "src/lib/actions/journal.ts",
-      "source_location": "L71",
-      "weight": 1.0
-    },
-    {
-      "source": "src_lib_actions_journal_uploadgalleryphotosaction",
-      "target": "src_lib_supabase_server_createclient",
-      "relation": "calls",
-      "_origin": "ast",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "context": "call",
-      "source_file": "src/lib/actions/journal.ts",
-      "source_location": "L72",
-      "weight": 1.0
-    },
-    {
-      "source": "src_lib_actions_journal_uploadgalleryphotosaction",
-      "target": "src_lib_actions_journal_resolvejournaldrivefolder",
-      "relation": "calls",
-      "_origin": "ast",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "context": "call",
-      "source_file": "src/lib/actions/journal.ts",
-      "source_location": "L76",
-      "weight": 1.0
-    },
-    {
-      "source": "src_lib_actions_journal_uploadgalleryphotosaction",
-      "target": "src_lib_actions_journal_uploadjournalmedia",
-      "relation": "calls",
-      "_origin": "ast",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "context": "call",
-      "source_file": "src/lib/actions/journal.ts",
-      "source_location": "L79",
-      "weight": 1.0
-    },
-    {
-      "source": "src_lib_actions_journal_uploadjournalmedia",
-      "target": "src_lib_google_drive_uploadfiletodrive",
-      "relation": "calls",
-      "_origin": "ast",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "context": "call",
-      "source_file": "src/lib/actions/journal.ts",
-      "source_location": "L38",
+      "source_location": "L87",
       "weight": 1.0
     },
     {
@@ -6690,6 +6946,18 @@
       "weight": 1.0
     },
     {
+      "source": "src_lib_google_drive_fetchdrivefile",
+      "target": "src_lib_google_drive_drivefetch",
+      "relation": "calls",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "call",
+      "source_file": "src/lib/google-drive.ts",
+      "source_location": "L142",
+      "weight": 1.0
+    },
+    {
       "source": "src_lib_google_drive_getvaliddriveaccesstoken",
       "target": "src_lib_supabase_admin_createadminclient",
       "relation": "calls",
@@ -6830,7 +7098,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/lib/queries/journal.ts",
-      "source_location": "L24",
+      "source_location": "L29",
       "weight": 1.0
     },
     {
@@ -6842,7 +7110,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/lib/queries/journal.ts",
-      "source_location": "L39",
+      "source_location": "L44",
       "weight": 1.0
     },
     {
@@ -6878,7 +7146,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/lib/queries/journal.ts",
-      "source_location": "L58",
+      "source_location": "L63",
       "weight": 1.0
     },
     {
@@ -7047,6 +7315,18 @@
       "context": "call",
       "source_file": "src/lib/storage.ts",
       "source_location": "L5",
+      "weight": 1.0
+    },
+    {
+      "source": "src_lib_upload_client_uploadfiledirect",
+      "target": "src_lib_supabase_client_createclient",
+      "relation": "calls",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "call",
+      "source_file": "src/lib/upload-client.ts",
+      "source_location": "L37",
       "weight": 1.0
     },
     {
@@ -7386,6 +7666,126 @@
       "weight": 1.0
     },
     {
+      "source": "src_app_api_drive_file_fileid_route",
+      "target": "src_lib_session_getcurrentmember",
+      "relation": "imports",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "import",
+      "source_file": "src/app/api/drive/file/[fileId]/route.ts",
+      "source_location": "L1",
+      "weight": 1.0
+    },
+    {
+      "source": "src_app_api_drive_file_fileid_route",
+      "target": "src_lib_supabase_server_createclient",
+      "relation": "imports",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "import",
+      "source_file": "src/app/api/drive/file/[fileId]/route.ts",
+      "source_location": "L2",
+      "weight": 1.0
+    },
+    {
+      "source": "src_app_api_drive_file_fileid_route",
+      "target": "src_lib_google_drive_fetchdrivefile",
+      "relation": "imports",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "import",
+      "source_file": "src/app/api/drive/file/[fileId]/route.ts",
+      "source_location": "L3",
+      "weight": 1.0
+    },
+    {
+      "source": "src_app_api_drive_file_fileid_route",
+      "target": "src_lib_google_drive_getvaliddriveaccesstoken",
+      "relation": "imports",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "import",
+      "source_file": "src/app/api/drive/file/[fileId]/route.ts",
+      "source_location": "L3",
+      "weight": 1.0
+    },
+    {
+      "source": "src_app_api_uploads_session_route",
+      "target": "src_lib_session_getcurrentmember",
+      "relation": "imports",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "import",
+      "source_file": "src/app/api/uploads/session/route.ts",
+      "source_location": "L2",
+      "weight": 1.0
+    },
+    {
+      "source": "src_app_api_uploads_session_route",
+      "target": "src_lib_supabase_admin_createadminclient",
+      "relation": "imports",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "import",
+      "source_file": "src/app/api/uploads/session/route.ts",
+      "source_location": "L3",
+      "weight": 1.0
+    },
+    {
+      "source": "src_app_api_uploads_session_route",
+      "target": "src_lib_google_drive_createresumableuploadsession",
+      "relation": "imports",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "import",
+      "source_file": "src/app/api/uploads/session/route.ts",
+      "source_location": "L4",
+      "weight": 1.0
+    },
+    {
+      "source": "src_app_api_uploads_session_route",
+      "target": "src_lib_google_drive_ensuredrivefolderstructure",
+      "relation": "imports",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "import",
+      "source_file": "src/app/api/uploads/session/route.ts",
+      "source_location": "L4",
+      "weight": 1.0
+    },
+    {
+      "source": "src_app_api_uploads_session_route",
+      "target": "src_lib_google_drive_ensurenamedsubfolder",
+      "relation": "imports",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "import",
+      "source_file": "src/app/api/uploads/session/route.ts",
+      "source_location": "L4",
+      "weight": 1.0
+    },
+    {
+      "source": "src_app_api_uploads_session_route",
+      "target": "src_lib_google_drive_getvaliddriveaccesstoken",
+      "relation": "imports",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "import",
+      "source_file": "src/app/api/uploads/session/route.ts",
+      "source_location": "L4",
+      "weight": 1.0
+    },
+    {
       "source": "src_app_app_family_documents_folderid_page",
       "target": "src_lib_session_getcurrentmember",
       "relation": "imports",
@@ -7471,19 +7871,7 @@
     },
     {
       "source": "src_app_app_family_documents_new_new_doc_form",
-      "target": "src_lib_actions_documents_createdocentryaction",
-      "relation": "imports",
-      "_origin": "ast",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "context": "import",
-      "source_file": "src/app/(app)/family/documents/new/new-doc-form.tsx",
-      "source_location": "L4",
-      "weight": 1.0
-    },
-    {
-      "source": "src_app_app_family_documents_new_new_doc_form",
-      "target": "src_lib_actions_auth_actionstate",
+      "target": "src_lib_actions_documents_attachdocfileaction",
       "relation": "imports",
       "_origin": "ast",
       "confidence": "EXTRACTED",
@@ -7495,31 +7883,31 @@
     },
     {
       "source": "src_app_app_family_documents_new_new_doc_form",
+      "target": "src_lib_actions_documents_createdocentryaction",
+      "relation": "imports",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "import",
+      "source_file": "src/app/(app)/family/documents/new/new-doc-form.tsx",
+      "source_location": "L5",
+      "weight": 1.0
+    },
+    {
+      "source": "src_app_app_family_documents_new_new_doc_form",
+      "target": "src_lib_upload_client_uploadfiledirect",
+      "relation": "imports",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "import",
+      "source_file": "src/app/(app)/family/documents/new/new-doc-form.tsx",
+      "source_location": "L6",
+      "weight": 1.0
+    },
+    {
+      "source": "src_app_app_family_documents_new_new_doc_form",
       "target": "src_components_form_errortext",
-      "relation": "imports",
-      "_origin": "ast",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "context": "import",
-      "source_file": "src/app/(app)/family/documents/new/new-doc-form.tsx",
-      "source_location": "L6",
-      "weight": 1.0
-    },
-    {
-      "source": "src_app_app_family_documents_new_new_doc_form",
-      "target": "src_components_form_submitbutton",
-      "relation": "imports",
-      "_origin": "ast",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "context": "import",
-      "source_file": "src/app/(app)/family/documents/new/new-doc-form.tsx",
-      "source_location": "L6",
-      "weight": 1.0
-    },
-    {
-      "source": "src_app_app_family_documents_new_new_doc_form",
-      "target": "src_components_hub_header_detailheader",
       "relation": "imports",
       "_origin": "ast",
       "confidence": "EXTRACTED",
@@ -7531,7 +7919,7 @@
     },
     {
       "source": "src_app_app_family_documents_new_new_doc_form",
-      "target": "src_lib_database_types_tables",
+      "target": "src_components_hub_header_detailheader",
       "relation": "imports",
       "_origin": "ast",
       "confidence": "EXTRACTED",
@@ -7539,6 +7927,18 @@
       "context": "import",
       "source_file": "src/app/(app)/family/documents/new/new-doc-form.tsx",
       "source_location": "L8",
+      "weight": 1.0
+    },
+    {
+      "source": "src_app_app_family_documents_new_new_doc_form",
+      "target": "src_lib_database_types_tables",
+      "relation": "imports",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "import",
+      "source_file": "src/app/(app)/family/documents/new/new-doc-form.tsx",
+      "source_location": "L9",
       "weight": 1.0
     },
     {
@@ -8239,19 +8639,7 @@
     },
     {
       "source": "src_app_app_journal_new_new_entry_form",
-      "target": "src_lib_actions_journal_createjournalentryaction",
-      "relation": "imports",
-      "_origin": "ast",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "context": "import",
-      "source_file": "src/app/(app)/journal/new/new-entry-form.tsx",
-      "source_location": "L4",
-      "weight": 1.0
-    },
-    {
-      "source": "src_app_app_journal_new_new_entry_form",
-      "target": "src_lib_actions_auth_actionstate",
+      "target": "src_lib_actions_journal_attachjournalmediaaction",
       "relation": "imports",
       "_origin": "ast",
       "confidence": "EXTRACTED",
@@ -8263,31 +8651,31 @@
     },
     {
       "source": "src_app_app_journal_new_new_entry_form",
+      "target": "src_lib_actions_journal_createjournalentryaction",
+      "relation": "imports",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "import",
+      "source_file": "src/app/(app)/journal/new/new-entry-form.tsx",
+      "source_location": "L5",
+      "weight": 1.0
+    },
+    {
+      "source": "src_app_app_journal_new_new_entry_form",
+      "target": "src_lib_upload_client_uploadfiledirect",
+      "relation": "imports",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "import",
+      "source_file": "src/app/(app)/journal/new/new-entry-form.tsx",
+      "source_location": "L6",
+      "weight": 1.0
+    },
+    {
+      "source": "src_app_app_journal_new_new_entry_form",
       "target": "src_components_form_errortext",
-      "relation": "imports",
-      "_origin": "ast",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "context": "import",
-      "source_file": "src/app/(app)/journal/new/new-entry-form.tsx",
-      "source_location": "L6",
-      "weight": 1.0
-    },
-    {
-      "source": "src_app_app_journal_new_new_entry_form",
-      "target": "src_components_form_submitbutton",
-      "relation": "imports",
-      "_origin": "ast",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "context": "import",
-      "source_file": "src/app/(app)/journal/new/new-entry-form.tsx",
-      "source_location": "L6",
-      "weight": 1.0
-    },
-    {
-      "source": "src_app_app_journal_new_new_entry_form",
-      "target": "src_components_hub_header_detailheader",
       "relation": "imports",
       "_origin": "ast",
       "confidence": "EXTRACTED",
@@ -8299,7 +8687,7 @@
     },
     {
       "source": "src_app_app_journal_new_new_entry_form",
-      "target": "src_lib_database_types_tables",
+      "target": "src_components_hub_header_detailheader",
       "relation": "imports",
       "_origin": "ast",
       "confidence": "EXTRACTED",
@@ -8307,6 +8695,18 @@
       "context": "import",
       "source_file": "src/app/(app)/journal/new/new-entry-form.tsx",
       "source_location": "L8",
+      "weight": 1.0
+    },
+    {
+      "source": "src_app_app_journal_new_new_entry_form",
+      "target": "src_lib_database_types_tables",
+      "relation": "imports",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "import",
+      "source_file": "src/app/(app)/journal/new/new-entry-form.tsx",
+      "source_location": "L9",
       "weight": 1.0
     },
     {
@@ -9919,19 +10319,7 @@
     },
     {
       "source": "src_components_gallery_upload",
-      "target": "src_lib_actions_journal_uploadgalleryphotosaction",
-      "relation": "imports",
-      "_origin": "ast",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "context": "import",
-      "source_file": "src/components/gallery-upload.tsx",
-      "source_location": "L4",
-      "weight": 1.0
-    },
-    {
-      "source": "src_components_gallery_upload",
-      "target": "src_lib_actions_auth_actionstate",
+      "target": "src_lib_upload_client_uploadfiledirect",
       "relation": "imports",
       "_origin": "ast",
       "confidence": "EXTRACTED",
@@ -9943,7 +10331,7 @@
     },
     {
       "source": "src_components_gallery_upload",
-      "target": "src_components_form_errortext",
+      "target": "src_lib_actions_journal_attachjournalmediaaction",
       "relation": "imports",
       "_origin": "ast",
       "confidence": "EXTRACTED",
@@ -9955,14 +10343,14 @@
     },
     {
       "source": "src_components_gallery_upload",
-      "target": "src_components_form_submitbutton",
+      "target": "src_components_form_errortext",
       "relation": "imports",
       "_origin": "ast",
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "context": "import",
       "source_file": "src/components/gallery-upload.tsx",
-      "source_location": "L6",
+      "source_location": "L7",
       "weight": 1.0
     },
     {
@@ -10250,7 +10638,7 @@
       "confidence_score": 1.0,
       "context": "import",
       "source_file": "src/lib/actions/documents.ts",
-      "source_location": "L5",
+      "source_location": "L4",
       "weight": 1.0
     },
     {
@@ -10262,55 +10650,7 @@
       "confidence_score": 1.0,
       "context": "import",
       "source_file": "src/lib/actions/documents.ts",
-      "source_location": "L6",
-      "weight": 1.0
-    },
-    {
-      "source": "src_lib_actions_documents",
-      "target": "src_lib_actions_auth_actionstate",
-      "relation": "imports",
-      "_origin": "ast",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "context": "import",
-      "source_file": "src/lib/actions/documents.ts",
-      "source_location": "L7",
-      "weight": 1.0
-    },
-    {
-      "source": "src_lib_actions_documents",
-      "target": "src_lib_google_drive_ensuredrivefolderstructure",
-      "relation": "imports",
-      "_origin": "ast",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "context": "import",
-      "source_file": "src/lib/actions/documents.ts",
-      "source_location": "L8",
-      "weight": 1.0
-    },
-    {
-      "source": "src_lib_actions_documents",
-      "target": "src_lib_google_drive_getvaliddriveaccesstoken",
-      "relation": "imports",
-      "_origin": "ast",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "context": "import",
-      "source_file": "src/lib/actions/documents.ts",
-      "source_location": "L8",
-      "weight": 1.0
-    },
-    {
-      "source": "src_lib_actions_documents",
-      "target": "src_lib_google_drive_uploadfiletodrive",
-      "relation": "imports",
-      "_origin": "ast",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "context": "import",
-      "source_file": "src/lib/actions/documents.ts",
-      "source_location": "L8",
+      "source_location": "L5",
       "weight": 1.0
     },
     {
@@ -10447,18 +10787,6 @@
     },
     {
       "source": "src_lib_actions_journal",
-      "target": "src_lib_database_types_database",
-      "relation": "imports",
-      "_origin": "ast",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "context": "import",
-      "source_file": "src/lib/actions/journal.ts",
-      "source_location": "L10",
-      "weight": 1.0
-    },
-    {
-      "source": "src_lib_actions_journal",
       "target": "src_lib_supabase_server_createclient",
       "relation": "imports",
       "_origin": "ast",
@@ -10466,19 +10794,7 @@
       "confidence_score": 1.0,
       "context": "import",
       "source_file": "src/lib/actions/journal.ts",
-      "source_location": "L5",
-      "weight": 1.0
-    },
-    {
-      "source": "src_lib_actions_journal",
-      "target": "src_lib_session_currentmember",
-      "relation": "imports",
-      "_origin": "ast",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "context": "import",
-      "source_file": "src/lib/actions/journal.ts",
-      "source_location": "L6",
+      "source_location": "L4",
       "weight": 1.0
     },
     {
@@ -10490,67 +10806,7 @@
       "confidence_score": 1.0,
       "context": "import",
       "source_file": "src/lib/actions/journal.ts",
-      "source_location": "L6",
-      "weight": 1.0
-    },
-    {
-      "source": "src_lib_actions_journal",
-      "target": "src_lib_actions_auth_actionstate",
-      "relation": "imports",
-      "_origin": "ast",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "context": "import",
-      "source_file": "src/lib/actions/journal.ts",
-      "source_location": "L7",
-      "weight": 1.0
-    },
-    {
-      "source": "src_lib_actions_journal",
-      "target": "src_lib_google_drive_ensuredrivefolderstructure",
-      "relation": "imports",
-      "_origin": "ast",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "context": "import",
-      "source_file": "src/lib/actions/journal.ts",
-      "source_location": "L8",
-      "weight": 1.0
-    },
-    {
-      "source": "src_lib_actions_journal",
-      "target": "src_lib_google_drive_ensurenamedsubfolder",
-      "relation": "imports",
-      "_origin": "ast",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "context": "import",
-      "source_file": "src/lib/actions/journal.ts",
-      "source_location": "L8",
-      "weight": 1.0
-    },
-    {
-      "source": "src_lib_actions_journal",
-      "target": "src_lib_google_drive_getvaliddriveaccesstoken",
-      "relation": "imports",
-      "_origin": "ast",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "context": "import",
-      "source_file": "src/lib/actions/journal.ts",
-      "source_location": "L8",
-      "weight": 1.0
-    },
-    {
-      "source": "src_lib_actions_journal",
-      "target": "src_lib_google_drive_uploadfiletodrive",
-      "relation": "imports",
-      "_origin": "ast",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "context": "import",
-      "source_file": "src/lib/actions/journal.ts",
-      "source_location": "L8",
+      "source_location": "L5",
       "weight": 1.0
     },
     {
@@ -10902,6 +11158,18 @@
       "weight": 1.0
     },
     {
+      "source": "src_lib_upload_client",
+      "target": "src_lib_supabase_client_createclient",
+      "relation": "imports",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "import",
+      "source_file": "src/lib/upload-client.ts",
+      "source_location": "L1",
+      "weight": 1.0
+    },
+    {
       "source": "src_proxy",
       "target": "src_lib_supabase_middleware_updatesession",
       "relation": "imports",
@@ -10958,6 +11226,78 @@
       "confidence_score": 1.0,
       "context": "import",
       "source_file": "src/app/api/drive/connect/route.ts",
+      "source_location": "L4",
+      "weight": 1.0
+    },
+    {
+      "source": "src_app_api_drive_file_fileid_route",
+      "target": "src_lib_session",
+      "relation": "imports_from",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "import",
+      "source_file": "src/app/api/drive/file/[fileId]/route.ts",
+      "source_location": "L1",
+      "weight": 1.0
+    },
+    {
+      "source": "src_app_api_drive_file_fileid_route",
+      "target": "src_lib_supabase_server",
+      "relation": "imports_from",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "import",
+      "source_file": "src/app/api/drive/file/[fileId]/route.ts",
+      "source_location": "L2",
+      "weight": 1.0
+    },
+    {
+      "source": "src_app_api_drive_file_fileid_route",
+      "target": "src_lib_google_drive",
+      "relation": "imports_from",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "import",
+      "source_file": "src/app/api/drive/file/[fileId]/route.ts",
+      "source_location": "L3",
+      "weight": 1.0
+    },
+    {
+      "source": "src_app_api_uploads_session_route",
+      "target": "src_lib_session",
+      "relation": "imports_from",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "import",
+      "source_file": "src/app/api/uploads/session/route.ts",
+      "source_location": "L2",
+      "weight": 1.0
+    },
+    {
+      "source": "src_app_api_uploads_session_route",
+      "target": "src_lib_supabase_admin",
+      "relation": "imports_from",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "import",
+      "source_file": "src/app/api/uploads/session/route.ts",
+      "source_location": "L3",
+      "weight": 1.0
+    },
+    {
+      "source": "src_app_api_uploads_session_route",
+      "target": "src_lib_google_drive",
+      "relation": "imports_from",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "import",
+      "source_file": "src/app/api/uploads/session/route.ts",
       "source_location": "L4",
       "weight": 1.0
     },
@@ -11054,25 +11394,12 @@
       "confidence_score": 1.0,
       "context": "import",
       "source_file": "src/app/(app)/family/documents/new/new-doc-form.tsx",
-      "source_location": "L4",
-      "weight": 1.0
-    },
-    {
-      "source": "src_app_app_family_documents_new_new_doc_form",
-      "target": "src_lib_actions_auth",
-      "relation": "imports_from",
-      "_origin": "ast",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "context": "import",
-      "source_file": "src/app/(app)/family/documents/new/new-doc-form.tsx",
       "source_location": "L5",
-      "type_only": true,
       "weight": 1.0
     },
     {
       "source": "src_app_app_family_documents_new_new_doc_form",
-      "target": "src_components_form",
+      "target": "src_lib_upload_client",
       "relation": "imports_from",
       "_origin": "ast",
       "confidence": "EXTRACTED",
@@ -11084,7 +11411,7 @@
     },
     {
       "source": "src_app_app_family_documents_new_new_doc_form",
-      "target": "src_components_hub_header",
+      "target": "src_components_form",
       "relation": "imports_from",
       "_origin": "ast",
       "confidence": "EXTRACTED",
@@ -11096,7 +11423,7 @@
     },
     {
       "source": "src_app_app_family_documents_new_new_doc_form",
-      "target": "src_lib_database_types",
+      "target": "src_components_hub_header",
       "relation": "imports_from",
       "_origin": "ast",
       "confidence": "EXTRACTED",
@@ -11104,6 +11431,18 @@
       "context": "import",
       "source_file": "src/app/(app)/family/documents/new/new-doc-form.tsx",
       "source_location": "L8",
+      "weight": 1.0
+    },
+    {
+      "source": "src_app_app_family_documents_new_new_doc_form",
+      "target": "src_lib_database_types",
+      "relation": "imports_from",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "import",
+      "source_file": "src/app/(app)/family/documents/new/new-doc-form.tsx",
+      "source_location": "L9",
       "type_only": true,
       "weight": 1.0
     },
@@ -11660,25 +11999,12 @@
       "confidence_score": 1.0,
       "context": "import",
       "source_file": "src/app/(app)/journal/new/new-entry-form.tsx",
-      "source_location": "L4",
-      "weight": 1.0
-    },
-    {
-      "source": "src_app_app_journal_new_new_entry_form",
-      "target": "src_lib_actions_auth",
-      "relation": "imports_from",
-      "_origin": "ast",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "context": "import",
-      "source_file": "src/app/(app)/journal/new/new-entry-form.tsx",
       "source_location": "L5",
-      "type_only": true,
       "weight": 1.0
     },
     {
       "source": "src_app_app_journal_new_new_entry_form",
-      "target": "src_components_form",
+      "target": "src_lib_upload_client",
       "relation": "imports_from",
       "_origin": "ast",
       "confidence": "EXTRACTED",
@@ -11690,7 +12016,7 @@
     },
     {
       "source": "src_app_app_journal_new_new_entry_form",
-      "target": "src_components_hub_header",
+      "target": "src_components_form",
       "relation": "imports_from",
       "_origin": "ast",
       "confidence": "EXTRACTED",
@@ -11702,7 +12028,7 @@
     },
     {
       "source": "src_app_app_journal_new_new_entry_form",
-      "target": "src_lib_database_types",
+      "target": "src_components_hub_header",
       "relation": "imports_from",
       "_origin": "ast",
       "confidence": "EXTRACTED",
@@ -11710,6 +12036,18 @@
       "context": "import",
       "source_file": "src/app/(app)/journal/new/new-entry-form.tsx",
       "source_location": "L8",
+      "weight": 1.0
+    },
+    {
+      "source": "src_app_app_journal_new_new_entry_form",
+      "target": "src_lib_database_types",
+      "relation": "imports_from",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "import",
+      "source_file": "src/app/(app)/journal/new/new-entry-form.tsx",
+      "source_location": "L9",
       "type_only": true,
       "weight": 1.0
     },
@@ -12875,19 +13213,7 @@
     },
     {
       "source": "src_components_gallery_upload",
-      "target": "src_lib_actions_journal",
-      "relation": "imports_from",
-      "_origin": "ast",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "context": "import",
-      "source_file": "src/components/gallery-upload.tsx",
-      "source_location": "L4",
-      "weight": 1.0
-    },
-    {
-      "source": "src_components_gallery_upload",
-      "target": "src_lib_actions_auth",
+      "target": "src_lib_upload_client",
       "relation": "imports_from",
       "_origin": "ast",
       "confidence": "EXTRACTED",
@@ -12895,7 +13221,18 @@
       "context": "import",
       "source_file": "src/components/gallery-upload.tsx",
       "source_location": "L5",
-      "type_only": true,
+      "weight": 1.0
+    },
+    {
+      "source": "src_components_gallery_upload",
+      "target": "src_lib_actions_journal",
+      "relation": "imports_from",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "import",
+      "source_file": "src/components/gallery-upload.tsx",
+      "source_location": "L6",
       "weight": 1.0
     },
     {
@@ -12907,7 +13244,7 @@
       "confidence_score": 1.0,
       "context": "import",
       "source_file": "src/components/gallery-upload.tsx",
-      "source_location": "L6",
+      "source_location": "L7",
       "weight": 1.0
     },
     {
@@ -13100,7 +13437,7 @@
       "confidence_score": 1.0,
       "context": "import",
       "source_file": "src/lib/actions/documents.ts",
-      "source_location": "L5",
+      "source_location": "L4",
       "weight": 1.0
     },
     {
@@ -13112,32 +13449,7 @@
       "confidence_score": 1.0,
       "context": "import",
       "source_file": "src/lib/actions/documents.ts",
-      "source_location": "L6",
-      "weight": 1.0
-    },
-    {
-      "source": "src_lib_actions_documents",
-      "target": "src_lib_actions_auth",
-      "relation": "imports_from",
-      "_origin": "ast",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "context": "import",
-      "source_file": "src/lib/actions/documents.ts",
-      "source_location": "L7",
-      "type_only": true,
-      "weight": 1.0
-    },
-    {
-      "source": "src_lib_actions_documents",
-      "target": "src_lib_google_drive",
-      "relation": "imports_from",
-      "_origin": "ast",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "context": "import",
-      "source_file": "src/lib/actions/documents.ts",
-      "source_location": "L8",
+      "source_location": "L5",
       "weight": 1.0
     },
     {
@@ -13277,19 +13589,6 @@
     },
     {
       "source": "src_lib_actions_journal",
-      "target": "src_lib_database_types",
-      "relation": "imports_from",
-      "_origin": "ast",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "context": "import",
-      "source_file": "src/lib/actions/journal.ts",
-      "source_location": "L10",
-      "type_only": true,
-      "weight": 1.0
-    },
-    {
-      "source": "src_lib_actions_journal",
       "target": "src_lib_supabase_server",
       "relation": "imports_from",
       "_origin": "ast",
@@ -13297,7 +13596,7 @@
       "confidence_score": 1.0,
       "context": "import",
       "source_file": "src/lib/actions/journal.ts",
-      "source_location": "L5",
+      "source_location": "L4",
       "weight": 1.0
     },
     {
@@ -13309,32 +13608,7 @@
       "confidence_score": 1.0,
       "context": "import",
       "source_file": "src/lib/actions/journal.ts",
-      "source_location": "L6",
-      "weight": 1.0
-    },
-    {
-      "source": "src_lib_actions_journal",
-      "target": "src_lib_actions_auth",
-      "relation": "imports_from",
-      "_origin": "ast",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "context": "import",
-      "source_file": "src/lib/actions/journal.ts",
-      "source_location": "L7",
-      "type_only": true,
-      "weight": 1.0
-    },
-    {
-      "source": "src_lib_actions_journal",
-      "target": "src_lib_google_drive",
-      "relation": "imports_from",
-      "_origin": "ast",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "context": "import",
-      "source_file": "src/lib/actions/journal.ts",
-      "source_location": "L8",
+      "source_location": "L5",
       "weight": 1.0
     },
     {
@@ -13694,6 +13968,18 @@
       "weight": 1.0
     },
     {
+      "source": "src_lib_upload_client",
+      "target": "src_lib_supabase_client",
+      "relation": "imports_from",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "import",
+      "source_file": "src/lib/upload-client.ts",
+      "source_location": "L1",
+      "weight": 1.0
+    },
+    {
       "source": "src_proxy",
       "target": "src_lib_supabase_middleware",
       "relation": "imports_from",
@@ -14014,6 +14300,39 @@
       "weight": 1.0
     },
     {
+      "source": "src_app_api_drive_file_fileid_route",
+      "target": "src_app_api_drive_file_fileid_route_get",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "src/app/api/drive/file/[fileId]/route.ts",
+      "source_location": "L9",
+      "weight": 1.0
+    },
+    {
+      "source": "src_app_api_uploads_session_route",
+      "target": "src_app_api_uploads_session_route_post",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "src/app/api/uploads/session/route.ts",
+      "source_location": "L17",
+      "weight": 1.0
+    },
+    {
+      "source": "src_app_api_uploads_session_route",
+      "target": "src_app_api_uploads_session_route_sessionrequest",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "src/app/api/uploads/session/route.ts",
+      "source_location": "L6",
+      "weight": 1.0
+    },
+    {
       "source": "src_app_app_family_documents_folderid_page",
       "target": "src_app_app_family_documents_folderid_page_docfolderpage",
       "relation": "contains",
@@ -14022,17 +14341,6 @@
       "confidence_score": 1.0,
       "source_file": "src/app/(app)/family/documents/[folderId]/page.tsx",
       "source_location": "L11",
-      "weight": 1.0
-    },
-    {
-      "source": "src_app_app_family_documents_new_new_doc_form",
-      "target": "src_app_app_family_documents_new_new_doc_form_initialstate",
-      "relation": "contains",
-      "_origin": "ast",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "source_file": "src/app/(app)/family/documents/new/new-doc-form.tsx",
-      "source_location": "L10",
       "weight": 1.0
     },
     {
@@ -14055,6 +14363,17 @@
       "confidence_score": 1.0,
       "source_file": "src/app/(app)/family/documents/new/new-doc-form.tsx",
       "source_location": "L17",
+      "weight": 1.0
+    },
+    {
+      "source": "src_app_app_family_documents_new_new_doc_form_newdocform",
+      "target": "src_app_app_family_documents_new_new_doc_form_newdocform_onsubmit",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "src/app/(app)/family/documents/new/new-doc-form.tsx",
+      "source_location": "L34",
       "weight": 1.0
     },
     {
@@ -14378,24 +14697,35 @@
     },
     {
       "source": "src_app_app_journal_new_new_entry_form",
-      "target": "src_app_app_journal_new_new_entry_form_initialstate",
-      "relation": "contains",
-      "_origin": "ast",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "source_file": "src/app/(app)/journal/new/new-entry-form.tsx",
-      "source_location": "L10",
-      "weight": 1.0
-    },
-    {
-      "source": "src_app_app_journal_new_new_entry_form",
       "target": "src_app_app_journal_new_new_entry_form_newentryform",
       "relation": "contains",
       "_origin": "ast",
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/app/(app)/journal/new/new-entry-form.tsx",
-      "source_location": "L12",
+      "source_location": "L11",
+      "weight": 1.0
+    },
+    {
+      "source": "src_app_app_journal_new_new_entry_form_newentryform",
+      "target": "src_app_app_journal_new_new_entry_form_newentryform_onfileschosen",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "src/app/(app)/journal/new/new-entry-form.tsx",
+      "source_location": "L19",
+      "weight": 1.0
+    },
+    {
+      "source": "src_app_app_journal_new_new_entry_form_newentryform",
+      "target": "src_app_app_journal_new_new_entry_form_newentryform_onsubmit",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "src/app/(app)/journal/new/new-entry-form.tsx",
+      "source_location": "L25",
       "weight": 1.0
     },
     {
@@ -15143,18 +15473,29 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/components/gallery-upload.tsx",
-      "source_location": "L10",
+      "source_location": "L9",
       "weight": 1.0
     },
     {
-      "source": "src_components_gallery_upload",
-      "target": "src_components_gallery_upload_initialstate",
+      "source": "src_components_gallery_upload_galleryupload",
+      "target": "src_components_gallery_upload_galleryupload_onfileschosen",
       "relation": "contains",
       "_origin": "ast",
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/components/gallery-upload.tsx",
-      "source_location": "L8",
+      "source_location": "L20",
+      "weight": 1.0
+    },
+    {
+      "source": "src_components_gallery_upload_galleryupload",
+      "target": "src_components_gallery_upload_galleryupload_onupload",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "src/components/gallery-upload.tsx",
+      "source_location": "L26",
       "weight": 1.0
     },
     {
@@ -15544,24 +15885,24 @@
     },
     {
       "source": "src_lib_actions_documents",
-      "target": "src_lib_actions_documents_createdocentryaction",
-      "relation": "contains",
-      "_origin": "ast",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "source_file": "src/lib/actions/documents.ts",
-      "source_location": "L10",
-      "weight": 1.0
-    },
-    {
-      "source": "src_lib_actions_documents",
       "target": "src_lib_actions_documents_getdocfileurl",
       "relation": "contains",
       "_origin": "ast",
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/lib/actions/documents.ts",
-      "source_location": "L117",
+      "source_location": "L106",
+      "weight": 1.0
+    },
+    {
+      "source": "src_lib_actions_documents",
+      "target": "src_lib_actions_documents_createdocentryaction",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "src/lib/actions/documents.ts",
+      "source_location": "L11",
       "weight": 1.0
     },
     {
@@ -15572,7 +15913,29 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/lib/actions/documents.ts",
-      "source_location": "L124",
+      "source_location": "L113",
+      "weight": 1.0
+    },
+    {
+      "source": "src_lib_actions_documents",
+      "target": "src_lib_actions_documents_attachdocfileaction",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "src/lib/actions/documents.ts",
+      "source_location": "L65",
+      "weight": 1.0
+    },
+    {
+      "source": "src_lib_actions_documents",
+      "target": "src_lib_actions_documents_uploadedfile",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "src/lib/actions/documents.ts",
+      "source_location": "L7",
       "weight": 1.0
     },
     {
@@ -15753,57 +16116,46 @@
     },
     {
       "source": "src_lib_actions_journal",
-      "target": "src_lib_actions_journal_createmilestoneaction",
-      "relation": "contains",
-      "_origin": "ast",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "source_file": "src/lib/actions/journal.ts",
-      "source_location": "L122",
-      "weight": 1.0
-    },
-    {
-      "source": "src_lib_actions_journal",
-      "target": "src_lib_actions_journal_resolvejournaldrivefolder",
-      "relation": "contains",
-      "_origin": "ast",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "source_file": "src/lib/actions/journal.ts",
-      "source_location": "L15",
-      "weight": 1.0
-    },
-    {
-      "source": "src_lib_actions_journal",
-      "target": "src_lib_actions_journal_uploadjournalmedia",
-      "relation": "contains",
-      "_origin": "ast",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "source_file": "src/lib/actions/journal.ts",
-      "source_location": "L27",
-      "weight": 1.0
-    },
-    {
-      "source": "src_lib_actions_journal",
-      "target": "src_lib_actions_journal_uploadgalleryphotosaction",
-      "relation": "contains",
-      "_origin": "ast",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "source_file": "src/lib/actions/journal.ts",
-      "source_location": "L70",
-      "weight": 1.0
-    },
-    {
-      "source": "src_lib_actions_journal",
       "target": "src_lib_actions_journal_createjournalentryaction",
       "relation": "contains",
       "_origin": "ast",
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/lib/actions/journal.ts",
-      "source_location": "L87",
+      "source_location": "L11",
+      "weight": 1.0
+    },
+    {
+      "source": "src_lib_actions_journal",
+      "target": "src_lib_actions_journal_attachjournalmediaaction",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "src/lib/actions/journal.ts",
+      "source_location": "L40",
+      "weight": 1.0
+    },
+    {
+      "source": "src_lib_actions_journal",
+      "target": "src_lib_actions_journal_uploadedfile",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "src/lib/actions/journal.ts",
+      "source_location": "L7",
+      "weight": 1.0
+    },
+    {
+      "source": "src_lib_actions_journal",
+      "target": "src_lib_actions_journal_createmilestoneaction",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "src/lib/actions/journal.ts",
+      "source_location": "L85",
       "weight": 1.0
     },
     {
@@ -16116,13 +16468,13 @@
     },
     {
       "source": "src_lib_google_drive",
-      "target": "src_lib_google_drive_uploadfiletodrive",
+      "target": "src_lib_google_drive_createresumableuploadsession",
       "relation": "contains",
       "_origin": "ast",
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/lib/google-drive.ts",
-      "source_location": "L111",
+      "source_location": "L116",
       "weight": 1.0
     },
     {
@@ -16134,6 +16486,17 @@
       "confidence_score": 1.0,
       "source_file": "src/lib/google-drive.ts",
       "source_location": "L12",
+      "weight": 1.0
+    },
+    {
+      "source": "src_lib_google_drive",
+      "target": "src_lib_google_drive_fetchdrivefile",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "src/lib/google-drive.ts",
+      "source_location": "L141",
       "weight": 1.0
     },
     {
@@ -16298,7 +16661,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/lib/queries/journal.ts",
-      "source_location": "L23",
+      "source_location": "L28",
       "weight": 1.0
     },
     {
@@ -16320,7 +16683,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/lib/queries/journal.ts",
-      "source_location": "L57",
+      "source_location": "L62",
       "weight": 1.0
     },
     {
@@ -16508,6 +16871,28 @@
       "confidence_score": 1.0,
       "source_file": "src/lib/supabase/server.ts",
       "source_location": "L8",
+      "weight": 1.0
+    },
+    {
+      "source": "src_lib_upload_client",
+      "target": "src_lib_upload_client_uploadfiledirect",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "src/lib/upload-client.ts",
+      "source_location": "L12",
+      "weight": 1.0
+    },
+    {
+      "source": "src_lib_upload_client",
+      "target": "src_lib_upload_client_uploadedfile",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "src/lib/upload-client.ts",
+      "source_location": "L3",
       "weight": 1.0
     },
     {
@@ -16731,18 +17116,6 @@
       "weight": 1.0
     },
     {
-      "source": "src_app_app_family_documents_new_new_doc_form_newdocform",
-      "target": "src_lib_actions_documents_createdocentryaction",
-      "relation": "indirect_call",
-      "_origin": "ast",
-      "confidence": "INFERRED",
-      "confidence_score": 0.85,
-      "context": "argument",
-      "source_file": "src/app/(app)/family/documents/new/new-doc-form.tsx",
-      "source_location": "L26",
-      "weight": 1.0
-    },
-    {
       "source": "src_app_app_family_members_id_health_new_new_health_entry_form_newhealthentryform",
       "target": "src_lib_actions_health_createhealthentryaction",
       "relation": "indirect_call",
@@ -16764,18 +17137,6 @@
       "context": "argument",
       "source_file": "src/app/(app)/household/meals/new/page.tsx",
       "source_location": "L12",
-      "weight": 1.0
-    },
-    {
-      "source": "src_app_app_journal_new_new_entry_form_newentryform",
-      "target": "src_lib_actions_journal_createjournalentryaction",
-      "relation": "indirect_call",
-      "_origin": "ast",
-      "confidence": "INFERRED",
-      "confidence_score": 0.85,
-      "context": "argument",
-      "source_file": "src/app/(app)/journal/new/new-entry-form.tsx",
-      "source_location": "L13",
       "weight": 1.0
     },
     {
@@ -16920,18 +17281,6 @@
       "context": "argument",
       "source_file": "src/components/buy-list.tsx",
       "source_location": "L35",
-      "weight": 1.0
-    },
-    {
-      "source": "src_components_gallery_upload_galleryupload",
-      "target": "src_lib_actions_journal_uploadgalleryphotosaction",
-      "relation": "indirect_call",
-      "_origin": "ast",
-      "confidence": "INFERRED",
-      "confidence_score": 0.85,
-      "context": "argument",
-      "source_file": "src/components/gallery-upload.tsx",
-      "source_location": "L11",
       "weight": 1.0
     },
     {
@@ -17120,5 +17469,5 @@
       "source_file": "README.md"
     }
   ],
-  "built_at_commit": "f0380571daeca54fe45398110c2aa4615a31c48b"
+  "built_at_commit": "120744223eb6468e0f7462506a0632ccb0391e84"
 }

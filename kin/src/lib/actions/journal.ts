@@ -1,125 +1,88 @@
 "use server";
 
-import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
-import { requireCurrentMember, type CurrentMember } from "@/lib/session";
-import type { ActionState } from "@/lib/actions/auth";
-import { getValidDriveAccessToken, ensureDriveFolderStructure, ensureNamedSubfolder, uploadFileToDrive } from "@/lib/google-drive";
-import type { SupabaseClient } from "@supabase/supabase-js";
-import type { Database } from "@/lib/database.types";
+import { requireCurrentMember } from "@/lib/session";
 
-/** Resolves a Drive access token + the household's "Journal" Drive folder,
- * if Drive is connected — null token means callers should fall back to
- * Supabase Storage. */
-async function resolveJournalDriveFolder(me: CurrentMember): Promise<{ token: string; folderId: string } | null> {
-  const token = await getValidDriveAccessToken(me.family_id);
-  if (!token) return null;
-  try {
-    const { rootFolderId } = await ensureDriveFolderStructure(me.family_id, token, me.families.name);
-    const folderId = await ensureNamedSubfolder(token, rootFolderId, "Journal");
-    return { token, folderId };
-  } catch {
-    return null;
-  }
-}
+type UploadedFile =
+  | { provider: "google_drive"; driveFileId: string; driveViewLink: string | null; driveThumbnailLink: string | null }
+  | { provider: "supabase"; storagePath: string };
 
-async function uploadJournalMedia(
-  supabase: SupabaseClient<Database>,
-  me: CurrentMember,
-  file: File,
-  takenAt: string,
-  drive: { token: string; folderId: string } | null,
-) {
-  const mediaType = file.type.startsWith("video") ? "video" : "photo";
-
-  if (drive) {
-    try {
-      const uploaded = await uploadFileToDrive(drive.token, drive.folderId, file);
-      const { data } = await supabase
-        .from("journal_media")
-        .insert({
-          family_id: me.family_id,
-          media_type: mediaType,
-          taken_at: takenAt,
-          uploaded_by: me.id,
-          storage_provider: "google_drive",
-          drive_file_id: uploaded.id,
-          drive_view_link: uploaded.webViewLink ?? null,
-          drive_thumbnail_link: uploaded.thumbnailLink ?? null,
-        })
-        .select()
-        .single();
-      return data;
-    } catch {
-      // Fall through to Supabase Storage below.
-    }
-  }
-
-  const path = `${me.family_id}/${Date.now()}-${file.name}`;
-  const { error: uploadErr } = await supabase.storage.from("journal").upload(path, file, { contentType: file.type || undefined });
-  if (uploadErr) return null;
-  const { data } = await supabase
-    .from("journal_media")
-    .insert({ family_id: me.family_id, storage_path: path, storage_provider: "supabase", media_type: mediaType, taken_at: takenAt, uploaded_by: me.id })
-    .select()
-    .single();
-  return data;
-}
-
-export async function uploadGalleryPhotosAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
+export async function createJournalEntryAction(input: {
+  title: string;
+  date: string;
+  note: string | null;
+  people: string[];
+}): Promise<{ error: string | null; entryId?: string }> {
   const me = await requireCurrentMember();
   const supabase = await createClient();
-  const files = formData.getAll("files").filter((f): f is File => f instanceof File && f.size > 0);
-  if (files.length === 0) return { error: "Choose at least one photo or video." };
 
-  const drive = await resolveJournalDriveFolder(me);
-  const today = new Date().toISOString().slice(0, 10);
-  for (const file of files) {
-    const media = await uploadJournalMedia(supabase, me, file, today, drive);
-    if (!media) return { error: `"${file.name}" failed to upload.` };
+  const title = input.title.trim();
+  if (!title) return { error: "Give the entry a title." };
+
+  const { data: entry, error } = await supabase
+    .from("journal_entries")
+    .insert({ family_id: me.family_id, entry_date: input.date, title, note: input.note, source: "manual", created_by: me.id })
+    .select()
+    .single();
+  if (error) return { error: error.message };
+
+  if (input.people.length > 0) {
+    await supabase.from("journal_entry_people").insert(input.people.map((memberId) => ({ entry_id: entry.id, member_id: memberId })));
+  }
+
+  return { error: null, entryId: entry.id };
+}
+
+/** Records a file the client already uploaded directly to Drive or Supabase
+ * Storage (see uploadFileDirect) — this call only ever carries small JSON,
+ * never the file itself, so it isn't subject to any request body limit. */
+export async function attachJournalMediaAction(input: {
+  entryId?: string;
+  mediaType: "photo" | "video";
+  takenAt: string;
+  sortOrder?: number;
+  uploaded: UploadedFile;
+}): Promise<{ error: string | null }> {
+  const me = await requireCurrentMember();
+  const supabase = await createClient();
+
+  const { data: media, error } = await supabase
+    .from("journal_media")
+    .insert(
+      input.uploaded.provider === "google_drive"
+        ? {
+            family_id: me.family_id,
+            media_type: input.mediaType,
+            taken_at: input.takenAt,
+            uploaded_by: me.id,
+            storage_provider: "google_drive",
+            drive_file_id: input.uploaded.driveFileId,
+            drive_view_link: input.uploaded.driveViewLink,
+            drive_thumbnail_link: input.uploaded.driveThumbnailLink,
+          }
+        : {
+            family_id: me.family_id,
+            media_type: input.mediaType,
+            taken_at: input.takenAt,
+            uploaded_by: me.id,
+            storage_provider: "supabase",
+            storage_path: input.uploaded.storagePath,
+          },
+    )
+    .select()
+    .single();
+  if (error) return { error: error.message };
+
+  if (input.entryId) {
+    await supabase.from("journal_entry_media").insert({ entry_id: input.entryId, media_id: media.id, sort_order: input.sortOrder ?? 0 });
   }
 
   revalidatePath("/journal");
   return { error: null };
 }
 
-export async function createJournalEntryAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
-  const me = await requireCurrentMember();
-  const supabase = await createClient();
-
-  const title = String(formData.get("title") ?? "").trim();
-  const date = String(formData.get("date") ?? new Date().toISOString().slice(0, 10));
-  const note = String(formData.get("note") ?? "").trim() || null;
-  const people = formData.getAll("people").map(String);
-  if (!title) return { error: "Give the entry a title." };
-
-  const { data: entry, error } = await supabase
-    .from("journal_entries")
-    .insert({ family_id: me.family_id, entry_date: date, title, note, source: "manual", created_by: me.id })
-    .select()
-    .single();
-  if (error) return { error: error.message };
-
-  if (people.length > 0) {
-    await supabase.from("journal_entry_people").insert(people.map((memberId) => ({ entry_id: entry.id, member_id: memberId })));
-  }
-
-  const files = formData.getAll("files").filter((f): f is File => f instanceof File && f.size > 0);
-  const drive = files.length > 0 ? await resolveJournalDriveFolder(me) : null;
-  let order = 0;
-  for (const file of files) {
-    const media = await uploadJournalMedia(supabase, me, file, date, drive);
-    if (media) {
-      await supabase.from("journal_entry_media").insert({ entry_id: entry.id, media_id: media.id, sort_order: order++ });
-    }
-  }
-
-  revalidatePath("/journal");
-  redirect("/journal?seg=entries");
-}
-
-export async function createMilestoneAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
+export async function createMilestoneAction(_prev: { error: string | null }, formData: FormData): Promise<{ error: string | null }> {
   const me = await requireCurrentMember();
   const supabase = await createClient();
 

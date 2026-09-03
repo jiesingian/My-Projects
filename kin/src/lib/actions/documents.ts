@@ -1,38 +1,42 @@
 "use server";
 
-import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { requireCurrentMember } from "@/lib/session";
-import type { ActionState } from "@/lib/actions/auth";
-import { getValidDriveAccessToken, ensureDriveFolderStructure, uploadFileToDrive } from "@/lib/google-drive";
 
-export async function createDocEntryAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
+type UploadedFile =
+  | { provider: "google_drive"; driveFileId: string; driveViewLink: string | null; driveThumbnailLink: string | null }
+  | { provider: "supabase"; storagePath: string };
+
+export async function createDocEntryAction(input: {
+  title: string;
+  folderId: string;
+  newFolderName: string | null;
+  ownerMemberId: string | null;
+  expiresAt: string | null;
+  docType: string | null;
+  referenceNo: string | null;
+  visibility: string;
+  note: string | null;
+}): Promise<{ error: string | null; entryId?: string; folderId?: string }> {
   const me = await requireCurrentMember();
   const supabase = await createClient();
 
-  const title = String(formData.get("title") ?? "").trim();
+  const title = input.title.trim();
   if (!title) return { error: "Give the entry a title." };
 
-  let folderId = String(formData.get("folder_id") ?? "");
-  const newFolderName = String(formData.get("new_folder_name") ?? "").trim();
-  if (folderId === "__new__" && newFolderName) {
+  let folderId = input.folderId;
+  if (folderId === "__new__" && input.newFolderName) {
     const { data: folder, error: folderErr } = await supabase
       .from("doc_folders")
-      .insert({ family_id: me.family_id, name: newFolderName })
+      .insert({ family_id: me.family_id, name: input.newFolderName.trim() })
       .select()
       .single();
     if (folderErr) return { error: folderErr.message };
     folderId = folder.id;
   }
   if (!folderId || folderId === "__new__") return { error: "Choose or name a folder." };
-
-  const ownerMemberId = String(formData.get("owner_member_id") ?? "") || null;
-  const expiresAt = String(formData.get("expires_at") ?? "") || null;
-  const docType = String(formData.get("doc_type") ?? "").trim() || null;
-  const referenceNo = String(formData.get("reference_no") ?? "").trim() || null;
-  const visibility = String(formData.get("visibility") ?? "family");
-  const note = String(formData.get("note") ?? "").trim() || null;
+  revalidatePath("/family");
 
   const { data: entry, error: entryErr } = await supabase
     .from("doc_entries")
@@ -40,78 +44,63 @@ export async function createDocEntryAction(_prev: ActionState, formData: FormDat
       family_id: me.family_id,
       folder_id: folderId,
       title,
-      owner_member_id: ownerMemberId,
-      expires_at: expiresAt,
-      doc_type: docType,
-      reference_no: referenceNo,
-      visibility,
-      note,
+      owner_member_id: input.ownerMemberId,
+      expires_at: input.expiresAt,
+      doc_type: input.docType,
+      reference_no: input.referenceNo,
+      visibility: input.visibility,
+      note: input.note,
       created_by: me.id,
     })
     .select()
     .single();
   if (entryErr) return { error: entryErr.message };
 
-  const files = formData.getAll("files").filter((f): f is File => f instanceof File && f.size > 0);
-  if (files.length === 0) {
-    revalidatePath("/family");
-    redirect(`/family/documents/${folderId}`);
-  }
+  return { error: null, entryId: entry.id, folderId };
+}
 
-  const driveToken = await getValidDriveAccessToken(me.family_id);
-  let driveFolderId: string | null = null;
-  if (driveToken) {
-    try {
-      await ensureDriveFolderStructure(me.family_id, driveToken, me.families.name);
-      const { data: folder } = await supabase.from("doc_folders").select("drive_folder_id").eq("id", folderId).single();
-      driveFolderId = folder?.drive_folder_id ?? null;
-    } catch {
-      driveFolderId = null; // Falls back to Supabase Storage below.
-    }
-  }
+/** Records a file the client already uploaded directly to Drive or Supabase
+ * Storage (see uploadFileDirect) — this call only ever carries small JSON,
+ * never the file itself, so it isn't subject to any request body limit. */
+export async function attachDocFileAction(input: {
+  entryId: string;
+  fileName: string;
+  mimeType: string | null;
+  sizeBytes: number;
+  uploaded: UploadedFile;
+}): Promise<{ error: string | null }> {
+  const me = await requireCurrentMember();
+  const supabase = await createClient();
 
-  for (const file of files) {
-    if (driveToken && driveFolderId) {
-      try {
-        const uploaded = await uploadFileToDrive(driveToken, driveFolderId, file);
-        await supabase.from("doc_files").insert({
-          entry_id: entry.id,
+  const { error } = await supabase.from("doc_files").insert(
+    input.uploaded.provider === "google_drive"
+      ? {
+          entry_id: input.entryId,
           family_id: me.family_id,
-          file_name: file.name,
-          mime_type: file.type || null,
-          size_bytes: file.size,
+          file_name: input.fileName,
+          mime_type: input.mimeType,
+          size_bytes: input.sizeBytes,
           storage_provider: "google_drive",
-          drive_file_id: uploaded.id,
-          drive_view_link: uploaded.webViewLink ?? null,
-          drive_thumbnail_link: uploaded.thumbnailLink ?? null,
+          drive_file_id: input.uploaded.driveFileId,
+          drive_view_link: input.uploaded.driveViewLink,
+          drive_thumbnail_link: input.uploaded.driveThumbnailLink,
           created_by: me.id,
-        });
-        continue;
-      } catch (err) {
-        return { error: `Entry saved, but "${file.name}" failed to upload to Drive: ${(err as Error).message}` };
-      }
-    }
-
-    const path = `${me.family_id}/${entry.id}/${Date.now()}-${file.name}`;
-    const { error: uploadErr } = await supabase.storage.from("documents").upload(path, file, {
-      contentType: file.type || undefined,
-    });
-    if (uploadErr) return { error: `Entry saved, but "${file.name}" failed to upload: ${uploadErr.message}` };
-
-    await supabase.from("doc_files").insert({
-      entry_id: entry.id,
-      family_id: me.family_id,
-      file_name: file.name,
-      mime_type: file.type || null,
-      size_bytes: file.size,
-      storage_provider: "supabase",
-      storage_path: path,
-      created_by: me.id,
-    });
-  }
+        }
+      : {
+          entry_id: input.entryId,
+          family_id: me.family_id,
+          file_name: input.fileName,
+          mime_type: input.mimeType,
+          size_bytes: input.sizeBytes,
+          storage_provider: "supabase",
+          storage_path: input.uploaded.storagePath,
+          created_by: me.id,
+        },
+  );
+  if (error) return { error: `"${input.fileName}" saved to storage but failed to index: ${error.message}` };
 
   revalidatePath("/family");
-  redirect(`/family/documents/${folderId}`);
+  return { error: null };
 }
 
 export async function getDocFileUrl(path: string): Promise<string | null> {
