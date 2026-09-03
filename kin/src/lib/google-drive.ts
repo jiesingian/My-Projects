@@ -63,8 +63,33 @@ async function createFolder(accessToken: string, name: string, parentId?: string
   return res.json();
 }
 
-/** Ensures the household's root Drive folder and its doc-category subfolders
- * exist, creating whatever's missing. Safe to call repeatedly. */
+/** Reads a folder's current parent ids, so callers can tell whether it
+ * already lives where it should before moving it. */
+async function getFolderParents(accessToken: string, fileId: string): Promise<string[]> {
+  const res = await driveFetch(accessToken, `/files/${fileId}?fields=parents`);
+  if (!res.ok) return [];
+  const data = (await res.json()) as { parents?: string[] };
+  return data.parents ?? [];
+}
+
+/** Moves a folder to a new parent in-place (addParents/removeParents),
+ * preserving its id, contents and sharing — unlike creating a fresh folder
+ * and copying files into it. */
+async function moveFolder(accessToken: string, fileId: string, newParentId: string, currentParentIds: string[]): Promise<void> {
+  const params = new URLSearchParams({ addParents: newParentId });
+  const remove = currentParentIds.filter((id) => id !== newParentId).join(",");
+  if (remove) params.set("removeParents", remove);
+  const res = await driveFetch(accessToken, `/files/${fileId}?${params.toString()}`, { method: "PATCH" });
+  if (!res.ok) throw new Error(`Drive folder move failed: ${res.status} ${await res.text()}`);
+}
+
+/** Ensures the household's root Drive folder exists, along with a
+ * Family/Documents subfolder path mirroring the app's /family/documents
+ * page, and that every doc-category folder (doc_folders row) lives inside
+ * it — creating whatever's missing and moving anything that was created
+ * under the old flat layout (directly under root). Safe to call repeatedly;
+ * Journal is intentionally not nested here since it's its own top-level hub,
+ * not a Family subpage — see ensureNamedSubfolder callers. */
 export async function ensureDriveFolderStructure(
   familyId: string,
   accessToken: string,
@@ -84,27 +109,37 @@ export async function ensureDriveFolderStructure(
     await supabase.from("drive_links").update({ root_folder_id: rootFolderId, root_folder_link: rootFolderLink }).eq("family_id", familyId);
   }
 
+  const familyFolderId = await ensureNamedSubfolder(accessToken, rootFolderId, "Family");
+  const documentsFolderId = await ensureNamedSubfolder(accessToken, familyFolderId, "Documents");
+
   const { data: docFolders } = await supabase.from("doc_folders").select("id, name, drive_folder_id").eq("family_id", familyId);
   for (const folder of docFolders ?? []) {
-    if (folder.drive_folder_id) continue;
-    const created = await createFolder(accessToken, folder.name, rootFolderId);
-    await supabase.from("doc_folders").update({ drive_folder_id: created.id }).eq("id", folder.id);
+    if (!folder.drive_folder_id) {
+      const created = await createFolder(accessToken, folder.name, documentsFolderId);
+      await supabase.from("doc_folders").update({ drive_folder_id: created.id }).eq("id", folder.id);
+      continue;
+    }
+    const parents = await getFolderParents(accessToken, folder.drive_folder_id);
+    if (!parents.includes(documentsFolderId)) {
+      await moveFolder(accessToken, folder.drive_folder_id, documentsFolderId, parents);
+    }
   }
 
   return { rootFolderId, rootFolderLink };
 }
 
-/** Gets (creating if needed) the Drive folder id for a named top-level
- * subfolder under the household's root — used for Journal and Trips, which
- * aren't rows in doc_folders. Cheap: lists children by name before creating. */
-export async function ensureNamedSubfolder(accessToken: string, rootFolderId: string, name: string): Promise<string> {
-  const q = encodeURIComponent(`'${rootFolderId}' in parents and name = '${name.replace(/'/g, "\\'")}' and mimeType = '${FOLDER_MIME}' and trashed = false`);
+/** Gets (creating if needed) the Drive folder id for a named subfolder under
+ * a given parent — used both for top-level folders like Journal, which
+ * aren't rows in doc_folders, and to build the Family/Documents path.
+ * Cheap: lists children by name before creating. */
+export async function ensureNamedSubfolder(accessToken: string, parentFolderId: string, name: string): Promise<string> {
+  const q = encodeURIComponent(`'${parentFolderId}' in parents and name = '${name.replace(/'/g, "\\'")}' and mimeType = '${FOLDER_MIME}' and trashed = false`);
   const res = await driveFetch(accessToken, `/files?q=${q}&fields=files(id)`);
   if (res.ok) {
     const data = (await res.json()) as { files: { id: string }[] };
     if (data.files?.[0]) return data.files[0].id;
   }
-  const created = await createFolder(accessToken, name, rootFolderId);
+  const created = await createFolder(accessToken, name, parentFolderId);
   return created.id;
 }
 
