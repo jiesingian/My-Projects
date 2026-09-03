@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { requireCurrentMember } from "@/lib/session";
-import { getValidDriveAccessToken, deleteDriveFile } from "@/lib/google-drive";
+import { getValidDriveAccessToken, deleteDriveFile, ensureDriveFolderStructure, ensureNamedSubfolder } from "@/lib/google-drive";
 
 type UploadedFile =
   | { provider: "google_drive"; driveFileId: string; driveViewLink: string | null; driveThumbnailLink: string | null }
@@ -87,13 +87,13 @@ export async function attachJournalMediaAction(input: {
  * stored (Drive or Supabase Storage) as well as our own index. Cascades to
  * journal_entry_media automatically, so this removes it from any entry it
  * was attached to as well. */
-export async function deleteJournalMediaAction(mediaId: string): Promise<{ error: string | null; driveViewLink?: string | null }> {
+export async function deleteJournalMediaAction(mediaId: string): Promise<{ error: string | null; driveFolderLink?: string | null }> {
   const me = await requireCurrentMember();
   const supabase = await createClient();
 
   const { data: media } = await supabase
     .from("journal_media")
-    .select("storage_provider, storage_path, drive_file_id, drive_view_link")
+    .select("storage_provider, storage_path, drive_file_id")
     .eq("id", mediaId)
     .eq("family_id", me.family_id)
     .maybeSingle();
@@ -105,9 +105,19 @@ export async function deleteJournalMediaAction(mediaId: string): Promise<{ error
     const token = await getValidDriveAccessToken(me.family_id);
     const deleted = token ? await deleteDriveFile(token, media.drive_file_id).catch(() => false) : false;
     if (!deleted) {
+      let driveFolderLink: string | null = null;
+      if (token) {
+        try {
+          const { rootFolderId } = await ensureDriveFolderStructure(me.family_id, token, me.families.name);
+          const folderId = await ensureNamedSubfolder(token, rootFolderId, "Journal");
+          driveFolderLink = `https://drive.google.com/drive/folders/${folderId}`;
+        } catch {
+          driveFolderLink = null;
+        }
+      }
       return {
         error: "Kin can only delete files it uploaded itself — this one was added directly in Drive.",
-        driveViewLink: media.drive_view_link,
+        driveFolderLink,
       };
     }
   }

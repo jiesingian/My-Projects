@@ -1,6 +1,7 @@
 {
   "0": "icons.tsx",
-  "1": "getCurrentMember",
+  "1": "[id]/page.tsx",
+  "2": "getCurrentMember",
   "3": "auth.ts",
   "4": "devDependencies",
   "5": "settings/page.tsx",
@@ -18,6 +19,5 @@
   "18": "Globe Icon",
   "19": "Next.js Logo (public/next.svg)",
   "20": "Vercel Logo (UI Icon Asset)",
-  "21": "Window Icon",
-  "22": "add-planner-form.tsx"
+  "21": "Window Icon"
 }

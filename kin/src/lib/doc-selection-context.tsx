@@ -4,7 +4,7 @@ import { createContext, useContext, useState, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import { deleteDocFileAction } from "@/lib/actions/documents";
 
-type Failure = { id: string; fileName: string; driveViewLink: string | null };
+type Failure = { id: string; fileName: string; driveFolderLink: string | null };
 
 type Ctx = {
   selectMode: boolean;
@@ -52,7 +52,7 @@ export function DocSelectionProvider({ folderId, children }: { folderId: string;
     const newFailures: Failure[] = [];
     for (const [id, fileName] of selected) {
       const result = await deleteDocFileAction(id, folderId);
-      if (result.error) newFailures.push({ id, fileName, driveViewLink: result.driveViewLink ?? null });
+      if (result.error) newFailures.push({ id, fileName, driveFolderLink: result.driveFolderLink ?? null });
     }
     setFailures(newFailures);
     setSelected(new Map());
@@ -76,9 +76,9 @@ export function DocSelectionProvider({ folderId, children }: { folderId: string;
           {failures.map((f) => (
             <div key={f.id} style={{ display: "flex", justifyContent: "space-between", padding: "3px 0" }}>
               <span style={{ color: "var(--color-neutral-700)" }}>{f.fileName}</span>
-              {f.driveViewLink && (
-                <a href={f.driveViewLink} target="_blank" rel="noopener noreferrer" style={{ textDecoration: "underline" }}>
-                  Open in Drive
+              {f.driveFolderLink && (
+                <a href={f.driveFolderLink} target="_blank" rel="noopener noreferrer" style={{ textDecoration: "underline" }}>
+                  Open Drive folder
                 </a>
               )}
             </div>

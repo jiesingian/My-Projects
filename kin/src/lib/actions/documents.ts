@@ -111,10 +111,10 @@ export async function getDocFileUrl(path: string): Promise<string | null> {
   return data.signedUrl;
 }
 
-export async function deleteDocFileAction(fileId: string, folderId: string): Promise<{ error: string | null; driveViewLink?: string | null }> {
+export async function deleteDocFileAction(fileId: string, folderId: string): Promise<{ error: string | null; driveFolderLink?: string | null }> {
   const me = await requireCurrentMember();
   const supabase = await createClient();
-  const { data: file } = await supabase.from("doc_files").select("storage_path, storage_provider, drive_file_id, drive_view_link").eq("id", fileId).maybeSingle();
+  const { data: file } = await supabase.from("doc_files").select("storage_path, storage_provider, drive_file_id").eq("id", fileId).maybeSingle();
   if (!file) return { error: "Not found." };
 
   if (file.storage_provider === "supabase" && file.storage_path) {
@@ -123,9 +123,10 @@ export async function deleteDocFileAction(fileId: string, folderId: string): Pro
     const token = await getValidDriveAccessToken(me.family_id);
     const deleted = token ? await deleteDriveFile(token, file.drive_file_id).catch(() => false) : false;
     if (!deleted) {
+      const { data: docFolder } = await supabase.from("doc_folders").select("drive_folder_id").eq("id", folderId).maybeSingle();
       return {
         error: "Kin can only delete files it uploaded itself — this one was added directly in Drive.",
-        driveViewLink: file.drive_view_link,
+        driveFolderLink: docFolder?.drive_folder_id ? `https://drive.google.com/drive/folders/${docFolder.drive_folder_id}` : null,
       };
     }
   }

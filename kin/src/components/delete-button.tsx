@@ -10,7 +10,7 @@ export function DeleteButton({
   confirmText = "Delete this? This can't be undone.",
   style,
 }: {
-  onDelete: () => Promise<{ error: string | null; driveViewLink?: string | null } | void>;
+  onDelete: () => Promise<{ error: string | null; driveFolderLink?: string | null } | void>;
   label?: string;
   confirmText?: string;
   style?: React.CSSProperties;
@@ -31,9 +31,9 @@ export function DeleteButton({
         const result = await onDelete();
         setBusy(false);
         if (result?.error) {
-          if (result.driveViewLink && window.confirm(`${result.error}\n\nOpen it in Google Drive now to delete it there?`)) {
-            window.open(result.driveViewLink, "_blank", "noopener,noreferrer");
-          } else if (!result.driveViewLink) {
+          if (result.driveFolderLink && window.confirm(`${result.error}\n\nOpen its Drive folder now? Click the file there, then use Drive's own delete icon.`)) {
+            window.open(result.driveFolderLink, "_blank", "noopener,noreferrer");
+          } else if (!result.driveFolderLink) {
             window.alert(result.error);
           }
           return;

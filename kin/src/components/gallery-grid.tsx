@@ -13,7 +13,7 @@ type MediaItem = {
   media_type: string;
 };
 
-type Failure = { id: string; date: string; driveViewLink: string | null };
+type Failure = { id: string; date: string; driveFolderLink: string | null };
 
 export function GalleryGrid({ media }: { media: MediaItem[] }) {
   const [selectMode, setSelectMode] = useState(false);
@@ -47,7 +47,7 @@ export function GalleryGrid({ media }: { media: MediaItem[] }) {
       const result = await deleteJournalMediaAction(id);
       if (result.error) {
         const item = media.find((m) => m.id === id);
-        newFailures.push({ id, date: item?.date ?? "", driveViewLink: result.driveViewLink ?? null });
+        newFailures.push({ id, date: item?.date ?? "", driveFolderLink: result.driveFolderLink ?? null });
       }
     }
     setFailures(newFailures);
@@ -72,9 +72,9 @@ export function GalleryGrid({ media }: { media: MediaItem[] }) {
           {failures.map((f) => (
             <div key={f.id} style={{ display: "flex", justifyContent: "space-between", padding: "3px 0" }}>
               <span style={{ color: "var(--color-neutral-700)" }}>{f.date}</span>
-              {f.driveViewLink && (
-                <a href={f.driveViewLink} target="_blank" rel="noopener noreferrer" style={{ textDecoration: "underline" }}>
-                  Open in Drive
+              {f.driveFolderLink && (
+                <a href={f.driveFolderLink} target="_blank" rel="noopener noreferrer" style={{ textDecoration: "underline" }}>
+                  Open Drive folder
                 </a>
               )}
             </div>
