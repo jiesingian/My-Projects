@@ -1,11 +1,14 @@
 import { createClient } from "@/lib/supabase/server";
 import { getSignedUrls } from "@/lib/storage";
 
-export async function getWeekAgenda(familyId: string, memberId?: string) {
+/** The week containing `anchor` (defaults to today), with every day's own
+ * activities attached — not just today's — so Prev/Next week navigation has
+ * something to show for whichever week is selected. */
+export async function getWeekAgenda(familyId: string, memberId?: string, anchor: Date = new Date()) {
   const supabase = await createClient();
   const today = new Date();
-  const startOfWeek = new Date(today);
-  startOfWeek.setDate(today.getDate() - today.getDay());
+  const startOfWeek = new Date(anchor);
+  startOfWeek.setDate(anchor.getDate() - anchor.getDay());
   const days = Array.from({ length: 7 }, (_, i) => {
     const d = new Date(startOfWeek);
     d.setDate(startOfWeek.getDate() + i);
@@ -34,16 +37,65 @@ export async function getWeekAgenda(familyId: string, memberId?: string) {
 
   const rows = memberId ? allRows.filter((a) => a.applies_to_whole_family || a.memberIds.includes(memberId)) : allRows;
 
-  const todayActivities = rows.filter((a) => new Date(a.start_at).toDateString() === today.toDateString());
-
   return {
+    weekStart: days[0],
+    weekEnd: days[6],
     days: days.map((d) => ({
       date: d,
-      count: rows.filter((a) => new Date(a.start_at).toDateString() === d.toDateString()).length,
       isToday: d.toDateString() === today.toDateString(),
+      activities: rows.filter((a) => new Date(a.start_at).toDateString() === d.toDateString()),
     })),
-    today: todayActivities,
   };
+}
+
+/** Per-day activity counts for the whole month containing `anchor`, for the
+ * month-grid view. */
+export async function getMonthOverview(familyId: string, anchor: Date, memberId?: string) {
+  const supabase = await createClient();
+  const year = anchor.getFullYear();
+  const month = anchor.getMonth();
+  const monthStart = new Date(year, month, 1);
+  const monthEnd = new Date(year, month + 1, 1);
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+
+  const { data: activities } = await supabase
+    .from("activities")
+    .select("start_at, applies_to_whole_family, activity_members(member_id)")
+    .eq("family_id", familyId)
+    .gte("start_at", monthStart.toISOString())
+    .lt("start_at", monthEnd.toISOString());
+
+  const countsByDay = new Array(daysInMonth + 1).fill(0);
+  for (const a of activities ?? []) {
+    if (memberId && !a.applies_to_whole_family && !(a.activity_members ?? []).some((m) => m.member_id === memberId)) continue;
+    countsByDay[new Date(a.start_at).getDate()]++;
+  }
+
+  return { monthStart, daysInMonth, countsByDay };
+}
+
+/** Per-month activity counts for the whole year containing `anchor`, for the
+ * year overview. */
+export async function getYearOverview(familyId: string, anchor: Date, memberId?: string) {
+  const supabase = await createClient();
+  const year = anchor.getFullYear();
+  const yearStart = new Date(year, 0, 1);
+  const yearEnd = new Date(year + 1, 0, 1);
+
+  const { data: activities } = await supabase
+    .from("activities")
+    .select("start_at, applies_to_whole_family, activity_members(member_id)")
+    .eq("family_id", familyId)
+    .gte("start_at", yearStart.toISOString())
+    .lt("start_at", yearEnd.toISOString());
+
+  const countsByMonth = new Array(12).fill(0);
+  for (const a of activities ?? []) {
+    if (memberId && !a.applies_to_whole_family && !(a.activity_members ?? []).some((m) => m.member_id === memberId)) continue;
+    countsByMonth[new Date(a.start_at).getMonth()]++;
+  }
+
+  return { year, countsByMonth };
 }
 
 export async function getEvents(familyId: string) {
