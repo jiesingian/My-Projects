@@ -39,7 +39,7 @@ export default async function FamilyPage({
       <HubHeader n="01" title="Family" segments={segments} />
       <div style={{ padding: "0 22px 22px" }}>
         {seg === "profile" && <ProfilePane familyId={me.family_id} isOrganiser={me.is_organiser} myId={me.id} />}
-        {seg === "health" && <HealthPane familyId={me.family_id} who={who} />}
+        {seg === "health" && <HealthPane familyId={me.family_id} />}
         {seg === "documents" && <DocumentsPane familyId={me.family_id} who={who} />}
       </div>
     </div>
@@ -126,25 +126,12 @@ async function ProfilePane({ familyId, isOrganiser, myId }: { familyId: string; 
   );
 }
 
-async function HealthPane({ familyId, who }: { familyId: string; who: string }) {
+async function HealthPane({ familyId }: { familyId: string }) {
   const rows = (await getHealthSummary(familyId)).filter((r) => r.member.status !== "pending" && r.member.status !== "removed");
-  const filtered = who === "all" ? rows : rows.filter((r) => r.member.id === who);
 
   return (
     <>
-      <div style={{ marginBottom: 16 }}>
-        <ChipRow
-          items={[
-            { label: "All", href: "/family?seg=health&who=all", active: who === "all" },
-            ...rows.map((r) => ({
-              label: r.member.full_name.split(" ")[0],
-              href: `/family?seg=health&who=${r.member.id}`,
-              active: who === r.member.id,
-            })),
-          ]}
-        />
-      </div>
-      {filtered.map(({ member, nextDue, hasAlert }) => (
+      {rows.map(({ member, nextDue, hasAlert }) => (
         <Link key={member.id} href={`/family/members/${member.id}?view=health`} style={{ color: "inherit", textDecoration: "none" }}>
           <Blueprint style={{ padding: 13, marginBottom: 12 }}>
             <div style={{ display: "flex", alignItems: "baseline", gap: 8, marginBottom: 8 }}>

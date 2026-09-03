@@ -864,7 +864,7 @@
       "file_type": "code",
       "norm_label": "documentspane()",
       "source_file": "src/app/(app)/family/page.tsx",
-      "source_location": "L180"
+      "source_location": "L167"
     },
     {
       "id": "src_app_app_family_page_fact",
@@ -876,7 +876,7 @@
       "file_type": "code",
       "norm_label": "fact()",
       "source_file": "src/app/(app)/family/page.tsx",
-      "source_location": "L169"
+      "source_location": "L156"
     },
     {
       "id": "src_app_app_family_page_familypage",
@@ -7007,7 +7007,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/app/(app)/family/page.tsx",
-      "source_location": "L181",
+      "source_location": "L168",
       "weight": 1.0
     },
     {
@@ -7019,7 +7019,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/app/(app)/family/page.tsx",
-      "source_location": "L182",
+      "source_location": "L169",
       "weight": 1.0
     },
     {
@@ -19679,6 +19679,17 @@
     },
     {
       "source": "src_app_app_family_page",
+      "target": "src_app_app_family_page_fact",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "src/app/(app)/family/page.tsx",
+      "source_location": "L156",
+      "weight": 1.0
+    },
+    {
+      "source": "src_app_app_family_page",
       "target": "src_app_app_family_page_segments",
       "relation": "contains",
       "_origin": "ast",
@@ -19690,13 +19701,13 @@
     },
     {
       "source": "src_app_app_family_page",
-      "target": "src_app_app_family_page_fact",
+      "target": "src_app_app_family_page_documentspane",
       "relation": "contains",
       "_origin": "ast",
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/app/(app)/family/page.tsx",
-      "source_location": "L169",
+      "source_location": "L167",
       "weight": 1.0
     },
     {
@@ -19708,17 +19719,6 @@
       "confidence_score": 1.0,
       "source_file": "src/app/(app)/family/page.tsx",
       "source_location": "L17",
-      "weight": 1.0
-    },
-    {
-      "source": "src_app_app_family_page",
-      "target": "src_app_app_family_page_documentspane",
-      "relation": "contains",
-      "_origin": "ast",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "source_file": "src/app/(app)/family/page.tsx",
-      "source_location": "L180",
       "weight": 1.0
     },
     {
@@ -23783,5 +23783,5 @@
       "source_file": "README.md"
     }
   ],
-  "built_at_commit": "96256dd13c02d489493bba4eff5d5b398c77aff0"
+  "built_at_commit": "62da11b25840ac04b5ce37e37e716e6c9acde80b"
 }
