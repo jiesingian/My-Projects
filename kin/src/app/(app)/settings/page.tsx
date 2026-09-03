@@ -33,7 +33,6 @@ const CALENDAR_ERROR_MESSAGES: Record<string, string> = {
   not_configured: "Google Calendar linking isn't configured on this server yet — set GOOGLE_CALENDAR_REDIRECT_URI.",
   invalid_state: "That connection attempt expired — try again.",
   token_exchange_failed: "Google didn't accept that connection attempt — try again.",
-  organizer_only: "Only the household organizer can connect or disconnect Google Calendar.",
 };
 
 export default async function SettingsPage({
@@ -50,6 +49,7 @@ export default async function SettingsPage({
     { data: authUser },
     { data: driveLink },
     { data: calendarLink },
+    { data: otherCalendarLinks },
     { count: memberCount },
     { count: managedCount },
     { data: transferCandidates },
@@ -57,7 +57,8 @@ export default async function SettingsPage({
   ] = await Promise.all([
     supabase.auth.getUser(),
     supabase.from("drive_links").select("*, connected_by:connected_by_member_id(full_name)").eq("family_id", me.family_id).maybeSingle(),
-    supabase.from("calendar_links").select("*, connected_by:connected_by_member_id(full_name)").eq("family_id", me.family_id).maybeSingle(),
+    supabase.from("calendar_links").select("*").eq("member_id", me.id).maybeSingle(),
+    supabase.from("calendar_links").select("connected, members(full_name)").eq("family_id", me.family_id).eq("connected", true).neq("member_id", me.id),
     supabase.from("members").select("id", { count: "exact", head: true }).eq("family_id", me.family_id),
     supabase.from("members").select("id", { count: "exact", head: true }).eq("family_id", me.family_id).eq("status", "managed"),
     supabase
@@ -75,7 +76,9 @@ export default async function SettingsPage({
       .neq("id", me.id),
   ]);
   const connectedByName = (driveLink?.connected_by as unknown as { full_name: string } | null)?.full_name ?? null;
-  const calendarConnectedByName = (calendarLink?.connected_by as unknown as { full_name: string } | null)?.full_name ?? null;
+  const otherConnectedNames = (otherCalendarLinks ?? [])
+    .map((l) => (l.members as unknown as { full_name: string } | null)?.full_name)
+    .filter((v): v is string => !!v);
 
   return (
     <div>
@@ -136,34 +139,30 @@ export default async function SettingsPage({
         <Blueprint style={{ padding: 14, marginBottom: 22 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10 }}>
             <Icon name="calendarDays" size={18} className="text-[var(--color-accent-700)]" />
-            <span style={{ font: "600 18px/1.05 var(--font-heading)", flex: 1 }}>Google Calendar</span>
+            <span style={{ font: "600 18px/1.05 var(--font-heading)", flex: 1 }}>My Google Calendar</span>
             <Tag variant={calendarLink?.connected ? "accent" : "outline"}>{calendarLink?.connected ? "CONNECTED" : "NOT CONNECTED"}</Tag>
           </div>
           {calendar_error && (
             <p style={{ fontSize: 12, color: "var(--color-accent-700)", marginBottom: 10 }}>{CALENDAR_ERROR_MESSAGES[calendar_error] ?? "Something went wrong."}</p>
           )}
           {calendarLink?.connected ? (
-            <CalendarConnectedPanel
-              email={calendarLink.account_email}
-              lastSyncedAt={calendarLink.last_synced_at}
-              connectedByName={calendarConnectedByName}
-              canManage={me.is_organiser}
-            />
-          ) : me.is_organiser ? (
+            <CalendarConnectedPanel email={calendarLink.account_email} lastSyncedAt={calendarLink.last_synced_at} />
+          ) : (
             <>
               <p style={{ fontSize: 12, color: "var(--color-neutral-700)", marginBottom: 12 }}>
-                Connect Google Calendar, as organizer, to keep Planner activities and events, health appointments,
-                and document renewal dates in sync both ways — new items in Kin appear on the calendar, and events
-                added or changed there show up back in Planner.
+                Everyone connects their own Google Calendar. Activities and events tagged to you (or the whole
+                family), plus your health appointments and document renewals, sync to your calendar — and anything
+                you add or change there syncs back into Kin.
               </p>
               <a href="/api/calendar/connect" className="btn btn-primary btn-block" style={{ minHeight: 44, fontSize: 13.5, letterSpacing: ".04em" }}>
-                CONNECT GOOGLE CALENDAR
+                CONNECT MY GOOGLE CALENDAR
               </a>
             </>
-          ) : (
-            <p style={{ fontSize: 12, color: "var(--color-neutral-700)" }}>
-              Not connected yet. Only the household organizer can connect Google Calendar.
-            </p>
+          )}
+          {otherConnectedNames.length > 0 && (
+            <div style={{ fontSize: 11, color: "var(--color-neutral-600)", marginTop: 10 }}>
+              Also connected: {otherConnectedNames.join(", ")}
+            </div>
           )}
         </Blueprint>
 

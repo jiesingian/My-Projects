@@ -1,7 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { getSignedUrls } from "@/lib/storage";
 
-export async function getWeekAgenda(familyId: string) {
+export async function getWeekAgenda(familyId: string, memberId?: string) {
   const supabase = await createClient();
   const today = new Date();
   const startOfWeek = new Date(today);
@@ -20,7 +20,7 @@ export async function getWeekAgenda(familyId: string) {
     .lt("start_at", new Date(days[6].getTime() + 86400000).toISOString())
     .order("start_at", { ascending: true });
 
-  const rows = (activities ?? []).map((a) => ({
+  const allRows = (activities ?? []).map((a) => ({
     ...a,
     who: a.applies_to_whole_family
       ? "WHOLE FAMILY"
@@ -29,7 +29,10 @@ export async function getWeekAgenda(familyId: string) {
           .filter(Boolean)
           .join(", ")
           .toUpperCase() || "HOUSE",
+    memberIds: (a.activity_members ?? []).map((m) => (m.members as unknown as { id: string } | null)?.id).filter((v): v is string => !!v),
   }));
+
+  const rows = memberId ? allRows.filter((a) => a.applies_to_whole_family || a.memberIds.includes(memberId)) : allRows;
 
   const todayActivities = rows.filter((a) => new Date(a.start_at).toDateString() === today.toDateString());
 

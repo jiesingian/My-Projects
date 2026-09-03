@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { requireCurrentMember } from "@/lib/session";
 import { getValidDriveAccessToken, deleteDriveFile } from "@/lib/google-drive";
-import { pushNewRowToCalendar } from "@/lib/actions/calendar-sync";
+import { syncRowToCalendars } from "@/lib/actions/calendar-sync";
 
 type UploadedFile =
   | { provider: "google_drive"; driveFileId: string; driveViewLink: string | null; driveThumbnailLink: string | null }
@@ -59,11 +59,13 @@ export async function createDocEntryAction(input: {
   if (entryErr) return { error: entryErr.message };
 
   if (input.expiresAt) {
-    await pushNewRowToCalendar(me.family_id, "doc_entries", entry.id, {
-      title: `${title} renewal`,
-      startAt: new Date(`${input.expiresAt}T00:00:00`),
-      allDay: true,
-    });
+    await syncRowToCalendars(
+      me.family_id,
+      "doc_entries",
+      entry.id,
+      { title: `${title} renewal`, startAt: new Date(`${input.expiresAt}T00:00:00`), allDay: true },
+      { kind: "member", memberId: input.ownerMemberId },
+    );
   }
 
   return { error: null, entryId: entry.id, folderId };

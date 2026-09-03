@@ -304,42 +304,24 @@ function MigratePhotosButton() {
   );
 }
 
-export function CalendarConnectedPanel({
-  email,
-  lastSyncedAt,
-  connectedByName,
-  canManage,
-}: {
-  email: string | null;
-  lastSyncedAt: string | null;
-  connectedByName: string | null;
-  canManage: boolean;
-}) {
+export function CalendarConnectedPanel({ email, lastSyncedAt }: { email: string | null; lastSyncedAt: string | null }) {
   const [pending, startTransition] = useTransition();
   return (
     <>
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 1, background: "var(--color-divider)", border: "1px solid var(--color-divider)", marginBottom: 12 }}>
-        <div style={{ background: "var(--color-bg)", padding: "9px 11px" }}>
-          <div style={{ fontSize: 9, letterSpacing: ".1em", textTransform: "uppercase", color: "var(--color-neutral-600)" }}>Account</div>
-          <div style={{ fontSize: 12.5 }}>{email ?? "—"}</div>
-        </div>
-        <div style={{ background: "var(--color-bg)", padding: "9px 11px" }}>
-          <div style={{ fontSize: 9, letterSpacing: ".1em", textTransform: "uppercase", color: "var(--color-neutral-600)" }}>Connected by</div>
-          <div style={{ fontSize: 12.5 }}>{connectedByName ?? "—"}</div>
-        </div>
+      <div style={{ background: "var(--color-bg)", border: "1px solid var(--color-divider)", padding: "9px 11px", marginBottom: 12 }}>
+        <div style={{ fontSize: 9, letterSpacing: ".1em", textTransform: "uppercase", color: "var(--color-neutral-600)" }}>Account</div>
+        <div style={{ fontSize: 12.5 }}>{email ?? "—"}</div>
       </div>
       <SyncCalendarButton />
-      {canManage && (
-        <button
-          type="button"
-          className="btn btn-secondary btn-block"
-          disabled={pending}
-          style={{ minHeight: 40, fontSize: 12, marginTop: 9 }}
-          onClick={() => startTransition(() => disconnectCalendarAction())}
-        >
-          {pending ? "…" : "DISCONNECT"}
-        </button>
-      )}
+      <button
+        type="button"
+        className="btn btn-secondary btn-block"
+        disabled={pending}
+        style={{ minHeight: 40, fontSize: 12, marginTop: 9 }}
+        onClick={() => startTransition(() => disconnectCalendarAction())}
+      >
+        {pending ? "…" : "DISCONNECT"}
+      </button>
       {lastSyncedAt && (
         <div style={{ fontSize: 11, color: "var(--color-neutral-600)", marginTop: 10 }}>Last synced {new Date(lastSyncedAt).toLocaleString()}</div>
       )}

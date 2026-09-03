@@ -2,9 +2,10 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getCurrentMember } from "@/lib/session";
 import { getWeekAgenda, getEvents, getGoals, getTrips } from "@/lib/queries/planner";
+import { getMembers } from "@/lib/queries/family";
 import { syncGoogleCalendarIfStale } from "@/lib/actions/calendar-sync";
 import { HubHeader } from "@/components/hub-header";
-import { Icon } from "@/components/icons";
+import { ChipRow } from "@/components/segmented";
 import { Blueprint, Tag } from "@/components/ui";
 import { formatCurrency, formatDate } from "@/lib/format";
 import { AddToJournalButton } from "@/components/add-to-journal-button";
@@ -15,12 +16,13 @@ type Seg = (typeof SEGMENTS)[number];
 export default async function PlannerPage({
   searchParams,
 }: {
-  searchParams: Promise<{ seg?: string }>;
+  searchParams: Promise<{ seg?: string; who?: string }>;
 }) {
   const me = await getCurrentMember();
   if (!me) redirect("/onboarding/profile");
   const sp = await searchParams;
   const seg: Seg = (SEGMENTS as readonly string[]).includes(sp.seg ?? "") ? (sp.seg as Seg) : "calendar";
+  const who = sp.who ?? "all";
 
   await syncGoogleCalendarIfStale(me.family_id, 5 * 60 * 1000);
 
@@ -34,7 +36,7 @@ export default async function PlannerPage({
     <div>
       <HubHeader n="03" title="Planner" segments={segments} />
       <div style={{ padding: "0 22px 22px" }}>
-        {seg === "calendar" && <CalendarPane familyId={me.family_id} />}
+        {seg === "calendar" && <CalendarPane familyId={me.family_id} who={who} />}
         {seg === "events" && <EventsPane familyId={me.family_id} />}
         {seg === "goals" && <GoalsPane familyId={me.family_id} currency={me.families.currency} />}
         {seg === "travel" && <TravelPane familyId={me.family_id} currency={me.families.currency} />}
@@ -43,10 +45,27 @@ export default async function PlannerPage({
   );
 }
 
-async function CalendarPane({ familyId }: { familyId: string }) {
-  const { days, today } = await getWeekAgenda(familyId);
+async function CalendarPane({ familyId, who }: { familyId: string; who: string }) {
+  const [members, { days, today }] = await Promise.all([
+    getMembers(familyId),
+    getWeekAgenda(familyId, who === "all" ? undefined : who),
+  ]);
+  const activeMembers = members.filter((m) => m.status !== "pending" && m.status !== "removed");
+
   return (
     <>
+      <div style={{ marginBottom: 14 }}>
+        <ChipRow
+          items={[
+            { label: "All", href: "/planner?seg=calendar&who=all", active: who === "all" },
+            ...activeMembers.map((m) => ({
+              label: m.full_name.split(" ")[0],
+              href: `/planner?seg=calendar&who=${m.id}`,
+              active: who === m.id,
+            })),
+          ]}
+        />
+      </div>
       <div style={{ display: "flex", gap: 4, marginBottom: 16 }}>
         {days.map((d, i) => (
           <div
@@ -77,19 +96,16 @@ async function CalendarPane({ familyId }: { familyId: string }) {
           const isPast = new Date(a.start_at) < new Date();
           return (
             <div key={a.id} style={{ padding: "12px 0", borderBottom: "1px solid color-mix(in srgb, var(--color-text) 10%, transparent)" }}>
-              <div style={{ display: "flex", gap: 12 }}>
+              <Link href={`/planner/add?type=activity&id=${a.id}`} style={{ display: "flex", gap: 12, textDecoration: "none", color: "inherit" }}>
                 <span style={{ font: "400 11px/1.4 ui-monospace, Menlo, monospace", color: "var(--color-accent-700)", width: 44, flex: "none" }}>
                   {new Date(a.start_at).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })}
                 </span>
                 <span style={{ flex: 1, minWidth: 0 }}>
-                  <span style={{ font: "600 17px/1.15 var(--font-heading)", display: "flex", alignItems: "center", gap: 5 }}>
-                    {a.title}
-                    {a.google_event_id && <Icon name="calendarDays" size={12} className="text-[var(--color-neutral-600)]" />}
-                  </span>
+                  <span style={{ font: "600 17px/1.15 var(--font-heading)", display: "block" }}>{a.title}</span>
                   <span style={{ fontSize: 11.5, color: "var(--color-neutral-600)" }}>{a.location ?? ""}</span>
                 </span>
                 <Tag variant="neutral">{a.who}</Tag>
-              </div>
+              </Link>
               {isPast && <AddToJournalButton activityId={a.id} />}
             </div>
           );
@@ -108,7 +124,11 @@ async function EventsPane({ familyId }: { familyId: string }) {
     <>
       {events.length === 0 && <p style={{ fontSize: 12, color: "var(--color-neutral-600)" }}>No events yet.</p>}
       {events.map((e) => (
-        <div key={e.id} style={{ display: "flex", gap: 12, padding: "13px 0", borderBottom: "1px solid color-mix(in srgb, var(--color-text) 10%, transparent)" }}>
+        <Link
+          key={e.id}
+          href={`/planner/add?type=event&id=${e.id}`}
+          style={{ display: "flex", gap: 12, padding: "13px 0", borderBottom: "1px solid color-mix(in srgb, var(--color-text) 10%, transparent)", textDecoration: "none", color: "inherit" }}
+        >
           <Blueprint style={{ width: 50, height: 50, flex: "none", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center" }}>
             <span style={{ font: "600 18px/1 var(--font-heading)" }}>{new Date(e.event_date).getDate()}</span>
             <span style={{ fontSize: 8.5, letterSpacing: ".1em", color: "var(--color-neutral-600)" }}>
@@ -122,7 +142,7 @@ async function EventsPane({ familyId }: { familyId: string }) {
           <Tag variant={e.kind === "birthday" || e.kind === "anniversary" ? "neutral" : "accent"} className="self-start">
             {e.kind.toUpperCase()}
           </Tag>
-        </div>
+        </Link>
       ))}
       <Link href="/planner/add?type=event" className="btn btn-primary btn-block" style={{ minHeight: 46, fontSize: 14, letterSpacing: ".04em", marginTop: 16 }}>
         + ADD EVENT

@@ -4,8 +4,12 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { requireCurrentMember } from "@/lib/session";
-import { pushNewRowToCalendar } from "@/lib/actions/calendar-sync";
+import { syncRowToCalendars, removeRowFromCalendars, type CalendarTarget } from "@/lib/actions/calendar-sync";
 import type { ActionState } from "@/lib/actions/auth";
+
+function activityTarget(wholeFamily: boolean, who: string[]): CalendarTarget {
+  return wholeFamily ? { kind: "all" } : { kind: "members", memberIds: who };
+}
 
 export async function createActivityAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
   const me = await requireCurrentMember();
@@ -44,15 +48,76 @@ export async function createActivityAction(_prev: ActionState, formData: FormDat
     await supabase.from("activity_members").insert(who.map((memberId) => ({ activity_id: activity.id, member_id: memberId })));
   }
 
-  await pushNewRowToCalendar(me.family_id, "activities", activity.id, {
-    title,
-    startAt: new Date(`${date}T${from || "09:00"}`),
-    endAt: to ? new Date(`${date}T${to}`) : null,
-    location,
-  });
+  await syncRowToCalendars(
+    me.family_id,
+    "activities",
+    activity.id,
+    { title, startAt: new Date(`${date}T${from || "09:00"}`), endAt: to ? new Date(`${date}T${to}`) : null, location },
+    activityTarget(wholeFamily, who),
+  );
 
   revalidatePath("/planner");
   redirect("/planner?seg=calendar");
+}
+
+export async function updateActivityAction(activityId: string, _prev: ActionState, formData: FormData): Promise<ActionState> {
+  const me = await requireCurrentMember();
+  const supabase = await createClient();
+
+  const title = String(formData.get("title") ?? "").trim();
+  const date = String(formData.get("date") ?? "");
+  const from = String(formData.get("from") ?? "09:00");
+  const to = String(formData.get("to") ?? "");
+  const repeat = String(formData.get("repeat") ?? "once");
+  const location = String(formData.get("location") ?? "").trim() || null;
+  const notes = String(formData.get("notes") ?? "").trim() || null;
+  const wholeFamily = formData.get("whole_family") === "on";
+  const who = formData.getAll("who").map(String);
+
+  if (!title || !date) return { error: "Title and date are required." };
+
+  const { error } = await supabase
+    .from("activities")
+    .update({
+      title,
+      start_at: new Date(`${date}T${from || "09:00"}`).toISOString(),
+      end_at: to ? new Date(`${date}T${to}`).toISOString() : null,
+      repeat,
+      location,
+      notes,
+      applies_to_whole_family: wholeFamily,
+    })
+    .eq("id", activityId)
+    .eq("family_id", me.family_id);
+  if (error) return { error: error.message };
+
+  await supabase.from("activity_members").delete().eq("activity_id", activityId);
+  if (!wholeFamily && who.length > 0) {
+    await supabase.from("activity_members").insert(who.map((memberId) => ({ activity_id: activityId, member_id: memberId })));
+  }
+
+  await syncRowToCalendars(
+    me.family_id,
+    "activities",
+    activityId,
+    { title, startAt: new Date(`${date}T${from || "09:00"}`), endAt: to ? new Date(`${date}T${to}`) : null, location },
+    activityTarget(wholeFamily, who),
+  );
+
+  revalidatePath("/planner");
+  redirect("/planner?seg=calendar");
+}
+
+export async function deleteActivityAction(activityId: string): Promise<ActionState> {
+  const me = await requireCurrentMember();
+  const supabase = await createClient();
+
+  await removeRowFromCalendars(me.family_id, "activities", activityId);
+  const { error } = await supabase.from("activities").delete().eq("id", activityId).eq("family_id", me.family_id);
+  if (error) return { error: error.message };
+
+  revalidatePath("/planner");
+  return { error: null };
 }
 
 export async function createEventAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
@@ -81,14 +146,46 @@ export async function createEventAction(_prev: ActionState, formData: FormData):
     .single();
   if (error) return { error: error.message };
 
-  await pushNewRowToCalendar(me.family_id, "events", event.id, {
-    title,
-    startAt: new Date(`${date}T00:00:00`),
-    allDay: true,
-  });
+  await syncRowToCalendars(me.family_id, "events", event.id, { title, startAt: new Date(`${date}T00:00:00`), allDay: true }, { kind: "all" });
 
   revalidatePath("/planner");
   redirect("/planner?seg=events");
+}
+
+export async function updateEventAction(eventId: string, _prev: ActionState, formData: FormData): Promise<ActionState> {
+  const me = await requireCurrentMember();
+  const supabase = await createClient();
+
+  const title = String(formData.get("title") ?? "").trim();
+  const date = String(formData.get("date") ?? "");
+  const kind = String(formData.get("kind") ?? "other");
+  const subNote = String(formData.get("sub_note") ?? "").trim() || null;
+  const recursYearly = kind === "birthday" || kind === "anniversary";
+  if (!title || !date) return { error: "Title and date are required." };
+
+  const { error } = await supabase
+    .from("events")
+    .update({ title, event_date: date, kind, sub_note: subNote, recurs_yearly: recursYearly })
+    .eq("id", eventId)
+    .eq("family_id", me.family_id);
+  if (error) return { error: error.message };
+
+  await syncRowToCalendars(me.family_id, "events", eventId, { title, startAt: new Date(`${date}T00:00:00`), allDay: true }, { kind: "all" });
+
+  revalidatePath("/planner");
+  redirect("/planner?seg=events");
+}
+
+export async function deleteEventAction(eventId: string): Promise<ActionState> {
+  const me = await requireCurrentMember();
+  const supabase = await createClient();
+
+  await removeRowFromCalendars(me.family_id, "events", eventId);
+  const { error } = await supabase.from("events").delete().eq("id", eventId).eq("family_id", me.family_id);
+  if (error) return { error: error.message };
+
+  revalidatePath("/planner");
+  return { error: null };
 }
 
 export async function createGoalAction(_prev: ActionState, formData: FormData): Promise<ActionState> {

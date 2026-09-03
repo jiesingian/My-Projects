@@ -2,16 +2,17 @@ import { createAdminClient } from "@/lib/supabase/admin";
 
 const CALENDAR_API = "https://www.googleapis.com/calendar/v3";
 
-/** Reads the household's stored Calendar token, refreshing it first if it's
- * expired. Returns null if Calendar isn't connected or refresh fails —
- * callers should just skip the sync in that case, never throw. Mirrors
- * getValidDriveAccessToken() in google-drive.ts — kept as a separate token
- * store since a household can connect Drive and Calendar independently. */
-export async function getValidCalendarAccessToken(familyId: string): Promise<string | null> {
+/** Reads one member's stored Calendar token, refreshing it first if it's
+ * expired. Returns null if that member hasn't connected Calendar or refresh
+ * fails — callers should just skip that person's sync in that case, never
+ * throw. Each member connects their own Google account (unlike Drive, which
+ * is one connection for the whole household), so this is keyed by member,
+ * not family. */
+export async function getValidCalendarAccessToken(memberId: string): Promise<string | null> {
   const admin = createAdminClient();
   if (!admin) return null;
 
-  const { data: token } = await admin.from("calendar_tokens").select("*").eq("family_id", familyId).maybeSingle();
+  const { data: token } = await admin.from("calendar_tokens").select("*").eq("member_id", memberId).maybeSingle();
   if (!token) return null;
 
   const expiresAt = token.token_expires_at ? new Date(token.token_expires_at).getTime() : 0;
@@ -42,7 +43,7 @@ export async function getValidCalendarAccessToken(familyId: string): Promise<str
       token_expires_at: new Date(Date.now() + refreshed.expires_in * 1000).toISOString(),
       updated_at: new Date().toISOString(),
     })
-    .eq("family_id", familyId);
+    .eq("member_id", memberId);
 
   return refreshed.access_token;
 }

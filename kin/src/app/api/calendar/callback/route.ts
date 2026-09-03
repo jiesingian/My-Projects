@@ -12,10 +12,6 @@ export async function GET(request: Request) {
 
   const me = await getCurrentMember();
   if (!me) return NextResponse.redirect(new URL("/login", request.url));
-  if (!me.is_organiser) {
-    settingsUrl.searchParams.set("calendar_error", "organizer_only");
-    return NextResponse.redirect(settingsUrl);
-  }
 
   const cookieStore = await cookies();
   const expectedState = cookieStore.get("kin-calendar-oauth-state")?.value;
@@ -63,7 +59,7 @@ export async function GET(request: Request) {
   }
 
   await admin.from("calendar_tokens").upsert({
-    family_id: me.family_id,
+    member_id: me.id,
     access_token: tokens.access_token,
     refresh_token: tokens.refresh_token ?? undefined,
     token_expires_at: new Date(Date.now() + tokens.expires_in * 1000).toISOString(),
@@ -71,8 +67,8 @@ export async function GET(request: Request) {
   });
 
   await admin.from("calendar_links").upsert({
+    member_id: me.id,
     family_id: me.family_id,
-    connected_by_member_id: me.id,
     connected: true,
     account_email: email,
     updated_at: new Date().toISOString(),

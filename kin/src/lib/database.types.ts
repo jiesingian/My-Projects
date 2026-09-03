@@ -79,7 +79,6 @@ export type Database = {
           created_by: string | null
           end_at: string | null
           family_id: string
-          google_event_id: string | null
           id: string
           location: string | null
           notes: string | null
@@ -94,7 +93,6 @@ export type Database = {
           created_by?: string | null
           end_at?: string | null
           family_id: string
-          google_event_id?: string | null
           id?: string
           location?: string | null
           notes?: string | null
@@ -109,7 +107,6 @@ export type Database = {
           created_by?: string | null
           end_at?: string | null
           family_id?: string
-          google_event_id?: string | null
           id?: string
           location?: string | null
           notes?: string | null
@@ -389,14 +386,59 @@ export type Database = {
           },
         ]
       }
+      calendar_event_links: {
+        Row: {
+          created_at: string
+          family_id: string
+          google_event_id: string
+          id: string
+          member_id: string
+          source_id: string
+          source_table: string
+        }
+        Insert: {
+          created_at?: string
+          family_id: string
+          google_event_id: string
+          id?: string
+          member_id: string
+          source_id: string
+          source_table: string
+        }
+        Update: {
+          created_at?: string
+          family_id?: string
+          google_event_id?: string
+          id?: string
+          member_id?: string
+          source_id?: string
+          source_table?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "calendar_event_links_family_id_fkey"
+            columns: ["family_id"]
+            isOneToOne: false
+            referencedRelation: "families"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "calendar_event_links_member_id_fkey"
+            columns: ["member_id"]
+            isOneToOne: false
+            referencedRelation: "members"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       calendar_links: {
         Row: {
           account_email: string | null
           calendar_id: string
           connected: boolean
-          connected_by_member_id: string | null
           family_id: string
           last_synced_at: string | null
+          member_id: string
           sync_token: string | null
           updated_at: string
         }
@@ -404,9 +446,9 @@ export type Database = {
           account_email?: string | null
           calendar_id?: string
           connected?: boolean
-          connected_by_member_id?: string | null
           family_id: string
           last_synced_at?: string | null
+          member_id: string
           sync_token?: string | null
           updated_at?: string
         }
@@ -414,25 +456,25 @@ export type Database = {
           account_email?: string | null
           calendar_id?: string
           connected?: boolean
-          connected_by_member_id?: string | null
           family_id?: string
           last_synced_at?: string | null
+          member_id?: string
           sync_token?: string | null
           updated_at?: string
         }
         Relationships: [
           {
-            foreignKeyName: "calendar_links_connected_by_member_id_fkey"
-            columns: ["connected_by_member_id"]
+            foreignKeyName: "calendar_links_family_id_fkey"
+            columns: ["family_id"]
             isOneToOne: false
-            referencedRelation: "members"
+            referencedRelation: "families"
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "calendar_links_family_id_fkey"
-            columns: ["family_id"]
+            foreignKeyName: "calendar_links_member_id_fkey"
+            columns: ["member_id"]
             isOneToOne: true
-            referencedRelation: "families"
+            referencedRelation: "members"
             referencedColumns: ["id"]
           },
         ]
@@ -440,31 +482,31 @@ export type Database = {
       calendar_tokens: {
         Row: {
           access_token: string
-          family_id: string
+          member_id: string
           refresh_token: string | null
           token_expires_at: string | null
           updated_at: string
         }
         Insert: {
           access_token: string
-          family_id: string
+          member_id: string
           refresh_token?: string | null
           token_expires_at?: string | null
           updated_at?: string
         }
         Update: {
           access_token?: string
-          family_id?: string
+          member_id?: string
           refresh_token?: string | null
           token_expires_at?: string | null
           updated_at?: string
         }
         Relationships: [
           {
-            foreignKeyName: "calendar_tokens_family_id_fkey"
-            columns: ["family_id"]
+            foreignKeyName: "calendar_tokens_member_id_fkey"
+            columns: ["member_id"]
             isOneToOne: true
-            referencedRelation: "families"
+            referencedRelation: "members"
             referencedColumns: ["id"]
           },
         ]
@@ -477,7 +519,6 @@ export type Database = {
           expires_at: string | null
           family_id: string
           folder_id: string | null
-          google_event_id: string | null
           id: string
           note: string | null
           owner_member_id: string | null
@@ -492,7 +533,6 @@ export type Database = {
           expires_at?: string | null
           family_id: string
           folder_id?: string | null
-          google_event_id?: string | null
           id?: string
           note?: string | null
           owner_member_id?: string | null
@@ -507,7 +547,6 @@ export type Database = {
           expires_at?: string | null
           family_id?: string
           folder_id?: string | null
-          google_event_id?: string | null
           id?: string
           note?: string | null
           owner_member_id?: string | null
@@ -743,7 +782,6 @@ export type Database = {
           created_by: string | null
           event_date: string
           family_id: string
-          google_event_id: string | null
           id: string
           kind: string
           recurs_yearly: boolean
@@ -755,7 +793,6 @@ export type Database = {
           created_by?: string | null
           event_date: string
           family_id: string
-          google_event_id?: string | null
           id?: string
           kind: string
           recurs_yearly?: boolean
@@ -767,7 +804,6 @@ export type Database = {
           created_by?: string | null
           event_date?: string
           family_id?: string
-          google_event_id?: string | null
           id?: string
           kind?: string
           recurs_yearly?: boolean
@@ -994,7 +1030,6 @@ export type Database = {
           created_at: string
           created_by: string | null
           family_id: string
-          google_event_id: string | null
           id: string
           member_id: string
           what: string
@@ -1005,7 +1040,6 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           family_id: string
-          google_event_id?: string | null
           id?: string
           member_id: string
           what: string
@@ -1016,7 +1050,6 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           family_id?: string
-          google_event_id?: string | null
           id?: string
           member_id?: string
           what?: string
@@ -1236,7 +1269,6 @@ export type Database = {
           created_at: string
           created_by: string | null
           family_id: string
-          google_event_id: string | null
           id: string
           member_id: string
           status: string
@@ -1247,7 +1279,6 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           family_id: string
-          google_event_id?: string | null
           id?: string
           member_id: string
           status?: string
@@ -1258,7 +1289,6 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           family_id?: string
-          google_event_id?: string | null
           id?: string
           member_id?: string
           status?: string

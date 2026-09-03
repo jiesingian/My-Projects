@@ -1,17 +1,30 @@
 import { redirect } from "next/navigation";
 import { getCurrentMember } from "@/lib/session";
 import { getMembers } from "@/lib/queries/family";
+import { createClient } from "@/lib/supabase/server";
 import { AddPlannerForm } from "./add-planner-form";
 
 export default async function AddPlannerPage({
   searchParams,
 }: {
-  searchParams: Promise<{ type?: string }>;
+  searchParams: Promise<{ type?: string; id?: string }>;
 }) {
   const me = await getCurrentMember();
   if (!me) redirect("/onboarding/profile");
-  const { type } = await searchParams;
+  const { type, id } = await searchParams;
   const members = await getMembers(me.family_id);
 
-  return <AddPlannerForm members={members} defaultType={type ?? "activity"} />;
+  let editActivity = null;
+  let editEvent = null;
+  if (id && type === "activity") {
+    const supabase = await createClient();
+    const { data } = await supabase.from("activities").select("*, activity_members(member_id)").eq("id", id).eq("family_id", me.family_id).maybeSingle();
+    if (data) editActivity = { ...data, who: (data.activity_members ?? []).map((m) => m.member_id) };
+  } else if (id && type === "event") {
+    const supabase = await createClient();
+    const { data } = await supabase.from("events").select("*").eq("id", id).eq("family_id", me.family_id).maybeSingle();
+    editEvent = data;
+  }
+
+  return <AddPlannerForm members={members} defaultType={type ?? "activity"} editActivity={editActivity} editEvent={editEvent} />;
 }
