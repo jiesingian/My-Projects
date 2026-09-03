@@ -6,6 +6,7 @@ import { HubHeader } from "@/components/hub-header";
 import { ChipRow } from "@/components/segmented";
 import { Blueprint, Tag } from "@/components/ui";
 import { PendingMemberActions } from "@/components/pending-member-actions";
+import { RemoveMemberButton, ReinstateMemberButton } from "@/components/member-status-actions";
 import { formatAge, initials } from "@/lib/format";
 
 const SEGMENTS = ["members", "health", "documents"] as const;
@@ -33,7 +34,7 @@ export default async function FamilyPage({
     <div>
       <HubHeader n="01" title="Family" segments={segments} />
       <div style={{ padding: "0 22px 22px" }}>
-        {seg === "members" && <MembersPane familyId={me.family_id} isOrganiser={me.is_organiser} />}
+        {seg === "members" && <MembersPane familyId={me.family_id} isOrganiser={me.is_organiser} myId={me.id} />}
         {seg === "health" && <HealthPane familyId={me.family_id} who={who} />}
         {seg === "documents" && <DocumentsPane familyId={me.family_id} who={who} />}
       </div>
@@ -41,10 +42,11 @@ export default async function FamilyPage({
   );
 }
 
-async function MembersPane({ familyId, isOrganiser }: { familyId: string; isOrganiser: boolean }) {
+async function MembersPane({ familyId, isOrganiser, myId }: { familyId: string; isOrganiser: boolean; myId: string }) {
   const allMembers = await getMembers(familyId);
   const pending = allMembers.filter((m) => m.status === "pending");
-  const members = allMembers.filter((m) => m.status !== "pending");
+  const removed = allMembers.filter((m) => m.status === "removed");
+  const members = allMembers.filter((m) => m.status !== "pending" && m.status !== "removed");
 
   return (
     <>
@@ -84,55 +86,69 @@ async function MembersPane({ familyId, isOrganiser }: { familyId: string; isOrga
         </>
       )}
       {members.map((m) => (
-        <Link
+        <div
           key={m.id}
-          href={`/family/members/${m.id}`}
           style={{
             display: "flex",
             gap: 12,
             alignItems: "center",
             padding: "13px 0",
             borderBottom: "1px solid color-mix(in srgb, var(--color-text) 10%, transparent)",
-            textDecoration: "none",
-            color: "inherit",
           }}
         >
-          <span
-            className="placeholder-fill"
-            style={{
-              width: 44,
-              height: 44,
-              flex: "none",
-              border: "1px solid var(--color-divider)",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              font: "600 15px/1 var(--font-heading)",
-              color: "var(--color-neutral-700)",
-            }}
-          >
-            {initials(m.full_name)}
-          </span>
-          <span style={{ flex: 1, minWidth: 0 }}>
-            <span style={{ font: "600 18px/1.1 var(--font-heading)", display: "block" }}>{m.full_name}</span>
-            <span style={{ fontSize: 11.5, color: "var(--color-neutral-600)" }}>
-              {formatAge(m.dob)} · {m.role.replace("_", " ")}
+          <Link href={`/family/members/${m.id}`} style={{ display: "flex", gap: 12, alignItems: "center", flex: 1, minWidth: 0, textDecoration: "none", color: "inherit" }}>
+            <span
+              className="placeholder-fill"
+              style={{
+                width: 44,
+                height: 44,
+                flex: "none",
+                border: "1px solid var(--color-divider)",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                font: "600 15px/1 var(--font-heading)",
+                color: "var(--color-neutral-700)",
+              }}
+            >
+              {initials(m.full_name)}
             </span>
-          </span>
+            <span style={{ flex: 1, minWidth: 0 }}>
+              <span style={{ font: "600 18px/1.1 var(--font-heading)", display: "block" }}>{m.full_name}</span>
+              <span style={{ fontSize: 11.5, color: "var(--color-neutral-600)" }}>
+                {formatAge(m.dob)} · {m.relationship ?? m.role.replace("_", " ")}
+              </span>
+            </span>
+          </Link>
           <Tag variant={m.auth_user_id === null ? "neutral" : m.is_organiser ? "accent" : "outline"}>
             {m.auth_user_id === null ? "MANAGED" : m.is_organiser ? "ORGANISER" : m.status.toUpperCase()}
           </Tag>
-        </Link>
+          {isOrganiser && m.id !== myId && !m.is_organiser && <RemoveMemberButton memberId={m.id} fullName={m.full_name} />}
+        </div>
       ))}
       <div style={{ fontSize: 11.5, color: "var(--color-neutral-600)", marginTop: 14 }}>
         Managed profiles are written by a parent. Children graduate to their own login at 13.
       </div>
+
+      {isOrganiser && removed.length > 0 && (
+        <>
+          <div style={{ font: "600 10px/1 var(--font-heading)", letterSpacing: ".14em", color: "var(--color-neutral-600)", margin: "22px 0 8px" }}>
+            REMOVED · {removed.length}
+          </div>
+          {removed.map((m) => (
+            <div key={m.id} style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 0", borderBottom: "1px solid color-mix(in srgb, var(--color-text) 10%, transparent)", opacity: 0.7 }}>
+              <span style={{ flex: 1, minWidth: 0, fontSize: 14 }}>{m.full_name}</span>
+              <ReinstateMemberButton memberId={m.id} />
+            </div>
+          ))}
+        </>
+      )}
     </>
   );
 }
 
 async function HealthPane({ familyId, who }: { familyId: string; who: string }) {
-  const rows = (await getHealthSummary(familyId)).filter((r) => r.member.status !== "pending");
+  const rows = (await getHealthSummary(familyId)).filter((r) => r.member.status !== "pending" && r.member.status !== "removed");
   const filtered = who === "all" ? rows : rows.filter((r) => r.member.id === who);
 
   return (
@@ -183,7 +199,7 @@ function Fact({ k, v }: { k: string; v: string | null }) {
 }
 
 async function DocumentsPane({ familyId, who }: { familyId: string; who: string }) {
-  const members = (await getMembers(familyId)).filter((m) => m.status !== "pending");
+  const members = (await getMembers(familyId)).filter((m) => m.status !== "pending" && m.status !== "removed");
   const folders = await getDocFolders(familyId);
   const filtered =
     who === "all"

@@ -1857,6 +1857,7 @@ export type Database = {
       current_family_id: { Args: never; Returns: string }
       current_member_id: { Args: never; Returns: string }
       current_member_role: { Args: never; Returns: string }
+      delete_household: { Args: never; Returns: undefined }
       generate_invite_code: { Args: never; Returns: string }
       join_family: {
         Args: {

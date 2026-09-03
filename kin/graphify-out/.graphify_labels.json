@@ -1,10 +1,10 @@
 {
-  "0": "icons.tsx",
+  "0": "[folderId]/page.tsx",
   "1": "[id]/page.tsx",
   "2": "getCurrentMember",
   "3": "auth.ts",
   "4": "devDependencies",
-  "5": "settings/page.tsx",
+  "5": "new-health-entry-form.tsx",
   "6": "compilerOptions",
   "7": "createClient",
   "8": "household/page.tsx",
@@ -21,6 +21,5 @@
   "19": "Next.js Logo (public/next.svg)",
   "20": "Vercel Logo (UI Icon Asset)",
   "21": "Window Icon",
-  "22": "wealth/page.tsx",
-  "23": "requireCurrentMember"
+  "22": "wealth/page.tsx"
 }

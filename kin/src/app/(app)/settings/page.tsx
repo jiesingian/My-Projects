@@ -15,6 +15,7 @@ import {
   HouseholdPrefsForm,
   DriveConnectedPanel,
 } from "@/components/settings-controls";
+import { DeleteHouseholdButton } from "@/components/delete-household-button";
 import { initials } from "@/lib/format";
 
 const DRIVE_ERROR_MESSAGES: Record<string, string> = {
@@ -111,7 +112,11 @@ export default async function SettingsPage({
 
         <div style={{ font: "600 10px/1 var(--font-heading)", letterSpacing: ".16em", color: "var(--color-neutral-600)", margin: "22px 0 8px" }}>HOUSEHOLD</div>
         <div style={{ fontSize: 11.5, color: "var(--color-neutral-700)", marginBottom: 6 }}>Household name</div>
-        <HouseholdNameForm familyId={me.family_id} name={me.families.name} />
+        {me.is_organiser ? (
+          <HouseholdNameForm familyId={me.family_id} name={me.families.name} />
+        ) : (
+          <div style={{ padding: "10px 0", marginBottom: 14, fontSize: 15 }}>{me.families.name}</div>
+        )}
         <div style={{ fontSize: 11.5, color: "var(--color-neutral-700)", marginBottom: 6 }}>
           Members · {memberCount ?? 0} · {managedCount ?? 0} managed profiles
         </div>
@@ -127,7 +132,24 @@ export default async function SettingsPage({
           </>
         )}
         <div style={{ fontSize: 11.5, color: "var(--color-neutral-700)", marginBottom: 6 }}>Currency, dates and week start</div>
-        <HouseholdPrefsForm familyId={me.family_id} currency={me.families.currency} dateFormat={me.families.date_format} weekStart={me.families.week_start} />
+        {me.is_organiser ? (
+          <HouseholdPrefsForm familyId={me.family_id} currency={me.families.currency} dateFormat={me.families.date_format} weekStart={me.families.week_start} />
+        ) : (
+          <div style={{ padding: "10px 0", marginBottom: 20, fontSize: 13 }}>
+            {me.families.currency} · {me.families.date_format} · {me.families.week_start === "monday" ? "Mon start" : "Sun start"}
+          </div>
+        )}
+
+        {me.is_organiser && (
+          <>
+            <div style={{ font: "600 10px/1 var(--font-heading)", letterSpacing: ".16em", color: "var(--color-accent-700)", margin: "8px 0 8px" }}>
+              DANGER ZONE
+            </div>
+            <div style={{ marginBottom: 20 }}>
+              <DeleteHouseholdButton householdName={me.families.name} />
+            </div>
+          </>
+        )}
 
         <div style={{ font: "600 10px/1 var(--font-heading)", letterSpacing: ".16em", color: "var(--color-neutral-600)", margin: "8px 0 2px" }}>ACCOUNT</div>
         <div style={{ padding: "13px 0", borderBottom: "1px solid color-mix(in srgb, var(--color-text) 10%, transparent)", fontSize: 14 }}>

@@ -4,6 +4,7 @@ import { cookies } from "next/headers";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { requireCurrentMember } from "@/lib/session";
+import type { ActionState } from "@/lib/actions/auth";
 
 export async function setThemeAction(theme: "light" | "dark" | "system") {
   const me = await requireCurrentMember();
@@ -32,15 +33,23 @@ export async function toggleNotificationAction(key: string, value: boolean) {
   revalidatePath("/settings");
 }
 
-export async function updateHouseholdNameAction(familyId: string, name: string) {
+export async function updateHouseholdNameAction(familyId: string, name: string): Promise<ActionState> {
+  const me = await requireCurrentMember();
+  if (!me.is_organiser) return { error: "Only the organiser can rename the household." };
+
   const supabase = await createClient();
-  await supabase.from("families").update({ name }).eq("id", familyId);
+  const { error } = await supabase.from("families").update({ name }).eq("id", familyId);
   revalidatePath("/settings");
   revalidatePath("/today");
+  return { error: error?.message ?? null };
 }
 
-export async function updateHouseholdPrefsAction(familyId: string, currency: string, dateFormat: string, weekStart: string) {
+export async function updateHouseholdPrefsAction(familyId: string, currency: string, dateFormat: string, weekStart: string): Promise<ActionState> {
+  const me = await requireCurrentMember();
+  if (!me.is_organiser) return { error: "Only the organiser can change household preferences." };
+
   const supabase = await createClient();
-  await supabase.from("families").update({ currency, date_format: dateFormat, week_start: weekStart }).eq("id", familyId);
+  const { error } = await supabase.from("families").update({ currency, date_format: dateFormat, week_start: weekStart }).eq("id", familyId);
   revalidatePath("/settings");
+  return { error: error?.message ?? null };
 }

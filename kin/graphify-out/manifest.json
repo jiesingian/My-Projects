@@ -60,15 +60,15 @@
     "semantic_hash": ""
   },
   "src/app/(app)/family/members/[id]/page.tsx": {
-    "mtime": 1788315535.1614826,
-    "seen": 1788336057.1914754,
-    "ast_hash": "703e1bd9cc6f14d6613d15ce3c9c4c72",
+    "mtime": 1788409176.7991397,
+    "seen": 1788409327.5897958,
+    "ast_hash": "35200d5e412ead6bda0bc8e264df37c9",
     "semantic_hash": ""
   },
   "src/app/(app)/family/page.tsx": {
-    "mtime": 1788407906.1405532,
-    "seen": 1788408016.9494977,
-    "ast_hash": "63b80cf419bb861e9f191a660c3e8cb5",
+    "mtime": 1788409096.8951414,
+    "seen": 1788409327.589798,
+    "ast_hash": "95d6046ad953c3dac7afd393e3b16390",
     "semantic_hash": ""
   },
   "src/app/(app)/household/meals/new/page.tsx": {
@@ -132,9 +132,9 @@
     "semantic_hash": ""
   },
   "src/app/(app)/settings/page.tsx": {
-    "mtime": 1788341772.2526665,
-    "seen": 1788341823.932246,
-    "ast_hash": "95fa7ee3e10c1f3644af9e262d8a8735",
+    "mtime": 1788409034.4271429,
+    "seen": 1788409327.5898151,
+    "ast_hash": "b8fa19faf26264abc9dd75bd8b9d89fa",
     "semantic_hash": ""
   },
   "src/app/(app)/today/page.tsx": {
@@ -318,9 +318,9 @@
     "semantic_hash": ""
   },
   "src/components/settings-controls.tsx": {
-    "mtime": 1788341511.0766509,
-    "seen": 1788341823.9322996,
-    "ast_hash": "bb56041aa53a6123db9c9d5a07bc8c00",
+    "mtime": 1788408997.1791437,
+    "seen": 1788409327.5899005,
+    "ast_hash": "0a47c91735bf9b6598e69f5a4973cc9f",
     "semantic_hash": ""
   },
   "src/components/tab-bar.tsx": {
@@ -360,9 +360,9 @@
     "semantic_hash": ""
   },
   "src/lib/actions/family.ts": {
-    "mtime": 1788407851.3765545,
-    "seen": 1788408016.9495656,
-    "ast_hash": "2cabfda5821a101c9367f1a299563897",
+    "mtime": 1788408954.3511448,
+    "seen": 1788409327.5899098,
+    "ast_hash": "87cce86207d44dec5891d966c7f98295",
     "semantic_hash": ""
   },
   "src/lib/actions/health.ts": {
@@ -390,9 +390,9 @@
     "semantic_hash": ""
   },
   "src/lib/actions/settings.ts": {
-    "mtime": 1788316080.84147,
-    "seen": 1788336057.1915884,
-    "ast_hash": "1a06f56b3abc11212729e8b0712c81c2",
+    "mtime": 1788408974.9431443,
+    "seen": 1788409327.589916,
+    "ast_hash": "68738ff9ce34a8a91b7f142e02cdfcc4",
     "semantic_hash": ""
   },
   "src/lib/actions/wealth.ts": {
@@ -402,9 +402,9 @@
     "semantic_hash": ""
   },
   "src/lib/database.types.ts": {
-    "mtime": 1788407803.0580769,
-    "seen": 1788408016.9495728,
-    "ast_hash": "d52edd96db15ae5cd863bd4c51768906",
+    "mtime": 1788409217.2687366,
+    "seen": 1788409327.589918,
+    "ast_hash": "42d1bd06da1a70f48e06a4adf3cf652c",
     "semantic_hash": ""
   },
   "src/lib/format.ts": {
@@ -615,6 +615,24 @@
     "mtime": 1788407858.3445544,
     "seen": 1788408016.9495559,
     "ast_hash": "34c1fb91996a47b2df833f10b166b188",
+    "semantic_hash": ""
+  },
+  "src/components/delete-household-button.tsx": {
+    "mtime": 1788409008.8631434,
+    "seen": 1788409327.589878,
+    "ast_hash": "85663b2ea5c52e159472cdfc02d5a75f",
+    "semantic_hash": ""
+  },
+  "src/components/member-status-actions.tsx": {
+    "mtime": 1788409170.6151397,
+    "seen": 1788409327.589894,
+    "ast_hash": "76183a715d32955179dec68e910cbf94",
+    "semantic_hash": ""
+  },
+  "src/components/relationship-editor.tsx": {
+    "mtime": 1788409126.7911408,
+    "seen": 1788409327.5898976,
+    "ast_hash": "83095ce699f161ccdceeb938ff1cdaee",
     "semantic_hash": ""
   }
 }

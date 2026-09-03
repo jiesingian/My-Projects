@@ -8,6 +8,8 @@ import { Blueprint, Tag } from "@/components/ui";
 import { Icon } from "@/components/icons";
 import { formatAge, formatDate } from "@/lib/format";
 import { OmronToggle } from "./omron-toggle";
+import { RelationshipEditor } from "@/components/relationship-editor";
+import { RemoveMemberButton } from "@/components/member-status-actions";
 
 const SEGMENTS = ["schedule", "conditions", "labs", "vitals"] as const;
 type Seg = (typeof SEGMENTS)[number];
@@ -55,13 +57,20 @@ export default async function MemberDetailPage({
           <div>
             <div style={{ font: "600 34px/.98 var(--font-heading)" }}>{member.full_name}</div>
             <div style={{ fontSize: 12, color: "var(--color-neutral-600)", marginTop: 4 }}>
-              {formatAge(member.dob)} · {member.role.replace("_", " ")}
+              {formatAge(member.dob)} · {member.relationship ?? member.role.replace("_", " ")}
             </div>
             <Tag variant={member.is_organiser ? "accent" : "neutral"} className="mt-2 inline-flex">
               {member.is_organiser ? "ORGANISER" : member.status.toUpperCase()}
             </Tag>
           </div>
         </div>
+
+        {me.is_organiser && (
+          <>
+            <div style={{ fontSize: 11.5, color: "var(--color-neutral-700)", marginBottom: 6 }}>Relationship</div>
+            <RelationshipEditor memberId={member.id} relationship={member.relationship} />
+          </>
+        )}
 
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 1, background: "var(--color-divider)", border: "1px solid var(--color-divider)", marginBottom: 20 }}>
           {[
@@ -184,6 +193,10 @@ export default async function MemberDetailPage({
         >
           + NEW HEALTH ENTRY
         </Link>
+
+        {me.is_organiser && !member.is_organiser && member.status !== "removed" && (
+          <RemoveMemberButton memberId={member.id} fullName={member.full_name} variant="block" />
+        )}
       </div>
     </div>
   );

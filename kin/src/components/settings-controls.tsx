@@ -128,19 +128,28 @@ export function InviteCodeCard({ code }: { code: string }) {
 
 export function HouseholdNameForm({ familyId, name }: { familyId: string; name: string }) {
   const [value, setValue] = useState(name);
+  const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
   return (
-    <div style={{ display: "flex", gap: 8, marginBottom: 14 }}>
-      <input className="input" value={value} onChange={(e) => setValue(e.target.value)} style={{ minHeight: 40 }} />
-      <button
-        type="button"
-        className="btn btn-secondary"
-        disabled={pending}
-        style={{ minHeight: 40, fontSize: 12 }}
-        onClick={() => startTransition(() => updateHouseholdNameAction(familyId, value))}
-      >
-        {pending ? "…" : "SAVE"}
-      </button>
+    <div style={{ marginBottom: 14 }}>
+      <div style={{ display: "flex", gap: 8 }}>
+        <input className="input" value={value} onChange={(e) => setValue(e.target.value)} style={{ minHeight: 40 }} />
+        <button
+          type="button"
+          className="btn btn-secondary"
+          disabled={pending}
+          style={{ minHeight: 40, fontSize: 12 }}
+          onClick={() =>
+            startTransition(async () => {
+              const result = await updateHouseholdNameAction(familyId, value);
+              setError(result.error);
+            })
+          }
+        >
+          {pending ? "…" : "SAVE"}
+        </button>
+      </div>
+      {error && <p style={{ color: "var(--color-accent-700)", fontSize: 11.5, margin: "6px 0 0" }}>{error}</p>}
     </div>
   );
 }
@@ -159,6 +168,7 @@ export function HouseholdPrefsForm({
   const [c, setC] = useState(currency);
   const [d, setD] = useState(dateFormat);
   const [w, setW] = useState(weekStart);
+  const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
   return (
     <div style={{ marginBottom: 20 }}>
@@ -182,10 +192,16 @@ export function HouseholdPrefsForm({
         className="btn btn-secondary btn-block"
         disabled={pending}
         style={{ minHeight: 40, fontSize: 12 }}
-        onClick={() => startTransition(() => updateHouseholdPrefsAction(familyId, c, d, w))}
+        onClick={() =>
+          startTransition(async () => {
+            const result = await updateHouseholdPrefsAction(familyId, c, d, w);
+            setError(result.error);
+          })
+        }
       >
         {pending ? "…" : "SAVE HOUSEHOLD PREFERENCES"}
       </button>
+      {error && <p style={{ color: "var(--color-accent-700)", fontSize: 11.5, margin: "6px 0 0" }}>{error}</p>}
     </div>
   );
 }

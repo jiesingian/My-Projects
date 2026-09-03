@@ -35,26 +35,13 @@
   },
   "nodes": [
     {
-      "id": "src_components_icons_iconname",
-      "label": "IconName",
-      "_callable": true,
-      "_callable_class": true,
-      "_origin": "ast",
-      "community": 0,
-      "community_name": "icons.tsx",
-      "file_type": "code",
-      "norm_label": "iconname",
-      "source_file": "src/components/icons.tsx",
-      "source_location": "L32"
-    },
-    {
       "id": "src_lib_doc_selection_context_ctx",
       "label": "Ctx",
       "_callable": true,
       "_callable_class": true,
       "_origin": "ast",
       "community": 0,
-      "community_name": "icons.tsx",
+      "community_name": "[folderId]/page.tsx",
       "file_type": "code",
       "norm_label": "ctx",
       "source_file": "src/lib/doc-selection-context.tsx",
@@ -67,7 +54,7 @@
       "_callable_class": true,
       "_origin": "ast",
       "community": 0,
-      "community_name": "icons.tsx",
+      "community_name": "[folderId]/page.tsx",
       "file_type": "code",
       "norm_label": "failure",
       "source_file": "src/lib/doc-selection-context.tsx",
@@ -84,7 +71,7 @@
       "file_type": "code",
       "norm_label": "seg",
       "source_file": "src/app/(app)/family/members/[id]/page.tsx",
-      "source_location": "L13"
+      "source_location": "L15"
     },
     {
       "id": "src_app_app_journal_page_seg",
@@ -175,20 +162,20 @@
       "file_type": "code",
       "norm_label": "seg",
       "source_file": "src/app/(app)/family/page.tsx",
-      "source_location": "L12"
+      "source_location": "L13"
     },
     {
-      "id": "src_lib_database_types_tables",
-      "label": "Tables",
+      "id": "src_components_icons_iconname",
+      "label": "IconName",
       "_callable": true,
       "_callable_class": true,
       "_origin": "ast",
       "community": 2,
       "community_name": "getCurrentMember",
       "file_type": "code",
-      "norm_label": "tables",
-      "source_file": "src/lib/database.types.ts",
-      "source_location": "L1912"
+      "norm_label": "iconname",
+      "source_file": "src/components/icons.tsx",
+      "source_location": "L32"
     },
     {
       "id": "src_lib_queries_family_docfolderrow",
@@ -217,6 +204,19 @@
       "source_location": "L15"
     },
     {
+      "id": "src_lib_queries_today_hubcard",
+      "label": "HubCard",
+      "_callable": true,
+      "_callable_class": true,
+      "_origin": "ast",
+      "community": 2,
+      "community_name": "getCurrentMember",
+      "file_type": "code",
+      "norm_label": "hubcard",
+      "source_file": "src/lib/queries/today.ts",
+      "source_location": "L5"
+    },
+    {
       "id": "src_lib_session_currentmember",
       "label": "CurrentMember",
       "_callable": true,
@@ -243,32 +243,6 @@
       "source_location": "L10"
     },
     {
-      "id": "src_app_app_planner_add_add_planner_form_plannertype",
-      "label": "PlannerType",
-      "_callable": true,
-      "_callable_class": true,
-      "_origin": "ast",
-      "community": 23,
-      "community_name": "requireCurrentMember",
-      "file_type": "code",
-      "norm_label": "plannertype",
-      "source_file": "src/app/(app)/planner/add/add-planner-form.tsx",
-      "source_location": "L12"
-    },
-    {
-      "id": "src_components_buy_list_buygroup",
-      "label": "BuyGroup",
-      "_callable": true,
-      "_callable_class": true,
-      "_origin": "ast",
-      "community": 3,
-      "community_name": "auth.ts",
-      "file_type": "code",
-      "norm_label": "buygroup",
-      "source_file": "src/components/buy-list.tsx",
-      "source_location": "L13"
-    },
-    {
       "id": "src_lib_actions_auth_actionstate",
       "label": "ActionState",
       "_callable": true,
@@ -280,6 +254,19 @@
       "norm_label": "actionstate",
       "source_file": "src/lib/actions/auth.ts",
       "source_location": "L7"
+    },
+    {
+      "id": "src_app_app_planner_add_add_planner_form_plannertype",
+      "label": "PlannerType",
+      "_callable": true,
+      "_callable_class": true,
+      "_origin": "ast",
+      "community": 7,
+      "community_name": "createClient",
+      "file_type": "code",
+      "norm_label": "plannertype",
+      "source_file": "src/app/(app)/planner/add/add-planner-form.tsx",
+      "source_location": "L12"
     },
     {
       "id": "src_app_app_planner_page_seg",
@@ -295,19 +282,6 @@
       "source_location": "L11"
     },
     {
-      "id": "src_lib_queries_today_hubcard",
-      "label": "HubCard",
-      "_callable": true,
-      "_callable_class": true,
-      "_origin": "ast",
-      "community": 7,
-      "community_name": "createClient",
-      "file_type": "code",
-      "norm_label": "hubcard",
-      "source_file": "src/lib/queries/today.ts",
-      "source_location": "L5"
-    },
-    {
       "id": "src_app_app_household_page_seg",
       "label": "Seg",
       "_callable": true,
@@ -319,6 +293,19 @@
       "norm_label": "seg",
       "source_file": "src/app/(app)/household/page.tsx",
       "source_location": "L14"
+    },
+    {
+      "id": "src_components_buy_list_buygroup",
+      "label": "BuyGroup",
+      "_callable": true,
+      "_callable_class": true,
+      "_origin": "ast",
+      "community": 8,
+      "community_name": "household/page.tsx",
+      "file_type": "code",
+      "norm_label": "buygroup",
+      "source_file": "src/components/buy-list.tsx",
+      "source_location": "L13"
     },
     {
       "id": "src_lib_actions_documents_uploadedfile",
@@ -357,7 +344,7 @@
       "file_type": "code",
       "norm_label": "compositetypes",
       "source_file": "src/lib/database.types.ts",
-      "source_location": "L2008"
+      "source_location": "L2009"
     },
     {
       "id": "src_lib_database_types_database",
@@ -383,7 +370,7 @@
       "file_type": "code",
       "norm_label": "databasewithoutinternals",
       "source_file": "src/lib/database.types.ts",
-      "source_location": "L1908"
+      "source_location": "L1909"
     },
     {
       "id": "src_lib_database_types_defaultschema",
@@ -396,7 +383,7 @@
       "file_type": "code",
       "norm_label": "defaultschema",
       "source_file": "src/lib/database.types.ts",
-      "source_location": "L1910"
+      "source_location": "L1911"
     },
     {
       "id": "src_lib_database_types_enums",
@@ -409,7 +396,7 @@
       "file_type": "code",
       "norm_label": "enums",
       "source_file": "src/lib/database.types.ts",
-      "source_location": "L1991"
+      "source_location": "L1992"
     },
     {
       "id": "src_lib_database_types_json",
@@ -425,6 +412,19 @@
       "source_location": "L1"
     },
     {
+      "id": "src_lib_database_types_tables",
+      "label": "Tables",
+      "_callable": true,
+      "_callable_class": true,
+      "_origin": "ast",
+      "community": 9,
+      "community_name": "database.types.ts",
+      "file_type": "code",
+      "norm_label": "tables",
+      "source_file": "src/lib/database.types.ts",
+      "source_location": "L1913"
+    },
+    {
       "id": "src_lib_database_types_tablesinsert",
       "label": "TablesInsert",
       "_callable": true,
@@ -435,7 +435,7 @@
       "file_type": "code",
       "norm_label": "tablesinsert",
       "source_file": "src/lib/database.types.ts",
-      "source_location": "L1941"
+      "source_location": "L1942"
     },
     {
       "id": "src_lib_database_types_tablesupdate",
@@ -448,7 +448,7 @@
       "file_type": "code",
       "norm_label": "tablesupdate",
       "source_file": "src/lib/database.types.ts",
-      "source_location": "L1966"
+      "source_location": "L1967"
     },
     {
       "id": "src_lib_upload_client_uploadedfile",
@@ -469,35 +469,11 @@
       "_callable": true,
       "_origin": "ast",
       "community": 0,
-      "community_name": "icons.tsx",
+      "community_name": "[folderId]/page.tsx",
       "file_type": "code",
       "norm_label": "docfolderpage()",
       "source_file": "src/app/(app)/family/documents/[folderId]/page.tsx",
       "source_location": "L12"
-    },
-    {
-      "id": "src_components_copy_invite_code_copyinvitecode",
-      "label": "CopyInviteCode()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 0,
-      "community_name": "icons.tsx",
-      "file_type": "code",
-      "norm_label": "copyinvitecode()",
-      "source_file": "src/components/copy-invite-code.tsx",
-      "source_location": "L6"
-    },
-    {
-      "id": "src_components_delete_button_deletebutton",
-      "label": "DeleteButton()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 0,
-      "community_name": "icons.tsx",
-      "file_type": "code",
-      "norm_label": "deletebutton()",
-      "source_file": "src/components/delete-button.tsx",
-      "source_location": "L7"
     },
     {
       "id": "src_components_doc_file_row_docfilerow",
@@ -505,7 +481,7 @@
       "_callable": true,
       "_origin": "ast",
       "community": 0,
-      "community_name": "icons.tsx",
+      "community_name": "[folderId]/page.tsx",
       "file_type": "code",
       "norm_label": "docfilerow()",
       "source_file": "src/components/doc-file-row.tsx",
@@ -517,23 +493,11 @@
       "_callable": true,
       "_origin": "ast",
       "community": 0,
-      "community_name": "icons.tsx",
+      "community_name": "[folderId]/page.tsx",
       "file_type": "code",
       "norm_label": "downloadlink()",
       "source_file": "src/components/download-link.tsx",
       "source_location": "L7"
-    },
-    {
-      "id": "src_components_icons_icon",
-      "label": "Icon()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 0,
-      "community_name": "icons.tsx",
-      "file_type": "code",
-      "norm_label": "icon()",
-      "source_file": "src/components/icons.tsx",
-      "source_location": "L34"
     },
     {
       "id": "src_lib_actions_documents_deletedocfileaction",
@@ -541,7 +505,7 @@
       "_callable": true,
       "_origin": "ast",
       "community": 0,
-      "community_name": "icons.tsx",
+      "community_name": "[folderId]/page.tsx",
       "file_type": "code",
       "norm_label": "deletedocfileaction()",
       "source_file": "src/lib/actions/documents.ts",
@@ -553,7 +517,7 @@
       "_callable": true,
       "_origin": "ast",
       "community": 0,
-      "community_name": "icons.tsx",
+      "community_name": "[folderId]/page.tsx",
       "file_type": "code",
       "norm_label": "getdocfileurl()",
       "source_file": "src/lib/actions/documents.ts",
@@ -565,7 +529,7 @@
       "_callable": true,
       "_origin": "ast",
       "community": 0,
-      "community_name": "icons.tsx",
+      "community_name": "[folderId]/page.tsx",
       "file_type": "code",
       "norm_label": "docselectionprovider()",
       "source_file": "src/lib/doc-selection-context.tsx",
@@ -577,7 +541,7 @@
       "_callable": true,
       "_origin": "ast",
       "community": 0,
-      "community_name": "icons.tsx",
+      "community_name": "[folderId]/page.tsx",
       "file_type": "code",
       "norm_label": "deleteselected()",
       "source_file": "src/lib/doc-selection-context.tsx",
@@ -589,7 +553,7 @@
       "_callable": true,
       "_origin": "ast",
       "community": 0,
-      "community_name": "icons.tsx",
+      "community_name": "[folderId]/page.tsx",
       "file_type": "code",
       "norm_label": "exit()",
       "source_file": "src/lib/doc-selection-context.tsx",
@@ -601,7 +565,7 @@
       "_callable": true,
       "_origin": "ast",
       "community": 0,
-      "community_name": "icons.tsx",
+      "community_name": "[folderId]/page.tsx",
       "file_type": "code",
       "norm_label": "toggle()",
       "source_file": "src/lib/doc-selection-context.tsx",
@@ -613,23 +577,11 @@
       "_callable": true,
       "_origin": "ast",
       "community": 0,
-      "community_name": "icons.tsx",
+      "community_name": "[folderId]/page.tsx",
       "file_type": "code",
       "norm_label": "usedocselection()",
       "source_file": "src/lib/doc-selection-context.tsx",
       "source_location": "L17"
-    },
-    {
-      "id": "src_app_app_family_members_id_omron_toggle_omrontoggle",
-      "label": "OmronToggle()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 1,
-      "community_name": "[id]/page.tsx",
-      "file_type": "code",
-      "norm_label": "omrontoggle()",
-      "source_file": "src/app/(app)/family/members/[id]/omron-toggle.tsx",
-      "source_location": "L6"
     },
     {
       "id": "src_app_app_family_members_id_page_barchart",
@@ -641,7 +593,7 @@
       "file_type": "code",
       "norm_label": "barchart()",
       "source_file": "src/app/(app)/family/members/[id]/page.tsx",
-      "source_location": "L196"
+      "source_location": "L209"
     },
     {
       "id": "src_app_app_family_members_id_page_emptynote",
@@ -653,7 +605,7 @@
       "file_type": "code",
       "norm_label": "emptynote()",
       "source_file": "src/app/(app)/family/members/[id]/page.tsx",
-      "source_location": "L192"
+      "source_location": "L205"
     },
     {
       "id": "src_app_app_family_members_id_page_memberdetailpage",
@@ -665,7 +617,7 @@
       "file_type": "code",
       "norm_label": "memberdetailpage()",
       "source_file": "src/app/(app)/family/members/[id]/page.tsx",
-      "source_location": "L15"
+      "source_location": "L17"
     },
     {
       "id": "src_app_app_journal_page_entriespane",
@@ -716,30 +668,6 @@
       "source_location": "L91"
     },
     {
-      "id": "src_app_onboarding_members_page_memberspage",
-      "label": "MembersPage()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 1,
-      "community_name": "[id]/page.tsx",
-      "file_type": "code",
-      "norm_label": "memberspage()",
-      "source_file": "src/app/onboarding/members/page.tsx",
-      "source_location": "L11"
-    },
-    {
-      "id": "src_components_hub_header_detailheader",
-      "label": "DetailHeader()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 1,
-      "community_name": "[id]/page.tsx",
-      "file_type": "code",
-      "norm_label": "detailheader()",
-      "source_file": "src/components/hub-header.tsx",
-      "source_location": "L31"
-    },
-    {
       "id": "src_components_hub_header_hubheader",
       "label": "HubHeader()",
       "_callable": true,
@@ -750,6 +678,54 @@
       "norm_label": "hubheader()",
       "source_file": "src/components/hub-header.tsx",
       "source_location": "L6"
+    },
+    {
+      "id": "src_components_member_status_actions_reinstatememberbutton",
+      "label": "ReinstateMemberButton()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 1,
+      "community_name": "[id]/page.tsx",
+      "file_type": "code",
+      "norm_label": "reinstatememberbutton()",
+      "source_file": "src/components/member-status-actions.tsx",
+      "source_location": "L40"
+    },
+    {
+      "id": "src_components_member_status_actions_removememberbutton",
+      "label": "RemoveMemberButton()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 1,
+      "community_name": "[id]/page.tsx",
+      "file_type": "code",
+      "norm_label": "removememberbutton()",
+      "source_file": "src/components/member-status-actions.tsx",
+      "source_location": "L7"
+    },
+    {
+      "id": "src_components_relationship_editor_relationshipeditor",
+      "label": "RelationshipEditor()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 1,
+      "community_name": "[id]/page.tsx",
+      "file_type": "code",
+      "norm_label": "relationshipeditor()",
+      "source_file": "src/components/relationship-editor.tsx",
+      "source_location": "L7"
+    },
+    {
+      "id": "src_components_segmented_chiprow",
+      "label": "ChipRow()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 1,
+      "community_name": "[id]/page.tsx",
+      "file_type": "code",
+      "norm_label": "chiprow()",
+      "source_file": "src/components/segmented.tsx",
+      "source_location": "L19"
     },
     {
       "id": "src_components_segmented_segmented",
@@ -764,28 +740,40 @@
       "source_location": "L3"
     },
     {
-      "id": "src_lib_actions_health_toggleomronaction",
-      "label": "toggleOmronAction()",
+      "id": "src_lib_actions_family_reinstatememberaction",
+      "label": "reinstateMemberAction()",
       "_callable": true,
       "_origin": "ast",
       "community": 1,
       "community_name": "[id]/page.tsx",
       "file_type": "code",
-      "norm_label": "toggleomronaction()",
-      "source_file": "src/lib/actions/health.ts",
-      "source_location": "L87"
+      "norm_label": "reinstatememberaction()",
+      "source_file": "src/lib/actions/family.ts",
+      "source_location": "L128"
     },
     {
-      "id": "src_lib_format_formatage",
-      "label": "formatAge()",
+      "id": "src_lib_actions_family_removememberaction",
+      "label": "removeMemberAction()",
       "_callable": true,
       "_origin": "ast",
       "community": 1,
       "community_name": "[id]/page.tsx",
       "file_type": "code",
-      "norm_label": "formatage()",
-      "source_file": "src/lib/format.ts",
-      "source_location": "L1"
+      "norm_label": "removememberaction()",
+      "source_file": "src/lib/actions/family.ts",
+      "source_location": "L116"
+    },
+    {
+      "id": "src_lib_actions_family_updatememberrelationshipaction",
+      "label": "updateMemberRelationshipAction()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 1,
+      "community_name": "[id]/page.tsx",
+      "file_type": "code",
+      "norm_label": "updatememberrelationshipaction()",
+      "source_file": "src/lib/actions/family.ts",
+      "source_location": "L139"
     },
     {
       "id": "src_lib_format_formatdate",
@@ -882,6 +870,18 @@
       "norm_label": "post()",
       "source_file": "src/app/api/uploads/session/route.ts",
       "source_location": "L17"
+    },
+    {
+      "id": "src_components_delete_button_deletebutton",
+      "label": "DeleteButton()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 11,
+      "community_name": "google-drive.ts",
+      "file_type": "code",
+      "norm_label": "deletebutton()",
+      "source_file": "src/components/delete-button.tsx",
+      "source_location": "L7"
     },
     {
       "id": "src_components_gallery_grid_gallerygrid",
@@ -1169,7 +1169,7 @@
       "file_type": "code",
       "norm_label": "documentspane()",
       "source_file": "src/app/(app)/family/page.tsx",
-      "source_location": "L185"
+      "source_location": "L201"
     },
     {
       "id": "src_app_app_family_page_fact",
@@ -1181,7 +1181,7 @@
       "file_type": "code",
       "norm_label": "fact()",
       "source_file": "src/app/(app)/family/page.tsx",
-      "source_location": "L174"
+      "source_location": "L190"
     },
     {
       "id": "src_app_app_family_page_familypage",
@@ -1193,7 +1193,7 @@
       "file_type": "code",
       "norm_label": "familypage()",
       "source_file": "src/app/(app)/family/page.tsx",
-      "source_location": "L14"
+      "source_location": "L15"
     },
     {
       "id": "src_app_app_family_page_healthpane",
@@ -1205,7 +1205,7 @@
       "file_type": "code",
       "norm_label": "healthpane()",
       "source_file": "src/app/(app)/family/page.tsx",
-      "source_location": "L134"
+      "source_location": "L150"
     },
     {
       "id": "src_app_app_family_page_memberspane",
@@ -1217,7 +1217,7 @@
       "file_type": "code",
       "norm_label": "memberspane()",
       "source_file": "src/app/(app)/family/page.tsx",
-      "source_location": "L44"
+      "source_location": "L45"
     },
     {
       "id": "src_app_app_journal_new_page_newjournalentrypage",
@@ -1244,6 +1244,18 @@
       "source_location": "L5"
     },
     {
+      "id": "src_app_app_planner_add_add_planner_form_addplannerform",
+      "label": "AddPlannerForm()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 2,
+      "community_name": "getCurrentMember",
+      "file_type": "code",
+      "norm_label": "addplannerform()",
+      "source_file": "src/app/(app)/planner/add/add-planner-form.tsx",
+      "source_location": "L14"
+    },
+    {
       "id": "src_app_app_planner_add_page_addplannerpage",
       "label": "AddPlannerPage()",
       "_callable": true,
@@ -1256,52 +1268,52 @@
       "source_location": "L6"
     },
     {
-      "id": "src_app_onboarding_pending_page_pendingapprovalpage",
-      "label": "PendingApprovalPage()",
+      "id": "src_app_app_settings_page_settingspage",
+      "label": "SettingsPage()",
       "_callable": true,
       "_origin": "ast",
       "community": 2,
       "community_name": "getCurrentMember",
       "file_type": "code",
-      "norm_label": "pendingapprovalpage()",
-      "source_file": "src/app/onboarding/pending/page.tsx",
-      "source_location": "L8"
+      "norm_label": "settingspage()",
+      "source_file": "src/app/(app)/settings/page.tsx",
+      "source_location": "L28"
     },
     {
-      "id": "src_components_pending_member_actions_pendingmemberactions",
-      "label": "PendingMemberActions()",
+      "id": "src_app_app_today_page_todaypage",
+      "label": "TodayPage()",
       "_callable": true,
       "_origin": "ast",
       "community": 2,
       "community_name": "getCurrentMember",
       "file_type": "code",
-      "norm_label": "pendingmemberactions()",
-      "source_file": "src/components/pending-member-actions.tsx",
-      "source_location": "L7"
+      "norm_label": "todaypage()",
+      "source_file": "src/app/(app)/today/page.tsx",
+      "source_location": "L10"
     },
     {
-      "id": "src_components_pending_member_actions_pendingmemberactions_run",
-      "label": "run()",
+      "id": "src_app_onboarding_members_page_memberspage",
+      "label": "MembersPage()",
       "_callable": true,
       "_origin": "ast",
       "community": 2,
       "community_name": "getCurrentMember",
       "file_type": "code",
-      "norm_label": "run()",
-      "source_file": "src/components/pending-member-actions.tsx",
+      "norm_label": "memberspage()",
+      "source_file": "src/app/onboarding/members/page.tsx",
       "source_location": "L11"
     },
     {
-      "id": "src_components_segmented_chiprow",
-      "label": "ChipRow()",
+      "id": "src_app_page_rootpage",
+      "label": "RootPage()",
       "_callable": true,
       "_origin": "ast",
       "community": 2,
       "community_name": "getCurrentMember",
       "file_type": "code",
-      "norm_label": "chiprow()",
-      "source_file": "src/components/segmented.tsx",
-      "source_location": "L19"
+      "norm_label": "rootpage()",
+      "source_file": "src/app/page.tsx",
+      "source_location": "L5"
     },
     {
       "id": "src_components_tab_bar_tabbar",
@@ -1316,28 +1328,28 @@
       "source_location": "L16"
     },
     {
-      "id": "src_lib_actions_family_approvememberaction",
-      "label": "approveMemberAction()",
+      "id": "src_lib_format_formatage",
+      "label": "formatAge()",
       "_callable": true,
       "_origin": "ast",
       "community": 2,
       "community_name": "getCurrentMember",
       "file_type": "code",
-      "norm_label": "approvememberaction()",
-      "source_file": "src/lib/actions/family.ts",
-      "source_location": "L91"
+      "norm_label": "formatage()",
+      "source_file": "src/lib/format.ts",
+      "source_location": "L1"
     },
     {
-      "id": "src_lib_actions_family_rejectmemberaction",
-      "label": "rejectMemberAction()",
+      "id": "src_lib_format_initials",
+      "label": "initials()",
       "_callable": true,
       "_origin": "ast",
       "community": 2,
       "community_name": "getCurrentMember",
       "file_type": "code",
-      "norm_label": "rejectmemberaction()",
-      "source_file": "src/lib/actions/family.ts",
-      "source_location": "L100"
+      "norm_label": "initials()",
+      "source_file": "src/lib/format.ts",
+      "source_location": "L25"
     },
     {
       "id": "src_lib_queries_family_getdocfolders",
@@ -1374,6 +1386,18 @@
       "norm_label": "getmembers()",
       "source_file": "src/lib/queries/family.ts",
       "source_location": "L5"
+    },
+    {
+      "id": "src_lib_queries_today_gethubcards",
+      "label": "getHubCards()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 2,
+      "community_name": "getCurrentMember",
+      "file_type": "code",
+      "norm_label": "gethubcards()",
+      "source_file": "src/lib/queries/today.ts",
+      "source_location": "L16"
     },
     {
       "id": "src_app_app_wealth_page_jointpane",
@@ -1532,174 +1556,6 @@
       "source_location": "L26"
     },
     {
-      "id": "src_app_app_planner_add_add_planner_form_activityform",
-      "label": "ActivityForm()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 23,
-      "community_name": "requireCurrentMember",
-      "file_type": "code",
-      "norm_label": "activityform()",
-      "source_file": "src/app/(app)/planner/add/add-planner-form.tsx",
-      "source_location": "L38"
-    },
-    {
-      "id": "src_app_app_planner_add_add_planner_form_addplannerform",
-      "label": "AddPlannerForm()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 23,
-      "community_name": "requireCurrentMember",
-      "file_type": "code",
-      "norm_label": "addplannerform()",
-      "source_file": "src/app/(app)/planner/add/add-planner-form.tsx",
-      "source_location": "L14"
-    },
-    {
-      "id": "src_app_app_planner_add_add_planner_form_eventform",
-      "label": "EventForm()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 23,
-      "community_name": "requireCurrentMember",
-      "file_type": "code",
-      "norm_label": "eventform()",
-      "source_file": "src/app/(app)/planner/add/add-planner-form.tsx",
-      "source_location": "L94"
-    },
-    {
-      "id": "src_app_app_planner_add_add_planner_form_field",
-      "label": "Field()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 23,
-      "community_name": "requireCurrentMember",
-      "file_type": "code",
-      "norm_label": "field()",
-      "source_file": "src/app/(app)/planner/add/add-planner-form.tsx",
-      "source_location": "L175"
-    },
-    {
-      "id": "src_app_app_planner_add_add_planner_form_goalform",
-      "label": "GoalForm()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 23,
-      "community_name": "requireCurrentMember",
-      "file_type": "code",
-      "norm_label": "goalform()",
-      "source_file": "src/app/(app)/planner/add/add-planner-form.tsx",
-      "source_location": "L116"
-    },
-    {
-      "id": "src_app_app_planner_add_add_planner_form_tripform",
-      "label": "TripForm()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 23,
-      "community_name": "requireCurrentMember",
-      "file_type": "code",
-      "norm_label": "tripform()",
-      "source_file": "src/app/(app)/planner/add/add-planner-form.tsx",
-      "source_location": "L138"
-    },
-    {
-      "id": "src_components_add_to_journal_button_addtojournalbutton",
-      "label": "AddToJournalButton()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 23,
-      "community_name": "requireCurrentMember",
-      "file_type": "code",
-      "norm_label": "addtojournalbutton()",
-      "source_file": "src/components/add-to-journal-button.tsx",
-      "source_location": "L6"
-    },
-    {
-      "id": "src_lib_actions_planner_addactivitytojournalaction",
-      "label": "addActivityToJournalAction()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 23,
-      "community_name": "requireCurrentMember",
-      "file_type": "code",
-      "norm_label": "addactivitytojournalaction()",
-      "source_file": "src/lib/actions/planner.ts",
-      "source_location": "L130"
-    },
-    {
-      "id": "src_lib_actions_planner_createactivityaction",
-      "label": "createActivityAction()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 23,
-      "community_name": "requireCurrentMember",
-      "file_type": "code",
-      "norm_label": "createactivityaction()",
-      "source_file": "src/lib/actions/planner.ts",
-      "source_location": "L9"
-    },
-    {
-      "id": "src_lib_actions_planner_createeventaction",
-      "label": "createEventAction()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 23,
-      "community_name": "requireCurrentMember",
-      "file_type": "code",
-      "norm_label": "createeventaction()",
-      "source_file": "src/lib/actions/planner.ts",
-      "source_location": "L50"
-    },
-    {
-      "id": "src_lib_actions_planner_creategoalaction",
-      "label": "createGoalAction()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 23,
-      "community_name": "requireCurrentMember",
-      "file_type": "code",
-      "norm_label": "creategoalaction()",
-      "source_file": "src/lib/actions/planner.ts",
-      "source_location": "L76"
-    },
-    {
-      "id": "src_lib_actions_planner_createtripaction",
-      "label": "createTripAction()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 23,
-      "community_name": "requireCurrentMember",
-      "file_type": "code",
-      "norm_label": "createtripaction()",
-      "source_file": "src/lib/actions/planner.ts",
-      "source_location": "L104"
-    },
-    {
-      "id": "src_lib_session_requirecurrentmember",
-      "label": "requireCurrentMember()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 23,
-      "community_name": "requireCurrentMember",
-      "file_type": "code",
-      "norm_label": "requirecurrentmember()",
-      "source_file": "src/lib/session.ts",
-      "source_location": "L31"
-    },
-    {
-      "id": "src_app_app_family_members_id_health_new_new_health_entry_form_newhealthentryform",
-      "label": "NewHealthEntryForm()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 3,
-      "community_name": "auth.ts",
-      "file_type": "code",
-      "norm_label": "newhealthentryform()",
-      "source_file": "src/app/(app)/family/members/[id]/health/new/new-health-entry-form.tsx",
-      "source_location": "L29"
-    },
-    {
       "id": "src_app_app_household_meals_new_page_newmealpage",
       "label": "NewMealPage()",
       "_callable": true,
@@ -1710,18 +1566,6 @@
       "norm_label": "newmealpage()",
       "source_file": "src/app/(app)/household/meals/new/page.tsx",
       "source_location": "L11"
-    },
-    {
-      "id": "src_app_app_journal_milestones_new_page_newmilestonepage",
-      "label": "NewMilestonePage()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 3,
-      "community_name": "auth.ts",
-      "file_type": "code",
-      "norm_label": "newmilestonepage()",
-      "source_file": "src/app/(app)/journal/milestones/new/page.tsx",
-      "source_location": "L12"
     },
     {
       "id": "src_app_login_login_form_loginform",
@@ -1770,6 +1614,18 @@
       "norm_label": "familyforkpage()",
       "source_file": "src/app/onboarding/family/page.tsx",
       "source_location": "L3"
+    },
+    {
+      "id": "src_app_onboarding_pending_page_pendingapprovalpage",
+      "label": "PendingApprovalPage()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 3,
+      "community_name": "auth.ts",
+      "file_type": "code",
+      "norm_label": "pendingapprovalpage()",
+      "source_file": "src/app/onboarding/pending/page.tsx",
+      "source_location": "L8"
     },
     {
       "id": "src_app_onboarding_profile_page_profilepage",
@@ -1832,6 +1688,18 @@
       "source_location": "L10"
     },
     {
+      "id": "src_components_copy_invite_code_copyinvitecode",
+      "label": "CopyInviteCode()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 3,
+      "community_name": "auth.ts",
+      "file_type": "code",
+      "norm_label": "copyinvitecode()",
+      "source_file": "src/components/copy-invite-code.tsx",
+      "source_location": "L6"
+    },
+    {
       "id": "src_components_form_errortext",
       "label": "ErrorText()",
       "_callable": true,
@@ -1854,6 +1722,30 @@
       "norm_label": "submitbutton()",
       "source_file": "src/components/form.tsx",
       "source_location": "L6"
+    },
+    {
+      "id": "src_components_hub_header_detailheader",
+      "label": "DetailHeader()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 3,
+      "community_name": "auth.ts",
+      "file_type": "code",
+      "norm_label": "detailheader()",
+      "source_file": "src/components/hub-header.tsx",
+      "source_location": "L31"
+    },
+    {
+      "id": "src_components_icons_icon",
+      "label": "Icon()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 3,
+      "community_name": "auth.ts",
+      "file_type": "code",
+      "norm_label": "icon()",
+      "source_file": "src/components/icons.tsx",
+      "source_location": "L34"
     },
     {
       "id": "src_components_onboarding_shell_onboardingshell",
@@ -1880,6 +1772,30 @@
       "source_location": "L54"
     },
     {
+      "id": "src_components_pending_member_actions_pendingmemberactions",
+      "label": "PendingMemberActions()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 3,
+      "community_name": "auth.ts",
+      "file_type": "code",
+      "norm_label": "pendingmemberactions()",
+      "source_file": "src/components/pending-member-actions.tsx",
+      "source_location": "L7"
+    },
+    {
+      "id": "src_components_pending_member_actions_pendingmemberactions_run",
+      "label": "run()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 3,
+      "community_name": "auth.ts",
+      "file_type": "code",
+      "norm_label": "run()",
+      "source_file": "src/components/pending-member-actions.tsx",
+      "source_location": "L11"
+    },
+    {
       "id": "src_components_ui_blueprint",
       "label": "Blueprint()",
       "_callable": true,
@@ -1890,42 +1806,6 @@
       "norm_label": "blueprint()",
       "source_file": "src/components/ui.tsx",
       "source_location": "L4"
-    },
-    {
-      "id": "src_components_ui_eyebrowlabel",
-      "label": "EyebrowLabel()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 3,
-      "community_name": "auth.ts",
-      "file_type": "code",
-      "norm_label": "eyebrowlabel()",
-      "source_file": "src/components/ui.tsx",
-      "source_location": "L69"
-    },
-    {
-      "id": "src_components_ui_sectionlabel",
-      "label": "SectionLabel()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 3,
-      "community_name": "auth.ts",
-      "file_type": "code",
-      "norm_label": "sectionlabel()",
-      "source_file": "src/components/ui.tsx",
-      "source_location": "L54"
-    },
-    {
-      "id": "src_components_ui_tag",
-      "label": "Tag()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 3,
-      "community_name": "auth.ts",
-      "file_type": "code",
-      "norm_label": "tag()",
-      "source_file": "src/components/ui.tsx",
-      "source_location": "L40"
     },
     {
       "id": "src_lib_actions_auth_getorigin",
@@ -1997,7 +1877,19 @@
       "file_type": "code",
       "norm_label": "addmanagedchildaction()",
       "source_file": "src/lib/actions/family.ts",
-      "source_location": "L62"
+      "source_location": "L63"
+    },
+    {
+      "id": "src_lib_actions_family_approvememberaction",
+      "label": "approveMemberAction()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 3,
+      "community_name": "auth.ts",
+      "file_type": "code",
+      "norm_label": "approvememberaction()",
+      "source_file": "src/lib/actions/family.ts",
+      "source_location": "L92"
     },
     {
       "id": "src_lib_actions_family_createfamilyaction",
@@ -2009,7 +1901,7 @@
       "file_type": "code",
       "norm_label": "createfamilyaction()",
       "source_file": "src/lib/actions/family.ts",
-      "source_location": "L23"
+      "source_location": "L24"
     },
     {
       "id": "src_lib_actions_family_joinfamilyaction",
@@ -2021,7 +1913,19 @@
       "file_type": "code",
       "norm_label": "joinfamilyaction()",
       "source_file": "src/lib/actions/family.ts",
-      "source_location": "L42"
+      "source_location": "L43"
+    },
+    {
+      "id": "src_lib_actions_family_rejectmemberaction",
+      "label": "rejectMemberAction()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 3,
+      "community_name": "auth.ts",
+      "file_type": "code",
+      "norm_label": "rejectmemberaction()",
+      "source_file": "src/lib/actions/family.ts",
+      "source_location": "L101"
     },
     {
       "id": "src_lib_actions_family_saveprofile",
@@ -2033,19 +1937,7 @@
       "file_type": "code",
       "norm_label": "saveprofile()",
       "source_file": "src/lib/actions/family.ts",
-      "source_location": "L8"
-    },
-    {
-      "id": "src_lib_actions_health_createhealthentryaction",
-      "label": "createHealthEntryAction()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 3,
-      "community_name": "auth.ts",
-      "file_type": "code",
-      "norm_label": "createhealthentryaction()",
-      "source_file": "src/lib/actions/health.ts",
-      "source_location": "L11"
+      "source_location": "L9"
     },
     {
       "id": "src_lib_actions_household_addmealplanaction",
@@ -2060,184 +1952,136 @@
       "source_location": "L51"
     },
     {
-      "id": "src_lib_actions_journal_createmilestoneaction",
-      "label": "createMilestoneAction()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 3,
-      "community_name": "auth.ts",
-      "file_type": "code",
-      "norm_label": "createmilestoneaction()",
-      "source_file": "src/lib/actions/journal.ts",
-      "source_location": "L132"
-    },
-    {
-      "id": "src_components_settings_controls_driveconnectedpanel",
-      "label": "DriveConnectedPanel()",
+      "id": "src_app_app_family_members_id_health_new_new_health_entry_form_newhealthentryform",
+      "label": "NewHealthEntryForm()",
       "_callable": true,
       "_origin": "ast",
       "community": 5,
-      "community_name": "settings/page.tsx",
+      "community_name": "new-health-entry-form.tsx",
       "file_type": "code",
-      "norm_label": "driveconnectedpanel()",
-      "source_file": "src/components/settings-controls.tsx",
-      "source_location": "L193"
-    },
-    {
-      "id": "src_components_settings_controls_householdnameform",
-      "label": "HouseholdNameForm()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 5,
-      "community_name": "settings/page.tsx",
-      "file_type": "code",
-      "norm_label": "householdnameform()",
-      "source_file": "src/components/settings-controls.tsx",
-      "source_location": "L129"
-    },
-    {
-      "id": "src_components_settings_controls_householdprefsform",
-      "label": "HouseholdPrefsForm()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 5,
-      "community_name": "settings/page.tsx",
-      "file_type": "code",
-      "norm_label": "householdprefsform()",
-      "source_file": "src/components/settings-controls.tsx",
-      "source_location": "L148"
-    },
-    {
-      "id": "src_components_settings_controls_invitecodecard",
-      "label": "InviteCodeCard()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 5,
-      "community_name": "settings/page.tsx",
-      "file_type": "code",
-      "norm_label": "invitecodecard()",
-      "source_file": "src/components/settings-controls.tsx",
-      "source_location": "L107"
-    },
-    {
-      "id": "src_components_settings_controls_notificationtoggles",
-      "label": "NotificationToggles()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 5,
-      "community_name": "settings/page.tsx",
-      "file_type": "code",
-      "norm_label": "notificationtoggles()",
-      "source_file": "src/components/settings-controls.tsx",
-      "source_location": "L54"
-    },
-    {
-      "id": "src_components_settings_controls_textsizecontrol",
-      "label": "TextSizeControl()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 5,
-      "community_name": "settings/page.tsx",
-      "file_type": "code",
-      "norm_label": "textsizecontrol()",
-      "source_file": "src/components/settings-controls.tsx",
-      "source_location": "L28"
-    },
-    {
-      "id": "src_components_settings_controls_themecontrol",
-      "label": "ThemeControl()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 5,
-      "community_name": "settings/page.tsx",
-      "file_type": "code",
-      "norm_label": "themecontrol()",
-      "source_file": "src/components/settings-controls.tsx",
-      "source_location": "L10"
-    },
-    {
-      "id": "src_lib_actions_family_regenerateinvitecodeaction",
-      "label": "regenerateInviteCodeAction()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 5,
-      "community_name": "settings/page.tsx",
-      "file_type": "code",
-      "norm_label": "regenerateinvitecodeaction()",
-      "source_file": "src/lib/actions/family.ts",
-      "source_location": "L81"
-    },
-    {
-      "id": "src_lib_actions_settings_settextsizeaction",
-      "label": "setTextSizeAction()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 5,
-      "community_name": "settings/page.tsx",
-      "file_type": "code",
-      "norm_label": "settextsizeaction()",
-      "source_file": "src/lib/actions/settings.ts",
-      "source_location": "L20"
-    },
-    {
-      "id": "src_lib_actions_settings_setthemeaction",
-      "label": "setThemeAction()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 5,
-      "community_name": "settings/page.tsx",
-      "file_type": "code",
-      "norm_label": "setthemeaction()",
-      "source_file": "src/lib/actions/settings.ts",
-      "source_location": "L8"
-    },
-    {
-      "id": "src_lib_actions_settings_togglenotificationaction",
-      "label": "toggleNotificationAction()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 5,
-      "community_name": "settings/page.tsx",
-      "file_type": "code",
-      "norm_label": "togglenotificationaction()",
-      "source_file": "src/lib/actions/settings.ts",
-      "source_location": "L27"
-    },
-    {
-      "id": "src_lib_actions_settings_updatehouseholdnameaction",
-      "label": "updateHouseholdNameAction()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 5,
-      "community_name": "settings/page.tsx",
-      "file_type": "code",
-      "norm_label": "updatehouseholdnameaction()",
-      "source_file": "src/lib/actions/settings.ts",
-      "source_location": "L35"
-    },
-    {
-      "id": "src_lib_actions_settings_updatehouseholdprefsaction",
-      "label": "updateHouseholdPrefsAction()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 5,
-      "community_name": "settings/page.tsx",
-      "file_type": "code",
-      "norm_label": "updatehouseholdprefsaction()",
-      "source_file": "src/lib/actions/settings.ts",
-      "source_location": "L42"
+      "norm_label": "newhealthentryform()",
+      "source_file": "src/app/(app)/family/members/[id]/health/new/new-health-entry-form.tsx",
+      "source_location": "L29"
     },
     {
       "id": "src_app_app_family_members_id_health_new_page_newhealthentrypage",
       "label": "NewHealthEntryPage()",
       "_callable": true,
       "_origin": "ast",
-      "community": 7,
-      "community_name": "createClient",
+      "community": 5,
+      "community_name": "new-health-entry-form.tsx",
       "file_type": "code",
       "norm_label": "newhealthentrypage()",
       "source_file": "src/app/(app)/family/members/[id]/health/new/page.tsx",
       "source_location": "L6"
+    },
+    {
+      "id": "src_app_app_family_members_id_omron_toggle_omrontoggle",
+      "label": "OmronToggle()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 5,
+      "community_name": "new-health-entry-form.tsx",
+      "file_type": "code",
+      "norm_label": "omrontoggle()",
+      "source_file": "src/app/(app)/family/members/[id]/omron-toggle.tsx",
+      "source_location": "L6"
+    },
+    {
+      "id": "src_lib_actions_health_createhealthentryaction",
+      "label": "createHealthEntryAction()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 5,
+      "community_name": "new-health-entry-form.tsx",
+      "file_type": "code",
+      "norm_label": "createhealthentryaction()",
+      "source_file": "src/lib/actions/health.ts",
+      "source_location": "L11"
+    },
+    {
+      "id": "src_lib_actions_health_toggleomronaction",
+      "label": "toggleOmronAction()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 5,
+      "community_name": "new-health-entry-form.tsx",
+      "file_type": "code",
+      "norm_label": "toggleomronaction()",
+      "source_file": "src/lib/actions/health.ts",
+      "source_location": "L87"
+    },
+    {
+      "id": "src_app_app_journal_milestones_new_page_newmilestonepage",
+      "label": "NewMilestonePage()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 7,
+      "community_name": "createClient",
+      "file_type": "code",
+      "norm_label": "newmilestonepage()",
+      "source_file": "src/app/(app)/journal/milestones/new/page.tsx",
+      "source_location": "L12"
+    },
+    {
+      "id": "src_app_app_planner_add_add_planner_form_activityform",
+      "label": "ActivityForm()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 7,
+      "community_name": "createClient",
+      "file_type": "code",
+      "norm_label": "activityform()",
+      "source_file": "src/app/(app)/planner/add/add-planner-form.tsx",
+      "source_location": "L38"
+    },
+    {
+      "id": "src_app_app_planner_add_add_planner_form_eventform",
+      "label": "EventForm()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 7,
+      "community_name": "createClient",
+      "file_type": "code",
+      "norm_label": "eventform()",
+      "source_file": "src/app/(app)/planner/add/add-planner-form.tsx",
+      "source_location": "L94"
+    },
+    {
+      "id": "src_app_app_planner_add_add_planner_form_field",
+      "label": "Field()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 7,
+      "community_name": "createClient",
+      "file_type": "code",
+      "norm_label": "field()",
+      "source_file": "src/app/(app)/planner/add/add-planner-form.tsx",
+      "source_location": "L175"
+    },
+    {
+      "id": "src_app_app_planner_add_add_planner_form_goalform",
+      "label": "GoalForm()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 7,
+      "community_name": "createClient",
+      "file_type": "code",
+      "norm_label": "goalform()",
+      "source_file": "src/app/(app)/planner/add/add-planner-form.tsx",
+      "source_location": "L116"
+    },
+    {
+      "id": "src_app_app_planner_add_add_planner_form_tripform",
+      "label": "TripForm()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 7,
+      "community_name": "createClient",
+      "file_type": "code",
+      "norm_label": "tripform()",
+      "source_file": "src/app/(app)/planner/add/add-planner-form.tsx",
+      "source_location": "L138"
     },
     {
       "id": "src_app_app_planner_page_calendarpane",
@@ -2312,30 +2156,6 @@
       "source_location": "L167"
     },
     {
-      "id": "src_app_app_settings_page_settingspage",
-      "label": "SettingsPage()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 7,
-      "community_name": "createClient",
-      "file_type": "code",
-      "norm_label": "settingspage()",
-      "source_file": "src/app/(app)/settings/page.tsx",
-      "source_location": "L27"
-    },
-    {
-      "id": "src_app_app_today_page_todaypage",
-      "label": "TodayPage()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 7,
-      "community_name": "createClient",
-      "file_type": "code",
-      "norm_label": "todaypage()",
-      "source_file": "src/app/(app)/today/page.tsx",
-      "source_location": "L10"
-    },
-    {
       "id": "src_app_auth_callback_route_get",
       "label": "GET()",
       "_callable": true,
@@ -2348,28 +2168,280 @@
       "source_location": "L7"
     },
     {
-      "id": "src_app_page_rootpage",
-      "label": "RootPage()",
+      "id": "src_components_add_to_journal_button_addtojournalbutton",
+      "label": "AddToJournalButton()",
       "_callable": true,
       "_origin": "ast",
       "community": 7,
       "community_name": "createClient",
       "file_type": "code",
-      "norm_label": "rootpage()",
-      "source_file": "src/app/page.tsx",
-      "source_location": "L5"
+      "norm_label": "addtojournalbutton()",
+      "source_file": "src/components/add-to-journal-button.tsx",
+      "source_location": "L6"
     },
     {
-      "id": "src_lib_format_initials",
-      "label": "initials()",
+      "id": "src_components_delete_household_button_deletehouseholdbutton",
+      "label": "DeleteHouseholdButton()",
       "_callable": true,
       "_origin": "ast",
       "community": 7,
       "community_name": "createClient",
       "file_type": "code",
-      "norm_label": "initials()",
-      "source_file": "src/lib/format.ts",
-      "source_location": "L25"
+      "norm_label": "deletehouseholdbutton()",
+      "source_file": "src/components/delete-household-button.tsx",
+      "source_location": "L6"
+    },
+    {
+      "id": "src_components_settings_controls_driveconnectedpanel",
+      "label": "DriveConnectedPanel()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 7,
+      "community_name": "createClient",
+      "file_type": "code",
+      "norm_label": "driveconnectedpanel()",
+      "source_file": "src/components/settings-controls.tsx",
+      "source_location": "L209"
+    },
+    {
+      "id": "src_components_settings_controls_householdnameform",
+      "label": "HouseholdNameForm()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 7,
+      "community_name": "createClient",
+      "file_type": "code",
+      "norm_label": "householdnameform()",
+      "source_file": "src/components/settings-controls.tsx",
+      "source_location": "L129"
+    },
+    {
+      "id": "src_components_settings_controls_householdprefsform",
+      "label": "HouseholdPrefsForm()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 7,
+      "community_name": "createClient",
+      "file_type": "code",
+      "norm_label": "householdprefsform()",
+      "source_file": "src/components/settings-controls.tsx",
+      "source_location": "L157"
+    },
+    {
+      "id": "src_components_settings_controls_invitecodecard",
+      "label": "InviteCodeCard()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 7,
+      "community_name": "createClient",
+      "file_type": "code",
+      "norm_label": "invitecodecard()",
+      "source_file": "src/components/settings-controls.tsx",
+      "source_location": "L107"
+    },
+    {
+      "id": "src_components_settings_controls_notificationtoggles",
+      "label": "NotificationToggles()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 7,
+      "community_name": "createClient",
+      "file_type": "code",
+      "norm_label": "notificationtoggles()",
+      "source_file": "src/components/settings-controls.tsx",
+      "source_location": "L54"
+    },
+    {
+      "id": "src_components_settings_controls_textsizecontrol",
+      "label": "TextSizeControl()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 7,
+      "community_name": "createClient",
+      "file_type": "code",
+      "norm_label": "textsizecontrol()",
+      "source_file": "src/components/settings-controls.tsx",
+      "source_location": "L28"
+    },
+    {
+      "id": "src_components_settings_controls_themecontrol",
+      "label": "ThemeControl()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 7,
+      "community_name": "createClient",
+      "file_type": "code",
+      "norm_label": "themecontrol()",
+      "source_file": "src/components/settings-controls.tsx",
+      "source_location": "L10"
+    },
+    {
+      "id": "src_lib_actions_family_deletehouseholdaction",
+      "label": "deleteHouseholdAction()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 7,
+      "community_name": "createClient",
+      "file_type": "code",
+      "norm_label": "deletehouseholdaction()",
+      "source_file": "src/lib/actions/family.ts",
+      "source_location": "L152"
+    },
+    {
+      "id": "src_lib_actions_family_regenerateinvitecodeaction",
+      "label": "regenerateInviteCodeAction()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 7,
+      "community_name": "createClient",
+      "file_type": "code",
+      "norm_label": "regenerateinvitecodeaction()",
+      "source_file": "src/lib/actions/family.ts",
+      "source_location": "L82"
+    },
+    {
+      "id": "src_lib_actions_household_addbillaction",
+      "label": "addBillAction()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 7,
+      "community_name": "createClient",
+      "file_type": "code",
+      "norm_label": "addbillaction()",
+      "source_file": "src/lib/actions/household.ts",
+      "source_location": "L126"
+    },
+    {
+      "id": "src_lib_actions_journal_createmilestoneaction",
+      "label": "createMilestoneAction()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 7,
+      "community_name": "createClient",
+      "file_type": "code",
+      "norm_label": "createmilestoneaction()",
+      "source_file": "src/lib/actions/journal.ts",
+      "source_location": "L132"
+    },
+    {
+      "id": "src_lib_actions_planner_addactivitytojournalaction",
+      "label": "addActivityToJournalAction()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 7,
+      "community_name": "createClient",
+      "file_type": "code",
+      "norm_label": "addactivitytojournalaction()",
+      "source_file": "src/lib/actions/planner.ts",
+      "source_location": "L130"
+    },
+    {
+      "id": "src_lib_actions_planner_createactivityaction",
+      "label": "createActivityAction()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 7,
+      "community_name": "createClient",
+      "file_type": "code",
+      "norm_label": "createactivityaction()",
+      "source_file": "src/lib/actions/planner.ts",
+      "source_location": "L9"
+    },
+    {
+      "id": "src_lib_actions_planner_createeventaction",
+      "label": "createEventAction()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 7,
+      "community_name": "createClient",
+      "file_type": "code",
+      "norm_label": "createeventaction()",
+      "source_file": "src/lib/actions/planner.ts",
+      "source_location": "L50"
+    },
+    {
+      "id": "src_lib_actions_planner_creategoalaction",
+      "label": "createGoalAction()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 7,
+      "community_name": "createClient",
+      "file_type": "code",
+      "norm_label": "creategoalaction()",
+      "source_file": "src/lib/actions/planner.ts",
+      "source_location": "L76"
+    },
+    {
+      "id": "src_lib_actions_planner_createtripaction",
+      "label": "createTripAction()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 7,
+      "community_name": "createClient",
+      "file_type": "code",
+      "norm_label": "createtripaction()",
+      "source_file": "src/lib/actions/planner.ts",
+      "source_location": "L104"
+    },
+    {
+      "id": "src_lib_actions_settings_settextsizeaction",
+      "label": "setTextSizeAction()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 7,
+      "community_name": "createClient",
+      "file_type": "code",
+      "norm_label": "settextsizeaction()",
+      "source_file": "src/lib/actions/settings.ts",
+      "source_location": "L21"
+    },
+    {
+      "id": "src_lib_actions_settings_setthemeaction",
+      "label": "setThemeAction()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 7,
+      "community_name": "createClient",
+      "file_type": "code",
+      "norm_label": "setthemeaction()",
+      "source_file": "src/lib/actions/settings.ts",
+      "source_location": "L9"
+    },
+    {
+      "id": "src_lib_actions_settings_togglenotificationaction",
+      "label": "toggleNotificationAction()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 7,
+      "community_name": "createClient",
+      "file_type": "code",
+      "norm_label": "togglenotificationaction()",
+      "source_file": "src/lib/actions/settings.ts",
+      "source_location": "L28"
+    },
+    {
+      "id": "src_lib_actions_settings_updatehouseholdnameaction",
+      "label": "updateHouseholdNameAction()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 7,
+      "community_name": "createClient",
+      "file_type": "code",
+      "norm_label": "updatehouseholdnameaction()",
+      "source_file": "src/lib/actions/settings.ts",
+      "source_location": "L36"
+    },
+    {
+      "id": "src_lib_actions_settings_updatehouseholdprefsaction",
+      "label": "updateHouseholdPrefsAction()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 7,
+      "community_name": "createClient",
+      "file_type": "code",
+      "norm_label": "updatehouseholdprefsaction()",
+      "source_file": "src/lib/actions/settings.ts",
+      "source_location": "L47"
     },
     {
       "id": "src_lib_queries_journal_getentries",
@@ -2456,16 +2528,16 @@
       "source_location": "L4"
     },
     {
-      "id": "src_lib_queries_today_gethubcards",
-      "label": "getHubCards()",
+      "id": "src_lib_session_requirecurrentmember",
+      "label": "requireCurrentMember()",
       "_callable": true,
       "_origin": "ast",
       "community": 7,
       "community_name": "createClient",
       "file_type": "code",
-      "norm_label": "gethubcards()",
-      "source_file": "src/lib/queries/today.ts",
-      "source_location": "L16"
+      "norm_label": "requirecurrentmember()",
+      "source_file": "src/lib/session.ts",
+      "source_location": "L31"
     },
     {
       "id": "src_lib_storage_getsignedurls",
@@ -2588,16 +2660,40 @@
       "source_location": "L6"
     },
     {
-      "id": "src_lib_actions_household_addbillaction",
-      "label": "addBillAction()",
+      "id": "src_components_ui_eyebrowlabel",
+      "label": "EyebrowLabel()",
       "_callable": true,
       "_origin": "ast",
       "community": 8,
       "community_name": "household/page.tsx",
       "file_type": "code",
-      "norm_label": "addbillaction()",
-      "source_file": "src/lib/actions/household.ts",
-      "source_location": "L126"
+      "norm_label": "eyebrowlabel()",
+      "source_file": "src/components/ui.tsx",
+      "source_location": "L69"
+    },
+    {
+      "id": "src_components_ui_sectionlabel",
+      "label": "SectionLabel()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 8,
+      "community_name": "household/page.tsx",
+      "file_type": "code",
+      "norm_label": "sectionlabel()",
+      "source_file": "src/components/ui.tsx",
+      "source_location": "L54"
+    },
+    {
+      "id": "src_components_ui_tag",
+      "label": "Tag()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 8,
+      "community_name": "household/page.tsx",
+      "file_type": "code",
+      "norm_label": "tag()",
+      "source_file": "src/components/ui.tsx",
+      "source_location": "L40"
     },
     {
       "id": "src_lib_actions_household_addbuyitemaction",
@@ -2880,32 +2976,10 @@
       "label": "[folderId]/page.tsx",
       "_origin": "ast",
       "community": 0,
-      "community_name": "icons.tsx",
+      "community_name": "[folderId]/page.tsx",
       "file_type": "code",
       "norm_label": "[folderid]/page.tsx",
       "source_file": "src/app/(app)/family/documents/[folderId]/page.tsx",
-      "source_location": "L1"
-    },
-    {
-      "id": "src_components_copy_invite_code",
-      "label": "copy-invite-code.tsx",
-      "_origin": "ast",
-      "community": 0,
-      "community_name": "icons.tsx",
-      "file_type": "code",
-      "norm_label": "copy-invite-code.tsx",
-      "source_file": "src/components/copy-invite-code.tsx",
-      "source_location": "L1"
-    },
-    {
-      "id": "src_components_delete_button",
-      "label": "delete-button.tsx",
-      "_origin": "ast",
-      "community": 0,
-      "community_name": "icons.tsx",
-      "file_type": "code",
-      "norm_label": "delete-button.tsx",
-      "source_file": "src/components/delete-button.tsx",
       "source_location": "L1"
     },
     {
@@ -2913,7 +2987,7 @@
       "label": "doc-file-row.tsx",
       "_origin": "ast",
       "community": 0,
-      "community_name": "icons.tsx",
+      "community_name": "[folderId]/page.tsx",
       "file_type": "code",
       "norm_label": "doc-file-row.tsx",
       "source_file": "src/components/doc-file-row.tsx",
@@ -2924,73 +2998,18 @@
       "label": "download-link.tsx",
       "_origin": "ast",
       "community": 0,
-      "community_name": "icons.tsx",
+      "community_name": "[folderId]/page.tsx",
       "file_type": "code",
       "norm_label": "download-link.tsx",
       "source_file": "src/components/download-link.tsx",
       "source_location": "L1"
     },
     {
-      "id": "src_components_gallery_tile",
-      "label": "gallery-tile.tsx",
-      "_origin": "ast",
-      "community": 0,
-      "community_name": "icons.tsx",
-      "file_type": "code",
-      "norm_label": "gallery-tile.tsx",
-      "source_file": "src/components/gallery-tile.tsx",
-      "source_location": "L1"
-    },
-    {
-      "id": "src_components_icons",
-      "label": "icons.tsx",
-      "_origin": "ast",
-      "community": 0,
-      "community_name": "icons.tsx",
-      "file_type": "code",
-      "norm_label": "icons.tsx",
-      "source_file": "src/components/icons.tsx",
-      "source_location": "L1"
-    },
-    {
-      "id": "src_components_icons_iconpaths",
-      "label": "iconPaths",
-      "_origin": "ast",
-      "community": 0,
-      "community_name": "icons.tsx",
-      "file_type": "code",
-      "norm_label": "iconpaths",
-      "source_file": "src/components/icons.tsx",
-      "source_location": "L3"
-    },
-    {
-      "id": "src_components_tab_bar",
-      "label": "tab-bar.tsx",
-      "_origin": "ast",
-      "community": 0,
-      "community_name": "icons.tsx",
-      "file_type": "code",
-      "norm_label": "tab-bar.tsx",
-      "source_file": "src/components/tab-bar.tsx",
-      "source_location": "L1"
-    },
-    {
-      "id": "src_components_tab_bar_tabs",
-      "label": "TABS",
-      "_origin": "ast",
-      "community": 0,
-      "community_name": "icons.tsx",
-      "file_type": "code",
-      "norm_label": "tabs",
-      "source_file": "src/components/tab-bar.tsx",
-      "source_location": "L7"
-    },
-    {
       "id": "src_lib_doc_selection_context",
       "label": "doc-selection-context.tsx",
       "_origin": "ast",
       "community": 0,
-      "community_name": "icons.tsx",
+      "community_name": "[folderId]/page.tsx",
       "file_type": "code",
       "norm_label": "doc-selection-context.tsx",
       "source_file": "src/lib/doc-selection-context.tsx",
@@ -3001,22 +3020,11 @@
       "label": "SelectionContext",
       "_origin": "ast",
       "community": 0,
-      "community_name": "icons.tsx",
+      "community_name": "[folderId]/page.tsx",
       "file_type": "code",
       "norm_label": "selectioncontext",
       "source_file": "src/lib/doc-selection-context.tsx",
       "source_location": "L15"
-    },
-    {
-      "id": "src_app_app_family_members_id_omron_toggle",
-      "label": "omron-toggle.tsx",
-      "_origin": "ast",
-      "community": 1,
-      "community_name": "[id]/page.tsx",
-      "file_type": "code",
-      "norm_label": "omron-toggle.tsx",
-      "source_file": "src/app/(app)/family/members/[id]/omron-toggle.tsx",
-      "source_location": "L1"
     },
     {
       "id": "src_app_app_family_members_id_page",
@@ -3038,7 +3046,7 @@
       "file_type": "code",
       "norm_label": "segments",
       "source_file": "src/app/(app)/family/members/[id]/page.tsx",
-      "source_location": "L12"
+      "source_location": "L14"
     },
     {
       "id": "src_app_app_journal_page",
@@ -3074,6 +3082,28 @@
       "source_location": "L1"
     },
     {
+      "id": "src_components_member_status_actions",
+      "label": "member-status-actions.tsx",
+      "_origin": "ast",
+      "community": 1,
+      "community_name": "[id]/page.tsx",
+      "file_type": "code",
+      "norm_label": "member-status-actions.tsx",
+      "source_file": "src/components/member-status-actions.tsx",
+      "source_location": "L1"
+    },
+    {
+      "id": "src_components_relationship_editor",
+      "label": "relationship-editor.tsx",
+      "_origin": "ast",
+      "community": 1,
+      "community_name": "[id]/page.tsx",
+      "file_type": "code",
+      "norm_label": "relationship-editor.tsx",
+      "source_file": "src/components/relationship-editor.tsx",
+      "source_location": "L1"
+    },
+    {
       "id": "src_components_segmented",
       "label": "segmented.tsx",
       "_origin": "ast",
@@ -3082,17 +3112,6 @@
       "file_type": "code",
       "norm_label": "segmented.tsx",
       "source_file": "src/components/segmented.tsx",
-      "source_location": "L1"
-    },
-    {
-      "id": "src_lib_format",
-      "label": "format.ts",
-      "_origin": "ast",
-      "community": 1,
-      "community_name": "[id]/page.tsx",
-      "file_type": "code",
-      "norm_label": "format.ts",
-      "source_file": "src/lib/format.ts",
       "source_location": "L1"
     },
     {
@@ -3140,6 +3159,17 @@
       "source_location": "L1"
     },
     {
+      "id": "src_components_delete_button",
+      "label": "delete-button.tsx",
+      "_origin": "ast",
+      "community": 11,
+      "community_name": "google-drive.ts",
+      "file_type": "code",
+      "norm_label": "delete-button.tsx",
+      "source_file": "src/components/delete-button.tsx",
+      "source_location": "L1"
+    },
+    {
       "id": "src_components_gallery_grid",
       "label": "gallery-grid.tsx",
       "_origin": "ast",
@@ -3148,6 +3178,17 @@
       "file_type": "code",
       "norm_label": "gallery-grid.tsx",
       "source_file": "src/components/gallery-grid.tsx",
+      "source_location": "L1"
+    },
+    {
+      "id": "src_components_gallery_tile",
+      "label": "gallery-tile.tsx",
+      "_origin": "ast",
+      "community": 11,
+      "community_name": "google-drive.ts",
+      "file_type": "code",
+      "norm_label": "gallery-tile.tsx",
+      "source_file": "src/components/gallery-tile.tsx",
       "source_location": "L1"
     },
     {
@@ -3357,7 +3398,7 @@
       "file_type": "code",
       "norm_label": "segments",
       "source_file": "src/app/(app)/family/page.tsx",
-      "source_location": "L11"
+      "source_location": "L12"
     },
     {
       "id": "src_app_app_journal_new_page",
@@ -3393,14 +3434,58 @@
       "source_location": "L1"
     },
     {
-      "id": "src_components_pending_member_actions",
-      "label": "pending-member-actions.tsx",
+      "id": "src_app_app_today_page",
+      "label": "today/page.tsx",
       "_origin": "ast",
       "community": 2,
       "community_name": "getCurrentMember",
       "file_type": "code",
-      "norm_label": "pending-member-actions.tsx",
-      "source_file": "src/components/pending-member-actions.tsx",
+      "norm_label": "today/page.tsx",
+      "source_file": "src/app/(app)/today/page.tsx",
+      "source_location": "L1"
+    },
+    {
+      "id": "src_app_page",
+      "label": "app/page.tsx",
+      "_origin": "ast",
+      "community": 2,
+      "community_name": "getCurrentMember",
+      "file_type": "code",
+      "norm_label": "app/page.tsx",
+      "source_file": "src/app/page.tsx",
+      "source_location": "L1"
+    },
+    {
+      "id": "src_components_tab_bar",
+      "label": "tab-bar.tsx",
+      "_origin": "ast",
+      "community": 2,
+      "community_name": "getCurrentMember",
+      "file_type": "code",
+      "norm_label": "tab-bar.tsx",
+      "source_file": "src/components/tab-bar.tsx",
+      "source_location": "L1"
+    },
+    {
+      "id": "src_components_tab_bar_tabs",
+      "label": "TABS",
+      "_origin": "ast",
+      "community": 2,
+      "community_name": "getCurrentMember",
+      "file_type": "code",
+      "norm_label": "tabs",
+      "source_file": "src/components/tab-bar.tsx",
+      "source_location": "L7"
+    },
+    {
+      "id": "src_lib_format",
+      "label": "format.ts",
+      "_origin": "ast",
+      "community": 2,
+      "community_name": "getCurrentMember",
+      "file_type": "code",
+      "norm_label": "format.ts",
+      "source_file": "src/lib/format.ts",
       "source_location": "L1"
     },
     {
@@ -3412,6 +3497,17 @@
       "file_type": "code",
       "norm_label": "queries/family.ts",
       "source_file": "src/lib/queries/family.ts",
+      "source_location": "L1"
+    },
+    {
+      "id": "src_lib_queries_today",
+      "label": "today.ts",
+      "_origin": "ast",
+      "community": 2,
+      "community_name": "getCurrentMember",
+      "file_type": "code",
+      "norm_label": "today.ts",
+      "source_file": "src/lib/queries/today.ts",
       "source_location": "L1"
     },
     {
@@ -3501,105 +3597,6 @@
       "norm_label": "queries/wealth.ts",
       "source_file": "src/lib/queries/wealth.ts",
       "source_location": "L1"
-    },
-    {
-      "id": "src_app_app_planner_add_add_planner_form",
-      "label": "add-planner-form.tsx",
-      "_origin": "ast",
-      "community": 23,
-      "community_name": "requireCurrentMember",
-      "file_type": "code",
-      "norm_label": "add-planner-form.tsx",
-      "source_file": "src/app/(app)/planner/add/add-planner-form.tsx",
-      "source_location": "L1"
-    },
-    {
-      "id": "src_app_app_planner_add_add_planner_form_initialstate",
-      "label": "initialState",
-      "_origin": "ast",
-      "community": 23,
-      "community_name": "requireCurrentMember",
-      "file_type": "code",
-      "norm_label": "initialstate",
-      "source_file": "src/app/(app)/planner/add/add-planner-form.tsx",
-      "source_location": "L10"
-    },
-    {
-      "id": "src_app_app_planner_add_add_planner_form_types",
-      "label": "TYPES",
-      "_origin": "ast",
-      "community": 23,
-      "community_name": "requireCurrentMember",
-      "file_type": "code",
-      "norm_label": "types",
-      "source_file": "src/app/(app)/planner/add/add-planner-form.tsx",
-      "source_location": "L11"
-    },
-    {
-      "id": "src_components_add_to_journal_button",
-      "label": "add-to-journal-button.tsx",
-      "_origin": "ast",
-      "community": 23,
-      "community_name": "requireCurrentMember",
-      "file_type": "code",
-      "norm_label": "add-to-journal-button.tsx",
-      "source_file": "src/components/add-to-journal-button.tsx",
-      "source_location": "L1"
-    },
-    {
-      "id": "src_lib_actions_planner",
-      "label": "actions/planner.ts",
-      "_origin": "ast",
-      "community": 23,
-      "community_name": "requireCurrentMember",
-      "file_type": "code",
-      "norm_label": "actions/planner.ts",
-      "source_file": "src/lib/actions/planner.ts",
-      "source_location": "L1"
-    },
-    {
-      "id": "src_app_app_family_members_id_health_new_new_health_entry_form",
-      "label": "new-health-entry-form.tsx",
-      "_origin": "ast",
-      "community": 3,
-      "community_name": "auth.ts",
-      "file_type": "code",
-      "norm_label": "new-health-entry-form.tsx",
-      "source_file": "src/app/(app)/family/members/[id]/health/new/new-health-entry-form.tsx",
-      "source_location": "L1"
-    },
-    {
-      "id": "src_app_app_family_members_id_health_new_new_health_entry_form_initialstate",
-      "label": "initialState",
-      "_origin": "ast",
-      "community": 3,
-      "community_name": "auth.ts",
-      "file_type": "code",
-      "norm_label": "initialstate",
-      "source_file": "src/app/(app)/family/members/[id]/health/new/new-health-entry-form.tsx",
-      "source_location": "L11"
-    },
-    {
-      "id": "src_app_app_family_members_id_health_new_new_health_entry_form_types",
-      "label": "TYPES",
-      "_origin": "ast",
-      "community": 3,
-      "community_name": "auth.ts",
-      "file_type": "code",
-      "norm_label": "types",
-      "source_file": "src/app/(app)/family/members/[id]/health/new/new-health-entry-form.tsx",
-      "source_location": "L13"
-    },
-    {
-      "id": "src_app_app_family_members_id_health_new_new_health_entry_form_visibility",
-      "label": "VISIBILITY",
-      "_origin": "ast",
-      "community": 3,
-      "community_name": "auth.ts",
-      "file_type": "code",
-      "norm_label": "visibility",
-      "source_file": "src/app/(app)/family/members/[id]/health/new/new-health-entry-form.tsx",
-      "source_location": "L23"
     },
     {
       "id": "src_app_app_household_meals_new_page",
@@ -3855,37 +3852,15 @@
       "source_location": "L8"
     },
     {
-      "id": "src_components_buy_list",
-      "label": "buy-list.tsx",
+      "id": "src_components_copy_invite_code",
+      "label": "copy-invite-code.tsx",
       "_origin": "ast",
       "community": 3,
       "community_name": "auth.ts",
       "file_type": "code",
-      "norm_label": "buy-list.tsx",
-      "source_file": "src/components/buy-list.tsx",
+      "norm_label": "copy-invite-code.tsx",
+      "source_file": "src/components/copy-invite-code.tsx",
       "source_location": "L1"
-    },
-    {
-      "id": "src_components_buy_list_initialstate",
-      "label": "initialState",
-      "_origin": "ast",
-      "community": 3,
-      "community_name": "auth.ts",
-      "file_type": "code",
-      "norm_label": "initialstate",
-      "source_file": "src/components/buy-list.tsx",
-      "source_location": "L11"
-    },
-    {
-      "id": "src_components_buy_list_source_label",
-      "label": "SOURCE_LABEL",
-      "_origin": "ast",
-      "community": 3,
-      "community_name": "auth.ts",
-      "file_type": "code",
-      "norm_label": "source_label",
-      "source_file": "src/components/buy-list.tsx",
-      "source_location": "L15"
     },
     {
       "id": "src_components_form",
@@ -3899,6 +3874,28 @@
       "source_location": "L1"
     },
     {
+      "id": "src_components_icons",
+      "label": "icons.tsx",
+      "_origin": "ast",
+      "community": 3,
+      "community_name": "auth.ts",
+      "file_type": "code",
+      "norm_label": "icons.tsx",
+      "source_file": "src/components/icons.tsx",
+      "source_location": "L1"
+    },
+    {
+      "id": "src_components_icons_iconpaths",
+      "label": "iconPaths",
+      "_origin": "ast",
+      "community": 3,
+      "community_name": "auth.ts",
+      "file_type": "code",
+      "norm_label": "iconpaths",
+      "source_file": "src/components/icons.tsx",
+      "source_location": "L3"
+    },
+    {
       "id": "src_components_onboarding_shell",
       "label": "onboarding-shell.tsx",
       "_origin": "ast",
@@ -3910,14 +3907,14 @@
       "source_location": "L1"
     },
     {
-      "id": "src_components_ui",
-      "label": "ui.tsx",
+      "id": "src_components_pending_member_actions",
+      "label": "pending-member-actions.tsx",
       "_origin": "ast",
       "community": 3,
       "community_name": "auth.ts",
       "file_type": "code",
-      "norm_label": "ui.tsx",
-      "source_file": "src/components/ui.tsx",
+      "norm_label": "pending-member-actions.tsx",
+      "source_file": "src/components/pending-member-actions.tsx",
       "source_location": "L1"
     },
     {
@@ -3941,28 +3938,6 @@
       "norm_label": "actions/family.ts",
       "source_file": "src/lib/actions/family.ts",
       "source_location": "L1"
-    },
-    {
-      "id": "src_lib_actions_health",
-      "label": "actions/health.ts",
-      "_origin": "ast",
-      "community": 3,
-      "community_name": "auth.ts",
-      "file_type": "code",
-      "norm_label": "actions/health.ts",
-      "source_file": "src/lib/actions/health.ts",
-      "source_location": "L1"
-    },
-    {
-      "id": "src_lib_actions_health_grouped_types",
-      "label": "GROUPED_TYPES",
-      "_origin": "ast",
-      "community": 3,
-      "community_name": "auth.ts",
-      "file_type": "code",
-      "norm_label": "grouped_types",
-      "source_file": "src/lib/actions/health.ts",
-      "source_location": "L9"
     },
     {
       "id": "package",
@@ -4372,59 +4347,92 @@
       "source_location": "L26"
     },
     {
-      "id": "src_app_app_settings_page",
-      "label": "settings/page.tsx",
+      "id": "src_app_app_family_members_id_health_new_new_health_entry_form",
+      "label": "new-health-entry-form.tsx",
       "_origin": "ast",
       "community": 5,
-      "community_name": "settings/page.tsx",
+      "community_name": "new-health-entry-form.tsx",
       "file_type": "code",
-      "norm_label": "settings/page.tsx",
-      "source_file": "src/app/(app)/settings/page.tsx",
+      "norm_label": "new-health-entry-form.tsx",
+      "source_file": "src/app/(app)/family/members/[id]/health/new/new-health-entry-form.tsx",
       "source_location": "L1"
     },
     {
-      "id": "src_app_app_settings_page_drive_error_messages",
-      "label": "DRIVE_ERROR_MESSAGES",
+      "id": "src_app_app_family_members_id_health_new_new_health_entry_form_initialstate",
+      "label": "initialState",
       "_origin": "ast",
       "community": 5,
-      "community_name": "settings/page.tsx",
+      "community_name": "new-health-entry-form.tsx",
       "file_type": "code",
-      "norm_label": "drive_error_messages",
-      "source_file": "src/app/(app)/settings/page.tsx",
-      "source_location": "L20"
+      "norm_label": "initialstate",
+      "source_file": "src/app/(app)/family/members/[id]/health/new/new-health-entry-form.tsx",
+      "source_location": "L11"
     },
     {
-      "id": "src_components_settings_controls",
-      "label": "settings-controls.tsx",
+      "id": "src_app_app_family_members_id_health_new_new_health_entry_form_types",
+      "label": "TYPES",
       "_origin": "ast",
       "community": 5,
-      "community_name": "settings/page.tsx",
+      "community_name": "new-health-entry-form.tsx",
       "file_type": "code",
-      "norm_label": "settings-controls.tsx",
-      "source_file": "src/components/settings-controls.tsx",
+      "norm_label": "types",
+      "source_file": "src/app/(app)/family/members/[id]/health/new/new-health-entry-form.tsx",
+      "source_location": "L13"
+    },
+    {
+      "id": "src_app_app_family_members_id_health_new_new_health_entry_form_visibility",
+      "label": "VISIBILITY",
+      "_origin": "ast",
+      "community": 5,
+      "community_name": "new-health-entry-form.tsx",
+      "file_type": "code",
+      "norm_label": "visibility",
+      "source_file": "src/app/(app)/family/members/[id]/health/new/new-health-entry-form.tsx",
+      "source_location": "L23"
+    },
+    {
+      "id": "src_app_app_family_members_id_health_new_page",
+      "label": "health/new/page.tsx",
+      "_origin": "ast",
+      "community": 5,
+      "community_name": "new-health-entry-form.tsx",
+      "file_type": "code",
+      "norm_label": "health/new/page.tsx",
+      "source_file": "src/app/(app)/family/members/[id]/health/new/page.tsx",
       "source_location": "L1"
     },
     {
-      "id": "src_components_settings_controls_notif_defs",
-      "label": "NOTIF_DEFS",
+      "id": "src_app_app_family_members_id_omron_toggle",
+      "label": "omron-toggle.tsx",
       "_origin": "ast",
       "community": 5,
-      "community_name": "settings/page.tsx",
+      "community_name": "new-health-entry-form.tsx",
       "file_type": "code",
-      "norm_label": "notif_defs",
-      "source_file": "src/components/settings-controls.tsx",
-      "source_location": "L46"
+      "norm_label": "omron-toggle.tsx",
+      "source_file": "src/app/(app)/family/members/[id]/omron-toggle.tsx",
+      "source_location": "L1"
     },
     {
-      "id": "src_lib_actions_settings",
-      "label": "settings.ts",
+      "id": "src_lib_actions_health",
+      "label": "actions/health.ts",
       "_origin": "ast",
       "community": 5,
-      "community_name": "settings/page.tsx",
+      "community_name": "new-health-entry-form.tsx",
       "file_type": "code",
-      "norm_label": "settings.ts",
-      "source_file": "src/lib/actions/settings.ts",
+      "norm_label": "actions/health.ts",
+      "source_file": "src/lib/actions/health.ts",
       "source_location": "L1"
+    },
+    {
+      "id": "src_lib_actions_health_grouped_types",
+      "label": "GROUPED_TYPES",
+      "_origin": "ast",
+      "community": 5,
+      "community_name": "new-health-entry-form.tsx",
+      "file_type": "code",
+      "norm_label": "grouped_types",
+      "source_file": "src/lib/actions/health.ts",
+      "source_location": "L9"
     },
     {
       "id": "tsconfig",
@@ -4746,15 +4754,37 @@
       "source_location": "L25"
     },
     {
-      "id": "src_app_app_family_members_id_health_new_page",
-      "label": "health/new/page.tsx",
+      "id": "src_app_app_planner_add_add_planner_form",
+      "label": "add-planner-form.tsx",
       "_origin": "ast",
       "community": 7,
       "community_name": "createClient",
       "file_type": "code",
-      "norm_label": "health/new/page.tsx",
-      "source_file": "src/app/(app)/family/members/[id]/health/new/page.tsx",
+      "norm_label": "add-planner-form.tsx",
+      "source_file": "src/app/(app)/planner/add/add-planner-form.tsx",
       "source_location": "L1"
+    },
+    {
+      "id": "src_app_app_planner_add_add_planner_form_initialstate",
+      "label": "initialState",
+      "_origin": "ast",
+      "community": 7,
+      "community_name": "createClient",
+      "file_type": "code",
+      "norm_label": "initialstate",
+      "source_file": "src/app/(app)/planner/add/add-planner-form.tsx",
+      "source_location": "L10"
+    },
+    {
+      "id": "src_app_app_planner_add_add_planner_form_types",
+      "label": "TYPES",
+      "_origin": "ast",
+      "community": 7,
+      "community_name": "createClient",
+      "file_type": "code",
+      "norm_label": "types",
+      "source_file": "src/app/(app)/planner/add/add-planner-form.tsx",
+      "source_location": "L11"
     },
     {
       "id": "src_app_app_planner_page",
@@ -4779,15 +4809,26 @@
       "source_location": "L10"
     },
     {
-      "id": "src_app_app_today_page",
-      "label": "today/page.tsx",
+      "id": "src_app_app_settings_page",
+      "label": "settings/page.tsx",
       "_origin": "ast",
       "community": 7,
       "community_name": "createClient",
       "file_type": "code",
-      "norm_label": "today/page.tsx",
-      "source_file": "src/app/(app)/today/page.tsx",
+      "norm_label": "settings/page.tsx",
+      "source_file": "src/app/(app)/settings/page.tsx",
       "source_location": "L1"
+    },
+    {
+      "id": "src_app_app_settings_page_drive_error_messages",
+      "label": "DRIVE_ERROR_MESSAGES",
+      "_origin": "ast",
+      "community": 7,
+      "community_name": "createClient",
+      "file_type": "code",
+      "norm_label": "drive_error_messages",
+      "source_file": "src/app/(app)/settings/page.tsx",
+      "source_location": "L21"
     },
     {
       "id": "src_app_auth_callback_route",
@@ -4801,14 +4842,69 @@
       "source_location": "L1"
     },
     {
-      "id": "src_app_page",
-      "label": "app/page.tsx",
+      "id": "src_components_add_to_journal_button",
+      "label": "add-to-journal-button.tsx",
       "_origin": "ast",
       "community": 7,
       "community_name": "createClient",
       "file_type": "code",
-      "norm_label": "app/page.tsx",
-      "source_file": "src/app/page.tsx",
+      "norm_label": "add-to-journal-button.tsx",
+      "source_file": "src/components/add-to-journal-button.tsx",
+      "source_location": "L1"
+    },
+    {
+      "id": "src_components_delete_household_button",
+      "label": "delete-household-button.tsx",
+      "_origin": "ast",
+      "community": 7,
+      "community_name": "createClient",
+      "file_type": "code",
+      "norm_label": "delete-household-button.tsx",
+      "source_file": "src/components/delete-household-button.tsx",
+      "source_location": "L1"
+    },
+    {
+      "id": "src_components_settings_controls",
+      "label": "settings-controls.tsx",
+      "_origin": "ast",
+      "community": 7,
+      "community_name": "createClient",
+      "file_type": "code",
+      "norm_label": "settings-controls.tsx",
+      "source_file": "src/components/settings-controls.tsx",
+      "source_location": "L1"
+    },
+    {
+      "id": "src_components_settings_controls_notif_defs",
+      "label": "NOTIF_DEFS",
+      "_origin": "ast",
+      "community": 7,
+      "community_name": "createClient",
+      "file_type": "code",
+      "norm_label": "notif_defs",
+      "source_file": "src/components/settings-controls.tsx",
+      "source_location": "L46"
+    },
+    {
+      "id": "src_lib_actions_planner",
+      "label": "actions/planner.ts",
+      "_origin": "ast",
+      "community": 7,
+      "community_name": "createClient",
+      "file_type": "code",
+      "norm_label": "actions/planner.ts",
+      "source_file": "src/lib/actions/planner.ts",
+      "source_location": "L1"
+    },
+    {
+      "id": "src_lib_actions_settings",
+      "label": "settings.ts",
+      "_origin": "ast",
+      "community": 7,
+      "community_name": "createClient",
+      "file_type": "code",
+      "norm_label": "settings.ts",
+      "source_file": "src/lib/actions/settings.ts",
       "source_location": "L1"
     },
     {
@@ -4831,17 +4927,6 @@
       "file_type": "code",
       "norm_label": "queries/planner.ts",
       "source_file": "src/lib/queries/planner.ts",
-      "source_location": "L1"
-    },
-    {
-      "id": "src_lib_queries_today",
-      "label": "today.ts",
-      "_origin": "ast",
-      "community": 7,
-      "community_name": "createClient",
-      "file_type": "code",
-      "norm_label": "today.ts",
-      "source_file": "src/lib/queries/today.ts",
       "source_location": "L1"
     },
     {
@@ -4889,6 +4974,39 @@
       "source_location": "L13"
     },
     {
+      "id": "src_components_buy_list",
+      "label": "buy-list.tsx",
+      "_origin": "ast",
+      "community": 8,
+      "community_name": "household/page.tsx",
+      "file_type": "code",
+      "norm_label": "buy-list.tsx",
+      "source_file": "src/components/buy-list.tsx",
+      "source_location": "L1"
+    },
+    {
+      "id": "src_components_buy_list_initialstate",
+      "label": "initialState",
+      "_origin": "ast",
+      "community": 8,
+      "community_name": "household/page.tsx",
+      "file_type": "code",
+      "norm_label": "initialstate",
+      "source_file": "src/components/buy-list.tsx",
+      "source_location": "L11"
+    },
+    {
+      "id": "src_components_buy_list_source_label",
+      "label": "SOURCE_LABEL",
+      "_origin": "ast",
+      "community": 8,
+      "community_name": "household/page.tsx",
+      "file_type": "code",
+      "norm_label": "source_label",
+      "source_file": "src/components/buy-list.tsx",
+      "source_location": "L15"
+    },
+    {
       "id": "src_components_generate_grocery_button",
       "label": "generate-grocery-button.tsx",
       "_origin": "ast",
@@ -4908,6 +5026,17 @@
       "file_type": "code",
       "norm_label": "mark-paid-button.tsx",
       "source_file": "src/components/mark-paid-button.tsx",
+      "source_location": "L1"
+    },
+    {
+      "id": "src_components_ui",
+      "label": "ui.tsx",
+      "_origin": "ast",
+      "community": 8,
+      "community_name": "household/page.tsx",
+      "file_type": "code",
+      "norm_label": "ui.tsx",
+      "source_file": "src/components/ui.tsx",
       "source_location": "L1"
     },
     {
@@ -5018,7 +5147,7 @@
       "file_type": "code",
       "norm_label": "constants",
       "source_file": "src/lib/database.types.ts",
-      "source_location": "L2025"
+      "source_location": "L2026"
     },
     {
       "id": "src_lib_supabase_client",
@@ -5692,7 +5821,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/app/(app)/family/members/[id]/page.tsx",
-      "source_location": "L22",
+      "source_location": "L24",
       "weight": 1.0
     },
     {
@@ -5704,7 +5833,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/app/(app)/family/members/[id]/page.tsx",
-      "source_location": "L28",
+      "source_location": "L30",
       "weight": 1.0
     },
     {
@@ -5716,7 +5845,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/app/(app)/family/members/[id]/page.tsx",
-      "source_location": "L36",
+      "source_location": "L38",
       "weight": 1.0
     },
     {
@@ -5728,7 +5857,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/app/(app)/family/members/[id]/page.tsx",
-      "source_location": "L58",
+      "source_location": "L60",
       "weight": 1.0
     },
     {
@@ -5740,7 +5869,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/app/(app)/family/members/[id]/page.tsx",
-      "source_location": "L68",
+      "source_location": "L77",
       "weight": 1.0
     },
     {
@@ -5752,7 +5881,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/app/(app)/family/page.tsx",
-      "source_location": "L186",
+      "source_location": "L202",
       "weight": 1.0
     },
     {
@@ -5764,7 +5893,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/app/(app)/family/page.tsx",
-      "source_location": "L187",
+      "source_location": "L203",
       "weight": 1.0
     },
     {
@@ -5776,7 +5905,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/app/(app)/family/page.tsx",
-      "source_location": "L19",
+      "source_location": "L20",
       "weight": 1.0
     },
     {
@@ -5788,7 +5917,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/app/(app)/family/page.tsx",
-      "source_location": "L135",
+      "source_location": "L151",
       "weight": 1.0
     },
     {
@@ -5800,7 +5929,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/app/(app)/family/page.tsx",
-      "source_location": "L45",
+      "source_location": "L46",
       "weight": 1.0
     },
     {
@@ -5812,7 +5941,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/app/(app)/family/page.tsx",
-      "source_location": "L72",
+      "source_location": "L74",
       "weight": 1.0
     },
     {
@@ -5824,7 +5953,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/app/(app)/family/page.tsx",
-      "source_location": "L77",
+      "source_location": "L79",
       "weight": 1.0
     },
     {
@@ -6208,7 +6337,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/app/(app)/settings/page.tsx",
-      "source_location": "L32",
+      "source_location": "L33",
       "weight": 1.0
     },
     {
@@ -6220,7 +6349,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/app/(app)/settings/page.tsx",
-      "source_location": "L36",
+      "source_location": "L37",
       "weight": 1.0
     },
     {
@@ -6232,7 +6361,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/app/(app)/settings/page.tsx",
-      "source_location": "L54",
+      "source_location": "L55",
       "weight": 1.0
     },
     {
@@ -6476,6 +6605,18 @@
       "weight": 1.0
     },
     {
+      "source": "src_components_delete_household_button_deletehouseholdbutton",
+      "target": "src_lib_actions_family_deletehouseholdaction",
+      "relation": "calls",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "call",
+      "source_file": "src/components/delete-household-button.tsx",
+      "source_location": "L66",
+      "weight": 1.0
+    },
+    {
       "source": "src_components_doc_file_row_docfilerow",
       "target": "src_lib_doc_selection_context_usedocselection",
       "relation": "calls",
@@ -6608,6 +6749,30 @@
       "weight": 1.0
     },
     {
+      "source": "src_components_member_status_actions_reinstatememberbutton",
+      "target": "src_lib_actions_family_reinstatememberaction",
+      "relation": "calls",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "call",
+      "source_file": "src/components/member-status-actions.tsx",
+      "source_location": "L52",
+      "weight": 1.0
+    },
+    {
+      "source": "src_components_member_status_actions_removememberbutton",
+      "target": "src_lib_actions_family_removememberaction",
+      "relation": "calls",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "call",
+      "source_file": "src/components/member-status-actions.tsx",
+      "source_location": "L26",
+      "weight": 1.0
+    },
+    {
       "source": "src_components_pending_member_actions_pendingmemberactions_run",
       "target": "src_lib_actions_family_approvememberaction",
       "relation": "calls",
@@ -6632,6 +6797,18 @@
       "weight": 1.0
     },
     {
+      "source": "src_components_relationship_editor_relationshipeditor",
+      "target": "src_lib_actions_family_updatememberrelationshipaction",
+      "relation": "calls",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "call",
+      "source_file": "src/components/relationship-editor.tsx",
+      "source_location": "L31",
+      "weight": 1.0
+    },
+    {
       "source": "src_components_settings_controls_driveconnectedpanel",
       "target": "src_lib_actions_drive_disconnectdriveaction",
       "relation": "calls",
@@ -6640,7 +6817,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/components/settings-controls.tsx",
-      "source_location": "L241",
+      "source_location": "L257",
       "weight": 1.0
     },
     {
@@ -6652,7 +6829,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/components/settings-controls.tsx",
-      "source_location": "L140",
+      "source_location": "L144",
       "weight": 1.0
     },
     {
@@ -6664,7 +6841,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/components/settings-controls.tsx",
-      "source_location": "L185",
+      "source_location": "L197",
       "weight": 1.0
     },
     {
@@ -6964,7 +7141,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/lib/actions/family.ts",
-      "source_location": "L68",
+      "source_location": "L69",
       "weight": 1.0
     },
     {
@@ -6976,7 +7153,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/lib/actions/family.ts",
-      "source_location": "L92",
+      "source_location": "L93",
       "weight": 1.0
     },
     {
@@ -6988,7 +7165,31 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/lib/actions/family.ts",
-      "source_location": "L30",
+      "source_location": "L31",
+      "weight": 1.0
+    },
+    {
+      "source": "src_lib_actions_family_deletehouseholdaction",
+      "target": "src_lib_session_requirecurrentmember",
+      "relation": "calls",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "call",
+      "source_file": "src/lib/actions/family.ts",
+      "source_location": "L153",
+      "weight": 1.0
+    },
+    {
+      "source": "src_lib_actions_family_deletehouseholdaction",
+      "target": "src_lib_supabase_server_createclient",
+      "relation": "calls",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "call",
+      "source_file": "src/lib/actions/family.ts",
+      "source_location": "L156",
       "weight": 1.0
     },
     {
@@ -7000,7 +7201,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/lib/actions/family.ts",
-      "source_location": "L49",
+      "source_location": "L50",
       "weight": 1.0
     },
     {
@@ -7012,7 +7213,19 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/lib/actions/family.ts",
-      "source_location": "L82",
+      "source_location": "L83",
+      "weight": 1.0
+    },
+    {
+      "source": "src_lib_actions_family_reinstatememberaction",
+      "target": "src_lib_supabase_server_createclient",
+      "relation": "calls",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "call",
+      "source_file": "src/lib/actions/family.ts",
+      "source_location": "L129",
       "weight": 1.0
     },
     {
@@ -7024,7 +7237,43 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/lib/actions/family.ts",
-      "source_location": "L101",
+      "source_location": "L102",
+      "weight": 1.0
+    },
+    {
+      "source": "src_lib_actions_family_removememberaction",
+      "target": "src_lib_session_requirecurrentmember",
+      "relation": "calls",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "call",
+      "source_file": "src/lib/actions/family.ts",
+      "source_location": "L117",
+      "weight": 1.0
+    },
+    {
+      "source": "src_lib_actions_family_removememberaction",
+      "target": "src_lib_supabase_server_createclient",
+      "relation": "calls",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "call",
+      "source_file": "src/lib/actions/family.ts",
+      "source_location": "L120",
+      "weight": 1.0
+    },
+    {
+      "source": "src_lib_actions_family_updatememberrelationshipaction",
+      "target": "src_lib_supabase_server_createclient",
+      "relation": "calls",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "call",
+      "source_file": "src/lib/actions/family.ts",
+      "source_location": "L140",
       "weight": 1.0
     },
     {
@@ -7456,7 +7705,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/lib/actions/settings.ts",
-      "source_location": "L21",
+      "source_location": "L22",
       "weight": 1.0
     },
     {
@@ -7468,12 +7717,12 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/lib/actions/settings.ts",
-      "source_location": "L22",
+      "source_location": "L23",
       "weight": 1.0
     },
     {
       "source": "src_lib_actions_settings_setthemeaction",
-      "target": "src_lib_supabase_server_createclient",
+      "target": "src_lib_session_requirecurrentmember",
       "relation": "calls",
       "_origin": "ast",
       "confidence": "EXTRACTED",
@@ -7485,14 +7734,14 @@
     },
     {
       "source": "src_lib_actions_settings_setthemeaction",
-      "target": "src_lib_session_requirecurrentmember",
+      "target": "src_lib_supabase_server_createclient",
       "relation": "calls",
       "_origin": "ast",
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/lib/actions/settings.ts",
-      "source_location": "L9",
+      "source_location": "L11",
       "weight": 1.0
     },
     {
@@ -7504,7 +7753,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/lib/actions/settings.ts",
-      "source_location": "L28",
+      "source_location": "L29",
       "weight": 1.0
     },
     {
@@ -7516,7 +7765,19 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/lib/actions/settings.ts",
-      "source_location": "L29",
+      "source_location": "L30",
+      "weight": 1.0
+    },
+    {
+      "source": "src_lib_actions_settings_updatehouseholdnameaction",
+      "target": "src_lib_session_requirecurrentmember",
+      "relation": "calls",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "call",
+      "source_file": "src/lib/actions/settings.ts",
+      "source_location": "L37",
       "weight": 1.0
     },
     {
@@ -7528,7 +7789,19 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/lib/actions/settings.ts",
-      "source_location": "L36",
+      "source_location": "L40",
+      "weight": 1.0
+    },
+    {
+      "source": "src_lib_actions_settings_updatehouseholdprefsaction",
+      "target": "src_lib_session_requirecurrentmember",
+      "relation": "calls",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "call",
+      "source_file": "src/lib/actions/settings.ts",
+      "source_location": "L48",
       "weight": 1.0
     },
     {
@@ -7540,7 +7813,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/lib/actions/settings.ts",
-      "source_location": "L43",
+      "source_location": "L51",
       "weight": 1.0
     },
     {
@@ -9069,6 +9342,30 @@
     },
     {
       "source": "src_app_app_family_members_id_page",
+      "target": "src_components_relationship_editor_relationshipeditor",
+      "relation": "imports",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "import",
+      "source_file": "src/app/(app)/family/members/[id]/page.tsx",
+      "source_location": "L11",
+      "weight": 1.0
+    },
+    {
+      "source": "src_app_app_family_members_id_page",
+      "target": "src_components_member_status_actions_removememberbutton",
+      "relation": "imports",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "import",
+      "source_file": "src/app/(app)/family/members/[id]/page.tsx",
+      "source_location": "L12",
+      "weight": 1.0
+    },
+    {
+      "source": "src_app_app_family_members_id_page",
       "target": "src_lib_session_getcurrentmember",
       "relation": "imports",
       "_origin": "ast",
@@ -9189,6 +9486,30 @@
     },
     {
       "source": "src_app_app_family_page",
+      "target": "src_lib_format_formatage",
+      "relation": "imports",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "import",
+      "source_file": "src/app/(app)/family/page.tsx",
+      "source_location": "L10",
+      "weight": 1.0
+    },
+    {
+      "source": "src_app_app_family_page",
+      "target": "src_lib_format_initials",
+      "relation": "imports",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "import",
+      "source_file": "src/app/(app)/family/page.tsx",
+      "source_location": "L10",
+      "weight": 1.0
+    },
+    {
+      "source": "src_app_app_family_page",
       "target": "src_lib_session_getcurrentmember",
       "relation": "imports",
       "_origin": "ast",
@@ -9297,7 +9618,7 @@
     },
     {
       "source": "src_app_app_family_page",
-      "target": "src_lib_format_formatage",
+      "target": "src_components_member_status_actions_reinstatememberbutton",
       "relation": "imports",
       "_origin": "ast",
       "confidence": "EXTRACTED",
@@ -9309,7 +9630,7 @@
     },
     {
       "source": "src_app_app_family_page",
-      "target": "src_lib_format_initials",
+      "target": "src_components_member_status_actions_removememberbutton",
       "relation": "imports",
       "_origin": "ast",
       "confidence": "EXTRACTED",
@@ -10137,7 +10458,7 @@
     },
     {
       "source": "src_app_app_settings_page",
-      "target": "src_lib_format_initials",
+      "target": "src_components_delete_household_button_deletehouseholdbutton",
       "relation": "imports",
       "_origin": "ast",
       "confidence": "EXTRACTED",
@@ -10145,6 +10466,18 @@
       "context": "import",
       "source_file": "src/app/(app)/settings/page.tsx",
       "source_location": "L18",
+      "weight": 1.0
+    },
+    {
+      "source": "src_app_app_settings_page",
+      "target": "src_lib_format_initials",
+      "relation": "imports",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "import",
+      "source_file": "src/app/(app)/settings/page.tsx",
+      "source_location": "L19",
       "weight": 1.0
     },
     {
@@ -11324,6 +11657,18 @@
       "weight": 1.0
     },
     {
+      "source": "src_components_delete_household_button",
+      "target": "src_lib_actions_family_deletehouseholdaction",
+      "relation": "imports",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "import",
+      "source_file": "src/components/delete-household-button.tsx",
+      "source_location": "L4",
+      "weight": 1.0
+    },
+    {
       "source": "src_components_doc_file_row",
       "target": "src_lib_doc_selection_context_usedocselection",
       "relation": "imports",
@@ -11588,6 +11933,30 @@
       "weight": 1.0
     },
     {
+      "source": "src_components_member_status_actions",
+      "target": "src_lib_actions_family_reinstatememberaction",
+      "relation": "imports",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "import",
+      "source_file": "src/components/member-status-actions.tsx",
+      "source_location": "L5",
+      "weight": 1.0
+    },
+    {
+      "source": "src_components_member_status_actions",
+      "target": "src_lib_actions_family_removememberaction",
+      "relation": "imports",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "import",
+      "source_file": "src/components/member-status-actions.tsx",
+      "source_location": "L5",
+      "weight": 1.0
+    },
+    {
       "source": "src_components_onboarding_shell",
       "target": "src_components_icons_icon",
       "relation": "imports",
@@ -11620,6 +11989,18 @@
       "confidence_score": 1.0,
       "context": "import",
       "source_file": "src/components/pending-member-actions.tsx",
+      "source_location": "L5",
+      "weight": 1.0
+    },
+    {
+      "source": "src_components_relationship_editor",
+      "target": "src_lib_actions_family_updatememberrelationshipaction",
+      "relation": "imports",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "import",
+      "source_file": "src/components/relationship-editor.tsx",
       "source_location": "L5",
       "weight": 1.0
     },
@@ -11925,7 +12306,7 @@
     },
     {
       "source": "src_lib_actions_family",
-      "target": "src_lib_actions_auth_actionstate",
+      "target": "src_lib_session_requirecurrentmember",
       "relation": "imports",
       "_origin": "ast",
       "confidence": "EXTRACTED",
@@ -11933,6 +12314,18 @@
       "context": "import",
       "source_file": "src/lib/actions/family.ts",
       "source_location": "L6",
+      "weight": 1.0
+    },
+    {
+      "source": "src_lib_actions_family",
+      "target": "src_lib_actions_auth_actionstate",
+      "relation": "imports",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "import",
+      "source_file": "src/lib/actions/family.ts",
+      "source_location": "L7",
       "weight": 1.0
     },
     {
@@ -12137,6 +12530,18 @@
       "context": "import",
       "source_file": "src/lib/actions/settings.ts",
       "source_location": "L6",
+      "weight": 1.0
+    },
+    {
+      "source": "src_lib_actions_settings",
+      "target": "src_lib_actions_auth_actionstate",
+      "relation": "imports",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "import",
+      "source_file": "src/lib/actions/settings.ts",
+      "source_location": "L7",
       "weight": 1.0
     },
     {
@@ -12972,6 +13377,30 @@
     },
     {
       "source": "src_app_app_family_members_id_page",
+      "target": "src_components_relationship_editor",
+      "relation": "imports_from",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "import",
+      "source_file": "src/app/(app)/family/members/[id]/page.tsx",
+      "source_location": "L11",
+      "weight": 1.0
+    },
+    {
+      "source": "src_app_app_family_members_id_page",
+      "target": "src_components_member_status_actions",
+      "relation": "imports_from",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "import",
+      "source_file": "src/app/(app)/family/members/[id]/page.tsx",
+      "source_location": "L12",
+      "weight": 1.0
+    },
+    {
+      "source": "src_app_app_family_members_id_page",
       "target": "src_lib_session",
       "relation": "imports_from",
       "_origin": "ast",
@@ -13056,6 +13485,18 @@
     },
     {
       "source": "src_app_app_family_page",
+      "target": "src_lib_format",
+      "relation": "imports_from",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "import",
+      "source_file": "src/app/(app)/family/page.tsx",
+      "source_location": "L10",
+      "weight": 1.0
+    },
+    {
+      "source": "src_app_app_family_page",
       "target": "src_lib_session",
       "relation": "imports_from",
       "_origin": "ast",
@@ -13128,7 +13569,7 @@
     },
     {
       "source": "src_app_app_family_page",
-      "target": "src_lib_format",
+      "target": "src_components_member_status_actions",
       "relation": "imports_from",
       "_origin": "ast",
       "confidence": "EXTRACTED",
@@ -13721,7 +14162,7 @@
     },
     {
       "source": "src_app_app_settings_page",
-      "target": "src_lib_format",
+      "target": "src_components_delete_household_button",
       "relation": "imports_from",
       "_origin": "ast",
       "confidence": "EXTRACTED",
@@ -13729,6 +14170,18 @@
       "context": "import",
       "source_file": "src/app/(app)/settings/page.tsx",
       "source_location": "L18",
+      "weight": 1.0
+    },
+    {
+      "source": "src_app_app_settings_page",
+      "target": "src_lib_format",
+      "relation": "imports_from",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "import",
+      "source_file": "src/app/(app)/settings/page.tsx",
+      "source_location": "L19",
       "weight": 1.0
     },
     {
@@ -14590,6 +15043,18 @@
       "weight": 1.0
     },
     {
+      "source": "src_components_delete_household_button",
+      "target": "src_lib_actions_family",
+      "relation": "imports_from",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "import",
+      "source_file": "src/components/delete-household-button.tsx",
+      "source_location": "L4",
+      "weight": 1.0
+    },
+    {
       "source": "src_components_doc_file_row",
       "target": "src_lib_doc_selection_context",
       "relation": "imports_from",
@@ -14830,6 +15295,18 @@
       "weight": 1.0
     },
     {
+      "source": "src_components_member_status_actions",
+      "target": "src_lib_actions_family",
+      "relation": "imports_from",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "import",
+      "source_file": "src/components/member-status-actions.tsx",
+      "source_location": "L5",
+      "weight": 1.0
+    },
+    {
       "source": "src_components_onboarding_shell",
       "target": "src_components_icons",
       "relation": "imports_from",
@@ -14850,6 +15327,18 @@
       "confidence_score": 1.0,
       "context": "import",
       "source_file": "src/components/pending-member-actions.tsx",
+      "source_location": "L5",
+      "weight": 1.0
+    },
+    {
+      "source": "src_components_relationship_editor",
+      "target": "src_lib_actions_family",
+      "relation": "imports_from",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "import",
+      "source_file": "src/components/relationship-editor.tsx",
       "source_location": "L5",
       "weight": 1.0
     },
@@ -15048,7 +15537,7 @@
     },
     {
       "source": "src_lib_actions_family",
-      "target": "src_lib_actions_auth",
+      "target": "src_lib_session",
       "relation": "imports_from",
       "_origin": "ast",
       "confidence": "EXTRACTED",
@@ -15056,6 +15545,18 @@
       "context": "import",
       "source_file": "src/lib/actions/family.ts",
       "source_location": "L6",
+      "weight": 1.0
+    },
+    {
+      "source": "src_lib_actions_family",
+      "target": "src_lib_actions_auth",
+      "relation": "imports_from",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "import",
+      "source_file": "src/lib/actions/family.ts",
+      "source_location": "L7",
       "type_only": true,
       "weight": 1.0
     },
@@ -15228,6 +15729,19 @@
       "context": "import",
       "source_file": "src/lib/actions/settings.ts",
       "source_location": "L6",
+      "weight": 1.0
+    },
+    {
+      "source": "src_lib_actions_settings",
+      "target": "src_lib_actions_auth",
+      "relation": "imports_from",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "import",
+      "source_file": "src/lib/actions/settings.ts",
+      "source_location": "L7",
+      "type_only": true,
       "weight": 1.0
     },
     {
@@ -16054,7 +16568,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/app/(app)/family/members/[id]/page.tsx",
-      "source_location": "L12",
+      "source_location": "L14",
       "weight": 1.0
     },
     {
@@ -16065,7 +16579,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/app/(app)/family/members/[id]/page.tsx",
-      "source_location": "L13",
+      "source_location": "L15",
       "weight": 1.0
     },
     {
@@ -16076,7 +16590,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/app/(app)/family/members/[id]/page.tsx",
-      "source_location": "L15",
+      "source_location": "L17",
       "weight": 1.0
     },
     {
@@ -16087,7 +16601,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/app/(app)/family/members/[id]/page.tsx",
-      "source_location": "L192",
+      "source_location": "L205",
       "weight": 1.0
     },
     {
@@ -16098,7 +16612,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/app/(app)/family/members/[id]/page.tsx",
-      "source_location": "L196",
+      "source_location": "L209",
       "weight": 1.0
     },
     {
@@ -16109,7 +16623,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/app/(app)/family/page.tsx",
-      "source_location": "L11",
+      "source_location": "L12",
       "weight": 1.0
     },
     {
@@ -16120,18 +16634,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/app/(app)/family/page.tsx",
-      "source_location": "L12",
-      "weight": 1.0
-    },
-    {
-      "source": "src_app_app_family_page",
-      "target": "src_app_app_family_page_healthpane",
-      "relation": "contains",
-      "_origin": "ast",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "source_file": "src/app/(app)/family/page.tsx",
-      "source_location": "L134",
+      "source_location": "L13",
       "weight": 1.0
     },
     {
@@ -16142,7 +16645,18 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/app/(app)/family/page.tsx",
-      "source_location": "L14",
+      "source_location": "L15",
+      "weight": 1.0
+    },
+    {
+      "source": "src_app_app_family_page",
+      "target": "src_app_app_family_page_healthpane",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "src/app/(app)/family/page.tsx",
+      "source_location": "L150",
       "weight": 1.0
     },
     {
@@ -16153,7 +16667,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/app/(app)/family/page.tsx",
-      "source_location": "L174",
+      "source_location": "L190",
       "weight": 1.0
     },
     {
@@ -16164,7 +16678,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/app/(app)/family/page.tsx",
-      "source_location": "L185",
+      "source_location": "L201",
       "weight": 1.0
     },
     {
@@ -16175,7 +16689,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/app/(app)/family/page.tsx",
-      "source_location": "L44",
+      "source_location": "L45",
       "weight": 1.0
     },
     {
@@ -16615,7 +17129,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/app/(app)/settings/page.tsx",
-      "source_location": "L20",
+      "source_location": "L21",
       "weight": 1.0
     },
     {
@@ -16626,7 +17140,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/app/(app)/settings/page.tsx",
-      "source_location": "L27",
+      "source_location": "L28",
       "weight": 1.0
     },
     {
@@ -17037,6 +17551,17 @@
       "weight": 1.0
     },
     {
+      "source": "src_components_delete_household_button",
+      "target": "src_components_delete_household_button_deletehouseholdbutton",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "src/components/delete-household-button.tsx",
+      "source_location": "L6",
+      "weight": 1.0
+    },
+    {
       "source": "src_components_doc_file_row",
       "target": "src_components_doc_file_row_docfilerow",
       "relation": "contains",
@@ -17246,6 +17771,28 @@
       "weight": 1.0
     },
     {
+      "source": "src_components_member_status_actions",
+      "target": "src_components_member_status_actions_reinstatememberbutton",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "src/components/member-status-actions.tsx",
+      "source_location": "L40",
+      "weight": 1.0
+    },
+    {
+      "source": "src_components_member_status_actions",
+      "target": "src_components_member_status_actions_removememberbutton",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "src/components/member-status-actions.tsx",
+      "source_location": "L7",
+      "weight": 1.0
+    },
+    {
       "source": "src_components_onboarding_shell",
       "target": "src_components_onboarding_shell_onboardingshell",
       "relation": "contains",
@@ -17275,6 +17822,17 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/components/pending-member-actions.tsx",
+      "source_location": "L7",
+      "weight": 1.0
+    },
+    {
+      "source": "src_components_relationship_editor",
+      "target": "src_components_relationship_editor_relationshipeditor",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "src/components/relationship-editor.tsx",
       "source_location": "L7",
       "weight": 1.0
     },
@@ -17341,7 +17899,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/components/settings-controls.tsx",
-      "source_location": "L148",
+      "source_location": "L157",
       "weight": 1.0
     },
     {
@@ -17352,7 +17910,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/components/settings-controls.tsx",
-      "source_location": "L193",
+      "source_location": "L209",
       "weight": 1.0
     },
     {
@@ -17638,7 +18196,51 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/lib/actions/family.ts",
-      "source_location": "L100",
+      "source_location": "L101",
+      "weight": 1.0
+    },
+    {
+      "source": "src_lib_actions_family",
+      "target": "src_lib_actions_family_removememberaction",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "src/lib/actions/family.ts",
+      "source_location": "L116",
+      "weight": 1.0
+    },
+    {
+      "source": "src_lib_actions_family",
+      "target": "src_lib_actions_family_reinstatememberaction",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "src/lib/actions/family.ts",
+      "source_location": "L128",
+      "weight": 1.0
+    },
+    {
+      "source": "src_lib_actions_family",
+      "target": "src_lib_actions_family_updatememberrelationshipaction",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "src/lib/actions/family.ts",
+      "source_location": "L139",
+      "weight": 1.0
+    },
+    {
+      "source": "src_lib_actions_family",
+      "target": "src_lib_actions_family_deletehouseholdaction",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "src/lib/actions/family.ts",
+      "source_location": "L152",
       "weight": 1.0
     },
     {
@@ -17649,7 +18251,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/lib/actions/family.ts",
-      "source_location": "L23",
+      "source_location": "L24",
       "weight": 1.0
     },
     {
@@ -17660,7 +18262,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/lib/actions/family.ts",
-      "source_location": "L42",
+      "source_location": "L43",
       "weight": 1.0
     },
     {
@@ -17671,18 +18273,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/lib/actions/family.ts",
-      "source_location": "L62",
-      "weight": 1.0
-    },
-    {
-      "source": "src_lib_actions_family",
-      "target": "src_lib_actions_family_saveprofile",
-      "relation": "contains",
-      "_origin": "ast",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "source_file": "src/lib/actions/family.ts",
-      "source_location": "L8",
+      "source_location": "L63",
       "weight": 1.0
     },
     {
@@ -17693,7 +18284,18 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/lib/actions/family.ts",
-      "source_location": "L81",
+      "source_location": "L82",
+      "weight": 1.0
+    },
+    {
+      "source": "src_lib_actions_family",
+      "target": "src_lib_actions_family_saveprofile",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "src/lib/actions/family.ts",
+      "source_location": "L9",
       "weight": 1.0
     },
     {
@@ -17704,7 +18306,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/lib/actions/family.ts",
-      "source_location": "L91",
+      "source_location": "L92",
       "weight": 1.0
     },
     {
@@ -17935,7 +18537,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/lib/actions/settings.ts",
-      "source_location": "L20",
+      "source_location": "L21",
       "weight": 1.0
     },
     {
@@ -17946,7 +18548,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/lib/actions/settings.ts",
-      "source_location": "L27",
+      "source_location": "L28",
       "weight": 1.0
     },
     {
@@ -17957,7 +18559,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/lib/actions/settings.ts",
-      "source_location": "L35",
+      "source_location": "L36",
       "weight": 1.0
     },
     {
@@ -17968,7 +18570,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/lib/actions/settings.ts",
-      "source_location": "L42",
+      "source_location": "L47",
       "weight": 1.0
     },
     {
@@ -17979,7 +18581,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/lib/actions/settings.ts",
-      "source_location": "L8",
+      "source_location": "L9",
       "weight": 1.0
     },
     {
@@ -18034,7 +18636,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/lib/database.types.ts",
-      "source_location": "L1908",
+      "source_location": "L1909",
       "weight": 1.0
     },
     {
@@ -18045,7 +18647,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/lib/database.types.ts",
-      "source_location": "L1910",
+      "source_location": "L1911",
       "weight": 1.0
     },
     {
@@ -18056,7 +18658,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/lib/database.types.ts",
-      "source_location": "L1912",
+      "source_location": "L1913",
       "weight": 1.0
     },
     {
@@ -18067,7 +18669,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/lib/database.types.ts",
-      "source_location": "L1941",
+      "source_location": "L1942",
       "weight": 1.0
     },
     {
@@ -18078,7 +18680,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/lib/database.types.ts",
-      "source_location": "L1966",
+      "source_location": "L1967",
       "weight": 1.0
     },
     {
@@ -18089,7 +18691,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/lib/database.types.ts",
-      "source_location": "L1991",
+      "source_location": "L1992",
       "weight": 1.0
     },
     {
@@ -18100,7 +18702,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/lib/database.types.ts",
-      "source_location": "L2008",
+      "source_location": "L2009",
       "weight": 1.0
     },
     {
@@ -18111,7 +18713,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/lib/database.types.ts",
-      "source_location": "L2025",
+      "source_location": "L2026",
       "weight": 1.0
     },
     {
@@ -19316,5 +19918,5 @@
       "source_file": "README.md"
     }
   ],
-  "built_at_commit": "00d5c255e4a782f499ed7819e63e0e83a0efbfd3"
+  "built_at_commit": "04c549dd8bd5be626a1b8b7d2238266fbecfb803"
 }
