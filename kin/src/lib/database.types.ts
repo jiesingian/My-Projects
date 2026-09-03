@@ -704,6 +704,7 @@ export type Database = {
       }
       families: {
         Row: {
+          background_url: string | null
           created_at: string
           currency: string
           date_format: string
@@ -713,6 +714,7 @@ export type Database = {
           week_start: string
         }
         Insert: {
+          background_url?: string | null
           created_at?: string
           currency?: string
           date_format?: string
@@ -722,6 +724,7 @@ export type Database = {
           week_start?: string
         }
         Update: {
+          background_url?: string | null
           created_at?: string
           currency?: string
           date_format?: string
@@ -731,6 +734,38 @@ export type Database = {
           week_start?: string
         }
         Relationships: []
+      }
+      family_addresses: {
+        Row: {
+          address_line: string
+          created_at: string
+          family_id: string
+          id: string
+          label: string
+        }
+        Insert: {
+          address_line: string
+          created_at?: string
+          family_id: string
+          id?: string
+          label: string
+        }
+        Update: {
+          address_line?: string
+          created_at?: string
+          family_id?: string
+          id?: string
+          label?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "family_addresses_family_id_fkey"
+            columns: ["family_id"]
+            isOneToOne: false
+            referencedRelation: "families"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       goals: {
         Row: {

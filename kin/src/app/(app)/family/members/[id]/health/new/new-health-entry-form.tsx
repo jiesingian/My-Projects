@@ -42,7 +42,7 @@ export function NewHealthEntryForm({
 
   return (
     <div>
-      <DetailHeader backHref={`/family/members/${member.id}`} eyebrow="HUB 01 · HEALTH ENTRY" />
+      <DetailHeader backHref={`/family/members/${member.id}?view=health`} eyebrow="HUB 01 · HEALTH ENTRY" />
       <div style={{ padding: "0 22px 22px" }}>
         <h3 style={{ fontSize: 30, margin: "0 0 4px" }}>New entry</h3>
         <div style={{ fontSize: 12.5, color: "var(--color-neutral-700)", marginBottom: 16 }}>For {member.full_name}</div>

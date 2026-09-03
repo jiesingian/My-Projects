@@ -81,7 +81,7 @@ export async function createHealthEntryAction(_prev: ActionState, formData: Form
   }
 
   revalidatePath(`/family/members/${memberId}`);
-  redirect(`/family/members/${memberId}`);
+  redirect(`/family/members/${memberId}?view=health`);
 }
 
 export async function toggleOmronAction(memberId: string, familyId: string, connected: boolean) {

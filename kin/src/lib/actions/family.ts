@@ -143,6 +143,47 @@ export async function updateMemberRelationshipAction(memberId: string, relations
   return { error: error?.message ?? null };
 }
 
+/** Sets the household's cover photo — the image itself is uploaded directly
+ * to Storage by the client (same pattern as avatars); this just records the
+ * resulting path against the family row. Organizer only. */
+export async function updateFamilyBackgroundAction(path: string): Promise<ActionState> {
+  const me = await requireCurrentMember();
+  if (!me.is_organiser) return { error: "Only the organizer can change the household photo." };
+
+  const supabase = await createClient();
+  const publicUrl = supabase.storage.from("avatars").getPublicUrl(path).data.publicUrl;
+  const { error } = await supabase.from("families").update({ background_url: publicUrl }).eq("id", me.family_id);
+  revalidatePath("/family");
+  return { error: error?.message ?? null };
+}
+
+/** Adds a tagged address to the household profile (e.g. "Home", "Office").
+ * Organizer only — RLS enforces this too. Purely informational for now;
+ * not yet wired into Planner/Household task forms. */
+export async function addFamilyAddressAction(label: string, addressLine: string): Promise<ActionState> {
+  const me = await requireCurrentMember();
+  if (!me.is_organiser) return { error: "Only the organizer can add household addresses." };
+  const cleanLabel = label.trim();
+  const cleanAddress = addressLine.trim();
+  if (!cleanLabel || !cleanAddress) return { error: "Both a tag and an address are required." };
+
+  const supabase = await createClient();
+  const { error } = await supabase.from("family_addresses").insert({ family_id: me.family_id, label: cleanLabel, address_line: cleanAddress });
+  revalidatePath("/family");
+  return { error: error?.message ?? null };
+}
+
+/** Removes a household address. Organizer only — RLS enforces this too. */
+export async function removeFamilyAddressAction(addressId: string): Promise<ActionState> {
+  const me = await requireCurrentMember();
+  if (!me.is_organiser) return { error: "Only the organizer can remove household addresses." };
+
+  const supabase = await createClient();
+  const { error } = await supabase.from("family_addresses").delete().eq("id", addressId);
+  revalidatePath("/family");
+  return { error: error?.message ?? null };
+}
+
 /** Permanently deletes the entire household — every member, journal entry,
  * document index, health record, bill, account, and every other row this
  * family owns. RLS/the RPC itself restrict this to the organizer. Files

@@ -1,16 +1,18 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getCurrentMember } from "@/lib/session";
-import { getMembers, getHealthSummary, getDocFolders } from "@/lib/queries/family";
+import { getMembers, getHealthSummary, getDocFolders, getFamilyProfile } from "@/lib/queries/family";
 import { HubHeader } from "@/components/hub-header";
 import { ChipRow } from "@/components/segmented";
 import { Blueprint, Tag } from "@/components/ui";
 import { PendingMemberActions } from "@/components/pending-member-actions";
 import { RemoveMemberButton, ReinstateMemberButton } from "@/components/member-status-actions";
 import { Avatar } from "@/components/avatar";
+import { FamilyBackgroundUpload } from "@/components/family-background-upload";
+import { FamilyAddressList } from "@/components/family-address-list";
 import { formatAge, initials } from "@/lib/format";
 
-const SEGMENTS = ["members", "health", "documents"] as const;
+const SEGMENTS = ["profile", "health", "documents"] as const;
 type Seg = (typeof SEGMENTS)[number];
 
 export default async function FamilyPage({
@@ -22,11 +24,11 @@ export default async function FamilyPage({
   if (!me) redirect("/onboarding/profile");
 
   const sp = await searchParams;
-  const seg: Seg = (SEGMENTS as readonly string[]).includes(sp.seg ?? "") ? (sp.seg as Seg) : "members";
+  const seg: Seg = (SEGMENTS as readonly string[]).includes(sp.seg ?? "") ? (sp.seg as Seg) : "profile";
   const who = sp.who ?? "all";
 
   const segments = SEGMENTS.map((s) => ({
-    label: s === "members" ? "Members" : s === "health" ? "Health" : "Documents",
+    label: s === "profile" ? "Profile" : s === "health" ? "Health" : "Documents",
     href: `/family?seg=${s}`,
     active: s === seg,
   }));
@@ -35,7 +37,7 @@ export default async function FamilyPage({
     <div>
       <HubHeader n="01" title="Family" segments={segments} />
       <div style={{ padding: "0 22px 22px" }}>
-        {seg === "members" && <MembersPane familyId={me.family_id} isOrganiser={me.is_organiser} myId={me.id} />}
+        {seg === "profile" && <ProfilePane familyId={me.family_id} isOrganiser={me.is_organiser} myId={me.id} />}
         {seg === "health" && <HealthPane familyId={me.family_id} who={who} />}
         {seg === "documents" && <DocumentsPane familyId={me.family_id} who={who} />}
       </div>
@@ -43,14 +45,18 @@ export default async function FamilyPage({
   );
 }
 
-async function MembersPane({ familyId, isOrganiser, myId }: { familyId: string; isOrganiser: boolean; myId: string }) {
-  const allMembers = await getMembers(familyId);
+async function ProfilePane({ familyId, isOrganiser, myId }: { familyId: string; isOrganiser: boolean; myId: string }) {
+  const [allMembers, { backgroundUrl, addresses }] = await Promise.all([getMembers(familyId), getFamilyProfile(familyId)]);
   const pending = allMembers.filter((m) => m.status === "pending");
   const removed = allMembers.filter((m) => m.status === "removed");
   const members = allMembers.filter((m) => m.status !== "pending" && m.status !== "removed");
 
   return (
     <>
+      <FamilyBackgroundUpload familyId={familyId} backgroundUrl={backgroundUrl} canEdit={isOrganiser} />
+      <FamilyAddressList addresses={addresses} canEdit={isOrganiser} />
+      <div style={{ height: 1, background: "var(--color-divider)", margin: "4px 0 18px" }} />
+
       {isOrganiser && pending.length > 0 && (
         <>
           <div style={{ font: "600 10px/1 var(--font-heading)", letterSpacing: ".14em", color: "var(--color-accent-700)", marginBottom: 8 }}>
@@ -137,7 +143,7 @@ async function HealthPane({ familyId, who }: { familyId: string; who: string }) 
         />
       </div>
       {filtered.map(({ member, nextDue, hasAlert }) => (
-        <Link key={member.id} href={`/family/members/${member.id}`} style={{ color: "inherit", textDecoration: "none" }}>
+        <Link key={member.id} href={`/family/members/${member.id}?view=health`} style={{ color: "inherit", textDecoration: "none" }}>
           <Blueprint style={{ padding: 13, marginBottom: 12 }}>
             <div style={{ display: "flex", alignItems: "baseline", gap: 8, marginBottom: 8 }}>
               <span style={{ font: "600 19px/1 var(--font-heading)" }}>{member.full_name.split(" ")[0]}</span>

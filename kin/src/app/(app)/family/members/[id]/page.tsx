@@ -24,16 +24,17 @@ export default async function MemberDetailPage({
   searchParams,
 }: {
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ seg?: string }>;
+  searchParams: Promise<{ seg?: string; view?: string }>;
 }) {
   const me = await getCurrentMember();
   if (!me) redirect("/onboarding/profile");
   const { id } = await params;
   const sp = await searchParams;
   const seg: Seg = (SEGMENTS as readonly string[]).includes(sp.seg ?? "") ? (sp.seg as Seg) : "schedule";
+  const view: "profile" | "health" = sp.view === "health" ? "health" : "profile";
 
   const { member, schedule, appointments, conditions, labs, vitals, omron } = await getMemberDetail(id, me.family_id);
-  if (!member) redirect("/family?seg=members");
+  if (!member) redirect("/family?seg=profile");
   const isSelf = me.id === member.id;
 
   let photos: AlbumPhoto[] = [];
@@ -61,61 +62,26 @@ export default async function MemberDetailPage({
 
   const segments = SEGMENTS.map((s) => ({
     label: s[0].toUpperCase() + s.slice(1),
-    href: `/family/members/${id}?seg=${s}`,
+    href: `/family/members/${id}?view=health&seg=${s}`,
     active: s === seg,
   }));
 
   return (
     <div>
-      <DetailHeader backHref="/family?seg=members" eyebrow="HUB 01 · MEMBER RECORD" />
+      <DetailHeader backHref={view === "health" ? "/family?seg=health" : "/family?seg=profile"} eyebrow="HUB 01 · MEMBER RECORD" />
       <div style={{ padding: "0 22px 22px" }}>
-        {isSelf ? (
-          <MemberProfileEditor
-            familyId={me.family_id}
-            memberId={member.id}
-            fullName={member.full_name}
-            ageLabel={`${formatAge(member.dob)} · ${member.relationship ?? member.role.replace("_", " ")}`}
-            statusLabel={member.is_organiser ? "ORGANIZER" : member.status.toUpperCase()}
-            statusVariant={member.is_organiser ? "accent" : "neutral"}
-            avatarUrl={member.avatar_url}
-            initials={initials(member.full_name)}
-            photos={photos}
-            initial={{
-              full_name: member.full_name,
-              dob: member.dob,
-              mobile: member.mobile,
-              blood_type: member.blood_type,
-              allergies: member.allergies,
-              insurance_info: member.insurance_info,
-              physician_name: member.physician_name,
-            }}
-          />
-        ) : (
-          <>
-            <div style={{ display: "flex", gap: 14, alignItems: "flex-end", marginBottom: 18 }}>
-              <Avatar url={member.avatar_url} initials={initials(member.full_name)} size={88} />
-              <div>
-                <div style={{ font: "600 34px/.98 var(--font-heading)" }}>{member.full_name}</div>
-                <div style={{ fontSize: 12, color: "var(--color-neutral-600)", marginTop: 4 }}>
-                  {formatAge(member.dob)} · {member.relationship ?? member.role.replace("_", " ")}
-                </div>
-                <Tag variant={member.is_organiser ? "accent" : "neutral"} className="mt-2 inline-flex">
-                  {member.is_organiser ? "ORGANIZER" : member.status.toUpperCase()}
-                </Tag>
-              </div>
-            </div>
-
-            {me.is_organiser && (
-              <>
-                <div style={{ fontSize: 11.5, color: "var(--color-neutral-700)", marginBottom: 6 }}>Relationship</div>
-                <RelationshipEditor memberId={member.id} relationship={member.relationship} />
-              </>
-            )}
-
-            <ProfileEditForm
+        {view === "profile" ? (
+          isSelf ? (
+            <MemberProfileEditor
+              familyId={me.family_id}
               memberId={member.id}
-              isSelf={false}
-              canEdit={me.is_organiser}
+              fullName={member.full_name}
+              ageLabel={`${formatAge(member.dob)} · ${member.relationship ?? member.role.replace("_", " ")}`}
+              statusLabel={member.is_organiser ? "ORGANIZER" : member.status.toUpperCase()}
+              statusVariant={member.is_organiser ? "accent" : "neutral"}
+              avatarUrl={member.avatar_url}
+              initials={initials(member.full_name)}
+              photos={photos}
               initial={{
                 full_name: member.full_name,
                 dob: member.dob,
@@ -126,9 +92,58 @@ export default async function MemberDetailPage({
                 physician_name: member.physician_name,
               }}
             />
-          </>
+          ) : (
+            <>
+              <div style={{ display: "flex", gap: 14, alignItems: "flex-end", marginBottom: 18 }}>
+                <Avatar url={member.avatar_url} initials={initials(member.full_name)} size={88} />
+                <div>
+                  <div style={{ font: "600 34px/.98 var(--font-heading)" }}>{member.full_name}</div>
+                  <div style={{ fontSize: 12, color: "var(--color-neutral-600)", marginTop: 4 }}>
+                    {formatAge(member.dob)} · {member.relationship ?? member.role.replace("_", " ")}
+                  </div>
+                  <Tag variant={member.is_organiser ? "accent" : "neutral"} className="mt-2 inline-flex">
+                    {member.is_organiser ? "ORGANIZER" : member.status.toUpperCase()}
+                  </Tag>
+                </div>
+              </div>
+
+              {me.is_organiser && (
+                <>
+                  <div style={{ fontSize: 11.5, color: "var(--color-neutral-700)", marginBottom: 6 }}>Relationship</div>
+                  <RelationshipEditor memberId={member.id} relationship={member.relationship} />
+                </>
+              )}
+
+              <ProfileEditForm
+                memberId={member.id}
+                isSelf={false}
+                canEdit={me.is_organiser}
+                initial={{
+                  full_name: member.full_name,
+                  dob: member.dob,
+                  mobile: member.mobile,
+                  blood_type: member.blood_type,
+                  allergies: member.allergies,
+                  insurance_info: member.insurance_info,
+                  physician_name: member.physician_name,
+                }}
+              />
+            </>
+          )
+        ) : (
+          <div style={{ display: "flex", gap: 14, alignItems: "flex-end", marginBottom: 18 }}>
+            <Avatar url={member.avatar_url} initials={initials(member.full_name)} size={64} />
+            <div>
+              <div style={{ font: "600 26px/.98 var(--font-heading)" }}>{member.full_name}</div>
+              <div style={{ fontSize: 12, color: "var(--color-neutral-600)", marginTop: 4 }}>
+                {formatAge(member.dob)} · {member.relationship ?? member.role.replace("_", " ")}
+              </div>
+            </div>
+          </div>
         )}
 
+        {view === "health" && (
+          <>
         <Segmented items={segments} />
         <div style={{ marginTop: 18 }}>
           {seg === "schedule" && (
@@ -235,8 +250,10 @@ export default async function MemberDetailPage({
         >
           + NEW HEALTH ENTRY
         </Link>
+          </>
+        )}
 
-        {me.is_organiser && !member.is_organiser && member.status !== "removed" && (
+        {view === "profile" && me.is_organiser && !member.is_organiser && member.status !== "removed" && (
           <RemoveMemberButton memberId={member.id} fullName={member.full_name} variant="block" />
         )}
       </div>

@@ -134,7 +134,7 @@ export default async function SettingsPage({
         <div style={{ fontSize: 11.5, color: "var(--color-neutral-700)", marginBottom: 6 }}>
           Members · {memberCount ?? 0} · {managedCount ?? 0} managed profiles
         </div>
-        <Link href="/family?seg=members" className="btn btn-secondary btn-block" style={{ minHeight: 40, fontSize: 12, marginBottom: 14 }}>
+        <Link href="/family?seg=profile" className="btn btn-secondary btn-block" style={{ minHeight: 40, fontSize: 12, marginBottom: 14 }}>
           VIEW MEMBERS
         </Link>
         {me.is_organiser && (

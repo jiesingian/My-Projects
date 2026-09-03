@@ -2,6 +2,15 @@ import { createClient } from "@/lib/supabase/server";
 import { formatDate } from "@/lib/format";
 import type { Tables } from "@/lib/database.types";
 
+export async function getFamilyProfile(familyId: string) {
+  const supabase = await createClient();
+  const [{ data: family }, { data: addresses }] = await Promise.all([
+    supabase.from("families").select("background_url").eq("id", familyId).maybeSingle(),
+    supabase.from("family_addresses").select("id, label, address_line").eq("family_id", familyId).order("created_at"),
+  ]);
+  return { backgroundUrl: family?.background_url ?? null, addresses: addresses ?? [] };
+}
+
 export async function getMembers(familyId: string) {
   const supabase = await createClient();
   const { data } = await supabase

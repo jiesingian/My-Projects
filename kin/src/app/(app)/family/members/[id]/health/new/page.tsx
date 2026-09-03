@@ -18,7 +18,7 @@ export default async function NewHealthEntryPage({
     supabase.from("health_conditions").select("id, name").eq("member_id", id),
     supabase.from("omron_links").select("connected").eq("member_id", id).maybeSingle(),
   ]);
-  if (!member) redirect("/family?seg=members");
+  if (!member) redirect("/family?seg=profile");
 
   return <NewHealthEntryForm member={member} conditions={conditions ?? []} omronConnected={!!omron?.connected} />;
 }
