@@ -1,7 +1,7 @@
 {
   "0": "icons.tsx",
-  "1": "[id]/page.tsx",
-  "2": "(app)/family/page.tsx",
+  "1": "wealth/page.tsx",
+  "2": "[id]/page.tsx",
   "3": "auth.ts",
   "4": "devDependencies",
   "5": "createClient",

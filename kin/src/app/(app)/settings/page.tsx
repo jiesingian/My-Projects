@@ -17,8 +17,7 @@ import {
 } from "@/components/settings-controls";
 import { DeleteHouseholdButton } from "@/components/delete-household-button";
 import { DeleteAccountButton } from "@/components/delete-account-button";
-import { AvatarUpload } from "@/components/avatar-upload";
-import { ProfileEditForm } from "@/components/profile-edit-form";
+import { Avatar } from "@/components/avatar";
 import { TransferOrganizerRole } from "@/components/transfer-organizer-role";
 import { initials } from "@/lib/format";
 
@@ -64,33 +63,19 @@ export default async function SettingsPage({
     <div>
       <DetailHeader backHref="/today" eyebrow="SETTINGS" />
       <div style={{ padding: "0 22px 22px" }}>
-        <Blueprint style={{ padding: 14, display: "flex", gap: 13, alignItems: "center", marginBottom: 22 }}>
-          <AvatarUpload familyId={me.family_id} memberId={me.id} avatarUrl={me.avatar_url} initials={initials(me.full_name)} />
-          <span style={{ flex: 1, minWidth: 0 }}>
-            <span style={{ font: "600 20px/1.05 var(--font-heading)", display: "block" }}>{me.full_name}</span>
-            <span style={{ fontSize: 11.5, color: "var(--color-neutral-600)" }}>
-              {authUser.user?.email} · {authUser.user?.email_confirmed_at ? "verified" : "unverified"}
+        <Link href={`/family/members/${me.id}`} style={{ textDecoration: "none", color: "inherit" }}>
+          <Blueprint style={{ padding: 14, display: "flex", gap: 13, alignItems: "center", marginBottom: 22 }}>
+            <Avatar url={me.avatar_url} initials={initials(me.full_name)} size={48} />
+            <span style={{ flex: 1, minWidth: 0 }}>
+              <span style={{ font: "600 20px/1.05 var(--font-heading)", display: "block" }}>{me.full_name}</span>
+              <span style={{ fontSize: 11.5, color: "var(--color-neutral-600)" }}>
+                {authUser.user?.email} · {authUser.user?.email_confirmed_at ? "verified" : "unverified"}
+              </span>
+              <span style={{ fontSize: 11, color: "var(--color-accent-700)", textDecoration: "underline" }}>Edit profile</span>
             </span>
-          </span>
-          {me.is_organiser && <Tag variant="accent">ORGANIZER</Tag>}
-        </Blueprint>
-
-        <div style={{ font: "600 10px/1 var(--font-heading)", letterSpacing: ".16em", color: "var(--color-neutral-600)", marginBottom: 8 }}>
-          MY PROFILE
-        </div>
-        <ProfileEditForm
-          memberId={me.id}
-          isSelf
-          initial={{
-            full_name: me.full_name,
-            dob: me.dob,
-            mobile: me.mobile,
-            blood_type: me.blood_type,
-            allergies: me.allergies,
-            insurance_info: me.insurance_info,
-            physician_name: me.physician_name,
-          }}
-        />
+            {me.is_organiser && <Tag variant="accent">ORGANIZER</Tag>}
+          </Blueprint>
+        </Link>
 
         <div style={{ font: "600 10px/1 var(--font-heading)", letterSpacing: ".16em", color: "var(--color-neutral-600)", marginBottom: 4 }}>
           CONNECTED STORAGE

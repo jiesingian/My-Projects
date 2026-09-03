@@ -11,6 +11,7 @@ import { OmronToggle } from "./omron-toggle";
 import { RelationshipEditor } from "@/components/relationship-editor";
 import { RemoveMemberButton } from "@/components/member-status-actions";
 import { Avatar } from "@/components/avatar";
+import { AvatarUpload } from "@/components/avatar-upload";
 import { ProfileEditForm } from "@/components/profile-edit-form";
 
 const SEGMENTS = ["schedule", "conditions", "labs", "vitals"] as const;
@@ -31,6 +32,7 @@ export default async function MemberDetailPage({
 
   const { member, schedule, appointments, conditions, labs, vitals, omron } = await getMemberDetail(id, me.family_id);
   if (!member) redirect("/family?seg=members");
+  const isSelf = me.id === member.id;
 
   const isChild = member.role === "child_managed" || member.role === "child_self";
   const bpPoints = vitals.filter((v) => v.vital_type === "blood_pressure");
@@ -52,7 +54,11 @@ export default async function MemberDetailPage({
       <DetailHeader backHref="/family?seg=members" eyebrow="HUB 01 · MEMBER RECORD" />
       <div style={{ padding: "0 22px 22px" }}>
         <div style={{ display: "flex", gap: 14, alignItems: "flex-end", marginBottom: 18 }}>
-          <Avatar url={member.avatar_url} initials={initials(member.full_name)} size={88} />
+          {isSelf ? (
+            <AvatarUpload familyId={me.family_id} memberId={member.id} avatarUrl={member.avatar_url} initials={initials(member.full_name)} size={88} />
+          ) : (
+            <Avatar url={member.avatar_url} initials={initials(member.full_name)} size={88} />
+          )}
           <div>
             <div style={{ font: "600 34px/.98 var(--font-heading)" }}>{member.full_name}</div>
             <div style={{ fontSize: 12, color: "var(--color-neutral-600)", marginTop: 4 }}>
@@ -71,10 +77,10 @@ export default async function MemberDetailPage({
           </>
         )}
 
-        {me.is_organiser && me.id !== member.id ? (
+        {isSelf || me.is_organiser ? (
           <ProfileEditForm
             memberId={member.id}
-            isSelf={false}
+            isSelf={isSelf}
             initial={{
               full_name: member.full_name,
               dob: member.dob,

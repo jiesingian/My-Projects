@@ -10,14 +10,14 @@
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `cf0df211`
+- Built from commit: `56d44fb5`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
 ## Community Hubs (Navigation)
 - icons.tsx
+- wealth/page.tsx
 - [id]/page.tsx
-- (app)/family/page.tsx
 - auth.ts
 - devDependencies
 - createClient
@@ -75,13 +75,13 @@
 Cohesion: 0.09
 Nodes (23): AppLayout(), DeleteButton(), DocFileRow(), DownloadLink(), Failure, GalleryGrid(), deleteSelected(), MediaItem (+15 more)
 
-### Community 1 - "[id]/page.tsx"
-Cohesion: 0.12
-Nodes (23): MemberDetailPage(), Seg, SEGMENTS, MembersPane(), TodayPage(), JointPane(), MinePane(), Seg (+15 more)
+### Community 1 - "wealth/page.tsx"
+Cohesion: 0.18
+Nodes (16): MembersPane(), TodayPage(), JointPane(), MinePane(), Seg, SEGMENTS, WealthPage(), MembersPage() (+8 more)
 
-### Community 2 - "(app)/family/page.tsx"
-Cohesion: 0.14
-Nodes (18): DocumentsPane(), FamilyPage(), HealthPane(), Seg, SEGMENTS, ReinstateMemberButton(), RemoveMemberButton(), PendingMemberActions() (+10 more)
+### Community 2 - "[id]/page.tsx"
+Cohesion: 0.09
+Nodes (29): MemberDetailPage(), Seg, SEGMENTS, DocumentsPane(), FamilyPage(), HealthPane(), Seg, SEGMENTS (+21 more)
 
 ### Community 3 - "auth.ts"
 Cohesion: 0.05
@@ -100,8 +100,8 @@ Cohesion: 0.07
 Nodes (28): dom, dom.iterable, esnext, **/*.mts, .next/dev/types/**/*.ts, next-env.d.ts, .next/types/**/*.ts, node_modules (+20 more)
 
 ### Community 7 - "requireCurrentMember"
-Cohesion: 0.07
-Nodes (44): ActivityForm(), AddPlannerForm(), EventForm(), GoalForm(), initialState, PlannerType, TripForm(), TYPES (+36 more)
+Cohesion: 0.08
+Nodes (40): ActivityForm(), AddPlannerForm(), EventForm(), GoalForm(), initialState, PlannerType, TripForm(), TYPES (+32 more)
 
 ### Community 8 - "household/page.tsx"
 Cohesion: 0.12
@@ -131,17 +131,17 @@ Nodes (3): updateSession(), config, proxy()
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
-- **Why does `createClient()` connect `createClient` to `icons.tsx`, `[id]/page.tsx`, `(app)/family/page.tsx`, `auth.ts`, `requireCurrentMember`, `household/page.tsx`, `database.types.ts`, `getCurrentMember`?**
+- **Why does `createClient()` connect `createClient` to `icons.tsx`, `wealth/page.tsx`, `[id]/page.tsx`, `auth.ts`, `requireCurrentMember`, `household/page.tsx`, `database.types.ts`, `getCurrentMember`?**
   _High betweenness centrality (0.208) - this node is a cross-community bridge._
-- **Why does `getCurrentMember` connect `getCurrentMember` to `icons.tsx`, `[id]/page.tsx`, `(app)/family/page.tsx`, `auth.ts`, `createClient`, `requireCurrentMember`, `household/page.tsx`?**
+- **Why does `getCurrentMember` connect `getCurrentMember` to `icons.tsx`, `wealth/page.tsx`, `[id]/page.tsx`, `auth.ts`, `createClient`, `requireCurrentMember`, `household/page.tsx`?**
   _High betweenness centrality (0.066) - this node is a cross-community bridge._
-- **Why does `requireCurrentMember()` connect `requireCurrentMember` to `icons.tsx`, `(app)/family/page.tsx`, `auth.ts`, `createClient`, `household/page.tsx`, `database.types.ts`, `getCurrentMember`?**
+- **Why does `requireCurrentMember()` connect `requireCurrentMember` to `icons.tsx`, `[id]/page.tsx`, `auth.ts`, `createClient`, `household/page.tsx`, `database.types.ts`, `getCurrentMember`?**
   _High betweenness centrality (0.024) - this node is a cross-community bridge._
 - **What connects `eslintConfig`, `nextConfig`, `name` to the rest of the system?**
   _120 weakly-connected nodes found - possible documentation gaps or missing edges._
 - **Should `icons.tsx` be split into smaller, more focused modules?**
   _Cohesion score 0.09041835357624832 - nodes in this community are weakly interconnected._
 - **Should `[id]/page.tsx` be split into smaller, more focused modules?**
-  _Cohesion score 0.11586452762923351 - nodes in this community are weakly interconnected._
-- **Should `(app)/family/page.tsx` be split into smaller, more focused modules?**
-  _Cohesion score 0.14130434782608695 - nodes in this community are weakly interconnected._
+  _Cohesion score 0.08748615725359911 - nodes in this community are weakly interconnected._
+- **Should `auth.ts` be split into smaller, more focused modules?**
+  _Cohesion score 0.05443037974683544 - nodes in this community are weakly interconnected._
