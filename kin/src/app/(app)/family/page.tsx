@@ -5,6 +5,7 @@ import { getMembers, getHealthSummary, getDocFolders } from "@/lib/queries/famil
 import { HubHeader } from "@/components/hub-header";
 import { ChipRow } from "@/components/segmented";
 import { Blueprint, Tag } from "@/components/ui";
+import { PendingMemberActions } from "@/components/pending-member-actions";
 import { formatAge, initials } from "@/lib/format";
 
 const SEGMENTS = ["members", "health", "documents"] as const;
@@ -32,7 +33,7 @@ export default async function FamilyPage({
     <div>
       <HubHeader n="01" title="Family" segments={segments} />
       <div style={{ padding: "0 22px 22px" }}>
-        {seg === "members" && <MembersPane familyId={me.family_id} />}
+        {seg === "members" && <MembersPane familyId={me.family_id} isOrganiser={me.is_organiser} />}
         {seg === "health" && <HealthPane familyId={me.family_id} who={who} />}
         {seg === "documents" && <DocumentsPane familyId={me.family_id} who={who} />}
       </div>
@@ -40,10 +41,48 @@ export default async function FamilyPage({
   );
 }
 
-async function MembersPane({ familyId }: { familyId: string }) {
-  const members = await getMembers(familyId);
+async function MembersPane({ familyId, isOrganiser }: { familyId: string; isOrganiser: boolean }) {
+  const allMembers = await getMembers(familyId);
+  const pending = allMembers.filter((m) => m.status === "pending");
+  const members = allMembers.filter((m) => m.status !== "pending");
+
   return (
     <>
+      {isOrganiser && pending.length > 0 && (
+        <>
+          <div style={{ font: "600 10px/1 var(--font-heading)", letterSpacing: ".14em", color: "var(--color-accent-700)", marginBottom: 8 }}>
+            PENDING REQUESTS · {pending.length}
+          </div>
+          {pending.map((m) => (
+            <Blueprint key={m.id} className="bg-[var(--color-accent-100)]" style={{ padding: 12, marginBottom: 10, display: "flex", alignItems: "center", gap: 12 }}>
+              <span
+                className="placeholder-fill"
+                style={{
+                  width: 40,
+                  height: 40,
+                  flex: "none",
+                  border: "1px solid var(--color-divider)",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  font: "600 14px/1 var(--font-heading)",
+                  color: "var(--color-neutral-700)",
+                }}
+              >
+                {initials(m.full_name)}
+              </span>
+              <span style={{ flex: 1, minWidth: 0 }}>
+                <span style={{ font: "600 15px/1.1 var(--font-heading)", display: "block" }}>{m.full_name}</span>
+                <span style={{ fontSize: 11, color: "var(--color-neutral-600)" }}>
+                  {formatAge(m.dob)} · wants to join as {m.role.replace("_", " ")}
+                </span>
+              </span>
+              <PendingMemberActions memberId={m.id} fullName={m.full_name} />
+            </Blueprint>
+          ))}
+          <div style={{ height: 1, background: "var(--color-divider)", margin: "4px 0 16px" }} />
+        </>
+      )}
       {members.map((m) => (
         <Link
           key={m.id}
@@ -93,7 +132,7 @@ async function MembersPane({ familyId }: { familyId: string }) {
 }
 
 async function HealthPane({ familyId, who }: { familyId: string; who: string }) {
-  const rows = await getHealthSummary(familyId);
+  const rows = (await getHealthSummary(familyId)).filter((r) => r.member.status !== "pending");
   const filtered = who === "all" ? rows : rows.filter((r) => r.member.id === who);
 
   return (
@@ -144,7 +183,7 @@ function Fact({ k, v }: { k: string; v: string | null }) {
 }
 
 async function DocumentsPane({ familyId, who }: { familyId: string; who: string }) {
-  const members = await getMembers(familyId);
+  const members = (await getMembers(familyId)).filter((m) => m.status !== "pending");
   const folders = await getDocFolders(familyId);
   const filtered =
     who === "all"

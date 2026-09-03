@@ -56,7 +56,7 @@ export async function joinFamilyAction(_prev: ActionState, formData: FormData): 
   });
   if (error) return { error: "That invite code didn't match a household. Double-check it and try again." };
 
-  redirect("/onboarding/members");
+  redirect("/onboarding/pending");
 }
 
 export async function addManagedChildAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
@@ -83,5 +83,23 @@ export async function regenerateInviteCodeAction(): Promise<ActionState> {
   const { error } = await supabase.rpc("regenerate_invite_code");
   revalidatePath("/settings");
   revalidatePath("/onboarding/members");
+  return { error: error?.message ?? null };
+}
+
+/** Approves a pending join request — RLS restricts this to the household's
+ * organiser and only while the row is still 'pending'. */
+export async function approveMemberAction(memberId: string): Promise<ActionState> {
+  const supabase = await createClient();
+  const { error } = await supabase.from("members").update({ status: "active" }).eq("id", memberId);
+  revalidatePath("/family");
+  return { error: error?.message ?? null };
+}
+
+/** Rejects a pending join request by removing it — RLS restricts this to
+ * the household's organiser and only while the row is still 'pending'. */
+export async function rejectMemberAction(memberId: string): Promise<ActionState> {
+  const supabase = await createClient();
+  const { error } = await supabase.from("members").delete().eq("id", memberId);
+  revalidatePath("/family");
   return { error: error?.message ?? null };
 }

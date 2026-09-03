@@ -5,6 +5,7 @@ import { TabBar } from "@/components/tab-bar";
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const member = await getCurrentMember();
   if (!member) redirect("/onboarding/profile");
+  if (member.status === "pending") redirect("/onboarding/pending");
 
   return (
     <div style={{ minHeight: "100dvh", display: "flex", flexDirection: "column" }}>
