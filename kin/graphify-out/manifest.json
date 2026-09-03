@@ -318,9 +318,9 @@
     "semantic_hash": ""
   },
   "src/components/settings-controls.tsx": {
-    "mtime": 1788408997.1791437,
-    "seen": 1788409327.5899005,
-    "ast_hash": "0a47c91735bf9b6598e69f5a4973cc9f",
+    "mtime": 1788425421.396838,
+    "seen": 1788425461.5977626,
+    "ast_hash": "06b2a9e82ba86c6320d5fa3921c239cd",
     "semantic_hash": ""
   },
   "src/components/tab-bar.tsx": {
@@ -558,9 +558,9 @@
     "semantic_hash": ""
   },
   "src/lib/google-drive.ts": {
-    "mtime": 1788424387.7968,
-    "seen": 1788424806.2749512,
-    "ast_hash": "8faddae67e10e629e6272190d6df5d84",
+    "mtime": 1788425371.4648361,
+    "seen": 1788425461.597804,
+    "ast_hash": "cc4d67f00f9856cc1f0f7de7a7a7713b",
     "semantic_hash": ""
   },
   "src/app/api/drive/file/[fileId]/route.ts": {
@@ -729,6 +729,12 @@
     "mtime": 1788424732.5248127,
     "seen": 1788424806.274953,
     "ast_hash": "095013b4547a35775721b90e2feb4d63",
+    "semantic_hash": ""
+  },
+  "src/lib/actions/photo-migration.ts": {
+    "mtime": 1788425390.0208368,
+    "seen": 1788425461.5977893,
+    "ast_hash": "27f12faf1dcacb72ba0a835756fbe61a",
     "semantic_hash": ""
   }
 }

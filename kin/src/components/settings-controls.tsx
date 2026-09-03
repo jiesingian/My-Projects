@@ -4,6 +4,7 @@ import { useTransition } from "react";
 import { setThemeAction, setTextSizeAction, toggleNotificationAction, updateHouseholdNameAction, updateHouseholdPrefsAction } from "@/lib/actions/settings";
 import { regenerateInviteCodeAction } from "@/lib/actions/family";
 import { disconnectDriveAction } from "@/lib/actions/drive";
+import { migrateProfilePhotosToDriveAction } from "@/lib/actions/photo-migration";
 import { useState } from "react";
 import { CopyInviteCode } from "@/components/copy-invite-code";
 
@@ -245,6 +246,7 @@ export function DriveConnectedPanel({
       )}
       {canManage && (
         <>
+          <MigratePhotosButton />
           <p style={{ fontSize: 11, color: "var(--color-neutral-600)", margin: "9px 0" }}>
             Sharing (who can open the folder link) is set in Google Drive itself, not here — open the folder above and
             use Drive&apos;s own Share dialog.
@@ -264,5 +266,39 @@ export function DriveConnectedPanel({
         <div style={{ fontSize: 11, color: "var(--color-neutral-600)", marginTop: 10 }}>Last synced {new Date(lastSyncedAt).toLocaleString()}</div>
       )}
     </>
+  );
+}
+
+/** One-time backfill button for profile photos (member avatars, household
+ * cover photo) that were uploaded to Supabase Storage before Drive was
+ * connected, or before uploads started routing there. Safe to click more
+ * than once — it only ever touches rows that still lack a drive_file_id. */
+function MigratePhotosButton() {
+  const [busy, setBusy] = useState(false);
+  const [message, setMessage] = useState<string | null>(null);
+  const [isError, setIsError] = useState(false);
+
+  return (
+    <div style={{ marginBottom: 9 }}>
+      <button
+        type="button"
+        className="btn btn-secondary btn-block"
+        disabled={busy}
+        style={{ minHeight: 40, fontSize: 12 }}
+        onClick={async () => {
+          setBusy(true);
+          setMessage(null);
+          const result = await migrateProfilePhotosToDriveAction();
+          setBusy(false);
+          setIsError(!!result.error);
+          setMessage(result.error ?? (result.migrated ? `Moved ${result.migrated} photo${result.migrated === 1 ? "" : "s"} to Drive.` : "Nothing to move — already up to date."));
+        }}
+      >
+        {busy ? "MOVING…" : "MOVE EXISTING PHOTOS TO DRIVE"}
+      </button>
+      {message && (
+        <p style={{ fontSize: 11, color: isError ? "var(--color-accent-700)" : "var(--color-neutral-600)", margin: "6px 0 0" }}>{message}</p>
+      )}
+    </div>
   );
 }

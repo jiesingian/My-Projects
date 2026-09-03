@@ -162,6 +162,35 @@ export async function ensureProfilePhotoFolder(
   return ensureNamedSubfolder(accessToken, membersFolderId, `${target.fullName} — ${target.memberId.slice(0, 8)}`);
 }
 
+/** Uploads bytes we already have in hand straight to Drive in one request —
+ * unlike createResumableUploadSession, which hands a browser a URL to PUT
+ * into directly. Used server-side for one-off migrations, e.g. moving a
+ * photo that was uploaded to Supabase Storage before Drive was connected. */
+export async function uploadFileToDrive(
+  accessToken: string,
+  folderId: string,
+  fileName: string,
+  mimeType: string,
+  bytes: Blob,
+): Promise<DriveFile> {
+  const boundary = `kin-${Math.random().toString(36).slice(2)}`;
+  const metadata = JSON.stringify({ name: fileName, parents: [folderId] });
+  const body = new Blob([
+    `--${boundary}\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n${metadata}\r\n`,
+    `--${boundary}\r\nContent-Type: ${mimeType || "application/octet-stream"}\r\n\r\n`,
+    bytes,
+    `\r\n--${boundary}--`,
+  ]);
+
+  const res = await fetch(`${DRIVE_UPLOAD_API}/files?uploadType=multipart&fields=id,webViewLink,thumbnailLink`, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${accessToken}`, "Content-Type": `multipart/related; boundary=${boundary}` },
+    body,
+  });
+  if (!res.ok) throw new Error(`Drive upload failed: ${res.status} ${await res.text()}`);
+  return res.json();
+}
+
 /** Opens a Drive resumable-upload session and returns the one-time session
  * URL the browser can PUT the file bytes to directly — the file itself never
  * passes through our server, so it isn't subject to Vercel's request body

@@ -35,39 +35,13 @@
   },
   "nodes": [
     {
-      "id": "src_components_photo_album_viewer_albumphotolike",
-      "label": "AlbumPhotoLike",
-      "_callable": true,
-      "_callable_class": true,
-      "_origin": "ast",
-      "community": 0,
-      "community_name": "form.tsx",
-      "file_type": "code",
-      "norm_label": "albumphotolike",
-      "source_file": "src/components/photo-album-viewer.tsx",
-      "source_location": "L6"
-    },
-    {
-      "id": "src_lib_database_types_tables",
-      "label": "Tables",
-      "_callable": true,
-      "_callable_class": true,
-      "_origin": "ast",
-      "community": 0,
-      "community_name": "form.tsx",
-      "file_type": "code",
-      "norm_label": "tables",
-      "source_file": "src/lib/database.types.ts",
-      "source_location": "L2162"
-    },
-    {
       "id": "src_lib_upload_client_uploadedfile",
       "label": "UploadedFile",
       "_callable": true,
       "_callable_class": true,
       "_origin": "ast",
       "community": 0,
-      "community_name": "form.tsx",
+      "community_name": "new-entry-form.tsx",
       "file_type": "code",
       "norm_label": "uploadedfile",
       "source_file": "src/lib/upload-client.ts",
@@ -145,7 +119,7 @@
       "_callable_class": true,
       "_origin": "ast",
       "community": 11,
-      "community_name": "requireCurrentMember",
+      "community_name": "getCurrentMember",
       "file_type": "code",
       "norm_label": "sessionrequest",
       "source_file": "src/app/api/uploads/session/route.ts",
@@ -158,7 +132,7 @@
       "_callable_class": true,
       "_origin": "ast",
       "community": 11,
-      "community_name": "requireCurrentMember",
+      "community_name": "getCurrentMember",
       "file_type": "code",
       "norm_label": "failure",
       "source_file": "src/components/gallery-grid.tsx",
@@ -171,23 +145,10 @@
       "_callable_class": true,
       "_origin": "ast",
       "community": 11,
-      "community_name": "requireCurrentMember",
+      "community_name": "getCurrentMember",
       "file_type": "code",
       "norm_label": "mediaitem",
       "source_file": "src/components/gallery-grid.tsx",
-      "source_location": "L8"
-    },
-    {
-      "id": "src_lib_actions_documents_uploadedfile",
-      "label": "UploadedFile",
-      "_callable": true,
-      "_callable_class": true,
-      "_origin": "ast",
-      "community": 11,
-      "community_name": "requireCurrentMember",
-      "file_type": "code",
-      "norm_label": "uploadedfile",
-      "source_file": "src/lib/actions/documents.ts",
       "source_location": "L8"
     },
     {
@@ -197,11 +158,37 @@
       "_callable_class": true,
       "_origin": "ast",
       "community": 11,
-      "community_name": "requireCurrentMember",
+      "community_name": "getCurrentMember",
       "file_type": "code",
       "norm_label": "uploadedfile",
       "source_file": "src/lib/actions/journal.ts",
       "source_location": "L8"
+    },
+    {
+      "id": "src_lib_actions_photo_migration_migrateresult",
+      "label": "MigrateResult",
+      "_callable": true,
+      "_callable_class": true,
+      "_origin": "ast",
+      "community": 11,
+      "community_name": "getCurrentMember",
+      "file_type": "code",
+      "norm_label": "migrateresult",
+      "source_file": "src/lib/actions/photo-migration.ts",
+      "source_location": "L11"
+    },
+    {
+      "id": "src_lib_database_types_database",
+      "label": "Database",
+      "_callable": true,
+      "_callable_class": true,
+      "_origin": "ast",
+      "community": 11,
+      "community_name": "getCurrentMember",
+      "file_type": "code",
+      "norm_label": "database",
+      "source_file": "src/lib/database.types.ts",
+      "source_location": "L9"
     },
     {
       "id": "src_lib_google_drive_drivefile",
@@ -210,7 +197,7 @@
       "_callable_class": true,
       "_origin": "ast",
       "community": 11,
-      "community_name": "requireCurrentMember",
+      "community_name": "getCurrentMember",
       "file_type": "code",
       "norm_label": "drivefile",
       "source_file": "src/lib/google-drive.ts",
@@ -223,24 +210,37 @@
       "_callable_class": true,
       "_origin": "ast",
       "community": 11,
-      "community_name": "requireCurrentMember",
+      "community_name": "getCurrentMember",
       "file_type": "code",
       "norm_label": "drivefolderfile",
       "source_file": "src/lib/google-drive.ts",
-      "source_location": "L219"
+      "source_location": "L248"
     },
     {
-      "id": "src_lib_queries_today_hubcard",
-      "label": "HubCard",
+      "id": "src_app_app_planner_add_add_planner_form_plannertype",
+      "label": "PlannerType",
       "_callable": true,
       "_callable_class": true,
       "_origin": "ast",
       "community": 2,
       "community_name": "createClient",
       "file_type": "code",
-      "norm_label": "hubcard",
-      "source_file": "src/lib/queries/today.ts",
-      "source_location": "L5"
+      "norm_label": "plannertype",
+      "source_file": "src/app/(app)/planner/add/add-planner-form.tsx",
+      "source_location": "L12"
+    },
+    {
+      "id": "src_lib_actions_documents_uploadedfile",
+      "label": "UploadedFile",
+      "_callable": true,
+      "_callable_class": true,
+      "_origin": "ast",
+      "community": 2,
+      "community_name": "createClient",
+      "file_type": "code",
+      "norm_label": "uploadedfile",
+      "source_file": "src/lib/actions/documents.ts",
+      "source_location": "L8"
     },
     {
       "id": "src_lib_session_currentmember",
@@ -282,19 +282,6 @@
       "source_location": "L238"
     },
     {
-      "id": "src_app_app_planner_add_add_planner_form_plannertype",
-      "label": "PlannerType",
-      "_callable": true,
-      "_callable_class": true,
-      "_origin": "ast",
-      "community": 23,
-      "community_name": "add-planner-form.tsx",
-      "file_type": "code",
-      "norm_label": "plannertype",
-      "source_file": "src/app/(app)/planner/add/add-planner-form.tsx",
-      "source_location": "L12"
-    },
-    {
       "id": "src_lib_actions_auth_actionstate",
       "label": "ActionState",
       "_callable": true,
@@ -332,6 +319,19 @@
       "norm_label": "seg",
       "source_file": "src/app/(app)/wealth/page.tsx",
       "source_location": "L10"
+    },
+    {
+      "id": "src_components_photo_album_viewer_albumphotolike",
+      "label": "AlbumPhotoLike",
+      "_callable": true,
+      "_callable_class": true,
+      "_origin": "ast",
+      "community": 7,
+      "community_name": "profile.ts",
+      "file_type": "code",
+      "norm_label": "albumphotolike",
+      "source_file": "src/components/photo-album-viewer.tsx",
+      "source_location": "L6"
     },
     {
       "id": "src_components_profile_fields_fieldgroup",
@@ -386,19 +386,6 @@
       "source_location": "L2258"
     },
     {
-      "id": "src_lib_database_types_database",
-      "label": "Database",
-      "_callable": true,
-      "_callable_class": true,
-      "_origin": "ast",
-      "community": 7,
-      "community_name": "profile.ts",
-      "file_type": "code",
-      "norm_label": "database",
-      "source_file": "src/lib/database.types.ts",
-      "source_location": "L9"
-    },
-    {
       "id": "src_lib_database_types_databasewithoutinternals",
       "label": "DatabaseWithoutInternals",
       "_callable": true,
@@ -449,6 +436,19 @@
       "norm_label": "json",
       "source_file": "src/lib/database.types.ts",
       "source_location": "L1"
+    },
+    {
+      "id": "src_lib_database_types_tables",
+      "label": "Tables",
+      "_callable": true,
+      "_callable_class": true,
+      "_origin": "ast",
+      "community": 7,
+      "community_name": "profile.ts",
+      "file_type": "code",
+      "norm_label": "tables",
+      "source_file": "src/lib/database.types.ts",
+      "source_location": "L2162"
     },
     {
       "id": "src_lib_database_types_tablesinsert",
@@ -555,28 +555,17 @@
       "source_location": "L7"
     },
     {
-      "id": "src_app_app_household_meals_new_page_newmealpage",
-      "label": "NewMealPage()",
+      "id": "src_lib_queries_today_hubcard",
+      "label": "HubCard",
       "_callable": true,
+      "_callable_class": true,
       "_origin": "ast",
-      "community": 0,
-      "community_name": "form.tsx",
+      "community": 9,
+      "community_name": "icons.tsx",
       "file_type": "code",
-      "norm_label": "newmealpage()",
-      "source_file": "src/app/(app)/household/meals/new/page.tsx",
-      "source_location": "L11"
-    },
-    {
-      "id": "src_app_app_journal_milestones_new_page_newmilestonepage",
-      "label": "NewMilestonePage()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 0,
-      "community_name": "form.tsx",
-      "file_type": "code",
-      "norm_label": "newmilestonepage()",
-      "source_file": "src/app/(app)/journal/milestones/new/page.tsx",
-      "source_location": "L12"
+      "norm_label": "hubcard",
+      "source_file": "src/lib/queries/today.ts",
+      "source_location": "L5"
     },
     {
       "id": "src_app_app_journal_new_new_entry_form_newentryform",
@@ -584,7 +573,7 @@
       "_callable": true,
       "_origin": "ast",
       "community": 0,
-      "community_name": "form.tsx",
+      "community_name": "new-entry-form.tsx",
       "file_type": "code",
       "norm_label": "newentryform()",
       "source_file": "src/app/(app)/journal/new/new-entry-form.tsx",
@@ -596,7 +585,7 @@
       "_callable": true,
       "_origin": "ast",
       "community": 0,
-      "community_name": "form.tsx",
+      "community_name": "new-entry-form.tsx",
       "file_type": "code",
       "norm_label": "onfileschosen()",
       "source_file": "src/app/(app)/journal/new/new-entry-form.tsx",
@@ -608,7 +597,7 @@
       "_callable": true,
       "_origin": "ast",
       "community": 0,
-      "community_name": "form.tsx",
+      "community_name": "new-entry-form.tsx",
       "file_type": "code",
       "norm_label": "onsubmit()",
       "source_file": "src/app/(app)/journal/new/new-entry-form.tsx",
@@ -620,7 +609,7 @@
       "_callable": true,
       "_origin": "ast",
       "community": 0,
-      "community_name": "form.tsx",
+      "community_name": "new-entry-form.tsx",
       "file_type": "code",
       "norm_label": "avatarcropupload()",
       "source_file": "src/components/avatar-crop-upload.tsx",
@@ -632,7 +621,7 @@
       "_callable": true,
       "_origin": "ast",
       "community": 0,
-      "community_name": "form.tsx",
+      "community_name": "new-entry-form.tsx",
       "file_type": "code",
       "norm_label": "cancel()",
       "source_file": "src/components/avatar-crop-upload.tsx",
@@ -644,7 +633,7 @@
       "_callable": true,
       "_origin": "ast",
       "community": 0,
-      "community_name": "form.tsx",
+      "community_name": "new-entry-form.tsx",
       "file_type": "code",
       "norm_label": "onfilechange()",
       "source_file": "src/components/avatar-crop-upload.tsx",
@@ -656,7 +645,7 @@
       "_callable": true,
       "_origin": "ast",
       "community": 0,
-      "community_name": "form.tsx",
+      "community_name": "new-entry-form.tsx",
       "file_type": "code",
       "norm_label": "open()",
       "source_file": "src/components/avatar-crop-upload.tsx",
@@ -668,7 +657,7 @@
       "_callable": true,
       "_origin": "ast",
       "community": 0,
-      "community_name": "form.tsx",
+      "community_name": "new-entry-form.tsx",
       "file_type": "code",
       "norm_label": "save()",
       "source_file": "src/components/avatar-crop-upload.tsx",
@@ -680,23 +669,11 @@
       "_callable": true,
       "_origin": "ast",
       "community": 0,
-      "community_name": "form.tsx",
+      "community_name": "new-entry-form.tsx",
       "file_type": "code",
       "norm_label": "drawcrop()",
       "source_file": "src/components/avatar-crop-upload.tsx",
       "source_location": "L11"
-    },
-    {
-      "id": "src_components_family_background_album_familybackgroundalbum",
-      "label": "FamilyBackgroundAlbum()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 0,
-      "community_name": "form.tsx",
-      "file_type": "code",
-      "norm_label": "familybackgroundalbum()",
-      "source_file": "src/components/family-background-album.tsx",
-      "source_location": "L12"
     },
     {
       "id": "src_components_family_background_crop_upload_clampaxis",
@@ -704,7 +681,7 @@
       "_callable": true,
       "_origin": "ast",
       "community": 0,
-      "community_name": "form.tsx",
+      "community_name": "new-entry-form.tsx",
       "file_type": "code",
       "norm_label": "clampaxis()",
       "source_file": "src/components/family-background-crop-upload.tsx",
@@ -716,7 +693,7 @@
       "_callable": true,
       "_origin": "ast",
       "community": 0,
-      "community_name": "form.tsx",
+      "community_name": "new-entry-form.tsx",
       "file_type": "code",
       "norm_label": "drawcrop()",
       "source_file": "src/components/family-background-crop-upload.tsx",
@@ -728,7 +705,7 @@
       "_callable": true,
       "_origin": "ast",
       "community": 0,
-      "community_name": "form.tsx",
+      "community_name": "new-entry-form.tsx",
       "file_type": "code",
       "norm_label": "familybackgroundcropupload()",
       "source_file": "src/components/family-background-crop-upload.tsx",
@@ -740,7 +717,7 @@
       "_callable": true,
       "_origin": "ast",
       "community": 0,
-      "community_name": "form.tsx",
+      "community_name": "new-entry-form.tsx",
       "file_type": "code",
       "norm_label": "cancel()",
       "source_file": "src/components/family-background-crop-upload.tsx",
@@ -752,7 +729,7 @@
       "_callable": true,
       "_origin": "ast",
       "community": 0,
-      "community_name": "form.tsx",
+      "community_name": "new-entry-form.tsx",
       "file_type": "code",
       "norm_label": "onfilechange()",
       "source_file": "src/components/family-background-crop-upload.tsx",
@@ -764,7 +741,7 @@
       "_callable": true,
       "_origin": "ast",
       "community": 0,
-      "community_name": "form.tsx",
+      "community_name": "new-entry-form.tsx",
       "file_type": "code",
       "norm_label": "onimgload()",
       "source_file": "src/components/family-background-crop-upload.tsx",
@@ -776,7 +753,7 @@
       "_callable": true,
       "_origin": "ast",
       "community": 0,
-      "community_name": "form.tsx",
+      "community_name": "new-entry-form.tsx",
       "file_type": "code",
       "norm_label": "onpointerdown()",
       "source_file": "src/components/family-background-crop-upload.tsx",
@@ -788,7 +765,7 @@
       "_callable": true,
       "_origin": "ast",
       "community": 0,
-      "community_name": "form.tsx",
+      "community_name": "new-entry-form.tsx",
       "file_type": "code",
       "norm_label": "onpointermove()",
       "source_file": "src/components/family-background-crop-upload.tsx",
@@ -800,7 +777,7 @@
       "_callable": true,
       "_origin": "ast",
       "community": 0,
-      "community_name": "form.tsx",
+      "community_name": "new-entry-form.tsx",
       "file_type": "code",
       "norm_label": "onpointerup()",
       "source_file": "src/components/family-background-crop-upload.tsx",
@@ -812,7 +789,7 @@
       "_callable": true,
       "_origin": "ast",
       "community": 0,
-      "community_name": "form.tsx",
+      "community_name": "new-entry-form.tsx",
       "file_type": "code",
       "norm_label": "onzoomchange()",
       "source_file": "src/components/family-background-crop-upload.tsx",
@@ -824,7 +801,7 @@
       "_callable": true,
       "_origin": "ast",
       "community": 0,
-      "community_name": "form.tsx",
+      "community_name": "new-entry-form.tsx",
       "file_type": "code",
       "norm_label": "open()",
       "source_file": "src/components/family-background-crop-upload.tsx",
@@ -836,23 +813,11 @@
       "_callable": true,
       "_origin": "ast",
       "community": 0,
-      "community_name": "form.tsx",
+      "community_name": "new-entry-form.tsx",
       "file_type": "code",
       "norm_label": "save()",
       "source_file": "src/components/family-background-crop-upload.tsx",
       "source_location": "L123"
-    },
-    {
-      "id": "src_components_form_errortext",
-      "label": "ErrorText()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 0,
-      "community_name": "form.tsx",
-      "file_type": "code",
-      "norm_label": "errortext()",
-      "source_file": "src/components/form.tsx",
-      "source_location": "L23"
     },
     {
       "id": "src_components_gallery_upload_galleryupload",
@@ -860,7 +825,7 @@
       "_callable": true,
       "_origin": "ast",
       "community": 0,
-      "community_name": "form.tsx",
+      "community_name": "new-entry-form.tsx",
       "file_type": "code",
       "norm_label": "galleryupload()",
       "source_file": "src/components/gallery-upload.tsx",
@@ -872,7 +837,7 @@
       "_callable": true,
       "_origin": "ast",
       "community": 0,
-      "community_name": "form.tsx",
+      "community_name": "new-entry-form.tsx",
       "file_type": "code",
       "norm_label": "onfileschosen()",
       "source_file": "src/components/gallery-upload.tsx",
@@ -884,71 +849,11 @@
       "_callable": true,
       "_origin": "ast",
       "community": 0,
-      "community_name": "form.tsx",
+      "community_name": "new-entry-form.tsx",
       "file_type": "code",
       "norm_label": "onupload()",
       "source_file": "src/components/gallery-upload.tsx",
       "source_location": "L26"
-    },
-    {
-      "id": "src_components_hub_header_detailheader",
-      "label": "DetailHeader()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 0,
-      "community_name": "form.tsx",
-      "file_type": "code",
-      "norm_label": "detailheader()",
-      "source_file": "src/components/hub-header.tsx",
-      "source_location": "L31"
-    },
-    {
-      "id": "src_components_photo_album_viewer_photoalbumviewer",
-      "label": "PhotoAlbumViewer()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 0,
-      "community_name": "form.tsx",
-      "file_type": "code",
-      "norm_label": "photoalbumviewer()",
-      "source_file": "src/components/photo-album-viewer.tsx",
-      "source_location": "L11"
-    },
-    {
-      "id": "src_lib_actions_family_addfamilybackgroundaction",
-      "label": "addFamilyBackgroundAction()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 0,
-      "community_name": "form.tsx",
-      "file_type": "code",
-      "norm_label": "addfamilybackgroundaction()",
-      "source_file": "src/lib/actions/family.ts",
-      "source_location": "L154"
-    },
-    {
-      "id": "src_lib_actions_family_setactivefamilybackgroundaction",
-      "label": "setActiveFamilyBackgroundAction()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 0,
-      "community_name": "form.tsx",
-      "file_type": "code",
-      "norm_label": "setactivefamilybackgroundaction()",
-      "source_file": "src/lib/actions/family.ts",
-      "source_location": "L174"
-    },
-    {
-      "id": "src_lib_actions_household_addmealplanaction",
-      "label": "addMealPlanAction()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 0,
-      "community_name": "form.tsx",
-      "file_type": "code",
-      "norm_label": "addmealplanaction()",
-      "source_file": "src/lib/actions/household.ts",
-      "source_location": "L51"
     },
     {
       "id": "src_lib_actions_journal_attachjournalmediaaction",
@@ -956,23 +861,23 @@
       "_callable": true,
       "_origin": "ast",
       "community": 0,
-      "community_name": "form.tsx",
+      "community_name": "new-entry-form.tsx",
       "file_type": "code",
       "norm_label": "attachjournalmediaaction()",
       "source_file": "src/lib/actions/journal.ts",
       "source_location": "L41"
     },
     {
-      "id": "src_lib_actions_journal_createmilestoneaction",
-      "label": "createMilestoneAction()",
+      "id": "src_lib_actions_journal_createjournalentryaction",
+      "label": "createJournalEntryAction()",
       "_callable": true,
       "_origin": "ast",
       "community": 0,
-      "community_name": "form.tsx",
+      "community_name": "new-entry-form.tsx",
       "file_type": "code",
-      "norm_label": "createmilestoneaction()",
+      "norm_label": "createjournalentryaction()",
       "source_file": "src/lib/actions/journal.ts",
-      "source_location": "L132"
+      "source_location": "L12"
     },
     {
       "id": "src_lib_supabase_client_createclient",
@@ -980,7 +885,7 @@
       "_callable": true,
       "_origin": "ast",
       "community": 0,
-      "community_name": "form.tsx",
+      "community_name": "new-entry-form.tsx",
       "file_type": "code",
       "norm_label": "createclient()",
       "source_file": "src/lib/supabase/client.ts",
@@ -992,7 +897,7 @@
       "_callable": true,
       "_origin": "ast",
       "community": 0,
-      "community_name": "form.tsx",
+      "community_name": "new-entry-form.tsx",
       "file_type": "code",
       "norm_label": "rollbackupload()",
       "source_file": "src/lib/upload-client.ts",
@@ -1004,7 +909,7 @@
       "_callable": true,
       "_origin": "ast",
       "community": 0,
-      "community_name": "form.tsx",
+      "community_name": "new-entry-form.tsx",
       "file_type": "code",
       "norm_label": "uploadfiledirect()",
       "source_file": "src/lib/upload-client.ts",
@@ -1071,18 +976,6 @@
       "source_location": "L156"
     },
     {
-      "id": "src_app_app_family_page_familypage",
-      "label": "FamilyPage()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 1,
-      "community_name": "[id]/page.tsx",
-      "file_type": "code",
-      "norm_label": "familypage()",
-      "source_file": "src/app/(app)/family/page.tsx",
-      "source_location": "L19"
-    },
-    {
       "id": "src_app_app_family_page_healthpane",
       "label": "HealthPane()",
       "_callable": true,
@@ -1119,6 +1012,18 @@
       "source_location": "L6"
     },
     {
+      "id": "src_app_app_journal_page_entriespane",
+      "label": "EntriesPane()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 1,
+      "community_name": "[id]/page.tsx",
+      "file_type": "code",
+      "norm_label": "entriespane()",
+      "source_file": "src/app/(app)/journal/page.tsx",
+      "source_location": "L58"
+    },
+    {
       "id": "src_app_app_journal_page_gallerypane",
       "label": "GalleryPane()",
       "_callable": true,
@@ -1153,6 +1058,42 @@
       "norm_label": "milestonespane()",
       "source_file": "src/app/(app)/journal/page.tsx",
       "source_location": "L91"
+    },
+    {
+      "id": "src_app_app_planner_add_add_planner_form_addplannerform",
+      "label": "AddPlannerForm()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 1,
+      "community_name": "[id]/page.tsx",
+      "file_type": "code",
+      "norm_label": "addplannerform()",
+      "source_file": "src/app/(app)/planner/add/add-planner-form.tsx",
+      "source_location": "L14"
+    },
+    {
+      "id": "src_app_app_planner_add_page_addplannerpage",
+      "label": "AddPlannerPage()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 1,
+      "community_name": "[id]/page.tsx",
+      "file_type": "code",
+      "norm_label": "addplannerpage()",
+      "source_file": "src/app/(app)/planner/add/page.tsx",
+      "source_location": "L6"
+    },
+    {
+      "id": "src_components_avatar_avatar",
+      "label": "Avatar()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 1,
+      "community_name": "[id]/page.tsx",
+      "file_type": "code",
+      "norm_label": "avatar()",
+      "source_file": "src/components/avatar.tsx",
+      "source_location": "L1"
     },
     {
       "id": "src_components_hub_header_hubheader",
@@ -1275,6 +1216,18 @@
       "source_location": "L25"
     },
     {
+      "id": "src_lib_photo_url_resolvephotourl",
+      "label": "resolvePhotoUrl()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 1,
+      "community_name": "[id]/page.tsx",
+      "file_type": "code",
+      "norm_label": "resolvephotourl()",
+      "source_file": "src/lib/photo-url.ts",
+      "source_location": "L9"
+    },
+    {
       "id": "src_lib_profile_fields_membertoprofilefields",
       "label": "memberToProfileFields()",
       "_callable": true,
@@ -1359,18 +1312,6 @@
       "source_location": "L4"
     },
     {
-      "id": "src_lib_queries_journal_getgallery",
-      "label": "getGallery()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 1,
-      "community_name": "[id]/page.tsx",
-      "file_type": "code",
-      "norm_label": "getgallery()",
-      "source_file": "src/lib/queries/journal.ts",
-      "source_location": "L64"
-    },
-    {
       "id": "src_lib_queries_journal_getmilestones",
       "label": "getMilestones()",
       "_callable": true,
@@ -1388,11 +1329,23 @@
       "_callable": true,
       "_origin": "ast",
       "community": 11,
-      "community_name": "requireCurrentMember",
+      "community_name": "getCurrentMember",
       "file_type": "code",
       "norm_label": "get()",
       "source_file": "src/app/api/drive/callback/route.ts",
       "source_location": "L7"
+    },
+    {
+      "id": "src_app_api_drive_connect_route_get",
+      "label": "GET()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 11,
+      "community_name": "getCurrentMember",
+      "file_type": "code",
+      "norm_label": "get()",
+      "source_file": "src/app/api/drive/connect/route.ts",
+      "source_location": "L6"
     },
     {
       "id": "src_app_api_drive_file_fileid_route_delete",
@@ -1400,7 +1353,7 @@
       "_callable": true,
       "_origin": "ast",
       "community": 11,
-      "community_name": "requireCurrentMember",
+      "community_name": "getCurrentMember",
       "file_type": "code",
       "norm_label": "delete()",
       "source_file": "src/app/api/drive/file/[fileId]/route.ts",
@@ -1412,7 +1365,7 @@
       "_callable": true,
       "_origin": "ast",
       "community": 11,
-      "community_name": "requireCurrentMember",
+      "community_name": "getCurrentMember",
       "file_type": "code",
       "norm_label": "get()",
       "source_file": "src/app/api/drive/file/[fileId]/route.ts",
@@ -1424,47 +1377,47 @@
       "_callable": true,
       "_origin": "ast",
       "community": 11,
-      "community_name": "requireCurrentMember",
+      "community_name": "getCurrentMember",
       "file_type": "code",
       "norm_label": "post()",
       "source_file": "src/app/api/uploads/session/route.ts",
       "source_location": "L23"
     },
     {
-      "id": "src_app_app_family_documents_new_new_doc_form_newdocform",
-      "label": "NewDocForm()",
+      "id": "src_app_app_family_documents_folderid_page_docfolderpage",
+      "label": "DocFolderPage()",
       "_callable": true,
       "_origin": "ast",
       "community": 11,
-      "community_name": "requireCurrentMember",
+      "community_name": "getCurrentMember",
       "file_type": "code",
-      "norm_label": "newdocform()",
-      "source_file": "src/app/(app)/family/documents/new/new-doc-form.tsx",
-      "source_location": "L17"
+      "norm_label": "docfolderpage()",
+      "source_file": "src/app/(app)/family/documents/[folderId]/page.tsx",
+      "source_location": "L12"
     },
     {
-      "id": "src_app_app_family_documents_new_new_doc_form_newdocform_onsubmit",
-      "label": "onSubmit()",
+      "id": "src_app_app_family_page_familypage",
+      "label": "FamilyPage()",
       "_callable": true,
       "_origin": "ast",
       "community": 11,
-      "community_name": "requireCurrentMember",
+      "community_name": "getCurrentMember",
       "file_type": "code",
-      "norm_label": "onsubmit()",
-      "source_file": "src/app/(app)/family/documents/new/new-doc-form.tsx",
-      "source_location": "L34"
+      "norm_label": "familypage()",
+      "source_file": "src/app/(app)/family/page.tsx",
+      "source_location": "L19"
     },
     {
-      "id": "src_app_app_journal_page_entriespane",
-      "label": "EntriesPane()",
+      "id": "src_app_app_settings_page_settingspage",
+      "label": "SettingsPage()",
       "_callable": true,
       "_origin": "ast",
       "community": 11,
-      "community_name": "requireCurrentMember",
+      "community_name": "getCurrentMember",
       "file_type": "code",
-      "norm_label": "entriespane()",
-      "source_file": "src/app/(app)/journal/page.tsx",
-      "source_location": "L58"
+      "norm_label": "settingspage()",
+      "source_file": "src/app/(app)/settings/page.tsx",
+      "source_location": "L31"
     },
     {
       "id": "src_components_gallery_grid_gallerygrid",
@@ -1472,7 +1425,7 @@
       "_callable": true,
       "_origin": "ast",
       "community": 11,
-      "community_name": "requireCurrentMember",
+      "community_name": "getCurrentMember",
       "file_type": "code",
       "norm_label": "gallerygrid()",
       "source_file": "src/components/gallery-grid.tsx",
@@ -1484,7 +1437,7 @@
       "_callable": true,
       "_origin": "ast",
       "community": 11,
-      "community_name": "requireCurrentMember",
+      "community_name": "getCurrentMember",
       "file_type": "code",
       "norm_label": "deleteselected()",
       "source_file": "src/components/gallery-grid.tsx",
@@ -1496,7 +1449,7 @@
       "_callable": true,
       "_origin": "ast",
       "community": 11,
-      "community_name": "requireCurrentMember",
+      "community_name": "getCurrentMember",
       "file_type": "code",
       "norm_label": "exitselectmode()",
       "source_file": "src/components/gallery-grid.tsx",
@@ -1508,7 +1461,7 @@
       "_callable": true,
       "_origin": "ast",
       "community": 11,
-      "community_name": "requireCurrentMember",
+      "community_name": "getCurrentMember",
       "file_type": "code",
       "norm_label": "toggle()",
       "source_file": "src/components/gallery-grid.tsx",
@@ -1520,7 +1473,7 @@
       "_callable": true,
       "_origin": "ast",
       "community": 11,
-      "community_name": "requireCurrentMember",
+      "community_name": "getCurrentMember",
       "file_type": "code",
       "norm_label": "gallerytile()",
       "source_file": "src/components/gallery-tile.tsx",
@@ -1532,47 +1485,23 @@
       "_callable": true,
       "_origin": "ast",
       "community": 11,
-      "community_name": "requireCurrentMember",
+      "community_name": "getCurrentMember",
       "file_type": "code",
       "norm_label": "handleactivate()",
       "source_file": "src/components/gallery-tile.tsx",
       "source_location": "L39"
     },
     {
-      "id": "src_lib_actions_documents_attachdocfileaction",
-      "label": "attachDocFileAction()",
+      "id": "src_components_settings_controls_migratephotosbutton",
+      "label": "MigratePhotosButton()",
       "_callable": true,
       "_origin": "ast",
       "community": 11,
-      "community_name": "requireCurrentMember",
+      "community_name": "getCurrentMember",
       "file_type": "code",
-      "norm_label": "attachdocfileaction()",
-      "source_file": "src/lib/actions/documents.ts",
-      "source_location": "L66"
-    },
-    {
-      "id": "src_lib_actions_documents_createdocentryaction",
-      "label": "createDocEntryAction()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 11,
-      "community_name": "requireCurrentMember",
-      "file_type": "code",
-      "norm_label": "createdocentryaction()",
-      "source_file": "src/lib/actions/documents.ts",
-      "source_location": "L12"
-    },
-    {
-      "id": "src_lib_actions_documents_deletedocfileaction",
-      "label": "deleteDocFileAction()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 11,
-      "community_name": "requireCurrentMember",
-      "file_type": "code",
-      "norm_label": "deletedocfileaction()",
-      "source_file": "src/lib/actions/documents.ts",
-      "source_location": "L114"
+      "norm_label": "migratephotosbutton()",
+      "source_file": "src/components/settings-controls.tsx",
+      "source_location": "L276"
     },
     {
       "id": "src_lib_actions_family_deletefamilybackgroundaction",
@@ -1580,23 +1509,11 @@
       "_callable": true,
       "_origin": "ast",
       "community": 11,
-      "community_name": "requireCurrentMember",
+      "community_name": "getCurrentMember",
       "file_type": "code",
       "norm_label": "deletefamilybackgroundaction()",
       "source_file": "src/lib/actions/family.ts",
       "source_location": "L190"
-    },
-    {
-      "id": "src_lib_actions_journal_createjournalentryaction",
-      "label": "createJournalEntryAction()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 11,
-      "community_name": "requireCurrentMember",
-      "file_type": "code",
-      "norm_label": "createjournalentryaction()",
-      "source_file": "src/lib/actions/journal.ts",
-      "source_location": "L12"
     },
     {
       "id": "src_lib_actions_journal_deletejournalmediaaction",
@@ -1604,11 +1521,35 @@
       "_callable": true,
       "_origin": "ast",
       "community": 11,
-      "community_name": "requireCurrentMember",
+      "community_name": "getCurrentMember",
       "file_type": "code",
       "norm_label": "deletejournalmediaaction()",
       "source_file": "src/lib/actions/journal.ts",
       "source_location": "L90"
+    },
+    {
+      "id": "src_lib_actions_photo_migration_migrateonefile",
+      "label": "migrateOneFile()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 11,
+      "community_name": "getCurrentMember",
+      "file_type": "code",
+      "norm_label": "migrateonefile()",
+      "source_file": "src/lib/actions/photo-migration.ts",
+      "source_location": "L16"
+    },
+    {
+      "id": "src_lib_actions_photo_migration_migrateprofilephotostodriveaction",
+      "label": "migrateProfilePhotosToDriveAction()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 11,
+      "community_name": "getCurrentMember",
+      "file_type": "code",
+      "norm_label": "migrateprofilephotostodriveaction()",
+      "source_file": "src/lib/actions/photo-migration.ts",
+      "source_location": "L36"
     },
     {
       "id": "src_lib_google_drive_createfolder",
@@ -1616,7 +1557,7 @@
       "_callable": true,
       "_origin": "ast",
       "community": 11,
-      "community_name": "requireCurrentMember",
+      "community_name": "getCurrentMember",
       "file_type": "code",
       "norm_label": "createfolder()",
       "source_file": "src/lib/google-drive.ts",
@@ -1628,11 +1569,11 @@
       "_callable": true,
       "_origin": "ast",
       "community": 11,
-      "community_name": "requireCurrentMember",
+      "community_name": "getCurrentMember",
       "file_type": "code",
       "norm_label": "createresumableuploadsession()",
       "source_file": "src/lib/google-drive.ts",
-      "source_location": "L175"
+      "source_location": "L204"
     },
     {
       "id": "src_lib_google_drive_deletedrivefile",
@@ -1640,11 +1581,11 @@
       "_callable": true,
       "_origin": "ast",
       "community": 11,
-      "community_name": "requireCurrentMember",
+      "community_name": "getCurrentMember",
       "file_type": "code",
       "norm_label": "deletedrivefile()",
       "source_file": "src/lib/google-drive.ts",
-      "source_location": "L214"
+      "source_location": "L243"
     },
     {
       "id": "src_lib_google_drive_drivefetch",
@@ -1652,7 +1593,7 @@
       "_callable": true,
       "_origin": "ast",
       "community": 11,
-      "community_name": "requireCurrentMember",
+      "community_name": "getCurrentMember",
       "file_type": "code",
       "norm_label": "drivefetch()",
       "source_file": "src/lib/google-drive.ts",
@@ -1664,7 +1605,7 @@
       "_callable": true,
       "_origin": "ast",
       "community": 11,
-      "community_name": "requireCurrentMember",
+      "community_name": "getCurrentMember",
       "file_type": "code",
       "norm_label": "ensuredrivefolderstructure()",
       "source_file": "src/lib/google-drive.ts",
@@ -1676,7 +1617,7 @@
       "_callable": true,
       "_origin": "ast",
       "community": 11,
-      "community_name": "requireCurrentMember",
+      "community_name": "getCurrentMember",
       "file_type": "code",
       "norm_label": "ensurenamedsubfolder()",
       "source_file": "src/lib/google-drive.ts",
@@ -1688,7 +1629,7 @@
       "_callable": true,
       "_origin": "ast",
       "community": 11,
-      "community_name": "requireCurrentMember",
+      "community_name": "getCurrentMember",
       "file_type": "code",
       "norm_label": "ensureprofilephotofolder()",
       "source_file": "src/lib/google-drive.ts",
@@ -1700,11 +1641,11 @@
       "_callable": true,
       "_origin": "ast",
       "community": 11,
-      "community_name": "requireCurrentMember",
+      "community_name": "getCurrentMember",
       "file_type": "code",
       "norm_label": "fetchdrivefile()",
       "source_file": "src/lib/google-drive.ts",
-      "source_location": "L202"
+      "source_location": "L231"
     },
     {
       "id": "src_lib_google_drive_getfolderparents",
@@ -1712,7 +1653,7 @@
       "_callable": true,
       "_origin": "ast",
       "community": 11,
-      "community_name": "requireCurrentMember",
+      "community_name": "getCurrentMember",
       "file_type": "code",
       "norm_label": "getfolderparents()",
       "source_file": "src/lib/google-drive.ts",
@@ -1724,7 +1665,7 @@
       "_callable": true,
       "_origin": "ast",
       "community": 11,
-      "community_name": "requireCurrentMember",
+      "community_name": "getCurrentMember",
       "file_type": "code",
       "norm_label": "getvaliddriveaccesstoken()",
       "source_file": "src/lib/google-drive.ts",
@@ -1736,11 +1677,11 @@
       "_callable": true,
       "_origin": "ast",
       "community": 11,
-      "community_name": "requireCurrentMember",
+      "community_name": "getCurrentMember",
       "file_type": "code",
       "norm_label": "listdrivefolderfiles()",
       "source_file": "src/lib/google-drive.ts",
-      "source_location": "L233"
+      "source_location": "L262"
     },
     {
       "id": "src_lib_google_drive_movefolder",
@@ -1748,11 +1689,23 @@
       "_callable": true,
       "_origin": "ast",
       "community": 11,
-      "community_name": "requireCurrentMember",
+      "community_name": "getCurrentMember",
       "file_type": "code",
       "norm_label": "movefolder()",
       "source_file": "src/lib/google-drive.ts",
       "source_location": "L78"
+    },
+    {
+      "id": "src_lib_google_drive_uploadfiletodrive",
+      "label": "uploadFileToDrive()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 11,
+      "community_name": "getCurrentMember",
+      "file_type": "code",
+      "norm_label": "uploadfiletodrive()",
+      "source_file": "src/lib/google-drive.ts",
+      "source_location": "L169"
     },
     {
       "id": "src_lib_queries_journal_getentries",
@@ -1760,11 +1713,23 @@
       "_callable": true,
       "_origin": "ast",
       "community": 11,
-      "community_name": "requireCurrentMember",
+      "community_name": "getCurrentMember",
       "file_type": "code",
       "norm_label": "getentries()",
       "source_file": "src/lib/queries/journal.ts",
       "source_location": "L89"
+    },
+    {
+      "id": "src_lib_queries_journal_getgallery",
+      "label": "getGallery()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 11,
+      "community_name": "getCurrentMember",
+      "file_type": "code",
+      "norm_label": "getgallery()",
+      "source_file": "src/lib/queries/journal.ts",
+      "source_location": "L64"
     },
     {
       "id": "src_lib_queries_journal_syncdrivejournalmedia",
@@ -1772,23 +1737,23 @@
       "_callable": true,
       "_origin": "ast",
       "community": 11,
-      "community_name": "requireCurrentMember",
+      "community_name": "getCurrentMember",
       "file_type": "code",
       "norm_label": "syncdrivejournalmedia()",
       "source_file": "src/lib/queries/journal.ts",
       "source_location": "L12"
     },
     {
-      "id": "src_lib_session_requirecurrentmember",
-      "label": "requireCurrentMember()",
+      "id": "src_lib_storage_getsignedurls",
+      "label": "getSignedUrls()",
       "_callable": true,
       "_origin": "ast",
       "community": 11,
-      "community_name": "requireCurrentMember",
+      "community_name": "getCurrentMember",
       "file_type": "code",
-      "norm_label": "requirecurrentmember()",
-      "source_file": "src/lib/session.ts",
-      "source_location": "L31"
+      "norm_label": "getsignedurls()",
+      "source_file": "src/lib/storage.ts",
+      "source_location": "L3"
     },
     {
       "id": "src_lib_supabase_admin_createadminclient",
@@ -1796,7 +1761,7 @@
       "_callable": true,
       "_origin": "ast",
       "community": 11,
-      "community_name": "requireCurrentMember",
+      "community_name": "getCurrentMember",
       "file_type": "code",
       "norm_label": "createadminclient()",
       "source_file": "src/lib/supabase/admin.ts",
@@ -1839,28 +1804,28 @@
       "source_location": "L16"
     },
     {
-      "id": "src_app_api_drive_connect_route_get",
-      "label": "GET()",
+      "id": "src_app_app_family_documents_new_new_doc_form_newdocform",
+      "label": "NewDocForm()",
       "_callable": true,
       "_origin": "ast",
       "community": 2,
       "community_name": "createClient",
       "file_type": "code",
-      "norm_label": "get()",
-      "source_file": "src/app/api/drive/connect/route.ts",
-      "source_location": "L6"
+      "norm_label": "newdocform()",
+      "source_file": "src/app/(app)/family/documents/new/new-doc-form.tsx",
+      "source_location": "L17"
     },
     {
-      "id": "src_app_app_family_documents_folderid_page_docfolderpage",
-      "label": "DocFolderPage()",
+      "id": "src_app_app_family_documents_new_new_doc_form_newdocform_onsubmit",
+      "label": "onSubmit()",
       "_callable": true,
       "_origin": "ast",
       "community": 2,
       "community_name": "createClient",
       "file_type": "code",
-      "norm_label": "docfolderpage()",
-      "source_file": "src/app/(app)/family/documents/[folderId]/page.tsx",
-      "source_location": "L12"
+      "norm_label": "onsubmit()",
+      "source_file": "src/app/(app)/family/documents/new/new-doc-form.tsx",
+      "source_location": "L34"
     },
     {
       "id": "src_app_app_family_documents_new_page_newdocpage",
@@ -1875,6 +1840,18 @@
       "source_location": "L7"
     },
     {
+      "id": "src_app_app_family_members_id_health_new_new_health_entry_form_newhealthentryform",
+      "label": "NewHealthEntryForm()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 2,
+      "community_name": "createClient",
+      "file_type": "code",
+      "norm_label": "newhealthentryform()",
+      "source_file": "src/app/(app)/family/members/[id]/health/new/new-health-entry-form.tsx",
+      "source_location": "L29"
+    },
+    {
       "id": "src_app_app_family_members_id_health_new_page_newhealthentrypage",
       "label": "NewHealthEntryPage()",
       "_callable": true,
@@ -1887,28 +1864,76 @@
       "source_location": "L6"
     },
     {
-      "id": "src_app_app_settings_page_settingspage",
-      "label": "SettingsPage()",
+      "id": "src_app_app_family_members_id_omron_toggle_omrontoggle",
+      "label": "OmronToggle()",
       "_callable": true,
       "_origin": "ast",
       "community": 2,
       "community_name": "createClient",
       "file_type": "code",
-      "norm_label": "settingspage()",
-      "source_file": "src/app/(app)/settings/page.tsx",
-      "source_location": "L31"
+      "norm_label": "omrontoggle()",
+      "source_file": "src/app/(app)/family/members/[id]/omron-toggle.tsx",
+      "source_location": "L6"
     },
     {
-      "id": "src_app_app_today_page_todaypage",
-      "label": "TodayPage()",
+      "id": "src_app_app_planner_add_add_planner_form_activityform",
+      "label": "ActivityForm()",
       "_callable": true,
       "_origin": "ast",
       "community": 2,
       "community_name": "createClient",
       "file_type": "code",
-      "norm_label": "todaypage()",
-      "source_file": "src/app/(app)/today/page.tsx",
-      "source_location": "L10"
+      "norm_label": "activityform()",
+      "source_file": "src/app/(app)/planner/add/add-planner-form.tsx",
+      "source_location": "L38"
+    },
+    {
+      "id": "src_app_app_planner_add_add_planner_form_eventform",
+      "label": "EventForm()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 2,
+      "community_name": "createClient",
+      "file_type": "code",
+      "norm_label": "eventform()",
+      "source_file": "src/app/(app)/planner/add/add-planner-form.tsx",
+      "source_location": "L94"
+    },
+    {
+      "id": "src_app_app_planner_add_add_planner_form_field",
+      "label": "Field()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 2,
+      "community_name": "createClient",
+      "file_type": "code",
+      "norm_label": "field()",
+      "source_file": "src/app/(app)/planner/add/add-planner-form.tsx",
+      "source_location": "L175"
+    },
+    {
+      "id": "src_app_app_planner_add_add_planner_form_goalform",
+      "label": "GoalForm()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 2,
+      "community_name": "createClient",
+      "file_type": "code",
+      "norm_label": "goalform()",
+      "source_file": "src/app/(app)/planner/add/add-planner-form.tsx",
+      "source_location": "L116"
+    },
+    {
+      "id": "src_app_app_planner_add_add_planner_form_tripform",
+      "label": "TripForm()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 2,
+      "community_name": "createClient",
+      "file_type": "code",
+      "norm_label": "tripform()",
+      "source_file": "src/app/(app)/planner/add/add-planner-form.tsx",
+      "source_location": "L138"
     },
     {
       "id": "src_app_auth_callback_route_get",
@@ -1923,18 +1948,6 @@
       "source_location": "L7"
     },
     {
-      "id": "src_app_onboarding_members_page_memberspage",
-      "label": "MembersPage()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 2,
-      "community_name": "createClient",
-      "file_type": "code",
-      "norm_label": "memberspage()",
-      "source_file": "src/app/onboarding/members/page.tsx",
-      "source_location": "L11"
-    },
-    {
       "id": "src_app_page_rootpage",
       "label": "RootPage()",
       "_callable": true,
@@ -1947,15 +1960,39 @@
       "source_location": "L5"
     },
     {
-      "id": "src_components_copy_invite_code_copyinvitecode",
-      "label": "CopyInviteCode()",
+      "id": "src_components_add_to_journal_button_addtojournalbutton",
+      "label": "AddToJournalButton()",
       "_callable": true,
       "_origin": "ast",
       "community": 2,
       "community_name": "createClient",
       "file_type": "code",
-      "norm_label": "copyinvitecode()",
-      "source_file": "src/components/copy-invite-code.tsx",
+      "norm_label": "addtojournalbutton()",
+      "source_file": "src/components/add-to-journal-button.tsx",
+      "source_location": "L6"
+    },
+    {
+      "id": "src_components_delete_account_button_deleteaccountbutton",
+      "label": "DeleteAccountButton()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 2,
+      "community_name": "createClient",
+      "file_type": "code",
+      "norm_label": "deleteaccountbutton()",
+      "source_file": "src/components/delete-account-button.tsx",
+      "source_location": "L6"
+    },
+    {
+      "id": "src_components_delete_household_button_deletehouseholdbutton",
+      "label": "DeleteHouseholdButton()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 2,
+      "community_name": "createClient",
+      "file_type": "code",
+      "norm_label": "deletehouseholdbutton()",
+      "source_file": "src/components/delete-household-button.tsx",
       "source_location": "L6"
     },
     {
@@ -1968,7 +2005,7 @@
       "file_type": "code",
       "norm_label": "driveconnectedpanel()",
       "source_file": "src/components/settings-controls.tsx",
-      "source_location": "L209"
+      "source_location": "L210"
     },
     {
       "id": "src_components_settings_controls_householdnameform",
@@ -1980,7 +2017,7 @@
       "file_type": "code",
       "norm_label": "householdnameform()",
       "source_file": "src/components/settings-controls.tsx",
-      "source_location": "L129"
+      "source_location": "L130"
     },
     {
       "id": "src_components_settings_controls_householdprefsform",
@@ -1992,7 +2029,7 @@
       "file_type": "code",
       "norm_label": "householdprefsform()",
       "source_file": "src/components/settings-controls.tsx",
-      "source_location": "L157"
+      "source_location": "L158"
     },
     {
       "id": "src_components_settings_controls_invitecodecard",
@@ -2004,7 +2041,7 @@
       "file_type": "code",
       "norm_label": "invitecodecard()",
       "source_file": "src/components/settings-controls.tsx",
-      "source_location": "L107"
+      "source_location": "L108"
     },
     {
       "id": "src_components_settings_controls_notificationtoggles",
@@ -2016,7 +2053,7 @@
       "file_type": "code",
       "norm_label": "notificationtoggles()",
       "source_file": "src/components/settings-controls.tsx",
-      "source_location": "L54"
+      "source_location": "L55"
     },
     {
       "id": "src_components_settings_controls_textsizecontrol",
@@ -2028,7 +2065,7 @@
       "file_type": "code",
       "norm_label": "textsizecontrol()",
       "source_file": "src/components/settings-controls.tsx",
-      "source_location": "L28"
+      "source_location": "L29"
     },
     {
       "id": "src_components_settings_controls_themecontrol",
@@ -2040,19 +2077,31 @@
       "file_type": "code",
       "norm_label": "themecontrol()",
       "source_file": "src/components/settings-controls.tsx",
-      "source_location": "L10"
+      "source_location": "L11"
     },
     {
-      "id": "src_components_transfer_organizer_role_transferorganizerrole",
-      "label": "TransferOrganizerRole()",
+      "id": "src_lib_actions_documents_attachdocfileaction",
+      "label": "attachDocFileAction()",
       "_callable": true,
       "_origin": "ast",
       "community": 2,
       "community_name": "createClient",
       "file_type": "code",
-      "norm_label": "transferorganizerrole()",
-      "source_file": "src/components/transfer-organizer-role.tsx",
-      "source_location": "L7"
+      "norm_label": "attachdocfileaction()",
+      "source_file": "src/lib/actions/documents.ts",
+      "source_location": "L66"
+    },
+    {
+      "id": "src_lib_actions_documents_createdocentryaction",
+      "label": "createDocEntryAction()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 2,
+      "community_name": "createClient",
+      "file_type": "code",
+      "norm_label": "createdocentryaction()",
+      "source_file": "src/lib/actions/documents.ts",
+      "source_location": "L12"
     },
     {
       "id": "src_lib_actions_drive_disconnectdriveaction",
@@ -2067,6 +2116,30 @@
       "source_location": "L8"
     },
     {
+      "id": "src_lib_actions_family_addfamilybackgroundaction",
+      "label": "addFamilyBackgroundAction()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 2,
+      "community_name": "createClient",
+      "file_type": "code",
+      "norm_label": "addfamilybackgroundaction()",
+      "source_file": "src/lib/actions/family.ts",
+      "source_location": "L154"
+    },
+    {
+      "id": "src_lib_actions_family_deletehouseholdaction",
+      "label": "deleteHouseholdAction()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 2,
+      "community_name": "createClient",
+      "file_type": "code",
+      "norm_label": "deletehouseholdaction()",
+      "source_file": "src/lib/actions/family.ts",
+      "source_location": "L345"
+    },
+    {
       "id": "src_lib_actions_family_regenerateinvitecodeaction",
       "label": "regenerateInviteCodeAction()",
       "_callable": true,
@@ -2079,16 +2152,136 @@
       "source_location": "L86"
     },
     {
-      "id": "src_lib_actions_profile_transferorganiserroleaction",
-      "label": "transferOrganiserRoleAction()",
+      "id": "src_lib_actions_family_removefamilyaddressaction",
+      "label": "removeFamilyAddressAction()",
       "_callable": true,
       "_origin": "ast",
       "community": 2,
       "community_name": "createClient",
       "file_type": "code",
-      "norm_label": "transferorganiserroleaction()",
+      "norm_label": "removefamilyaddressaction()",
+      "source_file": "src/lib/actions/family.ts",
+      "source_location": "L329"
+    },
+    {
+      "id": "src_lib_actions_family_setactivefamilybackgroundaction",
+      "label": "setActiveFamilyBackgroundAction()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 2,
+      "community_name": "createClient",
+      "file_type": "code",
+      "norm_label": "setactivefamilybackgroundaction()",
+      "source_file": "src/lib/actions/family.ts",
+      "source_location": "L174"
+    },
+    {
+      "id": "src_lib_actions_health_createhealthentryaction",
+      "label": "createHealthEntryAction()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 2,
+      "community_name": "createClient",
+      "file_type": "code",
+      "norm_label": "createhealthentryaction()",
+      "source_file": "src/lib/actions/health.ts",
+      "source_location": "L11"
+    },
+    {
+      "id": "src_lib_actions_health_toggleomronaction",
+      "label": "toggleOmronAction()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 2,
+      "community_name": "createClient",
+      "file_type": "code",
+      "norm_label": "toggleomronaction()",
+      "source_file": "src/lib/actions/health.ts",
+      "source_location": "L87"
+    },
+    {
+      "id": "src_lib_actions_planner_addactivitytojournalaction",
+      "label": "addActivityToJournalAction()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 2,
+      "community_name": "createClient",
+      "file_type": "code",
+      "norm_label": "addactivitytojournalaction()",
+      "source_file": "src/lib/actions/planner.ts",
+      "source_location": "L130"
+    },
+    {
+      "id": "src_lib_actions_planner_createactivityaction",
+      "label": "createActivityAction()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 2,
+      "community_name": "createClient",
+      "file_type": "code",
+      "norm_label": "createactivityaction()",
+      "source_file": "src/lib/actions/planner.ts",
+      "source_location": "L9"
+    },
+    {
+      "id": "src_lib_actions_planner_createeventaction",
+      "label": "createEventAction()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 2,
+      "community_name": "createClient",
+      "file_type": "code",
+      "norm_label": "createeventaction()",
+      "source_file": "src/lib/actions/planner.ts",
+      "source_location": "L50"
+    },
+    {
+      "id": "src_lib_actions_planner_creategoalaction",
+      "label": "createGoalAction()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 2,
+      "community_name": "createClient",
+      "file_type": "code",
+      "norm_label": "creategoalaction()",
+      "source_file": "src/lib/actions/planner.ts",
+      "source_location": "L76"
+    },
+    {
+      "id": "src_lib_actions_planner_createtripaction",
+      "label": "createTripAction()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 2,
+      "community_name": "createClient",
+      "file_type": "code",
+      "norm_label": "createtripaction()",
+      "source_file": "src/lib/actions/planner.ts",
+      "source_location": "L104"
+    },
+    {
+      "id": "src_lib_actions_profile_addavatartoalbumaction",
+      "label": "addAvatarToAlbumAction()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 2,
+      "community_name": "createClient",
+      "file_type": "code",
+      "norm_label": "addavatartoalbumaction()",
       "source_file": "src/lib/actions/profile.ts",
-      "source_location": "L129"
+      "source_location": "L56"
+    },
+    {
+      "id": "src_lib_actions_profile_deleteownaccountaction",
+      "label": "deleteOwnAccountAction()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 2,
+      "community_name": "createClient",
+      "file_type": "code",
+      "norm_label": "deleteownaccountaction()",
+      "source_file": "src/lib/actions/profile.ts",
+      "source_location": "L141"
     },
     {
       "id": "src_lib_actions_settings_settextsizeaction",
@@ -2151,16 +2344,16 @@
       "source_location": "L47"
     },
     {
-      "id": "src_lib_queries_today_gethubcards",
-      "label": "getHubCards()",
+      "id": "src_lib_session_requirecurrentmember",
+      "label": "requireCurrentMember()",
       "_callable": true,
       "_origin": "ast",
       "community": 2,
       "community_name": "createClient",
       "file_type": "code",
-      "norm_label": "gethubcards()",
-      "source_file": "src/lib/queries/today.ts",
-      "source_location": "L16"
+      "norm_label": "requirecurrentmember()",
+      "source_file": "src/lib/session.ts",
+      "source_location": "L31"
     },
     {
       "id": "src_lib_supabase_server_createclient",
@@ -2173,30 +2366,6 @@
       "norm_label": "createclient()",
       "source_file": "src/lib/supabase/server.ts",
       "source_location": "L8"
-    },
-    {
-      "id": "src_components_add_child_form_addchildform",
-      "label": "AddChildForm()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 22,
-      "community_name": "actions/family.ts",
-      "file_type": "code",
-      "norm_label": "addchildform()",
-      "source_file": "src/components/add-child-form.tsx",
-      "source_location": "L10"
-    },
-    {
-      "id": "src_components_delete_household_button_deletehouseholdbutton",
-      "label": "DeleteHouseholdButton()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 22,
-      "community_name": "actions/family.ts",
-      "file_type": "code",
-      "norm_label": "deletehouseholdbutton()",
-      "source_file": "src/components/delete-household-button.tsx",
-      "source_location": "L6"
     },
     {
       "id": "src_components_family_about_editor_familyabouteditor",
@@ -2379,18 +2548,6 @@
       "source_location": "L274"
     },
     {
-      "id": "src_lib_actions_family_addmanagedchildaction",
-      "label": "addManagedChildAction()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 22,
-      "community_name": "actions/family.ts",
-      "file_type": "code",
-      "norm_label": "addmanagedchildaction()",
-      "source_file": "src/lib/actions/family.ts",
-      "source_location": "L67"
-    },
-    {
       "id": "src_lib_actions_family_approvememberaction",
       "label": "approveMemberAction()",
       "_callable": true,
@@ -2401,18 +2558,6 @@
       "norm_label": "approvememberaction()",
       "source_file": "src/lib/actions/family.ts",
       "source_location": "L96"
-    },
-    {
-      "id": "src_lib_actions_family_deletehouseholdaction",
-      "label": "deleteHouseholdAction()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 22,
-      "community_name": "actions/family.ts",
-      "file_type": "code",
-      "norm_label": "deletehouseholdaction()",
-      "source_file": "src/lib/actions/family.ts",
-      "source_location": "L345"
     },
     {
       "id": "src_lib_actions_family_normalizeaddressfields",
@@ -2437,18 +2582,6 @@
       "norm_label": "rejectmemberaction()",
       "source_file": "src/lib/actions/family.ts",
       "source_location": "L105"
-    },
-    {
-      "id": "src_lib_actions_family_removefamilyaddressaction",
-      "label": "removeFamilyAddressAction()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 22,
-      "community_name": "actions/family.ts",
-      "file_type": "code",
-      "norm_label": "removefamilyaddressaction()",
-      "source_file": "src/lib/actions/family.ts",
-      "source_location": "L329"
     },
     {
       "id": "src_lib_actions_family_updatefamilyaboutaction",
@@ -2487,184 +2620,28 @@
       "source_location": "L143"
     },
     {
-      "id": "src_app_app_planner_add_add_planner_form_activityform",
-      "label": "ActivityForm()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 23,
-      "community_name": "add-planner-form.tsx",
-      "file_type": "code",
-      "norm_label": "activityform()",
-      "source_file": "src/app/(app)/planner/add/add-planner-form.tsx",
-      "source_location": "L38"
-    },
-    {
-      "id": "src_app_app_planner_add_add_planner_form_addplannerform",
-      "label": "AddPlannerForm()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 23,
-      "community_name": "add-planner-form.tsx",
-      "file_type": "code",
-      "norm_label": "addplannerform()",
-      "source_file": "src/app/(app)/planner/add/add-planner-form.tsx",
-      "source_location": "L14"
-    },
-    {
-      "id": "src_app_app_planner_add_add_planner_form_eventform",
-      "label": "EventForm()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 23,
-      "community_name": "add-planner-form.tsx",
-      "file_type": "code",
-      "norm_label": "eventform()",
-      "source_file": "src/app/(app)/planner/add/add-planner-form.tsx",
-      "source_location": "L94"
-    },
-    {
-      "id": "src_app_app_planner_add_add_planner_form_field",
-      "label": "Field()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 23,
-      "community_name": "add-planner-form.tsx",
-      "file_type": "code",
-      "norm_label": "field()",
-      "source_file": "src/app/(app)/planner/add/add-planner-form.tsx",
-      "source_location": "L175"
-    },
-    {
-      "id": "src_app_app_planner_add_add_planner_form_goalform",
-      "label": "GoalForm()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 23,
-      "community_name": "add-planner-form.tsx",
-      "file_type": "code",
-      "norm_label": "goalform()",
-      "source_file": "src/app/(app)/planner/add/add-planner-form.tsx",
-      "source_location": "L116"
-    },
-    {
-      "id": "src_app_app_planner_add_add_planner_form_tripform",
-      "label": "TripForm()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 23,
-      "community_name": "add-planner-form.tsx",
-      "file_type": "code",
-      "norm_label": "tripform()",
-      "source_file": "src/app/(app)/planner/add/add-planner-form.tsx",
-      "source_location": "L138"
-    },
-    {
-      "id": "src_app_app_planner_add_page_addplannerpage",
-      "label": "AddPlannerPage()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 23,
-      "community_name": "add-planner-form.tsx",
-      "file_type": "code",
-      "norm_label": "addplannerpage()",
-      "source_file": "src/app/(app)/planner/add/page.tsx",
-      "source_location": "L6"
-    },
-    {
-      "id": "src_components_add_to_journal_button_addtojournalbutton",
-      "label": "AddToJournalButton()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 23,
-      "community_name": "add-planner-form.tsx",
-      "file_type": "code",
-      "norm_label": "addtojournalbutton()",
-      "source_file": "src/components/add-to-journal-button.tsx",
-      "source_location": "L6"
-    },
-    {
-      "id": "src_lib_actions_planner_addactivitytojournalaction",
-      "label": "addActivityToJournalAction()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 23,
-      "community_name": "add-planner-form.tsx",
-      "file_type": "code",
-      "norm_label": "addactivitytojournalaction()",
-      "source_file": "src/lib/actions/planner.ts",
-      "source_location": "L130"
-    },
-    {
-      "id": "src_lib_actions_planner_createactivityaction",
-      "label": "createActivityAction()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 23,
-      "community_name": "add-planner-form.tsx",
-      "file_type": "code",
-      "norm_label": "createactivityaction()",
-      "source_file": "src/lib/actions/planner.ts",
-      "source_location": "L9"
-    },
-    {
-      "id": "src_lib_actions_planner_createeventaction",
-      "label": "createEventAction()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 23,
-      "community_name": "add-planner-form.tsx",
-      "file_type": "code",
-      "norm_label": "createeventaction()",
-      "source_file": "src/lib/actions/planner.ts",
-      "source_location": "L50"
-    },
-    {
-      "id": "src_lib_actions_planner_creategoalaction",
-      "label": "createGoalAction()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 23,
-      "community_name": "add-planner-form.tsx",
-      "file_type": "code",
-      "norm_label": "creategoalaction()",
-      "source_file": "src/lib/actions/planner.ts",
-      "source_location": "L76"
-    },
-    {
-      "id": "src_lib_actions_planner_createtripaction",
-      "label": "createTripAction()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 23,
-      "community_name": "add-planner-form.tsx",
-      "file_type": "code",
-      "norm_label": "createtripaction()",
-      "source_file": "src/lib/actions/planner.ts",
-      "source_location": "L104"
-    },
-    {
-      "id": "src_app_app_family_members_id_health_new_new_health_entry_form_newhealthentryform",
-      "label": "NewHealthEntryForm()",
+      "id": "src_app_app_household_meals_new_page_newmealpage",
+      "label": "NewMealPage()",
       "_callable": true,
       "_origin": "ast",
       "community": 3,
       "community_name": "auth.ts",
       "file_type": "code",
-      "norm_label": "newhealthentryform()",
-      "source_file": "src/app/(app)/family/members/[id]/health/new/new-health-entry-form.tsx",
-      "source_location": "L29"
+      "norm_label": "newmealpage()",
+      "source_file": "src/app/(app)/household/meals/new/page.tsx",
+      "source_location": "L11"
     },
     {
-      "id": "src_app_app_family_members_id_omron_toggle_omrontoggle",
-      "label": "OmronToggle()",
+      "id": "src_app_app_journal_milestones_new_page_newmilestonepage",
+      "label": "NewMilestonePage()",
       "_callable": true,
       "_origin": "ast",
       "community": 3,
       "community_name": "auth.ts",
       "file_type": "code",
-      "norm_label": "omrontoggle()",
-      "source_file": "src/app/(app)/family/members/[id]/omron-toggle.tsx",
-      "source_location": "L6"
+      "norm_label": "newmilestonepage()",
+      "source_file": "src/app/(app)/journal/milestones/new/page.tsx",
+      "source_location": "L12"
     },
     {
       "id": "src_app_login_login_form_loginform",
@@ -2713,6 +2690,18 @@
       "norm_label": "familyforkpage()",
       "source_file": "src/app/onboarding/family/page.tsx",
       "source_location": "L3"
+    },
+    {
+      "id": "src_app_onboarding_members_page_memberspage",
+      "label": "MembersPage()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 3,
+      "community_name": "auth.ts",
+      "file_type": "code",
+      "norm_label": "memberspage()",
+      "source_file": "src/app/onboarding/members/page.tsx",
+      "source_location": "L11"
     },
     {
       "id": "src_app_onboarding_pending_page_pendingapprovalpage",
@@ -2775,6 +2764,42 @@
       "source_location": "L8"
     },
     {
+      "id": "src_components_add_child_form_addchildform",
+      "label": "AddChildForm()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 3,
+      "community_name": "auth.ts",
+      "file_type": "code",
+      "norm_label": "addchildform()",
+      "source_file": "src/components/add-child-form.tsx",
+      "source_location": "L10"
+    },
+    {
+      "id": "src_components_copy_invite_code_copyinvitecode",
+      "label": "CopyInviteCode()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 3,
+      "community_name": "auth.ts",
+      "file_type": "code",
+      "norm_label": "copyinvitecode()",
+      "source_file": "src/components/copy-invite-code.tsx",
+      "source_location": "L6"
+    },
+    {
+      "id": "src_components_form_errortext",
+      "label": "ErrorText()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 3,
+      "community_name": "auth.ts",
+      "file_type": "code",
+      "norm_label": "errortext()",
+      "source_file": "src/components/form.tsx",
+      "source_location": "L23"
+    },
+    {
       "id": "src_components_form_submitbutton",
       "label": "SubmitButton()",
       "_callable": true,
@@ -2785,6 +2810,18 @@
       "norm_label": "submitbutton()",
       "source_file": "src/components/form.tsx",
       "source_location": "L6"
+    },
+    {
+      "id": "src_components_hub_header_detailheader",
+      "label": "DetailHeader()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 3,
+      "community_name": "auth.ts",
+      "file_type": "code",
+      "norm_label": "detailheader()",
+      "source_file": "src/components/hub-header.tsx",
+      "source_location": "L31"
     },
     {
       "id": "src_components_onboarding_shell_onboardingshell",
@@ -2919,6 +2956,18 @@
       "source_location": "L21"
     },
     {
+      "id": "src_lib_actions_family_addmanagedchildaction",
+      "label": "addManagedChildAction()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 3,
+      "community_name": "auth.ts",
+      "file_type": "code",
+      "norm_label": "addmanagedchildaction()",
+      "source_file": "src/lib/actions/family.ts",
+      "source_location": "L67"
+    },
+    {
       "id": "src_lib_actions_family_createfamilyaction",
       "label": "createFamilyAction()",
       "_callable": true,
@@ -2955,28 +3004,28 @@
       "source_location": "L13"
     },
     {
-      "id": "src_lib_actions_health_createhealthentryaction",
-      "label": "createHealthEntryAction()",
+      "id": "src_lib_actions_household_addmealplanaction",
+      "label": "addMealPlanAction()",
       "_callable": true,
       "_origin": "ast",
       "community": 3,
       "community_name": "auth.ts",
       "file_type": "code",
-      "norm_label": "createhealthentryaction()",
-      "source_file": "src/lib/actions/health.ts",
-      "source_location": "L11"
+      "norm_label": "addmealplanaction()",
+      "source_file": "src/lib/actions/household.ts",
+      "source_location": "L51"
     },
     {
-      "id": "src_lib_actions_health_toggleomronaction",
-      "label": "toggleOmronAction()",
+      "id": "src_lib_actions_journal_createmilestoneaction",
+      "label": "createMilestoneAction()",
       "_callable": true,
       "_origin": "ast",
       "community": 3,
       "community_name": "auth.ts",
       "file_type": "code",
-      "norm_label": "toggleomronaction()",
-      "source_file": "src/lib/actions/health.ts",
-      "source_location": "L87"
+      "norm_label": "createmilestoneaction()",
+      "source_file": "src/lib/actions/journal.ts",
+      "source_location": "L132"
     },
     {
       "id": "src_lib_actions_wealth_addaccountaction",
@@ -3255,18 +3304,6 @@
       "source_location": "L26"
     },
     {
-      "id": "src_lib_storage_getsignedurls",
-      "label": "getSignedUrls()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 5,
-      "community_name": "planner/page.tsx",
-      "file_type": "code",
-      "norm_label": "getsignedurls()",
-      "source_file": "src/lib/storage.ts",
-      "source_location": "L3"
-    },
-    {
       "id": "src_components_avatar_album_viewer_avataralbumviewer",
       "label": "AvatarAlbumViewer()",
       "_callable": true,
@@ -3279,28 +3316,16 @@
       "source_location": "L6"
     },
     {
-      "id": "src_components_avatar_avatar",
-      "label": "Avatar()",
+      "id": "src_components_family_background_album_familybackgroundalbum",
+      "label": "FamilyBackgroundAlbum()",
       "_callable": true,
       "_origin": "ast",
       "community": 7,
       "community_name": "profile.ts",
       "file_type": "code",
-      "norm_label": "avatar()",
-      "source_file": "src/components/avatar.tsx",
-      "source_location": "L1"
-    },
-    {
-      "id": "src_components_delete_account_button_deleteaccountbutton",
-      "label": "DeleteAccountButton()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 7,
-      "community_name": "profile.ts",
-      "file_type": "code",
-      "norm_label": "deleteaccountbutton()",
-      "source_file": "src/components/delete-account-button.tsx",
-      "source_location": "L6"
+      "norm_label": "familybackgroundalbum()",
+      "source_file": "src/components/family-background-album.tsx",
+      "source_location": "L12"
     },
     {
       "id": "src_components_member_profile_editor_memberprofileeditor",
@@ -3349,6 +3374,18 @@
       "norm_label": "set()",
       "source_file": "src/components/member-profile-editor.tsx",
       "source_location": "L46"
+    },
+    {
+      "id": "src_components_photo_album_viewer_photoalbumviewer",
+      "label": "PhotoAlbumViewer()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 7,
+      "community_name": "profile.ts",
+      "file_type": "code",
+      "norm_label": "photoalbumviewer()",
+      "source_file": "src/components/photo-album-viewer.tsx",
+      "source_location": "L11"
     },
     {
       "id": "src_components_profile_edit_form_profileeditform",
@@ -3447,16 +3484,16 @@
       "source_location": "L77"
     },
     {
-      "id": "src_lib_actions_profile_addavatartoalbumaction",
-      "label": "addAvatarToAlbumAction()",
+      "id": "src_components_transfer_organizer_role_transferorganizerrole",
+      "label": "TransferOrganizerRole()",
       "_callable": true,
       "_origin": "ast",
       "community": 7,
       "community_name": "profile.ts",
       "file_type": "code",
-      "norm_label": "addavatartoalbumaction()",
-      "source_file": "src/lib/actions/profile.ts",
-      "source_location": "L56"
+      "norm_label": "transferorganizerrole()",
+      "source_file": "src/components/transfer-organizer-role.tsx",
+      "source_location": "L7"
     },
     {
       "id": "src_lib_actions_profile_deleteavatarfromalbumaction",
@@ -3471,18 +3508,6 @@
       "source_location": "L92"
     },
     {
-      "id": "src_lib_actions_profile_deleteownaccountaction",
-      "label": "deleteOwnAccountAction()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 7,
-      "community_name": "profile.ts",
-      "file_type": "code",
-      "norm_label": "deleteownaccountaction()",
-      "source_file": "src/lib/actions/profile.ts",
-      "source_location": "L141"
-    },
-    {
       "id": "src_lib_actions_profile_setactiveavataraction",
       "label": "setActiveAvatarAction()",
       "_callable": true,
@@ -3493,6 +3518,18 @@
       "norm_label": "setactiveavataraction()",
       "source_file": "src/lib/actions/profile.ts",
       "source_location": "L76"
+    },
+    {
+      "id": "src_lib_actions_profile_transferorganiserroleaction",
+      "label": "transferOrganiserRoleAction()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 7,
+      "community_name": "profile.ts",
+      "file_type": "code",
+      "norm_label": "transferorganiserroleaction()",
+      "source_file": "src/lib/actions/profile.ts",
+      "source_location": "L129"
     },
     {
       "id": "src_lib_actions_profile_updatememberprofileaction",
@@ -3517,18 +3554,6 @@
       "norm_label": "updateownprofileaction()",
       "source_file": "src/lib/actions/profile.ts",
       "source_location": "L23"
-    },
-    {
-      "id": "src_lib_photo_url_resolvephotourl",
-      "label": "resolvePhotoUrl()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 7,
-      "community_name": "profile.ts",
-      "file_type": "code",
-      "norm_label": "resolvephotourl()",
-      "source_file": "src/lib/photo-url.ts",
-      "source_location": "L9"
     },
     {
       "id": "src_app_app_household_page_billspane",
@@ -3747,6 +3772,18 @@
       "source_location": "L5"
     },
     {
+      "id": "src_app_app_today_page_todaypage",
+      "label": "TodayPage()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 9,
+      "community_name": "icons.tsx",
+      "file_type": "code",
+      "norm_label": "todaypage()",
+      "source_file": "src/app/(app)/today/page.tsx",
+      "source_location": "L10"
+    },
+    {
       "id": "src_components_delete_button_deletebutton",
       "label": "DeleteButton()",
       "_callable": true,
@@ -3805,6 +3842,18 @@
       "norm_label": "tabbar()",
       "source_file": "src/components/tab-bar.tsx",
       "source_location": "L16"
+    },
+    {
+      "id": "src_lib_actions_documents_deletedocfileaction",
+      "label": "deleteDocFileAction()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 9,
+      "community_name": "icons.tsx",
+      "file_type": "code",
+      "norm_label": "deletedocfileaction()",
+      "source_file": "src/lib/actions/documents.ts",
+      "source_location": "L114"
     },
     {
       "id": "src_lib_actions_documents_getdocfileurl",
@@ -3879,77 +3928,23 @@
       "source_location": "L17"
     },
     {
-      "id": "src_app_app_family_documents_new_new_doc_form",
-      "label": "new-doc-form.tsx",
+      "id": "src_lib_queries_today_gethubcards",
+      "label": "getHubCards()",
+      "_callable": true,
       "_origin": "ast",
-      "community": 0,
-      "community_name": "form.tsx",
+      "community": 9,
+      "community_name": "icons.tsx",
       "file_type": "code",
-      "norm_label": "new-doc-form.tsx",
-      "source_file": "src/app/(app)/family/documents/new/new-doc-form.tsx",
-      "source_location": "L1"
-    },
-    {
-      "id": "src_app_app_family_documents_new_new_doc_form_visibility",
-      "label": "VISIBILITY",
-      "_origin": "ast",
-      "community": 0,
-      "community_name": "form.tsx",
-      "file_type": "code",
-      "norm_label": "visibility",
-      "source_file": "src/app/(app)/family/documents/new/new-doc-form.tsx",
-      "source_location": "L11"
-    },
-    {
-      "id": "src_app_app_household_meals_new_page",
-      "label": "meals/new/page.tsx",
-      "_origin": "ast",
-      "community": 0,
-      "community_name": "form.tsx",
-      "file_type": "code",
-      "norm_label": "meals/new/page.tsx",
-      "source_file": "src/app/(app)/household/meals/new/page.tsx",
-      "source_location": "L1"
-    },
-    {
-      "id": "src_app_app_household_meals_new_page_initialstate",
-      "label": "initialState",
-      "_origin": "ast",
-      "community": 0,
-      "community_name": "form.tsx",
-      "file_type": "code",
-      "norm_label": "initialstate",
-      "source_file": "src/app/(app)/household/meals/new/page.tsx",
-      "source_location": "L9"
-    },
-    {
-      "id": "src_app_app_journal_milestones_new_page",
-      "label": "milestones/new/page.tsx",
-      "_origin": "ast",
-      "community": 0,
-      "community_name": "form.tsx",
-      "file_type": "code",
-      "norm_label": "milestones/new/page.tsx",
-      "source_file": "src/app/(app)/journal/milestones/new/page.tsx",
-      "source_location": "L1"
-    },
-    {
-      "id": "src_app_app_journal_milestones_new_page_initialstate",
-      "label": "initialState",
-      "_origin": "ast",
-      "community": 0,
-      "community_name": "form.tsx",
-      "file_type": "code",
-      "norm_label": "initialstate",
-      "source_file": "src/app/(app)/journal/milestones/new/page.tsx",
-      "source_location": "L10"
+      "norm_label": "gethubcards()",
+      "source_file": "src/lib/queries/today.ts",
+      "source_location": "L16"
     },
     {
       "id": "src_app_app_journal_new_new_entry_form",
       "label": "new-entry-form.tsx",
       "_origin": "ast",
       "community": 0,
-      "community_name": "form.tsx",
+      "community_name": "new-entry-form.tsx",
       "file_type": "code",
       "norm_label": "new-entry-form.tsx",
       "source_file": "src/app/(app)/journal/new/new-entry-form.tsx",
@@ -3960,21 +3955,10 @@
       "label": "avatar-crop-upload.tsx",
       "_origin": "ast",
       "community": 0,
-      "community_name": "form.tsx",
+      "community_name": "new-entry-form.tsx",
       "file_type": "code",
       "norm_label": "avatar-crop-upload.tsx",
       "source_file": "src/components/avatar-crop-upload.tsx",
-      "source_location": "L1"
-    },
-    {
-      "id": "src_components_family_background_album",
-      "label": "family-background-album.tsx",
-      "_origin": "ast",
-      "community": 0,
-      "community_name": "form.tsx",
-      "file_type": "code",
-      "norm_label": "family-background-album.tsx",
-      "source_file": "src/components/family-background-album.tsx",
       "source_location": "L1"
     },
     {
@@ -3982,21 +3966,10 @@
       "label": "family-background-crop-upload.tsx",
       "_origin": "ast",
       "community": 0,
-      "community_name": "form.tsx",
+      "community_name": "new-entry-form.tsx",
       "file_type": "code",
       "norm_label": "family-background-crop-upload.tsx",
       "source_file": "src/components/family-background-crop-upload.tsx",
-      "source_location": "L1"
-    },
-    {
-      "id": "src_components_form",
-      "label": "form.tsx",
-      "_origin": "ast",
-      "community": 0,
-      "community_name": "form.tsx",
-      "file_type": "code",
-      "norm_label": "form.tsx",
-      "source_file": "src/components/form.tsx",
       "source_location": "L1"
     },
     {
@@ -4004,62 +3977,29 @@
       "label": "gallery-upload.tsx",
       "_origin": "ast",
       "community": 0,
-      "community_name": "form.tsx",
+      "community_name": "new-entry-form.tsx",
       "file_type": "code",
       "norm_label": "gallery-upload.tsx",
       "source_file": "src/components/gallery-upload.tsx",
       "source_location": "L1"
     },
     {
-      "id": "src_components_photo_album_viewer",
-      "label": "photo-album-viewer.tsx",
+      "id": "src_lib_supabase_client",
+      "label": "client.ts",
       "_origin": "ast",
       "community": 0,
-      "community_name": "form.tsx",
+      "community_name": "new-entry-form.tsx",
       "file_type": "code",
-      "norm_label": "photo-album-viewer.tsx",
-      "source_file": "src/components/photo-album-viewer.tsx",
+      "norm_label": "client.ts",
+      "source_file": "src/lib/supabase/client.ts",
       "source_location": "L1"
-    },
-    {
-      "id": "src_components_photo_album_viewer_closebuttonstyle",
-      "label": "closeButtonStyle",
-      "_origin": "ast",
-      "community": 0,
-      "community_name": "form.tsx",
-      "file_type": "code",
-      "norm_label": "closebuttonstyle",
-      "source_file": "src/components/photo-album-viewer.tsx",
-      "source_location": "L136"
-    },
-    {
-      "id": "src_components_photo_album_viewer_navbuttonstyle",
-      "label": "navButtonStyle",
-      "_origin": "ast",
-      "community": 0,
-      "community_name": "form.tsx",
-      "file_type": "code",
-      "norm_label": "navbuttonstyle",
-      "source_file": "src/components/photo-album-viewer.tsx",
-      "source_location": "L148"
-    },
-    {
-      "id": "src_components_photo_album_viewer_overlaystyle",
-      "label": "overlayStyle",
-      "_origin": "ast",
-      "community": 0,
-      "community_name": "form.tsx",
-      "file_type": "code",
-      "norm_label": "overlaystyle",
-      "source_file": "src/components/photo-album-viewer.tsx",
-      "source_location": "L125"
     },
     {
       "id": "src_lib_upload_client",
       "label": "upload-client.ts",
       "_origin": "ast",
       "community": 0,
-      "community_name": "form.tsx",
+      "community_name": "new-entry-form.tsx",
       "file_type": "code",
       "norm_label": "upload-client.ts",
       "source_file": "src/lib/upload-client.ts",
@@ -4143,6 +4083,28 @@
       "source_location": "L11"
     },
     {
+      "id": "src_app_app_planner_add_page",
+      "label": "add/page.tsx",
+      "_origin": "ast",
+      "community": 1,
+      "community_name": "[id]/page.tsx",
+      "file_type": "code",
+      "norm_label": "add/page.tsx",
+      "source_file": "src/app/(app)/planner/add/page.tsx",
+      "source_location": "L1"
+    },
+    {
+      "id": "src_components_avatar",
+      "label": "avatar.tsx",
+      "_origin": "ast",
+      "community": 1,
+      "community_name": "[id]/page.tsx",
+      "file_type": "code",
+      "norm_label": "avatar.tsx",
+      "source_file": "src/components/avatar.tsx",
+      "source_location": "L1"
+    },
+    {
       "id": "src_components_hub_header",
       "label": "hub-header.tsx",
       "_origin": "ast",
@@ -4187,6 +4149,17 @@
       "source_location": "L1"
     },
     {
+      "id": "src_lib_photo_url",
+      "label": "photo-url.ts",
+      "_origin": "ast",
+      "community": 1,
+      "community_name": "[id]/page.tsx",
+      "file_type": "code",
+      "norm_label": "photo-url.ts",
+      "source_file": "src/lib/photo-url.ts",
+      "source_location": "L1"
+    },
+    {
       "id": "src_lib_queries_family",
       "label": "queries/family.ts",
       "_origin": "ast",
@@ -4213,10 +4186,21 @@
       "label": "drive/callback/route.ts",
       "_origin": "ast",
       "community": 11,
-      "community_name": "requireCurrentMember",
+      "community_name": "getCurrentMember",
       "file_type": "code",
       "norm_label": "drive/callback/route.ts",
       "source_file": "src/app/api/drive/callback/route.ts",
+      "source_location": "L1"
+    },
+    {
+      "id": "src_app_api_drive_connect_route",
+      "label": "connect/route.ts",
+      "_origin": "ast",
+      "community": 11,
+      "community_name": "getCurrentMember",
+      "file_type": "code",
+      "norm_label": "connect/route.ts",
+      "source_file": "src/app/api/drive/connect/route.ts",
       "source_location": "L1"
     },
     {
@@ -4224,7 +4208,7 @@
       "label": "[fileId]/route.ts",
       "_origin": "ast",
       "community": 11,
-      "community_name": "requireCurrentMember",
+      "community_name": "getCurrentMember",
       "file_type": "code",
       "norm_label": "[fileid]/route.ts",
       "source_file": "src/app/api/drive/file/[fileId]/route.ts",
@@ -4235,7 +4219,7 @@
       "label": "session/route.ts",
       "_origin": "ast",
       "community": 11,
-      "community_name": "requireCurrentMember",
+      "community_name": "getCurrentMember",
       "file_type": "code",
       "norm_label": "session/route.ts",
       "source_file": "src/app/api/uploads/session/route.ts",
@@ -4246,21 +4230,10 @@
       "label": "gallery-grid.tsx",
       "_origin": "ast",
       "community": 11,
-      "community_name": "requireCurrentMember",
+      "community_name": "getCurrentMember",
       "file_type": "code",
       "norm_label": "gallery-grid.tsx",
       "source_file": "src/components/gallery-grid.tsx",
-      "source_location": "L1"
-    },
-    {
-      "id": "src_lib_actions_documents",
-      "label": "documents.ts",
-      "_origin": "ast",
-      "community": 11,
-      "community_name": "requireCurrentMember",
-      "file_type": "code",
-      "norm_label": "documents.ts",
-      "source_file": "src/lib/actions/documents.ts",
       "source_location": "L1"
     },
     {
@@ -4268,10 +4241,21 @@
       "label": "actions/journal.ts",
       "_origin": "ast",
       "community": 11,
-      "community_name": "requireCurrentMember",
+      "community_name": "getCurrentMember",
       "file_type": "code",
       "norm_label": "actions/journal.ts",
       "source_file": "src/lib/actions/journal.ts",
+      "source_location": "L1"
+    },
+    {
+      "id": "src_lib_actions_photo_migration",
+      "label": "photo-migration.ts",
+      "_origin": "ast",
+      "community": 11,
+      "community_name": "getCurrentMember",
+      "file_type": "code",
+      "norm_label": "photo-migration.ts",
+      "source_file": "src/lib/actions/photo-migration.ts",
       "source_location": "L1"
     },
     {
@@ -4279,7 +4263,7 @@
       "label": "google-drive.ts",
       "_origin": "ast",
       "community": 11,
-      "community_name": "requireCurrentMember",
+      "community_name": "getCurrentMember",
       "file_type": "code",
       "norm_label": "google-drive.ts",
       "source_file": "src/lib/google-drive.ts",
@@ -4290,10 +4274,32 @@
       "label": "queries/journal.ts",
       "_origin": "ast",
       "community": 11,
-      "community_name": "requireCurrentMember",
+      "community_name": "getCurrentMember",
       "file_type": "code",
       "norm_label": "queries/journal.ts",
       "source_file": "src/lib/queries/journal.ts",
+      "source_location": "L1"
+    },
+    {
+      "id": "src_lib_session_getcurrentmember",
+      "label": "getCurrentMember",
+      "_origin": "ast",
+      "community": 11,
+      "community_name": "getCurrentMember",
+      "file_type": "code",
+      "norm_label": "getcurrentmember",
+      "source_file": "src/lib/session.ts",
+      "source_location": "L15"
+    },
+    {
+      "id": "src_lib_storage",
+      "label": "storage.ts",
+      "_origin": "ast",
+      "community": 11,
+      "community_name": "getCurrentMember",
+      "file_type": "code",
+      "norm_label": "storage.ts",
+      "source_file": "src/lib/storage.ts",
       "source_location": "L1"
     },
     {
@@ -4301,7 +4307,7 @@
       "label": "admin.ts",
       "_origin": "ast",
       "community": 11,
-      "community_name": "requireCurrentMember",
+      "community_name": "getCurrentMember",
       "file_type": "code",
       "norm_label": "admin.ts",
       "source_file": "src/lib/supabase/admin.ts",
@@ -4440,15 +4446,26 @@
       "source_location": "L1"
     },
     {
-      "id": "src_app_api_drive_connect_route",
-      "label": "connect/route.ts",
+      "id": "src_app_app_family_documents_new_new_doc_form",
+      "label": "new-doc-form.tsx",
       "_origin": "ast",
       "community": 2,
       "community_name": "createClient",
       "file_type": "code",
-      "norm_label": "connect/route.ts",
-      "source_file": "src/app/api/drive/connect/route.ts",
+      "norm_label": "new-doc-form.tsx",
+      "source_file": "src/app/(app)/family/documents/new/new-doc-form.tsx",
       "source_location": "L1"
+    },
+    {
+      "id": "src_app_app_family_documents_new_new_doc_form_visibility",
+      "label": "VISIBILITY",
+      "_origin": "ast",
+      "community": 2,
+      "community_name": "createClient",
+      "file_type": "code",
+      "norm_label": "visibility",
+      "source_file": "src/app/(app)/family/documents/new/new-doc-form.tsx",
+      "source_location": "L11"
     },
     {
       "id": "src_app_app_family_documents_new_page",
@@ -4473,6 +4490,50 @@
       "source_location": "L1"
     },
     {
+      "id": "src_app_app_family_members_id_omron_toggle",
+      "label": "omron-toggle.tsx",
+      "_origin": "ast",
+      "community": 2,
+      "community_name": "createClient",
+      "file_type": "code",
+      "norm_label": "omron-toggle.tsx",
+      "source_file": "src/app/(app)/family/members/[id]/omron-toggle.tsx",
+      "source_location": "L1"
+    },
+    {
+      "id": "src_app_app_planner_add_add_planner_form",
+      "label": "add-planner-form.tsx",
+      "_origin": "ast",
+      "community": 2,
+      "community_name": "createClient",
+      "file_type": "code",
+      "norm_label": "add-planner-form.tsx",
+      "source_file": "src/app/(app)/planner/add/add-planner-form.tsx",
+      "source_location": "L1"
+    },
+    {
+      "id": "src_app_app_planner_add_add_planner_form_initialstate",
+      "label": "initialState",
+      "_origin": "ast",
+      "community": 2,
+      "community_name": "createClient",
+      "file_type": "code",
+      "norm_label": "initialstate",
+      "source_file": "src/app/(app)/planner/add/add-planner-form.tsx",
+      "source_location": "L10"
+    },
+    {
+      "id": "src_app_app_planner_add_add_planner_form_types",
+      "label": "TYPES",
+      "_origin": "ast",
+      "community": 2,
+      "community_name": "createClient",
+      "file_type": "code",
+      "norm_label": "types",
+      "source_file": "src/app/(app)/planner/add/add-planner-form.tsx",
+      "source_location": "L11"
+    },
+    {
       "id": "src_app_app_settings_page",
       "label": "settings/page.tsx",
       "_origin": "ast",
@@ -4495,17 +4556,6 @@
       "source_location": "L24"
     },
     {
-      "id": "src_app_app_today_page",
-      "label": "today/page.tsx",
-      "_origin": "ast",
-      "community": 2,
-      "community_name": "createClient",
-      "file_type": "code",
-      "norm_label": "today/page.tsx",
-      "source_file": "src/app/(app)/today/page.tsx",
-      "source_location": "L1"
-    },
-    {
       "id": "src_app_auth_callback_route",
       "label": "auth/callback/route.ts",
       "_origin": "ast",
@@ -4514,17 +4564,6 @@
       "file_type": "code",
       "norm_label": "auth/callback/route.ts",
       "source_file": "src/app/auth/callback/route.ts",
-      "source_location": "L1"
-    },
-    {
-      "id": "src_app_onboarding_members_page",
-      "label": "members/page.tsx",
-      "_origin": "ast",
-      "community": 2,
-      "community_name": "createClient",
-      "file_type": "code",
-      "norm_label": "members/page.tsx",
-      "source_file": "src/app/onboarding/members/page.tsx",
       "source_location": "L1"
     },
     {
@@ -4539,14 +4578,36 @@
       "source_location": "L1"
     },
     {
-      "id": "src_components_copy_invite_code",
-      "label": "copy-invite-code.tsx",
+      "id": "src_components_add_to_journal_button",
+      "label": "add-to-journal-button.tsx",
       "_origin": "ast",
       "community": 2,
       "community_name": "createClient",
       "file_type": "code",
-      "norm_label": "copy-invite-code.tsx",
-      "source_file": "src/components/copy-invite-code.tsx",
+      "norm_label": "add-to-journal-button.tsx",
+      "source_file": "src/components/add-to-journal-button.tsx",
+      "source_location": "L1"
+    },
+    {
+      "id": "src_components_delete_account_button",
+      "label": "delete-account-button.tsx",
+      "_origin": "ast",
+      "community": 2,
+      "community_name": "createClient",
+      "file_type": "code",
+      "norm_label": "delete-account-button.tsx",
+      "source_file": "src/components/delete-account-button.tsx",
+      "source_location": "L1"
+    },
+    {
+      "id": "src_components_delete_household_button",
+      "label": "delete-household-button.tsx",
+      "_origin": "ast",
+      "community": 2,
+      "community_name": "createClient",
+      "file_type": "code",
+      "norm_label": "delete-household-button.tsx",
+      "source_file": "src/components/delete-household-button.tsx",
       "source_location": "L1"
     },
     {
@@ -4569,17 +4630,17 @@
       "file_type": "code",
       "norm_label": "notif_defs",
       "source_file": "src/components/settings-controls.tsx",
-      "source_location": "L46"
+      "source_location": "L47"
     },
     {
-      "id": "src_components_transfer_organizer_role",
-      "label": "transfer-organizer-role.tsx",
+      "id": "src_lib_actions_documents",
+      "label": "documents.ts",
       "_origin": "ast",
       "community": 2,
       "community_name": "createClient",
       "file_type": "code",
-      "norm_label": "transfer-organizer-role.tsx",
-      "source_file": "src/components/transfer-organizer-role.tsx",
+      "norm_label": "documents.ts",
+      "source_file": "src/lib/actions/documents.ts",
       "source_location": "L1"
     },
     {
@@ -4594,6 +4655,39 @@
       "source_location": "L1"
     },
     {
+      "id": "src_lib_actions_health",
+      "label": "actions/health.ts",
+      "_origin": "ast",
+      "community": 2,
+      "community_name": "createClient",
+      "file_type": "code",
+      "norm_label": "actions/health.ts",
+      "source_file": "src/lib/actions/health.ts",
+      "source_location": "L1"
+    },
+    {
+      "id": "src_lib_actions_health_grouped_types",
+      "label": "GROUPED_TYPES",
+      "_origin": "ast",
+      "community": 2,
+      "community_name": "createClient",
+      "file_type": "code",
+      "norm_label": "grouped_types",
+      "source_file": "src/lib/actions/health.ts",
+      "source_location": "L9"
+    },
+    {
+      "id": "src_lib_actions_planner",
+      "label": "actions/planner.ts",
+      "_origin": "ast",
+      "community": 2,
+      "community_name": "createClient",
+      "file_type": "code",
+      "norm_label": "actions/planner.ts",
+      "source_file": "src/lib/actions/planner.ts",
+      "source_location": "L1"
+    },
+    {
       "id": "src_lib_actions_settings",
       "label": "settings.ts",
       "_origin": "ast",
@@ -4602,17 +4696,6 @@
       "file_type": "code",
       "norm_label": "settings.ts",
       "source_file": "src/lib/actions/settings.ts",
-      "source_location": "L1"
-    },
-    {
-      "id": "src_lib_queries_today",
-      "label": "today.ts",
-      "_origin": "ast",
-      "community": 2,
-      "community_name": "createClient",
-      "file_type": "code",
-      "norm_label": "today.ts",
-      "source_file": "src/lib/queries/today.ts",
       "source_location": "L1"
     },
     {
@@ -4627,17 +4710,6 @@
       "source_location": "L1"
     },
     {
-      "id": "src_lib_session_getcurrentmember",
-      "label": "getCurrentMember",
-      "_origin": "ast",
-      "community": 2,
-      "community_name": "createClient",
-      "file_type": "code",
-      "norm_label": "getcurrentmember",
-      "source_file": "src/lib/session.ts",
-      "source_location": "L15"
-    },
-    {
       "id": "src_lib_supabase_server",
       "label": "server.ts",
       "_origin": "ast",
@@ -4646,39 +4718,6 @@
       "file_type": "code",
       "norm_label": "server.ts",
       "source_file": "src/lib/supabase/server.ts",
-      "source_location": "L1"
-    },
-    {
-      "id": "src_components_add_child_form",
-      "label": "add-child-form.tsx",
-      "_origin": "ast",
-      "community": 22,
-      "community_name": "actions/family.ts",
-      "file_type": "code",
-      "norm_label": "add-child-form.tsx",
-      "source_file": "src/components/add-child-form.tsx",
-      "source_location": "L1"
-    },
-    {
-      "id": "src_components_add_child_form_initialstate",
-      "label": "initialState",
-      "_origin": "ast",
-      "community": 22,
-      "community_name": "actions/family.ts",
-      "file_type": "code",
-      "norm_label": "initialstate",
-      "source_file": "src/components/add-child-form.tsx",
-      "source_location": "L8"
-    },
-    {
-      "id": "src_components_delete_household_button",
-      "label": "delete-household-button.tsx",
-      "_origin": "ast",
-      "community": 22,
-      "community_name": "actions/family.ts",
-      "file_type": "code",
-      "norm_label": "delete-household-button.tsx",
-      "source_file": "src/components/delete-household-button.tsx",
       "source_location": "L1"
     },
     {
@@ -4748,72 +4787,6 @@
       "source_location": "L1"
     },
     {
-      "id": "src_app_app_planner_add_add_planner_form",
-      "label": "add-planner-form.tsx",
-      "_origin": "ast",
-      "community": 23,
-      "community_name": "add-planner-form.tsx",
-      "file_type": "code",
-      "norm_label": "add-planner-form.tsx",
-      "source_file": "src/app/(app)/planner/add/add-planner-form.tsx",
-      "source_location": "L1"
-    },
-    {
-      "id": "src_app_app_planner_add_add_planner_form_initialstate",
-      "label": "initialState",
-      "_origin": "ast",
-      "community": 23,
-      "community_name": "add-planner-form.tsx",
-      "file_type": "code",
-      "norm_label": "initialstate",
-      "source_file": "src/app/(app)/planner/add/add-planner-form.tsx",
-      "source_location": "L10"
-    },
-    {
-      "id": "src_app_app_planner_add_add_planner_form_types",
-      "label": "TYPES",
-      "_origin": "ast",
-      "community": 23,
-      "community_name": "add-planner-form.tsx",
-      "file_type": "code",
-      "norm_label": "types",
-      "source_file": "src/app/(app)/planner/add/add-planner-form.tsx",
-      "source_location": "L11"
-    },
-    {
-      "id": "src_app_app_planner_add_page",
-      "label": "add/page.tsx",
-      "_origin": "ast",
-      "community": 23,
-      "community_name": "add-planner-form.tsx",
-      "file_type": "code",
-      "norm_label": "add/page.tsx",
-      "source_file": "src/app/(app)/planner/add/page.tsx",
-      "source_location": "L1"
-    },
-    {
-      "id": "src_components_add_to_journal_button",
-      "label": "add-to-journal-button.tsx",
-      "_origin": "ast",
-      "community": 23,
-      "community_name": "add-planner-form.tsx",
-      "file_type": "code",
-      "norm_label": "add-to-journal-button.tsx",
-      "source_file": "src/components/add-to-journal-button.tsx",
-      "source_location": "L1"
-    },
-    {
-      "id": "src_lib_actions_planner",
-      "label": "actions/planner.ts",
-      "_origin": "ast",
-      "community": 23,
-      "community_name": "add-planner-form.tsx",
-      "file_type": "code",
-      "norm_label": "actions/planner.ts",
-      "source_file": "src/lib/actions/planner.ts",
-      "source_location": "L1"
-    },
-    {
       "id": "src_app_app_family_members_id_health_new_new_health_entry_form",
       "label": "new-health-entry-form.tsx",
       "_origin": "ast",
@@ -4858,15 +4831,48 @@
       "source_location": "L23"
     },
     {
-      "id": "src_app_app_family_members_id_omron_toggle",
-      "label": "omron-toggle.tsx",
+      "id": "src_app_app_household_meals_new_page",
+      "label": "meals/new/page.tsx",
       "_origin": "ast",
       "community": 3,
       "community_name": "auth.ts",
       "file_type": "code",
-      "norm_label": "omron-toggle.tsx",
-      "source_file": "src/app/(app)/family/members/[id]/omron-toggle.tsx",
+      "norm_label": "meals/new/page.tsx",
+      "source_file": "src/app/(app)/household/meals/new/page.tsx",
       "source_location": "L1"
+    },
+    {
+      "id": "src_app_app_household_meals_new_page_initialstate",
+      "label": "initialState",
+      "_origin": "ast",
+      "community": 3,
+      "community_name": "auth.ts",
+      "file_type": "code",
+      "norm_label": "initialstate",
+      "source_file": "src/app/(app)/household/meals/new/page.tsx",
+      "source_location": "L9"
+    },
+    {
+      "id": "src_app_app_journal_milestones_new_page",
+      "label": "milestones/new/page.tsx",
+      "_origin": "ast",
+      "community": 3,
+      "community_name": "auth.ts",
+      "file_type": "code",
+      "norm_label": "milestones/new/page.tsx",
+      "source_file": "src/app/(app)/journal/milestones/new/page.tsx",
+      "source_location": "L1"
+    },
+    {
+      "id": "src_app_app_journal_milestones_new_page_initialstate",
+      "label": "initialState",
+      "_origin": "ast",
+      "community": 3,
+      "community_name": "auth.ts",
+      "file_type": "code",
+      "norm_label": "initialstate",
+      "source_file": "src/app/(app)/journal/milestones/new/page.tsx",
+      "source_location": "L10"
     },
     {
       "id": "src_app_login_login_form",
@@ -4943,6 +4949,17 @@
       "file_type": "code",
       "norm_label": "onboarding/family/page.tsx",
       "source_file": "src/app/onboarding/family/page.tsx",
+      "source_location": "L1"
+    },
+    {
+      "id": "src_app_onboarding_members_page",
+      "label": "members/page.tsx",
+      "_origin": "ast",
+      "community": 3,
+      "community_name": "auth.ts",
+      "file_type": "code",
+      "norm_label": "members/page.tsx",
+      "source_file": "src/app/onboarding/members/page.tsx",
       "source_location": "L1"
     },
     {
@@ -5023,6 +5040,50 @@
       "source_location": "L1"
     },
     {
+      "id": "src_components_add_child_form",
+      "label": "add-child-form.tsx",
+      "_origin": "ast",
+      "community": 3,
+      "community_name": "auth.ts",
+      "file_type": "code",
+      "norm_label": "add-child-form.tsx",
+      "source_file": "src/components/add-child-form.tsx",
+      "source_location": "L1"
+    },
+    {
+      "id": "src_components_add_child_form_initialstate",
+      "label": "initialState",
+      "_origin": "ast",
+      "community": 3,
+      "community_name": "auth.ts",
+      "file_type": "code",
+      "norm_label": "initialstate",
+      "source_file": "src/components/add-child-form.tsx",
+      "source_location": "L8"
+    },
+    {
+      "id": "src_components_copy_invite_code",
+      "label": "copy-invite-code.tsx",
+      "_origin": "ast",
+      "community": 3,
+      "community_name": "auth.ts",
+      "file_type": "code",
+      "norm_label": "copy-invite-code.tsx",
+      "source_file": "src/components/copy-invite-code.tsx",
+      "source_location": "L1"
+    },
+    {
+      "id": "src_components_form",
+      "label": "form.tsx",
+      "_origin": "ast",
+      "community": 3,
+      "community_name": "auth.ts",
+      "file_type": "code",
+      "norm_label": "form.tsx",
+      "source_file": "src/components/form.tsx",
+      "source_location": "L1"
+    },
+    {
       "id": "src_components_onboarding_shell",
       "label": "onboarding-shell.tsx",
       "_origin": "ast",
@@ -5065,28 +5126,6 @@
       "norm_label": "auth.ts",
       "source_file": "src/lib/actions/auth.ts",
       "source_location": "L1"
-    },
-    {
-      "id": "src_lib_actions_health",
-      "label": "actions/health.ts",
-      "_origin": "ast",
-      "community": 3,
-      "community_name": "auth.ts",
-      "file_type": "code",
-      "norm_label": "actions/health.ts",
-      "source_file": "src/lib/actions/health.ts",
-      "source_location": "L1"
-    },
-    {
-      "id": "src_lib_actions_health_grouped_types",
-      "label": "GROUPED_TYPES",
-      "_origin": "ast",
-      "community": 3,
-      "community_name": "auth.ts",
-      "file_type": "code",
-      "norm_label": "grouped_types",
-      "source_file": "src/lib/actions/health.ts",
-      "source_location": "L9"
     },
     {
       "id": "src_lib_actions_wealth",
@@ -5584,17 +5623,6 @@
       "source_location": "L1"
     },
     {
-      "id": "src_lib_storage",
-      "label": "storage.ts",
-      "_origin": "ast",
-      "community": 5,
-      "community_name": "planner/page.tsx",
-      "file_type": "code",
-      "norm_label": "storage.ts",
-      "source_file": "src/lib/storage.ts",
-      "source_location": "L1"
-    },
-    {
       "id": "tsconfig",
       "label": "tsconfig.json",
       "_origin": "ast",
@@ -5914,17 +5942,6 @@
       "source_location": "L25"
     },
     {
-      "id": "src_components_avatar",
-      "label": "avatar.tsx",
-      "_origin": "ast",
-      "community": 7,
-      "community_name": "profile.ts",
-      "file_type": "code",
-      "norm_label": "avatar.tsx",
-      "source_file": "src/components/avatar.tsx",
-      "source_location": "L1"
-    },
-    {
       "id": "src_components_avatar_album_viewer",
       "label": "avatar-album-viewer.tsx",
       "_origin": "ast",
@@ -5936,14 +5953,14 @@
       "source_location": "L1"
     },
     {
-      "id": "src_components_delete_account_button",
-      "label": "delete-account-button.tsx",
+      "id": "src_components_family_background_album",
+      "label": "family-background-album.tsx",
       "_origin": "ast",
       "community": 7,
       "community_name": "profile.ts",
       "file_type": "code",
-      "norm_label": "delete-account-button.tsx",
-      "source_file": "src/components/delete-account-button.tsx",
+      "norm_label": "family-background-album.tsx",
+      "source_file": "src/components/family-background-album.tsx",
       "source_location": "L1"
     },
     {
@@ -5956,6 +5973,50 @@
       "norm_label": "member-profile-editor.tsx",
       "source_file": "src/components/member-profile-editor.tsx",
       "source_location": "L1"
+    },
+    {
+      "id": "src_components_photo_album_viewer",
+      "label": "photo-album-viewer.tsx",
+      "_origin": "ast",
+      "community": 7,
+      "community_name": "profile.ts",
+      "file_type": "code",
+      "norm_label": "photo-album-viewer.tsx",
+      "source_file": "src/components/photo-album-viewer.tsx",
+      "source_location": "L1"
+    },
+    {
+      "id": "src_components_photo_album_viewer_closebuttonstyle",
+      "label": "closeButtonStyle",
+      "_origin": "ast",
+      "community": 7,
+      "community_name": "profile.ts",
+      "file_type": "code",
+      "norm_label": "closebuttonstyle",
+      "source_file": "src/components/photo-album-viewer.tsx",
+      "source_location": "L136"
+    },
+    {
+      "id": "src_components_photo_album_viewer_navbuttonstyle",
+      "label": "navButtonStyle",
+      "_origin": "ast",
+      "community": 7,
+      "community_name": "profile.ts",
+      "file_type": "code",
+      "norm_label": "navbuttonstyle",
+      "source_file": "src/components/photo-album-viewer.tsx",
+      "source_location": "L148"
+    },
+    {
+      "id": "src_components_photo_album_viewer_overlaystyle",
+      "label": "overlayStyle",
+      "_origin": "ast",
+      "community": 7,
+      "community_name": "profile.ts",
+      "file_type": "code",
+      "norm_label": "overlaystyle",
+      "source_file": "src/components/photo-album-viewer.tsx",
+      "source_location": "L125"
     },
     {
       "id": "src_components_profile_edit_form",
@@ -5991,6 +6052,17 @@
       "source_location": "L10"
     },
     {
+      "id": "src_components_transfer_organizer_role",
+      "label": "transfer-organizer-role.tsx",
+      "_origin": "ast",
+      "community": 7,
+      "community_name": "profile.ts",
+      "file_type": "code",
+      "norm_label": "transfer-organizer-role.tsx",
+      "source_file": "src/components/transfer-organizer-role.tsx",
+      "source_location": "L1"
+    },
+    {
       "id": "src_lib_actions_profile",
       "label": "profile.ts",
       "_origin": "ast",
@@ -6024,17 +6096,6 @@
       "source_location": "L2275"
     },
     {
-      "id": "src_lib_photo_url",
-      "label": "photo-url.ts",
-      "_origin": "ast",
-      "community": 7,
-      "community_name": "profile.ts",
-      "file_type": "code",
-      "norm_label": "photo-url.ts",
-      "source_file": "src/lib/photo-url.ts",
-      "source_location": "L1"
-    },
-    {
       "id": "src_lib_profile_fields",
       "label": "profile-fields.ts",
       "_origin": "ast",
@@ -6055,17 +6116,6 @@
       "norm_label": "profile_field_keys",
       "source_file": "src/lib/profile-fields.ts",
       "source_location": "L37"
-    },
-    {
-      "id": "src_lib_supabase_client",
-      "label": "client.ts",
-      "_origin": "ast",
-      "community": 7,
-      "community_name": "profile.ts",
-      "file_type": "code",
-      "norm_label": "client.ts",
-      "source_file": "src/lib/supabase/client.ts",
-      "source_location": "L1"
     },
     {
       "id": "src_app_app_household_page",
@@ -6211,6 +6261,17 @@
       "source_location": "L1"
     },
     {
+      "id": "src_app_app_today_page",
+      "label": "today/page.tsx",
+      "_origin": "ast",
+      "community": 9,
+      "community_name": "icons.tsx",
+      "file_type": "code",
+      "norm_label": "today/page.tsx",
+      "source_file": "src/app/(app)/today/page.tsx",
+      "source_location": "L1"
+    },
+    {
       "id": "src_components_delete_button",
       "label": "delete-button.tsx",
       "_origin": "ast",
@@ -6319,6 +6380,17 @@
       "norm_label": "selectioncontext",
       "source_file": "src/lib/doc-selection-context.tsx",
       "source_location": "L15"
+    },
+    {
+      "id": "src_lib_queries_today",
+      "label": "today.ts",
+      "_origin": "ast",
+      "community": 9,
+      "community_name": "icons.tsx",
+      "file_type": "code",
+      "norm_label": "today.ts",
+      "source_file": "src/lib/queries/today.ts",
+      "source_location": "L1"
     },
     {
       "id": "readme_google_drive_integration",
@@ -8350,7 +8422,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/components/settings-controls.tsx",
-      "source_location": "L257",
+      "source_location": "L259",
       "weight": 1.0
     },
     {
@@ -8362,7 +8434,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/components/settings-controls.tsx",
-      "source_location": "L144",
+      "source_location": "L145",
       "weight": 1.0
     },
     {
@@ -8374,7 +8446,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/components/settings-controls.tsx",
-      "source_location": "L197",
+      "source_location": "L198",
       "weight": 1.0
     },
     {
@@ -8386,7 +8458,19 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/components/settings-controls.tsx",
-      "source_location": "L119",
+      "source_location": "L120",
+      "weight": 1.0
+    },
+    {
+      "source": "src_components_settings_controls_migratephotosbutton",
+      "target": "src_lib_actions_photo_migration_migrateprofilephotostodriveaction",
+      "relation": "calls",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "call",
+      "source_file": "src/components/settings-controls.tsx",
+      "source_location": "L291",
       "weight": 1.0
     },
     {
@@ -8398,7 +8482,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/components/settings-controls.tsx",
-      "source_location": "L65",
+      "source_location": "L66",
       "weight": 1.0
     },
     {
@@ -8410,7 +8494,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/components/settings-controls.tsx",
-      "source_location": "L38",
+      "source_location": "L39",
       "weight": 1.0
     },
     {
@@ -8422,7 +8506,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/components/settings-controls.tsx",
-      "source_location": "L20",
+      "source_location": "L21",
       "weight": 1.0
     },
     {
@@ -9374,6 +9458,90 @@
       "weight": 1.0
     },
     {
+      "source": "src_lib_actions_photo_migration_migrateonefile",
+      "target": "src_lib_google_drive_uploadfiletodrive",
+      "relation": "calls",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "call",
+      "source_file": "src/lib/actions/photo-migration.ts",
+      "source_location": "L26",
+      "weight": 1.0
+    },
+    {
+      "source": "src_lib_actions_photo_migration_migrateprofilephotostodriveaction",
+      "target": "src_lib_session_requirecurrentmember",
+      "relation": "calls",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "call",
+      "source_file": "src/lib/actions/photo-migration.ts",
+      "source_location": "L37",
+      "weight": 1.0
+    },
+    {
+      "source": "src_lib_actions_photo_migration_migrateprofilephotostodriveaction",
+      "target": "src_lib_google_drive_getvaliddriveaccesstoken",
+      "relation": "calls",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "call",
+      "source_file": "src/lib/actions/photo-migration.ts",
+      "source_location": "L40",
+      "weight": 1.0
+    },
+    {
+      "source": "src_lib_actions_photo_migration_migrateprofilephotostodriveaction",
+      "target": "src_lib_supabase_server_createclient",
+      "relation": "calls",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "call",
+      "source_file": "src/lib/actions/photo-migration.ts",
+      "source_location": "L43",
+      "weight": 1.0
+    },
+    {
+      "source": "src_lib_actions_photo_migration_migrateprofilephotostodriveaction",
+      "target": "src_lib_google_drive_ensuredrivefolderstructure",
+      "relation": "calls",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "call",
+      "source_file": "src/lib/actions/photo-migration.ts",
+      "source_location": "L44",
+      "weight": 1.0
+    },
+    {
+      "source": "src_lib_actions_photo_migration_migrateprofilephotostodriveaction",
+      "target": "src_lib_google_drive_ensureprofilephotofolder",
+      "relation": "calls",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "call",
+      "source_file": "src/lib/actions/photo-migration.ts",
+      "source_location": "L61",
+      "weight": 1.0
+    },
+    {
+      "source": "src_lib_actions_photo_migration_migrateprofilephotostodriveaction",
+      "target": "src_lib_actions_photo_migration_migrateonefile",
+      "relation": "calls",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "call",
+      "source_file": "src/lib/actions/photo-migration.ts",
+      "source_location": "L62",
+      "weight": 1.0
+    },
+    {
       "source": "src_lib_actions_planner_addactivitytojournalaction",
       "target": "src_lib_session_requirecurrentmember",
       "relation": "calls",
@@ -9922,7 +10090,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/lib/google-drive.ts",
-      "source_location": "L215",
+      "source_location": "L244",
       "weight": 1.0
     },
     {
@@ -10030,7 +10198,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/lib/google-drive.ts",
-      "source_location": "L203",
+      "source_location": "L232",
       "weight": 1.0
     },
     {
@@ -10066,7 +10234,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/lib/google-drive.ts",
-      "source_location": "L235",
+      "source_location": "L264",
       "weight": 1.0
     },
     {
@@ -14944,6 +15112,18 @@
     },
     {
       "source": "src_components_settings_controls",
+      "target": "src_lib_actions_photo_migration_migrateprofilephotostodriveaction",
+      "relation": "imports",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "import",
+      "source_file": "src/components/settings-controls.tsx",
+      "source_location": "L7",
+      "weight": 1.0
+    },
+    {
+      "source": "src_components_settings_controls",
       "target": "src_components_copy_invite_code_copyinvitecode",
       "relation": "imports",
       "_origin": "ast",
@@ -14951,7 +15131,7 @@
       "confidence_score": 1.0,
       "context": "import",
       "source_file": "src/components/settings-controls.tsx",
-      "source_location": "L8",
+      "source_location": "L9",
       "weight": 1.0
     },
     {
@@ -15396,6 +15576,102 @@
       "context": "import",
       "source_file": "src/lib/actions/journal.ts",
       "source_location": "L6",
+      "weight": 1.0
+    },
+    {
+      "source": "src_lib_actions_photo_migration",
+      "target": "src_lib_supabase_server_createclient",
+      "relation": "imports",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "import",
+      "source_file": "src/lib/actions/photo-migration.ts",
+      "source_location": "L4",
+      "weight": 1.0
+    },
+    {
+      "source": "src_lib_actions_photo_migration",
+      "target": "src_lib_session_requirecurrentmember",
+      "relation": "imports",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "import",
+      "source_file": "src/lib/actions/photo-migration.ts",
+      "source_location": "L5",
+      "weight": 1.0
+    },
+    {
+      "source": "src_lib_actions_photo_migration",
+      "target": "src_lib_google_drive_ensuredrivefolderstructure",
+      "relation": "imports",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "import",
+      "source_file": "src/lib/actions/photo-migration.ts",
+      "source_location": "L6",
+      "weight": 1.0
+    },
+    {
+      "source": "src_lib_actions_photo_migration",
+      "target": "src_lib_google_drive_ensureprofilephotofolder",
+      "relation": "imports",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "import",
+      "source_file": "src/lib/actions/photo-migration.ts",
+      "source_location": "L6",
+      "weight": 1.0
+    },
+    {
+      "source": "src_lib_actions_photo_migration",
+      "target": "src_lib_google_drive_getvaliddriveaccesstoken",
+      "relation": "imports",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "import",
+      "source_file": "src/lib/actions/photo-migration.ts",
+      "source_location": "L6",
+      "weight": 1.0
+    },
+    {
+      "source": "src_lib_actions_photo_migration",
+      "target": "src_lib_google_drive_uploadfiletodrive",
+      "relation": "imports",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "import",
+      "source_file": "src/lib/actions/photo-migration.ts",
+      "source_location": "L6",
+      "weight": 1.0
+    },
+    {
+      "source": "src_lib_actions_photo_migration",
+      "target": "src_lib_actions_auth_actionstate",
+      "relation": "imports",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "import",
+      "source_file": "src/lib/actions/photo-migration.ts",
+      "source_location": "L7",
+      "weight": 1.0
+    },
+    {
+      "source": "src_lib_actions_photo_migration",
+      "target": "src_lib_database_types_database",
+      "relation": "imports",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "import",
+      "source_file": "src/lib/actions/photo-migration.ts",
+      "source_location": "L9",
       "weight": 1.0
     },
     {
@@ -18896,6 +19172,18 @@
     },
     {
       "source": "src_components_settings_controls",
+      "target": "src_lib_actions_photo_migration",
+      "relation": "imports_from",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "import",
+      "source_file": "src/components/settings-controls.tsx",
+      "source_location": "L7",
+      "weight": 1.0
+    },
+    {
+      "source": "src_components_settings_controls",
       "target": "src_components_copy_invite_code",
       "relation": "imports_from",
       "_origin": "ast",
@@ -18903,7 +19191,7 @@
       "confidence_score": 1.0,
       "context": "import",
       "source_file": "src/components/settings-controls.tsx",
-      "source_location": "L8",
+      "source_location": "L9",
       "weight": 1.0
     },
     {
@@ -19246,6 +19534,68 @@
       "context": "import",
       "source_file": "src/lib/actions/journal.ts",
       "source_location": "L6",
+      "weight": 1.0
+    },
+    {
+      "source": "src_lib_actions_photo_migration",
+      "target": "src_lib_supabase_server",
+      "relation": "imports_from",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "import",
+      "source_file": "src/lib/actions/photo-migration.ts",
+      "source_location": "L4",
+      "weight": 1.0
+    },
+    {
+      "source": "src_lib_actions_photo_migration",
+      "target": "src_lib_session",
+      "relation": "imports_from",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "import",
+      "source_file": "src/lib/actions/photo-migration.ts",
+      "source_location": "L5",
+      "weight": 1.0
+    },
+    {
+      "source": "src_lib_actions_photo_migration",
+      "target": "src_lib_google_drive",
+      "relation": "imports_from",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "import",
+      "source_file": "src/lib/actions/photo-migration.ts",
+      "source_location": "L6",
+      "weight": 1.0
+    },
+    {
+      "source": "src_lib_actions_photo_migration",
+      "target": "src_lib_actions_auth",
+      "relation": "imports_from",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "import",
+      "source_file": "src/lib/actions/photo-migration.ts",
+      "source_location": "L7",
+      "type_only": true,
+      "weight": 1.0
+    },
+    {
+      "source": "src_lib_actions_photo_migration",
+      "target": "src_lib_database_types",
+      "relation": "imports_from",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "import",
+      "source_file": "src/lib/actions/photo-migration.ts",
+      "source_location": "L9",
+      "type_only": true,
       "weight": 1.0
     },
     {
@@ -22147,24 +22497,24 @@
     },
     {
       "source": "src_components_settings_controls",
-      "target": "src_components_settings_controls_themecontrol",
-      "relation": "contains",
-      "_origin": "ast",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "source_file": "src/components/settings-controls.tsx",
-      "source_location": "L10",
-      "weight": 1.0
-    },
-    {
-      "source": "src_components_settings_controls",
       "target": "src_components_settings_controls_invitecodecard",
       "relation": "contains",
       "_origin": "ast",
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/components/settings-controls.tsx",
-      "source_location": "L107",
+      "source_location": "L108",
+      "weight": 1.0
+    },
+    {
+      "source": "src_components_settings_controls",
+      "target": "src_components_settings_controls_themecontrol",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "src/components/settings-controls.tsx",
+      "source_location": "L11",
       "weight": 1.0
     },
     {
@@ -22175,7 +22525,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/components/settings-controls.tsx",
-      "source_location": "L129",
+      "source_location": "L130",
       "weight": 1.0
     },
     {
@@ -22186,7 +22536,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/components/settings-controls.tsx",
-      "source_location": "L157",
+      "source_location": "L158",
       "weight": 1.0
     },
     {
@@ -22197,7 +22547,18 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/components/settings-controls.tsx",
-      "source_location": "L209",
+      "source_location": "L210",
+      "weight": 1.0
+    },
+    {
+      "source": "src_components_settings_controls",
+      "target": "src_components_settings_controls_migratephotosbutton",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "src/components/settings-controls.tsx",
+      "source_location": "L276",
       "weight": 1.0
     },
     {
@@ -22208,7 +22569,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/components/settings-controls.tsx",
-      "source_location": "L28",
+      "source_location": "L29",
       "weight": 1.0
     },
     {
@@ -22219,7 +22580,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/components/settings-controls.tsx",
-      "source_location": "L46",
+      "source_location": "L47",
       "weight": 1.0
     },
     {
@@ -22230,7 +22591,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/components/settings-controls.tsx",
-      "source_location": "L54",
+      "source_location": "L55",
       "weight": 1.0
     },
     {
@@ -22872,6 +23233,39 @@
       "weight": 1.0
     },
     {
+      "source": "src_lib_actions_photo_migration",
+      "target": "src_lib_actions_photo_migration_migrateresult",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "src/lib/actions/photo-migration.ts",
+      "source_location": "L11",
+      "weight": 1.0
+    },
+    {
+      "source": "src_lib_actions_photo_migration",
+      "target": "src_lib_actions_photo_migration_migrateonefile",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "src/lib/actions/photo-migration.ts",
+      "source_location": "L16",
+      "weight": 1.0
+    },
+    {
+      "source": "src_lib_actions_photo_migration",
+      "target": "src_lib_actions_photo_migration_migrateprofilephotostodriveaction",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "src/lib/actions/photo-migration.ts",
+      "source_location": "L36",
+      "weight": 1.0
+    },
+    {
       "source": "src_lib_actions_planner",
       "target": "src_lib_actions_planner_createtripaction",
       "relation": "contains",
@@ -23357,13 +23751,24 @@
     },
     {
       "source": "src_lib_google_drive",
+      "target": "src_lib_google_drive_uploadfiletodrive",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "src/lib/google-drive.ts",
+      "source_location": "L169",
+      "weight": 1.0
+    },
+    {
+      "source": "src_lib_google_drive",
       "target": "src_lib_google_drive_createresumableuploadsession",
       "relation": "contains",
       "_origin": "ast",
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/lib/google-drive.ts",
-      "source_location": "L175",
+      "source_location": "L204",
       "weight": 1.0
     },
     {
@@ -23374,7 +23779,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/lib/google-drive.ts",
-      "source_location": "L202",
+      "source_location": "L231",
       "weight": 1.0
     },
     {
@@ -23385,7 +23790,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/lib/google-drive.ts",
-      "source_location": "L214",
+      "source_location": "L243",
       "weight": 1.0
     },
     {
@@ -23396,7 +23801,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/lib/google-drive.ts",
-      "source_location": "L219",
+      "source_location": "L248",
       "weight": 1.0
     },
     {
@@ -23407,7 +23812,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/lib/google-drive.ts",
-      "source_location": "L233",
+      "source_location": "L262",
       "weight": 1.0
     },
     {
@@ -24491,5 +24896,5 @@
       "source_file": "README.md"
     }
   ],
-  "built_at_commit": "3126de76cf7e62a73904d6dd2914754e3faa98ec"
+  "built_at_commit": "7446ec01f8b6ca07bff5046710f3e8a8e03a6d43"
 }

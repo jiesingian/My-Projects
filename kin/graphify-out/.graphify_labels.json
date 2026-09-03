@@ -1,5 +1,5 @@
 {
-  "0": "form.tsx",
+  "0": "new-entry-form.tsx",
   "1": "[id]/page.tsx",
   "2": "createClient",
   "3": "auth.ts",
@@ -10,7 +10,7 @@
   "8": "household/page.tsx",
   "9": "icons.tsx",
   "10": "Kin — Family Operating System",
-  "11": "requireCurrentMember",
+  "11": "getCurrentMember",
   "12": "proxy.ts",
   "13": "app/layout.tsx",
   "14": "eslint.config.mjs",
@@ -21,6 +21,5 @@
   "19": "Next.js Logo (public/next.svg)",
   "20": "Vercel Logo (UI Icon Asset)",
   "21": "Window Icon",
-  "22": "actions/family.ts",
-  "23": "add-planner-form.tsx"
+  "22": "actions/family.ts"
 }
