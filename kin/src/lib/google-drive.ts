@@ -156,14 +156,24 @@ export async function deleteDriveFile(accessToken: string, fileId: string): Prom
   await driveFetch(accessToken, `/files/${fileId}`, { method: "DELETE" });
 }
 
-/** Lists the ids of files still actually present (not trashed) directly
- * under a Drive folder — used to reconcile our own index against files a
- * person deleted straight from Drive, since we have no push notifications
- * from Drive telling us that happened. */
-export async function listDriveFileIds(accessToken: string, folderId: string): Promise<Set<string>> {
+export type DriveFolderFile = {
+  id: string;
+  name: string;
+  mimeType: string;
+  webViewLink?: string;
+  thumbnailLink?: string;
+  createdTime?: string;
+};
+
+/** Lists files still actually present (not trashed) directly under a Drive
+ * folder — used to reconcile our own index both ways: dropping rows for
+ * files someone deleted straight from Drive, and picking up files someone
+ * added straight to Drive that the app never uploaded itself. Requires the
+ * drive.readonly scope to see files this app didn't create. */
+export async function listDriveFolderFiles(accessToken: string, folderId: string): Promise<DriveFolderFile[]> {
   const q = encodeURIComponent(`'${folderId}' in parents and trashed = false`);
-  const res = await driveFetch(accessToken, `/files?q=${q}&fields=files(id)&pageSize=1000`);
+  const res = await driveFetch(accessToken, `/files?q=${q}&fields=files(id,name,mimeType,webViewLink,thumbnailLink,createdTime)&pageSize=1000`);
   if (!res.ok) throw new Error(`Drive list failed: ${res.status} ${await res.text()}`);
-  const data = (await res.json()) as { files: { id: string }[] };
-  return new Set(data.files.map((f) => f.id));
+  const data = (await res.json()) as { files: DriveFolderFile[] };
+  return data.files;
 }

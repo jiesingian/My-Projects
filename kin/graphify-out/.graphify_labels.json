@@ -1,16 +1,16 @@
 {
   "0": "[folderId]/page.tsx",
   "1": "[id]/page.tsx",
-  "2": "getCurrentMember",
+  "2": "createClient",
   "3": "auth.ts",
   "4": "devDependencies",
-  "5": "createClient",
+  "5": "settings/page.tsx",
   "6": "compilerOptions",
-  "7": "server.ts",
+  "7": "wealth/page.tsx",
   "8": "household/page.tsx",
-  "9": "database.types.ts",
+  "9": "requireCurrentMember",
   "10": "Kin — Family Operating System",
-  "11": "journal/page.tsx",
+  "11": "google-drive.ts",
   "12": "proxy.ts",
   "13": "app/layout.tsx",
   "14": "eslint.config.mjs",
@@ -20,5 +20,6 @@
   "18": "Globe Icon",
   "19": "Next.js Logo (public/next.svg)",
   "20": "Vercel Logo (UI Icon Asset)",
-  "21": "Window Icon"
+  "21": "Window Icon",
+  "22": "add-planner-form.tsx"
 }

@@ -30,7 +30,10 @@ export async function GET(request: Request) {
   authUrl.searchParams.set("response_type", "code");
   authUrl.searchParams.set("access_type", "offline");
   authUrl.searchParams.set("prompt", "consent");
-  authUrl.searchParams.set("scope", "https://www.googleapis.com/auth/drive.file email");
+  authUrl.searchParams.set(
+    "scope",
+    "https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/drive.readonly email",
+  );
   authUrl.searchParams.set("state", state);
 
   return NextResponse.redirect(authUrl);

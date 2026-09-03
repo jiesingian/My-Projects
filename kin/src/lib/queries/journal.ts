@@ -1,39 +1,68 @@
 import { createClient } from "@/lib/supabase/server";
 import { getSignedUrls } from "@/lib/storage";
-import { getValidDriveAccessToken, ensureDriveFolderStructure, ensureNamedSubfolder, listDriveFileIds } from "@/lib/google-drive";
+import { getValidDriveAccessToken, ensureDriveFolderStructure, ensureNamedSubfolder, listDriveFolderFiles } from "@/lib/google-drive";
 
-/** Drive has no push notifications wired up here, so a file deleted straight
- * from Drive (not through the app) would otherwise keep showing up forever.
- * Reconciles by listing what's actually still in the household's Journal
- * folder and dropping any index rows Drive no longer has — best effort, and
- * deliberately gives up rather than mass-deleting if Drive can't be reached. */
-async function pruneDeletedDriveMedia(familyId: string, familyName: string): Promise<void> {
+/** Drive has no push notifications wired up here, so this reconciles the
+ * index against Drive's own Journal folder both ways on every load:
+ * - drops rows for files someone deleted (or trashed) straight in Drive
+ * - imports photos/videos someone dropped straight into Drive, so they
+ *   show up in the app without having to be uploaded through it
+ * Best effort throughout — gives up rather than guessing if Drive can't be
+ * reached, and never touches rows for anything other than this family. */
+async function syncDriveJournalMedia(familyId: string, familyName: string): Promise<void> {
+  const token = await getValidDriveAccessToken(familyId);
+  if (!token) return;
+
+  let folderId: string;
+  try {
+    const { rootFolderId } = await ensureDriveFolderStructure(familyId, token, familyName);
+    folderId = await ensureNamedSubfolder(token, rootFolderId, "Journal");
+  } catch {
+    return;
+  }
+
+  let liveFiles;
+  try {
+    liveFiles = await listDriveFolderFiles(token, folderId);
+  } catch {
+    return;
+  }
+
   const supabase = await createClient();
-  const { data: driveMedia } = await supabase
+  const { data: indexed } = await supabase
     .from("journal_media")
     .select("id, drive_file_id")
     .eq("family_id", familyId)
     .eq("storage_provider", "google_drive");
-  if (!driveMedia || driveMedia.length === 0) return;
 
-  const token = await getValidDriveAccessToken(familyId);
-  if (!token) return;
+  const liveIds = new Set(liveFiles.map((f) => f.id));
+  const indexedIds = new Set((indexed ?? []).map((m) => m.drive_file_id).filter((id): id is string => !!id));
 
-  try {
-    const { rootFolderId } = await ensureDriveFolderStructure(familyId, token, familyName);
-    const folderId = await ensureNamedSubfolder(token, rootFolderId, "Journal");
-    const liveIds = await listDriveFileIds(token, folderId);
-    const staleIds = driveMedia.filter((m) => m.drive_file_id && !liveIds.has(m.drive_file_id)).map((m) => m.id);
-    if (staleIds.length > 0) {
-      await supabase.from("journal_media").delete().in("id", staleIds);
-    }
-  } catch {
-    // Drive unreachable or erroring — leave the index as-is rather than guess.
+  const staleRowIds = (indexed ?? []).filter((m) => m.drive_file_id && !liveIds.has(m.drive_file_id)).map((m) => m.id);
+  if (staleRowIds.length > 0) {
+    await supabase.from("journal_media").delete().in("id", staleRowIds);
+  }
+
+  const newFiles = liveFiles.filter(
+    (f) => !indexedIds.has(f.id) && (f.mimeType.startsWith("image/") || f.mimeType.startsWith("video/")),
+  );
+  if (newFiles.length > 0) {
+    await supabase.from("journal_media").insert(
+      newFiles.map((f) => ({
+        family_id: familyId,
+        media_type: f.mimeType.startsWith("video/") ? "video" : "photo",
+        taken_at: f.createdTime ? f.createdTime.slice(0, 10) : new Date().toISOString().slice(0, 10),
+        storage_provider: "google_drive" as const,
+        drive_file_id: f.id,
+        drive_view_link: f.webViewLink ?? null,
+        drive_thumbnail_link: f.thumbnailLink ?? null,
+      })),
+    );
   }
 }
 
 export async function getGallery(familyId: string, familyName: string) {
-  await pruneDeletedDriveMedia(familyId, familyName);
+  await syncDriveJournalMedia(familyId, familyName);
   const supabase = await createClient();
   const { data } = await supabase
     .from("journal_media")
@@ -58,7 +87,7 @@ export async function getGallery(familyId: string, familyName: string) {
 }
 
 export async function getEntries(familyId: string, familyName: string) {
-  await pruneDeletedDriveMedia(familyId, familyName);
+  await syncDriveJournalMedia(familyId, familyName);
   const supabase = await createClient();
   const { data } = await supabase
     .from("journal_entries")
