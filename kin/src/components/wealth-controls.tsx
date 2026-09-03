@@ -9,7 +9,7 @@ const initialState: ActionState = { error: null };
 
 export function AddAccountForm({ isJoint }: { isJoint: boolean }) {
   const [open, setOpen] = useState(false);
-  const [state, formAction] = useActionState(addAccountAction, initialState);
+  const [state] = useActionState(addAccountAction, initialState);
 
   if (!open) {
     return (

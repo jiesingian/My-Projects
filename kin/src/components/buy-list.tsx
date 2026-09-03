@@ -74,7 +74,11 @@ export function BuyList({
               onClick={() =>
                 setCollapsed((prev) => {
                   const next = new Set(prev);
-                  next.has(g.name) ? next.delete(g.name) : next.add(g.name);
+                  if (next.has(g.name)) {
+                    next.delete(g.name);
+                  } else {
+                    next.add(g.name);
+                  }
                   return next;
                 })
               }

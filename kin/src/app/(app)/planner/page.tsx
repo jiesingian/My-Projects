@@ -31,7 +31,7 @@ export default async function PlannerPage({
       <HubHeader n="03" title="Planner" segments={segments} />
       <div style={{ padding: "0 22px 22px" }}>
         {seg === "calendar" && <CalendarPane familyId={me.family_id} />}
-        {seg === "events" && <EventsPane familyId={me.family_id} currency={me.families.currency} />}
+        {seg === "events" && <EventsPane familyId={me.family_id} />}
         {seg === "goals" && <GoalsPane familyId={me.family_id} currency={me.families.currency} />}
         {seg === "travel" && <TravelPane familyId={me.family_id} currency={me.families.currency} />}
       </div>
@@ -95,7 +95,7 @@ async function CalendarPane({ familyId }: { familyId: string }) {
   );
 }
 
-async function EventsPane({ familyId, currency }: { familyId: string; currency: string }) {
+async function EventsPane({ familyId }: { familyId: string }) {
   const events = await getEvents(familyId);
   return (
     <>

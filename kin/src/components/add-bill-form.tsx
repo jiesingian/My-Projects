@@ -9,7 +9,7 @@ const initialState: ActionState = { error: null };
 
 export function AddBillForm() {
   const [open, setOpen] = useState(false);
-  const [state, formAction] = useActionState(addBillAction, initialState);
+  const [state] = useActionState(addBillAction, initialState);
 
   if (!open) {
     return (

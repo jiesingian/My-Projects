@@ -9,7 +9,7 @@ const initialState: ActionState = { error: null };
 
 export function AddChildForm() {
   const [open, setOpen] = useState(false);
-  const [state, formAction] = useActionState(addManagedChildAction, initialState);
+  const [state] = useActionState(addManagedChildAction, initialState);
 
   if (!open) {
     return (
