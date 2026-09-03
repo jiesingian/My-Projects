@@ -1,32 +1,32 @@
 # Graph Report - kin  (2026-09-03)
 
 ## Corpus Check
-- 116 files · ~43,223 words
+- 117 files · ~43,740 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 554 nodes · 1472 edges · 24 communities (15 shown, 9 thin omitted)
+- 557 nodes · 1519 edges · 24 communities (15 shown, 9 thin omitted)
 - Extraction: 99% EXTRACTED · 1% INFERRED · 0% AMBIGUOUS · INFERRED: 17 edges (avg confidence: 0.85)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `5c77ff76`
+- Built from commit: `3126de76`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
 ## Community Hubs (Navigation)
-- FamilyBackgroundCropUpload
+- form.tsx
 - [id]/page.tsx
-- requireCurrentMember
+- createClient
 - auth.ts
 - devDependencies
-- createClient
+- planner/page.tsx
 - compilerOptions
 - profile.ts
 - household/page.tsx
-- new-doc-form.tsx
+- icons.tsx
 - Kin — Family Operating System
-- google-drive.ts
+- requireCurrentMember
 - proxy.ts
 - app/layout.tsx
 - eslint.config.mjs
@@ -38,7 +38,7 @@
 - Vercel Logo (UI Icon Asset)
 - Window Icon
 - actions/family.ts
-- getCurrentMember
+- add-planner-form.tsx
 
 ## God Nodes (most connected - your core abstractions)
 1. `createClient()` - 121 edges
@@ -47,22 +47,22 @@
 4. `formatDate()` - 21 edges
 5. `ActionState` - 20 edges
 6. `Icon()` - 17 edges
-7. `ErrorText()` - 16 edges
-8. `compilerOptions` - 16 edges
-9. `ensureDriveFolderStructure()` - 14 edges
-10. `SubmitButton()` - 13 edges
+7. `getValidDriveAccessToken()` - 17 edges
+8. `ErrorText()` - 16 edges
+9. `compilerOptions` - 16 edges
+10. `ensureDriveFolderStructure()` - 14 edges
 
 ## Surprising Connections (you probably didn't know these)
 - `Next.js Agent Rules Block (AGENTS.md)` --conceptually_related_to--> `Next.js 16 (App Router, TypeScript)`  [INFERRED]
   AGENTS.md → README.md
+- `FamilyPage()` --calls--> `getCurrentMember`  [EXTRACTED]
+  src/app/(app)/family/page.tsx → src/lib/session.ts
 - `NewMealPage()` --indirect_call--> `addMealPlanAction()`  [INFERRED]
   src/app/(app)/household/meals/new/page.tsx → src/lib/actions/household.ts
 - `HouseholdPage()` --calls--> `getCurrentMember`  [EXTRACTED]
   src/app/(app)/household/page.tsx → src/lib/session.ts
 - `JournalPage()` --calls--> `getCurrentMember`  [EXTRACTED]
   src/app/(app)/journal/page.tsx → src/lib/session.ts
-- `AppLayout()` --calls--> `getCurrentMember`  [EXTRACTED]
-  src/app/(app)/layout.tsx → src/lib/session.ts
 
 ## Import Cycles
 - None detected.
@@ -73,85 +73,85 @@
 
 ## Communities (24 total, 9 thin omitted)
 
-### Community 0 - "FamilyBackgroundCropUpload"
-Cohesion: 0.11
-Nodes (17): FamilyBackgroundAlbum(), clampAxis(), drawCrop(), FamilyBackgroundCropUpload(), cancel(), onPointerMove(), onZoomChange(), save() (+9 more)
+### Community 0 - "form.tsx"
+Cohesion: 0.06
+Nodes (38): VISIBILITY, initialState, NewMealPage(), initialState, NewMilestonePage(), NewEntryForm(), onSubmit(), AvatarCropUpload() (+30 more)
 
 ### Community 1 - "[id]/page.tsx"
-Cohesion: 0.07
-Nodes (40): DocFolderPage(), MemberDetailPage(), Seg, SEGMENTS, EntriesPane(), GalleryPane(), JournalPage(), MilestonesPane() (+32 more)
-
-### Community 2 - "requireCurrentMember"
 Cohesion: 0.09
-Nodes (35): ActivityForm(), AddPlannerForm(), EventForm(), GoalForm(), initialState, PlannerType, TripForm(), TYPES (+27 more)
+Nodes (36): MemberDetailPage(), Seg, SEGMENTS, DocumentsPane(), FamilyPage(), HealthPane(), ProfilePane(), Seg (+28 more)
+
+### Community 2 - "createClient"
+Cohesion: 0.11
+Nodes (33): GET(), DocFolderPage(), NewDocPage(), NewHealthEntryPage(), DRIVE_ERROR_MESSAGES, SettingsPage(), TodayPage(), GET() (+25 more)
 
 ### Community 3 - "auth.ts"
-Cohesion: 0.08
-Nodes (41): initialState, NewHealthEntryForm(), TYPES, VISIBILITY, OmronToggle(), initialState, NewMealPage(), initialState (+33 more)
+Cohesion: 0.07
+Nodes (39): initialState, NewHealthEntryForm(), TYPES, VISIBILITY, OmronToggle(), CALLBACK_ERROR_MESSAGES, initialState, LoginForm() (+31 more)
 
 ### Community 4 - "devDependencies"
 Cohesion: 0.05
 Nodes (36): eslint, eslint-config-next, next, dependencies, next, react, react-dom, @supabase/ssr (+28 more)
 
-### Community 5 - "createClient"
-Cohesion: 0.10
-Nodes (33): CalendarPane(), EventsPane(), GoalsPane(), PlannerPage(), Seg, SEGMENTS, TravelPane(), JointPane() (+25 more)
+### Community 5 - "planner/page.tsx"
+Cohesion: 0.11
+Nodes (22): CalendarPane(), EventsPane(), GoalsPane(), PlannerPage(), Seg, SEGMENTS, TravelPane(), JointPane() (+14 more)
 
 ### Community 6 - "compilerOptions"
 Cohesion: 0.07
 Nodes (28): dom, dom.iterable, esnext, **/*.mts, .next/dev/types/**/*.ts, next-env.d.ts, .next/types/**/*.ts, node_modules (+20 more)
 
 ### Community 7 - "profile.ts"
-Cohesion: 0.09
-Nodes (27): AvatarAlbumViewer(), Avatar(), AvatarCropUpload(), cancel(), save(), drawCrop(), MemberProfileEditor(), save() (+19 more)
+Cohesion: 0.07
+Nodes (33): AvatarAlbumViewer(), Avatar(), DeleteAccountButton(), MemberProfileEditor(), save(), ProfileEditForm(), save(), chunk() (+25 more)
 
 ### Community 8 - "household/page.tsx"
-Cohesion: 0.19
-Nodes (13): BillsPane(), BuyPane(), HouseholdPage(), MealsPane(), Seg, SEGMENTS, GenerateGroceryButton(), MarkPaidButton() (+5 more)
+Cohesion: 0.12
+Nodes (23): BillsPane(), BuyPane(), HouseholdPage(), MealsPane(), Seg, SEGMENTS, AddBillForm(), initialState (+15 more)
 
-### Community 9 - "new-doc-form.tsx"
-Cohesion: 0.11
-Nodes (25): NewDocForm(), onSubmit(), VISIBILITY, NewEntryForm(), onSubmit(), DocFileRow(), DownloadLink(), GalleryUpload() (+17 more)
+### Community 9 - "icons.tsx"
+Cohesion: 0.13
+Nodes (16): AppLayout(), DeleteButton(), DocFileRow(), DownloadLink(), Icon(), IconName, iconPaths, TabBar() (+8 more)
 
 ### Community 10 - "Kin — Family Operating System"
 Cohesion: 0.17
 Nodes (12): Next.js Agent Rules Block (AGENTS.md), Sandboxed Build Verification Gap, Google Drive OAuth Integration, Industry Blueprint Design System, Kin — Family Operating System, Managed Child Profiles (no login), Next.js 16 (App Router, TypeScript), React 19 (+4 more)
 
-### Community 11 - "google-drive.ts"
-Cohesion: 0.12
-Nodes (27): GET(), DELETE(), GET(), POST(), SessionRequest, DeleteButton(), Failure, GalleryGrid() (+19 more)
+### Community 11 - "requireCurrentMember"
+Cohesion: 0.10
+Nodes (39): GET(), DELETE(), GET(), POST(), SessionRequest, NewDocForm(), onSubmit(), EntriesPane() (+31 more)
 
 ### Community 12 - "proxy.ts"
 Cohesion: 0.60
 Nodes (3): updateSession(), config, proxy()
 
 ### Community 22 - "actions/family.ts"
-Cohesion: 0.08
-Nodes (29): FamilyForkForm(), initialState, FamilyAboutEditor(), emptyFields, FamilyAddress, FamilyAddressList(), remove(), save() (+21 more)
-
-### Community 23 - "getCurrentMember"
 Cohesion: 0.09
-Nodes (31): GET(), NewDocPage(), NewHealthEntryPage(), DocumentsPane(), FamilyPage(), HealthPane(), ProfilePane(), Seg (+23 more)
+Nodes (26): AddChildForm(), initialState, DeleteHouseholdButton(), FamilyAboutEditor(), emptyFields, FamilyAddress, FamilyAddressList(), remove() (+18 more)
+
+### Community 23 - "add-planner-form.tsx"
+Cohesion: 0.16
+Nodes (15): ActivityForm(), AddPlannerForm(), EventForm(), GoalForm(), initialState, PlannerType, TripForm(), TYPES (+7 more)
 
 ## Knowledge Gaps
-- **129 isolated node(s):** `eslintConfig`, `nextConfig`, `name`, `version`, `private` (+124 more)
-  These have ≤1 connection - possible missing edges or undocumented components. (Counts symbols only; 167 node(s) total have ≤1 connection when file, concept and rationale nodes are included.)
+- **128 isolated node(s):** `eslintConfig`, `nextConfig`, `name`, `version`, `private` (+123 more)
+  These have ≤1 connection - possible missing edges or undocumented components. (Counts symbols only; 166 node(s) total have ≤1 connection when file, concept and rationale nodes are included.)
 - **9 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
 
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
-- **Why does `createClient()` connect `createClient` to `FamilyBackgroundCropUpload`, `[id]/page.tsx`, `requireCurrentMember`, `auth.ts`, `profile.ts`, `household/page.tsx`, `new-doc-form.tsx`, `google-drive.ts`, `actions/family.ts`, `getCurrentMember`?**
-  _High betweenness centrality (0.220) - this node is a cross-community bridge._
-- **Why does `getCurrentMember` connect `getCurrentMember` to `[id]/page.tsx`, `requireCurrentMember`, `createClient`, `household/page.tsx`, `google-drive.ts`?**
-  _High betweenness centrality (0.057) - this node is a cross-community bridge._
-- **Why does `requireCurrentMember()` connect `requireCurrentMember` to `FamilyBackgroundCropUpload`, `auth.ts`, `createClient`, `profile.ts`, `new-doc-form.tsx`, `google-drive.ts`, `actions/family.ts`, `getCurrentMember`?**
-  _High betweenness centrality (0.033) - this node is a cross-community bridge._
+- **Why does `createClient()` connect `createClient` to `form.tsx`, `[id]/page.tsx`, `auth.ts`, `planner/page.tsx`, `profile.ts`, `household/page.tsx`, `icons.tsx`, `requireCurrentMember`, `actions/family.ts`, `add-planner-form.tsx`?**
+  _High betweenness centrality (0.207) - this node is a cross-community bridge._
+- **Why does `getCurrentMember` connect `createClient` to `[id]/page.tsx`, `auth.ts`, `planner/page.tsx`, `household/page.tsx`, `icons.tsx`, `requireCurrentMember`, `add-planner-form.tsx`?**
+  _High betweenness centrality (0.055) - this node is a cross-community bridge._
+- **Why does `requireCurrentMember()` connect `requireCurrentMember` to `form.tsx`, `[id]/page.tsx`, `createClient`, `auth.ts`, `profile.ts`, `household/page.tsx`, `actions/family.ts`, `add-planner-form.tsx`?**
+  _High betweenness centrality (0.030) - this node is a cross-community bridge._
 - **What connects `eslintConfig`, `nextConfig`, `name` to the rest of the system?**
-  _129 weakly-connected nodes found - possible documentation gaps or missing edges._
-- **Should `FamilyBackgroundCropUpload` be split into smaller, more focused modules?**
-  _Cohesion score 0.1076923076923077 - nodes in this community are weakly interconnected._
+  _128 weakly-connected nodes found - possible documentation gaps or missing edges._
+- **Should `form.tsx` be split into smaller, more focused modules?**
+  _Cohesion score 0.0647307924984876 - nodes in this community are weakly interconnected._
 - **Should `[id]/page.tsx` be split into smaller, more focused modules?**
-  _Cohesion score 0.06994047619047619 - nodes in this community are weakly interconnected._
-- **Should `requireCurrentMember` be split into smaller, more focused modules?**
-  _Cohesion score 0.09292929292929293 - nodes in this community are weakly interconnected._
+  _Cohesion score 0.08843537414965986 - nodes in this community are weakly interconnected._
+- **Should `createClient` be split into smaller, more focused modules?**
+  _Cohesion score 0.1096938775510204 - nodes in this community are weakly interconnected._

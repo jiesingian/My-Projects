@@ -5,8 +5,12 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { requireCurrentMember } from "@/lib/session";
+import { getValidDriveAccessToken, deleteDriveFile } from "@/lib/google-drive";
+import { resolvePhotoUrl } from "@/lib/photo-url";
 import type { ActionState } from "@/lib/actions/auth";
 import type { ProfileFields } from "@/lib/profile-fields";
+import type { UploadedFile } from "@/lib/upload-client";
+import type { TablesInsert } from "@/lib/database.types";
 
 // Server Action files may only export async functions, so the ProfileFields
 // type and the memberToProfileFields helper (a plain sync function) live in
@@ -44,20 +48,24 @@ export async function updateMemberProfileAction(memberId: string, fields: Profil
 
 export type AlbumPhoto = { id: string; url: string };
 
-/** Records a freshly cropped/uploaded photo (already sitting in Storage —
- * see AvatarCropUpload) as a new album entry and makes it the active
- * avatar. Self only, matching the "each user manages their own photo"
- * boundary — the organizer can edit a member's profile fields but not
- * their photos. */
-export async function addAvatarToAlbumAction(path: string): Promise<ActionState> {
+/** Records a freshly cropped/uploaded photo (already sitting in Drive or
+ * Storage — see AvatarCropUpload) as a new album entry and makes it the
+ * active avatar. Self only, matching the "each user manages their own
+ * photo" boundary — the organizer can edit a member's profile fields but
+ * not their photos. */
+export async function addAvatarToAlbumAction(uploaded: UploadedFile): Promise<ActionState> {
   const me = await requireCurrentMember();
   const supabase = await createClient();
-  const publicUrl = supabase.storage.from("avatars").getPublicUrl(path).data.publicUrl;
 
-  const { error: insertErr } = await supabase.from("member_avatars").insert({ member_id: me.id, family_id: me.family_id, storage_path: path });
+  const row: TablesInsert<"member_avatars"> =
+    uploaded.provider === "google_drive"
+      ? { member_id: me.id, family_id: me.family_id, storage_path: null, drive_file_id: uploaded.driveFileId }
+      : { member_id: me.id, family_id: me.family_id, storage_path: uploaded.storagePath, drive_file_id: null };
+
+  const { error: insertErr } = await supabase.from("member_avatars").insert(row);
   if (insertErr) return { error: insertErr.message };
 
-  const { error } = await supabase.from("members").update({ avatar_url: publicUrl }).eq("id", me.id);
+  const { error } = await supabase.from("members").update({ avatar_url: resolvePhotoUrl(supabase, row) }).eq("id", me.id);
   revalidatePath("/settings");
   revalidatePath("/family");
   return { error: error?.message ?? null };
@@ -69,11 +77,10 @@ export async function setActiveAvatarAction(avatarId: string): Promise<ActionSta
   const me = await requireCurrentMember();
   const supabase = await createClient();
 
-  const { data: photo } = await supabase.from("member_avatars").select("storage_path, member_id").eq("id", avatarId).maybeSingle();
+  const { data: photo } = await supabase.from("member_avatars").select("storage_path, drive_file_id, member_id").eq("id", avatarId).maybeSingle();
   if (!photo || photo.member_id !== me.id) return { error: "Photo not found." };
 
-  const publicUrl = supabase.storage.from("avatars").getPublicUrl(photo.storage_path).data.publicUrl;
-  const { error } = await supabase.from("members").update({ avatar_url: publicUrl }).eq("id", me.id);
+  const { error } = await supabase.from("members").update({ avatar_url: resolvePhotoUrl(supabase, photo) }).eq("id", me.id);
   revalidatePath("/settings");
   revalidatePath("/family");
   return { error: error?.message ?? null };
@@ -86,23 +93,29 @@ export async function deleteAvatarFromAlbumAction(avatarId: string): Promise<Act
   const me = await requireCurrentMember();
   const supabase = await createClient();
 
-  const { data: photo } = await supabase.from("member_avatars").select("storage_path, member_id").eq("id", avatarId).maybeSingle();
+  const { data: photo } = await supabase.from("member_avatars").select("storage_path, drive_file_id, member_id").eq("id", avatarId).maybeSingle();
   if (!photo || photo.member_id !== me.id) return { error: "Photo not found." };
 
-  const deletedUrl = supabase.storage.from("avatars").getPublicUrl(photo.storage_path).data.publicUrl;
+  const deletedUrl = resolvePhotoUrl(supabase, photo);
   const { error } = await supabase.from("member_avatars").delete().eq("id", avatarId);
   if (error) return { error: error.message };
-  await supabase.storage.from("avatars").remove([photo.storage_path]).catch(() => {});
+
+  if (photo.drive_file_id) {
+    const token = await getValidDriveAccessToken(me.family_id);
+    if (token) await deleteDriveFile(token, photo.drive_file_id).catch(() => {});
+  } else if (photo.storage_path) {
+    await supabase.storage.from("avatars").remove([photo.storage_path]).catch(() => {});
+  }
 
   if (me.avatar_url === deletedUrl) {
     const { data: remaining } = await supabase
       .from("member_avatars")
-      .select("storage_path")
+      .select("storage_path, drive_file_id")
       .eq("member_id", me.id)
       .order("created_at", { ascending: false })
       .limit(1)
       .maybeSingle();
-    const fallbackUrl = remaining ? supabase.storage.from("avatars").getPublicUrl(remaining.storage_path).data.publicUrl : null;
+    const fallbackUrl = remaining ? resolvePhotoUrl(supabase, remaining) : null;
     await supabase.from("members").update({ avatar_url: fallbackUrl }).eq("id", me.id);
   }
 

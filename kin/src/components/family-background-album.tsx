@@ -10,12 +10,10 @@ import { setActiveFamilyBackgroundAction, deleteFamilyBackgroundAction } from "@
  * same browse pattern as the member-avatar album. Organizer only for both
  * uploading and managing; everyone else can still browse. */
 export function FamilyBackgroundAlbum({
-  familyId,
   backgroundUrl,
   photos,
   canEdit,
 }: {
-  familyId: string;
   backgroundUrl: string | null;
   photos: AlbumPhotoLike[];
   canEdit: boolean;
@@ -48,7 +46,7 @@ export function FamilyBackgroundAlbum({
         )}
       </button>
 
-      {canEdit && <FamilyBackgroundCropUpload familyId={familyId} onDone={() => {}} />}
+      {canEdit && <FamilyBackgroundCropUpload onDone={() => {}} />}
 
       {albumOpen && (
         <PhotoAlbumViewer

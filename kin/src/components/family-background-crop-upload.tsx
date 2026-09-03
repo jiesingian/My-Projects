@@ -2,7 +2,7 @@
 
 import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { createClient } from "@/lib/supabase/client";
+import { uploadFileDirect, rollbackUpload, type UploadedFile } from "@/lib/upload-client";
 import { addFamilyBackgroundAction } from "@/lib/actions/family";
 
 const STAGE_W = 320;
@@ -52,7 +52,7 @@ function drawCrop(img: HTMLImageElement, scale: number, panX: number, panY: numb
   });
 }
 
-export function FamilyBackgroundCropUpload({ familyId, onDone }: { familyId: string; onDone: () => void }) {
+export function FamilyBackgroundCropUpload({ onDone }: { onDone: () => void }) {
   const [objectUrl, setObjectUrl] = useState<string | null>(null);
   const [naturalSize, setNaturalSize] = useState({ w: 0, h: 0 });
   const [zoom, setZoom] = useState(1);
@@ -122,22 +122,22 @@ export function FamilyBackgroundCropUpload({ familyId, onDone }: { familyId: str
 
   async function save() {
     if (!imgRef.current) return;
+    let uploaded: UploadedFile | undefined;
     setBusy(true);
     setError(null);
     try {
       const blob = await drawCrop(imgRef.current, scale, pan.x, pan.y);
-      const path = `${familyId}/household-bg-${Date.now()}.jpg`;
-      const supabase = createClient();
-      const { error: uploadErr } = await supabase.storage.from("avatars").upload(path, blob, { contentType: "image/jpeg" });
-      if (uploadErr) throw new Error(uploadErr.message);
+      const file = new File([blob], `household-bg-${Date.now()}.jpg`, { type: "image/jpeg" });
+      uploaded = await uploadFileDirect(file, "family_background");
 
-      const result = await addFamilyBackgroundAction(path);
+      const result = await addFamilyBackgroundAction(uploaded);
       if (result.error) throw new Error(result.error);
 
       cancel();
       router.refresh();
       onDone();
     } catch (err) {
+      if (uploaded) await rollbackUpload(uploaded);
       setError((err as Error).message);
     } finally {
       setBusy(false);

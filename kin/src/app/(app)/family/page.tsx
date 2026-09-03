@@ -54,7 +54,7 @@ async function ProfilePane({ familyId, isOrganiser, myId }: { familyId: string; 
 
   return (
     <>
-      <FamilyBackgroundAlbum familyId={familyId} backgroundUrl={backgroundUrl} photos={backgroundPhotos} canEdit={isOrganiser} />
+      <FamilyBackgroundAlbum backgroundUrl={backgroundUrl} photos={backgroundPhotos} canEdit={isOrganiser} />
       <FamilyAboutEditor about={about} canEdit={isOrganiser} />
       <FamilyAddressList addresses={addresses} canEdit={isOrganiser} />
       <div style={{ height: 1, background: "var(--color-divider)", margin: "4px 0 18px" }} />

@@ -16,6 +16,7 @@ import { ProfileEditForm } from "@/components/profile-edit-form";
 import { MemberProfileEditor } from "@/components/member-profile-editor";
 import type { AlbumPhoto } from "@/lib/actions/profile";
 import { memberToProfileFields } from "@/lib/profile-fields";
+import { resolvePhotoUrl } from "@/lib/photo-url";
 
 const SEGMENTS = ["schedule", "conditions", "labs", "vitals"] as const;
 type Seg = (typeof SEGMENTS)[number];
@@ -43,13 +44,12 @@ export default async function MemberDetailPage({
     const supabase = await createClient();
     const { data: albumRows } = await supabase
       .from("member_avatars")
-      .select("id, storage_path")
+      .select("id, storage_path, drive_file_id")
       .eq("member_id", member.id)
       .order("created_at", { ascending: false });
-    photos = (albumRows ?? []).map((row) => ({
-      id: row.id,
-      url: supabase.storage.from("avatars").getPublicUrl(row.storage_path).data.publicUrl,
-    }));
+    photos = (albumRows ?? [])
+      .map((row) => ({ id: row.id, url: resolvePhotoUrl(supabase, row) }))
+      .filter((p): p is AlbumPhoto => p.url !== null);
   }
 
   const isChild = member.role === "child_managed" || member.role === "child_self";
@@ -74,8 +74,6 @@ export default async function MemberDetailPage({
         {view === "profile" ? (
           isSelf ? (
             <MemberProfileEditor
-              familyId={me.family_id}
-              memberId={member.id}
               fullName={member.full_name}
               ageLabel={`${formatAge(member.dob)} · ${member.relationship ?? member.role.replace("_", " ")}`}
               statusLabel={member.is_organiser ? "ORGANIZER" : member.status.toUpperCase()}

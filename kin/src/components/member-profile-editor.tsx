@@ -18,8 +18,6 @@ import { updateOwnProfileAction, type ProfileFields, type AlbumPhoto } from "@/l
  * mode — browsing and picking among existing photos is not gated behind
  * it, since that's not introducing a new picture. */
 export function MemberProfileEditor({
-  familyId,
-  memberId,
   fullName,
   ageLabel,
   statusLabel,
@@ -29,8 +27,6 @@ export function MemberProfileEditor({
   photos,
   initial,
 }: {
-  familyId: string;
-  memberId: string;
   fullName: string;
   ageLabel: string;
   statusLabel: string;
@@ -80,7 +76,7 @@ export function MemberProfileEditor({
           >
             <Avatar url={avatarUrl} initials={initials} size={88} />
           </button>
-          {mode === "edit" && <AvatarCropUpload familyId={familyId} memberId={memberId} onDone={() => {}} />}
+          {mode === "edit" && <AvatarCropUpload onDone={() => {}} />}
         </div>
         <div>
           <div style={{ font: "600 34px/.98 var(--font-heading)" }}>{fullName}</div>

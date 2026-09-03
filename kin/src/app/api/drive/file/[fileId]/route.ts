@@ -12,11 +12,13 @@ export async function GET(_request: Request, { params }: { params: Promise<{ fil
   const { fileId } = await params;
 
   const supabase = await createClient();
-  const [{ data: media }, { data: doc }] = await Promise.all([
+  const [{ data: media }, { data: doc }, { data: avatar }, { data: background }] = await Promise.all([
     supabase.from("journal_media").select("id").eq("family_id", me.family_id).eq("drive_file_id", fileId).maybeSingle(),
     supabase.from("doc_files").select("id").eq("family_id", me.family_id).eq("drive_file_id", fileId).maybeSingle(),
+    supabase.from("member_avatars").select("id").eq("family_id", me.family_id).eq("drive_file_id", fileId).maybeSingle(),
+    supabase.from("family_backgrounds").select("id").eq("family_id", me.family_id).eq("drive_file_id", fileId).maybeSingle(),
   ]);
-  if (!media && !doc) return new Response("Not found", { status: 404 });
+  if (!media && !doc && !avatar && !background) return new Response("Not found", { status: 404 });
 
   const token = await getValidDriveAccessToken(me.family_id);
   if (!token) return new Response("Drive not connected", { status: 404 });

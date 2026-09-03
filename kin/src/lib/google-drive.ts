@@ -143,6 +143,25 @@ export async function ensureNamedSubfolder(accessToken: string, parentFolderId: 
   return created.id;
 }
 
+/** Gets (creating if needed) the Drive folder for a profile photo upload —
+ * Family/Profile Photos/Household for the household cover photo, or
+ * Family/Profile Photos/Members/<Name — shortId> for one member's avatars.
+ * The member folder name carries a short id suffix because two members can
+ * share a name (seen in practice) — a bare name match in
+ * ensureNamedSubfolder would silently merge their photos into one folder. */
+export async function ensureProfilePhotoFolder(
+  accessToken: string,
+  rootFolderId: string,
+  target: { kind: "household" } | { kind: "member"; memberId: string; fullName: string },
+): Promise<string> {
+  const familyFolderId = await ensureNamedSubfolder(accessToken, rootFolderId, "Family");
+  const profilePhotosFolderId = await ensureNamedSubfolder(accessToken, familyFolderId, "Profile Photos");
+  if (target.kind === "household") return ensureNamedSubfolder(accessToken, profilePhotosFolderId, "Household");
+
+  const membersFolderId = await ensureNamedSubfolder(accessToken, profilePhotosFolderId, "Members");
+  return ensureNamedSubfolder(accessToken, membersFolderId, `${target.fullName} — ${target.memberId.slice(0, 8)}`);
+}
+
 /** Opens a Drive resumable-upload session and returns the one-time session
  * URL the browser can PUT the file bytes to directly — the file itself never
  * passes through our server, so it isn't subject to Vercel's request body

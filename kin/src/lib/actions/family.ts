@@ -4,7 +4,11 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { requireCurrentMember } from "@/lib/session";
+import { getValidDriveAccessToken, deleteDriveFile } from "@/lib/google-drive";
+import { resolvePhotoUrl } from "@/lib/photo-url";
 import type { ActionState } from "@/lib/actions/auth";
+import type { UploadedFile } from "@/lib/upload-client";
+import type { TablesInsert } from "@/lib/database.types";
 
 export async function saveProfile(_prev: ActionState, formData: FormData): Promise<ActionState> {
   const fullName = String(formData.get("full_name") ?? "").trim();
@@ -144,20 +148,23 @@ export async function updateMemberRelationshipAction(memberId: string, relations
 }
 
 /** Records a freshly uploaded household cover photo (already sitting in
- * Storage — see FamilyBackgroundAlbum) as a new album entry and makes it
- * the active background. Mirrors the member-avatar album. Organizer only —
- * RLS enforces this too. */
-export async function addFamilyBackgroundAction(path: string): Promise<ActionState> {
+ * Drive or Storage — see FamilyBackgroundAlbum) as a new album entry and
+ * makes it the active background. Mirrors the member-avatar album.
+ * Organizer only — RLS enforces this too. */
+export async function addFamilyBackgroundAction(uploaded: UploadedFile): Promise<ActionState> {
   const me = await requireCurrentMember();
   if (!me.is_organiser) return { error: "Only the organizer can change the household photo." };
 
   const supabase = await createClient();
-  const publicUrl = supabase.storage.from("avatars").getPublicUrl(path).data.publicUrl;
+  const row: TablesInsert<"family_backgrounds"> =
+    uploaded.provider === "google_drive"
+      ? { family_id: me.family_id, storage_path: null, drive_file_id: uploaded.driveFileId }
+      : { family_id: me.family_id, storage_path: uploaded.storagePath, drive_file_id: null };
 
-  const { error: insertErr } = await supabase.from("family_backgrounds").insert({ family_id: me.family_id, storage_path: path });
+  const { error: insertErr } = await supabase.from("family_backgrounds").insert(row);
   if (insertErr) return { error: insertErr.message };
 
-  const { error } = await supabase.from("families").update({ background_url: publicUrl }).eq("id", me.family_id);
+  const { error } = await supabase.from("families").update({ background_url: resolvePhotoUrl(supabase, row) }).eq("id", me.family_id);
   revalidatePath("/family");
   return { error: error?.message ?? null };
 }
@@ -169,11 +176,10 @@ export async function setActiveFamilyBackgroundAction(backgroundId: string): Pro
   if (!me.is_organiser) return { error: "Only the organizer can change the household photo." };
 
   const supabase = await createClient();
-  const { data: photo } = await supabase.from("family_backgrounds").select("storage_path, family_id").eq("id", backgroundId).maybeSingle();
+  const { data: photo } = await supabase.from("family_backgrounds").select("storage_path, drive_file_id, family_id").eq("id", backgroundId).maybeSingle();
   if (!photo || photo.family_id !== me.family_id) return { error: "Photo not found." };
 
-  const publicUrl = supabase.storage.from("avatars").getPublicUrl(photo.storage_path).data.publicUrl;
-  const { error } = await supabase.from("families").update({ background_url: publicUrl }).eq("id", me.family_id);
+  const { error } = await supabase.from("families").update({ background_url: resolvePhotoUrl(supabase, photo) }).eq("id", me.family_id);
   revalidatePath("/family");
   return { error: error?.message ?? null };
 }
@@ -186,24 +192,30 @@ export async function deleteFamilyBackgroundAction(backgroundId: string): Promis
   if (!me.is_organiser) return { error: "Only the organizer can change the household photo." };
 
   const supabase = await createClient();
-  const { data: photo } = await supabase.from("family_backgrounds").select("storage_path, family_id").eq("id", backgroundId).maybeSingle();
+  const { data: photo } = await supabase.from("family_backgrounds").select("storage_path, drive_file_id, family_id").eq("id", backgroundId).maybeSingle();
   if (!photo || photo.family_id !== me.family_id) return { error: "Photo not found." };
 
-  const deletedUrl = supabase.storage.from("avatars").getPublicUrl(photo.storage_path).data.publicUrl;
+  const deletedUrl = resolvePhotoUrl(supabase, photo);
   const { error } = await supabase.from("family_backgrounds").delete().eq("id", backgroundId);
   if (error) return { error: error.message };
-  await supabase.storage.from("avatars").remove([photo.storage_path]).catch(() => {});
+
+  if (photo.drive_file_id) {
+    const token = await getValidDriveAccessToken(me.family_id);
+    if (token) await deleteDriveFile(token, photo.drive_file_id).catch(() => {});
+  } else if (photo.storage_path) {
+    await supabase.storage.from("avatars").remove([photo.storage_path]).catch(() => {});
+  }
 
   const { data: family } = await supabase.from("families").select("background_url").eq("id", me.family_id).maybeSingle();
   if (family?.background_url === deletedUrl) {
     const { data: remaining } = await supabase
       .from("family_backgrounds")
-      .select("storage_path")
+      .select("storage_path, drive_file_id")
       .eq("family_id", me.family_id)
       .order("created_at", { ascending: false })
       .limit(1)
       .maybeSingle();
-    const fallbackUrl = remaining ? supabase.storage.from("avatars").getPublicUrl(remaining.storage_path).data.publicUrl : null;
+    const fallbackUrl = remaining ? resolvePhotoUrl(supabase, remaining) : null;
     await supabase.from("families").update({ background_url: fallbackUrl }).eq("id", me.family_id);
   }
 
@@ -336,8 +348,8 @@ export async function deleteHouseholdAction(): Promise<ActionState> {
 
   const supabase = await createClient();
   try {
-    // journal/trip-photos: flat "<family_id>/<file>" paths.
-    for (const bucket of ["journal", "trip-photos"] as const) {
+    // journal/trip-photos/avatars: flat "<family_id>/<file>" paths.
+    for (const bucket of ["journal", "trip-photos", "avatars"] as const) {
       const { data: objects } = await supabase.storage.from(bucket).list(me.family_id);
       if (objects && objects.length > 0) {
         await supabase.storage.from(bucket).remove(objects.map((o) => `${me.family_id}/${o.name}`));

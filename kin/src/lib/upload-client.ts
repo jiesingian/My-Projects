@@ -9,7 +9,7 @@ export type UploadedFile =
  * that's what lets this handle full-size photos despite Vercel's 4.5MB
  * request body cap on serverless functions. Call requestUploadSession()
  * first to get a destination, then pass its result in here. */
-export async function uploadFileDirect(file: File, kind: "journal" | "document", folderId?: string): Promise<UploadedFile> {
+export async function uploadFileDirect(file: File, kind: "journal" | "document" | "avatar" | "family_background", folderId?: string): Promise<UploadedFile> {
   const sessionRes = await fetch("/api/uploads/session", {
     method: "POST",
     headers: { "Content-Type": "application/json" },

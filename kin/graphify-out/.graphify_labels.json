@@ -1,16 +1,16 @@
 {
-  "0": "FamilyBackgroundCropUpload",
+  "0": "form.tsx",
   "1": "[id]/page.tsx",
-  "2": "requireCurrentMember",
+  "2": "createClient",
   "3": "auth.ts",
   "4": "devDependencies",
-  "5": "createClient",
+  "5": "planner/page.tsx",
   "6": "compilerOptions",
   "7": "profile.ts",
   "8": "household/page.tsx",
-  "9": "new-doc-form.tsx",
+  "9": "icons.tsx",
   "10": "Kin — Family Operating System",
-  "11": "google-drive.ts",
+  "11": "requireCurrentMember",
   "12": "proxy.ts",
   "13": "app/layout.tsx",
   "14": "eslint.config.mjs",
@@ -22,5 +22,5 @@
   "20": "Vercel Logo (UI Icon Asset)",
   "21": "Window Icon",
   "22": "actions/family.ts",
-  "23": "getCurrentMember"
+  "23": "add-planner-form.tsx"
 }

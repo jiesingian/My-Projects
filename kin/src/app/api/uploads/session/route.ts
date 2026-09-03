@@ -1,10 +1,16 @@
 import { NextResponse } from "next/server";
 import { getCurrentMember } from "@/lib/session";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { getValidDriveAccessToken, ensureDriveFolderStructure, ensureNamedSubfolder, createResumableUploadSession } from "@/lib/google-drive";
+import {
+  getValidDriveAccessToken,
+  ensureDriveFolderStructure,
+  ensureNamedSubfolder,
+  ensureProfilePhotoFolder,
+  createResumableUploadSession,
+} from "@/lib/google-drive";
 
 type SessionRequest = {
-  kind: "journal" | "document";
+  kind: "journal" | "document" | "avatar" | "family_background";
   fileName: string;
   mimeType: string;
   folderId?: string;
@@ -31,6 +37,10 @@ export async function POST(request: Request) {
       let targetFolderId: string;
       if (kind === "journal") {
         targetFolderId = await ensureNamedSubfolder(driveToken, rootFolderId, "Journal");
+      } else if (kind === "avatar") {
+        targetFolderId = await ensureProfilePhotoFolder(driveToken, rootFolderId, { kind: "member", memberId: me.id, fullName: me.full_name });
+      } else if (kind === "family_background") {
+        targetFolderId = await ensureProfilePhotoFolder(driveToken, rootFolderId, { kind: "household" });
       } else {
         const admin = createAdminClient();
         const { data: folder } = await admin!
@@ -50,8 +60,9 @@ export async function POST(request: Request) {
     }
   }
 
-  const bucket = kind === "journal" ? "journal" : "documents";
-  const prefix = kind === "journal" ? me.family_id : `${me.family_id}/${folderId}`;
+  const bucket = kind === "journal" ? "journal" : kind === "avatar" || kind === "family_background" ? "avatars" : "documents";
+  const prefix =
+    kind === "journal" || kind === "avatar" || kind === "family_background" ? me.family_id : `${me.family_id}/${folderId}`;
   const path = `${prefix}/${Date.now()}-${fileName}`;
   return NextResponse.json({ provider: "supabase", bucket, path });
 }

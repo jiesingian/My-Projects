@@ -2,7 +2,7 @@
 
 import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { createClient } from "@/lib/supabase/client";
+import { uploadFileDirect, rollbackUpload, type UploadedFile } from "@/lib/upload-client";
 import { addAvatarToAlbumAction } from "@/lib/actions/profile";
 
 /** Draws the image into a square canvas the same way it's previewed on
@@ -26,15 +26,7 @@ function drawCrop(img: HTMLImageElement, zoom: number, outputSize: number): Prom
   });
 }
 
-export function AvatarCropUpload({
-  familyId,
-  memberId,
-  onDone,
-}: {
-  familyId: string;
-  memberId: string;
-  onDone: () => void;
-}) {
+export function AvatarCropUpload({ onDone }: { onDone: () => void }) {
   const [objectUrl, setObjectUrl] = useState<string | null>(null);
   const [zoom, setZoom] = useState(1);
   const [busy, setBusy] = useState(false);
@@ -65,20 +57,20 @@ export function AvatarCropUpload({
     if (!imgRef.current) return;
     setBusy(true);
     setError(null);
+    let uploaded: UploadedFile | undefined;
     try {
       const blob = await drawCrop(imgRef.current, zoom, 320);
-      const path = `${familyId}/${memberId}-${Date.now()}.jpg`;
-      const supabase = createClient();
-      const { error: uploadErr } = await supabase.storage.from("avatars").upload(path, blob, { contentType: "image/jpeg" });
-      if (uploadErr) throw new Error(uploadErr.message);
+      const file = new File([blob], `avatar-${Date.now()}.jpg`, { type: "image/jpeg" });
+      uploaded = await uploadFileDirect(file, "avatar");
 
-      const result = await addAvatarToAlbumAction(path);
+      const result = await addAvatarToAlbumAction(uploaded);
       if (result.error) throw new Error(result.error);
 
       cancel();
       router.refresh();
       onDone();
     } catch (err) {
+      if (uploaded) await rollbackUpload(uploaded);
       setError((err as Error).message);
     } finally {
       setBusy(false);

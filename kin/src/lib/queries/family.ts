@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { formatDate } from "@/lib/format";
+import { resolvePhotoUrl } from "@/lib/photo-url";
 import type { Tables } from "@/lib/database.types";
 
 export async function getFamilyProfile(familyId: string) {
@@ -11,12 +12,11 @@ export async function getFamilyProfile(familyId: string) {
       .select("id, label, address_line, house_no, building, street, barangay, city, province, country, zip_code")
       .eq("family_id", familyId)
       .order("created_at"),
-    supabase.from("family_backgrounds").select("id, storage_path").eq("family_id", familyId).order("created_at", { ascending: false }),
+    supabase.from("family_backgrounds").select("id, storage_path, drive_file_id").eq("family_id", familyId).order("created_at", { ascending: false }),
   ]);
-  const backgroundPhotos = (backgroundRows ?? []).map((row) => ({
-    id: row.id,
-    url: supabase.storage.from("avatars").getPublicUrl(row.storage_path).data.publicUrl,
-  }));
+  const backgroundPhotos = (backgroundRows ?? [])
+    .map((row) => ({ id: row.id, url: resolvePhotoUrl(supabase, row) }))
+    .filter((p): p is { id: string; url: string } => p.url !== null);
   return { backgroundUrl: family?.background_url ?? null, about: family?.about ?? null, addresses: addresses ?? [], backgroundPhotos };
 }
 
