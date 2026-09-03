@@ -55,8 +55,9 @@ export async function POST(request: Request) {
       const origin = request.headers.get("origin") ?? new URL(request.url).origin;
       const uploadUrl = await createResumableUploadSession(driveToken, targetFolderId, fileName, mimeType, origin);
       return NextResponse.json({ provider: "google_drive", uploadUrl });
-    } catch {
+    } catch (err) {
       // Falls through to the Supabase Storage session below.
+      console.error(`Drive upload session failed for kind=${kind}, falling back to Supabase:`, err);
     }
   }
 

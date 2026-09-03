@@ -279,7 +279,7 @@
       "file_type": "code",
       "norm_label": "familyaddressfields",
       "source_file": "src/lib/actions/family.ts",
-      "source_location": "L238"
+      "source_location": "L241"
     },
     {
       "id": "src_lib_actions_auth_actionstate",
@@ -1513,7 +1513,7 @@
       "file_type": "code",
       "norm_label": "deletefamilybackgroundaction()",
       "source_file": "src/lib/actions/family.ts",
-      "source_location": "L190"
+      "source_location": "L193"
     },
     {
       "id": "src_lib_actions_journal_deletejournalmediaaction",
@@ -2137,7 +2137,7 @@
       "file_type": "code",
       "norm_label": "deletehouseholdaction()",
       "source_file": "src/lib/actions/family.ts",
-      "source_location": "L345"
+      "source_location": "L348"
     },
     {
       "id": "src_lib_actions_family_regenerateinvitecodeaction",
@@ -2161,7 +2161,7 @@
       "file_type": "code",
       "norm_label": "removefamilyaddressaction()",
       "source_file": "src/lib/actions/family.ts",
-      "source_location": "L329"
+      "source_location": "L332"
     },
     {
       "id": "src_lib_actions_family_setactivefamilybackgroundaction",
@@ -2173,7 +2173,7 @@
       "file_type": "code",
       "norm_label": "setactivefamilybackgroundaction()",
       "source_file": "src/lib/actions/family.ts",
-      "source_location": "L174"
+      "source_location": "L177"
     },
     {
       "id": "src_lib_actions_health_createhealthentryaction",
@@ -2281,7 +2281,7 @@
       "file_type": "code",
       "norm_label": "deleteownaccountaction()",
       "source_file": "src/lib/actions/profile.ts",
-      "source_location": "L141"
+      "source_location": "L144"
     },
     {
       "id": "src_lib_actions_settings_settextsizeaction",
@@ -2545,7 +2545,7 @@
       "file_type": "code",
       "norm_label": "addfamilyaddressaction()",
       "source_file": "src/lib/actions/family.ts",
-      "source_location": "L274"
+      "source_location": "L277"
     },
     {
       "id": "src_lib_actions_family_approvememberaction",
@@ -2569,7 +2569,7 @@
       "file_type": "code",
       "norm_label": "normalizeaddressfields()",
       "source_file": "src/lib/actions/family.ts",
-      "source_location": "L250"
+      "source_location": "L253"
     },
     {
       "id": "src_lib_actions_family_rejectmemberaction",
@@ -2593,7 +2593,7 @@
       "file_type": "code",
       "norm_label": "updatefamilyaboutaction()",
       "source_file": "src/lib/actions/family.ts",
-      "source_location": "L228"
+      "source_location": "L231"
     },
     {
       "id": "src_lib_actions_family_updatefamilyaddressaction",
@@ -2605,7 +2605,7 @@
       "file_type": "code",
       "norm_label": "updatefamilyaddressaction()",
       "source_file": "src/lib/actions/family.ts",
-      "source_location": "L301"
+      "source_location": "L304"
     },
     {
       "id": "src_lib_actions_family_updatememberrelationshipaction",
@@ -3505,7 +3505,7 @@
       "file_type": "code",
       "norm_label": "deleteavatarfromalbumaction()",
       "source_file": "src/lib/actions/profile.ts",
-      "source_location": "L92"
+      "source_location": "L95"
     },
     {
       "id": "src_lib_actions_profile_setactiveavataraction",
@@ -3517,7 +3517,7 @@
       "file_type": "code",
       "norm_label": "setactiveavataraction()",
       "source_file": "src/lib/actions/profile.ts",
-      "source_location": "L76"
+      "source_location": "L79"
     },
     {
       "id": "src_lib_actions_profile_transferorganiserroleaction",
@@ -3529,7 +3529,7 @@
       "file_type": "code",
       "norm_label": "transferorganiserroleaction()",
       "source_file": "src/lib/actions/profile.ts",
-      "source_location": "L129"
+      "source_location": "L132"
     },
     {
       "id": "src_lib_actions_profile_updatememberprofileaction",
@@ -8770,7 +8770,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/lib/actions/family.ts",
-      "source_location": "L275",
+      "source_location": "L278",
       "weight": 1.0
     },
     {
@@ -8782,7 +8782,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/lib/actions/family.ts",
-      "source_location": "L278",
+      "source_location": "L281",
       "weight": 1.0
     },
     {
@@ -8794,7 +8794,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/lib/actions/family.ts",
-      "source_location": "L281",
+      "source_location": "L284",
       "weight": 1.0
     },
     {
@@ -8830,7 +8830,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/lib/actions/family.ts",
-      "source_location": "L167",
+      "source_location": "L170",
       "weight": 1.0
     },
     {
@@ -8878,7 +8878,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/lib/actions/family.ts",
-      "source_location": "L191",
+      "source_location": "L194",
       "weight": 1.0
     },
     {
@@ -8890,7 +8890,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/lib/actions/family.ts",
-      "source_location": "L194",
+      "source_location": "L197",
       "weight": 1.0
     },
     {
@@ -8902,7 +8902,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/lib/actions/family.ts",
-      "source_location": "L198",
+      "source_location": "L201",
       "weight": 1.0
     },
     {
@@ -8914,7 +8914,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/lib/actions/family.ts",
-      "source_location": "L203",
+      "source_location": "L206",
       "weight": 1.0
     },
     {
@@ -8926,7 +8926,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/lib/actions/family.ts",
-      "source_location": "L204",
+      "source_location": "L207",
       "weight": 1.0
     },
     {
@@ -8938,7 +8938,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/lib/actions/family.ts",
-      "source_location": "L346",
+      "source_location": "L349",
       "weight": 1.0
     },
     {
@@ -8950,7 +8950,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/lib/actions/family.ts",
-      "source_location": "L349",
+      "source_location": "L352",
       "weight": 1.0
     },
     {
@@ -9010,7 +9010,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/lib/actions/family.ts",
-      "source_location": "L330",
+      "source_location": "L333",
       "weight": 1.0
     },
     {
@@ -9022,7 +9022,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/lib/actions/family.ts",
-      "source_location": "L333",
+      "source_location": "L336",
       "weight": 1.0
     },
     {
@@ -9058,7 +9058,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/lib/actions/family.ts",
-      "source_location": "L175",
+      "source_location": "L178",
       "weight": 1.0
     },
     {
@@ -9070,7 +9070,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/lib/actions/family.ts",
-      "source_location": "L178",
+      "source_location": "L181",
       "weight": 1.0
     },
     {
@@ -9082,7 +9082,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/lib/actions/family.ts",
-      "source_location": "L182",
+      "source_location": "L185",
       "weight": 1.0
     },
     {
@@ -9094,7 +9094,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/lib/actions/family.ts",
-      "source_location": "L229",
+      "source_location": "L232",
       "weight": 1.0
     },
     {
@@ -9106,24 +9106,12 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/lib/actions/family.ts",
-      "source_location": "L232",
+      "source_location": "L235",
       "weight": 1.0
     },
     {
       "source": "src_lib_actions_family_updatefamilyaddressaction",
       "target": "src_lib_session_requirecurrentmember",
-      "relation": "calls",
-      "_origin": "ast",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "context": "call",
-      "source_file": "src/lib/actions/family.ts",
-      "source_location": "L302",
-      "weight": 1.0
-    },
-    {
-      "source": "src_lib_actions_family_updatefamilyaddressaction",
-      "target": "src_lib_actions_family_normalizeaddressfields",
       "relation": "calls",
       "_origin": "ast",
       "confidence": "EXTRACTED",
@@ -9135,7 +9123,7 @@
     },
     {
       "source": "src_lib_actions_family_updatefamilyaddressaction",
-      "target": "src_lib_supabase_server_createclient",
+      "target": "src_lib_actions_family_normalizeaddressfields",
       "relation": "calls",
       "_origin": "ast",
       "confidence": "EXTRACTED",
@@ -9143,6 +9131,18 @@
       "context": "call",
       "source_file": "src/lib/actions/family.ts",
       "source_location": "L308",
+      "weight": 1.0
+    },
+    {
+      "source": "src_lib_actions_family_updatefamilyaddressaction",
+      "target": "src_lib_supabase_server_createclient",
+      "relation": "calls",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "call",
+      "source_file": "src/lib/actions/family.ts",
+      "source_location": "L311",
       "weight": 1.0
     },
     {
@@ -9694,7 +9694,19 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/lib/actions/profile.ts",
-      "source_location": "L68",
+      "source_location": "L71",
+      "weight": 1.0
+    },
+    {
+      "source": "src_lib_actions_profile_deleteavatarfromalbumaction",
+      "target": "src_lib_photo_url_resolvephotourl",
+      "relation": "calls",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "call",
+      "source_file": "src/lib/actions/profile.ts",
+      "source_location": "L102",
       "weight": 1.0
     },
     {
@@ -9706,7 +9718,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/lib/actions/profile.ts",
-      "source_location": "L104",
+      "source_location": "L107",
       "weight": 1.0
     },
     {
@@ -9718,7 +9730,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/lib/actions/profile.ts",
-      "source_location": "L105",
+      "source_location": "L108",
       "weight": 1.0
     },
     {
@@ -9730,7 +9742,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/lib/actions/profile.ts",
-      "source_location": "L93",
+      "source_location": "L96",
       "weight": 1.0
     },
     {
@@ -9742,19 +9754,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/lib/actions/profile.ts",
-      "source_location": "L94",
-      "weight": 1.0
-    },
-    {
-      "source": "src_lib_actions_profile_deleteavatarfromalbumaction",
-      "target": "src_lib_photo_url_resolvephotourl",
-      "relation": "calls",
-      "_origin": "ast",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "context": "call",
-      "source_file": "src/lib/actions/profile.ts",
-      "source_location": "L99",
+      "source_location": "L97",
       "weight": 1.0
     },
     {
@@ -9766,7 +9766,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/lib/actions/profile.ts",
-      "source_location": "L142",
+      "source_location": "L145",
       "weight": 1.0
     },
     {
@@ -9778,7 +9778,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/lib/actions/profile.ts",
-      "source_location": "L143",
+      "source_location": "L146",
       "weight": 1.0
     },
     {
@@ -9790,7 +9790,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/lib/actions/profile.ts",
-      "source_location": "L149",
+      "source_location": "L152",
       "weight": 1.0
     },
     {
@@ -9802,7 +9802,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/lib/actions/profile.ts",
-      "source_location": "L77",
+      "source_location": "L80",
       "weight": 1.0
     },
     {
@@ -9814,7 +9814,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/lib/actions/profile.ts",
-      "source_location": "L78",
+      "source_location": "L81",
       "weight": 1.0
     },
     {
@@ -9826,7 +9826,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/lib/actions/profile.ts",
-      "source_location": "L83",
+      "source_location": "L86",
       "weight": 1.0
     },
     {
@@ -9838,7 +9838,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/lib/actions/profile.ts",
-      "source_location": "L130",
+      "source_location": "L133",
       "weight": 1.0
     },
     {
@@ -22921,7 +22921,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/lib/actions/family.ts",
-      "source_location": "L174",
+      "source_location": "L177",
       "weight": 1.0
     },
     {
@@ -22932,7 +22932,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/lib/actions/family.ts",
-      "source_location": "L190",
+      "source_location": "L193",
       "weight": 1.0
     },
     {
@@ -22943,7 +22943,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/lib/actions/family.ts",
-      "source_location": "L228",
+      "source_location": "L231",
       "weight": 1.0
     },
     {
@@ -22954,7 +22954,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/lib/actions/family.ts",
-      "source_location": "L238",
+      "source_location": "L241",
       "weight": 1.0
     },
     {
@@ -22965,7 +22965,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/lib/actions/family.ts",
-      "source_location": "L250",
+      "source_location": "L253",
       "weight": 1.0
     },
     {
@@ -22976,7 +22976,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/lib/actions/family.ts",
-      "source_location": "L274",
+      "source_location": "L277",
       "weight": 1.0
     },
     {
@@ -22998,7 +22998,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/lib/actions/family.ts",
-      "source_location": "L301",
+      "source_location": "L304",
       "weight": 1.0
     },
     {
@@ -23009,7 +23009,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/lib/actions/family.ts",
-      "source_location": "L329",
+      "source_location": "L332",
       "weight": 1.0
     },
     {
@@ -23020,7 +23020,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/lib/actions/family.ts",
-      "source_location": "L345",
+      "source_location": "L348",
       "weight": 1.0
     },
     {
@@ -23328,7 +23328,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/lib/actions/profile.ts",
-      "source_location": "L129",
+      "source_location": "L132",
       "weight": 1.0
     },
     {
@@ -23339,7 +23339,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/lib/actions/profile.ts",
-      "source_location": "L141",
+      "source_location": "L144",
       "weight": 1.0
     },
     {
@@ -23394,7 +23394,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/lib/actions/profile.ts",
-      "source_location": "L76",
+      "source_location": "L79",
       "weight": 1.0
     },
     {
@@ -23405,7 +23405,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/lib/actions/profile.ts",
-      "source_location": "L92",
+      "source_location": "L95",
       "weight": 1.0
     },
     {
@@ -24896,5 +24896,5 @@
       "source_file": "README.md"
     }
   ],
-  "built_at_commit": "7446ec01f8b6ca07bff5046710f3e8a8e03a6d43"
+  "built_at_commit": "dea2070e0c8f4a732908568f01b5333bbe02775b"
 }

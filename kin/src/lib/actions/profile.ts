@@ -63,7 +63,10 @@ export async function addAvatarToAlbumAction(uploaded: UploadedFile): Promise<Ac
       : { member_id: me.id, family_id: me.family_id, storage_path: uploaded.storagePath, drive_file_id: null };
 
   const { error: insertErr } = await supabase.from("member_avatars").insert(row);
-  if (insertErr) return { error: insertErr.message };
+  if (insertErr) {
+    console.error("member_avatars insert failed", { uploaded, row, insertErr });
+    return { error: insertErr.message };
+  }
 
   const { error } = await supabase.from("members").update({ avatar_url: resolvePhotoUrl(supabase, row) }).eq("id", me.id);
   revalidatePath("/settings");

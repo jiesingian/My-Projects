@@ -162,7 +162,10 @@ export async function addFamilyBackgroundAction(uploaded: UploadedFile): Promise
       : { family_id: me.family_id, storage_path: uploaded.storagePath, drive_file_id: null };
 
   const { error: insertErr } = await supabase.from("family_backgrounds").insert(row);
-  if (insertErr) return { error: insertErr.message };
+  if (insertErr) {
+    console.error("family_backgrounds insert failed", { uploaded, row, insertErr });
+    return { error: insertErr.message };
+  }
 
   const { error } = await supabase.from("families").update({ background_url: resolvePhotoUrl(supabase, row) }).eq("id", me.family_id);
   revalidatePath("/family");
