@@ -1468,6 +1468,45 @@ export type Database = {
           },
         ]
       }
+      member_avatars: {
+        Row: {
+          created_at: string
+          family_id: string
+          id: string
+          member_id: string
+          storage_path: string
+        }
+        Insert: {
+          created_at?: string
+          family_id: string
+          id?: string
+          member_id: string
+          storage_path: string
+        }
+        Update: {
+          created_at?: string
+          family_id?: string
+          id?: string
+          member_id?: string
+          storage_path?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "member_avatars_family_id_fkey"
+            columns: ["family_id"]
+            isOneToOne: false
+            referencedRelation: "families"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "member_avatars_member_id_fkey"
+            columns: ["member_id"]
+            isOneToOne: false
+            referencedRelation: "members"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       members: {
         Row: {
           allergies: string | null

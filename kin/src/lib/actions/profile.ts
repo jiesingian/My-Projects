@@ -45,24 +45,73 @@ export async function updateMemberProfileAction(memberId: string, fields: Profil
   return { error: error?.message ?? null };
 }
 
-/** Records a newly uploaded avatar (already sitting in Storage — see
- * AvatarUpload, which uploads directly rather than through this action) and
- * cleans up the previous one, if any. */
-export async function updateAvatarAction(path: string): Promise<ActionState> {
+export type AlbumPhoto = { id: string; url: string };
+
+/** Records a freshly cropped/uploaded photo (already sitting in Storage —
+ * see AvatarCropUpload) as a new album entry and makes it the active
+ * avatar. Self only, matching the "each user manages their own photo"
+ * boundary — the organizer can edit a member's profile fields but not
+ * their photos. */
+export async function addAvatarToAlbumAction(path: string): Promise<ActionState> {
   const me = await requireCurrentMember();
   const supabase = await createClient();
   const publicUrl = supabase.storage.from("avatars").getPublicUrl(path).data.publicUrl;
-  const previousUrl = me.avatar_url;
+
+  const { error: insertErr } = await supabase.from("member_avatars").insert({ member_id: me.id, family_id: me.family_id, storage_path: path });
+  if (insertErr) return { error: insertErr.message };
 
   const { error } = await supabase.from("members").update({ avatar_url: publicUrl }).eq("id", me.id);
-  if (!error && previousUrl && previousUrl !== publicUrl) {
-    const previousPath = previousUrl.split("/avatars/")[1];
-    if (previousPath) await supabase.storage.from("avatars").remove([previousPath]).catch(() => {});
+  revalidatePath("/settings");
+  revalidatePath("/family");
+  return { error: error?.message ?? null };
+}
+
+/** Makes a previously uploaded photo from the album the active avatar
+ * again, without needing to re-upload it. Self only. */
+export async function setActiveAvatarAction(avatarId: string): Promise<ActionState> {
+  const me = await requireCurrentMember();
+  const supabase = await createClient();
+
+  const { data: photo } = await supabase.from("member_avatars").select("storage_path, member_id").eq("id", avatarId).maybeSingle();
+  if (!photo || photo.member_id !== me.id) return { error: "Photo not found." };
+
+  const publicUrl = supabase.storage.from("avatars").getPublicUrl(photo.storage_path).data.publicUrl;
+  const { error } = await supabase.from("members").update({ avatar_url: publicUrl }).eq("id", me.id);
+  revalidatePath("/settings");
+  revalidatePath("/family");
+  return { error: error?.message ?? null };
+}
+
+/** Removes a photo from the album entirely. If it was the active avatar,
+ * falls back to the most recent remaining photo, or clears it if none are
+ * left. Self only. */
+export async function deleteAvatarFromAlbumAction(avatarId: string): Promise<ActionState> {
+  const me = await requireCurrentMember();
+  const supabase = await createClient();
+
+  const { data: photo } = await supabase.from("member_avatars").select("storage_path, member_id").eq("id", avatarId).maybeSingle();
+  if (!photo || photo.member_id !== me.id) return { error: "Photo not found." };
+
+  const deletedUrl = supabase.storage.from("avatars").getPublicUrl(photo.storage_path).data.publicUrl;
+  const { error } = await supabase.from("member_avatars").delete().eq("id", avatarId);
+  if (error) return { error: error.message };
+  await supabase.storage.from("avatars").remove([photo.storage_path]).catch(() => {});
+
+  if (me.avatar_url === deletedUrl) {
+    const { data: remaining } = await supabase
+      .from("member_avatars")
+      .select("storage_path")
+      .eq("member_id", me.id)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    const fallbackUrl = remaining ? supabase.storage.from("avatars").getPublicUrl(remaining.storage_path).data.publicUrl : null;
+    await supabase.from("members").update({ avatar_url: fallbackUrl }).eq("id", me.id);
   }
 
   revalidatePath("/settings");
   revalidatePath("/family");
-  return { error: error?.message ?? null };
+  return { error: null };
 }
 
 /** Hands the organizer role to another active adult/parent member,

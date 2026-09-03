@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { getCurrentMember } from "@/lib/session";
+import { createClient } from "@/lib/supabase/server";
 import { getMemberDetail, buildBarSeries } from "@/lib/queries/health";
 import { DetailHeader } from "@/components/hub-header";
 import { Segmented } from "@/components/segmented";
@@ -11,8 +12,9 @@ import { OmronToggle } from "./omron-toggle";
 import { RelationshipEditor } from "@/components/relationship-editor";
 import { RemoveMemberButton } from "@/components/member-status-actions";
 import { Avatar } from "@/components/avatar";
-import { AvatarUpload } from "@/components/avatar-upload";
 import { ProfileEditForm } from "@/components/profile-edit-form";
+import { MemberProfileEditor } from "@/components/member-profile-editor";
+import type { AlbumPhoto } from "@/lib/actions/profile";
 
 const SEGMENTS = ["schedule", "conditions", "labs", "vitals"] as const;
 type Seg = (typeof SEGMENTS)[number];
@@ -34,6 +36,20 @@ export default async function MemberDetailPage({
   if (!member) redirect("/family?seg=members");
   const isSelf = me.id === member.id;
 
+  let photos: AlbumPhoto[] = [];
+  if (isSelf) {
+    const supabase = await createClient();
+    const { data: albumRows } = await supabase
+      .from("member_avatars")
+      .select("id, storage_path")
+      .eq("member_id", member.id)
+      .order("created_at", { ascending: false });
+    photos = (albumRows ?? []).map((row) => ({
+      id: row.id,
+      url: supabase.storage.from("avatars").getPublicUrl(row.storage_path).data.publicUrl,
+    }));
+  }
+
   const isChild = member.role === "child_managed" || member.role === "child_self";
   const bpPoints = vitals.filter((v) => v.vital_type === "blood_pressure");
   const weightPoints = vitals.filter((v) => v.vital_type === "weight");
@@ -53,44 +69,65 @@ export default async function MemberDetailPage({
     <div>
       <DetailHeader backHref="/family?seg=members" eyebrow="HUB 01 · MEMBER RECORD" />
       <div style={{ padding: "0 22px 22px" }}>
-        <div style={{ display: "flex", gap: 14, alignItems: "flex-end", marginBottom: 18 }}>
-          {isSelf ? (
-            <AvatarUpload familyId={me.family_id} memberId={member.id} avatarUrl={member.avatar_url} initials={initials(member.full_name)} size={88} />
-          ) : (
-            <Avatar url={member.avatar_url} initials={initials(member.full_name)} size={88} />
-          )}
-          <div>
-            <div style={{ font: "600 34px/.98 var(--font-heading)" }}>{member.full_name}</div>
-            <div style={{ fontSize: 12, color: "var(--color-neutral-600)", marginTop: 4 }}>
-              {formatAge(member.dob)} · {member.relationship ?? member.role.replace("_", " ")}
-            </div>
-            <Tag variant={member.is_organiser ? "accent" : "neutral"} className="mt-2 inline-flex">
-              {member.is_organiser ? "ORGANIZER" : member.status.toUpperCase()}
-            </Tag>
-          </div>
-        </div>
-
-        {me.is_organiser && (
+        {isSelf ? (
+          <MemberProfileEditor
+            familyId={me.family_id}
+            memberId={member.id}
+            fullName={member.full_name}
+            ageLabel={`${formatAge(member.dob)} · ${member.relationship ?? member.role.replace("_", " ")}`}
+            statusLabel={member.is_organiser ? "ORGANIZER" : member.status.toUpperCase()}
+            statusVariant={member.is_organiser ? "accent" : "neutral"}
+            avatarUrl={member.avatar_url}
+            initials={initials(member.full_name)}
+            photos={photos}
+            initial={{
+              full_name: member.full_name,
+              dob: member.dob,
+              mobile: member.mobile,
+              blood_type: member.blood_type,
+              allergies: member.allergies,
+              insurance_info: member.insurance_info,
+              physician_name: member.physician_name,
+            }}
+          />
+        ) : (
           <>
-            <div style={{ fontSize: 11.5, color: "var(--color-neutral-700)", marginBottom: 6 }}>Relationship</div>
-            <RelationshipEditor memberId={member.id} relationship={member.relationship} />
+            <div style={{ display: "flex", gap: 14, alignItems: "flex-end", marginBottom: 18 }}>
+              <Avatar url={member.avatar_url} initials={initials(member.full_name)} size={88} />
+              <div>
+                <div style={{ font: "600 34px/.98 var(--font-heading)" }}>{member.full_name}</div>
+                <div style={{ fontSize: 12, color: "var(--color-neutral-600)", marginTop: 4 }}>
+                  {formatAge(member.dob)} · {member.relationship ?? member.role.replace("_", " ")}
+                </div>
+                <Tag variant={member.is_organiser ? "accent" : "neutral"} className="mt-2 inline-flex">
+                  {member.is_organiser ? "ORGANIZER" : member.status.toUpperCase()}
+                </Tag>
+              </div>
+            </div>
+
+            {me.is_organiser && (
+              <>
+                <div style={{ fontSize: 11.5, color: "var(--color-neutral-700)", marginBottom: 6 }}>Relationship</div>
+                <RelationshipEditor memberId={member.id} relationship={member.relationship} />
+              </>
+            )}
+
+            <ProfileEditForm
+              memberId={member.id}
+              isSelf={false}
+              canEdit={me.is_organiser}
+              initial={{
+                full_name: member.full_name,
+                dob: member.dob,
+                mobile: member.mobile,
+                blood_type: member.blood_type,
+                allergies: member.allergies,
+                insurance_info: member.insurance_info,
+                physician_name: member.physician_name,
+              }}
+            />
           </>
         )}
-
-        <ProfileEditForm
-          memberId={member.id}
-          isSelf={isSelf}
-          canEdit={isSelf || me.is_organiser}
-          initial={{
-            full_name: member.full_name,
-            dob: member.dob,
-            mobile: member.mobile,
-            blood_type: member.blood_type,
-            allergies: member.allergies,
-            insurance_info: member.insurance_info,
-            physician_name: member.physician_name,
-          }}
-        />
 
         <Segmented items={segments} />
         <div style={{ marginTop: 18 }}>
