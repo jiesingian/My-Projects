@@ -2143,6 +2143,204 @@ export type Database = {
           },
         ]
       }
+      routine_log: {
+        Row: {
+          amount: number | null
+          family_id: string
+          id: string
+          logged_at: string
+          logged_by: string | null
+          member_id: string | null
+          occurrence_date: string
+          routine_id: string
+          status: string
+        }
+        Insert: {
+          amount?: number | null
+          family_id: string
+          id?: string
+          logged_at?: string
+          logged_by?: string | null
+          member_id?: string | null
+          occurrence_date: string
+          routine_id: string
+          status: string
+        }
+        Update: {
+          amount?: number | null
+          family_id?: string
+          id?: string
+          logged_at?: string
+          logged_by?: string | null
+          member_id?: string | null
+          occurrence_date?: string
+          routine_id?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "routine_log_family_id_fkey"
+            columns: ["family_id"]
+            isOneToOne: false
+            referencedRelation: "families"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "routine_log_logged_by_fkey"
+            columns: ["logged_by"]
+            isOneToOne: false
+            referencedRelation: "members"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "routine_log_member_id_fkey"
+            columns: ["member_id"]
+            isOneToOne: false
+            referencedRelation: "members"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "routine_log_routine_id_fkey"
+            columns: ["routine_id"]
+            isOneToOne: false
+            referencedRelation: "routines"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      routine_members: {
+        Row: {
+          member_id: string
+          position: number
+          routine_id: string
+        }
+        Insert: {
+          member_id: string
+          position?: number
+          routine_id: string
+        }
+        Update: {
+          member_id?: string
+          position?: number
+          routine_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "routine_members_member_id_fkey"
+            columns: ["member_id"]
+            isOneToOne: false
+            referencedRelation: "members"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "routine_members_routine_id_fkey"
+            columns: ["routine_id"]
+            isOneToOne: false
+            referencedRelation: "routines"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      routines: {
+        Row: {
+          applies_to_whole_family: boolean
+          bymonthday: number | null
+          byweekday: number[]
+          cost_account_id: string | null
+          created_at: string
+          created_by: string | null
+          duration_minutes: number | null
+          end_date: string | null
+          expected_cost: number | null
+          expense_category: string | null
+          family_id: string
+          freq: string
+          id: string
+          kind: string
+          location: string | null
+          notes: string | null
+          paused: boolean
+          reminder_minutes: number | null
+          repeat_interval: number
+          rotate_assignee: boolean
+          start_date: string
+          time_of_day: string | null
+          title: string
+        }
+        Insert: {
+          applies_to_whole_family?: boolean
+          bymonthday?: number | null
+          byweekday?: number[]
+          cost_account_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          duration_minutes?: number | null
+          end_date?: string | null
+          expected_cost?: number | null
+          expense_category?: string | null
+          family_id: string
+          freq: string
+          id?: string
+          kind?: string
+          location?: string | null
+          notes?: string | null
+          paused?: boolean
+          reminder_minutes?: number | null
+          repeat_interval?: number
+          rotate_assignee?: boolean
+          start_date: string
+          time_of_day?: string | null
+          title: string
+        }
+        Update: {
+          applies_to_whole_family?: boolean
+          bymonthday?: number | null
+          byweekday?: number[]
+          cost_account_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          duration_minutes?: number | null
+          end_date?: string | null
+          expected_cost?: number | null
+          expense_category?: string | null
+          family_id?: string
+          freq?: string
+          id?: string
+          kind?: string
+          location?: string | null
+          notes?: string | null
+          paused?: boolean
+          reminder_minutes?: number | null
+          repeat_interval?: number
+          rotate_assignee?: boolean
+          start_date?: string
+          time_of_day?: string | null
+          title?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "routines_cost_account_id_fkey"
+            columns: ["cost_account_id"]
+            isOneToOne: false
+            referencedRelation: "accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "routines_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "members"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "routines_family_id_fkey"
+            columns: ["family_id"]
+            isOneToOne: false
+            referencedRelation: "families"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       trip_travellers: {
         Row: {
           member_id: string

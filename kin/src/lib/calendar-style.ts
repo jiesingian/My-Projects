@@ -16,12 +16,17 @@ export const CALENDAR_STYLE: Record<CalendarSource, { label: string; color: stri
   bills: { label: "Bill", color: "var(--cal-money)", icon: "receipt" },
   meal_plans: { label: "Meal", color: "var(--cal-home)", icon: "utensils" },
   goals: { label: "Goal", color: "var(--cal-goal)", icon: "target" },
+  // Routines share the schedule hue deliberately: a fifth separable colour
+  // does not exist for the colourblind, and a routine is a kind of thing to
+  // be somewhere for. The repeat glyph is what tells them apart.
+  routines: { label: "Routine", color: "var(--cal-schedule)", icon: "repeat" },
 };
 
 /** The legend, in the order the colours were assigned. It doubles as the
  * filter, so each entry names the group it switches. */
 export const CALENDAR_LEGEND: { group: CalendarGroup; label: string; color: string; icon: IconName }[] = [
   { group: "schedule", label: "Activities & travel", color: "var(--cal-schedule)", icon: "calendarDays" },
+  { group: "routines", label: "Routines", color: "var(--cal-schedule)", icon: "repeat" },
   { group: "events", label: "Events", color: "var(--cal-occasion)", icon: "gift" },
   { group: "bills", label: "Bills", color: "var(--cal-money)", icon: "receipt" },
   { group: "meals", label: "Meals", color: "var(--cal-home)", icon: "utensils" },

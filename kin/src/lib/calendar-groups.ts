@@ -2,12 +2,12 @@
  * their own: the query layer and the styling layer both need them, and each
  * already refers to the other. */
 
-export const CALENDAR_TABLES = ["activities", "trips", "events", "bills", "meal_plans", "goals"] as const;
+export const CALENDAR_TABLES = ["activities", "trips", "events", "bills", "meal_plans", "goals", "routines"] as const;
 export type CalendarTable = (typeof CALENDAR_TABLES)[number];
 
 /** What the legend switches on and off. Activities and travel share one
  * group because they share a colour — both are somewhere to be. */
-export const CALENDAR_GROUPS = ["schedule", "events", "bills", "meals", "goals"] as const;
+export const CALENDAR_GROUPS = ["schedule", "routines", "events", "bills", "meals", "goals"] as const;
 export type CalendarGroup = (typeof CALENDAR_GROUPS)[number];
 
 export const GROUP_OF: Record<CalendarTable, CalendarGroup> = {
@@ -17,6 +17,7 @@ export const GROUP_OF: Record<CalendarTable, CalendarGroup> = {
   bills: "bills",
   meal_plans: "meals",
   goals: "goals",
+  routines: "routines",
 };
 
 /** Which groups are switched off, read from the URL. Absent means none are:

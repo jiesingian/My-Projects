@@ -25,10 +25,13 @@ import { parseHidden, serializeHidden, toggledHidden, type CalendarGroup } from 
 import { LogSpendControl } from "@/components/money-actions";
 import { CalendarJump, CalendarPeriod, DateRail, MonthScroller, TodayButton } from "@/components/calendar-nav";
 import { AddToCalendar } from "@/components/add-to-calendar";
+import { getRoutines } from "@/lib/queries/routines";
+import { describeRule, formatTimeOfDay, ROUTINE_KIND_META, type RoutineKind } from "@/lib/routines";
+import { RoutineTick, RoutinePauseButton, RoutineDeleteButton } from "@/components/routine-controls";
 import { CalendarSyncStatus, RememberFilter } from "@/components/calendar-sync-status";
 import { cookies } from "next/headers";
 
-const SEGMENTS = ["calendar", "events", "travel"] as const;
+const SEGMENTS = ["calendar", "routines", "events", "travel"] as const;
 type Seg = (typeof SEGMENTS)[number];
 const CALENDAR_VIEWS = ["week", "month", "year"] as const;
 type CalendarView = (typeof CALENDAR_VIEWS)[number];
@@ -63,6 +66,7 @@ export default async function PlannerPage({
       <HubHeader n="03" title="Planner" segments={segments} />
       <div style={{ padding: "0 22px 22px" }}>
         {seg === "calendar" && <CalendarPane familyId={me.family_id} who={who} view={view} anchor={anchor} hidden={hidden} />}
+        {seg === "routines" && <RoutinesPane familyId={me.family_id} who={who} currency={me.families.currency} />}
         {seg === "events" && <EventsPane familyId={me.family_id} />}
         {seg === "travel" && <TravelPane familyId={me.family_id} memberId={me.id} currency={me.families.currency} />}
       </div>
@@ -177,17 +181,9 @@ async function CalendarPane({ familyId, who, view, anchor, hidden }: { familyId:
                 color: on ? "var(--color-text)" : "var(--color-neutral-700)",
               }}
             >
-              <span
-                style={{
-                  width: 9,
-                  height: 9,
-                  borderRadius: 999,
-                  flex: "none",
-                  background: on ? l.color : "transparent",
-                  boxShadow: on ? "none" : `inset 0 0 0 1.5px ${l.color}`,
-                  opacity: on ? 1 : 0.55,
-                }}
-              />
+              {/* The glyph, not just the dot: routines share the schedule
+                  colour, so colour alone no longer separates the legend. */}
+              <Icon name={l.icon} size={13} style={{ color: l.color, opacity: on ? 1 : 0.5, flex: "none" }} />
               {l.label}
             </Link>
           );
@@ -559,6 +555,146 @@ async function YearView({ familyId, memberId, who, anchor, hidden, hide }: { fam
         );
       })}
     </div>
+  );
+}
+
+async function RoutinesPane({ familyId, who, currency }: { familyId: string; who: string; currency: string }) {
+  const memberId = who === "all" ? undefined : who;
+  const [routines, members] = await Promise.all([getRoutines(familyId, memberId), getMembers(familyId)]);
+  const activeMembers = members.filter((m) => m.status !== "pending" && m.status !== "removed");
+  const memberLabels = shortNames(activeMembers.map((m) => m.full_name));
+  const dueToday = routines.filter((r) => !r.paused && r.today);
+
+  return (
+    <>
+      <div style={{ marginBottom: 14 }}>
+        <ChipRow
+          items={[
+            { label: "All", href: "/planner?seg=routines&who=all", active: who === "all" },
+            ...activeMembers.map((m, i) => ({
+              label: memberLabels[i],
+              href: `/planner?seg=routines&who=${m.id}`,
+              active: who === m.id,
+            })),
+          ]}
+        />
+      </div>
+
+      {routines.length === 0 ? (
+        <Blueprint style={{ padding: 18, marginBottom: 16 }}>
+          <div style={{ font: "600 18px/1.2 var(--font-heading)", marginBottom: 6 }}>The week&rsquo;s rhythm lives here</div>
+          <p style={{ fontSize: 14.5, color: "var(--color-neutral-600)", margin: 0, lineHeight: 1.45 }}>
+            The grocery run, gym days, Sunday mass, swimming lessons — the things that come round again. Set one up once
+            and it fills in the calendar from then on, reminds whoever it is for through their own phone calendar, and
+            keeps track of whose turn it is.
+          </p>
+        </Blueprint>
+      ) : (
+        <>
+          {dueToday.length > 0 && (
+            <div style={{ fontSize: 12, letterSpacing: ".04em", textTransform: "uppercase", color: "var(--color-neutral-600)", marginBottom: 8 }}>
+              Today · {dueToday.length}
+            </div>
+          )}
+          {routines.map((r) => {
+            const meta = ROUTINE_KIND_META[(r.kind as RoutineKind) ?? "other"] ?? ROUTINE_KIND_META.other;
+            const whoFor = r.appliesToAll
+              ? "Whole family"
+              : r.rotates
+                ? `Taking turns · ${r.members.map((m) => m.name.split(" ")[0]).join(", ")}`
+                : r.members.map((m) => m.name.split(" ")[0]).join(", ") || "House";
+
+            return (
+              <Blueprint key={r.id} style={{ padding: 14, marginBottom: 10, opacity: r.paused ? 0.62 : 1 }}>
+                <div style={{ display: "flex", gap: 11, alignItems: "flex-start" }}>
+                  <span
+                    style={{
+                      width: 34,
+                      height: 34,
+                      flex: "none",
+                      borderRadius: 10,
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      background: "var(--cal-schedule)",
+                      color: "#fff",
+                    }}
+                  >
+                    <Icon name={meta.icon} size={18} />
+                  </span>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ font: "600 17px/1.2 var(--font-heading)" }}>{r.title}</div>
+                    <div style={{ fontSize: 13, color: "var(--color-neutral-600)", marginTop: 2 }}>
+                      {describeRule(r.rule, r.timeOfDay)}
+                      {r.location ? ` · ${r.location}` : ""}
+                    </div>
+                    <div style={{ fontSize: 13, color: "var(--color-neutral-600)" }}>{whoFor}</div>
+                  </div>
+                  {r.streak > 1 && (
+                    <span
+                      style={{
+                        flex: "none",
+                        fontSize: 12,
+                        fontWeight: 600,
+                        padding: "3px 9px",
+                        borderRadius: 999,
+                        background: "color-mix(in srgb, var(--color-switch-on) 18%, transparent)",
+                        color: "var(--color-neutral-900)",
+                      }}
+                      title={`${r.streak} in a row`}
+                    >
+                      {r.streak}×
+                    </span>
+                  )}
+                </div>
+
+                {r.today && !r.paused && (
+                  <div style={{ marginTop: 11, paddingTop: 11, borderTop: "1px solid var(--color-divider)" }}>
+                    {r.today.assignee && (
+                      <div style={{ fontSize: 13, color: "var(--color-neutral-700)", marginBottom: 7 }}>
+                        Today it is {r.today.assignee.name.split(" ")[0]}&rsquo;s turn
+                        {r.timeOfDay ? ` · ${formatTimeOfDay(r.timeOfDay)}` : ""}
+                      </div>
+                    )}
+                    <RoutineTick
+                      routineId={r.id}
+                      date={r.today.date}
+                      status={r.today.status}
+                      cost={r.expectedCost}
+                      currency={currency}
+                    />
+                  </div>
+                )}
+
+                <div style={{ display: "flex", alignItems: "center", gap: 4, marginTop: 9, flexWrap: "wrap" }}>
+                  <span style={{ flex: 1, minWidth: 0, fontSize: 12.5, color: "var(--color-neutral-600)" }}>
+                    {r.paused
+                      ? "Paused — off everyone&rsquo;s calendar until resumed"
+                      : r.next
+                        ? `Next ${r.next.toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short" })}`
+                        : "No more occurrences"}
+                    {r.reminderMinutes != null && !r.paused ? ` · reminder ${r.reminderMinutes} min before` : ""}
+                  </span>
+                  <Link href={`/planner/routines/new?id=${r.id}`} className="btn btn-ghost" style={{ minHeight: 30, fontSize: 12.5, padding: "0 8px" }}>
+                    Edit
+                  </Link>
+                  <RoutinePauseButton id={r.id} paused={r.paused} />
+                  <RoutineDeleteButton id={r.id} title={r.title} />
+                </div>
+              </Blueprint>
+            );
+          })}
+        </>
+      )}
+
+      <Link href="/planner/routines/new" className="btn btn-primary btn-block" style={{ minHeight: 48, fontSize: 16, marginTop: 6 }}>
+        <Icon name="plus" size={17} /> Add a routine
+      </Link>
+      <p style={{ fontSize: 12.5, color: "var(--color-neutral-600)", marginTop: 10, lineHeight: 1.45 }}>
+        Routines show up in the calendar and on Today, and go to the Google Calendar of everyone they are for — so the
+        reminder arrives on their phone, not just in Kin.
+      </p>
+    </>
   );
 }
 

@@ -18,7 +18,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/lib/database.types";
 
 type Db = SupabaseClient<Database>;
-type SourceTable = "activities" | "events" | "health_schedule" | "health_appointments" | "doc_entries" | "trips" | "bills" | "meal_plans" | "goals";
+type SourceTable = "activities" | "events" | "health_schedule" | "health_appointments" | "doc_entries" | "trips" | "bills" | "meal_plans" | "goals" | "routines";
 
 /** Who a Kin item should sync to: everyone connected in the household, a
  * specific set of tagged members, or a single owner (health/document rows,

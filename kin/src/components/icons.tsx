@@ -35,6 +35,12 @@ export const iconPaths = {
   gift: "M3.5 11.5h17V21h-17zM2.5 7.5h19v4h-19zM12 7.5V21M12 7.5S10.5 3 8 3a2.2 2.2 0 0 0 0 4.5M12 7.5S13.5 3 16 3a2.2 2.2 0 0 1 0 4.5",
   target: "M12 3.5a8.5 8.5 0 1 0 0 17a8.5 8.5 0 0 0 0-17M12 8a4 4 0 1 0 0 8a4 4 0 0 0 0-8",
   receipt: "M5 3h14v18l-2.3-1.6-2.4 1.6-2.3-1.6L9.7 21l-2.4-1.6L5 21zM9 8h6M9 12h6",
+  // Routines
+  repeat: "M4 9.5V8a3 3 0 0 1 3-3h11M15 2.5 18.5 5 15 7.5M20 14.5V16a3 3 0 0 1-3 3H6M9 21.5 5.5 19 9 16.5",
+  basket: "M3.5 9h17l-1.7 10.5H5.2zM8 9 10.5 3M16 9 13.5 3M9.5 13v3.5M14.5 13v3.5",
+  church: "M12 2.5v5M10 5h4M6 11 12 7.5 18 11v10H6zM10.5 21v-4.5h3V21",
+  pause: "M9 5v14M15 5v14",
+  play: "M7 4.5 19 12 7 19.5z",
 } as const;
 
 export type IconName = keyof typeof iconPaths;

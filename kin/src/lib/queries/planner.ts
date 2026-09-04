@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { getSignedUrls } from "@/lib/storage";
 import { GROUP_OF, type CalendarGroup, type CalendarTable } from "@/lib/calendar-groups";
+import { expandRoutine, assigneeFor, type RoutineRule } from "@/lib/routines";
 
 export type PlannerCalendarItem = {
   id: string;
@@ -30,7 +31,7 @@ async function fetchCalendarItems(familyId: string, rangeStart: Date, rangeEnd: 
   const startDate = toISODate(rangeStart);
   const endDate = toISODate(rangeEnd);
 
-  const [{ data: activities }, { data: events }, { data: trips }, { data: bills }, { data: meals }, { data: goals }] = await Promise.all([
+  const [{ data: activities }, { data: events }, { data: trips }, { data: bills }, { data: meals }, { data: goals }, { data: routines }] = await Promise.all([
     supabase
       .from("activities")
       .select("*, activity_members(members(id, full_name))")
@@ -53,6 +54,15 @@ async function fetchCalendarItems(familyId: string, rangeStart: Date, rangeEnd: 
       .not("target_date", "is", null)
       .gte("target_date", startDate)
       .lt("target_date", endDate),
+    // Routines are a rule, not rows: every one that could still be running is
+    // fetched, then expanded into whatever occurrences land in this range.
+    supabase
+      .from("routines")
+      .select("*, routine_members(member_id, position, members(id, full_name))")
+      .eq("family_id", familyId)
+      .eq("paused", false)
+      .lte("start_date", endDate)
+      .or(`end_date.is.null,end_date.gte.${startDate}`),
   ]);
 
   const items: PlannerCalendarItem[] = [];
@@ -156,6 +166,52 @@ async function fetchCalendarItems(familyId: string, rangeStart: Date, rangeEnd: 
       appliesToAll: g.is_joint,
       href: `/wealth?seg=goals`,
     });
+  }
+
+  for (const r of routines ?? []) {
+    const roster = (r.routine_members ?? [])
+      .slice()
+      .sort((a, b) => (a.position ?? 0) - (b.position ?? 0))
+      .map((rm) => ({
+        id: (rm.members as unknown as { id: string } | null)?.id ?? rm.member_id,
+        name: (rm.members as unknown as { full_name: string } | null)?.full_name ?? "",
+      }))
+      .filter((m) => !!m.id);
+
+    const rule: RoutineRule = {
+      freq: r.freq as RoutineRule["freq"],
+      repeat_interval: r.repeat_interval,
+      byweekday: r.byweekday ?? [],
+      bymonthday: r.bymonthday,
+      start_date: r.start_date,
+      end_date: r.end_date,
+    };
+
+    for (const occ of expandRoutine(rule, rangeStart, rangeEnd)) {
+      // Whose turn it is only means anything when the routine rotates;
+      // otherwise everyone named on it is on for every occurrence.
+      const turn = r.rotate_assignee ? assigneeFor(roster, occ.index) : null;
+      const memberIds = turn ? [turn.id] : roster.map((m) => m.id);
+      const who = r.applies_to_whole_family
+        ? "WHOLE FAMILY"
+        : turn
+          ? turn.name.split(" ")[0].toUpperCase()
+          : firstNames(roster.map((m) => m.name)) || "HOUSE";
+
+      const at = r.time_of_day ? new Date(`${toISODate(occ.date)}T${r.time_of_day}`) : occ.date;
+      items.push({
+        id: `${r.id}:${toISODate(occ.date)}`,
+        table: "routines",
+        date: at,
+        allDay: !r.time_of_day,
+        title: r.title,
+        location: r.location,
+        who,
+        memberIds,
+        appliesToAll: r.applies_to_whole_family,
+        href: `/planner?seg=routines`,
+      });
+    }
   }
 
   return items.sort((a, b) => a.date.getTime() - b.date.getTime());

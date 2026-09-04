@@ -95,7 +95,7 @@ type LedgerInput = {
   occurredAt?: string | null;
   status?: "pending" | "confirmed";
   transferGroupId?: string | null;
-  sourceTable?: "bills" | "trips" | "buy_items" | "health_appointments" | "goals" | null;
+  sourceTable?: "bills" | "trips" | "buy_items" | "health_appointments" | "goals" | "routines" | null;
   sourceId?: string | null;
   goalId?: string | null;
 };
@@ -320,7 +320,7 @@ export async function postHubExpenseAction(input: {
   amount: number;
   particulars: string;
   category: string;
-  sourceTable: "bills" | "trips" | "buy_items" | "health_appointments";
+  sourceTable: "bills" | "trips" | "buy_items" | "health_appointments" | "routines";
   sourceId: string | null;
 }): Promise<ActionState> {
   const me = await requireCurrentMember();
