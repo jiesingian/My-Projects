@@ -40,3 +40,13 @@ export async function getMyWealth(familyId: string, memberId: string) {
 
   return { target, accounts: accounts ?? [], month, year };
 }
+
+export async function getGoals(familyId: string) {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("goals")
+    .select("*, owner:owner_member_id(full_name)")
+    .eq("family_id", familyId)
+    .order("created_at", { ascending: false });
+  return data ?? [];
+}

@@ -67,7 +67,7 @@ function toGoogleEventBody(input: CalendarEventInput) {
   const end = input.endAt ?? new Date(input.startAt.getTime() + 60 * 60 * 1000);
   if (input.allDay) {
     const startDate = input.startAt.toISOString().slice(0, 10);
-    const endExclusive = new Date(input.startAt.getTime() + 86_400_000).toISOString().slice(0, 10);
+    const endExclusive = new Date((input.endAt ?? input.startAt).getTime() + 86_400_000).toISOString().slice(0, 10);
     return { summary: input.title, location: input.location ?? undefined, start: { date: startDate }, end: { date: endExclusive } };
   }
   return {

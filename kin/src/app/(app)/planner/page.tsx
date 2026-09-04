@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getCurrentMember } from "@/lib/session";
-import { getWeekAgenda, getMonthOverview, getYearOverview, getEvents, getGoals, getTrips } from "@/lib/queries/planner";
+import { getWeekAgenda, getMonthOverview, getYearOverview, getEvents, getTrips } from "@/lib/queries/planner";
 import { getMembers } from "@/lib/queries/family";
 import { syncGoogleCalendarIfStale } from "@/lib/actions/calendar-sync";
 import { HubHeader } from "@/components/hub-header";
@@ -10,7 +10,7 @@ import { Blueprint, Tag } from "@/components/ui";
 import { formatCurrency, formatDate } from "@/lib/format";
 import { AddToJournalButton } from "@/components/add-to-journal-button";
 
-const SEGMENTS = ["calendar", "events", "goals", "travel"] as const;
+const SEGMENTS = ["calendar", "events", "travel"] as const;
 type Seg = (typeof SEGMENTS)[number];
 const CALENDAR_VIEWS = ["week", "month", "year"] as const;
 type CalendarView = (typeof CALENDAR_VIEWS)[number];
@@ -42,7 +42,6 @@ export default async function PlannerPage({
       <div style={{ padding: "0 22px 22px" }}>
         {seg === "calendar" && <CalendarPane familyId={me.family_id} who={who} view={view} anchor={anchor} />}
         {seg === "events" && <EventsPane familyId={me.family_id} />}
-        {seg === "goals" && <GoalsPane familyId={me.family_id} currency={me.families.currency} />}
         {seg === "travel" && <TravelPane familyId={me.family_id} currency={me.families.currency} />}
       </div>
     </div>
@@ -171,12 +170,12 @@ async function WeekView({ familyId, memberId, anchor }: { familyId: string; memb
           </div>
           <div style={{ borderTop: "1px solid var(--color-text)" }}>
             {d.activities.map((a) => {
-              const isPast = new Date(a.start_at) < new Date();
+              const isPastActivity = a.table === "activities" && a.date < new Date();
               return (
-                <div key={a.id} style={{ padding: "10px 0", borderBottom: "1px solid color-mix(in srgb, var(--color-text) 10%, transparent)" }}>
-                  <Link href={`/planner/add?type=activity&id=${a.id}`} style={{ display: "flex", gap: 12, textDecoration: "none", color: "inherit" }}>
-                    <span style={{ font: "400 11px/1.4 ui-monospace, Menlo, monospace", color: "var(--color-accent-700)", width: 44, flex: "none" }}>
-                      {new Date(a.start_at).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })}
+                <div key={`${a.table}-${a.id}`} style={{ padding: "10px 0", borderBottom: "1px solid color-mix(in srgb, var(--color-text) 10%, transparent)" }}>
+                  <Link href={a.href} style={{ display: "flex", gap: 12, textDecoration: "none", color: "inherit" }}>
+                    <span style={{ font: "400 11px/1.4 ui-monospace, Menlo, monospace", color: "var(--color-accent-700)", width: 50, flex: "none" }}>
+                      {a.allDay ? "ALL DAY" : a.date.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })}
                     </span>
                     <span style={{ flex: 1, minWidth: 0 }}>
                       <span style={{ font: "600 17px/1.15 var(--font-heading)", display: "block" }}>{a.title}</span>
@@ -184,7 +183,7 @@ async function WeekView({ familyId, memberId, anchor }: { familyId: string; memb
                     </span>
                     <Tag variant="neutral">{a.who}</Tag>
                   </Link>
-                  {isPast && <AddToJournalButton activityId={a.id} />}
+                  {isPastActivity && <AddToJournalButton activityId={a.id} />}
                 </div>
               );
             })}
@@ -296,43 +295,6 @@ async function EventsPane({ familyId }: { familyId: string }) {
       <div style={{ fontSize: 11, color: "var(--color-neutral-600)", marginTop: 8 }}>
         Birthdays and anniversaries repeat yearly on their own.
       </div>
-    </>
-  );
-}
-
-async function GoalsPane({ familyId, currency }: { familyId: string; currency: string }) {
-  const goals = await getGoals(familyId);
-  return (
-    <>
-      {goals.length === 0 && <p style={{ fontSize: 12, color: "var(--color-neutral-600)" }}>No goals yet.</p>}
-      {goals.map((g) => {
-        const pct = g.target_amount ? Math.min(100, Math.round((Number(g.current_amount) / Number(g.target_amount)) * 100)) : 0;
-        return (
-          <Blueprint key={g.id} style={{ padding: 13, marginBottom: 13 }}>
-            <div style={{ display: "flex", alignItems: "baseline", gap: 8 }}>
-              <span style={{ font: "600 18px/1.05 var(--font-heading)" }}>{g.title}</span>
-              <Tag variant={g.is_joint ? "accent" : "neutral"} className="ml-auto">
-                {g.is_joint ? "JOINT" : (g.owner as unknown as { full_name: string } | null)?.full_name?.split(" ")[0]?.toUpperCase() ?? "MINE"}
-              </Tag>
-            </div>
-            <div style={{ fontSize: 11.5, color: "var(--color-neutral-600)", margin: "4px 0 9px" }}>{g.sub_note}</div>
-            <div style={{ height: 8, border: "1px solid var(--color-divider)", background: "var(--color-bg)" }}>
-              <div style={{ height: "100%", width: `${pct}%`, background: "var(--color-accent)" }} />
-            </div>
-            <div style={{ display: "flex", fontSize: 10.5, color: "var(--color-neutral-600)", marginTop: 5 }}>
-              <span>
-                {g.target_unit
-                  ? `${g.current_amount} of ${g.target_amount} ${g.target_unit}`
-                  : `${formatCurrency(Number(g.current_amount), currency)} of ${formatCurrency(Number(g.target_amount ?? 0), currency)}`}
-              </span>
-              <span style={{ marginLeft: "auto" }}>{pct}%</span>
-            </div>
-          </Blueprint>
-        );
-      })}
-      <Link href="/planner/add?type=goal" className="btn btn-primary btn-block" style={{ minHeight: 46, fontSize: 14, letterSpacing: ".04em", marginTop: 16 }}>
-        + ADD GOAL
-      </Link>
     </>
   );
 }

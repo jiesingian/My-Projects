@@ -188,34 +188,6 @@ export async function deleteEventAction(eventId: string): Promise<ActionState> {
   return { error: null };
 }
 
-export async function createGoalAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
-  const me = await requireCurrentMember();
-  const supabase = await createClient();
-
-  const title = String(formData.get("title") ?? "").trim();
-  const subNote = String(formData.get("sub_note") ?? "").trim() || null;
-  const isJoint = formData.get("is_joint") === "on";
-  const ownerMemberId = isJoint ? null : me.id;
-  const targetAmount = formData.get("target_amount") ? Number(formData.get("target_amount")) : null;
-  const targetUnit = String(formData.get("target_unit") ?? "").trim() || null;
-  if (!title) return { error: "Give the goal a title." };
-
-  const { error } = await supabase.from("goals").insert({
-    family_id: me.family_id,
-    title,
-    sub_note: subNote,
-    is_joint: isJoint,
-    owner_member_id: ownerMemberId,
-    target_amount: targetAmount,
-    target_unit: targetUnit,
-    created_by: me.id,
-  });
-  if (error) return { error: error.message };
-
-  revalidatePath("/planner");
-  redirect("/planner?seg=goals");
-}
-
 export async function createTripAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
   const me = await requireCurrentMember();
   const supabase = await createClient();
@@ -237,6 +209,14 @@ export async function createTripAction(_prev: ActionState, formData: FormData): 
   if (travellers.length > 0) {
     await supabase.from("trip_travellers").insert(travellers.map((memberId) => ({ trip_id: trip.id, member_id: memberId })));
   }
+
+  await syncRowToCalendars(
+    me.family_id,
+    "trips",
+    trip.id,
+    { title, startAt: new Date(`${startDate}T00:00:00`), endAt: endDate ? new Date(`${endDate}T00:00:00`) : null, allDay: true },
+    travellers.length > 0 ? { kind: "members", memberIds: travellers } : { kind: "all" },
+  );
 
   revalidatePath("/planner");
   redirect("/planner?seg=travel");

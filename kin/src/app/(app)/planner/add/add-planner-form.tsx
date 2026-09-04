@@ -9,9 +9,9 @@ import {
   createEventAction,
   updateEventAction,
   deleteEventAction,
-  createGoalAction,
   createTripAction,
 } from "@/lib/actions/planner";
+import { createGoalAction } from "@/lib/actions/wealth";
 import type { ActionState } from "@/lib/actions/auth";
 import { SubmitButton, ErrorText } from "@/components/form";
 import { DetailHeader } from "@/components/hub-header";
@@ -40,7 +40,7 @@ export function AddPlannerForm({
 
   return (
     <div>
-      <DetailHeader backHref="/planner" eyebrow="HUB 03 · NEW" />
+      <DetailHeader backHref={type === "goal" ? "/wealth" : "/planner"} eyebrow="HUB 03 · NEW" />
       <div style={{ padding: "0 22px 22px" }}>
         <h3 style={{ fontSize: 32, margin: "0 0 14px" }}>{isEditing ? "Edit" : "Add to"} Planner</h3>
         {!isEditing && (
@@ -199,6 +199,7 @@ function GoalForm() {
         <Field label="TARGET AMOUNT (₱)" style={{ flex: 1 }}><input className="input" type="number" name="target_amount" style={{ minHeight: 44 }} /></Field>
         <Field label="OR UNIT (e.g. km)" style={{ flex: 1 }}><input className="input" name="target_unit" style={{ minHeight: 44 }} /></Field>
       </div>
+      <Field label="TARGET DATE (OPTIONAL)"><input className="input" type="date" name="target_date" style={{ minHeight: 44 }} /></Field>
       <SubmitButton style={{ minHeight: 46, fontSize: 14, letterSpacing: ".04em" }}>SAVE GOAL</SubmitButton>
     </form>
   );

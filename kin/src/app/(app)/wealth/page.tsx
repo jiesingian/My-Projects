@@ -1,13 +1,15 @@
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getCurrentMember } from "@/lib/session";
-import { getJointWealth, getMyWealth } from "@/lib/queries/wealth";
+import { getJointWealth, getMyWealth, getGoals } from "@/lib/queries/wealth";
 import { HubHeader } from "@/components/hub-header";
 import { Blueprint, Tag } from "@/components/ui";
 import { AddAccountForm, SetBudgetControl, SetTargetControl } from "@/components/wealth-controls";
 import { formatCurrency } from "@/lib/format";
 
-const SEGMENTS = ["joint", "mine"] as const;
+const SEGMENTS = ["joint", "mine", "goals"] as const;
 type Seg = (typeof SEGMENTS)[number];
+const SEGMENT_LABELS: Record<Seg, string> = { joint: "Joint", mine: "Mine", goals: "Goals" };
 
 export default async function WealthPage({
   searchParams,
@@ -20,7 +22,7 @@ export default async function WealthPage({
   const seg: Seg = (SEGMENTS as readonly string[]).includes(sp.seg ?? "") ? (sp.seg as Seg) : "joint";
 
   const segments = SEGMENTS.map((s) => ({
-    label: s === "joint" ? "Joint" : "Mine",
+    label: SEGMENT_LABELS[s],
     href: `/wealth?seg=${s}`,
     active: s === seg,
   }));
@@ -29,9 +31,53 @@ export default async function WealthPage({
     <div>
       <HubHeader n="05" title="Wealth" segments={segments} />
       <div style={{ padding: "0 22px 22px" }}>
-        {seg === "joint" ? <JointPane familyId={me.family_id} currency={me.families.currency} /> : <MinePane familyId={me.family_id} memberId={me.id} currency={me.families.currency} />}
+        {seg === "joint" && <JointPane familyId={me.family_id} currency={me.families.currency} />}
+        {seg === "mine" && <MinePane familyId={me.family_id} memberId={me.id} currency={me.families.currency} />}
+        {seg === "goals" && <GoalsPane familyId={me.family_id} currency={me.families.currency} />}
       </div>
     </div>
+  );
+}
+
+async function GoalsPane({ familyId, currency }: { familyId: string; currency: string }) {
+  const goals = await getGoals(familyId);
+  return (
+    <>
+      {goals.length === 0 && <p style={{ fontSize: 12, color: "var(--color-neutral-600)" }}>No goals yet.</p>}
+      {goals.map((g) => {
+        const pct = g.target_amount ? Math.min(100, Math.round((Number(g.current_amount) / Number(g.target_amount)) * 100)) : 0;
+        return (
+          <Blueprint key={g.id} style={{ padding: 13, marginBottom: 13 }}>
+            <div style={{ display: "flex", alignItems: "baseline", gap: 8 }}>
+              <span style={{ font: "600 18px/1.05 var(--font-heading)" }}>{g.title}</span>
+              <Tag variant={g.is_joint ? "accent" : "neutral"} className="ml-auto">
+                {g.is_joint ? "JOINT" : (g.owner as unknown as { full_name: string } | null)?.full_name?.split(" ")[0]?.toUpperCase() ?? "MINE"}
+              </Tag>
+            </div>
+            <div style={{ fontSize: 11.5, color: "var(--color-neutral-600)", margin: "4px 0 9px" }}>{g.sub_note}</div>
+            <div style={{ height: 8, border: "1px solid var(--color-divider)", background: "var(--color-bg)" }}>
+              <div style={{ height: "100%", width: `${pct}%`, background: "var(--color-accent)" }} />
+            </div>
+            <div style={{ display: "flex", fontSize: 10.5, color: "var(--color-neutral-600)", marginTop: 5 }}>
+              <span>
+                {g.target_unit
+                  ? `${g.current_amount} of ${g.target_amount} ${g.target_unit}`
+                  : `${formatCurrency(Number(g.current_amount), currency)} of ${formatCurrency(Number(g.target_amount ?? 0), currency)}`}
+              </span>
+              <span style={{ marginLeft: "auto" }}>{pct}%</span>
+            </div>
+            {g.target_date && (
+              <div style={{ fontSize: 10.5, color: "var(--color-neutral-600)", marginTop: 5 }}>
+                Target date: {new Date(`${g.target_date}T00:00:00`).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}
+              </div>
+            )}
+          </Blueprint>
+        );
+      })}
+      <Link href="/planner/add?type=goal" className="btn btn-primary btn-block" style={{ minHeight: 46, fontSize: 14, letterSpacing: ".04em", marginTop: 16 }}>
+        + ADD GOAL
+      </Link>
+    </>
   );
 }
 

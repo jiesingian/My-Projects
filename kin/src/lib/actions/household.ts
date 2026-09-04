@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { requireCurrentMember } from "@/lib/session";
+import { syncRowToCalendars } from "@/lib/actions/calendar-sync";
 import type { ActionState } from "@/lib/actions/auth";
 
 export async function addBuyItemAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
@@ -73,6 +74,8 @@ export async function addMealPlanAction(_prev: ActionState, formData: FormData):
     );
   }
 
+  await syncRowToCalendars(me.family_id, "meal_plans", plan.id, { title: dish, startAt: new Date(`${date}T00:00:00`), allDay: true }, { kind: "all" });
+
   revalidatePath("/household");
   redirect("/household?seg=meals");
 }
@@ -133,16 +136,25 @@ export async function addBillAction(_prev: ActionState, formData: FormData): Pro
   const status = String(formData.get("status") ?? "unpaid");
   if (!name || !amount) return { error: "Name and amount are required." };
 
-  const { error } = await supabase.from("bills").insert({
-    family_id: me.family_id,
-    name,
-    amount,
-    due_date: dueDate,
-    category,
-    status,
-    created_by: me.id,
-  });
+  const { data: bill, error } = await supabase
+    .from("bills")
+    .insert({
+      family_id: me.family_id,
+      name,
+      amount,
+      due_date: dueDate,
+      category,
+      status,
+      created_by: me.id,
+    })
+    .select()
+    .single();
   if (error) return { error: error.message };
+
+  if (dueDate) {
+    await syncRowToCalendars(me.family_id, "bills", bill.id, { title: `${name} due`, startAt: new Date(`${dueDate}T00:00:00`), allDay: true }, { kind: "all" });
+  }
+
   revalidatePath("/household");
   return { error: null };
 }

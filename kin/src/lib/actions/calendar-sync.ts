@@ -18,7 +18,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/lib/database.types";
 
 type Db = SupabaseClient<Database>;
-type SourceTable = "activities" | "events" | "health_schedule" | "health_appointments" | "doc_entries";
+type SourceTable = "activities" | "events" | "health_schedule" | "health_appointments" | "doc_entries" | "trips" | "bills" | "meal_plans" | "goals";
 
 /** Who a Kin item should sync to: everyone connected in the household, a
  * specific set of tagged members, or a single owner (health/document rows,
@@ -149,6 +149,38 @@ const BACKFILL_DESCRIPTORS: BackfillDescriptor[] = [
     toInput: (r) => (r.expires_at ? { title: `${r.title as string} renewal`, startAt: new Date(`${r.expires_at as string}T00:00:00`), allDay: true } : null),
     toTarget: (r) => ({ kind: "member", memberId: r.owner_member_id as string | null }),
   },
+  {
+    table: "trips",
+    dateColumn: "start_date",
+    toInput: (r) => ({
+      title: r.title as string,
+      startAt: new Date(`${r.start_date as string}T00:00:00`),
+      endAt: r.end_date ? new Date(`${r.end_date as string}T00:00:00`) : null,
+      allDay: true,
+    }),
+    toTarget: (r) => {
+      const memberIds = ((r.trip_travellers as { member_id: string }[] | null) ?? []).map((t) => t.member_id);
+      return memberIds.length > 0 ? { kind: "members", memberIds } : { kind: "all" };
+    },
+  },
+  {
+    table: "bills",
+    dateColumn: "due_date",
+    toInput: (r) => (r.due_date ? { title: `${r.name as string} due`, startAt: new Date(`${r.due_date as string}T00:00:00`), allDay: true } : null),
+    toTarget: () => ({ kind: "all" }),
+  },
+  {
+    table: "meal_plans",
+    dateColumn: "plan_date",
+    toInput: (r) => ({ title: r.dish as string, startAt: new Date(`${r.plan_date as string}T00:00:00`), allDay: true }),
+    toTarget: () => ({ kind: "all" }),
+  },
+  {
+    table: "goals",
+    dateColumn: "target_date",
+    toInput: (r) => (r.target_date ? { title: r.title as string, startAt: new Date(`${r.target_date as string}T00:00:00`), allDay: true } : null),
+    toTarget: (r) => (r.is_joint ? { kind: "all" } : { kind: "member", memberId: r.owner_member_id as string | null }),
+  },
 ];
 
 /** Pushes every not-yet-linked, upcoming row across the five calendar-eligible
@@ -158,7 +190,7 @@ const BACKFILL_DESCRIPTORS: BackfillDescriptor[] = [
 async function backfillFamily(supabase: Db, familyId: string): Promise<number> {
   let pushed = 0;
   for (const desc of BACKFILL_DESCRIPTORS) {
-    const selectCols = desc.table === "activities" ? "*, activity_members(member_id)" : "*";
+    const selectCols = desc.table === "activities" ? "*, activity_members(member_id)" : desc.table === "trips" ? "*, trip_travellers(member_id)" : "*";
     const fromDate = desc.dateColumn === "start_at" || desc.dateColumn === "when_at" ? todayTimestamp() : todayDate();
     const { data: rows } = await supabase.from(desc.table).select(selectCols).eq("family_id", familyId).gte(desc.dateColumn, fromDate);
 
@@ -246,6 +278,18 @@ async function applyIncomingEvent(supabase: Db, familyId: string, memberId: stri
       break;
     case "doc_entries":
       await supabase.from("doc_entries").update({ title, expires_at: when.start.toISOString().slice(0, 10) }).eq("id", link.source_id);
+      break;
+    case "trips":
+      await supabase.from("trips").update({ title, start_date: when.start.toISOString().slice(0, 10) }).eq("id", link.source_id);
+      break;
+    case "bills":
+      await supabase.from("bills").update({ name: title, due_date: when.start.toISOString().slice(0, 10) }).eq("id", link.source_id);
+      break;
+    case "meal_plans":
+      await supabase.from("meal_plans").update({ dish: title, plan_date: when.start.toISOString().slice(0, 10) }).eq("id", link.source_id);
+      break;
+    case "goals":
+      await supabase.from("goals").update({ title, target_date: when.start.toISOString().slice(0, 10) }).eq("id", link.source_id);
       break;
   }
 }

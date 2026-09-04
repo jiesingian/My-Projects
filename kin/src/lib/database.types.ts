@@ -963,6 +963,7 @@ export type Database = {
           owner_member_id: string | null
           sub_note: string | null
           target_amount: number | null
+          target_date: string | null
           target_unit: string | null
           title: string
         }
@@ -977,6 +978,7 @@ export type Database = {
           owner_member_id?: string | null
           sub_note?: string | null
           target_amount?: number | null
+          target_date?: string | null
           target_unit?: string | null
           title: string
         }
@@ -991,6 +993,7 @@ export type Database = {
           owner_member_id?: string | null
           sub_note?: string | null
           target_amount?: number | null
+          target_date?: string | null
           target_unit?: string | null
           title?: string
         }

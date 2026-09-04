@@ -1,11 +1,177 @@
 import { createClient } from "@/lib/supabase/server";
 import { getSignedUrls } from "@/lib/storage";
 
+export type PlannerCalendarItem = {
+  id: string;
+  table: "activities" | "events" | "trips" | "bills" | "meal_plans" | "goals";
+  date: Date;
+  allDay: boolean;
+  title: string;
+  location: string | null;
+  who: string;
+  memberIds: string[];
+  appliesToAll: boolean;
+  href: string;
+};
+
+function firstNames(names: (string | undefined)[]): string {
+  return names.filter(Boolean).map((n) => n!.split(" ")[0]).join(", ").toUpperCase();
+}
+
+/** Every date-bearing record across the app — activities, events, trips,
+ * bills, meal plans, and goals with a target date — normalized into one list
+ * so the Planner Calendar view reflects everything with a date, not just
+ * activities. `rangeEnd` is exclusive. */
+async function fetchCalendarItems(familyId: string, rangeStart: Date, rangeEnd: Date): Promise<PlannerCalendarItem[]> {
+  const supabase = await createClient();
+  const startISO = rangeStart.toISOString();
+  const endISO = rangeEnd.toISOString();
+  const startDate = toISODate(rangeStart);
+  const endDate = toISODate(rangeEnd);
+
+  const [{ data: activities }, { data: events }, { data: trips }, { data: bills }, { data: meals }, { data: goals }] = await Promise.all([
+    supabase
+      .from("activities")
+      .select("*, activity_members(members(id, full_name))")
+      .eq("family_id", familyId)
+      .gte("start_at", startISO)
+      .lt("start_at", endISO),
+    supabase.from("events").select("*").eq("family_id", familyId).gte("event_date", startDate).lt("event_date", endDate),
+    supabase
+      .from("trips")
+      .select("*, trip_travellers(members(id, full_name))")
+      .eq("family_id", familyId)
+      .gte("start_date", startDate)
+      .lt("start_date", endDate),
+    supabase.from("bills").select("*").eq("family_id", familyId).not("due_date", "is", null).gte("due_date", startDate).lt("due_date", endDate),
+    supabase.from("meal_plans").select("*").eq("family_id", familyId).gte("plan_date", startDate).lt("plan_date", endDate),
+    supabase
+      .from("goals")
+      .select("*, owner:owner_member_id(id, full_name)")
+      .eq("family_id", familyId)
+      .not("target_date", "is", null)
+      .gte("target_date", startDate)
+      .lt("target_date", endDate),
+  ]);
+
+  const items: PlannerCalendarItem[] = [];
+
+  for (const a of activities ?? []) {
+    const memberIds = (a.activity_members ?? [])
+      .map((m) => (m.members as unknown as { id: string } | null)?.id)
+      .filter((v): v is string => !!v);
+    const who = a.applies_to_whole_family
+      ? "WHOLE FAMILY"
+      : firstNames((a.activity_members ?? []).map((m) => (m.members as unknown as { full_name: string } | null)?.full_name)) || "HOUSE";
+    items.push({
+      id: a.id,
+      table: "activities",
+      date: new Date(a.start_at),
+      allDay: false,
+      title: a.title,
+      location: a.location,
+      who,
+      memberIds,
+      appliesToAll: a.applies_to_whole_family,
+      href: `/planner/add?type=activity&id=${a.id}`,
+    });
+  }
+
+  for (const e of events ?? []) {
+    items.push({
+      id: e.id,
+      table: "events",
+      date: new Date(`${e.event_date}T00:00:00`),
+      allDay: true,
+      title: e.title,
+      location: null,
+      who: "WHOLE FAMILY",
+      memberIds: [],
+      appliesToAll: true,
+      href: `/planner/add?type=event&id=${e.id}`,
+    });
+  }
+
+  for (const t of trips ?? []) {
+    const memberIds = (t.trip_travellers ?? [])
+      .map((tr) => (tr.members as unknown as { id: string } | null)?.id)
+      .filter((v): v is string => !!v);
+    const who = firstNames((t.trip_travellers ?? []).map((tr) => (tr.members as unknown as { full_name: string } | null)?.full_name)) || "WHOLE FAMILY";
+    items.push({
+      id: t.id,
+      table: "trips",
+      date: new Date(`${t.start_date}T00:00:00`),
+      allDay: true,
+      title: t.title,
+      location: null,
+      who,
+      memberIds,
+      appliesToAll: memberIds.length === 0,
+      href: `/planner?seg=travel`,
+    });
+  }
+
+  for (const b of bills ?? []) {
+    items.push({
+      id: b.id,
+      table: "bills",
+      date: new Date(`${b.due_date}T00:00:00`),
+      allDay: true,
+      title: `${b.name} due`,
+      location: null,
+      who: "HOUSE",
+      memberIds: [],
+      appliesToAll: true,
+      href: `/household?seg=bills`,
+    });
+  }
+
+  for (const m of meals ?? []) {
+    items.push({
+      id: m.id,
+      table: "meal_plans",
+      date: new Date(`${m.plan_date}T00:00:00`),
+      allDay: true,
+      title: m.dish,
+      location: null,
+      who: "HOUSE",
+      memberIds: [],
+      appliesToAll: true,
+      href: `/household?seg=meals`,
+    });
+  }
+
+  for (const g of goals ?? []) {
+    const who = g.is_joint ? "JOINT" : (g.owner as unknown as { full_name: string } | null)?.full_name?.split(" ")[0]?.toUpperCase() ?? "MINE";
+    items.push({
+      id: g.id,
+      table: "goals",
+      date: new Date(`${g.target_date}T00:00:00`),
+      allDay: true,
+      title: g.title,
+      location: null,
+      who,
+      memberIds: g.owner_member_id ? [g.owner_member_id] : [],
+      appliesToAll: g.is_joint,
+      href: `/wealth?seg=goals`,
+    });
+  }
+
+  return items.sort((a, b) => a.date.getTime() - b.date.getTime());
+}
+
+function matchesMember(item: PlannerCalendarItem, memberId?: string): boolean {
+  return !memberId || item.appliesToAll || item.memberIds.includes(memberId);
+}
+
+function toISODate(d: Date): string {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
+
 /** The week containing `anchor` (defaults to today), with every day's own
- * activities attached — not just today's — so Prev/Next week navigation has
+ * items attached — not just today's — so Prev/Next week navigation has
  * something to show for whichever week is selected. */
 export async function getWeekAgenda(familyId: string, memberId?: string, anchor: Date = new Date()) {
-  const supabase = await createClient();
   const today = new Date();
   const startOfWeek = new Date(anchor);
   startOfWeek.setDate(anchor.getDate() - anchor.getDay());
@@ -15,27 +181,9 @@ export async function getWeekAgenda(familyId: string, memberId?: string, anchor:
     return d;
   });
 
-  const { data: activities } = await supabase
-    .from("activities")
-    .select("*, activity_members(members(id, full_name))")
-    .eq("family_id", familyId)
-    .gte("start_at", days[0].toISOString())
-    .lt("start_at", new Date(days[6].getTime() + 86400000).toISOString())
-    .order("start_at", { ascending: true });
-
-  const allRows = (activities ?? []).map((a) => ({
-    ...a,
-    who: a.applies_to_whole_family
-      ? "WHOLE FAMILY"
-      : (a.activity_members ?? [])
-          .map((m) => (m.members as unknown as { full_name: string } | null)?.full_name?.split(" ")[0])
-          .filter(Boolean)
-          .join(", ")
-          .toUpperCase() || "HOUSE",
-    memberIds: (a.activity_members ?? []).map((m) => (m.members as unknown as { id: string } | null)?.id).filter((v): v is string => !!v),
-  }));
-
-  const rows = memberId ? allRows.filter((a) => a.applies_to_whole_family || a.memberIds.includes(memberId)) : allRows;
+  const rangeEnd = new Date(days[6].getTime() + 86400000);
+  const all = await fetchCalendarItems(familyId, days[0], rangeEnd);
+  const rows = all.filter((it) => matchesMember(it, memberId));
 
   return {
     weekStart: days[0],
@@ -43,56 +191,42 @@ export async function getWeekAgenda(familyId: string, memberId?: string, anchor:
     days: days.map((d) => ({
       date: d,
       isToday: d.toDateString() === today.toDateString(),
-      activities: rows.filter((a) => new Date(a.start_at).toDateString() === d.toDateString()),
+      activities: rows.filter((it) => it.date.toDateString() === d.toDateString()),
     })),
   };
 }
 
-/** Per-day activity counts for the whole month containing `anchor`, for the
+/** Per-day item counts for the whole month containing `anchor`, for the
  * month-grid view. */
 export async function getMonthOverview(familyId: string, anchor: Date, memberId?: string) {
-  const supabase = await createClient();
   const year = anchor.getFullYear();
   const month = anchor.getMonth();
   const monthStart = new Date(year, month, 1);
   const monthEnd = new Date(year, month + 1, 1);
   const daysInMonth = new Date(year, month + 1, 0).getDate();
 
-  const { data: activities } = await supabase
-    .from("activities")
-    .select("start_at, applies_to_whole_family, activity_members(member_id)")
-    .eq("family_id", familyId)
-    .gte("start_at", monthStart.toISOString())
-    .lt("start_at", monthEnd.toISOString());
-
+  const all = await fetchCalendarItems(familyId, monthStart, monthEnd);
   const countsByDay = new Array(daysInMonth + 1).fill(0);
-  for (const a of activities ?? []) {
-    if (memberId && !a.applies_to_whole_family && !(a.activity_members ?? []).some((m) => m.member_id === memberId)) continue;
-    countsByDay[new Date(a.start_at).getDate()]++;
+  for (const it of all) {
+    if (!matchesMember(it, memberId)) continue;
+    countsByDay[it.date.getDate()]++;
   }
 
   return { monthStart, daysInMonth, countsByDay };
 }
 
-/** Per-month activity counts for the whole year containing `anchor`, for the
+/** Per-month item counts for the whole year containing `anchor`, for the
  * year overview. */
 export async function getYearOverview(familyId: string, anchor: Date, memberId?: string) {
-  const supabase = await createClient();
   const year = anchor.getFullYear();
   const yearStart = new Date(year, 0, 1);
   const yearEnd = new Date(year + 1, 0, 1);
 
-  const { data: activities } = await supabase
-    .from("activities")
-    .select("start_at, applies_to_whole_family, activity_members(member_id)")
-    .eq("family_id", familyId)
-    .gte("start_at", yearStart.toISOString())
-    .lt("start_at", yearEnd.toISOString());
-
+  const all = await fetchCalendarItems(familyId, yearStart, yearEnd);
   const countsByMonth = new Array(12).fill(0);
-  for (const a of activities ?? []) {
-    if (memberId && !a.applies_to_whole_family && !(a.activity_members ?? []).some((m) => m.member_id === memberId)) continue;
-    countsByMonth[new Date(a.start_at).getMonth()]++;
+  for (const it of all) {
+    if (!matchesMember(it, memberId)) continue;
+    countsByMonth[it.date.getMonth()]++;
   }
 
   return { year, countsByMonth };
@@ -101,16 +235,6 @@ export async function getYearOverview(familyId: string, anchor: Date, memberId?:
 export async function getEvents(familyId: string) {
   const supabase = await createClient();
   const { data } = await supabase.from("events").select("*").eq("family_id", familyId).order("event_date", { ascending: true });
-  return data ?? [];
-}
-
-export async function getGoals(familyId: string) {
-  const supabase = await createClient();
-  const { data } = await supabase
-    .from("goals")
-    .select("*, owner:owner_member_id(full_name)")
-    .eq("family_id", familyId)
-    .order("created_at", { ascending: false });
   return data ?? [];
 }
 
