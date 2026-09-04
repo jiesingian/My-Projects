@@ -64,21 +64,20 @@ function ShoppingBudgetCard({
   currency: string;
 }) {
   const over = run?.budget != null && remaining > run.budget;
-  // Only a day booked here can be changed here; a routine's turn belongs to
-  // the routine.
-  const editable: React.ComponentProps<typeof ShoppingDayControl>["run"] =
-    run?.source === "trip"
-      ? {
-          id: run.id,
-          title: run.title,
-          iso: toISODate(run.date),
-          time: `${String(run.date.getHours()).padStart(2, "0")}:${String(run.date.getMinutes()).padStart(2, "0")}`,
-          budget: run.budget,
-          source: "trip",
-        }
-      : run
-        ? { id: run.id, title: run.title, iso: toISODate(run.date), time: "09:00", budget: run.budget, source: "routine" }
-        : null;
+  // Whichever comes first is what the list counts down to, and either can be
+  // moved from here: a booked day is edited, a routine's turn is moved for
+  // that week alone.
+  const editable: React.ComponentProps<typeof ShoppingDayControl>["run"] = run
+    ? {
+        id: run.id,
+        title: run.title,
+        iso: toISODate(run.date),
+        time: `${String(run.date.getHours()).padStart(2, "0")}:${String(run.date.getMinutes()).padStart(2, "0")}`,
+        budget: run.budget,
+        source: run.source,
+        occurrenceDate: run.occurrenceDate,
+      }
+    : null;
 
   return (
     <Blueprint style={{ padding: 14, marginBottom: 14 }}>
@@ -135,7 +134,7 @@ function ShoppingBudgetCard({
                   and marking it done posts the spend to Wealth.
                 </>
               ) : (
-                <>Give it one above and this card counts the list against it.</>
+                <>Change the day below to give it one, and this card counts the list against it.</>
               )}
             </div>
           )}

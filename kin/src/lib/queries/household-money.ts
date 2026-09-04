@@ -130,8 +130,12 @@ export type ShoppingRun = {
   budget: number | null;
   accountId: string | null;
   /** A day booked on the to-buy list, or the next turn of a recurring
-   * grocery routine — only the first can be changed from here. */
+   * grocery routine. Both can be changed from the list; a routine's turn is
+   * moved for that week only, which is why it carries its own date. */
   source: "trip" | "routine";
+  /** For a routine: which occurrence this is, so moving it knows what to
+   * take off the schedule. */
+  occurrenceDate?: string;
 };
 
 /** The next shopping trip the household is heading for: a day booked on the
@@ -163,6 +167,21 @@ export async function getNextShoppingRun(familyId: string): Promise<ShoppingRun 
     .order("start_at")
     .limit(1);
 
+  // Which turns of those routines are already settled — the shopping run
+  // that has been done, called off, or moved to another day.
+  const { data: logs } = await supabase
+    .from("routine_log")
+    .select("routine_id, occurrence_date")
+    .eq("family_id", familyId)
+    .in("routine_id", (data ?? []).map((r) => r.id).concat("00000000-0000-0000-0000-000000000000"));
+
+  const logged = new Map<string, Set<string>>();
+  for (const l of logs ?? []) {
+    const set = logged.get(l.routine_id) ?? new Set<string>();
+    set.add(l.occurrence_date);
+    logged.set(l.routine_id, set);
+  }
+
   const trip = (trips ?? [])[0];
   if (trip) {
     soonest = {
@@ -185,7 +204,9 @@ export async function getNextShoppingRun(familyId: string): Promise<ShoppingRun 
       start_date: r.start_date,
       end_date: r.end_date,
     };
-    const next = expandRoutine(rule, today, horizon)[0];
+    // A turn already done, skipped, or moved elsewhere is not the next one.
+    const settled = logged.get(r.id) ?? new Set<string>();
+    const next = expandRoutine(rule, today, horizon).find((o) => !settled.has(toISODate(o.date)));
     if (!next) continue;
     const at = r.time_of_day ? new Date(`${toISODate(next.date)}T${r.time_of_day}`) : next.date;
     if (!soonest || at < soonest.date) {
@@ -196,6 +217,7 @@ export async function getNextShoppingRun(familyId: string): Promise<ShoppingRun 
         budget: r.expected_cost == null ? null : Number(r.expected_cost),
         accountId: r.cost_account_id,
         source: "routine",
+        occurrenceDate: toISODate(next.date),
       };
     }
   }

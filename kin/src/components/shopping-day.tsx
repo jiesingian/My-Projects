@@ -3,7 +3,8 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Icon } from "@/components/icons";
-import { SHOPPING_KINDS, setShoppingDayAction, clearShoppingDayAction } from "@/lib/actions/household";
+import Link from "next/link";
+import { SHOPPING_KINDS, setShoppingDayAction, clearShoppingDayAction, moveShoppingRunAction } from "@/lib/actions/household";
 
 /** Book the day this list gets bought on. It goes on the family calendar as
  * an activity, so it syncs to Google Calendar with everything else — the
@@ -11,20 +12,29 @@ import { SHOPPING_KINDS, setShoppingDayAction, clearShoppingDayAction } from "@/
 export function ShoppingDayControl({
   run,
 }: {
-  run: { id: string; title: string; iso: string; time: string; budget: number | null; source: "trip" | "routine" } | null;
+  run: {
+    id: string;
+    title: string;
+    iso: string;
+    time: string;
+    budget: number | null;
+    source: "trip" | "routine";
+    occurrenceDate?: string;
+  } | null;
 }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const [open, setOpen] = useState(false);
 
-  // A routine's turn is owned by the routine; changing it here would only
-  // move one week of it. Booking a day is what this control does.
-  const editable = run?.source === "trip" ? run : null;
-  const [date, setDate] = useState(editable?.iso ?? "");
-  const [time, setTime] = useState(editable?.time ?? "09:00");
-  const [title, setTitle] = useState(editable?.title ?? SHOPPING_KINDS[0]);
-  const [budget, setBudget] = useState(editable?.budget == null ? "" : String(editable.budget));
+  // A booked trip is edited in place; a routine's turn is moved for that
+  // week only, leaving the routine as it is.
+  const booked = run?.source === "trip" ? run : null;
+  const routine = run?.source === "routine" ? run : null;
+  const [date, setDate] = useState(run?.iso ?? "");
+  const [time, setTime] = useState(run?.time ?? "09:00");
+  const [title, setTitle] = useState(run?.title ?? SHOPPING_KINDS[0]);
+  const [budget, setBudget] = useState(run?.budget == null ? "" : String(run.budget));
 
   const run_ = (fn: () => Promise<{ error: string | null }>) => {
     setError(null);
@@ -52,7 +62,7 @@ export function ShoppingDayControl({
         style={{ minHeight: 30, fontSize: 12.5, padding: "0 6px", gap: 4, color: "var(--color-accent)" }}
       >
         <Icon name="calendarDays" size={13} />
-        {editable ? "Change" : run ? "Book a day" : "Set a shopping day"}
+        {run ? "Change the day" : "Set a shopping day"}
       </button>
     );
   }
@@ -112,26 +122,31 @@ export function ShoppingDayControl({
           style={{ flex: 1, minHeight: 42, fontSize: 14 }}
           disabled={pending || !date}
           onClick={() =>
-            run_(() =>
-              setShoppingDayAction({
-                id: editable?.id ?? null,
-                date,
-                time,
-                title,
-                budget: budget.trim() === "" ? null : Number(budget),
-              }),
-            )
+            run_(() => {
+              const amount = budget.trim() === "" ? null : Number(budget);
+              if (routine?.occurrenceDate) {
+                return moveShoppingRunAction({
+                  routineId: routine.id,
+                  occurrenceDate: routine.occurrenceDate,
+                  date,
+                  time,
+                  title,
+                  budget: amount,
+                });
+              }
+              return setShoppingDayAction({ id: booked?.id ?? null, date, time, title, budget: amount });
+            })
           }
         >
-          {pending ? "Saving…" : editable ? "Save" : "Put it on the calendar"}
+          {pending ? "Saving…" : routine ? "Move it to this day" : booked ? "Save" : "Put it on the calendar"}
         </button>
-        {editable && (
+        {booked && (
           <button
             type="button"
             className="btn btn-secondary"
             style={{ minHeight: 42, fontSize: 13, padding: "0 12px" }}
             disabled={pending}
-            onClick={() => run_(() => clearShoppingDayAction(editable.id))}
+            onClick={() => run_(() => clearShoppingDayAction(booked.id))}
           >
             Call it off
           </button>
@@ -143,7 +158,18 @@ export function ShoppingDayControl({
 
       {error && <div style={{ fontSize: 12.5, color: "var(--cal-occasion)", marginTop: 8 }}>{error}</div>}
       <p style={{ fontSize: 12, color: "var(--color-neutral-600)", margin: "10px 0 0", lineHeight: 1.45 }}>
-        It goes on the family calendar, and to Google Calendar with everything else.
+        {routine ? (
+          <>
+            This moves <strong>just this one</strong> — the {routine.title.toLowerCase()} routine keeps its schedule, and the
+            turn it replaces comes off the calendar. To change the routine itself,{" "}
+            <Link href="/planner?seg=routines" style={{ textDecoration: "none" }}>
+              open it in the Planner
+            </Link>
+            .
+          </>
+        ) : (
+          <>It goes on the family calendar, and to Google Calendar with everything else.</>
+        )}
       </p>
     </div>
   );

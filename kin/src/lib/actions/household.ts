@@ -511,6 +511,44 @@ export async function setShoppingDayAction(input: {
   return { error: null };
 }
 
+/** Move one turn of a recurring shopping routine to another day. The routine
+ * itself is left alone — a week where the groceries happened on Sunday
+ * instead of Saturday is not a change of schedule. That turn is taken off,
+ * and the day it moved to is booked as a trip, so the calendar shows it once
+ * and on the right day. */
+export async function moveShoppingRunAction(input: {
+  routineId: string;
+  occurrenceDate: string;
+  date: string;
+  time?: string | null;
+  title: string;
+  budget?: number | null;
+}): Promise<ActionState> {
+  const me = await requireCurrentMember();
+  const supabase = await createClient();
+
+  const { error } = await supabase.from("routine_log").upsert(
+    {
+      routine_id: input.routineId,
+      family_id: me.family_id,
+      occurrence_date: input.occurrenceDate,
+      status: "skipped",
+      member_id: me.id,
+      logged_by: me.id,
+      logged_at: new Date().toISOString(),
+    },
+    { onConflict: "routine_id,occurrence_date" },
+  );
+  if (error) return { error: error.message };
+
+  const booked = await setShoppingDayAction({ date: input.date, time: input.time, title: input.title, budget: input.budget });
+  if (booked.error) return booked;
+
+  revalidatePath("/household");
+  revalidatePath("/planner");
+  return { error: null };
+}
+
 /** Call the trip off. It leaves the calendar with it. */
 export async function clearShoppingDayAction(id: string): Promise<ActionState> {
   const me = await requireCurrentMember();
