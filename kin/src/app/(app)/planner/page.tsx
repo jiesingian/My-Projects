@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getCurrentMember } from "@/lib/session";
-import { getWeekAgenda, getMonthOverview, getYearOverview, getEvents, getTrips, type PlannerCalendarItem } from "@/lib/queries/planner";
+import { getWeekAgenda, getMonthsOverview, getYearOverview, getEvents, getTrips, type PlannerCalendarItem } from "@/lib/queries/planner";
 import { getMembers } from "@/lib/queries/family";
 import { getAccounts } from "@/lib/queries/wealth";
 import { syncGoogleCalendarIfStale } from "@/lib/actions/calendar-sync";
@@ -13,6 +13,7 @@ import { AddToJournalButton } from "@/components/add-to-journal-button";
 import { Icon } from "@/components/icons";
 import { CALENDAR_LEGEND, styleFor } from "@/lib/calendar-style";
 import { LogSpendControl } from "@/components/money-actions";
+import { CalendarJump, DateRail, MonthScroller } from "@/components/calendar-nav";
 
 const SEGMENTS = ["calendar", "events", "travel"] as const;
 type Seg = (typeof SEGMENTS)[number];
@@ -73,6 +74,8 @@ async function CalendarPane({ familyId, who, view, anchor }: { familyId: string;
   const activeMembers = members.filter((m) => m.status !== "pending" && m.status !== "removed");
   const memberId = who === "all" ? undefined : who;
 
+  // The title names the period, and stays on one line: the dates themselves
+  // are on the rail below, so the week view needs the month, not a range.
   const label =
     view === "week"
       ? (() => {
@@ -80,10 +83,9 @@ async function CalendarPane({ familyId, who, view, anchor }: { familyId: string;
           start.setDate(anchor.getDate() - anchor.getDay());
           const end = new Date(start);
           end.setDate(start.getDate() + 6);
-          const sameMonth = start.getMonth() === end.getMonth();
-          const startLabel = start.toLocaleDateString("en-GB", { day: "numeric", month: sameMonth ? undefined : "short" });
-          const endLabel = end.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
-          return `${startLabel} – ${endLabel}`;
+          return start.getMonth() === end.getMonth()
+            ? start.toLocaleDateString("en-GB", { month: "long", year: "numeric" })
+            : `${start.toLocaleDateString("en-GB", { month: "short" })} – ${end.toLocaleDateString("en-GB", { month: "short", year: "numeric" })}`;
         })()
       : view === "month"
         ? anchor.toLocaleDateString("en-GB", { month: "long", year: "numeric" })
@@ -113,7 +115,8 @@ async function CalendarPane({ familyId, who, view, anchor }: { familyId: string;
       </div>
 
       <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 14 }}>
-        <span style={{ flex: 1, fontSize: 20, fontWeight: 600, letterSpacing: "-0.02em" }}>{label}</span>
+        {/* The title is the jump control: month, year or exact day in one tap. */}
+        <CalendarJump label={label} who={who} view={view} anchor={toISODate(anchor)} />
         <Link href={calendarHref(who, view, new Date())} className="btn btn-secondary" style={{ minHeight: 34, fontSize: 13, padding: "0 12px" }}>
           Today
         </Link>
@@ -198,52 +201,81 @@ function DayHeading({ date, isToday }: { date: Date; isToday: boolean }) {
 }
 
 async function WeekView({ familyId, memberId, who, anchor }: { familyId: string; memberId?: string; who: string; anchor: Date }) {
-  const { days } = await getWeekAgenda(familyId, memberId, anchor);
+  const { days, strip } = await getWeekAgenda(familyId, memberId, anchor);
+  const selected = days.find((d) => d.isSelected);
 
   return (
     <>
-      {/* Date bubbles rather than boxed tiles — today reads as a filled circle. */}
-      <div style={{ display: "flex", gap: 2, marginBottom: 6 }}>
-        {days.map((d, i) => (
-          <Link
-            key={i}
-            href={calendarHref(who, "week", d.date)}
-            style={{ flex: 1, textDecoration: "none", color: "inherit", display: "flex", flexDirection: "column", alignItems: "center", gap: 4, padding: "4px 0" }}
-          >
-            <span style={{ fontSize: 11, color: "var(--color-neutral-600)" }}>
-              {d.date.toLocaleDateString("en-GB", { weekday: "short" }).slice(0, 1)}
-            </span>
-            <span
+      {/* A rail of weeks, not a fixed seven days: it scrolls sideways through
+          about two months, opens centred on the selected day, and any date on
+          it can be tapped to select. */}
+      <DateRail>
+        {strip.map((d, i) => {
+          const first = i === 0 || d.date.getDate() === 1;
+          return (
+            <Link
+              key={i}
+              href={calendarHref(who, "week", d.date)}
+              data-selected={d.isSelected}
+              aria-current={d.isSelected ? "date" : undefined}
               style={{
-                width: 34,
-                height: 34,
-                borderRadius: 999,
+                width: "calc((100% - 12px) / 7)",
+                flex: "none",
+                textDecoration: "none",
+                color: "inherit",
                 display: "flex",
+                flexDirection: "column",
                 alignItems: "center",
-                justifyContent: "center",
-                fontSize: 16,
-                fontWeight: d.isToday ? 600 : 400,
-                background: d.isToday ? "var(--color-accent)" : "transparent",
-                color: d.isToday ? "#fff" : "var(--color-text)",
+                gap: 3,
+                padding: "4px 0 5px",
+                borderRadius: 12,
+                background: d.isSelected && !d.isToday ? "color-mix(in srgb, var(--color-text) 7%, transparent)" : "transparent",
               }}
             >
-              {d.date.getDate()}
-            </span>
-            <span style={{ display: "flex", gap: 2, height: 4 }}>
-              {d.activities.slice(0, 3).map((a) => (
-                <span key={`${a.table}-${a.id}`} style={{ width: 4, height: 4, borderRadius: 999, background: styleFor(a.table).color }} />
-              ))}
-            </span>
-          </Link>
-        ))}
-      </div>
+              <span style={{ fontSize: 11, color: "var(--color-neutral-600)", height: 13 }}>
+                {first ? d.date.toLocaleDateString("en-GB", { month: "short" }) : d.date.toLocaleDateString("en-GB", { weekday: "short" }).slice(0, 1)}
+              </span>
+              <span
+                style={{
+                  width: 34,
+                  height: 34,
+                  borderRadius: 999,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  fontSize: 16,
+                  fontWeight: d.isToday || d.isSelected ? 600 : 400,
+                  background: d.isToday ? "var(--color-accent)" : "transparent",
+                  color: d.isToday ? "#fff" : "var(--color-text)",
+                  boxShadow: d.isSelected && !d.isToday ? "inset 0 0 0 1.5px var(--color-accent)" : "none",
+                }}
+              >
+                {d.date.getDate()}
+              </span>
+              <span style={{ display: "flex", gap: 2, height: 4 }}>
+                {d.items.slice(0, 3).map((a) => (
+                  <span key={`${a.table}-${a.id}`} style={{ width: 4, height: 4, borderRadius: 999, background: styleFor(a.table).color }} />
+                ))}
+              </span>
+            </Link>
+          );
+        })}
+      </DateRail>
 
-      {days.every((d) => d.activities.length === 0) && (
-        <p style={{ fontSize: 15, color: "var(--color-neutral-600)", padding: "18px 0" }}>Nothing scheduled this week.</p>
+      {/* The tapped day comes first and in full, then the rest of its week. */}
+      {selected && (
+        <div>
+          <DayHeading date={selected.date} isToday={selected.isToday} />
+          {selected.activities.length === 0 ? (
+            <p style={{ fontSize: 15, color: "var(--color-neutral-600)", padding: "6px 0" }}>Nothing on this day.</p>
+          ) : (
+            selected.activities.map((a) => <AgendaRow key={`${a.table}-${a.id}`} item={a} />)
+          )}
+        </div>
       )}
 
       {days
-        .filter((d) => d.activities.length > 0)
+        .filter((d) => !d.isSelected && d.activities.length > 0)
         .map((d) => (
           <div key={d.date.toISOString()}>
             <DayHeading date={d.date} isToday={d.isToday} />
@@ -257,16 +289,16 @@ async function WeekView({ familyId, memberId, who, anchor }: { familyId: string;
 }
 
 async function MonthView({ familyId, memberId, who, anchor }: { familyId: string; memberId?: string; who: string; anchor: Date }) {
-  const { monthStart, daysInMonth, itemsByDay } = await getMonthOverview(familyId, anchor, memberId);
-  const leadingBlanks = monthStart.getDay();
+  const { months } = await getMonthsOverview(familyId, anchor, memberId);
   const today = new Date();
-  // The anchored day's agenda opens under the grid, so tapping a date reads
-  // it in place instead of navigating away to the week.
-  const selected = anchor.getMonth() === monthStart.getMonth() ? anchor.getDate() : null;
-  const selectedItems = selected ? itemsByDay[selected] ?? [] : [];
+  const anchorMonth = months.find(
+    (m) => m.monthStart.getFullYear() === anchor.getFullYear() && m.monthStart.getMonth() === anchor.getMonth(),
+  );
+  const selectedItems = anchorMonth?.itemsByDay[anchor.getDate()] ?? [];
 
   return (
     <div style={{ marginBottom: 8 }}>
+      {/* One weekday header for the whole run — the columns never move. */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: 2, marginBottom: 4 }}>
         {["S", "M", "T", "W", "T", "F", "S"].map((d, i) => (
           <div key={i} style={{ textAlign: "center", fontSize: 11, color: "var(--color-neutral-600)" }}>
@@ -274,88 +306,112 @@ async function MonthView({ familyId, memberId, who, anchor }: { familyId: string
           </div>
         ))}
       </div>
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: 2 }}>
-        {Array.from({ length: leadingBlanks }, (_, i) => (
-          <div key={`b${i}`} />
-        ))}
-        {Array.from({ length: daysInMonth }, (_, i) => i + 1).map((day) => {
-          const date = new Date(monthStart.getFullYear(), monthStart.getMonth(), day);
-          const isToday = date.toDateString() === today.toDateString();
-          const isSelected = day === selected;
-          const items = itemsByDay[day] ?? [];
+
+      {/* Months run continuously: September scrolls straight into October
+          rather than needing a Next tap, opened at the anchored month. */}
+      <MonthScroller>
+        {months.map((m) => {
+          const isAnchorMonth = m === anchorMonth;
+          const isThisMonth = m.monthStart.getFullYear() === today.getFullYear() && m.monthStart.getMonth() === today.getMonth();
           return (
-            <Link
-              key={day}
-              href={calendarHref(who, "month", date)}
-              style={{
-                minHeight: 62,
-                display: "flex",
-                flexDirection: "column",
-                alignItems: "center",
-                gap: 2,
-                padding: "4px 2px",
-                borderRadius: 10,
-                background: isSelected && !isToday ? "color-mix(in srgb, var(--color-text) 6%, transparent)" : "transparent",
-                textDecoration: "none",
-                color: "inherit",
-              }}
-            >
-              <span
+            <div key={m.monthStart.toISOString()} data-anchor-month={isAnchorMonth} style={{ paddingBottom: 10 }}>
+              <div
                 style={{
-                  width: 26,
-                  height: 26,
-                  borderRadius: 999,
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  fontSize: 14,
-                  fontWeight: isToday ? 600 : 400,
-                  background: isToday ? "var(--color-accent)" : "transparent",
-                  color: isToday ? "#fff" : "var(--color-text)",
+                  font: "600 13px/1 var(--font-heading)",
+                  letterSpacing: ".01em",
+                  color: isThisMonth ? "var(--color-accent)" : "var(--color-neutral-600)",
+                  padding: "10px 2px 6px",
                 }}
               >
-                {day}
-              </span>
-              {/* Chips carry a clipped title, so a day's contents read at a
-                  glance rather than as an anonymous dot. */}
-              <span style={{ width: "100%", display: "flex", flexDirection: "column", gap: 1 }}>
-                {items.slice(0, 2).map((a) => (
-                  <span
-                    key={`${a.table}-${a.id}`}
-                    style={{
-                      fontSize: 8.5,
-                      lineHeight: 1.3,
-                      borderRadius: 3,
-                      padding: "0 2px",
-                      background: styleFor(a.table).color,
-                      color: "#fff",
-                      overflow: "hidden",
-                      textOverflow: "ellipsis",
-                      whiteSpace: "nowrap",
-                    }}
-                  >
-                    {a.title}
-                  </span>
+                {m.monthStart.toLocaleDateString("en-GB", { month: "long", year: "numeric" }).toUpperCase()}
+              </div>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: 2 }}>
+                {Array.from({ length: m.monthStart.getDay() }, (_, i) => (
+                  <div key={`b${i}`} />
                 ))}
-                {items.length > 2 && (
-                  <span style={{ fontSize: 8.5, color: "var(--color-neutral-600)", textAlign: "center" }}>+{items.length - 2}</span>
-                )}
-              </span>
-            </Link>
+                {Array.from({ length: m.daysInMonth }, (_, i) => i + 1).map((day) => {
+                  const date = new Date(m.monthStart.getFullYear(), m.monthStart.getMonth(), day);
+                  const isToday = date.toDateString() === today.toDateString();
+                  const isSelected = date.toDateString() === anchor.toDateString();
+                  const items = m.itemsByDay[day] ?? [];
+                  return (
+                    <Link
+                      key={day}
+                      href={calendarHref(who, "month", date)}
+                      aria-current={isSelected ? "date" : undefined}
+                      style={{
+                        minHeight: 60,
+                        display: "flex",
+                        flexDirection: "column",
+                        alignItems: "center",
+                        gap: 2,
+                        padding: "4px 2px",
+                        borderRadius: 10,
+                        background: isSelected && !isToday ? "color-mix(in srgb, var(--color-text) 7%, transparent)" : "transparent",
+                        textDecoration: "none",
+                        color: "inherit",
+                      }}
+                    >
+                      <span
+                        style={{
+                          width: 26,
+                          height: 26,
+                          borderRadius: 999,
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          fontSize: 14,
+                          fontWeight: isToday || isSelected ? 600 : 400,
+                          background: isToday ? "var(--color-accent)" : "transparent",
+                          color: isToday ? "#fff" : "var(--color-text)",
+                          boxShadow: isSelected && !isToday ? "inset 0 0 0 1.5px var(--color-accent)" : "none",
+                        }}
+                      >
+                        {day}
+                      </span>
+                      {/* Chips carry a clipped title, so a day's contents read at a
+                          glance rather than as an anonymous dot. */}
+                      <span style={{ width: "100%", display: "flex", flexDirection: "column", gap: 1 }}>
+                        {items.slice(0, 2).map((a) => (
+                          <span
+                            key={`${a.table}-${a.id}`}
+                            style={{
+                              fontSize: 8.5,
+                              lineHeight: 1.3,
+                              borderRadius: 3,
+                              padding: "0 2px",
+                              background: styleFor(a.table).color,
+                              color: "#fff",
+                              overflow: "hidden",
+                              textOverflow: "ellipsis",
+                              whiteSpace: "nowrap",
+                            }}
+                          >
+                            {a.title}
+                          </span>
+                        ))}
+                        {items.length > 2 && (
+                          <span style={{ fontSize: 8.5, color: "var(--color-neutral-600)", textAlign: "center" }}>+{items.length - 2}</span>
+                        )}
+                      </span>
+                    </Link>
+                  );
+                })}
+              </div>
+            </div>
           );
         })}
-      </div>
+      </MonthScroller>
 
-      {selected && (
-        <div style={{ marginTop: 10 }}>
-          <DayHeading date={anchor} isToday={anchor.toDateString() === today.toDateString()} />
-          {selectedItems.length === 0 ? (
-            <p style={{ fontSize: 15, color: "var(--color-neutral-600)", padding: "6px 0" }}>Nothing on this day.</p>
-          ) : (
-            selectedItems.map((a) => <AgendaRow key={`${a.table}-${a.id}`} item={a} />)
-          )}
-        </div>
-      )}
+      {/* The selected day's agenda stays put below the scroller. */}
+      <div style={{ marginTop: 6 }}>
+        <DayHeading date={anchor} isToday={anchor.toDateString() === today.toDateString()} />
+        {selectedItems.length === 0 ? (
+          <p style={{ fontSize: 15, color: "var(--color-neutral-600)", padding: "6px 0" }}>Nothing on this day.</p>
+        ) : (
+          selectedItems.map((a) => <AgendaRow key={`${a.table}-${a.id}`} item={a} />)
+        )}
+      </div>
     </div>
   );
 }

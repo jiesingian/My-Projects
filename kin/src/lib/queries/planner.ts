@@ -168,51 +168,77 @@ function toISODate(d: Date): string {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 }
 
-/** The week containing `anchor` (defaults to today), with every day's own
- * items attached — not just today's — so Prev/Next week navigation has
- * something to show for whichever week is selected. */
-export async function getWeekAgenda(familyId: string, memberId?: string, anchor: Date = new Date()) {
+/** The week containing `anchor` (defaults to today), plus a longer strip of
+ * days either side of it. The strip is what the date rail scrolls through, so
+ * the user can swipe weeks forward and back without a page load; the week
+ * itself is the agenda beneath. One query covers both. */
+export async function getWeekAgenda(familyId: string, memberId?: string, anchor: Date = new Date(), stripWeeksEachSide = 4) {
   const today = new Date();
   const startOfWeek = new Date(anchor);
   startOfWeek.setDate(anchor.getDate() - anchor.getDay());
-  const days = Array.from({ length: 7 }, (_, i) => {
-    const d = new Date(startOfWeek);
-    d.setDate(startOfWeek.getDate() + i);
-    return d;
-  });
 
-  const rangeEnd = new Date(days[6].getTime() + 86400000);
-  const all = await fetchCalendarItems(familyId, days[0], rangeEnd);
+  const stripStart = new Date(startOfWeek);
+  stripStart.setDate(startOfWeek.getDate() - 7 * stripWeeksEachSide);
+  const stripLength = 7 * (stripWeeksEachSide * 2 + 1);
+  const stripEnd = new Date(stripStart);
+  stripEnd.setDate(stripStart.getDate() + stripLength);
+
+  const all = await fetchCalendarItems(familyId, stripStart, stripEnd);
   const rows = all.filter((it) => matchesMember(it, memberId));
 
-  return {
-    weekStart: days[0],
-    weekEnd: days[6],
-    days: days.map((d) => ({
-      date: d,
-      isToday: d.toDateString() === today.toDateString(),
-      activities: rows.filter((it) => it.date.toDateString() === d.toDateString()),
-    })),
-  };
-}
-
-/** The whole month containing `anchor`, with each day's own items attached so
- * the grid can show what is actually on rather than a dot. */
-export async function getMonthOverview(familyId: string, anchor: Date, memberId?: string) {
-  const year = anchor.getFullYear();
-  const month = anchor.getMonth();
-  const monthStart = new Date(year, month, 1);
-  const monthEnd = new Date(year, month + 1, 1);
-  const daysInMonth = new Date(year, month + 1, 0).getDate();
-
-  const all = await fetchCalendarItems(familyId, monthStart, monthEnd);
-  const itemsByDay: PlannerCalendarItem[][] = Array.from({ length: daysInMonth + 1 }, () => []);
-  for (const it of all) {
-    if (!matchesMember(it, memberId)) continue;
-    itemsByDay[it.date.getDate()].push(it);
+  const byDay = new Map<string, PlannerCalendarItem[]>();
+  for (const it of rows) {
+    const key = toISODate(it.date);
+    const bucket = byDay.get(key);
+    if (bucket) bucket.push(it);
+    else byDay.set(key, [it]);
   }
 
-  return { monthStart, daysInMonth, itemsByDay, countsByDay: itemsByDay.map((d) => d.length) };
+  const strip = Array.from({ length: stripLength }, (_, i) => {
+    const d = new Date(stripStart);
+    d.setDate(stripStart.getDate() + i);
+    return {
+      date: d,
+      isToday: d.toDateString() === today.toDateString(),
+      isSelected: d.toDateString() === anchor.toDateString(),
+      items: byDay.get(toISODate(d)) ?? [],
+    };
+  });
+
+  const weekOffset = 7 * stripWeeksEachSide;
+  const days = strip.slice(weekOffset, weekOffset + 7).map((d) => ({
+    date: d.date,
+    isToday: d.isToday,
+    isSelected: d.isSelected,
+    activities: d.items,
+  }));
+
+  return { weekStart: days[0].date, weekEnd: days[6].date, days, strip };
+}
+
+/** Consecutive months around `anchor`, each with its own days' items, so the
+ * month grid can scroll continuously from one month into the next instead of
+ * paging one month at a time. One query spans the whole run. */
+export async function getMonthsOverview(familyId: string, anchor: Date, memberId?: string, before = 1, after = 2) {
+  const first = new Date(anchor.getFullYear(), anchor.getMonth() - before, 1);
+  const end = new Date(anchor.getFullYear(), anchor.getMonth() + after + 1, 1);
+
+  const all = await fetchCalendarItems(familyId, first, end);
+  const rows = all.filter((it) => matchesMember(it, memberId));
+
+  const months = Array.from({ length: before + after + 1 }, (_, i) => {
+    const monthStart = new Date(first.getFullYear(), first.getMonth() + i, 1);
+    const daysInMonth = new Date(monthStart.getFullYear(), monthStart.getMonth() + 1, 0).getDate();
+    const itemsByDay: PlannerCalendarItem[][] = Array.from({ length: daysInMonth + 1 }, () => []);
+    for (const it of rows) {
+      if (it.date.getFullYear() === monthStart.getFullYear() && it.date.getMonth() === monthStart.getMonth()) {
+        itemsByDay[it.date.getDate()].push(it);
+      }
+    }
+    return { monthStart, daysInMonth, itemsByDay };
+  });
+
+  return { months };
 }
 
 /** Per-month item counts for the whole year containing `anchor`, for the
