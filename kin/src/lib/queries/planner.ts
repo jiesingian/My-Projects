@@ -369,6 +369,9 @@ export async function getEvents(familyId: string) {
     who: (e.event_members ?? [])
       .map((em) => (em.members as unknown as { full_name: string } | null)?.full_name)
       .filter((v): v is string => !!v),
+    memberIds: (e.event_members ?? [])
+      .map((em) => (em.members as unknown as { id: string } | null)?.id)
+      .filter((v): v is string => !!v),
   }));
 }
 

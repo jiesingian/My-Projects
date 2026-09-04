@@ -57,7 +57,7 @@ export default async function PlannerPage({
 
   const segments = SEGMENTS.map((s) => ({
     label: s[0].toUpperCase() + s.slice(1),
-    href: `/planner?seg=${s}`,
+    href: `/planner?seg=${s}&who=${who}`,
     active: s === seg,
   }));
 
@@ -67,8 +67,8 @@ export default async function PlannerPage({
       <div style={{ padding: "0 22px 22px" }}>
         {seg === "calendar" && <CalendarPane familyId={me.family_id} who={who} view={view} anchor={anchor} hidden={hidden} />}
         {seg === "routines" && <RoutinesPane familyId={me.family_id} who={who} currency={me.families.currency} justSaved={sp.saved === "1"} />}
-        {seg === "events" && <EventsPane familyId={me.family_id} />}
-        {seg === "travel" && <TravelPane familyId={me.family_id} memberId={me.id} currency={me.families.currency} />}
+        {seg === "events" && <EventsPane familyId={me.family_id} who={who} />}
+        {seg === "travel" && <TravelPane familyId={me.family_id} memberId={me.id} currency={me.families.currency} who={who} />}
       </div>
     </div>
   );
@@ -560,9 +560,7 @@ async function YearView({ familyId, memberId, who, anchor, hidden, hide }: { fam
 
 async function RoutinesPane({ familyId, who, currency, justSaved }: { familyId: string; who: string; currency: string; justSaved: boolean }) {
   const memberId = who === "all" ? undefined : who;
-  const [routines, members] = await Promise.all([getRoutines(familyId, memberId), getMembers(familyId)]);
-  const activeMembers = members.filter((m) => m.status !== "pending" && m.status !== "removed");
-  const memberLabels = shortNames(activeMembers.map((m) => m.full_name));
+  const routines = await getRoutines(familyId, memberId);
   const dueToday = routines.filter((r) => !r.paused && r.today);
 
   return (
@@ -586,18 +584,7 @@ async function RoutinesPane({ familyId, who, currency, justSaved }: { familyId: 
         </div>
       )}
 
-      <div style={{ marginBottom: 14 }}>
-        <ChipRow
-          items={[
-            { label: "All", href: "/planner?seg=routines&who=all", active: who === "all" },
-            ...activeMembers.map((m, i) => ({
-              label: memberLabels[i],
-              href: `/planner?seg=routines&who=${m.id}`,
-              active: who === m.id,
-            })),
-          ]}
-        />
-      </div>
+      <MemberChips familyId={familyId} seg="routines" who={who} />
 
       {routines.length === 0 ? (
         <Blueprint style={{ padding: 18, marginBottom: 16 }}>
@@ -751,11 +738,48 @@ async function RoutinesPane({ familyId, who, currency, justSaved }: { familyId: 
   );
 }
 
-async function EventsPane({ familyId }: { familyId: string }) {
-  const events = await getEvents(familyId);
+/** The member filter row, shared by every Planner tab so choosing a person
+ * means the same thing wherever you are and survives switching tab. */
+async function MemberChips({ familyId, seg, who }: { familyId: string; seg: string; who: string }) {
+  const members = await getMembers(familyId);
+  const active = members.filter((m) => m.status !== "pending" && m.status !== "removed");
+  const labels = shortNames(active.map((m) => m.full_name));
+
+  return (
+    <div style={{ marginBottom: 14 }}>
+      <ChipRow
+        items={[
+          { label: "All", href: `/planner?seg=${seg}&who=all`, active: who === "all" },
+          ...active.map((m, i) => ({
+            label: labels[i],
+            href: `/planner?seg=${seg}&who=${m.id}`,
+            active: who === m.id,
+          })),
+        ]}
+      />
+    </div>
+  );
+}
+
+/** Whether a record concerns the person being filtered to. Whole-family
+ * records always do — narrowing to one person should never hide the things
+ * that person is part of. */
+function concerns(memberIds: string[], appliesToAll: boolean, who: string): boolean {
+  return who === "all" || appliesToAll || memberIds.includes(who);
+}
+
+async function EventsPane({ familyId, who }: { familyId: string; who: string }) {
+  const all = await getEvents(familyId);
+  const events = all.filter((e) => concerns(e.memberIds, e.applies_to_whole_family, who));
+
   return (
     <>
-      {events.length === 0 && <p style={{ fontSize: 13.5, color: "var(--color-neutral-600)" }}>No events yet.</p>}
+      <MemberChips familyId={familyId} seg="events" who={who} />
+      {events.length === 0 && (
+        <p style={{ fontSize: 13.5, color: "var(--color-neutral-600)" }}>
+          {all.length === 0 ? "No events yet." : "No events for this person."}
+        </p>
+      )}
       {events.map((e) => (
         <Link
           key={e.id}
@@ -790,14 +814,16 @@ async function EventsPane({ familyId }: { familyId: string }) {
   );
 }
 
-async function TravelPane({ familyId, memberId, currency }: { familyId: string; memberId: string; currency: string }) {
-  const [trips, accounts] = await Promise.all([getTrips(familyId), getAccounts(familyId)]);
+async function TravelPane({ familyId, memberId, currency, who }: { familyId: string; memberId: string; currency: string; who: string }) {
+  const [allTrips, accounts] = await Promise.all([getTrips(familyId), getAccounts(familyId)]);
+  const trips = allTrips.filter((t) => concerns(t.travellerIds, t.applies_to_whole_family, who));
   const pickable = accounts
     .filter((a) => a.is_joint || a.owner_member_id === memberId)
     .map((a) => ({ id: a.id, name: a.name, institution: a.institution, linked_app_url: a.linked_app_url, balance: a.balance, is_joint: a.is_joint }));
   const [upcoming, ...earlier] = trips;
   return (
     <>
+      <MemberChips familyId={familyId} seg="travel" who={who} />
       {upcoming ? (
         <Blueprint style={{ marginBottom: 16, padding: 0 }}>
           <div
@@ -848,7 +874,9 @@ async function TravelPane({ familyId, memberId, currency }: { familyId: string; 
           </div>
         </Blueprint>
       ) : (
-        <p style={{ fontSize: 13.5, color: "var(--color-neutral-600)", marginBottom: 16 }}>No trips planned yet.</p>
+        <p style={{ fontSize: 13.5, color: "var(--color-neutral-600)", marginBottom: 16 }}>
+          {allTrips.length === 0 ? "No trips planned yet." : "No trips for this person."}
+        </p>
       )}
       <Link href="/planner/add?type=trip" className="btn btn-primary btn-block" style={{ minHeight: 46, fontSize: 14, letterSpacing: ".04em", margin: "0 0 20px" }}>
         + ADD TRAVEL
