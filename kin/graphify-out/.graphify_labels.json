@@ -1,16 +1,16 @@
 {
-  "0": "new-doc-form.tsx",
-  "1": "createClient",
-  "2": "calendar-sync.ts",
+  "0": "database.types.ts",
+  "1": "getCurrentMember",
+  "2": "wealth/page.tsx",
   "3": "auth.ts",
   "4": "devDependencies",
-  "5": "requireCurrentMember",
+  "5": "settings/page.tsx",
   "6": "compilerOptions",
   "7": "[id]/page.tsx",
   "8": "google-drive.ts",
   "9": "planner/page.tsx",
   "10": "Kin — Family Operating System",
-  "11": "icons.tsx",
+  "11": "hub-header.tsx",
   "12": "proxy.ts",
   "13": "app/layout.tsx",
   "14": "eslint.config.mjs",
@@ -21,6 +21,6 @@
   "19": "Next.js Logo (public/next.svg)",
   "20": "Vercel Logo (UI Icon Asset)",
   "21": "Window Icon",
-  "22": "actions/family.ts",
-  "23": "database.types.ts"
+  "22": "createClient",
+  "23": "household/page.tsx"
 }

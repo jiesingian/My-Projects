@@ -74,7 +74,7 @@ async function GoalsPane({ familyId, currency }: { familyId: string; currency: s
           </Blueprint>
         );
       })}
-      <Link href="/planner/add?type=goal" className="btn btn-primary btn-block" style={{ minHeight: 46, fontSize: 14, letterSpacing: ".04em", marginTop: 16 }}>
+      <Link href="/wealth/add" className="btn btn-primary btn-block" style={{ minHeight: 46, fontSize: 14, letterSpacing: ".04em", marginTop: 16 }}>
         + ADD GOAL
       </Link>
     </>

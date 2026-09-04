@@ -11,14 +11,13 @@ import {
   deleteEventAction,
   createTripAction,
 } from "@/lib/actions/planner";
-import { createGoalAction } from "@/lib/actions/wealth";
 import type { ActionState } from "@/lib/actions/auth";
 import { SubmitButton, ErrorText } from "@/components/form";
 import { DetailHeader } from "@/components/hub-header";
 import type { Tables } from "@/lib/database.types";
 
 const initialState: ActionState = { error: null };
-const TYPES = ["activity", "event", "goal", "trip"] as const;
+const TYPES = ["activity", "event", "trip"] as const;
 type PlannerType = (typeof TYPES)[number];
 
 type EditActivity = Tables<"activities"> & { who: string[] };
@@ -40,7 +39,7 @@ export function AddPlannerForm({
 
   return (
     <div>
-      <DetailHeader backHref={type === "goal" ? "/wealth" : "/planner"} eyebrow="HUB 03 · NEW" />
+      <DetailHeader backHref="/planner" eyebrow="HUB 03 · NEW" />
       <div style={{ padding: "0 22px 22px" }}>
         <h3 style={{ fontSize: 32, margin: "0 0 14px" }}>{isEditing ? "Edit" : "Add to"} Planner</h3>
         {!isEditing && (
@@ -54,7 +53,6 @@ export function AddPlannerForm({
         )}
         {type === "activity" && <ActivityForm members={members} editActivity={editActivity ?? undefined} />}
         {type === "event" && <EventForm editEvent={editEvent ?? undefined} />}
-        {!isEditing && type === "goal" && <GoalForm />}
         {!isEditing && type === "trip" && <TripForm members={members} />}
       </div>
     </div>
@@ -178,29 +176,6 @@ function EventForm({ editEvent }: { editEvent?: EditEvent }) {
           {deleting ? "DELETING…" : "DELETE EVENT"}
         </button>
       )}
-    </form>
-  );
-}
-
-function GoalForm() {
-  const [state, formAction] = useActionState(createGoalAction, initialState);
-  const [isJoint, setIsJoint] = useState(true);
-  return (
-    <form action={formAction}>
-      <input type="hidden" name="is_joint" value={isJoint ? "on" : ""} />
-      <ErrorText message={state.error} />
-      <Field label="TITLE"><input className="input" name="title" placeholder="Emergency fund · six months" required style={{ minHeight: 44 }} /></Field>
-      <Field label="NOTE"><input className="input" name="sub_note" style={{ minHeight: 44 }} /></Field>
-      <div style={{ display: "flex", gap: 7, marginBottom: 16 }}>
-        <button type="button" className="chip" data-active={isJoint} onClick={() => setIsJoint(true)}>Joint</button>
-        <button type="button" className="chip" data-active={!isJoint} onClick={() => setIsJoint(false)}>Mine</button>
-      </div>
-      <div style={{ display: "flex", gap: 12, marginBottom: 14 }}>
-        <Field label="TARGET AMOUNT (₱)" style={{ flex: 1 }}><input className="input" type="number" name="target_amount" style={{ minHeight: 44 }} /></Field>
-        <Field label="OR UNIT (e.g. km)" style={{ flex: 1 }}><input className="input" name="target_unit" style={{ minHeight: 44 }} /></Field>
-      </div>
-      <Field label="TARGET DATE (OPTIONAL)"><input className="input" type="date" name="target_date" style={{ minHeight: 44 }} /></Field>
-      <SubmitButton style={{ minHeight: 46, fontSize: 14, letterSpacing: ".04em" }}>SAVE GOAL</SubmitButton>
     </form>
   );
 }
