@@ -1,6 +1,7 @@
 "use client";
 
 import { useActionState } from "react";
+import { useSearchParams } from "next/navigation";
 import { addMealPlanAction } from "@/lib/actions/household";
 import type { ActionState } from "@/lib/actions/auth";
 import { SubmitButton, ErrorText } from "@/components/form";
@@ -10,6 +11,8 @@ const initialState: ActionState = { error: null };
 
 export default function NewMealPage() {
   const [state, formAction] = useActionState(addMealPlanAction, initialState);
+  // The day the calendar was on when Add was tapped, if it sent one.
+  const defaultDate = useSearchParams().get("date") ?? undefined;
 
   return (
     <div>
@@ -20,7 +23,7 @@ export default function NewMealPage() {
           <ErrorText message={state.error} />
           <div className="field" style={{ marginBottom: 14 }}>
             <label>DATE</label>
-            <input className="input" type="date" name="date" required style={{ minHeight: 44 }} />
+            <input className="input" type="date" name="date" required defaultValue={defaultDate} style={{ minHeight: 44 }} />
           </div>
           <div className="field" style={{ marginBottom: 14 }}>
             <label>DISH</label>

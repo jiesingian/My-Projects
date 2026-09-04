@@ -26,11 +26,14 @@ type EditEvent = Tables<"events">;
 export function AddPlannerForm({
   members,
   defaultType,
+  defaultDate,
   editActivity,
   editEvent,
 }: {
   members: Tables<"members">[];
   defaultType: string;
+  /** The day the calendar was sitting on when Add was tapped. */
+  defaultDate?: string;
   editActivity?: EditActivity | null;
   editEvent?: EditEvent | null;
 }) {
@@ -51,15 +54,15 @@ export function AddPlannerForm({
             ))}
           </div>
         )}
-        {type === "activity" && <ActivityForm members={members} editActivity={editActivity ?? undefined} />}
-        {type === "event" && <EventForm editEvent={editEvent ?? undefined} />}
-        {!isEditing && type === "trip" && <TripForm members={members} />}
+        {type === "activity" && <ActivityForm members={members} defaultDate={defaultDate} editActivity={editActivity ?? undefined} />}
+        {type === "event" && <EventForm defaultDate={defaultDate} editEvent={editEvent ?? undefined} />}
+        {!isEditing && type === "trip" && <TripForm members={members} defaultDate={defaultDate} />}
       </div>
     </div>
   );
 }
 
-function ActivityForm({ members, editActivity }: { members: Tables<"members">[]; editActivity?: EditActivity }) {
+function ActivityForm({ members, defaultDate, editActivity }: { members: Tables<"members">[]; defaultDate?: string; editActivity?: EditActivity }) {
   const action = editActivity ? updateActivityAction.bind(null, editActivity.id) : createActivityAction;
   const [state, formAction] = useActionState(action, initialState);
   const [wholeFamily, setWholeFamily] = useState(editActivity?.applies_to_whole_family ?? true);
@@ -80,7 +83,7 @@ function ActivityForm({ members, editActivity }: { members: Tables<"members">[];
       <ErrorText message={state.error} />
       <Field label="TITLE"><input className="input" name="title" placeholder="Nursery orientation" required defaultValue={editActivity?.title} style={{ minHeight: 44 }} /></Field>
       <div style={{ display: "flex", gap: 12, marginBottom: 14 }}>
-        <Field label="DATE" style={{ flex: 1.2 }}><input className="input" type="date" name="date" required defaultValue={startDate} style={{ minHeight: 44 }} /></Field>
+        <Field label="DATE" style={{ flex: 1.2 }}><input className="input" type="date" name="date" required defaultValue={startDate ?? defaultDate} style={{ minHeight: 44 }} /></Field>
         <Field label="FROM" style={{ flex: 1 }}><input className="input" type="time" name="from" defaultValue={startTime ?? "08:30"} style={{ minHeight: 44 }} /></Field>
         <Field label="TO" style={{ flex: 1 }}><input className="input" type="time" name="to" defaultValue={endTime} style={{ minHeight: 44 }} /></Field>
       </div>
@@ -138,7 +141,7 @@ function ActivityForm({ members, editActivity }: { members: Tables<"members">[];
   );
 }
 
-function EventForm({ editEvent }: { editEvent?: EditEvent }) {
+function EventForm({ defaultDate, editEvent }: { defaultDate?: string; editEvent?: EditEvent }) {
   const action = editEvent ? updateEventAction.bind(null, editEvent.id) : createEventAction;
   const [state, formAction] = useActionState(action, initialState);
   const router = useRouter();
@@ -148,7 +151,7 @@ function EventForm({ editEvent }: { editEvent?: EditEvent }) {
     <form action={formAction}>
       <ErrorText message={state.error} />
       <Field label="TITLE"><input className="input" name="title" required defaultValue={editEvent?.title} style={{ minHeight: 44 }} /></Field>
-      <Field label="DATE"><input className="input" type="date" name="date" required defaultValue={editEvent?.event_date} style={{ minHeight: 44 }} /></Field>
+      <Field label="DATE"><input className="input" type="date" name="date" required defaultValue={editEvent?.event_date ?? defaultDate} style={{ minHeight: 44 }} /></Field>
       <Field label="KIND">
         <select className="input" name="kind" defaultValue={editEvent?.kind ?? "birthday"} style={{ minHeight: 44 }}>
           <option value="birthday">Birthday</option>
@@ -180,7 +183,7 @@ function EventForm({ editEvent }: { editEvent?: EditEvent }) {
   );
 }
 
-function TripForm({ members }: { members: Tables<"members">[] }) {
+function TripForm({ members, defaultDate }: { members: Tables<"members">[]; defaultDate?: string }) {
   const [state, formAction] = useActionState(createTripAction, initialState);
   const [travellers, setTravellers] = useState<string[]>([]);
   return (
@@ -191,7 +194,7 @@ function TripForm({ members }: { members: Tables<"members">[] }) {
       <ErrorText message={state.error} />
       <Field label="TITLE"><input className="input" name="title" placeholder="Baguio, four days" required style={{ minHeight: 44 }} /></Field>
       <div style={{ display: "flex", gap: 12, marginBottom: 14 }}>
-        <Field label="START" style={{ flex: 1 }}><input className="input" type="date" name="start_date" required style={{ minHeight: 44 }} /></Field>
+        <Field label="START" style={{ flex: 1 }}><input className="input" type="date" name="start_date" required defaultValue={defaultDate} style={{ minHeight: 44 }} /></Field>
         <Field label="END" style={{ flex: 1 }}><input className="input" type="date" name="end_date" style={{ minHeight: 44 }} /></Field>
       </div>
       <Field label="BUDGET (₱)"><input className="input" type="number" name="budget_amount" style={{ minHeight: 44 }} /></Field>

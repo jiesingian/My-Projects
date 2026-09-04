@@ -7,11 +7,11 @@ import { AddPlannerForm } from "./add-planner-form";
 export default async function AddPlannerPage({
   searchParams,
 }: {
-  searchParams: Promise<{ type?: string; id?: string }>;
+  searchParams: Promise<{ type?: string; id?: string; date?: string }>;
 }) {
   const me = await getCurrentMember();
   if (!me) redirect("/onboarding/profile");
-  const { type, id } = await searchParams;
+  const { type, id, date } = await searchParams;
   const members = await getMembers(me.family_id);
 
   let editActivity = null;
@@ -26,5 +26,5 @@ export default async function AddPlannerPage({
     editEvent = data;
   }
 
-  return <AddPlannerForm members={members} defaultType={type ?? "activity"} editActivity={editActivity} editEvent={editEvent} />;
+  return <AddPlannerForm members={members} defaultType={type ?? "activity"} defaultDate={date} editActivity={editActivity} editEvent={editEvent} />;
 }

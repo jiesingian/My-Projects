@@ -314,3 +314,36 @@ export async function getTrips(familyId: string) {
       .filter((v): v is string => !!v),
   }));
 }
+
+/** Whether anyone in the household has connected Google Calendar, and how
+ * stale the least-recently-synced of them is. The Planner syncs silently on
+ * load; this is what lets it say so. */
+export async function getCalendarSyncStatus(familyId: string) {
+  const supabase = await createClient();
+  const { data } = await supabase.from("calendar_links").select("last_synced_at").eq("family_id", familyId).eq("connected", true);
+  if (!data || data.length === 0) return { connected: 0, lastSyncedAt: null as Date | null };
+
+  let stalest: Date | null = null;
+  for (const link of data) {
+    if (!link.last_synced_at) return { connected: data.length, lastSyncedAt: null };
+    const at = new Date(link.last_synced_at);
+    if (!stalest || at < stalest) stalest = at;
+  }
+  return { connected: data.length, lastSyncedAt: stalest };
+}
+
+/** Does this family have any dated record at all, anywhere in time? Only
+ * asked when the visible range is empty, to tell "nothing this week" apart
+ * from "nothing ever" — which want completely different things said to them. */
+export async function hasAnyCalendarRecords(familyId: string): Promise<boolean> {
+  const supabase = await createClient();
+  const counts = await Promise.all([
+    supabase.from("activities").select("id", { count: "exact", head: true }).eq("family_id", familyId),
+    supabase.from("events").select("id", { count: "exact", head: true }).eq("family_id", familyId),
+    supabase.from("trips").select("id", { count: "exact", head: true }).eq("family_id", familyId),
+    supabase.from("bills").select("id", { count: "exact", head: true }).eq("family_id", familyId).not("due_date", "is", null),
+    supabase.from("meal_plans").select("id", { count: "exact", head: true }).eq("family_id", familyId),
+    supabase.from("goals").select("id", { count: "exact", head: true }).eq("family_id", familyId).not("target_date", "is", null),
+  ]);
+  return counts.some((c) => (c.count ?? 0) > 0);
+}

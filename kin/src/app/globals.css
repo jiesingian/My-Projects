@@ -18,8 +18,12 @@
   --color-neutral-300: #e0e0e6;
   --color-neutral-400: #c7c7cc;
   --color-neutral-500: #aeaeb2;
-  --color-neutral-600: #8e8e93;
-  --color-neutral-700: #6c6c70;
+  /* 600 is the app's secondary-text step — subtitles, captions, meta lines.
+     iOS's own secondaryLabel (#8e8e93) is 2.92:1 on this page, under AA, so
+     the light ramp is pulled a step darker from 600 down. Dark mode already
+     passes (7.31:1) and is left alone. */
+  --color-neutral-600: #6c6c70;
+  --color-neutral-700: #545458;
   --color-neutral-800: #3a3a3c;
   --color-neutral-900: #1c1c1e;
 
