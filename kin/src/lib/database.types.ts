@@ -87,11 +87,13 @@ export type Database = {
       activities: {
         Row: {
           applies_to_whole_family: boolean
+          budget: number | null
           created_at: string
           created_by: string | null
           end_at: string | null
           family_id: string
           id: string
+          kind: string
           location: string | null
           notes: string | null
           repeat: string
@@ -101,11 +103,13 @@ export type Database = {
         }
         Insert: {
           applies_to_whole_family?: boolean
+          budget?: number | null
           created_at?: string
           created_by?: string | null
           end_at?: string | null
           family_id: string
           id?: string
+          kind?: string
           location?: string | null
           notes?: string | null
           repeat?: string
@@ -115,11 +119,13 @@ export type Database = {
         }
         Update: {
           applies_to_whole_family?: boolean
+          budget?: number | null
           created_at?: string
           created_by?: string | null
           end_at?: string | null
           family_id?: string
           id?: string
+          kind?: string
           location?: string | null
           notes?: string | null
           repeat?: string

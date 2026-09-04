@@ -3,7 +3,7 @@ import { redirect } from "next/navigation";
 import { getCurrentMember } from "@/lib/session";
 import { getBuyItems, getMealsForDay, type PlannedMeal } from "@/lib/queries/household";
 import { getAccounts } from "@/lib/queries/wealth";
-import { getPriceBook, getPricedBuyList, getNextShoppingRun, getPantry } from "@/lib/queries/household-money";
+import { getPriceBook, getPricedBuyList, getNextShoppingRun, getPantry, type ShoppingRun } from "@/lib/queries/household-money";
 import { HubHeader } from "@/components/hub-header";
 import { BuyList } from "@/components/buy-list";
 import { Blueprint, Tag } from "@/components/ui";
@@ -14,6 +14,7 @@ import { RecipeBook, AddIngredientsToBuyButton } from "@/components/recipe-book"
 import { getRecipeBook, getRecipeCategories } from "@/lib/queries/recipes";
 import { AddMealControl, RemoveMealButton } from "@/components/meal-controls";
 import { CalendarJump, TodayButton } from "@/components/calendar-nav";
+import { ShoppingDayControl } from "@/components/shopping-day";
 import { MealPhotoControl, IngredientAmountRow, AddIngredientRow } from "@/components/meal-day";
 import { Icon } from "@/components/icons";
 import { formatCurrency } from "@/lib/format";
@@ -57,12 +58,27 @@ function ShoppingBudgetCard({
   unpriced,
   currency,
 }: {
-  run: { id: string; title: string; date: Date; budget: number | null } | null;
+  run: ShoppingRun | null;
   remaining: number;
   unpriced: number;
   currency: string;
 }) {
   const over = run?.budget != null && remaining > run.budget;
+  // Only a day booked here can be changed here; a routine's turn belongs to
+  // the routine.
+  const editable: React.ComponentProps<typeof ShoppingDayControl>["run"] =
+    run?.source === "trip"
+      ? {
+          id: run.id,
+          title: run.title,
+          iso: toISODate(run.date),
+          time: `${String(run.date.getHours()).padStart(2, "0")}:${String(run.date.getMinutes()).padStart(2, "0")}`,
+          budget: run.budget,
+          source: "trip",
+        }
+      : run
+        ? { id: run.id, title: run.title, iso: toISODate(run.date), time: "09:00", budget: run.budget, source: "routine" }
+        : null;
 
   return (
     <Blueprint style={{ padding: 14, marginBottom: 14 }}>
@@ -85,9 +101,6 @@ function ShoppingBudgetCard({
             <span style={{ flex: 1, minWidth: 0 }}>
               {run.title} · {run.date.toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "short" })}
             </span>
-            <Link href="/planner?seg=routines" style={{ fontSize: 12.5, textDecoration: "none", flex: "none" }}>
-              Change
-            </Link>
           </div>
 
           {run.budget != null ? (
@@ -114,20 +127,34 @@ function ShoppingBudgetCard({
           ) : (
             <div style={{ fontSize: 12.5, color: "var(--color-neutral-700)" }}>
               No budget set for this run.{" "}
-              <Link href="/planner?seg=routines" style={{ textDecoration: "none" }}>
-                Give it one
-              </Link>{" "}
-              and marking it done posts the spend to Wealth.
+              {run.source === "routine" ? (
+                <>
+                  <Link href="/planner?seg=routines" style={{ textDecoration: "none" }}>
+                    Give it one
+                  </Link>{" "}
+                  and marking it done posts the spend to Wealth.
+                </>
+              ) : (
+                <>Give it one above and this card counts the list against it.</>
+              )}
             </div>
           )}
+          <ShoppingDayControl run={editable} />
         </div>
       ) : (
-        <div style={{ fontSize: 12.5, color: "var(--color-neutral-700)", paddingTop: 10, borderTop: "1px solid var(--color-divider)" }}>
-          No grocery run scheduled.{" "}
-          <Link href="/planner/routines/new" style={{ textDecoration: "none" }}>
-            Set one up
-          </Link>{" "}
-          to tie this list to a day and a budget.
+        <div style={{ paddingTop: 10, borderTop: "1px solid var(--color-divider)" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 7, fontSize: 13.5 }}>
+            <Icon name="basket" size={15} style={{ color: "var(--color-neutral-600)", flex: "none" }} />
+            <span style={{ flex: 1, minWidth: 0, color: "var(--color-neutral-700)" }}>No shopping day yet</span>
+          </div>
+          <ShoppingDayControl run={null} />
+          <div style={{ fontSize: 12.5, color: "var(--color-neutral-700)", marginTop: 4 }}>
+            Book one and it lands on the family calendar. For a trip that comes round every week,{" "}
+            <Link href="/planner/routines/new" style={{ textDecoration: "none" }}>
+              make it a routine
+            </Link>{" "}
+            instead.
+          </div>
         </div>
       )}
     </Blueprint>

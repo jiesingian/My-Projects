@@ -123,9 +123,21 @@ export async function getPricedBuyList(familyId: string) {
   };
 }
 
-/** The next shopping trip the household has scheduled, from the routines
- * that are about shopping, with whatever budget was set against it. */
-export async function getNextShoppingRun(familyId: string) {
+export type ShoppingRun = {
+  id: string;
+  title: string;
+  date: Date;
+  budget: number | null;
+  accountId: string | null;
+  /** A day booked on the to-buy list, or the next turn of a recurring
+   * grocery routine — only the first can be changed from here. */
+  source: "trip" | "routine";
+};
+
+/** The next shopping trip the household is heading for: a day booked on the
+ * to-buy list, or the next turn of a grocery routine, whichever comes first,
+ * with whatever budget was set against it. */
+export async function getNextShoppingRun(familyId: string): Promise<ShoppingRun | null> {
   const supabase = await createClient();
   const { data } = await supabase
     .from("routines")
@@ -137,7 +149,31 @@ export async function getNextShoppingRun(familyId: string) {
   const today = new Date();
   const horizon = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 60);
 
-  let soonest: { id: string; title: string; date: Date; budget: number | null; accountId: string | null } | null = null;
+  let soonest: ShoppingRun | null = null;
+
+  // A day booked straight onto the to-buy list. Today counts: a trip planned
+  // for this morning is still the one being shopped for.
+  const startOfToday = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+  const { data: trips } = await supabase
+    .from("activities")
+    .select("id, title, start_at, budget")
+    .eq("family_id", familyId)
+    .eq("kind", "shopping")
+    .gte("start_at", startOfToday.toISOString())
+    .order("start_at")
+    .limit(1);
+
+  const trip = (trips ?? [])[0];
+  if (trip) {
+    soonest = {
+      id: trip.id,
+      title: trip.title,
+      date: new Date(trip.start_at),
+      budget: trip.budget == null ? null : Number(trip.budget),
+      accountId: null,
+      source: "trip",
+    };
+  }
 
   for (const r of data ?? []) {
     if (r.kind !== "grocery") continue;
@@ -159,6 +195,7 @@ export async function getNextShoppingRun(familyId: string) {
         date: at,
         budget: r.expected_cost == null ? null : Number(r.expected_cost),
         accountId: r.cost_account_id,
+        source: "routine",
       };
     }
   }

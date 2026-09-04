@@ -456,6 +456,75 @@ export async function saveRecipeAction(input: {
   return { error: null };
 }
 
+/** The kinds of trip a to-buy list gets bought on. Free text is allowed too;
+ * these are just the ones worth one tap. */
+export const SHOPPING_KINDS = ["Grocery run", "Palengke", "Shopping", "Pharmacy", "Hardware"] as const;
+
+/** Put the shopping day on the calendar and tie the to-buy list to it. It is
+ * an ordinary activity, so it shows in the Planner and syncs to Google
+ * Calendar like everything else — the to-buy list is simply counting down to
+ * this one. */
+export async function setShoppingDayAction(input: {
+  id?: string | null;
+  date: string;
+  time?: string | null;
+  title: string;
+  budget?: number | null;
+}): Promise<ActionState> {
+  const me = await requireCurrentMember();
+  const supabase = await createClient();
+
+  const title = input.title.trim().slice(0, 60) || "Grocery run";
+  if (!input.date) return { error: "Pick the day." };
+  const at = new Date(`${input.date}T${input.time?.trim() || "09:00"}`);
+  if (Number.isNaN(at.getTime())) return { error: "That date didn't read as a date." };
+  const budget = input.budget == null || Number.isNaN(input.budget) ? null : Math.max(0, input.budget);
+
+  const row = {
+    family_id: me.family_id,
+    kind: "shopping",
+    title,
+    start_at: at.toISOString(),
+    budget,
+    // Whoever is free goes; the list belongs to the house, not to a person.
+    applies_to_whole_family: true,
+  };
+
+  let id = input.id ?? null;
+  if (id) {
+    const { error } = await supabase.from("activities").update(row).eq("id", id).eq("family_id", me.family_id);
+    if (error) return { error: error.message };
+  } else {
+    const { data, error } = await supabase
+      .from("activities")
+      .insert({ ...row, created_by: me.id })
+      .select("id")
+      .single();
+    if (error || !data) return { error: error?.message ?? "Could not save the shopping day." };
+    id = data.id;
+  }
+
+  await syncRowToCalendars(me.family_id, "activities", id, { title, startAt: at, endAt: null }, { kind: "all" });
+
+  revalidatePath("/household");
+  revalidatePath("/planner");
+  return { error: null };
+}
+
+/** Call the trip off. It leaves the calendar with it. */
+export async function clearShoppingDayAction(id: string): Promise<ActionState> {
+  const me = await requireCurrentMember();
+  const supabase = await createClient();
+
+  await removeRowFromCalendars(me.family_id, "activities", id);
+  const { error } = await supabase.from("activities").delete().eq("id", id).eq("family_id", me.family_id).eq("kind", "shopping");
+  if (error) return { error: error.message };
+
+  revalidatePath("/household");
+  revalidatePath("/planner");
+  return { error: null };
+}
+
 /** Add a category of the household's own to the recipe book — Grilled, Baon,
  * whatever this house files food by that nine shipped ones cannot know. */
 export async function addRecipeCategoryAction(label: string): Promise<ActionState> {
