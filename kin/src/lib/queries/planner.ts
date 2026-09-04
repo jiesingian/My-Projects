@@ -218,22 +218,35 @@ export async function getWeekAgenda(familyId: string, memberId?: string, anchor:
 
 /** Consecutive months around `anchor`, each with its own days' items, so the
  * month grid can scroll continuously from one month into the next instead of
- * paging one month at a time. One query spans the whole run. */
-export async function getMonthsOverview(familyId: string, anchor: Date, memberId?: string, before = 2, after = 5) {
+ * paging one month at a time. One query spans the whole run.
+ *
+ * The window is two years wide, and weighted forward: a calendar is read
+ * ahead far more than behind, and it has to carry on through a December into
+ * the next year and well beyond without stopping. Anything further out is a
+ * couple of taps away in the header's jump sheet. */
+export async function getMonthsOverview(familyId: string, anchor: Date, memberId?: string, before = 6, after = 17) {
   const first = new Date(anchor.getFullYear(), anchor.getMonth() - before, 1);
   const end = new Date(anchor.getFullYear(), anchor.getMonth() + after + 1, 1);
 
   const all = await fetchCalendarItems(familyId, first, end);
   const rows = all.filter((it) => matchesMember(it, memberId));
 
+  // Bucket the rows once by month rather than re-scanning them for each of
+  // the two dozen months in the window.
+  const byMonth = new Map<string, PlannerCalendarItem[]>();
+  for (const it of rows) {
+    const key = `${it.date.getFullYear()}-${it.date.getMonth()}`;
+    const bucket = byMonth.get(key);
+    if (bucket) bucket.push(it);
+    else byMonth.set(key, [it]);
+  }
+
   const months = Array.from({ length: before + after + 1 }, (_, i) => {
     const monthStart = new Date(first.getFullYear(), first.getMonth() + i, 1);
     const daysInMonth = new Date(monthStart.getFullYear(), monthStart.getMonth() + 1, 0).getDate();
     const itemsByDay: PlannerCalendarItem[][] = Array.from({ length: daysInMonth + 1 }, () => []);
-    for (const it of rows) {
-      if (it.date.getFullYear() === monthStart.getFullYear() && it.date.getMonth() === monthStart.getMonth()) {
-        itemsByDay[it.date.getDate()].push(it);
-      }
+    for (const it of byMonth.get(`${monthStart.getFullYear()}-${monthStart.getMonth()}`) ?? []) {
+      itemsByDay[it.date.getDate()].push(it);
     }
     return { monthStart, daysInMonth, itemsByDay };
   });
