@@ -39,7 +39,7 @@ type CalendarView = (typeof CALENDAR_VIEWS)[number];
 export default async function PlannerPage({
   searchParams,
 }: {
-  searchParams: Promise<{ seg?: string; who?: string; view?: string; date?: string; hide?: string }>;
+  searchParams: Promise<{ seg?: string; who?: string; view?: string; date?: string; hide?: string; saved?: string }>;
 }) {
   const me = await getCurrentMember();
   if (!me) redirect("/onboarding/profile");
@@ -66,7 +66,7 @@ export default async function PlannerPage({
       <HubHeader n="03" title="Planner" segments={segments} />
       <div style={{ padding: "0 22px 22px" }}>
         {seg === "calendar" && <CalendarPane familyId={me.family_id} who={who} view={view} anchor={anchor} hidden={hidden} />}
-        {seg === "routines" && <RoutinesPane familyId={me.family_id} who={who} currency={me.families.currency} />}
+        {seg === "routines" && <RoutinesPane familyId={me.family_id} who={who} currency={me.families.currency} justSaved={sp.saved === "1"} />}
         {seg === "events" && <EventsPane familyId={me.family_id} />}
         {seg === "travel" && <TravelPane familyId={me.family_id} memberId={me.id} currency={me.families.currency} />}
       </div>
@@ -558,7 +558,7 @@ async function YearView({ familyId, memberId, who, anchor, hidden, hide }: { fam
   );
 }
 
-async function RoutinesPane({ familyId, who, currency }: { familyId: string; who: string; currency: string }) {
+async function RoutinesPane({ familyId, who, currency, justSaved }: { familyId: string; who: string; currency: string; justSaved: boolean }) {
   const memberId = who === "all" ? undefined : who;
   const [routines, members] = await Promise.all([getRoutines(familyId, memberId), getMembers(familyId)]);
   const activeMembers = members.filter((m) => m.status !== "pending" && m.status !== "removed");
@@ -567,6 +567,25 @@ async function RoutinesPane({ familyId, who, currency }: { familyId: string; who
 
   return (
     <>
+      {justSaved && (
+        <div
+          role="status"
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 8,
+            marginBottom: 12,
+            padding: "10px 13px",
+            borderRadius: 12,
+            background: "color-mix(in srgb, var(--color-switch-on) 16%, transparent)",
+            fontSize: 14,
+          }}
+        >
+          <Icon name="check" size={16} style={{ color: "var(--color-neutral-900)" }} />
+          Routine saved. It is on the calendar, and on the Google Calendar of everyone it is for.
+        </div>
+      )}
+
       <div style={{ marginBottom: 14 }}>
         <ChipRow
           items={[

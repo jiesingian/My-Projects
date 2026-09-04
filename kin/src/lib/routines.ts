@@ -249,3 +249,42 @@ export function toRRule(rule: RoutineRule): string {
   if (rule.end_date) parts.push(`UNTIL=${rule.end_date.replace(/-/g, "")}T235959Z`);
   return `RRULE:${parts.join(";")}`;
 }
+
+/** A block of time somebody is committed to. Used to compare a routine being
+ * saved against what the household already has on. */
+export type Busy = {
+  start: Date;
+  end: Date;
+  /** What it is, for the message when two of these collide. */
+  label: string;
+  /** Who is tied up. Empty with appliesToAll means everyone. */
+  memberIds: string[];
+  appliesToAll: boolean;
+};
+
+/** The default length of something with a start but no stated finish. */
+export const ASSUMED_DURATION_MINUTES = 60;
+
+function sharesAnyone(a: Busy, b: Busy): boolean {
+  if (a.appliesToAll || b.appliesToAll) return true;
+  return a.memberIds.some((id) => b.memberIds.includes(id));
+}
+
+/** Two commitments clash when they overlap in time and at least one person is
+ * expected at both. Touching end-to-start is not an overlap: a routine
+ * finishing at 10:00 and another starting at 10:00 is a day running to plan. */
+export function overlaps(a: Busy, b: Busy): boolean {
+  return a.start < b.end && b.start < a.end && sharesAnyone(a, b);
+}
+
+/** The first clash between something being saved and what is already on, or
+ * null. First rather than all: one concrete example is what a person needs to
+ * decide what to move. */
+export function findConflict(candidate: Busy[], existing: Busy[]): { proposed: Busy; against: Busy } | null {
+  for (const c of candidate) {
+    for (const e of existing) {
+      if (overlaps(c, e)) return { proposed: c, against: e };
+    }
+  }
+  return null;
+}

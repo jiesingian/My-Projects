@@ -1,12 +1,23 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 import { requireCurrentMember } from "@/lib/session";
 import { createClient } from "@/lib/supabase/server";
 import type { ActionState } from "@/lib/actions/auth";
 import { syncRowToCalendars, removeRowFromCalendars } from "@/lib/actions/calendar-sync";
 import { postHubExpenseAction } from "@/lib/actions/wealth";
-import { ROUTINE_KINDS, parseISODate, toRRule, type RoutineRule } from "@/lib/routines";
+import {
+  ROUTINE_KINDS,
+  ASSUMED_DURATION_MINUTES,
+  expandRoutine,
+  findConflict,
+  parseISODate,
+  toRRule,
+  toISODate,
+  type Busy,
+  type RoutineRule,
+} from "@/lib/routines";
 
 function ruleOf(row: {
   freq: string;
@@ -124,11 +135,120 @@ async function saveMembers(routineId: string, memberIds: string[]) {
     .insert(memberIds.map((member_id, position) => ({ routine_id: routineId, member_id, position })));
 }
 
+
+/** How far ahead to look for clashes. Long enough for a monthly routine to
+ * come round twice; short enough that the check stays one pair of queries. */
+const CONFLICT_HORIZON_DAYS = 70;
+
+function timedBusy(
+  occurrences: { date: Date }[],
+  timeOfDay: string | null,
+  durationMinutes: number | null,
+  label: string,
+  memberIds: string[],
+  appliesToAll: boolean,
+): Busy[] {
+  // An all-day routine ties nobody to an hour, so it cannot clash with one.
+  if (!timeOfDay) return [];
+  const minutes = durationMinutes && durationMinutes > 0 ? durationMinutes : ASSUMED_DURATION_MINUTES;
+  return occurrences.map((o) => {
+    const start = new Date(`${toISODate(o.date)}T${timeOfDay}`);
+    return { start, end: new Date(start.getTime() + minutes * 60_000), label, memberIds, appliesToAll };
+  });
+}
+
+function whenIn(d: Date): string {
+  return d.toLocaleString("en-GB", { weekday: "long", day: "numeric", month: "short", hour: "numeric", minute: "2-digit", hour12: true });
+}
+
+/** Whether saving this routine would double-book anyone, and against what.
+ * `excludeId` keeps a routine from clashing with the version of itself that
+ * is already stored when it is being edited. */
+async function describeConflict(
+  familyId: string,
+  input: ReturnType<typeof readForm>,
+  excludeId?: string,
+): Promise<string | null> {
+  if (!input.time_of_day) return null;
+
+  const supabase = await createClient();
+  const from = new Date();
+  const until = new Date(from.getFullYear(), from.getMonth(), from.getDate() + CONFLICT_HORIZON_DAYS);
+
+  const rule: RoutineRule = {
+    freq: input.freq as RoutineRule["freq"],
+    repeat_interval: input.repeat_interval,
+    byweekday: input.byweekday,
+    bymonthday: input.bymonthday,
+    start_date: input.start_date,
+    end_date: input.end_date,
+  };
+  const proposed = timedBusy(
+    expandRoutine(rule, from, until),
+    input.time_of_day,
+    input.duration_minutes,
+    input.title,
+    input.members,
+    input.applies_to_whole_family,
+  );
+  if (proposed.length === 0) return null;
+
+  const [{ data: activities }, { data: others }] = await Promise.all([
+    supabase
+      .from("activities")
+      .select("title, start_at, end_at, applies_to_whole_family, activity_members(member_id)")
+      .eq("family_id", familyId)
+      .gte("start_at", from.toISOString())
+      .lt("start_at", until.toISOString()),
+    supabase
+      .from("routines")
+      .select("id, title, freq, repeat_interval, byweekday, bymonthday, start_date, end_date, time_of_day, duration_minutes, applies_to_whole_family, routine_members(member_id)")
+      .eq("family_id", familyId)
+      .eq("paused", false)
+      .not("time_of_day", "is", null),
+  ]);
+
+  const existing: Busy[] = [];
+
+  for (const a of activities ?? []) {
+    const start = new Date(a.start_at);
+    existing.push({
+      start,
+      end: a.end_at ? new Date(a.end_at) : new Date(start.getTime() + ASSUMED_DURATION_MINUTES * 60_000),
+      label: a.title,
+      memberIds: (a.activity_members ?? []).map((m) => m.member_id),
+      appliesToAll: a.applies_to_whole_family,
+    });
+  }
+
+  for (const o of others ?? []) {
+    if (excludeId && o.id === excludeId) continue;
+    existing.push(
+      ...timedBusy(
+        expandRoutine(ruleOf(o), from, until),
+        o.time_of_day,
+        o.duration_minutes,
+        o.title,
+        (o.routine_members ?? []).map((m) => m.member_id),
+        o.applies_to_whole_family,
+      ),
+    );
+  }
+
+  const clash = findConflict(proposed, existing);
+  if (!clash) return null;
+
+  return `This clashes with “${clash.against.label}” on ${whenIn(clash.against.start)}. Move this routine to another time, or change the one it runs into.`;
+}
+
 export async function createRoutineAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
   const me = await requireCurrentMember();
   const input = readForm(formData);
   const problem = validate(input);
   if (problem) return { error: problem };
+
+  const clash = await describeConflict(me.family_id, input);
+  if (clash) return { error: clash };
 
   const supabase = await createClient();
   const { members, ...row } = input;
@@ -144,7 +264,9 @@ export async function createRoutineAction(_prev: ActionState, formData: FormData
 
   revalidatePath("/planner");
   revalidatePath("/today");
-  return { error: null };
+  // Leaving the form sitting there was what let one routine be saved five
+  // times: nothing said it had worked, so the button got pressed again.
+  redirect("/planner?seg=routines&saved=1");
 }
 
 export async function updateRoutineAction(id: string, _prev: ActionState, formData: FormData): Promise<ActionState> {
@@ -152,6 +274,9 @@ export async function updateRoutineAction(id: string, _prev: ActionState, formDa
   const input = readForm(formData);
   const problem = validate(input);
   if (problem) return { error: problem };
+
+  const clash = await describeConflict(me.family_id, input, id);
+  if (clash) return { error: clash };
 
   const supabase = await createClient();
   const { members, ...row } = input;
@@ -163,7 +288,7 @@ export async function updateRoutineAction(id: string, _prev: ActionState, formDa
 
   revalidatePath("/planner");
   revalidatePath("/today");
-  return { error: null };
+  redirect("/planner?seg=routines&saved=1");
 }
 
 export async function setRoutinePausedAction(id: string, paused: boolean): Promise<ActionState> {
