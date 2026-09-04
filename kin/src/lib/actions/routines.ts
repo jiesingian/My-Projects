@@ -5,6 +5,10 @@ import { redirect } from "next/navigation";
 import { requireCurrentMember } from "@/lib/session";
 import { createClient } from "@/lib/supabase/server";
 import type { ActionState } from "@/lib/actions/auth";
+
+/** A refusal names the field it is about, so the form can point at it
+ * rather than leaving a message stranded at the top of a long page. */
+export type RoutineActionState = { error: string | null; field?: string | null };
 import { syncRowToCalendars, removeRowFromCalendars } from "@/lib/actions/calendar-sync";
 import { postHubExpenseAction } from "@/lib/actions/wealth";
 import {
@@ -113,16 +117,19 @@ function readForm(formData: FormData) {
   };
 }
 
-function validate(input: ReturnType<typeof readForm>): string | null {
-  if (!input.title) return "Give the routine a name.";
-  if (!input.start_date) return "Choose when it starts.";
-  if (input.freq === "weekly" && input.byweekday.length === 0) return "Pick at least one day of the week.";
-  if (input.freq === "monthly" && !input.bymonthday) return "Pick which day of the month.";
-  if (input.end_date && input.end_date < input.start_date) return "The end date is before the start date.";
-  if (!input.applies_to_whole_family && input.members.length === 0) return "Choose who this is for, or mark it for the whole family.";
-  if (input.rotate_assignee && input.members.length < 2) return "Taking turns needs at least two people.";
-  if (input.expected_cost !== null && !(input.expected_cost >= 0)) return "The expected cost has to be a number.";
-  if (input.expected_cost && !input.cost_account_id) return "Choose which account the cost comes from.";
+function validate(input: ReturnType<typeof readForm>): RoutineActionState | null {
+  const no = (field: string, error: string): RoutineActionState => ({ field, error });
+
+  if (!input.title) return no("title", "Give the routine a name.");
+  if (!input.start_date) return no("start_date", "Choose the date it starts.");
+  if (input.freq === "weekly" && input.byweekday.length === 0) return no("byweekday", "Pick at least one day of the week.");
+  if (input.freq === "monthly" && !input.bymonthday) return no("bymonthday", "Pick which day of the month it falls on.");
+  if (input.end_date && input.end_date < input.start_date) return no("end_date", "The end date is before the start date.");
+  if (!input.applies_to_whole_family && input.members.length === 0)
+    return no("members", "Choose who this is for, or mark it for the whole family.");
+  if (input.rotate_assignee && input.members.length < 2) return no("members", "Taking turns needs at least two people.");
+  if (input.expected_cost !== null && !(input.expected_cost >= 0)) return no("expected_cost", "The expected cost has to be a number.");
+  if (input.expected_cost && !input.cost_account_id) return no("cost_account_id", "Choose which account the cost comes from.");
   return null;
 }
 
@@ -241,14 +248,14 @@ async function describeConflict(
   return `This clashes with “${clash.against.label}” on ${whenIn(clash.against.start)}. Move this routine to another time, or change the one it runs into.`;
 }
 
-export async function createRoutineAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
+export async function createRoutineAction(_prev: RoutineActionState, formData: FormData): Promise<RoutineActionState> {
   const me = await requireCurrentMember();
   const input = readForm(formData);
   const problem = validate(input);
-  if (problem) return { error: problem };
+  if (problem) return problem;
 
   const clash = await describeConflict(me.family_id, input);
-  if (clash) return { error: clash };
+  if (clash) return { error: clash, field: "time_of_day" };
 
   const supabase = await createClient();
   const { members, ...row } = input;
@@ -257,7 +264,7 @@ export async function createRoutineAction(_prev: ActionState, formData: FormData
     .insert({ ...row, family_id: me.family_id, created_by: me.id })
     .select("id")
     .single();
-  if (error || !data) return { error: error?.message ?? "Could not save the routine." };
+  if (error || !data) return { error: error?.message ?? "Could not save the routine.", field: null };
 
   await saveMembers(data.id, members);
   await syncRoutine(me.family_id, data.id);
@@ -269,19 +276,19 @@ export async function createRoutineAction(_prev: ActionState, formData: FormData
   redirect("/planner?seg=routines&saved=1");
 }
 
-export async function updateRoutineAction(id: string, _prev: ActionState, formData: FormData): Promise<ActionState> {
+export async function updateRoutineAction(id: string, _prev: RoutineActionState, formData: FormData): Promise<RoutineActionState> {
   const me = await requireCurrentMember();
   const input = readForm(formData);
   const problem = validate(input);
-  if (problem) return { error: problem };
+  if (problem) return problem;
 
   const clash = await describeConflict(me.family_id, input, id);
-  if (clash) return { error: clash };
+  if (clash) return { error: clash, field: "time_of_day" };
 
   const supabase = await createClient();
   const { members, ...row } = input;
   const { error } = await supabase.from("routines").update(row).eq("id", id).eq("family_id", me.family_id);
-  if (error) return { error: error.message };
+  if (error) return { error: error.message, field: null };
 
   await saveMembers(id, members);
   await syncRoutine(me.family_id, id);

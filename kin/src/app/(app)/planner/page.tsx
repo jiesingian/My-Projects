@@ -27,7 +27,7 @@ import { CalendarJump, CalendarPeriod, DateRail, MonthScroller, TodayButton } fr
 import { AddToCalendar } from "@/components/add-to-calendar";
 import { getRoutines } from "@/lib/queries/routines";
 import { describeRule, formatTimeOfDay, ROUTINE_KIND_META, type RoutineKind } from "@/lib/routines";
-import { RoutineTick, RoutinePauseButton, RoutineDeleteButton } from "@/components/routine-controls";
+import { RoutineTick, RoutineOccurrences, RoutinePauseButton, RoutineDeleteButton } from "@/components/routine-controls";
 import { CalendarSyncStatus, RememberFilter } from "@/components/calendar-sync-status";
 import { cookies } from "next/headers";
 
@@ -624,7 +624,22 @@ async function RoutinesPane({ familyId, who, currency, justSaved }: { familyId: 
                 : r.members.map((m) => m.name.split(" ")[0]).join(", ") || "House";
 
             return (
-              <Blueprint key={r.id} style={{ padding: 14, marginBottom: 10, opacity: r.paused ? 0.62 : 1 }}>
+              <Blueprint
+                key={r.id}
+                style={{
+                  padding: 14,
+                  marginBottom: 10,
+                  opacity: r.paused ? 0.62 : 1,
+                  // Behind gets an amber edge, settled-for-today a green one,
+                  // so the state of each routine reads before it is read.
+                  boxShadow:
+                    !r.paused && r.overdue.length > 0
+                      ? "inset 3px 0 0 var(--cal-money)"
+                      : !r.paused && r.today?.status === "done"
+                        ? "inset 3px 0 0 var(--color-switch-on)"
+                        : undefined,
+                }}
+              >
                 <div style={{ display: "flex", gap: 11, alignItems: "flex-start" }}>
                   <span
                     style={{
@@ -649,6 +664,12 @@ async function RoutinesPane({ familyId, who, currency, justSaved }: { familyId: 
                     </div>
                     <div style={{ fontSize: 13, color: "var(--color-neutral-600)" }}>{whoFor}</div>
                   </div>
+                  {!r.paused && r.today?.status === "done" && (
+                    <span style={{ flex: "none", display: "inline-flex", alignItems: "center", gap: 4, fontSize: 12.5, color: "var(--color-neutral-700)" }}>
+                      <Icon name="check" size={14} style={{ color: "var(--color-switch-on)" }} />
+                      Done
+                    </span>
+                  )}
                   {r.streak > 1 && (
                     <span
                       style={{
@@ -667,18 +688,31 @@ async function RoutinesPane({ familyId, who, currency, justSaved }: { familyId: 
                   )}
                 </div>
 
-                {r.today && !r.paused && (
+                {!r.paused && (r.today || r.overdue.length > 0 || r.upcoming.length > 0) && (
                   <div style={{ marginTop: 11, paddingTop: 11, borderTop: "1px solid var(--color-divider)" }}>
-                    {r.today.assignee && (
-                      <div style={{ fontSize: 13, color: "var(--color-neutral-700)", marginBottom: 7 }}>
-                        Today it is {r.today.assignee.name.split(" ")[0]}&rsquo;s turn
-                        {r.timeOfDay ? ` · ${formatTimeOfDay(r.timeOfDay)}` : ""}
-                      </div>
+                    {r.today && (
+                      <>
+                        {r.today.assignee && (
+                          <div style={{ fontSize: 13, color: "var(--color-neutral-700)", marginBottom: 7 }}>
+                            Today it is {r.today.assignee.name.split(" ")[0]}&rsquo;s turn
+                            {r.timeOfDay ? ` · ${formatTimeOfDay(r.timeOfDay)}` : ""}
+                          </div>
+                        )}
+                        <RoutineTick
+                          routineId={r.id}
+                          date={r.today.date}
+                          status={r.today.status}
+                          cost={r.expectedCost}
+                          currency={currency}
+                        />
+                      </>
                     )}
-                    <RoutineTick
+                    {/* Behind on, and a way to answer for any other day —
+                        ahead of it, or afterwards against the day it happened. */}
+                    <RoutineOccurrences
                       routineId={r.id}
-                      date={r.today.date}
-                      status={r.today.status}
+                      overdue={r.overdue}
+                      upcoming={r.upcoming}
                       cost={r.expectedCost}
                       currency={currency}
                     />

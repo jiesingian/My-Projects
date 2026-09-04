@@ -157,3 +157,164 @@ export function RoutineDeleteButton({ id, title }: { id: string; title: string }
     </span>
   );
 }
+
+function readableDate(iso: string): string {
+  const [y, m, d] = iso.split("-").map(Number);
+  return new Date(y, m - 1, d).toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short" });
+}
+
+function daysAgo(iso: string): number {
+  const [y, m, d] = iso.split("-").map(Number);
+  const then = new Date(y, m - 1, d);
+  const now = new Date();
+  return Math.round((new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime() - then.getTime()) / 86_400_000);
+}
+
+/** What a routine is behind on, and a way to answer for any other day —
+ * ahead of time, or after the fact against the day it actually happened
+ * rather than the day it was remembered. */
+export function RoutineOccurrences({
+  routineId,
+  overdue,
+  upcoming,
+  cost,
+  currency,
+}: {
+  routineId: string;
+  overdue: string[];
+  upcoming: string[];
+  cost: number | null;
+  currency: string;
+}) {
+  const { pending, error, run } = useRoutineAction();
+  const [picking, setPicking] = useState(false);
+  const [chosen, setChosen] = useState(upcoming[0] ?? overdue[0] ?? "");
+
+  const log = (date: string, status: "done" | "skipped") => run(() => logRoutineAction({ routineId, date, status }));
+  const choices = [...overdue, ...upcoming];
+
+  return (
+    <div>
+      {overdue.length > 0 && (
+        <div
+          style={{
+            marginTop: 10,
+            padding: "10px 12px",
+            borderRadius: 12,
+            background: "color-mix(in srgb, var(--cal-money) 14%, transparent)",
+          }}
+        >
+          <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 13, fontWeight: 600, marginBottom: 8 }}>
+            <Icon name="info" size={14} style={{ color: "var(--cal-money)" }} />
+            {overdue.length === 1 ? "One day still unanswered" : `${overdue.length} days still unanswered`}
+          </div>
+          {overdue.slice(0, 3).map((date) => (
+            <div key={date} style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap", marginBottom: 6 }}>
+              <span style={{ flex: 1, minWidth: 110, fontSize: 13 }}>
+                {readableDate(date)}
+                <span style={{ color: "var(--color-neutral-700)" }}> · {daysAgo(date)}d ago</span>
+              </span>
+              <button
+                type="button"
+                className="btn btn-secondary"
+                style={{ minHeight: 30, fontSize: 12.5, padding: "0 11px", gap: 4 }}
+                disabled={pending}
+                onClick={() => log(date, "done")}
+              >
+                <Icon name="check" size={13} />
+                Done that day
+              </button>
+              <button
+                type="button"
+                className="btn btn-ghost"
+                style={{ minHeight: 30, fontSize: 12.5, padding: "0 8px" }}
+                disabled={pending}
+                onClick={() => log(date, "skipped")}
+              >
+                Skipped
+              </button>
+            </div>
+          ))}
+          {overdue.length > 3 && (
+            <div style={{ fontSize: 12.5, color: "var(--color-neutral-700)" }}>
+              and {overdue.length - 3} earlier — use “Another day” below.
+            </div>
+          )}
+        </div>
+      )}
+
+      <div style={{ marginTop: 8 }}>
+        {!picking ? (
+          <button
+            type="button"
+            className="btn btn-ghost"
+            style={{ minHeight: 30, fontSize: 12.5, padding: "0 8px", gap: 4 }}
+            onClick={() => setPicking(true)}
+            disabled={choices.length === 0}
+          >
+            <Icon name="calendarDays" size={13} />
+            Another day
+          </button>
+        ) : (
+          <div style={{ display: "flex", gap: 6, flexWrap: "wrap", alignItems: "center" }}>
+            <select
+              className="input"
+              value={chosen}
+              onChange={(e) => setChosen(e.target.value)}
+              style={{ minHeight: 38, fontSize: 13, flex: 1, minWidth: 150 }}
+              aria-label="Which day to mark"
+            >
+              {overdue.length > 0 && (
+                <optgroup label="Not answered for">
+                  {overdue.map((d) => (
+                    <option key={d} value={d}>
+                      {readableDate(d)}
+                    </option>
+                  ))}
+                </optgroup>
+              )}
+              {upcoming.length > 0 && (
+                <optgroup label="Still to come">
+                  {upcoming.map((d) => (
+                    <option key={d} value={d}>
+                      {readableDate(d)}
+                    </option>
+                  ))}
+                </optgroup>
+              )}
+            </select>
+            <button
+              type="button"
+              className="btn btn-primary"
+              style={{ minHeight: 38, fontSize: 13, padding: "0 13px", gap: 4 }}
+              disabled={pending || !chosen}
+              onClick={() => log(chosen, "done")}
+            >
+              <Icon name="check" size={13} />
+              Done
+            </button>
+            <button
+              type="button"
+              className="btn btn-secondary"
+              style={{ minHeight: 38, fontSize: 13, padding: "0 11px" }}
+              disabled={pending || !chosen}
+              onClick={() => log(chosen, "skipped")}
+            >
+              Skip
+            </button>
+            <button type="button" className="btn btn-ghost" style={{ minHeight: 38, fontSize: 12.5, padding: "0 8px" }} onClick={() => setPicking(false)}>
+              Close
+            </button>
+          </div>
+        )}
+        {picking && upcoming.includes(chosen) && (
+          <div style={{ fontSize: 12.5, color: "var(--color-neutral-700)", marginTop: 6 }}>
+            Marking a day ahead of time is fine — it counts on {readableDate(chosen)}
+            {cost ? `, and posts ${currency === "PHP" ? "₱" : `${currency} `}${cost.toLocaleString("en-PH")}` : ""}.
+          </div>
+        )}
+        {error && <div style={{ fontSize: 12.5, color: "var(--cal-occasion)", marginTop: 6 }}>{error}</div>}
+      </div>
+    </div>
+  );
+}

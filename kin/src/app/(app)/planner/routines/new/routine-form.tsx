@@ -1,14 +1,13 @@
 "use client";
 
-import { useActionState, useState } from "react";
-import { createRoutineAction, updateRoutineAction } from "@/lib/actions/routines";
-import type { ActionState } from "@/lib/actions/auth";
-import { SubmitButton, ErrorText } from "@/components/form";
+import { useActionState, useEffect, useRef, useState } from "react";
+import { createRoutineAction, updateRoutineAction, type RoutineActionState } from "@/lib/actions/routines";
+import { SubmitButton } from "@/components/form";
 import { DetailHeader } from "@/components/hub-header";
 import { Icon } from "@/components/icons";
 import { ROUTINE_KINDS, ROUTINE_KIND_META, type RoutineKind } from "@/lib/routines";
 
-const initialState: ActionState = { error: null };
+const initialState: RoutineActionState = { error: null, field: null };
 const WEEKDAYS = [
   { value: 0, label: "S", full: "Sunday" },
   { value: 1, label: "M", full: "Monday" },
@@ -53,6 +52,40 @@ const TEMPLATES: Template[] = [
   { id: "clean", label: "House clean", kind: "chore", title: "House clean", freq: "weekly", byweekday: [0], time: "08:00", reminder: "" },
 ];
 
+/** Wraps a field so a refusal can point straight at it: named for scrolling,
+ * ringed and announced when it is the one at fault. */
+function FieldBlock({
+  name,
+  invalid,
+  children,
+  style,
+}: {
+  name: string;
+  invalid: boolean;
+  children: React.ReactNode;
+  style?: React.CSSProperties;
+}) {
+  return (
+    <div
+      data-field={name}
+      className="field"
+      style={{
+        ...style,
+        ...(invalid
+          ? {
+              boxShadow: "0 0 0 2px var(--cal-occasion)",
+              borderRadius: 14,
+              padding: 8,
+              margin: "-8px -8px 6px",
+            }
+          : null),
+      }}
+    >
+      {children}
+    </div>
+  );
+}
+
 type Member = { id: string; full_name: string };
 type Account = { id: string; name: string; institution: string | null };
 
@@ -92,6 +125,18 @@ export function RoutineForm({
 }) {
   const action = edit ? updateRoutineAction.bind(null, edit.id) : createRoutineAction;
   const [state, formAction] = useActionState(action, initialState);
+  const formRef = useRef<HTMLFormElement>(null);
+  const bad = (name: string) => state.field === name;
+
+  // A message the person cannot see is no message at all: bring the field it
+  // is about into view, and focus it so the next keystroke lands there.
+  useEffect(() => {
+    if (!state.error || !state.field) return;
+    const el = formRef.current?.querySelector<HTMLElement>(`[data-field="${state.field}"]`);
+    if (!el) return;
+    el.scrollIntoView({ behavior: "smooth", block: "center" });
+    el.querySelector<HTMLElement>("input, select, textarea, button")?.focus({ preventScroll: true });
+  }, [state]);
 
   const [kind, setKind] = useState<RoutineKind>((edit?.kind as RoutineKind) ?? "other");
   const [title, setTitle] = useState(edit?.title ?? "");
@@ -138,13 +183,12 @@ export function RoutineForm({
           </>
         )}
 
-        <form action={formAction}>
-          <ErrorText message={state.error} />
+        <form action={formAction} ref={formRef}>
 
-          <div className="field" style={{ marginBottom: 14 }}>
+          <FieldBlock name="title" invalid={bad("title")} style={{ marginBottom: 14 }}>
             <label>NAME</label>
             <input className="input" name="title" required value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Grocery run" style={{ minHeight: 44 }} />
-          </div>
+          </FieldBlock>
 
           <div className="field" style={{ marginBottom: 14 }}>
             <label>KIND</label>
@@ -170,7 +214,7 @@ export function RoutineForm({
           </div>
 
           {freq === "weekly" && (
-            <div style={{ display: "flex", gap: 5, marginBottom: 14 }}>
+            <div data-field="byweekday" style={{ display: "flex", gap: 5, marginBottom: 14, ...(bad("byweekday") ? { boxShadow: "0 0 0 2px var(--cal-occasion)", borderRadius: 999, padding: 6, margin: "-6px -6px 8px" } : null) }}>
               {WEEKDAYS.map((d) => {
                 const on = byweekday.includes(d.value);
                 return (
@@ -204,11 +248,11 @@ export function RoutineForm({
           )}
 
           {freq === "monthly" && (
-            <div className="field" style={{ marginBottom: 14 }}>
+            <FieldBlock name="bymonthday" invalid={bad("bymonthday")} style={{ marginBottom: 14 }}>
               <label>DAY OF THE MONTH</label>
               <input className="input" type="number" name="bymonthday" min={1} max={31} defaultValue={edit?.bymonthday ?? 1} style={{ minHeight: 44 }} />
               <span style={{ fontSize: 12.5, color: "var(--color-neutral-600)" }}>A day past the end of a short month falls on its last day.</span>
-            </div>
+            </FieldBlock>
           )}
 
           <div style={{ display: "flex", gap: 12, marginBottom: 14 }}>
@@ -222,21 +266,21 @@ export function RoutineForm({
                 ))}
               </select>
             </div>
-            <div className="field" style={{ flex: 1 }}>
+            <FieldBlock name="time_of_day" invalid={bad("time_of_day")} style={{ flex: 1 }}>
               <label>TIME</label>
               <input className="input" type="time" name="time_of_day" value={time} onChange={(e) => setTime(e.target.value)} style={{ minHeight: 44 }} />
-            </div>
+            </FieldBlock>
           </div>
 
           <div style={{ display: "flex", gap: 12, marginBottom: 14 }}>
-            <div className="field" style={{ flex: 1 }}>
+            <FieldBlock name="start_date" invalid={bad("start_date")} style={{ flex: 1 }}>
               <label>STARTS</label>
               <input className="input" type="date" name="start_date" required defaultValue={edit?.start_date ?? today} style={{ minHeight: 44 }} />
-            </div>
-            <div className="field" style={{ flex: 1 }}>
+            </FieldBlock>
+            <FieldBlock name="end_date" invalid={bad("end_date")} style={{ flex: 1 }}>
               <label>ENDS (OPTIONAL)</label>
               <input className="input" type="date" name="end_date" defaultValue={edit?.end_date ?? undefined} style={{ minHeight: 44 }} />
-            </div>
+            </FieldBlock>
           </div>
 
           <div className="field" style={{ marginBottom: 14 }}>
@@ -260,7 +304,7 @@ export function RoutineForm({
           </div>
 
           <div style={{ fontSize: 13, color: "var(--color-neutral-700)", margin: "16px 0 6px" }}>Who it is for</div>
-          <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 10 }}>
+          <div data-field="members" style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 10, ...(bad("members") ? { boxShadow: "0 0 0 2px var(--cal-occasion)", borderRadius: 999, padding: 6, margin: "0 -6px 12px" } : null) }}>
             <button type="button" className="chip" data-active={wholeFamily} onClick={() => setWholeFamily(true)}>
               Whole family
             </button>
@@ -296,11 +340,11 @@ export function RoutineForm({
 
           <div style={{ fontSize: 13, color: "var(--color-neutral-700)", margin: "16px 0 6px" }}>What it usually costs (optional)</div>
           <div style={{ display: "flex", gap: 12, marginBottom: 6 }}>
-            <div className="field" style={{ flex: 1 }}>
+            <FieldBlock name="expected_cost" invalid={bad("expected_cost")} style={{ flex: 1 }}>
               <label>AMOUNT</label>
               <input className="input" type="number" name="expected_cost" step="0.01" min="0" value={cost} onChange={(e) => setCost(e.target.value)} style={{ minHeight: 44 }} />
-            </div>
-            <div className="field" style={{ flex: 1.3 }}>
+            </FieldBlock>
+            <FieldBlock name="cost_account_id" invalid={bad("cost_account_id")} style={{ flex: 1.3 }}>
               <label>FROM ACCOUNT</label>
               <select className="input" name="cost_account_id" defaultValue={edit?.cost_account_id ?? ""} style={{ minHeight: 44 }}>
                 <option value="">—</option>
@@ -311,7 +355,7 @@ export function RoutineForm({
                   </option>
                 ))}
               </select>
-            </div>
+            </FieldBlock>
           </div>
           <input type="hidden" name="expense_category" value={ROUTINE_KIND_META[kind].label} />
           <p style={{ fontSize: 12.5, color: "var(--color-neutral-600)", margin: "0 0 14px", lineHeight: 1.45 }}>
@@ -323,6 +367,29 @@ export function RoutineForm({
             <label>NOTES</label>
             <textarea className="input" name="notes" defaultValue={edit?.notes ?? undefined} />
           </div>
+
+          {/* Beside the button that was just pressed, not at the top of a
+              form the person has already scrolled past. */}
+          {state.error && (
+            <p
+              role="alert"
+              style={{
+                display: "flex",
+                gap: 8,
+                alignItems: "flex-start",
+                margin: "0 0 12px",
+                padding: "11px 13px",
+                borderRadius: 12,
+                background: "color-mix(in srgb, var(--cal-occasion) 12%, transparent)",
+                color: "var(--color-text)",
+                fontSize: 14,
+                lineHeight: 1.4,
+              }}
+            >
+              <Icon name="info" size={16} style={{ color: "var(--cal-occasion)", flex: "none", marginTop: 1 }} />
+              {state.error}
+            </p>
+          )}
 
           <SubmitButton>{edit ? "SAVE ROUTINE" : "ADD ROUTINE"}</SubmitButton>
         </form>

@@ -7,9 +7,9 @@ import { Blueprint } from "@/components/ui";
 import { Icon } from "@/components/icons";
 import { AssistantConsole } from "@/components/assistant-console";
 import { initials } from "@/lib/format";
-import { getRoutinesDueToday } from "@/lib/queries/routines";
+import { getRoutinesNeedingAttention } from "@/lib/queries/routines";
 import { ROUTINE_KIND_META, formatTimeOfDay, type RoutineKind } from "@/lib/routines";
-import { RoutineTick } from "@/components/routine-controls";
+import { RoutineTick, RoutineOccurrences } from "@/components/routine-controls";
 
 export default async function TodayPage() {
   const me = await getCurrentMember();
@@ -19,7 +19,7 @@ export default async function TodayPage() {
   const [{ data: members }, hubs, routines] = await Promise.all([
     supabase.from("members").select("id, full_name").eq("family_id", me.family_id).order("created_at"),
     getHubCards(me.family_id, me.families.currency),
-    getRoutinesDueToday(me.family_id),
+    getRoutinesNeedingAttention(me.family_id),
   ]);
 
   const todayLabel = new Date().toLocaleDateString("en-GB", {
@@ -70,7 +70,7 @@ export default async function TodayPage() {
         <div style={{ marginBottom: 16 }}>
           <div style={{ display: "flex", alignItems: "baseline", gap: 8, marginBottom: 8 }}>
             <span style={{ font: "600 13px/1 var(--font-heading)", letterSpacing: ".02em", color: "var(--color-neutral-600)" }}>
-              TODAY&rsquo;S ROUTINES
+              ROUTINES
             </span>
             <Link href="/planner?seg=routines" style={{ fontSize: 12.5, marginLeft: "auto", textDecoration: "none" }}>
               All routines
@@ -99,17 +99,26 @@ export default async function TodayPage() {
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ font: "600 16px/1.2 var(--font-heading)" }}>{r.title}</div>
                     <div style={{ fontSize: 12.5, color: "var(--color-neutral-600)" }}>
-                      {r.timeOfDay ? formatTimeOfDay(r.timeOfDay) : "any time today"}
+                      {r.today ? (r.timeOfDay ? formatTimeOfDay(r.timeOfDay) : "any time today") : "not today, but behind"}
                       {r.today?.assignee ? ` · ${r.today.assignee.name.split(" ")[0]}&rsquo;s turn` : ""}
                       {r.location ? ` · ${r.location}` : ""}
                     </div>
                   </div>
                 </div>
                 <div style={{ marginTop: 9 }}>
-                  <RoutineTick
+                  {r.today && (
+                    <RoutineTick
+                      routineId={r.id}
+                      date={r.today.date}
+                      status={r.today.status}
+                      cost={r.expectedCost}
+                      currency={me.families.currency}
+                    />
+                  )}
+                  <RoutineOccurrences
                     routineId={r.id}
-                    date={r.today!.date}
-                    status={r.today!.status}
+                    overdue={r.overdue}
+                    upcoming={r.upcoming}
                     cost={r.expectedCost}
                     currency={me.families.currency}
                   />

@@ -26,6 +26,11 @@ export type RoutineView = {
   streak: number;
   /** Recent history, newest first, for the small activity trail on the row. */
   recent: { date: string; status: "done" | "skipped" }[];
+  /** Occurrences already past that nobody has answered for, newest first.
+   * These are what the routine is behind on. */
+  overdue: string[];
+  /** The next few still to come, so one can be ticked ahead of its day. */
+  upcoming: string[];
 };
 
 /** How far back the streak and history look. Long enough for a fortnightly
@@ -84,9 +89,24 @@ export async function getRoutines(familyId: string, memberId?: string): Promise<
     };
 
     const status = logByRoutine.get(r.id) ?? new Map<string, "done" | "skipped">();
-    const past = expandRoutine(rule, historyStart, new Date(today.getFullYear(), today.getMonth(), today.getDate() + 1));
+    const tomorrow = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 1);
+    const past = expandRoutine(rule, historyStart, tomorrow);
     const todayISO = toISODate(today);
     const todaysOccurrence = past.find((o) => toISODate(o.date) === todayISO);
+
+    // Behind on: gone by, and never answered for. Today's is not overdue —
+    // the day is not out yet.
+    const overdue = past
+      .map((o) => toISODate(o.date))
+      .filter((iso) => iso !== todayISO && !status.has(iso))
+      .reverse()
+      .slice(0, 6);
+
+    // Far enough ahead for a fortnightly routine to offer its next two.
+    const ahead = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 60);
+    const upcoming = expandRoutine(rule, tomorrow, ahead)
+      .map((o) => toISODate(o.date))
+      .slice(0, 4);
 
     views.push({
       id: r.id,
@@ -122,18 +142,36 @@ export async function getRoutines(familyId: string, memberId?: string): Promise<
         .reverse()
         .slice(0, 8)
         .map((iso) => ({ date: iso, status: status.get(iso)! })),
+      overdue: r.paused ? [] : overdue,
+      upcoming: r.paused ? [] : upcoming,
     });
   }
 
-  // Active first, then by when they next come round.
+  // The order the day asks for them in: what is behind first, then what is
+  // due today in the order it falls, then what is coming, then what is
+  // paused. Sorting by name or by when they were created would bury the one
+  // thing that needs doing.
+  const rank = (r: RoutineView) => {
+    if (r.paused) return 3;
+    if (r.overdue.length > 0) return 0;
+    if (r.today && !r.today.status) return 1;
+    return 2;
+  };
+
   return views.sort((a, b) => {
-    if (a.paused !== b.paused) return a.paused ? 1 : -1;
+    const byRank = rank(a) - rank(b);
+    if (byRank !== 0) return byRank;
+    // Within today's, the earlier time first; an all-day one sits after the
+    // timed ones, since it is not competing for a particular hour.
+    if (rank(a) === 1) return (a.timeOfDay ?? "99:99").localeCompare(b.timeOfDay ?? "99:99");
     return (a.next?.getTime() ?? Infinity) - (b.next?.getTime() ?? Infinity);
   });
 }
 
-/** Routines falling today, for the Today hub. */
-export async function getRoutinesDueToday(familyId: string, memberId?: string) {
+/** What the Today hub should raise: routines falling today, and any that
+ * have gone by unanswered — being behind is the thing most worth saying,
+ * and there is nowhere else it would be noticed. */
+export async function getRoutinesNeedingAttention(familyId: string, memberId?: string) {
   const all = await getRoutines(familyId, memberId);
-  return all.filter((r) => !r.paused && r.today);
+  return all.filter((r) => !r.paused && (r.today || r.overdue.length > 0));
 }
