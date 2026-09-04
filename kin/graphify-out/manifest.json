@@ -246,9 +246,9 @@
     "semantic_hash": ""
   },
   "src/components/buy-list.tsx": {
-    "mtime": 1788492039.11559,
-    "seen": 1788492353.6318564,
-    "ast_hash": "5f47b7342ded3caaa6fee6c69331e61a",
+    "mtime": 1788510574.848727,
+    "seen": 1788510822.9447198,
+    "ast_hash": "b8a3e3d30e1f1edcae8a6193f2e2dd6d",
     "semantic_hash": ""
   },
   "src/components/copy-invite-code.tsx": {
@@ -360,9 +360,9 @@
     "semantic_hash": ""
   },
   "src/lib/actions/household.ts": {
-    "mtime": 1788491909.24229,
-    "seen": 1788492353.6319199,
-    "ast_hash": "c25f414d27ee88c7a7bbc18830f76e82",
+    "mtime": 1788510511.6687284,
+    "seen": 1788510822.944788,
+    "ast_hash": "635b3a01260ee4fa9f84dc41f54b0866",
     "semantic_hash": ""
   },
   "src/lib/actions/journal.ts": {
@@ -390,9 +390,9 @@
     "semantic_hash": ""
   },
   "src/lib/database.types.ts": {
-    "mtime": 1788491244.2788777,
-    "seen": 1788492353.6319268,
-    "ast_hash": "ac80796172facc06b9814388ac9ec05e",
+    "mtime": 1788510429.0477092,
+    "seen": 1788510822.9448,
+    "ast_hash": "2e8637033c27f11ae73fade18b7d55d6",
     "semantic_hash": ""
   },
   "src/lib/format.ts": {
@@ -414,9 +414,9 @@
     "semantic_hash": ""
   },
   "src/lib/queries/household.ts": {
-    "mtime": 1788491909.2426775,
-    "seen": 1788492353.6319358,
-    "ast_hash": "21324fcdd2d3ab2740359aee227d6903",
+    "mtime": 1788510481.4727292,
+    "seen": 1788510822.944815,
+    "ast_hash": "84a89dcb2f3b5f2da4c19b51970d453a",
     "semantic_hash": ""
   },
   "src/lib/queries/journal.ts": {
@@ -822,9 +822,15 @@
     "semantic_hash": ""
   },
   "src/lib/assistant/tools.ts": {
-    "mtime": 1788499378.7236438,
-    "seen": 1788499556.2929149,
-    "ast_hash": "2a6a1b49e1a0445f7e703cca42900a34",
+    "mtime": 1788510635.045354,
+    "seen": 1788510822.9447987,
+    "ast_hash": "339eaddcad6e514da46e22efb0f6b972",
+    "semantic_hash": ""
+  },
+  "src/lib/grocery.ts": {
+    "mtime": 1788510764.2207227,
+    "seen": 1788510822.9448075,
+    "ast_hash": "8f0f0928bf124ac3026d8375f990c60e",
     "semantic_hash": ""
   }
 }

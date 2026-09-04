@@ -432,12 +432,13 @@ export type Database = {
           created_at: string
           created_by: string | null
           family_id: string
-          group_name: string
           id: string
           member_id: string | null
           name: string
-          qty: string | null
+          quantity: number | null
+          section: string
           source: string
+          unit: string | null
         }
         Insert: {
           checked?: boolean
@@ -448,12 +449,13 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           family_id: string
-          group_name: string
           id?: string
           member_id?: string | null
           name: string
-          qty?: string | null
+          quantity?: number | null
+          section?: string
           source: string
+          unit?: string | null
         }
         Update: {
           checked?: boolean
@@ -464,12 +466,13 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           family_id?: string
-          group_name?: string
           id?: string
           member_id?: string | null
           name?: string
-          qty?: string | null
+          quantity?: number | null
+          section?: string
           source?: string
+          unit?: string | null
         }
         Relationships: [
           {

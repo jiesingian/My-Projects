@@ -1,5 +1,8 @@
 import { createClient } from "@/lib/supabase/server";
+import { sectionOrder } from "@/lib/grocery";
 
+/** The open list, grouped by market section and ordered the way the sections
+ * are walked, so it can be shopped straight down. */
 export async function getBuyItems(familyId: string) {
   const supabase = await createClient();
   const { data } = await supabase
@@ -7,24 +10,25 @@ export async function getBuyItems(familyId: string) {
     .select("*")
     .eq("family_id", familyId)
     .eq("cleared", false)
-    .order("group_name")
     .order("created_at");
   const items = data ?? [];
 
   const groups = new Map<string, typeof items>();
   for (const item of items) {
-    const list = groups.get(item.group_name) ?? [];
+    const list = groups.get(item.section) ?? [];
     list.push(item);
-    groups.set(item.group_name, list);
+    groups.set(item.section, list);
   }
 
   return {
     items,
-    groups: Array.from(groups.entries()).map(([name, groupItems]) => ({
-      name,
-      items: groupItems,
-      openCount: groupItems.filter((i) => !i.checked).length,
-    })),
+    groups: Array.from(groups.entries())
+      .sort((a, b) => sectionOrder(a[0]) - sectionOrder(b[0]))
+      .map(([name, groupItems]) => ({
+        name,
+        items: groupItems,
+        openCount: groupItems.filter((i) => !i.checked).length,
+      })),
     openCount: items.filter((i) => !i.checked).length,
     doneCount: items.filter((i) => i.checked).length,
   };

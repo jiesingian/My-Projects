@@ -2,8 +2,9 @@
 
 import { useActionState, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { addBuyItemAction, toggleBuyItemAction, clearCheckedAction } from "@/lib/actions/household";
+import { addBuyItemAction, toggleBuyItemAction, clearCheckedAction, updateBuyItemAction, removeBuyItemAction } from "@/lib/actions/household";
 import { postHubExpenseAction } from "@/lib/actions/wealth";
+import { MARKET_SECTIONS, UNITS, guessSection, formatQuantity } from "@/lib/grocery";
 import type { ActionState } from "@/lib/actions/auth";
 import { SubmitButton, ErrorText } from "@/components/form";
 import { Blueprint, Tag } from "@/components/ui";
@@ -41,6 +42,17 @@ export function BuyList({
   const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
   const [, startTransition] = useTransition();
   const [addState, addAction] = useActionState(addBuyItemAction, initialState);
+  const [editing, setEditing] = useState<string | null>(null);
+  const [newName, setNewName] = useState("");
+  const [sectionTouched, setSectionTouched] = useState(false);
+  const [sectionChoice, setSectionChoice] = useState<string>("Other");
+
+  // The section follows what's being typed until the member overrides it.
+  const section = sectionTouched ? sectionChoice : guessSection(newName);
+  const setSection = (value: string) => {
+    setSectionTouched(true);
+    setSectionChoice(value);
+  };
 
   return (
     <>
@@ -95,7 +107,8 @@ export function BuyList({
             </button>
             {!isCollapsed &&
               g.items.map((item) => (
-                <div key={item.id} style={{ display: "flex", gap: 11, alignItems: "center", padding: "10px 0", borderBottom: "1px solid color-mix(in srgb, var(--color-text) 10%, transparent)" }}>
+                <div key={item.id}>
+                <div style={{ display: "flex", gap: 11, alignItems: "center", padding: "10px 0", borderBottom: "1px solid color-mix(in srgb, var(--color-text) 10%, transparent)" }}>
                   <button
                     type="button"
                     onClick={() => startTransition(() => toggleBuyItemAction(item.id, !item.checked))}
@@ -116,32 +129,159 @@ export function BuyList({
                   >
                     {item.checked ? "✓" : ""}
                   </button>
-                  <span style={{ flex: 1, minWidth: 0, fontSize: 14, textDecoration: item.checked ? "line-through" : "none", color: item.checked ? "var(--color-neutral-500)" : "var(--color-text)" }}>
+                  <button
+                    type="button"
+                    onClick={() => setEditing(editing === item.id ? null : item.id)}
+                    style={{
+                      flex: 1,
+                      minWidth: 0,
+                      textAlign: "left",
+                      background: "none",
+                      border: 0,
+                      padding: 0,
+                      cursor: "pointer",
+                      fontSize: 14,
+                      color: item.checked ? "var(--color-neutral-500)" : "var(--color-text)",
+                      textDecoration: item.checked ? "line-through" : "none",
+                    }}
+                  >
                     {item.name}
+                  </button>
+                  <span style={{ fontFamily: "ui-monospace, Menlo, monospace", fontSize: 11.5, color: "var(--color-neutral-600)", flex: "none" }}>
+                    {formatQuantity(item.quantity, item.unit)}
                   </span>
-                  <span style={{ fontSize: 11, color: "var(--color-neutral-600)" }}>{item.qty}</span>
                   <Tag variant={item.source === "meal_plan" ? "accent" : item.source === "maintenance" ? "outline" : "neutral"}>
                     {SOURCE_LABEL[item.source] ?? item.source}
                   </Tag>
+                </div>
+                {editing === item.id && <EditItemRow item={item} onClose={() => setEditing(null)} />}
                 </div>
               ))}
           </div>
         );
       })}
 
-      <form action={addAction} style={{ display: "flex", gap: 10, marginTop: 4 }}>
-        <input className="input" name="name" placeholder="Add an item" required style={{ minHeight: 42 }} />
-        <input type="hidden" name="group_name" value="Other" />
+      <form action={addAction} style={{ marginTop: 4 }}>
         <input type="hidden" name="source" value="house" />
-        <SubmitButton className="btn btn-primary" style={{ minHeight: 42, paddingInline: 18 }}>
-          ADD
-        </SubmitButton>
+        <div style={{ display: "flex", gap: 8, marginBottom: 8 }}>
+          <input
+            className="input"
+            name="name"
+            placeholder="Add an item"
+            required
+            value={newName}
+            onChange={(e) => setNewName(e.target.value)}
+            style={{ minHeight: 42, flex: 1 }}
+          />
+          <input className="input" name="quantity" type="number" step="0.01" min="0" placeholder="Qty" style={{ minHeight: 42, width: 68 }} />
+          <select className="input" name="unit" defaultValue="pc" style={{ minHeight: 42, width: 82 }}>
+            {UNITS.map((u) => (
+              <option key={u} value={u}>
+                {u}
+              </option>
+            ))}
+          </select>
+        </div>
+        <div style={{ display: "flex", gap: 8 }}>
+          {/* Pre-filled from the name as it's typed, so the common case is one tap. */}
+          <select className="input" name="section" value={section} onChange={(e) => setSection(e.target.value)} style={{ minHeight: 42, flex: 1 }}>
+            {MARKET_SECTIONS.map((s) => (
+              <option key={s} value={s}>
+                {s}
+              </option>
+            ))}
+          </select>
+          <SubmitButton className="btn btn-primary" style={{ minHeight: 42, paddingInline: 18 }}>
+            ADD
+          </SubmitButton>
+        </div>
       </form>
       <ErrorText message={addState.error} />
       <div style={{ fontSize: 11, color: "var(--color-neutral-600)", marginTop: 10 }}>
-        Groceries generated from the meal plan land here under their own group. Ticked items stay until cleared.
+        Sections follow the order you walk the market. Items from the meal plan are filed by name automatically — tap any item to fix its
+        quantity or section. Ticked items stay until cleared.
       </div>
     </>
+  );
+}
+
+/** Tapping an item opens this — fix the quantity, the unit, or which section
+ * it was filed under when it came off a meal plan. */
+function EditItemRow({ item, onClose }: { item: Tables<"buy_items">; onClose: () => void }) {
+  const [name, setName] = useState(item.name);
+  const [quantity, setQuantity] = useState(item.quantity === null ? "" : String(item.quantity));
+  const [unit, setUnit] = useState(item.unit ?? "pc");
+  const [section, setSection] = useState(item.section);
+  const [pending, startTransition] = useTransition();
+  const router = useRouter();
+
+  function save() {
+    startTransition(async () => {
+      await updateBuyItemAction(item.id, {
+        name,
+        quantity: quantity.trim() ? Number(quantity) : null,
+        unit: unit || null,
+        section,
+      });
+      onClose();
+      router.refresh();
+    });
+  }
+
+  return (
+    <div style={{ padding: "10px 0 12px", borderBottom: "1px solid color-mix(in srgb, var(--color-text) 10%, transparent)" }}>
+      <div style={{ display: "flex", gap: 8, marginBottom: 8 }}>
+        <input className="input" value={name} onChange={(e) => setName(e.target.value)} style={{ minHeight: 40, flex: 1 }} />
+        <input
+          className="input"
+          type="number"
+          step="0.01"
+          min="0"
+          value={quantity}
+          onChange={(e) => setQuantity(e.target.value)}
+          placeholder="Qty"
+          style={{ minHeight: 40, width: 68 }}
+        />
+        <select className="input" value={unit} onChange={(e) => setUnit(e.target.value)} style={{ minHeight: 40, width: 82 }}>
+          {UNITS.map((u) => (
+            <option key={u} value={u}>
+              {u}
+            </option>
+          ))}
+        </select>
+      </div>
+      <div style={{ display: "flex", gap: 8 }}>
+        <select className="input" value={section} onChange={(e) => setSection(e.target.value)} style={{ minHeight: 40, flex: 1 }}>
+          {MARKET_SECTIONS.map((s) => (
+            <option key={s} value={s}>
+              {s}
+            </option>
+          ))}
+        </select>
+        <button type="button" className="btn btn-primary" disabled={pending} style={{ minHeight: 40, fontSize: 11.5, paddingInline: 14 }} onClick={save}>
+          {pending ? "…" : "SAVE"}
+        </button>
+        <button type="button" className="btn btn-secondary" style={{ minHeight: 40, fontSize: 11.5, paddingInline: 12 }} onClick={onClose}>
+          CANCEL
+        </button>
+        <button
+          type="button"
+          className="btn btn-secondary"
+          disabled={pending}
+          style={{ minHeight: 40, fontSize: 11.5, paddingInline: 12, color: "var(--color-accent-700)", borderColor: "var(--color-accent-700)" }}
+          onClick={() => {
+            if (!window.confirm(`Remove "${item.name}" from the list?`)) return;
+            startTransition(async () => {
+              await removeBuyItemAction(item.id);
+              onClose();
+              router.refresh();
+            });
+          }}
+        >
+          REMOVE
+        </button>
+      </div>
+    </div>
   );
 }
 

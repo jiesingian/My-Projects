@@ -2,6 +2,7 @@ import type Anthropic from "@anthropic-ai/sdk";
 import { createClient } from "@/lib/supabase/server";
 import { syncRowToCalendars, type CalendarTarget } from "@/lib/actions/calendar-sync";
 import { EXPENSE_CATEGORIES, INCOME_SOURCES, signedAmount } from "@/lib/wealth";
+import { MARKET_SECTIONS, UNITS, guessSection, formatQuantity } from "@/lib/grocery";
 import type { CurrentMember } from "@/lib/session";
 
 /** Every tool the Today assistant can reach. Each one is scoped to the
@@ -88,7 +89,8 @@ export const ASSISTANT_TOOLS: Anthropic.Beta.BetaToolUnion[] = [
   },
   {
     name: "add_buy_items",
-    description: "Add one or more items to the household shopping list.",
+    description:
+      "Add one or more items to the household shopping list. Split any quantity the member gives into a number and a unit — '2 kilos of chicken' is quantity 2, unit kg. Leave the section out unless they say where it belongs; it is filed automatically from the item name.",
     input_schema: {
       type: "object",
       properties: {
@@ -98,8 +100,9 @@ export const ASSISTANT_TOOLS: Anthropic.Beta.BetaToolUnion[] = [
             type: "object",
             properties: {
               name: { type: "string" },
-              qty: { type: "string", description: "Free text, e.g. '2 kg'." },
-              group: { type: "string", description: "Which section of the list. Defaults to 'Other'." },
+              quantity: { type: "number" },
+              unit: { type: "string", enum: [...UNITS] },
+              section: { type: "string", enum: [...MARKET_SECTIONS], description: "Where it sits in the market. Omit to file it automatically." },
             },
             required: ["name"],
           },
@@ -259,7 +262,7 @@ export async function runAssistantTool(name: string, rawInput: unknown, me: Curr
         supabase.from("trips").select("id, title, start_date, end_date").eq("family_id", familyId).ilike("title", like).limit(8),
         supabase.from("bills").select("id, name, amount, due_date, status").eq("family_id", familyId).ilike("name", like).limit(8),
         supabase.from("goals").select("id, title, target_amount, current_amount, target_date").eq("family_id", familyId).ilike("title", like).limit(8),
-        supabase.from("buy_items").select("id, name, qty, checked").eq("family_id", familyId).eq("cleared", false).ilike("name", like).limit(8),
+        supabase.from("buy_items").select("id, name, quantity, unit, section, checked").eq("family_id", familyId).eq("cleared", false).ilike("name", like).limit(8),
         supabase.from("meal_plans").select("id, dish, plan_date").eq("family_id", familyId).ilike("dish", like).limit(8),
         supabase.from("journal_entries").select("id, title, entry_date").eq("family_id", familyId).ilike("title", like).limit(8),
         supabase.from("doc_entries").select("id, title, expires_at, doc_type").eq("family_id", familyId).ilike("title", like).limit(8),
@@ -377,7 +380,7 @@ export async function runAssistantTool(name: string, rawInput: unknown, me: Curr
       weekEnd.setDate(weekStart.getDate() + 7);
 
       const [buy, meals] = await Promise.all([
-        supabase.from("buy_items").select("name, qty, group_name, checked").eq("family_id", familyId).eq("cleared", false),
+        supabase.from("buy_items").select("name, quantity, unit, section, checked").eq("family_id", familyId).eq("cleared", false),
         supabase
           .from("meal_plans")
           .select("dish, plan_date, note")
@@ -489,22 +492,36 @@ export async function runAssistantTool(name: string, rawInput: unknown, me: Curr
     case "add_buy_items": {
       const items = list(input, "items")
         .map((raw) => raw as Json)
-        .map((item) => ({ name: str(item, "name"), qty: str(item, "qty"), group: str(item, "group") ?? "Other" }))
-        .filter((item): item is { name: string; qty: string | null; group: string } => !!item.name);
+        .map((item) => {
+          const itemName = str(item, "name");
+          if (!itemName) return null;
+          const given = str(item, "section");
+          return {
+            name: itemName,
+            quantity: num(item, "quantity"),
+            unit: str(item, "unit"),
+            section: given && (MARKET_SECTIONS as readonly string[]).includes(given) ? given : guessSection(itemName),
+          };
+        })
+        .filter((item): item is { name: string; quantity: number | null; unit: string | null; section: string } => item !== null);
       if (items.length === 0) return fail("No items to add.");
 
       const { error } = await supabase.from("buy_items").insert(
         items.map((item) => ({
           family_id: familyId,
-          group_name: item.group,
           name: item.name,
-          qty: item.qty,
+          quantity: item.quantity,
+          unit: item.unit,
+          section: item.section,
           source: "house",
           created_by: me.id,
         })),
       );
       if (error) return fail(error.message);
-      return done({ added: "shopping items", items: items.map((i) => i.name) });
+      return done({
+        added: "shopping items",
+        items: items.map((i) => ({ name: i.name, quantity: formatQuantity(i.quantity, i.unit) || undefined, section: i.section })),
+      });
     }
 
     case "add_meal_plan": {

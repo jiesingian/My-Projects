@@ -5,25 +5,65 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { requireCurrentMember } from "@/lib/session";
 import { syncRowToCalendars } from "@/lib/actions/calendar-sync";
+import { MARKET_SECTIONS, guessSection, parseQuantity } from "@/lib/grocery";
 import type { ActionState } from "@/lib/actions/auth";
+import type { TablesInsert } from "@/lib/database.types";
 
 export async function addBuyItemAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
   const me = await requireCurrentMember();
   const supabase = await createClient();
   const name = String(formData.get("name") ?? "").trim();
-  const qty = String(formData.get("qty") ?? "").trim() || null;
-  const groupName = String(formData.get("group_name") ?? "").trim() || "Other";
+  const quantityRaw = String(formData.get("quantity") ?? "").trim();
+  const unit = String(formData.get("unit") ?? "").trim() || null;
+  const sectionRaw = String(formData.get("section") ?? "").trim();
   const source = String(formData.get("source") ?? "house");
   if (!name) return { error: "Name the item." };
 
+  // An empty section means the member didn't pick one — file it themselves.
+  const section = (MARKET_SECTIONS as readonly string[]).includes(sectionRaw) ? sectionRaw : guessSection(name);
+
   const { error } = await supabase.from("buy_items").insert({
     family_id: me.family_id,
-    group_name: groupName,
     name,
-    qty,
+    quantity: quantityRaw ? Number(quantityRaw) : null,
+    unit,
+    section,
     source,
     created_by: me.id,
   });
+  if (error) return { error: error.message };
+  revalidatePath("/household");
+  return { error: null };
+}
+
+export async function updateBuyItemAction(
+  itemId: string,
+  input: { name: string; quantity: number | null; unit: string | null; section: string },
+): Promise<ActionState> {
+  const me = await requireCurrentMember();
+  const supabase = await createClient();
+  if (!input.name.trim()) return { error: "Name the item." };
+
+  const { error } = await supabase
+    .from("buy_items")
+    .update({
+      name: input.name.trim(),
+      quantity: input.quantity,
+      unit: input.unit,
+      section: (MARKET_SECTIONS as readonly string[]).includes(input.section) ? input.section : "Other",
+    })
+    .eq("id", itemId)
+    .eq("family_id", me.family_id);
+  if (error) return { error: error.message };
+
+  revalidatePath("/household");
+  return { error: null };
+}
+
+export async function removeBuyItemAction(itemId: string): Promise<ActionState> {
+  const me = await requireCurrentMember();
+  const supabase = await createClient();
+  const { error } = await supabase.from("buy_items").delete().eq("id", itemId).eq("family_id", me.family_id);
   if (error) return { error: error.message };
   revalidatePath("/household");
   return { error: null };
@@ -100,18 +140,21 @@ export async function generateGroceryListAction(familyId: string, createdBy: str
 
   const existing = new Set((openBuy ?? []).map((b) => b.name.toLowerCase()));
   const seen = new Set<string>();
-  const toInsert: { family_id: string; group_name: string; name: string; qty: string | null; source: "meal_plan"; created_by: string }[] = [];
+  const toInsert: TablesInsert<"buy_items">[] = [];
 
   for (const meal of meals ?? []) {
     for (const ing of meal.meal_ingredients ?? []) {
       const key = ing.ingredient_name.toLowerCase();
       if (existing.has(key) || seen.has(key)) continue;
       seen.add(key);
+      const { quantity, unit } = parseQuantity(ing.qty);
       toInsert.push({
         family_id: familyId,
-        group_name: "From meal plan",
         name: ing.ingredient_name,
-        qty: ing.qty,
+        quantity,
+        unit,
+        // Filed by name so a generated list already reads in market order.
+        section: guessSection(ing.ingredient_name),
         source: "meal_plan",
         created_by: createdBy,
       });
