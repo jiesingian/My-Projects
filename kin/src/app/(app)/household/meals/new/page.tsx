@@ -6,6 +6,7 @@ import { addMealPlanAction } from "@/lib/actions/household";
 import type { ActionState } from "@/lib/actions/auth";
 import { SubmitButton, ErrorText } from "@/components/form";
 import { DetailHeader } from "@/components/hub-header";
+import { MEAL_SLOTS, MEAL_SLOT_LABEL } from "@/lib/recipes";
 
 const initialState: ActionState = { error: null };
 
@@ -24,6 +25,16 @@ export default function NewMealPage() {
           <div className="field" style={{ marginBottom: 14 }}>
             <label>DATE</label>
             <input className="input" type="date" name="date" required defaultValue={defaultDate} style={{ minHeight: 44 }} />
+          </div>
+          <div className="field" style={{ marginBottom: 14 }}>
+            <label>PART OF THE DAY</label>
+            <select className="input" name="slot" defaultValue="dinner" style={{ minHeight: 44 }}>
+              {MEAL_SLOTS.map((s) => (
+                <option key={s} value={s}>
+                  {MEAL_SLOT_LABEL[s]}
+                </option>
+              ))}
+            </select>
           </div>
           <div className="field" style={{ marginBottom: 14 }}>
             <label>DISH</label>

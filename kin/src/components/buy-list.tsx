@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { addBuyItemAction, toggleBuyItemAction, clearCheckedAction, updateBuyItemAction, removeBuyItemAction } from "@/lib/actions/household";
 import { postHubExpenseAction } from "@/lib/actions/wealth";
 import { MARKET_SECTIONS, UNITS, guessSection, formatQuantity } from "@/lib/grocery";
+import { BuyItemPriceControl } from "@/components/household-price-controls";
 import type { ActionState } from "@/lib/actions/auth";
 import { SubmitButton, ErrorText } from "@/components/form";
 import { Blueprint, Tag } from "@/components/ui";
@@ -31,6 +32,7 @@ export function BuyList({
   familyId,
   accounts,
   currency,
+  prices,
 }: {
   groups: BuyGroup[];
   openCount: number;
@@ -38,6 +40,8 @@ export function BuyList({
   familyId: string;
   accounts: PickableAccount[];
   currency: string;
+  /** What each line is expected to cost, keyed by item id. */
+  prices: Record<string, { estimated: number | null; unitPrice: number | null; source: string; inPantry: boolean }>;
 }) {
   const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
   const [, startTransition] = useTransition();
@@ -151,9 +155,23 @@ export function BuyList({
                   <span style={{ fontFamily: "var(--font-numeric)", fontSize: 13, color: "var(--color-neutral-600)", flex: "none" }}>
                     {formatQuantity(item.quantity, item.unit)}
                   </span>
-                  <Tag variant={item.source === "meal_plan" ? "accent" : item.source === "maintenance" ? "outline" : "neutral"}>
-                    {SOURCE_LABEL[item.source] ?? item.source}
-                  </Tag>
+                  {/* What this line is expected to come to. Tapping it sets a
+                      price for today only, without changing the price book. */}
+                  <span style={{ flex: "none" }}>
+                    <BuyItemPriceControl
+                      itemId={item.id}
+                      estimated={prices[item.id]?.estimated ?? null}
+                      unitPrice={prices[item.id]?.unitPrice ?? null}
+                      source={prices[item.id]?.source ?? "unknown"}
+                    />
+                  </span>
+                  {prices[item.id]?.inPantry ? (
+                    <Tag variant="accent">at home</Tag>
+                  ) : (
+                    <Tag variant={item.source === "meal_plan" ? "accent" : item.source === "maintenance" ? "outline" : "neutral"}>
+                      {SOURCE_LABEL[item.source] ?? item.source}
+                    </Tag>
+                  )}
                 </div>
                 {editing === item.id && <EditItemRow item={item} onClose={() => setEditing(null)} />}
                 </div>

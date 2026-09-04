@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { normalizeKey } from "@/lib/pricebook";
 import { sectionOrder } from "@/lib/grocery";
 
 /** The open list, grouped by market section and ordered the way the sections
@@ -49,15 +50,35 @@ export async function getMeals(familyId: string) {
       .eq("family_id", familyId)
       .gte("plan_date", startOfWeek.toISOString().slice(0, 10))
       .lt("plan_date", endOfWeek.toISOString().slice(0, 10))
-      .order("plan_date"),
+      .order("plan_date")
+      .order("position"),
     supabase.from("buy_items").select("name").eq("family_id", familyId).eq("cleared", false).eq("checked", false),
   ]);
 
-  const openNames = new Set((activeBuy ?? []).map((b) => b.name.toLowerCase()));
+  // What is already in the house never needs buying, so it is neither
+  // missing nor on the list — the third state the old count could not show.
+  const { data: pantry } = await supabase.from("pantry_items").select("item_key").eq("family_id", familyId);
+  const atHome = new Set((pantry ?? []).map((p) => p.item_key));
+  const openNames = new Set((activeBuy ?? []).map((b) => normalizeKey(b.name)));
 
   return (meals ?? []).map((m) => {
-    const ingredients = m.meal_ingredients ?? [];
-    const missing = ingredients.filter((i) => openNames.has(i.ingredient_name.toLowerCase())).length;
-    return { ...m, missing, ingredientCount: ingredients.length };
+    const ingredients = (m.meal_ingredients ?? []).map((i) => {
+      const key = i.item_key ?? normalizeKey(i.ingredient_name);
+      return {
+        name: i.ingredient_name,
+        qty: i.qty,
+        key,
+        inPantry: atHome.has(key),
+        onList: openNames.has(key),
+      };
+    });
+    return {
+      ...m,
+      ingredients,
+      /** Not in the house and not yet on the shopping list. */
+      missing: ingredients.filter((i) => !i.inPantry && !i.onList).length,
+      have: ingredients.filter((i) => i.inPantry).length,
+      ingredientCount: ingredients.length,
+    };
   });
 }

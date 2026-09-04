@@ -4,8 +4,10 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { requireCurrentMember } from "@/lib/session";
-import { syncRowToCalendars } from "@/lib/actions/calendar-sync";
+import { syncRowToCalendars, removeRowFromCalendars } from "@/lib/actions/calendar-sync";
 import { MARKET_SECTIONS, guessSection, parseQuantity } from "@/lib/grocery";
+import { normalizeKey } from "@/lib/pricebook";
+import { MEAL_SLOTS, RECIPES_BY_KEY, type MealSlot } from "@/lib/recipes";
 import type { ActionState } from "@/lib/actions/auth";
 import type { TablesInsert } from "@/lib/database.types";
 
@@ -95,6 +97,8 @@ export async function addMealPlanAction(_prev: ActionState, formData: FormData):
   const date = String(formData.get("date") ?? "");
   const dish = String(formData.get("dish") ?? "").trim();
   const note = String(formData.get("note") ?? "").trim() || null;
+  const slotRaw = String(formData.get("slot") ?? "dinner");
+  const slot = MEAL_SLOTS.includes(slotRaw as MealSlot) ? slotRaw : "dinner";
   const ingredients = String(formData.get("ingredients") ?? "")
     .split(",")
     .map((s) => s.trim())
@@ -103,14 +107,19 @@ export async function addMealPlanAction(_prev: ActionState, formData: FormData):
 
   const { data: plan, error } = await supabase
     .from("meal_plans")
-    .insert({ family_id: me.family_id, plan_date: date, dish, note, created_by: me.id })
+    .insert({ family_id: me.family_id, plan_date: date, slot, dish, note, created_by: me.id })
     .select()
     .single();
   if (error) return { error: error.message };
 
   if (ingredients.length > 0) {
     await supabase.from("meal_ingredients").insert(
-      ingredients.map((ingredient_name) => ({ meal_plan_id: plan.id, family_id: me.family_id, ingredient_name })),
+      ingredients.map((ingredient_name) => ({
+        meal_plan_id: plan.id,
+        family_id: me.family_id,
+        ingredient_name,
+        item_key: normalizeKey(ingredient_name),
+      })),
     );
   }
 
@@ -131,30 +140,36 @@ export async function generateGroceryListAction(familyId: string, createdBy: str
   const [{ data: meals }, { data: openBuy }] = await Promise.all([
     supabase
       .from("meal_plans")
-      .select("meal_ingredients(ingredient_name, qty)")
+      .select("meal_ingredients(ingredient_name, qty, qty_amount, unit, section, item_key)")
       .eq("family_id", familyId)
       .gte("plan_date", startOfWeek.toISOString().slice(0, 10))
       .lt("plan_date", endOfWeek.toISOString().slice(0, 10)),
     supabase.from("buy_items").select("name").eq("family_id", familyId).eq("cleared", false),
   ]);
 
-  const existing = new Set((openBuy ?? []).map((b) => b.name.toLowerCase()));
+  // What is already in the house does not need buying — the whole reason the
+  // pantry exists.
+  const { data: pantry } = await supabase.from("pantry_items").select("item_key").eq("family_id", familyId);
+  const atHome = new Set((pantry ?? []).map((p) => p.item_key));
+  const existing = new Set((openBuy ?? []).map((b) => normalizeKey(b.name)));
   const seen = new Set<string>();
   const toInsert: TablesInsert<"buy_items">[] = [];
 
   for (const meal of meals ?? []) {
     for (const ing of meal.meal_ingredients ?? []) {
-      const key = ing.ingredient_name.toLowerCase();
-      if (existing.has(key) || seen.has(key)) continue;
+      const key = ing.item_key ?? normalizeKey(ing.ingredient_name);
+      if (existing.has(key) || seen.has(key) || atHome.has(key)) continue;
       seen.add(key);
-      const { quantity, unit } = parseQuantity(ing.qty);
+      const parsed = parseQuantity(ing.qty);
+      const quantity = ing.qty_amount == null ? parsed.quantity : Number(ing.qty_amount);
+      const unit = ing.unit ?? parsed.unit;
       toInsert.push({
         family_id: familyId,
         name: ing.ingredient_name,
         quantity,
         unit,
         // Filed by name so a generated list already reads in market order.
-        section: guessSection(ing.ingredient_name),
+        section: ing.section ?? guessSection(ing.ingredient_name),
         source: "meal_plan",
         created_by: createdBy,
       });
@@ -167,4 +182,179 @@ export async function generateGroceryListAction(familyId: string, createdBy: str
 
   revalidatePath("/household");
   return toInsert.length;
+}
+
+// ————————————————————————————————————————————————————————————————
+// Price book, pantry, and meals that know their slot and their recipe
+// ————————————————————————————————————————————————————————————————
+
+/** Set what an item really costs here. The family's figure replaces the
+ * shipped estimate from then on, everywhere it is used. */
+export async function setItemPriceAction(input: {
+  name: string;
+  unitPrice: number;
+  unit: string;
+  section: string;
+  note?: string | null;
+}): Promise<ActionState> {
+  const me = await requireCurrentMember();
+  if (!input.name.trim()) return { error: "Name the item." };
+  if (!(input.unitPrice >= 0)) return { error: "A price cannot be negative." };
+
+  const supabase = await createClient();
+  const { error } = await supabase.from("price_list").upsert(
+    {
+      family_id: me.family_id,
+      item_key: normalizeKey(input.name),
+      name: input.name.trim(),
+      unit: input.unit,
+      unit_price: input.unitPrice,
+      section: input.section,
+      note: input.note ?? null,
+      updated_by: me.id,
+      updated_at: new Date().toISOString(),
+    },
+    { onConflict: "family_id,item_key" },
+  );
+  if (error) return { error: error.message };
+
+  revalidatePath("/household");
+  return { error: null };
+}
+
+/** Drop the family's own price, so the shipped estimate applies again. */
+export async function resetItemPriceAction(itemKey: string): Promise<ActionState> {
+  const me = await requireCurrentMember();
+  const supabase = await createClient();
+  const { error } = await supabase.from("price_list").delete().eq("family_id", me.family_id).eq("item_key", itemKey);
+  if (error) return { error: error.message };
+  revalidatePath("/household");
+  return { error: null };
+}
+
+/** A price for this one line only — the shop had it cheaper today, without
+ * that becoming the household's standing price. */
+export async function setBuyItemPriceAction(itemId: string, unitPrice: number | null): Promise<ActionState> {
+  const me = await requireCurrentMember();
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("buy_items")
+    .update({ unit_price_override: unitPrice })
+    .eq("id", itemId)
+    .eq("family_id", me.family_id);
+  if (error) return { error: error.message };
+  revalidatePath("/household");
+  return { error: null };
+}
+
+export async function setPantryItemAction(input: { name: string; quantity?: number | null; unit?: string | null }): Promise<ActionState> {
+  const me = await requireCurrentMember();
+  if (!input.name.trim()) return { error: "Name the item." };
+
+  const supabase = await createClient();
+  const { error } = await supabase.from("pantry_items").upsert(
+    {
+      family_id: me.family_id,
+      item_key: normalizeKey(input.name),
+      name: input.name.trim(),
+      quantity: input.quantity ?? null,
+      unit: input.unit ?? null,
+      updated_by: me.id,
+      updated_at: new Date().toISOString(),
+    },
+    { onConflict: "family_id,item_key" },
+  );
+  if (error) return { error: error.message };
+  revalidatePath("/household");
+  return { error: null };
+}
+
+export async function removePantryItemAction(itemKey: string): Promise<ActionState> {
+  const me = await requireCurrentMember();
+  const supabase = await createClient();
+  const { error } = await supabase.from("pantry_items").delete().eq("family_id", me.family_id).eq("item_key", itemKey);
+  if (error) return { error: error.message };
+  revalidatePath("/household");
+  return { error: null };
+}
+
+/** Add a meal from the recipe library, or from scratch. Choosing a recipe
+ * brings its ingredients with it, which is the point: planning the week and
+ * writing the shopping list stop being two separate jobs. */
+export async function addMealFromRecipeAction(input: {
+  date: string;
+  slot: string;
+  recipeKey?: string | null;
+  dish?: string | null;
+  note?: string | null;
+}): Promise<ActionState> {
+  const me = await requireCurrentMember();
+  const supabase = await createClient();
+
+  const recipe = input.recipeKey ? RECIPES_BY_KEY.get(input.recipeKey) : undefined;
+  const dish = (recipe?.name ?? input.dish ?? "").trim();
+  if (!input.date || !dish) return { error: "Pick a day and a dish." };
+  if (!MEAL_SLOTS.includes(input.slot as MealSlot)) return { error: "Pick which part of the day it is for." };
+
+  // Sits after whatever is already in that slot.
+  const { count } = await supabase
+    .from("meal_plans")
+    .select("id", { count: "exact", head: true })
+    .eq("family_id", me.family_id)
+    .eq("plan_date", input.date)
+    .eq("slot", input.slot);
+
+  const { data: plan, error } = await supabase
+    .from("meal_plans")
+    .insert({
+      family_id: me.family_id,
+      plan_date: input.date,
+      slot: input.slot,
+      position: count ?? 0,
+      dish,
+      note: input.note ?? null,
+      recipe_key: recipe?.key ?? null,
+      created_by: me.id,
+    })
+    .select()
+    .single();
+  if (error || !plan) return { error: error?.message ?? "Could not save the meal." };
+
+  if (recipe) {
+    await supabase.from("meal_ingredients").insert(
+      recipe.ingredients.map((ing) => ({
+        meal_plan_id: plan.id,
+        family_id: me.family_id,
+        ingredient_name: ing.name,
+        item_key: normalizeKey(ing.name),
+        qty_amount: ing.qty,
+        unit: ing.unit,
+        section: ing.section,
+        qty: `${ing.qty} ${ing.unit}`,
+      })),
+    );
+  }
+
+  await syncRowToCalendars(
+    me.family_id,
+    "meal_plans",
+    plan.id,
+    { title: dish, startAt: new Date(`${input.date}T00:00:00`), allDay: true },
+    { kind: "all" },
+  );
+
+  revalidatePath("/household");
+  revalidatePath("/planner");
+  return { error: null };
+}
+
+export async function removeMealAction(mealId: string): Promise<ActionState> {
+  const me = await requireCurrentMember();
+  const supabase = await createClient();
+  await removeRowFromCalendars(me.family_id, "meal_plans", mealId);
+  const { error } = await supabase.from("meal_plans").delete().eq("id", mealId).eq("family_id", me.family_id);
+  if (error) return { error: error.message };
+  revalidatePath("/household");
+  revalidatePath("/planner");
+  return { error: null };
 }

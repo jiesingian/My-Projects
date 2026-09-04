@@ -435,10 +435,12 @@ export type Database = {
           id: string
           member_id: string | null
           name: string
+          planned_for: string | null
           quantity: number | null
           section: string
           source: string
           unit: string | null
+          unit_price_override: number | null
         }
         Insert: {
           checked?: boolean
@@ -452,10 +454,12 @@ export type Database = {
           id?: string
           member_id?: string | null
           name: string
+          planned_for?: string | null
           quantity?: number | null
           section?: string
           source: string
           unit?: string | null
+          unit_price_override?: number | null
         }
         Update: {
           checked?: boolean
@@ -469,10 +473,12 @@ export type Database = {
           id?: string
           member_id?: string | null
           name?: string
+          planned_for?: string | null
           quantity?: number | null
           section?: string
           source?: string
           unit?: string | null
+          unit_price_override?: number | null
         }
         Relationships: [
           {
@@ -1836,22 +1842,34 @@ export type Database = {
           family_id: string
           id: string
           ingredient_name: string
+          item_key: string | null
           meal_plan_id: string
           qty: string | null
+          qty_amount: number | null
+          section: string | null
+          unit: string | null
         }
         Insert: {
           family_id: string
           id?: string
           ingredient_name: string
+          item_key?: string | null
           meal_plan_id: string
           qty?: string | null
+          qty_amount?: number | null
+          section?: string | null
+          unit?: string | null
         }
         Update: {
           family_id?: string
           id?: string
           ingredient_name?: string
+          item_key?: string | null
           meal_plan_id?: string
           qty?: string | null
+          qty_amount?: number | null
+          section?: string | null
+          unit?: string | null
         }
         Relationships: [
           {
@@ -1879,6 +1897,9 @@ export type Database = {
           id: string
           note: string | null
           plan_date: string
+          position: number
+          recipe_key: string | null
+          slot: string
         }
         Insert: {
           created_at?: string
@@ -1888,6 +1909,9 @@ export type Database = {
           id?: string
           note?: string | null
           plan_date: string
+          position?: number
+          recipe_key?: string | null
+          slot?: string
         }
         Update: {
           created_at?: string
@@ -1897,6 +1921,9 @@ export type Database = {
           id?: string
           note?: string | null
           plan_date?: string
+          position?: number
+          recipe_key?: string | null
+          slot?: string
         }
         Relationships: [
           {
@@ -2171,6 +2198,111 @@ export type Database = {
             foreignKeyName: "omron_links_member_id_fkey"
             columns: ["member_id"]
             isOneToOne: true
+            referencedRelation: "members"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pantry_items: {
+        Row: {
+          family_id: string
+          id: string
+          item_key: string
+          name: string
+          note: string | null
+          quantity: number | null
+          unit: string | null
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          family_id: string
+          id?: string
+          item_key: string
+          name: string
+          note?: string | null
+          quantity?: number | null
+          unit?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          family_id?: string
+          id?: string
+          item_key?: string
+          name?: string
+          note?: string | null
+          quantity?: number | null
+          unit?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pantry_items_family_id_fkey"
+            columns: ["family_id"]
+            isOneToOne: false
+            referencedRelation: "families"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pantry_items_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
+            referencedRelation: "members"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      price_list: {
+        Row: {
+          family_id: string
+          id: string
+          item_key: string
+          name: string
+          note: string | null
+          section: string
+          unit: string
+          unit_price: number
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          family_id: string
+          id?: string
+          item_key: string
+          name: string
+          note?: string | null
+          section?: string
+          unit?: string
+          unit_price: number
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          family_id?: string
+          id?: string
+          item_key?: string
+          name?: string
+          note?: string | null
+          section?: string
+          unit?: string
+          unit_price?: number
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "price_list_family_id_fkey"
+            columns: ["family_id"]
+            isOneToOne: false
+            referencedRelation: "families"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "price_list_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
             referencedRelation: "members"
             referencedColumns: ["id"]
           },
