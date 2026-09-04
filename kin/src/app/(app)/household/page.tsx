@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getCurrentMember } from "@/lib/session";
-import { getBuyItems, getMealPlanner, type PlannedMeal } from "@/lib/queries/household";
+import { getBuyItems, getMealsForDay, type PlannedMeal } from "@/lib/queries/household";
 import { getAccounts } from "@/lib/queries/wealth";
 import { getPriceBook, getPricedBuyList, getNextShoppingRun, getPantry } from "@/lib/queries/household-money";
 import { HubHeader } from "@/components/hub-header";
@@ -13,7 +13,7 @@ import { SheetButton, Collapsible } from "@/components/sheet";
 import { RecipeBook, AddIngredientsToBuyButton } from "@/components/recipe-book";
 import { getRecipeBook } from "@/lib/queries/recipes";
 import { AddMealControl, RemoveMealButton } from "@/components/meal-controls";
-import { CalendarJump, DateRail, TodayButton } from "@/components/calendar-nav";
+import { CalendarJump, TodayButton } from "@/components/calendar-nav";
 import { MealPhotoControl, IngredientAmountRow, AddIngredientRow } from "@/components/meal-day";
 import { Icon } from "@/components/icons";
 import { formatCurrency } from "@/lib/format";
@@ -21,6 +21,7 @@ import { PRICE_BOOK_SET_ON } from "@/lib/pricebook";
 import { plateTone } from "@/lib/meal-photos";
 import { MEAL_SLOTS, MEAL_SLOT_LABEL } from "@/lib/recipes";
 import { MARKET_SECTIONS } from "@/lib/grocery";
+import { toISODate } from "@/lib/routines";
 
 const SEGMENTS = ["buy", "meals"] as const;
 type Seg = (typeof SEGMENTS)[number];
@@ -240,11 +241,25 @@ async function MealsPane({
   currency: string;
   anchor: Date;
 }) {
-  const [{ strip, meals, anchorISO }, recipes] = await Promise.all([getMealPlanner(familyId, anchor), getRecipeBook(familyId)]);
+  const [{ meals, anchorISO }, recipes] = await Promise.all([getMealsForDay(familyId, anchor), getRecipeBook(familyId)]);
   const today = new Date();
-  const selected = strip.find((d) => d.isSelected);
-  const isToday = selected?.isToday ?? false;
-  const label = anchor.toLocaleDateString("en-GB", { month: "long", year: "numeric" });
+  const isToday = anchor.toDateString() === today.toDateString();
+  // The title names the day itself, since the day is all this page shows.
+  // The year only when it isn't this one — it is noise the rest of the time.
+  const label =
+    `${isToday ? "Today" : anchor.toLocaleDateString("en-GB", { weekday: "short" })} · ` +
+    anchor.toLocaleDateString("en-GB", {
+      day: "numeric",
+      month: "long",
+      ...(anchor.getFullYear() === today.getFullYear() ? {} : { year: "numeric" }),
+    });
+
+  const step = (days: number) => {
+    const d = new Date(anchor);
+    d.setDate(anchor.getDate() + days);
+    return `${MEALS_HREF_BASE}${toISODate(d)}`;
+  };
+
   // The Monday of the week being looked at — what a shopping list built from
   // here would cover.
   const weekStart = new Date(anchor);
@@ -252,9 +267,10 @@ async function MealsPane({
 
   return (
     <>
-      {/* The same header as the Planner's calendar: the title jumps to any
-          month or day, and Today comes straight back. */}
-      <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 12 }}>
+      {/* The date is a drop-down: tapping it opens the month, year and day
+          picker. A meal plan is read one day at a time, so a whole rail of
+          dates was more chrome than the page needed. */}
+      <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 10 }}>
         <CalendarJump label={label} hrefBase={MEALS_HREF_BASE} anchor={anchorISO} />
         <SheetButton
           label={String(recipes.length)}
@@ -268,71 +284,18 @@ async function MealsPane({
         <TodayButton hrefBase={MEALS_HREF_BASE} />
       </div>
 
-      {/* And the same rail: scroll sideways through the weeks, tap a day to
-          plan it. The dots are the meals already down for that day. */}
-      <DateRail anchor={anchorISO}>
-        {strip.map((d) => {
-          const first = d.date.getDate() === 1;
-          return (
-            <Link
-              key={d.iso}
-              href={`${MEALS_HREF_BASE}${d.iso}`}
-              data-selected={d.isSelected}
-              aria-current={d.isSelected ? "date" : undefined}
-              style={{
-                width: "calc((100% - 12px) / 7)",
-                flex: "none",
-                textDecoration: "none",
-                color: "inherit",
-                display: "flex",
-                flexDirection: "column",
-                alignItems: "center",
-                gap: 3,
-                padding: "4px 0 5px",
-                borderRadius: 12,
-                background: d.isSelected && !d.isToday ? "color-mix(in srgb, var(--color-text) 7%, transparent)" : "transparent",
-                opacity: d.date < new Date(today.getFullYear(), today.getMonth(), today.getDate()) ? 0.55 : 1,
-              }}
-            >
-              <span style={{ fontSize: 11, color: "var(--color-neutral-600)", height: 13 }}>
-                {first ? d.date.toLocaleDateString("en-GB", { month: "short" }) : d.date.toLocaleDateString("en-GB", { weekday: "short" }).slice(0, 1)}
-              </span>
-              <span
-                style={{
-                  width: 34,
-                  height: 34,
-                  borderRadius: 999,
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  fontSize: 16,
-                  fontWeight: d.isToday || d.isSelected ? 600 : 400,
-                  background: d.isToday ? "var(--color-accent)" : "transparent",
-                  color: d.isToday ? "#fff" : "var(--color-text)",
-                  boxShadow: d.isSelected && !d.isToday ? "inset 0 0 0 1.5px var(--color-accent)" : "none",
-                }}
-              >
-                {d.date.getDate()}
-              </span>
-              <span style={{ display: "flex", gap: 2, height: 4 }}>
-                {d.slots.slice(0, 4).map((s, i) => (
-                  <span key={`${s}-${i}`} style={{ width: 4, height: 4, borderRadius: 999, background: "var(--cal-home)" }} />
-                ))}
-              </span>
-            </Link>
-          );
-        })}
-      </DateRail>
-
-      <div style={{ display: "flex", alignItems: "baseline", gap: 8, padding: "12px 0 4px" }}>
-        <h2 style={{ font: "600 17px/1.2 var(--font-heading)", margin: 0 }}>
-          {isToday ? "Today" : anchor.toLocaleDateString("en-GB", { weekday: "long" })}
-          {" · "}
-          {anchor.toLocaleDateString("en-GB", { day: "numeric", month: "long" })}
-        </h2>
-        <span style={{ marginLeft: "auto", fontSize: 12.5, color: "var(--color-neutral-600)" }}>
+      {/* One day either way without opening the picker — the step the rail
+          used to make with a swipe. */}
+      <div style={{ display: "flex", alignItems: "center", gap: 6, paddingBottom: 4 }}>
+        <span style={{ flex: 1, minWidth: 0, fontSize: 12.5, color: "var(--color-neutral-600)" }}>
           {meals.length === 0 ? "nothing planned" : `${meals.length} planned`}
         </span>
+        <Link href={step(-1)} className="btn btn-secondary btn-icon" style={{ width: 32, height: 32 }} aria-label="The day before">
+          <Icon name="chevronLeft" size={15} />
+        </Link>
+        <Link href={step(1)} className="btn btn-secondary btn-icon" style={{ width: 32, height: 32 }} aria-label="The day after">
+          <Icon name="chevronLeft" size={15} style={{ transform: "rotate(180deg)" }} />
+        </Link>
       </div>
 
       {/* Every day carries all four parts, so an empty one reads as a gap to

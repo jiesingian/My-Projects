@@ -3,7 +3,7 @@ import { normalizeKey } from "@/lib/pricebook";
 import { sectionOrder } from "@/lib/grocery";
 import { getSignedUrls } from "@/lib/storage";
 import { recipeRef, RECIPE_PHOTO_BUCKET } from "@/lib/meal-photos";
-import { MEAL_SLOTS, RECIPES_BY_KEY, type MealSlot } from "@/lib/recipes";
+import { RECIPES_BY_KEY, type MealSlot } from "@/lib/recipes";
 
 /** The open list, grouped by market section and ordered the way the sections
  * are walked, so it can be shopped straight down. */
@@ -71,41 +71,18 @@ export type PlannedMeal = {
   ingredientCount: number;
 };
 
-export type MealDay = {
-  date: Date;
-  iso: string;
-  isToday: boolean;
-  isSelected: boolean;
-  /** Just enough to draw the rail: one dot per meal, coloured by slot. */
-  slots: MealSlot[];
-};
-
 function toISO(d: Date) {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 }
 
-/** The meal plan around one day: a rail of dates that can be scrolled and
- * tapped, and everything cooked on the selected one. Mirrors the Planner's
- * week agenda deliberately — the same gesture should move both.
- *
- * The rail spans thirteen weeks; only the chosen day is loaded in full,
- * because that is the only one whose ingredients and photos are on screen. */
-export async function getMealPlanner(familyId: string, anchor: Date = new Date(), stripWeeksEachSide = 6) {
+/** Everything cooked on one day, with the amounts each meal needs and the
+ * household's photo of each dish. One day is all the meal plan shows, so one
+ * day is all this loads. */
+export async function getMealsForDay(familyId: string, anchor: Date = new Date()) {
   const supabase = await createClient();
-  const today = new Date();
-
-  const startOfWeek = new Date(anchor);
-  startOfWeek.setDate(anchor.getDate() - anchor.getDay());
-  const stripStart = new Date(startOfWeek);
-  stripStart.setDate(startOfWeek.getDate() - 7 * stripWeeksEachSide);
-  const stripLength = 7 * (stripWeeksEachSide * 2 + 1);
-  const stripEnd = new Date(stripStart);
-  stripEnd.setDate(stripStart.getDate() + stripLength);
-
   const anchorISO = toISO(anchor);
 
-  const [{ data: railRows }, { data: dayRows }, { data: activeBuy }, { data: pantry }, { data: photos }] = await Promise.all([
-    supabase.from("meal_plans").select("plan_date, slot").eq("family_id", familyId).gte("plan_date", toISO(stripStart)).lt("plan_date", toISO(stripEnd)),
+  const [{ data: dayRows }, { data: activeBuy }, { data: pantry }, { data: photos }] = await Promise.all([
     supabase
       .from("meal_plans")
       .select("*, meal_ingredients(*), family_recipes(minutes, serves, steps)")
@@ -119,28 +96,6 @@ export async function getMealPlanner(familyId: string, anchor: Date = new Date()
 
   const atHome = new Set((pantry ?? []).map((p) => p.item_key));
   const openNames = new Set((activeBuy ?? []).map((b) => normalizeKey(b.name)));
-
-  const bySlot = new Map<string, MealSlot[]>();
-  for (const r of railRows ?? []) {
-    const list = bySlot.get(r.plan_date) ?? [];
-    list.push(r.slot as MealSlot);
-    bySlot.set(r.plan_date, list);
-  }
-
-  const strip: MealDay[] = Array.from({ length: stripLength }, (_, i) => {
-    const d = new Date(stripStart);
-    d.setDate(stripStart.getDate() + i);
-    const iso = toISO(d);
-    const slots = bySlot.get(iso) ?? [];
-    return {
-      date: d,
-      iso,
-      isToday: d.toDateString() === today.toDateString(),
-      isSelected: iso === anchorISO,
-      // In the order they are eaten, so the dots read left to right as a day.
-      slots: MEAL_SLOTS.filter((s) => slots.includes(s)),
-    };
-  });
 
   const photoOf = new Map((photos ?? []).map((p) => [p.recipe_ref, p.storage_path]));
   const rows = dayRows ?? [];
@@ -190,5 +145,5 @@ export async function getMealPlanner(familyId: string, anchor: Date = new Date()
     };
   });
 
-  return { strip, meals, anchorISO };
+  return { meals, anchorISO };
 }
