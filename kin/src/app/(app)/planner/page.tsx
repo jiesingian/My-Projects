@@ -57,14 +57,6 @@ function toISODate(d: Date) {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 }
 
-function shiftAnchor(date: Date, view: CalendarView, dir: 1 | -1): Date {
-  const d = new Date(date);
-  if (view === "week") d.setDate(d.getDate() + 7 * dir);
-  else if (view === "month") d.setMonth(d.getMonth() + dir);
-  else d.setFullYear(d.getFullYear() + dir);
-  return d;
-}
-
 function calendarHref(who: string, view: CalendarView, date: Date) {
   return `/planner?seg=calendar&who=${who}&view=${view}&date=${toISODate(date)}`;
 }
@@ -123,21 +115,12 @@ async function CalendarPane({ familyId, who, view, anchor }: { familyId: string;
           {view[0].toUpperCase() + view.slice(1)}
           <Icon name="chevronUpDown" size={15} style={{ color: "var(--color-neutral-600)" }} />
         </Link>
-        <Link
-          href={calendarHref(who, view, shiftAnchor(anchor, view, -1))}
-          className="btn btn-secondary btn-icon"
-          aria-label="Previous"
-          style={{ width: 34, height: 34 }}
-        >
-          <Icon name="chevronLeft" size={16} />
-        </Link>
-        <Link
-          href={calendarHref(who, view, shiftAnchor(anchor, view, 1))}
-          className="btn btn-secondary btn-icon"
-          aria-label="Next"
-          style={{ width: 34, height: 34 }}
-        >
-          <Icon name="chevronLeft" size={16} style={{ transform: "rotate(180deg)" }} />
+        {/* Straight back to the current date. The prev/next arrows that used
+            to sit here are gone: the week rail and the month scroller both
+            scroll, and the title's sheet reaches any date at all, so the
+            arrows only cost the title the room it needs to spell its month. */}
+        <Link href={calendarHref(who, view, new Date())} className="btn btn-secondary" style={{ minHeight: 34, fontSize: 13, padding: "0 12px" }}>
+          Today
         </Link>
       </div>
 

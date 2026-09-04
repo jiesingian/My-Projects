@@ -172,7 +172,7 @@ function toISODate(d: Date): string {
  * days either side of it. The strip is what the date rail scrolls through, so
  * the user can swipe weeks forward and back without a page load; the week
  * itself is the agenda beneath. One query covers both. */
-export async function getWeekAgenda(familyId: string, memberId?: string, anchor: Date = new Date(), stripWeeksEachSide = 4) {
+export async function getWeekAgenda(familyId: string, memberId?: string, anchor: Date = new Date(), stripWeeksEachSide = 6) {
   const today = new Date();
   const startOfWeek = new Date(anchor);
   startOfWeek.setDate(anchor.getDate() - anchor.getDay());
@@ -219,7 +219,7 @@ export async function getWeekAgenda(familyId: string, memberId?: string, anchor:
 /** Consecutive months around `anchor`, each with its own days' items, so the
  * month grid can scroll continuously from one month into the next instead of
  * paging one month at a time. One query spans the whole run. */
-export async function getMonthsOverview(familyId: string, anchor: Date, memberId?: string, before = 1, after = 2) {
+export async function getMonthsOverview(familyId: string, anchor: Date, memberId?: string, before = 2, after = 5) {
   const first = new Date(anchor.getFullYear(), anchor.getMonth() - before, 1);
   const end = new Date(anchor.getFullYear(), anchor.getMonth() + after + 1, 1);
 
