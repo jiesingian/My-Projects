@@ -682,3 +682,25 @@ textarea.input {
   opacity: 0.6;
   cursor: default;
 }
+
+/* — round dish tile — the face of a recipe or a category. */
+.kin-tile {
+  width: 62px;
+  height: 62px;
+  border-radius: 999px;
+  overflow: hidden;
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.kin-tile > img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+.kin-tile--sm {
+  width: 42px;
+  height: 42px;
+}

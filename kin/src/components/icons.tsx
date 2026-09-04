@@ -44,6 +44,15 @@ export const iconPaths = {
   // Meals
   camera: "M4 8h3l1.5-2.5h7L17 8h3v12H4zM12 10a3.5 3.5 0 1 0 0 7a3.5 3.5 0 0 0 0-7",
   clock: "M12 3.5a8.5 8.5 0 1 0 0 17a8.5 8.5 0 0 0 0-17M12 7.5V12l3 2",
+  // The kinds of food the recipe book is browsed by. Kept to one flavour of
+  // line each, so a rail of them reads as a set rather than a scrapbook.
+  bowl: "M3 11.5h18a9 9 0 0 1-18 0M7.5 11.5c.6-3.2 2.4-5 4.5-5s3.9 1.8 4.5 5",
+  bowlSteam: "M3 12.5h18a9 9 0 0 1-18 0M8.5 8.5c0-1.6 1.2-2 1.2-3.5M12 8.5c0-1.6 1.2-2 1.2-3.5M15.5 8.5c0-1.6 1.2-2 1.2-3.5",
+  steak: "M4.8 10.2c.4-3.6 4-6.2 8.4-5.8s7.3 3.4 6.9 6.8-3.9 6.6-8.3 6.2-7.4-3.6-7-7.2M9.4 9.6l3.2 3.9M12.6 9.1l2.6 3.2",
+  fish: "M2.5 12c3.5-4.5 10-6 13.5-2.5s1 8.5-2.5 9.5S5 18 2.5 12M16 9.5 21.5 6v11L16 14M7 12h.01",
+  leaf: "M20.5 3.5C9.5 4 4 9 4 15.5c0 2 .8 3.6.8 3.6S7 9.5 19 6.5M4.8 19.1C12 19 18.5 14 20.5 3.5",
+  noodles: "M3 12.5h18a9 9 0 0 1-18 0M13.5 9.5 21 3M11 9.5 19 4.5",
+  cupcake: "M6 11.5h12l-1.6 8.5H7.6zM7 11.5a3 3 0 0 1 1.2-5.5a3.4 3.4 0 0 1 6.6-.6A3 3 0 0 1 17 11.5",
 } as const;
 
 export type IconName = keyof typeof iconPaths;

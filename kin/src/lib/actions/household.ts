@@ -7,7 +7,7 @@ import { requireCurrentMember } from "@/lib/session";
 import { syncRowToCalendars, removeRowFromCalendars } from "@/lib/actions/calendar-sync";
 import { MARKET_SECTIONS, guessSection, parseQuantity } from "@/lib/grocery";
 import { normalizeKey } from "@/lib/pricebook";
-import { MEAL_SLOTS, RECIPES_BY_KEY, type MealSlot } from "@/lib/recipes";
+import { MEAL_SLOTS, RECIPE_CATEGORIES, RECIPES_BY_KEY, type MealSlot } from "@/lib/recipes";
 import { RECIPE_PHOTO_BUCKET } from "@/lib/meal-photos";
 import type { ActionState } from "@/lib/actions/auth";
 import type { TablesInsert } from "@/lib/database.types";
@@ -399,6 +399,7 @@ export async function saveRecipeAction(input: {
   baseKey?: string | null;
   name: string;
   slots: string[];
+  categories?: string[];
   serves: number;
   minutes: number | null;
   steps: string[];
@@ -417,6 +418,9 @@ export async function saveRecipeAction(input: {
     name,
     base_key: input.baseKey ?? null,
     slots,
+    // Unstated is not the same as none: an empty list lets the book guess
+    // from the name and ingredients rather than filing it nowhere.
+    categories: (input.categories ?? []).filter((c) => (RECIPE_CATEGORIES as string[]).includes(c)),
     serves: Math.min(30, Math.max(1, Math.round(input.serves || 4))),
     minutes: input.minutes,
     steps: input.steps.map((s) => s.trim()).filter(Boolean),

@@ -1,4 +1,5 @@
 import type { MarketSection } from "@/lib/grocery";
+import type { IconName } from "@/components/icons";
 
 export type MealSlot = "breakfast" | "lunch" | "dinner" | "snack";
 
@@ -13,6 +14,87 @@ export const MEAL_SLOT_LABEL: Record<MealSlot, string> = {
   snack: "Snacks",
 };
 
+/** What kind of food it is, rather than when it is eaten — how a menu is
+ * browsed when nobody has decided what they want yet. A dish belongs to as
+ * many as fit: tapsilog is a rice meal and beef. */
+export type RecipeCategory = "rice" | "chicken" | "pork" | "beef" | "seafood" | "vegetables" | "soup" | "noodles" | "merienda";
+
+/** In the order they are put in front of a cook: the everyday ones first. */
+export const RECIPE_CATEGORIES: RecipeCategory[] = [
+  "rice",
+  "chicken",
+  "pork",
+  "beef",
+  "seafood",
+  "vegetables",
+  "soup",
+  "noodles",
+  "merienda",
+];
+
+/** The glyph on a category's tile, until the household's own photo of a dish
+ * in it takes over. */
+export const RECIPE_CATEGORY_ICON: Record<RecipeCategory, IconName> = {
+  rice: "bowl",
+  // Colour and label separate the three meats; one honest cut of meat
+  // reads better at 24px than three guessable animal parts.
+  chicken: "steak",
+  pork: "steak",
+  beef: "steak",
+  seafood: "fish",
+  vegetables: "leaf",
+  soup: "bowlSteam",
+  noodles: "noodles",
+  merienda: "cupcake",
+};
+
+/** Which glaze each category wears, chosen so no two neighbours in the rail
+ * share one. */
+export const RECIPE_CATEGORY_PLATE: Record<RecipeCategory, number> = {
+  rice: 1,
+  chicken: 5,
+  pork: 0,
+  beef: 2,
+  seafood: 4,
+  vegetables: 3,
+  soup: 2,
+  noodles: 5,
+  merienda: 1,
+};
+
+export const RECIPE_CATEGORY_LABEL: Record<RecipeCategory, string> = {
+  rice: "Rice meals",
+  chicken: "Chicken",
+  pork: "Pork",
+  beef: "Beef",
+  seafood: "Seafood",
+  vegetables: "Vegetables",
+  soup: "Soups",
+  noodles: "Noodles",
+  merienda: "Merienda",
+};
+
+/** A first guess for a recipe the household wrote without saying what it is.
+ * Wrong sometimes, and always changeable in the editor — better than leaving
+ * their own dishes out of every category. */
+export function guessCategories(name: string, ingredientNames: string[]): RecipeCategory[] {
+  const hay = [name, ...ingredientNames].join(" ").toLowerCase();
+  const has = (...words: string[]) => words.some((w) => hay.includes(w));
+  const found: RecipeCategory[] = [];
+
+  if (has("chicken", "manok")) found.push("chicken");
+  if (has("pork", "baboy", "liempo", "lechon", "longganisa", "bacon")) found.push("pork");
+  if (has("beef", "baka", "tapa", "sirloin", "brisket")) found.push("beef");
+  if (has("fish", "isda", "bangus", "tilapia", "hipon", "shrimp", "squid", "pusit", "sardinas", "tuna")) found.push("seafood");
+  if (has("noodle", "pancit", "spaghetti", "pasta", "bihon", "canton", "sotanghon")) found.push("noodles");
+  if (has("sinigang", "soup", "sabaw", "nilaga", "tinola", "bulalo", "caldo", "lugaw")) found.push("soup");
+  if (has("rice", "kanin", "silog", "champorado")) found.push("rice");
+  if (has("turon", "banana cue", "bilo", "halo-halo", "leche", "cake", "biko", "puto", "merienda")) found.push("merienda");
+  if (has("kangkong", "talong", "sitaw", "kalabasa", "gulay", "vegetable", "monggo", "pechay")) found.push("vegetables");
+
+  return found;
+}
+
 export type RecipeIngredient = {
   name: string;
   qty: number;
@@ -25,6 +107,8 @@ export type Recipe = {
   name: string;
   /** Where it usually sits in the day; the cook can still put it anywhere. */
   slots: MealSlot[];
+  /** What kind of food it is — how the recipe book is browsed. */
+  categories: RecipeCategory[];
   serves: number;
   minutes: number;
   ingredients: RecipeIngredient[];
@@ -46,6 +130,7 @@ export const RECIPES: Recipe[] = [
     key: "adobo",
     name: "Chicken adobo",
     slots: ["lunch", "dinner"],
+    categories: ["chicken"],
     serves: 5,
     minutes: 45,
     ingredients: [
@@ -66,6 +151,7 @@ export const RECIPES: Recipe[] = [
     key: "sinigang-baboy",
     name: "Sinigang na baboy",
     slots: ["lunch", "dinner"],
+    categories: ["pork", "soup"],
     serves: 5,
     minutes: 60,
     ingredients: [
@@ -88,6 +174,7 @@ export const RECIPES: Recipe[] = [
     key: "sinigang-hipon",
     name: "Sinigang na hipon",
     slots: ["lunch", "dinner"],
+    categories: ["seafood", "soup"],
     serves: 5,
     minutes: 35,
     ingredients: [
@@ -104,6 +191,7 @@ export const RECIPES: Recipe[] = [
     key: "tinola",
     name: "Tinolang manok",
     slots: ["lunch", "dinner"],
+    categories: ["chicken", "soup"],
     serves: 5,
     minutes: 45,
     ingredients: [
@@ -125,6 +213,7 @@ export const RECIPES: Recipe[] = [
     key: "menudo",
     name: "Pork menudo",
     slots: ["lunch", "dinner"],
+    categories: ["pork"],
     serves: 5,
     minutes: 55,
     ingredients: [
@@ -142,6 +231,7 @@ export const RECIPES: Recipe[] = [
     key: "afritada",
     name: "Chicken afritada",
     slots: ["lunch", "dinner"],
+    categories: ["chicken"],
     serves: 5,
     minutes: 50,
     ingredients: [
@@ -158,6 +248,7 @@ export const RECIPES: Recipe[] = [
     key: "caldereta",
     name: "Beef caldereta",
     slots: ["lunch", "dinner"],
+    categories: ["beef"],
     serves: 5,
     minutes: 90,
     ingredients: [
@@ -174,6 +265,7 @@ export const RECIPES: Recipe[] = [
     key: "kare-kare",
     name: "Kare-kare",
     slots: ["lunch", "dinner"],
+    categories: ["beef", "vegetables"],
     serves: 5,
     minutes: 90,
     ingredients: [
@@ -191,6 +283,7 @@ export const RECIPES: Recipe[] = [
     key: "nilaga",
     name: "Nilagang baka",
     slots: ["lunch", "dinner"],
+    categories: ["beef", "soup"],
     serves: 5,
     minutes: 90,
     ingredients: [
@@ -207,6 +300,7 @@ export const RECIPES: Recipe[] = [
     key: "ginisang-monggo",
     name: "Ginisang monggo",
     slots: ["lunch", "dinner"],
+    categories: ["vegetables", "pork"],
     serves: 5,
     minutes: 50,
     ingredients: [
@@ -223,6 +317,7 @@ export const RECIPES: Recipe[] = [
     key: "pinakbet",
     name: "Pinakbet",
     slots: ["lunch", "dinner"],
+    categories: ["vegetables"],
     serves: 5,
     minutes: 40,
     ingredients: [
@@ -240,6 +335,7 @@ export const RECIPES: Recipe[] = [
     key: "bistek",
     name: "Bistek Tagalog",
     slots: ["lunch", "dinner"],
+    categories: ["beef"],
     serves: 5,
     minutes: 50,
     ingredients: [
@@ -255,6 +351,7 @@ export const RECIPES: Recipe[] = [
     key: "giniling",
     name: "Giniling guisado",
     slots: ["lunch", "dinner"],
+    categories: ["pork"],
     serves: 5,
     minutes: 35,
     ingredients: [
@@ -271,6 +368,7 @@ export const RECIPES: Recipe[] = [
     key: "pritong-isda",
     name: "Pritong bangus",
     slots: ["lunch", "dinner"],
+    categories: ["seafood"],
     serves: 5,
     minutes: 25,
     ingredients: [
@@ -285,6 +383,7 @@ export const RECIPES: Recipe[] = [
     key: "pancit-canton",
     name: "Pancit canton",
     slots: ["lunch", "dinner", "snack"],
+    categories: ["noodles"],
     serves: 5,
     minutes: 35,
     ingredients: [
@@ -302,6 +401,7 @@ export const RECIPES: Recipe[] = [
     key: "spaghetti",
     name: "Filipino spaghetti",
     slots: ["lunch", "dinner"],
+    categories: ["noodles"],
     serves: 6,
     minutes: 45,
     ingredients: [
@@ -319,6 +419,7 @@ export const RECIPES: Recipe[] = [
     key: "tortang-talong",
     name: "Tortang talong",
     slots: ["breakfast", "lunch", "dinner"],
+    categories: ["vegetables"],
     serves: 4,
     minutes: 30,
     ingredients: [
@@ -334,6 +435,7 @@ export const RECIPES: Recipe[] = [
     key: "tapsilog",
     name: "Tapsilog",
     slots: ["breakfast"],
+    categories: ["rice", "beef"],
     serves: 4,
     minutes: 25,
     ingredients: [
@@ -348,6 +450,7 @@ export const RECIPES: Recipe[] = [
     key: "longsilog",
     name: "Longsilog",
     slots: ["breakfast"],
+    categories: ["rice", "pork"],
     serves: 4,
     minutes: 25,
     ingredients: [
@@ -362,6 +465,7 @@ export const RECIPES: Recipe[] = [
     key: "champorado",
     name: "Champorado",
     slots: ["breakfast", "snack"],
+    categories: ["rice", "merienda"],
     serves: 5,
     minutes: 30,
     ingredients: [
@@ -376,6 +480,7 @@ export const RECIPES: Recipe[] = [
     key: "arroz-caldo",
     name: "Arroz caldo",
     slots: ["breakfast", "snack"],
+    categories: ["rice", "chicken", "soup"],
     serves: 5,
     minutes: 50,
     ingredients: [
@@ -393,6 +498,7 @@ export const RECIPES: Recipe[] = [
     key: "lugaw",
     name: "Lugaw",
     slots: ["breakfast", "snack"],
+    categories: ["rice", "soup"],
     serves: 5,
     minutes: 40,
     ingredients: [
@@ -407,6 +513,7 @@ export const RECIPES: Recipe[] = [
     key: "ginisang-sardinas",
     name: "Ginisang sardinas",
     slots: ["breakfast", "lunch"],
+    categories: ["seafood"],
     serves: 4,
     minutes: 15,
     ingredients: [
@@ -421,6 +528,7 @@ export const RECIPES: Recipe[] = [
     key: "turon",
     name: "Turon",
     slots: ["snack"],
+    categories: ["merienda"],
     serves: 6,
     minutes: 30,
     ingredients: [
@@ -435,6 +543,7 @@ export const RECIPES: Recipe[] = [
     key: "banana-cue",
     name: "Banana cue",
     slots: ["snack"],
+    categories: ["merienda"],
     serves: 6,
     minutes: 25,
     ingredients: [
@@ -448,6 +557,7 @@ export const RECIPES: Recipe[] = [
     key: "ginataang-bilo",
     name: "Ginataang bilo-bilo",
     slots: ["snack"],
+    categories: ["merienda"],
     serves: 6,
     minutes: 45,
     ingredients: [

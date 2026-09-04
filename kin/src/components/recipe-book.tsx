@@ -8,10 +8,20 @@ import {
   addMealIngredientsToBuyAction,
   toggleIngredientAtHomeAction,
 } from "@/lib/actions/household";
-import { Icon } from "@/components/icons";
+import { Icon, type IconName } from "@/components/icons";
 import { Collapsible } from "@/components/sheet";
 import { MARKET_SECTIONS, UNITS } from "@/lib/grocery";
-import { MEAL_SLOTS, MEAL_SLOT_LABEL, type MealSlot } from "@/lib/recipes";
+import {
+  MEAL_SLOTS,
+  MEAL_SLOT_LABEL,
+  RECIPE_CATEGORIES,
+  RECIPE_CATEGORY_ICON,
+  RECIPE_CATEGORY_LABEL,
+  RECIPE_CATEGORY_PLATE,
+  type MealSlot,
+  type RecipeCategory,
+} from "@/lib/recipes";
+import { plateAt, plateTone } from "@/lib/meal-photos";
 
 function useAct() {
   const router = useRouter();
@@ -34,6 +44,8 @@ export type EditableRecipe = {
   familyRecipeId: string | null;
   name: string;
   slots: MealSlot[];
+  categories: RecipeCategory[];
+  photoUrl: string | null;
   serves: number;
   minutes: number | null;
   steps: string[];
@@ -55,6 +67,7 @@ export function RecipeBook({ recipes }: { recipes: EditableRecipe[] }) {
   const [editing, setEditing] = useState<EditableRecipe | null>(null);
   const [creating, setCreating] = useState(false);
   const [query, setQuery] = useState("");
+  const [category, setCategory] = useState<RecipeCategory | null>(null);
 
   if (creating || editing) {
     return (
@@ -70,6 +83,16 @@ export function RecipeBook({ recipes }: { recipes: EditableRecipe[] }) {
 
   const q = query.trim().toLowerCase();
   const matches = q ? recipes.filter((r) => r.name.toLowerCase().includes(q)) : null;
+
+  // The categories that actually have something in them, each with a face:
+  // one of the household's own photos from that category when they have
+  // taken one, and the drawn plate until then.
+  const categories = RECIPE_CATEGORIES.map((c) => {
+    const items = recipes.filter((r) => r.categories.includes(c));
+    return { key: c, label: RECIPE_CATEGORY_LABEL[c], items, photo: items.find((r) => r.photoUrl)?.photoUrl ?? null };
+  }).filter((c) => c.items.length > 0);
+
+  const chosen = category ? categories.find((c) => c.key === category) : null;
 
   // Filed the way meals are eaten, with the household's own first — that is
   // what anyone opening the book is looking for. A dish good for more than
@@ -96,13 +119,36 @@ export function RecipeBook({ recipes }: { recipes: EditableRecipe[] }) {
         aria-label="Search recipes"
       />
 
-      {/* A search is already a short list; grouping it would only hide it. */}
+      {/* Browse by what kind of food it is, the way a menu is read when
+          nobody has decided yet. Tapping a tile narrows the book to it. */}
+      {!matches && (
+        <div className="cal-rail" style={{ gap: 10, margin: "0 -18px 14px", padding: "2px 18px 0" }}>
+          <CategoryTile label="All" active={!category} onClick={() => setCategory(null)} count={recipes.length} />
+          {categories.map((c) => (
+            <CategoryTile
+              key={c.key}
+              label={c.label}
+              icon={RECIPE_CATEGORY_ICON[c.key]}
+              tone={plateAt(RECIPE_CATEGORY_PLATE[c.key])}
+              photo={c.photo}
+              count={c.items.length}
+              active={category === c.key}
+              onClick={() => setCategory(category === c.key ? null : (c.key as RecipeCategory))}
+            />
+          ))}
+        </div>
+      )}
+
+      {/* A search is already a short list; grouping it would only hide it.
+          So is one category — the tile above says what you are looking at. */}
       {matches ? (
         matches.length > 0 ? (
           matches.map((r) => <RecipeRow key={r.id} recipe={r} onEdit={() => setEditing(r)} />)
         ) : (
           <p style={{ fontSize: 13.5, color: "var(--color-neutral-600)" }}>No recipe matches that.</p>
         )
+      ) : chosen ? (
+        chosen.items.map((r) => <RecipeRow key={r.id} recipe={r} onEdit={() => setEditing(r)} />)
       ) : (
         groups.map((g, i) => (
           // Only the first group is open: the book is a reference, not
@@ -118,9 +164,92 @@ export function RecipeBook({ recipes }: { recipes: EditableRecipe[] }) {
   );
 }
 
+/** One round tile in the category rail: the household's own photo of a dish
+ * in that category, or the drawn plate until they have taken one. */
+function CategoryTile({
+  label,
+  icon = "utensils",
+  tone = plateAt(0),
+  photo,
+  count,
+  active,
+  onClick,
+}: {
+  label: string;
+  icon?: IconName;
+  tone?: { from: string; to: string; ink: string };
+  photo?: string | null;
+  count: number;
+  active: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-pressed={active}
+      style={{
+        flex: "none",
+        width: 72,
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        gap: 5,
+        background: "none",
+        border: 0,
+        padding: 0,
+        cursor: "pointer",
+        fontFamily: "var(--font-body)",
+      }}
+    >
+      <span
+        className="kin-tile"
+        style={{
+          background: photo ? undefined : `linear-gradient(140deg, ${tone.from}, ${tone.to})`,
+          boxShadow: active ? "0 0 0 2.5px var(--color-accent)" : "0 0 0 1px var(--color-divider)",
+        }}
+      >
+        {photo ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={photo} alt="" />
+        ) : (
+          <Icon name={icon} size={24} style={{ color: tone.ink, opacity: 0.9 }} />
+        )}
+      </span>
+      <span
+        style={{
+          fontSize: 11.5,
+          lineHeight: 1.2,
+          textAlign: "center",
+          color: active ? "var(--color-accent)" : "var(--color-text)",
+          fontWeight: active ? 600 : 400,
+        }}
+      >
+        {label}
+      </span>
+      <span style={{ fontSize: 10.5, color: "var(--color-neutral-600)", marginTop: -3 }}>{count}</span>
+    </button>
+  );
+}
+
 function RecipeRow({ recipe: r, onEdit }: { recipe: EditableRecipe; onEdit: () => void }) {
+  const tone = plateTone(r.name);
   return (
     <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "9px 0", borderBottom: "1px solid var(--color-divider)" }}>
+      <span
+        className="kin-tile kin-tile--sm"
+        style={{
+          background: r.photoUrl ? undefined : `linear-gradient(140deg, ${tone.from}, ${tone.to})`,
+          boxShadow: "0 0 0 1px var(--color-divider)",
+        }}
+      >
+        {r.photoUrl ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={r.photoUrl} alt="" />
+        ) : (
+          <span style={{ font: "500 16px/1 var(--font-heading)", color: tone.ink, textTransform: "uppercase" }}>{r.name.trim().charAt(0)}</span>
+        )}
+      </span>
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ fontSize: 15, fontWeight: 500 }}>{r.name}</div>
         <div style={{ fontSize: 12.5, color: "var(--color-neutral-600)" }}>
@@ -151,6 +280,7 @@ function RecipeEditor({ recipe, onDone }: { recipe: EditableRecipe | null; onDon
   const { pending, error, run } = useAct();
   const [name, setName] = useState(recipe?.name ?? "");
   const [slots, setSlots] = useState<MealSlot[]>(recipe?.slots ?? ["dinner"]);
+  const [categories, setCategories] = useState<RecipeCategory[]>(recipe?.categories ?? []);
   const [serves, setServes] = useState(String(recipe?.serves ?? 4));
   const [minutes, setMinutes] = useState(recipe?.minutes == null ? "" : String(recipe.minutes));
   const [steps, setSteps] = useState((recipe?.steps ?? []).join("\n"));
@@ -194,6 +324,21 @@ function RecipeEditor({ recipe, onDone }: { recipe: EditableRecipe | null; onDon
             onClick={() => setSlots((prev) => (prev.includes(s) ? prev.filter((x) => x !== s) : [...prev, s]))}
           >
             {MEAL_SLOT_LABEL[s]}
+          </button>
+        ))}
+      </div>
+
+      <div style={{ fontSize: 13, color: "var(--color-neutral-700)", marginBottom: 6 }}>Kind of food</div>
+      <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 12 }}>
+        {RECIPE_CATEGORIES.map((c) => (
+          <button
+            key={c}
+            type="button"
+            className="chip"
+            data-active={categories.includes(c)}
+            onClick={() => setCategories((prev) => (prev.includes(c) ? prev.filter((x) => x !== c) : [...prev, c]))}
+          >
+            {RECIPE_CATEGORY_LABEL[c]}
           </button>
         ))}
       </div>
@@ -282,6 +427,7 @@ function RecipeEditor({ recipe, onDone }: { recipe: EditableRecipe | null; onDon
                 baseKey: recipe?.origin === "shipped" ? recipe.key : (recipe?.key ?? null),
                 name,
                 slots,
+                categories,
                 serves: Number(serves) || 4,
                 minutes: minutes === "" ? null : Number(minutes),
                 steps: steps.split("\n"),

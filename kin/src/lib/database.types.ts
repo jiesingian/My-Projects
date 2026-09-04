@@ -1156,6 +1156,7 @@ export type Database = {
       family_recipes: {
         Row: {
           base_key: string | null
+          categories: string[]
           created_at: string
           created_by: string | null
           family_id: string
@@ -1169,6 +1170,7 @@ export type Database = {
         }
         Insert: {
           base_key?: string | null
+          categories?: string[]
           created_at?: string
           created_by?: string | null
           family_id: string
@@ -1182,6 +1184,7 @@ export type Database = {
         }
         Update: {
           base_key?: string | null
+          categories?: string[]
           created_at?: string
           created_by?: string | null
           family_id?: string
