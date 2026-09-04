@@ -48,6 +48,12 @@
 
   --color-switch-on: #34c759;
 
+  /* The fill behind a white label on a selected pill. systemBlue itself only
+     reaches 4.02:1 against white, under AA for text this size; this holds
+     5.04:1 and is the same in both themes, since what it has to contrast
+     with is the label on top of it, not the page behind it. */
+  --color-accent-solid: #0a6ed1;
+
   /* Calendar categories. Four hues checked with a colourblind validator
      (worst pair 7.0 ΔE) plus a neutral, always paired with an icon. */
   --cal-schedule: #1971c2;
@@ -438,29 +444,36 @@ textarea.input {
   box-shadow: var(--shadow-sm);
 }
 
-/* — chip (filter / choice pill) — */
+/* — chip (filter / choice pill) —
+   Same metrics as the calendar's legend pills, so a row of people and a row
+   of categories read as one family of controls rather than two. */
 .chip {
   cursor: pointer;
-  padding: 7px 14px;
+  min-height: 32px;
+  padding: 0 13px;
   border: 0;
   border-radius: var(--radius-pill);
   background: color-mix(in srgb, var(--color-text) 6%, transparent);
   color: var(--color-text);
   font-family: var(--font-body);
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 500;
   letter-spacing: -0.005em;
   text-decoration: none;
   display: inline-flex;
   align-items: center;
+  gap: 6px;
   transition: transform 0.12s ease;
 }
 .chip:active {
   transform: scale(0.96);
 }
+/* --color-accent-solid, not --color-accent: white on systemBlue is 4.02:1,
+   which is under AA for label-sized text. */
 .chip[data-active="true"] {
-  background: var(--color-accent);
+  background: var(--color-accent-solid);
   color: #fff;
+  font-weight: 600;
 }
 
 /* Bottom tab bar — frosted, so content scrolls visibly beneath it. */

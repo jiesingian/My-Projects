@@ -8,7 +8,7 @@ import { syncGoogleCalendarIfStale } from "@/lib/actions/calendar-sync";
 import { HubHeader } from "@/components/hub-header";
 import { ChipRow } from "@/components/segmented";
 import { Blueprint, Tag } from "@/components/ui";
-import { formatCurrency, formatDate } from "@/lib/format";
+import { formatCurrency, formatDate, shortNames } from "@/lib/format";
 import { AddToJournalButton } from "@/components/add-to-journal-button";
 import { Icon } from "@/components/icons";
 import { CALENDAR_LEGEND, styleFor } from "@/lib/calendar-style";
@@ -68,6 +68,7 @@ async function CalendarPane({ familyId, who, view, anchor, hidden }: { familyId:
   const hide = serializeHidden(hidden);
   const members = await getMembers(familyId);
   const activeMembers = members.filter((m) => m.status !== "pending" && m.status !== "removed");
+  const memberLabels = shortNames(activeMembers.map((m) => m.full_name));
   const memberId = who === "all" ? undefined : who;
 
   // Week → Month → Year → Week, one tap at a time.
@@ -98,8 +99,8 @@ async function CalendarPane({ familyId, who, view, anchor, hidden }: { familyId:
         <ChipRow
           items={[
             { label: "All", href: calendarHref("all", view, anchor, hide), active: who === "all" },
-            ...activeMembers.map((m) => ({
-              label: m.full_name.split(" ")[0],
+            ...activeMembers.map((m, i) => ({
+              label: memberLabels[i],
               href: calendarHref(m.id, view, anchor, hide),
               active: who === m.id,
             })),
@@ -148,14 +149,16 @@ async function CalendarPane({ familyId, who, view, anchor, hidden }: { familyId:
                 display: "flex",
                 alignItems: "center",
                 gap: 5,
-                minHeight: 30,
-                padding: "0 10px",
+                minHeight: 32,
+                padding: "0 13px",
                 borderRadius: 999,
-                fontSize: 12.5,
+                fontSize: 13,
+                fontWeight: 500,
                 textDecoration: "none",
                 background: on ? "color-mix(in srgb, var(--color-text) 6%, transparent)" : "transparent",
                 boxShadow: on ? "none" : "inset 0 0 0 1px var(--color-divider)",
-                color: on ? "var(--color-text)" : "var(--color-neutral-600)",
+                // neutral-700, not 600: at this size 600 is 2.92:1 on the light page.
+                color: on ? "var(--color-text)" : "var(--color-neutral-700)",
               }}
             >
               <span
@@ -176,7 +179,7 @@ async function CalendarPane({ familyId, who, view, anchor, hidden }: { familyId:
         {hidden.size > 0 && (
           <Link
             href={calendarHref(who, view, anchor)}
-            style={{ minHeight: 30, display: "flex", alignItems: "center", padding: "0 8px", fontSize: 12.5, color: "var(--color-accent)", textDecoration: "none" }}
+            style={{ minHeight: 32, display: "flex", alignItems: "center", padding: "0 8px", fontSize: 13, color: "var(--color-accent)", textDecoration: "none" }}
           >
             Show all
           </Link>

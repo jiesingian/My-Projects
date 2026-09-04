@@ -11,7 +11,7 @@ import { Avatar } from "@/components/avatar";
 import { FamilyBackgroundAlbum } from "@/components/family-background-album";
 import { FamilyAboutEditor } from "@/components/family-about-editor";
 import { FamilyAddressList } from "@/components/family-address-list";
-import { formatAge, initials } from "@/lib/format";
+import { formatAge, initials, shortNames } from "@/lib/format";
 
 const SEGMENTS = ["profile", "health", "documents"] as const;
 type Seg = (typeof SEGMENTS)[number];
@@ -181,10 +181,10 @@ async function DocumentsPane({ familyId, who }: { familyId: string; who: string 
         <ChipRow
           items={[
             { label: "All", href: "/family?seg=documents&who=all", active: who === "all" },
-            ...members.map((m) => ({
-              label: m.full_name.split(" ")[0],
-              href: `/family?seg=documents&who=${m.id}`,
-              active: who === m.id,
+            ...shortNames(members.map((m) => m.full_name)).map((label, i) => ({
+              label,
+              href: `/family?seg=documents&who=${members[i].id}`,
+              active: who === members[i].id,
             })),
           ]}
         />

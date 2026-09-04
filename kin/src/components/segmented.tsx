@@ -22,9 +22,10 @@ export function ChipRow({
   items: { label: string; href: string; active: boolean }[];
 }) {
   return (
-    <div style={{ display: "flex", gap: 7, flexWrap: "wrap" }}>
+    <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+      {/* Keyed on href, not label: two family members can share a first name. */}
       {items.map((it) => (
-        <Link key={it.label} href={it.href} className="chip" data-active={it.active}>
+        <Link key={it.href} href={it.href} className="chip" data-active={it.active}>
           {it.label}
         </Link>
       ))}
