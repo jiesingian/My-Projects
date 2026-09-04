@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Icon } from "@/components/icons";
@@ -20,13 +20,31 @@ function iso(year: number, month: number, day: number) {
   return `${year}-${String(month + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
 }
 
+/** Which period the header is naming. It starts as the anchored date the
+ * server rendered, and the month scroller moves it as the user scrolls, so
+ * the title always names the month actually on screen. */
+type Period = { label: string; iso: string };
+
+const PeriodCtx = createContext<{ period: Period; set: (label: string, iso: string) => void } | null>(null);
+
+export function CalendarPeriod({ label, iso, children }: { label: string; iso: string; children: React.ReactNode }) {
+  const [period, setPeriod] = useState<Period>({ label, iso });
+  // Ignore a repeat of what is already showing, so a scroll that stays within
+  // one month doesn't re-render the header on every frame.
+  const set = useCallback((l: string, i: string) => {
+    setPeriod((p) => (p.label === l && p.iso === i ? p : { label: l, iso: i }));
+  }, []);
+  const value = useMemo(() => ({ period, set }), [period, set]);
+  return <PeriodCtx.Provider value={value}>{children}</PeriodCtx.Provider>;
+}
+
 /** The period title doubles as the jump control: tap it and pick any month,
  * year, or exact day, instead of stepping there one arrow at a time. */
 export function CalendarJump({
-  label,
+  label: serverLabel,
   who,
   view,
-  anchor,
+  anchor: serverAnchor,
 }: {
   label: string;
   who: string;
@@ -35,6 +53,11 @@ export function CalendarJump({
 }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
+  // What the header names follows the scroller when there is one; without a
+  // provider it is simply what the server rendered.
+  const ctx = useContext(PeriodCtx);
+  const label = ctx?.period.label ?? serverLabel;
+  const anchor = ctx?.period.iso ?? serverAnchor;
   const anchorYear = Number(anchor.slice(0, 4));
   const anchorMonth = Number(anchor.slice(5, 7)) - 1;
   const anchorDay = Number(anchor.slice(8, 10));
@@ -251,13 +274,46 @@ export function DateRail({ anchor, children }: { anchor: string; children: React
 }
 
 /** Vertical month scroller — consecutive months in one continuous column,
- * opened at the month being looked at, and re-opened there when it moves. */
+ * opened at the month being looked at, and re-opened there when it moves.
+ * As it scrolls it reports whichever month has reached the top, so the
+ * header keeps naming what is on screen rather than where you started. */
 export function MonthScroller({ anchor, children }: { anchor: string; children: React.ReactNode }) {
   const ref = useRef<HTMLDivElement>(null);
+  const set = useContext(PeriodCtx)?.set;
 
   useEffect(() => {
     if (ref.current) topMonth(ref.current);
   }, [anchor]);
+
+  useEffect(() => {
+    const box = ref.current;
+    if (!box || !set) return;
+
+    let frame = 0;
+    const report = () => {
+      frame = 0;
+      const blocks = Array.from(box.querySelectorAll<HTMLElement>("[data-month-label]"));
+      // Whichever month covers a point a third of the way down the viewport.
+      // Measuring at the very top edge instead would misname the last month:
+      // scrolling stops with it fully in view but its top still below the
+      // edge, so the month above would win despite being nearly gone.
+      const probe = box.scrollTop + box.clientHeight * 0.35;
+      const current = blocks.filter((b) => b.offsetTop <= probe).pop() ?? blocks[0];
+      if (current?.dataset.monthLabel && current.dataset.monthIso) {
+        set(current.dataset.monthLabel, current.dataset.monthIso);
+      }
+    };
+    const onScroll = () => {
+      if (!frame) frame = requestAnimationFrame(report);
+    };
+
+    report();
+    box.addEventListener("scroll", onScroll, { passive: true });
+    return () => {
+      box.removeEventListener("scroll", onScroll);
+      if (frame) cancelAnimationFrame(frame);
+    };
+  }, [set, anchor]);
 
   return (
     <div ref={ref} className="cal-months">

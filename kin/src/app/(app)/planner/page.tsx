@@ -13,7 +13,7 @@ import { AddToJournalButton } from "@/components/add-to-journal-button";
 import { Icon } from "@/components/icons";
 import { CALENDAR_LEGEND, styleFor } from "@/lib/calendar-style";
 import { LogSpendControl } from "@/components/money-actions";
-import { CalendarJump, DateRail, MonthScroller, TodayButton } from "@/components/calendar-nav";
+import { CalendarJump, CalendarPeriod, DateRail, MonthScroller, TodayButton } from "@/components/calendar-nav";
 
 const SEGMENTS = ["calendar", "events", "travel"] as const;
 type Seg = (typeof SEGMENTS)[number];
@@ -87,7 +87,9 @@ async function CalendarPane({ familyId, who, view, anchor }: { familyId: string;
         : String(anchor.getFullYear());
 
   return (
-    <>
+    // Keyed on what the server anchored: a new anchor starts the header off
+    // naming that period again, rather than wherever it had been scrolled.
+    <CalendarPeriod key={`${view}-${toISODate(anchor)}`} label={label} iso={toISODate(anchor)}>
       <div style={{ marginBottom: 14 }}>
         <ChipRow
           items={[
@@ -139,7 +141,7 @@ async function CalendarPane({ familyId, who, view, anchor }: { familyId: string;
       <Link href="/planner/add?type=activity" className="btn btn-primary btn-block" style={{ minHeight: 48, fontSize: 16, marginTop: 16 }}>
         <Icon name="plus" size={17} /> Add to calendar
       </Link>
-    </>
+    </CalendarPeriod>
   );
 }
 
@@ -297,8 +299,18 @@ async function MonthView({ familyId, memberId, who, anchor }: { familyId: string
         {months.map((m) => {
           const isAnchorMonth = m === anchorMonth;
           const isThisMonth = m.monthStart.getFullYear() === today.getFullYear() && m.monthStart.getMonth() === today.getMonth();
+          const monthLabel = m.monthStart.toLocaleDateString("en-GB", { month: "long", year: "numeric" });
+          // What the header should name, and jump to, once this month is the
+          // one on screen — the same day of the month, where it exists.
+          const monthIso = toISODate(new Date(m.monthStart.getFullYear(), m.monthStart.getMonth(), Math.min(anchor.getDate(), m.daysInMonth)));
           return (
-            <div key={m.monthStart.toISOString()} data-anchor-month={isAnchorMonth} style={{ paddingBottom: 10 }}>
+            <div
+              key={m.monthStart.toISOString()}
+              data-anchor-month={isAnchorMonth}
+              data-month-label={monthLabel}
+              data-month-iso={monthIso}
+              style={{ paddingBottom: 10 }}
+            >
               <div
                 style={{
                   font: "600 13px/1 var(--font-heading)",
@@ -307,7 +319,7 @@ async function MonthView({ familyId, memberId, who, anchor }: { familyId: string
                   padding: "10px 2px 6px",
                 }}
               >
-                {m.monthStart.toLocaleDateString("en-GB", { month: "long", year: "numeric" }).toUpperCase()}
+                {monthLabel.toUpperCase()}
               </div>
               <div style={{ display: "grid", gridTemplateColumns: "repeat(7, minmax(0, 1fr))", gap: 2 }}>
                 {Array.from({ length: m.monthStart.getDay() }, (_, i) => (
