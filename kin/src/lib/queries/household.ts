@@ -57,9 +57,3 @@ export async function getMeals(familyId: string) {
     return { ...m, missing, ingredientCount: ingredients.length };
   });
 }
-
-export async function getBills(familyId: string) {
-  const supabase = await createClient();
-  const { data } = await supabase.from("bills").select("*").eq("family_id", familyId).order("due_date");
-  return data ?? [];
-}

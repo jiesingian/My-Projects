@@ -60,9 +60,9 @@
     "semantic_hash": ""
   },
   "src/app/(app)/family/members/[id]/page.tsx": {
-    "mtime": 1788424560.7408063,
-    "seen": 1788424806.2747564,
-    "ast_hash": "7a480b3bda9257d820bc17481f70233e",
+    "mtime": 1788492011.5515885,
+    "seen": 1788492353.6317763,
+    "ast_hash": "0666e91bb2c006df99122e331b23c991",
     "semantic_hash": ""
   },
   "src/app/(app)/family/page.tsx": {
@@ -78,9 +78,9 @@
     "semantic_hash": ""
   },
   "src/app/(app)/household/page.tsx": {
-    "mtime": 1788315960.6134727,
-    "seen": 1788336057.1914814,
-    "ast_hash": "f5377bc00898fce255a2abb9d11e14a9",
+    "mtime": 1788491903.4822552,
+    "seen": 1788492353.6317828,
+    "ast_hash": "e323060a31dc8593cdf20df2ad682528",
     "semantic_hash": ""
   },
   "src/app/(app)/journal/milestones/new/page.tsx": {
@@ -126,9 +126,9 @@
     "semantic_hash": ""
   },
   "src/app/(app)/planner/page.tsx": {
-    "mtime": 1788487537.5899754,
-    "seen": 1788487600.1829524,
-    "ast_hash": "a1c3240039b1df107a91b7bf46ff34a7",
+    "mtime": 1788491985.3176782,
+    "seen": 1788492353.6317978,
+    "ast_hash": "d0ba48b7fb0939da8322d67213a68eab",
     "semantic_hash": ""
   },
   "src/app/(app)/settings/page.tsx": {
@@ -144,9 +144,9 @@
     "semantic_hash": ""
   },
   "src/app/(app)/wealth/page.tsx": {
-    "mtime": 1788488337.5143414,
-    "seen": 1788488391.441512,
-    "ast_hash": "adbc26551dd4d84aeea3cac33c0c30ad",
+    "mtime": 1788491714.1275709,
+    "seen": 1788492353.6318119,
+    "ast_hash": "f9e069b25590f72afc465d17e5093841",
     "semantic_hash": ""
   },
   "src/app/api/drive/callback/route.ts": {
@@ -233,12 +233,6 @@
     "ast_hash": "5ae801af39695390c56e3e5f8b9dccb7",
     "semantic_hash": ""
   },
-  "src/components/add-bill-form.tsx": {
-    "mtime": 1788423510.572312,
-    "seen": 1788423550.06787,
-    "ast_hash": "d3044ef8bbe8b507cd836dfba1063df3",
-    "semantic_hash": ""
-  },
   "src/components/add-child-form.tsx": {
     "mtime": 1788423511.6643121,
     "seen": 1788423550.0678718,
@@ -252,9 +246,9 @@
     "semantic_hash": ""
   },
   "src/components/buy-list.tsx": {
-    "mtime": 1788423514.4883122,
-    "seen": 1788423550.0678804,
-    "ast_hash": "4b5ece0d7b65e4690e95f66f5b485257",
+    "mtime": 1788492039.11559,
+    "seen": 1788492353.6318564,
+    "ast_hash": "5f47b7342ded3caaa6fee6c69331e61a",
     "semantic_hash": ""
   },
   "src/components/copy-invite-code.tsx": {
@@ -299,12 +293,6 @@
     "ast_hash": "4cd4d53a1afe21880353dbde3c3d1f5c",
     "semantic_hash": ""
   },
-  "src/components/mark-paid-button.tsx": {
-    "mtime": 1788315923.2414737,
-    "seen": 1788336057.1915622,
-    "ast_hash": "15c4929f2ba8219b8fcfe423ff12abe8",
-    "semantic_hash": ""
-  },
   "src/components/onboarding-shell.tsx": {
     "mtime": 1788315116.885492,
     "seen": 1788336057.1915648,
@@ -336,9 +324,9 @@
     "semantic_hash": ""
   },
   "src/components/wealth-controls.tsx": {
-    "mtime": 1788423512.076312,
-    "seen": 1788423550.0679328,
-    "ast_hash": "7f24242790703a836f8203d1226fe2a5",
+    "mtime": 1788491498.223558,
+    "seen": 1788492353.6319118,
+    "ast_hash": "e97d5db6634b859a339986bc826642c1",
     "semantic_hash": ""
   },
   "src/lib/actions/auth.ts": {
@@ -372,9 +360,9 @@
     "semantic_hash": ""
   },
   "src/lib/actions/household.ts": {
-    "mtime": 1788487473.4699733,
-    "seen": 1788487600.1830559,
-    "ast_hash": "da0bebc282d28dbd8b8bbeafb86652bc",
+    "mtime": 1788491909.24229,
+    "seen": 1788492353.6319199,
+    "ast_hash": "c25f414d27ee88c7a7bbc18830f76e82",
     "semantic_hash": ""
   },
   "src/lib/actions/journal.ts": {
@@ -396,15 +384,15 @@
     "semantic_hash": ""
   },
   "src/lib/actions/wealth.ts": {
-    "mtime": 1788487333.8299687,
-    "seen": 1788487600.1830633,
-    "ast_hash": "cfc5c702f12e9699bc341bcbafc6919c",
+    "mtime": 1788492119.639595,
+    "seen": 1788492353.6319256,
+    "ast_hash": "2864176e20c5f89062134cad674920db",
     "semantic_hash": ""
   },
   "src/lib/database.types.ts": {
-    "mtime": 1788487307.1747468,
-    "seen": 1788487600.1830642,
-    "ast_hash": "dae2df5c5abcd1ec11dec71c03ad84dc",
+    "mtime": 1788491244.2788777,
+    "seen": 1788492353.6319268,
+    "ast_hash": "ac80796172facc06b9814388ac9ec05e",
     "semantic_hash": ""
   },
   "src/lib/format.ts": {
@@ -426,9 +414,9 @@
     "semantic_hash": ""
   },
   "src/lib/queries/household.ts": {
-    "mtime": 1788315858.373475,
-    "seen": 1788336057.191598,
-    "ast_hash": "d93a80a7b27cbbde59c309972f2a30df",
+    "mtime": 1788491909.2426775,
+    "seen": 1788492353.6319358,
+    "ast_hash": "21324fcdd2d3ab2740359aee227d6903",
     "semantic_hash": ""
   },
   "src/lib/queries/journal.ts": {
@@ -444,15 +432,15 @@
     "semantic_hash": ""
   },
   "src/lib/queries/today.ts": {
-    "mtime": 1788315259.0294888,
-    "seen": 1788336057.1916027,
-    "ast_hash": "3b392734ce755d61bf1fb401c693846c",
+    "mtime": 1788491955.4555852,
+    "seen": 1788492353.6319385,
+    "ast_hash": "6aec5a13ef4f4e1e3b8b1e41d6587a9a",
     "semantic_hash": ""
   },
   "src/lib/queries/wealth.ts": {
-    "mtime": 1788487316.7699683,
-    "seen": 1788487600.1830812,
-    "ast_hash": "c15fb97d5ec8aa13fbed74b93051cc89",
+    "mtime": 1788491324.2875478,
+    "seen": 1788492353.6319396,
+    "ast_hash": "7e4530338163f5d7194657ae9a88beef",
     "semantic_hash": ""
   },
   "src/lib/session.ts": {
@@ -762,15 +750,63 @@
     "semantic_hash": ""
   },
   "src/app/(app)/wealth/add/add-goal-form.tsx": {
-    "mtime": 1788488306.5543404,
-    "seen": 1788488391.4415083,
-    "ast_hash": "343dc56d18ee9698e5f5a2a8a008738e",
+    "mtime": 1788491793.1275756,
+    "seen": 1788492353.6318054,
+    "ast_hash": "4c527e8aff73db9f504549e0632599eb",
     "semantic_hash": ""
   },
   "src/app/(app)/wealth/add/page.tsx": {
-    "mtime": 1788488310.8223405,
-    "seen": 1788488391.44151,
-    "ast_hash": "9271dc24342b22784045895d6310f7f5",
+    "mtime": 1788491798.5755758,
+    "seen": 1788492353.6318073,
+    "ast_hash": "1b927ce60696a2284ae88710b4f9b207",
+    "semantic_hash": ""
+  },
+  "src/app/(app)/wealth/accounts/[id]/account-edit-form.tsx": {
+    "mtime": 1788491729.6115718,
+    "seen": 1788492353.6318023,
+    "ast_hash": "b12bb533c257c840978cbf6e8d1263dd",
+    "semantic_hash": ""
+  },
+  "src/app/(app)/wealth/accounts/[id]/page.tsx": {
+    "mtime": 1788491752.971573,
+    "seen": 1788492353.631804,
+    "ast_hash": "929d317b2c08e1fc2b5b946e08113968",
+    "semantic_hash": ""
+  },
+  "src/app/(app)/wealth/assets/new/add-holding-form.tsx": {
+    "mtime": 1788491771.9875743,
+    "seen": 1788492353.6318085,
+    "ast_hash": "afab8e94e4d74301f06122014bfc59da",
+    "semantic_hash": ""
+  },
+  "src/app/(app)/wealth/assets/new/page.tsx": {
+    "mtime": 1788491780.7995749,
+    "seen": 1788492353.6318097,
+    "ast_hash": "37b9af4f302fbfe8ef3ff5255847a23b",
+    "semantic_hash": ""
+  },
+  "src/app/(app)/wealth/transact/page.tsx": {
+    "mtime": 1788491601.2595642,
+    "seen": 1788492353.6318135,
+    "ast_hash": "bb9e1023ffc3f709d277543a681dfbdd",
+    "semantic_hash": ""
+  },
+  "src/app/(app)/wealth/transact/transact-form.tsx": {
+    "mtime": 1788491595.5075638,
+    "seen": 1788492353.6318152,
+    "ast_hash": "9d7d7c2671f96a4cac9fcd6108f8a8ba",
+    "semantic_hash": ""
+  },
+  "src/components/money-actions.tsx": {
+    "mtime": 1788491842.5915785,
+    "seen": 1788492353.631891,
+    "ast_hash": "e04328996f3af5fe91a8660b0571f68b",
+    "semantic_hash": ""
+  },
+  "src/lib/wealth.ts": {
+    "mtime": 1788491293.855546,
+    "seen": 1788492353.6319485,
+    "ast_hash": "d9242c5a46460036f60ebc987cfcdf06",
     "semantic_hash": ""
   }
 }

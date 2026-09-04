@@ -3,6 +3,8 @@ import Link from "next/link";
 import { getCurrentMember } from "@/lib/session";
 import { createClient } from "@/lib/supabase/server";
 import { getMemberDetail, buildBarSeries } from "@/lib/queries/health";
+import { getAccounts } from "@/lib/queries/wealth";
+import { LogSpendControl } from "@/components/money-actions";
 import { DetailHeader } from "@/components/hub-header";
 import { Segmented } from "@/components/segmented";
 import { Blueprint, Tag } from "@/components/ui";
@@ -38,6 +40,11 @@ export default async function MemberDetailPage({
   const { member, schedule, appointments, conditions, labs, vitals, omron } = await getMemberDetail(id, me.family_id);
   if (!member) redirect("/family?seg=profile");
   const isSelf = me.id === member.id;
+
+  const accounts = await getAccounts(me.family_id);
+  const payableAccounts = accounts
+    .filter((a) => a.is_joint || a.owner_member_id === me.id)
+    .map((a) => ({ id: a.id, name: a.name, institution: a.institution, linked_app_url: a.linked_app_url, balance: a.balance, is_joint: a.is_joint }));
 
   let photos: AlbumPhoto[] = [];
   if (isSelf) {
@@ -144,11 +151,23 @@ export default async function MemberDetailPage({
                 APPOINTMENTS
               </div>
               {appointments.map((a) => (
-                <div key={a.id} style={{ display: "flex", gap: 12, padding: "11px 0", borderBottom: "1px solid color-mix(in srgb, var(--color-text) 10%, transparent)" }}>
-                  <span style={{ font: "400 11px/1.4 ui-monospace, Menlo, monospace", color: "var(--color-accent-700)", width: 140, flex: "none" }}>
-                    {new Date(a.when_at).toLocaleString()}
-                  </span>
-                  <span style={{ flex: 1, fontSize: 13 }}>{a.what}</span>
+                <div key={a.id} style={{ padding: "11px 0", borderBottom: "1px solid color-mix(in srgb, var(--color-text) 10%, transparent)" }}>
+                  <div style={{ display: "flex", gap: 12, alignItems: "center", flexWrap: "wrap" }}>
+                    <span style={{ font: "400 11px/1.4 ui-monospace, Menlo, monospace", color: "var(--color-accent-700)", width: 140, flex: "none" }}>
+                      {new Date(a.when_at).toLocaleString()}
+                    </span>
+                    <span style={{ flex: 1, fontSize: 13, minWidth: 120 }}>{a.what}</span>
+                    <LogSpendControl
+                      accounts={payableAccounts}
+                      currency={me.families.currency}
+                      particulars={`${a.what} · ${member.full_name.split(" ")[0]}`}
+                      category="Health"
+                      sourceTable="health_appointments"
+                      sourceId={a.id}
+                      suggested={a.cost ? Number(a.cost) : undefined}
+                      label="LOG COST"
+                    />
+                  </div>
                 </div>
               ))}
               {schedule.length === 0 && appointments.length === 0 && <EmptyNote text="Nothing scheduled yet." />}

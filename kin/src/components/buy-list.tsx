@@ -1,11 +1,15 @@
 "use client";
 
 import { useActionState, useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
 import { addBuyItemAction, toggleBuyItemAction, clearCheckedAction } from "@/lib/actions/household";
+import { postHubExpenseAction } from "@/lib/actions/wealth";
 import type { ActionState } from "@/lib/actions/auth";
 import { SubmitButton, ErrorText } from "@/components/form";
 import { Blueprint, Tag } from "@/components/ui";
 import { Icon } from "@/components/icons";
+import { formatCurrency } from "@/lib/format";
+import type { PickableAccount } from "@/components/money-actions";
 import type { Tables } from "@/lib/database.types";
 
 const initialState: ActionState = { error: null };
@@ -24,14 +28,18 @@ export function BuyList({
   openCount,
   doneCount,
   familyId,
+  accounts,
+  currency,
 }: {
   groups: BuyGroup[];
   openCount: number;
   doneCount: number;
   familyId: string;
+  accounts: PickableAccount[];
+  currency: string;
 }) {
   const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
-  const [pending, startTransition] = useTransition();
+  const [, startTransition] = useTransition();
   const [addState, addAction] = useActionState(addBuyItemAction, initialState);
 
   return (
@@ -48,22 +56,7 @@ export function BuyList({
         </div>
       </Blueprint>
 
-      {doneCount > 0 && (
-        <Blueprint className="bg-[var(--color-accent-100)]" style={{ padding: "11px 13px", marginBottom: 16, display: "flex", gap: 10, alignItems: "center" }}>
-          <span style={{ fontSize: 12, flex: 1 }}>
-            {doneCount} item{doneCount === 1 ? "" : "s"} ticked off — clear {doneCount === 1 ? "it" : "them"} from the list?
-          </span>
-          <button
-            type="button"
-            className="btn btn-primary"
-            style={{ minHeight: 38, fontSize: 11.5, letterSpacing: ".04em", flex: "none" }}
-            disabled={pending}
-            onClick={() => startTransition(() => clearCheckedAction(familyId))}
-          >
-            CLEAR CHECKED
-          </button>
-        </Blueprint>
-      )}
+      {doneCount > 0 && <ClearCheckedPanel familyId={familyId} doneCount={doneCount} accounts={accounts} currency={currency} />}
 
       {groups.map((g) => {
         const isCollapsed = collapsed.has(g.name);
@@ -149,5 +142,83 @@ export function BuyList({
         Groceries generated from the meal plan land here under their own group. Ticked items stay until cleared.
       </div>
     </>
+  );
+}
+
+/** Clearing the trolley is the moment the shop actually cost something, so
+ * that's where the spend is captured and taken out of a real account. */
+function ClearCheckedPanel({
+  familyId,
+  doneCount,
+  accounts,
+  currency,
+}: {
+  familyId: string;
+  doneCount: number;
+  accounts: PickableAccount[];
+  currency: string;
+}) {
+  const [amount, setAmount] = useState(0);
+  const [accountId, setAccountId] = useState(accounts[0]?.id ?? "");
+  const [pending, startTransition] = useTransition();
+  const router = useRouter();
+
+  function finish(withSpend: boolean) {
+    startTransition(async () => {
+      if (withSpend && amount > 0 && accountId) {
+        await postHubExpenseAction({
+          accountId,
+          amount,
+          particulars: `Grocery run · ${doneCount} item${doneCount === 1 ? "" : "s"}`,
+          category: "Groceries",
+          sourceTable: "buy_items",
+          sourceId: null,
+        });
+      }
+      await clearCheckedAction(familyId);
+      router.refresh();
+    });
+  }
+
+  return (
+    <Blueprint className="bg-[var(--color-accent-100)]" style={{ padding: "12px 13px", marginBottom: 16 }}>
+      <div style={{ fontSize: 12, marginBottom: 10 }}>
+        {doneCount} item{doneCount === 1 ? "" : "s"} in the trolley — what did the shop come to?
+      </div>
+      {accounts.length > 0 && (
+        <div style={{ display: "flex", gap: 8, marginBottom: 10 }}>
+          <div className="field" style={{ flex: 1, margin: 0 }}>
+            <label>PAID FROM</label>
+            <select className="input" value={accountId} onChange={(e) => setAccountId(e.target.value)} style={{ minHeight: 40 }}>
+              {accounts.map((a) => (
+                <option key={a.id} value={a.id}>
+                  {a.name} · {formatCurrency(a.balance, currency)}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div className="field" style={{ width: 106, margin: 0 }}>
+            <label>TOTAL</label>
+            <input className="input" type="number" step="0.01" value={amount} onChange={(e) => setAmount(Number(e.target.value))} style={{ minHeight: 40 }} />
+          </div>
+        </div>
+      )}
+      <div style={{ display: "flex", gap: 8 }}>
+        <button
+          type="button"
+          className="btn btn-primary"
+          style={{ flex: 1, minHeight: 38, fontSize: 11.5, letterSpacing: ".04em" }}
+          disabled={pending}
+          onClick={() => finish(true)}
+        >
+          {pending ? "…" : amount > 0 ? "CLEAR & LOG SPEND" : "CLEAR CHECKED"}
+        </button>
+        {amount > 0 && (
+          <button type="button" className="btn btn-secondary" style={{ flex: "none", minHeight: 38, fontSize: 11.5 }} disabled={pending} onClick={() => finish(false)}>
+            CLEAR ONLY
+          </button>
+        )}
+      </div>
+    </Blueprint>
   );
 }

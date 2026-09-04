@@ -1,16 +1,14 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getCurrentMember } from "@/lib/session";
-import { getBuyItems, getMeals, getBills } from "@/lib/queries/household";
+import { getBuyItems, getMeals } from "@/lib/queries/household";
+import { getAccounts } from "@/lib/queries/wealth";
 import { HubHeader } from "@/components/hub-header";
 import { BuyList } from "@/components/buy-list";
 import { Tag } from "@/components/ui";
-import { AddBillForm } from "@/components/add-bill-form";
-import { MarkPaidButton } from "@/components/mark-paid-button";
 import { GenerateGroceryButton } from "@/components/generate-grocery-button";
-import { formatCurrency, formatDate } from "@/lib/format";
 
-const SEGMENTS = ["buy", "meals", "bills"] as const;
+const SEGMENTS = ["buy", "meals"] as const;
 type Seg = (typeof SEGMENTS)[number];
 
 export default async function HouseholdPage({
@@ -33,17 +31,32 @@ export default async function HouseholdPage({
     <div>
       <HubHeader n="04" title="Household" segments={segments} />
       <div style={{ padding: "0 22px 22px" }}>
-        {seg === "buy" && <BuyPane familyId={me.family_id} />}
+        {seg === "buy" && <BuyPane familyId={me.family_id} memberId={me.id} currency={me.families.currency} />}
         {seg === "meals" && <MealsPane familyId={me.family_id} memberId={me.id} />}
-        {seg === "bills" && <BillsPane familyId={me.family_id} currency={me.families.currency} />}
       </div>
     </div>
   );
 }
 
-async function BuyPane({ familyId }: { familyId: string }) {
-  const { groups, openCount, doneCount } = await getBuyItems(familyId);
-  return <BuyList groups={groups} openCount={openCount} doneCount={doneCount} familyId={familyId} />;
+async function BuyPane({ familyId, memberId, currency }: { familyId: string; memberId: string; currency: string }) {
+  const [{ groups, openCount, doneCount }, accounts] = await Promise.all([getBuyItems(familyId), getAccounts(familyId)]);
+  return (
+    <>
+      <BuyList
+        groups={groups}
+        openCount={openCount}
+        doneCount={doneCount}
+        familyId={familyId}
+        currency={currency}
+        accounts={accounts
+          .filter((a) => a.is_joint || a.owner_member_id === memberId)
+          .map((a) => ({ id: a.id, name: a.name, institution: a.institution, linked_app_url: a.linked_app_url, balance: a.balance, is_joint: a.is_joint }))}
+      />
+      <Link href="/wealth?seg=bills" style={{ display: "block", fontSize: 11.5, color: "var(--color-neutral-600)", marginTop: 14 }}>
+        Bills now live in Wealth, where they are paid from an account →
+      </Link>
+    </>
+  );
 }
 
 async function MealsPane({ familyId, memberId }: { familyId: string; memberId: string }) {
@@ -67,33 +80,6 @@ async function MealsPane({ familyId, memberId }: { familyId: string; memberId: s
         + ADD MEAL
       </Link>
       <GenerateGroceryButton familyId={familyId} memberId={memberId} />
-    </>
-  );
-}
-
-async function BillsPane({ familyId, currency }: { familyId: string; currency: string }) {
-  const bills = await getBills(familyId);
-  return (
-    <>
-      {bills.length === 0 && <p style={{ fontSize: 12, color: "var(--color-neutral-600)" }}>No bills tracked yet.</p>}
-      {bills.map((b) => (
-        <div key={b.id} style={{ display: "flex", gap: 11, alignItems: "center", padding: "12px 0", borderBottom: "1px solid color-mix(in srgb, var(--color-text) 10%, transparent)" }}>
-          <span style={{ flex: 1, minWidth: 0 }}>
-            <span style={{ font: "600 17px/1.1 var(--font-heading)", display: "block" }}>{b.name}</span>
-            <span style={{ fontSize: 11, color: "var(--color-neutral-600)" }}>
-              {b.category ?? ""} {b.due_date ? `· due ${formatDate(b.due_date)}` : ""}
-            </span>
-          </span>
-          <span style={{ textAlign: "right", flex: "none" }}>
-            <span style={{ font: "600 16px/1 var(--font-heading)", display: "block" }}>{formatCurrency(Number(b.amount), currency)}</span>
-            <Tag variant={b.status === "unpaid" || b.status === "overdue" ? "accent" : b.status === "scheduled" ? "outline" : "neutral"}>
-              {b.status.toUpperCase()}
-            </Tag>
-            {b.status !== "paid" && <MarkPaidButton billId={b.id} />}
-          </span>
-        </div>
-      ))}
-      <AddBillForm />
     </>
   );
 }

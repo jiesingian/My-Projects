@@ -3,12 +3,14 @@ import { redirect } from "next/navigation";
 import { getCurrentMember } from "@/lib/session";
 import { getWeekAgenda, getMonthOverview, getYearOverview, getEvents, getTrips } from "@/lib/queries/planner";
 import { getMembers } from "@/lib/queries/family";
+import { getAccounts } from "@/lib/queries/wealth";
 import { syncGoogleCalendarIfStale } from "@/lib/actions/calendar-sync";
 import { HubHeader } from "@/components/hub-header";
 import { ChipRow } from "@/components/segmented";
 import { Blueprint, Tag } from "@/components/ui";
 import { formatCurrency, formatDate } from "@/lib/format";
 import { AddToJournalButton } from "@/components/add-to-journal-button";
+import { LogSpendControl } from "@/components/money-actions";
 
 const SEGMENTS = ["calendar", "events", "travel"] as const;
 type Seg = (typeof SEGMENTS)[number];
@@ -42,7 +44,7 @@ export default async function PlannerPage({
       <div style={{ padding: "0 22px 22px" }}>
         {seg === "calendar" && <CalendarPane familyId={me.family_id} who={who} view={view} anchor={anchor} />}
         {seg === "events" && <EventsPane familyId={me.family_id} />}
-        {seg === "travel" && <TravelPane familyId={me.family_id} currency={me.families.currency} />}
+        {seg === "travel" && <TravelPane familyId={me.family_id} memberId={me.id} currency={me.families.currency} />}
       </div>
     </div>
   );
@@ -299,8 +301,11 @@ async function EventsPane({ familyId }: { familyId: string }) {
   );
 }
 
-async function TravelPane({ familyId, currency }: { familyId: string; currency: string }) {
-  const trips = await getTrips(familyId);
+async function TravelPane({ familyId, memberId, currency }: { familyId: string; memberId: string; currency: string }) {
+  const [trips, accounts] = await Promise.all([getTrips(familyId), getAccounts(familyId)]);
+  const pickable = accounts
+    .filter((a) => a.is_joint || a.owner_member_id === memberId)
+    .map((a) => ({ id: a.id, name: a.name, institution: a.institution, linked_app_url: a.linked_app_url, balance: a.balance, is_joint: a.is_joint }));
   const [upcoming, ...earlier] = trips;
   return (
     <>
@@ -325,6 +330,17 @@ async function TravelPane({ familyId, currency }: { familyId: string; currency: 
               <Fact k="Budget" v={upcoming.budget_amount ? formatCurrency(Number(upcoming.budget_amount), currency) : "—"} />
               <Fact k="Packed" v={`${upcoming.packed_count} / ${upcoming.packed_total}`} />
               <Fact k="Travelling" v={upcoming.travellers.length ? upcoming.travellers.map((n) => n.split(" ")[0]).join(", ") : "All"} />
+            </div>
+            <div style={{ marginTop: 12 }}>
+              <LogSpendControl
+                accounts={pickable}
+                currency={currency}
+                particulars={`${upcoming.title} · travel`}
+                category="Travel"
+                sourceTable="trips"
+                sourceId={upcoming.id}
+                label="LOG TRIP SPEND"
+              />
             </div>
           </div>
         </Blueprint>

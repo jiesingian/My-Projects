@@ -16,35 +16,47 @@ export type Database = {
     Tables: {
       accounts: {
         Row: {
-          balance: number
+          account_type: string
           created_at: string
           created_by: string | null
           family_id: string
           id: string
+          institution: string | null
+          is_archived: boolean
           is_joint: boolean
+          linked_app_url: string | null
           name: string
+          opening_balance: number
           owner_member_id: string | null
           sub_note: string | null
         }
         Insert: {
-          balance?: number
+          account_type?: string
           created_at?: string
           created_by?: string | null
           family_id: string
           id?: string
+          institution?: string | null
+          is_archived?: boolean
           is_joint?: boolean
+          linked_app_url?: string | null
           name: string
+          opening_balance?: number
           owner_member_id?: string | null
           sub_note?: string | null
         }
         Update: {
-          balance?: number
+          account_type?: string
           created_at?: string
           created_by?: string | null
           family_id?: string
           id?: string
+          institution?: string | null
+          is_archived?: boolean
           is_joint?: boolean
+          linked_app_url?: string | null
           name?: string
+          opening_balance?: number
           owner_member_id?: string | null
           sub_note?: string | null
         }
@@ -185,6 +197,70 @@ export type Database = {
           },
         ]
       }
+      assets: {
+        Row: {
+          acquired_on: string | null
+          created_at: string
+          created_by: string | null
+          family_id: string
+          id: string
+          is_joint: boolean
+          kind: string
+          name: string
+          note: string | null
+          owner_member_id: string | null
+          value: number
+        }
+        Insert: {
+          acquired_on?: string | null
+          created_at?: string
+          created_by?: string | null
+          family_id: string
+          id?: string
+          is_joint?: boolean
+          kind?: string
+          name: string
+          note?: string | null
+          owner_member_id?: string | null
+          value?: number
+        }
+        Update: {
+          acquired_on?: string | null
+          created_at?: string
+          created_by?: string | null
+          family_id?: string
+          id?: string
+          is_joint?: boolean
+          kind?: string
+          name?: string
+          note?: string | null
+          owner_member_id?: string | null
+          value?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "assets_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "members"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "assets_family_id_fkey"
+            columns: ["family_id"]
+            isOneToOne: false
+            referencedRelation: "families"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "assets_owner_member_id_fkey"
+            columns: ["owner_member_id"]
+            isOneToOne: false
+            referencedRelation: "members"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       bills: {
         Row: {
           amount: number
@@ -195,9 +271,13 @@ export type Database = {
           family_id: string
           id: string
           name: string
+          paid_at: string | null
+          paid_by_member_id: string | null
+          paid_from_account_id: string | null
           recurrence: string | null
           status: string
           sub_note: string | null
+          transaction_id: string | null
         }
         Insert: {
           amount: number
@@ -208,9 +288,13 @@ export type Database = {
           family_id: string
           id?: string
           name: string
+          paid_at?: string | null
+          paid_by_member_id?: string | null
+          paid_from_account_id?: string | null
           recurrence?: string | null
           status?: string
           sub_note?: string | null
+          transaction_id?: string | null
         }
         Update: {
           amount?: number
@@ -221,9 +305,13 @@ export type Database = {
           family_id?: string
           id?: string
           name?: string
+          paid_at?: string | null
+          paid_by_member_id?: string | null
+          paid_from_account_id?: string | null
           recurrence?: string | null
           status?: string
           sub_note?: string | null
+          transaction_id?: string | null
         }
         Relationships: [
           {
@@ -238,6 +326,27 @@ export type Database = {
             columns: ["family_id"]
             isOneToOne: false
             referencedRelation: "families"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bills_paid_by_member_id_fkey"
+            columns: ["paid_by_member_id"]
+            isOneToOne: false
+            referencedRelation: "members"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bills_paid_from_account_id_fkey"
+            columns: ["paid_from_account_id"]
+            isOneToOne: false
+            referencedRelation: "accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bills_transaction_id_fkey"
+            columns: ["transaction_id"]
+            isOneToOne: false
+            referencedRelation: "wealth_transactions"
             referencedColumns: ["id"]
           },
         ]
@@ -288,7 +397,6 @@ export type Database = {
           id: string
           period_month: number
           period_year: number
-          spent_amount: number
         }
         Insert: {
           budget_amount: number
@@ -296,7 +404,6 @@ export type Database = {
           id?: string
           period_month: number
           period_year: number
-          spent_amount?: number
         }
         Update: {
           budget_amount?: number
@@ -304,7 +411,6 @@ export type Database = {
           id?: string
           period_month?: number
           period_year?: number
-          spent_amount?: number
         }
         Relationships: [
           {
@@ -322,6 +428,7 @@ export type Database = {
           checked_at: string | null
           cleared: boolean
           cleared_at: string | null
+          cost: number | null
           created_at: string
           created_by: string | null
           family_id: string
@@ -337,6 +444,7 @@ export type Database = {
           checked_at?: string | null
           cleared?: boolean
           cleared_at?: string | null
+          cost?: number | null
           created_at?: string
           created_by?: string | null
           family_id: string
@@ -352,6 +460,7 @@ export type Database = {
           checked_at?: string | null
           cleared?: boolean
           cleared_at?: string | null
+          cost?: number | null
           created_at?: string
           created_by?: string | null
           family_id?: string
@@ -1030,6 +1139,7 @@ export type Database = {
       }
       health_appointments: {
         Row: {
+          cost: number | null
           created_at: string
           created_by: string | null
           family_id: string
@@ -1040,6 +1150,7 @@ export type Database = {
           where_text: string | null
         }
         Insert: {
+          cost?: number | null
           created_at?: string
           created_by?: string | null
           family_id: string
@@ -1050,6 +1161,7 @@ export type Database = {
           where_text?: string | null
         }
         Update: {
+          cost?: number | null
           created_at?: string
           created_by?: string | null
           family_id?: string
@@ -1606,6 +1718,83 @@ export type Database = {
           },
         ]
       }
+      liabilities: {
+        Row: {
+          balance: number
+          created_at: string
+          created_by: string | null
+          family_id: string
+          id: string
+          is_joint: boolean
+          kind: string
+          lender: string | null
+          linked_account_id: string | null
+          monthly_payment: number | null
+          name: string
+          note: string | null
+          owner_member_id: string | null
+        }
+        Insert: {
+          balance?: number
+          created_at?: string
+          created_by?: string | null
+          family_id: string
+          id?: string
+          is_joint?: boolean
+          kind?: string
+          lender?: string | null
+          linked_account_id?: string | null
+          monthly_payment?: number | null
+          name: string
+          note?: string | null
+          owner_member_id?: string | null
+        }
+        Update: {
+          balance?: number
+          created_at?: string
+          created_by?: string | null
+          family_id?: string
+          id?: string
+          is_joint?: boolean
+          kind?: string
+          lender?: string | null
+          linked_account_id?: string | null
+          monthly_payment?: number | null
+          name?: string
+          note?: string | null
+          owner_member_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "liabilities_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "members"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "liabilities_family_id_fkey"
+            columns: ["family_id"]
+            isOneToOne: false
+            referencedRelation: "families"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "liabilities_linked_account_id_fkey"
+            columns: ["linked_account_id"]
+            isOneToOne: false
+            referencedRelation: "accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "liabilities_owner_member_id_fkey"
+            columns: ["owner_member_id"]
+            isOneToOne: false
+            referencedRelation: "members"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       meal_ingredients: {
         Row: {
           family_id: string
@@ -2059,7 +2248,6 @@ export type Database = {
       }
       wealth_targets: {
         Row: {
-          current_amount: number
           family_id: string
           id: string
           member_id: string
@@ -2068,7 +2256,6 @@ export type Database = {
           target_amount: number
         }
         Insert: {
-          current_amount?: number
           family_id: string
           id?: string
           member_id: string
@@ -2077,7 +2264,6 @@ export type Database = {
           target_amount: number
         }
         Update: {
-          current_amount?: number
           family_id?: string
           id?: string
           member_id?: string
@@ -2096,6 +2282,89 @@ export type Database = {
           {
             foreignKeyName: "wealth_targets_member_id_fkey"
             columns: ["member_id"]
+            isOneToOne: false
+            referencedRelation: "members"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      wealth_transactions: {
+        Row: {
+          account_id: string
+          amount: number
+          category: string | null
+          created_at: string
+          direction: string
+          family_id: string
+          goal_id: string | null
+          id: string
+          occurred_at: string
+          particulars: string
+          recorded_by: string | null
+          source_id: string | null
+          source_table: string | null
+          status: string
+          transfer_group_id: string | null
+        }
+        Insert: {
+          account_id: string
+          amount: number
+          category?: string | null
+          created_at?: string
+          direction: string
+          family_id: string
+          goal_id?: string | null
+          id?: string
+          occurred_at?: string
+          particulars: string
+          recorded_by?: string | null
+          source_id?: string | null
+          source_table?: string | null
+          status?: string
+          transfer_group_id?: string | null
+        }
+        Update: {
+          account_id?: string
+          amount?: number
+          category?: string | null
+          created_at?: string
+          direction?: string
+          family_id?: string
+          goal_id?: string | null
+          id?: string
+          occurred_at?: string
+          particulars?: string
+          recorded_by?: string | null
+          source_id?: string | null
+          source_table?: string | null
+          status?: string
+          transfer_group_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "wealth_transactions_account_id_fkey"
+            columns: ["account_id"]
+            isOneToOne: false
+            referencedRelation: "accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "wealth_transactions_family_id_fkey"
+            columns: ["family_id"]
+            isOneToOne: false
+            referencedRelation: "families"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "wealth_transactions_goal_id_fkey"
+            columns: ["goal_id"]
+            isOneToOne: false
+            referencedRelation: "goals"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "wealth_transactions_recorded_by_fkey"
+            columns: ["recorded_by"]
             isOneToOne: false
             referencedRelation: "members"
             referencedColumns: ["id"]

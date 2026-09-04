@@ -30,6 +30,7 @@ export async function getHubCards(familyId: string, currency: string): Promise<H
     unpaidBill,
     openBuyCount,
     budgetPeriod,
+    monthSpend,
   ] = await Promise.all([
     supabase
       .from("health_schedule")
@@ -75,11 +76,18 @@ export async function getHubCards(familyId: string, currency: string): Promise<H
       .eq("cleared", false),
     supabase
       .from("budget_periods")
-      .select("budget_amount, spent_amount")
+      .select("budget_amount")
       .eq("family_id", familyId)
       .eq("period_month", today.getMonth() + 1)
       .eq("period_year", today.getFullYear())
       .maybeSingle(),
+    supabase
+      .from("wealth_transactions")
+      .select("amount")
+      .eq("family_id", familyId)
+      .eq("direction", "out")
+      .eq("status", "confirmed")
+      .gte("occurred_at", startOfMonth),
   ]);
 
   const alertCount = (dueHealth.data ? 1 : 0);
@@ -100,17 +108,17 @@ export async function getHubCards(familyId: string, currency: string): Promise<H
       })}`
     : "Nothing scheduled — add an activity";
 
-  const householdPrimary = unpaidBill.data
-    ? `${unpaidBill.data.name} unpaid · ${formatCurrency(Number(unpaidBill.data.amount), currency)}`
-    : "No unpaid bills";
+  const householdPrimary =
+    (openBuyCount.count ?? 0) > 0 ? `${openBuyCount.count} item${openBuyCount.count === 1 ? "" : "s"} still to buy` : "Shopping list is clear";
 
-  const budget = budgetPeriod.data;
-  const spent = budget ? Number(budget.spent_amount) : 0;
-  const target = budget ? Number(budget.budget_amount) : 0;
+  const spent = (monthSpend.data ?? []).reduce((sum, t) => sum + Number(t.amount), 0);
+  const target = budgetPeriod.data ? Number(budgetPeriod.data.budget_amount) : 0;
   const pct = target > 0 ? Math.round((spent / target) * 100) : 0;
-  const wealthPrimary = budget
-    ? `${today.toLocaleString("en-PH", { month: "long" })} joint budget — ${formatCurrency(spent, currency)} of ${formatCurrency(target, currency)}`
-    : "No budget set for this month yet";
+  const wealthPrimary = unpaidBill.data
+    ? `${unpaidBill.data.name} due · ${formatCurrency(Number(unpaidBill.data.amount), currency)}`
+    : target > 0
+      ? `${today.toLocaleString("en-PH", { month: "long" })} budget — ${formatCurrency(spent, currency)} of ${formatCurrency(target, currency)}`
+      : `${formatCurrency(spent, currency)} spent this month`;
 
   return [
     {
