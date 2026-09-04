@@ -12,6 +12,7 @@ import { formatCurrency, formatDate } from "@/lib/format";
 import { AddToJournalButton } from "@/components/add-to-journal-button";
 import { Icon } from "@/components/icons";
 import { CALENDAR_LEGEND, styleFor } from "@/lib/calendar-style";
+import { parseHidden, serializeHidden, toggledHidden, type CalendarGroup } from "@/lib/calendar-groups";
 import { LogSpendControl } from "@/components/money-actions";
 import { CalendarJump, CalendarPeriod, DateRail, MonthScroller, TodayButton } from "@/components/calendar-nav";
 
@@ -23,7 +24,7 @@ type CalendarView = (typeof CALENDAR_VIEWS)[number];
 export default async function PlannerPage({
   searchParams,
 }: {
-  searchParams: Promise<{ seg?: string; who?: string; view?: string; date?: string }>;
+  searchParams: Promise<{ seg?: string; who?: string; view?: string; date?: string; hide?: string }>;
 }) {
   const me = await getCurrentMember();
   if (!me) redirect("/onboarding/profile");
@@ -32,6 +33,7 @@ export default async function PlannerPage({
   const who = sp.who ?? "all";
   const view: CalendarView = (CALENDAR_VIEWS as readonly string[]).includes(sp.view ?? "") ? (sp.view as CalendarView) : "week";
   const anchor = sp.date ? new Date(`${sp.date}T00:00:00`) : new Date();
+  const hidden = parseHidden(sp.hide);
 
   await syncGoogleCalendarIfStale(me.family_id, 5 * 60 * 1000);
 
@@ -45,7 +47,7 @@ export default async function PlannerPage({
     <div>
       <HubHeader n="03" title="Planner" segments={segments} />
       <div style={{ padding: "0 22px 22px" }}>
-        {seg === "calendar" && <CalendarPane familyId={me.family_id} who={who} view={view} anchor={anchor} />}
+        {seg === "calendar" && <CalendarPane familyId={me.family_id} who={who} view={view} anchor={anchor} hidden={hidden} />}
         {seg === "events" && <EventsPane familyId={me.family_id} />}
         {seg === "travel" && <TravelPane familyId={me.family_id} memberId={me.id} currency={me.families.currency} />}
       </div>
@@ -57,11 +59,13 @@ function toISODate(d: Date) {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 }
 
-function calendarHref(who: string, view: CalendarView, date: Date) {
-  return `/planner?seg=calendar&who=${who}&view=${view}&date=${toISODate(date)}`;
+function calendarHref(who: string, view: CalendarView, date: Date, hide = "") {
+  const base = `/planner?seg=calendar&who=${who}&view=${view}&date=${toISODate(date)}`;
+  return hide ? `${base}&hide=${hide}` : base;
 }
 
-async function CalendarPane({ familyId, who, view, anchor }: { familyId: string; who: string; view: CalendarView; anchor: Date }) {
+async function CalendarPane({ familyId, who, view, anchor, hidden }: { familyId: string; who: string; view: CalendarView; anchor: Date; hidden: Set<CalendarGroup> }) {
+  const hide = serializeHidden(hidden);
   const members = await getMembers(familyId);
   const activeMembers = members.filter((m) => m.status !== "pending" && m.status !== "removed");
   const memberId = who === "all" ? undefined : who;
@@ -93,10 +97,10 @@ async function CalendarPane({ familyId, who, view, anchor }: { familyId: string;
       <div style={{ marginBottom: 14 }}>
         <ChipRow
           items={[
-            { label: "All", href: calendarHref("all", view, anchor), active: who === "all" },
+            { label: "All", href: calendarHref("all", view, anchor, hide), active: who === "all" },
             ...activeMembers.map((m) => ({
               label: m.full_name.split(" ")[0],
-              href: calendarHref(m.id, view, anchor),
+              href: calendarHref(m.id, view, anchor, hide),
               active: who === m.id,
             })),
           ]}
@@ -109,7 +113,7 @@ async function CalendarPane({ familyId, who, view, anchor }: { familyId: string;
         {/* One button cycles the view, so the segmented row above is gone and
             the header keeps a single line of controls. */}
         <Link
-          href={calendarHref(who, nextView, anchor)}
+          href={calendarHref(who, nextView, anchor, hide)}
           className="btn btn-secondary"
           aria-label={`${view[0].toUpperCase() + view.slice(1)} view — switch to ${nextView}`}
           style={{ minHeight: 34, fontSize: 13, padding: "0 8px 0 11px", gap: 3 }}
@@ -124,18 +128,59 @@ async function CalendarPane({ familyId, who, view, anchor }: { familyId: string;
         <TodayButton who={who} view={view} />
       </div>
 
-      {view === "week" && <WeekView familyId={familyId} memberId={memberId} who={who} anchor={anchor} />}
-      {view === "month" && <MonthView familyId={familyId} memberId={memberId} who={who} anchor={anchor} />}
-      {view === "year" && <YearView familyId={familyId} memberId={memberId} who={who} anchor={anchor} />}
+      {view === "week" && <WeekView familyId={familyId} memberId={memberId} who={who} anchor={anchor} hidden={hidden} hide={hide} />}
+      {view === "month" && <MonthView familyId={familyId} memberId={memberId} who={who} anchor={anchor} hidden={hidden} hide={hide} />}
+      {view === "year" && <YearView familyId={familyId} memberId={memberId} who={who} anchor={anchor} hidden={hidden} hide={hide} />}
 
-      {/* What each colour means — colour alone never has to carry it. */}
-      <div style={{ display: "flex", flexWrap: "wrap", gap: "6px 14px", margin: "18px 0 0", paddingTop: 14, borderTop: "1px solid var(--color-divider)" }}>
-        {CALENDAR_LEGEND.map((l) => (
-          <span key={l.label} style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 12, color: "var(--color-neutral-600)" }}>
-            <span style={{ width: 8, height: 8, borderRadius: 999, background: l.color }} />
-            {l.label}
-          </span>
-        ))}
+      {/* The legend is also the filter: each entry says what a colour means
+          and switches that category on or off. Off reads as a hollow dot on
+          an outlined pill with the label dimmed, so the state never rests on
+          colour alone. */}
+      <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 6, margin: "16px 0 0", paddingTop: 12, borderTop: "1px solid var(--color-divider)" }}>
+        {CALENDAR_LEGEND.map((l) => {
+          const on = !hidden.has(l.group);
+          return (
+            <Link
+              key={l.group}
+              href={calendarHref(who, view, anchor, toggledHidden(hidden, l.group))}
+              aria-label={`${on ? "Hide" : "Show"} ${l.label.toLowerCase()}`}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 5,
+                minHeight: 30,
+                padding: "0 10px",
+                borderRadius: 999,
+                fontSize: 12.5,
+                textDecoration: "none",
+                background: on ? "color-mix(in srgb, var(--color-text) 6%, transparent)" : "transparent",
+                boxShadow: on ? "none" : "inset 0 0 0 1px var(--color-divider)",
+                color: on ? "var(--color-text)" : "var(--color-neutral-600)",
+              }}
+            >
+              <span
+                style={{
+                  width: 9,
+                  height: 9,
+                  borderRadius: 999,
+                  flex: "none",
+                  background: on ? l.color : "transparent",
+                  boxShadow: on ? "none" : `inset 0 0 0 1.5px ${l.color}`,
+                  opacity: on ? 1 : 0.55,
+                }}
+              />
+              {l.label}
+            </Link>
+          );
+        })}
+        {hidden.size > 0 && (
+          <Link
+            href={calendarHref(who, view, anchor)}
+            style={{ minHeight: 30, display: "flex", alignItems: "center", padding: "0 8px", fontSize: 12.5, color: "var(--color-accent)", textDecoration: "none" }}
+          >
+            Show all
+          </Link>
+        )}
       </div>
 
       <Link href="/planner/add?type=activity" className="btn btn-primary btn-block" style={{ minHeight: 48, fontSize: 16, marginTop: 16 }}>
@@ -186,8 +231,8 @@ function DayHeading({ date, isToday }: { date: Date; isToday: boolean }) {
   );
 }
 
-async function WeekView({ familyId, memberId, who, anchor }: { familyId: string; memberId?: string; who: string; anchor: Date }) {
-  const { days, strip } = await getWeekAgenda(familyId, memberId, anchor);
+async function WeekView({ familyId, memberId, who, anchor, hidden, hide }: { familyId: string; memberId?: string; who: string; anchor: Date; hidden: Set<CalendarGroup>; hide: string }) {
+  const { days, strip } = await getWeekAgenda(familyId, memberId, anchor, hidden);
   const selected = days.find((d) => d.isSelected);
 
   return (
@@ -201,7 +246,7 @@ async function WeekView({ familyId, memberId, who, anchor }: { familyId: string;
           return (
             <Link
               key={i}
-              href={calendarHref(who, "week", d.date)}
+              href={calendarHref(who, "week", d.date, hide)}
               data-selected={d.isSelected}
               aria-current={d.isSelected ? "date" : undefined}
               style={{
@@ -274,8 +319,8 @@ async function WeekView({ familyId, memberId, who, anchor }: { familyId: string;
   );
 }
 
-async function MonthView({ familyId, memberId, who, anchor }: { familyId: string; memberId?: string; who: string; anchor: Date }) {
-  const { months } = await getMonthsOverview(familyId, anchor, memberId);
+async function MonthView({ familyId, memberId, who, anchor, hidden, hide }: { familyId: string; memberId?: string; who: string; anchor: Date; hidden: Set<CalendarGroup>; hide: string }) {
+  const { months } = await getMonthsOverview(familyId, anchor, memberId, hidden);
   const today = new Date();
   const anchorMonth = months.find(
     (m) => m.monthStart.getFullYear() === anchor.getFullYear() && m.monthStart.getMonth() === anchor.getMonth(),
@@ -333,7 +378,7 @@ async function MonthView({ familyId, memberId, who, anchor }: { familyId: string
                   return (
                     <Link
                       key={day}
-                      href={calendarHref(who, "month", date)}
+                      href={calendarHref(who, "month", date, hide)}
                       aria-current={isSelected ? "date" : undefined}
                       style={{
                         minHeight: 60,
@@ -421,8 +466,8 @@ async function MonthView({ familyId, memberId, who, anchor }: { familyId: string
   );
 }
 
-async function YearView({ familyId, memberId, who, anchor }: { familyId: string; memberId?: string; who: string; anchor: Date }) {
-  const { year, countsByMonth } = await getYearOverview(familyId, anchor, memberId);
+async function YearView({ familyId, memberId, who, anchor, hidden, hide }: { familyId: string; memberId?: string; who: string; anchor: Date; hidden: Set<CalendarGroup>; hide: string }) {
+  const { year, countsByMonth } = await getYearOverview(familyId, anchor, memberId, hidden);
   const today = new Date();
   const busiest = Math.max(1, ...countsByMonth);
 
@@ -432,7 +477,7 @@ async function YearView({ familyId, memberId, who, anchor }: { familyId: string;
         const monthDate = new Date(year, i, 1);
         const isThisMonth = year === today.getFullYear() && i === today.getMonth();
         return (
-          <Link key={i} href={calendarHref(who, "month", monthDate)} style={{ textDecoration: "none", color: "inherit" }}>
+          <Link key={i} href={calendarHref(who, "month", monthDate, hide)} style={{ textDecoration: "none", color: "inherit" }}>
             <Blueprint style={{ padding: "11px 10px 12px", textAlign: "center" }}>
               <div style={{ fontSize: 15, fontWeight: 600, color: isThisMonth ? "var(--color-accent)" : "var(--color-text)" }}>
                 {monthDate.toLocaleDateString("en-GB", { month: "short" })}

@@ -1,7 +1,7 @@
 import type { IconName } from "@/components/icons";
-import type { PlannerCalendarItem } from "@/lib/queries/planner";
+import type { CalendarGroup, CalendarTable } from "@/lib/calendar-groups";
 
-type CalendarSource = PlannerCalendarItem["table"];
+type CalendarSource = CalendarTable;
 
 /** Colour groups a calendar item by which part of life it comes from; the
  * icon says exactly what it is; the title says which one. Identity never
@@ -18,13 +18,14 @@ export const CALENDAR_STYLE: Record<CalendarSource, { label: string; color: stri
   goals: { label: "Goal", color: "var(--cal-goal)", icon: "target" },
 };
 
-/** The legend, in the order the colours were assigned. */
-export const CALENDAR_LEGEND: { label: string; color: string; icon: IconName }[] = [
-  { label: "Activities & travel", color: "var(--cal-schedule)", icon: "calendarDays" },
-  { label: "Events", color: "var(--cal-occasion)", icon: "gift" },
-  { label: "Bills", color: "var(--cal-money)", icon: "receipt" },
-  { label: "Meals", color: "var(--cal-home)", icon: "utensils" },
-  { label: "Goals", color: "var(--cal-goal)", icon: "target" },
+/** The legend, in the order the colours were assigned. It doubles as the
+ * filter, so each entry names the group it switches. */
+export const CALENDAR_LEGEND: { group: CalendarGroup; label: string; color: string; icon: IconName }[] = [
+  { group: "schedule", label: "Activities & travel", color: "var(--cal-schedule)", icon: "calendarDays" },
+  { group: "events", label: "Events", color: "var(--cal-occasion)", icon: "gift" },
+  { group: "bills", label: "Bills", color: "var(--cal-money)", icon: "receipt" },
+  { group: "meals", label: "Meals", color: "var(--cal-home)", icon: "utensils" },
+  { group: "goals", label: "Goals", color: "var(--cal-goal)", icon: "target" },
 ];
 
 export function styleFor(table: CalendarSource) {

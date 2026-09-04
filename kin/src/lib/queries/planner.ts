@@ -1,9 +1,10 @@
 import { createClient } from "@/lib/supabase/server";
 import { getSignedUrls } from "@/lib/storage";
+import { GROUP_OF, type CalendarGroup, type CalendarTable } from "@/lib/calendar-groups";
 
 export type PlannerCalendarItem = {
   id: string;
-  table: "activities" | "events" | "trips" | "bills" | "meal_plans" | "goals";
+  table: CalendarTable;
   date: Date;
   allDay: boolean;
   title: string;
@@ -160,8 +161,11 @@ async function fetchCalendarItems(familyId: string, rangeStart: Date, rangeEnd: 
   return items.sort((a, b) => a.date.getTime() - b.date.getTime());
 }
 
-function matchesMember(item: PlannerCalendarItem, memberId?: string): boolean {
-  return !memberId || item.appliesToAll || item.memberIds.includes(memberId);
+/** An item is shown when it belongs to whoever is selected and its category
+ * has not been switched off in the legend. */
+function shown(item: PlannerCalendarItem, memberId?: string, hidden?: Set<CalendarGroup>): boolean {
+  if (memberId && !item.appliesToAll && !item.memberIds.includes(memberId)) return false;
+  return !hidden?.has(GROUP_OF[item.table]);
 }
 
 function toISODate(d: Date): string {
@@ -172,7 +176,13 @@ function toISODate(d: Date): string {
  * days either side of it. The strip is what the date rail scrolls through, so
  * the user can swipe weeks forward and back without a page load; the week
  * itself is the agenda beneath. One query covers both. */
-export async function getWeekAgenda(familyId: string, memberId?: string, anchor: Date = new Date(), stripWeeksEachSide = 6) {
+export async function getWeekAgenda(
+  familyId: string,
+  memberId?: string,
+  anchor: Date = new Date(),
+  hidden?: Set<CalendarGroup>,
+  stripWeeksEachSide = 6,
+) {
   const today = new Date();
   const startOfWeek = new Date(anchor);
   startOfWeek.setDate(anchor.getDate() - anchor.getDay());
@@ -184,7 +194,7 @@ export async function getWeekAgenda(familyId: string, memberId?: string, anchor:
   stripEnd.setDate(stripStart.getDate() + stripLength);
 
   const all = await fetchCalendarItems(familyId, stripStart, stripEnd);
-  const rows = all.filter((it) => matchesMember(it, memberId));
+  const rows = all.filter((it) => shown(it, memberId, hidden));
 
   const byDay = new Map<string, PlannerCalendarItem[]>();
   for (const it of rows) {
@@ -224,12 +234,19 @@ export async function getWeekAgenda(familyId: string, memberId?: string, anchor:
  * ahead far more than behind, and it has to carry on through a December into
  * the next year and well beyond without stopping. Anything further out is a
  * couple of taps away in the header's jump sheet. */
-export async function getMonthsOverview(familyId: string, anchor: Date, memberId?: string, before = 6, after = 17) {
+export async function getMonthsOverview(
+  familyId: string,
+  anchor: Date,
+  memberId?: string,
+  hidden?: Set<CalendarGroup>,
+  before = 6,
+  after = 17,
+) {
   const first = new Date(anchor.getFullYear(), anchor.getMonth() - before, 1);
   const end = new Date(anchor.getFullYear(), anchor.getMonth() + after + 1, 1);
 
   const all = await fetchCalendarItems(familyId, first, end);
-  const rows = all.filter((it) => matchesMember(it, memberId));
+  const rows = all.filter((it) => shown(it, memberId, hidden));
 
   // Bucket the rows once by month rather than re-scanning them for each of
   // the two dozen months in the window.
@@ -256,7 +273,7 @@ export async function getMonthsOverview(familyId: string, anchor: Date, memberId
 
 /** Per-month item counts for the whole year containing `anchor`, for the
  * year overview. */
-export async function getYearOverview(familyId: string, anchor: Date, memberId?: string) {
+export async function getYearOverview(familyId: string, anchor: Date, memberId?: string, hidden?: Set<CalendarGroup>) {
   const year = anchor.getFullYear();
   const yearStart = new Date(year, 0, 1);
   const yearEnd = new Date(year + 1, 0, 1);
@@ -264,7 +281,7 @@ export async function getYearOverview(familyId: string, anchor: Date, memberId?:
   const all = await fetchCalendarItems(familyId, yearStart, yearEnd);
   const countsByMonth = new Array(12).fill(0);
   for (const it of all) {
-    if (!matchesMember(it, memberId)) continue;
+    if (!shown(it, memberId, hidden)) continue;
     countsByMonth[it.date.getMonth()]++;
   }
 
