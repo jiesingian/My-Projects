@@ -156,10 +156,8 @@ async function HealthPane({ familyId }: { familyId: string }) {
 function Fact({ k, v }: { k: string; v: string | null }) {
   return (
     <div>
-      <span style={{ color: "var(--color-neutral-600)", letterSpacing: ".06em", textTransform: "uppercase", fontSize: 11, display: "block" }}>
-        {k}
-      </span>
-      {v || "Not recorded"}
+      <span style={{ color: "var(--color-neutral-600)", fontSize: 13, display: "block" }}>{k}</span>
+      <span style={{ color: v ? "var(--color-text)" : "var(--color-neutral-500)" }}>{v || "Not recorded"}</span>
     </div>
   );
 }

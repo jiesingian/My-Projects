@@ -1,4 +1,5 @@
 import type { ProfileFields } from "@/lib/actions/profile";
+import { Blueprint } from "@/components/ui";
 import { formatDate, formatAge } from "@/lib/format";
 
 type FieldSpec = { key: keyof ProfileFields; label: string; type?: "text" | "date" | "email" | "tel" };
@@ -64,45 +65,76 @@ export const PROFILE_FIELD_GROUPS: FieldGroup[] = [
   },
 ];
 
-function displayValue(fields: ProfileFields, spec: FieldSpec): string {
+function displayValue(fields: ProfileFields, spec: FieldSpec): string | null {
   const raw = fields[spec.key];
-  if (!raw) return "Not recorded";
+  if (!raw) return null;
   return spec.type === "date" ? formatDate(raw) : raw;
 }
 
-/** Read-only grouped grid, matching the two-column tile style already used
- * across the app. "Personal Details" gets one extra computed-only tile
- * (Age) derived from DOB rather than stored — it's never independently
- * editable, so it isn't part of ProfileFields. */
+function GroupHeader({ title }: { title: string }) {
+  return (
+    <div style={{ fontSize: 13, fontWeight: 600, color: "var(--color-neutral-600)", padding: "0 4px 7px" }}>{title}</div>
+  );
+}
+
+/** A grouped inset list: one rounded card per section, a row per field with
+ * the label left and the value right, and separators inset to start at the
+ * text. Replaces a bordered two-column grid, which drew a cell outline around
+ * every value and left a stray empty cell whenever a group had an odd number
+ * of fields.
+ *
+ * "Personal Details" carries one extra row (Age) computed from DOB rather
+ * than stored — it's never independently editable, so it isn't part of
+ * ProfileFields. */
 export function ProfileFieldsView({ fields }: { fields: ProfileFields }) {
   return (
     <>
-      {PROFILE_FIELD_GROUPS.map((group) => (
-        <div key={group.title} style={{ marginBottom: 16 }}>
-          <div style={{ font: "600 13px/1 var(--font-heading)", letterSpacing: ".02em", color: "var(--color-neutral-600)", marginBottom: 8 }}>
-            {group.title}
+      {PROFILE_FIELD_GROUPS.map((group) => {
+        const rows: { label: string; value: string | null }[] = [
+          ...(group.title === "PERSONAL DETAILS" ? [{ label: "Age", value: formatAge(fields.dob) }] : []),
+          ...group.fields.map((spec) => ({ label: spec.label, value: displayValue(fields, spec) })),
+        ];
+
+        return (
+          <div key={group.title} style={{ marginBottom: 20 }}>
+            <GroupHeader title={group.title} />
+            <Blueprint style={{ paddingLeft: 15 }}>
+              {rows.map((row, i) => (
+                <div
+                  key={row.label}
+                  style={{
+                    display: "flex",
+                    gap: 16,
+                    alignItems: "baseline",
+                    minHeight: 44,
+                    padding: "11px 15px 11px 0",
+                    borderTop: i === 0 ? undefined : "1px solid var(--color-divider)",
+                  }}
+                >
+                  <span style={{ fontSize: 15, color: "var(--color-neutral-700)", flex: "none" }}>{row.label}</span>
+                  <span
+                    style={{
+                      fontSize: 15,
+                      marginLeft: "auto",
+                      minWidth: 0,
+                      textAlign: "right",
+                      color: row.value ? "var(--color-text)" : "var(--color-neutral-500)",
+                    }}
+                  >
+                    {row.value ?? "Not recorded"}
+                  </span>
+                </div>
+              ))}
+            </Blueprint>
           </div>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 1, background: "var(--color-divider)", border: "1px solid var(--color-divider)" }}>
-            {group.title === "PERSONAL DETAILS" && (
-              <div style={{ background: "var(--color-bg)", padding: "10px 12px" }}>
-                <div style={{ fontSize: 11, letterSpacing: ".02em", textTransform: "uppercase", color: "var(--color-neutral-600)" }}>Age</div>
-                <div style={{ fontSize: 13.5 }}>{formatAge(fields.dob)}</div>
-              </div>
-            )}
-            {group.fields.map((spec) => (
-              <div key={spec.key} style={{ background: "var(--color-bg)", padding: "10px 12px" }}>
-                <div style={{ fontSize: 11, letterSpacing: ".02em", textTransform: "uppercase", color: "var(--color-neutral-600)" }}>{spec.label}</div>
-                <div style={{ fontSize: 13.5 }}>{displayValue(fields, spec)}</div>
-              </div>
-            ))}
-          </div>
-        </div>
-      ))}
+        );
+      })}
     </>
   );
 }
 
-/** Grouped input form, two fields per row. */
+/** One field per row — two 17px inputs side by side don't fit a phone without
+ * truncating their labels. */
 export function ProfileFieldsEditor({
   fields,
   set,
@@ -115,35 +147,22 @@ export function ProfileFieldsEditor({
   return (
     <>
       {PROFILE_FIELD_GROUPS.map((group) => (
-        <div key={group.title} style={{ marginBottom: 16 }}>
-          <div style={{ font: "600 13px/1 var(--font-heading)", letterSpacing: ".02em", color: "var(--color-neutral-600)", marginBottom: 8 }}>
-            {group.title}
-          </div>
-          {chunk(group.fields, 2).map((row, i) => (
-            <div key={i} style={{ display: "flex", gap: 8, marginBottom: 8 }}>
-              {row.map((spec) => (
-                <div className="field" key={spec.key} style={{ flex: 1 }}>
-                  <label>{spec.label.toUpperCase()}</label>
-                  <input
-                    className="input"
-                    type={spec.type === "date" ? "date" : spec.type === "email" ? "email" : spec.type === "tel" ? "tel" : "text"}
-                    value={fields[spec.key] ?? ""}
-                    onChange={(e) => set(spec.key, (e.target.value || null) as ProfileFields[typeof spec.key])}
-                    style={{ minHeight: 44 }}
-                    disabled={busy}
-                  />
-                </div>
-              ))}
+        <div key={group.title} style={{ marginBottom: 20 }}>
+          <GroupHeader title={group.title} />
+          {group.fields.map((spec) => (
+            <div className="field" key={spec.key} style={{ marginBottom: 10 }}>
+              <label>{spec.label}</label>
+              <input
+                className="input"
+                type={spec.type === "date" ? "date" : spec.type === "email" ? "email" : spec.type === "tel" ? "tel" : "text"}
+                value={fields[spec.key] ?? ""}
+                onChange={(e) => set(spec.key, (e.target.value || null) as ProfileFields[typeof spec.key])}
+                disabled={busy}
+              />
             </div>
           ))}
         </div>
       ))}
     </>
   );
-}
-
-function chunk<T>(arr: T[], size: number): T[][] {
-  const out: T[][] = [];
-  for (let i = 0; i < arr.length; i += size) out.push(arr.slice(i, i + size));
-  return out;
 }
