@@ -283,7 +283,7 @@ async function MonthView({ familyId, memberId, who, anchor }: { familyId: string
   return (
     <div style={{ marginBottom: 8 }}>
       {/* One weekday header for the whole run — the columns never move. */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: 2, marginBottom: 4 }}>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(7, minmax(0, 1fr))", gap: 2, marginBottom: 4 }}>
         {["S", "M", "T", "W", "T", "F", "S"].map((d, i) => (
           <div key={i} style={{ textAlign: "center", fontSize: 11, color: "var(--color-neutral-600)" }}>
             {d}
@@ -309,7 +309,7 @@ async function MonthView({ familyId, memberId, who, anchor }: { familyId: string
               >
                 {m.monthStart.toLocaleDateString("en-GB", { month: "long", year: "numeric" }).toUpperCase()}
               </div>
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: 2 }}>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(7, minmax(0, 1fr))", gap: 2 }}>
                 {Array.from({ length: m.monthStart.getDay() }, (_, i) => (
                   <div key={`b${i}`} />
                 ))}
@@ -325,6 +325,8 @@ async function MonthView({ familyId, memberId, who, anchor }: { familyId: string
                       aria-current={isSelected ? "date" : undefined}
                       style={{
                         minHeight: 60,
+                        minWidth: 0,
+                        overflow: "hidden",
                         display: "flex",
                         flexDirection: "column",
                         alignItems: "center",
@@ -354,12 +356,19 @@ async function MonthView({ familyId, memberId, who, anchor }: { familyId: string
                         {day}
                       </span>
                       {/* Chips carry a clipped title, so a day's contents read at a
-                          glance rather than as an anonymous dot. */}
-                      <span style={{ width: "100%", display: "flex", flexDirection: "column", gap: 1 }}>
+                          glance rather than as an anonymous dot. A long title
+                          must never widen its cell: the column is capped, the
+                          chip is a block that cannot exceed it, and the text
+                          clips inside. */}
+                      <span style={{ width: "100%", minWidth: 0, display: "flex", flexDirection: "column", gap: 1 }}>
                         {items.slice(0, 2).map((a) => (
                           <span
                             key={`${a.table}-${a.id}`}
+                            title={a.title}
                             style={{
+                              display: "block",
+                              maxWidth: "100%",
+                              minWidth: 0,
                               fontSize: 8.5,
                               lineHeight: 1.3,
                               borderRadius: 3,
