@@ -74,6 +74,9 @@ async function CalendarPane({ familyId, who, view, anchor }: { familyId: string;
   const activeMembers = members.filter((m) => m.status !== "pending" && m.status !== "removed");
   const memberId = who === "all" ? undefined : who;
 
+  // Week → Month → Year → Week, one tap at a time.
+  const nextView = CALENDAR_VIEWS[(CALENDAR_VIEWS.indexOf(view) + 1) % CALENDAR_VIEWS.length];
+
   // The title names the period, and stays on one line: the dates themselves
   // are on the rail below, so the week view needs the month, not a range.
   const label =
@@ -106,19 +109,19 @@ async function CalendarPane({ familyId, who, view, anchor }: { familyId: string;
         />
       </div>
 
-      <div className="seg" style={{ marginBottom: 12, marginTop: 0 }}>
-        {CALENDAR_VIEWS.map((v) => (
-          <Link key={v} href={calendarHref(who, v, anchor)} data-active={view === v}>
-            {v[0].toUpperCase() + v.slice(1)}
-          </Link>
-        ))}
-      </div>
-
       <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 14 }}>
         {/* The title is the jump control: month, year or exact day in one tap. */}
         <CalendarJump label={label} who={who} view={view} anchor={toISODate(anchor)} />
-        <Link href={calendarHref(who, view, new Date())} className="btn btn-secondary" style={{ minHeight: 34, fontSize: 13, padding: "0 12px" }}>
-          Today
+        {/* One button cycles the view, so the segmented row above is gone and
+            the header keeps a single line of controls. */}
+        <Link
+          href={calendarHref(who, nextView, anchor)}
+          className="btn btn-secondary"
+          aria-label={`${view[0].toUpperCase() + view.slice(1)} view — switch to ${nextView}`}
+          style={{ minHeight: 34, fontSize: 13, padding: "0 8px 0 11px", gap: 3 }}
+        >
+          {view[0].toUpperCase() + view.slice(1)}
+          <Icon name="chevronUpDown" size={15} style={{ color: "var(--color-neutral-600)" }} />
         </Link>
         <Link
           href={calendarHref(who, view, shiftAnchor(anchor, view, -1))}

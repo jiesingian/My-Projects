@@ -187,7 +187,7 @@ export function CalendarJump({
             <div style={{ display: "flex", gap: 8, marginTop: 14 }}>
               <button
                 type="button"
-                className="btn btn-secondary"
+                className="btn btn-primary"
                 style={{ flex: 1, minHeight: 44 }}
                 onClick={() => {
                   const n = new Date();

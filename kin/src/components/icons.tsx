@@ -2,6 +2,8 @@
 // Claude Design prototype (no icon CDN dependency).
 export const iconPaths = {
   chevronLeft: "M15 18 9 12 15 6",
+  // Two chevrons: the mark for a control that cycles through a set of values.
+  chevronUpDown: "M8 9.5 12 5.5l4 4M8 14.5l4 4 4-4",
   users:
     "M8 11a3.2 3.2 0 1 0 0-6.4a3.2 3.2 0 0 0 0 6.4M2.5 19.5c0-3.3 2.5-5.5 5.5-5.5s5.5 2.2 5.5 5.5M15.5 5.2a3 3 0 0 1 0 5.9M17 14.2c2.6.4 4.5 2.4 4.5 5.3",
   images: "M9 3h12v12H9zM3 9v12h12M12 11.5l2-2.5 3.5 4.5H11z",
