@@ -63,13 +63,13 @@ export function DocSelectionProvider({ folderId, children }: { folderId: string;
   return (
     <SelectionContext.Provider value={{ selectMode, isSelected: (id) => selected.has(id), toggle }}>
       <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 8 }}>
-        <button type="button" className="btn btn-secondary" style={{ fontSize: 11, minHeight: 30, padding: "0 12px" }} onClick={() => (selectMode ? exit() : setSelectMode(true))}>
+        <button type="button" className="btn btn-secondary" style={{ fontSize: 13, minHeight: 30, padding: "0 12px" }} onClick={() => (selectMode ? exit() : setSelectMode(true))}>
           {selectMode ? "CANCEL" : "SELECT"}
         </button>
       </div>
 
       {failures.length > 0 && (
-        <div className="blueprint" style={{ padding: 10, marginBottom: 10, fontSize: 11.5 }}>
+        <div className="blueprint" style={{ padding: 10, marginBottom: 10, fontSize: 13 }}>
           <div style={{ marginBottom: 6, color: "var(--color-accent-700)" }}>
             {failures.length} file{failures.length > 1 ? "s" : ""} added directly in Drive — couldn&apos;t be deleted here:
           </div>
@@ -104,8 +104,8 @@ export function DocSelectionProvider({ folderId, children }: { folderId: string;
             zIndex: 500,
           }}
         >
-          <span style={{ fontSize: 12, flex: 1, color: "var(--color-neutral-700)" }}>{selected.size} selected</span>
-          <button type="button" className="btn btn-primary" style={{ minHeight: 36, fontSize: 12, padding: "0 16px" }} disabled={selected.size === 0 || busy} onClick={deleteSelected}>
+          <span style={{ fontSize: 13.5, flex: 1, color: "var(--color-neutral-700)" }}>{selected.size} selected</span>
+          <button type="button" className="btn btn-primary" style={{ minHeight: 36, fontSize: 13.5, padding: "0 16px" }} disabled={selected.size === 0 || busy} onClick={deleteSelected}>
             {busy ? "DELETING…" : "DELETE"}
           </button>
         </div>

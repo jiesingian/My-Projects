@@ -61,7 +61,7 @@ export function FamilyForkForm({
           <span style={{ font: "600 22px/1.1 var(--font-heading)", display: "block", margin: "9px 0 4px" }}>
             Join with a code
           </span>
-          <span style={{ fontSize: 12.5, color: "var(--color-neutral-700)", display: "block", marginBottom: 14 }}>
+          <span style={{ fontSize: 14, color: "var(--color-neutral-700)", display: "block", marginBottom: 14 }}>
             Ask the organizer for the six-character invite code.
           </span>
           <ErrorText message={joinState.error} />
@@ -73,8 +73,8 @@ export function FamilyForkForm({
               required
               style={{
                 minHeight: 44,
-                fontFamily: "ui-monospace, Menlo, monospace",
-                letterSpacing: ".14em",
+                fontFamily: "var(--font-numeric)",
+                letterSpacing: ".02em",
                 textTransform: "uppercase",
               }}
             />
@@ -85,7 +85,7 @@ export function FamilyForkForm({
         </Blueprint>
       </form>
 
-      <div style={{ marginTop: "auto", fontSize: 11.5, color: "var(--color-neutral-600)", display: "flex", gap: 8, paddingTop: 20 }}>
+      <div style={{ marginTop: "auto", fontSize: 13, color: "var(--color-neutral-600)", display: "flex", gap: 8, paddingTop: 20 }}>
         <Icon name="info" size={14} className="text-[var(--color-accent)]" />
         <span>You can be in one family group at a time. Organizers can transfer the role later.</span>
       </div>

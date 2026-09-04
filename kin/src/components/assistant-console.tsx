@@ -59,7 +59,7 @@ export function AssistantConsole({ memberName }: { memberName: string }) {
   return (
     <Blueprint style={{ padding: 13, marginBottom: 14 }}>
       <div style={{ display: "flex", alignItems: "baseline", gap: 8, marginBottom: turns.length > 0 ? 10 : 8 }}>
-        <span style={{ font: "600 10px/1 var(--font-heading)", letterSpacing: ".14em", color: "var(--color-neutral-600)" }}>ASK KIN</span>
+        <span style={{ font: "600 13px/1 var(--font-heading)", letterSpacing: ".02em", color: "var(--color-neutral-600)" }}>ASK KIN</span>
         {turns.length > 0 && (
           <button
             type="button"
@@ -67,7 +67,7 @@ export function AssistantConsole({ memberName }: { memberName: string }) {
               setTurns([]);
               setError(null);
             }}
-            style={{ marginLeft: "auto", background: "none", border: 0, cursor: "pointer", font: "600 9.5px/1 var(--font-heading)", letterSpacing: ".1em", color: "var(--color-neutral-600)" }}
+            style={{ marginLeft: "auto", background: "none", border: 0, cursor: "pointer", font: "600 12px/1 var(--font-heading)", letterSpacing: ".02em", color: "var(--color-neutral-600)" }}
           >
             CLEAR
           </button>
@@ -80,24 +80,25 @@ export function AssistantConsole({ memberName }: { memberName: string }) {
             <div
               key={i}
               style={{
-                fontSize: 13,
-                lineHeight: 1.4,
+                fontSize: 15,
+                lineHeight: 1.35,
                 alignSelf: turn.role === "user" ? "flex-end" : "flex-start",
-                maxWidth: "88%",
-                padding: turn.role === "user" ? "7px 10px" : 0,
-                border: turn.role === "user" ? "1px solid var(--color-divider)" : undefined,
-                color: turn.role === "user" ? "var(--color-neutral-800)" : "var(--color-text)",
+                maxWidth: "84%",
+                padding: turn.role === "user" ? "8px 13px" : "2px 0",
+                borderRadius: turn.role === "user" ? 18 : 0,
+                background: turn.role === "user" ? "var(--color-accent)" : "transparent",
+                color: turn.role === "user" ? "#fff" : "var(--color-text)",
                 whiteSpace: "pre-wrap",
               }}
             >
               {turn.content}
             </div>
           ))}
-          {thinking && <div style={{ fontSize: 12, color: "var(--color-neutral-600)" }}>Working on it…</div>}
+          {thinking && <div style={{ fontSize: 13.5, color: "var(--color-neutral-600)" }}>Working on it…</div>}
         </div>
       )}
 
-      {error && <p style={{ color: "var(--color-accent-700)", fontSize: 12, margin: "0 0 9px" }}>{error}</p>}
+      {error && <p style={{ color: "var(--color-accent-700)", fontSize: 13.5, margin: "0 0 9px" }}>{error}</p>}
 
       {turns.length === 0 && (
         <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 10 }}>
@@ -124,7 +125,7 @@ export function AssistantConsole({ memberName }: { memberName: string }) {
           disabled={thinking}
           style={{ minHeight: 42, flex: 1 }}
         />
-        <button type="submit" className="btn btn-primary" disabled={thinking || !draft.trim()} style={{ minHeight: 42, paddingInline: 16, fontSize: 12.5 }}>
+        <button type="submit" className="btn btn-primary" disabled={thinking || !draft.trim()} style={{ minHeight: 42, paddingInline: 16, fontSize: 14 }}>
           {thinking ? "…" : "SEND"}
         </button>
       </form>

@@ -82,7 +82,7 @@ export function NotificationToggles({ prefs }: { prefs: Record<string, boolean> 
           >
             <span style={{ flex: 1, minWidth: 0 }}>
               <span style={{ fontSize: 14, display: "block" }}>{n.name}</span>
-              <span style={{ fontSize: 11, color: "var(--color-neutral-600)" }}>{n.sub}</span>
+              <span style={{ fontSize: 13, color: "var(--color-neutral-600)" }}>{n.sub}</span>
             </span>
             <span
               style={{
@@ -114,7 +114,7 @@ export function InviteCodeCard({ code }: { code: string }) {
       <button
         type="button"
         className="btn btn-ghost"
-        style={{ fontSize: 11.5, marginTop: 8 }}
+        style={{ fontSize: 13, marginTop: 8 }}
         disabled={pending}
         onClick={() =>
           startTransition(async () => {
@@ -140,7 +140,7 @@ export function HouseholdNameForm({ familyId, name }: { familyId: string; name: 
           type="button"
           className="btn btn-secondary"
           disabled={pending}
-          style={{ minHeight: 40, fontSize: 12 }}
+          style={{ minHeight: 40, fontSize: 13.5 }}
           onClick={() =>
             startTransition(async () => {
               const result = await updateHouseholdNameAction(familyId, value);
@@ -151,7 +151,7 @@ export function HouseholdNameForm({ familyId, name }: { familyId: string; name: 
           {pending ? "…" : "SAVE"}
         </button>
       </div>
-      {error && <p style={{ color: "var(--color-accent-700)", fontSize: 11.5, margin: "6px 0 0" }}>{error}</p>}
+      {error && <p style={{ color: "var(--color-accent-700)", fontSize: 13, margin: "6px 0 0" }}>{error}</p>}
     </div>
   );
 }
@@ -193,7 +193,7 @@ export function HouseholdPrefsForm({
         type="button"
         className="btn btn-secondary btn-block"
         disabled={pending}
-        style={{ minHeight: 40, fontSize: 12 }}
+        style={{ minHeight: 40, fontSize: 13.5 }}
         onClick={() =>
           startTransition(async () => {
             const result = await updateHouseholdPrefsAction(familyId, c, d, w);
@@ -203,7 +203,7 @@ export function HouseholdPrefsForm({
       >
         {pending ? "…" : "SAVE HOUSEHOLD PREFERENCES"}
       </button>
-      {error && <p style={{ color: "var(--color-accent-700)", fontSize: 11.5, margin: "6px 0 0" }}>{error}</p>}
+      {error && <p style={{ color: "var(--color-accent-700)", fontSize: 13, margin: "6px 0 0" }}>{error}</p>}
     </div>
   );
 }
@@ -226,12 +226,12 @@ export function DriveConnectedPanel({
     <>
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 1, background: "var(--color-divider)", border: "1px solid var(--color-divider)", marginBottom: 12 }}>
         <div style={{ background: "var(--color-bg)", padding: "9px 11px" }}>
-          <div style={{ fontSize: 9, letterSpacing: ".1em", textTransform: "uppercase", color: "var(--color-neutral-600)" }}>Account</div>
-          <div style={{ fontSize: 12.5 }}>{email ?? "—"}</div>
+          <div style={{ fontSize: 11, letterSpacing: ".02em", textTransform: "uppercase", color: "var(--color-neutral-600)" }}>Account</div>
+          <div style={{ fontSize: 14 }}>{email ?? "—"}</div>
         </div>
         <div style={{ background: "var(--color-bg)", padding: "9px 11px" }}>
-          <div style={{ fontSize: 9, letterSpacing: ".1em", textTransform: "uppercase", color: "var(--color-neutral-600)" }}>Connected by</div>
-          <div style={{ fontSize: 12.5 }}>{connectedByName ?? "—"}</div>
+          <div style={{ fontSize: 11, letterSpacing: ".02em", textTransform: "uppercase", color: "var(--color-neutral-600)" }}>Connected by</div>
+          <div style={{ fontSize: 14 }}>{connectedByName ?? "—"}</div>
         </div>
       </div>
       {rootFolderLink && (
@@ -240,7 +240,7 @@ export function DriveConnectedPanel({
           target="_blank"
           rel="noopener noreferrer"
           className="btn btn-secondary btn-block"
-          style={{ minHeight: 40, fontSize: 12, marginBottom: canManage ? 9 : 0 }}
+          style={{ minHeight: 40, fontSize: 13.5, marginBottom: canManage ? 9 : 0 }}
         >
           OPEN KIN FOLDER IN DRIVE
         </a>
@@ -248,7 +248,7 @@ export function DriveConnectedPanel({
       {canManage && (
         <>
           <MigratePhotosButton />
-          <p style={{ fontSize: 11, color: "var(--color-neutral-600)", margin: "9px 0" }}>
+          <p style={{ fontSize: 13, color: "var(--color-neutral-600)", margin: "9px 0" }}>
             Sharing (who can open the folder link) is set in Google Drive itself, not here — open the folder above and
             use Drive&apos;s own Share dialog.
           </p>
@@ -256,7 +256,7 @@ export function DriveConnectedPanel({
             type="button"
             className="btn btn-secondary btn-block"
             disabled={pending}
-            style={{ minHeight: 40, fontSize: 12 }}
+            style={{ minHeight: 40, fontSize: 13.5 }}
             onClick={() => startTransition(() => disconnectDriveAction())}
           >
             {pending ? "…" : "DISCONNECT"}
@@ -264,7 +264,7 @@ export function DriveConnectedPanel({
         </>
       )}
       {lastSyncedAt && (
-        <div style={{ fontSize: 11, color: "var(--color-neutral-600)", marginTop: 10 }}>Last synced {new Date(lastSyncedAt).toLocaleString()}</div>
+        <div style={{ fontSize: 13, color: "var(--color-neutral-600)", marginTop: 10 }}>Last synced {new Date(lastSyncedAt).toLocaleString()}</div>
       )}
     </>
   );
@@ -285,7 +285,7 @@ function MigratePhotosButton() {
         type="button"
         className="btn btn-secondary btn-block"
         disabled={busy}
-        style={{ minHeight: 40, fontSize: 12 }}
+        style={{ minHeight: 40, fontSize: 13.5 }}
         onClick={async () => {
           setBusy(true);
           setMessage(null);
@@ -298,7 +298,7 @@ function MigratePhotosButton() {
         {busy ? "MOVING…" : "MOVE EXISTING PHOTOS TO DRIVE"}
       </button>
       {message && (
-        <p style={{ fontSize: 11, color: isError ? "var(--color-accent-700)" : "var(--color-neutral-600)", margin: "6px 0 0" }}>{message}</p>
+        <p style={{ fontSize: 13, color: isError ? "var(--color-accent-700)" : "var(--color-neutral-600)", margin: "6px 0 0" }}>{message}</p>
       )}
     </div>
   );
@@ -309,21 +309,21 @@ export function CalendarConnectedPanel({ email, lastSyncedAt }: { email: string 
   return (
     <>
       <div style={{ background: "var(--color-bg)", border: "1px solid var(--color-divider)", padding: "9px 11px", marginBottom: 12 }}>
-        <div style={{ fontSize: 9, letterSpacing: ".1em", textTransform: "uppercase", color: "var(--color-neutral-600)" }}>Account</div>
-        <div style={{ fontSize: 12.5 }}>{email ?? "—"}</div>
+        <div style={{ fontSize: 11, letterSpacing: ".02em", textTransform: "uppercase", color: "var(--color-neutral-600)" }}>Account</div>
+        <div style={{ fontSize: 14 }}>{email ?? "—"}</div>
       </div>
       <SyncCalendarButton />
       <button
         type="button"
         className="btn btn-secondary btn-block"
         disabled={pending}
-        style={{ minHeight: 40, fontSize: 12, marginTop: 9 }}
+        style={{ minHeight: 40, fontSize: 13.5, marginTop: 9 }}
         onClick={() => startTransition(() => disconnectCalendarAction())}
       >
         {pending ? "…" : "DISCONNECT"}
       </button>
       {lastSyncedAt && (
-        <div style={{ fontSize: 11, color: "var(--color-neutral-600)", marginTop: 10 }}>Last synced {new Date(lastSyncedAt).toLocaleString()}</div>
+        <div style={{ fontSize: 13, color: "var(--color-neutral-600)", marginTop: 10 }}>Last synced {new Date(lastSyncedAt).toLocaleString()}</div>
       )}
     </>
   );
@@ -344,7 +344,7 @@ function SyncCalendarButton() {
         type="button"
         className="btn btn-secondary btn-block"
         disabled={busy}
-        style={{ minHeight: 40, fontSize: 12 }}
+        style={{ minHeight: 40, fontSize: 13.5 }}
         onClick={async () => {
           setBusy(true);
           setMessage(null);
@@ -357,7 +357,7 @@ function SyncCalendarButton() {
         {busy ? "SYNCING…" : "SYNC NOW"}
       </button>
       {message && (
-        <p style={{ fontSize: 11, color: isError ? "var(--color-accent-700)" : "var(--color-neutral-600)", margin: "6px 0 0" }}>{message}</p>
+        <p style={{ fontSize: 13, color: isError ? "var(--color-accent-700)" : "var(--color-neutral-600)", margin: "6px 0 0" }}>{message}</p>
       )}
     </div>
   );

@@ -27,7 +27,7 @@ export function DeleteAccountButton({ isSoleMember }: { isSoleMember: boolean })
       >
         {busy ? "DELETING…" : "DELETE MY ACCOUNT"}
       </button>
-      {error && <p style={{ color: "var(--color-accent-700)", fontSize: 11.5, marginTop: 8 }}>{error}</p>}
+      {error && <p style={{ color: "var(--color-accent-700)", fontSize: 13, marginTop: 8 }}>{error}</p>}
     </div>
   );
 }

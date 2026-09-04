@@ -36,7 +36,7 @@ export default function SignupPage() {
             autoComplete="new-password"
           />
         </div>
-        <div style={{ display: "flex", gap: 9, alignItems: "flex-start", fontSize: 12, color: "var(--color-neutral-700)", marginBottom: 24 }}>
+        <div style={{ display: "flex", gap: 9, alignItems: "flex-start", fontSize: 13.5, color: "var(--color-neutral-700)", marginBottom: 24 }}>
           <Icon name="shieldCheck" size={15} className="text-[var(--color-accent)]" />
           <span>Documents and health records stay in your own connected Drive. Kin stores only the index.</span>
         </div>

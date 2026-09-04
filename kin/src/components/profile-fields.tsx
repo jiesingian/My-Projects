@@ -79,19 +79,19 @@ export function ProfileFieldsView({ fields }: { fields: ProfileFields }) {
     <>
       {PROFILE_FIELD_GROUPS.map((group) => (
         <div key={group.title} style={{ marginBottom: 16 }}>
-          <div style={{ font: "600 10px/1 var(--font-heading)", letterSpacing: ".14em", color: "var(--color-neutral-600)", marginBottom: 8 }}>
+          <div style={{ font: "600 13px/1 var(--font-heading)", letterSpacing: ".02em", color: "var(--color-neutral-600)", marginBottom: 8 }}>
             {group.title}
           </div>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 1, background: "var(--color-divider)", border: "1px solid var(--color-divider)" }}>
             {group.title === "PERSONAL DETAILS" && (
               <div style={{ background: "var(--color-bg)", padding: "10px 12px" }}>
-                <div style={{ fontSize: 9, letterSpacing: ".1em", textTransform: "uppercase", color: "var(--color-neutral-600)" }}>Age</div>
+                <div style={{ fontSize: 11, letterSpacing: ".02em", textTransform: "uppercase", color: "var(--color-neutral-600)" }}>Age</div>
                 <div style={{ fontSize: 13.5 }}>{formatAge(fields.dob)}</div>
               </div>
             )}
             {group.fields.map((spec) => (
               <div key={spec.key} style={{ background: "var(--color-bg)", padding: "10px 12px" }}>
-                <div style={{ fontSize: 9, letterSpacing: ".1em", textTransform: "uppercase", color: "var(--color-neutral-600)" }}>{spec.label}</div>
+                <div style={{ fontSize: 11, letterSpacing: ".02em", textTransform: "uppercase", color: "var(--color-neutral-600)" }}>{spec.label}</div>
                 <div style={{ fontSize: 13.5 }}>{displayValue(fields, spec)}</div>
               </div>
             ))}
@@ -116,7 +116,7 @@ export function ProfileFieldsEditor({
     <>
       {PROFILE_FIELD_GROUPS.map((group) => (
         <div key={group.title} style={{ marginBottom: 16 }}>
-          <div style={{ font: "600 10px/1 var(--font-heading)", letterSpacing: ".14em", color: "var(--color-neutral-600)", marginBottom: 8 }}>
+          <div style={{ font: "600 13px/1 var(--font-heading)", letterSpacing: ".02em", color: "var(--color-neutral-600)", marginBottom: 8 }}>
             {group.title}
           </div>
           {chunk(group.fields, 2).map((row, i) => (

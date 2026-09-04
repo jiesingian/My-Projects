@@ -74,7 +74,7 @@ function AccountSelect({
 function ViaAppToggle({ checked, onChange, account }: { checked: boolean; onChange: (v: boolean) => void; account?: PickableAccount }) {
   if (!account?.linked_app_url) return null;
   return (
-    <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 11.5, color: "var(--color-neutral-700)", margin: "2px 0 10px" }}>
+    <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, color: "var(--color-neutral-700)", margin: "2px 0 10px" }}>
       <input type="checkbox" checked={checked} onChange={(e) => onChange(e.target.checked)} />
       Open {account.name} to pay, then confirm here
     </label>
@@ -83,7 +83,7 @@ function ViaAppToggle({ checked, onChange, account }: { checked: boolean; onChan
 
 function Err({ message }: { message: string | null }) {
   if (!message) return null;
-  return <p style={{ color: "var(--color-accent-700)", fontSize: 12, margin: "0 0 8px" }}>{message}</p>;
+  return <p style={{ color: "var(--color-accent-700)", fontSize: 13.5, margin: "0 0 8px" }}>{message}</p>;
 }
 
 export function PayBillControl({ billId, amount, accounts, currency }: { billId: string; amount: number; accounts: PickableAccount[]; currency: string }) {
@@ -95,12 +95,12 @@ export function PayBillControl({ billId, amount, accounts, currency }: { billId:
   const account = accounts.find((a) => a.id === accountId);
 
   if (accounts.length === 0) {
-    return <span style={{ fontSize: 10.5, color: "var(--color-neutral-600)" }}>Add an account first</span>;
+    return <span style={{ fontSize: 12.5, color: "var(--color-neutral-600)" }}>Add an account first</span>;
   }
 
   if (!open) {
     return (
-      <button type="button" className="btn btn-secondary" style={{ minHeight: 32, fontSize: 11, padding: "0 10px", marginTop: 6 }} onClick={() => setOpen(true)}>
+      <button type="button" className="btn btn-secondary" style={{ minHeight: 32, fontSize: 13, padding: "0 10px", marginTop: 6 }} onClick={() => setOpen(true)}>
         SETTLE
       </button>
     );
@@ -123,12 +123,12 @@ export function PayBillControl({ billId, amount, accounts, currency }: { billId:
           type="button"
           className="btn btn-primary"
           disabled={pending}
-          style={{ flex: 1, minHeight: 40, fontSize: 12 }}
+          style={{ flex: 1, minHeight: 40, fontSize: 13.5 }}
           onClick={() => run(() => payBillAction({ billId, accountId, amount: payAmount, viaApp: viaApp && !!account?.linked_app_url }), () => setOpen(false))}
         >
           {pending ? "…" : viaApp && account?.linked_app_url ? "OPEN APP & LOG" : "MARK PAID"}
         </button>
-        <button type="button" className="btn btn-secondary" style={{ flex: 1, minHeight: 40, fontSize: 12 }} onClick={() => setOpen(false)}>
+        <button type="button" className="btn btn-secondary" style={{ flex: 1, minHeight: 40, fontSize: 13.5 }} onClick={() => setOpen(false)}>
           CANCEL
         </button>
       </div>
@@ -148,7 +148,7 @@ export function GoalContributeControl({ goalId, accounts, currency }: { goalId: 
 
   if (!open) {
     return (
-      <button type="button" className="btn btn-secondary btn-block" style={{ minHeight: 38, fontSize: 11.5, marginTop: 10 }} onClick={() => setOpen(true)}>
+      <button type="button" className="btn btn-secondary btn-block" style={{ minHeight: 38, fontSize: 13, marginTop: 10 }} onClick={() => setOpen(true)}>
         + PUT MONEY IN
       </button>
     );
@@ -173,12 +173,12 @@ export function GoalContributeControl({ goalId, accounts, currency }: { goalId: 
           type="button"
           className="btn btn-primary"
           disabled={pending}
-          style={{ flex: 1, minHeight: 40, fontSize: 12 }}
+          style={{ flex: 1, minHeight: 40, fontSize: 13.5 }}
           onClick={() => run(() => contributeToGoalAction({ goalId, accountId, amount, viaApp: viaApp && !!account?.linked_app_url }), () => setOpen(false))}
         >
           {pending ? "…" : "ADD TO GOAL"}
         </button>
-        <button type="button" className="btn btn-secondary" style={{ flex: 1, minHeight: 40, fontSize: 12 }} onClick={() => setOpen(false)}>
+        <button type="button" className="btn btn-secondary" style={{ flex: 1, minHeight: 40, fontSize: 13.5 }} onClick={() => setOpen(false)}>
           CANCEL
         </button>
       </div>
@@ -217,7 +217,7 @@ export function LogSpendControl({
 
   if (!open) {
     return (
-      <button type="button" className="btn btn-secondary" style={{ minHeight: 32, fontSize: 10.5, padding: "0 10px" }} onClick={() => setOpen(true)}>
+      <button type="button" className="btn btn-secondary" style={{ minHeight: 32, fontSize: 12.5, padding: "0 10px" }} onClick={() => setOpen(true)}>
         {label}
       </button>
     );
@@ -241,12 +241,12 @@ export function LogSpendControl({
           type="button"
           className="btn btn-primary"
           disabled={pending}
-          style={{ flex: 1, minHeight: 38, fontSize: 11.5 }}
+          style={{ flex: 1, minHeight: 38, fontSize: 13 }}
           onClick={() => run(() => postHubExpenseAction({ accountId, amount, particulars, category, sourceTable, sourceId }), () => setOpen(false))}
         >
           {pending ? "…" : "RECORD IT"}
         </button>
-        <button type="button" className="btn btn-secondary" style={{ flex: 1, minHeight: 38, fontSize: 11.5 }} onClick={() => setOpen(false)}>
+        <button type="button" className="btn btn-secondary" style={{ flex: 1, minHeight: 38, fontSize: 13 }} onClick={() => setOpen(false)}>
           CANCEL
         </button>
       </div>
@@ -264,7 +264,7 @@ export function PendingEntryActions({ transactionId }: { transactionId: string }
           type="button"
           className="btn btn-primary"
           disabled={pending}
-          style={{ flex: 1, minHeight: 36, fontSize: 11.5 }}
+          style={{ flex: 1, minHeight: 36, fontSize: 13 }}
           onClick={() => run(() => confirmTransactionAction(transactionId))}
         >
           {pending ? "…" : "IT WENT THROUGH"}
@@ -273,7 +273,7 @@ export function PendingEntryActions({ transactionId }: { transactionId: string }
           type="button"
           className="btn btn-secondary"
           disabled={pending}
-          style={{ flex: 1, minHeight: 36, fontSize: 11.5 }}
+          style={{ flex: 1, minHeight: 36, fontSize: 13 }}
           onClick={() => run(() => deleteTransactionAction(transactionId))}
         >
           DISCARD
@@ -290,7 +290,7 @@ export function DeleteEntryButton({ transactionId }: { transactionId: string }) 
       type="button"
       className="btn btn-secondary"
       disabled={pending}
-      style={{ minHeight: 30, fontSize: 10.5, padding: "0 9px" }}
+      style={{ minHeight: 30, fontSize: 12.5, padding: "0 9px" }}
       onClick={() => {
         if (!window.confirm("Remove this entry? Balances will be recalculated without it.")) return;
         run(() => deleteTransactionAction(transactionId));
@@ -308,7 +308,7 @@ export function ValueUpdateControl({ id, current, kind }: { id: string; current:
 
   if (!open) {
     return (
-      <button type="button" className="btn btn-secondary" style={{ minHeight: 30, fontSize: 10.5, padding: "0 9px" }} onClick={() => setOpen(true)}>
+      <button type="button" className="btn btn-secondary" style={{ minHeight: 30, fontSize: 12.5, padding: "0 9px" }} onClick={() => setOpen(true)}>
         UPDATE
       </button>
     );
@@ -316,12 +316,12 @@ export function ValueUpdateControl({ id, current, kind }: { id: string; current:
 
   return (
     <span style={{ display: "flex", gap: 6 }}>
-      <input className="input" type="number" value={value} onChange={(e) => setValue(Number(e.target.value))} style={{ minHeight: 32, width: 110, fontSize: 12 }} />
+      <input className="input" type="number" value={value} onChange={(e) => setValue(Number(e.target.value))} style={{ minHeight: 32, width: 110, fontSize: 13.5 }} />
       <button
         type="button"
         className="btn btn-primary"
         disabled={pending}
-        style={{ minHeight: 32, fontSize: 10.5, padding: "0 9px" }}
+        style={{ minHeight: 32, fontSize: 12.5, padding: "0 9px" }}
         onClick={() =>
           run(() => (kind === "asset" ? updateAssetValueAction(id, value) : updateLiabilityBalanceAction(id, value)), () => setOpen(false))
         }
@@ -347,7 +347,7 @@ export function RemoveButton({ id, kind, label }: { id: string; kind: keyof type
       type="button"
       className="btn btn-secondary"
       disabled={pending}
-      style={{ minHeight: 30, fontSize: 10.5, padding: "0 9px", color: "var(--color-accent-700)", borderColor: "var(--color-accent-700)" }}
+      style={{ minHeight: 30, fontSize: 12.5, padding: "0 9px", color: "var(--color-accent-700)", borderColor: "var(--color-accent-700)" }}
       onClick={() => {
         if (!window.confirm(`${label}?`)) return;
         run(() => DELETERS[kind](id));

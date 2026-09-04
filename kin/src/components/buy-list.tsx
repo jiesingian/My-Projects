@@ -58,13 +58,13 @@ export function BuyList({
     <>
       <Blueprint style={{ padding: 13, marginBottom: 16 }}>
         <div style={{ display: "flex", alignItems: "baseline", gap: 8 }}>
-          <span style={{ font: "600 10px/1 var(--font-heading)", letterSpacing: ".14em", color: "var(--color-neutral-600)" }}>
+          <span style={{ font: "600 13px/1 var(--font-heading)", letterSpacing: ".02em", color: "var(--color-neutral-600)" }}>
             ONE LIST · EVERY SOURCE
           </span>
         </div>
         <div style={{ display: "flex", alignItems: "baseline", gap: 8, margin: "9px 0 0" }}>
           <span style={{ font: "600 34px/1 var(--font-heading)" }}>{openCount}</span>
-          <span style={{ fontSize: 12, color: "var(--color-neutral-600)" }}>still to buy · {doneCount} in the trolley</span>
+          <span style={{ fontSize: 13.5, color: "var(--color-neutral-600)" }}>still to buy · {doneCount} in the trolley</span>
         </div>
       </Blueprint>
 
@@ -92,7 +92,7 @@ export function BuyList({
                 cursor: "pointer",
                 background: "none",
                 border: 0,
-                borderBottom: "1px solid var(--color-text)",
+                borderBottom: "1px solid var(--color-divider)",
                 padding: "0 0 6px",
                 display: "flex",
                 alignItems: "baseline",
@@ -100,8 +100,8 @@ export function BuyList({
               }}
             >
               <Icon name="chevronLeft" size={12} className="text-[var(--color-neutral-600)]" style={{ transform: isCollapsed ? "rotate(0deg)" : "rotate(-90deg)" }} />
-              <span style={{ font: "600 11px/1 var(--font-heading)", letterSpacing: ".14em", textTransform: "uppercase" }}>{g.name}</span>
-              <span style={{ font: "400 9.5px/1 ui-monospace, Menlo, monospace", color: "var(--color-neutral-600)", marginLeft: "auto" }}>
+              <span style={{ font: "600 13px/1 var(--font-heading)", letterSpacing: ".02em", textTransform: "uppercase" }}>{g.name}</span>
+              <span style={{ font: "400 12px/1 var(--font-numeric)", color: "var(--color-neutral-600)", marginLeft: "auto" }}>
                 {g.openCount} OF {g.items.length}
               </span>
             </button>
@@ -113,18 +113,19 @@ export function BuyList({
                     type="button"
                     onClick={() => startTransition(() => toggleBuyItemAction(item.id, !item.checked))}
                     style={{
-                      width: 18,
-                      height: 18,
+                      width: 24,
+                      height: 24,
                       flex: "none",
                       cursor: "pointer",
                       padding: 0,
+                      borderRadius: 999,
                       border: `1.5px solid ${item.checked ? "var(--color-accent)" : "var(--color-divider)"}`,
                       background: item.checked ? "var(--color-accent)" : "transparent",
                       display: "flex",
                       alignItems: "center",
                       justifyContent: "center",
-                      color: "var(--color-bg)",
-                      fontSize: 11,
+                      color: "#fff",
+                      fontSize: 14,
                     }}
                   >
                     {item.checked ? "✓" : ""}
@@ -147,7 +148,7 @@ export function BuyList({
                   >
                     {item.name}
                   </button>
-                  <span style={{ fontFamily: "ui-monospace, Menlo, monospace", fontSize: 11.5, color: "var(--color-neutral-600)", flex: "none" }}>
+                  <span style={{ fontFamily: "var(--font-numeric)", fontSize: 13, color: "var(--color-neutral-600)", flex: "none" }}>
                     {formatQuantity(item.quantity, item.unit)}
                   </span>
                   <Tag variant={item.source === "meal_plan" ? "accent" : item.source === "maintenance" ? "outline" : "neutral"}>
@@ -197,7 +198,7 @@ export function BuyList({
         </div>
       </form>
       <ErrorText message={addState.error} />
-      <div style={{ fontSize: 11, color: "var(--color-neutral-600)", marginTop: 10 }}>
+      <div style={{ fontSize: 13, color: "var(--color-neutral-600)", marginTop: 10 }}>
         Sections follow the order you walk the market. Items from the meal plan are filed by name automatically — tap any item to fix its
         quantity or section. Ticked items stay until cleared.
       </div>
@@ -258,17 +259,17 @@ function EditItemRow({ item, onClose }: { item: Tables<"buy_items">; onClose: ()
             </option>
           ))}
         </select>
-        <button type="button" className="btn btn-primary" disabled={pending} style={{ minHeight: 40, fontSize: 11.5, paddingInline: 14 }} onClick={save}>
+        <button type="button" className="btn btn-primary" disabled={pending} style={{ minHeight: 40, fontSize: 13, paddingInline: 14 }} onClick={save}>
           {pending ? "…" : "SAVE"}
         </button>
-        <button type="button" className="btn btn-secondary" style={{ minHeight: 40, fontSize: 11.5, paddingInline: 12 }} onClick={onClose}>
+        <button type="button" className="btn btn-secondary" style={{ minHeight: 40, fontSize: 13, paddingInline: 12 }} onClick={onClose}>
           CANCEL
         </button>
         <button
           type="button"
           className="btn btn-secondary"
           disabled={pending}
-          style={{ minHeight: 40, fontSize: 11.5, paddingInline: 12, color: "var(--color-accent-700)", borderColor: "var(--color-accent-700)" }}
+          style={{ minHeight: 40, fontSize: 13, paddingInline: 12, color: "var(--color-accent-700)", borderColor: "var(--color-accent-700)" }}
           onClick={() => {
             if (!window.confirm(`Remove "${item.name}" from the list?`)) return;
             startTransition(async () => {
@@ -322,7 +323,7 @@ function ClearCheckedPanel({
 
   return (
     <Blueprint className="bg-[var(--color-accent-100)]" style={{ padding: "12px 13px", marginBottom: 16 }}>
-      <div style={{ fontSize: 12, marginBottom: 10 }}>
+      <div style={{ fontSize: 13.5, marginBottom: 10 }}>
         {doneCount} item{doneCount === 1 ? "" : "s"} in the trolley — what did the shop come to?
       </div>
       {accounts.length > 0 && (
@@ -347,14 +348,14 @@ function ClearCheckedPanel({
         <button
           type="button"
           className="btn btn-primary"
-          style={{ flex: 1, minHeight: 38, fontSize: 11.5, letterSpacing: ".04em" }}
+          style={{ flex: 1, minHeight: 38, fontSize: 13, letterSpacing: ".04em" }}
           disabled={pending}
           onClick={() => finish(true)}
         >
           {pending ? "…" : amount > 0 ? "CLEAR & LOG SPEND" : "CLEAR CHECKED"}
         </button>
         {amount > 0 && (
-          <button type="button" className="btn btn-secondary" style={{ flex: "none", minHeight: 38, fontSize: 11.5 }} disabled={pending} onClick={() => finish(false)}>
+          <button type="button" className="btn btn-secondary" style={{ flex: "none", minHeight: 38, fontSize: 13 }} disabled={pending} onClick={() => finish(false)}>
             CLEAR ONLY
           </button>
         )}

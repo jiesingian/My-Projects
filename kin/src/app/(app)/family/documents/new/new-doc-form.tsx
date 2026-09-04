@@ -89,7 +89,7 @@ export function NewDocForm({
 
           <div className="blueprint placeholder-fill" style={{ padding: "22px 16px", textAlign: "center", marginBottom: 18 }}>
             <div style={{ font: "600 17px/1.15 var(--font-heading)", margin: "0 0 4px" }}>Choose files</div>
-            <div style={{ fontSize: 11.5, color: "var(--color-neutral-700)", marginBottom: 12 }}>PDF, JPG, PNG, HEIC.</div>
+            <div style={{ fontSize: 13, color: "var(--color-neutral-700)", marginBottom: 12 }}>PDF, JPG, PNG, HEIC.</div>
             <input
               ref={fileRef}
               type="file"
@@ -100,7 +100,7 @@ export function NewDocForm({
               onChange={() => setFileNames(Array.from(fileRef.current?.files ?? []).map((f) => f.name))}
             />
             {fileNames.length > 0 && (
-              <div style={{ fontSize: 11, color: "var(--color-neutral-700)", marginTop: 8 }}>{fileNames.join(", ")}</div>
+              <div style={{ fontSize: 13, color: "var(--color-neutral-700)", marginTop: 8 }}>{fileNames.join(", ")}</div>
             )}
           </div>
 
@@ -109,7 +109,7 @@ export function NewDocForm({
             <input className="input" name="title" required style={{ minHeight: 44 }} />
           </div>
 
-          <div style={{ fontSize: 11.5, color: "var(--color-neutral-700)", marginBottom: 6 }}>Folder</div>
+          <div style={{ fontSize: 13, color: "var(--color-neutral-700)", marginBottom: 6 }}>Folder</div>
           <div style={{ display: "flex", gap: 7, flexWrap: "wrap", marginBottom: 16 }}>
             {folders.map((f) => (
               <button key={f.id} type="button" className="chip" data-active={folderId === f.id} onClick={() => setFolderId(f.id)}>
@@ -156,7 +156,7 @@ export function NewDocForm({
             </div>
           </div>
 
-          <div style={{ fontSize: 11.5, color: "var(--color-neutral-700)", marginBottom: 6 }}>Visible to</div>
+          <div style={{ fontSize: 13, color: "var(--color-neutral-700)", marginBottom: 6 }}>Visible to</div>
           <div style={{ display: "flex", gap: 7, flexWrap: "wrap", marginBottom: 16 }}>
             {VISIBILITY.map((v) => (
               <button key={v.value} type="button" className="chip" data-active={visibility === v.value} onClick={() => setVisibility(v.value)}>

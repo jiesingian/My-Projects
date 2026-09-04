@@ -17,7 +17,7 @@ export function OmronToggle({
     <button
       type="button"
       className={`btn ${connected ? "btn-secondary" : "btn-primary"} btn-block`}
-      style={{ minHeight: 42, fontSize: 12.5, letterSpacing: ".04em" }}
+      style={{ minHeight: 42, fontSize: 14, letterSpacing: ".04em" }}
       disabled={pending}
       onClick={() => startTransition(() => toggleOmronAction(memberId, familyId, !connected))}
     >

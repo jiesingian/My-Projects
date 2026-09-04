@@ -96,7 +96,7 @@ export default async function MemberDetailPage({
                 <Avatar url={member.avatar_url} initials={initials(member.full_name)} size={88} />
                 <div>
                   <div style={{ font: "600 34px/.98 var(--font-heading)" }}>{member.full_name}</div>
-                  <div style={{ fontSize: 12, color: "var(--color-neutral-600)", marginTop: 4 }}>
+                  <div style={{ fontSize: 13.5, color: "var(--color-neutral-600)", marginTop: 4 }}>
                     {formatAge(member.dob)} · {member.relationship ?? member.role.replace("_", " ")}
                   </div>
                   <Tag variant={member.is_organiser ? "accent" : "neutral"} className="mt-2 inline-flex">
@@ -107,7 +107,7 @@ export default async function MemberDetailPage({
 
               {me.is_organiser && (
                 <>
-                  <div style={{ fontSize: 11.5, color: "var(--color-neutral-700)", marginBottom: 6 }}>Relationship</div>
+                  <div style={{ fontSize: 13, color: "var(--color-neutral-700)", marginBottom: 6 }}>Relationship</div>
                   <RelationshipEditor memberId={member.id} relationship={member.relationship} />
                 </>
               )}
@@ -125,7 +125,7 @@ export default async function MemberDetailPage({
             <Avatar url={member.avatar_url} initials={initials(member.full_name)} size={64} />
             <div>
               <div style={{ font: "600 26px/.98 var(--font-heading)" }}>{member.full_name}</div>
-              <div style={{ fontSize: 12, color: "var(--color-neutral-600)", marginTop: 4 }}>
+              <div style={{ fontSize: 13.5, color: "var(--color-neutral-600)", marginTop: 4 }}>
                 {formatAge(member.dob)} · {member.relationship ?? member.role.replace("_", " ")}
               </div>
             </div>
@@ -140,20 +140,20 @@ export default async function MemberDetailPage({
             <>
               {schedule.map((s) => (
                 <div key={s.id} style={{ display: "flex", justifyContent: "space-between", gap: 12, padding: "8px 0", borderBottom: "1px solid var(--color-divider)" }}>
-                  <span style={{ fontSize: 12.5 }}>{s.what}</span>
-                  <span style={{ fontFamily: "ui-monospace, Menlo, monospace", fontSize: 11.5, color: "var(--color-neutral-700)" }}>
+                  <span style={{ fontSize: 14 }}>{s.what}</span>
+                  <span style={{ fontFamily: "var(--font-numeric)", fontSize: 13, color: "var(--color-neutral-700)" }}>
                     {s.when_date ? formatDate(s.when_date) : "—"}
                   </span>
                   <Tag variant={s.status === "due" ? "accent" : "neutral"}>{s.status.replace("_", " ").toUpperCase()}</Tag>
                 </div>
               ))}
-              <div style={{ font: "600 10px/1 var(--font-heading)", letterSpacing: ".16em", color: "var(--color-neutral-600)", margin: "20px 0 6px" }}>
+              <div style={{ font: "600 13px/1 var(--font-heading)", letterSpacing: ".02em", color: "var(--color-neutral-600)", margin: "20px 0 6px" }}>
                 APPOINTMENTS
               </div>
               {appointments.map((a) => (
                 <div key={a.id} style={{ padding: "11px 0", borderBottom: "1px solid color-mix(in srgb, var(--color-text) 10%, transparent)" }}>
                   <div style={{ display: "flex", gap: 12, alignItems: "center", flexWrap: "wrap" }}>
-                    <span style={{ font: "400 11px/1.4 ui-monospace, Menlo, monospace", color: "var(--color-accent-700)", width: 140, flex: "none" }}>
+                    <span style={{ font: "400 13px/1.4 var(--font-numeric)", color: "var(--color-accent-700)", width: 140, flex: "none" }}>
                       {new Date(a.when_at).toLocaleString()}
                     </span>
                     <span style={{ flex: 1, fontSize: 13, minWidth: 120 }}>{a.what}</span>
@@ -186,15 +186,15 @@ export default async function MemberDetailPage({
                       {c.status.toUpperCase()}
                     </Tag>
                   </div>
-                  <div style={{ fontSize: 11.5, color: "var(--color-neutral-600)", margin: "4px 0 9px" }}>{c.meta_note}</div>
+                  <div style={{ fontSize: 13, color: "var(--color-neutral-600)", margin: "4px 0 9px" }}>{c.meta_note}</div>
                   {(c.health_condition_entries ?? [])
                     .sort((a, b) => b.entry_date.localeCompare(a.entry_date))
                     .map((e) => (
                       <div key={e.id} style={{ display: "flex", gap: 10, padding: "8px 0", borderTop: "1px solid color-mix(in srgb, var(--color-text) 10%, transparent)" }}>
-                        <span style={{ font: "400 10.5px/1.5 ui-monospace, Menlo, monospace", color: "var(--color-accent-700)", width: 74, flex: "none" }}>
+                        <span style={{ font: "400 10.5px/1.5 var(--font-numeric)", color: "var(--color-accent-700)", width: 74, flex: "none" }}>
                           {formatDate(e.entry_date)}
                         </span>
-                        <span style={{ flex: 1, fontSize: 12.5 }}>{e.note}</span>
+                        <span style={{ flex: 1, fontSize: 14 }}>{e.note}</span>
                       </div>
                     ))}
                 </Blueprint>
@@ -214,10 +214,10 @@ export default async function MemberDetailPage({
                     </Tag>
                   </div>
                   <div style={{ display: "flex", gap: 10, alignItems: "baseline", marginTop: 5 }}>
-                    <span style={{ font: "400 10.5px/1.5 ui-monospace, Menlo, monospace", color: "var(--color-neutral-600)", width: 74, flex: "none" }}>
+                    <span style={{ font: "400 10.5px/1.5 var(--font-numeric)", color: "var(--color-neutral-600)", width: 74, flex: "none" }}>
                       {formatDate(l.test_date)}
                     </span>
-                    <span style={{ flex: 1, fontSize: 12, color: "var(--color-neutral-800)" }}>{l.result}</span>
+                    <span style={{ flex: 1, fontSize: 13.5, color: "var(--color-neutral-800)" }}>{l.result}</span>
                   </div>
                 </div>
               ))
@@ -231,7 +231,7 @@ export default async function MemberDetailPage({
                   <span style={{ font: "600 16px/1.05 var(--font-heading)", flex: 1 }}>Omron Connect</span>
                   <Tag variant={omron?.connected ? "accent" : "outline"}>{omron?.connected ? "LINKED" : "NOT LINKED"}</Tag>
                 </div>
-                <div style={{ fontSize: 11.5, color: "var(--color-neutral-700)", margin: "8px 0 10px" }}>
+                <div style={{ fontSize: 13, color: "var(--color-neutral-700)", margin: "8px 0 10px" }}>
                   {omron?.connected
                     ? `Last sync ${omron.last_synced_at ? new Date(omron.last_synced_at).toLocaleString() : "just now"}. Readings arrive automatically.`
                     : "Link the Omron Connect app to pull blood pressure and weight readings straight into this record."}
@@ -264,7 +264,7 @@ export default async function MemberDetailPage({
 }
 
 function EmptyNote({ text }: { text: string }) {
-  return <div style={{ fontSize: 12, color: "var(--color-neutral-600)" }}>{text}</div>;
+  return <div style={{ fontSize: 13.5, color: "var(--color-neutral-600)" }}>{text}</div>;
 }
 
 function BarChart({
@@ -279,7 +279,7 @@ function BarChart({
   if (series.length === 0) {
     return (
       <>
-        <div style={{ font: "600 10px/1 var(--font-heading)", letterSpacing: ".16em", color: "var(--color-neutral-600)", marginBottom: 8 }}>{title}</div>
+        <div style={{ font: "600 13px/1 var(--font-heading)", letterSpacing: ".02em", color: "var(--color-neutral-600)", marginBottom: 8 }}>{title}</div>
         <EmptyNote text="No readings yet." />
       </>
     );
@@ -287,7 +287,7 @@ function BarChart({
   const latest = series[series.length - 1];
   return (
     <>
-      <div style={{ font: "600 10px/1 var(--font-heading)", letterSpacing: ".16em", color: "var(--color-neutral-600)", marginBottom: 8 }}>{title}</div>
+      <div style={{ font: "600 13px/1 var(--font-heading)", letterSpacing: ".02em", color: "var(--color-neutral-600)", marginBottom: 8 }}>{title}</div>
       <Blueprint style={{ padding: 13, marginBottom: 16 }}>
         <div style={{ display: "flex", alignItems: "baseline", gap: 8, marginBottom: 12 }}>
           <span style={{ font: "600 30px/1 var(--font-heading)" }}>
@@ -301,7 +301,7 @@ function BarChart({
         </div>
         <div style={{ display: "flex", gap: 5, marginTop: 5 }}>
           {series.map((b, i) => (
-            <span key={i} style={{ flex: 1, textAlign: "center", font: "400 8px/1 ui-monospace, Menlo, monospace", color: "var(--color-neutral-600)" }}>
+            <span key={i} style={{ flex: 1, textAlign: "center", font: "400 8px/1 var(--font-numeric)", color: "var(--color-neutral-600)" }}>
               {b.label}
             </span>
           ))}

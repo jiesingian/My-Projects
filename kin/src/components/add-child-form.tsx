@@ -14,7 +14,7 @@ export function AddChildForm() {
   if (!open) {
     return (
       <div style={{ display: "flex", gap: 10, marginTop: 18 }}>
-        <button type="button" className="btn btn-secondary" style={{ flex: 1, minHeight: 42, fontSize: 12.5 }} onClick={() => setOpen(true)}>
+        <button type="button" className="btn btn-secondary" style={{ flex: 1, minHeight: 42, fontSize: 14 }} onClick={() => setOpen(true)}>
           ADD CHILD
         </button>
       </div>
@@ -45,10 +45,10 @@ export function AddChildForm() {
         </div>
       </div>
       <div style={{ display: "flex", gap: 10 }}>
-        <SubmitButton className="btn btn-primary" style={{ flex: 1, minHeight: 42, fontSize: 12.5 }}>
+        <SubmitButton className="btn btn-primary" style={{ flex: 1, minHeight: 42, fontSize: 14 }}>
           SAVE CHILD
         </SubmitButton>
-        <button type="button" className="btn btn-secondary" style={{ flex: 1, minHeight: 42, fontSize: 12.5 }} onClick={() => setOpen(false)}>
+        <button type="button" className="btn btn-secondary" style={{ flex: 1, minHeight: 42, fontSize: 14 }} onClick={() => setOpen(false)}>
           CANCEL
         </button>
       </div>

@@ -11,7 +11,7 @@ export function TransferOrganizerRole({ candidates }: { candidates: { id: string
   const router = useRouter();
 
   if (candidates.length === 0) {
-    return <p style={{ fontSize: 11.5, color: "var(--color-neutral-600)" }}>No other adult members to transfer the role to yet.</p>;
+    return <p style={{ fontSize: 13, color: "var(--color-neutral-600)" }}>No other adult members to transfer the role to yet.</p>;
   }
 
   return (
@@ -27,7 +27,7 @@ export function TransferOrganizerRole({ candidates }: { candidates: { id: string
         <button
           type="button"
           className="btn btn-secondary"
-          style={{ minHeight: 40, fontSize: 12 }}
+          style={{ minHeight: 40, fontSize: 13.5 }}
           disabled={busy}
           onClick={async () => {
             const name = candidates.find((c) => c.id === selected)?.full_name ?? "this member";
@@ -42,7 +42,7 @@ export function TransferOrganizerRole({ candidates }: { candidates: { id: string
           {busy ? "…" : "TRANSFER"}
         </button>
       </div>
-      {error && <p style={{ color: "var(--color-accent-700)", fontSize: 11.5 }}>{error}</p>}
+      {error && <p style={{ color: "var(--color-accent-700)", fontSize: 13 }}>{error}</p>}
     </div>
   );
 }

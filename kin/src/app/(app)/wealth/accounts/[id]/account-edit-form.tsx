@@ -15,7 +15,7 @@ export function AccountEditForm({ account }: { account: Tables<"accounts"> }) {
 
   if (!open) {
     return (
-      <button type="button" className="btn btn-secondary btn-block" style={{ minHeight: 40, fontSize: 12, marginTop: 14 }} onClick={() => setOpen(true)}>
+      <button type="button" className="btn btn-secondary btn-block" style={{ minHeight: 40, fontSize: 13.5, marginTop: 14 }} onClick={() => setOpen(true)}>
         EDIT ACCOUNT
       </button>
     );
@@ -48,10 +48,10 @@ export function AccountEditForm({ account }: { account: Tables<"accounts"> }) {
         <input className="input" name="sub_note" defaultValue={account.sub_note ?? ""} style={{ minHeight: 42 }} />
       </Field>
       <div style={{ display: "flex", gap: 10 }}>
-        <SubmitButton className="btn btn-primary" style={{ flex: 1, minHeight: 42, fontSize: 12.5 }}>
+        <SubmitButton className="btn btn-primary" style={{ flex: 1, minHeight: 42, fontSize: 14 }}>
           SAVE
         </SubmitButton>
-        <button type="button" className="btn btn-secondary" style={{ flex: 1, minHeight: 42, fontSize: 12.5 }} onClick={() => setOpen(false)}>
+        <button type="button" className="btn btn-secondary" style={{ flex: 1, minHeight: 42, fontSize: 14 }} onClick={() => setOpen(false)}>
           CANCEL
         </button>
       </div>

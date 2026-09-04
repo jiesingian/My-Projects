@@ -47,7 +47,7 @@ export function DocFileRow({
             >
               {selected && <Icon name="check" size={10} className="text-white" />}
             </span>
-            <span style={{ fontSize: 12 }}>{fileName}</span>
+            <span style={{ fontSize: 13.5 }}>{fileName}</span>
           </button>
         ) : (
           <DownloadLink path={path} fileName={fileName} driveViewLink={driveViewLink} />

@@ -7,7 +7,7 @@ export function CopyInviteCode({ code }: { code: string }) {
   const [copied, setCopied] = useState(false);
   return (
     <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-      <span style={{ font: "400 24px/1 ui-monospace, Menlo, monospace", letterSpacing: ".1em" }}>{code}</span>
+      <span style={{ font: "400 24px/1 var(--font-numeric)", letterSpacing: ".02em" }}>{code}</span>
       <button
         type="button"
         className="btn btn-secondary btn-icon"

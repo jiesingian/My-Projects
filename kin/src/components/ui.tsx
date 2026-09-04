@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 
-/** Hairline border + four corner registration marks — the system's signature card. */
+/** The frosted card the whole app is built from — translucent, rounded, and
+ * blurring whatever sits behind it. */
 export function Blueprint({
   children,
   className,
@@ -17,21 +18,13 @@ export function Blueprint({
   const cls = `blueprint ${className ?? ""}`;
   if (Tag === "button") {
     return (
-      <button type="button" className={cls} style={style} onClick={onClick}>
-        <i className="corner tl" />
-        <i className="corner tr" />
-        <i className="corner bl" />
-        <i className="corner br" />
+      <button type="button" className={cls} style={{ textAlign: "left", ...style }} onClick={onClick}>
         {children}
       </button>
     );
   }
   return (
     <div className={cls} style={style}>
-      <i className="corner tl" />
-      <i className="corner tr" />
-      <i className="corner bl" />
-      <i className="corner br" />
       {children}
     </div>
   );
@@ -56,8 +49,8 @@ export function SectionLabel({ children }: { children: ReactNode }) {
     <div
       className="mb-2"
       style={{
-        font: "600 10px/1 var(--font-heading)",
-        letterSpacing: ".16em",
+        font: "600 13px/1 var(--font-heading)",
+        letterSpacing: ".02em",
         color: "var(--color-neutral-600)",
       }}
     >
@@ -70,8 +63,8 @@ export function EyebrowLabel({ children }: { children: ReactNode }) {
   return (
     <span
       style={{
-        font: "600 10px/1 var(--font-heading)",
-        letterSpacing: ".18em",
+        font: "600 13px/1 var(--font-heading)",
+        letterSpacing: ".02em",
         color: "var(--color-accent-700)",
       }}
     >

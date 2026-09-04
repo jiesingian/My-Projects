@@ -52,7 +52,7 @@ async function BuyPane({ familyId, memberId, currency }: { familyId: string; mem
           .filter((a) => a.is_joint || a.owner_member_id === memberId)
           .map((a) => ({ id: a.id, name: a.name, institution: a.institution, linked_app_url: a.linked_app_url, balance: a.balance, is_joint: a.is_joint }))}
       />
-      <Link href="/wealth?seg=bills" style={{ display: "block", fontSize: 11.5, color: "var(--color-neutral-600)", marginTop: 14 }}>
+      <Link href="/wealth?seg=bills" style={{ display: "block", fontSize: 13, color: "var(--color-neutral-600)", marginTop: 14 }}>
         Bills now live in Wealth, where they are paid from an account →
       </Link>
     </>
@@ -63,15 +63,15 @@ async function MealsPane({ familyId, memberId }: { familyId: string; memberId: s
   const meals = await getMeals(familyId);
   return (
     <>
-      {meals.length === 0 && <p style={{ fontSize: 12, color: "var(--color-neutral-600)" }}>No meals planned this week yet.</p>}
+      {meals.length === 0 && <p style={{ fontSize: 13.5, color: "var(--color-neutral-600)" }}>No meals planned this week yet.</p>}
       {meals.map((m) => (
         <div key={m.id} style={{ display: "flex", gap: 12, alignItems: "baseline", padding: "11px 0", borderBottom: "1px solid color-mix(in srgb, var(--color-text) 10%, transparent)" }}>
-          <span style={{ font: "600 10px/1 var(--font-heading)", letterSpacing: ".1em", color: "var(--color-accent-700)", width: 70, flex: "none" }}>
+          <span style={{ font: "600 13px/1 var(--font-heading)", letterSpacing: ".02em", color: "var(--color-accent-700)", width: 70, flex: "none" }}>
             {new Date(m.plan_date).toLocaleDateString("en-GB", { weekday: "short" }).toUpperCase()}
           </span>
           <span style={{ flex: 1, minWidth: 0 }}>
             <span style={{ fontSize: 14, display: "block" }}>{m.dish}</span>
-            {m.note && <span style={{ fontSize: 10.5, color: "var(--color-neutral-600)" }}>{m.note}</span>}
+            {m.note && <span style={{ fontSize: 12.5, color: "var(--color-neutral-600)" }}>{m.note}</span>}
           </span>
           <Tag variant={m.missing === 0 ? "accent" : "neutral"}>{m.missing === 0 ? "all bought" : `${m.missing} to buy`}</Tag>
         </div>

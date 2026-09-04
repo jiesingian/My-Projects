@@ -45,7 +45,7 @@ export function NewHealthEntryForm({
       <DetailHeader backHref={`/family/members/${member.id}?view=health`} eyebrow="HUB 01 · HEALTH ENTRY" />
       <div style={{ padding: "0 22px 22px" }}>
         <h3 style={{ fontSize: 30, margin: "0 0 4px" }}>New entry</h3>
-        <div style={{ fontSize: 12.5, color: "var(--color-neutral-700)", marginBottom: 16 }}>For {member.full_name}</div>
+        <div style={{ fontSize: 14, color: "var(--color-neutral-700)", marginBottom: 16 }}>For {member.full_name}</div>
 
         <form action={formAction}>
           <input type="hidden" name="member_id" value={member.id} />
@@ -54,7 +54,7 @@ export function NewHealthEntryForm({
           {type.grouped && <input type="hidden" name="group_id" value={groupId} />}
           <ErrorText message={state.error} />
 
-          <div style={{ fontSize: 11.5, color: "var(--color-neutral-700)", marginBottom: 6 }}>Entry type</div>
+          <div style={{ fontSize: 13, color: "var(--color-neutral-700)", marginBottom: 6 }}>Entry type</div>
           <div style={{ display: "flex", gap: 7, flexWrap: "wrap", marginBottom: 18 }}>
             {TYPES.map((t) => (
               <button key={t.value} type="button" className="chip" data-active={type.value === t.value} onClick={() => setType(t)}>
@@ -65,15 +65,15 @@ export function NewHealthEntryForm({
 
           {type.device && (
             <Blueprint className="bg-[var(--color-accent-100)]" style={{ padding: 13, marginBottom: 18 }}>
-              <div style={{ font: "600 10px/1 var(--font-heading)", letterSpacing: ".14em", color: "var(--color-accent-700)", marginBottom: 7 }}>
+              <div style={{ font: "600 13px/1 var(--font-heading)", letterSpacing: ".02em", color: "var(--color-accent-700)", marginBottom: 7 }}>
                 FROM A DEVICE
               </div>
-              <p style={{ fontSize: 12, margin: "0 0 11px", color: "var(--color-neutral-800)" }}>
+              <p style={{ fontSize: 13.5, margin: "0 0 11px", color: "var(--color-neutral-800)" }}>
                 {omronConnected
                   ? "Omron Connect is linked — import the readings taken since the last sync instead of typing them."
                   : "Omron Connect is not linked yet. Connect it once and these readings arrive on their own."}
               </p>
-              <div style={{ fontSize: 11.5, color: "var(--color-neutral-700)" }}>Enter the reading by hand below in the meantime.</div>
+              <div style={{ fontSize: 13, color: "var(--color-neutral-700)" }}>Enter the reading by hand below in the meantime.</div>
             </Blueprint>
           )}
 
@@ -84,7 +84,7 @@ export function NewHealthEntryForm({
 
           {type.grouped && (
             <>
-              <div style={{ fontSize: 11.5, color: "var(--color-neutral-700)", marginBottom: 6 }}>Group under</div>
+              <div style={{ fontSize: 13, color: "var(--color-neutral-700)", marginBottom: 6 }}>Group under</div>
               <div style={{ display: "flex", gap: 7, flexWrap: "wrap", marginBottom: 16 }}>
                 {conditions.map((c) => (
                   <button key={c.id} type="button" className="chip" data-active={groupId === c.id} onClick={() => setGroupId(c.id)}>
@@ -131,7 +131,7 @@ export function NewHealthEntryForm({
             <input className="input" name="notes" placeholder="Symptoms, dosage, instructions" style={{ minHeight: 44 }} />
           </div>
 
-          <div style={{ fontSize: 11.5, color: "var(--color-neutral-700)", marginBottom: 6 }}>Visible to</div>
+          <div style={{ fontSize: 13, color: "var(--color-neutral-700)", marginBottom: 6 }}>Visible to</div>
           <div style={{ display: "flex", gap: 7, flexWrap: "wrap", marginBottom: 18 }}>
             {VISIBILITY.map((v) => (
               <button key={v.value} type="button" className="chip" data-active={visibility === v.value} onClick={() => setVisibility(v.value)}>

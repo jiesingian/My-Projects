@@ -34,8 +34,8 @@ export function OnboardingShell({
             {step && (
               <span
                 style={{
-                  font: "600 10px/1 var(--font-heading)",
-                  letterSpacing: ".18em",
+                  font: "600 13px/1 var(--font-heading)",
+                  letterSpacing: ".02em",
                   color: "var(--color-accent-700)",
                   marginLeft: "auto",
                 }}
@@ -56,8 +56,8 @@ export function Wordmark() {
     <div>
       <div
         style={{
-          font: "600 10px/1 var(--font-heading)",
-          letterSpacing: ".2em",
+          font: "600 13px/1 var(--font-heading)",
+          letterSpacing: ".02em",
           color: "var(--color-accent-700)",
         }}
       >

@@ -1,89 +1,127 @@
-@import url("https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;700&family=Barlow+Condensed:wght@400;600&display=swap");
 @import "tailwindcss";
 
-/* Industry design system, carried over from the Claude Design prototype:
-   steel-blue blueprint/wireframe style, square corners, hairline dividers,
-   registration-mark corners on cards. */
+/* iOS-flavoured design system: the platform type stack, continuous rounded
+   corners, translucent frosted surfaces over an ambient backdrop, and system
+   blue as the tint. Tokens keep their original names so the inline styles
+   scattered through the app pick all of this up without being rewritten. */
 :root {
-  --color-bg: #f2f2f3;
-  --color-surface: #e9e9ea;
-  --color-text: #1d1f20;
-  --color-accent: #5980a6;
-  --color-accent-2: #728fab;
-  --color-divider: color-mix(in srgb, #1d1f20 16%, transparent);
+  /* systemGroupedBackground / secondarySystemGroupedBackground */
+  --color-bg: #f2f2f7;
+  --color-surface: #ffffff;
+  --color-text: #1c1c1e;
+  --color-accent: #007aff;
+  --color-accent-2: #5ac8fa;
+  --color-divider: rgba(60, 60, 67, 0.18);
 
-  --color-neutral-100: #f5f5f8;
-  --color-neutral-200: #e7e7ea;
-  --color-neutral-300: #d4d4d7;
-  --color-neutral-400: #b7b7ba;
-  --color-neutral-500: #98989b;
-  --color-neutral-600: #7a7a7d;
-  --color-neutral-700: #5d5d60;
-  --color-neutral-800: #424244;
-  --color-neutral-900: #2b2b2d;
+  --color-neutral-100: #f7f7fa;
+  --color-neutral-200: #eeeef2;
+  --color-neutral-300: #e0e0e6;
+  --color-neutral-400: #c7c7cc;
+  --color-neutral-500: #aeaeb2;
+  --color-neutral-600: #8e8e93;
+  --color-neutral-700: #6c6c70;
+  --color-neutral-800: #3a3a3c;
+  --color-neutral-900: #1c1c1e;
 
-  --color-accent-100: #eef6ff;
-  --color-accent-200: #d6ebff;
-  --color-accent-300: #b5d9fd;
-  --color-accent-400: #94bce3;
-  --color-accent-500: #749dc4;
-  --color-accent-600: #597ea3;
-  --color-accent-700: #416180;
-  --color-accent-800: #2c455d;
-  --color-accent-900: #1d2d3d;
+  --color-accent-100: #e8f1ff;
+  --color-accent-200: #d3e5ff;
+  --color-accent-300: #a9ccff;
+  --color-accent-400: #7fb2ff;
+  --color-accent-500: #4b95ff;
+  --color-accent-600: #0a84ff;
+  --color-accent-700: #0062cc;
+  --color-accent-800: #004999;
+  --color-accent-900: #00306a;
 
-  --font-heading: "Barlow Condensed", system-ui, sans-serif;
-  --font-body: "Barlow", system-ui, sans-serif;
+  /* One family, many weights — the way the platform does it. */
+  --font-heading: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
+  --font-body: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
+  --font-mono: ui-monospace, "SF Mono", SFMono-Regular, Menlo, monospace;
+  /* Figures stay in the system face and line up by column via tabular-nums,
+     rather than switching to a typewriter face the way the old system did. */
+  --font-numeric: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
 
-  --radius-md: 4px;
+  --radius-md: 12px;
+  --radius-card: 18px;
+  --radius-control: 12px;
+  --radius-pill: 999px;
 
-  --shadow-sm: 0 1px 2px color-mix(in srgb, #2b2b2d 14%, transparent);
-  --shadow-md: 0 3px 10px color-mix(in srgb, #2b2b2d 16%, transparent);
-  --shadow-lg: 0 12px 32px color-mix(in srgb, #2b2b2d 22%, transparent);
+  --glass-bg: rgba(255, 255, 255, 0.72);
+  --glass-border: rgba(255, 255, 255, 0.6);
+  --glass-blur: saturate(180%) blur(20px);
+
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.06);
+  --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.08);
+  --shadow-lg: 0 12px 40px rgba(0, 0, 0, 0.14);
+
+  color-scheme: light;
 }
 
-/* Dark theme: literal values (not var() chains) so the ramps invert cleanly —
-   the -100 steps become dark fills, -800 becomes light text, matching how
-   .tag-*, .table and .seg pair light-fill-with-dark-text in the light theme. */
+/* Dark: graphite rather than navy, the way iOS goes dark, with the tint
+   lifting to systemBlue's dark variant so it stays legible on black. */
 :root[data-theme="dark"] {
-  --color-bg: #1d2d3d;
-  --color-surface: #26374a;
-  --color-text: #f2f2f3;
-  --color-divider: rgba(242, 242, 243, 0.26);
-  --color-neutral-100: #3a3f45;
-  --color-neutral-200: #2a3441;
-  --color-neutral-300: #35414f;
-  --color-neutral-400: #6d7883;
-  --color-neutral-500: #8c98a5;
-  --color-neutral-600: #a9b4c0;
-  --color-neutral-700: #c3ccd6;
-  --color-neutral-800: #f5f5f8;
-  --color-accent: #94bce3;
-  --color-accent-100: #2c455d;
-  --color-accent-400: #749dc4;
-  --color-accent-700: #b5d9fd;
-  --color-accent-800: #d6ebff;
+  --color-bg: #000000;
+  --color-surface: #1c1c1e;
+  --color-text: #f5f5f7;
+  --color-divider: rgba(84, 84, 88, 0.65);
+  --color-neutral-100: #1c1c1e;
+  --color-neutral-200: #2c2c2e;
+  --color-neutral-300: #3a3a3c;
+  --color-neutral-400: #48484a;
+  --color-neutral-500: #8e8e93;
+  --color-neutral-600: #98989d;
+  --color-neutral-700: #c7c7cc;
+  --color-neutral-800: #f5f5f7;
+  --color-neutral-900: #ffffff;
+  --color-accent: #0a84ff;
+  --color-accent-100: #0b2545;
+  --color-accent-200: #10365f;
+  --color-accent-400: #4b95ff;
+  --color-accent-600: #3d9bff;
+  --color-accent-700: #6bb2ff;
+  --color-accent-800: #a9ccff;
+
+  --glass-bg: rgba(28, 28, 30, 0.68);
+  --glass-border: rgba(255, 255, 255, 0.12);
+
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.5);
+  --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.55);
+  --shadow-lg: 0 12px 40px rgba(0, 0, 0, 0.65);
+
+  color-scheme: dark;
 }
 
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
-    --color-bg: #1d2d3d;
-    --color-surface: #26374a;
-    --color-text: #f2f2f3;
-    --color-divider: rgba(242, 242, 243, 0.26);
-    --color-neutral-100: #3a3f45;
-    --color-neutral-200: #2a3441;
-    --color-neutral-300: #35414f;
-    --color-neutral-400: #6d7883;
-    --color-neutral-500: #8c98a5;
-    --color-neutral-600: #a9b4c0;
-    --color-neutral-700: #c3ccd6;
-    --color-neutral-800: #f5f5f8;
-    --color-accent: #94bce3;
-    --color-accent-100: #2c455d;
-    --color-accent-400: #749dc4;
-    --color-accent-700: #b5d9fd;
-    --color-accent-800: #d6ebff;
+    --color-bg: #000000;
+    --color-surface: #1c1c1e;
+    --color-text: #f5f5f7;
+    --color-divider: rgba(84, 84, 88, 0.65);
+    --color-neutral-100: #1c1c1e;
+    --color-neutral-200: #2c2c2e;
+    --color-neutral-300: #3a3a3c;
+    --color-neutral-400: #48484a;
+    --color-neutral-500: #8e8e93;
+    --color-neutral-600: #98989d;
+    --color-neutral-700: #c7c7cc;
+    --color-neutral-800: #f5f5f7;
+    --color-neutral-900: #ffffff;
+    --color-accent: #0a84ff;
+    --color-accent-100: #0b2545;
+    --color-accent-200: #10365f;
+    --color-accent-400: #4b95ff;
+    --color-accent-600: #3d9bff;
+    --color-accent-700: #6bb2ff;
+    --color-accent-800: #a9ccff;
+
+    --glass-bg: rgba(28, 28, 30, 0.68);
+    --glass-border: rgba(255, 255, 255, 0.12);
+
+    --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.5);
+    --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.55);
+    --shadow-lg: 0 12px 40px rgba(0, 0, 0, 0.65);
+
+    color-scheme: dark;
   }
 }
 
@@ -120,11 +158,20 @@ body {
 }
 body {
   margin: 0;
-  background: var(--color-bg);
   color: var(--color-text);
   font-family: var(--font-body);
-  font-size: 15px;
-  line-height: 1.55;
+  font-size: 17px; /* iOS Body */
+  line-height: 1.45;
+  letter-spacing: -0.01em;
+  font-variant-numeric: tabular-nums;
+  -webkit-font-smoothing: antialiased;
+  /* Frosted surfaces need something behind them to sample, so the page carries
+     a soft ambient wash rather than one flat fill. */
+  background:
+    radial-gradient(1100px 620px at 8% -8%, color-mix(in srgb, var(--color-accent) 16%, transparent), transparent 60%),
+    radial-gradient(900px 520px at 108% 6%, color-mix(in srgb, var(--color-accent-2, var(--color-accent)) 14%, transparent), transparent 62%),
+    var(--color-bg);
+  background-attachment: fixed;
 }
 h1,
 h2,
@@ -133,13 +180,13 @@ h4,
 h5,
 h6 {
   font-family: var(--font-heading);
-  font-weight: 600;
-  line-height: 1.12;
-  letter-spacing: -0.015em;
+  font-weight: 700;
+  line-height: 1.08;
+  letter-spacing: -0.022em; /* iOS tightens as size grows */
   margin: 0;
 }
 a {
-  color: var(--color-accent-700);
+  color: var(--color-accent);
   text-underline-offset: 3px;
 }
 :focus {
@@ -150,52 +197,19 @@ a {
   outline-offset: 2px;
 }
 
-/* Blueprint frame: hairline border + four corner registration marks, drawn
-   outside the box so they read as measurement ticks, not a second border. */
+/* Frosted card. Keeps the .blueprint name so every existing call site inherits
+   the new look; the old registration-mark corners are no longer rendered. */
 .blueprint {
   position: relative;
-  border: 1px solid var(--color-divider);
-  border-radius: 0;
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-card);
+  background: var(--glass-bg);
+  -webkit-backdrop-filter: var(--glass-blur);
+  backdrop-filter: var(--glass-blur);
+  box-shadow: var(--shadow-sm);
 }
 .blueprint > .corner {
-  position: absolute;
-  width: 11px;
-  height: 11px;
-  color: color-mix(in srgb, var(--color-text) 55%, transparent);
-}
-.blueprint > .corner::before,
-.blueprint > .corner::after {
-  content: "";
-  position: absolute;
-  background: currentColor;
-}
-.blueprint > .corner::before {
-  left: 5px;
-  top: 0;
-  width: 1px;
-  height: 100%;
-}
-.blueprint > .corner::after {
-  top: 5px;
-  left: 0;
-  width: 100%;
-  height: 1px;
-}
-.blueprint > .corner.tl {
-  top: -6px;
-  left: -6px;
-}
-.blueprint > .corner.tr {
-  top: -6px;
-  right: -6px;
-}
-.blueprint > .corner.bl {
-  bottom: -6px;
-  left: -6px;
-}
-.blueprint > .corner.br {
-  bottom: -6px;
-  right: -6px;
+  display: none;
 }
 
 .duotone {
@@ -212,11 +226,7 @@ a {
 }
 
 .placeholder-fill {
-  background: repeating-linear-gradient(
-    135deg,
-    var(--color-neutral-300) 0 6px,
-    var(--color-neutral-200) 6px 12px
-  );
+  background: linear-gradient(160deg, var(--color-neutral-200), var(--color-neutral-300));
 }
 
 /* — buttons — */
@@ -228,46 +238,54 @@ a {
   white-space: nowrap;
   cursor: pointer;
   text-decoration: none;
-  font-family: var(--font-heading);
+  font-family: var(--font-body);
   font-weight: 600;
-  font-size: 14px;
+  font-size: 16px;
+  letter-spacing: -0.01em;
   line-height: 1.2;
-  color: var(--color-text);
-  background: transparent;
-  border: 1px solid var(--color-divider);
-  padding: 7px 12px;
-  border-radius: 0;
+  color: var(--color-accent);
+  background: color-mix(in srgb, var(--color-text) 5%, transparent);
+  border: 0;
+  padding: 10px 16px;
+  border-radius: var(--radius-control);
+  transition: transform 0.12s ease, opacity 0.12s ease, background 0.12s ease;
+}
+.btn:active {
+  transform: scale(0.97);
+  opacity: 0.85;
 }
 .btn:disabled {
-  opacity: 0.45;
+  opacity: 0.4;
   cursor: not-allowed;
 }
 .btn-primary {
   background: var(--color-accent);
-  color: var(--color-bg);
-  border-color: var(--color-accent);
+  color: #fff;
+  box-shadow: 0 1px 3px color-mix(in srgb, var(--color-accent) 40%, transparent);
 }
 .btn-primary:hover {
-  background: var(--color-accent-600, var(--color-accent));
+  background: color-mix(in srgb, var(--color-accent) 88%, #000);
 }
 .btn-secondary {
-  border-color: var(--color-divider);
+  background: color-mix(in srgb, var(--color-text) 6%, transparent);
+  color: var(--color-accent);
 }
 .btn-secondary:hover {
-  background: color-mix(in srgb, var(--color-text) 7%, transparent);
+  background: color-mix(in srgb, var(--color-text) 10%, transparent);
 }
 .btn-ghost {
-  color: var(--color-accent-700);
-  border-color: transparent;
-  padding-inline: 3px;
+  color: var(--color-accent);
+  background: transparent;
+  padding-inline: 4px;
 }
 .btn-ghost:hover {
   background: color-mix(in srgb, var(--color-accent) 10%, transparent);
 }
 .btn-icon {
-  width: 36px;
-  height: 36px;
+  width: 38px;
+  height: 38px;
   padding: 0;
+  border-radius: var(--radius-pill);
 }
 .btn-block {
   width: 100%;
@@ -276,31 +294,45 @@ a {
 /* — forms — */
 .field > label {
   display: block;
-  font-size: 12px;
-  margin-bottom: 5px;
-  color: color-mix(in srgb, var(--color-text) 70%, transparent);
+  font-size: 13px;
+  font-weight: 500;
+  letter-spacing: -0.005em;
+  margin-bottom: 6px;
+  color: var(--color-neutral-600);
 }
 .input {
   width: 100%;
-  min-height: 40px;
-  padding: 8px 10px;
-  font: inherit;
-  font-size: 14px;
+  min-height: 44px; /* the platform's minimum tap target */
+  padding: 11px 13px;
+  font-family: inherit;
+  /* 16px or larger, or iOS Safari zooms the whole page on focus. */
+  font-size: 17px;
   color: var(--color-text);
   caret-color: var(--color-accent);
-  background: var(--color-surface);
-  border: 1px solid var(--color-divider);
-  border-radius: 0;
+  background: color-mix(in srgb, var(--color-text) 5%, transparent);
+  border: 1px solid transparent;
+  border-radius: var(--radius-control);
+  appearance: none;
+  transition: border-color 0.15s ease, background 0.15s ease;
 }
 .input:hover {
-  border-color: color-mix(in srgb, var(--color-text) 45%, transparent);
+  background: color-mix(in srgb, var(--color-text) 8%, transparent);
 }
 .input:focus-visible {
   border-color: var(--color-accent);
-  outline-offset: 0;
+  background: var(--color-surface);
+  outline: none;
+}
+select.input {
+  background-image: linear-gradient(45deg, transparent 50%, var(--color-neutral-600) 50%),
+    linear-gradient(135deg, var(--color-neutral-600) 50%, transparent 50%);
+  background-position: calc(100% - 17px) calc(50% + 1px), calc(100% - 12px) calc(50% + 1px);
+  background-size: 5px 5px, 5px 5px;
+  background-repeat: no-repeat;
+  padding-right: 30px;
 }
 textarea.input {
-  min-height: 90px;
+  min-height: 94px;
   resize: vertical;
 }
 
@@ -308,115 +340,133 @@ textarea.input {
 .tag {
   display: inline-flex;
   align-items: center;
-  font-size: 11px;
-  letter-spacing: 0.02em;
-  padding: 3px 10px;
-  border-radius: 3px;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: -0.005em;
+  padding: 3px 9px;
+  border-radius: var(--radius-pill);
   white-space: nowrap;
 }
 .tag-accent {
   background: var(--color-accent-100);
-  color: var(--color-accent-800);
+  color: var(--color-accent-700);
 }
 .tag-neutral {
-  background: var(--color-neutral-100);
-  color: var(--color-neutral-800);
+  background: color-mix(in srgb, var(--color-text) 8%, transparent);
+  color: var(--color-neutral-700);
 }
 .tag-outline {
-  border: 1px solid var(--color-accent);
-  color: var(--color-accent-700);
+  border: 1px solid color-mix(in srgb, var(--color-accent) 55%, transparent);
+  color: var(--color-accent);
 }
 
 /* — table — */
 .table {
   width: 100%;
   border-collapse: collapse;
-  font-size: 14px;
+  font-size: 15px;
 }
 .table th {
   text-align: left;
-  font-size: 11px;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: color-mix(in srgb, var(--color-text) 60%, transparent);
-  padding: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-neutral-600);
+  padding: 8px 6px;
   border-bottom: 1px solid var(--color-divider);
 }
 .table td {
-  padding: 6px;
+  padding: 10px 6px;
   border-bottom: 1px solid color-mix(in srgb, var(--color-text) 8%, transparent);
 }
 
-/* — segmented control — */
+/* — segmented control: a track with the selection as a raised pill — */
 .seg {
   display: flex;
-  border: 1px solid var(--color-divider);
+  gap: 2px;
+  padding: 2px;
+  border: 0;
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--color-text) 7%, transparent);
 }
 .seg > a,
 .seg > button {
   flex: 1;
-  padding: 8px 2px;
+  padding: 7px 4px;
   cursor: pointer;
   text-align: center;
   text-decoration: none;
   border: 0;
-  border-left: 1px solid var(--color-divider);
+  border-radius: 8px;
   background: transparent;
   color: var(--color-text);
-  font-family: var(--font-heading);
-  font-weight: 600;
-  font-size: 11px;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-}
-.seg > a:first-child,
-.seg > button:first-child {
-  border-left: 0;
+  font-family: var(--font-body);
+  font-weight: 500;
+  font-size: 13px;
+  letter-spacing: -0.005em;
+  text-transform: capitalize;
+  transition: background 0.15s ease, box-shadow 0.15s ease;
 }
 .seg > a[data-active="true"],
 .seg > button[data-active="true"] {
-  background: var(--color-accent);
-  color: var(--color-bg);
+  background: var(--color-surface);
+  color: var(--color-text);
+  font-weight: 600;
+  box-shadow: var(--shadow-sm);
 }
 
 /* — chip (filter / choice pill) — */
 .chip {
   cursor: pointer;
-  padding: 7px 11px;
-  border: 1px solid var(--color-divider);
-  background: transparent;
+  padding: 7px 14px;
+  border: 0;
+  border-radius: var(--radius-pill);
+  background: color-mix(in srgb, var(--color-text) 6%, transparent);
   color: var(--color-text);
   font-family: var(--font-body);
-  font-size: 12px;
+  font-size: 14px;
+  font-weight: 500;
+  letter-spacing: -0.005em;
   text-decoration: none;
   display: inline-flex;
+  align-items: center;
+  transition: transform 0.12s ease;
+}
+.chip:active {
+  transform: scale(0.96);
 }
 .chip[data-active="true"] {
-  border-color: var(--color-accent);
   background: var(--color-accent);
-  color: var(--color-bg);
+  color: #fff;
 }
 
-/* Tab bar icon + label, used by the bottom navigation. */
+/* Bottom tab bar — frosted, so content scrolls visibly beneath it. */
 .kin-tab {
   background: none;
   border: 0;
   padding: 0;
   cursor: pointer;
-  font-family: var(--font-heading);
+  font-family: var(--font-body);
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 3px;
   flex: 1;
   color: var(--color-neutral-600);
+  transition: color 0.15s ease;
 }
 .kin-tab[data-active="true"] {
-  color: var(--color-accent-700);
+  color: var(--color-accent);
 }
 .kin-i svg {
   display: block;
   width: 100%;
   height: 100%;
-  stroke-width: 1.5;
+  stroke-width: 1.8;
+}
+
+/* Shared frosted chrome for the sticky top and bottom bars. */
+.kin-glass-bar {
+  background: var(--glass-bg);
+  -webkit-backdrop-filter: var(--glass-blur);
+  backdrop-filter: var(--glass-blur);
 }

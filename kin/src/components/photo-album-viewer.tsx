@@ -38,7 +38,7 @@ export function PhotoAlbumViewer({
       <div role="dialog" aria-modal="true" onClick={onClose} style={overlayStyle}>
         <div onClick={(e) => e.stopPropagation()} style={{ color: "#fff", textAlign: "center" }}>
           <p style={{ fontSize: 13, marginBottom: 14 }}>{emptyMessage}</p>
-          <button type="button" className="btn btn-secondary" style={{ minHeight: 40, fontSize: 12, padding: "0 20px" }} onClick={onClose}>
+          <button type="button" className="btn btn-secondary" style={{ minHeight: 40, fontSize: 13.5, padding: "0 20px" }} onClick={onClose}>
             CLOSE
           </button>
         </div>
@@ -71,18 +71,18 @@ export function PhotoAlbumViewer({
           </button>
         </div>
 
-        <span style={{ color: "#fff", fontSize: 11.5 }}>
+        <span style={{ color: "#fff", fontSize: 13 }}>
           {index + 1} / {photos.length}
         </span>
 
-        {error && <p style={{ color: "var(--color-accent-400)", fontSize: 11.5 }}>{error}</p>}
+        {error && <p style={{ color: "var(--color-accent-400)", fontSize: 13 }}>{error}</p>}
 
         {canManage && (
           <div style={{ display: "flex", gap: 10 }}>
             <button
               type="button"
               className="btn btn-primary"
-              style={{ minHeight: 40, fontSize: 12, padding: "0 18px" }}
+              style={{ minHeight: 40, fontSize: 13.5, padding: "0 18px" }}
               disabled={busy || isActive}
               onClick={async () => {
                 setBusy(true);
@@ -101,7 +101,7 @@ export function PhotoAlbumViewer({
             <button
               type="button"
               className="btn btn-secondary"
-              style={{ minHeight: 40, fontSize: 12, padding: "0 14px", color: "var(--color-accent-700)", borderColor: "var(--color-accent-700)" }}
+              style={{ minHeight: 40, fontSize: 13.5, padding: "0 14px", color: "var(--color-accent-700)", borderColor: "var(--color-accent-700)" }}
               disabled={busy}
               onClick={async () => {
                 if (!window.confirm("Delete this photo? This can't be undone.")) return;

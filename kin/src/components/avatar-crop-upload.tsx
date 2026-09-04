@@ -92,7 +92,7 @@ export function AvatarCropUpload({ onDone }: { onDone: () => void }) {
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
-            fontSize: 11,
+            fontSize: 13,
             color: "#fff",
             border: "2px solid var(--color-bg)",
           }}
@@ -129,12 +129,12 @@ export function AvatarCropUpload({ onDone }: { onDone: () => void }) {
             <input type="range" min={1} max={3} step={0.05} value={zoom} onChange={(e) => setZoom(Number(e.target.value))} style={{ flex: 1 }} disabled={busy} />
             <span style={{ color: "#fff", fontSize: 16 }}>+</span>
           </div>
-          {error && <p style={{ color: "var(--color-accent-400)", fontSize: 11.5 }}>{error}</p>}
+          {error && <p style={{ color: "var(--color-accent-400)", fontSize: 13 }}>{error}</p>}
           <div style={{ display: "flex", gap: 10 }}>
-            <button type="button" className="btn btn-secondary" style={{ minHeight: 40, fontSize: 12, padding: "0 20px" }} disabled={busy} onClick={cancel}>
+            <button type="button" className="btn btn-secondary" style={{ minHeight: 40, fontSize: 13.5, padding: "0 20px" }} disabled={busy} onClick={cancel}>
               CANCEL
             </button>
-            <button type="button" className="btn btn-primary" style={{ minHeight: 40, fontSize: 12, padding: "0 20px" }} disabled={busy} onClick={save}>
+            <button type="button" className="btn btn-primary" style={{ minHeight: 40, fontSize: 13.5, padding: "0 20px" }} disabled={busy} onClick={save}>
               {busy ? "SAVING…" : "SAVE"}
             </button>
           </div>

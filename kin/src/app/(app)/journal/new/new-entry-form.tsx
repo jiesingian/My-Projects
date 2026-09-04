@@ -74,7 +74,7 @@ export function NewEntryForm({ members }: { members: Tables<"members">[] }) {
             <label>DATE</label>
             <input className="input" type="date" name="date" defaultValue={new Date().toISOString().slice(0, 10)} required style={{ minHeight: 44 }} />
           </div>
-          <div style={{ fontSize: 11.5, color: "var(--color-neutral-700)", marginBottom: 6 }}>Who was there</div>
+          <div style={{ fontSize: 13, color: "var(--color-neutral-700)", marginBottom: 6 }}>Who was there</div>
           <div style={{ display: "flex", gap: 7, flexWrap: "wrap", marginBottom: 16 }}>
             {members.map((m) => {
               const active = people.includes(m.id);

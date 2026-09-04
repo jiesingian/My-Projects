@@ -21,7 +21,7 @@ export function VerifyForm({ email }: { email: string }) {
         style={{ padding: 14, display: "flex", gap: 10, alignItems: "flex-start", marginBottom: 24, background: "var(--color-accent-100)" }}
       >
         <Icon name="shieldCheck" size={16} className="text-[var(--color-accent-700)] mt-1" />
-        <span style={{ fontSize: 12, lineHeight: 1.4 }}>
+        <span style={{ fontSize: 13.5, lineHeight: 1.4 }}>
           Didn&apos;t get it? Check spam, or resend below. The link expires after a while, so request a
           fresh one if it&apos;s been sitting a bit.
         </span>
@@ -41,7 +41,7 @@ export function VerifyForm({ email }: { email: string }) {
         {pending ? "SENDING…" : "RESEND EMAIL"}
       </button>
       {resendNote && (
-        <p style={{ fontSize: 12.5, color: "var(--color-neutral-600)", marginTop: 10 }}>{resendNote}</p>
+        <p style={{ fontSize: 14, color: "var(--color-neutral-600)", marginTop: 10 }}>{resendNote}</p>
       )}
     </OnboardingShell>
   );

@@ -143,7 +143,7 @@ export function TransactForm({
       </Field>
 
       {canUseApp && (
-        <label style={{ display: "flex", alignItems: "center", gap: 9, fontSize: 12, color: "var(--color-neutral-700)", margin: "2px 0 16px" }}>
+        <label style={{ display: "flex", alignItems: "center", gap: 9, fontSize: 13.5, color: "var(--color-neutral-700)", margin: "2px 0 16px" }}>
           <input type="checkbox" checked={viaApp} onChange={(e) => setViaApp(e.target.checked)} />
           Open {account?.institution ?? account?.name} to do it, then confirm here
         </label>
@@ -154,7 +154,7 @@ export function TransactForm({
       </button>
 
       {viaApp && canUseApp && (
-        <p style={{ fontSize: 11.5, color: "var(--color-neutral-600)", marginTop: 10 }}>
+        <p style={{ fontSize: 13, color: "var(--color-neutral-600)", marginTop: 10 }}>
           Kin holds this as pending and leaves your balance alone until you come back and confirm it went through.
         </p>
       )}

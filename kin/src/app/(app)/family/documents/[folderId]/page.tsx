@@ -36,7 +36,7 @@ export default async function DocFolderPage({
       <DetailHeader backHref="/family?seg=documents" eyebrow="HUB 01 · DOCUMENTS" />
       <div style={{ padding: "0 22px 22px" }}>
         <h3 style={{ fontSize: 30, margin: "0 0 4px" }}>{folder.name}</h3>
-        <div style={{ font: "400 10.5px/1.5 ui-monospace, Menlo, monospace", color: "var(--color-neutral-600)", marginBottom: 16 }}>
+        <div style={{ font: "400 10.5px/1.5 var(--font-numeric)", color: "var(--color-neutral-600)", marginBottom: 16 }}>
           {(entries ?? []).length} {(entries ?? []).length === 1 ? "entry" : "entries"}
         </div>
 
@@ -47,12 +47,12 @@ export default async function DocFolderPage({
                 <Icon name="fileText" size={17} className="text-[var(--color-neutral-600)] mt-1" />
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ fontSize: 14.5, fontWeight: 600 }}>{entry.title}</div>
-                  <div style={{ fontSize: 10.5, color: "var(--color-neutral-600)" }}>
+                  <div style={{ fontSize: 12.5, color: "var(--color-neutral-600)" }}>
                     {(entry.owner as unknown as { full_name: string } | null)?.full_name ?? "Whole family"}
                     {entry.expires_at ? ` · expires ${formatDate(entry.expires_at)}` : ""}
                     {entry.reference_no ? ` · ref ${entry.reference_no}` : ""}
                   </div>
-                  {entry.note && <div style={{ fontSize: 12, color: "var(--color-neutral-700)", marginTop: 4 }}>{entry.note}</div>}
+                  {entry.note && <div style={{ fontSize: 13.5, color: "var(--color-neutral-700)", marginTop: 4 }}>{entry.note}</div>}
                 </div>
                 <Tag variant={entry.visibility === "family" ? "neutral" : "outline"}>{entry.visibility}</Tag>
               </div>

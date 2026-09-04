@@ -59,17 +59,17 @@ export function AddAccountForm({ isJoint }: { isJoint: boolean }) {
       <Labelled label="LINKED APP LINK">
         <input className="input" name="linked_app_url" placeholder="gcash:// or https://…" style={{ minHeight: 42 }} />
       </Labelled>
-      <p style={{ fontSize: 11, color: "var(--color-neutral-600)", margin: "-4px 0 12px" }}>
+      <p style={{ fontSize: 13, color: "var(--color-neutral-600)", margin: "-4px 0 12px" }}>
         Kin opens this when you start a payment or transfer here, so you can finish it in your own banking app.
       </p>
       <Labelled label="NOTE">
         <input className="input" name="sub_note" placeholder="Salary account" style={{ minHeight: 42 }} />
       </Labelled>
       <div style={{ display: "flex", gap: 10 }}>
-        <SubmitButton className="btn btn-primary" style={{ flex: 1, minHeight: 42, fontSize: 12.5 }}>
+        <SubmitButton className="btn btn-primary" style={{ flex: 1, minHeight: 42, fontSize: 14 }}>
           SAVE ACCOUNT
         </SubmitButton>
-        <button type="button" className="btn btn-secondary" style={{ flex: 1, minHeight: 42, fontSize: 12.5 }} onClick={() => setOpen(false)}>
+        <button type="button" className="btn btn-secondary" style={{ flex: 1, minHeight: 42, fontSize: 14 }} onClick={() => setOpen(false)}>
           CANCEL
         </button>
       </div>
@@ -128,10 +128,10 @@ export function AddBillForm() {
         </Labelled>
       </div>
       <div style={{ display: "flex", gap: 10 }}>
-        <SubmitButton className="btn btn-primary" style={{ flex: 1, minHeight: 42, fontSize: 12.5 }}>
+        <SubmitButton className="btn btn-primary" style={{ flex: 1, minHeight: 42, fontSize: 14 }}>
           SAVE BILL
         </SubmitButton>
-        <button type="button" className="btn btn-secondary" style={{ flex: 1, minHeight: 42, fontSize: 12.5 }} onClick={() => setOpen(false)}>
+        <button type="button" className="btn btn-secondary" style={{ flex: 1, minHeight: 42, fontSize: 14 }} onClick={() => setOpen(false)}>
           CANCEL
         </button>
       </div>
@@ -149,7 +149,7 @@ export function SetBudgetControl({ familyId, month, year, current }: { familyId:
         type="button"
         className="btn btn-secondary"
         disabled={pending}
-        style={{ minHeight: 40, fontSize: 12, whiteSpace: "nowrap" }}
+        style={{ minHeight: 40, fontSize: 13.5, whiteSpace: "nowrap" }}
         onClick={() => startTransition(() => setJointBudgetAction(familyId, month, year, value))}
       >
         {pending ? "…" : "SET BUDGET"}
@@ -168,7 +168,7 @@ export function SetTargetControl({ memberId, familyId, month, year, current }: {
         type="button"
         className="btn btn-secondary"
         disabled={pending}
-        style={{ minHeight: 40, fontSize: 12, whiteSpace: "nowrap" }}
+        style={{ minHeight: 40, fontSize: 13.5, whiteSpace: "nowrap" }}
         onClick={() => startTransition(() => setWealthTargetAction(memberId, familyId, month, year, value))}
       >
         {pending ? "…" : "SET TARGET"}
@@ -188,7 +188,7 @@ export function AllocationEditor({ budgeted }: { budgeted: string[] }) {
 
   if (!open) {
     return (
-      <button type="button" className="btn btn-secondary btn-block" style={{ minHeight: 40, fontSize: 12, marginBottom: 18 }} onClick={() => setOpen(true)}>
+      <button type="button" className="btn btn-secondary btn-block" style={{ minHeight: 40, fontSize: 13.5, marginBottom: 18 }} onClick={() => setOpen(true)}>
         SET A CATEGORY BUDGET
       </button>
     );
@@ -208,7 +208,7 @@ export function AllocationEditor({ budgeted }: { budgeted: string[] }) {
         type="button"
         className="btn btn-primary"
         disabled={pending}
-        style={{ minHeight: 40, fontSize: 12 }}
+        style={{ minHeight: 40, fontSize: 13.5 }}
         onClick={() =>
           startTransition(async () => {
             await setAllocationAction({ category, amount });

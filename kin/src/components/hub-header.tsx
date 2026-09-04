@@ -13,16 +13,13 @@ export function HubHeader({
   segments: { label: string; href: string; active: boolean }[];
 }) {
   return (
-    <div style={{ padding: "24px 22px 14px" }}>
-      <div style={{ display: "flex", alignItems: "baseline", gap: 8 }}>
-        <span style={{ font: "600 10px/1 var(--font-heading)", letterSpacing: ".18em", color: "var(--color-accent-700)" }}>
-          HUB {n}
-        </span>
-        <span style={{ font: "400 9.5px/1 ui-monospace, Menlo, monospace", color: "var(--color-neutral-500)", marginLeft: "auto" }}>
-          {formatDate(new Date())}
-        </span>
+    <div style={{ padding: "20px 20px 12px" }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+        <span style={{ fontSize: 13, fontWeight: 600, color: "var(--color-accent)" }}>Hub {n}</span>
+        <span style={{ fontSize: 13, color: "var(--color-neutral-600)", marginLeft: "auto" }}>{formatDate(new Date())}</span>
       </div>
-      <h2 style={{ fontSize: 32, margin: "6px 0 0" }}>{title}</h2>
+      {/* iOS large title */}
+      <h2 style={{ fontSize: 34, fontWeight: 700, letterSpacing: "-0.03em", margin: "2px 0 0" }}>{title}</h2>
       <Segmented items={segments} />
     </div>
   );
@@ -36,13 +33,11 @@ export function DetailHeader({
   eyebrow: string;
 }) {
   return (
-    <div style={{ padding: "24px 22px 0", display: "flex", alignItems: "center", gap: 10, marginBottom: 16 }}>
+    <div style={{ padding: "18px 20px 0", display: "flex", alignItems: "center", gap: 10, marginBottom: 14 }}>
       <Link href={backHref} className="btn btn-secondary btn-icon">
         <Icon name="chevronLeft" />
       </Link>
-      <span style={{ font: "600 10px/1 var(--font-heading)", letterSpacing: ".18em", color: "var(--color-accent-700)", marginLeft: "auto" }}>
-        {eyebrow}
-      </span>
+      <span style={{ fontSize: 13, fontWeight: 600, color: "var(--color-accent)", marginLeft: "auto" }}>{eyebrow}</span>
     </div>
   );
 }

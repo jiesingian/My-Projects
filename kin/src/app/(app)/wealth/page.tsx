@@ -47,9 +47,9 @@ export default async function WealthPage({ searchParams }: { searchParams: Promi
 function Hero({ label, amount, currency, caption }: { label: string; amount: number; currency: string; caption?: string }) {
   return (
     <Blueprint style={{ padding: 15, marginBottom: 14 }}>
-      <div style={{ font: "600 10px/1 var(--font-heading)", letterSpacing: ".14em", color: "var(--color-neutral-600)" }}>{label}</div>
+      <div style={{ font: "600 13px/1 var(--font-heading)", letterSpacing: ".02em", color: "var(--color-neutral-600)" }}>{label}</div>
       <div style={{ font: "600 38px/1.05 var(--font-heading)", letterSpacing: "-.02em", margin: "9px 0 0" }}>{formatCurrency(amount, currency)}</div>
-      {caption && <div style={{ fontSize: 11.5, color: "var(--color-neutral-600)", marginTop: 6 }}>{caption}</div>}
+      {caption && <div style={{ fontSize: 13, color: "var(--color-neutral-600)", marginTop: 6 }}>{caption}</div>}
     </Blueprint>
   );
 }
@@ -64,8 +64,8 @@ function FlowRow({ income, expense, currency }: { income: number; expense: numbe
         { k: "NET", v: net },
       ].map((cell) => (
         <div key={cell.k} style={{ flex: 1, border: "1px solid var(--color-divider)", padding: "9px 10px" }}>
-          <div style={{ font: "600 9px/1 var(--font-heading)", letterSpacing: ".14em", color: "var(--color-neutral-600)" }}>{cell.k}</div>
-          <div style={{ fontFamily: "ui-monospace, Menlo, monospace", fontSize: 13, marginTop: 5 }}>
+          <div style={{ font: "600 9px/1 var(--font-heading)", letterSpacing: ".02em", color: "var(--color-neutral-600)" }}>{cell.k}</div>
+          <div style={{ fontFamily: "var(--font-numeric)", fontSize: 13, marginTop: 5 }}>
             {cell.k === "NET" && cell.v > 0 ? "+" : cell.k === "NET" && cell.v < 0 ? "−" : ""}
             {formatCurrency(Math.abs(cell.v), currency)}
           </div>
@@ -81,8 +81,8 @@ function Meter({ label, value, cap, currency, note }: { label: string; value: nu
   return (
     <div style={{ marginBottom: 14 }}>
       <div style={{ display: "flex", alignItems: "baseline", marginBottom: 5 }}>
-        <span style={{ font: "600 10px/1 var(--font-heading)", letterSpacing: ".14em", color: "var(--color-neutral-600)" }}>{label}</span>
-        <span style={{ marginLeft: "auto", fontFamily: "ui-monospace, Menlo, monospace", fontSize: 11.5 }}>
+        <span style={{ font: "600 13px/1 var(--font-heading)", letterSpacing: ".02em", color: "var(--color-neutral-600)" }}>{label}</span>
+        <span style={{ marginLeft: "auto", fontFamily: "var(--font-numeric)", fontSize: 13 }}>
           {formatCurrency(value, currency)} of {formatCurrency(cap, currency)}
         </span>
       </div>
@@ -90,7 +90,7 @@ function Meter({ label, value, cap, currency, note }: { label: string; value: nu
         <div style={{ height: "100%", width: `${pct}%`, background: over ? "var(--color-accent-700)" : "var(--color-accent)" }} />
       </div>
       {(note || over) && (
-        <div style={{ fontSize: 10.5, color: over ? "var(--color-accent-700)" : "var(--color-neutral-600)", marginTop: 4 }}>
+        <div style={{ fontSize: 12.5, color: over ? "var(--color-accent-700)" : "var(--color-neutral-600)", marginTop: 4 }}>
           {over ? `Over by ${formatCurrency(value - cap, currency)}` : note}
         </div>
       )}
@@ -110,8 +110,8 @@ function HistoryStrip({ history, currency }: { history: HistoryPoint[]; currency
   return (
     <div style={{ marginBottom: 20 }}>
       <div style={{ display: "flex", alignItems: "baseline", marginBottom: 9 }}>
-        <span style={{ font: "600 10px/1 var(--font-heading)", letterSpacing: ".16em", color: "var(--color-neutral-600)" }}>LAST SIX MONTHS</span>
-        <span style={{ marginLeft: "auto", display: "flex", gap: 12, fontSize: 10, color: "var(--color-neutral-600)" }}>
+        <span style={{ font: "600 13px/1 var(--font-heading)", letterSpacing: ".02em", color: "var(--color-neutral-600)" }}>LAST SIX MONTHS</span>
+        <span style={{ marginLeft: "auto", display: "flex", gap: 12, fontSize: 12, color: "var(--color-neutral-600)" }}>
           <span style={{ display: "flex", alignItems: "center", gap: 4 }}>
             <i style={{ width: 8, height: 8, background: "var(--color-accent)", display: "inline-block" }} /> In
           </span>
@@ -153,7 +153,7 @@ function HistoryStrip({ history, currency }: { history: HistoryPoint[]; currency
         ))}
       </div>
       {busiest && busiest.expense > 0 && (
-        <div style={{ fontSize: 10.5, color: "var(--color-neutral-600)", marginTop: 7 }}>
+        <div style={{ fontSize: 12.5, color: "var(--color-neutral-600)", marginTop: 7 }}>
           Heaviest spend was {busiest.label} at {formatCurrency(busiest.expense, currency)}.
         </div>
       )}
@@ -163,7 +163,7 @@ function HistoryStrip({ history, currency }: { history: HistoryPoint[]; currency
 
 function SectionLabel({ children }: { children: React.ReactNode }) {
   return (
-    <div style={{ font: "600 10px/1 var(--font-heading)", letterSpacing: ".16em", color: "var(--color-neutral-600)", margin: "20px 0 8px" }}>{children}</div>
+    <div style={{ font: "600 13px/1 var(--font-heading)", letterSpacing: ".02em", color: "var(--color-neutral-600)", margin: "20px 0 8px" }}>{children}</div>
   );
 }
 
@@ -173,13 +173,13 @@ function EntryRow({ entry, currency, showAccount }: { entry: LedgerEntry; curren
     <div style={{ display: "flex", gap: 10, alignItems: "baseline", padding: "10px 0", borderBottom: "1px solid color-mix(in srgb, var(--color-text) 10%, transparent)" }}>
       <span style={{ flex: 1, minWidth: 0 }}>
         <span style={{ fontSize: 14, display: "block" }}>{entry.particulars}</span>
-        <span style={{ fontSize: 10.5, color: "var(--color-neutral-600)" }}>
+        <span style={{ fontSize: 12.5, color: "var(--color-neutral-600)" }}>
           {formatDate(entry.occurred_at)}
           {entry.category ? ` · ${entry.category}` : ""}
           {showAccount && entry.accountName ? ` · ${entry.accountName}` : ""}
         </span>
       </span>
-      <span style={{ fontFamily: "ui-monospace, Menlo, monospace", fontSize: 13, flex: "none", color: isIn ? "var(--color-accent-700)" : "inherit" }}>
+      <span style={{ fontFamily: "var(--font-numeric)", fontSize: 13, flex: "none", color: isIn ? "var(--color-accent-700)" : "inherit" }}>
         {isIn ? "+" : "−"}
         {formatCurrency(Number(entry.amount), currency)}
       </span>
@@ -196,12 +196,12 @@ function PendingBlock({ pending, currency }: { pending: LedgerEntry[]; currency:
         <Blueprint key={p.id} style={{ padding: 12, marginBottom: 10 }}>
           <div style={{ display: "flex", alignItems: "baseline", gap: 8 }}>
             <span style={{ fontSize: 14 }}>{p.particulars}</span>
-            <span style={{ marginLeft: "auto", fontFamily: "ui-monospace, Menlo, monospace", fontSize: 13 }}>
+            <span style={{ marginLeft: "auto", fontFamily: "var(--font-numeric)", fontSize: 13 }}>
               {p.direction === "in" ? "+" : "−"}
               {formatCurrency(Number(p.amount), currency)}
             </span>
           </div>
-          <div style={{ fontSize: 10.5, color: "var(--color-neutral-600)", marginTop: 3 }}>
+          <div style={{ fontSize: 12.5, color: "var(--color-neutral-600)", marginTop: 3 }}>
             {p.accountName} · started {formatDate(p.occurred_at)} · not counted yet
           </div>
           <PendingEntryActions transactionId={p.id} />
@@ -223,7 +223,7 @@ function QuickActions() {
           key={a.mode}
           href={`/wealth/transact?mode=${a.mode}`}
           className="btn btn-secondary"
-          style={{ flex: 1, minHeight: 40, fontSize: 11, letterSpacing: ".04em", display: "flex", alignItems: "center", justifyContent: "center" }}
+          style={{ flex: 1, minHeight: 40, fontSize: 13, letterSpacing: ".04em", display: "flex", alignItems: "center", justifyContent: "center" }}
         >
           {a.label}
         </Link>
@@ -267,17 +267,17 @@ async function ScopePane({ scope, familyId, memberId, currency }: { scope: Wealt
       <HistoryStrip history={pane.history} currency={currency} />
 
       <SectionLabel>{isJoint ? "BUDGET VS SPEND BY CATEGORY" : "WHERE IT WENT THIS MONTH"}</SectionLabel>
-      {categories.length === 0 && <p style={{ fontSize: 12, color: "var(--color-neutral-600)" }}>Nothing spent yet this month.</p>}
+      {categories.length === 0 && <p style={{ fontSize: 13.5, color: "var(--color-neutral-600)" }}>Nothing spent yet this month.</p>}
       {categories.map((c) => {
         const cap = c.amount > 0 ? c.amount : c.spent;
         const pct = cap > 0 ? Math.min(100, Math.round((c.spent / cap) * 100)) : 0;
         const over = c.amount > 0 && c.spent > c.amount;
         return (
           <div key={c.id} style={{ marginBottom: 11 }}>
-            <div style={{ display: "flex", fontSize: 12, marginBottom: 4 }}>
+            <div style={{ display: "flex", fontSize: 13.5, marginBottom: 4 }}>
               <span>{c.category}</span>
-              {c.amount === 0 && <span style={{ fontSize: 10, color: "var(--color-neutral-600)", marginLeft: 6 }}>no budget</span>}
-              <span style={{ marginLeft: "auto", fontFamily: "ui-monospace, Menlo, monospace", fontSize: 11 }}>
+              {c.amount === 0 && <span style={{ fontSize: 12, color: "var(--color-neutral-600)", marginLeft: 6 }}>no budget</span>}
+              <span style={{ marginLeft: "auto", fontFamily: "var(--font-numeric)", fontSize: 13 }}>
                 {formatCurrency(c.spent, currency)}
                 {c.amount > 0 ? ` / ${formatCurrency(c.amount, currency)}` : ""}
               </span>
@@ -293,7 +293,7 @@ async function ScopePane({ scope, familyId, memberId, currency }: { scope: Wealt
       <PendingBlock pending={pane.pending} currency={currency} />
 
       <SectionLabel>{isJoint ? "JOINT ACCOUNTS" : "MY ACCOUNTS"}</SectionLabel>
-      {pane.accounts.length === 0 && <p style={{ fontSize: 12, color: "var(--color-neutral-600)" }}>No accounts yet.</p>}
+      {pane.accounts.length === 0 && <p style={{ fontSize: 13.5, color: "var(--color-neutral-600)" }}>No accounts yet.</p>}
       {pane.accounts.map((a) => (
         <Link
           key={a.id}
@@ -302,14 +302,14 @@ async function ScopePane({ scope, familyId, memberId, currency }: { scope: Wealt
         >
           <span style={{ flex: 1, minWidth: 0 }}>
             <span style={{ font: "600 16px/1.1 var(--font-heading)", display: "block" }}>{a.name}</span>
-            <span style={{ fontSize: 11, color: "var(--color-neutral-600)" }}>
+            <span style={{ fontSize: 13, color: "var(--color-neutral-600)" }}>
               {ACCOUNT_TYPE_LABELS[a.account_type as AccountType] ?? a.account_type}
               {a.institution ? ` · ${a.institution}` : ""}
               {a.sub_note ? ` · ${a.sub_note}` : ""}
             </span>
           </span>
           <span style={{ textAlign: "right", flex: "none" }}>
-            <span style={{ fontFamily: "ui-monospace, Menlo, monospace", fontSize: 13, display: "block" }}>{formatCurrency(a.balance, currency)}</span>
+            <span style={{ fontFamily: "var(--font-numeric)", fontSize: 13, display: "block" }}>{formatCurrency(a.balance, currency)}</span>
             {a.pendingCount > 0 && <Tag variant="outline">{a.pendingCount} PENDING</Tag>}
           </span>
         </Link>
@@ -326,7 +326,7 @@ async function ScopePane({ scope, familyId, memberId, currency }: { scope: Wealt
       )}
 
       {!isJoint && (
-        <div style={{ fontSize: 11.5, color: "var(--color-neutral-600)", marginTop: 14 }}>
+        <div style={{ fontSize: 13, color: "var(--color-neutral-600)", marginTop: 14 }}>
           Nothing on this tab appears in the joint view. Sharing a record is a per-record choice.
         </div>
       )}
@@ -352,7 +352,7 @@ async function GoalsPane({ familyId, memberId, currency }: { familyId: string; m
       />
       {targeted > 0 && <Meter label="ALL GOALS" value={saved} cap={targeted} currency={currency} />}
 
-      {goals.length === 0 && <p style={{ fontSize: 12, color: "var(--color-neutral-600)" }}>No goals yet.</p>}
+      {goals.length === 0 && <p style={{ fontSize: 13.5, color: "var(--color-neutral-600)" }}>No goals yet.</p>}
       {goals.map((g) => {
         const target = Number(g.target_amount ?? 0);
         const current = Number(g.current_amount);
@@ -366,18 +366,18 @@ async function GoalsPane({ familyId, memberId, currency }: { familyId: string; m
                 {g.is_joint ? "JOINT" : owner ?? "MINE"}
               </Tag>
             </div>
-            {g.sub_note && <div style={{ fontSize: 11.5, color: "var(--color-neutral-600)", margin: "4px 0 9px" }}>{g.sub_note}</div>}
+            {g.sub_note && <div style={{ fontSize: 13, color: "var(--color-neutral-600)", margin: "4px 0 9px" }}>{g.sub_note}</div>}
             <div style={{ height: 8, border: "1px solid var(--color-divider)", background: "var(--color-bg)", marginTop: 8 }}>
               <div style={{ height: "100%", width: `${pct}%`, background: "var(--color-accent)" }} />
             </div>
-            <div style={{ display: "flex", fontSize: 10.5, color: "var(--color-neutral-600)", marginTop: 5 }}>
+            <div style={{ display: "flex", fontSize: 12.5, color: "var(--color-neutral-600)", marginTop: 5 }}>
               <span>
                 {formatCurrency(current, currency)} of {formatCurrency(target, currency)}
               </span>
               <span style={{ marginLeft: "auto" }}>{pct}%</span>
             </div>
             {g.target_date && (
-              <div style={{ fontSize: 10.5, color: "var(--color-neutral-600)", marginTop: 5 }}>
+              <div style={{ fontSize: 12.5, color: "var(--color-neutral-600)", marginTop: 5 }}>
                 Target date {formatDate(g.target_date)}
                 {target > current ? ` · ${formatCurrency(target - current, currency)} to go` : " · funded"}
               </div>
@@ -410,13 +410,13 @@ async function BillsPane({ familyId, memberId, currency }: { familyId: string; m
     <>
       <Hero label="STILL TO SETTLE" amount={dueTotal} currency={currency} caption={`${open.length} open bill${open.length === 1 ? "" : "s"}`} />
 
-      {open.length === 0 && <p style={{ fontSize: 12, color: "var(--color-neutral-600)" }}>Everything is settled.</p>}
+      {open.length === 0 && <p style={{ fontSize: 13.5, color: "var(--color-neutral-600)" }}>Everything is settled.</p>}
       {open.map((b) => (
         <div key={b.id} style={{ padding: "12px 0", borderBottom: "1px solid color-mix(in srgb, var(--color-text) 10%, transparent)" }}>
           <div style={{ display: "flex", gap: 11, alignItems: "baseline" }}>
             <span style={{ flex: 1, minWidth: 0 }}>
               <span style={{ font: "600 17px/1.1 var(--font-heading)", display: "block" }}>{b.name}</span>
-              <span style={{ fontSize: 11, color: "var(--color-neutral-600)" }}>
+              <span style={{ fontSize: 13, color: "var(--color-neutral-600)" }}>
                 {b.category ?? "Utilities"}
                 {b.due_date ? ` · due ${formatDate(b.due_date)}` : ""}
               </span>
@@ -444,12 +444,12 @@ async function BillsPane({ familyId, memberId, currency }: { familyId: string; m
             <div key={b.id} style={{ display: "flex", gap: 10, alignItems: "baseline", padding: "10px 0", borderBottom: "1px solid color-mix(in srgb, var(--color-text) 10%, transparent)" }}>
               <span style={{ flex: 1, minWidth: 0 }}>
                 <span style={{ fontSize: 14, display: "block" }}>{b.name}</span>
-                <span style={{ fontSize: 10.5, color: "var(--color-neutral-600)" }}>
+                <span style={{ fontSize: 12.5, color: "var(--color-neutral-600)" }}>
                   {b.paid_at ? `paid ${formatDate(b.paid_at)}` : "paid"}
                   {b.paidFromName ? ` from ${b.paidFromName}` : ""}
                 </span>
               </span>
-              <span style={{ fontFamily: "ui-monospace, Menlo, monospace", fontSize: 13 }}>{formatCurrency(Number(b.amount), currency)}</span>
+              <span style={{ fontFamily: "var(--font-numeric)", fontSize: 13 }}>{formatCurrency(Number(b.amount), currency)}</span>
             </div>
           ))}
         </>
@@ -473,28 +473,28 @@ async function AssetsPane({ familyId, memberId, currency }: { familyId: string; 
       />
 
       <div style={{ display: "flex", gap: 8, marginBottom: 18 }}>
-        <Link href="/wealth/assets/new?kind=asset" className="btn btn-secondary" style={{ flex: 1, minHeight: 40, fontSize: 11, display: "flex", alignItems: "center", justifyContent: "center" }}>
+        <Link href="/wealth/assets/new?kind=asset" className="btn btn-secondary" style={{ flex: 1, minHeight: 40, fontSize: 13, display: "flex", alignItems: "center", justifyContent: "center" }}>
           + ASSET
         </Link>
-        <Link href="/wealth/assets/new?kind=liability" className="btn btn-secondary" style={{ flex: 1, minHeight: 40, fontSize: 11, display: "flex", alignItems: "center", justifyContent: "center" }}>
+        <Link href="/wealth/assets/new?kind=liability" className="btn btn-secondary" style={{ flex: 1, minHeight: 40, fontSize: 13, display: "flex", alignItems: "center", justifyContent: "center" }}>
           + LIABILITY
         </Link>
       </div>
 
       <SectionLabel>WHAT THE HOUSEHOLD OWNS</SectionLabel>
-      {assets.length === 0 && <p style={{ fontSize: 12, color: "var(--color-neutral-600)" }}>No property or other assets recorded yet.</p>}
+      {assets.length === 0 && <p style={{ fontSize: 13.5, color: "var(--color-neutral-600)" }}>No property or other assets recorded yet.</p>}
       {assets.map((a) => (
         <div key={a.id} style={{ padding: "12px 0", borderBottom: "1px solid color-mix(in srgb, var(--color-text) 10%, transparent)" }}>
           <div style={{ display: "flex", gap: 10, alignItems: "baseline" }}>
             <span style={{ flex: 1, minWidth: 0 }}>
               <span style={{ font: "600 16px/1.1 var(--font-heading)", display: "block" }}>{a.name}</span>
-              <span style={{ fontSize: 11, color: "var(--color-neutral-600)" }}>
+              <span style={{ fontSize: 13, color: "var(--color-neutral-600)" }}>
                 {ASSET_KIND_LABELS[a.kind as AssetKind] ?? a.kind}
                 {a.acquired_on ? ` · since ${formatDate(a.acquired_on)}` : ""}
                 {a.note ? ` · ${a.note}` : ""}
               </span>
             </span>
-            <span style={{ fontFamily: "ui-monospace, Menlo, monospace", fontSize: 13, flex: "none" }}>{formatCurrency(Number(a.value), currency)}</span>
+            <span style={{ fontFamily: "var(--font-numeric)", fontSize: 13, flex: "none" }}>{formatCurrency(Number(a.value), currency)}</span>
           </div>
           <div style={{ display: "flex", gap: 8, justifyContent: "flex-end", marginTop: 7 }}>
             <ValueUpdateControl id={a.id} current={Number(a.value)} kind="asset" />
@@ -504,19 +504,19 @@ async function AssetsPane({ familyId, memberId, currency }: { familyId: string; 
       ))}
 
       <SectionLabel>WHAT THE HOUSEHOLD OWES</SectionLabel>
-      {liabilities.length === 0 && <p style={{ fontSize: 12, color: "var(--color-neutral-600)" }}>Nothing owed on record.</p>}
+      {liabilities.length === 0 && <p style={{ fontSize: 13.5, color: "var(--color-neutral-600)" }}>Nothing owed on record.</p>}
       {liabilities.map((l) => (
         <div key={l.id} style={{ padding: "12px 0", borderBottom: "1px solid color-mix(in srgb, var(--color-text) 10%, transparent)" }}>
           <div style={{ display: "flex", gap: 10, alignItems: "baseline" }}>
             <span style={{ flex: 1, minWidth: 0 }}>
               <span style={{ font: "600 16px/1.1 var(--font-heading)", display: "block" }}>{l.name}</span>
-              <span style={{ fontSize: 11, color: "var(--color-neutral-600)" }}>
+              <span style={{ fontSize: 13, color: "var(--color-neutral-600)" }}>
                 {LIABILITY_KIND_LABELS[l.kind as LiabilityKind] ?? l.kind}
                 {l.lender ? ` · ${l.lender}` : ""}
                 {l.monthly_payment ? ` · ${formatCurrency(Number(l.monthly_payment), currency)}/mo` : ""}
               </span>
             </span>
-            <span style={{ fontFamily: "ui-monospace, Menlo, monospace", fontSize: 13, flex: "none", color: "var(--color-accent-700)" }}>
+            <span style={{ fontFamily: "var(--font-numeric)", fontSize: 13, flex: "none", color: "var(--color-accent-700)" }}>
               −{formatCurrency(Number(l.balance), currency)}
             </span>
           </div>
@@ -527,7 +527,7 @@ async function AssetsPane({ familyId, memberId, currency }: { familyId: string; 
         </div>
       ))}
 
-      <div style={{ fontSize: 11.5, color: "var(--color-neutral-600)", marginTop: 16 }}>
+      <div style={{ fontSize: 13, color: "var(--color-neutral-600)", marginTop: 16 }}>
         Net worth counts every account balance plus what you own, less what you owe. Update a value whenever it changes.
       </div>
     </>

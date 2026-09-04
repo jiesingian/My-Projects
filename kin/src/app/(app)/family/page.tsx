@@ -61,7 +61,7 @@ async function ProfilePane({ familyId, isOrganiser, myId }: { familyId: string; 
 
       {isOrganiser && pending.length > 0 && (
         <>
-          <div style={{ font: "600 10px/1 var(--font-heading)", letterSpacing: ".14em", color: "var(--color-accent-700)", marginBottom: 8 }}>
+          <div style={{ font: "600 13px/1 var(--font-heading)", letterSpacing: ".02em", color: "var(--color-accent-700)", marginBottom: 8 }}>
             PENDING REQUESTS · {pending.length}
           </div>
           {pending.map((m) => (
@@ -69,7 +69,7 @@ async function ProfilePane({ familyId, isOrganiser, myId }: { familyId: string; 
               <Avatar url={m.avatar_url} initials={initials(m.full_name)} size={40} />
               <span style={{ flex: 1, minWidth: 0 }}>
                 <span style={{ font: "600 15px/1.1 var(--font-heading)", display: "block" }}>{m.full_name}</span>
-                <span style={{ fontSize: 11, color: "var(--color-neutral-600)" }}>
+                <span style={{ fontSize: 13, color: "var(--color-neutral-600)" }}>
                   {formatAge(m.dob)} · wants to join as {m.role.replace("_", " ")}
                 </span>
               </span>
@@ -94,7 +94,7 @@ async function ProfilePane({ familyId, isOrganiser, myId }: { familyId: string; 
             <Avatar url={m.avatar_url} initials={initials(m.full_name)} size={44} />
             <span style={{ flex: 1, minWidth: 0 }}>
               <span style={{ font: "600 18px/1.1 var(--font-heading)", display: "block" }}>{m.full_name}</span>
-              <span style={{ fontSize: 11.5, color: "var(--color-neutral-600)" }}>
+              <span style={{ fontSize: 13, color: "var(--color-neutral-600)" }}>
                 {formatAge(m.dob)} · {m.relationship ?? m.role.replace("_", " ")}
               </span>
             </span>
@@ -105,13 +105,13 @@ async function ProfilePane({ familyId, isOrganiser, myId }: { familyId: string; 
           {isOrganiser && m.id !== myId && !m.is_organiser && <RemoveMemberButton memberId={m.id} fullName={m.full_name} />}
         </div>
       ))}
-      <div style={{ fontSize: 11.5, color: "var(--color-neutral-600)", marginTop: 14 }}>
+      <div style={{ fontSize: 13, color: "var(--color-neutral-600)", marginTop: 14 }}>
         Managed profiles are written by a parent. Children graduate to their own login at 13.
       </div>
 
       {isOrganiser && removed.length > 0 && (
         <>
-          <div style={{ font: "600 10px/1 var(--font-heading)", letterSpacing: ".14em", color: "var(--color-neutral-600)", margin: "22px 0 8px" }}>
+          <div style={{ font: "600 13px/1 var(--font-heading)", letterSpacing: ".02em", color: "var(--color-neutral-600)", margin: "22px 0 8px" }}>
             REMOVED · {removed.length}
           </div>
           {removed.map((m) => (
@@ -140,7 +140,7 @@ async function HealthPane({ familyId }: { familyId: string }) {
                 {nextDue}
               </Tag>
             </div>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "7px 14px", fontSize: 11.5 }}>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "7px 14px", fontSize: 13 }}>
               <Fact k="Blood type" v={member.blood_type} />
               <Fact k="Allergies" v={member.allergies} />
               <Fact k="Insurance" v={member.insurance_info} />
@@ -156,7 +156,7 @@ async function HealthPane({ familyId }: { familyId: string }) {
 function Fact({ k, v }: { k: string; v: string | null }) {
   return (
     <div>
-      <span style={{ color: "var(--color-neutral-600)", letterSpacing: ".06em", textTransform: "uppercase", fontSize: 9, display: "block" }}>
+      <span style={{ color: "var(--color-neutral-600)", letterSpacing: ".06em", textTransform: "uppercase", fontSize: 11, display: "block" }}>
         {k}
       </span>
       {v || "Not recorded"}
@@ -175,7 +175,7 @@ async function DocumentsPane({ familyId, who }: { familyId: string; who: string 
   return (
     <>
       <Blueprint className="bg-[var(--color-accent-100)] mb-4" style={{ padding: 12, display: "flex", gap: 10, alignItems: "center" }}>
-        <span style={{ fontSize: 11.5, lineHeight: 1.35 }}>
+        <span style={{ fontSize: 13, lineHeight: 1.35 }}>
           Files stay in your connected Drive. Kin holds the index and the expiry dates only.
         </span>
       </Blueprint>
@@ -207,7 +207,7 @@ async function DocumentsPane({ familyId, who }: { familyId: string; who: string 
         >
           <span style={{ flex: 1, minWidth: 0 }}>
             <span style={{ font: "600 16px/1.1 var(--font-heading)", display: "block" }}>{folder.name}</span>
-            <span style={{ fontSize: 11, color: "var(--color-neutral-600)" }}>
+            <span style={{ fontSize: 13, color: "var(--color-neutral-600)" }}>
               {folder.fileCount} file{folder.fileCount === 1 ? "" : "s"}
             </span>
           </span>

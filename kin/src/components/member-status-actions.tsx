@@ -15,7 +15,7 @@ export function RemoveMemberButton({ memberId, fullName, variant = "inline" }: {
       style={
         variant === "block"
           ? { minHeight: 46, fontSize: 13.5, letterSpacing: ".04em", color: "var(--color-accent-700)", borderColor: "var(--color-accent-700)", marginTop: 20 }
-          : { fontSize: 11, flex: "none" }
+          : { fontSize: 13, flex: "none" }
       }
       disabled={busy}
       onClick={async (e) => {
@@ -45,7 +45,7 @@ export function ReinstateMemberButton({ memberId }: { memberId: string }) {
     <button
       type="button"
       className="btn btn-secondary"
-      style={{ fontSize: 11, minHeight: 30, padding: "0 12px", flex: "none" }}
+      style={{ fontSize: 13, minHeight: 30, padding: "0 12px", flex: "none" }}
       disabled={busy}
       onClick={async () => {
         setBusy(true);

@@ -34,10 +34,10 @@ export default async function MembersPage() {
           paddingBottom: 7,
         }}
       >
-        <span style={{ font: "600 10px/1 var(--font-heading)", letterSpacing: ".14em", color: "var(--color-neutral-600)" }}>
+        <span style={{ font: "600 13px/1 var(--font-heading)", letterSpacing: ".02em", color: "var(--color-neutral-600)" }}>
           MEMBERS · {members?.length ?? 0}
         </span>
-        <span style={{ font: "600 10px/1 var(--font-heading)", letterSpacing: ".14em", color: "var(--color-neutral-600)" }}>
+        <span style={{ font: "600 13px/1 var(--font-heading)", letterSpacing: ".02em", color: "var(--color-neutral-600)" }}>
           STATUS
         </span>
       </div>
@@ -70,7 +70,7 @@ export default async function MembersPage() {
           </div>
           <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{ font: "600 17px/1.1 var(--font-heading)" }}>{m.full_name}</div>
-            <div style={{ fontSize: 11.5, color: "var(--color-neutral-600)" }}>
+            <div style={{ fontSize: 13, color: "var(--color-neutral-600)" }}>
               {formatAge(m.dob)} · {m.role.replace("_", " ")}
               {m.is_organiser ? " · organizer" : ""}
             </div>
@@ -86,8 +86,8 @@ export default async function MembersPage() {
       <Blueprint className="bg-[var(--color-accent-100)] mt-5" style={{ padding: 14 }}>
         <div
           style={{
-            font: "600 10px/1 var(--font-heading)",
-            letterSpacing: ".14em",
+            font: "600 13px/1 var(--font-heading)",
+            letterSpacing: ".02em",
             color: "var(--color-accent-700)",
             marginBottom: 7,
           }}

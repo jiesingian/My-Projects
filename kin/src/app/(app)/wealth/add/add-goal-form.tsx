@@ -52,7 +52,7 @@ export function AddGoalForm({ accounts, currency }: { accounts: PickableAccount[
         </Field>
       )}
       <SubmitButton style={{ minHeight: 46, fontSize: 14, letterSpacing: ".04em" }}>SAVE GOAL</SubmitButton>
-      <p style={{ fontSize: 11.5, color: "var(--color-neutral-600)", marginTop: 10 }}>
+      <p style={{ fontSize: 13, color: "var(--color-neutral-600)", marginTop: 10 }}>
         A dated goal shows up on everyone&apos;s calendar, and money you put in comes out of a real account.
       </p>
     </form>

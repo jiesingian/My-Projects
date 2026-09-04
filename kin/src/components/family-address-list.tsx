@@ -113,12 +113,12 @@ function AddressForm({
         <label>COUNTRY</label>
         <input className="input" value={fields.country} onChange={(e) => set("country", e.target.value)} style={{ minHeight: 40 }} disabled={busy} />
       </div>
-      {error && <p style={{ color: "var(--color-accent-700)", fontSize: 11.5, margin: "0 0 8px" }}>{error}</p>}
+      {error && <p style={{ color: "var(--color-accent-700)", fontSize: 13, margin: "0 0 8px" }}>{error}</p>}
       <div style={{ display: "flex", gap: 8 }}>
-        <button type="button" className="btn btn-secondary" style={{ flex: 1, minHeight: 38, fontSize: 12 }} disabled={busy} onClick={onCancel}>
+        <button type="button" className="btn btn-secondary" style={{ flex: 1, minHeight: 38, fontSize: 13.5 }} disabled={busy} onClick={onCancel}>
           CANCEL
         </button>
-        <button type="button" className="btn btn-primary" style={{ flex: 1, minHeight: 38, fontSize: 12 }} disabled={busy} onClick={onSave}>
+        <button type="button" className="btn btn-primary" style={{ flex: 1, minHeight: 38, fontSize: 13.5 }} disabled={busy} onClick={onSave}>
           {busy ? "SAVING…" : saveLabel}
         </button>
       </div>
@@ -175,11 +175,11 @@ export function FamilyAddressList({ addresses, canEdit }: { addresses: FamilyAdd
 
   return (
     <div style={{ marginBottom: 20 }}>
-      <div style={{ font: "600 10px/1 var(--font-heading)", letterSpacing: ".14em", color: "var(--color-neutral-600)", marginBottom: 8 }}>
+      <div style={{ font: "600 13px/1 var(--font-heading)", letterSpacing: ".02em", color: "var(--color-neutral-600)", marginBottom: 8 }}>
         ADDRESSES
       </div>
       {addresses.length === 0 && editingId !== "new" && (
-        <div style={{ fontSize: 12, color: "var(--color-neutral-600)", marginBottom: 10 }}>No addresses added yet.</div>
+        <div style={{ fontSize: 13.5, color: "var(--color-neutral-600)", marginBottom: 10 }}>No addresses added yet.</div>
       )}
       {addresses.map((a) =>
         editingId === a.id ? (
@@ -189,7 +189,7 @@ export function FamilyAddressList({ addresses, canEdit }: { addresses: FamilyAdd
             <span
               style={{
                 font: "600 9px/1 var(--font-heading)",
-                letterSpacing: ".08em",
+                letterSpacing: ".02em",
                 textTransform: "uppercase",
                 color: "var(--color-accent-700)",
                 border: "1px solid var(--color-accent-700)",
@@ -205,7 +205,7 @@ export function FamilyAddressList({ addresses, canEdit }: { addresses: FamilyAdd
               <span style={{ fontSize: 13, display: "block" }}>
                 {[[a.house_no, a.building].filter(Boolean).join(" "), a.street].filter(Boolean).join(", ") || a.address_line}
               </span>
-              <span style={{ fontSize: 11, color: "var(--color-neutral-600)" }}>
+              <span style={{ fontSize: 13, color: "var(--color-neutral-600)" }}>
                 {[a.barangay, a.city, a.province, a.zip_code].filter(Boolean).join(", ")}
               </span>
             </span>
@@ -213,16 +213,16 @@ export function FamilyAddressList({ addresses, canEdit }: { addresses: FamilyAdd
               href={mapsUrl(a)}
               target="_blank"
               rel="noopener noreferrer"
-              style={{ fontSize: 11, color: "var(--color-accent-700)", textDecoration: "none", flex: "none" }}
+              style={{ fontSize: 13, color: "var(--color-accent-700)", textDecoration: "none", flex: "none" }}
             >
               MAP ↗
             </a>
             {canEdit && (
               <>
-                <button type="button" onClick={() => startEdit(a)} style={{ all: "unset", cursor: "pointer", fontSize: 11, color: "var(--color-accent-700)" }}>
+                <button type="button" onClick={() => startEdit(a)} style={{ all: "unset", cursor: "pointer", fontSize: 13, color: "var(--color-accent-700)" }}>
                   EDIT
                 </button>
-                <button type="button" onClick={() => remove(a.id)} style={{ all: "unset", cursor: "pointer", fontSize: 11, color: "var(--color-accent-700)" }}>
+                <button type="button" onClick={() => remove(a.id)} style={{ all: "unset", cursor: "pointer", fontSize: 13, color: "var(--color-accent-700)" }}>
                   REMOVE
                 </button>
               </>
@@ -235,7 +235,7 @@ export function FamilyAddressList({ addresses, canEdit }: { addresses: FamilyAdd
         (editingId === "new" ? (
           <AddressForm fields={fields} set={set} busy={busy} error={error} onCancel={cancelForm} onSave={save} saveLabel="SAVE ADDRESS" />
         ) : (
-          <button type="button" className="btn btn-secondary btn-block" style={{ minHeight: 36, fontSize: 11.5, marginTop: 10 }} onClick={startAdd}>
+          <button type="button" className="btn btn-secondary btn-block" style={{ minHeight: 36, fontSize: 13, marginTop: 10 }} onClick={startAdd}>
             + ADD ADDRESS
           </button>
         ))}

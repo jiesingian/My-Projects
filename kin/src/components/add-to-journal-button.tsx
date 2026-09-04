@@ -9,7 +9,7 @@ export function AddToJournalButton({ activityId }: { activityId: string }) {
     <button
       type="button"
       className="btn btn-secondary"
-      style={{ fontSize: 11.5, marginTop: 8 }}
+      style={{ fontSize: 13, marginTop: 8 }}
       disabled={pending}
       onClick={() => startTransition(() => addActivityToJournalAction(activityId))}
     >

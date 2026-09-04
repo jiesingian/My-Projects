@@ -22,10 +22,10 @@ export function PendingMemberActions({ memberId, fullName }: { memberId: string;
 
   return (
     <div style={{ display: "flex", gap: 8, flex: "none" }}>
-      <button type="button" className="btn btn-primary" style={{ minHeight: 34, fontSize: 11, padding: "0 12px" }} disabled={!!busy} onClick={() => run("approve")}>
+      <button type="button" className="btn btn-primary" style={{ minHeight: 34, fontSize: 13, padding: "0 12px" }} disabled={!!busy} onClick={() => run("approve")}>
         {busy === "approve" ? "…" : "APPROVE"}
       </button>
-      <button type="button" className="btn btn-secondary" style={{ minHeight: 34, fontSize: 11, padding: "0 12px" }} disabled={!!busy} onClick={() => run("reject")}>
+      <button type="button" className="btn btn-secondary" style={{ minHeight: 34, fontSize: 13, padding: "0 12px" }} disabled={!!busy} onClick={() => run("reject")}>
         {busy === "reject" ? "…" : "REJECT"}
       </button>
     </div>

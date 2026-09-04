@@ -40,7 +40,7 @@ export function FamilyBackgroundAlbum({
         aria-label="View household photos"
       >
         {!backgroundUrl && (
-          <span style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12, color: "var(--color-neutral-600)" }}>
+          <span style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13.5, color: "var(--color-neutral-600)" }}>
             No household photo yet
           </span>
         )}

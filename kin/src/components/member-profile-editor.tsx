@@ -80,7 +80,7 @@ export function MemberProfileEditor({
         </div>
         <div>
           <div style={{ font: "600 34px/.98 var(--font-heading)" }}>{fullName}</div>
-          <div style={{ fontSize: 12, color: "var(--color-neutral-600)", marginTop: 4 }}>{ageLabel}</div>
+          <div style={{ fontSize: 13.5, color: "var(--color-neutral-600)", marginTop: 4 }}>{ageLabel}</div>
           <Tag variant={statusVariant} className="mt-2 inline-flex">
             {statusLabel}
           </Tag>
@@ -92,7 +92,7 @@ export function MemberProfileEditor({
       {mode === "view" ? (
         <div style={{ marginBottom: 20 }}>
           <ProfileFieldsView fields={fields} />
-          <button type="button" className="btn btn-secondary btn-block" style={{ minHeight: 40, fontSize: 12, marginTop: 10 }} onClick={() => setMode("edit")}>
+          <button type="button" className="btn btn-secondary btn-block" style={{ minHeight: 40, fontSize: 13.5, marginTop: 10 }} onClick={() => setMode("edit")}>
             EDIT PROFILE
           </button>
         </div>
@@ -103,7 +103,7 @@ export function MemberProfileEditor({
             <input className="input" value={fields.full_name} onChange={(e) => set("full_name", e.target.value)} style={{ minHeight: 44 }} disabled={busy} />
           </div>
           <ProfileFieldsEditor fields={fields} set={set} busy={busy} />
-          {error && <p style={{ color: "var(--color-accent-700)", fontSize: 11.5, margin: "0 0 10px" }}>{error}</p>}
+          {error && <p style={{ color: "var(--color-accent-700)", fontSize: 13, margin: "0 0 10px" }}>{error}</p>}
           <div style={{ display: "flex", gap: 8 }}>
             <button type="button" className="btn btn-secondary" style={{ flex: 1, minHeight: 44, fontSize: 13 }} disabled={busy} onClick={cancel}>
               CANCEL

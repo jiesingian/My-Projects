@@ -92,7 +92,7 @@ function ActivityForm({ members, editActivity }: { members: Tables<"members">[];
           <option value="yearly">Yearly</option>
         </select>
       </Field>
-      <div style={{ fontSize: 11.5, color: "var(--color-neutral-700)", margin: "14px 0 6px" }}>Who it is for</div>
+      <div style={{ fontSize: 13, color: "var(--color-neutral-700)", margin: "14px 0 6px" }}>Who it is for</div>
       <div style={{ display: "flex", flexWrap: "wrap", gap: 7, marginBottom: 16 }}>
         <button type="button" className="chip" data-active={wholeFamily} onClick={() => setWholeFamily(true)}>
           Whole family
@@ -195,7 +195,7 @@ function TripForm({ members }: { members: Tables<"members">[] }) {
         <Field label="END" style={{ flex: 1 }}><input className="input" type="date" name="end_date" style={{ minHeight: 44 }} /></Field>
       </div>
       <Field label="BUDGET (₱)"><input className="input" type="number" name="budget_amount" style={{ minHeight: 44 }} /></Field>
-      <div style={{ fontSize: 11.5, color: "var(--color-neutral-700)", margin: "14px 0 6px" }}>Travelling</div>
+      <div style={{ fontSize: 13, color: "var(--color-neutral-700)", margin: "14px 0 6px" }}>Travelling</div>
       <div style={{ display: "flex", flexWrap: "wrap", gap: 7, marginBottom: 16 }}>
         {members.map((m) => {
           const active = travellers.includes(m.id);

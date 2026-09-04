@@ -54,8 +54,8 @@ export function GalleryUpload() {
   return (
     <div style={{ marginBottom: 14 }}>
       <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
-        <input ref={inputRef} type="file" name="files" multiple accept="image/*,video/*" style={{ flex: 1, fontSize: 12 }} onChange={onFilesChosen} disabled={status.uploading} />
-        <button type="button" className="btn btn-primary" style={{ minHeight: 40, fontSize: 12 }} onClick={onUpload} disabled={status.uploading || previews.length === 0}>
+        <input ref={inputRef} type="file" name="files" multiple accept="image/*,video/*" style={{ flex: 1, fontSize: 13.5 }} onChange={onFilesChosen} disabled={status.uploading} />
+        <button type="button" className="btn btn-primary" style={{ minHeight: 40, fontSize: 13.5 }} onClick={onUpload} disabled={status.uploading || previews.length === 0}>
           {status.uploading ? `UPLOADING ${status.done + 1}/${status.total}…` : "UPLOAD"}
         </button>
       </div>

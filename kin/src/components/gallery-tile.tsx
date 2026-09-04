@@ -71,7 +71,7 @@ export function GalleryTile({
         ) : (
           <Icon name={mediaType === "video" ? "images" : "hardDrive"} size={22} className="text-[var(--color-neutral-600)]" />
         )}
-        <span style={{ position: "absolute", bottom: 4, left: 4, font: "400 7.5px/1 ui-monospace, Menlo, monospace", background: "var(--color-bg)", padding: "2px 3px", color: "var(--color-neutral-700)" }}>
+        <span style={{ position: "absolute", bottom: 4, left: 4, font: "400 7.5px/1 var(--font-numeric)", background: "var(--color-bg)", padding: "2px 3px", color: "var(--color-neutral-700)" }}>
           {date}
         </span>
         {selectMode ? (
@@ -129,7 +129,7 @@ export function GalleryTile({
               target="_blank"
               rel="noopener noreferrer"
               onClick={(e) => e.stopPropagation()}
-              style={{ position: "absolute", bottom: 16, right: 20, color: "#fff", fontSize: 11.5, textDecoration: "underline" }}
+              style={{ position: "absolute", bottom: 16, right: 20, color: "#fff", fontSize: 13, textDecoration: "underline" }}
             >
               Open in Drive
             </a>
