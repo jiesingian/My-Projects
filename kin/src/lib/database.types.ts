@@ -2426,6 +2426,48 @@ export type Database = {
           },
         ]
       }
+      recipe_photos: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          family_id: string
+          id: string
+          recipe_ref: string
+          storage_path: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          family_id: string
+          id?: string
+          recipe_ref: string
+          storage_path: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          family_id?: string
+          id?: string
+          recipe_ref?: string
+          storage_path?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "recipe_photos_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "members"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "recipe_photos_family_id_fkey"
+            columns: ["family_id"]
+            isOneToOne: false
+            referencedRelation: "families"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       routine_log: {
         Row: {
           amount: number | null

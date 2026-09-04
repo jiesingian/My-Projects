@@ -41,6 +41,9 @@ export const iconPaths = {
   church: "M12 2.5v5M10 5h4M6 11 12 7.5 18 11v10H6zM10.5 21v-4.5h3V21",
   pause: "M9 5v14M15 5v14",
   play: "M7 4.5 19 12 7 19.5z",
+  // Meals
+  camera: "M4 8h3l1.5-2.5h7L17 8h3v12H4zM12 10a3.5 3.5 0 1 0 0 7a3.5 3.5 0 0 0 0-7",
+  clock: "M12 3.5a8.5 8.5 0 1 0 0 17a8.5 8.5 0 0 0 0-17M12 7.5V12l3 2",
 } as const;
 
 export type IconName = keyof typeof iconPaths;

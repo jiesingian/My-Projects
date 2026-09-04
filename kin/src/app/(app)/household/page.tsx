@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getCurrentMember } from "@/lib/session";
-import { getBuyItems, getMeals } from "@/lib/queries/household";
+import { getBuyItems, getMealPlanner, type PlannedMeal } from "@/lib/queries/household";
 import { getAccounts } from "@/lib/queries/wealth";
 import { getPriceBook, getPricedBuyList, getNextShoppingRun, getPantry } from "@/lib/queries/household-money";
 import { HubHeader } from "@/components/hub-header";
@@ -10,26 +10,29 @@ import { Blueprint, Tag } from "@/components/ui";
 import { GenerateGroceryButton } from "@/components/generate-grocery-button";
 import { PriceRowControl, AddPriceControl, PantryControls } from "@/components/household-price-controls";
 import { SheetButton, Collapsible } from "@/components/sheet";
-import { RecipeBook, AddIngredientsToBuyButton, IngredientChip } from "@/components/recipe-book";
+import { RecipeBook, AddIngredientsToBuyButton } from "@/components/recipe-book";
 import { getRecipeBook } from "@/lib/queries/recipes";
 import { AddMealControl, RemoveMealButton } from "@/components/meal-controls";
+import { CalendarJump, DateRail, TodayButton } from "@/components/calendar-nav";
+import { MealPhotoControl, IngredientAmountRow, AddIngredientRow } from "@/components/meal-day";
 import { Icon } from "@/components/icons";
 import { formatCurrency } from "@/lib/format";
 import { PRICE_BOOK_SET_ON } from "@/lib/pricebook";
-import { MEAL_SLOTS, MEAL_SLOT_LABEL, RECIPES_BY_KEY, type MealSlot } from "@/lib/recipes";
+import { plateTone } from "@/lib/meal-photos";
+import { MEAL_SLOTS, MEAL_SLOT_LABEL } from "@/lib/recipes";
 import { MARKET_SECTIONS } from "@/lib/grocery";
-import { toISODate } from "@/lib/routines";
 
 const SEGMENTS = ["buy", "meals"] as const;
 type Seg = (typeof SEGMENTS)[number];
 
 const SEGMENT_LABEL: Record<Seg, string> = { buy: "To-buy", meals: "Meals" };
 
-export default async function HouseholdPage({ searchParams }: { searchParams: Promise<{ seg?: string }> }) {
+export default async function HouseholdPage({ searchParams }: { searchParams: Promise<{ seg?: string; date?: string }> }) {
   const me = await getCurrentMember();
   if (!me) redirect("/onboarding/profile");
   const sp = await searchParams;
   const seg: Seg = (SEGMENTS as readonly string[]).includes(sp.seg ?? "") ? (sp.seg as Seg) : "buy";
+  const anchor = sp.date ? new Date(`${sp.date}T00:00:00`) : new Date();
 
   const segments = SEGMENTS.map((s) => ({ label: SEGMENT_LABEL[s], href: `/household?seg=${s}`, active: s === seg }));
 
@@ -38,7 +41,7 @@ export default async function HouseholdPage({ searchParams }: { searchParams: Pr
       <HubHeader n="04" title="Household" segments={segments} />
       <div style={{ padding: "0 22px 22px" }}>
         {seg === "buy" && <BuyPane familyId={me.family_id} memberId={me.id} currency={me.families.currency} />}
-        {seg === "meals" && <MealsPane familyId={me.family_id} memberId={me.id} currency={me.families.currency} />}
+        {seg === "meals" && <MealsPane familyId={me.family_id} memberId={me.id} currency={me.families.currency} anchor={anchor} />}
       </div>
     </div>
   );
@@ -224,113 +227,264 @@ async function PriceBookSheet({ familyId, currency }: { familyId: string; curren
   );
 }
 
-async function MealsPane({ familyId, memberId, currency }: { familyId: string; memberId: string; currency: string }) {
-  const [meals, recipes] = await Promise.all([getMeals(familyId), getRecipeBook(familyId)]);
+const MEALS_HREF_BASE = "/household?seg=meals&date=";
 
-  // Monday to Sunday, so a plan is read the way a week is lived.
+async function MealsPane({
+  familyId,
+  memberId,
+  currency,
+  anchor,
+}: {
+  familyId: string;
+  memberId: string;
+  currency: string;
+  anchor: Date;
+}) {
+  const [{ strip, meals, anchorISO }, recipes] = await Promise.all([getMealPlanner(familyId, anchor), getRecipeBook(familyId)]);
   const today = new Date();
-  const monday = new Date(today.getFullYear(), today.getMonth(), today.getDate() - ((today.getDay() + 6) % 7));
-  const days = Array.from({ length: 7 }, (_, i) => new Date(monday.getFullYear(), monday.getMonth(), monday.getDate() + i));
-
-  const byDay = new Map<string, typeof meals>();
-  for (const m of meals) {
-    const list = byDay.get(m.plan_date) ?? [];
-    list.push(m);
-    byDay.set(m.plan_date, list);
-  }
+  const selected = strip.find((d) => d.isSelected);
+  const isToday = selected?.isToday ?? false;
+  const label = anchor.toLocaleDateString("en-GB", { month: "long", year: "numeric" });
+  // The Monday of the week being looked at — what a shopping list built from
+  // here would cover.
+  const weekStart = new Date(anchor);
+  weekStart.setDate(anchor.getDate() - ((anchor.getDay() + 6) % 7));
 
   return (
     <>
-      <div style={{ display: "flex", gap: 6, marginBottom: 12 }}>
+      {/* The same header as the Planner's calendar: the title jumps to any
+          month or day, and Today comes straight back. */}
+      <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 12 }}>
+        <CalendarJump label={label} hrefBase={MEALS_HREF_BASE} anchor={anchorISO} />
         <SheetButton
-          label={`Recipes (${recipes.length})`}
+          label={String(recipes.length)}
           title="Recipe book"
           icon="utensils"
           className="btn btn-secondary"
-          style={{ flex: 1, minHeight: 40, fontSize: 13.5, gap: 6 }}
+          style={{ minHeight: 34, fontSize: 13, padding: "0 10px", gap: 5 }}
         >
           <RecipeBook recipes={recipes} />
         </SheetButton>
+        <TodayButton hrefBase={MEALS_HREF_BASE} />
       </div>
 
-      {days.map((day) => {
-        const iso = toISODate(day);
-        const forDay = byDay.get(iso) ?? [];
-        const isToday = day.toDateString() === today.toDateString();
+      {/* And the same rail: scroll sideways through the weeks, tap a day to
+          plan it. The dots are the meals already down for that day. */}
+      <DateRail anchor={anchorISO}>
+        {strip.map((d) => {
+          const first = d.date.getDate() === 1;
+          return (
+            <Link
+              key={d.iso}
+              href={`${MEALS_HREF_BASE}${d.iso}`}
+              data-selected={d.isSelected}
+              aria-current={d.isSelected ? "date" : undefined}
+              style={{
+                width: "calc((100% - 12px) / 7)",
+                flex: "none",
+                textDecoration: "none",
+                color: "inherit",
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "center",
+                gap: 3,
+                padding: "4px 0 5px",
+                borderRadius: 12,
+                background: d.isSelected && !d.isToday ? "color-mix(in srgb, var(--color-text) 7%, transparent)" : "transparent",
+                opacity: d.date < new Date(today.getFullYear(), today.getMonth(), today.getDate()) ? 0.55 : 1,
+              }}
+            >
+              <span style={{ fontSize: 11, color: "var(--color-neutral-600)", height: 13 }}>
+                {first ? d.date.toLocaleDateString("en-GB", { month: "short" }) : d.date.toLocaleDateString("en-GB", { weekday: "short" }).slice(0, 1)}
+              </span>
+              <span
+                style={{
+                  width: 34,
+                  height: 34,
+                  borderRadius: 999,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  fontSize: 16,
+                  fontWeight: d.isToday || d.isSelected ? 600 : 400,
+                  background: d.isToday ? "var(--color-accent)" : "transparent",
+                  color: d.isToday ? "#fff" : "var(--color-text)",
+                  boxShadow: d.isSelected && !d.isToday ? "inset 0 0 0 1.5px var(--color-accent)" : "none",
+                }}
+              >
+                {d.date.getDate()}
+              </span>
+              <span style={{ display: "flex", gap: 2, height: 4 }}>
+                {d.slots.slice(0, 4).map((s, i) => (
+                  <span key={`${s}-${i}`} style={{ width: 4, height: 4, borderRadius: 999, background: "var(--cal-home)" }} />
+                ))}
+              </span>
+            </Link>
+          );
+        })}
+      </DateRail>
 
-        const planned = forDay.length;
-        const toBuy = forDay.reduce((sum, m) => sum + m.missing, 0);
+      <div style={{ display: "flex", alignItems: "baseline", gap: 8, padding: "12px 0 4px" }}>
+        <h2 style={{ font: "600 17px/1.2 var(--font-heading)", margin: 0 }}>
+          {isToday ? "Today" : anchor.toLocaleDateString("en-GB", { weekday: "long" })}
+          {" · "}
+          {anchor.toLocaleDateString("en-GB", { day: "numeric", month: "long" })}
+        </h2>
+        <span style={{ marginLeft: "auto", fontSize: 12.5, color: "var(--color-neutral-600)" }}>
+          {meals.length === 0 ? "nothing planned" : `${meals.length} planned`}
+        </span>
+      </div>
 
+      {/* Every day carries all four parts, so an empty one reads as a gap to
+          fill rather than something that does not exist. */}
+      {MEAL_SLOTS.map((slot) => {
+        const inSlot = meals.filter((m) => m.slot === slot);
         return (
-          // A week of four slots a day is a long page; only today is open.
-          <Collapsible
-            key={iso}
-            title={`${isToday ? "Today" : day.toLocaleDateString("en-GB", { weekday: "long" })} · ${day.toLocaleDateString("en-GB", { day: "numeric", month: "short" })}`}
-            meta={planned === 0 ? "nothing planned" : toBuy === 0 ? `${planned} planned` : `${planned} planned · ${toBuy} to buy`}
-            defaultOpen={isToday}
-          >
-            {/* Every day carries all four parts, so an empty one reads as a
-                gap to fill rather than something that does not exist. */}
-            {MEAL_SLOTS.map((slot) => {
-              const inSlot = forDay.filter((m) => (m.slot as MealSlot) === slot);
-              return (
-                <div key={slot} style={{ padding: "6px 0 2px" }}>
-                  <div style={{ fontSize: 11.5, letterSpacing: ".04em", textTransform: "uppercase", color: "var(--color-neutral-600)", marginBottom: 2 }}>
-                    {MEAL_SLOT_LABEL[slot]}
-                  </div>
+          <div key={slot} style={{ padding: "10px 0 2px" }}>
+            <div style={{ fontSize: 11.5, letterSpacing: ".05em", textTransform: "uppercase", color: "var(--color-neutral-600)", marginBottom: 7 }}>
+              {MEAL_SLOT_LABEL[slot]}
+            </div>
 
-                  {inSlot.map((m) => {
-                    const recipe = m.recipe_key ? RECIPES_BY_KEY.get(m.recipe_key) : undefined;
-                    return (
-                      <div key={m.id} style={{ display: "flex", gap: 8, alignItems: "flex-start", padding: "5px 0" }}>
-                        <div style={{ flex: 1, minWidth: 0 }}>
-                          <div style={{ fontSize: 15, fontWeight: 500 }}>{m.dish}</div>
-                          <div style={{ fontSize: 12.5, color: "var(--color-neutral-600)" }}>
-                            {m.ingredientCount === 0
-                              ? "No ingredients listed"
-                              : m.missing === 0
-                                ? m.have === m.ingredientCount
-                                  ? "Everything is in the house"
-                                  : "Everything is bought or in the house"
-                                : `${m.missing} still to buy${m.have > 0 ? ` · ${m.have} already here` : ""}`}
-                            {recipe ? ` · ${recipe.minutes} min` : ""}
-                          </div>
-                          {m.ingredientCount > 0 && (
-                            <>
-                              {/* Tap an ingredient to say the house already
-                                  has it; it then never reaches a list. */}
-                              <div style={{ display: "flex", flexWrap: "wrap", gap: 4, marginTop: 5 }}>
-                                {m.ingredients.map((ing) => (
-                                  <IngredientChip key={ing.key} name={ing.name} inPantry={ing.inPantry} onList={ing.onList} />
-                                ))}
-                              </div>
-                              <div style={{ marginTop: 7 }}>
-                                <AddIngredientsToBuyButton mealId={m.id} missing={m.missing} />
-                              </div>
-                            </>
-                          )}
-                        </div>
-                        <Tag variant={m.missing === 0 ? "accent" : "neutral"} className="self-start">
-                          {m.missing === 0 ? "ready" : `${m.missing} to buy`}
-                        </Tag>
-                        <RemoveMealButton mealId={m.id} />
-                      </div>
-                    );
-                  })}
+            {inSlot.map((m) => (
+              <DishCard key={m.id} meal={m} />
+            ))}
 
-                  <AddMealControl date={iso} slot={slot} />
-                </div>
-              );
-            })}
-          </Collapsible>
+            <AddMealControl date={anchorISO} slot={slot} />
+          </div>
         );
       })}
 
-      <GenerateGroceryButton familyId={familyId} memberId={memberId} />
+      <div style={{ marginTop: 18 }}>
+        <GenerateGroceryButton familyId={familyId} memberId={memberId} weekOf={anchorISO} />
+      </div>
       <p style={{ fontSize: 12.5, color: "var(--color-neutral-600)", marginTop: 10, lineHeight: 1.45 }}>
-        Building the list takes the ingredients from this week&rsquo;s meals, skips anything already in the house, and prices
-        each one from your price book. Amounts are in {currency}.
+        Building the list takes the ingredients from the meals planned for the week of{" "}
+        {weekStart.toLocaleDateString("en-GB", { day: "numeric", month: "long" })}, skips anything already in the house, and
+        prices each one from your price book. Amounts are in {currency}.
       </p>
     </>
+  );
+}
+
+/** One dish, given the room it deserves: its picture across the full width,
+ * its name on the picture, and its amounts underneath where they can be
+ * changed for this meal without opening the recipe. */
+function DishCard({ meal }: { meal: PlannedMeal }) {
+  const tone = plateTone(meal.dish);
+  const meta = [
+    MEAL_SLOT_LABEL[meal.slot],
+    meal.minutes ? `${meal.minutes} min` : null,
+    meal.serves ? `serves ${meal.serves}` : null,
+  ].filter(Boolean);
+
+  return (
+    <div className="kin-dish">
+      <div
+        className={`kin-plate${meal.photoUrl ? "" : " kin-plate--glazed"}`}
+        style={{ "--plate-from": tone.from, "--plate-to": tone.to } as React.CSSProperties}
+      >
+        {meal.photoUrl ? (
+          // Signed Storage URLs expire, so this stays a plain img: next/image
+          // would cache a URL that has already gone stale.
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={meal.photoUrl} alt={meal.dish} />
+        ) : (
+          // Until the house photographs its own, the dish gets a plate: its
+          // own glaze, and a monogram struck once from the name.
+          <div
+            style={{
+              position: "absolute",
+              inset: 0,
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              justifyContent: "center",
+              gap: 7,
+              color: tone.ink,
+            }}
+          >
+            <span
+              style={{
+                width: 72,
+                height: 72,
+                borderRadius: 999,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                font: `500 30px/1 var(--font-heading)`,
+                letterSpacing: "0.04em",
+                border: "1px solid rgba(247,226,178,0.7)",
+                boxShadow: "0 0 0 5px rgba(247,226,178,0.10), inset 0 0 22px rgba(0,0,0,0.22)",
+                textTransform: "uppercase",
+              }}
+            >
+              {meal.dish.trim().charAt(0) || "?"}
+            </span>
+            <Icon name="utensils" size={14} style={{ opacity: 0.62 }} />
+          </div>
+        )}
+
+        <div className="kin-plate-tools">
+          <MealPhotoControl recipeRef={meal.ref} hasPhoto={!!meal.photoUrl} dish={meal.dish} />
+          <RemoveMealButton mealId={meal.id} onPhoto />
+        </div>
+
+        <div className="kin-plate-scrim">
+          <div style={{ font: "600 20px/1.2 var(--font-heading)", letterSpacing: "-0.01em" }}>{meal.dish}</div>
+          <div style={{ fontSize: 12.5, opacity: 0.92, marginTop: 2, display: "flex", alignItems: "center", gap: 5 }}>
+            {meal.minutes ? <Icon name="clock" size={12} /> : null}
+            {meta.join(" · ")}
+          </div>
+        </div>
+      </div>
+
+      <div style={{ padding: "10px 12px 12px" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <span style={{ flex: 1, minWidth: 0, fontSize: 12.5, color: "var(--color-neutral-700)" }}>
+            {meal.ingredientCount === 0
+              ? "No ingredients listed yet"
+              : meal.missing === 0
+                ? meal.have === meal.ingredientCount
+                  ? "Everything is in the house"
+                  : "Everything is bought or in the house"
+                : `${meal.missing} still to buy${meal.have > 0 ? ` · ${meal.have} already here` : ""}`}
+          </span>
+          <Tag variant={meal.missing === 0 && meal.ingredientCount > 0 ? "accent" : "neutral"}>
+            {meal.ingredientCount === 0 ? "no list" : meal.missing === 0 ? "ready" : `${meal.missing} to buy`}
+          </Tag>
+        </div>
+
+        {/* Amounts live here, on the day they are cooked: doubling a Sunday
+            lunch is this meal's business, not a rewrite of the recipe. */}
+        <Collapsible
+          title="Ingredients & amounts"
+          meta={meal.ingredientCount === 0 ? undefined : `${meal.ingredientCount}`}
+          defaultOpen={meal.ingredientCount === 0}
+        >
+          {meal.ingredients.map((ing) => (
+            <IngredientAmountRow
+              key={ing.id}
+              id={ing.id}
+              name={ing.name}
+              amount={ing.amount}
+              unit={ing.unit}
+              qty={ing.qty}
+              inPantry={ing.inPantry}
+              onList={ing.onList}
+            />
+          ))}
+          <AddIngredientRow mealId={meal.id} />
+          <p style={{ fontSize: 11.5, color: "var(--color-neutral-600)", margin: "10px 0 0", lineHeight: 1.45 }}>
+            Ticking one says the house already has it, so it stays off every shopping list built from here.
+          </p>
+        </Collapsible>
+
+        {meal.missing > 0 && (
+          <div style={{ marginTop: 10 }}>
+            <AddIngredientsToBuyButton mealId={meal.id} missing={meal.missing} />
+          </div>
+        )}
+      </div>
+    </div>
   );
 }

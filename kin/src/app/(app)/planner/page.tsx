@@ -81,7 +81,12 @@ function toISODate(d: Date) {
 /** `hide` is always present, even when empty: that is how "Show all" is told
  * apart from arriving fresh with no preference stated. */
 function calendarHref(who: string, view: CalendarView, date: Date, hide = "") {
-  return `/planner?seg=calendar&who=${who}&view=${view}&date=${toISODate(date)}&hide=${hide}`;
+  return `${calendarBase(who, view, hide)}${toISODate(date)}`;
+}
+
+/** The same URL up to the date, for the controls that append their own. */
+function calendarBase(who: string, view: CalendarView, hide = "") {
+  return `/planner?seg=calendar&who=${who}&view=${view}&hide=${hide}&date=`;
 }
 
 async function CalendarPane({ familyId, who, view, anchor, hidden }: { familyId: string; who: string; view: CalendarView; anchor: Date; hidden: Set<CalendarGroup> }) {
@@ -130,7 +135,7 @@ async function CalendarPane({ familyId, who, view, anchor, hidden }: { familyId:
 
       <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 14 }}>
         {/* The title is the jump control: month, year or exact day in one tap. */}
-        <CalendarJump label={label} who={who} view={view} anchor={toISODate(anchor)} />
+        <CalendarJump label={label} hrefBase={calendarBase(who, view, hide)} anchor={toISODate(anchor)} />
         {/* One button cycles the view, so the segmented row above is gone and
             the header keeps a single line of controls. */}
         <Link
@@ -146,7 +151,7 @@ async function CalendarPane({ familyId, who, view, anchor, hidden }: { familyId:
             to sit here are gone: the week rail and the month scroller both
             scroll, and the title's sheet reaches any date at all, so the
             arrows only cost the title the room it needs to spell its month. */}
-        <TodayButton who={who} view={view} />
+        <TodayButton hrefBase={calendarBase(who, view, hide)} />
       </div>
 
       {view === "week" && <WeekView familyId={familyId} memberId={memberId} who={who} anchor={anchor} hidden={hidden} hide={hide} />}

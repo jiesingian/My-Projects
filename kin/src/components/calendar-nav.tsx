@@ -7,9 +7,10 @@ import { Icon } from "@/components/icons";
 
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
-function href(who: string, view: string, iso: string) {
-  return `/planner?seg=calendar&who=${who}&view=${view}&date=${iso}`;
-}
+/* `hrefBase` is the page's own URL up to and including `date=`, so these
+   controls can drive any calendar — the Planner's, the meal plan's — without
+   knowing anything about it. A server component can pass a string; it could
+   not pass a function. */
 
 function clampDay(year: number, month: number, day: number) {
   const last = new Date(year, month + 1, 0).getDate();
@@ -42,13 +43,11 @@ export function CalendarPeriod({ label, iso, children }: { label: string; iso: s
  * year, or exact day, instead of stepping there one arrow at a time. */
 export function CalendarJump({
   label: serverLabel,
-  who,
-  view,
+  hrefBase,
   anchor: serverAnchor,
 }: {
   label: string;
-  who: string;
-  view: string;
+  hrefBase: string;
   anchor: string;
 }) {
   const router = useRouter();
@@ -78,7 +77,7 @@ export function CalendarJump({
 
   const go = (target: string) => {
     setOpen(false);
-    router.push(href(who, view, target));
+    router.push(`${hrefBase}${target}`);
     // Same reason as Today: picking the date already shown navigates nowhere.
     requestAnimationFrame(recentreCalendar);
   };
@@ -324,13 +323,13 @@ export function MonthScroller({ anchor, children }: { anchor: string; children: 
 
 /** Today. Navigates to the current date, and re-centres the scrollers by
  * hand for the case where that is the date already shown. */
-export function TodayButton({ who, view }: { who: string; view: string }) {
+export function TodayButton({ hrefBase }: { hrefBase: string }) {
   const now = new Date();
   const target = iso(now.getFullYear(), now.getMonth(), now.getDate());
 
   return (
     <Link
-      href={href(who, view, target)}
+      href={`${hrefBase}${target}`}
       onClick={() => requestAnimationFrame(recentreCalendar)}
       className="btn btn-secondary"
       style={{ minHeight: 34, fontSize: 13, padding: "0 12px" }}

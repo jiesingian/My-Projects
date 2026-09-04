@@ -145,7 +145,9 @@ export function AddMealControl({ date, slot }: { date: string; slot: MealSlot })
   );
 }
 
-export function RemoveMealButton({ mealId }: { mealId: string }) {
+/** `onPhoto` puts it on the dish's picture, where a grey glyph would
+ * disappear into whatever was photographed. */
+export function RemoveMealButton({ mealId, onPhoto = false }: { mealId: string; onPhoto?: boolean }) {
   const { pending, run } = useMealAction();
   return (
     <button
@@ -153,7 +155,12 @@ export function RemoveMealButton({ mealId }: { mealId: string }) {
       onClick={() => run(() => removeMealAction(mealId))}
       disabled={pending}
       aria-label="Remove this meal"
-      style={{ border: 0, background: "none", cursor: "pointer", padding: 5, display: "flex", color: "var(--color-neutral-600)", flex: "none" }}
+      className={onPhoto ? "kin-plate-action" : undefined}
+      style={
+        onPhoto
+          ? { padding: "0 8px" }
+          : { border: 0, background: "none", cursor: "pointer", padding: 5, display: "flex", color: "var(--color-neutral-600)", flex: "none" }
+      }
     >
       <Icon name="x" size={14} />
     </button>

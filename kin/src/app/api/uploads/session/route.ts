@@ -10,7 +10,7 @@ import {
 } from "@/lib/google-drive";
 
 type SessionRequest = {
-  kind: "journal" | "document" | "avatar" | "family_background";
+  kind: "journal" | "document" | "avatar" | "family_background" | "recipe";
   fileName: string;
   mimeType: string;
   folderId?: string;
@@ -28,6 +28,16 @@ export async function POST(request: Request) {
   const { kind, fileName, mimeType, folderId } = body;
   if (!fileName || (kind === "document" && !folderId)) {
     return NextResponse.json({ error: "Missing fileName or folderId." }, { status: 400 });
+  }
+
+  // Dish photos stay in Storage: the app reads them back on every meal card,
+  // and a signed Storage URL renders in an <img> where a Drive link does not.
+  if (kind === "recipe") {
+    return NextResponse.json({
+      provider: "supabase",
+      bucket: "recipe-photos",
+      path: `${me.family_id}/${Date.now()}-${fileName}`,
+    });
   }
 
   const driveToken = await getValidDriveAccessToken(me.family_id);

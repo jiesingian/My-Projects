@@ -8,6 +8,7 @@ import { syncRowToCalendars, removeRowFromCalendars } from "@/lib/actions/calend
 import { MARKET_SECTIONS, guessSection, parseQuantity } from "@/lib/grocery";
 import { normalizeKey } from "@/lib/pricebook";
 import { MEAL_SLOTS, RECIPES_BY_KEY, type MealSlot } from "@/lib/recipes";
+import { RECIPE_PHOTO_BUCKET } from "@/lib/meal-photos";
 import type { ActionState } from "@/lib/actions/auth";
 import type { TablesInsert } from "@/lib/database.types";
 
@@ -129,21 +130,28 @@ export async function addMealPlanAction(_prev: ActionState, formData: FormData):
   redirect("/household?seg=meals");
 }
 
-export async function generateGroceryListAction(familyId: string, createdBy: string) {
+/** `weekOf` is any day in the week to build from — the week the meal plan is
+ * showing, which is not always this one. */
+export async function generateGroceryListAction(familyId: string, createdBy: string, weekOf?: string) {
   const supabase = await createClient();
-  const today = new Date();
-  const startOfWeek = new Date(today);
-  startOfWeek.setDate(today.getDate() - today.getDay() + 1);
+  const day = weekOf ? new Date(`${weekOf}T00:00:00`) : new Date();
+  // The Monday on or before that day — a Sunday belongs to the week it ends,
+  // and used to be dropped from its own list.
+  const startOfWeek = new Date(day);
+  startOfWeek.setDate(day.getDate() - ((day.getDay() + 6) % 7));
   const endOfWeek = new Date(startOfWeek);
   endOfWeek.setDate(startOfWeek.getDate() + 7);
+  // Local dates, not toISOString: that shifts to UTC and, east of Greenwich,
+  // names the day before.
+  const isoOf = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 
   const [{ data: meals }, { data: openBuy }] = await Promise.all([
     supabase
       .from("meal_plans")
       .select("meal_ingredients(ingredient_name, qty, qty_amount, unit, section, item_key)")
       .eq("family_id", familyId)
-      .gte("plan_date", startOfWeek.toISOString().slice(0, 10))
-      .lt("plan_date", endOfWeek.toISOString().slice(0, 10)),
+      .gte("plan_date", isoOf(startOfWeek))
+      .lt("plan_date", isoOf(endOfWeek)),
     supabase.from("buy_items").select("name").eq("family_id", familyId).eq("cleared", false),
   ]);
 
@@ -491,6 +499,127 @@ export async function addMealIngredientsToBuyAction(mealId: string): Promise<Act
 
   revalidatePath("/household");
   return { error: null, added: rows.length };
+}
+
+/** Change how much of one ingredient this particular meal needs. It is the
+ * meal's own amount, not the recipe's: doubling the adobo for a Sunday lunch
+ * shouldn't rewrite the recipe for every other week. The free-text `qty` is
+ * rewritten to match so the shopping list, which reads either, agrees. */
+export async function setMealIngredientAction(input: {
+  ingredientId: string;
+  amount: number | null;
+  unit: string | null;
+}): Promise<ActionState> {
+  const me = await requireCurrentMember();
+  const supabase = await createClient();
+
+  const amount = input.amount == null || Number.isNaN(input.amount) ? null : input.amount;
+  if (amount != null && (amount < 0 || amount > 100000)) return { error: "That amount doesn't look right." };
+  const unit = input.unit?.trim() ? input.unit.trim().slice(0, 24) : null;
+
+  const { error } = await supabase
+    .from("meal_ingredients")
+    .update({
+      qty_amount: amount,
+      unit,
+      qty: amount == null ? (unit ?? null) : `${amount}${unit ? ` ${unit}` : ""}`,
+    })
+    .eq("id", input.ingredientId)
+    .eq("family_id", me.family_id);
+  if (error) return { error: error.message };
+
+  revalidatePath("/household");
+  return { error: null };
+}
+
+/** Take one ingredient off a meal entirely. */
+export async function removeMealIngredientAction(ingredientId: string): Promise<ActionState> {
+  const me = await requireCurrentMember();
+  const supabase = await createClient();
+  const { error } = await supabase.from("meal_ingredients").delete().eq("id", ingredientId).eq("family_id", me.family_id);
+  if (error) return { error: error.message };
+  revalidatePath("/household");
+  return { error: null };
+}
+
+/** Add an ingredient a recipe never listed — the garlic this house always
+ * puts in, the extra rice for a crowd. */
+export async function addMealIngredientAction(input: { mealId: string; name: string; amount?: number | null; unit?: string | null }): Promise<ActionState> {
+  const me = await requireCurrentMember();
+  const supabase = await createClient();
+  const name = input.name.trim();
+  if (!name) return { error: "Give the ingredient a name." };
+
+  const amount = input.amount == null || Number.isNaN(input.amount) ? null : input.amount;
+  const unit = input.unit?.trim() ? input.unit.trim().slice(0, 24) : null;
+
+  const { error } = await supabase.from("meal_ingredients").insert({
+    meal_plan_id: input.mealId,
+    family_id: me.family_id,
+    ingredient_name: name,
+    item_key: normalizeKey(name),
+    section: guessSection(name),
+    qty_amount: amount,
+    unit,
+    qty: amount == null ? unit : `${amount}${unit ? ` ${unit}` : ""}`,
+  });
+  if (error) return { error: error.message };
+
+  revalidatePath("/household");
+  return { error: null };
+}
+
+/** Attach the household's own photo to a dish. Keyed by the dish rather than
+ * by the evening, so it shows every time that dish is cooked. */
+export async function setRecipePhotoAction(recipeRef: string, storagePath: string): Promise<ActionState> {
+  const me = await requireCurrentMember();
+  const supabase = await createClient();
+  if (!recipeRef || !storagePath) return { error: "That photo didn't arrive." };
+  // Uploads land under the family's own folder; refuse anything else outright
+  // rather than trusting the path a browser handed back.
+  if (!storagePath.startsWith(`${me.family_id}/`)) return { error: "That photo didn't arrive." };
+
+  const { data: old } = await supabase
+    .from("recipe_photos")
+    .select("storage_path")
+    .eq("family_id", me.family_id)
+    .eq("recipe_ref", recipeRef)
+    .maybeSingle();
+
+  const { error } = await supabase
+    .from("recipe_photos")
+    .upsert(
+      { family_id: me.family_id, recipe_ref: recipeRef, storage_path: storagePath, created_by: me.id },
+      { onConflict: "family_id,recipe_ref" },
+    );
+  if (error) return { error: error.message };
+
+  // The one it replaced is nobody's now.
+  if (old?.storage_path && old.storage_path !== storagePath) {
+    await supabase.storage.from(RECIPE_PHOTO_BUCKET).remove([old.storage_path]);
+  }
+
+  revalidatePath("/household");
+  return { error: null };
+}
+
+export async function removeRecipePhotoAction(recipeRef: string): Promise<ActionState> {
+  const me = await requireCurrentMember();
+  const supabase = await createClient();
+
+  const { data: photo } = await supabase
+    .from("recipe_photos")
+    .select("storage_path")
+    .eq("family_id", me.family_id)
+    .eq("recipe_ref", recipeRef)
+    .maybeSingle();
+
+  const { error } = await supabase.from("recipe_photos").delete().eq("family_id", me.family_id).eq("recipe_ref", recipeRef);
+  if (error) return { error: error.message };
+  if (photo?.storage_path) await supabase.storage.from(RECIPE_PHOTO_BUCKET).remove([photo.storage_path]);
+
+  revalidatePath("/household");
+  return { error: null };
 }
 
 /** Mark one ingredient as already in the house, or take it back off. */
