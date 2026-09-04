@@ -9,6 +9,7 @@ import {
   toggleIngredientAtHomeAction,
 } from "@/lib/actions/household";
 import { Icon } from "@/components/icons";
+import { Collapsible } from "@/components/sheet";
 import { MARKET_SECTIONS, UNITS } from "@/lib/grocery";
 import { MEAL_SLOTS, MEAL_SLOT_LABEL, type MealSlot } from "@/lib/recipes";
 
@@ -67,7 +68,18 @@ export function RecipeBook({ recipes }: { recipes: EditableRecipe[] }) {
     );
   }
 
-  const shown = query.trim() ? recipes.filter((r) => r.name.toLowerCase().includes(query.trim().toLowerCase())) : recipes;
+  const q = query.trim().toLowerCase();
+  const matches = q ? recipes.filter((r) => r.name.toLowerCase().includes(q)) : null;
+
+  // Filed the way meals are eaten, with the household's own first — that is
+  // what anyone opening the book is looking for. A dish good for more than
+  // one part of the day is filed under each, because the question being
+  // asked is "what can we have for lunch", not "where does this belong".
+  const own = recipes.filter((r) => r.origin !== "shipped");
+  const groups = [
+    ...(own.length > 0 ? [{ key: "own", title: "Yours", items: own }] : []),
+    ...MEAL_SLOTS.map((s) => ({ key: s as string, title: MEAL_SLOT_LABEL[s], items: recipes.filter((r) => r.slots.includes(s)) })),
+  ].filter((g) => g.items.length > 0);
 
   return (
     <div>
@@ -84,34 +96,53 @@ export function RecipeBook({ recipes }: { recipes: EditableRecipe[] }) {
         aria-label="Search recipes"
       />
 
-      {shown.map((r) => (
-        <div key={r.id} style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 0", borderTop: "1px solid var(--color-divider)" }}>
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontSize: 15, fontWeight: 500 }}>{r.name}</div>
-            <div style={{ fontSize: 12.5, color: "var(--color-neutral-600)" }}>
-              {r.ingredients.length} ingredients · {r.slots.map((s) => MEAL_SLOT_LABEL[s]).join(", ")}
-              {r.minutes ? ` · ${r.minutes} min` : ""}
-            </div>
-          </div>
-          <span
-            style={{
-              flex: "none",
-              fontSize: 10.5,
-              padding: "2px 7px",
-              borderRadius: 999,
-              background: r.origin === "shipped" ? "color-mix(in srgb, var(--color-text) 8%, transparent)" : "color-mix(in srgb, var(--cal-home) 16%, transparent)",
-              color: "var(--color-neutral-700)",
-            }}
-          >
-            {ORIGIN_LABEL[r.origin]}
-          </span>
-          <button type="button" className="btn btn-ghost" style={{ minHeight: 32, fontSize: 12.5, padding: "0 8px" }} onClick={() => setEditing(r)}>
-            Edit
-          </button>
-        </div>
-      ))}
+      {/* A search is already a short list; grouping it would only hide it. */}
+      {matches ? (
+        matches.length > 0 ? (
+          matches.map((r) => <RecipeRow key={r.id} recipe={r} onEdit={() => setEditing(r)} />)
+        ) : (
+          <p style={{ fontSize: 13.5, color: "var(--color-neutral-600)" }}>No recipe matches that.</p>
+        )
+      ) : (
+        groups.map((g, i) => (
+          // Only the first group is open: the book is a reference, not
+          // something anyone reads from Adobo to Turon.
+          <Collapsible key={g.key} title={g.title} meta={String(g.items.length)} defaultOpen={i === 0}>
+            {g.items.map((r) => (
+              <RecipeRow key={r.id} recipe={r} onEdit={() => setEditing(r)} />
+            ))}
+          </Collapsible>
+        ))
+      )}
+    </div>
+  );
+}
 
-      {shown.length === 0 && <p style={{ fontSize: 13.5, color: "var(--color-neutral-600)" }}>No recipe matches that.</p>}
+function RecipeRow({ recipe: r, onEdit }: { recipe: EditableRecipe; onEdit: () => void }) {
+  return (
+    <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "9px 0", borderBottom: "1px solid var(--color-divider)" }}>
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{ fontSize: 15, fontWeight: 500 }}>{r.name}</div>
+        <div style={{ fontSize: 12.5, color: "var(--color-neutral-600)" }}>
+          {r.ingredients.length} ingredients · {r.slots.map((s) => MEAL_SLOT_LABEL[s]).join(", ")}
+          {r.minutes ? ` · ${r.minutes} min` : ""}
+        </div>
+      </div>
+      <span
+        style={{
+          flex: "none",
+          fontSize: 10.5,
+          padding: "2px 7px",
+          borderRadius: 999,
+          background: r.origin === "shipped" ? "color-mix(in srgb, var(--color-text) 8%, transparent)" : "color-mix(in srgb, var(--cal-home) 16%, transparent)",
+          color: "var(--color-neutral-700)",
+        }}
+      >
+        {ORIGIN_LABEL[r.origin]}
+      </span>
+      <button type="button" className="btn btn-ghost" style={{ minHeight: 32, fontSize: 12.5, padding: "0 8px" }} onClick={onEdit}>
+        Edit
+      </button>
     </div>
   );
 }
