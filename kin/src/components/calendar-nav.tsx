@@ -6,16 +6,25 @@ import Link from "next/link";
 import { Icon } from "@/components/icons";
 
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+const MONTHS_LONG = [
+  "January",
+  "February",
+  "March",
+  "April",
+  "May",
+  "June",
+  "July",
+  "August",
+  "September",
+  "October",
+  "November",
+  "December",
+];
 
 /* `hrefBase` is the page's own URL up to and including `date=`, so these
    controls can drive any calendar — the Planner's, the meal plan's — without
    knowing anything about it. A server component can pass a string; it could
    not pass a function. */
-
-function clampDay(year: number, month: number, day: number) {
-  const last = new Date(year, month + 1, 0).getDate();
-  return Math.min(day, last);
-}
 
 function iso(year: number, month: number, day: number) {
   return `${year}-${String(month + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
@@ -59,8 +68,12 @@ export function CalendarJump({
   const anchor = ctx?.period.iso ?? serverAnchor;
   const anchorYear = Number(anchor.slice(0, 4));
   const anchorMonth = Number(anchor.slice(5, 7)) - 1;
-  const anchorDay = Number(anchor.slice(8, 10));
+  // Which month the sheet is showing, and whether it is showing its days or
+  // the twelve months. Days first: picking a date is what this is for, and a
+  // grid of months made that two taps and a guess.
   const [year, setYear] = useState(anchorYear);
+  const [month, setMonth] = useState(anchorMonth);
+  const [picking, setPicking] = useState<"days" | "months">("days");
 
   useEffect(() => {
     if (!open) return;
@@ -82,13 +95,34 @@ export function CalendarJump({
     requestAnimationFrame(recentreCalendar);
   };
 
+  /** Step the shown month, rolling into the next or previous year. */
+  const stepMonth = (by: number) => {
+    const next = month + by;
+    if (next < 0) {
+      setMonth(11);
+      setYear((y) => y - 1);
+    } else if (next > 11) {
+      setMonth(0);
+      setYear((y) => y + 1);
+    } else {
+      setMonth(next);
+    }
+  };
+
+  const leadingBlanks = new Date(year, month, 1).getDay();
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+  const now = new Date();
+  const todayISO = iso(now.getFullYear(), now.getMonth(), now.getDate());
+
   return (
     <>
       <button
         type="button"
         onClick={() => {
-          // Open where the calendar now is, not on the year last left behind.
+          // Open where the calendar now is, not on the month last left behind.
           setYear(anchorYear);
+          setMonth(anchorMonth);
+          setPicking("days");
           setOpen(true);
         }}
         aria-haspopup="dialog"
@@ -144,70 +178,137 @@ export function CalendarJump({
           >
             <div style={{ width: 36, height: 5, borderRadius: 999, background: "var(--color-neutral-400)", margin: "0 auto 14px" }} />
 
-            {/* Year */}
+            {/* The month being shown, and the way through the years. The
+                title itself opens the twelve months, for a jump too far to
+                make with the arrows. */}
             <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
               <button
                 type="button"
                 className="btn btn-secondary btn-icon"
-                aria-label="Previous year"
-                onClick={() => setYear((y) => y - 1)}
+                aria-label={picking === "days" ? "Previous month" : "Previous year"}
+                onClick={() => (picking === "days" ? stepMonth(-1) : setYear((y) => y - 1))}
                 style={{ width: 34, height: 34 }}
               >
                 <Icon name="chevronLeft" size={16} />
               </button>
-              <span style={{ flex: 1, textAlign: "center", font: "600 19px/1 var(--font-heading)" }}>{year}</span>
+              <button
+                type="button"
+                onClick={() => setPicking((p) => (p === "days" ? "months" : "days"))}
+                aria-label={picking === "days" ? "Pick a month" : "Back to the days"}
+                style={{
+                  flex: 1,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  gap: 5,
+                  background: "none",
+                  border: 0,
+                  cursor: "pointer",
+                  font: "600 19px/1 var(--font-heading)",
+                  color: "var(--color-text)",
+                }}
+              >
+                {picking === "days" ? `${MONTHS_LONG[month]} ${year}` : year}
+                <Icon
+                  name="chevronLeft"
+                  size={14}
+                  style={{ transform: picking === "days" ? "rotate(-90deg)" : "rotate(90deg)", color: "var(--color-accent)" }}
+                />
+              </button>
               <button
                 type="button"
                 className="btn btn-secondary btn-icon"
-                aria-label="Next year"
-                onClick={() => setYear((y) => y + 1)}
+                aria-label={picking === "days" ? "Next month" : "Next year"}
+                onClick={() => (picking === "days" ? stepMonth(1) : setYear((y) => y + 1))}
                 style={{ width: 34, height: 34 }}
               >
                 <Icon name="chevronLeft" size={16} style={{ transform: "rotate(180deg)" }} />
               </button>
             </div>
 
-            {/* Month */}
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 6 }}>
-              {MONTHS.map((m, i) => {
-                const active = i === anchorMonth && year === anchorYear;
-                return (
-                  <button
-                    key={m}
-                    type="button"
-                    onClick={() => go(iso(year, i, clampDay(year, i, anchorDay)))}
-                    style={{
-                      padding: "11px 0",
-                      borderRadius: 12,
-                      border: 0,
-                      cursor: "pointer",
-                      fontFamily: "var(--font-body)",
-                      fontSize: 15,
-                      fontWeight: active ? 600 : 500,
-                      background: active ? "var(--color-accent)" : "color-mix(in srgb, var(--color-text) 7%, transparent)",
-                      color: active ? "#fff" : "var(--color-text)",
-                    }}
-                  >
-                    {m}
-                  </button>
-                );
-              })}
-            </div>
+            {picking === "days" ? (
+              <>
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(7, minmax(0, 1fr))", gap: 2, marginBottom: 2 }}>
+                  {["S", "M", "T", "W", "T", "F", "S"].map((d, i) => (
+                    <div key={i} style={{ textAlign: "center", fontSize: 11, color: "var(--color-neutral-600)" }}>
+                      {d}
+                    </div>
+                  ))}
+                </div>
 
-            {/* Exact day */}
-            <label style={{ display: "block", marginTop: 16 }}>
-              <span style={{ display: "block", fontSize: 12, letterSpacing: ".02em", textTransform: "uppercase", color: "var(--color-neutral-600)", marginBottom: 6 }}>
-                Or pick a day
-              </span>
-              <input
-                type="date"
-                className="input"
-                defaultValue={anchor}
-                onChange={(e) => {
-                  if (e.target.value) go(e.target.value);
-                }}
-              />
-            </label>
+                {/* Every day of the month, one tap each. */}
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(7, minmax(0, 1fr))", gap: 2 }}>
+                  {Array.from({ length: leadingBlanks }, (_, i) => (
+                    <span key={`blank-${i}`} />
+                  ))}
+                  {Array.from({ length: daysInMonth }, (_, i) => {
+                    const day = i + 1;
+                    const target = iso(year, month, day);
+                    const isSelected = target === anchor;
+                    const isToday = target === todayISO;
+                    return (
+                      <button
+                        key={day}
+                        type="button"
+                        onClick={() => go(target)}
+                        aria-label={new Date(year, month, day).toLocaleDateString("en-GB", {
+                          weekday: "long",
+                          day: "numeric",
+                          month: "long",
+                          year: "numeric",
+                        })}
+                        aria-current={isSelected ? "date" : undefined}
+                        style={{
+                          height: 40,
+                          borderRadius: 999,
+                          border: 0,
+                          cursor: "pointer",
+                          fontFamily: "var(--font-body)",
+                          fontSize: 15.5,
+                          fontWeight: isSelected || isToday ? 600 : 400,
+                          background: isSelected ? "var(--color-accent)" : "transparent",
+                          color: isSelected ? "#fff" : isToday ? "var(--color-accent)" : "var(--color-text)",
+                          boxShadow: isToday && !isSelected ? "inset 0 0 0 1.5px var(--color-accent)" : "none",
+                        }}
+                      >
+                        {day}
+                      </button>
+                    );
+                  })}
+                </div>
+              </>
+            ) : (
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 6 }}>
+                {MONTHS.map((m, i) => {
+                  const active = i === month && year === anchorYear;
+                  return (
+                    <button
+                      key={m}
+                      type="button"
+                      // Choosing a month shows its days rather than jumping
+                      // to one: the day is what is being picked.
+                      onClick={() => {
+                        setMonth(i);
+                        setPicking("days");
+                      }}
+                      style={{
+                        padding: "11px 0",
+                        borderRadius: 12,
+                        border: 0,
+                        cursor: "pointer",
+                        fontFamily: "var(--font-body)",
+                        fontSize: 15,
+                        fontWeight: active ? 600 : 500,
+                        background: active ? "var(--color-accent)" : "color-mix(in srgb, var(--color-text) 7%, transparent)",
+                        color: active ? "#fff" : "var(--color-text)",
+                      }}
+                    >
+                      {m}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
 
             <div style={{ display: "flex", gap: 8, marginTop: 14 }}>
               <button
