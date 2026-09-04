@@ -12,9 +12,9 @@
     "semantic_hash": ""
   },
   "package.json": {
-    "mtime": 1788316623.2454576,
-    "seen": 1788336057.1914575,
-    "ast_hash": "2d8dcd20d774540a500c436afb5cda7b",
+    "mtime": 1788499098.791652,
+    "seen": 1788499556.2927408,
+    "ast_hash": "648d0977d9ebca37dac7dcc72148ace8",
     "semantic_hash": ""
   },
   "postcss.config.mjs": {
@@ -138,9 +138,9 @@
     "semantic_hash": ""
   },
   "src/app/(app)/today/page.tsx": {
-    "mtime": 1788315271.4054885,
-    "seen": 1788336057.1915092,
-    "ast_hash": "fea2f6519d1a07ee6ea15577709ea46e",
+    "mtime": 1788499455.3076415,
+    "seen": 1788499556.2927804,
+    "ast_hash": "6243e9cc0cce8e34cd653db319e2fea8",
     "semantic_hash": ""
   },
   "src/app/(app)/wealth/page.tsx": {
@@ -807,6 +807,24 @@
     "mtime": 1788491293.855546,
     "seen": 1788492353.6319485,
     "ast_hash": "d9242c5a46460036f60ebc987cfcdf06",
+    "semantic_hash": ""
+  },
+  "src/app/api/assistant/route.ts": {
+    "mtime": 1788499422.3836424,
+    "seen": 1788499556.2927992,
+    "ast_hash": "3aa6b9aa800753b258cf5b2a7f63d2e1",
+    "semantic_hash": ""
+  },
+  "src/components/assistant-console.tsx": {
+    "mtime": 1788499441.2436419,
+    "seen": 1788499556.2928329,
+    "ast_hash": "75ab55cbcb52b27cae22686e179f2e33",
+    "semantic_hash": ""
+  },
+  "src/lib/assistant/tools.ts": {
+    "mtime": 1788499378.7236438,
+    "seen": 1788499556.2929149,
+    "ast_hash": "2a6a1b49e1a0445f7e703cca42900a34",
     "semantic_hash": ""
   }
 }

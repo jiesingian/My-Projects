@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getHubCards } from "@/lib/queries/today";
 import { Blueprint } from "@/components/ui";
 import { Icon } from "@/components/icons";
+import { AssistantConsole } from "@/components/assistant-console";
 import { initials } from "@/lib/format";
 
 export default async function TodayPage() {
@@ -58,6 +59,8 @@ export default async function TodayPage() {
           </Link>
         </div>
       </div>
+      <AssistantConsole memberName={me.full_name.split(" ")[0]} />
+
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
         {hubs.map((h) => (
           <Link key={h.n} href={h.href} style={{ gridColumn: h.span === "full" ? "1 / -1" : undefined }}>
