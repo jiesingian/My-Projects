@@ -1330,7 +1330,7 @@
       "file_type": "code",
       "norm_label": "eventspane()",
       "source_file": "src/app/(app)/planner/page.tsx",
-      "source_location": "L263"
+      "source_location": "L267"
     },
     {
       "id": "src_app_app_planner_page_fact",
@@ -1342,7 +1342,7 @@
       "file_type": "code",
       "norm_label": "fact()",
       "source_file": "src/app/(app)/planner/page.tsx",
-      "source_location": "L395"
+      "source_location": "L399"
     },
     {
       "id": "src_app_app_planner_page_goalspane",
@@ -1354,7 +1354,7 @@
       "file_type": "code",
       "norm_label": "goalspane()",
       "source_file": "src/app/(app)/planner/page.tsx",
-      "source_location": "L299"
+      "source_location": "L303"
     },
     {
       "id": "src_app_app_planner_page_monthview",
@@ -1366,7 +1366,7 @@
       "file_type": "code",
       "norm_label": "monthview()",
       "source_file": "src/app/(app)/planner/page.tsx",
-      "source_location": "L194"
+      "source_location": "L198"
     },
     {
       "id": "src_app_app_planner_page_shiftanchor",
@@ -1402,7 +1402,7 @@
       "file_type": "code",
       "norm_label": "travelpane()",
       "source_file": "src/app/(app)/planner/page.tsx",
-      "source_location": "L336"
+      "source_location": "L340"
     },
     {
       "id": "src_app_app_planner_page_weekview",
@@ -1426,7 +1426,7 @@
       "file_type": "code",
       "norm_label": "yearview()",
       "source_file": "src/app/(app)/planner/page.tsx",
-      "source_location": "L243"
+      "source_location": "L247"
     },
     {
       "id": "src_app_app_today_page_todaypage",
@@ -8292,7 +8292,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/app/(app)/planner/page.tsx",
-      "source_location": "L264",
+      "source_location": "L268",
       "weight": 1.0
     },
     {
@@ -8304,7 +8304,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/app/(app)/planner/page.tsx",
-      "source_location": "L300",
+      "source_location": "L304",
       "weight": 1.0
     },
     {
@@ -8316,7 +8316,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/app/(app)/planner/page.tsx",
-      "source_location": "L322",
+      "source_location": "L326",
       "weight": 1.0
     },
     {
@@ -8328,7 +8328,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/app/(app)/planner/page.tsx",
-      "source_location": "L195",
+      "source_location": "L199",
       "weight": 1.0
     },
     {
@@ -8340,7 +8340,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/app/(app)/planner/page.tsx",
-      "source_location": "L217",
+      "source_location": "L221",
       "weight": 1.0
     },
     {
@@ -8376,7 +8376,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/app/(app)/planner/page.tsx",
-      "source_location": "L337",
+      "source_location": "L341",
       "weight": 1.0
     },
     {
@@ -8388,7 +8388,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/app/(app)/planner/page.tsx",
-      "source_location": "L354",
+      "source_location": "L358",
       "weight": 1.0
     },
     {
@@ -8400,7 +8400,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/app/(app)/planner/page.tsx",
-      "source_location": "L359",
+      "source_location": "L363",
       "weight": 1.0
     },
     {
@@ -8424,7 +8424,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/app/(app)/planner/page.tsx",
-      "source_location": "L244",
+      "source_location": "L248",
       "weight": 1.0
     },
     {
@@ -8436,7 +8436,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/app/(app)/planner/page.tsx",
-      "source_location": "L251",
+      "source_location": "L255",
       "weight": 1.0
     },
     {
@@ -23296,7 +23296,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/app/(app)/planner/page.tsx",
-      "source_location": "L194",
+      "source_location": "L198",
       "weight": 1.0
     },
     {
@@ -23307,7 +23307,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/app/(app)/planner/page.tsx",
-      "source_location": "L243",
+      "source_location": "L247",
       "weight": 1.0
     },
     {
@@ -23318,7 +23318,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/app/(app)/planner/page.tsx",
-      "source_location": "L263",
+      "source_location": "L267",
       "weight": 1.0
     },
     {
@@ -23329,7 +23329,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/app/(app)/planner/page.tsx",
-      "source_location": "L299",
+      "source_location": "L303",
       "weight": 1.0
     },
     {
@@ -23340,7 +23340,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/app/(app)/planner/page.tsx",
-      "source_location": "L336",
+      "source_location": "L340",
       "weight": 1.0
     },
     {
@@ -23351,7 +23351,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/app/(app)/planner/page.tsx",
-      "source_location": "L395",
+      "source_location": "L399",
       "weight": 1.0
     },
     {
@@ -27480,5 +27480,5 @@
       "source_file": "README.md"
     }
   ],
-  "built_at_commit": "69e722a3baf6e6324a9f16e7a80eb888bfcb1b31"
+  "built_at_commit": "d4a098cc3435d3510c8fb3e22622d0882e47c529"
 }

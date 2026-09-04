@@ -159,13 +159,17 @@ async function WeekView({ familyId, memberId, anchor }: { familyId: string; memb
           </div>
         ))}
       </div>
-      {days.map((d) => (
+      {days.every((d) => d.activities.length === 0) && (
+        <p style={{ fontSize: 12, color: "var(--color-neutral-600)", padding: "12px 0" }}>Nothing scheduled this week.</p>
+      )}
+      {days
+        .filter((d) => d.activities.length > 0)
+        .map((d) => (
         <div key={d.date.toISOString()} style={{ marginBottom: 10 }}>
           <div style={{ font: "600 10px/1 var(--font-heading)", letterSpacing: ".16em", color: d.isToday ? "var(--color-accent-700)" : "var(--color-neutral-600)", margin: "10px 0 4px" }}>
             {d.isToday ? "TODAY" : d.date.toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "short" }).toUpperCase()}
           </div>
           <div style={{ borderTop: "1px solid var(--color-text)" }}>
-            {d.activities.length === 0 && <p style={{ fontSize: 12, color: "var(--color-neutral-600)", padding: "10px 0" }}>Nothing scheduled.</p>}
             {d.activities.map((a) => {
               const isPast = new Date(a.start_at) < new Date();
               return (
