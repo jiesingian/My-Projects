@@ -126,9 +126,9 @@
     "semantic_hash": ""
   },
   "src/app/(app)/planner/page.tsx": {
-    "mtime": 1788516168.7935228,
-    "seen": 1788516330.5931563,
-    "ast_hash": "5553a8805fc9cb47454d4f5d2195728d",
+    "mtime": 1788519420.8667417,
+    "seen": 1788519522.900056,
+    "ast_hash": "7c7e14a181b1bc4e233b1a7a8d2b278f",
     "semantic_hash": ""
   },
   "src/app/(app)/settings/page.tsx": {
@@ -288,9 +288,9 @@
     "semantic_hash": ""
   },
   "src/components/icons.tsx": {
-    "mtime": 1788315901.885474,
-    "seen": 1788336057.1915605,
-    "ast_hash": "4cd4d53a1afe21880353dbde3c3d1f5c",
+    "mtime": 1788519306.2073011,
+    "seen": 1788519522.9001079,
+    "ast_hash": "181896f92c6080c5cc61bc09c73dd786",
     "semantic_hash": ""
   },
   "src/components/onboarding-shell.tsx": {
@@ -426,9 +426,9 @@
     "semantic_hash": ""
   },
   "src/lib/queries/planner.ts": {
-    "mtime": 1788487523.525975,
-    "seen": 1788487600.1830783,
-    "ast_hash": "4eb23bccdf54f59d94363ffce4d6b0d8",
+    "mtime": 1788519334.9073029,
+    "seen": 1788519522.9001539,
+    "ast_hash": "cb8ad5169997d37abf8db6be2170444a",
     "semantic_hash": ""
   },
   "src/lib/queries/today.ts": {
@@ -831,6 +831,12 @@
     "mtime": 1788510764.2207227,
     "seen": 1788510822.9448075,
     "ast_hash": "8f0f0928bf124ac3026d8375f990c60e",
+    "semantic_hash": ""
+  },
+  "src/lib/calendar-style.ts": {
+    "mtime": 1788519317.3393018,
+    "seen": 1788519522.9001427,
+    "ast_hash": "877a76bb29a6fbace116146020557def",
     "semantic_hash": ""
   }
 }

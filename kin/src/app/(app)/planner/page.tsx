@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getCurrentMember } from "@/lib/session";
-import { getWeekAgenda, getMonthOverview, getYearOverview, getEvents, getTrips } from "@/lib/queries/planner";
+import { getWeekAgenda, getMonthOverview, getYearOverview, getEvents, getTrips, type PlannerCalendarItem } from "@/lib/queries/planner";
 import { getMembers } from "@/lib/queries/family";
 import { getAccounts } from "@/lib/queries/wealth";
 import { syncGoogleCalendarIfStale } from "@/lib/actions/calendar-sync";
@@ -10,6 +10,8 @@ import { ChipRow } from "@/components/segmented";
 import { Blueprint, Tag } from "@/components/ui";
 import { formatCurrency, formatDate } from "@/lib/format";
 import { AddToJournalButton } from "@/components/add-to-journal-button";
+import { Icon } from "@/components/icons";
+import { CALENDAR_LEGEND, styleFor } from "@/lib/calendar-style";
 import { LogSpendControl } from "@/components/money-actions";
 
 const SEGMENTS = ["calendar", "events", "travel"] as const;
@@ -110,153 +112,274 @@ async function CalendarPane({ familyId, who, view, anchor }: { familyId: string;
         ))}
       </div>
 
-      <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 16 }}>
-        <Link href={calendarHref(who, view, shiftAnchor(anchor, view, -1))} className="btn btn-secondary" aria-label="Previous" style={{ minHeight: 34, minWidth: 34, fontSize: 14, padding: 0, display: "flex", alignItems: "center", justifyContent: "center" }}>
-          ‹
+      <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 14 }}>
+        <span style={{ flex: 1, fontSize: 20, fontWeight: 600, letterSpacing: "-0.02em" }}>{label}</span>
+        <Link href={calendarHref(who, view, new Date())} className="btn btn-secondary" style={{ minHeight: 34, fontSize: 13, padding: "0 12px" }}>
+          Today
         </Link>
-        <span style={{ flex: 1, textAlign: "center", font: "600 14px/1 var(--font-heading)" }}>{label}</span>
-        <Link href={calendarHref(who, view, shiftAnchor(anchor, view, 1))} className="btn btn-secondary" aria-label="Next" style={{ minHeight: 34, minWidth: 34, fontSize: 14, padding: 0, display: "flex", alignItems: "center", justifyContent: "center" }}>
-          ›
+        <Link
+          href={calendarHref(who, view, shiftAnchor(anchor, view, -1))}
+          className="btn btn-secondary btn-icon"
+          aria-label="Previous"
+          style={{ width: 34, height: 34 }}
+        >
+          <Icon name="chevronLeft" size={16} />
         </Link>
-        <Link href={calendarHref(who, view, new Date())} className="btn btn-secondary" style={{ minHeight: 34, fontSize: 13, padding: "0 10px" }}>
-          TODAY
+        <Link
+          href={calendarHref(who, view, shiftAnchor(anchor, view, 1))}
+          className="btn btn-secondary btn-icon"
+          aria-label="Next"
+          style={{ width: 34, height: 34 }}
+        >
+          <Icon name="chevronLeft" size={16} style={{ transform: "rotate(180deg)" }} />
         </Link>
       </div>
 
-      {view === "week" && <WeekView familyId={familyId} memberId={memberId} anchor={anchor} />}
+      {view === "week" && <WeekView familyId={familyId} memberId={memberId} who={who} anchor={anchor} />}
       {view === "month" && <MonthView familyId={familyId} memberId={memberId} who={who} anchor={anchor} />}
       {view === "year" && <YearView familyId={familyId} memberId={memberId} who={who} anchor={anchor} />}
 
-      <Link href="/planner/add?type=activity" className="btn btn-primary btn-block" style={{ minHeight: 46, fontSize: 14, letterSpacing: ".04em", marginTop: 16 }}>
-        + ADD ACTIVITY
+      {/* What each colour means — colour alone never has to carry it. */}
+      <div style={{ display: "flex", flexWrap: "wrap", gap: "6px 14px", margin: "18px 0 0", paddingTop: 14, borderTop: "1px solid var(--color-divider)" }}>
+        {CALENDAR_LEGEND.map((l) => (
+          <span key={l.label} style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 12, color: "var(--color-neutral-600)" }}>
+            <span style={{ width: 8, height: 8, borderRadius: 999, background: l.color }} />
+            {l.label}
+          </span>
+        ))}
+      </div>
+
+      <Link href="/planner/add?type=activity" className="btn btn-primary btn-block" style={{ minHeight: 48, fontSize: 16, marginTop: 16 }}>
+        <Icon name="plus" size={17} /> Add to calendar
       </Link>
     </>
   );
 }
 
-async function WeekView({ familyId, memberId, anchor }: { familyId: string; memberId?: string; anchor: Date }) {
+/** One agenda row: a coloured rail and glyph for the category, the time, and
+ * what it is. Colour groups; the glyph and title identify. */
+function AgendaRow({ item }: { item: PlannerCalendarItem }) {
+  const style = styleFor(item.table);
+  const isPastActivity = item.table === "activities" && item.date < new Date();
+
+  return (
+    <div style={{ display: "flex", gap: 10, alignItems: "stretch", padding: "3px 0" }}>
+      <span style={{ width: 4, borderRadius: 999, background: style.color, flex: "none" }} />
+      <div style={{ flex: 1, minWidth: 0, padding: "7px 0" }}>
+        <Link href={item.href} style={{ display: "flex", gap: 10, textDecoration: "none", color: "inherit", alignItems: "baseline" }}>
+          <span style={{ fontSize: 13, color: "var(--color-neutral-600)", width: 52, flex: "none" }}>
+            {item.allDay ? "all-day" : item.date.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })}
+          </span>
+          <span style={{ flex: 1, minWidth: 0 }}>
+            <span style={{ fontSize: 16, fontWeight: 500, display: "block", lineHeight: 1.25 }}>{item.title}</span>
+            <span style={{ fontSize: 13, color: "var(--color-neutral-600)" }}>
+              <Icon name={style.icon} size={12} style={{ display: "inline-block", verticalAlign: "-1px", marginRight: 4 }} />
+              {style.label}
+              {item.location ? ` · ${item.location}` : ""}
+              {item.who ? ` · ${item.who.toLowerCase()}` : ""}
+            </span>
+          </span>
+        </Link>
+        {isPastActivity && <AddToJournalButton activityId={item.id} />}
+      </div>
+    </div>
+  );
+}
+
+function DayHeading({ date, isToday }: { date: Date; isToday: boolean }) {
+  return (
+    <div style={{ display: "flex", alignItems: "center", gap: 8, margin: "14px 0 4px" }}>
+      <span style={{ fontSize: 13, fontWeight: 600, color: isToday ? "var(--color-accent)" : "var(--color-neutral-600)" }}>
+        {isToday ? "Today" : date.toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "short" })}
+      </span>
+      <span style={{ flex: 1, height: 1, background: "var(--color-divider)" }} />
+    </div>
+  );
+}
+
+async function WeekView({ familyId, memberId, who, anchor }: { familyId: string; memberId?: string; who: string; anchor: Date }) {
   const { days } = await getWeekAgenda(familyId, memberId, anchor);
 
   return (
     <>
-      <div style={{ display: "flex", gap: 4, marginBottom: 16 }}>
+      {/* Date bubbles rather than boxed tiles — today reads as a filled circle. */}
+      <div style={{ display: "flex", gap: 2, marginBottom: 6 }}>
         {days.map((d, i) => (
-          <div
+          <Link
             key={i}
-            style={{
-              flex: 1,
-              border: `1px solid ${d.isToday ? "var(--color-accent)" : "var(--color-divider)"}`,
-              background: d.isToday ? "var(--color-accent)" : "transparent",
-              color: d.isToday ? "var(--color-bg)" : "var(--color-text)",
-              padding: "7px 0",
-              textAlign: "center",
-            }}
+            href={calendarHref(who, "week", d.date)}
+            style={{ flex: 1, textDecoration: "none", color: "inherit", display: "flex", flexDirection: "column", alignItems: "center", gap: 4, padding: "4px 0" }}
           >
-            <div style={{ fontSize: 8.5, letterSpacing: ".02em", textTransform: "uppercase", opacity: 0.75 }}>
-              {d.date.toLocaleDateString("en-GB", { weekday: "short" }).toUpperCase()}
-            </div>
-            <div style={{ font: "600 17px/1.1 var(--font-heading)" }}>{d.date.getDate()}</div>
-            <div style={{ fontSize: 8, fontFamily: "var(--font-numeric)", opacity: 0.8 }}>{d.activities.length || ""}</div>
-          </div>
+            <span style={{ fontSize: 11, color: "var(--color-neutral-600)" }}>
+              {d.date.toLocaleDateString("en-GB", { weekday: "short" }).slice(0, 1)}
+            </span>
+            <span
+              style={{
+                width: 34,
+                height: 34,
+                borderRadius: 999,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                fontSize: 16,
+                fontWeight: d.isToday ? 600 : 400,
+                background: d.isToday ? "var(--color-accent)" : "transparent",
+                color: d.isToday ? "#fff" : "var(--color-text)",
+              }}
+            >
+              {d.date.getDate()}
+            </span>
+            <span style={{ display: "flex", gap: 2, height: 4 }}>
+              {d.activities.slice(0, 3).map((a) => (
+                <span key={`${a.table}-${a.id}`} style={{ width: 4, height: 4, borderRadius: 999, background: styleFor(a.table).color }} />
+              ))}
+            </span>
+          </Link>
         ))}
       </div>
+
       {days.every((d) => d.activities.length === 0) && (
-        <p style={{ fontSize: 13.5, color: "var(--color-neutral-600)", padding: "12px 0" }}>Nothing scheduled this week.</p>
+        <p style={{ fontSize: 15, color: "var(--color-neutral-600)", padding: "18px 0" }}>Nothing scheduled this week.</p>
       )}
+
       {days
         .filter((d) => d.activities.length > 0)
         .map((d) => (
-        <div key={d.date.toISOString()} style={{ marginBottom: 10 }}>
-          <div style={{ font: "600 13px/1 var(--font-heading)", letterSpacing: ".02em", color: d.isToday ? "var(--color-accent-700)" : "var(--color-neutral-600)", margin: "10px 0 4px" }}>
-            {d.isToday ? "TODAY" : d.date.toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "short" }).toUpperCase()}
+          <div key={d.date.toISOString()}>
+            <DayHeading date={d.date} isToday={d.isToday} />
+            {d.activities.map((a) => (
+              <AgendaRow key={`${a.table}-${a.id}`} item={a} />
+            ))}
           </div>
-          <div style={{ borderTop: "1px solid var(--color-divider)" }}>
-            {d.activities.map((a) => {
-              const isPastActivity = a.table === "activities" && a.date < new Date();
-              return (
-                <div key={`${a.table}-${a.id}`} style={{ padding: "10px 0", borderBottom: "1px solid color-mix(in srgb, var(--color-text) 10%, transparent)" }}>
-                  <Link href={a.href} style={{ display: "flex", gap: 12, textDecoration: "none", color: "inherit" }}>
-                    <span style={{ font: "400 13px/1.4 var(--font-numeric)", color: "var(--color-accent-700)", width: 50, flex: "none" }}>
-                      {a.allDay ? "ALL DAY" : a.date.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })}
-                    </span>
-                    <span style={{ flex: 1, minWidth: 0 }}>
-                      <span style={{ font: "600 17px/1.15 var(--font-heading)", display: "block" }}>{a.title}</span>
-                      <span style={{ fontSize: 13, color: "var(--color-neutral-600)" }}>{a.location ?? ""}</span>
-                    </span>
-                    <Tag variant="neutral">{a.who}</Tag>
-                  </Link>
-                  {isPastActivity && <AddToJournalButton activityId={a.id} />}
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      ))}
+        ))}
     </>
   );
 }
 
 async function MonthView({ familyId, memberId, who, anchor }: { familyId: string; memberId?: string; who: string; anchor: Date }) {
-  const { monthStart, daysInMonth, countsByDay } = await getMonthOverview(familyId, anchor, memberId);
+  const { monthStart, daysInMonth, itemsByDay } = await getMonthOverview(familyId, anchor, memberId);
   const leadingBlanks = monthStart.getDay();
   const today = new Date();
+  // The anchored day's agenda opens under the grid, so tapping a date reads
+  // it in place instead of navigating away to the week.
+  const selected = anchor.getMonth() === monthStart.getMonth() ? anchor.getDate() : null;
+  const selectedItems = selected ? itemsByDay[selected] ?? [] : [];
 
   return (
     <div style={{ marginBottom: 8 }}>
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: 3, marginBottom: 4 }}>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: 2, marginBottom: 4 }}>
         {["S", "M", "T", "W", "T", "F", "S"].map((d, i) => (
-          <div key={i} style={{ textAlign: "center", fontSize: 11, letterSpacing: ".02em", color: "var(--color-neutral-600)" }}>
+          <div key={i} style={{ textAlign: "center", fontSize: 11, color: "var(--color-neutral-600)" }}>
             {d}
           </div>
         ))}
       </div>
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: 3 }}>
-        {Array.from({ length: leadingBlanks }, (_, i) => <div key={`b${i}`} />)}
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: 2 }}>
+        {Array.from({ length: leadingBlanks }, (_, i) => (
+          <div key={`b${i}`} />
+        ))}
         {Array.from({ length: daysInMonth }, (_, i) => i + 1).map((day) => {
           const date = new Date(monthStart.getFullYear(), monthStart.getMonth(), day);
           const isToday = date.toDateString() === today.toDateString();
-          const count = countsByDay[day] ?? 0;
+          const isSelected = day === selected;
+          const items = itemsByDay[day] ?? [];
           return (
             <Link
               key={day}
-              href={calendarHref(who, "week", date)}
+              href={calendarHref(who, "month", date)}
               style={{
-                aspectRatio: "1",
+                minHeight: 62,
                 display: "flex",
                 flexDirection: "column",
                 alignItems: "center",
-                justifyContent: "center",
-                border: `1px solid ${isToday ? "var(--color-accent)" : "var(--color-divider)"}`,
-                background: isToday ? "var(--color-accent)" : "transparent",
-                color: isToday ? "var(--color-bg)" : "var(--color-text)",
+                gap: 2,
+                padding: "4px 2px",
+                borderRadius: 10,
+                background: isSelected && !isToday ? "color-mix(in srgb, var(--color-text) 6%, transparent)" : "transparent",
                 textDecoration: "none",
-                fontSize: 13.5,
+                color: "inherit",
               }}
             >
-              <span style={{ font: "600 13px/1 var(--font-heading)" }}>{day}</span>
-              {count > 0 && (
-                <span style={{ width: 4, height: 4, borderRadius: "50%", background: isToday ? "var(--color-bg)" : "var(--color-accent)", marginTop: 2 }} />
-              )}
+              <span
+                style={{
+                  width: 26,
+                  height: 26,
+                  borderRadius: 999,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  fontSize: 14,
+                  fontWeight: isToday ? 600 : 400,
+                  background: isToday ? "var(--color-accent)" : "transparent",
+                  color: isToday ? "#fff" : "var(--color-text)",
+                }}
+              >
+                {day}
+              </span>
+              {/* Chips carry a clipped title, so a day's contents read at a
+                  glance rather than as an anonymous dot. */}
+              <span style={{ width: "100%", display: "flex", flexDirection: "column", gap: 1 }}>
+                {items.slice(0, 2).map((a) => (
+                  <span
+                    key={`${a.table}-${a.id}`}
+                    style={{
+                      fontSize: 8.5,
+                      lineHeight: 1.3,
+                      borderRadius: 3,
+                      padding: "0 2px",
+                      background: styleFor(a.table).color,
+                      color: "#fff",
+                      overflow: "hidden",
+                      textOverflow: "ellipsis",
+                      whiteSpace: "nowrap",
+                    }}
+                  >
+                    {a.title}
+                  </span>
+                ))}
+                {items.length > 2 && (
+                  <span style={{ fontSize: 8.5, color: "var(--color-neutral-600)", textAlign: "center" }}>+{items.length - 2}</span>
+                )}
+              </span>
             </Link>
           );
         })}
       </div>
+
+      {selected && (
+        <div style={{ marginTop: 10 }}>
+          <DayHeading date={anchor} isToday={anchor.toDateString() === today.toDateString()} />
+          {selectedItems.length === 0 ? (
+            <p style={{ fontSize: 15, color: "var(--color-neutral-600)", padding: "6px 0" }}>Nothing on this day.</p>
+          ) : (
+            selectedItems.map((a) => <AgendaRow key={`${a.table}-${a.id}`} item={a} />)
+          )}
+        </div>
+      )}
     </div>
   );
 }
 
 async function YearView({ familyId, memberId, who, anchor }: { familyId: string; memberId?: string; who: string; anchor: Date }) {
   const { year, countsByMonth } = await getYearOverview(familyId, anchor, memberId);
+  const today = new Date();
+  const busiest = Math.max(1, ...countsByMonth);
 
   return (
     <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8, marginBottom: 8 }}>
       {countsByMonth.map((count, i) => {
         const monthDate = new Date(year, i, 1);
+        const isThisMonth = year === today.getFullYear() && i === today.getMonth();
         return (
           <Link key={i} href={calendarHref(who, "month", monthDate)} style={{ textDecoration: "none", color: "inherit" }}>
-            <Blueprint style={{ padding: 10, textAlign: "center" }}>
-              <div style={{ font: "600 13px/1.1 var(--font-heading)" }}>{monthDate.toLocaleDateString("en-GB", { month: "short" }).toUpperCase()}</div>
-              <div style={{ fontSize: 12.5, color: "var(--color-neutral-600)", marginTop: 3 }}>{count ? `${count} planned` : "—"}</div>
+            <Blueprint style={{ padding: "11px 10px 12px", textAlign: "center" }}>
+              <div style={{ fontSize: 15, fontWeight: 600, color: isThisMonth ? "var(--color-accent)" : "var(--color-text)" }}>
+                {monthDate.toLocaleDateString("en-GB", { month: "short" })}
+              </div>
+              <div style={{ height: 4, borderRadius: 999, marginTop: 7, background: "color-mix(in srgb, var(--color-text) 8%, transparent)" }}>
+                <div style={{ height: "100%", borderRadius: 999, width: `${(count / busiest) * 100}%`, background: "var(--cal-schedule)" }} />
+              </div>
+              <div style={{ fontSize: 12, color: "var(--color-neutral-600)", marginTop: 5 }}>{count || "—"}</div>
             </Blueprint>
           </Link>
         );

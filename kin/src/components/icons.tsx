@@ -27,6 +27,12 @@ export const iconPaths = {
   trash: "M4 7h16M9 7V4.5h6V7M6 7l1 13h10l1-13",
   check: "M4 12.5 9.5 18 20 6",
   x: "M6 6l12 12M18 6 6 18",
+  // Calendar category glyphs — so a category's identity never rests on colour.
+  plane: "M3 13.5 21 7l-2 5.5-9 3.5-1 4-2-4-4-2.5z",
+  utensils: "M6 3v8a2 2 0 0 0 4 0V3M8 11v10M17 3c-1.5 1-2 3-2 5s.5 3 2 3v10",
+  gift: "M3.5 11.5h17V21h-17zM2.5 7.5h19v4h-19zM12 7.5V21M12 7.5S10.5 3 8 3a2.2 2.2 0 0 0 0 4.5M12 7.5S13.5 3 16 3a2.2 2.2 0 0 1 0 4.5",
+  target: "M12 3.5a8.5 8.5 0 1 0 0 17a8.5 8.5 0 0 0 0-17M12 8a4 4 0 1 0 0 8a4 4 0 0 0 0-8",
+  receipt: "M5 3h14v18l-2.3-1.6-2.4 1.6-2.3-1.6L9.7 21l-2.4-1.6L5 21zM9 8h6M9 12h6",
 } as const;
 
 export type IconName = keyof typeof iconPaths;

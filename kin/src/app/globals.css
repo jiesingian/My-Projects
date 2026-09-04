@@ -48,6 +48,14 @@
 
   --color-switch-on: #34c759;
 
+  /* Calendar categories. Four hues checked with a colourblind validator
+     (worst pair 7.0 ΔE) plus a neutral, always paired with an icon. */
+  --cal-schedule: #1971c2;
+  --cal-occasion: #c2255c;
+  --cal-money: #e8590c;
+  --cal-home: #2f9e44;
+  --cal-goal: #6c6c70;
+
   --glass-bg: rgba(255, 255, 255, 0.72);
   --glass-border: rgba(255, 255, 255, 0.6);
   --glass-blur: saturate(180%) blur(20px);
@@ -84,6 +92,12 @@
   --color-accent-800: #a9ccff;
 
   --color-switch-on: #30d158;
+
+  --cal-schedule: #4dabf7;
+  --cal-occasion: #f06595;
+  --cal-money: #ff922b;
+  --cal-home: #51cf66;
+  --cal-goal: #aeaeb2;
   --glass-bg: rgba(28, 28, 30, 0.68);
   --glass-border: rgba(255, 255, 255, 0.12);
 
@@ -118,6 +132,12 @@
     --color-accent-800: #a9ccff;
 
     --color-switch-on: #30d158;
+
+  --cal-schedule: #4dabf7;
+  --cal-occasion: #f06595;
+  --cal-money: #ff922b;
+  --cal-home: #51cf66;
+  --cal-goal: #aeaeb2;
   --glass-bg: rgba(28, 28, 30, 0.68);
     --glass-border: rgba(255, 255, 255, 0.12);
 

@@ -196,8 +196,8 @@ export async function getWeekAgenda(familyId: string, memberId?: string, anchor:
   };
 }
 
-/** Per-day item counts for the whole month containing `anchor`, for the
- * month-grid view. */
+/** The whole month containing `anchor`, with each day's own items attached so
+ * the grid can show what is actually on rather than a dot. */
 export async function getMonthOverview(familyId: string, anchor: Date, memberId?: string) {
   const year = anchor.getFullYear();
   const month = anchor.getMonth();
@@ -206,13 +206,13 @@ export async function getMonthOverview(familyId: string, anchor: Date, memberId?
   const daysInMonth = new Date(year, month + 1, 0).getDate();
 
   const all = await fetchCalendarItems(familyId, monthStart, monthEnd);
-  const countsByDay = new Array(daysInMonth + 1).fill(0);
+  const itemsByDay: PlannerCalendarItem[][] = Array.from({ length: daysInMonth + 1 }, () => []);
   for (const it of all) {
     if (!matchesMember(it, memberId)) continue;
-    countsByDay[it.date.getDate()]++;
+    itemsByDay[it.date.getDate()].push(it);
   }
 
-  return { monthStart, daysInMonth, countsByDay };
+  return { monthStart, daysInMonth, itemsByDay, countsByDay: itemsByDay.map((d) => d.length) };
 }
 
 /** Per-month item counts for the whole year containing `anchor`, for the
