@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { Icon } from "@/components/icons";
 
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
@@ -55,6 +56,8 @@ export function CalendarJump({
   const go = (target: string) => {
     setOpen(false);
     router.push(href(who, view, target));
+    // Same reason as Today: picking the date already shown navigates nowhere.
+    requestAnimationFrame(recentreCalendar);
   };
 
   return (
@@ -207,17 +210,38 @@ export function CalendarJump({
   );
 }
 
+/* Both scrollers are `position: relative`, so a child's offsetLeft/offsetTop
+   is already measured against the scroller — no further adjustment. */
+function centreRail(rail: HTMLElement) {
+  const el = rail.querySelector<HTMLElement>("[data-selected='true']");
+  if (el) rail.scrollLeft = el.offsetLeft - rail.clientWidth / 2 + el.clientWidth / 2;
+}
+
+function topMonth(box: HTMLElement) {
+  const el = box.querySelector<HTMLElement>("[data-anchor-month='true']");
+  if (el) box.scrollTop = el.offsetTop;
+}
+
+/** Bring every calendar scroller back to whatever it has marked as current.
+ * Today needs this on its own: when the calendar is already anchored on
+ * today, its link is the URL you are on, nothing navigates, and a rail the
+ * user has scrolled by hand would otherwise just sit there. */
+export function recentreCalendar() {
+  document.querySelectorAll<HTMLElement>(".cal-rail").forEach(centreRail);
+  document.querySelectorAll<HTMLElement>(".cal-months").forEach(topMonth);
+}
+
 /** Horizontal date rail. The server renders the days; this only makes the
- * rail scroll and brings the selected day into view on load, so swiping
- * through weeks needs no round trip. */
-export function DateRail({ children }: { children: React.ReactNode }) {
+ * rail scroll and centres the selected day, so swiping through weeks needs
+ * no round trip. Re-centres whenever the anchor moves: the rendered window
+ * of days shifts with it, so a stale scroll offset would point at the
+ * wrong dates. */
+export function DateRail({ anchor, children }: { anchor: string; children: React.ReactNode }) {
   const ref = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    const el = ref.current?.querySelector<HTMLElement>("[data-selected='true']");
-    if (!el || !ref.current) return;
-    ref.current.scrollLeft = el.offsetLeft - ref.current.clientWidth / 2 + el.clientWidth / 2;
-  }, []);
+    if (ref.current) centreRail(ref.current);
+  }, [anchor]);
 
   return (
     <div ref={ref} className="cal-rail">
@@ -227,19 +251,35 @@ export function DateRail({ children }: { children: React.ReactNode }) {
 }
 
 /** Vertical month scroller — consecutive months in one continuous column,
- * opened at the month being looked at. */
-export function MonthScroller({ children }: { children: React.ReactNode }) {
+ * opened at the month being looked at, and re-opened there when it moves. */
+export function MonthScroller({ anchor, children }: { anchor: string; children: React.ReactNode }) {
   const ref = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    const el = ref.current?.querySelector<HTMLElement>("[data-anchor-month='true']");
-    if (!el || !ref.current) return;
-    ref.current.scrollTop = el.offsetTop - ref.current.offsetTop;
-  }, []);
+    if (ref.current) topMonth(ref.current);
+  }, [anchor]);
 
   return (
     <div ref={ref} className="cal-months">
       {children}
     </div>
+  );
+}
+
+/** Today. Navigates to the current date, and re-centres the scrollers by
+ * hand for the case where that is the date already shown. */
+export function TodayButton({ who, view }: { who: string; view: string }) {
+  const now = new Date();
+  const target = iso(now.getFullYear(), now.getMonth(), now.getDate());
+
+  return (
+    <Link
+      href={href(who, view, target)}
+      onClick={() => requestAnimationFrame(recentreCalendar)}
+      className="btn btn-secondary"
+      style={{ minHeight: 34, fontSize: 13, padding: "0 12px" }}
+    >
+      Today
+    </Link>
   );
 }

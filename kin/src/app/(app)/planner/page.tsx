@@ -13,7 +13,7 @@ import { AddToJournalButton } from "@/components/add-to-journal-button";
 import { Icon } from "@/components/icons";
 import { CALENDAR_LEGEND, styleFor } from "@/lib/calendar-style";
 import { LogSpendControl } from "@/components/money-actions";
-import { CalendarJump, DateRail, MonthScroller } from "@/components/calendar-nav";
+import { CalendarJump, DateRail, MonthScroller, TodayButton } from "@/components/calendar-nav";
 
 const SEGMENTS = ["calendar", "events", "travel"] as const;
 type Seg = (typeof SEGMENTS)[number];
@@ -119,9 +119,7 @@ async function CalendarPane({ familyId, who, view, anchor }: { familyId: string;
             to sit here are gone: the week rail and the month scroller both
             scroll, and the title's sheet reaches any date at all, so the
             arrows only cost the title the room it needs to spell its month. */}
-        <Link href={calendarHref(who, view, new Date())} className="btn btn-secondary" style={{ minHeight: 34, fontSize: 13, padding: "0 12px" }}>
-          Today
-        </Link>
+        <TodayButton who={who} view={view} />
       </div>
 
       {view === "week" && <WeekView familyId={familyId} memberId={memberId} who={who} anchor={anchor} />}
@@ -195,7 +193,7 @@ async function WeekView({ familyId, memberId, who, anchor }: { familyId: string;
       {/* A rail of weeks, not a fixed seven days: it scrolls sideways through
           about two months, opens centred on the selected day, and any date on
           it can be tapped to select. */}
-      <DateRail>
+      <DateRail anchor={toISODate(anchor)}>
         {strip.map((d, i) => {
           const first = i === 0 || d.date.getDate() === 1;
           return (
@@ -295,7 +293,7 @@ async function MonthView({ familyId, memberId, who, anchor }: { familyId: string
 
       {/* Months run continuously: September scrolls straight into October
           rather than needing a Next tap, opened at the anchored month. */}
-      <MonthScroller>
+      <MonthScroller anchor={toISODate(anchor)}>
         {months.map((m) => {
           const isAnchorMonth = m === anchorMonth;
           const isThisMonth = m.monthStart.getFullYear() === today.getFullYear() && m.monthStart.getMonth() === today.getMonth();
