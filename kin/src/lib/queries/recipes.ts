@@ -1,5 +1,14 @@
 import { createClient } from "@/lib/supabase/server";
-import { RECIPES, RECIPE_CATEGORIES, guessCategories, type MealSlot, type RecipeCategory } from "@/lib/recipes";
+import {
+  RECIPES,
+  RECIPE_CATEGORIES,
+  RECIPE_CATEGORY_ICON,
+  RECIPE_CATEGORY_LABEL,
+  RECIPE_CATEGORY_PLATE,
+  guessCategories,
+  type MealSlot,
+} from "@/lib/recipes";
+import type { IconName } from "@/components/icons";
 import type { MarketSection } from "@/lib/grocery";
 import { getSignedUrls } from "@/lib/storage";
 import { recipeRef, RECIPE_PHOTO_BUCKET } from "@/lib/meal-photos";
@@ -11,8 +20,9 @@ export type RecipeView = {
   familyRecipeId: string | null;
   name: string;
   slots: MealSlot[];
-  /** What kind of food it is — what the book is browsed by. */
-  categories: RecipeCategory[];
+  /** What kind of food it is — what the book is browsed by. Either one Kin
+   * ships or one the household added, which is only ever a stored key. */
+  categories: string[];
   serves: number;
   minutes: number | null;
   steps: string[];
@@ -23,6 +33,38 @@ export type RecipeView = {
    * Kin shipped it. */
   origin: "own" | "edited" | "shipped";
 };
+
+export type CategoryView = {
+  key: string;
+  label: string;
+  icon: IconName;
+  /** Which glaze its tile wears. */
+  plate: number;
+  /** Whether the household added it themselves — the ones they can remove. */
+  own: boolean;
+};
+
+/** The categories the recipe book is browsed by: the ones Kin ships, then
+ * whatever the household has added. */
+export async function getRecipeCategories(familyId: string): Promise<CategoryView[]> {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("family_recipe_categories")
+    .select("key, label, plate")
+    .eq("family_id", familyId)
+    .order("created_at");
+
+  return [
+    ...RECIPE_CATEGORIES.map((c) => ({
+      key: c as string,
+      label: RECIPE_CATEGORY_LABEL[c],
+      icon: RECIPE_CATEGORY_ICON[c],
+      plate: RECIPE_CATEGORY_PLATE[c],
+      own: false,
+    })),
+    ...(data ?? []).map((r) => ({ key: r.key, label: r.label, icon: "utensils" as IconName, plate: r.plate, own: true })),
+  ];
+}
 
 /** Every recipe available to the household: what Kin ships, with the
  * family's edits substituted in, plus anything they wrote themselves. */
@@ -46,7 +88,7 @@ export async function getRecipeBook(familyId: string): Promise<RecipeView[]> {
       .slice()
       .sort((a, b) => (a.position ?? 0) - (b.position ?? 0))
       .map((ing) => ({ name: ing.name, qty: ing.qty == null ? null : Number(ing.qty), unit: ing.unit, section: ing.section }));
-    const stated = (r.categories ?? []).filter((c): c is RecipeCategory => (RECIPE_CATEGORIES as string[]).includes(c));
+    const stated = (r.categories ?? []).filter((c) => c.trim() !== "");
     return {
       id: r.id,
       key: r.base_key,

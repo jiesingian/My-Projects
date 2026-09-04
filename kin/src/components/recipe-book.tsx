@@ -7,20 +7,14 @@ import {
   deleteRecipeAction,
   addMealIngredientsToBuyAction,
   toggleIngredientAtHomeAction,
+  addRecipeCategoryAction,
+  removeRecipeCategoryAction,
 } from "@/lib/actions/household";
+import type { CategoryView } from "@/lib/queries/recipes";
 import { Icon, type IconName } from "@/components/icons";
 import { Collapsible } from "@/components/sheet";
 import { MARKET_SECTIONS, UNITS } from "@/lib/grocery";
-import {
-  MEAL_SLOTS,
-  MEAL_SLOT_LABEL,
-  RECIPE_CATEGORIES,
-  RECIPE_CATEGORY_ICON,
-  RECIPE_CATEGORY_LABEL,
-  RECIPE_CATEGORY_PLATE,
-  type MealSlot,
-  type RecipeCategory,
-} from "@/lib/recipes";
+import { MEAL_SLOTS, MEAL_SLOT_LABEL, type MealSlot } from "@/lib/recipes";
 import { plateAt, plateTone } from "@/lib/meal-photos";
 
 function useAct() {
@@ -44,7 +38,7 @@ export type EditableRecipe = {
   familyRecipeId: string | null;
   name: string;
   slots: MealSlot[];
-  categories: RecipeCategory[];
+  categories: string[];
   photoUrl: string | null;
   serves: number;
   minutes: number | null;
@@ -63,16 +57,18 @@ const ORIGIN_LABEL: Record<EditableRecipe["origin"], string> = {
  * Editing one Kin ships saves the household's version, which stands in for it
  * from then on — the shipped library is never mutated, so it stays
  * upgradeable. */
-export function RecipeBook({ recipes }: { recipes: EditableRecipe[] }) {
+export function RecipeBook({ recipes, categories: known }: { recipes: EditableRecipe[]; categories: CategoryView[] }) {
   const [editing, setEditing] = useState<EditableRecipe | null>(null);
   const [creating, setCreating] = useState(false);
   const [query, setQuery] = useState("");
-  const [category, setCategory] = useState<RecipeCategory | null>(null);
+  const [category, setCategory] = useState<string | null>(null);
+  const [naming, setNaming] = useState(false);
 
   if (creating || editing) {
     return (
       <RecipeEditor
         recipe={editing}
+        known={known}
         onDone={() => {
           setEditing(null);
           setCreating(false);
@@ -87,10 +83,15 @@ export function RecipeBook({ recipes }: { recipes: EditableRecipe[] }) {
   // The categories that actually have something in them, each with a face:
   // one of the household's own photos from that category when they have
   // taken one, and the drawn plate until then.
-  const categories = RECIPE_CATEGORIES.map((c) => {
-    const items = recipes.filter((r) => r.categories.includes(c));
-    return { key: c, label: RECIPE_CATEGORY_LABEL[c], items, photo: items.find((r) => r.photoUrl)?.photoUrl ?? null };
-  }).filter((c) => c.items.length > 0);
+  const categories = known
+    .map((c) => {
+      const items = recipes.filter((r) => r.categories.includes(c.key));
+      return { ...c, items, photo: items.find((r) => r.photoUrl)?.photoUrl ?? null };
+    })
+    // A shipped category with nothing in it is noise; one the household made
+    // stays whether or not anything has been filed under it yet, or it would
+    // vanish the moment they created it.
+    .filter((c) => c.own || c.items.length > 0);
 
   const chosen = category ? categories.find((c) => c.key === category) : null;
 
@@ -128,16 +129,21 @@ export function RecipeBook({ recipes }: { recipes: EditableRecipe[] }) {
             <CategoryTile
               key={c.key}
               label={c.label}
-              icon={RECIPE_CATEGORY_ICON[c.key]}
-              tone={plateAt(RECIPE_CATEGORY_PLATE[c.key])}
+              icon={c.icon}
+              tone={plateAt(c.plate)}
               photo={c.photo}
               count={c.items.length}
               active={category === c.key}
-              onClick={() => setCategory(category === c.key ? null : (c.key as RecipeCategory))}
+              onClick={() => setCategory(category === c.key ? null : c.key)}
             />
           ))}
+          {/* The last tile makes a new one — a household files food its own
+              way, and nine categories cannot know that. */}
+          <NewCategoryTile onClick={() => setNaming(true)} />
         </div>
       )}
+
+      {naming && <CategoryManager categories={known} onDone={() => setNaming(false)} />}
 
       {/* A search is already a short list; grouping it would only hide it.
           So is one category — the tile above says what you are looking at. */}
@@ -160,6 +166,114 @@ export function RecipeBook({ recipes }: { recipes: EditableRecipe[] }) {
           </Collapsible>
         ))
       )}
+    </div>
+  );
+}
+
+/** The tile that adds one. Drawn as an empty plate so it reads as the next
+ * one along rather than a button that wandered in. */
+function NewCategoryTile({ onClick }: { onClick: () => void }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      style={{
+        flex: "none",
+        width: 72,
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        gap: 5,
+        background: "none",
+        border: 0,
+        padding: 0,
+        cursor: "pointer",
+        fontFamily: "var(--font-body)",
+      }}
+    >
+      <span
+        className="kin-tile"
+        style={{ border: "1.5px dashed var(--color-neutral-400)", color: "var(--color-accent)", background: "transparent" }}
+      >
+        <Icon name="plus" size={22} />
+      </span>
+      <span style={{ fontSize: 11.5, lineHeight: 1.2, textAlign: "center", color: "var(--color-accent)" }}>New</span>
+    </button>
+  );
+}
+
+/** Name a new category, and take away one that turned out to be a mistake.
+ * Only the household's own can go: the shipped ones are what every recipe is
+ * already filed under. */
+function CategoryManager({ categories, onDone }: { categories: CategoryView[]; onDone: () => void }) {
+  const { pending, error, run } = useAct();
+  const [label, setLabel] = useState("");
+  const own = categories.filter((c) => c.own);
+
+  const add = () => {
+    if (!label.trim()) return;
+    run(async () => {
+      const result = await addRecipeCategoryAction(label);
+      if (!result.error) setLabel("");
+      return result;
+    });
+  };
+
+  return (
+    <div style={{ padding: 12, borderRadius: 14, background: "color-mix(in srgb, var(--color-text) 4%, transparent)", marginBottom: 14 }}>
+      <div style={{ display: "flex", gap: 6 }}>
+        <input
+          className="input"
+          placeholder="Another kind of food — Grilled, Baon, Handa…"
+          value={label}
+          onChange={(e) => setLabel(e.target.value)}
+          onKeyDown={(e) => e.key === "Enter" && add()}
+          aria-label="Name for the new category"
+          autoFocus
+          style={{ flex: 1, minWidth: 0, minHeight: 40, fontSize: 14 }}
+        />
+        <button type="button" className="btn btn-secondary" style={{ minHeight: 40, fontSize: 13, padding: "0 12px" }} disabled={pending || !label.trim()} onClick={add}>
+          Add
+        </button>
+        <button type="button" className="btn btn-ghost" style={{ minHeight: 40, fontSize: 12.5, padding: "0 8px" }} onClick={onDone}>
+          Close
+        </button>
+      </div>
+
+      {own.length > 0 && (
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 10 }}>
+          {own.map((c) => (
+            <span
+              key={c.key}
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 4,
+                fontSize: 12.5,
+                padding: "4px 6px 4px 11px",
+                borderRadius: 999,
+                background: "color-mix(in srgb, var(--color-text) 7%, transparent)",
+              }}
+            >
+              {c.label}
+              <button
+                type="button"
+                disabled={pending}
+                onClick={() => run(() => removeRecipeCategoryAction(c.key))}
+                aria-label={`Remove the ${c.label} category`}
+                style={{ border: 0, background: "none", cursor: "pointer", padding: 2, display: "flex", color: "var(--color-neutral-600)" }}
+              >
+                <Icon name="x" size={12} />
+              </button>
+            </span>
+          ))}
+        </div>
+      )}
+
+      <p style={{ fontSize: 12, color: "var(--color-neutral-600)", margin: "10px 0 0", lineHeight: 1.45 }}>
+        A new category is empty until you tick it on a recipe, under <strong>Kind of food</strong>.
+      </p>
+      {error && <div style={{ fontSize: 12.5, color: "var(--cal-occasion)", marginTop: 6 }}>{error}</div>}
     </div>
   );
 }
@@ -276,11 +390,11 @@ function RecipeRow({ recipe: r, onEdit }: { recipe: EditableRecipe; onEdit: () =
   );
 }
 
-function RecipeEditor({ recipe, onDone }: { recipe: EditableRecipe | null; onDone: () => void }) {
+function RecipeEditor({ recipe, known, onDone }: { recipe: EditableRecipe | null; known: CategoryView[]; onDone: () => void }) {
   const { pending, error, run } = useAct();
   const [name, setName] = useState(recipe?.name ?? "");
   const [slots, setSlots] = useState<MealSlot[]>(recipe?.slots ?? ["dinner"]);
-  const [categories, setCategories] = useState<RecipeCategory[]>(recipe?.categories ?? []);
+  const [categories, setCategories] = useState<string[]>(recipe?.categories ?? []);
   const [serves, setServes] = useState(String(recipe?.serves ?? 4));
   const [minutes, setMinutes] = useState(recipe?.minutes == null ? "" : String(recipe.minutes));
   const [steps, setSteps] = useState((recipe?.steps ?? []).join("\n"));
@@ -330,15 +444,15 @@ function RecipeEditor({ recipe, onDone }: { recipe: EditableRecipe | null; onDon
 
       <div style={{ fontSize: 13, color: "var(--color-neutral-700)", marginBottom: 6 }}>Kind of food</div>
       <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 12 }}>
-        {RECIPE_CATEGORIES.map((c) => (
+        {known.map((c) => (
           <button
-            key={c}
+            key={c.key}
             type="button"
             className="chip"
-            data-active={categories.includes(c)}
-            onClick={() => setCategories((prev) => (prev.includes(c) ? prev.filter((x) => x !== c) : [...prev, c]))}
+            data-active={categories.includes(c.key)}
+            onClick={() => setCategories((prev) => (prev.includes(c.key) ? prev.filter((x) => x !== c.key) : [...prev, c.key]))}
           >
-            {RECIPE_CATEGORY_LABEL[c]}
+            {c.label}
           </button>
         ))}
       </div>

@@ -1102,6 +1102,51 @@ export type Database = {
           },
         ]
       }
+      family_recipe_categories: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          family_id: string
+          id: string
+          key: string
+          label: string
+          plate: number
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          family_id: string
+          id?: string
+          key: string
+          label: string
+          plate?: number
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          family_id?: string
+          id?: string
+          key?: string
+          label?: string
+          plate?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "family_recipe_categories_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "members"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "family_recipe_categories_family_id_fkey"
+            columns: ["family_id"]
+            isOneToOne: false
+            referencedRelation: "families"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       family_recipe_ingredients: {
         Row: {
           family_id: string

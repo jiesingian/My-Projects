@@ -7,7 +7,15 @@ import { requireCurrentMember } from "@/lib/session";
 import { syncRowToCalendars, removeRowFromCalendars } from "@/lib/actions/calendar-sync";
 import { MARKET_SECTIONS, guessSection, parseQuantity } from "@/lib/grocery";
 import { normalizeKey } from "@/lib/pricebook";
-import { MEAL_SLOTS, RECIPE_CATEGORIES, RECIPES_BY_KEY, type MealSlot } from "@/lib/recipes";
+import {
+  MEAL_SLOTS,
+  RECIPE_CATEGORIES,
+  RECIPE_CATEGORY_LABEL,
+  RECIPES_BY_KEY,
+  categoryKey,
+  type MealSlot,
+  type RecipeCategory,
+} from "@/lib/recipes";
 import { RECIPE_PHOTO_BUCKET } from "@/lib/meal-photos";
 import type { ActionState } from "@/lib/actions/auth";
 import type { TablesInsert } from "@/lib/database.types";
@@ -420,7 +428,7 @@ export async function saveRecipeAction(input: {
     slots,
     // Unstated is not the same as none: an empty list lets the book guess
     // from the name and ingredients rather than filing it nowhere.
-    categories: (input.categories ?? []).filter((c) => (RECIPE_CATEGORIES as string[]).includes(c)),
+    categories: (input.categories ?? []).filter((c) => (RECIPE_CATEGORIES as string[]).includes(c) || c.startsWith("own-")),
     serves: Math.min(30, Math.max(1, Math.round(input.serves || 4))),
     minutes: input.minutes,
     steps: input.steps.map((s) => s.trim()).filter(Boolean),
@@ -444,6 +452,64 @@ export async function saveRecipeAction(input: {
   }
 
   await saveRecipeIngredients(recipeId, me.family_id, input.ingredients);
+  revalidatePath("/household");
+  return { error: null };
+}
+
+/** Add a category of the household's own to the recipe book — Grilled, Baon,
+ * whatever this house files food by that nine shipped ones cannot know. */
+export async function addRecipeCategoryAction(label: string): Promise<ActionState> {
+  const me = await requireCurrentMember();
+  const supabase = await createClient();
+
+  const clean = label.trim().slice(0, 24);
+  if (!clean) return { error: "Give the category a name." };
+  const key = categoryKey(clean);
+  if (key === "own-") return { error: "That name has no letters or numbers in it." };
+  if ((RECIPE_CATEGORIES as string[]).some((c) => RECIPE_CATEGORY_LABEL[c as RecipeCategory].toLowerCase() === clean.toLowerCase())) {
+    return { error: `There is already a ${clean} category.` };
+  }
+
+  const { count } = await supabase
+    .from("family_recipe_categories")
+    .select("id", { count: "exact", head: true })
+    .eq("family_id", me.family_id);
+
+  const { error } = await supabase
+    .from("family_recipe_categories")
+    // Its glaze follows the order they were made, so two in a row never come
+    // out the same colour.
+    .upsert({ family_id: me.family_id, key, label: clean, plate: (count ?? 0) % 6, created_by: me.id }, { onConflict: "family_id,key" });
+  if (error) return { error: error.message };
+
+  revalidatePath("/household");
+  return { error: null };
+}
+
+/** Take one away, and unfile every recipe that was under it. */
+export async function removeRecipeCategoryAction(key: string): Promise<ActionState> {
+  const me = await requireCurrentMember();
+  const supabase = await createClient();
+
+  const { error } = await supabase.from("family_recipe_categories").delete().eq("family_id", me.family_id).eq("key", key);
+  if (error) return { error: error.message };
+
+  // Leaving the key on the recipes would file them under something that no
+  // longer exists.
+  const { data: filed } = await supabase
+    .from("family_recipes")
+    .select("id, categories")
+    .eq("family_id", me.family_id)
+    .contains("categories", [key]);
+
+  for (const row of filed ?? []) {
+    await supabase
+      .from("family_recipes")
+      .update({ categories: (row.categories ?? []).filter((c) => c !== key) })
+      .eq("id", row.id)
+      .eq("family_id", me.family_id);
+  }
+
   revalidatePath("/household");
   return { error: null };
 }

@@ -74,6 +74,19 @@ export const RECIPE_CATEGORY_LABEL: Record<RecipeCategory, string> = {
   merienda: "Merienda",
 };
 
+/** The key a household's own category is stored under. Slugged so it can
+ * never collide with a shipped one by accident of capitalisation. */
+export function categoryKey(label: string): string {
+  return (
+    "own-" +
+    label
+      .trim()
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-|-$/g, "")
+  );
+}
+
 /** A first guess for a recipe the household wrote without saying what it is.
  * Wrong sometimes, and always changeable in the editor — better than leaving
  * their own dishes out of every category. */

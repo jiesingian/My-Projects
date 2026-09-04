@@ -11,7 +11,7 @@ import { GenerateGroceryButton } from "@/components/generate-grocery-button";
 import { PriceRowControl, AddPriceControl, PantryControls } from "@/components/household-price-controls";
 import { SheetButton, Collapsible } from "@/components/sheet";
 import { RecipeBook, AddIngredientsToBuyButton } from "@/components/recipe-book";
-import { getRecipeBook } from "@/lib/queries/recipes";
+import { getRecipeBook, getRecipeCategories } from "@/lib/queries/recipes";
 import { AddMealControl, RemoveMealButton } from "@/components/meal-controls";
 import { CalendarJump, TodayButton } from "@/components/calendar-nav";
 import { MealPhotoControl, IngredientAmountRow, AddIngredientRow } from "@/components/meal-day";
@@ -146,13 +146,15 @@ async function BuyPane({ familyId, memberId, currency }: { familyId: string; mem
     <>
       <ShoppingBudgetCard run={run} remaining={priced.estimatedRemaining} unpriced={priced.unpricedCount} currency={currency} />
 
-      <div style={{ display: "flex", gap: 6, marginBottom: 12 }}>
+      {/* Small, like the recipe book's: a reference you open now and then,
+          not the thing this page is for. */}
+      <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 10 }}>
         <SheetButton
           label="Prices & pantry"
           title="Prices & pantry"
           icon="receipt"
           className="btn btn-secondary"
-          style={{ flex: 1, minHeight: 40, fontSize: 13.5, gap: 6 }}
+          style={{ minHeight: 34, fontSize: 13, padding: "0 10px", gap: 5 }}
         >
           <PriceBookSheet familyId={familyId} currency={currency} />
         </SheetButton>
@@ -241,7 +243,11 @@ async function MealsPane({
   currency: string;
   anchor: Date;
 }) {
-  const [{ meals, anchorISO }, recipes] = await Promise.all([getMealsForDay(familyId, anchor), getRecipeBook(familyId)]);
+  const [{ meals, anchorISO }, recipes, categories] = await Promise.all([
+    getMealsForDay(familyId, anchor),
+    getRecipeBook(familyId),
+    getRecipeCategories(familyId),
+  ]);
   const today = new Date();
   const isToday = anchor.toDateString() === today.toDateString();
   // The title names the day itself, since the day is all this page shows.
@@ -279,7 +285,7 @@ async function MealsPane({
           className="btn btn-secondary"
           style={{ minHeight: 34, fontSize: 13, padding: "0 10px", gap: 5 }}
         >
-          <RecipeBook recipes={recipes} />
+          <RecipeBook recipes={recipes} categories={categories} />
         </SheetButton>
         <TodayButton hrefBase={MEALS_HREF_BASE} />
       </div>
