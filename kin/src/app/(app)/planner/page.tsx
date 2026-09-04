@@ -770,7 +770,10 @@ async function EventsPane({ familyId }: { familyId: string }) {
           </Blueprint>
           <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{ font: "600 18px/1.1 var(--font-heading)" }}>{e.title}</div>
-            <div style={{ fontSize: 13, color: "var(--color-neutral-600)" }}>{e.sub_note}</div>
+            <div style={{ fontSize: 13, color: "var(--color-neutral-600)" }}>
+              {e.applies_to_whole_family || e.who.length === 0 ? "Whole family" : e.who.map((n) => n.split(" ")[0]).join(", ")}
+              {e.sub_note ? ` · ${e.sub_note}` : ""}
+            </div>
           </div>
           <Tag variant={e.kind === "birthday" || e.kind === "anniversary" ? "neutral" : "accent"} className="self-start">
             {e.kind.toUpperCase()}
@@ -815,9 +818,23 @@ async function TravelPane({ familyId, memberId, currency }: { familyId: string; 
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8, fontSize: 13 }}>
               <Fact k="Budget" v={upcoming.budget_amount ? formatCurrency(Number(upcoming.budget_amount), currency) : "—"} />
               <Fact k="Packed" v={`${upcoming.packed_count} / ${upcoming.packed_total}`} />
-              <Fact k="Travelling" v={upcoming.travellers.length ? upcoming.travellers.map((n) => n.split(" ")[0]).join(", ") : "All"} />
+              <Fact
+                k="Travelling"
+                v={
+                  upcoming.applies_to_whole_family || upcoming.travellers.length === 0
+                    ? "Whole family"
+                    : upcoming.travellers.map((n) => n.split(" ")[0]).join(", ")
+                }
+              />
             </div>
-            <div style={{ marginTop: 12 }}>
+            <Link
+              href={`/planner/add?type=trip&id=${upcoming.id}`}
+              className="btn btn-secondary btn-block"
+              style={{ minHeight: 40, fontSize: 13, marginTop: 12 }}
+            >
+              Edit trip
+            </Link>
+            <div style={{ marginTop: 10 }}>
               <LogSpendControl
                 accounts={pickable}
                 currency={currency}
@@ -842,11 +859,18 @@ async function TravelPane({ familyId, memberId, currency }: { familyId: string; 
             EARLIER
           </div>
           {earlier.map((t) => (
-            <div key={t.id} style={{ display: "flex", gap: 12, padding: "11px 0", borderTop: "1px solid var(--color-divider)" }}>
+            <div key={t.id} style={{ display: "flex", gap: 12, padding: "11px 0", borderTop: "1px solid var(--color-divider)", alignItems: "center" }}>
               <span style={{ font: "400 10.5px/1.4 var(--font-numeric)", color: "var(--color-neutral-600)", width: 84, flex: "none" }}>
                 {formatDate(t.start_date)}
               </span>
-              <span style={{ flex: 1, font: "600 17px/1.1 var(--font-heading)" }}>{t.title}</span>
+              <Link href={`/planner/add?type=trip&id=${t.id}`} style={{ flex: 1, minWidth: 0, textDecoration: "none", color: "inherit" }}>
+                <span style={{ display: "block", font: "600 17px/1.1 var(--font-heading)" }}>{t.title}</span>
+                <span style={{ display: "block", fontSize: 12.5, color: "var(--color-neutral-600)" }}>
+                  {t.applies_to_whole_family || t.travellers.length === 0
+                    ? "Whole family"
+                    : t.travellers.map((n) => n.split(" ")[0]).join(", ")}
+                </span>
+              </Link>
               {t.journal_entry_id && (
                 <Link href="/journal?seg=entries" className="btn btn-ghost" style={{ fontSize: 13 }}>
                   In journal

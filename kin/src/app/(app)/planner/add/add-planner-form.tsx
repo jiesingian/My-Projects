@@ -10,6 +10,8 @@ import {
   updateEventAction,
   deleteEventAction,
   createTripAction,
+  updateTripAction,
+  deleteTripAction,
 } from "@/lib/actions/planner";
 import type { ActionState } from "@/lib/actions/auth";
 import { SubmitButton, ErrorText } from "@/components/form";
@@ -22,6 +24,7 @@ type PlannerType = (typeof TYPES)[number];
 
 type EditActivity = Tables<"activities"> & { who: string[] };
 type EditEvent = Tables<"events">;
+type EditTrip = Tables<"trips"> & { travellerIds: string[] };
 
 export function AddPlannerForm({
   members,
@@ -29,16 +32,19 @@ export function AddPlannerForm({
   defaultDate,
   editActivity,
   editEvent,
+  editTrip,
 }: {
   members: Tables<"members">[];
   defaultType: string;
   /** The day the calendar was sitting on when Add was tapped. */
   defaultDate?: string;
   editActivity?: EditActivity | null;
-  editEvent?: EditEvent | null;
+  editEvent?: (EditEvent & { memberIds: string[] }) | null;
+  editTrip?: EditTrip | null;
 }) {
-  const isEditing = !!editActivity || !!editEvent;
+  const isEditing = !!editActivity || !!editEvent || !!editTrip;
   const [type, setType] = useState<PlannerType>(TYPES.includes(defaultType as PlannerType) ? (defaultType as PlannerType) : "activity");
+  const editing = editActivity ? "activity" : editEvent ? "event" : editTrip ? "trip" : null;
 
   return (
     <div>
@@ -54,9 +60,9 @@ export function AddPlannerForm({
             ))}
           </div>
         )}
-        {type === "activity" && <ActivityForm members={members} defaultDate={defaultDate} editActivity={editActivity ?? undefined} />}
-        {type === "event" && <EventForm defaultDate={defaultDate} editEvent={editEvent ?? undefined} />}
-        {!isEditing && type === "trip" && <TripForm members={members} defaultDate={defaultDate} />}
+        {(editing === null || editing === "activity") && type === "activity" && <ActivityForm members={members} defaultDate={defaultDate} editActivity={editActivity ?? undefined} />}
+        {(editing === null || editing === "event") && type === "event" && <EventForm members={members} defaultDate={defaultDate} editEvent={editEvent ?? undefined} />}
+        {(editing === "trip" || (!isEditing && type === "trip")) && <TripForm members={members} defaultDate={defaultDate} editTrip={editTrip ?? undefined} />}
       </div>
     </div>
   );
@@ -141,11 +147,72 @@ function ActivityForm({ members, defaultDate, editActivity }: { members: Tables<
   );
 }
 
-function EventForm({ defaultDate, editEvent }: { defaultDate?: string; editEvent?: EditEvent }) {
+/** Whole family, or these people. Activities already asked this; events and
+ * travel now ask it the same way, so who a record concerns is one idea
+ * across the Planner rather than three. */
+function WhoPicker({
+  members,
+  label,
+  fieldName,
+  wholeFamily,
+  setWholeFamily,
+  chosen,
+  setChosen,
+}: {
+  members: Tables<"members">[];
+  label: string;
+  fieldName: string;
+  wholeFamily: boolean;
+  setWholeFamily: (v: boolean) => void;
+  chosen: string[];
+  setChosen: (fn: (prev: string[]) => string[]) => void;
+}) {
+  return (
+    <>
+      {wholeFamily && <input type="hidden" name="whole_family" value="on" />}
+      {!wholeFamily && chosen.map((id) => <input key={id} type="hidden" name={fieldName} value={id} />)}
+      <div style={{ fontSize: 13, color: "var(--color-neutral-700)", margin: "14px 0 6px" }}>{label}</div>
+      <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 16 }}>
+        <button type="button" className="chip" data-active={wholeFamily} onClick={() => setWholeFamily(true)}>
+          Whole family
+        </button>
+        {members.map((m) => {
+          const active = !wholeFamily && chosen.includes(m.id);
+          return (
+            <button
+              key={m.id}
+              type="button"
+              className="chip"
+              data-active={active}
+              onClick={() => {
+                setWholeFamily(false);
+                setChosen((p) => (p.includes(m.id) ? p.filter((x) => x !== m.id) : [...p, m.id]));
+              }}
+            >
+              {m.full_name.split(" ")[0]}
+            </button>
+          );
+        })}
+      </div>
+    </>
+  );
+}
+
+function EventForm({
+  members,
+  defaultDate,
+  editEvent,
+}: {
+  members: Tables<"members">[];
+  defaultDate?: string;
+  editEvent?: EditEvent & { memberIds?: string[] };
+}) {
   const action = editEvent ? updateEventAction.bind(null, editEvent.id) : createEventAction;
   const [state, formAction] = useActionState(action, initialState);
   const router = useRouter();
   const [deleting, setDeleting] = useState(false);
+  const [wholeFamily, setWholeFamily] = useState(editEvent?.applies_to_whole_family ?? true);
+  const [who, setWho] = useState<string[]>(editEvent?.memberIds ?? []);
 
   return (
     <form action={formAction}>
@@ -162,6 +229,15 @@ function EventForm({ defaultDate, editEvent }: { defaultDate?: string; editEvent
         </select>
       </Field>
       <Field label="NOTE"><input className="input" name="sub_note" placeholder="Dinner at home" defaultValue={editEvent?.sub_note ?? undefined} style={{ minHeight: 44 }} /></Field>
+      <WhoPicker
+        members={members}
+        label="Who it is for"
+        fieldName="who"
+        wholeFamily={wholeFamily}
+        setWholeFamily={setWholeFamily}
+        chosen={who}
+        setChosen={setWho}
+      />
       <SubmitButton style={{ minHeight: 46, fontSize: 14, letterSpacing: ".04em" }}>{editEvent ? "SAVE CHANGES" : "SAVE EVENT"}</SubmitButton>
       {editEvent && (
         <button
@@ -183,39 +259,65 @@ function EventForm({ defaultDate, editEvent }: { defaultDate?: string; editEvent
   );
 }
 
-function TripForm({ members, defaultDate }: { members: Tables<"members">[]; defaultDate?: string }) {
-  const [state, formAction] = useActionState(createTripAction, initialState);
-  const [travellers, setTravellers] = useState<string[]>([]);
+function TripForm({
+  members,
+  defaultDate,
+  editTrip,
+}: {
+  members: Tables<"members">[];
+  defaultDate?: string;
+  editTrip?: EditTrip;
+}) {
+  const action = editTrip ? updateTripAction.bind(null, editTrip.id) : createTripAction;
+  const [state, formAction] = useActionState(action, initialState);
+  const router = useRouter();
+  const [deleting, setDeleting] = useState(false);
+  const [wholeFamily, setWholeFamily] = useState(editTrip?.applies_to_whole_family ?? true);
+  const [travellers, setTravellers] = useState<string[]>(editTrip?.travellerIds ?? []);
+
   return (
     <form action={formAction}>
-      {travellers.map((id) => (
-        <input key={id} type="hidden" name="travellers" value={id} />
-      ))}
       <ErrorText message={state.error} />
-      <Field label="TITLE"><input className="input" name="title" placeholder="Baguio, four days" required style={{ minHeight: 44 }} /></Field>
+      <Field label="TITLE">
+        <input className="input" name="title" placeholder="Baguio, four days" required defaultValue={editTrip?.title} style={{ minHeight: 44 }} />
+      </Field>
       <div style={{ display: "flex", gap: 12, marginBottom: 14 }}>
-        <Field label="START" style={{ flex: 1 }}><input className="input" type="date" name="start_date" required defaultValue={defaultDate} style={{ minHeight: 44 }} /></Field>
-        <Field label="END" style={{ flex: 1 }}><input className="input" type="date" name="end_date" style={{ minHeight: 44 }} /></Field>
+        <Field label="START" style={{ flex: 1 }}>
+          <input className="input" type="date" name="start_date" required defaultValue={editTrip?.start_date ?? defaultDate} style={{ minHeight: 44 }} />
+        </Field>
+        <Field label="END" style={{ flex: 1 }}>
+          <input className="input" type="date" name="end_date" defaultValue={editTrip?.end_date ?? undefined} style={{ minHeight: 44 }} />
+        </Field>
       </div>
-      <Field label="BUDGET (₱)"><input className="input" type="number" name="budget_amount" style={{ minHeight: 44 }} /></Field>
-      <div style={{ fontSize: 13, color: "var(--color-neutral-700)", margin: "14px 0 6px" }}>Travelling</div>
-      <div style={{ display: "flex", flexWrap: "wrap", gap: 7, marginBottom: 16 }}>
-        {members.map((m) => {
-          const active = travellers.includes(m.id);
-          return (
-            <button
-              key={m.id}
-              type="button"
-              className="chip"
-              data-active={active}
-              onClick={() => setTravellers((p) => (active ? p.filter((x) => x !== m.id) : [...p, m.id]))}
-            >
-              {m.full_name.split(" ")[0]}
-            </button>
-          );
-        })}
-      </div>
-      <SubmitButton style={{ minHeight: 46, fontSize: 14, letterSpacing: ".04em" }}>SAVE TRIP</SubmitButton>
+      <Field label="BUDGET (₱)">
+        <input className="input" type="number" name="budget_amount" defaultValue={editTrip?.budget_amount ?? undefined} style={{ minHeight: 44 }} />
+      </Field>
+      <WhoPicker
+        members={members}
+        label="Who is travelling"
+        fieldName="travellers"
+        wholeFamily={wholeFamily}
+        setWholeFamily={setWholeFamily}
+        chosen={travellers}
+        setChosen={setTravellers}
+      />
+      <SubmitButton style={{ minHeight: 46, fontSize: 14, letterSpacing: ".04em" }}>{editTrip ? "SAVE CHANGES" : "SAVE TRIP"}</SubmitButton>
+      {editTrip && (
+        <button
+          type="button"
+          className="btn btn-secondary btn-block"
+          disabled={deleting}
+          style={{ minHeight: 44, fontSize: 13, marginTop: 10, color: "var(--color-accent-700)", borderColor: "var(--color-accent-700)" }}
+          onClick={async () => {
+            if (!window.confirm("Delete this trip? This can't be undone.")) return;
+            setDeleting(true);
+            await deleteTripAction(editTrip.id);
+            router.push("/planner?seg=travel");
+          }}
+        >
+          {deleting ? "DELETING…" : "DELETE TRIP"}
+        </button>
+      )}
     </form>
   );
 }

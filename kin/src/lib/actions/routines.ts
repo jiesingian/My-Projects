@@ -5,10 +5,6 @@ import { redirect } from "next/navigation";
 import { requireCurrentMember } from "@/lib/session";
 import { createClient } from "@/lib/supabase/server";
 import type { ActionState } from "@/lib/actions/auth";
-
-/** A refusal names the field it is about, so the form can point at it
- * rather than leaving a message stranded at the top of a long page. */
-export type RoutineActionState = { error: string | null; field?: string | null };
 import { syncRowToCalendars, removeRowFromCalendars } from "@/lib/actions/calendar-sync";
 import { postHubExpenseAction } from "@/lib/actions/wealth";
 import {
@@ -22,6 +18,10 @@ import {
   type Busy,
   type RoutineRule,
 } from "@/lib/routines";
+
+/** A refusal names the field it is about, so the form can point at it
+ * rather than leaving a message stranded at the top of a long page. */
+export type RoutineActionState = { error: string | null; field?: string | null };
 
 function ruleOf(row: {
   freq: string;

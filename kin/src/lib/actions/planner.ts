@@ -120,6 +120,28 @@ export async function deleteActivityAction(activityId: string): Promise<ActionSt
   return { error: null };
 }
 
+/** Replace the people a record concerns. A whole-family record keeps no rows
+ * at all: the flag says everyone, and a list beside it could only drift. */
+async function saveEventMembers(eventId: string, memberIds: string[]) {
+  const supabase = await createClient();
+  await supabase.from("event_members").delete().eq("event_id", eventId);
+  if (memberIds.length === 0) return;
+  await supabase.from("event_members").insert(memberIds.map((member_id) => ({ event_id: eventId, member_id })));
+}
+
+async function saveTravellers(tripId: string, memberIds: string[]) {
+  const supabase = await createClient();
+  await supabase.from("trip_travellers").delete().eq("trip_id", tripId);
+  if (memberIds.length === 0) return;
+  await supabase.from("trip_travellers").insert(memberIds.map((member_id) => ({ trip_id: tripId, member_id })));
+}
+
+/** Who a dated record reaches on Google Calendar: everyone, or just the
+ * people named on it. */
+function targetFor(wholeFamily: boolean, memberIds: string[]) {
+  return wholeFamily || memberIds.length === 0 ? ({ kind: "all" } as const) : ({ kind: "members", memberIds } as const);
+}
+
 export async function createEventAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
   const me = await requireCurrentMember();
   const supabase = await createClient();
@@ -129,7 +151,10 @@ export async function createEventAction(_prev: ActionState, formData: FormData):
   const kind = String(formData.get("kind") ?? "other");
   const subNote = String(formData.get("sub_note") ?? "").trim() || null;
   const recursYearly = kind === "birthday" || kind === "anniversary";
+  const wholeFamily = formData.get("whole_family") === "on";
+  const who = formData.getAll("who").map(String).filter(Boolean);
   if (!title || !date) return { error: "Title and date are required." };
+  if (!wholeFamily && who.length === 0) return { error: "Choose who this is for, or mark it for the whole family." };
 
   const { data: event, error } = await supabase
     .from("events")
@@ -140,13 +165,21 @@ export async function createEventAction(_prev: ActionState, formData: FormData):
       kind,
       sub_note: subNote,
       recurs_yearly: recursYearly,
+      applies_to_whole_family: wholeFamily,
       created_by: me.id,
     })
     .select()
     .single();
   if (error) return { error: error.message };
 
-  await syncRowToCalendars(me.family_id, "events", event.id, { title, startAt: new Date(`${date}T00:00:00`), allDay: true }, { kind: "all" });
+  await saveEventMembers(event.id, wholeFamily ? [] : who);
+  await syncRowToCalendars(
+    me.family_id,
+    "events",
+    event.id,
+    { title, startAt: new Date(`${date}T00:00:00`), allDay: true },
+    targetFor(wholeFamily, who),
+  );
 
   revalidatePath("/planner");
   redirect("/planner?seg=events");
@@ -161,16 +194,26 @@ export async function updateEventAction(eventId: string, _prev: ActionState, for
   const kind = String(formData.get("kind") ?? "other");
   const subNote = String(formData.get("sub_note") ?? "").trim() || null;
   const recursYearly = kind === "birthday" || kind === "anniversary";
+  const wholeFamily = formData.get("whole_family") === "on";
+  const who = formData.getAll("who").map(String).filter(Boolean);
   if (!title || !date) return { error: "Title and date are required." };
+  if (!wholeFamily && who.length === 0) return { error: "Choose who this is for, or mark it for the whole family." };
 
   const { error } = await supabase
     .from("events")
-    .update({ title, event_date: date, kind, sub_note: subNote, recurs_yearly: recursYearly })
+    .update({ title, event_date: date, kind, sub_note: subNote, recurs_yearly: recursYearly, applies_to_whole_family: wholeFamily })
     .eq("id", eventId)
     .eq("family_id", me.family_id);
   if (error) return { error: error.message };
 
-  await syncRowToCalendars(me.family_id, "events", eventId, { title, startAt: new Date(`${date}T00:00:00`), allDay: true }, { kind: "all" });
+  await saveEventMembers(eventId, wholeFamily ? [] : who);
+  await syncRowToCalendars(
+    me.family_id,
+    "events",
+    eventId,
+    { title, startAt: new Date(`${date}T00:00:00`), allDay: true },
+    targetFor(wholeFamily, who),
+  );
 
   revalidatePath("/planner");
   redirect("/planner?seg=events");
@@ -196,30 +239,86 @@ export async function createTripAction(_prev: ActionState, formData: FormData): 
   const startDate = String(formData.get("start_date") ?? "");
   const endDate = String(formData.get("end_date") ?? "") || null;
   const budgetAmount = formData.get("budget_amount") ? Number(formData.get("budget_amount")) : null;
-  const travellers = formData.getAll("travellers").map(String);
+  const travellers = formData.getAll("travellers").map(String).filter(Boolean);
+  const wholeFamily = formData.get("whole_family") === "on";
   if (!title || !startDate) return { error: "Title and start date are required." };
+  if (!wholeFamily && travellers.length === 0) return { error: "Choose who is travelling, or mark it for the whole family." };
+  if (endDate && endDate < startDate) return { error: "The trip ends before it starts." };
 
   const { data: trip, error } = await supabase
     .from("trips")
-    .insert({ family_id: me.family_id, title, start_date: startDate, end_date: endDate, budget_amount: budgetAmount, created_by: me.id })
+    .insert({
+      family_id: me.family_id,
+      title,
+      start_date: startDate,
+      end_date: endDate,
+      budget_amount: budgetAmount,
+      applies_to_whole_family: wholeFamily,
+      created_by: me.id,
+    })
     .select()
     .single();
   if (error) return { error: error.message };
 
-  if (travellers.length > 0) {
-    await supabase.from("trip_travellers").insert(travellers.map((memberId) => ({ trip_id: trip.id, member_id: memberId })));
-  }
-
+  await saveTravellers(trip.id, wholeFamily ? [] : travellers);
   await syncRowToCalendars(
     me.family_id,
     "trips",
     trip.id,
     { title, startAt: new Date(`${startDate}T00:00:00`), endAt: endDate ? new Date(`${endDate}T00:00:00`) : null, allDay: true },
-    travellers.length > 0 ? { kind: "members", memberIds: travellers } : { kind: "all" },
+    targetFor(wholeFamily, travellers),
   );
 
   revalidatePath("/planner");
   redirect("/planner?seg=travel");
+}
+
+/** Trips could be created but never changed, so who was going was fixed the
+ * moment it was saved. */
+export async function updateTripAction(tripId: string, _prev: ActionState, formData: FormData): Promise<ActionState> {
+  const me = await requireCurrentMember();
+  const supabase = await createClient();
+
+  const title = String(formData.get("title") ?? "").trim();
+  const startDate = String(formData.get("start_date") ?? "");
+  const endDate = String(formData.get("end_date") ?? "") || null;
+  const budgetAmount = formData.get("budget_amount") ? Number(formData.get("budget_amount")) : null;
+  const travellers = formData.getAll("travellers").map(String).filter(Boolean);
+  const wholeFamily = formData.get("whole_family") === "on";
+  if (!title || !startDate) return { error: "Title and start date are required." };
+  if (!wholeFamily && travellers.length === 0) return { error: "Choose who is travelling, or mark it for the whole family." };
+  if (endDate && endDate < startDate) return { error: "The trip ends before it starts." };
+
+  const { error } = await supabase
+    .from("trips")
+    .update({ title, start_date: startDate, end_date: endDate, budget_amount: budgetAmount, applies_to_whole_family: wholeFamily })
+    .eq("id", tripId)
+    .eq("family_id", me.family_id);
+  if (error) return { error: error.message };
+
+  await saveTravellers(tripId, wholeFamily ? [] : travellers);
+  await syncRowToCalendars(
+    me.family_id,
+    "trips",
+    tripId,
+    { title, startAt: new Date(`${startDate}T00:00:00`), endAt: endDate ? new Date(`${endDate}T00:00:00`) : null, allDay: true },
+    targetFor(wholeFamily, travellers),
+  );
+
+  revalidatePath("/planner");
+  redirect("/planner?seg=travel");
+}
+
+export async function deleteTripAction(tripId: string): Promise<ActionState> {
+  const me = await requireCurrentMember();
+  const supabase = await createClient();
+
+  await removeRowFromCalendars(me.family_id, "trips", tripId);
+  const { error } = await supabase.from("trips").delete().eq("id", tripId).eq("family_id", me.family_id);
+  if (error) return { error: error.message };
+
+  revalidatePath("/planner");
+  return { error: null };
 }
 
 export async function addActivityToJournalAction(activityId: string) {

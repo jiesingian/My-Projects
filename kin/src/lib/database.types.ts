@@ -888,8 +888,39 @@ export type Database = {
           },
         ]
       }
+      event_members: {
+        Row: {
+          event_id: string
+          member_id: string
+        }
+        Insert: {
+          event_id: string
+          member_id: string
+        }
+        Update: {
+          event_id?: string
+          member_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "event_members_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "event_members_member_id_fkey"
+            columns: ["member_id"]
+            isOneToOne: false
+            referencedRelation: "members"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       events: {
         Row: {
+          applies_to_whole_family: boolean
           created_at: string
           created_by: string | null
           event_date: string
@@ -901,6 +932,7 @@ export type Database = {
           title: string
         }
         Insert: {
+          applies_to_whole_family?: boolean
           created_at?: string
           created_by?: string | null
           event_date: string
@@ -912,6 +944,7 @@ export type Database = {
           title: string
         }
         Update: {
+          applies_to_whole_family?: boolean
           created_at?: string
           created_by?: string | null
           event_date?: string
@@ -2373,6 +2406,7 @@ export type Database = {
       }
       trips: {
         Row: {
+          applies_to_whole_family: boolean
           budget_amount: number | null
           created_at: string
           created_by: string | null
@@ -2390,6 +2424,7 @@ export type Database = {
           title: string
         }
         Insert: {
+          applies_to_whole_family?: boolean
           budget_amount?: number | null
           created_at?: string
           created_by?: string | null
@@ -2407,6 +2442,7 @@ export type Database = {
           title: string
         }
         Update: {
+          applies_to_whole_family?: boolean
           budget_amount?: number | null
           created_at?: string
           created_by?: string | null

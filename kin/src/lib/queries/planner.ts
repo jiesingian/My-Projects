@@ -38,7 +38,12 @@ async function fetchCalendarItems(familyId: string, rangeStart: Date, rangeEnd: 
       .eq("family_id", familyId)
       .gte("start_at", startISO)
       .lt("start_at", endISO),
-    supabase.from("events").select("*").eq("family_id", familyId).gte("event_date", startDate).lt("event_date", endDate),
+    supabase
+      .from("events")
+      .select("*, event_members(members(id, full_name))")
+      .eq("family_id", familyId)
+      .gte("event_date", startDate)
+      .lt("event_date", endDate),
     supabase
       .from("trips")
       .select("*, trip_travellers(members(id, full_name))")
@@ -89,6 +94,12 @@ async function fetchCalendarItems(familyId: string, rangeStart: Date, rangeEnd: 
   }
 
   for (const e of events ?? []) {
+    const memberIds = (e.event_members ?? [])
+      .map((em) => (em.members as unknown as { id: string } | null)?.id)
+      .filter((v): v is string => !!v);
+    const who = e.applies_to_whole_family
+      ? "WHOLE FAMILY"
+      : firstNames((e.event_members ?? []).map((em) => (em.members as unknown as { full_name: string } | null)?.full_name)) || "WHOLE FAMILY";
     items.push({
       id: e.id,
       table: "events",
@@ -96,9 +107,9 @@ async function fetchCalendarItems(familyId: string, rangeStart: Date, rangeEnd: 
       allDay: true,
       title: e.title,
       location: null,
-      who: "WHOLE FAMILY",
-      memberIds: [],
-      appliesToAll: true,
+      who,
+      memberIds,
+      appliesToAll: e.applies_to_whole_family || memberIds.length === 0,
       href: `/planner/add?type=event&id=${e.id}`,
     });
   }
@@ -107,7 +118,9 @@ async function fetchCalendarItems(familyId: string, rangeStart: Date, rangeEnd: 
     const memberIds = (t.trip_travellers ?? [])
       .map((tr) => (tr.members as unknown as { id: string } | null)?.id)
       .filter((v): v is string => !!v);
-    const who = firstNames((t.trip_travellers ?? []).map((tr) => (tr.members as unknown as { full_name: string } | null)?.full_name)) || "WHOLE FAMILY";
+    const who = t.applies_to_whole_family
+      ? "WHOLE FAMILY"
+      : firstNames((t.trip_travellers ?? []).map((tr) => (tr.members as unknown as { full_name: string } | null)?.full_name)) || "WHOLE FAMILY";
     items.push({
       id: t.id,
       table: "trips",
@@ -117,7 +130,7 @@ async function fetchCalendarItems(familyId: string, rangeStart: Date, rangeEnd: 
       location: null,
       who,
       memberIds,
-      appliesToAll: memberIds.length === 0,
+      appliesToAll: t.applies_to_whole_family || memberIds.length === 0,
       href: `/planner?seg=travel`,
     });
   }
@@ -346,15 +359,24 @@ export async function getYearOverview(familyId: string, anchor: Date, memberId?:
 
 export async function getEvents(familyId: string) {
   const supabase = await createClient();
-  const { data } = await supabase.from("events").select("*").eq("family_id", familyId).order("event_date", { ascending: true });
-  return data ?? [];
+  const { data } = await supabase
+    .from("events")
+    .select("*, event_members(members(id, full_name))")
+    .eq("family_id", familyId)
+    .order("event_date", { ascending: true });
+  return (data ?? []).map((e) => ({
+    ...e,
+    who: (e.event_members ?? [])
+      .map((em) => (em.members as unknown as { full_name: string } | null)?.full_name)
+      .filter((v): v is string => !!v),
+  }));
 }
 
 export async function getTrips(familyId: string) {
   const supabase = await createClient();
   const { data } = await supabase
     .from("trips")
-    .select("*, trip_travellers(members(full_name)), journal_entry_id")
+    .select("*, trip_travellers(members(id, full_name)), journal_entry_id")
     .eq("family_id", familyId)
     .order("start_date", { ascending: false });
   const trips = data ?? [];
@@ -367,6 +389,9 @@ export async function getTrips(familyId: string) {
     photoUrl: t.photo_storage_path ? urls[t.photo_storage_path] ?? null : null,
     travellers: (t.trip_travellers ?? [])
       .map((tr) => (tr.members as unknown as { full_name: string } | null)?.full_name)
+      .filter((v): v is string => !!v),
+    travellerIds: (t.trip_travellers ?? [])
+      .map((tr) => (tr.members as unknown as { id: string } | null)?.id)
       .filter((v): v is string => !!v),
   }));
 }
