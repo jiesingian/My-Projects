@@ -1102,6 +1102,114 @@ export type Database = {
           },
         ]
       }
+      family_recipe_ingredients: {
+        Row: {
+          family_id: string
+          id: string
+          item_key: string
+          name: string
+          position: number
+          qty: number | null
+          recipe_id: string
+          section: string
+          unit: string | null
+        }
+        Insert: {
+          family_id: string
+          id?: string
+          item_key: string
+          name: string
+          position?: number
+          qty?: number | null
+          recipe_id: string
+          section?: string
+          unit?: string | null
+        }
+        Update: {
+          family_id?: string
+          id?: string
+          item_key?: string
+          name?: string
+          position?: number
+          qty?: number | null
+          recipe_id?: string
+          section?: string
+          unit?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "family_recipe_ingredients_family_id_fkey"
+            columns: ["family_id"]
+            isOneToOne: false
+            referencedRelation: "families"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "family_recipe_ingredients_recipe_id_fkey"
+            columns: ["recipe_id"]
+            isOneToOne: false
+            referencedRelation: "family_recipes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      family_recipes: {
+        Row: {
+          base_key: string | null
+          created_at: string
+          created_by: string | null
+          family_id: string
+          id: string
+          minutes: number | null
+          name: string
+          serves: number
+          slots: string[]
+          steps: string[]
+          updated_at: string
+        }
+        Insert: {
+          base_key?: string | null
+          created_at?: string
+          created_by?: string | null
+          family_id: string
+          id?: string
+          minutes?: number | null
+          name: string
+          serves?: number
+          slots?: string[]
+          steps?: string[]
+          updated_at?: string
+        }
+        Update: {
+          base_key?: string | null
+          created_at?: string
+          created_by?: string | null
+          family_id?: string
+          id?: string
+          minutes?: number | null
+          name?: string
+          serves?: number
+          slots?: string[]
+          steps?: string[]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "family_recipes_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "members"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "family_recipes_family_id_fkey"
+            columns: ["family_id"]
+            isOneToOne: false
+            referencedRelation: "families"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       goals: {
         Row: {
           created_at: string
@@ -1894,6 +2002,7 @@ export type Database = {
           created_by: string | null
           dish: string
           family_id: string
+          family_recipe_id: string | null
           id: string
           note: string | null
           plan_date: string
@@ -1906,6 +2015,7 @@ export type Database = {
           created_by?: string | null
           dish: string
           family_id: string
+          family_recipe_id?: string | null
           id?: string
           note?: string | null
           plan_date: string
@@ -1918,6 +2028,7 @@ export type Database = {
           created_by?: string | null
           dish?: string
           family_id?: string
+          family_recipe_id?: string | null
           id?: string
           note?: string | null
           plan_date?: string
@@ -1938,6 +2049,13 @@ export type Database = {
             columns: ["family_id"]
             isOneToOne: false
             referencedRelation: "families"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "meal_plans_family_recipe_id_fkey"
+            columns: ["family_recipe_id"]
+            isOneToOne: false
+            referencedRelation: "family_recipes"
             referencedColumns: ["id"]
           },
         ]

@@ -358,3 +358,157 @@ export async function removeMealAction(mealId: string): Promise<ActionState> {
   revalidatePath("/planner");
   return { error: null };
 }
+
+// ————————————————————————————————————————————————————————————————
+// The household's own recipe book
+// ————————————————————————————————————————————————————————————————
+
+type RecipeIngredientInput = { name: string; qty: number | null; unit: string | null; section: string };
+
+async function saveRecipeIngredients(recipeId: string, familyId: string, ingredients: RecipeIngredientInput[]) {
+  const supabase = await createClient();
+  await supabase.from("family_recipe_ingredients").delete().eq("recipe_id", recipeId);
+  const rows = ingredients
+    .filter((ing) => ing.name.trim())
+    .map((ing, position) => ({
+      recipe_id: recipeId,
+      family_id: familyId,
+      name: ing.name.trim(),
+      item_key: normalizeKey(ing.name),
+      qty: ing.qty,
+      unit: ing.unit,
+      section: ing.section,
+      position,
+    }));
+  if (rows.length > 0) await supabase.from("family_recipe_ingredients").insert(rows);
+}
+
+/** Save a recipe into the household's book. Passing `baseKey` records it as
+ * their version of one Kin ships, which then stands in for it everywhere —
+ * the shipped library stays untouched and upgradeable. */
+export async function saveRecipeAction(input: {
+  id?: string | null;
+  baseKey?: string | null;
+  name: string;
+  slots: string[];
+  serves: number;
+  minutes: number | null;
+  steps: string[];
+  ingredients: RecipeIngredientInput[];
+}): Promise<ActionState> {
+  const me = await requireCurrentMember();
+  const name = input.name.trim();
+  if (!name) return { error: "Give the recipe a name." };
+  const slots = input.slots.filter((s) => MEAL_SLOTS.includes(s as MealSlot));
+  if (slots.length === 0) return { error: "Say when it is usually eaten." };
+  if (input.ingredients.filter((i) => i.name.trim()).length === 0) return { error: "A recipe needs at least one ingredient." };
+
+  const supabase = await createClient();
+  const row = {
+    family_id: me.family_id,
+    name,
+    base_key: input.baseKey ?? null,
+    slots,
+    serves: Math.min(30, Math.max(1, Math.round(input.serves || 4))),
+    minutes: input.minutes,
+    steps: input.steps.map((s) => s.trim()).filter(Boolean),
+    updated_at: new Date().toISOString(),
+  };
+
+  let recipeId = input.id ?? null;
+  if (recipeId) {
+    const { error } = await supabase.from("family_recipes").update(row).eq("id", recipeId).eq("family_id", me.family_id);
+    if (error) return { error: error.message };
+  } else {
+    // Editing a shipped recipe twice should update the same row, not make a
+    // second one claiming the same base.
+    const { data, error } = await supabase
+      .from("family_recipes")
+      .upsert({ ...row, created_by: me.id }, { onConflict: "family_id,base_key" })
+      .select("id")
+      .single();
+    if (error || !data) return { error: error?.message ?? "Could not save the recipe." };
+    recipeId = data.id;
+  }
+
+  await saveRecipeIngredients(recipeId, me.family_id, input.ingredients);
+  revalidatePath("/household");
+  return { error: null };
+}
+
+export async function deleteRecipeAction(recipeId: string): Promise<ActionState> {
+  const me = await requireCurrentMember();
+  const supabase = await createClient();
+  const { error } = await supabase.from("family_recipes").delete().eq("id", recipeId).eq("family_id", me.family_id);
+  if (error) return { error: error.message };
+  revalidatePath("/household");
+  return { error: null };
+}
+
+/** Put one meal's ingredients on the shopping list — everything not already
+ * in the house and not already on it. */
+export async function addMealIngredientsToBuyAction(mealId: string): Promise<ActionState & { added?: number }> {
+  const me = await requireCurrentMember();
+  const supabase = await createClient();
+
+  const { data: meal } = await supabase
+    .from("meal_plans")
+    .select("id, dish, meal_ingredients(ingredient_name, item_key, qty, qty_amount, unit, section)")
+    .eq("id", mealId)
+    .eq("family_id", me.family_id)
+    .maybeSingle();
+  if (!meal) return { error: "That meal is no longer here." };
+
+  const [{ data: openBuy }, { data: pantry }] = await Promise.all([
+    supabase.from("buy_items").select("name").eq("family_id", me.family_id).eq("cleared", false),
+    supabase.from("pantry_items").select("item_key").eq("family_id", me.family_id),
+  ]);
+
+  const already = new Set((openBuy ?? []).map((b) => normalizeKey(b.name)));
+  const atHome = new Set((pantry ?? []).map((p) => p.item_key));
+
+  const rows: TablesInsert<"buy_items">[] = [];
+  for (const ing of meal.meal_ingredients ?? []) {
+    const key = ing.item_key ?? normalizeKey(ing.ingredient_name);
+    if (already.has(key) || atHome.has(key)) continue;
+    already.add(key);
+    const parsed = parseQuantity(ing.qty);
+    rows.push({
+      family_id: me.family_id,
+      name: ing.ingredient_name,
+      quantity: ing.qty_amount == null ? parsed.quantity : Number(ing.qty_amount),
+      unit: ing.unit ?? parsed.unit,
+      section: ing.section ?? guessSection(ing.ingredient_name),
+      source: "meal_plan",
+      created_by: me.id,
+    });
+  }
+
+  if (rows.length > 0) {
+    const { error } = await supabase.from("buy_items").insert(rows);
+    if (error) return { error: error.message };
+  }
+
+  revalidatePath("/household");
+  return { error: null, added: rows.length };
+}
+
+/** Mark one ingredient as already in the house, or take it back off. */
+export async function toggleIngredientAtHomeAction(name: string, atHome: boolean): Promise<ActionState> {
+  const me = await requireCurrentMember();
+  const supabase = await createClient();
+  const key = normalizeKey(name);
+
+  if (atHome) {
+    const { error } = await supabase
+      .from("pantry_items")
+      .upsert({ family_id: me.family_id, item_key: key, name: name.trim(), updated_by: me.id, updated_at: new Date().toISOString() }, { onConflict: "family_id,item_key" });
+    if (error) return { error: error.message };
+  } else {
+    const { error } = await supabase.from("pantry_items").delete().eq("family_id", me.family_id).eq("item_key", key);
+    if (error) return { error: error.message };
+  }
+
+  revalidatePath("/household");
+  return { error: null };
+}

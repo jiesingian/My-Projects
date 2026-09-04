@@ -9,6 +9,9 @@ import { BuyList } from "@/components/buy-list";
 import { Blueprint, Tag } from "@/components/ui";
 import { GenerateGroceryButton } from "@/components/generate-grocery-button";
 import { PriceRowControl, AddPriceControl, PantryControls } from "@/components/household-price-controls";
+import { SheetButton, Collapsible } from "@/components/sheet";
+import { RecipeBook, AddIngredientsToBuyButton, IngredientChip } from "@/components/recipe-book";
+import { getRecipeBook } from "@/lib/queries/recipes";
 import { AddMealControl, RemoveMealButton } from "@/components/meal-controls";
 import { Icon } from "@/components/icons";
 import { formatCurrency } from "@/lib/format";
@@ -17,10 +20,10 @@ import { MEAL_SLOTS, MEAL_SLOT_LABEL, RECIPES_BY_KEY, type MealSlot } from "@/li
 import { MARKET_SECTIONS } from "@/lib/grocery";
 import { toISODate } from "@/lib/routines";
 
-const SEGMENTS = ["buy", "pricelist", "meals"] as const;
+const SEGMENTS = ["buy", "meals"] as const;
 type Seg = (typeof SEGMENTS)[number];
 
-const SEGMENT_LABEL: Record<Seg, string> = { buy: "To-buy", pricelist: "Prices", meals: "Meals" };
+const SEGMENT_LABEL: Record<Seg, string> = { buy: "To-buy", meals: "Meals" };
 
 export default async function HouseholdPage({ searchParams }: { searchParams: Promise<{ seg?: string }> }) {
   const me = await getCurrentMember();
@@ -35,7 +38,6 @@ export default async function HouseholdPage({ searchParams }: { searchParams: Pr
       <HubHeader n="04" title="Household" segments={segments} />
       <div style={{ padding: "0 22px 22px" }}>
         {seg === "buy" && <BuyPane familyId={me.family_id} memberId={me.id} currency={me.families.currency} />}
-        {seg === "pricelist" && <PricelistPane familyId={me.family_id} currency={me.families.currency} />}
         {seg === "meals" && <MealsPane familyId={me.family_id} memberId={me.id} currency={me.families.currency} />}
       </div>
     </div>
@@ -68,9 +70,7 @@ function ShoppingBudgetCard({
       {unpriced > 0 && (
         <div style={{ fontSize: 12.5, color: "var(--color-neutral-700)", marginBottom: 8 }}>
           {unpriced === 1 ? "One item has no price yet" : `${unpriced} items have no price yet`} — the total leaves them out.{" "}
-          <Link href="/household?seg=pricelist" style={{ textDecoration: "none" }}>
-            Set prices
-          </Link>
+<strong>Prices &amp; pantry</strong> below sets them.
         </div>
       )}
 
@@ -142,6 +142,18 @@ async function BuyPane({ familyId, memberId, currency }: { familyId: string; mem
     <>
       <ShoppingBudgetCard run={run} remaining={priced.estimatedRemaining} unpriced={priced.unpricedCount} currency={currency} />
 
+      <div style={{ display: "flex", gap: 6, marginBottom: 12 }}>
+        <SheetButton
+          label="Prices & pantry"
+          title="Prices & pantry"
+          icon="receipt"
+          className="btn btn-secondary"
+          style={{ flex: 1, minHeight: 40, fontSize: 13.5, gap: 6 }}
+        >
+          <PriceBookSheet familyId={familyId} currency={currency} />
+        </SheetButton>
+      </div>
+
       <BuyList
         groups={groups}
         openCount={openCount}
@@ -163,7 +175,7 @@ async function BuyPane({ familyId, memberId, currency }: { familyId: string; mem
   );
 }
 
-async function PricelistPane({ familyId, currency }: { familyId: string; currency: string }) {
+async function PriceBookSheet({ familyId, currency }: { familyId: string; currency: string }) {
   const [rows, pantry] = await Promise.all([getPriceBook(familyId), getPantry(familyId)]);
   const mine = rows.filter((r) => r.source === "family").length;
 
@@ -185,25 +197,23 @@ async function PricelistPane({ familyId, currency }: { familyId: string; currenc
         </div>
       </Blueprint>
 
-      <Blueprint style={{ padding: 14, marginBottom: 14 }}>
-        <div style={{ font: "600 16px/1.2 var(--font-heading)", marginBottom: 3 }}>Already in the house</div>
+      <Collapsible title="Already in the house" meta={`${pantry.length}`} defaultOpen={pantry.length > 0}>
         <p style={{ fontSize: 13, color: "var(--color-neutral-600)", margin: "0 0 10px" }}>
           Skipped when a shopping list is built from the week&rsquo;s meals.
         </p>
         <PantryControls
           items={pantry.map((p) => ({ item_key: p.item_key, name: p.name, quantity: p.quantity == null ? null : Number(p.quantity), unit: p.unit }))}
         />
-      </Blueprint>
+      </Collapsible>
 
+      {/* Folded by default: a hundred and fifty prices is a reference, not
+          something anyone reads top to bottom. */}
       {bySection.map((group) => (
-        <div key={group.section} style={{ marginBottom: 18 }}>
-          <div style={{ fontSize: 12, letterSpacing: ".04em", textTransform: "uppercase", color: "var(--color-neutral-600)", marginBottom: 2 }}>
-            {group.section}
-          </div>
+        <Collapsible key={group.section} title={group.section} meta={`${group.items.length}`}>
           {group.items.map((row) => (
             <PriceRowControl key={row.key} itemKey={row.key} name={row.name} unit={row.unit} price={row.price} section={row.section} source={row.source} />
           ))}
-        </div>
+        </Collapsible>
       ))}
 
       <AddPriceControl />
@@ -215,7 +225,7 @@ async function PricelistPane({ familyId, currency }: { familyId: string; currenc
 }
 
 async function MealsPane({ familyId, memberId, currency }: { familyId: string; memberId: string; currency: string }) {
-  const meals = await getMeals(familyId);
+  const [meals, recipes] = await Promise.all([getMeals(familyId), getRecipeBook(familyId)]);
 
   // Monday to Sunday, so a plan is read the way a week is lived.
   const today = new Date();
@@ -231,23 +241,34 @@ async function MealsPane({ familyId, memberId, currency }: { familyId: string; m
 
   return (
     <>
+      <div style={{ display: "flex", gap: 6, marginBottom: 12 }}>
+        <SheetButton
+          label={`Recipes (${recipes.length})`}
+          title="Recipe book"
+          icon="utensils"
+          className="btn btn-secondary"
+          style={{ flex: 1, minHeight: 40, fontSize: 13.5, gap: 6 }}
+        >
+          <RecipeBook recipes={recipes} />
+        </SheetButton>
+      </div>
+
       {days.map((day) => {
         const iso = toISODate(day);
         const forDay = byDay.get(iso) ?? [];
         const isToday = day.toDateString() === today.toDateString();
 
-        return (
-          <div key={iso} style={{ marginBottom: 18 }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
-              <span style={{ font: "600 14px/1 var(--font-heading)", color: isToday ? "var(--color-accent)" : "var(--color-text)" }}>
-                {isToday ? "Today" : day.toLocaleDateString("en-GB", { weekday: "long" })}
-              </span>
-              <span style={{ fontSize: 12.5, color: "var(--color-neutral-600)" }}>
-                {day.toLocaleDateString("en-GB", { day: "numeric", month: "short" })}
-              </span>
-              <span style={{ flex: 1, height: 1, background: "var(--color-divider)" }} />
-            </div>
+        const planned = forDay.length;
+        const toBuy = forDay.reduce((sum, m) => sum + m.missing, 0);
 
+        return (
+          // A week of four slots a day is a long page; only today is open.
+          <Collapsible
+            key={iso}
+            title={`${isToday ? "Today" : day.toLocaleDateString("en-GB", { weekday: "long" })} · ${day.toLocaleDateString("en-GB", { day: "numeric", month: "short" })}`}
+            meta={planned === 0 ? "nothing planned" : toBuy === 0 ? `${planned} planned` : `${planned} planned · ${toBuy} to buy`}
+            defaultOpen={isToday}
+          >
             {/* Every day carries all four parts, so an empty one reads as a
                 gap to fill rather than something that does not exist. */}
             {MEAL_SLOTS.map((slot) => {
@@ -275,31 +296,18 @@ async function MealsPane({ familyId, memberId, currency }: { familyId: string; m
                             {recipe ? ` · ${recipe.minutes} min` : ""}
                           </div>
                           {m.ingredientCount > 0 && (
-                            <div style={{ display: "flex", flexWrap: "wrap", gap: 4, marginTop: 5 }}>
-                              {m.ingredients.map((ing) => (
-                                <span
-                                  key={ing.key}
-                                  title={ing.inPantry ? "Already in the house" : ing.onList ? "On the shopping list" : "Not bought yet"}
-                                  style={{
-                                    display: "inline-flex",
-                                    alignItems: "center",
-                                    gap: 3,
-                                    fontSize: 11.5,
-                                    padding: "2px 8px",
-                                    borderRadius: 999,
-                                    background: ing.inPantry
-                                      ? "color-mix(in srgb, var(--color-switch-on) 16%, transparent)"
-                                      : ing.onList
-                                        ? "color-mix(in srgb, var(--cal-schedule) 14%, transparent)"
-                                        : "color-mix(in srgb, var(--color-text) 6%, transparent)",
-                                    color: "var(--color-text)",
-                                  }}
-                                >
-                                  {ing.inPantry && <Icon name="check" size={10} style={{ color: "var(--color-switch-on)" }} />}
-                                  {ing.name}
-                                </span>
-                              ))}
-                            </div>
+                            <>
+                              {/* Tap an ingredient to say the house already
+                                  has it; it then never reaches a list. */}
+                              <div style={{ display: "flex", flexWrap: "wrap", gap: 4, marginTop: 5 }}>
+                                {m.ingredients.map((ing) => (
+                                  <IngredientChip key={ing.key} name={ing.name} inPantry={ing.inPantry} onList={ing.onList} />
+                                ))}
+                              </div>
+                              <div style={{ marginTop: 7 }}>
+                                <AddIngredientsToBuyButton mealId={m.id} missing={m.missing} />
+                              </div>
+                            </>
                           )}
                         </div>
                         <Tag variant={m.missing === 0 ? "accent" : "neutral"} className="self-start">
@@ -314,7 +322,7 @@ async function MealsPane({ familyId, memberId, currency }: { familyId: string; m
                 </div>
               );
             })}
-          </div>
+          </Collapsible>
         );
       })}
 

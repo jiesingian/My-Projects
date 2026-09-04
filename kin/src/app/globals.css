@@ -565,6 +565,37 @@ textarea.input {
   display: none;
 }
 
+/* — folding group — the browser's own disclosure, dressed to match. */
+.kin-fold > summary {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  min-height: 42px;
+  padding: 4px 2px;
+  cursor: pointer;
+  list-style: none;
+  font-family: var(--font-heading);
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-text);
+  border-bottom: 1px solid var(--color-divider);
+}
+.kin-fold > summary::-webkit-details-marker {
+  display: none;
+}
+.kin-fold-mark {
+  flex: none;
+  color: var(--color-neutral-600);
+  transform: rotate(-90deg);
+  transition: transform 0.18s ease;
+}
+.kin-fold[open] > summary .kin-fold-mark {
+  transform: rotate(90deg);
+}
+.kin-fold > summary:hover {
+  color: var(--color-accent);
+}
+
 /* Shared frosted chrome for the sticky top and bottom bars. */
 .kin-glass-bar {
   background: var(--glass-bg);
