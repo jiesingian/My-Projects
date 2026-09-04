@@ -1,16 +1,16 @@
 # Graph Report - kin  (2026-09-04)
 
 ## Corpus Check
-- 134 files · ~67,165 words
+- 134 files · ~67,145 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 760 nodes · 2212 edges · 35 communities (26 shown, 9 thin omitted)
+- 760 nodes · 2214 edges · 35 communities (26 shown, 9 thin omitted)
 - Extraction: 99% EXTRACTED · 1% INFERRED · 0% AMBIGUOUS · INFERRED: 25 edges (avg confidence: 0.85)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `c369f275`
+- Built from commit: `ad4d187c`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -197,9 +197,9 @@ Nodes (3): MembersPage(), CopyInviteCode(), formatAge()
 _Questions this graph is uniquely positioned to answer:_
 
 - **Why does `createClient()` connect `createClient` to `members/[id]/page.tsx`, `getCurrentMember`, `wealth/page.tsx`, `members/page.tsx`, `auth.ts`, `buy-list.tsx`, `new-doc-form.tsx`, `actions/family.ts`, `planner/page.tsx`, `icons.tsx`, `calendar-sync.ts`, `family-address-list.tsx`, `queries/wealth.ts`, `journal/page.tsx`, `settings/page.tsx`?**
-  _High betweenness centrality (0.224) - this node is a cross-community bridge._
+  _High betweenness centrality (0.223) - this node is a cross-community bridge._
 - **Why does `getCurrentMember` connect `getCurrentMember` to `members/[id]/page.tsx`, `wealth/page.tsx`, `members/page.tsx`, `auth.ts`, `buy-list.tsx`, `actions/family.ts`, `planner/page.tsx`, `icons.tsx`, `calendar-sync.ts`, `createClient`, `accounts/[id]/page.tsx`, `journal/page.tsx`, `settings/page.tsx`?**
-  _High betweenness centrality (0.058) - this node is a cross-community bridge._
+  _High betweenness centrality (0.057) - this node is a cross-community bridge._
 - **Why does `requireCurrentMember()` connect `createClient` to `new-doc-form.tsx`, `getCurrentMember`, `auth.ts`, `buy-list.tsx`, `actions/family.ts`, `planner/page.tsx`, `icons.tsx`, `calendar-sync.ts`, `family-address-list.tsx`?**
   _High betweenness centrality (0.041) - this node is a cross-community bridge._
 - **What connects `eslintConfig`, `nextConfig`, `name` to the rest of the system?**

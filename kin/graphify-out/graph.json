@@ -2187,7 +2187,7 @@
       "file_type": "code",
       "norm_label": "synccalendarbutton()",
       "source_file": "src/components/settings-controls.tsx",
-      "source_location": "L336"
+      "source_location": "L327"
     },
     {
       "id": "src_lib_actions_calendar_sync_applyincomingevent",
@@ -2667,7 +2667,7 @@
       "file_type": "code",
       "norm_label": "calendarconnectedpanel()",
       "source_file": "src/components/settings-controls.tsx",
-      "source_location": "L307"
+      "source_location": "L298"
     },
     {
       "id": "src_components_settings_controls_driveconnectedpanel",
@@ -2679,7 +2679,7 @@
       "file_type": "code",
       "norm_label": "driveconnectedpanel()",
       "source_file": "src/components/settings-controls.tsx",
-      "source_location": "L211"
+      "source_location": "L202"
     },
     {
       "id": "src_components_settings_controls_householdnameform",
@@ -2691,7 +2691,7 @@
       "file_type": "code",
       "norm_label": "householdnameform()",
       "source_file": "src/components/settings-controls.tsx",
-      "source_location": "L131"
+      "source_location": "L122"
     },
     {
       "id": "src_components_settings_controls_householdprefsform",
@@ -2703,7 +2703,7 @@
       "file_type": "code",
       "norm_label": "householdprefsform()",
       "source_file": "src/components/settings-controls.tsx",
-      "source_location": "L159"
+      "source_location": "L150"
     },
     {
       "id": "src_components_settings_controls_invitecodecard",
@@ -2715,7 +2715,7 @@
       "file_type": "code",
       "norm_label": "invitecodecard()",
       "source_file": "src/components/settings-controls.tsx",
-      "source_location": "L109"
+      "source_location": "L100"
     },
     {
       "id": "src_components_settings_controls_migratephotosbutton",
@@ -2727,7 +2727,7 @@
       "file_type": "code",
       "norm_label": "migratephotosbutton()",
       "source_file": "src/components/settings-controls.tsx",
-      "source_location": "L277"
+      "source_location": "L268"
     },
     {
       "id": "src_components_settings_controls_notificationtoggles",
@@ -2739,7 +2739,7 @@
       "file_type": "code",
       "norm_label": "notificationtoggles()",
       "source_file": "src/components/settings-controls.tsx",
-      "source_location": "L56"
+      "source_location": "L57"
     },
     {
       "id": "src_components_settings_controls_textsizecontrol",
@@ -2751,7 +2751,7 @@
       "file_type": "code",
       "norm_label": "textsizecontrol()",
       "source_file": "src/components/settings-controls.tsx",
-      "source_location": "L30"
+      "source_location": "L31"
     },
     {
       "id": "src_components_settings_controls_themecontrol",
@@ -2763,7 +2763,7 @@
       "file_type": "code",
       "norm_label": "themecontrol()",
       "source_file": "src/components/settings-controls.tsx",
-      "source_location": "L12"
+      "source_location": "L13"
     },
     {
       "id": "src_components_wealth_controls_addaccountform",
@@ -6603,7 +6603,7 @@
       "file_type": "code",
       "norm_label": "notif_defs",
       "source_file": "src/components/settings-controls.tsx",
-      "source_location": "L48"
+      "source_location": "L49"
     },
     {
       "id": "src_components_wealth_controls",
@@ -11741,7 +11741,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/components/settings-controls.tsx",
-      "source_location": "L321",
+      "source_location": "L312",
       "weight": 1.0
     },
     {
@@ -11753,7 +11753,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/components/settings-controls.tsx",
-      "source_location": "L260",
+      "source_location": "L251",
       "weight": 1.0
     },
     {
@@ -11765,7 +11765,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/components/settings-controls.tsx",
-      "source_location": "L146",
+      "source_location": "L137",
       "weight": 1.0
     },
     {
@@ -11777,7 +11777,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/components/settings-controls.tsx",
-      "source_location": "L199",
+      "source_location": "L190",
       "weight": 1.0
     },
     {
@@ -11789,7 +11789,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/components/settings-controls.tsx",
-      "source_location": "L121",
+      "source_location": "L112",
       "weight": 1.0
     },
     {
@@ -11801,7 +11801,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/components/settings-controls.tsx",
-      "source_location": "L292",
+      "source_location": "L283",
       "weight": 1.0
     },
     {
@@ -11813,7 +11813,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/components/settings-controls.tsx",
-      "source_location": "L67",
+      "source_location": "L70",
       "weight": 1.0
     },
     {
@@ -11825,7 +11825,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/components/settings-controls.tsx",
-      "source_location": "L351",
+      "source_location": "L342",
       "weight": 1.0
     },
     {
@@ -11837,7 +11837,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/components/settings-controls.tsx",
-      "source_location": "L40",
+      "source_location": "L41",
       "weight": 1.0
     },
     {
@@ -11849,7 +11849,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/components/settings-controls.tsx",
-      "source_location": "L22",
+      "source_location": "L23",
       "weight": 1.0
     },
     {
@@ -21539,6 +21539,18 @@
     },
     {
       "source": "src_components_settings_controls",
+      "target": "src_components_ui_blueprint",
+      "relation": "imports",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "import",
+      "source_file": "src/components/settings-controls.tsx",
+      "source_location": "L11",
+      "weight": 1.0
+    },
+    {
+      "source": "src_components_settings_controls",
       "target": "src_lib_actions_settings_settextsizeaction",
       "relation": "imports",
       "_origin": "ast",
@@ -26973,6 +26985,18 @@
     },
     {
       "source": "src_components_settings_controls",
+      "target": "src_components_ui",
+      "relation": "imports_from",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "import",
+      "source_file": "src/components/settings-controls.tsx",
+      "source_location": "L11",
+      "weight": 1.0
+    },
+    {
+      "source": "src_components_settings_controls",
       "target": "src_lib_actions_settings",
       "relation": "imports_from",
       "_origin": "ast",
@@ -31360,18 +31384,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/components/settings-controls.tsx",
-      "source_location": "L109",
-      "weight": 1.0
-    },
-    {
-      "source": "src_components_settings_controls",
-      "target": "src_components_settings_controls_themecontrol",
-      "relation": "contains",
-      "_origin": "ast",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "source_file": "src/components/settings-controls.tsx",
-      "source_location": "L12",
+      "source_location": "L100",
       "weight": 1.0
     },
     {
@@ -31382,7 +31395,18 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/components/settings-controls.tsx",
-      "source_location": "L131",
+      "source_location": "L122",
+      "weight": 1.0
+    },
+    {
+      "source": "src_components_settings_controls",
+      "target": "src_components_settings_controls_themecontrol",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "src/components/settings-controls.tsx",
+      "source_location": "L13",
       "weight": 1.0
     },
     {
@@ -31393,7 +31417,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/components/settings-controls.tsx",
-      "source_location": "L159",
+      "source_location": "L150",
       "weight": 1.0
     },
     {
@@ -31404,7 +31428,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/components/settings-controls.tsx",
-      "source_location": "L211",
+      "source_location": "L202",
       "weight": 1.0
     },
     {
@@ -31415,18 +31439,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/components/settings-controls.tsx",
-      "source_location": "L277",
-      "weight": 1.0
-    },
-    {
-      "source": "src_components_settings_controls",
-      "target": "src_components_settings_controls_textsizecontrol",
-      "relation": "contains",
-      "_origin": "ast",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "source_file": "src/components/settings-controls.tsx",
-      "source_location": "L30",
+      "source_location": "L268",
       "weight": 1.0
     },
     {
@@ -31437,7 +31450,18 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/components/settings-controls.tsx",
-      "source_location": "L307",
+      "source_location": "L298",
+      "weight": 1.0
+    },
+    {
+      "source": "src_components_settings_controls",
+      "target": "src_components_settings_controls_textsizecontrol",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "src/components/settings-controls.tsx",
+      "source_location": "L31",
       "weight": 1.0
     },
     {
@@ -31448,7 +31472,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/components/settings-controls.tsx",
-      "source_location": "L336",
+      "source_location": "L327",
       "weight": 1.0
     },
     {
@@ -31459,7 +31483,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/components/settings-controls.tsx",
-      "source_location": "L48",
+      "source_location": "L49",
       "weight": 1.0
     },
     {
@@ -31470,7 +31494,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/components/settings-controls.tsx",
-      "source_location": "L56",
+      "source_location": "L57",
       "weight": 1.0
     },
     {
@@ -35059,5 +35083,5 @@
       "source_file": "README.md"
     }
   ],
-  "built_at_commit": "c369f27524d1020abd71ecfb12ba7002db39e80c"
+  "built_at_commit": "ad4d187cf0eee5d624f6f48a2d3d2030d350a04e"
 }

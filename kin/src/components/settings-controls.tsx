@@ -8,6 +8,7 @@ import { migrateProfilePhotosToDriveAction } from "@/lib/actions/photo-migration
 import { disconnectCalendarAction, syncGoogleCalendarAction } from "@/lib/actions/calendar-sync";
 import { useState } from "react";
 import { CopyInviteCode } from "@/components/copy-invite-code";
+import { Blueprint } from "@/components/ui";
 
 export function ThemeControl({ current }: { current: string }) {
   const [pending, startTransition] = useTransition();
@@ -56,13 +57,15 @@ const NOTIF_DEFS: { key: string; name: string; sub: string }[] = [
 export function NotificationToggles({ prefs }: { prefs: Record<string, boolean> }) {
   const [pending, startTransition] = useTransition();
   return (
-    <>
-      {NOTIF_DEFS.map((n) => {
+    <Blueprint style={{ paddingLeft: 15 }}>
+      {NOTIF_DEFS.map((n, i) => {
         const on = prefs[n.key] ?? true;
         return (
           <button
             key={n.key}
             type="button"
+            role="switch"
+            aria-checked={on}
             disabled={pending}
             onClick={() => startTransition(() => toggleNotificationAction(n.key, !on))}
             style={{
@@ -71,38 +74,26 @@ export function NotificationToggles({ prefs }: { prefs: Record<string, boolean> 
               cursor: "pointer",
               background: "none",
               border: 0,
-              borderBottom: "1px solid color-mix(in srgb, var(--color-text) 10%, transparent)",
-              padding: "12px 0",
+              // Separators start at the text, not the card edge.
+              borderTop: i === 0 ? undefined : "1px solid var(--color-divider)",
+              padding: "11px 15px 11px 0",
               display: "flex",
-              gap: 12,
+              gap: 14,
               alignItems: "center",
+              minHeight: 56,
               font: "inherit",
               color: "inherit",
             }}
           >
             <span style={{ flex: 1, minWidth: 0 }}>
-              <span style={{ fontSize: 14, display: "block" }}>{n.name}</span>
+              <span style={{ fontSize: 17, display: "block" }}>{n.name}</span>
               <span style={{ fontSize: 13, color: "var(--color-neutral-600)" }}>{n.sub}</span>
             </span>
-            <span
-              style={{
-                width: 38,
-                height: 21,
-                flex: "none",
-                border: `1px solid ${on ? "var(--color-accent)" : "var(--color-divider)"}`,
-                background: on ? "var(--color-accent)" : "transparent",
-                display: "flex",
-                alignItems: "center",
-                padding: 2,
-                justifyContent: on ? "flex-end" : "flex-start",
-              }}
-            >
-              <span style={{ width: 15, height: 15, background: on ? "var(--color-bg)" : "var(--color-neutral-500)", display: "block" }} />
-            </span>
+            <span className="kin-switch" data-on={on} />
           </button>
         );
       })}
-    </>
+    </Blueprint>
   );
 }
 

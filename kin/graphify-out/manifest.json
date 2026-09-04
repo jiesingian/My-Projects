@@ -306,9 +306,9 @@
     "semantic_hash": ""
   },
   "src/components/settings-controls.tsx": {
-    "mtime": 1788516168.790744,
-    "seen": 1788516330.5932164,
-    "ast_hash": "a8a8a492401565356b99a6b6238cf156",
+    "mtime": 1788518358.7906137,
+    "seen": 1788518414.0323853,
+    "ast_hash": "430100d22a28c22ed2a444ef797117a8",
     "semantic_hash": ""
   },
   "src/components/tab-bar.tsx": {
