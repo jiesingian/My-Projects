@@ -43,7 +43,10 @@ export function BuyList({
   /** What each line is expected to cost, keyed by item id. */
   prices: Record<string, { estimated: number | null; unitPrice: number | null; source: string; inPantry: boolean }>;
 }) {
-  const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
+  // Which sections are open. Empty means all closed, which is how the list
+  // starts: a shopping list is read one aisle at a time.
+  const [expanded, setExpanded] = useState<Set<string>>(new Set());
+  const [checkingOut, setCheckingOut] = useState(false);
   const [, startTransition] = useTransition();
   const [addState, addAction] = useActionState(addBuyItemAction, initialState);
   const [editing, setEditing] = useState<string | null>(null);
@@ -51,6 +54,15 @@ export function BuyList({
   const [newName, setNewName] = useState("");
   const [sectionTouched, setSectionTouched] = useState(false);
   const [sectionChoice, setSectionChoice] = useState<string>("Other");
+
+  // What the basket comes to, and what the whole list would. Both are
+  // estimates built from the price book, so a line Kin cannot price is
+  // counted as an item but not as money — and says so.
+  const allItems = groups.flatMap((g) => g.items);
+  const estimateOf = (id: string) => prices[id]?.estimated ?? 0;
+  const basketTotal = allItems.filter((i) => i.checked).reduce((sum, i) => sum + estimateOf(i.id), 0);
+  const listTotal = allItems.reduce((sum, i) => sum + estimateOf(i.id), 0);
+  const unpricedInBasket = allItems.filter((i) => i.checked && prices[i.id]?.estimated == null).length;
 
   // The section follows what's being typed until the member overrides it.
   const section = sectionTouched ? sectionChoice : guessSection(newName);
@@ -61,34 +73,60 @@ export function BuyList({
 
   return (
     <>
+      {/* A ticked item is in the basket. The card says what that basket comes
+          to against what the whole list would, so the running total is there
+          while you shop rather than at the till. */}
       <Blueprint style={{ padding: 13, marginBottom: 16 }}>
-        <div style={{ display: "flex", alignItems: "baseline", gap: 8 }}>
-          <span style={{ font: "600 13px/1 var(--font-heading)", letterSpacing: ".02em", color: "var(--color-neutral-600)" }}>
-            ONE LIST · EVERY SOURCE
-          </span>
+        <div style={{ font: "600 13px/1 var(--font-heading)", letterSpacing: ".02em", color: "var(--color-neutral-600)" }}>
+          IN THE BASKET
         </div>
-        <div style={{ display: "flex", alignItems: "baseline", gap: 8, margin: "9px 0 0" }}>
-          <span style={{ font: "600 34px/1 var(--font-heading)" }}>{openCount}</span>
-          <span style={{ fontSize: 13.5, color: "var(--color-neutral-600)" }}>still to buy · {doneCount} in the trolley</span>
+        <div style={{ display: "flex", alignItems: "baseline", gap: 7, margin: "9px 0 0" }}>
+          <span style={{ font: "600 30px/1 var(--font-heading)" }}>{formatCurrency(basketTotal, currency)}</span>
+          <span style={{ fontSize: 15, color: "var(--color-neutral-600)" }}>of {formatCurrency(listTotal, currency)}</span>
         </div>
+        <div style={{ fontSize: 13, color: "var(--color-neutral-600)", marginTop: 5 }}>
+          {doneCount} of {doneCount + openCount} item{doneCount + openCount === 1 ? "" : "s"} picked up
+          {unpricedInBasket > 0 ? ` · ${unpricedInBasket} with no price yet` : ""}
+        </div>
+
+        {/* Checking out is a decision, so it waits to be asked for. It used
+            to appear on its own the moment anything was ticked, above the
+            list, where it read as a panel that had opened itself. */}
+        {doneCount > 0 && !checkingOut && (
+          <button
+            type="button"
+            className="btn btn-primary"
+            style={{ width: "100%", minHeight: 40, fontSize: 13.5, letterSpacing: ".04em", marginTop: 11 }}
+            onClick={() => setCheckingOut(true)}
+          >
+            CHECK OUT {doneCount} ITEM{doneCount === 1 ? "" : "S"}
+          </button>
+        )}
       </Blueprint>
 
-      {doneCount > 0 && <ClearCheckedPanel familyId={familyId} doneCount={doneCount} accounts={accounts} currency={currency} />}
+      {checkingOut && (
+        <ClearCheckedPanel
+          familyId={familyId}
+          doneCount={doneCount}
+          accounts={accounts}
+          currency={currency}
+          suggested={basketTotal}
+          onClose={() => setCheckingOut(false)}
+        />
+      )}
 
       {groups.map((g) => {
-        const isCollapsed = collapsed.has(g.name);
+        const isOpen = expanded.has(g.name);
+        const inBasket = g.items.filter((i) => i.checked).length;
         return (
           <div key={g.name} style={{ marginBottom: 18 }}>
             <button
               type="button"
               onClick={() =>
-                setCollapsed((prev) => {
+                setExpanded((prev) => {
                   const next = new Set(prev);
-                  if (next.has(g.name)) {
-                    next.delete(g.name);
-                  } else {
-                    next.add(g.name);
-                  }
+                  if (next.has(g.name)) next.delete(g.name);
+                  else next.add(g.name);
                   return next;
                 })
               }
@@ -104,13 +142,14 @@ export function BuyList({
                 gap: 8,
               }}
             >
-              <Icon name="chevronLeft" size={12} className="text-[var(--color-neutral-600)]" style={{ transform: isCollapsed ? "rotate(0deg)" : "rotate(-90deg)" }} />
+              <Icon name="chevronLeft" size={12} className="text-[var(--color-neutral-600)]" style={{ transform: isOpen ? "rotate(-90deg)" : "rotate(0deg)" }} />
               <span style={{ font: "600 13px/1 var(--font-heading)", letterSpacing: ".02em", textTransform: "uppercase" }}>{g.name}</span>
               <span style={{ font: "400 12px/1 var(--font-numeric)", color: "var(--color-neutral-600)", marginLeft: "auto" }}>
-                {g.openCount} OF {g.items.length}
+                {g.items.length} ITEM{g.items.length === 1 ? "" : "S"}
+                {inBasket > 0 ? ` · ${inBasket} IN BASKET` : ""}
               </span>
             </button>
-            {!isCollapsed &&
+            {isOpen &&
               g.items.map((item) => (
                 <div key={item.id}>
                 <div style={{ display: "flex", gap: 11, alignItems: "center", padding: "10px 0", borderBottom: "1px solid color-mix(in srgb, var(--color-text) 10%, transparent)" }}>
@@ -339,13 +378,19 @@ function ClearCheckedPanel({
   doneCount,
   accounts,
   currency,
+  suggested,
+  onClose,
 }: {
   familyId: string;
   doneCount: number;
   accounts: PickableAccount[];
   currency: string;
+  /** What the basket was estimated at — the till usually agrees closely
+   * enough that this is the right number to start from. */
+  suggested: number;
+  onClose: () => void;
 }) {
-  const [amount, setAmount] = useState(0);
+  const [amount, setAmount] = useState(Math.round(suggested * 100) / 100);
   const [accountId, setAccountId] = useState(accounts[0]?.id ?? "");
   const [pending, startTransition] = useTransition();
   const router = useRouter();
@@ -363,14 +408,21 @@ function ClearCheckedPanel({
         });
       }
       await clearCheckedAction(familyId);
+      // The basket is empty now, so the till closes with it.
+      onClose();
       router.refresh();
     });
   }
 
   return (
     <Blueprint className="bg-[var(--color-accent-100)]" style={{ padding: "12px 13px", marginBottom: 16 }}>
-      <div style={{ fontSize: 13.5, marginBottom: 10 }}>
-        {doneCount} item{doneCount === 1 ? "" : "s"} in the trolley — what did the shop come to?
+      <div style={{ display: "flex", alignItems: "baseline", gap: 8, marginBottom: 10 }}>
+        <span style={{ fontSize: 13.5, flex: 1, minWidth: 0 }}>
+          {doneCount} item{doneCount === 1 ? "" : "s"} in the basket — what did the shop come to?
+        </span>
+        <button type="button" className="btn btn-ghost" style={{ minHeight: 28, fontSize: 12.5, padding: "0 6px" }} onClick={onClose}>
+          Not yet
+        </button>
       </div>
       {accounts.length > 0 && (
         <div style={{ display: "flex", gap: 8, marginBottom: 10 }}>
