@@ -484,7 +484,10 @@ textarea.input {
 .kin-tab {
   background: none;
   border: 0;
-  padding: 0;
+  /* The bar's own top padding used to be dead space above the tabs; it is
+     part of each tab's target now, so a thumb aiming at the bar's edge hits
+     the tab rather than nothing. */
+  padding: 8px 0 0;
   cursor: pointer;
   font-family: var(--font-body);
   display: flex;
@@ -756,14 +759,19 @@ textarea.input {
   box-shadow: 0 4px 14px color-mix(in srgb, var(--color-accent) 45%, transparent);
 }
 
-/* — the assistant's button — floats over every page, clear of the tab bar. */
+/* — the assistant's button — floats over every page, well clear of the tab
+   bar. It used to sit 18px above it and directly over Wealth, so a thumb
+   reaching for the last tab opened Kin instead. It is higher and smaller
+   now, and sits *under* the bar in the stack, so anywhere the two ever meet
+   the tab takes the tap. */
 .kin-fab {
   position: fixed;
   right: 18px;
-  bottom: calc(env(safe-area-inset-bottom, 0px) + 84px);
-  z-index: 40;
-  width: 52px;
-  height: 52px;
+  bottom: calc(env(safe-area-inset-bottom, 0px) + 110px);
+  z-index: 25;
+  width: 48px;
+  height: 48px;
+  touch-action: manipulation;
   border-radius: 999px;
   border: 0;
   cursor: pointer;

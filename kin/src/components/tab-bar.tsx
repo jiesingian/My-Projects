@@ -40,7 +40,9 @@ export function TabBar({ chatUnread = 0, chatMentioned = false }: { chatUnread?:
           width: "100%",
           maxWidth: 720,
           margin: "0 auto",
-          padding: "8px 6px calc(env(safe-area-inset-bottom, 0px) + 8px)",
+          // The top padding now lives on each tab, so the whole height of
+          // the bar is tappable rather than only the icon and its label.
+          padding: "0 6px calc(env(safe-area-inset-bottom, 0px) + 8px)",
         }}
       >
         {TABS.map((t) => {
