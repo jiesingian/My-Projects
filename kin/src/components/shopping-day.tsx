@@ -4,7 +4,8 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Icon } from "@/components/icons";
 import Link from "next/link";
-import { SHOPPING_KINDS, setShoppingDayAction, clearShoppingDayAction, moveShoppingRunAction } from "@/lib/actions/household";
+import { setShoppingDayAction, clearShoppingDayAction, moveShoppingRunAction } from "@/lib/actions/household";
+import { SHOPPING_KINDS } from "@/lib/grocery";
 
 /** Book the day this list gets bought on. It goes on the family calendar as
  * an activity, so it syncs to Google Calendar with everything else — the

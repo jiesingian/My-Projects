@@ -456,10 +456,6 @@ export async function saveRecipeAction(input: {
   return { error: null };
 }
 
-/** The kinds of trip a to-buy list gets bought on. Free text is allowed too;
- * these are just the ones worth one tap. */
-export const SHOPPING_KINDS = ["Grocery run", "Palengke", "Shopping", "Pharmacy", "Hardware"] as const;
-
 /** Put the shopping day on the calendar and tie the to-buy list to it. It is
  * an ordinary activity, so it shows in the Planner and syncs to Google
  * Calendar like everything else — the to-buy list is simply counting down to

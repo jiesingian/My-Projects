@@ -22,6 +22,10 @@ export const MARKET_SECTIONS = [
 
 export type MarketSection = (typeof MARKET_SECTIONS)[number];
 
+/** The kinds of trip a to-buy list gets bought on. Free text is allowed too;
+ * these are just the ones worth one tap. */
+export const SHOPPING_KINDS = ["Grocery run", "Palengke", "Shopping", "Pharmacy", "Hardware"] as const;
+
 export function sectionOrder(section: string): number {
   const i = (MARKET_SECTIONS as readonly string[]).indexOf(section);
   return i === -1 ? MARKET_SECTIONS.length : i;
