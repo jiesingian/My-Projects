@@ -17,7 +17,7 @@ import { syncGoogleCalendarIfStale } from "@/lib/actions/calendar-sync";
 import { HubHeader } from "@/components/hub-header";
 import { PickButton } from "@/components/pick-button";
 import { Blueprint, Tag } from "@/components/ui";
-import { formatCurrency, formatDate, shortNames } from "@/lib/format";
+import { formatCurrency, formatDate, shortNames, selfLabel } from "@/lib/format";
 import { AddToJournalButton } from "@/components/add-to-journal-button";
 import { Icon } from "@/components/icons";
 import { CALENDAR_LEGEND, styleFor } from "@/lib/calendar-style";
@@ -65,7 +65,7 @@ export default async function PlannerPage({
     <div>
       <HubHeader n="03" title="Planner" segments={segments} />
       <div style={{ padding: "0 22px 22px" }}>
-        {seg === "calendar" && <CalendarPane familyId={me.family_id} who={who} view={view} anchor={anchor} hidden={hidden} />}
+        {seg === "calendar" && <CalendarPane familyId={me.family_id} meId={me.id} who={who} view={view} anchor={anchor} hidden={hidden} />}
         {seg === "routines" && <RoutinesPane familyId={me.family_id} who={who} currency={me.families.currency} justSaved={sp.saved === "1"} />}
         {seg === "events" && <EventsPane familyId={me.family_id} who={who} />}
         {seg === "travel" && <TravelPane familyId={me.family_id} memberId={me.id} currency={me.families.currency} who={who} />}
@@ -89,11 +89,13 @@ function calendarBase(who: string, view: CalendarView, hide = "") {
   return `/planner?seg=calendar&who=${who}&view=${view}&hide=${hide}&date=`;
 }
 
-async function CalendarPane({ familyId, who, view, anchor, hidden }: { familyId: string; who: string; view: CalendarView; anchor: Date; hidden: Set<CalendarGroup> }) {
+async function CalendarPane({ familyId, meId, who, view, anchor, hidden }: { familyId: string; meId: string; who: string; view: CalendarView; anchor: Date; hidden: Set<CalendarGroup> }) {
   const hide = serializeHidden(hidden);
   const [members, sync] = await Promise.all([getMembers(familyId), getCalendarSyncStatus(familyId)]);
   const activeMembers = members.filter((m) => m.status !== "pending" && m.status !== "removed");
-  const memberLabels = shortNames(activeMembers.map((m) => m.full_name));
+  // Your own entry says "Me": a filter naming you reads like someone else
+  // looking at your house.
+  const memberLabels = shortNames(activeMembers.map((m) => m.full_name)).map((l, i) => selfLabel(l, activeMembers[i].id === meId));
   const memberId = who === "all" ? undefined : who;
 
   // The title names the period, and stays on one line: the dates themselves
@@ -749,9 +751,9 @@ async function RoutinesPane({ familyId, who, currency, justSaved }: { familyId: 
 /** The member filter, shared by every Planner tab so choosing a person means
  * the same thing wherever you are and survives switching tab. */
 async function MemberChips({ familyId, seg, who }: { familyId: string; seg: string; who: string }) {
-  const members = await getMembers(familyId);
+  const [members, me] = await Promise.all([getMembers(familyId), getCurrentMember()]);
   const active = members.filter((m) => m.status !== "pending" && m.status !== "removed");
-  const labels = shortNames(active.map((m) => m.full_name));
+  const labels = shortNames(active.map((m) => m.full_name)).map((l, i) => selfLabel(l, active[i].id === me?.id));
 
   return (
     <div style={{ display: "flex", marginBottom: 14 }}>

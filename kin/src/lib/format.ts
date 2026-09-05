@@ -48,3 +48,15 @@ export function shortNames(fullNames: string[]): string[] {
     return initialsSuffice ? `${first} ${rest.charAt(0).toUpperCase()}.` : `${first} ${rest.split(/\s+/)[0]}`;
   });
 }
+
+/** How a person is named to themselves. A filter that says "Janine" reads
+ * like someone else's view of the house; the same filter saying "Me" reads
+ * like your own. Everyone else keeps their name. */
+export function selfLabel(label: string, isMe: boolean): string {
+  return isMe ? "Me" : label;
+}
+
+/** The possessive of that: "My accounts", "Janine's accounts". */
+export function selfPossessive(label: string, isMe: boolean): string {
+  return isMe ? "My" : `${label}\u2019s`;
+}

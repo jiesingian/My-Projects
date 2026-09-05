@@ -13,7 +13,7 @@ import {
   RemoveButton,
   type PickableAccount,
 } from "@/components/money-actions";
-import { formatCurrency, formatDate, shortNames } from "@/lib/format";
+import { formatCurrency, formatDate, shortNames, selfLabel, selfPossessive } from "@/lib/format";
 import { getMembers } from "@/lib/queries/family";
 import { PickButton } from "@/components/pick-button";
 import { AccountPrivacyToggle } from "@/components/money-actions";
@@ -238,14 +238,18 @@ function QuickActions() {
   );
 }
 
-/* ---------------------------------------------------------- joint & mine */
+/* ------------------------------------------------------------- accounts */
 
 async function ScopePane({ scope, familyId, memberId, currency }: { scope: WealthScope; familyId: string; memberId: string; currency: string }) {
   const [pane, members] = await Promise.all([getWealthPane(familyId, memberId, scope), getMembers(familyId)]);
   const active = members.filter((m) => m.status !== "pending" && m.status !== "removed");
-  const labels = shortNames(active.map((m) => m.full_name));
+  // Your own entry says "Me", and the headings that follow from it say "My"
+  // rather than your own name back at you.
+  const labels = shortNames(active.map((m) => m.full_name)).map((l, i) => selfLabel(l, active[i].id === memberId));
   const isJoint = scope === "all";
+  const mine = scope === memberId;
   const whoLabel = isJoint ? "All" : (labels[active.findIndex((m) => m.id === scope)] ?? "All");
+  const whosePossessive = selfPossessive(whoLabel, mine);
   const monthLabel = new Date(pane.year, pane.month - 1, 1).toLocaleString("en-PH", { month: "long", year: "numeric" }).toUpperCase();
   const categories = [...pane.allocations, ...pane.unbudgeted];
 
@@ -262,12 +266,12 @@ async function ScopePane({ scope, familyId, memberId, currency }: { scope: Wealt
           ]}
         />
         <span style={{ fontSize: 12.5, color: "var(--color-neutral-600)" }}>
-          {isJoint ? "Everything you can see" : scope === memberId ? "Your own accounts" : "Their accounts, as shared"}
+          {isJoint ? "Everything you can see" : mine ? "Your own accounts" : "Their accounts, as shared"}
         </span>
       </div>
 
       <Hero
-        label={isJoint ? "ALL ACCOUNTS · COMBINED" : `${whoLabel.toUpperCase()} · COMBINED`}
+        label={isJoint ? "ALL ACCOUNTS · COMBINED" : `${whosePossessive.toUpperCase()} ACCOUNTS · COMBINED`}
         amount={pane.total}
         currency={currency}
         caption={`${pane.accounts.length} account${pane.accounts.length === 1 ? "" : "s"} · ${monthLabel}`}
@@ -288,7 +292,7 @@ async function ScopePane({ scope, familyId, memberId, currency }: { scope: Wealt
             value={pane.monthIncome}
             cap={pane.budgetAmount}
             currency={currency}
-            note={scope === memberId ? "Your own revenue target this month." : `${whoLabel}'s target this month.`}
+            note={mine ? "Your own revenue target this month." : `${whosePossessive} target this month.`}
           />
           {/* Only your own target is yours to set. */}
           {scope === memberId && <SetTargetControl memberId={memberId} familyId={familyId} month={pane.month} year={pane.year} current={pane.budgetAmount} />}
@@ -323,7 +327,7 @@ async function ScopePane({ scope, familyId, memberId, currency }: { scope: Wealt
 
       <PendingBlock pending={pane.pending} currency={currency} />
 
-      <SectionLabel>{isJoint ? "ACCOUNTS" : `${whoLabel.toUpperCase()}\u2019S ACCOUNTS`}</SectionLabel>
+      <SectionLabel>{isJoint ? "ACCOUNTS" : `${whosePossessive.toUpperCase()} ACCOUNTS`}</SectionLabel>
       {pane.accounts.length === 0 && <p style={{ fontSize: 13.5, color: "var(--color-neutral-600)" }}>No accounts yet.</p>}
       {pane.accounts.map((a) => (
         <Link
@@ -356,7 +360,7 @@ async function ScopePane({ scope, familyId, memberId, currency }: { scope: Wealt
       ))}
       {/* A new account is opened in your own name, so it is only offered
           where that is what you would mean. */}
-      {(isJoint || scope === memberId) && <AddAccountForm isJoint={isJoint} />}
+      {(isJoint || mine) && <AddAccountForm isJoint={isJoint} />}
 
       {pane.recent.length > 0 && (
         <>
