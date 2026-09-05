@@ -10,6 +10,7 @@ import type { ActionState } from "@/lib/actions/auth";
 import { SubmitButton, ErrorText } from "@/components/form";
 import { Blueprint, Tag } from "@/components/ui";
 import { Icon } from "@/components/icons";
+import { ShoppingDayControl } from "@/components/shopping-day";
 import { formatCurrency } from "@/lib/format";
 import type { PickableAccount } from "@/components/money-actions";
 import type { Tables } from "@/lib/database.types";
@@ -33,6 +34,9 @@ export function BuyList({
   accounts,
   currency,
   prices,
+  unpriced,
+  trip,
+  pricesSlot,
 }: {
   groups: BuyGroup[];
   openCount: number;
@@ -42,6 +46,21 @@ export function BuyList({
   currency: string;
   /** What each line is expected to cost, keyed by item id. */
   prices: Record<string, { estimated: number | null; unitPrice: number | null; source: string; inPantry: boolean }>;
+  /** How many lines Kin has no price for, so the total can say so. */
+  unpriced: number;
+  /** The day this list is being bought on, if one is set. */
+  trip: {
+    id: string;
+    title: string;
+    iso: string;
+    time: string;
+    budget: number | null;
+    source: "trip" | "routine";
+    occurrenceDate?: string;
+    when: string;
+  } | null;
+  /** The Prices & pantry sheet, built on the server and passed in. */
+  pricesSlot: React.ReactNode;
 }) {
   // Which sections are open. Empty means all closed, which is how the list
   // starts: a shopping list is read one aisle at a time.
@@ -62,7 +81,6 @@ export function BuyList({
   const estimateOf = (id: string) => prices[id]?.estimated ?? 0;
   const basketTotal = allItems.filter((i) => i.checked).reduce((sum, i) => sum + estimateOf(i.id), 0);
   const listTotal = allItems.reduce((sum, i) => sum + estimateOf(i.id), 0);
-  const unpricedInBasket = allItems.filter((i) => i.checked && prices[i.id]?.estimated == null).length;
 
   // The section follows what's being typed until the member overrides it.
   const section = sectionTouched ? sectionChoice : guessSection(newName);
@@ -73,20 +91,64 @@ export function BuyList({
 
   return (
     <>
-      {/* A ticked item is in the basket. The card says what that basket comes
-          to against what the whole list would, so the running total is there
-          while you shop rather than at the till. */}
-      <Blueprint style={{ padding: 13, marginBottom: 16 }}>
-        <div style={{ font: "600 13px/1 var(--font-heading)", letterSpacing: ".02em", color: "var(--color-neutral-600)" }}>
-          IN THE BASKET
+      {/* One card for the whole shop: what the list comes to, how much of it
+          is already in the basket, what is still to buy, the day it is being
+          bought on and the budget for it. They were two cards saying halves
+          of the same thing. */}
+      <Blueprint style={{ padding: 14, marginBottom: 14 }}>
+        <div style={{ display: "flex", alignItems: "baseline", gap: 8 }}>
+          <span style={{ fontSize: 12, letterSpacing: ".04em", textTransform: "uppercase", color: "var(--color-neutral-600)" }}>
+            This list
+          </span>
+          <span style={{ marginLeft: "auto", font: "600 24px/1 var(--font-heading)" }}>{formatCurrency(listTotal, currency)}</span>
         </div>
-        <div style={{ display: "flex", alignItems: "baseline", gap: 7, margin: "9px 0 0" }}>
-          <span style={{ font: "600 30px/1 var(--font-heading)" }}>{formatCurrency(basketTotal, currency)}</span>
-          <span style={{ fontSize: 15, color: "var(--color-neutral-600)" }}>of {formatCurrency(listTotal, currency)}</span>
+
+        {/* How far round the shop you are: the filled part is in the basket. */}
+        <div style={{ height: 7, borderRadius: 999, overflow: "hidden", background: "color-mix(in srgb, var(--color-text) 9%, transparent)", margin: "9px 0 7px" }}>
+          <div style={{ height: "100%", width: `${listTotal > 0 ? Math.min(100, (basketTotal / listTotal) * 100) : 0}%`, background: "var(--color-switch-on)" }} />
         </div>
-        <div style={{ fontSize: 13, color: "var(--color-neutral-600)", marginTop: 5 }}>
-          {doneCount} of {doneCount + openCount} item{doneCount + openCount === 1 ? "" : "s"} picked up
-          {unpricedInBasket > 0 ? ` · ${unpricedInBasket} with no price yet` : ""}
+
+        <div style={{ display: "flex", alignItems: "baseline", gap: 8, fontSize: 13 }}>
+          <span>
+            <strong style={{ fontWeight: 600 }}>{formatCurrency(basketTotal, currency)}</strong>
+            <span style={{ color: "var(--color-neutral-700)" }}> in the basket · {doneCount} of {doneCount + openCount}</span>
+          </span>
+          <span style={{ marginLeft: "auto", color: "var(--color-neutral-700)" }}>
+            {formatCurrency(listTotal - basketTotal, currency)} still to buy
+          </span>
+        </div>
+
+        {unpriced > 0 && (
+          <div style={{ fontSize: 12, color: "var(--color-neutral-700)", marginTop: 6 }}>
+            {unpriced === 1 ? "One item has no price yet" : `${unpriced} items have no price yet`} — the totals leave them out.
+          </div>
+        )}
+
+        {/* The day, its budget, and the two things you might do about it. */}
+        <div style={{ paddingTop: 10, marginTop: 10, borderTop: "1px solid var(--color-divider)" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 7, fontSize: 13.5 }}>
+            <Icon name="basket" size={15} style={{ color: trip ? "var(--cal-schedule)" : "var(--color-neutral-600)", flex: "none" }} />
+            <span style={{ flex: 1, minWidth: 0, color: trip ? "var(--color-text)" : "var(--color-neutral-700)" }}>
+              {trip ? `${trip.title} · ${trip.when}` : "No shopping day yet"}
+            </span>
+            {trip &&
+              (trip.budget != null ? (
+                <span style={{ fontSize: 12.5, flex: "none", color: listTotal > trip.budget ? "var(--cal-money)" : "var(--color-neutral-700)" }}>
+                  {listTotal > trip.budget
+                    ? `${formatCurrency(listTotal - trip.budget, currency)} over budget`
+                    : `${formatCurrency(trip.budget - listTotal, currency)} under`}
+                </span>
+              ) : (
+                // Still said, just not in a paragraph of its own: the budget
+                // field is inside Change the day, one tap below.
+                <span style={{ fontSize: 12.5, flex: "none", color: "var(--color-neutral-600)" }}>no budget</span>
+              ))}
+          </div>
+
+          <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", marginTop: 2 }}>
+            <ShoppingDayControl run={trip} />
+            <span style={{ marginLeft: "auto" }}>{pricesSlot}</span>
+          </div>
         </div>
 
         {/* Checking out is a decision, so it waits to be asked for. It used

@@ -3,7 +3,7 @@ import { redirect } from "next/navigation";
 import { getCurrentMember } from "@/lib/session";
 import { getBuyItems, getMealsForDay, type PlannedMeal } from "@/lib/queries/household";
 import { getAccounts } from "@/lib/queries/wealth";
-import { getPriceBook, getPricedBuyList, getNextShoppingRun, getPantry, type ShoppingRun } from "@/lib/queries/household-money";
+import { getPriceBook, getPricedBuyList, getNextShoppingRun, getPantry } from "@/lib/queries/household-money";
 import { HubHeader } from "@/components/hub-header";
 import { BuyList } from "@/components/buy-list";
 import { Blueprint, Tag } from "@/components/ui";
@@ -14,10 +14,8 @@ import { RecipeBook, AddIngredientsToBuyButton } from "@/components/recipe-book"
 import { getRecipeBook, getRecipeCategories } from "@/lib/queries/recipes";
 import { AddMealControl, RemoveMealButton } from "@/components/meal-controls";
 import { CalendarJump, TodayButton } from "@/components/calendar-nav";
-import { ShoppingDayControl } from "@/components/shopping-day";
 import { MealPhotoControl, IngredientAmountRow, AddIngredientRow } from "@/components/meal-day";
 import { Icon } from "@/components/icons";
-import { formatCurrency } from "@/lib/format";
 import { PRICE_BOOK_SET_ON } from "@/lib/pricebook";
 import { plateTone } from "@/lib/meal-photos";
 import { MEAL_SLOTS, MEAL_SLOT_LABEL } from "@/lib/recipes";
@@ -49,117 +47,6 @@ export default async function HouseholdPage({ searchParams }: { searchParams: Pr
   );
 }
 
-/** What the trip is expected to cost, against the day it happens and the
- * money set aside for it — the three things that decide whether the list as
- * it stands is affordable. */
-function ShoppingBudgetCard({
-  run,
-  remaining,
-  unpriced,
-  currency,
-}: {
-  run: ShoppingRun | null;
-  remaining: number;
-  unpriced: number;
-  currency: string;
-}) {
-  const over = run?.budget != null && remaining > run.budget;
-  // Whichever comes first is what the list counts down to, and either can be
-  // moved from here: a booked day is edited, a routine's turn is moved for
-  // that week alone.
-  const editable: React.ComponentProps<typeof ShoppingDayControl>["run"] = run
-    ? {
-        id: run.id,
-        title: run.title,
-        iso: toISODate(run.date),
-        time: `${String(run.date.getHours()).padStart(2, "0")}:${String(run.date.getMinutes()).padStart(2, "0")}`,
-        budget: run.budget,
-        source: run.source,
-        occurrenceDate: run.occurrenceDate,
-      }
-    : null;
-
-  return (
-    <Blueprint style={{ padding: 14, marginBottom: 14 }}>
-      <div style={{ display: "flex", alignItems: "baseline", gap: 8, marginBottom: 8 }}>
-        <span style={{ fontSize: 12, letterSpacing: ".04em", textTransform: "uppercase", color: "var(--color-neutral-600)" }}>Still to buy</span>
-        <span style={{ marginLeft: "auto", font: "600 22px/1 var(--font-heading)" }}>{formatCurrency(remaining, currency)}</span>
-      </div>
-
-      {unpriced > 0 && (
-        <div style={{ fontSize: 12.5, color: "var(--color-neutral-700)", marginBottom: 8 }}>
-          {unpriced === 1 ? "One item has no price yet" : `${unpriced} items have no price yet`} — the total leaves them out.{" "}
-<strong>Prices &amp; pantry</strong> below sets them.
-        </div>
-      )}
-
-      {run ? (
-        <div style={{ display: "flex", flexDirection: "column", gap: 6, paddingTop: 10, borderTop: "1px solid var(--color-divider)" }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 7, fontSize: 13.5 }}>
-            <Icon name="basket" size={15} style={{ color: "var(--cal-schedule)", flex: "none" }} />
-            <span style={{ flex: 1, minWidth: 0 }}>
-              {run.title} · {run.date.toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "short" })}
-            </span>
-          </div>
-
-          {run.budget != null ? (
-            <>
-              <div style={{ display: "flex", alignItems: "baseline", gap: 8, fontSize: 13.5 }}>
-                <span style={{ color: "var(--color-neutral-700)" }}>Budget for this run</span>
-                <span style={{ marginLeft: "auto", fontWeight: 500 }}>{formatCurrency(run.budget, currency)}</span>
-              </div>
-              <div style={{ height: 6, borderRadius: 999, overflow: "hidden", background: "color-mix(in srgb, var(--color-text) 8%, transparent)" }}>
-                <div
-                  style={{
-                    height: "100%",
-                    width: `${Math.min(100, run.budget > 0 ? (remaining / run.budget) * 100 : 0)}%`,
-                    background: over ? "var(--cal-money)" : "var(--color-switch-on)",
-                  }}
-                />
-              </div>
-              <div style={{ fontSize: 12.5, color: over ? "var(--cal-money)" : "var(--color-neutral-700)" }}>
-                {over
-                  ? `${formatCurrency(remaining - run.budget, currency)} over the budget set for this run.`
-                  : `${formatCurrency(run.budget - remaining, currency)} left in the budget for this run.`}
-              </div>
-            </>
-          ) : (
-            <div style={{ fontSize: 12.5, color: "var(--color-neutral-700)" }}>
-              No budget set for this run.{" "}
-              {run.source === "routine" ? (
-                <>
-                  <Link href="/planner?seg=routines" style={{ textDecoration: "none" }}>
-                    Give it one
-                  </Link>{" "}
-                  and marking it done posts the spend to Wealth.
-                </>
-              ) : (
-                <>Change the day below to give it one, and this card counts the list against it.</>
-              )}
-            </div>
-          )}
-          <ShoppingDayControl run={editable} />
-        </div>
-      ) : (
-        <div style={{ paddingTop: 10, borderTop: "1px solid var(--color-divider)" }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 7, fontSize: 13.5 }}>
-            <Icon name="basket" size={15} style={{ color: "var(--color-neutral-600)", flex: "none" }} />
-            <span style={{ flex: 1, minWidth: 0, color: "var(--color-neutral-700)" }}>No shopping day yet</span>
-          </div>
-          <ShoppingDayControl run={null} />
-          <div style={{ fontSize: 12.5, color: "var(--color-neutral-700)", marginTop: 4 }}>
-            Book one and it lands on the family calendar. For a trip that comes round every week,{" "}
-            <Link href="/planner/routines/new" style={{ textDecoration: "none" }}>
-              make it a routine
-            </Link>{" "}
-            instead.
-          </div>
-        </div>
-      )}
-    </Blueprint>
-  );
-}
-
 async function BuyPane({ familyId, memberId, currency }: { familyId: string; memberId: string; currency: string }) {
   const [{ groups, openCount, doneCount }, accounts, priced, run] = await Promise.all([
     getBuyItems(familyId),
@@ -168,30 +55,45 @@ async function BuyPane({ familyId, memberId, currency }: { familyId: string; mem
     getNextShoppingRun(familyId),
   ]);
 
+  // Whichever comes first is what the list counts down to, and either can be
+  // moved: a booked day is edited, a routine's turn is moved for that week
+  // alone.
+  const trip = run
+    ? {
+        id: run.id,
+        title: run.title,
+        iso: toISODate(run.date),
+        time: `${String(run.date.getHours()).padStart(2, "0")}:${String(run.date.getMinutes()).padStart(2, "0")}`,
+        budget: run.budget,
+        source: run.source,
+        occurrenceDate: run.occurrenceDate,
+        when: run.date.toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "short" }),
+      }
+    : null;
+
   return (
     <>
-      <ShoppingBudgetCard run={run} remaining={priced.estimatedRemaining} unpriced={priced.unpricedCount} currency={currency} />
-
-      {/* Small, like the recipe book's: a reference you open now and then,
-          not the thing this page is for. */}
-      <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 10 }}>
-        <SheetButton
-          label="Prices & pantry"
-          title="Prices & pantry"
-          icon="receipt"
-          className="btn btn-secondary"
-          style={{ minHeight: 34, fontSize: 13, padding: "0 10px", gap: 5 }}
-        >
-          <PriceBookSheet familyId={familyId} currency={currency} />
-        </SheetButton>
-      </div>
-
       <BuyList
         groups={groups}
         openCount={openCount}
         doneCount={doneCount}
         familyId={familyId}
         currency={currency}
+        unpriced={priced.unpricedCount}
+        trip={trip}
+        /* Server-rendered, handed to the client card as a slot: the sheet's
+           contents are a server component and cannot be built inside one. */
+        pricesSlot={
+          <SheetButton
+            label="Prices & pantry"
+            title="Prices & pantry"
+            icon="receipt"
+            className="btn btn-secondary"
+            style={{ minHeight: 30, fontSize: 12.5, padding: "0 9px", gap: 5 }}
+          >
+            <PriceBookSheet familyId={familyId} currency={currency} />
+          </SheetButton>
+        }
         prices={Object.fromEntries(
           priced.items.map((it) => [it.id, { estimated: it.estimated, unitPrice: it.unitPrice, source: it.priceSource, inPantry: it.inPantry }]),
         )}
