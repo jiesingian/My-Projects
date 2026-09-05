@@ -1108,6 +1108,133 @@ export type Database = {
           },
         ]
       }
+      family_message_reactions: {
+        Row: {
+          created_at: string
+          emoji: string
+          family_id: string
+          member_id: string
+          message_id: string
+        }
+        Insert: {
+          created_at?: string
+          emoji: string
+          family_id: string
+          member_id: string
+          message_id: string
+        }
+        Update: {
+          created_at?: string
+          emoji?: string
+          family_id?: string
+          member_id?: string
+          message_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "family_message_reactions_family_id_fkey"
+            columns: ["family_id"]
+            isOneToOne: false
+            referencedRelation: "families"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "family_message_reactions_member_id_fkey"
+            columns: ["member_id"]
+            isOneToOne: false
+            referencedRelation: "members"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "family_message_reactions_message_id_fkey"
+            columns: ["message_id"]
+            isOneToOne: false
+            referencedRelation: "family_messages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      family_message_reads: {
+        Row: {
+          family_id: string
+          last_read_at: string
+          member_id: string
+        }
+        Insert: {
+          family_id: string
+          last_read_at?: string
+          member_id: string
+        }
+        Update: {
+          family_id?: string
+          last_read_at?: string
+          member_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "family_message_reads_family_id_fkey"
+            columns: ["family_id"]
+            isOneToOne: false
+            referencedRelation: "families"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "family_message_reads_member_id_fkey"
+            columns: ["member_id"]
+            isOneToOne: true
+            referencedRelation: "members"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      family_messages: {
+        Row: {
+          body: string
+          created_at: string
+          deleted_at: string | null
+          edited_at: string | null
+          family_id: string
+          id: string
+          member_id: string | null
+          mentions: string[]
+        }
+        Insert: {
+          body: string
+          created_at?: string
+          deleted_at?: string | null
+          edited_at?: string | null
+          family_id: string
+          id?: string
+          member_id?: string | null
+          mentions?: string[]
+        }
+        Update: {
+          body?: string
+          created_at?: string
+          deleted_at?: string | null
+          edited_at?: string | null
+          family_id?: string
+          id?: string
+          member_id?: string | null
+          mentions?: string[]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "family_messages_family_id_fkey"
+            columns: ["family_id"]
+            isOneToOne: false
+            referencedRelation: "families"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "family_messages_member_id_fkey"
+            columns: ["member_id"]
+            isOneToOne: false
+            referencedRelation: "members"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       family_recipe_categories: {
         Row: {
           created_at: string

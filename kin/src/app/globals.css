@@ -704,3 +704,73 @@ textarea.input {
   width: 42px;
   height: 42px;
 }
+
+/* — chat bubble — the household's thread. Yours in the tint, everyone
+   else's on the neutral ground, and a tap opens what can be done to it. */
+.kin-bubble {
+  display: inline-block;
+  text-align: left;
+  border: 0;
+  cursor: pointer;
+  font-family: var(--font-body);
+  font-size: 15px;
+  line-height: 1.4;
+  padding: 8px 12px;
+  border-radius: 18px;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  background: color-mix(in srgb, var(--color-text) 7%, transparent);
+  color: var(--color-text);
+}
+.kin-bubble[data-mine="true"] {
+  background: var(--color-accent);
+  color: #fff;
+}
+/* Tagged you: the one message in a busy thread that is actually yours to
+   answer, marked without changing what colour means elsewhere. */
+.kin-bubble[data-tagged="true"] {
+  box-shadow: inset 0 0 0 1.5px var(--color-accent);
+}
+
+/* — the centre tab — Today, raised and larger, the way home is on a phone. */
+.kin-tab-home {
+  flex: 1.2;
+}
+.kin-tab-home .kin-tab-disc {
+  width: 46px;
+  height: 46px;
+  border-radius: 999px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-top: -14px;
+  background: color-mix(in srgb, var(--color-text) 7%, transparent);
+  color: var(--color-neutral-600);
+  border: 1px solid var(--color-divider);
+  transition: background 0.15s ease, color 0.15s ease;
+}
+.kin-tab-home[data-active="true"] .kin-tab-disc {
+  background: var(--color-accent);
+  border-color: transparent;
+  color: #fff;
+  box-shadow: 0 4px 14px color-mix(in srgb, var(--color-accent) 45%, transparent);
+}
+
+/* — the assistant's button — floats over every page, clear of the tab bar. */
+.kin-fab {
+  position: fixed;
+  right: 18px;
+  bottom: calc(env(safe-area-inset-bottom, 0px) + 84px);
+  z-index: 40;
+  width: 52px;
+  height: 52px;
+  border-radius: 999px;
+  border: 0;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--color-accent);
+  color: #fff;
+  box-shadow: 0 6px 20px color-mix(in srgb, var(--color-accent) 40%, transparent);
+}

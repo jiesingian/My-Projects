@@ -1,11 +1,15 @@
 import { redirect } from "next/navigation";
 import { getCurrentMember } from "@/lib/session";
 import { TabBar } from "@/components/tab-bar";
+import { AssistantFab } from "@/components/assistant-fab";
+import { getChatUnread } from "@/lib/queries/chat";
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const member = await getCurrentMember();
   if (!member) redirect("/onboarding/profile");
   if (member.status === "pending") redirect("/onboarding/pending");
+
+  const unread = await getChatUnread(member.family_id, member.id);
 
   return (
     <div style={{ minHeight: "100dvh" }}>
@@ -20,7 +24,8 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       >
         {children}
       </div>
-      <TabBar />
+      <AssistantFab memberName={member.full_name.split(" ")[0]} />
+      <TabBar chatUnread={unread.count} chatMentioned={unread.mentioned} />
     </div>
   );
 }
