@@ -15,7 +15,7 @@ import { getMembers } from "@/lib/queries/family";
 import { getAccounts } from "@/lib/queries/wealth";
 import { syncGoogleCalendarIfStale } from "@/lib/actions/calendar-sync";
 import { HubHeader } from "@/components/hub-header";
-import { ChipRow } from "@/components/segmented";
+import { PickButton } from "@/components/pick-button";
 import { Blueprint, Tag } from "@/components/ui";
 import { formatCurrency, formatDate, shortNames } from "@/lib/format";
 import { AddToJournalButton } from "@/components/add-to-journal-button";
@@ -96,9 +96,6 @@ async function CalendarPane({ familyId, who, view, anchor, hidden }: { familyId:
   const memberLabels = shortNames(activeMembers.map((m) => m.full_name));
   const memberId = who === "all" ? undefined : who;
 
-  // Week → Month → Year → Week, one tap at a time.
-  const nextView = CALENDAR_VIEWS[(CALENDAR_VIEWS.indexOf(view) + 1) % CALENDAR_VIEWS.length];
-
   // The title names the period, and stays on one line: the dates themselves
   // are on the rail below, so the week view needs the month, not a range.
   const label =
@@ -120,10 +117,28 @@ async function CalendarPane({ familyId, who, view, anchor, hidden }: { familyId:
     // Keyed on what the server anchored: a new anchor starts the header off
     // naming that period again, rather than wherever it had been scrolled.
     <CalendarPeriod key={`${view}-${toISODate(anchor)}`} label={label} iso={toISODate(anchor)}>
-      <div style={{ marginBottom: 14 }}>
-        <ChipRow
-          items={[
-            { label: "All", href: calendarHref("all", view, anchor, hide), active: who === "all" },
+      {/* The period, and the way to any other. */}
+      <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 8 }}>
+        {/* The title is the jump control: month, year or exact day in one tap. */}
+        <CalendarJump label={label} hrefBase={calendarBase(who, view, hide)} anchor={toISODate(anchor)} />
+        {/* Straight back to the current date. The prev/next arrows that used
+            to sit here are gone: the week rail and the month scroller both
+            scroll, and the title's sheet reaches any date at all, so the
+            arrows only cost the title the room it needs to spell its month. */}
+        <TodayButton hrefBase={calendarBase(who, view, hide)} />
+      </div>
+
+      {/* Whose, and which view. Each steps to the next on a tap and opens the
+          whole list on its chevron or a long press — one button apiece, in
+          place of a row of chips that grew with the family and a row of
+          segments that never changed. */}
+      <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 14 }}>
+        <PickButton
+          title="Who"
+          icon="users"
+          label={who === "all" ? "All" : (memberLabels[activeMembers.findIndex((m) => m.id === who)] ?? "All")}
+          options={[
+            { label: "Everyone", href: calendarHref("all", view, anchor, hide), active: who === "all" },
             ...activeMembers.map((m, i) => ({
               label: memberLabels[i],
               href: calendarHref(m.id, view, anchor, hide),
@@ -131,27 +146,15 @@ async function CalendarPane({ familyId, who, view, anchor, hidden }: { familyId:
             })),
           ]}
         />
-      </div>
-
-      <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 14 }}>
-        {/* The title is the jump control: month, year or exact day in one tap. */}
-        <CalendarJump label={label} hrefBase={calendarBase(who, view, hide)} anchor={toISODate(anchor)} />
-        {/* One button cycles the view, so the segmented row above is gone and
-            the header keeps a single line of controls. */}
-        <Link
-          href={calendarHref(who, nextView, anchor, hide)}
-          className="btn btn-secondary"
-          aria-label={`${view[0].toUpperCase() + view.slice(1)} view — switch to ${nextView}`}
-          style={{ minHeight: 34, fontSize: 13, padding: "0 8px 0 11px", gap: 3 }}
-        >
-          {view[0].toUpperCase() + view.slice(1)}
-          <Icon name="chevronUpDown" size={15} style={{ color: "var(--color-neutral-600)" }} />
-        </Link>
-        {/* Straight back to the current date. The prev/next arrows that used
-            to sit here are gone: the week rail and the month scroller both
-            scroll, and the title's sheet reaches any date at all, so the
-            arrows only cost the title the room it needs to spell its month. */}
-        <TodayButton hrefBase={calendarBase(who, view, hide)} />
+        <PickButton
+          title="View"
+          label={view[0].toUpperCase() + view.slice(1)}
+          options={CALENDAR_VIEWS.map((v) => ({
+            label: v[0].toUpperCase() + v.slice(1),
+            href: calendarHref(who, v, anchor, hide),
+            active: v === view,
+          }))}
+        />
       </div>
 
       {view === "week" && <WeekView familyId={familyId} memberId={memberId} who={who} anchor={anchor} hidden={hidden} hide={hide} />}
@@ -743,23 +746,22 @@ async function RoutinesPane({ familyId, who, currency, justSaved }: { familyId: 
   );
 }
 
-/** The member filter row, shared by every Planner tab so choosing a person
- * means the same thing wherever you are and survives switching tab. */
+/** The member filter, shared by every Planner tab so choosing a person means
+ * the same thing wherever you are and survives switching tab. */
 async function MemberChips({ familyId, seg, who }: { familyId: string; seg: string; who: string }) {
   const members = await getMembers(familyId);
   const active = members.filter((m) => m.status !== "pending" && m.status !== "removed");
   const labels = shortNames(active.map((m) => m.full_name));
 
   return (
-    <div style={{ marginBottom: 14 }}>
-      <ChipRow
-        items={[
-          { label: "All", href: `/planner?seg=${seg}&who=all`, active: who === "all" },
-          ...active.map((m, i) => ({
-            label: labels[i],
-            href: `/planner?seg=${seg}&who=${m.id}`,
-            active: who === m.id,
-          })),
+    <div style={{ display: "flex", marginBottom: 14 }}>
+      <PickButton
+        title="Who"
+        icon="users"
+        label={who === "all" ? "All" : (labels[active.findIndex((m) => m.id === who)] ?? "All")}
+        options={[
+          { label: "Everyone", href: `/planner?seg=${seg}&who=all`, active: who === "all" },
+          ...active.map((m, i) => ({ label: labels[i], href: `/planner?seg=${seg}&who=${m.id}`, active: who === m.id })),
         ]}
       />
     </div>
