@@ -24,6 +24,7 @@ export type Database = {
           institution: string | null
           is_archived: boolean
           is_joint: boolean
+          is_private: boolean
           linked_app_url: string | null
           name: string
           opening_balance: number
@@ -39,6 +40,7 @@ export type Database = {
           institution?: string | null
           is_archived?: boolean
           is_joint?: boolean
+          is_private?: boolean
           linked_app_url?: string | null
           name: string
           opening_balance?: number
@@ -54,6 +56,7 @@ export type Database = {
           institution?: string | null
           is_archived?: boolean
           is_joint?: boolean
+          is_private?: boolean
           linked_app_url?: string | null
           name?: string
           opening_balance?: number

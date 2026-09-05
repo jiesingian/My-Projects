@@ -22,7 +22,7 @@ export default async function AccountPage({ params }: { params: Promise<{ id: st
 
   return (
     <div>
-      <DetailHeader backHref={`/wealth?seg=${account.is_joint ? "joint" : "mine"}`} eyebrow="HUB 05 · ACCOUNT" />
+      <DetailHeader backHref={`/wealth?seg=accounts&who=${account.is_joint || !account.owner_member_id ? "all" : account.owner_member_id}`} eyebrow="HUB 05 · ACCOUNT" />
       <div style={{ padding: "0 22px 22px" }}>
         <Blueprint style={{ padding: 15, marginBottom: 14 }}>
           <div style={{ display: "flex", alignItems: "baseline", gap: 8 }}>

@@ -2,7 +2,9 @@ import { createClient } from "@/lib/supabase/server";
 import type { Tables } from "@/lib/database.types";
 import { monthKey, recentMonths, signedAmount } from "@/lib/wealth";
 
-export type WealthScope = "joint" | "mine";
+/** Which slice of the household's money is on screen: everything the
+ * viewer is allowed to see, or one person's own accounts. */
+export type WealthScope = "all" | (string & {});
 
 export type AccountWithBalance = Tables<"accounts"> & { balance: number; pendingCount: number };
 
@@ -13,8 +15,13 @@ function currentPeriod() {
   return { month: now.getMonth() + 1, year: now.getFullYear() };
 }
 
-function inScope(account: Pick<Tables<"accounts">, "is_joint" | "owner_member_id">, scope: WealthScope, memberId: string) {
-  return scope === "joint" ? account.is_joint : !account.is_joint && account.owner_member_id === memberId;
+/** "all" is everything already in reach — the household's joint accounts,
+ * your own, and whatever anyone else has opened to the family. Naming a
+ * person narrows it to the accounts in their name; a joint account is the
+ * household's, not theirs, so it stays under All. Privacy is not decided
+ * here: the database has already withheld what is not yours to see. */
+function inScope(account: Pick<Tables<"accounts">, "is_joint" | "owner_member_id">, scope: WealthScope) {
+  return scope === "all" ? true : !account.is_joint && account.owner_member_id === scope;
 }
 
 /** Balances are never stored — an account is its opening balance plus every
@@ -49,6 +56,8 @@ export async function getAccounts(familyId: string): Promise<AccountWithBalance[
  * that scope's accounts, this month's flow against its budget, where the
  * money actually went, and six months of history behind it. */
 export async function getWealthPane(familyId: string, memberId: string, scope: WealthScope) {
+  // Whose target to measure against when one person is named — their own.
+  const targetMemberId = scope === "all" ? memberId : scope;
   const supabase = await createClient();
   const { month, year } = currentPeriod();
   const months = recentMonths(6);
@@ -66,7 +75,7 @@ export async function getWealthPane(familyId: string, memberId: string, scope: W
     supabase
       .from("wealth_targets")
       .select("*")
-      .eq("member_id", memberId)
+      .eq("member_id", targetMemberId)
       .eq("period_month", month)
       .eq("period_year", year)
       .maybeSingle(),
@@ -78,7 +87,7 @@ export async function getWealthPane(familyId: string, memberId: string, scope: W
       .order("occurred_at", { ascending: false }),
   ]);
 
-  const accounts = allAccounts.filter((a) => inScope(a, scope, memberId));
+  const accounts = allAccounts.filter((a) => inScope(a, scope));
   const accountIds = new Set(accounts.map((a) => a.id));
   const scoped = (transactions ?? []).filter((t) => accountIds.has(t.account_id));
   const thisMonth = scoped.filter((t) => t.status === "confirmed" && monthKey(t.occurred_at) === monthKey(new Date()));
@@ -118,7 +127,9 @@ export async function getWealthPane(familyId: string, memberId: string, scope: W
     total: accounts.reduce((sum, a) => sum + a.balance, 0),
     monthIncome: thisMonth.filter((t) => t.direction === "in").reduce((sum, t) => sum + Number(t.amount), 0),
     monthExpense: thisMonth.filter((t) => t.direction === "out").reduce((sum, t) => sum + Number(t.amount), 0),
-    budgetAmount: scope === "joint" ? Number(period?.budget_amount ?? 0) : Number(target?.target_amount ?? 0),
+    // All is measured against the household's budget; one person against
+    // the target they set for themselves.
+    budgetAmount: scope === "all" ? Number(period?.budget_amount ?? 0) : Number(target?.target_amount ?? 0),
     budgetPeriodId: period?.id ?? null,
     allocations,
     unbudgeted,

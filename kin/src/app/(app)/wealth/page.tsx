@@ -13,18 +13,24 @@ import {
   RemoveButton,
   type PickableAccount,
 } from "@/components/money-actions";
-import { formatCurrency, formatDate } from "@/lib/format";
+import { formatCurrency, formatDate, shortNames } from "@/lib/format";
+import { getMembers } from "@/lib/queries/family";
+import { PickButton } from "@/components/pick-button";
+import { AccountPrivacyToggle } from "@/components/money-actions";
 import { ACCOUNT_TYPE_LABELS, ASSET_KIND_LABELS, LIABILITY_KIND_LABELS, type AccountType, type AssetKind, type LiabilityKind } from "@/lib/wealth";
 
-const SEGMENTS = ["joint", "mine", "goals", "bills", "assets"] as const;
+/* Joint and Mine were the same page twice; they are one Accounts tab now,
+   with a Who button of the kind the Planner uses. */
+const SEGMENTS = ["accounts", "goals", "bills", "assets"] as const;
 type Seg = (typeof SEGMENTS)[number];
-const SEGMENT_LABELS: Record<Seg, string> = { joint: "Joint", mine: "Mine", goals: "Goals", bills: "Bills", assets: "Assets" };
+const SEGMENT_LABELS: Record<Seg, string> = { accounts: "Accounts", goals: "Goals", bills: "Bills", assets: "Assets" };
 
-export default async function WealthPage({ searchParams }: { searchParams: Promise<{ seg?: string }> }) {
+export default async function WealthPage({ searchParams }: { searchParams: Promise<{ seg?: string; who?: string }> }) {
   const me = await getCurrentMember();
   if (!me) redirect("/onboarding/profile");
   const sp = await searchParams;
-  const seg: Seg = (SEGMENTS as readonly string[]).includes(sp.seg ?? "") ? (sp.seg as Seg) : "joint";
+  const seg: Seg = (SEGMENTS as readonly string[]).includes(sp.seg ?? "") ? (sp.seg as Seg) : "accounts";
+  const who = sp.who ?? "all";
 
   const segments = SEGMENTS.map((s) => ({ label: SEGMENT_LABELS[s], href: `/wealth?seg=${s}`, active: s === seg }));
   const currency = me.families.currency;
@@ -33,7 +39,7 @@ export default async function WealthPage({ searchParams }: { searchParams: Promi
     <div>
       <HubHeader n="05" title="Wealth" segments={segments} />
       <div style={{ padding: "0 22px 22px" }}>
-        {(seg === "joint" || seg === "mine") && <ScopePane scope={seg} familyId={me.family_id} memberId={me.id} currency={currency} />}
+        {seg === "accounts" && <ScopePane scope={who} familyId={me.family_id} memberId={me.id} currency={currency} />}
         {seg === "goals" && <GoalsPane familyId={me.family_id} memberId={me.id} currency={currency} />}
         {seg === "bills" && <BillsPane familyId={me.family_id} memberId={me.id} currency={currency} />}
         {seg === "assets" && <AssetsPane familyId={me.family_id} memberId={me.id} currency={currency} />}
@@ -235,15 +241,33 @@ function QuickActions() {
 /* ---------------------------------------------------------- joint & mine */
 
 async function ScopePane({ scope, familyId, memberId, currency }: { scope: WealthScope; familyId: string; memberId: string; currency: string }) {
-  const pane = await getWealthPane(familyId, memberId, scope);
-  const isJoint = scope === "joint";
+  const [pane, members] = await Promise.all([getWealthPane(familyId, memberId, scope), getMembers(familyId)]);
+  const active = members.filter((m) => m.status !== "pending" && m.status !== "removed");
+  const labels = shortNames(active.map((m) => m.full_name));
+  const isJoint = scope === "all";
+  const whoLabel = isJoint ? "All" : (labels[active.findIndex((m) => m.id === scope)] ?? "All");
   const monthLabel = new Date(pane.year, pane.month - 1, 1).toLocaleString("en-PH", { month: "long", year: "numeric" }).toUpperCase();
   const categories = [...pane.allocations, ...pane.unbudgeted];
 
   return (
     <>
+      <div style={{ display: "flex", alignItems: "center", gap: 6, margin: "14px 0 4px" }}>
+        <PickButton
+          title="Who"
+          icon="users"
+          label={whoLabel}
+          options={[
+            { label: "Everyone", href: "/wealth?seg=accounts&who=all", active: scope === "all" },
+            ...active.map((m, i) => ({ label: labels[i], href: `/wealth?seg=accounts&who=${m.id}`, active: scope === m.id })),
+          ]}
+        />
+        <span style={{ fontSize: 12.5, color: "var(--color-neutral-600)" }}>
+          {isJoint ? "Everything you can see" : scope === memberId ? "Your own accounts" : "Their accounts, as shared"}
+        </span>
+      </div>
+
       <Hero
-        label={isJoint ? "JOINT ACCOUNTS · COMBINED" : "MY ACCOUNTS · COMBINED"}
+        label={isJoint ? "ALL ACCOUNTS · COMBINED" : `${whoLabel.toUpperCase()} · COMBINED`}
         amount={pane.total}
         currency={currency}
         caption={`${pane.accounts.length} account${pane.accounts.length === 1 ? "" : "s"} · ${monthLabel}`}
@@ -259,8 +283,15 @@ async function ScopePane({ scope, familyId, memberId, currency }: { scope: Wealt
         </>
       ) : (
         <>
-          <Meter label="EARNED OF TARGET" value={pane.monthIncome} cap={pane.budgetAmount} currency={currency} note="Your own revenue target this month." />
-          <SetTargetControl memberId={memberId} familyId={familyId} month={pane.month} year={pane.year} current={pane.budgetAmount} />
+          <Meter
+            label="EARNED OF TARGET"
+            value={pane.monthIncome}
+            cap={pane.budgetAmount}
+            currency={currency}
+            note={scope === memberId ? "Your own revenue target this month." : `${whoLabel}'s target this month.`}
+          />
+          {/* Only your own target is yours to set. */}
+          {scope === memberId && <SetTargetControl memberId={memberId} familyId={familyId} month={pane.month} year={pane.year} current={pane.budgetAmount} />}
         </>
       )}
 
@@ -292,7 +323,7 @@ async function ScopePane({ scope, familyId, memberId, currency }: { scope: Wealt
 
       <PendingBlock pending={pane.pending} currency={currency} />
 
-      <SectionLabel>{isJoint ? "JOINT ACCOUNTS" : "MY ACCOUNTS"}</SectionLabel>
+      <SectionLabel>{isJoint ? "ACCOUNTS" : `${whoLabel.toUpperCase()}\u2019S ACCOUNTS`}</SectionLabel>
       {pane.accounts.length === 0 && <p style={{ fontSize: 13.5, color: "var(--color-neutral-600)" }}>No accounts yet.</p>}
       {pane.accounts.map((a) => (
         <Link
@@ -307,6 +338,15 @@ async function ScopePane({ scope, familyId, memberId, currency }: { scope: Wealt
               {a.institution ? ` · ${a.institution}` : ""}
               {a.sub_note ? ` · ${a.sub_note}` : ""}
             </span>
+            {/* Who can see it, and — if it is yours — a tap to change that. */}
+            <span style={{ display: "inline-flex", marginTop: 5 }}>
+              <AccountPrivacyToggle
+                accountId={a.id}
+                isPrivate={a.is_private}
+                isJoint={a.is_joint}
+                canChange={!a.is_joint && a.owner_member_id === memberId}
+              />
+            </span>
           </span>
           <span style={{ textAlign: "right", flex: "none" }}>
             <span style={{ fontFamily: "var(--font-numeric)", fontSize: 13, display: "block" }}>{formatCurrency(a.balance, currency)}</span>
@@ -314,7 +354,9 @@ async function ScopePane({ scope, familyId, memberId, currency }: { scope: Wealt
           </span>
         </Link>
       ))}
-      <AddAccountForm isJoint={isJoint} />
+      {/* A new account is opened in your own name, so it is only offered
+          where that is what you would mean. */}
+      {(isJoint || scope === memberId) && <AddAccountForm isJoint={isJoint} />}
 
       {pane.recent.length > 0 && (
         <>
@@ -325,11 +367,10 @@ async function ScopePane({ scope, familyId, memberId, currency }: { scope: Wealt
         </>
       )}
 
-      {!isJoint && (
-        <div style={{ fontSize: 13, color: "var(--color-neutral-600)", marginTop: 14 }}>
-          Nothing on this tab appears in the joint view. Sharing a record is a per-record choice.
-        </div>
-      )}
+      <div style={{ fontSize: 12.5, color: "var(--color-neutral-600)", marginTop: 14, lineHeight: 1.45 }}>
+        A personal account is private until its owner opens it to the family. Private ones are not hidden from you by the
+        app — the database never sends them, so nobody sees them but their owner.
+      </div>
     </>
   );
 }

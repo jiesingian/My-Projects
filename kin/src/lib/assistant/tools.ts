@@ -347,7 +347,7 @@ export async function runAssistantTool(name: string, rawInput: unknown, me: Curr
       const accounts = (accountsRes.data ?? []).map((a) => ({
         name: a.name,
         institution: a.institution,
-        scope: a.is_joint ? "joint" : a.owner_member_id === me.id ? "mine" : "another member's",
+        scope: a.is_joint ? "joint" : a.owner_member_id === me.id ? "your own" : "another member's, shared with the family",
         balance:
           Number(a.opening_balance) +
           movements.filter((m) => m.account_id === a.id).reduce((sum, m) => sum + signedAmount(m), 0),

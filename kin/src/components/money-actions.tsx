@@ -14,9 +14,11 @@ import {
   deleteBillAction,
   deleteGoalAction,
   archiveAccountAction,
+  setAccountPrivacyAction,
   postHubExpenseAction,
 } from "@/lib/actions/wealth";
 import { formatCurrency } from "@/lib/format";
+import { Icon } from "@/components/icons";
 
 export type PickableAccount = {
   id: string;
@@ -354,6 +356,72 @@ export function RemoveButton({ id, kind, label }: { id: string; kind: keyof type
       }}
     >
       {pending ? "…" : kind === "account" ? "ARCHIVE" : "REMOVE"}
+    </button>
+  );
+}
+
+/** Whether this account is the owner's business alone or the household's to
+ * see. Shown on every account so the state is never a guess; only the owner
+ * of a personal one can move it. */
+export function AccountPrivacyToggle({
+  accountId,
+  isPrivate,
+  isJoint,
+  canChange,
+}: {
+  accountId: string;
+  isPrivate: boolean;
+  isJoint: boolean;
+  canChange: boolean;
+}) {
+  const { pending, run } = useMoneyAction();
+
+  if (isJoint) {
+    return (
+      <span style={{ fontSize: 11, color: "var(--color-neutral-600)", display: "inline-flex", alignItems: "center", gap: 4 }}>
+        <Icon name="users" size={12} />
+        Joint
+      </span>
+    );
+  }
+
+  const label = isPrivate ? "Private" : "Family";
+  if (!canChange) {
+    return (
+      <span style={{ fontSize: 11, color: "var(--color-neutral-600)", display: "inline-flex", alignItems: "center", gap: 4 }}>
+        <Icon name={isPrivate ? "keyRound" : "users"} size={12} />
+        {label}
+      </span>
+    );
+  }
+
+  return (
+    <button
+      type="button"
+      disabled={pending}
+      onClick={(e) => {
+        // The row is a link to the account; this is not part of following it.
+        e.preventDefault();
+        e.stopPropagation();
+        run(() => setAccountPrivacyAction(accountId, !isPrivate));
+      }}
+      title={isPrivate ? "Only you can see this account. Tap to show the family." : "The family can see this account. Tap to keep it to yourself."}
+      style={{
+        display: "inline-flex",
+        alignItems: "center",
+        gap: 4,
+        fontSize: 11,
+        padding: "2px 8px",
+        borderRadius: 999,
+        border: 0,
+        cursor: "pointer",
+        fontFamily: "var(--font-body)",
+        background: isPrivate ? "color-mix(in srgb, var(--color-text) 8%, transparent)" : "color-mix(in srgb, var(--color-switch-on) 18%, transparent)",
+        color: "var(--color-neutral-700)",
+      }}
+    >
+      <Icon name={isPrivate ? "keyRound" : "users"} size={12} />
+      {pending ? "…" : label}
     </button>
   );
 }

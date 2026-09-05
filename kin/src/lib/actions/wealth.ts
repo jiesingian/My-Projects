@@ -75,6 +75,35 @@ export async function updateAccountAction(accountId: string, _prev: ActionState,
   redirect(`/wealth/accounts/${accountId}`);
 }
 
+/** Open a personal account to the household, or close it again. Only its
+ * owner can: the update policy on the table says so, so a wrong id from a
+ * wrong person changes nothing. A joint account is the household's already
+ * and has nothing to open. */
+export async function setAccountPrivacyAction(accountId: string, isPrivate: boolean): Promise<ActionState> {
+  const me = await requireCurrentMember();
+  const supabase = await createClient();
+
+  const { data: account } = await supabase
+    .from("accounts")
+    .select("is_joint, owner_member_id")
+    .eq("id", accountId)
+    .eq("family_id", me.family_id)
+    .maybeSingle();
+  if (!account) return { error: "That account is no longer here." };
+  if (account.is_joint) return { error: "A joint account belongs to the household already." };
+  if (account.owner_member_id !== me.id) return { error: "Only the person whose account it is can change that." };
+
+  const { error } = await supabase
+    .from("accounts")
+    .update({ is_private: isPrivate })
+    .eq("id", accountId)
+    .eq("family_id", me.family_id);
+  if (error) return { error: error.message };
+
+  revalidateWealth();
+  return { error: null };
+}
+
 export async function archiveAccountAction(accountId: string): Promise<ActionState> {
   const me = await requireCurrentMember();
   const supabase = await createClient();
