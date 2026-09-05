@@ -47,6 +47,7 @@ export function BuyList({
   const [, startTransition] = useTransition();
   const [addState, addAction] = useActionState(addBuyItemAction, initialState);
   const [editing, setEditing] = useState<string | null>(null);
+  const [adding, setAdding] = useState(false);
   const [newName, setNewName] = useState("");
   const [sectionTouched, setSectionTouched] = useState(false);
   const [sectionChoice, setSectionChoice] = useState<string>("Other");
@@ -180,41 +181,68 @@ export function BuyList({
         );
       })}
 
-      <form action={addAction} style={{ marginTop: 4 }}>
-        <input type="hidden" name="source" value="house" />
-        <div style={{ display: "flex", gap: 8, marginBottom: 8 }}>
-          <input
-            className="input"
-            name="name"
-            placeholder="Add an item"
-            required
-            value={newName}
-            onChange={(e) => setNewName(e.target.value)}
-            style={{ minHeight: 42, flex: 1 }}
-          />
-          <input className="input" name="quantity" type="number" step="0.01" min="0" placeholder="Qty" style={{ minHeight: 42, width: 68 }} />
-          <select className="input" name="unit" defaultValue="pc" style={{ minHeight: 42, width: 82 }}>
-            {UNITS.map((u) => (
-              <option key={u} value={u}>
-                {u}
-              </option>
-            ))}
-          </select>
-        </div>
-        <div style={{ display: "flex", gap: 8 }}>
-          {/* Pre-filled from the name as it's typed, so the common case is one tap. */}
-          <select className="input" name="section" value={section} onChange={(e) => setSection(e.target.value)} style={{ minHeight: 42, flex: 1 }}>
-            {MARKET_SECTIONS.map((s) => (
-              <option key={s} value={s}>
-                {s}
-              </option>
-            ))}
-          </select>
-          <SubmitButton className="btn btn-primary" style={{ minHeight: 42, paddingInline: 18 }}>
-            ADD
-          </SubmitButton>
-        </div>
-      </form>
+      {/* Adding is one tap away, not four fields permanently in the way. The
+          panel stays open after each item, because a list is usually written
+          several things at a time. */}
+      {!adding ? (
+        <button
+          type="button"
+          onClick={() => setAdding(true)}
+          className="btn btn-secondary"
+          style={{ width: "100%", minHeight: 44, fontSize: 14.5, gap: 6, marginTop: 10 }}
+        >
+          <Icon name="plus" size={16} />
+          Add an item
+        </button>
+      ) : (
+        <form action={addAction} style={{ marginTop: 10, padding: 12, borderRadius: 14, background: "color-mix(in srgb, var(--color-text) 4%, transparent)" }}>
+          <input type="hidden" name="source" value="house" />
+          <div style={{ display: "flex", gap: 8, marginBottom: 8 }}>
+            <input
+              className="input"
+              name="name"
+              placeholder="Add an item"
+              required
+              autoFocus
+              value={newName}
+              onChange={(e) => setNewName(e.target.value)}
+              style={{ minHeight: 42, flex: 1 }}
+            />
+            <input className="input" name="quantity" type="number" step="0.01" min="0" placeholder="Qty" style={{ minHeight: 42, width: 68 }} />
+            <select className="input" name="unit" defaultValue="pc" style={{ minHeight: 42, width: 82 }}>
+              {UNITS.map((u) => (
+                <option key={u} value={u}>
+                  {u}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div style={{ display: "flex", gap: 8 }}>
+            {/* Pre-filled from the name as it's typed, so the common case is one tap. */}
+            <select className="input" name="section" value={section} onChange={(e) => setSection(e.target.value)} style={{ minHeight: 42, flex: 1 }}>
+              {MARKET_SECTIONS.map((s) => (
+                <option key={s} value={s}>
+                  {s}
+                </option>
+              ))}
+            </select>
+            <SubmitButton className="btn btn-primary" style={{ minHeight: 42, paddingInline: 18 }}>
+              ADD
+            </SubmitButton>
+            <button
+              type="button"
+              className="btn btn-ghost"
+              style={{ minHeight: 42, fontSize: 13, paddingInline: 10 }}
+              onClick={() => {
+                setAdding(false);
+                setNewName("");
+              }}
+            >
+              Done
+            </button>
+          </div>
+        </form>
+      )}
       <ErrorText message={addState.error} />
       <div style={{ fontSize: 13, color: "var(--color-neutral-600)", marginTop: 10 }}>
         Sections follow the order you walk the market. Items from the meal plan are filed by name automatically — tap any item to fix its
