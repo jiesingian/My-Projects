@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { addBuyItemAction, toggleBuyItemAction, clearCheckedAction, updateBuyItemAction, removeBuyItemAction } from "@/lib/actions/household";
 import { postHubExpenseAction } from "@/lib/actions/wealth";
 import { MARKET_SECTIONS, UNITS, guessSection, formatQuantity } from "@/lib/grocery";
-import { BuyItemPriceControl } from "@/components/household-price-controls";
+import { BuyItemPriceButton, BuyItemPriceEditor } from "@/components/household-price-controls";
 import type { ActionState } from "@/lib/actions/auth";
 import { SubmitButton, ErrorText } from "@/components/form";
 import { Blueprint, Tag } from "@/components/ui";
@@ -66,6 +66,8 @@ export function BuyList({
   // starts: a shopping list is read one aisle at a time.
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
   const [checkingOut, setCheckingOut] = useState(false);
+  // Which line's price is being set. One at a time, under its own row.
+  const [pricing, setPricing] = useState<string | null>(null);
   const [, startTransition] = useTransition();
   const [addState, addAction] = useActionState(addBuyItemAction, initialState);
   const [editing, setEditing] = useState<string | null>(null);
@@ -252,19 +254,26 @@ export function BuyList({
                       textDecoration: item.checked ? "line-through" : "none",
                     }}
                   >
-                    {item.name}
+                    {/* Name and quantity are one target: tapping the amount
+                        is how anyone would expect to change the amount, and
+                        it used to be dead text beside the button. */}
+                    <span style={{ display: "flex", alignItems: "baseline", gap: 8 }}>
+                      <span style={{ flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{item.name}</span>
+                      <span style={{ fontFamily: "var(--font-numeric)", fontSize: 13, color: "var(--color-neutral-600)", flex: "none" }}>
+                        {formatQuantity(item.quantity, item.unit)}
+                      </span>
+                    </span>
                   </button>
-                  <span style={{ fontFamily: "var(--font-numeric)", fontSize: 13, color: "var(--color-neutral-600)", flex: "none" }}>
-                    {formatQuantity(item.quantity, item.unit)}
-                  </span>
                   {/* What this line is expected to come to. Tapping it sets a
-                      price for today only, without changing the price book. */}
+                      price for today only, without changing the price book —
+                      in an editor that opens under the row, where there is
+                      room for it. */}
                   <span style={{ flex: "none" }}>
-                    <BuyItemPriceControl
-                      itemId={item.id}
+                    <BuyItemPriceButton
                       estimated={prices[item.id]?.estimated ?? null}
-                      unitPrice={prices[item.id]?.unitPrice ?? null}
                       source={prices[item.id]?.source ?? "unknown"}
+                      editing={pricing === item.id}
+                      onToggle={() => setPricing(pricing === item.id ? null : item.id)}
                     />
                   </span>
                   {prices[item.id]?.inPantry ? (
@@ -275,6 +284,9 @@ export function BuyList({
                     </Tag>
                   )}
                 </div>
+                {pricing === item.id && (
+                  <BuyItemPriceEditor itemId={item.id} unitPrice={prices[item.id]?.unitPrice ?? null} onClose={() => setPricing(null)} />
+                )}
                 {editing === item.id && <EditItemRow item={item} onClose={() => setEditing(null)} />}
                 </div>
               ))}

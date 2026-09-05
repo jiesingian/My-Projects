@@ -221,65 +221,35 @@ export function AddPriceControl() {
 
 /** The price for one line of the buy list, when today's shop differs from
  * the household's usual figure. */
-export function BuyItemPriceControl({
-  itemId,
+/** What this line is expected to cost. A tap opens the editor beneath the
+ * row rather than inside it: an input and a Set button never fitted next to
+ * the name, the quantity and the source tag on a phone, and the half of the
+ * button that overlapped the tag simply did not take the tap. */
+export function BuyItemPriceButton({
   estimated,
-  unitPrice,
   source,
+  editing,
+  onToggle,
 }: {
-  itemId: string;
   estimated: number | null;
-  unitPrice: number | null;
   source: string;
+  editing: boolean;
+  onToggle: () => void;
 }) {
-  const { pending, run } = useHouseholdAction();
-  const [editing, setEditing] = useState(false);
-  const [value, setValue] = useState(unitPrice == null ? "" : String(unitPrice));
-
-  if (editing) {
-    return (
-      <span style={{ display: "inline-flex", gap: 4, alignItems: "center" }}>
-        <input
-          className="input"
-          type="number"
-          step="0.01"
-          min="0"
-          inputMode="decimal"
-          value={value}
-          onChange={(e) => setValue(e.target.value)}
-          style={{ minHeight: 32, width: 84, fontSize: 13 }}
-          aria-label="Price for this line"
-          autoFocus
-        />
-        <button
-          type="button"
-          className="btn btn-primary"
-          style={{ minHeight: 32, fontSize: 12, padding: "0 9px" }}
-          disabled={pending}
-          onClick={() =>
-            run(async () => {
-              const result = await setBuyItemPriceAction(itemId, value === "" ? null : Number(value));
-              if (!result.error) setEditing(false);
-              return result;
-            })
-          }
-        >
-          Set
-        </button>
-      </span>
-    );
-  }
-
   return (
     <button
       type="button"
-      onClick={() => setEditing(true)}
+      onClick={onToggle}
       aria-label="Set the price for this line"
+      aria-expanded={editing}
       style={{
         border: 0,
-        background: "none",
+        background: editing ? "color-mix(in srgb, var(--color-accent) 12%, transparent)" : "none",
+        borderRadius: 8,
         cursor: "pointer",
-        padding: "2px 0",
+        // A comfortable target, rather than the width of four characters.
+        padding: "6px 8px",
+        margin: "-6px 0",
         fontFamily: "var(--font-body)",
         fontSize: 13.5,
         color: estimated == null ? "var(--color-accent)" : "var(--color-neutral-700)",
@@ -288,6 +258,53 @@ export function BuyItemPriceControl({
     >
       {estimated == null ? "price?" : peso(estimated)}
     </button>
+  );
+}
+
+/** The editor itself, on its own line under the item. */
+export function BuyItemPriceEditor({
+  itemId,
+  unitPrice,
+  onClose,
+}: {
+  itemId: string;
+  unitPrice: number | null;
+  onClose: () => void;
+}) {
+  const { pending, error, run } = useHouseholdAction();
+  const [value, setValue] = useState(unitPrice == null ? "" : String(unitPrice));
+
+  const save = () =>
+    run(async () => {
+      const result = await setBuyItemPriceAction(itemId, value.trim() === "" ? null : Number(value));
+      if (!result.error) onClose();
+      return result;
+    });
+
+  return (
+    <div style={{ display: "flex", gap: 6, alignItems: "center", padding: "0 0 10px 35px" }}>
+      <input
+        className="input"
+        type="number"
+        step="0.01"
+        min="0"
+        inputMode="decimal"
+        value={value}
+        onChange={(e) => setValue(e.target.value)}
+        onKeyDown={(e) => e.key === "Enter" && save()}
+        style={{ minHeight: 38, flex: 1, minWidth: 0, fontSize: 14 }}
+        aria-label="Price for this line"
+        placeholder="What it costs today"
+        autoFocus
+      />
+      <button type="button" className="btn btn-primary" style={{ minHeight: 38, fontSize: 13, padding: "0 12px" }} disabled={pending} onClick={save}>
+        {pending ? "…" : "Set"}
+      </button>
+      <button type="button" className="btn btn-ghost" style={{ minHeight: 38, fontSize: 12.5, padding: "0 8px" }} onClick={onClose}>
+        Cancel
+      </button>
+      {error && <span style={{ fontSize: 12, color: "var(--cal-occasion)" }}>{error}</span>}
+    </div>
   );
 }
 

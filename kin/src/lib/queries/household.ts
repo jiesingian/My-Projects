@@ -14,7 +14,14 @@ export async function getBuyItems(familyId: string) {
     .select("*")
     .eq("family_id", familyId)
     .eq("cleared", false)
-    .order("created_at");
+    // A list built from the week's meals is inserted in one statement, so
+    // fifteen rows share a created_at to the microsecond. Ordering on that
+    // alone leaves ties, and Postgres is free to return tied rows in any
+    // order — which reshuffled the list on every save. Name breaks the tie,
+    // and id breaks a repeated name.
+    .order("created_at")
+    .order("name")
+    .order("id");
   const items = data ?? [];
 
   const groups = new Map<string, typeof items>();
