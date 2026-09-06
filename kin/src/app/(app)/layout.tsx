@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { getCurrentMember } from "@/lib/session";
+import { readAccess } from "@/lib/access";
 import { TabBar } from "@/components/tab-bar";
 import { AssistantFab } from "@/components/assistant-fab";
 import { getChatUnread } from "@/lib/queries/chat";
@@ -8,6 +9,12 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   const member = await getCurrentMember();
   if (!member) redirect("/onboarding/profile");
   if (member.status === "pending") redirect("/onboarding/pending");
+
+  // One check for the whole app, rather than every page remembering to make
+  // it. getCurrentMember already loads the family row, so it costs no extra
+  // query. /subscribe deliberately sits outside this group — a paywall inside
+  // the thing it walls off would redirect to itself.
+  if (!readAccess(member.families).allowed) redirect("/subscribe");
 
   const unread = await getChatUnread(member.family_id, member.id);
 

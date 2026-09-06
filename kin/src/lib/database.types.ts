@@ -341,6 +341,53 @@ export type Database = {
           },
         ]
       }
+      billing_checkouts: {
+        Row: {
+          amount_cents: number
+          created_at: string
+          currency: string
+          family_id: string
+          id: string
+          paid_at: string | null
+          plan: string
+          provider: string
+          provider_ref: string | null
+          status: string
+        }
+        Insert: {
+          amount_cents: number
+          created_at?: string
+          currency?: string
+          family_id: string
+          id?: string
+          paid_at?: string | null
+          plan: string
+          provider?: string
+          provider_ref?: string | null
+          status?: string
+        }
+        Update: {
+          amount_cents?: number
+          created_at?: string
+          currency?: string
+          family_id?: string
+          id?: string
+          paid_at?: string | null
+          plan?: string
+          provider?: string
+          provider_ref?: string | null
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "billing_checkouts_family_id_fkey"
+            columns: ["family_id"]
+            isOneToOne: false
+            referencedRelation: "families"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       bills: {
         Row: {
           amount: number
@@ -3175,6 +3222,15 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      activate_household_subscription: {
+        Args: {
+          p_customer_id: string
+          p_family_id: string
+          p_period_end: string
+          p_subscription_id: string
+        }
+        Returns: undefined
+      }
       add_managed_child: {
         Args: { p_dob: string; p_full_name: string; p_relationship?: string }
         Returns: {
@@ -3337,8 +3393,13 @@ export type Database = {
         }
       }
       leave_household_self: { Args: never; Returns: undefined }
+      redeem_code_for_household: { Args: { p_code: string }; Returns: string }
       redeem_household_code: { Args: { p_code: string }; Returns: boolean }
       regenerate_invite_code: { Args: never; Returns: string }
+      set_household_access_status: {
+        Args: { p_family_id: string; p_period_end?: string; p_status: string }
+        Returns: undefined
+      }
       signup_code_is_valid: { Args: { p_code: string }; Returns: boolean }
       transfer_organiser_role: {
         Args: { p_new_organiser_member_id: string }
