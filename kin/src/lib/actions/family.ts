@@ -53,6 +53,12 @@ export async function createFamilyAction(_prev: ActionState, formData: FormData)
   });
   if (error) return { error: error.message };
 
+  // Records what the code was worth — free for good, or a trial that will
+  // ask for payment later. It reads the grant off the code rather than
+  // trusting anything sent from here, and refuses once a household already
+  // has a standing, so a second call with a better code changes nothing.
+  await supabase.rpc("apply_code_grant_to_family", { p_code: accessCode });
+
   redirect("/onboarding/members");
 }
 

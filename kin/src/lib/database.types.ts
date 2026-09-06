@@ -19,33 +19,71 @@ export type Database = {
           code: string
           created_at: string
           expires_at: string | null
+          grants: string
           id: string
           max_uses: number
           note: string | null
           revoked: boolean
+          trial_days: number | null
           used_count: number
         }
         Insert: {
           code: string
           created_at?: string
           expires_at?: string | null
+          grants?: string
           id?: string
           max_uses?: number
           note?: string | null
           revoked?: boolean
+          trial_days?: number | null
           used_count?: number
         }
         Update: {
           code?: string
           created_at?: string
           expires_at?: string | null
+          grants?: string
           id?: string
           max_uses?: number
           note?: string | null
           revoked?: boolean
+          trial_days?: number | null
           used_count?: number
         }
         Relationships: []
+      }
+      access_events: {
+        Row: {
+          created_at: string
+          detail: Json
+          family_id: string | null
+          id: string
+          kind: string
+        }
+        Insert: {
+          created_at?: string
+          detail?: Json
+          family_id?: string | null
+          id?: string
+          kind: string
+        }
+        Update: {
+          created_at?: string
+          detail?: Json
+          family_id?: string | null
+          id?: string
+          kind?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "access_events_family_id_fkey"
+            columns: ["family_id"]
+            isOneToOne: false
+            referencedRelation: "families"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       accounts: {
         Row: {
@@ -1023,7 +1061,12 @@ export type Database = {
       families: {
         Row: {
           about: string | null
+          access_expires_at: string | null
+          access_source: string | null
+          access_status: string
           background_url: string | null
+          billing_customer_id: string | null
+          billing_subscription_id: string | null
           created_at: string
           currency: string
           date_format: string
@@ -1034,7 +1077,12 @@ export type Database = {
         }
         Insert: {
           about?: string | null
+          access_expires_at?: string | null
+          access_source?: string | null
+          access_status?: string
           background_url?: string | null
+          billing_customer_id?: string | null
+          billing_subscription_id?: string | null
           created_at?: string
           currency?: string
           date_format?: string
@@ -1045,7 +1093,12 @@ export type Database = {
         }
         Update: {
           about?: string | null
+          access_expires_at?: string | null
+          access_source?: string | null
+          access_status?: string
           background_url?: string | null
+          billing_customer_id?: string | null
+          billing_subscription_id?: string | null
           created_at?: string
           currency?: string
           date_format?: string
@@ -3170,6 +3223,7 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      apply_code_grant_to_family: { Args: { p_code: string }; Returns: string }
       create_family: {
         Args: {
           p_dob?: string
