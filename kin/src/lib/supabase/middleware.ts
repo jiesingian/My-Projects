@@ -37,12 +37,13 @@ export async function updateSession(request: NextRequest) {
     path.startsWith("/login") ||
     path.startsWith("/signup") ||
     path.startsWith("/verify") ||
-    // Asking for a reset link has to be open — someone who cannot sign in is
-    // precisely who needs it. /reset-password is deliberately NOT listed:
-    // reaching it requires the session the recovery link creates, so an
-    // unauthenticated visitor is sent to /login rather than shown a form that
-    // sets a password.
+    // Both recovery screens are open, because someone who cannot sign in is
+    // precisely who needs them. Setting a password is not left unguarded by
+    // that: the form takes the 6-digit code from the email and verifies it
+    // before changing anything, so possession of the mailbox is the proof,
+    // exactly as a session would have been.
     path.startsWith("/forgot-password") ||
+    path.startsWith("/reset-password") ||
     path.startsWith("/auth/callback");
   const isPublic = isAuthRoute || path === "/";
 

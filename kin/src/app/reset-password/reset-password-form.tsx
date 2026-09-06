@@ -1,6 +1,7 @@
 "use client";
 
 import { useActionState } from "react";
+import Link from "next/link";
 import { updatePasswordAction, type ActionState } from "@/lib/actions/auth";
 import { SubmitButton, ErrorText } from "@/components/form";
 import { OnboardingShell, Wordmark } from "@/components/onboarding-shell";
@@ -8,18 +9,47 @@ import { Icon } from "@/components/icons";
 
 const initialState: ActionState = { error: null };
 
-export function ResetPasswordForm({ email }: { email: string }) {
+export function ResetPasswordForm({ email, verified }: { email: string; verified: boolean }) {
   const [state, formAction] = useActionState(updatePasswordAction, initialState);
 
   return (
-    <OnboardingShell>
+    <OnboardingShell backHref="/login">
       <Wordmark />
       <h2 style={{ fontSize: 32, margin: "24px 0 6px" }}>Set a new password</h2>
       <p style={{ fontSize: 13.5, color: "var(--color-neutral-700)", margin: "0 0 24px" }}>
-        For <strong>{email}</strong>. Once it&apos;s set you&apos;ll go straight into Kin.
+        {verified ? (
+          <>
+            For <strong>{email}</strong>. Once it&apos;s set you&apos;ll go straight into Kin.
+          </>
+        ) : (
+          <>
+            We emailed a 6-digit code to <strong>{email || "your email"}</strong>. Enter it below
+            with the password you want.
+          </>
+        )}
       </p>
       <form action={formAction}>
         <ErrorText message={state.error} />
+        <input type="hidden" name="email" value={email} />
+
+        {/* Only asked for when the emailed link did not sign them in already. */}
+        {!verified && (
+          <div className="field" style={{ marginBottom: 16 }}>
+            <label>CODE FROM THE EMAIL</label>
+            <input
+              aria-label="Code from the email"
+              className="input"
+              name="code"
+              required
+              autoFocus
+              inputMode="numeric"
+              autoComplete="one-time-code"
+              placeholder="000000"
+              style={{ fontFamily: "var(--font-numeric)", letterSpacing: ".18em", fontSize: 20 }}
+            />
+          </div>
+        )}
+
         <div className="field" style={{ marginBottom: 16 }}>
           <label>NEW PASSWORD</label>
           <input
@@ -30,7 +60,7 @@ export function ResetPasswordForm({ email }: { email: string }) {
             required
             minLength={8}
             autoComplete="new-password"
-            autoFocus
+            autoFocus={verified}
           />
         </div>
         <div className="field" style={{ marginBottom: 20 }}>
@@ -59,6 +89,9 @@ export function ResetPasswordForm({ email }: { email: string }) {
           SAVE NEW PASSWORD
         </SubmitButton>
       </form>
+      <p style={{ fontSize: 13, color: "var(--color-neutral-700)", marginTop: 20, textAlign: "center" }}>
+        Code expired? <Link href="/forgot-password">Send a new one</Link>
+      </p>
     </OnboardingShell>
   );
 }

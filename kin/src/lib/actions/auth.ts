@@ -72,7 +72,7 @@ export async function signIn(_prev: ActionState, formData: FormData): Promise<Ac
   redirect("/");
 }
 
-/** Sends the recovery link. The reply is deliberately the same whether or not
+/** Sends the recovery email. The reply is deliberately the same whether or not
  * the address has an account: this form is unauthenticated, so telling the
  * truth here would turn it into a way to ask "does this person use Kin?" --
  * and for a family app, membership is itself private. Errors are swallowed
@@ -85,30 +85,44 @@ export async function requestPasswordReset(_prev: ActionState, formData: FormDat
   const supabase = await createClient();
   const origin = await getOrigin();
   await supabase.auth.resetPasswordForEmail(email, {
-    // Lands on the same callback the confirmation link uses, which exchanges
-    // the code for a session, then hands over to the page that sets the new
-    // password.
+    // The email carries a typed code as well as this link, and the code is
+    // what the next screen actually asks for -- see the note there. The link
+    // is kept for the case where it survives: it lands on the same callback
+    // the confirmation email uses and arrives already signed in.
     redirectTo: `${origin}/auth/callback?next=/reset-password`,
   });
 
-  redirect(`/forgot-password?sent=${encodeURIComponent(email)}`);
+  redirect(`/reset-password?email=${encodeURIComponent(email)}`);
 }
 
 export async function updatePasswordAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
   const password = String(formData.get("password") ?? "");
   const confirm = String(formData.get("confirm") ?? "");
+  const code = String(formData.get("code") ?? "").replace(/\s/g, "");
+  const email = String(formData.get("email") ?? "").trim();
   if (password.length < 8) return { error: "Use at least 8 characters." };
   if (password !== confirm) return { error: "Those two passwords don't match." };
 
   const supabase = await createClient();
-  // The recovery link is what proves who this is: following it exchanged a
-  // one-time code for a session, so there is a signed-in user here or there
-  // is nobody. Without this check the page would happily change the password
-  // of whoever merely happened to be signed in.
-  const {
+  let {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) return { error: "That reset link has expired. Ask for a new one." };
+
+  // No session means the emailed link never got them here -- which is the
+  // normal case, because mail providers fetch the links they deliver and a
+  // link that signs you in by being fetched is spent before anyone taps it.
+  // The typed code is the way in: nothing can consume it by scanning the
+  // message, and it works even when the email is read on another device.
+  if (!user) {
+    if (!code) return { error: "Enter the 6-digit code from the email." };
+    if (!email) return { error: "Start again from the sign-in screen." };
+    const { error: otpError } = await supabase.auth.verifyOtp({ email, token: code, type: "recovery" });
+    if (otpError) return { error: "That code isn't right, or it has expired. Ask for a new one." };
+    ({
+      data: { user },
+    } = await supabase.auth.getUser());
+    if (!user) return { error: "That code isn't right, or it has expired. Ask for a new one." };
+  }
 
   const { error } = await supabase.auth.updateUser({ password });
   if (error) return { error: error.message };
