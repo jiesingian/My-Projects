@@ -41,7 +41,7 @@ export default async function HouseholdPage({ searchParams }: { searchParams: Pr
       <HubHeader n="04" title="Household" segments={segments} />
       <div style={{ padding: "0 22px 22px" }}>
         {seg === "buy" && <BuyPane familyId={me.family_id} memberId={me.id} currency={me.families.currency} />}
-        {seg === "meals" && <MealsPane familyId={me.family_id} memberId={me.id} currency={me.families.currency} anchor={anchor} />}
+        {seg === "meals" && <MealsPane familyId={me.family_id} currency={me.families.currency} anchor={anchor} />}
       </div>
     </div>
   );
@@ -77,7 +77,6 @@ async function BuyPane({ familyId, memberId, currency }: { familyId: string; mem
         groups={groups}
         openCount={openCount}
         doneCount={doneCount}
-        familyId={familyId}
         currency={currency}
         unpriced={priced.unpricedCount}
         trip={trip}
@@ -162,12 +161,10 @@ const MEALS_HREF_BASE = "/household?seg=meals&date=";
 
 async function MealsPane({
   familyId,
-  memberId,
   currency,
   anchor,
 }: {
   familyId: string;
-  memberId: string;
   currency: string;
   anchor: Date;
 }) {
@@ -252,7 +249,7 @@ async function MealsPane({
       })}
 
       <div style={{ marginTop: 18 }}>
-        <GenerateGroceryButton familyId={familyId} memberId={memberId} weekOf={anchorISO} />
+        <GenerateGroceryButton weekOf={anchorISO} />
       </div>
       <p style={{ fontSize: 12.5, color: "var(--color-neutral-600)", marginTop: 10, lineHeight: 1.45 }}>
         Building the list takes the ingredients from the meals planned for the week of{" "}

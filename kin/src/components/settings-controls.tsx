@@ -9,6 +9,7 @@ import { disconnectCalendarAction, syncGoogleCalendarAction } from "@/lib/action
 import { useState } from "react";
 import { CopyInviteCode } from "@/components/copy-invite-code";
 import { Blueprint } from "@/components/ui";
+import { NOTIFICATION_DEFS } from "@/lib/notifications";
 
 export function ThemeControl({ current }: { current: string }) {
   const [pending, startTransition] = useTransition();
@@ -46,13 +47,7 @@ export function TextSizeControl({ current }: { current: string }) {
   );
 }
 
-const NOTIF_DEFS: { key: string; name: string; sub: string }[] = [
-  { key: "events", name: "Events and schedules", sub: "Day before, and one hour ahead" },
-  { key: "health", name: "Health reminders", sub: "Vaccinations, check-ups, medication" },
-  { key: "bills", name: "Bills and utilities", sub: "Three days before due date" },
-  { key: "journal", name: "Journal activity", sub: "When someone adds photos or a note" },
-  { key: "shopping", name: "Shopping list", sub: "When an item is added by another member" },
-];
+const NOTIF_DEFS = NOTIFICATION_DEFS;
 
 export function NotificationToggles({ prefs }: { prefs: Record<string, boolean> }) {
   const [pending, startTransition] = useTransition();
@@ -119,7 +114,7 @@ export function InviteCodeCard({ code }: { code: string }) {
   );
 }
 
-export function HouseholdNameForm({ familyId, name }: { familyId: string; name: string }) {
+export function HouseholdNameForm({ name }: { name: string }) {
   const [value, setValue] = useState(name);
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
@@ -134,7 +129,7 @@ export function HouseholdNameForm({ familyId, name }: { familyId: string; name: 
           style={{ minHeight: 40, fontSize: 13.5 }}
           onClick={() =>
             startTransition(async () => {
-              const result = await updateHouseholdNameAction(familyId, value);
+              const result = await updateHouseholdNameAction(value);
               setError(result.error);
             })
           }
@@ -148,12 +143,10 @@ export function HouseholdNameForm({ familyId, name }: { familyId: string; name: 
 }
 
 export function HouseholdPrefsForm({
-  familyId,
   currency,
   dateFormat,
   weekStart,
 }: {
-  familyId: string;
   currency: string;
   dateFormat: string;
   weekStart: string;
@@ -187,7 +180,7 @@ export function HouseholdPrefsForm({
         style={{ minHeight: 40, fontSize: 13.5 }}
         onClick={() =>
           startTransition(async () => {
-            const result = await updateHouseholdPrefsAction(familyId, c, d, w);
+            const result = await updateHouseholdPrefsAction(c, d, w);
             setError(result.error);
           })
         }

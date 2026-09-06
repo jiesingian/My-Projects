@@ -30,7 +30,6 @@ export function BuyList({
   groups,
   openCount,
   doneCount,
-  familyId,
   accounts,
   currency,
   prices,
@@ -41,7 +40,6 @@ export function BuyList({
   groups: BuyGroup[];
   openCount: number;
   doneCount: number;
-  familyId: string;
   accounts: PickableAccount[];
   currency: string;
   /** What each line is expected to cost, keyed by item id. */
@@ -170,7 +168,6 @@ export function BuyList({
 
       {checkingOut && (
         <ClearCheckedPanel
-          familyId={familyId}
           doneCount={doneCount}
           accounts={accounts}
           currency={currency}
@@ -448,14 +445,12 @@ function EditItemRow({ item, onClose }: { item: Tables<"buy_items">; onClose: ()
 /** Clearing the trolley is the moment the shop actually cost something, so
  * that's where the spend is captured and taken out of a real account. */
 function ClearCheckedPanel({
-  familyId,
   doneCount,
   accounts,
   currency,
   suggested,
   onClose,
 }: {
-  familyId: string;
   doneCount: number;
   accounts: PickableAccount[];
   currency: string;
@@ -481,7 +476,7 @@ function ClearCheckedPanel({
           sourceId: null,
         });
       }
-      await clearCheckedAction(familyId);
+      await clearCheckedAction();
       // The basket is empty now, so the till closes with it.
       onClose();
       router.refresh();

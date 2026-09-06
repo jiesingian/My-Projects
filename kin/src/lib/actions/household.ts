@@ -89,12 +89,16 @@ export async function toggleBuyItemAction(itemId: string, checked: boolean) {
   revalidatePath("/household");
 }
 
-export async function clearCheckedAction(familyId: string) {
+export async function clearCheckedAction() {
+  // The household is the caller's own. It used to arrive as an argument, which
+  // RLS would refuse for anyone else's -- but a refusal that matches no rows
+  // reads as success, so the wrong id cleared nothing and said nothing.
+  const me = await requireCurrentMember();
   const supabase = await createClient();
   await supabase
     .from("buy_items")
     .update({ cleared: true, cleared_at: new Date().toISOString() })
-    .eq("family_id", familyId)
+    .eq("family_id", me.family_id)
     .eq("checked", true)
     .eq("cleared", false);
   revalidatePath("/household");
@@ -140,7 +144,15 @@ export async function addMealPlanAction(_prev: ActionState, formData: FormData):
 
 /** `weekOf` is any day in the week to build from — the week the meal plan is
  * showing, which is not always this one. */
-export async function generateGroceryListAction(familyId: string, createdBy: string, weekOf?: string) {
+export async function generateGroceryListAction(weekOf?: string) {
+  // Both the household and the author come from the session. As arguments,
+  // the household was merely redundant -- RLS already scoped it -- but the
+  // author was not: one member could hand another member's id and have the
+  // whole list filed under their name, which RLS cannot see anything wrong
+  // with, because they really are in the same family.
+  const me = await requireCurrentMember();
+  const familyId = me.family_id;
+  const createdBy = me.id;
   const supabase = await createClient();
   const day = weekOf ? new Date(`${weekOf}T00:00:00`) : new Date();
   // The Monday on or before that day — a Sunday belongs to the week it ends,

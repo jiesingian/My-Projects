@@ -178,7 +178,7 @@ export default async function SettingsPage({
         <div style={{ font: "600 13px/1 var(--font-heading)", letterSpacing: ".02em", color: "var(--color-neutral-600)", margin: "22px 0 8px" }}>HOUSEHOLD</div>
         <div style={{ fontSize: 13, color: "var(--color-neutral-700)", marginBottom: 6 }}>Household name</div>
         {me.is_organiser ? (
-          <HouseholdNameForm familyId={me.family_id} name={me.families.name} />
+          <HouseholdNameForm name={me.families.name} />
         ) : (
           <div style={{ padding: "10px 0", marginBottom: 14, fontSize: 15 }}>{me.families.name}</div>
         )}
@@ -202,7 +202,7 @@ export default async function SettingsPage({
         )}
         <div style={{ fontSize: 13, color: "var(--color-neutral-700)", marginBottom: 6 }}>Currency, dates and week start</div>
         {me.is_organiser ? (
-          <HouseholdPrefsForm familyId={me.family_id} currency={me.families.currency} dateFormat={me.families.date_format} weekStart={me.families.week_start} />
+          <HouseholdPrefsForm currency={me.families.currency} dateFormat={me.families.date_format} weekStart={me.families.week_start} />
         ) : (
           <div style={{ padding: "10px 0", marginBottom: 20, fontSize: 13 }}>
             {me.families.currency} · {me.families.date_format} · {me.families.week_start === "monday" ? "Mon start" : "Sun start"}
