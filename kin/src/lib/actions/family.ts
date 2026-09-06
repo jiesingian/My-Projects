@@ -98,6 +98,10 @@ export async function addManagedChildAction(_prev: ActionState, formData: FormDa
 
   revalidatePath("/onboarding/members");
   revalidatePath("/family/members");
+  // The Family tab is where a child actually gets added once the household is
+  // past setup, so it has to be refreshed too or the new profile does not
+  // appear until something else happens to reload the page.
+  revalidatePath("/family");
   return { error: null };
 }
 

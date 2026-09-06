@@ -11,6 +11,7 @@ import { Avatar } from "@/components/avatar";
 import { FamilyBackgroundAlbum } from "@/components/family-background-album";
 import { FamilyAboutEditor } from "@/components/family-about-editor";
 import { FamilyAddressList } from "@/components/family-address-list";
+import { AddChildForm } from "@/components/add-child-form";
 import { formatAge, initials, shortNames } from "@/lib/format";
 
 const SEGMENTS = ["profile", "health", "documents"] as const;
@@ -38,7 +39,7 @@ export default async function FamilyPage({
     <div>
       <HubHeader n="01" title="Family" segments={segments} />
       <div style={{ padding: "0 22px 22px" }}>
-        {seg === "profile" && <ProfilePane familyId={me.family_id} isOrganiser={me.is_organiser} myId={me.id} />}
+        {seg === "profile" && <ProfilePane familyId={me.family_id} isOrganiser={me.is_organiser} myId={me.id} myRole={me.role} />}
         {seg === "health" && <HealthPane familyId={me.family_id} />}
         {seg === "documents" && <DocumentsPane familyId={me.family_id} who={who} />}
       </div>
@@ -46,7 +47,9 @@ export default async function FamilyPage({
   );
 }
 
-async function ProfilePane({ familyId, isOrganiser, myId }: { familyId: string; isOrganiser: boolean; myId: string }) {
+async function ProfilePane({ familyId, isOrganiser, myId, myRole }: { familyId: string; isOrganiser: boolean; myId: string; myRole: string }) {
+  // Matches add_managed_child, which lets any parent or adult add one.
+  const canAddChild = myRole === "parent" || myRole === "adult";
   const [allMembers, { backgroundUrl, about, addresses, backgroundPhotos }] = await Promise.all([getMembers(familyId), getFamilyProfile(familyId)]);
   const pending = allMembers.filter((m) => m.status === "pending");
   const removed = allMembers.filter((m) => m.status === "removed");
@@ -108,6 +111,12 @@ async function ProfilePane({ familyId, isOrganiser, myId }: { familyId: string; 
       <div style={{ fontSize: 13, color: "var(--color-neutral-600)", marginTop: 14 }}>
         Managed profiles are written by a parent. Children graduate to their own login at 13.
       </div>
+
+      {/* A child arrives long after the household is set up — a baby, or one
+          who was simply missed. This used to live only in onboarding, a page
+          nobody can return to, so the only apparent way to add a daughter was
+          to sign her up for an email account she is far too young to have. */}
+      {canAddChild && <AddChildForm />}
 
       {isOrganiser && removed.length > 0 && (
         <>
