@@ -72,6 +72,55 @@ export async function signIn(_prev: ActionState, formData: FormData): Promise<Ac
   redirect("/");
 }
 
+/** Sends the recovery link. The reply is deliberately the same whether or not
+ * the address has an account: this form is unauthenticated, so telling the
+ * truth here would turn it into a way to ask "does this person use Kin?" --
+ * and for a family app, membership is itself private. Errors are swallowed
+ * for the same reason; the person is told to go and look in their inbox
+ * either way. */
+export async function requestPasswordReset(_prev: ActionState, formData: FormData): Promise<ActionState> {
+  const email = String(formData.get("email") ?? "").trim();
+  if (!email) return { error: "Enter the email you sign in with." };
+
+  const supabase = await createClient();
+  const origin = await getOrigin();
+  await supabase.auth.resetPasswordForEmail(email, {
+    // Lands on the same callback the confirmation link uses, which exchanges
+    // the code for a session, then hands over to the page that sets the new
+    // password.
+    redirectTo: `${origin}/auth/callback?next=/reset-password`,
+  });
+
+  redirect(`/forgot-password?sent=${encodeURIComponent(email)}`);
+}
+
+export async function updatePasswordAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
+  const password = String(formData.get("password") ?? "");
+  const confirm = String(formData.get("confirm") ?? "");
+  if (password.length < 8) return { error: "Use at least 8 characters." };
+  if (password !== confirm) return { error: "Those two passwords don't match." };
+
+  const supabase = await createClient();
+  // The recovery link is what proves who this is: following it exchanged a
+  // one-time code for a session, so there is a signed-in user here or there
+  // is nobody. Without this check the page would happily change the password
+  // of whoever merely happened to be signed in.
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { error: "That reset link has expired. Ask for a new one." };
+
+  const { error } = await supabase.auth.updateUser({ password });
+  if (error) return { error: error.message };
+
+  // A password is usually reset because the old one is not trusted any more,
+  // so every other device is signed out. This session stays, so they land in
+  // the app rather than at the login screen having just proved who they are.
+  await supabase.auth.signOut({ scope: "others" });
+
+  redirect("/today");
+}
+
 export async function signOutAction() {
   const supabase = await createClient();
   await supabase.auth.signOut();

@@ -37,6 +37,12 @@ export async function updateSession(request: NextRequest) {
     path.startsWith("/login") ||
     path.startsWith("/signup") ||
     path.startsWith("/verify") ||
+    // Asking for a reset link has to be open — someone who cannot sign in is
+    // precisely who needs it. /reset-password is deliberately NOT listed:
+    // reaching it requires the session the recovery link creates, so an
+    // unauthenticated visitor is sent to /login rather than shown a form that
+    // sets a password.
+    path.startsWith("/forgot-password") ||
     path.startsWith("/auth/callback");
   const isPublic = isAuthRoute || path === "/";
 

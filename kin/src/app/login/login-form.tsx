@@ -29,10 +29,15 @@ export function LoginForm({ callbackError }: { callbackError?: string }) {
           <label>EMAIL</label>
           <input aria-label="Email" className="input" type="email" name="email" required autoComplete="email" />
         </div>
-        <div className="field" style={{ marginBottom: 24 }}>
+        <div className="field" style={{ marginBottom: 10 }}>
           <label>PASSWORD</label>
           <input aria-label="Password" className="input" type="password" name="password" required autoComplete="current-password" />
         </div>
+        {/* Directly under the password, which is where it gets looked for the
+            moment one fails. */}
+        <p style={{ fontSize: 13, textAlign: "right", margin: "0 0 22px" }}>
+          <Link href="/forgot-password">Forgot your password?</Link>
+        </p>
         <SubmitButton style={{ minHeight: 46, fontSize: 15, letterSpacing: ".04em" }}>SIGN IN</SubmitButton>
       </form>
       <p style={{ fontSize: 13, color: "var(--color-neutral-700)", marginTop: 20, textAlign: "center" }}>
