@@ -3,6 +3,7 @@
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { requireCurrentMember } from "@/lib/session";
 import { getValidDriveAccessToken, deleteDriveFile } from "@/lib/google-drive";
 import { resolvePhotoUrl } from "@/lib/photo-url";
@@ -102,6 +103,66 @@ export async function addManagedChildAction(_prev: ActionState, formData: FormDa
   // past setup, so it has to be refreshed too or the new profile does not
   // appear until something else happens to reload the page.
   revalidatePath("/family");
+  return { error: null };
+}
+
+/** Gives a child their own way in. A parent sets the address and the first
+ * password, because a child this age has no inbox to confirm from — so the
+ * account is created already confirmed and no mail is sent at all, which is
+ * also why this path is untouched by the auth mailer's rate limit.
+ *
+ * Creating a login for somebody else needs the service role, so this is the
+ * one place outside the Drive handlers that reaches for it. */
+export async function addChildWithLoginAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
+  const me = await requireCurrentMember();
+  if (me.role !== "parent" && me.role !== "adult") {
+    return { error: "Only a parent or adult can add a child." };
+  }
+
+  const fullName = String(formData.get("full_name") ?? "").trim();
+  const dob = String(formData.get("dob") ?? "") || null;
+  const relationship = String(formData.get("relationship") ?? "child").trim();
+  const email = String(formData.get("email") ?? "").trim().toLowerCase();
+  const password = String(formData.get("password") ?? "");
+  if (!fullName || !dob) return { error: "Name and date of birth are required." };
+  if (!email) return { error: "Enter the email this child will sign in with." };
+  if (password.length < 8) return { error: "Give them a password of at least 8 characters." };
+
+  const admin = createAdminClient();
+  if (!admin) return { error: "Logins can't be created right now — the server is missing its key." };
+
+  const { data: created, error: createError } = await admin.auth.admin.createUser({
+    email,
+    password,
+    // Confirmed on the spot. There is no inbox to check, and asking one to
+    // exist is what sent this down the signup path in the first place.
+    email_confirm: true,
+  });
+  if (createError || !created.user) {
+    return {
+      error: /already/i.test(createError?.message ?? "")
+        ? "That email already has an account."
+        : "That email couldn't be used — check it and try again.",
+    };
+  }
+
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("add_child_with_login", {
+    p_full_name: fullName,
+    p_dob: dob,
+    p_relationship: relationship,
+    p_auth_user_id: created.user.id,
+  });
+
+  if (error) {
+    // The login exists but belongs to nobody. Left alone it would block the
+    // address from ever being used again, so it goes back.
+    await admin.auth.admin.deleteUser(created.user.id).catch(() => {});
+    return { error: "We couldn't finish adding them. Nothing was saved — try again." };
+  }
+
+  revalidatePath("/family");
+  revalidatePath("/onboarding/members");
   return { error: null };
 }
 

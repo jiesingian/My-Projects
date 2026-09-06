@@ -3231,6 +3231,59 @@ export type Database = {
         }
         Returns: undefined
       }
+      add_child_with_login: {
+        Args: {
+          p_auth_user_id: string
+          p_dob: string
+          p_full_name: string
+          p_relationship: string
+        }
+        Returns: {
+          allergies: string | null
+          auth_user_id: string | null
+          avatar_url: string | null
+          blood_type: string | null
+          college: string | null
+          created_at: string
+          dob: string | null
+          email: string | null
+          employer_name: string | null
+          employment_end_date: string | null
+          employment_start_date: string | null
+          family_id: string
+          full_name: string
+          height: string | null
+          high_school: string | null
+          id: string
+          insurance_info: string | null
+          is_organiser: boolean
+          mobile: string | null
+          notification_prefs: Json
+          pagibig_number: string | null
+          pants_size: string | null
+          philhealth_number: string | null
+          physician_name: string | null
+          place_of_birth: string | null
+          relationship: string | null
+          role: string
+          shoe_size: string | null
+          sss_number: string | null
+          status: string
+          text_size: string
+          theme: string
+          tin_number: string | null
+          tshirt_size: string | null
+          weight: string | null
+          work_contact_info: string | null
+          work_email: string | null
+        }
+        SetofOptions: {
+          from: "*"
+          to: "members"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       add_managed_child: {
         Args: { p_dob: string; p_full_name: string; p_relationship?: string }
         Returns: {
@@ -3280,6 +3333,54 @@ export type Database = {
         }
       }
       apply_code_grant_to_family: { Args: { p_code: string }; Returns: string }
+      attach_login_to_child: {
+        Args: { p_auth_user_id: string; p_member_id: string }
+        Returns: {
+          allergies: string | null
+          auth_user_id: string | null
+          avatar_url: string | null
+          blood_type: string | null
+          college: string | null
+          created_at: string
+          dob: string | null
+          email: string | null
+          employer_name: string | null
+          employment_end_date: string | null
+          employment_start_date: string | null
+          family_id: string
+          full_name: string
+          height: string | null
+          high_school: string | null
+          id: string
+          insurance_info: string | null
+          is_organiser: boolean
+          mobile: string | null
+          notification_prefs: Json
+          pagibig_number: string | null
+          pants_size: string | null
+          philhealth_number: string | null
+          physician_name: string | null
+          place_of_birth: string | null
+          relationship: string | null
+          role: string
+          shoe_size: string | null
+          sss_number: string | null
+          status: string
+          text_size: string
+          theme: string
+          tin_number: string | null
+          tshirt_size: string | null
+          weight: string | null
+          work_contact_info: string | null
+          work_email: string | null
+        }
+        SetofOptions: {
+          from: "*"
+          to: "members"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       create_family: {
         Args: {
           p_dob?: string
@@ -3335,6 +3436,7 @@ export type Database = {
       }
       current_family_id: { Args: never; Returns: string }
       current_member_id: { Args: never; Returns: string }
+      current_member_is_organiser: { Args: never; Returns: boolean }
       current_member_role: { Args: never; Returns: string }
       delete_household: { Args: never; Returns: undefined }
       generate_invite_code: { Args: never; Returns: string }
