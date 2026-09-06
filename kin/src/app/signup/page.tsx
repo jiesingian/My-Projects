@@ -16,11 +16,28 @@ export default function SignupPage() {
     <OnboardingShell step="STEP 01 / 05" backHref="/login">
       <h2 style={{ fontSize: 34, margin: "0 0 6px" }}>Your account</h2>
       <p style={{ fontSize: 13.5, color: "var(--color-neutral-700)", margin: "0 0 26px" }}>
-        Every member signs in with their own verified email. Children under 13 are added as managed profiles
-        instead.
+        Kin is invite-only while we build it. Every member signs in with their own verified email. Children
+        under 13 are added as managed profiles instead.
       </p>
       <form action={formAction}>
         <ErrorText message={state.error} />
+        {/* First field, not last: if the code is wrong there is no reason to
+            make them type an email and password before finding out. */}
+        <div className="field" style={{ marginBottom: 16 }}>
+          <label>ACCESS CODE</label>
+          <input
+            className="input"
+            name="access_code"
+            required
+            autoComplete="off"
+            spellCheck={false}
+            placeholder="KIN-BETA-XXXXXX"
+            style={{ fontFamily: "var(--font-numeric)", letterSpacing: ".02em", textTransform: "uppercase" }}
+          />
+          <span style={{ fontSize: 12.5, color: "var(--color-neutral-600)", display: "block", marginTop: 6 }}>
+            Your household&apos;s invite code works here too.
+          </span>
+        </div>
         <div className="field" style={{ marginBottom: 16 }}>
           <label>EMAIL</label>
           <input className="input" type="email" name="email" required autoComplete="email" />

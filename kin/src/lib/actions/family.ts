@@ -30,9 +30,21 @@ export async function createFamilyAction(_prev: ActionState, formData: FormData)
   const fullName = String(formData.get("full_name") ?? "").trim();
   const dob = String(formData.get("dob") ?? "") || null;
   const mobile = String(formData.get("mobile") ?? "").trim() || null;
+  const accessCode = String(formData.get("access_code") ?? "").trim();
   if (!householdName || !fullName) return { error: "Household name and your name are required." };
+  if (!accessCode) return { error: "Starting a new household needs an access code." };
 
   const supabase = await createClient();
+
+  // A new household is the thing worth protecting, so only a code we issued
+  // opens one. A family's own invite code gets you through signup and into
+  // that family — never into a household of your own.
+  const { data: redeemed, error: redeemError } = await supabase.rpc("redeem_household_code", {
+    p_code: accessCode,
+  });
+  if (redeemError) return { error: "We couldn't check that code just now. Try again in a moment." };
+  if (!redeemed) return { error: "That access code isn't valid, or it has already been used up." };
+
   const { error } = await supabase.rpc("create_family", {
     p_household_name: householdName,
     p_full_name: fullName,

@@ -14,6 +14,39 @@ export type Database = {
   }
   public: {
     Tables: {
+      access_codes: {
+        Row: {
+          code: string
+          created_at: string
+          expires_at: string | null
+          id: string
+          max_uses: number
+          note: string | null
+          revoked: boolean
+          used_count: number
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          expires_at?: string | null
+          id?: string
+          max_uses?: number
+          note?: string | null
+          revoked?: boolean
+          used_count?: number
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          expires_at?: string | null
+          id?: string
+          max_uses?: number
+          note?: string | null
+          revoked?: boolean
+          used_count?: number
+        }
+        Relationships: []
+      }
       accounts: {
         Row: {
           account_type: string
@@ -3250,7 +3283,9 @@ export type Database = {
         }
       }
       leave_household_self: { Args: never; Returns: undefined }
+      redeem_household_code: { Args: { p_code: string }; Returns: boolean }
       regenerate_invite_code: { Args: never; Returns: string }
+      signup_code_is_valid: { Args: { p_code: string }; Returns: boolean }
       transfer_organiser_role: {
         Args: { p_new_organiser_member_id: string }
         Returns: undefined

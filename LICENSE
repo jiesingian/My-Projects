@@ -1,0 +1,33 @@
+Copyright (c) 2026 Jonathan Singian. All rights reserved.
+
+PROPRIETARY AND CONFIDENTIAL
+
+This repository and everything in it -- source code, database schema and
+migrations, design, written copy, and data -- is the exclusive property of
+Jonathan Singian.
+
+No licence is granted. Except where a separate written agreement signed by the
+copyright holder says otherwise, you may NOT:
+
+  1. copy, reproduce, or store this software or any part of it;
+  2. modify it, or create derivative or adapted works from it;
+  3. distribute, publish, sublicense, sell, rent, or otherwise make it
+     available to anyone else;
+  4. deploy, host, or operate it, whether or not you charge for access;
+  5. use it to build or train a competing product or service.
+
+Access to this repository, whether granted deliberately or obtained through
+error or misconfiguration, does not grant any of the rights above. If you have
+obtained a copy without written permission, delete it.
+
+Third-party open-source dependencies are covered by their own licences, which
+continue to apply to those components and are unaffected by this notice.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+COPYRIGHT HOLDER BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER
+IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
+CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+
+Enquiries about licensing: jiesingian@gmail.com

@@ -45,6 +45,25 @@ export function FamilyForkForm({
             <label>HOUSEHOLD NAME</label>
             <input className="input" name="household_name" placeholder="The Reyes Household" required style={{ minHeight: 44 }} />
           </div>
+          {/* Starting a household is the one step a family invite code does
+              not open — that code brings you into an existing family below. */}
+          <div className="field" style={{ marginBottom: 12 }}>
+            <label>ACCESS CODE</label>
+            <input
+              className="input"
+              name="access_code"
+              placeholder="KIN-BETA-XXXXXX"
+              required
+              autoComplete="off"
+              spellCheck={false}
+              style={{
+                minHeight: 44,
+                fontFamily: "var(--font-numeric)",
+                letterSpacing: ".02em",
+                textTransform: "uppercase",
+              }}
+            />
+          </div>
           <ErrorText message={createState.error} />
           <SubmitButton className="btn btn-primary btn-block" style={{ minHeight: 44 }}>
             CREATE HOUSEHOLD
