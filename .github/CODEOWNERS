@@ -1,0 +1,43 @@
+# The backstop under the triage workflow.
+#
+# Triage is a workflow, and a workflow can be edited by whoever opens the pull
+# request. This file is enforced by GitHub itself: once "require review from
+# Code Owners" is on for main, a pull request touching any path below cannot
+# merge without Jonathan, whatever any workflow decides. Note the last matching
+# rule wins, so order matters here.
+
+# Everything, by default, is reviewable by either of them.
+*                                   @jiesingian
+
+# The way into the app.
+/kin/src/app/login/                 @jiesingian
+/kin/src/app/signup/                @jiesingian
+/kin/src/app/verify/                @jiesingian
+/kin/src/app/forgot-password/       @jiesingian
+/kin/src/app/reset-password/        @jiesingian
+/kin/src/app/auth/                  @jiesingian
+/kin/src/proxy.ts                   @jiesingian
+/kin/src/lib/supabase/              @jiesingian
+/kin/src/lib/session.ts             @jiesingian
+
+# Server actions are public endpoints, whatever they look like in the editor.
+/kin/src/lib/actions/               @jiesingian
+/kin/src/app/api/                   @jiesingian
+
+# Who may use Kin, and what it costs.
+/kin/src/lib/access.ts              @jiesingian
+/kin/src/lib/billing/               @jiesingian
+/kin/src/app/subscribe/             @jiesingian
+
+# A change here usually means the database shape moved underneath.
+/kin/src/lib/database.types.ts      @jiesingian
+
+# The rules, the toolchain, and the licence.
+/.github/                           @jiesingian
+/CLAUDE.md                          @jiesingian
+/LICENSE                            @jiesingian
+/kin/AGENTS.md                      @jiesingian
+/kin/package.json                   @jiesingian
+/kin/package-lock.json              @jiesingian
+/kin/next.config.ts                 @jiesingian
+/kin/eslint.config.mjs              @jiesingian

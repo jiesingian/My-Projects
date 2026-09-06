@@ -27,6 +27,24 @@ Both people's sessions run in their own container against their own clone, so
 work in parallel does not collide until a branch is merged. The one thing that
 *does* collide is `main` — hence the rule above.
 
+### Small changes merge themselves; large ones wait
+
+A pull request is sorted automatically by `.github/workflows/triage.yml`, from
+the diff rather than from anything the author says about it. A change merges on
+its own once CI is green **unless** it touches auth, session handling, server
+actions, API routes, the paywall, the database types, or the toolchain — or
+runs past ~150 changed lines. Those wait for Jonathan.
+
+Do not try to make a change look small to get it merged: splitting one risky
+change across several pull requests, or moving code out of a watched path to
+dodge the classifier, defeats the only safeguard there is. If you think
+something is being held that shouldn't be, say so in the pull request and let
+him decide.
+
+CI must be green either way — `npx tsc --noEmit`, `npm run lint` and
+`npm run build`, all from `kin/`. Run them before you open the pull request
+rather than finding out from the robot.
+
 ## graphify
 
 This is a monorepo. Each project folder (e.g. `kin/`) has its own knowledge graph at `<project>/graphify-out/` — god nodes, community structure, cross-file relationships. `graphify-out/graph.json` at this root is an *aggregate* of every project's graph, rebuilt automatically by `.github/workflows/graphify-deploy.yml` on every push (via `graphify merge-graphs`) — don't hand-edit it.

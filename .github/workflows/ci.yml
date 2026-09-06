@@ -1,0 +1,44 @@
+name: CI
+
+# The gate every pull request has to get through before it can be merged --
+# automatically or by hand. Without this, "auto-merge once checks pass" would
+# mean "merge once nothing has been checked".
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+jobs:
+  kin:
+    name: kin — typecheck, lint, build
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: kin
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: kin/package-lock.json
+
+      - run: npm ci
+
+      - name: Typecheck
+        run: npx tsc --noEmit
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Build
+        # Every page in Kin is server-rendered on demand, so nothing is
+        # prerendered and no real database is touched here. The placeholders
+        # only satisfy the client constructor at build time -- they are not
+        # secrets and are not the project's real values.
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: https://placeholder.supabase.co
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: placeholder-anon-key-for-build-only
+        run: npm run build

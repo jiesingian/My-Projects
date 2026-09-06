@@ -1,0 +1,114 @@
+name: Triage
+
+# Decides whether a pull request may merge itself once CI is green, or has to
+# wait for Jonathan.
+#
+# The decision is made from the diff, never from what the author says about it.
+# An agent asked to describe its own change will describe it as small, and the
+# whole point of this file is that nobody -- person or model -- gets to grade
+# their own homework.
+on:
+  pull_request_target:
+    types: [opened, synchronize, reopened, ready_for_review]
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  classify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Work out whether this needs Jonathan
+        id: triage
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR: ${{ github.event.pull_request.number }}
+          REPO: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+
+          # Paths where a mistake is not merely a bug: the way into the app,
+          # the rules about who may see what, anything handling money, and the
+          # toolchain and rules themselves.
+          SENSITIVE='^(
+          kin/src/lib/actions/|
+          kin/src/lib/supabase/|
+          kin/src/lib/session\.ts|
+          kin/src/lib/access\.ts|
+          kin/src/lib/billing/|
+          kin/src/lib/database\.types\.ts|
+          kin/src/proxy\.ts|
+          kin/src/app/api/|
+          kin/src/app/auth/|
+          kin/src/app/login/|
+          kin/src/app/signup/|
+          kin/src/app/verify/|
+          kin/src/app/forgot-password/|
+          kin/src/app/reset-password/|
+          kin/src/app/subscribe/|
+          kin/next\.config\.|
+          kin/package(-lock)?\.json|
+          kin/eslint\.config\.|
+          \.github/|
+          CLAUDE\.md|
+          .*AGENTS\.md|
+          LICENSE
+          )'
+          SENSITIVE=$(printf '%s' "$SENSITIVE" | tr -d ' \n')
+
+          gh pr diff "$PR" --repo "$REPO" --name-only > /tmp/files.txt
+          echo "Files changed:"; cat /tmp/files.txt
+
+          REASON=""
+          if grep -qE "$SENSITIVE" /tmp/files.txt; then
+            REASON="it touches auth, data rules, billing, an API route, or the toolchain"
+          fi
+
+          # Size is the second signal. A large diff may be entirely harmless,
+          # but "large and unreviewed" is not a combination worth having.
+          ADDED=$(gh pr view "$PR" --repo "$REPO" --json additions --jq .additions)
+          DELETED=$(gh pr view "$PR" --repo "$REPO" --json deletions --jq .deletions)
+          TOTAL=$(( ADDED + DELETED ))
+          echo "Lines changed: $TOTAL"
+          if [ "$TOTAL" -gt 150 ] && [ -z "$REASON" ]; then
+            REASON="it changes $TOTAL lines, which is past the point of merging unseen"
+          fi
+
+          if [ -n "$REASON" ]; then
+            echo "needs_review=true" >> "$GITHUB_OUTPUT"
+            echo "reason=$REASON" >> "$GITHUB_OUTPUT"
+          else
+            echo "needs_review=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Hold it for review
+        if: steps.triage.outputs.needs_review == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR: ${{ github.event.pull_request.number }}
+          REPO: ${{ github.repository }}
+          REASON: ${{ steps.triage.outputs.reason }}
+        run: |
+          gh pr edit "$PR" --repo "$REPO" --add-label "needs-jonathan" --remove-label "auto-merge" || true
+          # Disables any auto-merge a previous, smaller push may have armed.
+          gh pr merge "$PR" --repo "$REPO" --disable-auto || true
+          gh pr comment "$PR" --repo "$REPO" --body \
+            "**Held for review** — $REASON.
+
+          This one waits for Jonathan. Nothing is wrong with it; it is just in territory where a mistake is expensive, so it gets read before it ships."
+
+      - name: Let it merge itself once CI is green
+        if: steps.triage.outputs.needs_review == 'false'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR: ${{ github.event.pull_request.number }}
+          REPO: ${{ github.repository }}
+        run: |
+          gh pr edit "$PR" --repo "$REPO" --add-label "auto-merge" --remove-label "needs-jonathan" || true
+          # --auto waits for the required checks; it does not merge a red PR.
+          gh pr merge "$PR" --repo "$REPO" --auto --squash || \
+            gh pr comment "$PR" --repo "$REPO" --body \
+              "This change is small and stays clear of auth, data rules and billing, so it is set to merge on its own once CI passes. (If it did not arm, auto-merge may not be enabled on the repo yet.)"
