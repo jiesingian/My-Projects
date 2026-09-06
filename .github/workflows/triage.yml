@@ -30,16 +30,21 @@ jobs:
         run: |
           set -euo pipefail
 
-          # Paths where a mistake is not merely a bug: the way into the app,
-          # the rules about who may see what, anything handling money, and the
-          # toolchain and rules themselves.
+          # The test is not "does this look risky" but "could we undo it in
+          # five minutes". Code is revertible: a bad component ships, we notice,
+          # we revert. These are the things that are not -- the way into the
+          # app, who may see whose data, money, and anything that runs code on
+          # our machines. A leak is leaked and a dropped column is gone.
+          #
+          # Everything else, including most server actions, merges on green and
+          # is fixed forward. RLS is the real backstop under the actions, and it
+          # is enforced by the database rather than by whoever read the diff.
           SENSITIVE='^(
-          kin/src/lib/actions/|
+          kin/src/lib/actions/(auth|family|billing|wealth|drive)\.ts|
           kin/src/lib/supabase/|
           kin/src/lib/session\.ts|
           kin/src/lib/access\.ts|
           kin/src/lib/billing/|
-          kin/src/lib/database\.types\.ts|
           kin/src/proxy\.ts|
           kin/src/app/api/|
           kin/src/app/auth/|
@@ -55,7 +60,8 @@ jobs:
           \.github/|
           CLAUDE\.md|
           .*AGENTS\.md|
-          LICENSE
+          LICENSE|
+          .*\.sql
           )'
           SENSITIVE=$(printf '%s' "$SENSITIVE" | tr -d ' \n')
 
@@ -73,7 +79,7 @@ jobs:
           DELETED=$(gh pr view "$PR" --repo "$REPO" --json deletions --jq .deletions)
           TOTAL=$(( ADDED + DELETED ))
           echo "Lines changed: $TOTAL"
-          if [ "$TOTAL" -gt 150 ] && [ -z "$REASON" ]; then
+          if [ "$TOTAL" -gt 400 ] && [ -z "$REASON" ]; then
             REASON="it changes $TOTAL lines, which is past the point of merging unseen"
           fi
 

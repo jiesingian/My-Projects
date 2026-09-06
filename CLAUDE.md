@@ -30,10 +30,19 @@ work in parallel does not collide until a branch is merged. The one thing that
 ### Small changes merge themselves; large ones wait
 
 A pull request is sorted automatically by `.github/workflows/triage.yml`, from
-the diff rather than from anything the author says about it. A change merges on
-its own once CI is green **unless** it touches auth, session handling, server
-actions, API routes, the paywall, the database types, or the toolchain — or
-runs past ~150 changed lines. Those wait for Jonathan.
+the diff rather than from anything the author says about it.
+
+The test is not "does this look risky" but **"could we undo it in five
+minutes"**. Code is revertible — a bad component ships, someone notices, it is
+reverted. So most of the app merges on green CI and is fixed forward. What
+waits for Jonathan is what cannot be undone: the way into the app, session
+handling, who may see whose data, money, anything that runs code on our
+machines, and anything touching the database itself. Or a change past ~400
+lines.
+
+Migrations are his alone. They apply when written, not when merged, so by the
+time a pull request is read the schema has already moved — review cannot catch
+them after the fact. If a change needs one, say so and stop; do not run it.
 
 Do not try to make a change look small to get it merged: splitting one risky
 change across several pull requests, or moving code out of a watched path to

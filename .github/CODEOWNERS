@@ -6,8 +6,9 @@
 # merge without Jonathan, whatever any workflow decides. Note the last matching
 # rule wins, so order matters here.
 
-# Everything, by default, is reviewable by either of them.
-*                                   @jiesingian
+# No owner by default — most of the app merges on green CI and is fixed
+# forward if wrong. Only the paths below, where a mistake cannot be undone in
+# five minutes, need Jonathan.
 
 # The way into the app.
 /kin/src/app/login/                 @jiesingian
@@ -20,8 +21,14 @@
 /kin/src/lib/supabase/              @jiesingian
 /kin/src/lib/session.ts             @jiesingian
 
-# Server actions are public endpoints, whatever they look like in the editor.
-/kin/src/lib/actions/               @jiesingian
+# Not every server action — only the ones that are a permission or a money
+# boundary. The rest are backed by RLS, which the database enforces whether or
+# not anyone read the diff.
+/kin/src/lib/actions/auth.ts        @jiesingian
+/kin/src/lib/actions/family.ts      @jiesingian
+/kin/src/lib/actions/billing.ts     @jiesingian
+/kin/src/lib/actions/wealth.ts      @jiesingian
+/kin/src/lib/actions/drive.ts       @jiesingian
 /kin/src/app/api/                   @jiesingian
 
 # Who may use Kin, and what it costs.
@@ -29,8 +36,10 @@
 /kin/src/lib/billing/               @jiesingian
 /kin/src/app/subscribe/             @jiesingian
 
-# A change here usually means the database shape moved underneath.
-/kin/src/lib/database.types.ts      @jiesingian
+# Anything that changes the database itself. Migrations are Jonathan's alone —
+# they apply when written, not when merged, so review cannot catch them after
+# the fact.
+*.sql                               @jiesingian
 
 # The rules, the toolchain, and the licence.
 /.github/                           @jiesingian
