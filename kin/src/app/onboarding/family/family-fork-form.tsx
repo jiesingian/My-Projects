@@ -43,13 +43,13 @@ export function FamilyForkForm({
           </span>
           <div className="field" style={{ marginBottom: 12 }}>
             <label>HOUSEHOLD NAME</label>
-            <input className="input" name="household_name" placeholder="The Reyes Household" required style={{ minHeight: 44 }} />
+            <input aria-label="Household Name" className="input" name="household_name" placeholder="The Reyes Household" required style={{ minHeight: 44 }} />
           </div>
           {/* Starting a household is the one step a family invite code does
               not open — that code brings you into an existing family below. */}
           <div className="field" style={{ marginBottom: 12 }}>
             <label>ACCESS CODE</label>
-            <input
+            <input aria-label="Access Code"
               className="input"
               name="access_code"
               placeholder="KIN-BETA-XXXXXX"

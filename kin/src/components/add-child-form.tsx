@@ -32,16 +32,16 @@ export function AddChildForm() {
       <ErrorText message={state.error} />
       <div className="field" style={{ marginBottom: 12 }}>
         <label>CHILD&apos;S NAME</label>
-        <input className="input" name="full_name" required style={{ minHeight: 44 }} />
+        <input aria-label="CHILD&apos;S NAME" className="input" name="full_name" required style={{ minHeight: 44 }} />
       </div>
       <div style={{ display: "flex", gap: 12, marginBottom: 14 }}>
         <div className="field" style={{ flex: 1 }}>
           <label>DATE OF BIRTH</label>
-          <input className="input" type="date" name="dob" required style={{ minHeight: 44 }} />
+          <input aria-label="Date Of Birth" className="input" type="date" name="dob" required style={{ minHeight: 44 }} />
         </div>
         <div className="field" style={{ flex: 1 }}>
           <label>RELATIONSHIP</label>
-          <input className="input" name="relationship" defaultValue="child" style={{ minHeight: 44 }} />
+          <input aria-label="Relationship" className="input" name="relationship" defaultValue="child" style={{ minHeight: 44 }} />
         </div>
       </div>
       <div style={{ display: "flex", gap: 10 }}>

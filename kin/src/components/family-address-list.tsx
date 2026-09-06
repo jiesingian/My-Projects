@@ -73,45 +73,45 @@ function AddressForm({
     <div style={{ marginTop: 10, marginBottom: 10 }}>
       <div className="field" style={{ marginBottom: 8 }}>
         <label>TAG</label>
-        <input className="input" placeholder="Home" value={fields.label} onChange={(e) => set("label", e.target.value)} style={{ minHeight: 40 }} disabled={busy} />
+        <input aria-label="Tag" className="input" placeholder="Home" value={fields.label} onChange={(e) => set("label", e.target.value)} style={{ minHeight: 40 }} disabled={busy} />
       </div>
       <div style={{ display: "flex", gap: 8, marginBottom: 8 }}>
         <div className="field" style={{ flex: 1 }}>
           <label>HOUSE / UNIT NO.</label>
-          <input className="input" value={fields.houseNo} onChange={(e) => set("houseNo", e.target.value)} style={{ minHeight: 40 }} disabled={busy} />
+          <input aria-label="House / Unit No." className="input" value={fields.houseNo} onChange={(e) => set("houseNo", e.target.value)} style={{ minHeight: 40 }} disabled={busy} />
         </div>
         <div className="field" style={{ flex: 2 }}>
           <label>BUILDING / SUBDIVISION</label>
-          <input className="input" value={fields.building} onChange={(e) => set("building", e.target.value)} style={{ minHeight: 40 }} disabled={busy} />
+          <input aria-label="Building / Subdivision" className="input" value={fields.building} onChange={(e) => set("building", e.target.value)} style={{ minHeight: 40 }} disabled={busy} />
         </div>
       </div>
       <div className="field" style={{ marginBottom: 8 }}>
         <label>STREET</label>
-        <input className="input" value={fields.street} onChange={(e) => set("street", e.target.value)} style={{ minHeight: 40 }} disabled={busy} />
+        <input aria-label="Street" className="input" value={fields.street} onChange={(e) => set("street", e.target.value)} style={{ minHeight: 40 }} disabled={busy} />
       </div>
       <div style={{ display: "flex", gap: 8, marginBottom: 8 }}>
         <div className="field" style={{ flex: 1 }}>
           <label>BARANGAY</label>
-          <input className="input" value={fields.barangay} onChange={(e) => set("barangay", e.target.value)} style={{ minHeight: 40 }} disabled={busy} />
+          <input aria-label="Barangay" className="input" value={fields.barangay} onChange={(e) => set("barangay", e.target.value)} style={{ minHeight: 40 }} disabled={busy} />
         </div>
         <div className="field" style={{ flex: 1 }}>
           <label>CITY / MUNICIPALITY</label>
-          <input className="input" value={fields.city} onChange={(e) => set("city", e.target.value)} style={{ minHeight: 40 }} disabled={busy} />
+          <input aria-label="City / Municipality" className="input" value={fields.city} onChange={(e) => set("city", e.target.value)} style={{ minHeight: 40 }} disabled={busy} />
         </div>
       </div>
       <div style={{ display: "flex", gap: 8, marginBottom: 8 }}>
         <div className="field" style={{ flex: 1 }}>
           <label>PROVINCE</label>
-          <input className="input" value={fields.province} onChange={(e) => set("province", e.target.value)} style={{ minHeight: 40 }} disabled={busy} />
+          <input aria-label="Province" className="input" value={fields.province} onChange={(e) => set("province", e.target.value)} style={{ minHeight: 40 }} disabled={busy} />
         </div>
         <div className="field" style={{ width: 110 }}>
           <label>ZIP CODE</label>
-          <input className="input" value={fields.zipCode} onChange={(e) => set("zipCode", e.target.value)} style={{ minHeight: 40 }} disabled={busy} />
+          <input aria-label="Zip Code" className="input" value={fields.zipCode} onChange={(e) => set("zipCode", e.target.value)} style={{ minHeight: 40 }} disabled={busy} />
         </div>
       </div>
       <div className="field" style={{ marginBottom: 8 }}>
         <label>COUNTRY</label>
-        <input className="input" value={fields.country} onChange={(e) => set("country", e.target.value)} style={{ minHeight: 40 }} disabled={busy} />
+        <input aria-label="Country" className="input" value={fields.country} onChange={(e) => set("country", e.target.value)} style={{ minHeight: 40 }} disabled={busy} />
       </div>
       {error && <p style={{ color: "var(--color-accent-700)", fontSize: 13, margin: "0 0 8px" }}>{error}</p>}
       <div style={{ display: "flex", gap: 8 }}>

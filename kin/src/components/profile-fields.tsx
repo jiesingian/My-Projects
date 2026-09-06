@@ -152,7 +152,7 @@ export function ProfileFieldsEditor({
           {group.fields.map((spec) => (
             <div className="field" key={spec.key} style={{ marginBottom: 10 }}>
               <label>{spec.label}</label>
-              <input
+              <input aria-label={spec.label}
                 className="input"
                 type={spec.type === "date" ? "date" : spec.type === "email" ? "email" : spec.type === "tel" ? "tel" : "text"}
                 value={fields[spec.key] ?? ""}

@@ -79,7 +79,7 @@ export function NewHealthEntryForm({
 
           <div className="field" style={{ marginBottom: 14 }}>
             <label>{type.titleLabel.toUpperCase()}</label>
-            <input className="input" name="title" required style={{ minHeight: 44 }} />
+            <input aria-label={type.titleLabel.toUpperCase()} className="input" name="title" required style={{ minHeight: 44 }} />
           </div>
 
           {type.grouped && (
@@ -98,7 +98,7 @@ export function NewHealthEntryForm({
               {groupId === "__new__" && (
                 <div className="field" style={{ marginBottom: 16 }}>
                   <label>NEW GROUP NAME</label>
-                  <input className="input" name="new_group_name" placeholder="Leave blank to use the title above" style={{ minHeight: 44 }} />
+                  <input aria-label="New Group Name" className="input" name="new_group_name" placeholder="Leave blank to use the title above" style={{ minHeight: 44 }} />
                 </div>
               )}
             </>
@@ -107,28 +107,28 @@ export function NewHealthEntryForm({
           <div style={{ display: "flex", gap: 12, marginBottom: 14 }}>
             <div className="field" style={{ flex: 1 }}>
               <label>DATE</label>
-              <input className="input" type="date" name="date" defaultValue={new Date().toISOString().slice(0, 10)} required style={{ minHeight: 44 }} />
+              <input aria-label="Date" className="input" type="date" name="date" defaultValue={new Date().toISOString().slice(0, 10)} required style={{ minHeight: 44 }} />
             </div>
             <div className="field" style={{ flex: 1 }}>
               <label>{type.valueLabel.toUpperCase()}</label>
-              <input className="input" name="value" style={{ minHeight: 44 }} />
+              <input aria-label={type.valueLabel.toUpperCase()} className="input" name="value" style={{ minHeight: 44 }} />
             </div>
           </div>
 
           <div style={{ display: "flex", gap: 12, marginBottom: 14 }}>
             <div className="field" style={{ flex: 1 }}>
               <label>SEEN BY</label>
-              <input className="input" name="seen_by" style={{ minHeight: 44 }} />
+              <input aria-label="Seen By" className="input" name="seen_by" style={{ minHeight: 44 }} />
             </div>
             <div className="field" style={{ flex: 1 }}>
               <label>WHERE</label>
-              <input className="input" name="where" style={{ minHeight: 44 }} />
+              <input aria-label="Where" className="input" name="where" style={{ minHeight: 44 }} />
             </div>
           </div>
 
           <div className="field" style={{ marginBottom: 16 }}>
             <label>NOTES</label>
-            <input className="input" name="notes" placeholder="Symptoms, dosage, instructions" style={{ minHeight: 44 }} />
+            <input aria-label="Notes" className="input" name="notes" placeholder="Symptoms, dosage, instructions" style={{ minHeight: 44 }} />
           </div>
 
           <div style={{ fontSize: 13, color: "var(--color-neutral-700)", marginBottom: 6 }}>Visible to</div>

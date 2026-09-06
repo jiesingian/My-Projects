@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useState, useTransition } from "react";
+import { cloneElement, isValidElement, useActionState, useId, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import {
   addAccountAction,
@@ -223,11 +223,17 @@ export function AllocationEditor({ budgeted }: { budgeted: string[] }) {
   );
 }
 
+/** Ties the caption to the control it captions. useId rather than the field's
+ * name, because these forms repeat -- the wealth page carries two "NAME"
+ * fields -- and a duplicated id would point every caption at whichever
+ * control rendered first. The association is what makes a screen reader
+ * announce the field, and what makes tapping the caption focus it. */
 function Labelled({ label, children, style }: { label: string; children: React.ReactNode; style?: React.CSSProperties }) {
+  const id = useId();
   return (
     <div className="field" style={{ marginBottom: 12, ...style }}>
-      <label>{label}</label>
-      {children}
+      <label htmlFor={id}>{label}</label>
+      {isValidElement<{ id?: string }>(children) ? cloneElement(children, { id }) : children}
     </div>
   );
 }

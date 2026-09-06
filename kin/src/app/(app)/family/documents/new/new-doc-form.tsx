@@ -106,7 +106,7 @@ export function NewDocForm({
 
           <div className="field" style={{ marginBottom: 14 }}>
             <label>ENTRY TITLE</label>
-            <input className="input" name="title" required style={{ minHeight: 44 }} />
+            <input aria-label="Entry Title" className="input" name="title" required style={{ minHeight: 44 }} />
           </div>
 
           <div style={{ fontSize: 13, color: "var(--color-neutral-700)", marginBottom: 6 }}>Folder</div>
@@ -123,14 +123,14 @@ export function NewDocForm({
           {folderId === "__new__" && (
             <div className="field" style={{ marginBottom: 16 }}>
               <label>NEW FOLDER NAME</label>
-              <input className="input" name="new_folder_name" placeholder="e.g. Insurance policies" required style={{ minHeight: 44 }} />
+              <input aria-label="New Folder Name" className="input" name="new_folder_name" placeholder="e.g. Insurance policies" required style={{ minHeight: 44 }} />
             </div>
           )}
 
           <div style={{ display: "flex", gap: 12, marginBottom: 16 }}>
             <div className="field" style={{ flex: 1 }}>
               <label>BELONGS TO</label>
-              <select className="input" name="owner_member_id" style={{ minHeight: 44 }}>
+              <select aria-label="Belongs To" className="input" name="owner_member_id" style={{ minHeight: 44 }}>
                 <option value="">Whole family</option>
                 {members.map((m) => (
                   <option key={m.id} value={m.id}>
@@ -141,18 +141,18 @@ export function NewDocForm({
             </div>
             <div className="field" style={{ flex: 1 }}>
               <label>EXPIRES</label>
-              <input className="input" type="date" name="expires_at" style={{ minHeight: 44 }} />
+              <input aria-label="Expires" className="input" type="date" name="expires_at" style={{ minHeight: 44 }} />
             </div>
           </div>
 
           <div style={{ display: "flex", gap: 12, marginBottom: 16 }}>
             <div className="field" style={{ flex: 1 }}>
               <label>DOCUMENT TYPE</label>
-              <input className="input" name="doc_type" placeholder="e.g. Application form" style={{ minHeight: 44 }} />
+              <input aria-label="Document Type" className="input" name="doc_type" placeholder="e.g. Application form" style={{ minHeight: 44 }} />
             </div>
             <div className="field" style={{ flex: 1 }}>
               <label>REFERENCE NO.</label>
-              <input className="input" name="reference_no" placeholder="Optional" style={{ minHeight: 44 }} />
+              <input aria-label="Reference No." className="input" name="reference_no" placeholder="Optional" style={{ minHeight: 44 }} />
             </div>
           </div>
 
@@ -167,7 +167,7 @@ export function NewDocForm({
 
           <div className="field" style={{ marginBottom: 18 }}>
             <label>NOTE</label>
-            <input className="input" name="note" placeholder="Anything worth remembering" style={{ minHeight: 44 }} />
+            <input aria-label="Note" className="input" name="note" placeholder="Anything worth remembering" style={{ minHeight: 44 }} />
           </div>
 
           <button type="submit" className="btn btn-primary btn-block" style={{ minHeight: 46, fontSize: 14, letterSpacing: ".04em" }} disabled={saving}>

@@ -502,7 +502,7 @@ function ClearCheckedPanel({
         <div style={{ display: "flex", gap: 8, marginBottom: 10 }}>
           <div className="field" style={{ flex: 1, margin: 0 }}>
             <label>PAID FROM</label>
-            <select className="input" value={accountId} onChange={(e) => setAccountId(e.target.value)} style={{ minHeight: 40 }}>
+            <select aria-label="Paid From" className="input" value={accountId} onChange={(e) => setAccountId(e.target.value)} style={{ minHeight: 40 }}>
               {accounts.map((a) => (
                 <option key={a.id} value={a.id}>
                   {a.name} · {formatCurrency(a.balance, currency)}
@@ -512,7 +512,7 @@ function ClearCheckedPanel({
           </div>
           <div className="field" style={{ width: 106, margin: 0 }}>
             <label>TOTAL</label>
-            <input className="input" type="number" step="0.01" value={amount} onChange={(e) => setAmount(Number(e.target.value))} style={{ minHeight: 40 }} />
+            <input aria-label="Total" className="input" type="number" step="0.01" value={amount} onChange={(e) => setAmount(Number(e.target.value))} style={{ minHeight: 40 }} />
           </div>
         </div>
       )}

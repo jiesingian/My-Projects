@@ -24,7 +24,7 @@ export default async function MembersPage() {
       <h2 style={{ fontSize: 34, margin: "0 0 18px" }}>Who is in it</h2>
       <div className="field" style={{ marginBottom: 20 }}>
         <label>HOUSEHOLD NAME</label>
-        <input className="input" value={me.families.name} disabled style={{ minHeight: 44 }} />
+        <input aria-label="Household Name" className="input" value={me.families.name} disabled style={{ minHeight: 44 }} />
       </div>
       <div
         style={{

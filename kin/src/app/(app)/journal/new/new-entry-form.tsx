@@ -68,11 +68,11 @@ export function NewEntryForm({ members }: { members: Tables<"members">[] }) {
           <ErrorText message={error} />
           <div className="field" style={{ marginBottom: 14 }}>
             <label>TITLE</label>
-            <input className="input" name="title" required style={{ minHeight: 44 }} />
+            <input aria-label="Title" className="input" name="title" required style={{ minHeight: 44 }} />
           </div>
           <div className="field" style={{ marginBottom: 16 }}>
             <label>DATE</label>
-            <input className="input" type="date" name="date" defaultValue={new Date().toISOString().slice(0, 10)} required style={{ minHeight: 44 }} />
+            <input aria-label="Date" className="input" type="date" name="date" defaultValue={new Date().toISOString().slice(0, 10)} required style={{ minHeight: 44 }} />
           </div>
           <div style={{ fontSize: 13, color: "var(--color-neutral-700)", marginBottom: 6 }}>Who was there</div>
           <div style={{ display: "flex", gap: 7, flexWrap: "wrap", marginBottom: 16 }}>
@@ -93,11 +93,11 @@ export function NewEntryForm({ members }: { members: Tables<"members">[] }) {
           </div>
           <div className="field" style={{ marginBottom: 16 }}>
             <label>NOTE</label>
-            <textarea className="input" name="note" placeholder="What happened?" />
+            <textarea aria-label="Note" className="input" name="note" placeholder="What happened?" />
           </div>
           <div className="field" style={{ marginBottom: 10 }}>
             <label>PHOTOS</label>
-            <input ref={fileRef} type="file" name="files" multiple accept="image/*,video/*" onChange={onFilesChosen} />
+            <input aria-label="Photos" ref={fileRef} type="file" name="files" multiple accept="image/*,video/*" onChange={onFilesChosen} />
           </div>
           {previews.length > 0 && (
             <div style={{ display: "flex", gap: 5, marginBottom: 8, flexWrap: "wrap" }}>

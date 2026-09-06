@@ -24,11 +24,11 @@ export default function NewMealPage() {
           <ErrorText message={state.error} />
           <div className="field" style={{ marginBottom: 14 }}>
             <label>DATE</label>
-            <input className="input" type="date" name="date" required defaultValue={defaultDate} style={{ minHeight: 44 }} />
+            <input aria-label="Date" className="input" type="date" name="date" required defaultValue={defaultDate} style={{ minHeight: 44 }} />
           </div>
           <div className="field" style={{ marginBottom: 14 }}>
             <label>PART OF THE DAY</label>
-            <select className="input" name="slot" defaultValue="dinner" style={{ minHeight: 44 }}>
+            <select aria-label="Part Of The Day" className="input" name="slot" defaultValue="dinner" style={{ minHeight: 44 }}>
               {MEAL_SLOTS.map((s) => (
                 <option key={s} value={s}>
                   {MEAL_SLOT_LABEL[s]}
@@ -38,15 +38,15 @@ export default function NewMealPage() {
           </div>
           <div className="field" style={{ marginBottom: 14 }}>
             <label>DISH</label>
-            <input className="input" name="dish" placeholder="Chicken adobo · rice · pechay" required style={{ minHeight: 44 }} />
+            <input aria-label="Dish" className="input" name="dish" placeholder="Chicken adobo · rice · pechay" required style={{ minHeight: 44 }} />
           </div>
           <div className="field" style={{ marginBottom: 14 }}>
             <label>NOTE</label>
-            <input className="input" name="note" placeholder="Family · 30 min" style={{ minHeight: 44 }} />
+            <input aria-label="Note" className="input" name="note" placeholder="Family · 30 min" style={{ minHeight: 44 }} />
           </div>
           <div className="field" style={{ marginBottom: 18 }}>
             <label>INGREDIENTS (comma-separated)</label>
-            <textarea className="input" name="ingredients" placeholder="Chicken thighs, rice, pechay, soy sauce" />
+            <textarea aria-label="INGREDIENTS (comma-separated)" className="input" name="ingredients" placeholder="Chicken thighs, rice, pechay, soy sauce" />
           </div>
           <SubmitButton style={{ minHeight: 46, fontSize: 14, letterSpacing: ".04em" }}>SAVE MEAL</SubmitButton>
         </form>

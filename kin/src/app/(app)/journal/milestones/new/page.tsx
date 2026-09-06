@@ -26,11 +26,11 @@ export default function NewMilestonePage() {
           <ErrorText message={state.error} />
           <div className="field" style={{ marginBottom: 14 }}>
             <label>TITLE</label>
-            <input className="input" name="title" required style={{ minHeight: 44 }} />
+            <input aria-label="Title" className="input" name="title" required style={{ minHeight: 44 }} />
           </div>
           <div className="field" style={{ marginBottom: 18 }}>
             <label>DATE</label>
-            <input className="input" type="date" name="date" defaultValue={new Date().toISOString().slice(0, 10)} required style={{ minHeight: 44 }} />
+            <input aria-label="Date" className="input" type="date" name="date" defaultValue={new Date().toISOString().slice(0, 10)} required style={{ minHeight: 44 }} />
           </div>
           <SubmitButton style={{ minHeight: 46, fontSize: 14, letterSpacing: ".04em" }}>SAVE MILESTONE</SubmitButton>
         </form>

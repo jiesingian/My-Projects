@@ -38,6 +38,7 @@ export function DeleteHouseholdButton({ householdName }: { householdName: string
         className="input"
         value={confirmText}
         onChange={(e) => setConfirmText(e.target.value)}
+            aria-label="Type the household name to confirm deletion"
         style={{ minHeight: 40, marginBottom: 10 }}
         disabled={busy}
       />

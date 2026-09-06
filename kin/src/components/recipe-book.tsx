@@ -424,7 +424,7 @@ function RecipeEditor({ recipe, known, onDone }: { recipe: EditableRecipe | null
 
       <div className="field" style={{ marginBottom: 12 }}>
         <label>NAME</label>
-        <input className="input" value={name} onChange={(e) => setName(e.target.value)} placeholder="Chicken adobo" style={{ minHeight: 44 }} />
+        <input aria-label="Name" className="input" value={name} onChange={(e) => setName(e.target.value)} placeholder="Chicken adobo" style={{ minHeight: 44 }} />
       </div>
 
       <div style={{ fontSize: 13, color: "var(--color-neutral-700)", marginBottom: 6 }}>Usually eaten at</div>
@@ -460,11 +460,11 @@ function RecipeEditor({ recipe, known, onDone }: { recipe: EditableRecipe | null
       <div style={{ display: "flex", gap: 10, marginBottom: 12 }}>
         <div className="field" style={{ flex: 1 }}>
           <label>SERVES</label>
-          <input className="input" type="number" min="1" max="30" value={serves} onChange={(e) => setServes(e.target.value)} style={{ minHeight: 44 }} />
+          <input aria-label="Serves" className="input" type="number" min="1" max="30" value={serves} onChange={(e) => setServes(e.target.value)} style={{ minHeight: 44 }} />
         </div>
         <div className="field" style={{ flex: 1 }}>
           <label>MINUTES</label>
-          <input className="input" type="number" min="0" value={minutes} onChange={(e) => setMinutes(e.target.value)} style={{ minHeight: 44 }} />
+          <input aria-label="Minutes" className="input" type="number" min="0" value={minutes} onChange={(e) => setMinutes(e.target.value)} style={{ minHeight: 44 }} />
         </div>
       </div>
 
@@ -525,7 +525,7 @@ function RecipeEditor({ recipe, known, onDone }: { recipe: EditableRecipe | null
 
       <div className="field" style={{ marginBottom: 14 }}>
         <label>HOW TO COOK IT — ONE STEP PER LINE</label>
-        <textarea className="input" value={steps} onChange={(e) => setSteps(e.target.value)} rows={5} />
+        <textarea aria-label="How To Cook It — One Step Per Line" className="input" value={steps} onChange={(e) => setSteps(e.target.value)} rows={5} />
       </div>
 
       <div style={{ display: "flex", gap: 8 }}>

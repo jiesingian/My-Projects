@@ -17,7 +17,8 @@ export function TransferOrganizerRole({ candidates }: { candidates: { id: string
   return (
     <div>
       <div style={{ display: "flex", gap: 8, marginBottom: 8 }}>
-        <select className="input" value={selected} onChange={(e) => setSelected(e.target.value)} style={{ minHeight: 40, flex: 1 }} disabled={busy}>
+        <select className="input" value={selected} onChange={(e) => setSelected(e.target.value)}
+            aria-label="New organizer" style={{ minHeight: 40, flex: 1 }} disabled={busy}>
           {candidates.map((c) => (
             <option key={c.id} value={c.id}>
               {c.full_name}

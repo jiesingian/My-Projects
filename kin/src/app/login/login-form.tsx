@@ -27,11 +27,11 @@ export function LoginForm({ callbackError }: { callbackError?: string }) {
         <ErrorText message={state.error} />
         <div className="field" style={{ marginBottom: 16 }}>
           <label>EMAIL</label>
-          <input className="input" type="email" name="email" required autoComplete="email" />
+          <input aria-label="Email" className="input" type="email" name="email" required autoComplete="email" />
         </div>
         <div className="field" style={{ marginBottom: 24 }}>
           <label>PASSWORD</label>
-          <input className="input" type="password" name="password" required autoComplete="current-password" />
+          <input aria-label="Password" className="input" type="password" name="password" required autoComplete="current-password" />
         </div>
         <SubmitButton style={{ minHeight: 46, fontSize: 15, letterSpacing: ".04em" }}>SIGN IN</SubmitButton>
       </form>

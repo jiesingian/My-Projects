@@ -100,7 +100,7 @@ export function AvatarCropUpload({ onDone }: { onDone: () => void }) {
           +
         </span>
       </button>
-      <input ref={inputRef} type="file" accept="image/*" style={{ display: "none" }} onChange={onFileChange} />
+      <input aria-label="Choose a profile photo" ref={inputRef} type="file" accept="image/*" style={{ display: "none" }} onChange={onFileChange} />
 
       {objectUrl && (
         <div
@@ -126,7 +126,7 @@ export function AvatarCropUpload({ onDone }: { onDone: () => void }) {
           </div>
           <div style={{ display: "flex", alignItems: "center", gap: 10, width: 240 }}>
             <span style={{ color: "#fff", fontSize: 16 }}>−</span>
-            <input type="range" min={1} max={3} step={0.05} value={zoom} onChange={(e) => setZoom(Number(e.target.value))} style={{ flex: 1 }} disabled={busy} />
+            <input aria-label="Zoom" type="range" min={1} max={3} step={0.05} value={zoom} onChange={(e) => setZoom(Number(e.target.value))} style={{ flex: 1 }} disabled={busy} />
             <span style={{ color: "#fff", fontSize: 16 }}>+</span>
           </div>
           {error && <p style={{ color: "var(--color-accent-400)", fontSize: 13 }}>{error}</p>}

@@ -18,16 +18,16 @@ export default function ProfilePage() {
         <ErrorText message={state.error} />
         <div className="field" style={{ marginBottom: 14 }}>
           <label>FULL NAME</label>
-          <input className="input" name="full_name" required autoFocus style={{ minHeight: 44 }} />
+          <input aria-label="Full Name" className="input" name="full_name" required autoFocus style={{ minHeight: 44 }} />
         </div>
         <div style={{ display: "flex", gap: 12, marginBottom: 18 }}>
           <div className="field" style={{ flex: 1 }}>
             <label>DATE OF BIRTH</label>
-            <input className="input" type="date" name="dob" style={{ minHeight: 44 }} />
+            <input aria-label="Date Of Birth" className="input" type="date" name="dob" style={{ minHeight: 44 }} />
           </div>
           <div className="field" style={{ flex: 1 }}>
             <label>MOBILE</label>
-            <input className="input" type="tel" name="mobile" placeholder="+63 917 000 0000" style={{ minHeight: 44 }} />
+            <input aria-label="Mobile" className="input" type="tel" name="mobile" placeholder="+63 917 000 0000" style={{ minHeight: 44 }} />
           </div>
         </div>
         <SubmitButton style={{ minHeight: 46, fontSize: 15, letterSpacing: ".04em" }}>CONTINUE</SubmitButton>

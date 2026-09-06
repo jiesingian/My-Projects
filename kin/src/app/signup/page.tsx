@@ -25,7 +25,7 @@ export default function SignupPage() {
             make them type an email and password before finding out. */}
         <div className="field" style={{ marginBottom: 16 }}>
           <label>ACCESS CODE</label>
-          <input
+          <input aria-label="Access Code"
             className="input"
             name="access_code"
             required
@@ -40,11 +40,11 @@ export default function SignupPage() {
         </div>
         <div className="field" style={{ marginBottom: 16 }}>
           <label>EMAIL</label>
-          <input className="input" type="email" name="email" required autoComplete="email" />
+          <input aria-label="Email" className="input" type="email" name="email" required autoComplete="email" />
         </div>
         <div className="field" style={{ marginBottom: 16 }}>
           <label>PASSWORD</label>
-          <input
+          <input aria-label="Password"
             className="input"
             type="password"
             name="password"

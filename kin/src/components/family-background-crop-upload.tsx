@@ -149,7 +149,7 @@ export function FamilyBackgroundCropUpload({ onDone }: { onDone: () => void }) {
       <button type="button" className="btn btn-secondary" style={{ minHeight: 32, fontSize: 13, padding: "0 12px", marginTop: 8 }} onClick={open}>
         ADD PHOTO
       </button>
-      <input ref={inputRef} type="file" accept="image/*" style={{ display: "none" }} onChange={onFileChange} />
+      <input ref={inputRef} aria-label="Choose a household photo" type="file" accept="image/*" style={{ display: "none" }} onChange={onFileChange} />
 
       {objectUrl && (
         <div
@@ -192,7 +192,7 @@ export function FamilyBackgroundCropUpload({ onDone }: { onDone: () => void }) {
           </div>
           <div style={{ display: "flex", alignItems: "center", gap: 10, width: STAGE_W }}>
             <span style={{ color: "#fff", fontSize: 16 }}>−</span>
-            <input type="range" min={1} max={3} step={0.05} value={zoom} onChange={(e) => onZoomChange(Number(e.target.value))} style={{ flex: 1 }} disabled={busy} />
+            <input aria-label="Zoom" type="range" min={1} max={3} step={0.05} value={zoom} onChange={(e) => onZoomChange(Number(e.target.value))} style={{ flex: 1 }} disabled={busy} />
             <span style={{ color: "#fff", fontSize: 16 }}>+</span>
           </div>
           {error && <p style={{ color: "var(--color-accent-400)", fontSize: 13 }}>{error}</p>}

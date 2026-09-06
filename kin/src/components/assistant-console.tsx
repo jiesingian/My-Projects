@@ -121,6 +121,7 @@ export function AssistantConsole({ memberName }: { memberName: string }) {
           className="input"
           value={draft}
           onChange={(e) => setDraft(e.target.value)}
+            aria-label="Ask Kin"
           placeholder={`Ask or add something, ${memberName}…`}
           disabled={thinking}
           style={{ minHeight: 42, flex: 1 }}
