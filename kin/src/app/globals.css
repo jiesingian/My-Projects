@@ -1126,3 +1126,37 @@ textarea.input {
   transform: rotate(180deg);
   color: var(--color-neutral-400);
 }
+
+/* ── empty states ────────────────────────────────────────────────────────
+   Centred, generous, and never the same height as a single line of text —
+   an empty section should look deliberately empty rather than broken. */
+.kin-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 7px;
+  padding: 30px 22px 32px;
+  border-radius: var(--radius-card);
+  background: color-mix(in srgb, var(--color-text) 3%, transparent);
+  border: 1px dashed var(--color-divider);
+}
+.kin-empty-ico {
+  font-size: 26px;
+  line-height: 1;
+  margin-bottom: 2px;
+  opacity: 0.85;
+}
+.kin-empty-title {
+  font: 600 17px/1.2 var(--font-heading);
+}
+.kin-empty-line {
+  margin: 0;
+  max-width: 34ch;
+  font-size: 13.5px;
+  line-height: 1.4;
+  color: var(--color-neutral-600);
+}
+.kin-empty .btn {
+  margin-top: 7px;
+}

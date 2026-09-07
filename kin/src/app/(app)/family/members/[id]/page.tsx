@@ -170,13 +170,13 @@ export default async function MemberDetailPage({
                   </div>
                 </div>
               ))}
-              {schedule.length === 0 && appointments.length === 0 && <EmptyNote text="Nothing scheduled yet." />}
+              {schedule.length === 0 && appointments.length === 0 && <EmptyNote text="No check-ups or appointments scheduled. Adding one puts it in the Planner and on Today when it comes due." />}
             </>
           )}
 
           {seg === "conditions" &&
             (conditions.length === 0 ? (
-              <EmptyNote text="No conditions or routines logged yet." />
+              <EmptyNote text="Nothing logged. Allergies, medication and long-running conditions go here so anyone in the family can find them quickly." />
             ) : (
               conditions.map((c) => (
                 <Blueprint key={c.id} style={{ padding: 13, marginBottom: 12 }}>
@@ -203,7 +203,7 @@ export default async function MemberDetailPage({
 
           {seg === "labs" &&
             (labs.length === 0 ? (
-              <EmptyNote text="No lab results logged yet." />
+              <EmptyNote text="No results yet. Logging them here keeps a history you can show a doctor without hunting through paperwork." />
             ) : (
               labs.map((l) => (
                 <div key={l.id} style={{ padding: "12px 0", borderBottom: "1px solid color-mix(in srgb, var(--color-text) 10%, transparent)" }}>
@@ -280,7 +280,7 @@ function BarChart({
     return (
       <>
         <div style={{ font: "600 13px/1 var(--font-heading)", letterSpacing: ".02em", color: "var(--color-neutral-600)", marginBottom: 8 }}>{title}</div>
-        <EmptyNote text="No readings yet." />
+        <EmptyNote text="No readings yet — once there are a few, they chart here." />
       </>
     );
   }

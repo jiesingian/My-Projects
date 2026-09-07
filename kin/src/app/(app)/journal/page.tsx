@@ -4,7 +4,7 @@ import { after } from "next/server";
 import { getCurrentMember } from "@/lib/session";
 import { getGallery, getEntries, getMilestones, syncDriveJournalMedia } from "@/lib/queries/journal";
 import { HubHeader } from "@/components/hub-header";
-import { Blueprint, Tag } from "@/components/ui";
+import { Blueprint, Tag, Empty } from "@/components/ui";
 import { GalleryUpload } from "@/components/gallery-upload";
 import { GalleryGrid } from "@/components/gallery-grid";
 import { formatDate } from "@/lib/format";
@@ -56,7 +56,11 @@ async function GalleryPane({ familyId }: { familyId: string }) {
     <>
       <GalleryUpload />
       {media.length === 0 ? (
-        <p style={{ fontSize: 13.5, color: "var(--color-neutral-600)" }}>No photos or videos yet — upload the first one above.</p>
+        <Empty
+          icon="🖼"
+          title="No photos yet"
+          line="Everything you add here is private to your family and backs up to your own Google Drive. Start with one from today."
+        />
       ) : (
         <GalleryGrid
           media={media.map((m) => ({ id: m.id, url: m.url, viewLink: m.viewLink, date: m.taken_at ? formatDate(m.taken_at) : "", media_type: m.media_type }))}
@@ -70,7 +74,16 @@ async function EntriesPane({ familyId }: { familyId: string }) {
   const entries = await getEntries(familyId);
   return (
     <>
-      {entries.length === 0 && <p style={{ fontSize: 13.5, color: "var(--color-neutral-600)", marginBottom: 16 }}>Nothing logged yet.</p>}
+      {entries.length === 0 && (
+        <div style={{ marginBottom: 16 }}>
+          <Empty
+            icon="📔"
+            title="Nothing written down yet"
+            line="An entry is a day worth remembering — where you went, who was there, what it was like. Small ones count."
+            action={{ label: "WRITE THE FIRST ONE", href: "/journal/new" }}
+          />
+        </div>
+      )}
       {entries.map((e) => (
         <Blueprint key={e.id} style={{ padding: 13, marginBottom: 16 }}>
           <div style={{ display: "flex", alignItems: "baseline", gap: 8 }}>
@@ -104,7 +117,14 @@ async function MilestonesPane({ familyId }: { familyId: string }) {
   return (
     <>
       <div style={{ borderLeft: "1px solid var(--color-divider)", paddingLeft: 16, marginBottom: 18 }}>
-        {milestones.length === 0 && <p style={{ fontSize: 13.5, color: "var(--color-neutral-600)" }}>No milestones logged yet.</p>}
+        {milestones.length === 0 && (
+          <Empty
+            icon="🌱"
+            title="No milestones yet"
+            line="First steps, first day of school, a tooth lost. The things you will want the date of in ten years."
+            action={{ label: "ADD A MILESTONE", href: "/journal/milestones/new" }}
+          />
+        )}
         {milestones.map((m) => (
           <div key={m.id} style={{ position: "relative", paddingBottom: 20 }}>
             <span style={{ position: "absolute", left: -21, top: 5, width: 9, height: 9, background: "var(--color-accent)", display: "block" }} />

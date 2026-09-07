@@ -3,7 +3,7 @@ import { redirect } from "next/navigation";
 import { getCurrentMember } from "@/lib/session";
 import { getWealthPane, getGoals, getBills, getNetWorth, getAccounts, type WealthScope, type LedgerEntry } from "@/lib/queries/wealth";
 import { HubHeader } from "@/components/hub-header";
-import { Blueprint, Tag } from "@/components/ui";
+import { Blueprint, Tag, Empty } from "@/components/ui";
 import { AddAccountForm, AddBillForm, SetBudgetControl, SetTargetControl, AllocationEditor } from "@/components/wealth-controls";
 import {
   PayBillControl,
@@ -302,7 +302,9 @@ async function ScopePane({ scope, familyId, memberId, currency }: { scope: Wealt
       <HistoryStrip history={pane.history} currency={currency} />
 
       <SectionLabel>{isJoint ? "BUDGET VS SPEND BY CATEGORY" : "WHERE IT WENT THIS MONTH"}</SectionLabel>
-      {categories.length === 0 && <p style={{ fontSize: 13.5, color: "var(--color-neutral-600)" }}>Nothing spent yet this month.</p>}
+      {categories.length === 0 && (
+        <Empty icon="📊" title="Nothing spent yet this month" line="Once money moves, this breaks it down by category so you can see where it actually goes." />
+      )}
       {categories.map((c) => {
         const cap = c.amount > 0 ? c.amount : c.spent;
         const pct = cap > 0 ? Math.min(100, Math.round((c.spent / cap) * 100)) : 0;
@@ -328,7 +330,9 @@ async function ScopePane({ scope, familyId, memberId, currency }: { scope: Wealt
       <PendingBlock pending={pane.pending} currency={currency} />
 
       <SectionLabel>{isJoint ? "ACCOUNTS" : `${whosePossessive.toUpperCase()} ACCOUNTS`}</SectionLabel>
-      {pane.accounts.length === 0 && <p style={{ fontSize: 13.5, color: "var(--color-neutral-600)" }}>No accounts yet.</p>}
+      {pane.accounts.length === 0 && (
+        <Empty icon="🏦" title="No accounts yet" line="Add the accounts the household actually uses — a bank, a wallet, the cash in the drawer — and Kin keeps the running balance." />
+      )}
       {pane.accounts.map((a) => (
         <Link
           key={a.id}
@@ -397,7 +401,9 @@ async function GoalsPane({ familyId, memberId, currency }: { familyId: string; m
       />
       {targeted > 0 && <Meter label="ALL GOALS" value={saved} cap={targeted} currency={currency} />}
 
-      {goals.length === 0 && <p style={{ fontSize: 13.5, color: "var(--color-neutral-600)" }}>No goals yet.</p>}
+      {goals.length === 0 && (
+        <Empty icon="🎯" title="No goals yet" line="A trip, a deposit, an emergency fund. Name what you are saving for and every contribution counts toward it." />
+      )}
       {goals.map((g) => {
         const target = Number(g.target_amount ?? 0);
         const current = Number(g.current_amount);
@@ -527,7 +533,9 @@ async function AssetsPane({ familyId, memberId, currency }: { familyId: string; 
       </div>
 
       <SectionLabel>WHAT THE HOUSEHOLD OWNS</SectionLabel>
-      {assets.length === 0 && <p style={{ fontSize: 13.5, color: "var(--color-neutral-600)" }}>No property or other assets recorded yet.</p>}
+      {assets.length === 0 && (
+        <Empty icon="🏠" title="Nothing recorded yet" line="Property, a vehicle, anything the family owns that holds value. Recorded here, it counts toward your net worth." />
+      )}
       {assets.map((a) => (
         <div key={a.id} style={{ padding: "12px 0", borderBottom: "1px solid color-mix(in srgb, var(--color-text) 10%, transparent)" }}>
           <div style={{ display: "flex", gap: 10, alignItems: "baseline" }}>
@@ -549,7 +557,9 @@ async function AssetsPane({ familyId, memberId, currency }: { familyId: string; 
       ))}
 
       <SectionLabel>WHAT THE HOUSEHOLD OWES</SectionLabel>
-      {liabilities.length === 0 && <p style={{ fontSize: 13.5, color: "var(--color-neutral-600)" }}>Nothing owed on record.</p>}
+      {liabilities.length === 0 && (
+        <Empty icon="✅" title="Nothing owed" line="No loans or debts on record. If that changes, adding them here keeps the net worth figure honest." />
+      )}
       {liabilities.map((l) => (
         <div key={l.id} style={{ padding: "12px 0", borderBottom: "1px solid color-mix(in srgb, var(--color-text) 10%, transparent)" }}>
           <div style={{ display: "flex", gap: 10, alignItems: "baseline" }}>

@@ -179,7 +179,7 @@ export function FamilyAddressList({ addresses, canEdit }: { addresses: FamilyAdd
         ADDRESSES
       </div>
       {addresses.length === 0 && editingId !== "new" && (
-        <div style={{ fontSize: 13.5, color: "var(--color-neutral-600)", marginBottom: 10 }}>No addresses added yet.</div>
+        <div style={{ fontSize: 13.5, color: "var(--color-neutral-600)", marginBottom: 10 }}>No addresses yet — add where the family lives, and anywhere else that matters.</div>
       )}
       {addresses.map((a) =>
         editingId === a.id ? (

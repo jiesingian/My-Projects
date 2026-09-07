@@ -3,7 +3,7 @@ import { notFound, redirect } from "next/navigation";
 import { getCurrentMember } from "@/lib/session";
 import { getAccountDetail } from "@/lib/queries/wealth";
 import { DetailHeader } from "@/components/hub-header";
-import { Blueprint, Tag } from "@/components/ui";
+import { Blueprint, Tag, Empty } from "@/components/ui";
 import { PendingEntryActions, DeleteEntryButton, RemoveButton } from "@/components/money-actions";
 import { AccountEditForm } from "./account-edit-form";
 import { formatCurrency, formatDate } from "@/lib/format";
@@ -87,7 +87,9 @@ export default async function AccountPage({ params }: { params: Promise<{ id: st
         )}
 
         <SectionLabel>HISTORY</SectionLabel>
-        {confirmed.length === 0 && <p style={{ fontSize: 13.5, color: "var(--color-neutral-600)" }}>Nothing has moved through this account yet.</p>}
+        {confirmed.length === 0 && (
+          <Empty icon="💸" title="Nothing has moved through this account yet" line="Money in and out will appear here as it happens, newest first." />
+        )}
         {confirmed.map((e) => (
           <div key={e.id} style={{ display: "flex", gap: 10, alignItems: "center", padding: "11px 0", borderBottom: "1px solid color-mix(in srgb, var(--color-text) 10%, transparent)" }}>
             <span style={{ flex: 1, minWidth: 0 }}>

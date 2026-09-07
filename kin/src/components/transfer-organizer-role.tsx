@@ -11,7 +11,7 @@ export function TransferOrganizerRole({ candidates }: { candidates: { id: string
   const router = useRouter();
 
   if (candidates.length === 0) {
-    return <p style={{ fontSize: 13, color: "var(--color-neutral-600)" }}>No other adult members to transfer the role to yet.</p>;
+    return <p style={{ fontSize: 13, color: "var(--color-neutral-600)" }}>There is no one to hand this to yet. Once another adult joins and is approved, you can pass the organizer role to them here.</p>;
   }
 
   return (

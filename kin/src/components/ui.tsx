@@ -1,3 +1,4 @@
+import Link from "next/link";
 import type { ReactNode } from "react";
 
 /** The frosted card the whole app is built from — translucent, rounded, and
@@ -70,5 +71,39 @@ export function EyebrowLabel({ children }: { children: ReactNode }) {
     >
       {children}
     </span>
+  );
+}
+
+/** The screen a feature shows before anyone has used it.
+ *
+ * These were one grey sentence each — "Nothing logged yet." — which is the
+ * worst place in the app to say nothing, because it is exactly where someone
+ * decides whether Kin is alive or abandoned. An empty state has three jobs:
+ * say what belongs here, say why it is worth putting there, and give the one
+ * button that starts it. */
+export function Empty({
+  icon,
+  title,
+  line,
+  action,
+}: {
+  /** An emoji or short glyph. Kept as a child rather than an icon name so a
+   * caller can pass anything without widening the icon set. */
+  icon?: ReactNode;
+  title: string;
+  line: string;
+  action?: { label: string; href: string };
+}) {
+  return (
+    <div className="kin-empty">
+      {icon && <span className="kin-empty-ico">{icon}</span>}
+      <div className="kin-empty-title">{title}</div>
+      <p className="kin-empty-line">{line}</p>
+      {action && (
+        <Link href={action.href} className="btn btn-primary" style={{ minHeight: 40, fontSize: 13.5, letterSpacing: ".04em" }}>
+          {action.label}
+        </Link>
+      )}
+    </div>
   );
 }
