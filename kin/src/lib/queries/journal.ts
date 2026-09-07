@@ -130,7 +130,7 @@ export async function getMilestones(familyId: string) {
   const supabase = await createClient();
   const { data } = await supabase
     .from("milestones")
-    .select("*, members(full_name)")
+    .select("*, members!milestones_member_id_fkey(full_name)")
     .eq("family_id", familyId)
     .order("milestone_date", { ascending: false });
   return data ?? [];

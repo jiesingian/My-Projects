@@ -72,7 +72,7 @@ export async function getHubCards(familyId: string, currency: string): Promise<H
   ] = await Promise.all([
     supabase
       .from("health_schedule")
-      .select("what, when_date, member:members(full_name)")
+      .select("what, when_date, member:members!health_schedule_member_id_fkey(full_name)")
       .eq("family_id", familyId)
       .in("status", ["due", "due_soon"])
       .order("when_date", { ascending: true })
@@ -259,7 +259,7 @@ export async function getTodayBriefing(familyId: string, currency: string): Prom
       .limit(4),
     supabase
       .from("health_schedule")
-      .select("id, what, when_date, member:members(full_name)")
+      .select("id, what, when_date, member:members!health_schedule_member_id_fkey(full_name)")
       .eq("family_id", familyId)
       .in("status", ["due", "due_soon"])
       .order("when_date", { ascending: true })
