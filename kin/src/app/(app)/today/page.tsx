@@ -104,7 +104,7 @@ export default async function TodayPage() {
           .kin-hubgrid. */}
       <div className="kin-hubgrid">
         {hubs.map((h) => (
-          <Link key={h.n} href={h.href} style={{ gridColumn: h.span === "full" ? "1 / -1" : undefined }}>
+          <Link key={h.n} href={h.href} className={h.span === "full" ? "kin-hub-wide" : undefined}>
             <Blueprint style={{ padding: 13, display: "flex", flexDirection: "column", gap: 6, minHeight: 126 }}>
               <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
                 <Icon name={h.icon} size={16} className="text-[var(--color-accent-700)]" />

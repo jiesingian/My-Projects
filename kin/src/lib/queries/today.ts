@@ -1,28 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { formatCurrency } from "@/lib/format";
+import { familyDay as localDay, familyTime as localTime } from "@/lib/time";
 import type { IconName } from "@/components/icons";
-
-/** Where the household lives, for the purpose of deciding what "today" means.
- *
- * This is a placeholder for a real families.timezone column, and it matters
- * more than it looks: the server runs in UTC, so a plain new Date() puts
- * Manila's entire evening — 4pm to midnight — on the previous day. A briefing
- * that shows yesterday from dinner onwards is worse than no briefing.
- *
- * Sold outside one country this has to come from the household's own record.
- * Until that column exists, every family is treated as being where the first
- * one is. */
-const FAMILY_TZ = "Asia/Manila";
-
-/** The household's own calendar day, as YYYY-MM-DD. en-CA is the shortest way
- * to ask Intl for an ISO date; the point is the timeZone, not the locale. */
-function localDay(at: Date = new Date(), tz: string = FAMILY_TZ): string {
-  return new Intl.DateTimeFormat("en-CA", { timeZone: tz, year: "numeric", month: "2-digit", day: "2-digit" }).format(at);
-}
-
-function localTime(at: Date, tz: string = FAMILY_TZ): string {
-  return new Intl.DateTimeFormat("en-PH", { timeZone: tz, hour: "numeric", minute: "2-digit" }).format(at);
-}
 
 /** One line in the briefing. Deliberately flat and pre-formatted: the page
  * renders these without knowing which hub any of them came from. */

@@ -21,6 +21,20 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # Both labels below are applied with "|| true", so a repository that has
+      # never had them just logged "'auto-merge' not found" and carried on
+      # labelling nothing. Creating them here keeps that from being a silent
+      # no-op without needing anyone to set the repository up by hand.
+      - name: Make sure the labels exist
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+        run: |
+          gh label create "auto-merge" --repo "$REPO" --color 0E8A16 \
+            --description "Small and clear of the sensitive paths; merges on green." || true
+          gh label create "needs-jonathan" --repo "$REPO" --color D93F0B \
+            --description "Waits for Jonathan: expensive to undo, or too large to merge unseen." || true
+
       - name: Work out whether this needs Jonathan
         id: triage
         env:
@@ -113,8 +127,37 @@ jobs:
           PR: ${{ github.event.pull_request.number }}
           REPO: ${{ github.repository }}
         run: |
+          set -euo pipefail
+
           gh pr edit "$PR" --repo "$REPO" --add-label "auto-merge" --remove-label "needs-jonathan" || true
-          # --auto waits for the required checks; it does not merge a red PR.
+
+          # "--auto" only means "wait" if there is something to wait for.
+          #
+          # On 7 September this merged a pull request into main eight seconds
+          # after CI started, and CI finished fifty-four seconds after the
+          # merge. Nothing was broken: auto-merge was enabled, the classifier
+          # was right that the change was small, and gh did exactly what it was
+          # asked. There were simply no required status checks on main, so
+          # GitHub considered the pull request mergeable the moment it opened
+          # and auto-merge fired at once.
+          #
+          # So the branch rules are the gate, and this step is only allowed to
+          # arm it. If main does not require a check, there is no gate, and
+          # merging unseen is the one thing this file exists to prevent.
+          GATED=$(gh api "repos/$REPO/rules/branches/main" \
+                    --jq '[.[] | select(.type == "required_status_checks")] | length' 2>/dev/null || echo 0)
+
+          if [ "${GATED:-0}" -eq 0 ]; then
+            gh pr edit "$PR" --repo "$REPO" --add-label "needs-jonathan" --remove-label "auto-merge" || true
+            gh pr comment "$PR" --repo "$REPO" --body \
+              "**Held — main has no required status checks.**
+
+          This change is small and stays clear of auth, data rules and billing, so it would normally merge on its own once CI passed. It is being held anyway, because there is nothing on \`main\` for auto-merge to wait for: arming it now would merge this immediately, green or red.
+
+          Add a ruleset on \`main\` requiring **CI** and **Secret Scan**, and this goes back to merging itself. Until then small changes wait too."
+            exit 0
+          fi
+
           gh pr merge "$PR" --repo "$REPO" --auto --squash || \
             gh pr comment "$PR" --repo "$REPO" --body \
               "This change is small and stays clear of auth, data rules and billing, so it is set to merge on its own once CI passes. (If it did not arm, auto-merge may not be enabled on the repo yet.)"
