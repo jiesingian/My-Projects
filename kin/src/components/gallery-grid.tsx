@@ -82,7 +82,7 @@ export function GalleryGrid({ media }: { media: MediaItem[] }) {
         </div>
       )}
 
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 6, marginBottom: selectMode ? 64 : 0 }}>
+      <div className="kin-gallerygrid" style={{ marginBottom: selectMode ? 64 : 0 }}>
         {media.map((m) => (
           <GalleryTile
             key={m.id}

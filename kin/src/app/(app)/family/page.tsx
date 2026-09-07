@@ -82,6 +82,9 @@ async function ProfilePane({ familyId, isOrganiser, myId, myRole }: { familyId: 
           <div style={{ height: 1, background: "var(--color-divider)", margin: "4px 0 16px" }} />
         </>
       )}
+      {/* One column on a phone, two on a desktop — see .kin-memberlist. A
+          1000px-wide row holding an avatar and a name is mostly empty space. */}
+      <div className="kin-memberlist">
       {members.map((m) => (
         <div
           key={m.id}
@@ -108,6 +111,7 @@ async function ProfilePane({ familyId, isOrganiser, myId, myRole }: { familyId: 
           {isOrganiser && m.id !== myId && !m.is_organiser && <RemoveMemberButton memberId={m.id} fullName={m.full_name} />}
         </div>
       ))}
+      </div>
       <div style={{ fontSize: 13, color: "var(--color-neutral-600)", marginTop: 14 }}>
         Managed profiles are written by a parent. Children graduate to their own login at 13.
       </div>

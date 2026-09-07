@@ -1160,3 +1160,127 @@ textarea.input {
 .kin-empty .btn {
   margin-top: 7px;
 }
+
+/* ── content that should use a desktop's width ───────────────────────────
+   A phone layout stretched to 1000px is wider, not better. These are the
+   places where the content is a set of independent things, so more of them
+   side by side is simply more useful. Ordered lists — a day's agenda, a
+   ledger, journal entries in date order — are deliberately left alone: two
+   columns of a chronology is a worse chronology. */
+
+/* Photos. Three across is right on a phone; on a monitor it makes every
+   thumbnail 330px, which is a slideshow, not a gallery. */
+.kin-gallerygrid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 6px;
+}
+@media (min-width: 768px) {
+  .kin-gallerygrid {
+    grid-template-columns: repeat(auto-fill, minmax(128px, 1fr));
+    gap: 8px;
+  }
+}
+
+/* The member list. A 1000px row holding an avatar and a name is mostly
+   empty space; the rule between rows still reads correctly in two columns
+   because each row draws its own. */
+@media (min-width: 1024px) {
+  .kin-memberlist {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    column-gap: 26px;
+  }
+}
+
+/* ── motion ──────────────────────────────────────────────────────────────
+   Server-rendered pages arrive whole, which reads as a hard cut: the old
+   page is there, then the new one is, with nothing in between. A short rise
+   makes the same navigation feel answered rather than swapped.
+
+   Deliberately brief. 220ms is under the threshold where motion starts to
+   feel like waiting, and the whole point is an app that respects the two
+   minutes someone actually has. */
+@keyframes kin-enter {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+.kin-content > * {
+  animation: kin-enter 0.22s cubic-bezier(0.2, 0.7, 0.3, 1) both;
+}
+
+/* A list that arrives all at once reads as a block of text. Offsetting each
+   row by a frame or two makes it read as a list — the eye follows the
+   sequence down instead of taking the whole rectangle in at once. Capped at
+   eight, because past that the last rows are waiting rather than arriving. */
+.kin-brief-row,
+.kin-hubgrid > * {
+  animation: kin-enter 0.26s cubic-bezier(0.2, 0.7, 0.3, 1) both;
+}
+.kin-brief-row:nth-child(1), .kin-hubgrid > *:nth-child(1) { animation-delay: 0.02s; }
+.kin-brief-row:nth-child(2), .kin-hubgrid > *:nth-child(2) { animation-delay: 0.05s; }
+.kin-brief-row:nth-child(3), .kin-hubgrid > *:nth-child(3) { animation-delay: 0.08s; }
+.kin-brief-row:nth-child(4), .kin-hubgrid > *:nth-child(4) { animation-delay: 0.11s; }
+.kin-brief-row:nth-child(5), .kin-hubgrid > *:nth-child(5) { animation-delay: 0.14s; }
+.kin-brief-row:nth-child(6), .kin-hubgrid > *:nth-child(6) { animation-delay: 0.17s; }
+.kin-brief-row:nth-child(7), .kin-hubgrid > *:nth-child(7) { animation-delay: 0.19s; }
+.kin-brief-row:nth-child(n + 8), .kin-hubgrid > *:nth-child(n + 8) { animation-delay: 0.21s; }
+
+/* ── depth ───────────────────────────────────────────────────────────────
+   --shadow-md and --shadow-lg were defined and never once used: every
+   surface in the app sat at the same single elevation, which is why it read
+   flat however good the colour was. Depth here means one thing only — how
+   far something is from the page — so a card you can press rises when you
+   point at it and presses back down when you do.
+
+   Hover lift is behind pointer:fine. On a touchscreen :hover sticks after a
+   tap, which would leave cards raised at random. */
+@media (hover: hover) and (pointer: fine) {
+  a > .blueprint,
+  button.blueprint {
+    transition:
+      transform 0.18s cubic-bezier(0.2, 0.7, 0.3, 1),
+      box-shadow 0.18s ease;
+  }
+  a:hover > .blueprint,
+  button.blueprint:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-md);
+  }
+  a:active > .blueprint,
+  button.blueprint:active {
+    transform: translateY(0);
+    box-shadow: var(--shadow-sm);
+    transition-duration: 0.08s;
+  }
+}
+/* The two pieces of chrome that genuinely float over the page say so. */
+.kin-nav {
+  box-shadow: var(--shadow-md);
+}
+.kin-fab {
+  box-shadow: var(--shadow-lg), 0 6px 20px color-mix(in srgb, var(--color-accent) 40%, transparent);
+}
+
+/* Everything above is decoration on top of a layout that already works, so
+   anyone who has asked for less movement simply gets the layout. */
+@media (prefers-reduced-motion: reduce) {
+  .kin-content > *,
+  .kin-brief-row,
+  .kin-hubgrid > * {
+    animation: none;
+  }
+  a > .blueprint,
+  button.blueprint,
+  a:hover > .blueprint,
+  button.blueprint:hover {
+    transition: none;
+    transform: none;
+  }
+}
