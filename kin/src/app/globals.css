@@ -782,3 +782,35 @@ textarea.input {
   color: #fff;
   box-shadow: 0 6px 20px color-mix(in srgb, var(--color-accent) 40%, transparent);
 }
+
+/* — loading skeletons — */
+/* A shape standing in for content that has not arrived. It breathes rather
+   than sweeps: a shimmer travelling across a phone screen costs a repaint of
+   the whole element every frame, and on a mid-range Android that is worse
+   than the wait it is covering up. */
+.kin-skeleton {
+  display: block;
+  background: color-mix(in srgb, var(--color-text) 8%, transparent);
+  animation: kin-pulse 1.4s ease-in-out infinite;
+}
+@keyframes kin-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.45; }
+}
+/* Anyone who has asked for less movement gets a still placeholder instead. */
+@media (prefers-reduced-motion: reduce) {
+  .kin-skeleton { animation: none; }
+}
+
+/* Present for a screen reader, absent for everyone else. */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
