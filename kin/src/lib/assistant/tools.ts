@@ -402,7 +402,7 @@ export async function runAssistantTool(name: string, rawInput: unknown, me: Curr
         supabase.from("members").select("full_name, relationship, role, dob, status").eq("family_id", familyId).neq("status", "removed"),
         supabase
           .from("health_schedule")
-          .select("what, when_date, status, members(full_name)")
+          .select("what, when_date, status, members!health_schedule_member_id_fkey(full_name)")
           .eq("family_id", familyId)
           .in("status", ["due", "due_soon"]),
       ]);
