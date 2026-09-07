@@ -59,7 +59,10 @@ export default async function TodayPage() {
         </div>
       </div>
 
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
+      {/* Two up on a phone, as many as fit on a desktop. Two 500px-wide hub
+          cards on a monitor is a wider phone, not a desktop — see
+          .kin-hubgrid. */}
+      <div className="kin-hubgrid">
         {hubs.map((h) => (
           <Link key={h.n} href={h.href} style={{ gridColumn: h.span === "full" ? "1 / -1" : undefined }}>
             <Blueprint style={{ padding: 13, display: "flex", flexDirection: "column", gap: 6, minHeight: 126 }}>

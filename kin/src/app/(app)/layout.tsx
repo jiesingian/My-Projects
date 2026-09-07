@@ -19,18 +19,12 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   const unread = await getChatUnread(member.family_id, member.id);
 
   return (
-    <div style={{ minHeight: "100dvh" }}>
-      {/* Clears the fixed tab bar so the last row of any page stays reachable. */}
-      <div
-        style={{
-          width: "100%",
-          maxWidth: 720,
-          margin: "0 auto",
-          paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 72px)",
-        }}
-      >
-        {children}
-      </div>
+    <div className="kin-shell">
+      {/* Clears the fixed navigation so the last row of any page stays
+          reachable — below it on a phone, beside it on a desktop. Both live
+          in CSS rather than here, because an inline style cannot answer a
+          media query and this has to change shape at 1024px. */}
+      <div className="kin-content">{children}</div>
       <AssistantFab memberName={member.full_name.split(" ")[0]} />
       <TabBar chatUnread={unread.count} chatMentioned={unread.mentioned} />
     </div>

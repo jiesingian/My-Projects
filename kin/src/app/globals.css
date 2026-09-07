@@ -497,9 +497,65 @@ textarea.input {
   flex: 1;
   color: var(--color-neutral-600);
   transition: color 0.15s ease;
+  -webkit-tap-highlight-color: transparent;
 }
 .kin-tab[data-active="true"] {
   color: var(--color-accent);
+}
+
+/* The icon's own little stage. Giving it a box of its own is what lets the
+   selected tab grow a tinted pill behind it, and spring when pressed, without
+   either of those shifting the label underneath. */
+.kin-tab-ico {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 46px;
+  height: 30px;
+  border-radius: var(--radius-pill);
+  transition:
+    background-color 0.18s ease,
+    transform 0.36s cubic-bezier(0.2, 0.9, 0.3, 1.25);
+}
+/* Everything except Today, which has its raised disc already. */
+.kin-tab:not(.kin-tab-home)[data-active="true"] .kin-tab-ico {
+  background: color-mix(in srgb, var(--color-accent) 15%, transparent);
+  transform: translateY(-2px);
+}
+/* Pressed: shrinks under the finger, springs back on release. The short
+   duration applies on the way down only — the overshoot in the curve above
+   does the return, so it answers instantly and settles softly. */
+.kin-tab:active .kin-tab-ico {
+  transform: scale(0.88);
+  transition-duration: 0.09s;
+}
+.kin-tab-label {
+  /* 10px is the platform's tab label size; seven tabs crowd above that, so
+     the label rides just under it at 9.5. */
+  font-size: 9.5px;
+  font-weight: 500;
+  letter-spacing: -0.01em;
+  transition: font-weight 0.15s ease;
+}
+.kin-tab[data-active="true"] .kin-tab-label {
+  font-weight: 650;
+}
+.kin-tab-badge {
+  position: absolute;
+  top: -1px;
+  right: 2px;
+  min-width: 16px;
+  height: 16px;
+  padding: 0 4px;
+  border-radius: var(--radius-pill);
+  background: var(--color-accent);
+  color: #fff;
+  font: 600 10px/16px var(--font-body);
+  text-align: center;
+}
+.kin-tab-badge[data-mentioned="true"] {
+  background: var(--cal-occasion);
 }
 .kin-i svg {
   display: block;
@@ -813,4 +869,180 @@ textarea.input {
   clip: rect(0, 0, 0, 0);
   white-space: nowrap;
   border: 0;
+}
+
+/* ── the shell, and the two shapes it takes ──────────────────────────────
+   Kin was built as a phone app and, until now, stayed one at every size: a
+   720px column parked in the middle of a 27" monitor with the navigation
+   pinned to the bottom edge, as far from the cursor as the screen allows.
+
+   From 1024px up the same markup becomes a desktop app — navigation down the
+   left, content given room to breathe. It is done here rather than in the
+   components because there is then only one copy of the navigation in the
+   DOM: nothing to keep in step, nothing that renders the wrong shape for a
+   frame before hydration decides which screen it is on. */
+
+.kin-shell {
+  min-height: 100dvh;
+}
+.kin-content {
+  width: 100%;
+  max-width: 720px;
+  margin: 0 auto;
+  /* Clears the fixed tab bar so the last row of any page stays reachable. */
+  padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 72px);
+}
+
+.kin-nav {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 30;
+  border-top: 1px solid var(--color-divider);
+}
+.kin-nav-inner {
+  display: flex;
+  width: 100%;
+  max-width: 720px;
+  margin: 0 auto;
+  /* The top padding lives on each tab, so the whole height of the bar is
+     tappable rather than only the icon and its label. */
+  padding: 0 6px calc(env(safe-area-inset-bottom, 0px) + 8px);
+}
+.kin-nav-brand {
+  display: none;
+}
+
+/* — the tablet — still a bottom bar, since it is still held; just no longer
+   a phone-width column stranded in the middle of the glass. */
+@media (min-width: 768px) {
+  .kin-content {
+    max-width: 860px;
+  }
+  .kin-nav-inner {
+    max-width: 860px;
+  }
+}
+
+/* — the desktop — */
+@media (min-width: 1024px) {
+  .kin-shell {
+    padding-left: 236px;
+  }
+  .kin-content {
+    max-width: 1000px;
+    padding-bottom: 56px;
+  }
+
+  .kin-nav {
+    top: 0;
+    right: auto;
+    width: 236px;
+    display: flex;
+    flex-direction: column;
+    border-top: 0;
+    border-right: 1px solid var(--color-divider);
+  }
+  .kin-nav-brand {
+    display: block;
+    padding: 22px 22px 14px;
+    font: 700 25px/1 var(--font-heading);
+    letter-spacing: -0.03em;
+    color: var(--color-text);
+  }
+  .kin-nav-inner {
+    flex-direction: column;
+    max-width: none;
+    gap: 2px;
+    padding: 0 12px 16px;
+  }
+
+  /* A row, not a stack: icon then label, reading left to right. */
+  .kin-tab {
+    flex: none;
+    width: 100%;
+    height: 44px;
+    flex-direction: row;
+    justify-content: flex-start;
+    gap: 12px;
+    padding: 0 12px;
+    border-radius: var(--radius-control);
+    transition: background-color 0.15s ease, color 0.15s ease;
+  }
+  .kin-tab-label {
+    font-size: 14.5px;
+    font-weight: 500;
+  }
+
+  /* The selected pill moves from behind the icon to behind the whole row —
+     a sidebar selects a line, not a glyph. */
+  .kin-tab-ico,
+  .kin-tab:not(.kin-tab-home)[data-active="true"] .kin-tab-ico {
+    width: 26px;
+    height: 26px;
+    background: none;
+    transform: none;
+  }
+  .kin-tab[data-active="true"] {
+    background: color-mix(in srgb, var(--color-accent) 12%, transparent);
+  }
+  .kin-tab:hover:not([data-active="true"]) {
+    background: color-mix(in srgb, var(--color-text) 5%, transparent);
+    color: var(--color-text);
+  }
+  .kin-tab:active .kin-tab-ico {
+    transform: scale(0.9);
+  }
+  .kin-tab-badge {
+    top: -4px;
+    right: -6px;
+  }
+
+  /* Today stops being the raised home button. A thumb needs a bigger target
+     in the middle of a bar; a cursor does not, and a disc floating out of a
+     vertical list just looks like a mistake. */
+  .kin-tab-home .kin-tab-disc,
+  .kin-tab-home[data-active="true"] .kin-tab-disc {
+    width: 26px;
+    height: 26px;
+    margin-top: 0;
+    background: none;
+    border: 0;
+    color: inherit;
+    box-shadow: none;
+  }
+
+  /* No tab bar to stay clear of any more. */
+  .kin-fab {
+    right: 28px;
+    bottom: 28px;
+  }
+}
+
+/* Anyone who has asked for less movement keeps the tint changes, which carry
+   the meaning, and loses the travel, which is only flourish. */
+@media (prefers-reduced-motion: reduce) {
+  .kin-tab-ico,
+  .kin-tab:not(.kin-tab-home)[data-active="true"] .kin-tab-ico,
+  .kin-tab:active .kin-tab-ico {
+    transform: none;
+    transition: background-color 0.18s ease;
+  }
+}
+
+/* The Today hub grid. Two up on a phone; on a desktop it fills the width
+   with as many columns as fit at a sensible card size, rather than stretching
+   the same two cards to 500px each. A card marked "full" still spans the row
+   whatever the count. */
+.kin-hubgrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+}
+@media (min-width: 1024px) {
+  .kin-hubgrid {
+    grid-template-columns: repeat(auto-fill, minmax(236px, 1fr));
+    gap: 16px;
+  }
 }

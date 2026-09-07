@@ -17,34 +17,26 @@ const TABS: { href: string; label: string; icon: IconName; home?: boolean }[] = 
   { href: "/wealth", label: "Wealth", icon: "wallet" },
 ];
 
+/** One set of links that reads as two different pieces of furniture.
+ *
+ * On a phone it is the bottom tab bar it always was. From 1024px up the same
+ * markup becomes a left sidebar — because a bottom bar on a desktop puts the
+ * navigation as far from the cursor as the screen allows, and wastes the one
+ * axis a desktop has going spare. Nothing is duplicated or conditionally
+ * rendered to do it: the layout is entirely CSS, so there is no second copy
+ * to keep in step and no flash of the wrong shape before hydration. */
 export function TabBar({ chatUnread = 0, chatMentioned = false }: { chatUnread?: number; chatMentioned?: boolean }) {
   const pathname = usePathname();
   return (
     /* Fixed to the viewport, not sticky: a sticky element can only travel
        inside its own parent, and this bar's wrapper is exactly as tall as the
        bar, so it had nowhere to stick and simply sat at the end of the page. */
-    <nav
-      className="kin-glass-bar"
-      style={{
-        position: "fixed",
-        left: 0,
-        right: 0,
-        bottom: 0,
-        zIndex: 30,
-        borderTop: "1px solid var(--color-divider)",
-      }}
-    >
-      <div
-        style={{
-          display: "flex",
-          width: "100%",
-          maxWidth: 720,
-          margin: "0 auto",
-          // The top padding now lives on each tab, so the whole height of
-          // the bar is tappable rather than only the icon and its label.
-          padding: "0 6px calc(env(safe-area-inset-bottom, 0px) + 8px)",
-        }}
-      >
+    <nav className="kin-nav kin-glass-bar">
+      {/* Only ever seen on the sidebar. A phone has no room to spend on a
+          wordmark, and the tab bar is not where you put one anyway. */}
+      <div className="kin-nav-brand">Kin</div>
+
+      <div className="kin-nav-inner">
         {TABS.map((t) => {
           const active = pathname === t.href || pathname.startsWith(t.href + "/");
           const unread = t.href === "/chat" && chatUnread > 0;
@@ -54,9 +46,10 @@ export function TabBar({ chatUnread = 0, chatMentioned = false }: { chatUnread?:
               href={t.href}
               className={`kin-tab${t.home ? " kin-tab-home" : ""}`}
               data-active={active}
+              aria-current={active ? "page" : undefined}
               aria-label={unread ? `${t.label}, ${chatUnread} unread` : t.label}
             >
-              <span style={{ position: "relative", display: "flex" }}>
+              <span className="kin-tab-ico">
                 {t.home ? (
                   <span className="kin-tab-disc">
                     <Icon name={t.icon} size={26} />
@@ -69,28 +62,12 @@ export function TabBar({ chatUnread = 0, chatMentioned = false }: { chatUnread?:
                     named you — the difference between the room talking and
                     someone talking to you. */}
                 {unread && (
-                  <span
-                    style={{
-                      position: "absolute",
-                      top: -5,
-                      left: 12,
-                      minWidth: 16,
-                      height: 16,
-                      padding: "0 4px",
-                      borderRadius: 999,
-                      background: chatMentioned ? "var(--cal-occasion)" : "var(--color-accent)",
-                      color: "#fff",
-                      font: "600 10px/16px var(--font-body)",
-                      textAlign: "center",
-                    }}
-                  >
+                  <span className="kin-tab-badge" data-mentioned={chatMentioned}>
                     {chatUnread > 99 ? "99+" : chatUnread}
                   </span>
                 )}
               </span>
-              {/* 10px is the platform's tab label size; seven tabs crowd
-                  above that, so the label rides just under it at 9.5. */}
-              <span style={{ fontSize: 9.5, fontWeight: 500, letterSpacing: "-0.01em" }}>{t.label}</span>
+              <span className="kin-tab-label">{t.label}</span>
             </Link>
           );
         })}
