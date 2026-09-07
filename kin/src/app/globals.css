@@ -889,8 +889,11 @@ textarea.input {
   width: 100%;
   max-width: 720px;
   margin: 0 auto;
-  /* Clears the fixed tab bar so the last row of any page stays reachable. */
-  padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 72px);
+  /* Clears the fixed tab bar and the Ask Kin button riding above it, so the
+     last row of any page stays both reachable and readable. The button is 48px
+     tall and sits 110px up; anything less than this leaves the final rows of a
+     fully scrolled page underneath it. */
+  padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 170px);
 }
 
 .kin-nav {
@@ -932,7 +935,9 @@ textarea.input {
   }
   .kin-content {
     max-width: 1000px;
-    padding-bottom: 56px;
+    /* The button moves down to 28px here, so this clears it rather than the
+       tab bar, which is now a sidebar. */
+    padding-bottom: 96px;
   }
 
   .kin-nav {
@@ -1039,6 +1044,14 @@ textarea.input {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 14px;
+}
+
+/* Wealth is the wide one. It takes two cells rather than the whole row: the
+   column never goes past 1000px, so the grid is two or three across and never
+   more, and "the whole row" left Household sitting alone beside two empty
+   cells on a desktop. Two cells fills the second row in both cases. */
+.kin-hub-wide {
+  grid-column: span 2;
 }
 @media (min-width: 1024px) {
   .kin-hubgrid {

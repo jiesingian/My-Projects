@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Icon } from "@/components/icons";
+import { familyDay, familyClock, familyDateLong } from "@/lib/time";
 import { Avatar } from "@/components/avatar";
 import { createClient } from "@/lib/supabase/client";
 import {
@@ -16,18 +17,21 @@ import type { ChatMember, ChatMessage } from "@/lib/queries/chat";
 
 const REACTIONS = ["👍", "❤️", "😂", "😮", "😢", "🙏"];
 
+/* Both of these read a stored instant, so both are answered in the household's
+   own zone rather than the viewer's. A thread is a shared record of one house:
+   a message sent at dinner should say dinner to everyone reading it, including
+   whoever is abroad this week. It also keeps the server's render and the
+   browser's first render identical, which is what stops React discarding the
+   thread and rebuilding it on load. */
 function dayLabel(iso: string) {
-  const d = new Date(iso);
-  const today = new Date();
-  const sameDay = (a: Date, b: Date) => a.toDateString() === b.toDateString();
-  const yesterday = new Date(today.getFullYear(), today.getMonth(), today.getDate() - 1);
-  if (sameDay(d, today)) return "Today";
-  if (sameDay(d, yesterday)) return "Yesterday";
-  return d.toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long" });
+  const day = familyDay(new Date(iso));
+  if (day === familyDay()) return "Today";
+  if (day === familyDay(new Date(Date.now() - 24 * 60 * 60 * 1000))) return "Yesterday";
+  return familyDateLong(new Date(iso));
 }
 
 function clockOf(iso: string) {
-  return new Date(iso).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" });
+  return familyClock(new Date(iso));
 }
 
 /** The household's thread. Messages arrive as they are sent — the page holds

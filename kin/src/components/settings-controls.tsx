@@ -10,6 +10,7 @@ import { useState } from "react";
 import { CopyInviteCode } from "@/components/copy-invite-code";
 import { Blueprint } from "@/components/ui";
 import { NOTIFICATION_DEFS } from "@/lib/notifications";
+import { familyDateTime } from "@/lib/time";
 
 export function ThemeControl({ current }: { current: string }) {
   const [pending, startTransition] = useTransition();
@@ -248,7 +249,7 @@ export function DriveConnectedPanel({
         </>
       )}
       {lastSyncedAt && (
-        <div style={{ fontSize: 13, color: "var(--color-neutral-600)", marginTop: 10 }}>Last synced {new Date(lastSyncedAt).toLocaleString()}</div>
+        <div style={{ fontSize: 13, color: "var(--color-neutral-600)", marginTop: 10 }}>Last synced {familyDateTime(new Date(lastSyncedAt))}</div>
       )}
     </>
   );
@@ -307,7 +308,7 @@ export function CalendarConnectedPanel({ email, lastSyncedAt }: { email: string 
         {pending ? "…" : "DISCONNECT"}
       </button>
       {lastSyncedAt && (
-        <div style={{ fontSize: 13, color: "var(--color-neutral-600)", marginTop: 10 }}>Last synced {new Date(lastSyncedAt).toLocaleString()}</div>
+        <div style={{ fontSize: 13, color: "var(--color-neutral-600)", marginTop: 10 }}>Last synced {familyDateTime(new Date(lastSyncedAt))}</div>
       )}
     </>
   );
