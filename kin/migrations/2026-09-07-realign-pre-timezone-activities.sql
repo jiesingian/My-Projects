@@ -34,6 +34,33 @@
 -- or a `T00:00:00` all-day marker used for calendar sync and not stored.
 -- routines.time_of_day is a `time`, not a timestamp, so it never moved.
 
+-- Do not run this yet. Read this part first.
+-- -------------------------------------------
+-- This correction is only right once the server is actually in Asia/Manila,
+-- and as of today it may well not be. instrumentation.ts sets the zone at
+-- runtime, but next dev renders in a worker pool that can be forked before
+-- register() runs, and the same page then gets served in UTC -- measured, not
+-- guessed: identical requests came back in both zones on the same machine.
+-- Whether the deployed app is in the same position has not been established.
+--
+-- That matters here more than anywhere, because while the server is in UTC
+-- these rows read as the times they were typed and everything looks correct.
+-- Shifting them back eight hours would be the thing that breaks them.
+--
+-- So, in order:
+--
+--   1. Add TZ=Asia/Manila to the Vercel project's environment variables, for
+--      every environment, and redeploy. That sets the zone in the process
+--      itself rather than from inside the app, which is the only version of
+--      this that cannot be raced.
+--   2. Open the Planner and look at the five existing activities. If the fix
+--      has taken hold they will now read eight hours late -- 20:30, 22:00,
+--      and two at 04:30 the following morning.
+--   3. Only if they do, run this. If they still read correctly, the server is
+--      still in UTC and this file would introduce the very error it describes.
+--
+-- Step 2 is the check that makes step 3 safe. Do not skip it.
+
 begin;
 
 -- Look before leaping. Run this on its own first and check the "after" column
