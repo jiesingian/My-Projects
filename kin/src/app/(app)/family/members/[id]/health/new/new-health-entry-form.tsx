@@ -7,6 +7,7 @@ import { SubmitButton, ErrorText } from "@/components/form";
 import { DetailHeader } from "@/components/hub-header";
 import { Blueprint } from "@/components/ui";
 import type { Tables } from "@/lib/database.types";
+import { familyDay } from "@/lib/time";
 
 const initialState: ActionState = { error: null };
 
@@ -107,7 +108,7 @@ export function NewHealthEntryForm({
           <div style={{ display: "flex", gap: 12, marginBottom: 14 }}>
             <div className="field" style={{ flex: 1 }}>
               <label>DATE</label>
-              <input aria-label="Date" className="input" type="date" name="date" defaultValue={new Date().toISOString().slice(0, 10)} required style={{ minHeight: 44 }} />
+              <input aria-label="Date" className="input" type="date" name="date" defaultValue={familyDay()} required style={{ minHeight: 44 }} />
             </div>
             <div className="field" style={{ flex: 1 }}>
               <label>{type.valueLabel.toUpperCase()}</label>

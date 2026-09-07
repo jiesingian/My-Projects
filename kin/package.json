@@ -4,9 +4,9 @@
   "private": true,
   "license": "UNLICENSED",
   "scripts": {
-    "dev": "next dev",
-    "build": "next build",
-    "start": "next start",
+    "dev": "TZ=Asia/Manila next dev",
+    "build": "TZ=Asia/Manila next build",
+    "start": "TZ=Asia/Manila next start",
     "lint": "eslint",
     "e2e": "playwright test",
     "e2e:ui": "playwright test --ui"

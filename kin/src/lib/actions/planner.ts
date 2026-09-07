@@ -6,6 +6,7 @@ import { createClient } from "@/lib/supabase/server";
 import { requireCurrentMember } from "@/lib/session";
 import { syncRowToCalendars, removeRowFromCalendars, type CalendarTarget } from "@/lib/actions/calendar-sync";
 import type { ActionState } from "@/lib/actions/auth";
+import { familyDay } from "@/lib/time";
 
 function activityTarget(wholeFamily: boolean, who: string[]): CalendarTarget {
   return wholeFamily ? { kind: "all" } : { kind: "members", memberIds: who };
@@ -330,7 +331,7 @@ export async function addActivityToJournalAction(activityId: string) {
 
   await supabase.from("journal_entries").insert({
     family_id: me.family_id,
-    entry_date: activity.start_at.slice(0, 10),
+    entry_date: familyDay(new Date(activity.start_at)),
     title: activity.title,
     note: activity.notes,
     source: "from_plan",

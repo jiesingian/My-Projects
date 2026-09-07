@@ -4,6 +4,7 @@ import { syncRowToCalendars, type CalendarTarget } from "@/lib/actions/calendar-
 import { EXPENSE_CATEGORIES, INCOME_SOURCES, signedAmount } from "@/lib/wealth";
 import { MARKET_SECTIONS, UNITS, guessSection, formatQuantity } from "@/lib/grocery";
 import type { CurrentMember } from "@/lib/session";
+import { familyDay } from "@/lib/time";
 
 /** Every tool the Today assistant can reach. Each one is scoped to the
  * signed-in member's household by the executor — the model never supplies a
@@ -614,7 +615,7 @@ export async function runAssistantTool(name: string, rawInput: unknown, me: Curr
     case "add_journal_entry": {
       const title = str(input, "title");
       if (!title) return fail("A journal entry needs a title.");
-      const entryDate = str(input, "date") ?? new Date().toISOString().slice(0, 10);
+      const entryDate = str(input, "date") ?? familyDay();
 
       const { error } = await supabase.from("journal_entries").insert({
         family_id: familyId,

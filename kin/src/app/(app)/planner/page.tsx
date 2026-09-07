@@ -23,6 +23,7 @@ import { AddToJournalButton } from "@/components/add-to-journal-button";
 import { Icon } from "@/components/icons";
 import { CALENDAR_LEGEND, styleFor } from "@/lib/calendar-style";
 import { parseHidden, serializeHidden, toggledHidden, type CalendarGroup } from "@/lib/calendar-groups";
+import { familyClock } from "@/lib/time";
 import { LogSpendControl } from "@/components/money-actions";
 import { CalendarJump, CalendarPeriod, DateRail, MonthScroller, TodayButton } from "@/components/calendar-nav";
 import { AddToCalendar } from "@/components/add-to-calendar";
@@ -238,7 +239,7 @@ function AgendaRow({ item }: { item: PlannerCalendarItem }) {
       <div style={{ flex: 1, minWidth: 0, padding: "7px 0" }}>
         <Link href={item.href} style={{ display: "flex", gap: 10, textDecoration: "none", color: "inherit", alignItems: "baseline" }}>
           <span style={{ fontSize: 13, color: "var(--color-neutral-600)", width: 52, flex: "none" }}>
-            {item.allDay ? "all-day" : item.date.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })}
+            {item.allDay ? "all-day" : familyClock(item.date)}
           </span>
           <span style={{ flex: 1, minWidth: 0 }}>
             <span style={{ fontSize: 16, fontWeight: 500, display: "block", lineHeight: 1.25 }}>{item.title}</span>
