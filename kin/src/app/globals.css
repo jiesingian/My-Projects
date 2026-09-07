@@ -1046,3 +1046,83 @@ textarea.input {
     gap: 16px;
   }
 }
+
+/* ── the Today briefing ──────────────────────────────────────────────────
+   One list, six sources. Rows rather than cards: a card says "this is a
+   thing to consider", a row says "this is a line in your day", and there
+   may be a dozen of them. */
+.kin-eyebrow {
+  font: 600 12px/1 var(--font-heading);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--color-neutral-600);
+  margin: 0 0 9px;
+}
+.kin-brief {
+  border-radius: var(--radius-card);
+  overflow: hidden;
+  background: var(--color-surface);
+  box-shadow: var(--shadow-sm);
+}
+.kin-brief-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 13px;
+  color: inherit;
+  text-decoration: none;
+  transition: background-color 0.14s ease;
+}
+/* A hairline between rows but not under the last one, so the group reads as
+   one object rather than a stack of separate ones. */
+.kin-brief-row + .kin-brief-row {
+  box-shadow: inset 0 1px 0 var(--color-divider);
+}
+.kin-brief-row:hover,
+.kin-brief-row:active {
+  background: color-mix(in srgb, var(--color-text) 4%, transparent);
+}
+.kin-brief-ico {
+  flex: none;
+  width: 32px;
+  height: 32px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  background: var(--cal-goal);
+}
+.kin-brief-ico[data-tint="money"] { background: var(--cal-money); }
+.kin-brief-ico[data-tint="schedule"] { background: var(--cal-schedule); }
+.kin-brief-ico[data-tint="occasion"] { background: var(--cal-occasion); }
+.kin-brief-ico[data-tint="home"] { background: var(--cal-home); }
+
+.kin-brief-title {
+  display: block;
+  font: 600 15.5px/1.25 var(--font-heading);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.kin-brief-meta {
+  display: block;
+  font-size: 13px;
+  color: var(--color-neutral-600);
+  margin-top: 1px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+/* Overdue and due-today carry the money tint on the text too, not only the
+   icon — an icon alone is not enough to make something read as pressing. */
+.kin-brief-row[data-urgent="true"] .kin-brief-meta {
+  color: var(--cal-money);
+  font-weight: 600;
+}
+.kin-brief-chev {
+  flex: none;
+  margin-left: auto;
+  transform: rotate(180deg);
+  color: var(--color-neutral-400);
+}
