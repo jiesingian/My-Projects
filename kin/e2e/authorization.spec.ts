@@ -1,0 +1,135 @@
+import { test, expect, request as playwrightRequest } from "@playwright/test";
+
+/** What the database refuses, checked against the database.
+ *
+ * Several server actions carry no authorisation check of their own --
+ * removeMemberAction is a bare `update ... eq("id", memberId)` with no
+ * family scope -- and rely entirely on row-level security. That is a
+ * reasonable design, because RLS is enforced by Postgres rather than by
+ * whoever remembered to write the check. It is only reasonable while the
+ * policies are actually right, and nothing in the build or the type checker
+ * has any opinion about that.
+ *
+ * So these talk to PostgREST directly, as the signed-in household would, and
+ * assert the refusals. They were written after checking each one by hand;
+ * this is what keeps them checked. */
+
+const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
+const SUPABASE_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+test.describe("what row-level security refuses", () => {
+  let token: string;
+  let me: { id: string; family_id: string; is_organiser: boolean; role: string };
+
+  test.beforeAll(async () => {
+    test.skip(
+      !SUPABASE_URL || !SUPABASE_KEY,
+      "NEXT_PUBLIC_SUPABASE_URL / _ANON_KEY are not set; skipping the database-level checks.",
+    );
+    const api = await playwrightRequest.newContext();
+    const res = await api.post(`${SUPABASE_URL}/auth/v1/token?grant_type=password`, {
+      headers: { apikey: SUPABASE_KEY!, "Content-Type": "application/json" },
+      data: { email: process.env.E2E_EMAIL, password: process.env.E2E_PASSWORD },
+    });
+    expect(res.ok(), "could not sign the throwaway account in").toBeTruthy();
+    token = (await res.json()).access_token;
+
+    const meRes = await api.get(`${SUPABASE_URL}/rest/v1/members?select=id,family_id,is_organiser,role&limit=200`, {
+      headers: { apikey: SUPABASE_KEY!, Authorization: `Bearer ${token}` },
+    });
+    const rows = await meRes.json();
+    me = rows.find((r: typeof me & { role: string }) => r.role === "parent");
+    expect(me, "the throwaway household has no parent row").toBeTruthy();
+    await api.dispose();
+  });
+
+  /** A household may only ever see itself. This is the single assumption every
+   * other query in the app is built on. */
+  test("a household sees only its own members", async () => {
+    const api = await playwrightRequest.newContext();
+    const res = await api.get(`${SUPABASE_URL}/rest/v1/members?select=family_id&limit=500`, {
+      headers: { apikey: SUPABASE_KEY!, Authorization: `Bearer ${token}` },
+    });
+    const rows: { family_id: string }[] = await res.json();
+    expect(rows.length).toBeGreaterThan(0);
+    const families = [...new Set(rows.map((r) => r.family_id))];
+    expect(families, "members from more than one household are visible").toEqual([me.family_id]);
+    await api.dispose();
+  });
+
+  /** Nobody promotes themselves. The policies allow a member to update their
+   * own row -- they have a profile to edit -- so a trigger holds the line on
+   * the fields that decide what they may do. */
+  test("a member cannot promote themselves", async () => {
+    const api = await playwrightRequest.newContext();
+
+    // Each value has to differ from what is already there. The trigger fires on
+    // a field that changes, so patching a field to the value it already holds
+    // is a no-op that rightly succeeds and proves nothing -- which is exactly
+    // how the first version of this test managed to fail.
+    const patches: Record<string, unknown>[] = [
+      { role: me.role === "parent" ? "adult" : "parent" },
+      { status: "removed" },
+      { is_organiser: !me.is_organiser },
+    ];
+
+    for (const patch of patches) {
+      const field = Object.keys(patch)[0];
+      const res = await api.patch(`${SUPABASE_URL}/rest/v1/members?id=eq.${me.id}`, {
+        headers: {
+          apikey: SUPABASE_KEY!,
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+          Prefer: "return=representation",
+        },
+        data: patch,
+      });
+      expect(res.status(), `changing ${field} on your own membership was allowed`).toBeGreaterThanOrEqual(400);
+    }
+
+    // And the row is exactly as it was. If any of the above had slipped
+    // through, this is where a demoted organiser would show up.
+    const after = await api.get(`${SUPABASE_URL}/rest/v1/members?select=role,status,is_organiser&id=eq.${me.id}`, {
+      headers: { apikey: SUPABASE_KEY!, Authorization: `Bearer ${token}` },
+    });
+    expect((await after.json())[0]).toEqual({
+      role: me.role,
+      status: "active",
+      is_organiser: me.is_organiser,
+    });
+    await api.dispose();
+  });
+
+  /** A row may not be moved into somebody else's household. Verified by hand
+   * against a second throwaway family, which was refused with 42501; this
+   * keeps it refused. A foreign key would also refuse an invented id, so the
+   * assertion is only that it never succeeds. */
+  test("a member cannot be moved into another household", async () => {
+    const api = await playwrightRequest.newContext();
+    const res = await api.patch(`${SUPABASE_URL}/rest/v1/members?id=eq.${me.id}`, {
+      headers: {
+        apikey: SUPABASE_KEY!,
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+        Prefer: "return=representation",
+      },
+      data: { family_id: "00000000-0000-4000-a000-0000000000ff" },
+    });
+    expect(res.status(), "a member was moved into another household").toBeGreaterThanOrEqual(400);
+    await api.dispose();
+  });
+
+  /** The tokens behind Google Drive and Calendar are deliberately invisible to
+   * the signed-in roles -- only the server's own key may read them. */
+  test("connected-account tokens are not readable", async () => {
+    const api = await playwrightRequest.newContext();
+    for (const table of ["drive_tokens", "calendar_tokens"]) {
+      const res = await api.get(`${SUPABASE_URL}/rest/v1/${table}?select=*&limit=5`, {
+        headers: { apikey: SUPABASE_KEY!, Authorization: `Bearer ${token}` },
+      });
+      const rows = res.ok() ? await res.json() : [];
+      expect(Array.isArray(rows) ? rows.length : 0, `${table} is readable by a signed-in member`).toBe(0);
+    }
+    await api.dispose();
+  });
+});

@@ -1,6 +1,15 @@
 import { defineConfig, devices } from "@playwright/test";
 import fs from "node:fs";
 
+/** The authorisation specs talk to Supabase directly, and the values they need
+ * already live in .env.local. Next reads that file; Playwright does not, so
+ * load it here rather than making everyone export the same two variables
+ * twice. Anything already in the environment wins. */
+for (const line of fs.existsSync(".env.local") ? fs.readFileSync(".env.local", "utf8").split("\n") : []) {
+  const m = line.match(/^\s*([A-Z0-9_]+)\s*=\s*(.*)\s*$/);
+  if (m && !process.env[m[1]]) process.env[m[1]] = m[2].replace(/^["']|["']$/g, "");
+}
+
 /** Where the app under test is. Point this at a preview or at production to
  * run the same suite against a deployment rather than a local dev server. */
 const baseURL = process.env.E2E_BASE_URL ?? "http://localhost:3000";
