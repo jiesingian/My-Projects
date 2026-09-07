@@ -1,0 +1,91 @@
+name: Auto-merge
+
+# Merges a pull request that triage judged small, but only once the checks
+# have actually finished and passed.
+#
+# This exists because "merge when green" turned out to be the hard part.
+# `gh pr merge --auto` delegates the waiting to GitHub, and GitHub only waits
+# when a branch rule requires a check. On a private repository on the Free
+# plan there can be no such rule -- the rules API answers 403, "Upgrade to
+# GitHub Pro or make this repository public" -- so --auto degraded to "merge
+# now", and twice put a change into main while CI was still running.
+#
+# Nothing here asks what the plan allows. It waits for a check suite to
+# finish, then reads the check runs on that commit and merges only if every
+# one of them passed. That question has the same answer on every plan.
+on:
+  workflow_run:
+    # Whichever finishes last does the merging; the other finds a check still
+    # running and stops, which is why both are listed.
+    workflows: [CI, Secret Scan]
+    types: [completed]
+
+permissions:
+  contents: write
+  pull-requests: write
+  checks: read
+
+jobs:
+  merge:
+    # A failed suite never reaches the merge, and a run that was not for a
+    # pull request has nothing to merge.
+    if: >
+      github.event.workflow_run.conclusion == 'success' &&
+      github.event.workflow_run.event == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Merge if the whole commit is green
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+          SHA: ${{ github.event.workflow_run.head_sha }}
+        run: |
+          set -euo pipefail
+
+          PR=$(gh api "repos/$REPO/commits/$SHA/pulls" --jq '.[0].number // empty')
+          if [ -z "$PR" ]; then
+            echo "No pull request for $SHA — nothing to do."; exit 0
+          fi
+
+          STATE=$(gh pr view "$PR" --repo "$REPO" --json state --jq .state)
+          if [ "$STATE" != "OPEN" ]; then
+            echo "PR #$PR is $STATE — nothing to do."; exit 0
+          fi
+
+          LABELS=$(gh pr view "$PR" --repo "$REPO" --json labels --jq '.labels[].name')
+          if echo "$LABELS" | grep -qx "needs-jonathan"; then
+            echo "PR #$PR is held for review — leaving it alone."; exit 0
+          fi
+          if ! echo "$LABELS" | grep -qx "auto-merge"; then
+            echo "PR #$PR is not marked auto-merge — leaving it alone."; exit 0
+          fi
+
+          # Every check run on this commit must have finished and passed.
+          # Anything still running means the other workflow is not done yet;
+          # its own completion will bring us back here.
+          gh api "repos/$REPO/commits/$SHA/check-runs?per_page=100" > /tmp/checks.json
+          PENDING=$(jq '[.check_runs[] | select(.status != "completed")] | length' /tmp/checks.json)
+          FAILED=$(jq '[.check_runs[]
+                        | select(.status == "completed")
+                        | select(.conclusion != "success" and .conclusion != "neutral" and .conclusion != "skipped")
+                       ] | length' /tmp/checks.json)
+          TOTAL=$(jq '.check_runs | length' /tmp/checks.json)
+
+          # No check runs at all would mean nothing was verified, so refuse.
+          if [ "$TOTAL" -eq 0 ]; then
+            echo "No check runs on $SHA — refusing to merge something unverified."; exit 0
+          fi
+
+          echo "check runs on $SHA — total: $TOTAL, pending: $PENDING, failed: $FAILED"
+
+          if [ "$PENDING" -ne 0 ]; then
+            echo "Still running. The other workflow's completion will retry."; exit 0
+          fi
+          if [ "$FAILED" -ne 0 ]; then
+            echo "Something failed. Not merging."; exit 0
+          fi
+
+          # --match-head-commit refuses if anything was pushed since the checks
+          # ran, so a green result can never merge a commit it did not test.
+          gh pr merge "$PR" --repo "$REPO" --squash --match-head-commit "$SHA"
+          echo "Merged PR #$PR at $SHA."
