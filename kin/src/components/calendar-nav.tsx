@@ -4,6 +4,7 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useRef, use
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Icon } from "@/components/icons";
+import { dayColumn, weekdayInitials, type WeekStart } from "@/lib/week";
 
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 const MONTHS_LONG = [
@@ -54,10 +55,14 @@ export function CalendarJump({
   label: serverLabel,
   hrefBase,
   anchor: serverAnchor,
+  weekStart = 0,
 }: {
   label: string;
   hrefBase: string;
   anchor: string;
+  /** Which day the household's week starts on, so this grid's columns match
+   * the calendar it is jumping around in. */
+  weekStart?: WeekStart;
 }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
@@ -109,7 +114,7 @@ export function CalendarJump({
     }
   };
 
-  const leadingBlanks = new Date(year, month, 1).getDay();
+  const leadingBlanks = dayColumn(new Date(year, month, 1), weekStart);
   const daysInMonth = new Date(year, month + 1, 0).getDate();
   const now = new Date();
   const todayISO = iso(now.getFullYear(), now.getMonth(), now.getDate());
@@ -229,7 +234,7 @@ export function CalendarJump({
             {picking === "days" ? (
               <>
                 <div style={{ display: "grid", gridTemplateColumns: "repeat(7, minmax(0, 1fr))", gap: 2, marginBottom: 2 }}>
-                  {["S", "M", "T", "W", "T", "F", "S"].map((d, i) => (
+                  {weekdayInitials(weekStart).map((d, i) => (
                     <div key={i} style={{ textAlign: "center", fontSize: 11, color: "var(--color-neutral-600)" }}>
                       {d}
                     </div>

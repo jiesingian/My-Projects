@@ -126,9 +126,9 @@
     "semantic_hash": ""
   },
   "src/app/(app)/planner/page.tsx": {
-    "mtime": 1788781189.8241346,
-    "seen": 1788781997.2593718,
-    "ast_hash": "13193a075662757fc288b5915d741a23",
+    "mtime": 1788788363.0854077,
+    "seen": 1788788845.7586462,
+    "ast_hash": "bf84c5be92fa9a5040d17048f5efd3a0",
     "semantic_hash": ""
   },
   "src/app/(app)/settings/page.tsx": {
@@ -426,9 +426,9 @@
     "semantic_hash": ""
   },
   "src/lib/queries/planner.ts": {
-    "mtime": 1788762385.464083,
-    "seen": 1788766460.0322056,
-    "ast_hash": "48cb63a5e61374ff265a256c7d276c72",
+    "mtime": 1788788363.0854077,
+    "seen": 1788788845.7645998,
+    "ast_hash": "d3a1414bf07af8546134546fd997934b",
     "semantic_hash": ""
   },
   "src/lib/queries/today.ts": {
@@ -888,9 +888,9 @@
     "semantic_hash": ""
   },
   "src/components/calendar-nav.tsx": {
-    "mtime": 1788762385.439797,
-    "seen": 1788766460.0321114,
-    "ast_hash": "f16a0ba86ff84a023943d2bec9ee2a73",
+    "mtime": 1788788363.0854077,
+    "seen": 1788788845.7611609,
+    "ast_hash": "548a41f7f1bbbb85c3f472c3949963e0",
     "semantic_hash": ""
   },
   "src/components/calendar-sync-status.tsx": {
@@ -1116,9 +1116,9 @@
     "semantic_hash": ""
   },
   "e2e/README.md": {
-    "mtime": 1788779429.010768,
-    "seen": 1788781997.263587,
-    "ast_hash": "73632e7193dc8da18fb7acd2ebf3c346",
+    "mtime": 1788788838.8734152,
+    "seen": 1788788845.7653935,
+    "ast_hash": "ffb55a9375da240840a627fe4cc28515",
     "semantic_hash": ""
   },
   "e2e/authorization.spec.ts": {
@@ -1137,6 +1137,18 @@
     "mtime": 1788781228.1754482,
     "seen": 1788781997.25859,
     "ast_hash": "1557256e3d7ec1be3907f6fd3ac8d034",
+    "semantic_hash": ""
+  },
+  "e2e/preferences.spec.ts": {
+    "mtime": 1788788221.608446,
+    "seen": 1788788845.7572262,
+    "ast_hash": "2848fda190aee6342b04c3cf0b54ee64",
+    "semantic_hash": ""
+  },
+  "src/lib/week.ts": {
+    "mtime": 1788787935.8523724,
+    "seen": 1788788845.7652013,
+    "ast_hash": "3ced89d0a97d9b336fa54c2fb8b38d91",
     "semantic_hash": ""
   }
 }

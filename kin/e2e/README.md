@@ -46,6 +46,7 @@ gitignored, and it is a real session — treat it like a password.
 | `writes.spec.ts` | The forms that add things, each verified by going back and finding what it made. |
 | `deletes.spec.ts` | Removing things: each makes two, removes one, and checks the other survived. |
 | `edits.spec.ts` | Changing things: set several fields, change one, and check the others are still what they were. |
+| `preferences.spec.ts` | Household settings that are supposed to change something, checked against the thing they change. |
 | `authorization.spec.ts` | What row-level security refuses, asked of the database directly. |
 
 ## What is not covered, and why
