@@ -1,0 +1,79 @@
+name: End-to-end
+
+# Deliberately manual.
+#
+# These tests need a signed-in session against a throwaway household, which
+# means real credentials and a real Supabase project. That is fine to run on
+# purpose and wrong to run on every push: this repository is private, so
+# Actions minutes are metered, and a suite that drives sixty browser pages is
+# not something to spend them on unattended.
+#
+# Run it from the Actions tab when a change deserves it -- before a release,
+# after touching queries or dates, or when a preview needs checking.
+#
+# Needs two repository secrets, and says so plainly rather than failing with a
+# login screen if they are missing:
+#   E2E_EMAIL, E2E_PASSWORD  -- the throwaway account, never a real one
+on:
+  workflow_dispatch:
+    inputs:
+      base_url:
+        description: "Where to point the suite (blank builds and runs the app here)"
+        required: false
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  e2e:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: kin
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: kin/package-lock.json
+
+      - name: Refuse to run without a throwaway account
+        env:
+          E2E_EMAIL: ${{ secrets.E2E_EMAIL }}
+        run: |
+          if [ -z "$E2E_EMAIL" ]; then
+            echo "::error::E2E_EMAIL and E2E_PASSWORD are not set. Add them as repository secrets, pointing at a throwaway household — never a real family's account. See kin/e2e/README.md."
+            exit 1
+          fi
+
+      - run: npm ci
+
+      - name: Install the browser
+        run: npx playwright install --with-deps chromium
+
+      - name: Build and start, unless a URL was given
+        if: inputs.base_url == ''
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+        run: |
+          npm run build
+          npm run start &
+          npx wait-on http://localhost:3000/login --timeout 120000
+
+      - name: Run the suite
+        env:
+          E2E_EMAIL: ${{ secrets.E2E_EMAIL }}
+          E2E_PASSWORD: ${{ secrets.E2E_PASSWORD }}
+          E2E_BASE_URL: ${{ inputs.base_url }}
+        run: npm run e2e
+
+      - uses: actions/upload-artifact@v4
+        if: ${{ !cancelled() }}
+        with:
+          name: playwright-report
+          path: kin/playwright-report/
+          retention-days: 7
