@@ -21,14 +21,19 @@ npm install --no-audit --no-fund
 # .env.local is gitignored and never committed, so a fresh clone has none and
 # `next dev` cannot start.
 #
-# Both values below are public by design: the anon key is what the browser
-# carries on every request, and RLS is what actually protects the data. The
-# service role key is a real secret, is NOT here, and is only needed by the
-# Drive OAuth routes -- add it by hand if you are working on those.
+# Both values below are public by design: this key is what the browser carries
+# on every request, and RLS is what actually protects the data. The service
+# role key is a real secret, is NOT here, and is only needed by the Drive OAuth
+# routes -- add it by hand if you are working on those.
+#
+# Deliberately the sb_publishable_ key rather than the older anon JWT. Both
+# work and both are public, but the JWT is shaped like a real secret, so
+# committing it makes the secret scan cry wolf -- and a scan you have learned
+# to ignore is worse than no scan.
 if [ ! -f .env.local ]; then
   cat > .env.local <<'ENV'
 NEXT_PUBLIC_SUPABASE_URL=https://lffqluudphzviubygwjs.supabase.co
-NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxmZnFsdXVkcGh6dml1Ynlnd2pzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODgyNTA1OTQsImV4cCI6MjEwMzgyNjU5NH0.FuU23Nrm8sBK1IiWq2zlIE7gzdp_Eysp7dx3o3_e6kI
+NEXT_PUBLIC_SUPABASE_ANON_KEY=sb_publishable_brdc3PF1jA2tCSEIBhBEYA_VGL4D-mG
 ENV
 fi
 
