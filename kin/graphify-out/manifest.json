@@ -1110,15 +1110,27 @@
     "semantic_hash": ""
   },
   "playwright.config.ts": {
-    "mtime": 1788776650.559371,
-    "seen": 1788777422.8885815,
-    "ast_hash": "02154f7e3bfffb9c5db8236d8049e543",
+    "mtime": 1788778743.4673994,
+    "seen": 1788779428.878142,
+    "ast_hash": "07f07d53842ae85d21bb9344ef1b6867",
     "semantic_hash": ""
   },
   "e2e/README.md": {
     "mtime": 1788776756.17861,
     "seen": 1788777422.8935723,
     "ast_hash": "e2d7030d6106a11aae9a1f38443edb22",
+    "semantic_hash": ""
+  },
+  "e2e/authorization.spec.ts": {
+    "mtime": 1788778843.4382925,
+    "seen": 1788779428.8779755,
+    "ast_hash": "4c7d7e55b9dbd016ef1483f3630697e6",
+    "semantic_hash": ""
+  },
+  "e2e/deletes.spec.ts": {
+    "mtime": 1788779036.4015734,
+    "seen": 1788779428.8779771,
+    "ast_hash": "346ab42f17e4af53220ae57fa4ff9086",
     "semantic_hash": ""
   }
 }

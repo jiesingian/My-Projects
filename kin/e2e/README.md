@@ -39,6 +39,8 @@ gitignored, and it is a real session — treat it like a password.
 | `smoke.spec.ts` | All seven hubs, at 390/834/1440, light and dark: 200, no redirect, right theme, no sideways scroll, no console or page errors, no failed requests. 42 combinations. |
 | `regressions.spec.ts` | One test per bug that already shipped once. |
 | `writes.spec.ts` | The forms that add things, each verified by going back and finding what it made. |
+| `deletes.spec.ts` | Removing things: each makes two, removes one, and checks the other survived. |
+| `authorization.spec.ts` | What row-level security refuses, asked of the database directly. |
 
 ## What is not covered, and why
 
@@ -46,8 +48,8 @@ gitignored, and it is a real session — treat it like a password.
   custom SMTP, which needs a domain.
 - **Google Calendar and Drive.** Both need OAuth credentials.
 - **Uploads.** Storage plus Drive; worth doing once the above exists.
-- **Most of the 128 server actions.** Adding is covered. Editing and deleting
-  are not, and that is where data loss lives — the obvious next block.
+- **Most of the 128 server actions.** Adding is covered, and two of the thirty
+  destructive ones are. Editing is not covered at all.
 
 ## Adding to it
 
