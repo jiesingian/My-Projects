@@ -34,32 +34,34 @@
 -- or a `T00:00:00` all-day marker used for calendar sync and not stored.
 -- routines.time_of_day is a `time`, not a timestamp, so it never moved.
 
--- Do not run this yet. Read this part first.
--- -------------------------------------------
--- This correction is only right once the server is actually in Asia/Manila,
--- and as of today it may well not be. instrumentation.ts sets the zone at
--- runtime, but next dev renders in a worker pool that can be forked before
--- register() runs, and the same page then gets served in UTC -- measured, not
--- guessed: identical requests came back in both zones on the same machine.
--- Whether the deployed app is in the same position has not been established.
+-- Checked, on 7 September, against the deployed app
+-- ------------------------------------------------
+-- This correction is only right if the server is actually in Asia/Manila,
+-- and that was an open question when the file was written: instrumentation.ts
+-- sets the zone at runtime, and next dev renders in a worker pool that can be
+-- forked before register() runs, so locally the same page came back in both
+-- zones on the same machine. While a server is in UTC these rows read as the
+-- times they were typed, everything looks correct, and shifting them by eight
+-- hours is what would break them.
 --
--- That matters here more than anywhere, because while the server is in UTC
--- these rows read as the times they were typed and everything looks correct.
--- Shifting them back eight hours would be the thing that breaks them.
+-- Production was then looked at directly, and it is in Manila. The five rows
+-- below read exactly as this file predicts they would -- two of them on the
+-- wrong day, not merely at the wrong time:
 --
--- So, in order:
+--     Study Math with Erynne       Tue 08 04:30   ->  Mon 07 20:30
+--     Study Language with Erynne   Wed 09 04:30   ->  Tue 08 20:30
+--     Erynne's Final Exam          Wed 09 20:30   ->  Wed 09 12:30
+--     Erynne's Final Exam          Thu 10 20:30   ->  Thu 10 12:30
+--     Diode                        Thu 10 22:00   ->  Thu 10 14:00
 --
---   1. Add TZ=Asia/Manila to the Vercel project's environment variables, for
---      every environment, and redeploy. That sets the zone in the process
---      itself rather than from inside the app, which is the only version of
---      this that cannot be raced.
---   2. Open the Planner and look at the five existing activities. If the fix
---      has taken hold they will now read eight hours late -- 20:30, 22:00,
---      and two at 04:30 the following morning.
---   3. Only if they do, run this. If they still read correctly, the server is
---      still in UTC and this file would introduce the very error it describes.
+-- So the premise holds and this is safe to run. The cutoff below is 08:27 UTC,
+-- fifty seconds before the deployment that moved the server; all five rows
+-- predate it and nothing has been written since, so nothing correct is
+-- touched.
 --
--- Step 2 is the check that makes step 3 safe. Do not skip it.
+-- Run the select on its own first anyway. It costs nothing, and it is the
+-- last chance to notice that one of those times is not the one the family
+-- remembers.
 
 begin;
 
