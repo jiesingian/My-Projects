@@ -8,8 +8,15 @@ import { getValidDriveAccessToken, ensureDriveFolderStructure, ensureNamedSubfol
  * - imports photos/videos someone dropped straight into Drive, so they
  *   show up in the app without having to be uploaded through it
  * Best effort throughout — gives up rather than guessing if Drive can't be
- * reached, and never touches rows for anything other than this family. */
-async function syncDriveJournalMedia(familyId: string, familyName: string): Promise<void> {
+ * reached, and never touches rows for anything other than this family.
+ *
+ * Scheduled by the Journal page with after(), not awaited by the reads below.
+ * It refreshes a token, resolves two folders and lists a whole Drive folder
+ * before a single photo could be shown — and because both reads used to call
+ * it, that happened twice on every load. The page now renders from the index
+ * it already has and Drive is reconciled behind the response, so a change made
+ * straight in Drive appears on the next visit rather than holding up this one. */
+export async function syncDriveJournalMedia(familyId: string, familyName: string): Promise<void> {
   const token = await getValidDriveAccessToken(familyId);
   if (!token) return;
 
@@ -61,8 +68,7 @@ async function syncDriveJournalMedia(familyId: string, familyName: string): Prom
   }
 }
 
-export async function getGallery(familyId: string, familyName: string) {
-  await syncDriveJournalMedia(familyId, familyName);
+export async function getGallery(familyId: string) {
   const supabase = await createClient();
   const { data } = await supabase
     .from("journal_media")
@@ -86,8 +92,7 @@ export async function getGallery(familyId: string, familyName: string) {
   }));
 }
 
-export async function getEntries(familyId: string, familyName: string) {
-  await syncDriveJournalMedia(familyId, familyName);
+export async function getEntries(familyId: string) {
   const supabase = await createClient();
   const { data } = await supabase
     .from("journal_entries")

@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { after } from "next/server";
 import { getCurrentMember } from "@/lib/session";
 import {
   getWeekAgenda,
@@ -53,7 +54,14 @@ export default async function PlannerPage({
   const remembered = sp.hide === undefined ? (await cookies()).get("kin_cal_hide")?.value : undefined;
   const hidden = parseHidden(sp.hide ?? remembered);
 
-  await syncGoogleCalendarIfStale(me.family_id, 5 * 60 * 1000);
+  // Deliberately not awaited. This is a full two-way reconcile with Google —
+  // every upcoming item pushed to each connected member's calendar, then each
+  // of those calendars pulled back — so awaiting it meant whoever happened to
+  // open the Planner after it went stale paid for the entire round of Google
+  // API calls before seeing a single day. after() runs it once the response is
+  // already on its way: the same five-minute rhythm, nobody waiting on it. It
+  // already swallows its own errors.
+  after(() => syncGoogleCalendarIfStale(me.family_id, 5 * 60 * 1000));
 
   const segments = SEGMENTS.map((s) => ({
     label: s[0].toUpperCase() + s.slice(1),

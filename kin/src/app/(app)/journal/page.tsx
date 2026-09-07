@@ -1,7 +1,8 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { after } from "next/server";
 import { getCurrentMember } from "@/lib/session";
-import { getGallery, getEntries, getMilestones } from "@/lib/queries/journal";
+import { getGallery, getEntries, getMilestones, syncDriveJournalMedia } from "@/lib/queries/journal";
 import { HubHeader } from "@/components/hub-header";
 import { Blueprint, Tag } from "@/components/ui";
 import { GalleryUpload } from "@/components/gallery-upload";
@@ -21,6 +22,16 @@ export default async function JournalPage({
   const sp = await searchParams;
   const seg: Seg = (SEGMENTS as readonly string[]).includes(sp.seg ?? "") ? (sp.seg as Seg) : "gallery";
 
+  // Reconcile the index against Drive both ways — still on every Journal load,
+  // still only for the two segments that show Drive files, but once rather than
+  // per pane and after the response has gone out. It refreshes a token and
+  // lists a whole folder before it can say anything, so awaiting it meant no
+  // photo appeared until Google had answered. A file added or deleted straight
+  // in Drive now shows up on the next visit instead of holding up this one.
+  if (seg === "gallery" || seg === "entries") {
+    after(() => syncDriveJournalMedia(me.family_id, me.families.name));
+  }
+
   const segments = SEGMENTS.map((s) => ({
     label: s[0].toUpperCase() + s.slice(1),
     href: `/journal?seg=${s}`,
@@ -31,16 +42,16 @@ export default async function JournalPage({
     <div>
       <HubHeader n="02" title="Journal" segments={segments} />
       <div style={{ padding: "0 22px 22px" }}>
-        {seg === "gallery" && <GalleryPane familyId={me.family_id} familyName={me.families.name} />}
-        {seg === "entries" && <EntriesPane familyId={me.family_id} familyName={me.families.name} />}
+        {seg === "gallery" && <GalleryPane familyId={me.family_id} />}
+        {seg === "entries" && <EntriesPane familyId={me.family_id} />}
         {seg === "milestones" && <MilestonesPane familyId={me.family_id} />}
       </div>
     </div>
   );
 }
 
-async function GalleryPane({ familyId, familyName }: { familyId: string; familyName: string }) {
-  const media = await getGallery(familyId, familyName);
+async function GalleryPane({ familyId }: { familyId: string }) {
+  const media = await getGallery(familyId);
   return (
     <>
       <GalleryUpload />
@@ -55,8 +66,8 @@ async function GalleryPane({ familyId, familyName }: { familyId: string; familyN
   );
 }
 
-async function EntriesPane({ familyId, familyName }: { familyId: string; familyName: string }) {
-  const entries = await getEntries(familyId, familyName);
+async function EntriesPane({ familyId }: { familyId: string }) {
+  const entries = await getEntries(familyId);
   return (
     <>
       {entries.length === 0 && <p style={{ fontSize: 13.5, color: "var(--color-neutral-600)", marginBottom: 16 }}>Nothing logged yet.</p>}
