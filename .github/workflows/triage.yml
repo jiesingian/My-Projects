@@ -120,7 +120,7 @@ jobs:
 
           This one waits for Jonathan. Nothing is wrong with it; it is just in territory where a mistake is expensive, so it gets read before it ships."
 
-      - name: Let it merge itself once CI is green
+      - name: Mark it as mergeable on green
         if: steps.triage.outputs.needs_review == 'false'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -129,35 +129,22 @@ jobs:
         run: |
           set -euo pipefail
 
+          # This step no longer merges anything. It only says the change is
+          # small and clear of the sensitive paths; automerge.yml does the
+          # merging, once CI has actually finished and passed.
+          #
+          # It used to call `gh pr merge --auto`, which twice put a pull
+          # request into main seconds after it opened, while CI was still
+          # running. "--auto" waits only when a branch rule requires a check,
+          # and this repository has no such rule: branch rulesets are a paid
+          # feature on private repositories, so making the repository private
+          # turned protection off without saying so. The guard added to catch
+          # that asked the rules API, got a 403 telling it to upgrade, and --
+          # because gh writes that error to stdout -- compared the JSON to a
+          # number, which is not false, so it merged anyway. A guard that
+          # fails open is worse than no guard.
+          #
+          # So nothing here asks what the plan allows. automerge.yml asks the
+          # only question that matters and that every plan can answer: did the
+          # checks finish, and did they pass.
           gh pr edit "$PR" --repo "$REPO" --add-label "auto-merge" --remove-label "needs-jonathan" || true
-
-          # "--auto" only means "wait" if there is something to wait for.
-          #
-          # On 7 September this merged a pull request into main eight seconds
-          # after CI started, and CI finished fifty-four seconds after the
-          # merge. Nothing was broken: auto-merge was enabled, the classifier
-          # was right that the change was small, and gh did exactly what it was
-          # asked. There were simply no required status checks on main, so
-          # GitHub considered the pull request mergeable the moment it opened
-          # and auto-merge fired at once.
-          #
-          # So the branch rules are the gate, and this step is only allowed to
-          # arm it. If main does not require a check, there is no gate, and
-          # merging unseen is the one thing this file exists to prevent.
-          GATED=$(gh api "repos/$REPO/rules/branches/main" \
-                    --jq '[.[] | select(.type == "required_status_checks")] | length' 2>/dev/null || echo 0)
-
-          if [ "${GATED:-0}" -eq 0 ]; then
-            gh pr edit "$PR" --repo "$REPO" --add-label "needs-jonathan" --remove-label "auto-merge" || true
-            gh pr comment "$PR" --repo "$REPO" --body \
-              "**Held — main has no required status checks.**
-
-          This change is small and stays clear of auth, data rules and billing, so it would normally merge on its own once CI passed. It is being held anyway, because there is nothing on \`main\` for auto-merge to wait for: arming it now would merge this immediately, green or red.
-
-          Add a ruleset on \`main\` requiring **CI** and **Secret Scan**, and this goes back to merging itself. Until then small changes wait too."
-            exit 0
-          fi
-
-          gh pr merge "$PR" --repo "$REPO" --auto --squash || \
-            gh pr comment "$PR" --repo "$REPO" --body \
-              "This change is small and stays clear of auth, data rules and billing, so it is set to merge on its own once CI passes. (If it did not arm, auto-merge may not be enabled on the repo yet.)"
