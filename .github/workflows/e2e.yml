@@ -95,11 +95,20 @@ jobs:
           npm run start &
           npx wait-on http://localhost:3000/login --timeout 120000
 
+      # The Supabase values belong here as well as on the build. Locally
+      # playwright.config.ts reads them out of .env.local, so the specs that
+      # talk to PostgREST directly -- every row-level-security guarantee, every
+      # household preference, and the stored-instant assertion -- always had
+      # them. CI has no .env.local, so those twelve tests called test.skip()
+      # and the run went green having checked none of them. A suite that
+      # quietly tests less in CI than on a laptop is worse than one that fails.
       - name: Run the suite
         env:
           E2E_EMAIL: ${{ secrets.E2E_EMAIL }}
           E2E_PASSWORD: ${{ secrets.E2E_PASSWORD }}
           E2E_BASE_URL: ${{ inputs.base_url }}
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
         run: npm run e2e
 
       - uses: actions/upload-artifact@v4

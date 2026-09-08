@@ -185,18 +185,25 @@ test.describe("changing things", () => {
 async function removeRunRoutines() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-  if (!url || !key) return;
+  // Refuse rather than shrug. This used to `return` quietly when the values
+  // were absent, which is what happened in CI -- so the booking below was
+  // never cleared, the next run collided with it, and the failure looked like
+  // the application. A test that cannot clean up after itself must not run at
+  // all; it will only poison the next one.
+  test.skip(!url || !key, "Supabase values are not set, so this cannot clear its own bookings.");
   const api = await playwrightRequest.newContext();
   const auth = await api.post(`${url}/auth/v1/token?grant_type=password`, {
-    headers: { apikey: key, "Content-Type": "application/json" },
+    headers: { apikey: key!, "Content-Type": "application/json" },
     data: { email: process.env.E2E_EMAIL, password: process.env.E2E_PASSWORD },
   });
-  if (auth.ok()) {
-    const token = (await auth.json()).access_token;
-    await api.delete(`${url}/rest/v1/routines?title=like.E2E-EDIT-*`, {
-      headers: { apikey: key, Authorization: `Bearer ${token}` },
-    });
-  }
+  expect(auth.ok(), "could not sign in to clear this run's bookings").toBeTruthy();
+  const token = (await auth.json()).access_token;
+  const del = await api.delete(`${url}/rest/v1/routines?title=like.E2E-EDIT-*`, {
+    headers: { apikey: key!, Authorization: `Bearer ${token}` },
+  });
+  // A failed delete is the thing that poisons the next run, so it fails now
+  // rather than an hour later in somebody else's test.
+  expect(del.status(), "could not clear this run's bookings").toBeLessThan(300);
   await api.dispose();
 }
 
