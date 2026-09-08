@@ -1,7 +1,39 @@
-# machine-specific graphify Claude Code hook (regenerate per-machine with `graphify claude install`)
-.claude/settings.json
+# Machine-specific overrides only. .claude/settings.json IS committed now: it
+# registers the session-start hook, which is what gets a fresh web container
+# to the point where it can lint, typecheck, build and run the suite. It was
+# ignored on the assumption graphify would generate a machine-specific one --
+# it does not; `graphify claude install` had written nothing but that same
+# hook registration. Anything genuinely per-machine goes in settings.local.json.
+.claude/settings.local.json
 
 # machine-local graphify pointers and auto-backups (regenerated on any machine)
 graphify-out/.graphify_python
 graphify-out/.graphify_root
 graphify-out/20*/
+
+# Graph artefacts that regenerate themselves.
+#
+# .github/workflows/graphify-deploy.yml rebuilds every project's graph from
+# source on each push to main and republishes the HTML to Pages, and
+# `graphify update` rebuilds it locally. Committing the output as well made
+# the diffs unreadable -- 101,531 lines added and 45,119 deleted across nine
+# commits, in files no human opens -- and dirtied the working tree merely by
+# running a query.
+#
+# The semantic layer is deliberately NOT ignored: .graphify_labels.json,
+# cache/semantic/ and cost.json are the output of an LLM pass that cost real
+# money, and CI's --code-only rebuild cannot recreate them.
+graphify-out/graph.json
+graphify-out/graph.html
+graphify-out/GRAPH_REPORT.md
+graphify-out/manifest.json
+graphify-out/cache/stat-index.json
+graphify-out/cache/last_query_stamp
+graphify-out/cache/ast/
+*/graphify-out/graph.json
+*/graphify-out/graph.html
+*/graphify-out/GRAPH_REPORT.md
+*/graphify-out/manifest.json
+*/graphify-out/cache/stat-index.json
+*/graphify-out/cache/last_query_stamp
+*/graphify-out/cache/ast/

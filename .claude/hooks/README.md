@@ -12,33 +12,20 @@ the committed graph cache. It does nothing at all outside a remote session.
 
 ## Registering it
 
-`.claude/settings.json` is **gitignored in this repo on purpose** — graphify
-generates a machine-specific one (`graphify claude install`), so a committed
-version would fight it. That means this hook is not wired up automatically.
+Already registered. `.claude/settings.json` is committed and points
+`SessionStart` at this script, so every fresh container runs it without anyone
+remembering to.
 
-To turn it on, merge this into your `.claude/settings.json`:
+It used to be gitignored, on the belief that graphify generated a
+machine-specific one that a committed version would fight. That turned out not
+to be true — the file `graphify claude install` leaves behind contains nothing
+but this same hook registration — and the cost of the belief was real: a fresh
+container had no hook at all, so each new session re-did `npm install`,
+rebuilt `.env.local` by hand, and in one case had to reset the QA account's
+password because the old one died with the container.
 
-```json
-{
-  "hooks": {
-    "SessionStart": [
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "$CLAUDE_PROJECT_DIR/.claude/hooks/session-start.sh"
-          }
-        ]
-      }
-    ]
-  }
-}
-```
-
-If you would rather this were automatic for every session and every machine,
-drop `.claude/settings.json` from `.gitignore` and commit it — but check first
-what `graphify claude install` wants to put there, so the two do not overwrite
-each other.
+Anything genuinely specific to one machine belongs in
+`.claude/settings.local.json`, which is still ignored.
 
 ## Keeping it honest
 

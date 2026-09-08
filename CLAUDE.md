@@ -56,11 +56,30 @@ rather than finding out from the robot.
 
 ## graphify
 
-This is a monorepo. Each project folder (e.g. `kin/`) has its own knowledge graph at `<project>/graphify-out/` — god nodes, community structure, cross-file relationships. `graphify-out/graph.json` at this root is an *aggregate* of every project's graph, rebuilt automatically by `.github/workflows/graphify-deploy.yml` on every push (via `graphify merge-graphs`) — don't hand-edit it.
+This is a monorepo. Each project folder (e.g. `kin/`) has its own knowledge
+graph at `<project>/graphify-out/`, and `graphify-out/graph.json` at this root
+is an aggregate of all of them, rebuilt by
+`.github/workflows/graphify-deploy.yml` on every push to main and published to
+Pages.
 
-Rules:
-- For questions scoped to one project, `cd` into it first and run `graphify query "<question>"` against `<project>/graphify-out/graph.json`. Use `graphify path "<A>" "<B>"` and `graphify explain "<concept>"` the same way.
-- For cross-project questions (shared patterns, duplicated logic across projects), query the root `graphify-out/graph.json` instead.
-- Read a project's `GRAPH_REPORT.md` only for broad architecture review or when query/path/explain don't surface enough context.
-- After modifying code in a project, run `graphify update <project>` there to keep its graph current (AST-only, no API cost). The root aggregate refreshes itself in CI on push — no manual step needed.
-- Adding a new project folder needs no setup here: the CI workflow auto-discovers any top-level folder with a `package.json`/`pyproject.toml`/`go.mod`/`Cargo.toml`/`requirements.txt` and builds its graph on the next push.
+**The generated graphs are no longer committed.** They rebuild from source, and
+committing them added 101,531 lines and removed 45,119 across nine commits, in
+files nobody opens — which made every real diff unreadable. What *is* committed
+is the semantic layer (`.graphify_labels.json`, `cache/semantic/`): that came
+from a paid LLM pass, and CI's `--code-only` rebuild cannot recreate it. A
+fresh clone gets its graph from the session hook, which builds it for free.
+
+When to reach for it, measured rather than assumed:
+
+- **Relationship and breadth questions**, where the answer is a shape rather
+  than a location: what transitively reaches a module, which parts a change
+  would touch, what a concept spans. `cd` into the project and run
+  `graphify query`, `graphify path`, or `graphify explain`; use the root graph
+  for genuinely cross-project questions.
+- **Not for finding a known symbol.** On `kin/`, "how does authentication
+  work" returned 11 nodes all sourced from README.md, naming no code, for ~620
+  tokens; `grep -rl` gave the 16 exact files for ~110. Grep wins until a
+  codebase is large enough that its hits stop being triageable.
+- After modifying code, run `graphify update <project>` there. It writes only
+  ignored files, so it will not dirty the tree.
+- Never run `graphify label` — a paid LLM pass, and Jonathan's decision.

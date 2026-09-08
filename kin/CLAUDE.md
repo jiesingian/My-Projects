@@ -2,10 +2,27 @@
 
 ## graphify
 
-This project has a knowledge graph at graphify-out/ with god nodes, community structure, and cross-file relationships.
+This project has a knowledge graph at `graphify-out/`. `graph.json` is **not
+committed** — it regenerates from source, and its diffs buried every real
+change — so the session hook builds it on a fresh clone, and CI rebuilds and
+publishes it on every push to main. The semantic layer that a paid LLM pass
+produced (`.graphify_labels.json`, `cache/semantic/`) *is* committed, because
+nothing can recreate it for free.
 
-Rules:
-- For codebase questions, first run `graphify query "<question>"` when graphify-out/graph.json exists. Use `graphify path "<A>" "<B>"` for relationships and `graphify explain "<concept>"` for focused concepts. These return a scoped subgraph, usually much smaller than GRAPH_REPORT.md or raw grep output.
-- If graphify-out/wiki/index.md exists, use it for broad navigation instead of raw source browsing.
-- Read graphify-out/GRAPH_REPORT.md only for broad architecture review or when query/path/explain do not surface enough context.
-- After modifying code, run `graphify update .` to keep the graph current (AST-only, no API cost).
+Use it for what it is actually good at, which was measured on this codebase
+rather than assumed:
+
+- **Relationship and breadth questions** — what reaches the billing code, which
+  hubs a change would touch, what a concept spans. `graphify query "<question>"`,
+  `graphify path "<A>" "<B>"`, `graphify explain "<concept>"`.
+- **Not for locating a known symbol.** Asked where authentication lives, a
+  query returned 11 nodes, every one of them from README.md, naming no source
+  file, for ~620 tokens. `grep -rl` answered the same question exactly, in 16
+  file paths, for ~110. At 183 files this codebase is small enough that grep
+  wins on both cost and precision; reach for the graph when grep returns more
+  hits than you can triage, not before.
+- Read `GRAPH_REPORT.md` only for a broad architecture review.
+- After modifying code, run `graphify update .` to keep the graph current
+  (AST-only, no API cost). It writes only ignored files now, so it will not
+  dirty the tree.
+- Never run `graphify label`. It is a paid LLM pass and Jonathan's call.
