@@ -1,4 +1,18 @@
--- PROPOSED. NOT APPLIED. Jonathan runs this one.
+-- APPLIED 8 September 2026 by Jonathan. Kept for the record.
+--
+-- Verified immediately afterwards, all three halves:
+--   the escalation is refused    -- HTTP 400, "not allowed to change
+--                                   privileges on a managed profile"
+--   ordinary edits still work    -- a parent set a managed child's blood type
+--   graduation still works       -- the same role change WITH kin.privileged,
+--                                   which is what attach_login_to_child sets,
+--                                   is still allowed
+--
+-- That third check is the one that mattered: this guard sits directly across
+-- attach_login_to_child, and had the escape hatch stopped working, "graduate
+-- at 13" would have broken silently and shown up the first time it was used.
+--
+-- e2e/authorization.spec.ts came off fixme in the same change.
 --
 -- Security fix: a parent can mint an organiser
 -- ===========================================

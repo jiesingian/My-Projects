@@ -121,13 +121,8 @@ test.describe("what row-level security refuses", () => {
 
   /** A managed child's privileges are not a parent's to hand out.
    *
-   * PENDING, deliberately, and not a failing test: the fix is a trigger
-   * change, which is a migration, which is Jonathan's alone to run. It is
-   * written and waiting in
-   * migrations/2026-09-08-guard-managed-child-privileges.sql. Marked fixme so
-   * it shows up in every run as outstanding rather than quietly passing or
-   * quietly failing; remove the fixme in the same change that applies the
-   * migration.
+   * Applied 8 September, and this came off fixme in the same change, as the
+   * migration file said it should.
    *
    * What it holds: members_guard_self_update opens with
    * `auth.uid() = old.auth_user_id`, and a managed child has no login, so
@@ -138,7 +133,7 @@ test.describe("what row-level security refuses", () => {
    * child and then give that child a login they control -- parent becomes
    * organiser. Reproduced against this household on 8 September and
    * reverted. */
-  test.fixme("a managed child cannot be handed privileges", async () => {
+  test("a managed child cannot be handed privileges", async () => {
     const api = await playwrightRequest.newContext();
     const res = await api.get(`${SUPABASE_URL}/rest/v1/members?select=id&auth_user_id=is.null&status=eq.managed&limit=1`, {
       headers: { apikey: SUPABASE_KEY!, Authorization: `Bearer ${token}` },
