@@ -139,7 +139,7 @@ export function AddBillForm() {
   );
 }
 
-export function SetBudgetControl({ familyId, month, year, current }: { familyId: string; month: number; year: number; current: number }) {
+export function SetBudgetControl({ month, year, current }: { month: number; year: number; current: number }) {
   const [value, setValue] = useState(current);
   const [pending, startTransition] = useTransition();
   const [failed, setFailed] = useState<string | null>(null);
@@ -153,7 +153,7 @@ export function SetBudgetControl({ familyId, month, year, current }: { familyId:
         style={{ minHeight: 40, fontSize: 13.5, whiteSpace: "nowrap" }}
         onClick={() =>
           startTransition(async () => {
-            const { error } = await setJointBudgetAction(familyId, month, year, value);
+            const { error } = await setJointBudgetAction(month, year, value);
             setFailed(error);
           })
         }
@@ -171,7 +171,7 @@ export function SetBudgetControl({ familyId, month, year, current }: { familyId:
   );
 }
 
-export function SetTargetControl({ memberId, familyId, month, year, current }: { memberId: string; familyId: string; month: number; year: number; current: number }) {
+export function SetTargetControl({ month, year, current }: { month: number; year: number; current: number }) {
   const [value, setValue] = useState(current);
   const [pending, startTransition] = useTransition();
   const [failed, setFailed] = useState<string | null>(null);
@@ -185,7 +185,7 @@ export function SetTargetControl({ memberId, familyId, month, year, current }: {
         style={{ minHeight: 40, fontSize: 13.5, whiteSpace: "nowrap" }}
         onClick={() =>
           startTransition(async () => {
-            const { error } = await setWealthTargetAction(memberId, familyId, month, year, value);
+            const { error } = await setWealthTargetAction(month, year, value);
             setFailed(error);
           })
         }

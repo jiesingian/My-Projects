@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { requireCurrentMember } from "@/lib/session";
+import { requireCurrentMember, getCurrentMember } from "@/lib/session";
 import {
   getValidCalendarAccessToken,
   createCalendarEvent,
@@ -328,6 +328,18 @@ async function pullMemberCalendar(supabase: Db, familyId: string, memberId: stri
  * slightly stale data until the next view or a manual sync. */
 export async function syncGoogleCalendarIfStale(familyId: string, maxAgeMs: number): Promise<void> {
   try {
+    // This reads through the admin client, which does not have row-level
+    // security to fall back on, and the household arrives as an argument. It
+    // leaks little -- whether a household has a connected calendar, and how
+    // stale -- and you would have to guess a UUID to ask. But it is exported
+    // from a "use server" module, which makes it an endpoint, and an endpoint
+    // that reads with the service key should not take whose data on trust.
+    //
+    // syncGoogleCalendarAction below already requires a session, so this check
+    // cannot make the call any less able to run than it already was.
+    const me = await getCurrentMember();
+    if (!me || me.family_id !== familyId) return;
+
     const admin = createAdminClient();
     if (!admin) return;
     const { data: links } = await admin.from("calendar_links").select("connected, last_synced_at").eq("family_id", familyId).eq("connected", true);

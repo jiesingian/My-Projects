@@ -159,6 +159,63 @@ test.describe("what row-level security refuses", () => {
     await api.dispose();
   });
 
+  /** A revenue target belongs to the person it is for.
+   *
+   * wealth_targets is private to read -- its SELECT policy names
+   * member_id = current_member_id() -- and was open to write: both the INSERT
+   * and UPDATE policies checked only the household. So anyone could set, and
+   * silently overwrite, anyone else's target, and could not then see what
+   * they had done.
+   *
+   * The page renders the control only for your own pane, with the comment
+   * "Only your own target is yours to set." That is the right rule stated in
+   * the one layer that cannot enforce it.
+   *
+   * Reproduced against this household on 8 September: HTTP 201, row confirmed
+   * as the other member's, then removed.
+   *
+   * NOTE: no `Prefer: return=representation` below. With it, the SELECT policy
+   * refuses to hand back somebody else's row and the write reports an error it
+   * did not have -- which is how the first probe of this nearly passed. */
+  test.fixme("nobody may set another member's revenue target", async () => {
+    const api = await playwrightRequest.newContext();
+    const others = await api.get(`${SUPABASE_URL}/rest/v1/members?select=id&id=neq.${me.id}&limit=1`, {
+      headers: { apikey: SUPABASE_KEY!, Authorization: `Bearer ${token}` },
+    });
+    const [other] = await others.json();
+    expect(other, "the throwaway household has nobody else to test against").toBeTruthy();
+
+    const res = await api.post(`${SUPABASE_URL}/rest/v1/wealth_targets`, {
+      headers: { apikey: SUPABASE_KEY!, Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+      data: { member_id: other.id, family_id: me.family_id, period_month: 9, period_year: 2031, target_amount: 999999 },
+    });
+    expect(res.status(), "another member's revenue target was writable").toBeGreaterThanOrEqual(400);
+    await api.dispose();
+  });
+
+  /** The other half, and the one that catches a policy tightened into
+   * uselessness: a policy that refuses everything also passes the test above. */
+  test("your own revenue target is still yours to set", async () => {
+    const api = await playwrightRequest.newContext();
+    const res = await api.post(`${SUPABASE_URL}/rest/v1/wealth_targets`, {
+      headers: {
+        apikey: SUPABASE_KEY!,
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+        Prefer: "resolution=merge-duplicates",
+      },
+      data: { member_id: me.id, family_id: me.family_id, period_month: 9, period_year: 2031, target_amount: 4242 },
+    });
+    expect(res.ok(), `could not set my own target: ${await res.text()}`).toBeTruthy();
+
+    const cleanup = await api.delete(
+      `${SUPABASE_URL}/rest/v1/wealth_targets?member_id=eq.${me.id}&period_year=eq.2031&period_month=eq.9`,
+      { headers: { apikey: SUPABASE_KEY!, Authorization: `Bearer ${token}` } },
+    );
+    expect(cleanup.ok(), "left a test target behind").toBeTruthy();
+    await api.dispose();
+  });
+
   /** The tokens behind Google Drive and Calendar are deliberately invisible to
    * the signed-in roles -- only the server's own key may read them. */
   test("connected-account tokens are not readable", async () => {

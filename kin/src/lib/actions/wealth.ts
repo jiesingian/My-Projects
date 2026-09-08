@@ -481,10 +481,14 @@ export async function deleteBillAction(billId: string): Promise<ActionState> {
 
 /* ---------------------------------------------------------- budget & goals */
 
-export async function setJointBudgetAction(familyId: string, month: number, year: number, amount: number): Promise<ActionState> {
+export async function setJointBudgetAction(month: number, year: number, amount: number): Promise<ActionState> {
+  // The household comes from the session. As an argument it was merely
+  // redundant -- RLS scopes budget_periods to the family either way -- but
+  // an argument nobody needs is an argument nobody checks.
+  const me = await requireCurrentMember();
   const supabase = await createClient();
   const { error } = await supabase.from("budget_periods").upsert(
-    { family_id: familyId, period_month: month, period_year: year, budget_amount: amount },
+    { family_id: me.family_id, period_month: month, period_year: year, budget_amount: amount },
     { onConflict: "family_id,period_month,period_year" },
   );
   if (error) return { error: error.message };
@@ -492,10 +496,23 @@ export async function setJointBudgetAction(familyId: string, month: number, year
   return { error: null };
 }
 
-export async function setWealthTargetAction(memberId: string, familyId: string, month: number, year: number, amount: number): Promise<ActionState> {
+/** Your own revenue target, and only ever your own.
+ *
+ * Both ids used to arrive from the browser. The page guards it -- the control
+ * is rendered only when the pane being viewed is your own -- but that guard
+ * lives in the one place an attacker does not have to visit, and the row-level
+ * policy on wealth_targets checks the family and not the member. So a member
+ * could set, and silently overwrite, anybody else's target in the household,
+ * while the SELECT policy meant they could not even see what they had done.
+ * Confirmed against the throwaway household on 8 September: HTTP 201.
+ *
+ * The migration alongside this makes the database say so too; taking the ids
+ * from the session is the half that does not need anybody to run anything. */
+export async function setWealthTargetAction(month: number, year: number, amount: number): Promise<ActionState> {
+  const me = await requireCurrentMember();
   const supabase = await createClient();
   const { error } = await supabase.from("wealth_targets").upsert(
-    { member_id: memberId, family_id: familyId, period_month: month, period_year: year, target_amount: amount },
+    { member_id: me.id, family_id: me.family_id, period_month: month, period_year: year, target_amount: amount },
     { onConflict: "member_id,period_month,period_year" },
   );
   if (error) return { error: error.message };

@@ -85,14 +85,20 @@ export async function createHealthEntryAction(_prev: ActionState, formData: Form
   redirect(`/family/members/${memberId}?view=health`);
 }
 
-export async function toggleOmronAction(memberId: string, familyId: string, connected: boolean) {
+/** The member stays an argument -- a parent linking a child's monitor is the
+ * ordinary case -- but the household comes from the session, so a link cannot
+ * be filed against somebody else's. */
+export async function toggleOmronAction(memberId: string, connected: boolean): Promise<ActionState> {
+  const me = await requireCurrentMember();
   const supabase = await createClient();
-  await supabase.from("omron_links").upsert({
+  const { error } = await supabase.from("omron_links").upsert({
     member_id: memberId,
-    family_id: familyId,
+    family_id: me.family_id,
     connected,
     last_synced_at: connected ? new Date().toISOString() : null,
     updated_at: new Date().toISOString(),
   });
+  if (error) return { error: error.message };
   revalidatePath(`/family/members/${memberId}`);
+  return { error: null };
 }

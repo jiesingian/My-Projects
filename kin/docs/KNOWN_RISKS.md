@@ -134,6 +134,51 @@ Empty is correct.
 
 ---
 
+## wealth_targets is still writable by the household — until the migration runs
+
+**Confirmed bug, half fixed.** `wealth_targets` is private to read
+(`member_id = current_member_id()`) and open to write (both write policies
+check only the family). Any member could set or overwrite any other member's
+revenue target, and could not then see what they had done.
+
+Reproduced 8 September against the throwaway household: `POST` of another
+member's target returned **201**. Row confirmed as theirs, then removed. The
+Singian household was never touched.
+
+**Done:** `setWealthTargetAction` now takes the member and the household from
+the session rather than from its arguments, so the app cannot be used to do
+it. `setJointBudgetAction` and `toggleOmronAction` were given the same
+treatment for the same reason.
+
+**Still open:** the policies themselves.
+`migrations/2026-09-08-a-target-is-your-own.sql` is written and *not applied*.
+Until it runs, anyone in a household can still do this by talking to PostgREST
+directly — the anon key is public by design, so the app-layer fix is a closed
+door beside an open window. `e2e/authorization.spec.ts` carries the check as
+`fixme`; take it off when the migration lands.
+
+**A note worth keeping.** The first probe of this returned 403 and nearly had
+it recorded as safe. That request carried `Prefer: return=representation`, and
+the SELECT policy refuses to hand back another member's row — so the insert
+had succeeded and the *read-back* failed, with an error naming the insert. A
+refusal on a write that asks for its row back may be the read being refused.
+
+---
+
+## Another member's target always reads as zero
+
+Noticed while fixing the above, not fixed. The Wealth hub renders
+`${whosePossessive} target this month` when viewing someone else's pane, but
+`getWealthPane` reads `wealth_targets` through the RLS client and the SELECT
+policy restricts it to your own row — so the meter shows 0 for everyone else,
+labelled as though it were their real figure.
+
+Harmless and long-standing, and the honest options differ: either stop
+claiming to show it, or decide targets are household-visible and widen the
+SELECT policy. That is a product decision, not a bug fix.
+
+---
+
 ## The Google Calendar paths have no end-to-end coverage
 
 `syncRowToCalendars`, the pull-back reconcile, and `google-calendar.ts` are

@@ -241,7 +241,7 @@ export default async function MemberDetailPage({
                     ? `Last sync ${omron.last_synced_at ? new Date(omron.last_synced_at).toLocaleString() : "just now"}. Readings arrive automatically.`
                     : "Link the Omron Connect app to pull blood pressure and weight readings straight into this record."}
                 </div>
-                <OmronToggle memberId={member.id} familyId={me.family_id} connected={!!omron?.connected} />
+                <OmronToggle memberId={member.id} connected={!!omron?.connected} />
               </Blueprint>
 
               <BarChart title={isChild ? "LENGTH HISTORY" : "BLOOD PRESSURE HISTORY"} series={topSeries} unit={isChild ? "cm" : "mmHg"} />
