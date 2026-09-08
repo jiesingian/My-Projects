@@ -26,7 +26,7 @@ const baseURL = process.env.E2E_BASE_URL?.trim() || "http://localhost:3000";
  * agent sandbox this suite was written in is one. When a Chromium is sitting
  * there, use it; otherwise let Playwright manage its own, which is what a
  * laptop will do. */
-const preinstalled = process.env.PLAYWRIGHT_CHROMIUM_PATH ?? "/opt/pw-browsers/chromium";
+const preinstalled = process.env.PLAYWRIGHT_CHROMIUM_PATH?.trim() || "/opt/pw-browsers/chromium";
 const executablePath = fs.existsSync(preinstalled) ? preinstalled : undefined;
 
 export default defineConfig({

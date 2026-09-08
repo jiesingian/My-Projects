@@ -38,5 +38,11 @@ export function register() {
   // depending on nothing the code can see. Setting the variable in the shell
   // means every worker inherits it, whenever it starts. On Vercel there is no
   // pool and no shell, which is what this line is for.
-  process.env.TZ = process.env.KIN_TZ ?? FAMILY_TZ;
+  // `||`, not `??`, and trimmed. An env var set to the empty string is a
+  // thing deployments do -- Vercel will happily save one -- and `??` keeps it,
+  // because "" is not nullish. Node does not then fall back to UTC either: it
+  // reports Etc/Unknown, an invalid zone, and every date in the app is
+  // formatted in nothing at all. Measured, not assumed. This is the same
+  // mistake that made the first CI run of the suite fail, one file over.
+  process.env.TZ = process.env.KIN_TZ?.trim() || FAMILY_TZ;
 }
