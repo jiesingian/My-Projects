@@ -1,12 +1,22 @@
--- APPLIED 8 September 2026 by Jonathan -- the insert and update halves.
--- The delete policy at the foot was MISSED on the first pass and is a
--- SECOND RUN. See "What this first version left open".
+-- APPLIED IN FULL, 8 September 2026 by Jonathan, in two runs. The delete
+-- policy at the foot was MISSED on the first pass -- see "What this first
+-- version left open", which is kept rather than tidied away.
 --
--- Verified after the first run by re-running the reproduction below:
---   another member's target  ->  403  (was 201)
---   my own target            ->  201  (still works)
--- Both directions, because a policy tightened into uselessness passes the
--- first check on its own.
+-- Verified after each run by re-running the reproduction, both directions,
+-- because a policy tightened into uselessness passes the refusal check on its
+-- own:
+--
+--   write   another member's target  ->  403  (was 201)
+--           my own target            ->  201  (still works)
+--
+--   delete  seeded Alex Tester's 2031 target as 777777, service key
+--           delete it as Quinn       ->  200, rows removed: 0
+--           the row afterwards       ->  still 777777
+--           delete my own (control)  ->  200, rows removed: 1
+--
+-- The delete check needed the service key to seed a row the suite cannot
+-- create -- one member may no longer write or read another's, which is the
+-- point. e2e/authorization.spec.ts carries the canary and says so.
 --
 -- Security fix: anyone in the household can set anyone else's revenue target
 -- ========================================================================

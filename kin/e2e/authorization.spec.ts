@@ -195,10 +195,27 @@ test.describe("what row-level security refuses", () => {
 
   /** Same rule, the other verb. The first pass at this tightened INSERT and
    * UPDATE and left DELETE on the family-only predicate, so nobody could
-   * overwrite your target but anyone could still remove it. The app never
-   * deletes a target -- it only ever upserts and selects -- so nothing
-   * legitimate needs this. */
-  test.fixme("nobody may delete another member's revenue target", async () => {
+   * overwrite your target but anyone could still remove it.
+   *
+   * WHAT THIS TEST DOES NOT PROVE. It asserts that deleting by another
+   * member's id removes nothing -- which is also true when that member simply
+   * has no target, and this suite cannot create one for them, because the very
+   * policies under test now (correctly) refuse to let one member write or read
+   * another's row. From an ordinary session the precondition is unreachable.
+   *
+   * So the real check was done by hand on 8 September, with the service key
+   * seeding the row the suite cannot:
+   *
+   *   seeded Alex Tester's 2031 target as 777777 (service key)
+   *   DELETE it as Quinn Tester  ->  200, rows removed: 0
+   *   the row afterwards         ->  still 777777
+   *   DELETE my own (control)    ->  200, rows removed: 1
+   *
+   * What this keeps is a canary: if someone later widens the SELECT policy so
+   * targets become household-visible, this starts actually exercising the
+   * delete path, and it should still pass. Treat it as intent recorded, not as
+   * the proof -- the proof is the four lines above. */
+  test("nobody may delete another member's revenue target", async () => {
     const api = await playwrightRequest.newContext();
     const others = await api.get(`${SUPABASE_URL}/rest/v1/members?select=id&id=neq.${me.id}&limit=1`, {
       headers: { apikey: SUPABASE_KEY!, Authorization: `Bearer ${token}` },
@@ -206,9 +223,6 @@ test.describe("what row-level security refuses", () => {
     const [other] = await others.json();
     expect(other, "the throwaway household has nobody else to test against").toBeTruthy();
 
-    // Seeded with the service key would be truer, but a member cannot write
-    // another's row any more -- so assert on what a delete is allowed to
-    // reach: nothing outside your own rows.
     const res = await api.delete(`${SUPABASE_URL}/rest/v1/wealth_targets?member_id=eq.${other.id}`, {
       headers: { apikey: SUPABASE_KEY!, Authorization: `Bearer ${token}`, Prefer: "return=representation" },
     });
