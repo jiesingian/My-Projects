@@ -1,5 +1,12 @@
--- NOT YET APPLIED. Jonathan runs this; nothing here has been run against the
--- database.
+-- APPLIED 8 September 2026 by Jonathan -- the insert and update halves.
+-- The delete policy at the foot was MISSED on the first pass and is a
+-- SECOND RUN. See "What this first version left open".
+--
+-- Verified after the first run by re-running the reproduction below:
+--   another member's target  ->  403  (was 201)
+--   my own target            ->  201  (still works)
+-- Both directions, because a policy tightened into uselessness passes the
+-- first check on its own.
 --
 -- Security fix: anyone in the household can set anyone else's revenue target
 -- ========================================================================
@@ -93,6 +100,32 @@ create policy wealth_targets_update on public.wealth_targets
   for update
   using       (family_id = current_family_id() and member_id = current_member_id())
   with check  (family_id = current_family_id() and member_id = current_member_id());
+
+commit;
+
+
+-- What this first version left open
+-- =================================
+-- The four policies on this table were read, three were considered, and
+-- DELETE was not. It kept the family-only predicate:
+--
+--   DELETE  family_id = current_family_id()
+--
+-- So after the change above, nobody could overwrite another member's target
+-- and anyone could still remove it -- the same rule broken with a different
+-- verb, which is exactly the kind of gap that survives a fix because the fix
+-- looks like it covered the area.
+--
+-- Caught when the policy list was read back to confirm the first run. Nothing
+-- in the application deletes a target: src/lib/actions/wealth.ts only upserts
+-- and src/lib/queries/wealth.ts only selects, so nothing legitimate needs it.
+
+begin;
+
+drop policy if exists wealth_targets_delete on public.wealth_targets;
+create policy wealth_targets_delete on public.wealth_targets
+  for delete
+  using (family_id = current_family_id() and member_id = current_member_id());
 
 commit;
 

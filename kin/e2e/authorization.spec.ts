@@ -177,7 +177,7 @@ test.describe("what row-level security refuses", () => {
    * NOTE: no `Prefer: return=representation` below. With it, the SELECT policy
    * refuses to hand back somebody else's row and the write reports an error it
    * did not have -- which is how the first probe of this nearly passed. */
-  test.fixme("nobody may set another member's revenue target", async () => {
+  test("nobody may set another member's revenue target", async () => {
     const api = await playwrightRequest.newContext();
     const others = await api.get(`${SUPABASE_URL}/rest/v1/members?select=id&id=neq.${me.id}&limit=1`, {
       headers: { apikey: SUPABASE_KEY!, Authorization: `Bearer ${token}` },
@@ -190,6 +190,30 @@ test.describe("what row-level security refuses", () => {
       data: { member_id: other.id, family_id: me.family_id, period_month: 9, period_year: 2031, target_amount: 999999 },
     });
     expect(res.status(), "another member's revenue target was writable").toBeGreaterThanOrEqual(400);
+    await api.dispose();
+  });
+
+  /** Same rule, the other verb. The first pass at this tightened INSERT and
+   * UPDATE and left DELETE on the family-only predicate, so nobody could
+   * overwrite your target but anyone could still remove it. The app never
+   * deletes a target -- it only ever upserts and selects -- so nothing
+   * legitimate needs this. */
+  test.fixme("nobody may delete another member's revenue target", async () => {
+    const api = await playwrightRequest.newContext();
+    const others = await api.get(`${SUPABASE_URL}/rest/v1/members?select=id&id=neq.${me.id}&limit=1`, {
+      headers: { apikey: SUPABASE_KEY!, Authorization: `Bearer ${token}` },
+    });
+    const [other] = await others.json();
+    expect(other, "the throwaway household has nobody else to test against").toBeTruthy();
+
+    // Seeded with the service key would be truer, but a member cannot write
+    // another's row any more -- so assert on what a delete is allowed to
+    // reach: nothing outside your own rows.
+    const res = await api.delete(`${SUPABASE_URL}/rest/v1/wealth_targets?member_id=eq.${other.id}`, {
+      headers: { apikey: SUPABASE_KEY!, Authorization: `Bearer ${token}`, Prefer: "return=representation" },
+    });
+    const removed = res.ok() ? await res.json() : [];
+    expect(Array.isArray(removed) ? removed.length : 0, "another member's target was deletable").toBe(0);
     await api.dispose();
   });
 
