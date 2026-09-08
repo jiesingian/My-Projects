@@ -3495,6 +3495,7 @@ export type Database = {
         }
       }
       leave_household_self: { Args: never; Returns: undefined }
+      recalc_goal_total: { Args: { p_goal_id: string }; Returns: number }
       redeem_code_for_household: { Args: { p_code: string }; Returns: string }
       redeem_household_code: { Args: { p_code: string }; Returns: boolean }
       regenerate_invite_code: { Args: never; Returns: string }

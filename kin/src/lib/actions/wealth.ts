@@ -166,16 +166,21 @@ async function applySettlement(supabase: Db, memberId: string, entry: Tables<"we
       .eq("id", entry.source_id);
   }
 
-  if (entry.goal_id) {
-    const { data: goal } = await supabase.from("goals").select("current_amount").eq("id", entry.goal_id).maybeSingle();
-    if (goal) {
-      const delta = entry.direction === "out" ? Number(entry.amount) : -Number(entry.amount);
-      await supabase
-        .from("goals")
-        .update({ current_amount: Number(goal.current_amount) + delta })
-        .eq("id", entry.goal_id);
-    }
-  }
+  if (entry.goal_id) await recalcGoalTotal(supabase, entry.goal_id);
+}
+
+/** The goal's total, recomputed from the ledger rather than added to.
+ *
+ * Reading the total and writing back read + delta is two round trips with no
+ * lock between them, which loses one of two simultaneous contributions and
+ * double-counts a Confirm that gets clicked twice. Recomputing is the same
+ * number by construction -- a goal starts at 0 and only ever moves by one
+ * wealth_transactions row at a time -- but it is a destination rather than a
+ * distance, so running it twice is running it once. */
+async function recalcGoalTotal(supabase: Db, goalId: string) {
+  const { error } = await supabase.rpc("recalc_goal_total", { p_goal_id: goalId });
+  if (error) console.error("recalc_goal_total failed", { goalId, error: error.message });
+  return error;
 }
 
 /** Money in or out of one account, from a source Kin doesn't otherwise see —
@@ -316,13 +321,17 @@ export async function deleteTransactionAction(transactionId: string): Promise<Ac
     .maybeSingle();
   if (!entry) return { error: "Not found." };
 
-  if (entry.status === "confirmed" && entry.goal_id) {
-    const { data: goal } = await supabase.from("goals").select("current_amount").eq("id", entry.goal_id).maybeSingle();
-    if (goal) {
-      const delta = entry.direction === "out" ? -Number(entry.amount) : Number(entry.amount);
-      await supabase.from("goals").update({ current_amount: Number(goal.current_amount) + delta }).eq("id", entry.goal_id);
-    }
-  }
+  // Which goals this delete will disturb, gathered BEFORE the rows go. A
+  // recomputed total is read back off the ledger, so unlike the old
+  // subtract-the-amount it has to run once the rows are actually gone --
+  // running it first would only rewrite the total it is about to invalidate.
+  // A transfer group is deleted whole, so ask the group, not this one row.
+  const doomed = supabase.from("wealth_transactions").select("goal_id").eq("family_id", me.family_id).not("goal_id", "is", null);
+  const { data: doomedRows } = entry.transfer_group_id
+    ? await doomed.eq("transfer_group_id", entry.transfer_group_id)
+    : await doomed.eq("id", entry.id);
+  const touchedGoalIds = [...new Set((doomedRows ?? []).map((r) => r.goal_id).filter((id): id is string => !!id))];
+
   // A discarded payment — settled or still pending in someone's banking app —
   // leaves the bill open again, never stranded as "scheduled".
   if (entry.source_table === "bills" && entry.source_id) {
@@ -337,6 +346,8 @@ export async function deleteTransactionAction(transactionId: string): Promise<Ac
     ? await query.eq("transfer_group_id", entry.transfer_group_id)
     : await query.eq("id", entry.id);
   if (error) return { error: error.message };
+
+  for (const goalId of touchedGoalIds) await recalcGoalTotal(supabase, goalId);
 
   revalidateWealth();
   return { error: null };
