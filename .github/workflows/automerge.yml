@@ -11,13 +11,18 @@ name: Auto-merge
 # now", and twice put a change into main while CI was still running.
 #
 # Nothing here asks what the plan allows. It waits for a check suite to
-# finish, then reads the check runs on that commit and merges only if every
-# one of them passed. That question has the same answer on every plan.
+# finish, then reads everything that has reported on that commit -- check runs
+# and commit statuses both -- and merges only if every one of them passed.
+# That question has the same answer on every plan.
 on:
   workflow_run:
-    # Whichever finishes last does the merging; the other finds a check still
-    # running and stops, which is why both are listed.
-    workflows: [CI, Secret Scan]
+    # Whichever finishes last does the merging; the others find a check still
+    # running and stop, which is why all three are listed. End-to-end was
+    # missing, and it is the slow one -- about eight minutes against one for
+    # the others -- so on any pull request touching kin/src it always finished
+    # last, and its completion woke nothing. Those pull requests simply never
+    # merged.
+    workflows: [CI, Secret Scan, End-to-end]
     types: [completed]
 
 permissions:
@@ -83,6 +88,32 @@ jobs:
           fi
           if [ "$FAILED" -ne 0 ]; then
             echo "Something failed. Not merging."; exit 0
+          fi
+
+          # Check runs are only half of what reports on a commit. Vercel posts
+          # its deployment through the older Statuses API instead -- verified:
+          # the combined status on the head of #7 is one entry, context
+          # "Vercel", "Deployment has completed". Reading only check runs meant
+          # a failed deployment did not block a merge, which is the wrong way
+          # for this gate to be wrong.
+          #
+          # The combined state is "success" only when every status succeeded,
+          # "pending" while any is unfinished, and "failure"/"error" otherwise.
+          # A commit nothing has posted a status for reports "pending" with a
+          # count of zero, which means nothing to wait for rather than
+          # something unfinished.
+          gh api "repos/$REPO/commits/$SHA/status" > /tmp/status.json
+          ST_COUNT=$(jq '.total_count' /tmp/status.json)
+          ST_STATE=$(jq -r '.state' /tmp/status.json)
+          echo "commit statuses on $SHA — count: $ST_COUNT, state: $ST_STATE"
+
+          if [ "$ST_COUNT" -ne 0 ]; then
+            if [ "$ST_STATE" = "pending" ]; then
+              echo "A commit status is still pending. Not merging yet."; exit 0
+            fi
+            if [ "$ST_STATE" != "success" ]; then
+              echo "A commit status reported $ST_STATE. Not merging."; exit 0
+            fi
           fi
 
           # --match-head-commit refuses if anything was pushed since the checks
