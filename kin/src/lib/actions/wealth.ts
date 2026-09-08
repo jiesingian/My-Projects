@@ -9,6 +9,7 @@ import { GOAL_CATEGORY, TRANSFER_CATEGORY } from "@/lib/wealth";
 import type { ActionState } from "@/lib/actions/auth";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database, Tables, TablesInsert } from "@/lib/database.types";
+import { allDayEvent } from "@/lib/calendar-shape";
 
 type Db = SupabaseClient<Database>;
 
@@ -420,7 +421,7 @@ export async function addBillAction(_prev: ActionState, formData: FormData): Pro
       me.family_id,
       "bills",
       bill.id,
-      { title: `${name} due`, startAt: new Date(`${dueDate}T00:00:00`), allDay: true },
+      allDayEvent(`${name} due`, dueDate),
       { kind: "all" },
     );
   }
@@ -597,7 +598,7 @@ export async function createGoalAction(_prev: ActionState, formData: FormData): 
 
   if (targetDate) {
     const target: CalendarTarget = isJoint ? { kind: "all" } : { kind: "member", memberId: ownerMemberId };
-    await syncRowToCalendars(me.family_id, "goals", goal.id, { title, startAt: new Date(`${targetDate}T00:00:00`), allDay: true }, target);
+    await syncRowToCalendars(me.family_id, "goals", goal.id, allDayEvent(title, targetDate), target);
   }
 
   revalidateWealth();

@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/server";
 import { requireCurrentMember } from "@/lib/session";
 import { getValidDriveAccessToken, deleteDriveFile } from "@/lib/google-drive";
 import { syncRowToCalendars } from "@/lib/actions/calendar-sync";
+import { allDayEvent } from "@/lib/calendar-shape";
 
 type UploadedFile =
   | { provider: "google_drive"; driveFileId: string; driveViewLink: string | null; driveThumbnailLink: string | null }
@@ -63,7 +64,7 @@ export async function createDocEntryAction(input: {
       me.family_id,
       "doc_entries",
       entry.id,
-      { title: `${title} renewal`, startAt: new Date(`${input.expiresAt}T00:00:00`), allDay: true },
+      allDayEvent(`${title} renewal`, input.expiresAt),
       { kind: "member", memberId: input.ownerMemberId },
     );
   }

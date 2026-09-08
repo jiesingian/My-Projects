@@ -19,6 +19,7 @@ import {
 import { RECIPE_PHOTO_BUCKET } from "@/lib/meal-photos";
 import type { ActionState } from "@/lib/actions/auth";
 import type { TablesInsert } from "@/lib/database.types";
+import { allDayEvent } from "@/lib/calendar-shape";
 
 export async function addBuyItemAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
   const me = await requireCurrentMember();
@@ -139,7 +140,7 @@ export async function addMealPlanAction(_prev: ActionState, formData: FormData):
     if (ingredientError) return { error: `The meal was saved, but not what it needs. ${ingredientError.message}` };
   }
 
-  await syncRowToCalendars(me.family_id, "meal_plans", plan.id, { title: dish, startAt: new Date(`${date}T00:00:00`), allDay: true }, { kind: "all" });
+  await syncRowToCalendars(me.family_id, "meal_plans", plan.id, allDayEvent(dish, date), { kind: "all" });
 
   revalidatePath("/household");
   redirect("/household?seg=meals");
@@ -374,7 +375,7 @@ export async function addMealFromRecipeAction(input: {
     me.family_id,
     "meal_plans",
     plan.id,
-    { title: dish, startAt: new Date(`${input.date}T00:00:00`), allDay: true },
+    allDayEvent(dish, input.date),
     { kind: "all" },
   );
 

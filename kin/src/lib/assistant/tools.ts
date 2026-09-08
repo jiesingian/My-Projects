@@ -5,6 +5,7 @@ import { EXPENSE_CATEGORIES, INCOME_SOURCES, signedAmount } from "@/lib/wealth";
 import { MARKET_SECTIONS, UNITS, guessSection, formatQuantity } from "@/lib/grocery";
 import type { CurrentMember } from "@/lib/session";
 import { familyDay } from "@/lib/time";
+import { allDayEvent } from "@/lib/calendar-shape";
 
 /** Every tool the Today assistant can reach. Each one is scoped to the
  * signed-in member's household by the executor — the model never supplies a
@@ -488,7 +489,7 @@ export async function runAssistantTool(name: string, rawInput: unknown, me: Curr
         .single();
       if (error) return fail(error.message);
 
-      await syncRowToCalendars(familyId, "events", event.id, { title, startAt: new Date(`${date}T00:00:00`), allDay: true }, { kind: "all" });
+      await syncRowToCalendars(familyId, "events", event.id, allDayEvent(title, date), { kind: "all" });
       return done({ added: "event", title, date, kind });
     }
 
@@ -546,7 +547,7 @@ export async function runAssistantTool(name: string, rawInput: unknown, me: Curr
           .insert(ingredients.map((ingredient_name) => ({ meal_plan_id: plan.id, family_id: familyId, ingredient_name })));
       }
 
-      await syncRowToCalendars(familyId, "meal_plans", plan.id, { title: dish, startAt: new Date(`${date}T00:00:00`), allDay: true }, { kind: "all" });
+      await syncRowToCalendars(familyId, "meal_plans", plan.id, allDayEvent(dish, date), { kind: "all" });
       return done({ added: "meal plan", dish, date, ingredients });
     }
 
@@ -577,7 +578,7 @@ export async function runAssistantTool(name: string, rawInput: unknown, me: Curr
           familyId,
           "bills",
           bill.id,
-          { title: `${name_} due`, startAt: new Date(`${dueDate}T00:00:00`), allDay: true },
+          allDayEvent(`${name_} due`, dueDate),
           { kind: "all" },
         );
       }
@@ -609,7 +610,7 @@ export async function runAssistantTool(name: string, rawInput: unknown, me: Curr
 
       if (targetDate) {
         const target: CalendarTarget = isJoint ? { kind: "all" } : { kind: "member", memberId: me.id };
-        await syncRowToCalendars(familyId, "goals", goal.id, { title, startAt: new Date(`${targetDate}T00:00:00`), allDay: true }, target);
+        await syncRowToCalendars(familyId, "goals", goal.id, allDayEvent(title, targetDate), target);
       }
       return done({ added: "goal", title, target_amount: targetAmount, target_date: targetDate });
     }
@@ -656,7 +657,7 @@ export async function runAssistantTool(name: string, rawInput: unknown, me: Curr
         familyId,
         "trips",
         trip.id,
-        { title, startAt: new Date(`${startDate}T00:00:00`), endAt: endDate ? new Date(`${endDate}T00:00:00`) : null, allDay: true },
+        allDayEvent(title, startDate, { endDay: endDate }),
         travellerIds.length > 0 ? { kind: "members", memberIds: travellerIds } : { kind: "all" },
       );
       return done({ added: "trip", title, start_date: startDate, end_date: endDate, travellers: names });

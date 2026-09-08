@@ -51,8 +51,13 @@ export default defineConfig({
   },
   projects: [
     { name: "setup", testMatch: /auth\.setup\.ts/ },
+    // Specs that exercise a function rather than the app. No browser, no
+    // server, no sign-in -- so they run in about a second and can be reached
+    // for while writing the code, which is the point of having them.
+    { name: "logic", testMatch: /\.logic\.spec\.ts/ },
     {
       name: "chromium",
+      testIgnore: /\.logic\.spec\.ts/,
       use: { ...devices["Desktop Chrome"], storageState: "e2e/.auth/state.json" },
       dependencies: ["setup"],
     },

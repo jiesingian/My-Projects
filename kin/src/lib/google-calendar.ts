@@ -1,5 +1,9 @@
 import { createAdminClient } from "@/lib/supabase/admin";
-import { familyDay } from "@/lib/time";
+import type { CalendarEventInput, GoogleCalendarEvent } from "@/lib/calendar-shape";
+import { toGoogleEventBody } from "@/lib/calendar-shape";
+
+// Re-exported so the many importers of these types need not know they moved.
+export type { CalendarEventInput, GoogleCalendarEvent } from "@/lib/calendar-shape";
 
 const CALENDAR_API = "https://www.googleapis.com/calendar/v3";
 
@@ -56,52 +60,6 @@ async function calendarFetch(accessToken: string, path: string, init?: RequestIn
   });
 }
 
-export type CalendarEventInput = {
-  title: string;
-  startAt: Date;
-  endAt?: Date | null;
-  allDay?: boolean;
-  location?: string | null;
-  /** RRULE lines, e.g. ["RRULE:FREQ=WEEKLY;BYDAY=MO,WE,FR"]. Google expands
-   * a recurring event itself, so a routine is one event rather than one per
-   * occurrence. */
-  recurrence?: string[] | null;
-  /** Minutes before the start to alert. This is what actually reaches a
-   * phone: the member's own calendar app raises it, lock screen and all. */
-  reminderMinutes?: number | null;
-  description?: string | null;
-};
-
-function toGoogleEventBody(input: CalendarEventInput) {
-  const end = input.endAt ?? new Date(input.startAt.getTime() + 60 * 60 * 1000);
-  const extras = {
-    description: input.description ?? undefined,
-    recurrence: input.recurrence?.length ? input.recurrence : undefined,
-    // An explicit override replaces the calendar's defaults; leaving it off
-    // lets the member's own default reminder apply.
-    reminders:
-      input.reminderMinutes == null
-        ? undefined
-        : { useDefault: false, overrides: [{ method: "popup", minutes: input.reminderMinutes }] },
-  };
-  if (input.allDay) {
-    // The household's day, not UTC's. An all-day item is built as
-    // `new Date(`${date}T00:00:00`)`, which in Manila is 16:00 the previous
-    // day in UTC -- so slicing the ISO string put every birthday, trip, bill
-    // and meal on the family's phones one day early.
-    const startDate = familyDay(input.startAt);
-    const endExclusive = familyDay(new Date((input.endAt ?? input.startAt).getTime() + 86_400_000));
-    return { summary: input.title, location: input.location ?? undefined, start: { date: startDate }, end: { date: endExclusive }, ...extras };
-  }
-  return {
-    summary: input.title,
-    location: input.location ?? undefined,
-    start: { dateTime: input.startAt.toISOString() },
-    end: { dateTime: end.toISOString() },
-    ...extras,
-  };
-}
-
 /** Creates a new event on the household's connected Google Calendar. */
 export async function createCalendarEvent(accessToken: string, calendarId: string, input: CalendarEventInput): Promise<string> {
   const res = await calendarFetch(accessToken, `/calendars/${encodeURIComponent(calendarId)}/events`, {
@@ -130,15 +88,6 @@ export async function deleteCalendarEvent(accessToken: string, calendarId: strin
   const res = await calendarFetch(accessToken, `/calendars/${encodeURIComponent(calendarId)}/events/${eventId}`, { method: "DELETE" });
   return res.ok || res.status === 404 || res.status === 410;
 }
-
-export type GoogleCalendarEvent = {
-  id: string;
-  status: "confirmed" | "tentative" | "cancelled";
-  summary?: string;
-  location?: string;
-  start?: { date?: string; dateTime?: string };
-  end?: { date?: string; dateTime?: string };
-};
 
 /** Lists events changed since the last sync (via Google's incremental sync
  * token), or does an initial sync of everything from today onward if there

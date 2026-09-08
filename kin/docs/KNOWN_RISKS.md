@@ -198,14 +198,119 @@ SELECT policy. That is a product decision, not a bug fix.
 
 ---
 
-## The Google Calendar paths have no end-to-end coverage
+## The Google Calendar paths: covered in part, and where the line is
 
-`syncRowToCalendars`, the pull-back reconcile, and `google-calendar.ts` are
-exercised by nothing. They need OAuth credentials the suite does not have.
+*Was: "exercised by nothing." That is no longer true, but what is now covered
+is worth stating precisely, because the gap that remains is the interesting
+one.*
 
-This matters more than it looks: the off-by-a-day fixed on 8 September lived
-in exactly those files, and was found by reading rather than by a failing
-test. The same class could return there and no test would notice.
+**Covered, 8 September** — 24 tests in `e2e/*.logic.spec.ts`, no browser, no
+server, ~1 second:
+
+- what we send: all-day dates and Google's exclusive end, multi-day trips,
+  timed events and the one-hour default, reminders (an absent one must not
+  override the member's own defaults), recurrence
+- what we make of the reply: an all-day date kept whatever zone the process is
+  in, an early-morning event filed on the household's day rather than UTC's,
+  malformed dates refused
+- the requests themselves, against a stubbed `fetch`: URL and method, the
+  bearer token, calendar ids escaped, "already gone" (404/410) counting as
+  deleted, pagination, an expired sync token handled rather than thrown
+
+**Not covered, and cannot be here.** A real OAuth round trip needs credentials
+the suite does not have, and giving CI a live Google account is a decision
+with a bill attached. So none of the above proves Google *accepts* what we
+send — only that we send what we meant to. If Google changes a field name or
+tightens a rule, these tests stay green and the family's phones go quiet.
+
+**Why it was untestable before**, which is the part worth remembering: the
+shaping lived inside a `"use server"` module and one that reaches for the
+service key, so nothing outside a request could call it. It was not that
+nobody had got round to it. Moving the pure half into
+`src/lib/calendar-shape.ts` is what made the tests possible at all.
+
+**The tests run in UTC while production runs in Asia/Manila, deliberately.**
+Every calendar bug so far has been correct in the environment it was written
+in. Anything that depends on the process clock rather than the household's
+stated zone now fails in CI and passes on the server, which is the alarm
+worth having.
+
+---
+
+## All-day items reaching Google through the process clock — CLOSED 8 September
+
+*Kept as a record: the shape of this is worth recognising again.*
+
+Found while writing the calendar coverage. Every all-day sync built its
+instant as
+
+    startAt: new Date(`${date}T00:00:00`)
+
+which is midnight in whatever zone the *process* is in, and was then read back
+through `familyDay`, pinned to `FAMILY_TZ`. Two answers to "where does this
+household live", agreeing only because `instrumentation.ts` sets `TZ` to the
+same zone. Measured on one 9 September all-day event:
+
+| process TZ | lands on |
+|---|---|
+| Asia/Manila | 2026-09-09 |
+| UTC | 2026-09-09 |
+| America/New_York | 2026-09-09 |
+| **Asia/Tokyo** | **2026-09-08** |
+| **Pacific/Auckland** | **2026-09-08** |
+
+Anywhere east of the household, every birthday, bill, trip and meal lands a
+day early — one `KIN_TZ` away, and it would look exactly like the 8 September
+fix coming undone by itself.
+
+**Fixed on both sides, 21 call sites.**
+
+- Pull: `eventStartEnd` carries Google's own date string through as `day`
+  rather than round-tripping it, and the seven update sites use that.
+- Push: `allDayEvent(title, day, { endDay })` builds the input from plain
+  dates, so no caller constructs the instant. Applied across
+  `calendar-sync.ts` (7), `planner.ts` (4), `assistant/tools.ts` (5),
+  `household.ts` (2), `wealth.ts` (2), `documents.ts` (1).
+- `familyMidnight` in `lib/time.ts` states the zone by name for the one place
+  an instant is still genuinely needed.
+- `syncRowToCalendars` now takes `CalendarEventInput | null` and treats null
+  as "nothing to sync", so an unreadable date syncs nothing rather than
+  needing a guard at each of fourteen call sites. From a form or a `date`
+  column null cannot happen; from the assistant, whose arguments a model
+  writes, it can.
+
+There is no `new Date(\`${x}T00:00:00\`)` left in any calendar path.
+
+**Still there, and a different question:** `household.ts` computes the grocery
+week that way, and `assistant/tools.ts` builds a query window that way. Those
+are date ranges rather than things put on a calendar, and they were left
+alone — the failure mode is a week boundary landing wrong for a server outside
+the household's zone, not an item on the wrong day.
+
+---|---|
+| Asia/Manila | 2026-09-09 |
+| UTC | 2026-09-09 |
+| America/New_York | 2026-09-09 |
+| **Asia/Tokyo** | **2026-09-08** |
+| **Pacific/Auckland** | **2026-09-08** |
+
+Anywhere east of the household, every birthday, bill, trip and meal is back to
+landing a day early — and `KIN_TZ` is the documented way to move the
+deployment, so it is one environment variable away, and it would look exactly
+like the 8 September fix coming undone on its own.
+
+**Fixed on the pull side.** `eventStartEnd` carries Google's plain date
+through untouched rather than round-tripping it, and `familyMidnight` in
+`lib/time.ts` states the zone instead of inheriting it.
+
+**Not fixed on the push side.** Roughly a dozen callers across `planner.ts`,
+`wealth.ts`, `household.ts`, `documents.ts` and `assistant/tools.ts` still
+build `startAt: new Date(`${date}T00:00:00`)` for `allDay: true` syncs. They
+are correct today for the same reason the pull side was — production is in
+Asia/Manila — and the sweep is mechanical now that `familyMidnight` exists.
+It was left out of the coverage change on purpose rather than overlooked:
+twelve call sites across five files is a change of its own, and one of them is
+the assistant.
 
 ---
 
