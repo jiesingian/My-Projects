@@ -1,24 +1,29 @@
-name: Deploy Projects Graph
+name: Build Projects Graph
 
 # Monorepo-wide graphify pipeline. Runs on every push, with no per-project
 # setup: it discovers every top-level project folder (anything with a
 # recognizable manifest file), builds or refreshes that project's own
 # graph (code structure only, no API key needed), merges all of them into
-# a root-level aggregate graph, and republishes every graph.html to Pages.
+# a root-level aggregate graph, and exports every graph.html.
 # Add a new project folder and push -- it's picked up automatically.
+#
+# The graphs are kept as a workflow artifact rather than published to Pages.
+# Pages needs a paid plan on a private repository, and a public site would
+# put every file path, module and function name in this app on a page anyone
+# can find -- no secrets, but the architecture of a family's private app all
+# the same. Download "projects-graph" from the run and open index.html.
 
 on:
   push:
     branches: [main]
   workflow_dispatch:
 
+# Read-only: nothing is published, so nothing needs write access.
 permissions:
   contents: read
-  pages: write
-  id-token: write
 
 concurrency:
-  group: pages
+  group: projects-graph
   cancel-in-progress: false
 
 jobs:
@@ -80,16 +85,8 @@ jobs:
             cp "$proj_dir/graphify-out/graph.html" "_site/$proj_dir/index.html"
           done
 
-      - uses: actions/upload-pages-artifact@v3
+      - uses: actions/upload-artifact@v4
         with:
+          name: projects-graph
           path: _site
-
-  deploy:
-    needs: build
-    runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-    steps:
-      - id: deployment
-        uses: actions/deploy-pages@v4
+          retention-days: 30

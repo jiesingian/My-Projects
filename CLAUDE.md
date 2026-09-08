@@ -59,8 +59,12 @@ rather than finding out from the robot.
 This is a monorepo. Each project folder (e.g. `kin/`) has its own knowledge
 graph at `<project>/graphify-out/`, and `graphify-out/graph.json` at this root
 is an aggregate of all of them, rebuilt by
-`.github/workflows/graphify-deploy.yml` on every push to main and published to
-Pages.
+`.github/workflows/graphify-deploy.yml` on every push to main and kept as the
+`projects-graph` workflow artifact — download it from the run and open
+`index.html`. It used to deploy to GitHub Pages, which failed silently on
+every push: Pages needs a paid plan on a private repository, and a public site
+would have put every file path, module and function name in these projects on
+a page anyone could find.
 
 **The generated graphs are no longer committed.** They rebuild from source, and
 committing them added 101,531 lines and removed 45,119 across nine commits, in
