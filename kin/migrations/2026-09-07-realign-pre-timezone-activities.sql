@@ -93,3 +93,50 @@ commit;
 -- Anyone in another zone typed something else, and there is no way to recover
 -- which from the row alone. That is the argument for families.timezone landing
 -- before a second household does.
+
+
+-- What actually happened, 8 September
+-- ==================================
+-- The update above is correct and it is also the wrong shape, and the second
+-- thing matters more.
+--
+-- It is a *relative* shift: subtract eight hours. That is only right if it
+-- runs exactly once. The Supabase SQL editor reports every UPDATE as
+-- "Success. No rows returned" whether it changed five rows or none -- there
+-- is no affected-row count on screen -- so there is no way to tell from the
+-- interface that it worked. Told to expect "UPDATE 5", which is what a
+-- terminal prints and this editor never does, Jonathan quite reasonably ran
+-- it again. Then the correcting +8 ran five times.
+--
+-- Net: the rows ended up thirty-two hours from where they belonged, entirely
+-- because the instruction was a direction to move rather than a destination.
+--
+-- What fixed it was an idempotent statement -- absolute timestamps keyed by
+-- row id, written with an explicit +08 offset so Postgres did the conversion
+-- and no arithmetic of mine was in the loop:
+--
+--   update public.activities a
+--   set start_at = v.start_at, end_at = v.end_at
+--   from (values
+--     ('a2046ffd-...'::uuid, '2026-09-07 20:30:00+08'::timestamptz, '2026-09-07 21:30:00+08'::timestamptz),
+--     ...
+--   ) as v(id, start_at, end_at)
+--   where a.id = v.id
+--   returning ...;
+--
+-- Run that once or fifty times and the answer is the same.
+--
+-- Final state, verified against the database rather than the screen:
+--
+--   Study Math with Erynne       Mon 07 Sep 20:30-21:30   stored 12:30Z
+--   Study Language with Erynne   Tue 08 Sep 20:30-21:30   stored 12:30Z
+--   Erynne's Final Exam          Wed 09 Sep 12:30-14:00   stored 04:30Z
+--   Erynne's Final Exam          Thu 10 Sep 12:30-14:00   stored 04:30Z
+--   Diode                        Thu 10 Sep 14:00         stored 06:00Z
+--
+-- Durations survived intact throughout.
+--
+-- The lesson for the next data migration, which is the only reason this note
+-- exists: write the destination, not the distance. A statement that is safe
+-- to run twice needs no feedback from the interface to be safe, and this
+-- interface gives none.
