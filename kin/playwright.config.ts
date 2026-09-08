@@ -11,8 +11,16 @@ for (const line of fs.existsSync(".env.local") ? fs.readFileSync(".env.local", "
 }
 
 /** Where the app under test is. Point this at a preview or at production to
- * run the same suite against a deployment rather than a local dev server. */
-const baseURL = process.env.E2E_BASE_URL ?? "http://localhost:3000";
+ * run the same suite against a deployment rather than a local dev server.
+ *
+ * `||` rather than `??`, and it matters. A workflow that offers an optional
+ * URL passes the empty string when nobody filled it in -- GitHub renders an
+ * absent input as "" -- and an empty string is not nullish, so `??` kept it.
+ * baseURL became "", every relative goto had nothing to resolve against, and
+ * the first navigation died with "Cannot navigate to invalid URL" after the
+ * app had already built and started perfectly. Locally the variable is always
+ * a real URL, so this could only ever fail in CI. */
+const baseURL = process.env.E2E_BASE_URL?.trim() || "http://localhost:3000";
 
 /** Some environments ship a browser and forbid downloading another -- the
  * agent sandbox this suite was written in is one. When a Chromium is sitting
