@@ -17,7 +17,7 @@ import type { ActionState } from "@/lib/actions/auth";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/lib/database.types";
 import { familyDay } from "@/lib/time";
-import { eventStartEnd, allDayEvent } from "@/lib/calendar-shape";
+import { eventStartEnd, allDayEvent, syncLinkPatch } from "@/lib/calendar-shape";
 
 type Db = SupabaseClient<Database>;
 type SourceTable = "activities" | "events" | "health_schedule" | "health_appointments" | "doc_entries" | "trips" | "bills" | "meal_plans" | "goals" | "routines";
@@ -29,15 +29,25 @@ type SourceTable = "activities" | "events" | "health_schedule" | "health_appoint
  * resolved against calendar_links inside syncRowToCalendars. */
 export type CalendarTarget = { kind: "all" } | { kind: "members"; memberIds: string[] } | { kind: "member"; memberId: string | null };
 
-export async function disconnectCalendarAction() {
+export async function disconnectCalendarAction(): Promise<ActionState> {
   const me = await requireCurrentMember();
   const supabase = await createClient();
-  await supabase.from("calendar_links").update({ connected: false }).eq("member_id", me.id);
+  const { error } = await supabase.from("calendar_links").update({ connected: false }).eq("member_id", me.id);
+  if (error) return { error: `Google Calendar could not be disconnected. ${error.message}` };
 
+  // The link is off, so nothing will sync either way; a token left behind is
+  // a credential we no longer need rather than a live connection. Worth
+  // saying so, because "disconnected" should mean the token is gone too.
   const admin = createAdminClient();
-  if (admin) await admin.from("calendar_tokens").delete().eq("member_id", me.id);
+  if (admin) {
+    const { error: tokenError } = await admin.from("calendar_tokens").delete().eq("member_id", me.id);
+    if (tokenError) {
+      return { error: `Disconnected, but the stored Google token could not be removed. ${tokenError.message}` };
+    }
+  }
 
   revalidatePath("/settings");
+  return { error: null };
 }
 
 async function resolveTargetMemberIds(supabase: Db, familyId: string, target: CalendarTarget): Promise<string[]> {
@@ -77,7 +87,17 @@ export async function syncRowToCalendars(familyId: string, table: SourceTable, r
         await updateCalendarEvent(accessToken, calendarId, existing.google_event_id, input);
       } else {
         const googleEventId = await createCalendarEvent(accessToken, calendarId, input);
-        await supabase.from("calendar_event_links").insert({ family_id: familyId, source_table: table, source_id: rowId, member_id: memberId, google_event_id: googleEventId });
+        const { error } = await supabase
+          .from("calendar_event_links")
+          .insert({ family_id: familyId, source_table: table, source_id: rowId, member_id: memberId, google_event_id: googleEventId });
+        if (error) {
+          // The event exists on their calendar and nothing here points at it,
+          // so we would never update or delete it -- and the next pull would
+          // read it as somebody's own event and make a duplicate activity out
+          // of it. Take it back rather than leave that behind.
+          console.error(`Calendar link could not be recorded for ${table}/${rowId} -> member ${memberId}; removing the event again`, error.message);
+          await deleteCalendarEvent(accessToken, calendarId, googleEventId).catch(() => {});
+        }
       }
     } catch (err) {
       console.error(`Calendar push failed for ${table}/${rowId} -> member ${memberId}`, err);
@@ -91,7 +111,8 @@ export async function syncRowToCalendars(familyId: string, table: SourceTable, r
       const { data: linkRow } = await supabase.from("calendar_links").select("calendar_id").eq("member_id", memberId).maybeSingle();
       await deleteCalendarEvent(accessToken, linkRow?.calendar_id ?? "primary", link.google_event_id).catch(() => {});
     }
-    await supabase.from("calendar_event_links").delete().eq("id", link.id);
+    const { error } = await supabase.from("calendar_event_links").delete().eq("id", link.id);
+    if (error) console.error(`Calendar link ${link.id} was not cleared after its event was deleted`, error.message);
   }
 }
 
@@ -108,7 +129,8 @@ export async function removeRowFromCalendars(familyId: string, table: SourceTabl
       await deleteCalendarEvent(accessToken, linkRow?.calendar_id ?? "primary", link.google_event_id).catch(() => {});
     }
   }
-  await supabase.from("calendar_event_links").delete().eq("source_table", table).eq("source_id", rowId);
+  const { error } = await supabase.from("calendar_event_links").delete().eq("source_table", table).eq("source_id", rowId);
+  if (error) console.error(`Calendar links for ${table}/${rowId} were not cleared after the row was deleted`, error.message);
 }
 
 // The household's own today, not UTC's. As the lower bound for what to pull
@@ -224,81 +246,117 @@ async function backfillFamily(supabase: Db, familyId: string): Promise<number> {
  * never deleted, since a calendar action shouldn't destroy that record. An
  * event with no Kin origin lands as a new activity tagged to this member —
  * "new schedules made on Google get tagged to that person in the app". */
-async function applyIncomingEvent(supabase: Db, familyId: string, memberId: string, event: GoogleCalendarEvent): Promise<void> {
+async function applyIncomingEvent(
+  supabase: Db,
+  familyId: string,
+  memberId: string,
+  event: GoogleCalendarEvent,
+): Promise<string | null> {
   const { data: link } = await supabase.from("calendar_event_links").select("*").eq("member_id", memberId).eq("google_event_id", event.id).maybeSingle();
 
   if (event.status === "cancelled") {
-    if (!link) return;
-    await supabase.from("calendar_event_links").delete().eq("id", link.id);
+    if (!link) return null;
+    const { error: unlink } = await supabase.from("calendar_event_links").delete().eq("id", link.id);
+    if (unlink) return `could not unlink the cancelled event: ${unlink.message}`;
+
     if (link.source_table === "activities" || link.source_table === "events") {
       const { count } = await supabase
         .from("calendar_event_links")
         .select("id", { count: "exact", head: true })
         .eq("source_table", link.source_table)
         .eq("source_id", link.source_id);
-      if (!count) await supabase.from(link.source_table).delete().eq("id", link.source_id);
-      else if (link.source_table === "activities") await supabase.from("activity_members").delete().eq("activity_id", link.source_id).eq("member_id", memberId);
+      if (!count) {
+        const { error } = await supabase.from(link.source_table).delete().eq("id", link.source_id);
+        if (error) return `could not remove the ${link.source_table} row nobody is linked to any more: ${error.message}`;
+      } else if (link.source_table === "activities") {
+        const { error } = await supabase.from("activity_members").delete().eq("activity_id", link.source_id).eq("member_id", memberId);
+        if (error) return `could not take the member off the activity: ${error.message}`;
+      }
     }
-    return;
+    return null;
   }
 
   const when = eventStartEnd(event);
-  if (!when) return;
+  // Not a failure: an event Google sent with no usable start is one we cannot
+  // place, and replaying it forever would not help.
+  if (!when) return null;
   const title = event.summary?.trim() || "(untitled)";
 
   if (!link) {
-    const { data: activity } = await supabase
+    const { data: activity, error: createError } = await supabase
       .from("activities")
       .insert({ family_id: familyId, title, start_at: when.start.toISOString(), end_at: when.end?.toISOString() ?? null, location: event.location ?? null, applies_to_whole_family: false })
       .select()
       .single();
-    if (activity) {
-      await supabase.from("activity_members").insert({ activity_id: activity.id, member_id: memberId });
-      await supabase.from("calendar_event_links").insert({ family_id: familyId, source_table: "activities", source_id: activity.id, member_id: memberId, google_event_id: event.id });
+    if (createError || !activity) return `could not create the activity: ${createError?.message ?? "no row came back"}`;
+
+    const { error: memberError } = await supabase.from("activity_members").insert({ activity_id: activity.id, member_id: memberId });
+    const { error: linkError } = memberError
+      ? { error: null }
+      : await supabase
+          .from("calendar_event_links")
+          .insert({ family_id: familyId, source_table: "activities", source_id: activity.id, member_id: memberId, google_event_id: event.id });
+
+    if (memberError || linkError) {
+      // Undo the activity. Because a failure here holds the sync token back,
+      // Google will send this same event again -- and it would find no link,
+      // and make a second copy. An activity nobody can see beats two.
+      const { error: undoError } = await supabase.from("activities").delete().eq("id", activity.id);
+      if (undoError) {
+        // Now there is a half-made activity AND a retry coming. Say so loudly:
+        // this is the one combination that produces a duplicate.
+        console.error(`Calendar pull: activity ${activity.id} was created but could not be undone after a partial failure; the retry may duplicate it`, undoError.message);
+      }
+      return `could not finish creating the activity: ${(memberError ?? linkError)!.message}`;
     }
-    return;
+    return null;
   }
+
+  const fail = (e: { message: string } | null) => (e ? `could not update the ${link.source_table} row: ${e.message}` : null);
 
   switch (link.source_table) {
     case "activities":
-      await supabase
-        .from("activities")
-        .update({ title, start_at: when.start.toISOString(), end_at: when.end?.toISOString() ?? null, location: event.location ?? null })
-        .eq("id", link.source_id);
-      break;
+      return fail(
+        (
+          await supabase
+            .from("activities")
+            .update({ title, start_at: when.start.toISOString(), end_at: when.end?.toISOString() ?? null, location: event.location ?? null })
+            .eq("id", link.source_id)
+        ).error,
+      );
     case "events":
-      await supabase.from("events").update({ title, event_date: when.day }).eq("id", link.source_id);
-      break;
+      return fail((await supabase.from("events").update({ title, event_date: when.day }).eq("id", link.source_id)).error);
     case "health_schedule":
-      await supabase.from("health_schedule").update({ what: title, when_date: when.day }).eq("id", link.source_id);
-      break;
+      return fail((await supabase.from("health_schedule").update({ what: title, when_date: when.day }).eq("id", link.source_id)).error);
     case "health_appointments":
-      await supabase.from("health_appointments").update({ what: title, when_at: when.start.toISOString(), where_text: event.location ?? null }).eq("id", link.source_id);
-      break;
+      return fail(
+        (
+          await supabase
+            .from("health_appointments")
+            .update({ what: title, when_at: when.start.toISOString(), where_text: event.location ?? null })
+            .eq("id", link.source_id)
+        ).error,
+      );
     case "doc_entries":
-      await supabase.from("doc_entries").update({ title, expires_at: when.day }).eq("id", link.source_id);
-      break;
+      return fail((await supabase.from("doc_entries").update({ title, expires_at: when.day }).eq("id", link.source_id)).error);
     case "trips":
-      await supabase.from("trips").update({ title, start_date: when.day }).eq("id", link.source_id);
-      break;
+      return fail((await supabase.from("trips").update({ title, start_date: when.day }).eq("id", link.source_id)).error);
     case "bills":
-      await supabase.from("bills").update({ name: title, due_date: when.day }).eq("id", link.source_id);
-      break;
+      return fail((await supabase.from("bills").update({ name: title, due_date: when.day }).eq("id", link.source_id)).error);
     case "meal_plans":
-      await supabase.from("meal_plans").update({ dish: title, plan_date: when.day }).eq("id", link.source_id);
-      break;
+      return fail((await supabase.from("meal_plans").update({ dish: title, plan_date: when.day }).eq("id", link.source_id)).error);
     case "goals":
-      await supabase.from("goals").update({ title, target_date: when.day }).eq("id", link.source_id);
-      break;
+      return fail((await supabase.from("goals").update({ title, target_date: when.day }).eq("id", link.source_id)).error);
   }
+  return null;
 }
 
-async function pullMemberCalendar(supabase: Db, familyId: string, memberId: string): Promise<number> {
+async function pullMemberCalendar(supabase: Db, familyId: string, memberId: string): Promise<{ applied: number; failed: number }> {
   const accessToken = await getValidCalendarAccessToken(memberId);
-  if (!accessToken) return 0;
+  if (!accessToken) return { applied: 0, failed: 0 };
 
   const { data: link } = await supabase.from("calendar_links").select("calendar_id, sync_token").eq("member_id", memberId).maybeSingle();
-  if (!link) return 0;
+  if (!link) return { applied: 0, failed: 0 };
 
   let syncToken = link.sync_token;
   let result = await listChangedCalendarEvents(accessToken, link.calendar_id, syncToken);
@@ -307,12 +365,40 @@ async function pullMemberCalendar(supabase: Db, familyId: string, memberId: stri
     result = await listChangedCalendarEvents(accessToken, link.calendar_id, null);
   }
 
+  const failures: string[] = [];
   for (const event of result.events) {
-    await applyIncomingEvent(supabase, familyId, memberId, event);
+    const failed = await applyIncomingEvent(supabase, familyId, memberId, event);
+    if (failed) failures.push(`${event.id} ${failed}`);
   }
 
-  await supabase.from("calendar_links").update({ sync_token: result.nextSyncToken, last_synced_at: new Date().toISOString() }).eq("member_id", memberId);
-  return result.events.length;
+  // Google's sync token means "you have seen everything up to here". Saving it
+  // after a change we could not write is what made a failed apply permanent:
+  // that edit is never sent again, so a change someone made on their phone
+  // simply never arrives and nothing anywhere says so.
+  //
+  // So the token is held back when anything failed, and the same batch comes
+  // round again next sync. That is why applyIncomingEvent undoes a half-made
+  // activity: the retry must not find a second one to make.
+  //
+  // The cost is real and worth naming: an event that can never be applied --
+  // one that trips a constraint rather than a passing fault -- stops the token
+  // advancing at all, and no later change from that member gets through until
+  // someone looks. Stuck and loud beats lossy and silent, and the count is
+  // handed back so "Sync now" can say so instead of reporting success.
+  const { error } = await supabase
+    .from("calendar_links")
+    .update(syncLinkPatch(result.nextSyncToken, failures.length, new Date().toISOString()))
+    .eq("member_id", memberId);
+  if (error) console.error(`Calendar sync token was not saved for member ${memberId}; the next sync will replay this batch`, error.message);
+
+  if (failures.length > 0) {
+    console.error(
+      `Calendar pull: ${failures.length} of ${result.events.length} changes could not be applied for member ${memberId}. Holding the sync token so Google sends them again.`,
+      failures,
+    );
+  }
+
+  return { applied: result.events.length - failures.length, failed: failures.length };
 }
 
 /** Runs the full reconcile only if it hasn't run recently for this family —
@@ -358,23 +444,43 @@ export async function syncGoogleCalendarAction(): Promise<ActionState & { synced
   const { data: connectedRows } = await supabase.from("calendar_links").select("member_id").eq("family_id", me.family_id).eq("connected", true);
   if (!connectedRows || connectedRows.length === 0) return { error: "No one in the household has connected Google Calendar yet." };
 
+  // Every phase below used to swallow whatever went wrong and the action
+  // returned error: null regardless, so "Sync now" reported success even when
+  // a whole member's calendar had thrown. Both places that call this already
+  // render result.error -- they were simply never given one.
+  const trouble: string[] = [];
+
   let pushed = 0;
   try {
     pushed = await backfillFamily(supabase, me.family_id);
   } catch (err) {
     console.error("Calendar backfill push failed", err);
+    trouble.push("some items could not be sent to Google");
   }
 
   let pulled = 0;
+  let heldBack = 0;
   for (const row of connectedRows) {
     try {
-      pulled += await pullMemberCalendar(supabase, me.family_id, row.member_id);
+      const { applied, failed } = await pullMemberCalendar(supabase, me.family_id, row.member_id);
+      pulled += applied;
+      heldBack += failed;
     } catch (err) {
       console.error(`Calendar pull failed for member ${row.member_id}`, err);
+      trouble.push("one member's calendar could not be read");
     }
   }
 
   revalidatePath("/planner");
   revalidatePath("/settings");
+
+  if (heldBack > 0) {
+    trouble.push(
+      `${heldBack} change${heldBack === 1 ? "" : "s"} from Google could not be applied and will be tried again on the next sync`,
+    );
+  }
+  if (trouble.length > 0) {
+    return { error: `Synced ${pushed + pulled}, but ${trouble.join("; ")}.`, synced: pushed + pulled };
+  }
   return { error: null, synced: pushed + pulled };
 }

@@ -1,5 +1,5 @@
 import { test, expect } from "@playwright/test";
-import { toGoogleEventBody, eventStartEnd, allDayEvent } from "@/lib/calendar-shape";
+import { toGoogleEventBody, eventStartEnd, allDayEvent, syncLinkPatch } from "@/lib/calendar-shape";
 import { familyMidnight, familyDay } from "@/lib/time";
 
 /** What goes to Google, and what comes back.
@@ -204,5 +204,34 @@ test.describe("building an all-day item", () => {
       allDayEvent("Baguio", "2026-09-09", { endDay: "next Tuesday" }),
       "a trip whose end could not be read would silently become one day long",
     ).toBeNull();
+  });
+});
+
+test.describe("what we remember after pulling a calendar", () => {
+  const NOW = "2026-09-08T09:00:00.000Z";
+
+  test("a clean batch advances the sync token", () => {
+    expect(syncLinkPatch("tok-2", 0, NOW)).toEqual({ last_synced_at: NOW, sync_token: "tok-2" });
+  });
+
+  /** The one that matters. Google's sync token means "you have seen everything
+   * up to here", so saving it after a change we could not write means that
+   * change is never sent again -- an edit someone made on their phone is gone,
+   * not delayed, and nothing says so. */
+  test("a batch with any failure does not advance it", () => {
+    const patch = syncLinkPatch("tok-2", 1, NOW);
+    expect(patch, "the token must not move past a change that failed to apply").not.toHaveProperty("sync_token");
+    expect(patch.last_synced_at, "we did talk to Google, so the page should still say when").toBe(NOW);
+  });
+
+  test("one failure among many is still a failure", () => {
+    expect(syncLinkPatch("tok-2", 1, NOW)).not.toHaveProperty("sync_token");
+    expect(syncLinkPatch("tok-2", 47, NOW)).not.toHaveProperty("sync_token");
+  });
+
+  /** A first sync has no token to keep; null is the value that means "start
+   * from the beginning", and it must still be written on success. */
+  test("a null next token is written, not skipped", () => {
+    expect(syncLinkPatch(null, 0, NOW)).toEqual({ last_synced_at: NOW, sync_token: null });
   });
 });

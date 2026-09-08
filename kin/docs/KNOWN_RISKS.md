@@ -11,7 +11,7 @@ place for those.
 
 ---
 
-## Writes whose error is never captured (46 sites, was 67)
+## Writes whose error is never captured (29 sites, was 67)
 
 `src/lib/actions/*.ts` contains writes of the shape
 
@@ -20,7 +20,7 @@ place for those.
 with no `const { error }`. If the write is refused — by RLS, by a constraint,
 by the network — the action carries on and reports success.
 
-**21 were fixed on 8 September**, chosen by one test: would a silent failure
+**38 were fixed on 8 September**, chosen by one test: would a silent failure
 lose data or money, in a way the person could not see? The rest were left,
 because touching a call site to guard against a failure nobody has observed
 is how you break something that works.
@@ -66,9 +66,8 @@ household name, and deliberately not the code, which is a credential.
 visibly: the list re-renders from the database and the tick comes back. The
 storage `.remove()` calls (avatars, journal media, documents, recipe photos)
 leak an orphaned file rather than losing anything the family can see.
-`calendar-sync.ts` holds 17 and is its own problem — every one of them is a
-best-effort mirror to Google, where failing loudly would be worse than the
-drift.
+`calendar-sync.ts`'s 17 were done on 8 September and turned out not to be a
+logging problem at all — see the entry below.
 
 **What would change that.** Any report of "I did that and it did not save"
 in one of the remaining paths.
@@ -195,6 +194,53 @@ labelled as though it were their real figure.
 Harmless and long-standing, and the honest options differ: either stop
 claiming to show it, or decide targets are household-visible and widen the
 SELECT policy. That is a product decision, not a bug fix.
+
+---
+
+## A failed calendar sync used to lose the change for good — FIXED 8 September
+
+Recorded here because the shape is worth remembering: this looked like
+seventeen dropped errors and was really one design fault.
+
+`pullMemberCalendar` applied each change Google reported, discarding whatever
+went wrong, and then saved the new sync token **unconditionally**. A Google
+sync token means *"you have seen everything up to here"* — so a change that
+failed to write into Kin was never sent again. Not delayed: gone. Something a
+family member did on their phone would simply never arrive, and nothing
+anywhere would say so.
+
+**What changed**
+
+- `applyIncomingEvent` reports failure instead of swallowing it; all 17 writes
+  in the file capture their error.
+- The token is only advanced when every change in the batch landed
+  (`syncLinkPatch`, pure and tested). `last_synced_at` still moves either way,
+  because we did talk to Google.
+- The create path undoes a half-made activity. Since a failure now guarantees a
+  retry, the retry must not find no link and make a second copy.
+- Two orphan paths closed: a Google event created but not linked is deleted
+  again (unlinked, it would never be updated or removed, and the next *pull*
+  would read it as somebody's own event and make a duplicate activity from it);
+  a link that could not be cleared is logged.
+- `syncGoogleCalendarAction` returns a real error. It used to return
+  `error: null` even when the backfill threw or a whole member's calendar
+  failed to read — and both UIs already rendered `result.error`, they were just
+  never given one.
+- `disconnectCalendarAction` says so when the token could not be removed.
+  "Disconnected" should mean the credential is gone too.
+
+**The cost, stated rather than hidden.** An event that can *never* apply — one
+that trips a constraint rather than a passing fault — now holds the token still,
+and no later change from that member gets through until someone looks. That is
+a worse blast radius than losing one edit, and it is deliberate: stuck and loud
+beats lossy and silent, and the count is reported to whoever pressed Sync now,
+so it is loud.
+
+**The durable fix needs a table** and is therefore Jonathan's: record failed
+event ids with an attempt count, advance the token past an event that has
+failed several times, and show those somewhere. That converts "stuck" into
+"one item quarantined". Not done, and not proposed as a migration until
+somebody actually hits it — no instance has been observed failing.
 
 ---
 

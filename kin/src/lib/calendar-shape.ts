@@ -164,3 +164,26 @@ export function eventStartEnd(
   }
   return null;
 }
+
+/** What to write back to calendar_links after pulling a member's calendar.
+ *
+ * Google's sync token means "you have seen everything up to here". Saving it
+ * after a change we could not write is what made a failed apply permanent --
+ * that edit is never sent again, so something a family member did on their
+ * phone simply never arrives, and nothing anywhere says so.
+ *
+ * So the token is only ever advanced when every change in the batch landed.
+ * `last_synced_at` moves either way, because we did in fact just talk to
+ * Google and the Settings page should say when.
+ *
+ * The cost, named rather than hidden: an event that can never be applied holds
+ * the token still, and no later change from that member gets through until
+ * someone looks. Stuck and loud beats lossy and silent -- and the failure
+ * count is reported to whoever pressed Sync now, so it is loud. */
+export function syncLinkPatch(
+  nextSyncToken: string | null,
+  failedCount: number,
+  now: string,
+): { last_synced_at: string; sync_token?: string | null } {
+  return failedCount > 0 ? { last_synced_at: now } : { last_synced_at: now, sync_token: nextSyncToken };
+}

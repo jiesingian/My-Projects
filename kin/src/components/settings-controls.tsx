@@ -291,6 +291,7 @@ function MigratePhotosButton() {
 
 export function CalendarConnectedPanel({ email, lastSyncedAt }: { email: string | null; lastSyncedAt: string | null }) {
   const [pending, startTransition] = useTransition();
+  const [failed, setFailed] = useState<string | null>(null);
   return (
     <>
       <div style={{ background: "var(--color-bg)", border: "1px solid var(--color-divider)", padding: "9px 11px", marginBottom: 12 }}>
@@ -303,10 +304,22 @@ export function CalendarConnectedPanel({ email, lastSyncedAt }: { email: string 
         className="btn btn-secondary btn-block"
         disabled={pending}
         style={{ minHeight: 40, fontSize: 13.5, marginTop: 9 }}
-        onClick={() => startTransition(() => disconnectCalendarAction())}
+        onClick={() =>
+          startTransition(async () => {
+            const { error } = await disconnectCalendarAction();
+            setFailed(error);
+          })
+        }
       >
         {pending ? "…" : "DISCONNECT"}
       </button>
+      {/* A disconnect that quietly did not happen leaves the household
+          believing Google is no longer reading their calendar. */}
+      {failed && (
+        <p role="alert" style={{ fontSize: 13, color: "var(--color-accent-700)", margin: "6px 0 0" }}>
+          {failed}
+        </p>
+      )}
       {lastSyncedAt && (
         <div style={{ fontSize: 13, color: "var(--color-neutral-600)", marginTop: 10 }}>Last synced {familyDateTime(new Date(lastSyncedAt))}</div>
       )}
