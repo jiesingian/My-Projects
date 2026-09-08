@@ -7,6 +7,7 @@ import { uploadFileDirect, rollbackUpload, type UploadedFile } from "@/lib/uploa
 import { ErrorText } from "@/components/form";
 import { DetailHeader } from "@/components/hub-header";
 import type { Tables } from "@/lib/database.types";
+import { familyDay } from "@/lib/time";
 
 export function NewEntryForm({ members }: { members: Tables<"members">[] }) {
   const [people, setPeople] = useState<string[]>([]);
@@ -29,7 +30,7 @@ export function NewEntryForm({ members }: { members: Tables<"members">[] }) {
 
     const fd = new FormData(e.currentTarget);
     const title = String(fd.get("title") ?? "");
-    const date = String(fd.get("date") ?? new Date().toISOString().slice(0, 10));
+    const date = String(fd.get("date") ?? familyDay());
     const note = String(fd.get("note") ?? "").trim() || null;
 
     const created = await createJournalEntryAction({ title, date, note, people });
@@ -72,7 +73,7 @@ export function NewEntryForm({ members }: { members: Tables<"members">[] }) {
           </div>
           <div className="field" style={{ marginBottom: 16 }}>
             <label>DATE</label>
-            <input aria-label="Date" className="input" type="date" name="date" defaultValue={new Date().toISOString().slice(0, 10)} required style={{ minHeight: 44 }} />
+            <input aria-label="Date" className="input" type="date" name="date" defaultValue={familyDay()} required style={{ minHeight: 44 }} />
           </div>
           <div style={{ fontSize: 13, color: "var(--color-neutral-700)", marginBottom: 6 }}>Who was there</div>
           <div style={{ display: "flex", gap: 7, flexWrap: "wrap", marginBottom: 16 }}>

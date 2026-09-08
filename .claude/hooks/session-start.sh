@@ -38,15 +38,22 @@ ENV
 fi
 
 # ── graphify ─────────────────────────────────────────────────────────────
-# Pinned to the version that produced the committed cache. A newer one
-# re-extracts every file and rewrites graph.json by thousands of lines, which
-# buries a real change in noise and collides with whoever else is working.
-# Keep this in step with kin/graphify-out/cache/ast/.
+# Pinned so the AST extractor stays compatible with the committed semantic
+# layer (.graphify_labels.json and cache/semantic/, which came from a paid LLM
+# pass and cannot be rebuilt for free).
 GRAPHIFY_VERSION="0.9.55"
 if ! command -v graphify >/dev/null 2>&1 || \
    [ "$(graphify --version 2>/dev/null | awk '{print $2}')" != "$GRAPHIFY_VERSION" ]; then
   pip install --quiet "graphifyy==${GRAPHIFY_VERSION}" || \
     echo "graphify $GRAPHIFY_VERSION could not be installed; 'graphify update .' will not work this session."
+fi
+
+# graph.json is no longer committed -- it regenerates from source and its diffs
+# were burying real changes -- so a fresh clone has no graph at all until this
+# runs. AST-only, no API key, no cost, about half a minute. Failure is not
+# fatal: the graph is a convenience, and grep still works without it.
+if command -v graphify >/dev/null 2>&1 && [ ! -f graphify-out/graph.json ]; then
+  graphify update . >/dev/null 2>&1 || echo "graphify update failed; queries will not work this session."
 fi
 
 # ── the end-to-end suite ─────────────────────────────────────────────────

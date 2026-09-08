@@ -1,7 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
-import { formatDate } from "@/lib/format";
 import { resolvePhotoUrl } from "@/lib/photo-url";
 import type { Tables } from "@/lib/database.types";
+import { familyDate } from "@/lib/format-family";
 
 export async function getFamilyProfile(familyId: string) {
   const supabase = await createClient();
@@ -39,6 +39,7 @@ export type HealthSummaryRow = {
 export async function getHealthSummary(familyId: string): Promise<HealthSummaryRow[]> {
   const supabase = await createClient();
   const members = await getMembers(familyId);
+  const fmtDate = await familyDate();
   const { data: schedule } = await supabase
     .from("health_schedule")
     .select("*")
@@ -50,7 +51,7 @@ export async function getHealthSummary(familyId: string): Promise<HealthSummaryR
     const next = (schedule ?? []).find((s) => s.member_id === member.id);
     return {
       member,
-      nextDue: next ? `${next.what}${next.when_date ? " " + formatDate(next.when_date) : ""}` : "Nothing scheduled",
+      nextDue: next ? `${next.what}${next.when_date ? " " + fmtDate(next.when_date) : ""}` : "Nothing scheduled",
       hasAlert: next ? next.status === "due" || next.status === "due_soon" : false,
     };
   });

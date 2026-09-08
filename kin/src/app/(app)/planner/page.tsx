@@ -18,11 +18,13 @@ import { syncGoogleCalendarIfStale } from "@/lib/actions/calendar-sync";
 import { HubHeader } from "@/components/hub-header";
 import { PickButton } from "@/components/pick-button";
 import { Blueprint, Tag } from "@/components/ui";
-import { formatCurrency, formatDate, shortNames, selfLabel } from "@/lib/format";
+import { formatCurrency, shortNames, selfLabel } from "@/lib/format";
 import { AddToJournalButton } from "@/components/add-to-journal-button";
 import { Icon } from "@/components/icons";
 import { CALENDAR_LEGEND, styleFor } from "@/lib/calendar-style";
 import { parseHidden, serializeHidden, toggledHidden, type CalendarGroup } from "@/lib/calendar-groups";
+import { familyClock } from "@/lib/time";
+import { dayColumn, startOfWeek, weekdayInitials, weekStartOf, type WeekStart } from "@/lib/week";
 import { LogSpendControl } from "@/components/money-actions";
 import { CalendarJump, CalendarPeriod, DateRail, MonthScroller, TodayButton } from "@/components/calendar-nav";
 import { AddToCalendar } from "@/components/add-to-calendar";
@@ -31,6 +33,7 @@ import { describeRule, formatTimeOfDay, ROUTINE_KIND_META, type RoutineKind } fr
 import { RoutineTick, RoutineOccurrences, RoutinePauseButton, RoutineDeleteButton } from "@/components/routine-controls";
 import { CalendarSyncStatus, RememberFilter } from "@/components/calendar-sync-status";
 import { cookies } from "next/headers";
+import { familyDate } from "@/lib/format-family";
 
 const SEGMENTS = ["calendar", "routines", "events", "travel"] as const;
 type Seg = (typeof SEGMENTS)[number];
@@ -71,9 +74,19 @@ export default async function PlannerPage({
 
   return (
     <div>
-      <HubHeader n="03" title="Planner" segments={segments} />
+      <HubHeader n="03" title="Planner" segments={segments} dateFormat={me.families.date_format} />
       <div style={{ padding: "0 22px 22px" }}>
-        {seg === "calendar" && <CalendarPane familyId={me.family_id} meId={me.id} who={who} view={view} anchor={anchor} hidden={hidden} />}
+        {seg === "calendar" && (
+          <CalendarPane
+            familyId={me.family_id}
+            meId={me.id}
+            who={who}
+            view={view}
+            anchor={anchor}
+            hidden={hidden}
+            weekStart={weekStartOf(me.families.week_start)}
+          />
+        )}
         {seg === "routines" && <RoutinesPane familyId={me.family_id} who={who} currency={me.families.currency} justSaved={sp.saved === "1"} />}
         {seg === "events" && <EventsPane familyId={me.family_id} who={who} />}
         {seg === "travel" && <TravelPane familyId={me.family_id} memberId={me.id} currency={me.families.currency} who={who} />}
@@ -97,7 +110,7 @@ function calendarBase(who: string, view: CalendarView, hide = "") {
   return `/planner?seg=calendar&who=${who}&view=${view}&hide=${hide}&date=`;
 }
 
-async function CalendarPane({ familyId, meId, who, view, anchor, hidden }: { familyId: string; meId: string; who: string; view: CalendarView; anchor: Date; hidden: Set<CalendarGroup> }) {
+async function CalendarPane({ familyId, meId, who, view, anchor, hidden, weekStart }: { familyId: string; meId: string; who: string; view: CalendarView; anchor: Date; hidden: Set<CalendarGroup>; weekStart: WeekStart }) {
   const hide = serializeHidden(hidden);
   const [members, sync] = await Promise.all([getMembers(familyId), getCalendarSyncStatus(familyId)]);
   const activeMembers = members.filter((m) => m.status !== "pending" && m.status !== "removed");
@@ -111,8 +124,7 @@ async function CalendarPane({ familyId, meId, who, view, anchor, hidden }: { fam
   const label =
     view === "week"
       ? (() => {
-          const start = new Date(anchor);
-          start.setDate(anchor.getDate() - anchor.getDay());
+          const start = startOfWeek(anchor, weekStart);
           const end = new Date(start);
           end.setDate(start.getDate() + 6);
           return start.getMonth() === end.getMonth()
@@ -130,7 +142,7 @@ async function CalendarPane({ familyId, meId, who, view, anchor, hidden }: { fam
       {/* The period, and the way to any other. */}
       <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 8 }}>
         {/* The title is the jump control: month, year or exact day in one tap. */}
-        <CalendarJump label={label} hrefBase={calendarBase(who, view, hide)} anchor={toISODate(anchor)} />
+        <CalendarJump label={label} hrefBase={calendarBase(who, view, hide)} anchor={toISODate(anchor)} weekStart={weekStart} />
         {/* Straight back to the current date. The prev/next arrows that used
             to sit here are gone: the week rail and the month scroller both
             scroll, and the title's sheet reaches any date at all, so the
@@ -167,8 +179,8 @@ async function CalendarPane({ familyId, meId, who, view, anchor, hidden }: { fam
         />
       </div>
 
-      {view === "week" && <WeekView familyId={familyId} memberId={memberId} who={who} anchor={anchor} hidden={hidden} hide={hide} />}
-      {view === "month" && <MonthView familyId={familyId} memberId={memberId} who={who} anchor={anchor} hidden={hidden} hide={hide} />}
+      {view === "week" && <WeekView familyId={familyId} memberId={memberId} who={who} anchor={anchor} hidden={hidden} hide={hide} weekStart={weekStart} />}
+      {view === "month" && <MonthView familyId={familyId} memberId={memberId} who={who} anchor={anchor} hidden={hidden} hide={hide} weekStart={weekStart} />}
       {view === "year" && <YearView familyId={familyId} memberId={memberId} who={who} anchor={anchor} hidden={hidden} hide={hide} />}
 
       {/* The legend is also the filter: each entry says what a colour means
@@ -238,7 +250,7 @@ function AgendaRow({ item }: { item: PlannerCalendarItem }) {
       <div style={{ flex: 1, minWidth: 0, padding: "7px 0" }}>
         <Link href={item.href} style={{ display: "flex", gap: 10, textDecoration: "none", color: "inherit", alignItems: "baseline" }}>
           <span style={{ fontSize: 13, color: "var(--color-neutral-600)", width: 52, flex: "none" }}>
-            {item.allDay ? "all-day" : item.date.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })}
+            {item.allDay ? "all-day" : familyClock(item.date)}
           </span>
           <span style={{ flex: 1, minWidth: 0 }}>
             <span style={{ fontSize: 16, fontWeight: 500, display: "block", lineHeight: 1.25 }}>{item.title}</span>
@@ -304,8 +316,8 @@ function DayHeading({ date, isToday }: { date: Date; isToday: boolean }) {
   );
 }
 
-async function WeekView({ familyId, memberId, who, anchor, hidden, hide }: { familyId: string; memberId?: string; who: string; anchor: Date; hidden: Set<CalendarGroup>; hide: string }) {
-  const { days, strip } = await getWeekAgenda(familyId, memberId, anchor, hidden);
+async function WeekView({ familyId, memberId, who, anchor, hidden, hide, weekStart }: { familyId: string; memberId?: string; who: string; anchor: Date; hidden: Set<CalendarGroup>; hide: string; weekStart: WeekStart }) {
+  const { days, strip } = await getWeekAgenda(familyId, memberId, anchor, hidden, undefined, weekStart);
   const selected = days.find((d) => d.isSelected);
   const today = new Date();
 
@@ -396,7 +408,7 @@ async function WeekView({ familyId, memberId, who, anchor, hidden, hide }: { fam
   );
 }
 
-async function MonthView({ familyId, memberId, who, anchor, hidden, hide }: { familyId: string; memberId?: string; who: string; anchor: Date; hidden: Set<CalendarGroup>; hide: string }) {
+async function MonthView({ familyId, memberId, who, anchor, hidden, hide, weekStart }: { familyId: string; memberId?: string; who: string; anchor: Date; hidden: Set<CalendarGroup>; hide: string; weekStart: WeekStart }) {
   const { months } = await getMonthsOverview(familyId, anchor, memberId, hidden);
   const today = new Date();
   const anchorMonth = months.find(
@@ -408,7 +420,7 @@ async function MonthView({ familyId, memberId, who, anchor, hidden, hide }: { fa
     <div style={{ marginBottom: 8 }}>
       {/* One weekday header for the whole run — the columns never move. */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(7, minmax(0, 1fr))", gap: 2, marginBottom: 4 }}>
-        {["S", "M", "T", "W", "T", "F", "S"].map((d, i) => (
+        {weekdayInitials(weekStart).map((d, i) => (
           <div key={i} style={{ textAlign: "center", fontSize: 11, color: "var(--color-neutral-600)" }}>
             {d}
           </div>
@@ -444,7 +456,7 @@ async function MonthView({ familyId, memberId, who, anchor, hidden, hide }: { fa
                 {monthLabel.toUpperCase()}
               </div>
               <div style={{ display: "grid", gridTemplateColumns: "repeat(7, minmax(0, 1fr))", gap: 2 }}>
-                {Array.from({ length: m.monthStart.getDay() }, (_, i) => (
+                {Array.from({ length: dayColumn(m.monthStart, weekStart) }, (_, i) => (
                   <div key={`b${i}`} />
                 ))}
                 {Array.from({ length: m.daysInMonth }, (_, i) => i + 1).map((day) => {
@@ -832,6 +844,7 @@ async function EventsPane({ familyId, who }: { familyId: string; who: string }) 
 }
 
 async function TravelPane({ familyId, memberId, currency, who }: { familyId: string; memberId: string; currency: string; who: string }) {
+  const fmtDate = await familyDate();
   const [allTrips, accounts] = await Promise.all([getTrips(familyId), getAccounts(familyId)]);
   const trips = allTrips.filter((t) => concerns(t.travellerIds, t.applies_to_whole_family, who));
   const pickable = accounts
@@ -854,8 +867,8 @@ async function TravelPane({ familyId, memberId, currency, who }: { familyId: str
           />
           <div style={{ padding: 13 }}>
             <div style={{ font: "400 12px/1 var(--font-numeric)", color: "var(--color-accent-700)" }}>
-              {formatDate(upcoming.start_date)}
-              {upcoming.end_date ? ` — ${formatDate(upcoming.end_date)}` : ""}
+              {fmtDate(upcoming.start_date)}
+              {upcoming.end_date ? ` — ${fmtDate(upcoming.end_date)}` : ""}
             </div>
             <div style={{ font: "600 24px/1.05 var(--font-heading)", margin: "6px 0 8px" }}>{upcoming.title}</div>
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8, fontSize: 13 }}>
@@ -906,7 +919,7 @@ async function TravelPane({ familyId, memberId, currency, who }: { familyId: str
           {earlier.map((t) => (
             <div key={t.id} style={{ display: "flex", gap: 12, padding: "11px 0", borderTop: "1px solid var(--color-divider)", alignItems: "center" }}>
               <span style={{ font: "400 10.5px/1.4 var(--font-numeric)", color: "var(--color-neutral-600)", width: 84, flex: "none" }}>
-                {formatDate(t.start_date)}
+                {fmtDate(t.start_date)}
               </span>
               <Link href={`/planner/add?type=trip&id=${t.id}`} style={{ flex: 1, minWidth: 0, textDecoration: "none", color: "inherit" }}>
                 <span style={{ display: "block", font: "600 17px/1.1 var(--font-heading)" }}>{t.title}</span>

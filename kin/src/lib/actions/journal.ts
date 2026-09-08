@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { requireCurrentMember } from "@/lib/session";
 import { getValidDriveAccessToken, deleteDriveFile, ensureDriveFolderStructure, ensureNamedSubfolder } from "@/lib/google-drive";
+import { familyDay } from "@/lib/time";
 
 type UploadedFile =
   | { provider: "google_drive"; driveFileId: string; driveViewLink: string | null; driveThumbnailLink: string | null }
@@ -134,7 +135,7 @@ export async function createMilestoneAction(_prev: { error: string | null }, for
   const supabase = await createClient();
 
   const title = String(formData.get("title") ?? "").trim();
-  const date = String(formData.get("date") ?? new Date().toISOString().slice(0, 10));
+  const date = String(formData.get("date") ?? familyDay());
   const memberId = String(formData.get("member_id") ?? "") || null;
   if (!title) return { error: "Give the milestone a title." };
 

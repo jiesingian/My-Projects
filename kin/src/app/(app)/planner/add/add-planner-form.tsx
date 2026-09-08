@@ -17,6 +17,7 @@ import type { ActionState } from "@/lib/actions/auth";
 import { SubmitButton, ErrorText } from "@/components/form";
 import { DetailHeader } from "@/components/hub-header";
 import type { Tables } from "@/lib/database.types";
+import { familyClock, familyDay } from "@/lib/time";
 
 const initialState: ActionState = { error: null };
 const TYPES = ["activity", "event", "trip"] as const;
@@ -76,9 +77,16 @@ function ActivityForm({ members, defaultDate, editActivity }: { members: Tables<
   const router = useRouter();
   const [deleting, setDeleting] = useState(false);
 
-  const startDate = editActivity ? editActivity.start_at.slice(0, 10) : undefined;
-  const startTime = editActivity ? editActivity.start_at.slice(11, 16) : undefined;
-  const endTime = editActivity?.end_at ? editActivity.end_at.slice(11, 16) : undefined;
+  // start_at is an instant, and Postgres hands it over in UTC. Slicing the
+  // characters out of that string reads the clock in London, not the one in
+  // the kitchen: an activity typed as 18:00 came back to the form as 10:00.
+  // That is not merely a wrong label -- this form rewrites the whole row on
+  // save, parsing date and time in the household's zone, so opening an
+  // activity and changing only its title used to walk it eight hours earlier,
+  // every time, silently.
+  const startDate = editActivity ? familyDay(new Date(editActivity.start_at)) : undefined;
+  const startTime = editActivity ? familyClock(new Date(editActivity.start_at)) : undefined;
+  const endTime = editActivity?.end_at ? familyClock(new Date(editActivity.end_at)) : undefined;
 
   return (
     <form action={formAction}>

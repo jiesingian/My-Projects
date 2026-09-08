@@ -53,6 +53,17 @@ jobs:
           # Everything else, including most server actions, merges on green and
           # is fixed forward. RLS is the real backstop under the actions, and it
           # is enforced by the database rather than by whoever read the diff.
+          #
+          # .claude/ is here because it is the most literal reading of "runs
+          # code on our machines" in the whole list: settings.json registers
+          # the SessionStart hook and holds the permission allowlist, so a
+          # ten-line diff there can add a hook or widen a grant, and the next
+          # session on anyone's machine runs it without asking. It was invisible
+          # to this classifier until recently for the honest reason that it
+          # could not appear in a diff at all -- it was gitignored. The moment
+          # it became committable, it needed watching, and that was missed.
+          # .gitignore is here for the same reason: it decides what this list
+          # can even see.
           SENSITIVE='^(
           kin/src/lib/actions/(auth|family|billing|wealth|drive)\.ts|
           kin/src/lib/supabase/|
@@ -72,6 +83,8 @@ jobs:
           kin/package(-lock)?\.json|
           kin/eslint\.config\.|
           \.github/|
+          \.claude/|
+          \.gitignore|
           CLAUDE\.md|
           .*AGENTS\.md|
           LICENSE|

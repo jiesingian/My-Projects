@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { getSignedUrls } from "@/lib/storage";
 import { GROUP_OF, type CalendarGroup, type CalendarTable } from "@/lib/calendar-groups";
+import { startOfWeek as firstDayOfWeek, type WeekStart } from "@/lib/week";
 import { expandRoutine, assigneeFor, type RoutineRule } from "@/lib/routines";
 
 export type PlannerCalendarItem = {
@@ -251,10 +252,12 @@ export async function getWeekAgenda(
   anchor: Date = new Date(),
   hidden?: Set<CalendarGroup>,
   stripWeeksEachSide = 6,
+  // Named for the preference, not for the Date this returns under the same
+  // word: 0 is Sunday, 1 is Monday.
+  weekStartsOn: WeekStart = 0,
 ) {
   const today = new Date();
-  const startOfWeek = new Date(anchor);
-  startOfWeek.setDate(anchor.getDate() - anchor.getDay());
+  const startOfWeek = firstDayOfWeek(anchor, weekStartsOn);
 
   const stripStart = new Date(startOfWeek);
   stripStart.setDate(startOfWeek.getDate() - 7 * stripWeeksEachSide);

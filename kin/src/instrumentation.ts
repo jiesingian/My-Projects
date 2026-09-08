@@ -30,5 +30,19 @@ export function register() {
   // KIN_TZ is the escape hatch, so a deployment can be moved without a code
   // change. TZ itself is deliberately not read: it is unset on Vercel and
   // defaults to UTC, so honouring it would mean honouring the bug.
-  process.env.TZ = process.env.KIN_TZ ?? FAMILY_TZ;
+  //
+  // This is the belt. The braces are TZ on the npm scripts, and they are there
+  // because next dev renders in a worker pool rather than in the process that
+  // ran this function: a worker forked before register() ran keeps the zone it
+  // was forked with, so the same page could be served in Manila or in UTC
+  // depending on nothing the code can see. Setting the variable in the shell
+  // means every worker inherits it, whenever it starts. On Vercel there is no
+  // pool and no shell, which is what this line is for.
+  // `||`, not `??`, and trimmed. An env var set to the empty string is a
+  // thing deployments do -- Vercel will happily save one -- and `??` keeps it,
+  // because "" is not nullish. Node does not then fall back to UTC either: it
+  // reports Etc/Unknown, an invalid zone, and every date in the app is
+  // formatted in nothing at all. Measured, not assumed. This is the same
+  // mistake that made the first CI run of the suite fail, one file over.
+  process.env.TZ = process.env.KIN_TZ?.trim() || FAMILY_TZ;
 }

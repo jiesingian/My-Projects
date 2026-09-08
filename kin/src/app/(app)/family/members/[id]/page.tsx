@@ -9,7 +9,7 @@ import { DetailHeader } from "@/components/hub-header";
 import { Segmented } from "@/components/segmented";
 import { Blueprint, Tag } from "@/components/ui";
 import { Icon } from "@/components/icons";
-import { formatAge, formatDate, initials } from "@/lib/format";
+import { formatAge, initials } from "@/lib/format";
 import { OmronToggle } from "./omron-toggle";
 import { RelationshipEditor } from "@/components/relationship-editor";
 import { RemoveMemberButton } from "@/components/member-status-actions";
@@ -19,6 +19,7 @@ import { MemberProfileEditor } from "@/components/member-profile-editor";
 import type { AlbumPhoto } from "@/lib/actions/profile";
 import { memberToProfileFields } from "@/lib/profile-fields";
 import { resolvePhotoUrl } from "@/lib/photo-url";
+import { familyDate } from "@/lib/format-family";
 
 const SEGMENTS = ["schedule", "conditions", "labs", "vitals"] as const;
 type Seg = (typeof SEGMENTS)[number];
@@ -31,6 +32,8 @@ export default async function MemberDetailPage({
   searchParams: Promise<{ seg?: string; view?: string }>;
 }) {
   const me = await getCurrentMember();
+  const dateFormat = me?.families.date_format;
+  const fmtDate = await familyDate();
   if (!me) redirect("/onboarding/profile");
   const { id } = await params;
   const sp = await searchParams;
@@ -64,9 +67,9 @@ export default async function MemberDetailPage({
   const weightPoints = vitals.filter((v) => v.vital_type === "weight");
   const lengthPoints = vitals.filter((v) => v.vital_type === "length");
   const topSeries = isChild
-    ? buildBarSeries(lengthPoints, (v) => parseFloat(v), 25)
-    : buildBarSeries(bpPoints, (v) => parseInt(v, 10), 30);
-  const weightSeries = buildBarSeries(weightPoints, (v) => parseFloat(v), 20);
+    ? buildBarSeries(lengthPoints, (v) => parseFloat(v), 25, dateFormat)
+    : buildBarSeries(bpPoints, (v) => parseInt(v, 10), 30, dateFormat);
+  const weightSeries = buildBarSeries(weightPoints, (v) => parseFloat(v), 20, dateFormat);
 
   const segments = SEGMENTS.map((s) => ({
     label: s[0].toUpperCase() + s.slice(1),
@@ -81,6 +84,7 @@ export default async function MemberDetailPage({
         {view === "profile" ? (
           isSelf ? (
             <MemberProfileEditor
+              dateFormat={dateFormat}
               fullName={member.full_name}
               ageLabel={`${formatAge(member.dob)} · ${member.relationship ?? member.role.replace("_", " ")}`}
               statusLabel={member.is_organiser ? "ORGANIZER" : member.status.toUpperCase()}
@@ -113,6 +117,7 @@ export default async function MemberDetailPage({
               )}
 
               <ProfileEditForm
+                dateFormat={dateFormat}
                 memberId={member.id}
                 isSelf={false}
                 canEdit={me.is_organiser}
@@ -142,7 +147,7 @@ export default async function MemberDetailPage({
                 <div key={s.id} style={{ display: "flex", justifyContent: "space-between", gap: 12, padding: "8px 0", borderBottom: "1px solid var(--color-divider)" }}>
                   <span style={{ fontSize: 14 }}>{s.what}</span>
                   <span style={{ fontFamily: "var(--font-numeric)", fontSize: 13, color: "var(--color-neutral-700)" }}>
-                    {s.when_date ? formatDate(s.when_date) : "—"}
+                    {s.when_date ? fmtDate(s.when_date) : "—"}
                   </span>
                   <Tag variant={s.status === "due" ? "accent" : "neutral"}>{s.status.replace("_", " ").toUpperCase()}</Tag>
                 </div>
@@ -192,7 +197,7 @@ export default async function MemberDetailPage({
                     .map((e) => (
                       <div key={e.id} style={{ display: "flex", gap: 10, padding: "8px 0", borderTop: "1px solid color-mix(in srgb, var(--color-text) 10%, transparent)" }}>
                         <span style={{ font: "400 10.5px/1.5 var(--font-numeric)", color: "var(--color-accent-700)", width: 74, flex: "none" }}>
-                          {formatDate(e.entry_date)}
+                          {fmtDate(e.entry_date)}
                         </span>
                         <span style={{ flex: 1, fontSize: 14 }}>{e.note}</span>
                       </div>
@@ -215,7 +220,7 @@ export default async function MemberDetailPage({
                   </div>
                   <div style={{ display: "flex", gap: 10, alignItems: "baseline", marginTop: 5 }}>
                     <span style={{ font: "400 10.5px/1.5 var(--font-numeric)", color: "var(--color-neutral-600)", width: 74, flex: "none" }}>
-                      {formatDate(l.test_date)}
+                      {fmtDate(l.test_date)}
                     </span>
                     <span style={{ flex: 1, fontSize: 13.5, color: "var(--color-neutral-800)" }}>{l.result}</span>
                   </div>

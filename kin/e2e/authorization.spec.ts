@@ -119,6 +119,46 @@ test.describe("what row-level security refuses", () => {
     await api.dispose();
   });
 
+  /** A managed child's privileges are not a parent's to hand out.
+   *
+   * Applied 8 September, and this came off fixme in the same change, as the
+   * migration file said it should.
+   *
+   * What it holds: members_guard_self_update opens with
+   * `auth.uid() = old.auth_user_id`, and a managed child has no login, so
+   * that is null rather than true and the guard is skipped for exactly the
+   * rows nobody is signed in as. members_update_managed_by_parent then lets
+   * any parent write the row, with no WITH CHECK of its own. Since
+   * attach_login_to_child leaves is_organiser alone, a parent can set it on a
+   * child and then give that child a login they control -- parent becomes
+   * organiser. Reproduced against this household on 8 September and
+   * reverted. */
+  test("a managed child cannot be handed privileges", async () => {
+    const api = await playwrightRequest.newContext();
+    const res = await api.get(`${SUPABASE_URL}/rest/v1/members?select=id&auth_user_id=is.null&status=eq.managed&limit=1`, {
+      headers: { apikey: SUPABASE_KEY!, Authorization: `Bearer ${token}` },
+    });
+    const [child] = await res.json();
+    expect(child, "the throwaway household has no managed child to test with").toBeTruthy();
+
+    const patch = await api.patch(`${SUPABASE_URL}/rest/v1/members?id=eq.${child.id}`, {
+      headers: {
+        apikey: SUPABASE_KEY!,
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+        Prefer: "return=representation",
+      },
+      data: { is_organiser: true },
+    });
+    expect(patch.status(), "a managed child was made an organiser").toBeGreaterThanOrEqual(400);
+
+    const after = await api.get(`${SUPABASE_URL}/rest/v1/members?select=is_organiser&id=eq.${child.id}`, {
+      headers: { apikey: SUPABASE_KEY!, Authorization: `Bearer ${token}` },
+    });
+    expect((await after.json())[0].is_organiser, "the child is an organiser now").toBe(false);
+    await api.dispose();
+  });
+
   /** The tokens behind Google Drive and Calendar are deliberately invisible to
    * the signed-in roles -- only the server's own key may read them. */
   test("connected-account tokens are not readable", async () => {

@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { requireCurrentMember } from "@/lib/session";
 import type { ActionState } from "@/lib/actions/auth";
+import { familyDay } from "@/lib/time";
 
 const GROUPED_TYPES = new Set(["illness", "checkup", "medication", "vaccination"]);
 
@@ -14,7 +15,7 @@ export async function createHealthEntryAction(_prev: ActionState, formData: Form
 
   const memberId = String(formData.get("member_id") ?? "");
   const type = String(formData.get("type") ?? "");
-  const date = String(formData.get("date") ?? new Date().toISOString().slice(0, 10));
+  const date = String(formData.get("date") ?? familyDay());
   const title = String(formData.get("title") ?? "").trim();
   const value = String(formData.get("value") ?? "").trim();
   const seenBy = String(formData.get("seen_by") ?? "").trim() || null;

@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { getSignedUrls } from "@/lib/storage";
 import { getValidDriveAccessToken, ensureDriveFolderStructure, ensureNamedSubfolder, listDriveFolderFiles } from "@/lib/google-drive";
+import { familyDay } from "@/lib/time";
 
 /** Drive has no push notifications wired up here, so this reconciles the
  * index against Drive's own Journal folder both ways on every load:
@@ -58,7 +59,7 @@ export async function syncDriveJournalMedia(familyId: string, familyName: string
       newFiles.map((f) => ({
         family_id: familyId,
         media_type: f.mimeType.startsWith("video/") ? "video" : "photo",
-        taken_at: f.createdTime ? f.createdTime.slice(0, 10) : new Date().toISOString().slice(0, 10),
+        taken_at: f.createdTime ? f.createdTime.slice(0, 10) : familyDay(),
         storage_provider: "google_drive" as const,
         drive_file_id: f.id,
         drive_view_link: f.webViewLink ?? null,

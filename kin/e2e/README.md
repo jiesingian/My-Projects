@@ -10,6 +10,11 @@ away on every load — passed `tsc`, `lint` and `build` without complaint.
 A **throwaway household**. Never point these at your own family: the write
 tests add rows, and nobody wants test data in their journal.
 
+One already exists in the Kin project: family `00000000-…-e2e1`, signed in as
+`kin-e2e-qa@example.com`. Its password is deliberately not in the repository;
+if it has been lost, reset it in the Supabase SQL editor with
+`update auth.users set encrypted_password = extensions.crypt('<new>', extensions.gen_salt('bf')) where email = 'kin-e2e-qa@example.com';`.
+
 Create one in Supabase (SQL editor), then make an auth user for it and set:
 
 ```bash
@@ -40,6 +45,8 @@ gitignored, and it is a real session — treat it like a password.
 | `regressions.spec.ts` | One test per bug that already shipped once. |
 | `writes.spec.ts` | The forms that add things, each verified by going back and finding what it made. |
 | `deletes.spec.ts` | Removing things: each makes two, removes one, and checks the other survived. |
+| `edits.spec.ts` | Changing things: set several fields, change one, and check the others are still what they were. |
+| `preferences.spec.ts` | Household settings that are supposed to change something, checked against the thing they change. |
 | `authorization.spec.ts` | What row-level security refuses, asked of the database directly. |
 
 ## What is not covered, and why
@@ -48,11 +55,19 @@ gitignored, and it is a real session — treat it like a password.
   custom SMTP, which needs a domain.
 - **Google Calendar and Drive.** Both need OAuth credentials.
 - **Uploads.** Storage plus Drive; worth doing once the above exists.
-- **Most of the 128 server actions.** Adding is covered, and two of the thirty
-  destructive ones are. Editing is not covered at all.
+- **Most of the 128 server actions.** Adding is covered, two of the thirty
+  destructive ones are, and one of the editing ones is.
 
 ## Adding to it
 
 Prefer a test that fails the way the bug behaved over one that asserts an
 implementation detail. `regressions.spec.ts` is the pattern: name the symptom,
 assert against the symptom.
+
+One caution, learned the hard way. A round trip through the interface can be
+wrong in both directions and so look right: an activity typed as 18:00 read
+back as 18:00 for months while being stored at the wrong instant, because the
+form and the calendar were making the same mistake. Where a value is stored
+in one form and shown in another — times above all — assert the stored value
+too, as `edits.spec.ts` does through PostgREST. Otherwise the test agrees
+with the bug.

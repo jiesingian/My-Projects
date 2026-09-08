@@ -4,6 +4,7 @@ import { syncRowToCalendars, type CalendarTarget } from "@/lib/actions/calendar-
 import { EXPENSE_CATEGORIES, INCOME_SOURCES, signedAmount } from "@/lib/wealth";
 import { MARKET_SECTIONS, UNITS, guessSection, formatQuantity } from "@/lib/grocery";
 import type { CurrentMember } from "@/lib/session";
+import { familyDay } from "@/lib/time";
 
 /** Every tool the Today assistant can reach. Each one is scoped to the
  * signed-in member's household by the executor — the model never supplies a
@@ -295,7 +296,9 @@ export async function runAssistantTool(name: string, rawInput: unknown, me: Curr
       if (!from || !to) return fail("Need both from and to dates.");
       const toExclusive = new Date(`${to}T00:00:00`);
       toExclusive.setDate(toExclusive.getDate() + 1);
-      const toStr = toExclusive.toISOString().slice(0, 10);
+      // Sliced in UTC this landed a day early, so the exclusive bound became
+      // the last day asked for and that day was dropped from the answer.
+      const toStr = familyDay(toExclusive);
 
       const [activities, events, trips, bills, meals, goals] = await Promise.all([
         supabase
@@ -385,8 +388,8 @@ export async function runAssistantTool(name: string, rawInput: unknown, me: Curr
           .from("meal_plans")
           .select("dish, plan_date, note")
           .eq("family_id", familyId)
-          .gte("plan_date", weekStart.toISOString().slice(0, 10))
-          .lt("plan_date", weekEnd.toISOString().slice(0, 10))
+          .gte("plan_date", familyDay(weekStart))
+          .lt("plan_date", familyDay(weekEnd))
           .order("plan_date"),
       ]);
 
@@ -614,7 +617,7 @@ export async function runAssistantTool(name: string, rawInput: unknown, me: Curr
     case "add_journal_entry": {
       const title = str(input, "title");
       if (!title) return fail("A journal entry needs a title.");
-      const entryDate = str(input, "date") ?? new Date().toISOString().slice(0, 10);
+      const entryDate = str(input, "date") ?? familyDay();
 
       const { error } = await supabase.from("journal_entries").insert({
         family_id: familyId,

@@ -86,7 +86,11 @@ export async function joinFamilyAction(_prev: ActionState, formData: FormData): 
 export async function addManagedChildAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
   const fullName = String(formData.get("full_name") ?? "").trim();
   const dob = String(formData.get("dob") ?? "") || null;
-  const relationship = String(formData.get("relationship") ?? "child").trim();
+  // The default has to be applied after trimming, not before. A text input
+  // that the user cleared submits "", not null, so `?? "child"` keeps the
+  // empty string and the default never fires -- the child is stored with no
+  // relationship at all, where the form plainly promised "child".
+  const relationship = String(formData.get("relationship") ?? "").trim() || "child";
   if (!fullName || !dob) return { error: "Name and date of birth are required." };
 
   const supabase = await createClient();
@@ -121,7 +125,11 @@ export async function addChildWithLoginAction(_prev: ActionState, formData: Form
 
   const fullName = String(formData.get("full_name") ?? "").trim();
   const dob = String(formData.get("dob") ?? "") || null;
-  const relationship = String(formData.get("relationship") ?? "child").trim();
+  // The default has to be applied after trimming, not before. A text input
+  // that the user cleared submits "", not null, so `?? "child"` keeps the
+  // empty string and the default never fires -- the child is stored with no
+  // relationship at all, where the form plainly promised "child".
+  const relationship = String(formData.get("relationship") ?? "").trim() || "child";
   const email = String(formData.get("email") ?? "").trim().toLowerCase();
   const password = String(formData.get("password") ?? "");
   if (!fullName || !dob) return { error: "Name and date of birth are required." };

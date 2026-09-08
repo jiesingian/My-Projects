@@ -144,6 +144,7 @@ export function RoutineForm({
   const [byweekday, setByweekday] = useState<number[]>(edit?.byweekday ?? [1, 3, 5]);
   const [time, setTime] = useState(edit?.time_of_day?.slice(0, 5) ?? "");
   const [reminder, setReminder] = useState(edit?.reminder_minutes == null ? "" : String(edit.reminder_minutes));
+  const [duration, setDuration] = useState(edit?.duration_minutes == null ? "" : String(edit.duration_minutes));
   const [wholeFamily, setWholeFamily] = useState(edit?.applies_to_whole_family ?? false);
   const [who, setWho] = useState<string[]>(edit?.memberIds ?? []);
   const [rotate, setRotate] = useState(edit?.rotate_assignee ?? false);
@@ -271,6 +272,40 @@ export function RoutineForm({
               <input aria-label="Time" className="input" type="time" name="time_of_day" value={time} onChange={(e) => setTime(e.target.value)} style={{ minHeight: 44 }} />
             </FieldBlock>
           </div>
+
+          {/* How long it takes. Optional, and only meaningful once there is a
+              time -- an all-day routine ties nobody to an hour, so nothing
+              downstream asks how long it lasts. Two things read this: the end
+              time pushed to each person's Google Calendar, and the check that
+              stops two routines being booked over each other. Left blank,
+              both assume an hour. */}
+          {time && (
+            <FieldBlock name="duration_minutes" invalid={bad("duration_minutes")} style={{ marginBottom: 14 }}>
+              <label>HOW LONG (OPTIONAL)</label>
+              <input
+                aria-label="How long (Optional)"
+                className="input"
+                type="number"
+                inputMode="numeric"
+                name="duration_minutes"
+                min="1"
+                max="1440"
+                // step 1, not 5: with min="1" a step of 5 makes the valid values
+                // 1, 6, 11 ... so 45 minutes fails the browser's own constraint
+                // check and the form refuses to submit, with no server error and
+                // nothing on screen to say why.
+                step="1"
+                placeholder="60"
+                value={duration}
+                onChange={(e) => setDuration(e.target.value)}
+                style={{ minHeight: 44 }}
+              />
+              <span style={{ fontSize: 12.5, color: "var(--color-neutral-600)" }}>
+                Minutes. This is what shows as the end time in Google Calendar, and what tells Kin whether two routines
+                collide. Left blank, both treat it as an hour.
+              </span>
+            </FieldBlock>
+          )}
 
           <div style={{ display: "flex", gap: 12, marginBottom: 14 }}>
             <FieldBlock name="start_date" invalid={bad("start_date")} style={{ flex: 1 }}>

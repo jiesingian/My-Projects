@@ -16,6 +16,7 @@ import {
 import type { ActionState } from "@/lib/actions/auth";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/lib/database.types";
+import { familyDay } from "@/lib/time";
 
 type Db = SupabaseClient<Database>;
 type SourceTable = "activities" | "events" | "health_schedule" | "health_appointments" | "doc_entries" | "trips" | "bills" | "meal_plans" | "goals" | "routines";
@@ -105,7 +106,11 @@ export async function removeRowFromCalendars(familyId: string, table: SourceTabl
   await supabase.from("calendar_event_links").delete().eq("source_table", table).eq("source_id", rowId);
 }
 
-const todayDate = () => new Date().toISOString().slice(0, 10);
+// The household's own today, not UTC's. As the lower bound for what to pull
+// back from Google this was merely conservative -- before eight in the
+// morning it asked for a day too much -- but it is the same mistake as the
+// one above and there is no reason to keep two answers to "what day is it".
+const todayDate = () => familyDay();
 const todayTimestamp = () => new Date().toISOString();
 
 type BackfillDescriptor = {
@@ -268,28 +273,28 @@ async function applyIncomingEvent(supabase: Db, familyId: string, memberId: stri
         .eq("id", link.source_id);
       break;
     case "events":
-      await supabase.from("events").update({ title, event_date: when.start.toISOString().slice(0, 10) }).eq("id", link.source_id);
+      await supabase.from("events").update({ title, event_date: familyDay(when.start) }).eq("id", link.source_id);
       break;
     case "health_schedule":
-      await supabase.from("health_schedule").update({ what: title, when_date: when.start.toISOString().slice(0, 10) }).eq("id", link.source_id);
+      await supabase.from("health_schedule").update({ what: title, when_date: familyDay(when.start) }).eq("id", link.source_id);
       break;
     case "health_appointments":
       await supabase.from("health_appointments").update({ what: title, when_at: when.start.toISOString(), where_text: event.location ?? null }).eq("id", link.source_id);
       break;
     case "doc_entries":
-      await supabase.from("doc_entries").update({ title, expires_at: when.start.toISOString().slice(0, 10) }).eq("id", link.source_id);
+      await supabase.from("doc_entries").update({ title, expires_at: familyDay(when.start) }).eq("id", link.source_id);
       break;
     case "trips":
-      await supabase.from("trips").update({ title, start_date: when.start.toISOString().slice(0, 10) }).eq("id", link.source_id);
+      await supabase.from("trips").update({ title, start_date: familyDay(when.start) }).eq("id", link.source_id);
       break;
     case "bills":
-      await supabase.from("bills").update({ name: title, due_date: when.start.toISOString().slice(0, 10) }).eq("id", link.source_id);
+      await supabase.from("bills").update({ name: title, due_date: familyDay(when.start) }).eq("id", link.source_id);
       break;
     case "meal_plans":
-      await supabase.from("meal_plans").update({ dish: title, plan_date: when.start.toISOString().slice(0, 10) }).eq("id", link.source_id);
+      await supabase.from("meal_plans").update({ dish: title, plan_date: familyDay(when.start) }).eq("id", link.source_id);
       break;
     case "goals":
-      await supabase.from("goals").update({ title, target_date: when.start.toISOString().slice(0, 10) }).eq("id", link.source_id);
+      await supabase.from("goals").update({ title, target_date: familyDay(when.start) }).eq("id", link.source_id);
       break;
   }
 }

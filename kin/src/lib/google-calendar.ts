@@ -1,4 +1,5 @@
 import { createAdminClient } from "@/lib/supabase/admin";
+import { familyDay } from "@/lib/time";
 
 const CALENDAR_API = "https://www.googleapis.com/calendar/v3";
 
@@ -84,8 +85,12 @@ function toGoogleEventBody(input: CalendarEventInput) {
         : { useDefault: false, overrides: [{ method: "popup", minutes: input.reminderMinutes }] },
   };
   if (input.allDay) {
-    const startDate = input.startAt.toISOString().slice(0, 10);
-    const endExclusive = new Date((input.endAt ?? input.startAt).getTime() + 86_400_000).toISOString().slice(0, 10);
+    // The household's day, not UTC's. An all-day item is built as
+    // `new Date(`${date}T00:00:00`)`, which in Manila is 16:00 the previous
+    // day in UTC -- so slicing the ISO string put every birthday, trip, bill
+    // and meal on the family's phones one day early.
+    const startDate = familyDay(input.startAt);
+    const endExclusive = familyDay(new Date((input.endAt ?? input.startAt).getTime() + 86_400_000));
     return { summary: input.title, location: input.location ?? undefined, start: { date: startDate }, end: { date: endExclusive }, ...extras };
   }
   return {
