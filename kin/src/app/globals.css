@@ -334,6 +334,13 @@ a {
   margin-bottom: 6px;
   color: var(--color-neutral-600);
 }
+/* Sits under a native date input, which renders in the browser's locale and
+   not the household's. Quiet enough to ignore once you trust it. */
+.date-echo {
+  font-size: 12.5px;
+  color: var(--color-neutral-600);
+  margin: 5px 0 0;
+}
 .input {
   width: 100%;
   min-height: 44px; /* the platform's minimum tap target */

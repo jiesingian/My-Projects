@@ -7,6 +7,7 @@ import { EXPENSE_CATEGORIES, INCOME_SOURCES } from "@/lib/wealth";
 import { formatCurrency } from "@/lib/format";
 import { ErrorText } from "@/components/form";
 import type { PickableAccount } from "@/components/money-actions";
+import { DateInput } from "@/components/date-input";
 
 const MODES = ["in", "out", "transfer"] as const;
 type Mode = (typeof MODES)[number];
@@ -116,7 +117,7 @@ export function TransactForm({
           <input className="input" type="number" step="0.01" value={amount} onChange={(e) => setAmount(Number(e.target.value))} style={{ minHeight: 44 }} />
         </Field>
         <Field label="DATE" style={{ flex: 1 }}>
-          <input className="input" type="date" value={occurredOn} onChange={(e) => setOccurredOn(e.target.value)} style={{ minHeight: 44 }} />
+          <DateInput className="input" value={occurredOn} onChange={(e) => setOccurredOn(e.target.value)} style={{ minHeight: 44 }} />
         </Field>
       </div>
 

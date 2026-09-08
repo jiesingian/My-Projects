@@ -191,3 +191,35 @@ test.describe("what the household's dates look like", () => {
     });
   }
 });
+
+/** A native date input cannot be told what the household's date_format is --
+ * the browser's locale decides how it draws itself, and the page has no say.
+ * Chrome set to US renders 2026-09-07 as 09/07/2026, which everyone here reads
+ * as the 9th of July.
+ *
+ * So the picker is left alone -- on a phone the native one is much better than
+ * anything we would build -- and the date is written out beneath it, spelled,
+ * because a month name has no digit order to get wrong.
+ *
+ * The date below is chosen so that both of its numbers are twelve or under.
+ * That is the only case where the picker can genuinely mislead: with a day of
+ * 19 there is no month it could be mistaken for, and the test would pass
+ * against a broken component. */
+test.describe("a date that cannot be misread", () => {
+  test("the planner spells out the date under the picker", async ({ page }) => {
+    await page.goto("/planner/add?type=activity", { waitUntil: "networkidle" });
+
+    const date = page.locator('[name="date"]');
+    await date.fill("2026-09-07");
+    await expect(
+      page.locator(".date-echo").first(),
+      "the date is not spelled out, so 09/07/2026 stays ambiguous",
+    ).toHaveText("Monday 7 September 2026");
+
+    // And it follows the field rather than being written once at render.
+    await date.fill("2026-07-09");
+    await expect(page.locator(".date-echo").first(), "the spelled date did not follow the picker").toHaveText(
+      "Thursday 9 July 2026",
+    );
+  });
+});

@@ -7,6 +7,7 @@ import type { ActionState } from "@/lib/actions/auth";
 import { SubmitButton, ErrorText } from "@/components/form";
 import { DetailHeader } from "@/components/hub-header";
 import { MEAL_SLOTS, MEAL_SLOT_LABEL } from "@/lib/recipes";
+import { DateInput } from "@/components/date-input";
 
 const initialState: ActionState = { error: null };
 
@@ -24,7 +25,7 @@ export default function NewMealPage() {
           <ErrorText message={state.error} />
           <div className="field" style={{ marginBottom: 14 }}>
             <label>DATE</label>
-            <input aria-label="Date" className="input" type="date" name="date" required defaultValue={defaultDate} style={{ minHeight: 44 }} />
+            <DateInput aria-label="Date" className="input" name="date" required defaultValue={defaultDate} style={{ minHeight: 44 }} />
           </div>
           <div className="field" style={{ marginBottom: 14 }}>
             <label>PART OF THE DAY</label>

@@ -7,6 +7,7 @@ import { uploadFileDirect, rollbackUpload, type UploadedFile } from "@/lib/uploa
 import { ErrorText } from "@/components/form";
 import { DetailHeader } from "@/components/hub-header";
 import type { Tables } from "@/lib/database.types";
+import { DateInput } from "@/components/date-input";
 
 const VISIBILITY = [
   { value: "family", label: "Whole family" },
@@ -141,7 +142,7 @@ export function NewDocForm({
             </div>
             <div className="field" style={{ flex: 1 }}>
               <label>EXPIRES</label>
-              <input aria-label="Expires" className="input" type="date" name="expires_at" style={{ minHeight: 44 }} />
+              <DateInput aria-label="Expires" className="input" name="expires_at" style={{ minHeight: 44 }} />
             </div>
           </div>
 

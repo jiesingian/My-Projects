@@ -6,6 +6,7 @@ import { SubmitButton } from "@/components/form";
 import { DetailHeader } from "@/components/hub-header";
 import { Icon } from "@/components/icons";
 import { ROUTINE_KINDS, ROUTINE_KIND_META, type RoutineKind } from "@/lib/routines";
+import { DateInput } from "@/components/date-input";
 
 const initialState: RoutineActionState = { error: null, field: null };
 const WEEKDAYS = [
@@ -310,11 +311,11 @@ export function RoutineForm({
           <div style={{ display: "flex", gap: 12, marginBottom: 14 }}>
             <FieldBlock name="start_date" invalid={bad("start_date")} style={{ flex: 1 }}>
               <label>STARTS</label>
-              <input aria-label="Starts" className="input" type="date" name="start_date" required defaultValue={edit?.start_date ?? today} style={{ minHeight: 44 }} />
+              <DateInput aria-label="Starts" className="input" name="start_date" required defaultValue={edit?.start_date ?? today} style={{ minHeight: 44 }} />
             </FieldBlock>
             <FieldBlock name="end_date" invalid={bad("end_date")} style={{ flex: 1 }}>
               <label>ENDS (OPTIONAL)</label>
-              <input aria-label="Ends (Optional)" className="input" type="date" name="end_date" defaultValue={edit?.end_date ?? undefined} style={{ minHeight: 44 }} />
+              <DateInput aria-label="Ends (Optional)" className="input" name="end_date" defaultValue={edit?.end_date ?? undefined} style={{ minHeight: 44 }} />
             </FieldBlock>
           </div>
 

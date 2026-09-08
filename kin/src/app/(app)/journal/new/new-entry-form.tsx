@@ -8,6 +8,7 @@ import { ErrorText } from "@/components/form";
 import { DetailHeader } from "@/components/hub-header";
 import type { Tables } from "@/lib/database.types";
 import { familyDay } from "@/lib/time";
+import { DateInput } from "@/components/date-input";
 
 export function NewEntryForm({ members }: { members: Tables<"members">[] }) {
   const [people, setPeople] = useState<string[]>([]);
@@ -73,7 +74,7 @@ export function NewEntryForm({ members }: { members: Tables<"members">[] }) {
           </div>
           <div className="field" style={{ marginBottom: 16 }}>
             <label>DATE</label>
-            <input aria-label="Date" className="input" type="date" name="date" defaultValue={familyDay()} required style={{ minHeight: 44 }} />
+            <DateInput aria-label="Date" className="input" name="date" defaultValue={familyDay()} required style={{ minHeight: 44 }} />
           </div>
           <div style={{ fontSize: 13, color: "var(--color-neutral-700)", marginBottom: 6 }}>Who was there</div>
           <div style={{ display: "flex", gap: 7, flexWrap: "wrap", marginBottom: 16 }}>

@@ -5,6 +5,7 @@ import { addAssetAction, addLiabilityAction } from "@/lib/actions/wealth";
 import { ASSET_KINDS, ASSET_KIND_LABELS, LIABILITY_KINDS, LIABILITY_KIND_LABELS } from "@/lib/wealth";
 import type { ActionState } from "@/lib/actions/auth";
 import { SubmitButton, ErrorText } from "@/components/form";
+import { DateInput } from "@/components/date-input";
 
 const initialState: ActionState = { error: null };
 
@@ -52,7 +53,7 @@ function AssetForm() {
         </Field>
       </div>
       <Field label="OWNED SINCE">
-        <input className="input" type="date" name="acquired_on" style={{ minHeight: 44 }} />
+        <DateInput className="input" name="acquired_on" style={{ minHeight: 44 }} />
       </Field>
       <JointToggle isJoint={isJoint} setIsJoint={setIsJoint} />
       <Field label="NOTE">

@@ -165,6 +165,25 @@ refusal on a write that asks for its row back may be the read being refused.
 
 ---
 
+## Native time inputs still render in the browser's locale — left alone
+
+The date half of this was fixed on 8 September: every `type="date"` input now
+writes the date out beneath itself, spelled, because a native picker draws
+itself in the *browser's* locale and the page cannot say otherwise. Chrome set
+to US shows `2026-09-07` as `09/07/2026`, which reads here as 9 July.
+
+The four `type="time"` inputs were deliberately not touched. `08:30 PM` is
+already unambiguous — there is no digit order to misread — so an echo would
+be clutter buying nothing. It does mean the Planner list says `20:30` while
+its edit form says `08:30 PM`, which is an inconsistency rather than a
+hazard.
+
+Replacing the native pickers outright was considered and rejected: on a phone
+they are much better than anything we would build, and they are what the
+household already knows.
+
+---
+
 ## Another member's target always reads as zero
 
 Noticed while fixing the above, not fixed. The Wealth hub renders

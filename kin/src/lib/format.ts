@@ -22,6 +22,39 @@ export function formatDate(date: string | Date, pattern = "DD/MM/YYYY"): string 
   return `${dd}/${mm}/${yyyy}`;
 }
 
+const MONTHS = [
+  "January", "February", "March", "April", "May", "June",
+  "July", "August", "September", "October", "November", "December",
+];
+const WEEKDAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+
+/** A date spelled out, so that it cannot be misread.
+ *
+ * A native date input renders in the *browser's* locale, never the
+ * household's. Chrome set to US shows 2026-09-07 as 09/07/2026, which reads
+ * as the 9th of July to everyone here. A page cannot restyle a native picker
+ * -- that is the whole point of it being native -- so this goes underneath and
+ * says which day it actually is.
+ *
+ * Deliberately NOT the household's date_format. Echoing 07/09/2026 beneath
+ * 09/07/2026 would offer two ambiguous readings where there was one. A month
+ * name has no digit order to get wrong, which also means this needs no
+ * household preference and so is safe in a client component.
+ *
+ * Parsed out of the string rather than through `new Date(iso)`, because that
+ * is UTC midnight and west of Greenwich it is the day before -- the same trap
+ * that walked the planner's times back eight hours. */
+export function spellDate(iso: string): string {
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso.trim());
+  if (!m) return "";
+  const [, y, mo, d] = m;
+  const year = Number(y), month = Number(mo), day = Number(d);
+  const at = new Date(Date.UTC(year, month - 1, day));
+  // Rejects 31 September and friends, which roll over silently.
+  if (at.getUTCFullYear() !== year || at.getUTCMonth() !== month - 1 || at.getUTCDate() !== day) return "";
+  return `${WEEKDAYS[at.getUTCDay()]} ${day} ${MONTHS[month - 1]} ${year}`;
+}
+
 export function initials(name: string): string {
   return name.trim().charAt(0).toUpperCase();
 }

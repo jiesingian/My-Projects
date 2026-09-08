@@ -12,6 +12,7 @@ import {
 import { ACCOUNT_TYPES, ACCOUNT_TYPE_LABELS, EXPENSE_CATEGORIES } from "@/lib/wealth";
 import type { ActionState } from "@/lib/actions/auth";
 import { SubmitButton, ErrorText } from "@/components/form";
+import { DateInput } from "@/components/date-input";
 
 const initialState: ActionState = { error: null };
 
@@ -105,7 +106,7 @@ export function AddBillForm() {
           <input className="input" type="number" step="0.01" name="amount" required style={{ minHeight: 42 }} />
         </Labelled>
         <Labelled label="DUE" style={{ flex: 1 }}>
-          <input className="input" type="date" name="due_date" style={{ minHeight: 42 }} />
+          <DateInput className="input" name="due_date" style={{ minHeight: 42 }} />
         </Labelled>
       </div>
       <div style={{ display: "flex", gap: 10 }}>

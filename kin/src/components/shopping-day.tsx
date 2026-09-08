@@ -6,6 +6,7 @@ import { Icon } from "@/components/icons";
 import Link from "next/link";
 import { setShoppingDayAction, clearShoppingDayAction, moveShoppingRunAction } from "@/lib/actions/household";
 import { SHOPPING_KINDS } from "@/lib/grocery";
+import { DateInput } from "@/components/date-input";
 
 /** Book the day this list gets bought on. It goes on the family calendar as
  * an activity, so it syncs to Google Calendar with everything else — the
@@ -88,9 +89,8 @@ export function ShoppingDayControl({
       />
 
       <div style={{ display: "flex", gap: 6, marginBottom: 8 }}>
-        <input
+        <DateInput
           className="input"
-          type="date"
           value={date}
           onChange={(e) => setDate(e.target.value)}
           aria-label="Which day"

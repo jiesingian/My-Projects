@@ -5,6 +5,7 @@ import { addManagedChildAction, addChildWithLoginAction } from "@/lib/actions/fa
 import type { ActionState } from "@/lib/actions/auth";
 import { SubmitButton, ErrorText } from "@/components/form";
 import { Icon } from "@/components/icons";
+import { DateInput } from "@/components/date-input";
 
 const initialState: ActionState = { error: null };
 
@@ -48,7 +49,7 @@ export function AddChildForm() {
       <div style={{ display: "flex", gap: 12, marginBottom: 14 }}>
         <div className="field" style={{ flex: 1 }}>
           <label>DATE OF BIRTH</label>
-          <input aria-label="Date of birth" className="input" type="date" name="dob" required style={{ minHeight: 44 }} />
+          <DateInput aria-label="Date of birth" className="input" name="dob" required style={{ minHeight: 44 }} />
         </div>
         <div className="field" style={{ flex: 1 }}>
           <label>RELATIONSHIP</label>
