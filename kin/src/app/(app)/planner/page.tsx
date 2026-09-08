@@ -18,7 +18,7 @@ import { syncGoogleCalendarIfStale } from "@/lib/actions/calendar-sync";
 import { HubHeader } from "@/components/hub-header";
 import { PickButton } from "@/components/pick-button";
 import { Blueprint, Tag } from "@/components/ui";
-import { formatCurrency, formatDate, shortNames, selfLabel } from "@/lib/format";
+import { formatCurrency, shortNames, selfLabel } from "@/lib/format";
 import { AddToJournalButton } from "@/components/add-to-journal-button";
 import { Icon } from "@/components/icons";
 import { CALENDAR_LEGEND, styleFor } from "@/lib/calendar-style";
@@ -33,6 +33,7 @@ import { describeRule, formatTimeOfDay, ROUTINE_KIND_META, type RoutineKind } fr
 import { RoutineTick, RoutineOccurrences, RoutinePauseButton, RoutineDeleteButton } from "@/components/routine-controls";
 import { CalendarSyncStatus, RememberFilter } from "@/components/calendar-sync-status";
 import { cookies } from "next/headers";
+import { familyDate } from "@/lib/format-family";
 
 const SEGMENTS = ["calendar", "routines", "events", "travel"] as const;
 type Seg = (typeof SEGMENTS)[number];
@@ -73,7 +74,7 @@ export default async function PlannerPage({
 
   return (
     <div>
-      <HubHeader n="03" title="Planner" segments={segments} />
+      <HubHeader n="03" title="Planner" segments={segments} dateFormat={me.families.date_format} />
       <div style={{ padding: "0 22px 22px" }}>
         {seg === "calendar" && (
           <CalendarPane
@@ -843,6 +844,7 @@ async function EventsPane({ familyId, who }: { familyId: string; who: string }) 
 }
 
 async function TravelPane({ familyId, memberId, currency, who }: { familyId: string; memberId: string; currency: string; who: string }) {
+  const fmtDate = await familyDate();
   const [allTrips, accounts] = await Promise.all([getTrips(familyId), getAccounts(familyId)]);
   const trips = allTrips.filter((t) => concerns(t.travellerIds, t.applies_to_whole_family, who));
   const pickable = accounts
@@ -865,8 +867,8 @@ async function TravelPane({ familyId, memberId, currency, who }: { familyId: str
           />
           <div style={{ padding: 13 }}>
             <div style={{ font: "400 12px/1 var(--font-numeric)", color: "var(--color-accent-700)" }}>
-              {formatDate(upcoming.start_date)}
-              {upcoming.end_date ? ` — ${formatDate(upcoming.end_date)}` : ""}
+              {fmtDate(upcoming.start_date)}
+              {upcoming.end_date ? ` — ${fmtDate(upcoming.end_date)}` : ""}
             </div>
             <div style={{ font: "600 24px/1.05 var(--font-heading)", margin: "6px 0 8px" }}>{upcoming.title}</div>
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8, fontSize: 13 }}>
@@ -917,7 +919,7 @@ async function TravelPane({ familyId, memberId, currency, who }: { familyId: str
           {earlier.map((t) => (
             <div key={t.id} style={{ display: "flex", gap: 12, padding: "11px 0", borderTop: "1px solid var(--color-divider)", alignItems: "center" }}>
               <span style={{ font: "400 10.5px/1.4 var(--font-numeric)", color: "var(--color-neutral-600)", width: 84, flex: "none" }}>
-                {formatDate(t.start_date)}
+                {fmtDate(t.start_date)}
               </span>
               <Link href={`/planner/add?type=trip&id=${t.id}`} style={{ flex: 1, minWidth: 0, textDecoration: "none", color: "inherit" }}>
                 <span style={{ display: "block", font: "600 17px/1.1 var(--font-heading)" }}>{t.title}</span>

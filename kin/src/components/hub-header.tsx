@@ -7,16 +7,21 @@ export function HubHeader({
   n,
   title,
   segments,
+  dateFormat,
 }: {
   n: string;
   title: string;
   segments: { label: string; href: string; active: boolean }[];
+  /** The household's own reading of a date. Passed rather than looked up:
+   * client forms import DetailHeader from this file, so the module lands in
+   * the client bundle and cannot reach the session. */
+  dateFormat?: string;
 }) {
   return (
     <div style={{ padding: "20px 20px 12px" }}>
       <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
         <span style={{ fontSize: 13, fontWeight: 600, color: "var(--color-accent)" }}>Hub {n}</span>
-        <span style={{ fontSize: 13, color: "var(--color-neutral-600)", marginLeft: "auto" }}>{formatDate(new Date())}</span>
+        <span style={{ fontSize: 13, color: "var(--color-neutral-600)", marginLeft: "auto" }}>{formatDate(new Date(), dateFormat)}</span>
       </div>
       {/* iOS large title */}
       <h2 style={{ fontSize: 34, fontWeight: 700, letterSpacing: "-0.03em", margin: "2px 0 0" }}>{title}</h2>

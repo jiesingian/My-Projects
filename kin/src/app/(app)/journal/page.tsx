@@ -7,7 +7,7 @@ import { HubHeader } from "@/components/hub-header";
 import { Blueprint, Tag, Empty } from "@/components/ui";
 import { GalleryUpload } from "@/components/gallery-upload";
 import { GalleryGrid } from "@/components/gallery-grid";
-import { formatDate } from "@/lib/format";
+import { familyDate } from "@/lib/format-family";
 
 const SEGMENTS = ["gallery", "entries", "milestones"] as const;
 type Seg = (typeof SEGMENTS)[number];
@@ -40,7 +40,7 @@ export default async function JournalPage({
 
   return (
     <div>
-      <HubHeader n="02" title="Journal" segments={segments} />
+      <HubHeader n="02" title="Journal" segments={segments} dateFormat={me.families.date_format} />
       <div style={{ padding: "0 22px 22px" }}>
         {seg === "gallery" && <GalleryPane familyId={me.family_id} />}
         {seg === "entries" && <EntriesPane familyId={me.family_id} />}
@@ -51,6 +51,7 @@ export default async function JournalPage({
 }
 
 async function GalleryPane({ familyId }: { familyId: string }) {
+  const fmtDate = await familyDate();
   const media = await getGallery(familyId);
   return (
     <>
@@ -63,7 +64,7 @@ async function GalleryPane({ familyId }: { familyId: string }) {
         />
       ) : (
         <GalleryGrid
-          media={media.map((m) => ({ id: m.id, url: m.url, viewLink: m.viewLink, date: m.taken_at ? formatDate(m.taken_at) : "", media_type: m.media_type }))}
+          media={media.map((m) => ({ id: m.id, url: m.url, viewLink: m.viewLink, date: m.taken_at ? fmtDate(m.taken_at) : "", media_type: m.media_type }))}
         />
       )}
     </>
@@ -71,6 +72,7 @@ async function GalleryPane({ familyId }: { familyId: string }) {
 }
 
 async function EntriesPane({ familyId }: { familyId: string }) {
+  const fmtDate = await familyDate();
   const entries = await getEntries(familyId);
   return (
     <>
@@ -87,7 +89,7 @@ async function EntriesPane({ familyId }: { familyId: string }) {
       {entries.map((e) => (
         <Blueprint key={e.id} style={{ padding: 13, marginBottom: 16 }}>
           <div style={{ display: "flex", alignItems: "baseline", gap: 8 }}>
-            <span style={{ font: "400 12px/1 var(--font-numeric)", color: "var(--color-accent-700)" }}>{formatDate(e.entry_date)}</span>
+            <span style={{ font: "400 12px/1 var(--font-numeric)", color: "var(--color-accent-700)" }}>{fmtDate(e.entry_date)}</span>
             <Tag variant="neutral" className="ml-auto">
               {e.source === "from_plan" ? "FROM PLAN" : "ADDED DIRECTLY"}
             </Tag>
@@ -113,6 +115,7 @@ async function EntriesPane({ familyId }: { familyId: string }) {
 }
 
 async function MilestonesPane({ familyId }: { familyId: string }) {
+  const fmtDate = await familyDate();
   const milestones = await getMilestones(familyId);
   return (
     <>
@@ -128,7 +131,7 @@ async function MilestonesPane({ familyId }: { familyId: string }) {
         {milestones.map((m) => (
           <div key={m.id} style={{ position: "relative", paddingBottom: 20 }}>
             <span style={{ position: "absolute", left: -21, top: 5, width: 9, height: 9, background: "var(--color-accent)", display: "block" }} />
-            <div style={{ font: "400 12px/1 var(--font-numeric)", color: "var(--color-accent-700)" }}>{formatDate(m.milestone_date)}</div>
+            <div style={{ font: "400 12px/1 var(--font-numeric)", color: "var(--color-accent-700)" }}>{fmtDate(m.milestone_date)}</div>
             <div style={{ font: "600 19px/1.05 var(--font-heading)", margin: "4px 0 2px" }}>{m.title}</div>
             <div style={{ fontSize: 13, color: "var(--color-neutral-600)" }}>
               {(m.members as unknown as { full_name: string } | null)?.full_name ?? "Whole family"}

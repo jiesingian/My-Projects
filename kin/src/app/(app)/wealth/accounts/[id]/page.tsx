@@ -6,8 +6,9 @@ import { DetailHeader } from "@/components/hub-header";
 import { Blueprint, Tag, Empty } from "@/components/ui";
 import { PendingEntryActions, DeleteEntryButton, RemoveButton } from "@/components/money-actions";
 import { AccountEditForm } from "./account-edit-form";
-import { formatCurrency, formatDate } from "@/lib/format";
+import { formatCurrency } from "@/lib/format";
 import { ACCOUNT_TYPE_LABELS, type AccountType } from "@/lib/wealth";
+import { familyDate } from "@/lib/format-family";
 
 export default async function AccountPage({ params }: { params: Promise<{ id: string }> }) {
   const me = await getCurrentMember();
@@ -17,6 +18,7 @@ export default async function AccountPage({ params }: { params: Promise<{ id: st
   if (!account) notFound();
 
   const currency = me.families.currency;
+  const fmtDate = await familyDate();
   const pending = entries.filter((e) => e.status === "pending");
   const confirmed = entries.filter((e) => e.status === "confirmed");
 
@@ -78,7 +80,7 @@ export default async function AccountPage({ params }: { params: Promise<{ id: st
                   </span>
                 </div>
                 <div style={{ fontSize: 12.5, color: "var(--color-neutral-600)", marginTop: 3 }}>
-                  Started {formatDate(p.occurred_at)} · not counted in the balance yet
+                  Started {fmtDate(p.occurred_at)} · not counted in the balance yet
                 </div>
                 <PendingEntryActions transactionId={p.id} />
               </Blueprint>
@@ -95,7 +97,7 @@ export default async function AccountPage({ params }: { params: Promise<{ id: st
             <span style={{ flex: 1, minWidth: 0 }}>
               <span style={{ fontSize: 14, display: "block" }}>{e.particulars}</span>
               <span style={{ fontSize: 12.5, color: "var(--color-neutral-600)" }}>
-                {formatDate(e.occurred_at)}
+                {fmtDate(e.occurred_at)}
                 {e.category ? ` · ${e.category}` : ""}
                 {e.recordedByName ? ` · ${e.recordedByName.split(" ")[0]}` : ""}
               </span>

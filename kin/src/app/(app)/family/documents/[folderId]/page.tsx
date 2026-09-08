@@ -5,15 +5,16 @@ import { createClient } from "@/lib/supabase/server";
 import { DetailHeader } from "@/components/hub-header";
 import { Tag } from "@/components/ui";
 import { Icon } from "@/components/icons";
-import { formatDate } from "@/lib/format";
 import { DocFileRow } from "@/components/doc-file-row";
 import { DocSelectionProvider } from "@/lib/doc-selection-context";
+import { familyDate } from "@/lib/format-family";
 
 export default async function DocFolderPage({
   params,
 }: {
   params: Promise<{ folderId: string }>;
 }) {
+  const fmtDate = await familyDate();
   const me = await getCurrentMember();
   if (!me) redirect("/onboarding/profile");
   const { folderId } = await params;
@@ -49,7 +50,7 @@ export default async function DocFolderPage({
                   <div style={{ fontSize: 14.5, fontWeight: 600 }}>{entry.title}</div>
                   <div style={{ fontSize: 12.5, color: "var(--color-neutral-600)" }}>
                     {(entry.owner as unknown as { full_name: string } | null)?.full_name ?? "Whole family"}
-                    {entry.expires_at ? ` · expires ${formatDate(entry.expires_at)}` : ""}
+                    {entry.expires_at ? ` · expires ${fmtDate(entry.expires_at)}` : ""}
                     {entry.reference_no ? ` · ref ${entry.reference_no}` : ""}
                   </div>
                   {entry.note && <div style={{ fontSize: 13.5, color: "var(--color-neutral-700)", marginTop: 4 }}>{entry.note}</div>}

@@ -65,10 +65,10 @@ export const PROFILE_FIELD_GROUPS: FieldGroup[] = [
   },
 ];
 
-function displayValue(fields: ProfileFields, spec: FieldSpec): string | null {
+function displayValue(fields: ProfileFields, spec: FieldSpec, dateFormat?: string): string | null {
   const raw = fields[spec.key];
   if (!raw) return null;
-  return spec.type === "date" ? formatDate(raw) : raw;
+  return spec.type === "date" ? formatDate(raw, dateFormat) : raw;
 }
 
 function GroupHeader({ title }: { title: string }) {
@@ -86,13 +86,13 @@ function GroupHeader({ title }: { title: string }) {
  * "Personal Details" carries one extra row (Age) computed from DOB rather
  * than stored — it's never independently editable, so it isn't part of
  * ProfileFields. */
-export function ProfileFieldsView({ fields }: { fields: ProfileFields }) {
+export function ProfileFieldsView({ fields, dateFormat }: { fields: ProfileFields; dateFormat?: string }) {
   return (
     <>
       {PROFILE_FIELD_GROUPS.map((group) => {
         const rows: { label: string; value: string | null }[] = [
           ...(group.title === "PERSONAL DETAILS" ? [{ label: "Age", value: formatAge(fields.dob) }] : []),
-          ...group.fields.map((spec) => ({ label: spec.label, value: displayValue(fields, spec) })),
+          ...group.fields.map((spec) => ({ label: spec.label, value: displayValue(fields, spec, dateFormat) })),
         ];
 
         return (

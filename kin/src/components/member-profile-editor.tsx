@@ -26,6 +26,7 @@ export function MemberProfileEditor({
   initials,
   photos,
   initial,
+  dateFormat,
 }: {
   fullName: string;
   ageLabel: string;
@@ -35,6 +36,7 @@ export function MemberProfileEditor({
   initials: string;
   photos: AlbumPhoto[];
   initial: ProfileFields;
+  dateFormat?: string;
 }) {
   const [mode, setMode] = useState<"view" | "edit">("view");
   const [albumOpen, setAlbumOpen] = useState(false);
@@ -91,7 +93,7 @@ export function MemberProfileEditor({
 
       {mode === "view" ? (
         <div style={{ marginBottom: 20 }}>
-          <ProfileFieldsView fields={fields} />
+          <ProfileFieldsView fields={fields} dateFormat={dateFormat} />
           <button type="button" className="btn btn-secondary btn-block" style={{ minHeight: 40, fontSize: 13.5, marginTop: 10 }} onClick={() => setMode("edit")}>
             EDIT PROFILE
           </button>

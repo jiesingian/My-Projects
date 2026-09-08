@@ -33,6 +33,7 @@ export function buildBarSeries(
   points: { reading_date: string; value_text: string }[],
   parse: (v: string) => number,
   floorPct = 20,
+  dateFormat?: string,
 ) {
   if (points.length === 0) return [];
   const nums = points.map((p) => parse(p.value_text));
@@ -40,7 +41,7 @@ export function buildBarSeries(
   const max = Math.max(...nums);
   const range = max - min || 1;
   return points.map((p, i) => ({
-    label: formatDate(p.reading_date).slice(0, 5),
+    label: formatDate(p.reading_date, dateFormat).slice(0, 5),
     value: p.value_text,
     heightPct: Math.round(floorPct + ((nums[i] - min) / range) * (100 - floorPct)),
   }));

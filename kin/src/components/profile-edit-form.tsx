@@ -10,11 +10,13 @@ export function ProfileEditForm({
   isSelf,
   canEdit,
   initial,
+  dateFormat,
 }: {
   memberId: string;
   isSelf: boolean;
   canEdit: boolean;
   initial: ProfileFields;
+  dateFormat?: string;
 }) {
   const [mode, setMode] = useState<"view" | "edit">("view");
   const [fields, setFields] = useState<ProfileFields>(initial);
@@ -46,7 +48,7 @@ export function ProfileEditForm({
   if (mode === "view") {
     return (
       <div style={{ marginBottom: 20 }}>
-        <ProfileFieldsView fields={fields} />
+        <ProfileFieldsView fields={fields} dateFormat={dateFormat} />
         {canEdit && (
           <button type="button" className="btn btn-secondary btn-block" style={{ minHeight: 40, fontSize: 13.5, marginTop: 10 }} onClick={() => setMode("edit")}>
             EDIT PROFILE

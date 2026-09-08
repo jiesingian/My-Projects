@@ -18,6 +18,7 @@ import { getMembers } from "@/lib/queries/family";
 import { PickButton } from "@/components/pick-button";
 import { AccountPrivacyToggle } from "@/components/money-actions";
 import { ACCOUNT_TYPE_LABELS, ASSET_KIND_LABELS, LIABILITY_KIND_LABELS, type AccountType, type AssetKind, type LiabilityKind } from "@/lib/wealth";
+import { familyDate, householdDateFormat } from "@/lib/format-family";
 
 /* Joint and Mine were the same page twice; they are one Accounts tab now,
    with a Who button of the kind the Planner uses. */
@@ -37,7 +38,7 @@ export default async function WealthPage({ searchParams }: { searchParams: Promi
 
   return (
     <div>
-      <HubHeader n="05" title="Wealth" segments={segments} />
+      <HubHeader n="05" title="Wealth" segments={segments} dateFormat={me.families.date_format} />
       <div style={{ padding: "0 22px 22px" }}>
         {seg === "accounts" && <ScopePane scope={who} familyId={me.family_id} memberId={me.id} currency={currency} />}
         {seg === "goals" && <GoalsPane familyId={me.family_id} memberId={me.id} currency={currency} />}
@@ -173,14 +174,14 @@ function SectionLabel({ children }: { children: React.ReactNode }) {
   );
 }
 
-function EntryRow({ entry, currency, showAccount }: { entry: LedgerEntry; currency: string; showAccount?: boolean }) {
+function EntryRow({ entry, currency, dateFormat, showAccount }: { entry: LedgerEntry; currency: string; dateFormat: string; showAccount?: boolean }) {
   const isIn = entry.direction === "in";
   return (
     <div style={{ display: "flex", gap: 10, alignItems: "baseline", padding: "10px 0", borderBottom: "1px solid color-mix(in srgb, var(--color-text) 10%, transparent)" }}>
       <span style={{ flex: 1, minWidth: 0 }}>
         <span style={{ fontSize: 14, display: "block" }}>{entry.particulars}</span>
         <span style={{ fontSize: 12.5, color: "var(--color-neutral-600)" }}>
-          {formatDate(entry.occurred_at)}
+          {formatDate(entry.occurred_at, dateFormat)}
           {entry.category ? ` · ${entry.category}` : ""}
           {showAccount && entry.accountName ? ` · ${entry.accountName}` : ""}
         </span>
@@ -193,7 +194,7 @@ function EntryRow({ entry, currency, showAccount }: { entry: LedgerEntry; curren
   );
 }
 
-function PendingBlock({ pending, currency }: { pending: LedgerEntry[]; currency: string }) {
+function PendingBlock({ pending, currency, dateFormat }: { pending: LedgerEntry[]; currency: string; dateFormat: string }) {
   if (pending.length === 0) return null;
   return (
     <>
@@ -208,7 +209,7 @@ function PendingBlock({ pending, currency }: { pending: LedgerEntry[]; currency:
             </span>
           </div>
           <div style={{ fontSize: 12.5, color: "var(--color-neutral-600)", marginTop: 3 }}>
-            {p.accountName} · started {formatDate(p.occurred_at)} · not counted yet
+            {p.accountName} · started {formatDate(p.occurred_at, dateFormat)} · not counted yet
           </div>
           <PendingEntryActions transactionId={p.id} />
         </Blueprint>
@@ -241,6 +242,7 @@ function QuickActions() {
 /* ------------------------------------------------------------- accounts */
 
 async function ScopePane({ scope, familyId, memberId, currency }: { scope: WealthScope; familyId: string; memberId: string; currency: string }) {
+  const dateFormat = await householdDateFormat();
   const [pane, members] = await Promise.all([getWealthPane(familyId, memberId, scope), getMembers(familyId)]);
   const active = members.filter((m) => m.status !== "pending" && m.status !== "removed");
   // Your own entry says "Me", and the headings that follow from it say "My"
@@ -327,7 +329,7 @@ async function ScopePane({ scope, familyId, memberId, currency }: { scope: Wealt
       })}
       {isJoint && <div style={{ marginTop: 12 }}><AllocationEditor budgeted={pane.allocations.map((a) => a.category)} /></div>}
 
-      <PendingBlock pending={pane.pending} currency={currency} />
+      <PendingBlock pending={pane.pending} currency={currency} dateFormat={dateFormat} />
 
       <SectionLabel>{isJoint ? "ACCOUNTS" : `${whosePossessive.toUpperCase()} ACCOUNTS`}</SectionLabel>
       {pane.accounts.length === 0 && (
@@ -370,7 +372,7 @@ async function ScopePane({ scope, familyId, memberId, currency }: { scope: Wealt
         <>
           <SectionLabel>RECENT ACTIVITY</SectionLabel>
           {pane.recent.map((e) => (
-            <EntryRow key={e.id} entry={e} currency={currency} showAccount />
+            <EntryRow key={e.id} entry={e} currency={currency} dateFormat={dateFormat} showAccount />
           ))}
         </>
       )}
@@ -386,6 +388,7 @@ async function ScopePane({ scope, familyId, memberId, currency }: { scope: Wealt
 /* ------------------------------------------------------------------ goals */
 
 async function GoalsPane({ familyId, memberId, currency }: { familyId: string; memberId: string; currency: string }) {
+  const fmtDate = await familyDate();
   const [goals, accounts] = await Promise.all([getGoals(familyId), getAccounts(familyId)]);
   const pickable = toPickable(accounts, memberId);
   const saved = goals.reduce((sum, g) => sum + Number(g.current_amount), 0);
@@ -429,7 +432,7 @@ async function GoalsPane({ familyId, memberId, currency }: { familyId: string; m
             </div>
             {g.target_date && (
               <div style={{ fontSize: 12.5, color: "var(--color-neutral-600)", marginTop: 5 }}>
-                Target date {formatDate(g.target_date)}
+                Target date {fmtDate(g.target_date)}
                 {target > current ? ` · ${formatCurrency(target - current, currency)} to go` : " · funded"}
               </div>
             )}
@@ -451,6 +454,7 @@ async function GoalsPane({ familyId, memberId, currency }: { familyId: string; m
 /* ------------------------------------------------------------------ bills */
 
 async function BillsPane({ familyId, memberId, currency }: { familyId: string; memberId: string; currency: string }) {
+  const fmtDate = await familyDate();
   const [bills, accounts] = await Promise.all([getBills(familyId), getAccounts(familyId)]);
   const pickable = toPickable(accounts, memberId);
   const open = bills.filter((b) => b.status !== "paid");
@@ -469,7 +473,7 @@ async function BillsPane({ familyId, memberId, currency }: { familyId: string; m
               <span style={{ font: "600 17px/1.1 var(--font-heading)", display: "block" }}>{b.name}</span>
               <span style={{ fontSize: 13, color: "var(--color-neutral-600)" }}>
                 {b.category ?? "Utilities"}
-                {b.due_date ? ` · due ${formatDate(b.due_date)}` : ""}
+                {b.due_date ? ` · due ${fmtDate(b.due_date)}` : ""}
               </span>
             </span>
             <span style={{ textAlign: "right", flex: "none" }}>
@@ -496,7 +500,7 @@ async function BillsPane({ familyId, memberId, currency }: { familyId: string; m
               <span style={{ flex: 1, minWidth: 0 }}>
                 <span style={{ fontSize: 14, display: "block" }}>{b.name}</span>
                 <span style={{ fontSize: 12.5, color: "var(--color-neutral-600)" }}>
-                  {b.paid_at ? `paid ${formatDate(b.paid_at)}` : "paid"}
+                  {b.paid_at ? `paid ${fmtDate(b.paid_at)}` : "paid"}
                   {b.paidFromName ? ` from ${b.paidFromName}` : ""}
                 </span>
               </span>
@@ -512,6 +516,7 @@ async function BillsPane({ familyId, memberId, currency }: { familyId: string; m
 /* ----------------------------------------------------------------- assets */
 
 async function AssetsPane({ familyId, memberId, currency }: { familyId: string; memberId: string; currency: string }) {
+  const fmtDate = await familyDate();
   const { assets, liabilities, assetTotal, liabilityTotal, cashTotal, netWorth } = await getNetWorth(familyId, memberId);
 
   return (
@@ -543,7 +548,7 @@ async function AssetsPane({ familyId, memberId, currency }: { familyId: string; 
               <span style={{ font: "600 16px/1.1 var(--font-heading)", display: "block" }}>{a.name}</span>
               <span style={{ fontSize: 13, color: "var(--color-neutral-600)" }}>
                 {ASSET_KIND_LABELS[a.kind as AssetKind] ?? a.kind}
-                {a.acquired_on ? ` · since ${formatDate(a.acquired_on)}` : ""}
+                {a.acquired_on ? ` · since ${fmtDate(a.acquired_on)}` : ""}
                 {a.note ? ` · ${a.note}` : ""}
               </span>
             </span>

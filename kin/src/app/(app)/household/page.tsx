@@ -38,7 +38,7 @@ export default async function HouseholdPage({ searchParams }: { searchParams: Pr
 
   return (
     <div>
-      <HubHeader n="04" title="Household" segments={segments} />
+      <HubHeader n="04" title="Household" segments={segments} dateFormat={me.families.date_format} />
       <div style={{ padding: "0 22px 22px" }}>
         {seg === "buy" && <BuyPane familyId={me.family_id} memberId={me.id} currency={me.families.currency} />}
         {seg === "meals" && <MealsPane familyId={me.family_id} currency={me.families.currency} anchor={anchor} />}
