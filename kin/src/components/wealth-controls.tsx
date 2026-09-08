@@ -142,6 +142,7 @@ export function AddBillForm() {
 export function SetBudgetControl({ familyId, month, year, current }: { familyId: string; month: number; year: number; current: number }) {
   const [value, setValue] = useState(current);
   const [pending, startTransition] = useTransition();
+  const [failed, setFailed] = useState<string | null>(null);
   return (
     <div style={{ display: "flex", gap: 8, marginBottom: 16 }}>
       <input className="input" type="number" value={value} onChange={(e) => setValue(Number(e.target.value))} style={{ minHeight: 40 }} />
@@ -150,10 +151,22 @@ export function SetBudgetControl({ familyId, month, year, current }: { familyId:
         className="btn btn-secondary"
         disabled={pending}
         style={{ minHeight: 40, fontSize: 13.5, whiteSpace: "nowrap" }}
-        onClick={() => startTransition(() => setJointBudgetAction(familyId, month, year, value))}
+        onClick={() =>
+          startTransition(async () => {
+            const { error } = await setJointBudgetAction(familyId, month, year, value);
+            setFailed(error);
+          })
+        }
       >
         {pending ? "…" : "SET BUDGET"}
       </button>
+      {/* This used to fail by going quiet, which is exactly what it did when
+          it succeeded. */}
+      {failed && (
+        <p role="alert" style={{ fontSize: 13, color: "var(--danger, #d33)", alignSelf: "center" }}>
+          {failed}
+        </p>
+      )}
     </div>
   );
 }
@@ -161,6 +174,7 @@ export function SetBudgetControl({ familyId, month, year, current }: { familyId:
 export function SetTargetControl({ memberId, familyId, month, year, current }: { memberId: string; familyId: string; month: number; year: number; current: number }) {
   const [value, setValue] = useState(current);
   const [pending, startTransition] = useTransition();
+  const [failed, setFailed] = useState<string | null>(null);
   return (
     <div style={{ display: "flex", gap: 8, marginBottom: 16 }}>
       <input className="input" type="number" value={value} onChange={(e) => setValue(Number(e.target.value))} style={{ minHeight: 40 }} />
@@ -169,10 +183,22 @@ export function SetTargetControl({ memberId, familyId, month, year, current }: {
         className="btn btn-secondary"
         disabled={pending}
         style={{ minHeight: 40, fontSize: 13.5, whiteSpace: "nowrap" }}
-        onClick={() => startTransition(() => setWealthTargetAction(memberId, familyId, month, year, value))}
+        onClick={() =>
+          startTransition(async () => {
+            const { error } = await setWealthTargetAction(memberId, familyId, month, year, value);
+            setFailed(error);
+          })
+        }
       >
         {pending ? "…" : "SET TARGET"}
       </button>
+      {/* This used to fail by going quiet, which is exactly what it did when
+          it succeeded. */}
+      {failed && (
+        <p role="alert" style={{ fontSize: 13, color: "var(--danger, #d33)", alignSelf: "center" }}>
+          {failed}
+        </p>
+      )}
     </div>
   );
 }

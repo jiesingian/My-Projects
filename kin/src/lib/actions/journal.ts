@@ -30,7 +30,10 @@ export async function createJournalEntryAction(input: {
   if (error) return { error: error.message };
 
   if (input.people.length > 0) {
-    await supabase.from("journal_entry_people").insert(input.people.map((memberId) => ({ entry_id: entry.id, member_id: memberId })));
+    const { error: peopleError } = await supabase
+      .from("journal_entry_people")
+      .insert(input.people.map((memberId) => ({ entry_id: entry.id, member_id: memberId })));
+    if (peopleError) return { error: `The entry was saved, but not who it is about. ${peopleError.message}` };
   }
 
   return { error: null, entryId: entry.id };
@@ -76,8 +79,14 @@ export async function attachJournalMediaAction(input: {
     .single();
   if (error) return { error: error.message };
 
+  // The file is already uploaded and the media row already written; this is
+  // the row that ties it to the entry. Losing it silently leaves the photo
+  // stored, paid for, and attached to nothing anyone can navigate to.
   if (input.entryId) {
-    await supabase.from("journal_entry_media").insert({ entry_id: input.entryId, media_id: media.id, sort_order: input.sortOrder ?? 0 });
+    const { error: linkError } = await supabase
+      .from("journal_entry_media")
+      .insert({ entry_id: input.entryId, media_id: media.id, sort_order: input.sortOrder ?? 0 });
+    if (linkError) return { error: `The file was uploaded, but it is not attached to the entry. ${linkError.message}` };
   }
 
   revalidatePath("/journal");

@@ -11,29 +11,74 @@ place for those.
 
 ---
 
-## Writes whose error is never captured (58 sites)
+## Writes whose error is never captured (46 sites, was 67)
 
-`src/lib/actions/*.ts` contains 58 writes of the shape
+`src/lib/actions/*.ts` contains writes of the shape
 
     await supabase.from("x").update({ ... }).eq("id", id);
 
 with no `const { error }`. If the write is refused — by RLS, by a constraint,
 by the network — the action carries on and reports success.
 
-**Why it was not fixed.** No instance was shown to fail. Touching 58 call
-sites to guard against a failure nobody has observed is the kind of change
-that breaks more than it fixes. It is a pattern, not a bug.
+**21 were fixed on 8 September**, chosen by one test: would a silent failure
+lose data or money, in a way the person could not see? The rest were left,
+because touching a call site to guard against a failure nobody has observed
+is how you break something that works.
 
-**What would change that.** Any single report of "I did that and it did not
-save." Then the specific path gets its error captured, and this entry gets
-shorter.
+The worst shape, and the reason these were picked first, is **delete then
+insert**:
+
+    await supabase.from("activity_members").delete().eq("activity_id", id);
+    await supabase.from("activity_members").insert(who.map(...));
+
+Only the delete is certain to have happened. If the insert is refused, the
+record is left marked for *nobody* — and from the outside that is
+indistinguishable from a save that worked. It appeared five times: activity
+members, event members, trip travellers, routine members, recipe
+ingredients. A routine for nobody never appears again.
+
+Fixed, by area:
+
+| Area | Sites | What a silent failure lost |
+|---|---|---|
+| `planner.ts` | 8 | who an activity, event or trip is for; a journal entry made from a plan |
+| `wealth.ts` | 6 | a bill left unpaid after paying it, or paid after deleting the payment; a budget; a savings target; a goal total |
+| `household.ts` | 5 | a meal's ingredients, so the grocery list is built without them; the grocery list itself; a recipe's ingredients |
+| `journal.ts` | 2 | who an entry is about; a photo uploaded and attached to nothing |
+| `routines.ts` | 2 | who a routine is for |
+
+Three of these were silent at the *interface* as well as in the action —
+**ADD TO JOURNAL**, **SET BUDGET**/**SET TARGET**, and **GENERATE GROCERY
+LIST** all called their action and ignored what came back. The grocery button
+navigated to the shopping list either way, so a list that failed to write
+looked exactly like a week with nothing planned. Those three now show what
+went wrong, and the grocery one only navigates if there is something to see.
+
+**One was left logging rather than telling anyone,** on purpose:
+`apply_code_grant_to_family` in `family.ts`. It runs after the household has
+been created, so returning an error would strand a new member on a signup
+form for an account that already exists. A lost grant is the difference
+between free-for-good and a trial that will ask for payment, and it surfaces
+weeks later as a paywall nobody can trace back — so it is logged with the
+household name, and deliberately not the code, which is a credential.
+
+**Not fixed, and why.** `toggleBuyItemAction` and `clearCheckedAction` fail
+visibly: the list re-renders from the database and the tick comes back. The
+storage `.remove()` calls (avatars, journal media, documents, recipe photos)
+leak an orphaned file rather than losing anything the family can see.
+`calendar-sync.ts` holds 17 and is its own problem — every one of them is a
+best-effort mirror to Google, where failing loudly would be worse than the
+drift.
+
+**What would change that.** Any report of "I did that and it did not save"
+in one of the remaining paths.
 
 **Where it would hurt most,** if it ever does: `applySettlement` and
 `deleteTransactionAction` used to adjust `goals.current_amount` by hand, and
 a swallowed failure there left a savings goal permanently out of step with
 the ledger. Both now call `recalc_goal_total` and capture its error, and a
-recomputed total self-corrects on the next touch — so this is the one place
-where a dropped error has stopped compounding. The other 57 have not.
+recomputed total self-corrects on the next touch — so that one has stopped
+compounding.
 
 ---
 

@@ -126,7 +126,9 @@ export async function addMealPlanAction(_prev: ActionState, formData: FormData):
   if (error) return { error: error.message };
 
   if (ingredients.length > 0) {
-    await supabase.from("meal_ingredients").insert(
+    // These are what the grocery list is generated from. A meal saved without
+    // them looks perfectly fine and then contributes nothing to the shop.
+    const { error: ingredientError } = await supabase.from("meal_ingredients").insert(
       ingredients.map((ingredient_name) => ({
         meal_plan_id: plan.id,
         family_id: me.family_id,
@@ -134,6 +136,7 @@ export async function addMealPlanAction(_prev: ActionState, formData: FormData):
         item_key: normalizeKey(ingredient_name),
       })),
     );
+    if (ingredientError) return { error: `The meal was saved, but not what it needs. ${ingredientError.message}` };
   }
 
   await syncRowToCalendars(me.family_id, "meal_plans", plan.id, { title: dish, startAt: new Date(`${date}T00:00:00`), allDay: true }, { kind: "all" });
@@ -144,7 +147,7 @@ export async function addMealPlanAction(_prev: ActionState, formData: FormData):
 
 /** `weekOf` is any day in the week to build from — the week the meal plan is
  * showing, which is not always this one. */
-export async function generateGroceryListAction(weekOf?: string) {
+export async function generateGroceryListAction(weekOf?: string): Promise<{ error: string | null; added: number }> {
   // Both the household and the author come from the session. As arguments,
   // the household was merely redundant -- RLS already scoped it -- but the
   // author was not: one member could hand another member's id and have the
@@ -205,11 +208,14 @@ export async function generateGroceryListAction(weekOf?: string) {
   }
 
   if (toInsert.length > 0) {
-    await supabase.from("buy_items").insert(toInsert);
+    const { error } = await supabase.from("buy_items").insert(toInsert);
+    // Silently returning a count here sent the caller on to the shopping list
+    // to admire items that were never written to it.
+    if (error) return { error: `The grocery list could not be written. ${error.message}`, added: 0 };
   }
 
   revalidatePath("/household");
-  return toInsert.length;
+  return { error: null, added: toInsert.length };
 }
 
 // ————————————————————————————————————————————————————————————————
@@ -349,7 +355,7 @@ export async function addMealFromRecipeAction(input: {
   if (error || !plan) return { error: error?.message ?? "Could not save the meal." };
 
   if (recipe) {
-    await supabase.from("meal_ingredients").insert(
+    const { error: ingredientError } = await supabase.from("meal_ingredients").insert(
       recipe.ingredients.map((ing) => ({
         meal_plan_id: plan.id,
         family_id: me.family_id,
@@ -361,6 +367,7 @@ export async function addMealFromRecipeAction(input: {
         qty: `${ing.qty} ${ing.unit}`,
       })),
     );
+    if (ingredientError) return { error: `The meal was saved, but not what it needs. ${ingredientError.message}` };
   }
 
   await syncRowToCalendars(
@@ -393,9 +400,16 @@ export async function removeMealAction(mealId: string): Promise<ActionState> {
 
 type RecipeIngredientInput = { name: string; qty: number | null; unit: string | null; section: string };
 
-async function saveRecipeIngredients(recipeId: string, familyId: string, ingredients: RecipeIngredientInput[]) {
+/** Two statements again: the clear is certain, the insert is not, and a recipe
+ * that loses its ingredients keeps its name and its method and is useless. */
+async function saveRecipeIngredients(
+  recipeId: string,
+  familyId: string,
+  ingredients: RecipeIngredientInput[],
+): Promise<string | null> {
   const supabase = await createClient();
-  await supabase.from("family_recipe_ingredients").delete().eq("recipe_id", recipeId);
+  const { error: cleared } = await supabase.from("family_recipe_ingredients").delete().eq("recipe_id", recipeId);
+  if (cleared) return cleared.message;
   const rows = ingredients
     .filter((ing) => ing.name.trim())
     .map((ing, position) => ({
@@ -408,7 +422,9 @@ async function saveRecipeIngredients(recipeId: string, familyId: string, ingredi
       section: ing.section,
       position,
     }));
-  if (rows.length > 0) await supabase.from("family_recipe_ingredients").insert(rows);
+  if (rows.length === 0) return null;
+  const { error } = await supabase.from("family_recipe_ingredients").insert(rows);
+  return error ? `The recipe was saved, but its ingredients were not. ${error.message}` : null;
 }
 
 /** Save a recipe into the household's book. Passing `baseKey` records it as
@@ -463,7 +479,8 @@ export async function saveRecipeAction(input: {
     recipeId = data.id;
   }
 
-  await saveRecipeIngredients(recipeId, me.family_id, input.ingredients);
+  const ingredientsFailed = await saveRecipeIngredients(recipeId, me.family_id, input.ingredients);
+  if (ingredientsFailed) return { error: ingredientsFailed };
   revalidatePath("/household");
   return { error: null };
 }
