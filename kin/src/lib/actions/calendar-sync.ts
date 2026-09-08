@@ -17,6 +17,7 @@ import type { ActionState } from "@/lib/actions/auth";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/lib/database.types";
 import { familyDay } from "@/lib/time";
+import { eventStartEnd } from "@/lib/calendar-shape";
 
 type Db = SupabaseClient<Database>;
 type SourceTable = "activities" | "events" | "health_schedule" | "health_appointments" | "doc_entries" | "trips" | "bills" | "meal_plans" | "goals" | "routines";
@@ -217,12 +218,6 @@ async function backfillFamily(supabase: Db, familyId: string): Promise<number> {
   return pushed;
 }
 
-function eventStartEnd(event: GoogleCalendarEvent): { start: Date; end: Date | null; allDay: boolean } | null {
-  if (event.start?.dateTime) return { start: new Date(event.start.dateTime), end: event.end?.dateTime ? new Date(event.end.dateTime) : null, allDay: false };
-  if (event.start?.date) return { start: new Date(`${event.start.date}T00:00:00`), end: null, allDay: true };
-  return null;
-}
-
 /** Applies one event Google reports changed on `memberId`'s calendar. A
  * cancellation just unlinks that member from a shared activity/event (other
  * tagged members keep theirs), deleting the row outright only once no one
@@ -273,28 +268,28 @@ async function applyIncomingEvent(supabase: Db, familyId: string, memberId: stri
         .eq("id", link.source_id);
       break;
     case "events":
-      await supabase.from("events").update({ title, event_date: familyDay(when.start) }).eq("id", link.source_id);
+      await supabase.from("events").update({ title, event_date: when.day }).eq("id", link.source_id);
       break;
     case "health_schedule":
-      await supabase.from("health_schedule").update({ what: title, when_date: familyDay(when.start) }).eq("id", link.source_id);
+      await supabase.from("health_schedule").update({ what: title, when_date: when.day }).eq("id", link.source_id);
       break;
     case "health_appointments":
       await supabase.from("health_appointments").update({ what: title, when_at: when.start.toISOString(), where_text: event.location ?? null }).eq("id", link.source_id);
       break;
     case "doc_entries":
-      await supabase.from("doc_entries").update({ title, expires_at: familyDay(when.start) }).eq("id", link.source_id);
+      await supabase.from("doc_entries").update({ title, expires_at: when.day }).eq("id", link.source_id);
       break;
     case "trips":
-      await supabase.from("trips").update({ title, start_date: familyDay(when.start) }).eq("id", link.source_id);
+      await supabase.from("trips").update({ title, start_date: when.day }).eq("id", link.source_id);
       break;
     case "bills":
-      await supabase.from("bills").update({ name: title, due_date: familyDay(when.start) }).eq("id", link.source_id);
+      await supabase.from("bills").update({ name: title, due_date: when.day }).eq("id", link.source_id);
       break;
     case "meal_plans":
-      await supabase.from("meal_plans").update({ dish: title, plan_date: familyDay(when.start) }).eq("id", link.source_id);
+      await supabase.from("meal_plans").update({ dish: title, plan_date: when.day }).eq("id", link.source_id);
       break;
     case "goals":
-      await supabase.from("goals").update({ title, target_date: familyDay(when.start) }).eq("id", link.source_id);
+      await supabase.from("goals").update({ title, target_date: when.day }).eq("id", link.source_id);
       break;
   }
 }
