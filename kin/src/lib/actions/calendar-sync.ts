@@ -17,7 +17,7 @@ import type { ActionState } from "@/lib/actions/auth";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/lib/database.types";
 import { familyDay } from "@/lib/time";
-import { eventStartEnd, allDayEvent, syncLinkPatch } from "@/lib/calendar-shape";
+import { eventStartEnd, allDayEvent, syncLinkPatch, isQuarantined, QUARANTINE_AFTER } from "@/lib/calendar-shape";
 
 type Db = SupabaseClient<Database>;
 type SourceTable = "activities" | "events" | "health_schedule" | "health_appointments" | "doc_entries" | "trips" | "bills" | "meal_plans" | "goals" | "routines";
@@ -351,12 +351,16 @@ async function applyIncomingEvent(
   return null;
 }
 
-async function pullMemberCalendar(supabase: Db, familyId: string, memberId: string): Promise<{ applied: number; failed: number }> {
+async function pullMemberCalendar(
+  supabase: Db,
+  familyId: string,
+  memberId: string,
+): Promise<{ applied: number; retrying: number; setAside: number }> {
   const accessToken = await getValidCalendarAccessToken(memberId);
-  if (!accessToken) return { applied: 0, failed: 0 };
+  if (!accessToken) return { applied: 0, retrying: 0, setAside: 0 };
 
   const { data: link } = await supabase.from("calendar_links").select("calendar_id, sync_token").eq("member_id", memberId).maybeSingle();
-  if (!link) return { applied: 0, failed: 0 };
+  if (!link) return { applied: 0, retrying: 0, setAside: 0 };
 
   let syncToken = link.sync_token;
   let result = await listChangedCalendarEvents(accessToken, link.calendar_id, syncToken);
@@ -365,10 +369,52 @@ async function pullMemberCalendar(supabase: Db, familyId: string, memberId: stri
     result = await listChangedCalendarEvents(accessToken, link.calendar_id, null);
   }
 
-  const failures: string[] = [];
+  // How many times each of these has already failed. Only this side knows --
+  // everything else about a sync is derivable from Google.
+  const { data: priorRows } = await supabase
+    .from("calendar_sync_failures")
+    .select("google_event_id, attempts")
+    .eq("member_id", memberId);
+  const priorAttempts = new Map((priorRows ?? []).map((r) => [r.google_event_id, r.attempts]));
+
+  const retrying: string[] = [];
+  const setAside: string[] = [];
+
   for (const event of result.events) {
     const failed = await applyIncomingEvent(supabase, familyId, memberId, event);
-    if (failed) failures.push(`${event.id} ${failed}`);
+
+    if (!failed) {
+      // It worked. Any record of it failing before is history, and leaving it
+      // would count old failures against a future one.
+      if (priorAttempts.has(event.id)) {
+        const { error } = await supabase
+          .from("calendar_sync_failures")
+          .delete()
+          .eq("member_id", memberId)
+          .eq("google_event_id", event.id);
+        if (error) console.error(`Recovered calendar event ${event.id} is still recorded as failing`, error.message);
+      }
+      continue;
+    }
+
+    const attempts = (priorAttempts.get(event.id) ?? 0) + 1;
+    const { error: recordError } = await supabase.from("calendar_sync_failures").upsert(
+      {
+        family_id: familyId,
+        member_id: memberId,
+        google_event_id: event.id,
+        attempts,
+        last_error: failed,
+        last_seen_at: new Date().toISOString(),
+      },
+      { onConflict: "member_id,google_event_id" },
+    );
+    // If the count cannot be kept, the event is retried rather than set aside:
+    // losing the change is the worse of the two, and a stuck sync is visible.
+    if (recordError) console.error(`Attempt count for calendar event ${event.id} was not recorded`, recordError.message);
+
+    if (isQuarantined(attempts)) setAside.push(`${event.id} (${attempts} attempts) ${failed}`);
+    else retrying.push(`${event.id} (attempt ${attempts}) ${failed}`);
   }
 
   // Google's sync token means "you have seen everything up to here". Saving it
@@ -387,18 +433,28 @@ async function pullMemberCalendar(supabase: Db, familyId: string, memberId: stri
   // handed back so "Sync now" can say so instead of reporting success.
   const { error } = await supabase
     .from("calendar_links")
-    .update(syncLinkPatch(result.nextSyncToken, failures.length, new Date().toISOString()))
+    .update(syncLinkPatch(result.nextSyncToken, retrying.length, new Date().toISOString()))
     .eq("member_id", memberId);
   if (error) console.error(`Calendar sync token was not saved for member ${memberId}; the next sync will replay this batch`, error.message);
 
-  if (failures.length > 0) {
+  if (retrying.length > 0) {
     console.error(
-      `Calendar pull: ${failures.length} of ${result.events.length} changes could not be applied for member ${memberId}. Holding the sync token so Google sends them again.`,
-      failures,
+      `Calendar pull: ${retrying.length} of ${result.events.length} changes could not be applied for member ${memberId}. Holding the sync token so Google sends them again.`,
+      retrying,
+    );
+  }
+  if (setAside.length > 0) {
+    console.error(
+      `Calendar pull: ${setAside.length} change(s) for member ${memberId} have failed ${QUARANTINE_AFTER} times and are being set aside so the rest of the sync can move on. They are in calendar_sync_failures; delete a row to try it again.`,
+      setAside,
     );
   }
 
-  return { applied: result.events.length - failures.length, failed: failures.length };
+  return {
+    applied: result.events.length - retrying.length - setAside.length,
+    retrying: retrying.length,
+    setAside: setAside.length,
+  };
 }
 
 /** Runs the full reconcile only if it hasn't run recently for this family —
@@ -460,11 +516,13 @@ export async function syncGoogleCalendarAction(): Promise<ActionState & { synced
 
   let pulled = 0;
   let heldBack = 0;
+  let setAside = 0;
   for (const row of connectedRows) {
     try {
-      const { applied, failed } = await pullMemberCalendar(supabase, me.family_id, row.member_id);
-      pulled += applied;
-      heldBack += failed;
+      const counts = await pullMemberCalendar(supabase, me.family_id, row.member_id);
+      pulled += counts.applied;
+      heldBack += counts.retrying;
+      setAside += counts.setAside;
     } catch (err) {
       console.error(`Calendar pull failed for member ${row.member_id}`, err);
       trouble.push("one member's calendar could not be read");
@@ -477,6 +535,11 @@ export async function syncGoogleCalendarAction(): Promise<ActionState & { synced
   if (heldBack > 0) {
     trouble.push(
       `${heldBack} change${heldBack === 1 ? "" : "s"} from Google could not be applied and will be tried again on the next sync`,
+    );
+  }
+  if (setAside > 0) {
+    trouble.push(
+      `${setAside} change${setAside === 1 ? " has" : "s have"} failed ${QUARANTINE_AFTER} times and ${setAside === 1 ? "has" : "have"} been set aside so the rest could go through`,
     );
   }
   if (trouble.length > 0) {

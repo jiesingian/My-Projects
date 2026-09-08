@@ -1,5 +1,12 @@
 import { test, expect } from "@playwright/test";
-import { toGoogleEventBody, eventStartEnd, allDayEvent, syncLinkPatch } from "@/lib/calendar-shape";
+import {
+  toGoogleEventBody,
+  eventStartEnd,
+  allDayEvent,
+  syncLinkPatch,
+  isQuarantined,
+  QUARANTINE_AFTER,
+} from "@/lib/calendar-shape";
 import { familyMidnight, familyDay, addDays, weekdayOf, daysBetween } from "@/lib/time";
 
 /** What goes to Google, and what comes back.
@@ -294,5 +301,46 @@ test.describe("counting days between two dates", () => {
     expect(daysBetween("2026-09-31", "2026-09-09")).toBeNull();
     expect(daysBetween("2026-09-09", "nonsense")).toBeNull();
     expect(daysBetween("", "2026-09-09")).toBeNull();
+  });
+});
+
+test.describe("setting aside an event that never applies", () => {
+  const NOW = "2026-09-08T10:00:00.000Z";
+
+  /** Holding the token back is what stopped changes being lost. Setting an
+   * event aside is what stops that becoming stuck-for-good: without it, one
+   * event that can never apply blocks every later change from that member. */
+  test("an event is retried, then set aside", () => {
+    // Literals, not QUARANTINE_AFTER: isQuarantined(QUARANTINE_AFTER) is true
+    // for any threshold at all, so writing it that way pins nothing. Changing
+    // the threshold should mean deliberately changing this line.
+    expect(QUARANTINE_AFTER, "the threshold moved; was that meant?").toBe(3);
+    expect(isQuarantined(1), "the first failure is a retry, not a verdict").toBe(false);
+    expect(isQuarantined(2)).toBe(false);
+    expect(isQuarantined(3), "three separate syncs is not a passing fault").toBe(true);
+    expect(isQuarantined(4)).toBe(true);
+  });
+
+  /** The distinction the whole design rests on: the token waits for events
+   * still being retried, and does NOT wait for ones already set aside. */
+  test("only events still being retried hold the token", () => {
+    expect(syncLinkPatch("tok-2", 0, NOW), "nothing outstanding, so move on").toEqual({
+      last_synced_at: NOW,
+      sync_token: "tok-2",
+    });
+
+    expect(syncLinkPatch("tok-2", 1, NOW), "one still being retried, so wait for it").not.toHaveProperty("sync_token");
+
+    // Set-aside events are not counted into retrying, so a batch whose only
+    // failures have been set aside moves the token on.
+    expect(
+      syncLinkPatch("tok-2", 0, NOW),
+      "a batch whose failures are all set aside must not block the sync for ever",
+    ).toHaveProperty("sync_token", "tok-2");
+  });
+
+  test("last_synced_at moves either way, because we did talk to Google", () => {
+    expect(syncLinkPatch("tok-2", 0, NOW).last_synced_at).toBe(NOW);
+    expect(syncLinkPatch("tok-2", 5, NOW).last_synced_at).toBe(NOW);
   });
 });

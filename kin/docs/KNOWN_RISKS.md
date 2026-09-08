@@ -194,8 +194,8 @@ there is no target to measure against — not a target of nothing.
 
 ## A failed calendar sync used to lose the change for good — FIXED 8 September
 
-Recorded here because the shape is worth remembering: this looked like
-seventeen dropped errors and was really one design fault.
+Recorded because the shape is worth remembering: this looked like seventeen
+dropped errors and was really one design fault.
 
 `pullMemberCalendar` applied each change Google reported, discarding whatever
 went wrong, and then saved the new sync token **unconditionally**. A Google
@@ -208,34 +208,70 @@ anywhere would say so.
 
 - `applyIncomingEvent` reports failure instead of swallowing it; all 17 writes
   in the file capture their error.
-- The token is only advanced when every change in the batch landed
-  (`syncLinkPatch`, pure and tested). `last_synced_at` still moves either way,
-  because we did talk to Google.
-- The create path undoes a half-made activity. Since a failure now guarantees a
-  retry, the retry must not find no link and make a second copy.
+- The token is only advanced when nothing in the batch is still being retried
+  (`syncLinkPatch`, pure and tested).
+- The create path undoes a half-made activity, since a failure now guarantees a
+  retry and the retry must not find no link and make a second copy.
 - Two orphan paths closed: a Google event created but not linked is deleted
-  again (unlinked, it would never be updated or removed, and the next *pull*
-  would read it as somebody's own event and make a duplicate activity from it);
-  a link that could not be cleared is logged.
+  again (unlinked it would never be updated or removed, and the next *pull*
+  would read it as somebody's own event and make a duplicate activity from it,
+  every sync); a link that could not be cleared is logged.
 - `syncGoogleCalendarAction` returns a real error. It used to return
   `error: null` even when the backfill threw or a whole member's calendar
-  failed to read — and both UIs already rendered `result.error`, they were just
-  never given one.
-- `disconnectCalendarAction` says so when the token could not be removed.
-  "Disconnected" should mean the credential is gone too.
+  failed to read — and both UIs already rendered `result.error`.
 
-**The cost, stated rather than hidden.** An event that can *never* apply — one
-that trips a constraint rather than a passing fault — now holds the token still,
-and no later change from that member gets through until someone looks. That is
-a worse blast radius than losing one edit, and it is deliberate: stuck and loud
-beats lossy and silent, and the count is reported to whoever pressed Sync now,
-so it is loud.
+**The cost that came with it, and what removes it.** An event that can *never*
+apply would hold the token still for good, blocking every later change from
+that member. `QUARANTINE_AFTER = 3` sets such an event aside: three separate
+syncs is not a passing fault, and anything that survives them is structural.
+The attempt count lives in `calendar_sync_failures`
+(`migrations/2026-09-08-quarantine-unappliable-calendar-events.sql`), and the
+count of set-aside items is reported to whoever pressed Sync now.
 
-**The durable fix needs a table** and is therefore Jonathan's: record failed
-event ids with an attempt count, advance the token past an event that has
-failed several times, and show those somewhere. That converts "stuck" into
-"one item quarantined". Not done, and not proposed as a migration until
-somebody actually hits it — no instance has been observed failing.
+**The migration is written and NOT APPLIED.** Until it runs, the query for
+prior attempts returns nothing, every failure looks like a first attempt, and
+the behaviour is the pre-quarantine one: hold the token indefinitely. That is
+where it has been all day and it is safe — just not self-clearing.
+
+**Nothing has ever been observed failing.** This was built ahead of the problem
+because it was asked for, not because anything is broken.
+
+---
+
+## The Planner asked the browser what day it is — FIXED 8 September
+
+Kept because of *how* it was found, which is the useful part.
+
+`calendar-nav` and `routine-controls` are client components and read `new
+Date()` for "today". The server renders in `Asia/Manila`. Whenever the two
+zones are on different dates — every day from 16:00 UTC — React reported a
+hydration mismatch on `/planner`, and `TodayButton` rendered a different
+`href` from the one the server sent. `routine-controls` had it too: "N days
+behind" changed depending on where the person reading it was.
+
+It never showed for the Singian household, whose browsers sit in Manila
+alongside the server. It showed for anyone travelling, anyone whose device is
+on another zone, and the test container for eight hours a day.
+
+**Fixed** with `familyDay()` — pure `Intl` with an explicit zone, so it works
+in a browser exactly as on the server — and `daysBetween`, which counts days
+from two plain dates and consults no clock at all.
+
+**The suite was catching it by accident.** It only noticed because the
+container happened to be in UTC, so the same code passed all morning and
+failed all evening; a green run said nothing about whether this class held.
+The chromium project now pins `timezoneId: "America/New_York"` — a zone that
+never agrees with the household — so hydration mismatches fail on every run
+rather than by the clock. Pinning it immediately caught the same bug inside a
+test: `preferences.spec` computed "today" from the browser to check
+`date_format`, and so compared the server's 9th against the browser's 8th and
+called the app wrong.
+
+**A standing skip worth knowing about.** The two `date_format` tests skip
+themselves when the day and the month are the same number — on 09/09, `08/09`
+and `09/08` are one string and the test cannot tell right from wrong. It says
+so and stands down rather than passing for the wrong reason, so a run on those
+days reports 2 skipped and that is correct.
 
 ---
 

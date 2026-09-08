@@ -165,6 +165,22 @@ export function eventStartEnd(
   return null;
 }
 
+/** How many syncs an event may fail before it is set aside.
+ *
+ * Three because the failures worth retrying are the passing ones -- a lock, a
+ * blip, a row that arrived a moment later -- and those do not survive three
+ * separate syncs. Anything that does is structural, and retrying it forever
+ * only means nothing else from that member ever gets through. */
+export const QUARANTINE_AFTER = 3;
+
+/** Whether an event that has failed this many times is now set aside.
+ *
+ * `attempts` counts the failure that has just happened, so the first failure
+ * arrives here as 1. */
+export function isQuarantined(attempts: number): boolean {
+  return attempts >= QUARANTINE_AFTER;
+}
+
 /** What to write back to calendar_links after pulling a member's calendar.
  *
  * Google's sync token means "you have seen everything up to here". Saving it
@@ -176,14 +192,16 @@ export function eventStartEnd(
  * `last_synced_at` moves either way, because we did in fact just talk to
  * Google and the Settings page should say when.
  *
- * The cost, named rather than hidden: an event that can never be applied holds
- * the token still, and no later change from that member gets through until
- * someone looks. Stuck and loud beats lossy and silent -- and the failure
- * count is reported to whoever pressed Sync now, so it is loud. */
+ * `retryingCount` is failures that are still being retried -- NOT every
+ * failure. An event set aside after QUARANTINE_AFTER attempts is deliberately
+ * excluded, which is what stops one unappliable event holding the token still
+ * for good and blocking every later change from that member. Without that
+ * exclusion this is stuck-forever; with it, it is one item set aside and
+ * reported. */
 export function syncLinkPatch(
   nextSyncToken: string | null,
-  failedCount: number,
+  retryingCount: number,
   now: string,
 ): { last_synced_at: string; sync_token?: string | null } {
-  return failedCount > 0 ? { last_synced_at: now } : { last_synced_at: now, sync_token: nextSyncToken };
+  return retryingCount > 0 ? { last_synced_at: now } : { last_synced_at: now, sync_token: nextSyncToken };
 }

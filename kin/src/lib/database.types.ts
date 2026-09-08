@@ -676,6 +676,39 @@ export type Database = {
           },
         ]
       }
+      calendar_sync_failures: {
+        Row: {
+          attempts: number
+          family_id: string
+          first_seen_at: string
+          google_event_id: string
+          id: string
+          last_error: string | null
+          last_seen_at: string
+          member_id: string
+        }
+        Insert: {
+          attempts?: number
+          family_id: string
+          first_seen_at?: string
+          google_event_id: string
+          id?: string
+          last_error?: string | null
+          last_seen_at?: string
+          member_id: string
+        }
+        Update: {
+          attempts?: number
+          family_id?: string
+          first_seen_at?: string
+          google_event_id?: string
+          id?: string
+          last_error?: string | null
+          last_seen_at?: string
+          member_id?: string
+        }
+        Relationships: []
+      }
       calendar_links: {
         Row: {
           account_email: string | null
