@@ -80,3 +80,28 @@ exercised by nothing. They need OAuth credentials the suite does not have.
 This matters more than it looks: the off-by-a-day fixed on 8 September lived
 in exactly those files, and was found by reading rather than by a failing
 test. The same class could return there and no test would notice.
+
+---
+
+## Swept and found clean — 8 September
+
+Recorded so nobody repeats the afternoon. Each was checked against the thing
+itself, not against an assumption.
+
+| Area | How it was checked | Result |
+| --- | --- | --- |
+| UTC date slicing | grep across `src/` for `toISOString().slice(0, 10)` and raw timestamp slicing | 11 fixed; **none remain** |
+| Nullish vs empty (`??`) | every env read; all 18 form reads carrying a non-empty default | 3 fixed; the rest are selects or hidden inputs, which cannot submit empty |
+| Whole-row clobber on edit | all 16 update actions diffed against the fields their forms populate | 1 fixed (routine duration); the other 15 complete |
+| PGRST201 ambiguous embeds | the 14 tables carrying two FKs to `members`, against every embed | clean — all disambiguate by FK column |
+| Goal totals vs the ledger | every goal in both households reconciled against confirmed transactions | clean — the one outlier is a hand-seeded QA fixture |
+| Routine expansion | `expandRoutine` probed directly: daily/weekly/monthly, intervals, month-end clamping, `end_date` boundary, mid-range starts | clean — including 31st→28 Feb, and `end_date` inclusive |
+| RLS coverage | every table: is RLS on, and does each family-scoped table have a scoping policy | clean — the two deny-all tables are deliberate |
+| Permissive policies | every policy on a family-scoped table, for a scoping expression | clean — none permissive |
+| Delete scoping | all 24 destructive actions; the 9 relying on RLS alone checked against their DELETE policies | clean — join tables scope through their parent |
+
+One caution learned in the doing: the throwaway script written to probe
+routine expansion made the very UTC-slice mistake it was helping to sweep
+for, and printed every occurrence a day early. It read as a catastrophic
+regression for about a minute. When the subject is dates, the check needs the
+household's zone as much as the code does.
