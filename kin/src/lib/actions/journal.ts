@@ -110,7 +110,8 @@ export async function deleteJournalMediaAction(mediaId: string): Promise<{ error
   if (!media) return { error: "Not found." };
 
   if (media.storage_provider === "supabase" && media.storage_path) {
-    await supabase.storage.from("journal").remove([media.storage_path]);
+    const { error: removeError } = await supabase.storage.from("journal").remove([media.storage_path]);
+    if (removeError) console.error(`Journal media ${media.storage_path} was left in storage after its record was deleted`, removeError.message);
   } else if (media.storage_provider === "google_drive" && media.drive_file_id) {
     const token = await getValidDriveAccessToken(me.family_id);
     const deleted = token ? await deleteDriveFile(token, media.drive_file_id).catch(() => false) : false;

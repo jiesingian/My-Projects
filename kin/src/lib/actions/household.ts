@@ -20,6 +20,7 @@ import { RECIPE_PHOTO_BUCKET } from "@/lib/meal-photos";
 import type { ActionState } from "@/lib/actions/auth";
 import type { TablesInsert } from "@/lib/database.types";
 import { allDayEvent } from "@/lib/calendar-shape";
+import { familyDay, weekdayOf, addDays } from "@/lib/time";
 
 export async function addBuyItemAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
   const me = await requireCurrentMember();
@@ -83,10 +84,14 @@ export async function removeBuyItemAction(itemId: string): Promise<ActionState> 
 
 export async function toggleBuyItemAction(itemId: string, checked: boolean) {
   const supabase = await createClient();
-  await supabase
+  const { error } = await supabase
     .from("buy_items")
     .update({ checked, checked_at: checked ? new Date().toISOString() : null })
     .eq("id", itemId);
+  // Not surfaced: the revalidate below re-renders the list from the database,
+  // so a tick that did not save comes straight back and the person sees it.
+  // That is the one failure mode in this file that is already visible.
+  if (error) console.error(`Buy item ${itemId} did not change state`, error.message);
   revalidatePath("/household");
 }
 
@@ -96,12 +101,13 @@ export async function clearCheckedAction() {
   // reads as success, so the wrong id cleared nothing and said nothing.
   const me = await requireCurrentMember();
   const supabase = await createClient();
-  await supabase
+  const { error } = await supabase
     .from("buy_items")
     .update({ cleared: true, cleared_at: new Date().toISOString() })
     .eq("family_id", me.family_id)
     .eq("checked", true)
     .eq("cleared", false);
+  if (error) console.error(`Checked items were not cleared for family ${me.family_id}`, error.message);
   revalidatePath("/household");
 }
 
@@ -158,24 +164,26 @@ export async function generateGroceryListAction(weekOf?: string): Promise<{ erro
   const familyId = me.family_id;
   const createdBy = me.id;
   const supabase = await createClient();
-  const day = weekOf ? new Date(`${weekOf}T00:00:00`) : new Date();
+  // Which week, as a plain date. Every step below is string arithmetic: the
+  // week boundary used to be computed through a Date and therefore through
+  // whatever clock the process was running on, which agrees with the
+  // household's zone only because instrumentation.ts makes it.
+  const anchor = weekOf?.trim() || familyDay();
+  const dow = weekdayOf(anchor);
+  if (dow === null) return { error: "That week could not be read.", added: 0 };
   // The Monday on or before that day — a Sunday belongs to the week it ends,
   // and used to be dropped from its own list.
-  const startOfWeek = new Date(day);
-  startOfWeek.setDate(day.getDate() - ((day.getDay() + 6) % 7));
-  const endOfWeek = new Date(startOfWeek);
-  endOfWeek.setDate(startOfWeek.getDate() + 7);
-  // Local dates, not toISOString: that shifts to UTC and, east of Greenwich,
-  // names the day before.
-  const isoOf = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+  const weekStart = addDays(anchor, -((dow + 6) % 7));
+  const weekEnd = weekStart && addDays(weekStart, 7);
+  if (!weekStart || !weekEnd) return { error: "That week could not be read.", added: 0 };
 
   const [{ data: meals }, { data: openBuy }] = await Promise.all([
     supabase
       .from("meal_plans")
       .select("meal_ingredients(ingredient_name, qty, qty_amount, unit, section, item_key)")
       .eq("family_id", familyId)
-      .gte("plan_date", isoOf(startOfWeek))
-      .lt("plan_date", isoOf(endOfWeek)),
+      .gte("plan_date", weekStart)
+      .lt("plan_date", weekEnd),
     supabase.from("buy_items").select("name").eq("family_id", familyId).eq("cleared", false),
   ]);
 
@@ -636,11 +644,14 @@ export async function removeRecipeCategoryAction(key: string): Promise<ActionSta
     .contains("categories", [key]);
 
   for (const row of filed ?? []) {
-    await supabase
+    const { error } = await supabase
       .from("family_recipes")
       .update({ categories: (row.categories ?? []).filter((c) => c !== key) })
       .eq("id", row.id)
       .eq("family_id", me.family_id);
+    // A recipe left filed under a category that no longer exists shows up
+    // under a heading nobody can see.
+    if (error) return { error: `The category was removed, but recipe "${row.id}" is still filed under it. ${error.message}` };
   }
 
   revalidatePath("/household");
@@ -799,7 +810,8 @@ export async function setRecipePhotoAction(recipeRef: string, storagePath: strin
 
   // The one it replaced is nobody's now.
   if (old?.storage_path && old.storage_path !== storagePath) {
-    await supabase.storage.from(RECIPE_PHOTO_BUCKET).remove([old.storage_path]);
+    const { error: removeError } = await supabase.storage.from(RECIPE_PHOTO_BUCKET).remove([old.storage_path]);
+    if (removeError) console.error(`Old recipe photo ${old.storage_path} was left in storage`, removeError.message);
   }
 
   revalidatePath("/household");

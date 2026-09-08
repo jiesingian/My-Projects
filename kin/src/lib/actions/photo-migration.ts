@@ -44,6 +44,11 @@ export async function migrateProfilePhotosToDriveAction(): Promise<MigrateResult
   const { rootFolderId } = await ensureDriveFolderStructure(me.family_id, accessToken, me.families.name);
 
   let migrated = 0;
+  // Photos whose file reached Drive but whose record did not follow. The
+  // original is deliberately left in place for these, so nothing is lost --
+  // but the household should be told, because a silent partial migration is
+  // how a photo ends up reachable by nobody.
+  const stranded: string[] = [];
   try {
     const { data: avatarRows } = await supabase
       .from("member_avatars")
@@ -61,11 +66,24 @@ export async function migrateProfilePhotosToDriveAction(): Promise<MigrateResult
       const folderId = await ensureProfilePhotoFolder(accessToken, rootFolderId, { kind: "member", memberId: row.member_id, fullName });
       const driveFileId = await migrateOneFile(supabase, accessToken, folderId, storagePath);
 
-      await supabase.from("member_avatars").update({ storage_path: null, drive_file_id: driveFileId }).eq("id", row.id);
-      if (member?.avatar_url === oldUrl) {
-        await supabase.from("members").update({ avatar_url: `/api/drive/file/${driveFileId}` }).eq("id", row.member_id);
+      // The copy is in Drive; this is the row that says so. If it does not
+      // land, the row still points at storage -- and the delete below would
+      // then remove the only copy anyone can reach. Keep the original.
+      const { error: pointerError } = await supabase
+        .from("member_avatars")
+        .update({ storage_path: null, drive_file_id: driveFileId })
+        .eq("id", row.id);
+      if (pointerError) {
+        stranded.push(`${fullName}'s photo was copied to Drive but the record still points at the old one (${pointerError.message})`);
+        continue;
       }
-      await supabase.storage.from("avatars").remove([storagePath]).catch(() => {});
+      if (member?.avatar_url === oldUrl) {
+        const { error } = await supabase.from("members").update({ avatar_url: `/api/drive/file/${driveFileId}` }).eq("id", row.member_id);
+        if (error) stranded.push(`${fullName}'s photo moved, but their profile still shows the old one (${error.message})`);
+      }
+      // Only now, with the record pointing at Drive, is the original spare.
+      const { error: removeError } = await supabase.storage.from("avatars").remove([storagePath]);
+      if (removeError) console.error(`Old avatar ${storagePath} was left in storage after migrating to Drive`, removeError.message);
       migrated++;
     }
 
@@ -84,11 +102,20 @@ export async function migrateProfilePhotosToDriveAction(): Promise<MigrateResult
 
       const driveFileId = await migrateOneFile(supabase, accessToken, householdFolderId, storagePath);
 
-      await supabase.from("family_backgrounds").update({ storage_path: null, drive_file_id: driveFileId }).eq("id", row.id);
-      if (family?.background_url === oldUrl) {
-        await supabase.from("families").update({ background_url: `/api/drive/file/${driveFileId}` }).eq("id", row.family_id);
+      const { error: pointerError } = await supabase
+        .from("family_backgrounds")
+        .update({ storage_path: null, drive_file_id: driveFileId })
+        .eq("id", row.id);
+      if (pointerError) {
+        stranded.push(`the household background was copied to Drive but the record still points at the old one (${pointerError.message})`);
+        continue;
       }
-      await supabase.storage.from("avatars").remove([storagePath]).catch(() => {});
+      if (family?.background_url === oldUrl) {
+        const { error } = await supabase.from("families").update({ background_url: `/api/drive/file/${driveFileId}` }).eq("id", row.family_id);
+        if (error) stranded.push(`the background moved, but the household still shows the old one (${error.message})`);
+      }
+      const { error: removeError } = await supabase.storage.from("avatars").remove([storagePath]);
+      if (removeError) console.error(`Old background ${storagePath} was left in storage after migrating to Drive`, removeError.message);
       migrated++;
     }
   } catch (err) {
@@ -99,5 +126,8 @@ export async function migrateProfilePhotosToDriveAction(): Promise<MigrateResult
 
   revalidatePath("/family");
   revalidatePath("/settings");
+  if (stranded.length > 0) {
+    return { error: `Moved ${migrated} photo(s). ${stranded.length} could not be finished: ${stranded.join("; ")}. The originals were kept.`, migrated };
+  }
   return { error: null, migrated };
 }

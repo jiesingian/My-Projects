@@ -14,37 +14,78 @@ import { familyDateTime } from "@/lib/time";
 
 export function ThemeControl({ current }: { current: string }) {
   const [pending, startTransition] = useTransition();
+  const [failed, setFailed] = useState<string | null>(null);
   const options: { value: "light" | "dark" | "system"; label: string }[] = [
     { value: "light", label: "Light" },
     { value: "dark", label: "Dark" },
     { value: "system", label: "System" },
   ];
   return (
-    <div className="seg" style={{ marginTop: 0, marginBottom: 14 }}>
-      {options.map((o) => (
-        <button key={o.value} type="button" data-active={current === o.value} disabled={pending} onClick={() => startTransition(() => setThemeAction(o.value))}>
-          {o.label}
-        </button>
-      ))}
-    </div>
+    <>
+      <div className="seg" style={{ marginTop: 0, marginBottom: 14 }}>
+        {options.map((o) => (
+          <button
+            key={o.value}
+            type="button"
+            data-active={current === o.value}
+            disabled={pending}
+            onClick={() =>
+              startTransition(async () => {
+                const { error } = await setThemeAction(o.value);
+                setFailed(error);
+              })
+            }
+          >
+            {o.label}
+          </button>
+        ))}
+      </div>
+      <DidNotSave message={failed} />
+    </>
   );
 }
 
 export function TextSizeControl({ current }: { current: string }) {
   const [pending, startTransition] = useTransition();
+  const [failed, setFailed] = useState<string | null>(null);
   const options: { value: "small" | "default" | "large"; label: string }[] = [
     { value: "small", label: "Small" },
     { value: "default", label: "Default" },
     { value: "large", label: "Large" },
   ];
   return (
-    <div className="seg" style={{ marginTop: 0, marginBottom: 22 }}>
-      {options.map((o) => (
-        <button key={o.value} type="button" data-active={current === o.value} disabled={pending} onClick={() => startTransition(() => setTextSizeAction(o.value))}>
-          {o.label}
-        </button>
-      ))}
-    </div>
+    <>
+      <div className="seg" style={{ marginTop: 0, marginBottom: 22 }}>
+        {options.map((o) => (
+          <button
+            key={o.value}
+            type="button"
+            data-active={current === o.value}
+            disabled={pending}
+            onClick={() =>
+              startTransition(async () => {
+                const { error } = await setTextSizeAction(o.value);
+                setFailed(error);
+              })
+            }
+          >
+            {o.label}
+          </button>
+        ))}
+      </div>
+      <DidNotSave message={failed} />
+    </>
+  );
+}
+
+/** A preference that silently fails to save is the exact shape of the bug
+ * that started all this: it reads back as though it worked. */
+function DidNotSave({ message }: { message: string | null }) {
+  if (!message) return null;
+  return (
+    <p role="alert" style={{ fontSize: 13, color: "var(--color-accent-700)", margin: "-8px 0 12px" }}>
+      {message}
+    </p>
   );
 }
 
@@ -52,6 +93,7 @@ const NOTIF_DEFS = NOTIFICATION_DEFS;
 
 export function NotificationToggles({ prefs }: { prefs: Record<string, boolean> }) {
   const [pending, startTransition] = useTransition();
+  const [failed, setFailed] = useState<string | null>(null);
   return (
     <Blueprint style={{ paddingLeft: 15 }}>
       {NOTIF_DEFS.map((n, i) => {
@@ -63,7 +105,12 @@ export function NotificationToggles({ prefs }: { prefs: Record<string, boolean> 
             role="switch"
             aria-checked={on}
             disabled={pending}
-            onClick={() => startTransition(() => toggleNotificationAction(n.key, !on))}
+            onClick={() =>
+              startTransition(async () => {
+                const { error } = await toggleNotificationAction(n.key, !on);
+                setFailed(error);
+              })
+            }
             style={{
               width: "100%",
               textAlign: "left",
@@ -89,6 +136,7 @@ export function NotificationToggles({ prefs }: { prefs: Record<string, boolean> 
           </button>
         );
       })}
+      <DidNotSave message={failed} />
     </Blueprint>
   );
 }
@@ -207,6 +255,7 @@ export function DriveConnectedPanel({
   canManage: boolean;
 }) {
   const [pending, startTransition] = useTransition();
+  const [driveFailed, setDriveFailed] = useState<string | null>(null);
   return (
     <>
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 1, background: "var(--color-divider)", border: "1px solid var(--color-divider)", marginBottom: 12 }}>
@@ -242,10 +291,20 @@ export function DriveConnectedPanel({
             className="btn btn-secondary btn-block"
             disabled={pending}
             style={{ minHeight: 40, fontSize: 13.5 }}
-            onClick={() => startTransition(() => disconnectDriveAction())}
+            onClick={() =>
+              startTransition(async () => {
+                const { error } = await disconnectDriveAction();
+                setDriveFailed(error);
+              })
+            }
           >
             {pending ? "…" : "DISCONNECT"}
           </button>
+          {driveFailed && (
+            <p role="alert" style={{ fontSize: 13, color: "var(--color-accent-700)", margin: "6px 0 0" }}>
+              {driveFailed}
+            </p>
+          )}
         </>
       )}
       {lastSyncedAt && (

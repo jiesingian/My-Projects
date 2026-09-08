@@ -41,7 +41,9 @@ export async function getValidCalendarAccessToken(memberId: string): Promise<str
   if (!res.ok) return null;
   const refreshed = (await res.json()) as { access_token: string; expires_in: number };
 
-  await admin
+  // Not fatal -- the token just fetched is returned either way -- but if this
+  // keeps failing, every call refreshes again and Google rate-limits that.
+  const { error: storeError } = await admin
     .from("calendar_tokens")
     .update({
       access_token: refreshed.access_token,
@@ -49,6 +51,7 @@ export async function getValidCalendarAccessToken(memberId: string): Promise<str
       updated_at: new Date().toISOString(),
     })
     .eq("member_id", memberId);
+  if (storeError) console.error(`Refreshed Calendar token for member ${memberId} was not stored; every call will refresh again`, storeError.message);
 
   return refreshed.access_token;
 }

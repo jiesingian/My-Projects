@@ -11,73 +11,64 @@ place for those.
 
 ---
 
-## Writes whose error is never captured (29 sites, was 67)
+## Writes whose error was never captured — CLOSED 8 September, 67 of 67
 
-`src/lib/actions/*.ts` contains writes of the shape
+`src/lib/actions/*.ts` and `src/lib/*.ts` contained 67 writes of the shape
 
     await supabase.from("x").update({ ... }).eq("id", id);
 
-with no `const { error }`. If the write is refused — by RLS, by a constraint,
-by the network — the action carries on and reports success.
+with no `const { error }`. If the write was refused — by RLS, by a constraint,
+by the network — the action carried on and reported success. **There are none
+left.**
 
-**38 were fixed on 8 September**, chosen by one test: would a silent failure
-lose data or money, in a way the person could not see? The rest were left,
-because touching a call site to guard against a failure nobody has observed
-is how you break something that works.
+They were not one problem. Sorted by what a silent failure actually cost:
 
-The worst shape, and the reason these were picked first, is **delete then
-insert**:
+**Lost something.** Delete-then-insert, five times over (activity members,
+event members, trip travellers, routine members, recipe ingredients): only the
+delete is certain, so a refused insert left the record marked for *nobody* —
+indistinguishable from a save that worked. A photo uploaded, stored and
+attached to nothing. A bill left unpaid after paying it, or paid after
+deleting the payment. A meal's ingredients, so the grocery list was built
+without them.
 
-    await supabase.from("activity_members").delete().eq("activity_id", id);
-    await supabase.from("activity_members").insert(who.map(...));
+**Destroyed something.** The Drive photo migration copied a file to Drive,
+updated the row to point at Drive, then deleted the original from storage — in
+that order, with the middle step's error discarded. A failed update meant the
+row still pointed at storage, the original was deleted, and the Drive copy was
+unreferenced: **a family photo reachable by nobody.** The original is now kept
+whenever the record does not follow, and the household is told which.
 
-Only the delete is certain to have happened. If the insert is refused, the
-record is left marked for *nobody* — and from the outside that is
-indistinguishable from a save that worked. It appeared five times: activity
-members, event members, trip travellers, routine members, recipe
-ingredients. A routine for nobody never appears again.
+**Made a duplicate, forever.** A Google event created but not linked would
+never be updated or removed, and the next *pull* read it as somebody's own
+event and made an activity from it — every sync. Same shape in Drive: a folder
+created but not recorded means another folder of the same name next run.
 
-Fixed, by area:
+**Reported success while failing.** `syncGoogleCalendarAction` returned
+`error: null` even when the backfill threw or a whole member's calendar could
+not be read — and both UIs already rendered `result.error`. **ADD TO
+JOURNAL**, **SET BUDGET**/**SET TARGET** and **GENERATE GROCERY LIST** each
+called their action and ignored what came back; the grocery button navigated
+to the shopping list either way, so a list that failed to write looked exactly
+like a week with nothing planned.
 
-| Area | Sites | What a silent failure lost |
-|---|---|---|
-| `planner.ts` | 8 | who an activity, event or trip is for; a journal entry made from a plan |
-| `wealth.ts` | 6 | a bill left unpaid after paying it, or paid after deleting the payment; a budget; a savings target; a goal total |
-| `household.ts` | 5 | a meal's ingredients, so the grocery list is built without them; the grocery list itself; a recipe's ingredients |
-| `journal.ts` | 2 | who an entry is about; a photo uploaded and attached to nothing |
-| `routines.ts` | 2 | who a routine is for |
+**Saved a preference that did not save.** Theme set a cookie whether or not
+the row wrote, so it appeared to change here and reverted on the member's other
+devices. Text size and notification switches the same. This is the shape of the
+bug that started all of it: `week_start` and `date_format` saved cleanly, said
+so, and changed nothing.
 
-Three of these were silent at the *interface* as well as in the action —
-**ADD TO JOURNAL**, **SET BUDGET**/**SET TARGET**, and **GENERATE GROCERY
-LIST** all called their action and ignored what came back. The grocery button
-navigated to the shopping list either way, so a list that failed to write
-looked exactly like a week with nothing planned. Those three now show what
-went wrong, and the grocery one only navigates if there is something to see.
+**Leaked a file, or a login.** Storage `remove()` calls left orphans; the
+compensating `deleteUser` after a failed child creation left an address
+claimed by a login belonging to nobody, so a second attempt with the same
+address would fail.
 
-**One was left logging rather than telling anyone,** on purpose:
-`apply_code_grant_to_family` in `family.ts`. It runs after the household has
-been created, so returning an error would strand a new member on a signup
-form for an account that already exists. A lost grant is the difference
-between free-for-good and a trial that will ask for payment, and it surfaces
-weeks later as a paywall nobody can trace back — so it is logged with the
-household name, and deliberately not the code, which is a credential.
-
-**Not fixed, and why.** `toggleBuyItemAction` and `clearCheckedAction` fail
-visibly: the list re-renders from the database and the tick comes back. The
-storage `.remove()` calls (avatars, journal media, documents, recipe photos)
-leak an orphaned file rather than losing anything the family can see.
-`calendar-sync.ts`'s 17 were done on 8 September and turned out not to be a
-logging problem at all — see the entry below.
-
-**What would change that.** Any report of "I did that and it did not save"
-in one of the remaining paths.
-
-**Where it would hurt most,** if it ever does: `applySettlement` and
-`deleteTransactionAction` used to adjust `goals.current_amount` by hand, and
-a swallowed failure there left a savings goal permanently out of step with
-the ledger. Both now call `recalc_goal_total` and capture its error, and a
-recomputed total self-corrects on the next touch — so that one has stopped
-compounding.
+Three are deliberately logged rather than shown, each for a stated reason:
+`apply_code_grant_to_family` (the household already exists, so an error would
+strand a new member on a signup form), `resetPasswordForEmail` (answering
+differently would tell a stranger which addresses have accounts), and the
+sign-out after a password reset (they have just proved who they are and are on
+their way in). All three are the kind of failure that must not be invisible to
+*us*, which is what the logs are for.
 
 ---
 
@@ -133,33 +124,36 @@ Empty is correct.
 
 ---
 
-## wealth_targets is still writable by the household — until the migration runs
+## wealth_targets was writable by the whole household — CLOSED 8 September
 
-**Confirmed bug, half fixed.** `wealth_targets` is private to read
-(`member_id = current_member_id()`) and open to write (both write policies
-check only the family). Any member could set or overwrite any other member's
-revenue target, and could not then see what they had done.
+`wealth_targets` was private to read (`member_id = current_member_id()`) and
+open to write: both write policies checked only the family. Any member could
+set or overwrite any other member's revenue target — and because the read
+policy is the strict one, could not then see what they had done, while the
+person whose target it is had no way to tell where the number came from.
 
-Reproduced 8 September against the throwaway household: `POST` of another
-member's target returned **201**. Row confirmed as theirs, then removed. The
-Singian household was never touched.
+Reproduced against the throwaway household: `POST` of another member's target
+returned **201**. Row confirmed as theirs, then removed. The Singian household
+was never touched.
 
-**Done:** `setWealthTargetAction` now takes the member and the household from
-the session rather than from its arguments, so the app cannot be used to do
-it. `setJointBudgetAction` and `toggleOmronAction` were given the same
-treatment for the same reason.
+**Closed on both sides.** `setWealthTargetAction` takes the member and the
+household from the session rather than from its arguments (as do
+`setJointBudgetAction` and `toggleOmronAction`), and
+`migrations/2026-09-08-a-target-is-your-own.sql` is **applied**: all four verbs
+now name `member_id`. Verified by re-running the reproduction both ways —
+another member's target `403` where it was `201`, own target still `201`,
+another member's row not deletable with the row confirmed surviving, own row
+still deletable.
 
-**Still open:** the policies themselves.
-`migrations/2026-09-08-a-target-is-your-own.sql` is written and *not applied*.
-Until it runs, anyone in a household can still do this by talking to PostgREST
-directly — the anon key is public by design, so the app-layer fix is a closed
-door beside an open window. `e2e/authorization.spec.ts` carries the check as
-`fixme`; take it off when the migration lands.
+**The DELETE policy was missed on the first pass** and applied in a second
+run. Four policies were on the table, three were considered. That is the kind
+of gap that survives a fix precisely because the fix looks like it covered the
+area, and it is written into the migration file rather than tidied away.
 
-**A note worth keeping.** The first probe of this returned 403 and nearly had
-it recorded as safe. That request carried `Prefer: return=representation`, and
-the SELECT policy refuses to hand back another member's row — so the insert
-had succeeded and the *read-back* failed, with an error naming the insert. A
+**A note worth keeping.** The first probe returned 403 and nearly had this
+recorded as safe. That request carried `Prefer: return=representation`, and the
+SELECT policy refuses to hand back another member's row — so the insert had
+succeeded and the *read-back* failed, with an error naming the insert. A
 refusal on a write that asks for its row back may be the read being refused.
 
 ---
@@ -183,17 +177,18 @@ household already knows.
 
 ---
 
-## Another member's target always reads as zero
+## Another member's target read as zero — FIXED 8 September
 
-Noticed while fixing the above, not fixed. The Wealth hub renders
-`${whosePossessive} target this month` when viewing someone else's pane, but
-`getWealthPane` reads `wealth_targets` through the RLS client and the SELECT
-policy restricts it to your own row — so the meter shows 0 for everyone else,
-labelled as though it were their real figure.
+The Wealth hub rendered `EARNED OF TARGET` against `${whosePossessive} target
+this month` when viewing someone else's pane. But `wealth_targets` is private
+by row-level policy — deliberately, and tightened further this morning — so
+that number always read back as **0**. The page was stating a figure it had
+never been allowed to see, and calling it theirs.
 
-Harmless and long-standing, and the honest options differ: either stop
-claiming to show it, or decide targets are household-visible and widen the
-SELECT policy. That is a product decision, not a bug fix.
+Fixed without touching the policy, because the policy is right: viewing
+somebody else now shows `EARNED THIS MONTH` with no cap and the note "their
+target is theirs to see". `Meter` takes `cap: number | null`, where null means
+there is no target to measure against — not a target of nothing.
 
 ---
 
@@ -357,6 +352,30 @@ Asia/Manila — and the sweep is mechanical now that `familyMidnight` exists.
 It was left out of the coverage change on purpose rather than overlooked:
 twelve call sites across five files is a change of its own, and one of them is
 the assistant.
+
+---
+
+## The Planner groups its calendar in the process's clock, not the household's
+
+Noticed while closing the all-day date bugs, and **left alone deliberately**.
+
+`src/lib/queries/planner.ts` builds each item's `date` with
+`new Date(`${column}T00:00:00`)` and then groups by `getFullYear()`,
+`getMonth()`, `getDate()` — local getters. Construction and reading use the
+same clock, so the module is internally consistent and correct in production,
+where `instrumentation.ts` puts the process in `Asia/Manila`. The two page
+anchors in `planner/page.tsx` and `household/page.tsx` are the same.
+
+It is left because a partial change would be worse than none: swapping the
+construction to `familyMidnight` without also moving every getter would break
+the calendar grid outright. Doing it properly is a refactor of the whole
+display module, with real regression risk, to buy robustness against a
+`KIN_TZ` that nobody has moved.
+
+The everything-else of this class *is* closed: no calendar path, query bound
+or all-day sync builds a date from the process clock any more, and `addDays`
+and `weekdayOf` in `lib/time.ts` do day arithmetic with no clock involved at
+all.
 
 ---
 

@@ -130,7 +130,8 @@ export async function deleteDocFileAction(fileId: string, folderId: string): Pro
   if (!file) return { error: "Not found." };
 
   if (file.storage_provider === "supabase" && file.storage_path) {
-    await supabase.storage.from("documents").remove([file.storage_path]);
+    const { error: removeError } = await supabase.storage.from("documents").remove([file.storage_path]);
+    if (removeError) console.error(`Document ${file.storage_path} was left in storage after its record was deleted`, removeError.message);
   } else if (file.storage_provider === "google_drive" && file.drive_file_id) {
     const token = await getValidDriveAccessToken(me.family_id);
     const deleted = token ? await deleteDriveFile(token, file.drive_file_id).catch(() => false) : false;

@@ -7,36 +7,45 @@ import { requireCurrentMember } from "@/lib/session";
 import type { ActionState } from "@/lib/actions/auth";
 import { isNotificationKey } from "@/lib/notifications";
 
-export async function setThemeAction(theme: "light" | "dark" | "system") {
+export async function setThemeAction(theme: "light" | "dark" | "system"): Promise<ActionState> {
   const me = await requireCurrentMember();
   const supabase = await createClient();
-  await supabase.from("members").update({ theme }).eq("id", me.id);
+  // The cookie below is what this browser renders from, and it was being set
+  // whether or not the row saved -- so the theme appeared to change here and
+  // quietly reverted on the member's other devices.
+  const { error } = await supabase.from("members").update({ theme }).eq("id", me.id);
+  if (error) return { error: `That did not save. ${error.message}` };
 
   const cookieStore = await cookies();
   if (theme === "system") cookieStore.delete("kin-theme");
   else cookieStore.set("kin-theme", theme, { path: "/", maxAge: 60 * 60 * 24 * 365 });
 
   revalidatePath("/", "layout");
+  return { error: null };
 }
 
-export async function setTextSizeAction(textSize: "small" | "default" | "large") {
+export async function setTextSizeAction(textSize: "small" | "default" | "large"): Promise<ActionState> {
   const me = await requireCurrentMember();
   const supabase = await createClient();
-  await supabase.from("members").update({ text_size: textSize }).eq("id", me.id);
+  const { error } = await supabase.from("members").update({ text_size: textSize }).eq("id", me.id);
+  if (error) return { error: `That did not save. ${error.message}` };
   revalidatePath("/settings");
+  return { error: null };
 }
 
-export async function toggleNotificationAction(key: string, value: boolean) {
+export async function toggleNotificationAction(key: string, value: boolean): Promise<ActionState> {
   const me = await requireCurrentMember();
   // A server action is a public endpoint, and notification_prefs is JSONB, so
   // an unchecked key lets a caller write anything -- and any amount of it --
   // into their own row. Only the switches we actually offer are accepted.
-  if (!isNotificationKey(key)) return;
+  if (!isNotificationKey(key)) return { error: "That is not a setting we offer." };
 
   const supabase = await createClient();
   const prefs = { ...(me.notification_prefs as Record<string, boolean>), [key]: value };
-  await supabase.from("members").update({ notification_prefs: prefs }).eq("id", me.id);
+  const { error } = await supabase.from("members").update({ notification_prefs: prefs }).eq("id", me.id);
+  if (error) return { error: `That did not save. ${error.message}` };
   revalidatePath("/settings");
+  return { error: null };
 }
 
 export async function updateHouseholdNameAction(name: string): Promise<ActionState> {

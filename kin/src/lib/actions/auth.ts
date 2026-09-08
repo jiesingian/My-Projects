@@ -84,13 +84,18 @@ export async function requestPasswordReset(_prev: ActionState, formData: FormDat
 
   const supabase = await createClient();
   const origin = await getOrigin();
-  await supabase.auth.resetPasswordForEmail(email, {
+  // Deliberately not surfaced. This flow answers the same way whether or not
+  // the address has an account, and reporting a failure here would tell a
+  // stranger which addresses exist. A mailer that is actually down is a
+  // different thing, though, and should not be invisible to us.
+  const { error: mailError } = await supabase.auth.resetPasswordForEmail(email, {
     // The email carries a typed code as well as this link, and the code is
     // what the next screen actually asks for -- see the note there. The link
     // is kept for the case where it survives: it lands on the same callback
     // the confirmation email uses and arrives already signed in.
     redirectTo: `${origin}/auth/callback?next=/reset-password`,
   });
+  if (mailError) console.error("Password reset email could not be sent", mailError.message);
 
   redirect(`/reset-password?email=${encodeURIComponent(email)}`);
 }
@@ -130,13 +135,22 @@ export async function updatePasswordAction(_prev: ActionState, formData: FormDat
   // A password is usually reset because the old one is not trusted any more,
   // so every other device is signed out. This session stays, so they land in
   // the app rather than at the login screen having just proved who they are.
-  await supabase.auth.signOut({ scope: "others" });
+  const { error: othersError } = await supabase.auth.signOut({ scope: "others" });
+  // Not surfaced: they have just proved who they are and are on their way in,
+  // and there is nothing they could do about it here. But a password reset
+  // that failed to sign the other devices out is exactly the case the reset
+  // was for, so it must not pass unrecorded.
+  if (othersError) console.error("Other sessions were not signed out after a password reset", othersError.message);
 
   redirect("/today");
 }
 
 export async function signOutAction() {
   const supabase = await createClient();
-  await supabase.auth.signOut();
+  const { error } = await supabase.auth.signOut();
+  // The redirect happens either way -- leaving someone stranded on a page
+  // they meant to leave is worse -- but a sign-out that did not take means
+  // the session is still live behind the login screen.
+  if (error) console.error("Sign out did not complete", error.message);
   redirect("/login");
 }

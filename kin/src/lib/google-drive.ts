@@ -37,11 +37,14 @@ export async function getValidDriveAccessToken(familyId: string): Promise<string
   if (!res.ok) return null;
   const refreshed = (await res.json()) as { access_token: string; expires_in: number };
 
-  await admin.from("drive_tokens").update({
+  // Not fatal -- the token just fetched is returned either way -- but if this
+  // keeps failing every call refreshes again, and Google rate-limits that.
+  const { error } = await admin.from("drive_tokens").update({
     access_token: refreshed.access_token,
     token_expires_at: new Date(Date.now() + refreshed.expires_in * 1000).toISOString(),
     updated_at: new Date().toISOString(),
   }).eq("family_id", familyId);
+  if (error) console.error(`Refreshed Drive token for family ${familyId} was not stored; every call will refresh again`, error.message);
 
   return refreshed.access_token;
 }
@@ -106,7 +109,10 @@ export async function ensureDriveFolderStructure(
     const root = await createFolder(accessToken, `Kin — ${householdName}`);
     rootFolderId = root.id;
     rootFolderLink = root.webViewLink;
-    await supabase.from("drive_links").update({ root_folder_id: rootFolderId, root_folder_link: rootFolderLink }).eq("family_id", familyId);
+    // The folder now exists in their Drive. If we do not record it, the next
+    // run makes another one with the same name, and so on.
+    const { error } = await supabase.from("drive_links").update({ root_folder_id: rootFolderId, root_folder_link: rootFolderLink }).eq("family_id", familyId);
+    if (error) console.error(`Drive root folder ${rootFolderId} was created but not recorded; the next run will create a duplicate`, error.message);
   }
 
   const familyFolderId = await ensureNamedSubfolder(accessToken, rootFolderId, "Family");
@@ -116,7 +122,8 @@ export async function ensureDriveFolderStructure(
   for (const folder of docFolders ?? []) {
     if (!folder.drive_folder_id) {
       const created = await createFolder(accessToken, folder.name, documentsFolderId);
-      await supabase.from("doc_folders").update({ drive_folder_id: created.id }).eq("id", folder.id);
+      const { error } = await supabase.from("doc_folders").update({ drive_folder_id: created.id }).eq("id", folder.id);
+      if (error) console.error(`Drive folder ${created.id} for "${folder.name}" was created but not recorded; the next run will create a duplicate`, error.message);
       continue;
     }
     const parents = await getFolderParents(accessToken, folder.drive_folder_id);

@@ -1,6 +1,6 @@
 import { test, expect } from "@playwright/test";
 import { toGoogleEventBody, eventStartEnd, allDayEvent, syncLinkPatch } from "@/lib/calendar-shape";
-import { familyMidnight, familyDay } from "@/lib/time";
+import { familyMidnight, familyDay, addDays, weekdayOf } from "@/lib/time";
 
 /** What goes to Google, and what comes back.
  *
@@ -233,5 +233,46 @@ test.describe("what we remember after pulling a calendar", () => {
    * from the beginning", and it must still be written on success. */
   test("a null next token is written, not skipped", () => {
     expect(syncLinkPatch(null, 0, NOW)).toEqual({ last_synced_at: NOW, sync_token: null });
+  });
+});
+
+test.describe("day arithmetic with no clock in it", () => {
+  /** Query bounds and week boundaries do not want an instant, and going
+   * through Date only introduces the process clock as a way to be wrong. */
+  test("a day plus one is the next day, everywhere", () => {
+    expect(addDays("2026-09-09", 1)).toBe("2026-09-10");
+    expect(addDays("2026-09-30", 1), "month end").toBe("2026-10-01");
+    expect(addDays("2026-12-31", 1), "year end").toBe("2027-01-01");
+    expect(addDays("2028-02-28", 1), "leap year").toBe("2028-02-29");
+    expect(addDays("2026-09-01", -1), "backwards over a month").toBe("2026-08-31");
+    expect(addDays("2026-09-09", 0)).toBe("2026-09-09");
+  });
+
+  test("a date that could not be meant is refused", () => {
+    for (const bad of ["", "nonsense", "2026-09-31", "2026-13-01", "09/09/2026", "2026-9-9"]) {
+      expect(addDays(bad, 1), `${bad || "(empty)"} was accepted`).toBeNull();
+      expect(weekdayOf(bad), `${bad || "(empty)"} was accepted`).toBeNull();
+    }
+  });
+
+  /** The grocery list is built from the Monday on or before the day asked
+   * for -- a Sunday belongs to the week it ends, and used to be dropped from
+   * its own list. That arithmetic now never touches a clock. */
+  test("the Monday on or before is found without a clock", () => {
+    const mondayOf = (day: string) => {
+      const dow = weekdayOf(day)!;
+      return addDays(day, -((dow + 6) % 7));
+    };
+    expect(mondayOf("2026-09-07"), "a Monday is its own Monday").toBe("2026-09-07");
+    expect(mondayOf("2026-09-09"), "midweek").toBe("2026-09-07");
+    expect(mondayOf("2026-09-13"), "a Sunday belongs to the week it ends").toBe("2026-09-07");
+    expect(mondayOf("2026-09-14"), "the next Monday starts the next week").toBe("2026-09-14");
+  });
+
+  test("weekdays are read the same wherever the process is", () => {
+    // 7 Sept 2026 is a Monday.
+    expect(weekdayOf("2026-09-07")).toBe(1);
+    expect(weekdayOf("2026-09-13")).toBe(0);
+    expect(weekdayOf("2026-09-12")).toBe(6);
   });
 });

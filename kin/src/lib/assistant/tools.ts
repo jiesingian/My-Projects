@@ -4,7 +4,7 @@ import { syncRowToCalendars, type CalendarTarget } from "@/lib/actions/calendar-
 import { EXPENSE_CATEGORIES, INCOME_SOURCES, signedAmount } from "@/lib/wealth";
 import { MARKET_SECTIONS, UNITS, guessSection, formatQuantity } from "@/lib/grocery";
 import type { CurrentMember } from "@/lib/session";
-import { familyDay } from "@/lib/time";
+import { familyDay, addDays, familyMidnight } from "@/lib/time";
 import { allDayEvent } from "@/lib/calendar-shape";
 
 /** Every tool the Today assistant can reach. Each one is scoped to the
@@ -295,19 +295,30 @@ export async function runAssistantTool(name: string, rawInput: unknown, me: Curr
       const from = str(input, "from");
       const to = str(input, "to");
       if (!from || !to) return fail("Need both from and to dates.");
-      const toExclusive = new Date(`${to}T00:00:00`);
-      toExclusive.setDate(toExclusive.getDate() + 1);
-      // Sliced in UTC this landed a day early, so the exclusive bound became
-      // the last day asked for and that day was dropped from the answer.
-      const toStr = familyDay(toExclusive);
+      // The exclusive upper bound is the day after the one asked for. Sliced
+      // in UTC this landed a day early and dropped the last day from the
+      // answer; built through a Date it depended on the process clock instead,
+      // which is the same bug wearing a different hat east of the household.
+      // A plain date plus one is the same in every zone there is.
+      const toStr = addDays(to, 1);
+      if (!toStr) return fail("That end date could not be read.");
+      const fromMidnight = familyMidnight(from);
+      const toMidnight = familyMidnight(toStr);
+      if (!fromMidnight || !toMidnight) return fail("Those dates could not be read.");
+      const fromInstant = fromMidnight.toISOString();
+      const toInstant = toMidnight.toISOString();
 
       const [activities, events, trips, bills, meals, goals] = await Promise.all([
         supabase
           .from("activities")
           .select("title, start_at, location, applies_to_whole_family, activity_members(members(full_name))")
           .eq("family_id", familyId)
-          .gte("start_at", `${from}T00:00:00`)
-          .lt("start_at", `${toStr}T00:00:00`)
+          // start_at is timestamptz, and a bound with no zone in it is read
+          // in the database's zone, which is UTC -- so "from 00:00" meant
+          // 08:00 in the household and the first eight hours of the day were
+          // missing from the answer. State the instant.
+          .gte("start_at", fromInstant)
+          .lt("start_at", toInstant)
           .order("start_at"),
         supabase.from("events").select("title, event_date, kind").eq("family_id", familyId).gte("event_date", from).lt("event_date", toStr),
         supabase.from("trips").select("title, start_date, end_date").eq("family_id", familyId).gte("start_date", from).lt("start_date", toStr),

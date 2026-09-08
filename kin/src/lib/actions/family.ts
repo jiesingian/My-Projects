@@ -179,7 +179,11 @@ export async function addChildWithLoginAction(_prev: ActionState, formData: Form
   if (error) {
     // The login exists but belongs to nobody. Left alone it would block the
     // address from ever being used again, so it goes back.
-    await admin.auth.admin.deleteUser(created.user.id).catch(() => {});
+    // If this undo fails the address is claimed by a login that belongs to
+    // nobody, and the parent cannot use it for the child on a second try.
+    await admin.auth.admin.deleteUser(created.user.id).catch((err) => {
+      console.error(`Orphaned auth user ${created.user.id} could not be removed after a failed child creation; ${email} is now unusable`, err);
+    });
     return { error: "We couldn't finish adding them. Nothing was saved — try again." };
   }
 
@@ -311,7 +315,8 @@ export async function deleteFamilyBackgroundAction(backgroundId: string): Promis
     const token = await getValidDriveAccessToken(me.family_id);
     if (token) await deleteDriveFile(token, photo.drive_file_id).catch(() => {});
   } else if (photo.storage_path) {
-    await supabase.storage.from("avatars").remove([photo.storage_path]).catch(() => {});
+    const { error: removeError } = await supabase.storage.from("avatars").remove([photo.storage_path]);
+    if (removeError) console.error(`Background file ${photo.storage_path} was left in storage after its record was deleted`, removeError.message);
   }
 
   const { data: family } = await supabase.from("families").select("background_url").eq("id", me.family_id).maybeSingle();
@@ -324,7 +329,10 @@ export async function deleteFamilyBackgroundAction(backgroundId: string): Promis
       .limit(1)
       .maybeSingle();
     const fallbackUrl = remaining ? resolvePhotoUrl(supabase, remaining) : null;
-    await supabase.from("families").update({ background_url: fallbackUrl }).eq("id", me.family_id);
+    const { error } = await supabase.from("families").update({ background_url: fallbackUrl }).eq("id", me.family_id);
+    // The photo is gone; if this does not follow, the household keeps showing
+    // a background that no longer exists.
+    if (error) return { error: `The photo was removed, but the household background still points at it. ${error.message}` };
   }
 
   revalidatePath("/family");
@@ -460,7 +468,8 @@ export async function deleteHouseholdAction(): Promise<ActionState> {
     for (const bucket of ["journal", "trip-photos", "avatars"] as const) {
       const { data: objects } = await supabase.storage.from(bucket).list(me.family_id);
       if (objects && objects.length > 0) {
-        await supabase.storage.from(bucket).remove(objects.map((o) => `${me.family_id}/${o.name}`));
+        const { error } = await supabase.storage.from(bucket).remove(objects.map((o) => `${me.family_id}/${o.name}`));
+        if (error) console.error(`Files in ${bucket} were left behind while deleting household ${me.family_id}`, error.message);
       }
     }
     // documents: "<family_id>/<entry_id>/<file>" — one extra level to walk.
@@ -468,7 +477,8 @@ export async function deleteHouseholdAction(): Promise<ActionState> {
     for (const dir of entryDirs ?? []) {
       const { data: files } = await supabase.storage.from("documents").list(`${me.family_id}/${dir.name}`);
       if (files && files.length > 0) {
-        await supabase.storage.from("documents").remove(files.map((f) => `${me.family_id}/${dir.name}/${f.name}`));
+        const { error } = await supabase.storage.from("documents").remove(files.map((f) => `${me.family_id}/${dir.name}/${f.name}`));
+        if (error) console.error(`Documents in ${dir.name} were left behind while deleting household ${me.family_id}`, error.message);
       }
     }
   } catch {

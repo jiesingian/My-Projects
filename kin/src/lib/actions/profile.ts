@@ -107,7 +107,8 @@ export async function deleteAvatarFromAlbumAction(avatarId: string): Promise<Act
     const token = await getValidDriveAccessToken(me.family_id);
     if (token) await deleteDriveFile(token, photo.drive_file_id).catch(() => {});
   } else if (photo.storage_path) {
-    await supabase.storage.from("avatars").remove([photo.storage_path]).catch(() => {});
+    const { error: removeError } = await supabase.storage.from("avatars").remove([photo.storage_path]);
+    if (removeError) console.error(`Avatar file ${photo.storage_path} was left in storage after its record was deleted`, removeError.message);
   }
 
   if (me.avatar_url === deletedUrl) {
@@ -119,7 +120,8 @@ export async function deleteAvatarFromAlbumAction(avatarId: string): Promise<Act
       .limit(1)
       .maybeSingle();
     const fallbackUrl = remaining ? resolvePhotoUrl(supabase, remaining) : null;
-    await supabase.from("members").update({ avatar_url: fallbackUrl }).eq("id", me.id);
+    const { error } = await supabase.from("members").update({ avatar_url: fallbackUrl }).eq("id", me.id);
+    if (error) return { error: `The photo was removed, but your profile still points at it. ${error.message}` };
   }
 
   revalidatePath("/settings");
@@ -150,9 +152,16 @@ export async function deleteOwnAccountAction(): Promise<ActionState> {
 
   if (me.auth_user_id) {
     const admin = createAdminClient();
-    if (admin) await admin.auth.admin.deleteUser(me.auth_user_id).catch(() => {});
+    // They have left the household; a login left behind cannot reach anything,
+    // but it does keep the address claimed.
+    if (admin) {
+      await admin.auth.admin
+        .deleteUser(me.auth_user_id)
+        .catch((err) => console.error(`Login ${me.auth_user_id} was left behind after the account was deleted`, err));
+    }
   }
 
-  await supabase.auth.signOut();
+  const { error: signOutError } = await supabase.auth.signOut();
+  if (signOutError) console.error("Sign out did not complete", signOutError.message);
   redirect("/login");
 }

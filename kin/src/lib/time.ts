@@ -61,6 +61,47 @@ export function familyMidnight(day: string, tz: string = FAMILY_TZ): Date | null
   return new Date(asUtc - offsetMs);
 }
 
+/** Day arithmetic on a plain date, with no clock involved at all.
+ *
+ * The zone-free counterpart to familyMidnight: where a real instant is not
+ * wanted -- a query bound, the Monday a week starts on -- going through Date
+ * only introduces the process clock as a way to be wrong. "2026-09-09" plus
+ * one is "2026-09-10" in every zone there is.
+ *
+ * Returns null on anything that is not a plain YYYY-MM-DD, including
+ * 31 September, which Date would roll into October without complaint. */
+export function addDays(day: string, delta: number): string | null {
+  const at = utcNoonlessDay(day);
+  if (!at) return null;
+  at.setUTCDate(at.getUTCDate() + delta);
+  return at.toISOString().slice(0, 10);
+}
+
+/** Day of the week for a plain date, 0 = Sunday, read in UTC so the answer is
+ * the same wherever the process is running. */
+export function weekdayOf(day: string): number | null {
+  return utcNoonlessDay(day)?.getUTCDay() ?? null;
+}
+
+/** A plain YYYY-MM-DD as the UTC instant that names it, or null.
+ *
+ * The validation is the point, and it has to be a round trip rather than a
+ * regex: "2026-09-31" matches the pattern, and both `Date.UTC(2026, 8, 31)`
+ * and `new Date("2026-09-31T00:00:00Z")` roll it forward to 1 October without
+ * complaint -- so an impossible date would quietly answer for a different
+ * day, which for the grocery week meant picking the wrong Monday. Caught by
+ * the test rather than in the app, which is the only reason it is not shipped.
+ */
+function utcNoonlessDay(day: string): Date | null {
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(day.trim());
+  if (!m) return null;
+  const [, y, mo, d] = m;
+  const year = Number(y), month = Number(mo), date = Number(d);
+  const at = new Date(Date.UTC(year, month - 1, date));
+  if (at.getUTCFullYear() !== year || at.getUTCMonth() !== month - 1 || at.getUTCDate() !== date) return null;
+  return at;
+}
+
 /** The wall clock in the household's own zone: "5:30 PM". */
 export function familyTime(at: Date, tz: string = FAMILY_TZ): string {
   return new Intl.DateTimeFormat("en-PH", { timeZone: tz, hour: "numeric", minute: "2-digit" }).format(at);

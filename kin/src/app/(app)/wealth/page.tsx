@@ -82,15 +82,20 @@ function FlowRow({ income, expense, currency }: { income: number; expense: numbe
   );
 }
 
-function Meter({ label, value, cap, currency, note }: { label: string; value: number; cap: number; currency: string; note?: string }) {
-  const pct = cap > 0 ? Math.min(100, Math.round((value / cap) * 100)) : 0;
-  const over = cap > 0 && value > cap;
+/** `cap` may be null, which means there is no target to measure against --
+ * not a target of nothing. Another member's target is private to them (the
+ * row-level policy on wealth_targets says so), so it reads back as zero here;
+ * rendering that as "0 of 0" and calling it their target was the page stating
+ * a number it had never been allowed to see. */
+function Meter({ label, value, cap, currency, note }: { label: string; value: number; cap: number | null; currency: string; note?: string }) {
+  const pct = cap !== null && cap > 0 ? Math.min(100, Math.round((value / cap) * 100)) : 0;
+  const over = cap !== null && cap > 0 && value > cap;
   return (
     <div style={{ marginBottom: 14 }}>
       <div style={{ display: "flex", alignItems: "baseline", marginBottom: 5 }}>
         <span style={{ font: "600 13px/1 var(--font-heading)", letterSpacing: ".02em", color: "var(--color-neutral-600)" }}>{label}</span>
         <span style={{ marginLeft: "auto", fontFamily: "var(--font-numeric)", fontSize: 13 }}>
-          {formatCurrency(value, currency)} of {formatCurrency(cap, currency)}
+          {cap === null ? formatCurrency(value, currency) : `${formatCurrency(value, currency)} of ${formatCurrency(cap, currency)}`}
         </span>
       </div>
       <div style={{ height: 10, border: "1px solid var(--color-divider)" }}>
@@ -290,11 +295,11 @@ async function ScopePane({ scope, familyId, memberId, currency }: { scope: Wealt
       ) : (
         <>
           <Meter
-            label="EARNED OF TARGET"
+            label={mine ? "EARNED OF TARGET" : "EARNED THIS MONTH"}
             value={pane.monthIncome}
-            cap={pane.budgetAmount}
+            cap={mine ? pane.budgetAmount : null}
             currency={currency}
-            note={mine ? "Your own revenue target this month." : `${whosePossessive} target this month.`}
+            note={mine ? "Your own revenue target this month." : `${whosePossessive} target is theirs to see.`}
           />
           {/* Only your own target is yours to set. */}
           {scope === memberId && <SetTargetControl month={pane.month} year={pane.year} current={pane.budgetAmount} />}
