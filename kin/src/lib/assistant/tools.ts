@@ -296,7 +296,9 @@ export async function runAssistantTool(name: string, rawInput: unknown, me: Curr
       if (!from || !to) return fail("Need both from and to dates.");
       const toExclusive = new Date(`${to}T00:00:00`);
       toExclusive.setDate(toExclusive.getDate() + 1);
-      const toStr = toExclusive.toISOString().slice(0, 10);
+      // Sliced in UTC this landed a day early, so the exclusive bound became
+      // the last day asked for and that day was dropped from the answer.
+      const toStr = familyDay(toExclusive);
 
       const [activities, events, trips, bills, meals, goals] = await Promise.all([
         supabase
@@ -386,8 +388,8 @@ export async function runAssistantTool(name: string, rawInput: unknown, me: Curr
           .from("meal_plans")
           .select("dish, plan_date, note")
           .eq("family_id", familyId)
-          .gte("plan_date", weekStart.toISOString().slice(0, 10))
-          .lt("plan_date", weekEnd.toISOString().slice(0, 10))
+          .gte("plan_date", familyDay(weekStart))
+          .lt("plan_date", familyDay(weekEnd))
           .order("plan_date"),
       ]);
 
