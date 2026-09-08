@@ -1,5 +1,5 @@
 import { test, expect } from "@playwright/test";
-import { toGoogleEventBody, eventStartEnd } from "@/lib/calendar-shape";
+import { toGoogleEventBody, eventStartEnd, allDayEvent } from "@/lib/calendar-shape";
 import { familyMidnight, familyDay } from "@/lib/time";
 
 /** What goes to Google, and what comes back.
@@ -161,5 +161,48 @@ test.describe("the household's midnight", () => {
     for (const bad of ["", "nonsense", "2026-09-31", "2026-13-01", "09/09/2026", "2026-9-9"]) {
       expect(familyMidnight(bad), `${bad || "(empty)"} was accepted`).toBeNull();
     }
+  });
+});
+
+test.describe("building an all-day item", () => {
+  /** The caller no longer constructs the instant, which is the whole point:
+   * every all-day sync used to write `new Date(`${date}T00:00:00`)` and get
+   * midnight wherever the process happened to be. */
+  test("a plain date becomes the right day on Google", () => {
+    const input = allDayEvent("Erynne's birthday", "2026-09-09");
+    expect(input).not.toBeNull();
+
+    const body = toGoogleEventBody(input!);
+    expect(body.start, `built in ${Intl.DateTimeFormat().resolvedOptions().timeZone}, and it must not matter`).toEqual({
+      date: "2026-09-09",
+    });
+    expect(body.end).toEqual({ date: "2026-09-10" });
+  });
+
+  test("a trip keeps both ends", () => {
+    const body = toGoogleEventBody(allDayEvent("Baguio", "2026-09-09", { endDay: "2026-09-12" })!);
+    expect(body.start).toEqual({ date: "2026-09-09" });
+    expect(body.end).toEqual({ date: "2026-09-13" });
+  });
+
+  test("no end day is a single day", () => {
+    const body = toGoogleEventBody(allDayEvent("Electricity due", "2026-09-09", { endDay: null })!);
+    expect(body.end).toEqual({ date: "2026-09-10" });
+  });
+
+  /** Reachable from the assistant, whose arguments a model writes. Not syncing
+   * is the right answer: a birthday missing from a phone gets noticed and
+   * fixed, and a birthday on the wrong day does not. */
+  test("a date we cannot read syncs nothing rather than the wrong day", () => {
+    for (const bad of ["", "nonsense", "2026-09-31", "9 September 2026", "2026-9-9"]) {
+      expect(allDayEvent("x", bad), `${bad || "(empty)"} was accepted`).toBeNull();
+    }
+  });
+
+  test("an unreadable end day refuses the whole thing, rather than shortening the trip", () => {
+    expect(
+      allDayEvent("Baguio", "2026-09-09", { endDay: "next Tuesday" }),
+      "a trip whose end could not be read would silently become one day long",
+    ).toBeNull();
   });
 });

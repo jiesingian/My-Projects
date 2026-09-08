@@ -237,18 +237,57 @@ worth having.
 
 ---
 
-## Every all-day item still reaches Google through the process clock
+## All-day items reaching Google through the process clock — CLOSED 8 September
 
-Found while writing the coverage above, half fixed.
+*Kept as a record: the shape of this is worth recognising again.*
 
-The pull side used `new Date(`${date}T00:00:00`)` — midnight wherever the
-*process* is — and then read it back through `familyDay`, which is pinned to
-`FAMILY_TZ`. Two answers to "where does this household live", agreeing only
-because `instrumentation.ts` sets `TZ` to the same zone. Measured on one
-9 September all-day event:
+Found while writing the calendar coverage. Every all-day sync built its
+instant as
+
+    startAt: new Date(`${date}T00:00:00`)
+
+which is midnight in whatever zone the *process* is in, and was then read back
+through `familyDay`, pinned to `FAMILY_TZ`. Two answers to "where does this
+household live", agreeing only because `instrumentation.ts` sets `TZ` to the
+same zone. Measured on one 9 September all-day event:
 
 | process TZ | lands on |
 |---|---|
+| Asia/Manila | 2026-09-09 |
+| UTC | 2026-09-09 |
+| America/New_York | 2026-09-09 |
+| **Asia/Tokyo** | **2026-09-08** |
+| **Pacific/Auckland** | **2026-09-08** |
+
+Anywhere east of the household, every birthday, bill, trip and meal lands a
+day early — one `KIN_TZ` away, and it would look exactly like the 8 September
+fix coming undone by itself.
+
+**Fixed on both sides, 21 call sites.**
+
+- Pull: `eventStartEnd` carries Google's own date string through as `day`
+  rather than round-tripping it, and the seven update sites use that.
+- Push: `allDayEvent(title, day, { endDay })` builds the input from plain
+  dates, so no caller constructs the instant. Applied across
+  `calendar-sync.ts` (7), `planner.ts` (4), `assistant/tools.ts` (5),
+  `household.ts` (2), `wealth.ts` (2), `documents.ts` (1).
+- `familyMidnight` in `lib/time.ts` states the zone by name for the one place
+  an instant is still genuinely needed.
+- `syncRowToCalendars` now takes `CalendarEventInput | null` and treats null
+  as "nothing to sync", so an unreadable date syncs nothing rather than
+  needing a guard at each of fourteen call sites. From a form or a `date`
+  column null cannot happen; from the assistant, whose arguments a model
+  writes, it can.
+
+There is no `new Date(\`${x}T00:00:00\`)` left in any calendar path.
+
+**Still there, and a different question:** `household.ts` computes the grocery
+week that way, and `assistant/tools.ts` builds a query window that way. Those
+are date ranges rather than things put on a calendar, and they were left
+alone — the failure mode is a week boundary landing wrong for a server outside
+the household's zone, not an item on the wrong day.
+
+---|---|
 | Asia/Manila | 2026-09-09 |
 | UTC | 2026-09-09 |
 | America/New_York | 2026-09-09 |

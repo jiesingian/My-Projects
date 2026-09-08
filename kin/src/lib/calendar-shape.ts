@@ -65,6 +65,55 @@ export function toGoogleEventBody(input: CalendarEventInput) {
   };
 }
 
+/** An all-day item, built from the plain household dates it actually has.
+ *
+ * The point is that the caller never constructs the instant. Every all-day
+ * sync used to write
+ *
+ *     startAt: new Date(`${date}T00:00:00`)
+ *
+ * which is midnight in whatever zone the *process* is in, and is then read
+ * back through familyDay, which is pinned to FAMILY_TZ. Correct only while
+ * those two agree -- which they do today because instrumentation.ts sets TZ,
+ * and would stop doing the moment KIN_TZ moved the deployment east.
+ *
+ * Returns null when a date is not a plain YYYY-MM-DD. From a form or a `date`
+ * column that cannot happen; from the assistant, whose arguments a model
+ * writes, it certainly can. Not syncing is the right answer there: a birthday
+ * missing from a phone is a thing someone notices and fixes, and a birthday
+ * on the wrong day is not. */
+export function allDayEvent(
+  title: string,
+  day: string,
+  opts: {
+    endDay?: string | null;
+    location?: string | null;
+    description?: string | null;
+    reminderMinutes?: number | null;
+  } = {},
+): CalendarEventInput | null {
+  const startAt = familyMidnight(day);
+  if (!startAt) return null;
+
+  let endAt: Date | null = null;
+  if (opts.endDay) {
+    endAt = familyMidnight(opts.endDay);
+    // A trip whose end we cannot read is worse than one that does not sync:
+    // it would silently become a one-day event.
+    if (!endAt) return null;
+  }
+
+  return {
+    title,
+    startAt,
+    endAt,
+    allDay: true,
+    location: opts.location ?? null,
+    description: opts.description ?? null,
+    reminderMinutes: opts.reminderMinutes ?? null,
+  };
+}
+
 /** What a Google event means to us: an instant, an optional end, and -- the
  * field that matters -- the household date it belongs on.
  *

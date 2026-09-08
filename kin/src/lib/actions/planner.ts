@@ -7,6 +7,7 @@ import { requireCurrentMember } from "@/lib/session";
 import { syncRowToCalendars, removeRowFromCalendars, type CalendarTarget } from "@/lib/actions/calendar-sync";
 import type { ActionState } from "@/lib/actions/auth";
 import { familyDay } from "@/lib/time";
+import { allDayEvent } from "@/lib/calendar-shape";
 
 function activityTarget(wholeFamily: boolean, who: string[]): CalendarTarget {
   return wholeFamily ? { kind: "all" } : { kind: "members", memberIds: who };
@@ -193,7 +194,7 @@ export async function createEventAction(_prev: ActionState, formData: FormData):
     me.family_id,
     "events",
     event.id,
-    { title, startAt: new Date(`${date}T00:00:00`), allDay: true },
+    allDayEvent(title, date),
     targetFor(wholeFamily, who),
   );
 
@@ -228,7 +229,7 @@ export async function updateEventAction(eventId: string, _prev: ActionState, for
     me.family_id,
     "events",
     eventId,
-    { title, startAt: new Date(`${date}T00:00:00`), allDay: true },
+    allDayEvent(title, date),
     targetFor(wholeFamily, who),
   );
 
@@ -283,7 +284,7 @@ export async function createTripAction(_prev: ActionState, formData: FormData): 
     me.family_id,
     "trips",
     trip.id,
-    { title, startAt: new Date(`${startDate}T00:00:00`), endAt: endDate ? new Date(`${endDate}T00:00:00`) : null, allDay: true },
+    allDayEvent(title, startDate, { endDay: endDate }),
     targetFor(wholeFamily, travellers),
   );
 
@@ -320,7 +321,7 @@ export async function updateTripAction(tripId: string, _prev: ActionState, formD
     me.family_id,
     "trips",
     tripId,
-    { title, startAt: new Date(`${startDate}T00:00:00`), endAt: endDate ? new Date(`${endDate}T00:00:00`) : null, allDay: true },
+    allDayEvent(title, startDate, { endDay: endDate }),
     targetFor(wholeFamily, travellers),
   );
 
