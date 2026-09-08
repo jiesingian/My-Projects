@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Icon } from "@/components/icons";
 import { dayColumn, weekdayInitials, type WeekStart } from "@/lib/week";
+import { familyDay } from "@/lib/time";
 
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 const MONTHS_LONG = [
@@ -116,8 +117,12 @@ export function CalendarJump({
 
   const leadingBlanks = dayColumn(new Date(year, month, 1), weekStart);
   const daysInMonth = new Date(year, month + 1, 0).getDate();
-  const now = new Date();
-  const todayISO = iso(now.getFullYear(), now.getMonth(), now.getDate());
+  // The household's today, not the browser's. Asking the browser meant the
+  // server rendered one day and the client hydrated another whenever the two
+  // zones disagreed -- eight hours out of every twenty-four for a household in
+  // Manila viewed from anywhere at or west of UTC, and React does not patch a
+  // mismatched attribute up.
+  const todayISO = familyDay();
 
   return (
     <>
@@ -320,10 +325,7 @@ export function CalendarJump({
                 type="button"
                 className="btn btn-primary"
                 style={{ flex: 1, minHeight: 44 }}
-                onClick={() => {
-                  const n = new Date();
-                  go(iso(n.getFullYear(), n.getMonth(), n.getDate()));
-                }}
+                onClick={() => go(familyDay())}
               >
                 Today
               </button>
@@ -430,8 +432,10 @@ export function MonthScroller({ anchor, children }: { anchor: string; children: 
 /** Today. Navigates to the current date, and re-centres the scrollers by
  * hand for the case where that is the date already shown. */
 export function TodayButton({ hrefBase }: { hrefBase: string }) {
-  const now = new Date();
-  const target = iso(now.getFullYear(), now.getMonth(), now.getDate());
+  // Rendered straight into the href, so a browser in another zone produced a
+  // different link from the one the server sent. That is the attribute the
+  // hydration warning was about.
+  const target = familyDay();
 
   return (
     <Link

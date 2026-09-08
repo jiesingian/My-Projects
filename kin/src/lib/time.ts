@@ -83,7 +83,19 @@ export function weekdayOf(day: string): number | null {
   return utcNoonlessDay(day)?.getUTCDay() ?? null;
 }
 
-/** A plain YYYY-MM-DD as the UTC instant that names it, or null.
+/** Whole days from one plain date to another, positive when `to` is later.
+ *
+ * Both sides are plain dates, so this never touches a clock -- which is the
+ * point. Computing "how many days ago" from `new Date()` asks the browser,
+ * and the browser is not necessarily where the household is. */
+export function daysBetween(from: string, to: string): number | null {
+  const a = utcNoonlessDay(from);
+  const b = utcNoonlessDay(to);
+  if (!a || !b) return null;
+  return Math.round((b.getTime() - a.getTime()) / 86_400_000);
+}
+
+/** A plain YYYY-MM-DD as the UTC instant that names it, or null./** A plain YYYY-MM-DD as the UTC instant that names it, or null.
  *
  * The validation is the point, and it has to be a round trip rather than a
  * regex: "2026-09-31" matches the pattern, and both `Date.UTC(2026, 8, 31)`

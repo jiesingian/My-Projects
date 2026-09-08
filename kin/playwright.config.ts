@@ -58,7 +58,18 @@ export default defineConfig({
     {
       name: "chromium",
       testIgnore: /\.logic\.spec\.ts/,
-      use: { ...devices["Desktop Chrome"], storageState: "e2e/.auth/state.json" },
+      use: {
+        ...devices["Desktop Chrome"],
+        storageState: "e2e/.auth/state.json",
+        // Deliberately NOT the household's zone. The server renders in
+        // Asia/Manila; a browser anywhere else is where hydration mismatches
+        // come from, and they were caught here only by accident -- the
+        // container happened to be in UTC, which differs from Manila for eight
+        // hours out of every twenty-four, so the same suite passed all morning
+        // and failed all evening. Pinning a zone that never agrees with the
+        // household makes that class fail every run instead of by the clock.
+        timezoneId: "America/New_York",
+      },
       dependencies: ["setup"],
     },
   ],

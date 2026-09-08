@@ -4,6 +4,7 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { logRoutineAction, clearRoutineLogAction, setRoutinePausedAction, deleteRoutineAction } from "@/lib/actions/routines";
 import { Icon } from "@/components/icons";
+import { familyDay, daysBetween } from "@/lib/time";
 
 function useRoutineAction() {
   const router = useRouter();
@@ -163,11 +164,12 @@ function readableDate(iso: string): string {
   return new Date(y, m - 1, d).toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short" });
 }
 
+/** How far behind a routine is, counted in the household's days rather than
+ * the browser's. Asking the browser gave a different answer from the server
+ * whenever the two zones were on different dates, which is a rendered number
+ * and so a hydration mismatch. */
 function daysAgo(iso: string): number {
-  const [y, m, d] = iso.split("-").map(Number);
-  const then = new Date(y, m - 1, d);
-  const now = new Date();
-  return Math.round((new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime() - then.getTime()) / 86_400_000);
+  return daysBetween(iso, familyDay()) ?? 0;
 }
 
 /** What a routine is behind on, and a way to answer for any other day —

@@ -1,4 +1,5 @@
 import { test, expect, request as playwrightRequest, type Page } from "@playwright/test";
+import { familyDay } from "@/lib/time";
 
 /** Settings that actually do something.
  *
@@ -159,13 +160,17 @@ test.describe("what the household's dates look like", () => {
     if (token && familyId) await setPref(token, familyId, { date_format: original });
   });
 
-  /** Today, written both ways, from the browser's own clock so this does not
-   * rot: 8 September is 08/09 one way round and 09/08 the other. */
+  /** Today, written both ways, so this does not rot: 8 September is 08/09 one
+   * way round and 09/08 the other.
+   *
+   * From the HOUSEHOLD's day, not the browser's. Reading `new Date()` here was
+   * the same mistake the app itself had: the page renders the household's date
+   * and the browser is pinned to another zone, so for eight hours out of every
+   * twenty-four this compared the server's 9th against the browser's 8th and
+   * called the app wrong. */
   function todayBothWays() {
-    const now = new Date();
-    const dd = String(now.getDate()).padStart(2, "0");
-    const mm = String(now.getMonth() + 1).padStart(2, "0");
-    return { dayFirst: `${dd}/${mm}/${now.getFullYear()}`, monthFirst: `${mm}/${dd}/${now.getFullYear()}` };
+    const [y, m, d] = familyDay().split("-");
+    return { dayFirst: `${d}/${m}/${y}`, monthFirst: `${m}/${d}/${y}` };
   }
 
   for (const [pattern, want] of [

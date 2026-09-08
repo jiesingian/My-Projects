@@ -1,6 +1,6 @@
 import { test, expect } from "@playwright/test";
 import { toGoogleEventBody, eventStartEnd, allDayEvent, syncLinkPatch } from "@/lib/calendar-shape";
-import { familyMidnight, familyDay, addDays, weekdayOf } from "@/lib/time";
+import { familyMidnight, familyDay, addDays, weekdayOf, daysBetween } from "@/lib/time";
 
 /** What goes to Google, and what comes back.
  *
@@ -274,5 +274,25 @@ test.describe("day arithmetic with no clock in it", () => {
     expect(weekdayOf("2026-09-07")).toBe(1);
     expect(weekdayOf("2026-09-13")).toBe(0);
     expect(weekdayOf("2026-09-12")).toBe(6);
+  });
+});
+
+test.describe("counting days between two dates", () => {
+  /** "Three days behind" used to be worked out from `new Date()` in the
+   * browser, which is not necessarily where the household is. Both sides are
+   * plain dates now, so no clock is consulted at all. */
+  test("counts whole days, signed", () => {
+    expect(daysBetween("2026-09-07", "2026-09-09")).toBe(2);
+    expect(daysBetween("2026-09-09", "2026-09-07"), "backwards is negative").toBe(-2);
+    expect(daysBetween("2026-09-09", "2026-09-09"), "the same day is nothing").toBe(0);
+    expect(daysBetween("2026-08-31", "2026-09-01"), "over a month end").toBe(1);
+    expect(daysBetween("2026-12-31", "2027-01-01"), "over a year end").toBe(1);
+    expect(daysBetween("2028-02-28", "2028-03-01"), "through a leap day").toBe(2);
+  });
+
+  test("refuses a date that could not be meant", () => {
+    expect(daysBetween("2026-09-31", "2026-09-09")).toBeNull();
+    expect(daysBetween("2026-09-09", "nonsense")).toBeNull();
+    expect(daysBetween("", "2026-09-09")).toBeNull();
   });
 });
