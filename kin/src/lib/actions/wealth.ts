@@ -152,9 +152,11 @@ async function insertEntry(supabase: Db, familyId: string, memberId: string, inp
  * becomes settled, a goal it funded moves closer. Deferred until confirmation
  * so a payment still waiting in someone's banking app doesn't mark a bill
  * paid prematurely. */
-async function applySettlement(supabase: Db, memberId: string, entry: Tables<"wealth_transactions">) {
+async function applySettlement(supabase: Db, memberId: string, entry: Tables<"wealth_transactions">): Promise<string | null> {
   if (entry.source_table === "bills" && entry.source_id) {
-    await supabase
+    // The money has already moved. If this fails the bill stays sitting there
+    // unpaid, and someone pays it a second time.
+    const { error } = await supabase
       .from("bills")
       .update({
         status: "paid",
@@ -164,18 +166,27 @@ async function applySettlement(supabase: Db, memberId: string, entry: Tables<"we
         transaction_id: entry.id,
       })
       .eq("id", entry.source_id);
+    if (error) return `The payment was recorded, but the bill is still showing as unpaid. ${error.message}`;
   }
 
   if (entry.goal_id) {
-    const { data: goal } = await supabase.from("goals").select("current_amount").eq("id", entry.goal_id).maybeSingle();
-    if (goal) {
-      const delta = entry.direction === "out" ? Number(entry.amount) : -Number(entry.amount);
-      await supabase
-        .from("goals")
-        .update({ current_amount: Number(goal.current_amount) + delta })
-        .eq("id", entry.goal_id);
-    }
+    const goalError = await recalcGoalTotal(supabase, entry.goal_id);
+    if (goalError) return `The money moved, but the goal total was not brought up to date. ${goalError.message}`;
   }
+  return null;
+}
+
+/** The goal's total, recomputed from the ledger rather than added to.
+ *
+ * Reading the total and writing back read + delta is two round trips with no
+ * lock between them, which loses one of two simultaneous contributions and
+ * double-counts a Confirm that gets clicked twice. Recomputing is the same
+ * number by construction -- a goal starts at 0 and only ever moves by one
+ * wealth_transactions row at a time -- but it is a destination rather than a
+ * distance, so running it twice is running it once. */
+async function recalcGoalTotal(supabase: Db, goalId: string) {
+  const { error } = await supabase.rpc("recalc_goal_total", { p_goal_id: goalId });
+  return error;
 }
 
 /** Money in or out of one account, from a source Kin doesn't otherwise see —
@@ -213,7 +224,10 @@ export async function recordMovementAction(input: {
   });
   if (error) return { error: error.message };
 
-  if (status === "confirmed") await applySettlement(supabase, me.id, entry);
+  if (status === "confirmed") {
+    const settled = await applySettlement(supabase, me.id, entry);
+    if (settled) return { error: settled };
+  }
 
   revalidateWealth();
   return { error: null, transactionId: entry.id, appUrl: input.viaApp ? account.linked_app_url : null };
@@ -299,7 +313,8 @@ export async function confirmTransactionAction(transactionId: string): Promise<A
   const { error } = await supabase.from("wealth_transactions").update({ status: "confirmed" }).in("id", ids);
   if (error) return { error: error.message };
 
-  await applySettlement(supabase, me.id, { ...entry, status: "confirmed" });
+  const settled = await applySettlement(supabase, me.id, { ...entry, status: "confirmed" });
+  if (settled) return { error: settled };
   revalidateWealth();
   return { error: null };
 }
@@ -316,20 +331,27 @@ export async function deleteTransactionAction(transactionId: string): Promise<Ac
     .maybeSingle();
   if (!entry) return { error: "Not found." };
 
-  if (entry.status === "confirmed" && entry.goal_id) {
-    const { data: goal } = await supabase.from("goals").select("current_amount").eq("id", entry.goal_id).maybeSingle();
-    if (goal) {
-      const delta = entry.direction === "out" ? -Number(entry.amount) : Number(entry.amount);
-      await supabase.from("goals").update({ current_amount: Number(goal.current_amount) + delta }).eq("id", entry.goal_id);
-    }
-  }
+  // Which goals this delete will disturb, gathered BEFORE the rows go. A
+  // recomputed total is read back off the ledger, so unlike the old
+  // subtract-the-amount it has to run once the rows are actually gone --
+  // running it first would only rewrite the total it is about to invalidate.
+  // A transfer group is deleted whole, so ask the group, not this one row.
+  const doomed = supabase.from("wealth_transactions").select("goal_id").eq("family_id", me.family_id).not("goal_id", "is", null);
+  const { data: doomedRows } = entry.transfer_group_id
+    ? await doomed.eq("transfer_group_id", entry.transfer_group_id)
+    : await doomed.eq("id", entry.id);
+  const touchedGoalIds = [...new Set((doomedRows ?? []).map((r) => r.goal_id).filter((id): id is string => !!id))];
+
   // A discarded payment — settled or still pending in someone's banking app —
   // leaves the bill open again, never stranded as "scheduled".
   if (entry.source_table === "bills" && entry.source_id) {
-    await supabase
+    // The payment is about to be deleted. A bill left marked paid with nothing
+    // behind it is a bill nobody will pay.
+    const { error: billError } = await supabase
       .from("bills")
       .update({ status: "unpaid", paid_at: null, paid_from_account_id: null, paid_by_member_id: null, transaction_id: null })
       .eq("id", entry.source_id);
+    if (billError) return { error: `The bill could not be reopened, so the payment was left in place. ${billError.message}` };
   }
 
   const query = supabase.from("wealth_transactions").delete();
@@ -337,6 +359,8 @@ export async function deleteTransactionAction(transactionId: string): Promise<Ac
     ? await query.eq("transfer_group_id", entry.transfer_group_id)
     : await query.eq("id", entry.id);
   if (error) return { error: error.message };
+
+  for (const goalId of touchedGoalIds) await recalcGoalTotal(supabase, goalId);
 
   revalidateWealth();
   return { error: null };
@@ -436,7 +460,10 @@ export async function payBillAction(input: {
   });
   if (error) return { error: error.message };
 
-  if (status === "confirmed") await applySettlement(supabase, me.id, entry);
+  if (status === "confirmed") {
+    const settled = await applySettlement(supabase, me.id, entry);
+    if (settled) return { error: settled };
+  }
   else await supabase.from("bills").update({ status: "scheduled" }).eq("id", bill.id);
 
   revalidateWealth();
@@ -454,22 +481,43 @@ export async function deleteBillAction(billId: string): Promise<ActionState> {
 
 /* ---------------------------------------------------------- budget & goals */
 
-export async function setJointBudgetAction(familyId: string, month: number, year: number, amount: number) {
+export async function setJointBudgetAction(month: number, year: number, amount: number): Promise<ActionState> {
+  // The household comes from the session. As an argument it was merely
+  // redundant -- RLS scopes budget_periods to the family either way -- but
+  // an argument nobody needs is an argument nobody checks.
+  const me = await requireCurrentMember();
   const supabase = await createClient();
-  await supabase.from("budget_periods").upsert(
-    { family_id: familyId, period_month: month, period_year: year, budget_amount: amount },
+  const { error } = await supabase.from("budget_periods").upsert(
+    { family_id: me.family_id, period_month: month, period_year: year, budget_amount: amount },
     { onConflict: "family_id,period_month,period_year" },
   );
+  if (error) return { error: error.message };
   revalidateWealth();
+  return { error: null };
 }
 
-export async function setWealthTargetAction(memberId: string, familyId: string, month: number, year: number, amount: number) {
+/** Your own revenue target, and only ever your own.
+ *
+ * Both ids used to arrive from the browser. The page guards it -- the control
+ * is rendered only when the pane being viewed is your own -- but that guard
+ * lives in the one place an attacker does not have to visit, and the row-level
+ * policy on wealth_targets checks the family and not the member. So a member
+ * could set, and silently overwrite, anybody else's target in the household,
+ * while the SELECT policy meant they could not even see what they had done.
+ * Confirmed against the throwaway household on 8 September: HTTP 201.
+ *
+ * The migration alongside this makes the database say so too; taking the ids
+ * from the session is the half that does not need anybody to run anything. */
+export async function setWealthTargetAction(month: number, year: number, amount: number): Promise<ActionState> {
+  const me = await requireCurrentMember();
   const supabase = await createClient();
-  await supabase.from("wealth_targets").upsert(
-    { member_id: memberId, family_id: familyId, period_month: month, period_year: year, target_amount: amount },
+  const { error } = await supabase.from("wealth_targets").upsert(
+    { member_id: me.id, family_id: me.family_id, period_month: month, period_year: year, target_amount: amount },
     { onConflict: "member_id,period_month,period_year" },
   );
+  if (error) return { error: error.message };
   revalidateWealth();
+  return { error: null };
 }
 
 export async function setAllocationAction(input: { category: string; amount: number }): Promise<ActionState> {
@@ -587,7 +635,10 @@ export async function contributeToGoalAction(input: {
   });
   if (error) return { error: error.message };
 
-  if (status === "confirmed") await applySettlement(supabase, me.id, entry);
+  if (status === "confirmed") {
+    const settled = await applySettlement(supabase, me.id, entry);
+    if (settled) return { error: settled };
+  }
 
   revalidateWealth();
   return { error: null, appUrl: input.viaApp ? account.linked_app_url : null };

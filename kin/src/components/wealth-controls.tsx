@@ -12,6 +12,7 @@ import {
 import { ACCOUNT_TYPES, ACCOUNT_TYPE_LABELS, EXPENSE_CATEGORIES } from "@/lib/wealth";
 import type { ActionState } from "@/lib/actions/auth";
 import { SubmitButton, ErrorText } from "@/components/form";
+import { DateInput } from "@/components/date-input";
 
 const initialState: ActionState = { error: null };
 
@@ -105,7 +106,7 @@ export function AddBillForm() {
           <input className="input" type="number" step="0.01" name="amount" required style={{ minHeight: 42 }} />
         </Labelled>
         <Labelled label="DUE" style={{ flex: 1 }}>
-          <input className="input" type="date" name="due_date" style={{ minHeight: 42 }} />
+          <DateInput className="input" name="due_date" style={{ minHeight: 42 }} />
         </Labelled>
       </div>
       <div style={{ display: "flex", gap: 10 }}>
@@ -139,9 +140,10 @@ export function AddBillForm() {
   );
 }
 
-export function SetBudgetControl({ familyId, month, year, current }: { familyId: string; month: number; year: number; current: number }) {
+export function SetBudgetControl({ month, year, current }: { month: number; year: number; current: number }) {
   const [value, setValue] = useState(current);
   const [pending, startTransition] = useTransition();
+  const [failed, setFailed] = useState<string | null>(null);
   return (
     <div style={{ display: "flex", gap: 8, marginBottom: 16 }}>
       <input className="input" type="number" value={value} onChange={(e) => setValue(Number(e.target.value))} style={{ minHeight: 40 }} />
@@ -150,17 +152,30 @@ export function SetBudgetControl({ familyId, month, year, current }: { familyId:
         className="btn btn-secondary"
         disabled={pending}
         style={{ minHeight: 40, fontSize: 13.5, whiteSpace: "nowrap" }}
-        onClick={() => startTransition(() => setJointBudgetAction(familyId, month, year, value))}
+        onClick={() =>
+          startTransition(async () => {
+            const { error } = await setJointBudgetAction(month, year, value);
+            setFailed(error);
+          })
+        }
       >
         {pending ? "…" : "SET BUDGET"}
       </button>
+      {/* This used to fail by going quiet, which is exactly what it did when
+          it succeeded. */}
+      {failed && (
+        <p role="alert" style={{ fontSize: 13, color: "var(--danger, #d33)", alignSelf: "center" }}>
+          {failed}
+        </p>
+      )}
     </div>
   );
 }
 
-export function SetTargetControl({ memberId, familyId, month, year, current }: { memberId: string; familyId: string; month: number; year: number; current: number }) {
+export function SetTargetControl({ month, year, current }: { month: number; year: number; current: number }) {
   const [value, setValue] = useState(current);
   const [pending, startTransition] = useTransition();
+  const [failed, setFailed] = useState<string | null>(null);
   return (
     <div style={{ display: "flex", gap: 8, marginBottom: 16 }}>
       <input className="input" type="number" value={value} onChange={(e) => setValue(Number(e.target.value))} style={{ minHeight: 40 }} />
@@ -169,10 +184,22 @@ export function SetTargetControl({ memberId, familyId, month, year, current }: {
         className="btn btn-secondary"
         disabled={pending}
         style={{ minHeight: 40, fontSize: 13.5, whiteSpace: "nowrap" }}
-        onClick={() => startTransition(() => setWealthTargetAction(memberId, familyId, month, year, value))}
+        onClick={() =>
+          startTransition(async () => {
+            const { error } = await setWealthTargetAction(month, year, value);
+            setFailed(error);
+          })
+        }
       >
         {pending ? "…" : "SET TARGET"}
       </button>
+      {/* This used to fail by going quiet, which is exactly what it did when
+          it succeeded. */}
+      {failed && (
+        <p role="alert" style={{ fontSize: 13, color: "var(--danger, #d33)", alignSelf: "center" }}>
+          {failed}
+        </p>
+      )}
     </div>
   );
 }

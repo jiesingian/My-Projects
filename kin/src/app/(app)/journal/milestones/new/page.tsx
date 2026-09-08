@@ -7,6 +7,7 @@ import { SubmitButton, ErrorText } from "@/components/form";
 import { DetailHeader } from "@/components/hub-header";
 import { useRouter } from "next/navigation";
 import { familyDay } from "@/lib/time";
+import { DateInput } from "@/components/date-input";
 
 const initialState: ActionState = { error: null };
 
@@ -31,7 +32,7 @@ export default function NewMilestonePage() {
           </div>
           <div className="field" style={{ marginBottom: 18 }}>
             <label>DATE</label>
-            <input aria-label="Date" className="input" type="date" name="date" defaultValue={familyDay()} required style={{ minHeight: 44 }} />
+            <DateInput aria-label="Date" className="input" name="date" defaultValue={familyDay()} required style={{ minHeight: 44 }} />
           </div>
           <SubmitButton style={{ minHeight: 46, fontSize: 14, letterSpacing: ".04em" }}>SAVE MILESTONE</SubmitButton>
         </form>

@@ -58,7 +58,21 @@ export async function createFamilyAction(_prev: ActionState, formData: FormData)
   // ask for payment later. It reads the grant off the code rather than
   // trusting anything sent from here, and refuses once a household already
   // has a standing, so a second call with a better code changes nothing.
-  await supabase.rpc("apply_code_grant_to_family", { p_code: accessCode });
+  const { error: grantError } = await supabase.rpc("apply_code_grant_to_family", { p_code: accessCode });
+  if (grantError) {
+    // The one place here that logs rather than tells the member, and on
+    // purpose: the household already exists by now, so returning an error
+    // would strand them on a signup form for an account they already have.
+    // But a lost grant is not nothing -- it is the difference between free
+    // for good and a trial that will ask for payment -- and it surfaces weeks
+    // later as a paywall nobody can trace back to this moment.
+    //
+    // The code itself is deliberately not logged; it is a credential.
+    console.error("apply_code_grant_to_family failed during signup; household has no standing", {
+      household: householdName,
+      reason: grantError.message,
+    });
+  }
 
   redirect("/onboarding/members");
 }

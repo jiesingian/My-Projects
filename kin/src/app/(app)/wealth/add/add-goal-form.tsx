@@ -6,6 +6,7 @@ import type { ActionState } from "@/lib/actions/auth";
 import { SubmitButton, ErrorText } from "@/components/form";
 import { formatCurrency } from "@/lib/format";
 import type { PickableAccount } from "@/components/money-actions";
+import { DateInput } from "@/components/date-input";
 
 const initialState: ActionState = { error: null };
 
@@ -36,7 +37,7 @@ export function AddGoalForm({ accounts, currency }: { accounts: PickableAccount[
           <input className="input" type="number" step="0.01" name="target_amount" required style={{ minHeight: 44 }} />
         </Field>
         <Field label="TARGET DATE" style={{ flex: 1 }}>
-          <input className="input" type="date" name="target_date" style={{ minHeight: 44 }} />
+          <DateInput className="input" name="target_date" style={{ minHeight: 44 }} />
         </Field>
       </div>
       {accounts.length > 0 && (

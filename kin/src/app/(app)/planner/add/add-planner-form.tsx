@@ -18,6 +18,7 @@ import { SubmitButton, ErrorText } from "@/components/form";
 import { DetailHeader } from "@/components/hub-header";
 import type { Tables } from "@/lib/database.types";
 import { familyClock, familyDay } from "@/lib/time";
+import { DateInput } from "@/components/date-input";
 
 const initialState: ActionState = { error: null };
 const TYPES = ["activity", "event", "trip"] as const;
@@ -97,7 +98,7 @@ function ActivityForm({ members, defaultDate, editActivity }: { members: Tables<
       <ErrorText message={state.error} />
       <Field label="TITLE"><input className="input" name="title" placeholder="Nursery orientation" required defaultValue={editActivity?.title} style={{ minHeight: 44 }} /></Field>
       <div style={{ display: "flex", gap: 12, marginBottom: 14 }}>
-        <Field label="DATE" style={{ flex: 1.2 }}><input className="input" type="date" name="date" required defaultValue={startDate ?? defaultDate} style={{ minHeight: 44 }} /></Field>
+        <Field label="DATE" style={{ flex: 1.2 }}><DateInput className="input" name="date" required defaultValue={startDate ?? defaultDate} style={{ minHeight: 44 }} /></Field>
         <Field label="FROM" style={{ flex: 1 }}><input className="input" type="time" name="from" defaultValue={startTime ?? "08:30"} style={{ minHeight: 44 }} /></Field>
         <Field label="TO" style={{ flex: 1 }}><input className="input" type="time" name="to" defaultValue={endTime} style={{ minHeight: 44 }} /></Field>
       </div>
@@ -226,7 +227,7 @@ function EventForm({
     <form action={formAction}>
       <ErrorText message={state.error} />
       <Field label="TITLE"><input className="input" name="title" required defaultValue={editEvent?.title} style={{ minHeight: 44 }} /></Field>
-      <Field label="DATE"><input className="input" type="date" name="date" required defaultValue={editEvent?.event_date ?? defaultDate} style={{ minHeight: 44 }} /></Field>
+      <Field label="DATE"><DateInput className="input" name="date" required defaultValue={editEvent?.event_date ?? defaultDate} style={{ minHeight: 44 }} /></Field>
       <Field label="KIND">
         <select className="input" name="kind" defaultValue={editEvent?.kind ?? "birthday"} style={{ minHeight: 44 }}>
           <option value="birthday">Birthday</option>
@@ -291,10 +292,10 @@ function TripForm({
       </Field>
       <div style={{ display: "flex", gap: 12, marginBottom: 14 }}>
         <Field label="START" style={{ flex: 1 }}>
-          <input className="input" type="date" name="start_date" required defaultValue={editTrip?.start_date ?? defaultDate} style={{ minHeight: 44 }} />
+          <DateInput className="input" name="start_date" required defaultValue={editTrip?.start_date ?? defaultDate} style={{ minHeight: 44 }} />
         </Field>
         <Field label="END" style={{ flex: 1 }}>
-          <input className="input" type="date" name="end_date" defaultValue={editTrip?.end_date ?? undefined} style={{ minHeight: 44 }} />
+          <DateInput className="input" name="end_date" defaultValue={editTrip?.end_date ?? undefined} style={{ minHeight: 44 }} />
         </Field>
       </div>
       <Field label="BUDGET (₱)">

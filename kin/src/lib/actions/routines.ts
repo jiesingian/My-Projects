@@ -137,13 +137,18 @@ function validate(input: ReturnType<typeof readForm>): RoutineActionState | null
   return null;
 }
 
-async function saveMembers(routineId: string, memberIds: string[]) {
+/** Clearing and re-inserting is two statements, and only the clear is certain
+ * to have happened if the insert fails -- which leaves a routine belonging to
+ * nobody, and a routine for nobody is one that never appears again. */
+async function saveMembers(routineId: string, memberIds: string[]): Promise<string | null> {
   const supabase = await createClient();
-  await supabase.from("routine_members").delete().eq("routine_id", routineId);
-  if (memberIds.length === 0) return;
-  await supabase
+  const { error: cleared } = await supabase.from("routine_members").delete().eq("routine_id", routineId);
+  if (cleared) return cleared.message;
+  if (memberIds.length === 0) return null;
+  const { error } = await supabase
     .from("routine_members")
     .insert(memberIds.map((member_id, position) => ({ routine_id: routineId, member_id, position })));
+  return error ? `The routine was saved, but it is no longer for anyone. ${error.message}` : null;
 }
 
 
@@ -270,7 +275,8 @@ export async function createRoutineAction(_prev: RoutineActionState, formData: F
     .single();
   if (error || !data) return { error: error?.message ?? "Could not save the routine.", field: null };
 
-  await saveMembers(data.id, members);
+  const whoFailed = await saveMembers(data.id, members);
+  if (whoFailed) return { error: whoFailed, field: null };
   await syncRoutine(me.family_id, data.id);
 
   revalidatePath("/planner");
@@ -294,7 +300,8 @@ export async function updateRoutineAction(id: string, _prev: RoutineActionState,
   const { error } = await supabase.from("routines").update(row).eq("id", id).eq("family_id", me.family_id);
   if (error) return { error: error.message, field: null };
 
-  await saveMembers(id, members);
+  const whoFailed = await saveMembers(id, members);
+  if (whoFailed) return { error: whoFailed, field: null };
   await syncRoutine(me.family_id, id);
 
   revalidatePath("/planner");

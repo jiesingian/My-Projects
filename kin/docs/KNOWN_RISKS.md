@@ -11,51 +11,113 @@ place for those.
 
 ---
 
-## Writes whose error is never captured (58 sites)
+## Writes whose error is never captured (46 sites, was 67)
 
-`src/lib/actions/*.ts` contains 58 writes of the shape
+`src/lib/actions/*.ts` contains writes of the shape
 
     await supabase.from("x").update({ ... }).eq("id", id);
 
 with no `const { error }`. If the write is refused — by RLS, by a constraint,
 by the network — the action carries on and reports success.
 
-**Why it was not fixed.** No instance was shown to fail. Touching 58 call
-sites to guard against a failure nobody has observed is the kind of change
-that breaks more than it fixes. It is a pattern, not a bug.
+**21 were fixed on 8 September**, chosen by one test: would a silent failure
+lose data or money, in a way the person could not see? The rest were left,
+because touching a call site to guard against a failure nobody has observed
+is how you break something that works.
 
-**What would change that.** Any single report of "I did that and it did not
-save." Then the specific path gets its error captured, and this entry gets
-shorter.
+The worst shape, and the reason these were picked first, is **delete then
+insert**:
+
+    await supabase.from("activity_members").delete().eq("activity_id", id);
+    await supabase.from("activity_members").insert(who.map(...));
+
+Only the delete is certain to have happened. If the insert is refused, the
+record is left marked for *nobody* — and from the outside that is
+indistinguishable from a save that worked. It appeared five times: activity
+members, event members, trip travellers, routine members, recipe
+ingredients. A routine for nobody never appears again.
+
+Fixed, by area:
+
+| Area | Sites | What a silent failure lost |
+|---|---|---|
+| `planner.ts` | 8 | who an activity, event or trip is for; a journal entry made from a plan |
+| `wealth.ts` | 6 | a bill left unpaid after paying it, or paid after deleting the payment; a budget; a savings target; a goal total |
+| `household.ts` | 5 | a meal's ingredients, so the grocery list is built without them; the grocery list itself; a recipe's ingredients |
+| `journal.ts` | 2 | who an entry is about; a photo uploaded and attached to nothing |
+| `routines.ts` | 2 | who a routine is for |
+
+Three of these were silent at the *interface* as well as in the action —
+**ADD TO JOURNAL**, **SET BUDGET**/**SET TARGET**, and **GENERATE GROCERY
+LIST** all called their action and ignored what came back. The grocery button
+navigated to the shopping list either way, so a list that failed to write
+looked exactly like a week with nothing planned. Those three now show what
+went wrong, and the grocery one only navigates if there is something to see.
+
+**One was left logging rather than telling anyone,** on purpose:
+`apply_code_grant_to_family` in `family.ts`. It runs after the household has
+been created, so returning an error would strand a new member on a signup
+form for an account that already exists. A lost grant is the difference
+between free-for-good and a trial that will ask for payment, and it surfaces
+weeks later as a paywall nobody can trace back — so it is logged with the
+household name, and deliberately not the code, which is a credential.
+
+**Not fixed, and why.** `toggleBuyItemAction` and `clearCheckedAction` fail
+visibly: the list re-renders from the database and the tick comes back. The
+storage `.remove()` calls (avatars, journal media, documents, recipe photos)
+leak an orphaned file rather than losing anything the family can see.
+`calendar-sync.ts` holds 17 and is its own problem — every one of them is a
+best-effort mirror to Google, where failing loudly would be worse than the
+drift.
+
+**What would change that.** Any report of "I did that and it did not save"
+in one of the remaining paths.
 
 **Where it would hurt most,** if it ever does: `applySettlement` and
-`deleteTransactionAction` both adjust `goals.current_amount` this way. A
-swallowed failure there leaves a savings goal permanently out of step with
-the ledger, and nothing recomputes it.
+`deleteTransactionAction` used to adjust `goals.current_amount` by hand, and
+a swallowed failure there left a savings goal permanently out of step with
+the ledger. Both now call `recalc_goal_total` and capture its error, and a
+recomputed total self-corrects on the next touch — so that one has stopped
+compounding.
 
 ---
 
-## goals.current_amount is stored, not derived
+## goals.current_amount is stored, not derived — CLOSED 8 September
+
+*Kept for the reconciliation query at the foot, which is still the way to
+check this, and because the shape of the bug is worth remembering.*
 
 Account balances are computed on every read as
 `opening_balance + sum(transactions)`, so a missed write self-corrects.
-Savings goals are the opposite: `current_amount` is a running total mutated
+Savings goals were the opposite: `current_amount` was a running total mutated
 by `+delta` at two sites and never reconciled against the ledger.
 
-Two consequences:
+Two consequences, both now gone:
 
-- **Lost update.** Both sites read the total, add to it, and write it back.
+- **Lost update.** Both sites read the total, added to it, and wrote it back.
   Two people confirming a contribution to the same goal at the same moment
-  each write `read + their own delta`, and one contribution vanishes. Fixing
-  it properly needs `current_amount = current_amount + $delta` executed
-  atomically, which PostgREST cannot express — it would take an RPC, which
-  is a migration, which is Jonathan's.
-- **No reconciliation.** Nothing detects a divergence once it exists.
+  each wrote `read + their own delta`, and one contribution vanished.
+- **Double count.** Not a race at all, and so the likelier of the two:
+  `confirmTransactionAction` never checked whether the entry was already
+  confirmed, so a second click credited the goal again for one movement of
+  money.
 
-**Measured, 8 September.** Every goal in both households was reconciled
-against its confirmed transactions. All match. The single apparent outlier —
-"Emergency fund", ₱210,000 against no transactions — is in the throwaway QA
-household and was seeded by hand when the fixture was built.
+**Fixed** by `recalc_goal_total` (migration
+`2026-09-08-goal-totals-from-the-ledger.sql`), which recomputes from the
+ledger under a row lock taken before the sum is read. It writes a
+destination rather than a distance, so the double count is impossible rather
+than guarded against, and drift already in a row corrects itself the next
+time anything touches that goal. `e2e/goal-totals.spec.ts` pins it.
+
+**Not covered:** the contribute flow still has no browser test, so the two
+call sites are verified by the type checker and the function's own tests
+rather than by driving the app.
+
+**Measured, 8 September.** Before: every goal in both households reconciled
+except one — "Emergency fund", ₱210,000 against no transactions, in the
+throwaway QA household, seeded by hand when the fixture was built. The
+function corrected it on its first call. After: nothing in either household
+differs from its ledger.
 
 The reconciliation query is worth keeping:
 
@@ -69,6 +131,70 @@ having g.current_amount <> coalesce(sum(case when t.direction = 'out' then t.amo
 ```
 
 Empty is correct.
+
+---
+
+## wealth_targets is still writable by the household — until the migration runs
+
+**Confirmed bug, half fixed.** `wealth_targets` is private to read
+(`member_id = current_member_id()`) and open to write (both write policies
+check only the family). Any member could set or overwrite any other member's
+revenue target, and could not then see what they had done.
+
+Reproduced 8 September against the throwaway household: `POST` of another
+member's target returned **201**. Row confirmed as theirs, then removed. The
+Singian household was never touched.
+
+**Done:** `setWealthTargetAction` now takes the member and the household from
+the session rather than from its arguments, so the app cannot be used to do
+it. `setJointBudgetAction` and `toggleOmronAction` were given the same
+treatment for the same reason.
+
+**Still open:** the policies themselves.
+`migrations/2026-09-08-a-target-is-your-own.sql` is written and *not applied*.
+Until it runs, anyone in a household can still do this by talking to PostgREST
+directly — the anon key is public by design, so the app-layer fix is a closed
+door beside an open window. `e2e/authorization.spec.ts` carries the check as
+`fixme`; take it off when the migration lands.
+
+**A note worth keeping.** The first probe of this returned 403 and nearly had
+it recorded as safe. That request carried `Prefer: return=representation`, and
+the SELECT policy refuses to hand back another member's row — so the insert
+had succeeded and the *read-back* failed, with an error naming the insert. A
+refusal on a write that asks for its row back may be the read being refused.
+
+---
+
+## Native time inputs still render in the browser's locale — left alone
+
+The date half of this was fixed on 8 September: every `type="date"` input now
+writes the date out beneath itself, spelled, because a native picker draws
+itself in the *browser's* locale and the page cannot say otherwise. Chrome set
+to US shows `2026-09-07` as `09/07/2026`, which reads here as 9 July.
+
+The four `type="time"` inputs were deliberately not touched. `08:30 PM` is
+already unambiguous — there is no digit order to misread — so an echo would
+be clutter buying nothing. It does mean the Planner list says `20:30` while
+its edit form says `08:30 PM`, which is an inconsistency rather than a
+hazard.
+
+Replacing the native pickers outright was considered and rejected: on a phone
+they are much better than anything we would build, and they are what the
+household already knows.
+
+---
+
+## Another member's target always reads as zero
+
+Noticed while fixing the above, not fixed. The Wealth hub renders
+`${whosePossessive} target this month` when viewing someone else's pane, but
+`getWealthPane` reads `wealth_targets` through the RLS client and the SELECT
+policy restricts it to your own row — so the meter shows 0 for everyone else,
+labelled as though it were their real figure.
+
+Harmless and long-standing, and the honest options differ: either stop
+claiming to show it, or decide targets are household-visible and widen the
+SELECT policy. That is a product decision, not a bug fix.
 
 ---
 

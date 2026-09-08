@@ -46,7 +46,10 @@ export async function createActivityAction(_prev: ActionState, formData: FormDat
   if (error) return { error: error.message };
 
   if (!wholeFamily && who.length > 0) {
-    await supabase.from("activity_members").insert(who.map((memberId) => ({ activity_id: activity.id, member_id: memberId })));
+    const { error: whoError } = await supabase
+      .from("activity_members")
+      .insert(who.map((memberId) => ({ activity_id: activity.id, member_id: memberId })));
+    if (whoError) return { error: `The activity was saved, but not who it is for. ${whoError.message}` };
   }
 
   await syncRowToCalendars(
@@ -92,9 +95,16 @@ export async function updateActivityAction(activityId: string, _prev: ActionStat
     .eq("family_id", me.family_id);
   if (error) return { error: error.message };
 
-  await supabase.from("activity_members").delete().eq("activity_id", activityId);
+  // Clearing and re-inserting is two statements. If the second fails after the
+  // first has succeeded the activity is left marked for nobody, which looks
+  // from the outside exactly like a save that worked.
+  const { error: clearWho } = await supabase.from("activity_members").delete().eq("activity_id", activityId);
+  if (clearWho) return { error: clearWho.message };
   if (!wholeFamily && who.length > 0) {
-    await supabase.from("activity_members").insert(who.map((memberId) => ({ activity_id: activityId, member_id: memberId })));
+    const { error: whoError } = await supabase
+      .from("activity_members")
+      .insert(who.map((memberId) => ({ activity_id: activityId, member_id: memberId })));
+    if (whoError) return { error: `The activity was saved, but it is no longer marked for anyone. ${whoError.message}` };
   }
 
   await syncRowToCalendars(
@@ -123,18 +133,22 @@ export async function deleteActivityAction(activityId: string): Promise<ActionSt
 
 /** Replace the people a record concerns. A whole-family record keeps no rows
  * at all: the flag says everyone, and a list beside it could only drift. */
-async function saveEventMembers(eventId: string, memberIds: string[]) {
+async function saveEventMembers(eventId: string, memberIds: string[]): Promise<string | null> {
   const supabase = await createClient();
-  await supabase.from("event_members").delete().eq("event_id", eventId);
-  if (memberIds.length === 0) return;
-  await supabase.from("event_members").insert(memberIds.map((member_id) => ({ event_id: eventId, member_id })));
+  const { error: cleared } = await supabase.from("event_members").delete().eq("event_id", eventId);
+  if (cleared) return cleared.message;
+  if (memberIds.length === 0) return null;
+  const { error } = await supabase.from("event_members").insert(memberIds.map((member_id) => ({ event_id: eventId, member_id })));
+  return error ? `It was saved, but it is no longer marked for anyone. ${error.message}` : null;
 }
 
-async function saveTravellers(tripId: string, memberIds: string[]) {
+async function saveTravellers(tripId: string, memberIds: string[]): Promise<string | null> {
   const supabase = await createClient();
-  await supabase.from("trip_travellers").delete().eq("trip_id", tripId);
-  if (memberIds.length === 0) return;
-  await supabase.from("trip_travellers").insert(memberIds.map((member_id) => ({ trip_id: tripId, member_id })));
+  const { error: cleared } = await supabase.from("trip_travellers").delete().eq("trip_id", tripId);
+  if (cleared) return cleared.message;
+  if (memberIds.length === 0) return null;
+  const { error } = await supabase.from("trip_travellers").insert(memberIds.map((member_id) => ({ trip_id: tripId, member_id })));
+  return error ? `The trip was saved, but nobody is listed as travelling. ${error.message}` : null;
 }
 
 /** Who a dated record reaches on Google Calendar: everyone, or just the
@@ -173,7 +187,8 @@ export async function createEventAction(_prev: ActionState, formData: FormData):
     .single();
   if (error) return { error: error.message };
 
-  await saveEventMembers(event.id, wholeFamily ? [] : who);
+  const eventWho = await saveEventMembers(event.id, wholeFamily ? [] : who);
+  if (eventWho) return { error: eventWho };
   await syncRowToCalendars(
     me.family_id,
     "events",
@@ -207,7 +222,8 @@ export async function updateEventAction(eventId: string, _prev: ActionState, for
     .eq("family_id", me.family_id);
   if (error) return { error: error.message };
 
-  await saveEventMembers(eventId, wholeFamily ? [] : who);
+  const eventWho = await saveEventMembers(eventId, wholeFamily ? [] : who);
+  if (eventWho) return { error: eventWho };
   await syncRowToCalendars(
     me.family_id,
     "events",
@@ -261,7 +277,8 @@ export async function createTripAction(_prev: ActionState, formData: FormData): 
     .single();
   if (error) return { error: error.message };
 
-  await saveTravellers(trip.id, wholeFamily ? [] : travellers);
+  const tripWho = await saveTravellers(trip.id, wholeFamily ? [] : travellers);
+  if (tripWho) return { error: tripWho };
   await syncRowToCalendars(
     me.family_id,
     "trips",
@@ -297,7 +314,8 @@ export async function updateTripAction(tripId: string, _prev: ActionState, formD
     .eq("family_id", me.family_id);
   if (error) return { error: error.message };
 
-  await saveTravellers(tripId, wholeFamily ? [] : travellers);
+  const tripWho = await saveTravellers(tripId, wholeFamily ? [] : travellers);
+  if (tripWho) return { error: tripWho };
   await syncRowToCalendars(
     me.family_id,
     "trips",
@@ -322,14 +340,14 @@ export async function deleteTripAction(tripId: string): Promise<ActionState> {
   return { error: null };
 }
 
-export async function addActivityToJournalAction(activityId: string) {
+export async function addActivityToJournalAction(activityId: string): Promise<ActionState> {
   const me = await requireCurrentMember();
   const supabase = await createClient();
 
   const { data: activity } = await supabase.from("activities").select("*").eq("id", activityId).single();
-  if (!activity) return;
+  if (!activity) return { error: "That activity is no longer there." };
 
-  await supabase.from("journal_entries").insert({
+  const { error } = await supabase.from("journal_entries").insert({
     family_id: me.family_id,
     entry_date: familyDay(new Date(activity.start_at)),
     title: activity.title,
@@ -338,7 +356,9 @@ export async function addActivityToJournalAction(activityId: string) {
     source_activity_id: activity.id,
     created_by: me.id,
   });
+  if (error) return { error: error.message };
 
   revalidatePath("/journal");
   revalidatePath("/planner");
+  return { error: null };
 }

@@ -5,6 +5,7 @@ import { saveProfile } from "@/lib/actions/family";
 import type { ActionState } from "@/lib/actions/auth";
 import { SubmitButton, ErrorText } from "@/components/form";
 import { OnboardingShell } from "@/components/onboarding-shell";
+import { DateInput } from "@/components/date-input";
 
 const initialState: ActionState = { error: null };
 
@@ -23,7 +24,7 @@ export default function ProfilePage() {
         <div style={{ display: "flex", gap: 12, marginBottom: 18 }}>
           <div className="field" style={{ flex: 1 }}>
             <label>DATE OF BIRTH</label>
-            <input aria-label="Date Of Birth" className="input" type="date" name="dob" style={{ minHeight: 44 }} />
+            <DateInput aria-label="Date Of Birth" className="input" name="dob" style={{ minHeight: 44 }} />
           </div>
           <div className="field" style={{ flex: 1 }}>
             <label>MOBILE</label>

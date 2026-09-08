@@ -285,7 +285,7 @@ async function ScopePane({ scope, familyId, memberId, currency }: { scope: Wealt
       {isJoint ? (
         <>
           <Meter label="SPENT OF BUDGET" value={pane.monthExpense} cap={pane.budgetAmount} currency={currency} note="Set the month's ceiling below." />
-          <SetBudgetControl familyId={familyId} month={pane.month} year={pane.year} current={pane.budgetAmount} />
+          <SetBudgetControl month={pane.month} year={pane.year} current={pane.budgetAmount} />
         </>
       ) : (
         <>
@@ -297,7 +297,7 @@ async function ScopePane({ scope, familyId, memberId, currency }: { scope: Wealt
             note={mine ? "Your own revenue target this month." : `${whosePossessive} target this month.`}
           />
           {/* Only your own target is yours to set. */}
-          {scope === memberId && <SetTargetControl memberId={memberId} familyId={familyId} month={pane.month} year={pane.year} current={pane.budgetAmount} />}
+          {scope === memberId && <SetTargetControl month={pane.month} year={pane.year} current={pane.budgetAmount} />}
         </>
       )}
 
