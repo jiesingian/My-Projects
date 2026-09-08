@@ -29,33 +29,50 @@ save." Then the specific path gets its error captured, and this entry gets
 shorter.
 
 **Where it would hurt most,** if it ever does: `applySettlement` and
-`deleteTransactionAction` both adjust `goals.current_amount` this way. A
-swallowed failure there leaves a savings goal permanently out of step with
-the ledger, and nothing recomputes it.
+`deleteTransactionAction` used to adjust `goals.current_amount` by hand, and
+a swallowed failure there left a savings goal permanently out of step with
+the ledger. Both now call `recalc_goal_total` and capture its error, and a
+recomputed total self-corrects on the next touch — so this is the one place
+where a dropped error has stopped compounding. The other 57 have not.
 
 ---
 
-## goals.current_amount is stored, not derived
+## goals.current_amount is stored, not derived — CLOSED 8 September
+
+*Kept for the reconciliation query at the foot, which is still the way to
+check this, and because the shape of the bug is worth remembering.*
 
 Account balances are computed on every read as
 `opening_balance + sum(transactions)`, so a missed write self-corrects.
-Savings goals are the opposite: `current_amount` is a running total mutated
+Savings goals were the opposite: `current_amount` was a running total mutated
 by `+delta` at two sites and never reconciled against the ledger.
 
-Two consequences:
+Two consequences, both now gone:
 
-- **Lost update.** Both sites read the total, add to it, and write it back.
+- **Lost update.** Both sites read the total, added to it, and wrote it back.
   Two people confirming a contribution to the same goal at the same moment
-  each write `read + their own delta`, and one contribution vanishes. Fixing
-  it properly needs `current_amount = current_amount + $delta` executed
-  atomically, which PostgREST cannot express — it would take an RPC, which
-  is a migration, which is Jonathan's.
-- **No reconciliation.** Nothing detects a divergence once it exists.
+  each wrote `read + their own delta`, and one contribution vanished.
+- **Double count.** Not a race at all, and so the likelier of the two:
+  `confirmTransactionAction` never checked whether the entry was already
+  confirmed, so a second click credited the goal again for one movement of
+  money.
 
-**Measured, 8 September.** Every goal in both households was reconciled
-against its confirmed transactions. All match. The single apparent outlier —
-"Emergency fund", ₱210,000 against no transactions — is in the throwaway QA
-household and was seeded by hand when the fixture was built.
+**Fixed** by `recalc_goal_total` (migration
+`2026-09-08-goal-totals-from-the-ledger.sql`), which recomputes from the
+ledger under a row lock taken before the sum is read. It writes a
+destination rather than a distance, so the double count is impossible rather
+than guarded against, and drift already in a row corrects itself the next
+time anything touches that goal. `e2e/goal-totals.spec.ts` pins it.
+
+**Not covered:** the contribute flow still has no browser test, so the two
+call sites are verified by the type checker and the function's own tests
+rather than by driving the app.
+
+**Measured, 8 September.** Before: every goal in both households reconciled
+except one — "Emergency fund", ₱210,000 against no transactions, in the
+throwaway QA household, seeded by hand when the fixture was built. The
+function corrected it on its first call. After: nothing in either household
+differs from its ledger.
 
 The reconciliation query is worth keeping:
 
