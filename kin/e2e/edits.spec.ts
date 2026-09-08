@@ -161,3 +161,74 @@ test.describe("changing things", () => {
     await expect(row, "saving a new title moved the time").toContainText("14:30");
   });
 });
+
+/** A routine's length, which the app knew about everywhere except the form.
+ *
+ * routines.duration_minutes exists, the form's own prop type declares it,
+ * readForm reads it out of the FormData, and two things consume it: the end
+ * time pushed to each person's Google Calendar, and the clash check that
+ * stops two routines being booked over each other. There was simply no input
+ * for it, so it was null on every routine ever made -- routines landed in
+ * Google as zero-length events, and every clash check fell back to assuming
+ * an hour.
+ *
+ * A field that cannot be set is indistinguishable from one that is set and
+ * then silently dropped, so this asserts the round trip rather than the
+ * markup. */
+
+/** Removes what this file made, so a second run does not collide with the
+ * first. Learned the hard way: the routine below books 16:00 for 45 minutes,
+ * and on the next run the app quite rightly refused to double-book it. That
+ * refusal was correct -- it is the clash check doing its job, on the very
+ * duration this test exists to prove -- but a test that only passes once is
+ * not a test. */
+async function removeRunRoutines() {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  if (!url || !key) return;
+  const api = await playwrightRequest.newContext();
+  const auth = await api.post(`${url}/auth/v1/token?grant_type=password`, {
+    headers: { apikey: key, "Content-Type": "application/json" },
+    data: { email: process.env.E2E_EMAIL, password: process.env.E2E_PASSWORD },
+  });
+  if (auth.ok()) {
+    const token = (await auth.json()).access_token;
+    await api.delete(`${url}/rest/v1/routines?title=like.E2E-EDIT-*`, {
+      headers: { apikey: key, Authorization: `Bearer ${token}` },
+    });
+  }
+  await api.dispose();
+}
+
+test.describe("how long a routine takes", () => {
+  test.use({ viewport: { width: 1280, height: 900 } });
+
+  // Before as well as after: an earlier run that died mid-test leaves its
+  // booking behind, and the next run should not inherit the failure.
+  test.beforeAll(removeRunRoutines);
+  test.afterAll(removeRunRoutines);
+
+  test("a routine keeps the length it was given", async ({ page }) => {
+    const title = `${RUN} piano practice`;
+
+    await page.goto("/planner/routines/new", { waitUntil: "networkidle" });
+    await page.fill('input[name="title"]', title);
+    await fill(page, "time_of_day", "16:00");
+    await fill(page, "duration_minutes", "45");
+    await page.getByText("Whole family", { exact: true }).first().click();
+    await page.locator('button[type="submit"]').first().click();
+    await page.waitForURL((u) => new URL(u).pathname !== "/planner/routines/new", { timeout: 30_000 });
+
+    // Re-open it the way the app does, and the length is still 45 minutes.
+    await page.goto("/planner?seg=routines", { waitUntil: "networkidle" });
+    const card = page.locator(".blueprint").filter({ hasText: title });
+    await expect(card, "the new routine is not listed").toHaveCount(1);
+    await card.getByRole("link", { name: /edit/i }).first().click();
+    await page.waitForURL(/routines\/new\?id=/, { timeout: 30_000 });
+
+    await expect(page.locator('[name="time_of_day"]'), "the routine lost its time").toHaveValue("16:00");
+    await expect(page.locator('[name="duration_minutes"]'), "the routine lost the length it was given").toHaveValue(
+      "45",
+    );
+  });
+});

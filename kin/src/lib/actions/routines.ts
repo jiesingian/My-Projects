@@ -128,6 +128,10 @@ function validate(input: ReturnType<typeof readForm>): RoutineActionState | null
   if (!input.applies_to_whole_family && input.members.length === 0)
     return no("members", "Choose who this is for, or mark it for the whole family.");
   if (input.rotate_assignee && input.members.length < 2) return no("members", "Taking turns needs at least two people.");
+  // Same shape as the cost check below, and for the same reason: `!(x > 0)` is
+  // false for NaN too, so "abc" is refused here rather than reaching Postgres.
+  if (input.duration_minutes !== null && !(input.duration_minutes > 0 && input.duration_minutes <= 1440))
+    return no("duration_minutes", "How long it takes has to be between 1 minute and a day.");
   if (input.expected_cost !== null && !(input.expected_cost >= 0)) return no("expected_cost", "The expected cost has to be a number.");
   if (input.expected_cost && !input.cost_account_id) return no("cost_account_id", "Choose which account the cost comes from.");
   return null;
