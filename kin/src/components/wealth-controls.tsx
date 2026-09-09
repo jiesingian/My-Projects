@@ -85,10 +85,13 @@ export function usePhoneKind(): "ios" | "android" | "other" {
  * For anything else, Kin has no memorized link to reach for, so LINK APP
  * stays a plain field someone fills in themselves -- on a computer, since
  * a phone-app link (or a store page) mostly doesn't exist there, the hint
- * points at the account's website instead. Below it, the two store fields
- * remain (collapsed to whichever matches the current phone, with a button
- * to reveal the other for a household that mixes iPhone and Android) --
- * the one place a device can't be detected away, because no web page, Kin
+ * points at the account's website instead. The two store fields only
+ * appear once BANK / WALLET is explicitly set to Other -- not on a blank,
+ * not-yet-answered form, and not for a known name, so nothing shows here
+ * only to vanish the moment an answer arrives. When they do show, they're
+ * collapsed to whichever matches the current phone, with a button to
+ * reveal the other for a household that mixes iPhone and Android -- the
+ * one place a device can't be detected away, because no web page, Kin
  * included, can read a phone's installed apps or a store link nobody has
  * told it yet. */
 export function AppLinksField({
@@ -151,6 +154,12 @@ export function AppLinksField({
   }
 
   const isKnownInstitution = selected !== "" && selected !== "other";
+  // The two store fields are only ever relevant once someone has said
+  // "this is a bank Kin doesn't already know" -- before that, on a blank
+  // form, there's nothing yet to resolve either way, so they stay hidden
+  // rather than showing and then vanishing the moment BANK / WALLET gets
+  // an answer. Only "Other" earns them.
+  const showStoreFields = selected === "other";
   const looksLikeAppScheme = !!appUrl.trim() && !/^https?:\/\//i.test(appUrl.trim());
 
   const appStoreField = (
@@ -264,13 +273,13 @@ export function AppLinksField({
         </p>
       </div>
 
-      {isKnownInstitution && (
+      {!showStoreFields && (
         <>
           <input type="hidden" name="app_store_url" value={appStoreUrl} />
           <input type="hidden" name="play_store_url" value={playStoreUrl} />
         </>
       )}
-      {!isKnownInstitution && (
+      {showStoreFields && (
         <>
           {showBothStores ? (
             <div style={{ display: "flex", gap: 10 }}>
