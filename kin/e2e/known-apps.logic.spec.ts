@@ -1,5 +1,5 @@
 import { test, expect } from "@playwright/test";
-import { resolveInstitutionLinks, isKnownInstitutionLabel } from "@/lib/wealth";
+import { resolveInstitutionLinks, isKnownInstitutionLabel, KNOWN_APPS } from "@/lib/wealth";
 
 /** What BANK / WALLET should do to LINK APP / APP STORE LINK / PLAY STORE
  * LINK as it changes, pulled out of AppLinksField so it can be checked
@@ -48,11 +48,36 @@ test("leaving Other or blank, without ever having picked a known app, changes no
   expect(resolveInstitutionLinks("", "other", "ios")).toBeNull();
 });
 
-test("only GCash, BPI and BDO count as known", () => {
-  expect(isKnownInstitutionLabel("GCash")).toBe(true);
-  expect(isKnownInstitutionLabel("BPI")).toBe(true);
-  expect(isKnownInstitutionLabel("BDO")).toBe(true);
-  expect(isKnownInstitutionLabel("Maya")).toBe(false);
+test("every entry in KNOWN_APPS counts as known, and nothing else does", () => {
+  for (const app of KNOWN_APPS) {
+    expect(isKnownInstitutionLabel(app.label)).toBe(true);
+  }
+  expect(isKnownInstitutionLabel("PalawanPay")).toBe(false);
   expect(isKnownInstitutionLabel("other")).toBe(false);
   expect(isKnownInstitutionLabel("")).toBe(false);
+});
+
+test("every known app resolves to at least one working link, on every phone kind", () => {
+  // The one invariant every entry in KNOWN_APPS must satisfy: whichever
+  // phone is filling the form in, LINK APP ends up with *something* --
+  // either the app's own scheme, or, for the banks with none, the store
+  // page for that phone. A KNOWN_APPS entry with neither an appUrl nor
+  // both store links would resolve to an empty LINK APP, silently.
+  for (const app of KNOWN_APPS) {
+    for (const kind of ["ios", "android", "other"] as const) {
+      const resolved = resolveInstitutionLinks(app.label, "", kind);
+      expect(resolved?.appUrl.trim(), `${app.label} on ${kind}`).not.toBe("");
+    }
+  }
+});
+
+test("a known app's App Store and Play Store links are both real, distinct URLs", () => {
+  // Catches a copy-paste slip -- the same URL in both fields, or a field
+  // that looks like a URL but points at the wrong store -- for every bank
+  // that publishes on both stores (GCash has neither, by design).
+  for (const app of KNOWN_APPS.filter((a) => a.label !== "GCash")) {
+    expect(app.appStoreUrl, app.label).toMatch(/^https:\/\/apps\.apple\.com\//);
+    expect(app.playStoreUrl, app.label).toMatch(/^https:\/\/play\.google\.com\//);
+    expect(app.appStoreUrl).not.toBe(app.playStoreUrl);
+  }
 });

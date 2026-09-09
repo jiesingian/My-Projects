@@ -170,16 +170,43 @@ export type KnownApp = {
 
 /** One tap instead of typing, for the handful of apps whose links are
  * confirmed correct and unlikely to change. Deliberately short: a wrong
- * entry here is worse than none, and most apps -- every Philippine bank's
+ * entry here is worse than none, and most apps -- most Philippine banks
  * included -- publish no such thing anywhere a person or an AI could look
  * one up to add with any confidence.
  *
- * appUrl is the app's own scheme, opened when it's already installed
- * (verified against PayMongo's GCash integration docs). appStoreUrl and
- * playStoreUrl are where to get the app in the first place, verified
- * against each bank's actual store listing -- BPI's iOS id and Android
- * package from Apple's and Google's own listings, BDO's the same, cross-
- * checked against BDO Unibank as the publisher. */
+ * appUrl is an app's own scheme, opened when it's already installed
+ * (GCash's verified against PayMongo's integration docs -- none of the
+ * others below publish one anywhere findable, so they go without rather
+ * than guess). appStoreUrl and playStoreUrl are where to get the app in
+ * the first place, each verified the same way: the App Store id and the
+ * Play Store package cross-checked against each other (same app name on
+ * both) and against the bank's own developer/publisher listing, not
+ * against a claim from any AI, including this one, without a listing to
+ * back it up.
+ *
+ *   BPI          apps.apple.com id6443950982 / com.bpi.ng.app
+ *   BDO          apps.apple.com id1551584630 / ph.com.bdo.retail,
+ *                publisher BDO Unibank
+ *   Maya         apps.apple.com id991673877 / com.paymaya, publisher
+ *                Maya Philippines, Inc. on both stores
+ *   Metrobank    apps.apple.com id1536081176 / ph.com.metrobank.mcc.mbonline,
+ *                publisher Metropolitan Bank & Trust Company
+ *   UnionBank    apps.apple.com id1242291412 / com.unionbankph.online,
+ *                publisher Union Bank of the Philippines on both stores
+ *   Security     apps.apple.com id6476122865 / com.securitybank.bbx,
+ *   Bank         both listed as "Security Bank App"
+ *   RCBC         apps.apple.com id1445403196 / com.rcbc.pulz, both
+ *                listed as "RCBC Pulz", linked from RCBC's own site
+ *   GoTyme       apps.apple.com id1637067963 / ph.com.gotyme -- the
+ *                Philippine listing specifically; GoTyme also publishes a
+ *                separate South African app under different ids, easy to
+ *                grab by mistake
+ *   LandBank     apps.apple.com id950232162 / com.landbank.mobilebanking,
+ *                publisher Land Bank of the Philippines on both stores
+ *
+ * Left out on purpose, not overlooked: PalawanPay, MariBank and UnionBank's
+ * own digital-only sibling (UnionDigital) turned up nothing verifiable on
+ * one pass -- worth another look later, not worth guessing now. */
 export const KNOWN_APPS: KnownApp[] = [
   { label: "GCash", appUrl: "gcash://" },
   {
@@ -191,6 +218,41 @@ export const KNOWN_APPS: KnownApp[] = [
     label: "BDO",
     appStoreUrl: "https://apps.apple.com/ph/app/bdo-online/id1551584630",
     playStoreUrl: "https://play.google.com/store/apps/details?id=ph.com.bdo.retail",
+  },
+  {
+    label: "Maya",
+    appStoreUrl: "https://apps.apple.com/ph/app/maya-savings-loans-cards/id991673877",
+    playStoreUrl: "https://play.google.com/store/apps/details?id=com.paymaya",
+  },
+  {
+    label: "Metrobank",
+    appStoreUrl: "https://apps.apple.com/ph/app/metrobank-app/id1536081176",
+    playStoreUrl: "https://play.google.com/store/apps/details?id=ph.com.metrobank.mcc.mbonline",
+  },
+  {
+    label: "UnionBank",
+    appStoreUrl: "https://apps.apple.com/ph/app/unionbank-online/id1242291412",
+    playStoreUrl: "https://play.google.com/store/apps/details?id=com.unionbankph.online",
+  },
+  {
+    label: "Security Bank",
+    appStoreUrl: "https://apps.apple.com/ph/app/security-bank-app/id6476122865",
+    playStoreUrl: "https://play.google.com/store/apps/details?id=com.securitybank.bbx",
+  },
+  {
+    label: "RCBC",
+    appStoreUrl: "https://apps.apple.com/ph/app/rcbc-pulz/id1445403196",
+    playStoreUrl: "https://play.google.com/store/apps/details?id=com.rcbc.pulz",
+  },
+  {
+    label: "GoTyme",
+    appStoreUrl: "https://apps.apple.com/ph/app/gotyme-bank/id1637067963",
+    playStoreUrl: "https://play.google.com/store/apps/details?id=ph.com.gotyme",
+  },
+  {
+    label: "LandBank",
+    appStoreUrl: "https://apps.apple.com/ph/app/landbank-mobile-banking/id950232162",
+    playStoreUrl: "https://play.google.com/store/apps/details?id=com.landbank.mobilebanking",
   },
 ];
 

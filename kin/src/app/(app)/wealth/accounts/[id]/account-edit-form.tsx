@@ -2,7 +2,7 @@
 
 import { useActionState, useState } from "react";
 import { updateAccountAction } from "@/lib/actions/wealth";
-import { ACCOUNT_TYPES, ACCOUNT_TYPE_LABELS } from "@/lib/wealth";
+import { ACCOUNT_TYPES, ACCOUNT_TYPE_LABELS, type AccountType } from "@/lib/wealth";
 import type { ActionState } from "@/lib/actions/auth";
 import { SubmitButton, ErrorText } from "@/components/form";
 import { AppLinksField } from "@/components/wealth-controls";
@@ -13,6 +13,7 @@ const initialState: ActionState = { error: null };
 export function AccountEditForm({ account }: { account: Tables<"accounts"> }) {
   const [open, setOpen] = useState(false);
   const [state, formAction] = useActionState(updateAccountAction.bind(null, account.id), initialState);
+  const [accountType, setAccountType] = useState<AccountType>(account.account_type as AccountType);
 
   if (!open) {
     return (
@@ -29,7 +30,13 @@ export function AccountEditForm({ account }: { account: Tables<"accounts"> }) {
         <input className="input" name="name" required defaultValue={account.name} style={{ minHeight: 42 }} />
       </Field>
       <Field label="TYPE">
-        <select className="input" name="account_type" defaultValue={account.account_type} style={{ minHeight: 42 }}>
+        <select
+          className="input"
+          name="account_type"
+          value={accountType}
+          onChange={(e) => setAccountType(e.target.value as AccountType)}
+          style={{ minHeight: 42 }}
+        >
           {ACCOUNT_TYPES.map((t) => (
             <option key={t} value={t}>
               {ACCOUNT_TYPE_LABELS[t]}
@@ -39,6 +46,7 @@ export function AccountEditForm({ account }: { account: Tables<"accounts"> }) {
       </Field>
       <div style={{ marginBottom: 12 }}>
         <AppLinksField
+          accountType={accountType}
           defaultInstitution={account.institution ?? ""}
           defaultAppUrl={account.linked_app_url ?? ""}
           defaultAppStoreUrl={account.app_store_url ?? ""}

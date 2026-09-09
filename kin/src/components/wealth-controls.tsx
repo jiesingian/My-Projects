@@ -18,6 +18,7 @@ import {
   KNOWN_APPS,
   isKnownInstitutionLabel,
   resolveInstitutionLinks,
+  type AccountType,
 } from "@/lib/wealth";
 import type { ActionState } from "@/lib/actions/auth";
 import { SubmitButton, ErrorText } from "@/components/form";
@@ -75,13 +76,21 @@ export function usePhoneKind(): "ios" | "android" | "other" {
  * reveal the other for a household that mixes iPhone and Android -- the
  * one place a device can't be detected away, because no web page, Kin
  * included, can read a phone's installed apps or a store link nobody has
- * told it yet. */
+ * told it yet.
+ *
+ * None of this applies to a cash account -- there is no institution or app
+ * for physical cash to link to -- so the whole section is skipped for that
+ * one account type, and the label itself widens from "BANK / WALLET" to
+ * "INSTITUTION / APP" for the other types it doesn't quite fit (a credit
+ * card's issuer, an investment platform, "other"). */
 export function AppLinksField({
+  accountType,
   defaultInstitution,
   defaultAppUrl,
   defaultAppStoreUrl,
   defaultPlayStoreUrl,
 }: {
+  accountType: AccountType;
   defaultInstitution?: string;
   defaultAppUrl?: string;
   defaultAppStoreUrl?: string;
@@ -168,11 +177,19 @@ export function AppLinksField({
     </div>
   );
   const otherStoreLabel = kind === "ios" ? "Play Store" : "App Store";
+  // "BANK / WALLET" only actually describes two of the six account types --
+  // a credit card's issuer, an investment platform, or "other" all still
+  // have a linkable institution or app, just not one that's a bank or a
+  // wallet, so the label generalizes for them. Cash has none at all: no
+  // institution issues it and no app opens it, so the whole section is
+  // skipped rather than asking a question with no answer.
+  const institutionFieldLabel = accountType === "bank" || accountType === "ewallet" ? "BANK / WALLET" : "INSTITUTION / APP";
+  if (accountType === "cash") return null;
 
   return (
     <div style={{ marginBottom: 4 }}>
       <div className="field" style={{ marginBottom: 10 }}>
-        <label htmlFor={institutionId}>BANK / WALLET</label>
+        <label htmlFor={institutionId}>{institutionFieldLabel}</label>
         <select
           id={institutionId}
           className="input"
@@ -291,6 +308,7 @@ export function AppLinksField({
 export function AddAccountForm({ isJoint }: { isJoint: boolean }) {
   const [open, setOpen] = useState(false);
   const [state, formAction] = useActionState(addAccountAction, initialState);
+  const [accountType, setAccountType] = useState<AccountType>("bank");
 
   if (!open) {
     return (
@@ -313,7 +331,13 @@ export function AddAccountForm({ isJoint }: { isJoint: boolean }) {
         <input className="input" name="name" required placeholder="Everyday savings" style={{ minHeight: 42 }} />
       </Labelled>
       <Labelled label="TYPE">
-        <select className="input" name="account_type" defaultValue="bank" style={{ minHeight: 42 }}>
+        <select
+          className="input"
+          name="account_type"
+          value={accountType}
+          onChange={(e) => setAccountType(e.target.value as AccountType)}
+          style={{ minHeight: 42 }}
+        >
           {ACCOUNT_TYPES.map((t) => (
             <option key={t} value={t}>
               {ACCOUNT_TYPE_LABELS[t]}
@@ -321,12 +345,12 @@ export function AddAccountForm({ isJoint }: { isJoint: boolean }) {
           ))}
         </select>
       </Labelled>
+      <div style={{ marginBottom: 12 }}>
+        <AppLinksField accountType={accountType} />
+      </div>
       <Labelled label="OPENING BALANCE (₱)">
         <input className="input" type="number" step="0.01" name="opening_balance" defaultValue={0} style={{ minHeight: 42 }} />
       </Labelled>
-      <div style={{ marginBottom: 12 }}>
-        <AppLinksField />
-      </div>
       <Labelled label="NOTE">
         <input className="input" name="sub_note" placeholder="Salary account" style={{ minHeight: 42 }} />
       </Labelled>
