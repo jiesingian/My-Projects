@@ -172,7 +172,7 @@ export function AddPriceControl() {
 
   return (
     <div style={{ marginTop: 14, padding: 13, borderRadius: 14, background: "color-mix(in srgb, var(--color-text) 4%, transparent)" }}>
-      <input className="input" placeholder="Item name" value={name} onChange={(e) => setName(e.target.value)} style={{ minHeight: 42, marginBottom: 8 }} />
+      <input className="input" placeholder="Item name" value={name} onChange={(e) => setName(e.target.value)} maxLength={150} style={{ minHeight: 42, marginBottom: 8 }} />
       <div style={{ display: "flex", gap: 6, marginBottom: 8 }}>
         <input className="input" type="number" step="0.01" min="0" inputMode="decimal" placeholder="Price" value={price} onChange={(e) => setPrice(e.target.value)} style={{ minHeight: 42, flex: 1 }} />
         <select className="input" value={unit} onChange={(e) => setUnit(e.target.value)} style={{ minHeight: 42, width: 100 }}>
@@ -321,6 +321,7 @@ export function PantryControls({ items }: { items: { item_key: string; name: str
           placeholder="Rice, cooking oil, soy sauce…"
           value={name}
           onChange={(e) => setName(e.target.value)}
+          maxLength={150}
           style={{ minHeight: 42, flex: 1 }}
           aria-label="Something already in the house"
         />

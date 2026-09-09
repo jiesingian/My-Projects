@@ -316,6 +316,7 @@ export function BuyList({
               autoFocus
               value={newName}
               onChange={(e) => setNewName(e.target.value)}
+              maxLength={150}
               style={{ minHeight: 42, flex: 1 }}
             />
             <input className="input" name="quantity" type="number" step="0.01" min="0" placeholder="Qty" style={{ minHeight: 42, width: 68 }} />
@@ -388,7 +389,7 @@ function EditItemRow({ item, onClose }: { item: Tables<"buy_items">; onClose: ()
   return (
     <div style={{ padding: "10px 0 12px", borderBottom: "1px solid color-mix(in srgb, var(--color-text) 10%, transparent)" }}>
       <div style={{ display: "flex", gap: 8, marginBottom: 8 }}>
-        <input className="input" value={name} onChange={(e) => setName(e.target.value)} style={{ minHeight: 40, flex: 1 }} />
+        <input className="input" value={name} onChange={(e) => setName(e.target.value)} maxLength={150} style={{ minHeight: 40, flex: 1 }} />
         <input
           className="input"
           type="number"

@@ -181,6 +181,7 @@ export function IngredientAmountRow({
         aria-label={`Unit for ${name}`}
         placeholder="unit"
         className="input"
+        maxLength={24}
         style={{ width: 62, minHeight: 34, fontSize: 13.5, padding: "0 7px", flex: "none" }}
       />
       <button
@@ -230,6 +231,7 @@ export function AddIngredientRow({ mealId }: { mealId: string }) {
         onChange={(e) => setName(e.target.value)}
         onKeyDown={(e) => e.key === "Enter" && add()}
         aria-label="Another ingredient for this meal"
+        maxLength={150}
         style={{ flex: 1, minWidth: 0, minHeight: 34, fontSize: 13.5 }}
       />
       <input
@@ -247,6 +249,7 @@ export function AddIngredientRow({ mealId }: { mealId: string }) {
         value={unit}
         onChange={(e) => setUnit(e.target.value)}
         aria-label="Unit"
+        maxLength={24}
         style={{ width: 62, minHeight: 34, fontSize: 13.5, padding: "0 7px", flex: "none" }}
       />
       <button
