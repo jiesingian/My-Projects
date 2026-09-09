@@ -275,7 +275,13 @@ async function CashFlowPane({ familyId, memberId, currency, range }: { familyId:
         label="CASH FLOW"
         amount={Math.abs(cf.net)}
         currency={currency}
-        caption={cf.net >= 0 ? `More came in than went out this ${periodNoun}.` : `More went out than came in this ${periodNoun}.`}
+        caption={
+          cf.net > 0
+            ? `More came in than went out this ${periodNoun}.`
+            : cf.net < 0
+              ? `More went out than came in this ${periodNoun}.`
+              : `Income and expenses came out even this ${periodNoun}.`
+        }
       />
 
       <QuickActions />
