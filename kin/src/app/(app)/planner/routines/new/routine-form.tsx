@@ -189,7 +189,7 @@ export function RoutineForm({
 
           <FieldBlock name="title" invalid={bad("title")} style={{ marginBottom: 14 }}>
             <label>NAME</label>
-            <input aria-label="Name" className="input" name="title" required value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Grocery run" style={{ minHeight: 44 }} />
+            <input aria-label="Name" className="input" name="title" required maxLength={150} value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Grocery run" style={{ minHeight: 44 }} />
           </FieldBlock>
 
           <div className="field" style={{ marginBottom: 14 }}>
@@ -336,7 +336,7 @@ export function RoutineForm({
 
           <div className="field" style={{ marginBottom: 14 }}>
             <label>WHERE (OPTIONAL)</label>
-            <input aria-label="Where (Optional)" className="input" name="location" defaultValue={edit?.location ?? undefined} placeholder="SM Marikina" style={{ minHeight: 44 }} />
+            <input aria-label="Where (Optional)" className="input" name="location" maxLength={200} defaultValue={edit?.location ?? undefined} placeholder="SM Marikina" style={{ minHeight: 44 }} />
           </div>
 
           <div style={{ fontSize: 13, color: "var(--color-neutral-700)", margin: "16px 0 6px" }}>Who it is for</div>
@@ -401,7 +401,7 @@ export function RoutineForm({
 
           <div className="field" style={{ marginBottom: 16 }}>
             <label>NOTES</label>
-            <textarea aria-label="Notes" className="input" name="notes" defaultValue={edit?.notes ?? undefined} />
+            <textarea aria-label="Notes" className="input" name="notes" maxLength={1000} defaultValue={edit?.notes ?? undefined} />
           </div>
 
           {/* Beside the button that was just pressed, not at the top of a

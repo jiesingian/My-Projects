@@ -96,7 +96,7 @@ function ActivityForm({ members, defaultDate, editActivity }: { members: Tables<
         <input key={id} type="hidden" name="who" value={id} />
       ))}
       <ErrorText message={state.error} />
-      <Field label="TITLE"><input className="input" name="title" placeholder="Nursery orientation" required defaultValue={editActivity?.title} style={{ minHeight: 44 }} /></Field>
+      <Field label="TITLE"><input className="input" name="title" placeholder="Nursery orientation" required maxLength={150} defaultValue={editActivity?.title} style={{ minHeight: 44 }} /></Field>
       <div style={{ display: "flex", gap: 12, marginBottom: 14 }}>
         <Field label="DATE" style={{ flex: 1.2 }}><DateInput className="input" name="date" required defaultValue={startDate ?? defaultDate} style={{ minHeight: 44 }} /></Field>
         <Field label="FROM" style={{ flex: 1 }}><input className="input" type="time" name="from" defaultValue={startTime ?? "08:30"} style={{ minHeight: 44 }} /></Field>
@@ -133,8 +133,8 @@ function ActivityForm({ members, defaultDate, editActivity }: { members: Tables<
           );
         })}
       </div>
-      <Field label="LOCATION"><input className="input" name="location" placeholder="Little Acorns, San Juan" defaultValue={editActivity?.location ?? undefined} style={{ minHeight: 44 }} /></Field>
-      <Field label="NOTES"><textarea className="input" name="notes" defaultValue={editActivity?.notes ?? undefined} /></Field>
+      <Field label="LOCATION"><input className="input" name="location" placeholder="Little Acorns, San Juan" maxLength={200} defaultValue={editActivity?.location ?? undefined} style={{ minHeight: 44 }} /></Field>
+      <Field label="NOTES"><textarea className="input" name="notes" maxLength={1000} defaultValue={editActivity?.notes ?? undefined} /></Field>
       <SubmitButton style={{ minHeight: 46, fontSize: 14, letterSpacing: ".04em" }}>{editActivity ? "SAVE CHANGES" : "SAVE TO CALENDAR"}</SubmitButton>
       {editActivity && (
         <button
@@ -226,7 +226,7 @@ function EventForm({
   return (
     <form action={formAction}>
       <ErrorText message={state.error} />
-      <Field label="TITLE"><input className="input" name="title" required defaultValue={editEvent?.title} style={{ minHeight: 44 }} /></Field>
+      <Field label="TITLE"><input className="input" name="title" required maxLength={150} defaultValue={editEvent?.title} style={{ minHeight: 44 }} /></Field>
       <Field label="DATE"><DateInput className="input" name="date" required defaultValue={editEvent?.event_date ?? defaultDate} style={{ minHeight: 44 }} /></Field>
       <Field label="KIND">
         <select className="input" name="kind" defaultValue={editEvent?.kind ?? "birthday"} style={{ minHeight: 44 }}>
@@ -237,7 +237,7 @@ function EventForm({
           <option value="other">Other</option>
         </select>
       </Field>
-      <Field label="NOTE"><input className="input" name="sub_note" placeholder="Dinner at home" defaultValue={editEvent?.sub_note ?? undefined} style={{ minHeight: 44 }} /></Field>
+      <Field label="NOTE"><input className="input" name="sub_note" placeholder="Dinner at home" maxLength={200} defaultValue={editEvent?.sub_note ?? undefined} style={{ minHeight: 44 }} /></Field>
       <WhoPicker
         members={members}
         label="Who it is for"
@@ -288,7 +288,7 @@ function TripForm({
     <form action={formAction}>
       <ErrorText message={state.error} />
       <Field label="TITLE">
-        <input className="input" name="title" placeholder="Baguio, four days" required defaultValue={editTrip?.title} style={{ minHeight: 44 }} />
+        <input className="input" name="title" placeholder="Baguio, four days" required maxLength={150} defaultValue={editTrip?.title} style={{ minHeight: 44 }} />
       </Field>
       <div style={{ display: "flex", gap: 12, marginBottom: 14 }}>
         <Field label="START" style={{ flex: 1 }}>

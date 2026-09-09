@@ -9,6 +9,7 @@ import type { ActionState } from "@/lib/actions/auth";
 import { familyDay } from "@/lib/time";
 import { allDayEvent } from "@/lib/calendar-shape";
 import { humanDatabaseError } from "@/lib/db-errors";
+import { clamp } from "@/lib/text";
 
 function activityTarget(wholeFamily: boolean, who: string[]): CalendarTarget {
   return wholeFamily ? { kind: "all" } : { kind: "members", memberIds: who };
@@ -18,13 +19,13 @@ export async function createActivityAction(_prev: ActionState, formData: FormDat
   const me = await requireCurrentMember();
   const supabase = await createClient();
 
-  const title = String(formData.get("title") ?? "").trim();
+  const title = clamp(String(formData.get("title") ?? ""), 150);
   const date = String(formData.get("date") ?? "");
   const from = String(formData.get("from") ?? "09:00");
   const to = String(formData.get("to") ?? "");
   const repeat = String(formData.get("repeat") ?? "once");
-  const location = String(formData.get("location") ?? "").trim() || null;
-  const notes = String(formData.get("notes") ?? "").trim() || null;
+  const location = clamp(String(formData.get("location") ?? ""), 200) || null;
+  const notes = clamp(String(formData.get("notes") ?? ""), 1000) || null;
   const wholeFamily = formData.get("whole_family") === "on";
   const who = formData.getAll("who").map(String);
 
@@ -70,13 +71,13 @@ export async function updateActivityAction(activityId: string, _prev: ActionStat
   const me = await requireCurrentMember();
   const supabase = await createClient();
 
-  const title = String(formData.get("title") ?? "").trim();
+  const title = clamp(String(formData.get("title") ?? ""), 150);
   const date = String(formData.get("date") ?? "");
   const from = String(formData.get("from") ?? "09:00");
   const to = String(formData.get("to") ?? "");
   const repeat = String(formData.get("repeat") ?? "once");
-  const location = String(formData.get("location") ?? "").trim() || null;
-  const notes = String(formData.get("notes") ?? "").trim() || null;
+  const location = clamp(String(formData.get("location") ?? ""), 200) || null;
+  const notes = clamp(String(formData.get("notes") ?? ""), 1000) || null;
   const wholeFamily = formData.get("whole_family") === "on";
   const who = formData.getAll("who").map(String);
 
@@ -163,10 +164,10 @@ export async function createEventAction(_prev: ActionState, formData: FormData):
   const me = await requireCurrentMember();
   const supabase = await createClient();
 
-  const title = String(formData.get("title") ?? "").trim();
+  const title = clamp(String(formData.get("title") ?? ""), 150);
   const date = String(formData.get("date") ?? "");
   const kind = String(formData.get("kind") ?? "other");
-  const subNote = String(formData.get("sub_note") ?? "").trim() || null;
+  const subNote = clamp(String(formData.get("sub_note") ?? ""), 200) || null;
   const recursYearly = kind === "birthday" || kind === "anniversary";
   const wholeFamily = formData.get("whole_family") === "on";
   const who = formData.getAll("who").map(String).filter(Boolean);
@@ -207,10 +208,10 @@ export async function updateEventAction(eventId: string, _prev: ActionState, for
   const me = await requireCurrentMember();
   const supabase = await createClient();
 
-  const title = String(formData.get("title") ?? "").trim();
+  const title = clamp(String(formData.get("title") ?? ""), 150);
   const date = String(formData.get("date") ?? "");
   const kind = String(formData.get("kind") ?? "other");
-  const subNote = String(formData.get("sub_note") ?? "").trim() || null;
+  const subNote = clamp(String(formData.get("sub_note") ?? ""), 200) || null;
   const recursYearly = kind === "birthday" || kind === "anniversary";
   const wholeFamily = formData.get("whole_family") === "on";
   const who = formData.getAll("who").map(String).filter(Boolean);
@@ -254,7 +255,7 @@ export async function createTripAction(_prev: ActionState, formData: FormData): 
   const me = await requireCurrentMember();
   const supabase = await createClient();
 
-  const title = String(formData.get("title") ?? "").trim();
+  const title = clamp(String(formData.get("title") ?? ""), 150);
   const startDate = String(formData.get("start_date") ?? "");
   const endDate = String(formData.get("end_date") ?? "") || null;
   const budgetAmount = formData.get("budget_amount") ? Number(formData.get("budget_amount")) : null;
@@ -299,7 +300,7 @@ export async function updateTripAction(tripId: string, _prev: ActionState, formD
   const me = await requireCurrentMember();
   const supabase = await createClient();
 
-  const title = String(formData.get("title") ?? "").trim();
+  const title = clamp(String(formData.get("title") ?? ""), 150);
   const startDate = String(formData.get("start_date") ?? "");
   const endDate = String(formData.get("end_date") ?? "") || null;
   const budgetAmount = formData.get("budget_amount") ? Number(formData.get("budget_amount")) : null;
