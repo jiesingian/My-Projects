@@ -20,39 +20,31 @@ from under the other.
   `main`'s favour. Where the conflict is a real disagreement about how the app
   should behave rather than two edits to the same line, do not resolve it
   yourself: say so in the PR and leave it for Jonathan.
-- Do not merge your own pull request, and do not ask to have it merged
-  automatically.
+- Do not merge your own pull request by hand, and do not arm auto-merge on it
+  yourself. Whether it merges on green or waits for Jonathan is triage's call,
+  made from the diff — see below.
 
 Both people's sessions run in their own container against their own clone, so
 work in parallel does not collide until a branch is merged. The one thing that
 *does* collide is `main` — hence the rule above.
 
-### Everything from anyone but Jonathan waits for Jonathan
+### Small changes merge themselves; large ones wait
 
-A pull request is sorted automatically by `.github/workflows/triage.yml`, and
-the first question it asks is **who opened it**.
+A pull request is sorted automatically by `.github/workflows/triage.yml`, from
+the diff rather than from anything the author says about it. **Who** opened it
+is not part of the decision: everyone here, Jonathan included, gets the same
+answer for the same change. That was tried the other way round for one commit
+and put back — holding every change from a second person meant nothing of
+hers reached the app until he was free to press a button, which is exactly the
+bottleneck working in parallel is meant to remove.
 
-**If the author is not `jiesingian`, it is held. Always.** Whatever the diff
-looks like, however small it is, however green the tests are. It gets the
-`needs-jonathan` label, auto-merge is disabled on it, and it sits there until
-he merges it himself. That is what "propose; he disposes" means now that more
-than one person works here, and it is a decision about who approves rather
-than about how risky a change looks.
-
-So if you are working for anybody other than Jonathan: open the pull request,
-say clearly what you changed and why, and then **stop**. Do not merge it, do
-not ask for it to be merged, and do not treat green CI as permission. Green
-means the change is ready to be looked at.
-
-**Jonathan's own pull requests** are sorted on the diff instead, since he
-pushes to `main` directly anyway and a pull request in his name is his own
-work arriving by another door. The test there is not "does this look risky"
-but **"could we undo it in five minutes"**. Code is revertible — a bad
-component ships, someone notices, it is reverted. So most of the app merges on
-green CI and is fixed forward. What waits is what cannot be undone: the way
-into the app, session handling, who may see whose data, money, anything that
-runs code on our machines, and anything touching the database itself. Or a
-change past ~400 lines.
+The test is not "does this look risky" but **"could we undo it in five
+minutes"**. Code is revertible — a bad component ships, someone notices, it is
+reverted. So most of the app merges on green CI and is fixed forward. What
+waits for Jonathan is what cannot be undone: the way into the app, session
+handling, who may see whose data, money, anything that runs code on our
+machines, and anything touching the database itself. Or a change past ~400
+lines.
 
 Migrations are his alone. They apply when written, not when merged, so by the
 time a pull request is read the schema has already moved — review cannot catch
