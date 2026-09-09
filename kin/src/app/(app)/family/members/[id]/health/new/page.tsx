@@ -20,5 +20,5 @@ export default async function NewHealthEntryPage({
   ]);
   if (!member) redirect("/family?seg=profile");
 
-  return <NewHealthEntryForm member={member} conditions={conditions ?? []} omronConnected={!!omron?.connected} />;
+  return <NewHealthEntryForm member={member} conditions={conditions ?? []} omronConnected={!!omron?.connected} myRole={me.role} />;
 }

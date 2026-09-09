@@ -6,6 +6,7 @@ import { createClient } from "@/lib/supabase/server";
 import { requireCurrentMember } from "@/lib/session";
 import type { ActionState } from "@/lib/actions/auth";
 import { familyDay } from "@/lib/time";
+import { explainVisibilityRefusal } from "@/lib/visibility";
 
 const GROUPED_TYPES = new Set(["illness", "checkup", "medication", "vaccination"]);
 
@@ -41,7 +42,11 @@ export async function createHealthEntryAction(_prev: ActionState, formData: Form
         })
         .select()
         .single();
-      if (groupErr) return { error: groupErr.message };
+      // A refusal here is the SELECT policy declining to hand back a
+      // "parents" row to someone who is not a parent -- the insert is allowed,
+      // the RETURNING is not, and the statement rolls back. Correct, but the
+      // raw message is a sentence about tables and policies.
+      if (groupErr) return { error: explainVisibilityRefusal(groupErr.message) };
       groupId = group.id;
     }
     const note = [title, seenBy && `Seen by ${seenBy}`, where, notes].filter(Boolean).join(" — ");

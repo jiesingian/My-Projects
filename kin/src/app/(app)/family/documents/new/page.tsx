@@ -19,5 +19,5 @@ export default async function NewDocPage({
     getMembers(me.family_id),
   ]);
 
-  return <NewDocForm folders={folders ?? []} members={members} defaultFolderId={folder} />;
+  return <NewDocForm folders={folders ?? []} members={members} defaultFolderId={folder} myRole={me.role} />;
 }

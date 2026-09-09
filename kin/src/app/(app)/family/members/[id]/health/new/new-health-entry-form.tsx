@@ -9,6 +9,7 @@ import { Blueprint } from "@/components/ui";
 import type { Tables } from "@/lib/database.types";
 import { familyDay } from "@/lib/time";
 import { DateInput } from "@/components/date-input";
+import { visibilityOptions } from "@/lib/visibility";
 
 const initialState: ActionState = { error: null };
 
@@ -22,21 +23,18 @@ const TYPES = [
   { value: "vaccination", label: "Vaccination", titleLabel: "Vaccine", valueLabel: "Batch no.", grouped: true },
 ];
 
-const VISIBILITY = [
-  { value: "family", label: "Whole family" },
-  { value: "parents", label: "Parents only" },
-  { value: "private", label: "Just me" },
-];
-
 export function NewHealthEntryForm({
   member,
   conditions,
   omronConnected,
+  myRole,
 }: {
   member: Tables<"members">;
   conditions: { id: string; name: string }[];
   omronConnected: boolean;
+  myRole: string;
 }) {
+  const VISIBILITY = visibilityOptions(myRole);
   const [state, formAction] = useActionState(createHealthEntryAction, initialState);
   const [type, setType] = useState(TYPES[0]);
   const [groupId, setGroupId] = useState(conditions[0]?.id ?? "__new__");

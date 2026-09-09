@@ -6,6 +6,7 @@ import { requireCurrentMember } from "@/lib/session";
 import { getValidDriveAccessToken, deleteDriveFile } from "@/lib/google-drive";
 import { syncRowToCalendars } from "@/lib/actions/calendar-sync";
 import { allDayEvent } from "@/lib/calendar-shape";
+import { explainVisibilityRefusal } from "@/lib/visibility";
 
 type UploadedFile =
   | { provider: "google_drive"; driveFileId: string; driveViewLink: string | null; driveThumbnailLink: string | null }
@@ -57,7 +58,10 @@ export async function createDocEntryAction(input: {
     })
     .select()
     .single();
-  if (entryErr) return { error: entryErr.message };
+  // Same as in health.ts: a "parents" entry from someone who is not a parent
+  // is refused at the RETURNING and rolls back, and the policy's own wording
+  // is not something a person can act on.
+  if (entryErr) return { error: explainVisibilityRefusal(entryErr.message) };
 
   if (input.expiresAt) {
     await syncRowToCalendars(

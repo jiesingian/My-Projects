@@ -143,6 +143,71 @@ these paths work.
 
 ---
 
+## "Parents only" means "whoever set the household up" — half fixed 9 September
+
+`joinFamilyAction` hard-codes `p_role: "adult"`. Every member who has ever
+joined by invite code is therefore an `adult`, and the only `parent` in a
+household is the person who created it. Six row-level policies —
+`health_conditions`, `health_condition_entries`, `health_labs`,
+`health_vitals`, `doc_entries`, `doc_files` — grant a `parents`-visibility row
+to `current_member_role() = 'parent'` and nobody else.
+
+Put together, the "Parents only" option in the health and document forms means
+"visible to whoever set this household up". In the Singian household that is
+Jonathan; Janine and Erynne are both `adult`, and Janine is a parent of the
+children by every measure except this column.
+
+**What it did.** Measured 9 September against the throwaway household, as a
+member whose role is `adult`:
+
+| what was sent | result |
+| --- | --- |
+| `visibility: 'family'`, asking for the row back | **201**, saved |
+| `visibility: 'parents'`, asking for the row back | **403**, nothing saved |
+| `visibility: 'parents'`, not asking for it back | **201**, saved |
+
+The middle row is what the app does — every create is
+`.insert(...).select().single()`, which is `Prefer: return=representation`.
+The insert is allowed; it is the RETURNING that the SELECT policy refuses, and
+a blocked RETURNING aborts the statement. So the row rolls back, and the
+person sees `new row violates row-level security policy for table
+"health_conditions"` and loses what they typed.
+
+Worth stating precisely, because I first assumed otherwise and it was wrong:
+**nothing is orphaned.** The rollback is complete. This costs the entry and
+the explanation, not the database's integrity.
+
+**Fixed, and it is the half that needed no decision.** `lib/visibility.ts`
+filters "Parents only" out of the menu for anyone who is not a `parent`, and
+translates the policy's own words if a `parents` value arrives from somewhere
+the menu does not control — an old tab, a replay, the assistant. Six tests in
+`e2e/visibility.logic.spec.ts`, checked negatively: disabling the filter fails
+two of them.
+
+**Not fixed, because it is not mine to decide.** The role model itself. Three
+consequences, all the same root:
+
+1. **"Parents only" is unusable by anyone but the household's creator.** The
+   option is now hidden rather than broken, which is better and still not
+   right — Janine cannot file a private health note for the children, and
+   cannot read one Jonathan files.
+2. **An adult can add a managed child and then cannot edit it.**
+   `add_managed_child` allows a parent *or* an adult (and `family/page.tsx`
+   offers the button on the same test), but the `members` UPDATE policy for
+   managed rows requires `current_member_role() = 'parent'`. So the app hands
+   an adult a child profile they are locked out of. This one is a genuine
+   inconsistency between two rules rather than a matter of taste.
+3. **Drive settings need parent *and* organiser.** `drive_links` UPDATE. Not
+   obviously wrong, listed for completeness.
+
+The ways out are Jonathan's to choose between: promote a member to `parent`
+(one row), add a way for the organiser to promote members (a feature), or
+widen the policies to `role in ('parent','adult')` (a migration, and a
+decision about who sees whose health records). Consequence 2 needs one of
+them whatever happens to 1.
+
+---
+
 ## goals.current_amount is stored, not derived — CLOSED 8 September
 
 *Kept for the reconciliation query at the foot, which is still the way to

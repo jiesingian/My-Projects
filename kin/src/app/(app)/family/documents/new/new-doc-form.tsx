@@ -8,22 +8,20 @@ import { ErrorText } from "@/components/form";
 import { DetailHeader } from "@/components/hub-header";
 import type { Tables } from "@/lib/database.types";
 import { DateInput } from "@/components/date-input";
-
-const VISIBILITY = [
-  { value: "family", label: "Whole family" },
-  { value: "parents", label: "Parents only" },
-  { value: "private", label: "Just me" },
-];
+import { visibilityOptions } from "@/lib/visibility";
 
 export function NewDocForm({
   folders,
   members,
   defaultFolderId,
+  myRole,
 }: {
   folders: Tables<"doc_folders">[];
   members: Tables<"members">[];
   defaultFolderId?: string;
+  myRole: string;
 }) {
+  const VISIBILITY = visibilityOptions(myRole);
   const [folderId, setFolderId] = useState(defaultFolderId ?? folders[0]?.id ?? "__new__");
   const [visibility, setVisibility] = useState("family");
   const [fileNames, setFileNames] = useState<string[]>([]);
