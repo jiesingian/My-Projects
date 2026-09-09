@@ -11,6 +11,7 @@ import type { ActionState } from "@/lib/actions/auth";
 import type { UploadedFile } from "@/lib/upload-client";
 import type { TablesInsert } from "@/lib/database.types";
 import { humanDatabaseError } from "@/lib/db-errors";
+import { clamp } from "@/lib/text";
 
 export async function saveProfile(_prev: ActionState, formData: FormData): Promise<ActionState> {
   const fullName = String(formData.get("full_name") ?? "").trim();
@@ -99,13 +100,13 @@ export async function joinFamilyAction(_prev: ActionState, formData: FormData): 
 }
 
 export async function addManagedChildAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
-  const fullName = String(formData.get("full_name") ?? "").trim();
+  const fullName = clamp(String(formData.get("full_name") ?? ""), 100);
   const dob = String(formData.get("dob") ?? "") || null;
   // The default has to be applied after trimming, not before. A text input
   // that the user cleared submits "", not null, so `?? "child"` keeps the
   // empty string and the default never fires -- the child is stored with no
   // relationship at all, where the form plainly promised "child".
-  const relationship = String(formData.get("relationship") ?? "").trim() || "child";
+  const relationship = clamp(String(formData.get("relationship") ?? ""), 50) || "child";
   if (!fullName || !dob) return { error: "Name and date of birth are required." };
 
   const supabase = await createClient();
@@ -320,7 +321,7 @@ export async function setMemberRoleAction(memberId: string, role: MemberRole): P
  * own via the pre-existing self-update policy. */
 export async function updateMemberRelationshipAction(memberId: string, relationship: string): Promise<ActionState> {
   const supabase = await createClient();
-  const { error } = await supabase.from("members").update({ relationship: relationship.trim() || null }).eq("id", memberId);
+  const { error } = await supabase.from("members").update({ relationship: clamp(relationship, 50) || null }).eq("id", memberId);
   revalidatePath("/family");
   return { error: error ? humanDatabaseError(error.message) : null };
 }
@@ -415,7 +416,7 @@ export async function updateFamilyAboutAction(about: string): Promise<ActionStat
   if (!me.is_organiser) return { error: "Only the organizer can edit the household's about section." };
 
   const supabase = await createClient();
-  const { error } = await supabase.from("families").update({ about: about.trim() || null }).eq("id", me.family_id);
+  const { error } = await supabase.from("families").update({ about: clamp(about, 2000) || null }).eq("id", me.family_id);
   revalidatePath("/family");
   return { error: error ? humanDatabaseError(error.message) : null };
 }
@@ -433,15 +434,15 @@ export type FamilyAddressFields = {
 };
 
 function normalizeAddressFields(fields: FamilyAddressFields) {
-  const label = fields.label.trim();
-  const houseNo = fields.houseNo.trim() || null;
-  const building = fields.building.trim() || null;
-  const street = fields.street.trim();
-  const barangay = fields.barangay.trim() || null;
-  const city = fields.city.trim();
-  const province = fields.province.trim() || null;
-  const country = fields.country.trim() || "Philippines";
-  const zipCode = fields.zipCode.trim() || null;
+  const label = clamp(fields.label, 100);
+  const houseNo = clamp(fields.houseNo, 50) || null;
+  const building = clamp(fields.building, 100) || null;
+  const street = clamp(fields.street, 150);
+  const barangay = clamp(fields.barangay, 100) || null;
+  const city = clamp(fields.city, 100);
+  const province = clamp(fields.province, 100) || null;
+  const country = clamp(fields.country, 100) || "Philippines";
+  const zipCode = clamp(fields.zipCode, 20) || null;
 
   const addressLine = [[houseNo, building].filter(Boolean).join(" "), street, barangay, city, province, country]
     .filter(Boolean)

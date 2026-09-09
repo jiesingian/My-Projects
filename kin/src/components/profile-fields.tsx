@@ -2,7 +2,7 @@ import type { ProfileFields } from "@/lib/actions/profile";
 import { Blueprint } from "@/components/ui";
 import { formatDate, formatAge } from "@/lib/format";
 
-type FieldSpec = { key: keyof ProfileFields; label: string; type?: "text" | "date" | "email" | "tel" };
+type FieldSpec = { key: keyof ProfileFields; label: string; type?: "text" | "date" | "email" | "tel"; maxLength?: number };
 type FieldGroup = { title: string; fields: FieldSpec[] };
 
 /** Grouped and sequenced per the member-record layout: education and work
@@ -12,55 +12,55 @@ export const PROFILE_FIELD_GROUPS: FieldGroup[] = [
   {
     title: "EDUCATION BACKGROUND",
     fields: [
-      { key: "high_school", label: "High School" },
-      { key: "college", label: "College" },
+      { key: "high_school", label: "High School", maxLength: 150 },
+      { key: "college", label: "College", maxLength: 150 },
     ],
   },
   {
     title: "WORK",
     fields: [
-      { key: "employer_name", label: "Company Name" },
+      { key: "employer_name", label: "Company Name", maxLength: 150 },
       { key: "employment_start_date", label: "Hired From", type: "date" },
       { key: "employment_end_date", label: "Hired To", type: "date" },
-      { key: "work_contact_info", label: "Work Contact Info" },
-      { key: "work_email", label: "Work Email", type: "email" },
+      { key: "work_contact_info", label: "Work Contact Info", maxLength: 200 },
+      { key: "work_email", label: "Work Email", type: "email", maxLength: 150 },
     ],
   },
   {
     title: "PERSONAL DETAILS",
     fields: [
       { key: "dob", label: "Date of Birth", type: "date" },
-      { key: "place_of_birth", label: "Place of Birth" },
-      { key: "height", label: "Height" },
-      { key: "weight", label: "Weight" },
-      { key: "blood_type", label: "Blood Type" },
-      { key: "shoe_size", label: "Shoe Size" },
-      { key: "tshirt_size", label: "T-Shirt Size" },
-      { key: "pants_size", label: "Shorts/Pants Size" },
+      { key: "place_of_birth", label: "Place of Birth", maxLength: 100 },
+      { key: "height", label: "Height", maxLength: 20 },
+      { key: "weight", label: "Weight", maxLength: 20 },
+      { key: "blood_type", label: "Blood Type", maxLength: 10 },
+      { key: "shoe_size", label: "Shoe Size", maxLength: 20 },
+      { key: "tshirt_size", label: "T-Shirt Size", maxLength: 20 },
+      { key: "pants_size", label: "Shorts/Pants Size", maxLength: 20 },
     ],
   },
   {
     title: "CONTACT INFORMATION",
     fields: [
-      { key: "mobile", label: "Cellphone Number", type: "tel" },
-      { key: "email", label: "Email Address", type: "email" },
+      { key: "mobile", label: "Cellphone Number", type: "tel", maxLength: 30 },
+      { key: "email", label: "Email Address", type: "email", maxLength: 150 },
     ],
   },
   {
     title: "GOVERNMENT IDS",
     fields: [
-      { key: "sss_number", label: "SSS Number" },
-      { key: "philhealth_number", label: "PhilHealth Number" },
-      { key: "pagibig_number", label: "Pag-IBIG Number" },
-      { key: "tin_number", label: "TIN" },
+      { key: "sss_number", label: "SSS Number", maxLength: 30 },
+      { key: "philhealth_number", label: "PhilHealth Number", maxLength: 30 },
+      { key: "pagibig_number", label: "Pag-IBIG Number", maxLength: 30 },
+      { key: "tin_number", label: "TIN", maxLength: 30 },
     ],
   },
   {
     title: "MEDICAL",
     fields: [
-      { key: "allergies", label: "Allergies" },
-      { key: "insurance_info", label: "Insurance" },
-      { key: "physician_name", label: "Physician" },
+      { key: "allergies", label: "Allergies", maxLength: 500 },
+      { key: "insurance_info", label: "Insurance", maxLength: 300 },
+      { key: "physician_name", label: "Physician", maxLength: 150 },
     ],
   },
 ];
@@ -157,6 +157,7 @@ export function ProfileFieldsEditor({
                 type={spec.type === "date" ? "date" : spec.type === "email" ? "email" : spec.type === "tel" ? "tel" : "text"}
                 value={fields[spec.key] ?? ""}
                 onChange={(e) => set(spec.key, (e.target.value || null) as ProfileFields[typeof spec.key])}
+                maxLength={spec.maxLength}
                 disabled={busy}
               />
             </div>
