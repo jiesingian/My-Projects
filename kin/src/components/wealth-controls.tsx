@@ -10,38 +10,20 @@ import {
   addBillAction,
   addIncomeScheduleAction,
 } from "@/lib/actions/wealth";
-import { ACCOUNT_TYPES, ACCOUNT_TYPE_LABELS, EXPENSE_CATEGORIES, INCOME_SOURCES } from "@/lib/wealth";
+import {
+  ACCOUNT_TYPES,
+  ACCOUNT_TYPE_LABELS,
+  EXPENSE_CATEGORIES,
+  INCOME_SOURCES,
+  KNOWN_APPS,
+  isKnownInstitutionLabel,
+  resolveInstitutionLinks,
+} from "@/lib/wealth";
 import type { ActionState } from "@/lib/actions/auth";
 import { SubmitButton, ErrorText } from "@/components/form";
 import { DateInput } from "@/components/date-input";
 
 const initialState: ActionState = { error: null };
-
-/** One tap instead of typing, for the handful of apps whose links are
- * confirmed correct and unlikely to change. Deliberately short: a wrong
- * entry here is worse than none, and most apps -- every Philippine bank's
- * included -- publish no such thing anywhere a person or an AI could look
- * one up to add with any confidence.
- *
- * appUrl is the app's own scheme, opened when it's already installed
- * (verified against PayMongo's GCash integration docs). appStoreUrl and
- * playStoreUrl are where to get the app in the first place, verified
- * against each bank's actual store listing -- BPI's iOS id and Android
- * package from Apple's and Google's own listings, BDO's the same, cross-
- * checked against BDO Unibank as the publisher. */
-const KNOWN_APPS: { label: string; appUrl?: string; appStoreUrl?: string; playStoreUrl?: string }[] = [
-  { label: "GCash", appUrl: "gcash://" },
-  {
-    label: "BPI",
-    appStoreUrl: "https://apps.apple.com/ph/app/bpi/id6443950982",
-    playStoreUrl: "https://play.google.com/store/apps/details?id=com.bpi.ng.app",
-  },
-  {
-    label: "BDO",
-    appStoreUrl: "https://apps.apple.com/ph/app/bdo-online/id1551584630",
-    playStoreUrl: "https://play.google.com/store/apps/details?id=ph.com.bdo.retail",
-  },
-];
 
 /** Rough and deliberately so -- this only decides which explanation or
  * which store link to act on, never whether a field or button works, so a
@@ -105,8 +87,7 @@ export function AppLinksField({
   defaultAppStoreUrl?: string;
   defaultPlayStoreUrl?: string;
 }) {
-  const knownLabels = KNOWN_APPS.map((a) => a.label);
-  const startsCustom = !!defaultInstitution && !knownLabels.includes(defaultInstitution);
+  const startsCustom = !!defaultInstitution && !isKnownInstitutionLabel(defaultInstitution);
 
   const [selected, setSelected] = useState(startsCustom ? "other" : (defaultInstitution ?? ""));
   const [customInstitution, setCustomInstitution] = useState(startsCustom ? (defaultInstitution ?? "") : "");
@@ -130,22 +111,18 @@ export function AppLinksField({
   const otherStoreUrl = kind === "ios" ? playStoreUrl : kind === "android" ? appStoreUrl : "";
   const showBothStores = kind === "other" || showOtherStore || !!otherStoreUrl.trim();
 
+  // The actual rule -- resolve a known app's links, clear them when
+  // leaving a known app, otherwise leave hand-typed data alone -- lives in
+  // resolveInstitutionLinks (@/lib/wealth), tested on its own in
+  // wealth.logic.spec.ts without needing a browser or a login.
   function selectInstitution(value: string) {
+    const resolved = resolveInstitutionLinks(value, selected, kind);
     setSelected(value);
-    const known = KNOWN_APPS.find((a) => a.label === value);
-    if (!known) return;
-    // BPI and BDO have no scheme of their own to open directly (unlike
-    // GCash's gcash://), so LINK APP itself becomes whichever store link
-    // matches this phone -- that's a real, working link on any device
-    // (a store page opens fine in a plain browser too), not a placeholder.
-    // Both store links are still kept underneath either way, so whoever
-    // views the saved account later -- on either kind of phone -- still
-    // gets the one that matches them, via the account page's GET APP
-    // button. Nothing here needs its own input box: it's all resolved.
-    const ownStore = kind === "android" ? known.playStoreUrl : known.appStoreUrl;
-    setAppUrl(known.appUrl ?? ownStore ?? "");
-    setAppStoreUrl(known.appStoreUrl ?? "");
-    setPlayStoreUrl(known.playStoreUrl ?? "");
+    if (resolved) {
+      setAppUrl(resolved.appUrl);
+      setAppStoreUrl(resolved.appStoreUrl);
+      setPlayStoreUrl(resolved.playStoreUrl);
+    }
   }
 
   function test() {
@@ -153,7 +130,7 @@ export function AppLinksField({
     setTested(true);
   }
 
-  const isKnownInstitution = selected !== "" && selected !== "other";
+  const isKnownInstitution = isKnownInstitutionLabel(selected);
   // The two store fields are only ever relevant once someone has said
   // "this is a bank Kin doesn't already know" -- before that, on a blank
   // form, there's nothing yet to resolve either way, so they stay hidden

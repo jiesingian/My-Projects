@@ -158,3 +158,81 @@ export function explainLedgerRefusal(message: string): string {
     ? "That account belongs to someone else in the household, so entries cannot be recorded against it here. Ask them to record it, or use a joint account."
     : message;
 }
+
+export type PhoneKind = "ios" | "android" | "other";
+
+export type KnownApp = {
+  label: string;
+  appUrl?: string;
+  appStoreUrl?: string;
+  playStoreUrl?: string;
+};
+
+/** One tap instead of typing, for the handful of apps whose links are
+ * confirmed correct and unlikely to change. Deliberately short: a wrong
+ * entry here is worse than none, and most apps -- every Philippine bank's
+ * included -- publish no such thing anywhere a person or an AI could look
+ * one up to add with any confidence.
+ *
+ * appUrl is the app's own scheme, opened when it's already installed
+ * (verified against PayMongo's GCash integration docs). appStoreUrl and
+ * playStoreUrl are where to get the app in the first place, verified
+ * against each bank's actual store listing -- BPI's iOS id and Android
+ * package from Apple's and Google's own listings, BDO's the same, cross-
+ * checked against BDO Unibank as the publisher. */
+export const KNOWN_APPS: KnownApp[] = [
+  { label: "GCash", appUrl: "gcash://" },
+  {
+    label: "BPI",
+    appStoreUrl: "https://apps.apple.com/ph/app/bpi/id6443950982",
+    playStoreUrl: "https://play.google.com/store/apps/details?id=com.bpi.ng.app",
+  },
+  {
+    label: "BDO",
+    appStoreUrl: "https://apps.apple.com/ph/app/bdo-online/id1551584630",
+    playStoreUrl: "https://play.google.com/store/apps/details?id=ph.com.bdo.retail",
+  },
+];
+
+export function isKnownInstitutionLabel(label: string): boolean {
+  return KNOWN_APPS.some((a) => a.label === label);
+}
+
+/** What LINK APP / APP STORE LINK / PLAY STORE LINK should become when
+ * BANK / WALLET changes from `previousValue` to `nextValue`, given which
+ * store matches the phone currently filling the form in. `null` means
+ * "leave the three fields exactly as they are".
+ *
+ * Landing on a known app (GCash, BPI or BDO) always resolves them, known
+ * apps included: BPI and BDO have no scheme of their own, so LINK APP
+ * itself becomes whichever store link matches this phone -- a real,
+ * working link on any device, not a placeholder.
+ *
+ * Leaving a known app -- for Other, or back to blank -- clears the three
+ * fields, because otherwise the previous bank's links stay sitting there
+ * with a new, unnamed institution now claiming them (the reported bug:
+ * pick BDO, switch to Other, and BDO's App Store link was still in LINK
+ * APP and both store fields, nothing saying it wasn't BDO anymore).
+ *
+ * Moving between Other and blank without ever having picked a known app
+ * changes nothing -- those fields may hold links someone typed by hand,
+ * and switching the dropdown around them must not erase real input. */
+export function resolveInstitutionLinks(
+  nextValue: string,
+  previousValue: string,
+  kind: PhoneKind,
+): { appUrl: string; appStoreUrl: string; playStoreUrl: string } | null {
+  const known = KNOWN_APPS.find((a) => a.label === nextValue);
+  if (known) {
+    const ownStore = kind === "android" ? known.playStoreUrl : known.appStoreUrl;
+    return {
+      appUrl: known.appUrl ?? ownStore ?? "",
+      appStoreUrl: known.appStoreUrl ?? "",
+      playStoreUrl: known.playStoreUrl ?? "",
+    };
+  }
+  if (isKnownInstitutionLabel(previousValue)) {
+    return { appUrl: "", appStoreUrl: "", playStoreUrl: "" };
+  }
+  return null;
+}
