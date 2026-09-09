@@ -11,6 +11,54 @@ place for those.
 
 ---
 
+## Two people, one QA household — 9 September
+
+The suite's write specs now tidy up after themselves. Finding out why they
+appeared not to took longer than writing the tidy-up, and the reason is worth
+recording because it will happen again.
+
+**The tidy-up itself.** `writes.spec`, `deletes.spec` and `edits.spec` each
+sweep their own rows in an `afterAll`, through `e2e/support/qa-household.ts`.
+It runs as the QA account over the ordinary REST API rather than with any
+elevated key, so row-level security decides what it can reach and it cannot
+touch the Singian household whatever the prefix says. It asserts what is left
+rather than trusting the deletes: PostgREST answers a refused delete with 200
+and an empty body, so the only honest check is to look again.
+
+**Two things had to be fixed, not one.**
+
+The first was mine. The sweep was keyed on the per-run id, and Playwright
+loads a spec file twice — once in the process that collects the tests, once in
+the worker that runs them — so a `Date.now()` at module scope takes two
+different values in one run. Only the worker writes rows, so that alone is
+survivable; a module reloaded part-way through is not. Sweeping a fixed family
+name (`E2E-WRITES`, `E2E-DEL`, `E2E-EDIT`) instead is stable across every
+process and reload, and collects orphans from earlier crashed runs as well.
+
+The second was not a bug at all. **There is one Supabase project and one
+`E2E_EMAIL`, and both people's sessions point at them.** Two suites started
+minutes apart in two containers write to the same throwaway household. For an
+hour that looked exactly like a broken tidy-up: rows kept appearing under a
+prefix this clone had not used since a change fifteen minutes earlier, while
+every sweep truthfully reported nothing of its own left behind. The measurement
+that settled it was that no file in this checkout could produce those rows, and
+no other checkout or process existed in this container.
+
+**What that costs.** A sweep can remove rows from under another machine's run
+in flight, and a spec can fail because somebody else's tidy-up took what it was
+about to look for. Neither can reach the real household, and neither corrupts
+anything — the failure mode is a confusing red run, not lost data. `e2e.yml`'s
+repo-wide concurrency group of one serialises CI, but nothing serialises two
+laptops.
+
+**Not fixed, and deliberately.** The answer is a second QA household with its
+own account, chosen per machine — not a cleverer prefix, which only narrows the
+window. That needs a new auth user and family created by somebody with the
+service role, which is Jonathan's. Until then the rule is the ordinary
+courtesy already in CLAUDE.md: say what you are running before you run it.
+
+---
+
 ## Signing up: five bugs closed, and the one that needs a migration — 9 September
 
 Onboarding had never had a bug-hunt pass. It is the only path in the app that

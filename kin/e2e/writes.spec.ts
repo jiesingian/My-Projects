@@ -1,4 +1,5 @@
 import { test, expect, type Page } from "@playwright/test";
+import { tidyUpAfter } from "./support/qa-household";
 
 /** The forms that add things, driven the way a person drives them.
  *
@@ -9,10 +10,15 @@ import { test, expect, type Page } from "@playwright/test";
  * looks for what it just made.
  *
  * Every row is named with a run id so a second run does not trip over the
- * first, and so anything left behind in the throwaway household is obviously
- * test data. */
+ * first, and so the tidy-up at the foot can find exactly what this run made
+ * and nothing else. It used to leave all of it behind: 612 rows were cleared
+ * out of the throwaway household on 9 September, and this file and
+ * deletes.spec had put 162 back by that evening, one batch per run. */
 
-const RUN = `E2E-${Date.now().toString(36)}`;
+/** The prefix every row this file makes carries, and the one the sweep at the
+ * foot clears. It is fixed rather than per-run on purpose -- see tidyUpAfter. */
+const FAMILY = "E2E-WRITES";
+const RUN = `${FAMILY}-${Date.now().toString(36)}`;
 
 /** Fills a field only if the form actually has it, and says so if it does not:
  * a form that quietly lost an input is itself worth failing over. */
@@ -47,6 +53,16 @@ function today(): string {
 
 test.describe("adding things", () => {
   test.use({ viewport: { width: 1280, height: 900 } });
+
+  /* Everything above is proved by looking for it on the page, so it all has
+   * to exist while the tests run and none of it should exist afterwards. The
+   * sweep runs as the QA account through the ordinary API, so RLS decides
+   * what it can reach and the real household is out of its range whatever
+   * this file gets wrong. It asserts what is left rather than assuming the
+   * deletes worked -- a delete refused by a policy returns 200. */
+  test.afterAll(async () => {
+    await tidyUpAfter(FAMILY);
+  });
 
   test("an activity can be added and comes back", async ({ page }) => {
     const title = `${RUN} piano lesson`;
