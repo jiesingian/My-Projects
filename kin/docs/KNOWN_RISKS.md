@@ -11,6 +11,30 @@ place for those.
 
 ---
 
+## The seeded fixtures age out on Monday 14 September
+
+`regressions.spec` is the one spec that does not make what it looks for. It
+asserts against content seeded by hand into the throwaway household — a health
+item due, a milestone, and activities at 07:30, 10:00 and 17:30 Manila that
+prove the Planner reads the household's clock rather than the server's, since
+under UTC they would read 23:30 the previous day and 09:30.
+
+Those activities are dated **Monday 7 September 2026**, in both QA households.
+The Planner test reads the week on screen, so from **Monday 14 September** they
+fall outside it and two of these tests start failing on both machines at once.
+Nothing will have broken; the fixtures will simply have aged out, which is the
+worst kind of red — it looks exactly like a regression and is not one.
+
+It was measured rather than assumed: 7 September 2026 is a Monday, 9 September
+(when this was found) a Wednesday, and 14 September the following Monday.
+
+Not fixed here because the fix is a change to the spec rather than to the
+seed: it should create its fixtures at a date it chooses, the way `writes.spec`
+and every spec written since do, and then assert against them. Re-seeding by
+hand each week is the same trap with a longer fuse.
+
+---
+
 ## Two people, one QA household — 9 September
 
 The suite's write specs now tidy up after themselves. Finding out why they

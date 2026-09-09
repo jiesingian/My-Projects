@@ -1,4 +1,4 @@
-import { test, expect, request as playwrightRequest, type Page } from "@playwright/test";
+import { test, expect, request as playwrightRequest, type Locator, type Page } from "@playwright/test";
 
 /** Putting money into a savings goal, through the app rather than around it.
  *
@@ -126,14 +126,21 @@ test("putting money in moves the total, and the total matches the ledger", async
   // ancestor up to the page wrapper, and `.last()` of those is the innermost
   // one -- a leaf holding the text and no button. Requiring the button too
   // picks the smallest element that has both, which is the card.
-  const card = page
-    .locator("div")
-    .filter({ hasText: TITLE })
-    .filter({ has: page.getByRole("button", { name: /PUT MONEY IN/i }) })
-    .last();
-  await card.getByRole("button", { name: /PUT MONEY IN/i }).click();
-  await card.getByLabel("Amount").fill(String(CONTRIBUTION));
-  await card.getByRole("button", { name: /^ADD TO GOAL$/i }).click();
+  // The card is re-found either side of the click rather than held onto. The
+  // control swaps its button out for the form when it opens, so a locator that
+  // identifies the card *by* that button stops matching the moment it is used.
+  // That went unnoticed for as long as this ran against a household with other
+  // goals in it -- an ancestor div still held some other goal's button, so the
+  // filter kept matching by accident. Run it against a household whose only
+  // goal is this one and it times out on the Amount field.
+  const cardHaving = (inner: Locator) => page.locator("div").filter({ hasText: TITLE }).filter({ has: inner }).last();
+
+  const putMoneyIn = page.getByRole("button", { name: /PUT MONEY IN/i });
+  await cardHaving(putMoneyIn).getByRole("button", { name: /PUT MONEY IN/i }).click();
+
+  const open = cardHaving(page.getByLabel("Amount"));
+  await open.getByLabel("Amount").fill(String(CONTRIBUTION));
+  await open.getByRole("button", { name: /^ADD TO GOAL$/i }).click();
   await page.waitForLoadState("networkidle");
 
   await expect

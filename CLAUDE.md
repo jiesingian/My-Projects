@@ -104,8 +104,13 @@ database to fall back on, so this is the rule that stands in for one:
   fix works.
 - **Test against the throwaway QA household instead** — the account in
   `E2E_EMAIL`. It exists to be written to and holds nothing anybody needs.
-  Row-level security keeps the two households apart, so work done as the QA
+  Row-level security keeps the households apart, so work done as the QA
   account cannot reach the real one.
+- **There are two throwaway households, one per machine**, because two people
+  running the suite against one of them made every result untrustworthy for an
+  hour. Your `E2E_EMAIL` already names the right one; do not repoint it at the
+  other, and never at a real account. `kin/docs/QA_HOUSEHOLDS.md` says which is
+  which and what they hold.
 - **Reading the real data is fine** when a question genuinely needs it — a
   reconciliation query, a check that a fix landed. Writing is not.
 - **Never run a migration.** They take effect when they are run, not when a
