@@ -39,6 +39,59 @@ export async function createJournalEntryAction(input: {
   return { error: null, entryId: entry.id };
 }
 
+export async function updateJournalEntryAction(input: {
+  entryId: string;
+  title: string;
+  date: string;
+  note: string | null;
+  people: string[];
+}): Promise<{ error: string | null }> {
+  const me = await requireCurrentMember();
+  const supabase = await createClient();
+
+  const title = input.title.trim();
+  if (!title) return { error: "Give the entry a title." };
+
+  const { data: entry, error } = await supabase
+    .from("journal_entries")
+    .update({ title, entry_date: input.date, note: input.note })
+    .eq("id", input.entryId)
+    .eq("family_id", me.family_id)
+    .select()
+    .maybeSingle();
+  if (error) return { error: error.message };
+  if (!entry) return { error: "Entry not found." };
+
+  const { data: existing, error: peopleReadError } = await supabase
+    .from("journal_entry_people")
+    .select("member_id")
+    .eq("entry_id", input.entryId);
+  if (peopleReadError) return { error: `The entry was saved, but who it is about could not be updated. ${peopleReadError.message}` };
+
+  const existingIds = new Set((existing ?? []).map((p) => p.member_id));
+  const nextIds = new Set(input.people);
+  const toRemove = [...existingIds].filter((id) => !nextIds.has(id));
+  const toAdd = [...nextIds].filter((id) => !existingIds.has(id));
+
+  if (toRemove.length > 0) {
+    const { error: removeError } = await supabase
+      .from("journal_entry_people")
+      .delete()
+      .eq("entry_id", input.entryId)
+      .in("member_id", toRemove);
+    if (removeError) return { error: `The entry was saved, but not everyone removed could be taken off it. ${removeError.message}` };
+  }
+  if (toAdd.length > 0) {
+    const { error: addError } = await supabase
+      .from("journal_entry_people")
+      .insert(toAdd.map((memberId) => ({ entry_id: input.entryId, member_id: memberId })));
+    if (addError) return { error: `The entry was saved, but not everyone new was added to it. ${addError.message}` };
+  }
+
+  revalidatePath("/journal");
+  return { error: null };
+}
+
 /** Records a file the client already uploaded directly to Drive or Supabase
  * Storage (see uploadFileDirect) — this call only ever carries small JSON,
  * never the file itself, so it isn't subject to any request body limit. */
