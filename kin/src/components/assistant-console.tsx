@@ -75,7 +75,7 @@ export function AssistantConsole({ memberName }: { memberName: string }) {
       </div>
 
       {turns.length > 0 && (
-        <div ref={scrollRef} style={{ maxHeight: 260, overflowY: "auto", marginBottom: 10, display: "flex", flexDirection: "column", gap: 9 }}>
+        <div ref={scrollRef} aria-live="polite" style={{ maxHeight: 260, overflowY: "auto", marginBottom: 10, display: "flex", flexDirection: "column", gap: 9 }}>
           {turns.map((turn, i) => (
             <div
               key={i}

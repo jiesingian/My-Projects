@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { uploadFileDirect, rollbackUpload, type UploadedFile } from "@/lib/upload-client";
 import { addFamilyBackgroundAction } from "@/lib/actions/family";
@@ -87,11 +87,18 @@ export function FamilyBackgroundCropUpload({ onDone }: { onDone: () => void }) {
     setNaturalSize({ w: imgRef.current.naturalWidth, h: imgRef.current.naturalHeight });
   }
 
-  function cancel() {
+  const cancel = useCallback(() => {
     if (objectUrl) URL.revokeObjectURL(objectUrl);
     setObjectUrl(null);
     if (inputRef.current) inputRef.current.value = "";
-  }
+  }, [objectUrl]);
+
+  useEffect(() => {
+    if (!objectUrl) return;
+    const onKey = (e: KeyboardEvent) => e.key === "Escape" && !busy && cancel();
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [objectUrl, busy, cancel]);
 
   function onPointerDown(e: React.PointerEvent) {
     (e.target as HTMLElement).setPointerCapture(e.pointerId);

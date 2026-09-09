@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { uploadFileDirect, rollbackUpload, type UploadedFile } from "@/lib/upload-client";
 import { addAvatarToAlbumAction } from "@/lib/actions/profile";
@@ -47,11 +47,18 @@ export function AvatarCropUpload({ onDone }: { onDone: () => void }) {
     setError(null);
   }
 
-  function cancel() {
+  const cancel = useCallback(() => {
     if (objectUrl) URL.revokeObjectURL(objectUrl);
     setObjectUrl(null);
     if (inputRef.current) inputRef.current.value = "";
-  }
+  }, [objectUrl]);
+
+  useEffect(() => {
+    if (!objectUrl) return;
+    const onKey = (e: KeyboardEvent) => e.key === "Escape" && !busy && cancel();
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [objectUrl, busy, cancel]);
 
   async function save() {
     if (!imgRef.current) return;
