@@ -17,91 +17,162 @@ import { DateInput } from "@/components/date-input";
 
 const initialState: ActionState = { error: null };
 
-/** One tap instead of typing, for the handful of apps whose link is
+/** One tap instead of typing, for the handful of apps whose links are
  * confirmed correct and unlikely to change. Deliberately short: a wrong
  * entry here is worse than none, and most apps -- every Philippine bank's
- * included -- publish no such link anywhere a person or an AI could look
- * one up to add with any confidence. */
-const KNOWN_APPS: { label: string; url: string }[] = [{ label: "GCash", url: "gcash://" }];
+ * included -- publish no such thing anywhere a person or an AI could look
+ * one up to add with any confidence.
+ *
+ * appUrl is the app's own scheme, opened when it's already installed
+ * (verified against PayMongo's GCash integration docs). appStoreUrl and
+ * playStoreUrl are where to get the app in the first place, verified
+ * against each bank's actual store listing -- BPI's iOS id and Android
+ * package from Apple's and Google's own listings, BDO's the same, cross-
+ * checked against BDO Unibank as the publisher. */
+const KNOWN_APPS: { label: string; appUrl?: string; appStoreUrl?: string; playStoreUrl?: string }[] = [
+  { label: "GCash", appUrl: "gcash://" },
+  {
+    label: "BPI",
+    appStoreUrl: "https://apps.apple.com/ph/app/bpi/id6443950982",
+    playStoreUrl: "https://play.google.com/store/apps/details?id=com.bpi.ng.app",
+  },
+  {
+    label: "BDO",
+    appStoreUrl: "https://apps.apple.com/ph/app/bdo-online/id1551584630",
+    playStoreUrl: "https://play.google.com/store/apps/details?id=ph.com.bdo.retail",
+  },
+];
 
-/** The field plus two ways to find out, before saving, whether what ends up
- * there actually opens the app: a one-tap fill for the apps above, and a
- * TEST button that tries whatever is currently typed right here, on this
- * phone -- the same `window.open` call the money actions already use when
- * opening one for a payment. No web page, Kin included, can list a phone's
- * installed apps or read back which one a person picked from the OS's own
- * share sheet; that is a privacy boundary every browser enforces, not a gap
- * in this form. Typing the link and confirming it works is the closest
- * thing to "choose from installed apps" a website is able to offer. */
-/** Rough and deliberately so -- this only decides which explanation TEST
- * shows afterward, never whether the field or the button works, so a wrong
- * guess costs nothing. */
-function looksLikePhone(): boolean {
-  return typeof navigator !== "undefined" && /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+/** Rough and deliberately so -- this only decides which explanation or
+ * which store link to act on, never whether a field or button works, so a
+ * wrong guess costs nothing. */
+export function phoneKind(): "ios" | "android" | "other" {
+  if (typeof navigator === "undefined") return "other";
+  if (/iPhone|iPad|iPod/i.test(navigator.userAgent)) return "ios";
+  if (/Android/i.test(navigator.userAgent)) return "android";
+  return "other";
 }
 
-export function LinkAppField({ defaultValue }: { defaultValue?: string }) {
-  const [value, setValue] = useState(defaultValue ?? "");
+/** Three independent links for one account: the app's own (opened when
+ * it's already installed), and where to get it on each store (opened when
+ * it isn't). No web page, Kin included, can list a phone's installed apps
+ * or read back which one a person picked from the OS's own share sheet --
+ * that is a privacy boundary every browser enforces, not a gap in this
+ * form. Typing a link and confirming it works, or pointing at the right
+ * store for the phone in hand, is the closest thing to "choose from
+ * installed apps" a website is able to offer. */
+export function AppLinksField({
+  defaultAppUrl,
+  defaultAppStoreUrl,
+  defaultPlayStoreUrl,
+}: {
+  defaultAppUrl?: string;
+  defaultAppStoreUrl?: string;
+  defaultPlayStoreUrl?: string;
+}) {
+  const [appUrl, setAppUrl] = useState(defaultAppUrl ?? "");
+  const [appStoreUrl, setAppStoreUrl] = useState(defaultAppStoreUrl ?? "");
+  const [playStoreUrl, setPlayStoreUrl] = useState(defaultPlayStoreUrl ?? "");
   const [tested, setTested] = useState(false);
-  const id = useId();
+  const appId = useId();
+  const storeId = useId();
+  const playId = useId();
+
+  function fillKnown(app: (typeof KNOWN_APPS)[number]) {
+    setAppUrl(app.appUrl ?? "");
+    setAppStoreUrl(app.appStoreUrl ?? "");
+    setPlayStoreUrl(app.playStoreUrl ?? "");
+  }
 
   function test() {
-    window.open(value.trim(), "_blank", "noopener,noreferrer");
+    window.open(appUrl.trim(), "_blank", "noopener,noreferrer");
     setTested(true);
   }
 
+  const isKnown = (app: (typeof KNOWN_APPS)[number]) =>
+    appUrl === (app.appUrl ?? "") && appStoreUrl === (app.appStoreUrl ?? "") && playStoreUrl === (app.playStoreUrl ?? "");
+
   return (
-    <div className="field" style={{ marginBottom: 4 }}>
-      <label htmlFor={id}>LINK APP</label>
-      {KNOWN_APPS.length > 0 && (
-        <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 6 }}>
-          {KNOWN_APPS.map((app) => (
-            <button key={app.url} type="button" className="chip" data-active={value === app.url} onClick={() => setValue(app.url)}>
-              {app.label}
-            </button>
-          ))}
-        </div>
-      )}
-      <div style={{ display: "flex", gap: 8 }}>
-        <input
-          id={id}
-          className="input"
-          name="linked_app_url"
-          value={value}
-          onChange={(e) => {
-            setValue(e.target.value);
-            setTested(false);
-          }}
-          placeholder="gcash:// or https://…"
-          style={{ minHeight: 42, flex: 1 }}
-        />
-        <button
-          type="button"
-          className="btn btn-secondary"
-          disabled={!value.trim()}
-          style={{ minHeight: 42, fontSize: 12.5, padding: "0 12px", whiteSpace: "nowrap" }}
-          onClick={test}
-        >
-          TEST
-        </button>
+    <div style={{ marginBottom: 4 }}>
+      <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 8 }}>
+        {KNOWN_APPS.map((app) => (
+          <button key={app.label} type="button" className="chip" data-active={isKnown(app)} onClick={() => fillKnown(app)}>
+            {app.label}
+          </button>
+        ))}
       </div>
-      {/* A blank tab after TEST reads as broken. On a phone it usually means
-          the link was wrong; on a computer it is expected every time -- GCash
-          and most linked apps only exist on a phone, so there is nothing here
-          to catch the link. Telling them apart is the only way TEST's result
-          means anything rather than just adding a second confusing blank tab
-          next to the one it opened. */}
-      {tested && !looksLikePhone() && (
-        <p style={{ fontSize: 12.5, color: "var(--color-accent-700)", margin: "6px 0 0" }}>
-          That likely opened a blank tab — this is a computer, and GCash (or whatever you linked) isn&rsquo;t
-          installed here to catch the link. Open Kin on your phone and try TEST there to see it actually launch
-          the app.
+
+      <div className="field" style={{ marginBottom: 10 }}>
+        <label htmlFor={appId}>LINK APP</label>
+        <div style={{ display: "flex", gap: 8 }}>
+          <input
+            id={appId}
+            className="input"
+            name="linked_app_url"
+            value={appUrl}
+            onChange={(e) => {
+              setAppUrl(e.target.value);
+              setTested(false);
+            }}
+            placeholder="gcash://"
+            style={{ minHeight: 42, flex: 1 }}
+          />
+          <button
+            type="button"
+            className="btn btn-secondary"
+            disabled={!appUrl.trim()}
+            style={{ minHeight: 42, fontSize: 12.5, padding: "0 12px", whiteSpace: "nowrap" }}
+            onClick={test}
+          >
+            TEST
+          </button>
+        </div>
+        {/* A blank tab after TEST reads as broken. On a phone it usually
+            means the link was wrong; on a computer it is expected every
+            time -- GCash and most linked apps only exist on a phone, so
+            there is nothing here to catch the link. */}
+        {tested && phoneKind() === "other" && (
+          <p style={{ fontSize: 12.5, color: "var(--color-accent-700)", margin: "6px 0 0" }}>
+            That likely opened a blank tab — this is a computer, and the app isn&rsquo;t installed here to catch
+            the link. Open Kin on your phone and try TEST there to see it actually launch the app.
+          </p>
+        )}
+        <p style={{ fontSize: 12.5, color: "var(--color-neutral-600)", margin: "6px 0 0" }}>
+          The app&rsquo;s own link, not its website — opens the app itself when it&rsquo;s already installed. TEST
+          tries it immediately, right here.
         </p>
-      )}
-      <p style={{ fontSize: 12.5, color: "var(--color-neutral-600)", margin: "6px 0 0" }}>
-        The app&rsquo;s own link, not its website — that opens the app itself, not a browser tab. TEST tries
-        whatever&rsquo;s typed above immediately, right here, so you can check it actually opens the app on this
-        phone before saving; Kin uses the same link when you start a payment or transfer.
+      </div>
+
+      <div style={{ display: "flex", gap: 10 }}>
+        <div className="field" style={{ flex: 1, marginBottom: 10 }}>
+          <label htmlFor={storeId}>APP STORE LINK (iPHONE)</label>
+          <input
+            id={storeId}
+            className="input"
+            name="app_store_url"
+            value={appStoreUrl}
+            onChange={(e) => setAppStoreUrl(e.target.value)}
+            placeholder="https://apps.apple.com/…"
+            style={{ minHeight: 42 }}
+          />
+        </div>
+        <div className="field" style={{ flex: 1, marginBottom: 10 }}>
+          <label htmlFor={playId}>PLAY STORE LINK (ANDROID)</label>
+          <input
+            id={playId}
+            className="input"
+            name="play_store_url"
+            value={playStoreUrl}
+            onChange={(e) => setPlayStoreUrl(e.target.value)}
+            placeholder="https://play.google.com/…"
+            style={{ minHeight: 42 }}
+          />
+        </div>
+      </div>
+      <p style={{ fontSize: 12.5, color: "var(--color-neutral-600)", margin: "-4px 0 0" }}>
+        Where to get the app if it isn&rsquo;t installed yet — paste the link from each store&rsquo;s own Share
+        button. Optional, and independent of each other: fill in whichever stores apply. Kin opens the right one
+        for whoever&rsquo;s phone it is when they don&rsquo;t have the app yet.
       </p>
     </div>
   );
@@ -149,7 +220,7 @@ export function AddAccountForm({ isJoint }: { isJoint: boolean }) {
         <input className="input" type="number" step="0.01" name="opening_balance" defaultValue={0} style={{ minHeight: 42 }} />
       </Labelled>
       <div style={{ marginBottom: 12 }}>
-        <LinkAppField />
+        <AppLinksField />
       </div>
       <Labelled label="NOTE">
         <input className="input" name="sub_note" placeholder="Salary account" style={{ minHeight: 42 }} />
