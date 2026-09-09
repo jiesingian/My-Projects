@@ -6,6 +6,7 @@ import { DetailHeader } from "@/components/hub-header";
 import { Blueprint, Tag, Empty } from "@/components/ui";
 import { PendingEntryActions, DeleteEntryButton, RemoveButton } from "@/components/money-actions";
 import { AccountEditForm } from "./account-edit-form";
+import { GetAppButton } from "./get-app-button";
 import { formatCurrency } from "@/lib/format";
 import { ACCOUNT_TYPE_LABELS, type AccountType } from "@/lib/wealth";
 import { familyDate } from "@/lib/format-family";
@@ -66,6 +67,12 @@ export default async function AccountPage({ params }: { params: Promise<{ id: st
             OPEN {(account.institution ?? account.name).toUpperCase()}
           </a>
         )}
+
+        <GetAppButton
+          appStoreUrl={account.app_store_url}
+          playStoreUrl={account.play_store_url}
+          label={(account.institution ?? account.name).toUpperCase()}
+        />
 
         {pending.length > 0 && (
           <>

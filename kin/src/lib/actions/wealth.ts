@@ -31,6 +31,8 @@ export async function addAccountAction(_prev: ActionState, formData: FormData): 
   const subNote = clamp(String(formData.get("sub_note") ?? ""), 200) || null;
   const institution = clamp(String(formData.get("institution") ?? ""), 200) || null;
   const linkedAppUrl = clamp(String(formData.get("linked_app_url") ?? ""), 500) || null;
+  const appStoreUrl = clamp(String(formData.get("app_store_url") ?? ""), 500) || null;
+  const playStoreUrl = clamp(String(formData.get("play_store_url") ?? ""), 500) || null;
   const accountType = String(formData.get("account_type") ?? "bank");
   const openingBalance = Number(formData.get("opening_balance") ?? 0);
   const isJoint = formData.get("is_joint") === "on";
@@ -42,6 +44,8 @@ export async function addAccountAction(_prev: ActionState, formData: FormData): 
     sub_note: subNote,
     institution,
     linked_app_url: linkedAppUrl,
+    app_store_url: appStoreUrl,
+    play_store_url: playStoreUrl,
     account_type: accountType,
     opening_balance: openingBalance,
     is_joint: isJoint,
@@ -67,7 +71,9 @@ export async function updateAccountAction(accountId: string, _prev: ActionState,
       name,
       sub_note: String(formData.get("sub_note") ?? "").trim() || null,
       institution: String(formData.get("institution") ?? "").trim() || null,
-      linked_app_url: String(formData.get("linked_app_url") ?? "").trim() || null,
+      linked_app_url: clamp(String(formData.get("linked_app_url") ?? ""), 500) || null,
+      app_store_url: clamp(String(formData.get("app_store_url") ?? ""), 500) || null,
+      play_store_url: clamp(String(formData.get("play_store_url") ?? ""), 500) || null,
       account_type: String(formData.get("account_type") ?? "bank"),
     })
     .eq("id", accountId)

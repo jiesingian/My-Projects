@@ -88,6 +88,7 @@ export type Database = {
       accounts: {
         Row: {
           account_type: string
+          app_store_url: string | null
           created_at: string
           created_by: string | null
           family_id: string
@@ -100,10 +101,12 @@ export type Database = {
           name: string
           opening_balance: number
           owner_member_id: string | null
+          play_store_url: string | null
           sub_note: string | null
         }
         Insert: {
           account_type?: string
+          app_store_url?: string | null
           created_at?: string
           created_by?: string | null
           family_id: string
@@ -116,10 +119,12 @@ export type Database = {
           name: string
           opening_balance?: number
           owner_member_id?: string | null
+          play_store_url?: string | null
           sub_note?: string | null
         }
         Update: {
           account_type?: string
+          app_store_url?: string | null
           created_at?: string
           created_by?: string | null
           family_id?: string
@@ -132,6 +137,7 @@ export type Database = {
           name?: string
           opening_balance?: number
           owner_member_id?: string | null
+          play_store_url?: string | null
           sub_note?: string | null
         }
         Relationships: [

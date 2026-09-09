@@ -5,7 +5,7 @@ import { updateAccountAction } from "@/lib/actions/wealth";
 import { ACCOUNT_TYPES, ACCOUNT_TYPE_LABELS } from "@/lib/wealth";
 import type { ActionState } from "@/lib/actions/auth";
 import { SubmitButton, ErrorText } from "@/components/form";
-import { LinkAppField } from "@/components/wealth-controls";
+import { AppLinksField } from "@/components/wealth-controls";
 import type { Tables } from "@/lib/database.types";
 
 const initialState: ActionState = { error: null };
@@ -43,7 +43,11 @@ export function AccountEditForm({ account }: { account: Tables<"accounts"> }) {
         </Field>
       </div>
       <div style={{ marginBottom: 12 }}>
-        <LinkAppField defaultValue={account.linked_app_url ?? ""} />
+        <AppLinksField
+          defaultAppUrl={account.linked_app_url ?? ""}
+          defaultAppStoreUrl={account.app_store_url ?? ""}
+          defaultPlayStoreUrl={account.play_store_url ?? ""}
+        />
       </div>
       <Field label="NOTE">
         <input className="input" name="sub_note" defaultValue={account.sub_note ?? ""} style={{ minHeight: 42 }} />
