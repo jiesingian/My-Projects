@@ -62,7 +62,7 @@ export function ProfileEditForm({
     <div style={{ marginBottom: 20 }}>
       <div className="field" style={{ marginBottom: 10 }}>
         <label>FULL NAME</label>
-        <input aria-label="Full Name" className="input" value={fields.full_name} onChange={(e) => set("full_name", e.target.value)} style={{ minHeight: 44 }} disabled={busy} />
+        <input aria-label="Full Name" className="input" value={fields.full_name} onChange={(e) => set("full_name", e.target.value)} maxLength={100} style={{ minHeight: 44 }} disabled={busy} />
       </div>
       <ProfileFieldsEditor fields={fields} set={set} busy={busy} />
       {error && <p style={{ color: "var(--color-accent-700)", fontSize: 13, margin: "0 0 10px" }}>{error}</p>}

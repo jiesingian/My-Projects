@@ -9,9 +9,11 @@ import { getValidDriveAccessToken, deleteDriveFile } from "@/lib/google-drive";
 import { resolvePhotoUrl } from "@/lib/photo-url";
 import type { ActionState } from "@/lib/actions/auth";
 import type { ProfileFields } from "@/lib/profile-fields";
+import { clampProfileFields } from "@/lib/profile-fields";
 import type { UploadedFile } from "@/lib/upload-client";
 import type { TablesInsert } from "@/lib/database.types";
 import { humanDatabaseError } from "@/lib/db-errors";
+import { clamp } from "@/lib/text";
 
 // Server Action files may only export async functions, so the ProfileFields
 // type and the memberToProfileFields helper (a plain sync function) live in
@@ -23,11 +25,11 @@ export type { ProfileFields };
  * already covered by the pre-existing self-update RLS policy. */
 export async function updateOwnProfileAction(fields: ProfileFields): Promise<ActionState> {
   const me = await requireCurrentMember();
-  const fullName = fields.full_name.trim();
+  const fullName = clamp(fields.full_name, 100);
   if (!fullName) return { error: "Name is required." };
 
   const supabase = await createClient();
-  const { error } = await supabase.from("members").update({ ...fields, full_name: fullName }).eq("id", me.id);
+  const { error } = await supabase.from("members").update({ ...clampProfileFields(fields), full_name: fullName }).eq("id", me.id);
   revalidatePath("/settings");
   revalidatePath("/family");
   return { error: error ? humanDatabaseError(error.message) : null };
@@ -38,11 +40,11 @@ export async function updateOwnProfileAction(fields: ProfileFields): Promise<Act
 export async function updateMemberProfileAction(memberId: string, fields: ProfileFields): Promise<ActionState> {
   const me = await requireCurrentMember();
   if (!me.is_organiser) return { error: "Only the organizer can edit another member's profile." };
-  const fullName = fields.full_name.trim();
+  const fullName = clamp(fields.full_name, 100);
   if (!fullName) return { error: "Name is required." };
 
   const supabase = await createClient();
-  const { error } = await supabase.from("members").update({ ...fields, full_name: fullName }).eq("id", memberId);
+  const { error } = await supabase.from("members").update({ ...clampProfileFields(fields), full_name: fullName }).eq("id", memberId);
   revalidatePath("/family");
   return { error: error ? humanDatabaseError(error.message) : null };
 }
