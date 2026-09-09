@@ -5,6 +5,7 @@ import { updateAccountAction } from "@/lib/actions/wealth";
 import { ACCOUNT_TYPES, ACCOUNT_TYPE_LABELS } from "@/lib/wealth";
 import type { ActionState } from "@/lib/actions/auth";
 import { SubmitButton, ErrorText } from "@/components/form";
+import { LinkAppField } from "@/components/wealth-controls";
 import type { Tables } from "@/lib/database.types";
 
 const initialState: ActionState = { error: null };
@@ -41,13 +42,9 @@ export function AccountEditForm({ account }: { account: Tables<"accounts"> }) {
           <input className="input" name="institution" defaultValue={account.institution ?? ""} style={{ minHeight: 42 }} />
         </Field>
       </div>
-      <Field label="LINK APP">
-        <input className="input" name="linked_app_url" defaultValue={account.linked_app_url ?? ""} placeholder="gcash:// or https://…" style={{ minHeight: 42 }} />
-      </Field>
-      <p style={{ fontSize: 12.5, color: "var(--color-neutral-600)", margin: "-8px 0 12px" }}>
-        Use the app&rsquo;s own link (like <code>gcash://</code>), not its website, and Kin opens the app itself on your
-        phone instead of a browser tab.
-      </p>
+      <div style={{ marginBottom: 12 }}>
+        <LinkAppField defaultValue={account.linked_app_url ?? ""} />
+      </div>
       <Field label="NOTE">
         <input className="input" name="sub_note" defaultValue={account.sub_note ?? ""} style={{ minHeight: 42 }} />
       </Field>
