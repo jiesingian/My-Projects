@@ -80,12 +80,17 @@ export function usePhoneKind(): "ios" | "android" | "other" {
  * that is a privacy boundary every browser enforces, not a gap in this
  * form. Typing a link and confirming it works, or pointing at the right
  * store for the phone in hand, is the closest thing to "choose from
- * installed apps" a website is able to offer. The two store fields are
- * ordered by whichever store the person filling this in actually has open
- * on their own phone -- a real autodetect, but one with a hard limit: it
- * can only say which store to check, not conjure the listing link itself.
- * Kin already has that link memorized for GCash, BPI and BDO; for anything
- * else, someone still has to find it once and paste it in. */
+ * installed apps" a website is able to offer.
+ *
+ * On a phone, only that one store's field shows -- App Store on an iPhone,
+ * Play Store on Android -- with a button to reveal the other, since a
+ * household mixes both and whoever's adding the account might be filling
+ * this in for someone else's phone too. On a computer there's nothing to
+ * detect, so both show, same as before. This is a real autodetect, but one
+ * with a hard limit: it can only say which store applies, not conjure the
+ * listing link itself. Kin already has that link memorized for GCash, BPI
+ * and BDO; for anything else, someone still has to find it once and paste
+ * it in -- no amount of device detection substitutes for that lookup. */
 export function AppLinksField({
   defaultInstitution,
   defaultAppUrl,
@@ -106,11 +111,21 @@ export function AppLinksField({
   const [appStoreUrl, setAppStoreUrl] = useState(defaultAppStoreUrl ?? "");
   const [playStoreUrl, setPlayStoreUrl] = useState(defaultPlayStoreUrl ?? "");
   const [tested, setTested] = useState(false);
+  const [showOtherStore, setShowOtherStore] = useState(false);
   const institutionId = useId();
   const appId = useId();
   const storeId = useId();
   const playId = useId();
   const kind = usePhoneKind();
+
+  // On a phone, Kin knows which store applies to the person filling this
+  // in right now, so only that one field needs to show -- the other stays
+  // a step away rather than sitting there unused. On a computer there's
+  // nothing to detect from, so both show, same as before. Existing data
+  // in the field that would otherwise be hidden keeps it open regardless
+  // -- editing an account never hides a link that's already saved.
+  const otherStoreUrl = kind === "ios" ? playStoreUrl : kind === "android" ? appStoreUrl : "";
+  const showBothStores = kind === "other" || showOtherStore || !!otherStoreUrl.trim();
 
   function selectInstitution(value: string) {
     setSelected(value);
@@ -129,7 +144,7 @@ export function AppLinksField({
 
   const appStoreField = (
     <div key="app-store" className="field" style={{ flex: 1, marginBottom: 10 }}>
-      <label htmlFor={storeId}>APP STORE LINK (iPHONE){kind === "ios" ? " — your phone" : ""}</label>
+      <label htmlFor={storeId}>APP STORE LINK (iPHONE){showBothStores && kind === "ios" ? " — your phone" : ""}</label>
       <input
         id={storeId}
         className="input"
@@ -143,7 +158,7 @@ export function AppLinksField({
   );
   const playStoreField = (
     <div key="play-store" className="field" style={{ flex: 1, marginBottom: 10 }}>
-      <label htmlFor={playId}>PLAY STORE LINK (ANDROID){kind === "android" ? " — your phone" : ""}</label>
+      <label htmlFor={playId}>PLAY STORE LINK (ANDROID){showBothStores && kind === "android" ? " — your phone" : ""}</label>
       <input
         id={playId}
         className="input"
@@ -155,6 +170,7 @@ export function AppLinksField({
       />
     </div>
   );
+  const otherStoreLabel = kind === "ios" ? "Play Store" : "App Store";
 
   return (
     <div style={{ marginBottom: 4 }}>
@@ -234,14 +250,29 @@ export function AppLinksField({
         </p>
       </div>
 
-      <div style={{ display: "flex", gap: 10 }}>
-        {kind === "android" ? [playStoreField, appStoreField] : [appStoreField, playStoreField]}
-      </div>
+      {showBothStores ? (
+        <div style={{ display: "flex", gap: 10 }}>
+          {kind === "android" ? [playStoreField, appStoreField] : [appStoreField, playStoreField]}
+        </div>
+      ) : (
+        kind === "ios" ? appStoreField : playStoreField
+      )}
+      {!showBothStores && (
+        <button
+          type="button"
+          className="btn btn-secondary"
+          onClick={() => setShowOtherStore(true)}
+          style={{ minHeight: 36, fontSize: 12.5, padding: "0 12px", marginTop: -4, marginBottom: 10 }}
+        >
+          + Also add the {otherStoreLabel} link, for other phones in the household
+        </button>
+      )}
       <p style={{ fontSize: 12.5, color: "var(--color-neutral-600)", margin: "-4px 0 0" }}>
-        Where to get the app if it isn&rsquo;t installed yet — paste the link from each store&rsquo;s own Share
-        button. Optional, and independent of each other: fill in whichever stores apply. Kin opens the right one
-        for whoever&rsquo;s phone it is when they don&rsquo;t have the app yet
-        {kind !== "other" ? ", and put your own store first above since finding the link is the one step Kin can’t do for you" : ""}.
+        {showBothStores
+          ? kind === "other"
+            ? "Where to get the app if it isn’t installed yet — paste the link from each store’s own Share button. Optional, and independent of each other: fill in whichever stores apply. Kin opens the right one for whoever’s phone it is when they don’t have the app yet."
+            : "Kin detected your own phone and put that store first, labeled “your phone”. Both are saved either way, so anyone in the household gets the right one when they don’t have the app yet."
+          : `Kin detected you’re on ${kind === "ios" ? "an iPhone" : "an Android phone"}, so only that store shows. Add the other only if someone else in the household uses the other kind of phone.`}
       </p>
     </div>
   );
