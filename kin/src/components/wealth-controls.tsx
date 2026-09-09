@@ -17,6 +17,66 @@ import { DateInput } from "@/components/date-input";
 
 const initialState: ActionState = { error: null };
 
+/** One tap instead of typing, for the handful of apps whose link is
+ * confirmed correct and unlikely to change. Deliberately short: a wrong
+ * entry here is worse than none, and most apps -- every Philippine bank's
+ * included -- publish no such link anywhere a person or an AI could look
+ * one up to add with any confidence. */
+const KNOWN_APPS: { label: string; url: string }[] = [{ label: "GCash", url: "gcash://" }];
+
+/** The field plus two ways to find out, before saving, whether what ends up
+ * there actually opens the app: a one-tap fill for the apps above, and a
+ * TEST button that tries whatever is currently typed right here, on this
+ * phone -- the same `window.open` call the money actions already use when
+ * opening one for a payment. No web page, Kin included, can list a phone's
+ * installed apps or read back which one a person picked from the OS's own
+ * share sheet; that is a privacy boundary every browser enforces, not a gap
+ * in this form. Typing the link and confirming it works is the closest
+ * thing to "choose from installed apps" a website is able to offer. */
+export function LinkAppField({ defaultValue }: { defaultValue?: string }) {
+  const [value, setValue] = useState(defaultValue ?? "");
+  const id = useId();
+  return (
+    <div className="field" style={{ marginBottom: 4 }}>
+      <label htmlFor={id}>LINK APP</label>
+      {KNOWN_APPS.length > 0 && (
+        <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 6 }}>
+          {KNOWN_APPS.map((app) => (
+            <button key={app.url} type="button" className="chip" data-active={value === app.url} onClick={() => setValue(app.url)}>
+              {app.label}
+            </button>
+          ))}
+        </div>
+      )}
+      <div style={{ display: "flex", gap: 8 }}>
+        <input
+          id={id}
+          className="input"
+          name="linked_app_url"
+          value={value}
+          onChange={(e) => setValue(e.target.value)}
+          placeholder="gcash:// or https://…"
+          style={{ minHeight: 42, flex: 1 }}
+        />
+        <button
+          type="button"
+          className="btn btn-secondary"
+          disabled={!value.trim()}
+          style={{ minHeight: 42, fontSize: 12.5, padding: "0 12px", whiteSpace: "nowrap" }}
+          onClick={() => window.open(value.trim(), "_blank", "noopener,noreferrer")}
+        >
+          TEST
+        </button>
+      </div>
+      <p style={{ fontSize: 12.5, color: "var(--color-neutral-600)", margin: "6px 0 0" }}>
+        The app&rsquo;s own link, not its website — that opens the app itself, not a browser tab. TEST tries
+        whatever&rsquo;s typed above immediately, right here, so you can check it actually opens the app on this
+        phone before saving; Kin uses the same link when you start a payment or transfer.
+      </p>
+    </div>
+  );
+}
+
 export function AddAccountForm({ isJoint }: { isJoint: boolean }) {
   const [open, setOpen] = useState(false);
   const [state, formAction] = useActionState(addAccountAction, initialState);
@@ -58,14 +118,9 @@ export function AddAccountForm({ isJoint }: { isJoint: boolean }) {
       <Labelled label="OPENING BALANCE (₱)">
         <input className="input" type="number" step="0.01" name="opening_balance" defaultValue={0} style={{ minHeight: 42 }} />
       </Labelled>
-      <Labelled label="LINK APP">
-        <input className="input" name="linked_app_url" placeholder="gcash:// or https://…" style={{ minHeight: 42 }} />
-      </Labelled>
-      <p style={{ fontSize: 13, color: "var(--color-neutral-600)", margin: "-4px 0 12px" }}>
-        Kin opens this when you start a payment or transfer here, so you can finish it in your own app. Use the
-        app&rsquo;s own link (like <code>gcash://</code>) rather than its website, and it opens the app itself on your
-        phone instead of a browser tab.
-      </p>
+      <div style={{ marginBottom: 12 }}>
+        <LinkAppField />
+      </div>
       <Labelled label="NOTE">
         <input className="input" name="sub_note" placeholder="Salary account" style={{ minHeight: 42 }} />
       </Labelled>
