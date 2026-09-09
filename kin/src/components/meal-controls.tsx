@@ -115,6 +115,7 @@ export function AddMealControl({ date, slot }: { date: string; slot: MealSlot })
           placeholder="Or type a dish"
           value={custom}
           onChange={(e) => setCustom(e.target.value)}
+          maxLength={150}
           style={{ minHeight: 40, flex: 1, fontSize: 14 }}
           aria-label="A dish not in the library"
         />

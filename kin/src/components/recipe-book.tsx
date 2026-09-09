@@ -424,7 +424,7 @@ function RecipeEditor({ recipe, known, onDone }: { recipe: EditableRecipe | null
 
       <div className="field" style={{ marginBottom: 12 }}>
         <label>NAME</label>
-        <input aria-label="Name" className="input" value={name} onChange={(e) => setName(e.target.value)} placeholder="Chicken adobo" style={{ minHeight: 44 }} />
+        <input aria-label="Name" className="input" value={name} onChange={(e) => setName(e.target.value)} placeholder="Chicken adobo" maxLength={150} style={{ minHeight: 44 }} />
       </div>
 
       <div style={{ fontSize: 13, color: "var(--color-neutral-700)", marginBottom: 6 }}>Usually eaten at</div>
@@ -476,6 +476,7 @@ function RecipeEditor({ recipe, known, onDone }: { recipe: EditableRecipe | null
             placeholder="Ingredient"
             value={ing.name}
             onChange={(e) => setIng(idx, { name: e.target.value })}
+            maxLength={150}
             style={{ minHeight: 40, flex: 1.6, fontSize: 14 }}
             aria-label={`Ingredient ${idx + 1}`}
           />
@@ -525,7 +526,7 @@ function RecipeEditor({ recipe, known, onDone }: { recipe: EditableRecipe | null
 
       <div className="field" style={{ marginBottom: 14 }}>
         <label>HOW TO COOK IT — ONE STEP PER LINE</label>
-        <textarea aria-label="How To Cook It — One Step Per Line" className="input" value={steps} onChange={(e) => setSteps(e.target.value)} rows={5} />
+        <textarea aria-label="How To Cook It — One Step Per Line" className="input" value={steps} onChange={(e) => setSteps(e.target.value)} maxLength={8000} rows={5} />
       </div>
 
       <div style={{ display: "flex", gap: 8 }}>

@@ -39,15 +39,15 @@ export default function NewMealPage() {
           </div>
           <div className="field" style={{ marginBottom: 14 }}>
             <label>DISH</label>
-            <input aria-label="Dish" className="input" name="dish" placeholder="Chicken adobo · rice · pechay" required style={{ minHeight: 44 }} />
+            <input aria-label="Dish" className="input" name="dish" placeholder="Chicken adobo · rice · pechay" required maxLength={150} style={{ minHeight: 44 }} />
           </div>
           <div className="field" style={{ marginBottom: 14 }}>
             <label>NOTE</label>
-            <input aria-label="Note" className="input" name="note" placeholder="Family · 30 min" style={{ minHeight: 44 }} />
+            <input aria-label="Note" className="input" name="note" placeholder="Family · 30 min" maxLength={300} style={{ minHeight: 44 }} />
           </div>
           <div className="field" style={{ marginBottom: 18 }}>
             <label>INGREDIENTS (comma-separated)</label>
-            <textarea aria-label="INGREDIENTS (comma-separated)" className="input" name="ingredients" placeholder="Chicken thighs, rice, pechay, soy sauce" />
+            <textarea aria-label="INGREDIENTS (comma-separated)" className="input" name="ingredients" placeholder="Chicken thighs, rice, pechay, soy sauce" maxLength={2000} />
           </div>
           <SubmitButton style={{ minHeight: 46, fontSize: 14, letterSpacing: ".04em" }}>SAVE MEAL</SubmitButton>
         </form>

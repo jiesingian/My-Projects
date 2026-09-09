@@ -22,11 +22,12 @@ import type { TablesInsert } from "@/lib/database.types";
 import { allDayEvent } from "@/lib/calendar-shape";
 import { familyDay, weekdayOf, addDays } from "@/lib/time";
 import { humanDatabaseError } from "@/lib/db-errors";
+import { clamp } from "@/lib/text";
 
 export async function addBuyItemAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
   const me = await requireCurrentMember();
   const supabase = await createClient();
-  const name = String(formData.get("name") ?? "").trim();
+  const name = clamp(String(formData.get("name") ?? ""), 150);
   const quantityRaw = String(formData.get("quantity") ?? "").trim();
   const unit = String(formData.get("unit") ?? "").trim() || null;
   const sectionRaw = String(formData.get("section") ?? "").trim();
@@ -56,12 +57,13 @@ export async function updateBuyItemAction(
 ): Promise<ActionState> {
   const me = await requireCurrentMember();
   const supabase = await createClient();
-  if (!input.name.trim()) return { error: "Name the item." };
+  const name = clamp(input.name, 150);
+  if (!name) return { error: "Name the item." };
 
   const { error } = await supabase
     .from("buy_items")
     .update({
-      name: input.name.trim(),
+      name,
       quantity: input.quantity,
       unit: input.unit,
       section: (MARKET_SECTIONS as readonly string[]).includes(input.section) ? input.section : "Other",
@@ -116,13 +118,13 @@ export async function addMealPlanAction(_prev: ActionState, formData: FormData):
   const me = await requireCurrentMember();
   const supabase = await createClient();
   const date = String(formData.get("date") ?? "");
-  const dish = String(formData.get("dish") ?? "").trim();
-  const note = String(formData.get("note") ?? "").trim() || null;
+  const dish = clamp(String(formData.get("dish") ?? ""), 150);
+  const note = clamp(String(formData.get("note") ?? ""), 300) || null;
   const slotRaw = String(formData.get("slot") ?? "dinner");
   const slot = MEAL_SLOTS.includes(slotRaw as MealSlot) ? slotRaw : "dinner";
   const ingredients = String(formData.get("ingredients") ?? "")
     .split(",")
-    .map((s) => s.trim())
+    .map((s) => clamp(s, 150))
     .filter(Boolean);
   if (!date || !dish) return { error: "Date and dish are required." };
 
@@ -242,19 +244,21 @@ export async function setItemPriceAction(input: {
   note?: string | null;
 }): Promise<ActionState> {
   const me = await requireCurrentMember();
-  if (!input.name.trim()) return { error: "Name the item." };
+  const name = clamp(input.name, 150);
+  if (!name) return { error: "Name the item." };
   if (!(input.unitPrice >= 0)) return { error: "A price cannot be negative." };
+  const note = input.note ? clamp(input.note, 300) || null : null;
 
   const supabase = await createClient();
   const { error } = await supabase.from("price_list").upsert(
     {
       family_id: me.family_id,
-      item_key: normalizeKey(input.name),
-      name: input.name.trim(),
+      item_key: normalizeKey(name),
+      name,
       unit: input.unit,
       unit_price: input.unitPrice,
       section: input.section,
-      note: input.note ?? null,
+      note,
       updated_by: me.id,
       updated_at: new Date().toISOString(),
     },
@@ -293,14 +297,15 @@ export async function setBuyItemPriceAction(itemId: string, unitPrice: number | 
 
 export async function setPantryItemAction(input: { name: string; quantity?: number | null; unit?: string | null }): Promise<ActionState> {
   const me = await requireCurrentMember();
-  if (!input.name.trim()) return { error: "Name the item." };
+  const name = clamp(input.name, 150);
+  if (!name) return { error: "Name the item." };
 
   const supabase = await createClient();
   const { error } = await supabase.from("pantry_items").upsert(
     {
       family_id: me.family_id,
-      item_key: normalizeKey(input.name),
-      name: input.name.trim(),
+      item_key: normalizeKey(name),
+      name,
       quantity: input.quantity ?? null,
       unit: input.unit ?? null,
       updated_by: me.id,
@@ -336,9 +341,10 @@ export async function addMealFromRecipeAction(input: {
   const supabase = await createClient();
 
   const recipe = input.recipeKey ? RECIPES_BY_KEY.get(input.recipeKey) : undefined;
-  const dish = (recipe?.name ?? input.dish ?? "").trim();
+  const dish = recipe?.name ?? clamp(input.dish ?? "", 150);
   if (!input.date || !dish) return { error: "Pick a day and a dish." };
   if (!MEAL_SLOTS.includes(input.slot as MealSlot)) return { error: "Pick which part of the day it is for." };
+  const note = input.note ? clamp(input.note, 300) || null : null;
 
   // Sits after whatever is already in that slot.
   const { count } = await supabase
@@ -356,7 +362,7 @@ export async function addMealFromRecipeAction(input: {
       slot: input.slot,
       position: count ?? 0,
       dish,
-      note: input.note ?? null,
+      note,
       recipe_key: recipe?.key ?? null,
       created_by: me.id,
     })
@@ -425,7 +431,7 @@ async function saveRecipeIngredients(
     .map((ing, position) => ({
       recipe_id: recipeId,
       family_id: familyId,
-      name: ing.name.trim(),
+      name: clamp(ing.name, 150),
       item_key: normalizeKey(ing.name),
       qty: ing.qty,
       unit: ing.unit,
@@ -452,7 +458,7 @@ export async function saveRecipeAction(input: {
   ingredients: RecipeIngredientInput[];
 }): Promise<ActionState> {
   const me = await requireCurrentMember();
-  const name = input.name.trim();
+  const name = clamp(input.name, 150);
   if (!name) return { error: "Give the recipe a name." };
   const slots = input.slots.filter((s) => MEAL_SLOTS.includes(s as MealSlot));
   if (slots.length === 0) return { error: "Say when it is usually eaten." };
@@ -469,7 +475,7 @@ export async function saveRecipeAction(input: {
     categories: (input.categories ?? []).filter((c) => (RECIPE_CATEGORIES as string[]).includes(c) || c.startsWith("own-")),
     serves: Math.min(30, Math.max(1, Math.round(input.serves || 4))),
     minutes: input.minutes,
-    steps: input.steps.map((s) => s.trim()).filter(Boolean),
+    steps: input.steps.map((s) => clamp(s, 1000)).filter(Boolean),
     updated_at: new Date().toISOString(),
   };
 
@@ -762,7 +768,7 @@ export async function removeMealIngredientAction(ingredientId: string): Promise<
 export async function addMealIngredientAction(input: { mealId: string; name: string; amount?: number | null; unit?: string | null }): Promise<ActionState> {
   const me = await requireCurrentMember();
   const supabase = await createClient();
-  const name = input.name.trim();
+  const name = clamp(input.name, 150);
   if (!name) return { error: "Give the ingredient a name." };
 
   const amount = input.amount == null || Number.isNaN(input.amount) ? null : input.amount;
@@ -846,15 +852,16 @@ export async function removeRecipePhotoAction(recipeRef: string): Promise<Action
 }
 
 /** Mark one ingredient as already in the house, or take it back off. */
-export async function toggleIngredientAtHomeAction(name: string, atHome: boolean): Promise<ActionState> {
+export async function toggleIngredientAtHomeAction(rawName: string, atHome: boolean): Promise<ActionState> {
   const me = await requireCurrentMember();
   const supabase = await createClient();
+  const name = clamp(rawName, 150);
   const key = normalizeKey(name);
 
   if (atHome) {
     const { error } = await supabase
       .from("pantry_items")
-      .upsert({ family_id: me.family_id, item_key: key, name: name.trim(), updated_by: me.id, updated_at: new Date().toISOString() }, { onConflict: "family_id,item_key" });
+      .upsert({ family_id: me.family_id, item_key: key, name, updated_by: me.id, updated_at: new Date().toISOString() }, { onConflict: "family_id,item_key" });
     if (error) return { error: humanDatabaseError(error.message) };
   } else {
     const { error } = await supabase.from("pantry_items").delete().eq("family_id", me.family_id).eq("item_key", key);

@@ -85,6 +85,7 @@ export function ShoppingDayControl({
         onChange={(e) => setTitle(e.target.value)}
         aria-label="What the trip is"
         placeholder="Grocery run"
+        maxLength={60}
         style={{ minHeight: 40, fontSize: 14, marginBottom: 8 }}
       />
 
