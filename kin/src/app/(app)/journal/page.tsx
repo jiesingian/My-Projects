@@ -7,6 +7,7 @@ import { HubHeader } from "@/components/hub-header";
 import { Blueprint, Tag, Empty } from "@/components/ui";
 import { GalleryUpload } from "@/components/gallery-upload";
 import { GalleryGrid } from "@/components/gallery-grid";
+import { JournalEntryPhotos } from "@/components/journal-entry-photos";
 import { familyDate } from "@/lib/format-family";
 
 const SEGMENTS = ["gallery", "entries", "milestones"] as const;
@@ -95,14 +96,7 @@ async function EntriesPane({ familyId }: { familyId: string }) {
             </Tag>
           </div>
           <div style={{ font: "600 21px/1.05 var(--font-heading)", margin: "7px 0 6px" }}>{e.title}</div>
-          {e.photoUrls.length > 0 && (
-            <div style={{ display: "flex", gap: 5, marginBottom: 9 }}>
-              {e.photoUrls.map((url, i) => (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img key={i} src={url} alt="" style={{ flex: 1, height: 74, objectFit: "cover", border: "1px solid var(--color-divider)" }} />
-              ))}
-            </div>
-          )}
+          <JournalEntryPhotos urls={e.photoUrls} />
           {e.note && <p style={{ fontSize: 14, margin: "0 0 9px", color: "var(--color-neutral-800)" }}>{e.note}</p>}
           <div style={{ fontSize: 13, color: "var(--color-neutral-600)" }}>{e.people.map((p) => p.full_name.split(" ")[0]).join(" · ") || "Whole family"}</div>
         </Blueprint>
