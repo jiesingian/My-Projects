@@ -5,7 +5,7 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { requireCurrentMember } from "@/lib/session";
 import { syncRowToCalendars, type CalendarTarget } from "@/lib/actions/calendar-sync";
-import { GOAL_CATEGORY, TRANSFER_CATEGORY, explainLedgerRefusal } from "@/lib/wealth";
+import { ACCOUNT_TYPES, GOAL_CATEGORY, TRANSFER_CATEGORY, explainLedgerRefusal, type AccountType } from "@/lib/wealth";
 import type { ActionState } from "@/lib/actions/auth";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database, Tables, TablesInsert } from "@/lib/database.types";
@@ -37,6 +37,12 @@ export async function addAccountAction(_prev: ActionState, formData: FormData): 
   const openingBalance = Number(formData.get("opening_balance") ?? 0);
   const isJoint = formData.get("is_joint") === "on";
   if (!name) return { error: "Name the account." };
+  // The select only ever offers these six, but a form field is a request,
+  // not a fact -- nothing stops a replayed or hand-built submission from
+  // naming anything else. Same reasoning as setMemberRoleAction's role
+  // check: this is the message, not the only lock.
+  if (!ACCOUNT_TYPES.includes(accountType as AccountType)) return { error: "That isn't a valid account type." };
+  if (!Number.isFinite(openingBalance)) return { error: "Enter a valid opening balance." };
 
   const { error } = await supabase.from("accounts").insert({
     family_id: me.family_id,
@@ -64,6 +70,8 @@ export async function updateAccountAction(accountId: string, _prev: ActionState,
 
   const name = clamp(String(formData.get("name") ?? ""), 150);
   if (!name) return { error: "Name the account." };
+  const accountType = String(formData.get("account_type") ?? "bank");
+  if (!ACCOUNT_TYPES.includes(accountType as AccountType)) return { error: "That isn't a valid account type." };
 
   const { error } = await supabase
     .from("accounts")
@@ -74,7 +82,7 @@ export async function updateAccountAction(accountId: string, _prev: ActionState,
       linked_app_url: clamp(String(formData.get("linked_app_url") ?? ""), 500) || null,
       app_store_url: clamp(String(formData.get("app_store_url") ?? ""), 500) || null,
       play_store_url: clamp(String(formData.get("play_store_url") ?? ""), 500) || null,
-      account_type: String(formData.get("account_type") ?? "bank"),
+      account_type: accountType,
     })
     .eq("id", accountId)
     .eq("family_id", me.family_id);
