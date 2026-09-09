@@ -4,9 +4,10 @@ import { test, expect, request as playwrightRequest } from "@playwright/test";
  *
  * The point of the control is that a member can find out whether a link
  * actually opens the app BEFORE saving it, rather than discovering it at the
- * moment they are trying to pay somebody. So the two things worth pinning are
- * that the chip fills in a link known to be correct, and that TEST is offered
- * exactly when there is something to test.
+ * moment they are trying to pay somebody. So what is worth pinning is that
+ * picking a bank fills in a link known to be correct, that changing your mind
+ * takes it away again, and that TEST is offered exactly when there is
+ * something to test.
  *
  * TEST is deliberately never clicked here. It calls `window.open` on whatever
  * is typed -- that is the whole feature -- and a spec that clicked it would be
@@ -79,33 +80,44 @@ test("TEST is offered only when there is something to test", async ({ page }) =>
   await expect(testButton, "clearing the field should put the button back to sleep").toBeDisabled();
 });
 
-test("the GCash chip fills the link without anybody typing it", async ({ page }) => {
+test("choosing a known bank resolves LINK APP without anybody typing it", async ({ page }) => {
+  // The one-tap chip this used to test became a BANK / WALLET dropdown on
+  // 9 September: picking a known institution now fills LINK APP from
+  // KNOWN_APPS instead of offering a chip beside it. The dropdown is the
+  // control a person uses, so that is what this drives -- resolveInstitutionLinks
+  // itself is pinned by known-apps.logic.spec.ts, and what is left to prove
+  // here is that the dropdown is actually wired to the field.
   await openAddAccount(page);
   const field = page.getByLabel("LINK APP");
-  const chip = page.getByRole("button", { name: "GCash" });
-
   await expect(field).toHaveValue("");
-  await chip.click();
-  // The exact scheme matters -- it is the one link in the app verified
-  // against a vendor's own documentation rather than guessed at.
+
+  await page.getByLabel("BANK / WALLET").selectOption("GCash");
+  // GCash is the one known app with a scheme of its own, verified against a
+  // vendor's documentation rather than guessed at.
   await expect(field).toHaveValue("gcash://");
   await expect(page.getByRole("button", { name: /^TEST$/ })).toBeEnabled();
 });
 
-test("the chip shows whether it is what the field currently holds", async ({ page }) => {
+test("leaving a known bank takes its links with it", async ({ page }) => {
+  /* The reported bug, and worth a test of its own: pick BDO, change your mind
+   * and pick Other, and BDO's store link stayed sitting in LINK APP with a
+   * new, unnamed institution now claiming it. Nothing on screen said it was
+   * no longer BDO's.
+   *
+   * BDO has no scheme of its own, so what lands in LINK APP is whichever
+   * store link matches the device -- a real working link rather than a
+   * placeholder. This runs on a desktop Chrome, so it is the App Store one. */
   await openAddAccount(page);
   const field = page.getByLabel("LINK APP");
-  const chip = page.getByRole("button", { name: "GCash" });
+  const institution = page.getByLabel("BANK / WALLET");
 
-  await expect(chip).toHaveAttribute("data-active", "false");
-  await chip.click();
-  await expect(chip).toHaveAttribute("data-active", "true");
+  await institution.selectOption("BDO");
+  await expect(field, "picking a known bank should resolve a link").not.toHaveValue("");
+  const resolved = await field.inputValue();
+  expect(resolved, "BDO has no scheme of its own, so this should be its store listing").toContain("bdo");
 
-  // Typing something else must drop the mark. A chip that stayed lit while
-  // the field said something different would be telling a member their
-  // account points at GCash when it does not.
-  await field.fill("https://example.invalid/somewhere");
-  await expect(chip).toHaveAttribute("data-active", "false");
+  await institution.selectOption("other");
+  await expect(field, "the previous bank's link outlived the bank").toHaveValue("");
 });
 
 test("what was typed is what the account is saved with", async ({ page }) => {
