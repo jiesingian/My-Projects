@@ -11,6 +11,7 @@ import { Blueprint, Tag } from "@/components/ui";
 import { Icon } from "@/components/icons";
 import { formatAge, initials } from "@/lib/format";
 import { OmronToggle } from "./omron-toggle";
+import { ConditionEntryControls, ConditionDeleteButton, LabControls } from "@/components/health-entry-controls";
 import { RelationshipEditor } from "@/components/relationship-editor";
 import { RemoveMemberButton } from "@/components/member-status-actions";
 import { Avatar } from "@/components/avatar";
@@ -190,16 +191,20 @@ export default async function MemberDetailPage({
                     <Tag variant={c.status === "active" ? "accent" : c.status === "standing" ? "outline" : "neutral"} className="ml-auto">
                       {c.status.toUpperCase()}
                     </Tag>
+                    <ConditionDeleteButton conditionId={c.id} memberId={member.id} />
                   </div>
                   <div style={{ fontSize: 13, color: "var(--color-neutral-600)", margin: "4px 0 9px" }}>{c.meta_note}</div>
                   {(c.health_condition_entries ?? [])
                     .sort((a, b) => b.entry_date.localeCompare(a.entry_date))
                     .map((e) => (
-                      <div key={e.id} style={{ display: "flex", gap: 10, padding: "8px 0", borderTop: "1px solid color-mix(in srgb, var(--color-text) 10%, transparent)" }}>
-                        <span style={{ font: "400 10.5px/1.5 var(--font-numeric)", color: "var(--color-accent-700)", width: 74, flex: "none" }}>
-                          {fmtDate(e.entry_date)}
-                        </span>
-                        <span style={{ flex: 1, fontSize: 14 }}>{e.note}</span>
+                      <div key={e.id} style={{ padding: "8px 0", borderTop: "1px solid color-mix(in srgb, var(--color-text) 10%, transparent)" }}>
+                        <div style={{ display: "flex", gap: 10 }}>
+                          <span style={{ font: "400 10.5px/1.5 var(--font-numeric)", color: "var(--color-accent-700)", width: 74, flex: "none" }}>
+                            {fmtDate(e.entry_date)}
+                          </span>
+                          <span style={{ flex: 1, fontSize: 14 }}>{e.note}</span>
+                        </div>
+                        <ConditionEntryControls entryId={e.id} memberId={member.id} date={e.entry_date} note={e.note} />
                       </div>
                     ))}
                 </Blueprint>
@@ -224,6 +229,7 @@ export default async function MemberDetailPage({
                     </span>
                     <span style={{ flex: 1, fontSize: 13.5, color: "var(--color-neutral-800)" }}>{l.result}</span>
                   </div>
+                  <LabControls labId={l.id} memberId={member.id} date={l.test_date} name={l.name} result={l.result ?? ""} />
                 </div>
               ))
             ))}

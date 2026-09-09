@@ -6,8 +6,8 @@ import { createClient } from "@/lib/supabase/server";
 import { requireCurrentMember } from "@/lib/session";
 import type { ActionState } from "@/lib/actions/auth";
 import { familyDay } from "@/lib/time";
-import { explainVisibilityRefusal } from "@/lib/visibility";
 import { humanDatabaseError } from "@/lib/db-errors";
+import { explainVisibilityRefusal } from "@/lib/visibility";
 
 const GROUPED_TYPES = new Set(["illness", "checkup", "medication", "vaccination"]);
 
@@ -89,6 +89,67 @@ export async function createHealthEntryAction(_prev: ActionState, formData: Form
 
   revalidatePath(`/family/members/${memberId}`);
   redirect(`/family/members/${memberId}?view=health`);
+}
+
+export async function updateConditionEntryAction(input: { entryId: string; memberId: string; date: string; note: string }): Promise<ActionState> {
+  const me = await requireCurrentMember();
+  const supabase = await createClient();
+  const note = input.note.trim();
+  if (!note) return { error: "Give the entry something to say." };
+
+  const { error } = await supabase
+    .from("health_condition_entries")
+    .update({ entry_date: input.date, note })
+    .eq("id", input.entryId)
+    .eq("family_id", me.family_id);
+  if (error) return { error: humanDatabaseError(error.message) };
+  revalidatePath(`/family/members/${input.memberId}`);
+  return { error: null };
+}
+
+export async function deleteConditionEntryAction(entryId: string, memberId: string): Promise<ActionState> {
+  const me = await requireCurrentMember();
+  const supabase = await createClient();
+  const { error } = await supabase.from("health_condition_entries").delete().eq("id", entryId).eq("family_id", me.family_id);
+  if (error) return { error: humanDatabaseError(error.message) };
+  revalidatePath(`/family/members/${memberId}`);
+  return { error: null };
+}
+
+/** Deletes the whole condition, taking its entries with it -- for when the
+ * condition itself was logged by mistake, not just one note under it. */
+export async function deleteConditionAction(conditionId: string, memberId: string): Promise<ActionState> {
+  const me = await requireCurrentMember();
+  const supabase = await createClient();
+  const { error } = await supabase.from("health_conditions").delete().eq("id", conditionId).eq("family_id", me.family_id);
+  if (error) return { error: humanDatabaseError(error.message) };
+  revalidatePath(`/family/members/${memberId}`);
+  return { error: null };
+}
+
+export async function updateLabAction(input: { labId: string; memberId: string; date: string; name: string; result: string }): Promise<ActionState> {
+  const me = await requireCurrentMember();
+  const supabase = await createClient();
+  const name = input.name.trim();
+  if (!name) return { error: "Give the lab a name." };
+
+  const { error } = await supabase
+    .from("health_labs")
+    .update({ test_date: input.date, name, result: input.result.trim() || null })
+    .eq("id", input.labId)
+    .eq("family_id", me.family_id);
+  if (error) return { error: humanDatabaseError(error.message) };
+  revalidatePath(`/family/members/${input.memberId}`);
+  return { error: null };
+}
+
+export async function deleteLabAction(labId: string, memberId: string): Promise<ActionState> {
+  const me = await requireCurrentMember();
+  const supabase = await createClient();
+  const { error } = await supabase.from("health_labs").delete().eq("id", labId).eq("family_id", me.family_id);
+  if (error) return { error: humanDatabaseError(error.message) };
+  revalidatePath(`/family/members/${memberId}`);
+  return { error: null };
 }
 
 /** The member stays an argument -- a parent linking a child's monitor is the
