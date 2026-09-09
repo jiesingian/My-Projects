@@ -54,6 +54,60 @@ tests fail, then restoring it.
 
 ---
 
+## Eighteen actions still report success when they changed nothing — 9 September
+
+`updateHouseholdNameAction` carries a comment about this: "a refusal that
+matches no rows is not an error, so the rename silently did nothing and still
+reported success." It has now been found three more times — twice in Chat,
+once in the Planner — so it was worth counting rather than fixing one at a
+time.
+
+An audit of every `update()` in `src/lib/actions` found **23** keyed on a
+caller-supplied `id` *plus* a filter that can legitimately match nothing
+(the household, the owner, or a required state). Five are fixed — the Planner
+and routines ones swept on 9 September, plus Chat's two. **Eighteen remain**:
+
+    updateDocEntryAction            setMemberRoleAction
+    convertToManagedChildAction     updateConditionEntryAction
+    updateLabAction                 updateBuyItemAction
+    toggleBuyItemAction             setBuyItemPriceAction
+    saveRecipeAction                setShoppingDayAction
+    removeRecipeCategoryAction      setMealIngredientAction
+    updateMilestoneAction           updateAccountAction
+    setAccountPrivacyAction         archiveAccountAction
+    updateAssetValueAction          updateLiabilityBalanceAction
+
+**How much it matters.** From the app it mostly cannot happen: the screen only
+offers rows from your own household. It happens when two people are using Kin
+at once and one removes what the other is editing — which is the premise of
+this repository, not a hypothetical — and when a page has been open a while.
+The member is told "saved" and nothing was. It is a correctness and honesty
+problem, not a security one: nobody gains access to anything.
+
+**The fix, and the trap in the obvious version of it.** The instinct is to add
+`.select()` so the row count is knowable. Don't: that adds a RETURNING clause,
+and a row the write policy allows but the read policy refuses is rolled back
+whole — this codebase has already been bitten by that twice, in the visibility
+work and the ledger work. Ask for a count instead, which comes back in a
+header and needs no representation. Measured against the throwaway household
+on 9 September:
+
+    PATCH …/activities?id=eq.<mine>    Prefer: count=exact
+      -> 204, content-range: 0-0/1     (changed one row, no body)
+    PATCH …/activities?id=eq.<absent>  Prefer: count=exact
+      -> 204, content-range: */0       (changed nothing, no body)
+
+In supabase-js that is `.update(values, { count: "exact" })`, then
+`if (count === 0) return { error: … }`. The five already fixed use exactly
+that and can be copied.
+
+**Not done in one go on purpose.** Eighteen edits across money, health and
+membership actions, each needing its own sentence to the member, is a change
+that deserves its own diff and its own read rather than being tacked onto the
+end of a sweep. The mechanism is proven; the work is mechanical.
+
+---
+
 ## Two people, one QA household — 9 September
 
 The suite's write specs now tidy up after themselves. Finding out why they
