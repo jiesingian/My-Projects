@@ -64,7 +64,7 @@ export function EditDocForm({
 
           <div className="field" style={{ marginBottom: 14 }}>
             <label>ENTRY TITLE</label>
-            <input aria-label="Entry Title" className="input" name="title" defaultValue={entry.title} required style={{ minHeight: 44 }} />
+            <input aria-label="Entry Title" className="input" name="title" defaultValue={entry.title} required maxLength={150} style={{ minHeight: 44 }} />
           </div>
 
           <div style={{ display: "flex", gap: 12, marginBottom: 16 }}>
@@ -88,11 +88,11 @@ export function EditDocForm({
           <div style={{ display: "flex", gap: 12, marginBottom: 16 }}>
             <div className="field" style={{ flex: 1 }}>
               <label>DOCUMENT TYPE</label>
-              <input aria-label="Document Type" className="input" name="doc_type" defaultValue={entry.doc_type ?? ""} placeholder="e.g. Application form" style={{ minHeight: 44 }} />
+              <input aria-label="Document Type" className="input" name="doc_type" defaultValue={entry.doc_type ?? ""} placeholder="e.g. Application form" maxLength={50} style={{ minHeight: 44 }} />
             </div>
             <div className="field" style={{ flex: 1 }}>
               <label>REFERENCE NO.</label>
-              <input aria-label="Reference No." className="input" name="reference_no" defaultValue={entry.reference_no ?? ""} placeholder="Optional" style={{ minHeight: 44 }} />
+              <input aria-label="Reference No." className="input" name="reference_no" defaultValue={entry.reference_no ?? ""} placeholder="Optional" maxLength={100} style={{ minHeight: 44 }} />
             </div>
           </div>
 
@@ -107,7 +107,7 @@ export function EditDocForm({
 
           <div className="field" style={{ marginBottom: 18 }}>
             <label>NOTE</label>
-            <input aria-label="Note" className="input" name="note" defaultValue={entry.note ?? ""} placeholder="Anything worth remembering" style={{ minHeight: 44 }} />
+            <input aria-label="Note" className="input" name="note" defaultValue={entry.note ?? ""} placeholder="Anything worth remembering" maxLength={1000} style={{ minHeight: 44 }} />
           </div>
 
           <button type="submit" className="btn btn-primary btn-block" style={{ minHeight: 46, fontSize: 14, letterSpacing: ".04em" }} disabled={saving}>

@@ -8,6 +8,7 @@ import type { ActionState } from "@/lib/actions/auth";
 import { familyDay } from "@/lib/time";
 import { humanDatabaseError } from "@/lib/db-errors";
 import { explainVisibilityRefusal } from "@/lib/visibility";
+import { clamp } from "@/lib/text";
 
 const GROUPED_TYPES = new Set(["illness", "checkup", "medication", "vaccination"]);
 
@@ -18,18 +19,18 @@ export async function createHealthEntryAction(_prev: ActionState, formData: Form
   const memberId = String(formData.get("member_id") ?? "");
   const type = String(formData.get("type") ?? "");
   const date = String(formData.get("date") ?? familyDay());
-  const title = String(formData.get("title") ?? "").trim();
-  const value = String(formData.get("value") ?? "").trim();
-  const seenBy = String(formData.get("seen_by") ?? "").trim() || null;
-  const where = String(formData.get("where") ?? "").trim() || null;
-  const notes = String(formData.get("notes") ?? "").trim();
+  const title = clamp(String(formData.get("title") ?? ""), 150);
+  const value = clamp(String(formData.get("value") ?? ""), 100);
+  const seenBy = clamp(String(formData.get("seen_by") ?? ""), 100) || null;
+  const where = clamp(String(formData.get("where") ?? ""), 150) || null;
+  const notes = clamp(String(formData.get("notes") ?? ""), 1000);
   const visibility = String(formData.get("visibility") ?? "family");
 
   if (!memberId || !title) return { error: "Fill in the title." };
 
   if (GROUPED_TYPES.has(type)) {
     let groupId = String(formData.get("group_id") ?? "");
-    const newGroupName = String(formData.get("new_group_name") ?? title).trim();
+    const newGroupName = clamp(String(formData.get("new_group_name") ?? title), 150);
     if (!groupId || groupId === "__new__") {
       const { data: group, error: groupErr } = await supabase
         .from("health_conditions")
@@ -94,7 +95,7 @@ export async function createHealthEntryAction(_prev: ActionState, formData: Form
 export async function updateConditionEntryAction(input: { entryId: string; memberId: string; date: string; note: string }): Promise<ActionState> {
   const me = await requireCurrentMember();
   const supabase = await createClient();
-  const note = input.note.trim();
+  const note = clamp(input.note, 1000);
   if (!note) return { error: "Give the entry something to say." };
 
   const { error } = await supabase
@@ -130,12 +131,12 @@ export async function deleteConditionAction(conditionId: string, memberId: strin
 export async function updateLabAction(input: { labId: string; memberId: string; date: string; name: string; result: string }): Promise<ActionState> {
   const me = await requireCurrentMember();
   const supabase = await createClient();
-  const name = input.name.trim();
+  const name = clamp(input.name, 150);
   if (!name) return { error: "Give the lab a name." };
 
   const { error } = await supabase
     .from("health_labs")
-    .update({ test_date: input.date, name, result: input.result.trim() || null })
+    .update({ test_date: input.date, name, result: clamp(input.result, 300) || null })
     .eq("id", input.labId)
     .eq("family_id", me.family_id);
   if (error) return { error: humanDatabaseError(error.message) };

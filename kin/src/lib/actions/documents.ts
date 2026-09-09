@@ -8,6 +8,7 @@ import { syncRowToCalendars, removeRowFromCalendars } from "@/lib/actions/calend
 import { allDayEvent } from "@/lib/calendar-shape";
 import { explainVisibilityRefusal } from "@/lib/visibility";
 import { humanDatabaseError } from "@/lib/db-errors";
+import { clamp } from "@/lib/text";
 
 type UploadedFile =
   | { provider: "google_drive"; driveFileId: string; driveViewLink: string | null; driveThumbnailLink: string | null }
@@ -27,14 +28,14 @@ export async function createDocEntryAction(input: {
   const me = await requireCurrentMember();
   const supabase = await createClient();
 
-  const title = input.title.trim();
+  const title = clamp(input.title, 150);
   if (!title) return { error: "Give the entry a title." };
 
   let folderId = input.folderId;
   if (folderId === "__new__" && input.newFolderName) {
     const { data: folder, error: folderErr } = await supabase
       .from("doc_folders")
-      .insert({ family_id: me.family_id, name: input.newFolderName.trim() })
+      .insert({ family_id: me.family_id, name: clamp(input.newFolderName, 100) })
       .select()
       .single();
     if (folderErr) return { error: folderErr.message };
@@ -50,10 +51,10 @@ export async function createDocEntryAction(input: {
       title,
       owner_member_id: input.ownerMemberId,
       expires_at: input.expiresAt,
-      doc_type: input.docType,
-      reference_no: input.referenceNo,
+      doc_type: input.docType && clamp(input.docType, 50),
+      reference_no: input.referenceNo && clamp(input.referenceNo, 100),
       visibility: input.visibility,
-      note: input.note,
+      note: input.note && clamp(input.note, 1000),
       created_by: me.id,
     })
     .select()
@@ -91,7 +92,7 @@ export async function updateDocEntryAction(input: {
   const me = await requireCurrentMember();
   const supabase = await createClient();
 
-  const title = input.title.trim();
+  const title = clamp(input.title, 150);
   if (!title) return { error: "Give the entry a title." };
 
   const { error } = await supabase
@@ -100,10 +101,10 @@ export async function updateDocEntryAction(input: {
       title,
       owner_member_id: input.ownerMemberId,
       expires_at: input.expiresAt,
-      doc_type: input.docType,
-      reference_no: input.referenceNo,
+      doc_type: input.docType && clamp(input.docType, 50),
+      reference_no: input.referenceNo && clamp(input.referenceNo, 100),
       visibility: input.visibility,
-      note: input.note,
+      note: input.note && clamp(input.note, 1000),
     })
     .eq("id", input.entryId)
     .eq("family_id", me.family_id);
