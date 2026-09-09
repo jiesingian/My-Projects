@@ -73,24 +73,24 @@ export function usePhoneKind(): "ios" | "android" | "other" {
  * known name and its links arrive with it, or pick Other and type whatever
  * this account's institution actually is, exactly as before.
  *
- * Three independent links live below it: the app's own (opened when it's
- * already installed), and where to get it on each store (opened when it
- * isn't). No web page, Kin included, can list a phone's installed apps or
- * read back which one a person picked from the OS's own share sheet --
- * that is a privacy boundary every browser enforces, not a gap in this
- * form. Typing a link and confirming it works, or pointing at the right
- * store for the phone in hand, is the closest thing to "choose from
- * installed apps" a website is able to offer.
+ * For GCash, BPI or BDO there is nothing left to show: LINK APP resolves
+ * to the one right link for whoever's filling this in (GCash's own
+ * gcash://, or for BPI/BDO -- which have no scheme of their own -- the
+ * matching store page, App Store or Play Store, since that opens fine on
+ * any device). The APP STORE LINK / PLAY STORE LINK boxes disappear
+ * entirely; both values are still saved underneath so the account page's
+ * GET APP button gets the right one for whoever views it later, on
+ * whichever phone that is, not just whoever filled in the form.
  *
- * On a phone, only that one store's field shows -- App Store on an iPhone,
- * Play Store on Android -- with a button to reveal the other, since a
- * household mixes both and whoever's adding the account might be filling
- * this in for someone else's phone too. On a computer there's nothing to
- * detect, so both show, same as before. This is a real autodetect, but one
- * with a hard limit: it can only say which store applies, not conjure the
- * listing link itself. Kin already has that link memorized for GCash, BPI
- * and BDO; for anything else, someone still has to find it once and paste
- * it in -- no amount of device detection substitutes for that lookup. */
+ * For anything else, Kin has no memorized link to reach for, so LINK APP
+ * stays a plain field someone fills in themselves -- on a computer, since
+ * a phone-app link (or a store page) mostly doesn't exist there, the hint
+ * points at the account's website instead. Below it, the two store fields
+ * remain (collapsed to whichever matches the current phone, with a button
+ * to reveal the other for a household that mixes iPhone and Android) --
+ * the one place a device can't be detected away, because no web page, Kin
+ * included, can read a phone's installed apps or a store link nobody has
+ * told it yet. */
 export function AppLinksField({
   defaultInstitution,
   defaultAppUrl,
@@ -130,17 +130,28 @@ export function AppLinksField({
   function selectInstitution(value: string) {
     setSelected(value);
     const known = KNOWN_APPS.find((a) => a.label === value);
-    if (known) {
-      setAppUrl(known.appUrl ?? "");
-      setAppStoreUrl(known.appStoreUrl ?? "");
-      setPlayStoreUrl(known.playStoreUrl ?? "");
-    }
+    if (!known) return;
+    // BPI and BDO have no scheme of their own to open directly (unlike
+    // GCash's gcash://), so LINK APP itself becomes whichever store link
+    // matches this phone -- that's a real, working link on any device
+    // (a store page opens fine in a plain browser too), not a placeholder.
+    // Both store links are still kept underneath either way, so whoever
+    // views the saved account later -- on either kind of phone -- still
+    // gets the one that matches them, via the account page's GET APP
+    // button. Nothing here needs its own input box: it's all resolved.
+    const ownStore = kind === "android" ? known.playStoreUrl : known.appStoreUrl;
+    setAppUrl(known.appUrl ?? ownStore ?? "");
+    setAppStoreUrl(known.appStoreUrl ?? "");
+    setPlayStoreUrl(known.playStoreUrl ?? "");
   }
 
   function test() {
     window.open(appUrl.trim(), "_blank", "noopener,noreferrer");
     setTested(true);
   }
+
+  const isKnownInstitution = selected !== "" && selected !== "other";
+  const looksLikeAppScheme = !!appUrl.trim() && !/^https?:\/\//i.test(appUrl.trim());
 
   const appStoreField = (
     <div key="app-store" className="field" style={{ flex: 1, marginBottom: 10 }}>
@@ -204,8 +215,8 @@ export function AppLinksField({
         )}
         {selected !== "other" && <input type="hidden" name="institution" value={selected} />}
         <p style={{ fontSize: 12.5, color: "var(--color-neutral-600)", margin: "6px 0 0" }}>
-          Choosing GCash, BPI or BDO fills in the links below automatically, verified against each one&rsquo;s own
-          store listing. Anything else: pick Other and type the name.
+          Choosing GCash, BPI or BDO resolves LINK APP below automatically, verified against each one&rsquo;s own
+          store listing — nothing else to fill in. Anything else: pick Other and type the name.
         </p>
       </div>
 
@@ -221,7 +232,7 @@ export function AppLinksField({
               setAppUrl(e.target.value);
               setTested(false);
             }}
-            placeholder="gcash://"
+            placeholder={kind === "other" ? "https://www.yourbank.com" : "gcash://"}
             style={{ minHeight: 42, flex: 1 }}
           />
           <button
@@ -234,46 +245,59 @@ export function AppLinksField({
             TEST
           </button>
         </div>
-        {/* A blank tab after TEST reads as broken. On a phone it usually
-            means the link was wrong; on a computer it is expected every
-            time -- GCash and most linked apps only exist on a phone, so
-            there is nothing here to catch the link. */}
-        {tested && kind === "other" && (
+        {/* A blank tab after TEST reads as broken. That only actually
+            happens for a custom scheme like gcash:// with nothing on a
+            computer to catch it -- a plain https:// link (a store page, a
+            website) opens fine anywhere, so don't warn about those. */}
+        {tested && kind === "other" && looksLikeAppScheme && (
           <p style={{ fontSize: 12.5, color: "var(--color-accent-700)", margin: "6px 0 0" }}>
             That likely opened a blank tab — this is a computer, and the app isn&rsquo;t installed here to catch
             the link. Open Kin on your phone and try TEST there to see it actually launch the app.
           </p>
         )}
         <p style={{ fontSize: 12.5, color: "var(--color-neutral-600)", margin: "6px 0 0" }}>
-          The app&rsquo;s own link, not its website — opens the app itself when it&rsquo;s already installed. TEST
-          tries it immediately, right here.
+          {isKnownInstitution
+            ? "Resolved automatically for this bank or wallet — nothing to fill in below."
+            : kind === "other"
+              ? "On a phone this would be the app’s own link (opens it directly if it’s installed). On a computer, that mostly doesn’t exist — paste this account’s website link instead, so whoever looks it up here still gets somewhere useful."
+              : "The app’s own link, not its website — opens the app itself when it’s already installed. TEST tries it immediately, right here."}
         </p>
       </div>
 
-      {showBothStores ? (
-        <div style={{ display: "flex", gap: 10 }}>
-          {kind === "android" ? [playStoreField, appStoreField] : [appStoreField, playStoreField]}
-        </div>
-      ) : (
-        kind === "ios" ? appStoreField : playStoreField
+      {isKnownInstitution && (
+        <>
+          <input type="hidden" name="app_store_url" value={appStoreUrl} />
+          <input type="hidden" name="play_store_url" value={playStoreUrl} />
+        </>
       )}
-      {!showBothStores && (
-        <button
-          type="button"
-          className="btn btn-secondary"
-          onClick={() => setShowOtherStore(true)}
-          style={{ minHeight: 36, fontSize: 12.5, padding: "0 12px", marginTop: -4, marginBottom: 10 }}
-        >
-          + Also add the {otherStoreLabel} link, for other phones in the household
-        </button>
+      {!isKnownInstitution && (
+        <>
+          {showBothStores ? (
+            <div style={{ display: "flex", gap: 10 }}>
+              {kind === "android" ? [playStoreField, appStoreField] : [appStoreField, playStoreField]}
+            </div>
+          ) : (
+            kind === "ios" ? appStoreField : playStoreField
+          )}
+          {!showBothStores && (
+            <button
+              type="button"
+              className="btn btn-secondary"
+              onClick={() => setShowOtherStore(true)}
+              style={{ minHeight: 36, fontSize: 12.5, padding: "0 12px", marginTop: -4, marginBottom: 10 }}
+            >
+              + Also add the {otherStoreLabel} link, for other phones in the household
+            </button>
+          )}
+          <p style={{ fontSize: 12.5, color: "var(--color-neutral-600)", margin: "-4px 0 0" }}>
+            {showBothStores
+              ? kind === "other"
+                ? "Where to get the app if it isn’t installed yet — paste the link from each store’s own Share button. Optional, and independent of each other: fill in whichever stores apply. Kin opens the right one for whoever’s phone it is when they don’t have the app yet."
+                : "Kin detected your own phone and put that store first, labeled “your phone”. Both are saved either way, so anyone in the household gets the right one when they don’t have the app yet."
+              : `Kin detected you’re on ${kind === "ios" ? "an iPhone" : "an Android phone"}, so only that store shows. Add the other only if someone else in the household uses the other kind of phone.`}
+          </p>
+        </>
       )}
-      <p style={{ fontSize: 12.5, color: "var(--color-neutral-600)", margin: "-4px 0 0" }}>
-        {showBothStores
-          ? kind === "other"
-            ? "Where to get the app if it isn’t installed yet — paste the link from each store’s own Share button. Optional, and independent of each other: fill in whichever stores apply. Kin opens the right one for whoever’s phone it is when they don’t have the app yet."
-            : "Kin detected your own phone and put that store first, labeled “your phone”. Both are saved either way, so anyone in the household gets the right one when they don’t have the app yet."
-          : `Kin detected you’re on ${kind === "ios" ? "an iPhone" : "an Android phone"}, so only that store shows. Add the other only if someone else in the household uses the other kind of phone.`}
-      </p>
     </div>
   );
 }
