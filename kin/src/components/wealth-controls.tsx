@@ -33,9 +33,23 @@ const KNOWN_APPS: { label: string; url: string }[] = [{ label: "GCash", url: "gc
  * share sheet; that is a privacy boundary every browser enforces, not a gap
  * in this form. Typing the link and confirming it works is the closest
  * thing to "choose from installed apps" a website is able to offer. */
+/** Rough and deliberately so -- this only decides which explanation TEST
+ * shows afterward, never whether the field or the button works, so a wrong
+ * guess costs nothing. */
+function looksLikePhone(): boolean {
+  return typeof navigator !== "undefined" && /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+}
+
 export function LinkAppField({ defaultValue }: { defaultValue?: string }) {
   const [value, setValue] = useState(defaultValue ?? "");
+  const [tested, setTested] = useState(false);
   const id = useId();
+
+  function test() {
+    window.open(value.trim(), "_blank", "noopener,noreferrer");
+    setTested(true);
+  }
+
   return (
     <div className="field" style={{ marginBottom: 4 }}>
       <label htmlFor={id}>LINK APP</label>
@@ -54,7 +68,10 @@ export function LinkAppField({ defaultValue }: { defaultValue?: string }) {
           className="input"
           name="linked_app_url"
           value={value}
-          onChange={(e) => setValue(e.target.value)}
+          onChange={(e) => {
+            setValue(e.target.value);
+            setTested(false);
+          }}
           placeholder="gcash:// or https://…"
           style={{ minHeight: 42, flex: 1 }}
         />
@@ -63,11 +80,24 @@ export function LinkAppField({ defaultValue }: { defaultValue?: string }) {
           className="btn btn-secondary"
           disabled={!value.trim()}
           style={{ minHeight: 42, fontSize: 12.5, padding: "0 12px", whiteSpace: "nowrap" }}
-          onClick={() => window.open(value.trim(), "_blank", "noopener,noreferrer")}
+          onClick={test}
         >
           TEST
         </button>
       </div>
+      {/* A blank tab after TEST reads as broken. On a phone it usually means
+          the link was wrong; on a computer it is expected every time -- GCash
+          and most linked apps only exist on a phone, so there is nothing here
+          to catch the link. Telling them apart is the only way TEST's result
+          means anything rather than just adding a second confusing blank tab
+          next to the one it opened. */}
+      {tested && !looksLikePhone() && (
+        <p style={{ fontSize: 12.5, color: "var(--color-accent-700)", margin: "6px 0 0" }}>
+          That likely opened a blank tab — this is a computer, and GCash (or whatever you linked) isn&rsquo;t
+          installed here to catch the link. Open Kin on your phone and try TEST there to see it actually launch
+          the app.
+        </p>
+      )}
       <p style={{ fontSize: 12.5, color: "var(--color-neutral-600)", margin: "6px 0 0" }}>
         The app&rsquo;s own link, not its website — that opens the app itself, not a browser tab. TEST tries
         whatever&rsquo;s typed above immediately, right here, so you can check it actually opens the app on this
