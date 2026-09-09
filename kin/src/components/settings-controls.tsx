@@ -10,6 +10,7 @@ import { useState } from "react";
 import { CopyInviteCode } from "@/components/copy-invite-code";
 import { Blueprint } from "@/components/ui";
 import { NOTIFICATION_DEFS } from "@/lib/notifications";
+import { CURRENCIES, DATE_FORMATS, WEEK_STARTS } from "@/lib/household-prefs";
 import { familyDateTime } from "@/lib/time";
 import { COUNTRIES } from "@/lib/countries";
 
@@ -212,18 +213,30 @@ export function HouseholdPrefsForm({
   return (
     <div style={{ marginBottom: 20 }}>
       <div style={{ display: "flex", gap: 8, marginBottom: 8, flexWrap: "wrap" }}>
-        <select className="input" value={c} onChange={(e) => setC(e.target.value)} style={{ minHeight: 40, flex: 1 }}>
-          <option value="PHP">PHP ₱</option>
-          <option value="USD">USD $</option>
-          <option value="EUR">EUR €</option>
+        {/* Rendered from the same lists the action validates against, so the
+            two cannot drift apart -- an option added here and nowhere else
+            would be refused on save, and one added there and not here would
+            widen what the endpoint accepts with nothing on screen saying so. */}
+        <select aria-label="Currency" className="input" value={c} onChange={(e) => setC(e.target.value)} style={{ minHeight: 40, flex: 1 }}>
+          {CURRENCIES.map((cur) => (
+            <option key={cur.code} value={cur.code}>
+              {cur.label}
+            </option>
+          ))}
         </select>
-        <select className="input" value={d} onChange={(e) => setD(e.target.value)} style={{ minHeight: 40, flex: 1 }}>
-          <option value="DD/MM/YYYY">DD/MM/YYYY</option>
-          <option value="MM/DD/YYYY">MM/DD/YYYY</option>
+        <select aria-label="Date format" className="input" value={d} onChange={(e) => setD(e.target.value)} style={{ minHeight: 40, flex: 1 }}>
+          {DATE_FORMATS.map((f) => (
+            <option key={f} value={f}>
+              {f}
+            </option>
+          ))}
         </select>
-        <select className="input" value={w} onChange={(e) => setW(e.target.value)} style={{ minHeight: 40, flex: 1 }}>
-          <option value="monday">Mon start</option>
-          <option value="sunday">Sun start</option>
+        <select aria-label="Week start" className="input" value={w} onChange={(e) => setW(e.target.value)} style={{ minHeight: 40, flex: 1 }}>
+          {WEEK_STARTS.map((ws) => (
+            <option key={ws.value} value={ws.value}>
+              {ws.label}
+            </option>
+          ))}
         </select>
       </div>
       {/* Where the household is, not where a phone currently happens to be

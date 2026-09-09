@@ -8,6 +8,7 @@ import type { ActionState } from "@/lib/actions/auth";
 import { isNotificationKey } from "@/lib/notifications";
 import { humanDatabaseError } from "@/lib/db-errors";
 import { isCountryCode } from "@/lib/countries";
+import { isCurrencyCode, isDateFormat, isWeekStart } from "@/lib/household-prefs";
 
 export async function setThemeAction(theme: "light" | "dark" | "system"): Promise<ActionState> {
   const me = await requireCurrentMember();
@@ -77,10 +78,21 @@ export async function updateHouseholdPrefsAction(
 ): Promise<ActionState> {
   const me = await requireCurrentMember();
   if (!me.is_organiser) return { error: "Only the organizer can change household preferences." };
-  // The select only ever offers a fixed list -- same reasoning as
+  // Each select only ever offers a fixed list -- same reasoning as
   // account_type's server-side check: a form field is a request, not a
-  // fact. Blank is allowed (a household that skipped it at setup can leave
-  // it unset), an unrecognized value is not.
+  // fact. Only `country` was checked, and the other three went straight
+  // through: none of them has a CHECK constraint behind it, so a
+  // 2,000-character "currency" was accepted and then prefixed to every
+  // amount in the household, on every screen, for everybody. Date format
+  // and week start failed more quietly -- an unrecognised value falls back
+  // to a default, so the save reported success and the household kept being
+  // shown a preference it had not chosen.
+  if (!isCurrencyCode(currency)) return { error: "That isn't a currency we offer." };
+  if (!isDateFormat(dateFormat)) return { error: "That isn't a date format we offer." };
+  if (!isWeekStart(weekStart)) return { error: "A week starts on a Monday or a Sunday." };
+  // Blank is allowed here and only here: a household that skipped country at
+  // setup can leave it unset, and everything that reads it treats null as
+  // "not stated". An unrecognized value is still refused.
   if (country && !isCountryCode(country)) return { error: "That isn't a country we recognize." };
 
   const supabase = await createClient();

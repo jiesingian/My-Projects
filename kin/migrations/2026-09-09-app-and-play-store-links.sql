@@ -1,5 +1,5 @@
--- NOT YET APPLIED. Jonathan runs this; nothing here has been run against the
--- database. Read "How to run it" at the foot before you start.
+-- APPLIED 9 September, on Jonathan's instruction, and verified after: both
+-- columns exist, both text, both nullable.
 --
 -- App Store and Play Store links, alongside the app's own link
 -- ================================================================

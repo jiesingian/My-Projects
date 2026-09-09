@@ -1,5 +1,11 @@
--- NOT YET APPLIED. Jonathan runs this; nothing here has been run against the
--- database. Read "How to run it" at the foot before you start.
+-- APPLIED 9 September, on Jonathan's instruction. STEP 0's widening was run
+-- first, as this file insists; the table and its four policies followed, and
+-- RLS was confirmed on afterwards.
+--
+-- It left one thing wrong that this file did not anticipate: every foreign
+-- key here was written without an ON DELETE clause, so all of them came out
+-- NO ACTION where bills' are CASCADE and SET NULL. See
+-- 2026-09-09-income-schedules-cascades.sql, which repairs it.
 --
 -- Income schedules: the other half of the ledger
 -- ================================================
