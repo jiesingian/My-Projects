@@ -19,6 +19,7 @@ import {
   type RoutineRule,
 } from "@/lib/routines";
 import { humanDatabaseError } from "@/lib/db-errors";
+import { clamp } from "@/lib/text";
 
 /** A refusal names the field it is about, so the form can point at it
  * rather than leaving a message stranded at the top of a long page. */
@@ -82,7 +83,7 @@ async function syncRoutine(familyId: string, routineId: string) {
 }
 
 function readForm(formData: FormData) {
-  const title = String(formData.get("title") ?? "").trim();
+  const title = clamp(String(formData.get("title") ?? ""), 150);
   const kind = String(formData.get("kind") ?? "other");
   const freq = String(formData.get("freq") ?? "weekly");
   const repeatInterval = Number(formData.get("repeat_interval") ?? 1);
@@ -107,13 +108,13 @@ function readForm(formData: FormData) {
     time_of_day: timeOfDay || null,
     duration_minutes: durationRaw ? Number(durationRaw) : null,
     reminder_minutes: reminderRaw === "" ? null : Number(reminderRaw),
-    location: String(formData.get("location") ?? "").trim() || null,
-    notes: String(formData.get("notes") ?? "").trim() || null,
+    location: clamp(String(formData.get("location") ?? ""), 200) || null,
+    notes: clamp(String(formData.get("notes") ?? ""), 1000) || null,
     applies_to_whole_family: formData.get("whole_family") === "on",
     rotate_assignee: formData.get("rotate") === "on",
     expected_cost: costRaw ? Number(costRaw) : null,
     cost_account_id: String(formData.get("cost_account_id") ?? "") || null,
-    expense_category: String(formData.get("expense_category") ?? "").trim() || null,
+    expense_category: clamp(String(formData.get("expense_category") ?? ""), 50) || null,
     members: formData.getAll("members").map(String).filter(Boolean),
   };
 }
