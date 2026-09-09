@@ -66,6 +66,10 @@ type Swept = { table: string; column: string; ledger?: true; calendar?: string }
 
 const SWEPT: Swept[] = [
   { table: "activities", column: "title", calendar: "activities" },
+  // `what` rather than `title` -- health_schedule names the thing that is due,
+  // not the row. Worth the special case: regressions.spec makes one of these
+  // per run to prove a due item reaches the Today briefing.
+  { table: "health_schedule", column: "what", calendar: "health_schedule" },
   { table: "journal_entries", column: "title" },
   { table: "milestones", column: "title" },
   { table: "goals", column: "title", ledger: true, calendar: "goals" },

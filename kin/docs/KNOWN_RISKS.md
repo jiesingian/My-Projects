@@ -11,7 +11,7 @@ place for those.
 
 ---
 
-## The seeded fixtures age out on Monday 14 September
+## The seeded fixtures aged out on Monday 14 September — CLOSED 9 September
 
 `regressions.spec` is the one spec that does not make what it looks for. It
 asserts against content seeded by hand into the throwaway household — a health
@@ -28,10 +28,29 @@ worst kind of red — it looks exactly like a regression and is not one.
 It was measured rather than assumed: 7 September 2026 is a Monday, 9 September
 (when this was found) a Wednesday, and 14 September the following Monday.
 
-Not fixed here because the fix is a change to the spec rather than to the
-seed: it should create its fixtures at a date it chooses, the way `writes.spec`
-and every spec written since do, and then assert against them. Re-seeding by
-hand each week is the same trap with a longer fuse.
+**Fixed the same day.** `regressions.spec` now makes its own fixtures in a
+`beforeAll`, anchored to today in the household's own zone, and sweeps them
+afterwards like every spec written since. Re-seeding by hand each week would
+have been the same trap with a longer fuse.
+
+Two things fell out of doing it, both worth keeping:
+
+- **The times are now distinctive minutes** — 07:37 and 17:43 rather than 07:30
+  and 17:30. The bug being guarded against reads a Manila wall-clock time as
+  UTC, so 07:37 comes out as 23:37 the previous day; a minute nothing else uses
+  makes both halves provable from the page text alone, and stops some other
+  fixture's 07:30 satisfying the assertion by accident.
+- **Two of the assertions were vacuous and nobody could have known.** The
+  Planner writes 24-hour times and Today writes 12-hour ones with no leading
+  zero — `17:43` against `5:43 PM`. The Today test was looking for a 24-hour
+  string on a page that never emits one, so it could not have failed however
+  wrong the clock had gone. Both forms are spelled out now, and each test
+  asserts the right time is present as well as the wrong one absent: a bare
+  "the wrong time is not here" is satisfied by an empty page, which is exactly
+  how it would have kept passing once its fixture aged out.
+
+Verified by removing the seeding and watching the three fixture-dependent
+tests fail, then restoring it.
 
 ---
 
