@@ -61,6 +61,45 @@ export function familyMidnight(day: string, tz: string = FAMILY_TZ): Date | null
   return new Date(asUtc - offsetMs);
 }
 
+/** A household date and a wall-clock time, as one real instant.
+ *
+ * The timed counterpart to familyMidnight, and it exists because the assistant
+ * was building these by hand:
+ *
+ *     new Date(`${date}T${from}`).toISOString()
+ *
+ * which fails in two different ways on arguments a language model writes from
+ * what somebody typed. Measured 9 September:
+ *
+ *   "2026-09-15" + "25:00"     -> RangeError, thrown out of the tool
+ *   "next Tuesday" + "19:00"   -> RangeError
+ *   "2026-09-15" + "evening"   -> RangeError
+ *   "2026-09-31" + "19:00"     -> 1 October, silently, no error at all
+ *
+ * The last is the worse one. Somebody asks for the 31st of a thirty-day month
+ * -- which people do -- and the appointment is quietly made on a different
+ * day than the one they said.
+ *
+ * So: both halves are validated before anything is constructed, the time must
+ * be a real HH:MM (with optional seconds), and the zone is stated rather than
+ * inherited from whatever TZ the process happens to run under. Returns null
+ * for anything that is not exactly what it claims to be, which the callers
+ * turn into "I could not read that date" rather than a crash. */
+export function familyInstant(day: string, time: string, tz: string = FAMILY_TZ): Date | null {
+  const midnight = familyMidnight(day, tz);
+  if (!midnight) return null;
+
+  const m = /^(\d{2}):(\d{2})(?::(\d{2}))?$/.exec(time.trim());
+  if (!m) return null;
+  const hours = Number(m[1]), minutes = Number(m[2]), seconds = Number(m[3] ?? "0");
+  if (hours > 23 || minutes > 59 || seconds > 59) return null;
+
+  // Midnight in the household's zone is already the right instant to count
+  // from, so the time of day is simple arithmetic on top of it. Doing it this
+  // way means a zone whose offset is not a whole hour needs no special case.
+  return new Date(midnight.getTime() + ((hours * 60 + minutes) * 60 + seconds) * 1000);
+}
+
 /** Day arithmetic on a plain date, with no clock involved at all.
  *
  * The zone-free counterpart to familyMidnight: where a real instant is not
@@ -95,7 +134,7 @@ export function daysBetween(from: string, to: string): number | null {
   return Math.round((b.getTime() - a.getTime()) / 86_400_000);
 }
 
-/** A plain YYYY-MM-DD as the UTC instant that names it, or null./** A plain YYYY-MM-DD as the UTC instant that names it, or null.
+/** A plain YYYY-MM-DD as the UTC instant that names it, or null.
  *
  * The validation is the point, and it has to be a round trip rather than a
  * regex: "2026-09-31" matches the pattern, and both `Date.UTC(2026, 8, 31)`

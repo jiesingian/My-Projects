@@ -6,6 +6,7 @@ import { createClient } from "@/lib/supabase/server";
 import { requireCurrentMember } from "@/lib/session";
 import type { ActionState } from "@/lib/actions/auth";
 import { isNotificationKey } from "@/lib/notifications";
+import { humanDatabaseError } from "@/lib/db-errors";
 
 export async function setThemeAction(theme: "light" | "dark" | "system"): Promise<ActionState> {
   const me = await requireCurrentMember();
@@ -64,7 +65,7 @@ export async function updateHouseholdNameAction(name: string): Promise<ActionSta
   const { error } = await supabase.from("families").update({ name: trimmed }).eq("id", me.family_id);
   revalidatePath("/settings");
   revalidatePath("/today");
-  return { error: error?.message ?? null };
+  return { error: error ? humanDatabaseError(error.message) : null };
 }
 
 export async function updateHouseholdPrefsAction(currency: string, dateFormat: string, weekStart: string): Promise<ActionState> {
@@ -76,5 +77,5 @@ export async function updateHouseholdPrefsAction(currency: string, dateFormat: s
   // taken from the session rather than accepted as an argument.
   const { error } = await supabase.from("families").update({ currency, date_format: dateFormat, week_start: weekStart }).eq("id", me.family_id);
   revalidatePath("/settings");
-  return { error: error?.message ?? null };
+  return { error: error ? humanDatabaseError(error.message) : null };
 }

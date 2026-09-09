@@ -4,7 +4,7 @@ import { syncRowToCalendars, type CalendarTarget } from "@/lib/actions/calendar-
 import { EXPENSE_CATEGORIES, INCOME_SOURCES, signedAmount } from "@/lib/wealth";
 import { MARKET_SECTIONS, UNITS, guessSection, formatQuantity } from "@/lib/grocery";
 import type { CurrentMember } from "@/lib/session";
-import { familyDay, addDays, familyMidnight } from "@/lib/time";
+import { familyDay, addDays, familyMidnight, familyInstant } from "@/lib/time";
 import { allDayEvent } from "@/lib/calendar-shape";
 
 /** Every tool the Today assistant can reach. Each one is scoped to the
@@ -448,13 +448,27 @@ export async function runAssistantTool(name: string, rawInput: unknown, me: Curr
         return fail(`Nobody in the household matches ${names.join(", ")}. Members are: ${members.map((m) => m.full_name).join(", ")}.`);
       }
 
+      // A model writes these from whatever somebody typed, so neither half can
+      // be trusted to be what it claims. Built by hand this threw a RangeError
+      // on "25:00", "evening" or "next Tuesday" -- straight out of the tool --
+      // and, worse, quietly moved "2026-09-31" to 1 October. Somebody asking
+      // for the 31st of a thirty-day month got an appointment on a different
+      // day than the one they said, with nothing to tell them.
+      const startAt = familyInstant(date, from);
+      const endAt = to ? familyInstant(date, to) : null;
+      if (!startAt) return fail(`I could not read "${date} ${from}" as a date and time. Give me the date as YYYY-MM-DD and the time as HH:MM.`);
+      if (to && !endAt) return fail(`I could not read "${to}" as an end time. Give it as HH:MM, like 17:30.`);
+      if (endAt && endAt.getTime() < startAt.getTime()) {
+        return fail(`That would end before it starts. Check the times: ${from} to ${to}.`);
+      }
+
       const { data: activity, error } = await supabase
         .from("activities")
         .insert({
           family_id: familyId,
           title,
-          start_at: new Date(`${date}T${from}`).toISOString(),
-          end_at: to ? new Date(`${date}T${to}`).toISOString() : null,
+          start_at: startAt.toISOString(),
+          end_at: endAt ? endAt.toISOString() : null,
           location: str(input, "location"),
           notes: str(input, "notes"),
           applies_to_whole_family: wholeFamily,
@@ -472,7 +486,7 @@ export async function runAssistantTool(name: string, rawInput: unknown, me: Curr
         familyId,
         "activities",
         activity.id,
-        { title, startAt: new Date(`${date}T${from}`), endAt: to ? new Date(`${date}T${to}`) : null, location: str(input, "location") },
+        { title, startAt, endAt, location: str(input, "location") },
         wholeFamily ? { kind: "all" } : { kind: "members", memberIds },
       );
 
@@ -695,7 +709,15 @@ export async function runAssistantTool(name: string, rawInput: unknown, me: Curr
         return fail(`No account called "${accountName}". Available: ${usable.map((a) => a.name).join(", ") || "none yet"}.`);
       }
 
+      // Midday, so the entry sits on the day it was meant for however it is
+      // read back. Refused rather than guessed when the date is not one:
+      // built by hand this threw on "yesterday" and silently moved
+      // "2026-09-31" into October, which on a ledger is somebody's money
+      // recorded in the wrong month.
       const occurredOn = str(input, "date");
+      const occurredAt = occurredOn ? familyInstant(occurredOn, "12:00") : new Date();
+      if (!occurredAt) return fail(`I could not read "${occurredOn}" as a date. Give it as YYYY-MM-DD.`);
+
       const { error } = await supabase.from("wealth_transactions").insert({
         family_id: familyId,
         account_id: account.id,
@@ -703,7 +725,7 @@ export async function runAssistantTool(name: string, rawInput: unknown, me: Curr
         amount,
         particulars,
         category: str(input, "category"),
-        occurred_at: occurredOn ? new Date(`${occurredOn}T12:00:00`).toISOString() : new Date().toISOString(),
+        occurred_at: occurredAt.toISOString(),
         status: "confirmed",
         recorded_by: me.id,
       });

@@ -7,6 +7,7 @@ import { getValidDriveAccessToken, deleteDriveFile } from "@/lib/google-drive";
 import { syncRowToCalendars } from "@/lib/actions/calendar-sync";
 import { allDayEvent } from "@/lib/calendar-shape";
 import { explainVisibilityRefusal } from "@/lib/visibility";
+import { humanDatabaseError } from "@/lib/db-errors";
 
 type UploadedFile =
   | { provider: "google_drive"; driveFileId: string; driveViewLink: string | null; driveThumbnailLink: string | null }
@@ -149,7 +150,7 @@ export async function deleteDocFileAction(fileId: string, folderId: string): Pro
   }
 
   const { error } = await supabase.from("doc_files").delete().eq("id", fileId);
-  if (error) return { error: error.message };
+  if (error) return { error: humanDatabaseError(error.message) };
 
   revalidatePath(`/family/documents/${folderId}`);
   return { error: null };

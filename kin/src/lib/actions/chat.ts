@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { requireCurrentMember } from "@/lib/session";
 import type { ActionState } from "@/lib/actions/auth";
+import { humanDatabaseError } from "@/lib/db-errors";
 
 const MAX_LENGTH = 4000;
 
@@ -27,7 +28,7 @@ export async function sendMessageAction(input: { body: string; mentions?: string
     .insert({ family_id: me.family_id, member_id: me.id, body, mentions })
     .select("id")
     .single();
-  if (error || !data) return { error: error?.message ?? "That didn't send." };
+  if (error || !data) return { error: error ? humanDatabaseError(error.message) : "That didn't send." };
 
   // Sending is reading: the thread should not come back with your own words
   // waiting to be read.
@@ -49,7 +50,7 @@ export async function deleteMessageAction(messageId: string): Promise<ActionStat
     .eq("id", messageId)
     .eq("family_id", me.family_id)
     .eq("member_id", me.id);
-  if (error) return { error: error.message };
+  if (error) return { error: humanDatabaseError(error.message) };
 
   revalidatePath("/chat");
   return { error: null };
@@ -70,7 +71,7 @@ export async function editMessageAction(messageId: string, body: string): Promis
     .eq("family_id", me.family_id)
     .eq("member_id", me.id)
     .is("deleted_at", null);
-  if (error) return { error: error.message };
+  if (error) return { error: humanDatabaseError(error.message) };
 
   revalidatePath("/chat");
   return { error: null };
@@ -84,12 +85,12 @@ export async function reactToMessageAction(messageId: string, emoji: string | nu
 
   if (!emoji) {
     const { error } = await supabase.from("family_message_reactions").delete().eq("message_id", messageId).eq("member_id", me.id);
-    if (error) return { error: error.message };
+    if (error) return { error: humanDatabaseError(error.message) };
   } else {
     const { error } = await supabase
       .from("family_message_reactions")
       .upsert({ message_id: messageId, member_id: me.id, family_id: me.family_id, emoji }, { onConflict: "message_id,member_id" });
-    if (error) return { error: error.message };
+    if (error) return { error: humanDatabaseError(error.message) };
   }
 
   revalidatePath("/chat");
@@ -104,6 +105,6 @@ export async function markChatReadAction(): Promise<ActionState> {
   const { error } = await supabase
     .from("family_message_reads")
     .upsert({ member_id: me.id, family_id: me.family_id, last_read_at: new Date().toISOString() }, { onConflict: "member_id" });
-  if (error) return { error: error.message };
+  if (error) return { error: humanDatabaseError(error.message) };
   return { error: null };
 }

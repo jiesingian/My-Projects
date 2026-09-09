@@ -21,6 +21,7 @@ import type { ActionState } from "@/lib/actions/auth";
 import type { TablesInsert } from "@/lib/database.types";
 import { allDayEvent } from "@/lib/calendar-shape";
 import { familyDay, weekdayOf, addDays } from "@/lib/time";
+import { humanDatabaseError } from "@/lib/db-errors";
 
 export async function addBuyItemAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
   const me = await requireCurrentMember();
@@ -44,7 +45,7 @@ export async function addBuyItemAction(_prev: ActionState, formData: FormData): 
     source,
     created_by: me.id,
   });
-  if (error) return { error: error.message };
+  if (error) return { error: humanDatabaseError(error.message) };
   revalidatePath("/household");
   return { error: null };
 }
@@ -67,7 +68,7 @@ export async function updateBuyItemAction(
     })
     .eq("id", itemId)
     .eq("family_id", me.family_id);
-  if (error) return { error: error.message };
+  if (error) return { error: humanDatabaseError(error.message) };
 
   revalidatePath("/household");
   return { error: null };
@@ -77,7 +78,7 @@ export async function removeBuyItemAction(itemId: string): Promise<ActionState> 
   const me = await requireCurrentMember();
   const supabase = await createClient();
   const { error } = await supabase.from("buy_items").delete().eq("id", itemId).eq("family_id", me.family_id);
-  if (error) return { error: error.message };
+  if (error) return { error: humanDatabaseError(error.message) };
   revalidatePath("/household");
   return { error: null };
 }
@@ -130,7 +131,7 @@ export async function addMealPlanAction(_prev: ActionState, formData: FormData):
     .insert({ family_id: me.family_id, plan_date: date, slot, dish, note, created_by: me.id })
     .select()
     .single();
-  if (error) return { error: error.message };
+  if (error) return { error: humanDatabaseError(error.message) };
 
   if (ingredients.length > 0) {
     // These are what the grocery list is generated from. A meal saved without
@@ -259,7 +260,7 @@ export async function setItemPriceAction(input: {
     },
     { onConflict: "family_id,item_key" },
   );
-  if (error) return { error: error.message };
+  if (error) return { error: humanDatabaseError(error.message) };
 
   revalidatePath("/household");
   return { error: null };
@@ -270,7 +271,7 @@ export async function resetItemPriceAction(itemKey: string): Promise<ActionState
   const me = await requireCurrentMember();
   const supabase = await createClient();
   const { error } = await supabase.from("price_list").delete().eq("family_id", me.family_id).eq("item_key", itemKey);
-  if (error) return { error: error.message };
+  if (error) return { error: humanDatabaseError(error.message) };
   revalidatePath("/household");
   return { error: null };
 }
@@ -285,7 +286,7 @@ export async function setBuyItemPriceAction(itemId: string, unitPrice: number | 
     .update({ unit_price_override: unitPrice })
     .eq("id", itemId)
     .eq("family_id", me.family_id);
-  if (error) return { error: error.message };
+  if (error) return { error: humanDatabaseError(error.message) };
   revalidatePath("/household");
   return { error: null };
 }
@@ -307,7 +308,7 @@ export async function setPantryItemAction(input: { name: string; quantity?: numb
     },
     { onConflict: "family_id,item_key" },
   );
-  if (error) return { error: error.message };
+  if (error) return { error: humanDatabaseError(error.message) };
   revalidatePath("/household");
   return { error: null };
 }
@@ -316,7 +317,7 @@ export async function removePantryItemAction(itemKey: string): Promise<ActionSta
   const me = await requireCurrentMember();
   const supabase = await createClient();
   const { error } = await supabase.from("pantry_items").delete().eq("family_id", me.family_id).eq("item_key", itemKey);
-  if (error) return { error: error.message };
+  if (error) return { error: humanDatabaseError(error.message) };
   revalidatePath("/household");
   return { error: null };
 }
@@ -361,7 +362,7 @@ export async function addMealFromRecipeAction(input: {
     })
     .select()
     .single();
-  if (error || !plan) return { error: error?.message ?? "Could not save the meal." };
+  if (error || !plan) return { error: error ? humanDatabaseError(error.message) : "Could not save the meal." };
 
   if (recipe) {
     const { error: ingredientError } = await supabase.from("meal_ingredients").insert(
@@ -397,7 +398,7 @@ export async function removeMealAction(mealId: string): Promise<ActionState> {
   const supabase = await createClient();
   await removeRowFromCalendars(me.family_id, "meal_plans", mealId);
   const { error } = await supabase.from("meal_plans").delete().eq("id", mealId).eq("family_id", me.family_id);
-  if (error) return { error: error.message };
+  if (error) return { error: humanDatabaseError(error.message) };
   revalidatePath("/household");
   revalidatePath("/planner");
   return { error: null };
@@ -475,7 +476,7 @@ export async function saveRecipeAction(input: {
   let recipeId = input.id ?? null;
   if (recipeId) {
     const { error } = await supabase.from("family_recipes").update(row).eq("id", recipeId).eq("family_id", me.family_id);
-    if (error) return { error: error.message };
+    if (error) return { error: humanDatabaseError(error.message) };
   } else {
     // Editing a shipped recipe twice should update the same row, not make a
     // second one claiming the same base.
@@ -484,7 +485,7 @@ export async function saveRecipeAction(input: {
       .upsert({ ...row, created_by: me.id }, { onConflict: "family_id,base_key" })
       .select("id")
       .single();
-    if (error || !data) return { error: error?.message ?? "Could not save the recipe." };
+    if (error || !data) return { error: error ? humanDatabaseError(error.message) : "Could not save the recipe." };
     recipeId = data.id;
   }
 
@@ -527,14 +528,14 @@ export async function setShoppingDayAction(input: {
   let id = input.id ?? null;
   if (id) {
     const { error } = await supabase.from("activities").update(row).eq("id", id).eq("family_id", me.family_id);
-    if (error) return { error: error.message };
+    if (error) return { error: humanDatabaseError(error.message) };
   } else {
     const { data, error } = await supabase
       .from("activities")
       .insert({ ...row, created_by: me.id })
       .select("id")
       .single();
-    if (error || !data) return { error: error?.message ?? "Could not save the shopping day." };
+    if (error || !data) return { error: error ? humanDatabaseError(error.message) : "Could not save the shopping day." };
     id = data.id;
   }
 
@@ -573,7 +574,7 @@ export async function moveShoppingRunAction(input: {
     },
     { onConflict: "routine_id,occurrence_date" },
   );
-  if (error) return { error: error.message };
+  if (error) return { error: humanDatabaseError(error.message) };
 
   const booked = await setShoppingDayAction({ date: input.date, time: input.time, title: input.title, budget: input.budget });
   if (booked.error) return booked;
@@ -590,7 +591,7 @@ export async function clearShoppingDayAction(id: string): Promise<ActionState> {
 
   await removeRowFromCalendars(me.family_id, "activities", id);
   const { error } = await supabase.from("activities").delete().eq("id", id).eq("family_id", me.family_id).eq("kind", "shopping");
-  if (error) return { error: error.message };
+  if (error) return { error: humanDatabaseError(error.message) };
 
   revalidatePath("/household");
   revalidatePath("/planner");
@@ -621,7 +622,7 @@ export async function addRecipeCategoryAction(label: string): Promise<ActionStat
     // Its glaze follows the order they were made, so two in a row never come
     // out the same colour.
     .upsert({ family_id: me.family_id, key, label: clean, plate: (count ?? 0) % 6, created_by: me.id }, { onConflict: "family_id,key" });
-  if (error) return { error: error.message };
+  if (error) return { error: humanDatabaseError(error.message) };
 
   revalidatePath("/household");
   return { error: null };
@@ -633,7 +634,7 @@ export async function removeRecipeCategoryAction(key: string): Promise<ActionSta
   const supabase = await createClient();
 
   const { error } = await supabase.from("family_recipe_categories").delete().eq("family_id", me.family_id).eq("key", key);
-  if (error) return { error: error.message };
+  if (error) return { error: humanDatabaseError(error.message) };
 
   // Leaving the key on the recipes would file them under something that no
   // longer exists.
@@ -662,7 +663,7 @@ export async function deleteRecipeAction(recipeId: string): Promise<ActionState>
   const me = await requireCurrentMember();
   const supabase = await createClient();
   const { error } = await supabase.from("family_recipes").delete().eq("id", recipeId).eq("family_id", me.family_id);
-  if (error) return { error: error.message };
+  if (error) return { error: humanDatabaseError(error.message) };
   revalidatePath("/household");
   return { error: null };
 }
@@ -708,7 +709,7 @@ export async function addMealIngredientsToBuyAction(mealId: string): Promise<Act
 
   if (rows.length > 0) {
     const { error } = await supabase.from("buy_items").insert(rows);
-    if (error) return { error: error.message };
+    if (error) return { error: humanDatabaseError(error.message) };
   }
 
   revalidatePath("/household");
@@ -740,7 +741,7 @@ export async function setMealIngredientAction(input: {
     })
     .eq("id", input.ingredientId)
     .eq("family_id", me.family_id);
-  if (error) return { error: error.message };
+  if (error) return { error: humanDatabaseError(error.message) };
 
   revalidatePath("/household");
   return { error: null };
@@ -751,7 +752,7 @@ export async function removeMealIngredientAction(ingredientId: string): Promise<
   const me = await requireCurrentMember();
   const supabase = await createClient();
   const { error } = await supabase.from("meal_ingredients").delete().eq("id", ingredientId).eq("family_id", me.family_id);
-  if (error) return { error: error.message };
+  if (error) return { error: humanDatabaseError(error.message) };
   revalidatePath("/household");
   return { error: null };
 }
@@ -777,7 +778,7 @@ export async function addMealIngredientAction(input: { mealId: string; name: str
     unit,
     qty: amount == null ? unit : `${amount}${unit ? ` ${unit}` : ""}`,
   });
-  if (error) return { error: error.message };
+  if (error) return { error: humanDatabaseError(error.message) };
 
   revalidatePath("/household");
   return { error: null };
@@ -810,7 +811,7 @@ export async function setRecipePhotoAction(recipeRef: string, storagePath: strin
       { family_id: me.family_id, recipe_ref: recipeRef, storage_path: storagePath, created_by: me.id },
       { onConflict: "family_id,recipe_ref" },
     );
-  if (error) return { error: error.message };
+  if (error) return { error: humanDatabaseError(error.message) };
 
   // The one it replaced is nobody's now.
   if (old?.storage_path && old.storage_path !== storagePath) {
@@ -837,7 +838,7 @@ export async function removeRecipePhotoAction(recipeRef: string): Promise<Action
   if (photoError) console.error(`Could not read the photo on recipe ${recipeRef} before removing it; its file is now orphaned in storage`, photoError.message);
 
   const { error } = await supabase.from("recipe_photos").delete().eq("family_id", me.family_id).eq("recipe_ref", recipeRef);
-  if (error) return { error: error.message };
+  if (error) return { error: humanDatabaseError(error.message) };
   if (photo?.storage_path) await supabase.storage.from(RECIPE_PHOTO_BUCKET).remove([photo.storage_path]);
 
   revalidatePath("/household");
@@ -854,10 +855,10 @@ export async function toggleIngredientAtHomeAction(name: string, atHome: boolean
     const { error } = await supabase
       .from("pantry_items")
       .upsert({ family_id: me.family_id, item_key: key, name: name.trim(), updated_by: me.id, updated_at: new Date().toISOString() }, { onConflict: "family_id,item_key" });
-    if (error) return { error: error.message };
+    if (error) return { error: humanDatabaseError(error.message) };
   } else {
     const { error } = await supabase.from("pantry_items").delete().eq("family_id", me.family_id).eq("item_key", key);
-    if (error) return { error: error.message };
+    if (error) return { error: humanDatabaseError(error.message) };
   }
 
   revalidatePath("/household");

@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/server";
 import { requireCurrentMember } from "@/lib/session";
 import { getValidDriveAccessToken, deleteDriveFile, ensureDriveFolderStructure, ensureNamedSubfolder } from "@/lib/google-drive";
 import { familyDay } from "@/lib/time";
+import { humanDatabaseError } from "@/lib/db-errors";
 
 type UploadedFile =
   | { provider: "google_drive"; driveFileId: string; driveViewLink: string | null; driveThumbnailLink: string | null }
@@ -27,7 +28,7 @@ export async function createJournalEntryAction(input: {
     .insert({ family_id: me.family_id, entry_date: input.date, title, note: input.note, source: "manual", created_by: me.id })
     .select()
     .single();
-  if (error) return { error: error.message };
+  if (error) return { error: humanDatabaseError(error.message) };
 
   if (input.people.length > 0) {
     const { error: peopleError } = await supabase
@@ -59,7 +60,7 @@ export async function updateJournalEntryAction(input: {
     .eq("family_id", me.family_id)
     .select()
     .maybeSingle();
-  if (error) return { error: error.message };
+  if (error) return { error: humanDatabaseError(error.message) };
   if (!entry) return { error: "Entry not found." };
 
   const { data: existing, error: peopleReadError } = await supabase
@@ -130,7 +131,7 @@ export async function attachJournalMediaAction(input: {
     )
     .select()
     .single();
-  if (error) return { error: error.message };
+  if (error) return { error: humanDatabaseError(error.message) };
 
   // The file is already uploaded and the media row already written; this is
   // the row that ties it to the entry. Losing it silently leaves the photo
@@ -187,7 +188,7 @@ export async function deleteJournalMediaAction(mediaId: string): Promise<{ error
   }
 
   const { error } = await supabase.from("journal_media").delete().eq("id", mediaId);
-  if (error) return { error: error.message };
+  if (error) return { error: humanDatabaseError(error.message) };
 
   revalidatePath("/journal");
   return { error: null };
@@ -209,7 +210,7 @@ export async function createMilestoneAction(_prev: { error: string | null }, for
     title,
     created_by: me.id,
   });
-  if (error) return { error: error.message };
+  if (error) return { error: humanDatabaseError(error.message) };
 
   revalidatePath("/journal");
   return { error: null };

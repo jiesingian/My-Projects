@@ -11,6 +11,7 @@ import type { ActionState } from "@/lib/actions/auth";
 import type { ProfileFields } from "@/lib/profile-fields";
 import type { UploadedFile } from "@/lib/upload-client";
 import type { TablesInsert } from "@/lib/database.types";
+import { humanDatabaseError } from "@/lib/db-errors";
 
 // Server Action files may only export async functions, so the ProfileFields
 // type and the memberToProfileFields helper (a plain sync function) live in
@@ -29,7 +30,7 @@ export async function updateOwnProfileAction(fields: ProfileFields): Promise<Act
   const { error } = await supabase.from("members").update({ ...fields, full_name: fullName }).eq("id", me.id);
   revalidatePath("/settings");
   revalidatePath("/family");
-  return { error: error?.message ?? null };
+  return { error: error ? humanDatabaseError(error.message) : null };
 }
 
 /** Lets the organizer edit another member's profile fields — covered by
@@ -43,7 +44,7 @@ export async function updateMemberProfileAction(memberId: string, fields: Profil
   const supabase = await createClient();
   const { error } = await supabase.from("members").update({ ...fields, full_name: fullName }).eq("id", memberId);
   revalidatePath("/family");
-  return { error: error?.message ?? null };
+  return { error: error ? humanDatabaseError(error.message) : null };
 }
 
 export type AlbumPhoto = { id: string; url: string };
@@ -71,7 +72,7 @@ export async function addAvatarToAlbumAction(uploaded: UploadedFile): Promise<Ac
   const { error } = await supabase.from("members").update({ avatar_url: resolvePhotoUrl(supabase, row) }).eq("id", me.id);
   revalidatePath("/settings");
   revalidatePath("/family");
-  return { error: error?.message ?? null };
+  return { error: error ? humanDatabaseError(error.message) : null };
 }
 
 /** Makes a previously uploaded photo from the album the active avatar
@@ -86,7 +87,7 @@ export async function setActiveAvatarAction(avatarId: string): Promise<ActionSta
   const { error } = await supabase.from("members").update({ avatar_url: resolvePhotoUrl(supabase, photo) }).eq("id", me.id);
   revalidatePath("/settings");
   revalidatePath("/family");
-  return { error: error?.message ?? null };
+  return { error: error ? humanDatabaseError(error.message) : null };
 }
 
 /** Removes a photo from the album entirely. If it was the active avatar,
@@ -101,7 +102,7 @@ export async function deleteAvatarFromAlbumAction(avatarId: string): Promise<Act
 
   const deletedUrl = resolvePhotoUrl(supabase, photo);
   const { error } = await supabase.from("member_avatars").delete().eq("id", avatarId);
-  if (error) return { error: error.message };
+  if (error) return { error: humanDatabaseError(error.message) };
 
   if (photo.drive_file_id) {
     const token = await getValidDriveAccessToken(me.family_id);
@@ -136,7 +137,7 @@ export async function transferOrganiserRoleAction(newOrganiserMemberId: string):
   const { error } = await supabase.rpc("transfer_organiser_role", { p_new_organiser_member_id: newOrganiserMemberId });
   revalidatePath("/family");
   revalidatePath("/settings");
-  return { error: error?.message ?? null };
+  return { error: error ? humanDatabaseError(error.message) : null };
 }
 
 /** Deletes the caller's own account — removes their household membership
@@ -148,7 +149,7 @@ export async function deleteOwnAccountAction(): Promise<ActionState> {
   const supabase = await createClient();
 
   const { error } = await supabase.rpc("leave_household_self");
-  if (error) return { error: error.message };
+  if (error) return { error: humanDatabaseError(error.message) };
 
   if (me.auth_user_id) {
     const admin = createAdminClient();

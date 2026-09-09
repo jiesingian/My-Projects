@@ -8,6 +8,7 @@ import { syncRowToCalendars, removeRowFromCalendars, type CalendarTarget } from 
 import type { ActionState } from "@/lib/actions/auth";
 import { familyDay } from "@/lib/time";
 import { allDayEvent } from "@/lib/calendar-shape";
+import { humanDatabaseError } from "@/lib/db-errors";
 
 function activityTarget(wholeFamily: boolean, who: string[]): CalendarTarget {
   return wholeFamily ? { kind: "all" } : { kind: "members", memberIds: who };
@@ -44,7 +45,7 @@ export async function createActivityAction(_prev: ActionState, formData: FormDat
     })
     .select()
     .single();
-  if (error) return { error: error.message };
+  if (error) return { error: humanDatabaseError(error.message) };
 
   if (!wholeFamily && who.length > 0) {
     const { error: whoError } = await supabase
@@ -94,7 +95,7 @@ export async function updateActivityAction(activityId: string, _prev: ActionStat
     })
     .eq("id", activityId)
     .eq("family_id", me.family_id);
-  if (error) return { error: error.message };
+  if (error) return { error: humanDatabaseError(error.message) };
 
   // Clearing and re-inserting is two statements. If the second fails after the
   // first has succeeded the activity is left marked for nobody, which looks
@@ -126,7 +127,7 @@ export async function deleteActivityAction(activityId: string): Promise<ActionSt
 
   await removeRowFromCalendars(me.family_id, "activities", activityId);
   const { error } = await supabase.from("activities").delete().eq("id", activityId).eq("family_id", me.family_id);
-  if (error) return { error: error.message };
+  if (error) return { error: humanDatabaseError(error.message) };
 
   revalidatePath("/planner");
   return { error: null };
@@ -186,7 +187,7 @@ export async function createEventAction(_prev: ActionState, formData: FormData):
     })
     .select()
     .single();
-  if (error) return { error: error.message };
+  if (error) return { error: humanDatabaseError(error.message) };
 
   const eventWho = await saveEventMembers(event.id, wholeFamily ? [] : who);
   if (eventWho) return { error: eventWho };
@@ -221,7 +222,7 @@ export async function updateEventAction(eventId: string, _prev: ActionState, for
     .update({ title, event_date: date, kind, sub_note: subNote, recurs_yearly: recursYearly, applies_to_whole_family: wholeFamily })
     .eq("id", eventId)
     .eq("family_id", me.family_id);
-  if (error) return { error: error.message };
+  if (error) return { error: humanDatabaseError(error.message) };
 
   const eventWho = await saveEventMembers(eventId, wholeFamily ? [] : who);
   if (eventWho) return { error: eventWho };
@@ -243,7 +244,7 @@ export async function deleteEventAction(eventId: string): Promise<ActionState> {
 
   await removeRowFromCalendars(me.family_id, "events", eventId);
   const { error } = await supabase.from("events").delete().eq("id", eventId).eq("family_id", me.family_id);
-  if (error) return { error: error.message };
+  if (error) return { error: humanDatabaseError(error.message) };
 
   revalidatePath("/planner");
   return { error: null };
@@ -276,7 +277,7 @@ export async function createTripAction(_prev: ActionState, formData: FormData): 
     })
     .select()
     .single();
-  if (error) return { error: error.message };
+  if (error) return { error: humanDatabaseError(error.message) };
 
   const tripWho = await saveTravellers(trip.id, wholeFamily ? [] : travellers);
   if (tripWho) return { error: tripWho };
@@ -313,7 +314,7 @@ export async function updateTripAction(tripId: string, _prev: ActionState, formD
     .update({ title, start_date: startDate, end_date: endDate, budget_amount: budgetAmount, applies_to_whole_family: wholeFamily })
     .eq("id", tripId)
     .eq("family_id", me.family_id);
-  if (error) return { error: error.message };
+  if (error) return { error: humanDatabaseError(error.message) };
 
   const tripWho = await saveTravellers(tripId, wholeFamily ? [] : travellers);
   if (tripWho) return { error: tripWho };
@@ -335,7 +336,7 @@ export async function deleteTripAction(tripId: string): Promise<ActionState> {
 
   await removeRowFromCalendars(me.family_id, "trips", tripId);
   const { error } = await supabase.from("trips").delete().eq("id", tripId).eq("family_id", me.family_id);
-  if (error) return { error: error.message };
+  if (error) return { error: humanDatabaseError(error.message) };
 
   revalidatePath("/planner");
   return { error: null };
@@ -357,7 +358,7 @@ export async function addActivityToJournalAction(activityId: string): Promise<Ac
     source_activity_id: activity.id,
     created_by: me.id,
   });
-  if (error) return { error: error.message };
+  if (error) return { error: humanDatabaseError(error.message) };
 
   revalidatePath("/journal");
   revalidatePath("/planner");

@@ -10,6 +10,7 @@ import type { ActionState } from "@/lib/actions/auth";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database, Tables, TablesInsert } from "@/lib/database.types";
 import { allDayEvent } from "@/lib/calendar-shape";
+import { humanDatabaseError } from "@/lib/db-errors";
 
 type Db = SupabaseClient<Database>;
 
@@ -46,7 +47,7 @@ export async function addAccountAction(_prev: ActionState, formData: FormData): 
     owner_member_id: isJoint ? null : me.id,
     created_by: me.id,
   });
-  if (error) return { error: error.message };
+  if (error) return { error: humanDatabaseError(error.message) };
 
   revalidateWealth();
   return { error: null };
@@ -70,7 +71,7 @@ export async function updateAccountAction(accountId: string, _prev: ActionState,
     })
     .eq("id", accountId)
     .eq("family_id", me.family_id);
-  if (error) return { error: error.message };
+  if (error) return { error: humanDatabaseError(error.message) };
 
   revalidateWealth();
   redirect(`/wealth/accounts/${accountId}`);
@@ -99,7 +100,7 @@ export async function setAccountPrivacyAction(accountId: string, isPrivate: bool
     .update({ is_private: isPrivate })
     .eq("id", accountId)
     .eq("family_id", me.family_id);
-  if (error) return { error: error.message };
+  if (error) return { error: humanDatabaseError(error.message) };
 
   revalidateWealth();
   return { error: null };
@@ -109,7 +110,7 @@ export async function archiveAccountAction(accountId: string): Promise<ActionSta
   const me = await requireCurrentMember();
   const supabase = await createClient();
   const { error } = await supabase.from("accounts").update({ is_archived: true }).eq("id", accountId).eq("family_id", me.family_id);
-  if (error) return { error: error.message };
+  if (error) return { error: humanDatabaseError(error.message) };
   revalidateWealth();
   return { error: null };
 }
@@ -315,7 +316,7 @@ export async function transferAction(input: {
   const { error } = await supabase
     .from("wealth_transactions")
     .insert(legs.map((leg) => ledgerRow(me.family_id, me.id, leg)));
-  if (error) return { error: error.message };
+  if (error) return { error: humanDatabaseError(error.message) };
 
   revalidateWealth();
   return { error: null, appUrl: input.viaApp ? from.linked_app_url : null };
@@ -338,7 +339,7 @@ export async function confirmTransactionAction(transactionId: string): Promise<A
     : [entry.id];
 
   const { error } = await supabase.from("wealth_transactions").update({ status: "confirmed" }).in("id", ids);
-  if (error) return { error: error.message };
+  if (error) return { error: humanDatabaseError(error.message) };
 
   const settled = await applySettlement(supabase, me.id, { ...entry, status: "confirmed" });
   if (settled) return { error: settled };
@@ -385,7 +386,7 @@ export async function deleteTransactionAction(transactionId: string): Promise<Ac
   const { error } = entry.transfer_group_id
     ? await query.eq("transfer_group_id", entry.transfer_group_id)
     : await query.eq("id", entry.id);
-  if (error) return { error: error.message };
+  if (error) return { error: humanDatabaseError(error.message) };
 
   for (const goalId of touchedGoalIds) await recalcGoalTotal(supabase, goalId);
 
@@ -444,7 +445,7 @@ export async function addBillAction(_prev: ActionState, formData: FormData): Pro
     .insert({ family_id: me.family_id, name, amount, due_date: dueDate, category, recurrence, status: "unpaid", created_by: me.id })
     .select()
     .single();
-  if (error) return { error: error.message };
+  if (error) return { error: humanDatabaseError(error.message) };
 
   if (dueDate) {
     await syncRowToCalendars(
@@ -505,7 +506,7 @@ export async function deleteBillAction(billId: string): Promise<ActionState> {
   const me = await requireCurrentMember();
   const supabase = await createClient();
   const { error } = await supabase.from("bills").delete().eq("id", billId).eq("family_id", me.family_id);
-  if (error) return { error: error.message };
+  if (error) return { error: humanDatabaseError(error.message) };
   revalidateWealth();
   return { error: null };
 }
@@ -522,7 +523,7 @@ export async function setJointBudgetAction(month: number, year: number, amount: 
     { family_id: me.family_id, period_month: month, period_year: year, budget_amount: amount },
     { onConflict: "family_id,period_month,period_year" },
   );
-  if (error) return { error: error.message };
+  if (error) return { error: humanDatabaseError(error.message) };
   revalidateWealth();
   return { error: null };
 }
@@ -546,7 +547,7 @@ export async function setWealthTargetAction(month: number, year: number, amount:
     { member_id: me.id, family_id: me.family_id, period_month: month, period_year: year, target_amount: amount },
     { onConflict: "member_id,period_month,period_year" },
   );
-  if (error) return { error: error.message };
+  if (error) return { error: humanDatabaseError(error.message) };
   revalidateWealth();
   return { error: null };
 }
@@ -606,7 +607,7 @@ export async function setAllocationAction(input: { category: string; amount: num
     { budget_period_id: periodId, family_id: me.family_id, category: input.category, amount: input.amount },
     { onConflict: "budget_period_id,category" },
   );
-  if (error) return { error: error.message };
+  if (error) return { error: humanDatabaseError(error.message) };
 
   revalidateWealth();
   return { error: null };
@@ -641,7 +642,7 @@ export async function createGoalAction(_prev: ActionState, formData: FormData): 
     })
     .select()
     .single();
-  if (error) return { error: error.message };
+  if (error) return { error: humanDatabaseError(error.message) };
 
   if (targetDate) {
     const target: CalendarTarget = isJoint ? { kind: "all" } : { kind: "member", memberId: ownerMemberId };
@@ -696,7 +697,7 @@ export async function deleteGoalAction(goalId: string): Promise<ActionState> {
   const me = await requireCurrentMember();
   const supabase = await createClient();
   const { error } = await supabase.from("goals").delete().eq("id", goalId).eq("family_id", me.family_id);
-  if (error) return { error: error.message };
+  if (error) return { error: humanDatabaseError(error.message) };
   revalidateWealth();
   return { error: null };
 }
@@ -723,7 +724,7 @@ export async function addAssetAction(_prev: ActionState, formData: FormData): Pr
     owner_member_id: isJoint ? null : me.id,
     created_by: me.id,
   });
-  if (error) return { error: error.message };
+  if (error) return { error: humanDatabaseError(error.message) };
 
   revalidateWealth();
   redirect("/wealth?seg=assets");
@@ -750,7 +751,7 @@ export async function addLiabilityAction(_prev: ActionState, formData: FormData)
     owner_member_id: isJoint ? null : me.id,
     created_by: me.id,
   });
-  if (error) return { error: error.message };
+  if (error) return { error: humanDatabaseError(error.message) };
 
   revalidateWealth();
   redirect("/wealth?seg=assets");
@@ -760,7 +761,7 @@ export async function updateAssetValueAction(assetId: string, value: number): Pr
   const me = await requireCurrentMember();
   const supabase = await createClient();
   const { error } = await supabase.from("assets").update({ value }).eq("id", assetId).eq("family_id", me.family_id);
-  if (error) return { error: error.message };
+  if (error) return { error: humanDatabaseError(error.message) };
   revalidateWealth();
   return { error: null };
 }
@@ -769,7 +770,7 @@ export async function updateLiabilityBalanceAction(liabilityId: string, balance:
   const me = await requireCurrentMember();
   const supabase = await createClient();
   const { error } = await supabase.from("liabilities").update({ balance }).eq("id", liabilityId).eq("family_id", me.family_id);
-  if (error) return { error: error.message };
+  if (error) return { error: humanDatabaseError(error.message) };
   revalidateWealth();
   return { error: null };
 }
@@ -778,7 +779,7 @@ export async function deleteAssetAction(assetId: string): Promise<ActionState> {
   const me = await requireCurrentMember();
   const supabase = await createClient();
   const { error } = await supabase.from("assets").delete().eq("id", assetId).eq("family_id", me.family_id);
-  if (error) return { error: error.message };
+  if (error) return { error: humanDatabaseError(error.message) };
   revalidateWealth();
   return { error: null };
 }
@@ -787,7 +788,7 @@ export async function deleteLiabilityAction(liabilityId: string): Promise<Action
   const me = await requireCurrentMember();
   const supabase = await createClient();
   const { error } = await supabase.from("liabilities").delete().eq("id", liabilityId).eq("family_id", me.family_id);
-  if (error) return { error: error.message };
+  if (error) return { error: humanDatabaseError(error.message) };
   revalidateWealth();
   return { error: null };
 }

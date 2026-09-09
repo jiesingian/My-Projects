@@ -18,6 +18,7 @@ import {
   type Busy,
   type RoutineRule,
 } from "@/lib/routines";
+import { humanDatabaseError } from "@/lib/db-errors";
 
 /** A refusal names the field it is about, so the form can point at it
  * rather than leaving a message stranded at the top of a long page. */
@@ -273,7 +274,7 @@ export async function createRoutineAction(_prev: RoutineActionState, formData: F
     .insert({ ...row, family_id: me.family_id, created_by: me.id })
     .select("id")
     .single();
-  if (error || !data) return { error: error?.message ?? "Could not save the routine.", field: null };
+  if (error || !data) return { error: error ? humanDatabaseError(error.message) : "Could not save the routine.", field: null };
 
   const whoFailed = await saveMembers(data.id, members);
   if (whoFailed) return { error: whoFailed, field: null };
@@ -298,7 +299,7 @@ export async function updateRoutineAction(id: string, _prev: RoutineActionState,
   const supabase = await createClient();
   const { members, ...row } = input;
   const { error } = await supabase.from("routines").update(row).eq("id", id).eq("family_id", me.family_id);
-  if (error) return { error: error.message, field: null };
+  if (error) return { error: humanDatabaseError(error.message), field: null };
 
   const whoFailed = await saveMembers(id, members);
   if (whoFailed) return { error: whoFailed, field: null };
@@ -313,7 +314,7 @@ export async function setRoutinePausedAction(id: string, paused: boolean): Promi
   const me = await requireCurrentMember();
   const supabase = await createClient();
   const { error } = await supabase.from("routines").update({ paused }).eq("id", id).eq("family_id", me.family_id);
-  if (error) return { error: error.message };
+  if (error) return { error: humanDatabaseError(error.message) };
 
   // Pausing takes it off everyone's calendar; resuming puts it back.
   await syncRoutine(me.family_id, id);
@@ -327,7 +328,7 @@ export async function deleteRoutineAction(id: string): Promise<ActionState> {
   const supabase = await createClient();
   await removeRowFromCalendars(me.family_id, "routines", id);
   const { error } = await supabase.from("routines").delete().eq("id", id).eq("family_id", me.family_id);
-  if (error) return { error: error.message };
+  if (error) return { error: humanDatabaseError(error.message) };
 
   revalidatePath("/planner");
   revalidatePath("/today");
@@ -370,7 +371,7 @@ export async function logRoutineAction(input: {
     },
     { onConflict: "routine_id,occurrence_date" },
   );
-  if (error) return { error: error.message };
+  if (error) return { error: humanDatabaseError(error.message) };
 
   if (input.status === "done" && amount && amount > 0 && routine.cost_account_id) {
     const posted = await postHubExpenseAction({
@@ -404,7 +405,7 @@ export async function clearRoutineLogAction(routineId: string, date: string): Pr
     .eq("routine_id", routineId)
     .eq("occurrence_date", date)
     .eq("family_id", me.family_id);
-  if (error) return { error: error.message };
+  if (error) return { error: humanDatabaseError(error.message) };
 
   revalidatePath("/planner");
   revalidatePath("/today");

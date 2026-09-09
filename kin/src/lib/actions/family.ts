@@ -10,6 +10,7 @@ import { resolvePhotoUrl } from "@/lib/photo-url";
 import type { ActionState } from "@/lib/actions/auth";
 import type { UploadedFile } from "@/lib/upload-client";
 import type { TablesInsert } from "@/lib/database.types";
+import { humanDatabaseError } from "@/lib/db-errors";
 
 export async function saveProfile(_prev: ActionState, formData: FormData): Promise<ActionState> {
   const fullName = String(formData.get("full_name") ?? "").trim();
@@ -52,7 +53,7 @@ export async function createFamilyAction(_prev: ActionState, formData: FormData)
     p_dob: dob ?? undefined,
     p_mobile: mobile ?? undefined,
   });
-  if (error) return { error: error.message };
+  if (error) return { error: humanDatabaseError(error.message) };
 
   // Records what the code was worth — free for good, or a trial that will
   // ask for payment later. It reads the grant off the code rather than
@@ -113,7 +114,7 @@ export async function addManagedChildAction(_prev: ActionState, formData: FormDa
     p_dob: dob,
     p_relationship: relationship,
   });
-  if (error) return { error: error.message };
+  if (error) return { error: humanDatabaseError(error.message) };
 
   revalidatePath("/onboarding/members");
   revalidatePath("/family/members");
@@ -197,7 +198,7 @@ export async function regenerateInviteCodeAction(): Promise<ActionState> {
   const { error } = await supabase.rpc("regenerate_invite_code");
   revalidatePath("/settings");
   revalidatePath("/onboarding/members");
-  return { error: error?.message ?? null };
+  return { error: error ? humanDatabaseError(error.message) : null };
 }
 
 /** Approves a pending join request — RLS restricts this to the household's
@@ -206,7 +207,7 @@ export async function approveMemberAction(memberId: string): Promise<ActionState
   const supabase = await createClient();
   const { error } = await supabase.from("members").update({ status: "active" }).eq("id", memberId);
   revalidatePath("/family");
-  return { error: error?.message ?? null };
+  return { error: error ? humanDatabaseError(error.message) : null };
 }
 
 /** Rejects a pending join request by removing it — RLS restricts this to
@@ -215,7 +216,7 @@ export async function rejectMemberAction(memberId: string): Promise<ActionState>
   const supabase = await createClient();
   const { error } = await supabase.from("members").delete().eq("id", memberId);
   revalidatePath("/family");
-  return { error: error?.message ?? null };
+  return { error: error ? humanDatabaseError(error.message) : null };
 }
 
 /** Removes an active or managed member from the household. This doesn't
@@ -233,7 +234,7 @@ export async function removeMemberAction(memberId: string): Promise<ActionState>
   const supabase = await createClient();
   const { error } = await supabase.from("members").update({ status: "removed" }).eq("id", memberId);
   revalidatePath("/family");
-  return { error: error?.message ?? null };
+  return { error: error ? humanDatabaseError(error.message) : null };
 }
 
 /** Restores a previously removed member to active access. RLS restricts
@@ -242,7 +243,7 @@ export async function reinstateMemberAction(memberId: string): Promise<ActionSta
   const supabase = await createClient();
   const { error } = await supabase.from("members").update({ status: "active" }).eq("id", memberId);
   revalidatePath("/family");
-  return { error: error?.message ?? null };
+  return { error: error ? humanDatabaseError(error.message) : null };
 }
 
 /** The two roles a member with a login can hold, and what turns on the
@@ -293,7 +294,7 @@ export async function setMemberRoleAction(memberId: string, role: MemberRole): P
   }
 
   const { error } = await supabase.from("members").update({ role }).eq("id", memberId).eq("family_id", me.family_id);
-  if (error) return { error: error.message };
+  if (error) return { error: humanDatabaseError(error.message) };
 
   revalidatePath("/family");
   revalidatePath("/family/documents");
@@ -308,7 +309,7 @@ export async function updateMemberRelationshipAction(memberId: string, relations
   const supabase = await createClient();
   const { error } = await supabase.from("members").update({ relationship: relationship.trim() || null }).eq("id", memberId);
   revalidatePath("/family");
-  return { error: error?.message ?? null };
+  return { error: error ? humanDatabaseError(error.message) : null };
 }
 
 /** Records a freshly uploaded household cover photo (already sitting in
@@ -333,7 +334,7 @@ export async function addFamilyBackgroundAction(uploaded: UploadedFile): Promise
 
   const { error } = await supabase.from("families").update({ background_url: resolvePhotoUrl(supabase, row) }).eq("id", me.family_id);
   revalidatePath("/family");
-  return { error: error?.message ?? null };
+  return { error: error ? humanDatabaseError(error.message) : null };
 }
 
 /** Makes a previously uploaded household photo the active background again
@@ -348,7 +349,7 @@ export async function setActiveFamilyBackgroundAction(backgroundId: string): Pro
 
   const { error } = await supabase.from("families").update({ background_url: resolvePhotoUrl(supabase, photo) }).eq("id", me.family_id);
   revalidatePath("/family");
-  return { error: error?.message ?? null };
+  return { error: error ? humanDatabaseError(error.message) : null };
 }
 
 /** Removes a household photo from the album entirely. If it was the active
@@ -364,7 +365,7 @@ export async function deleteFamilyBackgroundAction(backgroundId: string): Promis
 
   const deletedUrl = resolvePhotoUrl(supabase, photo);
   const { error } = await supabase.from("family_backgrounds").delete().eq("id", backgroundId);
-  if (error) return { error: error.message };
+  if (error) return { error: humanDatabaseError(error.message) };
 
   if (photo.drive_file_id) {
     const token = await getValidDriveAccessToken(me.family_id);
@@ -403,7 +404,7 @@ export async function updateFamilyAboutAction(about: string): Promise<ActionStat
   const supabase = await createClient();
   const { error } = await supabase.from("families").update({ about: about.trim() || null }).eq("id", me.family_id);
   revalidatePath("/family");
-  return { error: error?.message ?? null };
+  return { error: error ? humanDatabaseError(error.message) : null };
 }
 
 export type FamilyAddressFields = {
@@ -464,7 +465,7 @@ export async function addFamilyAddressAction(fields: FamilyAddressFields): Promi
     address_line: f.addressLine,
   });
   revalidatePath("/family");
-  return { error: error?.message ?? null };
+  return { error: error ? humanDatabaseError(error.message) : null };
 }
 
 /** Edits an existing household address in place. Organizer only — RLS
@@ -493,7 +494,7 @@ export async function updateFamilyAddressAction(addressId: string, fields: Famil
     })
     .eq("id", addressId);
   revalidatePath("/family");
-  return { error: error?.message ?? null };
+  return { error: error ? humanDatabaseError(error.message) : null };
 }
 
 /** Removes a household address. Organizer only — RLS enforces this too. */
@@ -504,7 +505,7 @@ export async function removeFamilyAddressAction(addressId: string): Promise<Acti
   const supabase = await createClient();
   const { error } = await supabase.from("family_addresses").delete().eq("id", addressId);
   revalidatePath("/family");
-  return { error: error?.message ?? null };
+  return { error: error ? humanDatabaseError(error.message) : null };
 }
 
 /** Permanently deletes the entire household — every member, journal entry,
@@ -541,7 +542,7 @@ export async function deleteHouseholdAction(): Promise<ActionState> {
   }
 
   const { error } = await supabase.rpc("delete_household");
-  if (error) return { error: error.message };
+  if (error) return { error: humanDatabaseError(error.message) };
 
   redirect("/onboarding/profile");
 }

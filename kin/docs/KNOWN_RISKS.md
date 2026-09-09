@@ -313,6 +313,76 @@ the household owes and reads as money it is owed.
 
 ---
 
+## What a person actually saw when something failed — CLOSED 9 September
+
+Swept because the app is going online and this is the class that produces bad
+reviews without anything being broken.
+
+**110 places handed the member whatever Postgres said.** Measured on
+9 September against the throwaway household. Adding a recipe the family
+already had:
+
+    duplicate key value violates unique constraint "family_recipes_family_id_base_key_key"
+
+Leaving a required field blank:
+
+    null value in column "name" of relation "family_recipes" violates not-null constraint
+
+Both true, both useless, and both read as a broken app rather than as the app
+telling you something.
+
+**Fixed** by `lib/db-errors.ts`, applied at 106 of them (the four in `auth.ts`
+were left alone — Supabase's auth messages are already written for people).
+Two rules keep the cure from being worse than the disease:
+
+- **Only recognised messages are rewritten.** Everything else is returned word
+  for word, because a failure nobody has thought about is more useful whole
+  than guessed at. A deadlock, a statement timeout, a network error all reach
+  the member unchanged. This is the property the tests defend hardest —
+  breaking it deliberately fails the suite.
+- **The original is logged every time one is rewritten.** This week was spent
+  making failures speak up; muffling them in the name of politeness would
+  undo it.
+
+## The assistant could put an appointment on a day nobody asked for — CLOSED 9 September
+
+The Today assistant takes what somebody typed and hands a tool a date and a
+time, both written by a language model. Three places then built an instant by
+hand:
+
+    new Date(`${date}T${time}`).toISOString()
+
+Measured, 9 September:
+
+| given | result |
+| --- | --- |
+| `"2026-09-15"` + `"25:00"` | RangeError thrown |
+| `"next Tuesday"` + `"19:00"` | RangeError thrown |
+| `"2026-09-15"` + `"evening"` | RangeError thrown |
+| **`"2026-09-31"` + `"19:00"`** | **1 October — silently, no error** |
+
+**The throws were already contained**, and honestly: `api/assistant/route.ts`
+wraps every tool call and answered "That didn't go through. Nothing was
+saved", which was true — the throw happened while building the row, before any
+insert. What it did not do was say *why*, so the member and the model both
+retried the same phrasing and failed the same way.
+
+**The last row is the real bug.** Somebody asks for the 31st of a thirty-day
+month — which people do — and the appointment is made on a different day than
+the one they said, with nothing anywhere to say so. The all-day path had been
+guarded against exactly this since 8 September; the timed path went around it.
+
+**Fixed** by `familyInstant(day, time)` in `lib/time.ts`, beside
+`familyMidnight` and built the same way: validate both halves, refuse anything
+that is not exactly what it claims, and state the household's zone rather than
+inheriting whatever `TZ` the process runs under. The three call sites now
+answer "I could not read that as a date and time — give me YYYY-MM-DD and
+HH:MM", which the model can act on. An end time before its start is refused
+too. Eight tests in `e2e/time.logic.spec.ts`, checked negatively: restoring
+the naive construction fails four of them.
+
+---
+
 ## goals.current_amount is stored, not derived — CLOSED 8 September
 
 *Kept for the reconciliation query at the foot, which is still the way to

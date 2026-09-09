@@ -7,6 +7,7 @@ import { requireCurrentMember } from "@/lib/session";
 import type { ActionState } from "@/lib/actions/auth";
 import { familyDay } from "@/lib/time";
 import { explainVisibilityRefusal } from "@/lib/visibility";
+import { humanDatabaseError } from "@/lib/db-errors";
 
 const GROUPED_TYPES = new Set(["illness", "checkup", "medication", "vaccination"]);
 
@@ -57,7 +58,7 @@ export async function createHealthEntryAction(_prev: ActionState, formData: Form
       note,
       created_by: me.id,
     });
-    if (error) return { error: error.message };
+    if (error) return { error: humanDatabaseError(error.message) };
   } else if (type === "lab") {
     const { error } = await supabase.from("health_labs").insert({
       family_id: me.family_id,
@@ -70,7 +71,7 @@ export async function createHealthEntryAction(_prev: ActionState, formData: Form
       visibility,
       created_by: me.id,
     });
-    if (error) return { error: error.message };
+    if (error) return { error: humanDatabaseError(error.message) };
   } else if (type === "blood_pressure" || type === "weight") {
     const { error } = await supabase.from("health_vitals").insert({
       family_id: me.family_id,
@@ -83,7 +84,7 @@ export async function createHealthEntryAction(_prev: ActionState, formData: Form
       visibility,
       created_by: me.id,
     });
-    if (error) return { error: error.message };
+    if (error) return { error: humanDatabaseError(error.message) };
   }
 
   revalidatePath(`/family/members/${memberId}`);
@@ -103,7 +104,7 @@ export async function toggleOmronAction(memberId: string, connected: boolean): P
     last_synced_at: connected ? new Date().toISOString() : null,
     updated_at: new Date().toISOString(),
   });
-  if (error) return { error: error.message };
+  if (error) return { error: humanDatabaseError(error.message) };
   revalidatePath(`/family/members/${memberId}`);
   return { error: null };
 }
