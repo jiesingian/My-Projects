@@ -621,6 +621,54 @@ all.
 
 ---
 
+## The database's own linter, swept — 9 September
+
+Supabase ships security and performance advisors that had never been run
+against this project. Both were, and the result is mostly good news, which is
+worth recording so nobody runs them again expecting a haul.
+
+**Security — nothing to fix.**
+
+- **Four tables with row-level security on and no policies at all**:
+  `access_codes`, `access_events`, `calendar_tokens`, `drive_tokens`. That is
+  deny-all to `anon` and `authenticated`, which is right: each is reached only
+  through a `SECURITY DEFINER` function or the service key. Deliberate, and
+  the linter flags it as INFO because it cannot tell.
+- **Seventeen `SECURITY DEFINER` functions callable by a signed-in member.**
+  The three that take an identity as an *argument* were read line by line,
+  because that is exactly the shape of the `wealth_targets` hole found on
+  8 September. All three are sound: `add_child_with_login` and
+  `attach_login_to_child` take the household from `current_family_id()`, check
+  the caller's role, and refuse a login already attached to somebody;
+  `attach_login_to_child` further restricts itself to a managed profile with
+  no login, so it can never move an existing person's account.
+  `transfer_organiser_role` reads the caller from `auth.uid()` and requires
+  them to be the organizer.
+- **`signup_code_is_valid` is callable anonymously**, and answers true or
+  false for any code, for every household at once. That is an enumeration
+  oracle, and it is worth knowing its exact size rather than worrying vaguely:
+  `generate_invite_code` draws 6 characters from a 32-character alphabet
+  (no I, O, 0 or 1), so **32⁶ ≈ 1.07 billion**. What a guessed code buys is
+  the limiting factor: `join_family` inserts the joiner as **`pending`**, and
+  `current_family_id()` only resolves for active members, so they see nothing
+  until the organizer approves them — and it refuses to join as a parent. The
+  cost of a successful guess is therefore a join request appearing in the
+  household's pending list, not access. Left as it is.
+- **Leaked-password protection is off** in Supabase Auth. Turning it on checks
+  new passwords against HaveIBeenPwned. It is a dashboard setting rather than
+  anything in this repository, and it is Jonathan's to enable.
+
+**Performance — deliberately nothing done.** 62 foreign keys have no covering
+index. At this size that is the right state: the same report lists 11 indexes
+that have *never been used*, which is Postgres saying the tables are small
+enough that a scan beats an index. Adding 62 indexes would slow every write to
+speed up reads that are already instant. Worth revisiting if a table ever
+reaches tens of thousands of rows; not before. The 30 "multiple permissive
+policies" warnings are one `for all` write policy being counted alongside its
+table's `select` policy, which is how these tables are deliberately built.
+
+---
+
 ## Swept and found clean — 8 September
 
 Recorded so nobody repeats the afternoon. Each was checked against the thing
