@@ -14,8 +14,10 @@ import {
   markChatReadAction,
 } from "@/lib/actions/chat";
 import type { ChatMember, ChatMessage } from "@/lib/queries/chat";
+import { REACTIONS } from "@/lib/chat";
 
-const REACTIONS = ["👍", "❤️", "😂", "😮", "😢", "🙏"];
+// Rendered from the same list the action checks against, so a reaction the
+// composer offers can never be one the server refuses.
 
 /* Both of these read a stored instant, so both are answered in the household's
    own zone rather than the viewer's. A thread is a shared record of one house:
