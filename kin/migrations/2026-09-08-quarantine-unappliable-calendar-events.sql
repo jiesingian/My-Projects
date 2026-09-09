@@ -1,5 +1,5 @@
--- NOT YET APPLIED. Jonathan runs this; nothing here has been run against the
--- database. "How to run it" is at the foot.
+-- APPLIED 9 September, on Jonathan's instruction, and verified after with the
+-- read-only check below. "How to run it" is at the foot and was followed.
 --
 -- Turning a stuck calendar sync into one set-aside item
 -- ====================================================

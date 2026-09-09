@@ -1,0 +1,94 @@
+-- APPLIED 9 September, on Jonathan's instruction, and verified after. The
+-- checks are at the foot; they were run.
+--
+-- An adult may edit the child they were allowed to add
+-- ====================================================
+--
+-- What this is for
+-- ----------------
+-- Two rules disagreed about the same person:
+--
+--   add_managed_child                 a parent OR an adult may create one
+--   members_update_managed_by_parent  only a parent may edit one
+--
+-- `family/page.tsx` offers the "add a child" button on the first test, so the
+-- app hands an adult a child profile and then refuses to let them change the
+-- name they just typed. Nothing warns them; the save simply fails.
+--
+-- That matters more than it sounds, because of who is an adult. joinFamilyAction
+-- hard-codes `p_role: "adult"`, so everyone who has ever joined by invite code
+-- is one, and the only parent in a household is whoever created it. In the
+-- Singian household that meant a parent of the children could add a child
+-- profile and not edit it.
+--
+-- This resolves it in the direction the app already implies: the edit rule now
+-- matches the add rule.
+--
+-- What an adult still cannot do to a managed profile
+-- --------------------------------------------------
+-- Everything that matters, because a second guard sits underneath this one.
+-- The trigger `members_guard_self_update` refuses any change to `role`,
+-- `is_organiser` or `family_id` on a row whose `auth_user_id` is null -- which
+-- every managed child's is. So this widens who may edit a child's name, date
+-- of birth and details. It does not widen who may grant privileges, and it
+-- cannot be used to manufacture a parent.
+--
+-- The `status = 'managed'` clause is unchanged too, so this reaches managed
+-- child profiles only and no member who can log in.
+--
+--
+-- HOW IT WAS RUN
+-- ==============
+-- Supabase dashboard -> SQL Editor. The statement below, then the checks.
+--
+-- STEP 1 -- the old policy, kept for the record. Read-only.
+--
+--   select policyname, qual from pg_policies
+--    where schemaname='public' and tablename='members' and cmd='UPDATE';
+--
+-- Before, for members_update_managed_by_parent:
+--   ((family_id = current_family_id()) AND (current_member_role() = 'parent')
+--    AND (status = 'managed'))
+--
+-- STEP 2 -- the replacement, below.
+--   Expect "Success. No rows returned."
+--
+-- STEP 3 -- confirm it now names both roles, and still only managed rows.
+-- Read-only.
+--
+--   select qual like '%adult%' as includes_adult,
+--          qual like '%managed%' as still_managed_only
+--     from pg_policies
+--    where schemaname='public' and tablename='members'
+--      and policyname='members_update_managed_by_parent';
+--
+--   Expect one row, both true.
+--
+-- STEP 4 -- confirm the privilege guard still stands, which is the thing this
+-- is relying on. Read-only.
+--
+--   select tgname from pg_trigger
+--    where tgrelid = 'public.members'::regclass and not tgisinternal;
+--
+--   Expect members_guard_self_update.
+--
+-- To roll back, restore the STEP 1 expression:
+--
+--   drop policy members_update_managed_by_parent on public.members;
+--   create policy members_update_managed_by_parent on public.members
+--     for update using (
+--       family_id = current_family_id()
+--       and current_member_role() = 'parent'
+--       and status = 'managed');
+
+drop policy if exists members_update_managed_by_parent on public.members;
+
+-- The name is kept even though it now says more than "by parent", because
+-- renaming a policy makes every later reader wonder which one the older
+-- migrations meant.
+create policy members_update_managed_by_parent on public.members
+  for update using (
+    family_id = current_family_id()
+    and current_member_role() in ('parent', 'adult')
+    and status = 'managed'
+  );

@@ -116,9 +116,13 @@ The error is now surfaced and nothing is written. But the underlying hole is
 that `budget_allocations` has no uniqueness on `(budget_period_id, category)`,
 where every sibling table has one — so two people setting a budget in the same
 minute is enough on its own, with nothing failing at all. Only the database
-can close that:
-`migrations/2026-09-09-one-budget-line-per-category.sql`, **written and NOT
-APPLIED**. Measured 9 September: no household has a duplicate today.
+can close that: `migrations/2026-09-09-one-budget-line-per-category.sql`,
+**APPLIED** 9 September after its own read-only step 1 came back empty for a
+second time. With the constraint in place `setAllocationAction` became a
+single upsert naming it — no read, no window, no branch — which is what the
+migration file said it would allow. Verified against the live constraint:
+two upserts of the same category returned 201 then 200 and left one row
+holding the later amount.
 
 **Left alone, with reasons.** Four reads of `calendar_links.calendar_id` fall
 back to `"primary"` when the read fails. Nothing in the app ever writes a
@@ -200,11 +204,33 @@ consequences, all the same root:
 3. **Drive settings need parent *and* organiser.** `drive_links` UPDATE. Not
    obviously wrong, listed for completeness.
 
-The ways out are Jonathan's to choose between: promote a member to `parent`
-(one row), add a way for the organiser to promote members (a feature), or
-widen the policies to `role in ('parent','adult')` (a migration, and a
-decision about who sees whose health records). Consequence 2 needs one of
-them whatever happens to 1.
+**Both are now resolved, 9 September, as Jonathan chose.**
+
+1. **The organizer can promote a member.** `setMemberRoleAction` plus a
+   MAKE PARENT / MAKE ADULT control on the Family page, shown only to the
+   organizer, never on their own row, never on a managed child — the three
+   conditions the database enforces anyway, so the button is not offered
+   where it could only fail. That is the lesson of this entry applied to its
+   own fix. No migration: `members_update_by_organiser` already permitted the
+   write, and `members_guard_self_update` already refused the two cases that
+   should be refused.
+2. **An adult may edit a managed child.**
+   `migrations/2026-09-09-an-adult-may-edit-the-child-they-added.sql`,
+   applied. The edit rule now matches the add rule, which allowed a parent or
+   an adult all along. Measured after: as an `adult`, editing a managed
+   child's details returned 204, and granting that child privileges still
+   returned "not allowed to change privileges on a managed profile".
+3. Drive settings still need parent *and* organiser. Left as it was.
+
+**One thing not exercised, and worth knowing.** The successful promotion path
+has not been run end to end. The toggle only appears for a member with a
+login, and the throwaway household has exactly one; `members.auth_user_id` has
+a foreign key to `auth.users`, so a second cannot be faked, and creating a
+real one would leave an auth user behind that no key available here can
+delete. What *was* measured is every refusal — a managed child, and a
+self-change, both rejected by the trigger — and the policy that permits the
+write reads plainly. The first real promotion will exercise it, and if the
+database refuses, the action shows what it said rather than failing quietly.
 
 ---
 
@@ -257,17 +283,22 @@ account in both households today is either joint or private, so nothing is in
 the gap. It is one deliberate "share this account" toggle away, which is a
 thing a household is meant to do.
 
-**Left for Jonathan.** Whether `wealth_transactions` should have the same
-`NOT is_private` clause its accounts do is a question about who may see whose
-spending, and a migration. Today a shared account is visible to everyone and
-its ledger is visible to nobody but its owner, which is at least defensible;
-it is just not what the two rules look like they were meant to say.
+**And the rule underneath is fixed too, 9 September**, as Jonathan chose:
+`migrations/2026-09-09-a-shared-account-shares-its-ledger.sql` adds the same
+`NOT is_private` clause to `wealth_transactions` that `accounts` already had.
+Sharing an account now means sharing the entries that made its balance, which
+is what somebody reading a shared account is actually asking. Measured after,
+as a member who is not the owner: the shared account's entry is visible; a
+private account and its ₱9,999 entry are both still invisible. Nobody's
+private account changed, and writing was never restricted in the first place.
 
-**Also spotted, not fixed:** `addBillAction` checks `!amount`, so a negative
-bill amount is accepted where every other money path requires `> 0`. It needs
-someone to type a minus sign into the form, and it makes a bill that subtracts.
-Recorded rather than fixed because the five `> 0` checks elsewhere suggest a
-deliberate shape somebody should confirm before a sixth is added.
+That also removes the cause rather than the symptom: the transfer above failed
+*because* of this mismatch. Both halves are now closed.
+
+**Also fixed:** `addBillAction` checked `!amount`, which is false for -500, so
+a negative bill was accepted where every other money path requires `> 0`. It
+now makes the same check as the other five. A negative bill subtracts from what
+the household owes and reads as money it is owed.
 
 ---
 
@@ -427,10 +458,11 @@ The attempt count lives in `calendar_sync_failures`
 (`migrations/2026-09-08-quarantine-unappliable-calendar-events.sql`), and the
 count of set-aside items is reported to whoever pressed Sync now.
 
-**The migration is written and NOT APPLIED.** Until it runs, the query for
-prior attempts returns nothing, every failure looks like a first attempt, and
-the behaviour is the pre-quarantine one: hold the token indefinitely. That is
-where it has been all day and it is safe — just not self-clearing.
+**The migration is APPLIED**, 9 September, on Jonathan's instruction:
+`calendar_sync_failures` exists, row-level security is on, two policies. So the
+attempt count is now kept and an event that fails three times is set aside, as
+designed. Before it ran, every failure read as a first attempt and the token
+was held indefinitely — safe, but not self-clearing.
 
 **Nothing has ever been observed failing.** This was built ahead of the problem
 because it was asked for, not because anything is broken.

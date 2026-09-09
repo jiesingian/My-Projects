@@ -245,6 +245,61 @@ export async function reinstateMemberAction(memberId: string): Promise<ActionSta
   return { error: error?.message ?? null };
 }
 
+/** The two roles a member with a login can hold, and what turns on the
+ * difference.
+ *
+ * `parent` is not a label. Six row-level policies grant "Parents only" health
+ * records and documents to `current_member_role() = 'parent'` and to nobody
+ * else, and Google Drive settings need it too. `adult` is everything else an
+ * grown-up member can do, which is nearly all of the app.
+ *
+ * The reason this action exists at all: `joinFamilyAction` hard-codes
+ * `p_role: "adult"`, so everybody who has ever joined by invite code is an
+ * adult and the only parent in a household is whoever created it. There was
+ * no way to change that from inside the app — which meant, in a real
+ * household, that a parent of the children could not read a health record
+ * marked for parents. Now the organizer can say who is one.
+ *
+ * Three refusals below, and all three are also enforced underneath, so this
+ * is the message rather than the lock:
+ *  - not yourself: `members_guard_self_update` raises on any self-change to
+ *    role, and an organizer quietly demoting themselves would be a trap.
+ *  - not a managed child: the same trigger refuses privilege changes to a row
+ *    with no login, which is every managed profile.
+ *  - organizer only: `members_update_by_organiser` is the policy that permits
+ *    the write at all.
+ */
+export type MemberRole = "parent" | "adult";
+
+export async function setMemberRoleAction(memberId: string, role: MemberRole): Promise<ActionState> {
+  const me = await requireCurrentMember();
+  if (!me.is_organiser) return { error: "Only the household's organizer can change who counts as a parent." };
+  if (memberId === me.id) return { error: "You can't change your own role. Ask another organizer." };
+  if (role !== "parent" && role !== "adult") return { error: "A member is either a parent or an adult." };
+
+  const supabase = await createClient();
+  const { data: target, error: readError } = await supabase
+    .from("members")
+    .select("full_name, auth_user_id, status")
+    .eq("id", memberId)
+    .eq("family_id", me.family_id)
+    .maybeSingle();
+  // A read that failed is not "no such member" -- saying so would send the
+  // organizer looking for a member who is sitting right there.
+  if (readError) return { error: `That member could not be read, so nothing was changed. ${readError.message}` };
+  if (!target) return { error: "That member is no longer in the household." };
+  if (target.auth_user_id === null) {
+    return { error: `${target.full_name} is a managed profile without a login, so there is no role to give.` };
+  }
+
+  const { error } = await supabase.from("members").update({ role }).eq("id", memberId).eq("family_id", me.family_id);
+  if (error) return { error: error.message };
+
+  revalidatePath("/family");
+  revalidatePath("/family/documents");
+  return { error: null };
+}
+
 /** Sets a member's family-relationship label ("Mother", "Son", etc.) —
  * distinct from `role`, which drives permission logic and stays untouched
  * here. RLS lets the organizer edit anyone's; a member can also edit their

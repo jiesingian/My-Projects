@@ -433,7 +433,11 @@ export async function addBillAction(_prev: ActionState, formData: FormData): Pro
   const dueDate = String(formData.get("due_date") ?? "") || null;
   const category = String(formData.get("category") ?? "").trim() || null;
   const recurrence = String(formData.get("recurrence") ?? "monthly");
-  if (!name || !amount) return { error: "Name and amount are required." };
+  if (!name) return { error: "Name and amount are required." };
+  // Every other money path checks `> 0`; this one checked `!amount`, which is
+  // false for -500. A negative bill subtracts from what the household owes and
+  // reads as money it is owed.
+  if (!(amount > 0)) return { error: "Enter an amount greater than zero." };
 
   const { data: bill, error } = await supabase
     .from("bills")
@@ -585,30 +589,23 @@ export async function setAllocationAction(input: { category: string; amount: num
   }
   const periodId = period.id;
 
-  const { data: existing, error: existingError } = await supabase
-    .from("budget_allocations")
-    .select("id")
-    .eq("budget_period_id", periodId)
-    .eq("category", input.category)
-    .maybeSingle();
-  // Two ways this fails, and inserting was the wrong answer to both. A read
-  // that failed is not "no allocation yet", and maybeSingle also errors when
-  // the category already has more than one row -- in which case another insert
-  // makes a third, and every save after that adds one more. budget_allocations
-  // has no uniqueness on (budget_period_id, category) to catch it: the
-  // migration alongside this adds one, and until it is run this check is what
-  // stands in for it.
-  if (existingError) {
-    return {
-      error: `The "${input.category}" budget could not be read, so it was left as it was. ${existingError.message}`,
-    };
-  }
-
-  const { error } = existing
-    ? await supabase.from("budget_allocations").update({ amount: input.amount }).eq("id", existing.id)
-    : await supabase
-        .from("budget_allocations")
-        .insert({ budget_period_id: periodId, family_id: me.family_id, category: input.category, amount: input.amount });
+  // One statement, no read. This used to look up the category's row and then
+  // update it or insert one, which is a race however carefully it is written:
+  // two people setting a budget in the same minute both read "no row" and both
+  // insert. There was nothing to stop the second -- budget_allocations had no
+  // uniqueness on (budget_period_id, category) where every sibling table has
+  // one, so the household got the category twice, each copy claiming the whole
+  // month's spend. Worse, .maybeSingle() errors on more than one row, so once
+  // two existed every save added another.
+  //
+  // budget_allocations_one_per_category (applied 9 September) is what makes
+  // this possible: the upsert names it, so the second writer updates the first
+  // writer's row instead of racing it. The read that stood in for the
+  // constraint is gone with it -- there is nothing left to read.
+  const { error } = await supabase.from("budget_allocations").upsert(
+    { budget_period_id: periodId, family_id: me.family_id, category: input.category, amount: input.amount },
+    { onConflict: "budget_period_id,category" },
+  );
   if (error) return { error: error.message };
 
   revalidateWealth();

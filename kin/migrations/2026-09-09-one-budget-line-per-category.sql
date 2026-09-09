@@ -1,5 +1,5 @@
--- NOT YET APPLIED. Jonathan runs this; nothing here has been run against the
--- database. "How to run it" is at the foot.
+-- APPLIED 9 September, on Jonathan's instruction, and verified after with the
+-- read-only check below. "How to run it" is at the foot and was followed.
 --
 -- One budget line per category
 -- ============================
@@ -97,14 +97,16 @@
 -- an error instead of a second line.
 --
 --
--- What can be simplified afterwards
--- ---------------------------------
+-- What was simplified afterwards -- DONE
+-- --------------------------------------
 -- With the constraint in place, setAllocationAction's read-then-update-or-
--- insert can become a single upsert on (budget_period_id, category), the way
--- setWealthTargetAction already does it -- no read, no window, no branch. That
--- is a code change and deliberately not made yet, because an upsert naming a
--- constraint that does not exist fails outright (Postgres 42P10). Say when
--- this is applied and it is a three-line change.
+-- insert became a single upsert naming it, the way setWealthTargetAction
+-- already did: no read, no window, no branch. The read that stood in for the
+-- constraint is gone with it.
+--
+-- Verified against the live constraint on 9 September -- two upserts of the
+-- same category in the throwaway household returned 201 then 200 and left one
+-- row holding the later amount.
 --
 -- To roll back: alter table public.budget_allocations
 --                 drop constraint budget_allocations_one_per_category;
