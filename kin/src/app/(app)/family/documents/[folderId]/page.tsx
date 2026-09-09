@@ -6,6 +6,7 @@ import { DetailHeader } from "@/components/hub-header";
 import { Tag } from "@/components/ui";
 import { Icon } from "@/components/icons";
 import { DocFileRow } from "@/components/doc-file-row";
+import { DocEntryDeleteButton } from "@/components/doc-entry-delete-button";
 import { DocSelectionProvider } from "@/lib/doc-selection-context";
 import { familyDate } from "@/lib/format-family";
 
@@ -54,6 +55,12 @@ export default async function DocFolderPage({
                     {entry.reference_no ? ` · ref ${entry.reference_no}` : ""}
                   </div>
                   {entry.note && <div style={{ fontSize: 13.5, color: "var(--color-neutral-700)", marginTop: 4 }}>{entry.note}</div>}
+                  <div style={{ display: "flex", gap: 10, marginTop: 6 }}>
+                    <Link href={`/family/documents/${folder.id}/${entry.id}/edit`} style={{ fontSize: 12.5, fontWeight: 600, color: "var(--color-accent-700)" }}>
+                      EDIT
+                    </Link>
+                    <DocEntryDeleteButton entryId={entry.id} folderId={folder.id} hasFiles={(entry.doc_files ?? []).length > 0} />
+                  </div>
                 </div>
                 <Tag variant={entry.visibility === "family" ? "neutral" : "outline"}>{entry.visibility}</Tag>
               </div>

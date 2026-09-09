@@ -1,0 +1,120 @@
+"use client";
+
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { updateDocEntryAction } from "@/lib/actions/documents";
+import { ErrorText } from "@/components/form";
+import { DetailHeader } from "@/components/hub-header";
+import type { Tables } from "@/lib/database.types";
+import { DateInput } from "@/components/date-input";
+import { visibilityOptions } from "@/lib/visibility";
+
+export function EditDocForm({
+  entry,
+  folderId,
+  members,
+  myRole,
+}: {
+  entry: Tables<"doc_entries">;
+  folderId: string;
+  members: Tables<"members">[];
+  myRole: string;
+}) {
+  const VISIBILITY = visibilityOptions(myRole);
+  const [visibility, setVisibility] = useState(entry.visibility);
+  const [error, setError] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
+  const router = useRouter();
+  const backHref = `/family/documents/${folderId}`;
+
+  async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    setError(null);
+    setSaving(true);
+
+    const fd = new FormData(e.currentTarget);
+    const result = await updateDocEntryAction({
+      entryId: entry.id,
+      folderId,
+      title: String(fd.get("title") ?? ""),
+      ownerMemberId: String(fd.get("owner_member_id") ?? "") || null,
+      expiresAt: String(fd.get("expires_at") ?? "") || null,
+      docType: String(fd.get("doc_type") ?? "").trim() || null,
+      referenceNo: String(fd.get("reference_no") ?? "").trim() || null,
+      visibility,
+      note: String(fd.get("note") ?? "").trim() || null,
+    });
+    if (result.error) {
+      setError(result.error);
+      setSaving(false);
+      return;
+    }
+
+    router.push(backHref);
+    router.refresh();
+  }
+
+  return (
+    <div>
+      <DetailHeader backHref={backHref} eyebrow="HUB 01 · EDIT ENTRY" />
+      <div style={{ padding: "0 22px 22px" }}>
+        <h3 style={{ fontSize: 30, margin: "0 0 16px" }}>Edit document entry</h3>
+        <form onSubmit={onSubmit}>
+          <ErrorText message={error} />
+
+          <div className="field" style={{ marginBottom: 14 }}>
+            <label>ENTRY TITLE</label>
+            <input aria-label="Entry Title" className="input" name="title" defaultValue={entry.title} required style={{ minHeight: 44 }} />
+          </div>
+
+          <div style={{ display: "flex", gap: 12, marginBottom: 16 }}>
+            <div className="field" style={{ flex: 1 }}>
+              <label>BELONGS TO</label>
+              <select aria-label="Belongs To" className="input" name="owner_member_id" defaultValue={entry.owner_member_id ?? ""} style={{ minHeight: 44 }}>
+                <option value="">Whole family</option>
+                {members.map((m) => (
+                  <option key={m.id} value={m.id}>
+                    {m.full_name}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="field" style={{ flex: 1 }}>
+              <label>EXPIRES</label>
+              <DateInput aria-label="Expires" className="input" name="expires_at" defaultValue={entry.expires_at ?? ""} style={{ minHeight: 44 }} />
+            </div>
+          </div>
+
+          <div style={{ display: "flex", gap: 12, marginBottom: 16 }}>
+            <div className="field" style={{ flex: 1 }}>
+              <label>DOCUMENT TYPE</label>
+              <input aria-label="Document Type" className="input" name="doc_type" defaultValue={entry.doc_type ?? ""} placeholder="e.g. Application form" style={{ minHeight: 44 }} />
+            </div>
+            <div className="field" style={{ flex: 1 }}>
+              <label>REFERENCE NO.</label>
+              <input aria-label="Reference No." className="input" name="reference_no" defaultValue={entry.reference_no ?? ""} placeholder="Optional" style={{ minHeight: 44 }} />
+            </div>
+          </div>
+
+          <div style={{ fontSize: 13, color: "var(--color-neutral-700)", marginBottom: 6 }}>Visible to</div>
+          <div style={{ display: "flex", gap: 7, flexWrap: "wrap", marginBottom: 16 }}>
+            {VISIBILITY.map((v) => (
+              <button key={v.value} type="button" className="chip" data-active={visibility === v.value} onClick={() => setVisibility(v.value)}>
+                {v.label}
+              </button>
+            ))}
+          </div>
+
+          <div className="field" style={{ marginBottom: 18 }}>
+            <label>NOTE</label>
+            <input aria-label="Note" className="input" name="note" defaultValue={entry.note ?? ""} placeholder="Anything worth remembering" style={{ minHeight: 44 }} />
+          </div>
+
+          <button type="submit" className="btn btn-primary btn-block" style={{ minHeight: 46, fontSize: 14, letterSpacing: ".04em" }} disabled={saving}>
+            {saving ? "SAVING…" : "SAVE CHANGES"}
+          </button>
+        </form>
+      </div>
+    </div>
+  );
+}
