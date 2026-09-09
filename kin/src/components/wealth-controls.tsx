@@ -8,8 +8,9 @@ import {
   setWealthTargetAction,
   setAllocationAction,
   addBillAction,
+  addIncomeScheduleAction,
 } from "@/lib/actions/wealth";
-import { ACCOUNT_TYPES, ACCOUNT_TYPE_LABELS, EXPENSE_CATEGORIES } from "@/lib/wealth";
+import { ACCOUNT_TYPES, ACCOUNT_TYPE_LABELS, EXPENSE_CATEGORIES, INCOME_SOURCES } from "@/lib/wealth";
 import type { ActionState } from "@/lib/actions/auth";
 import { SubmitButton, ErrorText } from "@/components/form";
 import { DateInput } from "@/components/date-input";
@@ -131,6 +132,84 @@ export function AddBillForm() {
       <div style={{ display: "flex", gap: 10 }}>
         <SubmitButton className="btn btn-primary" style={{ flex: 1, minHeight: 42, fontSize: 14 }}>
           SAVE BILL
+        </SubmitButton>
+        <button type="button" className="btn btn-secondary" style={{ flex: 1, minHeight: 42, fontSize: 14 }} onClick={() => setOpen(false)}>
+          CANCEL
+        </button>
+      </div>
+    </form>
+  );
+}
+
+export function AddIncomeScheduleForm({ accounts }: { accounts: { id: string; name: string }[] }) {
+  const [open, setOpen] = useState(false);
+  const [state, formAction] = useActionState(addIncomeScheduleAction, initialState);
+
+  if (!open) {
+    return (
+      <button
+        type="button"
+        className="btn btn-primary btn-block"
+        style={{ minHeight: 46, fontSize: 14, letterSpacing: ".04em", marginTop: 18 }}
+        onClick={() => setOpen(true)}
+      >
+        + ADD INCOME
+      </button>
+    );
+  }
+
+  return (
+    <form action={formAction} style={{ marginTop: 18, borderTop: "1px solid var(--color-divider)", paddingTop: 16 }}>
+      <ErrorText message={state.error} />
+      <Labelled label="SOURCE">
+        <input className="input" name="name" required placeholder="Salary" style={{ minHeight: 42 }} />
+      </Labelled>
+      <div style={{ display: "flex", gap: 10 }}>
+        <Labelled label="AMOUNT (₱)" style={{ flex: 1 }}>
+          <input className="input" type="number" step="0.01" min="0" name="amount" required style={{ minHeight: 42 }} />
+        </Labelled>
+        <Labelled label="EXPECTED" style={{ flex: 1 }}>
+          <DateInput className="input" name="next_date" style={{ minHeight: 42 }} />
+        </Labelled>
+      </div>
+      <div style={{ display: "flex", gap: 10 }}>
+        <Labelled label="CATEGORY" style={{ flex: 1 }}>
+          <select className="input" name="category" defaultValue="Salary" style={{ minHeight: 42 }}>
+            {INCOME_SOURCES.map((c) => (
+              <option key={c} value={c}>
+                {c}
+              </option>
+            ))}
+          </select>
+        </Labelled>
+        <Labelled label="REPEATS" style={{ flex: 1 }}>
+          <select className="input" name="recurrence" defaultValue="monthly" style={{ minHeight: 42 }}>
+            <option value="monthly">Monthly</option>
+            <option value="quarterly">Quarterly</option>
+            <option value="yearly">Yearly</option>
+            <option value="once">One-off</option>
+          </select>
+        </Labelled>
+      </div>
+      {accounts.length > 0 && (
+        <Labelled label="USUALLY LANDS IN">
+          <select className="input" name="account_id" defaultValue="" style={{ minHeight: 42 }}>
+            <option value="">Not decided yet</option>
+            {accounts.map((a) => (
+              <option key={a.id} value={a.id}>
+                {a.name}
+              </option>
+            ))}
+          </select>
+        </Labelled>
+      )}
+      <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, color: "var(--color-neutral-700)", margin: "2px 0 12px" }}>
+        <input type="checkbox" name="is_joint" defaultChecked />
+        Household income, not just mine
+      </label>
+      <div style={{ display: "flex", gap: 10 }}>
+        <SubmitButton className="btn btn-primary" style={{ flex: 1, minHeight: 42, fontSize: 14 }}>
+          SAVE
         </SubmitButton>
         <button type="button" className="btn btn-secondary" style={{ flex: 1, minHeight: 42, fontSize: 14 }} onClick={() => setOpen(false)}>
           CANCEL

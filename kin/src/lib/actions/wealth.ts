@@ -126,7 +126,7 @@ type LedgerInput = {
   occurredAt?: string | null;
   status?: "pending" | "confirmed";
   transferGroupId?: string | null;
-  sourceTable?: "bills" | "trips" | "buy_items" | "health_appointments" | "goals" | "routines" | null;
+  sourceTable?: "bills" | "trips" | "buy_items" | "health_appointments" | "goals" | "routines" | "income_schedules" | null;
   sourceId?: string | null;
   goalId?: string | null;
 };
@@ -172,6 +172,17 @@ async function applySettlement(supabase: Db, memberId: string, entry: Tables<"we
       })
       .eq("id", entry.source_id);
     if (error) return `The payment was recorded, but the bill is still showing as unpaid. ${error.message}`;
+  }
+
+  if (entry.source_table === "income_schedules" && entry.source_id) {
+    // Mirrors the bill branch above: the money has already landed, so a
+    // failure here should not be mistaken for the ledger entry itself
+    // having failed.
+    const { error } = await supabase
+      .from("income_schedules")
+      .update({ status: "received", received_at: entry.occurred_at, received_by_member_id: memberId, transaction_id: entry.id })
+      .eq("id", entry.source_id);
+    if (error) return `The income was recorded, but the schedule is still showing as expected. ${error.message}`;
   }
 
   if (entry.goal_id) {
@@ -382,6 +393,16 @@ export async function deleteTransactionAction(transactionId: string): Promise<Ac
     if (billError) return { error: `The bill could not be reopened, so the payment was left in place. ${billError.message}` };
   }
 
+  // Same reopening for income: a discarded receipt goes back to "expected"
+  // rather than staying marked received with nothing behind it.
+  if (entry.source_table === "income_schedules" && entry.source_id) {
+    const { error: incomeError } = await supabase
+      .from("income_schedules")
+      .update({ status: "expected", received_at: null, received_by_member_id: null, transaction_id: null })
+      .eq("id", entry.source_id);
+    if (incomeError) return { error: `The income schedule could not be reopened, so the entry was left in place. ${incomeError.message}` };
+  }
+
   const query = supabase.from("wealth_transactions").delete();
   const { error } = entry.transfer_group_id
     ? await query.eq("transfer_group_id", entry.transfer_group_id)
@@ -506,6 +527,108 @@ export async function deleteBillAction(billId: string): Promise<ActionState> {
   const me = await requireCurrentMember();
   const supabase = await createClient();
   const { error } = await supabase.from("bills").delete().eq("id", billId).eq("family_id", me.family_id);
+  if (error) return { error: humanDatabaseError(error.message) };
+  revalidateWealth();
+  return { error: null };
+}
+
+/* --------------------------------------------------------- income schedules */
+
+/** The income-side mirror of addBillAction — expected money in, rather than
+ * expected money out, with the same shape and the same recurrence label
+ * that does not itself regenerate anything. */
+export async function addIncomeScheduleAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
+  const me = await requireCurrentMember();
+  const supabase = await createClient();
+
+  const name = String(formData.get("name") ?? "").trim();
+  const amount = Number(formData.get("amount") ?? 0);
+  const nextDate = String(formData.get("next_date") ?? "") || null;
+  const category = String(formData.get("category") ?? "").trim() || null;
+  const recurrence = String(formData.get("recurrence") ?? "monthly");
+  const accountId = String(formData.get("account_id") ?? "") || null;
+  const isJoint = formData.get("is_joint") === "on";
+  if (!name) return { error: "Name and amount are required." };
+  if (!(amount > 0)) return { error: "Enter an amount greater than zero." };
+
+  const { data: schedule, error } = await supabase
+    .from("income_schedules")
+    .insert({
+      family_id: me.family_id,
+      name,
+      amount,
+      next_date: nextDate,
+      category,
+      recurrence,
+      account_id: accountId,
+      is_joint: isJoint,
+      owner_member_id: isJoint ? null : me.id,
+      status: "expected",
+      created_by: me.id,
+    })
+    .select()
+    .single();
+  if (error) return { error: humanDatabaseError(error.message) };
+
+  if (nextDate) {
+    await syncRowToCalendars(
+      me.family_id,
+      "income_schedules",
+      schedule.id,
+      allDayEvent(`${name} expected`, nextDate),
+      { kind: "all" },
+    );
+  }
+
+  revalidateWealth();
+  return { error: null };
+}
+
+/** Receiving income is a ledger entry that happens to close the schedule —
+ * the mirror of payBillAction, money in rather than out. */
+export async function receiveIncomeAction(input: {
+  scheduleId: string;
+  accountId: string;
+  amount: number;
+  viaApp: boolean;
+}): Promise<{ error: string | null; appUrl?: string | null }> {
+  const me = await requireCurrentMember();
+  const supabase = await createClient();
+
+  const [{ data: schedule }, { data: account }] = await Promise.all([
+    supabase.from("income_schedules").select("*").eq("id", input.scheduleId).eq("family_id", me.family_id).maybeSingle(),
+    supabase.from("accounts").select("linked_app_url").eq("id", input.accountId).eq("family_id", me.family_id).maybeSingle(),
+  ]);
+  if (!schedule) return { error: "Income schedule not found." };
+  if (!account) return { error: "Choose an account to receive it into." };
+
+  const status = input.viaApp ? "pending" : "confirmed";
+  const { data: entry, error } = await insertEntry(supabase, me.family_id, me.id, {
+    accountId: input.accountId,
+    direction: "in",
+    amount: input.amount,
+    particulars: schedule.name,
+    category: schedule.category ?? "Salary",
+    status,
+    sourceTable: "income_schedules",
+    sourceId: schedule.id,
+  });
+  if (error) return { error: explainLedgerRefusal(error.message) };
+
+  if (status === "confirmed") {
+    const settled = await applySettlement(supabase, me.id, entry);
+    if (settled) return { error: settled };
+  }
+  else await supabase.from("income_schedules").update({ status: "pending" }).eq("id", schedule.id);
+
+  revalidateWealth();
+  return { error: null, appUrl: input.viaApp ? account.linked_app_url : null };
+}
+
+export async function deleteIncomeScheduleAction(scheduleId: string): Promise<ActionState> {
+  const me = await requireCurrentMember();
+  const supabase = await createClient();
+  const { error } = await supabase.from("income_schedules").delete().eq("id", scheduleId).eq("family_id", me.family_id);
   if (error) return { error: humanDatabaseError(error.message) };
   revalidateWealth();
   return { error: null };
@@ -650,7 +773,7 @@ export async function createGoalAction(_prev: ActionState, formData: FormData): 
   }
 
   revalidateWealth();
-  redirect("/wealth?seg=goals");
+  redirect("/wealth?seg=assets");
 }
 
 /** Putting money towards a goal moves it out of a real account, so goal

@@ -1998,6 +1998,106 @@ export type Database = {
           },
         ]
       }
+      income_schedules: {
+        Row: {
+          account_id: string | null
+          amount: number
+          category: string | null
+          created_at: string
+          created_by: string | null
+          family_id: string
+          id: string
+          is_joint: boolean
+          name: string
+          next_date: string | null
+          owner_member_id: string | null
+          received_at: string | null
+          received_by_member_id: string | null
+          recurrence: string
+          status: string
+          transaction_id: string | null
+        }
+        Insert: {
+          account_id?: string | null
+          amount: number
+          category?: string | null
+          created_at?: string
+          created_by?: string | null
+          family_id: string
+          id?: string
+          is_joint?: boolean
+          name: string
+          next_date?: string | null
+          owner_member_id?: string | null
+          received_at?: string | null
+          received_by_member_id?: string | null
+          recurrence?: string
+          status?: string
+          transaction_id?: string | null
+        }
+        Update: {
+          account_id?: string | null
+          amount?: number
+          category?: string | null
+          created_at?: string
+          created_by?: string | null
+          family_id?: string
+          id?: string
+          is_joint?: boolean
+          name?: string
+          next_date?: string | null
+          owner_member_id?: string | null
+          received_at?: string | null
+          received_by_member_id?: string | null
+          recurrence?: string
+          status?: string
+          transaction_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "income_schedules_account_id_fkey"
+            columns: ["account_id"]
+            isOneToOne: false
+            referencedRelation: "accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "income_schedules_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "members"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "income_schedules_family_id_fkey"
+            columns: ["family_id"]
+            isOneToOne: false
+            referencedRelation: "families"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "income_schedules_owner_member_id_fkey"
+            columns: ["owner_member_id"]
+            isOneToOne: false
+            referencedRelation: "members"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "income_schedules_received_by_member_id_fkey"
+            columns: ["received_by_member_id"]
+            isOneToOne: false
+            referencedRelation: "members"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "income_schedules_transaction_id_fkey"
+            columns: ["transaction_id"]
+            isOneToOne: false
+            referencedRelation: "wealth_transactions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       journal_comments: {
         Row: {
           body: string

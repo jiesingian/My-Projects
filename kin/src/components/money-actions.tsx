@@ -4,6 +4,7 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import {
   payBillAction,
+  receiveIncomeAction,
   contributeToGoalAction,
   confirmTransactionAction,
   deleteTransactionAction,
@@ -12,6 +13,7 @@ import {
   deleteAssetAction,
   deleteLiabilityAction,
   deleteBillAction,
+  deleteIncomeScheduleAction,
   deleteGoalAction,
   archiveAccountAction,
   setAccountPrivacyAction,
@@ -129,6 +131,61 @@ export function PayBillControl({ billId, amount, accounts, currency }: { billId:
           onClick={() => run(() => payBillAction({ billId, accountId, amount: payAmount, viaApp: viaApp && !!account?.linked_app_url }), () => setOpen(false))}
         >
           {pending ? "…" : viaApp && account?.linked_app_url ? "OPEN APP & LOG" : "MARK PAID"}
+        </button>
+        <button type="button" className="btn btn-secondary" style={{ flex: 1, minHeight: 40, fontSize: 13.5 }} onClick={() => setOpen(false)}>
+          CANCEL
+        </button>
+      </div>
+    </div>
+  );
+}
+
+export function ReceiveIncomeControl({ scheduleId, amount, accounts, currency }: { scheduleId: string; amount: number; accounts: PickableAccount[]; currency: string }) {
+  const [open, setOpen] = useState(false);
+  const [accountId, setAccountId] = useState(accounts[0]?.id ?? "");
+  const [receiveAmount, setReceiveAmount] = useState(amount);
+  const [viaApp, setViaApp] = useState(true);
+  const { error, pending, run } = useMoneyAction();
+  const account = accounts.find((a) => a.id === accountId);
+
+  if (accounts.length === 0) {
+    return <span style={{ fontSize: 12.5, color: "var(--color-neutral-600)" }}>Add an account first</span>;
+  }
+
+  if (!open) {
+    return (
+      <button type="button" className="btn btn-secondary" style={{ minHeight: 32, fontSize: 13, padding: "0 10px", marginTop: 6 }} onClick={() => setOpen(true)}>
+        RECEIVED
+      </button>
+    );
+  }
+
+  return (
+    <div style={{ marginTop: 10, paddingTop: 10, borderTop: "1px solid var(--color-divider)", textAlign: "left" }}>
+      <Err message={error} />
+      <div className="field" style={{ marginBottom: 8 }}>
+        <label>INTO</label>
+        <AccountSelect accounts={accounts} value={accountId} onChange={setAccountId} currency={currency} />
+      </div>
+      <div className="field" style={{ marginBottom: 8 }}>
+        <label>AMOUNT (₱)</label>
+        <input aria-label="Amount (₱)" className="input" type="number" step="0.01" value={receiveAmount} onChange={(e) => setReceiveAmount(Number(e.target.value))} style={{ minHeight: 42 }} />
+      </div>
+      <ViaAppToggle checked={viaApp} onChange={setViaApp} account={account} />
+      <div style={{ display: "flex", gap: 8 }}>
+        <button
+          type="button"
+          className="btn btn-primary"
+          disabled={pending}
+          style={{ flex: 1, minHeight: 40, fontSize: 13.5 }}
+          onClick={() =>
+            run(
+              () => receiveIncomeAction({ scheduleId, accountId, amount: receiveAmount, viaApp: viaApp && !!account?.linked_app_url }),
+              () => setOpen(false),
+            )
+          }
+        >
+          {pending ? "…" : viaApp && account?.linked_app_url ? "OPEN APP & LOG" : "MARK RECEIVED"}
         </button>
         <button type="button" className="btn btn-secondary" style={{ flex: 1, minHeight: 40, fontSize: 13.5 }} onClick={() => setOpen(false)}>
           CANCEL
@@ -338,6 +395,7 @@ const DELETERS = {
   asset: deleteAssetAction,
   liability: deleteLiabilityAction,
   bill: deleteBillAction,
+  income_schedule: deleteIncomeScheduleAction,
   goal: deleteGoalAction,
   account: archiveAccountAction,
 } as const;
