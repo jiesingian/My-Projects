@@ -21,6 +21,7 @@ import { DeleteAccountButton } from "@/components/delete-account-button";
 import { Avatar } from "@/components/avatar";
 import { TransferOrganizerRole } from "@/components/transfer-organizer-role";
 import { initials } from "@/lib/format";
+import { countryLabel } from "@/lib/countries";
 
 const DRIVE_ERROR_MESSAGES: Record<string, string> = {
   not_configured: "Google Drive linking isn't configured on this server yet — set GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET.",
@@ -200,12 +201,18 @@ export default async function SettingsPage({
             </div>
           </>
         )}
-        <div style={{ fontSize: 13, color: "var(--color-neutral-700)", marginBottom: 6 }}>Currency, dates and week start</div>
+        <div style={{ fontSize: 13, color: "var(--color-neutral-700)", marginBottom: 6 }}>Currency, dates, week start and country</div>
         {me.is_organiser ? (
-          <HouseholdPrefsForm currency={me.families.currency} dateFormat={me.families.date_format} weekStart={me.families.week_start} />
+          <HouseholdPrefsForm
+            currency={me.families.currency}
+            dateFormat={me.families.date_format}
+            weekStart={me.families.week_start}
+            country={me.families.country}
+          />
         ) : (
           <div style={{ padding: "10px 0", marginBottom: 20, fontSize: 13 }}>
             {me.families.currency} · {me.families.date_format} · {me.families.week_start === "monday" ? "Mon start" : "Sun start"}
+            {me.families.country ? ` · ${countryLabel(me.families.country)}` : ""}
           </div>
         )}
 

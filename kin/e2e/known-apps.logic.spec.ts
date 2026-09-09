@@ -1,5 +1,5 @@
 import { test, expect } from "@playwright/test";
-import { resolveInstitutionLinks, isKnownInstitutionLabel, KNOWN_APPS } from "@/lib/wealth";
+import { resolveInstitutionLinks, isKnownInstitutionLabel, KNOWN_APPS, appStoreSearchUrl, playStoreSearchUrl } from "@/lib/wealth";
 
 /** What BANK / WALLET should do to LINK APP / APP STORE LINK / PLAY STORE
  * LINK as it changes, pulled out of AppLinksField so it can be checked
@@ -80,4 +80,25 @@ test("a known app's App Store and Play Store links are both real, distinct URLs"
     expect(app.playStoreUrl, app.label).toMatch(/^https:\/\/play\.google\.com\//);
     expect(app.appStoreUrl).not.toBe(app.playStoreUrl);
   }
+});
+
+test("the search fallback works for any institution name, unverified or not", () => {
+  // GET APP's fallback for a bank Kin has no listing for -- so it has to
+  // hold up for a name Kin has never seen, not just the ones already in
+  // KNOWN_APPS. Both URL formats are each store's own documented web
+  // search page.
+  expect(appStoreSearchUrl("Some Bank")).toBe("https://apps.apple.com/us/search?term=Some%20Bank");
+  expect(playStoreSearchUrl("Some Bank")).toBe("https://play.google.com/store/search?q=Some%20Bank&c=apps");
+  // A name with characters that are meaningful in a URL (&, /, #) must not
+  // break the query string or point somewhere else entirely.
+  expect(appStoreSearchUrl("Tom & Jerry Bank / Trust")).toContain(encodeURIComponent("Tom & Jerry Bank / Trust"));
+  expect(playStoreSearchUrl("Tom & Jerry Bank / Trust")).toContain(encodeURIComponent("Tom & Jerry Bank / Trust"));
+});
+
+test("the App Store search uses the household's own country, not a fixed one", () => {
+  // families.country, set once in Settings or onboarding -- never the
+  // phone's current location. Unset households still get a working link.
+  expect(appStoreSearchUrl("Some Bank", "sg")).toBe("https://apps.apple.com/sg/search?term=Some%20Bank");
+  expect(appStoreSearchUrl("Some Bank", null)).toBe("https://apps.apple.com/us/search?term=Some%20Bank");
+  expect(appStoreSearchUrl("Some Bank")).toBe("https://apps.apple.com/us/search?term=Some%20Bank");
 });

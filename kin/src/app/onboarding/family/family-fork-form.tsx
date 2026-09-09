@@ -7,6 +7,7 @@ import { SubmitButton, ErrorText } from "@/components/form";
 import { OnboardingShell } from "@/components/onboarding-shell";
 import { Blueprint } from "@/components/ui";
 import { Icon } from "@/components/icons";
+import { COUNTRIES, DEFAULT_COUNTRY } from "@/lib/countries";
 
 const initialState: ActionState = { error: null };
 
@@ -44,6 +45,20 @@ export function FamilyForkForm({
           <div className="field" style={{ marginBottom: 12 }}>
             <label>HOUSEHOLD NAME</label>
             <input aria-label="Household Name" className="input" name="household_name" placeholder="The Reyes Household" required style={{ minHeight: 44 }} />
+          </div>
+          {/* One setting the household won't have to find its way to Settings
+              for afterward -- it's used from the first account someone adds.
+              Change it later same as currency; it never changes on its own
+              just because a phone traveled. */}
+          <div className="field" style={{ marginBottom: 12 }}>
+            <label>COUNTRY</label>
+            <select aria-label="Country" className="input" name="country" defaultValue={DEFAULT_COUNTRY} style={{ minHeight: 44 }}>
+              {COUNTRIES.map((c) => (
+                <option key={c.code} value={c.code}>
+                  {c.label}
+                </option>
+              ))}
+            </select>
           </div>
           {/* Starting a household is the one step a family invite code does
               not open — that code brings you into an existing family below. */}

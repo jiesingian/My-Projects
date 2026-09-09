@@ -260,6 +260,30 @@ export function isKnownInstitutionLabel(label: string): boolean {
   return KNOWN_APPS.some((a) => a.label === label);
 }
 
+/** A working store link for literally any institution, in any country --
+ * not a listing (Kin doesn't know one), a search. Both are each store's
+ * own documented web search page, not scraped or reverse-engineered:
+ * Apple's at apps.apple.com/{country}/search?term=, Google's at
+ * play.google.com/store/search?q=&c=apps. This is what makes GET APP work
+ * for a bank nobody has hand-verified yet, everywhere KNOWN_APPS has
+ * nothing -- the fallback that makes "no specific country" true instead
+ * of aspirational, since a fixed list can never cover every bank in every
+ * market and was never going to.
+ *
+ * `country` is the household's own App Store region (families.country,
+ * set once in Settings or at onboarding -- @/lib/countries), not wherever
+ * the phone making the request currently is. Falls back to "us" when a
+ * household hasn't set one: Apple's search still works from that region
+ * path, just ranked for it rather than tuned to where the household
+ * actually is. */
+export function appStoreSearchUrl(query: string, country?: string | null): string {
+  return `https://apps.apple.com/${country || "us"}/search?term=${encodeURIComponent(query)}`;
+}
+
+export function playStoreSearchUrl(query: string): string {
+  return `https://play.google.com/store/search?q=${encodeURIComponent(query)}&c=apps`;
+}
+
 /** What LINK APP / APP STORE LINK / PLAY STORE LINK should become when
  * BANK / WALLET changes from `previousValue` to `nextValue`, given which
  * store matches the phone currently filling the form in. `null` means

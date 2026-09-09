@@ -7,6 +7,7 @@ import { requireCurrentMember } from "@/lib/session";
 import type { ActionState } from "@/lib/actions/auth";
 import { isNotificationKey } from "@/lib/notifications";
 import { humanDatabaseError } from "@/lib/db-errors";
+import { isCountryCode } from "@/lib/countries";
 
 export async function setThemeAction(theme: "light" | "dark" | "system"): Promise<ActionState> {
   const me = await requireCurrentMember();
@@ -68,14 +69,27 @@ export async function updateHouseholdNameAction(name: string): Promise<ActionSta
   return { error: error ? humanDatabaseError(error.message) : null };
 }
 
-export async function updateHouseholdPrefsAction(currency: string, dateFormat: string, weekStart: string): Promise<ActionState> {
+export async function updateHouseholdPrefsAction(
+  currency: string,
+  dateFormat: string,
+  weekStart: string,
+  country: string,
+): Promise<ActionState> {
   const me = await requireCurrentMember();
   if (!me.is_organiser) return { error: "Only the organizer can change household preferences." };
+  // The select only ever offers a fixed list -- same reasoning as
+  // account_type's server-side check: a form field is a request, not a
+  // fact. Blank is allowed (a household that skipped it at setup can leave
+  // it unset), an unrecognized value is not.
+  if (country && !isCountryCode(country)) return { error: "That isn't a country we recognize." };
 
   const supabase = await createClient();
   // Same reasoning as the rename above: the household is the caller's own,
   // taken from the session rather than accepted as an argument.
-  const { error } = await supabase.from("families").update({ currency, date_format: dateFormat, week_start: weekStart }).eq("id", me.family_id);
+  const { error } = await supabase
+    .from("families")
+    .update({ currency, date_format: dateFormat, week_start: weekStart, country: country || null })
+    .eq("id", me.family_id);
   revalidatePath("/settings");
   return { error: error ? humanDatabaseError(error.message) : null };
 }
