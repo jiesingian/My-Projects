@@ -27,18 +27,32 @@ Both people's sessions run in their own container against their own clone, so
 work in parallel does not collide until a branch is merged. The one thing that
 *does* collide is `main` — hence the rule above.
 
-### Small changes merge themselves; large ones wait
+### Everything from anyone but Jonathan waits for Jonathan
 
-A pull request is sorted automatically by `.github/workflows/triage.yml`, from
-the diff rather than from anything the author says about it.
+A pull request is sorted automatically by `.github/workflows/triage.yml`, and
+the first question it asks is **who opened it**.
 
-The test is not "does this look risky" but **"could we undo it in five
-minutes"**. Code is revertible — a bad component ships, someone notices, it is
-reverted. So most of the app merges on green CI and is fixed forward. What
-waits for Jonathan is what cannot be undone: the way into the app, session
-handling, who may see whose data, money, anything that runs code on our
-machines, and anything touching the database itself. Or a change past ~400
-lines.
+**If the author is not `jiesingian`, it is held. Always.** Whatever the diff
+looks like, however small it is, however green the tests are. It gets the
+`needs-jonathan` label, auto-merge is disabled on it, and it sits there until
+he merges it himself. That is what "propose; he disposes" means now that more
+than one person works here, and it is a decision about who approves rather
+than about how risky a change looks.
+
+So if you are working for anybody other than Jonathan: open the pull request,
+say clearly what you changed and why, and then **stop**. Do not merge it, do
+not ask for it to be merged, and do not treat green CI as permission. Green
+means the change is ready to be looked at.
+
+**Jonathan's own pull requests** are sorted on the diff instead, since he
+pushes to `main` directly anyway and a pull request in his name is his own
+work arriving by another door. The test there is not "does this look risky"
+but **"could we undo it in five minutes"**. Code is revertible — a bad
+component ships, someone notices, it is reverted. So most of the app merges on
+green CI and is fixed forward. What waits is what cannot be undone: the way
+into the app, session handling, who may see whose data, money, anything that
+runs code on our machines, and anything touching the database itself. Or a
+change past ~400 lines.
 
 Migrations are his alone. They apply when written, not when merged, so by the
 time a pull request is read the schema has already moved — review cannot catch
@@ -53,6 +67,34 @@ him decide.
 CI must be green either way — `npx tsc --noEmit`, `npm run lint` and
 `npm run build`, all from `kin/`. Run them before you open the pull request
 rather than finding out from the robot.
+
+## Never test against the real household
+
+There is one Supabase project and it holds the Singian family's actual
+records — their money, their health, their documents, their photos. Every
+session points at it, including yours. There is no separate development
+database to fall back on, so this is the rule that stands in for one:
+
+- **Never write, edit or delete anything in the Singian household.** Not a
+  test row, not a "temporary" one you mean to clean up, not while proving a
+  fix works.
+- **Test against the throwaway QA household instead** — the account in
+  `E2E_EMAIL`. It exists to be written to and holds nothing anybody needs.
+  Row-level security keeps the two households apart, so work done as the QA
+  account cannot reach the real one.
+- **Reading the real data is fine** when a question genuinely needs it — a
+  reconciliation query, a check that a fix landed. Writing is not.
+- **Never run a migration.** They take effect when they are run, not when a
+  pull request merges, so nobody can catch a bad one by reviewing it
+  afterwards. Write the `.sql` file, say in the pull request that it needs
+  running, and stop. Jonathan runs it himself.
+- **Never use the service-role key** to get around any of the above. It
+  bypasses row-level security, which is the thing keeping one household's
+  data out of another's.
+
+If a change cannot be verified without touching real data, say so and leave it
+unverified rather than touching it. An unverified fix is a known unknown; a
+corrupted record is somebody's actual life.
 
 ## graphify
 

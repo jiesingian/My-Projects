@@ -41,6 +41,8 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           PR: ${{ github.event.pull_request.number }}
           REPO: ${{ github.repository }}
+          AUTHOR: ${{ github.event.pull_request.user.login }}
+          OWNER: jiesingian
         run: |
           set -euo pipefail
 
@@ -96,7 +98,20 @@ jobs:
           echo "Files changed:"; cat /tmp/files.txt
 
           REASON=""
-          if grep -qE "$SENSITIVE" /tmp/files.txt; then
+
+          # Whose pull request it is comes first, and outranks everything
+          # below. Jonathan pushes to main directly, so a pull request in his
+          # name is his own work arriving by another door, and the tests are
+          # the only gate it needs. Everyone else's waits for him, whatever
+          # the diff looks like. That is a decision about who approves rather
+          # than about how risky a change looks, which is why it sits above
+          # the classifier instead of inside it -- and the classifier still
+          # runs, so a held pull request says everything true about itself.
+          if [ "$AUTHOR" != "$OWNER" ]; then
+            REASON="it is $AUTHOR's, and every change from anyone but Jonathan waits for him"
+          fi
+
+          if [ -z "$REASON" ] && grep -qE "$SENSITIVE" /tmp/files.txt; then
             REASON="it touches auth, data rules, billing, an API route, or the toolchain"
           fi
 
