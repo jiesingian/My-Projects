@@ -74,8 +74,10 @@ test("a pasted wall of text does not push the planner sideways", async ({ page }
   await page.locator('[name="title"]').first().fill(LONG);
   await page.locator('[name="date"]').first().fill("2026-09-15");
   await page.locator('[name="from"]').first().fill("09:00");
-  await page.getByRole("button", { name: /save|add|create/i }).first().click();
-  await page.waitForLoadState("networkidle");
+  await page.locator('button[type="submit"]').first().click();
+  // Somewhere other than the form -- a click that lands before hydration does
+  // nothing, and networkidle is satisfied by that. See goal-contribute.
+  await page.waitForURL((url) => new URL(url).pathname !== "/planner/add", { timeout: 30_000 });
 
   await page.goto("/planner?seg=calendar&view=month&date=2026-09-15", { waitUntil: "networkidle" });
   await expect(page.getByText(RUN, { exact: false }).first()).toBeVisible();

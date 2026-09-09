@@ -11,6 +11,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database, Tables, TablesInsert } from "@/lib/database.types";
 import { allDayEvent } from "@/lib/calendar-shape";
 import { humanDatabaseError } from "@/lib/db-errors";
+import { clamp } from "@/lib/text";
 
 type Db = SupabaseClient<Database>;
 
@@ -26,10 +27,10 @@ export async function addAccountAction(_prev: ActionState, formData: FormData): 
   const me = await requireCurrentMember();
   const supabase = await createClient();
 
-  const name = String(formData.get("name") ?? "").trim();
-  const subNote = String(formData.get("sub_note") ?? "").trim() || null;
-  const institution = String(formData.get("institution") ?? "").trim() || null;
-  const linkedAppUrl = String(formData.get("linked_app_url") ?? "").trim() || null;
+  const name = clamp(String(formData.get("name") ?? ""), 150);
+  const subNote = clamp(String(formData.get("sub_note") ?? ""), 200) || null;
+  const institution = clamp(String(formData.get("institution") ?? ""), 200) || null;
+  const linkedAppUrl = clamp(String(formData.get("linked_app_url") ?? ""), 500) || null;
   const accountType = String(formData.get("account_type") ?? "bank");
   const openingBalance = Number(formData.get("opening_balance") ?? 0);
   const isJoint = formData.get("is_joint") === "on";
@@ -57,7 +58,7 @@ export async function updateAccountAction(accountId: string, _prev: ActionState,
   const me = await requireCurrentMember();
   const supabase = await createClient();
 
-  const name = String(formData.get("name") ?? "").trim();
+  const name = clamp(String(formData.get("name") ?? ""), 150);
   if (!name) return { error: "Name the account." };
 
   const { error } = await supabase
@@ -276,7 +277,7 @@ export async function transferAction(input: {
 
   const status = input.viaApp ? "pending" : "confirmed";
   const transferGroupId = crypto.randomUUID();
-  const note = input.note.trim();
+  const note = clamp(input.note, 300);
 
   const legs: LedgerInput[] = [
     {
@@ -450,10 +451,10 @@ export async function addBillAction(_prev: ActionState, formData: FormData): Pro
   const me = await requireCurrentMember();
   const supabase = await createClient();
 
-  const name = String(formData.get("name") ?? "").trim();
+  const name = clamp(String(formData.get("name") ?? ""), 150);
   const amount = Number(formData.get("amount") ?? 0);
   const dueDate = String(formData.get("due_date") ?? "") || null;
-  const category = String(formData.get("category") ?? "").trim() || null;
+  const category = clamp(String(formData.get("category") ?? ""), 100) || null;
   const recurrence = String(formData.get("recurrence") ?? "monthly");
   if (!name) return { error: "Name and amount are required." };
   // Every other money path checks `> 0`; this one checked `!amount`, which is
@@ -740,8 +741,8 @@ export async function createGoalAction(_prev: ActionState, formData: FormData): 
   const me = await requireCurrentMember();
   const supabase = await createClient();
 
-  const title = String(formData.get("title") ?? "").trim();
-  const subNote = String(formData.get("sub_note") ?? "").trim() || null;
+  const title = clamp(String(formData.get("title") ?? ""), 150);
+  const subNote = clamp(String(formData.get("sub_note") ?? ""), 200) || null;
   const isJoint = formData.get("is_joint") === "on";
   const ownerMemberId = isJoint ? null : me.id;
   const targetAmount = formData.get("target_amount") ? Number(formData.get("target_amount")) : null;
@@ -848,7 +849,7 @@ export async function addAssetAction(_prev: ActionState, formData: FormData): Pr
   const me = await requireCurrentMember();
   const supabase = await createClient();
 
-  const name = String(formData.get("name") ?? "").trim();
+  const name = clamp(String(formData.get("name") ?? ""), 150);
   const value = moneyFromForm(formData.get("value"));
   const isJoint = formData.get("is_joint") === "on";
   if (!name) return { error: "Name the asset." };
@@ -875,7 +876,7 @@ export async function addLiabilityAction(_prev: ActionState, formData: FormData)
   const me = await requireCurrentMember();
   const supabase = await createClient();
 
-  const name = String(formData.get("name") ?? "").trim();
+  const name = clamp(String(formData.get("name") ?? ""), 150);
   const balance = moneyFromForm(formData.get("balance"));
   const monthlyPayment = formData.get("monthly_payment") ? moneyFromForm(formData.get("monthly_payment")) : null;
   const isJoint = formData.get("is_joint") === "on";

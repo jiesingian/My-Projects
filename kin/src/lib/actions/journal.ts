@@ -6,6 +6,7 @@ import { requireCurrentMember } from "@/lib/session";
 import { getValidDriveAccessToken, deleteDriveFile, ensureDriveFolderStructure, ensureNamedSubfolder } from "@/lib/google-drive";
 import { familyDay } from "@/lib/time";
 import { humanDatabaseError } from "@/lib/db-errors";
+import { clamp } from "@/lib/text";
 
 type UploadedFile =
   | { provider: "google_drive"; driveFileId: string; driveViewLink: string | null; driveThumbnailLink: string | null }
@@ -20,7 +21,7 @@ export async function createJournalEntryAction(input: {
   const me = await requireCurrentMember();
   const supabase = await createClient();
 
-  const title = input.title.trim();
+  const title = clamp(input.title, 150);
   if (!title) return { error: "Give the entry a title." };
 
   const { data: entry, error } = await supabase
@@ -50,7 +51,7 @@ export async function updateJournalEntryAction(input: {
   const me = await requireCurrentMember();
   const supabase = await createClient();
 
-  const title = input.title.trim();
+  const title = clamp(input.title, 150);
   if (!title) return { error: "Give the entry a title." };
 
   const { data: entry, error } = await supabase
@@ -198,7 +199,7 @@ export async function createMilestoneAction(_prev: { error: string | null }, for
   const me = await requireCurrentMember();
   const supabase = await createClient();
 
-  const title = String(formData.get("title") ?? "").trim();
+  const title = clamp(String(formData.get("title") ?? ""), 150);
   const date = String(formData.get("date") ?? familyDay());
   const memberId = String(formData.get("member_id") ?? "") || null;
   if (!title) return { error: "Give the milestone a title." };
@@ -225,7 +226,7 @@ export async function updateMilestoneAction(input: {
   const me = await requireCurrentMember();
   const supabase = await createClient();
 
-  const title = input.title.trim();
+  const title = clamp(input.title, 150);
   if (!title) return { error: "Give the milestone a title." };
 
   const { error } = await supabase

@@ -188,8 +188,8 @@ the menu does not control — an old tab, a replay, the assistant. Six tests in
 `e2e/visibility.logic.spec.ts`, checked negatively: disabling the filter fails
 two of them.
 
-**Not fixed, because it is not mine to decide.** The role model itself. Three
-consequences, all the same root:
+**The role model itself**, which was the deeper half. Three consequences, all
+the same root:
 
 1. **"Parents only" is unusable by anyone but the household's creator.** The
    option is now hidden rather than broken, which is better and still not
@@ -441,13 +441,20 @@ word only when it would otherwise overflow, so ordinary text is untouched.
 `e2e/long-text.spec.ts` pins it by measuring `scrollWidth - clientWidth` on a
 phone viewport, which fails at 2,057 without the rule.
 
-**Not done: length limits.** No field has one, and this fixes what a person
-sees rather than what gets stored. A 100,000-character title would still be
-accepted, still be shipped on every page that lists it, and still fill the
-assistant's context. Chat already clamps its own field (`MAX_LENGTH` in
-`actions/chat.ts`), so the idea exists in the codebase and wants extending —
-but it is 172 inputs, each needing a sensible limit, and that is a change of
-its own rather than a line in this one.
+**Length limits — DONE, 9 September, and not by me.** Janine picked this up
+from this file and merged it the same day: `lib/text.ts` `clamp` applied
+server-side across family, planner, household, profile and routines, plus
+`maxLength` on the inputs. Her reasoning is the right one and worth keeping:
+a `maxLength` on an input is cosmetic, because these are Server Actions and
+reachable with a string of any length regardless of what the form allows.
+
+She covered documents and health in a second pull request while this was
+being written, and we collided on both — same fields, slightly different
+limits. Resolved in main's favour, per CLAUDE.md: hers had landed, and
+arguing over a few characters of allowance is churn. What was left after that
+is journal and wealth, the two files neither pass had reached: 16 more fields
+clamped to her conventions (titles and names 150, a short note 300, longer
+notes 1000, a location 200, a URL 500).
 
 **A note on how this file's own tests behaved.** The first cleanup for that
 spec clicked through the UI inside a `try/catch`, and left its row behind
@@ -535,6 +542,34 @@ line fails three of the six.
 
 ---
 
+## The test household had filled up with 612 leftover rows — CLEARED 9 September
+
+Not a defect in the app, and worth recording anyway because it hid one.
+
+Every write spec stamps its rows with a per-run prefix and leaves them behind.
+Over days of runs the throwaway household reached **113 goals totalling
+₱14,596,000**, 177 activities, 114 routines and so on — 612 rows of debris
+around a fixture set of about twenty.
+
+It surfaced while writing the contribute test: the Goals page had grown so
+long that finding one card in it was the hard part, and the first version of
+that test failed for reasons that had nothing to do with contributing. A
+household nobody can read is a household nobody checks by looking.
+
+**Cleared**: 612 rows, matched on the `E2E-` run prefix so the seeded
+fixtures — `E2E New roof`, `Emergency fund` and the rest, which have no
+hyphen and which tests depend on — were left alone. The full suite was re-run
+afterwards and passes at 165, which is the only proof that nothing needed was
+deleted.
+
+**Not fixed: the specs still leave their rows.** Two now tidy up after
+themselves and assert that they did (`long-text`, `goal-contribute`), which is
+the pattern the rest could follow. Doing that to every write spec is a change
+of its own, and until then this will fill up again — a note here beats a
+surprise in a month.
+
+---
+
 ## goals.current_amount is stored, not derived — CLOSED 8 September
 
 *Kept for the reconciliation query at the foot, which is still the way to
@@ -562,9 +597,11 @@ destination rather than a distance, so the double count is impossible rather
 than guarded against, and drift already in a row corrects itself the next
 time anything touches that goal. `e2e/goal-totals.spec.ts` pins it.
 
-**Not covered:** the contribute flow still has no browser test, so the two
-call sites are verified by the type checker and the function's own tests
-rather than by driving the app.
+**Now covered, 9 September.** `e2e/goal-contribute.spec.ts` drives the buttons
+a person actually presses — add a goal, open its card, put money in — and then
+checks the stored total against the ledger behind it. The type checker cannot
+see a form posting the wrong field, a control wired to the wrong goal, or a
+total read from somewhere other than the ledger; that is what this covers.
 
 **Measured, 8 September.** Before: every goal in both households reconciled
 except one — "Emergency fund", ₱210,000 against no transactions, in the
