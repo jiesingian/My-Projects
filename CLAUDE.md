@@ -1,64 +1,96 @@
 ## Who may push to main
 
-Jonathan (`jiesingian`) owns this repo and decides what lands. Everyone else
-proposes; he disposes. That is not a formality — it is how two people can work
-on the same app at once without either one's session pulling the ground out
-from under the other.
+**Everyone here pushes straight to `main`.** Jonathan (`jiesingian`) and
+Janine both, on the same terms, with no pull request in between and nobody
+waiting on anybody to press a button.
 
-**If you are working for Jonathan** — commit and push to `main` as normal.
+There is one set of rules and it is this section. Nothing anywhere says "if
+you are working for X" — who you are working for does not change what you may
+do, which is the only version of this that cannot be got wrong by a session
+that guessed which half applied to it. The one thing only Jonathan does is
+**run a migration**, and that is about who touches the live database, not
+about who is trusted; it is stated once, below.
 
-**If you are working for anyone else**, including Janine:
+A pull request is now a thing you *may* open when you want a second opinion
+before something lands, not a thing you *must* open. `triage.yml` and
+`automerge.yml` still work exactly as they did if you open one.
 
-- Never commit to `main`, and never push to `main`. Not even for a one-line
-  change, and not even when `main` is what you happen to have checked out.
-- Start from fresh main every time, on your own branch:
-  `git fetch origin main && git checkout -B janine/<short-topic> origin/main`
-- Push that branch and open a pull request. Say plainly in the body what you
-  changed and why, and flag anything you were unsure about — the PR is where a
-  decision gets made, so make the decision easy to make.
-- If your branch conflicts with `main`, rebase onto `main` and resolve in
-  `main`'s favour. Where the conflict is a real disagreement about how the app
-  should behave rather than two edits to the same line, do not resolve it
-  yourself: say so in the PR and leave it for Jonathan.
-- Do not merge your own pull request by hand, and do not arm auto-merge on it
-  yourself. Whether it merges on green or waits for Jonathan is triage's call,
-  made from the diff — see below.
+### Before every push, without exception
 
-Both people's sessions run in their own container against their own clone, so
-work in parallel does not collide until a branch is merged. The one thing that
-*does* collide is `main` — hence the rule above.
+Nothing stands between your push and the live app. Branch protection is a paid
+feature on private repositories, so GitHub will not stop a broken commit
+reaching `main` — the checks below are the whole of the safety net, and they
+only work if they are actually run.
 
-### Small changes merge themselves; large ones wait
+1. **Run the checks, from `kin/`:** `npx tsc --noEmit`, `npm run lint`,
+   `npm run build`, and `npm run e2e`. All four, green, before you push. CI
+   re-runs them afterwards, but afterwards is after it is already live.
+2. **Rebase, never merge, and never force:**
+   `git pull --rebase origin main` immediately before pushing. If the push is
+   rejected, somebody landed something while you were working — rebase again
+   and re-run the checks, because their change and yours have never been
+   tested together. **Never force-push `main`**, for any reason.
+3. **Say what you did.** A commit message on `main` is the only record; there
+   is no pull request body to put it in any more.
 
-A pull request is sorted automatically by `.github/workflows/triage.yml`, from
-the diff rather than from anything the author says about it. **Who** opened it
-is not part of the decision: everyone here, Jonathan included, gets the same
-answer for the same change. That was tried the other way round for one commit
-and put back — holding every change from a second person meant nothing of
-hers reached the app until he was free to press a button, which is exactly the
-bottleneck working in parallel is meant to remove.
+If your session cannot push to `main` — some sandboxes block it, and one of
+Jonathan's already does — push your branch instead, say so plainly, and let
+`main` be fast-forwarded from it. That is not a workaround to feel bad about;
+it is the same commits arriving by a different road.
 
-The test is not "does this look risky" but **"could we undo it in five
-minutes"**. Code is revertible — a bad component ships, someone notices, it is
-reverted. So most of the app merges on green CI and is fixed forward. What
-waits for Jonathan is what cannot be undone: the way into the app, session
-handling, who may see whose data, money, anything that runs code on our
-machines, and anything touching the database itself. Or a change past ~400
-lines.
+### The watched list, and the flag it needs
 
-Migrations are his alone. They apply when written, not when merged, so by the
-time a pull request is read the schema has already moved — review cannot catch
-them after the fact. If a change needs one, say so and stop; do not run it.
+Most of the app is revertible. A bad component ships, somebody notices, it is
+reverted, and the cost was an afternoon. Some of it is not: the way into the
+app, session handling, who may see whose data, money, anything that runs code
+on our machines, and anything touching the database itself. A leak is leaked
+and a dropped column is gone.
 
-Do not try to make a change look small to get it merged: splitting one risky
-change across several pull requests, or moving code out of a watched path to
-dodge the classifier, defeats the only safeguard there is. If you think
-something is being held that shouldn't be, say so in the pull request and let
-him decide.
+Those changes still go straight to `main` — nothing blocks them — but they do
+not go quietly. **If your diff touches any path below, or changes more than
+~400 lines, put a line in the commit message saying so** and tell Jonathan it
+landed:
 
-CI must be green either way — `npx tsc --noEmit`, `npm run lint` and
-`npm run build`, all from `kin/`. Run them before you open the pull request
-rather than finding out from the robot.
+    WATCHED: auth — tightened the email bound on the reset form
+
+The paths, which are the same list `triage.yml` classifies from:
+
+- `kin/src/lib/actions/{auth,family,billing,wealth,drive}.ts`
+- `kin/src/lib/supabase/`, `kin/src/lib/session.ts`, `kin/src/lib/access.ts`
+- `kin/src/lib/billing/`, `kin/src/proxy.ts`
+- `kin/src/app/api/`, `kin/src/app/auth/`, and the account screens:
+  `login/`, `signup/`, `verify/`, `forgot-password/`, `reset-password/`,
+  `subscribe/`
+- `kin/next.config.*`, `kin/package{,-lock}.json`, `kin/eslint.config.*`
+- `.github/`, `.claude/`, `.gitignore`, `CLAUDE.md`, any `AGENTS.md`, `LICENSE`
+- any `.sql` file
+
+You are not being asked to grade your own homework. `.github/workflows/`
+`watched-change.yml` reads every push to `main` and opens an issue when it
+sees one of these, whoever pushed it and whatever the commit message claimed —
+so the flag is a courtesy that saves Jonathan finding out from a robot, not
+the thing being relied on. Do not move code out of a watched path to keep it
+quiet; the list exists because those files are where a mistake is expensive,
+and a change is not made safer by being harder to see.
+
+### Migrations are Jonathan's to run
+
+They take effect when they are **run**, not when they are merged, so by the
+time anybody reads the change the schema has already moved and no review can
+catch it after the fact. Write the `.sql` file, commit it, say plainly in the
+commit message that it needs running — and stop. He runs it himself.
+
+### Two people, one branch
+
+Both sessions run in their own container against their own clone. Nothing
+collides while you are working; `main` is the only shared thing, which is what
+the rebase rule above is for. Beyond that, the practical courtesy is to say
+what you are working on before you start on it — two people rewriting the same
+component in parallel is not a merge conflict git can help with.
+
+If a rebase conflict is a real disagreement about how the app should behave,
+rather than two edits landing on the same line, do not settle it by picking a
+side in a rebase. Leave both, say so, and let the two of you decide.
 
 ## Never test against the real household
 

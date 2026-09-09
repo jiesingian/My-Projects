@@ -1,0 +1,174 @@
+name: Watched change
+
+# Says out loud when something expensive to undo has landed on main.
+#
+# Pull requests are no longer required here -- both people push straight to
+# main -- so `triage.yml`, which held a risky pull request for Jonathan, now
+# has nothing to hold in the ordinary case. This is what replaces it: not a
+# gate, because there is nothing left to gate, but a record. It reads every
+# push to main and opens an issue when the diff touches the paths where a
+# mistake cannot be reverted in five minutes.
+#
+# It classifies from the diff, never from the commit message. CLAUDE.md asks
+# for a "WATCHED:" line as a courtesy, and a courtesy is exactly what it is --
+# an agent asked to describe its own change describes it as small, and a tired
+# person forgets. Nobody grades their own homework, so this asks git.
+#
+# Who pushed is not part of the decision either. Jonathan's own pushes raise an
+# issue the same as anyone's, which is both the honest rule and the one that
+# cannot rot: an exemption keyed on a username is an exemption that silently
+# covers whoever inherits the account.
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  look:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # Enough history to diff this push against what came before it. A
+          # shallow clone cannot see `before`, and the fallback below cannot
+          # see it either if the push landed more commits than were fetched.
+          fetch-depth: 0
+
+      - name: Work out what landed
+        id: look
+        env:
+          BEFORE: ${{ github.event.before }}
+          AFTER: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+
+          # The same list triage.yml classifies from. Kept in step with it by
+          # hand, which is a real cost -- but the two run on different events
+          # with different inputs, and a shared file would have to be sourced
+          # by a `pull_request_target` job, which is the one context where
+          # reading a file from the branch is how a fork gets to run code here.
+          SENSITIVE='^(
+          kin/src/lib/actions/(auth|family|billing|wealth|drive)\.ts|
+          kin/src/lib/supabase/|
+          kin/src/lib/session\.ts|
+          kin/src/lib/access\.ts|
+          kin/src/lib/billing/|
+          kin/src/proxy\.ts|
+          kin/src/app/api/|
+          kin/src/app/auth/|
+          kin/src/app/login/|
+          kin/src/app/signup/|
+          kin/src/app/verify/|
+          kin/src/app/forgot-password/|
+          kin/src/app/reset-password/|
+          kin/src/app/subscribe/|
+          kin/next\.config\.|
+          kin/package(-lock)?\.json|
+          kin/eslint\.config\.|
+          \.github/|
+          \.claude/|
+          \.gitignore|
+          CLAUDE\.md|
+          .*AGENTS\.md|
+          LICENSE|
+          .*\.sql
+          )'
+          SENSITIVE=$(printf '%s' "$SENSITIVE" | tr -d ' \n')
+
+          # A branch's first push, a force-push, or a squash can all leave
+          # `before` pointing at something this clone does not have. Falling
+          # back to the first parent looks at the merge or the commit itself,
+          # which is narrower than the truth but never wider -- and a run that
+          # reports nothing is better than one that errors and reports nothing
+          # while looking like it passed.
+          if [ -n "${BEFORE:-}" ] && git cat-file -e "$BEFORE^{commit}" 2>/dev/null; then
+            RANGE="$BEFORE..$AFTER"
+          else
+            RANGE="$AFTER^..$AFTER"
+            echo "No usable 'before' ($BEFORE); falling back to $RANGE"
+          fi
+          echo "Diffing $RANGE"
+
+          git diff --name-only "$RANGE" > /tmp/files.txt
+          echo "Files changed:"; cat /tmp/files.txt
+
+          REASONS=""
+          if grep -qE "$SENSITIVE" /tmp/files.txt; then
+            REASONS="touches auth, data rules, billing, an API route, the toolchain, or a migration"
+            grep -E "$SENSITIVE" /tmp/files.txt > /tmp/watched.txt
+          else
+            : > /tmp/watched.txt
+          fi
+
+          # numstat rather than shortstat: two integer columns per file, so
+          # this needs no bc and no parsing of a sentence whose wording
+          # changes with the count ("1 insertion" against "2 insertions").
+          # A binary file reports "-" for both, which awk reads as 0 -- right,
+          # since a line count means nothing for one.
+          TOTAL=$(git diff --numstat "$RANGE" | awk '{ a += $1; d += $2 } END { print a + d + 0 }')
+          echo "Lines changed: $TOTAL"
+          if [ "$TOTAL" -gt 400 ]; then
+            if [ -n "$REASONS" ]; then
+              REASONS="$REASONS, and changes $TOTAL lines"
+            else
+              REASONS="changes $TOTAL lines, which is past the point of landing unread"
+            fi
+          fi
+
+          if [ -n "$REASONS" ]; then
+            { echo "watched=true"; echo "reason=$REASONS"; } >> "$GITHUB_OUTPUT"
+          else
+            echo "watched=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Say so
+        if: steps.look.outputs.watched == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+          SHA: ${{ github.sha }}
+          PUSHER: ${{ github.event.pusher.name }}
+          REASON: ${{ steps.look.outputs.reason }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          set -euo pipefail
+          SHORT="${SHA:0:7}"
+
+          {
+            echo "A change that is expensive to undo has landed on \`main\`. Nothing is wrong with it — this is a record, not an objection."
+            echo
+            echo "**Pushed by** ${PUSHER:-unknown} · **Commit** ${GITHUB_SERVER_URL}/${REPO}/commit/${SHA}"
+            echo
+            echo "**Why it is here:** it ${REASON}."
+            echo
+            echo "**Watched paths in this push:**"
+            echo
+            echo '```'
+            if [ -s /tmp/watched.txt ]; then cat /tmp/watched.txt; else echo "(none — flagged on size alone)"; fi
+            echo '```'
+            echo
+            echo "**Commit message:**"
+            echo
+            echo '```'
+            git log -1 --pretty=%B "$SHA"
+            echo '```'
+            echo
+            echo "If it contains a \`.sql\` file, remember it has **not** been run — migrations are Jonathan's to run by hand, and the schema does not move until he does."
+            echo
+            echo "[Workflow run](${RUN_URL})"
+            echo
+            echo "---"
+            echo "_Generated by [Claude Code](https://claude.ai/code)_"
+          } > /tmp/body.md
+
+          gh label create "watched-change" --repo "$REPO" --color FBCA04 \
+            --description "Landed on main in territory where a mistake is expensive." || true
+
+          gh issue create --repo "$REPO" \
+            --title "Watched change on main — $SHORT" \
+            --label "watched-change" \
+            --body-file /tmp/body.md

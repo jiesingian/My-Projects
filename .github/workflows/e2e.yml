@@ -15,6 +15,14 @@ name: End-to-end
 # Scoped to paths that can actually break it, so documentation and workflow
 # edits do not pay for a browser run.
 #
+# It runs on pushes to main as well as on pull requests, and has to: pull
+# requests stopped being required here on 9 September -- both people push
+# straight to main now -- so a suite that only watched pull requests would
+# have quietly stopped watching almost everything. tsc, lint and build already
+# run on every push through ci.yml; this is the only check that opens a page
+# and looks at it, and every timezone bug this project has had passed the
+# other three without a murmur.
+#
 # Needs four repository secrets, and says so plainly rather than failing with a
 # login screen if they are missing:
 #   E2E_EMAIL, E2E_PASSWORD             -- the throwaway household, never a real one
@@ -25,6 +33,15 @@ name: End-to-end
 # this repository is ever opened up.
 on:
   pull_request:
+    paths:
+      - "kin/src/**"
+      - "kin/e2e/**"
+      - "kin/package.json"
+      - "kin/package-lock.json"
+      - "kin/playwright.config.ts"
+      - ".github/workflows/e2e.yml"
+  push:
+    branches: [main]
     paths:
       - "kin/src/**"
       - "kin/e2e/**"
