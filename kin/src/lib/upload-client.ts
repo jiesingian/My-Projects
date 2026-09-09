@@ -17,9 +17,12 @@ export async function uploadFileDirect(
   const sessionRes = await fetch("/api/uploads/session", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ kind, fileName: file.name, mimeType: file.type, folderId }),
+    body: JSON.stringify({ kind, fileName: file.name, mimeType: file.type, fileSize: file.size, folderId }),
   });
-  if (!sessionRes.ok) throw new Error("Couldn't start the upload — try again.");
+  if (!sessionRes.ok) {
+    const body = await sessionRes.json().catch(() => null);
+    throw new Error(body?.error || "Couldn't start the upload — try again.");
+  }
   const session = await sessionRes.json();
 
   if (session.provider === "google_drive") {
