@@ -73,7 +73,7 @@ test.describe("removing things", () => {
       await page.waitForURL((u) => new URL(u).pathname !== "/wealth/add", { timeout: 30_000 });
     }
 
-    await page.goto("/wealth?seg=goals", { waitUntil: "networkidle" });
+    await page.goto("/wealth?seg=assets", { waitUntil: "networkidle" });
     await expect(page.locator("body")).toContainText(doomed);
     await expect(page.locator("body")).toContainText(keeper);
 
@@ -84,7 +84,7 @@ test.describe("removing things", () => {
     await remove.click();
     await page.waitForTimeout(3000);
 
-    await page.goto("/wealth?seg=goals", { waitUntil: "networkidle" });
+    await page.goto("/wealth?seg=assets", { waitUntil: "networkidle" });
     await expect(page.locator("body"), "the deleted goal is still listed").not.toContainText(doomed);
     await expect(page.locator("body"), "deleting one goal deleted another").toContainText(keeper);
     expect(alerts, "the app reported an error while deleting").toEqual([]);

@@ -1,12 +1,14 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getCurrentMember } from "@/lib/session";
-import { getWealthPane, getGoals, getBills, getNetWorth, getAccounts, type WealthScope, type LedgerEntry } from "@/lib/queries/wealth";
+import { getWealthPane, getNetWorth, getAccounts, getCashFlowPane, type WealthScope, type LedgerEntry, type AccountWithBalance } from "@/lib/queries/wealth";
 import { HubHeader } from "@/components/hub-header";
+import { ChipRow } from "@/components/segmented";
 import { Blueprint, Tag, Empty } from "@/components/ui";
-import { AddAccountForm, AddBillForm, SetBudgetControl, SetTargetControl, AllocationEditor } from "@/components/wealth-controls";
+import { AddAccountForm, AddBillForm, AddIncomeScheduleForm, SetBudgetControl, SetTargetControl, AllocationEditor } from "@/components/wealth-controls";
 import {
   PayBillControl,
+  ReceiveIncomeControl,
   GoalContributeControl,
   PendingEntryActions,
   ValueUpdateControl,
@@ -17,21 +19,34 @@ import { formatCurrency, formatDate, shortNames, selfLabel, selfPossessive } fro
 import { getMembers } from "@/lib/queries/family";
 import { PickButton } from "@/components/pick-button";
 import { AccountPrivacyToggle } from "@/components/money-actions";
-import { ACCOUNT_TYPE_LABELS, ASSET_KIND_LABELS, LIABILITY_KIND_LABELS, type AccountType, type AssetKind, type LiabilityKind } from "@/lib/wealth";
+import {
+  ACCOUNT_TYPE_LABELS,
+  ASSET_KIND_LABELS,
+  LIABILITY_KIND_LABELS,
+  CASH_FLOW_RANGES,
+  CASH_FLOW_RANGE_LABELS,
+  type AccountType,
+  type AssetKind,
+  type LiabilityKind,
+  type CashFlowRange,
+} from "@/lib/wealth";
 import { familyDate, householdDateFormat } from "@/lib/format-family";
 
 /* Joint and Mine were the same page twice; they are one Accounts tab now,
-   with a Who button of the kind the Planner uses. */
-const SEGMENTS = ["accounts", "goals", "bills", "assets"] as const;
+   with a Who button of the kind the Planner uses. Bills moved into Cash
+   Flow's Expenses area, and Goals into A&L — money set aside toward one is
+   as much a part of what the household owns as anything else in there. */
+const SEGMENTS = ["cashflow", "accounts", "assets"] as const;
 type Seg = (typeof SEGMENTS)[number];
-const SEGMENT_LABELS: Record<Seg, string> = { accounts: "Accounts", goals: "Goals", bills: "Bills", assets: "Assets" };
+const SEGMENT_LABELS: Record<Seg, string> = { cashflow: "Cash Flow", accounts: "Accounts", assets: "A&L" };
 
-export default async function WealthPage({ searchParams }: { searchParams: Promise<{ seg?: string; who?: string }> }) {
+export default async function WealthPage({ searchParams }: { searchParams: Promise<{ seg?: string; who?: string; range?: string }> }) {
   const me = await getCurrentMember();
   if (!me) redirect("/onboarding/profile");
   const sp = await searchParams;
-  const seg: Seg = (SEGMENTS as readonly string[]).includes(sp.seg ?? "") ? (sp.seg as Seg) : "accounts";
+  const seg: Seg = (SEGMENTS as readonly string[]).includes(sp.seg ?? "") ? (sp.seg as Seg) : "cashflow";
   const who = sp.who ?? "all";
+  const range: CashFlowRange = (CASH_FLOW_RANGES as readonly string[]).includes(sp.range ?? "") ? (sp.range as CashFlowRange) : "month";
 
   const segments = SEGMENTS.map((s) => ({ label: SEGMENT_LABELS[s], href: `/wealth?seg=${s}`, active: s === seg }));
   const currency = me.families.currency;
@@ -40,9 +55,8 @@ export default async function WealthPage({ searchParams }: { searchParams: Promi
     <div>
       <HubHeader n="05" title="Wealth" segments={segments} dateFormat={me.families.date_format} />
       <div style={{ padding: "0 22px 22px" }}>
+        {seg === "cashflow" && <CashFlowPane familyId={me.family_id} memberId={me.id} currency={currency} range={range} />}
         {seg === "accounts" && <ScopePane scope={who} familyId={me.family_id} memberId={me.id} currency={currency} />}
-        {seg === "goals" && <GoalsPane familyId={me.family_id} memberId={me.id} currency={currency} />}
-        {seg === "bills" && <BillsPane familyId={me.family_id} memberId={me.id} currency={currency} />}
         {seg === "assets" && <AssetsPane familyId={me.family_id} memberId={me.id} currency={currency} />}
       </div>
     </div>
@@ -112,17 +126,19 @@ function Meter({ label, value, cap, currency, note }: { label: string; value: nu
 
 type HistoryPoint = { key: string; label: string; income: number; expense: number };
 
-/** Six months of money in against money out. Two series, so each is named in
- * the legend and always sits in the same slot within its month — never told
+/** Money in against money out, over whatever stretch of history is handed
+ * in — six fixed months on the Accounts tab, or the Cash Flow tab's
+ * switchable week/month/year window. Two series, so each is named in the
+ * legend and always sits in the same slot within its period — never told
  * apart by colour alone. */
-function HistoryStrip({ history, currency }: { history: HistoryPoint[]; currency: string }) {
+function HistoryStrip({ history, currency, title = "LAST SIX MONTHS" }: { history: HistoryPoint[]; currency: string; title?: string }) {
   const peak = Math.max(1, ...history.flatMap((h) => [h.income, h.expense]));
   const busiest = history.reduce((a, b) => (b.expense > a.expense ? b : a), history[0]);
 
   return (
     <div style={{ marginBottom: 20 }}>
       <div style={{ display: "flex", alignItems: "baseline", marginBottom: 9 }}>
-        <span style={{ font: "600 13px/1 var(--font-heading)", letterSpacing: ".02em", color: "var(--color-neutral-600)" }}>LAST SIX MONTHS</span>
+        <span style={{ font: "600 13px/1 var(--font-heading)", letterSpacing: ".02em", color: "var(--color-neutral-600)" }}>{title}</span>
         <span style={{ marginLeft: "auto", display: "flex", gap: 12, fontSize: 12, color: "var(--color-neutral-600)" }}>
           <span style={{ display: "flex", alignItems: "center", gap: 4 }}>
             <i style={{ width: 8, height: 8, background: "var(--color-accent)", display: "inline-block" }} /> In
@@ -244,6 +260,132 @@ function QuickActions() {
   );
 }
 
+/* ----------------------------------------------------------------- cash flow */
+
+async function CashFlowPane({ familyId, memberId, currency, range }: { familyId: string; memberId: string; currency: string; range: CashFlowRange }) {
+  const [fmtDate, dateFormat] = await Promise.all([familyDate(), householdDateFormat()]);
+  const [cf, accounts] = await Promise.all([getCashFlowPane(familyId, range), getAccounts(familyId)]);
+  const pickable = toPickable(accounts, memberId);
+  const bareAccounts = pickable.map((a) => ({ id: a.id, name: a.name }));
+  const periodNoun = range === "week" ? "week" : range === "year" ? "year" : "month";
+
+  return (
+    <>
+      <Hero
+        label="CASH FLOW"
+        amount={Math.abs(cf.net)}
+        currency={currency}
+        caption={cf.net >= 0 ? `More came in than went out this ${periodNoun}.` : `More went out than came in this ${periodNoun}.`}
+      />
+
+      <QuickActions />
+      <FlowRow income={cf.periodIncome} expense={cf.periodExpense} currency={currency} />
+
+      <div style={{ marginBottom: 4 }}>
+        <ChipRow
+          items={CASH_FLOW_RANGES.map((r) => ({ label: CASH_FLOW_RANGE_LABELS[r], href: `/wealth?seg=cashflow&range=${r}`, active: range === r }))}
+        />
+      </div>
+      <HistoryStrip history={cf.history} currency={currency} title={`BY ${CASH_FLOW_RANGE_LABELS[range].toUpperCase()}`} />
+
+      <SectionLabel>INCOME</SectionLabel>
+      {cf.expectedIncome.length === 0 && cf.recentIncome.length === 0 && (
+        <Empty icon="💰" title="Nothing recorded yet" line="Salary, a regular gift, business revenue — expect it here so receiving it is one tap." />
+      )}
+      {cf.expectedIncome.map((s) => (
+        <div key={s.id} style={{ padding: "12px 0", borderBottom: "1px solid color-mix(in srgb, var(--color-text) 10%, transparent)" }}>
+          <div style={{ display: "flex", gap: 11, alignItems: "baseline" }}>
+            <span style={{ flex: 1, minWidth: 0 }}>
+              <span style={{ font: "600 17px/1.1 var(--font-heading)", display: "block" }}>{s.name}</span>
+              <span style={{ fontSize: 13, color: "var(--color-neutral-600)" }}>
+                {s.category ?? "Salary"}
+                {s.next_date ? ` · expected ${fmtDate(s.next_date)}` : ""}
+              </span>
+            </span>
+            <span style={{ textAlign: "right", flex: "none" }}>
+              <span style={{ font: "600 16px/1 var(--font-heading)", display: "block" }}>{formatCurrency(Number(s.amount), currency)}</span>
+              <Tag variant={s.status === "pending" ? "outline" : "accent"}>{s.status.toUpperCase()}</Tag>
+            </span>
+          </div>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 4 }}>
+            <ReceiveIncomeControl scheduleId={s.id} amount={Number(s.amount)} accounts={pickable} currency={currency} />
+            <span style={{ marginLeft: "auto" }}>
+              <RemoveButton id={s.id} kind="income_schedule" label={`Delete "${s.name}"`} />
+            </span>
+          </div>
+        </div>
+      ))}
+      {cf.recentIncome.length > 0 && (
+        <>
+          <div style={{ fontSize: 12, color: "var(--color-neutral-600)", margin: "12px 0 2px" }}>RECENT</div>
+          {cf.recentIncome.map((e) => (
+            <EntryRow key={e.id} entry={e} currency={currency} dateFormat={dateFormat} showAccount />
+          ))}
+        </>
+      )}
+      <AddIncomeScheduleForm accounts={bareAccounts} />
+
+      <SectionLabel>EXPENSES</SectionLabel>
+      {cf.openBills.length === 0 && <p style={{ fontSize: 13.5, color: "var(--color-neutral-600)" }}>No open bills.</p>}
+      {cf.openBills.map((b) => (
+        <div key={b.id} style={{ padding: "12px 0", borderBottom: "1px solid color-mix(in srgb, var(--color-text) 10%, transparent)" }}>
+          <div style={{ display: "flex", gap: 11, alignItems: "baseline" }}>
+            <span style={{ flex: 1, minWidth: 0 }}>
+              <span style={{ font: "600 17px/1.1 var(--font-heading)", display: "block" }}>{b.name}</span>
+              <span style={{ fontSize: 13, color: "var(--color-neutral-600)" }}>
+                {b.category ?? "Utilities"}
+                {b.due_date ? ` · due ${fmtDate(b.due_date)}` : ""}
+              </span>
+            </span>
+            <span style={{ textAlign: "right", flex: "none" }}>
+              <span style={{ font: "600 16px/1 var(--font-heading)", display: "block" }}>{formatCurrency(Number(b.amount), currency)}</span>
+              <Tag variant={b.status === "scheduled" ? "outline" : "accent"}>{b.status.toUpperCase()}</Tag>
+            </span>
+          </div>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 4 }}>
+            <PayBillControl billId={b.id} amount={Number(b.amount)} accounts={pickable} currency={currency} />
+            <span style={{ marginLeft: "auto" }}>
+              <RemoveButton id={b.id} kind="bill" label={`Delete "${b.name}"`} />
+            </span>
+          </div>
+        </div>
+      ))}
+      <AddBillForm />
+      {cf.recentExpense.length > 0 && (
+        <>
+          <div style={{ fontSize: 12, color: "var(--color-neutral-600)", margin: "16px 0 2px" }}>RECENT, NOT A BILL</div>
+          {cf.recentExpense.map((e) => (
+            <EntryRow key={e.id} entry={e} currency={currency} dateFormat={dateFormat} showAccount />
+          ))}
+        </>
+      )}
+
+      {(cf.receivedIncome.length > 0 || cf.settledBills.length > 0) && <SectionLabel>SETTLED</SectionLabel>}
+      {cf.receivedIncome.map((s) => (
+        <div key={s.id} style={{ display: "flex", gap: 10, alignItems: "baseline", padding: "10px 0", borderBottom: "1px solid color-mix(in srgb, var(--color-text) 10%, transparent)" }}>
+          <span style={{ flex: 1, minWidth: 0 }}>
+            <span style={{ fontSize: 14, display: "block" }}>{s.name}</span>
+            <span style={{ fontSize: 12.5, color: "var(--color-neutral-600)" }}>{s.received_at ? `received ${fmtDate(s.received_at)}` : "received"}</span>
+          </span>
+          <span style={{ fontFamily: "var(--font-numeric)", fontSize: 13, color: "var(--color-accent-700)" }}>+{formatCurrency(Number(s.amount), currency)}</span>
+        </div>
+      ))}
+      {cf.settledBills.map((b) => (
+        <div key={b.id} style={{ display: "flex", gap: 10, alignItems: "baseline", padding: "10px 0", borderBottom: "1px solid color-mix(in srgb, var(--color-text) 10%, transparent)" }}>
+          <span style={{ flex: 1, minWidth: 0 }}>
+            <span style={{ fontSize: 14, display: "block" }}>{b.name}</span>
+            <span style={{ fontSize: 12.5, color: "var(--color-neutral-600)" }}>
+              {b.paid_at ? `paid ${fmtDate(b.paid_at)}` : "paid"}
+              {b.paidFromName ? ` from ${b.paidFromName}` : ""}
+            </span>
+          </span>
+          <span style={{ fontFamily: "var(--font-numeric)", fontSize: 13 }}>{formatCurrency(Number(b.amount), currency)}</span>
+        </div>
+      ))}
+    </>
+  );
+}
+
 /* ------------------------------------------------------------- accounts */
 
 async function ScopePane({ scope, familyId, memberId, currency }: { scope: WealthScope; familyId: string; memberId: string; currency: string }) {
@@ -284,6 +426,8 @@ async function ScopePane({ scope, familyId, memberId, currency }: { scope: Wealt
         caption={`${pane.accounts.length} account${pane.accounts.length === 1 ? "" : "s"} · ${monthLabel}`}
       />
 
+      <HistoryStrip history={pane.history} currency={currency} />
+
       <QuickActions />
       <FlowRow income={pane.monthIncome} expense={pane.monthExpense} currency={currency} />
 
@@ -305,8 +449,6 @@ async function ScopePane({ scope, familyId, memberId, currency }: { scope: Wealt
           {scope === memberId && <SetTargetControl month={pane.month} year={pane.year} current={pane.budgetAmount} />}
         </>
       )}
-
-      <HistoryStrip history={pane.history} currency={currency} />
 
       <SectionLabel>{isJoint ? "BUDGET VS SPEND BY CATEGORY" : "WHERE IT WENT THIS MONTH"}</SectionLabel>
       {categories.length === 0 && (
@@ -390,25 +532,58 @@ async function ScopePane({ scope, familyId, memberId, currency }: { scope: Wealt
   );
 }
 
-/* ------------------------------------------------------------------ goals */
+/* -------------------------------------------------------------------- A&L */
 
-async function GoalsPane({ familyId, memberId, currency }: { familyId: string; memberId: string; currency: string }) {
+async function AssetsPane({ familyId, memberId, currency }: { familyId: string; memberId: string; currency: string }) {
   const fmtDate = await familyDate();
-  const [goals, accounts] = await Promise.all([getGoals(familyId), getAccounts(familyId)]);
-  const pickable = toPickable(accounts, memberId);
-  const saved = goals.reduce((sum, g) => sum + Number(g.current_amount), 0);
-  const targeted = goals.reduce((sum, g) => sum + Number(g.target_amount ?? 0), 0);
+  const { assets, liabilities, goals, cashAccounts, assetTotal, liabilityTotal, goalTotal, cashTotal, netWorth } = await getNetWorth(familyId, memberId);
+  const pickableCash = toPickable(cashAccounts, memberId);
 
   return (
     <>
       <Hero
-        label="SET ASIDE TOWARDS GOALS"
-        amount={saved}
+        label="NET WORTH"
+        amount={netWorth}
         currency={currency}
-        caption={targeted > 0 ? `of ${formatCurrency(targeted, currency)} across ${goals.length} goal${goals.length === 1 ? "" : "s"}` : undefined}
+        caption={`${formatCurrency(cashTotal, currency)} cash + ${formatCurrency(goalTotal, currency)} in goals + ${formatCurrency(assetTotal, currency)} owned − ${formatCurrency(liabilityTotal, currency)} owed`}
       />
-      {targeted > 0 && <Meter label="ALL GOALS" value={saved} cap={targeted} currency={currency} />}
 
+      <div style={{ display: "flex", gap: 8, marginBottom: 18 }}>
+        <Link href="/wealth/assets/new?kind=asset" className="btn btn-secondary" style={{ flex: 1, minHeight: 40, fontSize: 13, display: "flex", alignItems: "center", justifyContent: "center" }}>
+          + ASSET
+        </Link>
+        <Link href="/wealth/assets/new?kind=liability" className="btn btn-secondary" style={{ flex: 1, minHeight: 40, fontSize: 13, display: "flex", alignItems: "center", justifyContent: "center" }}>
+          + LIABILITY
+        </Link>
+      </div>
+
+      <SectionLabel>CASH & SAVINGS</SectionLabel>
+      {cashAccounts.length === 0 && (
+        <Empty icon="🏦" title="No accounts yet" line="Every account you can see shows up here automatically once it exists — add one from the Accounts tab." />
+      )}
+      {cashAccounts.map((a) => (
+        <Link
+          key={a.id}
+          href={`/wealth/accounts/${a.id}`}
+          style={{ display: "flex", gap: 10, alignItems: "baseline", padding: "10px 0", borderBottom: "1px solid color-mix(in srgb, var(--color-text) 10%, transparent)", textDecoration: "none", color: "inherit" }}
+        >
+          <span style={{ flex: 1, minWidth: 0 }}>
+            <span style={{ fontSize: 15, display: "block" }}>{a.name}</span>
+            <span style={{ fontSize: 12.5, color: "var(--color-neutral-600)" }}>
+              {ACCOUNT_TYPE_LABELS[a.account_type as AccountType] ?? a.account_type}
+              {a.institution ? ` · ${a.institution}` : ""}
+            </span>
+          </span>
+          <span style={{ fontFamily: "var(--font-numeric)", fontSize: 13, flex: "none" }}>{formatCurrency(a.balance, currency)}</span>
+        </Link>
+      ))}
+      {cashAccounts.length > 0 && (
+        <div style={{ fontSize: 12.5, color: "var(--color-neutral-600)", marginTop: 8 }}>
+          Read-only here — open an account from the Accounts tab to edit or add one.
+        </div>
+      )}
+
+      <SectionLabel>SAVINGS GOALS</SectionLabel>
       {goals.length === 0 && (
         <Empty icon="🎯" title="No goals yet" line="A trip, a deposit, an emergency fund. Name what you are saving for and every contribution counts toward it." />
       )}
@@ -441,108 +616,18 @@ async function GoalsPane({ familyId, memberId, currency }: { familyId: string; m
                 {target > current ? ` · ${formatCurrency(target - current, currency)} to go` : " · funded"}
               </div>
             )}
-            <GoalContributeControl goalId={g.id} accounts={pickable} currency={currency} />
+            <GoalContributeControl goalId={g.id} accounts={pickableCash} currency={currency} />
             <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 8 }}>
               <RemoveButton id={g.id} kind="goal" label={`Delete "${g.title}"`} />
             </div>
           </Blueprint>
         );
       })}
-
-      <Link href="/wealth/add" className="btn btn-primary btn-block" style={{ minHeight: 46, fontSize: 14, letterSpacing: ".04em", marginTop: 16 }}>
+      <Link href="/wealth/add" className="btn btn-secondary btn-block" style={{ minHeight: 42, fontSize: 13.5, letterSpacing: ".04em", marginBottom: 20 }}>
         + ADD GOAL
       </Link>
-    </>
-  );
-}
 
-/* ------------------------------------------------------------------ bills */
-
-async function BillsPane({ familyId, memberId, currency }: { familyId: string; memberId: string; currency: string }) {
-  const fmtDate = await familyDate();
-  const [bills, accounts] = await Promise.all([getBills(familyId), getAccounts(familyId)]);
-  const pickable = toPickable(accounts, memberId);
-  const open = bills.filter((b) => b.status !== "paid");
-  const settled = bills.filter((b) => b.status === "paid");
-  const dueTotal = open.reduce((sum, b) => sum + Number(b.amount), 0);
-
-  return (
-    <>
-      <Hero label="STILL TO SETTLE" amount={dueTotal} currency={currency} caption={`${open.length} open bill${open.length === 1 ? "" : "s"}`} />
-
-      {open.length === 0 && <p style={{ fontSize: 13.5, color: "var(--color-neutral-600)" }}>Everything is settled.</p>}
-      {open.map((b) => (
-        <div key={b.id} style={{ padding: "12px 0", borderBottom: "1px solid color-mix(in srgb, var(--color-text) 10%, transparent)" }}>
-          <div style={{ display: "flex", gap: 11, alignItems: "baseline" }}>
-            <span style={{ flex: 1, minWidth: 0 }}>
-              <span style={{ font: "600 17px/1.1 var(--font-heading)", display: "block" }}>{b.name}</span>
-              <span style={{ fontSize: 13, color: "var(--color-neutral-600)" }}>
-                {b.category ?? "Utilities"}
-                {b.due_date ? ` · due ${fmtDate(b.due_date)}` : ""}
-              </span>
-            </span>
-            <span style={{ textAlign: "right", flex: "none" }}>
-              <span style={{ font: "600 16px/1 var(--font-heading)", display: "block" }}>{formatCurrency(Number(b.amount), currency)}</span>
-              <Tag variant={b.status === "scheduled" ? "outline" : "accent"}>{b.status.toUpperCase()}</Tag>
-            </span>
-          </div>
-          <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 4 }}>
-            <PayBillControl billId={b.id} amount={Number(b.amount)} accounts={pickable} currency={currency} />
-            <span style={{ marginLeft: "auto" }}>
-              <RemoveButton id={b.id} kind="bill" label={`Delete "${b.name}"`} />
-            </span>
-          </div>
-        </div>
-      ))}
-
-      <AddBillForm />
-
-      {settled.length > 0 && (
-        <>
-          <SectionLabel>SETTLED</SectionLabel>
-          {settled.slice(0, 12).map((b) => (
-            <div key={b.id} style={{ display: "flex", gap: 10, alignItems: "baseline", padding: "10px 0", borderBottom: "1px solid color-mix(in srgb, var(--color-text) 10%, transparent)" }}>
-              <span style={{ flex: 1, minWidth: 0 }}>
-                <span style={{ fontSize: 14, display: "block" }}>{b.name}</span>
-                <span style={{ fontSize: 12.5, color: "var(--color-neutral-600)" }}>
-                  {b.paid_at ? `paid ${fmtDate(b.paid_at)}` : "paid"}
-                  {b.paidFromName ? ` from ${b.paidFromName}` : ""}
-                </span>
-              </span>
-              <span style={{ fontFamily: "var(--font-numeric)", fontSize: 13 }}>{formatCurrency(Number(b.amount), currency)}</span>
-            </div>
-          ))}
-        </>
-      )}
-    </>
-  );
-}
-
-/* ----------------------------------------------------------------- assets */
-
-async function AssetsPane({ familyId, memberId, currency }: { familyId: string; memberId: string; currency: string }) {
-  const fmtDate = await familyDate();
-  const { assets, liabilities, assetTotal, liabilityTotal, cashTotal, netWorth } = await getNetWorth(familyId, memberId);
-
-  return (
-    <>
-      <Hero
-        label="NET WORTH"
-        amount={netWorth}
-        currency={currency}
-        caption={`${formatCurrency(cashTotal, currency)} in accounts + ${formatCurrency(assetTotal, currency)} owned − ${formatCurrency(liabilityTotal, currency)} owed`}
-      />
-
-      <div style={{ display: "flex", gap: 8, marginBottom: 18 }}>
-        <Link href="/wealth/assets/new?kind=asset" className="btn btn-secondary" style={{ flex: 1, minHeight: 40, fontSize: 13, display: "flex", alignItems: "center", justifyContent: "center" }}>
-          + ASSET
-        </Link>
-        <Link href="/wealth/assets/new?kind=liability" className="btn btn-secondary" style={{ flex: 1, minHeight: 40, fontSize: 13, display: "flex", alignItems: "center", justifyContent: "center" }}>
-          + LIABILITY
-        </Link>
-      </div>
-
-      <SectionLabel>WHAT THE HOUSEHOLD OWNS</SectionLabel>
+      <SectionLabel>WHAT ELSE THE HOUSEHOLD OWNS</SectionLabel>
       {assets.length === 0 && (
         <Empty icon="🏠" title="Nothing recorded yet" line="Property, a vehicle, anything the family owns that holds value. Recorded here, it counts toward your net worth." />
       )}
@@ -593,13 +678,14 @@ async function AssetsPane({ familyId, memberId, currency }: { familyId: string; 
       ))}
 
       <div style={{ fontSize: 13, color: "var(--color-neutral-600)", marginTop: 16 }}>
-        Net worth counts every account balance plus what you own, less what you owe. Update a value whenever it changes.
+        Net worth counts every account balance, everything saved toward a goal, plus what you own, less what you owe.
+        Update a value whenever it changes.
       </div>
     </>
   );
 }
 
-function toPickable(accounts: Awaited<ReturnType<typeof getAccounts>>, memberId: string): PickableAccount[] {
+function toPickable(accounts: AccountWithBalance[], memberId: string): PickableAccount[] {
   return accounts
     .filter((a) => a.is_joint || a.owner_member_id === memberId)
     .map((a) => ({

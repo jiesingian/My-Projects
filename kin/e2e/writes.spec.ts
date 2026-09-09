@@ -92,7 +92,7 @@ test.describe("adding things", () => {
     await submit(page);
 
     await leftTheForm(page, "/wealth/add");
-    await page.goto("/wealth?seg=goals", { waitUntil: "networkidle" });
+    await page.goto("/wealth?seg=assets", { waitUntil: "networkidle" });
     await expect(page.locator("body")).toContainText(title);
   });
 

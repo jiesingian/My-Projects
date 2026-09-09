@@ -20,7 +20,7 @@ import { familyDay } from "@/lib/time";
 import { eventStartEnd, allDayEvent, syncLinkPatch, isQuarantined, QUARANTINE_AFTER } from "@/lib/calendar-shape";
 
 type Db = SupabaseClient<Database>;
-type SourceTable = "activities" | "events" | "health_schedule" | "health_appointments" | "doc_entries" | "trips" | "bills" | "meal_plans" | "goals" | "routines";
+type SourceTable = "activities" | "events" | "health_schedule" | "health_appointments" | "doc_entries" | "trips" | "bills" | "meal_plans" | "goals" | "routines" | "income_schedules";
 
 /** Who a Kin item should sync to: everyone connected in the household, a
  * specific set of tagged members, or a single owner (health/document rows,

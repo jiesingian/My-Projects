@@ -147,7 +147,10 @@ async function fetchCalendarItems(familyId: string, rangeStart: Date, rangeEnd: 
       who: "HOUSE",
       memberIds: [],
       appliesToAll: true,
-      href: `/household?seg=bills`,
+      // Bills live in Wealth's Cash Flow tab, not Household -- this pointed
+      // at a segment Household doesn't have, so it silently fell back to
+      // Household's default tab instead of the bill.
+      href: `/wealth?seg=cashflow`,
     });
   }
 
@@ -178,7 +181,7 @@ async function fetchCalendarItems(familyId: string, rangeStart: Date, rangeEnd: 
       who,
       memberIds: g.owner_member_id ? [g.owner_member_id] : [],
       appliesToAll: g.is_joint,
-      href: `/wealth?seg=goals`,
+      href: `/wealth?seg=assets`,
     });
   }
 

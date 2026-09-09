@@ -11,7 +11,7 @@ export default async function AddGoalPage() {
 
   return (
     <div>
-      <DetailHeader backHref="/wealth?seg=goals" eyebrow="HUB 05 · NEW" />
+      <DetailHeader backHref="/wealth?seg=assets" eyebrow="HUB 05 · NEW" />
       <div style={{ padding: "0 22px 22px" }}>
         <h3 style={{ fontSize: 32, margin: "0 0 14px" }}>Add Goal</h3>
         <AddGoalForm

@@ -74,6 +74,67 @@ export function monthKey(date: Date | string): string {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
 }
 
+/** How far back the Cash Flow graph looks, per granularity it can switch to. */
+export const CASH_FLOW_RANGES = ["week", "month", "year"] as const;
+export type CashFlowRange = (typeof CASH_FLOW_RANGES)[number];
+export const CASH_FLOW_RANGE_LABELS: Record<CashFlowRange, string> = { week: "Weeks", month: "Months", year: "Years" };
+const CASH_FLOW_RANGE_COUNT: Record<CashFlowRange, number> = { week: 12, month: 12, year: 5 };
+export function cashFlowRangeCount(range: CashFlowRange): number {
+  return CASH_FLOW_RANGE_COUNT[range];
+}
+
+/** Calendar weeks, Sunday-start. The key is the week's own start date rather
+ * than an ISO week number -- always unambiguous, always sortable, and it
+ * sidesteps the year-boundary edge cases a "week 1 of 2027 starts in
+ * December 2026" scheme would otherwise need special-casing. */
+function startOfWeek(date: Date): Date {
+  const d = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+  d.setDate(d.getDate() - d.getDay());
+  return d;
+}
+
+export function weekKey(date: Date | string): string {
+  const d = startOfWeek(typeof date === "string" ? new Date(date) : date);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
+
+export function yearKey(date: Date | string): string {
+  const d = typeof date === "string" ? new Date(date) : date;
+  return String(d.getFullYear());
+}
+
+/** The last `count` calendar weeks ending with the week containing `anchor`, oldest first. */
+export function recentWeeks(count: number, anchor: Date = new Date()): { key: string; label: string; start: Date }[] {
+  const thisWeek = startOfWeek(anchor);
+  return Array.from({ length: count }, (_, i) => {
+    const start = new Date(thisWeek);
+    start.setDate(start.getDate() - (count - 1 - i) * 7);
+    return { key: weekKey(start), label: start.toLocaleDateString("en-GB", { day: "numeric", month: "short" }).toUpperCase(), start };
+  });
+}
+
+/** The last `count` years ending with the year containing `anchor`, oldest first. */
+export function recentYears(count: number, anchor: Date = new Date()): { key: string; label: string; start: Date }[] {
+  return Array.from({ length: count }, (_, i) => {
+    const year = anchor.getFullYear() - (count - 1 - i);
+    return { key: String(year), label: String(year), start: new Date(year, 0, 1) };
+  });
+}
+
+/** One shared shape for the three granularities the Cash Flow graph can
+ * switch between, so the page renders them without caring which is active. */
+export function recentPeriods(range: CashFlowRange, count: number, anchor: Date = new Date()): { key: string; label: string; start: Date }[] {
+  if (range === "week") return recentWeeks(count, anchor);
+  if (range === "year") return recentYears(count, anchor);
+  return recentMonths(count, anchor).map((m) => ({ key: m.key, label: m.label, start: new Date(m.year, m.month - 1, 1) }));
+}
+
+export function periodKey(date: Date | string, range: CashFlowRange): string {
+  if (range === "week") return weekKey(date);
+  if (range === "year") return yearKey(date);
+  return monthKey(date);
+}
+
 /** A transaction only moves money once it is confirmed — anything still
  * waiting on the member finishing up in their banking app is held out of
  * every balance and total. */

@@ -15,7 +15,7 @@ function destinations(date: string) {
     { key: "events", label: "Event", note: "Birthdays, anniversaries", href: `/planner/add?type=event&${d}` },
     { key: "trips", label: "Travel", note: "Trips and holidays", href: `/planner/add?type=trip&${d}` },
     { key: "meal_plans", label: "Meal", note: "What's for dinner", href: `/household/meals/new?${d}` },
-    { key: "bills", label: "Bill", note: "Due dates, in Wealth", href: `/wealth?seg=bills` },
+    { key: "bills", label: "Bill", note: "Due dates, in Wealth", href: `/wealth?seg=cashflow` },
     { key: "goals", label: "Goal", note: "Saving targets, in Wealth", href: `/wealth/add` },
   ] as const;
 }

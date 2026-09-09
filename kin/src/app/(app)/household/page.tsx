@@ -101,8 +101,8 @@ async function BuyPane({ familyId, memberId, currency }: { familyId: string; mem
           .map((a) => ({ id: a.id, name: a.name, institution: a.institution, linked_app_url: a.linked_app_url, balance: a.balance, is_joint: a.is_joint }))}
       />
 
-      <Link href="/wealth?seg=bills" style={{ display: "block", fontSize: 13, color: "var(--color-neutral-600)", marginTop: 14 }}>
-        Bills now live in Wealth, where they are paid from an account →
+      <Link href="/wealth?seg=cashflow" style={{ display: "block", fontSize: 13, color: "var(--color-neutral-600)", marginTop: 14 }}>
+        Bills now live in Wealth&rsquo;s Cash Flow tab, where they are paid from an account →
       </Link>
     </>
   );

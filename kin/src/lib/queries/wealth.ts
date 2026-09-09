@@ -1,6 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import type { Tables } from "@/lib/database.types";
-import { monthKey, recentMonths, signedAmount } from "@/lib/wealth";
+import { monthKey, recentMonths, signedAmount, recentPeriods, periodKey, cashFlowRangeCount, type CashFlowRange } from "@/lib/wealth";
 
 /** Which slice of the household's money is on screen: everything the
  * viewer is allowed to see, or one person's own accounts. */
@@ -188,27 +188,110 @@ export async function getGoals(familyId: string) {
   return data ?? [];
 }
 
-/** Assets less liabilities — the number the whole Assets tab exists to move. */
+/** Assets less liabilities — the number the whole A&L tab exists to move.
+ *
+ * Cash accounts and goals both count toward it, not just the standalone
+ * `assets` table. A goal's current_amount is money that has already left a
+ * cash account (contributeToGoalAction records it as a direction="out"
+ * ledger entry) -- so before this counted goals, that money simply vanished
+ * from net worth the moment it was earmarked, which is wrong: it is still
+ * the household's, just set aside rather than spent. Adding it back does not
+ * double-count, because cashTotal only sums the accounts the viewer can see,
+ * already reduced by whatever left them, while goalTotal is money that may
+ * have left a private account they cannot see the balance of at all. */
 export async function getNetWorth(familyId: string, memberId: string) {
   const supabase = await createClient();
-  const [{ data: assets }, { data: liabilities }, accounts] = await Promise.all([
+  const [{ data: assets }, { data: liabilities }, { data: goals }, accounts] = await Promise.all([
     supabase.from("assets").select("*, owner:owner_member_id(full_name)").eq("family_id", familyId).order("value", { ascending: false }),
     supabase.from("liabilities").select("*, owner:owner_member_id(full_name)").eq("family_id", familyId).order("balance", { ascending: false }),
+    supabase.from("goals").select("*, owner:owner_member_id(full_name)").eq("family_id", familyId).order("created_at", { ascending: false }),
     loadAccounts(familyId),
   ]);
 
   const assetTotal = (assets ?? []).reduce((sum, a) => sum + Number(a.value), 0);
   const liabilityTotal = (liabilities ?? []).reduce((sum, l) => sum + Number(l.balance), 0);
-  const cashTotal = accounts
-    .filter((a) => a.is_joint || a.owner_member_id === memberId)
-    .reduce((sum, a) => sum + a.balance, 0);
+  const goalTotal = (goals ?? []).reduce((sum, g) => sum + Number(g.current_amount), 0);
+  const cashAccounts = accounts.filter((a) => a.is_joint || a.owner_member_id === memberId);
+  const cashTotal = cashAccounts.reduce((sum, a) => sum + a.balance, 0);
 
   return {
     assets: assets ?? [],
     liabilities: liabilities ?? [],
+    goals: goals ?? [],
+    cashAccounts,
     assetTotal,
     liabilityTotal,
+    goalTotal,
     cashTotal,
-    netWorth: cashTotal + assetTotal - liabilityTotal,
+    netWorth: cashTotal + assetTotal + goalTotal - liabilityTotal,
+  };
+}
+
+export async function getIncomeSchedules(familyId: string) {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("income_schedules")
+    .select("*, account:account_id(name)")
+    .eq("family_id", familyId)
+    .order("next_date", { nullsFirst: false });
+  return (data ?? []).map((s) => ({
+    ...s,
+    accountName: (s.account as unknown as { name: string } | null)?.name ?? null,
+  }));
+}
+
+/** Everything the Cash Flow tab renders: net money in vs. out for the
+ * selected period, a history strip at whatever granularity (week/month/year)
+ * the household switched to, expected and recently-received income, and
+ * bills alongside recent ad-hoc spend. Family-wide rather than scoped to one
+ * person — RLS already withholds whatever the viewer isn't allowed to see,
+ * the same way the "Everyone" view of Accounts works today. */
+export async function getCashFlowPane(familyId: string, range: CashFlowRange) {
+  const supabase = await createClient();
+  const count = cashFlowRangeCount(range);
+  const periods = recentPeriods(range, count);
+  const historyStart = periods[0].start;
+
+  const [{ data: transactions }, bills, incomeSchedules] = await Promise.all([
+    supabase
+      .from("wealth_transactions")
+      .select("*, accounts(name), members:recorded_by(full_name)")
+      .eq("family_id", familyId)
+      .gte("occurred_at", historyStart.toISOString())
+      .order("occurred_at", { ascending: false }),
+    getBills(familyId),
+    getIncomeSchedules(familyId),
+  ]);
+
+  const rows = (transactions ?? []).map(toLedgerEntry);
+  const confirmed = rows.filter((t) => t.status === "confirmed");
+  const thisPeriodKey = periodKey(new Date(), range);
+  const thisPeriod = confirmed.filter((t) => periodKey(t.occurred_at, range) === thisPeriodKey);
+
+  const history = periods.map((p) => {
+    const inPeriod = confirmed.filter((t) => periodKey(t.occurred_at, range) === p.key);
+    return {
+      key: p.key,
+      label: p.label,
+      income: inPeriod.filter((t) => t.direction === "in").reduce((sum, t) => sum + Number(t.amount), 0),
+      expense: inPeriod.filter((t) => t.direction === "out").reduce((sum, t) => sum + Number(t.amount), 0),
+    };
+  });
+
+  const periodIncome = thisPeriod.filter((t) => t.direction === "in").reduce((sum, t) => sum + Number(t.amount), 0);
+  const periodExpense = thisPeriod.filter((t) => t.direction === "out").reduce((sum, t) => sum + Number(t.amount), 0);
+
+  return {
+    range,
+    periodIncome,
+    periodExpense,
+    net: periodIncome - periodExpense,
+    history,
+    expectedIncome: incomeSchedules.filter((s) => s.status !== "received"),
+    receivedIncome: incomeSchedules.filter((s) => s.status === "received").slice(0, 12),
+    recentIncome: confirmed.filter((t) => t.direction === "in" && t.source_table !== "income_schedules").slice(0, 8),
+    openBills: bills.filter((b) => b.status !== "paid"),
+    settledBills: bills.filter((b) => b.status === "paid").slice(0, 12),
+    recentExpense: confirmed.filter((t) => t.direction === "out" && t.source_table !== "bills").slice(0, 8),
   };
 }
