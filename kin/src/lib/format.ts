@@ -1,9 +1,35 @@
+/** A plain YYYY-MM-DD, split into its parts without consulting a clock.
+ *
+ * `new Date("2018-09-06")` is UTC midnight, and every getter below it
+ * (`getDate`, `getMonth`, `getFullYear`) is LOCAL. So the same stored date
+ * renders as two different days depending on where it is read: the server
+ * sits in Asia/Manila and a browser in the Americas is hours behind, which
+ * puts it on the day before.
+ *
+ * Measured 9 September on a member's date of birth, server against browser:
+ *
+ *   server   06/09/2018
+ *   browser  07/09/2018
+ *
+ * React reports that as a hydration mismatch -- which is how it was found,
+ * by a new test on the member profile page -- and a person reads it as the
+ * wrong birthday. A date of birth is a day, not an instant; there is nothing
+ * to convert and no zone to convert it into. */
+function plainDateParts(value: string): { yyyy: string; mm: string; dd: string } | null {
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value.trim());
+  return m ? { yyyy: m[1], mm: m[2], dd: m[3] } : null;
+}
+
 export function formatAge(dob: string | null): string {
   if (!dob) return "age unknown";
-  const birth = new Date(dob);
+  const parts = plainDateParts(dob);
+  // Built in UTC on both sides so the arithmetic below cannot land a day out.
+  const birth = parts
+    ? new Date(Date.UTC(Number(parts.yyyy), Number(parts.mm) - 1, Number(parts.dd)))
+    : new Date(dob);
   const now = new Date();
-  let months = (now.getFullYear() - birth.getFullYear()) * 12 + (now.getMonth() - birth.getMonth());
-  if (now.getDate() < birth.getDate()) months -= 1;
+  let months = (now.getUTCFullYear() - birth.getUTCFullYear()) * 12 + (now.getUTCMonth() - birth.getUTCMonth());
+  if (now.getUTCDate() < birth.getUTCDate()) months -= 1;
   if (months < 24) return `${Math.max(months, 0)} month${months === 1 ? "" : "s"}`;
   return `${Math.floor(months / 12)}`;
 }
@@ -14,6 +40,15 @@ export function formatCurrency(amount: number, currency = "PHP"): string {
 }
 
 export function formatDate(date: string | Date, pattern = "DD/MM/YYYY"): string {
+  // A plain date is read straight from its digits -- see plainDateParts. Only
+  // a real instant (a timestamp, or a Date) goes through the local getters
+  // below, where showing it in the reader's own zone is the point.
+  const parts = typeof date === "string" ? plainDateParts(date) : null;
+  if (parts) {
+    return pattern === "MM/DD/YYYY"
+      ? `${parts.mm}/${parts.dd}/${parts.yyyy}`
+      : `${parts.dd}/${parts.mm}/${parts.yyyy}`;
+  }
   const d = typeof date === "string" ? new Date(date) : date;
   const dd = String(d.getDate()).padStart(2, "0");
   const mm = String(d.getMonth() + 1).padStart(2, "0");

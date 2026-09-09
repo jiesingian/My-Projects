@@ -14,6 +14,7 @@ import { OmronToggle } from "./omron-toggle";
 import { ConditionEntryControls, ConditionDeleteButton, LabControls } from "@/components/health-entry-controls";
 import { RelationshipEditor } from "@/components/relationship-editor";
 import { RoleEditor } from "@/components/role-editor";
+import { ConvertToChild } from "@/components/convert-to-child";
 import { RemoveMemberButton } from "@/components/member-status-actions";
 import { Avatar } from "@/components/avatar";
 import { ProfileEditForm } from "@/components/profile-edit-form";
@@ -127,6 +128,7 @@ export default async function MemberDetailPage({
                 <>
                   <div style={{ fontSize: 13, color: "var(--color-neutral-700)", marginBottom: 6 }}>Role</div>
                   <RoleEditor memberId={member.id} fullName={member.full_name} role={member.role} />
+                  <ConvertToChild memberId={member.id} fullName={member.full_name} />
                 </>
               )}
 

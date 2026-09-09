@@ -315,6 +315,76 @@ export async function setMemberRoleAction(memberId: string, role: MemberRole): P
   return { error: null };
 }
 
+/** Turns a member who has a login back into a managed child profile.
+ *
+ * There was no way to do this from inside the app, and the gap had a real
+ * cost. `joinFamilyAction` hard-codes `p_role: "adult"`, so a four-year-old
+ * who was signed up with an email address held an adult role and an active
+ * session -- every adult permission there is, the money pages included --
+ * and nothing in the app could see it or undo it. It took a hand-written
+ * UPDATE to correct, on 9 September.
+ *
+ * THE ORDER OF THE TWO STEPS MATTERS, and it is not obvious.
+ * `members_guard_self_update` refuses any change to `role`, `is_organiser` or
+ * `family_id` on a row whose `auth_user_id` is ALREADY null. And
+ * `members.auth_user_id` is `on delete set null`, so deleting the login
+ * first nulls the column -- and locks the row out of the very change this is
+ * for. Both fields therefore move in ONE statement, while the login is still
+ * attached, and only then is the account removed.
+ *
+ * Removing the account needs the service key, because deleting an auth user
+ * is not something row-level security can express. If it is not configured
+ * the profile is still converted -- that is the half that matters, and it
+ * takes effect immediately -- and the caller is told the sign-in is still
+ * live so somebody can remove it by hand. Reporting that plainly beats
+ * either pretending it worked or refusing to do the part that did.
+ */
+export async function convertToManagedChildAction(memberId: string): Promise<ActionState> {
+  const me = await requireCurrentMember();
+  if (!me.is_organiser) return { error: "Only the household's organizer can do that." };
+  if (memberId === me.id) return { error: "You can't turn your own account into a child profile." };
+
+  const supabase = await createClient();
+  const { data: target, error: readError } = await supabase
+    .from("members")
+    .select("full_name, auth_user_id, status")
+    .eq("id", memberId)
+    .eq("family_id", me.family_id)
+    .maybeSingle();
+  if (readError) return { error: `That member could not be read, so nothing was changed. ${humanDatabaseError(readError.message)}` };
+  if (!target) return { error: "That member is no longer in the household." };
+  if (target.auth_user_id === null) return { error: `${target.full_name} is already a managed profile.` };
+
+  const authUserId = target.auth_user_id;
+
+  // One statement, while the login is still attached -- see above.
+  const { error } = await supabase
+    .from("members")
+    .update({ auth_user_id: null, role: "child_managed", status: "managed" })
+    .eq("id", memberId)
+    .eq("family_id", me.family_id);
+  if (error) return { error: humanDatabaseError(error.message) };
+
+  revalidatePath("/family");
+  revalidatePath(`/family/members/${memberId}`);
+
+  const admin = createAdminClient();
+  if (!admin) {
+    return {
+      error: `${target.full_name} is now a managed profile, but their sign-in could not be removed from here. It no longer opens this household; remove the account itself to be sure.`,
+    };
+  }
+  const { error: deleteError } = await admin.auth.admin.deleteUser(authUserId);
+  if (deleteError) {
+    console.error(`Converted member ${memberId} but could not delete auth user`, deleteError.message);
+    return {
+      error: `${target.full_name} is now a managed profile, but their sign-in could not be deleted: ${deleteError.message}. It no longer opens this household.`,
+    };
+  }
+
+  return { error: null };
+}
+
 /** Sets a member's family-relationship label ("Mother", "Son", etc.) —
  * distinct from `role`, which drives permission logic and stays untouched
  * here. RLS lets the organizer edit anyone's; a member can also edit their

@@ -490,6 +490,51 @@ card starts below zero, and that is a real account, not a typo.
 
 ---
 
+## Every stored date rendered a day early west of UTC — CLOSED 9 September
+
+`formatDate` did this:
+
+```ts
+const d = new Date("2018-09-06");   // UTC midnight
+const dd = String(d.getDate());     // LOCAL
+```
+
+A plain date parsed as an instant in one zone and read back in another. The
+server sits in Asia/Manila; a browser in the Americas is hours behind, so the
+same stored date renders on the day before. Measured 9 September on a
+member's date of birth:
+
+| | |
+| --- | --- |
+| server | 06/09/2018 |
+| browser | 07/09/2018 |
+
+React reports that as a hydration mismatch. A person reads it as the wrong
+birthday — and it is every date shown through that function, on every profile,
+for anybody whose browser is not in the household's zone.
+
+**How it was found is the point.** Not by reading: by adding the member
+profile page's first test, which watched for page errors and caught the
+mismatch immediately. The page had no coverage of any kind, and had been
+edited three times that day on nothing but a careful read.
+
+**And the lesson was already written down.** `spellDate`, four functions below
+in the same file, parses the string rather than trusting `Date`, with a
+comment about "the same trap that walked the planner's times back eight
+hours". The knowledge existed and did not stop the bug, which is the argument
+for the six tests now pinning it.
+
+**Fixed** by reading the digits out of a plain `YYYY-MM-DD` and never
+constructing a Date at all. A real timestamp still goes through the local
+getters, because showing an appointment in the reader's own zone is the point
+— that distinction is what the fix rests on. `formatAge` had the same shape
+and now does its arithmetic entirely in UTC.
+
+Checked negatively with the process in `America/New_York`: restoring the old
+line fails three of the six.
+
+---
+
 ## goals.current_amount is stored, not derived — CLOSED 8 September
 
 *Kept for the reconciliation query at the foot, which is still the way to
