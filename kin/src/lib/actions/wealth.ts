@@ -5,7 +5,7 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { requireCurrentMember } from "@/lib/session";
 import { syncRowToCalendars, type CalendarTarget } from "@/lib/actions/calendar-sync";
-import { GOAL_CATEGORY, TRANSFER_CATEGORY } from "@/lib/wealth";
+import { GOAL_CATEGORY, TRANSFER_CATEGORY, explainLedgerRefusal } from "@/lib/wealth";
 import type { ActionState } from "@/lib/actions/auth";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database, Tables, TablesInsert } from "@/lib/database.types";
@@ -130,8 +130,8 @@ type LedgerInput = {
   goalId?: string | null;
 };
 
-async function insertEntry(supabase: Db, familyId: string, memberId: string, input: LedgerInput) {
-  const row: TablesInsert<"wealth_transactions"> = {
+function ledgerRow(familyId: string, memberId: string, input: LedgerInput): TablesInsert<"wealth_transactions"> {
+  return {
     family_id: familyId,
     account_id: input.accountId,
     direction: input.direction,
@@ -146,7 +146,10 @@ async function insertEntry(supabase: Db, familyId: string, memberId: string, inp
     goal_id: input.goalId ?? null,
     recorded_by: memberId,
   };
-  return supabase.from("wealth_transactions").insert(row).select().single();
+}
+
+async function insertEntry(supabase: Db, familyId: string, memberId: string, input: LedgerInput) {
+  return supabase.from("wealth_transactions").insert(ledgerRow(familyId, memberId, input)).select().single();
 }
 
 /** What a confirmed movement does beyond moving the balance: a bill it paid
@@ -223,7 +226,7 @@ export async function recordMovementAction(input: {
     particulars: input.particulars.trim(),
     status,
   });
-  if (error) return { error: error.message };
+  if (error) return { error: explainLedgerRefusal(error.message) };
 
   if (status === "confirmed") {
     const settled = await applySettlement(supabase, me.id, entry);
@@ -286,10 +289,33 @@ export async function transferAction(input: {
     },
   ];
 
-  for (const leg of legs) {
-    const { error } = await insertEntry(supabase, me.family_id, me.id, leg);
-    if (error) return { error: error.message };
-  }
+  // Both legs in ONE statement, and deliberately without asking for the rows
+  // back. Each half of that sentence fixes a measured failure.
+  //
+  // Two separate inserts meant the first could land and the second fail, and
+  // the first is the one that takes the money OUT. The household is then down
+  // by the amount, it has arrived nowhere, and the person is shown an error --
+  // so they do it again, and it goes out twice. One statement makes that
+  // impossible rather than unlikely: Postgres commits both rows or neither.
+  //
+  // The rows are not read back because reading them is what failed. An account
+  // is visible when it is joint, mine, OR not private; a transaction on it is
+  // visible only when the account is joint or mine. So a member's own account
+  // that they have shared with the household appears in the transfer list, and
+  // a transaction paid into it cannot be read by anybody else -- the insert is
+  // allowed, the RETURNING is refused, and a refused RETURNING takes the whole
+  // statement down with it. Nothing here uses the returned rows.
+  //
+  // Measured 9 September in the throwaway household, transferring into exactly
+  // such an account:
+  //
+  //   two inserts, each asking for its row back   -> 201 then 403, 5,000 gone
+  //   one insert, asking for the rows back        -> 403, nothing written
+  //   one insert, not asking for them back        -> 201, both legs present
+  const { error } = await supabase
+    .from("wealth_transactions")
+    .insert(legs.map((leg) => ledgerRow(me.family_id, me.id, leg)));
+  if (error) return { error: error.message };
 
   revalidateWealth();
   return { error: null, appUrl: input.viaApp ? from.linked_app_url : null };
@@ -390,7 +416,7 @@ export async function postHubExpenseAction(input: {
     sourceTable: input.sourceTable,
     sourceId: input.sourceId,
   });
-  if (error) return { error: error.message };
+  if (error) return { error: explainLedgerRefusal(error.message) };
 
   revalidateWealth();
   return { error: null };
@@ -459,7 +485,7 @@ export async function payBillAction(input: {
     sourceTable: "bills",
     sourceId: bill.id,
   });
-  if (error) return { error: error.message };
+  if (error) return { error: explainLedgerRefusal(error.message) };
 
   if (status === "confirmed") {
     const settled = await applySettlement(supabase, me.id, entry);
@@ -658,7 +684,7 @@ export async function contributeToGoalAction(input: {
     status,
     goalId: input.goalId,
   });
-  if (error) return { error: error.message };
+  if (error) return { error: explainLedgerRefusal(error.message) };
 
   if (status === "confirmed") {
     const settled = await applySettlement(supabase, me.id, entry);

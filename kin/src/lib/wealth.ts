@@ -81,3 +81,19 @@ export function signedAmount(t: { direction: string; amount: number | string; st
   if (t.status !== "confirmed") return 0;
   return (t.direction === "in" ? 1 : -1) * Number(t.amount);
 }
+
+/** The ledger's version of a policy refusal, in words a person can act on.
+ *
+ * An account is visible when it is joint, yours, or simply not marked private
+ * -- but a transaction on it is visible only when the account is joint or
+ * yours. So a household member's own shared account appears in every list and
+ * refuses every entry written into it, because the insert asks for its row
+ * back and the SELECT policy will not return it. Nothing is written, which is
+ * the safe direction; the raw message is a sentence about tables and
+ * policies. Anything else is passed through untouched.
+ */
+export function explainLedgerRefusal(message: string): string {
+  return /row-level security/i.test(message)
+    ? "That account belongs to someone else in the household, so entries cannot be recorded against it here. Ask them to record it, or use a joint account."
+    : message;
+}

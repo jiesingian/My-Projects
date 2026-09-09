@@ -208,6 +208,69 @@ them whatever happens to 1.
 
 ---
 
+## A transfer could take money out and put it nowhere — FIXED 9 September
+
+`transferAction` wrote its two legs as two separate inserts in a loop, and
+returned on the first error:
+
+```ts
+for (const leg of legs) {
+  const { error } = await insertEntry(...);
+  if (error) return { error: error.message };
+}
+```
+
+The first leg is the one that takes the money **out**. If the second failed,
+the household was down by the amount, it had arrived nowhere, and the person
+was shown an error — so the natural next move is to do it again, and now it
+has gone out twice.
+
+**This needed no failure of any kind to happen.** Two policies disagree:
+
+| | visible when |
+| --- | --- |
+| `accounts` | joint **or** mine **or NOT `is_private`** |
+| `wealth_transactions` | joint **or** mine |
+
+There is no `is_private` clause in the second. So a member's own account, once
+they share it with the household, appears in everybody's transfer list and
+refuses every transaction anybody else writes into it — the insert is allowed,
+the RETURNING is refused, and a refused RETURNING aborts the statement.
+
+**Measured 9 September** in the throwaway household, transferring into exactly
+such an account:
+
+| what was sent | result |
+| --- | --- |
+| two inserts, each asking for its row back | **201 then 403 — ₱5,000 left the joint account and landed nowhere** |
+| one insert with both legs, asking for the rows back | 403, nothing written |
+| one insert with both legs, not asking for them back | **201, both legs present** |
+
+**Fixed** by the third line: both legs go in one statement, so Postgres commits
+both or neither, and the rows are not read back because reading them is what
+failed and nothing used them. The refusal for a *single* entry into someone
+else's shared account stands — it writes nothing, which is the safe direction —
+but now says so in words (`explainLedgerRefusal`), rather than quoting a policy.
+
+**Not currently biting.** `accounts.is_private` defaults to **true**, and every
+account in both households today is either joint or private, so nothing is in
+the gap. It is one deliberate "share this account" toggle away, which is a
+thing a household is meant to do.
+
+**Left for Jonathan.** Whether `wealth_transactions` should have the same
+`NOT is_private` clause its accounts do is a question about who may see whose
+spending, and a migration. Today a shared account is visible to everyone and
+its ledger is visible to nobody but its owner, which is at least defensible;
+it is just not what the two rules look like they were meant to say.
+
+**Also spotted, not fixed:** `addBillAction` checks `!amount`, so a negative
+bill amount is accepted where every other money path requires `> 0`. It needs
+someone to type a minus sign into the form, and it makes a bill that subtracts.
+Recorded rather than fixed because the five `> 0` checks elsewhere suggest a
+deliberate shape somebody should confirm before a sixth is added.
+
+---
+
 ## goals.current_amount is stored, not derived — CLOSED 8 September
 
 *Kept for the reconciliation query at the foot, which is still the way to
