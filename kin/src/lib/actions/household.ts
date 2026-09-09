@@ -793,12 +793,16 @@ export async function setRecipePhotoAction(recipeRef: string, storagePath: strin
   // rather than trusting the path a browser handed back.
   if (!storagePath.startsWith(`${me.family_id}/`)) return { error: "That photo didn't arrive." };
 
-  const { data: old } = await supabase
+  // Only used to clean up the file this replaces, so a failed read costs one
+  // orphaned photo in the bucket rather than anything the household sees --
+  // but an orphan nobody knows about is how a bucket fills up.
+  const { data: old, error: oldError } = await supabase
     .from("recipe_photos")
     .select("storage_path")
     .eq("family_id", me.family_id)
     .eq("recipe_ref", recipeRef)
     .maybeSingle();
+  if (oldError) console.error(`Could not check for an earlier photo on recipe ${recipeRef}; if there was one, its file is now orphaned in storage`, oldError.message);
 
   const { error } = await supabase
     .from("recipe_photos")
@@ -822,12 +826,15 @@ export async function removeRecipePhotoAction(recipeRef: string): Promise<Action
   const me = await requireCurrentMember();
   const supabase = await createClient();
 
-  const { data: photo } = await supabase
+  const { data: photo, error: photoError } = await supabase
     .from("recipe_photos")
     .select("storage_path")
     .eq("family_id", me.family_id)
     .eq("recipe_ref", recipeRef)
     .maybeSingle();
+  // Same as above: the row still goes, and the file it pointed at is left
+  // behind. Worth a line in the log rather than nothing at all.
+  if (photoError) console.error(`Could not read the photo on recipe ${recipeRef} before removing it; its file is now orphaned in storage`, photoError.message);
 
   const { error } = await supabase.from("recipe_photos").delete().eq("family_id", me.family_id).eq("recipe_ref", recipeRef);
   if (error) return { error: error.message };

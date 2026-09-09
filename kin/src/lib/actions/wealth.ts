@@ -528,13 +528,16 @@ export async function setAllocationAction(input: { category: string; amount: num
   const month = now.getMonth() + 1;
   const year = now.getFullYear();
 
-  const { data: existingPeriod } = await supabase
-    .from("budget_periods")
-    .select("id")
-    .eq("family_id", me.family_id)
-    .eq("period_month", month)
-    .eq("period_year", year)
-    .maybeSingle();
+  const readPeriod = () =>
+    supabase.from("budget_periods").select("id").eq("family_id", me.family_id).eq("period_month", month).eq("period_year", year).maybeSingle();
+
+  // A read that failed used to arrive below as "there is no budget for this
+  // month yet", and the answer to that is to make one. UNIQUE (family_id,
+  // period_month, period_year) refuses the second, so the household got a
+  // duplicate-key error rather than a duplicate -- but the allocation read
+  // underneath it has no such backstop.
+  const { data: existingPeriod, error: periodReadError } = await readPeriod();
+  if (periodReadError) return { error: `This month's budget could not be read, so nothing was changed. ${periodReadError.message}` };
 
   let period = existingPeriod;
   if (!period) {
@@ -543,22 +546,43 @@ export async function setAllocationAction(input: { category: string; amount: num
       .insert({ family_id: me.family_id, period_month: month, period_year: year, budget_amount: 0 })
       .select("id")
       .single();
-    if (periodErr) return { error: periodErr.message };
-    period = created;
+    if (periodErr) {
+      // Two people setting a budget in the same minute both read "no period
+      // yet" and both insert; the constraint lets one through. Theirs is as
+      // good as ours -- take it rather than showing a duplicate-key error.
+      const { data: raced } = await readPeriod();
+      if (!raced) return { error: periodErr.message };
+      period = raced;
+    } else {
+      period = created;
+    }
   }
+  const periodId = period.id;
 
-  const { data: existing } = await supabase
+  const { data: existing, error: existingError } = await supabase
     .from("budget_allocations")
     .select("id")
-    .eq("budget_period_id", period.id)
+    .eq("budget_period_id", periodId)
     .eq("category", input.category)
     .maybeSingle();
+  // Two ways this fails, and inserting was the wrong answer to both. A read
+  // that failed is not "no allocation yet", and maybeSingle also errors when
+  // the category already has more than one row -- in which case another insert
+  // makes a third, and every save after that adds one more. budget_allocations
+  // has no uniqueness on (budget_period_id, category) to catch it: the
+  // migration alongside this adds one, and until it is run this check is what
+  // stands in for it.
+  if (existingError) {
+    return {
+      error: `The "${input.category}" budget could not be read, so it was left as it was. ${existingError.message}`,
+    };
+  }
 
   const { error } = existing
     ? await supabase.from("budget_allocations").update({ amount: input.amount }).eq("id", existing.id)
     : await supabase
         .from("budget_allocations")
-        .insert({ budget_period_id: period.id, family_id: me.family_id, category: input.category, amount: input.amount });
+        .insert({ budget_period_id: periodId, family_id: me.family_id, category: input.category, amount: input.amount });
   if (error) return { error: error.message };
 
   revalidateWealth();

@@ -72,6 +72,77 @@ their way in). All three are the kind of failure that must not be invisible to
 
 ---
 
+## Reads whose failure looked exactly like "there is nothing there" — 9 September
+
+The write sweep asked "was the error captured". This is the same question of
+the reads, and it only matters where the answer is *acted on*: a page that
+renders an empty list is a bad afternoon, but a read whose empty answer makes
+the code delete or create something is a different thing entirely.
+
+Counted 9 September: 47 reads in `src/lib` drop their error, 39 of them
+outside `queries/`, and 17 sit within eighteen lines of a write. Every one of
+the 17 was read. Most guard with `if (!row) return { error: "Not found." }`,
+which says the wrong thing on a failed read and does nothing wrong; two more
+fail closed, which is the right direction (a chat mention is dropped, the
+assistant says it cannot find the account). **Two were acted on and wrong,
+and both are fixed** — plus five more in the calendar file that were
+misleading rather than harmful, tightened while I was in there.
+
+**A calendar item could quietly leave every phone in the house.**
+`syncRowToCalendars` asked which members have a connected calendar, and a
+failed read came back as an empty list. Empty does not mean "do nothing"
+there: it means "nobody should have this any more", so the second half of the
+function deleted the event from every calendar that already had it and cleared
+the links. The row stayed in Kin looking perfectly fine. `resolveTargetMemberIds`
+now returns `string[] | null`, and null — "I could not tell" — leaves the
+calendars alone.
+
+Three more in the same file, each stated in a comment where it sits:
+`removeRowFromCalendars` used to clear the link rows after a failed read that
+had deleted nothing from Google, which orphans the events for good and gets
+them re-imported as new activities on the next pull; `applyIncomingEvent` read
+a failed link lookup as "not linked yet" and went down the create path; and
+`syncGoogleCalendarAction` reported "No one in the household has connected
+Google Calendar yet" for a read that had simply failed.
+
+**A budget category could end up in the list twice, and then keep growing.**
+`setAllocationAction` reads whether the category already has a row, then
+updates it or inserts one. A failed read inserted. Worse, `.maybeSingle()`
+*also* errors when there is more than one row — so once two existed, every
+save added another, and the Wealth page drew the category once per row, each
+copy claiming the whole month's spend.
+
+The error is now surfaced and nothing is written. But the underlying hole is
+that `budget_allocations` has no uniqueness on `(budget_period_id, category)`,
+where every sibling table has one — so two people setting a budget in the same
+minute is enough on its own, with nothing failing at all. Only the database
+can close that:
+`migrations/2026-09-09-one-budget-line-per-category.sql`, **written and NOT
+APPLIED**. Measured 9 September: no household has a duplicate today.
+
+**Left alone, with reasons.** Four reads of `calendar_links.calendar_id` fall
+back to `"primary"` when the read fails. Nothing in the app ever writes a
+different value — checked — so the fallback is the same answer the row holds.
+It would become a wrong-calendar bug the day a calendar picker is added, and
+that is the day to change it. `deleteHouseholdAction`'s storage sweep is
+explicitly best-effort and logs what it leaves; a failed *list* there leaks
+files after a household is deleted, which is worth knowing and is not worth
+holding the deletion for. The two recipe-photo reads are the same shape at a
+smaller size — the row is right either way and the file it replaced is left in
+the bucket — so they now say so in the log rather than being fixed, because
+there is nothing to fix: you cannot delete a path you could not read. And the several `if (!row) return "Not found."`
+sites say the wrong thing on a failed read without doing the wrong thing.
+
+**Not covered by a test.** None of this is reachable from the suite: making
+PostgREST fail on demand is not something the app can be asked to do from the
+outside, and the branches are error handling rather than logic. They are
+verified by reading, by the type checker (the `string[] | null` return makes
+the caller handle it), and by the full suite for regression — not by
+exercising the failure itself. Said plainly because a green run does not mean
+these paths work.
+
+---
+
 ## goals.current_amount is stored, not derived — CLOSED 8 September
 
 *Kept for the reconciliation query at the foot, which is still the way to
@@ -363,31 +434,6 @@ week that way, and `assistant/tools.ts` builds a query window that way. Those
 are date ranges rather than things put on a calendar, and they were left
 alone — the failure mode is a week boundary landing wrong for a server outside
 the household's zone, not an item on the wrong day.
-
----|---|
-| Asia/Manila | 2026-09-09 |
-| UTC | 2026-09-09 |
-| America/New_York | 2026-09-09 |
-| **Asia/Tokyo** | **2026-09-08** |
-| **Pacific/Auckland** | **2026-09-08** |
-
-Anywhere east of the household, every birthday, bill, trip and meal is back to
-landing a day early — and `KIN_TZ` is the documented way to move the
-deployment, so it is one environment variable away, and it would look exactly
-like the 8 September fix coming undone on its own.
-
-**Fixed on the pull side.** `eventStartEnd` carries Google's plain date
-through untouched rather than round-tripping it, and `familyMidnight` in
-`lib/time.ts` states the zone instead of inheriting it.
-
-**Not fixed on the push side.** Roughly a dozen callers across `planner.ts`,
-`wealth.ts`, `household.ts`, `documents.ts` and `assistant/tools.ts` still
-build `startAt: new Date(`${date}T00:00:00`)` for `allDay: true` syncs. They
-are correct today for the same reason the pull side was — production is in
-Asia/Manila — and the sweep is mechanical now that `familyMidnight` exists.
-It was left out of the coverage change on purpose rather than overlooked:
-twelve call sites across five files is a change of its own, and one of them is
-the assistant.
 
 ---
 

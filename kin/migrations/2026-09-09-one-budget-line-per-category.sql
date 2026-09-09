@@ -1,0 +1,114 @@
+-- NOT YET APPLIED. Jonathan runs this; nothing here has been run against the
+-- database. "How to run it" is at the foot.
+--
+-- One budget line per category
+-- ============================
+--
+-- What this is for
+-- ----------------
+-- `budget_allocations` is the only table in the money side of the app with no
+-- uniqueness on what it is a list of. Every sibling has it:
+--
+--   budget_periods    UNIQUE (family_id, period_month, period_year)
+--   wealth_targets    UNIQUE (member_id, period_month, period_year)
+--   budget_allocations  -- nothing but the primary key
+--
+-- So nothing stops a household having two "Groceries" lines in the same month.
+-- `setAllocationAction` reads whether the category already has a row and then
+-- either updates it or inserts one, which is correct right up until two
+-- requests do it at once: both read "no row", both insert, and the budget now
+-- has the category twice. Same shape as the goals lost-update fixed on
+-- 8 September, and it does not need anything to fail -- two people, or one
+-- person and a double-tap, is enough.
+--
+-- What it looks like once it has happened
+-- ---------------------------------------
+-- The Wealth page maps allocations straight to rows, so the category is drawn
+-- twice, and each copy shows the WHOLE month's spend for that category against
+-- its own budget. Nothing says which is which.
+--
+-- Then it compounds. The action reads the existing row with `.maybeSingle()`,
+-- which errors when there is more than one -- and that error used to be
+-- dropped, so the code read it as "no row yet" and inserted a THIRD. Every
+-- save after that added another. That half is fixed in code alongside this
+-- migration (the error is now surfaced and nothing is written), so today the
+-- household gets an error instead of another row. This is what stops the
+-- second row being created at all.
+--
+-- Measured before writing this, 9 September: no household has a duplicate.
+--
+--   select bp.family_id, bp.period_year, bp.period_month, ba.category, count(*)
+--     from public.budget_allocations ba
+--     join public.budget_periods bp on bp.id = ba.budget_period_id
+--    group by 1,2,3,4 having count(*) > 1;
+--
+-- returned no rows. So this adds a constraint to data that already satisfies
+-- it, and STEP 1 checks that again rather than trusting this paragraph -- if
+-- a duplicate has appeared since, the constraint would fail to build and the
+-- right thing is to look at the rows, not to force it.
+--
+-- Why a constraint rather than more care in the code
+-- -------------------------------------------------
+-- The code cannot close this. Read-then-write across two statements is a race
+-- however carefully it is written; only the database can refuse the second
+-- row. It is also the difference between "this is guarded against" and "this
+-- is impossible", which is the same reason recalc_goal_total writes a
+-- destination rather than a distance.
+--
+--
+-- HOW TO RUN IT
+-- =============
+-- Supabase dashboard -> SQL Editor -> New query. One step at a time.
+--
+-- STEP 1 -- look before you change anything. Read-only.
+--
+--   select bp.family_id, bp.period_year, bp.period_month, ba.category,
+--          count(*) as rows, sum(ba.amount) as total
+--     from public.budget_allocations ba
+--     join public.budget_periods bp on bp.id = ba.budget_period_id
+--    group by 1,2,3,4
+--   having count(*) > 1
+--    order by rows desc;
+--
+-- Expect NO ROWS. If anything comes back, stop and tell me: those are real
+-- budget lines and which one to keep is a question about money, not a thing
+-- to resolve with a delete written in advance.
+--
+-- STEP 2 -- add the constraint.
+--
+--   alter table public.budget_allocations
+--     add constraint budget_allocations_one_per_category
+--     unique (budget_period_id, category);
+--
+-- Expect "Success. No rows returned."
+--
+-- STEP 3 -- confirm it is there. Read-only.
+--
+--   select conname, pg_get_constraintdef(oid)
+--     from pg_constraint
+--    where conrelid = 'public.budget_allocations'::regclass
+--      and contype = 'u';
+--
+-- Expect one row: budget_allocations_one_per_category, UNIQUE
+-- (budget_period_id, category).
+--
+-- STEP 4 -- nothing. The app needs no change to benefit: the insert that would
+-- have made a duplicate is now refused by the database, and the household sees
+-- an error instead of a second line.
+--
+--
+-- What can be simplified afterwards
+-- ---------------------------------
+-- With the constraint in place, setAllocationAction's read-then-update-or-
+-- insert can become a single upsert on (budget_period_id, category), the way
+-- setWealthTargetAction already does it -- no read, no window, no branch. That
+-- is a code change and deliberately not made yet, because an upsert naming a
+-- constraint that does not exist fails outright (Postgres 42P10). Say when
+-- this is applied and it is a three-line change.
+--
+-- To roll back: alter table public.budget_allocations
+--                 drop constraint budget_allocations_one_per_category;
+
+alter table public.budget_allocations
+  add constraint budget_allocations_one_per_category
+  unique (budget_period_id, category);

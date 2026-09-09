@@ -50,8 +50,20 @@ export async function disconnectCalendarAction(): Promise<ActionState> {
   return { error: null };
 }
 
-async function resolveTargetMemberIds(supabase: Db, familyId: string, target: CalendarTarget): Promise<string[]> {
-  const { data: connectedRows } = await supabase.from("calendar_links").select("member_id").eq("family_id", familyId).eq("connected", true);
+/** Who this row should end up on, or null when we could not find out.
+ *
+ * The distinction carries more weight than it looks. A failed read used to
+ * arrive here as an empty list, and an empty list does not mean "do nothing":
+ * it means "nobody should have this any more", so the caller went on to delete
+ * the event from every phone that already had it. The row stayed in Kin
+ * looking fine and the item quietly left the family's calendars. Saying "I
+ * could not tell" leaves them alone instead. */
+async function resolveTargetMemberIds(supabase: Db, familyId: string, target: CalendarTarget): Promise<string[] | null> {
+  const { data: connectedRows, error } = await supabase.from("calendar_links").select("member_id").eq("family_id", familyId).eq("connected", true);
+  if (error) {
+    console.error(`Could not read which members have a connected calendar in family ${familyId}; leaving the calendars untouched`, error.message);
+    return null;
+  }
   const connected = new Set((connectedRows ?? []).map((r) => r.member_id));
 
   if (target.kind === "all") return [...connected];
@@ -71,8 +83,18 @@ export async function syncRowToCalendars(familyId: string, table: SourceTable, r
   if (!input) return;
   const supabase = await createClient();
   const desiredMemberIds = await resolveTargetMemberIds(supabase, familyId, target);
+  if (!desiredMemberIds) return;
 
-  const { data: existingLinks } = await supabase.from("calendar_event_links").select("*").eq("source_table", table).eq("source_id", rowId);
+  const { data: existingLinks, error: existingError } = await supabase.from("calendar_event_links").select("*").eq("source_table", table).eq("source_id", rowId);
+  if (existingError) {
+    // Empty here would mean "this has never been synced", so we would create a
+    // second event on a calendar that already has one. The unique constraint
+    // bounces the link and the event is taken back again, so it does not last
+    // -- but it is a create and a delete on someone's calendar for nothing,
+    // and the tidy-up loop below would see no links and remove nothing.
+    console.error(`Could not read the existing calendar links for ${table}/${rowId}; leaving the calendars as they are`, existingError.message);
+    return;
+  }
   const existingByMember = new Map((existingLinks ?? []).map((l) => [l.member_id, l]));
 
   for (const memberId of desiredMemberIds) {
@@ -120,7 +142,17 @@ export async function syncRowToCalendars(familyId: string, table: SourceTable, r
  * row itself is deleted. */
 export async function removeRowFromCalendars(familyId: string, table: SourceTable, rowId: string): Promise<void> {
   const supabase = await createClient();
-  const { data: links } = await supabase.from("calendar_event_links").select("*").eq("family_id", familyId).eq("source_table", table).eq("source_id", rowId);
+  const { data: links, error: readError } = await supabase.from("calendar_event_links").select("*").eq("family_id", familyId).eq("source_table", table).eq("source_id", rowId);
+  if (readError) {
+    // Carrying on would delete no Google events -- there are none to iterate --
+    // and then clear the links anyway, which is the worst of both: the events
+    // stay on the family's phones with nothing pointing at them, so they can
+    // never be updated or removed, and the next pull reads them as somebody's
+    // own events and makes activities out of them. Leaving the links in place
+    // keeps the row reachable for a later sync.
+    console.error(`Calendar links for ${table}/${rowId} could not be read; the events stay on the calendars and the links stay in place so a later sync can still clear them`, readError.message);
+    return;
+  }
 
   for (const link of links ?? []) {
     const accessToken = await getValidCalendarAccessToken(link.member_id);
@@ -252,7 +284,13 @@ async function applyIncomingEvent(
   memberId: string,
   event: GoogleCalendarEvent,
 ): Promise<string | null> {
-  const { data: link } = await supabase.from("calendar_event_links").select("*").eq("member_id", memberId).eq("google_event_id", event.id).maybeSingle();
+  const { data: link, error: linkError } = await supabase.from("calendar_event_links").select("*").eq("member_id", memberId).eq("google_event_id", event.id).maybeSingle();
+  // Treating this as "not linked yet" would send an edit down the create path
+  // and make a second activity for an event that already has one. The unique
+  // constraint on (member_id, google_event_id) refuses the link and the create
+  // undoes itself, so the retry is where it ends up anyway -- this just gets
+  // there without writing a row first, and says which read failed.
+  if (linkError) return `could not check whether this event is already linked: ${linkError.message}`;
 
   if (event.status === "cancelled") {
     if (!link) return null;
@@ -359,7 +397,11 @@ async function pullMemberCalendar(
   const accessToken = await getValidCalendarAccessToken(memberId);
   if (!accessToken) return { applied: 0, retrying: 0, setAside: 0 };
 
-  const { data: link } = await supabase.from("calendar_links").select("calendar_id, sync_token").eq("member_id", memberId).maybeSingle();
+  const { data: link, error: linkError } = await supabase.from("calendar_links").select("calendar_id, sync_token").eq("member_id", memberId).maybeSingle();
+  // Returning zeros would report this member as synced with nothing to do.
+  // Throwing lands in the caller's catch, which already says one member's
+  // calendar could not be read and carries it into what "Sync now" reports.
+  if (linkError) throw new Error(`the calendar link for member ${memberId} could not be read: ${linkError.message}`);
   if (!link) return { applied: 0, retrying: 0, setAside: 0 };
 
   let syncToken = link.sync_token;
@@ -371,10 +413,17 @@ async function pullMemberCalendar(
 
   // How many times each of these has already failed. Only this side knows --
   // everything else about a sync is derivable from Google.
-  const { data: priorRows } = await supabase
+  const { data: priorRows, error: priorError } = await supabase
     .from("calendar_sync_failures")
     .select("google_event_id, attempts")
     .eq("member_id", memberId);
+  // Not fatal, and deliberately not: with no counts every failure reads as a
+  // first attempt, so nothing is set aside and the token stays put -- the
+  // pre-quarantine behaviour, which holds changes rather than losing them.
+  // It must not be invisible though, because it is also what a missing table
+  // looks like, and a sync that never sets anything aside looks identical to
+  // one that never needed to.
+  if (priorError) console.error(`Prior calendar failure counts could not be read for member ${memberId}; every failure this batch will count as a first attempt and nothing will be set aside`, priorError.message);
   const priorAttempts = new Map((priorRows ?? []).map((r) => [r.google_event_id, r.attempts]));
 
   const retrying: string[] = [];
@@ -478,7 +527,14 @@ export async function syncGoogleCalendarIfStale(familyId: string, maxAgeMs: numb
 
     const admin = createAdminClient();
     if (!admin) return;
-    const { data: links } = await admin.from("calendar_links").select("connected, last_synced_at").eq("family_id", familyId).eq("connected", true);
+    const { data: links, error } = await admin.from("calendar_links").select("connected, last_synced_at").eq("family_id", familyId).eq("connected", true);
+    // Opportunistic, so a failed read costs only freshness -- "Sync now" still
+    // works. But silence here would look exactly like a household with no
+    // calendars connected, which is the state this is meant to skip.
+    if (error) {
+      console.error(`Could not tell how stale family ${familyId}'s calendars are; skipping the opportunistic sync`, error.message);
+      return;
+    }
     if (!links || links.length === 0) return;
     const stalest = links.reduce<number>((min, l) => Math.min(min, l.last_synced_at ? new Date(l.last_synced_at).getTime() : 0), Infinity);
     if (Date.now() - stalest < maxAgeMs) return;
@@ -497,7 +553,11 @@ export async function syncGoogleCalendarAction(): Promise<ActionState & { synced
   const me = await requireCurrentMember();
   const supabase = await createClient();
 
-  const { data: connectedRows } = await supabase.from("calendar_links").select("member_id").eq("family_id", me.family_id).eq("connected", true);
+  const { data: connectedRows, error: connectedError } = await supabase.from("calendar_links").select("member_id").eq("family_id", me.family_id).eq("connected", true);
+  // These are different answers and used to be the same one. "Nobody has
+  // connected" is a settled fact you act on by connecting; a read that failed
+  // is a reason to press Sync now again.
+  if (connectedError) return { error: `Google Calendar could not be synced: the list of connected members could not be read. ${connectedError.message}` };
   if (!connectedRows || connectedRows.length === 0) return { error: "No one in the household has connected Google Calendar yet." };
 
   // Every phase below used to swallow whatever went wrong and the action
