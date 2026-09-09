@@ -147,7 +147,7 @@ these paths work.
 
 ---
 
-## "Parents only" means "whoever set the household up" — half fixed 9 September
+## "Parents only" meant "whoever set the household up" — CLOSED 9 September
 
 `joinFamilyAction` hard-codes `p_role: "adult"`. Every member who has ever
 joined by invite code is therefore an `adult`, and the only `parent` in a
