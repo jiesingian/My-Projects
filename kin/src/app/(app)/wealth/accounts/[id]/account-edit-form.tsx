@@ -28,22 +28,18 @@ export function AccountEditForm({ account }: { account: Tables<"accounts"> }) {
       <Field label="ACCOUNT NAME">
         <input className="input" name="name" required defaultValue={account.name} style={{ minHeight: 42 }} />
       </Field>
-      <div style={{ display: "flex", gap: 10 }}>
-        <Field label="TYPE" style={{ flex: 1 }}>
-          <select className="input" name="account_type" defaultValue={account.account_type} style={{ minHeight: 42 }}>
-            {ACCOUNT_TYPES.map((t) => (
-              <option key={t} value={t}>
-                {ACCOUNT_TYPE_LABELS[t]}
-              </option>
-            ))}
-          </select>
-        </Field>
-        <Field label="BANK / WALLET" style={{ flex: 1 }}>
-          <input className="input" name="institution" defaultValue={account.institution ?? ""} style={{ minHeight: 42 }} />
-        </Field>
-      </div>
+      <Field label="TYPE">
+        <select className="input" name="account_type" defaultValue={account.account_type} style={{ minHeight: 42 }}>
+          {ACCOUNT_TYPES.map((t) => (
+            <option key={t} value={t}>
+              {ACCOUNT_TYPE_LABELS[t]}
+            </option>
+          ))}
+        </select>
+      </Field>
       <div style={{ marginBottom: 12 }}>
         <AppLinksField
+          defaultInstitution={account.institution ?? ""}
           defaultAppUrl={account.linked_app_url ?? ""}
           defaultAppStoreUrl={account.app_store_url ?? ""}
           defaultPlayStoreUrl={account.play_store_url ?? ""}

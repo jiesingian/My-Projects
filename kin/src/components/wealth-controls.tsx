@@ -1,6 +1,6 @@
 "use client";
 
-import { cloneElement, isValidElement, useActionState, useId, useState, useTransition } from "react";
+import { cloneElement, isValidElement, useActionState, useId, useState, useSyncExternalStore, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import {
   addAccountAction,
@@ -53,35 +53,73 @@ export function phoneKind(): "ios" | "android" | "other" {
   return "other";
 }
 
-/** Three independent links for one account: the app's own (opened when
- * it's already installed), and where to get it on each store (opened when
- * it isn't). No web page, Kin included, can list a phone's installed apps
- * or read back which one a person picked from the OS's own share sheet --
+const noSubscription = () => () => {};
+
+/** phoneKind(), read safely during render. The server can't see a
+ * visitor's user agent, so the server (and first client paint) always get
+ * "other" from getServerSnapshot below; useSyncExternalStore -- not an
+ * effect, which would fight React's own lint rule against setState in one
+ * -- swaps in the real answer right after hydration, with no mismatch
+ * between what the server sent and what the browser first painted. */
+export function usePhoneKind(): "ios" | "android" | "other" {
+  return useSyncExternalStore(noSubscription, phoneKind, () => "other" as const);
+}
+
+/** One field instead of two: which bank or wallet this is, AND (for the
+ * three Kin knows) the links that go with it, filled in the same motion.
+ * Keeping "BANK / WALLET" as free text next to a separate row of the same
+ * three names as tap-to-fill chips asked for the same fact twice -- typing
+ * "BPI" and then also tapping the BPI chip. One dropdown does both: pick a
+ * known name and its links arrive with it, or pick Other and type whatever
+ * this account's institution actually is, exactly as before.
+ *
+ * Three independent links live below it: the app's own (opened when it's
+ * already installed), and where to get it on each store (opened when it
+ * isn't). No web page, Kin included, can list a phone's installed apps or
+ * read back which one a person picked from the OS's own share sheet --
  * that is a privacy boundary every browser enforces, not a gap in this
  * form. Typing a link and confirming it works, or pointing at the right
  * store for the phone in hand, is the closest thing to "choose from
- * installed apps" a website is able to offer. */
+ * installed apps" a website is able to offer. The two store fields are
+ * ordered by whichever store the person filling this in actually has open
+ * on their own phone -- a real autodetect, but one with a hard limit: it
+ * can only say which store to check, not conjure the listing link itself.
+ * Kin already has that link memorized for GCash, BPI and BDO; for anything
+ * else, someone still has to find it once and paste it in. */
 export function AppLinksField({
+  defaultInstitution,
   defaultAppUrl,
   defaultAppStoreUrl,
   defaultPlayStoreUrl,
 }: {
+  defaultInstitution?: string;
   defaultAppUrl?: string;
   defaultAppStoreUrl?: string;
   defaultPlayStoreUrl?: string;
 }) {
+  const knownLabels = KNOWN_APPS.map((a) => a.label);
+  const startsCustom = !!defaultInstitution && !knownLabels.includes(defaultInstitution);
+
+  const [selected, setSelected] = useState(startsCustom ? "other" : (defaultInstitution ?? ""));
+  const [customInstitution, setCustomInstitution] = useState(startsCustom ? (defaultInstitution ?? "") : "");
   const [appUrl, setAppUrl] = useState(defaultAppUrl ?? "");
   const [appStoreUrl, setAppStoreUrl] = useState(defaultAppStoreUrl ?? "");
   const [playStoreUrl, setPlayStoreUrl] = useState(defaultPlayStoreUrl ?? "");
   const [tested, setTested] = useState(false);
+  const institutionId = useId();
   const appId = useId();
   const storeId = useId();
   const playId = useId();
+  const kind = usePhoneKind();
 
-  function fillKnown(app: (typeof KNOWN_APPS)[number]) {
-    setAppUrl(app.appUrl ?? "");
-    setAppStoreUrl(app.appStoreUrl ?? "");
-    setPlayStoreUrl(app.playStoreUrl ?? "");
+  function selectInstitution(value: string) {
+    setSelected(value);
+    const known = KNOWN_APPS.find((a) => a.label === value);
+    if (known) {
+      setAppUrl(known.appUrl ?? "");
+      setAppStoreUrl(known.appStoreUrl ?? "");
+      setPlayStoreUrl(known.playStoreUrl ?? "");
+    }
   }
 
   function test() {
@@ -89,17 +127,70 @@ export function AppLinksField({
     setTested(true);
   }
 
-  const isKnown = (app: (typeof KNOWN_APPS)[number]) =>
-    appUrl === (app.appUrl ?? "") && appStoreUrl === (app.appStoreUrl ?? "") && playStoreUrl === (app.playStoreUrl ?? "");
+  const appStoreField = (
+    <div key="app-store" className="field" style={{ flex: 1, marginBottom: 10 }}>
+      <label htmlFor={storeId}>APP STORE LINK (iPHONE){kind === "ios" ? " — your phone" : ""}</label>
+      <input
+        id={storeId}
+        className="input"
+        name="app_store_url"
+        value={appStoreUrl}
+        onChange={(e) => setAppStoreUrl(e.target.value)}
+        placeholder="https://apps.apple.com/…"
+        style={{ minHeight: 42 }}
+      />
+    </div>
+  );
+  const playStoreField = (
+    <div key="play-store" className="field" style={{ flex: 1, marginBottom: 10 }}>
+      <label htmlFor={playId}>PLAY STORE LINK (ANDROID){kind === "android" ? " — your phone" : ""}</label>
+      <input
+        id={playId}
+        className="input"
+        name="play_store_url"
+        value={playStoreUrl}
+        onChange={(e) => setPlayStoreUrl(e.target.value)}
+        placeholder="https://play.google.com/…"
+        style={{ minHeight: 42 }}
+      />
+    </div>
+  );
 
   return (
     <div style={{ marginBottom: 4 }}>
-      <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 8 }}>
-        {KNOWN_APPS.map((app) => (
-          <button key={app.label} type="button" className="chip" data-active={isKnown(app)} onClick={() => fillKnown(app)}>
-            {app.label}
-          </button>
-        ))}
+      <div className="field" style={{ marginBottom: 10 }}>
+        <label htmlFor={institutionId}>BANK / WALLET</label>
+        <select
+          id={institutionId}
+          className="input"
+          value={selected}
+          onChange={(e) => selectInstitution(e.target.value)}
+          style={{ minHeight: 42 }}
+        >
+          <option value="">— select —</option>
+          {KNOWN_APPS.map((app) => (
+            <option key={app.label} value={app.label}>
+              {app.label}
+            </option>
+          ))}
+          <option value="other">Other…</option>
+        </select>
+        {selected === "other" && (
+          <input
+            className="input"
+            name="institution"
+            aria-label="Bank or wallet name"
+            value={customInstitution}
+            onChange={(e) => setCustomInstitution(e.target.value)}
+            placeholder="e.g. Maya, UnionBank"
+            style={{ minHeight: 42, marginTop: 8 }}
+          />
+        )}
+        {selected !== "other" && <input type="hidden" name="institution" value={selected} />}
+        <p style={{ fontSize: 12.5, color: "var(--color-neutral-600)", margin: "6px 0 0" }}>
+          Choosing GCash, BPI or BDO fills in the links below automatically, verified against each one&rsquo;s own
+          store listing. Anything else: pick Other and type the name.
+        </p>
       </div>
 
       <div className="field" style={{ marginBottom: 10 }}>
@@ -131,7 +222,7 @@ export function AppLinksField({
             means the link was wrong; on a computer it is expected every
             time -- GCash and most linked apps only exist on a phone, so
             there is nothing here to catch the link. */}
-        {tested && phoneKind() === "other" && (
+        {tested && kind === "other" && (
           <p style={{ fontSize: 12.5, color: "var(--color-accent-700)", margin: "6px 0 0" }}>
             That likely opened a blank tab — this is a computer, and the app isn&rsquo;t installed here to catch
             the link. Open Kin on your phone and try TEST there to see it actually launch the app.
@@ -144,35 +235,13 @@ export function AppLinksField({
       </div>
 
       <div style={{ display: "flex", gap: 10 }}>
-        <div className="field" style={{ flex: 1, marginBottom: 10 }}>
-          <label htmlFor={storeId}>APP STORE LINK (iPHONE)</label>
-          <input
-            id={storeId}
-            className="input"
-            name="app_store_url"
-            value={appStoreUrl}
-            onChange={(e) => setAppStoreUrl(e.target.value)}
-            placeholder="https://apps.apple.com/…"
-            style={{ minHeight: 42 }}
-          />
-        </div>
-        <div className="field" style={{ flex: 1, marginBottom: 10 }}>
-          <label htmlFor={playId}>PLAY STORE LINK (ANDROID)</label>
-          <input
-            id={playId}
-            className="input"
-            name="play_store_url"
-            value={playStoreUrl}
-            onChange={(e) => setPlayStoreUrl(e.target.value)}
-            placeholder="https://play.google.com/…"
-            style={{ minHeight: 42 }}
-          />
-        </div>
+        {kind === "android" ? [playStoreField, appStoreField] : [appStoreField, playStoreField]}
       </div>
       <p style={{ fontSize: 12.5, color: "var(--color-neutral-600)", margin: "-4px 0 0" }}>
         Where to get the app if it isn&rsquo;t installed yet — paste the link from each store&rsquo;s own Share
         button. Optional, and independent of each other: fill in whichever stores apply. Kin opens the right one
-        for whoever&rsquo;s phone it is when they don&rsquo;t have the app yet.
+        for whoever&rsquo;s phone it is when they don&rsquo;t have the app yet
+        {kind !== "other" ? ", and put your own store first above since finding the link is the one step Kin can’t do for you" : ""}.
       </p>
     </div>
   );
@@ -202,20 +271,15 @@ export function AddAccountForm({ isJoint }: { isJoint: boolean }) {
       <Labelled label="ACCOUNT NAME">
         <input className="input" name="name" required placeholder="Everyday savings" style={{ minHeight: 42 }} />
       </Labelled>
-      <div style={{ display: "flex", gap: 10 }}>
-        <Labelled label="TYPE" style={{ flex: 1 }}>
-          <select className="input" name="account_type" defaultValue="bank" style={{ minHeight: 42 }}>
-            {ACCOUNT_TYPES.map((t) => (
-              <option key={t} value={t}>
-                {ACCOUNT_TYPE_LABELS[t]}
-              </option>
-            ))}
-          </select>
-        </Labelled>
-        <Labelled label="BANK / WALLET" style={{ flex: 1 }}>
-          <input className="input" name="institution" placeholder="BPI" style={{ minHeight: 42 }} />
-        </Labelled>
-      </div>
+      <Labelled label="TYPE">
+        <select className="input" name="account_type" defaultValue="bank" style={{ minHeight: 42 }}>
+          {ACCOUNT_TYPES.map((t) => (
+            <option key={t} value={t}>
+              {ACCOUNT_TYPE_LABELS[t]}
+            </option>
+          ))}
+        </select>
+      </Labelled>
       <Labelled label="OPENING BALANCE (₱)">
         <input className="input" type="number" step="0.01" name="opening_balance" defaultValue={0} style={{ minHeight: 42 }} />
       </Labelled>
