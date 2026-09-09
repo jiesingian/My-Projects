@@ -359,7 +359,7 @@ function RecipeRow({ recipe: r, onEdit }: { recipe: EditableRecipe; onEdit: () =
       >
         {r.photoUrl ? (
           // eslint-disable-next-line @next/next/no-img-element
-          <img src={r.photoUrl} alt="" />
+          <img src={r.photoUrl} alt={r.name} />
         ) : (
           <span style={{ font: "500 16px/1 var(--font-heading)", color: tone.ink, textTransform: "uppercase" }}>{r.name.trim().charAt(0)}</span>
         )}

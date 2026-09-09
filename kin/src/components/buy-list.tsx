@@ -191,6 +191,7 @@ export function BuyList({
                   return next;
                 })
               }
+              aria-expanded={isOpen}
               style={{
                 width: "100%",
                 cursor: "pointer",
@@ -216,6 +217,8 @@ export function BuyList({
                 <div style={{ display: "flex", gap: 11, alignItems: "center", padding: "10px 0", borderBottom: "1px solid color-mix(in srgb, var(--color-text) 10%, transparent)" }}>
                   <button
                     type="button"
+                    aria-label={item.name}
+                    aria-pressed={item.checked}
                     onClick={() => startTransition(() => toggleBuyItemAction(item.id, !item.checked))}
                     style={{
                       width: 24,

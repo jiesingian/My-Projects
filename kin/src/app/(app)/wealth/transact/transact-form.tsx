@@ -166,8 +166,10 @@ export function TransactForm({
 function Field({ label, children, style }: { label: string; children: React.ReactNode; style?: React.CSSProperties }) {
   return (
     <div className="field" style={{ marginBottom: 14, ...style }}>
-      <label>{label}</label>
-      {children}
+      <label>
+        {label}
+        {children}
+      </label>
     </div>
   );
 }
