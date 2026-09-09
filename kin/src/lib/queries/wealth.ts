@@ -198,8 +198,14 @@ export async function getGoals(familyId: string) {
  * the household's, just set aside rather than spent. Adding it back does not
  * double-count, because cashTotal only sums the accounts the viewer can see,
  * already reduced by whatever left them, while goalTotal is money that may
- * have left a private account they cannot see the balance of at all. */
-export async function getNetWorth(familyId: string, memberId: string) {
+ * have left a private account they cannot see the balance of at all.
+ *
+ * `scope` narrows all four collections the same way the Accounts tab's Who
+ * picker narrows accounts -- "all" is everything visible, naming a member
+ * is that member's own things only, joint included under "all" alone. So a
+ * joint asset or a joint goal shows only under Everyone, matching how a
+ * joint account already works. */
+export async function getNetWorth(familyId: string, scope: WealthScope = "all") {
   const supabase = await createClient();
   const [{ data: assets }, { data: liabilities }, { data: goals }, accounts] = await Promise.all([
     supabase.from("assets").select("*, owner:owner_member_id(full_name)").eq("family_id", familyId).order("value", { ascending: false }),
@@ -208,16 +214,21 @@ export async function getNetWorth(familyId: string, memberId: string) {
     loadAccounts(familyId),
   ]);
 
-  const assetTotal = (assets ?? []).reduce((sum, a) => sum + Number(a.value), 0);
-  const liabilityTotal = (liabilities ?? []).reduce((sum, l) => sum + Number(l.balance), 0);
-  const goalTotal = (goals ?? []).reduce((sum, g) => sum + Number(g.current_amount), 0);
-  const cashAccounts = accounts.filter((a) => a.is_joint || a.owner_member_id === memberId);
+  const scopedAssets = (assets ?? []).filter((a) => inScope(a, scope));
+  const scopedLiabilities = (liabilities ?? []).filter((l) => inScope(l, scope));
+  const scopedGoals = (goals ?? []).filter((g) => inScope(g, scope));
+  const cashAccounts = accounts.filter((a) => inScope(a, scope));
+
+  const assetTotal = scopedAssets.reduce((sum, a) => sum + Number(a.value), 0);
+  const liabilityTotal = scopedLiabilities.reduce((sum, l) => sum + Number(l.balance), 0);
+  const goalTotal = scopedGoals.reduce((sum, g) => sum + Number(g.current_amount), 0);
   const cashTotal = cashAccounts.reduce((sum, a) => sum + a.balance, 0);
 
   return {
-    assets: assets ?? [],
-    liabilities: liabilities ?? [],
-    goals: goals ?? [],
+    scope,
+    assets: scopedAssets,
+    liabilities: scopedLiabilities,
+    goals: scopedGoals,
     cashAccounts,
     assetTotal,
     liabilityTotal,
@@ -243,16 +254,21 @@ export async function getIncomeSchedules(familyId: string) {
 /** Everything the Cash Flow tab renders: net money in vs. out for the
  * selected period, a history strip at whatever granularity (week/month/year)
  * the household switched to, expected and recently-received income, and
- * bills alongside recent ad-hoc spend. Family-wide rather than scoped to one
- * person — RLS already withholds whatever the viewer isn't allowed to see,
- * the same way the "Everyone" view of Accounts works today. */
-export async function getCashFlowPane(familyId: string, range: CashFlowRange) {
+ * bills alongside recent ad-hoc spend.
+ *
+ * `scope` narrows the ledger side of this exactly like the Accounts tab's
+ * Who picker narrows accounts -- naming a member shows the flow through
+ * their own accounts only. Bills and income schedules stay unscoped: they
+ * are the household's shared plans, not tied to one person's account, the
+ * same way a bill has never had an owner. */
+export async function getCashFlowPane(familyId: string, range: CashFlowRange, scope: WealthScope = "all") {
   const supabase = await createClient();
   const count = cashFlowRangeCount(range);
   const periods = recentPeriods(range, count);
   const historyStart = periods[0].start;
 
-  const [{ data: transactions }, bills, incomeSchedules] = await Promise.all([
+  const [allAccounts, { data: transactions }, bills, incomeSchedules] = await Promise.all([
+    loadAccounts(familyId),
     supabase
       .from("wealth_transactions")
       .select("*, accounts(name), members:recorded_by(full_name)")
@@ -263,7 +279,8 @@ export async function getCashFlowPane(familyId: string, range: CashFlowRange) {
     getIncomeSchedules(familyId),
   ]);
 
-  const rows = (transactions ?? []).map(toLedgerEntry);
+  const accountIds = new Set(allAccounts.filter((a) => inScope(a, scope)).map((a) => a.id));
+  const rows = (transactions ?? []).map(toLedgerEntry).filter((t) => accountIds.has(t.account_id));
   const confirmed = rows.filter((t) => t.status === "confirmed");
   const thisPeriodKey = periodKey(new Date(), range);
   const thisPeriod = confirmed.filter((t) => periodKey(t.occurred_at, range) === thisPeriodKey);

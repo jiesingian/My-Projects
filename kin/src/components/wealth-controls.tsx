@@ -58,11 +58,13 @@ export function AddAccountForm({ isJoint }: { isJoint: boolean }) {
       <Labelled label="OPENING BALANCE (₱)">
         <input className="input" type="number" step="0.01" name="opening_balance" defaultValue={0} style={{ minHeight: 42 }} />
       </Labelled>
-      <Labelled label="LINKED APP LINK">
+      <Labelled label="LINK APP">
         <input className="input" name="linked_app_url" placeholder="gcash:// or https://…" style={{ minHeight: 42 }} />
       </Labelled>
       <p style={{ fontSize: 13, color: "var(--color-neutral-600)", margin: "-4px 0 12px" }}>
-        Kin opens this when you start a payment or transfer here, so you can finish it in your own banking app.
+        Kin opens this when you start a payment or transfer here, so you can finish it in your own app. Use the
+        app&rsquo;s own link (like <code>gcash://</code>) rather than its website, and it opens the app itself on your
+        phone instead of a browser tab.
       </p>
       <Labelled label="NOTE">
         <input className="input" name="sub_note" placeholder="Salary account" style={{ minHeight: 42 }} />
