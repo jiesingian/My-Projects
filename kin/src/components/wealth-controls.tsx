@@ -10,38 +10,21 @@ import {
   addBillAction,
   addIncomeScheduleAction,
 } from "@/lib/actions/wealth";
-import { ACCOUNT_TYPES, ACCOUNT_TYPE_LABELS, EXPENSE_CATEGORIES, INCOME_SOURCES } from "@/lib/wealth";
+import {
+  ACCOUNT_TYPES,
+  ACCOUNT_TYPE_LABELS,
+  EXPENSE_CATEGORIES,
+  INCOME_SOURCES,
+  KNOWN_APPS,
+  isKnownInstitutionLabel,
+  resolveInstitutionLinks,
+  type AccountType,
+} from "@/lib/wealth";
 import type { ActionState } from "@/lib/actions/auth";
 import { SubmitButton, ErrorText } from "@/components/form";
 import { DateInput } from "@/components/date-input";
 
 const initialState: ActionState = { error: null };
-
-/** One tap instead of typing, for the handful of apps whose links are
- * confirmed correct and unlikely to change. Deliberately short: a wrong
- * entry here is worse than none, and most apps -- every Philippine bank's
- * included -- publish no such thing anywhere a person or an AI could look
- * one up to add with any confidence.
- *
- * appUrl is the app's own scheme, opened when it's already installed
- * (verified against PayMongo's GCash integration docs). appStoreUrl and
- * playStoreUrl are where to get the app in the first place, verified
- * against each bank's actual store listing -- BPI's iOS id and Android
- * package from Apple's and Google's own listings, BDO's the same, cross-
- * checked against BDO Unibank as the publisher. */
-const KNOWN_APPS: { label: string; appUrl?: string; appStoreUrl?: string; playStoreUrl?: string }[] = [
-  { label: "GCash", appUrl: "gcash://" },
-  {
-    label: "BPI",
-    appStoreUrl: "https://apps.apple.com/ph/app/bpi/id6443950982",
-    playStoreUrl: "https://play.google.com/store/apps/details?id=com.bpi.ng.app",
-  },
-  {
-    label: "BDO",
-    appStoreUrl: "https://apps.apple.com/ph/app/bdo-online/id1551584630",
-    playStoreUrl: "https://play.google.com/store/apps/details?id=ph.com.bdo.retail",
-  },
-];
 
 /** Rough and deliberately so -- this only decides which explanation or
  * which store link to act on, never whether a field or button works, so a
@@ -93,20 +76,27 @@ export function usePhoneKind(): "ios" | "android" | "other" {
  * reveal the other for a household that mixes iPhone and Android -- the
  * one place a device can't be detected away, because no web page, Kin
  * included, can read a phone's installed apps or a store link nobody has
- * told it yet. */
+ * told it yet.
+ *
+ * None of this applies to a cash account -- there is no institution or app
+ * for physical cash to link to -- so the whole section is skipped for that
+ * one account type, and the label itself widens from "BANK / WALLET" to
+ * "INSTITUTION / APP" for the other types it doesn't quite fit (a credit
+ * card's issuer, an investment platform, "other"). */
 export function AppLinksField({
+  accountType,
   defaultInstitution,
   defaultAppUrl,
   defaultAppStoreUrl,
   defaultPlayStoreUrl,
 }: {
+  accountType: AccountType;
   defaultInstitution?: string;
   defaultAppUrl?: string;
   defaultAppStoreUrl?: string;
   defaultPlayStoreUrl?: string;
 }) {
-  const knownLabels = KNOWN_APPS.map((a) => a.label);
-  const startsCustom = !!defaultInstitution && !knownLabels.includes(defaultInstitution);
+  const startsCustom = !!defaultInstitution && !isKnownInstitutionLabel(defaultInstitution);
 
   const [selected, setSelected] = useState(startsCustom ? "other" : (defaultInstitution ?? ""));
   const [customInstitution, setCustomInstitution] = useState(startsCustom ? (defaultInstitution ?? "") : "");
@@ -130,22 +120,18 @@ export function AppLinksField({
   const otherStoreUrl = kind === "ios" ? playStoreUrl : kind === "android" ? appStoreUrl : "";
   const showBothStores = kind === "other" || showOtherStore || !!otherStoreUrl.trim();
 
+  // The actual rule -- resolve a known app's links, clear them when
+  // leaving a known app, otherwise leave hand-typed data alone -- lives in
+  // resolveInstitutionLinks (@/lib/wealth), tested on its own in
+  // wealth.logic.spec.ts without needing a browser or a login.
   function selectInstitution(value: string) {
+    const resolved = resolveInstitutionLinks(value, selected, kind);
     setSelected(value);
-    const known = KNOWN_APPS.find((a) => a.label === value);
-    if (!known) return;
-    // BPI and BDO have no scheme of their own to open directly (unlike
-    // GCash's gcash://), so LINK APP itself becomes whichever store link
-    // matches this phone -- that's a real, working link on any device
-    // (a store page opens fine in a plain browser too), not a placeholder.
-    // Both store links are still kept underneath either way, so whoever
-    // views the saved account later -- on either kind of phone -- still
-    // gets the one that matches them, via the account page's GET APP
-    // button. Nothing here needs its own input box: it's all resolved.
-    const ownStore = kind === "android" ? known.playStoreUrl : known.appStoreUrl;
-    setAppUrl(known.appUrl ?? ownStore ?? "");
-    setAppStoreUrl(known.appStoreUrl ?? "");
-    setPlayStoreUrl(known.playStoreUrl ?? "");
+    if (resolved) {
+      setAppUrl(resolved.appUrl);
+      setAppStoreUrl(resolved.appStoreUrl);
+      setPlayStoreUrl(resolved.playStoreUrl);
+    }
   }
 
   function test() {
@@ -153,7 +139,7 @@ export function AppLinksField({
     setTested(true);
   }
 
-  const isKnownInstitution = selected !== "" && selected !== "other";
+  const isKnownInstitution = isKnownInstitutionLabel(selected);
   // The two store fields are only ever relevant once someone has said
   // "this is a bank Kin doesn't already know" -- before that, on a blank
   // form, there's nothing yet to resolve either way, so they stay hidden
@@ -191,11 +177,19 @@ export function AppLinksField({
     </div>
   );
   const otherStoreLabel = kind === "ios" ? "Play Store" : "App Store";
+  // "BANK / WALLET" only actually describes two of the six account types --
+  // a credit card's issuer, an investment platform, or "other" all still
+  // have a linkable institution or app, just not one that's a bank or a
+  // wallet, so the label generalizes for them. Cash has none at all: no
+  // institution issues it and no app opens it, so the whole section is
+  // skipped rather than asking a question with no answer.
+  const institutionFieldLabel = accountType === "bank" || accountType === "ewallet" ? "BANK / WALLET" : "INSTITUTION / APP";
+  if (accountType === "cash") return null;
 
   return (
     <div style={{ marginBottom: 4 }}>
       <div className="field" style={{ marginBottom: 10 }}>
-        <label htmlFor={institutionId}>BANK / WALLET</label>
+        <label htmlFor={institutionId}>{institutionFieldLabel}</label>
         <select
           id={institutionId}
           className="input"
@@ -314,6 +308,7 @@ export function AppLinksField({
 export function AddAccountForm({ isJoint }: { isJoint: boolean }) {
   const [open, setOpen] = useState(false);
   const [state, formAction] = useActionState(addAccountAction, initialState);
+  const [accountType, setAccountType] = useState<AccountType>("bank");
 
   if (!open) {
     return (
@@ -336,7 +331,13 @@ export function AddAccountForm({ isJoint }: { isJoint: boolean }) {
         <input className="input" name="name" required placeholder="Everyday savings" style={{ minHeight: 42 }} />
       </Labelled>
       <Labelled label="TYPE">
-        <select className="input" name="account_type" defaultValue="bank" style={{ minHeight: 42 }}>
+        <select
+          className="input"
+          name="account_type"
+          value={accountType}
+          onChange={(e) => setAccountType(e.target.value as AccountType)}
+          style={{ minHeight: 42 }}
+        >
           {ACCOUNT_TYPES.map((t) => (
             <option key={t} value={t}>
               {ACCOUNT_TYPE_LABELS[t]}
@@ -344,12 +345,12 @@ export function AddAccountForm({ isJoint }: { isJoint: boolean }) {
           ))}
         </select>
       </Labelled>
+      <div style={{ marginBottom: 12 }}>
+        <AppLinksField accountType={accountType} />
+      </div>
       <Labelled label="OPENING BALANCE (₱)">
         <input className="input" type="number" step="0.01" name="opening_balance" defaultValue={0} style={{ minHeight: 42 }} />
       </Labelled>
-      <div style={{ marginBottom: 12 }}>
-        <AppLinksField />
-      </div>
       <Labelled label="NOTE">
         <input className="input" name="sub_note" placeholder="Salary account" style={{ minHeight: 42 }} />
       </Labelled>
