@@ -383,6 +383,54 @@ the naive construction fails four of them.
 
 ---
 
+## One pasted word made every screen scroll sideways — CLOSED 9 September
+
+The kind of thing that costs an app its rating without anything being broken.
+
+People paste: a tracking link into a bill's name, a run-on word into an
+activity title. Nothing in the app stops them — **203 text columns with no
+length limit, and 172 inputs with no `maxLength` between them** (counted, not
+estimated). The database stores it happily. The question is what the page then
+does.
+
+**Measured 9 September**, one 318-character unbroken title, on a 390px-wide
+phone viewport:
+
+| | |
+| --- | --- |
+| Planner, before | **2,057px of horizontal scroll** |
+| Planner, after | 0 |
+
+`overflow-wrap: anywhere` was set on chat bubbles and nowhere else, and the
+Today brief truncates its own two lines; every other surface was unprotected.
+One long word therefore made the *whole page* scroll sideways — not just the
+row holding it — which reads as a broken app on every screen it touches.
+
+**Fixed** with that rule on `body`. `anywhere` rather than `break-word` on
+purpose: only `anywhere` lets a flex or grid item shrink below the width of
+the long word, which is the half that actually stops the blowout. Both break a
+word only when it would otherwise overflow, so ordinary text is untouched.
+
+`e2e/long-text.spec.ts` pins it by measuring `scrollWidth - clientWidth` on a
+phone viewport, which fails at 2,057 without the rule.
+
+**Not done: length limits.** No field has one, and this fixes what a person
+sees rather than what gets stored. A 100,000-character title would still be
+accepted, still be shipped on every page that lists it, and still fill the
+assistant's context. Chat already clamps its own field (`MAX_LENGTH` in
+`actions/chat.ts`), so the idea exists in the codebase and wants extending —
+but it is 172 inputs, each needing a sensible limit, and that is a change of
+its own rather than a line in this one.
+
+**A note on how this file's own tests behaved.** The first cleanup for that
+spec clicked through the UI inside a `try/catch`, and left its row behind
+while the test went green — a cleanup that silently did nothing, which is the
+exact shape of bug this week was spent removing, written by the person
+removing them. Measured, caught, replaced with a direct delete that asserts
+the row is gone.
+
+---
+
 ## goals.current_amount is stored, not derived — CLOSED 8 September
 
 *Kept for the reconciliation query at the foot, which is still the way to

@@ -192,6 +192,18 @@ body {
 }
 body {
   margin: 0;
+  /* People paste. A tracking link into a bill's name, a run-on word into an
+     activity title -- and nothing in this app stops them: 203 text columns
+     with no length limit and 172 inputs with no maxLength between them.
+     Without this, one such title made the Planner 2,057px wide on a 390px
+     phone (measured 9 September, e2e/long-text.spec.ts), so every screen
+     scrolled sideways, not only the one holding the word.
+
+     `anywhere` rather than `break-word` on purpose: only `anywhere` lets a
+     flex or grid item shrink below the width of the long word, which is the
+     half that actually stops the blowout. Both break a word only when it
+     would otherwise overflow, so ordinary text is unaffected. */
+  overflow-wrap: anywhere;
   color: var(--color-text);
   font-family: var(--font-body);
   font-size: 17px; /* iOS Body */
