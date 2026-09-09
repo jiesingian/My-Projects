@@ -103,7 +103,7 @@ export function AddBillForm() {
       </Labelled>
       <div style={{ display: "flex", gap: 10 }}>
         <Labelled label="AMOUNT (₱)" style={{ flex: 1 }}>
-          <input className="input" type="number" step="0.01" name="amount" required style={{ minHeight: 42 }} />
+          <input className="input" type="number" step="0.01" min="0" name="amount" required style={{ minHeight: 42 }} />
         </Labelled>
         <Labelled label="DUE" style={{ flex: 1 }}>
           <DateInput className="input" name="due_date" style={{ minHeight: 42 }} />

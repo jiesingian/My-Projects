@@ -431,6 +431,38 @@ the row is gone.
 
 ---
 
+## A debt entered as -500 added to the household's net worth — CLOSED 9 September
+
+Found by asking what an ordinary mistake does rather than what an attack does.
+
+`addAssetAction` and `addLiabilityAction` checked the name and nothing else.
+`updateAssetValueAction` and `updateLiabilityBalanceAction` took a number
+straight from the client and wrote it. Every other money path in the file
+already required `> 0`; these four required nothing at all.
+
+The consequence is not an error message, it is arithmetic:
+
+- an **asset** worth −500 subtracts from what the household owns
+- a **liability** of −500 *adds* to its net worth
+
+The second is the one somebody actually types. "Balance" reads as "what I
+owe", so a person reaches for the minus key to say they owe it — and the app
+records the opposite of what they meant, in the figure the whole Wealth page
+is built on, with no error and nothing to notice.
+
+`Number("abc")` is `NaN` and `Number("")` is `0`, neither of which was checked
+either.
+
+**Fixed** with `moneyFromForm`, which refuses anything that is not a finite
+number of at least zero, at all four sites. Zero is allowed: an asset fallen
+to nothing and a debt just cleared are both real things to record. `min="0"`
+added to the seven inputs where a negative is genuinely wrong.
+
+**`opening_balance` deliberately keeps no minimum.** An overdraft or a credit
+card starts below zero, and that is a real account, not a typo.
+
+---
+
 ## goals.current_amount is stored, not derived — CLOSED 8 September
 
 *Kept for the reconciliation query at the foot, which is still the way to

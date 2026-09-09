@@ -299,7 +299,7 @@ function TripForm({
         </Field>
       </div>
       <Field label="BUDGET (₱)">
-        <input className="input" type="number" name="budget_amount" defaultValue={editTrip?.budget_amount ?? undefined} style={{ minHeight: 44 }} />
+        <input className="input" type="number" min="0" name="budget_amount" defaultValue={editTrip?.budget_amount ?? undefined} style={{ minHeight: 44 }} />
       </Field>
       <WhoPicker
         members={members}

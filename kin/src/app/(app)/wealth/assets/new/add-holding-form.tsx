@@ -49,7 +49,7 @@ function AssetForm() {
           </select>
         </Field>
         <Field label="VALUE (₱)" style={{ flex: 1 }}>
-          <input className="input" type="number" step="0.01" name="value" required style={{ minHeight: 44 }} />
+          <input className="input" type="number" step="0.01" min="0" name="value" required style={{ minHeight: 44 }} />
         </Field>
       </div>
       <Field label="OWNED SINCE">
@@ -86,7 +86,7 @@ function LiabilityForm() {
           </select>
         </Field>
         <Field label="BALANCE (₱)" style={{ flex: 1 }}>
-          <input className="input" type="number" step="0.01" name="balance" required style={{ minHeight: 44 }} />
+          <input className="input" type="number" step="0.01" min="0" name="balance" required style={{ minHeight: 44 }} />
         </Field>
       </div>
       <div style={{ display: "flex", gap: 12 }}>
@@ -94,7 +94,7 @@ function LiabilityForm() {
           <input className="input" name="lender" placeholder="BPI" style={{ minHeight: 44 }} />
         </Field>
         <Field label="PER MONTH (₱)" style={{ flex: 1 }}>
-          <input className="input" type="number" step="0.01" name="monthly_payment" style={{ minHeight: 44 }} />
+          <input className="input" type="number" step="0.01" min="0" name="monthly_payment" style={{ minHeight: 44 }} />
         </Field>
       </div>
       <JointToggle isJoint={isJoint} setIsJoint={setIsJoint} />

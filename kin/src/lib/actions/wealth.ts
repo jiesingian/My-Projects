@@ -702,6 +702,23 @@ export async function deleteGoalAction(goalId: string): Promise<ActionState> {
   return { error: null };
 }
 
+/** A money figure off a form, refused rather than stored when it is not one.
+ *
+ * `Number("")` is 0 and `Number("abc")` is NaN, and neither was checked here.
+ * The consequence is not an error message, it is arithmetic: an asset worth
+ * -500 subtracts from what the household owns, and a liability of -500 ADDS
+ * to its net worth -- which is exactly what somebody types when they read
+ * "balance" as "what I owe" and reach for the minus key. Every other money
+ * path in this file already required `> 0`; these four did not require
+ * anything at all.
+ *
+ * Zero is allowed, because an asset that has fallen to nothing and a debt
+ * that has just been cleared are both real things to record. */
+function moneyFromForm(raw: FormDataEntryValue | null): number | null {
+  const n = Number(raw ?? 0);
+  return Number.isFinite(n) && n >= 0 ? n : null;
+}
+
 /* ------------------------------------------------------ assets & liabilities */
 
 export async function addAssetAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
@@ -709,9 +726,10 @@ export async function addAssetAction(_prev: ActionState, formData: FormData): Pr
   const supabase = await createClient();
 
   const name = String(formData.get("name") ?? "").trim();
-  const value = Number(formData.get("value") ?? 0);
+  const value = moneyFromForm(formData.get("value"));
   const isJoint = formData.get("is_joint") === "on";
   if (!name) return { error: "Name the asset." };
+  if (value === null) return { error: "What it is worth has to be a number, and cannot be less than zero." };
 
   const { error } = await supabase.from("assets").insert({
     family_id: me.family_id,
@@ -735,16 +753,23 @@ export async function addLiabilityAction(_prev: ActionState, formData: FormData)
   const supabase = await createClient();
 
   const name = String(formData.get("name") ?? "").trim();
-  const balance = Number(formData.get("balance") ?? 0);
+  const balance = moneyFromForm(formData.get("balance"));
+  const monthlyPayment = formData.get("monthly_payment") ? moneyFromForm(formData.get("monthly_payment")) : null;
   const isJoint = formData.get("is_joint") === "on";
   if (!name) return { error: "Name what is owed." };
+  // A debt is what is owed, as a positive number. Entered as -500 it does not
+  // read as a debt at all -- it adds 500 to the household's net worth.
+  if (balance === null) return { error: "What is owed has to be a number, and cannot be less than zero." };
+  if (formData.get("monthly_payment") && monthlyPayment === null) {
+    return { error: "The monthly payment has to be a number, and cannot be less than zero." };
+  }
 
   const { error } = await supabase.from("liabilities").insert({
     family_id: me.family_id,
     name,
     kind: String(formData.get("kind") ?? "other"),
     balance,
-    monthly_payment: formData.get("monthly_payment") ? Number(formData.get("monthly_payment")) : null,
+    monthly_payment: monthlyPayment,
     lender: String(formData.get("lender") ?? "").trim() || null,
     note: String(formData.get("note") ?? "").trim() || null,
     is_joint: isJoint,
@@ -758,6 +783,7 @@ export async function addLiabilityAction(_prev: ActionState, formData: FormData)
 }
 
 export async function updateAssetValueAction(assetId: string, value: number): Promise<ActionState> {
+  if (!Number.isFinite(value) || value < 0) return { error: "What it is worth has to be a number, and cannot be less than zero." };
   const me = await requireCurrentMember();
   const supabase = await createClient();
   const { error } = await supabase.from("assets").update({ value }).eq("id", assetId).eq("family_id", me.family_id);
@@ -767,6 +793,7 @@ export async function updateAssetValueAction(assetId: string, value: number): Pr
 }
 
 export async function updateLiabilityBalanceAction(liabilityId: string, balance: number): Promise<ActionState> {
+  if (!Number.isFinite(balance) || balance < 0) return { error: "What is owed has to be a number, and cannot be less than zero." };
   const me = await requireCurrentMember();
   const supabase = await createClient();
   const { error } = await supabase.from("liabilities").update({ balance }).eq("id", liabilityId).eq("family_id", me.family_id);

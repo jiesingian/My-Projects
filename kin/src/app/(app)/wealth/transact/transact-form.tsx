@@ -114,7 +114,7 @@ export function TransactForm({
 
       <div style={{ display: "flex", gap: 12 }}>
         <Field label="AMOUNT (₱)" style={{ flex: 1 }}>
-          <input className="input" type="number" step="0.01" value={amount} onChange={(e) => setAmount(Number(e.target.value))} style={{ minHeight: 44 }} />
+          <input className="input" type="number" step="0.01" min="0" value={amount} onChange={(e) => setAmount(Number(e.target.value))} style={{ minHeight: 44 }} />
         </Field>
         <Field label="DATE" style={{ flex: 1 }}>
           <DateInput className="input" value={occurredOn} onChange={(e) => setOccurredOn(e.target.value)} style={{ minHeight: 44 }} />

@@ -34,7 +34,7 @@ export function AddGoalForm({ accounts, currency }: { accounts: PickableAccount[
       </div>
       <div style={{ display: "flex", gap: 12 }}>
         <Field label="TARGET AMOUNT (₱)" style={{ flex: 1 }}>
-          <input className="input" type="number" step="0.01" name="target_amount" required style={{ minHeight: 44 }} />
+          <input className="input" type="number" step="0.01" min="0" name="target_amount" required style={{ minHeight: 44 }} />
         </Field>
         <Field label="TARGET DATE" style={{ flex: 1 }}>
           <DateInput className="input" name="target_date" style={{ minHeight: 44 }} />
