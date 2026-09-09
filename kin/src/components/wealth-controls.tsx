@@ -79,6 +79,11 @@ export function AddAccountForm({ isJoint }: { isJoint: boolean }) {
   );
 }
 
+/** Despite the name, this covers every kind of expense, due-dated or not --
+ * a mortgage payment, groceries, a checkup, fuel, same as a recurring bill.
+ * "once" under REPEATS is how a one-off expense is entered here. Renamed
+ * addBillAction/bills throughout the code would be a much bigger change for
+ * no functional gain, so only the copy shown to a member changed. */
 export function AddBillForm() {
   const [open, setOpen] = useState(false);
   const [state, formAction] = useActionState(addBillAction, initialState);
@@ -91,7 +96,7 @@ export function AddBillForm() {
         style={{ minHeight: 46, fontSize: 14, letterSpacing: ".04em", marginTop: 18 }}
         onClick={() => setOpen(true)}
       >
-        + ADD BILL
+        + ADD EXPENSE
       </button>
     );
   }
@@ -99,8 +104,8 @@ export function AddBillForm() {
   return (
     <form action={formAction} style={{ marginTop: 18, borderTop: "1px solid var(--color-divider)", paddingTop: 16 }}>
       <ErrorText message={state.error} />
-      <Labelled label="BILL NAME">
-        <input className="input" name="name" required placeholder="Meralco" style={{ minHeight: 42 }} />
+      <Labelled label="EXPENSE">
+        <input className="input" name="name" required placeholder="Meralco, groceries, mortgage…" style={{ minHeight: 42 }} />
       </Labelled>
       <div style={{ display: "flex", gap: 10 }}>
         <Labelled label="AMOUNT (₱)" style={{ flex: 1 }}>
@@ -131,7 +136,7 @@ export function AddBillForm() {
       </div>
       <div style={{ display: "flex", gap: 10 }}>
         <SubmitButton className="btn btn-primary" style={{ flex: 1, minHeight: 42, fontSize: 14 }}>
-          SAVE BILL
+          SAVE EXPENSE
         </SubmitButton>
         <button type="button" className="btn btn-secondary" style={{ flex: 1, minHeight: 42, fontSize: 14 }} onClick={() => setOpen(false)}>
           CANCEL

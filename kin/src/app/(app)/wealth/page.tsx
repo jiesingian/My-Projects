@@ -3,7 +3,6 @@ import { redirect } from "next/navigation";
 import { getCurrentMember } from "@/lib/session";
 import { getWealthPane, getNetWorth, getAccounts, getCashFlowPane, type WealthScope, type LedgerEntry, type AccountWithBalance } from "@/lib/queries/wealth";
 import { HubHeader } from "@/components/hub-header";
-import { ChipRow } from "@/components/segmented";
 import { Blueprint, Tag, Empty } from "@/components/ui";
 import { AddAccountForm, AddBillForm, AddIncomeScheduleForm, SetBudgetControl, SetTargetControl, AllocationEditor } from "@/components/wealth-controls";
 import {
@@ -284,18 +283,21 @@ async function CashFlowPane({ familyId, memberId, currency, range }: { familyId:
         }
       />
 
-      <QuickActions />
       <FlowRow income={cf.periodIncome} expense={cf.periodExpense} currency={currency} />
 
-      <div style={{ marginBottom: 4 }}>
-        <ChipRow
-          items={CASH_FLOW_RANGES.map((r) => ({ label: CASH_FLOW_RANGE_LABELS[r], href: `/wealth?seg=cashflow&range=${r}`, active: range === r }))}
+      <div style={{ display: "flex", alignItems: "center", gap: 6, margin: "0 0 4px" }}>
+        <PickButton
+          title="Graph range"
+          icon="calendarDays"
+          label={CASH_FLOW_RANGE_LABELS[range]}
+          options={CASH_FLOW_RANGES.map((r) => ({ label: CASH_FLOW_RANGE_LABELS[r], href: `/wealth?seg=cashflow&range=${r}`, active: range === r }))}
         />
+        <span style={{ fontSize: 12.5, color: "var(--color-neutral-600)" }}>Income against expenses, grouped by {CASH_FLOW_RANGE_LABELS[range].toLowerCase()}</span>
       </div>
       <HistoryStrip history={cf.history} currency={currency} title={`BY ${CASH_FLOW_RANGE_LABELS[range].toUpperCase()}`} />
 
       <SectionLabel>INCOME</SectionLabel>
-      {cf.expectedIncome.length === 0 && cf.recentIncome.length === 0 && (
+      {cf.expectedIncome.length === 0 && cf.receivedIncome.length === 0 && cf.recentIncome.length === 0 && (
         <Empty icon="💰" title="Nothing recorded yet" line="Salary, a regular gift, business revenue — expect it here so receiving it is one tap." />
       )}
       {cf.expectedIncome.map((s) => (
@@ -321,9 +323,21 @@ async function CashFlowPane({ familyId, memberId, currency, range }: { familyId:
           </div>
         </div>
       ))}
+      {cf.receivedIncome.map((s) => (
+        <div key={s.id} style={{ display: "flex", gap: 10, alignItems: "baseline", padding: "10px 0", borderBottom: "1px solid color-mix(in srgb, var(--color-text) 10%, transparent)" }}>
+          <span style={{ flex: 1, minWidth: 0 }}>
+            <span style={{ fontSize: 14, display: "block" }}>{s.name}</span>
+            <span style={{ fontSize: 12.5, color: "var(--color-neutral-600)" }}>{s.received_at ? `received ${fmtDate(s.received_at)}` : "received"}</span>
+          </span>
+          <span style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <Tag variant="outline">SETTLED</Tag>
+            <span style={{ fontFamily: "var(--font-numeric)", fontSize: 13, color: "var(--color-accent-700)" }}>+{formatCurrency(Number(s.amount), currency)}</span>
+          </span>
+        </div>
+      ))}
       {cf.recentIncome.length > 0 && (
         <>
-          <div style={{ fontSize: 12, color: "var(--color-neutral-600)", margin: "12px 0 2px" }}>RECENT</div>
+          <div style={{ fontSize: 12, color: "var(--color-neutral-600)", margin: "12px 0 2px" }}>OTHER RECENT ACTIVITY</div>
           {cf.recentIncome.map((e) => (
             <EntryRow key={e.id} entry={e} currency={currency} dateFormat={dateFormat} showAccount />
           ))}
@@ -332,7 +346,9 @@ async function CashFlowPane({ familyId, memberId, currency, range }: { familyId:
       <AddIncomeScheduleForm accounts={bareAccounts} />
 
       <SectionLabel>EXPENSES</SectionLabel>
-      {cf.openBills.length === 0 && <p style={{ fontSize: 13.5, color: "var(--color-neutral-600)" }}>No open bills.</p>}
+      {cf.openBills.length === 0 && cf.settledBills.length === 0 && cf.recentExpense.length === 0 && (
+        <Empty icon="🧾" title="Nothing recorded yet" line="Mortgage payments, groceries, checkups, meals, travel, fuel — anything the household spends on." />
+      )}
       {cf.openBills.map((b) => (
         <div key={b.id} style={{ padding: "12px 0", borderBottom: "1px solid color-mix(in srgb, var(--color-text) 10%, transparent)" }}>
           <div style={{ display: "flex", gap: 11, alignItems: "baseline" }}>
@@ -356,26 +372,6 @@ async function CashFlowPane({ familyId, memberId, currency, range }: { familyId:
           </div>
         </div>
       ))}
-      <AddBillForm />
-      {cf.recentExpense.length > 0 && (
-        <>
-          <div style={{ fontSize: 12, color: "var(--color-neutral-600)", margin: "16px 0 2px" }}>RECENT, NOT A BILL</div>
-          {cf.recentExpense.map((e) => (
-            <EntryRow key={e.id} entry={e} currency={currency} dateFormat={dateFormat} showAccount />
-          ))}
-        </>
-      )}
-
-      {(cf.receivedIncome.length > 0 || cf.settledBills.length > 0) && <SectionLabel>SETTLED</SectionLabel>}
-      {cf.receivedIncome.map((s) => (
-        <div key={s.id} style={{ display: "flex", gap: 10, alignItems: "baseline", padding: "10px 0", borderBottom: "1px solid color-mix(in srgb, var(--color-text) 10%, transparent)" }}>
-          <span style={{ flex: 1, minWidth: 0 }}>
-            <span style={{ fontSize: 14, display: "block" }}>{s.name}</span>
-            <span style={{ fontSize: 12.5, color: "var(--color-neutral-600)" }}>{s.received_at ? `received ${fmtDate(s.received_at)}` : "received"}</span>
-          </span>
-          <span style={{ fontFamily: "var(--font-numeric)", fontSize: 13, color: "var(--color-accent-700)" }}>+{formatCurrency(Number(s.amount), currency)}</span>
-        </div>
-      ))}
       {cf.settledBills.map((b) => (
         <div key={b.id} style={{ display: "flex", gap: 10, alignItems: "baseline", padding: "10px 0", borderBottom: "1px solid color-mix(in srgb, var(--color-text) 10%, transparent)" }}>
           <span style={{ flex: 1, minWidth: 0 }}>
@@ -385,9 +381,21 @@ async function CashFlowPane({ familyId, memberId, currency, range }: { familyId:
               {b.paidFromName ? ` from ${b.paidFromName}` : ""}
             </span>
           </span>
-          <span style={{ fontFamily: "var(--font-numeric)", fontSize: 13 }}>{formatCurrency(Number(b.amount), currency)}</span>
+          <span style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <Tag variant="outline">SETTLED</Tag>
+            <span style={{ fontFamily: "var(--font-numeric)", fontSize: 13 }}>{formatCurrency(Number(b.amount), currency)}</span>
+          </span>
         </div>
       ))}
+      {cf.recentExpense.length > 0 && (
+        <>
+          <div style={{ fontSize: 12, color: "var(--color-neutral-600)", margin: "16px 0 2px" }}>OTHER RECENT ACTIVITY</div>
+          {cf.recentExpense.map((e) => (
+            <EntryRow key={e.id} entry={e} currency={currency} dateFormat={dateFormat} showAccount />
+          ))}
+        </>
+      )}
+      <AddBillForm />
     </>
   );
 }
