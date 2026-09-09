@@ -45,7 +45,7 @@ export function ConditionEntryControls({ entryId, memberId, date, note }: { entr
         <DateInput aria-label="Entry date" className="input" value={entryDate} onChange={(e) => setEntryDate(e.target.value)} style={{ minHeight: 36, fontSize: 13 }} />
       </div>
       <div className="field" style={{ marginBottom: 6 }}>
-        <textarea aria-label="Note" className="input" value={entryNote} onChange={(e) => setEntryNote(e.target.value)} style={{ fontSize: 13 }} />
+        <textarea aria-label="Note" className="input" value={entryNote} onChange={(e) => setEntryNote(e.target.value)} maxLength={1000} style={{ fontSize: 13 }} />
       </div>
       <div style={{ display: "flex", gap: 6 }}>
         <button type="button" className="btn btn-secondary" style={smallBtn} disabled={busy} onClick={() => { setOpen(false); setEntryDate(date); setEntryNote(note); setError(null); }}>
@@ -106,13 +106,13 @@ export function LabControls({ labId, memberId, date, name, result }: { labId: st
     <div style={{ marginTop: 6 }}>
       {error && <p style={{ color: "var(--color-accent-700)", fontSize: 12.5, margin: "0 0 6px" }}>{error}</p>}
       <div className="field" style={{ marginBottom: 6 }}>
-        <input aria-label="Test name" className="input" value={labName} onChange={(e) => setLabName(e.target.value)} style={{ minHeight: 36, fontSize: 13 }} />
+        <input aria-label="Test name" className="input" value={labName} onChange={(e) => setLabName(e.target.value)} maxLength={150} style={{ minHeight: 36, fontSize: 13 }} />
       </div>
       <div className="field" style={{ marginBottom: 6 }}>
         <DateInput aria-label="Test date" className="input" value={testDate} onChange={(e) => setTestDate(e.target.value)} style={{ minHeight: 36, fontSize: 13 }} />
       </div>
       <div className="field" style={{ marginBottom: 6 }}>
-        <input aria-label="Result" className="input" value={labResult} onChange={(e) => setLabResult(e.target.value)} style={{ minHeight: 36, fontSize: 13 }} />
+        <input aria-label="Result" className="input" value={labResult} onChange={(e) => setLabResult(e.target.value)} maxLength={300} style={{ minHeight: 36, fontSize: 13 }} />
       </div>
       <div style={{ display: "flex", gap: 6 }}>
         <button
