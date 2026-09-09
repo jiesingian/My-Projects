@@ -109,6 +109,31 @@ export function familyInstant(day: string, time: string, tz: string = FAMILY_TZ)
  *
  * Returns null on anything that is not a plain YYYY-MM-DD, including
  * 31 September, which Date would roll into October without complaint. */
+/** Why a date of birth cannot be one, or null if it can.
+ *
+ * Every place that takes a birthday took whatever the field gave it. A date
+ * input is easy to get wrong in exactly two ways -- the year typed as this
+ * year rather than the one meant, and a four-digit year typed short -- and
+ * neither is caught downstream: a birthday in the future runs through
+ * formatAge's `Math.max(months, 0)` and comes out as "0 months", so a person
+ * born in 2035 is displayed as a newborn rather than as the mistake it is,
+ * and nothing ever says otherwise.
+ *
+ * The floor is 1900 rather than something cleverer because the failure it
+ * catches is a typo, not a supercentenarian: a real 1899 birthday would be a
+ * remarkable thing for a family organiser to hold, and being told to check it
+ * costs whoever has one a moment. Being silently recorded as a baby costs
+ * everybody else more. */
+export function birthdayProblem(day: string, tz: string = FAMILY_TZ): string | null {
+  const trimmed = day.trim();
+  if (!familyMidnight(trimmed, tz)) return "That date of birth isn't a real date.";
+  // Both sides are plain YYYY-MM-DD, which sorts chronologically as text, so
+  // this needs no arithmetic and no zone beyond the one familyDay states.
+  if (trimmed > familyDay(new Date(), tz)) return "A date of birth can't be in the future.";
+  if (Number(trimmed.slice(0, 4)) < 1900) return "Check the year on that date of birth.";
+  return null;
+}
+
 export function addDays(day: string, delta: number): string | null {
   const at = utcNoonlessDay(day);
   if (!at) return null;

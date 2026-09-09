@@ -11,6 +11,63 @@ place for those.
 
 ---
 
+## Signing up: five bugs closed, and the one that needs a migration — 9 September
+
+Onboarding had never had a bug-hunt pass. It is the only path in the app that
+runs before there is a member row, so almost nothing it does is covered by the
+policies and helpers the rest of the code leans on. Five things found and
+fixed; one left, because closing it properly needs a migration.
+
+**Fixed.**
+
+- **An access code was spent on a household that was never created.**
+  `redeem_household_code` increments `used_count` and returns; `create_family`
+  is a separate statement that refuses anyone who already has a member row. In
+  that order, walking back into step 4 from inside a household burned a use of
+  a beta code and got an error for it. Codes are finite and issued by hand.
+  `createFamilyAction` now checks membership before the code is looked at,
+  pinned by a browser test that fails if the two are put back in the old order.
+- **Name, date of birth and mobile travelled in the URL.** `saveProfile`
+  redirected to `/onboarding/family?full_name=…&dob=…&mobile=…`, which put all
+  three in the address bar, in browser history, and in the `Referer` header of
+  anything that page went on to fetch. They now ride in an httpOnly cookie
+  scoped to `/onboarding`, cleared the moment the member row exists.
+- **Step 4 was a dead end when reached directly.** Its name field is hidden --
+  it comes from step 3 -- so a bookmark or a back button rendered the form with
+  an empty one, and pressing CREATE HOUSEHOLD answered "your name is required"
+  while pointing at no field that asks for a name. Nothing on the page could
+  clear it. It now sends you back one step.
+- **"That invite code didn't match a household" was said to people whose code
+  was fine.** `join_family` raises three distinct things and `joinFamilyAction`
+  reported all of them as a bad code -- including "already a member of a
+  family", which is nothing to do with the code and cannot be fixed by
+  re-typing it.
+- **Onboarding stored text of any length, and a birthday of any date.** It was
+  the one path with no clamps: every other form in the app has them. And a
+  birthday in the future ran through `formatAge`'s `Math.max(months, 0)` and
+  rendered as "0 months", so a member born in 2035 appeared in the list as a
+  newborn with nothing anywhere to say the date was impossible.
+  `birthdayProblem` now refuses a future date, a year before 1900 (the short
+  four-digit-year typo, 0219 for 2019), and anything that is not a real date.
+
+**Left, and why.** Redemption and creation are still two statements, so a
+failure between them still spends a code with nothing to show. The membership
+check closes the case that actually happens, and the action now says plainly
+that the code was counted and logs it -- but the only real fix is one RPC that
+redeems and creates in a single transaction, which is a migration, which is
+Jonathan's. Worth doing before the beta codes go out more widely.
+
+**Not covered by any test, and honestly cannot be from here.** Everything
+above is verified against an account that is *already* in a household --
+arriving at step 4 cold, the membership guard, the URL, the redirect. The
+path a genuinely new person takes (sign up, confirm an email, redeem a real
+code, create a household) is not, because walking it means creating an auth
+user and a family, and there is no service-role key in a session that follows
+CLAUDE.md. The RPCs it calls are covered by their own constraints; the
+sequence is not.
+
+---
+
 ## Writes whose error was never captured — CLOSED 8 September, 67 of 67
 
 `src/lib/actions/*.ts` and `src/lib/*.ts` contained 67 writes of the shape
