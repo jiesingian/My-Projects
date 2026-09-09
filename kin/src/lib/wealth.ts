@@ -260,6 +260,26 @@ export function isKnownInstitutionLabel(label: string): boolean {
   return KNOWN_APPS.some((a) => a.label === label);
 }
 
+/** A working store link for literally any institution, in any country --
+ * not a listing (Kin doesn't know one), a search. Both are each store's
+ * own documented web search page, not scraped or reverse-engineered:
+ * Apple's at apps.apple.com/{country}/search?term=, Google's at
+ * play.google.com/store/search?q=&c=apps. This is what makes GET APP work
+ * for a bank nobody has hand-verified yet, everywhere KNOWN_APPS has
+ * nothing -- the fallback that makes "no specific country" true instead
+ * of aspirational, since a fixed list can never cover every bank in every
+ * market and was never going to. The country segment is fixed at "us" for
+ * now -- Apple's search works from any region path, just with that
+ * region's ranking, and there's nowhere yet to read a household's own
+ * country from; worth revisiting once one exists. */
+export function appStoreSearchUrl(query: string): string {
+  return `https://apps.apple.com/us/search?term=${encodeURIComponent(query)}`;
+}
+
+export function playStoreSearchUrl(query: string): string {
+  return `https://play.google.com/store/search?q=${encodeURIComponent(query)}&c=apps`;
+}
+
 /** What LINK APP / APP STORE LINK / PLAY STORE LINK should become when
  * BANK / WALLET changes from `previousValue` to `nextValue`, given which
  * store matches the phone currently filling the form in. `null` means
