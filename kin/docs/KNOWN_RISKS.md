@@ -206,14 +206,41 @@ consequences, all the same root:
 
 **Both are now resolved, 9 September, as Jonathan chose.**
 
-1. **The organizer can promote a member.** `setMemberRoleAction` plus a
-   MAKE PARENT / MAKE ADULT control on the Family page, shown only to the
-   organizer, never on their own row, never on a managed child — the three
-   conditions the database enforces anyway, so the button is not offered
+1. **The organizer can set a member's role.** `setMemberRoleAction`, offered
+   only to the organizer, never on their own row, never on a managed child —
+   the three conditions the database enforces anyway, so it is not offered
    where it could only fail. That is the lesson of this entry applied to its
    own fix. No migration: `members_update_by_organiser` already permitted the
    write, and `members_guard_self_update` already refused the two cases that
    should be refused.
+
+   **Where it lives changed the same day, on Jonathan's feedback.** It began
+   as a MAKE PARENT / MAKE ADULT button on every row of the family list, and
+   he was right that this was wrong twice over: the decision is made about
+   once per person, and the list is the one place everybody looks every day.
+   A standing button for a rare action is clutter, and clutter beside Remove
+   is worse than clutter. It now sits on the member's own page beside
+   Relationship, in the same view-then-edit shape. The family row already
+   links there, so the role stays plain text on the list and tapping the
+   person is how you reach it — rather than a second, smaller tap target
+   hidden inside a link.
+
+   **And it is now asked at the right moment.** Approving a pending member
+   offers Adult or Parent, defaulting to Adult. `joinFamilyAction` hard-codes
+   `p_role: "adult"` and has to: somebody joining cannot be the one who
+   decides whether they count as a parent, or the setting would mean nothing.
+   So the decision belongs to whoever lets them in, at the moment they are
+   already looking at them. Without that, every member stays an adult until
+   somebody notices.
+
+   **What "until somebody notices" looked like here.** Erynne — born
+   2022-08-28, four years old — joined by invite code and therefore holds an
+   `adult` role with an active login, which is every adult permission in the
+   app including the money pages. That is household data rather than a code
+   defect, and it is Jonathan's to correct; it is recorded because it is
+   precisely the outcome the approval step above exists to prevent, and
+   because it went unnoticed for as long as there was no way to see or change
+   a role from inside the app.
 2. **An adult may edit a managed child.**
    `migrations/2026-09-09-an-adult-may-edit-the-child-they-added.sql`,
    applied. The edit rule now matches the add rule, which allowed a parent or

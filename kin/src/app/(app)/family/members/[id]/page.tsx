@@ -12,6 +12,7 @@ import { Icon } from "@/components/icons";
 import { formatAge, initials } from "@/lib/format";
 import { OmronToggle } from "./omron-toggle";
 import { RelationshipEditor } from "@/components/relationship-editor";
+import { RoleEditor } from "@/components/role-editor";
 import { RemoveMemberButton } from "@/components/member-status-actions";
 import { Avatar } from "@/components/avatar";
 import { ProfileEditForm } from "@/components/profile-edit-form";
@@ -113,6 +114,18 @@ export default async function MemberDetailPage({
                 <>
                   <div style={{ fontSize: 13, color: "var(--color-neutral-700)", marginBottom: 6 }}>Relationship</div>
                   <RelationshipEditor memberId={member.id} relationship={member.relationship} />
+                </>
+              )}
+
+              {/* Role sits with the other details rather than on the family
+                  list, where a standing button for a once-per-person decision
+                  was clutter. Offered on exactly the rows the database will
+                  accept it for: not yourself, and not a managed profile, whose
+                  privileges a trigger refuses to change at all. */}
+              {me.is_organiser && member.id !== me.id && member.auth_user_id !== null && (
+                <>
+                  <div style={{ fontSize: 13, color: "var(--color-neutral-700)", marginBottom: 6 }}>Role</div>
+                  <RoleEditor memberId={member.id} fullName={member.full_name} role={member.role} />
                 </>
               )}
 

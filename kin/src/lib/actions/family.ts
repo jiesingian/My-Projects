@@ -201,11 +201,24 @@ export async function regenerateInviteCodeAction(): Promise<ActionState> {
   return { error: error ? humanDatabaseError(error.message) : null };
 }
 
-/** Approves a pending join request — RLS restricts this to the household's
- * organizer and only while the row is still 'pending'. */
-export async function approveMemberAction(memberId: string): Promise<ActionState> {
+/** Approves a pending join request, and says what they are joining as — RLS
+ * restricts this to the household's organizer and only while the row is still
+ * 'pending'.
+ *
+ * The role belongs here rather than only in an edit screen afterwards.
+ * `joinFamilyAction` hard-codes `p_role: "adult"` and it has to: the person
+ * joining cannot be the one who decides whether they count as a parent, or
+ * the setting would mean nothing. So somebody else has to say, and the moment
+ * they are already being looked at and let in is the natural one — otherwise
+ * every member starts as an adult and stays that way until somebody notices,
+ * which is exactly what happened in this household.
+ *
+ * The default stays `adult`, because approving without reading is the common
+ * case and the quieter of the two answers should be what that gives you. */
+export async function approveMemberAction(memberId: string, role: MemberRole = "adult"): Promise<ActionState> {
+  if (role !== "parent" && role !== "adult") return { error: "A member joins as either a parent or an adult." };
   const supabase = await createClient();
-  const { error } = await supabase.from("members").update({ status: "active" }).eq("id", memberId);
+  const { error } = await supabase.from("members").update({ status: "active", role }).eq("id", memberId);
   revalidatePath("/family");
   return { error: error ? humanDatabaseError(error.message) : null };
 }

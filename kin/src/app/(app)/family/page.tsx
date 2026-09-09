@@ -13,7 +13,6 @@ import { FamilyAboutEditor } from "@/components/family-about-editor";
 import { FamilyAddressList } from "@/components/family-address-list";
 import { AddChildForm } from "@/components/add-child-form";
 import { formatAge, initials, shortNames } from "@/lib/format";
-import { MemberRoleToggle } from "@/components/member-role-toggle";
 
 const SEGMENTS = ["profile", "health", "documents"] as const;
 type Seg = (typeof SEGMENTS)[number];
@@ -109,9 +108,6 @@ async function ProfilePane({ familyId, isOrganiser, myId, myRole }: { familyId: 
           <Tag variant={m.auth_user_id === null ? "neutral" : m.is_organiser ? "accent" : "outline"}>
             {m.auth_user_id === null ? "MANAGED" : m.is_organiser ? "ORGANIZER" : m.status.toUpperCase()}
           </Tag>
-          {isOrganiser && m.id !== myId && m.auth_user_id !== null && m.status === "active" && (
-            <MemberRoleToggle memberId={m.id} fullName={m.full_name} role={m.role} />
-          )}
           {isOrganiser && m.id !== myId && !m.is_organiser && <RemoveMemberButton memberId={m.id} fullName={m.full_name} />}
         </div>
       ))}
