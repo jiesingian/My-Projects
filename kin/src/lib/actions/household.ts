@@ -84,11 +84,13 @@ export async function removeBuyItemAction(itemId: string): Promise<ActionState> 
 }
 
 export async function toggleBuyItemAction(itemId: string, checked: boolean) {
+  const me = await requireCurrentMember();
   const supabase = await createClient();
   const { error } = await supabase
     .from("buy_items")
     .update({ checked, checked_at: checked ? new Date().toISOString() : null })
-    .eq("id", itemId);
+    .eq("id", itemId)
+    .eq("family_id", me.family_id);
   // Not surfaced: the revalidate below re-renders the list from the database,
   // so a tick that did not save comes straight back and the person sees it.
   // That is the one failure mode in this file that is already visible.

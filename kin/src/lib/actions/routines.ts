@@ -356,6 +356,17 @@ export async function logRoutineAction(input: {
     .maybeSingle();
   if (!routine) return { error: "That routine is no longer here." };
 
+  // Not reachable from the UI today (no caller passes memberId), but the
+  // action itself is a public server action -- nothing stops a request
+  // built by hand from naming any id here. Verified rather than trusted,
+  // the same way a wealth target's member is.
+  let memberId = me.id;
+  if (input.memberId) {
+    const { data: targetMember } = await supabase.from("members").select("id").eq("id", input.memberId).eq("family_id", me.family_id).maybeSingle();
+    if (!targetMember) return { error: "That member isn't in your household." };
+    memberId = targetMember.id;
+  }
+
   const amount = input.status === "done" ? (input.amount ?? (routine.expected_cost ? Number(routine.expected_cost) : null)) : null;
 
   const { error } = await supabase.from("routine_log").upsert(
@@ -364,7 +375,7 @@ export async function logRoutineAction(input: {
       family_id: me.family_id,
       occurrence_date: input.date,
       status: input.status,
-      member_id: input.memberId ?? me.id,
+      member_id: memberId,
       amount,
       logged_by: me.id,
       logged_at: new Date().toISOString(),
