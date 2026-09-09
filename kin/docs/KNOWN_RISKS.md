@@ -295,6 +295,17 @@ private account changed, and writing was never restricted in the first place.
 That also removes the cause rather than the symptom: the transfer above failed
 *because* of this mismatch. Both halves are now closed.
 
+**And it was quietly showing a wrong number.** `loadAccounts` computes
+`balance = opening_balance + sum(transactions)` from the rows the query
+returns, and those rows are filtered by the policy. So a shared account
+displayed to anyone but its owner had a balance of its *opening balance
+alone* — every movement since was invisible and therefore uncounted — with
+nothing to say the figure was partial. Nobody has seen that, because no
+shared account exists yet; it would have appeared the first time somebody
+used the toggle. Reading the code rather than reproducing it: the sum is
+built only from what the query returned, and what it returned was
+policy-filtered.
+
 **Also fixed:** `addBillAction` checked `!amount`, which is false for -500, so
 a negative bill was accepted where every other money path requires `> 0`. It
 now makes the same check as the other five. A negative bill subtracts from what
