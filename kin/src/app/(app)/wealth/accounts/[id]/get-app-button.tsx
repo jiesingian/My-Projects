@@ -18,11 +18,13 @@ export function GetAppButton({
   appStoreUrl,
   playStoreUrl,
   institution,
+  country,
   label,
 }: {
   appStoreUrl: string | null;
   playStoreUrl: string | null;
   institution: string | null;
+  country: string | null;
   label: string;
 }) {
   const kind = usePhoneKind();
@@ -33,7 +35,7 @@ export function GetAppButton({
   // Store link under Other but left Play Store blank should see GET on
   // one and FIND (a search, not a listing) on the other, not the same
   // word claiming a precision neither link actually has in common.
-  const resolvedAppStoreUrl = appStoreUrl ?? (institution ? appStoreSearchUrl(institution) : null);
+  const resolvedAppStoreUrl = appStoreUrl ?? (institution ? appStoreSearchUrl(institution, country) : null);
   const resolvedPlayStoreUrl = playStoreUrl ?? (institution ? playStoreSearchUrl(institution) : null);
   const appStoreVerb = appStoreUrl ? "GET" : "FIND";
   const playStoreVerb = playStoreUrl ? "GET" : "FIND";

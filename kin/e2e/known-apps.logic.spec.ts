@@ -94,3 +94,11 @@ test("the search fallback works for any institution name, unverified or not", ()
   expect(appStoreSearchUrl("Tom & Jerry Bank / Trust")).toContain(encodeURIComponent("Tom & Jerry Bank / Trust"));
   expect(playStoreSearchUrl("Tom & Jerry Bank / Trust")).toContain(encodeURIComponent("Tom & Jerry Bank / Trust"));
 });
+
+test("the App Store search uses the household's own country, not a fixed one", () => {
+  // families.country, set once in Settings or onboarding -- never the
+  // phone's current location. Unset households still get a working link.
+  expect(appStoreSearchUrl("Some Bank", "sg")).toBe("https://apps.apple.com/sg/search?term=Some%20Bank");
+  expect(appStoreSearchUrl("Some Bank", null)).toBe("https://apps.apple.com/us/search?term=Some%20Bank");
+  expect(appStoreSearchUrl("Some Bank")).toBe("https://apps.apple.com/us/search?term=Some%20Bank");
+});

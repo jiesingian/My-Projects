@@ -268,12 +268,16 @@ export function isKnownInstitutionLabel(label: string): boolean {
  * for a bank nobody has hand-verified yet, everywhere KNOWN_APPS has
  * nothing -- the fallback that makes "no specific country" true instead
  * of aspirational, since a fixed list can never cover every bank in every
- * market and was never going to. The country segment is fixed at "us" for
- * now -- Apple's search works from any region path, just with that
- * region's ranking, and there's nowhere yet to read a household's own
- * country from; worth revisiting once one exists. */
-export function appStoreSearchUrl(query: string): string {
-  return `https://apps.apple.com/us/search?term=${encodeURIComponent(query)}`;
+ * market and was never going to.
+ *
+ * `country` is the household's own App Store region (families.country,
+ * set once in Settings or at onboarding -- @/lib/countries), not wherever
+ * the phone making the request currently is. Falls back to "us" when a
+ * household hasn't set one: Apple's search still works from that region
+ * path, just ranked for it rather than tuned to where the household
+ * actually is. */
+export function appStoreSearchUrl(query: string, country?: string | null): string {
+  return `https://apps.apple.com/${country || "us"}/search?term=${encodeURIComponent(query)}`;
 }
 
 export function playStoreSearchUrl(query: string): string {

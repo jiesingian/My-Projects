@@ -72,6 +72,7 @@ export default async function AccountPage({ params }: { params: Promise<{ id: st
           appStoreUrl={account.app_store_url}
           playStoreUrl={account.play_store_url}
           institution={account.institution}
+          country={me.families.country}
           label={(account.institution ?? account.name).toUpperCase()}
         />
 

@@ -11,6 +11,7 @@ import { CopyInviteCode } from "@/components/copy-invite-code";
 import { Blueprint } from "@/components/ui";
 import { NOTIFICATION_DEFS } from "@/lib/notifications";
 import { familyDateTime } from "@/lib/time";
+import { COUNTRIES } from "@/lib/countries";
 
 export function ThemeControl({ current }: { current: string }) {
   const [pending, startTransition] = useTransition();
@@ -195,31 +196,49 @@ export function HouseholdPrefsForm({
   currency,
   dateFormat,
   weekStart,
+  country,
 }: {
   currency: string;
   dateFormat: string;
   weekStart: string;
+  country: string | null;
 }) {
   const [c, setC] = useState(currency);
   const [d, setD] = useState(dateFormat);
   const [w, setW] = useState(weekStart);
+  const [k, setK] = useState(country ?? "");
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
   return (
     <div style={{ marginBottom: 20 }}>
-      <div style={{ display: "flex", gap: 8, marginBottom: 8 }}>
-        <select className="input" value={c} onChange={(e) => setC(e.target.value)} style={{ minHeight: 40 }}>
+      <div style={{ display: "flex", gap: 8, marginBottom: 8, flexWrap: "wrap" }}>
+        <select className="input" value={c} onChange={(e) => setC(e.target.value)} style={{ minHeight: 40, flex: 1 }}>
           <option value="PHP">PHP ₱</option>
           <option value="USD">USD $</option>
           <option value="EUR">EUR €</option>
         </select>
-        <select className="input" value={d} onChange={(e) => setD(e.target.value)} style={{ minHeight: 40 }}>
+        <select className="input" value={d} onChange={(e) => setD(e.target.value)} style={{ minHeight: 40, flex: 1 }}>
           <option value="DD/MM/YYYY">DD/MM/YYYY</option>
           <option value="MM/DD/YYYY">MM/DD/YYYY</option>
         </select>
-        <select className="input" value={w} onChange={(e) => setW(e.target.value)} style={{ minHeight: 40 }}>
+        <select className="input" value={w} onChange={(e) => setW(e.target.value)} style={{ minHeight: 40, flex: 1 }}>
           <option value="monday">Mon start</option>
           <option value="sunday">Sun start</option>
+        </select>
+      </div>
+      {/* Where the household is, not where a phone currently happens to be
+          -- used today to pick which App Store region GET APP falls back
+          to searching. Blank stays a valid choice: nothing that reads this
+          requires it. */}
+      <div className="field" style={{ marginBottom: 8 }}>
+        <label>COUNTRY</label>
+        <select className="input" value={k} onChange={(e) => setK(e.target.value)} style={{ minHeight: 40 }}>
+          <option value="">— not set —</option>
+          {COUNTRIES.map((cc) => (
+            <option key={cc.code} value={cc.code}>
+              {cc.label}
+            </option>
+          ))}
         </select>
       </div>
       <button
@@ -229,7 +248,7 @@ export function HouseholdPrefsForm({
         style={{ minHeight: 40, fontSize: 13.5 }}
         onClick={() =>
           startTransition(async () => {
-            const result = await updateHouseholdPrefsAction(c, d, w);
+            const result = await updateHouseholdPrefsAction(c, d, w, k);
             setError(result.error);
           })
         }

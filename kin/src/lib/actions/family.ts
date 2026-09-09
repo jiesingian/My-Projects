@@ -12,6 +12,7 @@ import type { UploadedFile } from "@/lib/upload-client";
 import type { TablesInsert } from "@/lib/database.types";
 import { humanDatabaseError } from "@/lib/db-errors";
 import { clamp } from "@/lib/text";
+import { isCountryCode } from "@/lib/countries";
 
 export async function saveProfile(_prev: ActionState, formData: FormData): Promise<ActionState> {
   const fullName = String(formData.get("full_name") ?? "").trim();
@@ -34,6 +35,7 @@ export async function createFamilyAction(_prev: ActionState, formData: FormData)
   const dob = String(formData.get("dob") ?? "") || null;
   const mobile = String(formData.get("mobile") ?? "").trim() || null;
   const accessCode = String(formData.get("access_code") ?? "").trim();
+  const country = String(formData.get("country") ?? "").trim();
   if (!householdName || !fullName) return { error: "Household name and your name are required." };
   if (!accessCode) return { error: "Starting a new household needs an access code." };
 
@@ -48,13 +50,23 @@ export async function createFamilyAction(_prev: ActionState, formData: FormData)
   if (redeemError) return { error: "We couldn't check that code just now. Try again in a moment." };
   if (!redeemed) return { error: "That access code isn't valid, or it has already been used up." };
 
-  const { error } = await supabase.rpc("create_family", {
+  const { data: member, error } = await supabase.rpc("create_family", {
     p_household_name: householdName,
     p_full_name: fullName,
     p_dob: dob ?? undefined,
     p_mobile: mobile ?? undefined,
   });
   if (error) return { error: humanDatabaseError(error.message) };
+
+  // country isn't part of create_family's own signature -- a plain update
+  // right after, scoped to the household this call just created, the same
+  // way updateHouseholdPrefsAction changes it later from Settings. Not
+  // fatal if this fails or the field was somehow skipped: the household
+  // exists either way, and every place country is read treats it as
+  // optional, same as before this field existed.
+  if (member?.family_id && isCountryCode(country)) {
+    await supabase.from("families").update({ country }).eq("id", member.family_id);
+  }
 
   // Records what the code was worth — free for good, or a trial that will
   // ask for payment later. It reads the grant off the code rather than

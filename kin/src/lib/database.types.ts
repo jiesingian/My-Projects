@@ -1153,6 +1153,7 @@ export type Database = {
           background_url: string | null
           billing_customer_id: string | null
           billing_subscription_id: string | null
+          country: string | null
           created_at: string
           currency: string
           date_format: string
@@ -1169,6 +1170,7 @@ export type Database = {
           background_url?: string | null
           billing_customer_id?: string | null
           billing_subscription_id?: string | null
+          country?: string | null
           created_at?: string
           currency?: string
           date_format?: string
@@ -1185,6 +1187,7 @@ export type Database = {
           background_url?: string | null
           billing_customer_id?: string | null
           billing_subscription_id?: string | null
+          country?: string | null
           created_at?: string
           currency?: string
           date_format?: string
