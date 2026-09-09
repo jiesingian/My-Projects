@@ -54,12 +54,28 @@ export default async function WealthPage({ searchParams }: { searchParams: Promi
     <div>
       <HubHeader n="05" title="Wealth" segments={segments} dateFormat={me.families.date_format} />
       <div style={{ padding: "0 22px 22px" }}>
-        {seg === "cashflow" && <CashFlowPane familyId={me.family_id} memberId={me.id} currency={currency} range={range} />}
+        {seg === "cashflow" && <CashFlowPane familyId={me.family_id} memberId={me.id} currency={currency} range={range} scope={who} />}
         {seg === "accounts" && <ScopePane scope={who} familyId={me.family_id} memberId={me.id} currency={currency} />}
-        {seg === "assets" && <AssetsPane familyId={me.family_id} memberId={me.id} currency={currency} />}
+        {seg === "assets" && <AssetsPane familyId={me.family_id} memberId={me.id} currency={currency} scope={who} />}
       </div>
     </div>
   );
+}
+
+/** Everything the Who picker needs, built once and shared by every tab that
+ * offers one -- Everyone plus each active member, "Me" in place of the
+ * viewer's own name. `hrefFor` lets each tab keep its own other query
+ * params (Cash Flow's range, in particular) when the picker changes who. */
+async function whoPicker(familyId: string, memberId: string, scope: WealthScope, hrefFor: (who: string) => string) {
+  const members = await getMembers(familyId);
+  const active = members.filter((m) => m.status !== "pending" && m.status !== "removed");
+  const labels = shortNames(active.map((m) => m.full_name)).map((l, i) => selfLabel(l, active[i].id === memberId));
+  const whoLabel = scope === "all" ? "All" : (labels[active.findIndex((m) => m.id === scope)] ?? "All");
+  const options = [
+    { label: "Everyone", href: hrefFor("all"), active: scope === "all" },
+    ...active.map((m, i) => ({ label: labels[i], href: hrefFor(m.id), active: scope === m.id })),
+  ];
+  return { active, labels, whoLabel, options };
 }
 
 /* --------------------------------------------------------------- shared bits */
@@ -194,6 +210,26 @@ function SectionLabel({ children }: { children: React.ReactNode }) {
   );
 }
 
+/** A step above SectionLabel -- for the two things A&L actually organizes
+ * around, assets and liabilities, with everything else (cash, goals, other
+ * property) filed as a SectionLabel underneath one or the other rather than
+ * standing on its own. */
+function GroupLabel({ children }: { children: React.ReactNode }) {
+  return (
+    <div
+      style={{
+        font: "600 20px/1.1 var(--font-heading)",
+        letterSpacing: "-.01em",
+        margin: "28px 0 4px",
+        paddingBottom: 9,
+        borderBottom: "2px solid var(--color-divider)",
+      }}
+    >
+      {children}
+    </div>
+  );
+}
+
 function EntryRow({ entry, currency, dateFormat, showAccount }: { entry: LedgerEntry; currency: string; dateFormat: string; showAccount?: boolean }) {
   const isIn = entry.direction === "in";
   return (
@@ -261,15 +297,27 @@ function QuickActions() {
 
 /* ----------------------------------------------------------------- cash flow */
 
-async function CashFlowPane({ familyId, memberId, currency, range }: { familyId: string; memberId: string; currency: string; range: CashFlowRange }) {
+async function CashFlowPane({ familyId, memberId, currency, range, scope }: { familyId: string; memberId: string; currency: string; range: CashFlowRange; scope: WealthScope }) {
   const [fmtDate, dateFormat] = await Promise.all([familyDate(), householdDateFormat()]);
-  const [cf, accounts] = await Promise.all([getCashFlowPane(familyId, range), getAccounts(familyId)]);
+  const [cf, accounts, who] = await Promise.all([
+    getCashFlowPane(familyId, range, scope),
+    getAccounts(familyId),
+    whoPicker(familyId, memberId, scope, (w) => `/wealth?seg=cashflow&range=${range}&who=${w}`),
+  ]);
   const pickable = toPickable(accounts, memberId);
   const bareAccounts = pickable.map((a) => ({ id: a.id, name: a.name }));
   const periodNoun = range === "week" ? "week" : range === "year" ? "year" : "month";
+  const mine = scope === memberId;
 
   return (
     <>
+      <div style={{ display: "flex", alignItems: "center", gap: 6, margin: "14px 0 4px" }}>
+        <PickButton title="Who" icon="users" label={who.whoLabel} options={who.options} />
+        <span style={{ fontSize: 12.5, color: "var(--color-neutral-600)" }}>
+          {scope === "all" ? "Everything you can see" : mine ? "Your own accounts" : "Their accounts, as shared"}
+        </span>
+      </div>
+
       <Hero
         label="CASH FLOW"
         amount={Math.abs(cf.net)}
@@ -290,7 +338,7 @@ async function CashFlowPane({ familyId, memberId, currency, range }: { familyId:
           title="Graph range"
           icon="calendarDays"
           label={CASH_FLOW_RANGE_LABELS[range]}
-          options={CASH_FLOW_RANGES.map((r) => ({ label: CASH_FLOW_RANGE_LABELS[r], href: `/wealth?seg=cashflow&range=${r}`, active: range === r }))}
+          options={CASH_FLOW_RANGES.map((r) => ({ label: CASH_FLOW_RANGE_LABELS[r], href: `/wealth?seg=cashflow&range=${r}&who=${scope}`, active: range === r }))}
         />
         <span style={{ fontSize: 12.5, color: "var(--color-neutral-600)" }}>Income against expenses, grouped by {CASH_FLOW_RANGE_LABELS[range].toLowerCase()}</span>
       </div>
@@ -403,31 +451,21 @@ async function CashFlowPane({ familyId, memberId, currency, range }: { familyId:
 /* ------------------------------------------------------------- accounts */
 
 async function ScopePane({ scope, familyId, memberId, currency }: { scope: WealthScope; familyId: string; memberId: string; currency: string }) {
-  const dateFormat = await householdDateFormat();
-  const [pane, members] = await Promise.all([getWealthPane(familyId, memberId, scope), getMembers(familyId)]);
-  const active = members.filter((m) => m.status !== "pending" && m.status !== "removed");
-  // Your own entry says "Me", and the headings that follow from it say "My"
-  // rather than your own name back at you.
-  const labels = shortNames(active.map((m) => m.full_name)).map((l, i) => selfLabel(l, active[i].id === memberId));
+  const [dateFormat, pane, who] = await Promise.all([
+    householdDateFormat(),
+    getWealthPane(familyId, memberId, scope),
+    whoPicker(familyId, memberId, scope, (w) => `/wealth?seg=accounts&who=${w}`),
+  ]);
   const isJoint = scope === "all";
   const mine = scope === memberId;
-  const whoLabel = isJoint ? "All" : (labels[active.findIndex((m) => m.id === scope)] ?? "All");
-  const whosePossessive = selfPossessive(whoLabel, mine);
+  const whosePossessive = selfPossessive(who.whoLabel, mine);
   const monthLabel = new Date(pane.year, pane.month - 1, 1).toLocaleString("en-PH", { month: "long", year: "numeric" }).toUpperCase();
   const categories = [...pane.allocations, ...pane.unbudgeted];
 
   return (
     <>
       <div style={{ display: "flex", alignItems: "center", gap: 6, margin: "14px 0 4px" }}>
-        <PickButton
-          title="Who"
-          icon="users"
-          label={whoLabel}
-          options={[
-            { label: "Everyone", href: "/wealth?seg=accounts&who=all", active: scope === "all" },
-            ...active.map((m, i) => ({ label: labels[i], href: `/wealth?seg=accounts&who=${m.id}`, active: scope === m.id })),
-          ]}
-        />
+        <PickButton title="Who" icon="users" label={who.whoLabel} options={who.options} />
         <span style={{ fontSize: 12.5, color: "var(--color-neutral-600)" }}>
           {isJoint ? "Everything you can see" : mine ? "Your own accounts" : "Their accounts, as shared"}
         </span>
@@ -548,13 +586,29 @@ async function ScopePane({ scope, familyId, memberId, currency }: { scope: Wealt
 
 /* -------------------------------------------------------------------- A&L */
 
-async function AssetsPane({ familyId, memberId, currency }: { familyId: string; memberId: string; currency: string }) {
+async function AssetsPane({ familyId, memberId, currency, scope }: { familyId: string; memberId: string; currency: string; scope: WealthScope }) {
   const fmtDate = await familyDate();
-  const { assets, liabilities, goals, cashAccounts, assetTotal, liabilityTotal, goalTotal, cashTotal, netWorth } = await getNetWorth(familyId, memberId);
-  const pickableCash = toPickable(cashAccounts, memberId);
+  const [{ assets, liabilities, goals, cashAccounts, assetTotal, liabilityTotal, goalTotal, cashTotal, netWorth }, who, allAccounts] = await Promise.all([
+    getNetWorth(familyId, scope),
+    whoPicker(familyId, memberId, scope, (w) => `/wealth?seg=assets&who=${w}`),
+    getAccounts(familyId),
+  ]);
+  // Deliberately not `cashAccounts` -- that list is scoped to whoever the
+  // Who picker is showing, but the account a contribution actually leaves
+  // from has to be one the viewer themself can pay out of, regardless of
+  // whose net worth they're looking at.
+  const pickableCash = toPickable(allAccounts, memberId);
+  const mine = scope === memberId;
 
   return (
     <>
+      <div style={{ display: "flex", alignItems: "center", gap: 6, margin: "14px 0 4px" }}>
+        <PickButton title="Who" icon="users" label={who.whoLabel} options={who.options} />
+        <span style={{ fontSize: 12.5, color: "var(--color-neutral-600)" }}>
+          {scope === "all" ? "Everything you can see" : mine ? "Your own" : "Theirs, as shared"}
+        </span>
+      </div>
+
       <Hero
         label="NET WORTH"
         amount={netWorth}
@@ -562,14 +616,7 @@ async function AssetsPane({ familyId, memberId, currency }: { familyId: string; 
         caption={`${formatCurrency(cashTotal, currency)} cash + ${formatCurrency(goalTotal, currency)} in goals + ${formatCurrency(assetTotal, currency)} owned − ${formatCurrency(liabilityTotal, currency)} owed`}
       />
 
-      <div style={{ display: "flex", gap: 8, marginBottom: 18 }}>
-        <Link href="/wealth/assets/new?kind=asset" className="btn btn-secondary" style={{ flex: 1, minHeight: 40, fontSize: 13, display: "flex", alignItems: "center", justifyContent: "center" }}>
-          + ASSET
-        </Link>
-        <Link href="/wealth/assets/new?kind=liability" className="btn btn-secondary" style={{ flex: 1, minHeight: 40, fontSize: 13, display: "flex", alignItems: "center", justifyContent: "center" }}>
-          + LIABILITY
-        </Link>
-      </div>
+      <GroupLabel>ASSETS</GroupLabel>
 
       <SectionLabel>CASH & SAVINGS</SectionLabel>
       {cashAccounts.length === 0 && (
@@ -641,7 +688,7 @@ async function AssetsPane({ familyId, memberId, currency }: { familyId: string; 
         + ADD GOAL
       </Link>
 
-      <SectionLabel>WHAT ELSE THE HOUSEHOLD OWNS</SectionLabel>
+      <SectionLabel>OTHER ASSETS</SectionLabel>
       {assets.length === 0 && (
         <Empty icon="🏠" title="Nothing recorded yet" line="Property, a vehicle, anything the family owns that holds value. Recorded here, it counts toward your net worth." />
       )}
@@ -664,8 +711,11 @@ async function AssetsPane({ familyId, memberId, currency }: { familyId: string; 
           </div>
         </div>
       ))}
+      <Link href="/wealth/assets/new?kind=asset" className="btn btn-secondary btn-block" style={{ minHeight: 42, fontSize: 13.5, letterSpacing: ".04em", marginTop: 4 }}>
+        + ASSET
+      </Link>
 
-      <SectionLabel>WHAT THE HOUSEHOLD OWES</SectionLabel>
+      <GroupLabel>LIABILITIES</GroupLabel>
       {liabilities.length === 0 && (
         <Empty icon="✅" title="Nothing owed" line="No loans or debts on record. If that changes, adding them here keeps the net worth figure honest." />
       )}
@@ -690,6 +740,9 @@ async function AssetsPane({ familyId, memberId, currency }: { familyId: string; 
           </div>
         </div>
       ))}
+      <Link href="/wealth/assets/new?kind=liability" className="btn btn-secondary btn-block" style={{ minHeight: 42, fontSize: 13.5, letterSpacing: ".04em", marginTop: 4 }}>
+        + LIABILITY
+      </Link>
 
       <div style={{ fontSize: 13, color: "var(--color-neutral-600)", marginTop: 16 }}>
         Net worth counts every account balance, everything saved toward a goal, plus what you own, less what you owe.

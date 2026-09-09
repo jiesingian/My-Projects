@@ -41,9 +41,13 @@ export function AccountEditForm({ account }: { account: Tables<"accounts"> }) {
           <input className="input" name="institution" defaultValue={account.institution ?? ""} style={{ minHeight: 42 }} />
         </Field>
       </div>
-      <Field label="LINKED APP LINK">
+      <Field label="LINK APP">
         <input className="input" name="linked_app_url" defaultValue={account.linked_app_url ?? ""} placeholder="gcash:// or https://…" style={{ minHeight: 42 }} />
       </Field>
+      <p style={{ fontSize: 12.5, color: "var(--color-neutral-600)", margin: "-8px 0 12px" }}>
+        Use the app&rsquo;s own link (like <code>gcash://</code>), not its website, and Kin opens the app itself on your
+        phone instead of a browser tab.
+      </p>
       <Field label="NOTE">
         <input className="input" name="sub_note" defaultValue={account.sub_note ?? ""} style={{ minHeight: 42 }} />
       </Field>
