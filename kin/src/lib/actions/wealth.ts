@@ -70,7 +70,7 @@ export async function updateAccountAction(accountId: string, _prev: ActionState,
     .update({
       name,
       sub_note: String(formData.get("sub_note") ?? "").trim() || null,
-      institution: String(formData.get("institution") ?? "").trim() || null,
+      institution: clamp(String(formData.get("institution") ?? ""), 200) || null,
       linked_app_url: clamp(String(formData.get("linked_app_url") ?? ""), 500) || null,
       app_store_url: clamp(String(formData.get("app_store_url") ?? ""), 500) || null,
       play_store_url: clamp(String(formData.get("play_store_url") ?? ""), 500) || null,

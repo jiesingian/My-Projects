@@ -1,18 +1,10 @@
 "use client";
 
-import { useSyncExternalStore } from "react";
-import { phoneKind } from "@/components/wealth-controls";
-
-const noSubscription = () => () => {};
+import { usePhoneKind } from "@/components/wealth-controls";
 
 /** Companion to the OPEN button above it: that one only works once the app
  * is already installed. This is for before that -- where to get it, on
- * whichever store the phone in hand actually uses. The server can't see a
- * visitor's user agent ahead of the request reaching them, so the server
- * snapshot below is always "other" (both links) and useSyncExternalStore
- * -- not an effect -- swaps in the real answer right after hydration,
- * without a mismatch between what the server sent and what the browser
- * first paints. */
+ * whichever store the phone in hand actually uses. */
 export function GetAppButton({
   appStoreUrl,
   playStoreUrl,
@@ -22,7 +14,7 @@ export function GetAppButton({
   playStoreUrl: string | null;
   label: string;
 }) {
-  const kind = useSyncExternalStore(noSubscription, phoneKind, () => "other" as const);
+  const kind = usePhoneKind();
 
   if (!appStoreUrl && !playStoreUrl) return null;
 
