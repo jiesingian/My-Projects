@@ -127,6 +127,39 @@ export async function getEntries(familyId: string) {
   }));
 }
 
+export async function getEntry(familyId: string, entryId: string) {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("journal_entries")
+    .select(
+      "*, journal_entry_people(members(id, full_name)), journal_entry_media(journal_media(id, storage_path, storage_provider, drive_file_id))",
+    )
+    .eq("family_id", familyId)
+    .eq("id", entryId)
+    .maybeSingle();
+  if (!data) return null;
+
+  type MediaRef = { id: string; storage_path: string | null; storage_provider: string; drive_file_id: string | null };
+  const mediaRefs = (data.journal_entry_media ?? [])
+    .map((m) => m.journal_media as unknown as MediaRef | null)
+    .filter((v): v is MediaRef => !!v);
+  const supabasePaths = mediaRefs.filter((v) => v.storage_provider === "supabase" && v.storage_path).map((v) => v.storage_path as string);
+  const urls = await getSignedUrls("journal", supabasePaths);
+
+  return {
+    ...data,
+    people: (data.journal_entry_people ?? [])
+      .map((p) => (p.members as unknown as { id: string; full_name: string } | null))
+      .filter((v): v is { id: string; full_name: string } => !!v),
+    photos: mediaRefs
+      .map((m) => ({
+        id: m.id,
+        url: m.storage_provider === "google_drive" && m.drive_file_id ? `/api/drive/file/${m.drive_file_id}` : m.storage_path ? (urls[m.storage_path] ?? null) : null,
+      }))
+      .filter((p): p is { id: string; url: string } => !!p.url),
+  };
+}
+
 export async function getMilestones(familyId: string) {
   const supabase = await createClient();
   const { data } = await supabase

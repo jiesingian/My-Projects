@@ -104,7 +104,12 @@ async function EntriesPane({ familyId }: { familyId: string }) {
             </div>
           )}
           {e.note && <p style={{ fontSize: 14, margin: "0 0 9px", color: "var(--color-neutral-800)" }}>{e.note}</p>}
-          <div style={{ fontSize: 13, color: "var(--color-neutral-600)" }}>{e.people.map((p) => p.full_name.split(" ")[0]).join(" · ") || "Whole family"}</div>
+          <div style={{ display: "flex", alignItems: "baseline", gap: 8 }}>
+            <div style={{ fontSize: 13, color: "var(--color-neutral-600)" }}>{e.people.map((p) => p.full_name.split(" ")[0]).join(" · ") || "Whole family"}</div>
+            <Link href={`/journal/${e.id}/edit`} style={{ marginLeft: "auto", fontSize: 13, fontWeight: 600, color: "var(--color-accent-700)" }}>
+              EDIT
+            </Link>
+          </div>
         </Blueprint>
       ))}
       <Link href="/journal/new" className="btn btn-primary btn-block" style={{ minHeight: 46, fontSize: 14, letterSpacing: ".04em" }}>
