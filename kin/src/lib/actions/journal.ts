@@ -215,3 +215,36 @@ export async function createMilestoneAction(_prev: { error: string | null }, for
   revalidatePath("/journal");
   return { error: null };
 }
+
+export async function updateMilestoneAction(input: {
+  milestoneId: string;
+  title: string;
+  date: string;
+  memberId: string | null;
+}): Promise<{ error: string | null }> {
+  const me = await requireCurrentMember();
+  const supabase = await createClient();
+
+  const title = input.title.trim();
+  if (!title) return { error: "Give the milestone a title." };
+
+  const { error } = await supabase
+    .from("milestones")
+    .update({ title, milestone_date: input.date, member_id: input.memberId })
+    .eq("id", input.milestoneId)
+    .eq("family_id", me.family_id);
+  if (error) return { error: humanDatabaseError(error.message) };
+
+  revalidatePath("/journal");
+  return { error: null };
+}
+
+export async function deleteMilestoneAction(milestoneId: string): Promise<{ error: string | null }> {
+  const me = await requireCurrentMember();
+  const supabase = await createClient();
+  const { error } = await supabase.from("milestones").delete().eq("id", milestoneId).eq("family_id", me.family_id);
+  if (error) return { error: humanDatabaseError(error.message) };
+
+  revalidatePath("/journal");
+  return { error: null };
+}

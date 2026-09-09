@@ -8,6 +8,7 @@ import { Blueprint, Tag, Empty } from "@/components/ui";
 import { GalleryUpload } from "@/components/gallery-upload";
 import { GalleryGrid } from "@/components/gallery-grid";
 import { JournalEntryPhotos } from "@/components/journal-entry-photos";
+import { MilestoneControls } from "@/components/milestone-controls";
 import { familyDate } from "@/lib/format-family";
 
 const SEGMENTS = ["gallery", "entries", "milestones"] as const;
@@ -135,6 +136,7 @@ async function MilestonesPane({ familyId }: { familyId: string }) {
             <div style={{ fontSize: 13, color: "var(--color-neutral-600)" }}>
               {(m.members as unknown as { full_name: string } | null)?.full_name ?? "Whole family"}
             </div>
+            <MilestoneControls milestoneId={m.id} title={m.title} date={m.milestone_date} memberId={m.member_id} />
           </div>
         ))}
       </div>
