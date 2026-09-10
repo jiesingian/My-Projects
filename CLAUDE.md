@@ -116,16 +116,25 @@ one does:
 | Open a pull request that merges itself on green | ✅ | |
 | Merge without anyone's approval | ✅ | |
 | Revert anything, including each other's work | ✅ | |
-| Write migrations, and run them against **dev** | ✅ | |
+| Write migrations | ✅ | |
 | Read production data when a question needs it | ✅ | |
 | Supabase dashboard, dev and production | ✅ | |
-| **Apply a migration to production** | | ✅ |
+| **Run the production migration button** | | ✅ |
 | Repository settings and secrets | | ✅ |
 | Anything that spends money | | ✅ |
 
 Production migrations are the one asymmetry, and it is not about trust: the
 schema moves the instant the file is *run*, no review catches it afterwards,
 so one hand on that lever means one story about what the live schema is.
+
+Nobody pastes SQL any more, though. A migration goes in
+`kin/supabase/migrations/`, **dev applies it by itself** the moment the pull
+request merges, and production is one button — Actions → *Migrate* → Run
+workflow → `production` — which only Jonathan presses. Thirteen migrations were
+typed into the SQL editor by hand between the 7th and the 10th, and the record
+of what had actually run was a comment at the top of each file that somebody
+had to remember to change. Twice nobody did. The ledger the pipeline writes is
+in the same transaction as the migration itself, so it cannot disagree.
 
 Nothing else here is a gate. `watched-change.yml` reads every push to `main`
 and opens an issue from the actual diff, whoever pushed and whatever the
@@ -157,10 +166,13 @@ rules stand in for one, and most of them outlive it.
 - **Never use the service-role key** to get around any of the above. It
   bypasses row-level security, which is the thing keeping one household's
   data out of another's.
-- **Never apply a migration to production.** It takes effect when it is run,
-  not when it merges, so nobody can catch a bad one afterwards. Write the
-  `.sql`, say plainly that it needs running, and stop. Applying it to dev is
-  fair game for either of you.
+- **Never run a migration against production yourself**, by any route — the
+  button, the SQL editor, the connector, a connection string. It takes effect
+  when it is run, not when it merges, so nobody can catch a bad one
+  afterwards. Put the `.sql` in `kin/supabase/migrations/`, say plainly that
+  production is still waiting for it, and stop; Jonathan presses the button.
+  Dev is different and needs no permission: it applies itself on merge, and
+  running the same pipeline at it by hand is fair game for either of you.
 
 Which sample household your machine uses is set by `E2E_EMAIL` and described
 in `kin/docs/QA_HOUSEHOLDS.md`. Do not repoint it at another machine's, and

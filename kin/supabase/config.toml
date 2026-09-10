@@ -1,0 +1,6 @@
+# Enough of a Supabase project for the CLI to find the migrations beside it.
+#
+# Nothing here starts a local stack. Both `supabase migration list` and
+# `supabase db push` are run with an explicit --db-url in migrate.yml, so this
+# file exists to mark the directory, not to configure a database.
+project_id = "kin"
