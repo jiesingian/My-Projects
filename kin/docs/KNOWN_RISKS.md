@@ -164,11 +164,12 @@ anything — the failure mode is a confusing red run, not lost data. `e2e.yml`'s
 repo-wide concurrency group of one serialises CI, but nothing serialises two
 laptops.
 
-**Not fixed, and deliberately.** The answer is a second QA household with its
-own account, chosen per machine — not a cleverer prefix, which only narrows the
-window. That needs a new auth user and family created by somebody with the
-service role, which is Jonathan's. Until then the rule is the ordinary
-courtesy already in CLAUDE.md: say what you are running before you run it.
+**Fixed, later the same day.** `ZZ QA Testbed 2` and `kin-e2e-qa2@example.com`
+now exist, and Janine's machine points at them. Neither household can see the
+other. `docs/QA_HOUSEHOLDS.md` says which is which.
+
+**What it did not fix** is below: CI holds the *first* household, and so does
+Jonathan's container. Two laptops no longer collide; a laptop and CI still do.
 
 ---
 
@@ -1179,3 +1180,70 @@ routine expansion made the very UTC-slice mistake it was helping to sweep
 for, and printed every occurrence a day early. It read as a catastrophic
 regression for about a minute. When the subject is dates, the check needs the
 household's zone as much as the code does.
+
+---
+
+## CI and Jonathan's container share one QA household — 10 September
+
+Splitting the throwaway households fixed the two-laptops case and left the
+other one standing. `QA_HOUSEHOLDS.md` assigns `kin-e2e-qa@example.com` to
+"Jonathan's machine, and CI" — one account, two writers, exactly the
+arrangement the split was meant to end. Janine got her own; CI did not.
+
+It is not theoretical. On the morning of the 10th both of Janine's wealth pull
+requests landed within twenty minutes, and each merge queued a suite: runs 42,
+43 and 44 held the household back to back for the better part of an hour. For
+that whole window this container could not run `npm run e2e` at all without
+committing the collision the split exists to prevent, and two changes sat
+finished, type-checked, linted and built, with no suite run against them.
+
+**Why not just run it anyway.** Because the failure mode is not a lost row, it
+is an hour of disbelief. That is written up directly above: rows appearing
+under prefixes this clone had not used, sweeps truthfully reporting themselves
+clean, a suite that could not be made to come out the same way twice. Nothing
+is corrupted and the real household is never reachable — the cost is entirely
+in time and in trusting a red run afterwards.
+
+**The fix is a fourth account**, `kin-e2e-qa4@`, seeded like the others, so CI
+owns the first household alone. It is the same piece of work the second
+household already took, and `QA_HOUSEHOLDS.md` records how: create the auth
+user through the dashboard with *Auto Confirm User* ticked, then `create_family`
+and the ordinary inserts as that account over the anon API, no service-role key
+anywhere. Not done, because a new QA account is Jonathan's to make.
+
+Until then the honest workaround is to look at whether an End-to-end run is in
+flight before starting one locally, and wait if it is.
+
+---
+
+## A push to main can lose its end-to-end run entirely — 10 September
+
+`main` is at a commit the suite never ran against, and nothing about the
+repository says so. Run 41, the suite for `f539d6a` — the merge of #38, which
+was two days of sweeps — reports `cancelled`. CI, Schema check, Secret Scan
+and Build Projects Graph were all green on it. End-to-end simply never
+happened, and a cancelled run is easy to read as somebody's deliberate abort.
+
+**It was not the concurrency setting**, which is the obvious suspect and is
+innocent: `e2e.yml` sets `cancel-in-progress: false` precisely so a run in
+flight is never killed. The gap is on the other side. GitHub keeps **one**
+pending run per concurrency group: queue a third while one is running and one
+is waiting, and the waiting one is dropped. That is what happened — run 40 was
+running, 41 (the push to `main`) was queued behind it, and 42 (a pull request)
+queued behind that and displaced it.
+
+So a pull request can silently take `main`'s suite. The busier the day, the
+likelier it is, which is the wrong way round: `main` is the one that is live.
+
+**No clean fix, which is why this is written down rather than closed.** The
+single group is not incidental — every spec writes into one throwaway
+household, so two suites must not overlap, and per-branch groups would break
+that. A separate group for `main` would let a `main` run and a pull-request run
+overlap, which is the same collision by another name. The real fix is upstream
+of both: the fourth QA account above, after which `main` and pull requests
+could hold different households and different groups honestly.
+
+What can be done meanwhile costs nothing: `e2e.yml` already accepts
+`workflow_dispatch`, so a `main` commit found without a suite can be given one
+on demand. That needs somebody to notice, and noticing is the part that failed
+here.

@@ -3,6 +3,7 @@
 import { useActionState } from "react";
 import Link from "next/link";
 import { updatePasswordAction, type ActionState } from "@/lib/actions/auth";
+import { PASSWORD_MIN } from "@/lib/password";
 import { SubmitButton, ErrorText } from "@/components/form";
 import { OnboardingShell, Wordmark } from "@/components/onboarding-shell";
 import { Icon } from "@/components/icons";
@@ -58,7 +59,7 @@ export function ResetPasswordForm({ email, verified }: { email: string; verified
             type="password"
             name="password"
             required
-            minLength={8}
+            minLength={PASSWORD_MIN}
             autoComplete="new-password"
             autoFocus={verified}
           />
@@ -71,7 +72,7 @@ export function ResetPasswordForm({ email, verified }: { email: string; verified
             type="password"
             name="confirm"
             required
-            minLength={8}
+            minLength={PASSWORD_MIN}
             autoComplete="new-password"
           />
         </div>
@@ -81,8 +82,8 @@ export function ResetPasswordForm({ email, verified }: { email: string; verified
         >
           <Icon name="shieldCheck" size={16} className="text-[var(--color-accent-700)] mt-1" />
           <span style={{ fontSize: 13.5, lineHeight: 1.4 }}>
-            At least 8 characters. Saving this signs Kin out on your other devices, so anyone who
-            had the old password is locked out.
+            At least {PASSWORD_MIN} characters. Saving this signs Kin out on your other devices, so
+            anyone who had the old password is locked out.
           </span>
         </div>
         <SubmitButton style={{ minHeight: 46, fontSize: 15, letterSpacing: ".04em" }}>

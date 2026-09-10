@@ -29,6 +29,12 @@ permissions:
   contents: write
   pull-requests: write
   checks: read
+  # The Vercel deployment is read through the older Statuses API rather than
+  # as a check run, and a permissions block sets every scope it does not list
+  # to none -- so that read was a 403 and the job died before merging
+  # anything. It failed on the line after the one that prints the check-run
+  # tally, which is why the log looks like the checks were the problem.
+  statuses: read
 
 jobs:
   merge:

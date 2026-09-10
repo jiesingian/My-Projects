@@ -8,6 +8,7 @@ import { requireCurrentMember, getCurrentMember } from "@/lib/session";
 import { getValidDriveAccessToken, deleteDriveFile } from "@/lib/google-drive";
 import { resolvePhotoUrl } from "@/lib/photo-url";
 import type { ActionState } from "@/lib/actions/auth";
+import { PASSWORD_MIN } from "@/lib/password";
 import type { UploadedFile } from "@/lib/upload-client";
 import type { TablesInsert } from "@/lib/database.types";
 import { humanDatabaseError } from "@/lib/db-errors";
@@ -237,7 +238,7 @@ export async function addChildWithLoginAction(_prev: ActionState, formData: Form
   const childDobProblem = birthdayProblem(dob);
   if (childDobProblem) return { error: childDobProblem };
   if (!email) return { error: "Enter the email this child will sign in with." };
-  if (password.length < 8) return { error: "Give them a password of at least 8 characters." };
+  if (password.length < PASSWORD_MIN) return { error: `Give them a password of at least ${PASSWORD_MIN} characters.` };
 
   const admin = createAdminClient();
   if (!admin) return { error: "Logins can't be created right now — the server is missing its key." };

@@ -101,6 +101,48 @@ test("choosing a known bank resolves LINK APP without anybody typing it", async 
   await expect(page.getByRole("button", { name: /^TEST$/ })).toBeEnabled();
 });
 
+test("the dropdown offers only the apps that match the account type", async ({ page }) => {
+  // knownAppsForType is pinned as a function in cash-flow-ranges.logic.spec.ts.
+  // What that cannot show is whether the form is actually asking it -- which is
+  // the half that broke the test above, and the half a person sees. So this
+  // reads the options the browser really renders.
+  await openAddAccount(page);
+  const institution = page.getByLabel("BANK / WALLET");
+  const labels = async () => institution.locator("option").allTextContents();
+
+  // Bank is the form's default. Banks, and no wallets.
+  expect(await labels()).toContain("BPI");
+  expect(await labels(), "GCash is an e-wallet and has no business under Bank").not.toContain("GCash");
+
+  await page.getByLabel("TYPE").selectOption("ewallet");
+  expect(await labels()).toContain("GCash");
+  expect(await labels(), "BPI is a bank and has no business under E-wallet").not.toContain("BPI");
+
+  // Every other type keeps the whole list, because none of them map to one of
+  // the two kinds an app is tagged with and offering nothing would be worse.
+  // The label changes with them, so this one is asked by its new name.
+  await page.getByLabel("TYPE").selectOption("credit");
+  const anyType = page.getByLabel("INSTITUTION / APP");
+  const anyLabels = await anyType.locator("option").allTextContents();
+  expect(anyLabels).toContain("GCash");
+  expect(anyLabels).toContain("BPI");
+});
+
+test("changing TYPE takes a pick that no longer applies with it", async ({ page }) => {
+  // Picking GCash under E-wallet and then switching to Bank must not leave
+  // gcash:// sitting in LINK APP under an account type that cannot be GCash.
+  // The form clears it during render; this is the browser confirming it.
+  await openAddAccount(page);
+  const field = page.getByLabel("LINK APP");
+
+  await page.getByLabel("TYPE").selectOption("ewallet");
+  await page.getByLabel("BANK / WALLET").selectOption("GCash");
+  await expect(field).toHaveValue("gcash://");
+
+  await page.getByLabel("TYPE").selectOption("bank");
+  await expect(field, "a stranded pick should take its link with it").toHaveValue("");
+});
+
 test("leaving a known bank takes its links with it", async ({ page }) => {
   /* The reported bug, and worth a test of its own: pick BDO, change your mind
    * and pick Other, and BDO's store link stayed sitting in LINK APP with a

@@ -6,6 +6,7 @@ import type { ActionState } from "@/lib/actions/auth";
 import { SubmitButton, ErrorText } from "@/components/form";
 import { Icon } from "@/components/icons";
 import { DateInput } from "@/components/date-input";
+import { PASSWORD_MIN } from "@/lib/password";
 
 const initialState: ActionState = { error: null };
 
@@ -86,7 +87,7 @@ export function AddChildForm() {
               type="password"
               name="password"
               required
-              minLength={8}
+              minLength={PASSWORD_MIN}
               autoComplete="new-password"
               style={{ minHeight: 44 }}
             />
