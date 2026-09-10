@@ -20,7 +20,8 @@
       "mcp__github__issue_read",
       "mcp__Supabase__search_docs",
       "Bash(npx tsc --noEmit)",
-      "Bash(npm run lint)"
+      "Bash(npm run lint)",
+      "Bash(git commit:*)"
     ]
   }
 }
