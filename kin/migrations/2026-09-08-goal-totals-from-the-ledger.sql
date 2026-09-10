@@ -1,5 +1,31 @@
--- NOT YET APPLIED. Jonathan runs this; nothing here has been run against the
--- database. Read "How to run it" at the foot before you start.
+-- APPLIED 10 September 2026, by Jonathan, and verified after. STEP 2 (the
+-- function) was run. STEP 3 (the backfill) was deliberately NOT run, because
+-- STEP 1 came back empty: measured across every goal in the database, in both
+-- households, there was no drift left to correct.
+--
+--   The Singian            1 goal    current_amount 0    0 linked transactions
+--   ZZ QA Testbed          7 goals   current_amount 0    0 linked transactions
+--
+-- The 210,000 drift this file records from 8 September is gone; that was the
+-- hand-seeded QA fixture, cleared when the throwaway households were rebuilt
+-- on the 9th. So the backfill would have changed nothing, and running it was
+-- skipped rather than performed as a no-op.
+--
+-- Verified four ways, none of them by trusting the interface's row count:
+--
+--   * The function is SECURITY INVOKER, not definer (pg_proc.prosecdef false),
+--     with search_path pinned to public.
+--   * `authenticated` may execute it; `anon` may not -- the revoke took.
+--   * Called twice on a goal with nothing behind it: 0, then 0.
+--   * The real proof, run inside a transaction that was rolled back so nothing
+--     persisted: a 1,234 contribution was inserted against a QA goal and the
+--     function called TWICE. It returned 1234 both times, not 2468. That is
+--     the double-count bug -- the one that needs no race to happen, just two
+--     clicks on Confirm -- demonstrated dead rather than assumed dead.
+--
+-- Nothing was written to a real household at any point. The reads were
+-- reconciliation queries; the only write went to the throwaway testbed and
+-- was rolled back.
 --
 -- Goal totals: two ways to lose money, one fix
 -- ===========================================
