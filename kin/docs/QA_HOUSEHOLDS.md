@@ -13,8 +13,21 @@ E2E_PASSWORD=...
 | `ZZ QA Testbed (throwaway)` | `kin-e2e-qa@example.com` | Jonathan's machine, and CI |
 | `ZZ QA Testbed 2 (throwaway)` | `kin-e2e-qa2@example.com` | Janine's machine |
 
+There is a third account, and it is different in kind:
+
+| Account | What it holds |
+|---|---|
+| `kin-e2e-qa3@example.com` | **Nothing.** It holds no household between runs. |
+
+It exists for `delete-household.spec.ts`, which is the one test that destroys
+the household it runs against. That test creates a household, fills it,
+deletes it, and leaves the account empty again — which is both why it needs
+its own account and why it can be run twice. It reads
+`E2E_DELETE_EMAIL` / `E2E_DELETE_PASSWORD`, never `E2E_EMAIL`, and it skips
+loudly when they are unset rather than pretending to have run.
+
 The passwords are not in this repository and must not be put in it. Jonathan
-has both; ask him for the one your machine needs.
+has all three; ask him for the ones your machine needs.
 
 ## Why there are two
 
@@ -74,6 +87,34 @@ so neither household was created that way; both are rows written directly into
 ever needed, the honest route is the Supabase dashboard's **Authentication →
 Users → Add user** with *Auto Confirm User* ticked, which does the same thing
 without anybody hand-writing an auth row.
+
+## The one test that deletes a household
+
+`delete-household.spec.ts` exists because DELETE HOUSEHOLD promises, on the
+Settings screen, to remove "every member, journal entry, health record,
+document index, and everything else in the app" — and nothing checked that it
+did. On 9 September it quietly stopped being true: `income_schedules` was
+created with no `ON DELETE` clause on `family_id`, which in Postgres means NO
+ACTION, so from the first income schedule any household saved the delete would
+have raised a foreign-key violation. Fifty-one other tables cascade. That one
+did not, and it was caught by reading the schema, which nobody does twice.
+
+**Why it cannot delete the wrong household.** `delete_household()` takes no
+argument — it deletes the caller's own, resolved from the session. The only
+household it can reach is the one belonging to the account it signed in as,
+and that account holds nothing except while the test is running. If it finds a
+household left behind by a run that died half way, it checks the name carries
+the test's own prefix before removing it, and fails rather than guessing.
+
+The last thing the spec does is sign in as `E2E_EMAIL` and confirm that
+household is still there with its members — so "it deleted the right thing"
+and "it left everything else alone" are both assertions rather than
+impressions.
+
+It was verified by putting the bug back: the constraint was returned to NO
+ACTION, the test failed with `violates foreign key constraint
+"income_schedules_family_id_fkey"`, and the constraint was restored. A test
+for a destructive button is worth nothing until it has been seen to fail.
 
 ## Never point these at the real household
 
