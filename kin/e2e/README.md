@@ -10,12 +10,45 @@ away on every load — passed `tsc`, `lint` and `build` without complaint.
 A **throwaway household**. Never point these at your own family: the write
 tests add rows, and nobody wants test data in their journal.
 
-One already exists in the Kin project: family `00000000-…-e2e1`, signed in as
-`kin-e2e-qa@example.com`. Its password is deliberately not in the repository;
-if it has been lost, reset it in the Supabase SQL editor with
-`update auth.users set encrypted_password = extensions.crypt('<new>', extensions.gen_salt('bf')) where email = 'kin-e2e-qa@example.com';`.
+**There are three, and which one is yours is not a free choice.**
+`docs/QA_HOUSEHOLDS.md` is the list and this section defers to it:
 
-Create one in Supabase (SQL editor), then make an auth user for it and set:
+| Account | Whose |
+| --- | --- |
+| `kin-e2e-qa@example.com` | Jonathan's machine, **and CI** |
+| `kin-e2e-qa2@example.com` | Janine's machine |
+| `kin-e2e-qa3@example.com` | `delete-household.spec.ts` only, via `E2E_DELETE_EMAIL` |
+
+Until 9 September there was one, and this file said so — which is why anyone
+reading only this page asks for the first account by name. Two people ran the
+suite against it from two machines minutes apart and spent an hour deciding
+nothing was broken. Use the one your machine is assigned. The two households
+are seeded identically, so there is nothing in one that the other lacks and
+no reason to reach for somebody else's.
+
+**The passwords are not here and must not be put here.** Jonathan has all
+three; ask him for the one your machine needs.
+
+**Do not reset the first account's password.** It is the CI secret
+`E2E_PASSWORD`, so changing it in the SQL editor stops every End-to-end run
+dead — the suite refuses to start rather than testing a logged-out shell —
+until somebody with repository-settings access updates the secret to match.
+If a password is genuinely lost, that is Jonathan's to reissue, secret and
+all, together. For the record the statement is:
+
+```sql
+update auth.users
+   set encrypted_password = extensions.crypt('<new>', extensions.gen_salt('bf'))
+ where email = 'kin-e2e-qa2@example.com';   -- never a real account
+```
+
+It writes directly to `auth.users` in the one Supabase project the Singian
+family's real records live in, so the `where` clause is the only thing keeping
+it off somebody's actual login. Read it twice before running it.
+
+To create a fresh throwaway household of your own, make an auth user in
+Supabase (**Authentication → Users → Add user**, *Auto Confirm User* ticked)
+and then set:
 
 ```bash
 export E2E_EMAIL='the throwaway account'
