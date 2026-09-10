@@ -1,0 +1,213 @@
+name: Daily check
+
+# One result a day, instead of two people watching each other's pushes.
+#
+# The automatic checks on each pull request are the gate -- nothing merges
+# without them. This is the different thing: a check of the whole setup
+# against `main` as it actually stands, once a day, at an hour somebody is
+# awake to read it.
+#
+# It exists because some failures cannot be caught by a pull request at all:
+#
+#   - A migration written, merged, and never run. The code and the database
+#     drift apart with every check green, which is exactly what broke Settings
+#     and Add account in front of a person on 9 September.
+#   - Fixtures ageing out. `regressions.spec` asserts against activities dated
+#     one specific week; from 14 September they fall outside the window and the
+#     suite starts failing on both machines at once, with nothing having
+#     changed.
+#   - A dependency, a Supabase change, or an expiring credential. Nobody pushes
+#     anything and `main` stops working anyway.
+#
+# 09:00 UTC is 17:00 in Manila.
+on:
+  schedule:
+    - cron: "0 9 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+# The suite writes into the shared throwaway household, so this must queue
+# behind any other run rather than race it. Same group as e2e.yml on purpose.
+# Not cancel-in-progress: a cancelled suite can leave a preference it meant to
+# restore.
+concurrency:
+  group: e2e
+  cancel-in-progress: false
+
+jobs:
+  check:
+    name: the whole setup, against main
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Check the secrets are present
+        env:
+          URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          ANON: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+          EMAIL: ${{ secrets.E2E_EMAIL }}
+          PASSWORD: ${{ secrets.E2E_PASSWORD }}
+        run: |
+          missing=""
+          [ -n "$URL" ] || missing="$missing NEXT_PUBLIC_SUPABASE_URL"
+          [ -n "$ANON" ] || missing="$missing NEXT_PUBLIC_SUPABASE_ANON_KEY"
+          [ -n "$EMAIL" ] || missing="$missing E2E_EMAIL"
+          [ -n "$PASSWORD" ] || missing="$missing E2E_PASSWORD"
+          if [ -n "$missing" ]; then
+            echo "Missing repository secret(s):$missing"; exit 1
+          fi
+
+      - run: npm ci
+        working-directory: kin
+
+      # Each step records its own verdict rather than stopping the run, so one
+      # failure does not hide the state of everything after it. A day where
+      # three things broke should say three things broke.
+      - name: Typecheck
+        id: tsc
+        if: always()
+        working-directory: kin
+        run: npx tsc --noEmit
+
+      - name: Lint
+        id: lint
+        if: always()
+        working-directory: kin
+        run: npm run lint
+
+      # NEXT_PUBLIC_* is inlined at build time, so the build that the suite
+      # then runs against has to be given them here or the app comes up
+      # pointing at nothing.
+      - name: Build
+        id: build
+        if: always()
+        working-directory: kin
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+        run: npm run build
+
+      # Does the database have what the code believes in? The check that would
+      # have caught the three unrun migrations.
+      - name: Schema
+        id: schema
+        if: always()
+        working-directory: kin
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+          E2E_EMAIL: ${{ secrets.E2E_EMAIL }}
+          E2E_PASSWORD: ${{ secrets.E2E_PASSWORD }}
+        run: node scripts/check-schema.mjs
+
+      - name: Install the browser
+        if: always()
+        working-directory: kin
+        run: npx playwright install --with-deps chromium
+
+      - name: Start the app
+        if: always()
+        working-directory: kin
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+        run: |
+          npm run start &
+          npx wait-on http://localhost:3000/login --timeout 120000
+
+      # The Supabase values belong here as well as on the build, for the same
+      # reason e2e.yml spells them out twice: locally playwright.config.ts
+      # reads them from .env.local, so the specs that talk to PostgREST
+      # directly always had them. CI has no .env.local, and without these
+      # twelve tests call test.skip() and the run goes green having checked
+      # none of them.
+      - name: The suite
+        id: e2e
+        if: always()
+        working-directory: kin
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+          E2E_EMAIL: ${{ secrets.E2E_EMAIL }}
+          E2E_PASSWORD: ${{ secrets.E2E_PASSWORD }}
+          E2E_DELETE_EMAIL: ${{ secrets.E2E_DELETE_EMAIL }}
+          E2E_DELETE_PASSWORD: ${{ secrets.E2E_DELETE_PASSWORD }}
+        run: npm run e2e
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: daily-playwright-report
+          path: kin/playwright-report/
+          retention-days: 7
+          if-no-files-found: ignore
+
+      # Silence on a good day is the point. Nobody wants an issue every
+      # morning saying nothing happened -- that is the notification everybody
+      # learns to swipe away, and then the one that matters goes with it.
+      # A green run leaves its green tick in Actions and says nothing.
+      - name: Say what broke
+        if: failure()
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          TSC: ${{ steps.tsc.outcome }}
+          LINT: ${{ steps.lint.outcome }}
+          BUILD: ${{ steps.build.outcome }}
+          SCHEMA: ${{ steps.schema.outcome }}
+          E2E: ${{ steps.e2e.outcome }}
+        run: |
+          set -euo pipefail
+          TODAY=$(TZ=Asia/Manila date +%Y-%m-%d)
+
+          {
+            echo "The daily check found something on \`main\`. Nobody pushed it there today"
+            echo "necessarily — this runs against main as it stands, so a failure here can"
+            echo "mean the database moved, a fixture aged out, or a credential expired,"
+            echo "as easily as it can mean a bad commit."
+            echo
+            echo "| Check | Result |"
+            echo "| --- | --- |"
+            echo "| Typecheck | $TSC |"
+            echo "| Lint | $LINT |"
+            echo "| Build | $BUILD |"
+            echo "| Schema | $SCHEMA |"
+            echo "| End-to-end | $E2E |"
+            echo
+            echo "[The run, with the logs and the Playwright report]($RUN_URL)"
+            echo
+            echo "If **Schema** is the one that failed, it is almost always a migration"
+            echo "written and merged but never run — \`kin/migrations\` holds them, and"
+            echo "running one against production is Jonathan's."
+            echo
+            echo "---"
+            echo "_Generated by [Claude Code](https://claude.ai/code)_"
+          } > /tmp/body.md
+
+          # One issue per bad day, reopened rather than duplicated if the same
+          # day fails twice (a manual re-run after a fix, say).
+          EXISTING=$(gh issue list --repo "$REPO" --label "daily-check" --state open \
+            --search "Daily check — $TODAY in:title" --json number --jq '.[0].number // empty')
+
+          gh label create "daily-check" --repo "$REPO" --color B60205 \
+            --description "The 17:00 Manila run of the whole setup found something." || true
+
+          if [ -n "$EXISTING" ]; then
+            gh issue comment "$EXISTING" --repo "$REPO" --body-file /tmp/body.md
+          else
+            gh issue create --repo "$REPO" \
+              --title "Daily check — $TODAY" \
+              --label "daily-check" \
+              --body-file /tmp/body.md
+          fi
