@@ -32,8 +32,8 @@ jobs:
         run: |
           gh label create "auto-merge" --repo "$REPO" --color 0E8A16 \
             --description "Small and clear of the sensitive paths; merges on green." || true
-          gh label create "needs-jonathan" --repo "$REPO" --color D93F0B \
-            --description "Waits for Jonathan: expensive to undo, or too large to merge unseen." || true
+          gh label create "watched" --repo "$REPO" --color D93F0B \
+            --description "Touches expensive-to-undo territory, or is large. Flagged, not held." || true
 
       - name: Work out whether this needs Jonathan
         id: triage
@@ -117,7 +117,20 @@ jobs:
             echo "needs_review=false" >> "$GITHUB_OUTPUT"
           fi
 
-      - name: Hold it for review
+      # Flagged, not held. Until 10 September this added "needs-jonathan",
+      # stripped "auto-merge" and disabled auto-merge outright -- a manual
+      # approval gate by another name, and the rule now is that there is no
+      # manual approval, ever. What replaces it is visibility without a
+      # blocker: the label and the comment still say plainly that the change
+      # is in expensive territory, and the checks still decide whether it
+      # merges.
+      #
+      # Nothing is lost by not blocking here, because the blocking was never
+      # the thing catching mistakes. watched-change.yml reads every push to
+      # main and opens an issue from the actual diff, whoever pushed it and
+      # whatever the commit message claimed. That is the record, and it does
+      # not depend on anyone reading a pull request in time.
+      - name: Flag it as watched
         if: steps.triage.outputs.needs_review == 'true'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -125,13 +138,11 @@ jobs:
           REPO: ${{ github.repository }}
           REASON: ${{ steps.triage.outputs.reason }}
         run: |
-          gh pr edit "$PR" --repo "$REPO" --add-label "needs-jonathan" --remove-label "auto-merge" || true
-          # Disables any auto-merge a previous, smaller push may have armed.
-          gh pr merge "$PR" --repo "$REPO" --disable-auto || true
+          gh pr edit "$PR" --repo "$REPO" --add-label "watched" --add-label "auto-merge" --remove-label "needs-jonathan" || true
           gh pr comment "$PR" --repo "$REPO" --body \
-            "**Held for review** — $REASON.
+            "**Watched territory** — $REASON.
 
-          This one waits for Jonathan. Nothing is wrong with it; it is just in territory where a mistake is expensive, so it gets read before it ships."
+          Flagged, not held: it merges on green like anything else. This is a record, not an objection — \`watched-change.yml\` will open an issue for it once it lands on \`main\`, so it does not go by unseen."
 
       - name: Mark it as mergeable on green
         if: steps.triage.outputs.needs_review == 'false'
