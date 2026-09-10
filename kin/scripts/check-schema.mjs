@@ -107,6 +107,50 @@ const NOT_A_SCHEMA_PROBLEM = new Set(["42501"]);
  * kin/migrations. It was not, and they would have found nothing there. */
 const CANNOT_CHECK = new Set(["PGRST301", "PGRST302", "PGRST303", "401", "403", "500", "502", "503", "504"]);
 
+/** How many times a probe is worth repeating before its answer counts.
+ *
+ * PGRST303 "JWT issued at future" is clock skew between the auth server that
+ * minted the token and the PostgREST instance reading it, and it is per
+ * request rather than per run. Measured on 10 September against production:
+ * exactly one probe of 62 -- assets -- was refused, while every other table
+ * answered normally on the same token seconds either side of it. That one
+ * refusal failed the whole check.
+ *
+ * A check that goes red for a reason nobody can act on is a check people learn
+ * to scroll past, and this is the one file in the repository that cannot
+ * afford that -- it exists because three migrations were merged and never run
+ * and every green tick agreed with them.
+ *
+ * Only "could not ask" is retried. A missing column will not have appeared by
+ * the second look, and retrying it would just make an honest failure slower.
+ */
+const ATTEMPTS = 3;
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
+/** Ask one table once, and again if the answer was "could not ask". */
+async function probe(url, table, cols, headers) {
+  let last = { code: "network", message: "no attempt was made" };
+  for (let attempt = 1; attempt <= ATTEMPTS; attempt++) {
+    let res;
+    try {
+      res = await fetch(`${url}/rest/v1/${table}?select=${cols.join(",")}&limit=0`, { headers });
+    } catch (e) {
+      last = { code: "network", message: String(e.message ?? e) };
+      if (attempt < ATTEMPTS) await sleep(1000 * attempt);
+      continue;
+    }
+    if (res.ok) return { ok: true, attempt };
+    let body;
+    try { body = JSON.parse(await res.text()); } catch { body = { message: `HTTP ${res.status}` }; }
+    last = { code: body.code ?? String(res.status), message: body.message ?? "" };
+    // A schema answer, right or wrong, is an answer. Only auth and transport
+    // failures are worth asking about a second time.
+    if (!CANNOT_CHECK.has(last.code)) return { ...last, attempt };
+    if (attempt < ATTEMPTS) await sleep(1000 * attempt);
+  }
+  return { ...last, attempt: ATTEMPTS };
+}
+
 /** Ask one database whether it has what the code believes in.
  *
  * It signs in first, and that is not incidental. The probe is
@@ -138,30 +182,33 @@ async function checkOne(label, url, key, email, password, tables) {
   const problems = [];
   const unreachable = [];
   const unchecked = [];
+  const retried = [];
   let columns = 0;
   let checked = 0;
 
   await Promise.all(
     [...tables].map(async ([table, cols]) => {
       if (cols.length === 0) return;
-      let res;
-      try {
-        res = await fetch(`${url}/rest/v1/${table}?select=${cols.join(",")}&limit=0`, { headers });
-      } catch (e) {
-        unchecked.push({ table, code: "network", message: String(e.message ?? e) });
+      const r = await probe(url, table, cols, headers);
+      if (r.ok) {
+        checked += 1;
+        columns += cols.length;
+        if (r.attempt > 1) retried.push(`${table} (answered on attempt ${r.attempt})`);
         return;
       }
-      if (res.ok) { checked += 1; columns += cols.length; return; }
-      let body;
-      try { body = JSON.parse(await res.text()); } catch { body = { message: `HTTP ${res.status}` }; }
-      const code = body.code ?? String(res.status);
-      if (NOT_A_SCHEMA_PROBLEM.has(code)) { unreachable.push(table); return; }
-      if (CANNOT_CHECK.has(code)) { unchecked.push({ table, code, message: body.message ?? "" }); return; }
-      problems.push({ table, code, message: body.message ?? "" });
+      if (NOT_A_SCHEMA_PROBLEM.has(r.code)) { unreachable.push(table); return; }
+      if (CANNOT_CHECK.has(r.code)) { unchecked.push({ table, code: r.code, message: r.message }); return; }
+      problems.push({ table, code: r.code, message: r.message });
     }),
   );
 
   console.log(`\n${label}: ${checked} tables, ${columns} columns, checked against ${new URL(url).host}`);
+  // Said out loud rather than swallowed: a retry that saved a run is the only
+  // evidence that the skew is still there, and it is worth knowing if it
+  // starts needing all three attempts.
+  if (retried.length > 0) {
+    console.log(`${label}: ${retried.length} needed a retry (auth or transport, not schema): ${retried.sort().join(", ")}`);
+  }
   if (unreachable.length > 0) {
     console.log(
       `${label}: ${unreachable.length} not checked, because this credential may not read them at all ` +
