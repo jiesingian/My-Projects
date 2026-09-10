@@ -44,21 +44,41 @@ itself. Nothing serialises two laptops. Two households does.
 
 ## What each one holds
 
-They are seeded identically, because `regressions.spec` is not self-sufficient
-— it asserts against fixtures the household is expected to already hold, and a
-household missing them fails for reasons that have nothing to do with the code.
+They started identically, seeded once on 9 September, because `regressions.spec`
+is not self-sufficient — it asserts against fixtures the household is expected
+to already hold, and a household missing them fails for reasons that have
+nothing to do with the code. This part has stayed identical since, and neither
+household's own tests touch it:
 
 - **Three members**: Quinn Tester (parent, organiser, the login), Robin Tester
   and Alex Tester (managed children).
-- **Two accounts**: Joint checking (joint, ₱185,000) and GCash (Quinn's own,
-  ₱4,200). `goal-contribute.spec` needs an account to pay from; the Who picker
-  needs one of each kind to mean anything.
 - **Five activities** at 07:30, 10:00 and 17:30 Manila on Mon 7 September, plus
   two later in that week. The morning and evening ones are what
   `regressions.spec` reads to prove the Planner uses the household's clock
   rather than the server's — under UTC they would read 23:30 the previous day
   and 09:30.
 - **One health item** due, and **one milestone**, for the two briefing tests.
+
+**Wealth data is not identical, and was never meant to stay that way.**
+Nothing above asserts an exact balance, account count, or bill list —
+`goal-contribute.spec` needs an account to pay from and the Who picker needs
+one of each kind, both about shape, not values — so this is free to drift as
+real test runs use it, and the two households have drifted apart rather than
+staying matched:
+
+- **qa1** currently holds one account, Joint checking, at ₱315,229.5 after
+  real activity since the 9 September seed (it started at ₱185,000). It
+  launched with a GCash account too; that's gone now, removed at some point
+  this was not caught or recorded.
+- **qa2** held no wealth data at all until 10 September, when it was seeded to
+  match qa1's original shape: Joint checking from the same ₱185,000 opening
+  balance (landed at the same ₱315,229.5 after the same five transactions —
+  one salary, four expenses across Groceries/Utilities/Health/Education), a
+  GCash account (joint, ₱4,200), two assets, one liability, two goals, and
+  three bills. It also carries a private e-wallet account from the original
+  9 September seed that predates this and was left alone.
+
+Don't assume the two match without checking.
 
 ## Known: the seed is pinned to one week
 
