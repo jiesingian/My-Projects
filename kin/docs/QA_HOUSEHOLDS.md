@@ -73,10 +73,12 @@ staying matched:
 - **qa2** held no wealth data at all until 10 September, when it was seeded to
   match qa1's original shape: Joint checking from the same ₱185,000 opening
   balance (landed at the same ₱315,229.5 after the same five transactions —
-  one salary, four expenses across Groceries/Utilities/Health/Education), a
-  GCash account (joint, ₱4,200), two assets, one liability, two goals, and
-  three bills. It also carries a private e-wallet account from the original
-  9 September seed that predates this and was left alone.
+  one salary, four expenses across Groceries/Utilities/Health/Education), two
+  assets, one liability, two goals, and three bills. Seeding also added a
+  second GCash account by mistake — one already existed from the original
+  9 September seed (private, ₱4,200) — so the new one was archived the same
+  day rather than left to confuse the next person reading this file. qa2's
+  one e-wallet is that original private one, same as it always was.
 
 Don't assume the two match without checking.
 
