@@ -28,6 +28,7 @@ import {
   cashBalanceTrend,
   billsDueWithin,
   expenseCategoryColor,
+  timeSinceLabel,
   type AccountType,
   type AssetKind,
   type LiabilityKind,
@@ -918,6 +919,7 @@ async function AssetsPane({ familyId, memberId, currency, scope }: { familyId: s
                 {ASSET_KIND_LABELS[a.kind as AssetKind] ?? a.kind}
                 {a.acquired_on ? ` · since ${fmtDate(a.acquired_on)}` : ""}
                 {a.note ? ` · ${a.note}` : ""}
+                {a.updated_at ? ` · updated ${timeSinceLabel(a.updated_at)}` : ""}
               </span>
             </span>
             <span style={{ fontFamily: "var(--font-numeric)", fontSize: 13, flex: "none" }}>{formatCurrency(Number(a.value), currency)}</span>
@@ -946,6 +948,7 @@ async function AssetsPane({ familyId, memberId, currency, scope }: { familyId: s
                 {LIABILITY_KIND_LABELS[l.kind as LiabilityKind] ?? l.kind}
                 {l.lender ? ` · ${l.lender}` : ""}
                 {l.monthly_payment ? ` · ${formatCurrency(Number(l.monthly_payment), currency)}/mo` : ""}
+                {l.updated_at ? ` · updated ${timeSinceLabel(l.updated_at)}` : ""}
               </span>
             </span>
             <span style={{ fontFamily: "var(--font-numeric)", fontSize: 13, flex: "none", color: "var(--color-accent-700)" }}>

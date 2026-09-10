@@ -282,6 +282,31 @@ export function cashBalanceTrend(
   return history.map((h, i) => ({ key: h.key, label: h.label, balance: balances[i] }));
 }
 
+/** "6 months ago" -- the freshness cue next to a manually-tracked asset or
+ * liability value (updated_at). A car or a piano doesn't reprice itself,
+ * so its value on the A&L tab is only as current as whoever last opened
+ * UPDATE and typed a new one; this is what lets a household actually see
+ * that, the way Empower nudges a stale holding. Coarse on purpose -- a
+ * household checking a car's value once a year doesn't need to know it
+ * was 187 days, just that it's been months. */
+export function timeSinceLabel(iso: string, now: Date = new Date()): string {
+  const then = new Date(iso);
+  const days = Math.max(0, Math.floor((now.getTime() - then.getTime()) / (24 * 60 * 60 * 1000)));
+  if (days < 1) return "today";
+  if (days < 2) return "yesterday";
+  if (days < 7) return `${days} days ago`;
+  if (days < 30) {
+    const weeks = Math.floor(days / 7);
+    return weeks === 1 ? "a week ago" : `${weeks} weeks ago`;
+  }
+  if (days < 365) {
+    const months = Math.floor(days / 30);
+    return months === 1 ? "a month ago" : `${months} months ago`;
+  }
+  const years = Math.floor(days / 365);
+  return years === 1 ? "a year ago" : `${years} years ago`;
+}
+
 export type BillLike = { due_date: string | null; status: string; amount: number | string };
 
 /** Bills due within the next `days`, soonest (or most overdue) first, with a

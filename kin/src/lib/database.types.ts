@@ -295,6 +295,7 @@ export type Database = {
           name: string
           note: string | null
           owner_member_id: string | null
+          updated_at: string
           value: number
         }
         Insert: {
@@ -308,6 +309,7 @@ export type Database = {
           name: string
           note?: string | null
           owner_member_id?: string | null
+          updated_at?: string
           value?: number
         }
         Update: {
@@ -321,6 +323,7 @@ export type Database = {
           name?: string
           note?: string | null
           owner_member_id?: string | null
+          updated_at?: string
           value?: number
         }
         Relationships: [
@@ -2342,6 +2345,7 @@ export type Database = {
           name: string
           note: string | null
           owner_member_id: string | null
+          updated_at: string
         }
         Insert: {
           balance?: number
@@ -2357,6 +2361,7 @@ export type Database = {
           name: string
           note?: string | null
           owner_member_id?: string | null
+          updated_at?: string
         }
         Update: {
           balance?: number
@@ -2372,6 +2377,7 @@ export type Database = {
           name?: string
           note?: string | null
           owner_member_id?: string | null
+          updated_at?: string
         }
         Relationships: [
           {
