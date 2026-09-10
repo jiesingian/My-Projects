@@ -35,15 +35,29 @@ export async function updateOwnProfileAction(fields: ProfileFields): Promise<Act
   return { error: error ? humanDatabaseError(error.message) : null };
 }
 
-/** Lets the organizer edit another member's profile fields — covered by
- * the members_update_by_organiser RLS policy. */
+/** Lets the organizer edit any member's profile fields, and lets a parent or
+ * adult edit a managed child's — covered by the members_update_by_organiser
+ * and members_update_managed_by_parent RLS policies respectively. A managed
+ * child has no login of their own, so somebody has to be able to fix a
+ * birthday or note an allergy on their behalf, and the organizer doesn't
+ * have to be the one in the house who does it. */
 export async function updateMemberProfileAction(memberId: string, fields: ProfileFields): Promise<ActionState> {
   const me = await requireCurrentMember();
-  if (!me.is_organiser) return { error: "Only the organizer can edit another member's profile." };
+  const supabase = await createClient();
+
+  if (!me.is_organiser) {
+    if (me.role !== "parent" && me.role !== "adult") {
+      return { error: "Only the organizer can edit another member's profile." };
+    }
+    const { data: target } = await supabase.from("members").select("status").eq("id", memberId).maybeSingle();
+    if (target?.status !== "managed") {
+      return { error: "Only the organizer can edit another member's profile." };
+    }
+  }
+
   const fullName = clamp(fields.full_name, 100);
   if (!fullName) return { error: "Name is required." };
 
-  const supabase = await createClient();
   const { error } = await supabase.from("members").update({ ...clampProfileFields(fields), full_name: fullName }).eq("id", memberId);
   revalidatePath("/family");
   return { error: error ? humanDatabaseError(error.message) : null };
