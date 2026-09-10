@@ -1,0 +1,79 @@
+name: Schema check
+
+# Does the database actually have what the code believes in?
+#
+# On 9 September three migrations were merged and never run, and the app broke
+# in front of a person: saving Settings failed with "Could not find the
+# 'country' column of 'families'", and adding an account failed the same way on
+# 'app_store_url'. Every check this repository had was green at the time, and
+# correctly so -- tsc, lint and build compare the code against
+# database.types.ts, and that file said the columns existed. Nothing was
+# asking Postgres.
+#
+# This asks Postgres. It is deliberately its own workflow rather than a step in
+# ci.yml: it needs the Supabase secrets, it is the only check whose answer can
+# change without a single line of code changing, and it should be readable as
+# its own red tick when it fails.
+#
+# It runs on every push to main and every pull request, with no path filter.
+# A migration lands as a .sql file, but the breakage lands wherever the code
+# that needs it is -- and often in a different change entirely, which is
+# exactly how this got through.
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# One at a time. This only reads, and only the shape of the schema rather than
+# any row, so it cannot disturb the end-to-end suite -- but two of these racing
+# each other would just be two identical answers.
+concurrency:
+  group: schema-check
+  cancel-in-progress: true
+
+jobs:
+  check:
+    name: the database has what the code expects
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      # Says which secret is missing rather than failing later with a login
+      # screen or an empty result, the same way e2e.yml does. A schema check
+      # that passes because it could not reach the database is worse than none:
+      # it is a green tick that means nothing, so the script exits 2 rather
+      # than 0 when it cannot ask.
+      - name: Check the secrets are present
+        env:
+          URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          ANON: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+          EMAIL: ${{ secrets.E2E_EMAIL }}
+          PASSWORD: ${{ secrets.E2E_PASSWORD }}
+        run: |
+          missing=""
+          [ -n "$URL" ] || missing="$missing NEXT_PUBLIC_SUPABASE_URL"
+          [ -n "$ANON" ] || missing="$missing NEXT_PUBLIC_SUPABASE_ANON_KEY"
+          [ -n "$EMAIL" ] || missing="$missing E2E_EMAIL"
+          [ -n "$PASSWORD" ] || missing="$missing E2E_PASSWORD"
+          if [ -n "$missing" ]; then
+            echo "Missing repository secret(s):$missing"
+            echo "This check reads the shape of the schema as the throwaway QA account."
+            exit 1
+          fi
+
+      - name: Ask the database
+        working-directory: kin
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+          E2E_EMAIL: ${{ secrets.E2E_EMAIL }}
+          E2E_PASSWORD: ${{ secrets.E2E_PASSWORD }}
+        run: node scripts/check-schema.mjs
