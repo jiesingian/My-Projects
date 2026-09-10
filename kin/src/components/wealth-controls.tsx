@@ -15,7 +15,7 @@ import {
   ACCOUNT_TYPE_LABELS,
   EXPENSE_CATEGORIES,
   INCOME_SOURCES,
-  KNOWN_APPS,
+  knownAppsForType,
   isKnownInstitutionLabel,
   resolveInstitutionLinks,
   type AccountType,
@@ -110,6 +110,25 @@ export function AppLinksField({
   const storeId = useId();
   const playId = useId();
   const kind = usePhoneKind();
+  const availableApps = knownAppsForType(accountType);
+
+  // TYPE changing can strand a pick that no longer applies -- BPI selected
+  // under Bank, then TYPE flipped to E-wallet. Adjusted here, during render
+  // (React's own documented way to react to a prop change without an
+  // effect: https://react.dev/learn/you-might-not-need-an-effect), rather
+  // than in a useEffect, which this repo's lint already refuses for
+  // exactly this shape of setState.
+  const [priorAccountType, setPriorAccountType] = useState(accountType);
+  if (accountType !== priorAccountType) {
+    setPriorAccountType(accountType);
+    const stillOffered = selected === "" || selected === "other" || availableApps.some((a) => a.label === selected);
+    if (!stillOffered) {
+      setSelected("");
+      setAppUrl("");
+      setAppStoreUrl("");
+      setPlayStoreUrl("");
+    }
+  }
 
   // On a phone, Kin knows which store applies to the person filling this
   // in right now, so only that one field needs to show -- the other stays
@@ -198,7 +217,7 @@ export function AppLinksField({
           style={{ minHeight: 42 }}
         >
           <option value="">— select —</option>
-          {KNOWN_APPS.map((app) => (
+          {availableApps.map((app) => (
             <option key={app.label} value={app.label}>
               {app.label}
             </option>
@@ -218,8 +237,9 @@ export function AppLinksField({
         )}
         {selected !== "other" && <input type="hidden" name="institution" value={selected} />}
         <p style={{ fontSize: 12.5, color: "var(--color-neutral-600)", margin: "6px 0 0" }}>
-          Choosing GCash, BPI or BDO resolves LINK APP below automatically, verified against each one&rsquo;s own
-          store listing — nothing else to fill in. Anything else: pick Other and type the name.
+          {accountType === "bank" || accountType === "ewallet"
+            ? `Narrowed to ${accountType === "bank" ? "banks" : "e-wallets"} — picking one resolves LINK APP below automatically, verified against its own store listing. Anything else: pick Other and type the name.`
+            : "Choosing a known name resolves LINK APP below automatically, verified against its own store listing — nothing else to fill in. Anything else: pick Other and type the name."}
         </p>
       </div>
 

@@ -30,6 +30,7 @@ import {
   type CashFlowRange,
 } from "@/lib/wealth";
 import { familyDate, householdDateFormat } from "@/lib/format-family";
+import { CollapsibleGroup } from "@/components/collapsible-group";
 
 /* Joint and Mine were the same page twice; they are one Accounts tab now,
    with a Who button of the kind the Planner uses. Bills moved into Cash
@@ -207,26 +208,6 @@ function HistoryStrip({ history, currency, title = "LAST SIX MONTHS" }: { histor
 function SectionLabel({ children }: { children: React.ReactNode }) {
   return (
     <div style={{ font: "600 13px/1 var(--font-heading)", letterSpacing: ".02em", color: "var(--color-neutral-600)", margin: "20px 0 8px" }}>{children}</div>
-  );
-}
-
-/** A step above SectionLabel -- for the two things A&L actually organizes
- * around, assets and liabilities, with everything else (cash, goals, other
- * property) filed as a SectionLabel underneath one or the other rather than
- * standing on its own. */
-function GroupLabel({ children }: { children: React.ReactNode }) {
-  return (
-    <div
-      style={{
-        font: "600 20px/1.1 var(--font-heading)",
-        letterSpacing: "-.01em",
-        margin: "28px 0 4px",
-        paddingBottom: 9,
-        borderBottom: "2px solid var(--color-divider)",
-      }}
-    >
-      {children}
-    </div>
   );
 }
 
@@ -616,8 +597,7 @@ async function AssetsPane({ familyId, memberId, currency, scope }: { familyId: s
         caption={`${formatCurrency(cashTotal, currency)} cash + ${formatCurrency(goalTotal, currency)} in goals + ${formatCurrency(assetTotal, currency)} owned − ${formatCurrency(liabilityTotal, currency)} owed`}
       />
 
-      <GroupLabel>ASSETS</GroupLabel>
-
+      <CollapsibleGroup title="ASSETS">
       <SectionLabel>CASH & SAVINGS</SectionLabel>
       {cashAccounts.length === 0 && (
         <Empty icon="🏦" title="No accounts yet" line="Every account you can see shows up here automatically once it exists — add one from the Accounts tab." />
@@ -714,8 +694,9 @@ async function AssetsPane({ familyId, memberId, currency, scope }: { familyId: s
       <Link href="/wealth/assets/new?kind=asset" className="btn btn-secondary btn-block" style={{ minHeight: 42, fontSize: 13.5, letterSpacing: ".04em", marginTop: 4 }}>
         + ASSET
       </Link>
+      </CollapsibleGroup>
 
-      <GroupLabel>LIABILITIES</GroupLabel>
+      <CollapsibleGroup title="LIABILITIES">
       {liabilities.length === 0 && (
         <Empty icon="✅" title="Nothing owed" line="No loans or debts on record. If that changes, adding them here keeps the net worth figure honest." />
       )}
@@ -743,6 +724,7 @@ async function AssetsPane({ familyId, memberId, currency, scope }: { familyId: s
       <Link href="/wealth/assets/new?kind=liability" className="btn btn-secondary btn-block" style={{ minHeight: 42, fontSize: 13.5, letterSpacing: ".04em", marginTop: 4 }}>
         + LIABILITY
       </Link>
+      </CollapsibleGroup>
 
       <div style={{ fontSize: 13, color: "var(--color-neutral-600)", marginTop: 16 }}>
         Net worth counts every account balance, everything saved toward a goal, plus what you own, less what you owe.
