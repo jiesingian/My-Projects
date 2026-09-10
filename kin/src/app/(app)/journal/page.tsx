@@ -2,6 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { after } from "next/server";
 import { getCurrentMember } from "@/lib/session";
+import { createClient } from "@/lib/supabase/server";
 import { getGallery, getEntries, getMilestones, syncDriveJournalMedia } from "@/lib/queries/journal";
 import { HubHeader } from "@/components/hub-header";
 import { Blueprint, Tag, Empty } from "@/components/ui";
@@ -55,9 +56,30 @@ export default async function JournalPage({
 async function GalleryPane({ familyId }: { familyId: string }) {
   const fmtDate = await familyDate();
   const media = await getGallery(familyId);
+
+  // A photo that's still indexed but whose Drive connection has since died
+  // (revoked in the household's Google Account, or expired unused) renders as
+  // a bare, unlabeled placeholder with nothing to click -- the household has
+  // no way to tell "temporarily broken" from "gone for good". If any photo
+  // here is Drive-backed and the link is no longer connected, say so and
+  // point at the one place that fixes it.
+  const hasDriveMedia = media.some((m) => m.storage_provider === "google_drive");
+  let driveDisconnected = false;
+  if (hasDriveMedia) {
+    const supabase = await createClient();
+    const { data: link } = await supabase.from("drive_links").select("connected").eq("family_id", familyId).maybeSingle();
+    driveDisconnected = link?.connected === false;
+  }
+
   return (
     <>
       <GalleryUpload />
+      {driveDisconnected && (
+        <div className="blueprint" style={{ padding: 10, marginBottom: 14, fontSize: 13 }}>
+          <span style={{ color: "var(--color-accent-700)" }}>Google Drive is no longer connected</span> — photos backed up
+          there won&apos;t load until you reconnect. <Link href="/settings" style={{ textDecoration: "underline" }}>Reconnect in Settings</Link>.
+        </div>
+      )}
       {media.length === 0 ? (
         <Empty
           icon="🖼"

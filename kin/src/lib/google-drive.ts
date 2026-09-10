@@ -34,7 +34,21 @@ export async function getValidDriveAccessToken(familyId: string): Promise<string
       grant_type: "refresh_token",
     }),
   });
-  if (!res.ok) return null;
+  if (!res.ok) {
+    // Google answers a dead refresh token (revoked in the household's Google
+    // Account, or expired from six months unused) with 400 invalid_grant --
+    // a permanent no, unlike a 5xx or a network blip, which are worth
+    // retrying next call. Left alone, drive_links.connected stays true
+    // forever: Settings keeps saying CONNECTED, the household has no button
+    // to press, and every Drive photo just quietly stops loading. Marking it
+    // false here is what disconnectDriveAction does on a deliberate
+    // disconnect -- this is Google doing that on the household's behalf.
+    if (res.status === 400) {
+      await admin.from("drive_links").update({ connected: false }).eq("family_id", familyId);
+      await admin.from("drive_tokens").delete().eq("family_id", familyId);
+    }
+    return null;
+  }
   const refreshed = (await res.json()) as { access_token: string; expires_in: number };
 
   // Not fatal -- the token just fetched is returned either way -- but if this
