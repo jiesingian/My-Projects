@@ -30,6 +30,7 @@ import {
   type CashFlowRange,
 } from "@/lib/wealth";
 import { familyDate, householdDateFormat } from "@/lib/format-family";
+import { CollapsibleGroup } from "@/components/collapsible-group";
 
 /* Joint and Mine were the same page twice; they are one Accounts tab now,
    with a Who button of the kind the Planner uses. Bills moved into Cash
@@ -55,7 +56,7 @@ export default async function WealthPage({ searchParams }: { searchParams: Promi
       <HubHeader n="05" title="Wealth" segments={segments} dateFormat={me.families.date_format} />
       <div style={{ padding: "0 22px 22px" }}>
         {seg === "cashflow" && <CashFlowPane familyId={me.family_id} memberId={me.id} currency={currency} range={range} scope={who} />}
-        {seg === "accounts" && <ScopePane scope={who} familyId={me.family_id} memberId={me.id} currency={currency} />}
+        {seg === "accounts" && <ScopePane scope={who} familyId={me.family_id} memberId={me.id} currency={currency} range={range} />}
         {seg === "assets" && <AssetsPane familyId={me.family_id} memberId={me.id} currency={currency} scope={who} />}
       </div>
     </div>
@@ -210,26 +211,6 @@ function SectionLabel({ children }: { children: React.ReactNode }) {
   );
 }
 
-/** A step above SectionLabel -- for the two things A&L actually organizes
- * around, assets and liabilities, with everything else (cash, goals, other
- * property) filed as a SectionLabel underneath one or the other rather than
- * standing on its own. */
-function GroupLabel({ children }: { children: React.ReactNode }) {
-  return (
-    <div
-      style={{
-        font: "600 20px/1.1 var(--font-heading)",
-        letterSpacing: "-.01em",
-        margin: "28px 0 4px",
-        paddingBottom: 9,
-        borderBottom: "2px solid var(--color-divider)",
-      }}
-    >
-      {children}
-    </div>
-  );
-}
-
 function EntryRow({ entry, currency, dateFormat, showAccount }: { entry: LedgerEntry; currency: string; dateFormat: string; showAccount?: boolean }) {
   const isIn = entry.direction === "in";
   return (
@@ -299,15 +280,23 @@ function QuickActions() {
 
 async function CashFlowPane({ familyId, memberId, currency, range, scope }: { familyId: string; memberId: string; currency: string; range: CashFlowRange; scope: WealthScope }) {
   const [fmtDate, dateFormat] = await Promise.all([familyDate(), householdDateFormat()]);
-  const [cf, accounts, who] = await Promise.all([
+  const [cf, budget, accounts, who] = await Promise.all([
     getCashFlowPane(familyId, range, scope),
+    getWealthPane(familyId, memberId, scope),
     getAccounts(familyId),
     whoPicker(familyId, memberId, scope, (w) => `/wealth?seg=cashflow&range=${range}&who=${w}`),
   ]);
   const pickable = toPickable(accounts, memberId);
   const bareAccounts = pickable.map((a) => ({ id: a.id, name: a.name }));
-  const periodNoun = range === "week" ? "week" : range === "year" ? "year" : "month";
+  const periodNoun = range === "day" ? "day" : range === "week" ? "week" : range === "year" ? "year" : "month";
   const mine = scope === memberId;
+  const isJoint = scope === "all";
+  const whosePossessive = selfPossessive(who.whoLabel, mine);
+  // Same budget-vs-target data the Accounts tab used to show, moved here:
+  // one is the household's spending ceiling (Expenses), the other a
+  // member's own earning target (Income) -- both monthly by nature of the
+  // tables behind them, independent of whichever graph range is active.
+  const categories = [...budget.allocations, ...budget.unbudgeted];
 
   return (
     <>
@@ -333,6 +322,7 @@ async function CashFlowPane({ familyId, memberId, currency, range, scope }: { fa
 
       <FlowRow income={cf.periodIncome} expense={cf.periodExpense} currency={currency} />
 
+      <CollapsibleGroup title="GRAPH">
       <div style={{ display: "flex", alignItems: "center", gap: 6, margin: "0 0 4px" }}>
         <PickButton
           title="Graph range"
@@ -343,8 +333,22 @@ async function CashFlowPane({ familyId, memberId, currency, range, scope }: { fa
         <span style={{ fontSize: 12.5, color: "var(--color-neutral-600)" }}>Income against expenses, grouped by {CASH_FLOW_RANGE_LABELS[range].toLowerCase()}</span>
       </div>
       <HistoryStrip history={cf.history} currency={currency} title={`BY ${CASH_FLOW_RANGE_LABELS[range].toUpperCase()}`} />
+      </CollapsibleGroup>
 
-      <SectionLabel>INCOME</SectionLabel>
+      <CollapsibleGroup title="INCOME">
+      {!isJoint && (
+        <>
+          <Meter
+            label={mine ? "EARNED OF TARGET" : "EARNED THIS MONTH"}
+            value={budget.monthIncome}
+            cap={mine ? budget.budgetAmount : null}
+            currency={currency}
+            note={mine ? "Your own revenue target this month." : `${whosePossessive} target is theirs to see.`}
+          />
+          {/* Only your own target is yours to set. */}
+          {scope === memberId && <SetTargetControl month={budget.month} year={budget.year} current={budget.budgetAmount} />}
+        </>
+      )}
       {cf.expectedIncome.length === 0 && cf.receivedIncome.length === 0 && cf.recentIncome.length === 0 && (
         <Empty icon="💰" title="Nothing recorded yet" line="Salary, a regular gift, business revenue — expect it here so receiving it is one tap." />
       )}
@@ -392,8 +396,43 @@ async function CashFlowPane({ familyId, memberId, currency, range, scope }: { fa
         </>
       )}
       <AddIncomeScheduleForm accounts={bareAccounts} />
+      </CollapsibleGroup>
 
-      <SectionLabel>EXPENSES</SectionLabel>
+      <CollapsibleGroup title="EXPENSES">
+      {isJoint && (
+        <>
+          <Meter label="SPENT OF BUDGET" value={budget.monthExpense} cap={budget.budgetAmount} currency={currency} note="Set the month's ceiling below." />
+          <SetBudgetControl month={budget.month} year={budget.year} current={budget.budgetAmount} />
+        </>
+      )}
+
+      <SectionLabel>{isJoint ? "BUDGET VS SPEND BY CATEGORY" : "WHERE IT WENT THIS MONTH"}</SectionLabel>
+      {categories.length === 0 && (
+        <Empty icon="📊" title="Nothing spent yet this month" line="Once money moves, this breaks it down by category so you can see where it actually goes." />
+      )}
+      {categories.map((c) => {
+        const cap = c.amount > 0 ? c.amount : c.spent;
+        const pct = cap > 0 ? Math.min(100, Math.round((c.spent / cap) * 100)) : 0;
+        const over = c.amount > 0 && c.spent > c.amount;
+        return (
+          <div key={c.id} style={{ marginBottom: 11 }}>
+            <div style={{ display: "flex", fontSize: 13.5, marginBottom: 4 }}>
+              <span>{c.category}</span>
+              {c.amount === 0 && <span style={{ fontSize: 12, color: "var(--color-neutral-600)", marginLeft: 6 }}>no budget</span>}
+              <span style={{ marginLeft: "auto", fontFamily: "var(--font-numeric)", fontSize: 13 }}>
+                {formatCurrency(c.spent, currency)}
+                {c.amount > 0 ? ` / ${formatCurrency(c.amount, currency)}` : ""}
+              </span>
+            </div>
+            <div style={{ height: 7, background: "var(--color-neutral-200)" }}>
+              <div style={{ height: "100%", width: `${pct}%`, background: over ? "var(--color-accent-700)" : "var(--color-accent)" }} />
+            </div>
+          </div>
+        );
+      })}
+      {isJoint && <div style={{ marginTop: 12 }}><AllocationEditor budgeted={budget.allocations.map((a) => a.category)} /></div>}
+
+      <SectionLabel>BILLS</SectionLabel>
       {cf.openBills.length === 0 && cf.settledBills.length === 0 && cf.recentExpense.length === 0 && (
         <Empty icon="🧾" title="Nothing recorded yet" line="Mortgage payments, groceries, checkups, meals, travel, fuel — anything the household spends on." />
       )}
@@ -444,23 +483,27 @@ async function CashFlowPane({ familyId, memberId, currency, range, scope }: { fa
         </>
       )}
       <AddBillForm />
+      </CollapsibleGroup>
     </>
   );
 }
 
 /* ------------------------------------------------------------- accounts */
 
-async function ScopePane({ scope, familyId, memberId, currency }: { scope: WealthScope; familyId: string; memberId: string; currency: string }) {
-  const [dateFormat, pane, who] = await Promise.all([
+async function ScopePane({ scope, familyId, memberId, currency, range }: { scope: WealthScope; familyId: string; memberId: string; currency: string; range: CashFlowRange }) {
+  const [dateFormat, pane, cf, who] = await Promise.all([
     householdDateFormat(),
     getWealthPane(familyId, memberId, scope),
-    whoPicker(familyId, memberId, scope, (w) => `/wealth?seg=accounts&who=${w}`),
+    // Budget and target now live on Cash Flow -- this pane only still
+    // needs getCashFlowPane for its own history strip, at whichever range
+    // the picker below is set to.
+    getCashFlowPane(familyId, range, scope),
+    whoPicker(familyId, memberId, scope, (w) => `/wealth?seg=accounts&range=${range}&who=${w}`),
   ]);
   const isJoint = scope === "all";
   const mine = scope === memberId;
   const whosePossessive = selfPossessive(who.whoLabel, mine);
   const monthLabel = new Date(pane.year, pane.month - 1, 1).toLocaleString("en-PH", { month: "long", year: "numeric" }).toUpperCase();
-  const categories = [...pane.allocations, ...pane.unbudgeted];
 
   return (
     <>
@@ -478,55 +521,18 @@ async function ScopePane({ scope, familyId, memberId, currency }: { scope: Wealt
         caption={`${pane.accounts.length} account${pane.accounts.length === 1 ? "" : "s"} · ${monthLabel}`}
       />
 
-      <HistoryStrip history={pane.history} currency={currency} />
+      <div style={{ display: "flex", alignItems: "center", gap: 6, margin: "0 0 4px" }}>
+        <PickButton
+          title="Graph range"
+          icon="calendarDays"
+          label={CASH_FLOW_RANGE_LABELS[range]}
+          options={CASH_FLOW_RANGES.map((r) => ({ label: CASH_FLOW_RANGE_LABELS[r], href: `/wealth?seg=accounts&range=${r}&who=${scope}`, active: range === r }))}
+        />
+        <span style={{ fontSize: 12.5, color: "var(--color-neutral-600)" }}>Money in against money out, grouped by {CASH_FLOW_RANGE_LABELS[range].toLowerCase()}</span>
+      </div>
+      <HistoryStrip history={cf.history} currency={currency} title={`BY ${CASH_FLOW_RANGE_LABELS[range].toUpperCase()}`} />
 
       <QuickActions />
-      <FlowRow income={pane.monthIncome} expense={pane.monthExpense} currency={currency} />
-
-      {isJoint ? (
-        <>
-          <Meter label="SPENT OF BUDGET" value={pane.monthExpense} cap={pane.budgetAmount} currency={currency} note="Set the month's ceiling below." />
-          <SetBudgetControl month={pane.month} year={pane.year} current={pane.budgetAmount} />
-        </>
-      ) : (
-        <>
-          <Meter
-            label={mine ? "EARNED OF TARGET" : "EARNED THIS MONTH"}
-            value={pane.monthIncome}
-            cap={mine ? pane.budgetAmount : null}
-            currency={currency}
-            note={mine ? "Your own revenue target this month." : `${whosePossessive} target is theirs to see.`}
-          />
-          {/* Only your own target is yours to set. */}
-          {scope === memberId && <SetTargetControl month={pane.month} year={pane.year} current={pane.budgetAmount} />}
-        </>
-      )}
-
-      <SectionLabel>{isJoint ? "BUDGET VS SPEND BY CATEGORY" : "WHERE IT WENT THIS MONTH"}</SectionLabel>
-      {categories.length === 0 && (
-        <Empty icon="📊" title="Nothing spent yet this month" line="Once money moves, this breaks it down by category so you can see where it actually goes." />
-      )}
-      {categories.map((c) => {
-        const cap = c.amount > 0 ? c.amount : c.spent;
-        const pct = cap > 0 ? Math.min(100, Math.round((c.spent / cap) * 100)) : 0;
-        const over = c.amount > 0 && c.spent > c.amount;
-        return (
-          <div key={c.id} style={{ marginBottom: 11 }}>
-            <div style={{ display: "flex", fontSize: 13.5, marginBottom: 4 }}>
-              <span>{c.category}</span>
-              {c.amount === 0 && <span style={{ fontSize: 12, color: "var(--color-neutral-600)", marginLeft: 6 }}>no budget</span>}
-              <span style={{ marginLeft: "auto", fontFamily: "var(--font-numeric)", fontSize: 13 }}>
-                {formatCurrency(c.spent, currency)}
-                {c.amount > 0 ? ` / ${formatCurrency(c.amount, currency)}` : ""}
-              </span>
-            </div>
-            <div style={{ height: 7, background: "var(--color-neutral-200)" }}>
-              <div style={{ height: "100%", width: `${pct}%`, background: over ? "var(--color-accent-700)" : "var(--color-accent)" }} />
-            </div>
-          </div>
-        );
-      })}
-      {isJoint && <div style={{ marginTop: 12 }}><AllocationEditor budgeted={pane.allocations.map((a) => a.category)} /></div>}
 
       <PendingBlock pending={pane.pending} currency={currency} dateFormat={dateFormat} />
 
@@ -616,8 +622,7 @@ async function AssetsPane({ familyId, memberId, currency, scope }: { familyId: s
         caption={`${formatCurrency(cashTotal, currency)} cash + ${formatCurrency(goalTotal, currency)} in goals + ${formatCurrency(assetTotal, currency)} owned − ${formatCurrency(liabilityTotal, currency)} owed`}
       />
 
-      <GroupLabel>ASSETS</GroupLabel>
-
+      <CollapsibleGroup title="ASSETS">
       <SectionLabel>CASH & SAVINGS</SectionLabel>
       {cashAccounts.length === 0 && (
         <Empty icon="🏦" title="No accounts yet" line="Every account you can see shows up here automatically once it exists — add one from the Accounts tab." />
@@ -714,8 +719,9 @@ async function AssetsPane({ familyId, memberId, currency, scope }: { familyId: s
       <Link href="/wealth/assets/new?kind=asset" className="btn btn-secondary btn-block" style={{ minHeight: 42, fontSize: 13.5, letterSpacing: ".04em", marginTop: 4 }}>
         + ASSET
       </Link>
+      </CollapsibleGroup>
 
-      <GroupLabel>LIABILITIES</GroupLabel>
+      <CollapsibleGroup title="LIABILITIES">
       {liabilities.length === 0 && (
         <Empty icon="✅" title="Nothing owed" line="No loans or debts on record. If that changes, adding them here keeps the net worth figure honest." />
       )}
@@ -743,6 +749,7 @@ async function AssetsPane({ familyId, memberId, currency, scope }: { familyId: s
       <Link href="/wealth/assets/new?kind=liability" className="btn btn-secondary btn-block" style={{ minHeight: 42, fontSize: 13.5, letterSpacing: ".04em", marginTop: 4 }}>
         + LIABILITY
       </Link>
+      </CollapsibleGroup>
 
       <div style={{ fontSize: 13, color: "var(--color-neutral-600)", marginTop: 16 }}>
         Net worth counts every account balance, everything saved toward a goal, plus what you own, less what you owe.

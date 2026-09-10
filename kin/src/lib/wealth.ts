@@ -104,10 +104,10 @@ export function monthKey(date: Date | string): string {
 }
 
 /** How far back the Cash Flow graph looks, per granularity it can switch to. */
-export const CASH_FLOW_RANGES = ["week", "month", "year"] as const;
+export const CASH_FLOW_RANGES = ["day", "week", "month", "year"] as const;
 export type CashFlowRange = (typeof CASH_FLOW_RANGES)[number];
-export const CASH_FLOW_RANGE_LABELS: Record<CashFlowRange, string> = { week: "Weeks", month: "Months", year: "Years" };
-const CASH_FLOW_RANGE_COUNT: Record<CashFlowRange, number> = { week: 12, month: 12, year: 5 };
+export const CASH_FLOW_RANGE_LABELS: Record<CashFlowRange, string> = { day: "Days", week: "Weeks", month: "Months", year: "Years" };
+const CASH_FLOW_RANGE_COUNT: Record<CashFlowRange, number> = { day: 14, week: 12, month: 12, year: 5 };
 export function cashFlowRangeCount(range: CashFlowRange): number {
   return CASH_FLOW_RANGE_COUNT[range];
 }
@@ -132,6 +132,24 @@ export function yearKey(date: Date | string): string {
   return String(d.getFullYear());
 }
 
+export function dayKey(date: Date | string): string {
+  const d = typeof date === "string" ? new Date(date) : date;
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
+
+/** The last `count` calendar days ending with the day containing `anchor`,
+ * oldest first -- the finest granularity the Cash Flow and Accounts graphs
+ * switch to, for a household that wants to see today and yesterday rather
+ * than waiting for a week to fill in. */
+export function recentDays(count: number, anchor: Date = new Date()): { key: string; label: string; start: Date }[] {
+  const today = new Date(anchor.getFullYear(), anchor.getMonth(), anchor.getDate());
+  return Array.from({ length: count }, (_, i) => {
+    const start = new Date(today);
+    start.setDate(start.getDate() - (count - 1 - i));
+    return { key: dayKey(start), label: start.toLocaleDateString("en-GB", { day: "numeric", month: "short" }).toUpperCase(), start };
+  });
+}
+
 /** The last `count` calendar weeks ending with the week containing `anchor`, oldest first. */
 export function recentWeeks(count: number, anchor: Date = new Date()): { key: string; label: string; start: Date }[] {
   const thisWeek = startOfWeek(anchor);
@@ -153,12 +171,14 @@ export function recentYears(count: number, anchor: Date = new Date()): { key: st
 /** One shared shape for the three granularities the Cash Flow graph can
  * switch between, so the page renders them without caring which is active. */
 export function recentPeriods(range: CashFlowRange, count: number, anchor: Date = new Date()): { key: string; label: string; start: Date }[] {
+  if (range === "day") return recentDays(count, anchor);
   if (range === "week") return recentWeeks(count, anchor);
   if (range === "year") return recentYears(count, anchor);
   return recentMonths(count, anchor).map((m) => ({ key: m.key, label: m.label, start: new Date(m.year, m.month - 1, 1) }));
 }
 
 export function periodKey(date: Date | string, range: CashFlowRange): string {
+  if (range === "day") return dayKey(date);
   if (range === "week") return weekKey(date);
   if (range === "year") return yearKey(date);
   return monthKey(date);
@@ -190,8 +210,18 @@ export function explainLedgerRefusal(message: string): string {
 
 export type PhoneKind = "ios" | "android" | "other";
 
+/** Which BANK/WALLET-adjacent account type a known app fits under, so the
+ * dropdown can show only what's relevant once TYPE is picked: a bank
+ * account isn't going to be GCash, and picking E-wallet shouldn't surface
+ * BPI. GoTyme is technically a licensed digital bank, not a wallet app --
+ * filed under "ewallet" anyway because that's how households actually
+ * think of it (a phone-first account opened the same way GCash and Maya
+ * are), and that's the only thing this classification is for. */
+export type KnownAppKind = "bank" | "ewallet";
+
 export type KnownApp = {
   label: string;
+  kind: KnownAppKind;
   appUrl?: string;
   appStoreUrl?: string;
   playStoreUrl?: string;
@@ -237,49 +267,58 @@ export type KnownApp = {
  * own digital-only sibling (UnionDigital) turned up nothing verifiable on
  * one pass -- worth another look later, not worth guessing now. */
 export const KNOWN_APPS: KnownApp[] = [
-  { label: "GCash", appUrl: "gcash://" },
+  { label: "GCash", kind: "ewallet", appUrl: "gcash://" },
   {
     label: "BPI",
+    kind: "bank",
     appStoreUrl: "https://apps.apple.com/ph/app/bpi/id6443950982",
     playStoreUrl: "https://play.google.com/store/apps/details?id=com.bpi.ng.app",
   },
   {
     label: "BDO",
+    kind: "bank",
     appStoreUrl: "https://apps.apple.com/ph/app/bdo-online/id1551584630",
     playStoreUrl: "https://play.google.com/store/apps/details?id=ph.com.bdo.retail",
   },
   {
     label: "Maya",
+    kind: "ewallet",
     appStoreUrl: "https://apps.apple.com/ph/app/maya-savings-loans-cards/id991673877",
     playStoreUrl: "https://play.google.com/store/apps/details?id=com.paymaya",
   },
   {
     label: "Metrobank",
+    kind: "bank",
     appStoreUrl: "https://apps.apple.com/ph/app/metrobank-app/id1536081176",
     playStoreUrl: "https://play.google.com/store/apps/details?id=ph.com.metrobank.mcc.mbonline",
   },
   {
     label: "UnionBank",
+    kind: "bank",
     appStoreUrl: "https://apps.apple.com/ph/app/unionbank-online/id1242291412",
     playStoreUrl: "https://play.google.com/store/apps/details?id=com.unionbankph.online",
   },
   {
     label: "Security Bank",
+    kind: "bank",
     appStoreUrl: "https://apps.apple.com/ph/app/security-bank-app/id6476122865",
     playStoreUrl: "https://play.google.com/store/apps/details?id=com.securitybank.bbx",
   },
   {
     label: "RCBC",
+    kind: "bank",
     appStoreUrl: "https://apps.apple.com/ph/app/rcbc-pulz/id1445403196",
     playStoreUrl: "https://play.google.com/store/apps/details?id=com.rcbc.pulz",
   },
   {
     label: "GoTyme",
+    kind: "ewallet",
     appStoreUrl: "https://apps.apple.com/ph/app/gotyme-bank/id1637067963",
     playStoreUrl: "https://play.google.com/store/apps/details?id=ph.com.gotyme",
   },
   {
     label: "LandBank",
+    kind: "bank",
     appStoreUrl: "https://apps.apple.com/ph/app/landbank-mobile-banking/id950232162",
     playStoreUrl: "https://play.google.com/store/apps/details?id=com.landbank.mobilebanking",
   },
@@ -287,6 +326,18 @@ export const KNOWN_APPS: KnownApp[] = [
 
 export function isKnownInstitutionLabel(label: string): boolean {
   return KNOWN_APPS.some((a) => a.label === label);
+}
+
+/** Which of KNOWN_APPS actually make sense to offer, given the account
+ * type someone just picked -- a bank account isn't going to be GCash, and
+ * an e-wallet isn't going to be BPI. Only bank and ewallet narrow the list;
+ * every other type (credit, investment, other) shows all of it, since none
+ * of those map to one of the two kinds a known app is ever tagged with,
+ * and showing nothing would be worse than showing everything. */
+export function knownAppsForType(accountType: AccountType): KnownApp[] {
+  if (accountType === "bank") return KNOWN_APPS.filter((a) => a.kind === "bank");
+  if (accountType === "ewallet") return KNOWN_APPS.filter((a) => a.kind === "ewallet");
+  return KNOWN_APPS;
 }
 
 /** A working store link for literally any institution, in any country --
