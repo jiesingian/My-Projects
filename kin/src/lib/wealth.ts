@@ -208,6 +208,98 @@ export function explainLedgerRefusal(message: string): string {
     : message;
 }
 
+/** Category colour for the budget list and the spend-by-category bar -- a
+ * small fixed palette (seven hues) rather than one per category. Seven is
+ * deliberate: past that, colours stop being reliably tellable apart side by
+ * side (checked with the same colourblind-safety method --cal-* already
+ * uses), so the categories a household logs against every week get their
+ * own colour and the occasional ones -- Education, Travel, Insurance, Debt,
+ * plus the literal Other bucket -- share a neutral instead of a hue nobody
+ * could actually distinguish from its neighbour. The CSS variables are
+ * defined once, in globals.css, so light/dark swap in one place. */
+const EXPENSE_CATEGORY_COLOR_VAR: Record<string, string> = {
+  Groceries: "var(--wealth-groceries)",
+  Utilities: "var(--wealth-utilities)",
+  Housing: "var(--wealth-housing)",
+  Transport: "var(--wealth-transport)",
+  Health: "var(--wealth-health)",
+  Dining: "var(--wealth-dining)",
+  Shopping: "var(--wealth-shopping)",
+};
+export function expenseCategoryColor(category: string): string {
+  return EXPENSE_CATEGORY_COLOR_VAR[category] ?? "var(--wealth-cat-other)";
+}
+
+/** How this period compares to the one before it -- the badge that turns a
+ * hero number into a judgment ("up ₱2,100 from last month") without making
+ * anyone read the bars to find out, the way every net-worth screen from
+ * Mint to Monarch leads with a delta next to the headline figure rather
+ * than the figure alone.
+ *
+ * `history` is oldest first, the shape every history array in this file
+ * already returns; the last two entries are this period and the one before
+ * it. Needs at least two periods to compare. The previous period's net can
+ * legitimately be zero -- a period with no activity at all -- and a
+ * percentage of zero doesn't mean anything, so that case returns `null`
+ * for `pctChange` rather than reporting it as Infinity or -Infinity. */
+export function periodOverPeriodChange(
+  history: { income: number; expense: number }[],
+): { netDelta: number; previousNet: number; currentNet: number; pctChange: number | null } | null {
+  if (history.length < 2) return null;
+  const previous = history[history.length - 2];
+  const current = history[history.length - 1];
+  const previousNet = previous.income - previous.expense;
+  const currentNet = current.income - current.expense;
+  const netDelta = currentNet - previousNet;
+  const pctChange = previousNet === 0 ? null : (netDelta / Math.abs(previousNet)) * 100;
+  return { netDelta, previousNet, currentNet, pctChange };
+}
+
+/** A cash-balance trend across the same window the history strip already
+ * covers, reconstructed backward from the current total rather than stored
+ * anywhere -- an account's balance has never been stored, only computed as
+ * opening balance plus every movement since (`loadAccounts`, in
+ * `queries/wealth.ts`), so a trend has to work the same way: each period's
+ * net is already known, and the balance held right after period *i* is
+ * today's balance, less every period's net that happened after *i*.
+ *
+ * This is the cash portion of net worth only. Assets, liabilities and goals
+ * don't carry a per-period history the way transactions do -- a car is
+ * worth what it's worth until someone updates it -- so a full net-worth
+ * trend would need a stored monthly snapshot (a migration), not this. Said
+ * plainly rather than silently covering only half the number and calling
+ * it "net worth". */
+export function cashBalanceTrend(
+  history: { key: string; label: string; income: number; expense: number }[],
+  currentTotal: number,
+): { key: string; label: string; balance: number }[] {
+  const balances: number[] = new Array(history.length);
+  let running = currentTotal;
+  for (let i = history.length - 1; i >= 0; i--) {
+    balances[i] = running;
+    running -= history[i].income - history[i].expense;
+  }
+  return history.map((h, i) => ({ key: h.key, label: h.label, balance: balances[i] }));
+}
+
+export type BillLike = { due_date: string | null; status: string; amount: number | string };
+
+/** Bills due within the next `days`, soonest (or most overdue) first, with a
+ * running total -- what Copilot and YNAB call an "upcoming" view: not
+ * "here is every unpaid bill" (the household already has that, sorted by
+ * due date, further down the same page) but "here is what you'll actually
+ * need between now and then, and how much". An overdue bill is still owed,
+ * so it counts too, at the front rather than dropped for being in the past.
+ * A bill with no due date isn't due *by* anything, so it's left out of a
+ * forecast that only makes sense as a deadline. */
+export function billsDueWithin<T extends BillLike>(bills: T[], days: number, from: Date = new Date()): { bills: T[]; total: number } {
+  const horizon = new Date(from.getFullYear(), from.getMonth(), from.getDate() + days);
+  const due = bills
+    .filter((b) => b.status !== "paid" && b.due_date && new Date(b.due_date) <= horizon)
+    .sort((a, b) => (a.due_date ?? "").localeCompare(b.due_date ?? ""));
+  return { bills: due, total: due.reduce((sum, b) => sum + Number(b.amount), 0) };
+}
+
 export type PhoneKind = "ios" | "android" | "other";
 
 /** Which BANK/WALLET-adjacent account type a known app fits under, so the

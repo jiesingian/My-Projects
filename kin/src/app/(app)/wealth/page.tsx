@@ -24,6 +24,10 @@ import {
   LIABILITY_KIND_LABELS,
   CASH_FLOW_RANGES,
   CASH_FLOW_RANGE_LABELS,
+  periodOverPeriodChange,
+  cashBalanceTrend,
+  billsDueWithin,
+  expenseCategoryColor,
   type AccountType,
   type AssetKind,
   type LiabilityKind,
@@ -81,13 +85,52 @@ async function whoPicker(familyId: string, memberId: string, scope: WealthScope,
 
 /* --------------------------------------------------------------- shared bits */
 
-function Hero({ label, amount, currency, caption }: { label: string; amount: number; currency: string; caption?: string }) {
+function Hero({ label, amount, currency, caption, delta }: { label: string; amount: number; currency: string; caption?: string; delta?: React.ReactNode }) {
   return (
     <Blueprint style={{ padding: 15, marginBottom: 14 }}>
       <div style={{ font: "600 13px/1 var(--font-heading)", letterSpacing: ".02em", color: "var(--color-neutral-600)" }}>{label}</div>
-      <div style={{ font: "600 38px/1.05 var(--font-heading)", letterSpacing: "-.02em", margin: "9px 0 0" }}>{formatCurrency(amount, currency)}</div>
+      <div style={{ display: "flex", alignItems: "baseline", flexWrap: "wrap", gap: 8, margin: "9px 0 0" }}>
+        <span style={{ font: "600 38px/1.05 var(--font-heading)", letterSpacing: "-.02em" }}>{formatCurrency(amount, currency)}</span>
+        {delta}
+      </div>
       {caption && <div style={{ fontSize: 13, color: "var(--color-neutral-600)", marginTop: 6 }}>{caption}</div>}
     </Blueprint>
+  );
+}
+
+/** Turns a hero number into a judgment ("up ₱2,100 from last month") instead
+ * of making anyone read the graph to find out -- the badge every net-worth
+ * screen from Mint to Monarch leads with. `null` (fewer than two periods of
+ * history, or no real change) renders nothing rather than a badge with
+ * nothing to say. Up reads as the app's own accent, the way a positive
+ * number already does elsewhere on this page; down stays neutral rather
+ * than reaching for a red this app has never used -- a lighter grocery
+ * month is not an error state. */
+function DeltaBadge({ change, currency, noun }: { change: ReturnType<typeof periodOverPeriodChange>; currency: string; noun: string }) {
+  if (!change || change.netDelta === 0) return null;
+  const up = change.netDelta > 0;
+  return (
+    <span
+      style={{
+        display: "inline-flex",
+        alignItems: "center",
+        gap: 3,
+        padding: "3px 9px",
+        borderRadius: 999,
+        fontSize: 12.5,
+        fontFamily: "var(--font-numeric)",
+        color: up ? "var(--color-accent-700)" : "var(--color-neutral-700)",
+        background: up ? "var(--color-accent-100)" : "var(--color-neutral-200)",
+      }}
+    >
+      <span aria-hidden="true">{up ? "▲" : "▼"}</span>
+      {formatCurrency(Math.abs(change.netDelta), currency)}
+      {change.pctChange !== null && ` (${Math.abs(Math.round(change.pctChange))}%)`}
+      <span className="sr-only">
+        {" "}
+        {up ? "up" : "down"} from {noun}
+      </span>
+    </span>
   );
 }
 
@@ -153,6 +196,13 @@ function HistoryStrip({ history, currency, title = "LAST SIX MONTHS" }: { histor
 
   return (
     <div style={{ marginBottom: 20 }}>
+      {/* A hover title on each bar is all a sighted mouse user gets today;
+          this is the same information in words, for a screen reader or a
+          keyboard user who can reach neither a hover nor the bars' shape. */}
+      <p className="sr-only">
+        {title}, {history.length} periods.{" "}
+        {history.map((h) => `${h.label}: in ${formatCurrency(h.income, currency)}, out ${formatCurrency(h.expense, currency)}`).join("; ")}.
+      </p>
       <div style={{ display: "flex", alignItems: "baseline", marginBottom: 9 }}>
         <span style={{ font: "600 13px/1 var(--font-heading)", letterSpacing: ".02em", color: "var(--color-neutral-600)" }}>{title}</span>
         <span style={{ marginLeft: "auto", display: "flex", gap: 12, fontSize: 12, color: "var(--color-neutral-600)" }}>
@@ -165,7 +215,7 @@ function HistoryStrip({ history, currency, title = "LAST SIX MONTHS" }: { histor
         </span>
       </div>
 
-      <div style={{ display: "flex", gap: 6, alignItems: "flex-end", height: 62, borderBottom: "1px solid var(--color-divider)", paddingBottom: 1 }}>
+      <div aria-hidden="true" style={{ display: "flex", gap: 6, alignItems: "flex-end", height: 62, borderBottom: "1px solid var(--color-divider)", paddingBottom: 1 }}>
         {history.map((h) => (
           <div key={h.key} style={{ flex: 1, display: "flex", gap: 2, alignItems: "flex-end", height: "100%" }}>
             <span
@@ -189,7 +239,7 @@ function HistoryStrip({ history, currency, title = "LAST SIX MONTHS" }: { histor
           </div>
         ))}
       </div>
-      <div style={{ display: "flex", gap: 6, marginTop: 5 }}>
+      <div aria-hidden="true" style={{ display: "flex", gap: 6, marginTop: 5 }}>
         {history.map((h) => (
           <div key={h.key} style={{ flex: 1, textAlign: "center", fontSize: 8.5, letterSpacing: ".06em", color: "var(--color-neutral-600)" }}>
             {h.label}
@@ -201,6 +251,106 @@ function HistoryStrip({ history, currency, title = "LAST SIX MONTHS" }: { histor
           Heaviest spend was {busiest.label} at {formatCurrency(busiest.expense, currency)}.
         </div>
       )}
+    </div>
+  );
+}
+
+/** Cash balance across the same window the history strip already covers --
+ * the trend line every net-worth screen from Mint to Monarch leads with,
+ * reconstructed from cashBalanceTrend (lib/wealth.ts) rather than stored.
+ * Cash only: assets, liabilities and goals don't carry a per-period history
+ * the way transactions do, so a full net-worth trend needs a stored monthly
+ * snapshot -- a migration, not this. */
+function CashTrendLine({ trend, currency }: { trend: { key: string; label: string; balance: number }[]; currency: string }) {
+  if (trend.length < 2) return null;
+  const values = trend.map((t) => t.balance);
+  const min = Math.min(...values);
+  const max = Math.max(...values);
+  const span = max - min || 1;
+  const w = 100;
+  const h = 30;
+  const points = trend.map((t, i) => ({
+    x: (i / (trend.length - 1)) * w,
+    y: h - ((t.balance - min) / span) * h,
+    ...t,
+  }));
+  const changed = trend[trend.length - 1].balance - trend[0].balance;
+  const up = changed >= 0;
+
+  return (
+    <div style={{ marginBottom: 14 }}>
+      <div style={{ display: "flex", alignItems: "baseline", marginBottom: 6 }}>
+        <span style={{ font: "600 13px/1 var(--font-heading)", letterSpacing: ".02em", color: "var(--color-neutral-600)" }}>CASH TREND</span>
+        <span
+          style={{
+            marginLeft: "auto",
+            fontSize: 12.5,
+            fontFamily: "var(--font-numeric)",
+            color: up ? "var(--color-accent-700)" : "var(--color-neutral-700)",
+          }}
+        >
+          <span aria-hidden="true">{up ? "▲" : "▼"}</span> {formatCurrency(Math.abs(changed), currency)} over {trend.length} periods
+        </span>
+      </div>
+      <svg viewBox={`0 0 ${w} ${h}`} preserveAspectRatio="none" style={{ width: "100%", height: 44, display: "block" }} aria-hidden="true">
+        <polyline
+          points={points.map((p) => `${p.x},${p.y}`).join(" ")}
+          fill="none"
+          stroke="var(--color-accent)"
+          strokeWidth={2}
+          vectorEffect="non-scaling-stroke"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+        {points.map((p) => (
+          <circle key={p.key} cx={p.x} cy={p.y} r={1.6} fill="var(--color-accent)">
+            <title>{`${p.label}: ${formatCurrency(p.balance, currency)}`}</title>
+          </circle>
+        ))}
+      </svg>
+      <p className="sr-only">
+        Cash trend, {trend.length} periods, {formatCurrency(trend[0].balance, currency)} to {formatCurrency(trend[trend.length - 1].balance, currency)}.{" "}
+        {trend.map((t) => `${t.label}: ${formatCurrency(t.balance, currency)}`).join("; ")}.
+      </p>
+    </div>
+  );
+}
+
+/** Where this period's spend actually went, as one bar instead of a column
+ * of separate ones -- proportion reads faster from a single divided bar
+ * than from five stacked progress meters (a donut would say the same thing,
+ * but a stacked bar is the steadier form for part-to-whole and doesn't run
+ * into the same colour-adjacency limits a pie's wedges do). Categories
+ * beyond the seven coloured ones share the neutral rather than a colour
+ * nobody could tell apart from its neighbour (expenseCategoryColor). */
+function CategorySpendBar({ categories, currency }: { categories: { category: string; spent: number }[]; currency: string }) {
+  const spent = categories.filter((c) => c.spent > 0).sort((a, b) => b.spent - a.spent);
+  const total = spent.reduce((sum, c) => sum + c.spent, 0);
+  if (total <= 0) return null;
+
+  return (
+    <div style={{ marginBottom: 16 }}>
+      <div aria-hidden="true" style={{ display: "flex", height: 14, borderRadius: 7, overflow: "hidden", gap: 2 }}>
+        {spent.map((c) => (
+          <span
+            key={c.category}
+            title={`${c.category}: ${formatCurrency(c.spent, currency)}`}
+            style={{ width: `${(c.spent / total) * 100}%`, minWidth: 3, background: expenseCategoryColor(c.category) }}
+          />
+        ))}
+      </div>
+      <div aria-hidden="true" style={{ display: "flex", flexWrap: "wrap", gap: "6px 14px", marginTop: 9 }}>
+        {spent.map((c) => (
+          <span key={c.category} style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 12, color: "var(--color-neutral-700)" }}>
+            <i style={{ width: 8, height: 8, borderRadius: "50%", background: expenseCategoryColor(c.category), display: "inline-block" }} />
+            {c.category} · {Math.round((c.spent / total) * 100)}%
+          </span>
+        ))}
+      </div>
+      <p className="sr-only">
+        Spending by category this period, total {formatCurrency(total, currency)}.{" "}
+        {spent.map((c) => `${c.category}: ${formatCurrency(c.spent, currency)}, ${Math.round((c.spent / total) * 100)}%`).join("; ")}.
+      </p>
     </div>
   );
 }
@@ -255,6 +405,54 @@ function PendingBlock({ pending, currency, dateFormat }: { pending: LedgerEntry[
   );
 }
 
+/** What's actually coming due, not just what's unpaid -- the "upcoming" view
+ * Copilot and YNAB build for exactly this question: not "here is every open
+ * bill" (the full list sits right below, sorted the same way) but "here is
+ * what you'll need in the next {days} days, and how much, together". An
+ * overdue bill is still owed, so it leads the list rather than being left
+ * off for being in the past (billsDueWithin, lib/wealth.ts). */
+function UpcomingBills<T extends { id: string; name: string; amount: number | string; due_date: string | null; status: string }>({
+  bills,
+  currency,
+  fmtDate,
+  days = 30,
+}: {
+  bills: T[];
+  currency: string;
+  fmtDate: (d: string) => string;
+  days?: number;
+}) {
+  const { bills: due, total } = billsDueWithin(bills, days);
+  if (due.length === 0) return null;
+  const today = new Date();
+
+  return (
+    <Blueprint style={{ padding: 13, marginBottom: 14 }}>
+      <div style={{ display: "flex", alignItems: "baseline" }}>
+        <span style={{ font: "600 13px/1 var(--font-heading)", letterSpacing: ".02em", color: "var(--color-neutral-600)" }}>NEXT {days} DAYS</span>
+        <span style={{ marginLeft: "auto", fontFamily: "var(--font-numeric)", fontSize: 15, fontWeight: 600 }}>{formatCurrency(total, currency)}</span>
+      </div>
+      <div style={{ display: "flex", flexDirection: "column", gap: 7, marginTop: 9 }}>
+        {due.map((b) => {
+          const overdue = b.due_date !== null && new Date(b.due_date) < today;
+          return (
+            <div key={b.id} style={{ display: "flex", justifyContent: "space-between", gap: 10, fontSize: 13.5 }}>
+              <span>
+                {b.name}
+                {overdue && <span style={{ color: "var(--color-accent-700)" }}> · overdue</span>}
+              </span>
+              <span style={{ fontFamily: "var(--font-numeric)", flex: "none" }}>
+                {formatCurrency(Number(b.amount), currency)}
+                {b.due_date && ` · ${fmtDate(b.due_date)}`}
+              </span>
+            </div>
+          );
+        })}
+      </div>
+    </Blueprint>
+  );
+}
+
 function QuickActions() {
   return (
     <div style={{ display: "flex", gap: 8, marginBottom: 18 }}>
@@ -297,6 +495,7 @@ async function CashFlowPane({ familyId, memberId, currency, range, scope }: { fa
   // member's own earning target (Income) -- both monthly by nature of the
   // tables behind them, independent of whichever graph range is active.
   const categories = [...budget.allocations, ...budget.unbudgeted];
+  const momChange = periodOverPeriodChange(cf.history);
 
   return (
     <>
@@ -311,6 +510,7 @@ async function CashFlowPane({ familyId, memberId, currency, range, scope }: { fa
         label="CASH FLOW"
         amount={Math.abs(cf.net)}
         currency={currency}
+        delta={<DeltaBadge change={momChange} currency={currency} noun={`last ${periodNoun}`} />}
         caption={
           cf.net > 0
             ? `More came in than went out this ${periodNoun}.`
@@ -410,13 +610,18 @@ async function CashFlowPane({ familyId, memberId, currency, range, scope }: { fa
       {categories.length === 0 && (
         <Empty icon="📊" title="Nothing spent yet this month" line="Once money moves, this breaks it down by category so you can see where it actually goes." />
       )}
+      <CategorySpendBar categories={categories} currency={currency} />
       {categories.map((c) => {
         const cap = c.amount > 0 ? c.amount : c.spent;
         const pct = cap > 0 ? Math.min(100, Math.round((c.spent / cap) * 100)) : 0;
         const over = c.amount > 0 && c.spent > c.amount;
         return (
           <div key={c.id} style={{ marginBottom: 11 }}>
-            <div style={{ display: "flex", fontSize: 13.5, marginBottom: 4 }}>
+            <div style={{ display: "flex", alignItems: "center", fontSize: 13.5, marginBottom: 4 }}>
+              <i
+                aria-hidden="true"
+                style={{ width: 8, height: 8, borderRadius: "50%", background: expenseCategoryColor(c.category), display: "inline-block", marginRight: 7, flex: "none" }}
+              />
               <span>{c.category}</span>
               {c.amount === 0 && <span style={{ fontSize: 12, color: "var(--color-neutral-600)", marginLeft: 6 }}>no budget</span>}
               <span style={{ marginLeft: "auto", fontFamily: "var(--font-numeric)", fontSize: 13 }}>
@@ -425,7 +630,7 @@ async function CashFlowPane({ familyId, memberId, currency, range, scope }: { fa
               </span>
             </div>
             <div style={{ height: 7, background: "var(--color-neutral-200)" }}>
-              <div style={{ height: "100%", width: `${pct}%`, background: over ? "var(--color-accent-700)" : "var(--color-accent)" }} />
+              <div style={{ height: "100%", width: `${pct}%`, background: over ? "var(--color-accent-700)" : expenseCategoryColor(c.category) }} />
             </div>
           </div>
         );
@@ -433,6 +638,7 @@ async function CashFlowPane({ familyId, memberId, currency, range, scope }: { fa
       {isJoint && <div style={{ marginTop: 12 }}><AllocationEditor budgeted={budget.allocations.map((a) => a.category)} /></div>}
 
       <SectionLabel>BILLS</SectionLabel>
+      <UpcomingBills bills={cf.openBills} currency={currency} fmtDate={fmtDate} />
       {cf.openBills.length === 0 && cf.settledBills.length === 0 && cf.recentExpense.length === 0 && (
         <Empty icon="🧾" title="Nothing recorded yet" line="Mortgage payments, groceries, checkups, meals, travel, fuel — anything the household spends on." />
       )}
@@ -504,6 +710,9 @@ async function ScopePane({ scope, familyId, memberId, currency, range }: { scope
   const mine = scope === memberId;
   const whosePossessive = selfPossessive(who.whoLabel, mine);
   const monthLabel = new Date(pane.year, pane.month - 1, 1).toLocaleString("en-PH", { month: "long", year: "numeric" }).toUpperCase();
+  const periodNoun = range === "day" ? "day" : range === "week" ? "week" : range === "year" ? "year" : "month";
+  const momChange = periodOverPeriodChange(cf.history);
+  const cashTrend = cashBalanceTrend(cf.history, pane.total);
 
   return (
     <>
@@ -518,8 +727,11 @@ async function ScopePane({ scope, familyId, memberId, currency, range }: { scope
         label={isJoint ? "ALL ACCOUNTS · COMBINED" : `${whosePossessive.toUpperCase()} ACCOUNTS · COMBINED`}
         amount={pane.total}
         currency={currency}
+        delta={<DeltaBadge change={momChange} currency={currency} noun={`last ${periodNoun}`} />}
         caption={`${pane.accounts.length} account${pane.accounts.length === 1 ? "" : "s"} · ${monthLabel}`}
       />
+
+      <CashTrendLine trend={cashTrend} currency={currency} />
 
       <div style={{ display: "flex", alignItems: "center", gap: 6, margin: "0 0 4px" }}>
         <PickButton

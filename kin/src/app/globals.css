@@ -66,6 +66,23 @@
   --cal-home: #2f9e44;
   --cal-goal: #6c6c70;
 
+  /* Wealth expense categories. Seven hues, checked with the same
+     colourblind-safety method as --cal-* above (worst adjacent pair 9.1 ΔE
+     protan/deutan, 19.6 ΔE normal vision) -- every category label is shown
+     as visible text next to its colour, so this never has to carry meaning
+     on its own. Past seven, colours stop being reliably tellable apart side
+     by side, so the categories a household logs against less often share
+     the neutral --wealth-cat-other instead of a colour nobody could
+     actually distinguish (expenseCategoryColor, in lib/wealth.ts). */
+  --wealth-groceries: #eb6834;
+  --wealth-utilities: #1baf7a;
+  --wealth-housing: #eda100;
+  --wealth-transport: #e87ba4;
+  --wealth-health: #008300;
+  --wealth-dining: #4a3aa7;
+  --wealth-shopping: #e34948;
+  --wealth-cat-other: #aeaeb2;
+
   --glass-bg: rgba(255, 255, 255, 0.72);
   --glass-border: rgba(255, 255, 255, 0.6);
   --glass-blur: saturate(180%) blur(20px);
@@ -108,6 +125,18 @@
   --cal-money: #ff922b;
   --cal-home: #51cf66;
   --cal-goal: #aeaeb2;
+
+  /* Same seven hues, stepped for the dark surface -- worst adjacent pair
+     8.4 ΔE protan/deutan, 19.3 ΔE normal vision, ≥3:1 against #1c1c1e. */
+  --wealth-groceries: #d95926;
+  --wealth-utilities: #199e70;
+  --wealth-housing: #c98500;
+  --wealth-transport: #d55181;
+  --wealth-health: #008300;
+  --wealth-dining: #9085e9;
+  --wealth-shopping: #e66767;
+  --wealth-cat-other: #8e8e93;
+
   --glass-bg: rgba(28, 28, 30, 0.68);
   --glass-border: rgba(255, 255, 255, 0.12);
 
@@ -148,6 +177,16 @@
   --cal-money: #ff922b;
   --cal-home: #51cf66;
   --cal-goal: #aeaeb2;
+
+    --wealth-groceries: #d95926;
+    --wealth-utilities: #199e70;
+    --wealth-housing: #c98500;
+    --wealth-transport: #d55181;
+    --wealth-health: #008300;
+    --wealth-dining: #9085e9;
+    --wealth-shopping: #e66767;
+    --wealth-cat-other: #8e8e93;
+
   --glass-bg: rgba(28, 28, 30, 0.68);
     --glass-border: rgba(255, 255, 255, 0.12);
 
