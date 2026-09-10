@@ -1,36 +1,57 @@
-## Pushing to main
+## How a change reaches main
 
-**Everyone here pushes straight to `main`** — see *Who does what* below for
-the one thing that is not shared. No pull request in between, nobody waiting
-on anybody to press a button.
+**Branch, pull request, automatic checks, automatic merge.** Nobody approves
+anything by hand.
 
-A pull request is a thing you *may* open when you want a second opinion, or
-when you cannot run the suite yourself and want CI to gate the change before
-it lands. It is not a thing you *must* open. `triage.yml` and `automerge.yml`
-still work exactly as they did if you open one.
+This is the ordinary industry path, and it is the one we use — both people,
+and every Claude session on either machine:
 
-### Before every push, without exception
+1. **Work on a branch.** Never commit directly to `main`.
+2. **Open a pull request** when the work is ready. Say what you did in the
+   body; it is the record.
+3. **The checks run themselves** — `ci.yml` (typecheck, lint, build),
+   `e2e.yml` (the full suite), `schema-check.yml` (does the database have what
+   the code believes in), `secret-scan.yml`, and Vercel's deployment.
+4. **`automerge.yml` merges it** once every check is green and there is no
+   conflict. Nobody presses a button. A red check or a conflict simply means
+   it does not merge.
 
-Nothing stands between your push and the live app. Branch protection is a paid
-feature on private repositories, so GitHub will not stop a broken commit
-reaching `main` — the checks below are the whole of the safety net, and they
-only work if they are actually run.
+**No manual approval, ever.** Neither person reviews the other's pull request
+as a gate, and no Claude session waits for one. The pull request is not here
+to buy a second opinion — it is here so the checks finish *before* the change
+is live, which a direct push cannot guarantee and a hand-merge actively
+defeats.
 
-1. **Run the checks, from `kin/`:** `npx tsc --noEmit`, `npm run lint`,
-   `npm run build`, and `npm run e2e`. All four, green, before you push. CI
-   re-runs them afterwards, but afterwards is after it is already live.
-2. **Rebase, never merge, and never force:**
-   `git pull --rebase origin main` immediately before pushing. If the push is
-   rejected, somebody landed something while you were working — rebase again
-   and re-run the checks, because their change and yours have never been
-   tested together. **Never force-push `main`**, for any reason.
-3. **Say what you did.** A commit message on `main` is the only record; there
-   is no pull request body to put it in any more.
+That distinction is not theoretical. On 10 September `automerge.yml` had been
+failing silently for days: its `permissions:` block never listed `statuses`,
+so reading Vercel's deployment 403'd one line after it announced the checks
+were green. Pull requests then got merged by hand, a hand merge waits for
+nothing, and a stale test reached `main` while its own suite was still
+running. The machinery was right. It was broken, and the failure looked like
+something else.
 
-If your session cannot push to `main` — some sandboxes block it, and one of
-Jonathan's already does — push your branch instead, say so plainly, and let
-`main` be fast-forwarded from it. That is not a workaround to feel bad about;
-it is the same commits arriving by a different road.
+### Before you open the pull request
+
+Run the checks locally first, from `kin/`: `npx tsc --noEmit`, `npm run lint`,
+`npm run build`, `npm run e2e`. CI runs them again — that is the actual gate —
+but a failure found on your own machine costs a minute and the same failure
+found in CI costs ten.
+
+If you genuinely cannot run the suite — no working QA credentials, or the
+shared household is busy — **open the pull request anyway and say so in the
+body.** That is precisely what the automatic gate is for. It is the right
+call, not a corner cut.
+
+Rebase onto `main` before opening, and again if it falls behind:
+`git pull --rebase origin main`. Never force-push `main` itself, for any
+reason.
+
+### One check a day, not constant watching
+
+Neither person is expected to watch the other's work or follow every push.
+The automatic checks are the gate. The human-facing check is a **single daily
+run of the whole setup, at 17:00 Manila, on Jonathan's account** — one result
+to read, once a day.
 
 ### The watched list, and the flag it needs
 
@@ -40,10 +61,10 @@ app, session handling, who may see whose data, money, anything that runs code
 on our machines, and anything touching the database itself. A leak is leaked
 and a dropped column is gone.
 
-Those changes still go straight to `main` — nothing blocks them — but they do
-not go quietly. **If your diff touches any path below, or changes more than
-~400 lines, put a line in the commit message saying so** and tell Jonathan it
-landed:
+Those changes still merge themselves like anything else — no extra approval,
+nothing to wait for — but they do not go quietly. **If your diff touches any
+path below, or changes more than ~400 lines, put a line in the commit message
+saying so:**
 
     WATCHED: auth — tightened the email bound on the reset form
 
@@ -83,15 +104,17 @@ side in a rebase. Leave both, say so, and let the two of you decide.
 
 Two people build Kin: **Jonathan** (`jiesingian`) and **Janine**
 (`jnnarenassingian-star`). Both hold write access to this repository, both
-push straight to `main`, and neither needs the other's approval for anything.
-Claude sessions run on both machines and work under these same rules.
+land work the same way — branch, pull request, automatic merge — and neither
+needs the other's approval for anything. Claude sessions run on both machines
+and work under these same rules.
 
 **Symmetry is the default, and every exception has to earn itself.** Exactly
 one does:
 
 | | Both | Jonathan only |
 |---|---|---|
-| Push to `main`, no pull request | ✅ | |
+| Open a pull request that merges itself on green | ✅ | |
+| Merge without anyone's approval | ✅ | |
 | Revert anything, including each other's work | ✅ | |
 | Write migrations, and run them against **dev** | ✅ | |
 | Read production data when a question needs it | ✅ | |
