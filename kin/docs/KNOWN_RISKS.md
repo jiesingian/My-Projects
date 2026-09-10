@@ -54,7 +54,7 @@ tests fail, then restoring it.
 
 ---
 
-## Eighteen actions still report success when they changed nothing — 9 September
+## Actions that reported success when they changed nothing — CLOSED 10 September
 
 `updateHouseholdNameAction` carries a comment about this: "a refusal that
 matches no rows is not an error, so the rename silently did nothing and still
@@ -101,10 +101,26 @@ In supabase-js that is `.update(values, { count: "exact" })`, then
 `if (count === 0) return { error: … }`. The five already fixed use exactly
 that and can be copied.
 
-**Not done in one go on purpose.** Eighteen edits across money, health and
-membership actions, each needing its own sentence to the member, is a change
-that deserves its own diff and its own read rather than being tacked onto the
-end of a sweep. The mechanism is proven; the work is mechanical.
+**Done on 10 September**, as its own change. Sixteen of the eighteen took the
+count; two did not, and those two are the reason this was worth doing by hand
+rather than by script:
+
+- `toggleBuyItemAction` returns nothing at all, on purpose. Its comment already
+  explained why: the revalidate re-renders the list from the database, so a tick
+  that did not save comes straight back and the person sees it. That is a better
+  answer than an error message. The script changed it; `tsc` caught the changed
+  return type; it was put back with the reasoning written down rather than
+  merely implied.
+- `removeRecipeCategoryAction` updates rows inside a loop over rows it has just
+  read. A zero count there means a recipe vanished mid-loop, which is harmless —
+  the category is going anyway — and turning that into a user-facing error would
+  make a benign race look like a failure.
+
+And one of the sixteen mattered much more than the others.
+`convertToManagedChildAction` reads the member, updates it, and then deletes
+their sign-in. The read can be overtaken; if the update matched nothing, the
+delete still ran, and somebody lost their login for no reason. It now stops,
+and says so in those words.
 
 ---
 

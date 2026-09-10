@@ -98,12 +98,13 @@ export async function updateConditionEntryAction(input: { entryId: string; membe
   const note = clamp(input.note, 1000);
   if (!note) return { error: "Give the entry something to say." };
 
-  const { error } = await supabase
+  const { error, count } = await supabase
     .from("health_condition_entries")
-    .update({ entry_date: input.date, note })
+    .update({ entry_date: input.date, note }, { count: "exact" })
     .eq("id", input.entryId)
     .eq("family_id", me.family_id);
   if (error) return { error: humanDatabaseError(error.message) };
+  if (count === 0) return { error: "That entry is no longer there — someone may have removed it." };
   revalidatePath(`/family/members/${input.memberId}`);
   return { error: null };
 }
@@ -134,12 +135,13 @@ export async function updateLabAction(input: { labId: string; memberId: string; 
   const name = clamp(input.name, 150);
   if (!name) return { error: "Give the lab a name." };
 
-  const { error } = await supabase
+  const { error, count } = await supabase
     .from("health_labs")
-    .update({ test_date: input.date, name, result: clamp(input.result, 300) || null })
+    .update({ test_date: input.date, name, result: clamp(input.result, 300) || null }, { count: "exact" })
     .eq("id", input.labId)
     .eq("family_id", me.family_id);
   if (error) return { error: humanDatabaseError(error.message) };
+  if (count === 0) return { error: "That lab result is no longer there — someone may have removed it." };
   revalidatePath(`/family/members/${input.memberId}`);
   return { error: null };
 }

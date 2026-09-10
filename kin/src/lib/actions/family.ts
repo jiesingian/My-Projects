@@ -394,8 +394,9 @@ export async function setMemberRoleAction(memberId: string, role: MemberRole): P
     return { error: `${target.full_name} is a managed profile without a login, so there is no role to give.` };
   }
 
-  const { error } = await supabase.from("members").update({ role }).eq("id", memberId).eq("family_id", me.family_id);
+  const { error, count } = await supabase.from("members").update({ role }, { count: "exact" }).eq("id", memberId).eq("family_id", me.family_id);
   if (error) return { error: humanDatabaseError(error.message) };
+  if (count === 0) return { error: "That member is no longer in this household." };
 
   revalidatePath("/family");
   revalidatePath("/family/documents");
@@ -445,12 +446,19 @@ export async function convertToManagedChildAction(memberId: string): Promise<Act
   const authUserId = target.auth_user_id;
 
   // One statement, while the login is still attached -- see above.
-  const { error } = await supabase
+  const { error, count } = await supabase
     .from("members")
-    .update({ auth_user_id: null, role: "child_managed", status: "managed" })
+    .update({ auth_user_id: null, role: "child_managed", status: "managed" }, { count: "exact" })
     .eq("id", memberId)
     .eq("family_id", me.family_id);
   if (error) return { error: humanDatabaseError(error.message) };
+  // This one matters more than the rest of its kind. The read above can be
+  // overtaken -- the member removed between the two statements -- and if the
+  // update matched nothing, everything below still runs and deletes that
+  // person's sign-in while their profile still has it attached. Stopping here
+  // is the difference between "nothing happened" and "somebody lost their
+  // login for no reason".
+  if (count === 0) return { error: "That member is no longer in this household. Their sign-in has not been touched." };
 
   revalidatePath("/family");
   revalidatePath(`/family/members/${memberId}`);

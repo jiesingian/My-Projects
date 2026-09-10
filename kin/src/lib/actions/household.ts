@@ -60,17 +60,18 @@ export async function updateBuyItemAction(
   const name = clamp(input.name, 150);
   if (!name) return { error: "Name the item." };
 
-  const { error } = await supabase
+  const { error, count } = await supabase
     .from("buy_items")
     .update({
       name,
       quantity: input.quantity,
       unit: input.unit,
       section: (MARKET_SECTIONS as readonly string[]).includes(input.section) ? input.section : "Other",
-    })
+    }, { count: "exact" })
     .eq("id", itemId)
     .eq("family_id", me.family_id);
   if (error) return { error: humanDatabaseError(error.message) };
+  if (count === 0) return { error: "That item is no longer on the list — someone may have removed it." };
 
   revalidatePath("/household");
   return { error: null };
@@ -93,9 +94,11 @@ export async function toggleBuyItemAction(itemId: string, checked: boolean) {
     .update({ checked, checked_at: checked ? new Date().toISOString() : null })
     .eq("id", itemId)
     .eq("family_id", me.family_id);
-  // Not surfaced: the revalidate below re-renders the list from the database,
-  // so a tick that did not save comes straight back and the person sees it.
-  // That is the one failure mode in this file that is already visible.
+  // Deliberately left as it was, and deliberately not given a row count: the
+  // revalidate below re-renders the list from the database, so a tick that did
+  // not save comes straight back and the person sees it. That is a better
+  // answer than an error message, not a worse one, and it is the reason this
+  // action returns nothing at all.
   if (error) console.error(`Buy item ${itemId} did not change state`, error.message);
   revalidatePath("/household");
 }
@@ -287,12 +290,13 @@ export async function resetItemPriceAction(itemKey: string): Promise<ActionState
 export async function setBuyItemPriceAction(itemId: string, unitPrice: number | null): Promise<ActionState> {
   const me = await requireCurrentMember();
   const supabase = await createClient();
-  const { error } = await supabase
+  const { error, count } = await supabase
     .from("buy_items")
-    .update({ unit_price_override: unitPrice })
+    .update({ unit_price_override: unitPrice }, { count: "exact" })
     .eq("id", itemId)
     .eq("family_id", me.family_id);
   if (error) return { error: humanDatabaseError(error.message) };
+  if (count === 0) return { error: "That item is no longer on the list — someone may have removed it." };
   revalidatePath("/household");
   return { error: null };
 }
@@ -483,8 +487,9 @@ export async function saveRecipeAction(input: {
 
   let recipeId = input.id ?? null;
   if (recipeId) {
-    const { error } = await supabase.from("family_recipes").update(row).eq("id", recipeId).eq("family_id", me.family_id);
+    const { error, count } = await supabase.from("family_recipes").update(row, { count: "exact" }).eq("id", recipeId).eq("family_id", me.family_id);
     if (error) return { error: humanDatabaseError(error.message) };
+    if (count === 0) return { error: "That recipe is no longer there — someone may have removed it." };
   } else {
     // Editing a shipped recipe twice should update the same row, not make a
     // second one claiming the same base.
@@ -535,8 +540,9 @@ export async function setShoppingDayAction(input: {
 
   let id = input.id ?? null;
   if (id) {
-    const { error } = await supabase.from("activities").update(row).eq("id", id).eq("family_id", me.family_id);
+    const { error, count } = await supabase.from("activities").update(row, { count: "exact" }).eq("id", id).eq("family_id", me.family_id);
     if (error) return { error: humanDatabaseError(error.message) };
+    if (count === 0) return { error: "That shopping day is no longer there — someone may have removed it." };
   } else {
     const { data, error } = await supabase
       .from("activities")
@@ -740,16 +746,17 @@ export async function setMealIngredientAction(input: {
   if (amount != null && (amount < 0 || amount > 100000)) return { error: "That amount doesn't look right." };
   const unit = input.unit?.trim() ? input.unit.trim().slice(0, 24) : null;
 
-  const { error } = await supabase
+  const { error, count } = await supabase
     .from("meal_ingredients")
     .update({
       qty_amount: amount,
       unit,
       qty: amount == null ? (unit ?? null) : `${amount}${unit ? ` ${unit}` : ""}`,
-    })
+    }, { count: "exact" })
     .eq("id", input.ingredientId)
     .eq("family_id", me.family_id);
   if (error) return { error: humanDatabaseError(error.message) };
+  if (count === 0) return { error: "That ingredient is no longer there — someone may have removed it." };
 
   revalidatePath("/household");
   return { error: null };
