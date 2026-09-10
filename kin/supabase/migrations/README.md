@@ -11,8 +11,9 @@ already run. Use UTC, and make it later than every file already here.
 
 1. You open a pull request with the file in it, like any other change.
 2. It merges on green, like any other change.
-3. **Dev applies it by itself**, the moment the merge lands. Nobody types
-   anything.
+3. **Dev applies it by itself**, the moment the merge lands — if `DEV_DB_URL`
+   is set. It is optional: without it the run says loudly that dev was skipped,
+   and either person can bring dev up to date through the Supabase connector.
 4. **Production waits for Jonathan** — one button: Actions → *Migrate* → Run
    workflow → `production`. No SQL is pasted, and the run prints exactly which
    versions it applied. Tick *dry run* first if you want to see the list
