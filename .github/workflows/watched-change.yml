@@ -157,7 +157,13 @@ jobs:
             git log -1 --pretty=%B "$SHA"
             echo '```'
             echo
-            echo "If it contains a \`.sql\` file, remember it has **not** been run — migrations are Jonathan's to run by hand, and the schema does not move until he does."
+            # Deliberately does not claim the migration has not been run. It
+            # cannot know: a file lands on main both before Jonathan runs it
+            # and after, and the first version of this said "it has **not**
+            # been run" either way. On the very first issue it opened that was
+            # already false -- all four .sql files in f539d6a had been run the
+            # day before -- which is how a notice earns being skimmed past.
+            echo "If it contains a \`.sql\` file, check whether it has been run before assuming either way — this notice cannot tell. Migrations take effect when Jonathan runs them by hand, not when they land here, so a file can sit on \`main\` for days with the schema unmoved."
             echo
             echo "[Workflow run](${RUN_URL})"
             echo
