@@ -91,6 +91,9 @@ test("choosing a known bank resolves LINK APP without anybody typing it", async 
   const field = page.getByLabel("LINK APP");
   await expect(field).toHaveValue("");
 
+  // BANK / WALLET narrows to the account TYPE picked (10 September): GCash is
+  // an e-wallet, so it only appears once TYPE says so. TYPE defaults to Bank.
+  await page.getByLabel("TYPE").selectOption("ewallet");
   await page.getByLabel("BANK / WALLET").selectOption("GCash");
   // GCash is the one known app with a scheme of its own, verified against a
   // vendor's documentation rather than guessed at.
