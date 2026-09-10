@@ -57,6 +57,7 @@ jobs:
           ANON: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
           EMAIL: ${{ secrets.E2E_EMAIL }}
           PASSWORD: ${{ secrets.E2E_PASSWORD }}
+          PROD_URL: ${{ secrets.PROD_SUPABASE_URL }}
         run: |
           missing=""
           [ -n "$URL" ] || missing="$missing NEXT_PUBLIC_SUPABASE_URL"
@@ -68,12 +69,28 @@ jobs:
             echo "This check reads the shape of the schema as the throwaway QA account."
             exit 1
           fi
+          # Not fatal, but said out loud on every run. Production is the target
+          # where a migration is applied by hand and can be forgotten, so a run
+          # that only checks dev is checking the database where that cannot
+          # happen. The script says so too; this makes it visible in the step
+          # list rather than only in the log.
+          if [ -z "$PROD_URL" ]; then
+            echo "::warning::PROD_SUPABASE_* are unset — production's schema is NOT being checked."
+          fi
 
-      - name: Ask the database
+      - name: Ask both databases
         working-directory: kin
         env:
+          # Dev: where the suite runs.
           NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
           NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
           E2E_EMAIL: ${{ secrets.E2E_EMAIL }}
           E2E_PASSWORD: ${{ secrets.E2E_PASSWORD }}
+          # Production: where the family's records live. Read-only -- the probe
+          # is select ... limit=0, which returns no row -- and it signs in as
+          # the throwaway QA household there, never a real account.
+          PROD_SUPABASE_URL: ${{ secrets.PROD_SUPABASE_URL }}
+          PROD_SUPABASE_ANON_KEY: ${{ secrets.PROD_SUPABASE_ANON_KEY }}
+          PROD_E2E_EMAIL: ${{ secrets.PROD_E2E_EMAIL }}
+          PROD_E2E_PASSWORD: ${{ secrets.PROD_E2E_PASSWORD }}
         run: node scripts/check-schema.mjs

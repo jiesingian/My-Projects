@@ -23,9 +23,23 @@
  *   400 / 42703    column <table>.<name> does not exist
  *   404 / PGRST205 Could not find the table 'public.<name>' in the schema cache
  *
- * which names the problem exactly. Row-level security is irrelevant at
- * `limit=0` — this is a question about the shape of the schema, not its
- * contents, so it needs no special access and reads nobody's data.
+ * which names the problem exactly. Nothing is read, so it reads nobody's data
+ * — but it does need to be signed in, which is less obvious than it looks and
+ * was got wrong on 10 September. Reaching a table through PostgREST means
+ * evaluating its row-level-security policy even when no row comes back, every
+ * policy here calls `current_family_id()`, and `anon` may not execute that
+ * function. An anonymous probe is refused on all 62 tables with 42501, which
+ * reads exactly like the four tables that are deliberately unreadable.
+ *
+ * WHICH DATABASES
+ * ---------------
+ * Both. Dev (NEXT_PUBLIC_SUPABASE_*) is where the suite runs. Production
+ * (PROD_*) is where the family's records live and where a migration is applied
+ * by hand — which makes it the target where "merged but never run" actually
+ * happens, and so the one this must not stop watching. When the app was split
+ * across two projects on 10 September this check followed the suite to dev and
+ * quietly stopped looking at production, which would have left the original
+ * failure completely uncovered.
  *
  * WHAT IT DOES NOT CATCH
  * ----------------------
@@ -76,72 +90,110 @@ function tablesFromTypes(source) {
   return tables;
 }
 
-async function main() {
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-  const email = process.env.E2E_EMAIL;
-  const password = process.env.E2E_PASSWORD;
-  if (!url || !key || !email || !password) {
-    // Loud, and a failure. A schema check that quietly passes because it could
-    // not reach the database is worse than no schema check: it is a green tick
-    // that means nothing.
-    console.error("check-schema: NEXT_PUBLIC_SUPABASE_URL, NEXT_PUBLIC_SUPABASE_ANON_KEY, E2E_EMAIL and E2E_PASSWORD are all required.");
-    process.exit(2);
-  }
+/** Codes that mean "this credential may not read that table", which is a grant
+ * and not a shape. Four tables have RLS on and no policies at all --
+ * access_codes, access_events, calendar_tokens, drive_tokens -- and that is
+ * deliberate: nothing but the service role is meant to read them. */
+const NOT_A_SCHEMA_PROBLEM = new Set(["42501"]);
 
+/** Codes that mean the check could not be performed at all, as opposed to the
+ * schema being wrong. Reporting one of these as a disagreement produces a
+ * confidently wrong diagnosis, which is how a check earns being ignored.
+ *
+ * PGRST301/302/303 are all auth: expired, missing or -- as happened on
+ * 10 September -- "JWT issued at future", which is clock skew between the auth
+ * server and PostgREST and has nothing whatever to do with a column. That run
+ * told a reader the database was missing something and pointed them at
+ * kin/migrations. It was not, and they would have found nothing there. */
+const CANNOT_CHECK = new Set(["PGRST301", "PGRST302", "PGRST303", "401", "403", "500", "502", "503", "504"]);
+
+/** Ask one database whether it has what the code believes in.
+ *
+ * It signs in first, and that is not incidental. The probe is
+ * `?select=<every column>&limit=0`, which reads no row -- so it looks as
+ * though row-level security should be irrelevant and an anonymous caller
+ * would do. It will not: reaching a table through PostgREST means evaluating
+ * its policy, every policy here calls `current_family_id()`, and `anon` may
+ * not execute that function. An anonymous probe gets
+ *
+ *   401 / 42501 permission denied for function current_family_id
+ *
+ * for all 62 tables -- which this script would otherwise file under "RLS on,
+ * no policies, by design" and then report a green tick having checked nothing.
+ * That very nearly shipped on 10 September; the guard against it is that zero
+ * tables checked is now a failure, below.
+ */
+async function checkOne(label, url, key, email, password, tables) {
+  let headers = { apikey: key };
   const auth = await fetch(`${url}/auth/v1/token?grant_type=password`, {
     method: "POST",
     headers: { apikey: key, "Content-Type": "application/json" },
     body: JSON.stringify({ email, password }),
-  });
+  }).catch((e) => ({ ok: false, status: String(e.message ?? e) }));
   if (!auth.ok) {
-    console.error(`check-schema: could not sign in as the QA account (${auth.status}).`);
-    process.exit(2);
+    console.error(`\n${label}: could NOT sign in (${auth.status}) — nothing was checked against ${new URL(url).host}.`);
+    return "unchecked";
   }
-  const headers = { apikey: key, Authorization: `Bearer ${(await auth.json()).access_token}` };
-
-  const tables = tablesFromTypes(fs.readFileSync(typesFile, "utf8"));
-  if (tables.size === 0) {
-    console.error("check-schema: parsed no tables out of database.types.ts — the generator's shape has changed and this script needs updating.");
-    process.exit(2);
-  }
-
+  headers = { apikey: key, Authorization: `Bearer ${(await auth.json()).access_token}` };
   const problems = [];
   const unreachable = [];
+  const unchecked = [];
   let columns = 0;
   let checked = 0;
+
   await Promise.all(
     [...tables].map(async ([table, cols]) => {
       if (cols.length === 0) return;
-      const res = await fetch(`${url}/rest/v1/${table}?select=${cols.join(",")}&limit=0`, { headers });
+      let res;
+      try {
+        res = await fetch(`${url}/rest/v1/${table}?select=${cols.join(",")}&limit=0`, { headers });
+      } catch (e) {
+        unchecked.push({ table, code: "network", message: String(e.message ?? e) });
+        return;
+      }
       if (res.ok) { checked += 1; columns += cols.length; return; }
       let body;
       try { body = JSON.parse(await res.text()); } catch { body = { message: `HTTP ${res.status}` }; }
       const code = body.code ?? String(res.status);
-      // 42501 is "permission denied for table", which is a grant, not a shape.
-      // Four tables here have RLS on and no policies at all -- access_codes,
-      // access_events, calendar_tokens, drive_tokens -- and that is deliberate:
-      // nothing but the service role is meant to read them. This credential
-      // cannot see them to check them, which is worth saying out loud and is
-      // not a disagreement about the schema.
-      if (code === "42501") { unreachable.push(table); return; }
+      if (NOT_A_SCHEMA_PROBLEM.has(code)) { unreachable.push(table); return; }
+      if (CANNOT_CHECK.has(code)) { unchecked.push({ table, code, message: body.message ?? "" }); return; }
       problems.push({ table, code, message: body.message ?? "" });
     }),
   );
 
-  console.log(`check-schema: ${checked} tables, ${columns} columns, checked against ${new URL(url).host}`);
+  console.log(`\n${label}: ${checked} tables, ${columns} columns, checked against ${new URL(url).host}`);
   if (unreachable.length > 0) {
     console.log(
-      `check-schema: ${unreachable.length} not checked, because this credential may not read them at all ` +
+      `${label}: ${unreachable.length} not checked, because this credential may not read them at all ` +
         `(RLS on, no policies, by design): ${unreachable.sort().join(", ")}`,
     );
   }
-  if (problems.length === 0) {
-    console.log("check-schema: the database has everything the code believes in.");
-    return;
+
+  // Could not ask is its own outcome, and it fails. A schema check that passes
+  // because it could not reach the database is a green tick that means nothing.
+  if (unchecked.length > 0) {
+    console.error(`${label}: could NOT check ${unchecked.length} table(s) — this is not a schema disagreement:`);
+    for (const u of unchecked.slice(0, 5)) console.error(`    ${u.table}: ${u.code} ${u.message}`);
+    if (unchecked.length > 5) console.error(`    …and ${unchecked.length - 5} more, same shape.`);
+    console.error(`${label}: an auth or transport failure. Nothing here says the schema is wrong.`);
+    return "unchecked";
   }
 
-  console.error(`\ncheck-schema: ${problems.length} table(s) the code and the database disagree about:\n`);
+  // Zero checked is never success. This is the guard for the failure that
+  // nearly shipped: an anonymous probe was refused on all 62 tables, every
+  // refusal was filed as "by design", and the run then announced that the
+  // database had everything the code believes in -- having verified nothing.
+  if (checked === 0) {
+    console.error(`${label}: checked ZERO tables. That is not a pass — something refused every probe.`);
+    return "unchecked";
+  }
+
+  if (problems.length === 0) {
+    console.log(`${label}: the database has everything the code believes in.`);
+    return "ok";
+  }
+
+  console.error(`\n${label}: ${problems.length} table(s) the code and the database disagree about:\n`);
   for (const p of problems.sort((a, b) => a.table.localeCompare(b.table))) {
     console.error(`  ${p.table}`);
     console.error(`    ${p.code}: ${p.message}`);
@@ -149,9 +201,57 @@ async function main() {
   console.error(
     "\nThis is almost always a migration that was written and merged but never run." +
       "\nkin/migrations holds them; the one at fault will say what it adds." +
-      "\nRunning them is Jonathan's — see CLAUDE.md.",
+      "\nRunning them against production is Jonathan's — see CLAUDE.md.",
   );
-  process.exit(1);
+  return "mismatch";
+}
+
+async function main() {
+  const tables = tablesFromTypes(fs.readFileSync(typesFile, "utf8"));
+  if (tables.size === 0) {
+    console.error("check-schema: parsed no tables out of database.types.ts — the generator's shape has changed and this script needs updating.");
+    process.exit(2);
+  }
+
+  // Every database the code is expected to run against. Dev is where the suite
+  // runs; production is where the family's records live and where a migration
+  // is applied by hand -- which makes it the one where "merged but never run"
+  // actually happens, and so the one this must not stop watching.
+  const targets = [
+    {
+      label: "dev ", required: true,
+      url: process.env.NEXT_PUBLIC_SUPABASE_URL, key: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
+      email: process.env.E2E_EMAIL, password: process.env.E2E_PASSWORD,
+    },
+    {
+      label: "prod", required: false,
+      url: process.env.PROD_SUPABASE_URL, key: process.env.PROD_SUPABASE_ANON_KEY,
+      email: process.env.PROD_E2E_EMAIL, password: process.env.PROD_E2E_PASSWORD,
+    },
+  ];
+
+  const complete = (t) => !!(t.url && t.key && t.email && t.password);
+  if (!complete(targets[0])) {
+    console.error("check-schema: NEXT_PUBLIC_SUPABASE_URL, NEXT_PUBLIC_SUPABASE_ANON_KEY, E2E_EMAIL and E2E_PASSWORD are all required.");
+    process.exit(2);
+  }
+
+  const configured = targets.filter(complete);
+  const skipped = targets.filter((t) => !t.required && !complete(t));
+  const results = [];
+  for (const t of configured) results.push(await checkOne(t.label, t.url, t.key, t.email, t.password, tables));
+
+  console.log("");
+  for (const s of skipped) {
+    console.log(
+      `check-schema: ${s.label.trim()} was NOT checked — PROD_SUPABASE_URL, PROD_SUPABASE_ANON_KEY, ` +
+        `PROD_E2E_EMAIL and PROD_E2E_PASSWORD are not all set. ` +
+        `Production is where migrations are run by hand, so this is the target that most needs watching.`,
+    );
+  }
+  if (results.includes("mismatch")) process.exit(1);
+  if (results.includes("unchecked")) process.exit(2);
+  console.log(`check-schema: ${configured.length} database(s) checked, all consistent with the code.`);
 }
 
 await main();
