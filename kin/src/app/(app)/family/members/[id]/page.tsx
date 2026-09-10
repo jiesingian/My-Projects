@@ -136,7 +136,7 @@ export default async function MemberDetailPage({
                 dateFormat={dateFormat}
                 memberId={member.id}
                 isSelf={false}
-                canEdit={me.is_organiser}
+                canEdit={me.is_organiser || ((me.role === "parent" || me.role === "adult") && member.status === "managed")}
                 initial={memberToProfileFields(member)}
               />
             </>
