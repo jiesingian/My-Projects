@@ -1,19 +1,13 @@
-## Who may push to main
+## Pushing to main
 
-**Everyone here pushes straight to `main`.** Jonathan (`jiesingian`) and
-Janine both, on the same terms, with no pull request in between and nobody
-waiting on anybody to press a button.
+**Everyone here pushes straight to `main`** — see *Who does what* below for
+the one thing that is not shared. No pull request in between, nobody waiting
+on anybody to press a button.
 
-There is one set of rules and it is this section. Nothing anywhere says "if
-you are working for X" — who you are working for does not change what you may
-do, which is the only version of this that cannot be got wrong by a session
-that guessed which half applied to it. The one thing only Jonathan does is
-**run a migration**, and that is about who touches the live database, not
-about who is trusted; it is stated once, below.
-
-A pull request is now a thing you *may* open when you want a second opinion
-before something lands, not a thing you *must* open. `triage.yml` and
-`automerge.yml` still work exactly as they did if you open one.
+A pull request is a thing you *may* open when you want a second opinion, or
+when you cannot run the suite yourself and want CI to gate the change before
+it lands. It is not a thing you *must* open. `triage.yml` and `automerge.yml`
+still work exactly as they did if you open one.
 
 ### Before every push, without exception
 
@@ -73,13 +67,6 @@ the thing being relied on. Do not move code out of a watched path to keep it
 quiet; the list exists because those files are where a mistake is expensive,
 and a change is not made safer by being harder to see.
 
-### Migrations are Jonathan's to run
-
-They take effect when they are **run**, not when they are merged, so by the
-time anybody reads the change the schema has already moved and no review can
-catch it after the fact. Write the `.sql` file, commit it, say plainly in the
-commit message that it needs running — and stop. He runs it himself.
-
 ### Two people, one branch
 
 Both sessions run in their own container against their own clone. Nothing
@@ -92,34 +79,69 @@ If a rebase conflict is a real disagreement about how the app should behave,
 rather than two edits landing on the same line, do not settle it by picking a
 side in a rebase. Leave both, say so, and let the two of you decide.
 
-## Never test against the real household
+## Who does what
 
-There is one Supabase project and it holds the Singian family's actual
-records — their money, their health, their documents, their photos. Every
-session points at it, including yours. There is no separate development
-database to fall back on, so this is the rule that stands in for one:
+Two people build Kin: **Jonathan** (`jiesingian`) and **Janine**
+(`jnnarenassingian-star`). Both hold write access to this repository, both
+push straight to `main`, and neither needs the other's approval for anything.
+Claude sessions run on both machines and work under these same rules.
 
-- **Never write, edit or delete anything in the Singian household.** Not a
-  test row, not a "temporary" one you mean to clean up, not while proving a
-  fix works.
-- **Test against the throwaway QA household instead** — the account in
-  `E2E_EMAIL`. It exists to be written to and holds nothing anybody needs.
-  Row-level security keeps the households apart, so work done as the QA
-  account cannot reach the real one.
-- **There are two throwaway households, one per machine**, because two people
-  running the suite against one of them made every result untrustworthy for an
-  hour. Your `E2E_EMAIL` already names the right one; do not repoint it at the
-  other, and never at a real account. `kin/docs/QA_HOUSEHOLDS.md` says which is
-  which and what they hold.
-- **Reading the real data is fine** when a question genuinely needs it — a
-  reconciliation query, a check that a fix landed. Writing is not.
-- **Never run a migration.** They take effect when they are run, not when a
-  pull request merges, so nobody can catch a bad one by reviewing it
-  afterwards. Write the `.sql` file, say in the pull request that it needs
-  running, and stop. Jonathan runs it himself.
+**Symmetry is the default, and every exception has to earn itself.** Exactly
+one does:
+
+| | Both | Jonathan only |
+|---|---|---|
+| Push to `main`, no pull request | ✅ | |
+| Revert anything, including each other's work | ✅ | |
+| Write migrations, and run them against **dev** | ✅ | |
+| Read production data when a question needs it | ✅ | |
+| Supabase dashboard, dev and production | ✅ | |
+| **Apply a migration to production** | | ✅ |
+| Repository settings and secrets | | ✅ |
+| Anything that spends money | | ✅ |
+
+Production migrations are the one asymmetry, and it is not about trust: the
+schema moves the instant the file is *run*, no review catches it afterwards,
+so one hand on that lever means one story about what the live schema is.
+
+Nothing else here is a gate. `watched-change.yml` reads every push to `main`
+and opens an issue from the actual diff, whoever pushed and whatever the
+commit message claimed — so nobody grades their own homework and nobody has
+to police anybody.
+
+## Real data is never a test target
+
+Jonathan's and Janine's own records are real: their money, their health,
+their documents, their children's birthdays. Today there is **one** Supabase
+project and it holds all of it, and every session points at it — including
+yours. A dev project is being stood up to end that; until it lands, these
+rules stand in for one, and most of them outlive it.
+
+- **Never write, edit or delete anything in a real household.** Not a test
+  row, not a "temporary" one you mean to clean up, not while proving a fix
+  works.
+- **Test against a sample family** — an invented household with invented
+  figures, named by `E2E_EMAIL`. It exists to be written to and holds nothing
+  anybody needs. Row-level security keeps households apart, so work done as
+  that account cannot reach a real one.
+- **Reading real data is fine** when a question genuinely needs it — a
+  reconciliation query, a check that a fix landed. Writing is not, ever.
+- **Never copy production data into dev.** Not a dump, not "just one
+  household so there's something to look at", not anonymised by eye. Dev gets
+  the **schema** and a **synthetic seed**, nothing else. A copy of a real
+  household in a second database is a second place it can leak from, and
+  every safeguard here assumes there is only one.
 - **Never use the service-role key** to get around any of the above. It
   bypasses row-level security, which is the thing keeping one household's
   data out of another's.
+- **Never apply a migration to production.** It takes effect when it is run,
+  not when it merges, so nobody can catch a bad one afterwards. Write the
+  `.sql`, say plainly that it needs running, and stop. Applying it to dev is
+  fair game for either of you.
+
+Which sample household your machine uses is set by `E2E_EMAIL` and described
+in `kin/docs/QA_HOUSEHOLDS.md`. Do not repoint it at another machine's, and
+never at a real account.
 
 If a change cannot be verified without touching real data, say so and leave it
 unverified rather than touching it. An unverified fix is a known unknown; a
