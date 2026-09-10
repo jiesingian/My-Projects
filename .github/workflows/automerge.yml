@@ -17,13 +17,39 @@ name: Auto-merge
 on:
   workflow_run:
     # Whichever finishes last does the merging; the others find a check still
-    # running and stop, which is why all three are listed. End-to-end was
-    # missing, and it is the slow one -- about eight minutes against one for
-    # the others -- so on any pull request touching kin/src it always finished
-    # last, and its completion woke nothing. Those pull requests simply never
-    # merged.
-    workflows: [CI, Secret Scan, End-to-end]
+    # running and stop, which is why every workflow that posts a check run on
+    # a pull request commit has to be listed.
+    #
+    # This list has now been wrong twice, the same way. End-to-end was missing
+    # first: it is the slow one, about eight minutes against one for the
+    # others, so on any pull request touching kin/src it always finished last
+    # and its completion woke nothing. Schema check was missing second, and
+    # that is what stranded #50 -- its first attempt failed on clock skew
+    # (PGRST303), it was re-run and went green at 09:46, and by then CI and
+    # Secret Scan were an hour past reporting. Every check on the commit
+    # passed and nothing was left to wake this job. The pull request sat
+    # green, mergeable and unmerged until somebody noticed.
+    #
+    # Triage is deliberately not here. It runs on pull_request_target, so its
+    # workflow_run carries the base branch's SHA rather than the pull
+    # request's, and this job would look up the wrong commit. It is also the
+    # fastest thing in the repository and has never finished last.
+    workflows: [CI, Secret Scan, End-to-end, Schema check]
     types: [completed]
+
+  # The list above will go stale again -- the next workflow anybody adds will
+  # not be in it, and nobody will notice until a pull request sits unmerged.
+  # So the events are no longer the only way in. Every quarter of an hour this
+  # sweeps every open pull request labelled auto-merge and applies exactly the
+  # same test. A missed event now costs fifteen minutes instead of costing the
+  # merge entirely.
+  #
+  # It also covers the other blind spot events have: a label added after the
+  # checks have finished. Labelling is not a workflow_run, so a pull request
+  # that becomes eligible late used to wait for a push that might never come.
+  schedule:
+    - cron: "*/15 * * * *"
+  workflow_dispatch:
 
 permissions:
   contents: write
@@ -36,97 +62,138 @@ permissions:
   # tally, which is why the log looks like the checks were the problem.
   statuses: read
 
+# One merger at a time. Two runs reading the same pull request would both see
+# green and both call merge; the second would fail on an already-merged pull
+# request and paint this job red for no reason.
+concurrency:
+  group: automerge
+  cancel-in-progress: false
+
 jobs:
   merge:
     # A failed suite never reaches the merge, and a run that was not for a
-    # pull request has nothing to merge.
+    # pull request has nothing to merge. The sweep and a manual dispatch carry
+    # no workflow_run at all and are always allowed through.
     if: >
-      github.event.workflow_run.conclusion == 'success' &&
-      github.event.workflow_run.event == 'pull_request'
+      github.event_name != 'workflow_run' ||
+      (github.event.workflow_run.conclusion == 'success' &&
+       github.event.workflow_run.event == 'pull_request')
     runs-on: ubuntu-latest
     steps:
-      - name: Merge if the whole commit is green
+      - name: Merge whatever is green
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           REPO: ${{ github.repository }}
+          EVENT: ${{ github.event_name }}
           SHA: ${{ github.event.workflow_run.head_sha }}
         run: |
           set -euo pipefail
 
-          PR=$(gh api "repos/$REPO/commits/$SHA/pulls" --jq '.[0].number // empty')
-          if [ -z "$PR" ]; then
-            echo "No pull request for $SHA — nothing to do."; exit 0
-          fi
+          # Decide whether one pull request is green, and merge it if so.
+          # Returns rather than exits: the sweep considers several in a row,
+          # and one that is not ready must not stop the ones after it.
+          consider() {
+            local PR="$1" SHA STATE LABELS PENDING FAILED TOTAL ST_COUNT ST_STATE
 
-          STATE=$(gh pr view "$PR" --repo "$REPO" --json state --jq .state)
-          if [ "$STATE" != "OPEN" ]; then
-            echo "PR #$PR is $STATE — nothing to do."; exit 0
-          fi
-
-          # There is deliberately no "held for review" check here any more.
-          # Until 10 September a "needs-jonathan" label stopped this job dead,
-          # which is a manual approval gate however it is spelled, and the rule
-          # now is that nothing waits on a person. A change in expensive
-          # territory is labelled "watched" and commented on by triage.yml, and
-          # then merges on green like anything else; watched-change.yml opens
-          # an issue for it once it lands, so it is recorded either way.
-          LABELS=$(gh pr view "$PR" --repo "$REPO" --json labels --jq '.labels[].name')
-          if ! echo "$LABELS" | grep -qx "auto-merge"; then
-            echo "PR #$PR is not marked auto-merge — leaving it alone."; exit 0
-          fi
-
-          # Every check run on this commit must have finished and passed.
-          # Anything still running means the other workflow is not done yet;
-          # its own completion will bring us back here.
-          gh api "repos/$REPO/commits/$SHA/check-runs?per_page=100" > /tmp/checks.json
-          PENDING=$(jq '[.check_runs[] | select(.status != "completed")] | length' /tmp/checks.json)
-          FAILED=$(jq '[.check_runs[]
-                        | select(.status == "completed")
-                        | select(.conclusion != "success" and .conclusion != "neutral" and .conclusion != "skipped")
-                       ] | length' /tmp/checks.json)
-          TOTAL=$(jq '.check_runs | length' /tmp/checks.json)
-
-          # No check runs at all would mean nothing was verified, so refuse.
-          if [ "$TOTAL" -eq 0 ]; then
-            echo "No check runs on $SHA — refusing to merge something unverified."; exit 0
-          fi
-
-          echo "check runs on $SHA — total: $TOTAL, pending: $PENDING, failed: $FAILED"
-
-          if [ "$PENDING" -ne 0 ]; then
-            echo "Still running. The other workflow's completion will retry."; exit 0
-          fi
-          if [ "$FAILED" -ne 0 ]; then
-            echo "Something failed. Not merging."; exit 0
-          fi
-
-          # Check runs are only half of what reports on a commit. Vercel posts
-          # its deployment through the older Statuses API instead -- verified:
-          # the combined status on the head of #7 is one entry, context
-          # "Vercel", "Deployment has completed". Reading only check runs meant
-          # a failed deployment did not block a merge, which is the wrong way
-          # for this gate to be wrong.
-          #
-          # The combined state is "success" only when every status succeeded,
-          # "pending" while any is unfinished, and "failure"/"error" otherwise.
-          # A commit nothing has posted a status for reports "pending" with a
-          # count of zero, which means nothing to wait for rather than
-          # something unfinished.
-          gh api "repos/$REPO/commits/$SHA/status" > /tmp/status.json
-          ST_COUNT=$(jq '.total_count' /tmp/status.json)
-          ST_STATE=$(jq -r '.state' /tmp/status.json)
-          echo "commit statuses on $SHA — count: $ST_COUNT, state: $ST_STATE"
-
-          if [ "$ST_COUNT" -ne 0 ]; then
-            if [ "$ST_STATE" = "pending" ]; then
-              echo "A commit status is still pending. Not merging yet."; exit 0
+            STATE=$(gh pr view "$PR" --repo "$REPO" --json state --jq .state)
+            if [ "$STATE" != "OPEN" ]; then
+              echo "PR #$PR is $STATE — nothing to do."; return 0
             fi
-            if [ "$ST_STATE" != "success" ]; then
-              echo "A commit status reported $ST_STATE. Not merging."; exit 0
+
+            # There is deliberately no "held for review" check here any more.
+            # Until 10 September a "needs-jonathan" label stopped this job
+            # dead, which is a manual approval gate however it is spelled, and
+            # the rule now is that nothing waits on a person. A change in
+            # expensive territory is labelled "watched" and commented on by
+            # triage.yml, and then merges on green like anything else;
+            # watched-change.yml opens an issue for it once it lands, so it is
+            # recorded either way.
+            LABELS=$(gh pr view "$PR" --repo "$REPO" --json labels --jq '.labels[].name')
+            if ! echo "$LABELS" | grep -qx "auto-merge"; then
+              echo "PR #$PR is not marked auto-merge — leaving it alone."; return 0
             fi
+
+            # Always the pull request's current head, never the SHA that woke
+            # this job: on the sweep there is no such SHA, and on an event a
+            # push may have landed since. --match-head-commit below refuses
+            # anything that moved after this read.
+            SHA=$(gh pr view "$PR" --repo "$REPO" --json headRefOid --jq .headRefOid)
+
+            # Every check run on this commit must have finished and passed.
+            # Anything still running means another workflow is not done yet;
+            # its own completion, or the next sweep, will bring us back here.
+            gh api "repos/$REPO/commits/$SHA/check-runs?per_page=100" > /tmp/checks.json
+            PENDING=$(jq '[.check_runs[] | select(.status != "completed")] | length' /tmp/checks.json)
+            FAILED=$(jq '[.check_runs[]
+                          | select(.status == "completed")
+                          | select(.conclusion != "success" and .conclusion != "neutral" and .conclusion != "skipped")
+                         ] | length' /tmp/checks.json)
+            TOTAL=$(jq '.check_runs | length' /tmp/checks.json)
+
+            # No check runs at all would mean nothing was verified, so refuse.
+            if [ "$TOTAL" -eq 0 ]; then
+              echo "PR #$PR: no check runs on $SHA — refusing to merge something unverified."; return 0
+            fi
+
+            echo "PR #$PR — check runs on $SHA: total $TOTAL, pending $PENDING, failed $FAILED"
+
+            if [ "$PENDING" -ne 0 ]; then
+              echo "PR #$PR: still running. A later completion or the next sweep will retry."; return 0
+            fi
+            if [ "$FAILED" -ne 0 ]; then
+              echo "PR #$PR: something failed. Not merging."; return 0
+            fi
+
+            # Check runs are only half of what reports on a commit. Vercel
+            # posts its deployment through the older Statuses API instead --
+            # verified: the combined status on the head of #7 is one entry,
+            # context "Vercel", "Deployment has completed". Reading only check
+            # runs meant a failed deployment did not block a merge, which is
+            # the wrong way for this gate to be wrong.
+            #
+            # The combined state is "success" only when every status
+            # succeeded, "pending" while any is unfinished, and
+            # "failure"/"error" otherwise. A commit nothing has posted a
+            # status for reports "pending" with a count of zero, which means
+            # nothing to wait for rather than something unfinished.
+            gh api "repos/$REPO/commits/$SHA/status" > /tmp/status.json
+            ST_COUNT=$(jq '.total_count' /tmp/status.json)
+            ST_STATE=$(jq -r '.state' /tmp/status.json)
+            echo "PR #$PR — commit statuses on $SHA: count $ST_COUNT, state $ST_STATE"
+
+            if [ "$ST_COUNT" -ne 0 ]; then
+              if [ "$ST_STATE" = "pending" ]; then
+                echo "PR #$PR: a commit status is still pending. Not merging yet."; return 0
+              fi
+              if [ "$ST_STATE" != "success" ]; then
+                echo "PR #$PR: a commit status reported $ST_STATE. Not merging."; return 0
+              fi
+            fi
+
+            # --match-head-commit refuses if anything was pushed since the
+            # checks ran, so a green result can never merge a commit it did
+            # not test. A conflict makes this fail, which is correct and
+            # visible; it does not stop the sweep looking at the others.
+            if gh pr merge "$PR" --repo "$REPO" --squash --match-head-commit "$SHA"; then
+              echo "Merged PR #$PR at $SHA."
+            else
+              echo "PR #$PR: merge refused — conflict, or the head moved. Leaving it."
+            fi
+          }
+
+          if [ "$EVENT" = "workflow_run" ]; then
+            # One pull request: the one whose commit the finished run was for.
+            PRS=$(gh api "repos/$REPO/commits/$SHA/pulls" --jq '.[].number')
+            if [ -z "$PRS" ]; then
+              echo "No pull request for $SHA — nothing to do."; exit 0
+            fi
+          else
+            # The sweep: everything currently eligible, whatever woke it.
+            PRS=$(gh pr list --repo "$REPO" --state open --label auto-merge --json number --jq '.[].number')
+            if [ -z "$PRS" ]; then
+              echo "No open pull request is marked auto-merge — nothing to do."; exit 0
+            fi
+            echo "Sweeping: $(echo "$PRS" | tr '\n' ' ')"
           fi
 
-          # --match-head-commit refuses if anything was pushed since the checks
-          # ran, so a green result can never merge a commit it did not test.
-          gh pr merge "$PR" --repo "$REPO" --squash --match-head-commit "$SHA"
-          echo "Merged PR #$PR at $SHA."
+          for PR in $PRS; do consider "$PR"; done
