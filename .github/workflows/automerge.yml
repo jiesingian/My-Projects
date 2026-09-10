@@ -63,10 +63,14 @@ jobs:
             echo "PR #$PR is $STATE — nothing to do."; exit 0
           fi
 
+          # There is deliberately no "held for review" check here any more.
+          # Until 10 September a "needs-jonathan" label stopped this job dead,
+          # which is a manual approval gate however it is spelled, and the rule
+          # now is that nothing waits on a person. A change in expensive
+          # territory is labelled "watched" and commented on by triage.yml, and
+          # then merges on green like anything else; watched-change.yml opens
+          # an issue for it once it lands, so it is recorded either way.
           LABELS=$(gh pr view "$PR" --repo "$REPO" --json labels --jq '.labels[].name')
-          if echo "$LABELS" | grep -qx "needs-jonathan"; then
-            echo "PR #$PR is held for review — leaving it alone."; exit 0
-          fi
           if ! echo "$LABELS" | grep -qx "auto-merge"; then
             echo "PR #$PR is not marked auto-merge — leaving it alone."; exit 0
           fi
