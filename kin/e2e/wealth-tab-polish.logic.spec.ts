@@ -1,5 +1,5 @@
 import { test, expect } from "@playwright/test";
-import { periodOverPeriodChange, cashBalanceTrend, billsDueWithin, expenseCategoryColor, EXPENSE_CATEGORIES } from "@/lib/wealth";
+import { periodOverPeriodChange, cashBalanceTrend, billsDueWithin, expenseCategoryColor, timeSinceLabel, EXPENSE_CATEGORIES } from "@/lib/wealth";
 
 /** The pure math behind the wealth tab's month-over-month badge, cash
  * trend, category colours and upcoming-bills forecast -- checked here
@@ -90,4 +90,15 @@ test("expenseCategoryColor gives every category a colour, and the rarely-used on
 
 test("expenseCategoryColor falls back to the neutral for anything it's never seen", () => {
   expect(expenseCategoryColor("Made-up Category")).toBe("var(--wealth-cat-other)");
+});
+
+test("timeSinceLabel is coarse and plain-spoken, not a precise duration", () => {
+  const now = new Date(2026, 8, 10);
+  expect(timeSinceLabel(new Date(2026, 8, 10).toISOString(), now)).toBe("today");
+  expect(timeSinceLabel(new Date(2026, 8, 9).toISOString(), now)).toBe("yesterday");
+  expect(timeSinceLabel(new Date(2026, 8, 5).toISOString(), now)).toBe("5 days ago");
+  expect(timeSinceLabel(new Date(2026, 8, 3).toISOString(), now)).toBe("a week ago");
+  expect(timeSinceLabel(new Date(2026, 7, 10).toISOString(), now)).toBe("a month ago");
+  expect(timeSinceLabel(new Date(2026, 2, 10).toISOString(), now)).toBe("6 months ago");
+  expect(timeSinceLabel(new Date(2024, 8, 10).toISOString(), now)).toBe("2 years ago");
 });

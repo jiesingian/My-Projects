@@ -927,7 +927,11 @@ export async function updateAssetValueAction(assetId: string, value: number): Pr
   if (!Number.isFinite(value) || value < 0) return { error: "What it is worth has to be a number, and cannot be less than zero." };
   const me = await requireCurrentMember();
   const supabase = await createClient();
-  const { error, count } = await supabase.from("assets").update({ value }, { count: "exact" }).eq("id", assetId).eq("family_id", me.family_id);
+  const { error, count } = await supabase
+    .from("assets")
+    .update({ value, updated_at: new Date().toISOString() }, { count: "exact" })
+    .eq("id", assetId)
+    .eq("family_id", me.family_id);
   if (error) return { error: humanDatabaseError(error.message) };
   if (count === 0) return { error: "That asset is no longer there — someone may have removed it." };
   revalidateWealth();
@@ -938,7 +942,11 @@ export async function updateLiabilityBalanceAction(liabilityId: string, balance:
   if (!Number.isFinite(balance) || balance < 0) return { error: "What is owed has to be a number, and cannot be less than zero." };
   const me = await requireCurrentMember();
   const supabase = await createClient();
-  const { error, count } = await supabase.from("liabilities").update({ balance }, { count: "exact" }).eq("id", liabilityId).eq("family_id", me.family_id);
+  const { error, count } = await supabase
+    .from("liabilities")
+    .update({ balance, updated_at: new Date().toISOString() }, { count: "exact" })
+    .eq("id", liabilityId)
+    .eq("family_id", me.family_id);
   if (error) return { error: humanDatabaseError(error.message) };
   if (count === 0) return { error: "That liability is no longer there — someone may have removed it." };
   revalidateWealth();
