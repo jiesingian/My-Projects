@@ -3,6 +3,7 @@
 import { useActionState } from "react";
 import Link from "next/link";
 import { signUp, type ActionState } from "@/lib/actions/auth";
+import { PASSWORD_MIN } from "@/lib/password";
 import { SubmitButton, ErrorText } from "@/components/form";
 import { OnboardingShell } from "@/components/onboarding-shell";
 import { Icon } from "@/components/icons";
@@ -49,7 +50,7 @@ export default function SignupPage() {
             type="password"
             name="password"
             required
-            minLength={8}
+            minLength={PASSWORD_MIN}
             autoComplete="new-password"
           />
         </div>

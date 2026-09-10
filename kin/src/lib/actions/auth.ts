@@ -3,6 +3,7 @@
 import { redirect } from "next/navigation";
 import { headers } from "next/headers";
 import { createClient } from "@/lib/supabase/server";
+import { PASSWORD_MIN, PASSWORD_TOO_SHORT } from "@/lib/password";
 
 export type ActionState = { error: string | null };
 
@@ -42,8 +43,8 @@ export async function signUp(_prev: ActionState, formData: FormData): Promise<Ac
   const email = String(formData.get("email") ?? "").trim();
   const password = String(formData.get("password") ?? "");
   const accessCode = String(formData.get("access_code") ?? "").trim();
-  if (!email || tooLong(email) || password.length < 8) {
-    return { error: "Enter a valid email and a password of at least 8 characters." };
+  if (!email || tooLong(email) || password.length < PASSWORD_MIN) {
+    return { error: `Enter a valid email and a password of at least ${PASSWORD_MIN} characters.` };
   }
   if (!accessCode || accessCode.length > CODE_MAX) {
     return { error: "Kin is invite-only. Enter the code you were given." };
@@ -128,7 +129,7 @@ export async function updatePasswordAction(_prev: ActionState, formData: FormDat
   const confirm = String(formData.get("confirm") ?? "");
   const code = String(formData.get("code") ?? "").replace(/\s/g, "");
   const email = String(formData.get("email") ?? "").trim();
-  if (password.length < 8) return { error: "Use at least 8 characters." };
+  if (password.length < PASSWORD_MIN) return { error: PASSWORD_TOO_SHORT };
   if (tooLong(email) || code.length > CODE_MAX) {
     return { error: "That code isn't right, or it has expired. Ask for a new one." };
   }
