@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/server";
 import { requireCurrentMember } from "@/lib/session";
 import type { ActionState } from "@/lib/actions/auth";
 import { humanDatabaseError } from "@/lib/db-errors";
+import { isReaction } from "@/lib/chat";
 
 const MAX_LENGTH = 4000;
 
@@ -44,13 +45,15 @@ export async function deleteMessageAction(messageId: string): Promise<ActionStat
   const me = await requireCurrentMember();
   const supabase = await createClient();
 
-  const { error } = await supabase
+  const { data: removed, error } = await supabase
     .from("family_messages")
     .update({ deleted_at: new Date().toISOString(), body: "", mentions: [] })
     .eq("id", messageId)
     .eq("family_id", me.family_id)
-    .eq("member_id", me.id);
+    .eq("member_id", me.id)
+    .select("id");
   if (error) return { error: humanDatabaseError(error.message) };
+  if (!removed?.length) return { error: "That message isn't yours to withdraw." };
 
   revalidatePath("/chat");
   return { error: null };
@@ -64,14 +67,22 @@ export async function editMessageAction(messageId: string, body: string): Promis
   const next = body.trim().slice(0, MAX_LENGTH);
   if (!next) return { error: "A message can't be empty — delete it instead." };
 
-  const { error } = await supabase
+  // `select()` so the count is knowable. Every filter here can legitimately
+  // match nothing -- somebody else's message, one already withdrawn -- and a
+  // PostgREST update that matches no rows is not an error, so without this the
+  // action reported success and changed nothing. The same mistake
+  // updateHouseholdNameAction was fixed for, and the one this file's own
+  // cleanup script fell for while it was being written.
+  const { data: edited, error } = await supabase
     .from("family_messages")
     .update({ body: next, edited_at: new Date().toISOString() })
     .eq("id", messageId)
     .eq("family_id", me.family_id)
     .eq("member_id", me.id)
-    .is("deleted_at", null);
+    .is("deleted_at", null)
+    .select("id");
   if (error) return { error: humanDatabaseError(error.message) };
+  if (!edited?.length) return { error: "That message can't be edited — it may have been withdrawn already." };
 
   revalidatePath("/chat");
   return { error: null };
@@ -82,6 +93,27 @@ export async function editMessageAction(messageId: string, body: string): Promis
 export async function reactToMessageAction(messageId: string, emoji: string | null): Promise<ActionState> {
   const me = await requireCurrentMember();
   const supabase = await createClient();
+
+  // Both arguments arrive from the caller and neither was checked. A reaction
+  // is one of six things; the column has no CHECK behind it, so a sentence and
+  // five thousand characters of X were both accepted and both then render in
+  // the chip under that message for the whole household.
+  if (emoji !== null && !isReaction(emoji)) return { error: "That isn't a reaction." };
+
+  // And the message has to be one of ours. RLS is satisfied by the family_id
+  // this sends -- which is the caller's own -- so it never had an opinion on
+  // whether message_id belonged to that family, and a reaction could be filed
+  // against another household's message. Nothing leaks either way (neither
+  // side can see the other's rows) but it stores a row that means nothing and
+  // tells the caller whether a message id exists, which is not theirs to ask.
+  const { data: message, error: lookupError } = await supabase
+    .from("family_messages")
+    .select("id")
+    .eq("id", messageId)
+    .eq("family_id", me.family_id)
+    .maybeSingle();
+  if (lookupError) return { error: humanDatabaseError(lookupError.message) };
+  if (!message) return { error: "That message isn't in this household's thread." };
 
   if (!emoji) {
     const { error } = await supabase.from("family_message_reactions").delete().eq("message_id", messageId).eq("member_id", me.id);

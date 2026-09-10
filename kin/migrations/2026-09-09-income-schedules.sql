@@ -1,5 +1,11 @@
--- NOT YET APPLIED. Jonathan runs this; nothing here has been run against the
--- database. Read "How to run it" at the foot before you start.
+-- APPLIED 9 September, on Jonathan's instruction. STEP 0's widening was run
+-- first, as this file insists; the table and its four policies followed, and
+-- RLS was confirmed on afterwards.
+--
+-- It left one thing wrong that this file did not anticipate: every foreign
+-- key here was written without an ON DELETE clause, so all of them came out
+-- NO ACTION where bills' are CASCADE and SET NULL. See
+-- 2026-09-09-income-schedules-cascades.sql, which repairs it.
 --
 -- Income schedules: the other half of the ledger
 -- ================================================
@@ -34,20 +40,30 @@
 -- because that account's own RLS already enforces that on the
 -- wealth_transactions insert.
 --
--- One thing this migration cannot settle from here: whether
+-- One thing this migration could not settle when it was written: whether
 -- wealth_transactions.source_table or calendar_event_links.source_table
--- carries a CHECK constraint limiting it to today's values ('bills',
--- 'trips', 'buy_items', 'health_appointments', 'goals', 'routines', plus
--- 'activities', 'events', 'health_schedule', 'doc_entries', 'meal_plans'
--- for the calendar one). The generated TypeScript type for both columns is
--- plain `string`, which means either there is no such constraint, or the
--- generator simply doesn't surface CHECK constraints -- I can't tell which
--- from here without a database connection, and reading is fine but this
--- isn't a question a read answers on its own without running it. Step 0
--- below checks both. If either finds one, add 'income_schedules' to it
--- before the app tries to write that value, or every income receipt (for
--- wealth_transactions) or every calendar sync of an income schedule's
--- expected date (for calendar_event_links) will fail at the database.
+-- carries a CHECK constraint limiting it to today's values. The generated
+-- TypeScript type for both columns is plain `string`, which settles nothing
+-- either way -- the type generator does not surface CHECK constraints.
+--
+-- It has since been read straight off the database, and the answer is that
+-- both columns are constrained and neither list allows 'income_schedules':
+--
+--   wealth_transactions_source_table_check
+--     CHECK (source_table IS NULL OR source_table = ANY (ARRAY[
+--       'bills','trips','buy_items','health_appointments','goals','routines']))
+--
+--   calendar_event_links_source_table_check
+--     CHECK (source_table = ANY (ARRAY[
+--       'activities','events','health_schedule','health_appointments',
+--       'doc_entries','trips','bills','meal_plans','goals','routines']))
+--
+-- So STEP 0 below is REQUIRED, not conditional, and it has to happen before
+-- the accompanying code can write either value. receiveIncomeAction records
+-- the ledger row with source_table = 'income_schedules', and
+-- addIncomeScheduleAction syncs the expected date to the calendars with the
+-- same value; without the widening, every income receipt and every calendar
+-- sync of an income schedule fails at the database.
 --
 --
 begin;
@@ -95,32 +111,41 @@ commit;
 -- How to run it
 -- =============
 --
--- STEP 0 -- check whether either source_table column is constrained.
--- Read-only.
+-- STEP 0 -- widen both source_table constraints. Required; run it first.
+--
+-- Each statement below carries that constraint's exact current definition
+-- with 'income_schedules' appended. They were built from the live
+-- definitions, not from the value list the application code happens to use.
+--
+-- Note the `source_table is null` branch on wealth_transactions: every
+-- ad-hoc transaction -- anything not raised from a bill, trip or goal --
+-- has a null source_table, so dropping that branch would break the ledger
+-- everywhere, not just for income.
+--
+--   alter table public.wealth_transactions
+--     drop constraint wealth_transactions_source_table_check;
+--   alter table public.wealth_transactions
+--     add constraint wealth_transactions_source_table_check
+--     check (source_table is null or source_table in ('bills','trips',
+--       'buy_items','health_appointments','goals','routines','income_schedules'));
+--
+--   alter table public.calendar_event_links
+--     drop constraint calendar_event_links_source_table_check;
+--   alter table public.calendar_event_links
+--     add constraint calendar_event_links_source_table_check
+--     check (source_table in ('activities','events','health_schedule',
+--       'health_appointments','doc_entries','trips','bills','meal_plans',
+--       'goals','routines','income_schedules'));
+--
+-- Then read both definitions back. Both should now mention
+-- 'income_schedules', and wealth_transactions' should still have its
+-- null branch:
 --
 --   select conrelid::regclass as on_table, conname, pg_get_constraintdef(oid)
 --     from pg_constraint
 --    where conrelid in ('public.wealth_transactions'::regclass, 'public.calendar_event_links'::regclass)
 --      and contype = 'c'
 --      and pg_get_constraintdef(oid) ilike '%source_table%';
---
--- For any row this returns whose definition does not already mention
--- 'income_schedules', widen it before the app code ships, e.g. for
--- wealth_transactions:
---
---   alter table public.wealth_transactions drop constraint <name from above>;
---   alter table public.wealth_transactions add constraint <same name>
---     check (source_table in ('bills','trips','buy_items',
---       'health_appointments','goals','routines','income_schedules'));
---
--- and correspondingly for calendar_event_links, adding 'income_schedules'
--- to whatever list its own constraint already has.
---
--- (Match each constraint's exact existing value list from its definition
--- above -- don't guess it; the values shown here are what the application
--- code uses as of this migration, not a copy of what either constraint
--- says.) If STEP 0 returns nothing, there is no constraint on either
--- column to widen and this step is done.
 --
 -- STEP 1 -- everything between `begin;` and `commit;` above. Creates one
 -- new table and its policies; touches no existing table, no existing row.
@@ -145,5 +170,7 @@ commit;
 --
 --   drop table public.income_schedules;
 --
--- If STEP 0's widening was applied and needs undoing too, restore the
--- constraint definition STEP 0 printed before you changed it.
+-- If STEP 0's widening was applied and needs undoing too, restore each
+-- constraint from the definition quoted at the head of this file -- but
+-- there is rarely a reason to: widening a CHECK only admits one more value,
+-- and no row can carry it once the table is gone.

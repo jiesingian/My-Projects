@@ -1,5 +1,6 @@
--- NOT YET APPLIED. Jonathan runs this; nothing here has been run against the
--- database. Read "How to run it" at the foot before you start.
+-- APPLIED 9 September, on Jonathan's instruction, and verified after: the
+-- column exists, text and nullable. STEP 3 was deliberately NOT run -- it
+-- writes to the Singian household and the file itself says it is optional.
 --
 -- A household's own country, alongside currency
 -- ================================================================

@@ -73,7 +73,7 @@ export async function updateAccountAction(accountId: string, _prev: ActionState,
   const accountType = String(formData.get("account_type") ?? "bank");
   if (!ACCOUNT_TYPES.includes(accountType as AccountType)) return { error: "That isn't a valid account type." };
 
-  const { error } = await supabase
+  const { error, count } = await supabase
     .from("accounts")
     .update({
       name,
@@ -83,10 +83,11 @@ export async function updateAccountAction(accountId: string, _prev: ActionState,
       app_store_url: clamp(String(formData.get("app_store_url") ?? ""), 500) || null,
       play_store_url: clamp(String(formData.get("play_store_url") ?? ""), 500) || null,
       account_type: accountType,
-    })
+    }, { count: "exact" })
     .eq("id", accountId)
     .eq("family_id", me.family_id);
   if (error) return { error: humanDatabaseError(error.message) };
+  if (count === 0) return { error: "That account is no longer there — someone may have removed it." };
 
   revalidateWealth();
   redirect(`/wealth/accounts/${accountId}`);
@@ -110,12 +111,13 @@ export async function setAccountPrivacyAction(accountId: string, isPrivate: bool
   if (account.is_joint) return { error: "A joint account belongs to the household already." };
   if (account.owner_member_id !== me.id) return { error: "Only the person whose account it is can change that." };
 
-  const { error } = await supabase
+  const { error, count } = await supabase
     .from("accounts")
-    .update({ is_private: isPrivate })
+    .update({ is_private: isPrivate }, { count: "exact" })
     .eq("id", accountId)
     .eq("family_id", me.family_id);
   if (error) return { error: humanDatabaseError(error.message) };
+  if (count === 0) return { error: "That account is no longer there — someone may have removed it." };
 
   revalidateWealth();
   return { error: null };
@@ -124,8 +126,9 @@ export async function setAccountPrivacyAction(accountId: string, isPrivate: bool
 export async function archiveAccountAction(accountId: string): Promise<ActionState> {
   const me = await requireCurrentMember();
   const supabase = await createClient();
-  const { error } = await supabase.from("accounts").update({ is_archived: true }).eq("id", accountId).eq("family_id", me.family_id);
+  const { error, count } = await supabase.from("accounts").update({ is_archived: true }, { count: "exact" }).eq("id", accountId).eq("family_id", me.family_id);
   if (error) return { error: humanDatabaseError(error.message) };
+  if (count === 0) return { error: "That account is no longer there — someone may have removed it." };
   revalidateWealth();
   return { error: null };
 }
@@ -924,8 +927,9 @@ export async function updateAssetValueAction(assetId: string, value: number): Pr
   if (!Number.isFinite(value) || value < 0) return { error: "What it is worth has to be a number, and cannot be less than zero." };
   const me = await requireCurrentMember();
   const supabase = await createClient();
-  const { error } = await supabase.from("assets").update({ value }).eq("id", assetId).eq("family_id", me.family_id);
+  const { error, count } = await supabase.from("assets").update({ value }, { count: "exact" }).eq("id", assetId).eq("family_id", me.family_id);
   if (error) return { error: humanDatabaseError(error.message) };
+  if (count === 0) return { error: "That asset is no longer there — someone may have removed it." };
   revalidateWealth();
   return { error: null };
 }
@@ -934,8 +938,9 @@ export async function updateLiabilityBalanceAction(liabilityId: string, balance:
   if (!Number.isFinite(balance) || balance < 0) return { error: "What is owed has to be a number, and cannot be less than zero." };
   const me = await requireCurrentMember();
   const supabase = await createClient();
-  const { error } = await supabase.from("liabilities").update({ balance }).eq("id", liabilityId).eq("family_id", me.family_id);
+  const { error, count } = await supabase.from("liabilities").update({ balance }, { count: "exact" }).eq("id", liabilityId).eq("family_id", me.family_id);
   if (error) return { error: humanDatabaseError(error.message) };
+  if (count === 0) return { error: "That liability is no longer there — someone may have removed it." };
   revalidateWealth();
   return { error: null };
 }

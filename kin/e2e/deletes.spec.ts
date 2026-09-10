@@ -1,4 +1,5 @@
 import { test, expect, type Page } from "@playwright/test";
+import { tidyUpAfter } from "./support/qa-household";
 
 /** Removing things, which is where losing things lives.
  *
@@ -7,9 +8,16 @@ import { test, expect, type Page } from "@playwright/test";
  * to one that worked until you come back for the thing, and a delete that
  * removes more than it was asked to is worse still. So each of these makes
  * something, removes it, and then checks both halves: the thing is gone, and
- * everything beside it is not. */
+ * everything beside it is not.
+ *
+ * Which means every test here deliberately leaves a keeper behind -- proving
+ * the delete was narrow is the whole point -- and those keepers are what used
+ * to accumulate. They are swept at the foot, after the assertions that need
+ * them have run. */
 
-const RUN = `E2E-DEL-${Date.now().toString(36)}`;
+/** Fixed, so the sweep at the foot also collects what a crashed run left. */
+const FAMILY = "E2E-DEL";
+const RUN = `${FAMILY}-${Date.now().toString(36)}`;
 
 /** The app asks before destroying anything, and reports failure through
  * window.alert. Accept the question, and treat an alert as a failure -- it is
@@ -25,6 +33,13 @@ function handleDialogs(page: Page) {
 
 test.describe("removing things", () => {
   test.use({ viewport: { width: 1280, height: 900 } });
+
+  /* The keepers, and anything a failed test left half-made. Same sweep and
+   * the same account as writes.spec: RLS keeps it inside the throwaway
+   * household, and it asserts rather than hopes. */
+  test.afterAll(async () => {
+    await tidyUpAfter(FAMILY);
+  });
 
   test("a routine can be removed, and takes nothing else with it", async ({ page }) => {
     const doomed = `${RUN} doomed routine`;

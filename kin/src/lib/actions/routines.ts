@@ -299,8 +299,13 @@ export async function updateRoutineAction(id: string, _prev: RoutineActionState,
 
   const supabase = await createClient();
   const { members, ...row } = input;
-  const { error } = await supabase.from("routines").update(row).eq("id", id).eq("family_id", me.family_id);
+  const { error, count } = await supabase
+    .from("routines")
+    .update(row, { count: "exact" })
+    .eq("id", id)
+    .eq("family_id", me.family_id);
   if (error) return { error: humanDatabaseError(error.message), field: null };
+  if (count === 0) return { error: "That routine is no longer there — someone may have removed it.", field: null };
 
   const whoFailed = await saveMembers(id, members);
   if (whoFailed) return { error: whoFailed, field: null };
@@ -314,8 +319,13 @@ export async function updateRoutineAction(id: string, _prev: RoutineActionState,
 export async function setRoutinePausedAction(id: string, paused: boolean): Promise<ActionState> {
   const me = await requireCurrentMember();
   const supabase = await createClient();
-  const { error } = await supabase.from("routines").update({ paused }).eq("id", id).eq("family_id", me.family_id);
+  const { error, count } = await supabase
+    .from("routines")
+    .update({ paused }, { count: "exact" })
+    .eq("id", id)
+    .eq("family_id", me.family_id);
   if (error) return { error: humanDatabaseError(error.message) };
+  if (count === 0) return { error: "That routine is no longer there — someone may have removed it." };
 
   // Pausing takes it off everyone's calendar; resuming puts it back.
   await syncRoutine(me.family_id, id);

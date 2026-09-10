@@ -1,10 +1,10 @@
 import { createClient } from "@/lib/supabase/server";
 import type { Tables } from "@/lib/database.types";
-import { monthKey, recentMonths, signedAmount, recentPeriods, periodKey, cashFlowRangeCount, type CashFlowRange } from "@/lib/wealth";
+import { monthKey, recentMonths, signedAmount, recentPeriods, periodKey, cashFlowRangeCount, inScope, type CashFlowRange, type WealthScope } from "@/lib/wealth";
 
-/** Which slice of the household's money is on screen: everything the
- * viewer is allowed to see, or one person's own accounts. */
-export type WealthScope = "all" | (string & {});
+// Re-exported so the page keeps importing its scope type from the module it
+// already imports the queries from.
+export type { WealthScope };
 
 export type AccountWithBalance = Tables<"accounts"> & { balance: number; pendingCount: number };
 
@@ -13,15 +13,6 @@ export type LedgerEntry = Tables<"wealth_transactions"> & { accountName: string;
 function currentPeriod() {
   const now = new Date();
   return { month: now.getMonth() + 1, year: now.getFullYear() };
-}
-
-/** "all" is everything already in reach — the household's joint accounts,
- * your own, and whatever anyone else has opened to the family. Naming a
- * person narrows it to the accounts in their name; a joint account is the
- * household's, not theirs, so it stays under All. Privacy is not decided
- * here: the database has already withheld what is not yours to see. */
-function inScope(account: Pick<Tables<"accounts">, "is_joint" | "owner_member_id">, scope: WealthScope) {
-  return scope === "all" ? true : !account.is_joint && account.owner_member_id === scope;
 }
 
 /** Balances are never stored — an account is its opening balance plus every

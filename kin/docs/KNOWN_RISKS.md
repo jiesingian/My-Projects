@@ -11,6 +11,224 @@ place for those.
 
 ---
 
+## The seeded fixtures aged out on Monday 14 September — CLOSED 9 September
+
+`regressions.spec` is the one spec that does not make what it looks for. It
+asserts against content seeded by hand into the throwaway household — a health
+item due, a milestone, and activities at 07:30, 10:00 and 17:30 Manila that
+prove the Planner reads the household's clock rather than the server's, since
+under UTC they would read 23:30 the previous day and 09:30.
+
+Those activities are dated **Monday 7 September 2026**, in both QA households.
+The Planner test reads the week on screen, so from **Monday 14 September** they
+fall outside it and two of these tests start failing on both machines at once.
+Nothing will have broken; the fixtures will simply have aged out, which is the
+worst kind of red — it looks exactly like a regression and is not one.
+
+It was measured rather than assumed: 7 September 2026 is a Monday, 9 September
+(when this was found) a Wednesday, and 14 September the following Monday.
+
+**Fixed the same day.** `regressions.spec` now makes its own fixtures in a
+`beforeAll`, anchored to today in the household's own zone, and sweeps them
+afterwards like every spec written since. Re-seeding by hand each week would
+have been the same trap with a longer fuse.
+
+Two things fell out of doing it, both worth keeping:
+
+- **The times are now distinctive minutes** — 07:37 and 17:43 rather than 07:30
+  and 17:30. The bug being guarded against reads a Manila wall-clock time as
+  UTC, so 07:37 comes out as 23:37 the previous day; a minute nothing else uses
+  makes both halves provable from the page text alone, and stops some other
+  fixture's 07:30 satisfying the assertion by accident.
+- **Two of the assertions were vacuous and nobody could have known.** The
+  Planner writes 24-hour times and Today writes 12-hour ones with no leading
+  zero — `17:43` against `5:43 PM`. The Today test was looking for a 24-hour
+  string on a page that never emits one, so it could not have failed however
+  wrong the clock had gone. Both forms are spelled out now, and each test
+  asserts the right time is present as well as the wrong one absent: a bare
+  "the wrong time is not here" is satisfied by an empty page, which is exactly
+  how it would have kept passing once its fixture aged out.
+
+Verified by removing the seeding and watching the three fixture-dependent
+tests fail, then restoring it.
+
+---
+
+## Actions that reported success when they changed nothing — CLOSED 10 September
+
+`updateHouseholdNameAction` carries a comment about this: "a refusal that
+matches no rows is not an error, so the rename silently did nothing and still
+reported success." It has now been found three more times — twice in Chat,
+once in the Planner — so it was worth counting rather than fixing one at a
+time.
+
+An audit of every `update()` in `src/lib/actions` found **23** keyed on a
+caller-supplied `id` *plus* a filter that can legitimately match nothing
+(the household, the owner, or a required state). Five are fixed — the Planner
+and routines ones swept on 9 September, plus Chat's two. **Eighteen remain**:
+
+    updateDocEntryAction            setMemberRoleAction
+    convertToManagedChildAction     updateConditionEntryAction
+    updateLabAction                 updateBuyItemAction
+    toggleBuyItemAction             setBuyItemPriceAction
+    saveRecipeAction                setShoppingDayAction
+    removeRecipeCategoryAction      setMealIngredientAction
+    updateMilestoneAction           updateAccountAction
+    setAccountPrivacyAction         archiveAccountAction
+    updateAssetValueAction          updateLiabilityBalanceAction
+
+**How much it matters.** From the app it mostly cannot happen: the screen only
+offers rows from your own household. It happens when two people are using Kin
+at once and one removes what the other is editing — which is the premise of
+this repository, not a hypothetical — and when a page has been open a while.
+The member is told "saved" and nothing was. It is a correctness and honesty
+problem, not a security one: nobody gains access to anything.
+
+**The fix, and the trap in the obvious version of it.** The instinct is to add
+`.select()` so the row count is knowable. Don't: that adds a RETURNING clause,
+and a row the write policy allows but the read policy refuses is rolled back
+whole — this codebase has already been bitten by that twice, in the visibility
+work and the ledger work. Ask for a count instead, which comes back in a
+header and needs no representation. Measured against the throwaway household
+on 9 September:
+
+    PATCH …/activities?id=eq.<mine>    Prefer: count=exact
+      -> 204, content-range: 0-0/1     (changed one row, no body)
+    PATCH …/activities?id=eq.<absent>  Prefer: count=exact
+      -> 204, content-range: */0       (changed nothing, no body)
+
+In supabase-js that is `.update(values, { count: "exact" })`, then
+`if (count === 0) return { error: … }`. The five already fixed use exactly
+that and can be copied.
+
+**Done on 10 September**, as its own change. Sixteen of the eighteen took the
+count; two did not, and those two are the reason this was worth doing by hand
+rather than by script:
+
+- `toggleBuyItemAction` returns nothing at all, on purpose. Its comment already
+  explained why: the revalidate re-renders the list from the database, so a tick
+  that did not save comes straight back and the person sees it. That is a better
+  answer than an error message. The script changed it; `tsc` caught the changed
+  return type; it was put back with the reasoning written down rather than
+  merely implied.
+- `removeRecipeCategoryAction` updates rows inside a loop over rows it has just
+  read. A zero count there means a recipe vanished mid-loop, which is harmless —
+  the category is going anyway — and turning that into a user-facing error would
+  make a benign race look like a failure.
+
+And one of the sixteen mattered much more than the others.
+`convertToManagedChildAction` reads the member, updates it, and then deletes
+their sign-in. The read can be overtaken; if the update matched nothing, the
+delete still ran, and somebody lost their login for no reason. It now stops,
+and says so in those words.
+
+---
+
+## Two people, one QA household — 9 September
+
+The suite's write specs now tidy up after themselves. Finding out why they
+appeared not to took longer than writing the tidy-up, and the reason is worth
+recording because it will happen again.
+
+**The tidy-up itself.** `writes.spec`, `deletes.spec` and `edits.spec` each
+sweep their own rows in an `afterAll`, through `e2e/support/qa-household.ts`.
+It runs as the QA account over the ordinary REST API rather than with any
+elevated key, so row-level security decides what it can reach and it cannot
+touch the Singian household whatever the prefix says. It asserts what is left
+rather than trusting the deletes: PostgREST answers a refused delete with 200
+and an empty body, so the only honest check is to look again.
+
+**Two things had to be fixed, not one.**
+
+The first was mine. The sweep was keyed on the per-run id, and Playwright
+loads a spec file twice — once in the process that collects the tests, once in
+the worker that runs them — so a `Date.now()` at module scope takes two
+different values in one run. Only the worker writes rows, so that alone is
+survivable; a module reloaded part-way through is not. Sweeping a fixed family
+name (`E2E-WRITES`, `E2E-DEL`, `E2E-EDIT`) instead is stable across every
+process and reload, and collects orphans from earlier crashed runs as well.
+
+The second was not a bug at all. **There is one Supabase project and one
+`E2E_EMAIL`, and both people's sessions point at them.** Two suites started
+minutes apart in two containers write to the same throwaway household. For an
+hour that looked exactly like a broken tidy-up: rows kept appearing under a
+prefix this clone had not used since a change fifteen minutes earlier, while
+every sweep truthfully reported nothing of its own left behind. The measurement
+that settled it was that no file in this checkout could produce those rows, and
+no other checkout or process existed in this container.
+
+**What that costs.** A sweep can remove rows from under another machine's run
+in flight, and a spec can fail because somebody else's tidy-up took what it was
+about to look for. Neither can reach the real household, and neither corrupts
+anything — the failure mode is a confusing red run, not lost data. `e2e.yml`'s
+repo-wide concurrency group of one serialises CI, but nothing serialises two
+laptops.
+
+**Not fixed, and deliberately.** The answer is a second QA household with its
+own account, chosen per machine — not a cleverer prefix, which only narrows the
+window. That needs a new auth user and family created by somebody with the
+service role, which is Jonathan's. Until then the rule is the ordinary
+courtesy already in CLAUDE.md: say what you are running before you run it.
+
+---
+
+## Signing up: five bugs closed, and the one that needs a migration — 9 September
+
+Onboarding had never had a bug-hunt pass. It is the only path in the app that
+runs before there is a member row, so almost nothing it does is covered by the
+policies and helpers the rest of the code leans on. Five things found and
+fixed; one left, because closing it properly needs a migration.
+
+**Fixed.**
+
+- **An access code was spent on a household that was never created.**
+  `redeem_household_code` increments `used_count` and returns; `create_family`
+  is a separate statement that refuses anyone who already has a member row. In
+  that order, walking back into step 4 from inside a household burned a use of
+  a beta code and got an error for it. Codes are finite and issued by hand.
+  `createFamilyAction` now checks membership before the code is looked at,
+  pinned by a browser test that fails if the two are put back in the old order.
+- **Name, date of birth and mobile travelled in the URL.** `saveProfile`
+  redirected to `/onboarding/family?full_name=…&dob=…&mobile=…`, which put all
+  three in the address bar, in browser history, and in the `Referer` header of
+  anything that page went on to fetch. They now ride in an httpOnly cookie
+  scoped to `/onboarding`, cleared the moment the member row exists.
+- **Step 4 was a dead end when reached directly.** Its name field is hidden --
+  it comes from step 3 -- so a bookmark or a back button rendered the form with
+  an empty one, and pressing CREATE HOUSEHOLD answered "your name is required"
+  while pointing at no field that asks for a name. Nothing on the page could
+  clear it. It now sends you back one step.
+- **"That invite code didn't match a household" was said to people whose code
+  was fine.** `join_family` raises three distinct things and `joinFamilyAction`
+  reported all of them as a bad code -- including "already a member of a
+  family", which is nothing to do with the code and cannot be fixed by
+  re-typing it.
+- **Onboarding stored text of any length, and a birthday of any date.** It was
+  the one path with no clamps: every other form in the app has them. And a
+  birthday in the future ran through `formatAge`'s `Math.max(months, 0)` and
+  rendered as "0 months", so a member born in 2035 appeared in the list as a
+  newborn with nothing anywhere to say the date was impossible.
+  `birthdayProblem` now refuses a future date, a year before 1900 (the short
+  four-digit-year typo, 0219 for 2019), and anything that is not a real date.
+
+**Left, and why.** Redemption and creation are still two statements, so a
+failure between them still spends a code with nothing to show. The membership
+check closes the case that actually happens, and the action now says plainly
+that the code was counted and logs it -- but the only real fix is one RPC that
+redeems and creates in a single transaction, which is a migration, which is
+Jonathan's. Worth doing before the beta codes go out more widely.
+
+**Not covered by any test, and honestly cannot be from here.** Everything
+above is verified against an account that is *already* in a household --
+arriving at step 4 cold, the membership guard, the URL, the redirect. The
+path a genuinely new person takes (sign up, confirm an email, redeem a real
+code, create a household) is not, because walking it means creating an auth
+user and a family, and there is no service-role key in a session that follows
+CLAUDE.md. The RPCs it calls are covered by their own constraints; the
+sequence is not.
+
+---
+
 ## Writes whose error was never captured — CLOSED 8 September, 67 of 67
 
 `src/lib/actions/*.ts` and `src/lib/*.ts` contained 67 writes of the shape

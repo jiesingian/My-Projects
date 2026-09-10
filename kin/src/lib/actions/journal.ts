@@ -229,12 +229,13 @@ export async function updateMilestoneAction(input: {
   const title = clamp(input.title, 150);
   if (!title) return { error: "Give the milestone a title." };
 
-  const { error } = await supabase
+  const { error, count } = await supabase
     .from("milestones")
-    .update({ title, milestone_date: input.date, member_id: input.memberId })
+    .update({ title, milestone_date: input.date, member_id: input.memberId }, { count: "exact" })
     .eq("id", input.milestoneId)
     .eq("family_id", me.family_id);
   if (error) return { error: humanDatabaseError(error.message) };
+  if (count === 0) return { error: "That milestone is no longer there — someone may have removed it." };
 
   revalidatePath("/journal");
   return { error: null };

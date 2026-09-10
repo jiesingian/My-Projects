@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { formatCurrency } from "@/lib/format";
 import { familyDay as localDay, familyTime as localTime } from "@/lib/time";
+import { startOfWeek, weekStartOf } from "@/lib/week";
 import type { IconName } from "@/components/icons";
 
 /** One line in the briefing. Deliberately flat and pre-formatted: the page
@@ -30,14 +31,23 @@ export type HubCard = {
   span?: "full";
 };
 
-export async function getHubCards(familyId: string, currency: string): Promise<HubCard[]> {
+export async function getHubCards(familyId: string, currency: string, weekStartPref?: string | null): Promise<HubCard[]> {
   const supabase = await createClient();
   const today = new Date();
   const startOfMonth = new Date(today.getFullYear(), today.getMonth(), 1).toISOString();
-  const startOfWeek = new Date(today);
-  startOfWeek.setDate(today.getDate() - today.getDay());
-  const endOfWeek = new Date(startOfWeek);
-  endOfWeek.setDate(startOfWeek.getDate() + 7);
+
+  // Whichever day the household said its week starts on. This counted from
+  // getDay() -- Sunday, always -- while the Planner it links to has laid its
+  // columns out from the preference since lib/week.ts was written. So a
+  // household set to Monday saw "N THIS WEEK" counted Sunday to Saturday
+  // under a Planner drawn Monday to Sunday, and on a Sunday the two disagreed
+  // by a whole week: an activity that day counted here and appeared in last
+  // week there. That is the exact bug lib/week.ts exists to end -- "the
+  // setting saved cleanly and changed nothing" -- surviving in the one place
+  // that had not been converted.
+  const weekBegins = startOfWeek(today, weekStartOf(weekStartPref));
+  const weekEnds = new Date(weekBegins);
+  weekEnds.setDate(weekBegins.getDate() + 7);
 
   const [
     dueHealth,
@@ -75,8 +85,8 @@ export async function getHubCards(familyId: string, currency: string): Promise<H
       .from("activities")
       .select("id", { count: "exact", head: true })
       .eq("family_id", familyId)
-      .gte("start_at", startOfWeek.toISOString())
-      .lt("start_at", endOfWeek.toISOString()),
+      .gte("start_at", weekBegins.toISOString())
+      .lt("start_at", weekEnds.toISOString()),
     supabase
       .from("bills")
       .select("name, amount, due_date")

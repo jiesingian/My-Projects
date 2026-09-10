@@ -1,3 +1,32 @@
+/** Which slice of the household's money is on screen: everything the
+ * viewer is allowed to see, or one person's own accounts. */
+export type WealthScope = "all" | (string & {});
+
+/** Whether one account, asset, liability or goal belongs in the slice the
+ * Who picker is currently showing.
+ *
+ * "all" is everything already in reach -- the household's joint accounts,
+ * your own, and whatever anyone else has opened to the family. Naming a
+ * person narrows it to what is in *their* name, and a joint account is the
+ * household's rather than theirs, so it stays under All even for the person
+ * who opened it. That last part is the surprising half, and it is the half
+ * that bites: a control built from a scoped list empties out the moment you
+ * look at anybody's tab, including your own.
+ *
+ * Privacy is not decided here. The database has already withheld whatever is
+ * not the viewer's to see; this only chooses what to show of what is left, so
+ * a bug in it is a display bug and never a leak.
+ *
+ * It lives in this module rather than beside its callers so it can be tested
+ * without a request behind it -- `queries/wealth.ts` reaches for
+ * `next/headers` the moment it is imported. */
+export function inScope(
+  row: { is_joint: boolean | null; owner_member_id: string | null },
+  scope: WealthScope,
+): boolean {
+  return scope === "all" ? true : !row.is_joint && row.owner_member_id === scope;
+}
+
 export const ACCOUNT_TYPES = ["bank", "cash", "ewallet", "credit", "investment", "other"] as const;
 export type AccountType = (typeof ACCOUNT_TYPES)[number];
 

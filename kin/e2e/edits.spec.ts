@@ -1,4 +1,5 @@
 import { test, expect, request as playwrightRequest, type Page } from "@playwright/test";
+import { tidyUpAfter } from "./support/qa-household";
 
 /** Changing things, where the danger is what you did not mean to change.
  *
@@ -13,11 +14,21 @@ import { test, expect, request as playwrightRequest, type Page } from "@playwrig
  * So the shape of every test here is the same: set several fields, change one,
  * and check the others are still what they were. */
 
-const RUN = `E2E-EDIT-${Date.now().toString(36)}`;
+/** Fixed, so the sweep below also collects what a crashed run left. */
+const FAMILY = "E2E-EDIT";
+const RUN = `${FAMILY}-${Date.now().toString(36)}`;
 
 /** The calendar shows a month grid and, under it, the agenda for the day the
  * URL is anchored on. There is no day view; month is how you look at a day. */
 const dayUrl = (iso: string) => `/planner?seg=calendar&view=month&date=${iso}`;
+
+/* At file scope so it covers both describes below. "how long a routine takes"
+ * already clears its own bookings either side of itself, which this leaves
+ * nothing to find; what nothing cleared were the activities "changing things"
+ * creates -- two per run, the most prolific leak in the suite. */
+test.afterAll(async () => {
+  await tidyUpAfter(FAMILY);
+});
 
 async function fill(page: Page, name: string, value: string) {
   const field = page.locator(`[name="${name}"]`).first();

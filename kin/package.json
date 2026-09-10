@@ -9,6 +9,7 @@
     "start": "TZ=Asia/Manila next start",
     "lint": "eslint",
     "e2e": "playwright test",
+    "check:schema": "node scripts/check-schema.mjs",
     "e2e:ui": "playwright test --ui"
   },
   "dependencies": {

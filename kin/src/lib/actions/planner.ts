@@ -9,6 +9,7 @@ import type { ActionState } from "@/lib/actions/auth";
 import { familyDay } from "@/lib/time";
 import { allDayEvent } from "@/lib/calendar-shape";
 import { humanDatabaseError } from "@/lib/db-errors";
+import { activityInstants } from "@/lib/planner-time";
 import { clamp } from "@/lib/text";
 
 function activityTarget(wholeFamily: boolean, who: string[]): CalendarTarget {
@@ -30,14 +31,16 @@ export async function createActivityAction(_prev: ActionState, formData: FormDat
   const who = formData.getAll("who").map(String);
 
   if (!title || !date) return { error: "Title and date are required." };
+  const when = activityInstants(date, from, to);
+  if ("error" in when) return { error: when.error };
 
   const { data: activity, error } = await supabase
     .from("activities")
     .insert({
       family_id: me.family_id,
       title,
-      start_at: new Date(`${date}T${from || "09:00"}`).toISOString(),
-      end_at: to ? new Date(`${date}T${to}`).toISOString() : null,
+      start_at: when.startAt.toISOString(),
+      end_at: when.endAt ? when.endAt.toISOString() : null,
       repeat,
       location,
       notes,
@@ -59,7 +62,7 @@ export async function createActivityAction(_prev: ActionState, formData: FormDat
     me.family_id,
     "activities",
     activity.id,
-    { title, startAt: new Date(`${date}T${from || "09:00"}`), endAt: to ? new Date(`${date}T${to}`) : null, location },
+    { title, startAt: when.startAt, endAt: when.endAt, location },
     activityTarget(wholeFamily, who),
   );
 
@@ -82,21 +85,33 @@ export async function updateActivityAction(activityId: string, _prev: ActionStat
   const who = formData.getAll("who").map(String);
 
   if (!title || !date) return { error: "Title and date are required." };
+  const when = activityInstants(date, from, to);
+  if ("error" in when) return { error: when.error };
 
-  const { error } = await supabase
+  const { error, count } = await supabase
     .from("activities")
-    .update({
-      title,
-      start_at: new Date(`${date}T${from || "09:00"}`).toISOString(),
-      end_at: to ? new Date(`${date}T${to}`).toISOString() : null,
-      repeat,
-      location,
-      notes,
-      applies_to_whole_family: wholeFamily,
-    })
+    .update(
+      {
+        title,
+        start_at: when.startAt.toISOString(),
+        end_at: when.endAt ? when.endAt.toISOString() : null,
+        repeat,
+        location,
+        notes,
+        applies_to_whole_family: wholeFamily,
+      },
+      { count: "exact" },
+    )
     .eq("id", activityId)
     .eq("family_id", me.family_id);
   if (error) return { error: humanDatabaseError(error.message) };
+  // An update that matches nothing is not an error, so without this the form
+  // said "saved" over an activity somebody else had already removed. `count`
+  // rather than `.select()` deliberately: asking for the rows back adds a
+  // RETURNING clause, and a row the write policy allows but the read policy
+  // refuses is rolled back whole -- the trap this codebase has already been
+  // caught by twice.
+  if (count === 0) return { error: "That activity is no longer there — someone may have removed it." };
 
   // Clearing and re-inserting is two statements. If the second fails after the
   // first has succeeded the activity is left marked for nobody, which looks
@@ -114,7 +129,7 @@ export async function updateActivityAction(activityId: string, _prev: ActionStat
     me.family_id,
     "activities",
     activityId,
-    { title, startAt: new Date(`${date}T${from || "09:00"}`), endAt: to ? new Date(`${date}T${to}`) : null, location },
+    { title, startAt: when.startAt, endAt: when.endAt, location },
     activityTarget(wholeFamily, who),
   );
 
@@ -218,12 +233,16 @@ export async function updateEventAction(eventId: string, _prev: ActionState, for
   if (!title || !date) return { error: "Title and date are required." };
   if (!wholeFamily && who.length === 0) return { error: "Choose who this is for, or mark it for the whole family." };
 
-  const { error } = await supabase
+  const { error, count } = await supabase
     .from("events")
-    .update({ title, event_date: date, kind, sub_note: subNote, recurs_yearly: recursYearly, applies_to_whole_family: wholeFamily })
+    .update(
+      { title, event_date: date, kind, sub_note: subNote, recurs_yearly: recursYearly, applies_to_whole_family: wholeFamily },
+      { count: "exact" },
+    )
     .eq("id", eventId)
     .eq("family_id", me.family_id);
   if (error) return { error: humanDatabaseError(error.message) };
+  if (count === 0) return { error: "That occasion is no longer there — someone may have removed it." };
 
   const eventWho = await saveEventMembers(eventId, wholeFamily ? [] : who);
   if (eventWho) return { error: eventWho };
@@ -251,6 +270,23 @@ export async function deleteEventAction(eventId: string): Promise<ActionState> {
   return { error: null };
 }
 
+/** A trip's budget, or "bad" if it is not one.
+ *
+ * `min="0"` on the input is decoration: this is a Server Action, reachable
+ * with any number at all, and trips -- unlike routines, whose expected_cost
+ * has a CHECK behind it -- has no constraint on the column. So a negative
+ * budget was storable, and then rendered as a negative amount on the trip
+ * card. The same class as the negative bill and the negative asset already
+ * fixed in Wealth; this is the one the sweep there did not reach.
+ *
+ * A blank field is a trip with no budget, which is ordinary and stays null. */
+function tripBudget(raw: FormDataEntryValue | null): number | null | "bad" {
+  if (!raw) return null;
+  const n = Number(raw);
+  if (!Number.isFinite(n) || n < 0) return "bad";
+  return n;
+}
+
 export async function createTripAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
   const me = await requireCurrentMember();
   const supabase = await createClient();
@@ -258,12 +294,13 @@ export async function createTripAction(_prev: ActionState, formData: FormData): 
   const title = clamp(String(formData.get("title") ?? ""), 150);
   const startDate = String(formData.get("start_date") ?? "");
   const endDate = String(formData.get("end_date") ?? "") || null;
-  const budgetAmount = formData.get("budget_amount") ? Number(formData.get("budget_amount")) : null;
+  const budgetAmount = tripBudget(formData.get("budget_amount"));
   const travellers = formData.getAll("travellers").map(String).filter(Boolean);
   const wholeFamily = formData.get("whole_family") === "on";
   if (!title || !startDate) return { error: "Title and start date are required." };
   if (!wholeFamily && travellers.length === 0) return { error: "Choose who is travelling, or mark it for the whole family." };
   if (endDate && endDate < startDate) return { error: "The trip ends before it starts." };
+  if (budgetAmount === "bad") return { error: "A trip budget can't be negative." };
 
   const { data: trip, error } = await supabase
     .from("trips")
@@ -303,19 +340,24 @@ export async function updateTripAction(tripId: string, _prev: ActionState, formD
   const title = clamp(String(formData.get("title") ?? ""), 150);
   const startDate = String(formData.get("start_date") ?? "");
   const endDate = String(formData.get("end_date") ?? "") || null;
-  const budgetAmount = formData.get("budget_amount") ? Number(formData.get("budget_amount")) : null;
+  const budgetAmount = tripBudget(formData.get("budget_amount"));
   const travellers = formData.getAll("travellers").map(String).filter(Boolean);
   const wholeFamily = formData.get("whole_family") === "on";
   if (!title || !startDate) return { error: "Title and start date are required." };
   if (!wholeFamily && travellers.length === 0) return { error: "Choose who is travelling, or mark it for the whole family." };
   if (endDate && endDate < startDate) return { error: "The trip ends before it starts." };
+  if (budgetAmount === "bad") return { error: "A trip budget can't be negative." };
 
-  const { error } = await supabase
+  const { error, count } = await supabase
     .from("trips")
-    .update({ title, start_date: startDate, end_date: endDate, budget_amount: budgetAmount, applies_to_whole_family: wholeFamily })
+    .update(
+      { title, start_date: startDate, end_date: endDate, budget_amount: budgetAmount, applies_to_whole_family: wholeFamily },
+      { count: "exact" },
+    )
     .eq("id", tripId)
     .eq("family_id", me.family_id);
   if (error) return { error: humanDatabaseError(error.message) };
+  if (count === 0) return { error: "That trip is no longer there — someone may have removed it." };
 
   const tripWho = await saveTravellers(tripId, wholeFamily ? [] : travellers);
   if (tripWho) return { error: tripWho };

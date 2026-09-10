@@ -95,7 +95,7 @@ export async function updateDocEntryAction(input: {
   const title = clamp(input.title, 150);
   if (!title) return { error: "Give the entry a title." };
 
-  const { error } = await supabase
+  const { error, count } = await supabase
     .from("doc_entries")
     .update({
       title,
@@ -105,12 +105,13 @@ export async function updateDocEntryAction(input: {
       reference_no: input.referenceNo && clamp(input.referenceNo, 100),
       visibility: input.visibility,
       note: input.note && clamp(input.note, 1000),
-    })
+    }, { count: "exact" })
     .eq("id", input.entryId)
     .eq("family_id", me.family_id);
   // Same as at creation: a "parents" visibility from someone who is not a
   // parent is refused at the RETURNING and rolls back.
   if (error) return { error: explainVisibilityRefusal(error.message) };
+  if (count === 0) return { error: "That document entry is no longer there — someone may have removed it." };
 
   if (input.expiresAt) {
     await syncRowToCalendars(

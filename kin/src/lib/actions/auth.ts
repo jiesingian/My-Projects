@@ -6,6 +6,26 @@ import { createClient } from "@/lib/supabase/server";
 
 export type ActionState = { error: string | null };
 
+// An address longer than this cannot be delivered to -- 254 characters is the
+// ceiling RFC 5321 puts on a path -- and a code longer than this is not a code
+// anyone was given. Both are refused rather than trimmed: silently shortening
+// what someone typed would sign them in as, or mail, a different address than
+// the one on screen. Passwords are deliberately not bounded here; a length cap
+// on a password is a weakening, and Supabase already has its own limit.
+//
+// The reason this matters beyond tidiness is the reset flow below, which
+// redirects to /reset-password?email=<what was typed> whether or not the
+// address exists -- on purpose, so the page cannot be used to ask who has an
+// account. Without a bound, a pasted megabyte comes back as a megabyte of
+// query string and the person gets a request-too-large error instead of the
+// screen asking for their code.
+const EMAIL_MAX = 254;
+const CODE_MAX = 100;
+
+function tooLong(email: string): boolean {
+  return email.length > EMAIL_MAX;
+}
+
 // Server Actions have no request.url, so the callback origin is read off
 // headers() — the Origin header when present, else proto+host (Vercel sets
 // x-forwarded-proto; localhost falls back to http).
@@ -22,10 +42,12 @@ export async function signUp(_prev: ActionState, formData: FormData): Promise<Ac
   const email = String(formData.get("email") ?? "").trim();
   const password = String(formData.get("password") ?? "");
   const accessCode = String(formData.get("access_code") ?? "").trim();
-  if (!email || password.length < 8) {
+  if (!email || tooLong(email) || password.length < 8) {
     return { error: "Enter a valid email and a password of at least 8 characters." };
   }
-  if (!accessCode) return { error: "Kin is invite-only. Enter the code you were given." };
+  if (!accessCode || accessCode.length > CODE_MAX) {
+    return { error: "Kin is invite-only. Enter the code you were given." };
+  }
 
   const supabase = await createClient();
 
@@ -64,6 +86,7 @@ export async function resendConfirmation(email: string): Promise<ActionState> {
 export async function signIn(_prev: ActionState, formData: FormData): Promise<ActionState> {
   const email = String(formData.get("email") ?? "").trim();
   const password = String(formData.get("password") ?? "");
+  if (tooLong(email)) return { error: "Those details don't match an account." };
 
   const supabase = await createClient();
   const { error } = await supabase.auth.signInWithPassword({ email, password });
@@ -80,7 +103,7 @@ export async function signIn(_prev: ActionState, formData: FormData): Promise<Ac
  * either way. */
 export async function requestPasswordReset(_prev: ActionState, formData: FormData): Promise<ActionState> {
   const email = String(formData.get("email") ?? "").trim();
-  if (!email) return { error: "Enter the email you sign in with." };
+  if (!email || tooLong(email)) return { error: "Enter the email you sign in with." };
 
   const supabase = await createClient();
   const origin = await getOrigin();
@@ -106,6 +129,9 @@ export async function updatePasswordAction(_prev: ActionState, formData: FormDat
   const code = String(formData.get("code") ?? "").replace(/\s/g, "");
   const email = String(formData.get("email") ?? "").trim();
   if (password.length < 8) return { error: "Use at least 8 characters." };
+  if (tooLong(email) || code.length > CODE_MAX) {
+    return { error: "That code isn't right, or it has expired. Ask for a new one." };
+  }
   if (password !== confirm) return { error: "Those two passwords don't match." };
 
   const supabase = await createClient();

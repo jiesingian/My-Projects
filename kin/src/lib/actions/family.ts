@@ -4,7 +4,7 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { requireCurrentMember } from "@/lib/session";
+import { requireCurrentMember, getCurrentMember } from "@/lib/session";
 import { getValidDriveAccessToken, deleteDriveFile } from "@/lib/google-drive";
 import { resolvePhotoUrl } from "@/lib/photo-url";
 import type { ActionState } from "@/lib/actions/auth";
@@ -13,33 +13,70 @@ import type { TablesInsert } from "@/lib/database.types";
 import { humanDatabaseError } from "@/lib/db-errors";
 import { clamp } from "@/lib/text";
 import { isCountryCode } from "@/lib/countries";
+import { birthdayProblem } from "@/lib/time";
+import { stashOnboardingProfile, clearOnboardingProfile } from "@/lib/onboarding-profile";
+
+// Onboarding was the one path with no ceiling on what it stored: every other
+// form in the app clamps, but the first three screens a new household ever
+// sees took a name of any length at all -- and the name is rendered in the
+// members list, the header and the family tree, none of which survive it.
+const NAME_MAX = 100;
+const MOBILE_MAX = 30;
+const HOUSEHOLD_MAX = 100;
+const CODE_MAX = 100;
+
 
 export async function saveProfile(_prev: ActionState, formData: FormData): Promise<ActionState> {
-  const fullName = String(formData.get("full_name") ?? "").trim();
-  const dob = String(formData.get("dob") ?? "") || null;
-  const mobile = String(formData.get("mobile") ?? "").trim() || null;
+  const fullName = clamp(String(formData.get("full_name") ?? ""), NAME_MAX);
+  const dob = String(formData.get("dob") ?? "").trim();
+  const mobile = clamp(String(formData.get("mobile") ?? ""), MOBILE_MAX);
   if (!fullName) return { error: "Tell us your name." };
+  if (dob) {
+    const problem = birthdayProblem(dob);
+    if (problem) return { error: problem };
+  }
 
-  // Stashed in a cookie via the form's hidden fields is unnecessary — profile
-  // fields are collected again on the create/join step, which is where the
-  // member row actually gets created (create_family / join_family RPCs).
-  const params = new URLSearchParams({ full_name: fullName });
-  if (dob) params.set("dob", dob);
-  if (mobile) params.set("mobile", mobile);
-  redirect(`/onboarding/family?${params.toString()}`);
+  // The member row is created on the next screen, by create_family or
+  // join_family, so this step has nothing to write yet -- it only has to hand
+  // three fields forward. See ONBOARDING_PROFILE above for why they travel in
+  // a cookie rather than in the URL they used to.
+  await stashOnboardingProfile({ full_name: fullName, dob, mobile });
+  redirect("/onboarding/family");
 }
 
 export async function createFamilyAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
-  const householdName = String(formData.get("household_name") ?? "").trim();
-  const fullName = String(formData.get("full_name") ?? "").trim();
-  const dob = String(formData.get("dob") ?? "") || null;
-  const mobile = String(formData.get("mobile") ?? "").trim() || null;
-  const accessCode = String(formData.get("access_code") ?? "").trim();
-  const country = String(formData.get("country") ?? "").trim();
-  if (!householdName || !fullName) return { error: "Household name and your name are required." };
+  const householdName = clamp(String(formData.get("household_name") ?? ""), HOUSEHOLD_MAX);
+  const fullName = clamp(String(formData.get("full_name") ?? ""), NAME_MAX);
+  const dobRaw = String(formData.get("dob") ?? "").trim();
+  const dob = dobRaw || null;
+  const mobile = clamp(String(formData.get("mobile") ?? ""), MOBILE_MAX) || null;
+  const accessCode = clamp(String(formData.get("access_code") ?? ""), CODE_MAX);
+  // Clamped like the rest, though isCountryCode below is the real guard: a
+  // country arrives as a two-letter code and anything else is refused there.
+  const country = clamp(String(formData.get("country") ?? ""), 100);
+  if (!householdName) return { error: "Give the household a name." };
+  // Separated from the household name because they are not entered on the
+  // same screen. The name comes from the field in front of them; the name of
+  // the person comes from step 3, through a hidden field -- so "your name is
+  // required" next to a name box they have just filled in reads as a bug.
+  if (!fullName) return { error: "We lost your name along the way. Go back a step and enter it again." };
   if (!accessCode) return { error: "Starting a new household needs an access code." };
+  if (dob) {
+    const problem = birthdayProblem(dob);
+    if (problem) return { error: problem };
+  }
 
   const supabase = await createClient();
+
+  // Checked before the code is spent, not after. create_family refuses anyone
+  // who already has a member row, and the redemption below is a separate
+  // statement that has already incremented used_count by the time that
+  // refusal comes back -- so somebody who walks back into this screen from
+  // inside a household burned a use of a beta code and got an error for it.
+  // Codes are finite and issued by hand; that is somebody's invite gone.
+  if (await getCurrentMember()) {
+    return { error: "You are already in a household. Leave it first to start a new one." };
+  }
 
   // A new household is the thing worth protecting, so only a code we issued
   // opens one. A family's own invite code gets you through signup and into
@@ -56,7 +93,21 @@ export async function createFamilyAction(_prev: ActionState, formData: FormData)
     p_dob: dob ?? undefined,
     p_mobile: mobile ?? undefined,
   });
-  if (error) return { error: humanDatabaseError(error.message) };
+  if (error) {
+    // The check above closes the case that actually happens, but the two
+    // statements still are not one transaction, so a failure here means a use
+    // of the code is gone with no household to show for it. Say so, rather
+    // than leaving somebody to discover it when the code is refused next
+    // time, and record it where it can be traced -- never the code itself,
+    // which is a credential.
+    console.error("create_family failed after its access code was already redeemed", {
+      household: householdName,
+      reason: error.message,
+    });
+    return {
+      error: `${humanDatabaseError(error.message)} Your access code was already counted as used — ask for a fresh one if this keeps happening.`,
+    };
+  }
 
   // country isn't part of create_family's own signature -- a plain update
   // right after, scoped to the household this call just created, the same
@@ -88,15 +139,22 @@ export async function createFamilyAction(_prev: ActionState, formData: FormData)
     });
   }
 
+  await clearOnboardingProfile();
   redirect("/onboarding/members");
 }
 
 export async function joinFamilyAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
-  const inviteCode = String(formData.get("invite_code") ?? "").trim().toUpperCase();
-  const fullName = String(formData.get("full_name") ?? "").trim();
-  const dob = String(formData.get("dob") ?? "") || null;
-  const mobile = String(formData.get("mobile") ?? "").trim() || null;
-  if (!inviteCode || !fullName) return { error: "Invite code and your name are required." };
+  const inviteCode = clamp(String(formData.get("invite_code") ?? ""), CODE_MAX).toUpperCase();
+  const fullName = clamp(String(formData.get("full_name") ?? ""), NAME_MAX);
+  const dobRaw = String(formData.get("dob") ?? "").trim();
+  const dob = dobRaw || null;
+  const mobile = clamp(String(formData.get("mobile") ?? ""), MOBILE_MAX) || null;
+  if (!inviteCode) return { error: "Enter the six-character invite code." };
+  if (!fullName) return { error: "We lost your name along the way. Go back a step and enter it again." };
+  if (dob) {
+    const problem = birthdayProblem(dob);
+    if (problem) return { error: problem };
+  }
 
   const supabase = await createClient();
   const { error } = await supabase.rpc("join_family", {
@@ -106,8 +164,21 @@ export async function joinFamilyAction(_prev: ActionState, formData: FormData): 
     p_mobile: mobile ?? undefined,
     p_role: "adult",
   });
-  if (error) return { error: "That invite code didn't match a household. Double-check it and try again." };
+  // join_family raises three distinct things and this used to report all of
+  // them as a bad code, including the one that is nothing to do with the
+  // code: somebody already in a household, told over and over to check an
+  // invite code that was right every time.
+  if (error) {
+    if (/already a member/i.test(error.message)) {
+      return { error: "You are already in a household. Leave it first to join another." };
+    }
+    if (/not authenticated/i.test(error.message)) {
+      return { error: "Your sign-in expired. Sign in again and pick up where you left off." };
+    }
+    return { error: "That invite code didn't match a household. Double-check it and try again." };
+  }
 
+  await clearOnboardingProfile();
   redirect("/onboarding/pending");
 }
 
@@ -120,6 +191,8 @@ export async function addManagedChildAction(_prev: ActionState, formData: FormDa
   // relationship at all, where the form plainly promised "child".
   const relationship = clamp(String(formData.get("relationship") ?? ""), 50) || "child";
   if (!fullName || !dob) return { error: "Name and date of birth are required." };
+  const dobProblem = birthdayProblem(dob);
+  if (dobProblem) return { error: dobProblem };
 
   const supabase = await createClient();
   const { error } = await supabase.rpc("add_managed_child", {
@@ -151,16 +224,18 @@ export async function addChildWithLoginAction(_prev: ActionState, formData: Form
     return { error: "Only a parent or adult can add a child." };
   }
 
-  const fullName = String(formData.get("full_name") ?? "").trim();
-  const dob = String(formData.get("dob") ?? "") || null;
+  const fullName = clamp(String(formData.get("full_name") ?? ""), NAME_MAX);
+  const dob = String(formData.get("dob") ?? "").trim() || null;
   // The default has to be applied after trimming, not before. A text input
   // that the user cleared submits "", not null, so `?? "child"` keeps the
   // empty string and the default never fires -- the child is stored with no
   // relationship at all, where the form plainly promised "child".
-  const relationship = String(formData.get("relationship") ?? "").trim() || "child";
-  const email = String(formData.get("email") ?? "").trim().toLowerCase();
+  const relationship = clamp(String(formData.get("relationship") ?? ""), 50) || "child";
+  const email = clamp(String(formData.get("email") ?? ""), 254).toLowerCase();
   const password = String(formData.get("password") ?? "");
   if (!fullName || !dob) return { error: "Name and date of birth are required." };
+  const childDobProblem = birthdayProblem(dob);
+  if (childDobProblem) return { error: childDobProblem };
   if (!email) return { error: "Enter the email this child will sign in with." };
   if (password.length < 8) return { error: "Give them a password of at least 8 characters." };
 
@@ -319,8 +394,9 @@ export async function setMemberRoleAction(memberId: string, role: MemberRole): P
     return { error: `${target.full_name} is a managed profile without a login, so there is no role to give.` };
   }
 
-  const { error } = await supabase.from("members").update({ role }).eq("id", memberId).eq("family_id", me.family_id);
+  const { error, count } = await supabase.from("members").update({ role }, { count: "exact" }).eq("id", memberId).eq("family_id", me.family_id);
   if (error) return { error: humanDatabaseError(error.message) };
+  if (count === 0) return { error: "That member is no longer in this household." };
 
   revalidatePath("/family");
   revalidatePath("/family/documents");
@@ -370,12 +446,19 @@ export async function convertToManagedChildAction(memberId: string): Promise<Act
   const authUserId = target.auth_user_id;
 
   // One statement, while the login is still attached -- see above.
-  const { error } = await supabase
+  const { error, count } = await supabase
     .from("members")
-    .update({ auth_user_id: null, role: "child_managed", status: "managed" })
+    .update({ auth_user_id: null, role: "child_managed", status: "managed" }, { count: "exact" })
     .eq("id", memberId)
     .eq("family_id", me.family_id);
   if (error) return { error: humanDatabaseError(error.message) };
+  // This one matters more than the rest of its kind. The read above can be
+  // overtaken -- the member removed between the two statements -- and if the
+  // update matched nothing, everything below still runs and deletes that
+  // person's sign-in while their profile still has it attached. Stopping here
+  // is the difference between "nothing happened" and "somebody lost their
+  // login for no reason".
+  if (count === 0) return { error: "That member is no longer in this household. Their sign-in has not been touched." };
 
   revalidatePath("/family");
   revalidatePath(`/family/members/${memberId}`);

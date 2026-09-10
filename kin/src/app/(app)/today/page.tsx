@@ -14,7 +14,7 @@ export default async function TodayPage() {
   const supabase = await createClient();
   const [{ data: members }, hubs, brief] = await Promise.all([
     supabase.from("members").select("id, full_name").eq("family_id", me.family_id).order("created_at"),
-    getHubCards(me.family_id, me.families.currency),
+    getHubCards(me.family_id, me.families.currency, me.families.week_start),
     getTodayBriefing(me.family_id, me.families.currency),
   ]);
 
