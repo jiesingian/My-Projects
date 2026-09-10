@@ -1,0 +1,122 @@
+name: Migrate
+
+# Runs the migrations in kin/supabase/migrations that a database has not run
+# yet. Dev does it by itself; production waits for Jonathan to press a button.
+#
+# Until 10 September every migration was pasted into the Supabase SQL editor by
+# hand -- thirteen of them in four days -- and the record of what had actually
+# run lived in a comment at the top of the file saying "NOT YET APPLIED", which
+# somebody had to remember to change afterwards. Twice it was not changed:
+# #50 corrected one, and the three migrations merged-and-never-run on
+# 9 September broke Settings and Add account in front of a person.
+#
+# The rule that production is Jonathan's has not changed and is not the thing
+# that was costing time. What changed is that it is now a button instead of a
+# copy-paste, and that both databases keep a ledger of what actually ran rather
+# than a comment claiming it.
+on:
+  push:
+    branches: [main]
+    paths:
+      - "kin/supabase/migrations/**"
+      - "kin/scripts/migrate.mjs"
+      - ".github/workflows/migrate.yml"
+  workflow_dispatch:
+    inputs:
+      target:
+        description: "Which database"
+        required: true
+        default: dev
+        type: choice
+        options: [dev, production]
+      dry_run:
+        description: "List what would run, and stop"
+        required: false
+        default: false
+        type: boolean
+
+permissions:
+  contents: read
+
+# Never two at once, and never cancel one that has started -- a migration
+# killed halfway is the one outcome worth more than the runner minutes.
+# cancel-in-progress is false for exactly that reason.
+concurrency:
+  group: migrate-${{ inputs.target || 'dev' }}
+  cancel-in-progress: false
+
+jobs:
+  dev:
+    # Merging is enough for dev. It holds a synthetic household and nothing
+    # anybody needs, so the cost of a bad migration there is a rebuild.
+    if: github.event_name == 'push' || inputs.target == 'dev'
+    name: dev
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Say which secret is missing, rather than failing cryptically
+        env:
+          URL: ${{ secrets.DEV_DB_URL }}
+        run: |
+          if [ -z "$URL" ]; then
+            echo "::error::DEV_DB_URL is not set. Supabase → kin-dev → Connect → Session pooler → URI, with the database password in it."
+            exit 1
+          fi
+
+      - name: Apply what dev has not run
+        env:
+          MIGRATE_DB_URL: ${{ secrets.DEV_DB_URL }}
+          MIGRATE_LABEL: dev
+        working-directory: kin
+        run: node scripts/migrate.mjs ${{ inputs.dry_run && '--dry-run' || '' }}
+
+  production:
+    # Only ever by hand. A migration takes effect the instant it runs and no
+    # check afterwards can catch a bad one, so one person presses this and
+    # there is one story about what the live schema is. That is the single
+    # asymmetry in CLAUDE.md, and it survives this pipeline intact -- what it
+    # loses is the pasting, not the deciding.
+    if: github.event_name == 'workflow_dispatch' && inputs.target == 'production'
+    name: production
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Refuse to run against production from anywhere but main
+        if: github.ref != 'refs/heads/main'
+        run: |
+          echo "::error::This was dispatched from ${{ github.ref }}. Production runs only what is on main."
+          exit 1
+
+      - name: Say which secret is missing, rather than failing cryptically
+        env:
+          URL: ${{ secrets.PROD_DB_URL }}
+        run: |
+          if [ -z "$URL" ]; then
+            echo "::error::PROD_DB_URL is not set. Supabase → kin-family-app → Connect → Session pooler → URI, with the database password in it."
+            exit 1
+          fi
+
+      # Printed before anything runs, so the log says what was about to happen
+      # even when the apply below fails.
+      - name: What is production missing
+        env:
+          MIGRATE_DB_URL: ${{ secrets.PROD_DB_URL }}
+          MIGRATE_LABEL: prod
+        working-directory: kin
+        run: node scripts/migrate.mjs --dry-run
+
+      - name: Apply it
+        if: ${{ !inputs.dry_run }}
+        env:
+          MIGRATE_DB_URL: ${{ secrets.PROD_DB_URL }}
+          MIGRATE_LABEL: prod
+        working-directory: kin
+        run: node scripts/migrate.mjs
