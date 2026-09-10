@@ -53,6 +53,28 @@ The automatic checks are the gate. The human-facing check is a **single daily
 run of the whole setup, at 17:00 Manila, on Jonathan's account** — one result
 to read, once a day.
 
+### When you ask a person to do something by hand
+
+Some things cannot be automated away — a repository secret, a dashboard toggle,
+a password only one person can reset. When a session needs one of those, it
+**asks with a link on every step that has one**: the exact project page, the
+exact settings tab, the exact form. Not "go to Settings → Secrets"; the URL
+that lands on the form.
+
+This is not politeness. Jonathan has had to ask for the links three times in
+one morning, which is three round trips that the first answer should have
+made unnecessary, and a walkthrough that names a menu path is also the kind
+that goes stale silently when the interface moves. A link either works or
+visibly does not.
+
+Say what the step is for and what it is safe to do — "resetting this password
+breaks nothing, the app connects with API keys" — because the reason someone
+hesitates over a manual step is usually not the clicking.
+
+And before asking at all, check whether it can be done without a person. It
+often can: half the work in this file exists because something that looked
+like a manual step was not one.
+
 ### The watched list, and the flag it needs
 
 Most of the app is revertible. A bad component ships, somebody notices, it is
