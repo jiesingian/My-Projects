@@ -408,7 +408,13 @@ export function RemoveButton({ id, kind, label }: { id: string; kind: keyof type
       className="btn btn-secondary"
       disabled={pending}
       style={{ minHeight: 30, fontSize: 12.5, padding: "0 9px", color: "var(--color-accent-700)", borderColor: "var(--color-accent-700)" }}
-      onClick={() => {
+      onClick={(e) => {
+        // A no-op everywhere this isn't inside a link (every kind but
+        // account, today) -- but the account row on the Accounts tab is a
+        // link to that account's own page, and this is not part of
+        // following it.
+        e.preventDefault();
+        e.stopPropagation();
         if (!window.confirm(`${label}?`)) return;
         run(() => DELETERS[kind](id));
       }}
