@@ -1264,6 +1264,35 @@ textarea.input {
   }
 }
 
+/* The family tree. Stacked on a phone -- core generation first, since it's
+   the one everyone already recognises, then each side below it -- and three
+   columns side by side once there's room for father's side and mother's
+   side to sit either side of it the way a pedigree chart actually reads. */
+.kin-treecols {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+.kin-treecols > :first-child { order: 2; }
+.kin-treecols > :nth-child(2) { order: 1; }
+.kin-treecols > :last-child { order: 3; }
+@media (min-width: 1024px) {
+  .kin-treecols {
+    display: grid;
+    grid-template-columns: 1fr 1.1fr 1fr;
+    align-items: start;
+    column-gap: 14px;
+  }
+  .kin-treecols > * { order: initial; }
+}
+
+.kin-treeconnector {
+  width: 1px;
+  height: 14px;
+  background: var(--color-divider);
+  margin: 0 auto;
+}
+
 /* ── motion ──────────────────────────────────────────────────────────────
    Server-rendered pages arrive whole, which reads as a hard cut: the old
    page is there, then the new one is, with nothing in between. A short rise

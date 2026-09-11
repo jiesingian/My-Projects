@@ -14,7 +14,7 @@ import type { TablesInsert } from "@/lib/database.types";
 import { humanDatabaseError } from "@/lib/db-errors";
 import { clamp } from "@/lib/text";
 import { isCountryCode } from "@/lib/countries";
-import { birthdayProblem } from "@/lib/time";
+import { birthdayProblem, familyDay, familyMidnight } from "@/lib/time";
 import { stashOnboardingProfile, clearOnboardingProfile } from "@/lib/onboarding-profile";
 
 // Onboarding was the one path with no ceiling on what it stored: every other
@@ -725,4 +725,137 @@ export async function deleteHouseholdAction(): Promise<ActionState> {
   if (error) return { error: humanDatabaseError(error.message) };
 
   redirect("/onboarding/profile");
+}
+
+// ── Family tree ────────────────────────────────────────────────────────────
+//
+// A date of birth here is not a member's own -- it can belong to someone
+// born decades before this app existed, so it is checked far more loosely
+// than birthdayProblem (which refuses anything before 1900, the right call
+// for a living household but not for a great-grandparent).
+function treeDateProblem(day: string): string | null {
+  if (!familyMidnight(day)) return "That date isn't a real date.";
+  if (day > familyDay()) return "A date of birth can't be in the future.";
+  return null;
+}
+
+const TREE_NAME_MAX = 100;
+const TREE_NOTES_MAX = 500;
+
+/** Brings an existing household member into the tree as a node other people
+ * can be linked to -- idempotent, since the editor calls this the moment
+ * someone is chosen from the member list rather than requiring a separate
+ * "add" step first. */
+export async function addTreeMemberAction(memberId: string): Promise<ActionState> {
+  const me = await requireCurrentMember();
+  const supabase = await createClient();
+
+  const { data: member } = await supabase.from("members").select("id, family_id").eq("id", memberId).maybeSingle();
+  if (!member || member.family_id !== me.family_id) return { error: "That member could not be found." };
+
+  const { data: existing } = await supabase.from("family_tree_people").select("id").eq("family_id", me.family_id).eq("member_id", memberId).maybeSingle();
+  if (existing) return { error: null };
+
+  const { error } = await supabase.from("family_tree_people").insert({ family_id: me.family_id, member_id: memberId, created_by: me.id });
+  revalidatePath("/family");
+  return { error: error ? humanDatabaseError(error.message) : null };
+}
+
+export type TreePersonFields = { fullName: string; dob: string; notes: string };
+
+/** Adds someone who has never had a Kin login -- a grandparent, an aunt, a
+ * cousin -- as a tree-only entry. */
+export async function addTreePersonAction(fields: TreePersonFields): Promise<ActionState> {
+  const me = await requireCurrentMember();
+  const fullName = clamp(fields.fullName, TREE_NAME_MAX);
+  const dob = clamp(fields.dob, 10);
+  const notes = clamp(fields.notes, TREE_NOTES_MAX);
+  if (!fullName) return { error: "Give them a name." };
+  if (dob) {
+    const problem = treeDateProblem(dob);
+    if (problem) return { error: problem };
+  }
+
+  const supabase = await createClient();
+  const { error } = await supabase.from("family_tree_people").insert({
+    family_id: me.family_id,
+    full_name: fullName,
+    dob: dob || null,
+    notes: notes || null,
+    created_by: me.id,
+  });
+  revalidatePath("/family");
+  return { error: error ? humanDatabaseError(error.message) : null };
+}
+
+/** Edits a tree-only entry's own details. Refused for a member-linked row --
+ * that name and birthdate come from the member's profile, edited there, so
+ * the tree can't drift from it by being edited in a second place. */
+export async function updateTreePersonAction(id: string, fields: TreePersonFields): Promise<ActionState> {
+  const me = await requireCurrentMember();
+  const fullName = clamp(fields.fullName, TREE_NAME_MAX);
+  const dob = clamp(fields.dob, 10);
+  const notes = clamp(fields.notes, TREE_NOTES_MAX);
+  if (!fullName) return { error: "Give them a name." };
+  if (dob) {
+    const problem = treeDateProblem(dob);
+    if (problem) return { error: problem };
+  }
+
+  const supabase = await createClient();
+  const { data: row } = await supabase.from("family_tree_people").select("id, family_id, member_id").eq("id", id).maybeSingle();
+  if (!row || row.family_id !== me.family_id) return { error: "That person could not be found." };
+  if (row.member_id) return { error: "This person has a Kin profile — edit their name and birthdate there instead." };
+
+  const { error } = await supabase
+    .from("family_tree_people")
+    .update({ full_name: fullName, dob: dob || null, notes: notes || null })
+    .eq("id", id);
+  revalidatePath("/family");
+  return { error: error ? humanDatabaseError(error.message) : null };
+}
+
+export type TreeLinkFields = { fatherId: string | null; motherId: string | null; spouseId: string | null };
+
+/** Sets who someone's father, mother and spouse are -- each an id already on
+ * record in this family's tree, or null to clear it. "Father's side" and
+ * "mother's side" are never stored anywhere; they fall out of which of these
+ * two fields a person was placed in, read back by getFamilyTree. */
+export async function setTreeLinksAction(id: string, fields: TreeLinkFields): Promise<ActionState> {
+  const me = await requireCurrentMember();
+  if (fields.fatherId === id || fields.motherId === id || fields.spouseId === id) {
+    return { error: "Someone can't be their own father, mother, or spouse." };
+  }
+  if (fields.fatherId && fields.fatherId === fields.motherId) {
+    return { error: "Father and mother can't be the same person." };
+  }
+
+  const supabase = await createClient();
+  const ids = [id, fields.fatherId, fields.motherId, fields.spouseId].filter((v): v is string => !!v);
+  const { data: rows } = await supabase.from("family_tree_people").select("id, family_id").in("id", ids);
+  if (!rows || rows.length !== ids.length || rows.some((r) => r.family_id !== me.family_id)) {
+    return { error: "One of those people could not be found." };
+  }
+
+  const { error } = await supabase
+    .from("family_tree_people")
+    .update({ father_id: fields.fatherId, mother_id: fields.motherId, spouse_id: fields.spouseId })
+    .eq("id", id);
+  revalidatePath("/family");
+  return { error: error ? humanDatabaseError(error.message) : null };
+}
+
+/** Removes a tree entry. Anyone linked to them as father, mother or spouse
+ * simply loses that one link (ON DELETE SET NULL) rather than being removed
+ * themselves -- and if the entry was a household member, only the tree
+ * placement goes; the member and their Kin profile are untouched. */
+export async function removeTreePersonAction(id: string): Promise<ActionState> {
+  const me = await requireCurrentMember();
+  const supabase = await createClient();
+  const { data: row } = await supabase.from("family_tree_people").select("family_id").eq("id", id).maybeSingle();
+  if (!row || row.family_id !== me.family_id) return { error: "That person could not be found." };
+
+  const { error } = await supabase.from("family_tree_people").delete().eq("id", id);
+  revalidatePath("/family");
+  return { error: error ? humanDatabaseError(error.message) : null };
 }

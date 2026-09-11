@@ -1,10 +1,10 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getCurrentMember } from "@/lib/session";
-import { getMembers, getHealthSummary, getDocFolders, getFamilyProfile } from "@/lib/queries/family";
+import { getMembers, getHealthSummary, getDocFolders, getFamilyProfile, getFamilyTree } from "@/lib/queries/family";
 import { HubHeader } from "@/components/hub-header";
 import { ChipRow } from "@/components/segmented";
-import { Blueprint, Tag } from "@/components/ui";
+import { Blueprint, Tag, Empty } from "@/components/ui";
 import { PendingMemberActions } from "@/components/pending-member-actions";
 import { RemoveMemberButton, ReinstateMemberButton } from "@/components/member-status-actions";
 import { Avatar } from "@/components/avatar";
@@ -12,15 +12,18 @@ import { FamilyBackgroundAlbum } from "@/components/family-background-album";
 import { FamilyAboutEditor } from "@/components/family-about-editor";
 import { FamilyAddressList } from "@/components/family-address-list";
 import { AddChildForm } from "@/components/add-child-form";
+import { FamilyTreeView } from "@/components/family-tree-view";
+import { FamilyTreeEditor } from "@/components/family-tree-editor";
+import { AddMeToTreeButton } from "@/components/add-me-to-tree-button";
 import { formatAge, initials, shortNames } from "@/lib/format";
 
-const SEGMENTS = ["profile", "health", "documents"] as const;
+const SEGMENTS = ["profile", "health", "documents", "tree"] as const;
 type Seg = (typeof SEGMENTS)[number];
 
 export default async function FamilyPage({
   searchParams,
 }: {
-  searchParams: Promise<{ seg?: string; who?: string }>;
+  searchParams: Promise<{ seg?: string; who?: string; center?: string }>;
 }) {
   const me = await getCurrentMember();
   if (!me) redirect("/onboarding/profile");
@@ -28,9 +31,10 @@ export default async function FamilyPage({
   const sp = await searchParams;
   const seg: Seg = (SEGMENTS as readonly string[]).includes(sp.seg ?? "") ? (sp.seg as Seg) : "profile";
   const who = sp.who ?? "all";
+  const center = sp.center ?? me.id;
 
   const segments = SEGMENTS.map((s) => ({
-    label: s === "profile" ? "Profile" : s === "health" ? "Health" : "Documents",
+    label: s === "profile" ? "Profile" : s === "health" ? "Health" : s === "documents" ? "Documents" : "Family Tree",
     href: `/family?seg=${s}`,
     active: s === seg,
   }));
@@ -42,6 +46,7 @@ export default async function FamilyPage({
         {seg === "profile" && <ProfilePane familyId={me.family_id} isOrganiser={me.is_organiser} myId={me.id} myRole={me.role} />}
         {seg === "health" && <HealthPane familyId={me.family_id} />}
         {seg === "documents" && <DocumentsPane familyId={me.family_id} who={who} />}
+        {seg === "tree" && <TreePane familyId={me.family_id} myId={me.id} center={center} />}
       </div>
     </div>
   );
@@ -234,6 +239,45 @@ async function DocumentsPane({ familyId, who }: { familyId: string; who: string 
       >
         + NEW ENTRY
       </Link>
+    </>
+  );
+}
+
+async function TreePane({ familyId, myId, center }: { familyId: string; myId: string; center: string }) {
+  const [tree, allMembers] = await Promise.all([getFamilyTree(familyId, center), getMembers(familyId)]);
+  const members = allMembers.filter((m) => m.status !== "pending" && m.status !== "removed");
+  const memberIdsInTree = new Set(tree.people.filter((p) => p.memberId).map((p) => p.memberId));
+  const unaddedMembers = members.filter((m) => !memberIdsInTree.has(m.id)).map((m) => ({ id: m.id, full_name: m.full_name }));
+  const centerInTree = tree.people.some((p) => p.memberId === center);
+
+  return (
+    <>
+      <div style={{ marginBottom: 16 }}>
+        <ChipRow
+          items={shortNames(members.map((m) => m.full_name)).map((label, i) => ({
+            label,
+            href: `/family?seg=tree&center=${members[i].id}`,
+            active: center === members[i].id,
+          }))}
+        />
+      </div>
+
+      {!centerInTree ? (
+        <Empty
+          icon="🌳"
+          title="Not in the tree yet"
+          line={
+            center === myId
+              ? "Add yourself to start the tree, then link your father, your mother, and anyone else you know."
+              : "This member hasn't been added to the tree yet."
+          }
+        />
+      ) : (
+        <FamilyTreeView tree={tree} />
+      )}
+      {!centerInTree && center === myId && <AddMeToTreeButton memberId={myId} />}
+
+      <FamilyTreeEditor people={tree.people} unaddedMembers={unaddedMembers} />
     </>
   );
 }
