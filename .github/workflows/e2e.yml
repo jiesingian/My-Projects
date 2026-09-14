@@ -119,10 +119,24 @@ jobs:
       # them. CI has no .env.local, so those twelve tests called test.skip()
       # and the run went green having checked none of them. A suite that
       # quietly tests less in CI than on a laptop is worse than one that fails.
+      # E2E_DELETE_* belongs here too, and its absence was the same failure one
+      # layer further out. delete-household.spec.ts is the only test that
+      # destroys the household it runs against, so it uses a third account that
+      # holds nothing between runs -- and without these two it calls
+      # test.skip() and the run goes green having never proved that deleting a
+      # household takes its rows with it. That is the one spec standing between
+      # a cascade bug and somebody's records surviving their own deletion.
+      #
+      # daily-check.yml has passed them since it was written. This file never
+      # did, so the secrets existed and the pull-request suite skipped the test
+      # anyway -- which is exactly the shape of "a suite that quietly tests
+      # less in CI than on a laptop" that the comment above is about.
       - name: Run the suite
         env:
           E2E_EMAIL: ${{ secrets.E2E_EMAIL }}
           E2E_PASSWORD: ${{ secrets.E2E_PASSWORD }}
+          E2E_DELETE_EMAIL: ${{ secrets.E2E_DELETE_EMAIL }}
+          E2E_DELETE_PASSWORD: ${{ secrets.E2E_DELETE_PASSWORD }}
           E2E_BASE_URL: ${{ inputs.base_url }}
           NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
           NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
