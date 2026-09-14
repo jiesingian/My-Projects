@@ -55,6 +55,18 @@ permissions:
   contents: write
   pull-requests: write
   checks: read
+  # Reading which WORKFLOWS ran on a commit -- the check added on 14 September
+  # that refuses to merge when a required one never started -- goes through
+  # the Actions API, and a permissions block sets every scope it does not
+  # list to none. Without this line `gh api repos/../actions/runs` answers
+  #
+  #   gh: Resource not accessible by integration (HTTP 403)
+  #
+  # and the job dies before merging anything. Which is precisely the failure
+  # described four paragraphs above, about `statuses` -- the same block, the
+  # same 403, the same dead job, four days later and one scope over. Read
+  # that comment before adding anything else to this file that calls an API.
+  actions: read
   # The Vercel deployment is read through the older Statuses API rather than
   # as a check run, and a permissions block sets every scope it does not list
   # to none -- so that read was a 403 and the job died before merging
