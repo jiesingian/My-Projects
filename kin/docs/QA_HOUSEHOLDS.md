@@ -1,37 +1,63 @@
 # The throwaway QA households
 
-There are two, and which one your machine uses is decided by two environment
-variables in `kin/.env.local`:
+**Everything here lives in `kin-dev` now.** Until 10 September there was one
+Supabase project and these households sat beside the Singian family's real
+records in it; the split moved development onto its own database, and the
+accounts below followed. Production still has its originals — `kin-e2e-qa@`
+and `kin-e2e-qa2@` — and nothing should be signing into them from a laptop
+any more.
+
+Which household your machine uses is decided by two variables in
+`kin/.env.local`:
 
 ```
 E2E_EMAIL=...
 E2E_PASSWORD=...
 ```
 
-| Household | Account | Who uses it |
+⚠️ **A shell variable beats that file.** `playwright.config.ts` keeps anything
+already exported, which is how CI passes secrets — so `echo $E2E_EMAIL` is the
+truth, not the file. Getting this wrong once meant a machine pointed at dev
+signing in with production's account and reading the failure as a bad
+password.
+
+## In kin-dev — what the suite actually uses
+
+| Account | Household | Who uses it |
 |---|---|---|
-| `ZZ QA Testbed (throwaway)` | `kin-e2e-qa@example.com` | Jonathan's machine, and CI |
-| `ZZ QA Testbed 2 (throwaway)` | `kin-e2e-qa2@example.com` | Janine's machine |
+| `kin-dev-qa@example.com` | `ZZ QA Testbed (throwaway)` | every machine, and CI |
+| `kin-dev-delete@example.com` | **nothing, between runs** | `delete-household.spec.ts` only |
 
-There is a third account, and it is different in kind:
+The second is different in kind. `delete-household.spec.ts` is the one test
+that destroys the household it runs against: it creates one, fills every table
+that hangs off it, deletes it the way the button does, and leaves the account
+empty again — which is both why it needs its own account and why it can be run
+twice. It reads `E2E_DELETE_EMAIL` / `E2E_DELETE_PASSWORD`, never `E2E_EMAIL`,
+and it skips loudly when they are unset rather than pretending to have run.
 
-| Account | What it holds |
+`delete_household()` takes no argument — it deletes the *caller's* household,
+resolved from the session — so the only family it can reach is the disposable
+account's own. The spec's last act is to sign in as `E2E_EMAIL` and check that
+household is still exactly where it was.
+
+## In production — leave these alone
+
+| Account | Household |
 |---|---|
-| `kin-e2e-qa3@example.com` | **Nothing.** It holds no household between runs. |
+| `kin-e2e-qa@example.com` | `ZZ QA Testbed (throwaway)` |
+| `kin-e2e-qa2@example.com` | `ZZ QA Testbed 2 (throwaway)` |
 
-It exists for `delete-household.spec.ts`, which is the one test that destroys
-the household it runs against. That test creates a household, fills it,
-deletes it, and leaves the account empty again — which is both why it needs
-its own account and why it can be run twice. It reads
-`E2E_DELETE_EMAIL` / `E2E_DELETE_PASSWORD`, never `E2E_EMAIL`, and it skips
-loudly when they are unset rather than pretending to have run.
+They are still there and still throwaway, and the schema check signs in as one
+of them to ask production what columns it has — a read of nothing, by design.
+Nothing else should touch them, and the suite now **refuses to start** when
+`NEXT_PUBLIC_SUPABASE_URL` points at the production project at all.
 
 The passwords are not in this repository and must not be put in it. Jonathan
-has all three; ask him for the ones your machine needs.
+has them; ask him for the ones your machine needs.
 
-## Why there are two
+## Why there were two, and why dev needs only one
 
-There is one Supabase project, and until 9 September there was one throwaway
+While both people shared one Supabase project, there was one throwaway
 household. Both people's sessions ran the same suite against it from their own
 containers, minutes apart, and the results were exactly as confusing as that
 sounds: rows appearing under prefixes a clone had not used since a change
@@ -40,7 +66,12 @@ left behind, and a full suite that could not be made to come out clean twice
 running. It cost an hour to work out that nothing was broken.
 
 `e2e.yml` holds a repo-wide concurrency group of one, so CI never overlaps
-itself. Nothing serialises two laptops. Two households does.
+itself. Nothing serialises two laptops. Two households did.
+
+That reasoning still holds, and dev has one household rather than two only
+because nobody has yet hit the collision there. If two sessions start tripping
+over each other in `kin-dev`, the answer is a second dev household, not a
+theory about timing.
 
 ## What each one holds
 
