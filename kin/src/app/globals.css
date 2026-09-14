@@ -1264,26 +1264,34 @@ textarea.input {
   }
 }
 
-/* The family tree. Stacked on a phone -- core generation first, since it's
-   the one everyone already recognises, then each side below it -- and three
-   columns side by side once there's room for father's side and mother's
-   side to sit either side of it the way a pedigree chart actually reads. */
-.kin-treecols {
+/* The family tree: a pedigree chart, ancestors stacked above the centre
+   rather than beside it -- each generation is one row, split into a
+   father's-side half and a mother's-side half, narrowing down to the centre
+   at the bottom. Reads the same at every width, since "older generations
+   higher up" doesn't need a breakpoint to make sense the way three side by
+   side columns did. */
+.kin-treestack {
   display: flex;
   flex-direction: column;
   gap: 18px;
 }
-.kin-treecols > :first-child { order: 2; }
-.kin-treecols > :nth-child(2) { order: 1; }
-.kin-treecols > :last-child { order: 3; }
-@media (min-width: 1024px) {
-  .kin-treecols {
-    display: grid;
-    grid-template-columns: 1fr 1.1fr 1fr;
-    align-items: start;
-    column-gap: 14px;
-  }
-  .kin-treecols > * { order: initial; }
+
+.kin-treegenlabels {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  column-gap: 10px;
+  font: 600 11px/1 var(--font-heading);
+  letter-spacing: .06em;
+  color: var(--color-neutral-600);
+  text-align: center;
+  margin-bottom: 10px;
+}
+
+.kin-treegen {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  column-gap: 10px;
+  row-gap: 10px;
 }
 
 .kin-treeconnector {
