@@ -239,6 +239,53 @@ If a change cannot be verified without touching real data, say so and leave it
 unverified rather than touching it. An unverified fix is a known unknown; a
 corrupted record is somebody's actual life.
 
+## What a session costs
+
+Measured on 14 September from this repository's own session transcript: 6,132
+assistant turns, a mean of 421,534 tokens of context carried per turn, and 2.55
+billion tokens of cache reads. Weighted at Opus rates, **79% of the bill was
+spent re-reading one conversation** — against 13% writing the cache and 8% on
+output.
+
+Nothing was misconfigured. Of 2.58 billion input tokens, 12,216 missed the
+cache, a hit rate of 99.9995%. Tool output was not it either: all 3,000 tool
+results together came to about a million tokens — 0.04% of the total — and only
+seventeen were over 20,000 characters.
+
+The cost is arithmetic. Every turn re-reads the whole conversation before it can
+add to it, so the bill is **turns × the context at that turn**, and context only
+grows. Cost therefore rises with roughly the *square* of session length.
+
+    6,132 turns x 421,534 mean context = 2,584,845,288
+    measured cache reads               = 2,550,881,257
+
+So:
+
+- **One session per job, not per day.** That session covered auto-merge, the
+  migration pipeline, journal images, the Drive banner, self-healing and the
+  daily check — six unrelated jobs sharing a context that reached 783,766
+  tokens, where every turn of the sixth paid to re-read the first. End a session
+  when its job is done. Nothing else on this list is worth as much.
+- **Spend turns deliberately.** A turn is billed the full context as it stands,
+  so a one-line command late in a long session costs as much to issue as a hard
+  one. Independent calls go in one block; waiting goes in a background monitor,
+  never a poll loop.
+- **Do not re-verify what is already settled.** Re-reading a file after editing
+  it, re-checking a state already established, re-deriving a conclusion already
+  reached. The harness reports a failed edit, so a successful one needs no
+  confirming read. This never looks like waste in the moment; it looks like
+  being careful.
+- **Match the model to the work.** Diagnosis earns Opus — the three auto-merge
+  bugs on the 14th each hid behind the one in front of it. Running the suite,
+  reading a log and checking whether something merged do not. Fast mode is Opus
+  with faster output rather than a cheaper model, so it saves nothing here.
+
+And one thing deliberately *not* done. The heavy comment blocks in
+`.github/workflows/` and the length of this file are the most expensive reads in
+the repository, and both stay. Those comments found the third 403 on the 14th by
+making it recognisable as the same block failing the same way as the first. They
+are not to be trimmed for cost.
+
 ## graphify
 
 This is a monorepo. Each project folder (e.g. `kin/`) has its own knowledge
