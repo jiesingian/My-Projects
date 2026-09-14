@@ -39,10 +39,21 @@ on:
 
   # The list above will go stale again -- the next workflow anybody adds will
   # not be in it, and nobody will notice until a pull request sits unmerged.
-  # So the events are no longer the only way in. Every quarter of an hour this
-  # sweeps every open pull request labelled auto-merge and applies exactly the
-  # same test. A missed event now costs fifteen minutes instead of costing the
-  # merge entirely.
+  # So the events are no longer the only way in. This sweeps every open pull
+  # request labelled auto-merge and applies exactly the same test, so a missed
+  # event costs a wait rather than costing the merge entirely.
+  #
+  # HOW LONG A WAIT, HONESTLY. The cron below says every fifteen minutes and
+  # GitHub does not honour it. Measured on 13-14 September, the actual firings
+  # were 21:11, 23:07 and 01:00 -- roughly every two hours. Scheduled
+  # workflows are best-effort on shared runners and frequent schedules get
+  # throttled; asking for */5 would not help.
+  #
+  # That is still worth having -- a slow backstop beats none, and the events
+  # remain the fast path -- but it is a backstop, not a fifteen-minute
+  # guarantee, and this comment said otherwise until somebody read the run
+  # history. If a pull request is sitting green and unmerged, do not wait on
+  # this: re-run any workflow in the list above, or dispatch this one.
   #
   # It also covers the other blind spot events have: a label added after the
   # checks have finished. Labelling is not a workflow_run, so a pull request
