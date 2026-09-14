@@ -53,6 +53,28 @@ The automatic checks are the gate. The human-facing check is a **single daily
 run of the whole setup, at 17:00 Manila, on Jonathan's account** — one result
 to read, once a day.
 
+### When you ask a person to do something by hand
+
+Some things cannot be automated away — a repository secret, a dashboard toggle,
+a password only one person can reset. When a session needs one of those, it
+**asks with a link on every step that has one**: the exact project page, the
+exact settings tab, the exact form. Not "go to Settings → Secrets"; the URL
+that lands on the form.
+
+This is not politeness. Jonathan has had to ask for the links three times in
+one morning, which is three round trips that the first answer should have
+made unnecessary, and a walkthrough that names a menu path is also the kind
+that goes stale silently when the interface moves. A link either works or
+visibly does not.
+
+Say what the step is for and what it is safe to do — "resetting this password
+breaks nothing, the app connects with API keys" — because the reason someone
+hesitates over a manual step is usually not the clicking.
+
+And before asking at all, check whether it can be done without a person. It
+often can: half the work in this file exists because something that looked
+like a manual step was not one.
+
 ### The watched list, and the flag it needs
 
 Most of the app is revertible. A bad component ships, somebody notices, it is
@@ -87,6 +109,32 @@ so the flag is a courtesy that saves Jonathan finding out from a robot, not
 the thing being relied on. Do not move code out of a watched path to keep it
 quiet; the list exists because those files are where a mistake is expensive,
 and a change is not made safer by being harder to see.
+
+### Neither session gates the other
+
+No Claude session approves another's work, waits for one, or is waited on.
+Janine's branch and Janine's pull requests go through on the checks alone, and
+so do Jonathan's. If a session finds a problem in the other's pull request, it
+says so — to its own person, or as a comment — and that is the end of its
+authority. It does not hold anything.
+
+**Either session may fix anything that is broken, including the other's.** A
+workflow, a script, a test, a check, a migration, a component — whoever finds
+it wrong may correct it, on a branch, through the ordinary path, without asking
+the other's session first. Most of the machinery in `.github/` was written by
+one session and has been wrong in ways only the other was positioned to notice;
+a rule that said "ask the author" would mean the person who spotted a broken
+check has to wait on the session that broke it.
+
+The one thing that is never a session's to do is the short list in the table
+below — applying a migration to production, repository settings and secrets,
+spending money. Those are Jonathan's, and they are his because of what they
+are, not because of who noticed.
+
+**A check is not a gate in this sense.** Requiring that CI, the secret scan and
+the schema check have actually *run* before something merges is the opposite of
+an approval: it is what makes merging without a person safe. The thing to
+refuse is a human in the path, not a test.
 
 ### Two people, one branch
 

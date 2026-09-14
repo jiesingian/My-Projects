@@ -1,0 +1,64 @@
+#!/bin/bash
+# Catches, in about forty seconds, what CI would otherwise tell you in ten
+# minutes -- and refuses the one push that is never right.
+#
+# Chosen by Jonathan on 10 September and not built until the 14th, which is
+# itself the argument for it: four days of pushes went out unchecked in the
+# window where the machinery around them was being rebuilt.
+#
+# Deliberately NOT the end-to-end suite. That takes twelve minutes and needs
+# the app running; a pre-push hook long enough to interrupt your thinking is a
+# hook people learn to pass --no-verify to, and then it catches nothing at all.
+# tsc and lint are the two that are fast, silent when clean, and catch the
+# ordinary mistakes.
+#
+# To install: git config core.hooksPath .githooks
+# The session hook does this for you; on a laptop, run it once per clone.
+#
+# To skip deliberately: SKIP_HOOKS=1 git push …
+set -uo pipefail
+
+if [ "${SKIP_HOOKS:-}" = "1" ]; then
+  echo "pre-push: skipped (SKIP_HOOKS=1)"
+  exit 0
+fi
+
+ROOT=$(git rev-parse --show-toplevel)
+
+# Never main. CLAUDE.md's first rule, and the only one here that is about
+# process rather than correctness: "Work on a branch. Never commit directly to
+# main." A direct push cannot wait for a suite that takes eleven minutes; a
+# pull request can, which is the whole reason the branch rule exists.
+while read -r _local_ref _local_sha remote_ref _remote_sha; do
+  case "$remote_ref" in
+    refs/heads/main)
+      echo "pre-push: refusing to push straight to main."
+      echo "          Branch, open a pull request, and let the checks finish before it is live."
+      echo "          That is what automerge.yml is for -- nobody has to approve it."
+      exit 1
+      ;;
+  esac
+done
+
+# Nothing to check if the app was not touched.
+if git diff --quiet HEAD "@{push}" -- kin/ 2>/dev/null; then
+  echo "pre-push: nothing under kin/ changed — skipping typecheck and lint."
+  exit 0
+fi
+
+cd "$ROOT/kin" || exit 0
+
+fail=0
+echo "pre-push: typecheck…"
+npx tsc --noEmit || fail=1
+echo "pre-push: lint…"
+npm run lint --silent || fail=1
+
+if [ "$fail" -ne 0 ]; then
+  echo
+  echo "pre-push: stopped. CI would have failed on this in about ten minutes."
+  echo "          Fix it, or push anyway with: SKIP_HOOKS=1 git push"
+  exit 1
+fi
+
+echo "pre-push: clean. The suite and the schema check still run in CI."

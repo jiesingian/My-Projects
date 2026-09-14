@@ -11,6 +11,64 @@ place for those.
 
 ---
 
+## A fresh clone was handed production as its development database — CLOSED 14 September
+
+`.claude/hooks/session-start.sh` writes `.env.local` when a container has none.
+It wrote **`lffqluudphzviubygwjs`** — production — which was correct while there
+was one Supabase project and wrong from the moment `kin-dev` was stood up on
+10 September. For four days every fresh container was handed the real family's
+database as its local development target, and would have served and written to
+it through `npm run dev`.
+
+It went unnoticed because both working machines already had a `.env.local`, so
+the branch that writes one never ran. That is luck, not a safeguard, and a
+fresh clone is exactly the moment nobody is checking.
+
+Two smaller versions of the same mistake sat beside it:
+
+- The hook exported `E2E_EMAIL=kin-e2e-qa@example.com` — **production's**
+  throwaway household. `playwright.config.ts` lets a shell variable win over
+  `.env.local`, so that export silently overrode a correctly configured dev
+  machine on every run, and the failure presented as a broken credential
+  rather than as the wrong account.
+- It exported `E2E_BASE_URL=http://localhost:3000`, the default spelled out,
+  which the config reads as "the app is served somewhere else" and uses to
+  suppress starting one.
+
+All three are fixed, and the guard that makes the class impossible is in
+`playwright.config.ts`: the suite now **throws** if
+`NEXT_PUBLIC_SUPABASE_URL` points at the production project, naming what is in
+there and reminding the reader that a shell variable beats the file. The suite
+writes — it creates households, edits balances, and one spec deletes an entire
+family — so consent to run it is consent to write, and the only defensible
+target is one that holds nothing.
+
+Verified both ways: pointed at production it refuses before collecting a single
+test; pointed at dev it lists all 251.
+
+---
+
+## A shell variable silently beats .env.local — 14 September
+
+`playwright.config.ts` loads `.env.local` with `if (m && !process.env[m[1]])`,
+so **anything already exported wins**. That is the right default — it is how
+CI passes secrets, and how you aim one run somewhere else without editing a
+file — but it is invisible. A machine with a perfectly correct `.env.local` can
+be running against something else entirely, and nothing on screen says so.
+
+It has now caused two incidents: the exported production QA account above, and
+an `E2E_BASE_URL` that disabled the web server.
+
+Left as it is, deliberately: making the file win would break CI, where the
+environment is the only way in. What changed instead is that the failure is no
+longer silent — the production guard's message says explicitly to check
+`echo $NEXT_PUBLIC_SUPABASE_URL` before trusting the file.
+
+If this bites a third time, the fix is to print the resolved target at the top
+of every run rather than to change which source wins.
+
+---
+
 ## The seeded fixtures aged out on Monday 14 September — CLOSED 9 September
 
 `regressions.spec` is the one spec that does not make what it looks for. It

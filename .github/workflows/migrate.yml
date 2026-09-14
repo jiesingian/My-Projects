@@ -58,16 +58,29 @@ jobs:
         with:
           node-version: "22"
 
-      - name: Say which secret is missing, rather than failing cryptically
+      # Dev is optional, deliberately. Only PROD_DB_URL buys something nobody
+      # else can do: a migration reaches production by this route or by
+      # Jonathan pasting it, and there is no third way. Dev can be brought up
+      # to date by either person through the Supabase connector whenever it
+      # falls behind, so requiring a second secret before anything works at
+      # all would be charging him twice for one thing.
+      #
+      # It says loudly that dev was skipped. A silent skip is how a database
+      # drifts for a week without anybody noticing.
+      - name: Is dev configured
+        id: have
         env:
           URL: ${{ secrets.DEV_DB_URL }}
         run: |
           if [ -z "$URL" ]; then
-            echo "::error::DEV_DB_URL is not set. Supabase → kin-dev → Connect → Session pooler → URI, with the database password in it."
-            exit 1
+            echo "have=false" >> "$GITHUB_OUTPUT"
+            echo "::warning::DEV_DB_URL is not set, so dev was NOT migrated — somebody has to apply this to dev by hand. To automate it: Supabase → kin-dev → Connect → Session pooler → URI, with the database password in it, saved as DEV_DB_URL."
+          else
+            echo "have=true" >> "$GITHUB_OUTPUT"
           fi
 
       - name: Apply what dev has not run
+        if: steps.have.outputs.have == 'true'
         env:
           MIGRATE_DB_URL: ${{ secrets.DEV_DB_URL }}
           MIGRATE_LABEL: dev

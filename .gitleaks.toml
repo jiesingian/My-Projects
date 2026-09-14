@@ -1,0 +1,33 @@
+# Extends gitleaks' own rules. It does not replace them -- useDefault stays
+# true, so every rule that has ever run here still runs.
+[extend]
+useDefault = true
+
+# Supabase publishable keys are public by design, and one has been committed in
+# .claude/hooks/session-start.sh since the hook was written: it is the value
+# the browser carries on every request, and row-level security is what actually
+# protects the data. Redacting it would mean a fresh clone could not start the
+# app at all.
+#
+# It passed the scan until 14 September for no better reason than luck. The
+# production key it used to hold scored below the generic-api-key entropy
+# threshold; the dev key that replaced it scores 4.78 and does not. Nothing
+# about their safety differs -- only their randomness -- so the scan was never
+# making the judgement it appeared to be making. This makes the judgement
+# explicit instead.
+#
+# ONLY `sb_publishable_`. Deliberately not a rule about Supabase, or about this
+# file, or about anything shaped like a key near the word "supabase":
+#
+#   sb_secret_...            a real secret, never committed, still caught here
+#   the service-role JWT     bypasses RLS entirely -- the one key CLAUDE.md
+#                            names as never to be used to get around anything
+#   any anon JWT             public too, but shaped like a secret, and we
+#                            deliberately migrated off it so the scan would
+#                            stop crying wolf
+#
+# If a `sb_publishable_` key is ever rotated, nothing here needs touching. If
+# anything else appears in a diff, this file does not help it through.
+[allowlist]
+description = "Supabase publishable keys: public by design, shipped to every browser"
+regexes = ['''sb_publishable_[A-Za-z0-9_-]{16,}''']

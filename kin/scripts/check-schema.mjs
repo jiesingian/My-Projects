@@ -246,9 +246,10 @@ async function checkOne(label, url, key, email, password, tables) {
     console.error(`    ${p.code}: ${p.message}`);
   }
   console.error(
-    "\nThis is almost always a migration that was written and merged but never run." +
-      "\nkin/migrations holds them; the one at fault will say what it adds." +
-      "\nRunning them against production is Jonathan's — see CLAUDE.md.",
+    `\nThis is almost always a migration that has not been run against ${label.trim()}.` +
+      "\nkin/supabase/migrations/ holds them; the one at fault will say what it adds." +
+      "\nDev applies them on merge. Production waits for Jonathan: Actions → Migrate →" +
+      "\nRun workflow → production. (kin/migrations/ is frozen history — not that.)",
   );
   return "mismatch";
 }
