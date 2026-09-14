@@ -32,7 +32,20 @@ permissions:
 # any row, so it cannot disturb the end-to-end suite -- but two of these racing
 # each other would just be two identical answers.
 concurrency:
-  group: schema-check
+  # Per branch, not global. It was `schema-check` flat, which meant every open
+  # pull request shared one slot and each new run CANCELLED the one already
+  # going -- on a different pull request entirely.
+  #
+  # That was survivable while a cancelled check was merely a gap. It stopped
+  # being survivable when auto-merge began requiring this check to have RUN
+  # and passed: a pull request whose check was cancelled by somebody else's
+  # now waits forever, with nothing red to explain why. Re-running #59 and #61
+  # together on 14 September did exactly that -- #61 cancelled #59 at the same
+  # second, and #59 went back to waiting.
+  #
+  # Still cancel-in-progress within a branch, which is the case it was for:
+  # two pushes in quick succession, where only the newer answer matters.
+  group: schema-check-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
