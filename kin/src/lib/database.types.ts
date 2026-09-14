@@ -1572,6 +1572,91 @@ export type Database = {
           },
         ]
       }
+      family_tree_people: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          dob: string | null
+          family_id: string
+          father_id: string | null
+          full_name: string | null
+          id: string
+          member_id: string | null
+          mother_id: string | null
+          notes: string | null
+          spouse_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          dob?: string | null
+          family_id: string
+          father_id?: string | null
+          full_name?: string | null
+          id?: string
+          member_id?: string | null
+          mother_id?: string | null
+          notes?: string | null
+          spouse_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          dob?: string | null
+          family_id?: string
+          father_id?: string | null
+          full_name?: string | null
+          id?: string
+          member_id?: string | null
+          mother_id?: string | null
+          notes?: string | null
+          spouse_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "family_tree_people_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "members"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "family_tree_people_family_id_fkey"
+            columns: ["family_id"]
+            isOneToOne: false
+            referencedRelation: "families"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "family_tree_people_father_id_fkey"
+            columns: ["father_id"]
+            isOneToOne: false
+            referencedRelation: "family_tree_people"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "family_tree_people_member_id_fkey"
+            columns: ["member_id"]
+            isOneToOne: false
+            referencedRelation: "members"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "family_tree_people_mother_id_fkey"
+            columns: ["mother_id"]
+            isOneToOne: false
+            referencedRelation: "family_tree_people"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "family_tree_people_spouse_id_fkey"
+            columns: ["spouse_id"]
+            isOneToOne: false
+            referencedRelation: "family_tree_people"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       goals: {
         Row: {
           created_at: string
