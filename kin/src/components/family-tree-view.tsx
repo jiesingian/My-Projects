@@ -47,52 +47,63 @@ function GenerationBand({ people, centerId }: { people: TreePerson[]; centerId?:
   );
 }
 
-function groupByDepth(entries: { person: TreePerson; depth: number }[]): [number, TreePerson[]][] {
+function groupByDepth(entries: { person: TreePerson; depth: number }[]): Map<number, TreePerson[]> {
   const map = new Map<number, TreePerson[]>();
   for (const { person, depth } of entries) {
     if (!map.has(depth)) map.set(depth, []);
     map.get(depth)!.push(person);
   }
-  return [...map.entries()].sort((a, b) => b[0] - a[0]);
+  return map;
 }
 
-function SideColumn({ label, entries }: { label: string; entries: { person: TreePerson; depth: number }[] }) {
-  const groups = groupByDepth(entries);
+function Half({ people, empty }: { people: TreePerson[]; empty?: string }) {
+  if (people.length === 0) {
+    return empty ? <div style={{ fontSize: 12, color: "var(--color-neutral-500)", textAlign: "center", padding: "10px 0" }}>{empty}</div> : <div />;
+  }
+  return <GenerationBand people={people} />;
+}
+
+/** The visual tree itself: a pedigree chart, ancestors above descendants.
+ * Each generation is one row split into father's-side and mother's-side
+ * halves -- the immediate father and mother sit in the row directly above
+ * the centre, their own parents in the row above that, and so on upward.
+ * Purely a display of what getFamilyTree already resolved -- FamilyTreeEditor
+ * is where the links get set.
+ *
+ * Until 14 September this drew father's side and mother's side as two full
+ * height columns either side of the centre instead, each stacking its own
+ * generations top to bottom. That put an ancestor beside the centre rather
+ * than above it, which read as confusing precisely because it wasn't the
+ * pedigree shape the labels implied. */
+export function FamilyTreeView({ tree }: { tree: FamilyTree }) {
+  const fatherByDepth = groupByDepth(tree.fatherSide);
+  const motherByDepth = groupByDepth(tree.motherSide);
+
+  // Depth 1 -- the immediate father and mother -- always gets a row, even
+  // with nobody recorded yet: that row is the invitation to add them, same
+  // as the old side columns never disappeared when empty. Deeper rows only
+  // appear once there's actually someone at that generation, on either side.
+  const depths = new Set<number>([1, ...fatherByDepth.keys(), ...motherByDepth.keys()]);
+  const orderedDepths = [...depths].sort((a, b) => b - a);
+
   return (
-    <Blueprint style={{ padding: "14px 10px", minHeight: 120 }}>
-      <div
-        style={{
-          font: "600 11px/1 var(--font-heading)",
-          letterSpacing: ".06em",
-          color: "var(--color-neutral-600)",
-          textAlign: "center",
-          marginBottom: 10,
-        }}
-      >
-        {label}
-      </div>
-      {groups.length === 0 ? (
-        <div style={{ fontSize: 12.5, color: "var(--color-neutral-500)", textAlign: "center", padding: "14px 0" }}>Nobody recorded yet</div>
-      ) : (
-        groups.map(([depth, people], i) => (
+    <div className="kin-treestack">
+      <Blueprint style={{ padding: "14px 10px" }}>
+        <div className="kin-treegenlabels">
+          <span>FATHER&apos;S SIDE</span>
+          <span>MOTHER&apos;S SIDE</span>
+        </div>
+        {orderedDepths.map((depth, i) => (
           <div key={depth}>
             {i > 0 && <div className="kin-treeconnector" />}
-            <GenerationBand people={people} />
+            <div className="kin-treegen">
+              <Half people={fatherByDepth.get(depth) ?? []} empty={depth === 1 ? "Not recorded yet" : undefined} />
+              <Half people={motherByDepth.get(depth) ?? []} empty={depth === 1 ? "Not recorded yet" : undefined} />
+            </div>
           </div>
-        ))
-      )}
-    </Blueprint>
-  );
-}
-
-/** The visual tree itself: father's side and mother's side as two columns,
- * the centre's own generation and children between them. Purely a display
- * of what getFamilyTree already resolved -- FamilyTreeEditor is where the
- * links get set. */
-export function FamilyTreeView({ tree }: { tree: FamilyTree }) {
-  return (
-    <div className="kin-treecols">
-      <SideColumn label="FATHER'S SIDE" entries={tree.fatherSide} />
+        ))}
+      </Blueprint>
+      <div className="kin-treeconnector" />
       <Blueprint className="bg-[var(--color-accent-100)]" style={{ padding: "14px 10px" }}>
         <GenerationBand people={tree.core} centerId={tree.centerId} />
         {tree.children.length > 0 && (
@@ -113,7 +124,6 @@ export function FamilyTreeView({ tree }: { tree: FamilyTree }) {
           </>
         )}
       </Blueprint>
-      <SideColumn label="MOTHER'S SIDE" entries={tree.motherSide} />
     </div>
   );
 }
