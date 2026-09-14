@@ -77,7 +77,25 @@ permissions:
   # described four paragraphs above, about `statuses` -- the same block, the
   # same 403, the same dead job, four days later and one scope over. Read
   # that comment before adding anything else to this file that calls an API.
-  actions: read
+  #
+  # WRITE, not read, and this is the third time round the same block. After
+  # merging, this job dispatches watched-change.yml, schema-check.yml and
+  # e2e.yml against main, because GitHub does not start workflows from a push
+  # made with GITHUB_TOKEN and those three would otherwise never run on main
+  # again. Reading runs needs actions:read; starting one needs actions:write.
+  # With read, all three dispatches answered
+  #
+  #   HTTP 403: Resource not accessible by integration
+  #     .../actions/workflows/354557336/dispatches
+  #
+  # and the job still went green, because each dispatch is "|| true" so that a
+  # net that fails to re-arm can never look like a failed merge. Correct, and
+  # it meant the first merge this workflow ever made -- #74, at 10:31 on
+  # 14 September -- re-armed nothing at all. The three were run by hand
+  # afterwards. That is the whole point of the comment further down about the
+  # gate getting fixed and the net switching off in the same hour: it
+  # happened again, in the code written to stop it happening again.
+  actions: write
   # The Vercel deployment is read through the older Statuses API rather than
   # as a check run, and a permissions block sets every scope it does not list
   # to none -- so that read was a 403 and the job died before merging
