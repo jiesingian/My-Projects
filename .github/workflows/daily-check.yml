@@ -99,6 +99,15 @@ jobs:
 
       # Does the database have what the code believes in? The check that would
       # have caught the three unrun migrations.
+      #
+      # Production is optional to check-schema.mjs itself -- a developer
+      # running it locally may not have those four secrets, and that alone
+      # shouldn't fail the run -- but leaving them out here specifically was
+      # a mistake: it meant this step could only ever see dev, silently,
+      # every single day, on the one workflow whose entire job is watching
+      # for exactly the drift that only shows up on production. Four days
+      # green while production sat two columns behind is what that looked
+      # like in practice.
       - name: Schema
         id: schema
         if: always()
@@ -108,6 +117,10 @@ jobs:
           NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
           E2E_EMAIL: ${{ secrets.E2E_EMAIL }}
           E2E_PASSWORD: ${{ secrets.E2E_PASSWORD }}
+          PROD_SUPABASE_URL: ${{ secrets.PROD_SUPABASE_URL }}
+          PROD_SUPABASE_ANON_KEY: ${{ secrets.PROD_SUPABASE_ANON_KEY }}
+          PROD_E2E_EMAIL: ${{ secrets.PROD_E2E_EMAIL }}
+          PROD_E2E_PASSWORD: ${{ secrets.PROD_E2E_PASSWORD }}
         run: node scripts/check-schema.mjs
 
       - name: Install the browser
