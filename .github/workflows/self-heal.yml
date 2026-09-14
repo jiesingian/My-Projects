@@ -1,0 +1,305 @@
+name: Self-heal
+
+# Repairs the things that break on their own, and reports the things that
+# need a person. The line between those two is the whole design.
+#
+# Every failure it fixes actually happened, on 14 September:
+#
+#   * #72's end-to-end run was cancelled by the concurrency group when a third
+#     run arrived. Nobody re-ran it. The pull request merged with no suite on
+#     its head commit at all, and only passed because somebody noticed twelve
+#     minutes later and re-ran it by hand.
+#   * Janine's #59, #60, #61 and #66 sat green-except-one-check for three and
+#     four days. All four needed the same thing: a check re-run after the
+#     reason it failed had been fixed elsewhere.
+#   * Dev fell behind main when a Migrate run failed on a bad secret, and
+#     nothing ever retried it.
+#   * Two numbers written into comments -- the sweep's "fifteen minutes" and
+#     this repository's "17:00 Manila" -- were both wrong, and the run history
+#     that disproved them was sitting there the whole time.
+#
+# WHAT IT WILL NEVER DO, and these are not oversights:
+#
+#   * Touch production. Not the schema, not a row, not a migration. That is
+#     Jonathan's button and it stays his -- a migration takes effect when it is
+#     run, and no check afterwards catches a bad one.
+#   * Merge anything. It re-runs checks; automerge.yml still decides, on the
+#     same evidence as always.
+#   * Decide whether a failing test is wrong or the code is. That is a
+#     judgement, and a robot that "fixes" a red test by rerunning it until it
+#     passes is worse than no robot.
+#   * Delete data. See the leftovers job, which counts and reports rather than
+#     sweeps, and says why.
+on:
+  schedule:
+    # Hourly. GitHub throttles frequent schedules and does not honour the
+    # minute -- measured on this repository, */15 fired about every two hours
+    # and an hourly cron lands when it lands. That is fine here: nothing below
+    # is urgent, and everything below is also reachable by hand.
+    - cron: "0 * * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: write      # re-running a workflow run is a write
+  pull-requests: read
+  issues: write
+
+concurrency:
+  group: self-heal
+  cancel-in-progress: false
+
+jobs:
+  # ──────────────────────────────────────────────────────────────────────
+  # 1. A pull request waiting on a check that never ran, or was cancelled.
+  # ──────────────────────────────────────────────────────────────────────
+  stuck-pull-requests:
+    name: re-run checks that never reported
+    runs-on: ubuntu-latest
+    steps:
+      - name: Find them and start them again
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+
+          # The same four automerge.yml requires, and for the same reason: a
+          # check that did not run is not a check that passed.
+          REQUIRED="CI|Secret Scan|Schema check|End-to-end"
+
+          PRS=$(gh pr list --repo "$REPO" --state open --label auto-merge --json number --jq '.[].number')
+          if [ -z "$PRS" ]; then echo "No open pull request is marked auto-merge."; exit 0; fi
+
+          for PR in $PRS; do
+            SHA=$(gh pr view "$PR" --repo "$REPO" --json headRefOid --jq .headRefOid)
+            gh api "repos/$REPO/actions/runs?head_sha=$SHA&per_page=100" > /tmp/runs.json
+
+            # Only workflows that SHOULD have run here. End-to-end is path
+            # filtered, so a documentation change legitimately has none and
+            # must not be nagged about forever.
+            gh pr diff "$PR" --repo "$REPO" --name-only > /tmp/files.txt
+            # Newline separated, because two of the four names contain a space.
+            WANT=$(printf 'CI\nSecret Scan\nSchema check\n')
+            if grep -qE '^(kin/src/|kin/e2e/|kin/package(-lock)?\.json|kin/playwright\.config\.ts|\.github/workflows/e2e\.yml)' /tmp/files.txt; then
+              WANT=$(printf '%s\nEnd-to-end\n' "$WANT")
+            fi
+
+            while IFS= read -r W; do
+              [ -n "$W" ] || continue
+              STATE=$(jq -r --arg n "$W" '[.workflow_runs[] | select(.name==$n)] | sort_by(.created_at) | last | .conclusion // "none"' /tmp/runs.json)
+              case "$STATE" in
+                success) ;;
+                none|cancelled)
+                  # Never ran, or was displaced by the concurrency group. Both
+                  # are "no answer", and an answer is cheap to ask for again.
+                  ID=$(jq -r --arg n "$W" '[.workflow_runs[] | select(.name==$n)] | sort_by(.created_at) | last | .id // empty' /tmp/runs.json)
+                  if [ -n "$ID" ]; then
+                    echo "PR #$PR: $W was $STATE — re-running run $ID"
+                    gh api -X POST "repos/$REPO/actions/runs/$ID/rerun" >/dev/null 2>&1 \
+                      && echo "  started" || echo "  could not re-run it; leaving it"
+                  else
+                    echo "PR #$PR: $W never ran and has no run to re-run — a push is needed, which is a person's call."
+                  fi
+                  ;;
+                failure|timed_out)
+                  # Deliberately NOT re-run. A red check is information, and
+                  # rerunning it until it goes green is how a suite stops
+                  # meaning anything.
+                  echo "PR #$PR: $W FAILED. Left alone on purpose — that is a real result, not a stuck one."
+                  ;;
+                *) echo "PR #$PR: $W is $STATE — still going, nothing to do." ;;
+              esac
+            done <<< "$WANT"
+          done
+
+  # ──────────────────────────────────────────────────────────────────────
+  # 2. Dev falling behind the migrations on main.
+  # ──────────────────────────────────────────────────────────────────────
+  dev-behind:
+    name: bring dev up to date
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: "22"
+
+      - name: Is dev missing anything
+        id: look
+        env:
+          MIGRATE_DB_URL: ${{ secrets.DEV_DB_URL }}
+          MIGRATE_LABEL: dev
+        working-directory: kin
+        run: |
+          if [ -z "${MIGRATE_DB_URL:-}" ]; then
+            echo "::warning::DEV_DB_URL is not set, so dev cannot be healed automatically."
+            echo "pending=unknown" >> "$GITHUB_OUTPUT"; exit 0
+          fi
+          node scripts/migrate.mjs --dry-run | tee /tmp/plan.txt
+          if grep -q "0 pending" /tmp/plan.txt; then
+            echo "pending=no" >> "$GITHUB_OUTPUT"
+          else
+            echo "pending=yes" >> "$GITHUB_OUTPUT"
+          fi
+
+      # Dev, and only dev. CLAUDE.md: "Dev is different and needs no
+      # permission: it applies itself on merge, and running the same pipeline
+      # at it by hand is fair game for either of you." Production is not here
+      # and must never be.
+      - name: Apply them to dev
+        if: steps.look.outputs.pending == 'yes'
+        env:
+          MIGRATE_DB_URL: ${{ secrets.DEV_DB_URL }}
+          MIGRATE_LABEL: dev
+        working-directory: kin
+        run: |
+          echo "Dev was behind. Applying." | tee -a "$GITHUB_STEP_SUMMARY"
+          node scripts/migrate.mjs | tee -a "$GITHUB_STEP_SUMMARY"
+
+  # ──────────────────────────────────────────────────────────────────────
+  # 3. Claims in the repository that the run history contradicts.
+  # ──────────────────────────────────────────────────────────────────────
+  stale-claims:
+    name: check what the files claim against what happened
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Compare the cron claims with the actual firing times
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+
+          # Twice in one day a number written in a comment turned out to be
+          # wrong, and the evidence was in this API the whole time. A schedule
+          # is the one claim a machine can check without judgement: the file
+          # says when it should fire, the history says when it did.
+          DRIFTED=""
+          for F in .github/workflows/*.yml; do
+            CRON=$(grep -oE '^\s*- cron: "[^"]+"' "$F" | head -1 | sed 's/.*"\(.*\)"/\1/' || true)
+            [ -n "$CRON" ] || continue
+            MIN=$(echo "$CRON" | awk '{print $1}')
+            HOUR=$(echo "$CRON" | awk '{print $2}')
+            case "$HOUR" in *"*"*) continue ;; esac   # hourly/other: no fixed hour to check
+
+            NAME=$(grep -m1 '^name:' "$F" | sed 's/^name: *//')
+            LAST=$(gh api "repos/$REPO/actions/workflows/$(basename "$F")/runs?event=schedule&per_page=5" \
+                    --jq '[.workflow_runs[].run_started_at] | @tsv' 2>/dev/null || echo "")
+            [ -n "$LAST" ] || continue
+
+            echo "### $NAME (asks for ${HOUR}:${MIN} UTC)" >> "$GITHUB_STEP_SUMMARY"
+            WORST=0
+            for T in $LAST; do
+              ACT_H=$(date -u -d "$T" +%H 2>/dev/null || echo "")
+              ACT_M=$(date -u -d "$T" +%M 2>/dev/null || echo "")
+              [ -n "$ACT_H" ] || continue
+              LATE=$(( (10#$ACT_H * 60 + 10#$ACT_M) - (10#$HOUR * 60 + 10#$MIN) ))
+              [ "$LATE" -lt 0 ] && LATE=$(( LATE + 1440 ))
+              echo "- fired $T — ${LATE} min late" >> "$GITHUB_STEP_SUMMARY"
+              [ "$LATE" -gt "$WORST" ] && WORST=$LATE
+            done
+
+            # An hour is generous. GitHub never promises the minute, and the
+            # point is to catch a claim that is hours out, not to complain
+            # about ordinary lateness.
+            if [ "$WORST" -gt 60 ]; then
+              DRIFTED="$DRIFTED- **$NAME** asks for ${HOUR}:${MIN} UTC and has been up to ${WORST} minutes late.\n"
+            fi
+          done
+
+          if [ -n "$DRIFTED" ]; then
+            TITLE="A schedule does not fire when its file says it does"
+            EXISTING=$(gh issue list --repo "$REPO" --label "stale-claim" --state open --search "$TITLE in:title" --json number --jq '.[0].number // empty')
+            BODY=$(printf "The run history disagrees with what these files claim:\n\n%b\nGitHub's scheduled workflows are best-effort and it does not promise the minute, so this is usually not something to fix in the cron — it is something to fix in the sentence, so nobody plans around a time that never happens.\n\n---\n_Generated by [Claude Code](https://claude.ai/code)_\n" "$DRIFTED")
+            gh label create "stale-claim" --repo "$REPO" --color FBCA04 --description "A file claims something the run history contradicts." >/dev/null 2>&1 || true
+            if [ -n "$EXISTING" ]; then
+              echo "Already reported as #$EXISTING."
+            else
+              gh issue create --repo "$REPO" --title "$TITLE" --label "stale-claim" --body "$BODY"
+            fi
+          else
+            echo "Every scheduled workflow fires close enough to what its file claims."
+          fi
+
+  # ──────────────────────────────────────────────────────────────────────
+  # 4. Leftovers in the dev QA household. COUNTED, not swept -- see below.
+  # ──────────────────────────────────────────────────────────────────────
+  qa-leftovers:
+    name: count what the suite left behind
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: "22"
+
+      # Deliberately a count and not a sweep, which is the one place this file
+      # stops short of healing on purpose.
+      #
+      # Deleting rows in the shared QA household while a suite is running is
+      # how a green suite turns red at three in the morning for a reason
+      # nobody can reconstruct -- and the suite already tidies up after
+      # itself. A number that climbs week over week means that tidying is
+      # broken, and THAT is worth a person's attention rather than a robot
+      # quietly mopping up after it.
+      #
+      # 612 leftover rows were cleared by hand on 9 September. If this ever
+      # reads like that again, the sweep in e2e/support/qa-household.ts is the
+      # thing to fix, not the symptom.
+      - name: Count them
+        env:
+          URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+          EMAIL: ${{ secrets.E2E_EMAIL }}
+          PASSWORD: ${{ secrets.E2E_PASSWORD }}
+        run: |
+          set -euo pipefail
+          if [ -z "${URL:-}" ] || [ -z "${EMAIL:-}" ]; then
+            echo "::warning::No dev QA credentials — cannot count leftovers."; exit 0
+          fi
+          TOKEN=$(curl -s -X POST "$URL/auth/v1/token?grant_type=password" \
+            -H "apikey: $KEY" -H "Content-Type: application/json" \
+            -d "{\"email\":\"$EMAIL\",\"password\":\"$PASSWORD\"}" | jq -r .access_token)
+          if [ "$TOKEN" = "null" ] || [ -z "$TOKEN" ]; then
+            echo "::warning::Could not sign in as the dev QA account."; exit 0
+          fi
+          # Each table is asked about the column it actually has. The first
+          # version of this asked every table for `title` OR `name`, which is
+          # 42703 on every one of them -- and `jq length` on PostgREST's error
+          # object returns 4, the number of keys in it. So it reported "4" for
+          # each table and a total of 28, every one of them invented. Caught
+          # before it shipped, and worth spelling out: that is the same shape
+          # as the bug check-schema.mjs was fixed for this morning, an absent
+          # answer read as an answer, written twelve hours later by the same
+          # hand.
+          TOTAL=0
+          FAILED=""
+          count() {
+            local table="$1" col="$2" raw n
+            raw=$(curl -s "$URL/rest/v1/$table?select=id&$col=like.E2E-*" \
+                    -H "apikey: $KEY" -H "Authorization: Bearer $TOKEN")
+            # An error is an object; a result is an array. Anything that is not
+            # an array is a failure to ask, and is never a count.
+            if [ "$(echo "$raw" | jq -r 'type' 2>/dev/null)" != "array" ]; then
+              FAILED="$FAILED $table"
+              echo "- $table: could NOT be counted — $(echo "$raw" | jq -r '.message // "unparseable"' 2>/dev/null)" >> "$GITHUB_STEP_SUMMARY"
+              return
+            fi
+            n=$(echo "$raw" | jq 'length')
+            [ "$n" -gt 0 ] && echo "- $table: $n" >> "$GITHUB_STEP_SUMMARY"
+            TOTAL=$(( TOTAL + n ))
+          }
+
+          for T in goals activities journal_entries milestones routines; do count "$T" title; done
+          for T in assets liabilities accounts;                        do count "$T" name;  done
+
+          if [ -n "$FAILED" ]; then
+            echo "::warning::Could not count:$FAILED — the number below is therefore a floor, not a total."
+          fi
+          echo "E2E-prefixed rows left in the dev QA household: $TOTAL" | tee -a "$GITHUB_STEP_SUMMARY"
+          if [ "$TOTAL" -gt 100 ]; then
+            echo "::warning::$TOTAL leftover rows — the suite's own tidy-up is not keeping up. Fix e2e/support/qa-household.ts rather than sweeping here."
+          fi

@@ -173,15 +173,31 @@ jobs:
               REQUIRED="$REQUIRED|End-to-end"
             fi
 
+            # Newline separated, and read as whole lines. Two of these four
+            # names contain a space, and the first version of this loop was
+            #
+            #     for W in $(echo "$REQUIRED" | tr '|' ' ')
+            #
+            # which splits on whitespace, so "Secret Scan" became "Secret" and
+            # "Scan" and "Schema check" became "Schema" and "check". None of
+            # those is a workflow, all four were therefore "never ran", and
+            # this job refused every pull request it was ever asked about --
+            # from the moment the required-checks test was added until now.
+            # That is why it has merged nothing while PRs were merged by hand
+            # around it.
+            #
+            # The separate logging loop that used to sit above this one read
+            # the names correctly, which is what made the bug findable: the log
+            # said "Secret Scan (runs: 1, passed: 1)" and then
+            # "Secret(never ran) Scan(never ran)" three lines later. Logging
+            # and checking are one loop now so they cannot disagree again.
             MISSING=""
-            echo "$REQUIRED" | tr '|' '\n' | while read -r W; do
+            while IFS= read -r W; do
               [ -n "$W" ] || continue
               echo "PR #$PR — required: $W (runs: $(ran "$W"), passed: $(passed "$W"))"
-            done
-            for W in $(echo "$REQUIRED" | tr '|' ' '); do
-              if [ "$(ran "$W")" -eq 0 ]; then MISSING="$MISSING $W(never ran)"; continue; fi
-              if [ "$(passed "$W")" -eq 0 ]; then MISSING="$MISSING $W(not green)"; fi
-            done
+              if [ "$(ran "$W")" -eq 0 ]; then MISSING="$MISSING [$W: never ran]"; continue; fi
+              if [ "$(passed "$W")" -eq 0 ]; then MISSING="$MISSING [$W: not green]"; fi
+            done <<< "$(echo "$REQUIRED" | tr '|' '\n')"
             if [ -n "$MISSING" ]; then
               echo "PR #$PR: not merging —$MISSING."
               echo "A check that did not run is not a check that passed."
@@ -191,7 +207,33 @@ jobs:
             # Everything else that reported must also be green. The required
             # list above is the floor, not the ceiling: Vercel, Triage and
             # anything added later still count.
-            gh api "repos/$REPO/commits/$SHA/check-runs?per_page=100" > /tmp/checks.json
+            gh api "repos/$REPO/commits/$SHA/check-runs?per_page=100" > /tmp/checks.raw.json
+
+            # Drop this job's own check run before counting.
+            #
+            # On the ordinary paths -- workflow_run and the cron sweep -- this
+            # job runs against main, so it posts its check run on main's head
+            # and never appears on a pull request commit. Dispatched against
+            # the pull request's own branch it does, and then it counts itself
+            # as the one thing still pending and refuses, every time, forever.
+            #
+            # That matters because dispatching this workflow is exactly what
+            # the comment at the top of the file tells you to do when a pull
+            # request is sitting green and unmerged. Following that advice
+            # against the branch could not have worked.
+            #
+            # Matched on the run id in the URL, so it excludes this run and
+            # nothing else -- not an earlier attempt, not another workflow
+            # that happens to have a job called "merge".
+            jq --arg run "${GITHUB_RUN_ID}" \
+              '.check_runs |= map(select(((.details_url // "") | contains("/actions/runs/" + $run + "/")) | not))' \
+              /tmp/checks.raw.json > /tmp/checks.json
+
+            SELF=$(( $(jq '.check_runs | length' /tmp/checks.raw.json) - $(jq '.check_runs | length' /tmp/checks.json) ))
+            if [ "$SELF" -ne 0 ]; then
+              echo "PR #$PR — ignoring $SELF check run(s) posted by this job itself."
+            fi
+
             PENDING=$(jq '[.check_runs[] | select(.status != "completed")] | length' /tmp/checks.json)
             FAILED=$(jq '[.check_runs[]
                           | select(.status == "completed")
