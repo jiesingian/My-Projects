@@ -3,9 +3,18 @@ name: CI
 # The gate every pull request has to get through before it can be merged --
 # automatically or by hand. Without this, "auto-merge once checks pass" would
 # mean "merge once nothing has been checked".
+# `pull_request` is deliberately not scoped to `branches: [main]`, and neither
+# is the secret scan. It was, and that is how #54 reached main on 10 September
+# with no typecheck, no lint, no build and no secret scan run against it: it
+# was stacked on another branch, so its base was not `main`, so GitHub skipped
+# this file entirely. Stacked pull requests are how Janine works -- a second
+# change that needs the first -- and the checks have to follow the work rather
+# than the other way round.
+#
+# `push` stays on main only. Every branch here becomes a pull request, so
+# building each push as well would double the bill to learn the same thing.
 on:
   pull_request:
-    branches: [main]
   push:
     branches: [main]
 

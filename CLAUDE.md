@@ -110,6 +110,32 @@ the thing being relied on. Do not move code out of a watched path to keep it
 quiet; the list exists because those files are where a mistake is expensive,
 and a change is not made safer by being harder to see.
 
+### Neither session gates the other
+
+No Claude session approves another's work, waits for one, or is waited on.
+Janine's branch and Janine's pull requests go through on the checks alone, and
+so do Jonathan's. If a session finds a problem in the other's pull request, it
+says so — to its own person, or as a comment — and that is the end of its
+authority. It does not hold anything.
+
+**Either session may fix anything that is broken, including the other's.** A
+workflow, a script, a test, a check, a migration, a component — whoever finds
+it wrong may correct it, on a branch, through the ordinary path, without asking
+the other's session first. Most of the machinery in `.github/` was written by
+one session and has been wrong in ways only the other was positioned to notice;
+a rule that said "ask the author" would mean the person who spotted a broken
+check has to wait on the session that broke it.
+
+The one thing that is never a session's to do is the short list in the table
+below — applying a migration to production, repository settings and secrets,
+spending money. Those are Jonathan's, and they are his because of what they
+are, not because of who noticed.
+
+**A check is not a gate in this sense.** Requiring that CI, the secret scan and
+the schema check have actually *run* before something merges is the opposite of
+an approval: it is what makes merging without a person safe. The thing to
+refuse is a human in the path, not a test.
+
 ### Two people, one branch
 
 Both sessions run in their own container against their own clone. Nothing

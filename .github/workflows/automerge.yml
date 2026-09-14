@@ -119,9 +119,55 @@ jobs:
             # anything that moved after this read.
             SHA=$(gh pr view "$PR" --repo "$REPO" --json headRefOid --jq .headRefOid)
 
-            # Every check run on this commit must have finished and passed.
-            # Anything still running means another workflow is not done yet;
-            # its own completion, or the next sweep, will bring us back here.
+            # The checks that matter must have RUN, not merely not-failed.
+            #
+            # This is the hole that let #54 through on 10 September, and it is
+            # the same shape as the bug fixed in check-schema.mjs hours
+            # earlier: "nothing reported a failure" is not "everything passed"
+            # when nothing reported at all. #54 was force-pushed to a new head,
+            # only Triage ran on it, and this job merged a change to
+            # lib/actions/wealth.ts on the strength of two check runs -- a
+            # label classifier and a Vercel comment. Production then spent
+            # three days without a column that main's code writes on every
+            # asset edit.
+            #
+            # Listing workflow names rather than check-run names deliberately:
+            # a job renamed inside a workflow silently empties a check-run
+            # list, and this must fail loudly rather than quietly stop
+            # requiring something.
+            gh api "repos/$REPO/actions/runs?head_sha=$SHA&per_page=100" > /tmp/runs.json
+
+            ran() { jq -r --arg n "$1" '[.workflow_runs[] | select(.name==$n)] | length' /tmp/runs.json; }
+            passed() { jq -r --arg n "$1" '[.workflow_runs[] | select(.name==$n) | select(.conclusion=="success")] | length' /tmp/runs.json; }
+
+            REQUIRED="CI|Secret Scan|Schema check"
+
+            # End-to-end is required only where it applies -- it is path
+            # filtered, so demanding it on a documentation change would stall
+            # that change forever waiting for a run that will never start.
+            gh pr diff "$PR" --repo "$REPO" --name-only > /tmp/files.txt
+            if grep -qE '^(kin/src/|kin/e2e/|kin/package(-lock)?\.json|kin/playwright\.config\.ts|\.github/workflows/e2e\.yml)' /tmp/files.txt; then
+              REQUIRED="$REQUIRED|End-to-end"
+            fi
+
+            MISSING=""
+            echo "$REQUIRED" | tr '|' '\n' | while read -r W; do
+              [ -n "$W" ] || continue
+              echo "PR #$PR — required: $W (runs: $(ran "$W"), passed: $(passed "$W"))"
+            done
+            for W in $(echo "$REQUIRED" | tr '|' ' '); do
+              if [ "$(ran "$W")" -eq 0 ]; then MISSING="$MISSING $W(never ran)"; continue; fi
+              if [ "$(passed "$W")" -eq 0 ]; then MISSING="$MISSING $W(not green)"; fi
+            done
+            if [ -n "$MISSING" ]; then
+              echo "PR #$PR: not merging —$MISSING."
+              echo "A check that did not run is not a check that passed."
+              return 0
+            fi
+
+            # Everything else that reported must also be green. The required
+            # list above is the floor, not the ceiling: Vercel, Triage and
+            # anything added later still count.
             gh api "repos/$REPO/commits/$SHA/check-runs?per_page=100" > /tmp/checks.json
             PENDING=$(jq '[.check_runs[] | select(.status != "completed")] | length' /tmp/checks.json)
             FAILED=$(jq '[.check_runs[]
@@ -176,6 +222,25 @@ jobs:
             # visible; it does not stop the sweep looking at the others.
             if gh pr merge "$PR" --repo "$REPO" --squash --match-head-commit "$SHA"; then
               echo "Merged PR #$PR at $SHA."
+
+              # GitHub does not start workflows from a push made with
+              # GITHUB_TOKEN, and this job merges with exactly that. So the
+              # moment auto-merge began working on 10 September, every
+              # post-merge check on main went dark without a word:
+              # watched-change.yml has not opened an issue since 08:51 that
+              # day, and neither schema-check nor the end-to-end suite has run
+              # against main since. The gate got fixed and the net switched
+              # off in the same hour.
+              #
+              # workflow_dispatch is not suppressed the way push is, so the
+              # merge asks for them by name instead. Each is "|| true": a
+              # failure to start one of these must never look like a failure
+              # to merge, which has already happened.
+              for W in watched-change.yml schema-check.yml e2e.yml; do
+                gh workflow run "$W" --repo "$REPO" --ref main \
+                  && echo "  woke $W on main" \
+                  || echo "  could not wake $W — run it by hand if it matters"
+              done
             else
               echo "PR #$PR: merge refused — conflict, or the head moved. Leaving it."
             fi
