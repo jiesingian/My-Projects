@@ -21,6 +21,11 @@
       "mcp__Supabase__search_docs",
       "Bash(npx tsc --noEmit)",
       "Bash(npm run lint)",
+      "Bash(npm run build)",
+      "Bash(npm run e2e)",
+      "Bash(npm run start)",
+      "Bash(unset E2E_EMAIL E2E_PASSWORD E2E_BASE_URL E2E_DELETE_EMAIL E2E_DELETE_PASSWORD && npm run e2e)",
+      "Bash(unset E2E_EMAIL E2E_BASE_URL && npm run e2e)",
       "Bash(git commit:*)"
     ]
   }
