@@ -31,7 +31,7 @@ jobs:
   look:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           # Enough history to diff this push against what came before it. A
           # shallow clone cannot see `before`, and the fallback below cannot

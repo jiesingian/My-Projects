@@ -12,10 +12,13 @@ name: Daily check
 #   - A migration written, merged, and never run. The code and the database
 #     drift apart with every check green, which is exactly what broke Settings
 #     and Add account in front of a person on 9 September.
-#   - Fixtures ageing out. `regressions.spec` asserts against activities dated
-#     one specific week; from 14 September they fall outside the window and the
-#     suite starts failing on both machines at once, with nothing having
-#     changed.
+#   - Fixtures ageing out. This was a real risk rather than a hypothetical:
+#     `regressions.spec` used to assert against activities somebody had seeded
+#     by hand, dated Monday 7 September, and from Monday the 14th they fell
+#     outside the week the Planner shows. It was rewritten to make its own,
+#     anchored to today, and passed on the 14th with nothing to fix -- but the
+#     class is what this line is for, and the next hand-seeded fixture will do
+#     the same thing on its own schedule.
 #   - A dependency, a Supabase change, or an expiring credential. Nobody pushes
 #     anything and `main` stops working anyway.
 #
@@ -43,11 +46,11 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           ref: main
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v5
         with:
           node-version: "22"
 
@@ -160,7 +163,7 @@ jobs:
           E2E_DELETE_PASSWORD: ${{ secrets.E2E_DELETE_PASSWORD }}
         run: npm run e2e
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v6
         if: always()
         with:
           name: daily-playwright-report
