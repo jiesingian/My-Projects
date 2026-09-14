@@ -2,8 +2,8 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { after } from "next/server";
 import { getCurrentMember } from "@/lib/session";
-import { createClient } from "@/lib/supabase/server";
-import { getGallery, getEntries, getMilestones, syncDriveJournalMedia } from "@/lib/queries/journal";
+import { getGallery, getEntries, getMilestones, syncDriveJournalMedia, driveIsDisconnected } from "@/lib/queries/journal";
+import { DriveDisconnectedNotice } from "@/components/drive-disconnected-notice";
 import { HubHeader } from "@/components/hub-header";
 import { Blueprint, Tag, Empty } from "@/components/ui";
 import { GalleryUpload } from "@/components/gallery-upload";
@@ -63,23 +63,16 @@ async function GalleryPane({ familyId }: { familyId: string }) {
   // no way to tell "temporarily broken" from "gone for good". If any photo
   // here is Drive-backed and the link is no longer connected, say so and
   // point at the one place that fixes it.
+  //
+  // Only asked when there is a Drive-backed photo on screen: a household that
+  // never linked Drive should never be told to reconnect it.
   const hasDriveMedia = media.some((m) => m.storage_provider === "google_drive");
-  let driveDisconnected = false;
-  if (hasDriveMedia) {
-    const supabase = await createClient();
-    const { data: link } = await supabase.from("drive_links").select("connected").eq("family_id", familyId).maybeSingle();
-    driveDisconnected = link?.connected === false;
-  }
+  const driveDisconnected = hasDriveMedia && (await driveIsDisconnected(familyId));
 
   return (
     <>
       <GalleryUpload />
-      {driveDisconnected && (
-        <div className="blueprint" style={{ padding: 10, marginBottom: 14, fontSize: 13 }}>
-          <span style={{ color: "var(--color-accent-700)" }}>Google Drive is no longer connected</span> — photos backed up
-          there won&apos;t load until you reconnect. <Link href="/settings" style={{ textDecoration: "underline" }}>Reconnect in Settings</Link>.
-        </div>
-      )}
+      {driveDisconnected && <DriveDisconnectedNotice />}
       {media.length === 0 ? (
         <Empty
           icon="🖼"
@@ -98,8 +91,18 @@ async function GalleryPane({ familyId }: { familyId: string }) {
 async function EntriesPane({ familyId }: { familyId: string }) {
   const fmtDate = await familyDate();
   const entries = await getEntries(familyId);
+
+  // Entries shows Drive-backed photos exactly as the Gallery does, and said
+  // nothing when they stopped loading. #59 added the explanation to the
+  // Gallery only, so a household reading an entry still got bare placeholders
+  // and no way back -- the failure that PR existed to end, surviving in the
+  // pane nobody checked. Same question, same notice, asked the same way.
+  const hasDriveMedia = entries.some((e) => e.hasDriveMedia);
+  const driveDisconnected = hasDriveMedia && (await driveIsDisconnected(familyId));
+
   return (
     <>
+      {driveDisconnected && <DriveDisconnectedNotice />}
       {entries.length === 0 && (
         <div style={{ marginBottom: 16 }}>
           <Empty

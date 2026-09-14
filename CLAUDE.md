@@ -50,8 +50,17 @@ reason.
 
 Neither person is expected to watch the other's work or follow every push.
 The automatic checks are the gate. The human-facing check is a **single daily
-run of the whole setup, at 17:00 Manila, on Jonathan's account** — one result
-to read, once a day.
+run of the whole setup, on Jonathan's account** — one result to read, once a
+day, and silent unless something broke.
+
+It asks for 17:00 Manila and does not get it. Measured across 11, 12 and
+13 September, it fired between 20:34 and 21:35 Manila — three and a half to
+four and a half hours late, varying by an hour between days. GitHub's
+scheduled workflows are best-effort on shared runners; there is no setting
+that fixes this, and moving the cron earlier only aims at a moving target.
+Expect it some time in the evening. If a dependable hour is ever wanted, it
+has to be triggered by something that keeps time rather than by GitHub's
+cron.
 
 ### When you ask a person to do something by hand
 

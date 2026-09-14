@@ -22,7 +22,26 @@ name: Daily check
 #   - A dependency, a Supabase change, or an expiring credential. Nobody pushes
 #     anything and `main` stops working anyway.
 #
-# 09:00 UTC is 17:00 in Manila.
+# WHEN THIS ACTUALLY RUNS, which is not what the cron says.
+#
+# 09:00 UTC would be 17:00 in Manila. It has never once fired then. Measured
+# from this workflow's own run history:
+#
+#   asked 09:00 UTC   fired 11 Sep 13:10 UTC   21:10 Manila
+#   asked 09:00 UTC   fired 12 Sep 12:34 UTC   20:34 Manila
+#   asked 09:00 UTC   fired 13 Sep 13:35 UTC   21:35 Manila
+#
+# Three and a half to four and a half hours late, varying by an hour between
+# days. GitHub's scheduled workflows are best-effort on shared runners and the
+# documentation says so; there is no queue to jump and no setting to change.
+# Moving the cron earlier would only aim at a target that moves.
+#
+# So what this is, honestly: once a day, some time in the Manila evening,
+# silent unless something broke. That is still the thing it was built for --
+# one result to read rather than two people watching each other's pushes --
+# but the fixed hour was never real, and a time written in a comment is what
+# somebody plans their evening around. If a dependable hour is ever needed,
+# it has to be triggered by something that keeps time, not by this cron.
 on:
   schedule:
     - cron: "0 9 * * *"
@@ -222,7 +241,7 @@ jobs:
             --search "Daily check — $TODAY in:title" --json number --jq '.[0].number // empty')
 
           gh label create "daily-check" --repo "$REPO" --color B60205 \
-            --description "The 17:00 Manila run of the whole setup found something." || true
+            --description "The daily run of the whole setup found something." || true
 
           if [ -n "$EXISTING" ]; then
             gh issue comment "$EXISTING" --repo "$REPO" --body-file /tmp/body.md
