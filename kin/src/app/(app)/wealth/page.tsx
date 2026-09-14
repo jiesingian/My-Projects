@@ -779,6 +779,9 @@ async function ScopePane({ scope, familyId, memberId, currency, range }: { scope
           <span style={{ textAlign: "right", flex: "none" }}>
             <span style={{ fontFamily: "var(--font-numeric)", fontSize: 13, display: "block" }}>{formatCurrency(a.balance, currency)}</span>
             {a.pendingCount > 0 && <Tag variant="outline">{a.pendingCount} PENDING</Tag>}
+            <span style={{ display: "block", marginTop: 6 }}>
+              <RemoveButton id={a.id} kind="account" label={`Archive "${a.name}"`} />
+            </span>
           </span>
         </Link>
       ))}

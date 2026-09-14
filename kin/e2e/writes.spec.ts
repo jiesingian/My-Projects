@@ -1,5 +1,5 @@
 import { test, expect, type Page } from "@playwright/test";
-import { tidyUpAfter } from "./support/qa-household";
+import { tidyUpAfter, restAsQa } from "./support/qa-household";
 
 /** The forms that add things, driven the way a person drives them.
  *
@@ -122,6 +122,48 @@ test.describe("adding things", () => {
     await leftTheForm(page, "/wealth/assets/new");
     await page.goto("/wealth?seg=assets", { waitUntil: "networkidle" });
     await expect(page.locator("body")).toContainText(name);
+  });
+
+  /** Archiving is the only way to remove an account -- there's no undo in
+   * the UI, so the row has to actually be gone from the list, not just say
+   * so, and the account's own past transactions (which archiving must not
+   * touch) are exactly what would make a body-text check here a false
+   * pass: the name legitimately stays in Recent Activity afterwards.
+   *
+   * accounts isn't one of the tables tidyUpAfter sweeps -- archiving only
+   * flips is_archived, it never deletes -- so this test removes its own row
+   * for real afterwards, the same "delete it, then look again" discipline
+   * tidyUpAfter uses, rather than leaving an archived-but-permanent row
+   * behind for every future run to wade through. */
+  test("an account can be added, then archived", async ({ page }) => {
+    const name = `${RUN} test wallet`;
+    await page.goto("/wealth?seg=accounts", { waitUntil: "networkidle" });
+    await page.getByRole("button", { name: "+ ADD ACCOUNT" }).click();
+    await fill(page, "name", name);
+    await submit(page);
+    await page.waitForTimeout(1000);
+
+    await page.goto("/wealth?seg=accounts", { waitUntil: "networkidle" });
+    const accountLinks = () => page.locator('a[href^="/wealth/accounts/"]');
+    const row = accountLinks().filter({ hasText: name });
+    await expect(row).toHaveCount(1);
+    const href = await row.getAttribute("href");
+    const accountId = href?.split("/").pop();
+
+    page.once("dialog", (dialog) => dialog.accept());
+    await row.getByRole("button", { name: "ARCHIVE" }).click();
+    await page.waitForTimeout(1000);
+
+    await page.goto("/wealth?seg=accounts", { waitUntil: "networkidle" });
+    await expect(accountLinks().filter({ hasText: name })).toHaveCount(0);
+
+    const rest = await restAsQa();
+    if (rest && accountId) {
+      await rest.ctx.delete(`${rest.url}/rest/v1/accounts?id=eq.${accountId}`, { headers: rest.headers });
+      const left = await rest.ctx.get(`${rest.url}/rest/v1/accounts?id=eq.${accountId}&select=id`, { headers: rest.headers });
+      expect(await left.json(), "the archived test account is still in the throwaway household").toEqual([]);
+      await rest.ctx.dispose();
+    }
   });
 
   test("a meal can be planned and comes back", async ({ page }) => {
