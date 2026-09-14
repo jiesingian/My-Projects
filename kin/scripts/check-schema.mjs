@@ -107,6 +107,64 @@ const NOT_A_SCHEMA_PROBLEM = new Set(["42501"]);
  * kin/migrations. It was not, and they would have found nothing there. */
 const CANNOT_CHECK = new Set(["PGRST301", "PGRST302", "PGRST303", "401", "403", "500", "502", "503", "504"]);
 
+/** What this pull request's own new migrations would create.
+ *
+ * THE DEADLOCK THIS EXISTS TO BREAK
+ * ---------------------------------
+ * A pull request that adds a table declares it in database.types.ts and adds
+ * the migration that creates it. Neither database has that table yet: dev
+ * applies migrations when the pull request MERGES, and production when
+ * Jonathan presses the button, which refuses to run from anywhere but main.
+ * So the check fails, so it cannot merge, so the migration never runs, so the
+ * check keeps failing. Janine's #60 sat in exactly that loop for three days
+ * and every future table would have joined it.
+ *
+ * WHAT IT MUST NOT BREAK
+ * ----------------------
+ * "Merged but never run" -- the failure this whole file exists for, which
+ * broke Settings and Add account in front of a person on 9 September. So the
+ * exemption is deliberately narrow: it applies ONLY to migration files this
+ * pull request itself adds, which schema-check.yml computes with
+ * `git diff origin/main...HEAD` and passes in NEW_MIGRATION_FILES. On main
+ * that list is empty and nothing is exempt -- a migration sitting on main
+ * unapplied still fails, loudly, exactly as before.
+ *
+ * A type with no migration anywhere still fails too, on a pull request as
+ * much as on main. That is real drift and nothing here forgives it.
+ */
+function whatThisBranchWouldCreate() {
+  const files = (process.env.NEW_MIGRATION_FILES ?? "").split("\n").map((f) => f.trim()).filter(Boolean);
+  const tables = new Set();
+  const columns = new Set();
+  for (const rel of files) {
+    const full = path.join(here, "..", "..", rel);
+    let sql;
+    try { sql = fs.readFileSync(full, "utf8"); } catch { continue; }
+    const bare = sql.split("\n").filter((l) => !l.trim().startsWith("--")).join("\n");
+    for (const m of bare.matchAll(/create\s+table\s+(?:if\s+not\s+exists\s+)?(?:public\.)?"?(\w+)"?/gi)) {
+      tables.add(m[1]);
+    }
+    for (const m of bare.matchAll(/alter\s+table\s+(?:only\s+)?(?:public\.)?"?(\w+)"?[\s\S]*?add\s+column\s+(?:if\s+not\s+exists\s+)?"?(\w+)"?/gi)) {
+      columns.add(`${m[1]}.${m[2]}`);
+    }
+  }
+  return { files, tables, columns };
+}
+
+const BRANCH_ADDS = whatThisBranchWouldCreate();
+
+/** Is this miss explained by a migration this pull request is adding? */
+function isPendingOnThisBranch(table, code, message) {
+  if (BRANCH_ADDS.files.length === 0) return false;
+  if (code === "PGRST205") return BRANCH_ADDS.tables.has(table);
+  if (code === "42703") {
+    // PostgREST says: column assets.updated_at does not exist
+    const col = /column\s+\w+\.(\w+)\s+does not exist/i.exec(message)?.[1];
+    return col ? BRANCH_ADDS.columns.has(`${table}.${col}`) : false;
+  }
+  return false;
+}
+
 /** How many times a probe is worth repeating before its answer counts.
  *
  * PGRST303 "JWT issued at future" is clock skew between the auth server that
@@ -180,6 +238,7 @@ async function checkOne(label, url, key, email, password, tables) {
   }
   headers = { apikey: key, Authorization: `Bearer ${(await auth.json()).access_token}` };
   const problems = [];
+  const pending = [];
   const unreachable = [];
   const unchecked = [];
   const retried = [];
@@ -198,6 +257,10 @@ async function checkOne(label, url, key, email, password, tables) {
       }
       if (NOT_A_SCHEMA_PROBLEM.has(r.code)) { unreachable.push(table); return; }
       if (CANNOT_CHECK.has(r.code)) { unchecked.push({ table, code: r.code, message: r.message }); return; }
+      if (isPendingOnThisBranch(table, r.code, r.message)) {
+        pending.push({ table, code: r.code, message: r.message });
+        return;
+      }
       problems.push({ table, code: r.code, message: r.message });
     }),
   );
@@ -233,6 +296,21 @@ async function checkOne(label, url, key, email, password, tables) {
   if (checked === 0) {
     console.error(`${label}: checked ZERO tables. That is not a pass — something refused every probe.`);
     return "unchecked";
+  }
+
+  // Said out loud every time. This is an exemption, and an exemption nobody
+  // can see is how a check quietly stops being one.
+  if (pending.length > 0) {
+    console.log(
+      `${label}: ${pending.length} not there YET, because this branch adds the migration that creates them:`,
+    );
+    for (const p of pending.sort((a, b) => a.table.localeCompare(b.table))) {
+      console.log(`    ${p.table} — ${p.code}`);
+    }
+    console.log(
+      `${label}: dev gets these when this merges; production when the Migrate workflow is run.` +
+        `\n${label}: a migration already on main and still unapplied is NOT exempt and still fails.`,
+    );
   }
 
   if (problems.length === 0) {
