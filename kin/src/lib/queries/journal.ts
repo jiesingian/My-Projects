@@ -93,6 +93,24 @@ export async function getGallery(familyId: string) {
   }));
 }
 
+/** Has this household's Drive connection died?
+ *
+ * Read as its own question rather than inferred, and deliberately strict:
+ * `=== false` means the row exists and says disconnected. A missing row (never
+ * connected) and an unreadable one (a policy refusing the select) both answer
+ * "no", because neither is evidence of a connection that has broken -- and a
+ * household that never linked Drive must not be told to reconnect it.
+ */
+export async function driveIsDisconnected(familyId: string): Promise<boolean> {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("drive_links")
+    .select("connected")
+    .eq("family_id", familyId)
+    .maybeSingle();
+  return data?.connected === false;
+}
+
 export async function getEntries(familyId: string) {
   const supabase = await createClient();
   const { data } = await supabase
@@ -124,6 +142,11 @@ export async function getEntries(familyId: string) {
         return media.storage_path ? urls[media.storage_path] ?? null : null;
       })
       .filter((v): v is string => !!v),
+    // photoUrls flattens to strings, which loses where each photo came from --
+    // and the Entries pane needs to know, to say why they are not loading.
+    hasDriveMedia: (e.journal_entry_media ?? []).some(
+      (m) => (m.journal_media as unknown as MediaRef | null)?.storage_provider === "google_drive",
+    ),
   }));
 }
 
