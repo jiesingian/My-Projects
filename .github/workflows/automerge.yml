@@ -207,7 +207,33 @@ jobs:
             # Everything else that reported must also be green. The required
             # list above is the floor, not the ceiling: Vercel, Triage and
             # anything added later still count.
-            gh api "repos/$REPO/commits/$SHA/check-runs?per_page=100" > /tmp/checks.json
+            gh api "repos/$REPO/commits/$SHA/check-runs?per_page=100" > /tmp/checks.raw.json
+
+            # Drop this job's own check run before counting.
+            #
+            # On the ordinary paths -- workflow_run and the cron sweep -- this
+            # job runs against main, so it posts its check run on main's head
+            # and never appears on a pull request commit. Dispatched against
+            # the pull request's own branch it does, and then it counts itself
+            # as the one thing still pending and refuses, every time, forever.
+            #
+            # That matters because dispatching this workflow is exactly what
+            # the comment at the top of the file tells you to do when a pull
+            # request is sitting green and unmerged. Following that advice
+            # against the branch could not have worked.
+            #
+            # Matched on the run id in the URL, so it excludes this run and
+            # nothing else -- not an earlier attempt, not another workflow
+            # that happens to have a job called "merge".
+            jq --arg run "${GITHUB_RUN_ID}" \
+              '.check_runs |= map(select(((.details_url // "") | contains("/actions/runs/" + $run + "/")) | not))' \
+              /tmp/checks.raw.json > /tmp/checks.json
+
+            SELF=$(( $(jq '.check_runs | length' /tmp/checks.raw.json) - $(jq '.check_runs | length' /tmp/checks.json) ))
+            if [ "$SELF" -ne 0 ]; then
+              echo "PR #$PR — ignoring $SELF check run(s) posted by this job itself."
+            fi
+
             PENDING=$(jq '[.check_runs[] | select(.status != "completed")] | length' /tmp/checks.json)
             FAILED=$(jq '[.check_runs[]
                           | select(.status == "completed")
