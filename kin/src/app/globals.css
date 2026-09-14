@@ -1295,9 +1295,10 @@ textarea.input {
 }
 
 .kin-treeconnector {
-  width: 1px;
-  height: 14px;
-  background: var(--color-divider);
+  width: 3px;
+  height: 20px;
+  background: var(--color-neutral-600);
+  border-radius: 2px;
   margin: 0 auto;
 }
 
