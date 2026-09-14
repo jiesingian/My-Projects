@@ -32,7 +32,20 @@ permissions:
 # any row, so it cannot disturb the end-to-end suite -- but two of these racing
 # each other would just be two identical answers.
 concurrency:
-  group: schema-check
+  # Per branch, not global. It was `schema-check` flat, which meant every open
+  # pull request shared one slot and each new run CANCELLED the one already
+  # going -- on a different pull request entirely.
+  #
+  # That was survivable while a cancelled check was merely a gap. It stopped
+  # being survivable when auto-merge began requiring this check to have RUN
+  # and passed: a pull request whose check was cancelled by somebody else's
+  # now waits forever, with nothing red to explain why. Re-running #59 and #61
+  # together on 14 September did exactly that -- #61 cancelled #59 at the same
+  # second, and #59 went back to waiting.
+  #
+  # Still cancel-in-progress within a branch, which is the case it was for:
+  # two pushes in quick succession, where only the newer answer matters.
+  group: schema-check-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
@@ -40,9 +53,44 @@ jobs:
     name: the database has what the code expects
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
+        with:
+          # Enough history to ask what this branch adds that main does not.
+          fetch-depth: 0
 
-      - uses: actions/setup-node@v4
+      # A pull request that adds a table declares it in database.types.ts and
+      # adds the migration that creates it -- and neither database has it yet,
+      # because dev applies migrations on merge and production on the button.
+      # Without this the check fails, so it cannot merge, so the migration
+      # never runs, so it keeps failing. #60 sat in that loop for three days.
+      #
+      # So the script is told which migration files are NEW ON THIS BRANCH, and
+      # exempts only what those create. On main this is empty, so a migration
+      # merged and left unrun still fails -- which is the failure this whole
+      # check exists for, and the one thing that must not be softened.
+      - name: What does this branch add that main does not
+        id: added
+        run: |
+          set -euo pipefail
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            git fetch --no-tags --depth=0 origin "${{ github.base_ref }}" >/dev/null 2>&1 || true
+            FILES=$(git diff --name-only --diff-filter=A \
+              "origin/${{ github.base_ref }}...HEAD" -- 'kin/supabase/migrations/*.sql' || true)
+          else
+            FILES=""
+          fi
+          if [ -n "$FILES" ]; then
+            echo "Migrations added by this branch:"; echo "$FILES"
+          else
+            echo "No migrations added by this branch — nothing is exempt."
+          fi
+          {
+            echo "files<<EOF"
+            echo "$FILES"
+            echo "EOF"
+          } >> "$GITHUB_OUTPUT"
+
+      - uses: actions/setup-node@v5
         with:
           node-version: "22"
 
@@ -86,6 +134,8 @@ jobs:
           NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
           E2E_EMAIL: ${{ secrets.E2E_EMAIL }}
           E2E_PASSWORD: ${{ secrets.E2E_PASSWORD }}
+          # Empty on main, so nothing is exempt there. See the step above.
+          NEW_MIGRATION_FILES: ${{ steps.added.outputs.files }}
           # Production: where the family's records live. Read-only -- the probe
           # is select ... limit=0, which returns no row -- and it signs in as
           # the throwaway QA household there, never a real account.
