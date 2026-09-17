@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { removeMemberAction, reinstateMemberAction } from "@/lib/actions/family";
 import { confirm } from "@/components/confirm-sheet";
+import { toast } from "@/components/toast";
 
 export function RemoveMemberButton({ memberId, fullName, variant = "inline" }: { memberId: string; fullName: string; variant?: "inline" | "block" }) {
   const [busy, setBusy] = useState(false);
@@ -35,7 +36,7 @@ export function RemoveMemberButton({ memberId, fullName, variant = "inline" }: {
         const result = await removeMemberAction(memberId);
         setBusy(false);
         if (result.error) {
-          window.alert(result.error);
+          toast.error(result.error);
           return;
         }
         router.refresh();
@@ -61,7 +62,7 @@ export function ReinstateMemberButton({ memberId }: { memberId: string }) {
         const result = await reinstateMemberAction(memberId);
         setBusy(false);
         if (result.error) {
-          window.alert(result.error);
+          toast.error(result.error);
           return;
         }
         router.refresh();

@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Icon } from "@/components/icons";
 import { confirm } from "@/components/confirm-sheet";
+import { toast } from "@/components/toast";
 
 export function DeleteButton({
   onDelete,
@@ -38,7 +39,7 @@ export function DeleteButton({
           ) {
             window.open(result.driveFolderLink, "_blank", "noopener,noreferrer");
           } else if (!result.driveFolderLink) {
-            window.alert(result.error);
+            toast.error(result.error);
           }
           return;
         }

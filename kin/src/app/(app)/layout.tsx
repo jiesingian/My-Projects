@@ -4,6 +4,7 @@ import { readAccess } from "@/lib/access";
 import { TabBar } from "@/components/tab-bar";
 import { AssistantFab } from "@/components/assistant-fab";
 import { ConfirmSheetHost } from "@/components/confirm-sheet";
+import { Toaster } from "@/components/toast";
 import { getChatUnread } from "@/lib/queries/chat";
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
@@ -29,6 +30,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       <AssistantFab memberName={member.full_name.split(" ")[0]} />
       <TabBar chatUnread={unread.count} chatMentioned={unread.mentioned} />
       <ConfirmSheetHost />
+      <Toaster />
     </div>
   );
 }
