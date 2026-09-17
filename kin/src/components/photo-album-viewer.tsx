@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { confirm } from "@/components/confirm-sheet";
 
 export type AlbumPhotoLike = { id: string; url: string };
 
@@ -110,7 +111,7 @@ export function PhotoAlbumViewer({
               style={{ minHeight: 40, fontSize: 13.5, padding: "0 14px", color: "var(--color-accent-700)", borderColor: "var(--color-accent-700)" }}
               disabled={busy}
               onClick={async () => {
-                if (!window.confirm("Delete this photo? This can't be undone.")) return;
+                if (!(await confirm({ title: "Delete this photo?", description: "This can't be undone.", confirmLabel: "Delete", danger: true }))) return;
                 setBusy(true);
                 setError(null);
                 const result = await onDelete(current.id);

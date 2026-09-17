@@ -12,6 +12,7 @@ import {
   type TreeLinkFields,
 } from "@/lib/actions/family";
 import type { TreePerson } from "@/lib/queries/family";
+import { confirm } from "@/components/confirm-sheet";
 
 type MemberOption = { id: string; full_name: string };
 
@@ -178,7 +179,7 @@ export function FamilyTreeEditor({ people, unaddedMembers }: { people: TreePerso
   }
 
   async function remove(p: TreePerson) {
-    if (!window.confirm(`Remove ${p.fullName} from the tree? This can't be undone.`)) return;
+    if (!(await confirm({ title: `Remove ${p.fullName} from the tree?`, description: "This can't be undone.", confirmLabel: "Remove", danger: true }))) return;
     await removeTreePersonAction(p.id);
     router.refresh();
   }

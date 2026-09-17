@@ -150,8 +150,9 @@ test.describe("adding things", () => {
     const href = await row.getAttribute("href");
     const accountId = href?.split("/").pop();
 
-    page.once("dialog", (dialog) => dialog.accept());
     await row.getByRole("button", { name: "ARCHIVE" }).click();
+    // Confirmation is the shared ConfirmSheet now, not a native dialog.
+    await page.getByRole("alertdialog").getByRole("button", { name: /archive/i }).click();
     await page.waitForTimeout(1000);
 
     await page.goto("/wealth?seg=accounts", { waitUntil: "networkidle" });

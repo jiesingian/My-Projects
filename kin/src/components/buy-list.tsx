@@ -12,6 +12,7 @@ import { Blueprint, Tag } from "@/components/ui";
 import { Icon } from "@/components/icons";
 import { ShoppingDayControl } from "@/components/shopping-day";
 import { formatCurrency } from "@/lib/format";
+import { confirm } from "@/components/confirm-sheet";
 import type { PickableAccount } from "@/components/money-actions";
 import type { Tables } from "@/lib/database.types";
 
@@ -430,8 +431,8 @@ function EditItemRow({ item, onClose }: { item: Tables<"buy_items">; onClose: ()
           className="btn btn-secondary"
           disabled={pending}
           style={{ minHeight: 40, fontSize: 13, paddingInline: 12, color: "var(--color-accent-700)", borderColor: "var(--color-accent-700)" }}
-          onClick={() => {
-            if (!window.confirm(`Remove "${item.name}" from the list?`)) return;
+          onClick={async () => {
+            if (!(await confirm(`Remove "${item.name}" from the list?`))) return;
             startTransition(async () => {
               await removeBuyItemAction(item.id);
               onClose();

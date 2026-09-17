@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { convertToManagedChildAction } from "@/lib/actions/family";
+import { confirm } from "@/components/confirm-sheet";
 
 /** Turns a member who has a login back into a managed child profile.
  *
@@ -19,12 +20,13 @@ export function ConvertToChild({ memberId, fullName }: { memberId: string; fullN
   const router = useRouter();
 
   async function run() {
-    const ok = window.confirm(
-      `Turn ${fullName} into a managed child profile?\n\n` +
-        `They will no longer be able to sign in, and their account will be removed.\n\n` +
-        `Everything about them stays: their profile, their photos, the activities they are tagged in, and every health record. A parent keeps writing it for them.\n\n` +
-        `This cannot be undone from here — they would have to sign up again.`,
-    );
+    const ok = await confirm({
+      title: `Turn ${fullName} into a managed child profile?`,
+      description:
+        "They will no longer be able to sign in, and their account will be removed. Everything about them stays: their profile, their photos, the activities they are tagged in, and every health record. A parent keeps writing it for them. This cannot be undone from here — they would have to sign up again.",
+      confirmLabel: "Convert",
+      danger: true,
+    });
     if (!ok) return;
 
     setBusy(true);

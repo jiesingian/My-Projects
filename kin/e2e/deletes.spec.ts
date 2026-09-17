@@ -97,6 +97,10 @@ test.describe("removing things", () => {
     const remove = card.getByRole("button", { name: /delete|remove/i }).first();
     await expect(remove, "no way to delete a goal from the UI").toBeVisible();
     await remove.click();
+
+    // Confirmation is the shared ConfirmSheet now, not a native dialog --
+    // no dialog event fires for it, so it needs its own confirm tap.
+    await page.getByRole("alertdialog").getByRole("button", { name: /remove/i }).click();
     await page.waitForTimeout(3000);
 
     await page.goto("/wealth?seg=assets", { waitUntil: "networkidle" });

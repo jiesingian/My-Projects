@@ -3,6 +3,8 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { approveMemberAction, rejectMemberAction, type MemberRole } from "@/lib/actions/family";
+import { confirm } from "@/components/confirm-sheet";
+import { toast } from "@/components/toast";
 
 /** Approving somebody is also the moment to say what they are joining as.
  *
@@ -21,12 +23,12 @@ export function PendingMemberActions({ memberId, fullName }: { memberId: string;
   const router = useRouter();
 
   async function run(action: "approve" | "reject") {
-    if (action === "reject" && !window.confirm(`Reject ${fullName}'s request to join? They'll need a new invite code to try again.`)) return;
+    if (action === "reject" && !(await confirm(`Reject ${fullName}'s request to join? They'll need a new invite code to try again.`))) return;
     setBusy(action);
     const result = action === "approve" ? await approveMemberAction(memberId, role) : await rejectMemberAction(memberId);
     setBusy(null);
     if (result.error) {
-      window.alert(result.error);
+      toast.error(result.error);
       return;
     }
     router.refresh();

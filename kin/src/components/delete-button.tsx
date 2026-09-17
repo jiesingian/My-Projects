@@ -3,6 +3,8 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Icon } from "@/components/icons";
+import { confirm } from "@/components/confirm-sheet";
+import { toast } from "@/components/toast";
 
 export function DeleteButton({
   onDelete,
@@ -26,15 +28,18 @@ export function DeleteButton({
       onClick={async (e) => {
         e.stopPropagation();
         e.preventDefault();
-        if (!window.confirm(confirmText)) return;
+        if (!(await confirm({ title: confirmText, confirmLabel: "Delete", danger: true }))) return;
         setBusy(true);
         const result = await onDelete();
         setBusy(false);
         if (result?.error) {
-          if (result.driveFolderLink && window.confirm(`${result.error}\n\nOpen its Drive folder now? Click the file there, then use Drive's own delete icon.`)) {
+          if (
+            result.driveFolderLink &&
+            (await confirm({ title: result.error, description: "Open its Drive folder now? Click the file there, then use Drive's own delete icon.", confirmLabel: "Open Drive" }))
+          ) {
             window.open(result.driveFolderLink, "_blank", "noopener,noreferrer");
           } else if (!result.driveFolderLink) {
-            window.alert(result.error);
+            toast.error(result.error);
           }
           return;
         }
