@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { transferOrganiserRoleAction } from "@/lib/actions/profile";
+import { confirm } from "@/components/confirm-sheet";
 
 export function TransferOrganizerRole({ candidates }: { candidates: { id: string; full_name: string }[] }) {
   const [selected, setSelected] = useState(candidates[0]?.id ?? "");
@@ -32,7 +33,7 @@ export function TransferOrganizerRole({ candidates }: { candidates: { id: string
           disabled={busy}
           onClick={async () => {
             const name = candidates.find((c) => c.id === selected)?.full_name ?? "this member";
-            if (!window.confirm(`Make ${name} the organizer? You'll no longer have organizer access yourself.`)) return;
+            if (!(await confirm(`Make ${name} the organizer? You'll no longer have organizer access yourself.`))) return;
             setBusy(true);
             const result = await transferOrganiserRoleAction(selected);
             setBusy(false);

@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { GalleryTile } from "@/components/gallery-tile";
 import { deleteJournalMediaAction } from "@/lib/actions/journal";
+import { confirm } from "@/components/confirm-sheet";
 
 type MediaItem = {
   id: string;
@@ -39,7 +40,7 @@ export function GalleryGrid({ media }: { media: MediaItem[] }) {
 
   async function deleteSelected() {
     if (selected.size === 0) return;
-    if (!window.confirm(`Delete ${selected.size} item${selected.size > 1 ? "s" : ""}? This can't be undone.`)) return;
+    if (!(await confirm({ title: `Delete ${selected.size} item${selected.size > 1 ? "s" : ""}?`, description: "This can't be undone.", confirmLabel: "Delete", danger: true }))) return;
 
     setBusy(true);
     const newFailures: Failure[] = [];

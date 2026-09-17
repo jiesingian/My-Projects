@@ -19,6 +19,7 @@ import { DetailHeader } from "@/components/hub-header";
 import type { Tables } from "@/lib/database.types";
 import { familyClock, familyDay } from "@/lib/time";
 import { DateInput } from "@/components/date-input";
+import { confirm } from "@/components/confirm-sheet";
 
 const initialState: ActionState = { error: null };
 const TYPES = ["activity", "event", "trip"] as const;
@@ -143,7 +144,7 @@ function ActivityForm({ members, defaultDate, editActivity }: { members: Tables<
           disabled={deleting}
           style={{ minHeight: 44, fontSize: 13, marginTop: 10, color: "var(--color-accent-700)", borderColor: "var(--color-accent-700)" }}
           onClick={async () => {
-            if (!window.confirm("Delete this activity? This can't be undone.")) return;
+            if (!(await confirm({ title: "Delete this activity?", description: "This can't be undone.", confirmLabel: "Delete", danger: true }))) return;
             setDeleting(true);
             await deleteActivityAction(editActivity.id);
             router.push("/planner?seg=calendar");
@@ -255,7 +256,7 @@ function EventForm({
           disabled={deleting}
           style={{ minHeight: 44, fontSize: 13, marginTop: 10, color: "var(--color-accent-700)", borderColor: "var(--color-accent-700)" }}
           onClick={async () => {
-            if (!window.confirm("Delete this event? This can't be undone.")) return;
+            if (!(await confirm({ title: "Delete this event?", description: "This can't be undone.", confirmLabel: "Delete", danger: true }))) return;
             setDeleting(true);
             await deleteEventAction(editEvent.id);
             router.push("/planner?seg=events");
@@ -318,7 +319,7 @@ function TripForm({
           disabled={deleting}
           style={{ minHeight: 44, fontSize: 13, marginTop: 10, color: "var(--color-accent-700)", borderColor: "var(--color-accent-700)" }}
           onClick={async () => {
-            if (!window.confirm("Delete this trip? This can't be undone.")) return;
+            if (!(await confirm({ title: "Delete this trip?", description: "This can't be undone.", confirmLabel: "Delete", danger: true }))) return;
             setDeleting(true);
             await deleteTripAction(editTrip.id);
             router.push("/planner?seg=travel");

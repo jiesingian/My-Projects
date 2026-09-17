@@ -3,6 +3,7 @@
 import { createContext, useContext, useState, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import { deleteDocFileAction } from "@/lib/actions/documents";
+import { confirm } from "@/components/confirm-sheet";
 
 type Failure = { id: string; fileName: string; driveFolderLink: string | null };
 
@@ -46,7 +47,7 @@ export function DocSelectionProvider({ folderId, children }: { folderId: string;
 
   async function deleteSelected() {
     if (selected.size === 0) return;
-    if (!window.confirm(`Delete ${selected.size} file${selected.size > 1 ? "s" : ""}? This can't be undone.`)) return;
+    if (!(await confirm({ title: `Delete ${selected.size} file${selected.size > 1 ? "s" : ""}?`, description: "This can't be undone.", confirmLabel: "Delete", danger: true }))) return;
 
     setBusy(true);
     const newFailures: Failure[] = [];

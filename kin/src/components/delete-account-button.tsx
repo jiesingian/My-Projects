@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { deleteOwnAccountAction } from "@/lib/actions/profile";
+import { confirm } from "@/components/confirm-sheet";
 
 export function DeleteAccountButton({ isSoleMember }: { isSoleMember: boolean }) {
   const [error, setError] = useState<string | null>(null);
@@ -16,9 +17,9 @@ export function DeleteAccountButton({ isSoleMember }: { isSoleMember: boolean })
         disabled={busy}
         onClick={async () => {
           const warning = isSoleMember
-            ? "You're the only member — deleting your account will also delete the household and everything in it. This can't be undone. Continue?"
-            : "Delete your account? You'll be removed from the household and signed out permanently. This can't be undone. Continue?";
-          if (!window.confirm(warning)) return;
+            ? "You're the only member — deleting your account will also delete the household and everything in it. This can't be undone."
+            : "Delete your account? You'll be removed from the household and signed out permanently. This can't be undone.";
+          if (!(await confirm({ title: "Delete your account?", description: warning, confirmLabel: "Delete", danger: true }))) return;
           setBusy(true);
           const result = await deleteOwnAccountAction();
           setBusy(false);

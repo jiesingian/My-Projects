@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { removeMemberAction, reinstateMemberAction } from "@/lib/actions/family";
+import { confirm } from "@/components/confirm-sheet";
 
 export function RemoveMemberButton({ memberId, fullName, variant = "inline" }: { memberId: string; fullName: string; variant?: "inline" | "block" }) {
   const [busy, setBusy] = useState(false);
@@ -21,7 +22,15 @@ export function RemoveMemberButton({ memberId, fullName, variant = "inline" }: {
       onClick={async (e) => {
         e.preventDefault();
         e.stopPropagation();
-        if (!window.confirm(`Remove ${fullName} from the household? They'll lose access immediately — their past journal entries and records stay, and you can reinstate them later.`)) return;
+        if (
+          !(await confirm({
+            title: `Remove ${fullName} from the household?`,
+            description: "They'll lose access immediately — their past journal entries and records stay, and you can reinstate them later.",
+            confirmLabel: "Remove",
+            danger: true,
+          }))
+        )
+          return;
         setBusy(true);
         const result = await removeMemberAction(memberId);
         setBusy(false);

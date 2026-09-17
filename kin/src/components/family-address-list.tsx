@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { addFamilyAddressAction, updateFamilyAddressAction, removeFamilyAddressAction, type FamilyAddressFields } from "@/lib/actions/family";
+import { confirm } from "@/components/confirm-sheet";
 
 export type FamilyAddress = {
   id: string;
@@ -168,7 +169,7 @@ export function FamilyAddressList({ addresses, canEdit }: { addresses: FamilyAdd
   }
 
   async function remove(id: string) {
-    if (!window.confirm("Remove this address?")) return;
+    if (!(await confirm({ title: "Remove this address?", danger: true }))) return;
     await removeFamilyAddressAction(id);
     router.refresh();
   }

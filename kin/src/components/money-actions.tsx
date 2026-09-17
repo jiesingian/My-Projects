@@ -21,6 +21,7 @@ import {
 } from "@/lib/actions/wealth";
 import { formatCurrency } from "@/lib/format";
 import { Icon } from "@/components/icons";
+import { confirm } from "@/components/confirm-sheet";
 
 export type PickableAccount = {
   id: string;
@@ -350,8 +351,8 @@ export function DeleteEntryButton({ transactionId }: { transactionId: string }) 
       className="btn btn-secondary"
       disabled={pending}
       style={{ minHeight: 30, fontSize: 12.5, padding: "0 9px" }}
-      onClick={() => {
-        if (!window.confirm("Remove this entry? Balances will be recalculated without it.")) return;
+      onClick={async () => {
+        if (!(await confirm({ title: "Remove this entry?", description: "Balances will be recalculated without it.", confirmLabel: "Remove", danger: true }))) return;
         run(() => deleteTransactionAction(transactionId));
       }}
     >
@@ -408,14 +409,14 @@ export function RemoveButton({ id, kind, label }: { id: string; kind: keyof type
       className="btn btn-secondary"
       disabled={pending}
       style={{ minHeight: 30, fontSize: 12.5, padding: "0 9px", color: "var(--color-accent-700)", borderColor: "var(--color-accent-700)" }}
-      onClick={(e) => {
+      onClick={async (e) => {
         // A no-op everywhere this isn't inside a link (every kind but
         // account, today) -- but the account row on the Accounts tab is a
         // link to that account's own page, and this is not part of
         // following it.
         e.preventDefault();
         e.stopPropagation();
-        if (!window.confirm(`${label}?`)) return;
+        if (!(await confirm({ title: `${label}?`, confirmLabel: kind === "account" ? "Archive" : "Remove", danger: true }))) return;
         run(() => DELETERS[kind](id));
       }}
     >
