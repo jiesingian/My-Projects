@@ -1,6 +1,7 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react";
+import { useCallback, useRef, useState, useSyncExternalStore } from "react";
+import { AnimatedSheet } from "@/components/animated-sheet";
 
 type ConfirmOptions = {
   title: string;
@@ -55,63 +56,31 @@ export function confirm(options: string | ConfirmOptions): Promise<boolean> {
 /** Mounted once, at the app shell. Owns the one confirm sheet the whole app
  * shares.
  *
- * `visible` stays mounted a beat after `request` clears, so the close
- * transition can play -- the gap `sheet.tsx`'s `{open && (...)}` leaves,
- * which is why nothing built on it has ever had an exit animation. It's kept
- * in sync with `request` by comparing during render and adjusting on the
- * spot (React's own pattern for deriving state from a changing value:
- * https://react.dev/reference/react/useState#storing-information-from-previous-renders)
- * rather than an effect, since `request` can go back to null before the
- * close transition should discard `visible`.
- *
- * `open` is only the transition's target, one frame behind on the way in so
- * the panel has a closed position to animate from. */
+ * `visible` needs to outlive `request` by one closing transition, so it's
+ * kept in sync by comparing during render and adjusting on the spot --
+ * React's own pattern for deriving state from a changing value
+ * (https://react.dev/reference/react/useState#storing-information-from-previous-renders)
+ * -- rather than an effect, since `request` can go back to null before the
+ * close transition should discard what's on screen. `<AnimatedSheet>` still
+ * owns the transition itself; this only has to keep describing what to
+ * render while it plays. */
 export function ConfirmSheetHost() {
   const request = useSyncExternalStore(subscribe, getSnapshot, () => null);
-  const [open, setOpen] = useState(false);
   const [visible, setVisible] = useState<ConfirmRequest | null>(null);
   const [trackedRequest, setTrackedRequest] = useState<ConfirmRequest | null>(null);
-  const restoreFocus = useRef<HTMLElement | null>(null);
-  const cancelRef = useRef<HTMLButtonElement>(null);
 
   if (request !== trackedRequest) {
     setTrackedRequest(request);
     if (request) setVisible(request);
   }
 
-  const answer = useCallback((value: boolean) => {
+  const cancelRef = useRef<HTMLButtonElement>(null);
+
+  const close = useCallback((value: boolean) => {
     current?.resolve(value);
     current = null;
-    setOpen(false);
-    restoreFocus.current?.focus();
+    notify();
   }, []);
-
-  useEffect(() => {
-    if (!request) return;
-    restoreFocus.current = document.activeElement as HTMLElement | null;
-    // Mount closed, then open on the next frame -- the same trick every
-    // CSS-transition entrance in this file needs, since there is no
-    // @starting-style equivalent for an element that was already in the DOM.
-    const raf = requestAnimationFrame(() => setOpen(true));
-    return () => cancelAnimationFrame(raf);
-  }, [request]);
-
-  useEffect(() => {
-    if (open) cancelRef.current?.focus();
-  }, [open]);
-
-  useEffect(() => {
-    if (!visible) return;
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") answer(false);
-    };
-    window.addEventListener("keydown", onKey);
-    document.body.style.overflow = "hidden";
-    return () => {
-      window.removeEventListener("keydown", onKey);
-      document.body.style.overflow = "";
-    };
-  }, [visible, answer]);
 
   if (!visible) return null;
 
@@ -119,47 +88,36 @@ export function ConfirmSheetHost() {
   const descId = "confirm-sheet-description";
 
   return (
-    <div
-      className="confirm-backdrop"
-      data-open={open}
-      onClick={() => answer(false)}
-      style={{ position: "fixed", inset: 0, zIndex: 70, display: "flex", alignItems: "flex-end", justifyContent: "center" }}
+    <AnimatedSheet
+      open={!!request}
+      onClose={() => close(false)}
+      role="alertdialog"
+      labelledBy={titleId}
+      describedBy={visible.description ? descId : undefined}
+      panelClassName="sheet-panel--confirm"
     >
-      <div
-        role="alertdialog"
-        aria-modal="true"
-        aria-labelledby={titleId}
-        aria-describedby={visible.description ? descId : undefined}
-        onClick={(e) => e.stopPropagation()}
-        onTransitionEnd={(e) => {
-          if (e.target === e.currentTarget && !open) setVisible(null);
-        }}
-        className="confirm-panel kin-glass-bar"
-        data-open={open}
-      >
-        <div className="confirm-grabber" />
-        <p id={titleId} className="confirm-title">
-          {visible.title}
+      <div className="confirm-grabber" />
+      <p id={titleId} className="confirm-title">
+        {visible.title}
+      </p>
+      {visible.description && (
+        <p id={descId} className="confirm-description">
+          {visible.description}
         </p>
-        {visible.description && (
-          <p id={descId} className="confirm-description">
-            {visible.description}
-          </p>
-        )}
-        <div className="confirm-actions">
-          <button ref={cancelRef} type="button" className="btn btn-secondary btn-block" onClick={() => answer(false)}>
-            {visible.cancelLabel ?? "Cancel"}
-          </button>
-          <button
-            type="button"
-            className="btn btn-primary btn-block"
-            style={visible.danger ? { background: "var(--color-accent-700)", boxShadow: "none" } : undefined}
-            onClick={() => answer(true)}
-          >
-            {visible.confirmLabel ?? "Confirm"}
-          </button>
-        </div>
+      )}
+      <div className="confirm-actions">
+        <button ref={cancelRef} type="button" className="btn btn-secondary btn-block" autoFocus onClick={() => close(false)}>
+          {visible.cancelLabel ?? "Cancel"}
+        </button>
+        <button
+          type="button"
+          className="btn btn-primary btn-block"
+          style={visible.danger ? { background: "var(--color-accent-700)", boxShadow: "none" } : undefined}
+          onClick={() => close(true)}
+        >
+          {visible.confirmLabel ?? "Confirm"}
+        </button>
       </div>
-    </div>
+    </AnimatedSheet>
   );
 }

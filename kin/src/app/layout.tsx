@@ -23,6 +23,12 @@ export const viewport: Viewport = {
   // usual reason to pin it is to stop iOS zooming when an input takes focus,
   // and .input already prevents that the right way -- by never dropping below
   // a 17px font.
+  //
+  // Lets the page draw under the notch and home indicator instead of
+  // letterboxing inside them, so the tab bar and sheets can paint edge to
+  // edge and pad themselves back out with env(safe-area-inset-*) -- which
+  // globals.css already does, but only takes effect with this set.
+  viewportFit: "cover",
   themeColor: [
     { media: "(prefers-color-scheme: light)", color: "#f2f2f7" },
     { media: "(prefers-color-scheme: dark)", color: "#000000" },

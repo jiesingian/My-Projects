@@ -228,6 +228,12 @@
 html,
 body {
   height: 100%;
+  /* Without this, scrolling past the top triggers Android's pull-to-refresh
+     and iOS's whole-page rubber band -- fine on a document, wrong on an app
+     with its own fixed chrome and scroll containers (the calendar rail, the
+     sheets). Those keep their own bounce via overscroll-behavior: contain,
+     which this doesn't touch. */
+  overscroll-behavior: none;
 }
 body {
   margin: 0;
@@ -273,6 +279,26 @@ h6 {
 a {
   color: var(--color-accent);
   text-underline-offset: 3px;
+}
+/* Removes the double-tap-zoom wait on every tap target, and stops a held
+   finger from selecting a button's label or popping iOS's copy/share
+   callout on a link used as a control -- controls only; body text stays
+   selectable, since that's content people copy (an address, an error, an
+   account number). */
+button,
+a,
+[role="button"] {
+  touch-action: manipulation;
+}
+.btn,
+.chip,
+.tag,
+.seg > a,
+.seg > button,
+.kin-tab {
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
 }
 :focus {
   outline: none;
@@ -720,35 +746,64 @@ textarea.input {
   backdrop-filter: var(--glass-blur);
 }
 
-/* — confirm sheet — the animated replacement for window.confirm().
-   Exit is faster than enter throughout, the same asymmetry the rest of the
-   app's presses already use: slow enough on the way in to read as arriving,
-   snappy on the way out because the decision is already made. */
-.confirm-backdrop {
+/* — animated sheet shell — the backdrop + panel every bottom sheet in this
+   app is built from (confirm dialogs, the recipe book, "Ask Kin"), via
+   <AnimatedSheet>. Exit is faster than enter throughout, the same asymmetry
+   the rest of the app's presses already use: slow enough on the way in to
+   read as arriving, snappy on the way out because the decision is already
+   made. Two sizes sit on top of the shared shell -- full for a scrolling
+   content sheet, confirm for a short question -- because they need
+   different geometry, not different motion. */
+.sheet-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
   background: rgba(0, 0, 0, 0.32);
   opacity: 0;
   transition: opacity 0.2s ease;
 }
-.confirm-backdrop[data-open="true"] {
+.sheet-backdrop[data-open="true"] {
   opacity: 1;
 }
-.confirm-panel {
+.sheet-panel {
+  border: 1px solid var(--glass-border);
+  box-shadow: var(--shadow-lg);
+  transition: transform 0.26s cubic-bezier(0.32, 0.72, 0, 1), opacity 0.2s ease;
+}
+.sheet-panel[data-open="true"] {
+  transition: transform 0.2s cubic-bezier(0.32, 0.72, 0, 1), opacity 0.16s ease;
+}
+
+.sheet-panel--full {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  border-top-left-radius: 22px;
+  border-top-right-radius: 22px;
+  border-bottom: 0;
+  transform: translateY(100%);
+}
+.sheet-panel--full[data-open="true"] {
+  transform: translateY(0);
+}
+
+.sheet-panel--confirm {
   width: 100%;
   max-width: 420px;
   margin: 0 16px calc(env(safe-area-inset-bottom, 0px) + 16px);
   padding: 10px 20px calc(env(safe-area-inset-bottom, 0px) + 18px);
   border-radius: 20px;
-  border: 1px solid var(--glass-border);
-  box-shadow: var(--shadow-lg);
   transform: translateY(24px);
   opacity: 0;
-  transition: transform 0.26s cubic-bezier(0.32, 0.72, 0, 1), opacity 0.2s ease;
 }
-.confirm-panel[data-open="true"] {
+.sheet-panel--confirm[data-open="true"] {
   transform: translateY(0);
   opacity: 1;
-  transition: transform 0.2s cubic-bezier(0.32, 0.72, 0, 1), opacity 0.16s ease;
 }
+
 .confirm-grabber {
   width: 36px;
   height: 5px;
@@ -779,8 +834,8 @@ textarea.input {
   flex: 1;
 }
 @media (prefers-reduced-motion: reduce) {
-  .confirm-backdrop,
-  .confirm-panel {
+  .sheet-backdrop,
+  .sheet-panel {
     transition: opacity 0.16s ease;
     transform: none;
   }
