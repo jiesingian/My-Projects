@@ -509,7 +509,7 @@ async function CashFlowPane({ familyId, memberId, currency, range, scope }: { fa
       </div>
       <CashFlowChart history={cf.history} currency={currency} periodNoun={periodNoun} />
 
-      <CollapsibleGroup title="INCOME">
+      <CollapsibleGroup title="INCOME" defaultOpen={false}>
       {!isJoint && (
         <>
           <Meter
@@ -572,7 +572,7 @@ async function CashFlowPane({ familyId, memberId, currency, range, scope }: { fa
       <AddIncomeScheduleForm accounts={bareAccounts} />
       </CollapsibleGroup>
 
-      <CollapsibleGroup title="EXPENSES">
+      <CollapsibleGroup title="EXPENSES" defaultOpen={false}>
       {isJoint && (
         <>
           <Meter label="SPENT OF BUDGET" value={budget.monthExpense} cap={budget.budgetAmount} currency={currency} note="Set the month's ceiling below." />
@@ -731,7 +731,7 @@ async function ScopePane({ scope, familyId, memberId, currency, range }: { scope
         <Empty icon="🏦" title="No accounts yet" line="Add the accounts the household actually uses — a bank, a wallet, the cash in the drawer — and Kin keeps the running balance." />
       )}
       {accountGroups.map((group) => (
-        <CollapsibleGroup key={group.type} title={`${ACCOUNT_TYPE_LABELS[group.type].toUpperCase()} · ${group.accounts.length}`}>
+        <CollapsibleGroup key={group.type} title={`${ACCOUNT_TYPE_LABELS[group.type].toUpperCase()} · ${group.accounts.length}`} defaultOpen={false}>
           {group.accounts.map((a) => (
             <Link
               key={a.id}
@@ -818,7 +818,7 @@ async function AssetsPane({ familyId, memberId, currency, scope }: { familyId: s
         caption={`${formatCurrency(cashTotal, currency)} cash + ${formatCurrency(goalTotal, currency)} in goals + ${formatCurrency(assetTotal, currency)} owned − ${formatCurrency(liabilityTotal, currency)} owed`}
       />
 
-      <CollapsibleGroup title="ASSETS">
+      <CollapsibleGroup title="ASSETS" defaultOpen={false}>
       <SectionLabel>CASH & SAVINGS</SectionLabel>
       {cashAccounts.length === 0 && (
         <Empty icon="🏦" title="No accounts yet" line="Every account you can see shows up here automatically once it exists — add one from the Accounts tab." />
@@ -918,7 +918,7 @@ async function AssetsPane({ familyId, memberId, currency, scope }: { familyId: s
       </Link>
       </CollapsibleGroup>
 
-      <CollapsibleGroup title="LIABILITIES">
+      <CollapsibleGroup title="LIABILITIES" defaultOpen={false}>
       {liabilities.length === 0 && (
         <Empty icon="✅" title="Nothing owed" line="No loans or debts on record. If that changes, adding them here keeps the net worth figure honest." />
       )}
