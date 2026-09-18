@@ -10,8 +10,12 @@ and every Claude session on either machine:
 2. **Open a pull request** when the work is ready. Say what you did in the
    body; it is the record.
 3. **The checks run themselves** — `ci.yml` (typecheck, lint, build),
-   `e2e.yml` (the full suite), `schema-check.yml` (does the database have what
-   the code believes in), `secret-scan.yml`, and Vercel's deployment.
+   `e2e.yml` (a fast, read-only smoke tier — every hub's pages plus the pure
+   function specs; the comprehensive write-heavy suite moved to
+   `weekly-check.yml`, see below, on 18 September so a merge gate would not
+   cost minutes it could not afford), `schema-check.yml` (does the database
+   have what the code believes in), `secret-scan.yml`, and Vercel's
+   deployment.
 4. **`automerge.yml` merges it** once every check is green and there is no
    conflict. Nobody presses a button. A red check or a conflict simply means
    it does not merge.
@@ -46,21 +50,30 @@ Rebase onto `main` before opening, and again if it falls behind:
 `git pull --rebase origin main`. Never force-push `main` itself, for any
 reason.
 
-### One check a day, not constant watching
+### One check a week, not constant watching
 
 Neither person is expected to watch the other's work or follow every push.
-The automatic checks are the gate. The human-facing check is a **single daily
-run of the whole setup, on Jonathan's account** — one result to read, once a
-day, and silent unless something broke.
+The automatic checks are the gate. The human-facing check is a **weekly run
+of the whole setup, on Jonathan's account, in `weekly-check.yml`** — one
+result to read, once a week, and silent unless something broke.
 
-It asks for 17:00 Manila and does not get it. Measured across 11, 12 and
-13 September, it fired between 20:34 and 21:35 Manila — three and a half to
-four and a half hours late, varying by an hour between days. GitHub's
-scheduled workflows are best-effort on shared runners; there is no setting
-that fixes this, and moving the cron earlier only aims at a moving target.
-Expect it some time in the evening. If a dependable hour is ever wanted, it
-has to be triggered by something that keeps time rather than by GitHub's
-cron.
+Weekly rather than daily since 18 September, and for a reason beyond cost:
+this is now the only place the comprehensive end-to-end suite runs at all.
+`e2e.yml`'s own merge gate narrowed that same day to a fast, read-only smoke
+tier so it could run on every single push without either slowing a merge by
+ten-plus minutes or spending the whole month's Actions budget on it — which
+means a write-path bug no longer gets caught before merge, only within the
+week. `weekly-check.yml` is where that week's clock resets.
+
+It asks for 17:00 Manila on Fridays and, on past form, will not get it
+exactly. The daily version of this check asked for 09:00 UTC (17:00 Manila)
+every day and never once fired then: measured across 11, 12 and 13 September
+it landed between 20:34 and 21:35 Manila, three and a half to four and a half
+hours late, varying by an hour between days. GitHub's scheduled workflows are
+best-effort on shared runners; there is no setting that fixes this, and
+moving the cron earlier only aims at a moving target. Expect Friday evening
+rather than exactly 5pm. If a dependable hour is ever wanted, it has to be
+triggered by something that keeps time rather than by GitHub's cron.
 
 ### When you ask a person to do something by hand
 
@@ -291,9 +304,13 @@ are not to be trimmed for cost.
 This is a monorepo. Each project folder (e.g. `kin/`) has its own knowledge
 graph at `<project>/graphify-out/`, and `graphify-out/graph.json` at this root
 is an aggregate of all of them, rebuilt by
-`.github/workflows/graphify-deploy.yml` on every push to main and kept as the
-`projects-graph` workflow artifact — download it from the run and open
-`index.html`. It used to deploy to GitHub Pages, which failed silently on
+`.github/workflows/graphify-deploy.yml` (weekly, and on demand via
+`workflow_dispatch` — it ran on every push to main until 18 September, which
+on a repo merging several pull requests a day made it one of the larger
+recurring costs on a metered Actions budget for an artifact nobody needs
+current to the last commit) and kept as the `projects-graph` workflow
+artifact — download it from the run and open `index.html`. It used to deploy
+to GitHub Pages, which failed silently on
 every push: Pages needs a paid plan on a private repository, and a public site
 would have put every file path, module and function name in these projects on
 a page anyone could find.

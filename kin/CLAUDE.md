@@ -4,10 +4,12 @@
 
 This project has a knowledge graph at `graphify-out/`. `graph.json` is **not
 committed** — it regenerates from source, and its diffs buried every real
-change — so the session hook builds it on a fresh clone, and CI rebuilds it on
-every push to main and keeps it as the `projects-graph` workflow artifact. The
-semantic layer that a paid LLM pass produced (`.graphify_labels.json`,
-`cache/semantic/`) *is* committed, because nothing can recreate it for free.
+change — so the session hook builds it on a fresh clone, for free, with no
+Actions cost. CI also rebuilds it, weekly and on demand (not on every push,
+since 18 September -- see the root `CLAUDE.md`'s graphify section), and keeps
+it as the `projects-graph` workflow artifact. The semantic layer that a paid
+LLM pass produced (`.graphify_labels.json`, `cache/semantic/`) *is*
+committed, because nothing can recreate it for free.
 
 Use it for what it is actually good at, which was measured on this codebase
 rather than assumed:

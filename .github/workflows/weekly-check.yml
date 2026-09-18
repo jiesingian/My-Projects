@@ -1,13 +1,21 @@
-name: Daily check
+name: Weekly check
 
-# One result a day, instead of two people watching each other's pushes.
+# One result a week, instead of two people watching each other's pushes --
+# and, since 18 September, the one place the comprehensive end-to-end suite
+# runs at all.
 #
 # The automatic checks on each pull request are the gate -- nothing merges
-# without them. This is the different thing: a check of the whole setup
-# against `main` as it actually stands, once a day, at an hour somebody is
-# awake to read it.
+# without them. Those checks now run a fast, read-only smoke tier
+# (e2e.yml) on every single push, on purpose: the suite's write-heavy
+# specs -- every form, every RLS guarantee, delete-household.spec's cascade
+# check -- take minutes a merge gate cannot afford to spend on every push
+# without emptying a metered private repo's whole monthly Actions budget.
+# This is where they still run, in full, against `main` as it actually
+# stands, once a week, at an hour somebody is awake to read it.
 #
-# It exists because some failures cannot be caught by a pull request at all:
+# It exists because some failures cannot be caught by a pull request at all,
+# and because a write-path regression deserves a bound on how long it can go
+# unnoticed even though it is no longer a merge gate:
 #
 #   - A migration written, merged, and never run. The code and the database
 #     drift apart with every check green, which is exactly what broke Settings
@@ -21,30 +29,32 @@ name: Daily check
 #     the same thing on its own schedule.
 #   - A dependency, a Supabase change, or an expiring credential. Nobody pushes
 #     anything and `main` stops working anyway.
+#   - A write-path bug that only e2e.yml's now-narrower merge gate cannot see
+#     -- the trade 18 September made on purpose. Caught here within a week
+#     rather than never, instead of before every merge.
 #
 # WHEN THIS ACTUALLY RUNS, which is not what the cron says.
 #
-# 09:00 UTC would be 17:00 in Manila. It has never once fired then. Measured
-# from this workflow's own run history:
+# 09:00 UTC is 17:00 in Manila -- Friday afternoon, meant to land while
+# somebody is still at their desk. The workflow this replaced asked for
+# 09:00 UTC daily and never once got it: measured across 11, 12 and
+# 13 September it fired between 20:34 and 21:35 Manila, three and a half to
+# four and a half hours late, varying by an hour between days. GitHub's
+# scheduled workflows are best-effort on shared runners and the documentation
+# says so; there is no queue to jump and no setting to change. Expect the
+# same kind of drift here -- some time Friday evening rather than exactly
+# 5pm -- and do not plan an evening around the hour in this comment.
 #
-#   asked 09:00 UTC   fired 11 Sep 13:10 UTC   21:10 Manila
-#   asked 09:00 UTC   fired 12 Sep 12:34 UTC   20:34 Manila
-#   asked 09:00 UTC   fired 13 Sep 13:35 UTC   21:35 Manila
-#
-# Three and a half to four and a half hours late, varying by an hour between
-# days. GitHub's scheduled workflows are best-effort on shared runners and the
-# documentation says so; there is no queue to jump and no setting to change.
-# Moving the cron earlier would only aim at a target that moves.
-#
-# So what this is, honestly: once a day, some time in the Manila evening,
-# silent unless something broke. That is still the thing it was built for --
-# one result to read rather than two people watching each other's pushes --
-# but the fixed hour was never real, and a time written in a comment is what
-# somebody plans their evening around. If a dependable hour is ever needed,
-# it has to be triggered by something that keeps time, not by this cron.
+# WHAT IT RUNS, restored to the full suite 18 September. Between 18 September
+# and this change it ran a narrower smoke.spec.ts + regressions.spec.ts pair,
+# because back then e2e.yml ALSO ran the full suite on every push and this
+# was mostly re-proving what had just been proven at the last merge. That
+# stopped being true the moment e2e.yml's own scope narrowed to smoke + logic
+# only -- this file is now the only place a write ever gets tested at all,
+# so it runs everything, the way it did before 18 September's first pass.
 on:
   schedule:
-    - cron: "0 9 * * *"
+    - cron: "0 9 * * 5"
   workflow_dispatch:
 
 permissions:
@@ -52,9 +62,10 @@ permissions:
   issues: write
 
 # The suite writes into the shared throwaway household, so this must queue
-# behind any other run rather than race it. Same group as e2e.yml on purpose.
-# Not cancel-in-progress: a cancelled suite can leave a preference it meant to
-# restore.
+# behind any other run rather than race it. Same group name as e2e.yml used
+# to share, kept here since this file is now the only one still doing that
+# kind of write. Not cancel-in-progress: a cancelled suite can leave a
+# preference it meant to restore.
 concurrency:
   group: e2e
   cancel-in-progress: false
@@ -72,6 +83,8 @@ jobs:
       - uses: actions/setup-node@v5
         with:
           node-version: "22"
+          cache: npm
+          cache-dependency-path: kin/package-lock.json
 
       - name: Check the secrets are present
         env:
@@ -93,7 +106,7 @@ jobs:
         working-directory: kin
 
       # Each step records its own verdict rather than stopping the run, so one
-      # failure does not hide the state of everything after it. A day where
+      # failure does not hide the state of everything after it. A week where
       # three things broke should say three things broke.
       - name: Typecheck
         id: tsc
@@ -148,10 +161,33 @@ jobs:
           PROD_E2E_PASSWORD: ${{ secrets.PROD_E2E_PASSWORD }}
         run: node scripts/check-schema.mjs
 
-      - name: Install the browser
+      # Caches only the browser binary, not the OS packages `--with-deps`
+      # installs -- Playwright has no cache for those, and apt is fast enough
+      # that it is not worth the risk of a stale system library. Keyed on the
+      # exact installed version so a Playwright upgrade gets a fresh browser
+      # rather than an incompatible cached one.
+      - name: Playwright version
         if: always()
+        id: pw-version
+        working-directory: kin
+        run: echo "version=$(node -e "console.log(require('@playwright/test/package.json').version)")" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/cache@v4
+        if: always()
+        id: pw-cache
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ steps.pw-version.outputs.version }}
+
+      - name: Install the browser
+        if: always() && steps.pw-cache.outputs.cache-hit != 'true'
         working-directory: kin
         run: npx playwright install --with-deps chromium
+
+      - name: Install just the OS packages the cached browser still needs
+        if: always() && steps.pw-cache.outputs.cache-hit == 'true'
+        working-directory: kin
+        run: npx playwright install-deps chromium
 
       - name: Start the app
         if: always()
@@ -164,12 +200,20 @@ jobs:
           npx wait-on http://localhost:3000/login --timeout 120000
 
       # The Supabase values belong here as well as on the build, for the same
-      # reason e2e.yml spells them out twice: locally playwright.config.ts
-      # reads them from .env.local, so the specs that talk to PostgREST
-      # directly always had them. CI has no .env.local, and without these
-      # twelve tests call test.skip() and the run goes green having checked
-      # none of them.
-      - name: The suite
+      # reason e2e.yml (before its own scope narrowed) used to spell them out
+      # twice: locally playwright.config.ts reads them from .env.local, so
+      # the specs that talk to PostgREST directly always had them. CI has no
+      # .env.local, and without these twelve tests call test.skip() and the
+      # run goes green having checked none of them.
+      #
+      # E2E_DELETE_* belongs here too. delete-household.spec.ts is the one
+      # spec that destroys the household it runs against, so it uses a third
+      # account that holds nothing between runs -- and without these two it
+      # calls test.skip() and the run goes green having never proved that
+      # deleting a household takes its rows with it. That is the one spec
+      # standing between a cascade bug and somebody's records surviving their
+      # own deletion, and it exists nowhere else in the suite.
+      - name: The suite (everything -- the only place it still runs whole)
         id: e2e
         if: always()
         working-directory: kin
@@ -185,13 +229,13 @@ jobs:
       - uses: actions/upload-artifact@v6
         if: always()
         with:
-          name: daily-playwright-report
+          name: weekly-playwright-report
           path: kin/playwright-report/
           retention-days: 7
           if-no-files-found: ignore
 
-      # Silence on a good day is the point. Nobody wants an issue every
-      # morning saying nothing happened -- that is the notification everybody
+      # Silence on a good week is the point. Nobody wants an issue every
+      # Friday saying nothing happened -- that is the notification everybody
       # learns to swipe away, and then the one that matters goes with it.
       # A green run leaves its green tick in Actions and says nothing.
       - name: Say what broke
@@ -210,10 +254,11 @@ jobs:
           TODAY=$(TZ=Asia/Manila date +%Y-%m-%d)
 
           {
-            echo "The daily check found something on \`main\`. Nobody pushed it there today"
+            echo "The weekly check found something on \`main\`. Nobody pushed it this week"
             echo "necessarily — this runs against main as it stands, so a failure here can"
-            echo "mean the database moved, a fixture aged out, or a credential expired,"
-            echo "as easily as it can mean a bad commit."
+            echo "mean the database moved, a fixture aged out, a credential expired, or a"
+            echo "write path broke since the last time this ran, as easily as it can mean"
+            echo "a bad commit."
             echo
             echo "| Check | Result |"
             echo "| --- | --- |"
@@ -221,7 +266,7 @@ jobs:
             echo "| Lint | $LINT |"
             echo "| Build | $BUILD |"
             echo "| Schema | $SCHEMA |"
-            echo "| End-to-end | $E2E |"
+            echo "| End-to-end (the full suite) | $E2E |"
             echo
             echo "[The run, with the logs and the Playwright report]($RUN_URL)"
             echo
@@ -235,19 +280,19 @@ jobs:
             echo "_Generated by [Claude Code](https://claude.ai/code)_"
           } > /tmp/body.md
 
-          # One issue per bad day, reopened rather than duplicated if the same
-          # day fails twice (a manual re-run after a fix, say).
-          EXISTING=$(gh issue list --repo "$REPO" --label "daily-check" --state open \
-            --search "Daily check — $TODAY in:title" --json number --jq '.[0].number // empty')
+          # One issue per bad week, reopened rather than duplicated if the same
+          # week fails twice (a manual re-run after a fix, say).
+          EXISTING=$(gh issue list --repo "$REPO" --label "weekly-check" --state open \
+            --search "Weekly check — $TODAY in:title" --json number --jq '.[0].number // empty')
 
-          gh label create "daily-check" --repo "$REPO" --color B60205 \
-            --description "The daily run of the whole setup found something." || true
+          gh label create "weekly-check" --repo "$REPO" --color B60205 \
+            --description "The weekly run of the whole setup found something." || true
 
           if [ -n "$EXISTING" ]; then
             gh issue comment "$EXISTING" --repo "$REPO" --body-file /tmp/body.md
           else
             gh issue create --repo "$REPO" \
-              --title "Daily check — $TODAY" \
-              --label "daily-check" \
+              --title "Weekly check — $TODAY" \
+              --label "weekly-check" \
               --body-file /tmp/body.md
           fi

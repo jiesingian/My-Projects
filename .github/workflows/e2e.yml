@@ -1,16 +1,20 @@
 name: End-to-end
 
-# Runs on pull requests that touch the app, and on demand.
+# The fast tier of the suite: every hub's pages load clean, plus every pure
+# function the suite has (`*.logic.spec.ts`). Runs on pull requests and on
+# demand -- and, restructured 18 September, exists specifically so it CAN run
+# on every push without either blocking a merge for ten-plus minutes or
+# costing the whole repository's monthly Actions budget to do it.
 #
-# It was manual-only, on the argument that a suite driving sixty browser pages
-# is too expensive to run unattended on a metered private repo. That was worth
-# checking rather than believing: the suite takes about seven minutes, and at
-# the rate this repository actually moves that is well inside the free tier.
-# Meanwhile every bug found here so far -- a calendar filing Monday under
-# Sunday, an edit form walking an activity eight hours earlier on each save, a
-# week that never started on the day the household chose -- passed tsc, lint
-# and build without a murmur. Seven minutes a pull request is the cheaper side
-# of that trade.
+# The comprehensive suite -- every write, every form, every RLS guarantee,
+# the specs with a real household behind them -- moved to weekly-check.yml,
+# once a week rather than once a push. That is the trade this file makes: a
+# real bug in one write path is caught within a week instead of before merge.
+# What stays a merge gate is the class of bug that showed up without any spec
+# having to write a row at all -- "a calendar filing Monday under Sunday, an
+# edit form walking an activity eight hours earlier on each save, a week that
+# never started on the day the household chose" all rendered wrong on their
+# very first paint, which smoke.spec.ts alone would already have caught.
 #
 # Scoped to paths that can actually break it, so documentation and workflow
 # edits do not pay for a browser run.
@@ -18,12 +22,9 @@ name: End-to-end
 # It runs on pushes to main as well as on pull requests, and has to: pull
 # requests stopped being required here on 9 September -- both people push
 # straight to main now -- so a suite that only watched pull requests would
-# have quietly stopped watching almost everything. tsc, lint and build already
-# run on every push through ci.yml; this is the only check that opens a page
-# and looks at it, and every timezone bug this project has had passed the
-# other three without a murmur.
+# have quietly stopped watching almost everything.
 #
-# Needs four repository secrets, and says so plainly rather than failing with a
+# Needs two repository secrets, and says so plainly rather than failing with a
 # login screen if they are missing:
 #   E2E_EMAIL, E2E_PASSWORD             -- the throwaway household, never a real one
 #   NEXT_PUBLIC_SUPABASE_URL, _ANON_KEY -- both public by design; RLS is the real guard
@@ -59,21 +60,27 @@ on:
 permissions:
   contents: read
 
-# One run at a time, globally rather than per branch. Every spec writes rows
+# Per branch, and cancelling a superseded run outright rather than letting it
+# finish. This was global and queued until 18 September -- every spec wrote
 # into the same throwaway household, so two runs in parallel would read each
-# other's data and fail for reasons that have nothing to do with the code.
-# Queued rather than cancelled: a cancelled run can leave a preference the
-# suite meant to restore.
+# other's data and fail for reasons that had nothing to do with the code.
+# That risk is gone now that this file only runs smoke.spec.ts and the logic
+# specs: nothing here writes a row, so two different pull requests' runs
+# genuinely cannot collide, and a pull request pushed to five times in ten
+# minutes can safely cancel the first four instead of queueing behind them.
+# The comprehensive suite that DOES write, in weekly-check.yml, keeps the old
+# global queued lock -- it still needs it.
 concurrency:
-  group: e2e
-  cancel-in-progress: false
+  group: e2e-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   e2e:
     runs-on: ubuntu-latest
-    # The suite takes about seven minutes. The default job limit is six hours,
-    # which is how a hung browser quietly spends a month of Actions minutes.
-    timeout-minutes: 30
+    # Minutes, not the old suite's seven-plus -- see the header. The default
+    # job limit is six hours, which is how a hung browser quietly spends a
+    # month of Actions minutes; ten is generous for what this file runs now.
+    timeout-minutes: 10
     defaults:
       run:
         working-directory: kin
@@ -97,8 +104,28 @@ jobs:
 
       - run: npm ci
 
+      # Caches only the browser binary, not the OS packages `--with-deps`
+      # installs -- Playwright has no cache for those, and apt is fast enough
+      # that it is not worth the risk of a stale system library. Keyed on the
+      # exact installed version so a Playwright upgrade gets a fresh browser
+      # rather than an incompatible cached one.
+      - name: Playwright version
+        id: pw-version
+        run: echo "version=$(node -e "console.log(require('@playwright/test/package.json').version)")" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/cache@v4
+        id: pw-cache
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ steps.pw-version.outputs.version }}
+
       - name: Install the browser
+        if: steps.pw-cache.outputs.cache-hit != 'true'
         run: npx playwright install --with-deps chromium
+
+      - name: Install just the OS packages the cached browser still needs
+        if: steps.pw-cache.outputs.cache-hit == 'true'
+        run: npx playwright install-deps chromium
 
       # On a pull request there is no `inputs` at all, so this is the normal
       # path: build the app and test what the branch actually produces.
@@ -112,35 +139,19 @@ jobs:
           npm run start &
           npx wait-on http://localhost:3000/login --timeout 120000
 
-      # The Supabase values belong here as well as on the build. Locally
-      # playwright.config.ts reads them out of .env.local, so the specs that
-      # talk to PostgREST directly -- every row-level-security guarantee, every
-      # household preference, and the stored-instant assertion -- always had
-      # them. CI has no .env.local, so those twelve tests called test.skip()
-      # and the run went green having checked none of them. A suite that
-      # quietly tests less in CI than on a laptop is worse than one that fails.
-      # E2E_DELETE_* belongs here too, and its absence was the same failure one
-      # layer further out. delete-household.spec.ts is the only test that
-      # destroys the household it runs against, so it uses a third account that
-      # holds nothing between runs -- and without these two it calls
-      # test.skip() and the run goes green having never proved that deleting a
-      # household takes its rows with it. That is the one spec standing between
-      # a cascade bug and somebody's records surviving their own deletion.
-      #
-      # daily-check.yml has passed them since it was written. This file never
-      # did, so the secrets existed and the pull-request suite skipped the test
-      # anyway -- which is exactly the shape of "a suite that quietly tests
-      # less in CI than on a laptop" that the comment above is about.
-      - name: Run the suite
+      # smoke.spec.ts and the logic specs only -- see the header for why the
+      # rest moved to weekly-check.yml. `--workers=4` is safe specifically
+      # because none of this writes anything: playwright.config.ts pins
+      # `workers: 1` globally for the specs that do, but nothing here needs
+      # that serialization, so the CLI flag overrides it for this run only.
+      - name: Run the suite (smoke + logic, not the full regression)
         env:
           E2E_EMAIL: ${{ secrets.E2E_EMAIL }}
           E2E_PASSWORD: ${{ secrets.E2E_PASSWORD }}
-          E2E_DELETE_EMAIL: ${{ secrets.E2E_DELETE_EMAIL }}
-          E2E_DELETE_PASSWORD: ${{ secrets.E2E_DELETE_PASSWORD }}
           E2E_BASE_URL: ${{ inputs.base_url }}
           NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
           NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
-        run: npm run e2e
+        run: npx playwright test e2e/smoke.spec.ts e2e/*.logic.spec.ts --workers=4
 
       - uses: actions/upload-artifact@v6
         if: ${{ !cancelled() }}
