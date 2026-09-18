@@ -4,12 +4,11 @@ import { useState } from "react";
 
 /** GroupLabel's clickable sibling -- same weight, same border, but a group
  * this big (Assets, Liabilities, a whole Cash Flow section) benefits from
- * being tucked away once someone has seen it, without losing the page
- * layout under it. Open by default: nothing collapses on first load that
- * wasn't already collapsed before this existed. */
+ * being tucked away by default, so a tab reads as its headline numbers
+ * first and its detail only on request. */
 export function CollapsibleGroup({
   title,
-  defaultOpen = true,
+  defaultOpen = false,
   children,
 }: {
   title: string;

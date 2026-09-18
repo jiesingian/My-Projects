@@ -16,6 +16,7 @@ import { Collapsible } from "@/components/sheet";
 import { MARKET_SECTIONS, UNITS } from "@/lib/grocery";
 import { MEAL_SLOTS, MEAL_SLOT_LABEL, type MealSlot } from "@/lib/recipes";
 import { plateAt, plateTone } from "@/lib/meal-photos";
+import { ZoomableImage } from "@/components/zoomable-image";
 
 function useAct() {
   const router = useRouter();
@@ -156,10 +157,8 @@ export function RecipeBook({ recipes, categories: known }: { recipes: EditableRe
       ) : chosen ? (
         chosen.items.map((r) => <RecipeRow key={r.id} recipe={r} onEdit={() => setEditing(r)} />)
       ) : (
-        groups.map((g, i) => (
-          // Only the first group is open: the book is a reference, not
-          // something anyone reads from Adobo to Turon.
-          <Collapsible key={g.key} title={g.title} meta={String(g.items.length)} defaultOpen={i === 0}>
+        groups.map((g) => (
+          <Collapsible key={g.key} title={g.title} meta={String(g.items.length)}>
             {g.items.map((r) => (
               <RecipeRow key={r.id} recipe={r} onEdit={() => setEditing(r)} />
             ))}
@@ -358,8 +357,7 @@ function RecipeRow({ recipe: r, onEdit }: { recipe: EditableRecipe; onEdit: () =
         }}
       >
         {r.photoUrl ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img src={r.photoUrl} alt={r.name} />
+          <ZoomableImage src={r.photoUrl} alt={r.name} />
         ) : (
           <span style={{ font: "500 16px/1 var(--font-heading)", color: tone.ink, textTransform: "uppercase" }}>{r.name.trim().charAt(0)}</span>
         )}

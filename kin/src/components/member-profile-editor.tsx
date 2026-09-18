@@ -77,7 +77,7 @@ export function MemberProfileEditor({
             style={{ all: "unset", cursor: "pointer", display: "block" }}
             aria-label="View profile pictures"
           >
-            <Avatar url={avatarUrl} initials={initials} label={fullName} size={88} />
+            <Avatar url={avatarUrl} initials={initials} label={fullName} size={88} clickable={false} />
           </button>
           {mode === "edit" && <AvatarCropUpload onDone={() => {}} />}
         </div>

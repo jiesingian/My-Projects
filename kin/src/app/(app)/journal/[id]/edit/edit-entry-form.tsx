@@ -10,6 +10,7 @@ import { DetailHeader } from "@/components/hub-header";
 import type { Tables } from "@/lib/database.types";
 import { familyDay } from "@/lib/time";
 import { DateInput } from "@/components/date-input";
+import { ZoomableImage } from "@/components/zoomable-image";
 
 type Entry = NonNullable<Awaited<ReturnType<typeof getEntry>>>;
 
@@ -120,8 +121,7 @@ export function EditEntryForm({ entry, members }: { entry: Entry; members: Table
               <div style={{ display: "flex", gap: 5, flexWrap: "wrap" }}>
                 {photos.map((p, i) => (
                   <div key={p.id} style={{ position: "relative" }}>
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={p.url} alt={`Photo ${i + 1}`} style={{ width: 60, height: 60, objectFit: "cover", border: "1px solid var(--color-divider)" }} />
+                    <ZoomableImage src={p.url} alt={`Photo ${i + 1}`} style={{ width: 60, height: 60, objectFit: "cover", border: "1px solid var(--color-divider)" }} />
                     <button
                       type="button"
                       aria-label="Remove photo"

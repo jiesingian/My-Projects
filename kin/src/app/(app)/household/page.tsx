@@ -21,6 +21,7 @@ import { plateTone } from "@/lib/meal-photos";
 import { MEAL_SLOTS, MEAL_SLOT_LABEL } from "@/lib/recipes";
 import { MARKET_SECTIONS } from "@/lib/grocery";
 import { toISODate } from "@/lib/routines";
+import { ZoomableImage } from "@/components/zoomable-image";
 
 const SEGMENTS = ["buy", "meals"] as const;
 type Seg = (typeof SEGMENTS)[number];
@@ -130,7 +131,7 @@ async function PriceBookSheet({ familyId, currency }: { familyId: string; curren
         </div>
       </Blueprint>
 
-      <Collapsible title="Already in the house" meta={`${pantry.length}`} defaultOpen={pantry.length > 0}>
+      <Collapsible title="Already in the house" meta={`${pantry.length}`}>
         <p style={{ fontSize: 13, color: "var(--color-neutral-600)", margin: "0 0 10px" }}>
           Skipped when a shopping list is built from the week&rsquo;s meals.
         </p>
@@ -280,8 +281,7 @@ function DishCard({ meal }: { meal: PlannedMeal }) {
         {meal.photoUrl ? (
           // Signed Storage URLs expire, so this stays a plain img: next/image
           // would cache a URL that has already gone stale.
-          // eslint-disable-next-line @next/next/no-img-element
-          <img src={meal.photoUrl} alt={meal.dish} />
+          <ZoomableImage src={meal.photoUrl} alt={meal.dish} />
         ) : (
           // Until the house photographs its own, the dish gets a plate: its
           // own glaze, and a monogram struck once from the name.
@@ -353,7 +353,6 @@ function DishCard({ meal }: { meal: PlannedMeal }) {
         <Collapsible
           title="Ingredients & amounts"
           meta={meal.ingredientCount === 0 ? undefined : `${meal.ingredientCount}`}
-          defaultOpen={meal.ingredientCount === 0}
         >
           {meal.ingredients.map((ing) => (
             <IngredientAmountRow
