@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useEffect, useRef, useState } from "react";
+import { useActionState, useEffect, useId, useRef, useState } from "react";
 import { createRoutineAction, updateRoutineAction, type RoutineActionState } from "@/lib/actions/routines";
 import { SubmitButton } from "@/components/form";
 import { DetailHeader } from "@/components/hub-header";
@@ -128,6 +128,7 @@ export function RoutineForm({
   const [state, formAction] = useActionState(action, initialState);
   const formRef = useRef<HTMLFormElement>(null);
   const bad = (name: string) => state.field === name;
+  const uid = useId();
 
   // A message the person cannot see is no message at all: bring the field it
   // is about into view, and focus it so the next keystroke lands there.
@@ -188,13 +189,13 @@ export function RoutineForm({
         <form action={formAction} ref={formRef}>
 
           <FieldBlock name="title" invalid={bad("title")} style={{ marginBottom: 14 }}>
-            <label>NAME</label>
-            <input aria-label="Name" className="input" name="title" required maxLength={150} value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Grocery run" style={{ minHeight: 44 }} />
+            <label htmlFor={`${uid}-title`}>NAME</label>
+            <input id={`${uid}-title`} aria-label="Name" className="input" name="title" required maxLength={150} value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Grocery run" style={{ minHeight: 44 }} />
           </FieldBlock>
 
           <div className="field" style={{ marginBottom: 14 }}>
-            <label>KIND</label>
-            <select aria-label="Kind" className="input" name="kind" value={kind} onChange={(e) => setKind(e.target.value as RoutineKind)} style={{ minHeight: 44 }}>
+            <label htmlFor={`${uid}-kind`}>KIND</label>
+            <select id={`${uid}-kind`} aria-label="Kind" className="input" name="kind" value={kind} onChange={(e) => setKind(e.target.value as RoutineKind)} style={{ minHeight: 44 }}>
               {ROUTINE_KINDS.map((k) => (
                 <option key={k} value={k}>
                   {ROUTINE_KIND_META[k].label}
@@ -251,16 +252,16 @@ export function RoutineForm({
 
           {freq === "monthly" && (
             <FieldBlock name="bymonthday" invalid={bad("bymonthday")} style={{ marginBottom: 14 }}>
-              <label>DAY OF THE MONTH</label>
-              <input aria-label="Day Of The Month" className="input" type="number" name="bymonthday" min={1} max={31} defaultValue={edit?.bymonthday ?? 1} style={{ minHeight: 44 }} />
+              <label htmlFor={`${uid}-bymonthday`}>DAY OF THE MONTH</label>
+              <input id={`${uid}-bymonthday`} aria-label="Day Of The Month" className="input" type="number" name="bymonthday" min={1} max={31} defaultValue={edit?.bymonthday ?? 1} style={{ minHeight: 44 }} />
               <span style={{ fontSize: 12.5, color: "var(--color-neutral-600)" }}>A day past the end of a short month falls on its last day.</span>
             </FieldBlock>
           )}
 
           <div style={{ display: "flex", gap: 12, marginBottom: 14 }}>
             <div className="field" style={{ flex: 1 }}>
-              <label>EVERY</label>
-              <select aria-label="Every" className="input" name="repeat_interval" defaultValue={edit?.repeat_interval ?? 1} style={{ minHeight: 44 }}>
+              <label htmlFor={`${uid}-repeat-interval`}>EVERY</label>
+              <select id={`${uid}-repeat-interval`} aria-label="Every" className="input" name="repeat_interval" defaultValue={edit?.repeat_interval ?? 1} style={{ minHeight: 44 }}>
                 {[1, 2, 3, 4, 6, 12].map((n) => (
                   <option key={n} value={n}>
                     {n === 1 ? `1 ${freq === "daily" ? "day" : freq === "weekly" ? "week" : "month"}` : `${n} ${freq === "daily" ? "days" : freq === "weekly" ? "weeks" : "months"}`}
@@ -269,8 +270,8 @@ export function RoutineForm({
               </select>
             </div>
             <FieldBlock name="time_of_day" invalid={bad("time_of_day")} style={{ flex: 1 }}>
-              <label>TIME</label>
-              <input aria-label="Time" className="input" type="time" name="time_of_day" value={time} onChange={(e) => setTime(e.target.value)} style={{ minHeight: 44 }} />
+              <label htmlFor={`${uid}-time`}>TIME</label>
+              <input id={`${uid}-time`} aria-label="Time" className="input" type="time" name="time_of_day" value={time} onChange={(e) => setTime(e.target.value)} style={{ minHeight: 44 }} />
             </FieldBlock>
           </div>
 
@@ -282,8 +283,9 @@ export function RoutineForm({
               both assume an hour. */}
           {time && (
             <FieldBlock name="duration_minutes" invalid={bad("duration_minutes")} style={{ marginBottom: 14 }}>
-              <label>HOW LONG (OPTIONAL)</label>
+              <label htmlFor={`${uid}-duration`}>HOW LONG (OPTIONAL)</label>
               <input
+                id={`${uid}-duration`}
                 aria-label="How long (Optional)"
                 className="input"
                 type="number"
@@ -310,18 +312,18 @@ export function RoutineForm({
 
           <div style={{ display: "flex", gap: 12, marginBottom: 14 }}>
             <FieldBlock name="start_date" invalid={bad("start_date")} style={{ flex: 1 }}>
-              <label>STARTS</label>
-              <DateInput aria-label="Starts" className="input" name="start_date" required defaultValue={edit?.start_date ?? today} style={{ minHeight: 44 }} />
+              <label htmlFor={`${uid}-start-date`}>STARTS</label>
+              <DateInput id={`${uid}-start-date`} aria-label="Starts" className="input" name="start_date" required defaultValue={edit?.start_date ?? today} style={{ minHeight: 44 }} />
             </FieldBlock>
             <FieldBlock name="end_date" invalid={bad("end_date")} style={{ flex: 1 }}>
-              <label>ENDS (OPTIONAL)</label>
-              <DateInput aria-label="Ends (Optional)" className="input" name="end_date" defaultValue={edit?.end_date ?? undefined} style={{ minHeight: 44 }} />
+              <label htmlFor={`${uid}-end-date`}>ENDS (OPTIONAL)</label>
+              <DateInput id={`${uid}-end-date`} aria-label="Ends (Optional)" className="input" name="end_date" defaultValue={edit?.end_date ?? undefined} style={{ minHeight: 44 }} />
             </FieldBlock>
           </div>
 
           <div className="field" style={{ marginBottom: 14 }}>
-            <label>REMIND</label>
-            <select aria-label="Remind" className="input" name="reminder_minutes" value={reminder} onChange={(e) => setReminder(e.target.value)} style={{ minHeight: 44 }}>
+            <label htmlFor={`${uid}-reminder`}>REMIND</label>
+            <select id={`${uid}-reminder`} aria-label="Remind" className="input" name="reminder_minutes" value={reminder} onChange={(e) => setReminder(e.target.value)} style={{ minHeight: 44 }}>
               {REMINDERS.map((r) => (
                 <option key={r.value} value={r.value}>
                   {r.label}
@@ -335,8 +337,8 @@ export function RoutineForm({
           </div>
 
           <div className="field" style={{ marginBottom: 14 }}>
-            <label>WHERE (OPTIONAL)</label>
-            <input aria-label="Where (Optional)" className="input" name="location" maxLength={200} defaultValue={edit?.location ?? undefined} placeholder="SM Marikina" style={{ minHeight: 44 }} />
+            <label htmlFor={`${uid}-location`}>WHERE (OPTIONAL)</label>
+            <input id={`${uid}-location`} aria-label="Where (Optional)" className="input" name="location" maxLength={200} defaultValue={edit?.location ?? undefined} placeholder="SM Marikina" style={{ minHeight: 44 }} />
           </div>
 
           <div style={{ fontSize: 13, color: "var(--color-neutral-700)", margin: "16px 0 6px" }}>Who it is for</div>
@@ -377,12 +379,12 @@ export function RoutineForm({
           <div style={{ fontSize: 13, color: "var(--color-neutral-700)", margin: "16px 0 6px" }}>What it usually costs (optional)</div>
           <div style={{ display: "flex", gap: 12, marginBottom: 6 }}>
             <FieldBlock name="expected_cost" invalid={bad("expected_cost")} style={{ flex: 1 }}>
-              <label>AMOUNT</label>
-              <input aria-label="Amount" className="input" type="number" name="expected_cost" step="0.01" min="0" value={cost} onChange={(e) => setCost(e.target.value)} style={{ minHeight: 44 }} />
+              <label htmlFor={`${uid}-expected-cost`}>AMOUNT</label>
+              <input id={`${uid}-expected-cost`} aria-label="Amount" className="input" type="number" name="expected_cost" step="0.01" min="0" value={cost} onChange={(e) => setCost(e.target.value)} style={{ minHeight: 44 }} />
             </FieldBlock>
             <FieldBlock name="cost_account_id" invalid={bad("cost_account_id")} style={{ flex: 1.3 }}>
-              <label>FROM ACCOUNT</label>
-              <select aria-label="From Account" className="input" name="cost_account_id" defaultValue={edit?.cost_account_id ?? ""} style={{ minHeight: 44 }}>
+              <label htmlFor={`${uid}-cost-account`}>FROM ACCOUNT</label>
+              <select id={`${uid}-cost-account`} aria-label="From Account" className="input" name="cost_account_id" defaultValue={edit?.cost_account_id ?? ""} style={{ minHeight: 44 }}>
                 <option value="">—</option>
                 {accounts.map((a) => (
                   <option key={a.id} value={a.id}>
@@ -400,8 +402,8 @@ export function RoutineForm({
           </p>
 
           <div className="field" style={{ marginBottom: 16 }}>
-            <label>NOTES</label>
-            <textarea aria-label="Notes" className="input" name="notes" maxLength={1000} defaultValue={edit?.notes ?? undefined} />
+            <label htmlFor={`${uid}-notes`}>NOTES</label>
+            <textarea id={`${uid}-notes`} aria-label="Notes" className="input" name="notes" maxLength={1000} defaultValue={edit?.notes ?? undefined} />
           </div>
 
           {/* Beside the button that was just pressed, not at the top of a

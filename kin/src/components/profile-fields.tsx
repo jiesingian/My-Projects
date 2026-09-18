@@ -1,3 +1,4 @@
+import { useId } from "react";
 import type { ProfileFields } from "@/lib/actions/profile";
 import { Blueprint } from "@/components/ui";
 import { formatDate, formatAge } from "@/lib/format";
@@ -144,6 +145,7 @@ export function ProfileFieldsEditor({
   set: <K extends keyof ProfileFields>(key: K, value: ProfileFields[K]) => void;
   busy: boolean;
 }) {
+  const uid = useId();
   return (
     <>
       {PROFILE_FIELD_GROUPS.map((group) => (
@@ -151,8 +153,8 @@ export function ProfileFieldsEditor({
           <GroupHeader title={group.title} />
           {group.fields.map((spec) => (
             <div className="field" key={spec.key} style={{ marginBottom: 10 }}>
-              <label>{spec.label}</label>
-              <input aria-label={spec.label}
+              <label htmlFor={`${uid}-${spec.key}`}>{spec.label}</label>
+              <input id={`${uid}-${spec.key}`} aria-label={spec.label}
                 className="input"
                 type={spec.type === "date" ? "date" : spec.type === "email" ? "email" : spec.type === "tel" ? "tel" : "text"}
                 value={fields[spec.key] ?? ""}

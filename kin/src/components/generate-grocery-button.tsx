@@ -32,7 +32,7 @@ export function GenerateGroceryButton({ weekOf }: { weekOf?: string }) {
         {pending ? "GENERATING…" : "GENERATE GROCERY LIST"}
       </button>
       {failed && (
-        <p role="alert" style={{ fontSize: 13, color: "var(--danger, #d33)", marginTop: 8 }}>
+        <p role="alert" style={{ fontSize: 13, color: "var(--color-accent-700)", marginTop: 8 }}>
           {failed}
         </p>
       )}

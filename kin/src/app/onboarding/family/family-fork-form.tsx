@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useId } from "react";
 import { createFamilyAction, joinFamilyAction } from "@/lib/actions/family";
 import type { ActionState } from "@/lib/actions/auth";
 import { SubmitButton, ErrorText } from "@/components/form";
@@ -22,6 +22,7 @@ export function FamilyForkForm({
 }) {
   const [createState, createAction] = useActionState(createFamilyAction, initialState);
   const [joinState, joinAction] = useActionState(joinFamilyAction, initialState);
+  const uid = useId();
 
   return (
     <OnboardingShell step="STEP 04 / 05" backHref="/onboarding/profile">
@@ -43,16 +44,16 @@ export function FamilyForkForm({
             Create a family
           </span>
           <div className="field" style={{ marginBottom: 12 }}>
-            <label>HOUSEHOLD NAME</label>
-            <input aria-label="Household Name" className="input" name="household_name" placeholder="The Reyes Household" required style={{ minHeight: 44 }} />
+            <label htmlFor={`${uid}-household-name`}>HOUSEHOLD NAME</label>
+            <input id={`${uid}-household-name`} aria-label="Household Name" className="input" name="household_name" placeholder="The Reyes Household" required style={{ minHeight: 44 }} />
           </div>
           {/* One setting the household won't have to find its way to Settings
               for afterward -- it's used from the first account someone adds.
               Change it later same as currency; it never changes on its own
               just because a phone traveled. */}
           <div className="field" style={{ marginBottom: 12 }}>
-            <label>COUNTRY</label>
-            <select aria-label="Country" className="input" name="country" defaultValue={DEFAULT_COUNTRY} style={{ minHeight: 44 }}>
+            <label htmlFor={`${uid}-country`}>COUNTRY</label>
+            <select id={`${uid}-country`} aria-label="Country" className="input" name="country" defaultValue={DEFAULT_COUNTRY} style={{ minHeight: 44 }}>
               {COUNTRIES.map((c) => (
                 <option key={c.code} value={c.code}>
                   {c.label}
@@ -63,8 +64,9 @@ export function FamilyForkForm({
           {/* Starting a household is the one step a family invite code does
               not open — that code brings you into an existing family below. */}
           <div className="field" style={{ marginBottom: 12 }}>
-            <label>ACCESS CODE</label>
+            <label htmlFor={`${uid}-access-code`}>ACCESS CODE</label>
             <input aria-label="Access Code"
+              id={`${uid}-access-code`}
               className="input"
               name="access_code"
               placeholder="KIN-BETA-XXXXXX"

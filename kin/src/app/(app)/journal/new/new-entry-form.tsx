@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useId, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createJournalEntryAction, attachJournalMediaAction } from "@/lib/actions/journal";
 import { uploadFileDirect, rollbackUpload, type UploadedFile } from "@/lib/upload-client";
@@ -11,6 +11,7 @@ import { familyDay } from "@/lib/time";
 import { DateInput } from "@/components/date-input";
 
 export function NewEntryForm({ members }: { members: Tables<"members">[] }) {
+  const uid = useId();
   const [people, setPeople] = useState<string[]>([]);
   const [previews, setPreviews] = useState<string[]>([]);
   const [error, setError] = useState<string | null>(null);
@@ -69,12 +70,12 @@ export function NewEntryForm({ members }: { members: Tables<"members">[] }) {
         <form onSubmit={onSubmit}>
           <ErrorText message={error} />
           <div className="field" style={{ marginBottom: 14 }}>
-            <label>TITLE</label>
-            <input aria-label="Title" className="input" name="title" required style={{ minHeight: 44 }} />
+            <label htmlFor={`${uid}-title`}>TITLE</label>
+            <input id={`${uid}-title`} aria-label="Title" className="input" name="title" required style={{ minHeight: 44 }} />
           </div>
           <div className="field" style={{ marginBottom: 16 }}>
-            <label>DATE</label>
-            <DateInput aria-label="Date" className="input" name="date" defaultValue={familyDay()} required style={{ minHeight: 44 }} />
+            <label htmlFor={`${uid}-date`}>DATE</label>
+            <DateInput id={`${uid}-date`} aria-label="Date" className="input" name="date" defaultValue={familyDay()} required style={{ minHeight: 44 }} />
           </div>
           <div style={{ fontSize: 13, color: "var(--color-neutral-700)", marginBottom: 6 }}>Who was there</div>
           <div style={{ display: "flex", gap: 7, flexWrap: "wrap", marginBottom: 16 }}>
@@ -94,18 +95,18 @@ export function NewEntryForm({ members }: { members: Tables<"members">[] }) {
             })}
           </div>
           <div className="field" style={{ marginBottom: 16 }}>
-            <label>NOTE</label>
-            <textarea aria-label="Note" className="input" name="note" placeholder="What happened?" />
+            <label htmlFor={`${uid}-note`}>NOTE</label>
+            <textarea id={`${uid}-note`} aria-label="Note" className="input" name="note" placeholder="What happened?" />
           </div>
           <div className="field" style={{ marginBottom: 10 }}>
-            <label>PHOTOS</label>
-            <input aria-label="Photos" ref={fileRef} type="file" name="files" multiple accept="image/*,video/*" onChange={onFilesChosen} />
+            <label htmlFor={`${uid}-photos`}>PHOTOS</label>
+            <input id={`${uid}-photos`} aria-label="Photos" ref={fileRef} type="file" name="files" multiple accept="image/*,video/*" onChange={onFilesChosen} />
           </div>
           {previews.length > 0 && (
             <div style={{ display: "flex", gap: 5, marginBottom: 8, flexWrap: "wrap" }}>
               {previews.map((url, i) => (
                 // eslint-disable-next-line @next/next/no-img-element
-                <img key={i} src={url} alt="" style={{ width: 60, height: 60, objectFit: "cover", border: "1px solid var(--color-divider)" }} />
+                <img key={i} src={url} alt={`Photo ${i + 1} to upload`} style={{ width: 60, height: 60, objectFit: "cover", border: "1px solid var(--color-divider)" }} />
               ))}
             </div>
           )}

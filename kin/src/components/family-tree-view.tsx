@@ -18,7 +18,7 @@ function PersonCard({ person, highlight }: { person: TreePerson; highlight?: boo
         maxWidth: 168,
       }}
     >
-      <Avatar url={person.avatarUrl} initials={initials(person.fullName)} size={28} />
+      <Avatar url={person.avatarUrl} initials={initials(person.fullName)} label={person.fullName} size={28} />
       <span style={{ minWidth: 0 }}>
         <span
           style={{

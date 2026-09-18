@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useId } from "react";
 import Link from "next/link";
 import { signIn, type ActionState } from "@/lib/actions/auth";
 import { SubmitButton, ErrorText } from "@/components/form";
@@ -14,6 +14,7 @@ const CALLBACK_ERROR_MESSAGES: Record<string, string> = {
 
 export function LoginForm({ callbackError }: { callbackError?: string }) {
   const [state, formAction] = useActionState(signIn, initialState);
+  const uid = useId();
 
   return (
     <OnboardingShell>
@@ -26,12 +27,12 @@ export function LoginForm({ callbackError }: { callbackError?: string }) {
       <form action={formAction}>
         <ErrorText message={state.error} />
         <div className="field" style={{ marginBottom: 16 }}>
-          <label>EMAIL</label>
-          <input aria-label="Email" className="input" type="email" name="email" required autoComplete="email" />
+          <label htmlFor={`${uid}-email`}>EMAIL</label>
+          <input id={`${uid}-email`} aria-label="Email" className="input" type="email" name="email" required autoComplete="email" />
         </div>
         <div className="field" style={{ marginBottom: 10 }}>
-          <label>PASSWORD</label>
-          <input aria-label="Password" className="input" type="password" name="password" required autoComplete="current-password" />
+          <label htmlFor={`${uid}-password`}>PASSWORD</label>
+          <input id={`${uid}-password`} aria-label="Password" className="input" type="password" name="password" required autoComplete="current-password" />
         </div>
         {/* Directly under the password, which is where it gets looked for the
             moment one fails. */}

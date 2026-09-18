@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useId } from "react";
 import Link from "next/link";
 import { updatePasswordAction, type ActionState } from "@/lib/actions/auth";
 import { PASSWORD_MIN } from "@/lib/password";
@@ -12,6 +12,7 @@ const initialState: ActionState = { error: null };
 
 export function ResetPasswordForm({ email, verified }: { email: string; verified: boolean }) {
   const [state, formAction] = useActionState(updatePasswordAction, initialState);
+  const uid = useId();
 
   return (
     <OnboardingShell backHref="/login">
@@ -36,8 +37,9 @@ export function ResetPasswordForm({ email, verified }: { email: string; verified
         {/* Only asked for when the emailed link did not sign them in already. */}
         {!verified && (
           <div className="field" style={{ marginBottom: 16 }}>
-            <label>CODE FROM THE EMAIL</label>
+            <label htmlFor={`${uid}-code`}>CODE FROM THE EMAIL</label>
             <input
+              id={`${uid}-code`}
               aria-label="Code from the email"
               className="input"
               name="code"
@@ -52,8 +54,9 @@ export function ResetPasswordForm({ email, verified }: { email: string; verified
         )}
 
         <div className="field" style={{ marginBottom: 16 }}>
-          <label>NEW PASSWORD</label>
+          <label htmlFor={`${uid}-password`}>NEW PASSWORD</label>
           <input
+            id={`${uid}-password`}
             aria-label="New password"
             className="input"
             type="password"
@@ -65,8 +68,9 @@ export function ResetPasswordForm({ email, verified }: { email: string; verified
           />
         </div>
         <div className="field" style={{ marginBottom: 20 }}>
-          <label>CONFIRM NEW PASSWORD</label>
+          <label htmlFor={`${uid}-confirm`}>CONFIRM NEW PASSWORD</label>
           <input
+            id={`${uid}-confirm`}
             aria-label="Confirm new password"
             className="input"
             type="password"

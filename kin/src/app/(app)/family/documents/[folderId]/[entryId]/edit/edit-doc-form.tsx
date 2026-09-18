@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useId, useState } from "react";
 import { useRouter } from "next/navigation";
 import { updateDocEntryAction } from "@/lib/actions/documents";
 import { ErrorText } from "@/components/form";
@@ -20,6 +20,7 @@ export function EditDocForm({
   members: Tables<"members">[];
   myRole: string;
 }) {
+  const uid = useId();
   const VISIBILITY = visibilityOptions(myRole);
   const [visibility, setVisibility] = useState(entry.visibility);
   const [error, setError] = useState<string | null>(null);
@@ -63,14 +64,14 @@ export function EditDocForm({
           <ErrorText message={error} />
 
           <div className="field" style={{ marginBottom: 14 }}>
-            <label>ENTRY TITLE</label>
-            <input aria-label="Entry Title" className="input" name="title" defaultValue={entry.title} required maxLength={150} style={{ minHeight: 44 }} />
+            <label htmlFor={`${uid}-title`}>ENTRY TITLE</label>
+            <input id={`${uid}-title`} aria-label="Entry Title" className="input" name="title" defaultValue={entry.title} required maxLength={150} style={{ minHeight: 44 }} />
           </div>
 
           <div style={{ display: "flex", gap: 12, marginBottom: 16 }}>
             <div className="field" style={{ flex: 1 }}>
-              <label>BELONGS TO</label>
-              <select aria-label="Belongs To" className="input" name="owner_member_id" defaultValue={entry.owner_member_id ?? ""} style={{ minHeight: 44 }}>
+              <label htmlFor={`${uid}-owner`}>BELONGS TO</label>
+              <select id={`${uid}-owner`} aria-label="Belongs To" className="input" name="owner_member_id" defaultValue={entry.owner_member_id ?? ""} style={{ minHeight: 44 }}>
                 <option value="">Whole family</option>
                 {members.map((m) => (
                   <option key={m.id} value={m.id}>
@@ -80,19 +81,19 @@ export function EditDocForm({
               </select>
             </div>
             <div className="field" style={{ flex: 1 }}>
-              <label>EXPIRES</label>
-              <DateInput aria-label="Expires" className="input" name="expires_at" defaultValue={entry.expires_at ?? ""} style={{ minHeight: 44 }} />
+              <label htmlFor={`${uid}-expires`}>EXPIRES</label>
+              <DateInput id={`${uid}-expires`} aria-label="Expires" className="input" name="expires_at" defaultValue={entry.expires_at ?? ""} style={{ minHeight: 44 }} />
             </div>
           </div>
 
           <div style={{ display: "flex", gap: 12, marginBottom: 16 }}>
             <div className="field" style={{ flex: 1 }}>
-              <label>DOCUMENT TYPE</label>
-              <input aria-label="Document Type" className="input" name="doc_type" defaultValue={entry.doc_type ?? ""} placeholder="e.g. Application form" maxLength={50} style={{ minHeight: 44 }} />
+              <label htmlFor={`${uid}-doc-type`}>DOCUMENT TYPE</label>
+              <input id={`${uid}-doc-type`} aria-label="Document Type" className="input" name="doc_type" defaultValue={entry.doc_type ?? ""} placeholder="e.g. Application form" maxLength={50} style={{ minHeight: 44 }} />
             </div>
             <div className="field" style={{ flex: 1 }}>
-              <label>REFERENCE NO.</label>
-              <input aria-label="Reference No." className="input" name="reference_no" defaultValue={entry.reference_no ?? ""} placeholder="Optional" maxLength={100} style={{ minHeight: 44 }} />
+              <label htmlFor={`${uid}-reference-no`}>REFERENCE NO.</label>
+              <input id={`${uid}-reference-no`} aria-label="Reference No." className="input" name="reference_no" defaultValue={entry.reference_no ?? ""} placeholder="Optional" maxLength={100} style={{ minHeight: 44 }} />
             </div>
           </div>
 
@@ -106,8 +107,8 @@ export function EditDocForm({
           </div>
 
           <div className="field" style={{ marginBottom: 18 }}>
-            <label>NOTE</label>
-            <input aria-label="Note" className="input" name="note" defaultValue={entry.note ?? ""} placeholder="Anything worth remembering" maxLength={1000} style={{ minHeight: 44 }} />
+            <label htmlFor={`${uid}-note`}>NOTE</label>
+            <input id={`${uid}-note`} aria-label="Note" className="input" name="note" defaultValue={entry.note ?? ""} placeholder="Anything worth remembering" maxLength={1000} style={{ minHeight: 44 }} />
           </div>
 
           <button type="submit" className="btn btn-primary btn-block" style={{ minHeight: 46, fontSize: 14, letterSpacing: ".04em" }} disabled={saving}>

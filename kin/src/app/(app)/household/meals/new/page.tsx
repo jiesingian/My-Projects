@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useId } from "react";
 import { useSearchParams } from "next/navigation";
 import { addMealPlanAction } from "@/lib/actions/household";
 import type { ActionState } from "@/lib/actions/auth";
@@ -12,6 +12,7 @@ import { DateInput } from "@/components/date-input";
 const initialState: ActionState = { error: null };
 
 export default function NewMealPage() {
+  const uid = useId();
   const [state, formAction] = useActionState(addMealPlanAction, initialState);
   // The day the calendar was on when Add was tapped, if it sent one.
   const defaultDate = useSearchParams().get("date") ?? undefined;
@@ -24,12 +25,12 @@ export default function NewMealPage() {
         <form action={formAction}>
           <ErrorText message={state.error} />
           <div className="field" style={{ marginBottom: 14 }}>
-            <label>DATE</label>
-            <DateInput aria-label="Date" className="input" name="date" required defaultValue={defaultDate} style={{ minHeight: 44 }} />
+            <label htmlFor={`${uid}-date`}>DATE</label>
+            <DateInput id={`${uid}-date`} aria-label="Date" className="input" name="date" required defaultValue={defaultDate} style={{ minHeight: 44 }} />
           </div>
           <div className="field" style={{ marginBottom: 14 }}>
-            <label>PART OF THE DAY</label>
-            <select aria-label="Part Of The Day" className="input" name="slot" defaultValue="dinner" style={{ minHeight: 44 }}>
+            <label htmlFor={`${uid}-slot`}>PART OF THE DAY</label>
+            <select id={`${uid}-slot`} aria-label="Part Of The Day" className="input" name="slot" defaultValue="dinner" style={{ minHeight: 44 }}>
               {MEAL_SLOTS.map((s) => (
                 <option key={s} value={s}>
                   {MEAL_SLOT_LABEL[s]}
@@ -38,16 +39,16 @@ export default function NewMealPage() {
             </select>
           </div>
           <div className="field" style={{ marginBottom: 14 }}>
-            <label>DISH</label>
-            <input aria-label="Dish" className="input" name="dish" placeholder="Chicken adobo · rice · pechay" required maxLength={150} style={{ minHeight: 44 }} />
+            <label htmlFor={`${uid}-dish`}>DISH</label>
+            <input id={`${uid}-dish`} aria-label="Dish" className="input" name="dish" placeholder="Chicken adobo · rice · pechay" required maxLength={150} style={{ minHeight: 44 }} />
           </div>
           <div className="field" style={{ marginBottom: 14 }}>
-            <label>NOTE</label>
-            <input aria-label="Note" className="input" name="note" placeholder="Family · 30 min" maxLength={300} style={{ minHeight: 44 }} />
+            <label htmlFor={`${uid}-note`}>NOTE</label>
+            <input id={`${uid}-note`} aria-label="Note" className="input" name="note" placeholder="Family · 30 min" maxLength={300} style={{ minHeight: 44 }} />
           </div>
           <div className="field" style={{ marginBottom: 18 }}>
-            <label>INGREDIENTS (comma-separated)</label>
-            <textarea aria-label="INGREDIENTS (comma-separated)" className="input" name="ingredients" placeholder="Chicken thighs, rice, pechay, soy sauce" maxLength={2000} />
+            <label htmlFor={`${uid}-ingredients`}>INGREDIENTS (comma-separated)</label>
+            <textarea id={`${uid}-ingredients`} aria-label="INGREDIENTS (comma-separated)" className="input" name="ingredients" placeholder="Chicken thighs, rice, pechay, soy sauce" maxLength={2000} />
           </div>
           <SubmitButton style={{ minHeight: 46, fontSize: 14, letterSpacing: ".04em" }}>SAVE MEAL</SubmitButton>
         </form>

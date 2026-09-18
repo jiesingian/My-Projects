@@ -23,8 +23,8 @@ export default async function MembersPage() {
     <OnboardingShell step="STEP 05 / 05" backHref="/onboarding/family">
       <h2 style={{ fontSize: 34, margin: "0 0 18px" }}>Who is in it</h2>
       <div className="field" style={{ marginBottom: 20 }}>
-        <label>HOUSEHOLD NAME</label>
-        <input aria-label="Household Name" className="input" value={me.families.name} disabled style={{ minHeight: 44 }} />
+        <label htmlFor="onboarding-household-name">HOUSEHOLD NAME</label>
+        <input id="onboarding-household-name" aria-label="Household Name" className="input" value={me.families.name} disabled style={{ minHeight: 44 }} />
       </div>
       <div
         style={{

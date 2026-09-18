@@ -68,7 +68,7 @@ export function GalleryUpload() {
               <video key={i} src={p.url} muted style={{ width: 52, height: 52, objectFit: "cover", border: "1px solid var(--color-divider)" }} />
             ) : (
               // eslint-disable-next-line @next/next/no-img-element
-              <img key={i} src={p.url} alt="" style={{ width: 52, height: 52, objectFit: "cover", border: "1px solid var(--color-divider)" }} />
+              <img key={i} src={p.url} alt={`Photo ${i + 1} to upload`} style={{ width: 52, height: 52, objectFit: "cover", border: "1px solid var(--color-divider)" }} />
             ),
           )}
         </div>
