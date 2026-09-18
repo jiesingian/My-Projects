@@ -1,4 +1,5 @@
 import { test, expect, request as playwrightRequest } from "@playwright/test";
+import { expandAllCollapsedGroups } from "./support/collapsible-groups";
 
 /** LINK APP: the field, its one-tap chip, and its TEST button.
  *
@@ -171,9 +172,13 @@ test("what was typed is what the account is saved with", async ({ page }) => {
   await page.getByLabel("LINK APP").fill(TYPED_LINK);
   await page.getByRole("button", { name: /^SAVE ACCOUNT$/i }).click();
 
-  // Wait for the account itself rather than for the network to go quiet: a
-  // click landing before hydration does nothing at all, and `networkidle` is
-  // perfectly happy with that.
+  // A fresh navigation rather than trusting the in-place refresh's timing --
+  // the account's row lives inside its type's group, which is collapsed by
+  // default since 18 September, so it has to be opened before it can be
+  // found either way.
+  await page.waitForTimeout(1000);
+  await page.goto("/wealth?seg=accounts&who=all", { waitUntil: "networkidle" });
+  await expandAllCollapsedGroups(page);
   await expect(page.locator("body")).toContainText(ACCOUNT, { timeout: 30_000 });
 
   const { ctx, url, headers } = await api();

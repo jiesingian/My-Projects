@@ -8,6 +8,11 @@ import { test, expect, request as playwrightRequest } from "@playwright/test";
  * Accounts and under the Cash Flow group each is measured against, and
  * Accounts lost its IN/OUT/NET summary to the same move.
  *
+ * 18 September went further: every collapsible group on Wealth defaults to
+ * closed now instead of open, the Graph fold was removed outright (the
+ * chart is the tab's default display, not behind a toggle), and its old
+ * hero number plus IN/OUT/NET boxes moved onto the chart itself.
+ *
  * The pure parts of that are pinned in cash-flow-ranges.logic.spec.ts, and
  * they were pinned well. What no test looked at is whether the page is
  * actually wired to any of it -- and a move is precisely where a control goes
@@ -47,18 +52,20 @@ async function whoAmI() {
 
 test("the graph range picker offers Days, and choosing it regroups the strip", async ({ page }) => {
   // "day" was added to CASH_FLOW_RANGES on 10 September. The function knows
-  // about it; this is whether the page hands it to anybody.
+  // about it; this is whether the page hands it to anybody. The graph no
+  // longer titles its strip "BY {RANGE}" (18 September's redesign folded
+  // that into the chart itself), so what proves a regroup happened -- not
+  // just a label change -- is the caption naming the new period noun,
+  // fetched fresh from the server on each range.
   await page.goto("/wealth?seg=cashflow&who=all", { waitUntil: "networkidle" });
 
-  // Months is the default, and the strip is titled after whatever is picked.
-  await expect(page.getByText("BY MONTHS", { exact: true })).toBeVisible();
+  await expect(page.getByText(/this month/i)).toBeVisible();
 
   await page.getByRole("button", { name: "Choose graph range" }).click();
   await page.getByRole("menuitemradio", { name: "Days", exact: true }).click();
   await page.waitForURL(/range=day/);
 
-  await expect(page.getByText("BY DAYS", { exact: true }), "the strip should regroup, not just change the label").toBeVisible();
-  await expect(page.getByText(/grouped by days/i)).toBeVisible();
+  await expect(page.getByText(/this day/i), "the strip should regroup, not just change the label").toBeVisible();
 });
 
 test("Accounts kept a range picker of its own", async ({ page }) => {
@@ -77,14 +84,22 @@ test("the budget ceiling moved to Cash Flow, under the spend it caps", async ({ 
   // It used to be on Accounts. The point of the move is that the control sits
   // next to the number it governs, so both halves are checked: it is here,
   // and it is inside EXPENSES rather than merely somewhere on the page.
+  //
+  // EXPENSES is collapsed on first load now (18 September), so this also
+  // confirms the closed state first -- the control genuinely isn't on the
+  // page yet, not just hidden by CSS -- before opening the group to find it.
   await page.goto("/wealth?seg=cashflow&who=all", { waitUntil: "networkidle" });
+  const expenses = page.getByRole("button", { name: "EXPENSES", exact: true });
+  await expect(expenses).toHaveAttribute("aria-expanded", "false");
+  await expect(page.getByText("SPENT OF BUDGET")).toBeHidden();
 
+  await expenses.click();
   await expect(page.getByText("SPENT OF BUDGET")).toBeVisible();
   await expect(page.getByRole("button", { name: "SET BUDGET" })).toBeVisible();
 
   // Collapsing EXPENSES should take the budget control with it -- which is
   // what proves it is in that group rather than sitting after it.
-  await page.getByRole("button", { name: "EXPENSES", exact: true }).click();
+  await expenses.click();
   await expect(page.getByRole("button", { name: "SET BUDGET" })).toBeHidden();
 
   await expect(page.getByRole("button", { name: "SET BUDGET" }).or(page.getByText("SPENT OF BUDGET"))).toHaveCount(0);
@@ -93,11 +108,15 @@ test("the budget ceiling moved to Cash Flow, under the spend it caps", async ({ 
 test("the personal target moved to Cash Flow, under the income it measures", async ({ page }) => {
   const me = await whoAmI();
   await page.goto(`/wealth?seg=cashflow&who=${me}`, { waitUntil: "networkidle" });
+  const income = page.getByRole("button", { name: "INCOME", exact: true });
+  await expect(income).toHaveAttribute("aria-expanded", "false");
+  await expect(page.getByText("EARNED OF TARGET")).toBeHidden();
 
+  await income.click();
   await expect(page.getByText("EARNED OF TARGET")).toBeVisible();
   await expect(page.getByRole("button", { name: "SET TARGET" })).toBeVisible();
 
-  await page.getByRole("button", { name: "INCOME", exact: true }).click();
+  await income.click();
   await expect(page.getByRole("button", { name: "SET TARGET" })).toBeHidden();
 });
 
@@ -113,19 +132,25 @@ test("Accounts no longer carries the IN/OUT/NET summary", async ({ page }) => {
   await expect(page.getByText("NET", { exact: true }), "and gone from Accounts").toHaveCount(0);
 });
 
-test("a collapsed group stays out of the way and comes back", async ({ page }) => {
+test("the graph is no longer a collapsible group -- it's the tab's default display", async ({ page }) => {
+  // 18 September: the "GRAPH" fold was removed outright, not just defaulted
+  // closed like Income and Expenses. The chart and its range picker are
+  // always on the page, with no toggle to hide them.
   await page.goto("/wealth?seg=cashflow&who=all", { waitUntil: "networkidle" });
-  const graph = page.getByRole("button", { name: "GRAPH", exact: true });
 
-  // Open by default: nothing that used to be visible collapses on first load.
-  await expect(graph).toHaveAttribute("aria-expanded", "true");
+  await expect(page.getByRole("button", { name: "GRAPH", exact: true })).toHaveCount(0);
   await expect(page.getByRole("button", { name: "Choose graph range" })).toBeVisible();
+});
 
-  await graph.click();
-  await expect(graph).toHaveAttribute("aria-expanded", "false");
-  await expect(page.getByRole("button", { name: "Choose graph range" })).toBeHidden();
+test("Income and Expenses start collapsed, and each still toggles", async ({ page }) => {
+  await page.goto("/wealth?seg=cashflow&who=all", { waitUntil: "networkidle" });
 
-  await graph.click();
-  await expect(graph).toHaveAttribute("aria-expanded", "true");
-  await expect(page.getByRole("button", { name: "Choose graph range" })).toBeVisible();
+  for (const title of ["INCOME", "EXPENSES"]) {
+    const group = page.getByRole("button", { name: title, exact: true });
+    await expect(group, `${title} should start closed`).toHaveAttribute("aria-expanded", "false");
+    await group.click();
+    await expect(group).toHaveAttribute("aria-expanded", "true");
+    await group.click();
+    await expect(group).toHaveAttribute("aria-expanded", "false");
+  }
 });

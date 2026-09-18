@@ -1,4 +1,5 @@
 import { test, expect, request as playwrightRequest, type Locator, type Page } from "@playwright/test";
+import { expandAllCollapsedGroups } from "./support/collapsible-groups";
 
 /** Putting money into a savings goal, through the app rather than around it.
  *
@@ -64,6 +65,8 @@ async function goalAgainstLedger(): Promise<{ stored: number; fromLedger: number
  * title is on the page rather than trusting the URL to be the right one. */
 async function openTheGoal(page: Page) {
   await page.goto("/wealth?seg=assets", { waitUntil: "networkidle" });
+  // ASSETS (where goals live) starts collapsed since 18 September.
+  await expandAllCollapsedGroups(page);
   await expect(page.locator("body")).toContainText(TITLE);
 }
 

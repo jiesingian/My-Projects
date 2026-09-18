@@ -1,4 +1,5 @@
 import { test, expect, request as playwrightRequest, type Locator, type Page } from "@playwright/test";
+import { expandAllCollapsedGroups } from "./support/collapsible-groups";
 
 /** The Who picker in the app, on the three tabs that offer one.
  *
@@ -98,13 +99,16 @@ test("naming a person keeps the way to put money into their goal", async ({ page
   const me = await meAndFamily();
 
   // Everyone first: the control is there, which is what makes the comparison
-  // below mean something rather than being a test of an absent goal.
+  // below mean something rather than being a test of an absent goal. ASSETS
+  // (where goals live) starts collapsed since 18 September.
   await page.goto("/wealth?seg=assets&who=all", { waitUntil: "networkidle" });
+  await expandAllCollapsedGroups(page);
   const everyoneCard = page.locator("div").filter({ hasText: GOAL }).filter({ has: page.getByRole("button", { name: /PUT MONEY IN/i }) }).last();
   await expect(everyoneCard).toBeVisible();
 
   // Then my own tab, where the goal is mine and must behave the same.
   await page.goto(`/wealth?seg=assets&who=${me.id}`, { waitUntil: "networkidle" });
+  await expandAllCollapsedGroups(page);
   await expect(page.locator("body"), "my own goal should be on my own tab").toContainText(GOAL);
 
   // The card has to be re-found after the click rather than held onto: the

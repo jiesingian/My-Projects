@@ -1,5 +1,6 @@
 import { test, expect, type Page } from "@playwright/test";
 import { tidyUpAfter } from "./support/qa-household";
+import { expandAllCollapsedGroups } from "./support/collapsible-groups";
 
 /** Removing things, which is where losing things lives.
  *
@@ -88,7 +89,9 @@ test.describe("removing things", () => {
       await page.waitForURL((u) => new URL(u).pathname !== "/wealth/add", { timeout: 30_000 });
     }
 
+    // ASSETS (where goals live) starts collapsed since 18 September.
     await page.goto("/wealth?seg=assets", { waitUntil: "networkidle" });
+    await expandAllCollapsedGroups(page);
     await expect(page.locator("body")).toContainText(doomed);
     await expect(page.locator("body")).toContainText(keeper);
 
@@ -104,6 +107,7 @@ test.describe("removing things", () => {
     await page.waitForTimeout(3000);
 
     await page.goto("/wealth?seg=assets", { waitUntil: "networkidle" });
+    await expandAllCollapsedGroups(page);
     await expect(page.locator("body"), "the deleted goal is still listed").not.toContainText(doomed);
     await expect(page.locator("body"), "deleting one goal deleted another").toContainText(keeper);
     expect(alerts, "the app reported an error while deleting").toEqual([]);
