@@ -67,7 +67,7 @@ export function GalleryTile({
       >
         {showImage ? (
           // eslint-disable-next-line @next/next/no-img-element
-          <img src={url} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} onError={() => setBroken(true)} />
+          <img src={url} alt={`Photo from ${date}`} style={{ width: "100%", height: "100%", objectFit: "cover" }} onError={() => setBroken(true)} />
         ) : (
           <Icon name={mediaType === "video" ? "images" : "hardDrive"} size={22} className="text-[var(--color-neutral-600)]" />
         )}
@@ -121,7 +121,7 @@ export function GalleryTile({
             <video src={url} controls autoPlay style={{ maxWidth: "100%", maxHeight: "100%" }} onClick={(e) => e.stopPropagation()} />
           ) : (
             // eslint-disable-next-line @next/next/no-img-element
-            <img src={url} alt="" style={{ maxWidth: "100%", maxHeight: "100%", objectFit: "contain" }} onClick={(e) => e.stopPropagation()} />
+            <img src={url} alt={`Photo from ${date}`} style={{ maxWidth: "100%", maxHeight: "100%", objectFit: "contain" }} onClick={(e) => e.stopPropagation()} />
           )}
           {viewLink && (
             <a

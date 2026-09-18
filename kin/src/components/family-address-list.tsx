@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useId, useState } from "react";
 import { useRouter } from "next/navigation";
 import { addFamilyAddressAction, updateFamilyAddressAction, removeFamilyAddressAction, type FamilyAddressFields } from "@/lib/actions/family";
 import { confirm } from "@/components/confirm-sheet";
@@ -70,49 +70,50 @@ function AddressForm({
   onSave: () => void;
   saveLabel: string;
 }) {
+  const uid = useId();
   return (
     <div style={{ marginTop: 10, marginBottom: 10 }}>
       <div className="field" style={{ marginBottom: 8 }}>
-        <label>TAG</label>
-        <input aria-label="Tag" className="input" placeholder="Home" value={fields.label} onChange={(e) => set("label", e.target.value)} style={{ minHeight: 40 }} disabled={busy} />
+        <label htmlFor={`${uid}-label`}>TAG</label>
+        <input id={`${uid}-label`} aria-label="Tag" className="input" placeholder="Home" value={fields.label} onChange={(e) => set("label", e.target.value)} style={{ minHeight: 40 }} disabled={busy} />
       </div>
       <div style={{ display: "flex", gap: 8, marginBottom: 8 }}>
         <div className="field" style={{ flex: 1 }}>
-          <label>HOUSE / UNIT NO.</label>
-          <input aria-label="House / Unit No." className="input" value={fields.houseNo} onChange={(e) => set("houseNo", e.target.value)} style={{ minHeight: 40 }} disabled={busy} />
+          <label htmlFor={`${uid}-house-no`}>HOUSE / UNIT NO.</label>
+          <input id={`${uid}-house-no`} aria-label="House / Unit No." className="input" value={fields.houseNo} onChange={(e) => set("houseNo", e.target.value)} style={{ minHeight: 40 }} disabled={busy} />
         </div>
         <div className="field" style={{ flex: 2 }}>
-          <label>BUILDING / SUBDIVISION</label>
-          <input aria-label="Building / Subdivision" className="input" value={fields.building} onChange={(e) => set("building", e.target.value)} style={{ minHeight: 40 }} disabled={busy} />
+          <label htmlFor={`${uid}-building`}>BUILDING / SUBDIVISION</label>
+          <input id={`${uid}-building`} aria-label="Building / Subdivision" className="input" value={fields.building} onChange={(e) => set("building", e.target.value)} style={{ minHeight: 40 }} disabled={busy} />
         </div>
       </div>
       <div className="field" style={{ marginBottom: 8 }}>
-        <label>STREET</label>
-        <input aria-label="Street" className="input" value={fields.street} onChange={(e) => set("street", e.target.value)} style={{ minHeight: 40 }} disabled={busy} />
+        <label htmlFor={`${uid}-street`}>STREET</label>
+        <input id={`${uid}-street`} aria-label="Street" className="input" value={fields.street} onChange={(e) => set("street", e.target.value)} style={{ minHeight: 40 }} disabled={busy} />
       </div>
       <div style={{ display: "flex", gap: 8, marginBottom: 8 }}>
         <div className="field" style={{ flex: 1 }}>
-          <label>BARANGAY</label>
-          <input aria-label="Barangay" className="input" value={fields.barangay} onChange={(e) => set("barangay", e.target.value)} style={{ minHeight: 40 }} disabled={busy} />
+          <label htmlFor={`${uid}-barangay`}>BARANGAY</label>
+          <input id={`${uid}-barangay`} aria-label="Barangay" className="input" value={fields.barangay} onChange={(e) => set("barangay", e.target.value)} style={{ minHeight: 40 }} disabled={busy} />
         </div>
         <div className="field" style={{ flex: 1 }}>
-          <label>CITY / MUNICIPALITY</label>
-          <input aria-label="City / Municipality" className="input" value={fields.city} onChange={(e) => set("city", e.target.value)} style={{ minHeight: 40 }} disabled={busy} />
+          <label htmlFor={`${uid}-city`}>CITY / MUNICIPALITY</label>
+          <input id={`${uid}-city`} aria-label="City / Municipality" className="input" value={fields.city} onChange={(e) => set("city", e.target.value)} style={{ minHeight: 40 }} disabled={busy} />
         </div>
       </div>
       <div style={{ display: "flex", gap: 8, marginBottom: 8 }}>
         <div className="field" style={{ flex: 1 }}>
-          <label>PROVINCE</label>
-          <input aria-label="Province" className="input" value={fields.province} onChange={(e) => set("province", e.target.value)} style={{ minHeight: 40 }} disabled={busy} />
+          <label htmlFor={`${uid}-province`}>PROVINCE</label>
+          <input id={`${uid}-province`} aria-label="Province" className="input" value={fields.province} onChange={(e) => set("province", e.target.value)} style={{ minHeight: 40 }} disabled={busy} />
         </div>
         <div className="field" style={{ width: 110 }}>
-          <label>ZIP CODE</label>
-          <input aria-label="Zip Code" className="input" value={fields.zipCode} onChange={(e) => set("zipCode", e.target.value)} style={{ minHeight: 40 }} disabled={busy} />
+          <label htmlFor={`${uid}-zip`}>ZIP CODE</label>
+          <input id={`${uid}-zip`} aria-label="Zip Code" className="input" value={fields.zipCode} onChange={(e) => set("zipCode", e.target.value)} style={{ minHeight: 40 }} disabled={busy} />
         </div>
       </div>
       <div className="field" style={{ marginBottom: 8 }}>
-        <label>COUNTRY</label>
-        <input aria-label="Country" className="input" value={fields.country} onChange={(e) => set("country", e.target.value)} style={{ minHeight: 40 }} disabled={busy} />
+        <label htmlFor={`${uid}-country`}>COUNTRY</label>
+        <input id={`${uid}-country`} aria-label="Country" className="input" value={fields.country} onChange={(e) => set("country", e.target.value)} style={{ minHeight: 40 }} disabled={busy} />
       </div>
       {error && <p style={{ color: "var(--color-accent-700)", fontSize: 13, margin: "0 0 8px" }}>{error}</p>}
       <div style={{ display: "flex", gap: 8 }}>

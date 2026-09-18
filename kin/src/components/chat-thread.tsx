@@ -183,7 +183,7 @@ export function ChatThread({
               <div style={{ display: "flex", gap: 8, justifyContent: mine ? "flex-end" : "flex-start", marginTop: runStart ? 8 : 2 }}>
                 {!mine && (
                   <span style={{ width: 28, flex: "none" }}>
-                    {runStart && <Avatar url={author?.photoUrl ?? null} initials={author?.initials ?? "?"} size={28} />}
+                    {runStart && <Avatar url={author?.photoUrl ?? null} initials={author?.initials ?? "?"} label={author?.label ?? "Someone"} size={28} />}
                   </span>
                 )}
 
@@ -379,7 +379,7 @@ export function ChatThread({
                   fontSize: 13.5,
                 }}
               >
-                <Avatar url={m.photoUrl} initials={m.initials} size={22} />
+                <Avatar url={m.photoUrl} initials={m.initials} label={m.label} size={22} />
                 {m.label}
               </button>
             ))}

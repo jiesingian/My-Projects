@@ -72,7 +72,7 @@ export function PhotoAlbumViewer({
             ‹
           </button>
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={current.url} alt="" style={imgStyle} />
+          <img src={current.url} alt={`Photo ${index + 1} of ${photos.length}`} style={imgStyle} />
           <button type="button" aria-label="Next" disabled={photos.length < 2} onClick={() => setIndex((i) => (i + 1) % photos.length)} style={navButtonStyle}>
             ›
           </button>

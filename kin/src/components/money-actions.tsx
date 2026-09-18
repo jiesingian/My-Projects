@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useId, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import {
   payBillAction,
@@ -55,18 +55,20 @@ function useMoneyAction() {
 }
 
 function AccountSelect({
+  id,
   accounts,
   value,
   onChange,
   currency,
 }: {
+  id?: string;
   accounts: PickableAccount[];
   value: string;
   onChange: (v: string) => void;
   currency: string;
 }) {
   return (
-    <select className="input" value={value} onChange={(e) => onChange(e.target.value)} style={{ minHeight: 42 }}>
+    <select id={id} className="input" value={value} onChange={(e) => onChange(e.target.value)} style={{ minHeight: 42 }}>
       {accounts.map((a) => (
         <option key={a.id} value={a.id}>
           {a.name} · {formatCurrency(a.balance, currency)}
@@ -98,6 +100,7 @@ export function PayBillControl({ billId, amount, accounts, currency }: { billId:
   const [viaApp, setViaApp] = useState(true);
   const { error, pending, run } = useMoneyAction();
   const account = accounts.find((a) => a.id === accountId);
+  const uid = useId();
 
   if (accounts.length === 0) {
     return <span style={{ fontSize: 12.5, color: "var(--color-neutral-600)" }}>Add an account first</span>;
@@ -115,12 +118,12 @@ export function PayBillControl({ billId, amount, accounts, currency }: { billId:
     <div style={{ marginTop: 10, paddingTop: 10, borderTop: "1px solid var(--color-divider)", textAlign: "left" }}>
       <Err message={error} />
       <div className="field" style={{ marginBottom: 8 }}>
-        <label>PAY FROM</label>
-        <AccountSelect accounts={accounts} value={accountId} onChange={setAccountId} currency={currency} />
+        <label htmlFor={`${uid}-account`}>PAY FROM</label>
+        <AccountSelect id={`${uid}-account`} accounts={accounts} value={accountId} onChange={setAccountId} currency={currency} />
       </div>
       <div className="field" style={{ marginBottom: 8 }}>
-        <label>AMOUNT (₱)</label>
-        <input aria-label="Amount (₱)" className="input" type="number" step="0.01" value={payAmount} onChange={(e) => setPayAmount(Number(e.target.value))} style={{ minHeight: 42 }} />
+        <label htmlFor={`${uid}-amount`}>AMOUNT (₱)</label>
+        <input id={`${uid}-amount`} aria-label="Amount (₱)" className="input" type="number" step="0.01" value={payAmount} onChange={(e) => setPayAmount(Number(e.target.value))} style={{ minHeight: 42 }} />
       </div>
       <ViaAppToggle checked={viaApp} onChange={setViaApp} account={account} />
       <div style={{ display: "flex", gap: 8 }}>
@@ -148,6 +151,7 @@ export function ReceiveIncomeControl({ scheduleId, amount, accounts, currency }:
   const [viaApp, setViaApp] = useState(true);
   const { error, pending, run } = useMoneyAction();
   const account = accounts.find((a) => a.id === accountId);
+  const uid = useId();
 
   if (accounts.length === 0) {
     return <span style={{ fontSize: 12.5, color: "var(--color-neutral-600)" }}>Add an account first</span>;
@@ -165,12 +169,12 @@ export function ReceiveIncomeControl({ scheduleId, amount, accounts, currency }:
     <div style={{ marginTop: 10, paddingTop: 10, borderTop: "1px solid var(--color-divider)", textAlign: "left" }}>
       <Err message={error} />
       <div className="field" style={{ marginBottom: 8 }}>
-        <label>INTO</label>
-        <AccountSelect accounts={accounts} value={accountId} onChange={setAccountId} currency={currency} />
+        <label htmlFor={`${uid}-account`}>INTO</label>
+        <AccountSelect id={`${uid}-account`} accounts={accounts} value={accountId} onChange={setAccountId} currency={currency} />
       </div>
       <div className="field" style={{ marginBottom: 8 }}>
-        <label>AMOUNT (₱)</label>
-        <input aria-label="Amount (₱)" className="input" type="number" step="0.01" value={receiveAmount} onChange={(e) => setReceiveAmount(Number(e.target.value))} style={{ minHeight: 42 }} />
+        <label htmlFor={`${uid}-amount`}>AMOUNT (₱)</label>
+        <input id={`${uid}-amount`} aria-label="Amount (₱)" className="input" type="number" step="0.01" value={receiveAmount} onChange={(e) => setReceiveAmount(Number(e.target.value))} style={{ minHeight: 42 }} />
       </div>
       <ViaAppToggle checked={viaApp} onChange={setViaApp} account={account} />
       <div style={{ display: "flex", gap: 8 }}>
@@ -203,6 +207,7 @@ export function GoalContributeControl({ goalId, accounts, currency }: { goalId: 
   const [viaApp, setViaApp] = useState(true);
   const { error, pending, run } = useMoneyAction();
   const account = accounts.find((a) => a.id === accountId);
+  const uid = useId();
 
   if (accounts.length === 0) return null;
 
@@ -219,12 +224,12 @@ export function GoalContributeControl({ goalId, accounts, currency }: { goalId: 
       <Err message={error} />
       <div style={{ display: "flex", gap: 8, marginBottom: 8 }}>
         <div className="field" style={{ flex: 1, margin: 0 }}>
-          <label>FROM</label>
-          <AccountSelect accounts={accounts} value={accountId} onChange={setAccountId} currency={currency} />
+          <label htmlFor={`${uid}-account`}>FROM</label>
+          <AccountSelect id={`${uid}-account`} accounts={accounts} value={accountId} onChange={setAccountId} currency={currency} />
         </div>
         <div className="field" style={{ width: 110, margin: 0 }}>
-          <label>AMOUNT</label>
-          <input aria-label="Amount" className="input" type="number" step="0.01" value={amount} onChange={(e) => setAmount(Number(e.target.value))} style={{ minHeight: 42 }} />
+          <label htmlFor={`${uid}-amount`}>AMOUNT</label>
+          <input id={`${uid}-amount`} aria-label="Amount" className="input" type="number" step="0.01" value={amount} onChange={(e) => setAmount(Number(e.target.value))} style={{ minHeight: 42 }} />
         </div>
       </div>
       <ViaAppToggle checked={viaApp} onChange={setViaApp} account={account} />
@@ -272,6 +277,7 @@ export function LogSpendControl({
   const [accountId, setAccountId] = useState(accounts[0]?.id ?? "");
   const [amount, setAmount] = useState(suggested ?? 0);
   const { error, pending, run } = useMoneyAction();
+  const uid = useId();
 
   if (accounts.length === 0) return null;
 
@@ -288,12 +294,12 @@ export function LogSpendControl({
       <Err message={error} />
       <div style={{ display: "flex", gap: 8, marginBottom: 8 }}>
         <div className="field" style={{ flex: 1, margin: 0 }}>
-          <label>PAID FROM</label>
-          <AccountSelect accounts={accounts} value={accountId} onChange={setAccountId} currency={currency} />
+          <label htmlFor={`${uid}-account`}>PAID FROM</label>
+          <AccountSelect id={`${uid}-account`} accounts={accounts} value={accountId} onChange={setAccountId} currency={currency} />
         </div>
         <div className="field" style={{ width: 110, margin: 0 }}>
-          <label>AMOUNT</label>
-          <input aria-label="Amount" className="input" type="number" step="0.01" value={amount} onChange={(e) => setAmount(Number(e.target.value))} style={{ minHeight: 42 }} />
+          <label htmlFor={`${uid}-amount`}>AMOUNT</label>
+          <input id={`${uid}-amount`} aria-label="Amount" className="input" type="number" step="0.01" value={amount} onChange={(e) => setAmount(Number(e.target.value))} style={{ minHeight: 42 }} />
         </div>
       </div>
       <div style={{ display: "flex", gap: 8 }}>

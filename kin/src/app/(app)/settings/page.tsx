@@ -87,7 +87,7 @@ export default async function SettingsPage({
       <div style={{ padding: "0 22px 22px" }}>
         <Link href={`/family/members/${me.id}`} style={{ textDecoration: "none", color: "inherit" }}>
           <Blueprint style={{ padding: 14, display: "flex", gap: 13, alignItems: "center", marginBottom: 22 }}>
-            <Avatar url={me.avatar_url} initials={initials(me.full_name)} size={48} />
+            <Avatar url={me.avatar_url} initials={initials(me.full_name)} label={me.full_name} size={48} />
             <span style={{ flex: 1, minWidth: 0 }}>
               <span style={{ font: "600 20px/1.05 var(--font-heading)", display: "block" }}>{me.full_name}</span>
               <span style={{ fontSize: 13, color: "var(--color-neutral-600)" }}>

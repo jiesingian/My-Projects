@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useId } from "react";
 import Link from "next/link";
 import { requestPasswordReset, type ActionState } from "@/lib/actions/auth";
 import { SubmitButton, ErrorText } from "@/components/form";
@@ -10,6 +10,7 @@ const initialState: ActionState = { error: null };
 
 export function ForgotPasswordForm() {
   const [state, formAction] = useActionState(requestPasswordReset, initialState);
+  const uid = useId();
 
   return (
     <OnboardingShell backHref="/login">
@@ -21,8 +22,8 @@ export function ForgotPasswordForm() {
       <form action={formAction}>
         <ErrorText message={state.error} />
         <div className="field" style={{ marginBottom: 24 }}>
-          <label>EMAIL</label>
-          <input aria-label="Email" className="input" type="email" name="email" required autoComplete="email" autoFocus />
+          <label htmlFor={`${uid}-email`}>EMAIL</label>
+          <input id={`${uid}-email`} aria-label="Email" className="input" type="email" name="email" required autoComplete="email" autoFocus />
         </div>
         <SubmitButton style={{ minHeight: 46, fontSize: 15, letterSpacing: ".04em" }}>
           SEND RESET CODE

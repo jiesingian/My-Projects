@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useState } from "react";
+import { useActionState, useId, useState } from "react";
 import { addManagedChildAction, addChildWithLoginAction } from "@/lib/actions/family";
 import type { ActionState } from "@/lib/actions/auth";
 import { SubmitButton, ErrorText } from "@/components/form";
@@ -17,6 +17,7 @@ export function AddChildForm() {
   const [withLogin, setWithLogin] = useState(false);
   const [state] = useActionState(addManagedChildAction, initialState);
   const [error, setError] = useState<string | null>(null);
+  const uid = useId();
 
   if (!open) {
     return (
@@ -44,17 +45,17 @@ export function AddChildForm() {
     >
       <ErrorText message={error ?? state.error} />
       <div className="field" style={{ marginBottom: 12 }}>
-        <label>CHILD&apos;S NAME</label>
-        <input aria-label="Child's name" className="input" name="full_name" required style={{ minHeight: 44 }} />
+        <label htmlFor={`${uid}-full-name`}>CHILD&apos;S NAME</label>
+        <input id={`${uid}-full-name`} aria-label="Child's name" className="input" name="full_name" required style={{ minHeight: 44 }} />
       </div>
       <div style={{ display: "flex", gap: 12, marginBottom: 14 }}>
         <div className="field" style={{ flex: 1 }}>
-          <label>DATE OF BIRTH</label>
-          <DateInput aria-label="Date of birth" className="input" name="dob" required style={{ minHeight: 44 }} />
+          <label htmlFor={`${uid}-dob`}>DATE OF BIRTH</label>
+          <DateInput id={`${uid}-dob`} aria-label="Date of birth" className="input" name="dob" required style={{ minHeight: 44 }} />
         </div>
         <div className="field" style={{ flex: 1 }}>
-          <label>RELATIONSHIP</label>
-          <input aria-label="Relationship" className="input" name="relationship" defaultValue="child" style={{ minHeight: 44 }} />
+          <label htmlFor={`${uid}-relationship`}>RELATIONSHIP</label>
+          <input id={`${uid}-relationship`} aria-label="Relationship" className="input" name="relationship" defaultValue="child" style={{ minHeight: 44 }} />
         </div>
       </div>
 
@@ -76,12 +77,13 @@ export function AddChildForm() {
       {withLogin && (
         <>
           <div className="field" style={{ marginBottom: 12 }}>
-            <label>THEIR EMAIL</label>
-            <input aria-label="Their email" className="input" type="email" name="email" required autoComplete="off" style={{ minHeight: 44 }} />
+            <label htmlFor={`${uid}-email`}>THEIR EMAIL</label>
+            <input id={`${uid}-email`} aria-label="Their email" className="input" type="email" name="email" required autoComplete="off" style={{ minHeight: 44 }} />
           </div>
           <div className="field" style={{ marginBottom: 12 }}>
-            <label>FIRST PASSWORD</label>
+            <label htmlFor={`${uid}-password`}>FIRST PASSWORD</label>
             <input
+              id={`${uid}-password`}
               aria-label="First password"
               className="input"
               type="password"

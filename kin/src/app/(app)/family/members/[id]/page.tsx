@@ -100,7 +100,7 @@ export default async function MemberDetailPage({
           ) : (
             <>
               <div style={{ display: "flex", gap: 14, alignItems: "flex-end", marginBottom: 18 }}>
-                <Avatar url={member.avatar_url} initials={initials(member.full_name)} size={88} />
+                <Avatar url={member.avatar_url} initials={initials(member.full_name)} label={member.full_name} size={88} />
                 <div>
                   <div style={{ font: "600 34px/.98 var(--font-heading)" }}>{member.full_name}</div>
                   <div style={{ fontSize: 13.5, color: "var(--color-neutral-600)", marginTop: 4 }}>
@@ -143,7 +143,7 @@ export default async function MemberDetailPage({
           )
         ) : (
           <div style={{ display: "flex", gap: 14, alignItems: "flex-end", marginBottom: 18 }}>
-            <Avatar url={member.avatar_url} initials={initials(member.full_name)} size={64} />
+            <Avatar url={member.avatar_url} initials={initials(member.full_name)} label={member.full_name} size={64} />
             <div>
               <div style={{ font: "600 26px/.98 var(--font-heading)" }}>{member.full_name}</div>
               <div style={{ fontSize: 13.5, color: "var(--color-neutral-600)", marginTop: 4 }}>

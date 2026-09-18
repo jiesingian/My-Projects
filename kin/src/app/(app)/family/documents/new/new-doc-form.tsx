@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useId, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createDocEntryAction, attachDocFileAction } from "@/lib/actions/documents";
 import { uploadFileDirect, rollbackUpload, type UploadedFile } from "@/lib/upload-client";
@@ -21,6 +21,7 @@ export function NewDocForm({
   defaultFolderId?: string;
   myRole: string;
 }) {
+  const uid = useId();
   const VISIBILITY = visibilityOptions(myRole);
   const [folderId, setFolderId] = useState(defaultFolderId ?? folders[0]?.id ?? "__new__");
   const [visibility, setVisibility] = useState("family");
@@ -104,8 +105,8 @@ export function NewDocForm({
           </div>
 
           <div className="field" style={{ marginBottom: 14 }}>
-            <label>ENTRY TITLE</label>
-            <input aria-label="Entry Title" className="input" name="title" required maxLength={150} style={{ minHeight: 44 }} />
+            <label htmlFor={`${uid}-title`}>ENTRY TITLE</label>
+            <input id={`${uid}-title`} aria-label="Entry Title" className="input" name="title" required maxLength={150} style={{ minHeight: 44 }} />
           </div>
 
           <div style={{ fontSize: 13, color: "var(--color-neutral-700)", marginBottom: 6 }}>Folder</div>
@@ -121,15 +122,15 @@ export function NewDocForm({
           </div>
           {folderId === "__new__" && (
             <div className="field" style={{ marginBottom: 16 }}>
-              <label>NEW FOLDER NAME</label>
-              <input aria-label="New Folder Name" className="input" name="new_folder_name" placeholder="e.g. Insurance policies" required maxLength={100} style={{ minHeight: 44 }} />
+              <label htmlFor={`${uid}-new-folder-name`}>NEW FOLDER NAME</label>
+              <input id={`${uid}-new-folder-name`} aria-label="New Folder Name" className="input" name="new_folder_name" placeholder="e.g. Insurance policies" required maxLength={100} style={{ minHeight: 44 }} />
             </div>
           )}
 
           <div style={{ display: "flex", gap: 12, marginBottom: 16 }}>
             <div className="field" style={{ flex: 1 }}>
-              <label>BELONGS TO</label>
-              <select aria-label="Belongs To" className="input" name="owner_member_id" style={{ minHeight: 44 }}>
+              <label htmlFor={`${uid}-owner`}>BELONGS TO</label>
+              <select id={`${uid}-owner`} aria-label="Belongs To" className="input" name="owner_member_id" style={{ minHeight: 44 }}>
                 <option value="">Whole family</option>
                 {members.map((m) => (
                   <option key={m.id} value={m.id}>
@@ -139,19 +140,19 @@ export function NewDocForm({
               </select>
             </div>
             <div className="field" style={{ flex: 1 }}>
-              <label>EXPIRES</label>
-              <DateInput aria-label="Expires" className="input" name="expires_at" style={{ minHeight: 44 }} />
+              <label htmlFor={`${uid}-expires`}>EXPIRES</label>
+              <DateInput id={`${uid}-expires`} aria-label="Expires" className="input" name="expires_at" style={{ minHeight: 44 }} />
             </div>
           </div>
 
           <div style={{ display: "flex", gap: 12, marginBottom: 16 }}>
             <div className="field" style={{ flex: 1 }}>
-              <label>DOCUMENT TYPE</label>
-              <input aria-label="Document Type" className="input" name="doc_type" placeholder="e.g. Application form" maxLength={50} style={{ minHeight: 44 }} />
+              <label htmlFor={`${uid}-doc-type`}>DOCUMENT TYPE</label>
+              <input id={`${uid}-doc-type`} aria-label="Document Type" className="input" name="doc_type" placeholder="e.g. Application form" maxLength={50} style={{ minHeight: 44 }} />
             </div>
             <div className="field" style={{ flex: 1 }}>
-              <label>REFERENCE NO.</label>
-              <input aria-label="Reference No." className="input" name="reference_no" placeholder="Optional" maxLength={100} style={{ minHeight: 44 }} />
+              <label htmlFor={`${uid}-reference-no`}>REFERENCE NO.</label>
+              <input id={`${uid}-reference-no`} aria-label="Reference No." className="input" name="reference_no" placeholder="Optional" maxLength={100} style={{ minHeight: 44 }} />
             </div>
           </div>
 
@@ -165,8 +166,8 @@ export function NewDocForm({
           </div>
 
           <div className="field" style={{ marginBottom: 18 }}>
-            <label>NOTE</label>
-            <input aria-label="Note" className="input" name="note" placeholder="Anything worth remembering" maxLength={1000} style={{ minHeight: 44 }} />
+            <label htmlFor={`${uid}-note`}>NOTE</label>
+            <input id={`${uid}-note`} aria-label="Note" className="input" name="note" placeholder="Anything worth remembering" maxLength={1000} style={{ minHeight: 44 }} />
           </div>
 
           <button type="submit" className="btn btn-primary btn-block" style={{ minHeight: 46, fontSize: 14, letterSpacing: ".04em" }} disabled={saving}>

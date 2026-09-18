@@ -74,7 +74,7 @@ async function ProfilePane({ familyId, isOrganiser, myId, myRole }: { familyId: 
           </div>
           {pending.map((m) => (
             <Blueprint key={m.id} className="bg-[var(--color-accent-100)]" style={{ padding: 12, marginBottom: 10, display: "flex", alignItems: "center", gap: 12 }}>
-              <Avatar url={m.avatar_url} initials={initials(m.full_name)} size={40} />
+              <Avatar url={m.avatar_url} initials={initials(m.full_name)} label={m.full_name} size={40} />
               <span style={{ flex: 1, minWidth: 0 }}>
                 <span style={{ font: "600 15px/1.1 var(--font-heading)", display: "block" }}>{m.full_name}</span>
                 <span style={{ fontSize: 13, color: "var(--color-neutral-600)" }}>
@@ -102,7 +102,7 @@ async function ProfilePane({ familyId, isOrganiser, myId, myRole }: { familyId: 
           }}
         >
           <Link href={`/family/members/${m.id}`} style={{ display: "flex", gap: 12, alignItems: "center", flex: 1, minWidth: 0, textDecoration: "none", color: "inherit" }}>
-            <Avatar url={m.avatar_url} initials={initials(m.full_name)} size={44} />
+            <Avatar url={m.avatar_url} initials={initials(m.full_name)} label={m.full_name} size={44} />
             <span style={{ flex: 1, minWidth: 0 }}>
               <span style={{ font: "600 18px/1.1 var(--font-heading)", display: "block" }}>{m.full_name}</span>
               <span style={{ fontSize: 13, color: "var(--color-neutral-600)" }}>

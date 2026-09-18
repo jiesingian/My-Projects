@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useId } from "react";
 import Link from "next/link";
 import { redeemCodeForHouseholdAction } from "@/lib/actions/billing";
 import type { ActionState } from "@/lib/actions/auth";
@@ -42,6 +42,7 @@ export function SubscribeScreen({
   allowed: boolean;
 }) {
   const [state, formAction] = useActionState(redeemCodeForHouseholdAction, initialState);
+  const uid = useId();
 
   return (
     <OnboardingShell backHref={allowed ? "/today" : undefined}>
@@ -88,8 +89,9 @@ export function SubscribeScreen({
           <form action={formAction}>
             <ErrorText message={state.error} />
             <div className="field" style={{ marginBottom: 14 }}>
-              <label>ACCESS CODE</label>
+              <label htmlFor={`${uid}-code`}>ACCESS CODE</label>
               <input
+                id={`${uid}-code`}
                 aria-label="Access code"
                 className="input"
                 name="code"

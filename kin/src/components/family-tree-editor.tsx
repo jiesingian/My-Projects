@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useId, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   addTreeMemberAction,
@@ -37,10 +37,11 @@ function LinkPicker({
   excludeId: string;
   disabled: boolean;
 }) {
+  const uid = useId();
   return (
     <div className="field" style={{ marginBottom: 8 }}>
-      <label>{label}</label>
-      <select className="input" value={value} onChange={(e) => onChange(e.target.value)} style={{ minHeight: 40 }} disabled={disabled}>
+      <label htmlFor={uid}>{label}</label>
+      <select id={uid} className="input" value={value} onChange={(e) => onChange(e.target.value)} style={{ minHeight: 40 }} disabled={disabled}>
         <option value="">Not recorded</option>
         {people
           .filter((p) => p.id !== excludeId)
@@ -71,19 +72,20 @@ function PersonForm({
   onSave: () => void;
   saveLabel: string;
 }) {
+  const uid = useId();
   return (
     <div style={{ marginTop: 8, marginBottom: 10 }}>
       <div className="field" style={{ marginBottom: 8 }}>
-        <label>NAME</label>
-        <input aria-label="Name" className="input" value={fields.fullName} onChange={(e) => set("fullName", e.target.value)} style={{ minHeight: 40 }} disabled={busy} />
+        <label htmlFor={`${uid}-name`}>NAME</label>
+        <input id={`${uid}-name`} aria-label="Name" className="input" value={fields.fullName} onChange={(e) => set("fullName", e.target.value)} style={{ minHeight: 40 }} disabled={busy} />
       </div>
       <div className="field" style={{ marginBottom: 8 }}>
-        <label>DATE OF BIRTH (OPTIONAL)</label>
-        <input aria-label="Date of birth" className="input" type="date" value={fields.dob} onChange={(e) => set("dob", e.target.value)} style={{ minHeight: 40 }} disabled={busy} />
+        <label htmlFor={`${uid}-dob`}>DATE OF BIRTH (OPTIONAL)</label>
+        <input id={`${uid}-dob`} aria-label="Date of birth" className="input" type="date" value={fields.dob} onChange={(e) => set("dob", e.target.value)} style={{ minHeight: 40 }} disabled={busy} />
       </div>
       <div className="field" style={{ marginBottom: 8 }}>
-        <label>NOTES (OPTIONAL)</label>
-        <input aria-label="Notes" className="input" placeholder="e.g. Emigrated in 1978" value={fields.notes} onChange={(e) => set("notes", e.target.value)} style={{ minHeight: 40 }} disabled={busy} />
+        <label htmlFor={`${uid}-notes`}>NOTES (OPTIONAL)</label>
+        <input id={`${uid}-notes`} aria-label="Notes" className="input" placeholder="e.g. Emigrated in 1978" value={fields.notes} onChange={(e) => set("notes", e.target.value)} style={{ minHeight: 40 }} disabled={busy} />
       </div>
       {error && <p style={{ color: "var(--color-accent-700)", fontSize: 13, margin: "0 0 8px" }}>{error}</p>}
       <div style={{ display: "flex", gap: 8 }}>

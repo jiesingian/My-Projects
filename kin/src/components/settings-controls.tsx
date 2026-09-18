@@ -1,6 +1,6 @@
 "use client";
 
-import { useTransition } from "react";
+import { useId, useTransition } from "react";
 import { setThemeAction, setTextSizeAction, toggleNotificationAction, updateHouseholdNameAction, updateHouseholdPrefsAction } from "@/lib/actions/settings";
 import { regenerateInviteCodeAction } from "@/lib/actions/family";
 import { disconnectDriveAction } from "@/lib/actions/drive";
@@ -204,6 +204,7 @@ export function HouseholdPrefsForm({
   weekStart: string;
   country: string | null;
 }) {
+  const uid = useId();
   const [c, setC] = useState(currency);
   const [d, setD] = useState(dateFormat);
   const [w, setW] = useState(weekStart);
@@ -244,8 +245,8 @@ export function HouseholdPrefsForm({
           to searching. Blank stays a valid choice: nothing that reads this
           requires it. */}
       <div className="field" style={{ marginBottom: 8 }}>
-        <label>COUNTRY</label>
-        <select className="input" value={k} onChange={(e) => setK(e.target.value)} style={{ minHeight: 40 }}>
+        <label htmlFor={`${uid}-country`}>COUNTRY</label>
+        <select id={`${uid}-country`} className="input" value={k} onChange={(e) => setK(e.target.value)} style={{ minHeight: 40 }}>
           <option value="">— not set —</option>
           {COUNTRIES.map((cc) => (
             <option key={cc.code} value={cc.code}>

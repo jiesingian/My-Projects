@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useId } from "react";
 import Link from "next/link";
 import { signUp, type ActionState } from "@/lib/actions/auth";
 import { PASSWORD_MIN } from "@/lib/password";
@@ -12,6 +12,7 @@ const initialState: ActionState = { error: null };
 
 export default function SignupPage() {
   const [state, formAction] = useActionState(signUp, initialState);
+  const uid = useId();
 
   return (
     <OnboardingShell step="STEP 01 / 05" backHref="/login">
@@ -25,8 +26,9 @@ export default function SignupPage() {
         {/* First field, not last: if the code is wrong there is no reason to
             make them type an email and password before finding out. */}
         <div className="field" style={{ marginBottom: 16 }}>
-          <label>ACCESS CODE</label>
+          <label htmlFor={`${uid}-access-code`}>ACCESS CODE</label>
           <input aria-label="Access Code"
+            id={`${uid}-access-code`}
             className="input"
             name="access_code"
             required
@@ -40,12 +42,13 @@ export default function SignupPage() {
           </span>
         </div>
         <div className="field" style={{ marginBottom: 16 }}>
-          <label>EMAIL</label>
-          <input aria-label="Email" className="input" type="email" name="email" required autoComplete="email" />
+          <label htmlFor={`${uid}-email`}>EMAIL</label>
+          <input id={`${uid}-email`} aria-label="Email" className="input" type="email" name="email" required autoComplete="email" />
         </div>
         <div className="field" style={{ marginBottom: 16 }}>
-          <label>PASSWORD</label>
+          <label htmlFor={`${uid}-password`}>PASSWORD</label>
           <input aria-label="Password"
+            id={`${uid}-password`}
             className="input"
             type="password"
             name="password"

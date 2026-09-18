@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useId, useState } from "react";
 import { deleteHouseholdAction } from "@/lib/actions/family";
 
 export function DeleteHouseholdButton({ householdName }: { householdName: string }) {
@@ -8,6 +8,7 @@ export function DeleteHouseholdButton({ householdName }: { householdName: string
   const [confirmText, setConfirmText] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const uid = useId();
 
   if (!open) {
     return (
@@ -31,10 +32,11 @@ export function DeleteHouseholdButton({ householdName }: { householdName: string
         document index, and everything else in the app. This can&apos;t be undone. Files in Google Drive itself
         are not touched.
       </p>
-      <label style={{ fontSize: 13, color: "var(--color-neutral-700)", display: "block", marginBottom: 4 }}>
+      <label htmlFor={`${uid}-confirm`} style={{ fontSize: 13, color: "var(--color-neutral-700)", display: "block", marginBottom: 4 }}>
         Type <strong>{householdName}</strong> to confirm
       </label>
       <input
+        id={`${uid}-confirm`}
         className="input"
         value={confirmText}
         onChange={(e) => setConfirmText(e.target.value)}

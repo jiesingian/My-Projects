@@ -555,7 +555,7 @@ export function SetBudgetControl({ month, year, current }: { month: number; year
       {/* This used to fail by going quiet, which is exactly what it did when
           it succeeded. */}
       {failed && (
-        <p role="alert" style={{ fontSize: 13, color: "var(--danger, #d33)", alignSelf: "center" }}>
+        <p role="alert" style={{ fontSize: 13, color: "var(--color-accent-700)", alignSelf: "center" }}>
           {failed}
         </p>
       )}
@@ -587,7 +587,7 @@ export function SetTargetControl({ month, year, current }: { month: number; year
       {/* This used to fail by going quiet, which is exactly what it did when
           it succeeded. */}
       {failed && (
-        <p role="alert" style={{ fontSize: 13, color: "var(--danger, #d33)", alignSelf: "center" }}>
+        <p role="alert" style={{ fontSize: 13, color: "var(--color-accent-700)", alignSelf: "center" }}>
           {failed}
         </p>
       )}

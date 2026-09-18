@@ -26,7 +26,7 @@ export function AddToJournalButton({ activityId }: { activityId: string }) {
       {/* Without this the button reported success by going quiet, which is the
           same thing it did when the write failed. */}
       {failed && (
-        <p role="alert" style={{ fontSize: 13, color: "var(--danger, #d33)", marginTop: 6 }}>
+        <p role="alert" style={{ fontSize: 13, color: "var(--color-accent-700)", marginTop: 6 }}>
           {failed}
         </p>
       )}

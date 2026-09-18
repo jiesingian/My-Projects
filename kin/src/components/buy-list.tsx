@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useState, useTransition } from "react";
+import { useActionState, useId, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { addBuyItemAction, toggleBuyItemAction, clearCheckedAction, updateBuyItemAction, removeBuyItemAction } from "@/lib/actions/household";
 import { postHubExpenseAction } from "@/lib/actions/wealth";
@@ -468,6 +468,7 @@ function ClearCheckedPanel({
   const [accountId, setAccountId] = useState(accounts[0]?.id ?? "");
   const [pending, startTransition] = useTransition();
   const router = useRouter();
+  const uid = useId();
 
   function finish(withSpend: boolean) {
     startTransition(async () => {
@@ -501,8 +502,8 @@ function ClearCheckedPanel({
       {accounts.length > 0 && (
         <div style={{ display: "flex", gap: 8, marginBottom: 10 }}>
           <div className="field" style={{ flex: 1, margin: 0 }}>
-            <label>PAID FROM</label>
-            <select aria-label="Paid From" className="input" value={accountId} onChange={(e) => setAccountId(e.target.value)} style={{ minHeight: 40 }}>
+            <label htmlFor={`${uid}-account`}>PAID FROM</label>
+            <select id={`${uid}-account`} aria-label="Paid From" className="input" value={accountId} onChange={(e) => setAccountId(e.target.value)} style={{ minHeight: 40 }}>
               {accounts.map((a) => (
                 <option key={a.id} value={a.id}>
                   {a.name} · {formatCurrency(a.balance, currency)}
@@ -511,8 +512,8 @@ function ClearCheckedPanel({
             </select>
           </div>
           <div className="field" style={{ width: 106, margin: 0 }}>
-            <label>TOTAL</label>
-            <input aria-label="Total" className="input" type="number" step="0.01" value={amount} onChange={(e) => setAmount(Number(e.target.value))} style={{ minHeight: 40 }} />
+            <label htmlFor={`${uid}-total`}>TOTAL</label>
+            <input id={`${uid}-total`} aria-label="Total" className="input" type="number" step="0.01" value={amount} onChange={(e) => setAmount(Number(e.target.value))} style={{ minHeight: 40 }} />
           </div>
         </div>
       )}

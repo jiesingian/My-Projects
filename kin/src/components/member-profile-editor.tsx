@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useId, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Avatar } from "@/components/avatar";
 import { AvatarAlbumViewer } from "@/components/avatar-album-viewer";
@@ -44,6 +44,7 @@ export function MemberProfileEditor({
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const router = useRouter();
+  const uid = useId();
 
   function set<K extends keyof ProfileFields>(key: K, value: ProfileFields[K]) {
     setFields((f) => ({ ...f, [key]: value }));
@@ -76,7 +77,7 @@ export function MemberProfileEditor({
             style={{ all: "unset", cursor: "pointer", display: "block" }}
             aria-label="View profile pictures"
           >
-            <Avatar url={avatarUrl} initials={initials} size={88} />
+            <Avatar url={avatarUrl} initials={initials} label={fullName} size={88} />
           </button>
           {mode === "edit" && <AvatarCropUpload onDone={() => {}} />}
         </div>
@@ -101,8 +102,8 @@ export function MemberProfileEditor({
       ) : (
         <div style={{ marginBottom: 20 }}>
           <div className="field" style={{ marginBottom: 10 }}>
-            <label>FULL NAME</label>
-            <input aria-label="Full Name" className="input" value={fields.full_name} onChange={(e) => set("full_name", e.target.value)} maxLength={100} style={{ minHeight: 44 }} disabled={busy} />
+            <label htmlFor={`${uid}-full-name`}>FULL NAME</label>
+            <input id={`${uid}-full-name`} aria-label="Full Name" className="input" value={fields.full_name} onChange={(e) => set("full_name", e.target.value)} maxLength={100} style={{ minHeight: 44 }} disabled={busy} />
           </div>
           <ProfileFieldsEditor fields={fields} set={set} busy={busy} />
           {error && <p style={{ color: "var(--color-accent-700)", fontSize: 13, margin: "0 0 10px" }}>{error}</p>}

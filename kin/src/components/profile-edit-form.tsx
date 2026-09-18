@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useId, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ProfileFieldsView, ProfileFieldsEditor } from "@/components/profile-fields";
 import { updateOwnProfileAction, updateMemberProfileAction, type ProfileFields } from "@/lib/actions/profile";
@@ -23,6 +23,7 @@ export function ProfileEditForm({
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const router = useRouter();
+  const uid = useId();
 
   function set<K extends keyof ProfileFields>(key: K, value: ProfileFields[K]) {
     setFields((f) => ({ ...f, [key]: value }));
@@ -61,8 +62,8 @@ export function ProfileEditForm({
   return (
     <div style={{ marginBottom: 20 }}>
       <div className="field" style={{ marginBottom: 10 }}>
-        <label>FULL NAME</label>
-        <input aria-label="Full Name" className="input" value={fields.full_name} onChange={(e) => set("full_name", e.target.value)} maxLength={100} style={{ minHeight: 44 }} disabled={busy} />
+        <label htmlFor={`${uid}-full-name`}>FULL NAME</label>
+        <input id={`${uid}-full-name`} aria-label="Full Name" className="input" value={fields.full_name} onChange={(e) => set("full_name", e.target.value)} maxLength={100} style={{ minHeight: 44 }} disabled={busy} />
       </div>
       <ProfileFieldsEditor fields={fields} set={set} busy={busy} />
       {error && <p style={{ color: "var(--color-accent-700)", fontSize: 13, margin: "0 0 10px" }}>{error}</p>}

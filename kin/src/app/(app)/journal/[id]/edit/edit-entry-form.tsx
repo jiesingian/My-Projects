@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useId, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { updateJournalEntryAction, attachJournalMediaAction, deleteJournalMediaAction } from "@/lib/actions/journal";
 import type { getEntry } from "@/lib/queries/journal";
@@ -14,6 +14,7 @@ import { DateInput } from "@/components/date-input";
 type Entry = NonNullable<Awaited<ReturnType<typeof getEntry>>>;
 
 export function EditEntryForm({ entry, members }: { entry: Entry; members: Tables<"members">[] }) {
+  const uid = useId();
   const [people, setPeople] = useState<string[]>(entry.people.map((p) => p.id));
   const [photos, setPhotos] = useState(entry.photos);
   const [previews, setPreviews] = useState<string[]>([]);
@@ -85,12 +86,12 @@ export function EditEntryForm({ entry, members }: { entry: Entry; members: Table
         <form onSubmit={onSubmit}>
           <ErrorText message={error} />
           <div className="field" style={{ marginBottom: 14 }}>
-            <label>TITLE</label>
-            <input aria-label="Title" className="input" name="title" defaultValue={entry.title} required style={{ minHeight: 44 }} />
+            <label htmlFor={`${uid}-title`}>TITLE</label>
+            <input id={`${uid}-title`} aria-label="Title" className="input" name="title" defaultValue={entry.title} required style={{ minHeight: 44 }} />
           </div>
           <div className="field" style={{ marginBottom: 16 }}>
-            <label>DATE</label>
-            <DateInput aria-label="Date" className="input" name="date" defaultValue={entry.entry_date} required style={{ minHeight: 44 }} />
+            <label htmlFor={`${uid}-date`}>DATE</label>
+            <DateInput id={`${uid}-date`} aria-label="Date" className="input" name="date" defaultValue={entry.entry_date} required style={{ minHeight: 44 }} />
           </div>
           <div style={{ fontSize: 13, color: "var(--color-neutral-700)", marginBottom: 6 }}>Who was there</div>
           <div style={{ display: "flex", gap: 7, flexWrap: "wrap", marginBottom: 16 }}>
@@ -110,17 +111,17 @@ export function EditEntryForm({ entry, members }: { entry: Entry; members: Table
             })}
           </div>
           <div className="field" style={{ marginBottom: 16 }}>
-            <label>NOTE</label>
-            <textarea aria-label="Note" className="input" name="note" defaultValue={entry.note ?? ""} placeholder="What happened?" />
+            <label htmlFor={`${uid}-note`}>NOTE</label>
+            <textarea id={`${uid}-note`} aria-label="Note" className="input" name="note" defaultValue={entry.note ?? ""} placeholder="What happened?" />
           </div>
           {photos.length > 0 && (
             <div className="field" style={{ marginBottom: 10 }}>
               <label>PHOTOS</label>
               <div style={{ display: "flex", gap: 5, flexWrap: "wrap" }}>
-                {photos.map((p) => (
+                {photos.map((p, i) => (
                   <div key={p.id} style={{ position: "relative" }}>
                     {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={p.url} alt="" style={{ width: 60, height: 60, objectFit: "cover", border: "1px solid var(--color-divider)" }} />
+                    <img src={p.url} alt={`Photo ${i + 1}`} style={{ width: 60, height: 60, objectFit: "cover", border: "1px solid var(--color-divider)" }} />
                     <button
                       type="button"
                       aria-label="Remove photo"
@@ -137,14 +138,14 @@ export function EditEntryForm({ entry, members }: { entry: Entry; members: Table
             </div>
           )}
           <div className="field" style={{ marginBottom: 10 }}>
-            <label>ADD PHOTOS</label>
-            <input aria-label="Photos" ref={fileRef} type="file" name="files" multiple accept="image/*,video/*" onChange={onFilesChosen} />
+            <label htmlFor={`${uid}-photos`}>ADD PHOTOS</label>
+            <input id={`${uid}-photos`} aria-label="Photos" ref={fileRef} type="file" name="files" multiple accept="image/*,video/*" onChange={onFilesChosen} />
           </div>
           {previews.length > 0 && (
             <div style={{ display: "flex", gap: 5, marginBottom: 8, flexWrap: "wrap" }}>
               {previews.map((url, i) => (
                 // eslint-disable-next-line @next/next/no-img-element
-                <img key={i} src={url} alt="" style={{ width: 60, height: 60, objectFit: "cover", border: "1px solid var(--color-divider)" }} />
+                <img key={i} src={url} alt={`Photo ${i + 1} to upload`} style={{ width: 60, height: 60, objectFit: "cover", border: "1px solid var(--color-divider)" }} />
               ))}
             </div>
           )}
