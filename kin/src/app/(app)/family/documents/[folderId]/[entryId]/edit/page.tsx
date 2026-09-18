@@ -10,11 +10,12 @@ export default async function EditDocPage({ params }: { params: Promise<{ folder
   const { folderId, entryId } = await params;
 
   const supabase = await createClient();
-  const [{ data: entry }, members] = await Promise.all([
+  const [{ data: entry }, { data: folder }, members] = await Promise.all([
     supabase.from("doc_entries").select("*").eq("id", entryId).eq("folder_id", folderId).eq("family_id", me.family_id).maybeSingle(),
+    supabase.from("doc_folders").select("name").eq("id", folderId).eq("family_id", me.family_id).maybeSingle(),
     getMembers(me.family_id),
   ]);
   if (!entry) notFound();
 
-  return <EditDocForm entry={entry} folderId={folderId} members={members} myRole={me.role} />;
+  return <EditDocForm entry={entry} folderId={folderId} folderName={folder?.name ?? "Documents"} members={members} myRole={me.role} />;
 }
