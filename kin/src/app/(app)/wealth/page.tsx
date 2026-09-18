@@ -19,6 +19,7 @@ import { getMembers } from "@/lib/queries/family";
 import { PickButton } from "@/components/pick-button";
 import { AccountPrivacyToggle } from "@/components/money-actions";
 import {
+  ACCOUNT_TYPES,
   ACCOUNT_TYPE_LABELS,
   ASSET_KIND_LABELS,
   LIABILITY_KIND_LABELS,
@@ -36,6 +37,7 @@ import {
 } from "@/lib/wealth";
 import { familyDate, householdDateFormat } from "@/lib/format-family";
 import { CollapsibleGroup } from "@/components/collapsible-group";
+import { CashFlowChart } from "@/components/cashflow-chart";
 
 /* Joint and Mine were the same page twice; they are one Accounts tab now,
    with a Who button of the kind the Planner uses. Bills moved into Cash
@@ -132,27 +134,6 @@ function DeltaBadge({ change, currency, noun }: { change: ReturnType<typeof peri
         {up ? "up" : "down"} from {noun}
       </span>
     </span>
-  );
-}
-
-function FlowRow({ income, expense, currency }: { income: number; expense: number; currency: string }) {
-  const net = income - expense;
-  return (
-    <div style={{ display: "flex", gap: 8, marginBottom: 16 }}>
-      {[
-        { k: "IN", v: income },
-        { k: "OUT", v: expense },
-        { k: "NET", v: net },
-      ].map((cell) => (
-        <div key={cell.k} style={{ flex: 1, border: "1px solid var(--color-divider)", padding: "9px 10px" }}>
-          <div style={{ font: "600 9px/1 var(--font-heading)", letterSpacing: ".02em", color: "var(--color-neutral-600)" }}>{cell.k}</div>
-          <div style={{ fontFamily: "var(--font-numeric)", fontSize: 13, marginTop: 5 }}>
-            {cell.k === "NET" && cell.v > 0 ? "+" : cell.k === "NET" && cell.v < 0 ? "−" : ""}
-            {formatCurrency(Math.abs(cell.v), currency)}
-          </div>
-        </div>
-      ))}
-    </div>
   );
 }
 
@@ -507,36 +488,28 @@ async function CashFlowPane({ familyId, memberId, currency, range, scope }: { fa
         </span>
       </div>
 
-      <Hero
-        label="CASH FLOW"
-        amount={Math.abs(cf.net)}
-        currency={currency}
-        delta={<DeltaBadge change={momChange} currency={currency} noun={`last ${periodNoun}`} />}
-        caption={
-          cf.net > 0
+      <div style={{ display: "flex", alignItems: "center", flexWrap: "wrap", gap: 8, margin: "4px 0 10px" }}>
+        <span style={{ fontSize: 13, color: "var(--color-neutral-600)" }}>
+          {cf.net > 0
             ? `More came in than went out this ${periodNoun}.`
             : cf.net < 0
               ? `More went out than came in this ${periodNoun}.`
-              : `Income and expenses came out even this ${periodNoun}.`
-        }
-      />
+              : `Income and expenses came out even this ${periodNoun}.`}
+        </span>
+        <DeltaBadge change={momChange} currency={currency} noun={`last ${periodNoun}`} />
+      </div>
 
-      <FlowRow income={cf.periodIncome} expense={cf.periodExpense} currency={currency} />
-
-      <CollapsibleGroup title="GRAPH">
-      <div style={{ display: "flex", alignItems: "center", gap: 6, margin: "0 0 4px" }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 6, margin: "0 0 10px" }}>
         <PickButton
           title="Graph range"
           icon="calendarDays"
           label={CASH_FLOW_RANGE_LABELS[range]}
           options={CASH_FLOW_RANGES.map((r) => ({ label: CASH_FLOW_RANGE_LABELS[r], href: `/wealth?seg=cashflow&range=${r}&who=${scope}`, active: range === r }))}
         />
-        <span style={{ fontSize: 12.5, color: "var(--color-neutral-600)" }}>Income against expenses, grouped by {CASH_FLOW_RANGE_LABELS[range].toLowerCase()}</span>
       </div>
-      <HistoryStrip history={cf.history} currency={currency} title={`BY ${CASH_FLOW_RANGE_LABELS[range].toUpperCase()}`} />
-      </CollapsibleGroup>
+      <CashFlowChart history={cf.history} currency={currency} periodNoun={periodNoun} />
 
-      <CollapsibleGroup title="INCOME">
+      <CollapsibleGroup title="INCOME" defaultOpen={false}>
       {!isJoint && (
         <>
           <Meter
@@ -599,7 +572,7 @@ async function CashFlowPane({ familyId, memberId, currency, range, scope }: { fa
       <AddIncomeScheduleForm accounts={bareAccounts} />
       </CollapsibleGroup>
 
-      <CollapsibleGroup title="EXPENSES">
+      <CollapsibleGroup title="EXPENSES" defaultOpen={false}>
       {isJoint && (
         <>
           <Meter label="SPENT OF BUDGET" value={budget.monthExpense} cap={budget.budgetAmount} currency={currency} note="Set the month's ceiling below." />
@@ -714,6 +687,10 @@ async function ScopePane({ scope, familyId, memberId, currency, range }: { scope
   const periodNoun = range === "day" ? "day" : range === "week" ? "week" : range === "year" ? "year" : "month";
   const momChange = periodOverPeriodChange(cf.history);
   const cashTrend = cashBalanceTrend(cf.history, pane.total);
+  const accountGroups = ACCOUNT_TYPES.map((t) => ({
+    type: t,
+    accounts: pane.accounts.filter((a) => (a.account_type as AccountType) === t),
+  })).filter((g) => g.accounts.length > 0);
 
   return (
     <>
@@ -753,37 +730,40 @@ async function ScopePane({ scope, familyId, memberId, currency, range }: { scope
       {pane.accounts.length === 0 && (
         <Empty icon="🏦" title="No accounts yet" line="Add the accounts the household actually uses — a bank, a wallet, the cash in the drawer — and Kin keeps the running balance." />
       )}
-      {pane.accounts.map((a) => (
-        <Link
-          key={a.id}
-          href={`/wealth/accounts/${a.id}`}
-          style={{ display: "flex", gap: 10, alignItems: "center", padding: "12px 0", borderBottom: "1px solid color-mix(in srgb, var(--color-text) 10%, transparent)", textDecoration: "none", color: "inherit" }}
-        >
-          <span style={{ flex: 1, minWidth: 0 }}>
-            <span style={{ font: "600 16px/1.1 var(--font-heading)", display: "block" }}>{a.name}</span>
-            <span style={{ fontSize: 13, color: "var(--color-neutral-600)" }}>
-              {ACCOUNT_TYPE_LABELS[a.account_type as AccountType] ?? a.account_type}
-              {a.institution ? ` · ${a.institution}` : ""}
-              {a.sub_note ? ` · ${a.sub_note}` : ""}
-            </span>
-            {/* Who can see it, and — if it is yours — a tap to change that. */}
-            <span style={{ display: "inline-flex", marginTop: 5 }}>
-              <AccountPrivacyToggle
-                accountId={a.id}
-                isPrivate={a.is_private}
-                isJoint={a.is_joint}
-                canChange={!a.is_joint && a.owner_member_id === memberId}
-              />
-            </span>
-          </span>
-          <span style={{ textAlign: "right", flex: "none" }}>
-            <span style={{ fontFamily: "var(--font-numeric)", fontSize: 13, display: "block" }}>{formatCurrency(a.balance, currency)}</span>
-            {a.pendingCount > 0 && <Tag variant="outline">{a.pendingCount} PENDING</Tag>}
-            <span style={{ display: "block", marginTop: 6 }}>
-              <RemoveButton id={a.id} kind="account" label={`Archive "${a.name}"`} />
-            </span>
-          </span>
-        </Link>
+      {accountGroups.map((group) => (
+        <CollapsibleGroup key={group.type} title={`${ACCOUNT_TYPE_LABELS[group.type].toUpperCase()} · ${group.accounts.length}`} defaultOpen={false}>
+          {group.accounts.map((a) => (
+            <Link
+              key={a.id}
+              href={`/wealth/accounts/${a.id}`}
+              style={{ display: "flex", gap: 10, alignItems: "center", padding: "12px 0", borderBottom: "1px solid color-mix(in srgb, var(--color-text) 10%, transparent)", textDecoration: "none", color: "inherit" }}
+            >
+              <span style={{ flex: 1, minWidth: 0 }}>
+                <span style={{ font: "600 16px/1.1 var(--font-heading)", display: "block" }}>{a.name}</span>
+                <span style={{ fontSize: 13, color: "var(--color-neutral-600)" }}>
+                  {a.institution ? a.institution : ACCOUNT_TYPE_LABELS[a.account_type as AccountType] ?? a.account_type}
+                  {a.sub_note ? ` · ${a.sub_note}` : ""}
+                </span>
+                {/* Who can see it, and — if it is yours — a tap to change that. */}
+                <span style={{ display: "inline-flex", marginTop: 5 }}>
+                  <AccountPrivacyToggle
+                    accountId={a.id}
+                    isPrivate={a.is_private}
+                    isJoint={a.is_joint}
+                    canChange={!a.is_joint && a.owner_member_id === memberId}
+                  />
+                </span>
+              </span>
+              <span style={{ textAlign: "right", flex: "none" }}>
+                <span style={{ fontFamily: "var(--font-numeric)", fontSize: 13, display: "block" }}>{formatCurrency(a.balance, currency)}</span>
+                {a.pendingCount > 0 && <Tag variant="outline">{a.pendingCount} PENDING</Tag>}
+                <span style={{ display: "block", marginTop: 6 }}>
+                  <RemoveButton id={a.id} kind="account" label={`Archive "${a.name}"`} />
+                </span>
+              </span>
+            </Link>
+          ))}
+        </CollapsibleGroup>
       ))}
       {/* A new account is opened in your own name, so it is only offered
           where that is what you would mean. */}
@@ -838,7 +818,7 @@ async function AssetsPane({ familyId, memberId, currency, scope }: { familyId: s
         caption={`${formatCurrency(cashTotal, currency)} cash + ${formatCurrency(goalTotal, currency)} in goals + ${formatCurrency(assetTotal, currency)} owned − ${formatCurrency(liabilityTotal, currency)} owed`}
       />
 
-      <CollapsibleGroup title="ASSETS">
+      <CollapsibleGroup title="ASSETS" defaultOpen={false}>
       <SectionLabel>CASH & SAVINGS</SectionLabel>
       {cashAccounts.length === 0 && (
         <Empty icon="🏦" title="No accounts yet" line="Every account you can see shows up here automatically once it exists — add one from the Accounts tab." />
@@ -938,7 +918,7 @@ async function AssetsPane({ familyId, memberId, currency, scope }: { familyId: s
       </Link>
       </CollapsibleGroup>
 
-      <CollapsibleGroup title="LIABILITIES">
+      <CollapsibleGroup title="LIABILITIES" defaultOpen={false}>
       {liabilities.length === 0 && (
         <Empty icon="✅" title="Nothing owed" line="No loans or debts on record. If that changes, adding them here keeps the net worth figure honest." />
       )}

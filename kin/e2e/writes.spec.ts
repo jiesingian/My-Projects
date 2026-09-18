@@ -1,5 +1,6 @@
 import { test, expect, type Page } from "@playwright/test";
 import { tidyUpAfter, restAsQa } from "./support/qa-household";
+import { expandAllCollapsedGroups } from "./support/collapsible-groups";
 
 /** The forms that add things, driven the way a person drives them.
  *
@@ -108,7 +109,9 @@ test.describe("adding things", () => {
     await submit(page);
 
     await leftTheForm(page, "/wealth/add");
+    // ASSETS (where goals live) starts collapsed since 18 September.
     await page.goto("/wealth?seg=assets", { waitUntil: "networkidle" });
+    await expandAllCollapsedGroups(page);
     await expect(page.locator("body")).toContainText(title);
   });
 
@@ -121,6 +124,7 @@ test.describe("adding things", () => {
 
     await leftTheForm(page, "/wealth/assets/new");
     await page.goto("/wealth?seg=assets", { waitUntil: "networkidle" });
+    await expandAllCollapsedGroups(page);
     await expect(page.locator("body")).toContainText(name);
   });
 
@@ -143,7 +147,9 @@ test.describe("adding things", () => {
     await submit(page);
     await page.waitForTimeout(1000);
 
+    // Accounts group by type since 18 September, collapsed by default.
     await page.goto("/wealth?seg=accounts", { waitUntil: "networkidle" });
+    await expandAllCollapsedGroups(page);
     const accountLinks = () => page.locator('a[href^="/wealth/accounts/"]');
     const row = accountLinks().filter({ hasText: name });
     await expect(row).toHaveCount(1);
@@ -156,6 +162,7 @@ test.describe("adding things", () => {
     await page.waitForTimeout(1000);
 
     await page.goto("/wealth?seg=accounts", { waitUntil: "networkidle" });
+    await expandAllCollapsedGroups(page);
     await expect(accountLinks().filter({ hasText: name })).toHaveCount(0);
 
     const rest = await restAsQa();
