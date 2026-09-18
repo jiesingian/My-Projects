@@ -97,8 +97,28 @@ jobs:
 
       - run: npm ci
 
+      # Caches only the browser binary, not the OS packages `--with-deps`
+      # installs -- Playwright has no cache for those, and apt is fast enough
+      # that it is not worth the risk of a stale system library. Keyed on the
+      # exact installed version so a Playwright upgrade gets a fresh browser
+      # rather than an incompatible cached one.
+      - name: Playwright version
+        id: pw-version
+        run: echo "version=$(node -e "console.log(require('@playwright/test/package.json').version)")" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/cache@v4
+        id: pw-cache
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ steps.pw-version.outputs.version }}
+
       - name: Install the browser
+        if: steps.pw-cache.outputs.cache-hit != 'true'
         run: npx playwright install --with-deps chromium
+
+      - name: Install just the OS packages the cached browser still needs
+        if: steps.pw-cache.outputs.cache-hit == 'true'
+        run: npx playwright install-deps chromium
 
       # On a pull request there is no `inputs` at all, so this is the normal
       # path: build the app and test what the branch actually produces.

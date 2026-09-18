@@ -291,9 +291,13 @@ are not to be trimmed for cost.
 This is a monorepo. Each project folder (e.g. `kin/`) has its own knowledge
 graph at `<project>/graphify-out/`, and `graphify-out/graph.json` at this root
 is an aggregate of all of them, rebuilt by
-`.github/workflows/graphify-deploy.yml` on every push to main and kept as the
-`projects-graph` workflow artifact — download it from the run and open
-`index.html`. It used to deploy to GitHub Pages, which failed silently on
+`.github/workflows/graphify-deploy.yml` (weekly, and on demand via
+`workflow_dispatch` — it ran on every push to main until 18 September, which
+on a repo merging several pull requests a day made it one of the larger
+recurring costs on a metered Actions budget for an artifact nobody needs
+current to the last commit) and kept as the `projects-graph` workflow
+artifact — download it from the run and open `index.html`. It used to deploy
+to GitHub Pages, which failed silently on
 every push: Pages needs a paid plan on a private repository, and a public site
 would have put every file path, module and function name in these projects on
 a page anyone could find.

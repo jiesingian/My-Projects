@@ -42,6 +42,33 @@ name: Daily check
 # but the fixed hour was never real, and a time written in a comment is what
 # somebody plans their evening around. If a dependable hour is ever needed,
 # it has to be triggered by something that keeps time, not by this cron.
+#
+# WHAT IT ACTUALLY RUNS, changed 18 September to stop burning a private
+# repo's whole monthly Actions allowance on one redundant re-run a day.
+#
+# Typecheck, lint, build and the Schema step are untouched -- Schema is
+# exactly the check that would have caught the 9 September migrations, and
+# it costs about a minute regardless. What changed is the end-to-end step:
+# it used to run the entire suite (`npm run e2e`, ~13 minutes with the
+# browser install), which is largely re-proving what e2e.yml already proved
+# at the last merge to main. It now runs two files instead of all thirty:
+#
+#   - smoke.spec.ts: every hub, every width, every theme, checking the page
+#     loads clean -- this is what actually catches reason three above (a
+#     dependency, a Supabase change, an expired credential), since any of
+#     those show up as a page that will not render.
+#   - regressions.spec.ts: named "bugs that already got out once" for a
+#     reason -- this is reason two, fixtures ageing out, in the one file
+#     that class of bug has actually hit.
+#
+# A logic bug specific to one form or one calculation, the kind the full
+# suite's other twenty-eight files exist for, is not what a day with no
+# push is trying to catch -- e2e.yml already ran the whole thing against
+# that exact code the moment it merged. What is left uncaught by this
+# narrower daily run is a regression that both landed unnoticed at merge
+# time AND only shows up in a spec outside these two files AND needs no
+# code change to surface later -- a narrow enough intersection that the
+# ~11 minutes saved on every one of the other days is the better trade.
 on:
   schedule:
     - cron: "0 9 * * *"
@@ -72,6 +99,8 @@ jobs:
       - uses: actions/setup-node@v5
         with:
           node-version: "22"
+          cache: npm
+          cache-dependency-path: kin/package-lock.json
 
       - name: Check the secrets are present
         env:
@@ -148,10 +177,33 @@ jobs:
           PROD_E2E_PASSWORD: ${{ secrets.PROD_E2E_PASSWORD }}
         run: node scripts/check-schema.mjs
 
-      - name: Install the browser
+      # Caches only the browser binary, not the OS packages `--with-deps`
+      # installs -- Playwright has no cache for those, and apt is fast enough
+      # that it is not worth the risk of a stale system library. Keyed on the
+      # exact installed version so a Playwright upgrade gets a fresh browser
+      # rather than an incompatible cached one.
+      - name: Playwright version
         if: always()
+        id: pw-version
+        working-directory: kin
+        run: echo "version=$(node -e "console.log(require('@playwright/test/package.json').version)")" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/cache@v4
+        if: always()
+        id: pw-cache
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ steps.pw-version.outputs.version }}
+
+      - name: Install the browser
+        if: always() && steps.pw-cache.outputs.cache-hit != 'true'
         working-directory: kin
         run: npx playwright install --with-deps chromium
+
+      - name: Install just the OS packages the cached browser still needs
+        if: always() && steps.pw-cache.outputs.cache-hit == 'true'
+        working-directory: kin
+        run: npx playwright install-deps chromium
 
       - name: Start the app
         if: always()
@@ -169,7 +221,11 @@ jobs:
       # directly always had them. CI has no .env.local, and without these
       # twelve tests call test.skip() and the run goes green having checked
       # none of them.
-      - name: The suite
+      #
+      # Two files, not the whole suite -- see the comment at the top of this
+      # file for why. E2E_DELETE_* is left out on purpose: delete-household.spec
+      # is not in this pair, so those two secrets would go unused here.
+      - name: The suite (smoke + regressions, not everything)
         id: e2e
         if: always()
         working-directory: kin
@@ -178,9 +234,7 @@ jobs:
           NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
           E2E_EMAIL: ${{ secrets.E2E_EMAIL }}
           E2E_PASSWORD: ${{ secrets.E2E_PASSWORD }}
-          E2E_DELETE_EMAIL: ${{ secrets.E2E_DELETE_EMAIL }}
-          E2E_DELETE_PASSWORD: ${{ secrets.E2E_DELETE_PASSWORD }}
-        run: npm run e2e
+        run: npx playwright test e2e/smoke.spec.ts e2e/regressions.spec.ts
 
       - uses: actions/upload-artifact@v6
         if: always()
@@ -221,7 +275,7 @@ jobs:
             echo "| Lint | $LINT |"
             echo "| Build | $BUILD |"
             echo "| Schema | $SCHEMA |"
-            echo "| End-to-end | $E2E |"
+            echo "| End-to-end (smoke + regressions) | $E2E |"
             echo
             echo "[The run, with the logs and the Playwright report]($RUN_URL)"
             echo
