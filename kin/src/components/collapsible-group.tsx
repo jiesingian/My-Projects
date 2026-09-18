@@ -31,9 +31,9 @@ export function CollapsibleGroup({
           width: "100%",
           cursor: "pointer",
           boxSizing: "border-box",
-          font: "600 20px/1.1 var(--font-heading)",
+          font: "600 var(--text-xl)/1.1 var(--font-heading)",
           letterSpacing: "-.01em",
-          margin: "28px 0 4px",
+          margin: "var(--space-7) 0 var(--space-1)",
           paddingBottom: 9,
           borderBottom: "2px solid var(--color-divider)",
           color: "var(--color-text)",
@@ -42,7 +42,7 @@ export function CollapsibleGroup({
         {title}
         <span
           aria-hidden
-          style={{ fontSize: 13, color: "var(--color-neutral-600)", transform: open ? "rotate(180deg)" : "none", transition: "transform .15s" }}
+          style={{ fontSize: "var(--text-sm)", color: "var(--color-neutral-600)", transform: open ? "rotate(180deg)" : "none", transition: "transform .15s" }}
         >
           ▾
         </span>

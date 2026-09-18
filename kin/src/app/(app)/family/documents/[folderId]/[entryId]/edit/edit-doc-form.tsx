@@ -12,11 +12,13 @@ import { visibilityOptions } from "@/lib/visibility";
 export function EditDocForm({
   entry,
   folderId,
+  folderName,
   members,
   myRole,
 }: {
   entry: Tables<"doc_entries">;
   folderId: string;
+  folderName: string;
   members: Tables<"members">[];
   myRole: string;
 }) {
@@ -57,7 +59,15 @@ export function EditDocForm({
 
   return (
     <div>
-      <DetailHeader backHref={backHref} eyebrow="HUB 01 · EDIT ENTRY" />
+      <DetailHeader
+        backHref={backHref}
+        eyebrow="HUB 01 · EDIT ENTRY"
+        trail={[
+          { label: "Documents", href: "/family?seg=documents" },
+          { label: folderName, href: backHref },
+          { label: entry.title },
+        ]}
+      />
       <div style={{ padding: "0 22px 22px" }}>
         <h3 style={{ fontSize: 30, margin: "0 0 16px" }}>Edit document entry</h3>
         <form onSubmit={onSubmit}>

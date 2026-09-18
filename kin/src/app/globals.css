@@ -50,6 +50,36 @@
   --radius-control: 12px;
   --radius-pill: 999px;
 
+  /* Type scale. The app grew to roughly twenty distinct inline font sizes,
+     most of them a point or half-point apart from a neighbour with no real
+     visual difference -- 13/13.5/14, 19/20/21/22. These eight steps are the
+     values actually doing the work, named so new code reaches for a step
+     instead of picking another number close to one already in use. Existing
+     inline sizes are not being swept to match this in one pass -- see
+     PAGE_PATTERNS.md's note on migrating incrementally -- so both will be
+     in the codebase for a while; that is expected, not a bug. */
+  --text-2xs: 10.5px;  /* tiny meta: dates on a gallery tile, table footnotes */
+  --text-xs: 12px;     /* captions, secondary meta lines */
+  --text-sm: 13px;     /* the app's most common size: labels, list captions */
+  --text-base: 14px;   /* default body/control text */
+  --text-md: 15px;     /* emphasized body, list-row titles */
+  --text-lg: 17px;     /* small headings, card titles */
+  --text-xl: 20px;     /* section headings */
+  --text-2xl: 30px;    /* page headlines (h2/h3) */
+
+  /* Spacing scale, 4px steps. Gaps and padding across the app already
+     cluster near multiples of 2 (4, 6, 8, 10, 12...); this rounds that up
+     to the stricter 4px grid most design systems use, for new layout code
+     to reach for instead of picking its own number. */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-7: 28px;
+  --space-8: 32px;
+
   --color-switch-on: #34c759;
 
   /* The fill behind a white label on a selected pill. systemBlue itself only
