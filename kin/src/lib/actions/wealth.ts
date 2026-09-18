@@ -56,6 +56,16 @@ export async function addAccountAction(_prev: ActionState, formData: FormData): 
     opening_balance: openingBalance,
     is_joint: isJoint,
     owner_member_id: isJoint ? null : me.id,
+    // A joint account has no single owner, so "private" on one means
+    // private to nobody -- the row's `is_private` column defaults to true
+    // at the database level, and leaving it unset here inherited that
+    // default even for joint accounts. The account still got created; it
+    // just became permanently invisible, to its own creator included,
+    // since AccountPrivacyToggle only ever lets a personal account's owner
+    // flip this -- a joint account has no owner to do that flipping.
+    // Personal accounts keep the old, correct behaviour: private to their
+    // owner unless they choose otherwise.
+    is_private: isJoint ? false : true,
     created_by: me.id,
   });
   if (error) return { error: humanDatabaseError(error.message) };
