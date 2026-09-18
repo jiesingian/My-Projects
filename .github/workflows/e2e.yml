@@ -31,6 +31,12 @@ name: End-to-end
 # pull_request, deliberately, not pull_request_target: GitHub withholds secrets
 # from fork-triggered runs under the former, which is the behaviour we want if
 # this repository is ever opened up.
+#
+# Added 18 September: a `freshness` job runs first on a pull request and
+# skips the real suite if the push it was triggered for is no longer the
+# pull request's head -- see the comment on the concurrency block below for
+# why. Nothing about what the suite checks changed; a run for whichever push
+# is actually current always executes in full.
 on:
   pull_request:
     paths:
@@ -58,18 +64,68 @@ on:
 
 permissions:
   contents: read
+  # `freshness` reads the pull request's current head to compare against the
+  # SHA this run was actually triggered for. Read-only, and only used there.
+  pull-requests: read
 
 # One run at a time, globally rather than per branch. Every spec writes rows
 # into the same throwaway household, so two runs in parallel would read each
 # other's data and fail for reasons that have nothing to do with the code.
 # Queued rather than cancelled: a cancelled run can leave a preference the
 # suite meant to restore.
+#
+# That queue is exactly where minutes went missing. A pull request pushed to
+# five times in ten minutes queues five full runs behind this lock, and by
+# the time the second one reaches the front the third, fourth and fifth have
+# already made it moot -- but it still burns the full ~13 minutes to say so.
+# `cancel-in-progress: true` would fix that, but only safely per-branch, and
+# per-branch is exactly what this lock cannot be: two DIFFERENT pull requests
+# running at once is the actual collision this exists to prevent, and scoping
+# the group by ref would let that happen. So the queue stays global, and
+# `freshness` below is the fix instead -- it lets a stale run notice it is
+# stale and skip the expensive part, without ever letting two runs touch the
+# household at the same time.
 concurrency:
   group: e2e
   cancel-in-progress: false
 
 jobs:
+  # Whichever push is the pull request's current head when its turn at the
+  # front of the queue arrives always runs the real suite in full -- this
+  # never shortens the check a merge decision is actually based on. Only a
+  # run whose push has already been superseded by a later one skips the
+  # expensive part, having spent a few seconds on one API call to find that
+  # out instead of ~13 minutes running tests nobody will read the result of.
+  #
+  # Push events have no "newer push" to be stale against -- main only gets
+  # pushed to by an actual merge, and each one is worth checking on its own
+  # -- so this job is a no-op there and the real job always runs.
+  freshness:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    outputs:
+      stale: ${{ steps.check.outputs.stale }}
+    steps:
+      - name: Is this still the pull request's current commit
+        id: check
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+          PR: ${{ github.event.pull_request.number }}
+          TRIGGERED_FOR: ${{ github.event.pull_request.head.sha }}
+        run: |
+          set -euo pipefail
+          CURRENT=$(gh pr view "$PR" --repo "$REPO" --json headRefOid --jq .headRefOid)
+          if [ "$CURRENT" != "$TRIGGERED_FOR" ]; then
+            echo "Triggered for $TRIGGERED_FOR, but the pull request has moved on to $CURRENT — skipping."
+            echo "stale=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "stale=false" >> "$GITHUB_OUTPUT"
+          fi
+
   e2e:
+    needs: [freshness]
+    if: always() && (github.event_name != 'pull_request' || needs.freshness.outputs.stale != 'true')
     runs-on: ubuntu-latest
     # The suite takes about seven minutes. The default job limit is six hours,
     # which is how a hung browser quietly spends a month of Actions minutes.
