@@ -18,6 +18,15 @@ on:
   push:
     branches: [main]
 
+# Per branch, not global -- schema-check.yml already uses this exact pattern
+# safely. Unlike e2e.yml, nothing here writes shared state, so three pushes
+# in a minute cancelling the first two outright (rather than letting all
+# three run to completion) costs nothing: only the last push before merge
+# needs a passing result.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   kin:
     name: kin — typecheck, lint, build

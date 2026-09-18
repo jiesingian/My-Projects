@@ -1,21 +1,32 @@
 name: Build Projects Graph
 
-# Monorepo-wide graphify pipeline. Runs on every push, with no per-project
-# setup: it discovers every top-level project folder (anything with a
-# recognizable manifest file), builds or refreshes that project's own
-# graph (code structure only, no API key needed), merges all of them into
-# a root-level aggregate graph, and exports every graph.html.
-# Add a new project folder and push -- it's picked up automatically.
+# Monorepo-wide graphify pipeline, with no per-project setup: it discovers
+# every top-level project folder (anything with a recognizable manifest
+# file), builds or refreshes that project's own graph (code structure only,
+# no API key needed), merges all of them into a root-level aggregate graph,
+# and exports every graph.html. Add a new project folder and run this -- it's
+# picked up automatically.
 #
 # The graphs are kept as a workflow artifact rather than published to Pages.
 # Pages needs a paid plan on a private repository, and a public site would
 # put every file path, module and function name in this app on a page anyone
 # can find -- no secrets, but the architecture of a family's private app all
 # the same. Download "projects-graph" from the run and open index.html.
-
+#
+# Was `push: branches: [main]` until 18 September -- every merge rebuilt it,
+# which on a repo where automerge lands several pull requests a day made this
+# one of the larger recurring costs on a metered Actions budget, for an
+# artifact CLAUDE.md itself describes as occasional ("reach for the graph
+# when grep returns more hits than you can triage, not before") rather than
+# something that needs to be current to the last commit. A session's own
+# fresh clone already gets a graph for free from the session-start hook,
+# built locally with no Actions cost at all -- this workflow's artifact is
+# for a person who wants one without cloning, which does not need to be
+# rebuilt on every one of several merges a day. Weekly plus on-demand is
+# still fresher than anyone has asked for it.
 on:
-  push:
-    branches: [main]
+  schedule:
+    - cron: "0 3 * * 0"
   workflow_dispatch:
 
 # Read-only: nothing is published, so nothing needs write access.
