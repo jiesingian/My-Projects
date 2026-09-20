@@ -224,7 +224,13 @@ jobs:
           E2E_PASSWORD: ${{ secrets.E2E_PASSWORD }}
           E2E_DELETE_EMAIL: ${{ secrets.E2E_DELETE_EMAIL }}
           E2E_DELETE_PASSWORD: ${{ secrets.E2E_DELETE_PASSWORD }}
-        run: npm run e2e
+        # Piped through tee rather than left to the runner's own log, because
+        # the runner's log is not reachable from here: it is served from
+        # Actions' blob storage, which this project's tooling cannot reach.
+        # The list reporter's own summary -- every failing test's name and
+        # error together -- lands in /tmp/e2e-output.log instead, for "Say
+        # what broke" below to fold into the issue it opens.
+        run: npm run e2e 2>&1 | tee /tmp/e2e-output.log
 
       - uses: actions/upload-artifact@v6
         if: always()
@@ -270,6 +276,17 @@ jobs:
             echo
             echo "[The run, with the logs and the Playwright report]($RUN_URL)"
             echo
+
+            if [ "$E2E" = "failure" ] && [ -s /tmp/e2e-output.log ]; then
+              echo "<details><summary>What the suite said</summary>"
+              echo
+              echo '```'
+              tail -c 20000 /tmp/e2e-output.log
+              echo '```'
+              echo "</details>"
+              echo
+            fi
+
             echo "If **Schema** is the one that failed, it is almost always a migration"
             echo "that has not been run against one of the two databases. The pipeline"
             echo "applies them: \`kin/supabase/migrations/\` holds them, dev takes them on"
