@@ -305,9 +305,11 @@ export async function regenerateInviteCodeAction(): Promise<ActionState> {
  * The default stays `adult`, because approving without reading is the common
  * case and the quieter of the two answers should be what that gives you. */
 export async function approveMemberAction(memberId: string, role: MemberRole = "adult"): Promise<ActionState> {
+  const me = await requireCurrentMember();
+  if (!me.is_organiser) return { error: "Only the household's organizer can approve a join request." };
   if (role !== "parent" && role !== "adult") return { error: "A member joins as either a parent or an adult." };
   const supabase = await createClient();
-  const { error } = await supabase.from("members").update({ status: "active", role }).eq("id", memberId);
+  const { error } = await supabase.from("members").update({ status: "active", role }).eq("id", memberId).eq("family_id", me.family_id);
   revalidatePath("/family");
   return { error: error ? humanDatabaseError(error.message) : null };
 }
@@ -315,8 +317,10 @@ export async function approveMemberAction(memberId: string, role: MemberRole = "
 /** Rejects a pending join request by removing it — RLS restricts this to
  * the household's organizer and only while the row is still 'pending'. */
 export async function rejectMemberAction(memberId: string): Promise<ActionState> {
+  const me = await requireCurrentMember();
+  if (!me.is_organiser) return { error: "Only the household's organizer can reject a join request." };
   const supabase = await createClient();
-  const { error } = await supabase.from("members").delete().eq("id", memberId);
+  const { error } = await supabase.from("members").delete().eq("id", memberId).eq("family_id", me.family_id);
   revalidatePath("/family");
   return { error: error ? humanDatabaseError(error.message) : null };
 }
@@ -342,8 +346,10 @@ export async function removeMemberAction(memberId: string): Promise<ActionState>
 /** Restores a previously removed member to active access. RLS restricts
  * this to the household's organizer. */
 export async function reinstateMemberAction(memberId: string): Promise<ActionState> {
+  const me = await requireCurrentMember();
+  if (!me.is_organiser) return { error: "Only the household's organizer can reinstate a member." };
   const supabase = await createClient();
-  const { error } = await supabase.from("members").update({ status: "active" }).eq("id", memberId);
+  const { error } = await supabase.from("members").update({ status: "active" }).eq("id", memberId).eq("family_id", me.family_id);
   revalidatePath("/family");
   return { error: error ? humanDatabaseError(error.message) : null };
 }
@@ -486,8 +492,14 @@ export async function convertToManagedChildAction(memberId: string): Promise<Act
  * here. RLS lets the organizer edit anyone's; a member can also edit their
  * own via the pre-existing self-update policy. */
 export async function updateMemberRelationshipAction(memberId: string, relationship: string): Promise<ActionState> {
+  const me = await requireCurrentMember();
+  if (!me.is_organiser) return { error: "Only the household's organizer can change a member's relationship." };
   const supabase = await createClient();
-  const { error } = await supabase.from("members").update({ relationship: clamp(relationship, 50) || null }).eq("id", memberId);
+  const { error } = await supabase
+    .from("members")
+    .update({ relationship: clamp(relationship, 50) || null })
+    .eq("id", memberId)
+    .eq("family_id", me.family_id);
   revalidatePath("/family");
   return { error: error ? humanDatabaseError(error.message) : null };
 }
@@ -499,6 +511,14 @@ export async function updateMemberRelationshipAction(memberId: string, relations
 export async function addFamilyBackgroundAction(uploaded: UploadedFile): Promise<ActionState> {
   const me = await requireCurrentMember();
   if (!me.is_organiser) return { error: "Only the organizer can change the household photo." };
+
+  // A Storage path is trusted as belonging to this family only when it sits
+  // under the family's own prefix -- otherwise this call would let an
+  // organizer index (and later, via delete, permanently remove) another
+  // family's photo by path alone.
+  if (uploaded.provider === "supabase" && !uploaded.storagePath.startsWith(`${me.family_id}/`)) {
+    return { error: "That photo doesn't belong to this household." };
+  }
 
   const supabase = await createClient();
   const row: TablesInsert<"family_backgrounds"> =
@@ -672,7 +692,8 @@ export async function updateFamilyAddressAction(addressId: string, fields: Famil
       zip_code: f.zipCode,
       address_line: f.addressLine,
     })
-    .eq("id", addressId);
+    .eq("id", addressId)
+    .eq("family_id", me.family_id);
   revalidatePath("/family");
   return { error: error ? humanDatabaseError(error.message) : null };
 }
@@ -683,7 +704,7 @@ export async function removeFamilyAddressAction(addressId: string): Promise<Acti
   if (!me.is_organiser) return { error: "Only the organizer can remove household addresses." };
 
   const supabase = await createClient();
-  const { error } = await supabase.from("family_addresses").delete().eq("id", addressId);
+  const { error } = await supabase.from("family_addresses").delete().eq("id", addressId).eq("family_id", me.family_id);
   revalidatePath("/family");
   return { error: error ? humanDatabaseError(error.message) : null };
 }
