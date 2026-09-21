@@ -363,6 +363,36 @@ export async function getYearOverview(familyId: string, anchor: Date, memberId?:
   return { year, countsByMonth };
 }
 
+/** One-off tasks: the `activities` table. The recurring kind are routines and
+ * come from getRoutines.
+ *
+ * These had nowhere to be read. The Planner's tabs are Calendar, Tasks and
+ * Events, and a one-off went to none of them -- it appeared on the calendar
+ * grid and nowhere else, filed under a word ("activity") that named no tab,
+ * no page and nothing a person could go and look at. So the Tasks tab lists
+ * them now, beside the recurring ones they belong with.
+ *
+ * From the start of today onward. What is already past is history and the
+ * calendar still holds it; a tab called Tasks is for what is still to do. */
+export async function getOneOffTasks(familyId: string, fromISO: string) {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("activities")
+    .select("*, activity_members(members(id, full_name))")
+    .eq("family_id", familyId)
+    .gte("start_at", fromISO)
+    .order("start_at", { ascending: true });
+  return (data ?? []).map((a) => ({
+    ...a,
+    who: (a.activity_members ?? [])
+      .map((am) => (am.members as unknown as { full_name: string } | null)?.full_name)
+      .filter((v): v is string => !!v),
+    memberIds: (a.activity_members ?? [])
+      .map((am) => (am.members as unknown as { id: string } | null)?.id)
+      .filter((v): v is string => !!v),
+  }));
+}
+
 export async function getEvents(familyId: string) {
   const supabase = await createClient();
   const { data } = await supabase
