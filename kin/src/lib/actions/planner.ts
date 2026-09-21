@@ -328,7 +328,7 @@ export async function createTripAction(_prev: ActionState, formData: FormData): 
   );
 
   revalidatePath("/planner");
-  redirect("/planner?seg=travel");
+  redirect("/planner?seg=events");
 }
 
 /** Trips could be created but never changed, so who was going was fixed the
@@ -370,7 +370,7 @@ export async function updateTripAction(tripId: string, _prev: ActionState, formD
   );
 
   revalidatePath("/planner");
-  redirect("/planner?seg=travel");
+  redirect("/planner?seg=events");
 }
 
 export async function deleteTripAction(tripId: string): Promise<ActionState> {

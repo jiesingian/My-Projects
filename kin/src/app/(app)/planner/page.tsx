@@ -35,7 +35,7 @@ import { CalendarSyncStatus, RememberFilter } from "@/components/calendar-sync-s
 import { cookies } from "next/headers";
 import { familyDate } from "@/lib/format-family";
 
-const SEGMENTS = ["calendar", "routines", "events", "travel"] as const;
+const SEGMENTS = ["calendar", "routines", "events"] as const;
 type Seg = (typeof SEGMENTS)[number];
 const CALENDAR_VIEWS = ["week", "month", "year"] as const;
 type CalendarView = (typeof CALENDAR_VIEWS)[number];
@@ -88,8 +88,7 @@ export default async function PlannerPage({
           />
         )}
         {seg === "routines" && <RoutinesPane familyId={me.family_id} who={who} currency={me.families.currency} justSaved={sp.saved === "1"} />}
-        {seg === "events" && <EventsPane familyId={me.family_id} who={who} />}
-        {seg === "travel" && <TravelPane familyId={me.family_id} memberId={me.id} currency={me.families.currency} who={who} />}
+        {seg === "events" && <EventsPane familyId={me.family_id} memberId={me.id} currency={me.families.currency} who={who} />}
       </div>
     </div>
   );
@@ -797,94 +796,61 @@ function concerns(memberIds: string[], appliesToAll: boolean, who: string): bool
   return who === "all" || appliesToAll || memberIds.includes(who);
 }
 
-async function EventsPane({ familyId, who }: { familyId: string; who: string }) {
-  const all = await getEvents(familyId);
-  const events = all.filter((e) => concerns(e.memberIds, e.applies_to_whole_family, who));
-
-  return (
-    <>
-      <MemberChips familyId={familyId} seg="events" who={who} />
-      {events.length === 0 && (
-        <p style={{ fontSize: 13.5, color: "var(--color-neutral-600)" }}>
-          {all.length === 0 ? "No events yet." : "No events for this person."}
-        </p>
-      )}
-      {events.map((e) => (
-        <Link
-          key={e.id}
-          href={`/planner/add?type=event&id=${e.id}`}
-          style={{ display: "flex", gap: 12, padding: "13px 0", borderBottom: "1px solid color-mix(in srgb, var(--color-text) 10%, transparent)", textDecoration: "none", color: "inherit" }}
-        >
-          <Blueprint style={{ width: 50, height: 50, flex: "none", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center" }}>
-            <span style={{ font: "600 18px/1 var(--font-heading)" }}>{new Date(e.event_date).getDate()}</span>
-            <span style={{ fontSize: 8.5, letterSpacing: ".02em", color: "var(--color-neutral-600)" }}>
-              {new Date(e.event_date).toLocaleDateString("en-GB", { month: "short" }).toUpperCase()}
-            </span>
-          </Blueprint>
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ font: "600 18px/1.1 var(--font-heading)" }}>{e.title}</div>
-            <div style={{ fontSize: 13, color: "var(--color-neutral-600)" }}>
-              {e.applies_to_whole_family || e.who.length === 0 ? "Whole family" : e.who.map((n) => n.split(" ")[0]).join(", ")}
-              {e.sub_note ? ` · ${e.sub_note}` : ""}
-            </div>
-          </div>
-          <Tag variant={e.kind === "birthday" || e.kind === "anniversary" ? "neutral" : "accent"} className="self-start">
-            {e.kind.toUpperCase()}
-          </Tag>
-        </Link>
-      ))}
-      <Link href="/planner/add?type=event" className="btn btn-primary btn-block" style={{ minHeight: 46, fontSize: 14, letterSpacing: ".04em", marginTop: 16 }}>
-        + ADD EVENT
-      </Link>
-      <div style={{ fontSize: 13, color: "var(--color-neutral-600)", marginTop: 8 }}>
-        Birthdays and anniversaries repeat yearly on their own.
-      </div>
-    </>
-  );
-}
-
-async function TravelPane({ familyId, memberId, currency, who }: { familyId: string; memberId: string; currency: string; who: string }) {
+/** Events and trips both live on this one segment now -- a household doesn't
+ * think of a trip as a fundamentally different kind of thing from a
+ * birthday, just a date-bearing plan with more attached to it (a budget, a
+ * packing list, travellers). The nearest upcoming trip keeps its richer hero
+ * card below, since that extra detail is exactly what's worth surfacing; every
+ * other event and trip is one merged, date-ordered list beneath it. */
+async function EventsPane({ familyId, memberId, currency, who }: { familyId: string; memberId: string; currency: string; who: string }) {
   const fmtDate = await familyDate();
-  const [allTrips, accounts] = await Promise.all([getTrips(familyId), getAccounts(familyId)]);
+  const [allEvents, allTrips, accounts] = await Promise.all([getEvents(familyId), getTrips(familyId), getAccounts(familyId)]);
+  const events = allEvents.filter((e) => concerns(e.memberIds, e.applies_to_whole_family, who));
   const trips = allTrips.filter((t) => concerns(t.travellerIds, t.applies_to_whole_family, who));
   const pickable = accounts
     .filter((a) => a.is_joint || a.owner_member_id === memberId)
     .map((a) => ({ id: a.id, name: a.name, institution: a.institution, linked_app_url: a.linked_app_url, balance: a.balance, is_joint: a.is_joint }));
-  const [upcoming, ...earlier] = trips;
+  const [upcomingTrip, ...earlierTrips] = trips;
+
+  const rows: ({ date: string } & ({ kind: "event"; event: (typeof events)[number] } | { kind: "trip"; trip: (typeof earlierTrips)[number] }))[] = [
+    ...events.map((e) => ({ kind: "event" as const, date: e.event_date, event: e })),
+    ...earlierTrips.map((t) => ({ kind: "trip" as const, date: t.start_date, trip: t })),
+  ].sort((a, b) => a.date.localeCompare(b.date));
+
   return (
     <>
-      <MemberChips familyId={familyId} seg="travel" who={who} />
-      {upcoming ? (
+      <MemberChips familyId={familyId} seg="events" who={who} />
+      {upcomingTrip && (
         <Blueprint style={{ marginBottom: 16, padding: 0 }}>
           <div
-            className={upcoming.photoUrl ? "" : "duotone"}
+            className={upcomingTrip.photoUrl ? "" : "duotone"}
             style={{
               height: 130,
-              backgroundImage: upcoming.photoUrl ? `url(${upcoming.photoUrl})` : undefined,
+              backgroundImage: upcomingTrip.photoUrl ? `url(${upcomingTrip.photoUrl})` : undefined,
               backgroundSize: "cover",
               backgroundPosition: "center",
             }}
           />
           <div style={{ padding: 13 }}>
             <div style={{ font: "400 12px/1 var(--font-numeric)", color: "var(--color-accent-700)" }}>
-              {fmtDate(upcoming.start_date)}
-              {upcoming.end_date ? ` — ${fmtDate(upcoming.end_date)}` : ""}
+              {fmtDate(upcomingTrip.start_date)}
+              {upcomingTrip.end_date ? ` — ${fmtDate(upcomingTrip.end_date)}` : ""}
             </div>
-            <div style={{ font: "600 24px/1.05 var(--font-heading)", margin: "6px 0 8px" }}>{upcoming.title}</div>
+            <div style={{ font: "600 24px/1.05 var(--font-heading)", margin: "6px 0 8px" }}>{upcomingTrip.title}</div>
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8, fontSize: 13 }}>
-              <Fact k="Budget" v={upcoming.budget_amount ? formatCurrency(Number(upcoming.budget_amount), currency) : "—"} />
-              <Fact k="Packed" v={`${upcoming.packed_count} / ${upcoming.packed_total}`} />
+              <Fact k="Budget" v={upcomingTrip.budget_amount ? formatCurrency(Number(upcomingTrip.budget_amount), currency) : "—"} />
+              <Fact k="Packed" v={`${upcomingTrip.packed_count} / ${upcomingTrip.packed_total}`} />
               <Fact
                 k="Travelling"
                 v={
-                  upcoming.applies_to_whole_family || upcoming.travellers.length === 0
+                  upcomingTrip.applies_to_whole_family || upcomingTrip.travellers.length === 0
                     ? "Whole family"
-                    : upcoming.travellers.map((n) => n.split(" ")[0]).join(", ")
+                    : upcomingTrip.travellers.map((n) => n.split(" ")[0]).join(", ")
                 }
               />
             </div>
             <Link
-              href={`/planner/add?type=trip&id=${upcoming.id}`}
+              href={`/planner/add?type=trip&id=${upcomingTrip.id}`}
               className="btn btn-secondary btn-block"
               style={{ minHeight: 40, fontSize: 13, marginTop: 12 }}
             >
@@ -894,50 +860,80 @@ async function TravelPane({ familyId, memberId, currency, who }: { familyId: str
               <LogSpendControl
                 accounts={pickable}
                 currency={currency}
-                particulars={`${upcoming.title} · travel`}
+                particulars={`${upcomingTrip.title} · travel`}
                 category="Travel"
                 sourceTable="trips"
-                sourceId={upcoming.id}
+                sourceId={upcomingTrip.id}
                 label="LOG TRIP SPEND"
               />
             </div>
           </div>
         </Blueprint>
-      ) : (
-        <p style={{ fontSize: 13.5, color: "var(--color-neutral-600)", marginBottom: 16 }}>
-          {allTrips.length === 0 ? "No trips planned yet." : "No trips for this person."}
+      )}
+      {rows.length === 0 && (
+        <p style={{ fontSize: 13.5, color: "var(--color-neutral-600)" }}>
+          {allEvents.length === 0 && allTrips.length === 0 ? "Nothing planned yet." : "Nothing planned for this person."}
         </p>
       )}
-      <Link href="/planner/add?type=trip" className="btn btn-primary btn-block" style={{ minHeight: 46, fontSize: 14, letterSpacing: ".04em", margin: "0 0 20px" }}>
-        + ADD TRAVEL
-      </Link>
-      {earlier.length > 0 && (
-        <>
-          <div style={{ font: "600 13px/1 var(--font-heading)", letterSpacing: ".02em", color: "var(--color-neutral-600)", marginBottom: 6 }}>
-            EARLIER
-          </div>
-          {earlier.map((t) => (
-            <div key={t.id} style={{ display: "flex", gap: 12, padding: "11px 0", borderTop: "1px solid var(--color-divider)", alignItems: "center" }}>
-              <span style={{ font: "400 10.5px/1.4 var(--font-numeric)", color: "var(--color-neutral-600)", width: 84, flex: "none" }}>
-                {fmtDate(t.start_date)}
+      {rows.map((row) =>
+        row.kind === "event" ? (
+          <Link
+            key={`event-${row.event.id}`}
+            href={`/planner/add?type=event&id=${row.event.id}`}
+            style={{ display: "flex", gap: 12, padding: "13px 0", borderBottom: "1px solid color-mix(in srgb, var(--color-text) 10%, transparent)", textDecoration: "none", color: "inherit" }}
+          >
+            <Blueprint style={{ width: 50, height: 50, flex: "none", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center" }}>
+              <span style={{ font: "600 18px/1 var(--font-heading)" }}>{new Date(row.event.event_date).getDate()}</span>
+              <span style={{ fontSize: 8.5, letterSpacing: ".02em", color: "var(--color-neutral-600)" }}>
+                {new Date(row.event.event_date).toLocaleDateString("en-GB", { month: "short" }).toUpperCase()}
               </span>
-              <Link href={`/planner/add?type=trip&id=${t.id}`} style={{ flex: 1, minWidth: 0, textDecoration: "none", color: "inherit" }}>
-                <span style={{ display: "block", font: "600 17px/1.1 var(--font-heading)" }}>{t.title}</span>
-                <span style={{ display: "block", fontSize: 12.5, color: "var(--color-neutral-600)" }}>
-                  {t.applies_to_whole_family || t.travellers.length === 0
-                    ? "Whole family"
-                    : t.travellers.map((n) => n.split(" ")[0]).join(", ")}
-                </span>
-              </Link>
-              {t.journal_entry_id && (
-                <Link href="/journal?view=list" className="btn btn-ghost" style={{ fontSize: 13 }}>
-                  In journal
-                </Link>
-              )}
+            </Blueprint>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ font: "600 18px/1.1 var(--font-heading)" }}>{row.event.title}</div>
+              <div style={{ fontSize: 13, color: "var(--color-neutral-600)" }}>
+                {row.event.applies_to_whole_family || row.event.who.length === 0 ? "Whole family" : row.event.who.map((n) => n.split(" ")[0]).join(", ")}
+                {row.event.sub_note ? ` · ${row.event.sub_note}` : ""}
+              </div>
             </div>
-          ))}
-        </>
+            <Tag variant={row.event.kind === "birthday" || row.event.kind === "anniversary" ? "neutral" : "accent"} className="self-start">
+              {row.event.kind.toUpperCase()}
+            </Tag>
+          </Link>
+        ) : (
+          <div key={`trip-${row.trip.id}`} style={{ display: "flex", gap: 12, padding: "13px 0", borderBottom: "1px solid color-mix(in srgb, var(--color-text) 10%, transparent)", alignItems: "center" }}>
+            <Blueprint style={{ width: 50, height: 50, flex: "none", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center" }}>
+              <span style={{ font: "600 18px/1 var(--font-heading)" }}>{new Date(row.trip.start_date).getDate()}</span>
+              <span style={{ fontSize: 8.5, letterSpacing: ".02em", color: "var(--color-neutral-600)" }}>
+                {new Date(row.trip.start_date).toLocaleDateString("en-GB", { month: "short" }).toUpperCase()}
+              </span>
+            </Blueprint>
+            <Link href={`/planner/add?type=trip&id=${row.trip.id}`} style={{ flex: 1, minWidth: 0, textDecoration: "none", color: "inherit" }}>
+              <div style={{ font: "600 18px/1.1 var(--font-heading)" }}>{row.trip.title}</div>
+              <div style={{ fontSize: 13, color: "var(--color-neutral-600)" }}>
+                {row.trip.applies_to_whole_family || row.trip.travellers.length === 0 ? "Whole family" : row.trip.travellers.map((n) => n.split(" ")[0]).join(", ")}
+              </div>
+            </Link>
+            {row.trip.journal_entry_id ? (
+              <Link href="/journal?view=list" className="btn btn-ghost" style={{ fontSize: 13 }}>
+                In journal
+              </Link>
+            ) : (
+              <Tag variant="neutral" className="self-start">TRIP</Tag>
+            )}
+          </div>
+        ),
       )}
+      <div style={{ display: "flex", gap: 8, marginTop: 16 }}>
+        <Link href="/planner/add?type=event" className="btn btn-primary btn-block" style={{ minHeight: 46, fontSize: 14, letterSpacing: ".04em" }}>
+          + ADD EVENT
+        </Link>
+        <Link href="/planner/add?type=trip" className="btn btn-primary btn-block" style={{ minHeight: 46, fontSize: 14, letterSpacing: ".04em" }}>
+          + ADD TRAVEL
+        </Link>
+      </div>
+      <div style={{ fontSize: 13, color: "var(--color-neutral-600)", marginTop: 8 }}>
+        Birthdays and anniversaries repeat yearly on their own.
+      </div>
     </>
   );
 }
