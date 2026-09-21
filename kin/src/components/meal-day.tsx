@@ -134,6 +134,7 @@ export function IngredientAmountRow({
         disabled={pending}
         onClick={() => run(() => toggleIngredientAtHomeAction(name, !inPantry))}
         title={inPantry ? "In the house — tap to say it is not" : "Tap if it is already in the house"}
+        aria-label={inPantry ? `${name}: in the house — tap to say it is not` : `${name}: tap if it is already in the house`}
         aria-pressed={inPantry}
         style={{
           width: 22,

@@ -182,7 +182,11 @@ export function FamilyTreeEditor({ people, unaddedMembers }: { people: TreePerso
 
   async function remove(p: TreePerson) {
     if (!(await confirm({ title: `Remove ${p.fullName} from the tree?`, description: "This can't be undone.", confirmLabel: "Remove", danger: true }))) return;
-    await removeTreePersonAction(p.id);
+    const result = await removeTreePersonAction(p.id);
+    if (result.error) {
+      setError(result.error);
+      return;
+    }
     router.refresh();
   }
 

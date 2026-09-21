@@ -23,6 +23,7 @@ import type { AlbumPhoto } from "@/lib/actions/profile";
 import { memberToProfileFields } from "@/lib/profile-fields";
 import { resolvePhotoUrl } from "@/lib/photo-url";
 import { familyDate } from "@/lib/format-family";
+import { familyDateTime } from "@/lib/time";
 
 const SEGMENTS = ["schedule", "conditions", "labs", "vitals"] as const;
 type Seg = (typeof SEGMENTS)[number];
@@ -188,7 +189,7 @@ export default async function MemberDetailPage({
                 <div key={a.id} style={{ padding: "11px 0", borderBottom: "1px solid color-mix(in srgb, var(--color-text) 10%, transparent)" }}>
                   <div style={{ display: "flex", gap: 12, alignItems: "center", flexWrap: "wrap" }}>
                     <span style={{ font: "400 13px/1.4 var(--font-numeric)", color: "var(--color-accent-700)", width: 140, flex: "none" }}>
-                      {new Date(a.when_at).toLocaleString()}
+                      {familyDateTime(new Date(a.when_at))}
                     </span>
                     <span style={{ flex: 1, fontSize: 13, minWidth: 120 }}>{a.what}</span>
                     <LogSpendControl
@@ -272,7 +273,7 @@ export default async function MemberDetailPage({
                 </div>
                 <div style={{ fontSize: 13, color: "var(--color-neutral-700)", margin: "8px 0 10px" }}>
                   {omron?.connected
-                    ? `Last sync ${omron.last_synced_at ? new Date(omron.last_synced_at).toLocaleString() : "just now"}. Readings arrive automatically.`
+                    ? `Last sync ${omron.last_synced_at ? familyDateTime(new Date(omron.last_synced_at)) : "just now"}. Readings arrive automatically.`
                     : "Link the Omron Connect app to pull blood pressure and weight readings straight into this record."}
                 </div>
                 <OmronToggle memberId={member.id} connected={!!omron?.connected} />

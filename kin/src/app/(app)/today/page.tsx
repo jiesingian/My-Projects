@@ -54,7 +54,7 @@ export default async function TodayPage() {
               {initials(m.full_name)}
             </div>
           ))}
-          <Link href="/settings" className="btn btn-secondary btn-icon" style={{ marginLeft: 10 }}>
+          <Link href="/settings" className="btn btn-secondary btn-icon" aria-label="Settings" style={{ marginLeft: 10 }}>
             <Icon name="settings" />
           </Link>
         </div>

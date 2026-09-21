@@ -4,6 +4,7 @@ import { sectionOrder } from "@/lib/grocery";
 import { getSignedUrls } from "@/lib/storage";
 import { recipeRef, RECIPE_PHOTO_BUCKET } from "@/lib/meal-photos";
 import { RECIPES_BY_KEY, type MealSlot } from "@/lib/recipes";
+import { toISODate } from "@/lib/routines";
 
 /** The open list, grouped by market section and ordered the way the sections
  * are walked, so it can be shopped straight down. */
@@ -78,16 +79,12 @@ export type PlannedMeal = {
   ingredientCount: number;
 };
 
-function toISO(d: Date) {
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
-}
-
 /** Everything cooked on one day, with the amounts each meal needs and the
  * household's photo of each dish. One day is all the meal plan shows, so one
  * day is all this loads. */
 export async function getMealsForDay(familyId: string, anchor: Date = new Date()) {
   const supabase = await createClient();
-  const anchorISO = toISO(anchor);
+  const anchorISO = toISODate(anchor);
 
   const [{ data: dayRows }, { data: activeBuy }, { data: pantry }, { data: photos }] = await Promise.all([
     supabase

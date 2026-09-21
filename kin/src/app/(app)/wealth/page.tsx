@@ -12,12 +12,12 @@ import {
   PendingEntryActions,
   ValueUpdateControl,
   RemoveButton,
+  AccountPrivacyToggle,
   type PickableAccount,
 } from "@/components/money-actions";
 import { formatCurrency, formatDate, shortNames, selfLabel, selfPossessive } from "@/lib/format";
 import { getMembers } from "@/lib/queries/family";
 import { PickButton } from "@/components/pick-button";
-import { AccountPrivacyToggle } from "@/components/money-actions";
 import {
   ACCOUNT_TYPES,
   ACCOUNT_TYPE_LABELS,
