@@ -220,3 +220,13 @@ export async function getDocFolders(familyId: string): Promise<DocFolderRow[]> {
     };
   });
 }
+
+export async function getEmergencyContacts(familyId: string): Promise<Tables<"emergency_contacts">[]> {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("emergency_contacts")
+    .select("*")
+    .eq("family_id", familyId)
+    .order("name");
+  return data ?? [];
+}
