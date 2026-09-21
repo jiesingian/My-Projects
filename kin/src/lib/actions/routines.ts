@@ -355,6 +355,7 @@ export async function logRoutineAction(input: {
   status: "done" | "skipped";
   memberId?: string | null;
   amount?: number | null;
+  note?: string | null;
 }): Promise<ActionState> {
   const me = await requireCurrentMember();
   const supabase = await createClient();
@@ -388,6 +389,7 @@ export async function logRoutineAction(input: {
       status: input.status,
       member_id: memberId,
       amount,
+      note: input.note?.trim() ? clamp(input.note.trim(), 500) : null,
       logged_by: me.id,
       logged_at: new Date().toISOString(),
     },
@@ -424,6 +426,25 @@ export async function clearRoutineLogAction(routineId: string, date: string): Pr
   const { error } = await supabase
     .from("routine_log")
     .delete()
+    .eq("routine_id", routineId)
+    .eq("occurrence_date", date)
+    .eq("family_id", me.family_id);
+  if (error) return { error: humanDatabaseError(error.message) };
+
+  revalidatePath("/planner");
+  revalidatePath("/today");
+  return { error: null };
+}
+
+/** Edits the note on an already-answered occurrence without touching its
+ * tick — a plain update rather than routing back through logRoutineAction's
+ * upsert, which would re-post the routine's cost to the ledger a second time. */
+export async function setRoutineLogNoteAction(routineId: string, date: string, note: string | null): Promise<ActionState> {
+  const me = await requireCurrentMember();
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("routine_log")
+    .update({ note: note?.trim() ? clamp(note.trim(), 500) : null })
     .eq("routine_id", routineId)
     .eq("occurrence_date", date)
     .eq("family_id", me.family_id);

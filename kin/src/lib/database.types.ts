@@ -3177,6 +3177,7 @@ export type Database = {
           logged_at: string
           logged_by: string | null
           member_id: string | null
+          note: string | null
           occurrence_date: string
           routine_id: string
           status: string
@@ -3188,6 +3189,7 @@ export type Database = {
           logged_at?: string
           logged_by?: string | null
           member_id?: string | null
+          note?: string | null
           occurrence_date: string
           routine_id: string
           status: string
@@ -3199,6 +3201,7 @@ export type Database = {
           logged_at?: string
           logged_by?: string | null
           member_id?: string | null
+          note?: string | null
           occurrence_date?: string
           routine_id?: string
           status?: string

@@ -22,7 +22,7 @@ export type RoutineView = {
   next: Date | null;
   /** Today's occurrence, when there is one, with whose turn it is and
    * whether it has been answered for. */
-  today: { date: string; assignee: RoutineMember | null; status: "done" | "skipped" | null } | null;
+  today: { date: string; assignee: RoutineMember | null; status: "done" | "skipped" | null; note: string | null } | null;
   streak: number;
   /** Recent history, newest first, for the small activity trail on the row. */
   recent: { date: string; status: "done" | "skipped" }[];
@@ -50,17 +50,22 @@ export async function getRoutines(familyId: string, memberId?: string): Promise<
       .order("created_at", { ascending: true }),
     supabase
       .from("routine_log")
-      .select("routine_id, occurrence_date, status")
+      .select("routine_id, occurrence_date, status, note")
       .eq("family_id", familyId)
       .gte("occurrence_date", toISODate(historyStart))
       .order("occurrence_date", { ascending: false }),
   ]);
 
   const logByRoutine = new Map<string, Map<string, "done" | "skipped">>();
+  const noteByRoutine = new Map<string, Map<string, string | null>>();
   for (const l of logs ?? []) {
     const forRoutine = logByRoutine.get(l.routine_id) ?? new Map();
     forRoutine.set(l.occurrence_date, l.status as "done" | "skipped");
     logByRoutine.set(l.routine_id, forRoutine);
+
+    const notesForRoutine = noteByRoutine.get(l.routine_id) ?? new Map();
+    notesForRoutine.set(l.occurrence_date, l.note);
+    noteByRoutine.set(l.routine_id, notesForRoutine);
   }
 
   const views: RoutineView[] = [];
@@ -89,6 +94,7 @@ export async function getRoutines(familyId: string, memberId?: string): Promise<
     };
 
     const status = logByRoutine.get(r.id) ?? new Map<string, "done" | "skipped">();
+    const notes = noteByRoutine.get(r.id) ?? new Map<string, string | null>();
     const tomorrow = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 1);
     const past = expandRoutine(rule, historyStart, tomorrow);
     const todayISO = toISODate(today);
@@ -129,6 +135,7 @@ export async function getRoutines(familyId: string, memberId?: string): Promise<
             date: todayISO,
             assignee: r.rotate_assignee ? assigneeFor(members, todaysOccurrence.index) : null,
             status: status.get(todayISO) ?? null,
+            note: notes.get(todayISO) ?? null,
           }
         : null,
       streak: currentStreak(
