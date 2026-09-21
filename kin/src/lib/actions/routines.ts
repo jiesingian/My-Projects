@@ -449,6 +449,16 @@ export async function attachRoutineFileAction(input: {
   const me = await requireCurrentMember();
   const supabase = await createClient();
 
+  // Ownership of the file comes from the path, not from the
+  // routine_attachments row this call is about to create -- checking the
+  // row we ourselves just inserted would prove nothing. A path outside the
+  // caller's own family prefix means the file wasn't uploaded through this
+  // family's upload session at all, whatever routineId was handed in.
+  if (!input.storagePath.startsWith(`${me.family_id}/`)) return { error: "That file doesn't belong to this household." };
+
+  const { data: routine } = await supabase.from("routines").select("id").eq("id", input.routineId).eq("family_id", me.family_id).maybeSingle();
+  if (!routine) return { error: "That task is no longer there." };
+
   const { data: row, error } = await supabase
     .from("routine_attachments")
     .insert({

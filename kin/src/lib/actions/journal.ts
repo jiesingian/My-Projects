@@ -117,6 +117,13 @@ export async function attachJournalMediaAction(input: {
   const me = await requireCurrentMember();
   const supabase = await createClient();
 
+  // A Storage path is trusted as belonging to this family only when it sits
+  // under the family's own prefix -- otherwise this call would let a member
+  // index (and later read or delete) another family's object by path alone.
+  if (input.uploaded.provider === "supabase" && !input.uploaded.storagePath.startsWith(`${me.family_id}/`)) {
+    return { error: "That file doesn't belong to this household." };
+  }
+
   const { data: media, error } = await supabase
     .from("journal_media")
     .insert(

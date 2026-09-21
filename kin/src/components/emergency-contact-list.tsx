@@ -133,6 +133,9 @@ export function EmergencyContactList({ contacts }: { contacts: EmergencyContact[
 
   return (
     <div style={{ marginBottom: 20 }}>
+      {/* Removing a contact has no form open to show its own error in --
+          this is the only place a failed remove() is ever visible. */}
+      {error && editingId === null && <p style={{ color: "var(--color-accent-700)", fontSize: 13, margin: "0 0 8px" }}>{error}</p>}
       {contacts.length === 0 && editingId !== "new" && (
         <div style={{ fontSize: 13.5, color: "var(--color-neutral-600)", marginBottom: 10 }}>
           No emergency contacts yet — start with a pediatrician, poison control, or a relative nearby.

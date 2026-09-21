@@ -165,6 +165,18 @@ export async function attachDocFileAction(input: {
   const me = await requireCurrentMember();
   const supabase = await createClient();
 
+  const { data: entry } = await supabase.from("doc_entries").select("id").eq("id", input.entryId).eq("family_id", me.family_id).maybeSingle();
+  if (!entry) return { error: "That entry is no longer there." };
+
+  // A Storage path is trusted as belonging to this family only when it sits
+  // under the family's own prefix -- otherwise this call would let a member
+  // index (and later read or delete) another family's object by path alone.
+  // Drive files need no equivalent check: Google enforces access to a
+  // driveFileId against the family's own connected Drive token.
+  if (input.uploaded.provider === "supabase" && !input.uploaded.storagePath.startsWith(`${me.family_id}/`)) {
+    return { error: "That file doesn't belong to this household." };
+  }
+
   const { error } = await supabase.from("doc_files").insert(
     input.uploaded.provider === "google_drive"
       ? {

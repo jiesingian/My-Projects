@@ -184,6 +184,9 @@ export function FamilyAddressList({ addresses, canEdit }: { addresses: FamilyAdd
       <div style={{ font: "600 13px/1 var(--font-heading)", letterSpacing: ".02em", color: "var(--color-neutral-600)", marginBottom: 8 }}>
         ADDRESSES
       </div>
+      {/* Removing an address has no form open to show its own error in --
+          this is the only place a failed remove() is ever visible. */}
+      {error && editingId === null && <p style={{ color: "var(--color-accent-700)", fontSize: 13, margin: "0 0 8px" }}>{error}</p>}
       {addresses.length === 0 && editingId !== "new" && (
         <div style={{ fontSize: 13.5, color: "var(--color-neutral-600)", marginBottom: 10 }}>No addresses yet — add where the family lives, and anywhere else that matters.</div>
       )}
