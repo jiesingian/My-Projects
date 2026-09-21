@@ -178,8 +178,8 @@ land work the same way — branch, pull request, automatic merge — and neither
 needs the other's approval for anything. Claude sessions run on both machines
 and work under these same rules.
 
-**Symmetry is the default, and every exception has to earn itself.** Exactly
-one does:
+**Symmetry is the default, and every exception has to earn itself.** Since
+21 September none of them is about the database:
 
 | | Both | Jonathan only |
 |---|---|---|
@@ -189,22 +189,35 @@ one does:
 | Write migrations | ✅ | |
 | Read production data when a question needs it | ✅ | |
 | Supabase dashboard, dev and production | ✅ | |
-| **Run the production migration button** | | ✅ |
 | Repository settings and secrets | | ✅ |
 | Anything that spends money | | ✅ |
 
-Production migrations are the one asymmetry, and it is not about trust: the
-schema moves the instant the file is *run*, no review catches it afterwards,
-so one hand on that lever means one story about what the live schema is.
+**Migrations reach both databases by themselves, and nobody presses
+anything.** A migration goes in `kin/supabase/migrations/`; when the pull
+request goes green and merges, `migrate.yml` applies it to dev and then to
+production — production only if dev took it cleanly minutes earlier.
 
-Nobody pastes SQL any more, though. A migration goes in
-`kin/supabase/migrations/`, **dev applies it by itself** the moment the pull
-request merges, and production is one button — Actions → *Migrate* → Run
-workflow → `production` — which only Jonathan presses. Thirteen migrations were
-typed into the SQL editor by hand between the 7th and the 10th, and the record
-of what had actually run was a comment at the top of each file that somebody
-had to remember to change. Twice nobody did. The ledger the pipeline writes is
-in the same transaction as the migration itself, so it cannot disagree.
+Production used to be a button that only Jonathan pressed, and that row is
+gone from the table above on purpose. The reasoning for it was sound and the
+outcome was not: a schema moves the instant the file runs and no review
+catches a bad one afterwards, so one hand on the lever meant one story about
+the live schema. What it actually produced was forgetting. On 21 September the
+liquid intake tracker merged, deployed, and sat in the app in front of the
+family unable to save a single glass, because its table existed only in the
+code; the schema check said so, correctly, on every open pull request, for
+hours, while everything else was green.
+
+A step someone has to remember is not a safety measure, it is a slower
+failure. The check that replaced it can actually catch something: dev runs
+every migration first, on a synthetic household where a bad one costs a
+rebuild, and production refuses to start unless that succeeded. Both still
+only ever run from `main`, after every check went green.
+
+Thirteen migrations were typed into the SQL editor by hand between the 7th and
+the 10th, and the record of what had actually run was a comment at the top of
+each file that somebody had to remember to change. Twice nobody did. The
+ledger the pipeline writes is in the same transaction as the migration itself,
+so it cannot disagree.
 
 Nothing else here is a gate. `watched-change.yml` reads every push to `main`
 and opens an issue from the actual diff, whoever pushed and whatever the
@@ -236,13 +249,18 @@ rules stand in for one, and most of them outlive it.
 - **Never use the service-role key** to get around any of the above. It
   bypasses row-level security, which is the thing keeping one household's
   data out of another's.
-- **Never run a migration against production yourself**, by any route — the
-  button, the SQL editor, the connector, a connection string. It takes effect
-  when it is run, not when it merges, so nobody can catch a bad one
-  afterwards. Put the `.sql` in `kin/supabase/migrations/`, say plainly that
-  production is still waiting for it, and stop; Jonathan presses the button.
-  Dev is different and needs no permission: it applies itself on merge, and
-  running the same pipeline at it by hand is fair game for either of you.
+- **Let the pipeline reach production, and never go round it.** Put the `.sql`
+  in `kin/supabase/migrations/` and merge it; `migrate.yml` applies it to dev
+  and then to production by itself. What is still forbidden is every other
+  route to the live schema — the SQL editor, the connector, a connection
+  string, a client with the service-role key. Those skip the one check that
+  makes the automatic path safe, which is that dev ran the same file first
+  and survived it, and they leave the ledger disagreeing with the database.
+  Running the pipeline itself at either database by hand is fair game for
+  either of you when they have drifted apart: Actions → *Migrate* → Run
+  workflow. Applying to dev by hand with raw SQL is not — it puts the schema
+  ahead of the ledger, which is how four migrations went missing from dev's
+  ledger on 21 September and nearly took the next real run down with them.
 
 Which sample household your machine uses is set by `E2E_EMAIL` and described
 in `kin/docs/QA_HOUSEHOLDS.md`. Do not repoint it at another machine's, and

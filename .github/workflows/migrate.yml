@@ -1,7 +1,8 @@
 name: Migrate
 
 # Runs the migrations in kin/supabase/migrations that a database has not run
-# yet. Dev does it by itself; production waits for Jonathan to press a button.
+# yet. Both databases do it by themselves once a pull request goes green and
+# merges: dev first, then production, and production only if dev took it.
 #
 # Until 10 September every migration was pasted into the Supabase SQL editor by
 # hand -- thirteen of them in four days -- and the record of what had actually
@@ -10,10 +11,21 @@ name: Migrate
 # #50 corrected one, and the three migrations merged-and-never-run on
 # 9 September broke Settings and Add account in front of a person.
 #
-# The rule that production is Jonathan's has not changed and is not the thing
-# that was costing time. What changed is that it is now a button instead of a
-# copy-paste, and that both databases keep a ledger of what actually ran rather
-# than a comment claiming it.
+# Production became a button instead of a copy-paste, which fixed the pasting
+# and left the forgetting exactly where it was. On 21 September it was
+# forgotten again, and the shape of that failure is worth keeping written
+# down: the liquid intake tracker merged, deployed, and sat in the app in
+# front of the family unable to save a single glass, because the table it
+# needs existed only in the code. Nothing was broken. Nothing was red except
+# a schema check that had been correct all along, on every open pull request,
+# for hours.
+#
+# A step a person has to remember is not a safety measure, it is a slower
+# failure. So the gate moved to where it can actually catch something: dev
+# runs the migration first, minutes earlier, on a synthetic household where a
+# bad one costs a rebuild -- and production refuses to start unless that
+# worked. A migration still only reaches either database from main, after
+# every check went green, which is what merging means here.
 on:
   push:
     branches: [main]
@@ -26,9 +38,12 @@ on:
       target:
         description: "Which database"
         required: true
-        default: dev
+        default: both
         type: choice
-        options: [dev, production]
+        # `both` is what a merge asks for: dev first, then production only if
+        # dev took it cleanly. The single-database options stay for putting
+        # one of them right by hand when they have drifted apart.
+        options: [both, dev, production]
       dry_run:
         description: "List what would run, and stop"
         required: false
@@ -42,16 +57,23 @@ permissions:
 # killed halfway is the one outcome worth more than the runner minutes.
 # cancel-in-progress is false for exactly that reason.
 concurrency:
-  group: migrate-${{ inputs.target || 'dev' }}
+  # One group for every target, not one per target. Two runs aimed at
+  # different databases used to be free to overlap, and now that a single run
+  # carries dev *and* production, an overlapping pair could have two processes
+  # applying the same migration to production at once.
+  group: migrate
   cancel-in-progress: false
 
 jobs:
   dev:
     # Merging is enough for dev. It holds a synthetic household and nothing
     # anybody needs, so the cost of a bad migration there is a rebuild.
-    if: github.event_name == 'push' || inputs.target == 'dev'
+    if: github.event_name == 'push' || inputs.target == 'dev' || inputs.target == 'both'
     name: dev
     runs-on: ubuntu-latest
+    # Whether anything was actually applied, so production can be told.
+    outputs:
+      applied: ${{ steps.apply.outputs.applied }}
     # actions:write buys one thing: waking schema-check once dev has actually
     # caught up, in the last step of this job. Reading is all the rest needs.
     permissions:
@@ -118,12 +140,37 @@ jobs:
             || echo "could not wake schema-check — run it by hand if main looks red"
 
   production:
-    # Only ever by hand. A migration takes effect the instant it runs and no
-    # check afterwards can catch a bad one, so one person presses this and
-    # there is one story about what the live schema is. That is the single
-    # asymmetry in CLAUDE.md, and it survives this pipeline intact -- what it
-    # loses is the pasting, not the deciding.
-    if: github.event_name == 'workflow_dispatch' && inputs.target == 'production'
+    # Production used to wait for a person to press this, and that is what
+    # went wrong on 21 September. The button is easy to forget, and what it
+    # leaves behind is not a red tick somewhere -- it is a feature live in
+    # front of the family that cannot work, because its table only exists in
+    # the code. The liquid intake tracker shipped and sat dead in the app for
+    # hours exactly that way, and the schema check that noticed stayed red
+    # across every open pull request until somebody remembered.
+    #
+    # So it follows dev automatically now. The protection that mattered is
+    # kept and made stricter rather than dropped: production only ever gets a
+    # migration that has *already applied cleanly to dev minutes earlier*,
+    # because this job needs dev and refuses to start unless dev succeeded.
+    # A migration that is going to fail now fails on the synthetic household
+    # first, where the cost of a bad one is a rebuild.
+    #
+    # It still only runs from main, and only after every check went green --
+    # that is what merging means here. Dispatching target=production alone
+    # remains, for putting production right by hand when the two have drifted.
+    needs: dev
+    # A push to main counts too, not just automerge's dispatch: a merge made
+    # through the GitHub UI by a person fires push rather than being
+    # dispatched, and dev following a migration that production does not is
+    # the exact split this whole file exists to stop.
+    if: >-
+      always() && (
+        (github.event_name == 'push' && needs.dev.result == 'success') ||
+        (github.event_name == 'workflow_dispatch' && (
+          inputs.target == 'production' ||
+          (inputs.target == 'both' && needs.dev.result == 'success')
+        ))
+      )
     name: production
     runs-on: ubuntu-latest
     steps:
