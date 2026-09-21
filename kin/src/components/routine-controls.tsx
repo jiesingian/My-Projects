@@ -115,7 +115,7 @@ export function RoutinePauseButton({ id, paused }: { id: string; paused: boolean
       style={{ minHeight: 30, fontSize: 12.5, padding: "0 8px", gap: 4 }}
       disabled={pending}
       onClick={() => run(() => setRoutinePausedAction(id, !paused))}
-      aria-label={paused ? "Resume this routine" : "Pause this routine"}
+      aria-label={paused ? "Resume this task" : "Pause this task"}
     >
       <Icon name={paused ? "play" : "pause"} size={13} />
       {paused ? "Resume" : "Pause"}

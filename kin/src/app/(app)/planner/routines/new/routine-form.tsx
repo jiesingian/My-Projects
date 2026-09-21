@@ -170,9 +170,9 @@ export function RoutineForm({
 
   return (
     <div>
-      <DetailHeader backHref="/planner?seg=routines" eyebrow={edit ? "HUB 03 · EDIT ROUTINE" : "HUB 03 · NEW ROUTINE"} />
+      <DetailHeader backHref="/planner?seg=routines" eyebrow={edit ? "HUB 03 · EDIT TASK" : "HUB 03 · NEW TASK"} />
       <div style={{ padding: "0 22px 22px" }}>
-        <h3 style={{ fontSize: 30, margin: "0 0 14px" }}>{edit ? "Edit routine" : "Add a routine"}</h3>
+        <h3 style={{ fontSize: 30, margin: "0 0 14px" }}>{edit ? "Edit task" : "Add a task"}</h3>
 
         {!edit && (
           <>
@@ -401,8 +401,8 @@ export function RoutineForm({
           </div>
           <input type="hidden" name="expense_category" value={ROUTINE_KIND_META[kind].label} />
           <p style={{ fontSize: 12.5, color: "var(--color-neutral-600)", margin: "0 0 14px", lineHeight: 1.45 }}>
-            Marking the routine done posts this to the ledger, so recurring spending shows in Wealth without entering it
-            twice. Leave it blank if the routine costs nothing.
+            Marking the task done posts this to the ledger, so recurring spending shows in Wealth without entering it
+            twice. Leave it blank if the task costs nothing.
           </p>
 
           <div className="field" style={{ marginBottom: 16 }}>
@@ -435,7 +435,7 @@ export function RoutineForm({
             </p>
           )}
 
-          <SubmitButton>{edit ? "SAVE ROUTINE" : "ADD ROUTINE"}</SubmitButton>
+          <SubmitButton>{edit ? "SAVE TASK" : "ADD TASK"}</SubmitButton>
         </form>
       </div>
     </div>

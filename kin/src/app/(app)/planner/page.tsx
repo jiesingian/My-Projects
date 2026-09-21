@@ -67,7 +67,10 @@ export default async function PlannerPage({
   after(() => syncGoogleCalendarIfStale(me.family_id, 5 * 60 * 1000));
 
   const segments = SEGMENTS.map((s) => ({
-    label: s[0].toUpperCase() + s.slice(1),
+    // "Tasks" reads far better than "Routines" to the people actually using
+    // it -- the underlying seg=routines param, table, and every internal
+    // name stay as they are; only what's printed on screen changes.
+    label: s === "routines" ? "Tasks" : s[0].toUpperCase() + s.slice(1),
     href: `/planner?seg=${s}&who=${who}`,
     active: s === seg,
   }));
@@ -609,7 +612,7 @@ async function RoutinesPane({ familyId, who, currency, justSaved }: { familyId: 
           }}
         >
           <Icon name="check" size={16} style={{ color: "var(--color-neutral-900)" }} />
-          Routine saved. It is on the calendar, and on the Google Calendar of everyone it is for.
+          Task saved. It is on the calendar, and on the Google Calendar of everyone it is for.
         </div>
       )}
 
@@ -757,10 +760,10 @@ async function RoutinesPane({ familyId, who, currency, justSaved }: { familyId: 
       )}
 
       <Link href="/planner/routines/new" className="btn btn-primary btn-block" style={{ minHeight: 48, fontSize: 16, marginTop: 6 }}>
-        <Icon name="plus" size={17} /> Add a routine
+        <Icon name="plus" size={17} /> Add a task
       </Link>
       <p style={{ fontSize: 12.5, color: "var(--color-neutral-600)", marginTop: 10, lineHeight: 1.45 }}>
-        Routines show up in the calendar and on Today, and go to the Google Calendar of everyone they are for — so the
+        Tasks show up in the calendar and on Today, and go to the Google Calendar of everyone they are for — so the
         reminder arrives on their phone, not just in Kin.
       </p>
     </>
