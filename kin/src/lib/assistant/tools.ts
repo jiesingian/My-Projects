@@ -14,7 +14,7 @@ export const ASSISTANT_TOOLS: Anthropic.Beta.BetaToolUnion[] = [
   {
     name: "search",
     description:
-      "Search the household's records by keyword across every hub: activities, events, trips, bills, goals, shopping items, meal plans, journal entries, documents, accounts, assets and liabilities. Use this whenever the member asks where something is, whether something exists, or what they have on a subject.",
+      "Search the household's records by keyword across every hub: activities, events, bills, goals, shopping items, meal plans, journal entries, documents, accounts, assets and liabilities. Use this whenever the member asks where something is, whether something exists, or what they have on a subject.",
     input_schema: {
       type: "object",
       properties: {
@@ -26,7 +26,7 @@ export const ASSISTANT_TOOLS: Anthropic.Beta.BetaToolUnion[] = [
   {
     name: "get_schedule",
     description:
-      "List everything with a date in a range — activities, events, trips, bills due, meal plans and goal target dates. Use for 'what's on today/this week', 'when is X', or before scheduling something new.",
+      "List everything with a date in a range — activities, events, bills due, meal plans and goal target dates. Use for 'what's on today/this week', 'when is X', or before scheduling something new.",
     input_schema: {
       type: "object",
       properties: {
@@ -172,7 +172,7 @@ export const ASSISTANT_TOOLS: Anthropic.Beta.BetaToolUnion[] = [
   },
   {
     name: "add_trip",
-    description: "Plan a trip. Syncs to the travellers' calendars.",
+    description: "Plan a trip. Saved as a travel event, and synced to the travellers' calendars.",
     input_schema: {
       type: "object",
       properties: {
@@ -258,10 +258,9 @@ export async function runAssistantTool(name: string, rawInput: unknown, me: Curr
       const q = str(input, "query");
       if (!q) return fail("Give me something to search for.");
       const like = `%${q}%`;
-      const [activities, events, trips, bills, goals, buyItems, meals, journal, docs, accounts, assets] = await Promise.all([
+      const [activities, events, bills, goals, buyItems, meals, journal, docs, accounts, assets] = await Promise.all([
         supabase.from("activities").select("id, title, start_at, location").eq("family_id", familyId).ilike("title", like).limit(8),
         supabase.from("events").select("id, title, event_date, kind").eq("family_id", familyId).ilike("title", like).limit(8),
-        supabase.from("trips").select("id, title, start_date, end_date").eq("family_id", familyId).ilike("title", like).limit(8),
         supabase.from("bills").select("id, name, amount, due_date, status").eq("family_id", familyId).ilike("name", like).limit(8),
         supabase.from("goals").select("id, title, target_amount, current_amount, target_date").eq("family_id", familyId).ilike("title", like).limit(8),
         supabase.from("buy_items").select("id, name, quantity, unit, section, checked").eq("family_id", familyId).eq("cleared", false).ilike("name", like).limit(8),
@@ -278,7 +277,6 @@ export async function runAssistantTool(name: string, rawInput: unknown, me: Curr
       };
       put("activities", activities.data);
       put("events", events.data);
-      put("trips", trips.data);
       put("bills", bills.data);
       put("goals", goals.data);
       put("shopping_list", buyItems.data);
@@ -308,7 +306,7 @@ export async function runAssistantTool(name: string, rawInput: unknown, me: Curr
       const fromInstant = fromMidnight.toISOString();
       const toInstant = toMidnight.toISOString();
 
-      const [activities, events, trips, bills, meals, goals] = await Promise.all([
+      const [activities, events, bills, meals, goals] = await Promise.all([
         supabase
           .from("activities")
           .select("title, start_at, location, applies_to_whole_family, activity_members(members(full_name))")
@@ -321,7 +319,6 @@ export async function runAssistantTool(name: string, rawInput: unknown, me: Curr
           .lt("start_at", toInstant)
           .order("start_at"),
         supabase.from("events").select("title, event_date, kind").eq("family_id", familyId).gte("event_date", from).lt("event_date", toStr),
-        supabase.from("trips").select("title, start_date, end_date").eq("family_id", familyId).gte("start_date", from).lt("start_date", toStr),
         supabase.from("bills").select("name, amount, due_date, status").eq("family_id", familyId).gte("due_date", from).lt("due_date", toStr),
         supabase.from("meal_plans").select("dish, plan_date").eq("family_id", familyId).gte("plan_date", from).lt("plan_date", toStr),
         supabase.from("goals").select("title, target_date, target_amount, current_amount").eq("family_id", familyId).gte("target_date", from).lt("target_date", toStr),
@@ -337,7 +334,6 @@ export async function runAssistantTool(name: string, rawInput: unknown, me: Curr
             : (a.activity_members ?? []).map((m) => (m.members as unknown as { full_name: string } | null)?.full_name).filter(Boolean),
         })),
         events: events.data ?? [],
-        trips: trips.data ?? [],
         bills_due: bills.data ?? [],
         meals: meals.data ?? [],
         goal_deadlines: goals.data ?? [],
@@ -667,20 +663,31 @@ export async function runAssistantTool(name: string, rawInput: unknown, me: Curr
       const members = await loadMembers();
       const travellerIds = matchMembers(members, names);
 
+      // Travel is a kind of event, not its own table -- writing a `trips` row
+      // here would create something nothing in the app reads any more.
       const { data: trip, error } = await supabase
-        .from("trips")
-        .insert({ family_id: familyId, title, start_date: startDate, end_date: endDate, budget_amount: num(input, "budget"), created_by: me.id })
+        .from("events")
+        .insert({
+          family_id: familyId,
+          title,
+          event_date: startDate,
+          end_date: endDate,
+          kind: "travel",
+          budget_amount: num(input, "budget"),
+          applies_to_whole_family: travellerIds.length === 0,
+          created_by: me.id,
+        })
         .select()
         .single();
       if (error) return fail(error.message);
 
       if (travellerIds.length > 0) {
-        await supabase.from("trip_travellers").insert(travellerIds.map((id) => ({ trip_id: trip.id, member_id: id })));
+        await supabase.from("event_members").insert(travellerIds.map((id) => ({ event_id: trip.id, member_id: id })));
       }
 
       await syncRowToCalendars(
         familyId,
-        "trips",
+        "events",
         trip.id,
         allDayEvent(title, startDate, { endDay: endDate }),
         travellerIds.length > 0 ? { kind: "members", memberIds: travellerIds } : { kind: "all" },

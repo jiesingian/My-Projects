@@ -1144,37 +1144,64 @@ export type Database = {
       events: {
         Row: {
           applies_to_whole_family: boolean
+          budget_amount: number | null
           created_at: string
           created_by: string | null
+          drive_file_id: string | null
+          drive_view_link: string | null
+          end_date: string | null
           event_date: string
           family_id: string
           id: string
+          journal_entry_id: string | null
           kind: string
+          packed_count: number
+          packed_total: number
+          photo_storage_path: string | null
           recurs_yearly: boolean
+          storage_provider: string
           sub_note: string | null
           title: string
         }
         Insert: {
           applies_to_whole_family?: boolean
+          budget_amount?: number | null
           created_at?: string
           created_by?: string | null
+          drive_file_id?: string | null
+          drive_view_link?: string | null
+          end_date?: string | null
           event_date: string
           family_id: string
           id?: string
+          journal_entry_id?: string | null
           kind: string
+          packed_count?: number
+          packed_total?: number
+          photo_storage_path?: string | null
           recurs_yearly?: boolean
+          storage_provider?: string
           sub_note?: string | null
           title: string
         }
         Update: {
           applies_to_whole_family?: boolean
+          budget_amount?: number | null
           created_at?: string
           created_by?: string | null
+          drive_file_id?: string | null
+          drive_view_link?: string | null
+          end_date?: string | null
           event_date?: string
           family_id?: string
           id?: string
+          journal_entry_id?: string | null
           kind?: string
+          packed_count?: number
+          packed_total?: number
+          photo_storage_path?: string | null
           recurs_yearly?: boolean
+          storage_provider?: string
           sub_note?: string | null
           title?: string
         }
@@ -1184,6 +1211,13 @@ export type Database = {
             columns: ["created_by"]
             isOneToOne: false
             referencedRelation: "members"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "events_journal_entry_id_fkey"
+            columns: ["journal_entry_id"]
+            isOneToOne: false
+            referencedRelation: "journal_entries"
             referencedColumns: ["id"]
           },
           {

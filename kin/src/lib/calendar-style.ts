@@ -13,7 +13,6 @@ export const CALENDAR_STYLE: Record<CalendarSource, { label: string; color: stri
   // The table is still `activities`; the word people read is Task, because
   // that is the Planner tab these are listed in.
   activities: { label: "Task", color: "var(--cal-schedule)", icon: "calendarDays" },
-  trips: { label: "Travel", color: "var(--cal-schedule)", icon: "plane" },
   events: { label: "Event", color: "var(--cal-occasion)", icon: "gift" },
   bills: { label: "Bill", color: "var(--cal-money)", icon: "receipt" },
   meal_plans: { label: "Meal", color: "var(--cal-home)", icon: "utensils" },
@@ -29,9 +28,9 @@ export const CALENDAR_STYLE: Record<CalendarSource, { label: string; color: stri
 export const CALENDAR_LEGEND: { group: CalendarGroup; label: string; color: string; icon: IconName }[] = [
   // Two groups of task, told apart by whether they come round again -- the
   // legend doubles as the filter, so they cannot both just say "Tasks".
-  { group: "schedule", label: "Tasks & travel", color: "var(--cal-schedule)", icon: "calendarDays" },
+  { group: "schedule", label: "Tasks", color: "var(--cal-schedule)", icon: "calendarDays" },
   { group: "routines", label: "Recurring tasks", color: "var(--cal-schedule)", icon: "repeat" },
-  { group: "events", label: "Events", color: "var(--cal-occasion)", icon: "gift" },
+  { group: "events", label: "Events & travel", color: "var(--cal-occasion)", icon: "gift" },
   { group: "bills", label: "Bills", color: "var(--cal-money)", icon: "receipt" },
   { group: "meals", label: "Meals", color: "var(--cal-home)", icon: "utensils" },
   { group: "goals", label: "Goals", color: "var(--cal-goal)", icon: "target" },

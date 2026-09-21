@@ -21,7 +21,7 @@ function firstNames(names: (string | undefined)[]): string {
   return names.filter(Boolean).map((n) => n!.split(" ")[0]).join(", ").toUpperCase();
 }
 
-/** Every date-bearing record across the app — activities, events, trips,
+/** Every date-bearing record across the app — activities, events,
  * bills, meal plans, and goals with a target date — normalized into one list
  * so the Planner Calendar view reflects everything with a date, not just
  * activities. `rangeEnd` is exclusive. */
@@ -32,7 +32,9 @@ async function fetchCalendarItems(familyId: string, rangeStart: Date, rangeEnd: 
   const startDate = toISODate(rangeStart);
   const endDate = toISODate(rangeEnd);
 
-  const [{ data: activities }, { data: events }, { data: trips }, { data: bills }, { data: meals }, { data: goals }, { data: routines }] = await Promise.all([
+  // No trips fetch: travel is a kind of event now, so it arrives with the
+  // events and needs no second query or second loop.
+  const [{ data: activities }, { data: events }, { data: bills }, { data: meals }, { data: goals }, { data: routines }] = await Promise.all([
     supabase
       .from("activities")
       .select("*, activity_members(members(id, full_name))")
@@ -45,12 +47,6 @@ async function fetchCalendarItems(familyId: string, rangeStart: Date, rangeEnd: 
       .eq("family_id", familyId)
       .gte("event_date", startDate)
       .lt("event_date", endDate),
-    supabase
-      .from("trips")
-      .select("*, trip_travellers(members(id, full_name))")
-      .eq("family_id", familyId)
-      .gte("start_date", startDate)
-      .lt("start_date", endDate),
     supabase.from("bills").select("*").eq("family_id", familyId).not("due_date", "is", null).gte("due_date", startDate).lt("due_date", endDate),
     supabase.from("meal_plans").select("*").eq("family_id", familyId).gte("plan_date", startDate).lt("plan_date", endDate),
     supabase
@@ -90,7 +86,7 @@ async function fetchCalendarItems(familyId: string, rangeStart: Date, rangeEnd: 
       who,
       memberIds,
       appliesToAll: a.applies_to_whole_family,
-      href: `/planner/add?type=activity&id=${a.id}`,
+      href: `/planner/add?type=task&id=${a.id}`,
     });
   }
 
@@ -112,27 +108,6 @@ async function fetchCalendarItems(familyId: string, rangeStart: Date, rangeEnd: 
       memberIds,
       appliesToAll: e.applies_to_whole_family || memberIds.length === 0,
       href: `/planner/add?type=event&id=${e.id}`,
-    });
-  }
-
-  for (const t of trips ?? []) {
-    const memberIds = (t.trip_travellers ?? [])
-      .map((tr) => (tr.members as unknown as { id: string } | null)?.id)
-      .filter((v): v is string => !!v);
-    const who = t.applies_to_whole_family
-      ? "WHOLE FAMILY"
-      : firstNames((t.trip_travellers ?? []).map((tr) => (tr.members as unknown as { full_name: string } | null)?.full_name)) || "WHOLE FAMILY";
-    items.push({
-      id: t.id,
-      table: "trips",
-      date: new Date(`${t.start_date}T00:00:00`),
-      allDay: true,
-      title: t.title,
-      location: null,
-      who,
-      memberIds,
-      appliesToAll: t.applies_to_whole_family || memberIds.length === 0,
-      href: `/planner?seg=events`,
     });
   }
 
@@ -393,6 +368,9 @@ export async function getOneOffTasks(familyId: string, fromISO: string) {
   }));
 }
 
+/** Events, travel included -- travel is a kind of event now rather than its
+ * own table, so a trip's photo is signed here the way a trip's used to be.
+ * The bucket is still `trip-photos`: the rows moved, the files did not. */
 export async function getEvents(familyId: string) {
   const supabase = await createClient();
   const { data } = await supabase
@@ -400,37 +378,19 @@ export async function getEvents(familyId: string) {
     .select("*, event_members(members(id, full_name))")
     .eq("family_id", familyId)
     .order("event_date", { ascending: true });
-  return (data ?? []).map((e) => ({
+  const events = data ?? [];
+  const urls = await getSignedUrls(
+    "trip-photos",
+    events.map((e) => e.photo_storage_path).filter((v): v is string => !!v),
+  );
+  return events.map((e) => ({
     ...e,
+    photoUrl: e.photo_storage_path ? urls[e.photo_storage_path] ?? null : null,
     who: (e.event_members ?? [])
       .map((em) => (em.members as unknown as { full_name: string } | null)?.full_name)
       .filter((v): v is string => !!v),
     memberIds: (e.event_members ?? [])
       .map((em) => (em.members as unknown as { id: string } | null)?.id)
-      .filter((v): v is string => !!v),
-  }));
-}
-
-export async function getTrips(familyId: string) {
-  const supabase = await createClient();
-  const { data } = await supabase
-    .from("trips")
-    .select("*, trip_travellers(members(id, full_name)), journal_entry_id")
-    .eq("family_id", familyId)
-    .order("start_date", { ascending: false });
-  const trips = data ?? [];
-  const urls = await getSignedUrls(
-    "trip-photos",
-    trips.map((t) => t.photo_storage_path).filter((v): v is string => !!v),
-  );
-  return trips.map((t) => ({
-    ...t,
-    photoUrl: t.photo_storage_path ? urls[t.photo_storage_path] ?? null : null,
-    travellers: (t.trip_travellers ?? [])
-      .map((tr) => (tr.members as unknown as { full_name: string } | null)?.full_name)
-      .filter((v): v is string => !!v),
-    travellerIds: (t.trip_travellers ?? [])
-      .map((tr) => (tr.members as unknown as { id: string } | null)?.id)
       .filter((v): v is string => !!v),
   }));
 }
