@@ -39,6 +39,9 @@ export const iconPaths = {
   repeat: "M4 9.5V8a3 3 0 0 1 3-3h11M15 2.5 18.5 5 15 7.5M20 14.5V16a3 3 0 0 1-3 3H6M9 21.5 5.5 19 9 16.5",
   basket: "M3.5 9h17l-1.7 10.5H5.2zM8 9 10.5 3M16 9 13.5 3M9.5 13v3.5M14.5 13v3.5",
   church: "M12 2.5v5M10 5h4M6 11 12 7.5 18 11v10H6zM10.5 21v-4.5h3V21",
+  // Work, the one routine kind none of the above fit -- wallet was ruled
+  // out on purpose, since it already reads as money elsewhere in the app.
+  briefcase: "M3 8h18a1 1 0 0 1 1 1v9a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1zM8.5 8V6a2 2 0 0 1 2-2h3a2 2 0 0 1 2 2v2M2 13h20",
   pause: "M9 5v14M15 5v14",
   play: "M7 4.5 19 12 7 19.5z",
   // Chat — the family thread, and the assistant's own button.
