@@ -433,3 +433,56 @@ export async function clearRoutineLogAction(routineId: string, date: string): Pr
   revalidatePath("/today");
   return { error: null };
 }
+
+/** Records a file the client already uploaded straight to Supabase Storage
+ * (see uploadFileDirect, kind "routine") — this call only ever carries small
+ * JSON, never the file itself. Belongs to the task definition, not to any one
+ * completed occurrence: a recipe card or a form is the same file every time
+ * the task comes round. */
+export async function attachRoutineFileAction(input: {
+  routineId: string;
+  fileName: string;
+  mimeType: string | null;
+  sizeBytes: number;
+  storagePath: string;
+}): Promise<ActionState> {
+  const me = await requireCurrentMember();
+  const supabase = await createClient();
+
+  const { error } = await supabase.from("routine_attachments").insert({
+    routine_id: input.routineId,
+    family_id: me.family_id,
+    file_name: clamp(input.fileName, 200),
+    mime_type: input.mimeType,
+    size_bytes: input.sizeBytes,
+    storage_path: input.storagePath,
+    created_by: me.id,
+  });
+  if (error) return { error: `"${input.fileName}" saved to storage but failed to index: ${humanDatabaseError(error.message)}` };
+
+  revalidatePath("/planner");
+  return { error: null };
+}
+
+export async function getRoutineFileUrl(path: string): Promise<string | null> {
+  const supabase = await createClient();
+  const { data, error } = await supabase.storage.from("documents").createSignedUrl(path, 60 * 5);
+  if (error) return null;
+  return data.signedUrl;
+}
+
+export async function deleteRoutineFileAction(fileId: string): Promise<ActionState> {
+  const me = await requireCurrentMember();
+  const supabase = await createClient();
+  const { data: file } = await supabase.from("routine_attachments").select("storage_path").eq("id", fileId).eq("family_id", me.family_id).maybeSingle();
+  if (!file) return { error: "That file is no longer there." };
+
+  const { error: removeError } = await supabase.storage.from("documents").remove([file.storage_path]);
+  if (removeError) console.error(`routine_attachments file ${file.storage_path} was left in storage after its record was deleted`, removeError.message);
+
+  const { error } = await supabase.from("routine_attachments").delete().eq("id", fileId).eq("family_id", me.family_id);
+  if (error) return { error: humanDatabaseError(error.message) };
+
+  revalidatePath("/planner");
+  return { error: null };
+}

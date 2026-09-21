@@ -175,3 +175,21 @@ export async function getRoutinesNeedingAttention(familyId: string, memberId?: s
   const all = await getRoutines(familyId, memberId);
   return all.filter((r) => !r.paused && (r.today || r.overdue.length > 0));
 }
+
+export type RoutineAttachment = {
+  id: string;
+  fileName: string;
+  mimeType: string | null;
+  sizeBytes: number | null;
+  storagePath: string;
+};
+
+export async function getRoutineAttachments(routineId: string): Promise<RoutineAttachment[]> {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("routine_attachments")
+    .select("id, file_name, mime_type, size_bytes, storage_path")
+    .eq("routine_id", routineId)
+    .order("created_at");
+  return (data ?? []).map((r) => ({ id: r.id, fileName: r.file_name, mimeType: r.mime_type, sizeBytes: r.size_bytes, storagePath: r.storage_path }));
+}

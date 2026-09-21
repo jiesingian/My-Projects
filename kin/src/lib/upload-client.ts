@@ -11,7 +11,7 @@ export type UploadedFile =
  * first to get a destination, then pass its result in here. */
 export async function uploadFileDirect(
   file: File,
-  kind: "journal" | "document" | "avatar" | "family_background" | "recipe",
+  kind: "journal" | "document" | "avatar" | "family_background" | "recipe" | "routine",
   folderId?: string,
 ): Promise<UploadedFile> {
   const sessionRes = await fetch("/api/uploads/session", {

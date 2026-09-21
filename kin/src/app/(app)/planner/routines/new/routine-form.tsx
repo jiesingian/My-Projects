@@ -7,6 +7,8 @@ import { DetailHeader } from "@/components/hub-header";
 import { Icon } from "@/components/icons";
 import { ROUTINE_KINDS, ROUTINE_KIND_META, type RoutineKind } from "@/lib/routines";
 import { DateInput } from "@/components/date-input";
+import { RoutineAttachments } from "@/components/routine-attachments";
+import type { RoutineAttachment } from "@/lib/queries/routines";
 
 const initialState: RoutineActionState = { error: null, field: null };
 const WEEKDAYS = [
@@ -118,11 +120,13 @@ export function RoutineForm({
   accounts,
   edit,
   today,
+  attachments,
 }: {
   members: Member[];
   accounts: Account[];
   edit?: EditRoutine | null;
   today: string;
+  attachments?: RoutineAttachment[];
 }) {
   const action = edit ? updateRoutineAction.bind(null, edit.id) : createRoutineAction;
   const [state, formAction] = useActionState(action, initialState);
@@ -405,6 +409,8 @@ export function RoutineForm({
             <label htmlFor={`${uid}-notes`}>NOTES</label>
             <textarea id={`${uid}-notes`} aria-label="Notes" className="input" name="notes" maxLength={1000} defaultValue={edit?.notes ?? undefined} />
           </div>
+
+          {edit && <RoutineAttachments routineId={edit.id} initial={attachments ?? []} />}
 
           {/* Beside the button that was just pressed, not at the top of a
               form the person has already scrolled past. */}
