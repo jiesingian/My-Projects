@@ -32,7 +32,7 @@ export default async function MemberDetailPage({
   searchParams,
 }: {
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ seg?: string; view?: string }>;
+  searchParams: Promise<{ seg?: string; view?: string; from?: string }>;
 }) {
   const me = await getCurrentMember();
   const dateFormat = me?.families.date_format;
@@ -46,6 +46,19 @@ export default async function MemberDetailPage({
   const { member, schedule, appointments, conditions, labs, vitals, omron } = await getMemberDetail(id, me.family_id);
   if (!member) redirect("/family?seg=profile");
   const isSelf = me.id === member.id;
+
+  // Reachable from two different hubs, not one: the Family list links here
+  // (the ordinary path), but Settings also links straight to your own
+  // profile -- so "back" alone no longer says where you'd land, the same
+  // gap `docs/PAGE_PATTERNS.md` names for the other two nested routes.
+  // `from` only ever means Settings (nothing else links here that way), so
+  // Family stays the default for everybody arriving the ordinary route.
+  const cameFromSettings = isSelf && sp.from === "settings";
+  const familyHref = view === "health" ? "/family?seg=health" : "/family?seg=profile";
+  const backHref = cameFromSettings ? "/settings" : familyHref;
+  const trail = cameFromSettings
+    ? [{ label: "Settings", href: "/settings" }, { label: member.full_name }]
+    : [{ label: "Family", href: familyHref }, { label: member.full_name }];
 
   const accounts = await getAccounts(me.family_id);
   const payableAccounts = accounts
@@ -82,7 +95,7 @@ export default async function MemberDetailPage({
 
   return (
     <div>
-      <DetailHeader backHref={view === "health" ? "/family?seg=health" : "/family?seg=profile"} eyebrow="HUB 01 · MEMBER RECORD" />
+      <DetailHeader backHref={backHref} eyebrow="HUB 01 · MEMBER RECORD" trail={trail} />
       <div style={{ padding: "0 22px 22px" }}>
         {view === "profile" ? (
           isSelf ? (

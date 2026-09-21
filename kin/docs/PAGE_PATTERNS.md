@@ -37,23 +37,32 @@ Is this one of the five tab roots? `HubHeader`. Is it reached by tapping into
 one of those five? `DetailHeader`. Neither? Then, and only then, something
 custom — and say in a comment why `DetailHeader` didn't fit.
 
-## Breadcrumbs, for routes nested past one level
+## Breadcrumbs, for routes where "back" is not one clear place
 
 Most detail pages are one hop from their hub (`journal/new`, `wealth/add`),
 and `DetailHeader`'s eyebrow plus back button is enough context for that —
-there is only one place "back" can mean. Two routes go a level deeper:
+there is only one place "back" can mean. Three routes are not that simple:
 
-- `family/documents/[folderId]/[entryId]/edit` — back from here means the
-  folder, not the hub, and the folder's name was nowhere on screen.
-- `family/members/[id]/health/new` — back means that member's health tab, not
-  the family hub.
+- `family/documents/[folderId]/[entryId]/edit` — nested a level deeper: back
+  from here means the folder, not the hub, and the folder's name was nowhere
+  on screen.
+- `family/members/[id]/health/new` — nested a level deeper: back means that
+  member's health tab, not the family hub.
+- `family/members/[id]` — not nested deeper, but reached from *two* different
+  hubs: the Family list (the ordinary path), and Settings, which links
+  straight to your own profile. A bare back button hardcoded to Family sent
+  you to the wrong hub if you'd arrived from Settings; the page now reads a
+  `from=settings` query param the Settings link sets, and both the back
+  button and the crumb's first link follow it.
 
 For those, `DetailHeader` takes an optional `trail` prop: a short list of
 `{ label, href? }` crumbs rendered above the existing back/eyebrow row (the
 last crumb has no `href` — it's where you are). It is opt-in and additive, so
-the other 24-plus pages that pass one level of nesting are untouched. Reach
-for it only when a page is nested past one level from its hub; at one level,
-the existing back button already says everything a crumb would.
+the other 20-plus pages that pass one level of nesting from a single hub are
+untouched. Reach for it when a page is nested past one level from its hub, or
+when it can genuinely be reached from more than one place — at one level from
+a single hub, the existing back button already says everything a crumb
+would.
 
 ## On the CSS scales in `globals.css`
 
