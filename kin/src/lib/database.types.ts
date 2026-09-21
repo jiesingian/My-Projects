@@ -1063,6 +1063,54 @@ export type Database = {
           },
         ]
       }
+      emergency_contacts: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          family_id: string
+          id: string
+          name: string
+          note: string | null
+          phone: string
+          relationship: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          family_id: string
+          id?: string
+          name: string
+          note?: string | null
+          phone: string
+          relationship: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          family_id?: string
+          id?: string
+          name?: string
+          note?: string | null
+          phone?: string
+          relationship?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "emergency_contacts_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "members"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "emergency_contacts_family_id_fkey"
+            columns: ["family_id"]
+            isOneToOne: false
+            referencedRelation: "families"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       event_members: {
         Row: {
           event_id: string

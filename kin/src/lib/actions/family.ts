@@ -688,6 +688,64 @@ export async function removeFamilyAddressAction(addressId: string): Promise<Acti
   return { error: error ? humanDatabaseError(error.message) : null };
 }
 
+export type EmergencyContactFields = { name: string; relationship: string; phone: string; note: string };
+
+/** Adds a contact to the household's emergency list (a pediatrician, poison
+ * control, a nearby relative) -- someone worth reaching in a hurry who isn't
+ * necessarily a Kin member. Open to any signed-in member, not just the
+ * organizer: a list like this is something a household keeps together, the
+ * same reasoning milestones and the family tree already follow. */
+export async function addEmergencyContactAction(fields: EmergencyContactFields): Promise<ActionState> {
+  const me = await requireCurrentMember();
+
+  const name = clamp(fields.name, 100);
+  const relationship = clamp(fields.relationship, 100);
+  const phone = clamp(fields.phone, 40);
+  const note = clamp(fields.note, 300) || null;
+  if (!name || !relationship || !phone) return { error: "Name, relationship, and phone are required." };
+
+  const supabase = await createClient();
+  const { error } = await supabase.from("emergency_contacts").insert({
+    family_id: me.family_id,
+    name,
+    relationship,
+    phone,
+    note,
+    created_by: me.id,
+  });
+  revalidatePath("/family");
+  return { error: error ? humanDatabaseError(error.message) : null };
+}
+
+/** Edits an existing emergency contact in place. */
+export async function updateEmergencyContactAction(contactId: string, fields: EmergencyContactFields): Promise<ActionState> {
+  await requireCurrentMember();
+
+  const name = clamp(fields.name, 100);
+  const relationship = clamp(fields.relationship, 100);
+  const phone = clamp(fields.phone, 40);
+  const note = clamp(fields.note, 300) || null;
+  if (!name || !relationship || !phone) return { error: "Name, relationship, and phone are required." };
+
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("emergency_contacts")
+    .update({ name, relationship, phone, note })
+    .eq("id", contactId);
+  revalidatePath("/family");
+  return { error: error ? humanDatabaseError(error.message) : null };
+}
+
+/** Removes an emergency contact. */
+export async function removeEmergencyContactAction(contactId: string): Promise<ActionState> {
+  await requireCurrentMember();
+
+  const supabase = await createClient();
+  const { error } = await supabase.from("emergency_contacts").delete().eq("id", contactId);
+  revalidatePath("/family");
+  return { error: error ? humanDatabaseError(error.message) : null };
+}
+
 /** Permanently deletes the entire household — every member, journal entry,
  * document index, health record, bill, account, and every other row this
  * family owns. RLS/the RPC itself restrict this to the organizer. Files

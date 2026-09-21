@@ -1,7 +1,8 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getCurrentMember } from "@/lib/session";
-import { getMembers, getHealthSummary, getDocFolders, getFamilyProfile, getFamilyTree } from "@/lib/queries/family";
+import { getMembers, getHealthSummary, getDocFolders, getFamilyProfile, getFamilyTree, getEmergencyContacts } from "@/lib/queries/family";
+import { EmergencyContactList } from "@/components/emergency-contact-list";
 import { HubHeader } from "@/components/hub-header";
 import { ChipRow } from "@/components/segmented";
 import { Blueprint, Tag, Empty } from "@/components/ui";
@@ -17,7 +18,7 @@ import { FamilyTreeEditor } from "@/components/family-tree-editor";
 import { AddMeToTreeButton } from "@/components/add-me-to-tree-button";
 import { formatAge, initials, shortNames } from "@/lib/format";
 
-const SEGMENTS = ["profile", "health", "documents", "tree"] as const;
+const SEGMENTS = ["profile", "health", "documents", "tree", "quicklinks"] as const;
 type Seg = (typeof SEGMENTS)[number];
 
 export default async function FamilyPage({
@@ -34,7 +35,7 @@ export default async function FamilyPage({
   const center = sp.center ?? me.id;
 
   const segments = SEGMENTS.map((s) => ({
-    label: s === "profile" ? "Profile" : s === "health" ? "Health" : s === "documents" ? "Documents" : "Family Tree",
+    label: s === "profile" ? "Profile" : s === "health" ? "Health" : s === "documents" ? "Documents" : s === "tree" ? "Family Tree" : "Quicklinks",
     href: `/family?seg=${s}`,
     active: s === seg,
   }));
@@ -47,6 +48,7 @@ export default async function FamilyPage({
         {seg === "health" && <HealthPane familyId={me.family_id} />}
         {seg === "documents" && <DocumentsPane familyId={me.family_id} who={who} />}
         {seg === "tree" && <TreePane familyId={me.family_id} myId={me.id} center={center} />}
+        {seg === "quicklinks" && <QuicklinksPane familyId={me.family_id} />}
       </div>
     </div>
   );
@@ -278,6 +280,24 @@ async function TreePane({ familyId, myId, center }: { familyId: string; myId: st
       {!centerInTree && center === myId && <AddMeToTreeButton memberId={myId} />}
 
       <FamilyTreeEditor people={tree.people} unaddedMembers={unaddedMembers} />
+    </>
+  );
+}
+
+/** Who to call in a hurry -- a pediatrician, poison control, a relative
+ * nearby. Emergency contacts only for now: a location tracker was part of
+ * the original Quicklinks request but needs its own product decision first
+ * (a saved-places directory reads very differently from live location
+ * sharing between members), so this segment is scoped to what has one clear
+ * shape. */
+async function QuicklinksPane({ familyId }: { familyId: string }) {
+  const contacts = await getEmergencyContacts(familyId);
+  return (
+    <>
+      <div style={{ font: "600 13px/1 var(--font-heading)", letterSpacing: ".02em", color: "var(--color-neutral-600)", marginBottom: 8 }}>
+        EMERGENCY CONTACTS
+      </div>
+      <EmergencyContactList contacts={contacts} />
     </>
   );
 }
