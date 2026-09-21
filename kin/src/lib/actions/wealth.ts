@@ -198,7 +198,8 @@ async function applySettlement(supabase: Db, memberId: string, entry: Tables<"we
         paid_by_member_id: memberId,
         transaction_id: entry.id,
       })
-      .eq("id", entry.source_id);
+      .eq("id", entry.source_id)
+      .eq("family_id", entry.family_id);
     if (error) return `The payment was recorded, but the bill is still showing as unpaid. ${error.message}`;
   }
 
@@ -209,7 +210,8 @@ async function applySettlement(supabase: Db, memberId: string, entry: Tables<"we
     const { error } = await supabase
       .from("income_schedules")
       .update({ status: "received", received_at: entry.occurred_at, received_by_member_id: memberId, transaction_id: entry.id })
-      .eq("id", entry.source_id);
+      .eq("id", entry.source_id)
+      .eq("family_id", entry.family_id);
     if (error) return `The income was recorded, but the schedule is still showing as expected. ${error.message}`;
   }
 
@@ -417,7 +419,8 @@ export async function deleteTransactionAction(transactionId: string): Promise<Ac
     const { error: billError } = await supabase
       .from("bills")
       .update({ status: "unpaid", paid_at: null, paid_from_account_id: null, paid_by_member_id: null, transaction_id: null })
-      .eq("id", entry.source_id);
+      .eq("id", entry.source_id)
+      .eq("family_id", me.family_id);
     if (billError) return { error: `The bill could not be reopened, so the payment was left in place. ${billError.message}` };
   }
 
@@ -427,7 +430,8 @@ export async function deleteTransactionAction(transactionId: string): Promise<Ac
     const { error: incomeError } = await supabase
       .from("income_schedules")
       .update({ status: "expected", received_at: null, received_by_member_id: null, transaction_id: null })
-      .eq("id", entry.source_id);
+      .eq("id", entry.source_id)
+      .eq("family_id", me.family_id);
     if (incomeError) return { error: `The income schedule could not be reopened, so the entry was left in place. ${incomeError.message}` };
   }
 
@@ -456,6 +460,18 @@ export async function postHubExpenseAction(input: {
   const me = await requireCurrentMember();
   const supabase = await createClient();
   if (!(input.amount > 0)) return { error: "Enter an amount greater than zero." };
+
+  const { data: account } = await supabase.from("accounts").select("id").eq("id", input.accountId).eq("family_id", me.family_id).maybeSingle();
+  if (!account) return { error: "Choose an account this household actually has." };
+
+  // sourceId names a row this hub is about (the bill, the trip, the
+  // grocery run...) purely for later reference -- unvalidated, it would let
+  // a forged id reach the ledger and, for bills/income_schedules, later
+  // flip another family's row via deleteTransactionAction's reopen logic.
+  if (input.sourceId) {
+    const { data: source } = await supabase.from(input.sourceTable).select("id").eq("id", input.sourceId).eq("family_id", me.family_id).maybeSingle();
+    if (!source) return { error: "That isn't something this household has." };
+  }
 
   const { error } = await insertEntry(supabase, me.family_id, me.id, {
     accountId: input.accountId,

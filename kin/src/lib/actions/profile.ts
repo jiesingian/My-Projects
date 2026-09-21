@@ -74,6 +74,14 @@ export async function addAvatarToAlbumAction(uploaded: UploadedFile): Promise<Ac
   const me = await requireCurrentMember();
   const supabase = await createClient();
 
+  // A Storage path is trusted as belonging to this family only when it sits
+  // under the family's own prefix -- otherwise this call would let a member
+  // index (and later, via delete, permanently remove) another family's
+  // photo by path alone.
+  if (uploaded.provider === "supabase" && !uploaded.storagePath.startsWith(`${me.family_id}/`)) {
+    return { error: "That photo doesn't belong to this household." };
+  }
+
   const row: TablesInsert<"member_avatars"> =
     uploaded.provider === "google_drive"
       ? { member_id: me.id, family_id: me.family_id, storage_path: null, drive_file_id: uploaded.driveFileId }
