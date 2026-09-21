@@ -719,7 +719,7 @@ export async function addEmergencyContactAction(fields: EmergencyContactFields):
 
 /** Edits an existing emergency contact in place. */
 export async function updateEmergencyContactAction(contactId: string, fields: EmergencyContactFields): Promise<ActionState> {
-  await requireCurrentMember();
+  const me = await requireCurrentMember();
 
   const name = clamp(fields.name, 100);
   const relationship = clamp(fields.relationship, 100);
@@ -731,17 +731,18 @@ export async function updateEmergencyContactAction(contactId: string, fields: Em
   const { error } = await supabase
     .from("emergency_contacts")
     .update({ name, relationship, phone, note })
-    .eq("id", contactId);
+    .eq("id", contactId)
+    .eq("family_id", me.family_id);
   revalidatePath("/family");
   return { error: error ? humanDatabaseError(error.message) : null };
 }
 
 /** Removes an emergency contact. */
 export async function removeEmergencyContactAction(contactId: string): Promise<ActionState> {
-  await requireCurrentMember();
+  const me = await requireCurrentMember();
 
   const supabase = await createClient();
-  const { error } = await supabase.from("emergency_contacts").delete().eq("id", contactId);
+  const { error } = await supabase.from("emergency_contacts").delete().eq("id", contactId).eq("family_id", me.family_id);
   revalidatePath("/family");
   return { error: error ? humanDatabaseError(error.message) : null };
 }

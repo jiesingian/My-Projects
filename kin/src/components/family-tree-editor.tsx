@@ -207,6 +207,11 @@ export function FamilyTreeEditor({ people, unaddedMembers }: { people: TreePerso
         </button>
       </div>
 
+      {/* Removing someone, or adding a member to the tree, has no form open
+          to show its own error in -- this is the only place either is
+          visible. */}
+      {error && mode === "none" && <p style={{ color: "var(--color-accent-700)", fontSize: 13, margin: "0 0 10px" }}>{error}</p>}
+
       {people.length === 0 && <div style={{ fontSize: 13.5, color: "var(--color-neutral-600)", marginBottom: 10 }}>Nobody&apos;s been added yet.</div>}
 
       {people.map((p) =>
