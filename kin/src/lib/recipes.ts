@@ -1,17 +1,24 @@
 import type { MarketSection } from "@/lib/grocery";
 import type { IconName } from "@/components/icons";
 
-export type MealSlot = "breakfast" | "lunch" | "dinner" | "snack";
+export type MealSlot = "breakfast" | "morning_snack" | "lunch" | "afternoon_snack" | "dinner";
 
 /** The parts of a day, in the order they happen — which is also the order
- * meals are listed and grouped in. */
-export const MEAL_SLOTS: MealSlot[] = ["breakfast", "lunch", "dinner", "snack"];
+ * meals are listed and grouped in. Morning and afternoon snack are two
+ * slots rather than one generic "snack": a single bucket said nothing about
+ * whether it fell before lunch or after, so a day's plan read out of order
+ * on a page that otherwise promises the parts of a day in the order they
+ * happen. Neither dev nor production had a row in the old "snack" slot when
+ * this changed, so this replaces it outright rather than keeping it around
+ * unused. */
+export const MEAL_SLOTS: MealSlot[] = ["breakfast", "morning_snack", "lunch", "afternoon_snack", "dinner"];
 
 export const MEAL_SLOT_LABEL: Record<MealSlot, string> = {
   breakfast: "Breakfast",
+  morning_snack: "Morning Snack",
   lunch: "Lunch",
+  afternoon_snack: "Afternoon Snack",
   dinner: "Dinner",
-  snack: "Snacks",
 };
 
 /** What kind of food it is, rather than when it is eaten — how a menu is
@@ -395,7 +402,7 @@ export const RECIPES: Recipe[] = [
   {
     key: "pancit-canton",
     name: "Pancit canton",
-    slots: ["lunch", "dinner", "snack"],
+    slots: ["lunch", "dinner", "afternoon_snack"],
     categories: ["noodles"],
     serves: 5,
     minutes: 35,
@@ -477,7 +484,7 @@ export const RECIPES: Recipe[] = [
   {
     key: "champorado",
     name: "Champorado",
-    slots: ["breakfast", "snack"],
+    slots: ["breakfast", "morning_snack"],
     categories: ["rice", "merienda"],
     serves: 5,
     minutes: 30,
@@ -492,7 +499,7 @@ export const RECIPES: Recipe[] = [
   {
     key: "arroz-caldo",
     name: "Arroz caldo",
-    slots: ["breakfast", "snack"],
+    slots: ["breakfast", "morning_snack"],
     categories: ["rice", "chicken", "soup"],
     serves: 5,
     minutes: 50,
@@ -510,7 +517,7 @@ export const RECIPES: Recipe[] = [
   {
     key: "lugaw",
     name: "Lugaw",
-    slots: ["breakfast", "snack"],
+    slots: ["breakfast", "morning_snack"],
     categories: ["rice", "soup"],
     serves: 5,
     minutes: 40,
@@ -540,7 +547,7 @@ export const RECIPES: Recipe[] = [
   {
     key: "turon",
     name: "Turon",
-    slots: ["snack"],
+    slots: ["afternoon_snack"],
     categories: ["merienda"],
     serves: 6,
     minutes: 30,
@@ -555,7 +562,7 @@ export const RECIPES: Recipe[] = [
   {
     key: "banana-cue",
     name: "Banana cue",
-    slots: ["snack"],
+    slots: ["afternoon_snack"],
     categories: ["merienda"],
     serves: 6,
     minutes: 25,
@@ -569,7 +576,7 @@ export const RECIPES: Recipe[] = [
   {
     key: "ginataang-bilo",
     name: "Ginataang bilo-bilo",
-    slots: ["snack"],
+    slots: ["afternoon_snack"],
     categories: ["merienda"],
     serves: 6,
     minutes: 45,
