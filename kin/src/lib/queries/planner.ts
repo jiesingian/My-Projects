@@ -132,7 +132,7 @@ async function fetchCalendarItems(familyId: string, rangeStart: Date, rangeEnd: 
       who,
       memberIds,
       appliesToAll: t.applies_to_whole_family || memberIds.length === 0,
-      href: `/planner?seg=travel`,
+      href: `/planner?seg=events`,
     });
   }
 

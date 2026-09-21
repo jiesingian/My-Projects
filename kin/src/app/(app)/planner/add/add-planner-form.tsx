@@ -322,7 +322,7 @@ function TripForm({
             if (!(await confirm({ title: "Delete this trip?", description: "This can't be undone.", confirmLabel: "Delete", danger: true }))) return;
             setDeleting(true);
             await deleteTripAction(editTrip.id);
-            router.push("/planner?seg=travel");
+            router.push("/planner?seg=events");
           }}
         >
           {deleting ? "DELETING…" : "DELETE TRIP"}
