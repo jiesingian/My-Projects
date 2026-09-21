@@ -1,7 +1,8 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getCurrentMember } from "@/lib/session";
-import { getBuyItems, getMealsForDay, type PlannedMeal } from "@/lib/queries/household";
+import { getBuyItems, getMealsForDay, getLiquidIntake, type PlannedMeal } from "@/lib/queries/household";
+import { LiquidIntakeTracker } from "@/components/liquid-intake-tracker";
 import { getAccounts } from "@/lib/queries/wealth";
 import { getPriceBook, getPricedBuyList, getNextShoppingRun, getPantry } from "@/lib/queries/household-money";
 import { HubHeader } from "@/components/hub-header";
@@ -169,10 +170,11 @@ async function MealsPane({
   currency: string;
   anchor: Date;
 }) {
-  const [{ meals, anchorISO }, recipes, categories] = await Promise.all([
+  const [{ meals, anchorISO }, recipes, categories, liquidIntake] = await Promise.all([
     getMealsForDay(familyId, anchor),
     getRecipeBook(familyId),
     getRecipeCategories(familyId),
+    getLiquidIntake(familyId, toISODate(anchor)),
   ]);
   const today = new Date();
   const isToday = anchor.toDateString() === today.toDateString();
@@ -248,6 +250,8 @@ async function MealsPane({
           </div>
         );
       })}
+
+      <LiquidIntakeTracker date={anchorISO} members={liquidIntake} />
 
       <div style={{ marginTop: 18 }}>
         <GenerateGroceryButton weekOf={anchorISO} />

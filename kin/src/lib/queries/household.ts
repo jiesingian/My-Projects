@@ -5,6 +5,7 @@ import { getSignedUrls } from "@/lib/storage";
 import { recipeRef, RECIPE_PHOTO_BUCKET } from "@/lib/meal-photos";
 import { RECIPES_BY_KEY, type MealSlot } from "@/lib/recipes";
 import { toISODate } from "@/lib/routines";
+import { type LiquidIntakeType, type LiquidIntakeMember } from "@/lib/liquid-intake";
 
 /** The open list, grouped by market section and ordered the way the sections
  * are walked, so it can be shopped straight down. */
@@ -150,4 +151,29 @@ export async function getMealsForDay(familyId: string, anchor: Date = new Date()
   });
 
   return { meals, anchorISO };
+}
+
+/** One day's tally per member, per drink -- everyone in the house, even
+ * members who haven't logged a sip, so the tracker reads as a checklist
+ * rather than a list that only grows once someone taps it. */
+export async function getLiquidIntake(familyId: string, dateISO: string): Promise<LiquidIntakeMember[]> {
+  const supabase = await createClient();
+  const [{ data: members }, { data: rows }] = await Promise.all([
+    supabase.from("members").select("id, full_name, avatar_url").eq("family_id", familyId).order("created_at"),
+    supabase.from("liquid_intake_log").select("member_id, type, glasses").eq("family_id", familyId).eq("log_date", dateISO),
+  ]);
+
+  const byMember = new Map<string, Record<LiquidIntakeType, number>>();
+  for (const row of rows ?? []) {
+    const entry = byMember.get(row.member_id) ?? { water: 0, juice: 0, milk: 0 };
+    entry[row.type as LiquidIntakeType] = row.glasses;
+    byMember.set(row.member_id, entry);
+  }
+
+  return (members ?? []).map((m) => ({
+    id: m.id,
+    name: m.full_name,
+    avatarUrl: m.avatar_url,
+    glasses: byMember.get(m.id) ?? { water: 0, juice: 0, milk: 0 },
+  }));
 }

@@ -2543,6 +2543,51 @@ export type Database = {
           },
         ]
       }
+      liquid_intake_log: {
+        Row: {
+          family_id: string
+          glasses: number
+          id: string
+          log_date: string
+          member_id: string
+          type: string
+          updated_at: string
+        }
+        Insert: {
+          family_id: string
+          glasses?: number
+          id?: string
+          log_date: string
+          member_id: string
+          type: string
+          updated_at?: string
+        }
+        Update: {
+          family_id?: string
+          glasses?: number
+          id?: string
+          log_date?: string
+          member_id?: string
+          type?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "liquid_intake_log_family_id_fkey"
+            columns: ["family_id"]
+            isOneToOne: false
+            referencedRelation: "families"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "liquid_intake_log_member_id_fkey"
+            columns: ["member_id"]
+            isOneToOne: false
+            referencedRelation: "members"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       meal_ingredients: {
         Row: {
           family_id: string

@@ -16,6 +16,7 @@ import {
   type MealSlot,
   type RecipeCategory,
 } from "@/lib/recipes";
+import type { LiquidIntakeType } from "@/lib/liquid-intake";
 import { RECIPE_PHOTO_BUCKET } from "@/lib/meal-photos";
 import type { ActionState } from "@/lib/actions/auth";
 import type { TablesInsert } from "@/lib/database.types";
@@ -861,6 +862,41 @@ export async function removeRecipePhotoAction(recipeRef: string): Promise<Action
 
   revalidatePath("/household");
   return { error: null };
+}
+
+async function upsertLiquidIntake(
+  memberId: string,
+  type: LiquidIntakeType,
+  date: string,
+  glasses: number,
+): Promise<ActionState> {
+  const me = await requireCurrentMember();
+  const supabase = await createClient();
+
+  const { data: member } = await supabase.from("members").select("id").eq("id", memberId).eq("family_id", me.family_id).maybeSingle();
+  if (!member) return { error: "That family member wasn't found." };
+
+  const clamped = Math.max(0, Math.min(24, Math.round(glasses)));
+  const { error } = await supabase.from("liquid_intake_log").upsert(
+    { family_id: me.family_id, member_id: memberId, type, log_date: date, glasses: clamped, updated_at: new Date().toISOString() },
+    { onConflict: "member_id,type,log_date" },
+  );
+  if (error) return { error: humanDatabaseError(error.message) };
+
+  revalidatePath("/household");
+  return { error: null };
+}
+
+/** The quick-add tap: one more glass, read-then-write since a household's
+ * own taps are rare enough that the race isn't worth a database function. */
+export async function addLiquidIntakeAction(input: { memberId: string; type: LiquidIntakeType; date: string; current: number }): Promise<ActionState> {
+  return upsertLiquidIntake(input.memberId, input.type, input.date, input.current + 1);
+}
+
+/** The long-press picker: set the day's count outright, for correcting a
+ * mis-tap or logging several glasses from earlier in the day at once. */
+export async function setLiquidIntakeAction(input: { memberId: string; type: LiquidIntakeType; date: string; glasses: number }): Promise<ActionState> {
+  return upsertLiquidIntake(input.memberId, input.type, input.date, input.glasses);
 }
 
 /** Mark one ingredient as already in the house, or take it back off. */

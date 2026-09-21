@@ -57,6 +57,7 @@ export const iconPaths = {
   leaf: "M20.5 3.5C9.5 4 4 9 4 15.5c0 2 .8 3.6.8 3.6S7 9.5 19 6.5M4.8 19.1C12 19 18.5 14 20.5 3.5",
   noodles: "M3 12.5h18a9 9 0 0 1-18 0M13.5 9.5 21 3M11 9.5 19 4.5",
   cupcake: "M6 11.5h12l-1.6 8.5H7.6zM7 11.5a3 3 0 0 1 1.2-5.5a3.4 3.4 0 0 1 6.6-.6A3 3 0 0 1 17 11.5",
+  glassWater: "M6 3h12l-1.3 16.2a2 2 0 0 1-2 1.8H9.3a2 2 0 0 1-2-1.8zM5.5 9.5h13",
 } as const;
 
 export type IconName = keyof typeof iconPaths;
