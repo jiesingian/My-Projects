@@ -16,13 +16,13 @@ export default function NewMilestonePage() {
   const router = useRouter();
   const [state, formAction] = useActionState(async (prev: ActionState, formData: FormData) => {
     const res = await createMilestoneAction(prev, formData);
-    if (!res.error) router.push("/journal?seg=milestones");
+    if (!res.error) router.push("/journal?view=milestones");
     return res;
   }, initialState);
 
   return (
     <div>
-      <DetailHeader backHref="/journal?seg=milestones" eyebrow="HUB 02 · MILESTONE" />
+      <DetailHeader backHref="/journal?view=milestones" eyebrow="HUB 02 · MILESTONE" />
       <div style={{ padding: "0 22px 22px" }}>
         <h3 style={{ fontSize: 30, margin: "0 0 16px" }}>Add a milestone</h3>
         <form action={formAction}>

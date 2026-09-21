@@ -75,13 +75,13 @@ export function EditEntryForm({ entry, members }: { entry: Entry; members: Table
       }
     }
 
-    router.push("/journal?seg=entries");
+    router.push("/journal?view=list");
     router.refresh();
   }
 
   return (
     <div>
-      <DetailHeader backHref="/journal?seg=entries" eyebrow="HUB 02 · EDIT ENTRY" />
+      <DetailHeader backHref="/journal?view=list" eyebrow="HUB 02 · EDIT ENTRY" />
       <div style={{ padding: "0 22px 22px" }}>
         <h3 style={{ fontSize: 30, margin: "0 0 16px" }}>Edit journal entry</h3>
         <form onSubmit={onSubmit}>

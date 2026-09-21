@@ -112,7 +112,7 @@ test.describe("bugs that already got out once", () => {
   /** The same ambiguous embed, on milestones. The tab looked like nowhere had
    * ever recorded one. */
   test("milestones are listed", async ({ page }) => {
-    await page.goto("/journal?seg=milestones", { waitUntil: "networkidle" });
+    await page.goto("/journal?view=milestones", { waitUntil: "networkidle" });
     // The one this run recorded. The old version looked for any date-shaped
     // text anywhere on the page, which a footer or an unrelated row would
     // satisfy just as well as a milestone would.

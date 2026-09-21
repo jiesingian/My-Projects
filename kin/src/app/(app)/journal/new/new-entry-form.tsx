@@ -58,13 +58,13 @@ export function NewEntryForm({ members }: { members: Tables<"members">[] }) {
       }
     }
 
-    router.push("/journal?seg=entries");
+    router.push("/journal?view=list");
     router.refresh();
   }
 
   return (
     <div>
-      <DetailHeader backHref="/journal?seg=entries" eyebrow="HUB 02 · NEW ENTRY" />
+      <DetailHeader backHref="/journal?view=list" eyebrow="HUB 02 · NEW ENTRY" />
       <div style={{ padding: "0 22px 22px" }}>
         <h3 style={{ fontSize: 30, margin: "0 0 16px" }}>Add a journal entry</h3>
         <form onSubmit={onSubmit}>
