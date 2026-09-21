@@ -878,7 +878,12 @@ async function AssetsPane({ familyId, memberId, currency, scope }: { familyId: s
                 {target > current ? ` · ${formatCurrency(target - current, currency)} to go` : " · funded"}
               </div>
             )}
-            <GoalContributeControl goalId={g.id} accounts={pickableCash} currency={currency} />
+            {g.linked_account_id && (
+              <div style={{ fontSize: 12.5, color: "var(--color-neutral-600)", marginTop: 5 }}>
+                Saved in {pickableCash.find((a) => a.id === g.linked_account_id)?.name ?? "an account you can no longer see"}
+              </div>
+            )}
+            <GoalContributeControl goalId={g.id} accounts={pickableCash} currency={currency} linkedAccountId={g.linked_account_id} />
             <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 8 }}>
               <RemoveButton id={g.id} kind="goal" label={`Delete "${g.title}"`} />
             </div>
