@@ -1,6 +1,9 @@
 import type { IconName } from "@/components/icons";
 
-export const ROUTINE_KINDS = ["grocery", "fitness", "sport", "worship", "lesson", "chore", "health", "other"] as const;
+export const ROUTINE_KINDS = [
+  "grocery", "fitness", "sport", "worship", "lesson", "chore", "health",
+  "school", "work", "family", "personal", "other",
+] as const;
 export type RoutineKind = (typeof ROUTINE_KINDS)[number];
 
 export const ROUTINE_KIND_META: Record<RoutineKind, { label: string; icon: IconName }> = {
@@ -11,6 +14,10 @@ export const ROUTINE_KIND_META: Record<RoutineKind, { label: string; icon: IconN
   lesson: { label: "Lesson", icon: "calendarDays" },
   chore: { label: "Chore", icon: "house" },
   health: { label: "Health", icon: "activity" },
+  school: { label: "School", icon: "fileText" },
+  work: { label: "Work", icon: "briefcase" },
+  family: { label: "Family", icon: "users" },
+  personal: { label: "Personal", icon: "target" },
   other: { label: "Routine", icon: "repeat" },
 };
 
