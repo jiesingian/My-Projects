@@ -23,21 +23,26 @@ export async function createJournalEntryAction(input: {
 
   const title = clamp(input.title, 150);
   if (!title) return { error: "Give the entry a title." };
+  const note = input.note ? clamp(input.note, 1000) : null;
 
   const { data: entry, error } = await supabase
     .from("journal_entries")
-    .insert({ family_id: me.family_id, entry_date: input.date, title, note: input.note, source: "manual", created_by: me.id })
+    .insert({ family_id: me.family_id, entry_date: input.date, title, note, source: "manual", created_by: me.id })
     .select()
     .single();
   if (error) return { error: humanDatabaseError(error.message) };
 
   if (input.people.length > 0) {
+    const { data: validMembers } = await supabase.from("members").select("id").eq("family_id", me.family_id).in("id", input.people);
+    const validIds = new Set((validMembers ?? []).map((m) => m.id));
+    const people = input.people.filter((id) => validIds.has(id));
     const { error: peopleError } = await supabase
       .from("journal_entry_people")
-      .insert(input.people.map((memberId) => ({ entry_id: entry.id, member_id: memberId })));
+      .insert(people.map((memberId) => ({ entry_id: entry.id, member_id: memberId })));
     if (peopleError) return { error: `The entry was saved, but not who it is about. ${peopleError.message}` };
   }
 
+  revalidatePath("/journal");
   return { error: null, entryId: entry.id };
 }
 
@@ -53,10 +58,11 @@ export async function updateJournalEntryAction(input: {
 
   const title = clamp(input.title, 150);
   if (!title) return { error: "Give the entry a title." };
+  const note = input.note ? clamp(input.note, 1000) : null;
 
   const { data: entry, error } = await supabase
     .from("journal_entries")
-    .update({ title, entry_date: input.date, note: input.note })
+    .update({ title, entry_date: input.date, note })
     .eq("id", input.entryId)
     .eq("family_id", me.family_id)
     .select()
@@ -70,8 +76,12 @@ export async function updateJournalEntryAction(input: {
     .eq("entry_id", input.entryId);
   if (peopleReadError) return { error: `The entry was saved, but who it is about could not be updated. ${peopleReadError.message}` };
 
+  const { data: validMembers } = await supabase.from("members").select("id").eq("family_id", me.family_id).in("id", input.people);
+  const validIds = new Set((validMembers ?? []).map((m) => m.id));
+  const requestedIds = input.people.filter((id) => validIds.has(id));
+
   const existingIds = new Set((existing ?? []).map((p) => p.member_id));
-  const nextIds = new Set(input.people);
+  const nextIds = new Set(requestedIds);
   const toRemove = [...existingIds].filter((id) => !nextIds.has(id));
   const toAdd = [...nextIds].filter((id) => !existingIds.has(id));
 
@@ -138,6 +148,8 @@ export async function attachJournalMediaAction(input: {
   // the row that ties it to the entry. Losing it silently leaves the photo
   // stored, paid for, and attached to nothing anyone can navigate to.
   if (input.entryId) {
+    const { data: entry } = await supabase.from("journal_entries").select("id").eq("id", input.entryId).eq("family_id", me.family_id).maybeSingle();
+    if (!entry) return { error: "That entry is no longer there." };
     const { error: linkError } = await supabase
       .from("journal_entry_media")
       .insert({ entry_id: input.entryId, media_id: media.id, sort_order: input.sortOrder ?? 0 });
@@ -188,7 +200,7 @@ export async function deleteJournalMediaAction(mediaId: string): Promise<{ error
     }
   }
 
-  const { error } = await supabase.from("journal_media").delete().eq("id", mediaId);
+  const { error } = await supabase.from("journal_media").delete().eq("id", mediaId).eq("family_id", me.family_id);
   if (error) return { error: humanDatabaseError(error.message) };
 
   revalidatePath("/journal");

@@ -87,7 +87,7 @@ export async function updateAccountAction(accountId: string, _prev: ActionState,
     .from("accounts")
     .update({
       name,
-      sub_note: String(formData.get("sub_note") ?? "").trim() || null,
+      sub_note: clamp(String(formData.get("sub_note") ?? ""), 200) || null,
       institution: clamp(String(formData.get("institution") ?? ""), 200) || null,
       linked_app_url: clamp(String(formData.get("linked_app_url") ?? ""), 500) || null,
       app_store_url: clamp(String(formData.get("app_store_url") ?? ""), 500) || null,
@@ -521,6 +521,8 @@ export async function payBillAction(input: {
   const me = await requireCurrentMember();
   const supabase = await createClient();
 
+  if (!(input.amount > 0)) return { error: "Enter an amount greater than zero." };
+
   const [{ data: bill }, { data: account }] = await Promise.all([
     supabase.from("bills").select("*").eq("id", input.billId).eq("family_id", me.family_id).maybeSingle(),
     supabase.from("accounts").select("linked_app_url").eq("id", input.accountId).eq("family_id", me.family_id).maybeSingle(),
@@ -569,15 +571,22 @@ export async function addIncomeScheduleAction(_prev: ActionState, formData: Form
   const me = await requireCurrentMember();
   const supabase = await createClient();
 
-  const name = String(formData.get("name") ?? "").trim();
+  const name = clamp(String(formData.get("name") ?? ""), 150);
   const amount = Number(formData.get("amount") ?? 0);
   const nextDate = String(formData.get("next_date") ?? "") || null;
-  const category = String(formData.get("category") ?? "").trim() || null;
+  const category = clamp(String(formData.get("category") ?? ""), 100) || null;
   const recurrence = String(formData.get("recurrence") ?? "monthly");
-  const accountId = String(formData.get("account_id") ?? "") || null;
+  const requestedAccountId = String(formData.get("account_id") ?? "") || null;
   const isJoint = formData.get("is_joint") === "on";
   if (!name) return { error: "Name and amount are required." };
   if (!(amount > 0)) return { error: "Enter an amount greater than zero." };
+
+  let accountId: string | null = null;
+  if (requestedAccountId) {
+    const { data: account } = await supabase.from("accounts").select("id").eq("id", requestedAccountId).eq("family_id", me.family_id).maybeSingle();
+    if (!account) return { error: "Choose an account this household actually has." };
+    accountId = account.id;
+  }
 
   const { data: schedule, error } = await supabase
     .from("income_schedules")
@@ -622,6 +631,8 @@ export async function receiveIncomeAction(input: {
 }): Promise<{ error: string | null; appUrl?: string | null }> {
   const me = await requireCurrentMember();
   const supabase = await createClient();
+
+  if (!(input.amount > 0)) return { error: "Enter an amount greater than zero." };
 
   const [{ data: schedule }, { data: account }] = await Promise.all([
     supabase.from("income_schedules").select("*").eq("id", input.scheduleId).eq("family_id", me.family_id).maybeSingle(),
@@ -774,9 +785,16 @@ export async function createGoalAction(_prev: ActionState, formData: FormData): 
   const ownerMemberId = isJoint ? null : me.id;
   const targetAmount = formData.get("target_amount") ? Number(formData.get("target_amount")) : null;
   const targetDate = String(formData.get("target_date") ?? "") || null;
-  const linkedAccountId = String(formData.get("linked_account_id") ?? "") || null;
+  const requestedAccountId = String(formData.get("linked_account_id") ?? "") || null;
   if (!title) return { error: "Give the goal a title." };
   if (!targetAmount || targetAmount <= 0) return { error: "Set the amount you're saving towards." };
+
+  let linkedAccountId: string | null = null;
+  if (requestedAccountId) {
+    const { data: account } = await supabase.from("accounts").select("id").eq("id", requestedAccountId).eq("family_id", me.family_id).maybeSingle();
+    if (!account) return { error: "Choose an account this household actually has." };
+    linkedAccountId = account.id;
+  }
 
   const { data: goal, error } = await supabase
     .from("goals")

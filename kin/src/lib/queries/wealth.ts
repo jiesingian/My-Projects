@@ -121,7 +121,6 @@ export async function getWealthPane(familyId: string, memberId: string, scope: W
     // All is measured against the household's budget; one person against
     // the target they set for themselves.
     budgetAmount: scope === "all" ? Number(period?.budget_amount ?? 0) : Number(target?.target_amount ?? 0),
-    budgetPeriodId: period?.id ?? null,
     allocations,
     unbudgeted,
     history,
@@ -148,6 +147,7 @@ export async function getAccountDetail(familyId: string, accountId: string) {
       .from("wealth_transactions")
       .select("*, accounts(name), members:recorded_by(full_name)")
       .eq("account_id", accountId)
+      .eq("family_id", familyId)
       .order("occurred_at", { ascending: false })
       .limit(200),
   ]);
