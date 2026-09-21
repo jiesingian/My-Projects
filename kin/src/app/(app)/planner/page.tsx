@@ -23,7 +23,7 @@ import { AddToJournalButton } from "@/components/add-to-journal-button";
 import { Icon } from "@/components/icons";
 import { CALENDAR_LEGEND, styleFor } from "@/lib/calendar-style";
 import { parseHidden, serializeHidden, toggledHidden, type CalendarGroup } from "@/lib/calendar-groups";
-import { familyClock } from "@/lib/time";
+import { familyClock, familyDay } from "@/lib/time";
 import { dayColumn, startOfWeek, weekdayInitials, weekStartOf, type WeekStart } from "@/lib/week";
 import { LogSpendControl } from "@/components/money-actions";
 import { CalendarJump, CalendarPeriod, DateRail, MonthScroller, TodayButton } from "@/components/calendar-nav";
@@ -810,7 +810,14 @@ async function EventsPane({ familyId, memberId, currency, who }: { familyId: str
   const pickable = accounts
     .filter((a) => a.is_joint || a.owner_member_id === memberId)
     .map((a) => ({ id: a.id, name: a.name, institution: a.institution, linked_app_url: a.linked_app_url, balance: a.balance, is_joint: a.is_joint }));
-  const [upcomingTrip, ...earlierTrips] = trips;
+  // The soonest trip that hasn't started yet -- not just whichever sorts
+  // first, which used to surface a trip a year out over one next week, or a
+  // trip already over, as the hero card.
+  const today = familyDay(new Date());
+  const upcomingTrip = trips
+    .filter((t) => t.start_date >= today)
+    .sort((a, b) => a.start_date.localeCompare(b.start_date))[0];
+  const earlierTrips = trips.filter((t) => t.id !== upcomingTrip?.id);
 
   const rows: ({ date: string } & ({ kind: "event"; event: (typeof events)[number] } | { kind: "trip"; trip: (typeof earlierTrips)[number] }))[] = [
     ...events.map((e) => ({ kind: "event" as const, date: e.event_date, event: e })),

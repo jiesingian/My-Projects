@@ -445,27 +445,34 @@ export async function attachRoutineFileAction(input: {
   mimeType: string | null;
   sizeBytes: number;
   storagePath: string;
-}): Promise<ActionState> {
+}): Promise<ActionState & { id?: string }> {
   const me = await requireCurrentMember();
   const supabase = await createClient();
 
-  const { error } = await supabase.from("routine_attachments").insert({
-    routine_id: input.routineId,
-    family_id: me.family_id,
-    file_name: clamp(input.fileName, 200),
-    mime_type: input.mimeType,
-    size_bytes: input.sizeBytes,
-    storage_path: input.storagePath,
-    created_by: me.id,
-  });
+  const { data: row, error } = await supabase
+    .from("routine_attachments")
+    .insert({
+      routine_id: input.routineId,
+      family_id: me.family_id,
+      file_name: clamp(input.fileName, 200),
+      mime_type: input.mimeType,
+      size_bytes: input.sizeBytes,
+      storage_path: input.storagePath,
+      created_by: me.id,
+    })
+    .select("id")
+    .single();
   if (error) return { error: `"${input.fileName}" saved to storage but failed to index: ${humanDatabaseError(error.message)}` };
 
   revalidatePath("/planner");
-  return { error: null };
+  return { error: null, id: row.id };
 }
 
 export async function getRoutineFileUrl(path: string): Promise<string | null> {
+  const me = await requireCurrentMember();
   const supabase = await createClient();
+  const { data: file } = await supabase.from("routine_attachments").select("id").eq("storage_path", path).eq("family_id", me.family_id).maybeSingle();
+  if (!file) return null;
   const { data, error } = await supabase.storage.from("documents").createSignedUrl(path, 60 * 5);
   if (error) return null;
   return data.signedUrl;

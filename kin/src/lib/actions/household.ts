@@ -430,7 +430,7 @@ async function saveRecipeIngredients(
   ingredients: RecipeIngredientInput[],
 ): Promise<string | null> {
   const supabase = await createClient();
-  const { error: cleared } = await supabase.from("family_recipe_ingredients").delete().eq("recipe_id", recipeId);
+  const { error: cleared } = await supabase.from("family_recipe_ingredients").delete().eq("recipe_id", recipeId).eq("family_id", familyId);
   if (cleared) return cleared.message;
   const rows = ingredients
     .filter((ing) => ing.name.trim())
@@ -782,6 +782,9 @@ export async function addMealIngredientAction(input: { mealId: string; name: str
 
   const amount = input.amount == null || Number.isNaN(input.amount) ? null : input.amount;
   const unit = input.unit?.trim() ? input.unit.trim().slice(0, 24) : null;
+
+  const { data: meal } = await supabase.from("meal_plans").select("id").eq("id", input.mealId).eq("family_id", me.family_id).maybeSingle();
+  if (!meal) return { error: "That meal is no longer there." };
 
   const { error } = await supabase.from("meal_ingredients").insert({
     meal_plan_id: input.mealId,

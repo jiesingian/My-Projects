@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useId, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Icon } from "@/components/icons";
 import { uploadFileDirect } from "@/lib/upload-client";
@@ -20,6 +20,7 @@ function formatBytes(n: number | null): string {
  * up every time the task comes round. */
 export function RoutineAttachments({ routineId, initial }: { routineId: string; initial: RoutineAttachment[] }) {
   const router = useRouter();
+  const uid = useId();
   const input = useRef<HTMLInputElement>(null);
   const [files, setFiles] = useState(initial);
   const [busy, setBusy] = useState(false);
@@ -38,10 +39,10 @@ export function RoutineAttachments({ routineId, initial }: { routineId: string; 
         sizeBytes: file.size,
         storagePath: uploaded.storagePath,
       });
-      if (result.error) {
-        setError(result.error);
+      if (result.error || !result.id) {
+        setError(result.error ?? "That file didn't upload.");
       } else {
-        setFiles((prev) => [...prev, { id: crypto.randomUUID(), fileName: file.name, mimeType: file.type || null, sizeBytes: file.size, storagePath: uploaded.storagePath }]);
+        setFiles((prev) => [...prev, { id: result.id!, fileName: file.name, mimeType: file.type || null, sizeBytes: file.size, storagePath: uploaded.storagePath }]);
         router.refresh();
       }
     } catch (e) {
@@ -71,7 +72,7 @@ export function RoutineAttachments({ routineId, initial }: { routineId: string; 
 
   return (
     <div className="field" style={{ marginBottom: 16 }}>
-      <label>FILES</label>
+      <label htmlFor={`${uid}-file`}>FILES</label>
       {files.length > 0 && (
         <div style={{ marginBottom: 8 }}>
           {files.map((f) => (
@@ -99,6 +100,7 @@ export function RoutineAttachments({ routineId, initial }: { routineId: string; 
       )}
       <input
         ref={input}
+        id={`${uid}-file`}
         type="file"
         accept="image/*,application/pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx"
         hidden

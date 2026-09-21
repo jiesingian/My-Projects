@@ -197,7 +197,10 @@ export async function attachDocFileAction(input: {
 }
 
 export async function getDocFileUrl(path: string): Promise<string | null> {
+  const me = await requireCurrentMember();
   const supabase = await createClient();
+  const { data: file } = await supabase.from("doc_files").select("id").eq("storage_path", path).eq("family_id", me.family_id).maybeSingle();
+  if (!file) return null;
   const { data, error } = await supabase.storage.from("documents").createSignedUrl(path, 60 * 5);
   if (error) return null;
   return data.signedUrl;
@@ -206,7 +209,12 @@ export async function getDocFileUrl(path: string): Promise<string | null> {
 export async function deleteDocFileAction(fileId: string, folderId: string): Promise<{ error: string | null; driveFolderLink?: string | null }> {
   const me = await requireCurrentMember();
   const supabase = await createClient();
-  const { data: file } = await supabase.from("doc_files").select("storage_path, storage_provider, drive_file_id").eq("id", fileId).maybeSingle();
+  const { data: file } = await supabase
+    .from("doc_files")
+    .select("storage_path, storage_provider, drive_file_id")
+    .eq("id", fileId)
+    .eq("family_id", me.family_id)
+    .maybeSingle();
   if (!file) return { error: "Not found." };
 
   if (file.storage_provider === "supabase" && file.storage_path) {
@@ -224,7 +232,7 @@ export async function deleteDocFileAction(fileId: string, folderId: string): Pro
     }
   }
 
-  const { error } = await supabase.from("doc_files").delete().eq("id", fileId);
+  const { error } = await supabase.from("doc_files").delete().eq("id", fileId).eq("family_id", me.family_id);
   if (error) return { error: humanDatabaseError(error.message) };
 
   revalidatePath(`/family/documents/${folderId}`);

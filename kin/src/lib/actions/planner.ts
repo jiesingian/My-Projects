@@ -389,7 +389,7 @@ export async function addActivityToJournalAction(activityId: string): Promise<Ac
   const me = await requireCurrentMember();
   const supabase = await createClient();
 
-  const { data: activity } = await supabase.from("activities").select("*").eq("id", activityId).single();
+  const { data: activity } = await supabase.from("activities").select("*").eq("id", activityId).eq("family_id", me.family_id).single();
   if (!activity) return { error: "That activity is no longer there." };
 
   const { error } = await supabase.from("journal_entries").insert({
