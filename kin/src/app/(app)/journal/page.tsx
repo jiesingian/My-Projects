@@ -5,6 +5,7 @@ import { getCurrentMember } from "@/lib/session";
 import { getGallery, getEntries, getMilestones, syncDriveJournalMedia, driveIsDisconnected } from "@/lib/queries/journal";
 import { DriveDisconnectedNotice } from "@/components/drive-disconnected-notice";
 import { HubHeader } from "@/components/hub-header";
+import { Segmented } from "@/components/segmented";
 import { Blueprint, Tag, Empty } from "@/components/ui";
 import { GalleryUpload } from "@/components/gallery-upload";
 import { GalleryGrid } from "@/components/gallery-grid";
@@ -12,42 +13,45 @@ import { JournalEntryPhotos } from "@/components/journal-entry-photos";
 import { MilestoneControls } from "@/components/milestone-controls";
 import { familyDate } from "@/lib/format-family";
 
-const SEGMENTS = ["gallery", "entries", "milestones"] as const;
-type Seg = (typeof SEGMENTS)[number];
+/* Gallery, Entries and Milestones were three hub segments; now they are one
+   -- Entries -- with these three as views inside it. A person reading a day
+   back wants the write-up, the photos and the milestone in one place rather
+   than three tabs that all say "Journal" and show nothing of each other. */
+const VIEWS = ["list", "gallery", "milestones"] as const;
+type View = (typeof VIEWS)[number];
+const VIEW_LABELS: Record<View, string> = { list: "List", gallery: "Gallery", milestones: "Milestones" };
 
 export default async function JournalPage({
   searchParams,
 }: {
-  searchParams: Promise<{ seg?: string }>;
+  searchParams: Promise<{ view?: string }>;
 }) {
   const me = await getCurrentMember();
   if (!me) redirect("/onboarding/profile");
   const sp = await searchParams;
-  const seg: Seg = (SEGMENTS as readonly string[]).includes(sp.seg ?? "") ? (sp.seg as Seg) : "gallery";
+  const view: View = (VIEWS as readonly string[]).includes(sp.view ?? "") ? (sp.view as View) : "list";
 
   // Reconcile the index against Drive both ways — still on every Journal load,
-  // still only for the two segments that show Drive files, but once rather than
+  // still only for the two views that show Drive files, but once rather than
   // per pane and after the response has gone out. It refreshes a token and
   // lists a whole folder before it can say anything, so awaiting it meant no
   // photo appeared until Google had answered. A file added or deleted straight
   // in Drive now shows up on the next visit instead of holding up this one.
-  if (seg === "gallery" || seg === "entries") {
+  if (view === "gallery" || view === "list") {
     after(() => syncDriveJournalMedia(me.family_id, me.families.name));
   }
 
-  const segments = SEGMENTS.map((s) => ({
-    label: s[0].toUpperCase() + s.slice(1),
-    href: `/journal?seg=${s}`,
-    active: s === seg,
-  }));
+  const segments = [{ label: "Entries", href: "/journal", active: true }];
+  const views = VIEWS.map((v) => ({ label: VIEW_LABELS[v], href: `/journal?view=${v}`, active: v === view }));
 
   return (
     <div>
       <HubHeader n="02" title="Journal" segments={segments} dateFormat={me.families.date_format} />
       <div style={{ padding: "0 22px 22px" }}>
-        {seg === "gallery" && <GalleryPane familyId={me.family_id} />}
-        {seg === "entries" && <EntriesPane familyId={me.family_id} />}
-        {seg === "milestones" && <MilestonesPane familyId={me.family_id} />}
+        <Segmented items={views} />
+        {view === "gallery" && <GalleryPane familyId={me.family_id} />}
+        {view === "list" && <EntriesPane familyId={me.family_id} />}
+        {view === "milestones" && <MilestonesPane familyId={me.family_id} />}
       </div>
     </div>
   );

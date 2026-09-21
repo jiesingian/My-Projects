@@ -86,7 +86,7 @@ test.describe("adding things", () => {
     await submit(page);
 
     await leftTheForm(page, "/journal/new");
-    await page.goto("/journal?seg=entries", { waitUntil: "networkidle" });
+    await page.goto("/journal?view=list", { waitUntil: "networkidle" });
     await expect(page.locator("body")).toContainText(title);
   });
 
@@ -97,7 +97,7 @@ test.describe("adding things", () => {
     await submit(page);
 
     await leftTheForm(page, "/journal/milestones/new");
-    await page.goto("/journal?seg=milestones", { waitUntil: "networkidle" });
+    await page.goto("/journal?view=milestones", { waitUntil: "networkidle" });
     await expect(page.locator("body")).toContainText(title);
   });
 

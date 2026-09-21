@@ -28,7 +28,10 @@ export function HubHeader({
       </div>
       {/* iOS large title */}
       <h2 style={{ fontSize: 34, fontWeight: 700, letterSpacing: "-0.03em", margin: "2px 0 0" }}>{title}</h2>
-      <Segmented items={segments} />
+      {/* A segmented control with one item has nothing to switch between --
+          Journal's merge into a single Entries segment is the first hub to
+          hit this, and a lone always-active tab would say less than nothing. */}
+      {segments.length > 1 && <Segmented items={segments} />}
     </div>
   );
 }

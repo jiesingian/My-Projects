@@ -930,7 +930,7 @@ async function TravelPane({ familyId, memberId, currency, who }: { familyId: str
                 </span>
               </Link>
               {t.journal_entry_id && (
-                <Link href="/journal?seg=entries" className="btn btn-ghost" style={{ fontSize: 13 }}>
+                <Link href="/journal?view=list" className="btn btn-ghost" style={{ fontSize: 13 }}>
                   In journal
                 </Link>
               )}

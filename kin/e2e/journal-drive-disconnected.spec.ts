@@ -87,10 +87,10 @@ test("a dead Drive connection is explained on both journal panes", async ({ page
     expect(dead.ok(), `marking the link dead: ${dead.status()} ${await dead.text()}`).toBeTruthy();
 
     // Both panes, same question, same answer.
-    await page.goto("/journal?seg=gallery");
+    await page.goto("/journal?view=gallery");
     await expect(page.getByText(BANNER)).toBeVisible();
 
-    await page.goto("/journal?seg=entries");
+    await page.goto("/journal?view=list");
     await expect(page.getByText(BANNER), "Entries shows Drive photos too, so it must explain them too").toBeVisible();
 
     // And it is the connection that decides, not merely having a Drive photo:
@@ -101,9 +101,9 @@ test("a dead Drive connection is explained on both journal panes", async ({ page
     });
     expect(alive.ok(), `restoring the link: ${alive.status()} ${await alive.text()}`).toBeTruthy();
 
-    await page.goto("/journal?seg=entries");
+    await page.goto("/journal?view=list");
     await expect(page.getByText(BANNER)).toHaveCount(0);
-    await page.goto("/journal?seg=gallery");
+    await page.goto("/journal?view=gallery");
     await expect(page.getByText(BANNER)).toHaveCount(0);
   } finally {
     if (entryId) {
