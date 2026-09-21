@@ -11,7 +11,11 @@ import { CALENDAR_STYLE } from "@/lib/calendar-style";
 function destinations(date: string) {
   const d = `date=${date}`;
   return [
-    { key: "activities", label: "Activity", note: "Appointments, school, work", href: `/planner/add?type=activity&${d}` },
+    // "Task", not "Activity": the Planner's tabs are Calendar, Tasks and
+    // Events, so a thing filed as an activity was named after no tab in the
+    // app and could be read back nowhere but the calendar grid it was added
+    // from. The Tasks tab lists these now.
+    { key: "activities", label: "Task", note: "Appointments, school, work", href: `/planner/add?type=task&${d}` },
     { key: "events", label: "Event", note: "Birthdays, anniversaries", href: `/planner/add?type=event&${d}` },
     { key: "trips", label: "Travel", note: "Trips and holidays", href: `/planner/add?type=trip&${d}` },
     { key: "meal_plans", label: "Meal", note: "What's for dinner", href: `/household/meals/new?${d}` },

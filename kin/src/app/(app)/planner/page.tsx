@@ -8,6 +8,7 @@ import {
   getYearOverview,
   getEvents,
   getTrips,
+  getOneOffTasks,
   getCalendarSyncStatus,
   hasAnyCalendarRecords,
   type PlannerCalendarItem,
@@ -23,7 +24,7 @@ import { AddToJournalButton } from "@/components/add-to-journal-button";
 import { Icon } from "@/components/icons";
 import { CALENDAR_LEGEND, styleFor } from "@/lib/calendar-style";
 import { parseHidden, serializeHidden, toggledHidden, type CalendarGroup } from "@/lib/calendar-groups";
-import { familyClock, familyDay } from "@/lib/time";
+import { familyClock, familyDateLong, familyDay } from "@/lib/time";
 import { dayColumn, startOfWeek, weekdayInitials, weekStartOf, type WeekStart } from "@/lib/week";
 import { LogSpendControl } from "@/components/money-actions";
 import { CalendarJump, CalendarPeriod, DateRail, MonthScroller, TodayButton } from "@/components/calendar-nav";
@@ -590,9 +591,68 @@ async function YearView({ familyId, memberId, who, anchor, hidden, hide }: { fam
   );
 }
 
+/** The one-off half of Tasks. Deliberately lighter than a recurring row:
+ * there is no streak, no whose-turn and nothing to tick, because a one-off is
+ * finished by happening rather than by being answered for. It is here so that
+ * something added as a Task can be read back in the tab called Tasks, which
+ * was not true of these until now. */
+function OneOffTasks({ tasks }: { tasks: Awaited<ReturnType<typeof getOneOffTasks>> }) {
+  if (tasks.length === 0) return null;
+
+  return (
+    <div style={{ marginBottom: 18 }}>
+      <div style={{ fontSize: 12, letterSpacing: ".04em", textTransform: "uppercase", color: "var(--color-neutral-600)", marginBottom: 8 }}>
+        One-off · {tasks.length}
+      </div>
+      {tasks.map((t) => {
+        const start = new Date(t.start_at);
+        const meta = ROUTINE_KIND_META[(t.kind as RoutineKind) ?? "other"] ?? ROUTINE_KIND_META.other;
+        const whoFor = t.applies_to_whole_family ? "Whole family" : shortNames(t.who) || "House";
+
+        return (
+          <Link key={t.id} href={`/planner/add?type=task&id=${t.id}`} style={{ textDecoration: "none", color: "inherit", display: "block" }}>
+            <Blueprint style={{ padding: 13, marginBottom: 9, display: "flex", gap: 11, alignItems: "flex-start" }}>
+              <span
+                style={{
+                  width: 34,
+                  height: 34,
+                  flex: "none",
+                  borderRadius: 10,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  background: "var(--cal-schedule)",
+                  color: "#fff",
+                }}
+              >
+                <Icon name={meta.icon} size={18} />
+              </span>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ font: "600 17px/1.2 var(--font-heading)" }}>{t.title}</div>
+                <div style={{ fontSize: 13, color: "var(--color-neutral-600)", marginTop: 2 }}>
+                  {familyDateLong(start)} · {familyClock(start)}
+                  {t.location ? ` · ${t.location}` : ""}
+                </div>
+                <div style={{ fontSize: 13, color: "var(--color-neutral-600)" }}>{whoFor}</div>
+              </div>
+              <Icon name="chevronLeft" size={15} style={{ transform: "rotate(180deg)", color: "var(--color-neutral-600)", flex: "none" }} />
+            </Blueprint>
+          </Link>
+        );
+      })}
+    </div>
+  );
+}
+
 async function RoutinesPane({ familyId, who, currency, justSaved }: { familyId: string; who: string; currency: string; justSaved: boolean }) {
   const memberId = who === "all" ? undefined : who;
-  const routines = await getRoutines(familyId, memberId);
+  // Both kinds of task: the recurring ones, and the one-offs that used to be
+  // called activities and could be read back nowhere but the calendar.
+  const [routines, allOneOffs] = await Promise.all([
+    getRoutines(familyId, memberId),
+    getOneOffTasks(familyId, `${familyDay()}T00:00:00.000Z`),
+  ]);
+  const oneOffs = allOneOffs.filter((t) => concerns(t.memberIds, t.applies_to_whole_family, who));
   const dueToday = routines.filter((r) => !r.paused && r.today);
 
   return (
@@ -618,7 +678,9 @@ async function RoutinesPane({ familyId, who, currency, justSaved }: { familyId: 
 
       <MemberChips familyId={familyId} seg="routines" who={who} />
 
-      {routines.length === 0 ? (
+      <OneOffTasks tasks={oneOffs} />
+
+      {routines.length === 0 && oneOffs.length === 0 ? (
         <Blueprint style={{ padding: 18, marginBottom: 16 }}>
           <div style={{ font: "600 18px/1.2 var(--font-heading)", marginBottom: 6 }}>The week&rsquo;s rhythm lives here</div>
           <p style={{ fontSize: 14.5, color: "var(--color-neutral-600)", margin: 0, lineHeight: 1.45 }}>

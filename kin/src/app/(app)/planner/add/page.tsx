@@ -11,13 +11,17 @@ export default async function AddPlannerPage({
 }) {
   const me = await getCurrentMember();
   if (!me) redirect("/onboarding/profile");
-  const { type, id, date } = await searchParams;
+  const { type: rawType, id, date } = await searchParams;
+  // "activity" was the old name for what is now a one-off task. Links out in
+  // the wild -- a bookmark, a Google Calendar description, a chat message --
+  // still carry it, and they should keep working.
+  const type = rawType === "activity" ? "task" : rawType;
   const members = await getMembers(me.family_id);
 
   let editActivity = null;
   let editEvent = null;
   let editTrip = null;
-  if (id && type === "activity") {
+  if (id && type === "task") {
     const supabase = await createClient();
     const { data } = await supabase.from("activities").select("*, activity_members(member_id)").eq("id", id).eq("family_id", me.family_id).maybeSingle();
     if (data) editActivity = { ...data, who: (data.activity_members ?? []).map((m) => m.member_id) };
@@ -44,7 +48,7 @@ export default async function AddPlannerPage({
   return (
     <AddPlannerForm
       members={members}
-      defaultType={type ?? "activity"}
+      defaultType={type ?? "task"}
       defaultDate={date}
       editActivity={editActivity}
       editEvent={editEvent}

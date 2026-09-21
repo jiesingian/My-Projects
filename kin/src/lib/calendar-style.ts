@@ -10,7 +10,9 @@ type CalendarSource = CalendarTable;
  * closest pair (green/orange) sits at ΔE 7.0, which is only acceptable
  * alongside a second channel like these glyphs. */
 export const CALENDAR_STYLE: Record<CalendarSource, { label: string; color: string; icon: IconName }> = {
-  activities: { label: "Activity", color: "var(--cal-schedule)", icon: "calendarDays" },
+  // The table is still `activities`; the word people read is Task, because
+  // that is the Planner tab these are listed in.
+  activities: { label: "Task", color: "var(--cal-schedule)", icon: "calendarDays" },
   trips: { label: "Travel", color: "var(--cal-schedule)", icon: "plane" },
   events: { label: "Event", color: "var(--cal-occasion)", icon: "gift" },
   bills: { label: "Bill", color: "var(--cal-money)", icon: "receipt" },
@@ -25,8 +27,10 @@ export const CALENDAR_STYLE: Record<CalendarSource, { label: string; color: stri
 /** The legend, in the order the colours were assigned. It doubles as the
  * filter, so each entry names the group it switches. */
 export const CALENDAR_LEGEND: { group: CalendarGroup; label: string; color: string; icon: IconName }[] = [
-  { group: "schedule", label: "Activities & travel", color: "var(--cal-schedule)", icon: "calendarDays" },
-  { group: "routines", label: "Routines", color: "var(--cal-schedule)", icon: "repeat" },
+  // Two groups of task, told apart by whether they come round again -- the
+  // legend doubles as the filter, so they cannot both just say "Tasks".
+  { group: "schedule", label: "Tasks & travel", color: "var(--cal-schedule)", icon: "calendarDays" },
+  { group: "routines", label: "Recurring tasks", color: "var(--cal-schedule)", icon: "repeat" },
   { group: "events", label: "Events", color: "var(--cal-occasion)", icon: "gift" },
   { group: "bills", label: "Bills", color: "var(--cal-money)", icon: "receipt" },
   { group: "meals", label: "Meals", color: "var(--cal-home)", icon: "utensils" },

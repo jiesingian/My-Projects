@@ -22,7 +22,10 @@ import { DateInput } from "@/components/date-input";
 import { confirm } from "@/components/confirm-sheet";
 
 const initialState: ActionState = { error: null };
-const TYPES = ["activity", "event", "trip"] as const;
+// "task" is what the app calls a one-off; the table behind it is still
+// `activities`, which is why the edit props below keep that word. Renaming
+// the table is a migration for its own day -- this is the word people read.
+const TYPES = ["task", "event", "trip"] as const;
 type PlannerType = (typeof TYPES)[number];
 
 type EditActivity = Tables<"activities"> & { who: string[] };
@@ -46,8 +49,8 @@ export function AddPlannerForm({
   editTrip?: EditTrip | null;
 }) {
   const isEditing = !!editActivity || !!editEvent || !!editTrip;
-  const [type, setType] = useState<PlannerType>(TYPES.includes(defaultType as PlannerType) ? (defaultType as PlannerType) : "activity");
-  const editing = editActivity ? "activity" : editEvent ? "event" : editTrip ? "trip" : null;
+  const [type, setType] = useState<PlannerType>(TYPES.includes(defaultType as PlannerType) ? (defaultType as PlannerType) : "task");
+  const editing = editActivity ? "task" : editEvent ? "event" : editTrip ? "trip" : null;
 
   return (
     <div>
@@ -63,7 +66,7 @@ export function AddPlannerForm({
             ))}
           </div>
         )}
-        {(editing === null || editing === "activity") && type === "activity" && <ActivityForm members={members} defaultDate={defaultDate} editActivity={editActivity ?? undefined} />}
+        {(editing === null || editing === "task") && type === "task" && <ActivityForm members={members} defaultDate={defaultDate} editActivity={editActivity ?? undefined} />}
         {(editing === null || editing === "event") && type === "event" && <EventForm members={members} defaultDate={defaultDate} editEvent={editEvent ?? undefined} />}
         {(editing === "trip" || (!isEditing && type === "trip")) && <TripForm members={members} defaultDate={defaultDate} editTrip={editTrip ?? undefined} />}
       </div>
@@ -145,7 +148,7 @@ function ActivityForm({ members, defaultDate, editActivity }: { members: Tables<
           disabled={deleting}
           style={{ minHeight: 44, fontSize: 13, marginTop: 10, color: "var(--color-accent-700)", borderColor: "var(--color-accent-700)" }}
           onClick={async () => {
-            if (!(await confirm({ title: "Delete this activity?", description: "This can't be undone.", confirmLabel: "Delete", danger: true }))) return;
+            if (!(await confirm({ title: "Delete this task?", description: "This can't be undone.", confirmLabel: "Delete", danger: true }))) return;
             setDeleting(true);
             const result = await deleteActivityAction(editActivity.id);
             setDeleting(false);
@@ -156,7 +159,7 @@ function ActivityForm({ members, defaultDate, editActivity }: { members: Tables<
             router.push("/planner?seg=calendar");
           }}
         >
-          {deleting ? "DELETING…" : "DELETE ACTIVITY"}
+          {deleting ? "DELETING…" : "DELETE TASK"}
         </button>
       )}
       <ErrorText message={deleteError} />
