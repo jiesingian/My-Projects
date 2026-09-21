@@ -200,9 +200,28 @@ export function ReceiveIncomeControl({ scheduleId, amount, accounts, currency }:
   );
 }
 
-export function GoalContributeControl({ goalId, accounts, currency }: { goalId: string; accounts: PickableAccount[]; currency: string }) {
+/** `linkedAccountId` is the account the goal was set up to be saved in
+ * (SAVED IN, on the add-goal form) -- until now written once and never read,
+ * so every contribution defaulted to whichever account happened to sort
+ * first regardless of which one the goal actually names. This is what makes
+ * that link mean something: the picker opens on it when it's still a live
+ * account, falling back to the first the same way it always did if the goal
+ * has none or the linked one is gone (archived, or no longer visible to
+ * this member). */
+export function GoalContributeControl({
+  goalId,
+  accounts,
+  currency,
+  linkedAccountId,
+}: {
+  goalId: string;
+  accounts: PickableAccount[];
+  currency: string;
+  linkedAccountId?: string | null;
+}) {
   const [open, setOpen] = useState(false);
-  const [accountId, setAccountId] = useState(accounts[0]?.id ?? "");
+  const defaultAccountId = (linkedAccountId && accounts.some((a) => a.id === linkedAccountId) ? linkedAccountId : accounts[0]?.id) ?? "";
+  const [accountId, setAccountId] = useState(defaultAccountId);
   const [amount, setAmount] = useState(0);
   const [viaApp, setViaApp] = useState(true);
   const { error, pending, run } = useMoneyAction();
