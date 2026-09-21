@@ -287,7 +287,7 @@ export function LogSpendControl({
   currency: string;
   particulars: string;
   category: string;
-  sourceTable: "bills" | "trips" | "buy_items" | "health_appointments";
+  sourceTable: "bills" | "events" | "buy_items" | "health_appointments";
   sourceId: string | null;
   suggested?: number;
   label?: string;

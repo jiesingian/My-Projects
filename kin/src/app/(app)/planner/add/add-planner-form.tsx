@@ -9,9 +9,6 @@ import {
   createEventAction,
   updateEventAction,
   deleteEventAction,
-  createTripAction,
-  updateTripAction,
-  deleteTripAction,
 } from "@/lib/actions/planner";
 import type { ActionState } from "@/lib/actions/auth";
 import { SubmitButton, ErrorText } from "@/components/form";
@@ -25,12 +22,11 @@ const initialState: ActionState = { error: null };
 // "task" is what the app calls a one-off; the table behind it is still
 // `activities`, which is why the edit props below keep that word. Renaming
 // the table is a migration for its own day -- this is the word people read.
-const TYPES = ["task", "event", "trip"] as const;
+const TYPES = ["task", "event"] as const;
 type PlannerType = (typeof TYPES)[number];
 
 type EditActivity = Tables<"activities"> & { who: string[] };
 type EditEvent = Tables<"events">;
-type EditTrip = Tables<"trips"> & { travellerIds: string[] };
 
 export function AddPlannerForm({
   members,
@@ -38,7 +34,6 @@ export function AddPlannerForm({
   defaultDate,
   editActivity,
   editEvent,
-  editTrip,
 }: {
   members: Tables<"members">[];
   defaultType: string;
@@ -46,11 +41,10 @@ export function AddPlannerForm({
   defaultDate?: string;
   editActivity?: EditActivity | null;
   editEvent?: (EditEvent & { memberIds: string[] }) | null;
-  editTrip?: EditTrip | null;
 }) {
-  const isEditing = !!editActivity || !!editEvent || !!editTrip;
+  const isEditing = !!editActivity || !!editEvent;
   const [type, setType] = useState<PlannerType>(TYPES.includes(defaultType as PlannerType) ? (defaultType as PlannerType) : "task");
-  const editing = editActivity ? "task" : editEvent ? "event" : editTrip ? "trip" : null;
+  const editing = editActivity ? "task" : editEvent ? "event" : null;
 
   return (
     <div>
@@ -68,7 +62,6 @@ export function AddPlannerForm({
         )}
         {(editing === null || editing === "task") && type === "task" && <ActivityForm members={members} defaultDate={defaultDate} editActivity={editActivity ?? undefined} />}
         {(editing === null || editing === "event") && type === "event" && <EventForm members={members} defaultDate={defaultDate} editEvent={editEvent ?? undefined} />}
-        {(editing === "trip" || (!isEditing && type === "trip")) && <TripForm members={members} defaultDate={defaultDate} editTrip={editTrip ?? undefined} />}
       </div>
     </div>
   );
@@ -239,17 +232,30 @@ function EventForm({
     <form action={formAction}>
       <ErrorText message={state.error} />
       <Field label="TITLE"><input className="input" name="title" required maxLength={150} defaultValue={editEvent?.title} style={{ minHeight: 44 }} /></Field>
-      <Field label="DATE"><DateInput className="input" name="date" required defaultValue={editEvent?.event_date ?? defaultDate} style={{ minHeight: 44 }} /></Field>
+      <div style={{ display: "flex", gap: 10 }}>
+        <Field label="DATE" style={{ flex: 1 }}>
+          <DateInput className="input" name="date" required defaultValue={editEvent?.event_date ?? defaultDate} style={{ minHeight: 44 }} />
+        </Field>
+        {/* Optional, and what makes travel an event rather than its own
+            table: a birthday is a day, a trip is a run of them. */}
+        <Field label="ENDS (OPTIONAL)" style={{ flex: 1 }}>
+          <DateInput className="input" name="end_date" defaultValue={editEvent?.end_date ?? undefined} style={{ minHeight: 44 }} />
+        </Field>
+      </div>
       <Field label="KIND">
         <select className="input" name="kind" defaultValue={editEvent?.kind ?? "birthday"} style={{ minHeight: 44 }}>
           <option value="birthday">Birthday</option>
           <option value="anniversary">Anniversary</option>
           <option value="school">School event</option>
           <option value="health">Health</option>
+          <option value="travel">Travel</option>
           <option value="other">Other</option>
         </select>
       </Field>
       <Field label="NOTE"><input className="input" name="sub_note" placeholder="Dinner at home" maxLength={200} defaultValue={editEvent?.sub_note ?? undefined} style={{ minHeight: 44 }} /></Field>
+      <Field label="BUDGET (OPTIONAL)">
+        <input className="input" type="number" min="0" step="0.01" name="budget_amount" placeholder="For a trip, or anything with a cost" defaultValue={editEvent?.budget_amount ?? undefined} style={{ minHeight: 44 }} />
+      </Field>
       <WhoPicker
         members={members}
         label="Who it is for"
@@ -279,76 +285,6 @@ function EventForm({
           }}
         >
           {deleting ? "DELETING…" : "DELETE EVENT"}
-        </button>
-      )}
-      <ErrorText message={deleteError} />
-    </form>
-  );
-}
-
-function TripForm({
-  members,
-  defaultDate,
-  editTrip,
-}: {
-  members: Tables<"members">[];
-  defaultDate?: string;
-  editTrip?: EditTrip;
-}) {
-  const action = editTrip ? updateTripAction.bind(null, editTrip.id) : createTripAction;
-  const [state, formAction] = useActionState(action, initialState);
-  const router = useRouter();
-  const [deleting, setDeleting] = useState(false);
-  const [deleteError, setDeleteError] = useState<string | null>(null);
-  const [wholeFamily, setWholeFamily] = useState(editTrip?.applies_to_whole_family ?? true);
-  const [travellers, setTravellers] = useState<string[]>(editTrip?.travellerIds ?? []);
-
-  return (
-    <form action={formAction}>
-      <ErrorText message={state.error} />
-      <Field label="TITLE">
-        <input className="input" name="title" placeholder="Baguio, four days" required maxLength={150} defaultValue={editTrip?.title} style={{ minHeight: 44 }} />
-      </Field>
-      <div style={{ display: "flex", gap: 12, marginBottom: 14 }}>
-        <Field label="START" style={{ flex: 1 }}>
-          <DateInput className="input" name="start_date" required defaultValue={editTrip?.start_date ?? defaultDate} style={{ minHeight: 44 }} />
-        </Field>
-        <Field label="END" style={{ flex: 1 }}>
-          <DateInput className="input" name="end_date" defaultValue={editTrip?.end_date ?? undefined} style={{ minHeight: 44 }} />
-        </Field>
-      </div>
-      <Field label="BUDGET (₱)">
-        <input className="input" type="number" min="0" name="budget_amount" defaultValue={editTrip?.budget_amount ?? undefined} style={{ minHeight: 44 }} />
-      </Field>
-      <WhoPicker
-        members={members}
-        label="Who is travelling"
-        fieldName="travellers"
-        wholeFamily={wholeFamily}
-        setWholeFamily={setWholeFamily}
-        chosen={travellers}
-        setChosen={setTravellers}
-      />
-      <SubmitButton style={{ minHeight: 46, fontSize: 14, letterSpacing: ".04em" }}>{editTrip ? "SAVE CHANGES" : "SAVE TRIP"}</SubmitButton>
-      {editTrip && (
-        <button
-          type="button"
-          className="btn btn-secondary btn-block"
-          disabled={deleting}
-          style={{ minHeight: 44, fontSize: 13, marginTop: 10, color: "var(--color-accent-700)", borderColor: "var(--color-accent-700)" }}
-          onClick={async () => {
-            if (!(await confirm({ title: "Delete this trip?", description: "This can't be undone.", confirmLabel: "Delete", danger: true }))) return;
-            setDeleting(true);
-            const result = await deleteTripAction(editTrip.id);
-            setDeleting(false);
-            if (result.error) {
-              setDeleteError(result.error);
-              return;
-            }
-            router.push("/planner?seg=events");
-          }}
-        >
-          {deleting ? "DELETING…" : "DELETE TRIP"}
         </button>
       )}
       <ErrorText message={deleteError} />

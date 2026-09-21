@@ -7,7 +7,6 @@ import {
   getMonthsOverview,
   getYearOverview,
   getEvents,
-  getTrips,
   getOneOffTasks,
   getCalendarSyncStatus,
   hasAnyCalendarRecords,
@@ -869,9 +868,13 @@ function concerns(memberIds: string[], appliesToAll: boolean, who: string): bool
  * other event and trip is one merged, date-ordered list beneath it. */
 async function EventsPane({ familyId, memberId, currency, who }: { familyId: string; memberId: string; currency: string; who: string }) {
   const fmtDate = await familyDate();
-  const [allEvents, allTrips, accounts] = await Promise.all([getEvents(familyId), getTrips(familyId), getAccounts(familyId)]);
-  const events = allEvents.filter((e) => concerns(e.memberIds, e.applies_to_whole_family, who));
-  const trips = allTrips.filter((t) => concerns(t.travellerIds, t.applies_to_whole_family, who));
+  const [allEvents, accounts] = await Promise.all([getEvents(familyId), getAccounts(familyId)]);
+  // One query now: travel is a kind of event, not a second table. Which of
+  // them gets the richer hero card is decided by the kind, not by where the
+  // row came from.
+  const visible = allEvents.filter((e) => concerns(e.memberIds, e.applies_to_whole_family, who));
+  const events = visible.filter((e) => e.kind !== "travel");
+  const trips = visible.filter((e) => e.kind === "travel");
   const pickable = accounts
     .filter((a) => a.is_joint || a.owner_member_id === memberId)
     .map((a) => ({ id: a.id, name: a.name, institution: a.institution, linked_app_url: a.linked_app_url, balance: a.balance, is_joint: a.is_joint }));
@@ -880,13 +883,13 @@ async function EventsPane({ familyId, memberId, currency, who }: { familyId: str
   // trip already over, as the hero card.
   const today = familyDay(new Date());
   const upcomingTrip = trips
-    .filter((t) => t.start_date >= today)
-    .sort((a, b) => a.start_date.localeCompare(b.start_date))[0];
+    .filter((t) => t.event_date >= today)
+    .sort((a, b) => a.event_date.localeCompare(b.event_date))[0];
   const earlierTrips = trips.filter((t) => t.id !== upcomingTrip?.id);
 
   const rows: ({ date: string } & ({ kind: "event"; event: (typeof events)[number] } | { kind: "trip"; trip: (typeof earlierTrips)[number] }))[] = [
     ...events.map((e) => ({ kind: "event" as const, date: e.event_date, event: e })),
-    ...earlierTrips.map((t) => ({ kind: "trip" as const, date: t.start_date, trip: t })),
+    ...earlierTrips.map((t) => ({ kind: "trip" as const, date: t.event_date, trip: t })),
   ].sort((a, b) => a.date.localeCompare(b.date));
 
   return (
@@ -905,7 +908,7 @@ async function EventsPane({ familyId, memberId, currency, who }: { familyId: str
           />
           <div style={{ padding: 13 }}>
             <div style={{ font: "400 12px/1 var(--font-numeric)", color: "var(--color-accent-700)" }}>
-              {fmtDate(upcomingTrip.start_date)}
+              {fmtDate(upcomingTrip.event_date)}
               {upcomingTrip.end_date ? ` — ${fmtDate(upcomingTrip.end_date)}` : ""}
             </div>
             <div style={{ font: "600 24px/1.05 var(--font-heading)", margin: "6px 0 8px" }}>{upcomingTrip.title}</div>
@@ -915,14 +918,14 @@ async function EventsPane({ familyId, memberId, currency, who }: { familyId: str
               <Fact
                 k="Travelling"
                 v={
-                  upcomingTrip.applies_to_whole_family || upcomingTrip.travellers.length === 0
+                  upcomingTrip.applies_to_whole_family || upcomingTrip.who.length === 0
                     ? "Whole family"
-                    : upcomingTrip.travellers.map((n) => n.split(" ")[0]).join(", ")
+                    : upcomingTrip.who.map((n) => n.split(" ")[0]).join(", ")
                 }
               />
             </div>
             <Link
-              href={`/planner/add?type=trip&id=${upcomingTrip.id}`}
+              href={`/planner/add?type=event&id=${upcomingTrip.id}`}
               className="btn btn-secondary btn-block"
               style={{ minHeight: 40, fontSize: 13, marginTop: 12 }}
             >
@@ -934,7 +937,7 @@ async function EventsPane({ familyId, memberId, currency, who }: { familyId: str
                 currency={currency}
                 particulars={`${upcomingTrip.title} · travel`}
                 category="Travel"
-                sourceTable="trips"
+                sourceTable="events"
                 sourceId={upcomingTrip.id}
                 label="LOG TRIP SPEND"
               />
@@ -944,7 +947,7 @@ async function EventsPane({ familyId, memberId, currency, who }: { familyId: str
       )}
       {rows.length === 0 && (
         <p style={{ fontSize: 13.5, color: "var(--color-neutral-600)" }}>
-          {allEvents.length === 0 && allTrips.length === 0 ? "Nothing planned yet." : "Nothing planned for this person."}
+          {allEvents.length === 0 ? "Nothing planned yet." : "Nothing planned for this person."}
         </p>
       )}
       {rows.map((row) =>
@@ -974,15 +977,15 @@ async function EventsPane({ familyId, memberId, currency, who }: { familyId: str
         ) : (
           <div key={`trip-${row.trip.id}`} style={{ display: "flex", gap: 12, padding: "13px 0", borderBottom: "1px solid color-mix(in srgb, var(--color-text) 10%, transparent)", alignItems: "center" }}>
             <Blueprint style={{ width: 50, height: 50, flex: "none", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center" }}>
-              <span style={{ font: "600 18px/1 var(--font-heading)" }}>{new Date(row.trip.start_date).getDate()}</span>
+              <span style={{ font: "600 18px/1 var(--font-heading)" }}>{new Date(row.trip.event_date).getDate()}</span>
               <span style={{ fontSize: 8.5, letterSpacing: ".02em", color: "var(--color-neutral-600)" }}>
-                {new Date(row.trip.start_date).toLocaleDateString("en-GB", { month: "short" }).toUpperCase()}
+                {new Date(row.trip.event_date).toLocaleDateString("en-GB", { month: "short" }).toUpperCase()}
               </span>
             </Blueprint>
-            <Link href={`/planner/add?type=trip&id=${row.trip.id}`} style={{ flex: 1, minWidth: 0, textDecoration: "none", color: "inherit" }}>
+            <Link href={`/planner/add?type=event&id=${row.trip.id}`} style={{ flex: 1, minWidth: 0, textDecoration: "none", color: "inherit" }}>
               <div style={{ font: "600 18px/1.1 var(--font-heading)" }}>{row.trip.title}</div>
               <div style={{ fontSize: 13, color: "var(--color-neutral-600)" }}>
-                {row.trip.applies_to_whole_family || row.trip.travellers.length === 0 ? "Whole family" : row.trip.travellers.map((n) => n.split(" ")[0]).join(", ")}
+                {row.trip.applies_to_whole_family || row.trip.who.length === 0 ? "Whole family" : row.trip.who.map((n) => n.split(" ")[0]).join(", ")}
               </div>
             </Link>
             {row.trip.journal_entry_id ? (

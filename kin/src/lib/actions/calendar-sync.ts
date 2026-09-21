@@ -20,7 +20,7 @@ import { familyDay } from "@/lib/time";
 import { eventStartEnd, allDayEvent, syncLinkPatch, isQuarantined, QUARANTINE_AFTER } from "@/lib/calendar-shape";
 
 type Db = SupabaseClient<Database>;
-type SourceTable = "activities" | "events" | "health_schedule" | "health_appointments" | "doc_entries" | "trips" | "bills" | "meal_plans" | "goals" | "routines" | "income_schedules";
+type SourceTable = "activities" | "events" | "health_schedule" | "health_appointments" | "doc_entries" | "bills" | "meal_plans" | "goals" | "routines" | "income_schedules";
 
 /** Who a Kin item should sync to: everyone connected in the household, a
  * specific set of tagged members, or a single owner (health/document rows,
@@ -192,8 +192,11 @@ const BACKFILL_DESCRIPTORS: BackfillDescriptor[] = [
   {
     table: "events",
     dateColumn: "event_date",
-    toInput: (r) => allDayEvent(r.title as string, r.event_date as string),
-    toTarget: () => ({ kind: "all" }),
+    toInput: (r) => allDayEvent(r.title as string, r.event_date as string, { endDay: r.end_date as string | null }),
+    toTarget: (r) => {
+      const memberIds = ((r.event_members as { member_id: string }[] | null) ?? []).map((m) => m.member_id);
+      return r.applies_to_whole_family || memberIds.length === 0 ? { kind: "all" } : { kind: "members", memberIds };
+    },
   },
   {
     table: "health_schedule",
@@ -212,15 +215,6 @@ const BACKFILL_DESCRIPTORS: BackfillDescriptor[] = [
     dateColumn: "expires_at",
     toInput: (r) => (r.expires_at ? allDayEvent(`${r.title as string} renewal`, r.expires_at as string) : null),
     toTarget: (r) => ({ kind: "member", memberId: r.owner_member_id as string | null }),
-  },
-  {
-    table: "trips",
-    dateColumn: "start_date",
-    toInput: (r) => allDayEvent(r.title as string, r.start_date as string, { endDay: r.end_date as string | null }),
-    toTarget: (r) => {
-      const memberIds = ((r.trip_travellers as { member_id: string }[] | null) ?? []).map((t) => t.member_id);
-      return memberIds.length > 0 ? { kind: "members", memberIds } : { kind: "all" };
-    },
   },
   {
     table: "bills",
@@ -249,7 +243,7 @@ const BACKFILL_DESCRIPTORS: BackfillDescriptor[] = [
 async function backfillFamily(supabase: Db, familyId: string): Promise<number> {
   let pushed = 0;
   for (const desc of BACKFILL_DESCRIPTORS) {
-    const selectCols = desc.table === "activities" ? "*, activity_members(member_id)" : desc.table === "trips" ? "*, trip_travellers(member_id)" : "*";
+    const selectCols = desc.table === "activities" ? "*, activity_members(member_id)" : desc.table === "events" ? "*, event_members(member_id)" : "*";
     const fromDate = desc.dateColumn === "start_at" || desc.dateColumn === "when_at" ? todayTimestamp() : todayDate();
     const { data: rows } = await supabase.from(desc.table).select(selectCols).eq("family_id", familyId).gte(desc.dateColumn, fromDate);
 
@@ -377,8 +371,6 @@ async function applyIncomingEvent(
       );
     case "doc_entries":
       return fail((await supabase.from("doc_entries").update({ title, expires_at: when.day }).eq("id", link.source_id)).error);
-    case "trips":
-      return fail((await supabase.from("trips").update({ title, start_date: when.day }).eq("id", link.source_id)).error);
     case "bills":
       return fail((await supabase.from("bills").update({ name: title, due_date: when.day }).eq("id", link.source_id)).error);
     case "meal_plans":

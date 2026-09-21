@@ -20,7 +20,6 @@ export default async function AddPlannerPage({
 
   let editActivity = null;
   let editEvent = null;
-  let editTrip = null;
   if (id && type === "task") {
     const supabase = await createClient();
     const { data } = await supabase.from("activities").select("*, activity_members(member_id)").eq("id", id).eq("family_id", me.family_id).maybeSingle();
@@ -34,15 +33,6 @@ export default async function AddPlannerPage({
       .eq("family_id", me.family_id)
       .maybeSingle();
     if (data) editEvent = { ...data, memberIds: (data.event_members ?? []).map((em) => em.member_id) };
-  } else if (id && type === "trip") {
-    const supabase = await createClient();
-    const { data } = await supabase
-      .from("trips")
-      .select("*, trip_travellers(member_id)")
-      .eq("id", id)
-      .eq("family_id", me.family_id)
-      .maybeSingle();
-    if (data) editTrip = { ...data, travellerIds: (data.trip_travellers ?? []).map((tt) => tt.member_id) };
   }
 
   return (
@@ -52,7 +42,6 @@ export default async function AddPlannerPage({
       defaultDate={date}
       editActivity={editActivity}
       editEvent={editEvent}
-      editTrip={editTrip}
     />
   );
 }
