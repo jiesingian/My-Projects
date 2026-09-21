@@ -71,7 +71,7 @@ export function DetailHeader({
         </nav>
       )}
       <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 14 }}>
-        <Link href={backHref} className="btn btn-secondary btn-icon">
+        <Link href={backHref} className="btn btn-secondary btn-icon" aria-label="Back">
           <Icon name="chevronLeft" />
         </Link>
         <span style={{ fontSize: 13, fontWeight: 600, color: "var(--color-accent)", marginLeft: "auto" }}>{eyebrow}</span>

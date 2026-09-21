@@ -171,7 +171,11 @@ export function FamilyAddressList({ addresses, canEdit }: { addresses: FamilyAdd
 
   async function remove(id: string) {
     if (!(await confirm({ title: "Remove this address?", danger: true }))) return;
-    await removeFamilyAddressAction(id);
+    const result = await removeFamilyAddressAction(id);
+    if (result.error) {
+      setError(result.error);
+      return;
+    }
     router.refresh();
   }
 

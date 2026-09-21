@@ -123,7 +123,11 @@ export function EmergencyContactList({ contacts }: { contacts: EmergencyContact[
 
   async function remove(id: string) {
     if (!(await confirm({ title: "Remove this contact?", danger: true }))) return;
-    await removeEmergencyContactAction(id);
+    const result = await removeEmergencyContactAction(id);
+    if (result.error) {
+      setError(result.error);
+      return;
+    }
     router.refresh();
   }
 

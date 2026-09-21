@@ -81,7 +81,7 @@ export function NewDocForm({
 
   return (
     <div>
-      <DetailHeader backHref="/family?seg=documents" eyebrow="HUB 01 · NEW ENTRY" />
+      <DetailHeader backHref={defaultFolderId ? `/family/documents/${defaultFolderId}` : "/family?seg=documents"} eyebrow="HUB 01 · NEW ENTRY" />
       <div style={{ padding: "0 22px 22px" }}>
         <h3 style={{ fontSize: 30, margin: "0 0 16px" }}>Add a document</h3>
         <form onSubmit={onSubmit}>

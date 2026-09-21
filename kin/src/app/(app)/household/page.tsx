@@ -230,7 +230,7 @@ async function MealsPane({
         </Link>
       </div>
 
-      {/* Every day carries all four parts, so an empty one reads as a gap to
+      {/* Every day carries all five parts, so an empty one reads as a gap to
           fill rather than something that does not exist. */}
       {MEAL_SLOTS.map((slot) => {
         const inSlot = meals.filter((m) => m.slot === slot);

@@ -123,7 +123,7 @@ export function PayBillControl({ billId, amount, accounts, currency }: { billId:
       </div>
       <div className="field" style={{ marginBottom: 8 }}>
         <label htmlFor={`${uid}-amount`}>AMOUNT (₱)</label>
-        <input id={`${uid}-amount`} aria-label="Amount (₱)" className="input" type="number" step="0.01" value={payAmount} onChange={(e) => setPayAmount(Number(e.target.value))} style={{ minHeight: 42 }} />
+        <input id={`${uid}-amount`} aria-label="Amount (₱)" className="input" type="number" step="0.01" min="0" value={payAmount} onChange={(e) => setPayAmount(Number(e.target.value))} style={{ minHeight: 42 }} />
       </div>
       <ViaAppToggle checked={viaApp} onChange={setViaApp} account={account} />
       <div style={{ display: "flex", gap: 8 }}>
@@ -174,7 +174,7 @@ export function ReceiveIncomeControl({ scheduleId, amount, accounts, currency }:
       </div>
       <div className="field" style={{ marginBottom: 8 }}>
         <label htmlFor={`${uid}-amount`}>AMOUNT (₱)</label>
-        <input id={`${uid}-amount`} aria-label="Amount (₱)" className="input" type="number" step="0.01" value={receiveAmount} onChange={(e) => setReceiveAmount(Number(e.target.value))} style={{ minHeight: 42 }} />
+        <input id={`${uid}-amount`} aria-label="Amount (₱)" className="input" type="number" step="0.01" min="0" value={receiveAmount} onChange={(e) => setReceiveAmount(Number(e.target.value))} style={{ minHeight: 42 }} />
       </div>
       <ViaAppToggle checked={viaApp} onChange={setViaApp} account={account} />
       <div style={{ display: "flex", gap: 8 }}>
@@ -248,7 +248,7 @@ export function GoalContributeControl({
         </div>
         <div className="field" style={{ width: 110, margin: 0 }}>
           <label htmlFor={`${uid}-amount`}>AMOUNT</label>
-          <input id={`${uid}-amount`} aria-label="Amount" className="input" type="number" step="0.01" value={amount} onChange={(e) => setAmount(Number(e.target.value))} style={{ minHeight: 42 }} />
+          <input id={`${uid}-amount`} aria-label="Amount" className="input" type="number" step="0.01" min="0" value={amount} onChange={(e) => setAmount(Number(e.target.value))} style={{ minHeight: 42 }} />
         </div>
       </div>
       <ViaAppToggle checked={viaApp} onChange={setViaApp} account={account} />
@@ -318,7 +318,7 @@ export function LogSpendControl({
         </div>
         <div className="field" style={{ width: 110, margin: 0 }}>
           <label htmlFor={`${uid}-amount`}>AMOUNT</label>
-          <input id={`${uid}-amount`} aria-label="Amount" className="input" type="number" step="0.01" value={amount} onChange={(e) => setAmount(Number(e.target.value))} style={{ minHeight: 42 }} />
+          <input id={`${uid}-amount`} aria-label="Amount" className="input" type="number" step="0.01" min="0" value={amount} onChange={(e) => setAmount(Number(e.target.value))} style={{ minHeight: 42 }} />
         </div>
       </div>
       <div style={{ display: "flex", gap: 8 }}>

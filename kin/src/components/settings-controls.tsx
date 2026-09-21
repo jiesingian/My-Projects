@@ -145,6 +145,7 @@ export function NotificationToggles({ prefs }: { prefs: Record<string, boolean> 
 
 export function InviteCodeCard({ code }: { code: string }) {
   const [pending, startTransition] = useTransition();
+  const [failed, setFailed] = useState<string | null>(null);
   return (
     <div>
       <CopyInviteCode code={code} />
@@ -155,12 +156,14 @@ export function InviteCodeCard({ code }: { code: string }) {
         disabled={pending}
         onClick={() =>
           startTransition(async () => {
-            await regenerateInviteCodeAction();
+            const { error } = await regenerateInviteCodeAction();
+            setFailed(error);
           })
         }
       >
         {pending ? "Regenerating…" : "Regenerate code"}
       </button>
+      <DidNotSave message={failed} />
     </div>
   );
 }
@@ -172,7 +175,7 @@ export function HouseholdNameForm({ name }: { name: string }) {
   return (
     <div style={{ marginBottom: 14 }}>
       <div style={{ display: "flex", gap: 8 }}>
-        <input className="input" value={value} onChange={(e) => setValue(e.target.value)} style={{ minHeight: 40 }} />
+        <input className="input" aria-label="Household name" value={value} onChange={(e) => setValue(e.target.value)} style={{ minHeight: 40 }} />
         <button
           type="button"
           className="btn btn-secondary"
@@ -188,7 +191,7 @@ export function HouseholdNameForm({ name }: { name: string }) {
           {pending ? "…" : "SAVE"}
         </button>
       </div>
-      {error && <p style={{ color: "var(--color-accent-700)", fontSize: 13, margin: "6px 0 0" }}>{error}</p>}
+      {error && <p role="alert" style={{ color: "var(--color-accent-700)", fontSize: 13, margin: "6px 0 0" }}>{error}</p>}
     </div>
   );
 }
@@ -269,7 +272,7 @@ export function HouseholdPrefsForm({
       >
         {pending ? "…" : "SAVE HOUSEHOLD PREFERENCES"}
       </button>
-      {error && <p style={{ color: "var(--color-accent-700)", fontSize: 13, margin: "6px 0 0" }}>{error}</p>}
+      {error && <p role="alert" style={{ color: "var(--color-accent-700)", fontSize: 13, margin: "6px 0 0" }}>{error}</p>}
     </div>
   );
 }
@@ -375,7 +378,7 @@ function MigratePhotosButton() {
         {busy ? "MOVING…" : "MOVE EXISTING PHOTOS TO DRIVE"}
       </button>
       {message && (
-        <p style={{ fontSize: 13, color: isError ? "var(--color-accent-700)" : "var(--color-neutral-600)", margin: "6px 0 0" }}>{message}</p>
+        <p role={isError ? "alert" : undefined} style={{ fontSize: 13, color: isError ? "var(--color-accent-700)" : "var(--color-neutral-600)", margin: "6px 0 0" }}>{message}</p>
       )}
     </div>
   );
@@ -447,7 +450,7 @@ function SyncCalendarButton() {
         {busy ? "SYNCING…" : "SYNC NOW"}
       </button>
       {message && (
-        <p style={{ fontSize: 13, color: isError ? "var(--color-accent-700)" : "var(--color-neutral-600)", margin: "6px 0 0" }}>{message}</p>
+        <p role={isError ? "alert" : undefined} style={{ fontSize: 13, color: isError ? "var(--color-accent-700)" : "var(--color-neutral-600)", margin: "6px 0 0" }}>{message}</p>
       )}
     </div>
   );

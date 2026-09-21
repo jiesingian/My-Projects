@@ -78,6 +78,7 @@ function ActivityForm({ members, defaultDate, editActivity }: { members: Tables<
   const [who, setWho] = useState<string[]>(editActivity?.who ?? []);
   const router = useRouter();
   const [deleting, setDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
 
   // start_at is an instant, and Postgres hands it over in UTC. Slicing the
   // characters out of that string reads the clock in London, not the one in
@@ -146,13 +147,19 @@ function ActivityForm({ members, defaultDate, editActivity }: { members: Tables<
           onClick={async () => {
             if (!(await confirm({ title: "Delete this activity?", description: "This can't be undone.", confirmLabel: "Delete", danger: true }))) return;
             setDeleting(true);
-            await deleteActivityAction(editActivity.id);
+            const result = await deleteActivityAction(editActivity.id);
+            setDeleting(false);
+            if (result.error) {
+              setDeleteError(result.error);
+              return;
+            }
             router.push("/planner?seg=calendar");
           }}
         >
           {deleting ? "DELETING…" : "DELETE ACTIVITY"}
         </button>
       )}
+      <ErrorText message={deleteError} />
     </form>
   );
 }
@@ -221,6 +228,7 @@ function EventForm({
   const [state, formAction] = useActionState(action, initialState);
   const router = useRouter();
   const [deleting, setDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
   const [wholeFamily, setWholeFamily] = useState(editEvent?.applies_to_whole_family ?? true);
   const [who, setWho] = useState<string[]>(editEvent?.memberIds ?? []);
 
@@ -258,13 +266,19 @@ function EventForm({
           onClick={async () => {
             if (!(await confirm({ title: "Delete this event?", description: "This can't be undone.", confirmLabel: "Delete", danger: true }))) return;
             setDeleting(true);
-            await deleteEventAction(editEvent.id);
+            const result = await deleteEventAction(editEvent.id);
+            setDeleting(false);
+            if (result.error) {
+              setDeleteError(result.error);
+              return;
+            }
             router.push("/planner?seg=events");
           }}
         >
           {deleting ? "DELETING…" : "DELETE EVENT"}
         </button>
       )}
+      <ErrorText message={deleteError} />
     </form>
   );
 }
@@ -282,6 +296,7 @@ function TripForm({
   const [state, formAction] = useActionState(action, initialState);
   const router = useRouter();
   const [deleting, setDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
   const [wholeFamily, setWholeFamily] = useState(editTrip?.applies_to_whole_family ?? true);
   const [travellers, setTravellers] = useState<string[]>(editTrip?.travellerIds ?? []);
 
@@ -321,13 +336,19 @@ function TripForm({
           onClick={async () => {
             if (!(await confirm({ title: "Delete this trip?", description: "This can't be undone.", confirmLabel: "Delete", danger: true }))) return;
             setDeleting(true);
-            await deleteTripAction(editTrip.id);
+            const result = await deleteTripAction(editTrip.id);
+            setDeleting(false);
+            if (result.error) {
+              setDeleteError(result.error);
+              return;
+            }
             router.push("/planner?seg=events");
           }}
         >
           {deleting ? "DELETING…" : "DELETE TRIP"}
         </button>
       )}
+      <ErrorText message={deleteError} />
     </form>
   );
 }

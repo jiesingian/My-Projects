@@ -25,7 +25,7 @@ export function OnboardingShell({
         {(backHref || step) && (
           <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 34 }}>
             {backHref ? (
-              <Link href={backHref} className="btn btn-secondary btn-icon">
+              <Link href={backHref} className="btn btn-secondary btn-icon" aria-label="Back">
                 <Icon name="chevronLeft" />
               </Link>
             ) : (

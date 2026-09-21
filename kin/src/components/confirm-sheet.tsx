@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useRef, useState, useSyncExternalStore } from "react";
+import { useCallback, useState, useSyncExternalStore } from "react";
 import { AnimatedSheet } from "@/components/animated-sheet";
 
 type ConfirmOptions = {
@@ -74,8 +74,6 @@ export function ConfirmSheetHost() {
     if (request) setVisible(request);
   }
 
-  const cancelRef = useRef<HTMLButtonElement>(null);
-
   const close = useCallback((value: boolean) => {
     current?.resolve(value);
     current = null;
@@ -106,7 +104,7 @@ export function ConfirmSheetHost() {
         </p>
       )}
       <div className="confirm-actions">
-        <button ref={cancelRef} type="button" className="btn btn-secondary btn-block" autoFocus onClick={() => close(false)}>
+        <button type="button" className="btn btn-secondary btn-block" autoFocus onClick={() => close(false)}>
           {visible.cancelLabel ?? "Cancel"}
         </button>
         <button
