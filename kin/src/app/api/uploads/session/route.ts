@@ -10,7 +10,7 @@ import {
 } from "@/lib/google-drive";
 
 type SessionRequest = {
-  kind: "journal" | "document" | "avatar" | "family_background" | "recipe";
+  kind: "journal" | "document" | "avatar" | "family_background" | "recipe" | "routine";
   fileName: string;
   mimeType: string;
   fileSize: number;
@@ -28,6 +28,11 @@ const UPLOAD_LIMITS: Record<SessionRequest["kind"], { types: RegExp; maxBytes: n
   avatar: { types: /^image\//, maxBytes: 15 * 1024 * 1024, label: "a photo, up to 15MB" },
   family_background: { types: /^image\//, maxBytes: 15 * 1024 * 1024, label: "a photo, up to 15MB" },
   document: {
+    types: /^(image\/|application\/pdf$|application\/vnd\.openxmlformats-officedocument\.|application\/msword$|application\/vnd\.ms-excel$|application\/vnd\.ms-powerpoint$)/,
+    maxBytes: 25 * 1024 * 1024,
+    label: "a photo, PDF, or office document, up to 25MB",
+  },
+  routine: {
     types: /^(image\/|application\/pdf$|application\/vnd\.openxmlformats-officedocument\.|application\/msword$|application\/vnd\.ms-excel$|application\/vnd\.ms-powerpoint$)/,
     maxBytes: 25 * 1024 * 1024,
     label: "a photo, PDF, or office document, up to 25MB",
@@ -67,6 +72,18 @@ export async function POST(request: Request) {
       provider: "supabase",
       bucket: "recipe-photos",
       path: `${me.family_id}/${Date.now()}-${fileName}`,
+    });
+  }
+
+  // A task attachment has no Drive folder of its own the way a document
+  // entry does (ensureDriveFolderStructure below resolves one per doc_folder,
+  // and routines aren't folders) -- straight to Storage, same bucket as
+  // documents.
+  if (kind === "routine") {
+    return NextResponse.json({
+      provider: "supabase",
+      bucket: "documents",
+      path: `${me.family_id}/routines/${Date.now()}-${fileName}`,
     });
   }
 

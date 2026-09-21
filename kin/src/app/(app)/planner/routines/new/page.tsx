@@ -4,6 +4,7 @@ import { getMembers } from "@/lib/queries/family";
 import { getAccounts } from "@/lib/queries/wealth";
 import { createClient } from "@/lib/supabase/server";
 import { toISODate } from "@/lib/routines";
+import { getRoutineAttachments, type RoutineAttachment } from "@/lib/queries/routines";
 import { RoutineForm, type EditRoutine } from "./routine-form";
 
 export default async function RoutinePage({ searchParams }: { searchParams: Promise<{ id?: string }> }) {
@@ -17,6 +18,7 @@ export default async function RoutinePage({ searchParams }: { searchParams: Prom
     .map((m) => ({ id: m.id, full_name: m.full_name }));
 
   let edit: EditRoutine | null = null;
+  let attachments: RoutineAttachment[] = [];
   if (id) {
     const supabase = await createClient();
     const { data } = await supabase
@@ -33,6 +35,7 @@ export default async function RoutinePage({ searchParams }: { searchParams: Prom
           .sort((a, b) => (a.position ?? 0) - (b.position ?? 0))
           .map((rm) => rm.member_id),
       };
+      attachments = await getRoutineAttachments(data.id);
     }
   }
 
@@ -43,6 +46,7 @@ export default async function RoutinePage({ searchParams }: { searchParams: Prom
         .filter((a) => a.is_joint || a.owner_member_id === me.id)
         .map((a) => ({ id: a.id, name: a.name, institution: a.institution }))}
       edit={edit}
+      attachments={attachments}
       today={toISODate(new Date())}
     />
   );

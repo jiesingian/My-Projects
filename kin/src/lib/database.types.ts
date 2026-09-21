@@ -3066,6 +3066,64 @@ export type Database = {
           },
         ]
       }
+      routine_attachments: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          family_id: string
+          file_name: string
+          id: string
+          mime_type: string | null
+          routine_id: string
+          size_bytes: number | null
+          storage_path: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          family_id: string
+          file_name: string
+          id?: string
+          mime_type?: string | null
+          routine_id: string
+          size_bytes?: number | null
+          storage_path: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          family_id?: string
+          file_name?: string
+          id?: string
+          mime_type?: string | null
+          routine_id?: string
+          size_bytes?: number | null
+          storage_path?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "routine_attachments_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "members"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "routine_attachments_family_id_fkey"
+            columns: ["family_id"]
+            isOneToOne: false
+            referencedRelation: "families"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "routine_attachments_routine_id_fkey"
+            columns: ["routine_id"]
+            isOneToOne: false
+            referencedRelation: "routines"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       routine_log: {
         Row: {
           amount: number | null
