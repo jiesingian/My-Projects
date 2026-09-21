@@ -7,10 +7,9 @@ import { Blueprint } from "@/components/ui";
 import { Icon } from "@/components/icons";
 import { initials } from "@/lib/format";
 import { addLiquidIntakeAction, setLiquidIntakeAction } from "@/lib/actions/household";
-import { LIQUID_INTAKE_TYPES, LIQUID_INTAKE_LABEL, type LiquidIntakeType, type LiquidIntakeMember } from "@/lib/liquid-intake";
+import { LIQUID_INTAKE_TYPES, LIQUID_INTAKE_LABEL, MAX_GLASSES, type LiquidIntakeType, type LiquidIntakeMember } from "@/lib/liquid-intake";
 
 const LONG_PRESS_MS = 450;
-const MAX_GLASSES = 24;
 
 const TYPE_TINT: Record<LiquidIntakeType, string> = {
   water: "var(--cal-appointment)",
@@ -39,32 +38,83 @@ export function LiquidIntakeTracker({ date, members }: { date: string; members: 
 }
 
 function MemberIntakeRow({ date, member }: { date: string; member: LiquidIntakeMember }) {
+  const router = useRouter();
+  const [pending, startTransition] = useTransition();
+  const [error, setError] = useState<string | null>(null);
+  const [picking, setPicking] = useState<LiquidIntakeType | null>(null);
+
+  const run = (fn: () => Promise<{ error: string | null }>) => {
+    setError(null);
+    startTransition(async () => {
+      const result = await fn();
+      if (result.error) setError(result.error);
+      router.refresh();
+    });
+  };
+
+  const pick = (type: LiquidIntakeType, glasses: number) => {
+    setPicking(null);
+    run(() => setLiquidIntakeAction({ memberId: member.id, type, date, glasses }));
+  };
+
   return (
     <Blueprint style={{ padding: "10px 12px", display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
       <Avatar url={member.avatarUrl} initials={initials(member.name)} label={member.name} size={34} clickable={false} />
       <span style={{ fontSize: 13.5, fontWeight: 500, flex: "1 1 auto", minWidth: 90 }}>{member.name}</span>
-      <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+
+      {/* The picker hangs from the whole group rather than from the button
+          that opened it. Hung off Milk, which sits at the right-hand end, a
+          fixed-width menu ran past the edge of a phone and took the page
+          sideways with it. */}
+      <div style={{ position: "relative", display: "flex", gap: 6, flexWrap: "wrap" }}>
         {LIQUID_INTAKE_TYPES.map((type) => (
-          <GlassButton key={type} date={date} memberId={member.id} type={type} glasses={member.glasses[type]} />
+          <GlassButton
+            key={type}
+            type={type}
+            glasses={member.glasses[type]}
+            disabled={pending}
+            onTap={() => run(() => addLiquidIntakeAction({ memberId: member.id, type, date }))}
+            onHold={() => setPicking(type)}
+          />
         ))}
+        {picking && (
+          <GlassPicker
+            label={LIQUID_INTAKE_LABEL[picking]}
+            current={member.glasses[picking]}
+            onPick={(n) => pick(picking, n)}
+            onClose={() => setPicking(null)}
+          />
+        )}
       </div>
+
+      {error && <div style={{ flexBasis: "100%", fontSize: 12, color: "var(--cal-occasion)" }}>{error}</div>}
     </Blueprint>
   );
 }
 
-function GlassButton({ date, memberId, type, glasses }: { date: string; memberId: string; type: LiquidIntakeType; glasses: number }) {
-  const router = useRouter();
-  const [pending, startTransition] = useTransition();
-  const [picking, setPicking] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+function GlassButton({
+  type,
+  glasses,
+  disabled,
+  onTap,
+  onHold,
+}: {
+  type: LiquidIntakeType;
+  glasses: number;
+  disabled: boolean;
+  onTap: () => void;
+  onHold: () => void;
+}) {
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const held = useRef(false);
+
+  useEffect(() => () => { if (timer.current) clearTimeout(timer.current); }, []);
 
   const startHold = () => {
     held.current = false;
     timer.current = setTimeout(() => {
       held.current = true;
-      setPicking(true);
+      onHold();
     }, LONG_PRESS_MS);
   };
   const endHold = () => {
@@ -72,65 +122,49 @@ function GlassButton({ date, memberId, type, glasses }: { date: string; memberId
     timer.current = null;
   };
 
-  const tap = () => {
-    setError(null);
-    startTransition(async () => {
-      const result = await addLiquidIntakeAction({ memberId, type, date, current: glasses });
-      if (result.error) setError(result.error);
-      router.refresh();
-    });
-  };
-
-  const pick = (n: number) => {
-    setPicking(false);
-    setError(null);
-    startTransition(async () => {
-      const result = await setLiquidIntakeAction({ memberId, type, date, glasses: n });
-      if (result.error) setError(result.error);
-      router.refresh();
-    });
-  };
-
   return (
-    <div style={{ position: "relative" }}>
-      <button
-        type="button"
-        className="btn btn-secondary"
-        disabled={pending}
-        aria-label={`${LIQUID_INTAKE_LABEL[type]}: ${glasses} glass${glasses === 1 ? "" : "es"} today. Tap to add one, hold to set the count.`}
-        style={{ minHeight: 32, fontSize: 12.5, padding: "0 10px", gap: 5, color: "var(--color-text)" }}
-        onPointerDown={startHold}
-        onPointerUp={endHold}
-        onPointerLeave={endHold}
-        onPointerCancel={endHold}
-        onClick={() => {
-          if (held.current) {
-            held.current = false;
-            return;
-          }
-          tap();
-        }}
-        onContextMenu={(e) => {
-          e.preventDefault();
-          setPicking(true);
-        }}
-      >
-        <Icon name="glassWater" size={14} style={{ color: TYPE_TINT[type] }} />
-        {LIQUID_INTAKE_LABEL[type]}
-        <span style={{ fontWeight: 600 }}>{glasses}</span>
-      </button>
-
-      {picking && <GlassPicker current={glasses} onPick={pick} onClose={() => setPicking(false)} />}
-      {error && (
-        <div style={{ position: "absolute", top: "100%", left: 0, marginTop: 4, fontSize: 11.5, color: "var(--cal-occasion)", whiteSpace: "nowrap" }}>
-          {error}
-        </div>
-      )}
-    </div>
+    <button
+      type="button"
+      className="btn btn-secondary"
+      disabled={disabled}
+      aria-label={`${LIQUID_INTAKE_LABEL[type]}: ${glasses} glass${glasses === 1 ? "" : "es"} today. Tap to add one, hold to set the count.`}
+      style={{ minHeight: 32, fontSize: 12.5, padding: "0 10px", gap: 5, color: "var(--color-text)" }}
+      onPointerDown={startHold}
+      onPointerUp={endHold}
+      onPointerLeave={endHold}
+      onPointerCancel={endHold}
+      // A hold has already opened the picker; the click that ends it must not
+      // also log a glass.
+      onClick={() => {
+        if (held.current) {
+          held.current = false;
+          return;
+        }
+        onTap();
+      }}
+      onContextMenu={(e) => {
+        e.preventDefault();
+        onHold();
+      }}
+    >
+      <Icon name="glassWater" size={14} style={{ color: TYPE_TINT[type] }} />
+      {LIQUID_INTAKE_LABEL[type]}
+      <span style={{ fontWeight: 600 }}>{glasses}</span>
+    </button>
   );
 }
 
-function GlassPicker({ current, onPick, onClose }: { current: number; onPick: (n: number) => void; onClose: () => void }) {
+function GlassPicker({
+  label,
+  current,
+  onPick,
+  onClose,
+}: {
+  label: string;
+  current: number;
+  onPick: (n: number) => void;
+  onClose: () => void;
+}) {
   const wrap = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -146,20 +180,20 @@ function GlassPicker({ current, onPick, onClose }: { current: number; onPick: (n
     };
   }, [onClose]);
 
-  const options = Array.from({ length: MAX_GLASSES + 1 }, (_, n) => n);
-
   return (
     <div
       ref={wrap}
       role="menu"
-      aria-label="Set the count"
+      aria-label={`How many glasses of ${label.toLowerCase()} today`}
       className="kin-glass-bar"
       style={{
         position: "absolute",
         top: "calc(100% + 6px)",
+        // Pinned to both edges of the button group, so it is as wide as the
+        // buttons it belongs to and never wider than the card holding them.
         left: 0,
+        right: 0,
         zIndex: 50,
-        width: 200,
         maxHeight: 220,
         overflowY: "auto",
         padding: 6,
@@ -167,11 +201,11 @@ function GlassPicker({ current, onPick, onClose }: { current: number; onPick: (n
         border: "1px solid var(--color-divider)",
         boxShadow: "var(--shadow-lg)",
         display: "grid",
-        gridTemplateColumns: "repeat(5, 1fr)",
+        gridTemplateColumns: "repeat(auto-fit, minmax(38px, 1fr))",
         gap: 4,
       }}
     >
-      {options.map((n) => (
+      {Array.from({ length: MAX_GLASSES + 1 }, (_, n) => n).map((n) => (
         <button
           key={n}
           type="button"
