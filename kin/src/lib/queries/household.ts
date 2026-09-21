@@ -155,11 +155,20 @@ export async function getMealsForDay(familyId: string, anchor: Date = new Date()
 
 /** One day's tally per member, per drink -- everyone in the house, even
  * members who haven't logged a sip, so the tracker reads as a checklist
- * rather than a list that only grows once someone taps it. */
+ * rather than a list that only grows once someone taps it.
+ *
+ * Who counts as in the house is the Family tab's answer, not the members
+ * table's: somebody who has left, or who has asked to join and not been let
+ * in yet, has no business in today's drinking. */
 export async function getLiquidIntake(familyId: string, dateISO: string): Promise<LiquidIntakeMember[]> {
   const supabase = await createClient();
   const [{ data: members }, { data: rows }] = await Promise.all([
-    supabase.from("members").select("id, full_name, avatar_url").eq("family_id", familyId).order("created_at"),
+    supabase
+      .from("members")
+      .select("id, full_name, avatar_url")
+      .eq("family_id", familyId)
+      .not("status", "in", "(pending,removed)")
+      .order("created_at"),
     supabase.from("liquid_intake_log").select("member_id, type, glasses").eq("family_id", familyId).eq("log_date", dateISO),
   ]);
 

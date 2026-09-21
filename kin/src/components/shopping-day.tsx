@@ -162,8 +162,8 @@ export function ShoppingDayControl({
       <p style={{ fontSize: 12, color: "var(--color-neutral-600)", margin: "10px 0 0", lineHeight: 1.45 }}>
         {routine ? (
           <>
-            This moves <strong>just this one</strong> — the {routine.title.toLowerCase()} routine keeps its schedule, and the
-            turn it replaces comes off the calendar. To change the routine itself,{" "}
+            This moves <strong>just this one</strong> — the {routine.title.toLowerCase()} task keeps its schedule, and the
+            turn it replaces comes off the calendar. To change the task itself,{" "}
             <Link href="/planner?seg=routines" style={{ textDecoration: "none" }}>
               open it in the Planner
             </Link>

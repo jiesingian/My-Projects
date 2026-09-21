@@ -52,6 +52,11 @@ jobs:
     if: github.event_name == 'push' || inputs.target == 'dev'
     name: dev
     runs-on: ubuntu-latest
+    # actions:write buys one thing: waking schema-check once dev has actually
+    # caught up, in the last step of this job. Reading is all the rest needs.
+    permissions:
+      contents: read
+      actions: write
     steps:
       - uses: actions/checkout@v5
       - uses: actions/setup-node@v5
@@ -80,12 +85,37 @@ jobs:
           fi
 
       - name: Apply what dev has not run
+        id: apply
         if: steps.have.outputs.have == 'true'
         env:
           MIGRATE_DB_URL: ${{ secrets.DEV_DB_URL }}
           MIGRATE_LABEL: dev
         working-directory: kin
-        run: node scripts/migrate.mjs ${{ inputs.dry_run && '--dry-run' || '' }}
+        run: |
+          # pipefail, because the default shell does not set it and `tee`
+          # would otherwise report success for a migration that died.
+          set -o pipefail
+          node scripts/migrate.mjs ${{ inputs.dry_run && '--dry-run' || '' }} | tee /tmp/migrate.log
+          grep -q "migration(s) applied\." /tmp/migrate.log && echo "applied=true" >> "$GITHUB_OUTPUT" || true
+
+      # automerge.yml wakes this job and schema-check.yml in the same breath,
+      # so on a merge carrying a migration schema-check can easily ask dev
+      # what it has before this job has given it anything -- and go red over a
+      # gap seconds old. Asking again once the schema has moved settles it.
+      # schema-check cancels its own in-progress run per ref, so this
+      # supersedes the run that raced rather than adding a second one.
+      #
+      # Only when something was actually applied. Every merge wakes this job,
+      # and most carry no migration at all; re-asking on those would double
+      # schema-check's runs for nothing, on a metered Actions budget.
+      - name: Ask schema-check again, now dev has it
+        if: steps.apply.outputs.applied == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh workflow run schema-check.yml --repo "${{ github.repository }}" --ref main \
+            && echo "asked schema-check to look again" \
+            || echo "could not wake schema-check — run it by hand if main looks red"
 
   production:
     # Only ever by hand. A migration takes effect the instant it runs and no

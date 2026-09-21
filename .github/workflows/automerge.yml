@@ -79,10 +79,12 @@ permissions:
   # that comment before adding anything else to this file that calls an API.
   #
   # WRITE, not read, and this is the third time round the same block. After
-  # merging, this job dispatches watched-change.yml, schema-check.yml and
-  # e2e.yml against main, because GitHub does not start workflows from a push
-  # made with GITHUB_TOKEN and those three would otherwise never run on main
-  # again. Reading runs needs actions:read; starting one needs actions:write.
+  # merging, this job dispatches migrate.yml, watched-change.yml,
+  # schema-check.yml and e2e.yml against main, because GitHub does not start
+  # workflows from a push made with GITHUB_TOKEN and those four would
+  # otherwise never run on main again. (migrate.yml was missing from that
+  # list until 21 September, which is its own comment further down.)
+  # Reading runs needs actions:read; starting one needs actions:write.
   # With read, all three dispatches answered
   #
   #   HTTP 403: Resource not accessible by integration
@@ -319,6 +321,22 @@ jobs:
               # merge asks for them by name instead. Each is "|| true": a
               # failure to start one of these must never look like a failure
               # to merge, which has already happened.
+              # migrate.yml goes first and on its own, because it is the one
+              # whose absence from this list went unnoticed for eleven days.
+              # It was written to run on push to main, which is exactly the
+              # trigger GITHUB_TOKEN suppresses -- so from 10 September, when
+              # this job started merging, no migration that merged ever
+              # reached dev. Dev's ledger stopped at 20260921100444 with four
+              # merged migrations missing, and the only reason its schema was
+              # right at all is that they were applied by hand.
+              #
+              # target is named rather than left to the input's default: this
+              # must never be one edited default away from running against
+              # production, which is Jonathan's alone.
+              gh workflow run migrate.yml --repo "$REPO" --ref main -f target=dev \
+                && echo "  woke migrate.yml on main (dev)" \
+                || echo "  could not wake migrate.yml — dev will NOT have this merge's migrations"
+
               for W in watched-change.yml schema-check.yml e2e.yml; do
                 gh workflow run "$W" --repo "$REPO" --ref main \
                   && echo "  woke $W on main" \
