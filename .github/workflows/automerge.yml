@@ -330,12 +330,13 @@ jobs:
               # merged migrations missing, and the only reason its schema was
               # right at all is that they were applied by hand.
               #
-              # target is named rather than left to the input's default: this
-              # must never be one edited default away from running against
-              # production, which is Jonathan's alone.
-              gh workflow run migrate.yml --repo "$REPO" --ref main -f target=dev \
-                && echo "  woke migrate.yml on main (dev)" \
-                || echo "  could not wake migrate.yml — dev will NOT have this merge's migrations"
+              # `both` means dev, then production only if dev took it -- see
+              # migrate.yml, which owns that ordering. Naming the target
+              # rather than leaning on the input's default, so what this asks
+              # for cannot change under it if that default is ever edited.
+              gh workflow run migrate.yml --repo "$REPO" --ref main -f target=both \
+                && echo "  woke migrate.yml on main (dev, then production)" \
+                || echo "  could not wake migrate.yml — NEITHER database will have this merge's migrations"
 
               for W in watched-change.yml schema-check.yml e2e.yml; do
                 gh workflow run "$W" --repo "$REPO" --ref main \
