@@ -49,7 +49,11 @@ export function FamilyFeed({
         </button>
       </div>
 
-      {showLinks && <LinkManager links={links} ourCode={ourCode} canManage={canManage} />}
+      <div className="kin-reveal" data-open={showLinks ? "true" : undefined}>
+        <div>
+          <LinkManager links={links} ourCode={ourCode} canManage={canManage} />
+        </div>
+      </div>
 
       {entries.length === 0 ? (
         <Blueprint style={{ padding: "18px 15px" }}>
