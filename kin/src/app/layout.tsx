@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { cookies } from "next/headers";
 import "./globals.css";
+import { ServiceWorker } from "@/components/service-worker";
 
 export const metadata: Metadata = {
   title: "Kin — Family Operating System",
@@ -46,7 +47,10 @@ export default async function RootLayout({
 
   return (
     <html lang="en" data-theme={dataTheme}>
-      <body>{children}</body>
+      <body>
+        {children}
+        <ServiceWorker />
+      </body>
     </html>
   );
 }
