@@ -154,7 +154,7 @@ type LedgerInput = {
   occurredAt?: string | null;
   status?: "pending" | "confirmed";
   transferGroupId?: string | null;
-  sourceTable?: "bills" | "events" | "buy_items" | "health_appointments" | "goals" | "routines" | "income_schedules" | null;
+  sourceTable?: "bills" | "events" | "buy_items" | "health_appointments" | "goals" | "routines" | "income_schedules" | "assets" | null;
   sourceId?: string | null;
   goalId?: string | null;
 };
@@ -247,12 +247,33 @@ export async function recordMovementAction(input: {
   category: string | null;
   occurredAt: string | null;
   viaApp: boolean;
+  /** What this money was for, beyond which account it moved through: an
+   * asset the household owns, or a goal they are saving into. Optional --
+   * most payments are not tied to either. */
+  againstTable?: "assets" | "goals" | null;
+  againstId?: string | null;
 }): Promise<{ error: string | null; transactionId?: string; appUrl?: string | null }> {
   const me = await requireCurrentMember();
   const supabase = await createClient();
 
   if (!input.particulars.trim()) return { error: "Say what this is for." };
   if (!(input.amount > 0)) return { error: "Enter an amount greater than zero." };
+
+  // The id comes from a form, so it is checked against this household rather
+  // than trusted -- the same reason the routine log verifies its member.
+  let sourceTable: "assets" | "goals" | null = null;
+  let sourceId: string | null = null;
+  if (input.againstTable && input.againstId) {
+    const { data: target } = await supabase
+      .from(input.againstTable)
+      .select("id")
+      .eq("id", input.againstId)
+      .eq("family_id", me.family_id)
+      .maybeSingle();
+    if (!target) return { error: "That isn't one of your household's records." };
+    sourceTable = input.againstTable;
+    sourceId = input.againstId;
+  }
 
   const { data: account } = await supabase
     .from("accounts")
@@ -267,6 +288,12 @@ export async function recordMovementAction(input: {
     ...input,
     particulars: input.particulars.trim(),
     status,
+    sourceTable,
+    sourceId,
+    // A contribution to a goal is also a goal_id, which is what the goal's
+    // own progress reads. Setting only source_table would show it in the
+    // cashflow breakdown while the goal itself stayed where it was.
+    goalId: sourceTable === "goals" ? sourceId : null,
   });
   if (error) return { error: explainLedgerRefusal(error.message) };
 
@@ -454,7 +481,7 @@ export async function postHubExpenseAction(input: {
   amount: number;
   particulars: string;
   category: string;
-  sourceTable: "bills" | "events" | "buy_items" | "health_appointments" | "routines";
+  sourceTable: "bills" | "events" | "buy_items" | "health_appointments" | "routines" | "assets";
   sourceId: string | null;
 }): Promise<ActionState> {
   const me = await requireCurrentMember();

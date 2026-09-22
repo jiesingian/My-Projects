@@ -22,10 +22,14 @@ export function TransactForm({
   accounts,
   currency,
   defaultMode,
+  assets,
+  goals,
 }: {
   accounts: PickableAccount[];
   currency: string;
   defaultMode: string;
+  assets: { id: string; name: string }[];
+  goals: { id: string; name: string }[];
 }) {
   const router = useRouter();
   const [mode, setMode] = useState<Mode>((MODES as readonly string[]).includes(defaultMode) ? (defaultMode as Mode) : "in");
@@ -36,6 +40,9 @@ export function TransactForm({
   const [category, setCategory] = useState<string>(INCOME_SOURCES[0]);
   const [occurredOn, setOccurredOn] = useState(todayLocal());
   const [viaApp, setViaApp] = useState(true);
+  // "assets:<id>" or "goals:<id>", or empty for the ordinary case where the
+  // money is not tied to either.
+  const [against, setAgainst] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
 
@@ -62,6 +69,8 @@ export function TransactForm({
               category,
               occurredAt,
               viaApp: viaApp && canUseApp,
+              againstTable: against ? (against.split(":")[0] as "assets" | "goals") : null,
+              againstId: against ? against.split(":")[1] : null,
             });
 
       if (res.error) {
@@ -120,6 +129,36 @@ export function TransactForm({
           <DateInput className="input" value={occurredOn} onChange={(e) => setOccurredOn(e.target.value)} style={{ minHeight: 44 }} />
         </Field>
       </div>
+
+      {/* Which account the money moved through was always recorded. What it
+          was *for* was not, unless a hub posted it -- so a payment on the car
+          and a contribution to a savings goal both landed as anonymous
+          expenses. Optional, because most payments are neither. */}
+      {mode !== "transfer" && (assets.length > 0 || goals.length > 0) && (
+        <Field label={mode === "in" ? "INCOME FROM (OPTIONAL)" : "AGAINST (OPTIONAL)"}>
+          <select className="input" value={against} onChange={(e) => setAgainst(e.target.value)} style={{ minHeight: 44 }}>
+            <option value="">Nothing in particular</option>
+            {assets.length > 0 && (
+              <optgroup label="Assets">
+                {assets.map((a) => (
+                  <option key={a.id} value={`assets:${a.id}`}>
+                    {a.name}
+                  </option>
+                ))}
+              </optgroup>
+            )}
+            {goals.length > 0 && (
+              <optgroup label="Goals">
+                {goals.map((g) => (
+                  <option key={g.id} value={`goals:${g.id}`}>
+                    {g.name}
+                  </option>
+                ))}
+              </optgroup>
+            )}
+          </select>
+        </Field>
+      )}
 
       {mode !== "transfer" && (
         <Field label={mode === "in" ? "SOURCE" : "CATEGORY"}>
