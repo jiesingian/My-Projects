@@ -56,8 +56,8 @@ export function MealWhoEditor({
         {label}
       </button>
 
-      {open && (
-        <span style={{ display: "flex", flexWrap: "wrap", gap: 5 }}>
+      <span className="kin-reveal" data-open={open ? "true" : undefined}>
+        <span style={{ display: "flex", flexWrap: "wrap", gap: 5, paddingTop: 1 }}>
           <button
             type="button"
             className={chosen.length === 0 ? "btn btn-primary" : "btn btn-secondary"}
@@ -83,7 +83,7 @@ export function MealWhoEditor({
             );
           })}
         </span>
-      )}
+      </span>
       {error && <span style={{ fontSize: 12, color: "var(--cal-occasion)" }}>{error}</span>}
     </span>
   );

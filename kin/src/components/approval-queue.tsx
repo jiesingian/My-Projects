@@ -34,18 +34,28 @@ function RedemptionRow({ item }: { item: PendingRedemption }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
+  const [leaving, setLeaving] = useState(false);
 
   const run = (fn: () => Promise<{ error: string | null }>) => {
     setError(null);
     startTransition(async () => {
       const result = await fn();
-      if (result.error) setError(result.error);
+      if (result.error) {
+        setError(result.error);
+        router.refresh();
+        return;
+      }
+      // Answered. The refresh that removes this row from the queue lands a
+      // moment later, so the row gets to leave rather than blink out from
+      // under the finger that just tapped it.
+      setLeaving(true);
+      await new Promise((resolve) => setTimeout(resolve, 180));
       router.refresh();
     });
   };
 
   return (
-    <Blueprint style={{ padding: 13, marginBottom: 9 }}>
+    <Blueprint className={leaving ? "kin-leaving" : undefined} style={{ padding: 13, marginBottom: 9 }}>
       <div style={{ display: "flex", gap: 10, alignItems: "flex-start" }}>
         <span
           style={{
@@ -99,18 +109,28 @@ function ApprovalRow({ item }: { item: PendingApproval }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
+  const [leaving, setLeaving] = useState(false);
 
   const run = (fn: () => Promise<{ error: string | null }>) => {
     setError(null);
     startTransition(async () => {
       const result = await fn();
-      if (result.error) setError(result.error);
+      if (result.error) {
+        setError(result.error);
+        router.refresh();
+        return;
+      }
+      // Answered. The refresh that removes this row from the queue lands a
+      // moment later, so the row gets to leave rather than blink out from
+      // under the finger that just tapped it.
+      setLeaving(true);
+      await new Promise((resolve) => setTimeout(resolve, 180));
       router.refresh();
     });
   };
 
   return (
-    <Blueprint style={{ padding: 13, marginBottom: 9 }}>
+    <Blueprint className={leaving ? "kin-leaving" : undefined} style={{ padding: 13, marginBottom: 9 }}>
       <div style={{ display: "flex", gap: 10, alignItems: "flex-start" }}>
         <span
           style={{

@@ -117,7 +117,11 @@ function Clock() {
   }, []);
 
   return (
-    <span style={{ font: "600 22px/1 var(--font-heading)", minWidth: 62 }} suppressHydrationWarning>
+    <span
+      className={now ? "kin-fade-in" : undefined}
+      style={{ font: "600 22px/1 var(--font-heading)", minWidth: 62 }}
+      suppressHydrationWarning
+    >
       {now ?? " "}
     </span>
   );

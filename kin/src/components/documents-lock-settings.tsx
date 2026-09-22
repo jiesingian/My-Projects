@@ -114,21 +114,24 @@ export function DocumentsLockSettings({
 
   // Unused when nothing is set up and the person has not opened the panel --
   // a household that does not want a lock should not have to look at one.
-  if (!configured && !open) {
-    return (
-      <button
-        type="button"
-        className="btn btn-ghost"
-        onClick={() => setOpen(true)}
-        style={{ marginTop: 18, fontSize: 12.5, gap: 5, padding: "0 8px", minHeight: 30 }}
-      >
-        <Icon name="keyRound" size={13} />
-        Lock these documents
-      </button>
-    );
-  }
-
+  // Both are rendered so the panel can expand into the space the button
+  // leaves, rather than the two swapping in a single frame.
   return (
+    <>
+      {!configured && !open && (
+        <button
+          type="button"
+          className="btn btn-ghost"
+          onClick={() => setOpen(true)}
+          style={{ marginTop: 18, fontSize: 12.5, gap: 5, padding: "0 8px", minHeight: 30 }}
+        >
+          <Icon name="keyRound" size={13} />
+          Lock these documents
+        </button>
+      )}
+
+      <div className="kin-reveal" data-open={configured || open ? "true" : undefined}>
+        <div>
     <Blueprint style={{ padding: 14, marginTop: 20 }}>
       <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
         <Icon name="keyRound" size={15} style={{ color: "var(--color-accent-700)" }} />
@@ -280,5 +283,8 @@ export function DocumentsLockSettings({
         </button>
       )}
     </Blueprint>
+        </div>
+      </div>
+    </>
   );
 }
