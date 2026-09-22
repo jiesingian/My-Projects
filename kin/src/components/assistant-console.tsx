@@ -1,10 +1,17 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { useRouter } from "next/navigation";
 import { Blueprint } from "@/components/ui";
+import { Icon } from "@/components/icons";
+import { listen, speak, speechOutSupported, speechSupported, stopSpeaking, type Listener } from "@/lib/speech";
 
 type Turn = { role: "user" | "assistant"; content: string };
+
+/** Nothing to subscribe to -- the answer is fixed for the life of the page. */
+function neverChanges() {
+  return () => {};
+}
 
 const SUGGESTIONS = ["What's on this week?", "Add milk and eggs to the list", "How much is left this month?", "Any bills due?"];
 
@@ -16,6 +23,23 @@ export function AssistantConsole({ memberName }: { memberName: string }) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const router = useRouter();
 
+  // Voice is an input method, not a mode: what it produces goes through the
+  // same send() as typing, so the assistant's tools, permissions and
+  // wording are identical however the words arrived.
+  // Read rather than stored in state: whether this browser has a speech
+  // engine is a fact about the browser, not something that changes, and
+  // useSyncExternalStore is how you ask without the server and the client
+  // rendering different buttons.
+  const canHear = useSyncExternalStore(neverChanges, speechSupported, () => false);
+  const canSpeak = useSyncExternalStore(neverChanges, speechOutSupported, () => false);
+  const [listening, setListening] = useState(false);
+  const [readAloud, setReadAloud] = useState(false);
+  const [heardNotice, setHeardNotice] = useState(false);
+  const listenerRef = useRef<Listener | null>(null);
+  // The last transcript, kept in a ref because onend fires after the final
+  // result and needs to know what to send without re-rendering first.
+  const transcriptRef = useRef("");
+
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
   }, [turns, thinking]);
@@ -23,6 +47,9 @@ export function AssistantConsole({ memberName }: { memberName: string }) {
   async function send(text: string) {
     const message = text.trim();
     if (!message || thinking) return;
+    // A new question stops the old answer mid-sentence, which is what
+    // interrupting somebody is supposed to do.
+    stopSpeaking();
 
     const next: Turn[] = [...turns, { role: "user", content: message }];
     setTurns(next);
@@ -46,7 +73,11 @@ export function AssistantConsole({ memberName }: { memberName: string }) {
         return;
       }
 
-      setTurns((prev) => [...prev, { role: "assistant", content: data.reply ?? "Done." }]);
+      const reply = data.reply ?? "Done.";
+      setTurns((prev) => [...prev, { role: "assistant", content: reply }]);
+      // Only read back what was asked by voice. A typed question answered
+      // out loud in a quiet room is a fright, not a feature.
+      if (readAloud && canSpeak) speak(reply);
       // Anything it created needs the hub cards behind this panel to catch up.
       if ((data.actions ?? []).length > 0) router.refresh();
     } catch {
@@ -55,6 +86,58 @@ export function AssistantConsole({ memberName }: { memberName: string }) {
       setThinking(false);
     }
   }
+
+  const toggleListening = useCallback(() => {
+    if (listening) {
+      listenerRef.current?.stop();
+      return;
+    }
+    setError(null);
+    setHeardNotice(true);
+    transcriptRef.current = "";
+    const listener = listen(
+      (text, final) => {
+        transcriptRef.current = text;
+        // Show the words arriving, so a long sentence does not look like
+        // nothing is happening.
+        setDraft(text);
+        if (final) {
+          listenerRef.current?.stop();
+        }
+      },
+      (message) => {
+        setError(message);
+        setListening(false);
+      },
+      () => {
+        setListening(false);
+        listenerRef.current = null;
+        const heard = transcriptRef.current.trim();
+        transcriptRef.current = "";
+        if (heard) {
+          // Asked out loud, so answer out loud.
+          setReadAloud(true);
+          send(heard);
+        }
+      },
+    );
+    if (!listener) {
+      setError("This browser won't let Kin listen. You can still type.");
+      return;
+    }
+    listenerRef.current = listener;
+    setListening(true);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [listening]);
+
+  // Leaving the screen mid-sentence should not leave the microphone open or
+  // the browser talking to an empty room.
+  useEffect(() => {
+    return () => {
+      listenerRef.current?.stop();
+      stopSpeaking();
+    };
+  }, []);
 
   return (
     <Blueprint style={{ padding: 13, marginBottom: 14 }}>
@@ -126,10 +209,40 @@ export function AssistantConsole({ memberName }: { memberName: string }) {
           disabled={thinking}
           style={{ minHeight: 42, flex: 1 }}
         />
+        {canHear && (
+          <button
+            type="button"
+            className={listening ? "btn btn-primary" : "btn btn-secondary"}
+            onClick={toggleListening}
+            disabled={thinking}
+            aria-pressed={listening}
+            aria-label={listening ? "Stop listening" : "Ask by voice"}
+            title={listening ? "Stop listening" : "Ask by voice"}
+            style={{ minHeight: 42, width: 42, padding: 0, flex: "none" }}
+          >
+            <Icon name={listening ? "pause" : "message"} size={17} />
+          </button>
+        )}
         <button type="submit" className="btn btn-primary" disabled={thinking || !draft.trim()} style={{ minHeight: 42, paddingInline: 16, fontSize: 14 }}>
           {thinking ? "…" : "SEND"}
         </button>
       </form>
+
+      {listening && (
+        <p style={{ fontSize: 12.5, color: "var(--color-accent-700)", margin: "8px 0 0" }}>
+          Listening — say what you need, then pause.
+        </p>
+      )}
+
+      {/* Said once, the first time somebody presses it, because "the browser
+          did the transcribing" is not the same as "nothing left the room"
+          and a household should hear that before rather than after. */}
+      {heardNotice && !listening && (
+        <p style={{ fontSize: 12, color: "var(--color-neutral-600)", margin: "8px 0 0", lineHeight: 1.45 }}>
+          Your browser does the listening, not Kin — on Chrome that means the audio goes to Google to be turned into
+          text. Kin only ever receives the words.
+        </p>
+      )}
     </Blueprint>
   );
 }
