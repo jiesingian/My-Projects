@@ -2,6 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getCurrentMember } from "@/lib/session";
 import { getWealthPane, getNetWorth, getAccounts, getCashFlowPane, type WealthScope, type LedgerEntry, type AccountWithBalance } from "@/lib/queries/wealth";
+import { CashFlowSources } from "@/components/cashflow-sources";
 import { HubHeader } from "@/components/hub-header";
 import { Blueprint, Tag, Empty } from "@/components/ui";
 import { AddAccountForm, AddBillForm, AddIncomeScheduleForm, SetBudgetControl, SetTargetControl, AllocationEditor } from "@/components/wealth-controls";
@@ -612,6 +613,8 @@ async function CashFlowPane({ familyId, memberId, currency, range, scope }: { fa
       {isJoint && <div style={{ marginTop: 12 }}><AllocationEditor budgeted={budget.allocations.map((a) => a.category)} /></div>}
 
       <SectionLabel>BILLS</SectionLabel>
+      <CashFlowSources sources={cf.sources} currency={currency} />
+
       <UpcomingBills bills={cf.openBills} currency={currency} fmtDate={fmtDate} />
       {cf.openBills.length === 0 && cf.settledBills.length === 0 && cf.recentExpense.length === 0 && (
         <Empty icon="🧾" title="Nothing recorded yet" line="Mortgage payments, groceries, checkups, meals, travel, fuel — anything the household spends on." />

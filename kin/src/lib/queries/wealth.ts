@@ -301,5 +301,128 @@ export async function getCashFlowPane(familyId: string, range: CashFlowRange, sc
     openBills: bills.filter((b) => b.status !== "paid"),
     settledBills: bills.filter((b) => b.status === "paid").slice(0, 12),
     recentExpense: confirmed.filter((t) => t.direction === "out" && t.source_table !== "bills").slice(0, 8),
+    // What this period's money was actually tied to -- an asset, a goal, a
+    // bill -- rather than only how much of it there was.
+    sources: await summariseSources(familyId, thisPeriod),
   };
+}
+
+/** Where a period's money actually came from and went to.
+ *
+ * wealth_transactions has carried source_table and source_id since the hubs
+ * started posting into the ledger, and nothing ever read it back -- so the
+ * cashflow pane could tell a household how much went out but not that half
+ * of it was the car, or a goal they are saving into. This is that column
+ * finally being asked a question.
+ *
+ * Assets were missing from the union entirely, so an expense against a
+ * vehicle or a property had nowhere to say so and was recorded as an
+ * ordinary payment. They are a source now, which is the other half of
+ * "consider if expenses or income is from an asset". */
+export type CashFlowSource = {
+  kind: "assets" | "goals" | "bills" | "routines" | "income_schedules" | "accounts" | "direct";
+  label: string;
+  name: string;
+  income: number;
+  expense: number;
+};
+
+const SOURCE_LABEL: Record<string, string> = {
+  assets: "Asset",
+  goals: "Goal",
+  bills: "Bill",
+  routines: "Routine",
+  income_schedules: "Income",
+  events: "Event",
+  buy_items: "Shopping",
+  health_appointments: "Health",
+};
+
+/** Names for the rows, fetched in one round trip per table rather than one
+ * per transaction. A period with forty payments against the same three
+ * things should not be forty selects. */
+async function nameSources(
+  familyId: string,
+  wanted: Map<string, Set<string>>,
+): Promise<Map<string, string>> {
+  const supabase = await createClient();
+  const names = new Map<string, string>();
+  // Each of these tables names its row differently, which is why this is a
+  // list rather than a loop over a single column.
+  // Each of these names its row in its own column, and they genuinely
+  // differ -- goals and routines and events say "title", assets and bills
+  // and income schedules say "name". Checked against the generated types
+  // rather than assumed; an earlier version guessed "name" for goals and
+  // "source" for income schedules and both were wrong.
+  const columns: Record<string, string> = {
+    assets: "name",
+    goals: "title",
+    bills: "name",
+    routines: "title",
+    income_schedules: "name",
+    events: "title",
+  };
+
+  await Promise.all(
+    [...wanted.entries()].map(async ([table, ids]) => {
+      const column = columns[table];
+      if (!column || ids.size === 0) return;
+      const { data } = await supabase
+        .from(table as "assets")
+        .select(`id, ${column}`)
+        .eq("family_id", familyId)
+        .in("id", [...ids]);
+      for (const row of (data ?? []) as unknown as Record<string, string>[]) {
+        names.set(`${table}:${row.id}`, row[column] ?? "Untitled");
+      }
+    }),
+  );
+  return names;
+}
+
+export async function summariseSources(familyId: string, rows: LedgerEntry[]): Promise<CashFlowSource[]> {
+  const wanted = new Map<string, Set<string>>();
+  for (const t of rows) {
+    if (!t.source_table || !t.source_id) continue;
+    if (!wanted.has(t.source_table)) wanted.set(t.source_table, new Set());
+    wanted.get(t.source_table)!.add(t.source_id);
+  }
+  const names = await nameSources(familyId, wanted);
+
+  const buckets = new Map<string, CashFlowSource>();
+  for (const t of rows) {
+    // A transaction with no source is money somebody entered by hand. That
+    // is a real category, not a gap, and lumping it in with the rest would
+    // make the breakdown add up to less than the total.
+    const key = t.source_table && t.source_id ? `${t.source_table}:${t.source_id}` : "direct";
+    const existing =
+      buckets.get(key) ??
+      {
+        kind: (t.source_table ?? "direct") as CashFlowSource["kind"],
+        label: t.source_table ? (SOURCE_LABEL[t.source_table] ?? "Other") : "Entered directly",
+        name: t.source_table && t.source_id ? (names.get(key) ?? "No longer here") : "Entered directly",
+        income: 0,
+        expense: 0,
+      };
+    if (t.direction === "in") existing.income += Number(t.amount);
+    else existing.expense += Number(t.amount);
+    buckets.set(key, existing);
+  }
+
+  return [...buckets.values()]
+    .filter((b) => b.income > 0 || b.expense > 0)
+    .sort((a, b) => b.income + b.expense - (a.income + a.expense));
+}
+
+/** Just enough of the assets and goals to fill a picker. The full loaders
+ * bring owners and balances that a dropdown has no use for. */
+export async function getAttributableTargets(familyId: string): Promise<{ assets: { id: string; name: string }[]; goals: { id: string; name: string }[] }> {
+  const supabase = await createClient();
+  const [{ data: assets }, { data: goals }] = await Promise.all([
+    supabase.from("assets").select("id, name").eq("family_id", familyId).order("name"),
+    supabase.from("goals").select("id, title").eq("family_id", familyId).order("title"),
+  ]);
+  // A goal's name lives in `title`. The picker wants one shape, so the
+  // difference is flattened here rather than in the component.
+  return { assets: assets ?? [], goals: (goals ?? []).map((g) => ({ id: g.id, name: g.title })) };
 }
