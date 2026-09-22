@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { after } from "next/server";
 import { getCurrentMember } from "@/lib/session";
 import { isGrownUp } from "@/lib/roles";
+import { memberColourVar } from "@/lib/member-colours";
 import { RewardsShelf } from "@/components/rewards-shelf";
 import {
   getWeekAgenda,
@@ -911,11 +912,18 @@ function concerns(memberIds: string[], appliesToAll: boolean, who: string): bool
  * other event and trip is one merged, date-ordered list beneath it. */
 async function EventsPane({ familyId, memberId, currency, who }: { familyId: string; memberId: string; currency: string; who: string }) {
   const fmtDate = await familyDate();
-  const [allEvents, accounts] = await Promise.all([getEvents(familyId), getAccounts(familyId)]);
+  const [allEvents, accounts, members] = await Promise.all([getEvents(familyId), getAccounts(familyId), getMembers(familyId)]);
   // One query now: travel is a kind of event, not a second table. Which of
   // them gets the richer hero card is decided by the kind, not by where the
   // row came from.
   const visible = allEvents.filter((e) => concerns(e.memberIds, e.applies_to_whole_family, who));
+  // Whose calendar entry is this? One member gets their colour; a whole-family
+  // event or one naming several people gets none, because a stripe that means
+  // "some of you" means nothing. The name is always on the row beside it, so
+  // the colour is a second way of reading it rather than the only way.
+  const colourOf = new Map(members.map((m) => [m.id, memberColourVar(m.id, m.color)]));
+  const stripeFor = (e: { memberIds: string[]; applies_to_whole_family: boolean }): string | null =>
+    e.applies_to_whole_family || e.memberIds.length !== 1 ? null : (colourOf.get(e.memberIds[0]) ?? null);
   const events = visible.filter((e) => e.kind !== "travel");
   const trips = visible.filter((e) => e.kind === "travel");
   const pickable = accounts
@@ -1000,7 +1008,18 @@ async function EventsPane({ familyId, memberId, currency, who }: { familyId: str
             href={`/planner/add?type=event&id=${row.event.id}`}
             style={{ display: "flex", gap: 12, padding: "13px 0", borderBottom: "1px solid color-mix(in srgb, var(--color-text) 10%, transparent)", textDecoration: "none", color: "inherit" }}
           >
-            <Blueprint style={{ width: 50, height: 50, flex: "none", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center" }}>
+            <Blueprint
+              style={{
+                width: 50,
+                height: 50,
+                flex: "none",
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "center",
+                justifyContent: "center",
+                borderLeft: stripeFor(row.event) ? `3px solid ${stripeFor(row.event)}` : undefined,
+              }}
+            >
               <span style={{ font: "600 18px/1 var(--font-heading)" }}>{new Date(row.event.event_date).getDate()}</span>
               <span style={{ fontSize: 8.5, letterSpacing: ".02em", color: "var(--color-neutral-600)" }}>
                 {new Date(row.event.event_date).toLocaleDateString("en-GB", { month: "short" }).toUpperCase()}

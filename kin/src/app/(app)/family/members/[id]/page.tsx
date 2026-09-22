@@ -10,6 +10,8 @@ import { Segmented } from "@/components/segmented";
 import { Blueprint, Tag } from "@/components/ui";
 import { Icon } from "@/components/icons";
 import { formatAge, initials } from "@/lib/format";
+import { MemberColourPicker } from "@/components/member-colour-picker";
+import { isGrownUp } from "@/lib/roles";
 import { OmronToggle } from "./omron-toggle";
 import { ConditionEntryControls, ConditionDeleteButton, LabControls } from "@/components/health-entry-controls";
 import { RelationshipEditor } from "@/components/relationship-editor";
@@ -150,9 +152,18 @@ export default async function MemberDetailPage({
                 dateFormat={dateFormat}
                 memberId={member.id}
                 isSelf={false}
-                canEdit={me.is_organiser || ((me.role === "parent" || me.role === "adult") && member.status === "managed")}
+                canEdit={me.is_organiser || (isGrownUp(me.role) && member.status === "managed")}
                 initial={memberToProfileFields(member)}
               />
+
+              {/* Your colour is yours. The one exception is a managed
+                  profile, which has nobody to choose for itself -- the same
+                  rule the rest of this screen already follows. */}
+              {(member.id === me.id || (isGrownUp(me.role) && member.status === "managed")) && (
+                <div style={{ marginTop: 18 }}>
+                  <MemberColourPicker memberId={member.id} chosen={member.color} />
+                </div>
+              )}
             </>
           )
         ) : (

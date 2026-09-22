@@ -96,6 +96,19 @@
   --cal-home: #2f9e44;
   --cal-goal: #6c6c70;
 
+  /* Per-member colours. Six, capped for the same reason the wealth
+     categories cap at seven -- past that they stop being tellable apart at
+     a glance, and two people end up in near-identical blue. Distinct from
+     the --cal-* set because a member colour appears beside a category
+     colour rather than instead of it. A name is always rendered next to
+     the swatch, so this never carries meaning alone. */
+  --member-coral: #e03131;
+  --member-amber: #f08c00;
+  --member-teal: #0c8599;
+  --member-indigo: #4263eb;
+  --member-violet: #9c36b5;
+  --member-moss: #5c940d;
+
   /* Wealth expense categories. Seven hues, checked with the same
      colourblind-safety method as --cal-* above (worst adjacent pair 9.1 ΔE
      protan/deutan, 19.6 ΔE normal vision) -- every category label is shown
@@ -156,6 +169,13 @@
   --cal-home: #51cf66;
   --cal-goal: #aeaeb2;
 
+  --member-coral: #ff8787;
+  --member-amber: #ffc078;
+  --member-teal: #3bc9db;
+  --member-indigo: #91a7ff;
+  --member-violet: #da77f2;
+  --member-moss: #a9e34b;
+
   /* Same seven hues, stepped for the dark surface -- worst adjacent pair
      8.4 ΔE protan/deutan, 19.3 ΔE normal vision, ≥3:1 against #1c1c1e. */
   --wealth-groceries: #d95926;
@@ -207,6 +227,13 @@
   --cal-money: #ff922b;
   --cal-home: #51cf66;
   --cal-goal: #aeaeb2;
+
+  --member-coral: #ff8787;
+  --member-amber: #ffc078;
+  --member-teal: #3bc9db;
+  --member-indigo: #91a7ff;
+  --member-violet: #da77f2;
+  --member-moss: #a9e34b;
 
     --wealth-groceries: #d95926;
     --wealth-utilities: #199e70;
