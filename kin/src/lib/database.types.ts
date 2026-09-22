@@ -2374,6 +2374,39 @@ export type Database = {
           },
         ]
       }
+      family_links: {
+        Row: {
+          addressee_family_id: string
+          decided_at: string | null
+          decided_by: string | null
+          id: string
+          requested_at: string
+          requested_by: string | null
+          requester_family_id: string
+          status: string
+        }
+        Insert: {
+          addressee_family_id: string
+          decided_at?: string | null
+          decided_by?: string | null
+          id?: string
+          requested_at?: string
+          requested_by?: string | null
+          requester_family_id: string
+          status?: string
+        }
+        Update: {
+          addressee_family_id?: string
+          decided_at?: string | null
+          decided_by?: string | null
+          id?: string
+          requested_at?: string
+          requested_by?: string | null
+          requester_family_id?: string
+          status?: string
+        }
+        Relationships: []
+      }
       journal_entries: {
         Row: {
           created_at: string
@@ -2382,6 +2415,7 @@ export type Database = {
           family_id: string
           id: string
           note: string | null
+          shared_at: string | null
           source: string
           source_activity_id: string | null
           title: string
@@ -2393,6 +2427,7 @@ export type Database = {
           family_id: string
           id?: string
           note?: string | null
+          shared_at?: string | null
           source?: string
           source_activity_id?: string | null
           title: string
@@ -2404,6 +2439,7 @@ export type Database = {
           family_id?: string
           id?: string
           note?: string | null
+          shared_at?: string | null
           source?: string
           source_activity_id?: string | null
           title?: string
@@ -3820,6 +3856,18 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      request_family_link: {
+        Args: { code: string }
+        Returns: string
+      }
+      respond_family_link: {
+        Args: { link_id: string; accept: boolean }
+        Returns: undefined
+      }
+      revoke_family_link: {
+        Args: { link_id: string }
+        Returns: undefined
+      }
       activate_household_subscription: {
         Args: {
           p_customer_id: string

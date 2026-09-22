@@ -12,14 +12,18 @@ import { GalleryGrid } from "@/components/gallery-grid";
 import { JournalEntryPhotos } from "@/components/journal-entry-photos";
 import { MilestoneControls } from "@/components/milestone-controls";
 import { familyDate } from "@/lib/format-family";
+import { FamilyFeed } from "@/components/family-feed";
+import { EntryShareToggle } from "@/components/entry-share-toggle";
+import { getFamilyFeed, getFamilyLinks } from "@/lib/queries/family-links";
+import { isGrownUp } from "@/lib/roles";
 
 /* Gallery, Entries and Milestones were three hub segments; now they are one
    -- Entries -- with these three as views inside it. A person reading a day
    back wants the write-up, the photos and the milestone in one place rather
    than three tabs that all say "Journal" and show nothing of each other. */
-const VIEWS = ["list", "gallery", "milestones"] as const;
+const VIEWS = ["list", "gallery", "milestones", "feed"] as const;
 type View = (typeof VIEWS)[number];
-const VIEW_LABELS: Record<View, string> = { list: "List", gallery: "Gallery", milestones: "Milestones" };
+const VIEW_LABELS: Record<View, string> = { list: "List", gallery: "Gallery", milestones: "Milestones", feed: "Family Feed" };
 
 export default async function JournalPage({
   searchParams,
@@ -52,6 +56,9 @@ export default async function JournalPage({
         {view === "gallery" && <GalleryPane familyId={me.family_id} />}
         {view === "list" && <EntriesPane familyId={me.family_id} />}
         {view === "milestones" && <MilestonesPane familyId={me.family_id} />}
+        {view === "feed" && (
+          <FeedPane familyId={me.family_id} inviteCode={me.families.invite_code} canManage={isGrownUp(me.role)} />
+        )}
       </div>
     </div>
   );
@@ -92,9 +99,18 @@ async function GalleryPane({ familyId }: { familyId: string }) {
   );
 }
 
+/** Everyone's shared memories, in date order, regardless of whose household
+ * wrote them. Row-level security decides what is in here; this pane does not
+ * filter by family at all, on purpose -- see getFamilyFeed. */
+async function FeedPane({ familyId, inviteCode, canManage }: { familyId: string; inviteCode: string; canManage: boolean }) {
+  const [entries, links] = await Promise.all([getFamilyFeed(familyId), getFamilyLinks(familyId)]);
+  return <FamilyFeed entries={entries} links={links} ourCode={inviteCode} canManage={canManage} />;
+}
+
 async function EntriesPane({ familyId }: { familyId: string }) {
   const fmtDate = await familyDate();
-  const entries = await getEntries(familyId);
+  const [entries, links] = await Promise.all([getEntries(familyId), getFamilyLinks(familyId)]);
+  const linkedCount = links.filter((l) => l.status === "accepted").length;
 
   // Entries shows Drive-backed photos exactly as the Gallery does, and said
   // nothing when they stopped loading. #59 added the explanation to the
@@ -130,9 +146,12 @@ async function EntriesPane({ familyId }: { familyId: string }) {
           {e.note && <p style={{ fontSize: 14, margin: "0 0 9px", color: "var(--color-neutral-800)" }}>{e.note}</p>}
           <div style={{ display: "flex", alignItems: "baseline", gap: 8 }}>
             <div style={{ fontSize: 13, color: "var(--color-neutral-600)" }}>{e.people.map((p) => p.full_name.split(" ")[0]).join(" · ") || "Whole family"}</div>
-            <Link href={`/journal/${e.id}/edit`} style={{ marginLeft: "auto", fontSize: 13, fontWeight: 600, color: "var(--color-accent-700)" }}>
-              EDIT
-            </Link>
+            <span style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: 10 }}>
+              <EntryShareToggle entryId={e.id} shared={Boolean(e.shared_at)} linkedCount={linkedCount} />
+              <Link href={`/journal/${e.id}/edit`} style={{ fontSize: 13, fontWeight: 600, color: "var(--color-accent-700)" }}>
+                EDIT
+              </Link>
+            </span>
           </div>
         </Blueprint>
       ))}
