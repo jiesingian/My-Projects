@@ -3,6 +3,10 @@ import { redirect } from "next/navigation";
 import { getCurrentMember } from "@/lib/session";
 import { getMembers, getHealthSummary, getDocFolders, getFamilyProfile, getFamilyTree, getEmergencyContacts } from "@/lib/queries/family";
 import { EmergencyContactList } from "@/components/emergency-contact-list";
+import { DocumentsLock } from "@/components/documents-lock";
+import { DocumentsLockSettings } from "@/components/documents-lock-settings";
+import { getLockState } from "@/lib/security/gate";
+import { getEnrolledDevices } from "@/lib/queries/security";
 import { HubHeader } from "@/components/hub-header";
 import { ChipRow } from "@/components/segmented";
 import { Blueprint, Tag, Empty } from "@/components/ui";
@@ -46,7 +50,7 @@ export default async function FamilyPage({
       <div style={{ padding: "0 22px 22px" }}>
         {seg === "profile" && <ProfilePane familyId={me.family_id} isOrganiser={me.is_organiser} myId={me.id} myRole={me.role} />}
         {seg === "health" && <HealthPane familyId={me.family_id} />}
-        {seg === "documents" && <DocumentsPane familyId={me.family_id} who={who} />}
+        {seg === "documents" && <DocumentsPane familyId={me.family_id} who={who} meId={me.id} />}
         {seg === "tree" && <TreePane familyId={me.family_id} myId={me.id} center={center} />}
         {seg === "quicklinks" && <QuicklinksPane familyId={me.family_id} />}
       </div>
@@ -182,9 +186,18 @@ function Fact({ k, v }: { k: string; v: string | null }) {
   );
 }
 
-async function DocumentsPane({ familyId, who }: { familyId: string; who: string }) {
+/** The folder list is fetched and rendered only once the lock is open.
+ * Rendering it and hiding it with CSS would put every document name in the
+ * page source of a screen that is supposed to be locked, which is the
+ * difference between a lock and a curtain. */
+async function DocumentsPane({ familyId, who, meId }: { familyId: string; who: string; meId: string }) {
+  const lock = await getLockState(meId);
+  if (!lock.unlocked) {
+    return <DocumentsLock hasPin={lock.hasPin} hasBiometric={lock.credentialCount > 0} />;
+  }
+
   const members = (await getMembers(familyId)).filter((m) => m.status !== "pending" && m.status !== "removed");
-  const folders = await getDocFolders(familyId);
+  const [folders, devices] = await Promise.all([getDocFolders(familyId), getEnrolledDevices(meId)]);
   const filtered =
     who === "all"
       ? folders
@@ -241,6 +254,7 @@ async function DocumentsPane({ familyId, who }: { familyId: string; who: string 
       >
         + NEW ENTRY
       </Link>
+      <DocumentsLockSettings hasPin={lock.hasPin} devices={devices} unlocked={lock.unlocked} />
     </>
   );
 }

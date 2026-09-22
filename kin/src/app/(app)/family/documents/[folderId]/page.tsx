@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { getCurrentMember } from "@/lib/session";
+import { getLockState } from "@/lib/security/gate";
 import { createClient } from "@/lib/supabase/server";
 import { DetailHeader } from "@/components/hub-header";
 import { Tag } from "@/components/ui";
@@ -19,6 +20,13 @@ export default async function DocFolderPage({
   const me = await getCurrentMember();
   if (!me) redirect("/onboarding/profile");
   const { folderId } = await params;
+
+  // Every way in has to meet the same door. Gating only the Documents tab
+  // would leave a bookmarked folder URL opening the papers directly, which
+  // is not a lock with a gap in it -- it is no lock.
+  const lock = await getLockState(me.id);
+  if (!lock.unlocked) redirect("/family?seg=documents");
+
 
   const supabase = await createClient();
   const [{ data: folder }, { data: entries }] = await Promise.all([
