@@ -3145,6 +3145,116 @@ export type Database = {
           },
         ]
       }
+      reward_redemptions: {
+        Row: {
+          cost_points: number
+          created_at: string
+          decided_at: string | null
+          decided_by: string | null
+          family_id: string
+          id: string
+          member_id: string
+          reward_id: string
+          status: string
+        }
+        Insert: {
+          cost_points: number
+          created_at?: string
+          decided_at?: string | null
+          decided_by?: string | null
+          family_id: string
+          id?: string
+          member_id: string
+          reward_id: string
+          status?: string
+        }
+        Update: {
+          cost_points?: number
+          created_at?: string
+          decided_at?: string | null
+          decided_by?: string | null
+          family_id?: string
+          id?: string
+          member_id?: string
+          reward_id?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reward_redemptions_decided_by_fkey"
+            columns: ["decided_by"]
+            isOneToOne: false
+            referencedRelation: "members"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reward_redemptions_family_id_fkey"
+            columns: ["family_id"]
+            isOneToOne: false
+            referencedRelation: "families"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reward_redemptions_member_id_fkey"
+            columns: ["member_id"]
+            isOneToOne: false
+            referencedRelation: "members"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reward_redemptions_reward_id_fkey"
+            columns: ["reward_id"]
+            isOneToOne: false
+            referencedRelation: "rewards"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      rewards: {
+        Row: {
+          active: boolean
+          cost_points: number
+          created_at: string
+          created_by: string | null
+          family_id: string
+          id: string
+          title: string
+        }
+        Insert: {
+          active?: boolean
+          cost_points: number
+          created_at?: string
+          created_by?: string | null
+          family_id: string
+          id?: string
+          title: string
+        }
+        Update: {
+          active?: boolean
+          cost_points?: number
+          created_at?: string
+          created_by?: string | null
+          family_id?: string
+          id?: string
+          title?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rewards_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "members"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rewards_family_id_fkey"
+            columns: ["family_id"]
+            isOneToOne: false
+            referencedRelation: "families"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       routine_attachments: {
         Row: {
           created_at: string

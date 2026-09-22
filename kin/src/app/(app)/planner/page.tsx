@@ -2,6 +2,8 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { after } from "next/server";
 import { getCurrentMember } from "@/lib/session";
+import { isGrownUp } from "@/lib/roles";
+import { RewardsShelf } from "@/components/rewards-shelf";
 import {
   getWeekAgenda,
   getMonthsOverview,
@@ -28,7 +30,7 @@ import { dayColumn, startOfWeek, weekdayInitials, weekStartOf, type WeekStart } 
 import { LogSpendControl } from "@/components/money-actions";
 import { CalendarJump, CalendarPeriod, DateRail, MonthScroller, TodayButton } from "@/components/calendar-nav";
 import { AddToCalendar } from "@/components/add-to-calendar";
-import { getRoutines, getMemberScores, type MemberScore } from "@/lib/queries/routines";
+import { getRoutines, getMemberScores, getRewards, type MemberScore } from "@/lib/queries/routines";
 import { describeRule, formatTimeOfDay, ROUTINE_KIND_META, type RoutineKind } from "@/lib/routines";
 import { RoutineTick, RoutineOccurrences, RoutinePauseButton, RoutineDeleteButton } from "@/components/routine-controls";
 import { CalendarSyncStatus, RememberFilter } from "@/components/calendar-sync-status";
@@ -677,10 +679,12 @@ async function RoutinesPane({ familyId, who, currency, justSaved }: { familyId: 
   const memberId = who === "all" ? undefined : who;
   // Both kinds of task: the recurring ones, and the one-offs that used to be
   // called activities and could be read back nowhere but the calendar.
-  const [routines, allOneOffs, scores] = await Promise.all([
+  const [routines, allOneOffs, scores, rewards, me] = await Promise.all([
     getRoutines(familyId, memberId),
     getOneOffTasks(familyId, `${familyDay()}T00:00:00.000Z`),
     getMemberScores(familyId),
+    getRewards(familyId),
+    getCurrentMember(),
   ]);
   const oneOffs = allOneOffs.filter((t) => concerns(t.memberIds, t.applies_to_whole_family, who));
   const dueToday = routines.filter((r) => !r.paused && r.today);
@@ -709,6 +713,12 @@ async function RoutinesPane({ familyId, who, currency, justSaved }: { familyId: 
       <MemberChips familyId={familyId} seg="routines" who={who} />
 
       <Scoreboard scores={scores} />
+
+      <RewardsShelf
+        rewards={rewards}
+        me={scores.find((s) => s.id === me?.id)}
+        canManage={isGrownUp(me?.role ?? "")}
+      />
 
       <OneOffTasks tasks={oneOffs} />
 
