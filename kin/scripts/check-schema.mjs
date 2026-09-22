@@ -141,11 +141,30 @@ function whatThisBranchWouldCreate() {
     let sql;
     try { sql = fs.readFileSync(full, "utf8"); } catch { continue; }
     const bare = sql.split("\n").filter((l) => !l.trim().startsWith("--")).join("\n");
-    for (const m of bare.matchAll(/create\s+table\s+(?:if\s+not\s+exists\s+)?(?:public\.)?"?(\w+)"?/gi)) {
-      tables.add(m[1]);
-    }
-    for (const m of bare.matchAll(/alter\s+table\s+(?:only\s+)?(?:public\.)?"?(\w+)"?[\s\S]*?add\s+column\s+(?:if\s+not\s+exists\s+)?"?(\w+)"?/gi)) {
-      columns.add(`${m[1]}.${m[2]}`);
+
+    // One statement at a time, because `[\s\S]*?` does not stop at a
+    // semicolon and a migration is not one statement.
+    //
+    // Read across the whole file, the gap between "alter table X" and the
+    // next "add column" is free to swallow entire statements in between. A
+    // file that adds a column, then drops and re-adds a constraint, then
+    // adds another column -- an ordinary shape -- paired the SECOND column
+    // with the table named by the constraint statement:
+    //
+    //     alter table routines    add column points   -> routines.points     ok
+    //     alter table routines    drop constraint ...
+    //     alter table routine_log add column approval -> routines.approval   wrong
+    //
+    // So `routine_log.approval` was never exempt, the pull request adding it
+    // went red for a column it was itself adding, and the message pointed at
+    // a migration that had not been run -- which was true of every database
+    // and the whole reason for the exemption.
+    for (const statement of bare.split(";")) {
+      for (const m of statement.matchAll(/create\s+table\s+(?:if\s+not\s+exists\s+)?(?:public\.)?"?(\w+)"?/gi)) {
+        tables.add(m[1]);
+      }
+      const added = /alter\s+table\s+(?:only\s+)?(?:public\.)?"?(\w+)"?[\s\S]*?add\s+column\s+(?:if\s+not\s+exists\s+)?"?(\w+)"?/i.exec(statement);
+      if (added) columns.add(`${added[1]}.${added[2]}`);
     }
   }
   return { files, tables, columns };
