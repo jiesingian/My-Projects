@@ -270,44 +270,75 @@ If a change cannot be verified without touching real data, say so and leave it
 unverified rather than touching it. An unverified fix is a known unknown; a
 corrupted record is somebody's actual life.
 
-## What a session costs
+## What a session costs, and what it costs it in
 
-Measured on 14 September from this repository's own session transcript: 6,132
-assistant turns, a mean of 421,534 tokens of context carried per turn, and 2.55
-billion tokens of cache reads. Weighted at Opus rates, **79% of the bill was
-spent re-reading one conversation** — against 13% writing the cache and 8% on
-output.
+**Nobody here is billed per token.** Both accounts are on a Claude plan with a
+usage limit, so a long session does not produce an invoice — it produces a
+session that stops. The thing being spent is the ability to keep working, and it
+runs out mid-task, on whatever you happened to be doing when it did. Everything
+below is about that, and the earlier version of this section — which talked
+about "the bill" and weighted everything at Opus API rates — was measuring the
+right thing in the wrong unit.
 
-Nothing was misconfigured. Of 2.58 billion input tokens, 12,216 missed the
-cache, a hit rate of 99.9995%. Tool output was not it either: all 3,000 tool
-results together came to about a million tokens — 0.04% of the total — and only
-seventeen were over 20,000 characters.
+Measured twice, from this repository's own session transcripts:
+
+| | 14 September | 22 September |
+|---|---|---|
+| Assistant turns | 6,132 | 4,553 |
+| Mean context per turn | 421,534 | 422,552 |
+| Peak context | 783,766 | 783,040 |
+| Cache reads | 2.55 billion | 1.91 billion |
+| Output tokens | — | 3.2 million |
+
+The second session produced 3.2 million tokens of actual output while reading
+1.91 billion. **Roughly three quarters of everything a long session consumes is
+re-reading itself.**
+
+Nothing is misconfigured, and this is not a cache problem. On the 14th, of 2.58
+billion input tokens, 12,216 missed the cache — a hit rate of 99.9995%. Tool
+output is not it either: all 3,000 tool results together came to about a million
+tokens, 0.04% of the total, and only seventeen were over 20,000 characters.
 
 The cost is arithmetic. Every turn re-reads the whole conversation before it can
-add to it, so the bill is **turns × the context at that turn**, and context only
-grows. Cost therefore rises with roughly the *square* of session length.
+add to it, so consumption is **turns × the context at that turn**, and context
+only grows. It therefore rises with roughly the *square* of session length.
 
     6,132 turns x 421,534 mean context = 2,584,845,288
     measured cache reads               = 2,550,881,257
 
+Two sessions a week apart landed within 1,000 tokens of the same mean and within
+800 of the same peak. This is not a quirk of one conversation; it is what a
+working session in this repository looks like.
+
 So:
 
-- **One session per job, not per day.** That session covered auto-merge, the
-  migration pipeline, journal images, the Drive banner, self-healing and the
-  daily check — six unrelated jobs sharing a context that reached 783,766
-  tokens, where every turn of the sixth paid to re-read the first. End a session
-  when its job is done. Nothing else on this list is worth as much.
-- **Spend turns deliberately.** A turn is billed the full context as it stands,
-  so a one-line command late in a long session costs as much to issue as a hard
-  one. Independent calls go in one block; waiting goes in a background monitor,
-  never a poll loop.
+- **One session per job, not per day.** The September session covered auto-merge,
+  the migration pipeline, journal images, the Drive banner, self-healing and the
+  daily check — six unrelated jobs sharing a context that reached 783,766 tokens,
+  where every turn of the sixth paid to re-read the first. End a session when its
+  job is done, at a point where nothing is half-finished: merged, verified, and
+  nothing waiting on a check. Nothing else on this list is worth as much.
+- **Spend turns deliberately.** A turn costs the full context as it stands, so a
+  one-line `git status` late in a long session draws down as much as the hardest
+  question in it. Independent calls go in one block; waiting goes in a background
+  monitor, never a poll loop.
+- **Read the constraints before writing against them.** On 22 September a
+  row-level-security probe was written without first checking `members_role_check`
+  and the `routines` columns, and had to be sent four times — each one a large
+  payload at 422,000 tokens of context — because the fixture kept failing on
+  schema that one cheap query would have shown. One of those failures was worth
+  it, and found a real bug. The others were the same information arriving later
+  and more expensively.
 - **Do not re-verify what is already settled.** Re-reading a file after editing
   it, re-checking a state already established, re-deriving a conclusion already
   reached. The harness reports a failed edit, so a successful one needs no
-  confirming read. This never looks like waste in the moment; it looks like
-  being careful.
-- **Match the model to the work.** Diagnosis earns Opus — the three auto-merge
-  bugs on the 14th each hid behind the one in front of it. Running the suite,
+  confirming read. This never looks like waste in the moment; it looks like being
+  careful.
+- **Match the model to the work — and know what "always Opus" costs.** Jonathan
+  has asked for Opus on this project, and that stands; it is his allowance and his
+  call, and the hardest bugs here have genuinely needed it. It is worth knowing
+  what it buys and what it spends: diagnosis earns it — the three auto-merge bugs
+  on the 14th each hid behind the one in front of it — while running the suite,
   reading a log and checking whether something merged do not. Fast mode is Opus
   with faster output rather than a cheaper model, so it saves nothing here.
 
