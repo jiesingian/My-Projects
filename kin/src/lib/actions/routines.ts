@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { requireCurrentMember } from "@/lib/session";
+import { isChild, isGrownUp } from "@/lib/roles";
 import { createClient } from "@/lib/supabase/server";
 import type { ActionState } from "@/lib/actions/auth";
 import { syncRowToCalendars, removeRowFromCalendars } from "@/lib/actions/calendar-sync";
@@ -388,7 +389,11 @@ export async function logRoutineAction(input: {
   // asked about, which is what `not_required` says and why it is not called
   // "approved". An adult ticking on a child's behalf is still the child's
   // chore, but it needs no second adult to confirm it.
-  const needsApproval = loggedForRole === "child" && me.role === "child";
+  //
+  // Both sides go through isChild() because the roles are 'child_managed'
+  // and 'child_self' -- this line asked for 'child' when it shipped, which
+  // nobody is, so nothing ever waited for anybody.
+  const needsApproval = isChild(loggedForRole) && isChild(me.role);
   const approval = input.status === "done" && needsApproval ? "pending" : "not_required";
 
   const amount = input.status === "done" ? (input.amount ?? (routine.expected_cost ? Number(routine.expected_cost) : null)) : null;
@@ -457,7 +462,7 @@ export async function clearRoutineLogAction(routineId: string, date: string): Pr
  * than taken from the request. */
 async function decideRoutineLog(routineId: string, date: string, approval: "approved" | "rejected"): Promise<ActionState> {
   const me = await requireCurrentMember();
-  if (me.role !== "parent" && me.role !== "adult") {
+  if (!isGrownUp(me.role)) {
     return { error: "Only a parent or another adult can answer for a chore." };
   }
   const supabase = await createClient();

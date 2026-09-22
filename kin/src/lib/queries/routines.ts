@@ -208,7 +208,18 @@ export async function getRoutineAttachments(routineId: string): Promise<RoutineA
   return (data ?? []).map((r) => ({ id: r.id, fileName: r.file_name, mimeType: r.mime_type, sizeBytes: r.size_bytes, storagePath: r.storage_path }));
 }
 
-export type MemberScore = { id: string; name: string; points: number; done: number; awaiting: number };
+export type MemberScore = {
+  id: string;
+  name: string;
+  /** Earned, ever. */
+  points: number;
+  done: number;
+  awaiting: number;
+  /** Committed to rewards -- granted, plus asked-for-and-not-yet-answered. */
+  spent: number;
+  /** What is actually left to spend. */
+  spendable: number;
+};
 
 /** What each member has earned, and what is still waiting on a grown-up.
  *
@@ -249,11 +260,31 @@ export async function getMemberScores(familyId: string): Promise<MemberScore[]> 
     byMember.set(l.member_id, tally);
   }
 
-  return (members ?? []).map((m) => ({
-    id: m.id,
-    name: m.full_name,
-    ...(byMember.get(m.id) ?? { points: 0, done: 0, awaiting: 0 }),
-  }));
+  // A pending redemption holds its points. Counting only granted ones would
+  // let a child ask for five things with the points for one, and every
+  // request would look affordable right up until the grown-up answered.
+  const { data: spends } = await supabase
+    .from("reward_redemptions")
+    .select("member_id, cost_points, status")
+    .eq("family_id", familyId)
+    .in("status", ["pending", "granted"]);
+
+  const spentBy = new Map<string, number>();
+  for (const r of spends ?? []) {
+    spentBy.set(r.member_id, (spentBy.get(r.member_id) ?? 0) + r.cost_points);
+  }
+
+  return (members ?? []).map((m) => {
+    const tally = byMember.get(m.id) ?? { points: 0, done: 0, awaiting: 0 };
+    const spent = spentBy.get(m.id) ?? 0;
+    return {
+      id: m.id,
+      name: m.full_name,
+      ...tally,
+      spent,
+      spendable: Math.max(0, tally.points - spent),
+    };
+  });
 }
 
 export type PendingApproval = {
@@ -283,5 +314,41 @@ export async function getPendingApprovals(familyId: string): Promise<PendingAppr
     points: (l.routines as unknown as { points: number } | null)?.points ?? 0,
     who: (l.members as unknown as { full_name: string } | null)?.full_name ?? "Someone",
     note: l.note,
+  }));
+}
+
+export type RewardView = { id: string; title: string; costPoints: number };
+
+export async function getRewards(familyId: string): Promise<RewardView[]> {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("rewards")
+    .select("id, title, cost_points")
+    .eq("family_id", familyId)
+    .eq("active", true)
+    .order("cost_points", { ascending: true });
+  return (data ?? []).map((r) => ({ id: r.id, title: r.title, costPoints: r.cost_points }));
+}
+
+export type PendingRedemption = { id: string; title: string; costPoints: number; who: string; askedAt: string };
+
+/** Reward requests still waiting on a grown-up. The title comes from the
+ * reward row rather than a copy taken at the time -- a retired reward keeps
+ * its row precisely so an old request can still say what it was for. */
+export async function getPendingRedemptions(familyId: string): Promise<PendingRedemption[]> {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("reward_redemptions")
+    .select("id, cost_points, created_at, rewards(title), members!reward_redemptions_member_id_fkey(full_name)")
+    .eq("family_id", familyId)
+    .eq("status", "pending")
+    .order("created_at", { ascending: true });
+
+  return (data ?? []).map((r) => ({
+    id: r.id,
+    title: (r.rewards as unknown as { title: string } | null)?.title ?? "A reward",
+    costPoints: r.cost_points,
+    who: (r.members as unknown as { full_name: string } | null)?.full_name ?? "Someone",
+    askedAt: r.created_at,
   }));
 }
