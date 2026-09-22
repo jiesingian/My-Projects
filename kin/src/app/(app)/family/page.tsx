@@ -1,7 +1,8 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getCurrentMember } from "@/lib/session";
-import { getMembers, getHealthSummary, getDocFolders, getFamilyProfile, getFamilyTree, getEmergencyContacts } from "@/lib/queries/family";
+import { getMembers, getHealthSummary, getDocFolders, getFamilyProfile, getFamilyTree, getEmergencyContacts, getMemberLocations } from "@/lib/queries/family";
+import { LocationBoard } from "@/components/location-board";
 import { EmergencyContactList } from "@/components/emergency-contact-list";
 import { HubHeader } from "@/components/hub-header";
 import { ChipRow } from "@/components/segmented";
@@ -48,7 +49,7 @@ export default async function FamilyPage({
         {seg === "health" && <HealthPane familyId={me.family_id} />}
         {seg === "documents" && <DocumentsPane familyId={me.family_id} who={who} />}
         {seg === "tree" && <TreePane familyId={me.family_id} myId={me.id} center={center} />}
-        {seg === "quicklinks" && <QuicklinksPane familyId={me.family_id} />}
+        {seg === "quicklinks" && <QuicklinksPane familyId={me.family_id} meId={me.id} myRole={me.role} />}
       </div>
     </div>
   );
@@ -284,20 +285,29 @@ async function TreePane({ familyId, myId, center }: { familyId: string; myId: st
   );
 }
 
-/** Who to call in a hurry -- a pediatrician, poison control, a relative
- * nearby. Emergency contacts only for now: a location tracker was part of
- * the original Quicklinks request but needs its own product decision first
- * (a saved-places directory reads very differently from live location
- * sharing between members), so this segment is scoped to what has one clear
- * shape. */
-async function QuicklinksPane({ familyId }: { familyId: string }) {
-  const contacts = await getEmergencyContacts(familyId);
+/** The two things you go looking for when something has gone wrong: a
+ * number to ring, and where everybody is.
+ *
+ * The location half was held back when this segment shipped, because
+ * "location tracker" names two products with opposite ethics -- a directory
+ * of saved places, or knowing where the people in your household are. It is
+ * the second one, built the only way it is defensible: nobody appears on it
+ * until they switch themselves on, a position is only ever written by the
+ * device it belongs to, and there is one row per person rather than a trail.
+ * See the migration for why each of those is a policy and not a promise. */
+async function QuicklinksPane({ familyId, meId, myRole }: { familyId: string; meId: string; myRole: string }) {
+  const [contacts, people] = await Promise.all([getEmergencyContacts(familyId), getMemberLocations(familyId)]);
   return (
     <>
       <div style={{ font: "600 13px/1 var(--font-heading)", letterSpacing: ".02em", color: "var(--color-neutral-600)", marginBottom: 8 }}>
         EMERGENCY CONTACTS
       </div>
       <EmergencyContactList contacts={contacts} />
+
+      <div style={{ font: "600 13px/1 var(--font-heading)", letterSpacing: ".02em", color: "var(--color-neutral-600)", margin: "22px 0 8px" }}>
+        WHERE EVERYONE IS
+      </div>
+      <LocationBoard people={people} meId={meId} myRole={myRole} />
     </>
   );
 }
