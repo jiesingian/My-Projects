@@ -2827,6 +2827,94 @@ export type Database = {
           },
         ]
       }
+      member_security: {
+        Row: {
+          failed_attempts: number
+          locked_until: string | null
+          member_id: string
+          pin_hash: string | null
+          pin_salt: string | null
+          pin_set_at: string | null
+          unlock_expires_at: string | null
+          unlock_token_hash: string | null
+          updated_at: string
+        }
+        Insert: {
+          failed_attempts?: number
+          locked_until?: string | null
+          member_id: string
+          pin_hash?: string | null
+          pin_salt?: string | null
+          pin_set_at?: string | null
+          unlock_expires_at?: string | null
+          unlock_token_hash?: string | null
+          updated_at?: string
+        }
+        Update: {
+          failed_attempts?: number
+          locked_until?: string | null
+          member_id?: string
+          pin_hash?: string | null
+          pin_salt?: string | null
+          pin_set_at?: string | null
+          unlock_expires_at?: string | null
+          unlock_token_hash?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "member_security_member_id_fkey"
+            columns: ["member_id"]
+            isOneToOne: true
+            referencedRelation: "members"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      member_webauthn_credentials: {
+        Row: {
+          alg: number
+          created_at: string
+          credential_id: string
+          id: string
+          label: string | null
+          last_used_at: string | null
+          member_id: string
+          public_key: string
+          sign_count: number
+        }
+        Insert: {
+          alg: number
+          created_at?: string
+          credential_id: string
+          id?: string
+          label?: string | null
+          last_used_at?: string | null
+          member_id: string
+          public_key: string
+          sign_count?: number
+        }
+        Update: {
+          alg?: number
+          created_at?: string
+          credential_id?: string
+          id?: string
+          label?: string | null
+          last_used_at?: string | null
+          member_id?: string
+          public_key?: string
+          sign_count?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "member_webauthn_credentials_member_id_fkey"
+            columns: ["member_id"]
+            isOneToOne: false
+            referencedRelation: "members"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       members: {
         Row: {
           allergies: string | null
