@@ -28,7 +28,7 @@ import { dayColumn, startOfWeek, weekdayInitials, weekStartOf, type WeekStart } 
 import { LogSpendControl } from "@/components/money-actions";
 import { CalendarJump, CalendarPeriod, DateRail, MonthScroller, TodayButton } from "@/components/calendar-nav";
 import { AddToCalendar } from "@/components/add-to-calendar";
-import { getRoutines } from "@/lib/queries/routines";
+import { getRoutines, getMemberScores, type MemberScore } from "@/lib/queries/routines";
 import { describeRule, formatTimeOfDay, ROUTINE_KIND_META, type RoutineKind } from "@/lib/routines";
 import { RoutineTick, RoutineOccurrences, RoutinePauseButton, RoutineDeleteButton } from "@/components/routine-controls";
 import { CalendarSyncStatus, RememberFilter } from "@/components/calendar-sync-status";
@@ -590,6 +590,36 @@ async function YearView({ familyId, memberId, who, anchor, hidden, hide }: { fam
   );
 }
 
+/** What everyone has earned. Deliberately small and always present rather
+ * than a page of its own: a scoreboard nobody passes is a scoreboard nobody
+ * plays for, and one that needs opening is the same as not having one.
+ *
+ * Hidden entirely when nothing has ever been earned, so a household that
+ * does not want points never has to look at a row of zeroes. */
+function Scoreboard({ scores }: { scores: MemberScore[] }) {
+  const worth = scores.filter((s) => s.points > 0 || s.awaiting > 0);
+  if (worth.length === 0) return null;
+
+  return (
+    <div style={{ display: "flex", gap: 8, overflowX: "auto", paddingBottom: 4, marginBottom: 14 }}>
+      {worth.map((s) => (
+        <Blueprint key={s.id} style={{ padding: "9px 12px", flex: "none", minWidth: 96 }}>
+          <div style={{ fontSize: 12.5, color: "var(--color-neutral-600)" }}>{s.name.split(" ")[0]}</div>
+          <div style={{ display: "flex", alignItems: "baseline", gap: 5 }}>
+            <span style={{ font: "600 22px/1.1 var(--font-heading)", color: "var(--color-accent-700)" }}>{s.points}</span>
+            <span style={{ fontSize: 11.5, letterSpacing: ".04em", textTransform: "uppercase", color: "var(--color-neutral-600)" }}>pts</span>
+          </div>
+          {s.awaiting > 0 && (
+            <div style={{ fontSize: 11.5, color: "var(--cal-money)", marginTop: 2 }}>
+              {s.awaiting} waiting
+            </div>
+          )}
+        </Blueprint>
+      ))}
+    </div>
+  );
+}
+
 /** The one-off half of Tasks. Deliberately lighter than a recurring row:
  * there is no streak, no whose-turn and nothing to tick, because a one-off is
  * finished by happening rather than by being answered for. It is here so that
@@ -647,9 +677,10 @@ async function RoutinesPane({ familyId, who, currency, justSaved }: { familyId: 
   const memberId = who === "all" ? undefined : who;
   // Both kinds of task: the recurring ones, and the one-offs that used to be
   // called activities and could be read back nowhere but the calendar.
-  const [routines, allOneOffs] = await Promise.all([
+  const [routines, allOneOffs, scores] = await Promise.all([
     getRoutines(familyId, memberId),
     getOneOffTasks(familyId, `${familyDay()}T00:00:00.000Z`),
+    getMemberScores(familyId),
   ]);
   const oneOffs = allOneOffs.filter((t) => concerns(t.memberIds, t.applies_to_whole_family, who));
   const dueToday = routines.filter((r) => !r.paused && r.today);
@@ -676,6 +707,8 @@ async function RoutinesPane({ familyId, who, currency, justSaved }: { familyId: 
       )}
 
       <MemberChips familyId={familyId} seg="routines" who={who} />
+
+      <Scoreboard scores={scores} />
 
       <OneOffTasks tasks={oneOffs} />
 

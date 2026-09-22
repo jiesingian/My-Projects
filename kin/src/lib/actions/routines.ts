@@ -95,6 +95,7 @@ function readForm(formData: FormData) {
   const durationRaw = String(formData.get("duration_minutes") ?? "");
   const reminderRaw = String(formData.get("reminder_minutes") ?? "");
   const costRaw = String(formData.get("expected_cost") ?? "");
+  const pointsRaw = String(formData.get("points") ?? "");
 
   return {
     title,
@@ -113,6 +114,7 @@ function readForm(formData: FormData) {
     applies_to_whole_family: formData.get("whole_family") === "on",
     rotate_assignee: formData.get("rotate") === "on",
     expected_cost: costRaw ? Number(costRaw) : null,
+    points: pointsRaw === "" ? 1 : Number(pointsRaw),
     cost_account_id: String(formData.get("cost_account_id") ?? "") || null,
     expense_category: clamp(String(formData.get("expense_category") ?? ""), 50) || null,
     members: formData.getAll("members").map(String).filter(Boolean),
@@ -135,6 +137,7 @@ function validate(input: ReturnType<typeof readForm>): RoutineActionState | null
   if (input.duration_minutes !== null && !(input.duration_minutes > 0 && input.duration_minutes <= 1440))
     return no("duration_minutes", "How long it takes has to be between 1 minute and a day.");
   if (input.expected_cost !== null && !(input.expected_cost >= 0)) return no("expected_cost", "The expected cost has to be a number.");
+  if (!(input.points >= 0 && input.points <= 100)) return no("points", "Points have to be between 0 and 100.");
   if (input.expected_cost && !input.cost_account_id) return no("cost_account_id", "Choose which account the cost comes from.");
   return null;
 }
@@ -373,11 +376,20 @@ export async function logRoutineAction(input: {
   // built by hand from naming any id here. Verified rather than trusted,
   // the same way a wealth target's member is.
   let memberId = me.id;
+  let loggedForRole = me.role;
   if (input.memberId) {
-    const { data: targetMember } = await supabase.from("members").select("id").eq("id", input.memberId).eq("family_id", me.family_id).maybeSingle();
+    const { data: targetMember } = await supabase.from("members").select("id, role").eq("id", input.memberId).eq("family_id", me.family_id).maybeSingle();
     if (!targetMember) return { error: "That member isn't in your household." };
     memberId = targetMember.id;
+    loggedForRole = targetMember.role;
   }
+
+  // A child's tick waits for a grown-up; an adult's was never going to be
+  // asked about, which is what `not_required` says and why it is not called
+  // "approved". An adult ticking on a child's behalf is still the child's
+  // chore, but it needs no second adult to confirm it.
+  const needsApproval = loggedForRole === "child" && me.role === "child";
+  const approval = input.status === "done" && needsApproval ? "pending" : "not_required";
 
   const amount = input.status === "done" ? (input.amount ?? (routine.expected_cost ? Number(routine.expected_cost) : null)) : null;
 
@@ -390,6 +402,9 @@ export async function logRoutineAction(input: {
       member_id: memberId,
       amount,
       note: input.note?.trim() ? clamp(input.note.trim(), 500) : null,
+      approval,
+      approved_by: null,
+      approved_at: null,
       logged_by: me.id,
       logged_at: new Date().toISOString(),
     },
@@ -434,6 +449,43 @@ export async function clearRoutineLogAction(routineId: string, date: string): Pr
   revalidatePath("/planner");
   revalidatePath("/today");
   return { error: null };
+}
+
+/** A grown-up's word on a child's tick. Only a parent or an adult may give
+ * it -- a child approving their own chore is the one thing this whole
+ * workflow exists to prevent, and the role is read from the session rather
+ * than taken from the request. */
+async function decideRoutineLog(routineId: string, date: string, approval: "approved" | "rejected"): Promise<ActionState> {
+  const me = await requireCurrentMember();
+  if (me.role !== "parent" && me.role !== "adult") {
+    return { error: "Only a parent or another adult can answer for a chore." };
+  }
+  const supabase = await createClient();
+
+  // Scoped to rows still waiting, so a second tap cannot overwrite the first
+  // grown-up's answer, and to this household, so an id from elsewhere finds
+  // nothing to decide.
+  const { error, count } = await supabase
+    .from("routine_log")
+    .update({ approval, approved_by: me.id, approved_at: new Date().toISOString() }, { count: "exact" })
+    .eq("routine_id", routineId)
+    .eq("occurrence_date", date)
+    .eq("family_id", me.family_id)
+    .eq("approval", "pending");
+  if (error) return { error: humanDatabaseError(error.message) };
+  if (count === 0) return { error: "That one has already been answered for." };
+
+  revalidatePath("/planner");
+  revalidatePath("/today");
+  return { error: null };
+}
+
+export async function approveRoutineLogAction(routineId: string, date: string): Promise<ActionState> {
+  return decideRoutineLog(routineId, date, "approved");
+}
+
+export async function rejectRoutineLogAction(routineId: string, date: string): Promise<ActionState> {
+  return decideRoutineLog(routineId, date, "rejected");
 }
 
 /** Edits the note on an already-answered occurrence without touching its

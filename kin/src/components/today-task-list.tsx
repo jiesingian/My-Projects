@@ -96,7 +96,7 @@ function TaskRow({ task }: { task: RoutineView }) {
         padding: 13,
         marginBottom: 9,
         boxShadow:
-          today.status === "done"
+          today.status === "done" && today.approval !== "pending" && today.approval !== "rejected"
             ? "inset 3px 0 0 var(--color-switch-on)"
             : !today.status && task.overdue.length > 0
               ? "inset 3px 0 0 var(--cal-money)"
@@ -182,6 +182,9 @@ function TaskRow({ task }: { task: RoutineView }) {
         ) : (
           <div style={{ display: "flex", flexDirection: "column", gap: 7 }}>
             <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              {/* A child's "done" is a claim until a grown-up says otherwise,
+                  and saying "Done today" to them would be a small lie the
+                  first time one got turned down. */}
               <span
                 style={{
                   display: "inline-flex",
@@ -189,11 +192,25 @@ function TaskRow({ task }: { task: RoutineView }) {
                   gap: 5,
                   fontSize: 12.5,
                   fontWeight: 500,
-                  color: today.status === "done" ? "var(--color-neutral-900)" : "var(--color-neutral-700)",
+                  color:
+                    today.approval === "rejected"
+                      ? "var(--cal-occasion)"
+                      : today.status === "done" && today.approval !== "pending"
+                        ? "var(--color-neutral-900)"
+                        : "var(--color-neutral-700)",
                 }}
               >
-                <Icon name={today.status === "done" ? "check" : "x"} size={14} />
-                {today.status === "done" ? "Done today" : "Skipped today"}
+                <Icon
+                  name={today.approval === "pending" ? "clock" : today.approval === "rejected" ? "x" : today.status === "done" ? "check" : "x"}
+                  size={14}
+                />
+                {today.approval === "pending"
+                  ? "Waiting for a grown-up"
+                  : today.approval === "rejected"
+                    ? "Sent back — have another go"
+                    : today.status === "done"
+                      ? "Done today"
+                      : "Skipped today"}
               </span>
               <button type="button" className="btn btn-ghost" disabled={pending} onClick={undo} style={{ minHeight: 28, fontSize: 12, padding: "0 8px" }}>
                 Undo

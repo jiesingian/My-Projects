@@ -3,8 +3,9 @@ import { redirect } from "next/navigation";
 import { getCurrentMember } from "@/lib/session";
 import { createClient } from "@/lib/supabase/server";
 import { getHubCards, getTodayBriefing } from "@/lib/queries/today";
-import { getRoutinesNeedingAttention } from "@/lib/queries/routines";
+import { getRoutinesNeedingAttention, getPendingApprovals } from "@/lib/queries/routines";
 import { TodayTaskList } from "@/components/today-task-list";
+import { ApprovalQueue } from "@/components/approval-queue";
 import { Blueprint } from "@/components/ui";
 import { Icon } from "@/components/icons";
 import { initials } from "@/lib/format";
@@ -14,11 +15,14 @@ export default async function TodayPage() {
   if (!me) redirect("/onboarding/profile");
 
   const supabase = await createClient();
-  const [{ data: members }, hubs, brief, tasks] = await Promise.all([
+  const [{ data: members }, hubs, brief, tasks, awaitingApproval] = await Promise.all([
     supabase.from("members").select("id, full_name").eq("family_id", me.family_id).order("created_at"),
     getHubCards(me.family_id, me.families.currency, me.families.week_start),
     getTodayBriefing(me.family_id, me.families.currency),
     getRoutinesNeedingAttention(me.family_id),
+    // Only a grown-up is ever asked to answer for a chore, so only a
+    // grown-up pays for the query.
+    me.role === "parent" || me.role === "adult" ? getPendingApprovals(me.family_id) : Promise.resolve([]),
   ]);
 
   const todayLabel = new Date().toLocaleDateString("en-GB", {
@@ -100,6 +104,8 @@ export default async function TodayPage() {
           </div>
         )}
       </section>
+
+      <ApprovalQueue pending={awaitingApproval} />
 
       <TodayTaskList tasks={tasks} />
 
