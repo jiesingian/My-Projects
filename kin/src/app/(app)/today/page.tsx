@@ -10,13 +10,15 @@ import { Blueprint } from "@/components/ui";
 import { Icon } from "@/components/icons";
 import { initials } from "@/lib/format";
 import { isGrownUp } from "@/lib/roles";
+import { FamilyPanel } from "@/components/family-panel";
+import { getFamilyPanel } from "@/lib/queries/family-panel";
 
 export default async function TodayPage() {
   const me = await getCurrentMember();
   if (!me) redirect("/onboarding/profile");
 
   const supabase = await createClient();
-  const [{ data: members }, hubs, brief, tasks, awaitingApproval, awaitingRedemption] = await Promise.all([
+  const [{ data: members }, hubs, brief, tasks, awaitingApproval, awaitingRedemption, familyPanel] = await Promise.all([
     supabase.from("members").select("id, full_name").eq("family_id", me.family_id).order("created_at"),
     getHubCards(me.family_id, me.families.currency, me.families.week_start),
     getTodayBriefing(me.family_id, me.families.currency),
@@ -25,6 +27,7 @@ export default async function TodayPage() {
     // grown-up pays for the query.
     isGrownUp(me.role) ? getPendingApprovals(me.family_id) : Promise.resolve([]),
     isGrownUp(me.role) ? getPendingRedemptions(me.family_id) : Promise.resolve([]),
+    getFamilyPanel(me.family_id),
   ]);
 
   const todayLabel = new Date().toLocaleDateString("en-GB", {
@@ -137,6 +140,8 @@ export default async function TodayPage() {
           </Link>
         ))}
       </div>
+
+      <FamilyPanel data={familyPanel} />
     </div>
   );
 }
