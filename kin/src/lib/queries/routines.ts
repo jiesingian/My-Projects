@@ -22,7 +22,7 @@ export type RoutineView = {
   next: Date | null;
   /** Today's occurrence, when there is one, with whose turn it is and
    * whether it has been answered for. */
-  today: { date: string; assignee: RoutineMember | null; status: "done" | "skipped" | null; note: string | null } | null;
+  today: { date: string; assignee: RoutineMember | null; status: "done" | "skipped" | null; note: string | null; approval: string } | null;
   streak: number;
   /** Recent history, newest first, for the small activity trail on the row. */
   recent: { date: string; status: "done" | "skipped" }[];
@@ -50,7 +50,7 @@ export async function getRoutines(familyId: string, memberId?: string): Promise<
       .order("created_at", { ascending: true }),
     supabase
       .from("routine_log")
-      .select("routine_id, occurrence_date, status, note")
+      .select("routine_id, occurrence_date, status, note, approval")
       .eq("family_id", familyId)
       .gte("occurrence_date", toISODate(historyStart))
       .order("occurrence_date", { ascending: false }),
@@ -58,6 +58,7 @@ export async function getRoutines(familyId: string, memberId?: string): Promise<
 
   const logByRoutine = new Map<string, Map<string, "done" | "skipped">>();
   const noteByRoutine = new Map<string, Map<string, string | null>>();
+  const approvalByRoutine = new Map<string, Map<string, string>>();
   for (const l of logs ?? []) {
     const forRoutine = logByRoutine.get(l.routine_id) ?? new Map();
     forRoutine.set(l.occurrence_date, l.status as "done" | "skipped");
@@ -66,6 +67,10 @@ export async function getRoutines(familyId: string, memberId?: string): Promise<
     const notesForRoutine = noteByRoutine.get(l.routine_id) ?? new Map();
     notesForRoutine.set(l.occurrence_date, l.note);
     noteByRoutine.set(l.routine_id, notesForRoutine);
+
+    const approvalsForRoutine = approvalByRoutine.get(l.routine_id) ?? new Map();
+    approvalsForRoutine.set(l.occurrence_date, l.approval);
+    approvalByRoutine.set(l.routine_id, approvalsForRoutine);
   }
 
   const views: RoutineView[] = [];
@@ -95,6 +100,7 @@ export async function getRoutines(familyId: string, memberId?: string): Promise<
 
     const status = logByRoutine.get(r.id) ?? new Map<string, "done" | "skipped">();
     const notes = noteByRoutine.get(r.id) ?? new Map<string, string | null>();
+    const approvals = approvalByRoutine.get(r.id) ?? new Map<string, string>();
     const tomorrow = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 1);
     const past = expandRoutine(rule, historyStart, tomorrow);
     const todayISO = toISODate(today);
@@ -136,6 +142,7 @@ export async function getRoutines(familyId: string, memberId?: string): Promise<
             assignee: r.rotate_assignee ? assigneeFor(members, todaysOccurrence.index) : null,
             status: status.get(todayISO) ?? null,
             note: notes.get(todayISO) ?? null,
+            approval: approvals.get(todayISO) ?? "not_required",
           }
         : null,
       streak: currentStreak(
@@ -199,4 +206,82 @@ export async function getRoutineAttachments(routineId: string): Promise<RoutineA
     .eq("routine_id", routineId)
     .order("created_at");
   return (data ?? []).map((r) => ({ id: r.id, fileName: r.file_name, mimeType: r.mime_type, sizeBytes: r.size_bytes, storagePath: r.storage_path }));
+}
+
+export type MemberScore = { id: string; name: string; points: number; done: number; awaiting: number };
+
+/** What each member has earned, and what is still waiting on a grown-up.
+ *
+ * Points are summed rather than stored. A running total kept on the member
+ * would be a second copy of the same fact, and the first time an approval
+ * was undone or a task's worth was edited the two would disagree -- with
+ * nothing to say which was right. This is a small household's worth of rows.
+ *
+ * Only `done` counts, and only once it is `not_required` or `approved`: a
+ * chore a parent has not answered for yet is not points, and a skipped day
+ * is not points either. */
+export async function getMemberScores(familyId: string): Promise<MemberScore[]> {
+  const supabase = await createClient();
+  const [{ data: members }, { data: logs }] = await Promise.all([
+    supabase
+      .from("members")
+      .select("id, full_name")
+      .eq("family_id", familyId)
+      .not("status", "in", "(pending,removed)")
+      .order("created_at"),
+    supabase
+      .from("routine_log")
+      .select("member_id, status, approval, routines(points)")
+      .eq("family_id", familyId)
+      .eq("status", "done"),
+  ]);
+
+  const byMember = new Map<string, { points: number; done: number; awaiting: number }>();
+  for (const l of logs ?? []) {
+    if (!l.member_id) continue;
+    const tally = byMember.get(l.member_id) ?? { points: 0, done: 0, awaiting: 0 };
+    if (l.approval === "pending") {
+      tally.awaiting += 1;
+    } else if (l.approval === "not_required" || l.approval === "approved") {
+      tally.points += (l.routines as unknown as { points: number } | null)?.points ?? 0;
+      tally.done += 1;
+    }
+    byMember.set(l.member_id, tally);
+  }
+
+  return (members ?? []).map((m) => ({
+    id: m.id,
+    name: m.full_name,
+    ...(byMember.get(m.id) ?? { points: 0, done: 0, awaiting: 0 }),
+  }));
+}
+
+export type PendingApproval = {
+  routineId: string;
+  date: string;
+  title: string;
+  points: number;
+  who: string;
+  note: string | null;
+};
+
+/** Everything a grown-up still has to answer for, oldest first -- a chore
+ * waiting three days matters more than this morning's. */
+export async function getPendingApprovals(familyId: string): Promise<PendingApproval[]> {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("routine_log")
+    .select("routine_id, occurrence_date, note, routines(title, points), members!routine_log_member_id_fkey(full_name)")
+    .eq("family_id", familyId)
+    .eq("approval", "pending")
+    .order("occurrence_date", { ascending: true });
+
+  return (data ?? []).map((l) => ({
+    routineId: l.routine_id,
+    date: l.occurrence_date,
+    title: (l.routines as unknown as { title: string } | null)?.title ?? "A task",
+    points: (l.routines as unknown as { points: number } | null)?.points ?? 0,
+    who: (l.members as unknown as { full_name: string } | null)?.full_name ?? "Someone",
+    note: l.note,
+  }));
 }

@@ -110,6 +110,7 @@ export type EditRoutine = {
   applies_to_whole_family: boolean;
   rotate_assignee: boolean;
   expected_cost: string | number | null;
+  points: number;
   cost_account_id: string | null;
   expense_category: string | null;
   memberIds: string[];
@@ -379,6 +380,30 @@ export function RoutineForm({
               </span>
             </label>
           )}
+
+          {/* Points are what turn a chore list into something worth keeping
+              up. Default 1, so a household that never wants to think about
+              them never has to -- and 0 for the tasks that are nobody's
+              achievement, like taking medication. */}
+          <div style={{ fontSize: 13, color: "var(--color-neutral-700)", margin: "16px 0 6px" }}>What it is worth</div>
+          <FieldBlock name="points" invalid={bad("points")} style={{ marginBottom: 6 }}>
+            <label htmlFor={`${uid}-points`}>POINTS</label>
+            <input
+              id={`${uid}-points`}
+              aria-label="Points"
+              className="input"
+              type="number"
+              name="points"
+              min="0"
+              max="100"
+              step="1"
+              defaultValue={edit?.points ?? 1}
+              style={{ minHeight: 44 }}
+            />
+            <span style={{ display: "block", fontSize: 12.5, color: "var(--color-neutral-600)", marginTop: 4 }}>
+              Earned each time it is done. A child&rsquo;s counts once a parent has said so.
+            </span>
+          </FieldBlock>
 
           <div style={{ fontSize: 13, color: "var(--color-neutral-700)", margin: "16px 0 6px" }}>What it usually costs (optional)</div>
           <div style={{ display: "flex", gap: 12, marginBottom: 6 }}>

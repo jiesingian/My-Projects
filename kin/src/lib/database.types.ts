@@ -3209,6 +3209,9 @@ export type Database = {
           family_id: string
           id: string
           logged_at: string
+          approval: string
+          approved_at: string | null
+          approved_by: string | null
           logged_by: string | null
           member_id: string | null
           note: string | null
@@ -3221,6 +3224,9 @@ export type Database = {
           family_id: string
           id?: string
           logged_at?: string
+          approval?: string
+          approved_at?: string | null
+          approved_by?: string | null
           logged_by?: string | null
           member_id?: string | null
           note?: string | null
@@ -3233,6 +3239,9 @@ export type Database = {
           family_id?: string
           id?: string
           logged_at?: string
+          approval?: string
+          approved_at?: string | null
+          approved_by?: string | null
           logged_by?: string | null
           member_id?: string | null
           note?: string | null
@@ -3241,6 +3250,13 @@ export type Database = {
           status?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "routine_log_approved_by_fkey"
+            columns: ["approved_by"]
+            isOneToOne: false
+            referencedRelation: "members"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "routine_log_family_id_fkey"
             columns: ["family_id"]
@@ -3323,6 +3339,7 @@ export type Database = {
           location: string | null
           notes: string | null
           paused: boolean
+          points: number
           reminder_minutes: number | null
           repeat_interval: number
           rotate_assignee: boolean
@@ -3348,6 +3365,7 @@ export type Database = {
           location?: string | null
           notes?: string | null
           paused?: boolean
+          points?: number
           reminder_minutes?: number | null
           repeat_interval?: number
           rotate_assignee?: boolean
@@ -3373,6 +3391,7 @@ export type Database = {
           location?: string | null
           notes?: string | null
           paused?: boolean
+          points?: number
           reminder_minutes?: number | null
           repeat_interval?: number
           rotate_assignee?: boolean
