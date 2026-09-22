@@ -78,6 +78,10 @@ export type PlannedMeal = {
   missing: number;
   have: number;
   ingredientCount: number;
+  /** Empty means the whole household, which is the common case and the
+   * reason it is expressed by an absence of rows rather than by tagging
+   * everybody. */
+  memberIds: string[];
 };
 
 /** Everything cooked on one day, with the amounts each meal needs and the
@@ -90,7 +94,7 @@ export async function getMealsForDay(familyId: string, anchor: Date = new Date()
   const [{ data: dayRows }, { data: activeBuy }, { data: pantry }, { data: photos }] = await Promise.all([
     supabase
       .from("meal_plans")
-      .select("*, meal_ingredients(*), family_recipes(minutes, serves, steps)")
+      .select("*, meal_ingredients(*), family_recipes(minutes, serves, steps), meal_plan_members(member_id)")
       .eq("family_id", familyId)
       .eq("plan_date", anchorISO)
       .order("position"),
@@ -147,6 +151,7 @@ export async function getMealsForDay(familyId: string, anchor: Date = new Date()
       missing: ingredients.filter((i) => !i.inPantry && !i.onList).length,
       have: ingredients.filter((i) => i.inPantry).length,
       ingredientCount: ingredients.length,
+      memberIds: (m.meal_plan_members ?? []).map((r: { member_id: string }) => r.member_id),
     };
   });
 

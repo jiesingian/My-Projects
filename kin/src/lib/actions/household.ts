@@ -933,3 +933,51 @@ export async function toggleIngredientAtHomeAction(rawName: string, atHome: bool
   revalidatePath("/household");
   return { error: null };
 }
+
+/** Who a planned meal is for. No rows means the whole household, so
+ * clearing the selection is how you say "everyone" rather than a separate
+ * flag to keep in step with the list.
+ *
+ * Replaced wholesale rather than diffed: the set is small, and a delete
+ * followed by an insert cannot leave a half-applied state the way three
+ * separate add and remove calls can. */
+export async function setMealMembersAction(mealPlanId: string, memberIds: string[]): Promise<ActionState> {
+  const me = await requireCurrentMember();
+  const supabase = await createClient();
+
+  const { data: meal } = await supabase
+    .from("meal_plans")
+    .select("id")
+    .eq("id", mealPlanId)
+    .eq("family_id", me.family_id)
+    .maybeSingle();
+  if (!meal) return { error: "That meal is no longer here." };
+
+  // Ids come from a form, so they are checked against this household rather
+  // than trusted -- a tag naming somebody else's member would otherwise sit
+  // in the table looking legitimate.
+  const wanted = [...new Set(memberIds)].filter(Boolean);
+  let verified: string[] = [];
+  if (wanted.length > 0) {
+    const { data: members } = await supabase
+      .from("members")
+      .select("id")
+      .eq("family_id", me.family_id)
+      .in("id", wanted);
+    verified = (members ?? []).map((m) => m.id);
+    if (verified.length !== wanted.length) return { error: "One of those people isn't in your household." };
+  }
+
+  const { error: clearError } = await supabase.from("meal_plan_members").delete().eq("meal_plan_id", mealPlanId);
+  if (clearError) return { error: humanDatabaseError(clearError.message) };
+
+  if (verified.length > 0) {
+    const { error } = await supabase
+      .from("meal_plan_members")
+      .insert(verified.map((member_id) => ({ meal_plan_id: mealPlanId, member_id, family_id: me.family_id })));
+    if (error) return { error: humanDatabaseError(error.message) };
+  }
+
+  revalidatePath("/household");
+  return { error: null };
+}

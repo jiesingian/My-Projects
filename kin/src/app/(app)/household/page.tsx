@@ -2,6 +2,9 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getCurrentMember } from "@/lib/session";
 import { getBuyItems, getMealsForDay, getLiquidIntake, type PlannedMeal } from "@/lib/queries/household";
+import { getMembers } from "@/lib/queries/family";
+import { MealWhoPicker } from "@/components/meal-who-picker";
+import { MealWhoEditor } from "@/components/meal-who-editor";
 import { LiquidIntakeTracker } from "@/components/liquid-intake-tracker";
 import { getAccounts } from "@/lib/queries/wealth";
 import { getPriceBook, getPricedBuyList, getNextShoppingRun, getPantry } from "@/lib/queries/household-money";
@@ -29,7 +32,7 @@ type Seg = (typeof SEGMENTS)[number];
 
 const SEGMENT_LABEL: Record<Seg, string> = { buy: "To-buy", meals: "Meals" };
 
-export default async function HouseholdPage({ searchParams }: { searchParams: Promise<{ seg?: string; date?: string }> }) {
+export default async function HouseholdPage({ searchParams }: { searchParams: Promise<{ seg?: string; date?: string; who?: string }> }) {
   const me = await getCurrentMember();
   if (!me) redirect("/onboarding/profile");
   const sp = await searchParams;
@@ -43,7 +46,7 @@ export default async function HouseholdPage({ searchParams }: { searchParams: Pr
       <HubHeader n="04" title="Household" segments={segments} dateFormat={me.families.date_format} />
       <div style={{ padding: "0 22px 22px" }}>
         {seg === "buy" && <BuyPane familyId={me.family_id} memberId={me.id} currency={me.families.currency} />}
-        {seg === "meals" && <MealsPane familyId={me.family_id} currency={me.families.currency} anchor={anchor} />}
+        {seg === "meals" && <MealsPane familyId={me.family_id} currency={me.families.currency} anchor={anchor} who={sp.who ?? "all"} />}
       </div>
     </div>
   );
@@ -165,17 +168,28 @@ async function MealsPane({
   familyId,
   currency,
   anchor,
+  who,
 }: {
   familyId: string;
   currency: string;
   anchor: Date;
+  who: string;
 }) {
-  const [{ meals, anchorISO }, recipes, categories, liquidIntake] = await Promise.all([
+  const [{ meals: allMeals, anchorISO }, recipes, categories, liquidIntake, memberRows] = await Promise.all([
     getMealsForDay(familyId, anchor),
     getRecipeBook(familyId),
     getRecipeCategories(familyId),
     getLiquidIntake(familyId, toISODate(anchor)),
+    getMembers(familyId),
   ]);
+  const members = memberRows
+    .filter((m) => m.status === "active" || m.status === "managed")
+    .map((m) => ({ id: m.id, name: m.full_name }));
+
+  // A meal tagged for nobody is the household's, so it shows for whoever is
+  // selected. That is the "shared by the family" case from the request, and
+  // it is why filtering is an OR rather than an equality.
+  const meals = who === "all" ? allMeals : allMeals.filter((m) => m.memberIds.length === 0 || m.memberIds.includes(who));
   const today = new Date();
   const isToday = anchor.toDateString() === today.toDateString();
   // The title names the day itself, since the day is all this page shows.
@@ -218,6 +232,10 @@ async function MealsPane({
         <TodayButton hrefBase={MEALS_HREF_BASE} />
       </div>
 
+      <div style={{ marginBottom: 8 }}>
+        <MealWhoPicker members={members} who={who} date={anchorISO} />
+      </div>
+
       {/* One day either way without opening the picker — the step the rail
           used to make with a swipe. */}
       <div style={{ display: "flex", alignItems: "center", gap: 6, paddingBottom: 4 }}>
@@ -243,7 +261,7 @@ async function MealsPane({
             </div>
 
             {inSlot.map((m) => (
-              <DishCard key={m.id} meal={m} />
+              <DishCard key={m.id} meal={m} members={members} />
             ))}
 
             <AddMealControl date={anchorISO} slot={slot} />
@@ -268,7 +286,7 @@ async function MealsPane({
 /** One dish, given the room it deserves: its picture across the full width,
  * its name on the picture, and its amounts underneath where they can be
  * changed for this meal without opening the recipe. */
-function DishCard({ meal }: { meal: PlannedMeal }) {
+function DishCard({ meal, members }: { meal: PlannedMeal; members: { id: string; name: string }[] }) {
   const tone = plateTone(meal.dish);
   const meta = [
     MEAL_SLOT_LABEL[meal.slot],
@@ -334,6 +352,13 @@ function DishCard({ meal }: { meal: PlannedMeal }) {
             {meta.join(" · ")}
           </div>
         </div>
+      </div>
+
+      {/* Who it is for, under the plate. Editable in place because "actually
+          only the children are eating this" is a thing somebody realises
+          while looking at the day, not while creating the meal. */}
+      <div style={{ marginTop: 5 }}>
+        <MealWhoEditor mealPlanId={meal.id} members={members} selected={meal.memberIds} />
       </div>
 
       <div style={{ padding: "10px 12px 12px" }}>
