@@ -1063,6 +1063,54 @@ export type Database = {
           },
         ]
       }
+      member_locations: {
+        Row: {
+          accuracy_m: number | null
+          created_at: string
+          family_id: string
+          lat: number | null
+          lng: number | null
+          member_id: string
+          sharing: boolean
+          updated_at: string | null
+        }
+        Insert: {
+          accuracy_m?: number | null
+          created_at?: string
+          family_id: string
+          lat?: number | null
+          lng?: number | null
+          member_id: string
+          sharing?: boolean
+          updated_at?: string | null
+        }
+        Update: {
+          accuracy_m?: number | null
+          created_at?: string
+          family_id?: string
+          lat?: number | null
+          lng?: number | null
+          member_id?: string
+          sharing?: boolean
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "member_locations_family_id_fkey"
+            columns: ["family_id"]
+            isOneToOne: false
+            referencedRelation: "families"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "member_locations_member_id_fkey"
+            columns: ["member_id"]
+            isOneToOne: true
+            referencedRelation: "members"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       emergency_contacts: {
         Row: {
           created_at: string

@@ -230,3 +230,43 @@ export async function getEmergencyContacts(familyId: string): Promise<Tables<"em
     .order("name");
   return data ?? [];
 }
+
+export type MemberLocation = {
+  memberId: string;
+  name: string;
+  role: string;
+  sharing: boolean;
+  lat: number | null;
+  lng: number | null;
+  accuracyM: number | null;
+  updatedAt: string | null;
+};
+
+/** The Quicklinks board: everyone in the household, and for each of them
+ * whether they are sharing and what came back last. Members drive the list
+ * rather than member_locations, so somebody who has never switched it on
+ * still appears -- with an off switch, which is the honest thing to show. */
+export async function getMemberLocations(familyId: string): Promise<MemberLocation[]> {
+  const supabase = await createClient();
+  const [{ data: members }, { data: rows }] = await Promise.all([
+    supabase.from("members").select("id, full_name, role, status").eq("family_id", familyId).order("created_at"),
+    supabase.from("member_locations").select("member_id, sharing, lat, lng, accuracy_m, updated_at").eq("family_id", familyId),
+  ]);
+
+  const byMember = new Map((rows ?? []).map((r) => [r.member_id, r]));
+  return (members ?? [])
+    .filter((m) => m.status === "active" || m.status === "managed")
+    .map((m) => {
+      const row = byMember.get(m.id);
+      return {
+        memberId: m.id,
+        name: m.full_name,
+        role: m.role,
+        sharing: row?.sharing ?? false,
+        lat: row?.lat ?? null,
+        lng: row?.lng ?? null,
+        accuracyM: row?.accuracy_m ?? null,
+        updatedAt: row?.updated_at ?? null,
+      };
+    });
+}
