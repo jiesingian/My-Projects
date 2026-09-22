@@ -2922,6 +2922,7 @@ export type Database = {
           avatar_url: string | null
           blood_type: string | null
           college: string | null
+          color: string | null
           created_at: string
           dob: string | null
           email: string | null
@@ -2961,6 +2962,7 @@ export type Database = {
           avatar_url?: string | null
           blood_type?: string | null
           college?: string | null
+          color?: string | null
           created_at?: string
           dob?: string | null
           email?: string | null
@@ -3000,6 +3002,7 @@ export type Database = {
           avatar_url?: string | null
           blood_type?: string | null
           college?: string | null
+          color?: string | null
           created_at?: string
           dob?: string | null
           email?: string | null

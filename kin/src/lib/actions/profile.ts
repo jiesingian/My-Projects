@@ -10,6 +10,7 @@ import { resolvePhotoUrl } from "@/lib/photo-url";
 import type { ActionState } from "@/lib/actions/auth";
 import type { ProfileFields } from "@/lib/profile-fields";
 import { clampProfileFields } from "@/lib/profile-fields";
+import { isMemberColour } from "@/lib/member-colours";
 import type { UploadedFile } from "@/lib/upload-client";
 import type { TablesInsert } from "@/lib/database.types";
 import { humanDatabaseError } from "@/lib/db-errors";
@@ -189,4 +190,32 @@ export async function deleteOwnAccountAction(): Promise<ActionState> {
   const { error: signOutError } = await supabase.auth.signOut();
   if (signOutError) console.error("Sign out did not complete", signOutError.message);
   redirect("/login");
+}
+
+/** Your own colour, or a managed child's. Nothing else about the member row
+ * is touched, and the database is the thing enforcing that: the
+ * members_guard_self_update trigger refuses any change to status, role,
+ * is_organiser or family_id regardless of what an update claims to be
+ * doing. */
+export async function setMemberColourAction(memberId: string, colour: string): Promise<ActionState> {
+  const me = await requireCurrentMember();
+  if (!isMemberColour(colour)) return { error: "That isn't one of the colours." };
+
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("members")
+    .update({ color: colour })
+    .eq("id", memberId)
+    .eq("family_id", me.family_id)
+    .select("id")
+    .maybeSingle();
+
+  if (error) return { error: humanDatabaseError(error.message) };
+  // No row came back, so a policy refused it rather than the row being
+  // missing -- that is somebody else's colour.
+  if (!data) return { error: "That's not your colour to change." };
+
+  revalidatePath("/family");
+  revalidatePath("/planner");
+  return { error: null };
 }
