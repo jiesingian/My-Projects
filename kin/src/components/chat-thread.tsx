@@ -160,7 +160,7 @@ export function ChatThread({
     <div style={{ display: "flex", flexDirection: "column", minHeight: "calc(100dvh - 168px)" }}>
       <div style={{ flex: 1 }}>
         {messages.length === 0 && !pendingBody && (
-          <p style={{ fontSize: 14, color: "var(--color-neutral-600)", textAlign: "center", padding: "40px 20px", lineHeight: 1.5 }}>
+          <p style={{ fontSize: "0.875rem", color: "var(--color-neutral-600)", textAlign: "center", padding: "2.5rem 1.25rem", lineHeight: 1.5 }}>
             Nothing said yet. This is the whole household&rsquo;s thread — type <strong>@</strong> to tag someone in particular.
           </p>
         )}
@@ -173,14 +173,14 @@ export function ChatThread({
           return (
             <div key={m.id}>
               {showDay && (
-                <div style={{ display: "flex", alignItems: "center", gap: 10, margin: "16px 0 10px" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: "0.625rem", margin: "16px 0 10px" }}>
                   <span style={{ flex: 1, height: 1, background: "var(--color-divider)" }} />
-                  <span style={{ fontSize: 11.5, color: "var(--color-neutral-600)" }}>{day}</span>
+                  <span style={{ fontSize: "0.71875rem", color: "var(--color-neutral-600)" }}>{day}</span>
                   <span style={{ flex: 1, height: 1, background: "var(--color-divider)" }} />
                 </div>
               )}
 
-              <div style={{ display: "flex", gap: 8, justifyContent: mine ? "flex-end" : "flex-start", marginTop: runStart ? 8 : 2 }}>
+              <div style={{ display: "flex", gap: "0.5rem", justifyContent: mine ? "flex-end" : "flex-start", marginTop: runStart ? 8 : 2 }}>
                 {!mine && (
                   <span style={{ width: 28, flex: "none" }}>
                     {runStart && <Avatar url={author?.photoUrl ?? null} initials={author?.initials ?? "?"} label={author?.label ?? "Someone"} size={28} />}
@@ -189,25 +189,25 @@ export function ChatThread({
 
                 <div style={{ maxWidth: "76%", display: "flex", flexDirection: "column", alignItems: mine ? "flex-end" : "flex-start" }}>
                   {runStart && !mine && (
-                    <span style={{ fontSize: 11.5, color: "var(--color-neutral-600)", margin: "0 0 2px 10px" }}>
+                    <span style={{ fontSize: "0.71875rem", color: "var(--color-neutral-600)", margin: "0 0 2px 10px" }}>
                       {author?.label ?? "Someone"}
                     </span>
                   )}
 
                   {editing?.id === m.id ? (
-                    <div style={{ display: "flex", gap: 6, alignItems: "flex-end" }}>
+                    <div style={{ display: "flex", gap: "0.375rem", alignItems: "flex-end" }}>
                       <textarea
                         className="input"
                         value={editing.body}
                         onChange={(e) => setEditing({ id: m.id, body: e.target.value })}
                         rows={2}
-                        style={{ minHeight: 44, fontSize: 15, width: 220, resize: "none" }}
+                        style={{ minHeight: "2.75rem", fontSize: "0.9375rem", width: "13.75rem", resize: "none" }}
                         aria-label="Edit this message"
                       />
                       <button
                         type="button"
                         className="btn btn-primary"
-                        style={{ minHeight: 34, fontSize: 13, padding: "0 10px" }}
+                        style={{ minHeight: "2.125rem", fontSize: "0.8125rem", padding: "0 0.625rem" }}
                         onClick={() => {
                           const body = editing.body;
                           setEditing(null);
@@ -216,7 +216,7 @@ export function ChatThread({
                       >
                         Save
                       </button>
-                      <button type="button" className="btn btn-ghost" style={{ minHeight: 34, fontSize: 12.5, padding: "0 8px" }} onClick={() => setEditing(null)}>
+                      <button type="button" className="btn btn-ghost" style={{ minHeight: "2.125rem", fontSize: "0.78125rem", padding: "0 0.5rem" }} onClick={() => setEditing(null)}>
                         Cancel
                       </button>
                     </div>
@@ -238,7 +238,7 @@ export function ChatThread({
                   )}
 
                   {m.reactions.length > 0 && (
-                    <div style={{ display: "flex", gap: 4, marginTop: -6, marginLeft: mine ? 0 : 8, marginRight: mine ? 8 : 0, zIndex: 1 }}>
+                    <div style={{ display: "flex", gap: "0.25rem", marginTop: -6, marginLeft: mine ? 0 : 8, marginRight: mine ? 8 : 0, zIndex: 1 }}>
                       {m.reactions.map((r) => (
                         <button
                           key={r.emoji}
@@ -247,9 +247,9 @@ export function ChatThread({
                           style={{
                             display: "inline-flex",
                             alignItems: "center",
-                            gap: 3,
-                            fontSize: 11.5,
-                            padding: "1px 6px",
+                            gap: "0.1875rem",
+                            fontSize: "0.71875rem",
+                            padding: "0.0625rem 0.375rem",
                             borderRadius: 999,
                             border: "1px solid var(--color-divider)",
                             background: "var(--color-surface)",
@@ -269,9 +269,9 @@ export function ChatThread({
                       style={{
                         display: "flex",
                         alignItems: "center",
-                        gap: 2,
-                        marginTop: 5,
-                        padding: 4,
+                        gap: "0.125rem",
+                        marginTop: "0.3125rem",
+                        padding: "0.25rem",
                         borderRadius: 999,
                         background: "var(--color-surface)",
                         border: "1px solid var(--color-divider)",
@@ -284,7 +284,7 @@ export function ChatThread({
                           type="button"
                           onClick={() => act(() => reactToMessageAction(m.id, e))}
                           aria-label={`React ${e}`}
-                          style={{ border: 0, background: "none", cursor: "pointer", fontSize: 17, padding: "2px 4px", lineHeight: 1 }}
+                          style={{ border: 0, background: "none", cursor: "pointer", fontSize: "1.0625rem", padding: "0.125rem 0.25rem", lineHeight: 1 }}
                         >
                           {e}
                         </button>
@@ -299,7 +299,7 @@ export function ChatThread({
                               setOpenFor(null);
                             }}
                             className="btn btn-ghost"
-                            style={{ minHeight: 26, fontSize: 12, padding: "0 6px" }}
+                            style={{ minHeight: "1.625rem", fontSize: "0.75rem", padding: "0 0.375rem" }}
                           >
                             Edit
                           </button>
@@ -307,7 +307,7 @@ export function ChatThread({
                             type="button"
                             onClick={() => act(() => deleteMessageAction(m.id))}
                             className="btn btn-ghost"
-                            style={{ minHeight: 26, fontSize: 12, padding: "0 6px", color: "var(--cal-occasion)" }}
+                            style={{ minHeight: "1.625rem", fontSize: "0.75rem", padding: "0 0.375rem", color: "var(--cal-occasion)" }}
                           >
                             Delete
                           </button>
@@ -316,7 +316,7 @@ export function ChatThread({
                     </div>
                   )}
 
-                  <span style={{ fontSize: 10.5, color: "var(--color-neutral-600)", margin: "3px 4px 0" }}>
+                  <span style={{ fontSize: "0.65625rem", color: "var(--color-neutral-600)", margin: "3px 4px 0" }}>
                     {clockOf(m.createdAt)}
                     {m.editedAt && !m.deleted ? " · edited" : ""}
                   </span>
@@ -328,7 +328,7 @@ export function ChatThread({
 
         {/* Your own message, on screen before the server has it. */}
         {pendingBody && (
-          <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 8 }}>
+          <div style={{ display: "flex", justifyContent: "flex-end", marginTop: "0.5rem" }}>
             <div style={{ maxWidth: "76%", opacity: 0.6 }}>
               <span className="kin-bubble" data-mine="true">
                 {pendingBody}
@@ -341,7 +341,7 @@ export function ChatThread({
       </div>
 
       {error && (
-        <div style={{ fontSize: 12.5, color: "var(--cal-occasion)", padding: "6px 2px" }} role="alert">
+        <div style={{ fontSize: "0.78125rem", color: "var(--cal-occasion)", padding: "0.375rem 0.125rem" }} role="alert">
           {error}
         </div>
       )}
@@ -354,13 +354,13 @@ export function ChatThread({
           // Clear of the tab bar: sticky sticks to the viewport, and the bar
           // is fixed over the bottom of it.
           bottom: "calc(env(safe-area-inset-bottom, 0px) + 68px)",
-          paddingTop: 8,
-          marginTop: 10,
+          paddingTop: "0.5rem",
+          marginTop: "0.625rem",
           borderTop: "1px solid var(--color-divider)",
         }}
       >
         {suggestions.length > 0 && (
-          <div style={{ display: "flex", flexWrap: "wrap", gap: 6, paddingBottom: 8 }}>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: "0.375rem", paddingBottom: "0.5rem" }}>
             {suggestions.map((m) => (
               <button
                 key={m.id}
@@ -369,14 +369,14 @@ export function ChatThread({
                 style={{
                   display: "inline-flex",
                   alignItems: "center",
-                  gap: 6,
-                  padding: "4px 10px 4px 4px",
+                  gap: "0.375rem",
+                  padding: "0.25rem 0.625rem 0.25rem 0.25rem",
                   borderRadius: 999,
                   border: "1px solid var(--color-divider)",
                   background: "var(--color-surface)",
                   cursor: "pointer",
                   fontFamily: "var(--font-body)",
-                  fontSize: 13.5,
+                  fontSize: "0.84375rem",
                 }}
               >
                 <Avatar url={m.photoUrl} initials={m.initials} label={m.label} size={22} />
@@ -386,7 +386,7 @@ export function ChatThread({
           </div>
         )}
 
-        <div style={{ display: "flex", gap: 6, alignItems: "flex-end", paddingBottom: 8 }}>
+        <div style={{ display: "flex", gap: "0.375rem", alignItems: "flex-end", paddingBottom: "0.5rem" }}>
           <button
             type="button"
             className="btn btn-secondary btn-icon"
@@ -397,7 +397,7 @@ export function ChatThread({
               input.current?.focus();
             }}
           >
-            <span style={{ font: "600 17px/1 var(--font-heading)" }}>@</span>
+            <span style={{ font: "600 1.0625rem/1 var(--font-heading)" }}>@</span>
           </button>
           <textarea
             ref={input}
@@ -414,7 +414,7 @@ export function ChatThread({
             placeholder="Message the family…"
             rows={1}
             aria-label="Your message"
-            style={{ flex: 1, minWidth: 0, minHeight: 38, maxHeight: 120, fontSize: 15, resize: "none", paddingTop: 9 }}
+            style={{ flex: 1, minWidth: 0, minHeight: "2.375rem", maxHeight: "7.5rem", fontSize: "0.9375rem", resize: "none", paddingTop: "0.5625rem" }}
           />
           <button
             type="button"

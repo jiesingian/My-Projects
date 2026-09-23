@@ -21,13 +21,13 @@ export function HubHeader({
   dateFormat?: string;
 }) {
   return (
-    <div style={{ padding: "20px 20px 12px" }}>
-      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-        <span style={{ fontSize: 13, fontWeight: 600, color: "var(--color-accent)" }}>Hub {n}</span>
-        <span style={{ fontSize: 13, color: "var(--color-neutral-600)", marginLeft: "auto" }}>{formatDate(new Date(), dateFormat)}</span>
+    <div style={{ padding: "1.25rem 1.25rem 0.75rem" }}>
+      <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+        <span style={{ fontSize: "0.8125rem", fontWeight: 600, color: "var(--color-accent)" }}>Hub {n}</span>
+        <span style={{ fontSize: "0.8125rem", color: "var(--color-neutral-600)", marginLeft: "auto" }}>{formatDate(new Date(), dateFormat)}</span>
       </div>
       {/* iOS large title */}
-      <h2 style={{ fontSize: 34, fontWeight: 700, letterSpacing: "-0.03em", margin: "2px 0 0" }}>{title}</h2>
+      <h2 style={{ fontSize: "2.125rem", fontWeight: 700, letterSpacing: "-0.03em", margin: "2px 0 0" }}>{title}</h2>
       {/* A segmented control with one item has nothing to switch between --
           Journal's merge into a single Entries segment is the first hub to
           hit this, and a lone always-active tab would say less than nothing. */}
@@ -49,12 +49,12 @@ export function DetailHeader({
   trail?: { label: string; href?: string }[];
 }) {
   return (
-    <div style={{ padding: "18px 20px 0" }}>
+    <div style={{ padding: "1.125rem 1.25rem 0" }}>
       {trail && trail.length > 0 && (
-        <nav aria-label="Breadcrumb" style={{ marginBottom: 6 }}>
-          <ol style={{ listStyle: "none", display: "flex", flexWrap: "wrap", alignItems: "center", gap: 4, margin: 0, padding: 0, fontSize: 12.5, color: "var(--color-neutral-600)" }}>
+        <nav aria-label="Breadcrumb" style={{ marginBottom: "0.375rem" }}>
+          <ol style={{ listStyle: "none", display: "flex", flexWrap: "wrap", alignItems: "center", gap: "0.25rem", margin: 0, padding: 0, fontSize: "0.78125rem", color: "var(--color-neutral-600)" }}>
             {trail.map((crumb, i) => (
-              <li key={i} style={{ display: "flex", alignItems: "center", gap: 4, minWidth: 0 }}>
+              <li key={i} style={{ display: "flex", alignItems: "center", gap: "0.25rem", minWidth: 0 }}>
                 {i > 0 && <span aria-hidden="true">/</span>}
                 {crumb.href ? (
                   <Link href={crumb.href} style={{ color: "inherit", textDecoration: "none" }}>
@@ -70,11 +70,11 @@ export function DetailHeader({
           </ol>
         </nav>
       )}
-      <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 14 }}>
+      <div style={{ display: "flex", alignItems: "center", gap: "0.625rem", marginBottom: "0.875rem" }}>
         <Link href={backHref} className="btn btn-secondary btn-icon" aria-label="Back">
           <Icon name="chevronLeft" />
         </Link>
-        <span style={{ fontSize: 13, fontWeight: 600, color: "var(--color-accent)", marginLeft: "auto" }}>{eyebrow}</span>
+        <span style={{ fontSize: "0.8125rem", fontWeight: 600, color: "var(--color-accent)", marginLeft: "auto" }}>{eyebrow}</span>
       </div>
     </div>
   );

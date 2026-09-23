@@ -12,11 +12,11 @@ export function GenerateGroceryButton({ weekOf }: { weekOf?: string }) {
   const [failed, setFailed] = useState<string | null>(null);
   const router = useRouter();
   return (
-    <div style={{ marginTop: 18 }}>
+    <div style={{ marginTop: "1.125rem" }}>
       <button
         type="button"
         className="btn btn-primary btn-block"
-        style={{ minHeight: 46, fontSize: 14, letterSpacing: ".04em" }}
+        style={{ minHeight: "2.875rem", fontSize: "0.875rem", letterSpacing: ".04em" }}
         disabled={pending}
         onClick={() =>
           startTransition(async () => {
@@ -32,7 +32,7 @@ export function GenerateGroceryButton({ weekOf }: { weekOf?: string }) {
         {pending ? "GENERATING…" : "GENERATE GROCERY LIST"}
       </button>
       {failed && (
-        <p role="alert" style={{ fontSize: 13, color: "var(--color-accent-700)", marginTop: 8 }}>
+        <p role="alert" style={{ fontSize: "0.8125rem", color: "var(--color-accent-700)", marginTop: "0.5rem" }}>
           {failed}
         </p>
       )}

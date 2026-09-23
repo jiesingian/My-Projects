@@ -46,7 +46,7 @@ export function AddMealControl({ date, slot }: { date: string; slot: MealSlot })
         type="button"
         onClick={() => setOpen(true)}
         className="btn btn-ghost"
-        style={{ minHeight: 34, fontSize: 13, padding: "0 8px", gap: 4, color: "var(--color-accent)" }}
+        style={{ minHeight: "2.125rem", fontSize: "0.8125rem", padding: "0 0.5rem", gap: "0.25rem", color: "var(--color-accent)" }}
       >
         <Icon name="plus" size={14} />
         Add {MEAL_SLOT_LABEL[slot].toLowerCase()}
@@ -55,18 +55,18 @@ export function AddMealControl({ date, slot }: { date: string; slot: MealSlot })
   }
 
   return (
-    <div style={{ padding: 12, borderRadius: 14, background: "color-mix(in srgb, var(--color-text) 4%, transparent)", marginTop: 6 }}>
+    <div style={{ padding: "0.75rem", borderRadius: 14, background: "color-mix(in srgb, var(--color-text) 4%, transparent)", marginTop: "0.375rem" }}>
       <input
         className="input"
         placeholder="Search dishes…"
         value={query}
         onChange={(e) => setQuery(e.target.value)}
-        style={{ minHeight: 42, marginBottom: 8 }}
+        style={{ minHeight: "2.625rem", marginBottom: "0.5rem" }}
         autoFocus
         aria-label="Search the recipe library"
       />
 
-      <div style={{ maxHeight: 220, overflowY: "auto", marginBottom: 10 }}>
+      <div style={{ maxHeight: "13.75rem", overflowY: "auto", marginBottom: "0.625rem" }}>
         {suggestions.slice(0, 40).map((r) => (
           <button
             key={r.key}
@@ -83,8 +83,8 @@ export function AddMealControl({ date, slot }: { date: string; slot: MealSlot })
               display: "flex",
               width: "100%",
               alignItems: "center",
-              gap: 8,
-              padding: "9px 6px",
+              gap: "0.5rem",
+              padding: "0.5625rem 0.375rem",
               border: 0,
               borderRadius: 10,
               background: "none",
@@ -94,8 +94,8 @@ export function AddMealControl({ date, slot }: { date: string; slot: MealSlot })
             }}
           >
             <span style={{ flex: 1, minWidth: 0 }}>
-              <span style={{ display: "block", fontSize: 15, fontWeight: 500 }}>{r.name}</span>
-              <span style={{ display: "block", fontSize: 12.5, color: "var(--color-neutral-600)" }}>
+              <span style={{ display: "block", fontSize: "0.9375rem", fontWeight: 500 }}>{r.name}</span>
+              <span style={{ display: "block", fontSize: "0.78125rem", color: "var(--color-neutral-600)" }}>
                 {r.ingredients.length} ingredients · {r.minutes} min · serves {r.serves}
               </span>
             </span>
@@ -103,26 +103,26 @@ export function AddMealControl({ date, slot }: { date: string; slot: MealSlot })
           </button>
         ))}
         {suggestions.length === 0 && (
-          <p style={{ fontSize: 13.5, color: "var(--color-neutral-600)", padding: "8px 6px", margin: 0 }}>
+          <p style={{ fontSize: "0.84375rem", color: "var(--color-neutral-600)", padding: "0.5rem 0.375rem", margin: 0 }}>
             Nothing in the library matches. Type it in below and it will be added as its own dish.
           </p>
         )}
       </div>
 
-      <div style={{ display: "flex", gap: 6, borderTop: "1px solid var(--color-divider)", paddingTop: 10 }}>
+      <div style={{ display: "flex", gap: "0.375rem", borderTop: "1px solid var(--color-divider)", paddingTop: "0.625rem" }}>
         <input
           className="input"
           placeholder="Or type a dish"
           value={custom}
           onChange={(e) => setCustom(e.target.value)}
           maxLength={150}
-          style={{ minHeight: 40, flex: 1, fontSize: 14 }}
+          style={{ minHeight: "2.5rem", flex: 1, fontSize: "0.875rem" }}
           aria-label="A dish not in the library"
         />
         <button
           type="button"
           className="btn btn-secondary"
-          style={{ minHeight: 40, fontSize: 13, padding: "0 12px" }}
+          style={{ minHeight: "2.5rem", fontSize: "0.8125rem", padding: "0 0.75rem" }}
           disabled={pending || !custom.trim()}
           onClick={() =>
             run(async () => {
@@ -137,11 +137,11 @@ export function AddMealControl({ date, slot }: { date: string; slot: MealSlot })
         >
           Add
         </button>
-        <button type="button" className="btn btn-ghost" style={{ minHeight: 40, fontSize: 12.5, padding: "0 8px" }} onClick={() => setOpen(false)}>
+        <button type="button" className="btn btn-ghost" style={{ minHeight: "2.5rem", fontSize: "0.78125rem", padding: "0 0.5rem" }} onClick={() => setOpen(false)}>
           Close
         </button>
       </div>
-      {error && <div style={{ fontSize: 12.5, color: "var(--cal-occasion)", marginTop: 6 }}>{error}</div>}
+      {error && <div style={{ fontSize: "0.78125rem", color: "var(--cal-occasion)", marginTop: "0.375rem" }}>{error}</div>}
     </div>
   );
 }
@@ -159,8 +159,8 @@ export function RemoveMealButton({ mealId, onPhoto = false }: { mealId: string; 
       className={onPhoto ? "kin-plate-action" : undefined}
       style={
         onPhoto
-          ? { padding: "0 8px" }
-          : { border: 0, background: "none", cursor: "pointer", padding: 5, display: "flex", color: "var(--color-neutral-600)", flex: "none" }
+          ? { padding: "0 0.5rem" }
+          : { border: 0, background: "none", cursor: "pointer", padding: "0.3125rem", display: "flex", color: "var(--color-neutral-600)", flex: "none" }
       }
     >
       <Icon name="x" size={14} />

@@ -10,19 +10,19 @@
  * instead. */
 export default function Loading() {
   return (
-    <div style={{ padding: "20px 20px 12px" }} aria-busy="true" aria-live="polite">
+    <div style={{ padding: "1.25rem 1.25rem 0.75rem" }} aria-busy="true" aria-live="polite">
       <span className="sr-only">Loading</span>
 
       {/* The hub header's shape: eyebrow, large title, segmented control. Same
           rhythm as the real thing, so nothing jumps when it arrives. */}
-      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+      <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
         <span className="kin-skeleton" style={{ width: 48, height: 13, borderRadius: 4 }} />
         <span className="kin-skeleton" style={{ width: 86, height: 13, borderRadius: 4, marginLeft: "auto" }} />
       </div>
       <div className="kin-skeleton" style={{ width: "48%", height: 34, borderRadius: 8, margin: "8px 0 14px" }} />
       <div className="kin-skeleton" style={{ width: "100%", height: 32, borderRadius: 9 }} />
 
-      <div style={{ marginTop: 18, display: "flex", flexDirection: "column", gap: 12 }}>
+      <div style={{ marginTop: "1.125rem", display: "flex", flexDirection: "column", gap: "0.75rem" }}>
         {[0, 1, 2, 3].map((i) => (
           <div key={i} className="kin-skeleton" style={{ height: 74, borderRadius: 14 }} />
         ))}

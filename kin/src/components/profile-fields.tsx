@@ -74,7 +74,7 @@ function displayValue(fields: ProfileFields, spec: FieldSpec, dateFormat?: strin
 
 function GroupHeader({ title }: { title: string }) {
   return (
-    <div style={{ fontSize: 13, fontWeight: 600, color: "var(--color-neutral-600)", padding: "0 4px 7px" }}>{title}</div>
+    <div style={{ fontSize: "0.8125rem", fontWeight: 600, color: "var(--color-neutral-600)", padding: "0 0.25rem 0.4375rem" }}>{title}</div>
   );
 }
 
@@ -97,25 +97,25 @@ export function ProfileFieldsView({ fields, dateFormat }: { fields: ProfileField
         ];
 
         return (
-          <div key={group.title} style={{ marginBottom: 20 }}>
+          <div key={group.title} style={{ marginBottom: "1.25rem" }}>
             <GroupHeader title={group.title} />
-            <Blueprint style={{ paddingLeft: 15 }}>
+            <Blueprint style={{ paddingLeft: "0.9375rem" }}>
               {rows.map((row, i) => (
                 <div
                   key={row.label}
                   style={{
                     display: "flex",
-                    gap: 16,
+                    gap: "1rem",
                     alignItems: "baseline",
-                    minHeight: 44,
-                    padding: "11px 15px 11px 0",
+                    minHeight: "2.75rem",
+                    padding: "0.6875rem 0.9375rem 0.6875rem 0",
                     borderTop: i === 0 ? undefined : "1px solid var(--color-divider)",
                   }}
                 >
-                  <span style={{ fontSize: 15, color: "var(--color-neutral-700)", flex: "none" }}>{row.label}</span>
+                  <span style={{ fontSize: "0.9375rem", color: "var(--color-neutral-700)", flex: "none" }}>{row.label}</span>
                   <span
                     style={{
-                      fontSize: 15,
+                      fontSize: "0.9375rem",
                       marginLeft: "auto",
                       minWidth: 0,
                       textAlign: "right",
@@ -149,10 +149,10 @@ export function ProfileFieldsEditor({
   return (
     <>
       {PROFILE_FIELD_GROUPS.map((group) => (
-        <div key={group.title} style={{ marginBottom: 20 }}>
+        <div key={group.title} style={{ marginBottom: "1.25rem" }}>
           <GroupHeader title={group.title} />
           {group.fields.map((spec) => (
-            <div className="field" key={spec.key} style={{ marginBottom: 10 }}>
+            <div className="field" key={spec.key} style={{ marginBottom: "0.625rem" }}>
               <label htmlFor={`${uid}-${spec.key}`}>{spec.label}</label>
               <input id={`${uid}-${spec.key}`} aria-label={spec.label}
                 className="input"

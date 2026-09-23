@@ -24,11 +24,11 @@ export function LiquidIntakeTracker({ date, members }: { date: string; members: 
   if (members.length === 0) return null;
 
   return (
-    <div style={{ marginTop: 18 }}>
-      <div style={{ fontSize: 11.5, letterSpacing: ".05em", textTransform: "uppercase", color: "var(--color-neutral-600)", marginBottom: 9 }}>
+    <div style={{ marginTop: "1.125rem" }}>
+      <div style={{ fontSize: "0.71875rem", letterSpacing: ".05em", textTransform: "uppercase", color: "var(--color-neutral-600)", marginBottom: "0.5625rem" }}>
         Liquid intake
       </div>
-      <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+      <div style={{ display: "flex", flexDirection: "column", gap: "0.625rem" }}>
         {members.map((m) => (
           <MemberIntakeRow key={m.id} date={date} member={m} />
         ))}
@@ -58,15 +58,15 @@ function MemberIntakeRow({ date, member }: { date: string; member: LiquidIntakeM
   };
 
   return (
-    <Blueprint style={{ padding: "10px 12px", display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+    <Blueprint style={{ padding: "0.625rem 0.75rem", display: "flex", alignItems: "center", gap: "0.625rem", flexWrap: "wrap" }}>
       <Avatar url={member.avatarUrl} initials={initials(member.name)} label={member.name} size={34} clickable={false} />
-      <span style={{ fontSize: 13.5, fontWeight: 500, flex: "1 1 auto", minWidth: 90 }}>{member.name}</span>
+      <span style={{ fontSize: "0.84375rem", fontWeight: 500, flex: "1 1 auto", minWidth: "5.625rem" }}>{member.name}</span>
 
       {/* The picker hangs from the whole group rather than from the button
           that opened it. Hung off Milk, which sits at the right-hand end, a
           fixed-width menu ran past the edge of a phone and took the page
           sideways with it. */}
-      <div style={{ position: "relative", display: "flex", gap: 6, flexWrap: "wrap" }}>
+      <div style={{ position: "relative", display: "flex", gap: "0.375rem", flexWrap: "wrap" }}>
         {LIQUID_INTAKE_TYPES.map((type) => (
           <GlassButton
             key={type}
@@ -87,7 +87,7 @@ function MemberIntakeRow({ date, member }: { date: string; member: LiquidIntakeM
         )}
       </div>
 
-      {error && <div style={{ flexBasis: "100%", fontSize: 12, color: "var(--cal-occasion)" }}>{error}</div>}
+      {error && <div style={{ flexBasis: "100%", fontSize: "0.75rem", color: "var(--cal-occasion)" }}>{error}</div>}
     </Blueprint>
   );
 }
@@ -128,7 +128,7 @@ function GlassButton({
       className="btn btn-secondary"
       disabled={disabled}
       aria-label={`${LIQUID_INTAKE_LABEL[type]}: ${glasses} glass${glasses === 1 ? "" : "es"} today. Tap to add one, hold to set the count.`}
-      style={{ minHeight: 32, fontSize: 12.5, padding: "0 10px", gap: 5, color: "var(--color-text)" }}
+      style={{ minHeight: "2rem", fontSize: "0.78125rem", padding: "0 0.625rem", gap: "0.3125rem", color: "var(--color-text)" }}
       onPointerDown={startHold}
       onPointerUp={endHold}
       onPointerLeave={endHold}
@@ -194,15 +194,15 @@ function GlassPicker({
         left: 0,
         right: 0,
         zIndex: 50,
-        maxHeight: 220,
+        maxHeight: "13.75rem",
         overflowY: "auto",
-        padding: 6,
+        padding: "0.375rem",
         borderRadius: 14,
         border: "1px solid var(--color-divider)",
         boxShadow: "var(--shadow-lg)",
         display: "grid",
         gridTemplateColumns: "repeat(auto-fit, minmax(38px, 1fr))",
-        gap: 4,
+        gap: "0.25rem",
       }}
     >
       {Array.from({ length: MAX_GLASSES + 1 }, (_, n) => n).map((n) => (
@@ -213,12 +213,12 @@ function GlassPicker({
           aria-checked={n === current}
           onClick={() => onPick(n)}
           style={{
-            minHeight: 32,
+            minHeight: "2rem",
             border: 0,
             borderRadius: 8,
             cursor: "pointer",
             fontFamily: "var(--font-body)",
-            fontSize: 13,
+            fontSize: "0.8125rem",
             fontWeight: n === current ? 600 : 400,
             background: n === current ? "color-mix(in srgb, var(--color-accent) 14%, transparent)" : "transparent",
             color: "var(--color-text)",

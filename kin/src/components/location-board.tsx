@@ -22,12 +22,12 @@ export function LocationBoard({ people, meId, myRole }: { people: MemberLocation
   const me = people.find((p) => p.memberId === meId);
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+    <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
       {me?.sharing && <Reporter />}
       {people.map((p) => (
         <PersonRow key={p.memberId} person={p} isMe={p.memberId === meId} canManage={isGrownUp(myRole)} />
       ))}
-      <p style={{ fontSize: 12, lineHeight: 1.45, color: "var(--color-neutral-600)", margin: "2px 0 0" }}>
+      <p style={{ fontSize: "0.75rem", lineHeight: 1.45, color: "var(--color-neutral-600)", margin: "2px 0 0" }}>
         Sharing is off until someone turns it on for themselves, and only updates while they have Kin open — a browser
         can&rsquo;t report where you are once it&rsquo;s closed. Switching it off clears the last position rather than
         just hiding it.
@@ -93,7 +93,7 @@ function PersonRow({ person, isMe, canManage }: { person: MemberLocation; isMe: 
   const hasFix = person.sharing && person.lat !== null && person.lng !== null;
 
   return (
-    <Blueprint style={{ padding: "11px 12px", display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+    <Blueprint style={{ padding: "0.6875rem 0.75rem", display: "flex", alignItems: "center", gap: "0.625rem", flexWrap: "wrap" }}>
       <span
         style={{
           width: 30,
@@ -111,11 +111,11 @@ function PersonRow({ person, isMe, canManage }: { person: MemberLocation; isMe: 
       </span>
 
       <span style={{ flex: 1, minWidth: 120 }}>
-        <span style={{ display: "block", fontSize: 14, fontWeight: 500 }}>
+        <span style={{ display: "block", fontSize: "0.875rem", fontWeight: 500 }}>
           {person.name.split(" ")[0]}
           {isMe ? " (you)" : ""}
         </span>
-        <span style={{ display: "block", fontSize: 12.5, color: "var(--color-neutral-600)" }}>
+        <span style={{ display: "block", fontSize: "0.78125rem", color: "var(--color-neutral-600)" }}>
           {!person.sharing
             ? "Not sharing"
             : hasFix
@@ -132,7 +132,7 @@ function PersonRow({ person, isMe, canManage }: { person: MemberLocation; isMe: 
           href={`https://www.google.com/maps/search/?api=1&query=${person.lat},${person.lng}`}
           target="_blank"
           rel="noopener noreferrer"
-          style={{ minHeight: 30, fontSize: 12.5, padding: "0 10px" }}
+          style={{ minHeight: "1.875rem", fontSize: "0.78125rem", padding: "0 0.625rem" }}
         >
           Map
         </a>
@@ -159,13 +159,13 @@ function PersonRow({ person, isMe, canManage }: { person: MemberLocation; isMe: 
               return;
             toggle(true);
           }}
-          style={{ minHeight: 30, fontSize: 12.5, padding: "0 10px" }}
+          style={{ minHeight: "1.875rem", fontSize: "0.78125rem", padding: "0 0.625rem" }}
         >
           {person.sharing ? "Stop" : "Share"}
         </button>
       )}
 
-      {error && <div style={{ flexBasis: "100%", fontSize: 12, color: "var(--cal-occasion)" }}>{error}</div>}
+      {error && <div style={{ flexBasis: "100%", fontSize: "0.75rem", color: "var(--cal-occasion)" }}>{error}</div>}
     </Blueprint>
   );
 }

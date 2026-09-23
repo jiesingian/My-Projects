@@ -45,7 +45,7 @@ export function DeleteButton({
         }
         router.refresh();
       }}
-      style={{ background: "none", border: "none", cursor: busy ? "default" : "pointer", color: "inherit", padding: 4, display: "inline-flex", opacity: busy ? 0.5 : 1, ...style }}
+      style={{ background: "none", border: "none", cursor: busy ? "default" : "pointer", color: "inherit", padding: "0.25rem", display: "inline-flex", opacity: busy ? 0.5 : 1, ...style }}
     >
       <Icon name="trash" size={14} />
     </button>

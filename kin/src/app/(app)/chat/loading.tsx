@@ -13,18 +13,18 @@ const BUBBLES: { mine: boolean; width: number }[] = [
 
 export default function Loading() {
   return (
-    <div style={{ padding: "18px 22px 8px" }} aria-busy="true" aria-live="polite">
+    <div style={{ padding: "1.125rem 1.375rem 0.5rem" }} aria-busy="true" aria-live="polite">
       <span className="sr-only">Loading</span>
 
-      <div style={{ marginBottom: 18 }}>
-        <span className="kin-skeleton" style={{ width: 92, height: 12, borderRadius: 4, marginBottom: 7 }} />
-        <span className="kin-skeleton" style={{ width: 140, height: 22, borderRadius: 5, marginBottom: 6 }} />
+      <div style={{ marginBottom: "1.125rem" }}>
+        <span className="kin-skeleton" style={{ width: 92, height: 12, borderRadius: 4, marginBottom: "0.4375rem" }} />
+        <span className="kin-skeleton" style={{ width: 140, height: 22, borderRadius: 5, marginBottom: "0.375rem" }} />
         <span className="kin-skeleton" style={{ width: 190, height: 11, borderRadius: 4 }} />
       </div>
 
-      <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+      <div style={{ display: "flex", flexDirection: "column", gap: "0.625rem" }}>
         {BUBBLES.map((b, i) => (
-          <div key={i} style={{ display: "flex", gap: 8, justifyContent: b.mine ? "flex-end" : "flex-start" }}>
+          <div key={i} style={{ display: "flex", gap: "0.5rem", justifyContent: b.mine ? "flex-end" : "flex-start" }}>
             {!b.mine && <span className="kin-skeleton" style={{ width: 28, height: 28, borderRadius: "50%", flex: "none" }} />}
             <span className="kin-skeleton" style={{ width: `${b.width}%`, maxWidth: 280, height: 34, borderRadius: 18 }} />
           </div>

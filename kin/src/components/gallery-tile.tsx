@@ -71,7 +71,7 @@ export function GalleryTile({
         ) : (
           <Icon name={mediaType === "video" ? "images" : "hardDrive"} size={22} className="text-[var(--color-neutral-600)]" />
         )}
-        <span style={{ position: "absolute", bottom: 4, left: 4, font: "400 7.5px/1 var(--font-numeric)", background: "var(--color-bg)", padding: "2px 3px", color: "var(--color-neutral-700)" }}>
+        <span style={{ position: "absolute", bottom: 4, left: 4, font: "400 0.46875rem/1 var(--font-numeric)", background: "var(--color-bg)", padding: "0.125rem 0.1875rem", color: "var(--color-neutral-700)" }}>
           {date}
         </span>
         {selectMode ? (
@@ -107,13 +107,13 @@ export function GalleryTile({
           role="dialog"
           aria-modal="true"
           onClick={() => setOpen(false)}
-          style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,.92)", zIndex: 1000, display: "flex", alignItems: "center", justifyContent: "center", padding: 24 }}
+          style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,.92)", zIndex: 1000, display: "flex", alignItems: "center", justifyContent: "center", padding: "1.5rem" }}
         >
           <button
             type="button"
             aria-label="Close"
             onClick={() => setOpen(false)}
-            style={{ position: "absolute", top: 16, right: 20, background: "none", border: "none", color: "#fff", fontSize: 30, lineHeight: 1, cursor: "pointer" }}
+            style={{ position: "absolute", top: 16, right: 20, background: "none", border: "none", color: "#fff", fontSize: "1.875rem", lineHeight: 1, cursor: "pointer" }}
           >
             ×
           </button>
@@ -129,7 +129,7 @@ export function GalleryTile({
               target="_blank"
               rel="noopener noreferrer"
               onClick={(e) => e.stopPropagation()}
-              style={{ position: "absolute", bottom: 16, right: 20, color: "#fff", fontSize: 13, textDecoration: "underline" }}
+              style={{ position: "absolute", bottom: 16, right: 20, color: "#fff", fontSize: "0.8125rem", textDecoration: "underline" }}
             >
               Open in Drive
             </a>

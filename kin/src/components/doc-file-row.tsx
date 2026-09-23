@@ -24,13 +24,13 @@ export function DocFileRow({
   const selected = ctx?.isSelected(id) ?? false;
 
   return (
-    <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+    <div style={{ display: "flex", alignItems: "center", gap: "0.375rem" }}>
       <div style={{ flex: 1, minWidth: 0 }}>
         {selectMode ? (
           <button
             type="button"
             onClick={() => ctx?.toggle(id, fileName)}
-            style={{ all: "unset", display: "flex", alignItems: "center", gap: 8, width: "100%", cursor: "pointer", minHeight: 32 }}
+            style={{ all: "unset", display: "flex", alignItems: "center", gap: "0.5rem", width: "100%", cursor: "pointer", minHeight: "2rem" }}
           >
             <span
               style={{
@@ -47,7 +47,7 @@ export function DocFileRow({
             >
               {selected && <Icon name="check" size={10} className="text-white" />}
             </span>
-            <span style={{ fontSize: 13.5 }}>{fileName}</span>
+            <span style={{ fontSize: "0.84375rem" }}>{fileName}</span>
           </button>
         ) : (
           <DownloadLink path={path} fileName={fileName} driveViewLink={driveViewLink} />

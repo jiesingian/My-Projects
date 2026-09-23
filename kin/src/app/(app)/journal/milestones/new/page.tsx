@@ -23,19 +23,19 @@ export default function NewMilestonePage() {
   return (
     <div>
       <DetailHeader backHref="/journal?view=milestones" eyebrow="HUB 02 · MILESTONE" />
-      <div style={{ padding: "0 22px 22px" }}>
-        <h3 style={{ fontSize: 30, margin: "0 0 16px" }}>Add a milestone</h3>
+      <div style={{ padding: "0 1.375rem 1.375rem" }}>
+        <h3 style={{ fontSize: "1.875rem", margin: "0 0 16px" }}>Add a milestone</h3>
         <form action={formAction}>
           <ErrorText message={state.error} />
-          <div className="field" style={{ marginBottom: 14 }}>
+          <div className="field" style={{ marginBottom: "0.875rem" }}>
             <label htmlFor={`${uid}-title`}>TITLE</label>
-            <input id={`${uid}-title`} aria-label="Title" className="input" name="title" required style={{ minHeight: 44 }} />
+            <input id={`${uid}-title`} aria-label="Title" className="input" name="title" required style={{ minHeight: "2.75rem" }} />
           </div>
-          <div className="field" style={{ marginBottom: 18 }}>
+          <div className="field" style={{ marginBottom: "1.125rem" }}>
             <label htmlFor={`${uid}-date`}>DATE</label>
-            <DateInput id={`${uid}-date`} aria-label="Date" className="input" name="date" defaultValue={familyDay()} required style={{ minHeight: 44 }} />
+            <DateInput id={`${uid}-date`} aria-label="Date" className="input" name="date" defaultValue={familyDay()} required style={{ minHeight: "2.75rem" }} />
           </div>
-          <SubmitButton style={{ minHeight: 46, fontSize: 14, letterSpacing: ".04em" }}>SAVE MILESTONE</SubmitButton>
+          <SubmitButton style={{ minHeight: "2.875rem", fontSize: "0.875rem", letterSpacing: ".04em" }}>SAVE MILESTONE</SubmitButton>
         </form>
       </div>
     </div>

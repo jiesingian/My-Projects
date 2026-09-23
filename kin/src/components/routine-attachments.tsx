@@ -71,26 +71,26 @@ export function RoutineAttachments({ routineId, initial }: { routineId: string; 
   }
 
   return (
-    <div className="field" style={{ marginBottom: 16 }}>
+    <div className="field" style={{ marginBottom: "1rem" }}>
       <label htmlFor={`${uid}-file`}>FILES</label>
       {files.length > 0 && (
-        <div style={{ marginBottom: 8 }}>
+        <div style={{ marginBottom: "0.5rem" }}>
           {files.map((f) => (
-            <div key={f.id} style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 0", borderBottom: "1px solid var(--color-divider)" }}>
+            <div key={f.id} style={{ display: "flex", alignItems: "center", gap: "0.5rem", padding: "0.5rem 0", borderBottom: "1px solid var(--color-divider)" }}>
               <Icon name="fileText" size={16} style={{ flex: "none", color: "var(--color-neutral-600)" }} />
               <button
                 type="button"
                 onClick={() => void onOpen(f)}
                 style={{ flex: 1, minWidth: 0, textAlign: "left", background: "none", border: "none", padding: 0, cursor: "pointer", font: "inherit", color: "var(--color-text)" }}
               >
-                <span style={{ display: "block", fontSize: 14, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{f.fileName}</span>
-                {f.sizeBytes != null && <span style={{ fontSize: 12, color: "var(--color-neutral-600)" }}>{formatBytes(f.sizeBytes)}</span>}
+                <span style={{ display: "block", fontSize: "0.875rem", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{f.fileName}</span>
+                {f.sizeBytes != null && <span style={{ fontSize: "0.75rem", color: "var(--color-neutral-600)" }}>{formatBytes(f.sizeBytes)}</span>}
               </button>
               <button
                 type="button"
                 aria-label={`Remove ${f.fileName}`}
                 onClick={() => void onDelete(f)}
-                style={{ flex: "none", background: "none", border: "none", padding: 4, cursor: "pointer", color: "var(--color-neutral-600)" }}
+                style={{ flex: "none", background: "none", border: "none", padding: "0.25rem", cursor: "pointer", color: "var(--color-neutral-600)" }}
               >
                 <Icon name="x" size={15} />
               </button>
@@ -109,11 +109,11 @@ export function RoutineAttachments({ routineId, initial }: { routineId: string; 
           if (file) void onPick(file);
         }}
       />
-      <button type="button" className="btn btn-secondary" disabled={busy} onClick={() => input.current?.click()} style={{ minHeight: 40, fontSize: 13 }}>
+      <button type="button" className="btn btn-secondary" disabled={busy} onClick={() => input.current?.click()} style={{ minHeight: "2.5rem", fontSize: "0.8125rem" }}>
         {busy ? "UPLOADING…" : "+ ADD FILE"}
       </button>
       {error && (
-        <p role="alert" style={{ fontSize: 13, color: "var(--cal-occasion)", marginTop: 6 }}>
+        <p role="alert" style={{ fontSize: "0.8125rem", color: "var(--cal-occasion)", marginTop: "0.375rem" }}>
           {error}
         </p>
       )}

@@ -13,7 +13,7 @@ export function DeleteAccountButton({ isSoleMember }: { isSoleMember: boolean })
       <button
         type="button"
         className="btn btn-secondary btn-block"
-        style={{ minHeight: 46, fontSize: 13.5, letterSpacing: ".04em", color: "var(--color-accent-700)", borderColor: "var(--color-accent-700)" }}
+        style={{ minHeight: "2.875rem", fontSize: "0.84375rem", letterSpacing: ".04em", color: "var(--color-accent-700)", borderColor: "var(--color-accent-700)" }}
         disabled={busy}
         onClick={async () => {
           const warning = isSoleMember
@@ -28,7 +28,7 @@ export function DeleteAccountButton({ isSoleMember }: { isSoleMember: boolean })
       >
         {busy ? "DELETING…" : "DELETE MY ACCOUNT"}
       </button>
-      {error && <p style={{ color: "var(--color-accent-700)", fontSize: 13, marginTop: 8 }}>{error}</p>}
+      {error && <p style={{ color: "var(--color-accent-700)", fontSize: "0.8125rem", marginTop: "0.5rem" }}>{error}</p>}
     </div>
   );
 }

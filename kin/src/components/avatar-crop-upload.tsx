@@ -92,14 +92,14 @@ export function AvatarCropUpload({ onDone }: { onDone: () => void }) {
             position: "absolute",
             bottom: -2,
             right: -2,
-            width: 18,
-            height: 18,
+            width: "1.125rem",
+            height: "1.125rem",
             borderRadius: "50%",
             background: "var(--color-accent)",
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
-            fontSize: 13,
+            fontSize: "0.8125rem",
             color: "#fff",
             border: "2px solid var(--color-bg)",
           }}
@@ -113,7 +113,7 @@ export function AvatarCropUpload({ onDone }: { onDone: () => void }) {
         <div
           role="dialog"
           aria-modal="true"
-          style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,.85)", zIndex: 1000, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: 24, gap: 18 }}
+          style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,.85)", zIndex: 1000, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "1.5rem", gap: "1.125rem" }}
         >
           <div style={{ width: 240, height: 240, borderRadius: "50%", overflow: "hidden", position: "relative", border: "2px solid #fff" }}>
             {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -131,17 +131,17 @@ export function AvatarCropUpload({ onDone }: { onDone: () => void }) {
               }}
             />
           </div>
-          <div style={{ display: "flex", alignItems: "center", gap: 10, width: 240 }}>
-            <span style={{ color: "#fff", fontSize: 16 }}>−</span>
+          <div style={{ display: "flex", alignItems: "center", gap: "0.625rem", width: 240 }}>
+            <span style={{ color: "#fff", fontSize: "1rem" }}>−</span>
             <input aria-label="Zoom" type="range" min={1} max={3} step={0.05} value={zoom} onChange={(e) => setZoom(Number(e.target.value))} style={{ flex: 1 }} disabled={busy} />
-            <span style={{ color: "#fff", fontSize: 16 }}>+</span>
+            <span style={{ color: "#fff", fontSize: "1rem" }}>+</span>
           </div>
-          {error && <p style={{ color: "var(--color-accent-400)", fontSize: 13 }}>{error}</p>}
-          <div style={{ display: "flex", gap: 10 }}>
-            <button type="button" className="btn btn-secondary" style={{ minHeight: 40, fontSize: 13.5, padding: "0 20px" }} disabled={busy} onClick={cancel}>
+          {error && <p style={{ color: "var(--color-accent-400)", fontSize: "0.8125rem" }}>{error}</p>}
+          <div style={{ display: "flex", gap: "0.625rem" }}>
+            <button type="button" className="btn btn-secondary" style={{ minHeight: "2.5rem", fontSize: "0.84375rem", padding: "0 1.25rem" }} disabled={busy} onClick={cancel}>
               CANCEL
             </button>
-            <button type="button" className="btn btn-primary" style={{ minHeight: 40, fontSize: 13.5, padding: "0 20px" }} disabled={busy} onClick={save}>
+            <button type="button" className="btn btn-primary" style={{ minHeight: "2.5rem", fontSize: "0.84375rem", padding: "0 1.25rem" }} disabled={busy} onClick={save}>
               {busy ? "SAVING…" : "SAVE"}
             </button>
           </div>

@@ -48,7 +48,7 @@ export default async function FamilyPage({
   return (
     <div>
       <HubHeader n="01" title="Family" segments={segments} dateFormat={me.families.date_format} />
-      <div style={{ padding: "0 22px 22px" }}>
+      <div style={{ padding: "0 1.375rem 1.375rem" }}>
         {seg === "profile" && <ProfilePane familyId={me.family_id} isOrganiser={me.is_organiser} myId={me.id} myRole={me.role} />}
         {seg === "health" && <HealthPane familyId={me.family_id} />}
         {seg === "documents" && <DocumentsPane familyId={me.family_id} who={who} meId={me.id} />}
@@ -76,15 +76,15 @@ async function ProfilePane({ familyId, isOrganiser, myId, myRole }: { familyId: 
 
       {isOrganiser && pending.length > 0 && (
         <>
-          <div style={{ font: "600 13px/1 var(--font-heading)", letterSpacing: ".02em", color: "var(--color-accent-700)", marginBottom: 8 }}>
+          <div style={{ font: "600 0.8125rem/1 var(--font-heading)", letterSpacing: ".02em", color: "var(--color-accent-700)", marginBottom: "0.5rem" }}>
             PENDING REQUESTS · {pending.length}
           </div>
           {pending.map((m) => (
-            <Blueprint key={m.id} className="bg-[var(--color-accent-100)]" style={{ padding: 12, marginBottom: 10, display: "flex", alignItems: "center", gap: 12 }}>
+            <Blueprint key={m.id} className="bg-[var(--color-accent-100)]" style={{ padding: "0.75rem", marginBottom: "0.625rem", display: "flex", alignItems: "center", gap: "0.75rem" }}>
               <Avatar url={m.avatar_url} initials={initials(m.full_name)} label={m.full_name} size={40} />
               <span style={{ flex: 1, minWidth: 0 }}>
-                <span style={{ font: "600 15px/1.1 var(--font-heading)", display: "block" }}>{m.full_name}</span>
-                <span style={{ fontSize: 13, color: "var(--color-neutral-600)" }}>
+                <span style={{ font: "600 0.9375rem/1.1 var(--font-heading)", display: "block" }}>{m.full_name}</span>
+                <span style={{ fontSize: "0.8125rem", color: "var(--color-neutral-600)" }}>
                   {formatAge(m.dob)} · wants to join as {m.role.replace("_", " ")}
                 </span>
               </span>
@@ -102,17 +102,17 @@ async function ProfilePane({ familyId, isOrganiser, myId, myRole }: { familyId: 
           key={m.id}
           style={{
             display: "flex",
-            gap: 12,
+            gap: "0.75rem",
             alignItems: "center",
-            padding: "13px 0",
+            padding: "0.8125rem 0",
             borderBottom: "1px solid color-mix(in srgb, var(--color-text) 10%, transparent)",
           }}
         >
-          <Link href={`/family/members/${m.id}`} style={{ display: "flex", gap: 12, alignItems: "center", flex: 1, minWidth: 0, textDecoration: "none", color: "inherit" }}>
+          <Link href={`/family/members/${m.id}`} style={{ display: "flex", gap: "0.75rem", alignItems: "center", flex: 1, minWidth: 0, textDecoration: "none", color: "inherit" }}>
             <Avatar url={m.avatar_url} initials={initials(m.full_name)} label={m.full_name} size={44} />
             <span style={{ flex: 1, minWidth: 0 }}>
-              <span style={{ font: "600 18px/1.1 var(--font-heading)", display: "block" }}>{m.full_name}</span>
-              <span style={{ fontSize: 13, color: "var(--color-neutral-600)" }}>
+              <span style={{ font: "600 1.125rem/1.1 var(--font-heading)", display: "block" }}>{m.full_name}</span>
+              <span style={{ fontSize: "0.8125rem", color: "var(--color-neutral-600)" }}>
                 {formatAge(m.dob)} · {m.relationship ?? m.role.replace("_", " ")}
               </span>
             </span>
@@ -124,7 +124,7 @@ async function ProfilePane({ familyId, isOrganiser, myId, myRole }: { familyId: 
         </div>
       ))}
       </div>
-      <div style={{ fontSize: 13, color: "var(--color-neutral-600)", marginTop: 14 }}>
+      <div style={{ fontSize: "0.8125rem", color: "var(--color-neutral-600)", marginTop: "0.875rem" }}>
         Managed profiles are written by a parent. Children graduate to their own login at 13.
       </div>
 
@@ -136,12 +136,12 @@ async function ProfilePane({ familyId, isOrganiser, myId, myRole }: { familyId: 
 
       {isOrganiser && removed.length > 0 && (
         <>
-          <div style={{ font: "600 13px/1 var(--font-heading)", letterSpacing: ".02em", color: "var(--color-neutral-600)", margin: "22px 0 8px" }}>
+          <div style={{ font: "600 0.8125rem/1 var(--font-heading)", letterSpacing: ".02em", color: "var(--color-neutral-600)", margin: "22px 0 8px" }}>
             REMOVED · {removed.length}
           </div>
           {removed.map((m) => (
-            <div key={m.id} style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 0", borderBottom: "1px solid color-mix(in srgb, var(--color-text) 10%, transparent)", opacity: 0.7 }}>
-              <span style={{ flex: 1, minWidth: 0, fontSize: 14 }}>{m.full_name}</span>
+            <div key={m.id} style={{ display: "flex", alignItems: "center", gap: "0.75rem", padding: "0.625rem 0", borderBottom: "1px solid color-mix(in srgb, var(--color-text) 10%, transparent)", opacity: 0.7 }}>
+              <span style={{ flex: 1, minWidth: 0, fontSize: "0.875rem" }}>{m.full_name}</span>
               <ReinstateMemberButton memberId={m.id} />
             </div>
           ))}
@@ -158,14 +158,14 @@ async function HealthPane({ familyId }: { familyId: string }) {
     <>
       {rows.map(({ member, nextDue, hasAlert }) => (
         <Link key={member.id} href={`/family/members/${member.id}?view=health`} style={{ color: "inherit", textDecoration: "none" }}>
-          <Blueprint style={{ padding: 13, marginBottom: 12 }}>
-            <div style={{ display: "flex", alignItems: "baseline", gap: 8, marginBottom: 8 }}>
-              <span style={{ font: "600 19px/1 var(--font-heading)" }}>{member.full_name.split(" ")[0]}</span>
+          <Blueprint style={{ padding: "0.8125rem", marginBottom: "0.75rem" }}>
+            <div style={{ display: "flex", alignItems: "baseline", gap: "0.5rem", marginBottom: "0.5rem" }}>
+              <span style={{ font: "600 1.1875rem/1 var(--font-heading)" }}>{member.full_name.split(" ")[0]}</span>
               <Tag variant={hasAlert ? "accent" : "neutral"} className="ml-auto">
                 {nextDue}
               </Tag>
             </div>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "7px 14px", fontSize: 13 }}>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.4375rem 0.875rem", fontSize: "0.8125rem" }}>
               <Fact k="Blood type" v={member.blood_type} />
               <Fact k="Allergies" v={member.allergies} />
               <Fact k="Insurance" v={member.insurance_info} />
@@ -181,7 +181,7 @@ async function HealthPane({ familyId }: { familyId: string }) {
 function Fact({ k, v }: { k: string; v: string | null }) {
   return (
     <div>
-      <span style={{ color: "var(--color-neutral-600)", fontSize: 13, display: "block" }}>{k}</span>
+      <span style={{ color: "var(--color-neutral-600)", fontSize: "0.8125rem", display: "block" }}>{k}</span>
       <span style={{ color: v ? "var(--color-text)" : "var(--color-neutral-500)" }}>{v || "Not recorded"}</span>
     </div>
   );
@@ -210,12 +210,12 @@ async function DocumentsPane({ familyId, who, meId }: { familyId: string; who: s
 
   return (
     <div className="kin-docs-state">
-      <Blueprint className="bg-[var(--color-accent-100)] mb-4" style={{ padding: 12, display: "flex", gap: 10, alignItems: "center" }}>
-        <span style={{ fontSize: 13, lineHeight: 1.35 }}>
+      <Blueprint className="bg-[var(--color-accent-100)] mb-4" style={{ padding: "0.75rem", display: "flex", gap: "0.625rem", alignItems: "center" }}>
+        <span style={{ fontSize: "0.8125rem", lineHeight: 1.35 }}>
           Files stay in your connected Drive. Kin holds the index and the expiry dates only.
         </span>
       </Blueprint>
-      <div style={{ marginBottom: 14 }}>
+      <div style={{ marginBottom: "0.875rem" }}>
         <ChipRow
           items={[
             { label: "All", href: "/family?seg=documents&who=all", active: who === "all" },
@@ -233,17 +233,17 @@ async function DocumentsPane({ familyId, who, meId }: { familyId: string; who: s
           href={`/family/documents/${folder.id}`}
           style={{
             display: "flex",
-            gap: 11,
+            gap: "0.6875rem",
             alignItems: "center",
-            padding: "12px 0",
+            padding: "0.75rem 0",
             borderBottom: "1px solid color-mix(in srgb, var(--color-text) 10%, transparent)",
             textDecoration: "none",
             color: "inherit",
           }}
         >
           <span style={{ flex: 1, minWidth: 0 }}>
-            <span style={{ font: "600 16px/1.1 var(--font-heading)", display: "block" }}>{folder.name}</span>
-            <span style={{ fontSize: 13, color: "var(--color-neutral-600)" }}>
+            <span style={{ font: "600 1rem/1.1 var(--font-heading)", display: "block" }}>{folder.name}</span>
+            <span style={{ fontSize: "0.8125rem", color: "var(--color-neutral-600)" }}>
               {folder.fileCount} file{folder.fileCount === 1 ? "" : "s"}
             </span>
           </span>
@@ -255,7 +255,7 @@ async function DocumentsPane({ familyId, who, meId }: { familyId: string; who: s
       <Link
         href="/family/documents/new"
         className="btn btn-primary btn-block"
-        style={{ minHeight: 46, fontSize: 14, letterSpacing: ".04em", marginTop: 18 }}
+        style={{ minHeight: "2.875rem", fontSize: "0.875rem", letterSpacing: ".04em", marginTop: "1.125rem" }}
       >
         + NEW ENTRY
       </Link>
@@ -273,7 +273,7 @@ async function TreePane({ familyId, myId, center }: { familyId: string; myId: st
 
   return (
     <>
-      <div style={{ marginBottom: 16 }}>
+      <div style={{ marginBottom: "1rem" }}>
         <ChipRow
           items={shortNames(members.map((m) => m.full_name)).map((label, i) => ({
             label,
@@ -317,12 +317,12 @@ async function QuicklinksPane({ familyId, meId, myRole }: { familyId: string; me
   const [contacts, people] = await Promise.all([getEmergencyContacts(familyId), getMemberLocations(familyId)]);
   return (
     <>
-      <div style={{ font: "600 13px/1 var(--font-heading)", letterSpacing: ".02em", color: "var(--color-neutral-600)", marginBottom: 8 }}>
+      <div style={{ font: "600 0.8125rem/1 var(--font-heading)", letterSpacing: ".02em", color: "var(--color-neutral-600)", marginBottom: "0.5rem" }}>
         EMERGENCY CONTACTS
       </div>
       <EmergencyContactList contacts={contacts} />
 
-      <div style={{ font: "600 13px/1 var(--font-heading)", letterSpacing: ".02em", color: "var(--color-neutral-600)", margin: "22px 0 8px" }}>
+      <div style={{ font: "600 0.8125rem/1 var(--font-heading)", letterSpacing: ".02em", color: "var(--color-neutral-600)", margin: "22px 0 8px" }}>
         WHERE EVERYONE IS
       </div>
       <LocationBoard people={people} meId={meId} myRole={myRole} />

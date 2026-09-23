@@ -33,7 +33,7 @@ export function CalendarSyncStatus({ lastSyncedISO }: { lastSyncedISO: string | 
   };
 
   return (
-    <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 10, fontSize: 12.5, color: "var(--color-neutral-600)" }}>
+    <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", marginTop: "0.625rem", fontSize: "0.78125rem", color: "var(--color-neutral-600)" }}>
       <span style={{ flex: 1, minWidth: 0 }}>
         {error
           ? error
@@ -48,7 +48,7 @@ export function CalendarSyncStatus({ lastSyncedISO }: { lastSyncedISO: string | 
         onClick={sync}
         disabled={pending}
         className="btn btn-ghost"
-        style={{ minHeight: 28, fontSize: 12.5, padding: "0 8px", gap: 4 }}
+        style={{ minHeight: "1.75rem", fontSize: "0.78125rem", padding: "0 0.5rem", gap: "0.25rem" }}
       >
         <Icon name="upload" size={13} style={{ transform: "rotate(90deg)" }} />
         Sync now

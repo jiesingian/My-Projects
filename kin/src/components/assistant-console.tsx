@@ -140,9 +140,9 @@ export function AssistantConsole({ memberName }: { memberName: string }) {
   }, []);
 
   return (
-    <Blueprint style={{ padding: 13, marginBottom: 14 }}>
-      <div style={{ display: "flex", alignItems: "baseline", gap: 8, marginBottom: turns.length > 0 ? 10 : 8 }}>
-        <span style={{ font: "600 13px/1 var(--font-heading)", letterSpacing: ".02em", color: "var(--color-neutral-600)" }}>ASK KIN</span>
+    <Blueprint style={{ padding: "0.8125rem", marginBottom: "0.875rem" }}>
+      <div style={{ display: "flex", alignItems: "baseline", gap: "0.5rem", marginBottom: turns.length > 0 ? 10 : 8 }}>
+        <span style={{ font: "600 0.8125rem/1 var(--font-heading)", letterSpacing: ".02em", color: "var(--color-neutral-600)" }}>ASK KIN</span>
         {turns.length > 0 && (
           <button
             type="button"
@@ -150,7 +150,7 @@ export function AssistantConsole({ memberName }: { memberName: string }) {
               setTurns([]);
               setError(null);
             }}
-            style={{ marginLeft: "auto", background: "none", border: 0, cursor: "pointer", font: "600 12px/1 var(--font-heading)", letterSpacing: ".02em", color: "var(--color-neutral-600)" }}
+            style={{ marginLeft: "auto", background: "none", border: 0, cursor: "pointer", font: "600 0.75rem/1 var(--font-heading)", letterSpacing: ".02em", color: "var(--color-neutral-600)" }}
           >
             CLEAR
           </button>
@@ -158,12 +158,12 @@ export function AssistantConsole({ memberName }: { memberName: string }) {
       </div>
 
       {turns.length > 0 && (
-        <div ref={scrollRef} aria-live="polite" style={{ maxHeight: 260, overflowY: "auto", marginBottom: 10, display: "flex", flexDirection: "column", gap: 9 }}>
+        <div ref={scrollRef} aria-live="polite" style={{ maxHeight: "16.25rem", overflowY: "auto", marginBottom: "0.625rem", display: "flex", flexDirection: "column", gap: "0.5625rem" }}>
           {turns.map((turn, i) => (
             <div
               key={i}
               style={{
-                fontSize: 15,
+                fontSize: "0.9375rem",
                 lineHeight: 1.35,
                 alignSelf: turn.role === "user" ? "flex-end" : "flex-start",
                 maxWidth: "84%",
@@ -177,14 +177,14 @@ export function AssistantConsole({ memberName }: { memberName: string }) {
               {turn.content}
             </div>
           ))}
-          {thinking && <div style={{ fontSize: 13.5, color: "var(--color-neutral-600)" }}>Working on it…</div>}
+          {thinking && <div style={{ fontSize: "0.84375rem", color: "var(--color-neutral-600)" }}>Working on it…</div>}
         </div>
       )}
 
-      {error && <p style={{ color: "var(--color-accent-700)", fontSize: 13.5, margin: "0 0 9px" }}>{error}</p>}
+      {error && <p style={{ color: "var(--color-accent-700)", fontSize: "0.84375rem", margin: "0 0 9px" }}>{error}</p>}
 
       {turns.length === 0 && (
-        <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 10 }}>
+        <div style={{ display: "flex", flexWrap: "wrap", gap: "0.375rem", marginBottom: "0.625rem" }}>
           {SUGGESTIONS.map((s) => (
             <button key={s} type="button" className="chip" onClick={() => send(s)} disabled={thinking}>
               {s}
@@ -198,7 +198,7 @@ export function AssistantConsole({ memberName }: { memberName: string }) {
           e.preventDefault();
           send(draft);
         }}
-        style={{ display: "flex", gap: 8 }}
+        style={{ display: "flex", gap: "0.5rem" }}
       >
         <input
           className="input"
@@ -207,7 +207,7 @@ export function AssistantConsole({ memberName }: { memberName: string }) {
             aria-label="Ask Kin"
           placeholder={`Ask or add something, ${memberName}…`}
           disabled={thinking}
-          style={{ minHeight: 42, flex: 1 }}
+          style={{ minHeight: "2.625rem", flex: 1 }}
         />
         {canHear && (
           <button
@@ -218,18 +218,18 @@ export function AssistantConsole({ memberName }: { memberName: string }) {
             aria-pressed={listening}
             aria-label={listening ? "Stop listening" : "Ask by voice"}
             title={listening ? "Stop listening" : "Ask by voice"}
-            style={{ minHeight: 42, width: 42, padding: 0, flex: "none" }}
+            style={{ minHeight: "2.625rem", width: 42, padding: 0, flex: "none" }}
           >
             <Icon name={listening ? "pause" : "message"} size={17} />
           </button>
         )}
-        <button type="submit" className="btn btn-primary" disabled={thinking || !draft.trim()} style={{ minHeight: 42, paddingInline: 16, fontSize: 14 }}>
+        <button type="submit" className="btn btn-primary" disabled={thinking || !draft.trim()} style={{ minHeight: "2.625rem", paddingInline: "1rem", fontSize: "0.875rem" }}>
           {thinking ? "…" : "SEND"}
         </button>
       </form>
 
       {listening && (
-        <p style={{ fontSize: 12.5, color: "var(--color-accent-700)", margin: "8px 0 0" }}>
+        <p style={{ fontSize: "0.78125rem", color: "var(--color-accent-700)", margin: "8px 0 0" }}>
           Listening — say what you need, then pause.
         </p>
       )}
@@ -238,7 +238,7 @@ export function AssistantConsole({ memberName }: { memberName: string }) {
           did the transcribing" is not the same as "nothing left the room"
           and a household should hear that before rather than after. */}
       {heardNotice && !listening && (
-        <p style={{ fontSize: 12, color: "var(--color-neutral-600)", margin: "8px 0 0", lineHeight: 1.45 }}>
+        <p style={{ fontSize: "0.75rem", color: "var(--color-neutral-600)", margin: "8px 0 0", lineHeight: 1.45 }}>
           Your browser does the listening, not Kin — on Chrome that means the audio goes to Google to be turned into
           text. Kin only ever receives the words.
         </p>

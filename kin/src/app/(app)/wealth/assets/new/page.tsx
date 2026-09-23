@@ -11,8 +11,8 @@ export default async function NewHoldingPage({ searchParams }: { searchParams: P
   return (
     <div>
       <DetailHeader backHref="/wealth?seg=assets" eyebrow="HUB 05 · NEW" />
-      <div style={{ padding: "0 22px 22px" }}>
-        <h3 style={{ fontSize: 32, margin: "0 0 14px" }}>Add holding</h3>
+      <div style={{ padding: "0 1.375rem 1.375rem" }}>
+        <h3 style={{ fontSize: "2rem", margin: "0 0 14px" }}>Add holding</h3>
         <AddHoldingForm defaultKind={kind ?? "asset"} />
       </div>
     </div>

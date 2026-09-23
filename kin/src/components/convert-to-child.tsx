@@ -37,22 +37,22 @@ export function ConvertToChild({ memberId, fullName }: { memberId: string; fullN
   }
 
   return (
-    <div style={{ marginBottom: 20 }}>
+    <div style={{ marginBottom: "1.25rem" }}>
       <button
         type="button"
         className="btn btn-ghost"
-        style={{ fontSize: 13, padding: 0 }}
+        style={{ fontSize: "0.8125rem", padding: 0 }}
         disabled={busy}
         onClick={run}
       >
         {busy ? "…" : "Turn into a managed child profile"}
       </button>
-      <p style={{ fontSize: 12.5, color: "var(--color-neutral-600)", margin: "4px 0 0" }}>
+      <p style={{ fontSize: "0.78125rem", color: "var(--color-neutral-600)", margin: "4px 0 0" }}>
         For someone too young for their own login. Removes their sign-in and keeps everything else.
       </p>
       {/* The action reports a partly-done conversion here too -- the profile
           changed but the sign-in outlived it -- so this is not only failure. */}
-      {error && <p style={{ color: "var(--color-accent-700)", fontSize: 13, margin: "6px 0 0" }}>{error}</p>}
+      {error && <p style={{ color: "var(--color-accent-700)", fontSize: "0.8125rem", margin: "6px 0 0" }}>{error}</p>}
     </div>
   );
 }

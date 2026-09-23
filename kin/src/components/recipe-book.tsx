@@ -108,7 +108,7 @@ export function RecipeBook({ recipes, categories: known }: { recipes: EditableRe
 
   return (
     <div>
-      <button type="button" className="btn btn-primary btn-block" style={{ minHeight: 46, fontSize: 15, marginBottom: 12 }} onClick={() => setCreating(true)}>
+      <button type="button" className="btn btn-primary btn-block" style={{ minHeight: "2.875rem", fontSize: "0.9375rem", marginBottom: "0.75rem" }} onClick={() => setCreating(true)}>
         <Icon name="plus" size={16} /> Write a new recipe
       </button>
 
@@ -117,14 +117,14 @@ export function RecipeBook({ recipes, categories: known }: { recipes: EditableRe
         placeholder="Search recipes…"
         value={query}
         onChange={(e) => setQuery(e.target.value)}
-        style={{ minHeight: 42, marginBottom: 12 }}
+        style={{ minHeight: "2.625rem", marginBottom: "0.75rem" }}
         aria-label="Search recipes"
       />
 
       {/* Browse by what kind of food it is, the way a menu is read when
           nobody has decided yet. Tapping a tile narrows the book to it. */}
       {!matches && (
-        <div className="cal-rail" style={{ gap: 10, margin: "0 -18px 14px", padding: "2px 18px 0" }}>
+        <div className="cal-rail" style={{ gap: "0.625rem", margin: "0 -18px 14px", padding: "0.125rem 1.125rem 0" }}>
           <CategoryTile label="All" active={!category} onClick={() => setCategory(null)} count={recipes.length} />
           {categories.map((c) => (
             <CategoryTile
@@ -152,7 +152,7 @@ export function RecipeBook({ recipes, categories: known }: { recipes: EditableRe
         matches.length > 0 ? (
           matches.map((r) => <RecipeRow key={r.id} recipe={r} onEdit={() => setEditing(r)} />)
         ) : (
-          <p style={{ fontSize: 13.5, color: "var(--color-neutral-600)" }}>No recipe matches that.</p>
+          <p style={{ fontSize: "0.84375rem", color: "var(--color-neutral-600)" }}>No recipe matches that.</p>
         )
       ) : chosen ? (
         chosen.items.map((r) => <RecipeRow key={r.id} recipe={r} onEdit={() => setEditing(r)} />)
@@ -182,7 +182,7 @@ function NewCategoryTile({ onClick }: { onClick: () => void }) {
         display: "flex",
         flexDirection: "column",
         alignItems: "center",
-        gap: 5,
+        gap: "0.3125rem",
         background: "none",
         border: 0,
         padding: 0,
@@ -196,7 +196,7 @@ function NewCategoryTile({ onClick }: { onClick: () => void }) {
       >
         <Icon name="plus" size={22} />
       </span>
-      <span style={{ fontSize: 11.5, lineHeight: 1.2, textAlign: "center", color: "var(--color-accent)" }}>New</span>
+      <span style={{ fontSize: "0.71875rem", lineHeight: 1.2, textAlign: "center", color: "var(--color-accent)" }}>New</span>
     </button>
   );
 }
@@ -219,8 +219,8 @@ function CategoryManager({ categories, onDone }: { categories: CategoryView[]; o
   };
 
   return (
-    <div style={{ padding: 12, borderRadius: 14, background: "color-mix(in srgb, var(--color-text) 4%, transparent)", marginBottom: 14 }}>
-      <div style={{ display: "flex", gap: 6 }}>
+    <div style={{ padding: "0.75rem", borderRadius: 14, background: "color-mix(in srgb, var(--color-text) 4%, transparent)", marginBottom: "0.875rem" }}>
+      <div style={{ display: "flex", gap: "0.375rem" }}>
         <input
           className="input"
           placeholder="Another kind of food — Grilled, Baon, Handa…"
@@ -229,27 +229,27 @@ function CategoryManager({ categories, onDone }: { categories: CategoryView[]; o
           onKeyDown={(e) => e.key === "Enter" && add()}
           aria-label="Name for the new category"
           autoFocus
-          style={{ flex: 1, minWidth: 0, minHeight: 40, fontSize: 14 }}
+          style={{ flex: 1, minWidth: 0, minHeight: "2.5rem", fontSize: "0.875rem" }}
         />
-        <button type="button" className="btn btn-secondary" style={{ minHeight: 40, fontSize: 13, padding: "0 12px" }} disabled={pending || !label.trim()} onClick={add}>
+        <button type="button" className="btn btn-secondary" style={{ minHeight: "2.5rem", fontSize: "0.8125rem", padding: "0 0.75rem" }} disabled={pending || !label.trim()} onClick={add}>
           Add
         </button>
-        <button type="button" className="btn btn-ghost" style={{ minHeight: 40, fontSize: 12.5, padding: "0 8px" }} onClick={onDone}>
+        <button type="button" className="btn btn-ghost" style={{ minHeight: "2.5rem", fontSize: "0.78125rem", padding: "0 0.5rem" }} onClick={onDone}>
           Close
         </button>
       </div>
 
       {own.length > 0 && (
-        <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 10 }}>
+        <div style={{ display: "flex", flexWrap: "wrap", gap: "0.375rem", marginTop: "0.625rem" }}>
           {own.map((c) => (
             <span
               key={c.key}
               style={{
                 display: "inline-flex",
                 alignItems: "center",
-                gap: 4,
-                fontSize: 12.5,
-                padding: "4px 6px 4px 11px",
+                gap: "0.25rem",
+                fontSize: "0.78125rem",
+                padding: "0.25rem 0.375rem 0.25rem 0.6875rem",
                 borderRadius: 999,
                 background: "color-mix(in srgb, var(--color-text) 7%, transparent)",
               }}
@@ -260,7 +260,7 @@ function CategoryManager({ categories, onDone }: { categories: CategoryView[]; o
                 disabled={pending}
                 onClick={() => run(() => removeRecipeCategoryAction(c.key))}
                 aria-label={`Remove the ${c.label} category`}
-                style={{ border: 0, background: "none", cursor: "pointer", padding: 2, display: "flex", color: "var(--color-neutral-600)" }}
+                style={{ border: 0, background: "none", cursor: "pointer", padding: "0.125rem", display: "flex", color: "var(--color-neutral-600)" }}
               >
                 <Icon name="x" size={12} />
               </button>
@@ -269,10 +269,10 @@ function CategoryManager({ categories, onDone }: { categories: CategoryView[]; o
         </div>
       )}
 
-      <p style={{ fontSize: 12, color: "var(--color-neutral-600)", margin: "10px 0 0", lineHeight: 1.45 }}>
+      <p style={{ fontSize: "0.75rem", color: "var(--color-neutral-600)", margin: "10px 0 0", lineHeight: 1.45 }}>
         A new category is empty until you tick it on a recipe, under <strong>Kind of food</strong>.
       </p>
-      {error && <div style={{ fontSize: 12.5, color: "var(--cal-occasion)", marginTop: 6 }}>{error}</div>}
+      {error && <div style={{ fontSize: "0.78125rem", color: "var(--cal-occasion)", marginTop: "0.375rem" }}>{error}</div>}
     </div>
   );
 }
@@ -307,7 +307,7 @@ function CategoryTile({
         display: "flex",
         flexDirection: "column",
         alignItems: "center",
-        gap: 5,
+        gap: "0.3125rem",
         background: "none",
         border: 0,
         padding: 0,
@@ -331,7 +331,7 @@ function CategoryTile({
       </span>
       <span
         style={{
-          fontSize: 11.5,
+          fontSize: "0.71875rem",
           lineHeight: 1.2,
           textAlign: "center",
           color: active ? "var(--color-accent)" : "var(--color-text)",
@@ -340,7 +340,7 @@ function CategoryTile({
       >
         {label}
       </span>
-      <span style={{ fontSize: 10.5, color: "var(--color-neutral-600)", marginTop: -3 }}>{count}</span>
+      <span style={{ fontSize: "0.65625rem", color: "var(--color-neutral-600)", marginTop: -3 }}>{count}</span>
     </button>
   );
 }
@@ -348,7 +348,7 @@ function CategoryTile({
 function RecipeRow({ recipe: r, onEdit }: { recipe: EditableRecipe; onEdit: () => void }) {
   const tone = plateTone(r.name);
   return (
-    <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "9px 0", borderBottom: "1px solid var(--color-divider)" }}>
+    <div style={{ display: "flex", alignItems: "center", gap: "0.625rem", padding: "0.5625rem 0", borderBottom: "1px solid var(--color-divider)" }}>
       <span
         className="kin-tile kin-tile--sm"
         style={{
@@ -359,12 +359,12 @@ function RecipeRow({ recipe: r, onEdit }: { recipe: EditableRecipe; onEdit: () =
         {r.photoUrl ? (
           <ZoomableImage src={r.photoUrl} alt={r.name} />
         ) : (
-          <span style={{ font: "500 16px/1 var(--font-heading)", color: tone.ink, textTransform: "uppercase" }}>{r.name.trim().charAt(0)}</span>
+          <span style={{ font: "500 1rem/1 var(--font-heading)", color: tone.ink, textTransform: "uppercase" }}>{r.name.trim().charAt(0)}</span>
         )}
       </span>
       <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ fontSize: 15, fontWeight: 500 }}>{r.name}</div>
-        <div style={{ fontSize: 12.5, color: "var(--color-neutral-600)" }}>
+        <div style={{ fontSize: "0.9375rem", fontWeight: 500 }}>{r.name}</div>
+        <div style={{ fontSize: "0.78125rem", color: "var(--color-neutral-600)" }}>
           {r.ingredients.length} ingredients · {r.slots.map((s) => MEAL_SLOT_LABEL[s]).join(", ")}
           {r.minutes ? ` · ${r.minutes} min` : ""}
         </div>
@@ -372,8 +372,8 @@ function RecipeRow({ recipe: r, onEdit }: { recipe: EditableRecipe; onEdit: () =
       <span
         style={{
           flex: "none",
-          fontSize: 10.5,
-          padding: "2px 7px",
+          fontSize: "0.65625rem",
+          padding: "0.125rem 0.4375rem",
           borderRadius: 999,
           background: r.origin === "shipped" ? "color-mix(in srgb, var(--color-text) 8%, transparent)" : "color-mix(in srgb, var(--cal-home) 16%, transparent)",
           color: "var(--color-neutral-700)",
@@ -381,7 +381,7 @@ function RecipeRow({ recipe: r, onEdit }: { recipe: EditableRecipe; onEdit: () =
       >
         {ORIGIN_LABEL[r.origin]}
       </span>
-      <button type="button" className="btn btn-ghost" style={{ minHeight: 32, fontSize: 12.5, padding: "0 8px" }} onClick={onEdit}>
+      <button type="button" className="btn btn-ghost" style={{ minHeight: "2rem", fontSize: "0.78125rem", padding: "0 0.5rem" }} onClick={onEdit}>
         Edit
       </button>
     </div>
@@ -408,26 +408,26 @@ function RecipeEditor({ recipe, known, onDone }: { recipe: EditableRecipe | null
 
   return (
     <div>
-      <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
-        <button type="button" className="btn btn-ghost" style={{ minHeight: 34, fontSize: 13, padding: "0 8px", gap: 4 }} onClick={onDone}>
+      <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", marginBottom: "0.75rem" }}>
+        <button type="button" className="btn btn-ghost" style={{ minHeight: "2.125rem", fontSize: "0.8125rem", padding: "0 0.5rem", gap: "0.25rem" }} onClick={onDone}>
           <Icon name="chevronLeft" size={14} /> Back
         </button>
-        <span style={{ flex: 1, font: "600 15px/1.2 var(--font-heading)" }}>{recipe ? recipe.name : "New recipe"}</span>
+        <span style={{ flex: 1, font: "600 0.9375rem/1.2 var(--font-heading)" }}>{recipe ? recipe.name : "New recipe"}</span>
       </div>
 
       {recipe?.origin === "shipped" && (
-        <p style={{ fontSize: 12.5, color: "var(--color-neutral-700)", margin: "0 0 12px", lineHeight: 1.45 }}>
+        <p style={{ fontSize: "0.78125rem", color: "var(--color-neutral-700)", margin: "0 0 12px", lineHeight: 1.45 }}>
           Saving keeps your version of this dish. Kin&rsquo;s original stays as it is, and yours is used from now on.
         </p>
       )}
 
-      <div className="field" style={{ marginBottom: 12 }}>
+      <div className="field" style={{ marginBottom: "0.75rem" }}>
         <label htmlFor={`${uid}-name`}>NAME</label>
-        <input id={`${uid}-name`} aria-label="Name" className="input" value={name} onChange={(e) => setName(e.target.value)} placeholder="Chicken adobo" maxLength={150} style={{ minHeight: 44 }} />
+        <input id={`${uid}-name`} aria-label="Name" className="input" value={name} onChange={(e) => setName(e.target.value)} placeholder="Chicken adobo" maxLength={150} style={{ minHeight: "2.75rem" }} />
       </div>
 
-      <div style={{ fontSize: 13, color: "var(--color-neutral-700)", marginBottom: 6 }}>Usually eaten at</div>
-      <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 12 }}>
+      <div style={{ fontSize: "0.8125rem", color: "var(--color-neutral-700)", marginBottom: "0.375rem" }}>Usually eaten at</div>
+      <div style={{ display: "flex", flexWrap: "wrap", gap: "0.375rem", marginBottom: "0.75rem" }}>
         {MEAL_SLOTS.map((s) => (
           <button
             key={s}
@@ -441,8 +441,8 @@ function RecipeEditor({ recipe, known, onDone }: { recipe: EditableRecipe | null
         ))}
       </div>
 
-      <div style={{ fontSize: 13, color: "var(--color-neutral-700)", marginBottom: 6 }}>Kind of food</div>
-      <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 12 }}>
+      <div style={{ fontSize: "0.8125rem", color: "var(--color-neutral-700)", marginBottom: "0.375rem" }}>Kind of food</div>
+      <div style={{ display: "flex", flexWrap: "wrap", gap: "0.375rem", marginBottom: "0.75rem" }}>
         {known.map((c) => (
           <button
             key={c.key}
@@ -456,27 +456,27 @@ function RecipeEditor({ recipe, known, onDone }: { recipe: EditableRecipe | null
         ))}
       </div>
 
-      <div style={{ display: "flex", gap: 10, marginBottom: 12 }}>
+      <div style={{ display: "flex", gap: "0.625rem", marginBottom: "0.75rem" }}>
         <div className="field" style={{ flex: 1 }}>
           <label htmlFor={`${uid}-serves`}>SERVES</label>
-          <input id={`${uid}-serves`} aria-label="Serves" className="input" type="number" min="1" max="30" value={serves} onChange={(e) => setServes(e.target.value)} style={{ minHeight: 44 }} />
+          <input id={`${uid}-serves`} aria-label="Serves" className="input" type="number" min="1" max="30" value={serves} onChange={(e) => setServes(e.target.value)} style={{ minHeight: "2.75rem" }} />
         </div>
         <div className="field" style={{ flex: 1 }}>
           <label htmlFor={`${uid}-minutes`}>MINUTES</label>
-          <input id={`${uid}-minutes`} aria-label="Minutes" className="input" type="number" min="0" value={minutes} onChange={(e) => setMinutes(e.target.value)} style={{ minHeight: 44 }} />
+          <input id={`${uid}-minutes`} aria-label="Minutes" className="input" type="number" min="0" value={minutes} onChange={(e) => setMinutes(e.target.value)} style={{ minHeight: "2.75rem" }} />
         </div>
       </div>
 
-      <div style={{ fontSize: 13, color: "var(--color-neutral-700)", marginBottom: 6 }}>Ingredients</div>
+      <div style={{ fontSize: "0.8125rem", color: "var(--color-neutral-700)", marginBottom: "0.375rem" }}>Ingredients</div>
       {ingredients.map((ing, idx) => (
-        <div key={idx} style={{ display: "flex", gap: 5, marginBottom: 6, alignItems: "center" }}>
+        <div key={idx} style={{ display: "flex", gap: "0.3125rem", marginBottom: "0.375rem", alignItems: "center" }}>
           <input
             className="input"
             placeholder="Ingredient"
             value={ing.name}
             onChange={(e) => setIng(idx, { name: e.target.value })}
             maxLength={150}
-            style={{ minHeight: 40, flex: 1.6, fontSize: 14 }}
+            style={{ minHeight: "2.5rem", flex: 1.6, fontSize: "0.875rem" }}
             aria-label={`Ingredient ${idx + 1}`}
           />
           <input
@@ -488,14 +488,14 @@ function RecipeEditor({ recipe, known, onDone }: { recipe: EditableRecipe | null
             placeholder="Qty"
             value={ing.qty}
             onChange={(e) => setIng(idx, { qty: e.target.value })}
-            style={{ minHeight: 40, width: 66, fontSize: 14 }}
+            style={{ minHeight: "2.5rem", width: "4.125rem", fontSize: "0.875rem" }}
             aria-label="Quantity"
           />
           <select
             className="input"
             value={ing.unit}
             onChange={(e) => setIng(idx, { unit: e.target.value })}
-            style={{ minHeight: 40, width: 78, fontSize: 13 }}
+            style={{ minHeight: "2.5rem", width: "4.875rem", fontSize: "0.8125rem" }}
             aria-label="Unit"
           >
             {[...new Set([ing.unit, ...UNITS])].map((u) => (
@@ -508,7 +508,7 @@ function RecipeEditor({ recipe, known, onDone }: { recipe: EditableRecipe | null
             type="button"
             onClick={() => setIngredients((prev) => prev.filter((_, i) => i !== idx))}
             aria-label="Remove this ingredient"
-            style={{ border: 0, background: "none", cursor: "pointer", padding: 5, display: "flex", color: "var(--color-neutral-600)" }}
+            style={{ border: 0, background: "none", cursor: "pointer", padding: "0.3125rem", display: "flex", color: "var(--color-neutral-600)" }}
           >
             <Icon name="x" size={13} />
           </button>
@@ -517,22 +517,22 @@ function RecipeEditor({ recipe, known, onDone }: { recipe: EditableRecipe | null
       <button
         type="button"
         className="btn btn-secondary"
-        style={{ minHeight: 38, fontSize: 13, padding: "0 12px", marginBottom: 14 }}
+        style={{ minHeight: "2.375rem", fontSize: "0.8125rem", padding: "0 0.75rem", marginBottom: "0.875rem" }}
         onClick={() => setIngredients((prev) => [...prev, { name: "", qty: "", unit: "pc", section: "Other" }])}
       >
         <Icon name="plus" size={13} /> Add ingredient
       </button>
 
-      <div className="field" style={{ marginBottom: 14 }}>
+      <div className="field" style={{ marginBottom: "0.875rem" }}>
         <label htmlFor={`${uid}-steps`}>HOW TO COOK IT — ONE STEP PER LINE</label>
         <textarea id={`${uid}-steps`} aria-label="How To Cook It — One Step Per Line" className="input" value={steps} onChange={(e) => setSteps(e.target.value)} maxLength={8000} rows={5} />
       </div>
 
-      <div style={{ display: "flex", gap: 8 }}>
+      <div style={{ display: "flex", gap: "0.5rem" }}>
         <button
           type="button"
           className="btn btn-primary"
-          style={{ flex: 1, minHeight: 46, fontSize: 15 }}
+          style={{ flex: 1, minHeight: "2.875rem", fontSize: "0.9375rem" }}
           disabled={pending}
           onClick={() =>
             run(async () => {
@@ -563,7 +563,7 @@ function RecipeEditor({ recipe, known, onDone }: { recipe: EditableRecipe | null
           <button
             type="button"
             className="btn btn-ghost"
-            style={{ minHeight: 46, fontSize: 13, padding: "0 12px", color: "var(--cal-occasion)" }}
+            style={{ minHeight: "2.875rem", fontSize: "0.8125rem", padding: "0 0.75rem", color: "var(--cal-occasion)" }}
             disabled={pending}
             onClick={() =>
               run(async () => {
@@ -577,7 +577,7 @@ function RecipeEditor({ recipe, known, onDone }: { recipe: EditableRecipe | null
           </button>
         )}
       </div>
-      {error && <div style={{ fontSize: 12.5, color: "var(--cal-occasion)", marginTop: 8 }}>{error}</div>}
+      {error && <div style={{ fontSize: "0.78125rem", color: "var(--cal-occasion)", marginTop: "0.5rem" }}>{error}</div>}
     </div>
   );
 }
@@ -590,11 +590,11 @@ export function AddIngredientsToBuyButton({ mealId, missing }: { mealId: string;
   if (missing === 0) return null;
 
   return (
-    <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+    <span style={{ display: "inline-flex", alignItems: "center", gap: "0.375rem" }}>
       <button
         type="button"
         className="btn btn-secondary"
-        style={{ minHeight: 30, fontSize: 12.5, padding: "0 10px", gap: 4 }}
+        style={{ minHeight: "1.875rem", fontSize: "0.78125rem", padding: "0 0.625rem", gap: "0.25rem" }}
         disabled={pending}
         onClick={() =>
           run(async () => {
@@ -607,8 +607,8 @@ export function AddIngredientsToBuyButton({ mealId, missing }: { mealId: string;
         <Icon name="basket" size={13} />
         Add {missing} to list
       </button>
-      {added != null && <span style={{ fontSize: 12, color: "var(--color-neutral-700)" }}>{added} added</span>}
-      {error && <span style={{ fontSize: 12, color: "var(--cal-occasion)" }}>{error}</span>}
+      {added != null && <span style={{ fontSize: "0.75rem", color: "var(--color-neutral-700)" }}>{added} added</span>}
+      {error && <span style={{ fontSize: "0.75rem", color: "var(--cal-occasion)" }}>{error}</span>}
     </span>
   );
 }
@@ -627,9 +627,9 @@ export function IngredientChip({ name, inPantry, onList }: { name: string; inPan
       style={{
         display: "inline-flex",
         alignItems: "center",
-        gap: 3,
-        fontSize: 11.5,
-        padding: "3px 9px",
+        gap: "0.1875rem",
+        fontSize: "0.71875rem",
+        padding: "0.1875rem 0.5625rem",
         borderRadius: 999,
         border: 0,
         cursor: "pointer",

@@ -99,7 +99,7 @@ export default async function MemberDetailPage({
   return (
     <div>
       <DetailHeader backHref={backHref} eyebrow="HUB 01 · MEMBER RECORD" trail={trail} />
-      <div style={{ padding: "0 22px 22px" }}>
+      <div style={{ padding: "0 1.375rem 1.375rem" }}>
         {view === "profile" ? (
           isSelf ? (
             <MemberProfileEditor
@@ -115,11 +115,11 @@ export default async function MemberDetailPage({
             />
           ) : (
             <>
-              <div style={{ display: "flex", gap: 14, alignItems: "flex-end", marginBottom: 18 }}>
+              <div style={{ display: "flex", gap: "0.875rem", alignItems: "flex-end", marginBottom: "1.125rem" }}>
                 <Avatar url={member.avatar_url} initials={initials(member.full_name)} label={member.full_name} size={88} />
                 <div>
-                  <div style={{ font: "600 34px/.98 var(--font-heading)" }}>{member.full_name}</div>
-                  <div style={{ fontSize: 13.5, color: "var(--color-neutral-600)", marginTop: 4 }}>
+                  <div style={{ font: "600 2.125rem/.98 var(--font-heading)" }}>{member.full_name}</div>
+                  <div style={{ fontSize: "0.84375rem", color: "var(--color-neutral-600)", marginTop: "0.25rem" }}>
                     {formatAge(member.dob)} · {member.relationship ?? member.role.replace("_", " ")}
                   </div>
                   <Tag variant={member.is_organiser ? "accent" : "neutral"} className="mt-2 inline-flex">
@@ -130,7 +130,7 @@ export default async function MemberDetailPage({
 
               {me.is_organiser && (
                 <>
-                  <div style={{ fontSize: 13, color: "var(--color-neutral-700)", marginBottom: 6 }}>Relationship</div>
+                  <div style={{ fontSize: "0.8125rem", color: "var(--color-neutral-700)", marginBottom: "0.375rem" }}>Relationship</div>
                   <RelationshipEditor memberId={member.id} relationship={member.relationship} />
                 </>
               )}
@@ -142,7 +142,7 @@ export default async function MemberDetailPage({
                   privileges a trigger refuses to change at all. */}
               {me.is_organiser && member.id !== me.id && member.auth_user_id !== null && (
                 <>
-                  <div style={{ fontSize: 13, color: "var(--color-neutral-700)", marginBottom: 6 }}>Role</div>
+                  <div style={{ fontSize: "0.8125rem", color: "var(--color-neutral-700)", marginBottom: "0.375rem" }}>Role</div>
                   <RoleEditor memberId={member.id} fullName={member.full_name} role={member.role} />
                   <ConvertToChild memberId={member.id} fullName={member.full_name} />
                 </>
@@ -160,18 +160,18 @@ export default async function MemberDetailPage({
                   profile, which has nobody to choose for itself -- the same
                   rule the rest of this screen already follows. */}
               {(member.id === me.id || (isGrownUp(me.role) && member.status === "managed")) && (
-                <div style={{ marginTop: 18 }}>
+                <div style={{ marginTop: "1.125rem" }}>
                   <MemberColourPicker memberId={member.id} chosen={member.color} />
                 </div>
               )}
             </>
           )
         ) : (
-          <div style={{ display: "flex", gap: 14, alignItems: "flex-end", marginBottom: 18 }}>
+          <div style={{ display: "flex", gap: "0.875rem", alignItems: "flex-end", marginBottom: "1.125rem" }}>
             <Avatar url={member.avatar_url} initials={initials(member.full_name)} label={member.full_name} size={64} />
             <div>
-              <div style={{ font: "600 26px/.98 var(--font-heading)" }}>{member.full_name}</div>
-              <div style={{ fontSize: 13.5, color: "var(--color-neutral-600)", marginTop: 4 }}>
+              <div style={{ font: "600 1.625rem/.98 var(--font-heading)" }}>{member.full_name}</div>
+              <div style={{ fontSize: "0.84375rem", color: "var(--color-neutral-600)", marginTop: "0.25rem" }}>
                 {formatAge(member.dob)} · {member.relationship ?? member.role.replace("_", " ")}
               </div>
             </div>
@@ -181,28 +181,28 @@ export default async function MemberDetailPage({
         {view === "health" && (
           <>
         <Segmented items={segments} />
-        <div style={{ marginTop: 18 }}>
+        <div style={{ marginTop: "1.125rem" }}>
           {seg === "schedule" && (
             <>
               {schedule.map((s) => (
-                <div key={s.id} style={{ display: "flex", justifyContent: "space-between", gap: 12, padding: "8px 0", borderBottom: "1px solid var(--color-divider)" }}>
-                  <span style={{ fontSize: 14 }}>{s.what}</span>
-                  <span style={{ fontFamily: "var(--font-numeric)", fontSize: 13, color: "var(--color-neutral-700)" }}>
+                <div key={s.id} style={{ display: "flex", justifyContent: "space-between", gap: "0.75rem", padding: "0.5rem 0", borderBottom: "1px solid var(--color-divider)" }}>
+                  <span style={{ fontSize: "0.875rem" }}>{s.what}</span>
+                  <span style={{ fontFamily: "var(--font-numeric)", fontSize: "0.8125rem", color: "var(--color-neutral-700)" }}>
                     {s.when_date ? fmtDate(s.when_date) : "—"}
                   </span>
                   <Tag variant={s.status === "due" ? "accent" : "neutral"}>{s.status.replace("_", " ").toUpperCase()}</Tag>
                 </div>
               ))}
-              <div style={{ font: "600 13px/1 var(--font-heading)", letterSpacing: ".02em", color: "var(--color-neutral-600)", margin: "20px 0 6px" }}>
+              <div style={{ font: "600 0.8125rem/1 var(--font-heading)", letterSpacing: ".02em", color: "var(--color-neutral-600)", margin: "20px 0 6px" }}>
                 APPOINTMENTS
               </div>
               {appointments.map((a) => (
-                <div key={a.id} style={{ padding: "11px 0", borderBottom: "1px solid color-mix(in srgb, var(--color-text) 10%, transparent)" }}>
-                  <div style={{ display: "flex", gap: 12, alignItems: "center", flexWrap: "wrap" }}>
-                    <span style={{ font: "400 13px/1.4 var(--font-numeric)", color: "var(--color-accent-700)", width: 140, flex: "none" }}>
+                <div key={a.id} style={{ padding: "0.6875rem 0", borderBottom: "1px solid color-mix(in srgb, var(--color-text) 10%, transparent)" }}>
+                  <div style={{ display: "flex", gap: "0.75rem", alignItems: "center", flexWrap: "wrap" }}>
+                    <span style={{ font: "400 0.8125rem/1.4 var(--font-numeric)", color: "var(--color-accent-700)", width: 140, flex: "none" }}>
                       {familyDateTime(new Date(a.when_at))}
                     </span>
-                    <span style={{ flex: 1, fontSize: 13, minWidth: 120 }}>{a.what}</span>
+                    <span style={{ flex: 1, fontSize: "0.8125rem", minWidth: "7.5rem" }}>{a.what}</span>
                     <LogSpendControl
                       accounts={payableAccounts}
                       currency={me.families.currency}
@@ -225,24 +225,24 @@ export default async function MemberDetailPage({
               <EmptyNote text="Nothing logged. Allergies, medication and long-running conditions go here so anyone in the family can find them quickly." />
             ) : (
               conditions.map((c) => (
-                <Blueprint key={c.id} style={{ padding: 13, marginBottom: 12 }}>
-                  <div style={{ display: "flex", alignItems: "baseline", gap: 8 }}>
-                    <span style={{ font: "600 18px/1.05 var(--font-heading)" }}>{c.name}</span>
+                <Blueprint key={c.id} style={{ padding: "0.8125rem", marginBottom: "0.75rem" }}>
+                  <div style={{ display: "flex", alignItems: "baseline", gap: "0.5rem" }}>
+                    <span style={{ font: "600 1.125rem/1.05 var(--font-heading)" }}>{c.name}</span>
                     <Tag variant={c.status === "active" ? "accent" : c.status === "standing" ? "outline" : "neutral"} className="ml-auto">
                       {c.status.toUpperCase()}
                     </Tag>
                     <ConditionDeleteButton conditionId={c.id} memberId={member.id} />
                   </div>
-                  <div style={{ fontSize: 13, color: "var(--color-neutral-600)", margin: "4px 0 9px" }}>{c.meta_note}</div>
+                  <div style={{ fontSize: "0.8125rem", color: "var(--color-neutral-600)", margin: "4px 0 9px" }}>{c.meta_note}</div>
                   {(c.health_condition_entries ?? [])
                     .sort((a, b) => b.entry_date.localeCompare(a.entry_date))
                     .map((e) => (
-                      <div key={e.id} style={{ padding: "8px 0", borderTop: "1px solid color-mix(in srgb, var(--color-text) 10%, transparent)" }}>
-                        <div style={{ display: "flex", gap: 10 }}>
-                          <span style={{ font: "400 10.5px/1.5 var(--font-numeric)", color: "var(--color-accent-700)", width: 74, flex: "none" }}>
+                      <div key={e.id} style={{ padding: "0.5rem 0", borderTop: "1px solid color-mix(in srgb, var(--color-text) 10%, transparent)" }}>
+                        <div style={{ display: "flex", gap: "0.625rem" }}>
+                          <span style={{ font: "400 0.65625rem/1.5 var(--font-numeric)", color: "var(--color-accent-700)", width: 74, flex: "none" }}>
                             {fmtDate(e.entry_date)}
                           </span>
-                          <span style={{ flex: 1, fontSize: 14 }}>{e.note}</span>
+                          <span style={{ flex: 1, fontSize: "0.875rem" }}>{e.note}</span>
                         </div>
                         <ConditionEntryControls entryId={e.id} memberId={member.id} date={e.entry_date} note={e.note} />
                       </div>
@@ -256,18 +256,18 @@ export default async function MemberDetailPage({
               <EmptyNote text="No results yet. Logging them here keeps a history you can show a doctor without hunting through paperwork." />
             ) : (
               labs.map((l) => (
-                <div key={l.id} style={{ padding: "12px 0", borderBottom: "1px solid color-mix(in srgb, var(--color-text) 10%, transparent)" }}>
-                  <div style={{ display: "flex", alignItems: "baseline", gap: 8 }}>
-                    <span style={{ font: "600 16px/1.1 var(--font-heading)" }}>{l.name}</span>
+                <div key={l.id} style={{ padding: "0.75rem 0", borderBottom: "1px solid color-mix(in srgb, var(--color-text) 10%, transparent)" }}>
+                  <div style={{ display: "flex", alignItems: "baseline", gap: "0.5rem" }}>
+                    <span style={{ font: "600 1rem/1.1 var(--font-heading)" }}>{l.name}</span>
                     <Tag variant={l.flag === "NORMAL" ? "neutral" : "accent"} className="ml-auto">
                       {l.flag}
                     </Tag>
                   </div>
-                  <div style={{ display: "flex", gap: 10, alignItems: "baseline", marginTop: 5 }}>
-                    <span style={{ font: "400 10.5px/1.5 var(--font-numeric)", color: "var(--color-neutral-600)", width: 74, flex: "none" }}>
+                  <div style={{ display: "flex", gap: "0.625rem", alignItems: "baseline", marginTop: "0.3125rem" }}>
+                    <span style={{ font: "400 0.65625rem/1.5 var(--font-numeric)", color: "var(--color-neutral-600)", width: 74, flex: "none" }}>
                       {fmtDate(l.test_date)}
                     </span>
-                    <span style={{ flex: 1, fontSize: 13.5, color: "var(--color-neutral-800)" }}>{l.result}</span>
+                    <span style={{ flex: 1, fontSize: "0.84375rem", color: "var(--color-neutral-800)" }}>{l.result}</span>
                   </div>
                   <LabControls labId={l.id} memberId={member.id} date={l.test_date} name={l.name} result={l.result ?? ""} />
                 </div>
@@ -276,13 +276,13 @@ export default async function MemberDetailPage({
 
           {seg === "vitals" && (
             <>
-              <Blueprint className={omron?.connected ? "bg-[var(--color-accent-100)]" : ""} style={{ padding: 13, marginBottom: 14 }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+              <Blueprint className={omron?.connected ? "bg-[var(--color-accent-100)]" : ""} style={{ padding: "0.8125rem", marginBottom: "0.875rem" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: "0.625rem" }}>
                   <Icon name="activity" size={17} className="text-[var(--color-accent-700)]" />
-                  <span style={{ font: "600 16px/1.05 var(--font-heading)", flex: 1 }}>Omron Connect</span>
+                  <span style={{ font: "600 1rem/1.05 var(--font-heading)", flex: 1 }}>Omron Connect</span>
                   <Tag variant={omron?.connected ? "accent" : "outline"}>{omron?.connected ? "LINKED" : "NOT LINKED"}</Tag>
                 </div>
-                <div style={{ fontSize: 13, color: "var(--color-neutral-700)", margin: "8px 0 10px" }}>
+                <div style={{ fontSize: "0.8125rem", color: "var(--color-neutral-700)", margin: "8px 0 10px" }}>
                   {omron?.connected
                     ? `Last sync ${omron.last_synced_at ? familyDateTime(new Date(omron.last_synced_at)) : "just now"}. Readings arrive automatically.`
                     : "Link the Omron Connect app to pull blood pressure and weight readings straight into this record."}
@@ -299,7 +299,7 @@ export default async function MemberDetailPage({
         <Link
           href={`/family/members/${id}/health/new`}
           className="btn btn-primary btn-block"
-          style={{ minHeight: 46, fontSize: 14, letterSpacing: ".04em", marginTop: 20 }}
+          style={{ minHeight: "2.875rem", fontSize: "0.875rem", letterSpacing: ".04em", marginTop: "1.25rem" }}
         >
           + NEW HEALTH ENTRY
         </Link>
@@ -315,7 +315,7 @@ export default async function MemberDetailPage({
 }
 
 function EmptyNote({ text }: { text: string }) {
-  return <div style={{ fontSize: 13.5, color: "var(--color-neutral-600)" }}>{text}</div>;
+  return <div style={{ fontSize: "0.84375rem", color: "var(--color-neutral-600)" }}>{text}</div>;
 }
 
 function BarChart({
@@ -330,7 +330,7 @@ function BarChart({
   if (series.length === 0) {
     return (
       <>
-        <div style={{ font: "600 13px/1 var(--font-heading)", letterSpacing: ".02em", color: "var(--color-neutral-600)", marginBottom: 8 }}>{title}</div>
+        <div style={{ font: "600 0.8125rem/1 var(--font-heading)", letterSpacing: ".02em", color: "var(--color-neutral-600)", marginBottom: "0.5rem" }}>{title}</div>
         <EmptyNote text="No readings yet — once there are a few, they chart here." />
       </>
     );
@@ -338,21 +338,21 @@ function BarChart({
   const latest = series[series.length - 1];
   return (
     <>
-      <div style={{ font: "600 13px/1 var(--font-heading)", letterSpacing: ".02em", color: "var(--color-neutral-600)", marginBottom: 8 }}>{title}</div>
-      <Blueprint style={{ padding: 13, marginBottom: 16 }}>
-        <div style={{ display: "flex", alignItems: "baseline", gap: 8, marginBottom: 12 }}>
-          <span style={{ font: "600 30px/1 var(--font-heading)" }}>
+      <div style={{ font: "600 0.8125rem/1 var(--font-heading)", letterSpacing: ".02em", color: "var(--color-neutral-600)", marginBottom: "0.5rem" }}>{title}</div>
+      <Blueprint style={{ padding: "0.8125rem", marginBottom: "1rem" }}>
+        <div style={{ display: "flex", alignItems: "baseline", gap: "0.5rem", marginBottom: "0.75rem" }}>
+          <span style={{ font: "600 1.875rem/1 var(--font-heading)" }}>
             {latest.value} {unit}
           </span>
         </div>
-        <div style={{ display: "flex", gap: 5, alignItems: "flex-end", height: 88 }}>
+        <div style={{ display: "flex", gap: "0.3125rem", alignItems: "flex-end", height: 88 }}>
           {series.map((b, i) => (
             <div key={i} style={{ flex: 1, height: `${b.heightPct}%`, border: "1px solid var(--color-accent)", background: "var(--color-accent-400)" }} />
           ))}
         </div>
-        <div style={{ display: "flex", gap: 5, marginTop: 5 }}>
+        <div style={{ display: "flex", gap: "0.3125rem", marginTop: "0.3125rem" }}>
           {series.map((b, i) => (
-            <span key={i} style={{ flex: 1, textAlign: "center", font: "400 8px/1 var(--font-numeric)", color: "var(--color-neutral-600)" }}>
+            <span key={i} style={{ flex: 1, textAlign: "center", font: "400 0.5rem/1 var(--font-numeric)", color: "var(--color-neutral-600)" }}>
               {b.label}
             </span>
           ))}

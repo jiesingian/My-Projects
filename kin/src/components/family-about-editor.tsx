@@ -12,18 +12,18 @@ export function FamilyAboutEditor({ about, canEdit }: { about: string | null; ca
   const router = useRouter();
 
   return (
-    <div style={{ marginBottom: 20 }}>
-      <div style={{ font: "600 13px/1 var(--font-heading)", letterSpacing: ".02em", color: "var(--color-neutral-600)", marginBottom: 8 }}>
+    <div style={{ marginBottom: "1.25rem" }}>
+      <div style={{ font: "600 0.8125rem/1 var(--font-heading)", letterSpacing: ".02em", color: "var(--color-neutral-600)", marginBottom: "0.5rem" }}>
         ABOUT THE FAMILY
       </div>
 
       {mode === "view" ? (
         <div>
-          <p style={{ fontSize: 13, lineHeight: 1.5, whiteSpace: "pre-wrap", color: about ? "var(--color-text)" : "var(--color-neutral-600)", margin: 0 }}>
+          <p style={{ fontSize: "0.8125rem", lineHeight: 1.5, whiteSpace: "pre-wrap", color: about ? "var(--color-text)" : "var(--color-neutral-600)", margin: 0 }}>
             {about || "No background added yet."}
           </p>
           {canEdit && (
-            <button type="button" className="btn btn-ghost" style={{ fontSize: 13, marginTop: 6, padding: 0 }} onClick={() => setMode("edit")}>
+            <button type="button" className="btn btn-ghost" style={{ fontSize: "0.8125rem", marginTop: "0.375rem", padding: 0 }} onClick={() => setMode("edit")}>
               Edit
             </button>
           )}
@@ -36,15 +36,15 @@ export function FamilyAboutEditor({ about, canEdit }: { about: string | null; ca
             placeholder="Share a bit of your family's story, values, or history…"
             value={value}
             onChange={(e) => setValue(e.target.value)}
-            style={{ resize: "vertical", minHeight: 90, fontFamily: "inherit" }}
+            style={{ resize: "vertical", minHeight: "5.625rem", fontFamily: "inherit" }}
             disabled={busy}
           />
-          {error && <p style={{ color: "var(--color-accent-700)", fontSize: 13, margin: "6px 0 0" }}>{error}</p>}
-          <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
+          {error && <p style={{ color: "var(--color-accent-700)", fontSize: "0.8125rem", margin: "6px 0 0" }}>{error}</p>}
+          <div style={{ display: "flex", gap: "0.5rem", marginTop: "0.5rem" }}>
             <button
               type="button"
               className="btn btn-secondary"
-              style={{ flex: 1, minHeight: 38, fontSize: 13.5 }}
+              style={{ flex: 1, minHeight: "2.375rem", fontSize: "0.84375rem" }}
               disabled={busy}
               onClick={() => {
                 setValue(about ?? "");
@@ -57,7 +57,7 @@ export function FamilyAboutEditor({ about, canEdit }: { about: string | null; ca
             <button
               type="button"
               className="btn btn-primary"
-              style={{ flex: 1, minHeight: 38, fontSize: 13.5 }}
+              style={{ flex: 1, minHeight: "2.375rem", fontSize: "0.84375rem" }}
               disabled={busy}
               onClick={async () => {
                 setBusy(true);

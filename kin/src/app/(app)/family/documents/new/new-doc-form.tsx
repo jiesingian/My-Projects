@@ -82,14 +82,14 @@ export function NewDocForm({
   return (
     <div>
       <DetailHeader backHref={defaultFolderId ? `/family/documents/${defaultFolderId}` : "/family?seg=documents"} eyebrow="HUB 01 · NEW ENTRY" />
-      <div style={{ padding: "0 22px 22px" }}>
-        <h3 style={{ fontSize: 30, margin: "0 0 16px" }}>Add a document</h3>
+      <div style={{ padding: "0 1.375rem 1.375rem" }}>
+        <h3 style={{ fontSize: "1.875rem", margin: "0 0 16px" }}>Add a document</h3>
         <form onSubmit={onSubmit}>
           <ErrorText message={error} />
 
-          <div className="blueprint placeholder-fill" style={{ padding: "22px 16px", textAlign: "center", marginBottom: 18 }}>
-            <div style={{ font: "600 17px/1.15 var(--font-heading)", margin: "0 0 4px" }}>Choose files</div>
-            <div style={{ fontSize: 13, color: "var(--color-neutral-700)", marginBottom: 12 }}>PDF, JPG, PNG, HEIC.</div>
+          <div className="blueprint placeholder-fill" style={{ padding: "1.375rem 1rem", textAlign: "center", marginBottom: "1.125rem" }}>
+            <div style={{ font: "600 1.0625rem/1.15 var(--font-heading)", margin: "0 0 4px" }}>Choose files</div>
+            <div style={{ fontSize: "0.8125rem", color: "var(--color-neutral-700)", marginBottom: "0.75rem" }}>PDF, JPG, PNG, HEIC.</div>
             <input
               ref={fileRef}
               type="file"
@@ -100,17 +100,17 @@ export function NewDocForm({
               onChange={() => setFileNames(Array.from(fileRef.current?.files ?? []).map((f) => f.name))}
             />
             {fileNames.length > 0 && (
-              <div style={{ fontSize: 13, color: "var(--color-neutral-700)", marginTop: 8 }}>{fileNames.join(", ")}</div>
+              <div style={{ fontSize: "0.8125rem", color: "var(--color-neutral-700)", marginTop: "0.5rem" }}>{fileNames.join(", ")}</div>
             )}
           </div>
 
-          <div className="field" style={{ marginBottom: 14 }}>
+          <div className="field" style={{ marginBottom: "0.875rem" }}>
             <label htmlFor={`${uid}-title`}>ENTRY TITLE</label>
-            <input id={`${uid}-title`} aria-label="Entry Title" className="input" name="title" required maxLength={150} style={{ minHeight: 44 }} />
+            <input id={`${uid}-title`} aria-label="Entry Title" className="input" name="title" required maxLength={150} style={{ minHeight: "2.75rem" }} />
           </div>
 
-          <div style={{ fontSize: 13, color: "var(--color-neutral-700)", marginBottom: 6 }}>Folder</div>
-          <div style={{ display: "flex", gap: 7, flexWrap: "wrap", marginBottom: 16 }}>
+          <div style={{ fontSize: "0.8125rem", color: "var(--color-neutral-700)", marginBottom: "0.375rem" }}>Folder</div>
+          <div style={{ display: "flex", gap: "0.4375rem", flexWrap: "wrap", marginBottom: "1rem" }}>
             {folders.map((f) => (
               <button key={f.id} type="button" className="chip" data-active={folderId === f.id} onClick={() => setFolderId(f.id)}>
                 {f.name}
@@ -121,16 +121,16 @@ export function NewDocForm({
             </button>
           </div>
           {folderId === "__new__" && (
-            <div className="field" style={{ marginBottom: 16 }}>
+            <div className="field" style={{ marginBottom: "1rem" }}>
               <label htmlFor={`${uid}-new-folder-name`}>NEW FOLDER NAME</label>
-              <input id={`${uid}-new-folder-name`} aria-label="New Folder Name" className="input" name="new_folder_name" placeholder="e.g. Insurance policies" required maxLength={100} style={{ minHeight: 44 }} />
+              <input id={`${uid}-new-folder-name`} aria-label="New Folder Name" className="input" name="new_folder_name" placeholder="e.g. Insurance policies" required maxLength={100} style={{ minHeight: "2.75rem" }} />
             </div>
           )}
 
-          <div style={{ display: "flex", gap: 12, marginBottom: 16 }}>
+          <div style={{ display: "flex", gap: "0.75rem", marginBottom: "1rem" }}>
             <div className="field" style={{ flex: 1 }}>
               <label htmlFor={`${uid}-owner`}>BELONGS TO</label>
-              <select id={`${uid}-owner`} aria-label="Belongs To" className="input" name="owner_member_id" style={{ minHeight: 44 }}>
+              <select id={`${uid}-owner`} aria-label="Belongs To" className="input" name="owner_member_id" style={{ minHeight: "2.75rem" }}>
                 <option value="">Whole family</option>
                 {members.map((m) => (
                   <option key={m.id} value={m.id}>
@@ -141,23 +141,23 @@ export function NewDocForm({
             </div>
             <div className="field" style={{ flex: 1 }}>
               <label htmlFor={`${uid}-expires`}>EXPIRES</label>
-              <DateInput id={`${uid}-expires`} aria-label="Expires" className="input" name="expires_at" style={{ minHeight: 44 }} />
+              <DateInput id={`${uid}-expires`} aria-label="Expires" className="input" name="expires_at" style={{ minHeight: "2.75rem" }} />
             </div>
           </div>
 
-          <div style={{ display: "flex", gap: 12, marginBottom: 16 }}>
+          <div style={{ display: "flex", gap: "0.75rem", marginBottom: "1rem" }}>
             <div className="field" style={{ flex: 1 }}>
               <label htmlFor={`${uid}-doc-type`}>DOCUMENT TYPE</label>
-              <input id={`${uid}-doc-type`} aria-label="Document Type" className="input" name="doc_type" placeholder="e.g. Application form" maxLength={50} style={{ minHeight: 44 }} />
+              <input id={`${uid}-doc-type`} aria-label="Document Type" className="input" name="doc_type" placeholder="e.g. Application form" maxLength={50} style={{ minHeight: "2.75rem" }} />
             </div>
             <div className="field" style={{ flex: 1 }}>
               <label htmlFor={`${uid}-reference-no`}>REFERENCE NO.</label>
-              <input id={`${uid}-reference-no`} aria-label="Reference No." className="input" name="reference_no" placeholder="Optional" maxLength={100} style={{ minHeight: 44 }} />
+              <input id={`${uid}-reference-no`} aria-label="Reference No." className="input" name="reference_no" placeholder="Optional" maxLength={100} style={{ minHeight: "2.75rem" }} />
             </div>
           </div>
 
-          <div style={{ fontSize: 13, color: "var(--color-neutral-700)", marginBottom: 6 }}>Visible to</div>
-          <div style={{ display: "flex", gap: 7, flexWrap: "wrap", marginBottom: 16 }}>
+          <div style={{ fontSize: "0.8125rem", color: "var(--color-neutral-700)", marginBottom: "0.375rem" }}>Visible to</div>
+          <div style={{ display: "flex", gap: "0.4375rem", flexWrap: "wrap", marginBottom: "1rem" }}>
             {VISIBILITY.map((v) => (
               <button key={v.value} type="button" className="chip" data-active={visibility === v.value} onClick={() => setVisibility(v.value)}>
                 {v.label}
@@ -165,12 +165,12 @@ export function NewDocForm({
             ))}
           </div>
 
-          <div className="field" style={{ marginBottom: 18 }}>
+          <div className="field" style={{ marginBottom: "1.125rem" }}>
             <label htmlFor={`${uid}-note`}>NOTE</label>
-            <input id={`${uid}-note`} aria-label="Note" className="input" name="note" placeholder="Anything worth remembering" maxLength={1000} style={{ minHeight: 44 }} />
+            <input id={`${uid}-note`} aria-label="Note" className="input" name="note" placeholder="Anything worth remembering" maxLength={1000} style={{ minHeight: "2.75rem" }} />
           </div>
 
-          <button type="submit" className="btn btn-primary btn-block" style={{ minHeight: 46, fontSize: 14, letterSpacing: ".04em" }} disabled={saving}>
+          <button type="submit" className="btn btn-primary btn-block" style={{ minHeight: "2.875rem", fontSize: "0.875rem", letterSpacing: ".04em" }} disabled={saving}>
             {saving ? "SAVING…" : "SAVE ENTRY"}
           </button>
         </form>

@@ -69,12 +69,12 @@ export function DocumentsLock({ hasPin, hasBiometric }: { hasPin: boolean; hasBi
   };
 
   return (
-    <Blueprint style={{ padding: "22px 18px", maxWidth: 380 }}>
-      <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 6 }}>
+    <Blueprint style={{ padding: "1.375rem 1.125rem", maxWidth: 380 }}>
+      <div style={{ display: "flex", alignItems: "center", gap: "0.625rem", marginBottom: "0.375rem" }}>
         <Icon name="keyRound" size={18} style={{ color: "var(--color-accent-700)" }} />
-        <h3 style={{ font: "600 18px/1.2 var(--font-heading)", margin: 0 }}>Documents are locked</h3>
+        <h3 style={{ font: "600 1.125rem/1.2 var(--font-heading)", margin: 0 }}>Documents are locked</h3>
       </div>
-      <p style={{ fontSize: 13.5, lineHeight: 1.45, color: "var(--color-neutral-700)", margin: "0 0 16px" }}>
+      <p style={{ fontSize: "0.84375rem", lineHeight: 1.45, color: "var(--color-neutral-700)", margin: "0 0 16px" }}>
         Passports, certificates and insurance live behind this. Unlocking lasts ten minutes.
       </p>
 
@@ -85,16 +85,16 @@ export function DocumentsLock({ hasPin, hasBiometric }: { hasPin: boolean; hasBi
             className="btn btn-primary"
             disabled={pending}
             onClick={unlockWithDevice}
-            style={{ width: "100%", gap: 7 }}
+            style={{ width: "100%", gap: "0.4375rem" }}
           >
             <Icon name="shieldCheck" size={16} />
             Unlock with this device
           </button>
           {bioError && <ErrorText message={bioError} />}
           {hasPin && (
-            <div style={{ display: "flex", alignItems: "center", gap: 9, margin: "14px 0 12px" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: "0.5625rem", margin: "14px 0 12px" }}>
               <span style={{ flex: 1, height: 1, background: "var(--color-divider)" }} />
-              <span style={{ fontSize: 11.5, letterSpacing: ".06em", color: "var(--color-neutral-500)" }}>OR</span>
+              <span style={{ fontSize: "0.71875rem", letterSpacing: ".06em", color: "var(--color-neutral-500)" }}>OR</span>
               <span style={{ flex: 1, height: 1, background: "var(--color-divider)" }} />
             </div>
           )}
@@ -104,7 +104,7 @@ export function DocumentsLock({ hasPin, hasBiometric }: { hasPin: boolean; hasBi
       {hasPin && (
         <form action={formAction}>
           <ErrorText message={state.error} />
-          <label htmlFor={`${uid}-pin`} style={{ display: "block", fontSize: 11.5, color: "var(--color-neutral-600)", marginBottom: 4 }}>
+          <label htmlFor={`${uid}-pin`} style={{ display: "block", fontSize: "0.71875rem", color: "var(--color-neutral-600)", marginBottom: "0.25rem" }}>
             PIN
           </label>
           <input
@@ -118,14 +118,14 @@ export function DocumentsLock({ hasPin, hasBiometric }: { hasPin: boolean; hasBi
             maxLength={8}
             required
             autoFocus={!bioAvailable}
-            style={{ letterSpacing: ".3em", marginBottom: 10 }}
+            style={{ letterSpacing: ".3em", marginBottom: "0.625rem" }}
           />
           <SubmitButton style={{ width: "100%" }}>UNLOCK</SubmitButton>
         </form>
       )}
 
       {!hasPin && !bioAvailable && (
-        <p style={{ fontSize: 13, color: "var(--color-neutral-700)", margin: 0 }}>
+        <p style={{ fontSize: "0.8125rem", color: "var(--color-neutral-700)", margin: 0 }}>
           This account unlocks with a device that isn&rsquo;t this one. Open Kin on the phone or laptop you set up, or
           add a PIN there as a backup.
         </p>

@@ -55,12 +55,12 @@ export function EntryShareToggle({
             return;
           run(true);
         }}
-        style={{ minHeight: 26, fontSize: 12.5, padding: "0 7px", gap: 4, color: shared ? "var(--color-accent-700)" : "var(--color-neutral-700)" }}
+        style={{ minHeight: "1.625rem", fontSize: "0.78125rem", padding: "0 0.4375rem", gap: "0.25rem", color: shared ? "var(--color-accent-700)" : "var(--color-neutral-700)" }}
       >
         <Icon name={shared ? "users" : "plus"} size={13} />
         {shared ? "Shared" : "Share"}
       </button>
-      {error && <span style={{ fontSize: 12, color: "var(--cal-occasion)" }}>{error}</span>}
+      {error && <span style={{ fontSize: "0.75rem", color: "var(--cal-occasion)" }}>{error}</span>}
     </>
   );
 }

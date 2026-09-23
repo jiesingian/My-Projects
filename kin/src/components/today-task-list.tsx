@@ -263,7 +263,7 @@ function TaskRow({ task }: { task: RoutineView }) {
                   textAlign: "left",
                   background: "none",
                   border: 0,
-                  padding: "0rem",
+                  padding: 0,
                   cursor: "pointer",
                   fontSize: "0.8125rem",
                   color: "var(--color-neutral-700)",

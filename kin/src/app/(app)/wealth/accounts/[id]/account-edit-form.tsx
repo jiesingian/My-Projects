@@ -17,17 +17,17 @@ export function AccountEditForm({ account }: { account: Tables<"accounts"> }) {
 
   if (!open) {
     return (
-      <button type="button" className="btn btn-secondary btn-block" style={{ minHeight: 40, fontSize: 13.5, marginTop: 14 }} onClick={() => setOpen(true)}>
+      <button type="button" className="btn btn-secondary btn-block" style={{ minHeight: "2.5rem", fontSize: "0.84375rem", marginTop: "0.875rem" }} onClick={() => setOpen(true)}>
         EDIT ACCOUNT
       </button>
     );
   }
 
   return (
-    <form action={formAction} style={{ marginTop: 16, borderTop: "1px solid var(--color-divider)", paddingTop: 16 }}>
+    <form action={formAction} style={{ marginTop: "1rem", borderTop: "1px solid var(--color-divider)", paddingTop: "1rem" }}>
       <ErrorText message={state.error} />
       <Field label="ACCOUNT NAME">
-        <input className="input" name="name" required defaultValue={account.name} style={{ minHeight: 42 }} />
+        <input className="input" name="name" required defaultValue={account.name} style={{ minHeight: "2.625rem" }} />
       </Field>
       <Field label="TYPE">
         <select
@@ -35,7 +35,7 @@ export function AccountEditForm({ account }: { account: Tables<"accounts"> }) {
           name="account_type"
           value={accountType}
           onChange={(e) => setAccountType(e.target.value as AccountType)}
-          style={{ minHeight: 42 }}
+          style={{ minHeight: "2.625rem" }}
         >
           {ACCOUNT_TYPES.map((t) => (
             <option key={t} value={t}>
@@ -44,7 +44,7 @@ export function AccountEditForm({ account }: { account: Tables<"accounts"> }) {
           ))}
         </select>
       </Field>
-      <div style={{ marginBottom: 12 }}>
+      <div style={{ marginBottom: "0.75rem" }}>
         <AppLinksField
           accountType={accountType}
           defaultInstitution={account.institution ?? ""}
@@ -54,13 +54,13 @@ export function AccountEditForm({ account }: { account: Tables<"accounts"> }) {
         />
       </div>
       <Field label="NOTE">
-        <input className="input" name="sub_note" defaultValue={account.sub_note ?? ""} style={{ minHeight: 42 }} />
+        <input className="input" name="sub_note" defaultValue={account.sub_note ?? ""} style={{ minHeight: "2.625rem" }} />
       </Field>
-      <div style={{ display: "flex", gap: 10 }}>
-        <SubmitButton className="btn btn-primary" style={{ flex: 1, minHeight: 42, fontSize: 14 }}>
+      <div style={{ display: "flex", gap: "0.625rem" }}>
+        <SubmitButton className="btn btn-primary" style={{ flex: 1, minHeight: "2.625rem", fontSize: "0.875rem" }}>
           SAVE
         </SubmitButton>
-        <button type="button" className="btn btn-secondary" style={{ flex: 1, minHeight: 42, fontSize: 14 }} onClick={() => setOpen(false)}>
+        <button type="button" className="btn btn-secondary" style={{ flex: 1, minHeight: "2.625rem", fontSize: "0.875rem" }} onClick={() => setOpen(false)}>
           CANCEL
         </button>
       </div>
@@ -70,7 +70,7 @@ export function AccountEditForm({ account }: { account: Tables<"accounts"> }) {
 
 function Field({ label, children, style }: { label: string; children: React.ReactNode; style?: React.CSSProperties }) {
   return (
-    <div className="field" style={{ marginBottom: 12, ...style }}>
+    <div className="field" style={{ marginBottom: "0.75rem", ...style }}>
       <label>
         {label}
         {children}

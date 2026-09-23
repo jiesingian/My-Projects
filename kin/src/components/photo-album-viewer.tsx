@@ -44,8 +44,8 @@ export function PhotoAlbumViewer({
     return (
       <div role="dialog" aria-modal="true" onClick={onClose} style={overlayStyle}>
         <div onClick={(e) => e.stopPropagation()} style={{ color: "#fff", textAlign: "center" }}>
-          <p style={{ fontSize: 13, marginBottom: 14 }}>{emptyMessage}</p>
-          <button type="button" className="btn btn-secondary" style={{ minHeight: 40, fontSize: 13.5, padding: "0 20px" }} onClick={onClose}>
+          <p style={{ fontSize: "0.8125rem", marginBottom: "0.875rem" }}>{emptyMessage}</p>
+          <button type="button" className="btn btn-secondary" style={{ minHeight: "2.5rem", fontSize: "0.84375rem", padding: "0 1.25rem" }} onClick={onClose}>
             CLOSE
           </button>
         </div>
@@ -66,8 +66,8 @@ export function PhotoAlbumViewer({
         ×
       </button>
 
-      <div onClick={(e) => e.stopPropagation()} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 16 }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
+      <div onClick={(e) => e.stopPropagation()} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "1rem" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: "1rem" }}>
           <button type="button" aria-label="Previous" disabled={photos.length < 2} onClick={() => setIndex((i) => (i - 1 + photos.length) % photos.length)} style={navButtonStyle}>
             ‹
           </button>
@@ -78,18 +78,18 @@ export function PhotoAlbumViewer({
           </button>
         </div>
 
-        <span style={{ color: "#fff", fontSize: 13 }}>
+        <span style={{ color: "#fff", fontSize: "0.8125rem" }}>
           {index + 1} / {photos.length}
         </span>
 
-        {error && <p style={{ color: "var(--color-accent-400)", fontSize: 13 }}>{error}</p>}
+        {error && <p style={{ color: "var(--color-accent-400)", fontSize: "0.8125rem" }}>{error}</p>}
 
         {canManage && (
-          <div style={{ display: "flex", gap: 10 }}>
+          <div style={{ display: "flex", gap: "0.625rem" }}>
             <button
               type="button"
               className="btn btn-primary"
-              style={{ minHeight: 40, fontSize: 13.5, padding: "0 18px" }}
+              style={{ minHeight: "2.5rem", fontSize: "0.84375rem", padding: "0 1.125rem" }}
               disabled={busy || isActive}
               onClick={async () => {
                 setBusy(true);
@@ -108,7 +108,7 @@ export function PhotoAlbumViewer({
             <button
               type="button"
               className="btn btn-secondary"
-              style={{ minHeight: 40, fontSize: 13.5, padding: "0 14px", color: "var(--color-accent-700)", borderColor: "var(--color-accent-700)" }}
+              style={{ minHeight: "2.5rem", fontSize: "0.84375rem", padding: "0 0.875rem", color: "var(--color-accent-700)", borderColor: "var(--color-accent-700)" }}
               disabled={busy}
               onClick={async () => {
                 if (!(await confirm({ title: "Delete this photo?", description: "This can't be undone.", confirmLabel: "Delete", danger: true }))) return;
@@ -137,7 +137,7 @@ const overlayStyle: React.CSSProperties = {
   display: "flex",
   alignItems: "center",
   justifyContent: "center",
-  padding: 24,
+  padding: "1.5rem",
 };
 
 const closeButtonStyle: React.CSSProperties = {
@@ -147,7 +147,7 @@ const closeButtonStyle: React.CSSProperties = {
   background: "none",
   border: "none",
   color: "#fff",
-  fontSize: 30,
+  fontSize: "1.875rem",
   lineHeight: 1,
   cursor: "pointer",
 };
@@ -156,8 +156,8 @@ const navButtonStyle: React.CSSProperties = {
   background: "none",
   border: "none",
   color: "#fff",
-  fontSize: 34,
+  fontSize: "2.125rem",
   lineHeight: 1,
   cursor: "pointer",
-  padding: 6,
+  padding: "0.375rem",
 };

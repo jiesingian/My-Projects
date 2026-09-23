@@ -43,31 +43,31 @@ function ContactForm({
 }) {
   const uid = useId();
   return (
-    <div style={{ marginTop: 10, marginBottom: 10 }}>
-      <div className="field" style={{ marginBottom: 8 }}>
+    <div style={{ marginTop: "0.625rem", marginBottom: "0.625rem" }}>
+      <div className="field" style={{ marginBottom: "0.5rem" }}>
         <label htmlFor={`${uid}-name`}>NAME</label>
-        <input id={`${uid}-name`} aria-label="Name" className="input" placeholder="Dr. Santos" value={fields.name} onChange={(e) => set("name", e.target.value)} style={{ minHeight: 40 }} disabled={busy} />
+        <input id={`${uid}-name`} aria-label="Name" className="input" placeholder="Dr. Santos" value={fields.name} onChange={(e) => set("name", e.target.value)} style={{ minHeight: "2.5rem" }} disabled={busy} />
       </div>
-      <div style={{ display: "flex", gap: 8, marginBottom: 8 }}>
+      <div style={{ display: "flex", gap: "0.5rem", marginBottom: "0.5rem" }}>
         <div className="field" style={{ flex: 1 }}>
           <label htmlFor={`${uid}-relationship`}>RELATIONSHIP</label>
-          <input id={`${uid}-relationship`} aria-label="Relationship" className="input" placeholder="Pediatrician" value={fields.relationship} onChange={(e) => set("relationship", e.target.value)} style={{ minHeight: 40 }} disabled={busy} />
+          <input id={`${uid}-relationship`} aria-label="Relationship" className="input" placeholder="Pediatrician" value={fields.relationship} onChange={(e) => set("relationship", e.target.value)} style={{ minHeight: "2.5rem" }} disabled={busy} />
         </div>
         <div className="field" style={{ flex: 1 }}>
           <label htmlFor={`${uid}-phone`}>PHONE</label>
-          <input id={`${uid}-phone`} aria-label="Phone" type="tel" className="input" placeholder="0917 000 0000" value={fields.phone} onChange={(e) => set("phone", e.target.value)} style={{ minHeight: 40 }} disabled={busy} />
+          <input id={`${uid}-phone`} aria-label="Phone" type="tel" className="input" placeholder="0917 000 0000" value={fields.phone} onChange={(e) => set("phone", e.target.value)} style={{ minHeight: "2.5rem" }} disabled={busy} />
         </div>
       </div>
-      <div className="field" style={{ marginBottom: 8 }}>
+      <div className="field" style={{ marginBottom: "0.5rem" }}>
         <label htmlFor={`${uid}-note`}>NOTE</label>
-        <input id={`${uid}-note`} aria-label="Note" className="input" placeholder="Clinic hours, address, anything worth remembering" value={fields.note} onChange={(e) => set("note", e.target.value)} style={{ minHeight: 40 }} disabled={busy} />
+        <input id={`${uid}-note`} aria-label="Note" className="input" placeholder="Clinic hours, address, anything worth remembering" value={fields.note} onChange={(e) => set("note", e.target.value)} style={{ minHeight: "2.5rem" }} disabled={busy} />
       </div>
-      {error && <p style={{ color: "var(--color-accent-700)", fontSize: 13, margin: "0 0 8px" }}>{error}</p>}
-      <div style={{ display: "flex", gap: 8 }}>
-        <button type="button" className="btn btn-secondary" style={{ flex: 1, minHeight: 38, fontSize: 13.5 }} disabled={busy} onClick={onCancel}>
+      {error && <p style={{ color: "var(--color-accent-700)", fontSize: "0.8125rem", margin: "0 0 8px" }}>{error}</p>}
+      <div style={{ display: "flex", gap: "0.5rem" }}>
+        <button type="button" className="btn btn-secondary" style={{ flex: 1, minHeight: "2.375rem", fontSize: "0.84375rem" }} disabled={busy} onClick={onCancel}>
           CANCEL
         </button>
-        <button type="button" className="btn btn-primary" style={{ flex: 1, minHeight: 38, fontSize: 13.5 }} disabled={busy} onClick={onSave}>
+        <button type="button" className="btn btn-primary" style={{ flex: 1, minHeight: "2.375rem", fontSize: "0.84375rem" }} disabled={busy} onClick={onSave}>
           {busy ? "SAVING…" : saveLabel}
         </button>
       </div>
@@ -132,12 +132,12 @@ export function EmergencyContactList({ contacts }: { contacts: EmergencyContact[
   }
 
   return (
-    <div style={{ marginBottom: 20 }}>
+    <div style={{ marginBottom: "1.25rem" }}>
       {/* Removing a contact has no form open to show its own error in --
           this is the only place a failed remove() is ever visible. */}
-      {error && editingId === null && <p style={{ color: "var(--color-accent-700)", fontSize: 13, margin: "0 0 8px" }}>{error}</p>}
+      {error && editingId === null && <p style={{ color: "var(--color-accent-700)", fontSize: "0.8125rem", margin: "0 0 8px" }}>{error}</p>}
       {contacts.length === 0 && editingId !== "new" && (
-        <div style={{ fontSize: 13.5, color: "var(--color-neutral-600)", marginBottom: 10 }}>
+        <div style={{ fontSize: "0.84375rem", color: "var(--color-neutral-600)", marginBottom: "0.625rem" }}>
           No emergency contacts yet — start with a pediatrician, poison control, or a relative nearby.
         </div>
       )}
@@ -145,21 +145,21 @@ export function EmergencyContactList({ contacts }: { contacts: EmergencyContact[
         editingId === c.id ? (
           <ContactForm key={c.id} fields={fields} set={set} busy={busy} error={error} onCancel={cancelForm} onSave={save} saveLabel="SAVE CONTACT" />
         ) : (
-          <div key={c.id} style={{ display: "flex", alignItems: "center", gap: 10, padding: "9px 0", borderBottom: "1px solid var(--color-divider)" }}>
+          <div key={c.id} style={{ display: "flex", alignItems: "center", gap: "0.625rem", padding: "0.5625rem 0", borderBottom: "1px solid var(--color-divider)" }}>
             <span style={{ flex: 1, minWidth: 0 }}>
-              <span style={{ font: "600 15px/1.1 var(--font-heading)", display: "block" }}>{c.name}</span>
-              <span style={{ fontSize: 13, color: "var(--color-neutral-600)" }}>
+              <span style={{ font: "600 0.9375rem/1.1 var(--font-heading)", display: "block" }}>{c.name}</span>
+              <span style={{ fontSize: "0.8125rem", color: "var(--color-neutral-600)" }}>
                 {c.relationship}
                 {c.note ? ` · ${c.note}` : ""}
               </span>
             </span>
-            <a href={`tel:${c.phone}`} style={{ fontSize: 13, color: "var(--color-accent-700)", textDecoration: "none", flex: "none", fontFamily: "var(--font-numeric)" }}>
+            <a href={`tel:${c.phone}`} style={{ fontSize: "0.8125rem", color: "var(--color-accent-700)", textDecoration: "none", flex: "none", fontFamily: "var(--font-numeric)" }}>
               {c.phone}
             </a>
-            <button type="button" onClick={() => startEdit(c)} style={{ all: "unset", cursor: "pointer", fontSize: 13, color: "var(--color-accent-700)" }}>
+            <button type="button" onClick={() => startEdit(c)} style={{ all: "unset", cursor: "pointer", fontSize: "0.8125rem", color: "var(--color-accent-700)" }}>
               EDIT
             </button>
-            <button type="button" onClick={() => remove(c.id)} style={{ all: "unset", cursor: "pointer", fontSize: 13, color: "var(--color-accent-700)" }}>
+            <button type="button" onClick={() => remove(c.id)} style={{ all: "unset", cursor: "pointer", fontSize: "0.8125rem", color: "var(--color-accent-700)" }}>
               REMOVE
             </button>
           </div>
@@ -169,7 +169,7 @@ export function EmergencyContactList({ contacts }: { contacts: EmergencyContact[
       {editingId === "new" ? (
         <ContactForm fields={fields} set={set} busy={busy} error={error} onCancel={cancelForm} onSave={save} saveLabel="SAVE CONTACT" />
       ) : (
-        <button type="button" className="btn btn-secondary btn-block" style={{ minHeight: 36, fontSize: 13, marginTop: 10 }} onClick={startAdd}>
+        <button type="button" className="btn btn-secondary btn-block" style={{ minHeight: "2.25rem", fontSize: "0.8125rem", marginTop: "0.625rem" }} onClick={startAdd}>
           + ADD CONTACT
         </button>
       )}

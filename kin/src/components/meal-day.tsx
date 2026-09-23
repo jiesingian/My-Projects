@@ -65,7 +65,7 @@ export function MealPhotoControl({ recipeRef, hasPhoto, dish }: { recipeRef: str
           if (file) void onPick(file);
         }}
       />
-      <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
+      <div style={{ display: "flex", gap: "0.375rem", alignItems: "center" }}>
         <button
           type="button"
           disabled={busy}
@@ -89,7 +89,7 @@ export function MealPhotoControl({ recipeRef, hasPhoto, dish }: { recipeRef: str
           </button>
         )}
       </div>
-      {error && <div style={{ fontSize: 12, color: "var(--cal-occasion)", marginTop: 4 }}>{error}</div>}
+      {error && <div style={{ fontSize: "0.75rem", color: "var(--cal-occasion)", marginTop: "0.25rem" }}>{error}</div>}
     </>
   );
 }
@@ -128,7 +128,7 @@ export function IngredientAmountRow({
   };
 
   return (
-    <div style={{ display: "flex", alignItems: "center", gap: 6, padding: "5px 0", borderBottom: "1px solid var(--color-divider)" }}>
+    <div style={{ display: "flex", alignItems: "center", gap: "0.375rem", padding: "0.3125rem 0", borderBottom: "1px solid var(--color-divider)" }}>
       <button
         type="button"
         disabled={pending}
@@ -153,14 +153,14 @@ export function IngredientAmountRow({
         {inPantry && <Icon name="check" size={13} style={{ color: "#fff" }} />}
       </button>
 
-      <span style={{ flex: 1, minWidth: 0, fontSize: 14 }}>
+      <span style={{ flex: 1, minWidth: 0, fontSize: "0.875rem" }}>
         <span style={{ display: "block", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{name}</span>
         {/* Amounts a number can't hold — "to taste", "a handful" — stay
             readable underneath rather than being thrown away. */}
         {amount == null && qty && qty.trim() !== "" && (
-          <span style={{ display: "block", fontSize: 11.5, color: "var(--color-neutral-600)" }}>{qty}</span>
+          <span style={{ display: "block", fontSize: "0.71875rem", color: "var(--color-neutral-600)" }}>{qty}</span>
         )}
-        {!inPantry && onList && <span style={{ display: "block", fontSize: 11.5, color: "var(--cal-schedule)" }}>on the list</span>}
+        {!inPantry && onList && <span style={{ display: "block", fontSize: "0.71875rem", color: "var(--cal-schedule)" }}>on the list</span>}
       </span>
 
       <input
@@ -172,7 +172,7 @@ export function IngredientAmountRow({
         aria-label={`How much ${name}`}
         placeholder="—"
         className="input"
-        style={{ width: 58, minHeight: 34, fontSize: 13.5, textAlign: "right", padding: "0 7px", flex: "none" }}
+        style={{ width: "3.625rem", minHeight: "2.125rem", fontSize: "0.84375rem", textAlign: "right", padding: "0 0.4375rem", flex: "none" }}
       />
       <input
         value={unitText}
@@ -183,18 +183,18 @@ export function IngredientAmountRow({
         placeholder="unit"
         className="input"
         maxLength={24}
-        style={{ width: 62, minHeight: 34, fontSize: 13.5, padding: "0 7px", flex: "none" }}
+        style={{ width: "3.875rem", minHeight: "2.125rem", fontSize: "0.84375rem", padding: "0 0.4375rem", flex: "none" }}
       />
       <button
         type="button"
         disabled={pending}
         onClick={() => run(() => removeMealIngredientAction(id))}
         aria-label={`Take ${name} off this meal`}
-        style={{ border: 0, background: "none", cursor: "pointer", padding: 4, display: "flex", color: "var(--color-neutral-600)", flex: "none" }}
+        style={{ border: 0, background: "none", cursor: "pointer", padding: "0.25rem", display: "flex", color: "var(--color-neutral-600)", flex: "none" }}
       >
         <Icon name="x" size={13} />
       </button>
-      {error && <span style={{ fontSize: 11.5, color: "var(--cal-occasion)" }}>{error}</span>}
+      {error && <span style={{ fontSize: "0.71875rem", color: "var(--cal-occasion)" }}>{error}</span>}
     </div>
   );
 }
@@ -224,7 +224,7 @@ export function AddIngredientRow({ mealId }: { mealId: string }) {
   };
 
   return (
-    <div style={{ display: "flex", gap: 6, alignItems: "center", paddingTop: 8 }}>
+    <div style={{ display: "flex", gap: "0.375rem", alignItems: "center", paddingTop: "0.5rem" }}>
       <input
         className="input"
         placeholder="Add an ingredient"
@@ -233,7 +233,7 @@ export function AddIngredientRow({ mealId }: { mealId: string }) {
         onKeyDown={(e) => e.key === "Enter" && add()}
         aria-label="Another ingredient for this meal"
         maxLength={150}
-        style={{ flex: 1, minWidth: 0, minHeight: 34, fontSize: 13.5 }}
+        style={{ flex: 1, minWidth: 0, minHeight: "2.125rem", fontSize: "0.84375rem" }}
       />
       <input
         className="input"
@@ -242,7 +242,7 @@ export function AddIngredientRow({ mealId }: { mealId: string }) {
         value={amount}
         onChange={(e) => setAmount(e.target.value)}
         aria-label="How much"
-        style={{ width: 58, minHeight: 34, fontSize: 13.5, textAlign: "right", padding: "0 7px", flex: "none" }}
+        style={{ width: "3.625rem", minHeight: "2.125rem", fontSize: "0.84375rem", textAlign: "right", padding: "0 0.4375rem", flex: "none" }}
       />
       <input
         className="input"
@@ -251,7 +251,7 @@ export function AddIngredientRow({ mealId }: { mealId: string }) {
         onChange={(e) => setUnit(e.target.value)}
         aria-label="Unit"
         maxLength={24}
-        style={{ width: 62, minHeight: 34, fontSize: 13.5, padding: "0 7px", flex: "none" }}
+        style={{ width: "3.875rem", minHeight: "2.125rem", fontSize: "0.84375rem", padding: "0 0.4375rem", flex: "none" }}
       />
       <button
         type="button"
@@ -263,7 +263,7 @@ export function AddIngredientRow({ mealId }: { mealId: string }) {
       >
         <Icon name="plus" size={15} />
       </button>
-      {error && <span style={{ fontSize: 11.5, color: "var(--cal-occasion)" }}>{error}</span>}
+      {error && <span style={{ fontSize: "0.71875rem", color: "var(--cal-occasion)" }}>{error}</span>}
     </div>
   );
 }

@@ -84,12 +84,12 @@ export function TransactForm({
   }
 
   if (accounts.length === 0) {
-    return <p style={{ fontSize: 13, color: "var(--color-neutral-600)" }}>Add an account in Wealth first, then you can record money against it.</p>;
+    return <p style={{ fontSize: "0.8125rem", color: "var(--color-neutral-600)" }}>Add an account in Wealth first, then you can record money against it.</p>;
   }
 
   return (
     <div>
-      <div className="seg" style={{ marginBottom: 18, marginTop: 0 }}>
+      <div className="seg" style={{ marginBottom: "1.125rem", marginTop: 0 }}>
         {MODES.map((m) => (
           <button key={m} type="button" data-active={mode === m} onClick={() => switchMode(m)}>
             {MODE_LABELS[m]}
@@ -100,7 +100,7 @@ export function TransactForm({
       <ErrorText message={error} />
 
       <Field label={mode === "transfer" ? "FROM ACCOUNT" : mode === "in" ? "INTO ACCOUNT" : "OUT OF ACCOUNT"}>
-        <select className="input" value={accountId} onChange={(e) => setAccountId(e.target.value)} style={{ minHeight: 44 }}>
+        <select className="input" value={accountId} onChange={(e) => setAccountId(e.target.value)} style={{ minHeight: "2.75rem" }}>
           {accounts.map((a) => (
             <option key={a.id} value={a.id}>
               {a.name} · {formatCurrency(a.balance, currency)}
@@ -111,7 +111,7 @@ export function TransactForm({
 
       {mode === "transfer" && (
         <Field label="TO ACCOUNT">
-          <select className="input" value={toAccountId} onChange={(e) => setToAccountId(e.target.value)} style={{ minHeight: 44 }}>
+          <select className="input" value={toAccountId} onChange={(e) => setToAccountId(e.target.value)} style={{ minHeight: "2.75rem" }}>
             {accounts.map((a) => (
               <option key={a.id} value={a.id}>
                 {a.name} · {formatCurrency(a.balance, currency)}
@@ -121,12 +121,12 @@ export function TransactForm({
         </Field>
       )}
 
-      <div style={{ display: "flex", gap: 12 }}>
+      <div style={{ display: "flex", gap: "0.75rem" }}>
         <Field label="AMOUNT (₱)" style={{ flex: 1 }}>
-          <input className="input" type="number" step="0.01" min="0" value={amount} onChange={(e) => setAmount(Number(e.target.value))} style={{ minHeight: 44 }} />
+          <input className="input" type="number" step="0.01" min="0" value={amount} onChange={(e) => setAmount(Number(e.target.value))} style={{ minHeight: "2.75rem" }} />
         </Field>
         <Field label="DATE" style={{ flex: 1 }}>
-          <DateInput className="input" value={occurredOn} onChange={(e) => setOccurredOn(e.target.value)} style={{ minHeight: 44 }} />
+          <DateInput className="input" value={occurredOn} onChange={(e) => setOccurredOn(e.target.value)} style={{ minHeight: "2.75rem" }} />
         </Field>
       </div>
 
@@ -136,7 +136,7 @@ export function TransactForm({
           expenses. Optional, because most payments are neither. */}
       {mode !== "transfer" && (assets.length > 0 || goals.length > 0) && (
         <Field label={mode === "in" ? "INCOME FROM (OPTIONAL)" : "AGAINST (OPTIONAL)"}>
-          <select className="input" value={against} onChange={(e) => setAgainst(e.target.value)} style={{ minHeight: 44 }}>
+          <select className="input" value={against} onChange={(e) => setAgainst(e.target.value)} style={{ minHeight: "2.75rem" }}>
             <option value="">Nothing in particular</option>
             {assets.length > 0 && (
               <optgroup label="Assets">
@@ -162,7 +162,7 @@ export function TransactForm({
 
       {mode !== "transfer" && (
         <Field label={mode === "in" ? "SOURCE" : "CATEGORY"}>
-          <select className="input" value={category} onChange={(e) => setCategory(e.target.value)} style={{ minHeight: 44 }}>
+          <select className="input" value={category} onChange={(e) => setCategory(e.target.value)} style={{ minHeight: "2.75rem" }}>
             {(mode === "in" ? INCOME_SOURCES : EXPENSE_CATEGORIES).map((c) => (
               <option key={c} value={c}>
                 {c}
@@ -178,23 +178,23 @@ export function TransactForm({
           value={particulars}
           onChange={(e) => setParticulars(e.target.value)}
           placeholder={mode === "in" ? "October salary" : mode === "out" ? "Hardware for the gate" : "Moving savings across"}
-          style={{ minHeight: 44 }}
+          style={{ minHeight: "2.75rem" }}
         />
       </Field>
 
       {canUseApp && (
-        <label style={{ display: "flex", alignItems: "center", gap: 9, fontSize: 13.5, color: "var(--color-neutral-700)", margin: "2px 0 16px" }}>
+        <label style={{ display: "flex", alignItems: "center", gap: "0.5625rem", fontSize: "0.84375rem", color: "var(--color-neutral-700)", margin: "2px 0 16px" }}>
           <input type="checkbox" checked={viaApp} onChange={(e) => setViaApp(e.target.checked)} />
           Open {account?.institution ?? account?.name} to do it, then confirm here
         </label>
       )}
 
-      <button type="button" className="btn btn-primary btn-block" disabled={pending} style={{ minHeight: 46, fontSize: 14, letterSpacing: ".04em" }} onClick={submit}>
+      <button type="button" className="btn btn-primary btn-block" disabled={pending} style={{ minHeight: "2.875rem", fontSize: "0.875rem", letterSpacing: ".04em" }} onClick={submit}>
         {pending ? "…" : viaApp && canUseApp ? "OPEN APP & LOG IT" : "RECORD IT"}
       </button>
 
       {viaApp && canUseApp && (
-        <p style={{ fontSize: 13, color: "var(--color-neutral-600)", marginTop: 10 }}>
+        <p style={{ fontSize: "0.8125rem", color: "var(--color-neutral-600)", marginTop: "0.625rem" }}>
           Kin holds this as pending and leaves your balance alone until you come back and confirm it went through.
         </p>
       )}
@@ -204,7 +204,7 @@ export function TransactForm({
 
 function Field({ label, children, style }: { label: string; children: React.ReactNode; style?: React.CSSProperties }) {
   return (
-    <div className="field" style={{ marginBottom: 14, ...style }}>
+    <div className="field" style={{ marginBottom: "0.875rem", ...style }}>
       <label>
         {label}
         {children}

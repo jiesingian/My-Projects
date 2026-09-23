@@ -22,7 +22,7 @@ export function DownloadLink({
         target="_blank"
         rel="noopener noreferrer"
         className="btn btn-secondary"
-        style={{ fontSize: 13.5, justifyContent: "flex-start", gap: 8 }}
+        style={{ fontSize: "0.84375rem", justifyContent: "flex-start", gap: "0.5rem" }}
       >
         <Icon name="hardDrive" size={14} />
         {fileName}
@@ -34,7 +34,7 @@ export function DownloadLink({
     <button
       type="button"
       className="btn btn-secondary"
-      style={{ fontSize: 13.5, justifyContent: "flex-start", gap: 8 }}
+      style={{ fontSize: "0.84375rem", justifyContent: "flex-start", gap: "0.5rem" }}
       disabled={loading || !path}
       onClick={async () => {
         if (!path) return;

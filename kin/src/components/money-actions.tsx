@@ -68,7 +68,7 @@ function AccountSelect({
   currency: string;
 }) {
   return (
-    <select id={id} className="input" value={value} onChange={(e) => onChange(e.target.value)} style={{ minHeight: 42 }}>
+    <select id={id} className="input" value={value} onChange={(e) => onChange(e.target.value)} style={{ minHeight: "2.625rem" }}>
       {accounts.map((a) => (
         <option key={a.id} value={a.id}>
           {a.name} · {formatCurrency(a.balance, currency)}
@@ -81,7 +81,7 @@ function AccountSelect({
 function ViaAppToggle({ checked, onChange, account }: { checked: boolean; onChange: (v: boolean) => void; account?: PickableAccount }) {
   if (!account?.linked_app_url) return null;
   return (
-    <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, color: "var(--color-neutral-700)", margin: "2px 0 10px" }}>
+    <label style={{ display: "flex", alignItems: "center", gap: "0.5rem", fontSize: "0.8125rem", color: "var(--color-neutral-700)", margin: "2px 0 10px" }}>
       <input type="checkbox" checked={checked} onChange={(e) => onChange(e.target.checked)} />
       Open {account.name} to pay, then confirm here
     </label>
@@ -90,7 +90,7 @@ function ViaAppToggle({ checked, onChange, account }: { checked: boolean; onChan
 
 function Err({ message }: { message: string | null }) {
   if (!message) return null;
-  return <p style={{ color: "var(--color-accent-700)", fontSize: 13.5, margin: "0 0 8px" }}>{message}</p>;
+  return <p style={{ color: "var(--color-accent-700)", fontSize: "0.84375rem", margin: "0 0 8px" }}>{message}</p>;
 }
 
 export function PayBillControl({ billId, amount, accounts, currency }: { billId: string; amount: number; accounts: PickableAccount[]; currency: string }) {
@@ -103,40 +103,40 @@ export function PayBillControl({ billId, amount, accounts, currency }: { billId:
   const uid = useId();
 
   if (accounts.length === 0) {
-    return <span style={{ fontSize: 12.5, color: "var(--color-neutral-600)" }}>Add an account first</span>;
+    return <span style={{ fontSize: "0.78125rem", color: "var(--color-neutral-600)" }}>Add an account first</span>;
   }
 
   if (!open) {
     return (
-      <button type="button" className="btn btn-secondary" style={{ minHeight: 32, fontSize: 13, padding: "0 10px", marginTop: 6 }} onClick={() => setOpen(true)}>
+      <button type="button" className="btn btn-secondary" style={{ minHeight: "2rem", fontSize: "0.8125rem", padding: "0 0.625rem", marginTop: "0.375rem" }} onClick={() => setOpen(true)}>
         SETTLE
       </button>
     );
   }
 
   return (
-    <div style={{ marginTop: 10, paddingTop: 10, borderTop: "1px solid var(--color-divider)", textAlign: "left" }}>
+    <div style={{ marginTop: "0.625rem", paddingTop: "0.625rem", borderTop: "1px solid var(--color-divider)", textAlign: "left" }}>
       <Err message={error} />
-      <div className="field" style={{ marginBottom: 8 }}>
+      <div className="field" style={{ marginBottom: "0.5rem" }}>
         <label htmlFor={`${uid}-account`}>PAY FROM</label>
         <AccountSelect id={`${uid}-account`} accounts={accounts} value={accountId} onChange={setAccountId} currency={currency} />
       </div>
-      <div className="field" style={{ marginBottom: 8 }}>
+      <div className="field" style={{ marginBottom: "0.5rem" }}>
         <label htmlFor={`${uid}-amount`}>AMOUNT (₱)</label>
-        <input id={`${uid}-amount`} aria-label="Amount (₱)" className="input" type="number" step="0.01" min="0" value={payAmount} onChange={(e) => setPayAmount(Number(e.target.value))} style={{ minHeight: 42 }} />
+        <input id={`${uid}-amount`} aria-label="Amount (₱)" className="input" type="number" step="0.01" min="0" value={payAmount} onChange={(e) => setPayAmount(Number(e.target.value))} style={{ minHeight: "2.625rem" }} />
       </div>
       <ViaAppToggle checked={viaApp} onChange={setViaApp} account={account} />
-      <div style={{ display: "flex", gap: 8 }}>
+      <div style={{ display: "flex", gap: "0.5rem" }}>
         <button
           type="button"
           className="btn btn-primary"
           disabled={pending}
-          style={{ flex: 1, minHeight: 40, fontSize: 13.5 }}
+          style={{ flex: 1, minHeight: "2.5rem", fontSize: "0.84375rem" }}
           onClick={() => run(() => payBillAction({ billId, accountId, amount: payAmount, viaApp: viaApp && !!account?.linked_app_url }), () => setOpen(false))}
         >
           {pending ? "…" : viaApp && account?.linked_app_url ? "OPEN APP & LOG" : "MARK PAID"}
         </button>
-        <button type="button" className="btn btn-secondary" style={{ flex: 1, minHeight: 40, fontSize: 13.5 }} onClick={() => setOpen(false)}>
+        <button type="button" className="btn btn-secondary" style={{ flex: 1, minHeight: "2.5rem", fontSize: "0.84375rem" }} onClick={() => setOpen(false)}>
           CANCEL
         </button>
       </div>
@@ -154,35 +154,35 @@ export function ReceiveIncomeControl({ scheduleId, amount, accounts, currency }:
   const uid = useId();
 
   if (accounts.length === 0) {
-    return <span style={{ fontSize: 12.5, color: "var(--color-neutral-600)" }}>Add an account first</span>;
+    return <span style={{ fontSize: "0.78125rem", color: "var(--color-neutral-600)" }}>Add an account first</span>;
   }
 
   if (!open) {
     return (
-      <button type="button" className="btn btn-secondary" style={{ minHeight: 32, fontSize: 13, padding: "0 10px", marginTop: 6 }} onClick={() => setOpen(true)}>
+      <button type="button" className="btn btn-secondary" style={{ minHeight: "2rem", fontSize: "0.8125rem", padding: "0 0.625rem", marginTop: "0.375rem" }} onClick={() => setOpen(true)}>
         RECEIVED
       </button>
     );
   }
 
   return (
-    <div style={{ marginTop: 10, paddingTop: 10, borderTop: "1px solid var(--color-divider)", textAlign: "left" }}>
+    <div style={{ marginTop: "0.625rem", paddingTop: "0.625rem", borderTop: "1px solid var(--color-divider)", textAlign: "left" }}>
       <Err message={error} />
-      <div className="field" style={{ marginBottom: 8 }}>
+      <div className="field" style={{ marginBottom: "0.5rem" }}>
         <label htmlFor={`${uid}-account`}>INTO</label>
         <AccountSelect id={`${uid}-account`} accounts={accounts} value={accountId} onChange={setAccountId} currency={currency} />
       </div>
-      <div className="field" style={{ marginBottom: 8 }}>
+      <div className="field" style={{ marginBottom: "0.5rem" }}>
         <label htmlFor={`${uid}-amount`}>AMOUNT (₱)</label>
-        <input id={`${uid}-amount`} aria-label="Amount (₱)" className="input" type="number" step="0.01" min="0" value={receiveAmount} onChange={(e) => setReceiveAmount(Number(e.target.value))} style={{ minHeight: 42 }} />
+        <input id={`${uid}-amount`} aria-label="Amount (₱)" className="input" type="number" step="0.01" min="0" value={receiveAmount} onChange={(e) => setReceiveAmount(Number(e.target.value))} style={{ minHeight: "2.625rem" }} />
       </div>
       <ViaAppToggle checked={viaApp} onChange={setViaApp} account={account} />
-      <div style={{ display: "flex", gap: 8 }}>
+      <div style={{ display: "flex", gap: "0.5rem" }}>
         <button
           type="button"
           className="btn btn-primary"
           disabled={pending}
-          style={{ flex: 1, minHeight: 40, fontSize: 13.5 }}
+          style={{ flex: 1, minHeight: "2.5rem", fontSize: "0.84375rem" }}
           onClick={() =>
             run(
               () => receiveIncomeAction({ scheduleId, accountId, amount: receiveAmount, viaApp: viaApp && !!account?.linked_app_url }),
@@ -192,7 +192,7 @@ export function ReceiveIncomeControl({ scheduleId, amount, accounts, currency }:
         >
           {pending ? "…" : viaApp && account?.linked_app_url ? "OPEN APP & LOG" : "MARK RECEIVED"}
         </button>
-        <button type="button" className="btn btn-secondary" style={{ flex: 1, minHeight: 40, fontSize: 13.5 }} onClick={() => setOpen(false)}>
+        <button type="button" className="btn btn-secondary" style={{ flex: 1, minHeight: "2.5rem", fontSize: "0.84375rem" }} onClick={() => setOpen(false)}>
           CANCEL
         </button>
       </div>
@@ -232,37 +232,37 @@ export function GoalContributeControl({
 
   if (!open) {
     return (
-      <button type="button" className="btn btn-secondary btn-block" style={{ minHeight: 38, fontSize: 13, marginTop: 10 }} onClick={() => setOpen(true)}>
+      <button type="button" className="btn btn-secondary btn-block" style={{ minHeight: "2.375rem", fontSize: "0.8125rem", marginTop: "0.625rem" }} onClick={() => setOpen(true)}>
         + PUT MONEY IN
       </button>
     );
   }
 
   return (
-    <div style={{ marginTop: 12, paddingTop: 10, borderTop: "1px solid var(--color-divider)" }}>
+    <div style={{ marginTop: "0.75rem", paddingTop: "0.625rem", borderTop: "1px solid var(--color-divider)" }}>
       <Err message={error} />
-      <div style={{ display: "flex", gap: 8, marginBottom: 8 }}>
+      <div style={{ display: "flex", gap: "0.5rem", marginBottom: "0.5rem" }}>
         <div className="field" style={{ flex: 1, margin: 0 }}>
           <label htmlFor={`${uid}-account`}>FROM</label>
           <AccountSelect id={`${uid}-account`} accounts={accounts} value={accountId} onChange={setAccountId} currency={currency} />
         </div>
         <div className="field" style={{ width: 110, margin: 0 }}>
           <label htmlFor={`${uid}-amount`}>AMOUNT</label>
-          <input id={`${uid}-amount`} aria-label="Amount" className="input" type="number" step="0.01" min="0" value={amount} onChange={(e) => setAmount(Number(e.target.value))} style={{ minHeight: 42 }} />
+          <input id={`${uid}-amount`} aria-label="Amount" className="input" type="number" step="0.01" min="0" value={amount} onChange={(e) => setAmount(Number(e.target.value))} style={{ minHeight: "2.625rem" }} />
         </div>
       </div>
       <ViaAppToggle checked={viaApp} onChange={setViaApp} account={account} />
-      <div style={{ display: "flex", gap: 8 }}>
+      <div style={{ display: "flex", gap: "0.5rem" }}>
         <button
           type="button"
           className="btn btn-primary"
           disabled={pending}
-          style={{ flex: 1, minHeight: 40, fontSize: 13.5 }}
+          style={{ flex: 1, minHeight: "2.5rem", fontSize: "0.84375rem" }}
           onClick={() => run(() => contributeToGoalAction({ goalId, accountId, amount, viaApp: viaApp && !!account?.linked_app_url }), () => setOpen(false))}
         >
           {pending ? "…" : "ADD TO GOAL"}
         </button>
-        <button type="button" className="btn btn-secondary" style={{ flex: 1, minHeight: 40, fontSize: 13.5 }} onClick={() => setOpen(false)}>
+        <button type="button" className="btn btn-secondary" style={{ flex: 1, minHeight: "2.5rem", fontSize: "0.84375rem" }} onClick={() => setOpen(false)}>
           CANCEL
         </button>
       </div>
@@ -302,36 +302,36 @@ export function LogSpendControl({
 
   if (!open) {
     return (
-      <button type="button" className="btn btn-secondary" style={{ minHeight: 32, fontSize: 12.5, padding: "0 10px" }} onClick={() => setOpen(true)}>
+      <button type="button" className="btn btn-secondary" style={{ minHeight: "2rem", fontSize: "0.78125rem", padding: "0 0.625rem" }} onClick={() => setOpen(true)}>
         {label}
       </button>
     );
   }
 
   return (
-    <div style={{ marginTop: 10, paddingTop: 10, borderTop: "1px solid var(--color-divider)", width: "100%" }}>
+    <div style={{ marginTop: "0.625rem", paddingTop: "0.625rem", borderTop: "1px solid var(--color-divider)", width: "100%" }}>
       <Err message={error} />
-      <div style={{ display: "flex", gap: 8, marginBottom: 8 }}>
+      <div style={{ display: "flex", gap: "0.5rem", marginBottom: "0.5rem" }}>
         <div className="field" style={{ flex: 1, margin: 0 }}>
           <label htmlFor={`${uid}-account`}>PAID FROM</label>
           <AccountSelect id={`${uid}-account`} accounts={accounts} value={accountId} onChange={setAccountId} currency={currency} />
         </div>
         <div className="field" style={{ width: 110, margin: 0 }}>
           <label htmlFor={`${uid}-amount`}>AMOUNT</label>
-          <input id={`${uid}-amount`} aria-label="Amount" className="input" type="number" step="0.01" min="0" value={amount} onChange={(e) => setAmount(Number(e.target.value))} style={{ minHeight: 42 }} />
+          <input id={`${uid}-amount`} aria-label="Amount" className="input" type="number" step="0.01" min="0" value={amount} onChange={(e) => setAmount(Number(e.target.value))} style={{ minHeight: "2.625rem" }} />
         </div>
       </div>
-      <div style={{ display: "flex", gap: 8 }}>
+      <div style={{ display: "flex", gap: "0.5rem" }}>
         <button
           type="button"
           className="btn btn-primary"
           disabled={pending}
-          style={{ flex: 1, minHeight: 38, fontSize: 13 }}
+          style={{ flex: 1, minHeight: "2.375rem", fontSize: "0.8125rem" }}
           onClick={() => run(() => postHubExpenseAction({ accountId, amount, particulars, category, sourceTable, sourceId }), () => setOpen(false))}
         >
           {pending ? "…" : "RECORD IT"}
         </button>
-        <button type="button" className="btn btn-secondary" style={{ flex: 1, minHeight: 38, fontSize: 13 }} onClick={() => setOpen(false)}>
+        <button type="button" className="btn btn-secondary" style={{ flex: 1, minHeight: "2.375rem", fontSize: "0.8125rem" }} onClick={() => setOpen(false)}>
           CANCEL
         </button>
       </div>
@@ -342,14 +342,14 @@ export function LogSpendControl({
 export function PendingEntryActions({ transactionId }: { transactionId: string }) {
   const { error, pending, run } = useMoneyAction();
   return (
-    <div style={{ marginTop: 8 }}>
+    <div style={{ marginTop: "0.5rem" }}>
       <Err message={error} />
-      <div style={{ display: "flex", gap: 8 }}>
+      <div style={{ display: "flex", gap: "0.5rem" }}>
         <button
           type="button"
           className="btn btn-primary"
           disabled={pending}
-          style={{ flex: 1, minHeight: 36, fontSize: 13 }}
+          style={{ flex: 1, minHeight: "2.25rem", fontSize: "0.8125rem" }}
           onClick={() => run(() => confirmTransactionAction(transactionId))}
         >
           {pending ? "…" : "IT WENT THROUGH"}
@@ -358,7 +358,7 @@ export function PendingEntryActions({ transactionId }: { transactionId: string }
           type="button"
           className="btn btn-secondary"
           disabled={pending}
-          style={{ flex: 1, minHeight: 36, fontSize: 13 }}
+          style={{ flex: 1, minHeight: "2.25rem", fontSize: "0.8125rem" }}
           onClick={() => run(() => deleteTransactionAction(transactionId))}
         >
           DISCARD
@@ -375,7 +375,7 @@ export function DeleteEntryButton({ transactionId }: { transactionId: string }) 
       type="button"
       className="btn btn-secondary"
       disabled={pending}
-      style={{ minHeight: 30, fontSize: 12.5, padding: "0 9px" }}
+      style={{ minHeight: "1.875rem", fontSize: "0.78125rem", padding: "0 0.5625rem" }}
       onClick={async () => {
         if (!(await confirm({ title: "Remove this entry?", description: "Balances will be recalculated without it.", confirmLabel: "Remove", danger: true }))) return;
         run(() => deleteTransactionAction(transactionId));
@@ -393,20 +393,20 @@ export function ValueUpdateControl({ id, current, kind }: { id: string; current:
 
   if (!open) {
     return (
-      <button type="button" className="btn btn-secondary" style={{ minHeight: 30, fontSize: 12.5, padding: "0 9px" }} onClick={() => setOpen(true)}>
+      <button type="button" className="btn btn-secondary" style={{ minHeight: "1.875rem", fontSize: "0.78125rem", padding: "0 0.5625rem" }} onClick={() => setOpen(true)}>
         UPDATE
       </button>
     );
   }
 
   return (
-    <span style={{ display: "flex", gap: 6 }}>
-      <input className="input" type="number" value={value} onChange={(e) => setValue(Number(e.target.value))} style={{ minHeight: 32, width: 110, fontSize: 13.5 }} />
+    <span style={{ display: "flex", gap: "0.375rem" }}>
+      <input className="input" type="number" value={value} onChange={(e) => setValue(Number(e.target.value))} style={{ minHeight: "2rem", width: "6.875rem", fontSize: "0.84375rem" }} />
       <button
         type="button"
         className="btn btn-primary"
         disabled={pending}
-        style={{ minHeight: 32, fontSize: 12.5, padding: "0 9px" }}
+        style={{ minHeight: "2rem", fontSize: "0.78125rem", padding: "0 0.5625rem" }}
         onClick={() =>
           run(() => (kind === "asset" ? updateAssetValueAction(id, value) : updateLiabilityBalanceAction(id, value)), () => setOpen(false))
         }
@@ -433,7 +433,7 @@ export function RemoveButton({ id, kind, label }: { id: string; kind: keyof type
       type="button"
       className="btn btn-secondary"
       disabled={pending}
-      style={{ minHeight: 30, fontSize: 12.5, padding: "0 9px", color: "var(--color-accent-700)", borderColor: "var(--color-accent-700)" }}
+      style={{ minHeight: "1.875rem", fontSize: "0.78125rem", padding: "0 0.5625rem", color: "var(--color-accent-700)", borderColor: "var(--color-accent-700)" }}
       onClick={async (e) => {
         // A no-op everywhere this isn't inside a link (every kind but
         // account, today) -- but the account row on the Accounts tab is a
@@ -468,7 +468,7 @@ export function AccountPrivacyToggle({
 
   if (isJoint) {
     return (
-      <span style={{ fontSize: 11, color: "var(--color-neutral-600)", display: "inline-flex", alignItems: "center", gap: 4 }}>
+      <span style={{ fontSize: "0.6875rem", color: "var(--color-neutral-600)", display: "inline-flex", alignItems: "center", gap: "0.25rem" }}>
         <Icon name="users" size={12} />
         Joint
       </span>
@@ -478,7 +478,7 @@ export function AccountPrivacyToggle({
   const label = isPrivate ? "Private" : "Family";
   if (!canChange) {
     return (
-      <span style={{ fontSize: 11, color: "var(--color-neutral-600)", display: "inline-flex", alignItems: "center", gap: 4 }}>
+      <span style={{ fontSize: "0.6875rem", color: "var(--color-neutral-600)", display: "inline-flex", alignItems: "center", gap: "0.25rem" }}>
         <Icon name={isPrivate ? "keyRound" : "users"} size={12} />
         {label}
       </span>
@@ -499,9 +499,9 @@ export function AccountPrivacyToggle({
       style={{
         display: "inline-flex",
         alignItems: "center",
-        gap: 4,
-        fontSize: 11,
-        padding: "2px 8px",
+        gap: "0.25rem",
+        fontSize: "0.6875rem",
+        padding: "0.125rem 0.5rem",
         borderRadius: 999,
         border: 0,
         cursor: "pointer",

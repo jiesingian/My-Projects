@@ -51,7 +51,7 @@ export default async function JournalPage({
   return (
     <div>
       <HubHeader n="02" title="Journal" segments={segments} dateFormat={me.families.date_format} />
-      <div style={{ padding: "0 22px 22px" }}>
+      <div style={{ padding: "0 1.375rem 1.375rem" }}>
         <Segmented items={views} />
         {view === "gallery" && <GalleryPane familyId={me.family_id} />}
         {view === "list" && <EntriesPane familyId={me.family_id} />}
@@ -124,7 +124,7 @@ async function EntriesPane({ familyId }: { familyId: string }) {
     <>
       {driveDisconnected && <DriveDisconnectedNotice />}
       {entries.length === 0 && (
-        <div style={{ marginBottom: 16 }}>
+        <div style={{ marginBottom: "1rem" }}>
           <Empty
             icon="📔"
             title="Nothing written down yet"
@@ -134,28 +134,28 @@ async function EntriesPane({ familyId }: { familyId: string }) {
         </div>
       )}
       {entries.map((e) => (
-        <Blueprint key={e.id} style={{ padding: 13, marginBottom: 16 }}>
-          <div style={{ display: "flex", alignItems: "baseline", gap: 8 }}>
-            <span style={{ font: "400 12px/1 var(--font-numeric)", color: "var(--color-accent-700)" }}>{fmtDate(e.entry_date)}</span>
+        <Blueprint key={e.id} style={{ padding: "0.8125rem", marginBottom: "1rem" }}>
+          <div style={{ display: "flex", alignItems: "baseline", gap: "0.5rem" }}>
+            <span style={{ font: "400 0.75rem/1 var(--font-numeric)", color: "var(--color-accent-700)" }}>{fmtDate(e.entry_date)}</span>
             <Tag variant="neutral" className="ml-auto">
               {e.source === "from_plan" ? "FROM PLAN" : "ADDED DIRECTLY"}
             </Tag>
           </div>
-          <div style={{ font: "600 21px/1.05 var(--font-heading)", margin: "7px 0 6px" }}>{e.title}</div>
+          <div style={{ font: "600 1.3125rem/1.05 var(--font-heading)", margin: "7px 0 6px" }}>{e.title}</div>
           <JournalEntryPhotos urls={e.photoUrls} entryTitle={e.title} />
-          {e.note && <p style={{ fontSize: 14, margin: "0 0 9px", color: "var(--color-neutral-800)" }}>{e.note}</p>}
-          <div style={{ display: "flex", alignItems: "baseline", gap: 8 }}>
-            <div style={{ fontSize: 13, color: "var(--color-neutral-600)" }}>{e.people.map((p) => p.full_name.split(" ")[0]).join(" · ") || "Whole family"}</div>
-            <span style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: 10 }}>
+          {e.note && <p style={{ fontSize: "0.875rem", margin: "0 0 9px", color: "var(--color-neutral-800)" }}>{e.note}</p>}
+          <div style={{ display: "flex", alignItems: "baseline", gap: "0.5rem" }}>
+            <div style={{ fontSize: "0.8125rem", color: "var(--color-neutral-600)" }}>{e.people.map((p) => p.full_name.split(" ")[0]).join(" · ") || "Whole family"}</div>
+            <span style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: "0.625rem" }}>
               <EntryShareToggle entryId={e.id} shared={Boolean(e.shared_at)} linkedCount={linkedCount} />
-              <Link href={`/journal/${e.id}/edit`} style={{ fontSize: 13, fontWeight: 600, color: "var(--color-accent-700)" }}>
+              <Link href={`/journal/${e.id}/edit`} style={{ fontSize: "0.8125rem", fontWeight: 600, color: "var(--color-accent-700)" }}>
                 EDIT
               </Link>
             </span>
           </div>
         </Blueprint>
       ))}
-      <Link href="/journal/new" className="btn btn-primary btn-block" style={{ minHeight: 46, fontSize: 14, letterSpacing: ".04em" }}>
+      <Link href="/journal/new" className="btn btn-primary btn-block" style={{ minHeight: "2.875rem", fontSize: "0.875rem", letterSpacing: ".04em" }}>
         + ADD ENTRY
       </Link>
     </>
@@ -167,7 +167,7 @@ async function MilestonesPane({ familyId }: { familyId: string }) {
   const milestones = await getMilestones(familyId);
   return (
     <>
-      <div style={{ borderLeft: "1px solid var(--color-divider)", paddingLeft: 16, marginBottom: 18 }}>
+      <div style={{ borderLeft: "1px solid var(--color-divider)", paddingLeft: "1rem", marginBottom: "1.125rem" }}>
         {milestones.length === 0 && (
           <Empty
             icon="🌱"
@@ -177,18 +177,18 @@ async function MilestonesPane({ familyId }: { familyId: string }) {
           />
         )}
         {milestones.map((m) => (
-          <div key={m.id} style={{ position: "relative", paddingBottom: 20 }}>
+          <div key={m.id} style={{ position: "relative", paddingBottom: "1.25rem" }}>
             <span style={{ position: "absolute", left: -21, top: 5, width: 9, height: 9, background: "var(--color-accent)", display: "block" }} />
-            <div style={{ font: "400 12px/1 var(--font-numeric)", color: "var(--color-accent-700)" }}>{fmtDate(m.milestone_date)}</div>
-            <div style={{ font: "600 19px/1.05 var(--font-heading)", margin: "4px 0 2px" }}>{m.title}</div>
-            <div style={{ fontSize: 13, color: "var(--color-neutral-600)" }}>
+            <div style={{ font: "400 0.75rem/1 var(--font-numeric)", color: "var(--color-accent-700)" }}>{fmtDate(m.milestone_date)}</div>
+            <div style={{ font: "600 1.1875rem/1.05 var(--font-heading)", margin: "4px 0 2px" }}>{m.title}</div>
+            <div style={{ fontSize: "0.8125rem", color: "var(--color-neutral-600)" }}>
               {(m.members as unknown as { full_name: string } | null)?.full_name ?? "Whole family"}
             </div>
             <MilestoneControls milestoneId={m.id} title={m.title} date={m.milestone_date} memberId={m.member_id} />
           </div>
         ))}
       </div>
-      <Link href="/journal/milestones/new" className="btn btn-primary btn-block" style={{ minHeight: 46, fontSize: 14, letterSpacing: ".04em" }}>
+      <Link href="/journal/milestones/new" className="btn btn-primary btn-block" style={{ minHeight: "2.875rem", fontSize: "0.875rem", letterSpacing: ".04em" }}>
         + ADD MILESTONE
       </Link>
     </>

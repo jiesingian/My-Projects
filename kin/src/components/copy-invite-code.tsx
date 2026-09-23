@@ -6,8 +6,8 @@ import { Icon } from "@/components/icons";
 export function CopyInviteCode({ code }: { code: string }) {
   const [copied, setCopied] = useState(false);
   return (
-    <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-      <span style={{ font: "400 24px/1 var(--font-numeric)", letterSpacing: ".02em" }}>{code}</span>
+    <div style={{ display: "flex", alignItems: "center", gap: "0.625rem" }}>
+      <span style={{ font: "400 1.5rem/1 var(--font-numeric)", letterSpacing: ".02em" }}>{code}</span>
       <button
         type="button"
         className="btn btn-secondary btn-icon"

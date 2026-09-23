@@ -82,20 +82,20 @@ export function EditEntryForm({ entry, members }: { entry: Entry; members: Table
   return (
     <div>
       <DetailHeader backHref="/journal?view=list" eyebrow="HUB 02 · EDIT ENTRY" />
-      <div style={{ padding: "0 22px 22px" }}>
-        <h3 style={{ fontSize: 30, margin: "0 0 16px" }}>Edit journal entry</h3>
+      <div style={{ padding: "0 1.375rem 1.375rem" }}>
+        <h3 style={{ fontSize: "1.875rem", margin: "0 0 16px" }}>Edit journal entry</h3>
         <form onSubmit={onSubmit}>
           <ErrorText message={error} />
-          <div className="field" style={{ marginBottom: 14 }}>
+          <div className="field" style={{ marginBottom: "0.875rem" }}>
             <label htmlFor={`${uid}-title`}>TITLE</label>
-            <input id={`${uid}-title`} aria-label="Title" className="input" name="title" defaultValue={entry.title} required style={{ minHeight: 44 }} />
+            <input id={`${uid}-title`} aria-label="Title" className="input" name="title" defaultValue={entry.title} required style={{ minHeight: "2.75rem" }} />
           </div>
-          <div className="field" style={{ marginBottom: 16 }}>
+          <div className="field" style={{ marginBottom: "1rem" }}>
             <label htmlFor={`${uid}-date`}>DATE</label>
-            <DateInput id={`${uid}-date`} aria-label="Date" className="input" name="date" defaultValue={entry.entry_date} required style={{ minHeight: 44 }} />
+            <DateInput id={`${uid}-date`} aria-label="Date" className="input" name="date" defaultValue={entry.entry_date} required style={{ minHeight: "2.75rem" }} />
           </div>
-          <div style={{ fontSize: 13, color: "var(--color-neutral-700)", marginBottom: 6 }}>Who was there</div>
-          <div style={{ display: "flex", gap: 7, flexWrap: "wrap", marginBottom: 16 }}>
+          <div style={{ fontSize: "0.8125rem", color: "var(--color-neutral-700)", marginBottom: "0.375rem" }}>Who was there</div>
+          <div style={{ display: "flex", gap: "0.4375rem", flexWrap: "wrap", marginBottom: "1rem" }}>
             {members.map((m) => {
               const active = people.includes(m.id);
               return (
@@ -111,14 +111,14 @@ export function EditEntryForm({ entry, members }: { entry: Entry; members: Table
               );
             })}
           </div>
-          <div className="field" style={{ marginBottom: 16 }}>
+          <div className="field" style={{ marginBottom: "1rem" }}>
             <label htmlFor={`${uid}-note`}>NOTE</label>
             <textarea id={`${uid}-note`} aria-label="Note" className="input" name="note" defaultValue={entry.note ?? ""} placeholder="What happened?" />
           </div>
           {photos.length > 0 && (
-            <div className="field" style={{ marginBottom: 10 }}>
+            <div className="field" style={{ marginBottom: "0.625rem" }}>
               <label>PHOTOS</label>
-              <div style={{ display: "flex", gap: 5, flexWrap: "wrap" }}>
+              <div style={{ display: "flex", gap: "0.3125rem", flexWrap: "wrap" }}>
                 {photos.map((p, i) => (
                   <div key={p.id} style={{ position: "relative" }}>
                     <ZoomableImage src={p.url} alt={`Photo ${i + 1}`} style={{ width: 60, height: 60, objectFit: "cover", border: "1px solid var(--color-divider)" }} />
@@ -128,7 +128,7 @@ export function EditEntryForm({ entry, members }: { entry: Entry; members: Table
                       className="btn btn-secondary btn-icon"
                       disabled={removingId === p.id}
                       onClick={() => removePhoto(p.id)}
-                      style={{ position: "absolute", top: -8, right: -8, minHeight: 22, minWidth: 22, fontSize: 12, lineHeight: 1, padding: 0 }}
+                      style={{ position: "absolute", top: -8, right: -8, minHeight: "1.375rem", minWidth: "1.375rem", fontSize: "0.75rem", lineHeight: 1, padding: 0 }}
                     >
                       ×
                     </button>
@@ -137,19 +137,19 @@ export function EditEntryForm({ entry, members }: { entry: Entry; members: Table
               </div>
             </div>
           )}
-          <div className="field" style={{ marginBottom: 10 }}>
+          <div className="field" style={{ marginBottom: "0.625rem" }}>
             <label htmlFor={`${uid}-photos`}>ADD PHOTOS</label>
             <input id={`${uid}-photos`} aria-label="Photos" ref={fileRef} type="file" name="files" multiple accept="image/*,video/*" onChange={onFilesChosen} />
           </div>
           {previews.length > 0 && (
-            <div style={{ display: "flex", gap: 5, marginBottom: 8, flexWrap: "wrap" }}>
+            <div style={{ display: "flex", gap: "0.3125rem", marginBottom: "0.5rem", flexWrap: "wrap" }}>
               {previews.map((url, i) => (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img key={i} src={url} alt={`Photo ${i + 1} to upload`} style={{ width: 60, height: 60, objectFit: "cover", border: "1px solid var(--color-divider)" }} />
               ))}
             </div>
           )}
-          <button type="submit" className="btn btn-primary btn-block" style={{ minHeight: 46, fontSize: 14, letterSpacing: ".04em", marginTop: 8 }} disabled={saving}>
+          <button type="submit" className="btn btn-primary btn-block" style={{ minHeight: "2.875rem", fontSize: "0.875rem", letterSpacing: ".04em", marginTop: "0.5rem" }} disabled={saving}>
             {saving ? "SAVING…" : "SAVE CHANGES"}
           </button>
         </form>

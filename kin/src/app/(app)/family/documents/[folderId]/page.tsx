@@ -44,27 +44,27 @@ export default async function DocFolderPage({
   return (
     <div>
       <DetailHeader backHref="/family?seg=documents" eyebrow="HUB 01 · DOCUMENTS" />
-      <div style={{ padding: "0 22px 22px" }}>
-        <h3 style={{ fontSize: 30, margin: "0 0 4px" }}>{folder.name}</h3>
-        <div style={{ font: "400 10.5px/1.5 var(--font-numeric)", color: "var(--color-neutral-600)", marginBottom: 16 }}>
+      <div style={{ padding: "0 1.375rem 1.375rem" }}>
+        <h3 style={{ fontSize: "1.875rem", margin: "0 0 4px" }}>{folder.name}</h3>
+        <div style={{ font: "400 0.65625rem/1.5 var(--font-numeric)", color: "var(--color-neutral-600)", marginBottom: "1rem" }}>
           {(entries ?? []).length} {(entries ?? []).length === 1 ? "entry" : "entries"}
         </div>
 
         <DocSelectionProvider folderId={folder.id}>
           {(entries ?? []).map((entry) => (
-            <div key={entry.id} style={{ padding: "13px 0", borderBottom: "1px solid color-mix(in srgb, var(--color-text) 10%, transparent)" }}>
-              <div style={{ display: "flex", gap: 11, alignItems: "flex-start" }}>
+            <div key={entry.id} style={{ padding: "0.8125rem 0", borderBottom: "1px solid color-mix(in srgb, var(--color-text) 10%, transparent)" }}>
+              <div style={{ display: "flex", gap: "0.6875rem", alignItems: "flex-start" }}>
                 <Icon name="fileText" size={17} className="text-[var(--color-neutral-600)] mt-1" />
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontSize: 14.5, fontWeight: 600 }}>{entry.title}</div>
-                  <div style={{ fontSize: 12.5, color: "var(--color-neutral-600)" }}>
+                  <div style={{ fontSize: "0.90625rem", fontWeight: 600 }}>{entry.title}</div>
+                  <div style={{ fontSize: "0.78125rem", color: "var(--color-neutral-600)" }}>
                     {(entry.owner as unknown as { full_name: string } | null)?.full_name ?? "Whole family"}
                     {entry.expires_at ? ` · expires ${fmtDate(entry.expires_at)}` : ""}
                     {entry.reference_no ? ` · ref ${entry.reference_no}` : ""}
                   </div>
-                  {entry.note && <div style={{ fontSize: 13.5, color: "var(--color-neutral-700)", marginTop: 4 }}>{entry.note}</div>}
-                  <div style={{ display: "flex", gap: 10, marginTop: 6 }}>
-                    <Link href={`/family/documents/${folder.id}/${entry.id}/edit`} style={{ fontSize: 12.5, fontWeight: 600, color: "var(--color-accent-700)" }}>
+                  {entry.note && <div style={{ fontSize: "0.84375rem", color: "var(--color-neutral-700)", marginTop: "0.25rem" }}>{entry.note}</div>}
+                  <div style={{ display: "flex", gap: "0.625rem", marginTop: "0.375rem" }}>
+                    <Link href={`/family/documents/${folder.id}/${entry.id}/edit`} style={{ fontSize: "0.78125rem", fontWeight: 600, color: "var(--color-accent-700)" }}>
                       EDIT
                     </Link>
                     <DocEntryDeleteButton entryId={entry.id} folderId={folder.id} hasFiles={(entry.doc_files ?? []).length > 0} />
@@ -73,7 +73,7 @@ export default async function DocFolderPage({
                 <Tag variant={entry.visibility === "family" ? "neutral" : "outline"}>{entry.visibility}</Tag>
               </div>
               {(entry.doc_files ?? []).length > 0 && (
-                <div style={{ marginTop: 8, display: "flex", flexDirection: "column", gap: 6, paddingLeft: 28 }}>
+                <div style={{ marginTop: "0.5rem", display: "flex", flexDirection: "column", gap: "0.375rem", paddingLeft: "1.75rem" }}>
                   {(entry.doc_files ?? []).map((f) => (
                     <DocFileRow key={f.id} id={f.id} folderId={folder.id} fileName={f.file_name} path={f.storage_path} driveViewLink={f.drive_view_link} />
                   ))}
@@ -86,7 +86,7 @@ export default async function DocFolderPage({
         <Link
           href={`/family/documents/new?folder=${folder.id}`}
           className="btn btn-primary btn-block"
-          style={{ minHeight: 46, fontSize: 13.5, letterSpacing: ".04em", marginTop: 18 }}
+          style={{ minHeight: "2.875rem", fontSize: "0.84375rem", letterSpacing: ".04em", marginTop: "1.125rem" }}
         >
           + NEW ENTRY IN THIS FOLDER
         </Link>

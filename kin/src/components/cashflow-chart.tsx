@@ -21,19 +21,19 @@ export function CashFlowChart({ history, currency, periodNoun }: { history: Cash
   if (history.length === 0) return null;
 
   return (
-    <div style={{ marginBottom: 20 }}>
+    <div style={{ marginBottom: "1.25rem" }}>
       <p className="sr-only">Cash flow by {periodNoun}, {history.length} periods. Each bar below is a button announcing that period&rsquo;s in, out and net.</p>
 
-      <div aria-live="polite" style={{ display: "flex", alignItems: "baseline", flexWrap: "wrap", gap: "6px 16px", marginBottom: 12 }}>
-        <span style={{ font: "600 15px/1.15 var(--font-heading)" }}>{point.label}</span>
+      <div aria-live="polite" style={{ display: "flex", alignItems: "baseline", flexWrap: "wrap", gap: "0.375rem 1rem", marginBottom: "0.75rem" }}>
+        <span style={{ font: "600 0.9375rem/1.15 var(--font-heading)" }}>{point.label}</span>
         {[
           { k: "IN", v: point.income, color: "var(--color-accent)" },
           { k: "OUT", v: point.expense, color: "color-mix(in srgb, var(--color-text) 40%, transparent)" },
           { k: "NET", v: net, color: "var(--color-accent-2, var(--color-accent))" },
         ].map((cell) => (
-          <span key={cell.k} style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 13 }}>
+          <span key={cell.k} style={{ display: "flex", alignItems: "center", gap: "0.3125rem", fontSize: "0.8125rem" }}>
             <i aria-hidden="true" style={{ width: 8, height: 8, borderRadius: "50%", background: cell.color, display: "inline-block" }} />
-            <span style={{ color: "var(--color-neutral-600)", fontSize: 11, letterSpacing: ".02em" }}>{cell.k}</span>
+            <span style={{ color: "var(--color-neutral-600)", fontSize: "0.6875rem", letterSpacing: ".02em" }}>{cell.k}</span>
             <span style={{ fontFamily: "var(--font-numeric)" }}>
               {cell.k === "NET" && cell.v > 0 ? "+" : cell.k === "NET" && cell.v < 0 ? "−" : ""}
               {formatCurrency(Math.abs(cell.v), currency)}
@@ -42,7 +42,7 @@ export function CashFlowChart({ history, currency, periodNoun }: { history: Cash
         ))}
       </div>
 
-      <div style={{ display: "flex", gap: 6, alignItems: "flex-end", height: 120, borderBottom: "1px solid var(--color-divider)", paddingBottom: 1 }}>
+      <div style={{ display: "flex", gap: "0.375rem", alignItems: "flex-end", height: 120, borderBottom: "1px solid var(--color-divider)", paddingBottom: "0.0625rem" }}>
         {history.map((h, i) => {
           const active = i === selected;
           return (
@@ -52,7 +52,7 @@ export function CashFlowChart({ history, currency, periodNoun }: { history: Cash
               onClick={() => setSelected(i)}
               aria-pressed={active}
               aria-label={`${h.label}: in ${formatCurrency(h.income, currency)}, out ${formatCurrency(h.expense, currency)}`}
-              style={{ all: "unset", cursor: "pointer", flex: 1, display: "flex", gap: 2, alignItems: "flex-end", height: "100%", boxSizing: "border-box" }}
+              style={{ all: "unset", cursor: "pointer", flex: 1, display: "flex", gap: "0.125rem", alignItems: "flex-end", height: "100%", boxSizing: "border-box" }}
             >
               <span
                 style={{
@@ -78,14 +78,14 @@ export function CashFlowChart({ history, currency, periodNoun }: { history: Cash
           );
         })}
       </div>
-      <div aria-hidden="true" style={{ display: "flex", gap: 6, marginTop: 5 }}>
+      <div aria-hidden="true" style={{ display: "flex", gap: "0.375rem", marginTop: "0.3125rem" }}>
         {history.map((h, i) => (
           <span
             key={h.key}
             style={{
               flex: 1,
               textAlign: "center",
-              fontSize: 8.5,
+              fontSize: "0.53125rem",
               letterSpacing: ".06em",
               color: i === selected ? "var(--color-text)" : "var(--color-neutral-600)",
               fontWeight: i === selected ? 600 : 400,

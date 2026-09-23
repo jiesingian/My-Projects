@@ -96,12 +96,12 @@ export function BuyList({
           is already in the basket, what is still to buy, the day it is being
           bought on and the budget for it. They were two cards saying halves
           of the same thing. */}
-      <Blueprint style={{ padding: 14, marginBottom: 14 }}>
-        <div style={{ display: "flex", alignItems: "baseline", gap: 8 }}>
-          <span style={{ fontSize: 12, letterSpacing: ".04em", textTransform: "uppercase", color: "var(--color-neutral-600)" }}>
+      <Blueprint style={{ padding: "0.875rem", marginBottom: "0.875rem" }}>
+        <div style={{ display: "flex", alignItems: "baseline", gap: "0.5rem" }}>
+          <span style={{ fontSize: "0.75rem", letterSpacing: ".04em", textTransform: "uppercase", color: "var(--color-neutral-600)" }}>
             This list
           </span>
-          <span style={{ marginLeft: "auto", font: "600 24px/1 var(--font-heading)" }}>{formatCurrency(listTotal, currency)}</span>
+          <span style={{ marginLeft: "auto", font: "600 1.5rem/1 var(--font-heading)" }}>{formatCurrency(listTotal, currency)}</span>
         </div>
 
         {/* How far round the shop you are: the filled part is in the basket. */}
@@ -109,7 +109,7 @@ export function BuyList({
           <div style={{ height: "100%", width: `${listTotal > 0 ? Math.min(100, (basketTotal / listTotal) * 100) : 0}%`, background: "var(--color-switch-on)" }} />
         </div>
 
-        <div style={{ display: "flex", alignItems: "baseline", gap: 8, fontSize: 13 }}>
+        <div style={{ display: "flex", alignItems: "baseline", gap: "0.5rem", fontSize: "0.8125rem" }}>
           <span>
             <strong style={{ fontWeight: 600 }}>{formatCurrency(basketTotal, currency)}</strong>
             <span style={{ color: "var(--color-neutral-700)" }}> in the basket · {doneCount} of {doneCount + openCount}</span>
@@ -120,21 +120,21 @@ export function BuyList({
         </div>
 
         {unpriced > 0 && (
-          <div style={{ fontSize: 12, color: "var(--color-neutral-700)", marginTop: 6 }}>
+          <div style={{ fontSize: "0.75rem", color: "var(--color-neutral-700)", marginTop: "0.375rem" }}>
             {unpriced === 1 ? "One item has no price yet" : `${unpriced} items have no price yet`} — the totals leave them out.
           </div>
         )}
 
         {/* The day, its budget, and the two things you might do about it. */}
-        <div style={{ paddingTop: 10, marginTop: 10, borderTop: "1px solid var(--color-divider)" }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 7, fontSize: 13.5 }}>
+        <div style={{ paddingTop: "0.625rem", marginTop: "0.625rem", borderTop: "1px solid var(--color-divider)" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: "0.4375rem", fontSize: "0.84375rem" }}>
             <Icon name="basket" size={15} style={{ color: trip ? "var(--cal-schedule)" : "var(--color-neutral-600)", flex: "none" }} />
             <span style={{ flex: 1, minWidth: 0, color: trip ? "var(--color-text)" : "var(--color-neutral-700)" }}>
               {trip ? `${trip.title} · ${trip.when}` : "No shopping day yet"}
             </span>
             {trip &&
               (trip.budget != null ? (
-                <span style={{ fontSize: 12.5, flex: "none", color: listTotal > trip.budget ? "var(--cal-money)" : "var(--color-neutral-700)" }}>
+                <span style={{ fontSize: "0.78125rem", flex: "none", color: listTotal > trip.budget ? "var(--cal-money)" : "var(--color-neutral-700)" }}>
                   {listTotal > trip.budget
                     ? `${formatCurrency(listTotal - trip.budget, currency)} over budget`
                     : `${formatCurrency(trip.budget - listTotal, currency)} under`}
@@ -142,11 +142,11 @@ export function BuyList({
               ) : (
                 // Still said, just not in a paragraph of its own: the budget
                 // field is inside Change the day, one tap below.
-                <span style={{ fontSize: 12.5, flex: "none", color: "var(--color-neutral-600)" }}>no budget</span>
+                <span style={{ fontSize: "0.78125rem", flex: "none", color: "var(--color-neutral-600)" }}>no budget</span>
               ))}
           </div>
 
-          <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", marginTop: 2 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", flexWrap: "wrap", marginTop: "0.125rem" }}>
             <ShoppingDayControl run={trip} />
             <span style={{ marginLeft: "auto" }}>{pricesSlot}</span>
           </div>
@@ -159,7 +159,7 @@ export function BuyList({
           <button
             type="button"
             className="btn btn-primary"
-            style={{ width: "100%", minHeight: 40, fontSize: 13.5, letterSpacing: ".04em", marginTop: 11 }}
+            style={{ width: "100%", minHeight: "2.5rem", fontSize: "0.84375rem", letterSpacing: ".04em", marginTop: "0.6875rem" }}
             onClick={() => setCheckingOut(true)}
           >
             CHECK OUT {doneCount} ITEM{doneCount === 1 ? "" : "S"}
@@ -181,7 +181,7 @@ export function BuyList({
         const isOpen = expanded.has(g.name);
         const inBasket = g.items.filter((i) => i.checked).length;
         return (
-          <div key={g.name} style={{ marginBottom: 18 }}>
+          <div key={g.name} style={{ marginBottom: "1.125rem" }}>
             <button
               type="button"
               onClick={() =>
@@ -199,15 +199,15 @@ export function BuyList({
                 background: "none",
                 border: 0,
                 borderBottom: "1px solid var(--color-divider)",
-                padding: "0 0 6px",
+                padding: "0 0 0.375rem",
                 display: "flex",
                 alignItems: "baseline",
-                gap: 8,
+                gap: "0.5rem",
               }}
             >
               <Icon name="chevronLeft" size={12} className="text-[var(--color-neutral-600)]" style={{ transform: isOpen ? "rotate(-90deg)" : "rotate(0deg)" }} />
-              <span style={{ font: "600 13px/1 var(--font-heading)", letterSpacing: ".02em", textTransform: "uppercase" }}>{g.name}</span>
-              <span style={{ font: "400 12px/1 var(--font-numeric)", color: "var(--color-neutral-600)", marginLeft: "auto" }}>
+              <span style={{ font: "600 0.8125rem/1 var(--font-heading)", letterSpacing: ".02em", textTransform: "uppercase" }}>{g.name}</span>
+              <span style={{ font: "400 0.75rem/1 var(--font-numeric)", color: "var(--color-neutral-600)", marginLeft: "auto" }}>
                 {g.items.length} ITEM{g.items.length === 1 ? "" : "S"}
                 {inBasket > 0 ? ` · ${inBasket} IN BASKET` : ""}
               </span>
@@ -215,15 +215,15 @@ export function BuyList({
             {isOpen &&
               g.items.map((item) => (
                 <div key={item.id}>
-                <div style={{ display: "flex", gap: 11, alignItems: "center", padding: "10px 0", borderBottom: "1px solid color-mix(in srgb, var(--color-text) 10%, transparent)" }}>
+                <div style={{ display: "flex", gap: "0.6875rem", alignItems: "center", padding: "0.625rem 0", borderBottom: "1px solid color-mix(in srgb, var(--color-text) 10%, transparent)" }}>
                   <button
                     type="button"
                     aria-label={item.name}
                     aria-pressed={item.checked}
                     onClick={() => startTransition(() => toggleBuyItemAction(item.id, !item.checked))}
                     style={{
-                      width: 24,
-                      height: 24,
+                      width: "1.5rem",
+                      height: "1.5rem",
                       flex: "none",
                       cursor: "pointer",
                       padding: 0,
@@ -234,7 +234,7 @@ export function BuyList({
                       alignItems: "center",
                       justifyContent: "center",
                       color: "#fff",
-                      fontSize: 14,
+                      fontSize: "0.875rem",
                     }}
                   >
                     {item.checked ? "✓" : ""}
@@ -250,7 +250,7 @@ export function BuyList({
                       border: 0,
                       padding: 0,
                       cursor: "pointer",
-                      fontSize: 14,
+                      fontSize: "0.875rem",
                       color: item.checked ? "var(--color-neutral-500)" : "var(--color-text)",
                       textDecoration: item.checked ? "line-through" : "none",
                     }}
@@ -258,9 +258,9 @@ export function BuyList({
                     {/* Name and quantity are one target: tapping the amount
                         is how anyone would expect to change the amount, and
                         it used to be dead text beside the button. */}
-                    <span style={{ display: "flex", alignItems: "baseline", gap: 8 }}>
+                    <span style={{ display: "flex", alignItems: "baseline", gap: "0.5rem" }}>
                       <span style={{ flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{item.name}</span>
-                      <span style={{ fontFamily: "var(--font-numeric)", fontSize: 13, color: "var(--color-neutral-600)", flex: "none" }}>
+                      <span style={{ fontFamily: "var(--font-numeric)", fontSize: "0.8125rem", color: "var(--color-neutral-600)", flex: "none" }}>
                         {formatQuantity(item.quantity, item.unit)}
                       </span>
                     </span>
@@ -303,15 +303,15 @@ export function BuyList({
           type="button"
           onClick={() => setAdding(true)}
           className="btn btn-secondary"
-          style={{ width: "100%", minHeight: 44, fontSize: 14.5, gap: 6, marginTop: 10 }}
+          style={{ width: "100%", minHeight: "2.75rem", fontSize: "0.90625rem", gap: "0.375rem", marginTop: "0.625rem" }}
         >
           <Icon name="plus" size={16} />
           Add an item
         </button>
       ) : (
-        <form action={addAction} style={{ marginTop: 10, padding: 12, borderRadius: 14, background: "color-mix(in srgb, var(--color-text) 4%, transparent)" }}>
+        <form action={addAction} style={{ marginTop: "0.625rem", padding: "0.75rem", borderRadius: 14, background: "color-mix(in srgb, var(--color-text) 4%, transparent)" }}>
           <input type="hidden" name="source" value="house" />
-          <div style={{ display: "flex", gap: 8, marginBottom: 8 }}>
+          <div style={{ display: "flex", gap: "0.5rem", marginBottom: "0.5rem" }}>
             <input
               className="input"
               name="name"
@@ -321,10 +321,10 @@ export function BuyList({
               value={newName}
               onChange={(e) => setNewName(e.target.value)}
               maxLength={150}
-              style={{ minHeight: 42, flex: 1 }}
+              style={{ minHeight: "2.625rem", flex: 1 }}
             />
-            <input className="input" name="quantity" type="number" step="0.01" min="0" placeholder="Qty" style={{ minHeight: 42, width: 68 }} />
-            <select className="input" name="unit" defaultValue="pc" style={{ minHeight: 42, width: 82 }}>
+            <input className="input" name="quantity" type="number" step="0.01" min="0" placeholder="Qty" style={{ minHeight: "2.625rem", width: 68 }} />
+            <select className="input" name="unit" defaultValue="pc" style={{ minHeight: "2.625rem", width: 82 }}>
               {UNITS.map((u) => (
                 <option key={u} value={u}>
                   {u}
@@ -332,22 +332,22 @@ export function BuyList({
               ))}
             </select>
           </div>
-          <div style={{ display: "flex", gap: 8 }}>
+          <div style={{ display: "flex", gap: "0.5rem" }}>
             {/* Pre-filled from the name as it's typed, so the common case is one tap. */}
-            <select className="input" name="section" value={section} onChange={(e) => setSection(e.target.value)} style={{ minHeight: 42, flex: 1 }}>
+            <select className="input" name="section" value={section} onChange={(e) => setSection(e.target.value)} style={{ minHeight: "2.625rem", flex: 1 }}>
               {MARKET_SECTIONS.map((s) => (
                 <option key={s} value={s}>
                   {s}
                 </option>
               ))}
             </select>
-            <SubmitButton className="btn btn-primary" style={{ minHeight: 42, paddingInline: 18 }}>
+            <SubmitButton className="btn btn-primary" style={{ minHeight: "2.625rem", paddingInline: "1.125rem" }}>
               ADD
             </SubmitButton>
             <button
               type="button"
               className="btn btn-ghost"
-              style={{ minHeight: 42, fontSize: 13, paddingInline: 10 }}
+              style={{ minHeight: "2.625rem", fontSize: "0.8125rem", paddingInline: "0.625rem" }}
               onClick={() => {
                 setAdding(false);
                 setNewName("");
@@ -359,7 +359,7 @@ export function BuyList({
         </form>
       )}
       <ErrorText message={addState.error} />
-      <div style={{ fontSize: 13, color: "var(--color-neutral-600)", marginTop: 10 }}>
+      <div style={{ fontSize: "0.8125rem", color: "var(--color-neutral-600)", marginTop: "0.625rem" }}>
         Sections follow the order you walk the market. Items from the meal plan are filed by name automatically — tap any item to fix its
         quantity or section. Ticked items stay until cleared.
       </div>
@@ -391,9 +391,9 @@ function EditItemRow({ item, onClose }: { item: Tables<"buy_items">; onClose: ()
   }
 
   return (
-    <div style={{ padding: "10px 0 12px", borderBottom: "1px solid color-mix(in srgb, var(--color-text) 10%, transparent)" }}>
-      <div style={{ display: "flex", gap: 8, marginBottom: 8 }}>
-        <input className="input" value={name} onChange={(e) => setName(e.target.value)} maxLength={150} style={{ minHeight: 40, flex: 1 }} />
+    <div style={{ padding: "0.625rem 0 0.75rem", borderBottom: "1px solid color-mix(in srgb, var(--color-text) 10%, transparent)" }}>
+      <div style={{ display: "flex", gap: "0.5rem", marginBottom: "0.5rem" }}>
+        <input className="input" value={name} onChange={(e) => setName(e.target.value)} maxLength={150} style={{ minHeight: "2.5rem", flex: 1 }} />
         <input
           className="input"
           type="number"
@@ -402,9 +402,9 @@ function EditItemRow({ item, onClose }: { item: Tables<"buy_items">; onClose: ()
           value={quantity}
           onChange={(e) => setQuantity(e.target.value)}
           placeholder="Qty"
-          style={{ minHeight: 40, width: 68 }}
+          style={{ minHeight: "2.5rem", width: 68 }}
         />
-        <select className="input" value={unit} onChange={(e) => setUnit(e.target.value)} style={{ minHeight: 40, width: 82 }}>
+        <select className="input" value={unit} onChange={(e) => setUnit(e.target.value)} style={{ minHeight: "2.5rem", width: 82 }}>
           {UNITS.map((u) => (
             <option key={u} value={u}>
               {u}
@@ -412,25 +412,25 @@ function EditItemRow({ item, onClose }: { item: Tables<"buy_items">; onClose: ()
           ))}
         </select>
       </div>
-      <div style={{ display: "flex", gap: 8 }}>
-        <select className="input" value={section} onChange={(e) => setSection(e.target.value)} style={{ minHeight: 40, flex: 1 }}>
+      <div style={{ display: "flex", gap: "0.5rem" }}>
+        <select className="input" value={section} onChange={(e) => setSection(e.target.value)} style={{ minHeight: "2.5rem", flex: 1 }}>
           {MARKET_SECTIONS.map((s) => (
             <option key={s} value={s}>
               {s}
             </option>
           ))}
         </select>
-        <button type="button" className="btn btn-primary" disabled={pending} style={{ minHeight: 40, fontSize: 13, paddingInline: 14 }} onClick={save}>
+        <button type="button" className="btn btn-primary" disabled={pending} style={{ minHeight: "2.5rem", fontSize: "0.8125rem", paddingInline: "0.875rem" }} onClick={save}>
           {pending ? "…" : "SAVE"}
         </button>
-        <button type="button" className="btn btn-secondary" style={{ minHeight: 40, fontSize: 13, paddingInline: 12 }} onClick={onClose}>
+        <button type="button" className="btn btn-secondary" style={{ minHeight: "2.5rem", fontSize: "0.8125rem", paddingInline: "0.75rem" }} onClick={onClose}>
           CANCEL
         </button>
         <button
           type="button"
           className="btn btn-secondary"
           disabled={pending}
-          style={{ minHeight: 40, fontSize: 13, paddingInline: 12, color: "var(--color-accent-700)", borderColor: "var(--color-accent-700)" }}
+          style={{ minHeight: "2.5rem", fontSize: "0.8125rem", paddingInline: "0.75rem", color: "var(--color-accent-700)", borderColor: "var(--color-accent-700)" }}
           onClick={async () => {
             if (!(await confirm(`Remove "${item.name}" from the list?`))) return;
             startTransition(async () => {
@@ -490,20 +490,20 @@ function ClearCheckedPanel({
   }
 
   return (
-    <Blueprint className="bg-[var(--color-accent-100)]" style={{ padding: "12px 13px", marginBottom: 16 }}>
-      <div style={{ display: "flex", alignItems: "baseline", gap: 8, marginBottom: 10 }}>
-        <span style={{ fontSize: 13.5, flex: 1, minWidth: 0 }}>
+    <Blueprint className="bg-[var(--color-accent-100)]" style={{ padding: "0.75rem 0.8125rem", marginBottom: "1rem" }}>
+      <div style={{ display: "flex", alignItems: "baseline", gap: "0.5rem", marginBottom: "0.625rem" }}>
+        <span style={{ fontSize: "0.84375rem", flex: 1, minWidth: 0 }}>
           {doneCount} item{doneCount === 1 ? "" : "s"} in the basket — what did the shop come to?
         </span>
-        <button type="button" className="btn btn-ghost" style={{ minHeight: 28, fontSize: 12.5, padding: "0 6px" }} onClick={onClose}>
+        <button type="button" className="btn btn-ghost" style={{ minHeight: "1.75rem", fontSize: "0.78125rem", padding: "0 0.375rem" }} onClick={onClose}>
           Not yet
         </button>
       </div>
       {accounts.length > 0 && (
-        <div style={{ display: "flex", gap: 8, marginBottom: 10 }}>
+        <div style={{ display: "flex", gap: "0.5rem", marginBottom: "0.625rem" }}>
           <div className="field" style={{ flex: 1, margin: 0 }}>
             <label htmlFor={`${uid}-account`}>PAID FROM</label>
-            <select id={`${uid}-account`} aria-label="Paid From" className="input" value={accountId} onChange={(e) => setAccountId(e.target.value)} style={{ minHeight: 40 }}>
+            <select id={`${uid}-account`} aria-label="Paid From" className="input" value={accountId} onChange={(e) => setAccountId(e.target.value)} style={{ minHeight: "2.5rem" }}>
               {accounts.map((a) => (
                 <option key={a.id} value={a.id}>
                   {a.name} · {formatCurrency(a.balance, currency)}
@@ -513,22 +513,22 @@ function ClearCheckedPanel({
           </div>
           <div className="field" style={{ width: 106, margin: 0 }}>
             <label htmlFor={`${uid}-total`}>TOTAL</label>
-            <input id={`${uid}-total`} aria-label="Total" className="input" type="number" step="0.01" value={amount} onChange={(e) => setAmount(Number(e.target.value))} style={{ minHeight: 40 }} />
+            <input id={`${uid}-total`} aria-label="Total" className="input" type="number" step="0.01" value={amount} onChange={(e) => setAmount(Number(e.target.value))} style={{ minHeight: "2.5rem" }} />
           </div>
         </div>
       )}
-      <div style={{ display: "flex", gap: 8 }}>
+      <div style={{ display: "flex", gap: "0.5rem" }}>
         <button
           type="button"
           className="btn btn-primary"
-          style={{ flex: 1, minHeight: 38, fontSize: 13, letterSpacing: ".04em" }}
+          style={{ flex: 1, minHeight: "2.375rem", fontSize: "0.8125rem", letterSpacing: ".04em" }}
           disabled={pending}
           onClick={() => finish(true)}
         >
           {pending ? "…" : amount > 0 ? "CLEAR & LOG SPEND" : "CLEAR CHECKED"}
         </button>
         {amount > 0 && (
-          <button type="button" className="btn btn-secondary" style={{ flex: "none", minHeight: 38, fontSize: 13 }} disabled={pending} onClick={() => finish(false)}>
+          <button type="button" className="btn btn-secondary" style={{ flex: "none", minHeight: "2.375rem", fontSize: "0.8125rem" }} disabled={pending} onClick={() => finish(false)}>
             CLEAR ONLY
           </button>
         )}
