@@ -314,13 +314,20 @@ async function TreePane({ familyId, myId, center }: { familyId: string; myId: st
  * device it belongs to, and there is one row per person rather than a trail.
  * See the migration for why each of those is a policy and not a promise. */
 async function QuicklinksPane({ familyId, meId, myRole }: { familyId: string; meId: string; myRole: string }) {
-  const [contacts, people] = await Promise.all([getEmergencyContacts(familyId), getMemberLocations(familyId)]);
+  const [contacts, people, members] = await Promise.all([getEmergencyContacts(familyId), getMemberLocations(familyId), getMembers(familyId)]);
+  // Every parent in the household, in the order they joined -- including one
+  // who is here as a managed profile without a login of their own, since
+  // not having an account does not make somebody less of a person to ring.
+  // Removed and pending members are left out.
+  const parents = members
+    .filter((m) => m.role === "parent" && (m.status === "active" || m.status === "managed"))
+    .map((m) => ({ id: m.id, name: m.full_name, phone: m.mobile?.trim() || null }));
   return (
     <>
       <div style={{ font: "600 0.8125rem/1 var(--font-heading)", letterSpacing: ".02em", color: "var(--color-neutral-600)", marginBottom: "0.5rem" }}>
         EMERGENCY CONTACTS
       </div>
-      <EmergencyContactList contacts={contacts} />
+      <EmergencyContactList contacts={contacts} parents={parents} />
 
       <div style={{ font: "600 0.8125rem/1 var(--font-heading)", letterSpacing: ".02em", color: "var(--color-neutral-600)", margin: "22px 0 8px" }}>
         WHERE EVERYONE IS
