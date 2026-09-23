@@ -32,7 +32,10 @@ export async function setTextSizeAction(textSize: "small" | "default" | "large")
   const supabase = await createClient();
   const { error } = await supabase.from("members").update({ text_size: textSize }).eq("id", me.id);
   if (error) return { error: `That did not save. ${error.message}` };
-  revalidatePath("/settings");
+  // The layout, not just this page: the root font-size is rendered there, so
+  // revalidating /settings alone changed which segment looked selected and
+  // left the actual type exactly as it was.
+  revalidatePath("/", "layout");
   return { error: null };
 }
 

@@ -157,7 +157,7 @@ export function ChatThread({
   return (
     /* Tall enough that the composer sits just above the tab bar even when
        only one thing has been said. */
-    <div style={{ display: "flex", flexDirection: "column", minHeight: "calc(100dvh - 168px)" }}>
+    <div style={{ display: "flex", flexDirection: "column", flex: 1 }}>
       <div style={{ flex: 1 }}>
         {messages.length === 0 && !pendingBody && (
           <p style={{ fontSize: "0.875rem", color: "var(--color-neutral-600)", textAlign: "center", padding: "2.5rem 1.25rem", lineHeight: 1.5 }}>
@@ -346,19 +346,13 @@ export function ChatThread({
         </div>
       )}
 
-      {/* The composer stays in reach at the bottom, above the tab bar. */}
-      <div
-        className="kin-glass-bar"
-        style={{
-          position: "sticky",
-          // Clear of the tab bar: sticky sticks to the viewport, and the bar
-          // is fixed over the bottom of it.
-          bottom: "calc(env(safe-area-inset-bottom, 0px) + 68px)",
-          paddingTop: "0.5rem",
-          marginTop: "0.625rem",
-          borderTop: "1px solid var(--color-divider)",
-        }}
-      >
+      {/* The composer stays in reach at the bottom, above the tab bar. Its
+          placement lives in globals.css rather than here: it has to change
+          shape at 1024px, where the tab bar becomes a sidebar and there is
+          nothing left below the composer to clear, and an inline style
+          cannot answer a media query. The class is also what tells
+          .kin-content this page ends in a composer. */}
+      <div className="kin-glass-bar kin-composer">
         {suggestions.length > 0 && (
           <div style={{ display: "flex", flexWrap: "wrap", gap: "0.375rem", paddingBottom: "0.5rem" }}>
             {suggestions.map((m) => (
