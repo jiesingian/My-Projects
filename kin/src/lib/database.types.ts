@@ -3251,6 +3251,7 @@ export type Database = {
           shoe_size: string | null
           sss_number: string | null
           status: string
+          text_scale: number
           text_size: string
           theme: string
           tin_number: string | null
@@ -3291,6 +3292,7 @@ export type Database = {
           shoe_size?: string | null
           sss_number?: string | null
           status?: string
+          text_scale?: number
           text_size?: string
           theme?: string
           tin_number?: string | null
@@ -3331,6 +3333,7 @@ export type Database = {
           shoe_size?: string | null
           sss_number?: string | null
           status?: string
+          text_scale?: number
           text_size?: string
           theme?: string
           tin_number?: string | null

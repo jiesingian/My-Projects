@@ -1,12 +1,14 @@
 "use client";
 
 import { useId, useTransition } from "react";
-import { setThemeAction, setTextSizeAction, toggleNotificationAction, updateHouseholdNameAction, updateHouseholdPrefsAction } from "@/lib/actions/settings";
+import { setThemeAction, setTextScaleAction, toggleNotificationAction, updateHouseholdNameAction, updateHouseholdPrefsAction } from "@/lib/actions/settings";
 import { regenerateInviteCodeAction } from "@/lib/actions/family";
 import { disconnectDriveAction } from "@/lib/actions/drive";
 import { migrateProfilePhotosToDriveAction } from "@/lib/actions/photo-migration";
 import { disconnectCalendarAction, syncGoogleCalendarAction } from "@/lib/actions/calendar-sync";
 import { useState } from "react";
+import { confirm } from "@/components/confirm-sheet";
+import { TEXT_SCALE_DEFAULT, TEXT_SCALE_MAX, TEXT_SCALE_MIN } from "@/lib/text-scale";
 import { CopyInviteCode } from "@/components/copy-invite-code";
 import { Blueprint } from "@/components/ui";
 import { NOTIFICATION_DEFS } from "@/lib/notifications";
@@ -47,33 +49,91 @@ export function ThemeControl({ current }: { current: string }) {
   );
 }
 
-export function TextSizeControl({ current }: { current: string }) {
+/** Text size as a range, 85% to 300%, like the interface scale in Telegram's
+ * settings. The sample line under the slider shows the size as it will be,
+ * before anything is saved; letting go saves it and asks whether to restart
+ * now, because the whole app is laid out around the size it opened with. */
+export function TextSizeControl({ current }: { current: number }) {
+  const uid = useId();
+  const [value, setValue] = useState(current);
+  const [saved, setSaved] = useState(current);
   const [pending, startTransition] = useTransition();
   const [failed, setFailed] = useState<string | null>(null);
-  const options: { value: "small" | "default" | "large"; label: string }[] = [
-    { value: "small", label: "Small" },
-    { value: "default", label: "Default" },
-    { value: "large", label: "Large" },
-  ];
+
+  const commit = (next: number) => {
+    if (next === saved) return;
+    startTransition(async () => {
+      const { error } = await setTextScaleAction(next);
+      setFailed(error);
+      if (error) {
+        setValue(saved);
+        return;
+      }
+      setSaved(next);
+      const restart = await confirm({
+        title: "Restart Kin to use the new text size?",
+        description: `Everything is laid out around the size Kin opened with, so ${next}% takes effect when it reloads. Choose Later and it will apply the next time you open Kin.`,
+        confirmLabel: "Restart",
+        cancelLabel: "Later",
+      });
+      if (restart) window.location.reload();
+    });
+  };
+
+  // The sample is sized relative to the text around it, which is already at
+  // the saved scale, so it shows the new size exactly as it will look.
+  const sample = `${(value / saved).toFixed(4)}em`;
+
   return (
     <>
-      <div className="seg" style={{ marginTop: 0, marginBottom: "1.375rem" }}>
-        {options.map((o) => (
-          <button
-            key={o.value}
-            type="button"
-            data-active={current === o.value}
+      <div className="kin-scale">
+        <div className="kin-scale-head">
+          <label htmlFor={`${uid}-scale`}>Text size</label>
+          <output htmlFor={`${uid}-scale`} className="kin-scale-value">
+            {value}%
+          </output>
+        </div>
+        <div className="kin-scale-track">
+          <span className="kin-scale-a kin-scale-a-small" aria-hidden="true">
+            A
+          </span>
+          <input
+            id={`${uid}-scale`}
+            type="range"
+            min={TEXT_SCALE_MIN}
+            max={TEXT_SCALE_MAX}
+            step={5}
+            value={value}
             disabled={pending}
-            onClick={() =>
-              startTransition(async () => {
-                const { error } = await setTextSizeAction(o.value);
-                setFailed(error);
-              })
-            }
+            onChange={(e) => setValue(Number(e.target.value))}
+            // Saved when the thumb is let go, not on every step it passes
+            // through -- a drag from 100 to 250 is one decision, not thirty.
+            onPointerUp={(e) => commit(Number((e.target as HTMLInputElement).value))}
+            onKeyUp={(e) => commit(Number((e.target as HTMLInputElement).value))}
+            onBlur={(e) => commit(Number(e.target.value))}
+            aria-valuetext={`${value} percent`}
+            style={{ ["--pos" as string]: `${((value - TEXT_SCALE_MIN) / (TEXT_SCALE_MAX - TEXT_SCALE_MIN)) * 100}%` }}
+          />
+          <span className="kin-scale-a kin-scale-a-large" aria-hidden="true">
+            A
+          </span>
+        </div>
+        <p className="kin-scale-sample" style={{ fontSize: sample }}>
+          The quick brown fox jumps over the lazy dog.
+        </p>
+        {value !== TEXT_SCALE_DEFAULT && (
+          <button
+            type="button"
+            className="btn btn-ghost kin-scale-reset"
+            disabled={pending}
+            onClick={() => {
+              setValue(TEXT_SCALE_DEFAULT);
+              commit(TEXT_SCALE_DEFAULT);
+            }}
           >
-            {o.label}
+            Back to 100%
           </button>
-        ))}
+        )}
       </div>
       <DidNotSave message={failed} />
     </>

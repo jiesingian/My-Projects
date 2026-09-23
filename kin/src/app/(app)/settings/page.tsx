@@ -171,7 +171,7 @@ export default async function SettingsPage({
         <div style={{ fontSize: "0.8125rem", color: "var(--color-neutral-700)", marginBottom: "0.375rem" }}>Theme</div>
         <ThemeControl current={me.theme} />
         <div style={{ fontSize: "0.8125rem", color: "var(--color-neutral-700)", marginBottom: "0.375rem" }}>Text size</div>
-        <TextSizeControl current={me.text_size} />
+        <TextSizeControl current={me.text_scale} />
 
         <div style={{ font: "600 0.8125rem/1 var(--font-heading)", letterSpacing: ".02em", color: "var(--color-neutral-600)", marginBottom: "0.125rem" }}>NOTIFICATIONS</div>
         <NotificationToggles prefs={me.notification_prefs as Record<string, boolean>} />
