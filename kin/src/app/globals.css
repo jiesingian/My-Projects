@@ -72,27 +72,39 @@
      inline sizes are not being swept to match this in one pass -- see
      PAGE_PATTERNS.md's note on migrating incrementally -- so both will be
      in the codebase for a while; that is expected, not a bug. */
-  --text-2xs: 10.5px;  /* tiny meta: dates on a gallery tile, table footnotes */
-  --text-xs: 12px;     /* captions, secondary meta lines */
-  --text-sm: 13px;     /* the app's most common size: labels, list captions */
-  --text-base: 14px;   /* default body/control text */
-  --text-md: 15px;     /* emphasized body, list-row titles */
-  --text-lg: 17px;     /* small headings, card titles */
-  --text-xl: 20px;     /* section headings */
-  --text-2xl: 30px;    /* page headlines (h2/h3) */
+  /* rem, not px, so the scale answers the reader's own text-size setting --
+     the whole point of having a scale. The values are the px ones divided by
+     16, the default root size, so nothing moves at 100%: 13px is 0.8125rem.
+
+     Nothing sets font-size on html or :root, which is what leaves the
+     browser preference as the basis. Do not add one.
+
+     The app does not use these yet -- two call sites between this scale and
+     the spacing one below -- and that is the migration, not an oversight.
+     Converting a component's fontSize to a token means converting the
+     minHeight, height and padding that box its text in the same pass, or the
+     text grows and the box does not. See the px-to-rem task for the order. */
+  --text-2xs: 0.65625rem;  /* tiny meta: dates on a gallery tile, table footnotes */
+  --text-xs: 0.75rem;     /* captions, secondary meta lines */
+  --text-sm: 0.8125rem;     /* the app's most common size: labels, list captions */
+  --text-base: 0.875rem;   /* default body/control text */
+  --text-md: 0.9375rem;     /* emphasized body, list-row titles */
+  --text-lg: 1.0625rem;     /* small headings, card titles */
+  --text-xl: 1.25rem;     /* section headings */
+  --text-2xl: 1.875rem;    /* page headlines (h2/h3) */
 
   /* Spacing scale, 4px steps. Gaps and padding across the app already
      cluster near multiples of 2 (4, 6, 8, 10, 12...); this rounds that up
      to the stricter 4px grid most design systems use, for new layout code
      to reach for instead of picking its own number. */
-  --space-1: 4px;
-  --space-2: 8px;
-  --space-3: 12px;
-  --space-4: 16px;
-  --space-5: 20px;
-  --space-6: 24px;
-  --space-7: 28px;
-  --space-8: 32px;
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-5: 1.25rem;
+  --space-6: 1.5rem;
+  --space-7: 1.75rem;
+  --space-8: 2rem;
 
   --color-switch-on: #34c759;
 
