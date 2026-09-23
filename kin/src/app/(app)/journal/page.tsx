@@ -184,7 +184,7 @@ async function MilestonesPane({ familyId }: { familyId: string }) {
             <div style={{ fontSize: "0.8125rem", color: "var(--color-neutral-600)" }}>
               {(m.members as unknown as { full_name: string } | null)?.full_name ?? "Whole family"}
             </div>
-            <MilestoneControls milestoneId={m.id} title={m.title} date={m.milestone_date} memberId={m.member_id} />
+            <MilestoneControls milestoneId={m.id} title={m.title} date={m.milestone_date} memberId={m.member_id} shared={!!m.shared_at} />
           </div>
         ))}
       </div>

@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useActionState, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Icon } from "@/components/icons";
@@ -74,6 +75,7 @@ export function FamilyFeed({
                 </span>
               </div>
               <div style={{ fontSize: "0.75rem", color: e.isOurs ? "var(--color-accent-700)" : "var(--color-neutral-600)", marginTop: "0.1875rem" }}>
+                {e.kind === "milestone" && <span className="kin-feed-milestone">Milestone</span>}
                 {e.isOurs ? "Ours" : e.householdName}
               </div>
               {e.note && (
@@ -124,6 +126,14 @@ function LinkManager({ links, ourCode, canManage }: { links: FamilyLink[]; ourCo
                   {l.status === "accepted" ? " · linked" : l.weAsked ? " · waiting for them" : " · wants to link"}
                 </span>
               </span>
+              {/* Talking to them is open to everybody in the house, not only
+                  whoever manages the link -- a cousin writing to an aunt is
+                  the point of linking at all. */}
+              {l.status === "accepted" && (
+                <Link href={`/journal/links/${l.id}`} className="btn btn-secondary" style={{ minHeight: "1.875rem", padding: "0 0.625rem", fontSize: "0.78125rem" }}>
+                  Message
+                </Link>
+              )}
               {canManage && l.status === "pending" && !l.weAsked && (
                 <>
                   <button

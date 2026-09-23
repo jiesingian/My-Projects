@@ -40,6 +40,9 @@ export async function getFamilyLinks(familyId: string): Promise<FamilyLink[]> {
 }
 
 export type FeedEntry = {
+  /** A memory from the journal, or a milestone -- a first day of school, a
+   * graduation -- which is what distant relatives most want to hear about. */
+  kind: "entry" | "milestone";
   id: string;
   title: string;
   note: string | null;
@@ -65,12 +68,22 @@ export async function getFamilyFeed(familyId: string): Promise<FeedEntry[]> {
     .order("entry_date", { ascending: false })
     .limit(200);
 
+  // Shared milestones, by the same rule: RLS returns ours and linked
+  // households' shared ones and nothing else.
+  const { data: milestones } = await supabase
+    .from("milestones")
+    .select("id, title, milestone_date, family_id, shared_at")
+    .not("shared_at", "is", null)
+    .order("milestone_date", { ascending: false })
+    .limit(200);
+
   const rows = data ?? [];
-  const familyIds = [...new Set(rows.map((r) => r.family_id))];
+  const familyIds = [...new Set([...rows.map((r) => r.family_id), ...(milestones ?? []).map((m) => m.family_id)])];
   const { data: names } = await supabase.from("families").select("id, name").in("id", familyIds.length ? familyIds : [familyId]);
   const byId = new Map((names ?? []).map((f) => [f.id, f.name]));
 
-  return rows.map((r) => ({
+  const entries: FeedEntry[] = rows.map((r) => ({
+    kind: "entry" as const,
     id: r.id,
     title: r.title,
     note: r.note,
@@ -79,4 +92,47 @@ export async function getFamilyFeed(familyId: string): Promise<FeedEntry[]> {
     householdName: byId.get(r.family_id) ?? "A linked household",
     isOurs: r.family_id === familyId,
   }));
+  const moments: FeedEntry[] = (milestones ?? []).map((m) => ({
+    kind: "milestone" as const,
+    id: m.id,
+    title: m.title,
+    note: null,
+    entryDate: m.milestone_date,
+    familyId: m.family_id,
+    householdName: byId.get(m.family_id) ?? "A linked household",
+    isOurs: m.family_id === familyId,
+  }));
+  return [...entries, ...moments].sort((a, b) => b.entryDate.localeCompare(a.entryDate));
+}
+
+export type LinkMessage = { id: string; authorName: string; body: string; createdAt: string; mine: boolean; ourHousehold: boolean };
+
+/** One linked household's conversation with this one, oldest first, and the
+ * name of the household on the other end. Null when the link is not an
+ * accepted one this household is on -- the page shows nothing rather than an
+ * empty thread that looks like it could be written to. */
+export async function getLinkThread(linkId: string, familyId: string, memberId: string): Promise<{ otherFamilyName: string; messages: LinkMessage[] } | null> {
+  const supabase = await createClient();
+  const { data: link } = await supabase
+    .from("family_links")
+    .select("id, status, requester_family_id, addressee_family_id")
+    .eq("id", linkId)
+    .maybeSingle();
+  if (!link || link.status !== "accepted") return null;
+  const otherId = link.requester_family_id === familyId ? link.addressee_family_id : link.requester_family_id;
+  const [{ data: other }, { data: messages }] = await Promise.all([
+    supabase.from("families").select("name").eq("id", otherId).maybeSingle(),
+    supabase.from("family_link_messages").select("id, family_id, member_id, author_name, body, created_at").eq("link_id", linkId).order("created_at").limit(300),
+  ]);
+  return {
+    otherFamilyName: other?.name ?? "A linked household",
+    messages: (messages ?? []).map((m) => ({
+      id: m.id,
+      authorName: m.author_name || "Someone",
+      body: m.body,
+      createdAt: m.created_at,
+      mine: m.member_id === memberId,
+      ourHousehold: m.family_id === familyId,
+    })),
+  };
 }
