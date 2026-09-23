@@ -24,19 +24,25 @@ export function TransactForm({
   defaultMode,
   assets,
   goals,
+  defaultParticulars,
+  defaultAmount,
 }: {
   accounts: PickableAccount[];
   currency: string;
   defaultMode: string;
   assets: { id: string; name: string }[];
   goals: { id: string; name: string }[];
+  /** Carried in from a chat message someone chose to record as money. A
+   * starting point only: nothing moves until they press the button. */
+  defaultParticulars?: string;
+  defaultAmount?: number;
 }) {
   const router = useRouter();
   const [mode, setMode] = useState<Mode>((MODES as readonly string[]).includes(defaultMode) ? (defaultMode as Mode) : "in");
   const [accountId, setAccountId] = useState(accounts[0]?.id ?? "");
   const [toAccountId, setToAccountId] = useState(accounts[1]?.id ?? accounts[0]?.id ?? "");
-  const [amount, setAmount] = useState<number>(0);
-  const [particulars, setParticulars] = useState("");
+  const [amount, setAmount] = useState<number>(defaultAmount ?? 0);
+  const [particulars, setParticulars] = useState(defaultParticulars ?? "");
   const [category, setCategory] = useState<string>(INCOME_SOURCES[0]);
   const [occurredOn, setOccurredOn] = useState(todayLocal());
   const [viaApp, setViaApp] = useState(true);

@@ -4,10 +4,18 @@ import { getAccounts, getAttributableTargets } from "@/lib/queries/wealth";
 import { DetailHeader } from "@/components/hub-header";
 import { TransactForm } from "./transact-form";
 
-export default async function TransactPage({ searchParams }: { searchParams: Promise<{ mode?: string }> }) {
+export default async function TransactPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ mode?: string; note?: string; amount?: string }>;
+}) {
   const me = await getCurrentMember();
   if (!me) redirect("/onboarding/profile");
-  const { mode } = await searchParams;
+  const { mode, note, amount: rawAmount } = await searchParams;
+  // From a URL, so parsed rather than trusted: a positive, finite number with
+  // at most two decimals, or nothing at all.
+  const parsed = Number(rawAmount);
+  const amount = Number.isFinite(parsed) && parsed > 0 ? Math.round(parsed * 100) / 100 : undefined;
   const [accounts, targets] = await Promise.all([getAccounts(me.family_id), getAttributableTargets(me.family_id)]);
 
   return (
@@ -28,6 +36,8 @@ export default async function TransactPage({ searchParams }: { searchParams: Pro
           defaultMode={mode ?? "in"}
           assets={targets.assets}
           goals={targets.goals}
+          defaultParticulars={note?.slice(0, 200)}
+          defaultAmount={amount}
         />
       </div>
     </div>

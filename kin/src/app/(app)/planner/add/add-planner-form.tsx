@@ -28,12 +28,18 @@ type PlannerType = (typeof TYPES)[number];
 type EditActivity = Tables<"activities"> & { who: string[] };
 type EditEvent = Tables<"events">;
 
+/** Words carried in from somewhere else -- today, a chat message someone
+ * chose to turn into a task or an event. Only ever a starting point: every
+ * field stays editable and nothing is saved until Save is pressed. */
+export type PlannerPrefill = { title?: string; notes?: string };
+
 export function AddPlannerForm({
   members,
   defaultType,
   defaultDate,
   editActivity,
   editEvent,
+  prefill,
 }: {
   members: Tables<"members">[];
   defaultType: string;
@@ -41,6 +47,7 @@ export function AddPlannerForm({
   defaultDate?: string;
   editActivity?: EditActivity | null;
   editEvent?: (EditEvent & { memberIds: string[] }) | null;
+  prefill?: PlannerPrefill;
 }) {
   const isEditing = !!editActivity || !!editEvent;
   const [type, setType] = useState<PlannerType>(TYPES.includes(defaultType as PlannerType) ? (defaultType as PlannerType) : "task");
@@ -60,14 +67,14 @@ export function AddPlannerForm({
             ))}
           </div>
         )}
-        {(editing === null || editing === "task") && type === "task" && <ActivityForm members={members} defaultDate={defaultDate} editActivity={editActivity ?? undefined} />}
-        {(editing === null || editing === "event") && type === "event" && <EventForm members={members} defaultDate={defaultDate} editEvent={editEvent ?? undefined} />}
+        {(editing === null || editing === "task") && type === "task" && <ActivityForm members={members} defaultDate={defaultDate} editActivity={editActivity ?? undefined} prefill={prefill} />}
+        {(editing === null || editing === "event") && type === "event" && <EventForm members={members} defaultDate={defaultDate} editEvent={editEvent ?? undefined} prefill={prefill} />}
       </div>
     </div>
   );
 }
 
-function ActivityForm({ members, defaultDate, editActivity }: { members: Tables<"members">[]; defaultDate?: string; editActivity?: EditActivity }) {
+function ActivityForm({ members, defaultDate, editActivity, prefill }: { members: Tables<"members">[]; defaultDate?: string; editActivity?: EditActivity; prefill?: PlannerPrefill }) {
   const action = editActivity ? updateActivityAction.bind(null, editActivity.id) : createActivityAction;
   const [state, formAction] = useActionState(action, initialState);
   const [wholeFamily, setWholeFamily] = useState(editActivity?.applies_to_whole_family ?? true);
@@ -94,7 +101,7 @@ function ActivityForm({ members, defaultDate, editActivity }: { members: Tables<
         <input key={id} type="hidden" name="who" value={id} />
       ))}
       <ErrorText message={state.error} />
-      <Field label="TITLE"><input className="input" name="title" placeholder="Nursery orientation" required maxLength={150} defaultValue={editActivity?.title} style={{ minHeight: "2.75rem" }} /></Field>
+      <Field label="TITLE"><input className="input" name="title" placeholder="Nursery orientation" required maxLength={150} defaultValue={editActivity?.title ?? prefill?.title} style={{ minHeight: "2.75rem" }} /></Field>
       <div style={{ display: "flex", gap: "0.75rem", marginBottom: "0.875rem" }}>
         <Field label="DATE" style={{ flex: 1.2 }}><DateInput className="input" name="date" required defaultValue={startDate ?? defaultDate} style={{ minHeight: "2.75rem" }} /></Field>
         <Field label="FROM" style={{ flex: 1 }}><input className="input" type="time" name="from" defaultValue={startTime ?? "08:30"} style={{ minHeight: "2.75rem" }} /></Field>
@@ -132,7 +139,7 @@ function ActivityForm({ members, defaultDate, editActivity }: { members: Tables<
         })}
       </div>
       <Field label="LOCATION"><input className="input" name="location" placeholder="Little Acorns, San Juan" maxLength={200} defaultValue={editActivity?.location ?? undefined} style={{ minHeight: "2.75rem" }} /></Field>
-      <Field label="NOTES"><textarea className="input" name="notes" maxLength={1000} defaultValue={editActivity?.notes ?? undefined} /></Field>
+      <Field label="NOTES"><textarea className="input" name="notes" maxLength={1000} defaultValue={editActivity?.notes ?? prefill?.notes} /></Field>
       <SubmitButton style={{ minHeight: "2.875rem", fontSize: "0.875rem", letterSpacing: ".04em" }}>{editActivity ? "SAVE CHANGES" : "SAVE TO CALENDAR"}</SubmitButton>
       {editActivity && (
         <button
@@ -215,10 +222,12 @@ function EventForm({
   members,
   defaultDate,
   editEvent,
+  prefill,
 }: {
   members: Tables<"members">[];
   defaultDate?: string;
   editEvent?: EditEvent & { memberIds?: string[] };
+  prefill?: PlannerPrefill;
 }) {
   const action = editEvent ? updateEventAction.bind(null, editEvent.id) : createEventAction;
   const [state, formAction] = useActionState(action, initialState);
@@ -231,7 +240,7 @@ function EventForm({
   return (
     <form action={formAction}>
       <ErrorText message={state.error} />
-      <Field label="TITLE"><input className="input" name="title" required maxLength={150} defaultValue={editEvent?.title} style={{ minHeight: "2.75rem" }} /></Field>
+      <Field label="TITLE"><input className="input" name="title" required maxLength={150} defaultValue={editEvent?.title ?? prefill?.title} style={{ minHeight: "2.75rem" }} /></Field>
       <div style={{ display: "flex", gap: "0.625rem" }}>
         <Field label="DATE" style={{ flex: 1 }}>
           <DateInput className="input" name="date" required defaultValue={editEvent?.event_date ?? defaultDate} style={{ minHeight: "2.75rem" }} />
@@ -252,7 +261,7 @@ function EventForm({
           <option value="other">Other</option>
         </select>
       </Field>
-      <Field label="NOTE"><input className="input" name="sub_note" placeholder="Dinner at home" maxLength={200} defaultValue={editEvent?.sub_note ?? undefined} style={{ minHeight: "2.75rem" }} /></Field>
+      <Field label="NOTE"><input className="input" name="sub_note" placeholder="Dinner at home" maxLength={200} defaultValue={editEvent?.sub_note ?? prefill?.notes} style={{ minHeight: "2.75rem" }} /></Field>
       <Field label="BUDGET (OPTIONAL)">
         <input className="input" type="number" min="0" step="0.01" name="budget_amount" placeholder="For a trip, or anything with a cost" defaultValue={editEvent?.budget_amount ?? undefined} style={{ minHeight: "2.75rem" }} />
       </Field>
