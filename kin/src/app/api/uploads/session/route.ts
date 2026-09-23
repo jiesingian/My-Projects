@@ -38,12 +38,12 @@ const UPLOAD_LIMITS: Record<SessionRequest["kind"], { types: RegExp; maxBytes: n
     label: "a photo, PDF, or office document, up to 25MB",
   },
   // What a household actually sends each other: a photo, a short clip, a
-  // PDF of the school letter. Video is allowed here and not on tasks because
+  // voice note, a PDF of the school letter. Video is allowed here and not on tasks because
   // "look at this" is half of what a family thread is for.
   chat: {
-    types: /^(image\/|video\/|application\/pdf$|application\/vnd\.openxmlformats-officedocument\.|application\/msword$|application\/vnd\.ms-excel$|application\/vnd\.ms-powerpoint$)/,
+    types: /^(image\/|video\/|audio\/|application\/pdf$|application\/vnd\.openxmlformats-officedocument\.|application\/msword$|application\/vnd\.ms-excel$|application\/vnd\.ms-powerpoint$)/,
     maxBytes: 50 * 1024 * 1024,
-    label: "a photo, video, PDF, or office document, up to 50MB",
+    label: "a photo, video, voice note, PDF, or office document, up to 50MB",
   },
 };
 

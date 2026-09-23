@@ -327,3 +327,87 @@ export async function getLinkPreviewAction(messageId: string): Promise<LinkPrevi
   const url = firstUrl(message.body);
   return url ? fetchLinkPreview(url) : null;
 }
+
+/** Ask the household something. The question is the message's own text, so a
+ * poll reads, replies, pins and withdraws like any other message; the options
+ * and votes hang off it. */
+export async function sendPollAction(input: { question: string; options: string[]; allowMultiple: boolean }): Promise<ActionState> {
+  const me = await requireCurrentMember();
+  const supabase = await createClient();
+
+  const question = input.question.trim().slice(0, 200);
+  const seen = new Set<string>();
+  const options = input.options
+    .map((o) => o.trim().slice(0, 100))
+    .filter((o) => {
+      const key = o.toLowerCase();
+      if (!o || seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    })
+    .slice(0, 10);
+  if (!question) return { error: "Ask something." };
+  if (options.length < 2) return { error: "A poll needs at least two different answers." };
+
+  const { data: message, error } = await supabase
+    .from("family_messages")
+    .insert({ family_id: me.family_id, member_id: me.id, body: question, mentions: [] })
+    .select("id")
+    .single();
+  if (error || !message) return { error: error ? humanDatabaseError(error.message) : "That didn't send." };
+
+  const withdraw = async (why: string) => {
+    // A question with no answers to pick is not a poll. Take it back rather
+    // than leave it standing in the thread looking like one.
+    await supabase.from("family_messages").update({ deleted_at: new Date().toISOString(), body: "" }).eq("id", message.id);
+    return { error: `The poll didn't go through. ${why}` };
+  };
+
+  const { data: poll, error: pollError } = await supabase
+    .from("family_polls")
+    .insert({ message_id: message.id, family_id: me.family_id, question, allow_multiple: input.allowMultiple })
+    .select("id")
+    .single();
+  if (pollError || !poll) return withdraw(pollError ? humanDatabaseError(pollError.message) : "");
+
+  const { error: optionsError } = await supabase
+    .from("family_poll_options")
+    .insert(options.map((label, position) => ({ poll_id: poll.id, family_id: me.family_id, label, position })));
+  if (optionsError) return withdraw(humanDatabaseError(optionsError.message));
+
+  await markChatReadAction();
+  revalidatePath("/chat");
+  return { error: null };
+}
+
+/** Tap an answer. On a single-choice poll that moves your vote there, or takes
+ * it back if it was already there; on a multi-choice poll it toggles that one
+ * answer and leaves the rest alone. */
+export async function votePollAction(pollId: string, optionId: string): Promise<ActionState> {
+  const me = await requireCurrentMember();
+  const supabase = await createClient();
+
+  const { data: poll } = await supabase.from("family_polls").select("allow_multiple").eq("id", pollId).eq("family_id", me.family_id).maybeSingle();
+  if (!poll) return { error: "That poll isn't there any more." };
+
+  const { data: mine } = await supabase.from("family_poll_votes").select("option_id").eq("poll_id", pollId).eq("member_id", me.id);
+  const already = (mine ?? []).some((v) => v.option_id === optionId);
+
+  if (already) {
+    const { error } = await supabase.from("family_poll_votes").delete().eq("poll_id", pollId).eq("option_id", optionId).eq("member_id", me.id);
+    if (error) return { error: humanDatabaseError(error.message) };
+  } else {
+    // Changing your mind on a single-choice poll: the old answer goes first,
+    // because the database will refuse a second one alongside it.
+    if (!poll.allow_multiple && (mine ?? []).length > 0) {
+      const { error } = await supabase.from("family_poll_votes").delete().eq("poll_id", pollId).eq("member_id", me.id);
+      if (error) return { error: humanDatabaseError(error.message) };
+    }
+    const { error } = await supabase
+      .from("family_poll_votes")
+      .insert({ poll_id: pollId, option_id: optionId, member_id: me.id, family_id: me.family_id });
+    if (error) return { error: humanDatabaseError(error.message) };
+  }
+  revalidatePath("/chat");
+  return { error: null };
+}

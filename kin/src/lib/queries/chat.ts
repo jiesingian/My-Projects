@@ -23,6 +23,14 @@ export type ChatMessage = {
    * message would record the same fact thousands of times over. */
   seenBy: string[];
   attachments: ChatAttachment[];
+  poll: ChatPoll | null;
+};
+
+export type ChatPoll = {
+  id: string;
+  question: string;
+  allowMultiple: boolean;
+  options: { id: string; label: string; memberIds: string[] }[];
 };
 
 export type ChatAttachment = {
@@ -111,6 +119,30 @@ export async function getChatThread(familyId: string, limit = 200): Promise<Chat
         .order("position")
     : { data: [] };
   const signed = await getSignedUrls("documents", (files ?? []).map((f) => f.storage_path));
+
+  // Polls, their options and every vote on them, in three queries for the
+  // whole window rather than three per poll.
+  const { data: polls } = live.length
+    ? await supabase.from("family_polls").select("id, message_id, question, allow_multiple").in("message_id", live)
+    : { data: [] };
+  const pollIds = (polls ?? []).map((p) => p.id);
+  const [{ data: options }, { data: votes }] = pollIds.length
+    ? await Promise.all([
+        supabase.from("family_poll_options").select("id, poll_id, label, position").in("poll_id", pollIds).order("position"),
+        supabase.from("family_poll_votes").select("poll_id, option_id, member_id").in("poll_id", pollIds),
+      ])
+    : [{ data: [] }, { data: [] }];
+  const pollByMessage = new Map<string, ChatPoll>();
+  for (const p of polls ?? []) {
+    pollByMessage.set(p.message_id, {
+      id: p.id,
+      question: p.question,
+      allowMultiple: p.allow_multiple,
+      options: (options ?? [])
+        .filter((o) => o.poll_id === p.id)
+        .map((o) => ({ id: o.id, label: o.label, memberIds: (votes ?? []).filter((v) => v.option_id === o.id).map((v) => v.member_id) })),
+    });
+  }
   const filesByMessage = new Map<string, ChatAttachment[]>();
   for (const f of files ?? []) {
     filesByMessage.set(f.message_id, [
@@ -143,6 +175,7 @@ export async function getChatThread(familyId: string, limit = 200): Promise<Chat
       };
     })(),
     attachments: filesByMessage.get(r.id) ?? [],
+    poll: pollByMessage.get(r.id) ?? null,
     seenBy: (reads ?? [])
       .filter((v) => v.member_id !== r.member_id && v.last_read_at >= r.created_at)
       .map((v) => v.member_id),

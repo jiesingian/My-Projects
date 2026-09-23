@@ -1277,6 +1277,140 @@ export type Database = {
           },
         ]
       }
+      family_poll_options: {
+        Row: {
+          family_id: string
+          id: string
+          label: string
+          poll_id: string
+          position: number
+        }
+        Insert: {
+          family_id: string
+          id?: string
+          label: string
+          poll_id: string
+          position?: number
+        }
+        Update: {
+          family_id?: string
+          id?: string
+          label?: string
+          poll_id?: string
+          position?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "family_poll_options_family_id_fkey"
+            columns: ["family_id"]
+            isOneToOne: false
+            referencedRelation: "families"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "family_poll_options_poll_id_fkey"
+            columns: ["poll_id"]
+            isOneToOne: false
+            referencedRelation: "family_polls"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      family_poll_votes: {
+        Row: {
+          created_at: string
+          family_id: string
+          member_id: string
+          option_id: string
+          poll_id: string
+        }
+        Insert: {
+          created_at?: string
+          family_id: string
+          member_id: string
+          option_id: string
+          poll_id: string
+        }
+        Update: {
+          created_at?: string
+          family_id?: string
+          member_id?: string
+          option_id?: string
+          poll_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "family_poll_votes_family_id_fkey"
+            columns: ["family_id"]
+            isOneToOne: false
+            referencedRelation: "families"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "family_poll_votes_member_id_fkey"
+            columns: ["member_id"]
+            isOneToOne: false
+            referencedRelation: "members"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "family_poll_votes_option_of_poll"
+            columns: ["poll_id", "option_id"]
+            isOneToOne: false
+            referencedRelation: "family_poll_options"
+            referencedColumns: ["poll_id", "id"]
+          },
+          {
+            foreignKeyName: "family_poll_votes_poll_id_fkey"
+            columns: ["poll_id"]
+            isOneToOne: false
+            referencedRelation: "family_polls"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      family_polls: {
+        Row: {
+          allow_multiple: boolean
+          created_at: string
+          family_id: string
+          id: string
+          message_id: string
+          question: string
+        }
+        Insert: {
+          allow_multiple?: boolean
+          created_at?: string
+          family_id: string
+          id?: string
+          message_id: string
+          question: string
+        }
+        Update: {
+          allow_multiple?: boolean
+          created_at?: string
+          family_id?: string
+          id?: string
+          message_id?: string
+          question?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "family_polls_family_id_fkey"
+            columns: ["family_id"]
+            isOneToOne: false
+            referencedRelation: "families"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "family_polls_message_id_fkey"
+            columns: ["message_id"]
+            isOneToOne: true
+            referencedRelation: "family_messages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       families: {
         Row: {
           about: string | null
