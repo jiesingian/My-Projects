@@ -948,6 +948,15 @@ textarea.input {
 .toast {
   pointer-events: auto;
   cursor: pointer;
+  /* It is a <button> now -- the whole surface dismisses it, and as a div it
+     could not be reached by keyboard at all. These are the resets that keep
+     it looking like the panel it was: without font-family: inherit a button
+     falls back to the platform UI font mid-sentence. */
+  position: relative;
+  border: 0;
+  appearance: none;
+  font-family: inherit;
+  text-align: left;
   width: 100%;
   max-width: 420px;
   padding: 12px 16px;
@@ -962,6 +971,19 @@ textarea.input {
   opacity: 0;
   transition: transform 0.22s var(--ease-drawer), opacity 0.18s ease;
 }
+/* Bridges the 8px gap between stacked toasts. Hovering pauses the clocks,
+   and without this the gap is a hole the pointer falls through on the way
+   from one toast to the next -- leaving the stack, resuming every countdown,
+   and dismissing the one being read. Sonner solves it the same way. */
+.toast::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -8px;
+  height: 8px;
+}
+
 .toast[data-open="true"] {
   transform: translateY(0);
   opacity: 1;

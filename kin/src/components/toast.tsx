@@ -1,6 +1,6 @@
 "use client";
 
-import { useSyncExternalStore } from "react";
+import { useEffect, useSyncExternalStore } from "react";
 
 type ToastKind = "success" | "error" | "info";
 type ToastItem = { id: number; kind: ToastKind; message: string; open: boolean };
@@ -30,7 +30,48 @@ const DURATION: Record<ToastKind, number> = { success: 3000, error: 5000, info: 
 // they can't drift apart.
 const EXIT_MS = 200;
 
+/* Timers that can be stopped and picked up again.
+ *
+ * A plain setTimeout runs whatever the person is doing: switch tabs for six
+ * seconds and the error you had not read yet is gone when you come back,
+ * and the five second one is exactly the message that mattered. Hovering to
+ * read a long line has the same problem, and on a toast you dismiss by
+ * clicking it, a toast that vanishes as the finger arrives leaves the click
+ * to land on whatever was underneath.
+ *
+ * So each toast keeps the time it has left rather than a deadline, and the
+ * clock stops whenever somebody is plainly still looking. */
+type Countdown = { remaining: number; startedAt: number; handle: ReturnType<typeof setTimeout> | null };
+const countdowns = new Map<number, Countdown>();
+
+function resume(id: number) {
+  const c = countdowns.get(id);
+  if (!c || c.handle) return;
+  c.startedAt = Date.now();
+  c.handle = setTimeout(() => dismiss(id), c.remaining);
+}
+
+function pause(id: number) {
+  const c = countdowns.get(id);
+  if (!c || !c.handle) return;
+  clearTimeout(c.handle);
+  c.handle = null;
+  c.remaining = Math.max(0, c.remaining - (Date.now() - c.startedAt));
+}
+
+function pauseAll() {
+  for (const id of countdowns.keys()) pause(id);
+}
+
+function resumeAll() {
+  for (const id of countdowns.keys()) resume(id);
+}
+
 function dismiss(id: number) {
+  const c = countdowns.get(id);
+  if (c?.handle) clearTimeout(c.handle);
+  countdowns.delete(id);
+
   items = items.map((t) => (t.id === id ? { ...t, open: false } : t));
   notify();
   setTimeout(() => {
@@ -43,14 +84,21 @@ function push(kind: ToastKind, message: string) {
   const id = nextId++;
   items = [...items, { id, kind, message, open: false }];
   notify();
-  // Mount closed, open on the next frame -- the same reason every sheet in
-  // this app does it: a transition needs a painted "before" value to
-  // animate away from.
+
+  // Mount closed, open once the closed state has actually been painted.
+  // Two frames, not one: a single requestAnimationFrame can run before the
+  // browser has painted the first state, so both states land in the same
+  // paint and the transition is skipped entirely -- which looks like the
+  // toast simply appearing, intermittently, on faster machines.
   requestAnimationFrame(() => {
-    items = items.map((t) => (t.id === id ? { ...t, open: true } : t));
-    notify();
+    requestAnimationFrame(() => {
+      items = items.map((t) => (t.id === id ? { ...t, open: true } : t));
+      notify();
+    });
   });
-  setTimeout(() => dismiss(id), DURATION[kind]);
+
+  countdowns.set(id, { remaining: DURATION[kind], startedAt: 0, handle: null });
+  resume(id);
   return id;
 }
 
@@ -67,14 +115,46 @@ export const toast = {
 /** Mounted once, at the app shell. */
 export function Toaster() {
   const list = useSyncExternalStore(subscribe, getSnapshot, () => []);
+
+  useEffect(() => {
+    const onVisibility = () => {
+      if (document.visibilityState === "hidden") pauseAll();
+      else resumeAll();
+    };
+    document.addEventListener("visibilitychange", onVisibility);
+    return () => document.removeEventListener("visibilitychange", onVisibility);
+  }, []);
+
   if (list.length === 0) return null;
 
   return (
-    <div className="toast-stack" aria-live="polite" aria-atomic="false">
+    // The live region is the stack, not each toast. A role="status" on every
+    // child nests a live region inside a live region, which some screen
+    // readers read twice.
+    <div
+      className="toast-stack"
+      aria-live="polite"
+      aria-atomic="false"
+      onPointerEnter={pauseAll}
+      onPointerLeave={resumeAll}
+      onFocusCapture={pauseAll}
+      onBlurCapture={resumeAll}
+    >
       {list.map((t) => (
-        <div key={t.id} role="status" className="toast" data-kind={t.kind} data-open={t.open} onClick={() => dismiss(t.id)}>
+        // A button, because that is what it is: the whole surface dismisses
+        // it. As a div it was unreachable by keyboard, which is worst for
+        // the error toast -- the one somebody most wants to hold on to and
+        // then put away.
+        <button
+          key={t.id}
+          type="button"
+          className="toast"
+          data-kind={t.kind}
+          data-open={t.open}
+          onClick={() => dismiss(t.id)}
+        >
           {t.message}
-        </div>
+        </button>
       ))}
     </div>
   );
