@@ -52,10 +52,14 @@ export function TabBar({ chatUnread = 0, chatMentioned = false }: { chatUnread?:
               <span className="kin-tab-ico">
                 {t.home ? (
                   <span className="kin-tab-disc">
-                    <Icon name={t.icon} size={26} />
+                    <Icon name={t.icon} size="var(--kin-tab-disc-icon)" />
                   </span>
                 ) : (
-                  <Icon name={t.icon} size={23} />
+                  /* The size is a variable rather than a number because the
+                     bar has three shapes — phone, icon-only at large text,
+                     sidebar — and only the stylesheet knows which is showing.
+                     26 and 23 are still what it resolves to by default. */
+                  <Icon name={t.icon} size="var(--kin-tab-icon)" />
                 )}
 
                 {/* Unread: a count, and a different tint when one of them
