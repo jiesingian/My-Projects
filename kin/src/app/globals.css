@@ -1718,3 +1718,26 @@ textarea.input {
     transition: opacity 0.18s ease;
   }
 }
+
+/* Documents has two states -- locked and open -- and the swap between them
+   is driven by the server, not by the component that is on screen. Whichever
+   way somebody unlocked (a fingerprint, through a client callback; a PIN,
+   through a server action and a revalidate) the pane simply re-renders and
+   the old state is gone.
+
+   So this animates the arrival rather than the departure. An exit animation
+   would have to outrun a revalidation that can land first, and a fade that
+   sometimes does not happen is worse than one that always does. Both states
+   carry it, so the lock appearing and the folders appearing read the same
+   way -- which is the point: the unlock should not be the one moment in this
+   pane that snaps. */
+.kin-docs-state {
+  animation: kin-enter 0.22s var(--ease-out) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  /* Keep the fade, drop the 6px rise -- fewer and gentler, not none. */
+  .kin-docs-state {
+    animation: kin-fade-in 0.2s var(--ease-out) both;
+  }
+}

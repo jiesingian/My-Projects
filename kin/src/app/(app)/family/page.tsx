@@ -194,7 +194,11 @@ function Fact({ k, v }: { k: string; v: string | null }) {
 async function DocumentsPane({ familyId, who, meId }: { familyId: string; who: string; meId: string }) {
   const lock = await getLockState(meId);
   if (!lock.unlocked) {
-    return <DocumentsLock hasPin={lock.hasPin} hasBiometric={lock.credentialCount > 0} />;
+    return (
+      <div className="kin-docs-state">
+        <DocumentsLock hasPin={lock.hasPin} hasBiometric={lock.credentialCount > 0} />
+      </div>
+    );
   }
 
   const members = (await getMembers(familyId)).filter((m) => m.status !== "pending" && m.status !== "removed");
@@ -205,7 +209,7 @@ async function DocumentsPane({ familyId, who, meId }: { familyId: string; who: s
       : folders.filter((f) => f.owners.includes(members.find((m) => m.id === who)?.full_name ?? "__none__"));
 
   return (
-    <>
+    <div className="kin-docs-state">
       <Blueprint className="bg-[var(--color-accent-100)] mb-4" style={{ padding: 12, display: "flex", gap: 10, alignItems: "center" }}>
         <span style={{ fontSize: 13, lineHeight: 1.35 }}>
           Files stay in your connected Drive. Kin holds the index and the expiry dates only.
@@ -256,7 +260,7 @@ async function DocumentsPane({ familyId, who, meId }: { familyId: string; who: s
         + NEW ENTRY
       </Link>
       <DocumentsLockSettings hasPin={lock.hasPin} devices={devices} unlocked={lock.unlocked} />
-    </>
+    </div>
   );
 }
 
