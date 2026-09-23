@@ -50,7 +50,7 @@ export function SectionLabel({ children }: { children: ReactNode }) {
     <div
       className="mb-2"
       style={{
-        font: "600 13px/1 var(--font-heading)",
+        font: "600 var(--text-sm)/1 var(--font-heading)",
         letterSpacing: ".02em",
         color: "var(--color-neutral-600)",
       }}
@@ -64,7 +64,7 @@ export function EyebrowLabel({ children }: { children: ReactNode }) {
   return (
     <span
       style={{
-        font: "600 13px/1 var(--font-heading)",
+        font: "600 var(--text-sm)/1 var(--font-heading)",
         letterSpacing: ".02em",
         color: "var(--color-accent-700)",
       }}
@@ -100,7 +100,7 @@ export function Empty({
       <div className="kin-empty-title">{title}</div>
       <p className="kin-empty-line">{line}</p>
       {action && (
-        <Link href={action.href} className="btn btn-primary" style={{ minHeight: 40, fontSize: 13.5, letterSpacing: ".04em" }}>
+        <Link href={action.href} className="btn btn-primary" style={{ minHeight: "2.5rem", fontSize: "0.84375rem", letterSpacing: ".04em" }}>
           {action.label}
         </Link>
       )}
