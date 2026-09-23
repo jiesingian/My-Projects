@@ -1234,6 +1234,202 @@ textarea.input {
   font-size: var(--text-sm);
 }
 
+/* ── the family tree chart ─────────────────────────────────────────────── */
+.kin-treechart {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+/* A window onto a canvas that can be dragged and zoomed. touch-action: none
+   hands every finger on it to the chart, so dragging the tree never scrolls
+   the page underneath -- and it is only the window, so the page above and
+   below it still scrolls as normal. */
+.kin-treechart-viewport {
+  position: relative;
+  height: min(62dvh, 34rem);
+  overflow: hidden;
+  border-radius: var(--radius-card);
+  background:
+    radial-gradient(circle, color-mix(in srgb, var(--color-text) 9%, transparent) 1px, transparent 1.2px) 0 0 / 1.25rem 1.25rem,
+    color-mix(in srgb, var(--color-text) 3%, var(--color-surface));
+  border: 1px solid var(--color-divider);
+  touch-action: none;
+  cursor: grab;
+  user-select: none;
+  -webkit-user-select: none;
+}
+.kin-treechart-viewport:active {
+  cursor: grabbing;
+}
+.kin-treechart-canvas {
+  position: absolute;
+  left: 0;
+  top: 0;
+  transform-origin: 0 0;
+  will-change: transform;
+}
+.kin-treechart-lines {
+  position: absolute;
+  inset: 0;
+  overflow: visible;
+  pointer-events: none;
+}
+.kin-treechart-lines line,
+.kin-treechart-lines path {
+  fill: none;
+  stroke: color-mix(in srgb, var(--color-text) 30%, transparent);
+  stroke-width: 1.5;
+  vector-effect: non-scaling-stroke;
+}
+.kin-treechart-lines [data-ghost] {
+  stroke-dasharray: 4 4;
+}
+
+/* A person. */
+.kin-treecard {
+  position: absolute;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.375rem 0.5rem;
+  border-radius: 12px;
+  border: 1.5px solid var(--color-divider);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-sm);
+  color: var(--color-text);
+  text-align: left;
+  font: inherit;
+  cursor: pointer;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+.kin-treecard[data-selected] {
+  border-color: color-mix(in srgb, var(--color-accent) 55%, transparent);
+}
+/* You. A filled accent ring and a label -- colour alone is not enough to be
+   found by in a tree of forty people. */
+.kin-treecard[data-me] {
+  border-color: var(--color-accent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-accent) 22%, transparent), var(--shadow-sm);
+  background: color-mix(in srgb, var(--color-accent) 7%, var(--color-surface));
+}
+.kin-treecard-text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  flex: 1;
+}
+.kin-treecard-name {
+  font: 600 0.8125rem/1.15 var(--font-heading);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  overflow-wrap: anywhere;
+}
+.kin-treecard-meta {
+  font-size: 0.6875rem;
+  color: var(--color-neutral-600);
+  font-family: var(--font-numeric);
+}
+.kin-treecard-you {
+  display: inline-block;
+  padding: 0.0625rem 0.375rem;
+  border-radius: 999px;
+  background: var(--color-accent);
+  color: #fff;
+  font: 600 0.625rem/1.4 var(--font-heading);
+  letter-spacing: 0.02em;
+}
+.kin-treecard > .kin-treecard-you {
+  position: absolute;
+  top: -0.5rem;
+  right: 0.5rem;
+}
+/* An empty place: "Add father", "Add mother". */
+.kin-treecard-ghost {
+  justify-content: center;
+  gap: 0.3125rem;
+  border-style: dashed;
+  border-color: color-mix(in srgb, var(--color-text) 28%, transparent);
+  background: color-mix(in srgb, var(--color-surface) 70%, transparent);
+  box-shadow: none;
+  color: var(--color-neutral-600);
+  font-size: var(--text-sm);
+  font-weight: 500;
+}
+
+.kin-treechart-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-top: -0.25rem;
+}
+.kin-treechart-tools {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+  margin-left: auto;
+}
+.kin-treechart-tool {
+  min-height: 2.375rem;
+  padding: 0 0.75rem;
+  font-size: var(--text-sm);
+}
+.kin-treechart-count {
+  font-size: var(--text-xs);
+  color: var(--color-neutral-600);
+}
+
+/* Whoever is selected, and what can be added to them. */
+.kin-treepanel {
+  display: flex;
+  flex-direction: column;
+  gap: 0.625rem;
+  padding: 0.75rem;
+  border-radius: var(--radius-card);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-sm);
+}
+.kin-treepanel-head {
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+}
+.kin-treepanel-name {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.375rem;
+  font: 600 var(--text-md)/1.2 var(--font-heading);
+}
+.kin-treepanel-meta {
+  font-size: var(--text-xs);
+  color: var(--color-neutral-600);
+}
+.kin-treepanel-add {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.375rem;
+}
+.kin-treepanel-label {
+  font-size: var(--text-xs);
+  font-weight: 600;
+  color: var(--color-neutral-600);
+}
+.kin-treepanel-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+@media (prefers-reduced-motion: reduce) {
+  .kin-treecard {
+    transition: none;
+  }
+}
+
 /* ── chat: the pin, the quote, the reply strip, the typing line ──────────
    All four are secondary to the message they sit beside, so all four are a
    step down in size and weight rather than a different colour -- a thread

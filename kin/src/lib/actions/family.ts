@@ -925,6 +925,79 @@ export async function setTreeLinksAction(id: string, fields: TreeLinkFields): Pr
   return { error: error ? humanDatabaseError(error.message) : null };
 }
 
+export type Relation = "father" | "mother" | "spouse" | "child";
+
+/** Add a relative straight onto somebody on the chart: their father, mother,
+ * spouse or child, created and linked in one step -- what the + on a card
+ * does, and what used to take adding a person and then editing someone else's
+ * links separately.
+ *
+ * Refuses rather than overwrites. Adding a father to somebody who already has
+ * one recorded would silently re-parent them, and the old father would drop
+ * out of the chart without anybody having asked for that.
+ */
+export async function addRelativeAction(input: {
+  toId: string;
+  relation: Relation;
+  fullName: string;
+  dob?: string;
+  /** For a child: whether the person on the card is the child's father or mother. */
+  childOf?: "father" | "mother";
+  /** For a child: the other parent, if they are in the tree. */
+  otherParentId?: string | null;
+}): Promise<ActionState & { id?: string }> {
+  const me = await requireCurrentMember();
+  const fullName = clamp(input.fullName, TREE_NAME_MAX);
+  const dob = clamp(input.dob ?? "", 10);
+  if (!fullName) return { error: "Give them a name." };
+  if (dob) {
+    const problem = treeDateProblem(dob);
+    if (problem) return { error: problem };
+  }
+
+  const supabase = await createClient();
+  const ids = [input.toId, input.otherParentId].filter((v): v is string => !!v);
+  const { data: rows } = await supabase.from("family_tree_people").select("id, family_id, father_id, mother_id, spouse_id").in("id", ids);
+  const target = rows?.find((r) => r.id === input.toId);
+  if (!target || rows!.some((r) => r.family_id !== me.family_id) || rows!.length !== ids.length) {
+    return { error: "That person could not be found." };
+  }
+  if (input.relation === "father" && target.father_id) return { error: "They already have a father recorded. Change it from Manage people instead." };
+  if (input.relation === "mother" && target.mother_id) return { error: "They already have a mother recorded. Change it from Manage people instead." };
+  if (input.relation === "spouse" && target.spouse_id) return { error: "They already have a spouse recorded. Change it from Manage people instead." };
+  if (input.relation === "child" && input.otherParentId === input.toId) return { error: "Pick a different person as the other parent." };
+
+  const childOf = input.childOf === "mother" ? "mother" : "father";
+  const newRow = {
+    family_id: me.family_id,
+    full_name: fullName,
+    dob: dob || null,
+    created_by: me.id,
+    ...(input.relation === "spouse" ? { spouse_id: target.id } : {}),
+    ...(input.relation === "child"
+      ? childOf === "father"
+        ? { father_id: target.id, mother_id: input.otherParentId ?? null }
+        : { mother_id: target.id, father_id: input.otherParentId ?? null }
+      : {}),
+  };
+  const { data: created, error } = await supabase.from("family_tree_people").insert(newRow).select("id").single();
+  if (error || !created) return { error: error ? humanDatabaseError(error.message) : "They couldn't be added." };
+
+  // The other half of the link, on the person who was tapped.
+  const back =
+    input.relation === "father" ? { father_id: created.id } : input.relation === "mother" ? { mother_id: created.id } : input.relation === "spouse" ? { spouse_id: created.id } : null;
+  if (back) {
+    const { error: linkError } = await supabase.from("family_tree_people").update(back).eq("id", target.id);
+    if (linkError) {
+      // Take the new person back out rather than leave them floating unlinked.
+      await supabase.from("family_tree_people").delete().eq("id", created.id);
+      return { error: humanDatabaseError(linkError.message) };
+    }
+  }
+  revalidatePath("/family");
+  return { error: null, id: created.id };
+}
+
 /** Removes a tree entry. Anyone linked to them as father, mother or spouse
  * simply loses that one link (ON DELETE SET NULL) rather than being removed
  * themselves -- and if the entry was a household member, only the tree
