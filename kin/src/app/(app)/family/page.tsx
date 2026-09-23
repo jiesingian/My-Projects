@@ -18,7 +18,7 @@ import { FamilyBackgroundAlbum } from "@/components/family-background-album";
 import { FamilyAboutEditor } from "@/components/family-about-editor";
 import { FamilyAddressList } from "@/components/family-address-list";
 import { AddChildForm } from "@/components/add-child-form";
-import { FamilyTreeView } from "@/components/family-tree-view";
+import { FamilyTreeChart } from "@/components/family-tree-chart";
 import { FamilyTreeEditor } from "@/components/family-tree-editor";
 import { AddMeToTreeButton } from "@/components/add-me-to-tree-button";
 import { formatAge, initials, shortNames } from "@/lib/format";
@@ -29,6 +29,8 @@ type Seg = (typeof SEGMENTS)[number];
 export default async function FamilyPage({
   searchParams,
 }: {
+  // `center` is no longer read: the tree is the same for everybody. Old links
+  // that carry it still open the tree, and simply ignore it.
   searchParams: Promise<{ seg?: string; who?: string; center?: string }>;
 }) {
   const me = await getCurrentMember();
@@ -37,7 +39,6 @@ export default async function FamilyPage({
   const sp = await searchParams;
   const seg: Seg = (SEGMENTS as readonly string[]).includes(sp.seg ?? "") ? (sp.seg as Seg) : "profile";
   const who = sp.who ?? "all";
-  const center = sp.center ?? me.id;
 
   const segments = SEGMENTS.map((s) => ({
     label: s === "profile" ? "Profile" : s === "health" ? "Health" : s === "documents" ? "Documents" : s === "tree" ? "Family Tree" : "Quicklinks",
@@ -52,7 +53,7 @@ export default async function FamilyPage({
         {seg === "profile" && <ProfilePane familyId={me.family_id} isOrganiser={me.is_organiser} myId={me.id} myRole={me.role} />}
         {seg === "health" && <HealthPane familyId={me.family_id} />}
         {seg === "documents" && <DocumentsPane familyId={me.family_id} who={who} meId={me.id} />}
-        {seg === "tree" && <TreePane familyId={me.family_id} myId={me.id} center={center} />}
+        {seg === "tree" && <TreePane familyId={me.family_id} myId={me.id} />}
         {seg === "quicklinks" && <QuicklinksPane familyId={me.family_id} meId={me.id} myRole={me.role} />}
       </div>
     </div>
@@ -264,41 +265,38 @@ async function DocumentsPane({ familyId, who, meId }: { familyId: string; who: s
   );
 }
 
-async function TreePane({ familyId, myId, center }: { familyId: string; myId: string; center: string }) {
-  const [tree, allMembers] = await Promise.all([getFamilyTree(familyId, center), getMembers(familyId)]);
+/** The household's family tree. One tree, the same for everybody in the house
+ * -- it used to open on a row of member chips that each re-drew it around a
+ * different person, which made a single family look like several trees. The
+ * only thing that differs between members now is that each sees themselves
+ * highlighted. */
+async function TreePane({ familyId, myId }: { familyId: string; myId: string }) {
+  const [tree, allMembers] = await Promise.all([getFamilyTree(familyId, myId), getMembers(familyId)]);
   const members = allMembers.filter((m) => m.status !== "pending" && m.status !== "removed");
   const memberIdsInTree = new Set(tree.people.filter((p) => p.memberId).map((p) => p.memberId));
   const unaddedMembers = members.filter((m) => !memberIdsInTree.has(m.id)).map((m) => ({ id: m.id, full_name: m.full_name }));
-  const centerInTree = tree.people.some((p) => p.memberId === center);
+  const meInTree = tree.people.find((p) => p.memberId === myId) ?? null;
 
   return (
     <>
-      <div style={{ marginBottom: "1rem" }}>
-        <ChipRow
-          items={shortNames(members.map((m) => m.full_name)).map((label, i) => ({
-            label,
-            href: `/family?seg=tree&center=${members[i].id}`,
-            active: center === members[i].id,
-          }))}
-        />
-      </div>
-
-      {!centerInTree ? (
-        <Empty
-          icon="🌳"
-          title="Not in the tree yet"
-          line={
-            center === myId
-              ? "Add yourself to start the tree, then link your father, your mother, and anyone else you know."
-              : "This member hasn't been added to the tree yet."
-          }
-        />
+      {tree.people.length === 0 || !meInTree ? (
+        <>
+          <Empty
+            icon="🌳"
+            title={tree.people.length === 0 ? "Start the family tree" : "You're not in the tree yet"}
+            line="Add yourself, then your father, your mother, and anyone else you know -- the tree grows from there, and everybody in the house sees the same one."
+          />
+          <AddMeToTreeButton memberId={myId} />
+          {tree.people.length > 0 && <FamilyTreeChart people={tree.people} meTreeId={null} />}
+        </>
       ) : (
-        <FamilyTreeView tree={tree} />
+        <FamilyTreeChart people={tree.people} meTreeId={meInTree.id} />
       )}
-      {!centerInTree && center === myId && <AddMeToTreeButton memberId={myId} />}
 
-      <FamilyTreeEditor people={tree.people} unaddedMembers={unaddedMembers} />
+      <details className="kin-fold" style={{ marginTop: "1.25rem" }}>
+        <summary>Manage people</summary>
+        <FamilyTreeEditor people={tree.people} unaddedMembers={unaddedMembers} />
+      </details>
     </>
   );
 }

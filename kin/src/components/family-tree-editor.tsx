@@ -102,7 +102,7 @@ function PersonForm({
 
 /** Manages who's in the tree and how they link together: add a relative who
  * never had a Kin login, bring in an existing household member, set each
- * person's father/mother/spouse, or remove one. FamilyTreeView reads back
+ * person's father/mother/spouse, or remove one. FamilyTreeChart reads back
  * whatever this produces -- nothing here draws the tree itself. */
 export function FamilyTreeEditor({ people, unaddedMembers }: { people: TreePerson[]; unaddedMembers: MemberOption[] }) {
   const [open, setOpen] = useState(false);
