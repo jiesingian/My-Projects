@@ -1419,6 +1419,49 @@ export type Database = {
           },
         ]
       }
+      family_chat_pins: {
+        Row: {
+          family_id: string
+          message_id: string
+          pinned_at: string
+          pinned_by: string
+        }
+        Insert: {
+          family_id: string
+          message_id: string
+          pinned_at?: string
+          pinned_by: string
+        }
+        Update: {
+          family_id?: string
+          message_id?: string
+          pinned_at?: string
+          pinned_by?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "family_chat_pins_family_id_fkey"
+            columns: ["family_id"]
+            isOneToOne: true
+            referencedRelation: "families"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "family_chat_pins_message_id_fkey"
+            columns: ["message_id"]
+            isOneToOne: false
+            referencedRelation: "family_messages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "family_chat_pins_pinned_by_fkey"
+            columns: ["pinned_by"]
+            isOneToOne: false
+            referencedRelation: "members"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       family_message_reactions: {
         Row: {
           created_at: string
@@ -1508,6 +1551,7 @@ export type Database = {
           id: string
           member_id: string | null
           mentions: string[]
+          reply_to: string | null
         }
         Insert: {
           body: string
@@ -1518,6 +1562,7 @@ export type Database = {
           id?: string
           member_id?: string | null
           mentions?: string[]
+          reply_to?: string | null
         }
         Update: {
           body?: string
@@ -1528,6 +1573,7 @@ export type Database = {
           id?: string
           member_id?: string | null
           mentions?: string[]
+          reply_to?: string | null
         }
         Relationships: [
           {
