@@ -5,7 +5,8 @@ import { createClient } from "@/lib/supabase/server";
 import { requireCurrentMember } from "@/lib/session";
 import type { ActionState } from "@/lib/actions/auth";
 import { humanDatabaseError } from "@/lib/db-errors";
-import { isReaction, splitShoppingItems } from "@/lib/chat";
+import { isReaction, splitShoppingItems, firstUrl, type LinkPreview } from "@/lib/chat";
+import { fetchLinkPreview } from "@/lib/link-preview";
 import { addBuyItemAction } from "@/lib/actions/household";
 
 const MAX_LENGTH = 4000;
@@ -271,4 +272,58 @@ export async function addMessageToBuyListAction(messageId: string): Promise<Acti
     added.push(name);
   }
   return { error: null, added };
+}
+
+export type ChatSearchHit = { id: string; memberId: string | null; body: string; createdAt: string };
+
+/** Search the household's thread, all of it -- not just the window the page
+ * loaded, which is the whole reason this is a server action rather than a
+ * filter over what is on screen.
+ *
+ * The query is matched as literal text: % and _ are wildcards to ILIKE, and a
+ * member searching for "50%" means fifty percent, not "50 then anything". */
+export async function searchChatAction(query: string): Promise<{ error: string | null; hits: ChatSearchHit[] }> {
+  const me = await requireCurrentMember();
+  const q = query.trim().slice(0, 100);
+  if (q.length < 2) return { error: null, hits: [] };
+
+  const supabase = await createClient();
+  const literal = q.replace(/[\\%_]/g, (c) => `\\${c}`);
+  const { data, error } = await supabase
+    .from("family_messages")
+    .select("id, member_id, body, created_at")
+    .eq("family_id", me.family_id)
+    .is("deleted_at", null)
+    .ilike("body", `%${literal}%`)
+    .order("created_at", { ascending: false })
+    .limit(50);
+  if (error) return { error: humanDatabaseError(error.message), hits: [] };
+  return { error: null, hits: (data ?? []).map((m) => ({ id: m.id, memberId: m.member_id, body: m.body, createdAt: m.created_at })) };
+}
+
+/** A preview card for the first link in a message.
+ *
+ * Computed on the server each time rather than stored, and that is the point.
+ * A preview kept in the database would be written with the member's own
+ * session -- and Kin ships the anon key to the browser, so a member could
+ * write any preview they liked onto their own message: a "PayPal -- verify
+ * your account" card on a link that goes somewhere else. Worked out here, a
+ * preview can only ever say what the page itself says.
+ *
+ * It only fetches a link that actually appears in a message this household
+ * can see. Without that check this would be a general-purpose "fetch any URL
+ * from Kin's server" endpoint for anyone signed in.
+ */
+export async function getLinkPreviewAction(messageId: string): Promise<LinkPreview | null> {
+  const me = await requireCurrentMember();
+  const supabase = await createClient();
+  const { data: message } = await supabase
+    .from("family_messages")
+    .select("body, deleted_at")
+    .eq("id", messageId)
+    .eq("family_id", me.family_id)
+    .maybeSingle();
+  if (!message || message.deleted_at) return null;
+  const url = firstUrl(message.body);
+  return url ? fetchLinkPreview(url) : null;
 }

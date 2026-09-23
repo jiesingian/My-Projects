@@ -16,9 +16,12 @@ import {
   pinMessageAction,
   unpinMessageAction,
   addMessageToBuyListAction,
+  searchChatAction,
+  getLinkPreviewAction,
+  type ChatSearchHit,
 } from "@/lib/actions/chat";
 import type { ChatAttachment, ChatMember, ChatMessage, ChatPin } from "@/lib/queries/chat";
-import { REACTIONS, amountIn, splitShoppingItems } from "@/lib/chat";
+import { REACTIONS, amountIn, splitShoppingItems, firstUrl, type LinkPreview } from "@/lib/chat";
 import { toast } from "@/components/toast";
 import Link from "next/link";
 
@@ -72,6 +75,65 @@ function handoffs(m: ChatMessage, authorLabel: string) {
     event: `/planner/add?${new URLSearchParams({ type: "event", title, notes: credit })}`,
     expense: `/wealth/transact?${new URLSearchParams({ mode: "out", note: title.slice(0, 200), ...(amount ? { amount: String(amount) } : {}) })}`,
   };
+}
+
+/** A search hit with the words that matched marked, so the eye lands on them. */
+function Highlighted({ text, query }: { text: string; query: string }) {
+  if (!query) return <span>{text}</span>;
+  const lower = text.toLowerCase();
+  const needle = query.toLowerCase();
+  const parts: React.ReactNode[] = [];
+  let from = 0;
+  let at = lower.indexOf(needle);
+  while (at !== -1 && parts.length < 40) {
+    if (at > from) parts.push(text.slice(from, at));
+    parts.push(<mark key={at}>{text.slice(at, at + needle.length)}</mark>);
+    from = at + needle.length;
+    at = lower.indexOf(needle, from);
+  }
+  parts.push(text.slice(from));
+  return <span className="kin-chatsearch-text">{parts}</span>;
+}
+
+/** The card under a message with a link in it. Asks for its preview only once
+ * it has scrolled into view: a thread of two hundred messages should not
+ * fetch two hundred web pages to show the last six. */
+function LinkPreviewCard({ messageId }: { messageId: string }) {
+  const [preview, setPreview] = useState<LinkPreview | null>(null);
+  const holder = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const el = holder.current;
+    if (!el) return;
+    let cancelled = false;
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (!entries.some((e) => e.isIntersecting)) return;
+        observer.disconnect();
+        void getLinkPreviewAction(messageId).then((p) => {
+          if (!cancelled) setPreview(p);
+        });
+      },
+      { rootMargin: "200px" },
+    );
+    observer.observe(el);
+    return () => {
+      cancelled = true;
+      observer.disconnect();
+    };
+  }, [messageId]);
+
+  return (
+    <div ref={holder}>
+      {preview && (
+        <a className="kin-linkcard" href={preview.url} target="_blank" rel="noopener noreferrer nofollow">
+          <span className="kin-linkcard-site">{preview.site}</span>
+          <span className="kin-linkcard-title">{preview.title}</span>
+          {preview.description && <span className="kin-linkcard-desc">{preview.description}</span>}
+        </a>
+      )}
+    </div>
+  );
 }
 
 function formatBytes(n: number) {
@@ -157,6 +219,10 @@ export function ChatThread({
   /** Files picked and not yet sent, with a local preview for the images. */
   const [picked, setPicked] = useState<{ file: File; preview: string | null }[]>([]);
   const [uploading, setUploading] = useState(false);
+  const [searching, setSearching] = useState(false);
+  const [query, setQuery] = useState("");
+  const [hits, setHits] = useState<ChatSearchHit[] | null>(null);
+  const [highlight, setHighlight] = useState<string | null>(null);
   const fileInput = useRef<HTMLInputElement>(null);
   /** Member ids currently typing, against the instant their signal goes
    * stale. Nothing here is persisted: a typing indicator that outlives the
@@ -235,6 +301,41 @@ export function ChatThread({
     }));
     setPicked((prev) => [...prev, ...next].slice(0, 10));
     if (fileInput.current) fileInput.current.value = "";
+  };
+
+  // Search as they type, a beat after they stop. The server searches the
+  // whole history, not just what is loaded.
+  useEffect(() => {
+    if (!searching) return;
+    const q = query.trim();
+    let cancelled = false;
+    const timer = setTimeout(() => {
+      if (q.length < 2) {
+        if (!cancelled) setHits(null);
+        return;
+      }
+      void searchChatAction(q).then((r) => {
+        if (cancelled) return;
+        if (r.error) setError(r.error);
+        setHits(r.hits);
+      });
+    }, 250);
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
+  }, [query, searching]);
+
+  const jumpTo = (id: string) => {
+    const el = document.getElementById(`msg-${id}`);
+    if (!el) return false;
+    setSearching(false);
+    setQuery("");
+    setHits(null);
+    setHighlight(id);
+    el.scrollIntoView({ block: "center", behavior: "smooth" });
+    setTimeout(() => setHighlight((h) => (h === id ? null : h)), 2000);
+    return true;
   };
 
   // Sweeps expired signals. A sender that closes the tab mid-word sends no
@@ -369,6 +470,69 @@ export function ChatThread({
     /* Tall enough that the composer sits just above the tab bar even when
        only one thing has been said. */
     <div style={{ display: "flex", flexDirection: "column", flex: 1 }}>
+      <div className="kin-chatsearch">
+        {searching ? (
+          <>
+            <input
+              className="input kin-chatsearch-field"
+              type="search"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Search the family chat"
+              aria-label="Search the family chat"
+              autoFocus
+            />
+            <button
+              type="button"
+              className="btn btn-ghost"
+              onClick={() => {
+                setSearching(false);
+                setQuery("");
+                setHits(null);
+              }}
+            >
+              Cancel
+            </button>
+          </>
+        ) : (
+          <button type="button" className="btn btn-ghost kin-chatsearch-open" onClick={() => setSearching(true)}>
+            <Icon name="search" size="0.9375rem" /> Search
+          </button>
+        )}
+      </div>
+
+      {searching && hits !== null && (
+        <div className="kin-chatsearch-results" role="list" aria-label="Search results">
+          {hits.length === 0 ? (
+            <p className="kin-chatsearch-empty">Nothing in the chat says &ldquo;{query.trim()}&rdquo;.</p>
+          ) : (
+            hits.map((h) => {
+              const who = h.memberId ? (byId.get(h.memberId)?.label ?? "Someone") : "Someone";
+              const loaded = messages.some((m) => m.id === h.id);
+              return (
+                <button
+                  key={h.id}
+                  type="button"
+                  role="listitem"
+                  className="kin-chatsearch-hit"
+                  // Older than the loaded window, it cannot be scrolled to, so
+                  // the hit shows the whole message instead of a snippet.
+                  data-full={!loaded || undefined}
+                  onClick={() => {
+                    if (loaded) jumpTo(h.id);
+                  }}
+                >
+                  <span className="kin-chatsearch-meta">
+                    {who} · {dayLabel(h.createdAt)}, {clockOf(h.createdAt)}
+                  </span>
+                  <Highlighted text={h.body} query={query.trim()} />
+                </button>
+              );
+            })
+          )}
+        </div>
+      )}
+
       {/* The thing on the fridge door. It sits above the thread rather than
           inside it, because the whole point is that it does not scroll away. */}
       {pinned && (
@@ -401,7 +565,7 @@ export function ChatThread({
           const tagsMe = m.mentions.includes(me);
 
           return (
-            <div key={m.id} id={`msg-${m.id}`}>
+            <div key={m.id} id={`msg-${m.id}`} className={highlight === m.id ? "kin-msg-found" : undefined}>
               {showDay && (
                 <div style={{ display: "flex", alignItems: "center", gap: "0.625rem", margin: "16px 0 10px" }}>
                   <span style={{ flex: 1, height: 1, background: "var(--color-divider)" }} />
@@ -509,6 +673,8 @@ export function ChatThread({
                       )}
                     </>
                   )}
+
+                  {!m.deleted && firstUrl(m.body) && <LinkPreviewCard messageId={m.id} />}
 
                   {m.reactions.length > 0 && (
                     <div style={{ display: "flex", gap: "0.25rem", marginTop: -6, marginLeft: mine ? 0 : 8, marginRight: mine ? 8 : 0, zIndex: 1 }}>

@@ -108,3 +108,71 @@ test.describe("amountIn", () => {
     expect(amountIn("₱0")).toBeNull();
   });
 });
+
+test.describe("firstUrl", () => {
+  test("finds the link and leaves the sentence's punctuation behind", async () => {
+    const { firstUrl } = await import("@/lib/chat");
+    expect(firstUrl("Look at this (https://example.com/recipe?id=4).")).toBe("https://example.com/recipe?id=4");
+  });
+  test("only http and https", async () => {
+    const { firstUrl } = await import("@/lib/chat");
+    expect(firstUrl("javascript:alert(1)")).toBeNull();
+    expect(firstUrl("file:///etc/passwd")).toBeNull();
+    expect(firstUrl("no link here")).toBeNull();
+  });
+});
+
+test.describe("parseOpenGraph", () => {
+  test("Open Graph first, whichever order the attributes come in", async () => {
+    const { parseOpenGraph } = await import("@/lib/chat");
+    const p = parseOpenGraph(
+      `<meta property="og:title" content="Chicken Adobo"><meta content="Braised in vinegar &amp; soy" property="og:description"><meta property="og:site_name" content="Panlasang Pinoy">`,
+      "https://www.panlasangpinoy.com/adobo",
+    );
+    expect(p).toEqual({ url: "https://www.panlasangpinoy.com/adobo", site: "Panlasang Pinoy", title: "Chicken Adobo", description: "Braised in vinegar & soy" });
+  });
+  test("falls back to <title> and the host", async () => {
+    const { parseOpenGraph } = await import("@/lib/chat");
+    expect(parseOpenGraph("<title>  School calendar 2026  </title>", "https://www.school.edu.ph/cal")).toEqual({
+      url: "https://www.school.edu.ph/cal", site: "school.edu.ph", title: "School calendar 2026", description: null,
+    });
+  });
+  test("markup inside a title comes back as text, never as markup", async () => {
+    const { parseOpenGraph } = await import("@/lib/chat");
+    const p = parseOpenGraph(`<title>Hi <img src=x onerror=alert(1)> there &lt;b&gt;</title>`, "https://x.test/");
+    expect(p?.title).toBe("Hi there <b>");
+    expect(p?.title).not.toContain("onerror");
+  });
+  test("a page with no title is no preview", async () => {
+    const { parseOpenGraph } = await import("@/lib/chat");
+    expect(parseOpenGraph("<html><body>hello</body></html>", "https://x.test/")).toBeNull();
+  });
+});
+
+/** The check that stands between a message and our server fetching anything a
+ * member types. Each case below is an address a server-side fetch is commonly
+ * tricked into reading. */
+test.describe("isPublicAddress", () => {
+  test("ordinary public addresses pass", async () => {
+    const { isPublicAddress } = await import("@/lib/chat");
+    for (const a of ["93.184.216.34", "8.8.8.8", "2606:4700:4700::1111"]) expect(isPublicAddress(a), a).toBe(true);
+  });
+  test("this machine, private networks and the metadata service do not", async () => {
+    const { isPublicAddress } = await import("@/lib/chat");
+    for (const a of ["127.0.0.1", "10.0.0.5", "172.16.0.1", "172.31.255.255", "192.168.1.1", "169.254.169.254", "100.64.0.1", "0.0.0.0", "224.0.0.1", "255.255.255.255"])
+      expect(isPublicAddress(a), a).toBe(false);
+  });
+  test("nor their IPv6 equivalents, including IPv4 dressed as IPv6", async () => {
+    const { isPublicAddress } = await import("@/lib/chat");
+    for (const a of ["::1", "::", "fc00::1", "fd12:3456::1", "fe80::1", "ff02::1", "::ffff:127.0.0.1", "::ffff:169.254.169.254", "64:ff9b::10.0.0.1", "2001:db8::1", "[::1]"])
+      expect(isPublicAddress(a), a).toBe(false);
+  });
+  test("an IPv4 dressed as IPv6 is judged by the IPv4 inside it", async () => {
+    const { isPublicAddress } = await import("@/lib/chat");
+    expect(isPublicAddress("::ffff:8.8.8.8")).toBe(true);
+  });
+  test("things that are not addresses are not public", async () => {
+    const { isPublicAddress } = await import("@/lib/chat");
+    for (const a of ["", "localhost", "999.1.1.1", "1.2.3"]) expect(isPublicAddress(a), a).toBe(false);
+  });
+});
