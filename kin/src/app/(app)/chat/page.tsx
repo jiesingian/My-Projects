@@ -17,7 +17,7 @@ export default async function ChatPage() {
   const labelled = members.map((m, i) => ({ ...m, label: labels[i] }));
 
   return (
-    <div style={{ padding: "1.125rem 1.375rem 0.5rem" }}>
+    <div className="kin-chatcolumn" style={{ padding: "1.125rem 1.375rem 0.5rem" }}>
       <div style={{ marginBottom: "0.375rem" }}>
         <div style={{ font: "600 0.8125rem/1 var(--font-heading)", letterSpacing: ".02em", color: "var(--color-accent-700)", marginBottom: "0.3125rem" }}>
           FAMILY CHAT

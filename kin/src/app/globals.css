@@ -1273,6 +1273,37 @@ textarea.input {
   padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 170px);
 }
 
+/* — a page that ends in a composer —
+   Chat's composer is sticky just above the tab bar, so the 170px above is
+   measuring for a button that is not there: assistant-fab.tsx returns null
+   on /chat, and what the padding actually produced was about 100px of empty
+   page between the composer and the tab bar once you scrolled to the end.
+   This clears the tab bar and nothing else. In rem because the bar's own
+   height is in rem now, so the two stay in step. */
+.kin-content:has(.kin-composer) {
+  padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 4.25rem);
+}
+/* The shape a composer page is: a header, the thread taking whatever is left,
+   and the composer at the bottom of it. The thread used to guess at this with
+   `min-height: calc(100dvh - 168px)` -- a number standing in for the header's
+   height, the tab bar's and the composer's own, none of which it could see,
+   and all of which move now that they are in rem. A column that fills the
+   viewport does not have to know any of them. */
+.kin-chatcolumn {
+  display: flex;
+  flex-direction: column;
+  min-height: calc(100dvh - env(safe-area-inset-bottom, 0px) - 4.25rem);
+}
+.kin-composer {
+  position: sticky;
+  /* Sticky sticks to the viewport, and the tab bar is fixed over the bottom
+     of it, so the composer has to hold itself a bar's height clear. */
+  bottom: calc(env(safe-area-inset-bottom, 0px) + 4.25rem);
+  padding-top: 0.5rem;
+  margin-top: 0.625rem;
+  border-top: 1px solid var(--color-divider);
+}
+
 .kin-nav {
   position: fixed;
   left: 0;
@@ -1436,6 +1467,18 @@ textarea.input {
   }
 
   /* No tab bar to stay clear of any more. */
+  .kin-composer {
+    bottom: 0;
+  }
+  .kin-content:has(.kin-composer) {
+    padding-bottom: 0;
+  }
+  /* Nothing below the composer here, so the column takes the whole window
+     rather than holding a phone's tab bar worth of room for a bar that has
+     moved to the side. */
+  .kin-chatcolumn {
+    min-height: 100dvh;
+  }
   .kin-fab {
     right: 28px;
     bottom: 28px;
