@@ -1462,6 +1462,57 @@ export type Database = {
           },
         ]
       }
+      family_message_attachments: {
+        Row: {
+          created_at: string
+          family_id: string
+          file_name: string
+          id: string
+          message_id: string
+          mime_type: string
+          position: number
+          size_bytes: number
+          storage_path: string
+        }
+        Insert: {
+          created_at?: string
+          family_id: string
+          file_name: string
+          id?: string
+          message_id: string
+          mime_type: string
+          position?: number
+          size_bytes: number
+          storage_path: string
+        }
+        Update: {
+          created_at?: string
+          family_id?: string
+          file_name?: string
+          id?: string
+          message_id?: string
+          mime_type?: string
+          position?: number
+          size_bytes?: number
+          storage_path?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "family_message_attachments_family_id_fkey"
+            columns: ["family_id"]
+            isOneToOne: false
+            referencedRelation: "families"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "family_message_attachments_message_id_fkey"
+            columns: ["message_id"]
+            isOneToOne: false
+            referencedRelation: "family_messages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       family_message_reactions: {
         Row: {
           created_at: string

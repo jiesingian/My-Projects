@@ -1251,6 +1251,168 @@ textarea.input {
   padding: 0 0.25rem;
 }
 
+/* Files in a message. One photo gets the room a photo deserves; two to four
+   sit in a grid, so a batch of shelf photos reads as one thing rather than a
+   column you have to scroll past. */
+.kin-attachments {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0.1875rem;
+  width: min(15rem, 100%);
+  margin-bottom: 0.1875rem;
+  border-radius: 14px;
+  overflow: hidden;
+}
+.kin-attachments[data-count="2"],
+.kin-attachments[data-count="3"],
+.kin-attachments[data-count="4"] {
+  grid-template-columns: 1fr 1fr;
+}
+.kin-attachment-photo {
+  display: block;
+  aspect-ratio: 1;
+  background: color-mix(in srgb, var(--color-text) 6%, transparent);
+}
+.kin-attachments[data-count="1"] .kin-attachment-photo {
+  aspect-ratio: auto;
+}
+.kin-attachment-photo img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  max-height: 20rem;
+  object-fit: cover;
+}
+.kin-attachment-video {
+  display: block;
+  width: 100%;
+  max-height: 20rem;
+  background: #000;
+  grid-column: 1 / -1;
+}
+/* A file that is not a picture takes the whole row, since its name is the
+   only thing that tells you what it is. */
+.kin-filechip {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-width: 0;
+  padding: 0.5rem 0.625rem;
+  background: color-mix(in srgb, var(--color-text) 6%, transparent);
+  color: var(--color-text);
+  text-decoration: none;
+  font-size: var(--text-xs);
+}
+.kin-filechip-name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 500;
+}
+.kin-filechip-size {
+  flex: none;
+  color: var(--color-neutral-600);
+}
+.kin-filechip[data-broken] {
+  opacity: 0.6;
+}
+.kin-attachments-more {
+  min-height: 1.625rem;
+  padding: 0 0.5rem;
+  font-size: var(--text-sm);
+  letter-spacing: 0.1em;
+}
+
+/* The composer's controls: tag, attach, the field, send. */
+.kin-composer-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.375rem;
+  align-items: flex-end;
+  padding-bottom: 0.5rem;
+}
+.kin-composer-field {
+  flex: 1;
+  min-width: 0;
+}
+/* Once the text is large enough that three buttons leave the field too narrow
+   to type into -- measured at 54px wide with send pushed off the screen, at
+   200% on a 320px phone -- the field takes a line of its own and the buttons
+   sit under it, send at the far end where the thumb expects it. `em` in a
+   media query is the browser's own text size, so this is "narrow, measured in
+   the reader's text", the same test the tab bar and the hub grid use. */
+@media (max-width: 19em) {
+  .kin-composer-field {
+    order: -1;
+    flex-basis: 100%;
+  }
+  .kin-composer-row > .btn-primary {
+    margin-left: auto;
+  }
+}
+
+/* Picked, not yet sent. */
+.kin-picked {
+  display: flex;
+  gap: 0.375rem;
+  overflow-x: auto;
+  padding: 0.125rem 0 0.5rem;
+  scrollbar-width: none;
+}
+.kin-picked::-webkit-scrollbar {
+  display: none;
+}
+.kin-picked-item {
+  position: relative;
+  flex: none;
+  width: 3.5rem;
+  height: 3.5rem;
+  border-radius: 10px;
+  overflow: hidden;
+  background: color-mix(in srgb, var(--color-text) 6%, transparent);
+}
+.kin-picked-item img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.kin-picked-file {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.125rem;
+  height: 100%;
+  padding: 0.25rem;
+  font-size: var(--text-2xs);
+  text-align: center;
+}
+.kin-picked-file > span {
+  width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.kin-picked-off {
+  position: absolute;
+  top: 0.1875rem;
+  right: 0.1875rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.25rem;
+  height: 1.25rem;
+  padding: 0;
+  border: 0;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.55);
+  color: #fff;
+  cursor: pointer;
+}
+
 /* Somebody is typing. */
 .kin-typing {
   display: flex;
