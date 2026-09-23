@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import { getCurrentMember } from "@/lib/session";
-import { getChatMembers, getChatThread } from "@/lib/queries/chat";
+import { getChatMembers, getChatThread, getChatPin } from "@/lib/queries/chat";
 import { ChatThread } from "@/components/chat-thread";
 import { shortNames } from "@/lib/format";
 
@@ -10,7 +10,7 @@ export default async function ChatPage() {
   const me = await getCurrentMember();
   if (!me) redirect("/onboarding/profile");
 
-  const [members, thread] = await Promise.all([getChatMembers(me.family_id), getChatThread(me.family_id)]);
+  const [members, thread, pin] = await Promise.all([getChatMembers(me.family_id), getChatThread(me.family_id), getChatPin(me.family_id)]);
   // Two people in one house can share a first name; the tag has to tell them
   // apart, and the same label is what the message text carries.
   const labels = shortNames(members.map((m) => m.name));
@@ -28,7 +28,7 @@ export default async function ChatPage() {
         </p>
       </div>
 
-      <ChatThread me={me.id} members={labelled} initial={thread} />
+      <ChatThread me={me.id} familyId={me.family_id} members={labelled} initial={thread} pin={pin} />
     </div>
   );
 }

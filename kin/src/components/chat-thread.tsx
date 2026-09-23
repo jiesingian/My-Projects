@@ -12,8 +12,10 @@ import {
   editMessageAction,
   reactToMessageAction,
   markChatReadAction,
+  pinMessageAction,
+  unpinMessageAction,
 } from "@/lib/actions/chat";
-import type { ChatMember, ChatMessage } from "@/lib/queries/chat";
+import type { ChatMember, ChatMessage, ChatPin } from "@/lib/queries/chat";
 import { REACTIONS } from "@/lib/chat";
 
 // Rendered from the same list the action checks against, so a reaction the
@@ -36,18 +38,42 @@ function clockOf(iso: string) {
   return familyClock(new Date(iso));
 }
 
+/** How long a typing signal stands before it is assumed stale, and how often
+ * one is sent. The gap between them is deliberate: at one signal every two
+ * seconds and a four-second life, somebody typing steadily never flickers,
+ * and somebody who stops disappears within about two. */
+const TYPING_EVERY = 2000;
+const TYPING_TTL = 4000;
+
+/** "seen by Janine", "seen by Janine and Amelia", "seen by everyone". Naming
+ * three or more people is a list nobody reads; "everyone" is the fact they
+ * wanted. */
+function seenLabel(ids: string[], byId: Map<string, { label: string }>, householdSize: number) {
+  const names = ids.map((id) => byId.get(id)?.label).filter((n): n is string => !!n);
+  if (names.length === 0) return "";
+  // Everyone but the author, who never appears in seenBy.
+  if (names.length >= householdSize - 1) return "everyone";
+  if (names.length === 1) return names[0];
+  if (names.length === 2) return `${names[0]} and ${names[1]}`;
+  return `${names[0]} and ${names.length - 1} others`;
+}
+
 /** The household's thread. Messages arrive as they are sent — the page holds
  * a live subscription rather than waiting for a refresh — and anyone can be
  * tagged by name, which is what makes a message reach the right person in a
  * room where everyone is listening. */
 export function ChatThread({
   me,
+  familyId,
   members,
   initial,
+  pin,
 }: {
   me: string;
+  familyId: string;
   members: (ChatMember & { label: string })[];
   initial: ChatMessage[];
+  pin: ChatPin;
 }) {
   const router = useRouter();
   // The thread itself is the server's; this component keeps only what the
@@ -58,6 +84,11 @@ export function ChatThread({
   const [pendingBody, setPendingBody] = useState<string | null>(null);
   const [openFor, setOpenFor] = useState<string | null>(null);
   const [editing, setEditing] = useState<{ id: string; body: string } | null>(null);
+  const [replyingTo, setReplyingTo] = useState<ChatMessage | null>(null);
+  /** Member ids currently typing, against the instant their signal goes
+   * stale. Nothing here is persisted: a typing indicator that outlives the
+   * typing is worse than none. */
+  const [typing, setTyping] = useState<Record<string, number>>({});
   const [error, setError] = useState<string | null>(null);
   const [, startTransition] = useTransition();
 
@@ -82,17 +113,69 @@ export function ChatThread({
 
   // Live: any change to the thread pulls the page's own data again, so what
   // is on screen is what is in the database rather than a guess at it.
+  //
+  // The channel is named per household. It used to be the bare string
+  // "family-chat", which every household in the app joined -- row-level
+  // security meant nobody saw anybody else's data, because each refresh
+  // re-fetched under their own policies, but every family still woke up for
+  // every other family's messages. A broadcast channel has no such backstop,
+  // so the typing signal below could not have been added to a shared one at
+  // all.
+  //
+  // The payload is a member id and nothing else. Whoever could join this
+  // channel already knows the household's id, and an id on its own resolves
+  // to a name only against the member list, which is fetched under RLS.
+  const channelRef = useRef<ReturnType<ReturnType<typeof createClient>["channel"]> | null>(null);
   useEffect(() => {
     const supabase = createClient();
     const channel = supabase
-      .channel("family-chat")
+      .channel(`family-chat:${familyId}`)
       .on("postgres_changes", { event: "*", schema: "public", table: "family_messages" }, () => router.refresh())
       .on("postgres_changes", { event: "*", schema: "public", table: "family_message_reactions" }, () => router.refresh())
+      .on("postgres_changes", { event: "*", schema: "public", table: "family_chat_pins" }, () => router.refresh())
+      .on("broadcast", { event: "typing" }, ({ payload }) => {
+        const who = (payload as { id?: string })?.id;
+        if (!who || who === me) return;
+        setTyping((prev) => ({ ...prev, [who]: Date.now() + TYPING_TTL }));
+      })
       .subscribe();
+    channelRef.current = channel;
     return () => {
+      channelRef.current = null;
       void supabase.removeChannel(channel);
     };
-  }, [router]);
+  }, [router, familyId, me]);
+
+  // Sweeps expired signals. A sender that closes the tab mid-word sends no
+  // retraction, so the only thing that can end an indicator is time.
+  useEffect(() => {
+    if (Object.keys(typing).length === 0) return;
+    const timer = setInterval(() => {
+      setTyping((prev) => {
+        const now = Date.now();
+        const next = Object.fromEntries(Object.entries(prev).filter(([, until]) => until > now));
+        return Object.keys(next).length === Object.keys(prev).length ? prev : next;
+      });
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [typing]);
+
+  // One signal per TYPING_EVERY at most, however fast somebody types.
+  const lastTypingSent = useRef(0);
+  const signalTyping = useCallback(() => {
+    const now = Date.now();
+    if (now - lastTypingSent.current < TYPING_EVERY) return;
+    lastTypingSent.current = now;
+    void channelRef.current?.send({ type: "broadcast", event: "typing", payload: { id: me } });
+  }, [me]);
+
+  // No expiry check here on purpose: reading the clock during render is
+  // impure, and the sweep above already drops stale ids once a second. The
+  // cost is that an indicator can outlive its signal by up to that second,
+  // against a four-second life.
+  const typingNames = Object.keys(typing)
+    .map((id) => byId.get(id)?.label)
+    .filter((n): n is string => !!n);
 
   /** What is being typed after an "@", if the cursor is still inside it. */
   const mentionQuery = (() => {
@@ -117,12 +200,14 @@ export function ChatThread({
     if (!body) return;
     // Only tags still standing in the text count.
     const stillThere = mentioned.filter((id) => body.includes(`@${byId.get(id)?.label ?? ""}`));
+    const answering = replyingTo?.id ?? null;
     setDraft("");
     setMentioned([]);
+    setReplyingTo(null);
     setPendingBody(body);
     setError(null);
     startTransition(async () => {
-      const result = await sendMessageAction({ body, mentions: stillThere });
+      const result = await sendMessageAction({ body, mentions: stillThere, replyTo: answering });
       if (result.error) {
         setError(result.error);
         setPendingBody(null);
@@ -134,7 +219,7 @@ export function ChatThread({
       router.refresh();
       setPendingBody(null);
     });
-  }, [draft, mentioned, byId, router]);
+  }, [draft, mentioned, byId, router, replyingTo]);
 
   const act = (fn: () => Promise<{ error: string | null }>) => {
     setOpenFor(null);
@@ -144,6 +229,15 @@ export function ChatThread({
       router.refresh();
     });
   };
+
+  // Resolved from the thread rather than fetched on its own: a pin pointing
+  // at something outside the loaded window would be a banner you cannot scroll
+  // to, which is worse than no banner.
+  const pinned = pin ? (messages.find((m) => m.id === pin.messageId) ?? null) : null;
+
+  /** The newest message of your own, which is the only one that carries a
+   * "seen by". */
+  const lastMine = [...messages].reverse().find((m) => m.memberId === me && !m.deleted)?.id ?? null;
 
   // Day breaks and speaker runs are worked out up front: a conversation is
   // read as turns, and the previous message is what decides where one ends.
@@ -158,6 +252,25 @@ export function ChatThread({
     /* Tall enough that the composer sits just above the tab bar even when
        only one thing has been said. */
     <div style={{ display: "flex", flexDirection: "column", flex: 1 }}>
+      {/* The thing on the fridge door. It sits above the thread rather than
+          inside it, because the whole point is that it does not scroll away. */}
+      {pinned && (
+        <div className="kin-chatpin">
+          <Icon name="mapPin" size="0.875rem" style={{ flex: "none", color: "var(--color-accent-700)" }} />
+          <button
+            type="button"
+            className="kin-chatpin-body"
+            onClick={() => document.getElementById(`msg-${pinned.id}`)?.scrollIntoView({ block: "center", behavior: "smooth" })}
+          >
+            <span className="kin-chatpin-who">{pinned.memberId ? (byId.get(pinned.memberId)?.label ?? "Someone") : "Someone"}</span>
+            <span className="kin-chatpin-text">{pinned.deleted ? "Message withdrawn" : pinned.body}</span>
+          </button>
+          <button type="button" className="btn btn-ghost kin-chatpin-off" onClick={() => act(() => unpinMessageAction())}>
+            Unpin
+          </button>
+        </div>
+      )}
+
       <div style={{ flex: 1 }}>
         {messages.length === 0 && !pendingBody && (
           <p style={{ fontSize: "0.875rem", color: "var(--color-neutral-600)", textAlign: "center", padding: "2.5rem 1.25rem", lineHeight: 1.5 }}>
@@ -171,7 +284,7 @@ export function ChatThread({
           const tagsMe = m.mentions.includes(me);
 
           return (
-            <div key={m.id}>
+            <div key={m.id} id={`msg-${m.id}`}>
               {showDay && (
                 <div style={{ display: "flex", alignItems: "center", gap: "0.625rem", margin: "16px 0 10px" }}>
                   <span style={{ flex: 1, height: 1, background: "var(--color-divider)" }} />
@@ -192,6 +305,22 @@ export function ChatThread({
                     <span style={{ fontSize: "0.71875rem", color: "var(--color-neutral-600)", margin: "0 0 2px 10px" }}>
                       {author?.label ?? "Someone"}
                     </span>
+                  )}
+
+                  {/* What this answers. Tapping it goes there, which is the
+                      whole reason a quote is worth the room it takes. */}
+                  {m.replyTo && !m.deleted && (
+                    <button
+                      type="button"
+                      className="kin-quote"
+                      data-mine={mine || undefined}
+                      onClick={() => document.getElementById(`msg-${m.replyTo!.id}`)?.scrollIntoView({ block: "center", behavior: "smooth" })}
+                    >
+                      <span className="kin-quote-who">
+                        {m.replyTo.memberId ? (byId.get(m.replyTo.memberId)?.label ?? "Someone") : "Someone"}
+                      </span>
+                      <span className="kin-quote-text">{m.replyTo.deleted ? "Message withdrawn" : m.replyTo.excerpt}</span>
+                    </button>
                   )}
 
                   {editing?.id === m.id ? (
@@ -289,6 +418,27 @@ export function ChatThread({
                           {e}
                         </button>
                       ))}
+                      <span style={{ width: 1, height: 18, background: "var(--color-divider)", margin: "0 3px" }} />
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setReplyingTo(m);
+                          setOpenFor(null);
+                          input.current?.focus();
+                        }}
+                        className="btn btn-ghost"
+                        style={{ minHeight: "1.625rem", fontSize: "0.75rem", padding: "0 0.375rem" }}
+                      >
+                        Reply
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => act(() => (pin?.messageId === m.id ? unpinMessageAction() : pinMessageAction(m.id)))}
+                        className="btn btn-ghost"
+                        style={{ minHeight: "1.625rem", fontSize: "0.75rem", padding: "0 0.375rem" }}
+                      >
+                        {pin?.messageId === m.id ? "Unpin" : "Pin"}
+                      </button>
                       {mine && (
                         <>
                           <span style={{ width: 1, height: 18, background: "var(--color-divider)", margin: "0 3px" }} />
@@ -319,6 +469,13 @@ export function ChatThread({
                   <span style={{ fontSize: "0.65625rem", color: "var(--color-neutral-600)", margin: "3px 4px 0" }}>
                     {clockOf(m.createdAt)}
                     {m.editedAt && !m.deleted ? " · edited" : ""}
+                    {/* Only on your own, and only the latest one. Every message
+                        carrying its own list turns a thread into a register of
+                        who is ignoring whom; the last one answers the question
+                        anybody actually has, which is whether it landed. */}
+                    {mine && !m.deleted && m.id === lastMine && m.seenBy.length > 0 && (
+                      <> · seen by {seenLabel(m.seenBy, byId, members.length)}</>
+                    )}
                   </span>
                 </div>
               </div>
@@ -353,6 +510,31 @@ export function ChatThread({
           cannot answer a media query. The class is also what tells
           .kin-content this page ends in a composer. */}
       <div className="kin-glass-bar kin-composer">
+        {/* Who is typing. Above the composer rather than in the thread, so it
+            never pushes the conversation around as it comes and goes. */}
+        {typingNames.length > 0 && (
+          <p className="kin-typing" aria-live="polite">
+            {typingNames.length === 1 ? `${typingNames[0]} is typing` : `${typingNames.slice(0, 2).join(" and ")} are typing`}
+            <span className="kin-typing-dots" aria-hidden="true">
+              <i />
+              <i />
+              <i />
+            </span>
+          </p>
+        )}
+
+        {/* What you are answering, with a way out of it. */}
+        {replyingTo && (
+          <div className="kin-replystrip">
+            <span className="kin-quote-who">
+              Replying to {replyingTo.memberId === me ? "yourself" : (byId.get(replyingTo.memberId ?? "")?.label ?? "someone")}
+            </span>
+            <span className="kin-quote-text">{replyingTo.deleted ? "Message withdrawn" : replyingTo.body}</span>
+            <button type="button" className="btn btn-ghost kin-replystrip-off" onClick={() => setReplyingTo(null)} aria-label="Stop replying">
+              <Icon name="x" size="0.875rem" />
+            </button>
+          </div>
+        )}
         {suggestions.length > 0 && (
           <div style={{ display: "flex", flexWrap: "wrap", gap: "0.375rem", paddingBottom: "0.5rem" }}>
             {suggestions.map((m) => (
@@ -397,7 +579,10 @@ export function ChatThread({
             ref={input}
             className="input"
             value={draft}
-            onChange={(e) => setDraft(e.target.value)}
+            onChange={(e) => {
+              setDraft(e.target.value);
+              if (e.target.value) signalTyping();
+            }}
             onKeyDown={(e) => {
               // Enter sends; Shift+Enter is a new line, as everywhere else.
               if (e.key === "Enter" && !e.shiftKey) {

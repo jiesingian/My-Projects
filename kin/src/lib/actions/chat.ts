@@ -12,7 +12,7 @@ const MAX_LENGTH = 4000;
 /** Say something to the household. Mentions are passed as member ids the
  * composer resolved, not parsed back out of the text — a name is not a
  * reliable key, and two people here can share one. */
-export async function sendMessageAction(input: { body: string; mentions?: string[] }): Promise<ActionState & { id?: string }> {
+export async function sendMessageAction(input: { body: string; mentions?: string[]; replyTo?: string | null }): Promise<ActionState & { id?: string }> {
   const me = await requireCurrentMember();
   const supabase = await createClient();
 
@@ -24,9 +24,14 @@ export async function sendMessageAction(input: { body: string; mentions?: string
   const known = new Set((family ?? []).map((m) => m.id));
   const mentions = Array.from(new Set(input.mentions ?? [])).filter((id) => known.has(id));
 
+  // A reply to a message in another household is refused by a trigger, not
+  // here -- the browser holds the anon key, so this check is for the error
+  // message and the database is for the rule.
+  const replyTo = input.replyTo ?? null;
+
   const { data, error } = await supabase
     .from("family_messages")
-    .insert({ family_id: me.family_id, member_id: me.id, body, mentions })
+    .insert({ family_id: me.family_id, member_id: me.id, body, mentions, reply_to: replyTo })
     .select("id")
     .single();
   if (error || !data) return { error: error ? humanDatabaseError(error.message) : "That didn't send." };
@@ -138,5 +143,37 @@ export async function markChatReadAction(): Promise<ActionState> {
     .from("family_message_reads")
     .upsert({ member_id: me.id, family_id: me.family_id, last_read_at: new Date().toISOString() }, { onConflict: "member_id" });
   if (error) return { error: humanDatabaseError(error.message) };
+  return { error: null };
+}
+
+/** Pin a message, or move the pin to a different one. A household has one at a
+ * time — the thing on the fridge door — so this replaces rather than appends,
+ * which is also what makes unpinning unambiguous. */
+export async function pinMessageAction(messageId: string): Promise<ActionState> {
+  const me = await requireCurrentMember();
+  const supabase = await createClient();
+
+  const { error } = await supabase
+    .from("family_chat_pins")
+    .upsert(
+      { family_id: me.family_id, message_id: messageId, pinned_by: me.id, pinned_at: new Date().toISOString() },
+      { onConflict: "family_id" },
+    );
+  if (error) return { error: humanDatabaseError(error.message) };
+
+  revalidatePath("/chat");
+  return { error: null };
+}
+
+/** Take the pin down. Anyone in the household may: five people do not need a
+ * moderator, and whoever notices it has gone stale is the right person. */
+export async function unpinMessageAction(): Promise<ActionState> {
+  const me = await requireCurrentMember();
+  const supabase = await createClient();
+
+  const { error } = await supabase.from("family_chat_pins").delete().eq("family_id", me.family_id);
+  if (error) return { error: humanDatabaseError(error.message) };
+
+  revalidatePath("/chat");
   return { error: null };
 }

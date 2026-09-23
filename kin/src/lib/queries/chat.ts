@@ -12,7 +12,18 @@ export type ChatMessage = {
   editedAt: string | null;
   deleted: boolean;
   reactions: { emoji: string; memberIds: string[] }[];
+  /** The message this one answers, flattened to what a quote needs. Null when
+   * it answers nothing, or when the message it answered has fallen outside
+   * the window this query loads -- a quote of something nobody can scroll to
+   * is worse than no quote. */
+  replyTo: { id: string; memberId: string | null; excerpt: string; deleted: boolean } | null;
+  /** Who has read this, excluding its author. Derived from each member's
+   * last_read_at rather than stored per message: one row per member per
+   * message would record the same fact thousands of times over. */
+  seenBy: string[];
 };
+
+export type ChatPin = { messageId: string; pinnedBy: string; pinnedAt: string } | null;
 
 /** How many messages this member has yet to read, and whether any of them
  * named them. The badge on the tab is this. */
@@ -42,7 +53,7 @@ export async function getChatThread(familyId: string, limit = 200): Promise<Chat
 
   const { data } = await supabase
     .from("family_messages")
-    .select("id, member_id, body, mentions, created_at, edited_at, deleted_at")
+    .select("id, member_id, body, mentions, created_at, edited_at, deleted_at, reply_to")
     .eq("family_id", familyId)
     .order("created_at", { ascending: false })
     .limit(limit);
@@ -65,6 +76,16 @@ export async function getChatThread(familyId: string, limit = 200): Promise<Chat
     byMessage.set(r.message_id, forMessage);
   }
 
+  // Read markers, one per member. "Seen by" is this compared against a
+  // message's own created_at, so the whole household's receipts cost one
+  // query for the entire thread rather than one per message.
+  const { data: reads } = await supabase
+    .from("family_message_reads")
+    .select("member_id, last_read_at")
+    .eq("family_id", familyId);
+
+  const quoted = new Map(rows.map((r) => [r.id, r]));
+
   return rows.map((r) => ({
     id: r.id,
     memberId: r.member_id,
@@ -76,6 +97,21 @@ export async function getChatThread(familyId: string, limit = 200): Promise<Chat
     editedAt: r.edited_at,
     deleted: !!r.deleted_at,
     reactions: Array.from(byMessage.get(r.id)?.entries() ?? []).map(([emoji, memberIds]) => ({ emoji, memberIds })),
+    replyTo: (() => {
+      const parent = r.reply_to ? quoted.get(r.reply_to) : undefined;
+      if (!parent) return null;
+      return {
+        id: parent.id,
+        memberId: parent.member_id,
+        // One line is what a quote is for -- enough to recognise which thing
+        // is being answered, not enough to read twice.
+        excerpt: parent.deleted_at ? "" : parent.body.replace(/\s+/g, " ").slice(0, 120),
+        deleted: !!parent.deleted_at,
+      };
+    })(),
+    seenBy: (reads ?? [])
+      .filter((v) => v.member_id !== r.member_id && v.last_read_at >= r.created_at)
+      .map((v) => v.member_id),
   }));
 }
 
@@ -99,4 +135,15 @@ export async function getChatMembers(familyId: string): Promise<ChatMember[]> {
       photoUrl: m.avatar_url,
     };
   });
+}
+
+/** The one message a household has pinned, if any. */
+export async function getChatPin(familyId: string): Promise<ChatPin> {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("family_chat_pins")
+    .select("message_id, pinned_by, pinned_at")
+    .eq("family_id", familyId)
+    .maybeSingle();
+  return data ? { messageId: data.message_id, pinnedBy: data.pinned_by, pinnedAt: data.pinned_at } : null;
 }

@@ -1143,6 +1143,153 @@ textarea.input {
 
 /* — chat bubble — the household's thread. Yours in the tint, everyone
    else's on the neutral ground, and a tap opens what can be done to it. */
+/* ── chat: the pin, the quote, the reply strip, the typing line ──────────
+   All four are secondary to the message they sit beside, so all four are a
+   step down in size and weight rather than a different colour -- a thread
+   that shouts at you in four places has no emphasis left for the message. */
+
+/* The pinned message. Sticks under the page header rather than scrolling
+   with the thread: a pin that scrolls away is a message. */
+.kin-chatpin {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 0.625rem;
+  margin-bottom: 0.25rem;
+  border-radius: var(--radius-control);
+  background: color-mix(in srgb, var(--color-accent) 9%, var(--color-surface));
+  border: 1px solid color-mix(in srgb, var(--color-accent) 22%, transparent);
+}
+.kin-chatpin-body {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.0625rem;
+  border: 0;
+  background: none;
+  padding: 0;
+  text-align: left;
+  cursor: pointer;
+  font: inherit;
+  color: inherit;
+}
+.kin-chatpin-off {
+  flex: none;
+  min-height: 1.625rem;
+  font-size: var(--text-xs);
+  padding: 0 0.375rem;
+}
+.kin-chatpin-who,
+.kin-quote-who {
+  display: block;
+  font-size: var(--text-2xs);
+  font-weight: 600;
+  color: var(--color-accent-700);
+}
+.kin-chatpin-text,
+.kin-quote-text {
+  display: block;
+  font-size: var(--text-xs);
+  color: var(--color-neutral-700);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* The quote above a reply. The rule down its leading edge is what says
+   "this is not the message, it is what the message is about". */
+.kin-quote {
+  max-width: 100%;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.0625rem;
+  margin-bottom: 0.1875rem;
+  padding: 0.25rem 0.5rem;
+  border: 0;
+  border-left: 2px solid color-mix(in srgb, var(--color-accent) 55%, transparent);
+  border-radius: 0 var(--radius-control) var(--radius-control) 0;
+  background: color-mix(in srgb, var(--color-text) 5%, transparent);
+  text-align: left;
+  cursor: pointer;
+  font: inherit;
+}
+/* Your own replies sit on the right, so the rule moves to the edge the
+   bubble hangs from. */
+.kin-quote[data-mine] {
+  border-left: 0;
+  border-right: 2px solid color-mix(in srgb, var(--color-accent) 55%, transparent);
+  border-radius: var(--radius-control) 0 0 var(--radius-control);
+  text-align: right;
+}
+
+/* What you are about to answer, above the composer. */
+.kin-replystrip {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.375rem 0.5rem;
+  margin-bottom: 0.375rem;
+  border-radius: var(--radius-control);
+  border-left: 2px solid color-mix(in srgb, var(--color-accent) 55%, transparent);
+  background: color-mix(in srgb, var(--color-text) 5%, transparent);
+}
+.kin-replystrip > .kin-quote-who,
+.kin-replystrip > .kin-quote-text {
+  min-width: 0;
+}
+.kin-replystrip > .kin-quote-text {
+  flex: 1;
+}
+.kin-replystrip-off {
+  flex: none;
+  min-height: 1.75rem;
+  padding: 0 0.25rem;
+}
+
+/* Somebody is typing. */
+.kin-typing {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  margin: 0 0 0.25rem;
+  padding-left: 0.125rem;
+  font-size: var(--text-2xs);
+  color: var(--color-neutral-600);
+}
+.kin-typing-dots {
+  display: inline-flex;
+  gap: 0.125rem;
+}
+.kin-typing-dots i {
+  width: 0.25rem;
+  height: 0.25rem;
+  border-radius: 999px;
+  background: currentColor;
+  animation: kin-typing-bounce 1.1s infinite ease-in-out;
+}
+.kin-typing-dots i:nth-child(2) { animation-delay: 0.15s; }
+.kin-typing-dots i:nth-child(3) { animation-delay: 0.3s; }
+@keyframes kin-typing-bounce {
+  0%, 60%, 100% { opacity: 0.3; transform: translateY(0); }
+  30% { opacity: 1; transform: translateY(-0.125rem); }
+}
+/* The dots are the whole indicator, so reduced motion keeps them and drops
+   only the travel -- otherwise the line reads as three full stops. */
+@media (prefers-reduced-motion: reduce) {
+  .kin-typing-dots i {
+    animation: kin-typing-fade 1.1s infinite ease-in-out;
+  }
+  @keyframes kin-typing-fade {
+    0%, 60%, 100% { opacity: 0.3; }
+    30% { opacity: 1; }
+  }
+}
+
 .kin-bubble {
   display: inline-block;
   text-align: left;
