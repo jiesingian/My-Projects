@@ -8,8 +8,8 @@ import { Icon } from "@/components/icons";
  * own voice instead of falling out of it. */
 export default function NotFound() {
   return (
-    <div style={{ minHeight: "100dvh", display: "flex", alignItems: "center", justifyContent: "center", padding: 22 }}>
-      <Blueprint style={{ maxWidth: 360, padding: 28, textAlign: "center" }}>
+    <div style={{ minHeight: "100dvh", display: "flex", alignItems: "center", justifyContent: "center", padding: "1.375rem" }}>
+      <Blueprint style={{ maxWidth: 360, padding: "1.75rem", textAlign: "center" }}>
         <div
           style={{
             width: 48,
@@ -24,8 +24,8 @@ export default function NotFound() {
         >
           <Icon name="info" size={22} className="text-[var(--color-neutral-600)]" />
         </div>
-        <h1 style={{ fontSize: 19, marginBottom: 6 }}>Nothing here</h1>
-        <p style={{ fontSize: 13.5, color: "var(--color-neutral-600)", lineHeight: 1.5, margin: "0 0 20px" }}>
+        <h1 style={{ fontSize: "1.1875rem", marginBottom: "0.375rem" }}>Nothing here</h1>
+        <p style={{ fontSize: "0.84375rem", color: "var(--color-neutral-600)", lineHeight: 1.5, margin: "0 0 20px" }}>
           This page doesn&apos;t exist, or the link is out of date.
         </p>
         <Link href="/today" className="btn btn-primary btn-block">

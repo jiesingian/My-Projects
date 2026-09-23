@@ -17,8 +17,8 @@ export function ResetPasswordForm({ email, verified }: { email: string; verified
   return (
     <OnboardingShell backHref="/login">
       <Wordmark />
-      <h2 style={{ fontSize: 32, margin: "24px 0 6px" }}>Set a new password</h2>
-      <p style={{ fontSize: 13.5, color: "var(--color-neutral-700)", margin: "0 0 24px" }}>
+      <h2 style={{ fontSize: "2rem", margin: "24px 0 6px" }}>Set a new password</h2>
+      <p style={{ fontSize: "0.84375rem", color: "var(--color-neutral-700)", margin: "0 0 24px" }}>
         {verified ? (
           <>
             For <strong>{email}</strong>. Once it&apos;s set you&apos;ll go straight into Kin.
@@ -36,7 +36,7 @@ export function ResetPasswordForm({ email, verified }: { email: string; verified
 
         {/* Only asked for when the emailed link did not sign them in already. */}
         {!verified && (
-          <div className="field" style={{ marginBottom: 16 }}>
+          <div className="field" style={{ marginBottom: "1rem" }}>
             <label htmlFor={`${uid}-code`}>CODE FROM THE EMAIL</label>
             <input
               id={`${uid}-code`}
@@ -48,12 +48,12 @@ export function ResetPasswordForm({ email, verified }: { email: string; verified
               inputMode="numeric"
               autoComplete="one-time-code"
               placeholder="000000"
-              style={{ fontFamily: "var(--font-numeric)", letterSpacing: ".18em", fontSize: 20 }}
+              style={{ fontFamily: "var(--font-numeric)", letterSpacing: ".18em", fontSize: "1.25rem" }}
             />
           </div>
         )}
 
-        <div className="field" style={{ marginBottom: 16 }}>
+        <div className="field" style={{ marginBottom: "1rem" }}>
           <label htmlFor={`${uid}-password`}>NEW PASSWORD</label>
           <input
             id={`${uid}-password`}
@@ -67,7 +67,7 @@ export function ResetPasswordForm({ email, verified }: { email: string; verified
             autoFocus={verified}
           />
         </div>
-        <div className="field" style={{ marginBottom: 20 }}>
+        <div className="field" style={{ marginBottom: "1.25rem" }}>
           <label htmlFor={`${uid}-confirm`}>CONFIRM NEW PASSWORD</label>
           <input
             id={`${uid}-confirm`}
@@ -82,19 +82,19 @@ export function ResetPasswordForm({ email, verified }: { email: string; verified
         </div>
         <div
           className="blueprint"
-          style={{ padding: 14, display: "flex", gap: 10, alignItems: "flex-start", marginBottom: 24, background: "var(--color-accent-100)" }}
+          style={{ padding: "0.875rem", display: "flex", gap: "0.625rem", alignItems: "flex-start", marginBottom: "1.5rem", background: "var(--color-accent-100)" }}
         >
           <Icon name="shieldCheck" size={16} className="text-[var(--color-accent-700)] mt-1" />
-          <span style={{ fontSize: 13.5, lineHeight: 1.4 }}>
+          <span style={{ fontSize: "0.84375rem", lineHeight: 1.4 }}>
             At least {PASSWORD_MIN} characters. Saving this signs Kin out on your other devices, so
             anyone who had the old password is locked out.
           </span>
         </div>
-        <SubmitButton style={{ minHeight: 46, fontSize: 15, letterSpacing: ".04em" }}>
+        <SubmitButton style={{ minHeight: "2.875rem", fontSize: "0.9375rem", letterSpacing: ".04em" }}>
           SAVE NEW PASSWORD
         </SubmitButton>
       </form>
-      <p style={{ fontSize: 13, color: "var(--color-neutral-700)", marginTop: 20, textAlign: "center" }}>
+      <p style={{ fontSize: "0.8125rem", color: "var(--color-neutral-700)", marginTop: "1.25rem", textAlign: "center" }}>
         Code expired? <Link href="/forgot-password">Send a new one</Link>
       </p>
     </OnboardingShell>

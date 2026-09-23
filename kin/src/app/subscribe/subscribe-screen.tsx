@@ -47,16 +47,16 @@ export function SubscribeScreen({
   return (
     <OnboardingShell backHref={allowed ? "/today" : undefined}>
       <Wordmark />
-      <h2 style={{ fontSize: 30, margin: "24px 0 6px" }}>{allowed ? "Your plan" : "Kin needs a plan"}</h2>
-      <p style={{ fontSize: 13.5, color: "var(--color-neutral-700)", margin: "0 0 20px" }}>
+      <h2 style={{ fontSize: "1.875rem", margin: "24px 0 6px" }}>{allowed ? "Your plan" : "Kin needs a plan"}</h2>
+      <p style={{ fontSize: "0.84375rem", color: "var(--color-neutral-700)", margin: "0 0 20px" }}>
         {householdName} — {standing(status, daysLeft)}
       </p>
 
       {/* Paying is the organizer's job; everyone else is told who to ask
           rather than shown a button that will not work for them. */}
       {!isOrganiser ? (
-        <Blueprint style={{ padding: 16, marginBottom: 20 }}>
-          <p style={{ fontSize: 14, lineHeight: 1.5, margin: 0 }}>
+        <Blueprint style={{ padding: "1rem", marginBottom: "1.25rem" }}>
+          <p style={{ fontSize: "0.875rem", lineHeight: 1.5, margin: 0 }}>
             Ask the organizer of your household to sort the plan out. Once they do, Kin comes back
             for everyone at once — nothing you&apos;ve added is lost in the meantime.
           </p>
@@ -64,23 +64,23 @@ export function SubscribeScreen({
       ) : (
         <>
           {PLAN_LIST.map((plan) => (
-            <Blueprint key={plan.id} style={{ padding: 16, marginBottom: 10 }}>
-              <div style={{ display: "flex", alignItems: "baseline", gap: 8 }}>
-                <span style={{ font: "600 20px/1.1 var(--font-heading)" }}>{plan.name}</span>
-                <span style={{ marginLeft: "auto", font: "600 20px/1.1 var(--font-heading)" }}>
+            <Blueprint key={plan.id} style={{ padding: "1rem", marginBottom: "0.625rem" }}>
+              <div style={{ display: "flex", alignItems: "baseline", gap: "0.5rem" }}>
+                <span style={{ font: "600 1.25rem/1.1 var(--font-heading)" }}>{plan.name}</span>
+                <span style={{ marginLeft: "auto", font: "600 1.25rem/1.1 var(--font-heading)" }}>
                   {pesos(plan.amountCents)}
                 </span>
               </div>
-              <p style={{ fontSize: 13, color: "var(--color-neutral-600)", margin: "6px 0 0" }}>
+              <p style={{ fontSize: "0.8125rem", color: "var(--color-neutral-600)", margin: "6px 0 0" }}>
                 {plan.blurb}
                 {plan.months > 1 && ` That's ${perMonth(plan)} a month.`}
               </p>
             </Blueprint>
           ))}
 
-          <Blueprint style={{ padding: 14, marginBottom: 20, background: "var(--color-accent-100)", display: "flex", gap: 10 }}>
+          <Blueprint style={{ padding: "0.875rem", marginBottom: "1.25rem", background: "var(--color-accent-100)", display: "flex", gap: "0.625rem" }}>
             <Icon name="info" size={16} className="text-[var(--color-accent-700)] mt-1" />
-            <span style={{ fontSize: 13.5, lineHeight: 1.4 }}>
+            <span style={{ fontSize: "0.84375rem", lineHeight: 1.4 }}>
               Card and e-wallet payment isn&apos;t switched on yet. Until it is, a code is the way
               in — enter one below.
             </span>
@@ -88,7 +88,7 @@ export function SubscribeScreen({
 
           <form action={formAction}>
             <ErrorText message={state.error} />
-            <div className="field" style={{ marginBottom: 14 }}>
+            <div className="field" style={{ marginBottom: "0.875rem" }}>
               <label htmlFor={`${uid}-code`}>ACCESS CODE</label>
               <input
                 id={`${uid}-code`}
@@ -102,14 +102,14 @@ export function SubscribeScreen({
                 style={{ fontFamily: "var(--font-numeric)", letterSpacing: ".02em", textTransform: "uppercase" }}
               />
             </div>
-            <SubmitButton style={{ minHeight: 46, fontSize: 15, letterSpacing: ".04em" }}>
+            <SubmitButton style={{ minHeight: "2.875rem", fontSize: "0.9375rem", letterSpacing: ".04em" }}>
               USE THIS CODE
             </SubmitButton>
           </form>
         </>
       )}
 
-      <p style={{ fontSize: 13, color: "var(--color-neutral-700)", marginTop: 22, textAlign: "center" }}>
+      <p style={{ fontSize: "0.8125rem", color: "var(--color-neutral-700)", marginTop: "1.375rem", textAlign: "center" }}>
         {allowed ? <Link href="/today">Back to Kin</Link> : <Link href="/settings">Settings</Link>}
       </p>
     </OnboardingShell>

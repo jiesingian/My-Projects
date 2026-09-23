@@ -26,8 +26,8 @@ export function FamilyForkForm({
 
   return (
     <OnboardingShell step="STEP 04 / 05" backHref="/onboarding/profile">
-      <h2 style={{ fontSize: 34, margin: "0 0 6px" }}>Family group</h2>
-      <p style={{ fontSize: 13.5, color: "var(--color-neutral-700)", margin: "0 0 24px" }}>
+      <h2 style={{ fontSize: "2.125rem", margin: "0 0 6px" }}>Family group</h2>
+      <p style={{ fontSize: "0.84375rem", color: "var(--color-neutral-700)", margin: "0 0 24px" }}>
         One group per household. Everything in Kin belongs to it.
       </p>
 
@@ -37,23 +37,23 @@ export function FamilyForkForm({
         <input type="hidden" name="mobile" value={mobile} />
         <Blueprint
           className="bg-[var(--color-accent-100)] mb-4"
-          style={{ padding: 20 }}
+          style={{ padding: "1.25rem" }}
         >
           <Icon name="housePlus" size={22} className="text-[var(--color-accent-700)]" />
-          <span style={{ font: "600 22px/1.1 var(--font-heading)", display: "block", margin: "9px 0 10px" }}>
+          <span style={{ font: "600 1.375rem/1.1 var(--font-heading)", display: "block", margin: "9px 0 10px" }}>
             Create a family
           </span>
-          <div className="field" style={{ marginBottom: 12 }}>
+          <div className="field" style={{ marginBottom: "0.75rem" }}>
             <label htmlFor={`${uid}-household-name`}>HOUSEHOLD NAME</label>
-            <input id={`${uid}-household-name`} aria-label="Household Name" className="input" name="household_name" placeholder="The Reyes Household" required style={{ minHeight: 44 }} />
+            <input id={`${uid}-household-name`} aria-label="Household Name" className="input" name="household_name" placeholder="The Reyes Household" required style={{ minHeight: "2.75rem" }} />
           </div>
           {/* One setting the household won't have to find its way to Settings
               for afterward -- it's used from the first account someone adds.
               Change it later same as currency; it never changes on its own
               just because a phone traveled. */}
-          <div className="field" style={{ marginBottom: 12 }}>
+          <div className="field" style={{ marginBottom: "0.75rem" }}>
             <label htmlFor={`${uid}-country`}>COUNTRY</label>
-            <select id={`${uid}-country`} aria-label="Country" className="input" name="country" defaultValue={DEFAULT_COUNTRY} style={{ minHeight: 44 }}>
+            <select id={`${uid}-country`} aria-label="Country" className="input" name="country" defaultValue={DEFAULT_COUNTRY} style={{ minHeight: "2.75rem" }}>
               {COUNTRIES.map((c) => (
                 <option key={c.code} value={c.code}>
                   {c.label}
@@ -63,7 +63,7 @@ export function FamilyForkForm({
           </div>
           {/* Starting a household is the one step a family invite code does
               not open — that code brings you into an existing family below. */}
-          <div className="field" style={{ marginBottom: 12 }}>
+          <div className="field" style={{ marginBottom: "0.75rem" }}>
             <label htmlFor={`${uid}-access-code`}>ACCESS CODE</label>
             <input aria-label="Access Code"
               id={`${uid}-access-code`}
@@ -74,7 +74,7 @@ export function FamilyForkForm({
               autoComplete="off"
               spellCheck={false}
               style={{
-                minHeight: 44,
+                minHeight: "2.75rem",
                 fontFamily: "var(--font-numeric)",
                 letterSpacing: ".02em",
                 textTransform: "uppercase",
@@ -82,7 +82,7 @@ export function FamilyForkForm({
             />
           </div>
           <ErrorText message={createState.error} />
-          <SubmitButton className="btn btn-primary btn-block" style={{ minHeight: 44 }}>
+          <SubmitButton className="btn btn-primary btn-block" style={{ minHeight: "2.75rem" }}>
             CREATE HOUSEHOLD
           </SubmitButton>
         </Blueprint>
@@ -92,36 +92,36 @@ export function FamilyForkForm({
         <input type="hidden" name="full_name" value={fullName} />
         <input type="hidden" name="dob" value={dob} />
         <input type="hidden" name="mobile" value={mobile} />
-        <Blueprint style={{ padding: 20 }}>
+        <Blueprint style={{ padding: "1.25rem" }}>
           <Icon name="keyRound" size={22} className="text-[var(--color-accent-700)]" />
-          <span style={{ font: "600 22px/1.1 var(--font-heading)", display: "block", margin: "9px 0 4px" }}>
+          <span style={{ font: "600 1.375rem/1.1 var(--font-heading)", display: "block", margin: "9px 0 4px" }}>
             Join with a code
           </span>
-          <span style={{ fontSize: 14, color: "var(--color-neutral-700)", display: "block", marginBottom: 14 }}>
+          <span style={{ fontSize: "0.875rem", color: "var(--color-neutral-700)", display: "block", marginBottom: "0.875rem" }}>
             Ask the organizer for the six-character invite code.
           </span>
           <ErrorText message={joinState.error} />
-          <div style={{ display: "flex", gap: 9 }}>
+          <div style={{ display: "flex", gap: "0.5625rem" }}>
             <input
               className="input"
               name="invite_code"
               placeholder="A7K-2QD"
               required
               style={{
-                minHeight: 44,
+                minHeight: "2.75rem",
                 fontFamily: "var(--font-numeric)",
                 letterSpacing: ".02em",
                 textTransform: "uppercase",
               }}
             />
-            <SubmitButton className="btn btn-secondary" style={{ minHeight: 44, paddingInline: 16 }}>
+            <SubmitButton className="btn btn-secondary" style={{ minHeight: "2.75rem", paddingInline: "1rem" }}>
               JOIN
             </SubmitButton>
           </div>
         </Blueprint>
       </form>
 
-      <div style={{ marginTop: "auto", fontSize: 13, color: "var(--color-neutral-600)", display: "flex", gap: 8, paddingTop: 20 }}>
+      <div style={{ marginTop: "auto", fontSize: "0.8125rem", color: "var(--color-neutral-600)", display: "flex", gap: "0.5rem", paddingTop: "1.25rem" }}>
         <Icon name="info" size={14} className="text-[var(--color-accent)]" />
         <span>You can be in one family group at a time. Organizers can transfer the role later.</span>
       </div>

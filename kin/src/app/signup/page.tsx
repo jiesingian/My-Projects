@@ -16,8 +16,8 @@ export default function SignupPage() {
 
   return (
     <OnboardingShell step="STEP 01 / 05" backHref="/login">
-      <h2 style={{ fontSize: 34, margin: "0 0 6px" }}>Your account</h2>
-      <p style={{ fontSize: 13.5, color: "var(--color-neutral-700)", margin: "0 0 26px" }}>
+      <h2 style={{ fontSize: "2.125rem", margin: "0 0 6px" }}>Your account</h2>
+      <p style={{ fontSize: "0.84375rem", color: "var(--color-neutral-700)", margin: "0 0 26px" }}>
         Kin is invite-only while we build it. Every member signs in with their own verified email. Children
         under 13 are added as managed profiles instead.
       </p>
@@ -25,7 +25,7 @@ export default function SignupPage() {
         <ErrorText message={state.error} />
         {/* First field, not last: if the code is wrong there is no reason to
             make them type an email and password before finding out. */}
-        <div className="field" style={{ marginBottom: 16 }}>
+        <div className="field" style={{ marginBottom: "1rem" }}>
           <label htmlFor={`${uid}-access-code`}>ACCESS CODE</label>
           <input aria-label="Access Code"
             id={`${uid}-access-code`}
@@ -37,15 +37,15 @@ export default function SignupPage() {
             placeholder="KIN-BETA-XXXXXX"
             style={{ fontFamily: "var(--font-numeric)", letterSpacing: ".02em", textTransform: "uppercase" }}
           />
-          <span style={{ fontSize: 12.5, color: "var(--color-neutral-600)", display: "block", marginTop: 6 }}>
+          <span style={{ fontSize: "0.78125rem", color: "var(--color-neutral-600)", display: "block", marginTop: "0.375rem" }}>
             Your household&apos;s invite code works here too.
           </span>
         </div>
-        <div className="field" style={{ marginBottom: 16 }}>
+        <div className="field" style={{ marginBottom: "1rem" }}>
           <label htmlFor={`${uid}-email`}>EMAIL</label>
           <input id={`${uid}-email`} aria-label="Email" className="input" type="email" name="email" required autoComplete="email" />
         </div>
-        <div className="field" style={{ marginBottom: 16 }}>
+        <div className="field" style={{ marginBottom: "1rem" }}>
           <label htmlFor={`${uid}-password`}>PASSWORD</label>
           <input aria-label="Password"
             id={`${uid}-password`}
@@ -57,15 +57,15 @@ export default function SignupPage() {
             autoComplete="new-password"
           />
         </div>
-        <div style={{ display: "flex", gap: 9, alignItems: "flex-start", fontSize: 13.5, color: "var(--color-neutral-700)", marginBottom: 24 }}>
+        <div style={{ display: "flex", gap: "0.5625rem", alignItems: "flex-start", fontSize: "0.84375rem", color: "var(--color-neutral-700)", marginBottom: "1.5rem" }}>
           <Icon name="shieldCheck" size={15} className="text-[var(--color-accent)]" />
           <span>Documents and health records stay in your own connected Drive. Kin stores only the index.</span>
         </div>
-        <SubmitButton style={{ minHeight: 46, fontSize: 15, letterSpacing: ".04em" }}>
+        <SubmitButton style={{ minHeight: "2.875rem", fontSize: "0.9375rem", letterSpacing: ".04em" }}>
           SEND VERIFICATION CODE
         </SubmitButton>
       </form>
-      <p style={{ fontSize: 13, color: "var(--color-neutral-700)", marginTop: 20, textAlign: "center" }}>
+      <p style={{ fontSize: "0.8125rem", color: "var(--color-neutral-700)", marginTop: "1.25rem", textAlign: "center" }}>
         Already have an account? <Link href="/login">Sign in</Link>
       </p>
     </OnboardingShell>
