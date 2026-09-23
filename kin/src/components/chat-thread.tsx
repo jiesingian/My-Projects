@@ -6,6 +6,7 @@ import { Icon } from "@/components/icons";
 import { familyDay, familyClock, familyDateLong } from "@/lib/time";
 import { Avatar } from "@/components/avatar";
 import { createClient } from "@/lib/supabase/client";
+import { uploadFileDirect } from "@/lib/upload-client";
 import {
   sendMessageAction,
   deleteMessageAction,
@@ -15,7 +16,7 @@ import {
   pinMessageAction,
   unpinMessageAction,
 } from "@/lib/actions/chat";
-import type { ChatMember, ChatMessage, ChatPin } from "@/lib/queries/chat";
+import type { ChatAttachment, ChatMember, ChatMessage, ChatPin } from "@/lib/queries/chat";
 import { REACTIONS } from "@/lib/chat";
 
 // Rendered from the same list the action checks against, so a reaction the
@@ -44,6 +45,46 @@ function clockOf(iso: string) {
  * and somebody who stops disappears within about two. */
 const TYPING_EVERY = 2000;
 const TYPING_TTL = 4000;
+
+function formatBytes(n: number) {
+  if (n < 1024) return `${n} B`;
+  if (n < 1024 * 1024) return `${Math.round(n / 1024)} KB`;
+  return `${(n / (1024 * 1024)).toFixed(1)} MB`;
+}
+
+/** One file in a message. A photo is shown, a video plays in place, anything
+ * else is a named chip that opens it. */
+function AttachmentView({ a }: { a: ChatAttachment }) {
+  if (!a.url) {
+    return (
+      <span className="kin-filechip" data-broken="true">
+        <Icon name="fileText" size="1rem" />
+        <span className="kin-filechip-name">{a.fileName}</span>
+        <span className="kin-filechip-size">couldn&rsquo;t load</span>
+      </span>
+    );
+  }
+  if (a.mimeType.startsWith("image/")) {
+    return (
+      <a className="kin-attachment-photo" href={a.url} target="_blank" rel="noopener noreferrer">
+        {/* eslint-disable-next-line @next/next/no-img-element -- a signed URL
+            that expires in half an hour gains nothing from the image
+            optimiser, which would cache it past its own expiry. */}
+        <img src={a.url} alt={a.fileName} loading="lazy" decoding="async" />
+      </a>
+    );
+  }
+  if (a.mimeType.startsWith("video/")) {
+    return <video className="kin-attachment-video" src={a.url} controls preload="metadata" playsInline aria-label={a.fileName} />;
+  }
+  return (
+    <a className="kin-filechip" href={a.url} target="_blank" rel="noopener noreferrer">
+      <Icon name="fileText" size="1rem" />
+      <span className="kin-filechip-name">{a.fileName}</span>
+      <span className="kin-filechip-size">{formatBytes(a.sizeBytes)}</span>
+    </a>
+  );
+}
 
 /** "seen by Janine", "seen by Janine and Amelia", "seen by everyone". Naming
  * three or more people is a list nobody reads; "everyone" is the fact they
@@ -85,6 +126,10 @@ export function ChatThread({
   const [openFor, setOpenFor] = useState<string | null>(null);
   const [editing, setEditing] = useState<{ id: string; body: string } | null>(null);
   const [replyingTo, setReplyingTo] = useState<ChatMessage | null>(null);
+  /** Files picked and not yet sent, with a local preview for the images. */
+  const [picked, setPicked] = useState<{ file: File; preview: string | null }[]>([]);
+  const [uploading, setUploading] = useState(false);
+  const fileInput = useRef<HTMLInputElement>(null);
   /** Member ids currently typing, against the instant their signal goes
    * stale. Nothing here is persisted: a typing indicator that outlives the
    * typing is worse than none. */
@@ -146,6 +191,24 @@ export function ChatThread({
     };
   }, [router, familyId, me]);
 
+  // A preview is an object URL, which holds the whole file in memory until it
+  // is released. Released when the set changes and when the thread goes.
+  useEffect(() => {
+    return () => {
+      for (const p of picked) if (p.preview) URL.revokeObjectURL(p.preview);
+    };
+  }, [picked]);
+
+  const pickFiles = (list: FileList | null) => {
+    if (!list?.length) return;
+    const next = Array.from(list).map((file) => ({
+      file,
+      preview: file.type.startsWith("image/") ? URL.createObjectURL(file) : null,
+    }));
+    setPicked((prev) => [...prev, ...next].slice(0, 10));
+    if (fileInput.current) fileInput.current.value = "";
+  };
+
   // Sweeps expired signals. A sender that closes the tab mid-word sends no
   // retraction, so the only thing that can end an indicator is time.
   useEffect(() => {
@@ -197,29 +260,55 @@ export function ChatThread({
 
   const send = useCallback(() => {
     const body = draft.trim();
-    if (!body) return;
+    const files = picked;
+    if (!body && files.length === 0) return;
     // Only tags still standing in the text count.
     const stillThere = mentioned.filter((id) => body.includes(`@${byId.get(id)?.label ?? ""}`));
     const answering = replyingTo?.id ?? null;
     setDraft("");
     setMentioned([]);
     setReplyingTo(null);
-    setPendingBody(body);
+    setPendingBody(body || (files.length === 1 ? "Sending a file…" : `Sending ${files.length} files…`));
     setError(null);
     startTransition(async () => {
-      const result = await sendMessageAction({ body, mentions: stillThere, replyTo: answering });
+      // Files first, straight to Storage. The message is only written once
+      // every one of them has landed, so a thread never shows "here's the
+      // photo" with the photo still on its way -- or never arriving.
+      let attachments: { storagePath: string; fileName: string; mimeType: string; sizeBytes: number }[] = [];
+      if (files.length > 0) {
+        setUploading(true);
+        try {
+          const uploaded = await Promise.all(files.map((p) => uploadFileDirect(p.file, "chat")));
+          attachments = uploaded.map((u, i) => ({
+            storagePath: u.provider === "supabase" ? u.storagePath : "",
+            fileName: files[i].file.name,
+            mimeType: files[i].file.type,
+            sizeBytes: files[i].file.size,
+          }));
+        } catch (e) {
+          setUploading(false);
+          setError(e instanceof Error ? e.message : "A file didn't upload.");
+          setPendingBody(null);
+          setDraft(body);
+          return;
+        }
+        setUploading(false);
+      }
+
+      const result = await sendMessageAction({ body, mentions: stillThere, replyTo: answering, attachments });
       if (result.error) {
         setError(result.error);
         setPendingBody(null);
         setDraft(body);
         return;
       }
+      setPicked([]);
       // Both inside the transition, so the optimistic bubble is only taken
       // away in the same commit that brings the real one in.
       router.refresh();
       setPendingBody(null);
     });
-  }, [draft, mentioned, byId, router, replyingTo]);
+  }, [draft, mentioned, byId, router, replyingTo, picked]);
 
   const act = (fn: () => Promise<{ error: string | null }>) => {
     setOpenFor(null);
@@ -350,20 +439,47 @@ export function ChatThread({
                       </button>
                     </div>
                   ) : (
-                    <button
-                      type="button"
-                      onClick={() => setOpenFor(openFor === m.id ? null : m.id)}
-                      className="kin-bubble"
-                      data-mine={mine}
-                      data-tagged={tagsMe && !mine}
-                      aria-label={`Message from ${mine ? "you" : (author?.label ?? "someone")} at ${clockOf(m.createdAt)}`}
-                    >
-                      {m.deleted ? (
-                        <span style={{ opacity: 0.65, fontStyle: "italic" }}>Message withdrawn</span>
-                      ) : (
-                        <MessageBody body={m.body} members={members} me={me} mine={mine} />
+                    <>
+                      {/* Files sit above the words, as a caption sits under a
+                          photo. Outside the bubble on purpose: the bubble is a
+                          button, and a link or a video's own controls inside
+                          a button is not valid and does not work on a phone. */}
+                      {m.attachments.length > 0 && !m.deleted && (
+                        <div className="kin-attachments" data-mine={mine || undefined} data-count={Math.min(m.attachments.length, 4)}>
+                          {m.attachments.map((a) => (
+                            <AttachmentView key={a.id} a={a} />
+                          ))}
+                        </div>
                       )}
-                    </button>
+
+                      {m.deleted || m.body ? (
+                        <button
+                          type="button"
+                          onClick={() => setOpenFor(openFor === m.id ? null : m.id)}
+                          className="kin-bubble"
+                          data-mine={mine}
+                          data-tagged={tagsMe && !mine}
+                          aria-label={`Message from ${mine ? "you" : (author?.label ?? "someone")} at ${clockOf(m.createdAt)}`}
+                        >
+                          {m.deleted ? (
+                            <span style={{ opacity: 0.65, fontStyle: "italic" }}>Message withdrawn</span>
+                          ) : (
+                            <MessageBody body={m.body} members={members} me={me} mine={mine} />
+                          )}
+                        </button>
+                      ) : (
+                        /* A photo with no words has no bubble to tap, so it
+                           gets the same menu from a button of its own. */
+                        <button
+                          type="button"
+                          className="btn btn-ghost kin-attachments-more"
+                          onClick={() => setOpenFor(openFor === m.id ? null : m.id)}
+                          aria-label={`Options for ${mine ? "your" : `${author?.label ?? "someone"}'s`} ${m.attachments.length === 1 ? "file" : "files"}`}
+                        >
+                          ···
+                        </button>
+                      )}
+                    </>
                   )}
 
                   {m.reactions.length > 0 && (
@@ -523,6 +639,34 @@ export function ChatThread({
           </p>
         )}
 
+        {/* What is about to go with the message. */}
+        {picked.length > 0 && (
+          <div className="kin-picked">
+            {picked.map((p, i) => (
+              <span key={`${p.file.name}-${i}`} className="kin-picked-item">
+                {p.preview ? (
+                  // eslint-disable-next-line @next/next/no-img-element -- a local object URL, not something to optimise.
+                  <img src={p.preview} alt={p.file.name} />
+                ) : (
+                  <span className="kin-picked-file">
+                    <Icon name="fileText" size="1rem" />
+                    <span>{p.file.name}</span>
+                  </span>
+                )}
+                <button
+                  type="button"
+                  className="kin-picked-off"
+                  aria-label={`Remove ${p.file.name}`}
+                  onClick={() => setPicked((prev) => prev.filter((_, j) => j !== i))}
+                  disabled={uploading}
+                >
+                  <Icon name="x" size="0.75rem" />
+                </button>
+              </span>
+            ))}
+          </div>
+        )}
+
         {/* What you are answering, with a way out of it. */}
         {replyingTo && (
           <div className="kin-replystrip">
@@ -562,11 +706,11 @@ export function ChatThread({
           </div>
         )}
 
-        <div style={{ display: "flex", gap: "0.375rem", alignItems: "flex-end", paddingBottom: "0.5rem" }}>
+        <div className="kin-composer-row">
           <button
             type="button"
             className="btn btn-secondary btn-icon"
-            style={{ width: 38, height: 38, flex: "none" }}
+            style={{ width: "2.375rem", height: "2.375rem", flex: "none" }}
             aria-label="Tag someone"
             onClick={() => {
               setDraft((d) => `${d}${d.endsWith(" ") || d === "" ? "" : " "}@`);
@@ -575,9 +719,26 @@ export function ChatThread({
           >
             <span style={{ font: "600 1.0625rem/1 var(--font-heading)" }}>@</span>
           </button>
+          <button
+            type="button"
+            className="btn btn-secondary btn-icon"
+            style={{ width: "2.375rem", height: "2.375rem", flex: "none" }}
+            aria-label="Attach a photo or file"
+            disabled={uploading || picked.length >= 10}
+            onClick={() => fileInput.current?.click()}
+          >
+            <Icon name="paperclip" size="1.0625rem" />
+          </button>
+          <input
+            ref={fileInput}
+            type="file"
+            multiple
+            hidden
+            accept="image/*,video/*,application/pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx"
+            onChange={(e) => pickFiles(e.target.files)}
+          />
           <textarea
             ref={input}
-            className="input"
             value={draft}
             onChange={(e) => {
               setDraft(e.target.value);
@@ -593,17 +754,18 @@ export function ChatThread({
             placeholder="Message the family…"
             rows={1}
             aria-label="Your message"
-            style={{ flex: 1, minWidth: 0, minHeight: "2.375rem", maxHeight: "7.5rem", fontSize: "0.9375rem", resize: "none", paddingTop: "0.5625rem" }}
+            className="input kin-composer-field"
+            style={{ minHeight: "2.375rem", maxHeight: "7.5rem", fontSize: "0.9375rem", resize: "none", paddingTop: "0.5625rem" }}
           />
           <button
             type="button"
             className="btn btn-primary btn-icon"
-            style={{ width: 38, height: 38, flex: "none" }}
-            disabled={!draft.trim()}
+            style={{ width: "2.375rem", height: "2.375rem", flex: "none" }}
+            disabled={uploading || (!draft.trim() && picked.length === 0)}
             onClick={send}
-            aria-label="Send"
+            aria-label={uploading ? "Sending" : "Send"}
           >
-            <Icon name="upload" size={16} />
+            <Icon name="upload" size="1rem" />
           </button>
         </div>
       </div>

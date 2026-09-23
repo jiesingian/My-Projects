@@ -12,12 +12,32 @@ const MAX_LENGTH = 4000;
 /** Say something to the household. Mentions are passed as member ids the
  * composer resolved, not parsed back out of the text — a name is not a
  * reliable key, and two people here can share one. */
-export async function sendMessageAction(input: { body: string; mentions?: string[]; replyTo?: string | null }): Promise<ActionState & { id?: string }> {
+export type OutgoingAttachment = { storagePath: string; fileName: string; mimeType: string; sizeBytes: number };
+
+/** At most this many files on one message. Beyond it, a message stops being a
+ * message and becomes an album, which is what Journal is for. */
+const MAX_ATTACHMENTS = 10;
+
+export async function sendMessageAction(input: {
+  body: string;
+  mentions?: string[];
+  replyTo?: string | null;
+  attachments?: OutgoingAttachment[];
+}): Promise<ActionState & { id?: string }> {
   const me = await requireCurrentMember();
   const supabase = await createClient();
 
   const body = input.body.trim().slice(0, MAX_LENGTH);
-  if (!body) return { error: "Nothing to send." };
+  const attachments = (input.attachments ?? []).slice(0, MAX_ATTACHMENTS);
+  // A photo on its own is a whole message.
+  if (!body && attachments.length === 0) return { error: "Nothing to send." };
+
+  // The table's own check refuses a path outside this household, but that
+  // arrives as a constraint name. This says it in words, and says it before
+  // a message row exists that would then have to be withdrawn.
+  if (attachments.some((a) => !a.storagePath.startsWith(`${me.family_id}/chat/`))) {
+    return { error: "One of those files doesn't belong to this household." };
+  }
 
   // Only people in this household can be tagged, whatever the client sent.
   const { data: family } = await supabase.from("members").select("id").eq("family_id", me.family_id);
@@ -35,6 +55,27 @@ export async function sendMessageAction(input: { body: string; mentions?: string
     .select("id")
     .single();
   if (error || !data) return { error: error ? humanDatabaseError(error.message) : "That didn't send." };
+
+  if (attachments.length > 0) {
+    const { error: attachError } = await supabase.from("family_message_attachments").insert(
+      attachments.map((a, position) => ({
+        message_id: data.id,
+        family_id: me.family_id,
+        storage_path: a.storagePath,
+        file_name: a.fileName.slice(0, 255) || "file",
+        mime_type: a.mimeType || "application/octet-stream",
+        size_bytes: a.sizeBytes,
+        position,
+      })),
+    );
+    if (attachError) {
+      // The message went and its files did not. Better to withdraw it than to
+      // leave "here's the receipt" sitting in the thread with no receipt.
+      await supabase.from("family_messages").update({ deleted_at: new Date().toISOString(), body: "" }).eq("id", data.id);
+      await supabase.storage.from("documents").remove(attachments.map((a) => a.storagePath));
+      return { error: `The files didn't attach, so nothing was sent. ${humanDatabaseError(attachError.message)}` };
+    }
+  }
 
   // Sending is reading: the thread should not come back with your own words
   // waiting to be read.
@@ -59,6 +100,19 @@ export async function deleteMessageAction(messageId: string): Promise<ActionStat
     .select("id");
   if (error) return { error: humanDatabaseError(error.message) };
   if (!removed?.length) return { error: "That message isn't yours to withdraw." };
+
+  // Withdrawing a photo has to take the photo with it. The thread would hide
+  // it either way; the point is that it stops existing, which is what
+  // somebody pressing "delete" on a picture of a passport expects.
+  const { data: files } = await supabase
+    .from("family_message_attachments")
+    .select("id, storage_path")
+    .eq("message_id", messageId);
+  if (files?.length) {
+    const { error: storageError } = await supabase.storage.from("documents").remove(files.map((f) => f.storage_path));
+    if (storageError) console.error(`chat attachments for ${messageId} were left in storage after withdrawal`, storageError.message);
+    await supabase.from("family_message_attachments").delete().eq("message_id", messageId);
+  }
 
   revalidatePath("/chat");
   return { error: null };

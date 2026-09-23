@@ -10,7 +10,7 @@ import {
 } from "@/lib/google-drive";
 
 type SessionRequest = {
-  kind: "journal" | "document" | "avatar" | "family_background" | "recipe" | "routine";
+  kind: "journal" | "document" | "avatar" | "family_background" | "recipe" | "routine" | "chat";
   fileName: string;
   mimeType: string;
   fileSize: number;
@@ -36,6 +36,14 @@ const UPLOAD_LIMITS: Record<SessionRequest["kind"], { types: RegExp; maxBytes: n
     types: /^(image\/|application\/pdf$|application\/vnd\.openxmlformats-officedocument\.|application\/msword$|application\/vnd\.ms-excel$|application\/vnd\.ms-powerpoint$)/,
     maxBytes: 25 * 1024 * 1024,
     label: "a photo, PDF, or office document, up to 25MB",
+  },
+  // What a household actually sends each other: a photo, a short clip, a
+  // PDF of the school letter. Video is allowed here and not on tasks because
+  // "look at this" is half of what a family thread is for.
+  chat: {
+    types: /^(image\/|video\/|application\/pdf$|application\/vnd\.openxmlformats-officedocument\.|application\/msword$|application\/vnd\.ms-excel$|application\/vnd\.ms-powerpoint$)/,
+    maxBytes: 50 * 1024 * 1024,
+    label: "a photo, video, PDF, or office document, up to 50MB",
   },
 };
 
@@ -84,6 +92,19 @@ export async function POST(request: Request) {
       provider: "supabase",
       bucket: "documents",
       path: `${me.family_id}/routines/${Date.now()}-${fileName}`,
+    });
+  }
+
+  // Chat files go straight to Storage and never to Drive. A thread renders
+  // its photos inline on every visit, and a signed Storage URL works in an
+  // <img> where a Drive link does not -- the same reason dish photos stay
+  // here. The random segment keeps two photos picked in the same
+  // millisecond, which a multi-select does, from landing on one path.
+  if (kind === "chat") {
+    return NextResponse.json({
+      provider: "supabase",
+      bucket: "documents",
+      path: `${me.family_id}/chat/${Date.now()}-${crypto.randomUUID().slice(0, 8)}-${fileName}`,
     });
   }
 
