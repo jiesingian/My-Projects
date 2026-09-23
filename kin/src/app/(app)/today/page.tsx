@@ -38,13 +38,13 @@ export default async function TodayPage() {
   }).toUpperCase();
 
   return (
-    <div style={{ padding: "24px 22px 20px" }}>
-      <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", marginBottom: 20 }}>
+    <div style={{ padding: "1.5rem 1.375rem 1.25rem" }}>
+      <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", marginBottom: "1.25rem" }}>
         <div>
-          <div style={{ font: "600 13px/1 var(--font-heading)", letterSpacing: ".02em", color: "var(--color-accent-700)", marginBottom: 5 }}>
+          <div style={{ font: "600 0.8125rem/1 var(--font-heading)", letterSpacing: ".02em", color: "var(--color-accent-700)", marginBottom: "0.3125rem" }}>
             {todayLabel}
           </div>
-          <h2 style={{ fontSize: 30 }}>{me.families.name}</h2>
+          <h2 style={{ fontSize: "1.875rem" }}>{me.families.name}</h2>
         </div>
         <div style={{ display: "flex" }}>
           {(members ?? []).map((m) => (
@@ -59,14 +59,14 @@ export default async function TodayPage() {
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
-                font: "600 13px/1 var(--font-heading)",
+                font: "600 0.8125rem/1 var(--font-heading)",
                 color: "var(--color-neutral-700)",
               }}
             >
               {initials(m.full_name)}
             </div>
           ))}
-          <Link href="/settings" className="btn btn-secondary btn-icon" aria-label="Settings" style={{ marginLeft: 10 }}>
+          <Link href="/settings" className="btn btn-secondary btn-icon" aria-label="Settings" style={{ marginLeft: "0.625rem" }}>
             <Icon name="settings" />
           </Link>
         </div>
@@ -77,17 +77,17 @@ export default async function TodayPage() {
           happens. This is the answer to "why would anyone open this app on a
           Tuesday", and the hub cards below are demoted to what they always
           were: a way to get somewhere. */}
-      <section style={{ marginBottom: 26 }}>
+      <section style={{ marginBottom: "1.625rem" }}>
         <h3 className="kin-eyebrow">{brief.length > 0 ? "Needs you today" : "Today"}</h3>
 
         {brief.length === 0 ? (
-          <Blueprint style={{ padding: "18px 15px", display: "flex", alignItems: "center", gap: 12 }}>
+          <Blueprint style={{ padding: "1.125rem 0.9375rem", display: "flex", alignItems: "center", gap: "0.75rem" }}>
             <span className="kin-brief-ico" data-tint="home">
               <Icon name="check" size={17} />
             </span>
             <div>
-              <div style={{ font: "600 16px/1.2 var(--font-heading)" }}>Nothing needs you today</div>
-              <div style={{ fontSize: 13.5, color: "var(--color-neutral-600)", marginTop: 2 }}>
+              <div style={{ font: "600 1rem/1.2 var(--font-heading)" }}>Nothing needs you today</div>
+              <div style={{ fontSize: "0.84375rem", color: "var(--color-neutral-600)", marginTop: "0.125rem" }}>
                 No bills due, nothing scheduled, the list is clear.
               </div>
             </div>
@@ -97,13 +97,13 @@ export default async function TodayPage() {
             {brief.map((b) => (
               <Link key={b.id} href={b.href} className="kin-brief-row" data-urgent={b.urgent ? "true" : undefined}>
                 <span className="kin-brief-ico" data-tint={b.tint}>
-                  <Icon name={b.icon} size={17} />
+                  <Icon name={b.icon} size="1.0625rem" />
                 </span>
                 <span style={{ minWidth: 0 }}>
                   <span className="kin-brief-title">{b.title}</span>
                   <span className="kin-brief-meta">{b.meta}</span>
                 </span>
-                <Icon name="chevronLeft" size={15} className="kin-brief-chev" />
+                <Icon name="chevronLeft" size="0.9375rem" className="kin-brief-chev" />
               </Link>
             ))}
           </div>
@@ -121,18 +121,18 @@ export default async function TodayPage() {
       <div className="kin-hubgrid">
         {hubs.map((h) => (
           <Link key={h.n} href={h.href} className={h.span === "full" ? "kin-hub-wide" : undefined}>
-            <Blueprint style={{ padding: 13, display: "flex", flexDirection: "column", gap: 6, minHeight: 126 }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
-                <Icon name={h.icon} size={16} className="text-[var(--color-accent-700)]" />
-                <span style={{ font: "400 12px/1 var(--font-numeric)", color: "var(--color-neutral-500)", marginLeft: "auto" }}>
+            <Blueprint style={{ padding: "0.8125rem", display: "flex", flexDirection: "column", gap: "0.375rem", minHeight: "7.875rem" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: "0.4375rem" }}>
+                <Icon name={h.icon} size="1rem" className="text-[var(--color-accent-700)]" />
+                <span style={{ font: "400 0.75rem/1 var(--font-numeric)", color: "var(--color-neutral-500)", marginLeft: "auto" }}>
                   {h.n}
                 </span>
               </div>
-              <div style={{ font: "600 21px/1 var(--font-heading)" }}>{h.name}</div>
-              <div style={{ fontSize: 13.5, lineHeight: 1.35, color: "var(--color-neutral-800)" }}>{h.primary}</div>
-              <div style={{ marginTop: "auto", display: "flex", alignItems: "baseline", gap: 6 }}>
-                <span style={{ font: "600 20px/1 var(--font-heading)", color: "var(--color-accent-700)" }}>{h.stat}</span>
-                <span style={{ fontSize: 12, letterSpacing: ".06em", textTransform: "uppercase", color: "var(--color-neutral-600)" }}>
+              <div style={{ font: "600 1.3125rem/1 var(--font-heading)" }}>{h.name}</div>
+              <div style={{ fontSize: "0.84375rem", lineHeight: 1.35, color: "var(--color-neutral-800)" }}>{h.primary}</div>
+              <div style={{ marginTop: "auto", display: "flex", alignItems: "baseline", gap: "0.375rem" }}>
+                <span style={{ font: "600 1.25rem/1 var(--font-heading)", color: "var(--color-accent-700)" }}>{h.stat}</span>
+                <span style={{ fontSize: "0.75rem", letterSpacing: ".06em", textTransform: "uppercase", color: "var(--color-neutral-600)" }}>
                   {h.statLabel}
                 </span>
               </div>
