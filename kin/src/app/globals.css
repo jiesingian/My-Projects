@@ -347,7 +347,9 @@ h6 {
   font-family: var(--font-heading);
   font-weight: 700;
   line-height: 1.08;
-  letter-spacing: -0.022em; /* iOS tightens as size grows */
+  letter-spacing: -0.022em; /* iOS tightens as size grows -- and loosens as
+                               it shrinks, which is why everything under
+                               ~14px here carries positive tracking. */
   margin: 0;
 }
 a {
@@ -490,7 +492,7 @@ button,
   display: block;
   font-size: 13px;
   font-weight: 500;
-  letter-spacing: -0.005em;
+  letter-spacing: 0.005em;
   margin-bottom: 6px;
   color: var(--color-neutral-600);
 }
@@ -543,7 +545,7 @@ textarea.input {
   align-items: center;
   font-size: 12px;
   font-weight: 600;
-  letter-spacing: -0.005em;
+  letter-spacing: 0.005em;
   padding: 3px 9px;
   border-radius: var(--radius-pill);
   white-space: nowrap;
@@ -603,7 +605,7 @@ textarea.input {
   font-family: var(--font-body);
   font-weight: 500;
   font-size: 13px;
-  letter-spacing: -0.005em;
+  letter-spacing: 0.005em;
   text-transform: capitalize;
   transition: background 0.15s ease, box-shadow 0.15s ease;
 }
@@ -629,7 +631,7 @@ textarea.input {
   font-family: var(--font-body);
   font-size: 13px;
   font-weight: 500;
-  letter-spacing: -0.005em;
+  letter-spacing: 0.005em;
   text-decoration: none;
   display: inline-flex;
   align-items: center;
@@ -702,7 +704,7 @@ textarea.input {
      the label rides just under it at 9.5. */
   font-size: 9.5px;
   font-weight: 500;
-  letter-spacing: -0.01em;
+  letter-spacing: 0.012em;
   transition: font-weight 0.15s ease;
 }
 .kin-tab[data-active="true"] .kin-tab-label {
@@ -1753,5 +1755,38 @@ textarea.input {
   /* Keep the fade, drop the 6px rise -- fewer and gentler, not none. */
   .kin-docs-state {
     animation: kin-fade-in 0.2s var(--ease-out) both;
+  }
+}
+
+
+/* ── when the material is not wanted ─────────────────────────────────────
+   Six surfaces are translucent -- every .blueprint and the glass bars --
+   and the app answered neither of the settings that exist to say "not for
+   me". Because the material is two tokens rather than six declarations,
+   turning it off is two overrides rather than six rewrites.
+
+   These sit at the end of the file on purpose: --glass-bg is redefined by
+   the dark-mode blocks above, and a later :root of equal specificity is
+   what wins. Both resolve through --color-surface, which already flips with
+   the theme, so neither block has to know which theme is on. */
+
+@media (prefers-reduced-transparency: reduce) {
+  :root {
+    --glass-bg: var(--color-surface);
+    --glass-blur: none;
+  }
+}
+
+/* Increased contrast wants the same opacity plus an actual edge -- a
+   surface you can find without relying on the blur behind it to separate
+   it from the page. */
+@media (prefers-contrast: more) {
+  :root {
+    --glass-bg: var(--color-surface);
+    --glass-blur: none;
+  }
+  .blueprint,
+  .kin-glass-bar {
+    border: 1px solid var(--color-text);
   }
 }
