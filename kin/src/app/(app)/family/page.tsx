@@ -19,6 +19,8 @@ import { FamilyAboutEditor } from "@/components/family-about-editor";
 import { FamilyAddressList } from "@/components/family-address-list";
 import { AddChildForm } from "@/components/add-child-form";
 import { FamilyTreeChart } from "@/components/family-tree-chart";
+import { TreeOffers } from "@/components/tree-offers";
+import { getTreeMatches, getTreeOffers, getLinkedFamilies } from "@/lib/queries/tree-links";
 import { FamilyTreeEditor } from "@/components/family-tree-editor";
 import { AddMeToTreeButton } from "@/components/add-me-to-tree-button";
 import { formatAge, initials, shortNames } from "@/lib/format";
@@ -271,7 +273,13 @@ async function DocumentsPane({ familyId, who, meId }: { familyId: string; who: s
  * only thing that differs between members now is that each sees themselves
  * highlighted. */
 async function TreePane({ familyId, myId }: { familyId: string; myId: string }) {
-  const [tree, allMembers] = await Promise.all([getFamilyTree(familyId, myId), getMembers(familyId)]);
+  const [tree, allMembers, matches, offers, linkedFamilies] = await Promise.all([
+    getFamilyTree(familyId, myId),
+    getMembers(familyId),
+    getTreeMatches(familyId),
+    getTreeOffers(),
+    getLinkedFamilies(familyId),
+  ]);
   const members = allMembers.filter((m) => m.status !== "pending" && m.status !== "removed");
   const memberIdsInTree = new Set(tree.people.filter((p) => p.memberId).map((p) => p.memberId));
   const unaddedMembers = members.filter((m) => !memberIdsInTree.has(m.id)).map((m) => ({ id: m.id, full_name: m.full_name }));
@@ -279,6 +287,8 @@ async function TreePane({ familyId, myId }: { familyId: string; myId: string }) 
 
   return (
     <>
+      <TreeOffers offers={offers} people={tree.people.map((p) => ({ id: p.id, fullName: p.fullName, dob: p.dob }))} />
+
       {tree.people.length === 0 || !meInTree ? (
         <>
           <Empty
@@ -287,10 +297,10 @@ async function TreePane({ familyId, myId }: { familyId: string; myId: string }) 
             line="Add yourself, then your father, your mother, and anyone else you know -- the tree grows from there, and everybody in the house sees the same one."
           />
           <AddMeToTreeButton memberId={myId} />
-          {tree.people.length > 0 && <FamilyTreeChart people={tree.people} meTreeId={null} />}
+          {tree.people.length > 0 && <FamilyTreeChart people={tree.people} meTreeId={null} matches={matches} linkedFamilies={linkedFamilies} />}
         </>
       ) : (
-        <FamilyTreeChart people={tree.people} meTreeId={meInTree.id} />
+        <FamilyTreeChart people={tree.people} meTreeId={meInTree.id} matches={matches} linkedFamilies={linkedFamilies} />
       )}
 
       <details className="kin-fold" style={{ marginTop: "1.25rem" }}>

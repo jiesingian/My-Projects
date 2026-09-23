@@ -9,6 +9,11 @@ import { initials } from "@/lib/format";
 import { layoutTree, CARD_W, CARD_H } from "@/lib/tree-layout";
 import { addRelativeAction, type Relation } from "@/lib/actions/family";
 import type { TreePerson } from "@/lib/queries/family";
+import type { TreeMatch, BranchPerson } from "@/lib/queries/tree-links";
+import { mergeBranch, type ChartPerson } from "@/lib/tree-merge";
+import { getSharedBranchAction, offerTreePersonAction, withdrawTreeMatchAction } from "@/lib/actions/tree-links";
+import { confirm } from "@/components/confirm-sheet";
+import { toast } from "@/components/toast";
 
 /** Layout units are px at the default text size; the chart draws them in rem,
  * so the whole tree -- cards, text and lines -- grows with the reader's text
@@ -29,22 +34,75 @@ type Ghost = { id: string; relation: "father" | "mother"; of: string };
  * Drag to move, pinch or the buttons to zoom, "Me" to come back. Tap anybody
  * to add their father, mother, spouse or child on the spot.
  */
-export function FamilyTreeChart({ people, meTreeId }: { people: TreePerson[]; meTreeId: string | null }) {
+export function FamilyTreeChart({
+  people,
+  meTreeId,
+  matches = [],
+  linkedFamilies = [],
+}: {
+  people: TreePerson[];
+  meTreeId: string | null;
+  matches?: TreeMatch[];
+  linkedFamilies?: { id: string; name: string }[];
+}) {
   const router = useRouter();
   const [selected, setSelected] = useState<string | null>(meTreeId);
   const focus = selected ?? meTreeId;
+
+  // Linked households' branches that are open on the chart, fetched the first
+  // time each is asked for and kept while the page is.
+  const [branches, setBranches] = useState<Record<string, BranchPerson[]>>({});
+  const [shown, setShown] = useState<string[]>([]);
+  const accepted = useMemo(() => matches.filter((m) => m.status === "accepted"), [matches]);
+
+  const chartPeople: ChartPerson[] = useMemo(() => {
+    let all: ChartPerson[] = people.map((p) => ({
+      id: p.id,
+      fullName: p.fullName,
+      birthYear: p.dob ? p.dob.slice(0, 4) : null,
+      avatarUrl: p.avatarUrl,
+      memberId: p.memberId,
+      fatherId: p.fatherId,
+      motherId: p.motherId,
+      spouseId: p.spouseId,
+      fromHousehold: null,
+    }));
+    for (const id of shown) {
+      const m = accepted.find((x) => x.matchId === id);
+      const b = branches[id];
+      if (m && b) all = mergeBranch(all, b, id, m.ourPersonId, m.otherFamilyName);
+    }
+    return all;
+  }, [people, shown, branches, accepted]);
+  const chartById = useMemo(() => new Map(chartPeople.map((p) => [p.id, p])), [chartPeople]);
+
+  const toggleBranch = async (matchId: string) => {
+    if (shown.includes(matchId)) {
+      setShown((s) => s.filter((x) => x !== matchId));
+      return;
+    }
+    if (!branches[matchId]) {
+      const result = await getSharedBranchAction(matchId);
+      if (result.error) {
+        toast.error(result.error);
+        return;
+      }
+      setBranches((b) => ({ ...b, [matchId]: result.people }));
+    }
+    setShown((s) => [...s, matchId]);
+  };
 
   // Dashed "Add father" / "Add mother" places, for whoever is selected, go
   // into the layout as people of their own so they get a real place on the
   // chart instead of being drawn over somebody who is already there.
   const ghosts: Ghost[] = useMemo(() => {
-    const p = people.find((x) => x.id === focus);
-    if (!p) return [];
+    const p = chartById.get(focus ?? "");
+    if (!p || p.fromHousehold) return [];
     return [
       ...(p.fatherId ? [] : [{ id: `ghost-father-${p.id}`, relation: "father" as const, of: p.id }]),
       ...(p.motherId ? [] : [{ id: `ghost-mother-${p.id}`, relation: "mother" as const, of: p.id }]),
     ];
-  }, [people, focus]);
+  }, [chartById, focus]);
 
   const layout = useMemo(() => {
     const ghostOf = new Map(ghosts.map((g) => [g.of + g.relation, g.id]));
@@ -52,7 +110,7 @@ export function FamilyTreeChart({ people, meTreeId }: { people: TreePerson[]; me
     const motherGhost = ghosts.find((g) => g.relation === "mother");
     return layoutTree(
       [
-        ...people.map((p) => ({
+        ...chartPeople.map((p) => ({
           id: p.id,
           fatherId: p.fatherId ?? ghostOf.get(p.id + "father") ?? null,
           motherId: p.motherId ?? ghostOf.get(p.id + "mother") ?? null,
@@ -63,7 +121,7 @@ export function FamilyTreeChart({ people, meTreeId }: { people: TreePerson[]; me
       ],
       meTreeId,
     );
-  }, [people, ghosts, meTreeId]);
+  }, [chartPeople, ghosts, meTreeId]);
 
   const byId = useMemo(() => new Map(people.map((p) => [p.id, p])), [people]);
   const ghostById = useMemo(() => new Map(ghosts.map((g) => [g.id, g])), [ghosts]);
@@ -218,8 +276,9 @@ export function FamilyTreeChart({ people, meTreeId }: { people: TreePerson[]; me
                 </button>
               );
             }
-            const p = byId.get(spot.id)!;
+            const p = chartById.get(spot.id)!;
             const isMe = p.id === meTreeId;
+            const linked = accepted.some((m) => m.ourPersonId === p.id);
             return (
               <button
                 key={spot.id}
@@ -227,18 +286,22 @@ export function FamilyTreeChart({ people, meTreeId }: { people: TreePerson[]; me
                 className="kin-treecard"
                 data-me={isMe || undefined}
                 data-selected={p.id === selected || undefined}
+                data-branch={p.fromHousehold ? true : undefined}
                 style={style}
                 onClick={() => {
                   if (!tapped()) return;
                   setSelected(p.id);
                   setAdding(null);
                 }}
-                aria-label={`${p.fullName}${isMe ? ", you" : ""}${p.dob ? `, born ${p.dob.slice(0, 4)}` : ""}`}
+                aria-label={`${p.fullName}${isMe ? ", you" : ""}${p.birthYear ? `, born ${p.birthYear}` : ""}${p.fromHousehold ? `, from the ${p.fromHousehold} tree` : ""}`}
               >
                 <Avatar url={p.avatarUrl} initials={initials(p.fullName)} label={p.fullName} size={34} />
                 <span className="kin-treecard-text">
                   <span className="kin-treecard-name">{p.fullName}</span>
-                  <span className="kin-treecard-meta">{p.dob ? `b. ${p.dob.slice(0, 4)}` : " "}</span>
+                  <span className="kin-treecard-meta">
+                    {p.birthYear ? `b. ${p.birthYear}` : "\u00a0"}
+                    {linked && <span className="kin-treecard-link"> · linked</span>}
+                  </span>
                 </span>
                 {isMe && <span className="kin-treecard-you">You</span>}
               </button>
@@ -276,14 +339,37 @@ export function FamilyTreeChart({ people, meTreeId }: { people: TreePerson[]; me
             )}
           </div>
           <span className="kin-treechart-count" aria-live="polite">
-            {people.length} {people.length === 1 ? "person" : "people"} · {Math.round(view.k * 100)}%
+            {chartPeople.length} {chartPeople.length === 1 ? "person" : "people"}
+          {chartPeople.length !== people.length ? ` (${chartPeople.length - people.length} from linked households)` : ""} · {Math.round(view.k * 100)}%
           </span>
       </div>
 
       {/* What you can do with whoever is selected. Outside the canvas, so it
           stays put and readable however the tree is zoomed. */}
+      {focus && chartById.get(focus)?.fromHousehold && (
+        <div className="kin-treepanel">
+          <div className="kin-treepanel-head">
+            <Avatar url={null} initials={initials(chartById.get(focus)!.fullName)} label={chartById.get(focus)!.fullName} size={36} />
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div className="kin-treepanel-name">{chartById.get(focus)!.fullName}</div>
+              <div className="kin-treepanel-meta">
+                {chartById.get(focus)!.birthYear ? `Born ${chartById.get(focus)!.birthYear} · ` : ""}from the {chartById.get(focus)!.fromHousehold} household&rsquo;s tree
+              </div>
+            </div>
+          </div>
+          <p className="kin-treepanel-note">
+            A relative as the {chartById.get(focus)!.fromHousehold} household recorded them. Their details are theirs to keep, so they show here but
+            can&rsquo;t be changed from your tree.
+          </p>
+        </div>
+      )}
+
       {focus && byId.get(focus) && (
         <SelectedPanel
+          matches={matches.filter((m) => m.ourPersonId === focus)}
+          linkedFamilies={linkedFamilies}
+          shownBranches={shown}
+          onToggleBranch={toggleBranch}
           person={byId.get(focus)!}
           people={people}
           isMe={focus === meTreeId}
@@ -310,7 +396,15 @@ function SelectedPanel({
   onAdd,
   onCancel,
   onAdded,
+  matches,
+  linkedFamilies,
+  shownBranches,
+  onToggleBranch,
 }: {
+  matches: TreeMatch[];
+  linkedFamilies: { id: string; name: string }[];
+  shownBranches: string[];
+  onToggleBranch: (matchId: string) => void;
   person: TreePerson;
   people: TreePerson[];
   isMe: boolean;
@@ -342,6 +436,8 @@ function SelectedPanel({
           </Link>
         )}
       </div>
+
+      <LinkedSection person={person} matches={matches} linkedFamilies={linkedFamilies} shownBranches={shownBranches} onToggleBranch={onToggleBranch} />
 
       {adding ? (
         <AddRelativeForm person={person} people={people} relation={adding} onCancel={onCancel} onAdded={onAdded} />
@@ -437,6 +533,104 @@ function AddRelativeForm({
           Add
         </button>
       </div>
+    </div>
+  );
+}
+
+/** Where this person is shared with a linked household, and the way to share
+ * them with another. Sharing reveals their name and year of birth to that
+ * household and nothing else; the other household decides who, in their own
+ * tree, this person is. */
+function LinkedSection({
+  person,
+  matches,
+  linkedFamilies,
+  shownBranches,
+  onToggleBranch,
+}: {
+  person: TreePerson;
+  matches: TreeMatch[];
+  linkedFamilies: { id: string; name: string }[];
+  shownBranches: string[];
+  onToggleBranch: (matchId: string) => void;
+}) {
+  const router = useRouter();
+  const [pending, startTransition] = useTransition();
+  const [sharing, setSharing] = useState(false);
+  const taken = new Set(matches.map((m) => m.otherFamilyName));
+  const offerable = linkedFamilies.filter((f) => !taken.has(f.name));
+  if (!matches.length && !offerable.length) return null;
+  const first = person.fullName.split(" ")[0];
+
+  return (
+    <div className="kin-treepanel-linked">
+      {matches.map((m) => (
+        <div key={m.matchId} className="kin-treepanel-linkrow">
+          <span style={{ flex: 1, minWidth: 0 }}>
+            {m.status === "accepted" ? (
+              <>Also in the <strong>{m.otherFamilyName}</strong> tree</>
+            ) : (
+              <>Offered to <strong>{m.otherFamilyName}</strong> · waiting for them</>
+            )}
+          </span>
+          {m.status === "accepted" && (
+            <button type="button" className="chip" data-active={shownBranches.includes(m.matchId) || undefined} onClick={() => onToggleBranch(m.matchId)}>
+              {shownBranches.includes(m.matchId) ? "Hide their side" : "Show their side"}
+            </button>
+          )}
+          <button
+            type="button"
+            className="btn btn-ghost"
+            style={{ minHeight: "1.875rem", padding: "0 0.375rem", fontSize: "var(--text-xs)" }}
+            disabled={pending}
+            onClick={async () => {
+              if (!(await confirm({ title: m.status === "accepted" ? `Stop sharing ${first} with ${m.otherFamilyName}?` : "Take the offer back?", confirmLabel: "Stop sharing" }))) return;
+              startTransition(async () => {
+                const r = await withdrawTreeMatchAction(m.matchId);
+                if (r.error) toast.error(r.error);
+                router.refresh();
+              });
+            }}
+          >
+            {m.status === "accepted" ? "Unlink" : "Withdraw"}
+          </button>
+        </div>
+      ))}
+
+      {offerable.length > 0 &&
+        (sharing ? (
+          <div className="kin-treepanel-linkrow" style={{ flexWrap: "wrap" }}>
+            <span style={{ flex: "1 1 100%" }}>
+              Share {first} with a linked household. They&rsquo;ll see {first}&rsquo;s name and year of birth, and can say who that is in their own tree.
+            </span>
+            {offerable.map((f) => (
+              <button
+                key={f.id}
+                type="button"
+                className="chip"
+                disabled={pending}
+                onClick={() =>
+                  startTransition(async () => {
+                    const r = await offerTreePersonAction(person.id, f.id);
+                    if (r.error) toast.error(r.error);
+                    else toast.success(`${first} offered to ${f.name}.`);
+                    setSharing(false);
+                    router.refresh();
+                  })
+                }
+              >
+                {f.name}
+              </button>
+            ))}
+            <button type="button" className="btn btn-ghost" style={{ minHeight: "1.875rem", fontSize: "var(--text-xs)" }} onClick={() => setSharing(false)}>
+              Cancel
+            </button>
+          </div>
+        ) : (
+          <button type="button" className="btn btn-ghost kin-treepanel-share" onClick={() => setSharing(true)}>
+            <Icon name="users" size="0.9375rem" /> Share {first} with a linked household
+          </button>
+        ))}
     </div>
   );
 }
