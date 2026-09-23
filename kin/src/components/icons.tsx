@@ -70,7 +70,12 @@ export function Icon({
   style,
 }: {
   name: IconName;
-  size?: number;
+  /** A number is px, as it always was. A string is passed through to CSS
+   * untouched, which is how a caller asks for a glyph that scales with the
+   * browser's text size ("1.4375rem") or one whose size a stylesheet owns
+   * ("var(--kin-tab-icon)") — the width and height are set inline here, and
+   * an inline value is the one thing a stylesheet cannot override. */
+  size?: number | string;
   className?: string;
   style?: React.CSSProperties;
 }) {

@@ -667,14 +667,15 @@ textarea.input {
   border: 0;
   /* The bar's own top padding used to be dead space above the tabs; it is
      part of each tab's target now, so a thumb aiming at the bar's edge hits
-     the tab rather than nothing. */
-  padding: 8px 0 0;
+     the tab rather than nothing. In rem, so the target grows with the type
+     it sits around rather than staying a fixed 8px while the label doubles. */
+  padding: 0.5rem 0 0;
   cursor: pointer;
   font-family: var(--font-body);
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 3px;
+  gap: 0.1875rem;
   flex: 1;
   color: var(--color-neutral-600);
   transition: color 0.15s ease;
@@ -692,8 +693,14 @@ textarea.input {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 46px;
-  height: 30px;
+  /* Was a flat 46px, which overflowed the bar on a 320px phone even at the
+     default text size (seven stages at 46 plus the bar's padding is 334px).
+     Filling the tab up to that width instead means the stage can never be
+     wider than the tab it is in, at any text size. The height is in rem, so
+     the bar grows taller as the type grows rather than clipping it. */
+  width: 100%;
+  max-width: 2.875rem;
+  height: 1.875rem;
   border-radius: var(--radius-pill);
   transition:
     background-color 0.18s ease,
@@ -713,8 +720,13 @@ textarea.input {
 }
 .kin-tab-label {
   /* 10px is the platform's tab label size; seven tabs crowd above that, so
-     the label rides just under it at 9.5. */
-  font-size: 9.5px;
+     the label rides just under it at 9.5 by default.
+     In rem it follows the browser's text size, and the vw term is the
+     ceiling that seven labels side by side impose: a tab is about 14vw
+     wide and "Household" runs about 4.6x its own font-size, so anything
+     above 3vw would run out of its tab. Growth stops there rather than
+     clipping — and past roughly 150% the labels go entirely, below. */
+  font-size: min(0.59375rem, 3vw);
   font-weight: 500;
   letter-spacing: 0.012em;
   transition: font-weight 0.15s ease;
@@ -724,15 +736,15 @@ textarea.input {
 }
 .kin-tab-badge {
   position: absolute;
-  top: -1px;
-  right: 2px;
-  min-width: 16px;
-  height: 16px;
-  padding: 0 4px;
+  top: -0.0625rem;
+  right: 0.125rem;
+  min-width: 1rem;
+  height: 1rem;
+  padding: 0 0.25rem;
   border-radius: var(--radius-pill);
   background: var(--color-accent);
   color: #fff;
-  font: 600 10px/16px var(--font-body);
+  font: 600 0.625rem/1rem var(--font-body);
   text-align: center;
 }
 .kin-tab-badge[data-mentioned="true"] {
@@ -1144,13 +1156,13 @@ textarea.input {
   flex: 1.2;
 }
 .kin-tab-home .kin-tab-disc {
-  width: 46px;
-  height: 46px;
+  width: var(--kin-tab-disc);
+  height: var(--kin-tab-disc);
   border-radius: 999px;
   display: flex;
   align-items: center;
   justify-content: center;
-  margin-top: -14px;
+  margin-top: -0.875rem;
   background: color-mix(in srgb, var(--color-text) 7%, transparent);
   color: var(--color-neutral-600);
   border: 1px solid var(--color-divider);
@@ -1251,6 +1263,14 @@ textarea.input {
   bottom: 0;
   z-index: 30;
   border-top: 1px solid var(--color-divider);
+  /* The glyph sizes. They are variables rather than props because the tab
+     bar changes shape three times — phone, icon-only at large text, sidebar
+     — and only CSS knows which of those is showing. Each has a vw ceiling
+     for the same reason the label does: seven of them have to fit across
+     the narrowest phone at the largest text size. */
+  --kin-tab-icon: min(1.4375rem, 11vw);
+  --kin-tab-disc: min(2.875rem, 13vw);
+  --kin-tab-disc-icon: min(1.625rem, 7.4vw);
 }
 .kin-nav-inner {
   display: flex;
@@ -1259,10 +1279,36 @@ textarea.input {
   margin: 0 auto;
   /* The top padding lives on each tab, so the whole height of the bar is
      tappable rather than only the icon and its label. */
-  padding: 0 6px calc(env(safe-area-inset-bottom, 0px) + 8px);
+  padding: 0 0.375rem calc(env(safe-area-inset-bottom, 0px) + 0.5rem);
 }
 .kin-nav-brand {
   display: none;
+}
+
+/* — very large text — the labels go and the icons take the room they leave.
+   `em` inside a media query is the browser's own text size rather than the
+   page's, so `max-width: 14em` reads as "the viewport is narrow measured in
+   the user's text": a 390px phone is 24em at the default size and 12em at
+   200%. Past that point a label held small enough to fit seven across is not
+   worth reading, and the icon is the better use of the room — which is what
+   iOS does with its own tab bars at accessibility sizes. Every tab carries
+   its name in aria-label, so a screen reader loses nothing. */
+@media (max-width: 14em) {
+  .kin-nav {
+    --kin-tab-icon: min(2rem, 12vw);
+    --kin-tab-disc: min(3.5rem, 15vw);
+    --kin-tab-disc-icon: min(2.25rem, 9vw);
+  }
+  .kin-tab-label {
+    display: none;
+  }
+  .kin-tab {
+    padding: 0.625rem 0 0;
+  }
+  .kin-tab-ico {
+    max-width: 3.25rem;
+    height: min(2.5rem, 14vw);
+  }
 }
 
 /* — the tablet — still a bottom bar, since it is still held; just no longer
@@ -1289,6 +1335,8 @@ textarea.input {
   }
 
   .kin-nav {
+    --kin-tab-icon: 1.625rem;
+    --kin-tab-disc-icon: 1.625rem;
     top: 0;
     right: auto;
     width: 236px;
@@ -1299,32 +1347,35 @@ textarea.input {
   }
   .kin-nav-brand {
     display: block;
-    padding: 22px 22px 14px;
-    font: 700 25px/1 var(--font-heading);
+    padding: 1.375rem 1.375rem 0.875rem;
+    font: 700 1.5625rem/1 var(--font-heading);
     letter-spacing: -0.03em;
     color: var(--color-text);
   }
   .kin-nav-inner {
     flex-direction: column;
     max-width: none;
-    gap: 2px;
-    padding: 0 12px 16px;
+    gap: 0.125rem;
+    padding: 0 0.75rem 1rem;
   }
 
   /* A row, not a stack: icon then label, reading left to right. */
   .kin-tab {
     flex: none;
     width: 100%;
-    height: 44px;
+    min-height: 2.75rem;
     flex-direction: row;
     justify-content: flex-start;
-    gap: 12px;
-    padding: 0 12px;
+    gap: 0.75rem;
+    padding: 0.5rem 0.75rem;
     border-radius: var(--radius-control);
     transition: background-color 0.15s ease, color 0.15s ease;
   }
   .kin-tab-label {
-    font-size: 14.5px;
+    /* A sidebar has the width a tab bar does not, so the label is free to
+       track the text size with no ceiling on it. */
+    display: block;
+    font-size: 0.90625rem;
     font-weight: 500;
   }
 
@@ -1332,8 +1383,9 @@ textarea.input {
      a sidebar selects a line, not a glyph. */
   .kin-tab-ico,
   .kin-tab:not(.kin-tab-home)[data-active="true"] .kin-tab-ico {
-    width: 26px;
-    height: 26px;
+    width: 1.625rem;
+    max-width: none;
+    height: 1.625rem;
     background: none;
     transform: none;
   }
@@ -1348,8 +1400,8 @@ textarea.input {
     transform: scale(0.9);
   }
   .kin-tab-badge {
-    top: -4px;
-    right: -6px;
+    top: -0.25rem;
+    right: -0.375rem;
   }
 
   /* Today stops being the raised home button. A thumb needs a bigger target
@@ -1357,8 +1409,8 @@ textarea.input {
      vertical list just looks like a mistake. */
   .kin-tab-home .kin-tab-disc,
   .kin-tab-home[data-active="true"] .kin-tab-disc {
-    width: 26px;
-    height: 26px;
+    width: 1.625rem;
+    height: 1.625rem;
     margin-top: 0;
     background: none;
     border: 0;
