@@ -2,6 +2,7 @@
 
 import { useId, useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import {
   addEmergencyContactAction,
   updateEmergencyContactAction,
@@ -17,6 +18,12 @@ export type EmergencyContact = {
   phone: string;
   note: string | null;
 };
+
+/** A parent, as they appear at the top of the list: read from their own
+ * profile every time, never copied into emergency_contacts. A copy would be a
+ * second place their number lives, and the one nobody remembers to update
+ * when it changes -- which is the worst property an emergency number can have. */
+export type ParentContact = { id: string; name: string; phone: string | null };
 
 const emptyFields: EmergencyContactFields = { name: "", relationship: "", phone: "", note: "" };
 
@@ -80,7 +87,7 @@ function ContactForm({
  * same reasoning milestones and the family tree already follow. Not tied to
  * a Kin member: most of these are people or services the household will
  * never invite to sign in. */
-export function EmergencyContactList({ contacts }: { contacts: EmergencyContact[] }) {
+export function EmergencyContactList({ contacts, parents = [] }: { contacts: EmergencyContact[]; parents?: ParentContact[] }) {
   const [editingId, setEditingId] = useState<string | "new" | null>(null);
   const [fields, setFields] = useState<EmergencyContactFields>(emptyFields);
   const [busy, setBusy] = useState(false);
@@ -136,7 +143,27 @@ export function EmergencyContactList({ contacts }: { contacts: EmergencyContact[
       {/* Removing a contact has no form open to show its own error in --
           this is the only place a failed remove() is ever visible. */}
       {error && editingId === null && <p style={{ color: "var(--color-accent-700)", fontSize: "0.8125rem", margin: "0 0 8px" }}>{error}</p>}
-      {contacts.length === 0 && editingId !== "new" && (
+      {/* The parents come first and come by default: the first number anybody
+          in a household reaches for. Edited on their profile, not here. */}
+      {parents.map((p) => (
+        <div key={`parent-${p.id}`} className="kin-contact-parent" style={{ display: "flex", alignItems: "center", gap: "0.625rem", padding: "0.5625rem 0", borderBottom: "1px solid var(--color-divider)" }}>
+          <span style={{ flex: 1, minWidth: 0 }}>
+            <span style={{ font: "600 0.9375rem/1.1 var(--font-heading)", display: "block" }}>{p.name}</span>
+            <span style={{ fontSize: "0.8125rem", color: "var(--color-neutral-600)" }}>Parent · from their profile</span>
+          </span>
+          {p.phone ? (
+            <a href={`tel:${p.phone.replace(/[^\d+]/g, "")}`} style={{ fontSize: "0.8125rem", color: "var(--color-accent-700)", textDecoration: "none", flex: "none", fontFamily: "var(--font-numeric)" }}>
+              {p.phone}
+            </a>
+          ) : (
+            <Link href={`/family/members/${p.id}`} style={{ fontSize: "0.8125rem", color: "var(--color-accent-700)", flex: "none" }}>
+              Add their number
+            </Link>
+          )}
+        </div>
+      ))}
+
+      {contacts.length === 0 && parents.length === 0 && editingId !== "new" && (
         <div style={{ fontSize: "0.84375rem", color: "var(--color-neutral-600)", marginBottom: "0.625rem" }}>
           No emergency contacts yet — start with a pediatrician, poison control, or a relative nearby.
         </div>
