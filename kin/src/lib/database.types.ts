@@ -1596,6 +1596,36 @@ export type Database = {
           },
         ]
       }
+      family_link_messages: {
+        Row: {
+          author_name: string
+          body: string
+          created_at: string
+          family_id: string
+          id: string
+          link_id: string
+          member_id: string | null
+        }
+        Insert: {
+          author_name?: string
+          body: string
+          created_at?: string
+          family_id: string
+          id?: string
+          link_id: string
+          member_id?: string | null
+        }
+        Update: {
+          author_name?: string
+          body?: string
+          created_at?: string
+          family_id?: string
+          id?: string
+          link_id?: string
+          member_id?: string | null
+        }
+        Relationships: []
+      }
       family_message_attachments: {
         Row: {
           created_at: string
@@ -3399,6 +3429,7 @@ export type Database = {
           id: string
           member_id: string | null
           milestone_date: string
+          shared_at: string | null
           title: string
         }
         Insert: {
@@ -3408,6 +3439,7 @@ export type Database = {
           id?: string
           member_id?: string | null
           milestone_date: string
+          shared_at?: string | null
           title: string
         }
         Update: {
@@ -3417,6 +3449,7 @@ export type Database = {
           id?: string
           member_id?: string | null
           milestone_date?: string
+          shared_at?: string | null
           title?: string
         }
         Relationships: [

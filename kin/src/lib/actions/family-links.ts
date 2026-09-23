@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { requireCurrentMember } from "@/lib/session";
+import { humanDatabaseError } from "@/lib/db-errors";
 import { isGrownUp } from "@/lib/roles";
 import { clamp } from "@/lib/text";
 import type { ActionState } from "@/lib/actions/auth";
@@ -69,5 +70,44 @@ export async function setEntrySharedAction(entryId: string, shared: boolean): Pr
     .eq("family_id", me.family_id);
   if (error) return { error: "That memory couldn't be updated." };
   revalidatePath("/journal");
+  return { error: null };
+}
+
+/** Put a milestone on the family feed, or take it off. The same switch a
+ * journal entry has: private until somebody shares it, and then visible to
+ * this household and every household it is linked to. */
+export async function setMilestoneSharedAction(milestoneId: string, shared: boolean): Promise<ActionState> {
+  const me = await requireCurrentMember();
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("milestones")
+    .update({ shared_at: shared ? new Date().toISOString() : null })
+    .eq("id", milestoneId)
+    .eq("family_id", me.family_id);
+  if (error) return { error: "That milestone couldn't be updated." };
+  revalidatePath("/journal");
+  return { error: null };
+}
+
+/** Say something to a linked household. The database checks the link is
+ * accepted and that the message is this member's own; author_name is written
+ * there too, from the sender's own identity. */
+export async function sendLinkMessageAction(linkId: string, body: string): Promise<ActionState> {
+  const me = await requireCurrentMember();
+  const text = body.trim().slice(0, 2000);
+  if (!text) return { error: "Nothing to send." };
+  const supabase = await createClient();
+  const { error } = await supabase.from("family_link_messages").insert({ link_id: linkId, family_id: me.family_id, member_id: me.id, body: text });
+  if (error) return { error: humanDatabaseError(error.message) };
+  revalidatePath(`/journal/links/${linkId}`);
+  return { error: null };
+}
+
+export async function deleteLinkMessageAction(messageId: string, linkId: string): Promise<ActionState> {
+  const me = await requireCurrentMember();
+  const supabase = await createClient();
+  const { error } = await supabase.from("family_link_messages").delete().eq("id", messageId).eq("member_id", me.id);
+  if (error) return { error: humanDatabaseError(error.message) };
+  revalidatePath(`/journal/links/${linkId}`);
   return { error: null };
 }

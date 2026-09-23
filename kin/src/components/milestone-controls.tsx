@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { updateMilestoneAction, deleteMilestoneAction } from "@/lib/actions/journal";
+import { setMilestoneSharedAction } from "@/lib/actions/family-links";
 import { DeleteButton } from "@/components/delete-button";
 import { DateInput } from "@/components/date-input";
 
@@ -11,11 +12,14 @@ export function MilestoneControls({
   title,
   date,
   memberId,
+  shared = false,
 }: {
   milestoneId: string;
   title: string;
   date: string;
   memberId: string | null;
+  /** On the family feed, where linked households can see it. */
+  shared?: boolean;
 }) {
   const [open, setOpen] = useState(false);
   const [milestoneTitle, setMilestoneTitle] = useState(title);
@@ -29,6 +33,21 @@ export function MilestoneControls({
       <div style={{ display: "flex", gap: "0.625rem", marginTop: "0.25rem" }}>
         <button type="button" style={{ fontSize: "0.78125rem", fontWeight: 600, color: "var(--color-accent-700)", background: "none", border: "none", padding: 0, cursor: "pointer" }} onClick={() => setOpen(true)}>
           EDIT
+        </button>
+        <button
+          type="button"
+          style={{ fontSize: "0.78125rem", fontWeight: 600, color: shared ? "var(--color-neutral-600)" : "var(--color-accent-700)", background: "none", border: "none", padding: 0, cursor: "pointer" }}
+          disabled={busy}
+          onClick={async () => {
+            setBusy(true);
+            const r = await setMilestoneSharedAction(milestoneId, !shared);
+            setBusy(false);
+            if (r.error) setError(r.error);
+            router.refresh();
+          }}
+          title={shared ? "On the family feed, where linked households can see it" : "Put it on the family feed for linked households to see"}
+        >
+          {shared ? "SHARED · UNSHARE" : "SHARE TO FEED"}
         </button>
         <DeleteButton label="Delete milestone" confirmText="Delete this milestone? This can't be undone." onDelete={() => deleteMilestoneAction(milestoneId)} style={{ padding: 0 }} />
       </div>
