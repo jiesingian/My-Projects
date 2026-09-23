@@ -5,7 +5,8 @@ import { createClient } from "@/lib/supabase/server";
 import { requireCurrentMember } from "@/lib/session";
 import type { ActionState } from "@/lib/actions/auth";
 import { humanDatabaseError } from "@/lib/db-errors";
-import { isReaction } from "@/lib/chat";
+import { isReaction, splitShoppingItems } from "@/lib/chat";
+import { addBuyItemAction } from "@/lib/actions/household";
 
 const MAX_LENGTH = 4000;
 
@@ -230,4 +231,44 @@ export async function unpinMessageAction(): Promise<ActionState> {
 
   revalidatePath("/chat");
   return { error: null };
+}
+
+/** "We need milk, eggs and bread" onto the Buy list as three items, from the
+ * message itself.
+ *
+ * Read from the database rather than taken from the client: the text has to
+ * be a message this household can actually see, which is row-level security's
+ * job, not a string somebody posted to this endpoint. Each item then goes
+ * through addBuyItemAction -- the same path the Buy list's own form uses -- so
+ * it gets the same length rule and the same aisle guess, and there is one way
+ * an item reaches the list rather than two that could drift.
+ */
+export async function addMessageToBuyListAction(messageId: string): Promise<ActionState & { added?: string[] }> {
+  const me = await requireCurrentMember();
+  const supabase = await createClient();
+
+  const { data: message } = await supabase
+    .from("family_messages")
+    .select("body, deleted_at")
+    .eq("id", messageId)
+    .eq("family_id", me.family_id)
+    .maybeSingle();
+  if (!message || message.deleted_at) return { error: "That message isn't there any more." };
+
+  const items = splitShoppingItems(message.body);
+  if (items.length === 0) return { error: "There's nothing in that message to put on the list." };
+
+  const added: string[] = [];
+  for (const name of items) {
+    const form = new FormData();
+    form.set("name", name);
+    const result = await addBuyItemAction({ error: null }, form);
+    if (result.error) {
+      return added.length
+        ? { error: `Added ${added.join(", ")}, then stopped at "${name}": ${result.error}`, added }
+        : { error: result.error };
+    }
+    added.push(name);
+  }
+  return { error: null, added };
 }

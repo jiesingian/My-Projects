@@ -15,9 +15,12 @@ import {
   markChatReadAction,
   pinMessageAction,
   unpinMessageAction,
+  addMessageToBuyListAction,
 } from "@/lib/actions/chat";
 import type { ChatAttachment, ChatMember, ChatMessage, ChatPin } from "@/lib/queries/chat";
-import { REACTIONS } from "@/lib/chat";
+import { REACTIONS, amountIn, splitShoppingItems } from "@/lib/chat";
+import { toast } from "@/components/toast";
+import Link from "next/link";
 
 // Rendered from the same list the action checks against, so a reaction the
 // composer offers can never be one the server refuses.
@@ -45,6 +48,31 @@ function clockOf(iso: string) {
  * and somebody who stops disappears within about two. */
 const TYPING_EVERY = 2000;
 const TYPING_TTL = 4000;
+
+/** The first line of a message, as a title for the thing it is turned into.
+ * A message is often a sentence; a task title wants to be a line. */
+function titleOf(body: string) {
+  const first = body.split(/\r?\n/)[0].trim();
+  return first.length > 120 ? `${first.slice(0, 117).trimEnd()}…` : first;
+}
+
+/** Where a message goes to become something else. Each is the hub's own
+ * form, filled in and waiting -- nothing is created until Save is pressed,
+ * because a date, an amount or an account is exactly what a chat message
+ * does not reliably contain. */
+function handoffs(m: ChatMessage, authorLabel: string) {
+  const title = titleOf(m.body);
+  const credit = `From ${authorLabel} in the family chat.`;
+  const notes = m.body.trim() === title ? credit : `${m.body.trim()}\n\n${credit}`;
+  const amount = amountIn(m.body);
+  return {
+    task: `/planner/add?${new URLSearchParams({ type: "task", title, notes: notes.slice(0, 1000) })}`,
+    // An event's note is one short line on its form, so it carries the credit
+    // and nothing else.
+    event: `/planner/add?${new URLSearchParams({ type: "event", title, notes: credit })}`,
+    expense: `/wealth/transact?${new URLSearchParams({ mode: "out", note: title.slice(0, 200), ...(amount ? { amount: String(amount) } : {}) })}`,
+  };
+}
 
 function formatBytes(n: number) {
   if (n < 1024) return `${n} B`;
@@ -510,9 +538,11 @@ export function ChatThread({
                   )}
 
                   {openFor === m.id && !m.deleted && (
+                    <div className="kin-msgmenu" data-mine={mine || undefined}>
                     <div
                       style={{
                         display: "flex",
+                        flexWrap: "wrap",
                         alignItems: "center",
                         gap: "0.125rem",
                         marginTop: "0.3125rem",
@@ -579,6 +609,50 @@ export function ChatThread({
                           </button>
                         </>
                       )}
+                    </div>
+
+                    {/* The part a generic messenger cannot have: a message is
+                        usually about something, and here that something has a
+                        home. Shopping goes straight onto the list; the rest
+                        open their own form filled in, since a date, an amount
+                        or an account is exactly what a message does not
+                        reliably contain. */}
+                    {m.body && (
+                      <div className="kin-msgmenu-make">
+                        <span className="kin-msgmenu-label">Make it</span>
+                        <Link className="chip" href={handoffs(m, author?.label ?? (mine ? "you" : "someone")).task}>
+                          <Icon name="check" size="0.875rem" /> Task
+                        </Link>
+                        <Link className="chip" href={handoffs(m, author?.label ?? (mine ? "you" : "someone")).event}>
+                          <Icon name="calendarDays" size="0.875rem" /> Event
+                        </Link>
+                        {splitShoppingItems(m.body).length > 0 && (
+                          <button
+                            type="button"
+                            className="chip"
+                            onClick={() => {
+                              setOpenFor(null);
+                              startTransition(async () => {
+                                const result = await addMessageToBuyListAction(m.id);
+                                if (result.error) toast.error(result.error);
+                                else if (result.added?.length) {
+                                  toast.success(
+                                    result.added.length === 1
+                                      ? `Added ${result.added[0]} to the Buy list.`
+                                      : `Added ${result.added.length} things to the Buy list: ${result.added.join(", ")}.`,
+                                  );
+                                }
+                              });
+                            }}
+                          >
+                            <Icon name="basket" size="0.875rem" /> Buy list
+                          </button>
+                        )}
+                        <Link className="chip" href={handoffs(m, author?.label ?? (mine ? "you" : "someone")).expense}>
+                          <Icon name="receipt" size="0.875rem" /> Expense
+                        </Link>
+                      </div>
+                    )}
                     </div>
                   )}
 

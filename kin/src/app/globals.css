@@ -1413,6 +1413,40 @@ textarea.input {
   cursor: pointer;
 }
 
+/* The menu under a message: reactions and actions, then what the message
+   can become. Two rows because they are two different questions -- how do
+   you feel about this, and what is this. */
+.kin-msgmenu {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.25rem;
+  max-width: 100%;
+}
+.kin-msgmenu[data-mine] {
+  align-items: flex-end;
+}
+.kin-msgmenu-make {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.25rem;
+}
+.kin-msgmenu[data-mine] .kin-msgmenu-make {
+  justify-content: flex-end;
+}
+.kin-msgmenu-make .chip {
+  min-height: 1.75rem;
+  padding: 0 0.625rem;
+  font-size: var(--text-xs);
+  gap: 0.25rem;
+}
+.kin-msgmenu-label {
+  font-size: var(--text-2xs);
+  color: var(--color-neutral-600);
+  padding-right: 0.125rem;
+}
+
 /* Somebody is typing. */
 .kin-typing {
   display: flex;

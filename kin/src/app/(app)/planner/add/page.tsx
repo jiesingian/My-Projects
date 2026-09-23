@@ -7,11 +7,11 @@ import { AddPlannerForm } from "./add-planner-form";
 export default async function AddPlannerPage({
   searchParams,
 }: {
-  searchParams: Promise<{ type?: string; id?: string; date?: string }>;
+  searchParams: Promise<{ type?: string; id?: string; date?: string; title?: string; notes?: string }>;
 }) {
   const me = await getCurrentMember();
   if (!me) redirect("/onboarding/profile");
-  const { type: rawType, id, date } = await searchParams;
+  const { type: rawType, id, date, title, notes } = await searchParams;
   // "activity" was the old name for what is now a one-off task. Links out in
   // the wild -- a bookmark, a Google Calendar description, a chat message --
   // still carry it, and they should keep working.
@@ -42,6 +42,9 @@ export default async function AddPlannerPage({
       defaultDate={date}
       editActivity={editActivity}
       editEvent={editEvent}
+      // Trimmed to the fields' own limits here rather than trusted: this
+      // arrives in a URL, and a URL is something anybody can type.
+      prefill={id ? undefined : { title: title?.slice(0, 150), notes: notes?.slice(0, 1000) }}
     />
   );
 }
