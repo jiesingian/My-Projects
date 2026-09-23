@@ -45,6 +45,7 @@ export default async function AddPlannerPage({
       // Trimmed to the fields' own limits here rather than trusted: this
       // arrives in a URL, and a URL is something anybody can type.
       prefill={id ? undefined : { title: title?.slice(0, 150), notes: notes?.slice(0, 1000) }}
+      householdCurrency={me.families.currency}
     />
   );
 }

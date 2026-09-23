@@ -547,12 +547,16 @@ button,
   appearance: none;
   transition: border-color 0.15s ease, background 0.15s ease;
 }
+/* background-color, not the background shorthand: the shorthand also resets
+   background-image, which is where select.input keeps its dropdown arrow --
+   so every select in the app lost its arrow the moment it was hovered or
+   focused from the keyboard. */
 .input:hover {
-  background: color-mix(in srgb, var(--color-text) 8%, transparent);
+  background-color: color-mix(in srgb, var(--color-text) 8%, transparent);
 }
 .input:focus-visible {
   border-color: var(--color-accent);
-  background: var(--color-surface);
+  background-color: var(--color-surface);
   outline: none;
 }
 select.input {

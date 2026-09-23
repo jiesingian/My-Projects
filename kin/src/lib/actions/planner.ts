@@ -11,6 +11,7 @@ import { allDayEvent } from "@/lib/calendar-shape";
 import { humanDatabaseError } from "@/lib/db-errors";
 import { activityInstants } from "@/lib/planner-time";
 import { clamp } from "@/lib/text";
+import { isCurrencyCode } from "@/lib/household-prefs";
 
 function activityTarget(wholeFamily: boolean, who: string[]): CalendarTarget {
   return wholeFamily ? { kind: "all" } : { kind: "members", memberIds: who };
@@ -166,6 +167,35 @@ function targetFor(wholeFamily: boolean, memberIds: string[]) {
   return wholeFamily || memberIds.length === 0 ? ({ kind: "all" } as const) : ({ kind: "members", memberIds } as const);
 }
 
+/** An event's budget as the form sends it. The field shows an accounting
+ * figure -- "12,345.00" -- and submits the plain number, but a Server Action
+ * is a public endpoint whatever the field in front of it does, so commas are
+ * stripped here too rather than trusted not to arrive. Rounded to the
+ * centavo, since that is as far as the field lets anyone type. */
+function readBudget(formData: FormData, householdCurrency: string): { budget: number | null; budgetCurrency: string | null; budgetError: string | null } {
+  const raw = String(formData.get("budget_amount") ?? "").replace(/,/g, "").trim();
+  if (!raw) return { budget: null, budgetCurrency: null, budgetError: null };
+  const n = Number(raw);
+  if (!Number.isFinite(n) || n < 0) return { budget: null, budgetCurrency: null, budgetError: "The budget has to be a number." };
+  const currency = String(formData.get("budget_currency") ?? "");
+  // The household's own currency is always acceptable, even one older than
+  // the list -- the form offers it, so refusing it here would be a trap.
+  if (!isCurrencyCode(currency) && currency !== householdCurrency) return { budget: null, budgetCurrency: null, budgetError: "Choose the budget's currency from the list." };
+  return { budget: Math.round(n * 100) / 100, budgetCurrency: currency, budgetError: null };
+}
+
+/** Records which currency an event's budget is in -- a separate write, and a
+ * forgiving one, because the column arrives by migration. Dev takes it the
+ * moment this merges; production only when the Migrate button is pressed,
+ * and until then the app deployed from main is talking to a production that
+ * doesn't have it. Folded into the insert above, that gap would stop every
+ * household saving any event at all. Kept apart, the event saves and its
+ * budget reads in the household's own currency until the column exists. */
+async function saveBudgetCurrency(supabase: Awaited<ReturnType<typeof createClient>>, eventId: string, familyId: string, currency: string | null) {
+  const { error } = await supabase.from("events").update({ budget_currency: currency }).eq("id", eventId).eq("family_id", familyId);
+  if (error) console.error(`Event ${eventId} saved, but its budget currency was not`, error.message);
+}
+
 export async function createEventAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
   const me = await requireCurrentMember();
   const supabase = await createClient();
@@ -178,14 +208,13 @@ export async function createEventAction(_prev: ActionState, formData: FormData):
   // Travel is a kind of event rather than its own table, and the only thing
   // it really needs that the others do not is a second date.
   const endDate = String(formData.get("end_date") ?? "") || null;
-  const budgetRaw = String(formData.get("budget_amount") ?? "").trim();
-  const budget = budgetRaw ? Number(budgetRaw) : null;
+  const { budget, budgetCurrency, budgetError } = readBudget(formData, me.families.currency);
   const wholeFamily = formData.get("whole_family") === "on";
   const who = formData.getAll("who").map(String).filter(Boolean);
   if (!title || !date) return { error: "Title and date are required." };
   if (!wholeFamily && who.length === 0) return { error: "Choose who this is for, or mark it for the whole family." };
   if (endDate && endDate < date) return { error: "The end date is before the start date." };
-  if (budget !== null && !(budget >= 0)) return { error: "The budget has to be a number." };
+  if (budgetError) return { error: budgetError };
 
   const { data: event, error } = await supabase
     .from("events")
@@ -204,6 +233,7 @@ export async function createEventAction(_prev: ActionState, formData: FormData):
     .select()
     .single();
   if (error) return { error: humanDatabaseError(error.message) };
+  await saveBudgetCurrency(supabase, event.id, me.family_id, budgetCurrency);
 
   const eventWho = await saveEventMembers(event.id, wholeFamily ? [] : who);
   if (eventWho) return { error: eventWho };
@@ -231,14 +261,13 @@ export async function updateEventAction(eventId: string, _prev: ActionState, for
   // Travel is a kind of event rather than its own table, and the only thing
   // it really needs that the others do not is a second date.
   const endDate = String(formData.get("end_date") ?? "") || null;
-  const budgetRaw = String(formData.get("budget_amount") ?? "").trim();
-  const budget = budgetRaw ? Number(budgetRaw) : null;
+  const { budget, budgetCurrency, budgetError } = readBudget(formData, me.families.currency);
   const wholeFamily = formData.get("whole_family") === "on";
   const who = formData.getAll("who").map(String).filter(Boolean);
   if (!title || !date) return { error: "Title and date are required." };
   if (!wholeFamily && who.length === 0) return { error: "Choose who this is for, or mark it for the whole family." };
   if (endDate && endDate < date) return { error: "The end date is before the start date." };
-  if (budget !== null && !(budget >= 0)) return { error: "The budget has to be a number." };
+  if (budgetError) return { error: budgetError };
 
   const { error, count } = await supabase
     .from("events")
@@ -250,6 +279,7 @@ export async function updateEventAction(eventId: string, _prev: ActionState, for
     .eq("family_id", me.family_id);
   if (error) return { error: humanDatabaseError(error.message) };
   if (count === 0) return { error: "That occasion is no longer there — someone may have removed it." };
+  await saveBudgetCurrency(supabase, eventId, me.family_id, budgetCurrency);
 
   const eventWho = await saveEventMembers(eventId, wholeFamily ? [] : who);
   if (eventWho) return { error: eventWho };

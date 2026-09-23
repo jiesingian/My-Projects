@@ -17,6 +17,8 @@ import type { Tables } from "@/lib/database.types";
 import { familyClock, familyDay } from "@/lib/time";
 import { DateInput } from "@/components/date-input";
 import { confirm } from "@/components/confirm-sheet";
+import { AmountInput } from "@/components/amount-input";
+import { CURRENCIES } from "@/lib/household-prefs";
 
 const initialState: ActionState = { error: null };
 // "task" is what the app calls a one-off; the table behind it is still
@@ -40,6 +42,7 @@ export function AddPlannerForm({
   editActivity,
   editEvent,
   prefill,
+  householdCurrency,
 }: {
   members: Tables<"members">[];
   defaultType: string;
@@ -48,6 +51,8 @@ export function AddPlannerForm({
   editActivity?: EditActivity | null;
   editEvent?: (EditEvent & { memberIds: string[] }) | null;
   prefill?: PlannerPrefill;
+  /** What a new budget is in unless someone picks otherwise. */
+  householdCurrency: string;
 }) {
   const isEditing = !!editActivity || !!editEvent;
   const [type, setType] = useState<PlannerType>(TYPES.includes(defaultType as PlannerType) ? (defaultType as PlannerType) : "task");
@@ -68,7 +73,7 @@ export function AddPlannerForm({
           </div>
         )}
         {(editing === null || editing === "task") && type === "task" && <ActivityForm members={members} defaultDate={defaultDate} editActivity={editActivity ?? undefined} prefill={prefill} />}
-        {(editing === null || editing === "event") && type === "event" && <EventForm members={members} defaultDate={defaultDate} editEvent={editEvent ?? undefined} prefill={prefill} />}
+        {(editing === null || editing === "event") && type === "event" && <EventForm members={members} defaultDate={defaultDate} editEvent={editEvent ?? undefined} prefill={prefill} householdCurrency={householdCurrency} />}
       </div>
     </div>
   );
@@ -223,11 +228,13 @@ function EventForm({
   defaultDate,
   editEvent,
   prefill,
+  householdCurrency,
 }: {
   members: Tables<"members">[];
   defaultDate?: string;
   editEvent?: EditEvent & { memberIds?: string[] };
   prefill?: PlannerPrefill;
+  householdCurrency: string;
 }) {
   const action = editEvent ? updateEventAction.bind(null, editEvent.id) : createEventAction;
   const [state, formAction] = useActionState(action, initialState);
@@ -236,6 +243,13 @@ function EventForm({
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const [wholeFamily, setWholeFamily] = useState(editEvent?.applies_to_whole_family ?? true);
   const [who, setWho] = useState<string[]>(editEvent?.memberIds ?? []);
+  // An existing budget keeps the currency it was entered in; a new one starts
+  // in the household's. A household whose own currency predates the list
+  // still gets it offered, rather than the picker silently showing PHP.
+  const budgetCurrency = editEvent?.budget_currency ?? householdCurrency;
+  const currencyOptions: { code: string; label: string }[] = CURRENCIES.some((c) => c.code === budgetCurrency)
+    ? [...CURRENCIES]
+    : [{ code: budgetCurrency, label: budgetCurrency }, ...CURRENCIES];
 
   return (
     <form action={formAction}>
@@ -263,7 +277,28 @@ function EventForm({
       </Field>
       <Field label="NOTE"><input className="input" name="sub_note" placeholder="Dinner at home" maxLength={200} defaultValue={editEvent?.sub_note ?? prefill?.notes} style={{ minHeight: "2.75rem" }} /></Field>
       <Field label="BUDGET (OPTIONAL)">
-        <input className="input" type="number" min="0" step="0.01" name="budget_amount" placeholder="For a trip, or anything with a cost" defaultValue={editEvent?.budget_amount ?? undefined} style={{ minHeight: "2.75rem" }} />
+        <div style={{ display: "flex", gap: "0.5rem" }}>
+          <select
+            className="input"
+            name="budget_currency"
+            aria-label="Budget currency"
+            defaultValue={budgetCurrency}
+            style={{ minHeight: "2.75rem", width: "8rem", flex: "none" }}
+          >
+            {currencyOptions.map((c) => (
+              <option key={c.code} value={c.code}>
+                {c.label}
+              </option>
+            ))}
+          </select>
+          <AmountInput
+            name="budget_amount"
+            ariaLabel="Budget amount"
+            placeholder="For a trip, or anything with a cost"
+            defaultValue={editEvent?.budget_amount}
+            style={{ minHeight: "2.75rem", flex: 1, minWidth: 0 }}
+          />
+        </div>
       </Field>
       <WhoPicker
         members={members}
