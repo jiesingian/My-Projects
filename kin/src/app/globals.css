@@ -442,19 +442,29 @@ button,
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 6px;
-  white-space: nowrap;
+  gap: 0.375rem;
+  /* Deliberately not `white-space: nowrap`, which it was until the padding
+     and the label started growing with the reader's text size. A nowrap
+     button sets a min-content width that flex will not shrink past, so at
+     200% a pair of them in .confirm-actions ran 226px off the side of a
+     320px phone and "Add a recurring expense" clipped its own last word.
+     Normal wrapping only ever breaks at a space, so a one-word button still
+     cannot wrap -- a two-word one simply takes a second line when it has to
+     rather than leaving the screen. */
+  min-width: 0;
   cursor: pointer;
   text-decoration: none;
   font-family: var(--font-body);
   font-weight: 600;
-  font-size: 16px;
+  font-size: 1rem;
   letter-spacing: -0.01em;
   line-height: 1.2;
   color: var(--color-accent);
   background: color-mix(in srgb, var(--color-text) 5%, transparent);
   border: 0;
-  padding: 10px 16px;
+  /* In rem with the label, so a button turned up to 200% grows its box
+     rather than squeezing the text into the same 10px of padding. */
+  padding: 0.625rem 1rem;
   border-radius: var(--radius-control);
   transition: transform 0.12s ease, opacity 0.12s ease, background 0.12s ease;
 }
@@ -484,14 +494,14 @@ button,
 .btn-ghost {
   color: var(--color-accent);
   background: transparent;
-  padding-inline: 4px;
+  padding-inline: 0.25rem;
 }
 .btn-ghost:hover {
   background: color-mix(in srgb, var(--color-accent) 10%, transparent);
 }
 .btn-icon {
-  width: 38px;
-  height: 38px;
+  width: 2.375rem;
+  height: 2.375rem;
   padding: 0;
   border-radius: var(--radius-pill);
 }
@@ -555,10 +565,10 @@ textarea.input {
 .tag {
   display: inline-flex;
   align-items: center;
-  font-size: 12px;
+  font-size: var(--text-xs);
   font-weight: 600;
   letter-spacing: 0.005em;
-  padding: 3px 9px;
+  padding: 0.1875rem 0.5625rem;
   border-radius: var(--radius-pill);
   white-space: nowrap;
 }
@@ -597,8 +607,8 @@ textarea.input {
 /* — segmented control: a track with the selection as a raised pill — */
 .seg {
   display: flex;
-  gap: 2px;
-  padding: 2px;
+  gap: 0.125rem;
+  padding: 0.125rem;
   border: 0;
   border-radius: 10px;
   background: color-mix(in srgb, var(--color-text) 7%, transparent);
@@ -606,7 +616,7 @@ textarea.input {
 .seg > a,
 .seg > button {
   flex: 1;
-  padding: 7px 4px;
+  padding: 0.4375rem 0.25rem;
   cursor: pointer;
   text-align: center;
   text-decoration: none;
@@ -616,7 +626,7 @@ textarea.input {
   color: var(--color-text);
   font-family: var(--font-body);
   font-weight: 500;
-  font-size: 13px;
+  font-size: var(--text-sm);
   letter-spacing: 0.005em;
   text-transform: capitalize;
   transition: background 0.15s ease, box-shadow 0.15s ease;
@@ -634,20 +644,20 @@ textarea.input {
    of categories read as one family of controls rather than two. */
 .chip {
   cursor: pointer;
-  min-height: 32px;
-  padding: 0 13px;
+  min-height: 2rem;
+  padding: 0 0.8125rem;
   border: 0;
   border-radius: var(--radius-pill);
   background: color-mix(in srgb, var(--color-text) 6%, transparent);
   color: var(--color-text);
   font-family: var(--font-body);
-  font-size: 13px;
+  font-size: var(--text-sm);
   font-weight: 500;
   letter-spacing: 0.005em;
   text-decoration: none;
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  gap: 0.375rem;
   transition: transform 0.12s ease;
 }
 .chip:active {
@@ -1551,30 +1561,30 @@ textarea.input {
   flex-direction: column;
   align-items: center;
   text-align: center;
-  gap: 7px;
-  padding: 30px 22px 32px;
+  gap: 0.4375rem;
+  padding: 1.875rem 1.375rem 2rem;
   border-radius: var(--radius-card);
   background: color-mix(in srgb, var(--color-text) 3%, transparent);
   border: 1px dashed var(--color-divider);
 }
 .kin-empty-ico {
-  font-size: 26px;
+  font-size: 1.625rem;
   line-height: 1;
-  margin-bottom: 2px;
+  margin-bottom: 0.125rem;
   opacity: 0.85;
 }
 .kin-empty-title {
-  font: 600 17px/1.2 var(--font-heading);
+  font: 600 var(--text-lg)/1.2 var(--font-heading);
 }
 .kin-empty-line {
   margin: 0;
   max-width: 34ch;
-  font-size: 13.5px;
+  font-size: 0.84375rem;
   line-height: 1.4;
   color: var(--color-neutral-600);
 }
 .kin-empty .btn {
-  margin-top: 7px;
+  margin-top: 0.4375rem;
 }
 
 /* ── content that should use a desktop's width ───────────────────────────
