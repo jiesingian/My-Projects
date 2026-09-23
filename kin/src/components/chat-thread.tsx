@@ -18,9 +18,11 @@ import {
   addMessageToBuyListAction,
   searchChatAction,
   getLinkPreviewAction,
+  sendPollAction,
+  votePollAction,
   type ChatSearchHit,
 } from "@/lib/actions/chat";
-import type { ChatAttachment, ChatMember, ChatMessage, ChatPin } from "@/lib/queries/chat";
+import type { ChatAttachment, ChatMember, ChatMessage, ChatPin, ChatPoll } from "@/lib/queries/chat";
 import { REACTIONS, amountIn, splitShoppingItems, firstUrl, type LinkPreview } from "@/lib/chat";
 import { toast } from "@/components/toast";
 import Link from "next/link";
@@ -75,6 +77,121 @@ function handoffs(m: ChatMessage, authorLabel: string) {
     event: `/planner/add?${new URLSearchParams({ type: "event", title, notes: credit })}`,
     expense: `/wealth/transact?${new URLSearchParams({ mode: "out", note: title.slice(0, 200), ...(amount ? { amount: String(amount) } : {}) })}`,
   };
+}
+
+function mmss(seconds: number) {
+  const s = Math.max(0, Math.round(seconds));
+  return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
+}
+
+/** A poll in the thread. Each answer is a button with its share of the
+ * household drawn behind it, and the names of who picked it -- a family poll
+ * is not anonymous, and "who's free Saturday" is useless if it is. */
+function PollCard({
+  poll,
+  me,
+  byId,
+  householdSize,
+  onVote,
+}: {
+  poll: ChatPoll;
+  me: string;
+  byId: Map<string, { label: string }>;
+  householdSize: number;
+  onVote: (optionId: string) => void;
+}) {
+  const voters = new Set(poll.options.flatMap((o) => o.memberIds));
+  return (
+    <div className="kin-poll" role="group" aria-label={`Poll: ${poll.question}`}>
+      <div className="kin-poll-q">{poll.question}</div>
+      <div className="kin-poll-options">
+        {poll.options.map((o) => {
+          const mine = o.memberIds.includes(me);
+          const share = voters.size ? o.memberIds.length / voters.size : 0;
+          const names = o.memberIds.map((id) => (id === me ? "you" : (byId.get(id)?.label ?? "someone")));
+          return (
+            <button
+              key={o.id}
+              type="button"
+              className="kin-poll-option"
+              data-mine={mine || undefined}
+              aria-pressed={mine}
+              onClick={() => onVote(o.id)}
+              style={{ ["--share" as string]: `${Math.round(share * 100)}%` }}
+            >
+              <span className="kin-poll-label">
+                {mine && <Icon name="check" size="0.8125rem" />}
+                {o.label}
+              </span>
+              <span className="kin-poll-count">{o.memberIds.length}</span>
+              {names.length > 0 && <span className="kin-poll-names">{names.join(", ")}</span>}
+            </button>
+          );
+        })}
+      </div>
+      <div className="kin-poll-foot">
+        {voters.size} of {householdSize} answered · {poll.allowMultiple ? "pick any" : "pick one"}
+      </div>
+    </div>
+  );
+}
+
+/** Asking a question with answers to pick from. */
+function PollBuilder({ onSend, onCancel, busy }: { onSend: (q: string, options: string[], multi: boolean) => void; onCancel: () => void; busy: boolean }) {
+  const [question, setQuestion] = useState("");
+  const [options, setOptions] = useState(["", ""]);
+  const [multi, setMulti] = useState(false);
+  const filled = options.map((o) => o.trim()).filter(Boolean);
+  const distinct = new Set(filled.map((o) => o.toLowerCase())).size;
+  const ready = question.trim().length > 0 && distinct >= 2;
+  return (
+    <div className="kin-pollbuilder">
+      <input
+        className="input"
+        value={question}
+        onChange={(e) => setQuestion(e.target.value)}
+        placeholder="Ask the family…"
+        maxLength={200}
+        aria-label="Poll question"
+        autoFocus
+      />
+      {options.map((o, i) => (
+        <div key={i} className="kin-pollbuilder-row">
+          <input
+            className="input"
+            value={o}
+            maxLength={100}
+            placeholder={`Answer ${i + 1}`}
+            aria-label={`Answer ${i + 1}`}
+            onChange={(e) => setOptions((prev) => prev.map((x, j) => (j === i ? e.target.value : x)))}
+          />
+          {options.length > 2 && (
+            <button type="button" className="btn btn-ghost" aria-label={`Remove answer ${i + 1}`} onClick={() => setOptions((prev) => prev.filter((_, j) => j !== i))}>
+              <Icon name="x" size="0.875rem" />
+            </button>
+          )}
+        </div>
+      ))}
+      <div className="kin-pollbuilder-foot">
+        {options.length < 10 && (
+          <button type="button" className="btn btn-ghost" onClick={() => setOptions((prev) => [...prev, ""])}>
+            <Icon name="plus" size="0.875rem" /> Answer
+          </button>
+        )}
+        <label className="kin-pollbuilder-multi">
+          <input type="checkbox" checked={multi} onChange={(e) => setMulti(e.target.checked)} /> More than one
+        </label>
+      </div>
+      <div className="kin-pollbuilder-foot">
+        <button type="button" className="btn btn-ghost" onClick={onCancel} disabled={busy}>
+          Cancel
+        </button>
+        <button type="button" className="btn btn-primary" disabled={!ready || busy} onClick={() => onSend(question, options, multi)}>
+          Ask
+        </button>
+      </div>
+    </div>
+  );
 }
 
 /** A search hit with the words that matched marked, so the eye lands on them. */
@@ -164,6 +281,14 @@ function AttachmentView({ a }: { a: ChatAttachment }) {
       </a>
     );
   }
+  if (a.mimeType.startsWith("audio/")) {
+    return (
+      <span className="kin-attachment-audio">
+        <Icon name="mic" size="1rem" />
+        <audio src={a.url} controls preload="metadata" aria-label={a.fileName} />
+      </span>
+    );
+  }
   if (a.mimeType.startsWith("video/")) {
     return <video className="kin-attachment-video" src={a.url} controls preload="metadata" playsInline aria-label={a.fileName} />;
   }
@@ -219,6 +344,11 @@ export function ChatThread({
   /** Files picked and not yet sent, with a local preview for the images. */
   const [picked, setPicked] = useState<{ file: File; preview: string | null }[]>([]);
   const [uploading, setUploading] = useState(false);
+  const [asking, setAsking] = useState(false);
+  const [trayOpen, setTrayOpen] = useState(false);
+  const [recordingSince, setRecordingSince] = useState<number | null>(null);
+  const [recordedFor, setRecordedFor] = useState(0);
+  const recorder = useRef<MediaRecorder | null>(null);
   const [searching, setSearching] = useState(false);
   const [query, setQuery] = useState("");
   const [hits, setHits] = useState<ChatSearchHit[] | null>(null);
@@ -292,6 +422,81 @@ export function ChatThread({
       for (const p of picked) if (p.preview) URL.revokeObjectURL(p.preview);
     };
   }, [picked]);
+
+  // A voice note is recorded in the browser and then treated exactly like a
+  // picked file: it joins the preview strip, and goes up with the message on
+  // Send through the same path a photo does. Nothing about it is special once
+  // it exists, which is the point -- there is one way a file reaches the
+  // thread.
+  const MAX_VOICE_SECONDS = 120;
+  const startRecording = async () => {
+    if (typeof window === "undefined" || !("MediaRecorder" in window) || !navigator.mediaDevices?.getUserMedia) {
+      toast.error("This browser can't record audio.");
+      return;
+    }
+    let stream: MediaStream;
+    try {
+      stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    } catch {
+      toast.error("Kin needs the microphone to record a voice note. It can be allowed in the browser's site settings.");
+      return;
+    }
+    // iOS Safari records mp4, most others webm. Ask for whichever this one
+    // can actually make rather than one it will silently refuse.
+    const mimeType = ["audio/webm;codecs=opus", "audio/mp4", "audio/webm", "audio/ogg;codecs=opus"].find((t) => MediaRecorder.isTypeSupported(t));
+    const rec = new MediaRecorder(stream, mimeType ? { mimeType } : undefined);
+    const chunks: Blob[] = [];
+    const started = Date.now();
+    rec.ondataavailable = (e) => {
+      if (e.data.size > 0) chunks.push(e.data);
+    };
+    rec.onstop = () => {
+      stream.getTracks().forEach((t) => t.stop());
+      recorder.current = null;
+      setRecordingSince(null);
+      const seconds = (Date.now() - started) / 1000;
+      // A tap that started and stopped at once is a mistake, not a message.
+      if (seconds < 0.8 || chunks.length === 0) return;
+      const type = rec.mimeType || mimeType || "audio/webm";
+      const ext = type.includes("mp4") ? "m4a" : type.includes("ogg") ? "ogg" : "webm";
+      const file = new File(chunks, `Voice note ${mmss(seconds).replace(":", "m")}s.${ext}`, { type: type.split(";")[0] });
+      setPicked((prev) => [...prev, { file, preview: null }].slice(0, 10));
+    };
+    recorder.current = rec;
+    rec.start();
+    setRecordedFor(0);
+    setRecordingSince(started);
+  };
+  const stopRecording = () => recorder.current?.state === "recording" && recorder.current.stop();
+
+  // The clock on the record button, and the hard stop at two minutes. A voice
+  // note left running in a pocket should not become a forty-minute upload.
+  useEffect(() => {
+    if (recordingSince === null) return;
+    const timer = setInterval(() => {
+      const seconds = (Date.now() - recordingSince) / 1000;
+      setRecordedFor(seconds);
+      if (seconds >= MAX_VOICE_SECONDS && recorder.current?.state === "recording") recorder.current.stop();
+    }, 250);
+    return () => clearInterval(timer);
+  }, [recordingSince]);
+
+  // Leaving the page mid-recording releases the microphone.
+  useEffect(() => () => {
+    if (recorder.current?.state === "recording") recorder.current.stop();
+  }, []);
+
+  const askPoll = (question: string, options: string[], multi: boolean) => {
+    startTransition(async () => {
+      const result = await sendPollAction({ question, options, allowMultiple: multi });
+      if (result.error) {
+        toast.error(result.error);
+        return;
+      }
+      setAsking(false);
+      router.refresh();
+    });
+  };
 
   const pickFiles = (list: FileList | null) => {
     if (!list?.length) return;
@@ -644,7 +849,25 @@ export function ChatThread({
                         </div>
                       )}
 
-                      {m.deleted || m.body ? (
+                      {m.poll && !m.deleted ? (
+                        <>
+                          <PollCard
+                            poll={m.poll}
+                            me={me}
+                            byId={byId}
+                            householdSize={members.length}
+                            onVote={(optionId) => act(() => votePollAction(m.poll!.id, optionId))}
+                          />
+                          <button
+                            type="button"
+                            className="btn btn-ghost kin-attachments-more"
+                            onClick={() => setOpenFor(openFor === m.id ? null : m.id)}
+                            aria-label={`Options for ${mine ? "your" : `${author?.label ?? "someone"}'s`} poll`}
+                          >
+                            ···
+                          </button>
+                        </>
+                      ) : m.deleted || m.body ? (
                         <button
                           type="button"
                           onClick={() => setOpenFor(openFor === m.id ? null : m.id)}
@@ -783,7 +1006,7 @@ export function ChatThread({
                         open their own form filled in, since a date, an amount
                         or an account is exactly what a message does not
                         reliably contain. */}
-                    {m.body && (
+                    {m.body && !m.poll && (
                       <div className="kin-msgmenu-make">
                         <span className="kin-msgmenu-label">Make it</span>
                         <Link className="chip" href={handoffs(m, author?.label ?? (mine ? "you" : "someone")).task}>
@@ -879,12 +1102,30 @@ export function ChatThread({
           </p>
         )}
 
+        {asking && <PollBuilder onSend={askPoll} onCancel={() => setAsking(false)} busy={uploading} />}
+
+        {recordingSince !== null && (
+          <div className="kin-recording" role="status" aria-live="polite">
+            <span className="kin-recording-dot" aria-hidden="true" />
+            Recording {mmss(recordedFor)}
+            <span className="kin-recording-cap">of {mmss(MAX_VOICE_SECONDS)}</span>
+            <button type="button" className="btn btn-primary kin-recording-stop" onClick={stopRecording}>
+              <Icon name="stop" size="0.875rem" /> Done
+            </button>
+          </div>
+        )}
+
         {/* What is about to go with the message. */}
         {picked.length > 0 && (
           <div className="kin-picked">
             {picked.map((p, i) => (
               <span key={`${p.file.name}-${i}`} className="kin-picked-item">
-                {p.preview ? (
+                {p.file.type.startsWith("audio/") ? (
+                  <span className="kin-picked-file">
+                    <Icon name="mic" size="1rem" />
+                    <span>{p.file.name.replace(/^Voice note /, "").replace(/\.\w+$/, "").replace("m", ":").replace(/s$/, "")}</span>
+                  </span>
+                ) : p.preview ? (
                   // eslint-disable-next-line @next/next/no-img-element -- a local object URL, not something to optimise.
                   <img src={p.preview} alt={p.file.name} />
                 ) : (
@@ -946,28 +1187,44 @@ export function ChatThread({
           </div>
         )}
 
+        {/* What the + opens: everything that is not typing. Behind one button
+            rather than four, because four fixed buttons beside the field left
+            it too narrow to type into on a small phone even at the default
+            text size -- the same trade Messenger and Telegram make. */}
+        {trayOpen && (
+          <div className="kin-composer-tray">
+            <button type="button" className="chip" onClick={() => { setTrayOpen(false); fileInput.current?.click(); }} disabled={uploading || picked.length >= 10}>
+              <Icon name="paperclip" size="0.9375rem" /> Photo or file
+            </button>
+            <button type="button" className="chip" onClick={() => { setTrayOpen(false); setAsking(true); }} disabled={uploading}>
+              <Icon name="poll" size="0.9375rem" /> Poll
+            </button>
+            <button
+              type="button"
+              className="chip"
+              onClick={() => {
+                setTrayOpen(false);
+                setDraft((d) => `${d}${d.endsWith(" ") || d === "" ? "" : " "}@`);
+                input.current?.focus();
+              }}
+            >
+              <span style={{ font: "600 0.9375rem/1 var(--font-heading)" }}>@</span> Tag someone
+            </button>
+          </div>
+        )}
+
         <div className="kin-composer-row">
           <button
             type="button"
-            className="btn btn-secondary btn-icon"
+            className="btn btn-secondary btn-icon kin-composer-more"
             style={{ width: "2.375rem", height: "2.375rem", flex: "none" }}
-            aria-label="Tag someone"
-            onClick={() => {
-              setDraft((d) => `${d}${d.endsWith(" ") || d === "" ? "" : " "}@`);
-              input.current?.focus();
-            }}
+            aria-label={trayOpen ? "Close" : "Attach, ask a poll or tag someone"}
+            aria-expanded={trayOpen}
+            data-open={trayOpen || undefined}
+            disabled={recordingSince !== null}
+            onClick={() => setTrayOpen((o) => !o)}
           >
-            <span style={{ font: "600 1.0625rem/1 var(--font-heading)" }}>@</span>
-          </button>
-          <button
-            type="button"
-            className="btn btn-secondary btn-icon"
-            style={{ width: "2.375rem", height: "2.375rem", flex: "none" }}
-            aria-label="Attach a photo or file"
-            disabled={uploading || picked.length >= 10}
-            onClick={() => fileInput.current?.click()}
-          >
-            <Icon name="paperclip" size="1.0625rem" />
+            <Icon name="plus" size="1.125rem" />
           </button>
           <input
             ref={fileInput}
@@ -997,16 +1254,43 @@ export function ChatThread({
             className="input kin-composer-field"
             style={{ minHeight: "2.375rem", maxHeight: "7.5rem", fontSize: "0.9375rem", resize: "none", paddingTop: "0.5625rem" }}
           />
-          <button
-            type="button"
-            className="btn btn-primary btn-icon"
-            style={{ width: "2.375rem", height: "2.375rem", flex: "none" }}
-            disabled={uploading || (!draft.trim() && picked.length === 0)}
-            onClick={send}
-            aria-label={uploading ? "Sending" : "Send"}
-          >
-            <Icon name="upload" size="1rem" />
-          </button>
+          {/* One button that is whatever comes next: Send once there is
+              something to send, the microphone when there is not, and Stop
+              while it is listening. */}
+          {recordingSince !== null ? (
+            <button
+              type="button"
+              className="btn btn-primary btn-icon"
+              style={{ width: "2.375rem", height: "2.375rem", flex: "none" }}
+              aria-label="Stop recording"
+              data-recording
+              onClick={stopRecording}
+            >
+              <Icon name="stop" size="1rem" />
+            </button>
+          ) : draft.trim() || picked.length > 0 ? (
+            <button
+              type="button"
+              className="btn btn-primary btn-icon"
+              style={{ width: "2.375rem", height: "2.375rem", flex: "none" }}
+              disabled={uploading}
+              onClick={send}
+              aria-label={uploading ? "Sending" : "Send"}
+            >
+              <Icon name="upload" size="1rem" />
+            </button>
+          ) : (
+            <button
+              type="button"
+              className="btn btn-secondary btn-icon"
+              style={{ width: "2.375rem", height: "2.375rem", flex: "none" }}
+              aria-label="Record a voice note"
+              disabled={uploading}
+              onClick={() => void startRecording()}
+            >
+              <Icon name="mic" size="1.0625rem" />
+            </button>
+          )}
         </div>
       </div>
     </div>
