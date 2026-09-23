@@ -1933,6 +1933,45 @@ export type Database = {
           },
         ]
       }
+      family_tree_matches: {
+        Row: {
+          decided_at: string | null
+          decided_by: string | null
+          id: string
+          offer_family_id: string
+          offer_person_id: string
+          offered_at: string
+          offered_by: string | null
+          status: string
+          to_family_id: string
+          to_person_id: string | null
+        }
+        Insert: {
+          decided_at?: string | null
+          decided_by?: string | null
+          id?: string
+          offer_family_id: string
+          offer_person_id: string
+          offered_at?: string
+          offered_by?: string | null
+          status?: string
+          to_family_id: string
+          to_person_id?: string | null
+        }
+        Update: {
+          decided_at?: string | null
+          decided_by?: string | null
+          id?: string
+          offer_family_id?: string
+          offer_person_id?: string
+          offered_at?: string
+          offered_by?: string | null
+          status?: string
+          to_family_id?: string
+          to_person_id?: string | null
+        }
+        Relationships: []
+      }
       family_tree_people: {
         Row: {
           created_at: string
@@ -4217,6 +4256,40 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      offer_tree_person: {
+        Args: { person: string; to_family: string }
+        Returns: string
+      }
+      respond_tree_offer: {
+        Args: { match: string; accept: boolean; their_person?: string | null }
+        Returns: string | null
+      }
+      shared_branch: {
+        Args: { match: string }
+        Returns: {
+          id: string
+          full_name: string
+          birth_year: string | null
+          father_id: string | null
+          mother_id: string | null
+          spouse_id: string | null
+          is_shared_person: boolean
+        }[]
+      }
+      tree_offers_for_me: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          match_id: string
+          from_family_name: string
+          full_name: string
+          birth_year: string | null
+          status: string
+        }[]
+      }
+      withdraw_tree_match: {
+        Args: { match: string }
+        Returns: undefined
+      }
       request_family_link: {
         Args: { code: string }
         Returns: string
