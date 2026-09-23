@@ -21,23 +21,23 @@ export default async function MembersPage() {
 
   return (
     <OnboardingShell step="STEP 05 / 05" backHref="/onboarding/family">
-      <h2 style={{ fontSize: 34, margin: "0 0 18px" }}>Who is in it</h2>
-      <div className="field" style={{ marginBottom: 20 }}>
+      <h2 style={{ fontSize: "2.125rem", margin: "0 0 18px" }}>Who is in it</h2>
+      <div className="field" style={{ marginBottom: "1.25rem" }}>
         <label htmlFor="onboarding-household-name">HOUSEHOLD NAME</label>
-        <input id="onboarding-household-name" aria-label="Household Name" className="input" value={me.families.name} disabled style={{ minHeight: 44 }} />
+        <input id="onboarding-household-name" aria-label="Household Name" className="input" value={me.families.name} disabled style={{ minHeight: "2.75rem" }} />
       </div>
       <div
         style={{
           display: "flex",
           justifyContent: "space-between",
           borderBottom: "1px solid var(--color-divider)",
-          paddingBottom: 7,
+          paddingBottom: "0.4375rem",
         }}
       >
-        <span style={{ font: "600 13px/1 var(--font-heading)", letterSpacing: ".02em", color: "var(--color-neutral-600)" }}>
+        <span style={{ font: "600 0.8125rem/1 var(--font-heading)", letterSpacing: ".02em", color: "var(--color-neutral-600)" }}>
           MEMBERS · {members?.length ?? 0}
         </span>
-        <span style={{ font: "600 13px/1 var(--font-heading)", letterSpacing: ".02em", color: "var(--color-neutral-600)" }}>
+        <span style={{ font: "600 0.8125rem/1 var(--font-heading)", letterSpacing: ".02em", color: "var(--color-neutral-600)" }}>
           STATUS
         </span>
       </div>
@@ -46,9 +46,9 @@ export default async function MembersPage() {
           key={m.id}
           style={{
             display: "flex",
-            gap: 12,
+            gap: "0.75rem",
             alignItems: "center",
-            padding: "12px 0",
+            padding: "0.75rem 0",
             borderBottom: "1px solid color-mix(in srgb, var(--color-text) 8%, transparent)",
           }}
         >
@@ -62,15 +62,15 @@ export default async function MembersPage() {
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
-              font: "600 14px/1 var(--font-heading)",
+              font: "600 0.875rem/1 var(--font-heading)",
               color: "var(--color-neutral-700)",
             }}
           >
             {m.full_name[0]}
           </div>
           <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ font: "600 17px/1.1 var(--font-heading)" }}>{m.full_name}</div>
-            <div style={{ fontSize: 13, color: "var(--color-neutral-600)" }}>
+            <div style={{ font: "600 1.0625rem/1.1 var(--font-heading)" }}>{m.full_name}</div>
+            <div style={{ fontSize: "0.8125rem", color: "var(--color-neutral-600)" }}>
               {formatAge(m.dob)} · {m.role.replace("_", " ")}
               {m.is_organiser ? " · organizer" : ""}
             </div>
@@ -83,13 +83,13 @@ export default async function MembersPage() {
 
       <AddChildForm />
 
-      <Blueprint className="bg-[var(--color-accent-100)] mt-5" style={{ padding: 14 }}>
+      <Blueprint className="bg-[var(--color-accent-100)] mt-5" style={{ padding: "0.875rem" }}>
         <div
           style={{
-            font: "600 13px/1 var(--font-heading)",
+            font: "600 0.8125rem/1 var(--font-heading)",
             letterSpacing: ".02em",
             color: "var(--color-accent-700)",
-            marginBottom: 7,
+            marginBottom: "0.4375rem",
           }}
         >
           INVITE CODE
@@ -97,7 +97,7 @@ export default async function MembersPage() {
         <CopyInviteCode code={me.families.invite_code} />
       </Blueprint>
 
-      <Link href="/today" className="btn btn-primary btn-block" style={{ marginTop: 24, minHeight: 46, fontSize: 15, letterSpacing: ".04em" }}>
+      <Link href="/today" className="btn btn-primary btn-block" style={{ marginTop: "1.5rem", minHeight: "2.875rem", fontSize: "0.9375rem", letterSpacing: ".04em" }}>
         ENTER KIN
       </Link>
     </OnboardingShell>

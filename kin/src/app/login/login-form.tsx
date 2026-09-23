@@ -19,29 +19,29 @@ export function LoginForm({ callbackError }: { callbackError?: string }) {
   return (
     <OnboardingShell>
       <Wordmark />
-      <p style={{ fontSize: 14, color: "var(--color-neutral-700)", margin: "14px 0 30px", maxWidth: "26ch" }}>
+      <p style={{ fontSize: "0.875rem", color: "var(--color-neutral-700)", margin: "14px 0 30px", maxWidth: "26ch" }}>
         One household, five ledgers. Sign in to your family.
       </p>
-      <h2 style={{ fontSize: 32, margin: "0 0 20px" }}>Welcome back</h2>
+      <h2 style={{ fontSize: "2rem", margin: "0 0 20px" }}>Welcome back</h2>
       {callbackError && <ErrorText message={CALLBACK_ERROR_MESSAGES[callbackError] ?? "Something went wrong — please try again."} />}
       <form action={formAction}>
         <ErrorText message={state.error} />
-        <div className="field" style={{ marginBottom: 16 }}>
+        <div className="field" style={{ marginBottom: "1rem" }}>
           <label htmlFor={`${uid}-email`}>EMAIL</label>
           <input id={`${uid}-email`} aria-label="Email" className="input" type="email" name="email" required autoComplete="email" />
         </div>
-        <div className="field" style={{ marginBottom: 10 }}>
+        <div className="field" style={{ marginBottom: "0.625rem" }}>
           <label htmlFor={`${uid}-password`}>PASSWORD</label>
           <input id={`${uid}-password`} aria-label="Password" className="input" type="password" name="password" required autoComplete="current-password" />
         </div>
         {/* Directly under the password, which is where it gets looked for the
             moment one fails. */}
-        <p style={{ fontSize: 13, textAlign: "right", margin: "0 0 22px" }}>
+        <p style={{ fontSize: "0.8125rem", textAlign: "right", margin: "0 0 22px" }}>
           <Link href="/forgot-password">Forgot your password?</Link>
         </p>
-        <SubmitButton style={{ minHeight: 46, fontSize: 15, letterSpacing: ".04em" }}>SIGN IN</SubmitButton>
+        <SubmitButton style={{ minHeight: "2.875rem", fontSize: "0.9375rem", letterSpacing: ".04em" }}>SIGN IN</SubmitButton>
       </form>
-      <p style={{ fontSize: 13, color: "var(--color-neutral-700)", marginTop: 20, textAlign: "center" }}>
+      <p style={{ fontSize: "0.8125rem", color: "var(--color-neutral-700)", marginTop: "1.25rem", textAlign: "center" }}>
         New here? <Link href="/signup">Create an account</Link>
       </p>
     </OnboardingShell>
