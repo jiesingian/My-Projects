@@ -8,6 +8,7 @@ import type { ActionState } from "@/lib/actions/auth";
 import { isNotificationKey } from "@/lib/notifications";
 import { humanDatabaseError } from "@/lib/db-errors";
 import { isCountryCode } from "@/lib/countries";
+import { TEXT_SCALE_MAX, TEXT_SCALE_MIN } from "@/lib/text-scale";
 import { isCurrencyCode, isDateFormat, isWeekStart } from "@/lib/household-prefs";
 
 export async function setThemeAction(theme: "light" | "dark" | "system"): Promise<ActionState> {
@@ -27,15 +28,19 @@ export async function setThemeAction(theme: "light" | "dark" | "system"): Promis
   return { error: null };
 }
 
-export async function setTextSizeAction(textSize: "small" | "default" | "large"): Promise<ActionState> {
+/** The member's text size, as a percentage. Saved and nothing more: the
+ * settings page asks whether to restart, and the new size arrives with the next
+ * load -- the model the member asked for, and the same one Telegram uses, so
+ * the page does not rearrange itself under a thumb still on the slider. */
+export async function setTextScaleAction(percent: number): Promise<ActionState> {
   const me = await requireCurrentMember();
+  const value = Math.round(Number(percent));
+  if (!Number.isFinite(value) || value < TEXT_SCALE_MIN || value > TEXT_SCALE_MAX) {
+    return { error: `Pick a size between ${TEXT_SCALE_MIN}% and ${TEXT_SCALE_MAX}%.` };
+  }
   const supabase = await createClient();
-  const { error } = await supabase.from("members").update({ text_size: textSize }).eq("id", me.id);
+  const { error } = await supabase.from("members").update({ text_scale: value }).eq("id", me.id);
   if (error) return { error: `That did not save. ${error.message}` };
-  // The layout, not just this page: the root font-size is rendered there, so
-  // revalidating /settings alone changed which segment looked selected and
-  // left the actual type exactly as it was.
-  revalidatePath("/", "layout");
   return { error: null };
 }
 

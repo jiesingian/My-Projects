@@ -1143,6 +1143,97 @@ textarea.input {
 
 /* — chat bubble — the household's thread. Yours in the tint, everyone
    else's on the neutral ground, and a tap opens what can be done to it. */
+/* ── the text size slider ──────────────────────────────────────────────── */
+.kin-scale {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-bottom: 1.375rem;
+}
+.kin-scale-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  font-size: var(--text-sm);
+  color: var(--color-neutral-700);
+}
+.kin-scale-value {
+  font: 600 var(--text-md)/1 var(--font-numeric);
+  color: var(--color-accent-700);
+}
+.kin-scale-track {
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+}
+/* A small A and a large A at either end, which is the whole instruction. */
+.kin-scale-a {
+  flex: none;
+  font-family: var(--font-heading);
+  font-weight: 600;
+  color: var(--color-neutral-600);
+  line-height: 1;
+}
+.kin-scale-a-small { font-size: 0.8125rem; }
+.kin-scale-a-large { font-size: 1.375rem; }
+.kin-scale-track input[type="range"] {
+  flex: 1;
+  min-width: 0;
+  height: 2.75rem; /* the whole row is the target, not the 4px line */
+  margin: 0;
+  background: transparent;
+  appearance: none;
+  -webkit-appearance: none;
+  cursor: pointer;
+}
+.kin-scale-track input[type="range"]::-webkit-slider-runnable-track {
+  height: 0.25rem;
+  border-radius: 999px;
+  background: linear-gradient(to right, var(--color-accent) var(--pos), color-mix(in srgb, var(--color-text) 14%, transparent) var(--pos));
+}
+.kin-scale-track input[type="range"]::-moz-range-track {
+  height: 0.25rem;
+  border-radius: 999px;
+  background: linear-gradient(to right, var(--color-accent) var(--pos), color-mix(in srgb, var(--color-text) 14%, transparent) var(--pos));
+}
+.kin-scale-track input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 1.5rem;
+  height: 1.5rem;
+  margin-top: -0.625rem;
+  border-radius: 999px;
+  background: var(--color-surface);
+  border: 2px solid var(--color-accent);
+  box-shadow: var(--shadow-sm);
+}
+.kin-scale-track input[type="range"]::-moz-range-thumb {
+  width: 1.5rem;
+  height: 1.5rem;
+  border-radius: 999px;
+  background: var(--color-surface);
+  border: 2px solid var(--color-accent);
+  box-shadow: var(--shadow-sm);
+}
+.kin-scale-track input[type="range"]:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+  border-radius: 999px;
+}
+.kin-scale-sample {
+  margin: 0;
+  padding: 0.625rem 0.75rem;
+  border-radius: var(--radius-control);
+  background: color-mix(in srgb, var(--color-text) 5%, transparent);
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+.kin-scale-reset {
+  align-self: flex-start;
+  min-height: 1.875rem;
+  padding: 0 0.5rem;
+  font-size: var(--text-sm);
+}
+
 /* ── chat: the pin, the quote, the reply strip, the typing line ──────────
    All four are secondary to the message they sit beside, so all four are a
    step down in size and weight rather than a different colour -- a thread
@@ -1338,21 +1429,9 @@ textarea.input {
   flex: 1;
   min-width: 0;
 }
-/* Once the text is large enough that three buttons leave the field too narrow
-   to type into -- measured at 54px wide with send pushed off the screen, at
-   200% on a 320px phone -- the field takes a line of its own and the buttons
-   sit under it, send at the far end where the thumb expects it. `em` in a
-   media query is the browser's own text size, so this is "narrow, measured in
-   the reader's text", the same test the tab bar and the hub grid use. */
-@media (max-width: 19em) {
-  .kin-composer-field {
-    order: -1;
-    flex-basis: 100%;
-  }
-  .kin-composer-row > .btn:last-child {
-    margin-left: auto;
-  }
-}
+/* The text-relative switch that lived here (19em) is generated in
+   src/lib/text-scale.ts, so it can answer Kin's own text size as well as
+   the browser's. */
 
 /* Picked, not yet sent. */
 .kin-picked {
@@ -2002,31 +2081,9 @@ textarea.input {
   display: none;
 }
 
-/* — very large text — the labels go and the icons take the room they leave.
-   `em` inside a media query is the browser's own text size rather than the
-   page's, so `max-width: 14em` reads as "the viewport is narrow measured in
-   the user's text": a 390px phone is 24em at the default size and 12em at
-   200%. Past that point a label held small enough to fit seven across is not
-   worth reading, and the icon is the better use of the room — which is what
-   iOS does with its own tab bars at accessibility sizes. Every tab carries
-   its name in aria-label, so a screen reader loses nothing. */
-@media (max-width: 14em) {
-  .kin-nav {
-    --kin-tab-icon: min(2rem, 12vw);
-    --kin-tab-disc: min(3.5rem, 15vw);
-    --kin-tab-disc-icon: min(2.25rem, 9vw);
-  }
-  .kin-tab-label {
-    display: none;
-  }
-  .kin-tab {
-    padding: 0.625rem 0 0;
-  }
-  .kin-tab-ico {
-    max-width: 3.25rem;
-    height: min(2.5rem, 14vw);
-  }
-}
+/* The text-relative switch that lived here (14em) is generated in
+   src/lib/text-scale.ts, so it can answer Kin's own text size as well as
+   the browser's. */
 
 /* — the tablet — still a bottom bar, since it is still held; just no longer
    a phone-width column stranded in the middle of the glass. */
@@ -2186,20 +2243,9 @@ textarea.input {
   grid-column: span 2;
 }
 
-/* One up once the reader's text is large enough that two columns stop being
-   columns. `em` in a media query is the browser's own text size rather than
-   the page's, so this reads as "the viewport is narrow measured in the
-   user's text": a 390px phone is 24em by default and 12em at 200%. A hub
-   card's name is 21px of heading, which at 200% is wider than half of a
-   phone -- the row has to become a column or the names run out of it. */
-@media (max-width: 18em) {
-  .kin-hubgrid {
-    grid-template-columns: 1fr;
-  }
-  .kin-hub-wide {
-    grid-column: span 1;
-  }
-}
+/* The text-relative switch that lived here (18em) is generated in
+   src/lib/text-scale.ts, so it can answer Kin's own text size as well as
+   the browser's. */
 @media (min-width: 1024px) {
   .kin-hubgrid {
     grid-template-columns: repeat(auto-fill, minmax(236px, 1fr));

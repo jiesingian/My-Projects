@@ -6,10 +6,7 @@ import { AssistantFab } from "@/components/assistant-fab";
 import { ConfirmSheetHost } from "@/components/confirm-sheet";
 import { Toaster } from "@/components/toast";
 import { getChatUnread } from "@/lib/queries/chat";
-
-/** Default is absent on purpose: it means "whatever the browser says", which
- * is what the stylesheet already assumes, so it renders no override at all. */
-const ROOT_TEXT_SIZE = { small: "87.5%", large: "112.5%" } as const;
+import { textScaleCss } from "@/lib/text-scale";
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const member = await getCurrentMember();
@@ -26,24 +23,16 @@ export default async function AppLayout({ children }: { children: React.ReactNod
 
   return (
     <div className="kin-shell">
-      {/* The text size preference. It has been saving to members.text_size
-          and being read back only to light up the right segment on the
-          settings page -- nothing applied it, so the control looked like it
-          worked and did nothing, which is the exact shape of bug the
-          DidNotSave note in settings-controls.tsx was written about.
+      {/* The member's text size, and the three layout switches that have to
+          answer it -- see text-scale.ts for why they are generated rather than
+          written in globals.css.
 
-          A percentage on :root multiplies the browser's own text size rather
-          than replacing it, so somebody who has already turned their phone's
-          text up and then picks Large gets both. It is served from the
-          member row rather than a cookie -- unlike the theme, which is a
-          cookie and therefore reverts to system on a new device -- and
-          hoisted into <head> by precedence, so it lands before first paint
-          and nothing flashes at the old size. */}
-      {ROOT_TEXT_SIZE[member.text_size as keyof typeof ROOT_TEXT_SIZE] && (
-        <style href="kin-text-size" precedence="high">
-          {`:root{font-size:${ROOT_TEXT_SIZE[member.text_size as keyof typeof ROOT_TEXT_SIZE]}}`}
-        </style>
-      )}
+          A plain <style>, not a hoisted one. The first version gave it an href
+          and a precedence so React would lift it into <head>, and React treats
+          a hoisted style as a resource keyed by that href: inserted once and
+          never updated. Changing the setting re-rendered the layout and the
+          old size stayed on screen until a full reload. */}
+      <style>{textScaleCss(member.text_scale)}</style>
       {/* Clears the fixed navigation so the last row of any page stays
           reachable — below it on a phone, beside it on a desktop. Both live
           in CSS rather than here, because an inline style cannot answer a
