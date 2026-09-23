@@ -45,25 +45,25 @@ export function MealWhoEditor({
           .join(", ") || "Everyone";
 
   return (
-    <span style={{ display: "inline-flex", flexDirection: "column", gap: 5 }}>
+    <span style={{ display: "inline-flex", flexDirection: "column", gap: "0.3125rem" }}>
       <button
         type="button"
         className="btn btn-ghost"
         onClick={() => setOpen((v) => !v)}
-        style={{ minHeight: 24, fontSize: 12, padding: "0 6px", gap: 4, color: "var(--color-neutral-700)" }}
+        style={{ minHeight: "1.5rem", fontSize: "0.75rem", padding: "0 0.375rem", gap: "0.25rem", color: "var(--color-neutral-700)" }}
       >
         <Icon name="users" size={12} />
         {label}
       </button>
 
       <span className="kin-reveal" data-open={open ? "true" : undefined}>
-        <span style={{ display: "flex", flexWrap: "wrap", gap: 5, paddingTop: 1 }}>
+        <span style={{ display: "flex", flexWrap: "wrap", gap: "0.3125rem", paddingTop: "0.0625rem" }}>
           <button
             type="button"
             className={chosen.length === 0 ? "btn btn-primary" : "btn btn-secondary"}
             disabled={pending}
             onClick={() => save([])}
-            style={{ minHeight: 26, fontSize: 12, padding: "0 8px" }}
+            style={{ minHeight: "1.625rem", fontSize: "0.75rem", padding: "0 0.5rem" }}
           >
             Everyone
           </button>
@@ -76,7 +76,7 @@ export function MealWhoEditor({
                 className={on ? "btn btn-primary" : "btn btn-secondary"}
                 disabled={pending}
                 onClick={() => save(on ? chosen.filter((id) => id !== m.id) : [...chosen, m.id])}
-                style={{ minHeight: 26, fontSize: 12, padding: "0 8px" }}
+                style={{ minHeight: "1.625rem", fontSize: "0.75rem", padding: "0 0.5rem" }}
               >
                 {m.name.split(" ")[0]}
               </button>
@@ -84,7 +84,7 @@ export function MealWhoEditor({
           })}
         </span>
       </span>
-      {error && <span style={{ fontSize: 12, color: "var(--cal-occasion)" }}>{error}</span>}
+      {error && <span style={{ fontSize: "0.75rem", color: "var(--cal-occasion)" }}>{error}</span>}
     </span>
   );
 }

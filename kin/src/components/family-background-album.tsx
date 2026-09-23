@@ -21,7 +21,7 @@ export function FamilyBackgroundAlbum({
   const [albumOpen, setAlbumOpen] = useState(false);
 
   return (
-    <div style={{ marginBottom: 14 }}>
+    <div style={{ marginBottom: "0.875rem" }}>
       <button
         type="button"
         onClick={() => setAlbumOpen(true)}
@@ -40,7 +40,7 @@ export function FamilyBackgroundAlbum({
         aria-label="View household photos"
       >
         {!backgroundUrl && (
-          <span style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13.5, color: "var(--color-neutral-600)" }}>
+          <span style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", fontSize: "0.84375rem", color: "var(--color-neutral-600)" }}>
             No household photo yet
           </span>
         )}

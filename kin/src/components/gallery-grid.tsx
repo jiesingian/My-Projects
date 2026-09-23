@@ -59,19 +59,19 @@ export function GalleryGrid({ media }: { media: MediaItem[] }) {
 
   return (
     <>
-      <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 8 }}>
-        <button type="button" className="btn btn-secondary" style={{ fontSize: 13, minHeight: 30, padding: "0 12px" }} onClick={() => (selectMode ? exitSelectMode() : setSelectMode(true))}>
+      <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: "0.5rem" }}>
+        <button type="button" className="btn btn-secondary" style={{ fontSize: "0.8125rem", minHeight: "1.875rem", padding: "0 0.75rem" }} onClick={() => (selectMode ? exitSelectMode() : setSelectMode(true))}>
           {selectMode ? "CANCEL" : "SELECT"}
         </button>
       </div>
 
       {failures.length > 0 && (
-        <div className="blueprint" style={{ padding: 10, marginBottom: 10, fontSize: 13 }}>
-          <div style={{ marginBottom: 6, color: "var(--color-accent-700)" }}>
+        <div className="blueprint" style={{ padding: "0.625rem", marginBottom: "0.625rem", fontSize: "0.8125rem" }}>
+          <div style={{ marginBottom: "0.375rem", color: "var(--color-accent-700)" }}>
             {failures.length} item{failures.length > 1 ? "s" : ""} added directly in Drive — couldn&apos;t be deleted here:
           </div>
           {failures.map((f) => (
-            <div key={f.id} style={{ display: "flex", justifyContent: "space-between", padding: "3px 0" }}>
+            <div key={f.id} style={{ display: "flex", justifyContent: "space-between", padding: "0.1875rem 0" }}>
               <span style={{ color: "var(--color-neutral-700)" }}>{f.date}</span>
               {f.driveFolderLink && (
                 <a href={f.driveFolderLink} target="_blank" rel="noopener noreferrer" style={{ textDecoration: "underline" }}>
@@ -108,15 +108,15 @@ export function GalleryGrid({ media }: { media: MediaItem[] }) {
             bottom: 0,
             background: "var(--color-bg)",
             borderTop: "1px solid var(--color-divider)",
-            padding: 12,
+            padding: "0.75rem",
             display: "flex",
-            gap: 10,
+            gap: "0.625rem",
             alignItems: "center",
             zIndex: 500,
           }}
         >
-          <span style={{ fontSize: 13.5, flex: 1, color: "var(--color-neutral-700)" }}>{selected.size} selected</span>
-          <button type="button" className="btn btn-primary" style={{ minHeight: 36, fontSize: 13.5, padding: "0 16px" }} disabled={selected.size === 0 || busy} onClick={deleteSelected}>
+          <span style={{ fontSize: "0.84375rem", flex: 1, color: "var(--color-neutral-700)" }}>{selected.size} selected</span>
+          <button type="button" className="btn btn-primary" style={{ minHeight: "2.25rem", fontSize: "0.84375rem", padding: "0 1rem" }} disabled={selected.size === 0 || busy} onClick={deleteSelected}>
             {busy ? "DELETING…" : "DELETE"}
           </button>
         </div>

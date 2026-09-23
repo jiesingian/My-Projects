@@ -17,13 +17,13 @@ export default async function ChatPage() {
   const labelled = members.map((m, i) => ({ ...m, label: labels[i] }));
 
   return (
-    <div style={{ padding: "18px 22px 8px" }}>
-      <div style={{ marginBottom: 6 }}>
-        <div style={{ font: "600 13px/1 var(--font-heading)", letterSpacing: ".02em", color: "var(--color-accent-700)", marginBottom: 5 }}>
+    <div style={{ padding: "1.125rem 1.375rem 0.5rem" }}>
+      <div style={{ marginBottom: "0.375rem" }}>
+        <div style={{ font: "600 0.8125rem/1 var(--font-heading)", letterSpacing: ".02em", color: "var(--color-accent-700)", marginBottom: "0.3125rem" }}>
           FAMILY CHAT
         </div>
-        <h2 style={{ fontSize: 24, margin: 0 }}>{me.families.name}</h2>
-        <p style={{ fontSize: 12.5, color: "var(--color-neutral-600)", margin: "4px 0 0" }}>
+        <h2 style={{ fontSize: "1.5rem", margin: 0 }}>{me.families.name}</h2>
+        <p style={{ fontSize: "0.78125rem", color: "var(--color-neutral-600)", margin: "4px 0 0" }}>
           {members.length} {members.length === 1 ? "person" : "people"} · everyone sees everything here
         </p>
       </div>

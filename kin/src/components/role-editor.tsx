@@ -27,9 +27,9 @@ export function RoleEditor({ memberId, fullName, role }: { memberId: string; ful
 
   if (mode === "view") {
     return (
-      <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 20 }}>
-        <span style={{ fontSize: 14, flex: 1 }}>{role === "parent" ? "Parent" : "Adult"}</span>
-        <button type="button" className="btn btn-ghost" style={{ fontSize: 13 }} onClick={() => setMode("edit")}>
+      <div style={{ display: "flex", alignItems: "center", gap: "0.625rem", marginBottom: "1.25rem" }}>
+        <span style={{ fontSize: "0.875rem", flex: 1 }}>{role === "parent" ? "Parent" : "Adult"}</span>
+        <button type="button" className="btn btn-ghost" style={{ fontSize: "0.8125rem" }} onClick={() => setMode("edit")}>
           Edit
         </button>
       </div>
@@ -37,14 +37,14 @@ export function RoleEditor({ memberId, fullName, role }: { memberId: string; ful
   }
 
   return (
-    <div style={{ marginBottom: 20 }}>
-      <div style={{ display: "flex", gap: 8 }}>
+    <div style={{ marginBottom: "1.25rem" }}>
+      <div style={{ display: "flex", gap: "0.5rem" }}>
         <select
           className="input"
           aria-label={`Role for ${fullName}`}
           value={value}
           onChange={(e) => setValue(e.target.value as MemberRole)}
-          style={{ minHeight: 40, flex: 1 }}
+          style={{ minHeight: "2.5rem", flex: 1 }}
           disabled={busy}
         >
           <option value="adult">Adult</option>
@@ -53,7 +53,7 @@ export function RoleEditor({ memberId, fullName, role }: { memberId: string; ful
         <button
           type="button"
           className="btn btn-secondary"
-          style={{ minHeight: 40, fontSize: 13.5 }}
+          style={{ minHeight: "2.5rem", fontSize: "0.84375rem" }}
           disabled={busy}
           onClick={async () => {
             setBusy(true);
@@ -72,13 +72,13 @@ export function RoleEditor({ memberId, fullName, role }: { memberId: string; ful
       {/* Said here rather than in a confirm box, because it is the whole point
           of the setting and a person choosing should read it before saving,
           not after clicking. */}
-      <p style={{ fontSize: 12.5, color: "var(--color-neutral-600)", margin: "8px 0 0" }}>
+      <p style={{ fontSize: "0.78125rem", color: "var(--color-neutral-600)", margin: "8px 0 0" }}>
         A parent can see and add health records and documents marked “Parents only”. An adult can do everything else.
       </p>
       <button
         type="button"
         className="btn btn-ghost"
-        style={{ fontSize: 13, marginTop: 6 }}
+        style={{ fontSize: "0.8125rem", marginTop: "0.375rem" }}
         disabled={busy}
         onClick={() => {
           setValue(role === "parent" ? "parent" : "adult");
@@ -88,7 +88,7 @@ export function RoleEditor({ memberId, fullName, role }: { memberId: string; ful
       >
         Cancel
       </button>
-      {error && <p style={{ color: "var(--color-accent-700)", fontSize: 13, margin: "6px 0 0" }}>{error}</p>}
+      {error && <p style={{ color: "var(--color-accent-700)", fontSize: "0.8125rem", margin: "6px 0 0" }}>{error}</p>}
     </div>
   );
 }

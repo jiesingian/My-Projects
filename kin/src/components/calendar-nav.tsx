@@ -142,12 +142,12 @@ export function CalendarJump({
           minWidth: 0,
           display: "flex",
           alignItems: "center",
-          gap: 4,
+          gap: "0.25rem",
           background: "none",
           border: 0,
-          padding: "2px 0",
+          padding: "0.125rem 0",
           cursor: "pointer",
-          font: "600 20px/1.2 var(--font-heading)",
+          font: "600 1.25rem/1.2 var(--font-heading)",
           letterSpacing: "-0.02em",
           color: "var(--color-text)",
           textAlign: "left",
@@ -182,7 +182,7 @@ export function CalendarJump({
               borderTopLeftRadius: 22,
               borderTopRightRadius: 22,
               borderTop: "1px solid var(--glass-border)",
-              padding: "10px 20px calc(env(safe-area-inset-bottom, 0px) + 20px)",
+              padding: "0.625rem 1.25rem calc(env(safe-area-inset-bottom, 0px) + 1.25rem)",
               boxShadow: "var(--shadow-lg)",
             }}
           >
@@ -191,7 +191,7 @@ export function CalendarJump({
             {/* The month being shown, and the way through the years. The
                 title itself opens the twelve months, for a jump too far to
                 make with the arrows. */}
-            <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", marginBottom: "0.75rem" }}>
               <button
                 type="button"
                 className="btn btn-secondary btn-icon"
@@ -210,11 +210,11 @@ export function CalendarJump({
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
-                  gap: 5,
+                  gap: "0.3125rem",
                   background: "none",
                   border: 0,
                   cursor: "pointer",
-                  font: "600 19px/1 var(--font-heading)",
+                  font: "600 1.1875rem/1 var(--font-heading)",
                   color: "var(--color-text)",
                 }}
               >
@@ -238,16 +238,16 @@ export function CalendarJump({
 
             {picking === "days" ? (
               <>
-                <div style={{ display: "grid", gridTemplateColumns: "repeat(7, minmax(0, 1fr))", gap: 2, marginBottom: 2 }}>
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(7, minmax(0, 1fr))", gap: "0.125rem", marginBottom: "0.125rem" }}>
                   {weekdayInitials(weekStart).map((d, i) => (
-                    <div key={i} style={{ textAlign: "center", fontSize: 11, color: "var(--color-neutral-600)" }}>
+                    <div key={i} style={{ textAlign: "center", fontSize: "0.6875rem", color: "var(--color-neutral-600)" }}>
                       {d}
                     </div>
                   ))}
                 </div>
 
                 {/* Every day of the month, one tap each. */}
-                <div style={{ display: "grid", gridTemplateColumns: "repeat(7, minmax(0, 1fr))", gap: 2 }}>
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(7, minmax(0, 1fr))", gap: "0.125rem" }}>
                   {Array.from({ length: leadingBlanks }, (_, i) => (
                     <span key={`blank-${i}`} />
                   ))}
@@ -269,12 +269,12 @@ export function CalendarJump({
                         })}
                         aria-current={isSelected ? "date" : undefined}
                         style={{
-                          height: 40,
+                          height: "2.5rem",
                           borderRadius: 999,
                           border: 0,
                           cursor: "pointer",
                           fontFamily: "var(--font-body)",
-                          fontSize: 15.5,
+                          fontSize: "0.96875rem",
                           fontWeight: isSelected || isToday ? 600 : 400,
                           background: isSelected ? "var(--color-accent)" : "transparent",
                           color: isSelected ? "#fff" : isToday ? "var(--color-accent)" : "var(--color-text)",
@@ -288,7 +288,7 @@ export function CalendarJump({
                 </div>
               </>
             ) : (
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 6 }}>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: "0.375rem" }}>
                 {MONTHS.map((m, i) => {
                   const active = i === month && year === anchorYear;
                   return (
@@ -302,12 +302,12 @@ export function CalendarJump({
                         setPicking("days");
                       }}
                       style={{
-                        padding: "11px 0",
+                        padding: "0.6875rem 0",
                         borderRadius: 12,
                         border: 0,
                         cursor: "pointer",
                         fontFamily: "var(--font-body)",
-                        fontSize: 15,
+                        fontSize: "0.9375rem",
                         fontWeight: active ? 600 : 500,
                         background: active ? "var(--color-accent)" : "color-mix(in srgb, var(--color-text) 7%, transparent)",
                         color: active ? "#fff" : "var(--color-text)",
@@ -320,16 +320,16 @@ export function CalendarJump({
               </div>
             )}
 
-            <div style={{ display: "flex", gap: 8, marginTop: 14 }}>
+            <div style={{ display: "flex", gap: "0.5rem", marginTop: "0.875rem" }}>
               <button
                 type="button"
                 className="btn btn-primary"
-                style={{ flex: 1, minHeight: 44 }}
+                style={{ flex: 1, minHeight: "2.75rem" }}
                 onClick={() => go(familyDay())}
               >
                 Today
               </button>
-              <button type="button" className="btn btn-ghost" style={{ flex: 1, minHeight: 44 }} onClick={() => setOpen(false)}>
+              <button type="button" className="btn btn-ghost" style={{ flex: 1, minHeight: "2.75rem" }} onClick={() => setOpen(false)}>
                 Cancel
               </button>
             </div>
@@ -442,7 +442,7 @@ export function TodayButton({ hrefBase }: { hrefBase: string }) {
       href={`${hrefBase}${target}`}
       onClick={() => requestAnimationFrame(recentreCalendar)}
       className="btn btn-secondary"
-      style={{ minHeight: 34, fontSize: 13, padding: "0 12px" }}
+      style={{ minHeight: "2.125rem", fontSize: "0.8125rem", padding: "0 0.75rem" }}
     >
       Today
     </Link>

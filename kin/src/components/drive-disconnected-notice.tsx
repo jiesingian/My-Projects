@@ -11,7 +11,7 @@ import Link from "next/link";
  */
 export function DriveDisconnectedNotice() {
   return (
-    <div className="blueprint" style={{ padding: 10, marginBottom: 14, fontSize: 13 }}>
+    <div className="blueprint" style={{ padding: "0.625rem", marginBottom: "0.875rem", fontSize: "0.8125rem" }}>
       <span style={{ color: "var(--color-accent-700)" }}>Google Drive is no longer connected</span> — photos backed up
       there won&apos;t load until you reconnect.{" "}
       <Link href="/settings" style={{ textDecoration: "underline" }}>

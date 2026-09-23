@@ -10,8 +10,8 @@ function PersonCard({ person, highlight }: { person: TreePerson; highlight?: boo
       style={{
         display: "flex",
         alignItems: "center",
-        gap: 7,
-        padding: "5px 9px 5px 5px",
+        gap: "0.4375rem",
+        padding: "0.3125rem 0.5625rem 0.3125rem 0.3125rem",
         borderRadius: 20,
         background: highlight ? "var(--color-accent-100)" : "transparent",
         border: highlight ? "1px solid var(--color-accent-700)" : "1px solid transparent",
@@ -22,7 +22,7 @@ function PersonCard({ person, highlight }: { person: TreePerson; highlight?: boo
       <span style={{ minWidth: 0 }}>
         <span
           style={{
-            font: "600 12.5px/1.2 var(--font-heading)",
+            font: "600 0.78125rem/1.2 var(--font-heading)",
             display: "block",
             whiteSpace: "nowrap",
             overflow: "hidden",
@@ -31,7 +31,7 @@ function PersonCard({ person, highlight }: { person: TreePerson; highlight?: boo
         >
           {person.fullName}
         </span>
-        {year && <span style={{ fontSize: 10.5, color: "var(--color-neutral-600)" }}>b. {year}</span>}
+        {year && <span style={{ fontSize: "0.65625rem", color: "var(--color-neutral-600)" }}>b. {year}</span>}
       </span>
     </div>
   );
@@ -39,7 +39,7 @@ function PersonCard({ person, highlight }: { person: TreePerson; highlight?: boo
 
 function GenerationBand({ people, centerId }: { people: TreePerson[]; centerId?: string | null }) {
   return (
-    <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "center", gap: 4 }}>
+    <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "center", gap: "0.25rem" }}>
       {people.map((p) => (
         <PersonCard key={p.id} person={p} highlight={p.id === centerId} />
       ))}
@@ -58,7 +58,7 @@ function groupByDepth(entries: { person: TreePerson; depth: number }[]): Map<num
 
 function Half({ people, empty }: { people: TreePerson[]; empty?: string }) {
   if (people.length === 0) {
-    return empty ? <div style={{ fontSize: 12, color: "var(--color-neutral-500)", textAlign: "center", padding: "10px 0" }}>{empty}</div> : <div />;
+    return empty ? <div style={{ fontSize: "0.75rem", color: "var(--color-neutral-500)", textAlign: "center", padding: "0.625rem 0" }}>{empty}</div> : <div />;
   }
   return <GenerationBand people={people} />;
 }
@@ -88,7 +88,7 @@ export function FamilyTreeView({ tree }: { tree: FamilyTree }) {
 
   return (
     <div className="kin-treestack">
-      <Blueprint style={{ padding: "14px 10px" }}>
+      <Blueprint style={{ padding: "0.875rem 0.625rem" }}>
         <div className="kin-treegenlabels">
           <span>FATHER&apos;S SIDE</span>
           <span>MOTHER&apos;S SIDE</span>
@@ -104,18 +104,18 @@ export function FamilyTreeView({ tree }: { tree: FamilyTree }) {
         ))}
       </Blueprint>
       <div className="kin-treeconnector" />
-      <Blueprint className="bg-[var(--color-accent-100)]" style={{ padding: "14px 10px" }}>
+      <Blueprint className="bg-[var(--color-accent-100)]" style={{ padding: "0.875rem 0.625rem" }}>
         <GenerationBand people={tree.core} centerId={tree.centerId} />
         {tree.children.length > 0 && (
           <>
             <div className="kin-treeconnector" />
             <div
               style={{
-                font: "600 10px/1 var(--font-heading)",
+                font: "600 0.625rem/1 var(--font-heading)",
                 letterSpacing: ".06em",
                 color: "var(--color-neutral-600)",
                 textAlign: "center",
-                marginBottom: 6,
+                marginBottom: "0.375rem",
               }}
             >
               CHILDREN

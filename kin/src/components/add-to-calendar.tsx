@@ -49,7 +49,7 @@ export function AddToCalendar({ date }: { date: string }) {
         aria-haspopup="dialog"
         aria-expanded={open}
         className="btn btn-primary btn-block"
-        style={{ minHeight: 48, fontSize: 16, marginTop: 16 }}
+        style={{ minHeight: "3rem", fontSize: "1rem", marginTop: "1rem" }}
       >
         <Icon name="plus" size={17} /> Add to calendar
       </button>
@@ -73,12 +73,12 @@ export function AddToCalendar({ date }: { date: string }) {
               borderTopLeftRadius: 22,
               borderTopRightRadius: 22,
               borderTop: "1px solid var(--glass-border)",
-              padding: "10px 16px calc(env(safe-area-inset-bottom, 0px) + 16px)",
+              padding: "0.625rem 1rem calc(env(safe-area-inset-bottom, 0px) + 1rem)",
               boxShadow: "var(--shadow-lg)",
             }}
           >
             <div style={{ width: 36, height: 5, borderRadius: 999, background: "var(--color-neutral-400)", margin: "0 auto 12px" }} />
-            <div style={{ padding: "0 6px 10px", fontSize: 13, color: "var(--color-neutral-700)" }}>Add to {readable}</div>
+            <div style={{ padding: "0 0.375rem 0.625rem", fontSize: "0.8125rem", color: "var(--color-neutral-700)" }}>Add to {readable}</div>
 
             {destinations(date).map((dest) => {
               const style = CALENDAR_STYLE[dest.key];
@@ -87,7 +87,7 @@ export function AddToCalendar({ date }: { date: string }) {
                   key={dest.key}
                   href={dest.href}
                   onClick={() => setOpen(false)}
-                  style={{ display: "flex", alignItems: "center", gap: 12, padding: "11px 6px", textDecoration: "none", color: "inherit", borderRadius: 12 }}
+                  style={{ display: "flex", alignItems: "center", gap: "0.75rem", padding: "0.6875rem 0.375rem", textDecoration: "none", color: "inherit", borderRadius: 12 }}
                 >
                   <span
                     style={{
@@ -105,15 +105,15 @@ export function AddToCalendar({ date }: { date: string }) {
                     <Icon name={style.icon as IconName} size={18} />
                   </span>
                   <span style={{ flex: 1, minWidth: 0 }}>
-                    <span style={{ display: "block", fontSize: 16, fontWeight: 500 }}>{dest.label}</span>
-                    <span style={{ display: "block", fontSize: 13, color: "var(--color-neutral-700)" }}>{dest.note}</span>
+                    <span style={{ display: "block", fontSize: "1rem", fontWeight: 500 }}>{dest.label}</span>
+                    <span style={{ display: "block", fontSize: "0.8125rem", color: "var(--color-neutral-700)" }}>{dest.note}</span>
                   </span>
                   <Icon name="chevronLeft" size={15} style={{ transform: "rotate(180deg)", color: "var(--color-neutral-600)" }} />
                 </Link>
               );
             })}
 
-            <button type="button" className="btn btn-secondary btn-block" style={{ minHeight: 46, marginTop: 10 }} onClick={() => setOpen(false)}>
+            <button type="button" className="btn btn-secondary btn-block" style={{ minHeight: "2.875rem", marginTop: "0.625rem" }} onClick={() => setOpen(false)}>
               Cancel
             </button>
           </div>

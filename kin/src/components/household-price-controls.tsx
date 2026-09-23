@@ -55,31 +55,31 @@ export function PriceRowControl({
 
   if (!editing) {
     return (
-      <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "9px 0", borderTop: "1px solid var(--color-divider)" }}>
-        <span style={{ flex: 1, minWidth: 0, fontSize: 15 }}>{name}</span>
+      <div style={{ display: "flex", alignItems: "center", gap: "0.625rem", padding: "0.5625rem 0", borderTop: "1px solid var(--color-divider)" }}>
+        <span style={{ flex: 1, minWidth: 0, fontSize: "0.9375rem" }}>{name}</span>
         <button
           type="button"
           onClick={() => setEditing(true)}
           style={{
             display: "flex",
             alignItems: "center",
-            gap: 5,
+            gap: "0.3125rem",
             border: 0,
             background: "none",
             cursor: "pointer",
             fontFamily: "var(--font-body)",
-            fontSize: 15,
+            fontSize: "0.9375rem",
             color: "var(--color-text)",
-            padding: "4px 2px",
+            padding: "0.25rem 0.125rem",
           }}
           aria-label={`Edit the price of ${name}`}
         >
           <span style={{ fontWeight: source === "family" ? 600 : 400 }}>{peso(price)}</span>
-          <span style={{ fontSize: 12.5, color: "var(--color-neutral-600)" }}>/{unit}</span>
+          <span style={{ fontSize: "0.78125rem", color: "var(--color-neutral-600)" }}>/{unit}</span>
           {source === "starter" && (
             <span
               title="Kin's starting estimate — tap to set yours"
-              style={{ fontSize: 10.5, padding: "1px 5px", borderRadius: 999, background: "color-mix(in srgb, var(--color-text) 8%, transparent)", color: "var(--color-neutral-700)" }}
+              style={{ fontSize: "0.65625rem", padding: "0.0625rem 0.3125rem", borderRadius: 999, background: "color-mix(in srgb, var(--color-text) 8%, transparent)", color: "var(--color-neutral-700)" }}
             >
               est
             </span>
@@ -90,9 +90,9 @@ export function PriceRowControl({
   }
 
   return (
-    <div style={{ padding: "10px 0", borderTop: "1px solid var(--color-divider)" }}>
-      <div style={{ fontSize: 15, marginBottom: 7 }}>{name}</div>
-      <div style={{ display: "flex", gap: 6, flexWrap: "wrap", alignItems: "center" }}>
+    <div style={{ padding: "0.625rem 0", borderTop: "1px solid var(--color-divider)" }}>
+      <div style={{ fontSize: "0.9375rem", marginBottom: "0.4375rem" }}>{name}</div>
+      <div style={{ display: "flex", gap: "0.375rem", flexWrap: "wrap", alignItems: "center" }}>
         <input
           className="input"
           type="number"
@@ -101,11 +101,11 @@ export function PriceRowControl({
           inputMode="decimal"
           value={value}
           onChange={(ev) => setValue(ev.target.value)}
-          style={{ minHeight: 40, width: 110, fontSize: 15 }}
+          style={{ minHeight: "2.5rem", width: "6.875rem", fontSize: "0.9375rem" }}
           aria-label="Price"
           autoFocus
         />
-        <select className="input" value={unitValue} onChange={(ev) => setUnitValue(ev.target.value)} style={{ minHeight: 40, width: 96, fontSize: 14 }} aria-label="Unit">
+        <select className="input" value={unitValue} onChange={(ev) => setUnitValue(ev.target.value)} style={{ minHeight: "2.5rem", width: "6rem", fontSize: "0.875rem" }} aria-label="Unit">
           {[...new Set([unit, ...UNITS])].map((u) => (
             <option key={u} value={u}>
               {u}
@@ -115,7 +115,7 @@ export function PriceRowControl({
         <button
           type="button"
           className="btn btn-primary"
-          style={{ minHeight: 40, fontSize: 13, padding: "0 14px" }}
+          style={{ minHeight: "2.5rem", fontSize: "0.8125rem", padding: "0 0.875rem" }}
           disabled={pending}
           onClick={() =>
             run(async () => {
@@ -131,7 +131,7 @@ export function PriceRowControl({
           <button
             type="button"
             className="btn btn-ghost"
-            style={{ minHeight: 40, fontSize: 12.5, padding: "0 8px" }}
+            style={{ minHeight: "2.5rem", fontSize: "0.78125rem", padding: "0 0.5rem" }}
             disabled={pending}
             onClick={() =>
               run(async () => {
@@ -144,11 +144,11 @@ export function PriceRowControl({
             Use estimate
           </button>
         )}
-        <button type="button" className="btn btn-ghost" style={{ minHeight: 40, fontSize: 12.5, padding: "0 8px" }} onClick={() => setEditing(false)}>
+        <button type="button" className="btn btn-ghost" style={{ minHeight: "2.5rem", fontSize: "0.78125rem", padding: "0 0.5rem" }} onClick={() => setEditing(false)}>
           Cancel
         </button>
       </div>
-      {error && <div style={{ fontSize: 12.5, color: "var(--cal-occasion)", marginTop: 6 }}>{error}</div>}
+      {error && <div style={{ fontSize: "0.78125rem", color: "var(--cal-occasion)", marginTop: "0.375rem" }}>{error}</div>}
     </div>
   );
 }
@@ -164,18 +164,18 @@ export function AddPriceControl() {
 
   if (!open) {
     return (
-      <button type="button" className="btn btn-secondary btn-block" style={{ minHeight: 44, fontSize: 14, marginTop: 14 }} onClick={() => setOpen(true)}>
+      <button type="button" className="btn btn-secondary btn-block" style={{ minHeight: "2.75rem", fontSize: "0.875rem", marginTop: "0.875rem" }} onClick={() => setOpen(true)}>
         <Icon name="plus" size={15} /> Add an item to the price book
       </button>
     );
   }
 
   return (
-    <div style={{ marginTop: 14, padding: 13, borderRadius: 14, background: "color-mix(in srgb, var(--color-text) 4%, transparent)" }}>
-      <input className="input" placeholder="Item name" value={name} onChange={(e) => setName(e.target.value)} maxLength={150} style={{ minHeight: 42, marginBottom: 8 }} />
-      <div style={{ display: "flex", gap: 6, marginBottom: 8 }}>
-        <input className="input" type="number" step="0.01" min="0" inputMode="decimal" placeholder="Price" value={price} onChange={(e) => setPrice(e.target.value)} style={{ minHeight: 42, flex: 1 }} />
-        <select className="input" value={unit} onChange={(e) => setUnit(e.target.value)} style={{ minHeight: 42, width: 100 }}>
+    <div style={{ marginTop: "0.875rem", padding: "0.8125rem", borderRadius: 14, background: "color-mix(in srgb, var(--color-text) 4%, transparent)" }}>
+      <input className="input" placeholder="Item name" value={name} onChange={(e) => setName(e.target.value)} maxLength={150} style={{ minHeight: "2.625rem", marginBottom: "0.5rem" }} />
+      <div style={{ display: "flex", gap: "0.375rem", marginBottom: "0.5rem" }}>
+        <input className="input" type="number" step="0.01" min="0" inputMode="decimal" placeholder="Price" value={price} onChange={(e) => setPrice(e.target.value)} style={{ minHeight: "2.625rem", flex: 1 }} />
+        <select className="input" value={unit} onChange={(e) => setUnit(e.target.value)} style={{ minHeight: "2.625rem", width: 100 }}>
           {UNITS.map((u) => (
             <option key={u} value={u}>
               {u}
@@ -183,18 +183,18 @@ export function AddPriceControl() {
           ))}
         </select>
       </div>
-      <select className="input" value={section} onChange={(e) => setSection(e.target.value)} style={{ minHeight: 42, marginBottom: 10 }}>
+      <select className="input" value={section} onChange={(e) => setSection(e.target.value)} style={{ minHeight: "2.625rem", marginBottom: "0.625rem" }}>
         {MARKET_SECTIONS.map((s) => (
           <option key={s} value={s}>
             {s}
           </option>
         ))}
       </select>
-      <div style={{ display: "flex", gap: 6 }}>
+      <div style={{ display: "flex", gap: "0.375rem" }}>
         <button
           type="button"
           className="btn btn-primary"
-          style={{ flex: 1, minHeight: 42, fontSize: 14 }}
+          style={{ flex: 1, minHeight: "2.625rem", fontSize: "0.875rem" }}
           disabled={pending || !name.trim() || price === ""}
           onClick={() =>
             run(async () => {
@@ -210,11 +210,11 @@ export function AddPriceControl() {
         >
           Save
         </button>
-        <button type="button" className="btn btn-ghost" style={{ minHeight: 42, fontSize: 13, padding: "0 12px" }} onClick={() => setOpen(false)}>
+        <button type="button" className="btn btn-ghost" style={{ minHeight: "2.625rem", fontSize: "0.8125rem", padding: "0 0.75rem" }} onClick={() => setOpen(false)}>
           Cancel
         </button>
       </div>
-      {error && <div style={{ fontSize: 12.5, color: "var(--cal-occasion)", marginTop: 6 }}>{error}</div>}
+      {error && <div style={{ fontSize: "0.78125rem", color: "var(--cal-occasion)", marginTop: "0.375rem" }}>{error}</div>}
     </div>
   );
 }
@@ -248,10 +248,10 @@ export function BuyItemPriceButton({
         borderRadius: 8,
         cursor: "pointer",
         // A comfortable target, rather than the width of four characters.
-        padding: "6px 8px",
+        padding: "0.375rem 0.5rem",
         margin: "-6px 0",
         fontFamily: "var(--font-body)",
-        fontSize: 13.5,
+        fontSize: "0.84375rem",
         color: estimated == null ? "var(--color-accent)" : "var(--color-neutral-700)",
         fontWeight: source === "override" ? 600 : 400,
       }}
@@ -282,7 +282,7 @@ export function BuyItemPriceEditor({
     });
 
   return (
-    <div style={{ display: "flex", gap: 6, alignItems: "center", padding: "0 0 10px 35px" }}>
+    <div style={{ display: "flex", gap: "0.375rem", alignItems: "center", padding: "0 0 0.625rem 2.1875rem" }}>
       <input
         className="input"
         type="number"
@@ -292,18 +292,18 @@ export function BuyItemPriceEditor({
         value={value}
         onChange={(e) => setValue(e.target.value)}
         onKeyDown={(e) => e.key === "Enter" && save()}
-        style={{ minHeight: 38, flex: 1, minWidth: 0, fontSize: 14 }}
+        style={{ minHeight: "2.375rem", flex: 1, minWidth: 0, fontSize: "0.875rem" }}
         aria-label="Price for this line"
         placeholder="What it costs today"
         autoFocus
       />
-      <button type="button" className="btn btn-primary" style={{ minHeight: 38, fontSize: 13, padding: "0 12px" }} disabled={pending} onClick={save}>
+      <button type="button" className="btn btn-primary" style={{ minHeight: "2.375rem", fontSize: "0.8125rem", padding: "0 0.75rem" }} disabled={pending} onClick={save}>
         {pending ? "…" : "Set"}
       </button>
-      <button type="button" className="btn btn-ghost" style={{ minHeight: 38, fontSize: 12.5, padding: "0 8px" }} onClick={onClose}>
+      <button type="button" className="btn btn-ghost" style={{ minHeight: "2.375rem", fontSize: "0.78125rem", padding: "0 0.5rem" }} onClick={onClose}>
         Cancel
       </button>
-      {error && <span style={{ fontSize: 12, color: "var(--cal-occasion)" }}>{error}</span>}
+      {error && <span style={{ fontSize: "0.75rem", color: "var(--cal-occasion)" }}>{error}</span>}
     </div>
   );
 }
@@ -315,20 +315,20 @@ export function PantryControls({ items }: { items: { item_key: string; name: str
 
   return (
     <div>
-      <div style={{ display: "flex", gap: 6, marginBottom: 10 }}>
+      <div style={{ display: "flex", gap: "0.375rem", marginBottom: "0.625rem" }}>
         <input
           className="input"
           placeholder="Rice, cooking oil, soy sauce…"
           value={name}
           onChange={(e) => setName(e.target.value)}
           maxLength={150}
-          style={{ minHeight: 42, flex: 1 }}
+          style={{ minHeight: "2.625rem", flex: 1 }}
           aria-label="Something already in the house"
         />
         <button
           type="button"
           className="btn btn-primary"
-          style={{ minHeight: 42, fontSize: 14, padding: "0 14px" }}
+          style={{ minHeight: "2.625rem", fontSize: "0.875rem", padding: "0 0.875rem" }}
           disabled={pending || !name.trim()}
           onClick={() =>
             run(async () => {
@@ -342,22 +342,22 @@ export function PantryControls({ items }: { items: { item_key: string; name: str
         </button>
       </div>
       {items.length === 0 ? (
-        <p style={{ fontSize: 13.5, color: "var(--color-neutral-600)", margin: 0 }}>
+        <p style={{ fontSize: "0.84375rem", color: "var(--color-neutral-600)", margin: 0 }}>
           Nothing listed yet. Whatever is in here is skipped when a shopping list is built from the week&rsquo;s meals.
         </p>
       ) : (
-        <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+        <div style={{ display: "flex", flexWrap: "wrap", gap: "0.375rem" }}>
           {items.map((it) => (
             <span
               key={it.item_key}
               style={{
                 display: "inline-flex",
                 alignItems: "center",
-                gap: 6,
-                minHeight: 32,
-                padding: "0 6px 0 12px",
+                gap: "0.375rem",
+                minHeight: "2rem",
+                padding: "0 0.375rem 0 0.75rem",
                 borderRadius: 999,
-                fontSize: 13,
+                fontSize: "0.8125rem",
                 background: "color-mix(in srgb, var(--color-switch-on) 15%, transparent)",
               }}
             >
@@ -367,7 +367,7 @@ export function PantryControls({ items }: { items: { item_key: string; name: str
                 onClick={() => run(() => removePantryItemAction(it.item_key))}
                 disabled={pending}
                 aria-label={`Remove ${it.name} from the pantry`}
-                style={{ border: 0, background: "none", cursor: "pointer", padding: 4, display: "flex", color: "var(--color-neutral-700)" }}
+                style={{ border: 0, background: "none", cursor: "pointer", padding: "0.25rem", display: "flex", color: "var(--color-neutral-700)" }}
               >
                 <Icon name="x" size={12} />
               </button>
@@ -375,7 +375,7 @@ export function PantryControls({ items }: { items: { item_key: string; name: str
           ))}
         </div>
       )}
-      {error && <div style={{ fontSize: 12.5, color: "var(--cal-occasion)", marginTop: 6 }}>{error}</div>}
+      {error && <div style={{ fontSize: "0.78125rem", color: "var(--cal-occasion)", marginTop: "0.375rem" }}>{error}</div>}
     </div>
   );
 }

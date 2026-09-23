@@ -13,8 +13,8 @@ export default async function TransactPage({ searchParams }: { searchParams: Pro
   return (
     <div>
       <DetailHeader backHref="/wealth" eyebrow="HUB 05 · MOVE MONEY" />
-      <div style={{ padding: "0 22px 22px" }}>
-        <h3 style={{ fontSize: 32, margin: "0 0 14px" }}>Move money</h3>
+      <div style={{ padding: "0 1.375rem 1.375rem" }}>
+        <h3 style={{ fontSize: "2rem", margin: "0 0 14px" }}>Move money</h3>
         <TransactForm
           accounts={accounts.map((a) => ({
             id: a.id,

@@ -168,7 +168,7 @@ export function AppLinksField({
   const looksLikeAppScheme = !!appUrl.trim() && !/^https?:\/\//i.test(appUrl.trim());
 
   const appStoreField = (
-    <div key="app-store" className="field" style={{ flex: 1, marginBottom: 10 }}>
+    <div key="app-store" className="field" style={{ flex: 1, marginBottom: "0.625rem" }}>
       <label htmlFor={storeId}>APP STORE LINK (iPHONE){showBothStores && kind === "ios" ? " — your phone" : ""}</label>
       <input
         id={storeId}
@@ -177,12 +177,12 @@ export function AppLinksField({
         value={appStoreUrl}
         onChange={(e) => setAppStoreUrl(e.target.value)}
         placeholder="https://apps.apple.com/…"
-        style={{ minHeight: 42 }}
+        style={{ minHeight: "2.625rem" }}
       />
     </div>
   );
   const playStoreField = (
-    <div key="play-store" className="field" style={{ flex: 1, marginBottom: 10 }}>
+    <div key="play-store" className="field" style={{ flex: 1, marginBottom: "0.625rem" }}>
       <label htmlFor={playId}>PLAY STORE LINK (ANDROID){showBothStores && kind === "android" ? " — your phone" : ""}</label>
       <input
         id={playId}
@@ -191,7 +191,7 @@ export function AppLinksField({
         value={playStoreUrl}
         onChange={(e) => setPlayStoreUrl(e.target.value)}
         placeholder="https://play.google.com/…"
-        style={{ minHeight: 42 }}
+        style={{ minHeight: "2.625rem" }}
       />
     </div>
   );
@@ -206,15 +206,15 @@ export function AppLinksField({
   if (accountType === "cash") return null;
 
   return (
-    <div style={{ marginBottom: 4 }}>
-      <div className="field" style={{ marginBottom: 10 }}>
+    <div style={{ marginBottom: "0.25rem" }}>
+      <div className="field" style={{ marginBottom: "0.625rem" }}>
         <label htmlFor={institutionId}>{institutionFieldLabel}</label>
         <select
           id={institutionId}
           className="input"
           value={selected}
           onChange={(e) => selectInstitution(e.target.value)}
-          style={{ minHeight: 42 }}
+          style={{ minHeight: "2.625rem" }}
         >
           <option value="">— select —</option>
           {availableApps.map((app) => (
@@ -232,20 +232,20 @@ export function AppLinksField({
             value={customInstitution}
             onChange={(e) => setCustomInstitution(e.target.value)}
             placeholder="e.g. Maya, UnionBank"
-            style={{ minHeight: 42, marginTop: 8 }}
+            style={{ minHeight: "2.625rem", marginTop: "0.5rem" }}
           />
         )}
         {selected !== "other" && <input type="hidden" name="institution" value={selected} />}
-        <p style={{ fontSize: 12.5, color: "var(--color-neutral-600)", margin: "6px 0 0" }}>
+        <p style={{ fontSize: "0.78125rem", color: "var(--color-neutral-600)", margin: "6px 0 0" }}>
           {accountType === "bank" || accountType === "ewallet"
             ? `Narrowed to ${accountType === "bank" ? "banks" : "e-wallets"} — picking one resolves LINK APP below automatically, verified against its own store listing. Anything else: pick Other and type the name.`
             : "Choosing a known name resolves LINK APP below automatically, verified against its own store listing — nothing else to fill in. Anything else: pick Other and type the name."}
         </p>
       </div>
 
-      <div className="field" style={{ marginBottom: 10 }}>
+      <div className="field" style={{ marginBottom: "0.625rem" }}>
         <label htmlFor={appId}>LINK APP</label>
-        <div style={{ display: "flex", gap: 8 }}>
+        <div style={{ display: "flex", gap: "0.5rem" }}>
           <input
             id={appId}
             className="input"
@@ -256,13 +256,13 @@ export function AppLinksField({
               setTested(false);
             }}
             placeholder={kind === "other" ? "https://www.yourbank.com" : "gcash://"}
-            style={{ minHeight: 42, flex: 1 }}
+            style={{ minHeight: "2.625rem", flex: 1 }}
           />
           <button
             type="button"
             className="btn btn-secondary"
             disabled={!appUrl.trim()}
-            style={{ minHeight: 42, fontSize: 12.5, padding: "0 12px", whiteSpace: "nowrap" }}
+            style={{ minHeight: "2.625rem", fontSize: "0.78125rem", padding: "0 0.75rem", whiteSpace: "nowrap" }}
             onClick={test}
           >
             TEST
@@ -273,12 +273,12 @@ export function AppLinksField({
             computer to catch it -- a plain https:// link (a store page, a
             website) opens fine anywhere, so don't warn about those. */}
         {tested && kind === "other" && looksLikeAppScheme && (
-          <p style={{ fontSize: 12.5, color: "var(--color-accent-700)", margin: "6px 0 0" }}>
+          <p style={{ fontSize: "0.78125rem", color: "var(--color-accent-700)", margin: "6px 0 0" }}>
             That likely opened a blank tab — this is a computer, and the app isn&rsquo;t installed here to catch
             the link. Open Kin on your phone and try TEST there to see it actually launch the app.
           </p>
         )}
-        <p style={{ fontSize: 12.5, color: "var(--color-neutral-600)", margin: "6px 0 0" }}>
+        <p style={{ fontSize: "0.78125rem", color: "var(--color-neutral-600)", margin: "6px 0 0" }}>
           {isKnownInstitution
             ? "Resolved automatically for this bank or wallet — nothing to fill in below."
             : kind === "other"
@@ -296,7 +296,7 @@ export function AppLinksField({
       {showStoreFields && (
         <>
           {showBothStores ? (
-            <div style={{ display: "flex", gap: 10 }}>
+            <div style={{ display: "flex", gap: "0.625rem" }}>
               {kind === "android" ? [playStoreField, appStoreField] : [appStoreField, playStoreField]}
             </div>
           ) : (
@@ -307,12 +307,12 @@ export function AppLinksField({
               type="button"
               className="btn btn-secondary"
               onClick={() => setShowOtherStore(true)}
-              style={{ minHeight: 36, fontSize: 12.5, padding: "0 12px", marginTop: -4, marginBottom: 10 }}
+              style={{ minHeight: "2.25rem", fontSize: "0.78125rem", padding: "0 0.75rem", marginTop: -4, marginBottom: "0.625rem" }}
             >
               + Also add the {otherStoreLabel} link, for other phones in the household
             </button>
           )}
-          <p style={{ fontSize: 12.5, color: "var(--color-neutral-600)", margin: "-4px 0 0" }}>
+          <p style={{ fontSize: "0.78125rem", color: "var(--color-neutral-600)", margin: "-4px 0 0" }}>
             {showBothStores
               ? kind === "other"
                 ? "Where to get the app if it isn’t installed yet — paste the link from each store’s own Share button. Optional, and independent of each other: fill in whichever stores apply. Kin opens the right one for whoever’s phone it is when they don’t have the app yet."
@@ -335,7 +335,7 @@ export function AddAccountForm({ isJoint }: { isJoint: boolean }) {
       <button
         type="button"
         className="btn btn-primary btn-block"
-        style={{ minHeight: 46, fontSize: 14, letterSpacing: ".04em", marginTop: 18 }}
+        style={{ minHeight: "2.875rem", fontSize: "0.875rem", letterSpacing: ".04em", marginTop: "1.125rem" }}
         onClick={() => setOpen(true)}
       >
         + ADD ACCOUNT
@@ -344,11 +344,11 @@ export function AddAccountForm({ isJoint }: { isJoint: boolean }) {
   }
 
   return (
-    <form action={formAction} style={{ marginTop: 18, borderTop: "1px solid var(--color-divider)", paddingTop: 16 }}>
+    <form action={formAction} style={{ marginTop: "1.125rem", borderTop: "1px solid var(--color-divider)", paddingTop: "1rem" }}>
       <input type="hidden" name="is_joint" value={isJoint ? "on" : ""} />
       <ErrorText message={state.error} />
       <Labelled label="ACCOUNT NAME">
-        <input className="input" name="name" required placeholder="Everyday savings" style={{ minHeight: 42 }} />
+        <input className="input" name="name" required placeholder="Everyday savings" style={{ minHeight: "2.625rem" }} />
       </Labelled>
       <Labelled label="TYPE">
         <select
@@ -356,7 +356,7 @@ export function AddAccountForm({ isJoint }: { isJoint: boolean }) {
           name="account_type"
           value={accountType}
           onChange={(e) => setAccountType(e.target.value as AccountType)}
-          style={{ minHeight: 42 }}
+          style={{ minHeight: "2.625rem" }}
         >
           {ACCOUNT_TYPES.map((t) => (
             <option key={t} value={t}>
@@ -365,20 +365,20 @@ export function AddAccountForm({ isJoint }: { isJoint: boolean }) {
           ))}
         </select>
       </Labelled>
-      <div style={{ marginBottom: 12 }}>
+      <div style={{ marginBottom: "0.75rem" }}>
         <AppLinksField accountType={accountType} />
       </div>
       <Labelled label="OPENING BALANCE (₱)">
-        <input className="input" type="number" step="0.01" name="opening_balance" defaultValue={0} style={{ minHeight: 42 }} />
+        <input className="input" type="number" step="0.01" name="opening_balance" defaultValue={0} style={{ minHeight: "2.625rem" }} />
       </Labelled>
       <Labelled label="NOTE">
-        <input className="input" name="sub_note" placeholder="Salary account" style={{ minHeight: 42 }} />
+        <input className="input" name="sub_note" placeholder="Salary account" style={{ minHeight: "2.625rem" }} />
       </Labelled>
-      <div style={{ display: "flex", gap: 10 }}>
-        <SubmitButton className="btn btn-primary" style={{ flex: 1, minHeight: 42, fontSize: 14 }}>
+      <div style={{ display: "flex", gap: "0.625rem" }}>
+        <SubmitButton className="btn btn-primary" style={{ flex: 1, minHeight: "2.625rem", fontSize: "0.875rem" }}>
           SAVE ACCOUNT
         </SubmitButton>
-        <button type="button" className="btn btn-secondary" style={{ flex: 1, minHeight: 42, fontSize: 14 }} onClick={() => setOpen(false)}>
+        <button type="button" className="btn btn-secondary" style={{ flex: 1, minHeight: "2.625rem", fontSize: "0.875rem" }} onClick={() => setOpen(false)}>
           CANCEL
         </button>
       </div>
@@ -400,7 +400,7 @@ export function AddBillForm() {
       <button
         type="button"
         className="btn btn-primary btn-block"
-        style={{ minHeight: 46, fontSize: 14, letterSpacing: ".04em", marginTop: 18 }}
+        style={{ minHeight: "2.875rem", fontSize: "0.875rem", letterSpacing: ".04em", marginTop: "1.125rem" }}
         onClick={() => setOpen(true)}
       >
         + ADD EXPENSE
@@ -409,22 +409,22 @@ export function AddBillForm() {
   }
 
   return (
-    <form action={formAction} style={{ marginTop: 18, borderTop: "1px solid var(--color-divider)", paddingTop: 16 }}>
+    <form action={formAction} style={{ marginTop: "1.125rem", borderTop: "1px solid var(--color-divider)", paddingTop: "1rem" }}>
       <ErrorText message={state.error} />
       <Labelled label="EXPENSE">
-        <input className="input" name="name" required placeholder="Meralco, groceries, mortgage…" style={{ minHeight: 42 }} />
+        <input className="input" name="name" required placeholder="Meralco, groceries, mortgage…" style={{ minHeight: "2.625rem" }} />
       </Labelled>
-      <div style={{ display: "flex", gap: 10 }}>
+      <div style={{ display: "flex", gap: "0.625rem" }}>
         <Labelled label="AMOUNT (₱)" style={{ flex: 1 }}>
-          <input className="input" type="number" step="0.01" min="0" name="amount" required style={{ minHeight: 42 }} />
+          <input className="input" type="number" step="0.01" min="0" name="amount" required style={{ minHeight: "2.625rem" }} />
         </Labelled>
         <Labelled label="DUE" style={{ flex: 1 }}>
-          <DateInput className="input" name="due_date" style={{ minHeight: 42 }} />
+          <DateInput className="input" name="due_date" style={{ minHeight: "2.625rem" }} />
         </Labelled>
       </div>
-      <div style={{ display: "flex", gap: 10 }}>
+      <div style={{ display: "flex", gap: "0.625rem" }}>
         <Labelled label="CATEGORY" style={{ flex: 1 }}>
-          <select className="input" name="category" defaultValue="Utilities" style={{ minHeight: 42 }}>
+          <select className="input" name="category" defaultValue="Utilities" style={{ minHeight: "2.625rem" }}>
             {EXPENSE_CATEGORIES.map((c) => (
               <option key={c} value={c}>
                 {c}
@@ -433,7 +433,7 @@ export function AddBillForm() {
           </select>
         </Labelled>
         <Labelled label="REPEATS" style={{ flex: 1 }}>
-          <select className="input" name="recurrence" defaultValue="monthly" style={{ minHeight: 42 }}>
+          <select className="input" name="recurrence" defaultValue="monthly" style={{ minHeight: "2.625rem" }}>
             <option value="monthly">Monthly</option>
             <option value="quarterly">Quarterly</option>
             <option value="yearly">Yearly</option>
@@ -441,11 +441,11 @@ export function AddBillForm() {
           </select>
         </Labelled>
       </div>
-      <div style={{ display: "flex", gap: 10 }}>
-        <SubmitButton className="btn btn-primary" style={{ flex: 1, minHeight: 42, fontSize: 14 }}>
+      <div style={{ display: "flex", gap: "0.625rem" }}>
+        <SubmitButton className="btn btn-primary" style={{ flex: 1, minHeight: "2.625rem", fontSize: "0.875rem" }}>
           SAVE EXPENSE
         </SubmitButton>
-        <button type="button" className="btn btn-secondary" style={{ flex: 1, minHeight: 42, fontSize: 14 }} onClick={() => setOpen(false)}>
+        <button type="button" className="btn btn-secondary" style={{ flex: 1, minHeight: "2.625rem", fontSize: "0.875rem" }} onClick={() => setOpen(false)}>
           CANCEL
         </button>
       </div>
@@ -462,7 +462,7 @@ export function AddIncomeScheduleForm({ accounts }: { accounts: { id: string; na
       <button
         type="button"
         className="btn btn-primary btn-block"
-        style={{ minHeight: 46, fontSize: 14, letterSpacing: ".04em", marginTop: 18 }}
+        style={{ minHeight: "2.875rem", fontSize: "0.875rem", letterSpacing: ".04em", marginTop: "1.125rem" }}
         onClick={() => setOpen(true)}
       >
         + ADD INCOME
@@ -471,22 +471,22 @@ export function AddIncomeScheduleForm({ accounts }: { accounts: { id: string; na
   }
 
   return (
-    <form action={formAction} style={{ marginTop: 18, borderTop: "1px solid var(--color-divider)", paddingTop: 16 }}>
+    <form action={formAction} style={{ marginTop: "1.125rem", borderTop: "1px solid var(--color-divider)", paddingTop: "1rem" }}>
       <ErrorText message={state.error} />
       <Labelled label="SOURCE">
-        <input className="input" name="name" required placeholder="Salary" style={{ minHeight: 42 }} />
+        <input className="input" name="name" required placeholder="Salary" style={{ minHeight: "2.625rem" }} />
       </Labelled>
-      <div style={{ display: "flex", gap: 10 }}>
+      <div style={{ display: "flex", gap: "0.625rem" }}>
         <Labelled label="AMOUNT (₱)" style={{ flex: 1 }}>
-          <input className="input" type="number" step="0.01" min="0" name="amount" required style={{ minHeight: 42 }} />
+          <input className="input" type="number" step="0.01" min="0" name="amount" required style={{ minHeight: "2.625rem" }} />
         </Labelled>
         <Labelled label="EXPECTED" style={{ flex: 1 }}>
-          <DateInput className="input" name="next_date" style={{ minHeight: 42 }} />
+          <DateInput className="input" name="next_date" style={{ minHeight: "2.625rem" }} />
         </Labelled>
       </div>
-      <div style={{ display: "flex", gap: 10 }}>
+      <div style={{ display: "flex", gap: "0.625rem" }}>
         <Labelled label="CATEGORY" style={{ flex: 1 }}>
-          <select className="input" name="category" defaultValue="Salary" style={{ minHeight: 42 }}>
+          <select className="input" name="category" defaultValue="Salary" style={{ minHeight: "2.625rem" }}>
             {INCOME_SOURCES.map((c) => (
               <option key={c} value={c}>
                 {c}
@@ -495,7 +495,7 @@ export function AddIncomeScheduleForm({ accounts }: { accounts: { id: string; na
           </select>
         </Labelled>
         <Labelled label="REPEATS" style={{ flex: 1 }}>
-          <select className="input" name="recurrence" defaultValue="monthly" style={{ minHeight: 42 }}>
+          <select className="input" name="recurrence" defaultValue="monthly" style={{ minHeight: "2.625rem" }}>
             <option value="monthly">Monthly</option>
             <option value="quarterly">Quarterly</option>
             <option value="yearly">Yearly</option>
@@ -505,7 +505,7 @@ export function AddIncomeScheduleForm({ accounts }: { accounts: { id: string; na
       </div>
       {accounts.length > 0 && (
         <Labelled label="USUALLY LANDS IN">
-          <select className="input" name="account_id" defaultValue="" style={{ minHeight: 42 }}>
+          <select className="input" name="account_id" defaultValue="" style={{ minHeight: "2.625rem" }}>
             <option value="">Not decided yet</option>
             {accounts.map((a) => (
               <option key={a.id} value={a.id}>
@@ -515,15 +515,15 @@ export function AddIncomeScheduleForm({ accounts }: { accounts: { id: string; na
           </select>
         </Labelled>
       )}
-      <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, color: "var(--color-neutral-700)", margin: "2px 0 12px" }}>
+      <label style={{ display: "flex", alignItems: "center", gap: "0.5rem", fontSize: "0.8125rem", color: "var(--color-neutral-700)", margin: "2px 0 12px" }}>
         <input type="checkbox" name="is_joint" defaultChecked />
         Household income, not just mine
       </label>
-      <div style={{ display: "flex", gap: 10 }}>
-        <SubmitButton className="btn btn-primary" style={{ flex: 1, minHeight: 42, fontSize: 14 }}>
+      <div style={{ display: "flex", gap: "0.625rem" }}>
+        <SubmitButton className="btn btn-primary" style={{ flex: 1, minHeight: "2.625rem", fontSize: "0.875rem" }}>
           SAVE
         </SubmitButton>
-        <button type="button" className="btn btn-secondary" style={{ flex: 1, minHeight: 42, fontSize: 14 }} onClick={() => setOpen(false)}>
+        <button type="button" className="btn btn-secondary" style={{ flex: 1, minHeight: "2.625rem", fontSize: "0.875rem" }} onClick={() => setOpen(false)}>
           CANCEL
         </button>
       </div>
@@ -536,13 +536,13 @@ export function SetBudgetControl({ month, year, current }: { month: number; year
   const [pending, startTransition] = useTransition();
   const [failed, setFailed] = useState<string | null>(null);
   return (
-    <div style={{ display: "flex", gap: 8, marginBottom: 16 }}>
-      <input className="input" type="number" value={value} onChange={(e) => setValue(Number(e.target.value))} style={{ minHeight: 40 }} />
+    <div style={{ display: "flex", gap: "0.5rem", marginBottom: "1rem" }}>
+      <input className="input" type="number" value={value} onChange={(e) => setValue(Number(e.target.value))} style={{ minHeight: "2.5rem" }} />
       <button
         type="button"
         className="btn btn-secondary"
         disabled={pending}
-        style={{ minHeight: 40, fontSize: 13.5, whiteSpace: "nowrap" }}
+        style={{ minHeight: "2.5rem", fontSize: "0.84375rem", whiteSpace: "nowrap" }}
         onClick={() =>
           startTransition(async () => {
             const { error } = await setJointBudgetAction(month, year, value);
@@ -555,7 +555,7 @@ export function SetBudgetControl({ month, year, current }: { month: number; year
       {/* This used to fail by going quiet, which is exactly what it did when
           it succeeded. */}
       {failed && (
-        <p role="alert" style={{ fontSize: 13, color: "var(--color-accent-700)", alignSelf: "center" }}>
+        <p role="alert" style={{ fontSize: "0.8125rem", color: "var(--color-accent-700)", alignSelf: "center" }}>
           {failed}
         </p>
       )}
@@ -568,13 +568,13 @@ export function SetTargetControl({ month, year, current }: { month: number; year
   const [pending, startTransition] = useTransition();
   const [failed, setFailed] = useState<string | null>(null);
   return (
-    <div style={{ display: "flex", gap: 8, marginBottom: 16 }}>
-      <input className="input" type="number" value={value} onChange={(e) => setValue(Number(e.target.value))} style={{ minHeight: 40 }} />
+    <div style={{ display: "flex", gap: "0.5rem", marginBottom: "1rem" }}>
+      <input className="input" type="number" value={value} onChange={(e) => setValue(Number(e.target.value))} style={{ minHeight: "2.5rem" }} />
       <button
         type="button"
         className="btn btn-secondary"
         disabled={pending}
-        style={{ minHeight: 40, fontSize: 13.5, whiteSpace: "nowrap" }}
+        style={{ minHeight: "2.5rem", fontSize: "0.84375rem", whiteSpace: "nowrap" }}
         onClick={() =>
           startTransition(async () => {
             const { error } = await setWealthTargetAction(month, year, value);
@@ -587,7 +587,7 @@ export function SetTargetControl({ month, year, current }: { month: number; year
       {/* This used to fail by going quiet, which is exactly what it did when
           it succeeded. */}
       {failed && (
-        <p role="alert" style={{ fontSize: 13, color: "var(--color-accent-700)", alignSelf: "center" }}>
+        <p role="alert" style={{ fontSize: "0.8125rem", color: "var(--color-accent-700)", alignSelf: "center" }}>
           {failed}
         </p>
       )}
@@ -606,27 +606,27 @@ export function AllocationEditor({ budgeted }: { budgeted: string[] }) {
 
   if (!open) {
     return (
-      <button type="button" className="btn btn-secondary btn-block" style={{ minHeight: 40, fontSize: 13.5, marginBottom: 18 }} onClick={() => setOpen(true)}>
+      <button type="button" className="btn btn-secondary btn-block" style={{ minHeight: "2.5rem", fontSize: "0.84375rem", marginBottom: "1.125rem" }} onClick={() => setOpen(true)}>
         SET A CATEGORY BUDGET
       </button>
     );
   }
 
   return (
-    <div style={{ display: "flex", gap: 8, marginBottom: 18 }}>
-      <select className="input" value={category} onChange={(e) => setCategory(e.target.value)} style={{ minHeight: 40, flex: 1 }}>
+    <div style={{ display: "flex", gap: "0.5rem", marginBottom: "1.125rem" }}>
+      <select className="input" value={category} onChange={(e) => setCategory(e.target.value)} style={{ minHeight: "2.5rem", flex: 1 }}>
         {EXPENSE_CATEGORIES.map((c) => (
           <option key={c} value={c}>
             {c}
           </option>
         ))}
       </select>
-      <input className="input" type="number" value={amount} onChange={(e) => setAmount(Number(e.target.value))} style={{ minHeight: 40, width: 96 }} />
+      <input className="input" type="number" value={amount} onChange={(e) => setAmount(Number(e.target.value))} style={{ minHeight: "2.5rem", width: 96 }} />
       <button
         type="button"
         className="btn btn-primary"
         disabled={pending}
-        style={{ minHeight: 40, fontSize: 13.5 }}
+        style={{ minHeight: "2.5rem", fontSize: "0.84375rem" }}
         onClick={() =>
           startTransition(async () => {
             await setAllocationAction({ category, amount });
@@ -649,7 +649,7 @@ export function AllocationEditor({ budgeted }: { budgeted: string[] }) {
 function Labelled({ label, children, style }: { label: string; children: React.ReactNode; style?: React.CSSProperties }) {
   const id = useId();
   return (
-    <div className="field" style={{ marginBottom: 12, ...style }}>
+    <div className="field" style={{ marginBottom: "0.75rem", ...style }}>
       <label htmlFor={id}>{label}</label>
       {isValidElement<{ id?: string }>(children) ? cloneElement(children, { id }) : children}
     </div>

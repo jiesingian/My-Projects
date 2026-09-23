@@ -8,11 +8,11 @@ export function AddToJournalButton({ activityId }: { activityId: string }) {
   const [failed, setFailed] = useState<string | null>(null);
 
   return (
-    <div style={{ marginTop: 8 }}>
+    <div style={{ marginTop: "0.5rem" }}>
       <button
         type="button"
         className="btn btn-secondary"
-        style={{ fontSize: 13 }}
+        style={{ fontSize: "0.8125rem" }}
         disabled={pending}
         onClick={() =>
           startTransition(async () => {
@@ -26,7 +26,7 @@ export function AddToJournalButton({ activityId }: { activityId: string }) {
       {/* Without this the button reported success by going quiet, which is the
           same thing it did when the write failed. */}
       {failed && (
-        <p role="alert" style={{ fontSize: 13, color: "var(--color-accent-700)", marginTop: 6 }}>
+        <p role="alert" style={{ fontSize: "0.8125rem", color: "var(--color-accent-700)", marginTop: "0.375rem" }}>
           {failed}
         </p>
       )}

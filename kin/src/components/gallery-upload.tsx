@@ -53,16 +53,16 @@ export function GalleryUpload() {
   }
 
   return (
-    <div style={{ marginBottom: 14 }}>
-      <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
-        <input aria-label="Choose photos and videos to upload" ref={inputRef} type="file" name="files" multiple accept="image/*,video/*" style={{ flex: 1, fontSize: 13.5 }} onChange={onFilesChosen} disabled={status.uploading} />
-        <button type="button" className="btn btn-primary" style={{ minHeight: 40, fontSize: 13.5 }} onClick={onUpload} disabled={status.uploading || previews.length === 0}>
+    <div style={{ marginBottom: "0.875rem" }}>
+      <div style={{ display: "flex", gap: "0.625rem", alignItems: "center" }}>
+        <input aria-label="Choose photos and videos to upload" ref={inputRef} type="file" name="files" multiple accept="image/*,video/*" style={{ flex: 1, fontSize: "0.84375rem" }} onChange={onFilesChosen} disabled={status.uploading} />
+        <button type="button" className="btn btn-primary" style={{ minHeight: "2.5rem", fontSize: "0.84375rem" }} onClick={onUpload} disabled={status.uploading || previews.length === 0}>
           {status.uploading ? `UPLOADING ${status.done + 1}/${status.total}…` : "UPLOAD"}
         </button>
       </div>
       <ErrorText message={status.error} />
       {previews.length > 0 && (
-        <div style={{ display: "flex", gap: 5, marginTop: 8, flexWrap: "wrap" }}>
+        <div style={{ display: "flex", gap: "0.3125rem", marginTop: "0.5rem", flexWrap: "wrap" }}>
           {previews.map((p, i) =>
             p.isVideo ? (
               <video key={i} src={p.url} muted style={{ width: 52, height: 52, objectFit: "cover", border: "1px solid var(--color-divider)" }} />

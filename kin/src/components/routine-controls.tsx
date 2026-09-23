@@ -42,16 +42,16 @@ export function RoutineTick({
 
   if (status) {
     return (
-      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+      <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
         <span
           style={{
             display: "inline-flex",
             alignItems: "center",
-            gap: 5,
-            minHeight: 30,
-            padding: "0 11px",
+            gap: "0.3125rem",
+            minHeight: "1.875rem",
+            padding: "0 0.6875rem",
             borderRadius: 999,
-            fontSize: 13,
+            fontSize: "0.8125rem",
             fontWeight: 500,
             background: status === "done" ? "color-mix(in srgb, var(--color-switch-on) 18%, transparent)" : "color-mix(in srgb, var(--color-text) 7%, transparent)",
             color: status === "done" ? "var(--color-neutral-900)" : "var(--color-neutral-700)",
@@ -63,23 +63,23 @@ export function RoutineTick({
         <button
           type="button"
           className="btn btn-ghost"
-          style={{ minHeight: 30, fontSize: 12.5, padding: "0 8px" }}
+          style={{ minHeight: "1.875rem", fontSize: "0.78125rem", padding: "0 0.5rem" }}
           disabled={pending}
           onClick={() => run(() => clearRoutineLogAction(routineId, date))}
         >
           Undo
         </button>
-        {error && <span style={{ fontSize: 12.5, color: "var(--color-neutral-700)" }}>{error}</span>}
+        {error && <span style={{ fontSize: "0.78125rem", color: "var(--color-neutral-700)" }}>{error}</span>}
       </div>
     );
   }
 
   return (
-    <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
+    <div style={{ display: "flex", alignItems: "center", gap: "0.375rem", flexWrap: "wrap" }}>
       <button
         type="button"
         className="btn btn-primary"
-        style={{ minHeight: 32, fontSize: 13, padding: "0 14px", gap: 5 }}
+        style={{ minHeight: "2rem", fontSize: "0.8125rem", padding: "0 0.875rem", gap: "0.3125rem" }}
         disabled={pending}
         onClick={() => run(() => logRoutineAction({ routineId, date, status: "done" }))}
       >
@@ -89,19 +89,19 @@ export function RoutineTick({
       <button
         type="button"
         className="btn btn-secondary"
-        style={{ minHeight: 32, fontSize: 13, padding: "0 12px" }}
+        style={{ minHeight: "2rem", fontSize: "0.8125rem", padding: "0 0.75rem" }}
         disabled={pending}
         onClick={() => run(() => logRoutineAction({ routineId, date, status: "skipped" }))}
       >
         Skip
       </button>
       {cost ? (
-        <span style={{ fontSize: 12.5, color: "var(--color-neutral-700)" }}>
+        <span style={{ fontSize: "0.78125rem", color: "var(--color-neutral-700)" }}>
           posts {currency === "PHP" ? "₱" : `${currency} `}
           {cost.toLocaleString("en-PH")}
         </span>
       ) : null}
-      {error && <span style={{ fontSize: 12.5, color: "var(--color-neutral-700)" }}>{error}</span>}
+      {error && <span style={{ fontSize: "0.78125rem", color: "var(--color-neutral-700)" }}>{error}</span>}
     </div>
   );
 }
@@ -112,7 +112,7 @@ export function RoutinePauseButton({ id, paused }: { id: string; paused: boolean
     <button
       type="button"
       className="btn btn-ghost"
-      style={{ minHeight: 30, fontSize: 12.5, padding: "0 8px", gap: 4 }}
+      style={{ minHeight: "1.875rem", fontSize: "0.78125rem", padding: "0 0.5rem", gap: "0.25rem" }}
       disabled={pending}
       onClick={() => run(() => setRoutinePausedAction(id, !paused))}
       aria-label={paused ? "Resume this task" : "Pause this task"}
@@ -132,7 +132,7 @@ export function RoutineDeleteButton({ id, title }: { id: string; title: string }
       <button
         type="button"
         className="btn btn-ghost"
-        style={{ minHeight: 30, fontSize: 12.5, padding: "0 8px", color: "var(--color-neutral-700)" }}
+        style={{ minHeight: "1.875rem", fontSize: "0.78125rem", padding: "0 0.5rem", color: "var(--color-neutral-700)" }}
         onClick={() => setConfirming(true)}
       >
         Remove
@@ -141,18 +141,18 @@ export function RoutineDeleteButton({ id, title }: { id: string; title: string }
   }
 
   return (
-    <span style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 12.5 }}>
+    <span style={{ display: "inline-flex", alignItems: "center", gap: "0.375rem", fontSize: "0.78125rem" }}>
       <span style={{ color: "var(--color-neutral-700)" }}>Remove “{title}”?</span>
       <button
         type="button"
         className="btn btn-ghost"
-        style={{ minHeight: 30, fontSize: 12.5, padding: "0 8px", color: "var(--cal-occasion)" }}
+        style={{ minHeight: "1.875rem", fontSize: "0.78125rem", padding: "0 0.5rem", color: "var(--cal-occasion)" }}
         disabled={pending}
         onClick={() => run(() => deleteRoutineAction(id))}
       >
         Remove
       </button>
-      <button type="button" className="btn btn-ghost" style={{ minHeight: 30, fontSize: 12.5, padding: "0 8px" }} onClick={() => setConfirming(false)}>
+      <button type="button" className="btn btn-ghost" style={{ minHeight: "1.875rem", fontSize: "0.78125rem", padding: "0 0.5rem" }} onClick={() => setConfirming(false)}>
         Keep
       </button>
     </span>
@@ -200,26 +200,26 @@ export function RoutineOccurrences({
       {overdue.length > 0 && (
         <div
           style={{
-            marginTop: 10,
-            padding: "10px 12px",
+            marginTop: "0.625rem",
+            padding: "0.625rem 0.75rem",
             borderRadius: 12,
             background: "color-mix(in srgb, var(--cal-money) 14%, transparent)",
           }}
         >
-          <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 13, fontWeight: 600, marginBottom: 8 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: "0.375rem", fontSize: "0.8125rem", fontWeight: 600, marginBottom: "0.5rem" }}>
             <Icon name="info" size={14} style={{ color: "var(--cal-money)" }} />
             {overdue.length === 1 ? "One day still unanswered" : `${overdue.length} days still unanswered`}
           </div>
           {overdue.slice(0, 3).map((date) => (
-            <div key={date} style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap", marginBottom: 6 }}>
-              <span style={{ flex: 1, minWidth: 110, fontSize: 13 }}>
+            <div key={date} style={{ display: "flex", alignItems: "center", gap: "0.375rem", flexWrap: "wrap", marginBottom: "0.375rem" }}>
+              <span style={{ flex: 1, minWidth: "6.875rem", fontSize: "0.8125rem" }}>
                 {readableDate(date)}
                 <span style={{ color: "var(--color-neutral-700)" }}> · {daysAgo(date)}d ago</span>
               </span>
               <button
                 type="button"
                 className="btn btn-secondary"
-                style={{ minHeight: 30, fontSize: 12.5, padding: "0 11px", gap: 4 }}
+                style={{ minHeight: "1.875rem", fontSize: "0.78125rem", padding: "0 0.6875rem", gap: "0.25rem" }}
                 disabled={pending}
                 onClick={() => log(date, "done")}
               >
@@ -229,7 +229,7 @@ export function RoutineOccurrences({
               <button
                 type="button"
                 className="btn btn-ghost"
-                style={{ minHeight: 30, fontSize: 12.5, padding: "0 8px" }}
+                style={{ minHeight: "1.875rem", fontSize: "0.78125rem", padding: "0 0.5rem" }}
                 disabled={pending}
                 onClick={() => log(date, "skipped")}
               >
@@ -238,19 +238,19 @@ export function RoutineOccurrences({
             </div>
           ))}
           {overdue.length > 3 && (
-            <div style={{ fontSize: 12.5, color: "var(--color-neutral-700)" }}>
+            <div style={{ fontSize: "0.78125rem", color: "var(--color-neutral-700)" }}>
               and {overdue.length - 3} earlier — use “Another day” below.
             </div>
           )}
         </div>
       )}
 
-      <div style={{ marginTop: 8 }}>
+      <div style={{ marginTop: "0.5rem" }}>
         {!picking ? (
           <button
             type="button"
             className="btn btn-ghost"
-            style={{ minHeight: 30, fontSize: 12.5, padding: "0 8px", gap: 4 }}
+            style={{ minHeight: "1.875rem", fontSize: "0.78125rem", padding: "0 0.5rem", gap: "0.25rem" }}
             onClick={() => setPicking(true)}
             disabled={choices.length === 0}
           >
@@ -258,12 +258,12 @@ export function RoutineOccurrences({
             Another day
           </button>
         ) : (
-          <div style={{ display: "flex", gap: 6, flexWrap: "wrap", alignItems: "center" }}>
+          <div style={{ display: "flex", gap: "0.375rem", flexWrap: "wrap", alignItems: "center" }}>
             <select
               className="input"
               value={chosen}
               onChange={(e) => setChosen(e.target.value)}
-              style={{ minHeight: 38, fontSize: 13, flex: 1, minWidth: 150 }}
+              style={{ minHeight: "2.375rem", fontSize: "0.8125rem", flex: 1, minWidth: "9.375rem" }}
               aria-label="Which day to mark"
             >
               {overdue.length > 0 && (
@@ -288,7 +288,7 @@ export function RoutineOccurrences({
             <button
               type="button"
               className="btn btn-primary"
-              style={{ minHeight: 38, fontSize: 13, padding: "0 13px", gap: 4 }}
+              style={{ minHeight: "2.375rem", fontSize: "0.8125rem", padding: "0 0.8125rem", gap: "0.25rem" }}
               disabled={pending || !chosen}
               onClick={() => log(chosen, "done")}
             >
@@ -298,24 +298,24 @@ export function RoutineOccurrences({
             <button
               type="button"
               className="btn btn-secondary"
-              style={{ minHeight: 38, fontSize: 13, padding: "0 11px" }}
+              style={{ minHeight: "2.375rem", fontSize: "0.8125rem", padding: "0 0.6875rem" }}
               disabled={pending || !chosen}
               onClick={() => log(chosen, "skipped")}
             >
               Skip
             </button>
-            <button type="button" className="btn btn-ghost" style={{ minHeight: 38, fontSize: 12.5, padding: "0 8px" }} onClick={() => setPicking(false)}>
+            <button type="button" className="btn btn-ghost" style={{ minHeight: "2.375rem", fontSize: "0.78125rem", padding: "0 0.5rem" }} onClick={() => setPicking(false)}>
               Close
             </button>
           </div>
         )}
         {picking && upcoming.includes(chosen) && (
-          <div style={{ fontSize: 12.5, color: "var(--color-neutral-700)", marginTop: 6 }}>
+          <div style={{ fontSize: "0.78125rem", color: "var(--color-neutral-700)", marginTop: "0.375rem" }}>
             Marking a day ahead of time is fine — it counts on {readableDate(chosen)}
             {cost ? `, and posts ${currency === "PHP" ? "₱" : `${currency} `}${cost.toLocaleString("en-PH")}` : ""}.
           </div>
         )}
-        {error && <div style={{ fontSize: 12.5, color: "var(--cal-occasion)", marginTop: 6 }}>{error}</div>}
+        {error && <div style={{ fontSize: "0.78125rem", color: "var(--cal-occasion)", marginTop: "0.375rem" }}>{error}</div>}
       </div>
     </div>
   );

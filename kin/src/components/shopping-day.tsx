@@ -61,7 +61,7 @@ export function ShoppingDayControl({
           setOpen(true);
         }}
         className="btn btn-ghost"
-        style={{ minHeight: 30, fontSize: 12.5, padding: "0 6px", gap: 4, color: "var(--color-accent)" }}
+        style={{ minHeight: "1.875rem", fontSize: "0.78125rem", padding: "0 0.375rem", gap: "0.25rem", color: "var(--color-accent)" }}
       >
         <Icon name="calendarDays" size={13} />
         {run ? "Change the day" : "Set a shopping day"}
@@ -70,8 +70,8 @@ export function ShoppingDayControl({
   }
 
   return (
-    <div style={{ padding: 12, borderRadius: 14, background: "color-mix(in srgb, var(--color-text) 4%, transparent)", marginTop: 8 }}>
-      <div style={{ display: "flex", flexWrap: "wrap", gap: 5, marginBottom: 8 }}>
+    <div style={{ padding: "0.75rem", borderRadius: 14, background: "color-mix(in srgb, var(--color-text) 4%, transparent)", marginTop: "0.5rem" }}>
+      <div style={{ display: "flex", flexWrap: "wrap", gap: "0.3125rem", marginBottom: "0.5rem" }}>
         {SHOPPING_KINDS.map((k) => (
           <button key={k} type="button" className="chip" data-active={title === k} onClick={() => setTitle(k)}>
             {k}
@@ -86,16 +86,16 @@ export function ShoppingDayControl({
         aria-label="What the trip is"
         placeholder="Grocery run"
         maxLength={60}
-        style={{ minHeight: 40, fontSize: 14, marginBottom: 8 }}
+        style={{ minHeight: "2.5rem", fontSize: "0.875rem", marginBottom: "0.5rem" }}
       />
 
-      <div style={{ display: "flex", gap: 6, marginBottom: 8 }}>
+      <div style={{ display: "flex", gap: "0.375rem", marginBottom: "0.5rem" }}>
         <DateInput
           className="input"
           value={date}
           onChange={(e) => setDate(e.target.value)}
           aria-label="Which day"
-          style={{ flex: 2, minWidth: 0, minHeight: 40, fontSize: 14 }}
+          style={{ flex: 2, minWidth: 0, minHeight: "2.5rem", fontSize: "0.875rem" }}
         />
         <input
           className="input"
@@ -103,7 +103,7 @@ export function ShoppingDayControl({
           value={time}
           onChange={(e) => setTime(e.target.value)}
           aria-label="What time"
-          style={{ flex: 1, minWidth: 0, minHeight: 40, fontSize: 14 }}
+          style={{ flex: 1, minWidth: 0, minHeight: "2.5rem", fontSize: "0.875rem" }}
         />
       </div>
 
@@ -114,14 +114,14 @@ export function ShoppingDayControl({
         onChange={(e) => setBudget(e.target.value)}
         aria-label="Budget for this trip"
         placeholder="Budget for this trip (optional)"
-        style={{ minHeight: 40, fontSize: 14, marginBottom: 10 }}
+        style={{ minHeight: "2.5rem", fontSize: "0.875rem", marginBottom: "0.625rem" }}
       />
 
-      <div style={{ display: "flex", gap: 6 }}>
+      <div style={{ display: "flex", gap: "0.375rem" }}>
         <button
           type="button"
           className="btn btn-primary"
-          style={{ flex: 1, minHeight: 42, fontSize: 14 }}
+          style={{ flex: 1, minHeight: "2.625rem", fontSize: "0.875rem" }}
           disabled={pending || !date}
           onClick={() =>
             run_(() => {
@@ -146,20 +146,20 @@ export function ShoppingDayControl({
           <button
             type="button"
             className="btn btn-secondary"
-            style={{ minHeight: 42, fontSize: 13, padding: "0 12px" }}
+            style={{ minHeight: "2.625rem", fontSize: "0.8125rem", padding: "0 0.75rem" }}
             disabled={pending}
             onClick={() => run_(() => clearShoppingDayAction(booked.id))}
           >
             Call it off
           </button>
         )}
-        <button type="button" className="btn btn-ghost" style={{ minHeight: 42, fontSize: 12.5, padding: "0 8px" }} onClick={() => setOpen(false)}>
+        <button type="button" className="btn btn-ghost" style={{ minHeight: "2.625rem", fontSize: "0.78125rem", padding: "0 0.5rem" }} onClick={() => setOpen(false)}>
           Cancel
         </button>
       </div>
 
-      {error && <div style={{ fontSize: 12.5, color: "var(--cal-occasion)", marginTop: 8 }}>{error}</div>}
-      <p style={{ fontSize: 12, color: "var(--color-neutral-600)", margin: "10px 0 0", lineHeight: 1.45 }}>
+      {error && <div style={{ fontSize: "0.78125rem", color: "var(--cal-occasion)", marginTop: "0.5rem" }}>{error}</div>}
+      <p style={{ fontSize: "0.75rem", color: "var(--color-neutral-600)", margin: "10px 0 0", lineHeight: 1.45 }}>
         {routine ? (
           <>
             This moves <strong>just this one</strong> — the {routine.title.toLowerCase()} task keeps its schedule, and the

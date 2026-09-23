@@ -33,7 +33,7 @@ export function CollapsibleGroup({
           font: "600 var(--text-xl)/1.1 var(--font-heading)",
           letterSpacing: "-.01em",
           margin: "var(--space-7) 0 var(--space-1)",
-          paddingBottom: 9,
+          paddingBottom: "0.5625rem",
           borderBottom: "2px solid var(--color-divider)",
           color: "var(--color-text)",
         }}

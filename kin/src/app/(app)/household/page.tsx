@@ -44,7 +44,7 @@ export default async function HouseholdPage({ searchParams }: { searchParams: Pr
   return (
     <div>
       <HubHeader n="04" title="Household" segments={segments} dateFormat={me.families.date_format} />
-      <div style={{ padding: "0 22px 22px" }}>
+      <div style={{ padding: "0 1.375rem 1.375rem" }}>
         {seg === "buy" && <BuyPane familyId={me.family_id} memberId={me.id} currency={me.families.currency} />}
         {seg === "meals" && <MealsPane familyId={me.family_id} currency={me.families.currency} anchor={anchor} who={sp.who ?? "all"} />}
       </div>
@@ -93,7 +93,7 @@ async function BuyPane({ familyId, memberId, currency }: { familyId: string; mem
             title="Prices & pantry"
             icon="receipt"
             className="btn btn-secondary"
-            style={{ minHeight: 30, fontSize: 12.5, padding: "0 9px", gap: 5 }}
+            style={{ minHeight: "1.875rem", fontSize: "0.78125rem", padding: "0 0.5625rem", gap: "0.3125rem" }}
           >
             <PriceBookSheet familyId={familyId} currency={currency} />
           </SheetButton>
@@ -106,7 +106,7 @@ async function BuyPane({ familyId, memberId, currency }: { familyId: string; mem
           .map((a) => ({ id: a.id, name: a.name, institution: a.institution, linked_app_url: a.linked_app_url, balance: a.balance, is_joint: a.is_joint }))}
       />
 
-      <Link href="/wealth?seg=cashflow" style={{ display: "block", fontSize: 13, color: "var(--color-neutral-600)", marginTop: 14 }}>
+      <Link href="/wealth?seg=cashflow" style={{ display: "block", fontSize: "0.8125rem", color: "var(--color-neutral-600)", marginTop: "0.875rem" }}>
         Bills now live in Wealth&rsquo;s Cash Flow tab, where they are paid from an account →
       </Link>
     </>
@@ -123,20 +123,20 @@ async function PriceBookSheet({ familyId, currency }: { familyId: string; curren
 
   return (
     <>
-      <Blueprint style={{ padding: 14, marginBottom: 14 }}>
-        <div style={{ font: "600 16px/1.2 var(--font-heading)", marginBottom: 5 }}>What things cost here</div>
-        <p style={{ fontSize: 13.5, color: "var(--color-neutral-600)", margin: "0 0 8px", lineHeight: 1.45 }}>
+      <Blueprint style={{ padding: "0.875rem", marginBottom: "0.875rem" }}>
+        <div style={{ font: "600 1rem/1.2 var(--font-heading)", marginBottom: "0.3125rem" }}>What things cost here</div>
+        <p style={{ fontSize: "0.84375rem", color: "var(--color-neutral-600)", margin: "0 0 8px", lineHeight: 1.45 }}>
           Kin starts you off with typical supermarket prices, marked <strong>est</strong>. They are estimates, not live store
           prices — no supermarket publishes those, and they move week to week. Correct one as you shop and your figure is used
           from then on.
         </p>
-        <div style={{ fontSize: 12.5, color: "var(--color-neutral-700)" }}>
+        <div style={{ fontSize: "0.78125rem", color: "var(--color-neutral-700)" }}>
           {mine === 0 ? `Estimates set ${PRICE_BOOK_SET_ON}. None corrected yet.` : `${mine} price${mine === 1 ? "" : "s"} set by your household.`}
         </div>
       </Blueprint>
 
       <Collapsible title="Already in the house" meta={`${pantry.length}`}>
-        <p style={{ fontSize: 13, color: "var(--color-neutral-600)", margin: "0 0 10px" }}>
+        <p style={{ fontSize: "0.8125rem", color: "var(--color-neutral-600)", margin: "0 0 10px" }}>
           Skipped when a shopping list is built from the week&rsquo;s meals.
         </p>
         <PantryControls
@@ -155,7 +155,7 @@ async function PriceBookSheet({ familyId, currency }: { familyId: string; curren
       ))}
 
       <AddPriceControl />
-      <p style={{ fontSize: 12.5, color: "var(--color-neutral-600)", marginTop: 12 }}>
+      <p style={{ fontSize: "0.78125rem", color: "var(--color-neutral-600)", marginTop: "0.75rem" }}>
         Prices are in {currency}. They set the estimates on the to-buy list and on every meal.
       </p>
     </>
@@ -218,28 +218,28 @@ async function MealsPane({
       {/* The date is a drop-down: tapping it opens the month, year and day
           picker. A meal plan is read one day at a time, so a whole rail of
           dates was more chrome than the page needed. */}
-      <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 10 }}>
+      <div style={{ display: "flex", alignItems: "center", gap: "0.375rem", marginBottom: "0.625rem" }}>
         <CalendarJump label={label} hrefBase={MEALS_HREF_BASE} anchor={anchorISO} />
         <SheetButton
           label={String(recipes.length)}
           title="Recipe book"
           icon="utensils"
           className="btn btn-secondary"
-          style={{ minHeight: 34, fontSize: 13, padding: "0 10px", gap: 5 }}
+          style={{ minHeight: "2.125rem", fontSize: "0.8125rem", padding: "0 0.625rem", gap: "0.3125rem" }}
         >
           <RecipeBook recipes={recipes} categories={categories} />
         </SheetButton>
         <TodayButton hrefBase={MEALS_HREF_BASE} />
       </div>
 
-      <div style={{ marginBottom: 8 }}>
+      <div style={{ marginBottom: "0.5rem" }}>
         <MealWhoPicker members={members} who={who} date={anchorISO} />
       </div>
 
       {/* One day either way without opening the picker — the step the rail
           used to make with a swipe. */}
-      <div style={{ display: "flex", alignItems: "center", gap: 6, paddingBottom: 4 }}>
-        <span style={{ flex: 1, minWidth: 0, fontSize: 12.5, color: "var(--color-neutral-600)" }}>
+      <div style={{ display: "flex", alignItems: "center", gap: "0.375rem", paddingBottom: "0.25rem" }}>
+        <span style={{ flex: 1, minWidth: 0, fontSize: "0.78125rem", color: "var(--color-neutral-600)" }}>
           {meals.length === 0 ? "nothing planned" : `${meals.length} planned`}
         </span>
         <Link href={step(-1)} className="btn btn-secondary btn-icon" style={{ width: 32, height: 32 }} aria-label="The day before">
@@ -255,8 +255,8 @@ async function MealsPane({
       {MEAL_SLOTS.map((slot) => {
         const inSlot = meals.filter((m) => m.slot === slot);
         return (
-          <div key={slot} style={{ padding: "10px 0 2px" }}>
-            <div style={{ fontSize: 11.5, letterSpacing: ".05em", textTransform: "uppercase", color: "var(--color-neutral-600)", marginBottom: 7 }}>
+          <div key={slot} style={{ padding: "0.625rem 0 0.125rem" }}>
+            <div style={{ fontSize: "0.71875rem", letterSpacing: ".05em", textTransform: "uppercase", color: "var(--color-neutral-600)", marginBottom: "0.4375rem" }}>
               {MEAL_SLOT_LABEL[slot]}
             </div>
 
@@ -271,10 +271,10 @@ async function MealsPane({
 
       <LiquidIntakeTracker date={anchorISO} members={liquidIntake} />
 
-      <div style={{ marginTop: 18 }}>
+      <div style={{ marginTop: "1.125rem" }}>
         <GenerateGroceryButton weekOf={anchorISO} />
       </div>
-      <p style={{ fontSize: 12.5, color: "var(--color-neutral-600)", marginTop: 10, lineHeight: 1.45 }}>
+      <p style={{ fontSize: "0.78125rem", color: "var(--color-neutral-600)", marginTop: "0.625rem", lineHeight: 1.45 }}>
         Building the list takes the ingredients from the meals planned for the week of{" "}
         {weekStart.toLocaleDateString("en-GB", { day: "numeric", month: "long" })}, skips anything already in the house, and
         prices each one from your price book. Amounts are in {currency}.
@@ -315,7 +315,7 @@ function DishCard({ meal, members }: { meal: PlannedMeal; members: { id: string;
               flexDirection: "column",
               alignItems: "center",
               justifyContent: "center",
-              gap: 7,
+              gap: "0.4375rem",
               color: tone.ink,
             }}
           >
@@ -346,8 +346,8 @@ function DishCard({ meal, members }: { meal: PlannedMeal; members: { id: string;
         </div>
 
         <div className="kin-plate-scrim">
-          <div style={{ font: "600 20px/1.2 var(--font-heading)", letterSpacing: "-0.01em" }}>{meal.dish}</div>
-          <div style={{ fontSize: 12.5, opacity: 0.92, marginTop: 2, display: "flex", alignItems: "center", gap: 5 }}>
+          <div style={{ font: "600 1.25rem/1.2 var(--font-heading)", letterSpacing: "-0.01em" }}>{meal.dish}</div>
+          <div style={{ fontSize: "0.78125rem", opacity: 0.92, marginTop: "0.125rem", display: "flex", alignItems: "center", gap: "0.3125rem" }}>
             {meal.minutes ? <Icon name="clock" size={12} /> : null}
             {meta.join(" · ")}
           </div>
@@ -357,13 +357,13 @@ function DishCard({ meal, members }: { meal: PlannedMeal; members: { id: string;
       {/* Who it is for, under the plate. Editable in place because "actually
           only the children are eating this" is a thing somebody realises
           while looking at the day, not while creating the meal. */}
-      <div style={{ marginTop: 5 }}>
+      <div style={{ marginTop: "0.3125rem" }}>
         <MealWhoEditor mealPlanId={meal.id} members={members} selected={meal.memberIds} />
       </div>
 
-      <div style={{ padding: "10px 12px 12px" }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-          <span style={{ flex: 1, minWidth: 0, fontSize: 12.5, color: "var(--color-neutral-700)" }}>
+      <div style={{ padding: "0.625rem 0.75rem 0.75rem" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+          <span style={{ flex: 1, minWidth: 0, fontSize: "0.78125rem", color: "var(--color-neutral-700)" }}>
             {meal.ingredientCount === 0
               ? "No ingredients listed yet"
               : meal.missing === 0
@@ -396,13 +396,13 @@ function DishCard({ meal, members }: { meal: PlannedMeal; members: { id: string;
             />
           ))}
           <AddIngredientRow mealId={meal.id} />
-          <p style={{ fontSize: 11.5, color: "var(--color-neutral-600)", margin: "10px 0 0", lineHeight: 1.45 }}>
+          <p style={{ fontSize: "0.71875rem", color: "var(--color-neutral-600)", margin: "10px 0 0", lineHeight: 1.45 }}>
             Ticking one says the house already has it, so it stays off every shopping list built from here.
           </p>
         </Collapsible>
 
         {meal.missing > 0 && (
-          <div style={{ marginTop: 10 }}>
+          <div style={{ marginTop: "0.625rem" }}>
             <AddIngredientsToBuyButton mealId={meal.id} missing={meal.missing} />
           </div>
         )}

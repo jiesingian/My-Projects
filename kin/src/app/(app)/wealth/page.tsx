@@ -62,7 +62,7 @@ export default async function WealthPage({ searchParams }: { searchParams: Promi
   return (
     <div>
       <HubHeader n="05" title="Wealth" segments={segments} dateFormat={me.families.date_format} />
-      <div style={{ padding: "0 22px 22px" }}>
+      <div style={{ padding: "0 1.375rem 1.375rem" }}>
         {seg === "cashflow" && <CashFlowPane familyId={me.family_id} memberId={me.id} currency={currency} range={range} scope={who} />}
         {seg === "accounts" && <ScopePane scope={who} familyId={me.family_id} memberId={me.id} currency={currency} range={range} />}
         {seg === "assets" && <AssetsPane familyId={me.family_id} memberId={me.id} currency={currency} scope={who} />}
@@ -91,13 +91,13 @@ async function whoPicker(familyId: string, memberId: string, scope: WealthScope,
 
 function Hero({ label, amount, currency, caption, delta }: { label: string; amount: number; currency: string; caption?: string; delta?: React.ReactNode }) {
   return (
-    <Blueprint style={{ padding: 15, marginBottom: 14 }}>
-      <div style={{ font: "600 13px/1 var(--font-heading)", letterSpacing: ".02em", color: "var(--color-neutral-600)" }}>{label}</div>
-      <div style={{ display: "flex", alignItems: "baseline", flexWrap: "wrap", gap: 8, margin: "9px 0 0" }}>
-        <span style={{ font: "600 38px/1.05 var(--font-heading)", letterSpacing: "-.02em" }}>{formatCurrency(amount, currency)}</span>
+    <Blueprint style={{ padding: "0.9375rem", marginBottom: "0.875rem" }}>
+      <div style={{ font: "600 0.8125rem/1 var(--font-heading)", letterSpacing: ".02em", color: "var(--color-neutral-600)" }}>{label}</div>
+      <div style={{ display: "flex", alignItems: "baseline", flexWrap: "wrap", gap: "0.5rem", margin: "9px 0 0" }}>
+        <span style={{ font: "600 2.375rem/1.05 var(--font-heading)", letterSpacing: "-.02em" }}>{formatCurrency(amount, currency)}</span>
         {delta}
       </div>
-      {caption && <div style={{ fontSize: 13, color: "var(--color-neutral-600)", marginTop: 6 }}>{caption}</div>}
+      {caption && <div style={{ fontSize: "0.8125rem", color: "var(--color-neutral-600)", marginTop: "0.375rem" }}>{caption}</div>}
     </Blueprint>
   );
 }
@@ -118,10 +118,10 @@ function DeltaBadge({ change, currency, noun }: { change: ReturnType<typeof peri
       style={{
         display: "inline-flex",
         alignItems: "center",
-        gap: 3,
-        padding: "3px 9px",
+        gap: "0.1875rem",
+        padding: "0.1875rem 0.5625rem",
         borderRadius: 999,
-        fontSize: 12.5,
+        fontSize: "0.78125rem",
         fontFamily: "var(--font-numeric)",
         color: up ? "var(--color-accent-700)" : "var(--color-neutral-700)",
         background: up ? "var(--color-accent-100)" : "var(--color-neutral-200)",
@@ -147,10 +147,10 @@ function Meter({ label, value, cap, currency, note }: { label: string; value: nu
   const pct = cap !== null && cap > 0 ? Math.min(100, Math.round((value / cap) * 100)) : 0;
   const over = cap !== null && cap > 0 && value > cap;
   return (
-    <div style={{ marginBottom: 14 }}>
-      <div style={{ display: "flex", alignItems: "baseline", marginBottom: 5 }}>
-        <span style={{ font: "600 13px/1 var(--font-heading)", letterSpacing: ".02em", color: "var(--color-neutral-600)" }}>{label}</span>
-        <span style={{ marginLeft: "auto", fontFamily: "var(--font-numeric)", fontSize: 13 }}>
+    <div style={{ marginBottom: "0.875rem" }}>
+      <div style={{ display: "flex", alignItems: "baseline", marginBottom: "0.3125rem" }}>
+        <span style={{ font: "600 0.8125rem/1 var(--font-heading)", letterSpacing: ".02em", color: "var(--color-neutral-600)" }}>{label}</span>
+        <span style={{ marginLeft: "auto", fontFamily: "var(--font-numeric)", fontSize: "0.8125rem" }}>
           {cap === null ? formatCurrency(value, currency) : `${formatCurrency(value, currency)} of ${formatCurrency(cap, currency)}`}
         </span>
       </div>
@@ -158,7 +158,7 @@ function Meter({ label, value, cap, currency, note }: { label: string; value: nu
         <div style={{ height: "100%", width: `${pct}%`, background: over ? "var(--color-accent-700)" : "var(--color-accent)" }} />
       </div>
       {(note || over) && (
-        <div style={{ fontSize: 12.5, color: over ? "var(--color-accent-700)" : "var(--color-neutral-600)", marginTop: 4 }}>
+        <div style={{ fontSize: "0.78125rem", color: over ? "var(--color-accent-700)" : "var(--color-neutral-600)", marginTop: "0.25rem" }}>
           {over ? `Over by ${formatCurrency(value - cap, currency)}` : note}
         </div>
       )}
@@ -178,7 +178,7 @@ function HistoryStrip({ history, currency, title = "LAST SIX MONTHS" }: { histor
   const busiest = history.reduce((a, b) => (b.expense > a.expense ? b : a), history[0]);
 
   return (
-    <div style={{ marginBottom: 20 }}>
+    <div style={{ marginBottom: "1.25rem" }}>
       {/* A hover title on each bar is all a sighted mouse user gets today;
           this is the same information in words, for a screen reader or a
           keyboard user who can reach neither a hover nor the bars' shape. */}
@@ -186,21 +186,21 @@ function HistoryStrip({ history, currency, title = "LAST SIX MONTHS" }: { histor
         {title}, {history.length} periods.{" "}
         {history.map((h) => `${h.label}: in ${formatCurrency(h.income, currency)}, out ${formatCurrency(h.expense, currency)}`).join("; ")}.
       </p>
-      <div style={{ display: "flex", alignItems: "baseline", marginBottom: 9 }}>
-        <span style={{ font: "600 13px/1 var(--font-heading)", letterSpacing: ".02em", color: "var(--color-neutral-600)" }}>{title}</span>
-        <span style={{ marginLeft: "auto", display: "flex", gap: 12, fontSize: 12, color: "var(--color-neutral-600)" }}>
-          <span style={{ display: "flex", alignItems: "center", gap: 4 }}>
+      <div style={{ display: "flex", alignItems: "baseline", marginBottom: "0.5625rem" }}>
+        <span style={{ font: "600 0.8125rem/1 var(--font-heading)", letterSpacing: ".02em", color: "var(--color-neutral-600)" }}>{title}</span>
+        <span style={{ marginLeft: "auto", display: "flex", gap: "0.75rem", fontSize: "0.75rem", color: "var(--color-neutral-600)" }}>
+          <span style={{ display: "flex", alignItems: "center", gap: "0.25rem" }}>
             <i style={{ width: 8, height: 8, background: "var(--color-accent)", display: "inline-block" }} /> In
           </span>
-          <span style={{ display: "flex", alignItems: "center", gap: 4 }}>
+          <span style={{ display: "flex", alignItems: "center", gap: "0.25rem" }}>
             <i style={{ width: 8, height: 8, background: "color-mix(in srgb, var(--color-text) 40%, transparent)", display: "inline-block" }} /> Out
           </span>
         </span>
       </div>
 
-      <div aria-hidden="true" style={{ display: "flex", gap: 6, alignItems: "flex-end", height: 62, borderBottom: "1px solid var(--color-divider)", paddingBottom: 1 }}>
+      <div aria-hidden="true" style={{ display: "flex", gap: "0.375rem", alignItems: "flex-end", height: 62, borderBottom: "1px solid var(--color-divider)", paddingBottom: "0.0625rem" }}>
         {history.map((h) => (
-          <div key={h.key} style={{ flex: 1, display: "flex", gap: 2, alignItems: "flex-end", height: "100%" }}>
+          <div key={h.key} style={{ flex: 1, display: "flex", gap: "0.125rem", alignItems: "flex-end", height: "100%" }}>
             <span
               title={`In ${formatCurrency(h.income, currency)}`}
               style={{
@@ -222,15 +222,15 @@ function HistoryStrip({ history, currency, title = "LAST SIX MONTHS" }: { histor
           </div>
         ))}
       </div>
-      <div aria-hidden="true" style={{ display: "flex", gap: 6, marginTop: 5 }}>
+      <div aria-hidden="true" style={{ display: "flex", gap: "0.375rem", marginTop: "0.3125rem" }}>
         {history.map((h) => (
-          <div key={h.key} style={{ flex: 1, textAlign: "center", fontSize: 8.5, letterSpacing: ".06em", color: "var(--color-neutral-600)" }}>
+          <div key={h.key} style={{ flex: 1, textAlign: "center", fontSize: "0.53125rem", letterSpacing: ".06em", color: "var(--color-neutral-600)" }}>
             {h.label}
           </div>
         ))}
       </div>
       {busiest && busiest.expense > 0 && (
-        <div style={{ fontSize: 12.5, color: "var(--color-neutral-600)", marginTop: 7 }}>
+        <div style={{ fontSize: "0.78125rem", color: "var(--color-neutral-600)", marginTop: "0.4375rem" }}>
           Heaviest spend was {busiest.label} at {formatCurrency(busiest.expense, currency)}.
         </div>
       )}
@@ -261,13 +261,13 @@ function CashTrendLine({ trend, currency }: { trend: { key: string; label: strin
   const up = changed >= 0;
 
   return (
-    <div style={{ marginBottom: 14 }}>
-      <div style={{ display: "flex", alignItems: "baseline", marginBottom: 6 }}>
-        <span style={{ font: "600 13px/1 var(--font-heading)", letterSpacing: ".02em", color: "var(--color-neutral-600)" }}>CASH TREND</span>
+    <div style={{ marginBottom: "0.875rem" }}>
+      <div style={{ display: "flex", alignItems: "baseline", marginBottom: "0.375rem" }}>
+        <span style={{ font: "600 0.8125rem/1 var(--font-heading)", letterSpacing: ".02em", color: "var(--color-neutral-600)" }}>CASH TREND</span>
         <span
           style={{
             marginLeft: "auto",
-            fontSize: 12.5,
+            fontSize: "0.78125rem",
             fontFamily: "var(--font-numeric)",
             color: up ? "var(--color-accent-700)" : "var(--color-neutral-700)",
           }}
@@ -312,8 +312,8 @@ function CategorySpendBar({ categories, currency }: { categories: { category: st
   if (total <= 0) return null;
 
   return (
-    <div style={{ marginBottom: 16 }}>
-      <div aria-hidden="true" style={{ display: "flex", height: 14, borderRadius: 7, overflow: "hidden", gap: 2 }}>
+    <div style={{ marginBottom: "1rem" }}>
+      <div aria-hidden="true" style={{ display: "flex", height: 14, borderRadius: 7, overflow: "hidden", gap: "0.125rem" }}>
         {spent.map((c) => (
           <span
             key={c.category}
@@ -322,9 +322,9 @@ function CategorySpendBar({ categories, currency }: { categories: { category: st
           />
         ))}
       </div>
-      <div aria-hidden="true" style={{ display: "flex", flexWrap: "wrap", gap: "6px 14px", marginTop: 9 }}>
+      <div aria-hidden="true" style={{ display: "flex", flexWrap: "wrap", gap: "0.375rem 0.875rem", marginTop: "0.5625rem" }}>
         {spent.map((c) => (
-          <span key={c.category} style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 12, color: "var(--color-neutral-700)" }}>
+          <span key={c.category} style={{ display: "flex", alignItems: "center", gap: "0.3125rem", fontSize: "0.75rem", color: "var(--color-neutral-700)" }}>
             <i style={{ width: 8, height: 8, borderRadius: "50%", background: expenseCategoryColor(c.category), display: "inline-block" }} />
             {c.category} · {Math.round((c.spent / total) * 100)}%
           </span>
@@ -340,23 +340,23 @@ function CategorySpendBar({ categories, currency }: { categories: { category: st
 
 function SectionLabel({ children }: { children: React.ReactNode }) {
   return (
-    <div style={{ font: "600 13px/1 var(--font-heading)", letterSpacing: ".02em", color: "var(--color-neutral-600)", margin: "20px 0 8px" }}>{children}</div>
+    <div style={{ font: "600 0.8125rem/1 var(--font-heading)", letterSpacing: ".02em", color: "var(--color-neutral-600)", margin: "20px 0 8px" }}>{children}</div>
   );
 }
 
 function EntryRow({ entry, currency, dateFormat, showAccount }: { entry: LedgerEntry; currency: string; dateFormat: string; showAccount?: boolean }) {
   const isIn = entry.direction === "in";
   return (
-    <div style={{ display: "flex", gap: 10, alignItems: "baseline", padding: "10px 0", borderBottom: "1px solid color-mix(in srgb, var(--color-text) 10%, transparent)" }}>
+    <div style={{ display: "flex", gap: "0.625rem", alignItems: "baseline", padding: "0.625rem 0", borderBottom: "1px solid color-mix(in srgb, var(--color-text) 10%, transparent)" }}>
       <span style={{ flex: 1, minWidth: 0 }}>
-        <span style={{ fontSize: 14, display: "block" }}>{entry.particulars}</span>
-        <span style={{ fontSize: 12.5, color: "var(--color-neutral-600)" }}>
+        <span style={{ fontSize: "0.875rem", display: "block" }}>{entry.particulars}</span>
+        <span style={{ fontSize: "0.78125rem", color: "var(--color-neutral-600)" }}>
           {formatDate(entry.occurred_at, dateFormat)}
           {entry.category ? ` · ${entry.category}` : ""}
           {showAccount && entry.accountName ? ` · ${entry.accountName}` : ""}
         </span>
       </span>
-      <span style={{ fontFamily: "var(--font-numeric)", fontSize: 13, flex: "none", color: isIn ? "var(--color-accent-700)" : "inherit" }}>
+      <span style={{ fontFamily: "var(--font-numeric)", fontSize: "0.8125rem", flex: "none", color: isIn ? "var(--color-accent-700)" : "inherit" }}>
         {isIn ? "+" : "−"}
         {formatCurrency(Number(entry.amount), currency)}
       </span>
@@ -370,15 +370,15 @@ function PendingBlock({ pending, currency, dateFormat }: { pending: LedgerEntry[
     <>
       <SectionLabel>WAITING ON YOU</SectionLabel>
       {pending.map((p) => (
-        <Blueprint key={p.id} style={{ padding: 12, marginBottom: 10 }}>
-          <div style={{ display: "flex", alignItems: "baseline", gap: 8 }}>
-            <span style={{ fontSize: 14 }}>{p.particulars}</span>
-            <span style={{ marginLeft: "auto", fontFamily: "var(--font-numeric)", fontSize: 13 }}>
+        <Blueprint key={p.id} style={{ padding: "0.75rem", marginBottom: "0.625rem" }}>
+          <div style={{ display: "flex", alignItems: "baseline", gap: "0.5rem" }}>
+            <span style={{ fontSize: "0.875rem" }}>{p.particulars}</span>
+            <span style={{ marginLeft: "auto", fontFamily: "var(--font-numeric)", fontSize: "0.8125rem" }}>
               {p.direction === "in" ? "+" : "−"}
               {formatCurrency(Number(p.amount), currency)}
             </span>
           </div>
-          <div style={{ fontSize: 12.5, color: "var(--color-neutral-600)", marginTop: 3 }}>
+          <div style={{ fontSize: "0.78125rem", color: "var(--color-neutral-600)", marginTop: "0.1875rem" }}>
             {p.accountName} · started {formatDate(p.occurred_at, dateFormat)} · not counted yet
           </div>
           <PendingEntryActions transactionId={p.id} />
@@ -410,16 +410,16 @@ function UpcomingBills<T extends { id: string; name: string; amount: number | st
   const today = new Date();
 
   return (
-    <Blueprint style={{ padding: 13, marginBottom: 14 }}>
+    <Blueprint style={{ padding: "0.8125rem", marginBottom: "0.875rem" }}>
       <div style={{ display: "flex", alignItems: "baseline" }}>
-        <span style={{ font: "600 13px/1 var(--font-heading)", letterSpacing: ".02em", color: "var(--color-neutral-600)" }}>NEXT {days} DAYS</span>
-        <span style={{ marginLeft: "auto", fontFamily: "var(--font-numeric)", fontSize: 15, fontWeight: 600 }}>{formatCurrency(total, currency)}</span>
+        <span style={{ font: "600 0.8125rem/1 var(--font-heading)", letterSpacing: ".02em", color: "var(--color-neutral-600)" }}>NEXT {days} DAYS</span>
+        <span style={{ marginLeft: "auto", fontFamily: "var(--font-numeric)", fontSize: "0.9375rem", fontWeight: 600 }}>{formatCurrency(total, currency)}</span>
       </div>
-      <div style={{ display: "flex", flexDirection: "column", gap: 7, marginTop: 9 }}>
+      <div style={{ display: "flex", flexDirection: "column", gap: "0.4375rem", marginTop: "0.5625rem" }}>
         {due.map((b) => {
           const overdue = b.due_date !== null && new Date(b.due_date) < today;
           return (
-            <div key={b.id} style={{ display: "flex", justifyContent: "space-between", gap: 10, fontSize: 13.5 }}>
+            <div key={b.id} style={{ display: "flex", justifyContent: "space-between", gap: "0.625rem", fontSize: "0.84375rem" }}>
               <span>
                 {b.name}
                 {overdue && <span style={{ color: "var(--color-accent-700)" }}> · overdue</span>}
@@ -438,7 +438,7 @@ function UpcomingBills<T extends { id: string; name: string; amount: number | st
 
 function QuickActions() {
   return (
-    <div style={{ display: "flex", gap: 8, marginBottom: 18 }}>
+    <div style={{ display: "flex", gap: "0.5rem", marginBottom: "1.125rem" }}>
       {[
         { label: "MONEY IN", mode: "in" },
         { label: "MONEY OUT", mode: "out" },
@@ -448,7 +448,7 @@ function QuickActions() {
           key={a.mode}
           href={`/wealth/transact?mode=${a.mode}`}
           className="btn btn-secondary"
-          style={{ flex: 1, minHeight: 40, fontSize: 13, letterSpacing: ".04em", display: "flex", alignItems: "center", justifyContent: "center" }}
+          style={{ flex: 1, minHeight: "2.5rem", fontSize: "0.8125rem", letterSpacing: ".04em", display: "flex", alignItems: "center", justifyContent: "center" }}
         >
           {a.label}
         </Link>
@@ -482,15 +482,15 @@ async function CashFlowPane({ familyId, memberId, currency, range, scope }: { fa
 
   return (
     <>
-      <div style={{ display: "flex", alignItems: "center", gap: 6, margin: "14px 0 4px" }}>
+      <div style={{ display: "flex", alignItems: "center", gap: "0.375rem", margin: "14px 0 4px" }}>
         <PickButton title="Who" icon="users" label={who.whoLabel} options={who.options} />
-        <span style={{ fontSize: 12.5, color: "var(--color-neutral-600)" }}>
+        <span style={{ fontSize: "0.78125rem", color: "var(--color-neutral-600)" }}>
           {scope === "all" ? "Everything you can see" : mine ? "Your own accounts" : "Their accounts, as shared"}
         </span>
       </div>
 
-      <div style={{ display: "flex", alignItems: "center", flexWrap: "wrap", gap: 8, margin: "4px 0 10px" }}>
-        <span style={{ fontSize: 13, color: "var(--color-neutral-600)" }}>
+      <div style={{ display: "flex", alignItems: "center", flexWrap: "wrap", gap: "0.5rem", margin: "4px 0 10px" }}>
+        <span style={{ fontSize: "0.8125rem", color: "var(--color-neutral-600)" }}>
           {cf.net > 0
             ? `More came in than went out this ${periodNoun}.`
             : cf.net < 0
@@ -500,7 +500,7 @@ async function CashFlowPane({ familyId, memberId, currency, range, scope }: { fa
         <DeltaBadge change={momChange} currency={currency} noun={`last ${periodNoun}`} />
       </div>
 
-      <div style={{ display: "flex", alignItems: "center", gap: 6, margin: "0 0 10px" }}>
+      <div style={{ display: "flex", alignItems: "center", gap: "0.375rem", margin: "0 0 10px" }}>
         <PickButton
           title="Graph range"
           icon="calendarDays"
@@ -528,21 +528,21 @@ async function CashFlowPane({ familyId, memberId, currency, range, scope }: { fa
         <Empty icon="💰" title="Nothing recorded yet" line="Salary, a regular gift, business revenue — expect it here so receiving it is one tap." />
       )}
       {cf.expectedIncome.map((s) => (
-        <div key={s.id} style={{ padding: "12px 0", borderBottom: "1px solid color-mix(in srgb, var(--color-text) 10%, transparent)" }}>
-          <div style={{ display: "flex", gap: 11, alignItems: "baseline" }}>
+        <div key={s.id} style={{ padding: "0.75rem 0", borderBottom: "1px solid color-mix(in srgb, var(--color-text) 10%, transparent)" }}>
+          <div style={{ display: "flex", gap: "0.6875rem", alignItems: "baseline" }}>
             <span style={{ flex: 1, minWidth: 0 }}>
-              <span style={{ font: "600 17px/1.1 var(--font-heading)", display: "block" }}>{s.name}</span>
-              <span style={{ fontSize: 13, color: "var(--color-neutral-600)" }}>
+              <span style={{ font: "600 1.0625rem/1.1 var(--font-heading)", display: "block" }}>{s.name}</span>
+              <span style={{ fontSize: "0.8125rem", color: "var(--color-neutral-600)" }}>
                 {s.category ?? "Salary"}
                 {s.next_date ? ` · expected ${fmtDate(s.next_date)}` : ""}
               </span>
             </span>
             <span style={{ textAlign: "right", flex: "none" }}>
-              <span style={{ font: "600 16px/1 var(--font-heading)", display: "block" }}>{formatCurrency(Number(s.amount), currency)}</span>
+              <span style={{ font: "600 1rem/1 var(--font-heading)", display: "block" }}>{formatCurrency(Number(s.amount), currency)}</span>
               <Tag variant={s.status === "pending" ? "outline" : "accent"}>{s.status.toUpperCase()}</Tag>
             </span>
           </div>
-          <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 4 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", marginTop: "0.25rem" }}>
             <ReceiveIncomeControl scheduleId={s.id} amount={Number(s.amount)} accounts={pickable} currency={currency} />
             <span style={{ marginLeft: "auto" }}>
               <RemoveButton id={s.id} kind="income_schedule" label={`Delete "${s.name}"`} />
@@ -551,20 +551,20 @@ async function CashFlowPane({ familyId, memberId, currency, range, scope }: { fa
         </div>
       ))}
       {cf.receivedIncome.map((s) => (
-        <div key={s.id} style={{ display: "flex", gap: 10, alignItems: "baseline", padding: "10px 0", borderBottom: "1px solid color-mix(in srgb, var(--color-text) 10%, transparent)" }}>
+        <div key={s.id} style={{ display: "flex", gap: "0.625rem", alignItems: "baseline", padding: "0.625rem 0", borderBottom: "1px solid color-mix(in srgb, var(--color-text) 10%, transparent)" }}>
           <span style={{ flex: 1, minWidth: 0 }}>
-            <span style={{ fontSize: 14, display: "block" }}>{s.name}</span>
-            <span style={{ fontSize: 12.5, color: "var(--color-neutral-600)" }}>{s.received_at ? `received ${fmtDate(s.received_at)}` : "received"}</span>
+            <span style={{ fontSize: "0.875rem", display: "block" }}>{s.name}</span>
+            <span style={{ fontSize: "0.78125rem", color: "var(--color-neutral-600)" }}>{s.received_at ? `received ${fmtDate(s.received_at)}` : "received"}</span>
           </span>
-          <span style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <span style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
             <Tag variant="outline">SETTLED</Tag>
-            <span style={{ fontFamily: "var(--font-numeric)", fontSize: 13, color: "var(--color-accent-700)" }}>+{formatCurrency(Number(s.amount), currency)}</span>
+            <span style={{ fontFamily: "var(--font-numeric)", fontSize: "0.8125rem", color: "var(--color-accent-700)" }}>+{formatCurrency(Number(s.amount), currency)}</span>
           </span>
         </div>
       ))}
       {cf.recentIncome.length > 0 && (
         <>
-          <div style={{ fontSize: 12, color: "var(--color-neutral-600)", margin: "12px 0 2px" }}>OTHER RECENT ACTIVITY</div>
+          <div style={{ fontSize: "0.75rem", color: "var(--color-neutral-600)", margin: "12px 0 2px" }}>OTHER RECENT ACTIVITY</div>
           {cf.recentIncome.map((e) => (
             <EntryRow key={e.id} entry={e} currency={currency} dateFormat={dateFormat} showAccount />
           ))}
@@ -591,15 +591,15 @@ async function CashFlowPane({ familyId, memberId, currency, range, scope }: { fa
         const pct = cap > 0 ? Math.min(100, Math.round((c.spent / cap) * 100)) : 0;
         const over = c.amount > 0 && c.spent > c.amount;
         return (
-          <div key={c.id} style={{ marginBottom: 11 }}>
-            <div style={{ display: "flex", alignItems: "center", fontSize: 13.5, marginBottom: 4 }}>
+          <div key={c.id} style={{ marginBottom: "0.6875rem" }}>
+            <div style={{ display: "flex", alignItems: "center", fontSize: "0.84375rem", marginBottom: "0.25rem" }}>
               <i
                 aria-hidden="true"
-                style={{ width: 8, height: 8, borderRadius: "50%", background: expenseCategoryColor(c.category), display: "inline-block", marginRight: 7, flex: "none" }}
+                style={{ width: 8, height: 8, borderRadius: "50%", background: expenseCategoryColor(c.category), display: "inline-block", marginRight: "0.4375rem", flex: "none" }}
               />
               <span>{c.category}</span>
-              {c.amount === 0 && <span style={{ fontSize: 12, color: "var(--color-neutral-600)", marginLeft: 6 }}>no budget</span>}
-              <span style={{ marginLeft: "auto", fontFamily: "var(--font-numeric)", fontSize: 13 }}>
+              {c.amount === 0 && <span style={{ fontSize: "0.75rem", color: "var(--color-neutral-600)", marginLeft: "0.375rem" }}>no budget</span>}
+              <span style={{ marginLeft: "auto", fontFamily: "var(--font-numeric)", fontSize: "0.8125rem" }}>
                 {formatCurrency(c.spent, currency)}
                 {c.amount > 0 ? ` / ${formatCurrency(c.amount, currency)}` : ""}
               </span>
@@ -610,7 +610,7 @@ async function CashFlowPane({ familyId, memberId, currency, range, scope }: { fa
           </div>
         );
       })}
-      {isJoint && <div style={{ marginTop: 12 }}><AllocationEditor budgeted={budget.allocations.map((a) => a.category)} /></div>}
+      {isJoint && <div style={{ marginTop: "0.75rem" }}><AllocationEditor budgeted={budget.allocations.map((a) => a.category)} /></div>}
 
       <SectionLabel>BILLS</SectionLabel>
       <CashFlowSources sources={cf.sources} currency={currency} />
@@ -620,21 +620,21 @@ async function CashFlowPane({ familyId, memberId, currency, range, scope }: { fa
         <Empty icon="🧾" title="Nothing recorded yet" line="Mortgage payments, groceries, checkups, meals, travel, fuel — anything the household spends on." />
       )}
       {cf.openBills.map((b) => (
-        <div key={b.id} style={{ padding: "12px 0", borderBottom: "1px solid color-mix(in srgb, var(--color-text) 10%, transparent)" }}>
-          <div style={{ display: "flex", gap: 11, alignItems: "baseline" }}>
+        <div key={b.id} style={{ padding: "0.75rem 0", borderBottom: "1px solid color-mix(in srgb, var(--color-text) 10%, transparent)" }}>
+          <div style={{ display: "flex", gap: "0.6875rem", alignItems: "baseline" }}>
             <span style={{ flex: 1, minWidth: 0 }}>
-              <span style={{ font: "600 17px/1.1 var(--font-heading)", display: "block" }}>{b.name}</span>
-              <span style={{ fontSize: 13, color: "var(--color-neutral-600)" }}>
+              <span style={{ font: "600 1.0625rem/1.1 var(--font-heading)", display: "block" }}>{b.name}</span>
+              <span style={{ fontSize: "0.8125rem", color: "var(--color-neutral-600)" }}>
                 {b.category ?? "Utilities"}
                 {b.due_date ? ` · due ${fmtDate(b.due_date)}` : ""}
               </span>
             </span>
             <span style={{ textAlign: "right", flex: "none" }}>
-              <span style={{ font: "600 16px/1 var(--font-heading)", display: "block" }}>{formatCurrency(Number(b.amount), currency)}</span>
+              <span style={{ font: "600 1rem/1 var(--font-heading)", display: "block" }}>{formatCurrency(Number(b.amount), currency)}</span>
               <Tag variant={b.status === "scheduled" ? "outline" : "accent"}>{b.status.toUpperCase()}</Tag>
             </span>
           </div>
-          <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 4 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", marginTop: "0.25rem" }}>
             <PayBillControl billId={b.id} amount={Number(b.amount)} accounts={pickable} currency={currency} />
             <span style={{ marginLeft: "auto" }}>
               <RemoveButton id={b.id} kind="bill" label={`Delete "${b.name}"`} />
@@ -643,23 +643,23 @@ async function CashFlowPane({ familyId, memberId, currency, range, scope }: { fa
         </div>
       ))}
       {cf.settledBills.map((b) => (
-        <div key={b.id} style={{ display: "flex", gap: 10, alignItems: "baseline", padding: "10px 0", borderBottom: "1px solid color-mix(in srgb, var(--color-text) 10%, transparent)" }}>
+        <div key={b.id} style={{ display: "flex", gap: "0.625rem", alignItems: "baseline", padding: "0.625rem 0", borderBottom: "1px solid color-mix(in srgb, var(--color-text) 10%, transparent)" }}>
           <span style={{ flex: 1, minWidth: 0 }}>
-            <span style={{ fontSize: 14, display: "block" }}>{b.name}</span>
-            <span style={{ fontSize: 12.5, color: "var(--color-neutral-600)" }}>
+            <span style={{ fontSize: "0.875rem", display: "block" }}>{b.name}</span>
+            <span style={{ fontSize: "0.78125rem", color: "var(--color-neutral-600)" }}>
               {b.paid_at ? `paid ${fmtDate(b.paid_at)}` : "paid"}
               {b.paidFromName ? ` from ${b.paidFromName}` : ""}
             </span>
           </span>
-          <span style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <span style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
             <Tag variant="outline">SETTLED</Tag>
-            <span style={{ fontFamily: "var(--font-numeric)", fontSize: 13 }}>{formatCurrency(Number(b.amount), currency)}</span>
+            <span style={{ fontFamily: "var(--font-numeric)", fontSize: "0.8125rem" }}>{formatCurrency(Number(b.amount), currency)}</span>
           </span>
         </div>
       ))}
       {cf.recentExpense.length > 0 && (
         <>
-          <div style={{ fontSize: 12, color: "var(--color-neutral-600)", margin: "16px 0 2px" }}>OTHER RECENT ACTIVITY</div>
+          <div style={{ fontSize: "0.75rem", color: "var(--color-neutral-600)", margin: "16px 0 2px" }}>OTHER RECENT ACTIVITY</div>
           {cf.recentExpense.map((e) => (
             <EntryRow key={e.id} entry={e} currency={currency} dateFormat={dateFormat} showAccount />
           ))}
@@ -697,9 +697,9 @@ async function ScopePane({ scope, familyId, memberId, currency, range }: { scope
 
   return (
     <>
-      <div style={{ display: "flex", alignItems: "center", gap: 6, margin: "14px 0 4px" }}>
+      <div style={{ display: "flex", alignItems: "center", gap: "0.375rem", margin: "14px 0 4px" }}>
         <PickButton title="Who" icon="users" label={who.whoLabel} options={who.options} />
-        <span style={{ fontSize: 12.5, color: "var(--color-neutral-600)" }}>
+        <span style={{ fontSize: "0.78125rem", color: "var(--color-neutral-600)" }}>
           {isJoint ? "Everything you can see" : mine ? "Your own accounts" : "Their accounts, as shared"}
         </span>
       </div>
@@ -714,14 +714,14 @@ async function ScopePane({ scope, familyId, memberId, currency, range }: { scope
 
       <CashTrendLine trend={cashTrend} currency={currency} />
 
-      <div style={{ display: "flex", alignItems: "center", gap: 6, margin: "0 0 4px" }}>
+      <div style={{ display: "flex", alignItems: "center", gap: "0.375rem", margin: "0 0 4px" }}>
         <PickButton
           title="Graph range"
           icon="calendarDays"
           label={CASH_FLOW_RANGE_LABELS[range]}
           options={CASH_FLOW_RANGES.map((r) => ({ label: CASH_FLOW_RANGE_LABELS[r], href: `/wealth?seg=accounts&range=${r}&who=${scope}`, active: range === r }))}
         />
-        <span style={{ fontSize: 12.5, color: "var(--color-neutral-600)" }}>Money in against money out, grouped by {CASH_FLOW_RANGE_LABELS[range].toLowerCase()}</span>
+        <span style={{ fontSize: "0.78125rem", color: "var(--color-neutral-600)" }}>Money in against money out, grouped by {CASH_FLOW_RANGE_LABELS[range].toLowerCase()}</span>
       </div>
       <HistoryStrip history={cf.history} currency={currency} title={`BY ${CASH_FLOW_RANGE_LABELS[range].toUpperCase()}`} />
 
@@ -739,16 +739,16 @@ async function ScopePane({ scope, familyId, memberId, currency, range }: { scope
             <Link
               key={a.id}
               href={`/wealth/accounts/${a.id}`}
-              style={{ display: "flex", gap: 10, alignItems: "center", padding: "12px 0", borderBottom: "1px solid color-mix(in srgb, var(--color-text) 10%, transparent)", textDecoration: "none", color: "inherit" }}
+              style={{ display: "flex", gap: "0.625rem", alignItems: "center", padding: "0.75rem 0", borderBottom: "1px solid color-mix(in srgb, var(--color-text) 10%, transparent)", textDecoration: "none", color: "inherit" }}
             >
               <span style={{ flex: 1, minWidth: 0 }}>
-                <span style={{ font: "600 16px/1.1 var(--font-heading)", display: "block" }}>{a.name}</span>
-                <span style={{ fontSize: 13, color: "var(--color-neutral-600)" }}>
+                <span style={{ font: "600 1rem/1.1 var(--font-heading)", display: "block" }}>{a.name}</span>
+                <span style={{ fontSize: "0.8125rem", color: "var(--color-neutral-600)" }}>
                   {a.institution ? a.institution : ACCOUNT_TYPE_LABELS[a.account_type as AccountType] ?? a.account_type}
                   {a.sub_note ? ` · ${a.sub_note}` : ""}
                 </span>
                 {/* Who can see it, and — if it is yours — a tap to change that. */}
-                <span style={{ display: "inline-flex", marginTop: 5 }}>
+                <span style={{ display: "inline-flex", marginTop: "0.3125rem" }}>
                   <AccountPrivacyToggle
                     accountId={a.id}
                     isPrivate={a.is_private}
@@ -758,9 +758,9 @@ async function ScopePane({ scope, familyId, memberId, currency, range }: { scope
                 </span>
               </span>
               <span style={{ textAlign: "right", flex: "none" }}>
-                <span style={{ fontFamily: "var(--font-numeric)", fontSize: 13, display: "block" }}>{formatCurrency(a.balance, currency)}</span>
+                <span style={{ fontFamily: "var(--font-numeric)", fontSize: "0.8125rem", display: "block" }}>{formatCurrency(a.balance, currency)}</span>
                 {a.pendingCount > 0 && <Tag variant="outline">{a.pendingCount} PENDING</Tag>}
-                <span style={{ display: "block", marginTop: 6 }}>
+                <span style={{ display: "block", marginTop: "0.375rem" }}>
                   <RemoveButton id={a.id} kind="account" label={`Archive "${a.name}"`} />
                 </span>
               </span>
@@ -781,7 +781,7 @@ async function ScopePane({ scope, familyId, memberId, currency, range }: { scope
         </>
       )}
 
-      <div style={{ fontSize: 12.5, color: "var(--color-neutral-600)", marginTop: 14, lineHeight: 1.45 }}>
+      <div style={{ fontSize: "0.78125rem", color: "var(--color-neutral-600)", marginTop: "0.875rem", lineHeight: 1.45 }}>
         A personal account is private until its owner opens it to the family. Private ones are not hidden from you by the
         app — the database never sends them, so nobody sees them but their owner.
       </div>
@@ -807,9 +807,9 @@ async function AssetsPane({ familyId, memberId, currency, scope }: { familyId: s
 
   return (
     <>
-      <div style={{ display: "flex", alignItems: "center", gap: 6, margin: "14px 0 4px" }}>
+      <div style={{ display: "flex", alignItems: "center", gap: "0.375rem", margin: "14px 0 4px" }}>
         <PickButton title="Who" icon="users" label={who.whoLabel} options={who.options} />
-        <span style={{ fontSize: 12.5, color: "var(--color-neutral-600)" }}>
+        <span style={{ fontSize: "0.78125rem", color: "var(--color-neutral-600)" }}>
           {scope === "all" ? "Everything you can see" : mine ? "Your own" : "Theirs, as shared"}
         </span>
       </div>
@@ -830,20 +830,20 @@ async function AssetsPane({ familyId, memberId, currency, scope }: { familyId: s
         <Link
           key={a.id}
           href={`/wealth/accounts/${a.id}`}
-          style={{ display: "flex", gap: 10, alignItems: "baseline", padding: "10px 0", borderBottom: "1px solid color-mix(in srgb, var(--color-text) 10%, transparent)", textDecoration: "none", color: "inherit" }}
+          style={{ display: "flex", gap: "0.625rem", alignItems: "baseline", padding: "0.625rem 0", borderBottom: "1px solid color-mix(in srgb, var(--color-text) 10%, transparent)", textDecoration: "none", color: "inherit" }}
         >
           <span style={{ flex: 1, minWidth: 0 }}>
-            <span style={{ fontSize: 15, display: "block" }}>{a.name}</span>
-            <span style={{ fontSize: 12.5, color: "var(--color-neutral-600)" }}>
+            <span style={{ fontSize: "0.9375rem", display: "block" }}>{a.name}</span>
+            <span style={{ fontSize: "0.78125rem", color: "var(--color-neutral-600)" }}>
               {ACCOUNT_TYPE_LABELS[a.account_type as AccountType] ?? a.account_type}
               {a.institution ? ` · ${a.institution}` : ""}
             </span>
           </span>
-          <span style={{ fontFamily: "var(--font-numeric)", fontSize: 13, flex: "none" }}>{formatCurrency(a.balance, currency)}</span>
+          <span style={{ fontFamily: "var(--font-numeric)", fontSize: "0.8125rem", flex: "none" }}>{formatCurrency(a.balance, currency)}</span>
         </Link>
       ))}
       {cashAccounts.length > 0 && (
-        <div style={{ fontSize: 12.5, color: "var(--color-neutral-600)", marginTop: 8 }}>
+        <div style={{ fontSize: "0.78125rem", color: "var(--color-neutral-600)", marginTop: "0.5rem" }}>
           Read-only here — open an account from the Accounts tab to edit or add one.
         </div>
       )}
@@ -858,42 +858,42 @@ async function AssetsPane({ familyId, memberId, currency, scope }: { familyId: s
         const pct = target > 0 ? Math.min(100, Math.round((current / target) * 100)) : 0;
         const owner = (g.owner as unknown as { full_name: string } | null)?.full_name?.split(" ")[0]?.toUpperCase();
         return (
-          <Blueprint key={g.id} style={{ padding: 13, marginBottom: 13 }}>
-            <div style={{ display: "flex", alignItems: "baseline", gap: 8 }}>
-              <span style={{ font: "600 18px/1.05 var(--font-heading)" }}>{g.title}</span>
+          <Blueprint key={g.id} style={{ padding: "0.8125rem", marginBottom: "0.8125rem" }}>
+            <div style={{ display: "flex", alignItems: "baseline", gap: "0.5rem" }}>
+              <span style={{ font: "600 1.125rem/1.05 var(--font-heading)" }}>{g.title}</span>
               <Tag variant={g.is_joint ? "accent" : "neutral"} className="ml-auto">
                 {g.is_joint ? "JOINT" : owner ?? "MINE"}
               </Tag>
             </div>
-            {g.sub_note && <div style={{ fontSize: 13, color: "var(--color-neutral-600)", margin: "4px 0 9px" }}>{g.sub_note}</div>}
-            <div style={{ height: 8, border: "1px solid var(--color-divider)", background: "var(--color-bg)", marginTop: 8 }}>
+            {g.sub_note && <div style={{ fontSize: "0.8125rem", color: "var(--color-neutral-600)", margin: "4px 0 9px" }}>{g.sub_note}</div>}
+            <div style={{ height: 8, border: "1px solid var(--color-divider)", background: "var(--color-bg)", marginTop: "0.5rem" }}>
               <div style={{ height: "100%", width: `${pct}%`, background: "var(--color-accent)" }} />
             </div>
-            <div style={{ display: "flex", fontSize: 12.5, color: "var(--color-neutral-600)", marginTop: 5 }}>
+            <div style={{ display: "flex", fontSize: "0.78125rem", color: "var(--color-neutral-600)", marginTop: "0.3125rem" }}>
               <span>
                 {formatCurrency(current, currency)} of {formatCurrency(target, currency)}
               </span>
               <span style={{ marginLeft: "auto" }}>{pct}%</span>
             </div>
             {g.target_date && (
-              <div style={{ fontSize: 12.5, color: "var(--color-neutral-600)", marginTop: 5 }}>
+              <div style={{ fontSize: "0.78125rem", color: "var(--color-neutral-600)", marginTop: "0.3125rem" }}>
                 Target date {fmtDate(g.target_date)}
                 {target > current ? ` · ${formatCurrency(target - current, currency)} to go` : " · funded"}
               </div>
             )}
             {g.linked_account_id && (
-              <div style={{ fontSize: 12.5, color: "var(--color-neutral-600)", marginTop: 5 }}>
+              <div style={{ fontSize: "0.78125rem", color: "var(--color-neutral-600)", marginTop: "0.3125rem" }}>
                 Saved in {pickableCash.find((a) => a.id === g.linked_account_id)?.name ?? "an account you can no longer see"}
               </div>
             )}
             <GoalContributeControl goalId={g.id} accounts={pickableCash} currency={currency} linkedAccountId={g.linked_account_id} />
-            <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 8 }}>
+            <div style={{ display: "flex", justifyContent: "flex-end", marginTop: "0.5rem" }}>
               <RemoveButton id={g.id} kind="goal" label={`Delete "${g.title}"`} />
             </div>
           </Blueprint>
         );
       })}
-      <Link href="/wealth/add" className="btn btn-secondary btn-block" style={{ minHeight: 42, fontSize: 13.5, letterSpacing: ".04em", marginBottom: 20 }}>
+      <Link href="/wealth/add" className="btn btn-secondary btn-block" style={{ minHeight: "2.625rem", fontSize: "0.84375rem", letterSpacing: ".04em", marginBottom: "1.25rem" }}>
         + ADD GOAL
       </Link>
 
@@ -902,26 +902,26 @@ async function AssetsPane({ familyId, memberId, currency, scope }: { familyId: s
         <Empty icon="🏠" title="Nothing recorded yet" line="Property, a vehicle, anything the family owns that holds value. Recorded here, it counts toward your net worth." />
       )}
       {assets.map((a) => (
-        <div key={a.id} style={{ padding: "12px 0", borderBottom: "1px solid color-mix(in srgb, var(--color-text) 10%, transparent)" }}>
-          <div style={{ display: "flex", gap: 10, alignItems: "baseline" }}>
+        <div key={a.id} style={{ padding: "0.75rem 0", borderBottom: "1px solid color-mix(in srgb, var(--color-text) 10%, transparent)" }}>
+          <div style={{ display: "flex", gap: "0.625rem", alignItems: "baseline" }}>
             <span style={{ flex: 1, minWidth: 0 }}>
-              <span style={{ font: "600 16px/1.1 var(--font-heading)", display: "block" }}>{a.name}</span>
-              <span style={{ fontSize: 13, color: "var(--color-neutral-600)" }}>
+              <span style={{ font: "600 1rem/1.1 var(--font-heading)", display: "block" }}>{a.name}</span>
+              <span style={{ fontSize: "0.8125rem", color: "var(--color-neutral-600)" }}>
                 {ASSET_KIND_LABELS[a.kind as AssetKind] ?? a.kind}
                 {a.acquired_on ? ` · since ${fmtDate(a.acquired_on)}` : ""}
                 {a.note ? ` · ${a.note}` : ""}
                 {a.updated_at ? ` · updated ${timeSinceLabel(a.updated_at)}` : ""}
               </span>
             </span>
-            <span style={{ fontFamily: "var(--font-numeric)", fontSize: 13, flex: "none" }}>{formatCurrency(Number(a.value), currency)}</span>
+            <span style={{ fontFamily: "var(--font-numeric)", fontSize: "0.8125rem", flex: "none" }}>{formatCurrency(Number(a.value), currency)}</span>
           </div>
-          <div style={{ display: "flex", gap: 8, justifyContent: "flex-end", marginTop: 7 }}>
+          <div style={{ display: "flex", gap: "0.5rem", justifyContent: "flex-end", marginTop: "0.4375rem" }}>
             <ValueUpdateControl id={a.id} current={Number(a.value)} kind="asset" />
             <RemoveButton id={a.id} kind="asset" label={`Remove "${a.name}"`} />
           </div>
         </div>
       ))}
-      <Link href="/wealth/assets/new?kind=asset" className="btn btn-secondary btn-block" style={{ minHeight: 42, fontSize: 13.5, letterSpacing: ".04em", marginTop: 4 }}>
+      <Link href="/wealth/assets/new?kind=asset" className="btn btn-secondary btn-block" style={{ minHeight: "2.625rem", fontSize: "0.84375rem", letterSpacing: ".04em", marginTop: "0.25rem" }}>
         + ASSET
       </Link>
       </CollapsibleGroup>
@@ -931,33 +931,33 @@ async function AssetsPane({ familyId, memberId, currency, scope }: { familyId: s
         <Empty icon="✅" title="Nothing owed" line="No loans or debts on record. If that changes, adding them here keeps the net worth figure honest." />
       )}
       {liabilities.map((l) => (
-        <div key={l.id} style={{ padding: "12px 0", borderBottom: "1px solid color-mix(in srgb, var(--color-text) 10%, transparent)" }}>
-          <div style={{ display: "flex", gap: 10, alignItems: "baseline" }}>
+        <div key={l.id} style={{ padding: "0.75rem 0", borderBottom: "1px solid color-mix(in srgb, var(--color-text) 10%, transparent)" }}>
+          <div style={{ display: "flex", gap: "0.625rem", alignItems: "baseline" }}>
             <span style={{ flex: 1, minWidth: 0 }}>
-              <span style={{ font: "600 16px/1.1 var(--font-heading)", display: "block" }}>{l.name}</span>
-              <span style={{ fontSize: 13, color: "var(--color-neutral-600)" }}>
+              <span style={{ font: "600 1rem/1.1 var(--font-heading)", display: "block" }}>{l.name}</span>
+              <span style={{ fontSize: "0.8125rem", color: "var(--color-neutral-600)" }}>
                 {LIABILITY_KIND_LABELS[l.kind as LiabilityKind] ?? l.kind}
                 {l.lender ? ` · ${l.lender}` : ""}
                 {l.monthly_payment ? ` · ${formatCurrency(Number(l.monthly_payment), currency)}/mo` : ""}
                 {l.updated_at ? ` · updated ${timeSinceLabel(l.updated_at)}` : ""}
               </span>
             </span>
-            <span style={{ fontFamily: "var(--font-numeric)", fontSize: 13, flex: "none", color: "var(--color-accent-700)" }}>
+            <span style={{ fontFamily: "var(--font-numeric)", fontSize: "0.8125rem", flex: "none", color: "var(--color-accent-700)" }}>
               −{formatCurrency(Number(l.balance), currency)}
             </span>
           </div>
-          <div style={{ display: "flex", gap: 8, justifyContent: "flex-end", marginTop: 7 }}>
+          <div style={{ display: "flex", gap: "0.5rem", justifyContent: "flex-end", marginTop: "0.4375rem" }}>
             <ValueUpdateControl id={l.id} current={Number(l.balance)} kind="liability" />
             <RemoveButton id={l.id} kind="liability" label={`Remove "${l.name}"`} />
           </div>
         </div>
       ))}
-      <Link href="/wealth/assets/new?kind=liability" className="btn btn-secondary btn-block" style={{ minHeight: 42, fontSize: 13.5, letterSpacing: ".04em", marginTop: 4 }}>
+      <Link href="/wealth/assets/new?kind=liability" className="btn btn-secondary btn-block" style={{ minHeight: "2.625rem", fontSize: "0.84375rem", letterSpacing: ".04em", marginTop: "0.25rem" }}>
         + LIABILITY
       </Link>
       </CollapsibleGroup>
 
-      <div style={{ fontSize: 13, color: "var(--color-neutral-600)", marginTop: 16 }}>
+      <div style={{ fontSize: "0.8125rem", color: "var(--color-neutral-600)", marginTop: "1rem" }}>
         Net worth counts every account balance, everything saved toward a goal, plus what you own, less what you owe.
         Update a value whenever it changes.
       </div>

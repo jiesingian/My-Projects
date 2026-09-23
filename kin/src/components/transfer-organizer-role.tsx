@@ -12,14 +12,14 @@ export function TransferOrganizerRole({ candidates }: { candidates: { id: string
   const router = useRouter();
 
   if (candidates.length === 0) {
-    return <p style={{ fontSize: 13, color: "var(--color-neutral-600)" }}>There is no one to hand this to yet. Once another adult joins and is approved, you can pass the organizer role to them here.</p>;
+    return <p style={{ fontSize: "0.8125rem", color: "var(--color-neutral-600)" }}>There is no one to hand this to yet. Once another adult joins and is approved, you can pass the organizer role to them here.</p>;
   }
 
   return (
     <div>
-      <div style={{ display: "flex", gap: 8, marginBottom: 8 }}>
+      <div style={{ display: "flex", gap: "0.5rem", marginBottom: "0.5rem" }}>
         <select className="input" value={selected} onChange={(e) => setSelected(e.target.value)}
-            aria-label="New organizer" style={{ minHeight: 40, flex: 1 }} disabled={busy}>
+            aria-label="New organizer" style={{ minHeight: "2.5rem", flex: 1 }} disabled={busy}>
           {candidates.map((c) => (
             <option key={c.id} value={c.id}>
               {c.full_name}
@@ -29,7 +29,7 @@ export function TransferOrganizerRole({ candidates }: { candidates: { id: string
         <button
           type="button"
           className="btn btn-secondary"
-          style={{ minHeight: 40, fontSize: 13.5 }}
+          style={{ minHeight: "2.5rem", fontSize: "0.84375rem" }}
           disabled={busy}
           onClick={async () => {
             const name = candidates.find((c) => c.id === selected)?.full_name ?? "this member";
@@ -44,7 +44,7 @@ export function TransferOrganizerRole({ candidates }: { candidates: { id: string
           {busy ? "…" : "TRANSFER"}
         </button>
       </div>
-      {error && <p style={{ color: "var(--color-accent-700)", fontSize: 13 }}>{error}</p>}
+      {error && <p style={{ color: "var(--color-accent-700)", fontSize: "0.8125rem" }}>{error}</p>}
     </div>
   );
 }

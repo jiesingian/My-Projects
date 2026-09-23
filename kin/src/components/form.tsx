@@ -25,7 +25,7 @@ export function ErrorText({ message }: { message: string | null | undefined }) {
   return (
     <p
       role="alert"
-      style={{ color: "var(--color-accent-700)", fontSize: 13, margin: "0 0 14px" }}
+      style={{ color: "var(--color-accent-700)", fontSize: "0.8125rem", margin: "0 0 14px" }}
     >
       {message}
     </p>

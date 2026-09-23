@@ -35,22 +35,22 @@ export function PendingMemberActions({ memberId, fullName }: { memberId: string;
   }
 
   return (
-    <div style={{ display: "flex", gap: 8, flex: "none", alignItems: "center" }}>
+    <div style={{ display: "flex", gap: "0.5rem", flex: "none", alignItems: "center" }}>
       <select
         className="input"
         aria-label={`Join ${fullName} as`}
         value={role}
         onChange={(e) => setRole(e.target.value as MemberRole)}
         disabled={!!busy}
-        style={{ minHeight: 34, fontSize: 13, padding: "0 6px" }}
+        style={{ minHeight: "2.125rem", fontSize: "0.8125rem", padding: "0 0.375rem" }}
       >
         <option value="adult">Adult</option>
         <option value="parent">Parent</option>
       </select>
-      <button type="button" className="btn btn-primary" style={{ minHeight: 34, fontSize: 13, padding: "0 12px" }} disabled={!!busy} onClick={() => run("approve")}>
+      <button type="button" className="btn btn-primary" style={{ minHeight: "2.125rem", fontSize: "0.8125rem", padding: "0 0.75rem" }} disabled={!!busy} onClick={() => run("approve")}>
         {busy === "approve" ? "…" : "APPROVE"}
       </button>
-      <button type="button" className="btn btn-secondary" style={{ minHeight: 34, fontSize: 13, padding: "0 12px" }} disabled={!!busy} onClick={() => run("reject")}>
+      <button type="button" className="btn btn-secondary" style={{ minHeight: "2.125rem", fontSize: "0.8125rem", padding: "0 0.75rem" }} disabled={!!busy} onClick={() => run("reject")}>
         {busy === "reject" ? "…" : "REJECT"}
       </button>
     </div>

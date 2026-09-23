@@ -84,32 +84,32 @@ export default async function SettingsPage({
   return (
     <div>
       <DetailHeader backHref="/today" eyebrow="SETTINGS" />
-      <div style={{ padding: "0 22px 22px" }}>
+      <div style={{ padding: "0 1.375rem 1.375rem" }}>
         <Link href={`/family/members/${me.id}?from=settings`} style={{ textDecoration: "none", color: "inherit" }}>
-          <Blueprint style={{ padding: 14, display: "flex", gap: 13, alignItems: "center", marginBottom: 22 }}>
+          <Blueprint style={{ padding: "0.875rem", display: "flex", gap: "0.8125rem", alignItems: "center", marginBottom: "1.375rem" }}>
             <Avatar url={me.avatar_url} initials={initials(me.full_name)} label={me.full_name} size={48} />
             <span style={{ flex: 1, minWidth: 0 }}>
-              <span style={{ font: "600 20px/1.05 var(--font-heading)", display: "block" }}>{me.full_name}</span>
-              <span style={{ fontSize: 13, color: "var(--color-neutral-600)" }}>
+              <span style={{ font: "600 1.25rem/1.05 var(--font-heading)", display: "block" }}>{me.full_name}</span>
+              <span style={{ fontSize: "0.8125rem", color: "var(--color-neutral-600)" }}>
                 {authUser.user?.email} · {authUser.user?.email_confirmed_at ? "verified" : "unverified"}
               </span>
-              <span style={{ fontSize: 13, color: "var(--color-accent-700)", textDecoration: "underline" }}>Edit profile</span>
+              <span style={{ fontSize: "0.8125rem", color: "var(--color-accent-700)", textDecoration: "underline" }}>Edit profile</span>
             </span>
             {me.is_organiser && <Tag variant="accent">ORGANIZER</Tag>}
           </Blueprint>
         </Link>
 
-        <div style={{ font: "600 13px/1 var(--font-heading)", letterSpacing: ".02em", color: "var(--color-neutral-600)", marginBottom: 4 }}>
+        <div style={{ font: "600 0.8125rem/1 var(--font-heading)", letterSpacing: ".02em", color: "var(--color-neutral-600)", marginBottom: "0.25rem" }}>
           CONNECTED SERVICES
         </div>
-        <Blueprint style={{ padding: 14, marginBottom: 22 }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10 }}>
+        <Blueprint style={{ padding: "0.875rem", marginBottom: "1.375rem" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: "0.625rem", marginBottom: "0.625rem" }}>
             <Icon name="hardDrive" size={18} className="text-[var(--color-accent-700)]" />
-            <span style={{ font: "600 18px/1.05 var(--font-heading)", flex: 1 }}>Google Drive</span>
+            <span style={{ font: "600 1.125rem/1.05 var(--font-heading)", flex: 1 }}>Google Drive</span>
             <Tag variant={driveLink?.connected ? "accent" : "outline"}>{driveLink?.connected ? "CONNECTED" : "NOT CONNECTED"}</Tag>
           </div>
           {drive_error && (
-            <p style={{ fontSize: 13.5, color: "var(--color-accent-700)", marginBottom: 10 }}>{DRIVE_ERROR_MESSAGES[drive_error] ?? "Something went wrong."}</p>
+            <p style={{ fontSize: "0.84375rem", color: "var(--color-accent-700)", marginBottom: "0.625rem" }}>{DRIVE_ERROR_MESSAGES[drive_error] ?? "Something went wrong."}</p>
           )}
           {driveLink?.connected ? (
             <DriveConnectedPanel
@@ -121,87 +121,87 @@ export default async function SettingsPage({
             />
           ) : me.is_organiser ? (
             <>
-              <p style={{ fontSize: 13.5, color: "var(--color-neutral-700)", marginBottom: 12 }}>
+              <p style={{ fontSize: "0.84375rem", color: "var(--color-neutral-700)", marginBottom: "0.75rem" }}>
                 Connect your Google Drive once, as organizer — Kin creates and organizes the household&apos;s folders
                 there automatically. Everyone else views files through the app or the Drive link, governed by
                 whatever sharing you set on that folder in Drive itself.
               </p>
-              <a href="/api/drive/connect" className="btn btn-primary btn-block" style={{ minHeight: 44, fontSize: 13.5, letterSpacing: ".04em" }}>
+              <a href="/api/drive/connect" className="btn btn-primary btn-block" style={{ minHeight: "2.75rem", fontSize: "0.84375rem", letterSpacing: ".04em" }}>
                 CONNECT GOOGLE DRIVE
               </a>
             </>
           ) : (
-            <p style={{ fontSize: 13.5, color: "var(--color-neutral-700)" }}>
+            <p style={{ fontSize: "0.84375rem", color: "var(--color-neutral-700)" }}>
               Not connected yet. Only the household organizer can connect Google Drive.
             </p>
           )}
         </Blueprint>
 
-        <Blueprint style={{ padding: 14, marginBottom: 22 }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10 }}>
+        <Blueprint style={{ padding: "0.875rem", marginBottom: "1.375rem" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: "0.625rem", marginBottom: "0.625rem" }}>
             <Icon name="calendarDays" size={18} className="text-[var(--color-accent-700)]" />
-            <span style={{ font: "600 18px/1.05 var(--font-heading)", flex: 1 }}>My Google Calendar</span>
+            <span style={{ font: "600 1.125rem/1.05 var(--font-heading)", flex: 1 }}>My Google Calendar</span>
             <Tag variant={calendarLink?.connected ? "accent" : "outline"}>{calendarLink?.connected ? "CONNECTED" : "NOT CONNECTED"}</Tag>
           </div>
           {calendar_error && (
-            <p style={{ fontSize: 13.5, color: "var(--color-accent-700)", marginBottom: 10 }}>{CALENDAR_ERROR_MESSAGES[calendar_error] ?? "Something went wrong."}</p>
+            <p style={{ fontSize: "0.84375rem", color: "var(--color-accent-700)", marginBottom: "0.625rem" }}>{CALENDAR_ERROR_MESSAGES[calendar_error] ?? "Something went wrong."}</p>
           )}
           {calendarLink?.connected ? (
             <CalendarConnectedPanel email={calendarLink.account_email} lastSyncedAt={calendarLink.last_synced_at} />
           ) : (
             <>
-              <p style={{ fontSize: 13.5, color: "var(--color-neutral-700)", marginBottom: 12 }}>
+              <p style={{ fontSize: "0.84375rem", color: "var(--color-neutral-700)", marginBottom: "0.75rem" }}>
                 Everyone connects their own Google Calendar. Activities and events tagged to you (or the whole
                 family), plus your health appointments and document renewals, sync to your calendar — and anything
                 you add or change there syncs back into Kin.
               </p>
-              <a href="/api/calendar/connect" className="btn btn-primary btn-block" style={{ minHeight: 44, fontSize: 13.5, letterSpacing: ".04em" }}>
+              <a href="/api/calendar/connect" className="btn btn-primary btn-block" style={{ minHeight: "2.75rem", fontSize: "0.84375rem", letterSpacing: ".04em" }}>
                 CONNECT MY GOOGLE CALENDAR
               </a>
             </>
           )}
           {otherConnectedNames.length > 0 && (
-            <div style={{ fontSize: 13, color: "var(--color-neutral-600)", marginTop: 10 }}>
+            <div style={{ fontSize: "0.8125rem", color: "var(--color-neutral-600)", marginTop: "0.625rem" }}>
               Also connected: {otherConnectedNames.join(", ")}
             </div>
           )}
         </Blueprint>
 
-        <div style={{ font: "600 13px/1 var(--font-heading)", letterSpacing: ".02em", color: "var(--color-neutral-600)", marginBottom: 8 }}>APPEARANCE</div>
-        <div style={{ fontSize: 13, color: "var(--color-neutral-700)", marginBottom: 6 }}>Theme</div>
+        <div style={{ font: "600 0.8125rem/1 var(--font-heading)", letterSpacing: ".02em", color: "var(--color-neutral-600)", marginBottom: "0.5rem" }}>APPEARANCE</div>
+        <div style={{ fontSize: "0.8125rem", color: "var(--color-neutral-700)", marginBottom: "0.375rem" }}>Theme</div>
         <ThemeControl current={me.theme} />
-        <div style={{ fontSize: 13, color: "var(--color-neutral-700)", marginBottom: 6 }}>Text size</div>
+        <div style={{ fontSize: "0.8125rem", color: "var(--color-neutral-700)", marginBottom: "0.375rem" }}>Text size</div>
         <TextSizeControl current={me.text_size} />
 
-        <div style={{ font: "600 13px/1 var(--font-heading)", letterSpacing: ".02em", color: "var(--color-neutral-600)", marginBottom: 2 }}>NOTIFICATIONS</div>
+        <div style={{ font: "600 0.8125rem/1 var(--font-heading)", letterSpacing: ".02em", color: "var(--color-neutral-600)", marginBottom: "0.125rem" }}>NOTIFICATIONS</div>
         <NotificationToggles prefs={me.notification_prefs as Record<string, boolean>} />
 
-        <div style={{ font: "600 13px/1 var(--font-heading)", letterSpacing: ".02em", color: "var(--color-neutral-600)", margin: "22px 0 8px" }}>HOUSEHOLD</div>
-        <div style={{ fontSize: 13, color: "var(--color-neutral-700)", marginBottom: 6 }}>Household name</div>
+        <div style={{ font: "600 0.8125rem/1 var(--font-heading)", letterSpacing: ".02em", color: "var(--color-neutral-600)", margin: "22px 0 8px" }}>HOUSEHOLD</div>
+        <div style={{ fontSize: "0.8125rem", color: "var(--color-neutral-700)", marginBottom: "0.375rem" }}>Household name</div>
         {me.is_organiser ? (
           <HouseholdNameForm name={me.families.name} />
         ) : (
-          <div style={{ padding: "10px 0", marginBottom: 14, fontSize: 15 }}>{me.families.name}</div>
+          <div style={{ padding: "0.625rem 0", marginBottom: "0.875rem", fontSize: "0.9375rem" }}>{me.families.name}</div>
         )}
-        <div style={{ fontSize: 13, color: "var(--color-neutral-700)", marginBottom: 6 }}>
+        <div style={{ fontSize: "0.8125rem", color: "var(--color-neutral-700)", marginBottom: "0.375rem" }}>
           Members · {memberCount ?? 0} · {managedCount ?? 0} managed profiles
         </div>
-        <Link href="/family?seg=profile" className="btn btn-secondary btn-block" style={{ minHeight: 40, fontSize: 13.5, marginBottom: 14 }}>
+        <Link href="/family?seg=profile" className="btn btn-secondary btn-block" style={{ minHeight: "2.5rem", fontSize: "0.84375rem", marginBottom: "0.875rem" }}>
           VIEW MEMBERS
         </Link>
         {me.is_organiser && (
           <>
-            <div style={{ fontSize: 13, color: "var(--color-neutral-700)", marginBottom: 6 }}>Invite code</div>
-            <div style={{ marginBottom: 14 }}>
+            <div style={{ fontSize: "0.8125rem", color: "var(--color-neutral-700)", marginBottom: "0.375rem" }}>Invite code</div>
+            <div style={{ marginBottom: "0.875rem" }}>
               <InviteCodeCard code={me.families.invite_code} />
             </div>
-            <div style={{ fontSize: 13, color: "var(--color-neutral-700)", marginBottom: 6 }}>Transfer organizer role</div>
-            <div style={{ marginBottom: 14 }}>
+            <div style={{ fontSize: "0.8125rem", color: "var(--color-neutral-700)", marginBottom: "0.375rem" }}>Transfer organizer role</div>
+            <div style={{ marginBottom: "0.875rem" }}>
               <TransferOrganizerRole candidates={transferCandidates ?? []} />
             </div>
           </>
         )}
-        <div style={{ fontSize: 13, color: "var(--color-neutral-700)", marginBottom: 6 }}>Currency, dates, week start and country</div>
+        <div style={{ fontSize: "0.8125rem", color: "var(--color-neutral-700)", marginBottom: "0.375rem" }}>Currency, dates, week start and country</div>
         {me.is_organiser ? (
           <HouseholdPrefsForm
             currency={me.families.currency}
@@ -210,7 +210,7 @@ export default async function SettingsPage({
             country={me.families.country}
           />
         ) : (
-          <div style={{ padding: "10px 0", marginBottom: 20, fontSize: 13 }}>
+          <div style={{ padding: "0.625rem 0", marginBottom: "1.25rem", fontSize: "0.8125rem" }}>
             {me.families.currency} · {me.families.date_format} · {me.families.week_start === "monday" ? "Mon start" : "Sun start"}
             {me.families.country ? ` · ${countryLabel(me.families.country)}` : ""}
           </div>
@@ -218,28 +218,28 @@ export default async function SettingsPage({
 
         {me.is_organiser && (
           <>
-            <div style={{ font: "600 13px/1 var(--font-heading)", letterSpacing: ".02em", color: "var(--color-accent-700)", margin: "8px 0 8px" }}>
+            <div style={{ font: "600 0.8125rem/1 var(--font-heading)", letterSpacing: ".02em", color: "var(--color-accent-700)", margin: "8px 0 8px" }}>
               DANGER ZONE
             </div>
-            <div style={{ marginBottom: 20 }}>
+            <div style={{ marginBottom: "1.25rem" }}>
               <DeleteHouseholdButton householdName={me.families.name} />
             </div>
           </>
         )}
 
-        <div style={{ font: "600 13px/1 var(--font-heading)", letterSpacing: ".02em", color: "var(--color-neutral-600)", margin: "8px 0 2px" }}>ACCOUNT</div>
-        <div style={{ padding: "13px 0", borderBottom: "1px solid color-mix(in srgb, var(--color-text) 10%, transparent)", fontSize: 14 }}>
+        <div style={{ font: "600 0.8125rem/1 var(--font-heading)", letterSpacing: ".02em", color: "var(--color-neutral-600)", margin: "8px 0 2px" }}>ACCOUNT</div>
+        <div style={{ padding: "0.8125rem 0", borderBottom: "1px solid color-mix(in srgb, var(--color-text) 10%, transparent)", fontSize: "0.875rem" }}>
           {authUser.user?.email}
         </div>
         <form action={signOutAction}>
-          <button type="submit" className="btn btn-secondary btn-block" style={{ minHeight: 46, fontSize: 13.5, letterSpacing: ".04em", marginTop: 20 }}>
+          <button type="submit" className="btn btn-secondary btn-block" style={{ minHeight: "2.875rem", fontSize: "0.84375rem", letterSpacing: ".04em", marginTop: "1.25rem" }}>
             SIGN OUT
           </button>
         </form>
-        <div style={{ marginTop: 12 }}>
+        <div style={{ marginTop: "0.75rem" }}>
           <DeleteAccountButton isSoleMember={(otherActiveCount ?? 0) === 0} />
         </div>
-        <div style={{ font: "400 13px/1.6 var(--font-numeric)", color: "var(--color-neutral-500)", textAlign: "center", marginTop: 14 }}>
+        <div style={{ font: "400 0.8125rem/1.6 var(--font-numeric)", color: "var(--color-neutral-500)", textAlign: "center", marginTop: "0.875rem" }}>
           KIN 1.0.0
         </div>
       </div>

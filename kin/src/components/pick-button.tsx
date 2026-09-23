@@ -70,13 +70,13 @@ export function PickButton({
           className="btn btn-secondary"
           aria-label={`${title}: ${label}. Tap for ${next?.label ?? label}, hold for all.`}
           style={{
-            minHeight: 34,
-            fontSize: 13,
+            minHeight: "2.125rem",
+            fontSize: "0.8125rem",
             padding: icon ? "0 7px 0 9px" : "0 10px",
-            gap: 5,
+            gap: "0.3125rem",
             borderTopRightRadius: 0,
             borderBottomRightRadius: 0,
-            maxWidth: 150,
+            maxWidth: "9.375rem",
           }}
           onPointerDown={startHold}
           onPointerUp={endHold}
@@ -108,10 +108,10 @@ export function PickButton({
           aria-expanded={open}
           aria-label={`Choose ${title.toLowerCase()}`}
           style={{
-            minHeight: 34,
+            minHeight: "2.125rem",
             width: 26,
             padding: 0,
-            marginLeft: 1,
+            marginLeft: "0.0625rem",
             borderTopLeftRadius: 0,
             borderBottomLeftRadius: 0,
           }}
@@ -135,15 +135,15 @@ export function PickButton({
             left: 0,
             zIndex: 50,
             minWidth: 176,
-            maxHeight: 280,
+            maxHeight: "17.5rem",
             overflowY: "auto",
-            padding: 6,
+            padding: "0.375rem",
             borderRadius: 14,
             border: "1px solid var(--color-divider)",
             boxShadow: "var(--shadow-lg)",
           }}
         >
-          <div style={{ fontSize: 11, letterSpacing: ".04em", textTransform: "uppercase", color: "var(--color-neutral-600)", padding: "4px 8px 6px" }}>
+          <div style={{ fontSize: "0.6875rem", letterSpacing: ".04em", textTransform: "uppercase", color: "var(--color-neutral-600)", padding: "0.25rem 0.5rem 0.375rem" }}>
             {title}
           </div>
           {options.map((o) => (
@@ -159,15 +159,15 @@ export function PickButton({
               style={{
                 display: "flex",
                 alignItems: "center",
-                gap: 8,
+                gap: "0.5rem",
                 width: "100%",
-                minHeight: 38,
-                padding: "0 8px",
+                minHeight: "2.375rem",
+                padding: "0 0.5rem",
                 border: 0,
                 borderRadius: 10,
                 cursor: "pointer",
                 fontFamily: "var(--font-body)",
-                fontSize: 14.5,
+                fontSize: "0.90625rem",
                 textAlign: "left",
                 background: o.active ? "color-mix(in srgb, var(--color-accent) 12%, transparent)" : "transparent",
                 color: "var(--color-text)",

@@ -13,9 +13,9 @@ export function RelationshipEditor({ memberId, relationship }: { memberId: strin
 
   if (mode === "view") {
     return (
-      <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 20 }}>
-        <span style={{ fontSize: 14, flex: 1 }}>{relationship ?? "Not set"}</span>
-        <button type="button" className="btn btn-ghost" style={{ fontSize: 13 }} onClick={() => setMode("edit")}>
+      <div style={{ display: "flex", alignItems: "center", gap: "0.625rem", marginBottom: "1.25rem" }}>
+        <span style={{ fontSize: "0.875rem", flex: 1 }}>{relationship ?? "Not set"}</span>
+        <button type="button" className="btn btn-ghost" style={{ fontSize: "0.8125rem" }} onClick={() => setMode("edit")}>
           Edit
         </button>
       </div>
@@ -23,20 +23,20 @@ export function RelationshipEditor({ memberId, relationship }: { memberId: strin
   }
 
   return (
-    <div style={{ marginBottom: 20 }}>
-      <div style={{ display: "flex", gap: 8 }}>
+    <div style={{ marginBottom: "1.25rem" }}>
+      <div style={{ display: "flex", gap: "0.5rem" }}>
         <input
           className="input"
           placeholder="e.g. Mother, Son, Daughter"
           value={value}
           onChange={(e) => setValue(e.target.value)}
-          style={{ minHeight: 40, flex: 1 }}
+          style={{ minHeight: "2.5rem", flex: 1 }}
           disabled={busy}
         />
         <button
           type="button"
           className="btn btn-secondary"
-          style={{ minHeight: 40, fontSize: 13.5 }}
+          style={{ minHeight: "2.5rem", fontSize: "0.84375rem" }}
           disabled={busy}
           onClick={async () => {
             setBusy(true);
@@ -55,7 +55,7 @@ export function RelationshipEditor({ memberId, relationship }: { memberId: strin
       <button
         type="button"
         className="btn btn-ghost"
-        style={{ fontSize: 13, marginTop: 6 }}
+        style={{ fontSize: "0.8125rem", marginTop: "0.375rem" }}
         disabled={busy}
         onClick={() => {
           setValue(relationship ?? "");
@@ -65,7 +65,7 @@ export function RelationshipEditor({ memberId, relationship }: { memberId: strin
       >
         Cancel
       </button>
-      {error && <p style={{ color: "var(--color-accent-700)", fontSize: 13, margin: "6px 0 0" }}>{error}</p>}
+      {error && <p style={{ color: "var(--color-accent-700)", fontSize: "0.8125rem", margin: "6px 0 0" }}>{error}</p>}
     </div>
   );
 }

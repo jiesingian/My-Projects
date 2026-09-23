@@ -33,10 +33,10 @@ export function SheetButton({
       </button>
 
       <AnimatedSheet open={open} onClose={() => setOpen(false)} labelledBy={titleId} panelClassName="sheet-panel--full" panelStyle={{ maxWidth: 520, height: "92vh" }}>
-        <div style={{ padding: "10px 18px 8px", flex: "none" }}>
+        <div style={{ padding: "0.625rem 1.125rem 0.5rem", flex: "none" }}>
           <div style={{ width: 36, height: 5, borderRadius: 999, background: "var(--color-neutral-400)", margin: "0 auto 12px" }} />
-          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-            <span id={titleId} style={{ flex: 1, font: "600 19px/1.2 var(--font-heading)" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+            <span id={titleId} style={{ flex: 1, font: "600 1.1875rem/1.2 var(--font-heading)" }}>
               {title}
             </span>
             <button type="button" onClick={() => setOpen(false)} className="btn btn-secondary btn-icon" style={{ width: 32, height: 32 }} aria-label="Close">
@@ -46,7 +46,7 @@ export function SheetButton({
         </div>
 
         {/* The long content scrolls; the header above it does not. */}
-        <div style={{ flex: 1, minHeight: 0, overflowY: "auto", padding: "4px 18px calc(env(safe-area-inset-bottom, 0px) + 20px)" }}>{children}</div>
+        <div style={{ flex: 1, minHeight: 0, overflowY: "auto", padding: "0.25rem 1.125rem calc(env(safe-area-inset-bottom, 0) + 1.25rem)" }}>{children}</div>
       </AnimatedSheet>
     </>
   );
@@ -71,9 +71,9 @@ export function Collapsible({
       <summary>
         <Icon name="chevronLeft" size={14} className="kin-fold-mark" />
         <span style={{ flex: 1, minWidth: 0 }}>{title}</span>
-        {meta && <span style={{ fontSize: 12.5, color: "var(--color-neutral-600)", fontWeight: 400 }}>{meta}</span>}
+        {meta && <span style={{ fontSize: "0.78125rem", color: "var(--color-neutral-600)", fontWeight: 400 }}>{meta}</span>}
       </summary>
-      <div style={{ padding: "2px 0 10px" }}>{children}</div>
+      <div style={{ padding: "0.125rem 0 0.625rem" }}>{children}</div>
     </details>
   );
 }

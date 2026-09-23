@@ -16,8 +16,8 @@ export function RemoveMemberButton({ memberId, fullName, variant = "inline" }: {
       className={variant === "block" ? "btn btn-secondary btn-block" : "btn btn-ghost"}
       style={
         variant === "block"
-          ? { minHeight: 46, fontSize: 13.5, letterSpacing: ".04em", color: "var(--color-accent-700)", borderColor: "var(--color-accent-700)", marginTop: 20 }
-          : { fontSize: 13, flex: "none" }
+          ? { minHeight: "2.875rem", fontSize: "0.84375rem", letterSpacing: ".04em", color: "var(--color-accent-700)", borderColor: "var(--color-accent-700)", marginTop: "1.25rem" }
+          : { fontSize: "0.8125rem", flex: "none" }
       }
       disabled={busy}
       onClick={async (e) => {
@@ -55,7 +55,7 @@ export function ReinstateMemberButton({ memberId }: { memberId: string }) {
     <button
       type="button"
       className="btn btn-secondary"
-      style={{ fontSize: 13, minHeight: 30, padding: "0 12px", flex: "none" }}
+      style={{ fontSize: "0.8125rem", minHeight: "1.875rem", padding: "0 0.75rem", flex: "none" }}
       disabled={busy}
       onClick={async () => {
         setBusy(true);

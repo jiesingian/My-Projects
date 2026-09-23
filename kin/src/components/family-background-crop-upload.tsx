@@ -153,7 +153,7 @@ export function FamilyBackgroundCropUpload({ onDone }: { onDone: () => void }) {
 
   return (
     <>
-      <button type="button" className="btn btn-secondary" style={{ minHeight: 32, fontSize: 13, padding: "0 12px", marginTop: 8 }} onClick={open}>
+      <button type="button" className="btn btn-secondary" style={{ minHeight: "2rem", fontSize: "0.8125rem", padding: "0 0.75rem", marginTop: "0.5rem" }} onClick={open}>
         ADD PHOTO
       </button>
       <input ref={inputRef} aria-label="Choose a household photo" type="file" accept="image/*" style={{ display: "none" }} onChange={onFileChange} />
@@ -162,9 +162,9 @@ export function FamilyBackgroundCropUpload({ onDone }: { onDone: () => void }) {
         <div
           role="dialog"
           aria-modal="true"
-          style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,.85)", zIndex: 1000, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: 24, gap: 18 }}
+          style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,.85)", zIndex: 1000, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "1.5rem", gap: "1.125rem" }}
         >
-          <p style={{ color: "#fff", fontSize: 13, margin: 0 }}>Drag to reposition · the dimmed area won&apos;t be included</p>
+          <p style={{ color: "#fff", fontSize: "0.8125rem", margin: 0 }}>Drag to reposition · the dimmed area won&apos;t be included</p>
           <div style={{ position: "relative", width: STAGE_W, height: STAGE_H, overflow: "hidden", touchAction: "none", cursor: "grab" }} onPointerDown={onPointerDown} onPointerMove={onPointerMove} onPointerUp={onPointerUp}>
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
@@ -197,17 +197,17 @@ export function FamilyBackgroundCropUpload({ onDone }: { onDone: () => void }) {
               }}
             />
           </div>
-          <div style={{ display: "flex", alignItems: "center", gap: 10, width: STAGE_W }}>
-            <span style={{ color: "#fff", fontSize: 16 }}>−</span>
+          <div style={{ display: "flex", alignItems: "center", gap: "0.625rem", width: STAGE_W }}>
+            <span style={{ color: "#fff", fontSize: "1rem" }}>−</span>
             <input aria-label="Zoom" type="range" min={1} max={3} step={0.05} value={zoom} onChange={(e) => onZoomChange(Number(e.target.value))} style={{ flex: 1 }} disabled={busy} />
-            <span style={{ color: "#fff", fontSize: 16 }}>+</span>
+            <span style={{ color: "#fff", fontSize: "1rem" }}>+</span>
           </div>
-          {error && <p style={{ color: "var(--color-accent-400)", fontSize: 13 }}>{error}</p>}
-          <div style={{ display: "flex", gap: 10 }}>
-            <button type="button" className="btn btn-secondary" style={{ minHeight: 40, fontSize: 13.5, padding: "0 20px" }} disabled={busy} onClick={cancel}>
+          {error && <p style={{ color: "var(--color-accent-400)", fontSize: "0.8125rem" }}>{error}</p>}
+          <div style={{ display: "flex", gap: "0.625rem" }}>
+            <button type="button" className="btn btn-secondary" style={{ minHeight: "2.5rem", fontSize: "0.84375rem", padding: "0 1.25rem" }} disabled={busy} onClick={cancel}>
               CANCEL
             </button>
-            <button type="button" className="btn btn-primary" style={{ minHeight: 40, fontSize: 13.5, padding: "0 20px" }} disabled={busy} onClick={save}>
+            <button type="button" className="btn btn-primary" style={{ minHeight: "2.5rem", fontSize: "0.84375rem", padding: "0 1.25rem" }} disabled={busy} onClick={save}>
               {busy ? "SAVING…" : "SAVE"}
             </button>
           </div>

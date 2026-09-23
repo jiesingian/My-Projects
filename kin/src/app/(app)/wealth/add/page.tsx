@@ -12,8 +12,8 @@ export default async function AddGoalPage() {
   return (
     <div>
       <DetailHeader backHref="/wealth?seg=assets" eyebrow="HUB 05 · NEW" />
-      <div style={{ padding: "0 22px 22px" }}>
-        <h3 style={{ fontSize: 32, margin: "0 0 14px" }}>Add Goal</h3>
+      <div style={{ padding: "0 1.375rem 1.375rem" }}>
+        <h3 style={{ fontSize: "2rem", margin: "0 0 14px" }}>Add Goal</h3>
         <AddGoalForm
           accounts={accounts
             .filter((a) => a.is_joint || a.owner_member_id === me.id)

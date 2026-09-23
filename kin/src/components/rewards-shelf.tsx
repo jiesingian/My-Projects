@@ -33,13 +33,13 @@ export function RewardsShelf({
   if (rewards.length === 0 && !canManage) return null;
 
   return (
-    <div style={{ marginBottom: 18 }}>
-      <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
-        <span style={{ fontSize: 12, letterSpacing: ".04em", textTransform: "uppercase", color: "var(--color-neutral-600)" }}>
+    <div style={{ marginBottom: "1.125rem" }}>
+      <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", marginBottom: "0.5rem" }}>
+        <span style={{ fontSize: "0.75rem", letterSpacing: ".04em", textTransform: "uppercase", color: "var(--color-neutral-600)" }}>
           Rewards
         </span>
         {me && (
-          <span style={{ fontSize: 12.5, color: "var(--color-neutral-600)" }}>
+          <span style={{ fontSize: "0.78125rem", color: "var(--color-neutral-600)" }}>
             · {spendable} to spend
           </span>
         )}
@@ -48,7 +48,7 @@ export function RewardsShelf({
             type="button"
             className="btn btn-ghost"
             onClick={() => setAdding((a) => !a)}
-            style={{ minHeight: 28, fontSize: 12.5, padding: "0 8px", gap: 4, marginLeft: "auto" }}
+            style={{ minHeight: "1.75rem", fontSize: "0.78125rem", padding: "0 0.5rem", gap: "0.25rem", marginLeft: "auto" }}
           >
             <Icon name={adding ? "x" : "plus"} size={13} />
             {adding ? "Cancel" : "Add"}
@@ -59,12 +59,12 @@ export function RewardsShelf({
       {adding && <AddReward onDone={() => setAdding(false)} />}
 
       {rewards.length === 0 ? (
-        <p style={{ fontSize: 12.5, color: "var(--color-neutral-600)", margin: 0 }}>
+        <p style={{ fontSize: "0.78125rem", color: "var(--color-neutral-600)", margin: 0 }}>
           Nothing to spend points on yet. An hour of screen time, choosing Friday&rsquo;s dinner, a trip to the shop —
           whatever the house agrees is worth earning.
         </p>
       ) : (
-        <div style={{ display: "flex", flexDirection: "column", gap: 7 }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: "0.4375rem" }}>
           {rewards.map((r) => (
             <RewardRow key={r.id} reward={r} spendable={spendable} canManage={canManage} />
           ))}
@@ -88,23 +88,23 @@ function AddReward({ onDone }: { onDone: () => void }) {
         router.refresh();
         onDone();
       }}
-      style={{ marginBottom: 9 }}
+      style={{ marginBottom: "0.5625rem" }}
     >
       <ErrorText message={state.error} />
-      <div style={{ display: "flex", gap: 7, alignItems: "flex-end" }}>
+      <div style={{ display: "flex", gap: "0.4375rem", alignItems: "flex-end" }}>
         <span style={{ flex: 1 }}>
-          <label htmlFor={`${uid}-title`} style={{ display: "block", fontSize: 11.5, color: "var(--color-neutral-600)", marginBottom: 3 }}>
+          <label htmlFor={`${uid}-title`} style={{ display: "block", fontSize: "0.71875rem", color: "var(--color-neutral-600)", marginBottom: "0.1875rem" }}>
             WHAT
           </label>
-          <input id={`${uid}-title`} className="input" name="title" required maxLength={100} placeholder="An hour of screen time" style={{ minHeight: 40, fontSize: 13 }} />
+          <input id={`${uid}-title`} className="input" name="title" required maxLength={100} placeholder="An hour of screen time" style={{ minHeight: "2.5rem", fontSize: "0.8125rem" }} />
         </span>
         <span style={{ width: 92 }}>
-          <label htmlFor={`${uid}-cost`} style={{ display: "block", fontSize: 11.5, color: "var(--color-neutral-600)", marginBottom: 3 }}>
+          <label htmlFor={`${uid}-cost`} style={{ display: "block", fontSize: "0.71875rem", color: "var(--color-neutral-600)", marginBottom: "0.1875rem" }}>
             POINTS
           </label>
-          <input id={`${uid}-cost`} className="input" name="cost_points" type="number" min="1" max="10000" required defaultValue={10} style={{ minHeight: 40, fontSize: 13 }} />
+          <input id={`${uid}-cost`} className="input" name="cost_points" type="number" min="1" max="10000" required defaultValue={10} style={{ minHeight: "2.5rem", fontSize: "0.8125rem" }} />
         </span>
-        <SubmitButton style={{ minHeight: 40, fontSize: 13, padding: "0 12px" }}>SAVE</SubmitButton>
+        <SubmitButton style={{ minHeight: "2.5rem", fontSize: "0.8125rem", padding: "0 0.75rem" }}>SAVE</SubmitButton>
       </div>
     </form>
   );
@@ -126,10 +126,10 @@ function RewardRow({ reward, spendable, canManage }: { reward: RewardView; spend
   };
 
   return (
-    <Blueprint style={{ padding: "10px 12px", display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+    <Blueprint style={{ padding: "0.625rem 0.75rem", display: "flex", alignItems: "center", gap: "0.625rem", flexWrap: "wrap" }}>
       <span style={{ flex: 1, minWidth: 110 }}>
-        <span style={{ display: "block", fontSize: 14, fontWeight: 500 }}>{reward.title}</span>
-        <span style={{ display: "block", fontSize: 12.5, color: affordable ? "var(--color-accent-700)" : "var(--color-neutral-600)" }}>
+        <span style={{ display: "block", fontSize: "0.875rem", fontWeight: 500 }}>{reward.title}</span>
+        <span style={{ display: "block", fontSize: "0.78125rem", color: affordable ? "var(--color-accent-700)" : "var(--color-neutral-600)" }}>
           {reward.costPoints} points{affordable ? "" : ` · ${reward.costPoints - spendable} more to go`}
         </span>
       </span>
@@ -139,7 +139,7 @@ function RewardRow({ reward, spendable, canManage }: { reward: RewardView; spend
         className={affordable ? "btn btn-primary" : "btn btn-secondary"}
         disabled={pending || !affordable}
         onClick={() => run(() => redeemRewardAction(reward.id))}
-        style={{ minHeight: 30, fontSize: 12.5, padding: "0 12px" }}
+        style={{ minHeight: "1.875rem", fontSize: "0.78125rem", padding: "0 0.75rem" }}
       >
         Ask for it
       </button>
@@ -153,13 +153,13 @@ function RewardRow({ reward, spendable, canManage }: { reward: RewardView; spend
             if (!(await confirm({ title: `Take "${reward.title}" off the list?`, description: "Requests already made keep working.", confirmLabel: "Take it off" }))) return;
             run(() => retireRewardAction(reward.id));
           }}
-          style={{ minHeight: 30, fontSize: 12, padding: "0 8px", color: "var(--color-neutral-700)" }}
+          style={{ minHeight: "1.875rem", fontSize: "0.75rem", padding: "0 0.5rem", color: "var(--color-neutral-700)" }}
         >
           Remove
         </button>
       )}
 
-      {error && <div style={{ flexBasis: "100%", fontSize: 12, color: "var(--cal-occasion)" }}>{error}</div>}
+      {error && <div style={{ flexBasis: "100%", fontSize: "0.75rem", color: "var(--cal-occasion)" }}>{error}</div>}
     </Blueprint>
   );
 }

@@ -51,7 +51,7 @@ export function GetAppButton({
   }
 
   return (
-    <div style={{ display: "flex", gap: 8, marginBottom: 8 }}>
+    <div style={{ display: "flex", gap: "0.5rem", marginBottom: "0.5rem" }}>
       {links.map((l) => (
         <a
           key={l.href}
@@ -59,7 +59,7 @@ export function GetAppButton({
           target="_blank"
           rel="noopener noreferrer"
           className="btn btn-secondary"
-          style={{ flex: 1, minHeight: 40, fontSize: 12, letterSpacing: ".03em", display: "flex", alignItems: "center", justifyContent: "center" }}
+          style={{ flex: 1, minHeight: "2.5rem", fontSize: "0.75rem", letterSpacing: ".03em", display: "flex", alignItems: "center", justifyContent: "center" }}
         >
           {l.text}
         </a>

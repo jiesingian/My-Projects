@@ -26,8 +26,8 @@ export function MilestoneControls({
 
   if (!open) {
     return (
-      <div style={{ display: "flex", gap: 10, marginTop: 4 }}>
-        <button type="button" style={{ fontSize: 12.5, fontWeight: 600, color: "var(--color-accent-700)", background: "none", border: "none", padding: 0, cursor: "pointer" }} onClick={() => setOpen(true)}>
+      <div style={{ display: "flex", gap: "0.625rem", marginTop: "0.25rem" }}>
+        <button type="button" style={{ fontSize: "0.78125rem", fontWeight: 600, color: "var(--color-accent-700)", background: "none", border: "none", padding: 0, cursor: "pointer" }} onClick={() => setOpen(true)}>
           EDIT
         </button>
         <DeleteButton label="Delete milestone" confirmText="Delete this milestone? This can't be undone." onDelete={() => deleteMilestoneAction(milestoneId)} style={{ padding: 0 }} />
@@ -36,19 +36,19 @@ export function MilestoneControls({
   }
 
   return (
-    <div style={{ marginTop: 6, maxWidth: 280 }}>
-      {error && <p style={{ color: "var(--color-accent-700)", fontSize: 12.5, margin: "0 0 6px" }}>{error}</p>}
-      <div className="field" style={{ marginBottom: 6 }}>
-        <input aria-label="Title" className="input" value={milestoneTitle} onChange={(e) => setMilestoneTitle(e.target.value)} style={{ minHeight: 36, fontSize: 13 }} />
+    <div style={{ marginTop: "0.375rem", maxWidth: 280 }}>
+      {error && <p style={{ color: "var(--color-accent-700)", fontSize: "0.78125rem", margin: "0 0 6px" }}>{error}</p>}
+      <div className="field" style={{ marginBottom: "0.375rem" }}>
+        <input aria-label="Title" className="input" value={milestoneTitle} onChange={(e) => setMilestoneTitle(e.target.value)} style={{ minHeight: "2.25rem", fontSize: "0.8125rem" }} />
       </div>
-      <div className="field" style={{ marginBottom: 6 }}>
-        <DateInput aria-label="Date" className="input" value={milestoneDate} onChange={(e) => setMilestoneDate(e.target.value)} style={{ minHeight: 36, fontSize: 13 }} />
+      <div className="field" style={{ marginBottom: "0.375rem" }}>
+        <DateInput aria-label="Date" className="input" value={milestoneDate} onChange={(e) => setMilestoneDate(e.target.value)} style={{ minHeight: "2.25rem", fontSize: "0.8125rem" }} />
       </div>
-      <div style={{ display: "flex", gap: 6 }}>
+      <div style={{ display: "flex", gap: "0.375rem" }}>
         <button
           type="button"
           className="btn btn-secondary"
-          style={{ fontSize: 12, padding: "0 8px", minHeight: 26 }}
+          style={{ fontSize: "0.75rem", padding: "0 0.5rem", minHeight: "1.625rem" }}
           disabled={busy}
           onClick={() => { setOpen(false); setMilestoneTitle(title); setMilestoneDate(date); setError(null); }}
         >
@@ -57,7 +57,7 @@ export function MilestoneControls({
         <button
           type="button"
           className="btn btn-primary"
-          style={{ fontSize: 12, padding: "0 8px", minHeight: 26 }}
+          style={{ fontSize: "0.75rem", padding: "0 0.5rem", minHeight: "1.625rem" }}
           disabled={busy}
           onClick={async () => {
             setBusy(true);

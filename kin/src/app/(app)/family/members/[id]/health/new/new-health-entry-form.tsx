@@ -52,9 +52,9 @@ export function NewHealthEntryForm({
           { label: "New entry" },
         ]}
       />
-      <div style={{ padding: "0 22px 22px" }}>
-        <h3 style={{ fontSize: 30, margin: "0 0 4px" }}>New entry</h3>
-        <div style={{ fontSize: 14, color: "var(--color-neutral-700)", marginBottom: 16 }}>For {member.full_name}</div>
+      <div style={{ padding: "0 1.375rem 1.375rem" }}>
+        <h3 style={{ fontSize: "1.875rem", margin: "0 0 4px" }}>New entry</h3>
+        <div style={{ fontSize: "0.875rem", color: "var(--color-neutral-700)", marginBottom: "1rem" }}>For {member.full_name}</div>
 
         <form action={formAction}>
           <input type="hidden" name="member_id" value={member.id} />
@@ -63,8 +63,8 @@ export function NewHealthEntryForm({
           {type.grouped && <input type="hidden" name="group_id" value={groupId} />}
           <ErrorText message={state.error} />
 
-          <div style={{ fontSize: 13, color: "var(--color-neutral-700)", marginBottom: 6 }}>Entry type</div>
-          <div style={{ display: "flex", gap: 7, flexWrap: "wrap", marginBottom: 18 }}>
+          <div style={{ fontSize: "0.8125rem", color: "var(--color-neutral-700)", marginBottom: "0.375rem" }}>Entry type</div>
+          <div style={{ display: "flex", gap: "0.4375rem", flexWrap: "wrap", marginBottom: "1.125rem" }}>
             {TYPES.map((t) => (
               <button key={t.value} type="button" className="chip" data-active={type.value === t.value} onClick={() => setType(t)}>
                 {t.label}
@@ -73,28 +73,28 @@ export function NewHealthEntryForm({
           </div>
 
           {type.device && (
-            <Blueprint className="bg-[var(--color-accent-100)]" style={{ padding: 13, marginBottom: 18 }}>
-              <div style={{ font: "600 13px/1 var(--font-heading)", letterSpacing: ".02em", color: "var(--color-accent-700)", marginBottom: 7 }}>
+            <Blueprint className="bg-[var(--color-accent-100)]" style={{ padding: "0.8125rem", marginBottom: "1.125rem" }}>
+              <div style={{ font: "600 0.8125rem/1 var(--font-heading)", letterSpacing: ".02em", color: "var(--color-accent-700)", marginBottom: "0.4375rem" }}>
                 FROM A DEVICE
               </div>
-              <p style={{ fontSize: 13.5, margin: "0 0 11px", color: "var(--color-neutral-800)" }}>
+              <p style={{ fontSize: "0.84375rem", margin: "0 0 11px", color: "var(--color-neutral-800)" }}>
                 {omronConnected
                   ? "Omron Connect is linked — import the readings taken since the last sync instead of typing them."
                   : "Omron Connect is not linked yet. Connect it once and these readings arrive on their own."}
               </p>
-              <div style={{ fontSize: 13, color: "var(--color-neutral-700)" }}>Enter the reading by hand below in the meantime.</div>
+              <div style={{ fontSize: "0.8125rem", color: "var(--color-neutral-700)" }}>Enter the reading by hand below in the meantime.</div>
             </Blueprint>
           )}
 
-          <div className="field" style={{ marginBottom: 14 }}>
+          <div className="field" style={{ marginBottom: "0.875rem" }}>
             <label htmlFor={`${uid}-title`}>{type.titleLabel.toUpperCase()}</label>
-            <input id={`${uid}-title`} aria-label={type.titleLabel.toUpperCase()} className="input" name="title" required maxLength={150} style={{ minHeight: 44 }} />
+            <input id={`${uid}-title`} aria-label={type.titleLabel.toUpperCase()} className="input" name="title" required maxLength={150} style={{ minHeight: "2.75rem" }} />
           </div>
 
           {type.grouped && (
             <>
-              <div style={{ fontSize: 13, color: "var(--color-neutral-700)", marginBottom: 6 }}>Group under</div>
-              <div style={{ display: "flex", gap: 7, flexWrap: "wrap", marginBottom: 16 }}>
+              <div style={{ fontSize: "0.8125rem", color: "var(--color-neutral-700)", marginBottom: "0.375rem" }}>Group under</div>
+              <div style={{ display: "flex", gap: "0.4375rem", flexWrap: "wrap", marginBottom: "1rem" }}>
                 {conditions.map((c) => (
                   <button key={c.id} type="button" className="chip" data-active={groupId === c.id} onClick={() => setGroupId(c.id)}>
                     {c.name}
@@ -105,43 +105,43 @@ export function NewHealthEntryForm({
                 </button>
               </div>
               {groupId === "__new__" && (
-                <div className="field" style={{ marginBottom: 16 }}>
+                <div className="field" style={{ marginBottom: "1rem" }}>
                   <label htmlFor={`${uid}-new-group-name`}>NEW GROUP NAME</label>
-                  <input id={`${uid}-new-group-name`} aria-label="New Group Name" className="input" name="new_group_name" placeholder="Leave blank to use the title above" maxLength={150} style={{ minHeight: 44 }} />
+                  <input id={`${uid}-new-group-name`} aria-label="New Group Name" className="input" name="new_group_name" placeholder="Leave blank to use the title above" maxLength={150} style={{ minHeight: "2.75rem" }} />
                 </div>
               )}
             </>
           )}
 
-          <div style={{ display: "flex", gap: 12, marginBottom: 14 }}>
+          <div style={{ display: "flex", gap: "0.75rem", marginBottom: "0.875rem" }}>
             <div className="field" style={{ flex: 1 }}>
               <label htmlFor={`${uid}-date`}>DATE</label>
-              <DateInput id={`${uid}-date`} aria-label="Date" className="input" name="date" defaultValue={familyDay()} required style={{ minHeight: 44 }} />
+              <DateInput id={`${uid}-date`} aria-label="Date" className="input" name="date" defaultValue={familyDay()} required style={{ minHeight: "2.75rem" }} />
             </div>
             <div className="field" style={{ flex: 1 }}>
               <label htmlFor={`${uid}-value`}>{type.valueLabel.toUpperCase()}</label>
-              <input id={`${uid}-value`} aria-label={type.valueLabel.toUpperCase()} className="input" name="value" maxLength={100} style={{ minHeight: 44 }} />
+              <input id={`${uid}-value`} aria-label={type.valueLabel.toUpperCase()} className="input" name="value" maxLength={100} style={{ minHeight: "2.75rem" }} />
             </div>
           </div>
 
-          <div style={{ display: "flex", gap: 12, marginBottom: 14 }}>
+          <div style={{ display: "flex", gap: "0.75rem", marginBottom: "0.875rem" }}>
             <div className="field" style={{ flex: 1 }}>
               <label htmlFor={`${uid}-seen-by`}>SEEN BY</label>
-              <input id={`${uid}-seen-by`} aria-label="Seen By" className="input" name="seen_by" maxLength={100} style={{ minHeight: 44 }} />
+              <input id={`${uid}-seen-by`} aria-label="Seen By" className="input" name="seen_by" maxLength={100} style={{ minHeight: "2.75rem" }} />
             </div>
             <div className="field" style={{ flex: 1 }}>
               <label htmlFor={`${uid}-where`}>WHERE</label>
-              <input id={`${uid}-where`} aria-label="Where" className="input" name="where" maxLength={150} style={{ minHeight: 44 }} />
+              <input id={`${uid}-where`} aria-label="Where" className="input" name="where" maxLength={150} style={{ minHeight: "2.75rem" }} />
             </div>
           </div>
 
-          <div className="field" style={{ marginBottom: 16 }}>
+          <div className="field" style={{ marginBottom: "1rem" }}>
             <label htmlFor={`${uid}-notes`}>NOTES</label>
-            <input id={`${uid}-notes`} aria-label="Notes" className="input" name="notes" placeholder="Symptoms, dosage, instructions" maxLength={1000} style={{ minHeight: 44 }} />
+            <input id={`${uid}-notes`} aria-label="Notes" className="input" name="notes" placeholder="Symptoms, dosage, instructions" maxLength={1000} style={{ minHeight: "2.75rem" }} />
           </div>
 
-          <div style={{ fontSize: 13, color: "var(--color-neutral-700)", marginBottom: 6 }}>Visible to</div>
-          <div style={{ display: "flex", gap: 7, flexWrap: "wrap", marginBottom: 18 }}>
+          <div style={{ fontSize: "0.8125rem", color: "var(--color-neutral-700)", marginBottom: "0.375rem" }}>Visible to</div>
+          <div style={{ display: "flex", gap: "0.4375rem", flexWrap: "wrap", marginBottom: "1.125rem" }}>
             {VISIBILITY.map((v) => (
               <button key={v.value} type="button" className="chip" data-active={visibility === v.value} onClick={() => setVisibility(v.value)}>
                 {v.label}
@@ -149,7 +149,7 @@ export function NewHealthEntryForm({
             ))}
           </div>
 
-          <SubmitButton style={{ minHeight: 46, fontSize: 14, letterSpacing: ".04em" }}>SAVE ENTRY</SubmitButton>
+          <SubmitButton style={{ minHeight: "2.875rem", fontSize: "0.875rem", letterSpacing: ".04em" }}>SAVE ENTRY</SubmitButton>
         </form>
       </div>
     </div>

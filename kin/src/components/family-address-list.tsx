@@ -72,55 +72,55 @@ function AddressForm({
 }) {
   const uid = useId();
   return (
-    <div style={{ marginTop: 10, marginBottom: 10 }}>
-      <div className="field" style={{ marginBottom: 8 }}>
+    <div style={{ marginTop: "0.625rem", marginBottom: "0.625rem" }}>
+      <div className="field" style={{ marginBottom: "0.5rem" }}>
         <label htmlFor={`${uid}-label`}>TAG</label>
-        <input id={`${uid}-label`} aria-label="Tag" className="input" placeholder="Home" value={fields.label} onChange={(e) => set("label", e.target.value)} style={{ minHeight: 40 }} disabled={busy} />
+        <input id={`${uid}-label`} aria-label="Tag" className="input" placeholder="Home" value={fields.label} onChange={(e) => set("label", e.target.value)} style={{ minHeight: "2.5rem" }} disabled={busy} />
       </div>
-      <div style={{ display: "flex", gap: 8, marginBottom: 8 }}>
+      <div style={{ display: "flex", gap: "0.5rem", marginBottom: "0.5rem" }}>
         <div className="field" style={{ flex: 1 }}>
           <label htmlFor={`${uid}-house-no`}>HOUSE / UNIT NO.</label>
-          <input id={`${uid}-house-no`} aria-label="House / Unit No." className="input" value={fields.houseNo} onChange={(e) => set("houseNo", e.target.value)} style={{ minHeight: 40 }} disabled={busy} />
+          <input id={`${uid}-house-no`} aria-label="House / Unit No." className="input" value={fields.houseNo} onChange={(e) => set("houseNo", e.target.value)} style={{ minHeight: "2.5rem" }} disabled={busy} />
         </div>
         <div className="field" style={{ flex: 2 }}>
           <label htmlFor={`${uid}-building`}>BUILDING / SUBDIVISION</label>
-          <input id={`${uid}-building`} aria-label="Building / Subdivision" className="input" value={fields.building} onChange={(e) => set("building", e.target.value)} style={{ minHeight: 40 }} disabled={busy} />
+          <input id={`${uid}-building`} aria-label="Building / Subdivision" className="input" value={fields.building} onChange={(e) => set("building", e.target.value)} style={{ minHeight: "2.5rem" }} disabled={busy} />
         </div>
       </div>
-      <div className="field" style={{ marginBottom: 8 }}>
+      <div className="field" style={{ marginBottom: "0.5rem" }}>
         <label htmlFor={`${uid}-street`}>STREET</label>
-        <input id={`${uid}-street`} aria-label="Street" className="input" value={fields.street} onChange={(e) => set("street", e.target.value)} style={{ minHeight: 40 }} disabled={busy} />
+        <input id={`${uid}-street`} aria-label="Street" className="input" value={fields.street} onChange={(e) => set("street", e.target.value)} style={{ minHeight: "2.5rem" }} disabled={busy} />
       </div>
-      <div style={{ display: "flex", gap: 8, marginBottom: 8 }}>
+      <div style={{ display: "flex", gap: "0.5rem", marginBottom: "0.5rem" }}>
         <div className="field" style={{ flex: 1 }}>
           <label htmlFor={`${uid}-barangay`}>BARANGAY</label>
-          <input id={`${uid}-barangay`} aria-label="Barangay" className="input" value={fields.barangay} onChange={(e) => set("barangay", e.target.value)} style={{ minHeight: 40 }} disabled={busy} />
+          <input id={`${uid}-barangay`} aria-label="Barangay" className="input" value={fields.barangay} onChange={(e) => set("barangay", e.target.value)} style={{ minHeight: "2.5rem" }} disabled={busy} />
         </div>
         <div className="field" style={{ flex: 1 }}>
           <label htmlFor={`${uid}-city`}>CITY / MUNICIPALITY</label>
-          <input id={`${uid}-city`} aria-label="City / Municipality" className="input" value={fields.city} onChange={(e) => set("city", e.target.value)} style={{ minHeight: 40 }} disabled={busy} />
+          <input id={`${uid}-city`} aria-label="City / Municipality" className="input" value={fields.city} onChange={(e) => set("city", e.target.value)} style={{ minHeight: "2.5rem" }} disabled={busy} />
         </div>
       </div>
-      <div style={{ display: "flex", gap: 8, marginBottom: 8 }}>
+      <div style={{ display: "flex", gap: "0.5rem", marginBottom: "0.5rem" }}>
         <div className="field" style={{ flex: 1 }}>
           <label htmlFor={`${uid}-province`}>PROVINCE</label>
-          <input id={`${uid}-province`} aria-label="Province" className="input" value={fields.province} onChange={(e) => set("province", e.target.value)} style={{ minHeight: 40 }} disabled={busy} />
+          <input id={`${uid}-province`} aria-label="Province" className="input" value={fields.province} onChange={(e) => set("province", e.target.value)} style={{ minHeight: "2.5rem" }} disabled={busy} />
         </div>
         <div className="field" style={{ width: 110 }}>
           <label htmlFor={`${uid}-zip`}>ZIP CODE</label>
-          <input id={`${uid}-zip`} aria-label="Zip Code" className="input" value={fields.zipCode} onChange={(e) => set("zipCode", e.target.value)} style={{ minHeight: 40 }} disabled={busy} />
+          <input id={`${uid}-zip`} aria-label="Zip Code" className="input" value={fields.zipCode} onChange={(e) => set("zipCode", e.target.value)} style={{ minHeight: "2.5rem" }} disabled={busy} />
         </div>
       </div>
-      <div className="field" style={{ marginBottom: 8 }}>
+      <div className="field" style={{ marginBottom: "0.5rem" }}>
         <label htmlFor={`${uid}-country`}>COUNTRY</label>
-        <input id={`${uid}-country`} aria-label="Country" className="input" value={fields.country} onChange={(e) => set("country", e.target.value)} style={{ minHeight: 40 }} disabled={busy} />
+        <input id={`${uid}-country`} aria-label="Country" className="input" value={fields.country} onChange={(e) => set("country", e.target.value)} style={{ minHeight: "2.5rem" }} disabled={busy} />
       </div>
-      {error && <p style={{ color: "var(--color-accent-700)", fontSize: 13, margin: "0 0 8px" }}>{error}</p>}
-      <div style={{ display: "flex", gap: 8 }}>
-        <button type="button" className="btn btn-secondary" style={{ flex: 1, minHeight: 38, fontSize: 13.5 }} disabled={busy} onClick={onCancel}>
+      {error && <p style={{ color: "var(--color-accent-700)", fontSize: "0.8125rem", margin: "0 0 8px" }}>{error}</p>}
+      <div style={{ display: "flex", gap: "0.5rem" }}>
+        <button type="button" className="btn btn-secondary" style={{ flex: 1, minHeight: "2.375rem", fontSize: "0.84375rem" }} disabled={busy} onClick={onCancel}>
           CANCEL
         </button>
-        <button type="button" className="btn btn-primary" style={{ flex: 1, minHeight: 38, fontSize: 13.5 }} disabled={busy} onClick={onSave}>
+        <button type="button" className="btn btn-primary" style={{ flex: 1, minHeight: "2.375rem", fontSize: "0.84375rem" }} disabled={busy} onClick={onSave}>
           {busy ? "SAVING…" : saveLabel}
         </button>
       </div>
@@ -180,30 +180,30 @@ export function FamilyAddressList({ addresses, canEdit }: { addresses: FamilyAdd
   }
 
   return (
-    <div style={{ marginBottom: 20 }}>
-      <div style={{ font: "600 13px/1 var(--font-heading)", letterSpacing: ".02em", color: "var(--color-neutral-600)", marginBottom: 8 }}>
+    <div style={{ marginBottom: "1.25rem" }}>
+      <div style={{ font: "600 0.8125rem/1 var(--font-heading)", letterSpacing: ".02em", color: "var(--color-neutral-600)", marginBottom: "0.5rem" }}>
         ADDRESSES
       </div>
       {/* Removing an address has no form open to show its own error in --
           this is the only place a failed remove() is ever visible. */}
-      {error && editingId === null && <p style={{ color: "var(--color-accent-700)", fontSize: 13, margin: "0 0 8px" }}>{error}</p>}
+      {error && editingId === null && <p style={{ color: "var(--color-accent-700)", fontSize: "0.8125rem", margin: "0 0 8px" }}>{error}</p>}
       {addresses.length === 0 && editingId !== "new" && (
-        <div style={{ fontSize: 13.5, color: "var(--color-neutral-600)", marginBottom: 10 }}>No addresses yet — add where the family lives, and anywhere else that matters.</div>
+        <div style={{ fontSize: "0.84375rem", color: "var(--color-neutral-600)", marginBottom: "0.625rem" }}>No addresses yet — add where the family lives, and anywhere else that matters.</div>
       )}
       {addresses.map((a) =>
         editingId === a.id ? (
           <AddressForm key={a.id} fields={fields} set={set} busy={busy} error={error} onCancel={cancelForm} onSave={save} saveLabel="SAVE ADDRESS" />
         ) : (
-          <div key={a.id} style={{ display: "flex", alignItems: "center", gap: 10, padding: "9px 0", borderBottom: "1px solid var(--color-divider)" }}>
+          <div key={a.id} style={{ display: "flex", alignItems: "center", gap: "0.625rem", padding: "0.5625rem 0", borderBottom: "1px solid var(--color-divider)" }}>
             <span
               style={{
-                font: "600 9px/1 var(--font-heading)",
+                font: "600 0.5625rem/1 var(--font-heading)",
                 letterSpacing: ".02em",
                 textTransform: "uppercase",
                 color: "var(--color-accent-700)",
                 border: "1px solid var(--color-accent-700)",
                 borderRadius: 3,
-                padding: "3px 6px",
+                padding: "0.1875rem 0.375rem",
                 flex: "none",
                 alignSelf: "flex-start",
               }}
@@ -211,10 +211,10 @@ export function FamilyAddressList({ addresses, canEdit }: { addresses: FamilyAdd
               {a.label}
             </span>
             <span style={{ flex: 1, minWidth: 0 }}>
-              <span style={{ fontSize: 13, display: "block" }}>
+              <span style={{ fontSize: "0.8125rem", display: "block" }}>
                 {[[a.house_no, a.building].filter(Boolean).join(" "), a.street].filter(Boolean).join(", ") || a.address_line}
               </span>
-              <span style={{ fontSize: 13, color: "var(--color-neutral-600)" }}>
+              <span style={{ fontSize: "0.8125rem", color: "var(--color-neutral-600)" }}>
                 {[a.barangay, a.city, a.province, a.zip_code].filter(Boolean).join(", ")}
               </span>
             </span>
@@ -222,16 +222,16 @@ export function FamilyAddressList({ addresses, canEdit }: { addresses: FamilyAdd
               href={mapsUrl(a)}
               target="_blank"
               rel="noopener noreferrer"
-              style={{ fontSize: 13, color: "var(--color-accent-700)", textDecoration: "none", flex: "none" }}
+              style={{ fontSize: "0.8125rem", color: "var(--color-accent-700)", textDecoration: "none", flex: "none" }}
             >
               MAP ↗
             </a>
             {canEdit && (
               <>
-                <button type="button" onClick={() => startEdit(a)} style={{ all: "unset", cursor: "pointer", fontSize: 13, color: "var(--color-accent-700)" }}>
+                <button type="button" onClick={() => startEdit(a)} style={{ all: "unset", cursor: "pointer", fontSize: "0.8125rem", color: "var(--color-accent-700)" }}>
                   EDIT
                 </button>
-                <button type="button" onClick={() => remove(a.id)} style={{ all: "unset", cursor: "pointer", fontSize: 13, color: "var(--color-accent-700)" }}>
+                <button type="button" onClick={() => remove(a.id)} style={{ all: "unset", cursor: "pointer", fontSize: "0.8125rem", color: "var(--color-accent-700)" }}>
                   REMOVE
                 </button>
               </>
@@ -244,7 +244,7 @@ export function FamilyAddressList({ addresses, canEdit }: { addresses: FamilyAdd
         (editingId === "new" ? (
           <AddressForm fields={fields} set={set} busy={busy} error={error} onCancel={cancelForm} onSave={save} saveLabel="SAVE ADDRESS" />
         ) : (
-          <button type="button" className="btn btn-secondary btn-block" style={{ minHeight: 36, fontSize: 13, marginTop: 10 }} onClick={startAdd}>
+          <button type="button" className="btn btn-secondary btn-block" style={{ minHeight: "2.25rem", fontSize: "0.8125rem", marginTop: "0.625rem" }} onClick={startAdd}>
             + ADD ADDRESS
           </button>
         ))}

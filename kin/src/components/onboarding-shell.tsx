@@ -18,12 +18,12 @@ export function OnboardingShell({
         display: "flex",
         flexDirection: "column",
         alignItems: "center",
-        padding: "0 20px",
+        padding: "0 1.25rem",
       }}
     >
-      <div style={{ width: "100%", maxWidth: 440, paddingTop: 48, paddingBottom: 48 }}>
+      <div style={{ width: "100%", maxWidth: 440, paddingTop: "3rem", paddingBottom: "3rem" }}>
         {(backHref || step) && (
-          <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 34 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: "0.625rem", marginBottom: "2.125rem" }}>
             {backHref ? (
               <Link href={backHref} className="btn btn-secondary btn-icon" aria-label="Back">
                 <Icon name="chevronLeft" />
@@ -34,7 +34,7 @@ export function OnboardingShell({
             {step && (
               <span
                 style={{
-                  font: "600 13px/1 var(--font-heading)",
+                  font: "600 0.8125rem/1 var(--font-heading)",
                   letterSpacing: ".02em",
                   color: "var(--color-accent-700)",
                   marginLeft: "auto",
@@ -56,7 +56,7 @@ export function Wordmark() {
     <div>
       <div
         style={{
-          font: "600 13px/1 var(--font-heading)",
+          font: "600 0.8125rem/1 var(--font-heading)",
           letterSpacing: ".02em",
           color: "var(--color-accent-700)",
         }}

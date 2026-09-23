@@ -81,7 +81,7 @@ export default async function PlannerPage({
   return (
     <div>
       <HubHeader n="03" title="Planner" segments={segments} dateFormat={me.families.date_format} />
-      <div style={{ padding: "0 22px 22px" }}>
+      <div style={{ padding: "0 1.375rem 1.375rem" }}>
         {seg === "calendar" && (
           <CalendarPane
             familyId={me.family_id}
@@ -145,7 +145,7 @@ async function CalendarPane({ familyId, meId, who, view, anchor, hidden, weekSta
     // naming that period again, rather than wherever it had been scrolled.
     <CalendarPeriod key={`${view}-${toISODate(anchor)}`} label={label} iso={toISODate(anchor)}>
       {/* The period, and the way to any other. */}
-      <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 8 }}>
+      <div style={{ display: "flex", alignItems: "center", gap: "0.375rem", marginBottom: "0.5rem" }}>
         {/* The title is the jump control: month, year or exact day in one tap. */}
         <CalendarJump label={label} hrefBase={calendarBase(who, view, hide)} anchor={toISODate(anchor)} weekStart={weekStart} />
         {/* Straight back to the current date. The prev/next arrows that used
@@ -159,7 +159,7 @@ async function CalendarPane({ familyId, meId, who, view, anchor, hidden, weekSta
           whole list on its chevron or a long press — one button apiece, in
           place of a row of chips that grew with the family and a row of
           segments that never changed. */}
-      <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 14 }}>
+      <div style={{ display: "flex", alignItems: "center", gap: "0.375rem", marginBottom: "0.875rem" }}>
         <PickButton
           title="Who"
           icon="users"
@@ -192,7 +192,7 @@ async function CalendarPane({ familyId, meId, who, view, anchor, hidden, weekSta
           and switches that category on or off. Off reads as a hollow dot on
           an outlined pill with the label dimmed, so the state never rests on
           colour alone. */}
-      <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 6, margin: "16px 0 0", paddingTop: 12, borderTop: "1px solid var(--color-divider)" }}>
+      <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: "0.375rem", margin: "16px 0 0", paddingTop: "0.75rem", borderTop: "1px solid var(--color-divider)" }}>
         {CALENDAR_LEGEND.map((l) => {
           const on = !hidden.has(l.group);
           return (
@@ -203,11 +203,11 @@ async function CalendarPane({ familyId, meId, who, view, anchor, hidden, weekSta
               style={{
                 display: "flex",
                 alignItems: "center",
-                gap: 5,
-                minHeight: 32,
-                padding: "0 13px",
+                gap: "0.3125rem",
+                minHeight: "2rem",
+                padding: "0 0.8125rem",
                 borderRadius: 999,
-                fontSize: 13,
+                fontSize: "0.8125rem",
                 fontWeight: 500,
                 textDecoration: "none",
                 background: on ? "color-mix(in srgb, var(--color-text) 6%, transparent)" : "transparent",
@@ -226,7 +226,7 @@ async function CalendarPane({ familyId, meId, who, view, anchor, hidden, weekSta
         {hidden.size > 0 && (
           <Link
             href={calendarHref(who, view, anchor)}
-            style={{ minHeight: 32, display: "flex", alignItems: "center", padding: "0 8px", fontSize: 13, color: "var(--color-accent)", textDecoration: "none" }}
+            style={{ minHeight: "2rem", display: "flex", alignItems: "center", padding: "0 0.5rem", fontSize: "0.8125rem", color: "var(--color-accent)", textDecoration: "none" }}
           >
             Show all
           </Link>
@@ -250,17 +250,17 @@ function AgendaRow({ item }: { item: PlannerCalendarItem }) {
   const isPastActivity = item.table === "activities" && item.date < new Date();
 
   return (
-    <div style={{ display: "flex", gap: 10, alignItems: "stretch", padding: "3px 0" }}>
+    <div style={{ display: "flex", gap: "0.625rem", alignItems: "stretch", padding: "0.1875rem 0" }}>
       <span style={{ width: 4, borderRadius: 999, background: style.color, flex: "none" }} />
-      <div style={{ flex: 1, minWidth: 0, padding: "7px 0" }}>
-        <Link href={item.href} style={{ display: "flex", gap: 10, textDecoration: "none", color: "inherit", alignItems: "baseline" }}>
-          <span style={{ fontSize: 13, color: "var(--color-neutral-600)", width: 52, flex: "none" }}>
+      <div style={{ flex: 1, minWidth: 0, padding: "0.4375rem 0" }}>
+        <Link href={item.href} style={{ display: "flex", gap: "0.625rem", textDecoration: "none", color: "inherit", alignItems: "baseline" }}>
+          <span style={{ fontSize: "0.8125rem", color: "var(--color-neutral-600)", width: "3.25rem", flex: "none" }}>
             {item.allDay ? "all-day" : familyClock(item.date)}
           </span>
           <span style={{ flex: 1, minWidth: 0 }}>
-            <span style={{ fontSize: 16, fontWeight: 500, display: "block", lineHeight: 1.25 }}>{item.title}</span>
-            <span style={{ fontSize: 13, color: "var(--color-neutral-600)" }}>
-              <Icon name={style.icon} size={12} style={{ display: "inline-block", verticalAlign: "-1px", marginRight: 4 }} />
+            <span style={{ fontSize: "1rem", fontWeight: 500, display: "block", lineHeight: 1.25 }}>{item.title}</span>
+            <span style={{ fontSize: "0.8125rem", color: "var(--color-neutral-600)" }}>
+              <Icon name={style.icon} size={12} style={{ display: "inline-block", verticalAlign: "-1px", marginRight: "0.25rem" }} />
               {style.label}
               {item.location ? ` · ${item.location}` : ""}
               {item.who ? ` · ${item.who.toLowerCase()}` : ""}
@@ -287,20 +287,20 @@ async function EmptyCalendar({ familyId, scope }: { familyId: string; scope: str
   const hasAny = await hasAnyCalendarRecords(familyId);
 
   if (hasAny) {
-    return <p style={{ fontSize: 15, color: "var(--color-neutral-600)", padding: "18px 0" }}>Nothing {scope}.</p>;
+    return <p style={{ fontSize: "0.9375rem", color: "var(--color-neutral-600)", padding: "1.125rem 0" }}>Nothing {scope}.</p>;
   }
 
   return (
-    <Blueprint style={{ padding: 18, margin: "14px 0" }}>
-      <div style={{ font: "600 18px/1.2 var(--font-heading)", marginBottom: 6 }}>Your calendar starts here</div>
-      <p style={{ fontSize: 14.5, color: "var(--color-neutral-600)", margin: "0 0 12px", lineHeight: 1.45 }}>
+    <Blueprint style={{ padding: "1.125rem", margin: "14px 0" }}>
+      <div style={{ font: "600 1.125rem/1.2 var(--font-heading)", marginBottom: "0.375rem" }}>Your calendar starts here</div>
+      <p style={{ fontSize: "0.90625rem", color: "var(--color-neutral-600)", margin: "0 0 12px", lineHeight: 1.45 }}>
         Everything the household has a date for gathers on this page — school runs and appointments, birthdays, trips,
         bills falling due, what is planned for dinner, and the dates you are saving towards. Add the first one and the
         rest of Kin will feed it as you go.
       </p>
-      <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+      <div style={{ display: "flex", flexWrap: "wrap", gap: "0.375rem" }}>
         {CALENDAR_LEGEND.map((l) => (
-          <span key={l.group} style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 12.5, color: "var(--color-neutral-600)" }}>
+          <span key={l.group} style={{ display: "flex", alignItems: "center", gap: "0.3125rem", fontSize: "0.78125rem", color: "var(--color-neutral-600)" }}>
             <span style={{ width: 9, height: 9, borderRadius: 999, background: l.color }} />
             {l.label}
           </span>
@@ -312,8 +312,8 @@ async function EmptyCalendar({ familyId, scope }: { familyId: string; scope: str
 
 function DayHeading({ date, isToday }: { date: Date; isToday: boolean }) {
   return (
-    <div style={{ display: "flex", alignItems: "center", gap: 8, margin: "14px 0 4px" }}>
-      <span style={{ fontSize: 13, fontWeight: 600, color: isToday ? "var(--color-accent)" : "var(--color-neutral-600)" }}>
+    <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", margin: "14px 0 4px" }}>
+      <span style={{ fontSize: "0.8125rem", fontWeight: 600, color: isToday ? "var(--color-accent)" : "var(--color-neutral-600)" }}>
         {isToday ? "Today" : date.toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "short" })}
       </span>
       <span style={{ flex: 1, height: 1, background: "var(--color-divider)" }} />
@@ -348,25 +348,25 @@ async function WeekView({ familyId, memberId, who, anchor, hidden, hide, weekSta
                 display: "flex",
                 flexDirection: "column",
                 alignItems: "center",
-                gap: 3,
-                padding: "4px 0 5px",
+                gap: "0.1875rem",
+                padding: "0.25rem 0 0.3125rem",
                 borderRadius: 12,
                 background: d.isSelected && !d.isToday ? "color-mix(in srgb, var(--color-text) 7%, transparent)" : "transparent",
                 opacity: isPast(d.date, today) ? 0.55 : 1,
               }}
             >
-              <span style={{ fontSize: 11, color: "var(--color-neutral-600)", height: 13 }}>
+              <span style={{ fontSize: "0.6875rem", color: "var(--color-neutral-600)", height: "0.8125rem" }}>
                 {first ? d.date.toLocaleDateString("en-GB", { month: "short" }) : d.date.toLocaleDateString("en-GB", { weekday: "short" }).slice(0, 1)}
               </span>
               <span
                 style={{
-                  width: 34,
-                  height: 34,
+                  width: "min(2.125rem, 11vw)",
+                  height: "min(2.125rem, 11vw)",
                   borderRadius: 999,
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
-                  fontSize: 16,
+                  fontSize: "1rem",
                   fontWeight: d.isToday || d.isSelected ? 600 : 400,
                   background: d.isToday ? "var(--color-accent)" : "transparent",
                   color: d.isToday ? "#fff" : "var(--color-text)",
@@ -375,7 +375,7 @@ async function WeekView({ familyId, memberId, who, anchor, hidden, hide, weekSta
               >
                 {d.date.getDate()}
               </span>
-              <span style={{ display: "flex", gap: 2, height: 4 }}>
+              <span style={{ display: "flex", gap: "0.125rem", height: 4 }}>
                 {d.items.slice(0, 3).map((a) => (
                   <span key={`${a.table}-${a.id}`} style={{ width: 4, height: 4, borderRadius: 999, background: styleFor(a.table).color }} />
                 ))}
@@ -390,7 +390,7 @@ async function WeekView({ familyId, memberId, who, anchor, hidden, hide, weekSta
         <div style={{ opacity: isPast(selected.date, today) ? 0.62 : 1 }}>
           <DayHeading date={selected.date} isToday={selected.isToday} />
           {selected.activities.length === 0 ? (
-            <p style={{ fontSize: 15, color: "var(--color-neutral-600)", padding: "6px 0" }}>Nothing on this day.</p>
+            <p style={{ fontSize: "0.9375rem", color: "var(--color-neutral-600)", padding: "0.375rem 0" }}>Nothing on this day.</p>
           ) : (
             selected.activities.map((a) => <AgendaRow key={`${a.table}-${a.id}`} item={a} />)
           )}
@@ -422,11 +422,11 @@ async function MonthView({ familyId, memberId, who, anchor, hidden, hide, weekSt
   const selectedItems = anchorMonth?.itemsByDay[anchor.getDate()] ?? [];
 
   return (
-    <div style={{ marginBottom: 8 }}>
+    <div style={{ marginBottom: "0.5rem" }}>
       {/* One weekday header for the whole run — the columns never move. */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(7, minmax(0, 1fr))", gap: 2, marginBottom: 4 }}>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(7, minmax(0, 1fr))", gap: "0.125rem", marginBottom: "0.25rem" }}>
         {weekdayInitials(weekStart).map((d, i) => (
-          <div key={i} style={{ textAlign: "center", fontSize: 11, color: "var(--color-neutral-600)" }}>
+          <div key={i} style={{ textAlign: "center", fontSize: "0.6875rem", color: "var(--color-neutral-600)" }}>
             {d}
           </div>
         ))}
@@ -448,19 +448,19 @@ async function MonthView({ familyId, memberId, who, anchor, hidden, hide, weekSt
               data-anchor-month={isAnchorMonth}
               data-month-label={monthLabel}
               data-month-iso={monthIso}
-              style={{ paddingBottom: 10 }}
+              style={{ paddingBottom: "0.625rem" }}
             >
               <div
                 style={{
-                  font: "600 13px/1 var(--font-heading)",
+                  font: "600 0.8125rem/1 var(--font-heading)",
                   letterSpacing: ".01em",
                   color: isThisMonth ? "var(--color-accent)" : "var(--color-neutral-600)",
-                  padding: "10px 2px 6px",
+                  padding: "0.625rem 0.125rem 0.375rem",
                 }}
               >
                 {monthLabel.toUpperCase()}
               </div>
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(7, minmax(0, 1fr))", gap: 2 }}>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(7, minmax(0, 1fr))", gap: "0.125rem" }}>
                 {Array.from({ length: dayColumn(m.monthStart, weekStart) }, (_, i) => (
                   <div key={`b${i}`} />
                 ))}
@@ -475,14 +475,14 @@ async function MonthView({ familyId, memberId, who, anchor, hidden, hide, weekSt
                       href={calendarHref(who, "month", date, hide)}
                       aria-current={isSelected ? "date" : undefined}
                       style={{
-                        minHeight: 60,
+                        minHeight: "3.75rem",
                         minWidth: 0,
                         overflow: "hidden",
                         display: "flex",
                         flexDirection: "column",
                         alignItems: "center",
-                        gap: 2,
-                        padding: "4px 2px",
+                        gap: "0.125rem",
+                        padding: "0.25rem 0.125rem",
                         borderRadius: 10,
                         background: isSelected && !isToday ? "color-mix(in srgb, var(--color-text) 7%, transparent)" : "transparent",
                         textDecoration: "none",
@@ -492,13 +492,13 @@ async function MonthView({ familyId, memberId, who, anchor, hidden, hide, weekSt
                     >
                       <span
                         style={{
-                          width: 26,
-                          height: 26,
+                          width: "min(1.625rem, 11vw)",
+                          height: "min(1.625rem, 11vw)",
                           borderRadius: 999,
                           display: "flex",
                           alignItems: "center",
                           justifyContent: "center",
-                          fontSize: 14,
+                          fontSize: "0.875rem",
                           fontWeight: isToday || isSelected ? 600 : 400,
                           background: isToday ? "var(--color-accent)" : "transparent",
                           color: isToday ? "#fff" : "var(--color-text)",
@@ -512,7 +512,7 @@ async function MonthView({ familyId, memberId, who, anchor, hidden, hide, weekSt
                           must never widen its cell: the column is capped, the
                           chip is a block that cannot exceed it, and the text
                           clips inside. */}
-                      <span style={{ width: "100%", minWidth: 0, display: "flex", flexDirection: "column", gap: 1 }}>
+                      <span style={{ width: "100%", minWidth: 0, display: "flex", flexDirection: "column", gap: "0.0625rem" }}>
                         {items.slice(0, 2).map((a) => (
                           <span
                             key={`${a.table}-${a.id}`}
@@ -521,10 +521,10 @@ async function MonthView({ familyId, memberId, who, anchor, hidden, hide, weekSt
                               display: "block",
                               maxWidth: "100%",
                               minWidth: 0,
-                              fontSize: 8.5,
+                              fontSize: "0.53125rem",
                               lineHeight: 1.3,
                               borderRadius: 3,
-                              padding: "0 2px",
+                              padding: "0 0.125rem",
                               background: styleFor(a.table).color,
                               color: "#fff",
                               overflow: "hidden",
@@ -536,7 +536,7 @@ async function MonthView({ familyId, memberId, who, anchor, hidden, hide, weekSt
                           </span>
                         ))}
                         {items.length > 2 && (
-                          <span style={{ fontSize: 8.5, color: "var(--color-neutral-600)", textAlign: "center" }}>+{items.length - 2}</span>
+                          <span style={{ fontSize: "0.53125rem", color: "var(--color-neutral-600)", textAlign: "center" }}>+{items.length - 2}</span>
                         )}
                       </span>
                     </Link>
@@ -549,13 +549,13 @@ async function MonthView({ familyId, memberId, who, anchor, hidden, hide, weekSt
       </MonthScroller>
 
       {/* The selected day's agenda stays put below the scroller. */}
-      <div style={{ marginTop: 6 }}>
+      <div style={{ marginTop: "0.375rem" }}>
         <DayHeading date={anchor} isToday={anchor.toDateString() === today.toDateString()} />
         {selectedItems.length === 0 ? (
           months.every((m) => m.itemsByDay.every((d) => d.length === 0)) ? (
             <EmptyCalendar familyId={familyId} scope="on this day" />
           ) : (
-            <p style={{ fontSize: 15, color: "var(--color-neutral-600)", padding: "6px 0" }}>Nothing on this day.</p>
+            <p style={{ fontSize: "0.9375rem", color: "var(--color-neutral-600)", padding: "0.375rem 0" }}>Nothing on this day.</p>
           )
         ) : (
           selectedItems.map((a) => <AgendaRow key={`${a.table}-${a.id}`} item={a} />)
@@ -571,20 +571,20 @@ async function YearView({ familyId, memberId, who, anchor, hidden, hide }: { fam
   const busiest = Math.max(1, ...countsByMonth);
 
   return (
-    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8, marginBottom: 8 }}>
+    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "0.5rem", marginBottom: "0.5rem" }}>
       {countsByMonth.map((count, i) => {
         const monthDate = new Date(year, i, 1);
         const isThisMonth = year === today.getFullYear() && i === today.getMonth();
         return (
           <Link key={i} href={calendarHref(who, "month", monthDate, hide)} style={{ textDecoration: "none", color: "inherit" }}>
-            <Blueprint style={{ padding: "11px 10px 12px", textAlign: "center" }}>
-              <div style={{ fontSize: 15, fontWeight: 600, color: isThisMonth ? "var(--color-accent)" : "var(--color-text)" }}>
+            <Blueprint style={{ padding: "0.6875rem 0.625rem 0.75rem", textAlign: "center" }}>
+              <div style={{ fontSize: "0.9375rem", fontWeight: 600, color: isThisMonth ? "var(--color-accent)" : "var(--color-text)" }}>
                 {monthDate.toLocaleDateString("en-GB", { month: "short" })}
               </div>
-              <div style={{ height: 4, borderRadius: 999, marginTop: 7, background: "color-mix(in srgb, var(--color-text) 8%, transparent)" }}>
+              <div style={{ height: 4, borderRadius: 999, marginTop: "0.4375rem", background: "color-mix(in srgb, var(--color-text) 8%, transparent)" }}>
                 <div style={{ height: "100%", borderRadius: 999, width: `${(count / busiest) * 100}%`, background: "var(--cal-schedule)" }} />
               </div>
-              <div style={{ fontSize: 12, color: "var(--color-neutral-600)", marginTop: 5 }}>{count || "—"}</div>
+              <div style={{ fontSize: "0.75rem", color: "var(--color-neutral-600)", marginTop: "0.3125rem" }}>{count || "—"}</div>
             </Blueprint>
           </Link>
         );
@@ -604,16 +604,16 @@ function Scoreboard({ scores }: { scores: MemberScore[] }) {
   if (worth.length === 0) return null;
 
   return (
-    <div style={{ display: "flex", gap: 8, overflowX: "auto", paddingBottom: 4, marginBottom: 14 }}>
+    <div style={{ display: "flex", gap: "0.5rem", overflowX: "auto", paddingBottom: "0.25rem", marginBottom: "0.875rem" }}>
       {worth.map((s) => (
-        <Blueprint key={s.id} style={{ padding: "9px 12px", flex: "none", minWidth: 96 }}>
-          <div style={{ fontSize: 12.5, color: "var(--color-neutral-600)" }}>{s.name.split(" ")[0]}</div>
-          <div style={{ display: "flex", alignItems: "baseline", gap: 5 }}>
-            <span style={{ font: "600 22px/1.1 var(--font-heading)", color: "var(--color-accent-700)" }}>{s.points}</span>
-            <span style={{ fontSize: 11.5, letterSpacing: ".04em", textTransform: "uppercase", color: "var(--color-neutral-600)" }}>pts</span>
+        <Blueprint key={s.id} style={{ padding: "0.5625rem 0.75rem", flex: "none", minWidth: 96 }}>
+          <div style={{ fontSize: "0.78125rem", color: "var(--color-neutral-600)" }}>{s.name.split(" ")[0]}</div>
+          <div style={{ display: "flex", alignItems: "baseline", gap: "0.3125rem" }}>
+            <span style={{ font: "600 1.375rem/1.1 var(--font-heading)", color: "var(--color-accent-700)" }}>{s.points}</span>
+            <span style={{ fontSize: "0.71875rem", letterSpacing: ".04em", textTransform: "uppercase", color: "var(--color-neutral-600)" }}>pts</span>
           </div>
           {s.awaiting > 0 && (
-            <div style={{ fontSize: 11.5, color: "var(--cal-money)", marginTop: 2 }}>
+            <div style={{ fontSize: "0.71875rem", color: "var(--cal-money)", marginTop: "0.125rem" }}>
               {s.awaiting} waiting
             </div>
           )}
@@ -632,8 +632,8 @@ function OneOffTasks({ tasks }: { tasks: Awaited<ReturnType<typeof getOneOffTask
   if (tasks.length === 0) return null;
 
   return (
-    <div style={{ marginBottom: 18 }}>
-      <div style={{ fontSize: 12, letterSpacing: ".04em", textTransform: "uppercase", color: "var(--color-neutral-600)", marginBottom: 8 }}>
+    <div style={{ marginBottom: "1.125rem" }}>
+      <div style={{ fontSize: "0.75rem", letterSpacing: ".04em", textTransform: "uppercase", color: "var(--color-neutral-600)", marginBottom: "0.5rem" }}>
         One-off · {tasks.length}
       </div>
       {tasks.map((t) => {
@@ -643,7 +643,7 @@ function OneOffTasks({ tasks }: { tasks: Awaited<ReturnType<typeof getOneOffTask
 
         return (
           <Link key={t.id} href={`/planner/add?type=task&id=${t.id}`} style={{ textDecoration: "none", color: "inherit", display: "block" }}>
-            <Blueprint style={{ padding: 13, marginBottom: 9, display: "flex", gap: 11, alignItems: "flex-start" }}>
+            <Blueprint style={{ padding: "0.8125rem", marginBottom: "0.5625rem", display: "flex", gap: "0.6875rem", alignItems: "flex-start" }}>
               <span
                 style={{
                   width: 34,
@@ -660,12 +660,12 @@ function OneOffTasks({ tasks }: { tasks: Awaited<ReturnType<typeof getOneOffTask
                 <Icon name={meta.icon} size={18} />
               </span>
               <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ font: "600 17px/1.2 var(--font-heading)" }}>{t.title}</div>
-                <div style={{ fontSize: 13, color: "var(--color-neutral-600)", marginTop: 2 }}>
+                <div style={{ font: "600 1.0625rem/1.2 var(--font-heading)" }}>{t.title}</div>
+                <div style={{ fontSize: "0.8125rem", color: "var(--color-neutral-600)", marginTop: "0.125rem" }}>
                   {familyDateLong(start)} · {familyClock(start)}
                   {t.location ? ` · ${t.location}` : ""}
                 </div>
-                <div style={{ fontSize: 13, color: "var(--color-neutral-600)" }}>{whoFor}</div>
+                <div style={{ fontSize: "0.8125rem", color: "var(--color-neutral-600)" }}>{whoFor}</div>
               </div>
               <Icon name="chevronLeft" size={15} style={{ transform: "rotate(180deg)", color: "var(--color-neutral-600)", flex: "none" }} />
             </Blueprint>
@@ -698,12 +698,12 @@ async function RoutinesPane({ familyId, who, currency, justSaved }: { familyId: 
           style={{
             display: "flex",
             alignItems: "center",
-            gap: 8,
-            marginBottom: 12,
-            padding: "10px 13px",
+            gap: "0.5rem",
+            marginBottom: "0.75rem",
+            padding: "0.625rem 0.8125rem",
             borderRadius: 12,
             background: "color-mix(in srgb, var(--color-switch-on) 16%, transparent)",
-            fontSize: 14,
+            fontSize: "0.875rem",
           }}
         >
           <Icon name="check" size={16} style={{ color: "var(--color-neutral-900)" }} />
@@ -724,9 +724,9 @@ async function RoutinesPane({ familyId, who, currency, justSaved }: { familyId: 
       <OneOffTasks tasks={oneOffs} />
 
       {routines.length === 0 && oneOffs.length === 0 ? (
-        <Blueprint style={{ padding: 18, marginBottom: 16 }}>
-          <div style={{ font: "600 18px/1.2 var(--font-heading)", marginBottom: 6 }}>The week&rsquo;s rhythm lives here</div>
-          <p style={{ fontSize: 14.5, color: "var(--color-neutral-600)", margin: 0, lineHeight: 1.45 }}>
+        <Blueprint style={{ padding: "1.125rem", marginBottom: "1rem" }}>
+          <div style={{ font: "600 1.125rem/1.2 var(--font-heading)", marginBottom: "0.375rem" }}>The week&rsquo;s rhythm lives here</div>
+          <p style={{ fontSize: "0.90625rem", color: "var(--color-neutral-600)", margin: 0, lineHeight: 1.45 }}>
             The grocery run, gym days, Sunday mass, swimming lessons — the things that come round again. Set one up once
             and it fills in the calendar from then on, reminds whoever it is for through their own phone calendar, and
             keeps track of whose turn it is.
@@ -735,7 +735,7 @@ async function RoutinesPane({ familyId, who, currency, justSaved }: { familyId: 
       ) : (
         <>
           {dueToday.length > 0 && (
-            <div style={{ fontSize: 12, letterSpacing: ".04em", textTransform: "uppercase", color: "var(--color-neutral-600)", marginBottom: 8 }}>
+            <div style={{ fontSize: "0.75rem", letterSpacing: ".04em", textTransform: "uppercase", color: "var(--color-neutral-600)", marginBottom: "0.5rem" }}>
               Today · {dueToday.length}
             </div>
           )}
@@ -751,8 +751,8 @@ async function RoutinesPane({ familyId, who, currency, justSaved }: { familyId: 
               <Blueprint
                 key={r.id}
                 style={{
-                  padding: 14,
-                  marginBottom: 10,
+                  padding: "0.875rem",
+                  marginBottom: "0.625rem",
                   opacity: r.paused ? 0.62 : 1,
                   // Behind gets an amber edge, settled-for-today a green one,
                   // so the state of each routine reads before it is read.
@@ -764,7 +764,7 @@ async function RoutinesPane({ familyId, who, currency, justSaved }: { familyId: 
                         : undefined,
                 }}
               >
-                <div style={{ display: "flex", gap: 11, alignItems: "flex-start" }}>
+                <div style={{ display: "flex", gap: "0.6875rem", alignItems: "flex-start" }}>
                   <span
                     style={{
                       width: 34,
@@ -781,15 +781,15 @@ async function RoutinesPane({ familyId, who, currency, justSaved }: { familyId: 
                     <Icon name={meta.icon} size={18} />
                   </span>
                   <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ font: "600 17px/1.2 var(--font-heading)" }}>{r.title}</div>
-                    <div style={{ fontSize: 13, color: "var(--color-neutral-600)", marginTop: 2 }}>
+                    <div style={{ font: "600 1.0625rem/1.2 var(--font-heading)" }}>{r.title}</div>
+                    <div style={{ fontSize: "0.8125rem", color: "var(--color-neutral-600)", marginTop: "0.125rem" }}>
                       {describeRule(r.rule, r.timeOfDay)}
                       {r.location ? ` · ${r.location}` : ""}
                     </div>
-                    <div style={{ fontSize: 13, color: "var(--color-neutral-600)" }}>{whoFor}</div>
+                    <div style={{ fontSize: "0.8125rem", color: "var(--color-neutral-600)" }}>{whoFor}</div>
                   </div>
                   {!r.paused && r.today?.status === "done" && (
-                    <span style={{ flex: "none", display: "inline-flex", alignItems: "center", gap: 4, fontSize: 12.5, color: "var(--color-neutral-700)" }}>
+                    <span style={{ flex: "none", display: "inline-flex", alignItems: "center", gap: "0.25rem", fontSize: "0.78125rem", color: "var(--color-neutral-700)" }}>
                       <Icon name="check" size={14} style={{ color: "var(--color-switch-on)" }} />
                       Done
                     </span>
@@ -798,9 +798,9 @@ async function RoutinesPane({ familyId, who, currency, justSaved }: { familyId: 
                     <span
                       style={{
                         flex: "none",
-                        fontSize: 12,
+                        fontSize: "0.75rem",
                         fontWeight: 600,
-                        padding: "3px 9px",
+                        padding: "0.1875rem 0.5625rem",
                         borderRadius: 999,
                         background: "color-mix(in srgb, var(--color-switch-on) 18%, transparent)",
                         color: "var(--color-neutral-900)",
@@ -813,11 +813,11 @@ async function RoutinesPane({ familyId, who, currency, justSaved }: { familyId: 
                 </div>
 
                 {!r.paused && (r.today || r.overdue.length > 0 || r.upcoming.length > 0) && (
-                  <div style={{ marginTop: 11, paddingTop: 11, borderTop: "1px solid var(--color-divider)" }}>
+                  <div style={{ marginTop: "0.6875rem", paddingTop: "0.6875rem", borderTop: "1px solid var(--color-divider)" }}>
                     {r.today && (
                       <>
                         {r.today.assignee && (
-                          <div style={{ fontSize: 13, color: "var(--color-neutral-700)", marginBottom: 7 }}>
+                          <div style={{ fontSize: "0.8125rem", color: "var(--color-neutral-700)", marginBottom: "0.4375rem" }}>
                             Today it is {r.today.assignee.name.split(" ")[0]}&rsquo;s turn
                             {r.timeOfDay ? ` · ${formatTimeOfDay(r.timeOfDay)}` : ""}
                           </div>
@@ -843,8 +843,8 @@ async function RoutinesPane({ familyId, who, currency, justSaved }: { familyId: 
                   </div>
                 )}
 
-                <div style={{ display: "flex", alignItems: "center", gap: 4, marginTop: 9, flexWrap: "wrap" }}>
-                  <span style={{ flex: 1, minWidth: 0, fontSize: 12.5, color: "var(--color-neutral-600)" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: "0.25rem", marginTop: "0.5625rem", flexWrap: "wrap" }}>
+                  <span style={{ flex: 1, minWidth: 0, fontSize: "0.78125rem", color: "var(--color-neutral-600)" }}>
                     {r.paused
                       ? "Paused — off everyone&rsquo;s calendar until resumed"
                       : r.next
@@ -852,7 +852,7 @@ async function RoutinesPane({ familyId, who, currency, justSaved }: { familyId: 
                         : "No more occurrences"}
                     {r.reminderMinutes != null && !r.paused ? ` · reminder ${r.reminderMinutes} min before` : ""}
                   </span>
-                  <Link href={`/planner/routines/new?id=${r.id}`} className="btn btn-ghost" style={{ minHeight: 30, fontSize: 12.5, padding: "0 8px" }}>
+                  <Link href={`/planner/routines/new?id=${r.id}`} className="btn btn-ghost" style={{ minHeight: "1.875rem", fontSize: "0.78125rem", padding: "0 0.5rem" }}>
                     Edit
                   </Link>
                   <RoutinePauseButton id={r.id} paused={r.paused} />
@@ -864,10 +864,10 @@ async function RoutinesPane({ familyId, who, currency, justSaved }: { familyId: 
         </>
       )}
 
-      <Link href="/planner/routines/new" className="btn btn-primary btn-block" style={{ minHeight: 48, fontSize: 16, marginTop: 6 }}>
+      <Link href="/planner/routines/new" className="btn btn-primary btn-block" style={{ minHeight: "3rem", fontSize: "1rem", marginTop: "0.375rem" }}>
         <Icon name="plus" size={17} /> Add a task
       </Link>
-      <p style={{ fontSize: 12.5, color: "var(--color-neutral-600)", marginTop: 10, lineHeight: 1.45 }}>
+      <p style={{ fontSize: "0.78125rem", color: "var(--color-neutral-600)", marginTop: "0.625rem", lineHeight: 1.45 }}>
         Tasks show up in the calendar and on Today, and go to the Google Calendar of everyone they are for — so the
         reminder arrives on their phone, not just in Kin.
       </p>
@@ -883,7 +883,7 @@ async function MemberChips({ familyId, seg, who }: { familyId: string; seg: stri
   const labels = shortNames(active.map((m) => m.full_name)).map((l, i) => selfLabel(l, active[i].id === me?.id));
 
   return (
-    <div style={{ display: "flex", marginBottom: 14 }}>
+    <div style={{ display: "flex", marginBottom: "0.875rem" }}>
       <PickButton
         title="Who"
         icon="users"
@@ -947,7 +947,7 @@ async function EventsPane({ familyId, memberId, currency, who }: { familyId: str
     <>
       <MemberChips familyId={familyId} seg="events" who={who} />
       {upcomingTrip && (
-        <Blueprint style={{ marginBottom: 16, padding: 0 }}>
+        <Blueprint style={{ marginBottom: "1rem", padding: 0 }}>
           <div
             className={upcomingTrip.photoUrl ? "" : "duotone"}
             style={{
@@ -957,13 +957,13 @@ async function EventsPane({ familyId, memberId, currency, who }: { familyId: str
               backgroundPosition: "center",
             }}
           />
-          <div style={{ padding: 13 }}>
-            <div style={{ font: "400 12px/1 var(--font-numeric)", color: "var(--color-accent-700)" }}>
+          <div style={{ padding: "0.8125rem" }}>
+            <div style={{ font: "400 0.75rem/1 var(--font-numeric)", color: "var(--color-accent-700)" }}>
               {fmtDate(upcomingTrip.event_date)}
               {upcomingTrip.end_date ? ` — ${fmtDate(upcomingTrip.end_date)}` : ""}
             </div>
-            <div style={{ font: "600 24px/1.05 var(--font-heading)", margin: "6px 0 8px" }}>{upcomingTrip.title}</div>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8, fontSize: 13 }}>
+            <div style={{ font: "600 1.5rem/1.05 var(--font-heading)", margin: "6px 0 8px" }}>{upcomingTrip.title}</div>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "0.5rem", fontSize: "0.8125rem" }}>
               <Fact k="Budget" v={upcomingTrip.budget_amount ? formatCurrency(Number(upcomingTrip.budget_amount), currency) : "—"} />
               <Fact k="Packed" v={`${upcomingTrip.packed_count} / ${upcomingTrip.packed_total}`} />
               <Fact
@@ -978,11 +978,11 @@ async function EventsPane({ familyId, memberId, currency, who }: { familyId: str
             <Link
               href={`/planner/add?type=event&id=${upcomingTrip.id}`}
               className="btn btn-secondary btn-block"
-              style={{ minHeight: 40, fontSize: 13, marginTop: 12 }}
+              style={{ minHeight: "2.5rem", fontSize: "0.8125rem", marginTop: "0.75rem" }}
             >
               Edit trip
             </Link>
-            <div style={{ marginTop: 10 }}>
+            <div style={{ marginTop: "0.625rem" }}>
               <LogSpendControl
                 accounts={pickable}
                 currency={currency}
@@ -997,7 +997,7 @@ async function EventsPane({ familyId, memberId, currency, who }: { familyId: str
         </Blueprint>
       )}
       {rows.length === 0 && (
-        <p style={{ fontSize: 13.5, color: "var(--color-neutral-600)" }}>
+        <p style={{ fontSize: "0.84375rem", color: "var(--color-neutral-600)" }}>
           {allEvents.length === 0 ? "Nothing planned yet." : "Nothing planned for this person."}
         </p>
       )}
@@ -1006,7 +1006,7 @@ async function EventsPane({ familyId, memberId, currency, who }: { familyId: str
           <Link
             key={`event-${row.event.id}`}
             href={`/planner/add?type=event&id=${row.event.id}`}
-            style={{ display: "flex", gap: 12, padding: "13px 0", borderBottom: "1px solid color-mix(in srgb, var(--color-text) 10%, transparent)", textDecoration: "none", color: "inherit" }}
+            style={{ display: "flex", gap: "0.75rem", padding: "0.8125rem 0", borderBottom: "1px solid color-mix(in srgb, var(--color-text) 10%, transparent)", textDecoration: "none", color: "inherit" }}
           >
             <Blueprint
               style={{
@@ -1020,14 +1020,14 @@ async function EventsPane({ familyId, memberId, currency, who }: { familyId: str
                 borderLeft: stripeFor(row.event) ? `3px solid ${stripeFor(row.event)}` : undefined,
               }}
             >
-              <span style={{ font: "600 18px/1 var(--font-heading)" }}>{new Date(row.event.event_date).getDate()}</span>
-              <span style={{ fontSize: 8.5, letterSpacing: ".02em", color: "var(--color-neutral-600)" }}>
+              <span style={{ font: "600 1.125rem/1 var(--font-heading)" }}>{new Date(row.event.event_date).getDate()}</span>
+              <span style={{ fontSize: "0.53125rem", letterSpacing: ".02em", color: "var(--color-neutral-600)" }}>
                 {new Date(row.event.event_date).toLocaleDateString("en-GB", { month: "short" }).toUpperCase()}
               </span>
             </Blueprint>
             <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ font: "600 18px/1.1 var(--font-heading)" }}>{row.event.title}</div>
-              <div style={{ fontSize: 13, color: "var(--color-neutral-600)" }}>
+              <div style={{ font: "600 1.125rem/1.1 var(--font-heading)" }}>{row.event.title}</div>
+              <div style={{ fontSize: "0.8125rem", color: "var(--color-neutral-600)" }}>
                 {row.event.applies_to_whole_family || row.event.who.length === 0 ? "Whole family" : row.event.who.map((n) => n.split(" ")[0]).join(", ")}
                 {row.event.sub_note ? ` · ${row.event.sub_note}` : ""}
               </div>
@@ -1037,21 +1037,21 @@ async function EventsPane({ familyId, memberId, currency, who }: { familyId: str
             </Tag>
           </Link>
         ) : (
-          <div key={`trip-${row.trip.id}`} style={{ display: "flex", gap: 12, padding: "13px 0", borderBottom: "1px solid color-mix(in srgb, var(--color-text) 10%, transparent)", alignItems: "center" }}>
+          <div key={`trip-${row.trip.id}`} style={{ display: "flex", gap: "0.75rem", padding: "0.8125rem 0", borderBottom: "1px solid color-mix(in srgb, var(--color-text) 10%, transparent)", alignItems: "center" }}>
             <Blueprint style={{ width: 50, height: 50, flex: "none", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center" }}>
-              <span style={{ font: "600 18px/1 var(--font-heading)" }}>{new Date(row.trip.event_date).getDate()}</span>
-              <span style={{ fontSize: 8.5, letterSpacing: ".02em", color: "var(--color-neutral-600)" }}>
+              <span style={{ font: "600 1.125rem/1 var(--font-heading)" }}>{new Date(row.trip.event_date).getDate()}</span>
+              <span style={{ fontSize: "0.53125rem", letterSpacing: ".02em", color: "var(--color-neutral-600)" }}>
                 {new Date(row.trip.event_date).toLocaleDateString("en-GB", { month: "short" }).toUpperCase()}
               </span>
             </Blueprint>
             <Link href={`/planner/add?type=event&id=${row.trip.id}`} style={{ flex: 1, minWidth: 0, textDecoration: "none", color: "inherit" }}>
-              <div style={{ font: "600 18px/1.1 var(--font-heading)" }}>{row.trip.title}</div>
-              <div style={{ fontSize: 13, color: "var(--color-neutral-600)" }}>
+              <div style={{ font: "600 1.125rem/1.1 var(--font-heading)" }}>{row.trip.title}</div>
+              <div style={{ fontSize: "0.8125rem", color: "var(--color-neutral-600)" }}>
                 {row.trip.applies_to_whole_family || row.trip.who.length === 0 ? "Whole family" : row.trip.who.map((n) => n.split(" ")[0]).join(", ")}
               </div>
             </Link>
             {row.trip.journal_entry_id ? (
-              <Link href="/journal?view=list" className="btn btn-ghost" style={{ fontSize: 13 }}>
+              <Link href="/journal?view=list" className="btn btn-ghost" style={{ fontSize: "0.8125rem" }}>
                 In journal
               </Link>
             ) : (
@@ -1060,15 +1060,15 @@ async function EventsPane({ familyId, memberId, currency, who }: { familyId: str
           </div>
         ),
       )}
-      <div style={{ display: "flex", gap: 8, marginTop: 16 }}>
-        <Link href="/planner/add?type=event" className="btn btn-primary btn-block" style={{ minHeight: 46, fontSize: 14, letterSpacing: ".04em" }}>
+      <div style={{ display: "flex", gap: "0.5rem", marginTop: "1rem" }}>
+        <Link href="/planner/add?type=event" className="btn btn-primary btn-block" style={{ minHeight: "2.875rem", fontSize: "0.875rem", letterSpacing: ".04em" }}>
           + ADD EVENT
         </Link>
-        <Link href="/planner/add?type=trip" className="btn btn-primary btn-block" style={{ minHeight: 46, fontSize: 14, letterSpacing: ".04em" }}>
+        <Link href="/planner/add?type=trip" className="btn btn-primary btn-block" style={{ minHeight: "2.875rem", fontSize: "0.875rem", letterSpacing: ".04em" }}>
           + ADD TRAVEL
         </Link>
       </div>
-      <div style={{ fontSize: 13, color: "var(--color-neutral-600)", marginTop: 8 }}>
+      <div style={{ fontSize: "0.8125rem", color: "var(--color-neutral-600)", marginTop: "0.5rem" }}>
         Birthdays and anniversaries repeat yearly on their own.
       </div>
     </>
@@ -1078,7 +1078,7 @@ async function EventsPane({ familyId, memberId, currency, who }: { familyId: str
 function Fact({ k, v }: { k: string; v: string }) {
   return (
     <div>
-      <span style={{ display: "block", fontSize: 11, letterSpacing: ".02em", textTransform: "uppercase", color: "var(--color-neutral-600)" }}>{k}</span>
+      <span style={{ display: "block", fontSize: "0.6875rem", letterSpacing: ".02em", textTransform: "uppercase", color: "var(--color-neutral-600)" }}>{k}</span>
       {v}
     </div>
   );

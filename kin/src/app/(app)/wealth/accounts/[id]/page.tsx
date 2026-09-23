@@ -26,10 +26,10 @@ export default async function AccountPage({ params }: { params: Promise<{ id: st
   return (
     <div>
       <DetailHeader backHref={`/wealth?seg=accounts&who=${account.is_joint || !account.owner_member_id ? "all" : account.owner_member_id}`} eyebrow="HUB 05 · ACCOUNT" />
-      <div style={{ padding: "0 22px 22px" }}>
-        <Blueprint style={{ padding: 15, marginBottom: 14 }}>
-          <div style={{ display: "flex", alignItems: "baseline", gap: 8 }}>
-            <span style={{ font: "600 13px/1 var(--font-heading)", letterSpacing: ".02em", color: "var(--color-neutral-600)" }}>
+      <div style={{ padding: "0 1.375rem 1.375rem" }}>
+        <Blueprint style={{ padding: "0.9375rem", marginBottom: "0.875rem" }}>
+          <div style={{ display: "flex", alignItems: "baseline", gap: "0.5rem" }}>
+            <span style={{ font: "600 0.8125rem/1 var(--font-heading)", letterSpacing: ".02em", color: "var(--color-neutral-600)" }}>
               {ACCOUNT_TYPE_LABELS[account.account_type as AccountType] ?? account.account_type}
               {account.institution ? ` · ${account.institution}` : ""}
             </span>
@@ -37,21 +37,21 @@ export default async function AccountPage({ params }: { params: Promise<{ id: st
               {account.is_joint ? "JOINT" : "PRIVATE"}
             </Tag>
           </div>
-          <h3 style={{ fontSize: 26, margin: "8px 0 2px" }}>{account.name}</h3>
-          <div style={{ font: "600 34px/1.05 var(--font-heading)", letterSpacing: "-.02em", marginTop: 8 }}>{formatCurrency(account.balance, currency)}</div>
-          <div style={{ fontSize: 13, color: "var(--color-neutral-600)", marginTop: 5 }}>
+          <h3 style={{ fontSize: "1.625rem", margin: "8px 0 2px" }}>{account.name}</h3>
+          <div style={{ font: "600 2.125rem/1.05 var(--font-heading)", letterSpacing: "-.02em", marginTop: "0.5rem" }}>{formatCurrency(account.balance, currency)}</div>
+          <div style={{ fontSize: "0.8125rem", color: "var(--color-neutral-600)", marginTop: "0.3125rem" }}>
             Opened at {formatCurrency(Number(account.opening_balance), currency)} · {confirmed.length} movement{confirmed.length === 1 ? "" : "s"} since
           </div>
         </Blueprint>
 
-        <div style={{ display: "flex", gap: 8, marginBottom: 8 }}>
-          <Link href="/wealth/transact?mode=in" className="btn btn-secondary" style={{ flex: 1, minHeight: 40, fontSize: 13, display: "flex", alignItems: "center", justifyContent: "center" }}>
+        <div style={{ display: "flex", gap: "0.5rem", marginBottom: "0.5rem" }}>
+          <Link href="/wealth/transact?mode=in" className="btn btn-secondary" style={{ flex: 1, minHeight: "2.5rem", fontSize: "0.8125rem", display: "flex", alignItems: "center", justifyContent: "center" }}>
             MONEY IN
           </Link>
-          <Link href="/wealth/transact?mode=out" className="btn btn-secondary" style={{ flex: 1, minHeight: 40, fontSize: 13, display: "flex", alignItems: "center", justifyContent: "center" }}>
+          <Link href="/wealth/transact?mode=out" className="btn btn-secondary" style={{ flex: 1, minHeight: "2.5rem", fontSize: "0.8125rem", display: "flex", alignItems: "center", justifyContent: "center" }}>
             MONEY OUT
           </Link>
-          <Link href="/wealth/transact?mode=transfer" className="btn btn-secondary" style={{ flex: 1, minHeight: 40, fontSize: 13, display: "flex", alignItems: "center", justifyContent: "center" }}>
+          <Link href="/wealth/transact?mode=transfer" className="btn btn-secondary" style={{ flex: 1, minHeight: "2.5rem", fontSize: "0.8125rem", display: "flex", alignItems: "center", justifyContent: "center" }}>
             TRANSFER
           </Link>
         </div>
@@ -62,7 +62,7 @@ export default async function AccountPage({ params }: { params: Promise<{ id: st
             target="_blank"
             rel="noopener noreferrer"
             className="btn btn-primary btn-block"
-            style={{ minHeight: 44, fontSize: 14, letterSpacing: ".04em", display: "flex", alignItems: "center", justifyContent: "center" }}
+            style={{ minHeight: "2.75rem", fontSize: "0.875rem", letterSpacing: ".04em", display: "flex", alignItems: "center", justifyContent: "center" }}
           >
             OPEN {(account.institution ?? account.name).toUpperCase()}
           </a>
@@ -80,15 +80,15 @@ export default async function AccountPage({ params }: { params: Promise<{ id: st
           <>
             <SectionLabel>WAITING ON CONFIRMATION</SectionLabel>
             {pending.map((p) => (
-              <Blueprint key={p.id} style={{ padding: 12, marginBottom: 10 }}>
-                <div style={{ display: "flex", alignItems: "baseline", gap: 8 }}>
-                  <span style={{ fontSize: 14 }}>{p.particulars}</span>
-                  <span style={{ marginLeft: "auto", fontFamily: "var(--font-numeric)", fontSize: 13 }}>
+              <Blueprint key={p.id} style={{ padding: "0.75rem", marginBottom: "0.625rem" }}>
+                <div style={{ display: "flex", alignItems: "baseline", gap: "0.5rem" }}>
+                  <span style={{ fontSize: "0.875rem" }}>{p.particulars}</span>
+                  <span style={{ marginLeft: "auto", fontFamily: "var(--font-numeric)", fontSize: "0.8125rem" }}>
                     {p.direction === "in" ? "+" : "−"}
                     {formatCurrency(Number(p.amount), currency)}
                   </span>
                 </div>
-                <div style={{ fontSize: 12.5, color: "var(--color-neutral-600)", marginTop: 3 }}>
+                <div style={{ fontSize: "0.78125rem", color: "var(--color-neutral-600)", marginTop: "0.1875rem" }}>
                   Started {fmtDate(p.occurred_at)} · not counted in the balance yet
                 </div>
                 <PendingEntryActions transactionId={p.id} />
@@ -102,16 +102,16 @@ export default async function AccountPage({ params }: { params: Promise<{ id: st
           <Empty icon="💸" title="Nothing has moved through this account yet" line="Money in and out will appear here as it happens, newest first." />
         )}
         {confirmed.map((e) => (
-          <div key={e.id} style={{ display: "flex", gap: 10, alignItems: "center", padding: "11px 0", borderBottom: "1px solid color-mix(in srgb, var(--color-text) 10%, transparent)" }}>
+          <div key={e.id} style={{ display: "flex", gap: "0.625rem", alignItems: "center", padding: "0.6875rem 0", borderBottom: "1px solid color-mix(in srgb, var(--color-text) 10%, transparent)" }}>
             <span style={{ flex: 1, minWidth: 0 }}>
-              <span style={{ fontSize: 14, display: "block" }}>{e.particulars}</span>
-              <span style={{ fontSize: 12.5, color: "var(--color-neutral-600)" }}>
+              <span style={{ fontSize: "0.875rem", display: "block" }}>{e.particulars}</span>
+              <span style={{ fontSize: "0.78125rem", color: "var(--color-neutral-600)" }}>
                 {fmtDate(e.occurred_at)}
                 {e.category ? ` · ${e.category}` : ""}
                 {e.recordedByName ? ` · ${e.recordedByName.split(" ")[0]}` : ""}
               </span>
             </span>
-            <span style={{ fontFamily: "var(--font-numeric)", fontSize: 13, flex: "none", color: e.direction === "in" ? "var(--color-accent-700)" : "inherit" }}>
+            <span style={{ fontFamily: "var(--font-numeric)", fontSize: "0.8125rem", flex: "none", color: e.direction === "in" ? "var(--color-accent-700)" : "inherit" }}>
               {e.direction === "in" ? "+" : "−"}
               {formatCurrency(Number(e.amount), currency)}
             </span>
@@ -120,7 +120,7 @@ export default async function AccountPage({ params }: { params: Promise<{ id: st
         ))}
 
         <AccountEditForm account={account} />
-        <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 10 }}>
+        <div style={{ display: "flex", justifyContent: "flex-end", marginTop: "0.625rem" }}>
           <RemoveButton id={account.id} kind="account" label={`Archive "${account.name}"? Its history stays, but it drops off your totals`} />
         </div>
       </div>
@@ -130,6 +130,6 @@ export default async function AccountPage({ params }: { params: Promise<{ id: st
 
 function SectionLabel({ children }: { children: React.ReactNode }) {
   return (
-    <div style={{ font: "600 13px/1 var(--font-heading)", letterSpacing: ".02em", color: "var(--color-neutral-600)", margin: "20px 0 8px" }}>{children}</div>
+    <div style={{ font: "600 0.8125rem/1 var(--font-heading)", letterSpacing: ".02em", color: "var(--color-neutral-600)", margin: "20px 0 8px" }}>{children}</div>
   );
 }

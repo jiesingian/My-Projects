@@ -14,7 +14,7 @@ export function AddHoldingForm({ defaultKind }: { defaultKind: string }) {
 
   return (
     <div>
-      <div className="seg" style={{ marginBottom: 18, marginTop: 0 }}>
+      <div className="seg" style={{ marginBottom: "1.125rem", marginTop: 0 }}>
         <button type="button" data-active={mode === "asset"} onClick={() => setMode("asset")}>
           Asset
         </button>
@@ -36,11 +36,11 @@ function AssetForm() {
       <input type="hidden" name="is_joint" value={isJoint ? "on" : ""} />
       <ErrorText message={state.error} />
       <Field label="WHAT IS IT">
-        <input className="input" name="name" required placeholder="House in San Juan" style={{ minHeight: 44 }} />
+        <input className="input" name="name" required placeholder="House in San Juan" style={{ minHeight: "2.75rem" }} />
       </Field>
-      <div style={{ display: "flex", gap: 12 }}>
+      <div style={{ display: "flex", gap: "0.75rem" }}>
         <Field label="KIND" style={{ flex: 1 }}>
-          <select className="input" name="kind" defaultValue="property" style={{ minHeight: 44 }}>
+          <select className="input" name="kind" defaultValue="property" style={{ minHeight: "2.75rem" }}>
             {ASSET_KINDS.map((k) => (
               <option key={k} value={k}>
                 {ASSET_KIND_LABELS[k]}
@@ -49,17 +49,17 @@ function AssetForm() {
           </select>
         </Field>
         <Field label="VALUE (₱)" style={{ flex: 1 }}>
-          <input className="input" type="number" step="0.01" min="0" name="value" required style={{ minHeight: 44 }} />
+          <input className="input" type="number" step="0.01" min="0" name="value" required style={{ minHeight: "2.75rem" }} />
         </Field>
       </div>
       <Field label="OWNED SINCE">
-        <DateInput className="input" name="acquired_on" style={{ minHeight: 44 }} />
+        <DateInput className="input" name="acquired_on" style={{ minHeight: "2.75rem" }} />
       </Field>
       <JointToggle isJoint={isJoint} setIsJoint={setIsJoint} />
       <Field label="NOTE">
-        <input className="input" name="note" placeholder="Title under both names" style={{ minHeight: 44 }} />
+        <input className="input" name="note" placeholder="Title under both names" style={{ minHeight: "2.75rem" }} />
       </Field>
-      <SubmitButton style={{ minHeight: 46, fontSize: 14, letterSpacing: ".04em" }}>SAVE ASSET</SubmitButton>
+      <SubmitButton style={{ minHeight: "2.875rem", fontSize: "0.875rem", letterSpacing: ".04em" }}>SAVE ASSET</SubmitButton>
     </form>
   );
 }
@@ -73,11 +73,11 @@ function LiabilityForm() {
       <input type="hidden" name="is_joint" value={isJoint ? "on" : ""} />
       <ErrorText message={state.error} />
       <Field label="WHAT IS OWED">
-        <input className="input" name="name" required placeholder="Home loan" style={{ minHeight: 44 }} />
+        <input className="input" name="name" required placeholder="Home loan" style={{ minHeight: "2.75rem" }} />
       </Field>
-      <div style={{ display: "flex", gap: 12 }}>
+      <div style={{ display: "flex", gap: "0.75rem" }}>
         <Field label="KIND" style={{ flex: 1 }}>
-          <select className="input" name="kind" defaultValue="mortgage" style={{ minHeight: 44 }}>
+          <select className="input" name="kind" defaultValue="mortgage" style={{ minHeight: "2.75rem" }}>
             {LIABILITY_KINDS.map((k) => (
               <option key={k} value={k}>
                 {LIABILITY_KIND_LABELS[k]}
@@ -86,29 +86,29 @@ function LiabilityForm() {
           </select>
         </Field>
         <Field label="BALANCE (₱)" style={{ flex: 1 }}>
-          <input className="input" type="number" step="0.01" min="0" name="balance" required style={{ minHeight: 44 }} />
+          <input className="input" type="number" step="0.01" min="0" name="balance" required style={{ minHeight: "2.75rem" }} />
         </Field>
       </div>
-      <div style={{ display: "flex", gap: 12 }}>
+      <div style={{ display: "flex", gap: "0.75rem" }}>
         <Field label="LENDER" style={{ flex: 1 }}>
-          <input className="input" name="lender" placeholder="BPI" style={{ minHeight: 44 }} />
+          <input className="input" name="lender" placeholder="BPI" style={{ minHeight: "2.75rem" }} />
         </Field>
         <Field label="PER MONTH (₱)" style={{ flex: 1 }}>
-          <input className="input" type="number" step="0.01" min="0" name="monthly_payment" style={{ minHeight: 44 }} />
+          <input className="input" type="number" step="0.01" min="0" name="monthly_payment" style={{ minHeight: "2.75rem" }} />
         </Field>
       </div>
       <JointToggle isJoint={isJoint} setIsJoint={setIsJoint} />
       <Field label="NOTE">
-        <input className="input" name="note" style={{ minHeight: 44 }} />
+        <input className="input" name="note" style={{ minHeight: "2.75rem" }} />
       </Field>
-      <SubmitButton style={{ minHeight: 46, fontSize: 14, letterSpacing: ".04em" }}>SAVE LIABILITY</SubmitButton>
+      <SubmitButton style={{ minHeight: "2.875rem", fontSize: "0.875rem", letterSpacing: ".04em" }}>SAVE LIABILITY</SubmitButton>
     </form>
   );
 }
 
 function JointToggle({ isJoint, setIsJoint }: { isJoint: boolean; setIsJoint: (v: boolean) => void }) {
   return (
-    <div style={{ display: "flex", gap: 7, marginBottom: 16 }}>
+    <div style={{ display: "flex", gap: "0.4375rem", marginBottom: "1rem" }}>
       <button type="button" className="chip" data-active={isJoint} onClick={() => setIsJoint(true)}>
         Household
       </button>
@@ -121,7 +121,7 @@ function JointToggle({ isJoint, setIsJoint }: { isJoint: boolean; setIsJoint: (v
 
 function Field({ label, children, style }: { label: string; children: React.ReactNode; style?: React.CSSProperties }) {
   return (
-    <div className="field" style={{ marginBottom: 14, ...style }}>
+    <div className="field" style={{ marginBottom: "0.875rem", ...style }}>
       <label>
         {label}
         {children}

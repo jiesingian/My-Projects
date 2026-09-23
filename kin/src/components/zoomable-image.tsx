@@ -38,13 +38,13 @@ export function ZoomableImage({
           aria-modal="true"
           aria-label={alt}
           onClick={() => setOpen(false)}
-          style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,.92)", zIndex: 1000, display: "flex", alignItems: "center", justifyContent: "center", padding: 24 }}
+          style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,.92)", zIndex: 1000, display: "flex", alignItems: "center", justifyContent: "center", padding: "1.5rem" }}
         >
           <button
             type="button"
             aria-label="Close"
             onClick={() => setOpen(false)}
-            style={{ position: "absolute", top: 16, right: 20, background: "none", border: "none", color: "#fff", fontSize: 30, lineHeight: 1, cursor: "pointer" }}
+            style={{ position: "absolute", top: 16, right: 20, background: "none", border: "none", color: "#fff", fontSize: "1.875rem", lineHeight: 1, cursor: "pointer" }}
           >
             ×
           </button>

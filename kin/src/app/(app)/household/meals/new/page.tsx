@@ -20,17 +20,17 @@ export default function NewMealPage() {
   return (
     <div>
       <DetailHeader backHref="/household?seg=meals" eyebrow="HUB 04 · NEW MEAL" />
-      <div style={{ padding: "0 22px 22px" }}>
-        <h3 style={{ fontSize: 30, margin: "0 0 16px" }}>Add a meal</h3>
+      <div style={{ padding: "0 1.375rem 1.375rem" }}>
+        <h3 style={{ fontSize: "1.875rem", margin: "0 0 16px" }}>Add a meal</h3>
         <form action={formAction}>
           <ErrorText message={state.error} />
-          <div className="field" style={{ marginBottom: 14 }}>
+          <div className="field" style={{ marginBottom: "0.875rem" }}>
             <label htmlFor={`${uid}-date`}>DATE</label>
-            <DateInput id={`${uid}-date`} aria-label="Date" className="input" name="date" required defaultValue={defaultDate} style={{ minHeight: 44 }} />
+            <DateInput id={`${uid}-date`} aria-label="Date" className="input" name="date" required defaultValue={defaultDate} style={{ minHeight: "2.75rem" }} />
           </div>
-          <div className="field" style={{ marginBottom: 14 }}>
+          <div className="field" style={{ marginBottom: "0.875rem" }}>
             <label htmlFor={`${uid}-slot`}>PART OF THE DAY</label>
-            <select id={`${uid}-slot`} aria-label="Part Of The Day" className="input" name="slot" defaultValue="dinner" style={{ minHeight: 44 }}>
+            <select id={`${uid}-slot`} aria-label="Part Of The Day" className="input" name="slot" defaultValue="dinner" style={{ minHeight: "2.75rem" }}>
               {MEAL_SLOTS.map((s) => (
                 <option key={s} value={s}>
                   {MEAL_SLOT_LABEL[s]}
@@ -38,19 +38,19 @@ export default function NewMealPage() {
               ))}
             </select>
           </div>
-          <div className="field" style={{ marginBottom: 14 }}>
+          <div className="field" style={{ marginBottom: "0.875rem" }}>
             <label htmlFor={`${uid}-dish`}>DISH</label>
-            <input id={`${uid}-dish`} aria-label="Dish" className="input" name="dish" placeholder="Chicken adobo · rice · pechay" required maxLength={150} style={{ minHeight: 44 }} />
+            <input id={`${uid}-dish`} aria-label="Dish" className="input" name="dish" placeholder="Chicken adobo · rice · pechay" required maxLength={150} style={{ minHeight: "2.75rem" }} />
           </div>
-          <div className="field" style={{ marginBottom: 14 }}>
+          <div className="field" style={{ marginBottom: "0.875rem" }}>
             <label htmlFor={`${uid}-note`}>NOTE</label>
-            <input id={`${uid}-note`} aria-label="Note" className="input" name="note" placeholder="Family · 30 min" maxLength={300} style={{ minHeight: 44 }} />
+            <input id={`${uid}-note`} aria-label="Note" className="input" name="note" placeholder="Family · 30 min" maxLength={300} style={{ minHeight: "2.75rem" }} />
           </div>
-          <div className="field" style={{ marginBottom: 18 }}>
+          <div className="field" style={{ marginBottom: "1.125rem" }}>
             <label htmlFor={`${uid}-ingredients`}>INGREDIENTS (comma-separated)</label>
             <textarea id={`${uid}-ingredients`} aria-label="INGREDIENTS (comma-separated)" className="input" name="ingredients" placeholder="Chicken thighs, rice, pechay, soy sauce" maxLength={2000} />
           </div>
-          <SubmitButton style={{ minHeight: 46, fontSize: 14, letterSpacing: ".04em" }}>SAVE MEAL</SubmitButton>
+          <SubmitButton style={{ minHeight: "2.875rem", fontSize: "0.875rem", letterSpacing: ".04em" }}>SAVE MEAL</SubmitButton>
         </form>
       </div>
     </div>

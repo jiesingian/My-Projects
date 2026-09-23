@@ -49,10 +49,10 @@ export function AddPlannerForm({
   return (
     <div>
       <DetailHeader backHref="/planner" eyebrow="HUB 03 · NEW" />
-      <div style={{ padding: "0 22px 22px" }}>
-        <h3 style={{ fontSize: 32, margin: "0 0 14px" }}>{isEditing ? "Edit" : "Add to"} Planner</h3>
+      <div style={{ padding: "0 1.375rem 1.375rem" }}>
+        <h3 style={{ fontSize: "2rem", margin: "0 0 14px" }}>{isEditing ? "Edit" : "Add to"} Planner</h3>
         {!isEditing && (
-          <div className="seg" style={{ marginBottom: 18, marginTop: 0 }}>
+          <div className="seg" style={{ marginBottom: "1.125rem", marginTop: 0 }}>
             {TYPES.map((t) => (
               <button key={t} type="button" data-active={type === t} onClick={() => setType(t)}>
                 {t}
@@ -94,22 +94,22 @@ function ActivityForm({ members, defaultDate, editActivity }: { members: Tables<
         <input key={id} type="hidden" name="who" value={id} />
       ))}
       <ErrorText message={state.error} />
-      <Field label="TITLE"><input className="input" name="title" placeholder="Nursery orientation" required maxLength={150} defaultValue={editActivity?.title} style={{ minHeight: 44 }} /></Field>
-      <div style={{ display: "flex", gap: 12, marginBottom: 14 }}>
-        <Field label="DATE" style={{ flex: 1.2 }}><DateInput className="input" name="date" required defaultValue={startDate ?? defaultDate} style={{ minHeight: 44 }} /></Field>
-        <Field label="FROM" style={{ flex: 1 }}><input className="input" type="time" name="from" defaultValue={startTime ?? "08:30"} style={{ minHeight: 44 }} /></Field>
-        <Field label="TO" style={{ flex: 1 }}><input className="input" type="time" name="to" defaultValue={endTime} style={{ minHeight: 44 }} /></Field>
+      <Field label="TITLE"><input className="input" name="title" placeholder="Nursery orientation" required maxLength={150} defaultValue={editActivity?.title} style={{ minHeight: "2.75rem" }} /></Field>
+      <div style={{ display: "flex", gap: "0.75rem", marginBottom: "0.875rem" }}>
+        <Field label="DATE" style={{ flex: 1.2 }}><DateInput className="input" name="date" required defaultValue={startDate ?? defaultDate} style={{ minHeight: "2.75rem" }} /></Field>
+        <Field label="FROM" style={{ flex: 1 }}><input className="input" type="time" name="from" defaultValue={startTime ?? "08:30"} style={{ minHeight: "2.75rem" }} /></Field>
+        <Field label="TO" style={{ flex: 1 }}><input className="input" type="time" name="to" defaultValue={endTime} style={{ minHeight: "2.75rem" }} /></Field>
       </div>
       <Field label="REPEATS">
-        <select className="input" name="repeat" defaultValue={editActivity?.repeat ?? "once"} style={{ minHeight: 44 }}>
+        <select className="input" name="repeat" defaultValue={editActivity?.repeat ?? "once"} style={{ minHeight: "2.75rem" }}>
           <option value="once">Once</option>
           <option value="weekly">Weekly</option>
           <option value="monthly">Monthly</option>
           <option value="yearly">Yearly</option>
         </select>
       </Field>
-      <div style={{ fontSize: 13, color: "var(--color-neutral-700)", margin: "14px 0 6px" }}>Who it is for</div>
-      <div style={{ display: "flex", flexWrap: "wrap", gap: 7, marginBottom: 16 }}>
+      <div style={{ fontSize: "0.8125rem", color: "var(--color-neutral-700)", margin: "14px 0 6px" }}>Who it is for</div>
+      <div style={{ display: "flex", flexWrap: "wrap", gap: "0.4375rem", marginBottom: "1rem" }}>
         <button type="button" className="chip" data-active={wholeFamily} onClick={() => setWholeFamily(true)}>
           Whole family
         </button>
@@ -131,15 +131,15 @@ function ActivityForm({ members, defaultDate, editActivity }: { members: Tables<
           );
         })}
       </div>
-      <Field label="LOCATION"><input className="input" name="location" placeholder="Little Acorns, San Juan" maxLength={200} defaultValue={editActivity?.location ?? undefined} style={{ minHeight: 44 }} /></Field>
+      <Field label="LOCATION"><input className="input" name="location" placeholder="Little Acorns, San Juan" maxLength={200} defaultValue={editActivity?.location ?? undefined} style={{ minHeight: "2.75rem" }} /></Field>
       <Field label="NOTES"><textarea className="input" name="notes" maxLength={1000} defaultValue={editActivity?.notes ?? undefined} /></Field>
-      <SubmitButton style={{ minHeight: 46, fontSize: 14, letterSpacing: ".04em" }}>{editActivity ? "SAVE CHANGES" : "SAVE TO CALENDAR"}</SubmitButton>
+      <SubmitButton style={{ minHeight: "2.875rem", fontSize: "0.875rem", letterSpacing: ".04em" }}>{editActivity ? "SAVE CHANGES" : "SAVE TO CALENDAR"}</SubmitButton>
       {editActivity && (
         <button
           type="button"
           className="btn btn-secondary btn-block"
           disabled={deleting}
-          style={{ minHeight: 44, fontSize: 13, marginTop: 10, color: "var(--color-accent-700)", borderColor: "var(--color-accent-700)" }}
+          style={{ minHeight: "2.75rem", fontSize: "0.8125rem", marginTop: "0.625rem", color: "var(--color-accent-700)", borderColor: "var(--color-accent-700)" }}
           onClick={async () => {
             if (!(await confirm({ title: "Delete this task?", description: "This can't be undone.", confirmLabel: "Delete", danger: true }))) return;
             setDeleting(true);
@@ -184,8 +184,8 @@ function WhoPicker({
     <>
       {wholeFamily && <input type="hidden" name="whole_family" value="on" />}
       {!wholeFamily && chosen.map((id) => <input key={id} type="hidden" name={fieldName} value={id} />)}
-      <div style={{ fontSize: 13, color: "var(--color-neutral-700)", margin: "14px 0 6px" }}>{label}</div>
-      <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 16 }}>
+      <div style={{ fontSize: "0.8125rem", color: "var(--color-neutral-700)", margin: "14px 0 6px" }}>{label}</div>
+      <div style={{ display: "flex", flexWrap: "wrap", gap: "0.375rem", marginBottom: "1rem" }}>
         <button type="button" className="chip" data-active={wholeFamily} onClick={() => setWholeFamily(true)}>
           Whole family
         </button>
@@ -231,19 +231,19 @@ function EventForm({
   return (
     <form action={formAction}>
       <ErrorText message={state.error} />
-      <Field label="TITLE"><input className="input" name="title" required maxLength={150} defaultValue={editEvent?.title} style={{ minHeight: 44 }} /></Field>
-      <div style={{ display: "flex", gap: 10 }}>
+      <Field label="TITLE"><input className="input" name="title" required maxLength={150} defaultValue={editEvent?.title} style={{ minHeight: "2.75rem" }} /></Field>
+      <div style={{ display: "flex", gap: "0.625rem" }}>
         <Field label="DATE" style={{ flex: 1 }}>
-          <DateInput className="input" name="date" required defaultValue={editEvent?.event_date ?? defaultDate} style={{ minHeight: 44 }} />
+          <DateInput className="input" name="date" required defaultValue={editEvent?.event_date ?? defaultDate} style={{ minHeight: "2.75rem" }} />
         </Field>
         {/* Optional, and what makes travel an event rather than its own
             table: a birthday is a day, a trip is a run of them. */}
         <Field label="ENDS (OPTIONAL)" style={{ flex: 1 }}>
-          <DateInput className="input" name="end_date" defaultValue={editEvent?.end_date ?? undefined} style={{ minHeight: 44 }} />
+          <DateInput className="input" name="end_date" defaultValue={editEvent?.end_date ?? undefined} style={{ minHeight: "2.75rem" }} />
         </Field>
       </div>
       <Field label="KIND">
-        <select className="input" name="kind" defaultValue={editEvent?.kind ?? "birthday"} style={{ minHeight: 44 }}>
+        <select className="input" name="kind" defaultValue={editEvent?.kind ?? "birthday"} style={{ minHeight: "2.75rem" }}>
           <option value="birthday">Birthday</option>
           <option value="anniversary">Anniversary</option>
           <option value="school">School event</option>
@@ -252,9 +252,9 @@ function EventForm({
           <option value="other">Other</option>
         </select>
       </Field>
-      <Field label="NOTE"><input className="input" name="sub_note" placeholder="Dinner at home" maxLength={200} defaultValue={editEvent?.sub_note ?? undefined} style={{ minHeight: 44 }} /></Field>
+      <Field label="NOTE"><input className="input" name="sub_note" placeholder="Dinner at home" maxLength={200} defaultValue={editEvent?.sub_note ?? undefined} style={{ minHeight: "2.75rem" }} /></Field>
       <Field label="BUDGET (OPTIONAL)">
-        <input className="input" type="number" min="0" step="0.01" name="budget_amount" placeholder="For a trip, or anything with a cost" defaultValue={editEvent?.budget_amount ?? undefined} style={{ minHeight: 44 }} />
+        <input className="input" type="number" min="0" step="0.01" name="budget_amount" placeholder="For a trip, or anything with a cost" defaultValue={editEvent?.budget_amount ?? undefined} style={{ minHeight: "2.75rem" }} />
       </Field>
       <WhoPicker
         members={members}
@@ -265,13 +265,13 @@ function EventForm({
         chosen={who}
         setChosen={setWho}
       />
-      <SubmitButton style={{ minHeight: 46, fontSize: 14, letterSpacing: ".04em" }}>{editEvent ? "SAVE CHANGES" : "SAVE EVENT"}</SubmitButton>
+      <SubmitButton style={{ minHeight: "2.875rem", fontSize: "0.875rem", letterSpacing: ".04em" }}>{editEvent ? "SAVE CHANGES" : "SAVE EVENT"}</SubmitButton>
       {editEvent && (
         <button
           type="button"
           className="btn btn-secondary btn-block"
           disabled={deleting}
-          style={{ minHeight: 44, fontSize: 13, marginTop: 10, color: "var(--color-accent-700)", borderColor: "var(--color-accent-700)" }}
+          style={{ minHeight: "2.75rem", fontSize: "0.8125rem", marginTop: "0.625rem", color: "var(--color-accent-700)", borderColor: "var(--color-accent-700)" }}
           onClick={async () => {
             if (!(await confirm({ title: "Delete this event?", description: "This can't be undone.", confirmLabel: "Delete", danger: true }))) return;
             setDeleting(true);
@@ -294,7 +294,7 @@ function EventForm({
 
 function Field({ label, children, style }: { label: string; children: React.ReactNode; style?: React.CSSProperties }) {
   return (
-    <div className="field" style={{ marginBottom: 14, ...style }}>
+    <div className="field" style={{ marginBottom: "0.875rem", ...style }}>
       <label>
         {label}
         {children}

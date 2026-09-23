@@ -31,10 +31,10 @@ export function MemberColourPicker({
 
   return (
     <div>
-      <div style={{ fontSize: 11.5, letterSpacing: ".05em", color: "var(--color-neutral-500)", marginBottom: 6 }}>
+      <div style={{ fontSize: "0.71875rem", letterSpacing: ".05em", color: "var(--color-neutral-500)", marginBottom: "0.375rem" }}>
         CALENDAR COLOUR
       </div>
-      <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+      <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
         {MEMBER_COLOURS.map((c) => {
           const active = c === current && Boolean(chosen);
           return (
@@ -64,11 +64,11 @@ export function MemberColourPicker({
         })}
       </div>
       {!chosen && (
-        <p style={{ fontSize: 12, color: "var(--color-neutral-600)", margin: "6px 0 0" }}>
+        <p style={{ fontSize: "0.75rem", color: "var(--color-neutral-600)", margin: "6px 0 0" }}>
           Currently {MEMBER_COLOUR_LABEL[current].toLowerCase()}, picked automatically. Choose one to keep it.
         </p>
       )}
-      {error && <p style={{ fontSize: 12, color: "var(--cal-occasion)", margin: "6px 0 0" }}>{error}</p>}
+      {error && <p style={{ fontSize: "0.75rem", color: "var(--cal-occasion)", margin: "6px 0 0" }}>{error}</p>}
     </div>
   );
 }

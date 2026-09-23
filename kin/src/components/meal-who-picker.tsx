@@ -19,8 +19,8 @@ export function MealWhoPicker({
   const uid = useId();
 
   return (
-    <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
-      <label htmlFor={`${uid}-who`} style={{ fontSize: 11.5, letterSpacing: ".05em", color: "var(--color-neutral-500)" }}>
+    <span style={{ display: "inline-flex", alignItems: "center", gap: "0.375rem" }}>
+      <label htmlFor={`${uid}-who`} style={{ fontSize: "0.71875rem", letterSpacing: ".05em", color: "var(--color-neutral-500)" }}>
         SHOWING
       </label>
       <select
@@ -28,7 +28,7 @@ export function MealWhoPicker({
         className="input"
         value={who}
         onChange={(e) => router.push(`/household?seg=meals&date=${date}&who=${e.target.value}`)}
-        style={{ minHeight: 34, fontSize: 13, padding: "0 8px", width: "auto" }}
+        style={{ minHeight: "2.125rem", fontSize: "0.8125rem", padding: "0 0.5rem", width: "auto" }}
       >
         <option value="all">Everyone</option>
         {members.map((m) => (

@@ -11,7 +11,7 @@ export function OmronToggle({ memberId, connected }: { memberId: string; connect
       <button
         type="button"
         className={`btn ${connected ? "btn-secondary" : "btn-primary"} btn-block`}
-        style={{ minHeight: 42, fontSize: 14, letterSpacing: ".04em" }}
+        style={{ minHeight: "2.625rem", fontSize: "0.875rem", letterSpacing: ".04em" }}
         disabled={pending}
         onClick={() =>
           startTransition(async () => {
@@ -23,7 +23,7 @@ export function OmronToggle({ memberId, connected }: { memberId: string; connect
         {pending ? "…" : connected ? "DISCONNECT DEVICE" : "CONNECT OMRON CONNECT"}
       </button>
       {failed && (
-        <p role="alert" style={{ fontSize: 13, color: "var(--color-accent-700)", marginTop: 6 }}>
+        <p role="alert" style={{ fontSize: "0.8125rem", color: "var(--color-accent-700)", marginTop: "0.375rem" }}>
           {failed}
         </p>
       )}

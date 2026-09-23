@@ -123,7 +123,7 @@ export function DocumentsLockSettings({
           type="button"
           className="btn btn-ghost"
           onClick={() => setOpen(true)}
-          style={{ marginTop: 18, fontSize: 12.5, gap: 5, padding: "0 8px", minHeight: 30 }}
+          style={{ marginTop: "1.125rem", fontSize: "0.78125rem", gap: "0.3125rem", padding: "0 0.5rem", minHeight: "1.875rem" }}
         >
           <Icon name="keyRound" size={13} />
           Lock these documents
@@ -132,36 +132,36 @@ export function DocumentsLockSettings({
 
       <div className="kin-reveal" data-open={configured || open ? "true" : undefined}>
         <div>
-    <Blueprint style={{ padding: 14, marginTop: 20 }}>
-      <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
+    <Blueprint style={{ padding: "0.875rem", marginTop: "1.25rem" }}>
+      <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", marginBottom: "0.25rem" }}>
         <Icon name="keyRound" size={15} style={{ color: "var(--color-accent-700)" }} />
-        <span style={{ font: "600 14px/1 var(--font-heading)" }}>Lock on these documents</span>
+        <span style={{ font: "600 0.875rem/1 var(--font-heading)" }}>Lock on these documents</span>
         {configured && unlocked && (
           <button
             type="button"
             className="btn btn-ghost"
             disabled={pending}
             onClick={() => run(lockDocumentsAction)}
-            style={{ marginLeft: "auto", minHeight: 26, fontSize: 12, padding: "0 8px" }}
+            style={{ marginLeft: "auto", minHeight: "1.625rem", fontSize: "0.75rem", padding: "0 0.5rem" }}
           >
             Lock now
           </button>
         )}
       </div>
-      <p style={{ fontSize: 12.5, lineHeight: 1.45, color: "var(--color-neutral-600)", margin: "0 0 12px" }}>
+      <p style={{ fontSize: "0.78125rem", lineHeight: 1.45, color: "var(--color-neutral-600)", margin: "0 0 12px" }}>
         This is a door on a room inside your own house: it stops someone holding your unlocked phone from browsing the
         family&rsquo;s papers. It is not a second password on your account.
       </p>
 
       {bioError && <ErrorText message={bioError} />}
 
-      <div style={{ fontSize: 11.5, letterSpacing: ".05em", color: "var(--color-neutral-500)", marginBottom: 6 }}>
+      <div style={{ fontSize: "0.71875rem", letterSpacing: ".05em", color: "var(--color-neutral-500)", marginBottom: "0.375rem" }}>
         FACE, FINGERPRINT OR DEVICE PASSCODE
       </div>
       {devices.length > 0 && (
-        <div style={{ display: "flex", flexDirection: "column", gap: 5, marginBottom: 8 }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: "0.3125rem", marginBottom: "0.5rem" }}>
           {devices.map((d) => (
-            <div key={d.id} style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13 }}>
+            <div key={d.id} style={{ display: "flex", alignItems: "center", gap: "0.5rem", fontSize: "0.8125rem" }}>
               <Icon name="shieldCheck" size={14} style={{ color: "var(--color-accent-700)" }} />
               <span style={{ flex: 1 }}>
                 {d.label ?? "A device"}
@@ -186,7 +186,7 @@ export function DocumentsLockSettings({
                     return;
                   run(() => removeBiometricCredentialAction(d.id));
                 }}
-                style={{ minHeight: 26, fontSize: 12, padding: "0 7px" }}
+                style={{ minHeight: "1.625rem", fontSize: "0.75rem", padding: "0 0.4375rem" }}
               >
                 Forget
               </button>
@@ -200,18 +200,18 @@ export function DocumentsLockSettings({
           className="btn btn-secondary"
           disabled={pending}
           onClick={addDevice}
-          style={{ minHeight: 32, fontSize: 12.5, padding: "0 12px", gap: 5, marginBottom: 14 }}
+          style={{ minHeight: "2rem", fontSize: "0.78125rem", padding: "0 0.75rem", gap: "0.3125rem", marginBottom: "0.875rem" }}
         >
           <Icon name="plus" size={13} />
           {devices.length === 0 ? "Use this device" : "Add this device"}
         </button>
       ) : (
-        <p style={{ fontSize: 12.5, color: "var(--color-neutral-600)", margin: "0 0 14px" }}>
+        <p style={{ fontSize: "0.78125rem", color: "var(--color-neutral-600)", margin: "0 0 14px" }}>
           This browser has no fingerprint reader, face camera or device passcode Kin can use. A PIN works everywhere.
         </p>
       )}
 
-      <div style={{ fontSize: 11.5, letterSpacing: ".05em", color: "var(--color-neutral-500)", marginBottom: 6 }}>
+      <div style={{ fontSize: "0.71875rem", letterSpacing: ".05em", color: "var(--color-neutral-500)", marginBottom: "0.375rem" }}>
         {hasPin ? "CHANGE YOUR PIN" : "SET A PIN"}
       </div>
       <form action={formAction}>
@@ -226,10 +226,10 @@ export function DocumentsLockSettings({
             placeholder="Current PIN"
             maxLength={8}
             required
-            style={{ marginBottom: 6 }}
+            style={{ marginBottom: "0.375rem" }}
           />
         )}
-        <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+        <div style={{ display: "flex", gap: "0.375rem", flexWrap: "wrap" }}>
           <input
             id={`${uid}-pin`}
             className="input"
@@ -254,7 +254,7 @@ export function DocumentsLockSettings({
             required
             style={{ flex: 1, minWidth: 110 }}
           />
-          <SubmitButton style={{ minHeight: 40, fontSize: 13, padding: "0 12px" }}>SAVE</SubmitButton>
+          <SubmitButton style={{ minHeight: "2.5rem", fontSize: "0.8125rem", padding: "0 0.75rem" }}>SAVE</SubmitButton>
         </div>
       </form>
 
@@ -277,7 +277,7 @@ export function DocumentsLockSettings({
               return;
             run(removeDocumentsPinAction);
           }}
-          style={{ marginTop: 8, minHeight: 28, fontSize: 12, padding: "0 8px", color: "var(--color-neutral-700)" }}
+          style={{ marginTop: "0.5rem", minHeight: "1.75rem", fontSize: "0.75rem", padding: "0 0.5rem", color: "var(--color-neutral-700)" }}
         >
           Remove PIN
         </button>

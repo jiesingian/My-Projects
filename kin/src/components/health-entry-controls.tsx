@@ -12,8 +12,8 @@ import {
 import { DeleteButton } from "@/components/delete-button";
 import { DateInput } from "@/components/date-input";
 
-const rowStyle: React.CSSProperties = { display: "flex", gap: 6, marginTop: 4 };
-const smallBtn: React.CSSProperties = { fontSize: 12, padding: "0 8px", minHeight: 26 };
+const rowStyle: React.CSSProperties = { display: "flex", gap: "0.375rem", marginTop: "0.25rem" };
+const smallBtn: React.CSSProperties = { fontSize: "0.75rem", padding: "0 0.5rem", minHeight: "1.625rem" };
 
 export function ConditionEntryControls({ entryId, memberId, date, note }: { entryId: string; memberId: string; date: string; note: string }) {
   const [open, setOpen] = useState(false);
@@ -39,15 +39,15 @@ export function ConditionEntryControls({ entryId, memberId, date, note }: { entr
   }
 
   return (
-    <div style={{ marginTop: 6 }}>
-      {error && <p style={{ color: "var(--color-accent-700)", fontSize: 12.5, margin: "0 0 6px" }}>{error}</p>}
-      <div className="field" style={{ marginBottom: 6 }}>
-        <DateInput aria-label="Entry date" className="input" value={entryDate} onChange={(e) => setEntryDate(e.target.value)} style={{ minHeight: 36, fontSize: 13 }} />
+    <div style={{ marginTop: "0.375rem" }}>
+      {error && <p style={{ color: "var(--color-accent-700)", fontSize: "0.78125rem", margin: "0 0 6px" }}>{error}</p>}
+      <div className="field" style={{ marginBottom: "0.375rem" }}>
+        <DateInput aria-label="Entry date" className="input" value={entryDate} onChange={(e) => setEntryDate(e.target.value)} style={{ minHeight: "2.25rem", fontSize: "0.8125rem" }} />
       </div>
-      <div className="field" style={{ marginBottom: 6 }}>
-        <textarea aria-label="Note" className="input" value={entryNote} onChange={(e) => setEntryNote(e.target.value)} maxLength={1000} style={{ fontSize: 13 }} />
+      <div className="field" style={{ marginBottom: "0.375rem" }}>
+        <textarea aria-label="Note" className="input" value={entryNote} onChange={(e) => setEntryNote(e.target.value)} maxLength={1000} style={{ fontSize: "0.8125rem" }} />
       </div>
-      <div style={{ display: "flex", gap: 6 }}>
+      <div style={{ display: "flex", gap: "0.375rem" }}>
         <button type="button" className="btn btn-secondary" style={smallBtn} disabled={busy} onClick={() => { setOpen(false); setEntryDate(date); setEntryNote(note); setError(null); }}>
           CANCEL
         </button>
@@ -103,18 +103,18 @@ export function LabControls({ labId, memberId, date, name, result }: { labId: st
   }
 
   return (
-    <div style={{ marginTop: 6 }}>
-      {error && <p style={{ color: "var(--color-accent-700)", fontSize: 12.5, margin: "0 0 6px" }}>{error}</p>}
-      <div className="field" style={{ marginBottom: 6 }}>
-        <input aria-label="Test name" className="input" value={labName} onChange={(e) => setLabName(e.target.value)} maxLength={150} style={{ minHeight: 36, fontSize: 13 }} />
+    <div style={{ marginTop: "0.375rem" }}>
+      {error && <p style={{ color: "var(--color-accent-700)", fontSize: "0.78125rem", margin: "0 0 6px" }}>{error}</p>}
+      <div className="field" style={{ marginBottom: "0.375rem" }}>
+        <input aria-label="Test name" className="input" value={labName} onChange={(e) => setLabName(e.target.value)} maxLength={150} style={{ minHeight: "2.25rem", fontSize: "0.8125rem" }} />
       </div>
-      <div className="field" style={{ marginBottom: 6 }}>
-        <DateInput aria-label="Test date" className="input" value={testDate} onChange={(e) => setTestDate(e.target.value)} style={{ minHeight: 36, fontSize: 13 }} />
+      <div className="field" style={{ marginBottom: "0.375rem" }}>
+        <DateInput aria-label="Test date" className="input" value={testDate} onChange={(e) => setTestDate(e.target.value)} style={{ minHeight: "2.25rem", fontSize: "0.8125rem" }} />
       </div>
-      <div className="field" style={{ marginBottom: 6 }}>
-        <input aria-label="Result" className="input" value={labResult} onChange={(e) => setLabResult(e.target.value)} maxLength={300} style={{ minHeight: 36, fontSize: 13 }} />
+      <div className="field" style={{ marginBottom: "0.375rem" }}>
+        <input aria-label="Result" className="input" value={labResult} onChange={(e) => setLabResult(e.target.value)} maxLength={300} style={{ minHeight: "2.25rem", fontSize: "0.8125rem" }} />
       </div>
-      <div style={{ display: "flex", gap: 6 }}>
+      <div style={{ display: "flex", gap: "0.375rem" }}>
         <button
           type="button"
           className="btn btn-secondary"

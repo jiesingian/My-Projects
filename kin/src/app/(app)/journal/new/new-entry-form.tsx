@@ -65,20 +65,20 @@ export function NewEntryForm({ members }: { members: Tables<"members">[] }) {
   return (
     <div>
       <DetailHeader backHref="/journal?view=list" eyebrow="HUB 02 · NEW ENTRY" />
-      <div style={{ padding: "0 22px 22px" }}>
-        <h3 style={{ fontSize: 30, margin: "0 0 16px" }}>Add a journal entry</h3>
+      <div style={{ padding: "0 1.375rem 1.375rem" }}>
+        <h3 style={{ fontSize: "1.875rem", margin: "0 0 16px" }}>Add a journal entry</h3>
         <form onSubmit={onSubmit}>
           <ErrorText message={error} />
-          <div className="field" style={{ marginBottom: 14 }}>
+          <div className="field" style={{ marginBottom: "0.875rem" }}>
             <label htmlFor={`${uid}-title`}>TITLE</label>
-            <input id={`${uid}-title`} aria-label="Title" className="input" name="title" required style={{ minHeight: 44 }} />
+            <input id={`${uid}-title`} aria-label="Title" className="input" name="title" required style={{ minHeight: "2.75rem" }} />
           </div>
-          <div className="field" style={{ marginBottom: 16 }}>
+          <div className="field" style={{ marginBottom: "1rem" }}>
             <label htmlFor={`${uid}-date`}>DATE</label>
-            <DateInput id={`${uid}-date`} aria-label="Date" className="input" name="date" defaultValue={familyDay()} required style={{ minHeight: 44 }} />
+            <DateInput id={`${uid}-date`} aria-label="Date" className="input" name="date" defaultValue={familyDay()} required style={{ minHeight: "2.75rem" }} />
           </div>
-          <div style={{ fontSize: 13, color: "var(--color-neutral-700)", marginBottom: 6 }}>Who was there</div>
-          <div style={{ display: "flex", gap: 7, flexWrap: "wrap", marginBottom: 16 }}>
+          <div style={{ fontSize: "0.8125rem", color: "var(--color-neutral-700)", marginBottom: "0.375rem" }}>Who was there</div>
+          <div style={{ display: "flex", gap: "0.4375rem", flexWrap: "wrap", marginBottom: "1rem" }}>
             {members.map((m) => {
               const active = people.includes(m.id);
               return (
@@ -94,23 +94,23 @@ export function NewEntryForm({ members }: { members: Tables<"members">[] }) {
               );
             })}
           </div>
-          <div className="field" style={{ marginBottom: 16 }}>
+          <div className="field" style={{ marginBottom: "1rem" }}>
             <label htmlFor={`${uid}-note`}>NOTE</label>
             <textarea id={`${uid}-note`} aria-label="Note" className="input" name="note" placeholder="What happened?" />
           </div>
-          <div className="field" style={{ marginBottom: 10 }}>
+          <div className="field" style={{ marginBottom: "0.625rem" }}>
             <label htmlFor={`${uid}-photos`}>PHOTOS</label>
             <input id={`${uid}-photos`} aria-label="Photos" ref={fileRef} type="file" name="files" multiple accept="image/*,video/*" onChange={onFilesChosen} />
           </div>
           {previews.length > 0 && (
-            <div style={{ display: "flex", gap: 5, marginBottom: 8, flexWrap: "wrap" }}>
+            <div style={{ display: "flex", gap: "0.3125rem", marginBottom: "0.5rem", flexWrap: "wrap" }}>
               {previews.map((url, i) => (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img key={i} src={url} alt={`Photo ${i + 1} to upload`} style={{ width: 60, height: 60, objectFit: "cover", border: "1px solid var(--color-divider)" }} />
               ))}
             </div>
           )}
-          <button type="submit" className="btn btn-primary btn-block" style={{ minHeight: 46, fontSize: 14, letterSpacing: ".04em", marginTop: 8 }} disabled={saving}>
+          <button type="submit" className="btn btn-primary btn-block" style={{ minHeight: "2.875rem", fontSize: "0.875rem", letterSpacing: ".04em", marginTop: "0.5rem" }} disabled={saving}>
             {saving ? "SAVING…" : "SAVE ENTRY"}
           </button>
         </form>

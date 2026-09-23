@@ -19,12 +19,12 @@ export function AddGoalForm({ accounts, currency }: { accounts: PickableAccount[
       <input type="hidden" name="is_joint" value={isJoint ? "on" : ""} />
       <ErrorText message={state.error} />
       <Field label="TITLE">
-        <input className="input" name="title" placeholder="Emergency fund · six months" required style={{ minHeight: 44 }} />
+        <input className="input" name="title" placeholder="Emergency fund · six months" required style={{ minHeight: "2.75rem" }} />
       </Field>
       <Field label="NOTE">
-        <input className="input" name="sub_note" placeholder="Six months of household costs" style={{ minHeight: 44 }} />
+        <input className="input" name="sub_note" placeholder="Six months of household costs" style={{ minHeight: "2.75rem" }} />
       </Field>
-      <div style={{ display: "flex", gap: 7, marginBottom: 16 }}>
+      <div style={{ display: "flex", gap: "0.4375rem", marginBottom: "1rem" }}>
         <button type="button" className="chip" data-active={isJoint} onClick={() => setIsJoint(true)}>
           Joint
         </button>
@@ -32,17 +32,17 @@ export function AddGoalForm({ accounts, currency }: { accounts: PickableAccount[
           Mine
         </button>
       </div>
-      <div style={{ display: "flex", gap: 12 }}>
+      <div style={{ display: "flex", gap: "0.75rem" }}>
         <Field label="TARGET AMOUNT (₱)" style={{ flex: 1 }}>
-          <input className="input" type="number" step="0.01" min="0" name="target_amount" required style={{ minHeight: 44 }} />
+          <input className="input" type="number" step="0.01" min="0" name="target_amount" required style={{ minHeight: "2.75rem" }} />
         </Field>
         <Field label="TARGET DATE" style={{ flex: 1 }}>
-          <DateInput className="input" name="target_date" style={{ minHeight: 44 }} />
+          <DateInput className="input" name="target_date" style={{ minHeight: "2.75rem" }} />
         </Field>
       </div>
       {accounts.length > 0 && (
         <Field label="SAVED IN (OPTIONAL)">
-          <select className="input" name="linked_account_id" defaultValue="" style={{ minHeight: 44 }}>
+          <select className="input" name="linked_account_id" defaultValue="" style={{ minHeight: "2.75rem" }}>
             <option value="">No account yet</option>
             {accounts.map((a) => (
               <option key={a.id} value={a.id}>
@@ -52,8 +52,8 @@ export function AddGoalForm({ accounts, currency }: { accounts: PickableAccount[
           </select>
         </Field>
       )}
-      <SubmitButton style={{ minHeight: 46, fontSize: 14, letterSpacing: ".04em" }}>SAVE GOAL</SubmitButton>
-      <p style={{ fontSize: 13, color: "var(--color-neutral-600)", marginTop: 10 }}>
+      <SubmitButton style={{ minHeight: "2.875rem", fontSize: "0.875rem", letterSpacing: ".04em" }}>SAVE GOAL</SubmitButton>
+      <p style={{ fontSize: "0.8125rem", color: "var(--color-neutral-600)", marginTop: "0.625rem" }}>
         A dated goal shows up on everyone&apos;s calendar, and money you put in comes out of a real account.
       </p>
     </form>
@@ -62,7 +62,7 @@ export function AddGoalForm({ accounts, currency }: { accounts: PickableAccount[
 
 function Field({ label, children, style }: { label: string; children: React.ReactNode; style?: React.CSSProperties }) {
   return (
-    <div className="field" style={{ marginBottom: 14, ...style }}>
+    <div className="field" style={{ marginBottom: "0.875rem", ...style }}>
       <label>
         {label}
         {children}

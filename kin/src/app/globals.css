@@ -512,26 +512,33 @@ button,
 /* — forms — */
 .field > label {
   display: block;
-  font-size: 13px;
+  font-size: var(--text-sm);
   font-weight: 500;
   letter-spacing: 0.005em;
-  margin-bottom: 6px;
+  margin-bottom: 0.375rem;
   color: var(--color-neutral-600);
 }
 /* Sits under a native date input, which renders in the browser's locale and
    not the household's. Quiet enough to ignore once you trust it. */
 .date-echo {
-  font-size: 12.5px;
+  font-size: 0.78125rem;
   color: var(--color-neutral-600);
-  margin: 5px 0 0;
+  margin: 0.3125rem 0 0;
 }
 .input {
   width: 100%;
-  min-height: 44px; /* the platform's minimum tap target */
-  padding: 11px 13px;
+  /* Without this an input is a flex item that refuses to shrink past its
+     own default column count, which is how an input-and-button row runs off
+     a phone once the type inside it grows. */
+  min-width: 0;
+  /* Both in rem so the control grows with the type, and both floored in px
+     so a reader who has made their text *smaller* does not drop below the
+     platform's minimum tap target or under iOS's 16px zoom threshold. */
+  min-height: max(2.75rem, 44px);
+  padding: 0.6875rem 0.8125rem;
   font-family: inherit;
   /* 16px or larger, or iOS Safari zooms the whole page on focus. */
-  font-size: 17px;
+  font-size: max(1.0625rem, 16px);
   color: var(--color-text);
   caret-color: var(--color-accent);
   background: color-mix(in srgb, var(--color-text) 5%, transparent);
@@ -554,7 +561,7 @@ select.input {
   background-position: calc(100% - 17px) calc(50% + 1px), calc(100% - 12px) calc(50% + 1px);
   background-size: 5px 5px, 5px 5px;
   background-repeat: no-repeat;
-  padding-right: 30px;
+  padding-right: 1.875rem;
 }
 textarea.input {
   min-height: 94px;

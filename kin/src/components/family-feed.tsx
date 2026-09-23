@@ -34,15 +34,15 @@ export function FamilyFeed({
 
   return (
     <div>
-      <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
-        <span style={{ fontSize: 12, letterSpacing: ".05em", textTransform: "uppercase", color: "var(--color-neutral-600)" }}>
+      <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", marginBottom: "0.625rem" }}>
+        <span style={{ fontSize: "0.75rem", letterSpacing: ".05em", textTransform: "uppercase", color: "var(--color-neutral-600)" }}>
           {links.filter((l) => l.status === "accepted").length > 0 ? "Shared between households" : "Shared memories"}
         </span>
         <button
           type="button"
           className="btn btn-ghost"
           onClick={() => setShowLinks((v) => !v)}
-          style={{ marginLeft: "auto", minHeight: 28, fontSize: 12.5, padding: "0 8px", gap: 4 }}
+          style={{ marginLeft: "auto", minHeight: "1.75rem", fontSize: "0.78125rem", padding: "0 0.5rem", gap: "0.25rem" }}
         >
           <Icon name="users" size={13} />
           {showLinks ? "Hide" : "Households"}
@@ -56,28 +56,28 @@ export function FamilyFeed({
       </div>
 
       {entries.length === 0 ? (
-        <Blueprint style={{ padding: "18px 15px" }}>
-          <div style={{ font: "600 15px/1.2 var(--font-heading)", marginBottom: 3 }}>Nothing shared yet</div>
-          <div style={{ fontSize: 13, color: "var(--color-neutral-600)", lineHeight: 1.45 }}>
+        <Blueprint style={{ padding: "1.125rem 0.9375rem" }}>
+          <div style={{ font: "600 0.9375rem/1.2 var(--font-heading)", marginBottom: "0.1875rem" }}>Nothing shared yet</div>
+          <div style={{ fontSize: "0.8125rem", color: "var(--color-neutral-600)", lineHeight: 1.45 }}>
             Entries stay private until someone shares them. Open a memory in the List view and choose Share to put it
             here — for your own household, and for any household you&rsquo;ve linked with.
           </div>
         </Blueprint>
       ) : (
-        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
           {entries.map((e) => (
-            <Blueprint key={e.id} style={{ padding: 13 }}>
-              <div style={{ display: "flex", alignItems: "baseline", gap: 8, flexWrap: "wrap" }}>
-                <span style={{ font: "600 15.5px/1.2 var(--font-heading)", flex: 1, minWidth: 140 }}>{e.title}</span>
-                <span style={{ fontSize: 12, color: "var(--color-neutral-600)", whiteSpace: "nowrap" }}>
+            <Blueprint key={e.id} style={{ padding: "0.8125rem" }}>
+              <div style={{ display: "flex", alignItems: "baseline", gap: "0.5rem", flexWrap: "wrap" }}>
+                <span style={{ font: "600 0.96875rem/1.2 var(--font-heading)", flex: 1, minWidth: 140 }}>{e.title}</span>
+                <span style={{ fontSize: "0.75rem", color: "var(--color-neutral-600)", whiteSpace: "nowrap" }}>
                   {readableDate(e.entryDate)}
                 </span>
               </div>
-              <div style={{ fontSize: 12, color: e.isOurs ? "var(--color-accent-700)" : "var(--color-neutral-600)", marginTop: 3 }}>
+              <div style={{ fontSize: "0.75rem", color: e.isOurs ? "var(--color-accent-700)" : "var(--color-neutral-600)", marginTop: "0.1875rem" }}>
                 {e.isOurs ? "Ours" : e.householdName}
               </div>
               {e.note && (
-                <p style={{ fontSize: 13.5, lineHeight: 1.45, color: "var(--color-neutral-800)", margin: "7px 0 0" }}>{e.note}</p>
+                <p style={{ fontSize: "0.84375rem", lineHeight: 1.45, color: "var(--color-neutral-800)", margin: "7px 0 0" }}>{e.note}</p>
               )}
             </Blueprint>
           ))}
@@ -101,23 +101,23 @@ function LinkManager({ links, ourCode, canManage }: { links: FamilyLink[]; ourCo
     });
 
   return (
-    <Blueprint style={{ padding: 14, marginBottom: 14 }}>
-      <p style={{ fontSize: 12.5, lineHeight: 1.45, color: "var(--color-neutral-700)", margin: "0 0 10px" }}>
+    <Blueprint style={{ padding: "0.875rem", marginBottom: "0.875rem" }}>
+      <p style={{ fontSize: "0.78125rem", lineHeight: 1.45, color: "var(--color-neutral-700)", margin: "0 0 10px" }}>
         A linked household sees the memories you mark shared, and you see theirs. Photos and everyone else&rsquo;s
         records stay where they are. Either side can unlink at any time, and sharing stops the moment they do.
       </p>
 
-      <div style={{ fontSize: 11.5, letterSpacing: ".05em", color: "var(--color-neutral-500)", marginBottom: 4 }}>
+      <div style={{ fontSize: "0.71875rem", letterSpacing: ".05em", color: "var(--color-neutral-500)", marginBottom: "0.25rem" }}>
         YOUR CODE — GIVE THIS TO THEM
       </div>
-      <div style={{ font: "600 17px/1 var(--font-numeric)", letterSpacing: ".12em", marginBottom: 12 }}>{ourCode}</div>
+      <div style={{ font: "600 1.0625rem/1 var(--font-numeric)", letterSpacing: ".12em", marginBottom: "0.75rem" }}>{ourCode}</div>
 
       {error && <ErrorText message={error} />}
 
       {links.length > 0 && (
-        <div style={{ display: "flex", flexDirection: "column", gap: 7, marginBottom: 12 }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: "0.4375rem", marginBottom: "0.75rem" }}>
           {links.map((l) => (
-            <div key={l.id} style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, flexWrap: "wrap" }}>
+            <div key={l.id} style={{ display: "flex", alignItems: "center", gap: "0.5rem", fontSize: "0.8125rem", flexWrap: "wrap" }}>
               <span style={{ flex: 1, minWidth: 120 }}>
                 {l.otherFamilyName}
                 <span style={{ color: "var(--color-neutral-600)" }}>
@@ -131,7 +131,7 @@ function LinkManager({ links, ourCode, canManage }: { links: FamilyLink[]; ourCo
                     className="btn btn-primary"
                     disabled={pending}
                     onClick={() => run(() => respondFamilyLinkAction(l.id, true))}
-                    style={{ minHeight: 28, fontSize: 12, padding: "0 10px" }}
+                    style={{ minHeight: "1.75rem", fontSize: "0.75rem", padding: "0 0.625rem" }}
                   >
                     Accept
                   </button>
@@ -140,7 +140,7 @@ function LinkManager({ links, ourCode, canManage }: { links: FamilyLink[]; ourCo
                     className="btn btn-secondary"
                     disabled={pending}
                     onClick={() => run(() => respondFamilyLinkAction(l.id, false))}
-                    style={{ minHeight: 28, fontSize: 12, padding: "0 10px" }}
+                    style={{ minHeight: "1.75rem", fontSize: "0.75rem", padding: "0 0.625rem" }}
                   >
                     Decline
                   </button>
@@ -165,7 +165,7 @@ function LinkManager({ links, ourCode, canManage }: { links: FamilyLink[]; ourCo
                       return;
                     run(() => revokeFamilyLinkAction(l.id));
                   }}
-                  style={{ minHeight: 28, fontSize: 12, padding: "0 8px", color: "var(--color-neutral-700)" }}
+                  style={{ minHeight: "1.75rem", fontSize: "0.75rem", padding: "0 0.5rem", color: "var(--color-neutral-700)" }}
                 >
                   {l.status === "accepted" ? "Unlink" : "Withdraw"}
                 </button>
@@ -183,10 +183,10 @@ function LinkManager({ links, ourCode, canManage }: { links: FamilyLink[]; ourCo
           }}
         >
           <ErrorText message={state.error} />
-          <div style={{ fontSize: 11.5, letterSpacing: ".05em", color: "var(--color-neutral-500)", marginBottom: 4 }}>
+          <div style={{ fontSize: "0.71875rem", letterSpacing: ".05em", color: "var(--color-neutral-500)", marginBottom: "0.25rem" }}>
             LINK WITH ANOTHER HOUSEHOLD
           </div>
-          <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+          <div style={{ display: "flex", gap: "0.375rem", flexWrap: "wrap" }}>
             <input
               className="input"
               name="code"
@@ -195,11 +195,11 @@ function LinkManager({ links, ourCode, canManage }: { links: FamilyLink[]; ourCo
               placeholder="Their code"
               style={{ flex: 1, minWidth: 130, letterSpacing: ".08em" }}
             />
-            <SubmitButton style={{ minHeight: 40, fontSize: 13, padding: "0 12px" }}>ASK</SubmitButton>
+            <SubmitButton style={{ minHeight: "2.5rem", fontSize: "0.8125rem", padding: "0 0.75rem" }}>ASK</SubmitButton>
           </div>
         </form>
       ) : (
-        <p style={{ fontSize: 12.5, color: "var(--color-neutral-600)", margin: 0 }}>
+        <p style={{ fontSize: "0.78125rem", color: "var(--color-neutral-600)", margin: 0 }}>
           A parent or another adult can link your household with someone else&rsquo;s.
         </p>
       )}
