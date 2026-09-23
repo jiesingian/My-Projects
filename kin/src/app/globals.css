@@ -1456,7 +1456,7 @@ textarea.input {
 .kin-hubgrid {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 14px;
+  gap: 0.875rem;
 }
 
 /* Wealth is the wide one. It takes two cells rather than the whole row: the
@@ -1465,6 +1465,21 @@ textarea.input {
    cells on a desktop. Two cells fills the second row in both cases. */
 .kin-hub-wide {
   grid-column: span 2;
+}
+
+/* One up once the reader's text is large enough that two columns stop being
+   columns. `em` in a media query is the browser's own text size rather than
+   the page's, so this reads as "the viewport is narrow measured in the
+   user's text": a 390px phone is 24em by default and 12em at 200%. A hub
+   card's name is 21px of heading, which at 200% is wider than half of a
+   phone -- the row has to become a column or the names run out of it. */
+@media (max-width: 18em) {
+  .kin-hubgrid {
+    grid-template-columns: 1fr;
+  }
+  .kin-hub-wide {
+    grid-column: span 1;
+  }
 }
 @media (min-width: 1024px) {
   .kin-hubgrid {
@@ -1478,11 +1493,11 @@ textarea.input {
    thing to consider", a row says "this is a line in your day", and there
    may be a dozen of them. */
 .kin-eyebrow {
-  font: 600 12px/1 var(--font-heading);
+  font: 600 var(--text-xs)/1 var(--font-heading);
   letter-spacing: 0.06em;
   text-transform: uppercase;
   color: var(--color-neutral-600);
-  margin: 0 0 9px;
+  margin: 0 0 0.5625rem;
 }
 .kin-brief {
   border-radius: var(--radius-card);
@@ -1493,8 +1508,8 @@ textarea.input {
 .kin-brief-row {
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 12px 13px;
+  gap: 0.75rem;
+  padding: 0.75rem 0.8125rem;
   color: inherit;
   text-decoration: none;
   transition: background-color 0.14s ease;
@@ -1510,8 +1525,8 @@ textarea.input {
 }
 .kin-brief-ico {
   flex: none;
-  width: 32px;
-  height: 32px;
+  width: 2rem;
+  height: 2rem;
   border-radius: 10px;
   display: flex;
   align-items: center;
@@ -1526,16 +1541,16 @@ textarea.input {
 
 .kin-brief-title {
   display: block;
-  font: 600 15.5px/1.25 var(--font-heading);
+  font: 600 0.96875rem/1.25 var(--font-heading);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 .kin-brief-meta {
   display: block;
-  font-size: 13px;
+  font-size: var(--text-sm);
   color: var(--color-neutral-600);
-  margin-top: 1px;
+  margin-top: 0.0625rem;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;

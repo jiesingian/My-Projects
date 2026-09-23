@@ -16,7 +16,7 @@ export function ApprovalQueue({ pending, redemptions }: { pending: PendingApprov
   if (total === 0) return null;
 
   return (
-    <section style={{ marginBottom: 26 }}>
+    <section style={{ marginBottom: "1.625rem" }}>
       <h3 className="kin-eyebrow">Waiting on you · {total}</h3>
       {pending.map((p) => (
         <ApprovalRow key={`${p.routineId}-${p.date}`} item={p} />
@@ -55,8 +55,8 @@ function RedemptionRow({ item }: { item: PendingRedemption }) {
   };
 
   return (
-    <Blueprint className={leaving ? "kin-leaving" : undefined} style={{ padding: 13, marginBottom: 9 }}>
-      <div style={{ display: "flex", gap: 10, alignItems: "flex-start" }}>
+    <Blueprint className={leaving ? "kin-leaving" : undefined} style={{ padding: "0.8125rem", marginBottom: "0.5625rem" }}>
+      <div style={{ display: "flex", gap: "0.625rem", alignItems: "flex-start" }}>
         <span
           style={{
             width: 30,
@@ -72,20 +72,20 @@ function RedemptionRow({ item }: { item: PendingRedemption }) {
           <Icon name="gift" size={16} style={{ color: "var(--cal-goal)" }} />
         </span>
         <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ font: "600 15.5px/1.2 var(--font-heading)" }}>{item.title}</div>
-          <div style={{ fontSize: 12.5, color: "var(--color-neutral-600)", marginTop: 2 }}>
+          <div style={{ font: "600 0.96875rem/1.2 var(--font-heading)" }}>{item.title}</div>
+          <div style={{ fontSize: "0.78125rem", color: "var(--color-neutral-600)", marginTop: "0.125rem" }}>
             {item.who.split(" ")[0]} is asking · {item.costPoints} point{item.costPoints === 1 ? "" : "s"}
           </div>
         </div>
       </div>
 
-      <div style={{ display: "flex", gap: 6, marginTop: 10, flexWrap: "wrap" }}>
+      <div style={{ display: "flex", gap: "0.375rem", marginTop: "0.625rem", flexWrap: "wrap" }}>
         <button
           type="button"
           className="btn btn-primary"
           disabled={pending}
           onClick={() => run(() => grantRedemptionAction(item.id))}
-          style={{ minHeight: 32, fontSize: 13, padding: "0 14px", gap: 5 }}
+          style={{ minHeight: "2rem", fontSize: "0.8125rem", padding: "0 0.875rem", gap: "0.3125rem" }}
         >
           <Icon name="check" size={14} />
           Grant it
@@ -95,12 +95,12 @@ function RedemptionRow({ item }: { item: PendingRedemption }) {
           className="btn btn-secondary"
           disabled={pending}
           onClick={() => run(() => refuseRedemptionAction(item.id))}
-          style={{ minHeight: 32, fontSize: 13, padding: "0 12px" }}
+          style={{ minHeight: "2rem", fontSize: "0.8125rem", padding: "0 0.75rem" }}
         >
           Not this time
         </button>
       </div>
-      {error && <div style={{ fontSize: 12.5, color: "var(--cal-occasion)", marginTop: 6 }}>{error}</div>}
+      {error && <div style={{ fontSize: "0.78125rem", color: "var(--cal-occasion)", marginTop: "0.375rem" }}>{error}</div>}
     </Blueprint>
   );
 }
@@ -130,8 +130,8 @@ function ApprovalRow({ item }: { item: PendingApproval }) {
   };
 
   return (
-    <Blueprint className={leaving ? "kin-leaving" : undefined} style={{ padding: 13, marginBottom: 9 }}>
-      <div style={{ display: "flex", gap: 10, alignItems: "flex-start" }}>
+    <Blueprint className={leaving ? "kin-leaving" : undefined} style={{ padding: "0.8125rem", marginBottom: "0.5625rem" }}>
+      <div style={{ display: "flex", gap: "0.625rem", alignItems: "flex-start" }}>
         <span
           style={{
             width: 30,
@@ -147,24 +147,24 @@ function ApprovalRow({ item }: { item: PendingApproval }) {
           <Icon name="check" size={16} style={{ color: "var(--cal-money)" }} />
         </span>
         <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ font: "600 15.5px/1.2 var(--font-heading)" }}>{item.title}</div>
-          <div style={{ fontSize: 12.5, color: "var(--color-neutral-600)", marginTop: 2 }}>
+          <div style={{ font: "600 0.96875rem/1.2 var(--font-heading)" }}>{item.title}</div>
+          <div style={{ fontSize: "0.78125rem", color: "var(--color-neutral-600)", marginTop: "0.125rem" }}>
             {item.who.split(" ")[0]} says it is done · {readableDate(item.date)}
             {item.points > 0 ? ` · ${item.points} point${item.points === 1 ? "" : "s"}` : ""}
           </div>
           {item.note && (
-            <div style={{ fontSize: 13, color: "var(--color-neutral-700)", marginTop: 4, lineHeight: 1.4 }}>&ldquo;{item.note}&rdquo;</div>
+            <div style={{ fontSize: "0.8125rem", color: "var(--color-neutral-700)", marginTop: "0.25rem", lineHeight: 1.4 }}>&ldquo;{item.note}&rdquo;</div>
           )}
         </div>
       </div>
 
-      <div style={{ display: "flex", gap: 6, marginTop: 10, flexWrap: "wrap" }}>
+      <div style={{ display: "flex", gap: "0.375rem", marginTop: "0.625rem", flexWrap: "wrap" }}>
         <button
           type="button"
           className="btn btn-primary"
           disabled={pending}
           onClick={() => run(() => approveRoutineLogAction(item.routineId, item.date))}
-          style={{ minHeight: 32, fontSize: 13, padding: "0 14px", gap: 5 }}
+          style={{ minHeight: "2rem", fontSize: "0.8125rem", padding: "0 0.875rem", gap: "0.3125rem" }}
         >
           <Icon name="check" size={14} />
           Approve
@@ -174,12 +174,12 @@ function ApprovalRow({ item }: { item: PendingApproval }) {
           className="btn btn-secondary"
           disabled={pending}
           onClick={() => run(() => rejectRoutineLogAction(item.routineId, item.date))}
-          style={{ minHeight: 32, fontSize: 13, padding: "0 12px" }}
+          style={{ minHeight: "2rem", fontSize: "0.8125rem", padding: "0 0.75rem" }}
         >
           Not yet
         </button>
       </div>
-      {error && <div style={{ fontSize: 12.5, color: "var(--cal-occasion)", marginTop: 6 }}>{error}</div>}
+      {error && <div style={{ fontSize: "0.78125rem", color: "var(--cal-occasion)", marginTop: "0.375rem" }}>{error}</div>}
     </Blueprint>
   );
 }

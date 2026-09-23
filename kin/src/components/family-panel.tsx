@@ -19,34 +19,34 @@ export function FamilyPanel({ data }: { data: FamilyPanelData }) {
   if (data.people.length === 0) return null;
 
   return (
-    <section style={{ marginTop: 26 }}>
+    <section style={{ marginTop: "1.625rem" }}>
       <h3 className="kin-eyebrow">Family</h3>
 
-      <Blueprint style={{ padding: 14 }}>
-        <div style={{ display: "flex", alignItems: "baseline", gap: 10, flexWrap: "wrap", marginBottom: 12 }}>
+      <Blueprint style={{ padding: "0.875rem" }}>
+        <div style={{ display: "flex", alignItems: "baseline", gap: "0.625rem", flexWrap: "wrap", marginBottom: "0.75rem" }}>
           <Clock />
           {data.weather ? (
-            <span style={{ fontSize: 13.5, color: "var(--color-neutral-700)" }}>
+            <span style={{ fontSize: "0.84375rem", color: "var(--color-neutral-700)" }}>
               {data.weather.tempC}°C · {data.weather.label}
               {data.weatherNear && (
                 <span style={{ color: "var(--color-neutral-600)" }}> · near {data.weatherNear}</span>
               )}
             </span>
           ) : (
-            <Link href="/family?seg=quicklinks" style={{ fontSize: 12.5, color: "var(--color-neutral-600)" }}>
+            <Link href="/family?seg=quicklinks" style={{ fontSize: "0.78125rem", color: "var(--color-neutral-600)" }}>
               Share a location to see the weather
             </Link>
           )}
         </div>
 
         {data.meals.length > 0 && (
-          <div style={{ marginBottom: 12 }}>
-            <div style={{ fontSize: 11.5, letterSpacing: ".05em", color: "var(--color-neutral-500)", marginBottom: 4 }}>
+          <div style={{ marginBottom: "0.75rem" }}>
+            <div style={{ fontSize: "0.71875rem", letterSpacing: ".05em", color: "var(--color-neutral-500)", marginBottom: "0.25rem" }}>
               EATING TODAY
             </div>
-            <div style={{ display: "flex", flexWrap: "wrap", gap: "4px 14px" }}>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: "0.25rem 0.875rem" }}>
               {data.meals.map((m, i) => (
-                <span key={`${m.slot}-${i}`} style={{ fontSize: 13.5 }}>
+                <span key={`${m.slot}-${i}`} style={{ fontSize: "0.84375rem" }}>
                   <span style={{ color: "var(--color-neutral-600)", textTransform: "capitalize" }}>{m.slot}</span>{" "}
                   {m.dish}
                 </span>
@@ -55,9 +55,9 @@ export function FamilyPanel({ data }: { data: FamilyPanelData }) {
           </div>
         )}
 
-        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
           {data.people.map((p) => (
-            <div key={p.id} style={{ display: "flex", alignItems: "center", gap: 9 }}>
+            <div key={p.id} style={{ display: "flex", alignItems: "center", gap: "0.5625rem" }}>
               <span
                 className="placeholder-fill"
                 style={{
@@ -68,20 +68,20 @@ export function FamilyPanel({ data }: { data: FamilyPanelData }) {
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
-                  font: "600 12px/1 var(--font-heading)",
+                  font: "600 0.75rem/1 var(--font-heading)",
                   color: "var(--color-neutral-700)",
                 }}
               >
                 {initials(p.name)}
               </span>
-              <span style={{ flex: 1, minWidth: 0, fontSize: 13.5 }}>{p.name.split(" ")[0]}</span>
+              <span style={{ flex: 1, minWidth: 0, fontSize: "0.84375rem" }}>{p.name.split(" ")[0]}</span>
 
               {p.lat !== null && p.lng !== null && (
                 <a
                   href={`https://www.google.com/maps/search/?api=1&query=${p.lat},${p.lng}`}
                   target="_blank"
                   rel="noopener noreferrer"
-                  style={{ display: "flex", alignItems: "center", gap: 3, fontSize: 12.5, color: "var(--color-accent-700)" }}
+                  style={{ display: "flex", alignItems: "center", gap: "0.1875rem", fontSize: "0.78125rem", color: "var(--color-accent-700)" }}
                 >
                   <Icon name="mapPin" size={13} />
                   {sinceLabel(p.locationUpdatedAt)}
@@ -89,10 +89,10 @@ export function FamilyPanel({ data }: { data: FamilyPanelData }) {
               )}
 
               <span
-                style={{ fontSize: 12.5, color: p.glasses > 0 ? "var(--color-neutral-700)" : "var(--color-neutral-500)", whiteSpace: "nowrap" }}
+                style={{ fontSize: "0.78125rem", color: p.glasses > 0 ? "var(--color-neutral-700)" : "var(--color-neutral-500)", whiteSpace: "nowrap" }}
                 title={`${p.glasses} glass${p.glasses === 1 ? "" : "es"} today`}
               >
-                <Icon name="glassWater" size={13} style={{ verticalAlign: "-2px", marginRight: 3 }} />
+                <Icon name="glassWater" size={13} style={{ verticalAlign: "-2px", marginRight: "0.1875rem" }} />
                 {p.glasses}
               </span>
             </div>
@@ -119,7 +119,7 @@ function Clock() {
   return (
     <span
       className={now ? "kin-fade-in" : undefined}
-      style={{ font: "600 22px/1 var(--font-heading)", minWidth: 62 }}
+      style={{ font: "600 1.375rem/1 var(--font-heading)", minWidth: "3.875rem" }}
       suppressHydrationWarning
     >
       {now ?? " "}

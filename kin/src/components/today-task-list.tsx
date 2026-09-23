@@ -21,15 +21,15 @@ export function TodayTaskList({ tasks }: { tasks: RoutineView[] }) {
   if (dueToday.length === 0 && overdueOnly.length === 0) return null;
 
   return (
-    <section style={{ marginBottom: 26 }}>
+    <section style={{ marginBottom: "1.625rem" }}>
       <h3 className="kin-eyebrow">Today&rsquo;s tasks</h3>
       {dueToday.map((t) => (
         <TaskRow key={t.id} task={t} />
       ))}
       {overdueOnly.length > 0 && (
-        <Blueprint style={{ padding: "12px 14px", display: "flex", alignItems: "center", gap: 10, marginBottom: 9 }}>
+        <Blueprint style={{ padding: "0.75rem 0.875rem", display: "flex", alignItems: "center", gap: "0.625rem", marginBottom: "0.5625rem" }}>
           <Icon name="info" size={16} style={{ color: "var(--cal-money)", flex: "none" }} />
-          <span style={{ flex: 1, fontSize: 13.5 }}>
+          <span style={{ flex: 1, fontSize: "0.84375rem" }}>
             {overdueOnly.length} task{overdueOnly.length === 1 ? "" : "s"} behind on other days —{" "}
             <Link href="/planner?seg=routines" style={{ color: "var(--color-accent-700)", fontWeight: 500 }}>
               catch up on Planner
@@ -93,8 +93,8 @@ function TaskRow({ task }: { task: RoutineView }) {
   return (
     <Blueprint
       style={{
-        padding: 13,
-        marginBottom: 9,
+        padding: "0.8125rem",
+        marginBottom: "0.5625rem",
         boxShadow:
           today.status === "done" && today.approval !== "pending" && today.approval !== "rejected"
             ? "inset 3px 0 0 var(--color-switch-on)"
@@ -103,7 +103,7 @@ function TaskRow({ task }: { task: RoutineView }) {
               : undefined,
       }}
     >
-      <div style={{ display: "flex", gap: 10, alignItems: "flex-start" }}>
+      <div style={{ display: "flex", gap: "0.625rem", alignItems: "flex-start" }}>
         <span
           style={{
             width: 30,
@@ -120,24 +120,24 @@ function TaskRow({ task }: { task: RoutineView }) {
           <Icon name={meta.icon} size={16} />
         </span>
         <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ font: "600 15.5px/1.2 var(--font-heading)" }}>{task.title}</div>
-          <div style={{ fontSize: 12.5, color: "var(--color-neutral-600)", marginTop: 2 }}>
+          <div style={{ font: "600 0.96875rem/1.2 var(--font-heading)" }}>{task.title}</div>
+          <div style={{ fontSize: "0.78125rem", color: "var(--color-neutral-600)", marginTop: "0.125rem" }}>
             {task.rotates && today.assignee ? `${today.assignee.name.split(" ")[0]}'s turn` : whoFor}
             {task.timeOfDay ? ` · ${formatTimeOfDay(task.timeOfDay)}` : ""}
           </div>
         </div>
       </div>
 
-      <div style={{ marginTop: 10 }}>
+      <div style={{ marginTop: "0.625rem" }}>
         {!today.status ? (
           <>
-            <div style={{ display: "flex", gap: 6, flexWrap: "wrap", alignItems: "center" }}>
+            <div style={{ display: "flex", gap: "0.375rem", flexWrap: "wrap", alignItems: "center" }}>
               <button
                 type="button"
                 className="btn btn-primary"
                 disabled={pending}
                 onClick={() => log("done")}
-                style={{ minHeight: 32, fontSize: 13, padding: "0 14px", gap: 5 }}
+                style={{ minHeight: "2rem", fontSize: "0.8125rem", padding: "0 0.875rem", gap: "0.3125rem" }}
               >
                 <Icon name="check" size={14} />
                 Done
@@ -147,7 +147,7 @@ function TaskRow({ task }: { task: RoutineView }) {
                 className="btn btn-secondary"
                 disabled={pending}
                 onClick={() => log("skipped")}
-                style={{ minHeight: 32, fontSize: 13, padding: "0 12px" }}
+                style={{ minHeight: "2rem", fontSize: "0.8125rem", padding: "0 0.75rem" }}
               >
                 Skip
               </button>
@@ -155,7 +155,7 @@ function TaskRow({ task }: { task: RoutineView }) {
                 type="button"
                 className="btn btn-ghost"
                 onClick={() => setNoteOpen((o) => !o)}
-                style={{ minHeight: 32, fontSize: 12.5, padding: "0 8px", gap: 4 }}
+                style={{ minHeight: "2rem", fontSize: "0.78125rem", padding: "0 0.5rem", gap: "0.25rem" }}
               >
                 <Icon name="fileText" size={13} />
                 {noteOpen ? "Hide note" : "Add a note"}
@@ -174,14 +174,14 @@ function TaskRow({ task }: { task: RoutineView }) {
                   placeholder="A word on how it went — applies to whichever you tap"
                   rows={2}
                   maxLength={500}
-                  style={{ marginTop: 7, fontSize: 13, width: "100%", resize: "vertical" }}
+                  style={{ marginTop: "0.4375rem", fontSize: "0.8125rem", width: "100%", resize: "vertical" }}
                 />
               </>
             )}
           </>
         ) : (
-          <div style={{ display: "flex", flexDirection: "column", gap: 7 }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: "0.4375rem" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
               {/* A child's "done" is a claim until a grown-up says otherwise,
                   and saying "Done today" to them would be a small lie the
                   first time one got turned down. */}
@@ -189,8 +189,8 @@ function TaskRow({ task }: { task: RoutineView }) {
                 style={{
                   display: "inline-flex",
                   alignItems: "center",
-                  gap: 5,
-                  fontSize: 12.5,
+                  gap: "0.3125rem",
+                  fontSize: "0.78125rem",
                   fontWeight: 500,
                   color:
                     today.approval === "rejected"
@@ -212,13 +212,13 @@ function TaskRow({ task }: { task: RoutineView }) {
                       ? "Done today"
                       : "Skipped today"}
               </span>
-              <button type="button" className="btn btn-ghost" disabled={pending} onClick={undo} style={{ minHeight: 28, fontSize: 12, padding: "0 8px" }}>
+              <button type="button" className="btn btn-ghost" disabled={pending} onClick={undo} style={{ minHeight: "1.75rem", fontSize: "0.75rem", padding: "0 0.5rem" }}>
                 Undo
               </button>
             </div>
 
             {editingNote ? (
-              <div style={{ display: "flex", gap: 6, alignItems: "flex-start" }}>
+              <div style={{ display: "flex", gap: "0.375rem", alignItems: "flex-start" }}>
                 <label htmlFor={editId} className="sr-only">
                   Edit the note on {task.title}
                 </label>
@@ -230,15 +230,15 @@ function TaskRow({ task }: { task: RoutineView }) {
                   rows={2}
                   maxLength={500}
                   autoFocus
-                  style={{ fontSize: 13, flex: 1, resize: "vertical" }}
+                  style={{ fontSize: "0.8125rem", flex: 1, resize: "vertical" }}
                 />
-                <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                <div style={{ display: "flex", flexDirection: "column", gap: "0.25rem" }}>
                   <button
                     type="button"
                     className="btn btn-primary"
                     disabled={pending}
                     onClick={saveNote}
-                    style={{ minHeight: 28, fontSize: 12, padding: "0 10px" }}
+                    style={{ minHeight: "1.75rem", fontSize: "0.75rem", padding: "0 0.625rem" }}
                   >
                     Save
                   </button>
@@ -246,7 +246,7 @@ function TaskRow({ task }: { task: RoutineView }) {
                     type="button"
                     className="btn btn-ghost"
                     onClick={() => setEditingNote(false)}
-                    style={{ minHeight: 28, fontSize: 12, padding: "0 8px" }}
+                    style={{ minHeight: "1.75rem", fontSize: "0.75rem", padding: "0 0.5rem" }}
                   >
                     Cancel
                   </button>
@@ -263,14 +263,14 @@ function TaskRow({ task }: { task: RoutineView }) {
                   textAlign: "left",
                   background: "none",
                   border: 0,
-                  padding: 0,
+                  padding: "0rem",
                   cursor: "pointer",
-                  fontSize: 13,
+                  fontSize: "0.8125rem",
                   color: "var(--color-neutral-700)",
                   lineHeight: 1.4,
                 }}
               >
-                &ldquo;{today.note}&rdquo; <span style={{ fontSize: 11.5, color: "var(--color-neutral-500)" }}>· edit</span>
+                &ldquo;{today.note}&rdquo; <span style={{ fontSize: "0.71875rem", color: "var(--color-neutral-500)" }}>· edit</span>
               </button>
             ) : (
               <button
@@ -280,14 +280,14 @@ function TaskRow({ task }: { task: RoutineView }) {
                   setNoteDraft("");
                   setEditingNote(true);
                 }}
-                style={{ minHeight: 28, fontSize: 12, padding: "0 8px", alignSelf: "flex-start" }}
+                style={{ minHeight: "1.75rem", fontSize: "0.75rem", padding: "0 0.5rem", alignSelf: "flex-start" }}
               >
                 + Add a note
               </button>
             )}
           </div>
         )}
-        {error && <div style={{ fontSize: 12.5, color: "var(--cal-occasion)", marginTop: 6 }}>{error}</div>}
+        {error && <div style={{ fontSize: "0.78125rem", color: "var(--cal-occasion)", marginTop: "0.375rem" }}>{error}</div>}
       </div>
     </Blueprint>
   );
