@@ -30,6 +30,11 @@ export const viewport: Viewport = {
   // edge and pad themselves back out with env(safe-area-inset-*) -- which
   // globals.css already does, but only takes effect with this set.
   viewportFit: "cover",
+  // Android Chrome does not resize the layout viewport when the software
+  // keyboard opens unless asked to, so a fixed bottom tab bar sits behind
+  // the keyboard and 100dvh keeps its full-screen value. iOS already does
+  // this; this is the line that makes Android behave the same way.
+  interactiveWidget: "resizes-content",
   themeColor: [
     { media: "(prefers-color-scheme: light)", color: "#f2f2f7" },
     { media: "(prefers-color-scheme: dark)", color: "#000000" },
