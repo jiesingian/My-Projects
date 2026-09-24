@@ -12,6 +12,8 @@ import { humanDatabaseError } from "@/lib/db-errors";
 import { activityInstants } from "@/lib/planner-time";
 import { clamp } from "@/lib/text";
 import { isCurrencyCode } from "@/lib/household-prefs";
+import { normalizeInviteUrl } from "@/lib/invite-link";
+import { fetchLinkPreview } from "@/lib/link-preview";
 
 function activityTarget(wholeFamily: boolean, who: string[]): CalendarTarget {
   return wholeFamily ? { kind: "all" } : { kind: "members", memberIds: who };
@@ -184,16 +186,21 @@ function readBudget(formData: FormData, householdCurrency: string): { budget: nu
   return { budget: Math.round(n * 100) / 100, budgetCurrency: currency, budgetError: null };
 }
 
-/** Records which currency an event's budget is in -- a separate write, and a
- * forgiving one, because the column arrives by migration. Dev takes it the
- * moment this merges; production only when the Migrate button is pressed,
- * and until then the app deployed from main is talking to a production that
- * doesn't have it. Folded into the insert above, that gap would stop every
- * household saving any event at all. Kept apart, the event saves and its
- * budget reads in the household's own currency until the column exists. */
-async function saveBudgetCurrency(supabase: Awaited<ReturnType<typeof createClient>>, eventId: string, familyId: string, currency: string | null) {
-  const { error } = await supabase.from("events").update({ budget_currency: currency }).eq("id", eventId).eq("family_id", familyId);
-  if (error) console.error(`Event ${eventId} saved, but its budget currency was not`, error.message);
+/** Writes the columns an event gained by migration -- its budget's currency
+ * and its invitation link -- as a separate, forgiving step after the event
+ * itself is saved. A merge deploys the code and migrates the databases within
+ * minutes of each other, not at the same instant; folded into the insert, a
+ * column that hasn't arrived yet would stop every household saving any event
+ * at all in that gap. Kept apart, the event saves, and these follow a minute
+ * later on the next save if they missed. */
+async function saveEventExtras(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  eventId: string,
+  familyId: string,
+  extras: { budget_currency: string | null; invite_url: string | null },
+) {
+  const { error } = await supabase.from("events").update(extras).eq("id", eventId).eq("family_id", familyId);
+  if (error) console.error(`Event ${eventId} saved, but its budget currency and invitation link were not`, error.message);
 }
 
 export async function createEventAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
@@ -209,12 +216,14 @@ export async function createEventAction(_prev: ActionState, formData: FormData):
   // it really needs that the others do not is a second date.
   const endDate = String(formData.get("end_date") ?? "") || null;
   const { budget, budgetCurrency, budgetError } = readBudget(formData, me.families.currency);
+  const invite = normalizeInviteUrl(String(formData.get("invite_url") ?? ""));
   const wholeFamily = formData.get("whole_family") === "on";
   const who = formData.getAll("who").map(String).filter(Boolean);
   if (!title || !date) return { error: "Title and date are required." };
   if (!wholeFamily && who.length === 0) return { error: "Choose who this is for, or mark it for the whole family." };
   if (endDate && endDate < date) return { error: "The end date is before the start date." };
   if (budgetError) return { error: budgetError };
+  if (invite.error) return { error: invite.error };
 
   const { data: event, error } = await supabase
     .from("events")
@@ -233,7 +242,7 @@ export async function createEventAction(_prev: ActionState, formData: FormData):
     .select()
     .single();
   if (error) return { error: humanDatabaseError(error.message) };
-  await saveBudgetCurrency(supabase, event.id, me.family_id, budgetCurrency);
+  await saveEventExtras(supabase, event.id, me.family_id, { budget_currency: budgetCurrency, invite_url: invite.url });
 
   const eventWho = await saveEventMembers(event.id, wholeFamily ? [] : who);
   if (eventWho) return { error: eventWho };
@@ -262,12 +271,14 @@ export async function updateEventAction(eventId: string, _prev: ActionState, for
   // it really needs that the others do not is a second date.
   const endDate = String(formData.get("end_date") ?? "") || null;
   const { budget, budgetCurrency, budgetError } = readBudget(formData, me.families.currency);
+  const invite = normalizeInviteUrl(String(formData.get("invite_url") ?? ""));
   const wholeFamily = formData.get("whole_family") === "on";
   const who = formData.getAll("who").map(String).filter(Boolean);
   if (!title || !date) return { error: "Title and date are required." };
   if (!wholeFamily && who.length === 0) return { error: "Choose who this is for, or mark it for the whole family." };
   if (endDate && endDate < date) return { error: "The end date is before the start date." };
   if (budgetError) return { error: budgetError };
+  if (invite.error) return { error: invite.error };
 
   const { error, count } = await supabase
     .from("events")
@@ -279,7 +290,7 @@ export async function updateEventAction(eventId: string, _prev: ActionState, for
     .eq("family_id", me.family_id);
   if (error) return { error: humanDatabaseError(error.message) };
   if (count === 0) return { error: "That occasion is no longer there — someone may have removed it." };
-  await saveBudgetCurrency(supabase, eventId, me.family_id, budgetCurrency);
+  await saveEventExtras(supabase, eventId, me.family_id, { budget_currency: budgetCurrency, invite_url: invite.url });
 
   const eventWho = await saveEventMembers(eventId, wholeFamily ? [] : who);
   if (eventWho) return { error: eventWho };
@@ -328,4 +339,27 @@ export async function addActivityToJournalAction(activityId: string): Promise<Ac
   revalidatePath("/journal");
   revalidatePath("/planner");
   return { error: null };
+}
+
+/** The card for an event's invitation link: the page's title, a line of its
+ * description, and whether it has a thumbnail worth asking the image proxy
+ * for.
+ *
+ * Worked out from the page on every call rather than stored, for the reason
+ * chat's previews are: a stored preview is written with a member's own
+ * session, and could say anything. And it only fetches the link already saved
+ * on an event in this household -- given any URL, this would be a way for
+ * anyone signed in to make Kin's server fetch whatever they liked.
+ *
+ * The image address itself never leaves the server; the card asks the proxy
+ * for it by event id. */
+export async function getEventInvitePreviewAction(
+  eventId: string,
+): Promise<{ title: string; description: string | null; hasImage: boolean } | null> {
+  const me = await requireCurrentMember();
+  const supabase = await createClient();
+  const { data: event } = await supabase.from("events").select("invite_url").eq("id", eventId).eq("family_id", me.family_id).maybeSingle();
+  if (!event?.invite_url) return null;
+  const preview = await fetchLinkPreview(event.invite_url);
+  return preview ? { title: preview.title, description: preview.description, hasImage: !!preview.image } : null;
 }

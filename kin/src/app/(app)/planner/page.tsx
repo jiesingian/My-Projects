@@ -22,6 +22,7 @@ import { HubHeader } from "@/components/hub-header";
 import { PickButton } from "@/components/pick-button";
 import { Blueprint, Tag } from "@/components/ui";
 import { formatAccounting, shortNames, selfLabel } from "@/lib/format";
+import { InviteCard } from "@/components/invite-card";
 import { AddToJournalButton } from "@/components/add-to-journal-button";
 import { Icon } from "@/components/icons";
 import { CALENDAR_LEGEND, styleFor } from "@/lib/calendar-style";
@@ -975,6 +976,7 @@ async function EventsPane({ familyId, memberId, currency, who }: { familyId: str
                 }
               />
             </div>
+            {upcomingTrip.invite_url && <InviteCard eventId={upcomingTrip.id} url={upcomingTrip.invite_url} />}
             <Link
               href={`/planner/add?type=event&id=${upcomingTrip.id}`}
               className="btn btn-secondary btn-block"
@@ -1003,10 +1005,13 @@ async function EventsPane({ familyId, memberId, currency, who }: { familyId: str
       )}
       {rows.map((row) =>
         row.kind === "event" ? (
+          // The card is a link of its own, so it sits beside the row's link
+          // rather than inside it: a link inside a link is invalid, and the tap
+          // would go to the edit screen instead of the invitation.
+          <div key={`event-${row.event.id}`} style={{ padding: "0.8125rem 0", borderBottom: "1px solid color-mix(in srgb, var(--color-text) 10%, transparent)" }}>
           <Link
-            key={`event-${row.event.id}`}
             href={`/planner/add?type=event&id=${row.event.id}`}
-            style={{ display: "flex", gap: "0.75rem", padding: "0.8125rem 0", borderBottom: "1px solid color-mix(in srgb, var(--color-text) 10%, transparent)", textDecoration: "none", color: "inherit" }}
+            style={{ display: "flex", gap: "0.75rem", textDecoration: "none", color: "inherit" }}
           >
             <Blueprint
               style={{
@@ -1036,8 +1041,11 @@ async function EventsPane({ familyId, memberId, currency, who }: { familyId: str
               {row.event.kind.toUpperCase()}
             </Tag>
           </Link>
+          {row.event.invite_url && <InviteCard eventId={row.event.id} url={row.event.invite_url} />}
+          </div>
         ) : (
-          <div key={`trip-${row.trip.id}`} style={{ display: "flex", gap: "0.75rem", padding: "0.8125rem 0", borderBottom: "1px solid color-mix(in srgb, var(--color-text) 10%, transparent)", alignItems: "center" }}>
+          <div key={`trip-${row.trip.id}`} style={{ padding: "0.8125rem 0", borderBottom: "1px solid color-mix(in srgb, var(--color-text) 10%, transparent)" }}>
+          <div style={{ display: "flex", gap: "0.75rem", alignItems: "center" }}>
             <Blueprint style={{ width: 50, height: 50, flex: "none", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center" }}>
               <span style={{ font: "600 1.125rem/1 var(--font-heading)" }}>{new Date(row.trip.event_date).getDate()}</span>
               <span style={{ fontSize: "0.53125rem", letterSpacing: ".02em", color: "var(--color-neutral-600)" }}>
@@ -1057,6 +1065,8 @@ async function EventsPane({ familyId, memberId, currency, who }: { familyId: str
             ) : (
               <Tag variant="neutral" className="self-start">TRIP</Tag>
             )}
+          </div>
+          {row.trip.invite_url && <InviteCard eventId={row.trip.id} url={row.trip.invite_url} />}
           </div>
         ),
       )}

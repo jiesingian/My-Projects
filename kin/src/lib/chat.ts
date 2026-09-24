@@ -90,7 +90,14 @@ export function firstUrl(text: string): string | null {
   }
 }
 
-export type LinkPreview = { url: string; site: string; title: string; description: string | null };
+export type LinkPreview = {
+  url: string;
+  site: string;
+  title: string;
+  description: string | null;
+  /** The page's own og:image address. Server-side only: see parseOpenGraph. */
+  image: string | null;
+};
 
 /** Title, description and site name from a page's head.
  *
@@ -101,10 +108,13 @@ export type LinkPreview = { url: string; site: string; title: string; descriptio
  * entities decoded, tags gone, lengths capped -- because it is rendered in a
  * thread for the whole household and must never carry markup into it.
  *
- * No image. Showing a page's og:image would load it straight from that site,
- * for every member, every time they open the thread -- which hands every one
- * of their IP addresses to whoever posted the link, and makes any link a
- * tracking pixel. A messenger proxies those; Kin would have to, and does not.
+ * The image is read as an address and never handed to a browser to load.
+ * Showing a page's og:image straight from that site would load it for every
+ * member, every time -- handing each of their IP addresses to whoever controls
+ * the page, and making any link a tracking pixel. So chat shows none, and the
+ * one place that does show a thumbnail, an event's invitation, fetches it
+ * through Kin's own server (api/event-invite-image) with the same checks a
+ * preview gets, so the member's browser only ever talks to Kin.
  */
 export function parseOpenGraph(html: string, url: string): LinkPreview | null {
   const head = html.slice(0, 256 * 1024);
@@ -133,7 +143,22 @@ export function parseOpenGraph(html: string, url: string): LinkPreview | null {
     return null;
   }
   const site = clean(meta("og:site_name"), 60) || host;
-  return { url, site, title, description };
+  return { url, site, title, description, image: imageAddress(meta("og:image") || meta("og:image:url") || meta("twitter:image"), url) };
+}
+
+/** A page's image tag as an absolute http(s) address, or null. Resolved
+ * against the page, since a relative og:image is allowed and not rare; and
+ * nothing but http(s), because the address is fetched by the image proxy and
+ * a data: or file: URL is not an image on the web. */
+export function imageAddress(raw: string, pageUrl: string): string | null {
+  const value = decodeEntities(raw).trim();
+  if (!value || value.length > 2048) return null;
+  try {
+    const resolved = new URL(value, pageUrl);
+    return resolved.protocol === "http:" || resolved.protocol === "https:" ? resolved.toString() : null;
+  } catch {
+    return null;
+  }
 }
 
 function decodeEntities(s: string) {
