@@ -3171,6 +3171,8 @@ textarea.input {
 @media (max-width: 22rem) {
   .kin-scan-when { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
   .kin-scan-when .input:first-child { grid-column: 1 / -1; }
+}
+
 /* ── Ticking things off ───────────────────────────────────────────────── */
 /* A grocery item: the circle pops as it fills, the line draws across the
    name left to right, and the row settles back from a small nudge. */
