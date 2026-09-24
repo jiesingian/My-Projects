@@ -2,7 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getCurrentMember } from "@/lib/session";
 import { createClient } from "@/lib/supabase/server";
-import { getHubCards, getTodayBriefing } from "@/lib/queries/today";
+import { getHubCards, getTodayBriefing, getComingUp } from "@/lib/queries/today";
 import { getRoutinesNeedingAttention, getPendingApprovals, getPendingRedemptions } from "@/lib/queries/routines";
 import { TodayTaskList } from "@/components/today-task-list";
 import { ApprovalQueue } from "@/components/approval-queue";
@@ -18,7 +18,7 @@ export default async function TodayPage() {
   if (!me) redirect("/onboarding/profile");
 
   const supabase = await createClient();
-  const [{ data: members }, hubs, brief, tasks, awaitingApproval, awaitingRedemption, familyPanel] = await Promise.all([
+  const [{ data: members }, hubs, brief, tasks, awaitingApproval, awaitingRedemption, familyPanel, comingUp] = await Promise.all([
     supabase.from("members").select("id, full_name").eq("family_id", me.family_id).order("created_at"),
     getHubCards(me.family_id, me.families.currency, me.families.week_start),
     getTodayBriefing(me.family_id, me.families.currency),
@@ -28,6 +28,7 @@ export default async function TodayPage() {
     isGrownUp(me.role) ? getPendingApprovals(me.family_id) : Promise.resolve([]),
     isGrownUp(me.role) ? getPendingRedemptions(me.family_id) : Promise.resolve([]),
     getFamilyPanel(me.family_id),
+    getComingUp(me.family_id, me.families.currency),
   ]);
 
   const todayLabel = new Date().toLocaleDateString("en-GB", {
@@ -109,6 +110,27 @@ export default async function TodayPage() {
           </div>
         )}
       </section>
+
+      {/* Coming up: what to sort out now so the week is not a scramble. */}
+      {comingUp.length > 0 && (
+        <section style={{ marginBottom: "1.625rem" }}>
+          <h3 className="kin-eyebrow">Coming up</h3>
+          <div className="kin-brief">
+            {comingUp.map((b) => (
+              <Link key={b.id} href={b.href} className="kin-brief-row">
+                <span className="kin-brief-ico" data-tint={b.tint}>
+                  <Icon name={b.icon} size="1.0625rem" />
+                </span>
+                <span style={{ minWidth: 0 }}>
+                  <span className="kin-brief-title">{b.title}</span>
+                  <span className="kin-brief-meta">{b.meta}</span>
+                </span>
+                <Icon name="chevronLeft" size="0.9375rem" className="kin-brief-chev" />
+              </Link>
+            ))}
+          </div>
+        </section>
+      )}
 
       <ApprovalQueue pending={awaitingApproval} redemptions={awaitingRedemption} />
 

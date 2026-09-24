@@ -15,6 +15,9 @@ import { GenerateGroceryButton } from "@/components/generate-grocery-button";
 import { PriceRowControl, AddPriceControl, PantryControls } from "@/components/household-price-controls";
 import { SheetButton, Collapsible } from "@/components/sheet";
 import { RecipeBook, AddIngredientsToBuyButton } from "@/components/recipe-book";
+import { CookFromPantry } from "@/components/cook-from-pantry";
+import { rankByPantry } from "@/lib/pantry-match";
+import { createClient } from "@/lib/supabase/server";
 import { getRecipeBook, getRecipeCategories } from "@/lib/queries/recipes";
 import { AddMealControl, RemoveMealButton } from "@/components/meal-controls";
 import { CalendarJump, TodayButton } from "@/components/calendar-nav";
@@ -175,13 +178,23 @@ async function MealsPane({
   anchor: Date;
   who: string;
 }) {
-  const [{ meals: allMeals, anchorISO }, recipes, categories, liquidIntake, memberRows] = await Promise.all([
+  const supabase = await createClient();
+  const [{ meals: allMeals, anchorISO }, recipes, categories, liquidIntake, memberRows, { data: pantryRows }] = await Promise.all([
     getMealsForDay(familyId, anchor),
     getRecipeBook(familyId),
     getRecipeCategories(familyId),
     getLiquidIntake(familyId, toISODate(anchor)),
     getMembers(familyId),
+    supabase.from("pantry_items").select("item_key").eq("family_id", familyId),
   ]);
+  const suggestions = rankByPantry(recipes, new Set((pantryRows ?? []).map((p) => p.item_key))).map((m) => ({
+    key: m.recipe.key,
+    name: m.recipe.name,
+    minutes: m.recipe.minutes,
+    have: m.have,
+    need: m.need,
+    missing: m.missing,
+  }));
   const members = memberRows
     .filter((m) => m.status === "active" || m.status === "managed")
     .map((m) => ({ id: m.id, name: m.full_name }));
@@ -268,6 +281,8 @@ async function MealsPane({
           </div>
         );
       })}
+
+      <CookFromPantry date={anchorISO} suggestions={suggestions} />
 
       <LiquidIntakeTracker date={anchorISO} members={liquidIntake} />
 
