@@ -10,6 +10,8 @@ export const NOTIFICATION_DEFS = [
   { key: "bills", name: "Bills and utilities", sub: "Three days before due date" },
   { key: "journal", name: "Journal activity", sub: "When someone adds photos or a note" },
   { key: "shopping", name: "Shopping list", sub: "When an item is added by another member" },
+  { key: "chat", name: "Family chat", sub: "New messages" },
+  { key: "approvals", name: "Chores to approve", sub: "When a child marks a chore done" },
 ] as const;
 
 export type NotificationKey = (typeof NOTIFICATION_DEFS)[number]["key"];

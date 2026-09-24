@@ -3689,6 +3689,12 @@ export type Database = {
           },
         ]
       }
+      push_subscriptions: {
+        Row: { auth: string; created_at: string; endpoint: string; family_id: string; id: string; member_id: string; p256dh: string }
+        Insert: { auth: string; created_at?: string; endpoint: string; family_id: string; id?: string; member_id: string; p256dh: string }
+        Update: { auth?: string; created_at?: string; endpoint?: string; family_id?: string; id?: string; member_id?: string; p256dh?: string }
+        Relationships: []
+      }
       recipe_photos: {
         Row: {
           created_at: string
@@ -4358,6 +4364,14 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      forget_push_endpoint: {
+        Args: { p_endpoint: string }
+        Returns: undefined
+      }
+      push_targets: {
+        Args: { p_kind: string; p_member_ids?: string[] }
+        Returns: { endpoint: string; p256dh: string; auth: string }[]
+      }
       calendar_feed: {
         Args: { feed_hash: string }
         Returns: {

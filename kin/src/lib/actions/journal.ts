@@ -1,7 +1,9 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { after } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { sendPush } from "@/lib/push";
 import { requireCurrentMember } from "@/lib/session";
 import { getValidDriveAccessToken, deleteDriveFile, ensureDriveFolderStructure, ensureNamedSubfolder } from "@/lib/google-drive";
 import { familyDay } from "@/lib/time";
@@ -43,6 +45,7 @@ export async function createJournalEntryAction(input: {
   }
 
   revalidatePath("/journal");
+  after(() => sendPush({ kind: "journal", title: `${me.full_name.split(" ")[0]} added to the journal`, body: title, url: "/journal" }));
   return { error: null, entryId: entry.id };
 }
 
