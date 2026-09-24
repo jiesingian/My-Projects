@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { Icon } from "@/components/icons";
 import { redirect } from "next/navigation";
 import { getCurrentMember } from "@/lib/session";
 import { getMembers, getHealthSummary, getDocFolders, getFamilyProfile, getFamilyTree, getEmergencyContacts, getMemberLocations } from "@/lib/queries/family";
@@ -295,7 +296,7 @@ async function TreePane({ familyId, myId, inviteCode }: { familyId: string; myId
       {tree.people.length === 0 || !meInTree ? (
         <>
           <Empty
-            icon="🌳"
+            icon={<Icon name="users" size={26} />}
             title={tree.people.length === 0 ? "Start the family tree" : "You're not in the tree yet"}
             line="Add yourself, then your father, your mother, and anyone else you know -- the tree grows from there, and everybody in the house sees the same one."
           />

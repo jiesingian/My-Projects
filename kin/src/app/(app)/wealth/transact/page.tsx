@@ -20,7 +20,7 @@ export default async function TransactPage({
 
   return (
     <div>
-      <DetailHeader backHref="/wealth" eyebrow="HUB 05 · MOVE MONEY" />
+      <DetailHeader backHref="/wealth" eyebrow="Wealth" />
       <div style={{ padding: "0 1.375rem 1.375rem" }}>
         <h3 style={{ fontSize: "2rem", margin: "0 0 14px" }}>Move money</h3>
         <TransactForm

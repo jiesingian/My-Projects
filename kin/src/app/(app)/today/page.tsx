@@ -158,9 +158,6 @@ export default async function TodayPage() {
             <Blueprint style={{ padding: "0.8125rem", display: "flex", flexDirection: "column", gap: "0.375rem", minHeight: "7.875rem" }}>
               <div style={{ display: "flex", alignItems: "center", gap: "0.4375rem" }}>
                 <Icon name={h.icon} size="1rem" className="text-[var(--color-accent-700)]" />
-                <span style={{ font: "400 0.75rem/1 var(--font-numeric)", color: "var(--color-neutral-500)", marginLeft: "auto" }}>
-                  {h.n}
-                </span>
               </div>
               <div style={{ font: "600 1.3125rem/1 var(--font-heading)" }}>{h.name}</div>
               <div style={{ fontSize: "0.84375rem", lineHeight: 1.35, color: "var(--color-neutral-800)" }}>{h.primary}</div>

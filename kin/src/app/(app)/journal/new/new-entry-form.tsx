@@ -64,7 +64,7 @@ export function NewEntryForm({ members, defaultTitle }: { members: Tables<"membe
 
   return (
     <div>
-      <DetailHeader backHref="/journal?view=list" eyebrow="HUB 02 · NEW ENTRY" />
+      <DetailHeader backHref="/journal?view=list" eyebrow="Journal" />
       <div style={{ padding: "0 1.375rem 1.375rem" }}>
         <h3 style={{ fontSize: "1.875rem", margin: "0 0 16px" }}>Add a journal entry</h3>
         <form onSubmit={onSubmit}>

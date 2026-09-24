@@ -16,7 +16,7 @@ export default async function LinkThreadPage({ params }: { params: Promise<{ id:
 
   return (
     <div>
-      <DetailHeader backHref="/journal?seg=feed" eyebrow="LINKED HOUSEHOLD" />
+      <DetailHeader backHref="/journal?seg=feed" eyebrow="Linked household" />
       <div className="kin-chatcolumn" style={{ padding: "0 1.375rem 0.5rem" }}>
         <h3 style={{ fontSize: "1.5rem", margin: "0 0 0.25rem" }}>{thread.otherFamilyName}</h3>
         <p style={{ fontSize: "0.8125rem", color: "var(--color-neutral-600)", margin: "0 0 0.75rem", lineHeight: 1.45 }}>

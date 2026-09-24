@@ -171,7 +171,7 @@ export function RoutineForm({
 
   return (
     <div>
-      <DetailHeader backHref="/planner?seg=routines" eyebrow={edit ? "HUB 03 · EDIT TASK" : "HUB 03 · NEW TASK"} />
+      <DetailHeader backHref="/planner?seg=routines" eyebrow="Planner" />
       <div style={{ padding: "0 1.375rem 1.375rem" }}>
         <h3 style={{ fontSize: "1.875rem", margin: "0 0 14px" }}>{edit ? "Edit task" : "Add a task"}</h3>
 

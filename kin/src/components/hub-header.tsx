@@ -7,12 +7,13 @@ import { formatDate } from "@/lib/format";
  * `DetailHeader`'s `trail` prop, is decided in `docs/PAGE_PATTERNS.md` --
  * read that before adding a third header shape here. */
 export function HubHeader({
-  n,
   title,
   segments,
   dateFormat,
 }: {
-  n: string;
+  /** The hub's old number. No longer shown -- "Hub 03" meant nothing to a
+   * family -- and kept only so existing call sites need not change. */
+  n?: string;
   title: string;
   segments: { label: string; href: string; active: boolean }[];
   /** The household's own reading of a date. Passed rather than looked up:
@@ -23,7 +24,6 @@ export function HubHeader({
   return (
     <div style={{ padding: "1.25rem 1.25rem 0.75rem" }}>
       <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
-        <span style={{ fontSize: "0.8125rem", fontWeight: 600, color: "var(--color-accent)" }}>Hub {n}</span>
         <span style={{ fontSize: "0.8125rem", color: "var(--color-neutral-600)", marginLeft: "auto" }}>{formatDate(new Date(), dateFormat)}</span>
       </div>
       {/* iOS large title */}

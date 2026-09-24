@@ -61,7 +61,7 @@ export function Wordmark() {
           color: "var(--color-accent-700)",
         }}
       >
-        FAMILY OPERATING SYSTEM
+        YOUR FAMILY, IN ONE PLACE
       </div>
       <div
         style={{
