@@ -359,3 +359,139 @@ export async function getTodayBriefing(familyId: string, currency: string): Prom
     return 0;
   });
 }
+
+function addDays(day: string, n: number): string {
+  const d = new Date(`${day}T00:00:00Z`);
+  d.setUTCDate(d.getUTCDate() + n);
+  return d.toISOString().slice(0, 10);
+}
+
+function weekdayOf(day: string): string {
+  return new Date(`${day}T12:00:00Z`).toLocaleDateString("en-GB", { weekday: "long", timeZone: "UTC" });
+}
+
+/** What is coming in the next week that is worth acting on before the day:
+ * a birthday to get a gift for, a bill about to fall due, a check-up to book,
+ * tomorrow's early start, tomorrow's dinner that is missing ingredients.
+ *
+ * The briefing above answers "what is today"; this answers "what should I
+ * sort out now so it is not a scramble later", which is the reminder a good
+ * family assistant gives without being asked. Nothing that is already in
+ * today's briefing appears here. */
+export async function getComingUp(familyId: string, currency: string): Promise<BriefItem[]> {
+  const supabase = await createClient();
+  const now = new Date();
+  const today = localDay(now);
+  const tomorrow = addDays(today, 1);
+  const weekOut = addDays(today, 7);
+  const dayIndex = new Map<string, number>();
+  for (let i = 1; i <= 7; i++) dayIndex.set(addDays(today, i).slice(5), i);
+
+  const [events, bills, health, tasks, meals] = await Promise.all([
+    supabase
+      .from("events")
+      .select("id, title, kind, event_date, recurs_yearly")
+      .eq("family_id", familyId)
+      .or(`and(event_date.gt.${today},event_date.lte.${weekOut}),recurs_yearly.eq.true`),
+    supabase
+      .from("bills")
+      .select("id, name, amount, due_date")
+      .eq("family_id", familyId)
+      .eq("status", "unpaid")
+      .gt("due_date", today)
+      .lte("due_date", addDays(today, 3))
+      .order("due_date", { ascending: true })
+      .limit(3),
+    supabase
+      .from("health_schedule")
+      .select("id, what, when_date, member:members!health_schedule_member_id_fkey(full_name)")
+      .eq("family_id", familyId)
+      .in("status", ["due", "due_soon"])
+      .gt("when_date", today)
+      .lte("when_date", weekOut)
+      .order("when_date", { ascending: true })
+      .limit(3),
+    supabase
+      .from("activities")
+      .select("id, title, start_at, location")
+      .eq("family_id", familyId)
+      .eq("status", "upcoming")
+      .gte("start_at", new Date(now.getTime() + 6 * 3600_000).toISOString())
+      .lt("start_at", new Date(now.getTime() + 54 * 3600_000).toISOString())
+      .order("start_at", { ascending: true }),
+    supabase
+      .from("meal_plans")
+      .select("id, dish, meal_ingredients(item_key, ingredient_name)")
+      .eq("family_id", familyId)
+      .eq("plan_date", tomorrow),
+  ]);
+
+  const items: BriefItem[] = [];
+
+  for (const e of events.data ?? []) {
+    const inDays = e.recurs_yearly ? dayIndex.get(e.event_date.slice(5)) : e.event_date > today && e.event_date <= weekOut ? Math.round((Date.parse(e.event_date) - Date.parse(today)) / 86_400_000) : undefined;
+    if (!inDays) continue;
+    const on = inDays === 1 ? "tomorrow" : `on ${weekdayOf(addDays(today, inDays))}`;
+    const years = e.recurs_yearly ? Number(addDays(today, inDays).slice(0, 4)) - Number(e.event_date.slice(0, 4)) : 0;
+    const what =
+      e.kind === "birthday" && years > 0 ? `Turns ${years} ${on}` : e.kind === "anniversary" && years > 0 ? `${years} years ${on}` : `${on[0].toUpperCase()}${on.slice(1)}`;
+    const nudge = e.kind === "birthday" || e.kind === "anniversary" ? " · a gift or a greeting?" : "";
+    items.push({ id: `soon-event-${e.id}`, icon: e.kind === "birthday" ? "cupcake" : "gift", tint: "occasion", title: e.title, meta: `${what}${nudge}`, href: "/planner", at: inDays });
+  }
+
+  for (const b of bills.data ?? []) {
+    const inDays = Math.round((Date.parse(b.due_date!) - Date.parse(today)) / 86_400_000);
+    items.push({
+      id: `soon-bill-${b.id}`,
+      icon: "wallet",
+      tint: "money",
+      title: b.name,
+      meta: `${formatCurrency(Number(b.amount), currency)} · due ${inDays === 1 ? "tomorrow" : `in ${inDays} days`}`,
+      href: "/wealth",
+      at: inDays,
+    });
+  }
+
+  for (const h of health.data ?? []) {
+    const who = (h.member as unknown as { full_name: string } | null)?.full_name?.split(" ")[0] ?? "Someone";
+    const inDays = Math.round((Date.parse(h.when_date!) - Date.parse(today)) / 86_400_000);
+    items.push({ id: `soon-health-${h.id}`, icon: "activity", tint: "occasion", title: `${who} · ${h.what}`, meta: `Due ${inDays === 1 ? "tomorrow" : `in ${inDays} days`} · book it now?`, href: "/family", at: inDays });
+  }
+
+  // Tomorrow's first thing, if it starts early enough to plan the evening
+  // around -- school programs, flights, a 7am practice.
+  const early = (tasks.data ?? []).find((a) => {
+    const start = new Date(a.start_at);
+    return localDay(start) === tomorrow && Number(localTime(start).slice(0, 2)) < 10;
+  });
+  if (early) {
+    const start = new Date(early.start_at);
+    items.push({ id: `soon-task-${early.id}`, icon: "clock", tint: "schedule", title: early.title, meta: ["Early start tomorrow", localTime(start), early.location].filter(Boolean).join(" · "), href: "/planner", at: 1 });
+  }
+
+  // Tomorrow's meals, against what is in the house and already on the list.
+  const planned = meals.data ?? [];
+  if (planned.length > 0) {
+    const [{ data: pantry }, { data: onList }] = await Promise.all([
+      supabase.from("pantry_items").select("item_key").eq("family_id", familyId),
+      supabase.from("buy_items").select("name").eq("family_id", familyId).eq("cleared", false).eq("checked", false),
+    ]);
+    const have = new Set((pantry ?? []).map((p) => p.item_key));
+    const listed = new Set((onList ?? []).map((b) => b.name.trim().toLowerCase()));
+    for (const m of planned) {
+      const missing = (m.meal_ingredients ?? []).filter((i) => !(i.item_key && have.has(i.item_key)) && !listed.has(i.ingredient_name.trim().toLowerCase()));
+      if (!m.dish || missing.length === 0) continue;
+      items.push({
+        id: `soon-meal-${m.id}`,
+        icon: "basket",
+        tint: "home",
+        title: `Tomorrow's ${m.dish}`,
+        meta: `Needs ${missing.length} thing${missing.length === 1 ? "" : "s"} not in the house or on the list`,
+        href: `/household?seg=meals&date=${tomorrow}`,
+        at: 1,
+      });
+    }
+  }
+
+  return items.sort((a, b) => (a.at ?? 9) - (b.at ?? 9)).slice(0, 6);
+}
