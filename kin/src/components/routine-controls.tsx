@@ -39,11 +39,16 @@ export function RoutineTick({
   currency: string;
 }) {
   const { pending, error, run } = useRoutineAction();
+  // Only a tick made just now celebrates. The chip is also what a chore done
+  // this morning looks like on every later visit, and a burst each time the
+  // page opens would stop meaning anything.
+  const [celebrate, setCelebrate] = useState(false);
 
   if (status) {
     return (
       <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
         <span
+          className={celebrate && status === "done" ? "kin-done-chip kin-celebrate" : "kin-done-chip"}
           style={{
             display: "inline-flex",
             alignItems: "center",
@@ -81,7 +86,13 @@ export function RoutineTick({
         className="btn btn-primary"
         style={{ minHeight: "2rem", fontSize: "0.8125rem", padding: "0 0.875rem", gap: "0.3125rem" }}
         disabled={pending}
-        onClick={() => run(() => logRoutineAction({ routineId, date, status: "done" }))}
+        onClick={() => {
+          setCelebrate(true);
+          // A short tick of haptic feedback where the phone offers it (Android);
+          // iOS Safari has no vibration API and simply skips this.
+          navigator.vibrate?.(12);
+          run(() => logRoutineAction({ routineId, date, status: "done" }));
+        }}
       >
         <Icon name="check" size={14} />
         Done

@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useId, useState, useTransition } from "react";
+import { useActionState, useId, useOptimistic, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { addBuyItemAction, toggleBuyItemAction, clearCheckedAction, updateBuyItemAction, removeBuyItemAction } from "@/lib/actions/household";
 import { postHubExpenseAction } from "@/lib/actions/wealth";
@@ -68,6 +68,11 @@ export function BuyList({
   // Which line's price is being set. One at a time, under its own row.
   const [pricing, setPricing] = useState<string | null>(null);
   const [, startTransition] = useTransition();
+  const [optimisticChecked, setOptimisticChecked] = useOptimistic(
+    new Map<string, boolean>(),
+    (prev, [id, value]: [string, boolean]) => new Map(prev).set(id, value),
+  );
+  const isChecked = (item: { id: string; checked: boolean }) => optimisticChecked.get(item.id) ?? item.checked;
   const [addState, addAction] = useActionState(addBuyItemAction, initialState);
   const [editing, setEditing] = useState<string | null>(null);
   const [adding, setAdding] = useState(false);
@@ -215,12 +220,20 @@ export function BuyList({
             {isOpen &&
               g.items.map((item) => (
                 <div key={item.id}>
-                <div style={{ display: "flex", gap: "0.6875rem", alignItems: "center", padding: "0.625rem 0", borderBottom: "1px solid color-mix(in srgb, var(--color-text) 10%, transparent)" }}>
+                <div className="kin-buy-row" data-checked={isChecked(item)} style={{ display: "flex", gap: "0.6875rem", alignItems: "center", padding: "0.625rem 0", borderBottom: "1px solid color-mix(in srgb, var(--color-text) 10%, transparent)" }}>
                   <button
                     type="button"
                     aria-label={item.name}
-                    aria-pressed={item.checked}
-                    onClick={() => startTransition(() => toggleBuyItemAction(item.id, !item.checked))}
+                    aria-pressed={isChecked(item)}
+                    className="kin-tick"
+                    onClick={() =>
+                      startTransition(async () => {
+                        // Ticked on screen the moment the thumb lands; the
+                        // server's answer replaces it when it comes back.
+                        setOptimisticChecked([item.id, !isChecked(item)]);
+                        await toggleBuyItemAction(item.id, !isChecked(item));
+                      })
+                    }
                     style={{
                       width: "1.5rem",
                       height: "1.5rem",
@@ -228,8 +241,8 @@ export function BuyList({
                       cursor: "pointer",
                       padding: 0,
                       borderRadius: 999,
-                      border: `1.5px solid ${item.checked ? "var(--color-accent)" : "var(--color-divider)"}`,
-                      background: item.checked ? "var(--color-accent)" : "transparent",
+                      border: `1.5px solid ${isChecked(item) ? "var(--color-accent)" : "var(--color-divider)"}`,
+                      background: isChecked(item) ? "var(--color-accent)" : "transparent",
                       display: "flex",
                       alignItems: "center",
                       justifyContent: "center",
@@ -237,7 +250,7 @@ export function BuyList({
                       fontSize: "0.875rem",
                     }}
                   >
-                    {item.checked ? "✓" : ""}
+                    {isChecked(item) ? "✓" : ""}
                   </button>
                   <button
                     type="button"
@@ -251,15 +264,15 @@ export function BuyList({
                       padding: 0,
                       cursor: "pointer",
                       fontSize: "0.875rem",
-                      color: item.checked ? "var(--color-neutral-500)" : "var(--color-text)",
-                      textDecoration: item.checked ? "line-through" : "none",
+                      color: isChecked(item) ? "var(--color-neutral-500)" : "var(--color-text)",
+                      transition: "color 220ms var(--ease-out)",
                     }}
                   >
                     {/* Name and quantity are one target: tapping the amount
                         is how anyone would expect to change the amount, and
                         it used to be dead text beside the button. */}
                     <span style={{ display: "flex", alignItems: "baseline", gap: "0.5rem" }}>
-                      <span style={{ flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{item.name}</span>
+                      <span className="kin-strike" data-on={isChecked(item)} style={{ flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{item.name}</span>
                       <span style={{ fontFamily: "var(--font-numeric)", fontSize: "0.8125rem", color: "var(--color-neutral-600)", flex: "none" }}>
                         {formatQuantity(item.quantity, item.unit)}
                       </span>
