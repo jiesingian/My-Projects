@@ -21,7 +21,7 @@ import { syncGoogleCalendarIfStale } from "@/lib/actions/calendar-sync";
 import { HubHeader } from "@/components/hub-header";
 import { PickButton } from "@/components/pick-button";
 import { Blueprint, Tag } from "@/components/ui";
-import { formatCurrency, shortNames, selfLabel } from "@/lib/format";
+import { formatAccounting, shortNames, selfLabel } from "@/lib/format";
 import { AddToJournalButton } from "@/components/add-to-journal-button";
 import { Icon } from "@/components/icons";
 import { CALENDAR_LEGEND, styleFor } from "@/lib/calendar-style";
@@ -964,7 +964,7 @@ async function EventsPane({ familyId, memberId, currency, who }: { familyId: str
             </div>
             <div style={{ font: "600 1.5rem/1.05 var(--font-heading)", margin: "6px 0 8px" }}>{upcomingTrip.title}</div>
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "0.5rem", fontSize: "0.8125rem" }}>
-              <Fact k="Budget" v={upcomingTrip.budget_amount ? formatCurrency(Number(upcomingTrip.budget_amount), currency) : "—"} />
+              <Fact k="Budget" v={upcomingTrip.budget_amount ? formatAccounting(Number(upcomingTrip.budget_amount), upcomingTrip.budget_currency ?? currency) : "—"} />
               <Fact k="Packed" v={`${upcomingTrip.packed_count} / ${upcomingTrip.packed_total}`} />
               <Fact
                 k="Travelling"

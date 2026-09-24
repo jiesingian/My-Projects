@@ -39,6 +39,17 @@ export function formatCurrency(amount: number, currency = "PHP"): string {
   return symbol + amount.toLocaleString("en-PH", { minimumFractionDigits: 0, maximumFractionDigits: 2 });
 }
 
+const CURRENCY_SYMBOLS: Record<string, string> = { PHP: "₱", USD: "$", EUR: "€" };
+
+/** An amount the way it was entered as a budget: grouped thousands and always
+ * two places, "₱12,345.00". formatCurrency above drops trailing zeros, which
+ * suits a balance glanced at in passing and is left as it is for that reason;
+ * a budget somebody typed to the centavo should read back the same way. */
+export function formatAccounting(amount: number, currency = "PHP"): string {
+  const symbol = CURRENCY_SYMBOLS[currency] ?? `${currency} `;
+  return symbol + amount.toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
 export function formatDate(date: string | Date, pattern = "DD/MM/YYYY"): string {
   // A plain date is read straight from its digits -- see plainDateParts. Only
   // a real instant (a timestamp, or a Date) goes through the local getters

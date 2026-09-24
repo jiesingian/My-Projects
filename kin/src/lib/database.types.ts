@@ -1193,6 +1193,7 @@ export type Database = {
         Row: {
           applies_to_whole_family: boolean
           budget_amount: number | null
+          budget_currency: string | null
           created_at: string
           created_by: string | null
           drive_file_id: string | null
@@ -1214,6 +1215,7 @@ export type Database = {
         Insert: {
           applies_to_whole_family?: boolean
           budget_amount?: number | null
+          budget_currency?: string | null
           created_at?: string
           created_by?: string | null
           drive_file_id?: string | null
@@ -1235,6 +1237,7 @@ export type Database = {
         Update: {
           applies_to_whole_family?: boolean
           budget_amount?: number | null
+          budget_currency?: string | null
           created_at?: string
           created_by?: string | null
           drive_file_id?: string | null
