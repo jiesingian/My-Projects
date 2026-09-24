@@ -83,7 +83,7 @@ export function AddPlannerForm({
 
 function ActivityForm({ members, defaultDate, editActivity, prefill }: { members: Tables<"members">[]; defaultDate?: string; editActivity?: EditActivity; prefill?: PlannerPrefill }) {
   const action = editActivity ? updateActivityAction.bind(null, editActivity.id) : createActivityAction;
-  const [state, formAction] = useActionState(action, initialState);
+  const [state, formAction, saving] = useActionState(action, initialState);
   const [wholeFamily, setWholeFamily] = useState(editActivity?.applies_to_whole_family ?? true);
   const [who, setWho] = useState<string[]>(editActivity?.who ?? []);
   const router = useRouter();
@@ -102,7 +102,16 @@ function ActivityForm({ members, defaultDate, editActivity, prefill }: { members
   const endTime = editActivity?.end_at ? familyClock(new Date(editActivity.end_at)) : undefined;
 
   return (
-    <form action={formAction}>
+    <form
+      action={formAction}
+      onSubmit={(e) => {
+        // The same reset EventForm steps around: a refused save -- an end time
+        // before the start -- used to clear the title, date, times and notes.
+        e.preventDefault();
+        const data = new FormData(e.currentTarget);
+        startTransition(() => formAction(data));
+      }}
+    >
       <input type="hidden" name="whole_family" value={wholeFamily ? "on" : ""} />
       {who.map((id) => (
         <input key={id} type="hidden" name="who" value={id} />
@@ -147,7 +156,7 @@ function ActivityForm({ members, defaultDate, editActivity, prefill }: { members
       </div>
       <Field label="Location"><input className="input" name="location" placeholder="Little Acorns, San Juan" maxLength={200} defaultValue={editActivity?.location ?? undefined} style={{ minHeight: "2.75rem" }} /></Field>
       <Field label="Notes"><textarea className="input" name="notes" maxLength={1000} defaultValue={editActivity?.notes ?? prefill?.notes} /></Field>
-      <SubmitButton style={{ minHeight: "2.875rem", fontSize: "0.875rem", letterSpacing: ".04em" }}>{editActivity ? "Save changes" : "Save to calendar"}</SubmitButton>
+      <SubmitButton pending={saving} style={{ minHeight: "2.875rem", fontSize: "0.875rem", letterSpacing: ".04em" }}>{editActivity ? "Save changes" : "Save to calendar"}</SubmitButton>
       {editActivity && (
         <button
           type="button"
