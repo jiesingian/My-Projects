@@ -46,13 +46,13 @@ export default async function AccountPage({ params }: { params: Promise<{ id: st
 
         <div style={{ display: "flex", gap: "0.5rem", marginBottom: "0.5rem" }}>
           <Link href="/wealth/transact?mode=in" className="btn btn-secondary" style={{ flex: 1, minHeight: "2.5rem", fontSize: "0.8125rem", display: "flex", alignItems: "center", justifyContent: "center" }}>
-            MONEY IN
+            Money in
           </Link>
           <Link href="/wealth/transact?mode=out" className="btn btn-secondary" style={{ flex: 1, minHeight: "2.5rem", fontSize: "0.8125rem", display: "flex", alignItems: "center", justifyContent: "center" }}>
-            MONEY OUT
+            Money out
           </Link>
           <Link href="/wealth/transact?mode=transfer" className="btn btn-secondary" style={{ flex: 1, minHeight: "2.5rem", fontSize: "0.8125rem", display: "flex", alignItems: "center", justifyContent: "center" }}>
-            TRANSFER
+            Transfer
           </Link>
         </div>
 
@@ -64,7 +64,7 @@ export default async function AccountPage({ params }: { params: Promise<{ id: st
             className="btn btn-primary btn-block"
             style={{ minHeight: "2.75rem", fontSize: "0.875rem", letterSpacing: ".04em", display: "flex", alignItems: "center", justifyContent: "center" }}
           >
-            OPEN {(account.institution ?? account.name).toUpperCase()}
+            Open {(account.institution ?? account.name).toUpperCase()}
           </a>
         )}
 
@@ -130,6 +130,6 @@ export default async function AccountPage({ params }: { params: Promise<{ id: st
 
 function SectionLabel({ children }: { children: React.ReactNode }) {
   return (
-    <div style={{ font: "600 0.8125rem/1 var(--font-heading)", letterSpacing: ".02em", color: "var(--color-neutral-600)", margin: "20px 0 8px" }}>{children}</div>
+    <div className="kin-eyebrow" style={{ margin: "20px 0 8px" }}>{children}</div>
   );
 }

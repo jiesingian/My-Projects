@@ -76,24 +76,24 @@ function PersonForm({
   return (
     <div style={{ marginTop: "0.5rem", marginBottom: "0.625rem" }}>
       <div className="field" style={{ marginBottom: "0.5rem" }}>
-        <label htmlFor={`${uid}-name`}>NAME</label>
+        <label htmlFor={`${uid}-name`}>Name</label>
         <input id={`${uid}-name`} aria-label="Name" className="input" value={fields.fullName} onChange={(e) => set("fullName", e.target.value)} style={{ minHeight: "2.5rem" }} disabled={busy} />
       </div>
       <div className="field" style={{ marginBottom: "0.5rem" }}>
-        <label htmlFor={`${uid}-dob`}>DATE OF BIRTH (OPTIONAL)</label>
+        <label htmlFor={`${uid}-dob`}>Date of birth (optional)</label>
         <input id={`${uid}-dob`} aria-label="Date of birth" className="input" type="date" value={fields.dob} onChange={(e) => set("dob", e.target.value)} style={{ minHeight: "2.5rem" }} disabled={busy} />
       </div>
       <div className="field" style={{ marginBottom: "0.5rem" }}>
-        <label htmlFor={`${uid}-notes`}>NOTES (OPTIONAL)</label>
+        <label htmlFor={`${uid}-notes`}>Notes (optional)</label>
         <input id={`${uid}-notes`} aria-label="Notes" className="input" placeholder="e.g. Emigrated in 1978" value={fields.notes} onChange={(e) => set("notes", e.target.value)} style={{ minHeight: "2.5rem" }} disabled={busy} />
       </div>
       {error && <p style={{ color: "var(--color-accent-700)", fontSize: "0.8125rem", margin: "0 0 8px" }}>{error}</p>}
       <div style={{ display: "flex", gap: "0.5rem" }}>
         <button type="button" className="btn btn-secondary" style={{ flex: 1, minHeight: "2.375rem", fontSize: "0.84375rem" }} disabled={busy} onClick={onCancel}>
-          CANCEL
+          Cancel
         </button>
         <button type="button" className="btn btn-primary" style={{ flex: 1, minHeight: "2.375rem", fontSize: "0.84375rem" }} disabled={busy} onClick={onSave}>
-          {busy ? "SAVING…" : saveLabel}
+          {busy ? "Saving…" : saveLabel}
         </button>
       </div>
     </div>
@@ -193,7 +193,7 @@ export function FamilyTreeEditor({ people, unaddedMembers }: { people: TreePerso
   if (!open) {
     return (
       <button type="button" className="btn btn-secondary btn-block" style={{ minHeight: "2.5rem", fontSize: "0.84375rem", letterSpacing: ".04em", marginTop: "0.875rem" }} onClick={() => setOpen(true)}>
-        EDIT THE TREE
+        Edit the tree
       </button>
     );
   }
@@ -218,22 +218,22 @@ export function FamilyTreeEditor({ people, unaddedMembers }: { people: TreePerso
         typeof mode === "object" && "editLinks" in mode && mode.editLinks === p.id ? (
           <div key={p.id} style={{ padding: "0.625rem 0", borderBottom: "1px solid var(--color-divider)" }}>
             <div style={{ font: "600 0.875rem/1.1 var(--font-heading)", marginBottom: "0.5rem" }}>{p.fullName}</div>
-            <LinkPicker label="FATHER" value={links.fatherId ?? ""} onChange={(v) => setLinks((l) => ({ ...l, fatherId: v || null }))} people={people} excludeId={p.id} disabled={busy} />
-            <LinkPicker label="MOTHER" value={links.motherId ?? ""} onChange={(v) => setLinks((l) => ({ ...l, motherId: v || null }))} people={people} excludeId={p.id} disabled={busy} />
-            <LinkPicker label="SPOUSE" value={links.spouseId ?? ""} onChange={(v) => setLinks((l) => ({ ...l, spouseId: v || null }))} people={people} excludeId={p.id} disabled={busy} />
+            <LinkPicker label="Father" value={links.fatherId ?? ""} onChange={(v) => setLinks((l) => ({ ...l, fatherId: v || null }))} people={people} excludeId={p.id} disabled={busy} />
+            <LinkPicker label="Mother" value={links.motherId ?? ""} onChange={(v) => setLinks((l) => ({ ...l, motherId: v || null }))} people={people} excludeId={p.id} disabled={busy} />
+            <LinkPicker label="Spouse" value={links.spouseId ?? ""} onChange={(v) => setLinks((l) => ({ ...l, spouseId: v || null }))} people={people} excludeId={p.id} disabled={busy} />
             {error && <p style={{ color: "var(--color-accent-700)", fontSize: "0.8125rem", margin: "0 0 8px" }}>{error}</p>}
             <div style={{ display: "flex", gap: "0.5rem" }}>
               <button type="button" className="btn btn-secondary" style={{ flex: 1, minHeight: "2.375rem", fontSize: "0.84375rem" }} disabled={busy} onClick={cancel}>
-                CANCEL
+                Cancel
               </button>
               <button type="button" className="btn btn-primary" style={{ flex: 1, minHeight: "2.375rem", fontSize: "0.84375rem" }} disabled={busy} onClick={() => saveLinks(p.id)}>
-                {busy ? "SAVING…" : "SAVE LINKS"}
+                {busy ? "Saving…" : "Save links"}
               </button>
             </div>
           </div>
         ) : typeof mode === "object" && "editName" in mode && mode.editName === p.id ? (
           <div key={p.id} style={{ borderBottom: "1px solid var(--color-divider)" }}>
-            <PersonForm fields={fields} set={set} busy={busy} error={error} onCancel={cancel} onSave={saveRelative} saveLabel="SAVE" />
+            <PersonForm fields={fields} set={set} busy={busy} error={error} onCancel={cancel} onSave={saveRelative} saveLabel="Save" />
           </div>
         ) : (
           <div key={p.id} style={{ display: "flex", alignItems: "center", gap: "0.625rem", padding: "0.5625rem 0", borderBottom: "1px solid var(--color-divider)" }}>
@@ -250,22 +250,22 @@ export function FamilyTreeEditor({ people, unaddedMembers }: { people: TreePerso
               </span>
             </span>
             <button type="button" onClick={() => startEditLinks(p)} style={{ all: "unset", cursor: "pointer", fontSize: "0.78125rem", color: "var(--color-accent-700)" }}>
-              LINKS
+              Links
             </button>
             {!p.memberId && (
               <button type="button" onClick={() => startEditName(p)} style={{ all: "unset", cursor: "pointer", fontSize: "0.78125rem", color: "var(--color-accent-700)" }}>
-                EDIT
+                Edit
               </button>
             )}
             <button type="button" onClick={() => remove(p)} style={{ all: "unset", cursor: "pointer", fontSize: "0.78125rem", color: "var(--color-accent-700)" }}>
-              REMOVE
+              Remove
             </button>
           </div>
         ),
       )}
 
       {mode === "add-relative" ? (
-        <PersonForm fields={fields} set={set} busy={busy} error={error} onCancel={cancel} onSave={saveRelative} saveLabel="ADD RELATIVE" />
+        <PersonForm fields={fields} set={set} busy={busy} error={error} onCancel={cancel} onSave={saveRelative} saveLabel="Add relative" />
       ) : (
         <div style={{ display: "flex", gap: "0.5rem", marginTop: "0.75rem", flexWrap: "wrap" }}>
           <button type="button" className="btn btn-secondary" style={{ flex: 1, minHeight: "2.375rem", fontSize: "0.8125rem" }} onClick={startAddRelative}>

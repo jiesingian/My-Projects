@@ -193,7 +193,7 @@ export default async function MemberDetailPage({
                   <Tag variant={s.status === "due" ? "accent" : "neutral"}>{s.status.replace("_", " ").toUpperCase()}</Tag>
                 </div>
               ))}
-              <div style={{ font: "600 0.8125rem/1 var(--font-heading)", letterSpacing: ".02em", color: "var(--color-neutral-600)", margin: "20px 0 6px" }}>
+              <div className="kin-eyebrow" style={{ margin: "20px 0 6px" }}>
                 APPOINTMENTS
               </div>
               {appointments.map((a) => (
@@ -211,7 +211,7 @@ export default async function MemberDetailPage({
                       sourceTable="health_appointments"
                       sourceId={a.id}
                       suggested={a.cost ? Number(a.cost) : undefined}
-                      label="LOG COST"
+                      label="Log cost"
                     />
                   </div>
                 </div>
@@ -330,7 +330,7 @@ function BarChart({
   if (series.length === 0) {
     return (
       <>
-        <div style={{ font: "600 0.8125rem/1 var(--font-heading)", letterSpacing: ".02em", color: "var(--color-neutral-600)", marginBottom: "0.5rem" }}>{title}</div>
+        <div className="kin-eyebrow" style={{ marginBottom: "0.5rem" }}>{title}</div>
         <EmptyNote text="No readings yet — once there are a few, they chart here." />
       </>
     );
@@ -338,7 +338,7 @@ function BarChart({
   const latest = series[series.length - 1];
   return (
     <>
-      <div style={{ font: "600 0.8125rem/1 var(--font-heading)", letterSpacing: ".02em", color: "var(--color-neutral-600)", marginBottom: "0.5rem" }}>{title}</div>
+      <div className="kin-eyebrow" style={{ marginBottom: "0.5rem" }}>{title}</div>
       <Blueprint style={{ padding: "0.8125rem", marginBottom: "1rem" }}>
         <div style={{ display: "flex", alignItems: "baseline", gap: "0.5rem", marginBottom: "0.75rem" }}>
           <span style={{ font: "600 1.875rem/1 var(--font-heading)" }}>

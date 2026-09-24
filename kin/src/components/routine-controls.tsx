@@ -4,6 +4,7 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { logRoutineAction, clearRoutineLogAction, setRoutinePausedAction, deleteRoutineAction } from "@/lib/actions/routines";
 import { Icon } from "@/components/icons";
+import { formatCurrency } from "@/lib/format";
 import { familyDay, daysBetween } from "@/lib/time";
 
 function useRoutineAction() {
@@ -108,8 +109,7 @@ export function RoutineTick({
       </button>
       {cost ? (
         <span style={{ fontSize: "0.78125rem", color: "var(--color-neutral-700)" }}>
-          posts {currency === "PHP" ? "₱" : `${currency} `}
-          {cost.toLocaleString("en-PH")}
+          posts {formatCurrency(cost, currency)}
         </span>
       ) : null}
       {error && <span style={{ fontSize: "0.78125rem", color: "var(--color-neutral-700)" }}>{error}</span>}
@@ -323,7 +323,7 @@ export function RoutineOccurrences({
         {picking && upcoming.includes(chosen) && (
           <div style={{ fontSize: "0.78125rem", color: "var(--color-neutral-700)", marginTop: "0.375rem" }}>
             Marking a day ahead of time is fine — it counts on {readableDate(chosen)}
-            {cost ? `, and posts ${currency === "PHP" ? "₱" : `${currency} `}${cost.toLocaleString("en-PH")}` : ""}.
+            {cost ? `, and posts ${formatCurrency(cost, currency)}` : ""}.
           </div>
         )}
         {error && <div style={{ fontSize: "0.78125rem", color: "var(--cal-occasion)", marginTop: "0.375rem" }}>{error}</div>}

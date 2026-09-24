@@ -65,7 +65,7 @@ async function openAddAccount(page: import("@playwright/test").Page) {
 test("TEST is offered only when there is something to test", async ({ page }) => {
   await openAddAccount(page);
   const field = page.getByLabel("LINK APP");
-  const testButton = page.getByRole("button", { name: /^TEST$/ });
+  const testButton = page.getByRole("button", { name: /^TEST$/i });
 
   await expect(testButton, "an empty field has nothing to open").toBeDisabled();
 
@@ -99,7 +99,7 @@ test("choosing a known bank resolves LINK APP without anybody typing it", async 
   // GCash is the one known app with a scheme of its own, verified against a
   // vendor's documentation rather than guessed at.
   await expect(field).toHaveValue("gcash://");
-  await expect(page.getByRole("button", { name: /^TEST$/ })).toBeEnabled();
+  await expect(page.getByRole("button", { name: /^TEST$/i })).toBeEnabled();
 });
 
 test("the dropdown offers only the apps that match the account type", async ({ page }) => {

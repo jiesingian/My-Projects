@@ -66,7 +66,7 @@ export function RoleEditor({ memberId, fullName, role }: { memberId: string; ful
             }
           }}
         >
-          {busy ? "…" : "SAVE"}
+          {busy ? "…" : "Save"}
         </button>
       </div>
       {/* Said here rather than in a confirm box, because it is the whole point

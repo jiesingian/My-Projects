@@ -18,7 +18,7 @@ export function DeleteHouseholdButton({ householdName }: { householdName: string
         style={{ minHeight: "2.875rem", fontSize: "0.84375rem", letterSpacing: ".04em", color: "var(--color-accent-700)", borderColor: "var(--color-accent-700)" }}
         onClick={() => setOpen(true)}
       >
-        DELETE HOUSEHOLD
+        Delete household
       </button>
     );
   }
@@ -57,7 +57,7 @@ export function DeleteHouseholdButton({ householdName }: { householdName: string
             setError(null);
           }}
         >
-          CANCEL
+          Cancel
         </button>
         <button
           type="button"
@@ -71,7 +71,7 @@ export function DeleteHouseholdButton({ householdName }: { householdName: string
             if (result?.error) setError(result.error);
           }}
         >
-          {busy ? "DELETING…" : "PERMANENTLY DELETE"}
+          {busy ? "Deleting…" : "Permanently delete"}
         </button>
       </div>
     </div>

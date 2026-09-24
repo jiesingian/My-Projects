@@ -32,7 +32,7 @@ export function MilestoneControls({
     return (
       <div style={{ display: "flex", gap: "0.625rem", marginTop: "0.25rem" }}>
         <button type="button" style={{ fontSize: "0.78125rem", fontWeight: 600, color: "var(--color-accent-700)", background: "none", border: "none", padding: 0, cursor: "pointer" }} onClick={() => setOpen(true)}>
-          EDIT
+          Edit
         </button>
         <button
           type="button"
@@ -47,7 +47,7 @@ export function MilestoneControls({
           }}
           title={shared ? "On the family feed, where linked households can see it" : "Put it on the family feed for linked households to see"}
         >
-          {shared ? "SHARED · UNSHARE" : "SHARE TO FEED"}
+          {shared ? "Shared · unshare" : "Share to feed"}
         </button>
         <DeleteButton label="Delete milestone" confirmText="Delete this milestone? This can't be undone." onDelete={() => deleteMilestoneAction(milestoneId)} style={{ padding: 0 }} />
       </div>
@@ -71,7 +71,7 @@ export function MilestoneControls({
           disabled={busy}
           onClick={() => { setOpen(false); setMilestoneTitle(title); setMilestoneDate(date); setError(null); }}
         >
-          CANCEL
+          Cancel
         </button>
         <button
           type="button"
@@ -87,7 +87,7 @@ export function MilestoneControls({
             router.refresh();
           }}
         >
-          {busy ? "SAVING…" : "SAVE"}
+          {busy ? "Saving…" : "Save"}
         </button>
       </div>
     </div>

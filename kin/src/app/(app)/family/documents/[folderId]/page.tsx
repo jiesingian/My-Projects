@@ -65,7 +65,7 @@ export default async function DocFolderPage({
                   {entry.note && <div style={{ fontSize: "0.84375rem", color: "var(--color-neutral-700)", marginTop: "0.25rem" }}>{entry.note}</div>}
                   <div style={{ display: "flex", gap: "0.625rem", marginTop: "0.375rem" }}>
                     <Link href={`/family/documents/${folder.id}/${entry.id}/edit`} style={{ fontSize: "0.78125rem", fontWeight: 600, color: "var(--color-accent-700)" }}>
-                      EDIT
+                      Edit
                     </Link>
                     <DocEntryDeleteButton entryId={entry.id} folderId={folder.id} hasFiles={(entry.doc_files ?? []).length > 0} />
                   </div>

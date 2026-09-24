@@ -42,7 +42,7 @@ export function RemoveMemberButton({ memberId, fullName, variant = "inline" }: {
         router.refresh();
       }}
     >
-      {busy ? "…" : variant === "block" ? "REMOVE FROM HOUSEHOLD" : "Remove"}
+      {busy ? "…" : variant === "block" ? "Remove from household" : "Remove"}
     </button>
   );
 }
@@ -68,7 +68,7 @@ export function ReinstateMemberButton({ memberId }: { memberId: string }) {
         router.refresh();
       }}
     >
-      {busy ? "…" : "REINSTATE"}
+      {busy ? "…" : "Reinstate"}
     </button>
   );
 }

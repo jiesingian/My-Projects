@@ -154,7 +154,7 @@ export function FamilyBackgroundCropUpload({ onDone }: { onDone: () => void }) {
   return (
     <>
       <button type="button" className="btn btn-secondary" style={{ minHeight: "2rem", fontSize: "0.8125rem", padding: "0 0.75rem", marginTop: "0.5rem" }} onClick={open}>
-        ADD PHOTO
+        Add photo
       </button>
       <input ref={inputRef} aria-label="Choose a household photo" type="file" accept="image/*" style={{ display: "none" }} onChange={onFileChange} />
 
@@ -205,10 +205,10 @@ export function FamilyBackgroundCropUpload({ onDone }: { onDone: () => void }) {
           {error && <p style={{ color: "var(--color-accent-400)", fontSize: "0.8125rem" }}>{error}</p>}
           <div style={{ display: "flex", gap: "0.625rem" }}>
             <button type="button" className="btn btn-secondary" style={{ minHeight: "2.5rem", fontSize: "0.84375rem", padding: "0 1.25rem" }} disabled={busy} onClick={cancel}>
-              CANCEL
+              Cancel
             </button>
             <button type="button" className="btn btn-primary" style={{ minHeight: "2.5rem", fontSize: "0.84375rem", padding: "0 1.25rem" }} disabled={busy} onClick={save}>
-              {busy ? "SAVING…" : "SAVE"}
+              {busy ? "Saving…" : "Save"}
             </button>
           </div>
         </div>

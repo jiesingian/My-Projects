@@ -18,7 +18,7 @@ export function AccountEditForm({ account }: { account: Tables<"accounts"> }) {
   if (!open) {
     return (
       <button type="button" className="btn btn-secondary btn-block" style={{ minHeight: "2.5rem", fontSize: "0.84375rem", marginTop: "0.875rem" }} onClick={() => setOpen(true)}>
-        EDIT ACCOUNT
+        Edit account
       </button>
     );
   }
@@ -26,10 +26,10 @@ export function AccountEditForm({ account }: { account: Tables<"accounts"> }) {
   return (
     <form action={formAction} style={{ marginTop: "1rem", borderTop: "1px solid var(--color-divider)", paddingTop: "1rem" }}>
       <ErrorText message={state.error} />
-      <Field label="ACCOUNT NAME">
+      <Field label="Account name">
         <input className="input" name="name" required defaultValue={account.name} style={{ minHeight: "2.625rem" }} />
       </Field>
-      <Field label="TYPE">
+      <Field label="Type">
         <select
           className="input"
           name="account_type"
@@ -53,15 +53,15 @@ export function AccountEditForm({ account }: { account: Tables<"accounts"> }) {
           defaultPlayStoreUrl={account.play_store_url ?? ""}
         />
       </div>
-      <Field label="NOTE">
+      <Field label="Note">
         <input className="input" name="sub_note" defaultValue={account.sub_note ?? ""} style={{ minHeight: "2.625rem" }} />
       </Field>
       <div style={{ display: "flex", gap: "0.625rem" }}>
         <SubmitButton className="btn btn-primary" style={{ flex: 1, minHeight: "2.625rem", fontSize: "0.875rem" }}>
-          SAVE
+          Save
         </SubmitButton>
         <button type="button" className="btn btn-secondary" style={{ flex: 1, minHeight: "2.625rem", fontSize: "0.875rem" }} onClick={() => setOpen(false)}>
-          CANCEL
+          Cancel
         </button>
       </div>
     </form>

@@ -254,7 +254,7 @@ export function DocumentsLockSettings({
             required
             style={{ flex: 1, minWidth: 110 }}
           />
-          <SubmitButton style={{ minHeight: "2.5rem", fontSize: "0.8125rem", padding: "0 0.75rem" }}>SAVE</SubmitButton>
+          <SubmitButton style={{ minHeight: "2.5rem", fontSize: "0.8125rem", padding: "0 0.75rem" }}>Save</SubmitButton>
         </div>
       </form>
 

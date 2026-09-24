@@ -28,7 +28,7 @@ export function AddMeToTreeButton({ memberId }: { memberId: string }) {
           router.refresh();
         }}
       >
-        {busy ? "ADDING…" : "+ ADD ME TO THE TREE"}
+        {busy ? "Adding…" : "+ ADD ME TO THE TREE"}
       </button>
       {error && <p style={{ color: "var(--color-accent-700)", fontSize: "0.8125rem", margin: "8px 0 0" }}>{error}</p>}
     </div>

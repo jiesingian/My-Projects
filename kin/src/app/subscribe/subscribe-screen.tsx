@@ -89,7 +89,7 @@ export function SubscribeScreen({
           <form action={formAction}>
             <ErrorText message={state.error} />
             <div className="field" style={{ marginBottom: "0.875rem" }}>
-              <label htmlFor={`${uid}-code`}>ACCESS CODE</label>
+              <label htmlFor={`${uid}-code`}>Access code</label>
               <input
                 id={`${uid}-code`}
                 aria-label="Access code"
@@ -103,7 +103,7 @@ export function SubscribeScreen({
               />
             </div>
             <SubmitButton style={{ minHeight: "2.875rem", fontSize: "0.9375rem", letterSpacing: ".04em" }}>
-              USE THIS CODE
+              Use this code
             </SubmitButton>
           </form>
         </>

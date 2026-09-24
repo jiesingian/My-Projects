@@ -142,7 +142,7 @@ test.describe("adding things", () => {
   test("an account can be added, then archived", async ({ page }) => {
     const name = `${RUN} test wallet`;
     await page.goto("/wealth?seg=accounts", { waitUntil: "networkidle" });
-    await page.getByRole("button", { name: "+ ADD ACCOUNT" }).click();
+    await page.getByRole("button", { name: /^\+ ADD ACCOUNT$/i }).click();
     await fill(page, "name", name);
     await submit(page);
     await page.waitForTimeout(1000);
@@ -156,7 +156,7 @@ test.describe("adding things", () => {
     const href = await row.getAttribute("href");
     const accountId = href?.split("/").pop();
 
-    await row.getByRole("button", { name: "ARCHIVE" }).click();
+    await row.getByRole("button", { name: /^ARCHIVE$/i }).click();
     // Confirmation is the shared ConfirmSheet now, not a native dialog.
     await page.getByRole("alertdialog").getByRole("button", { name: /archive/i }).click();
     await page.waitForTimeout(1000);

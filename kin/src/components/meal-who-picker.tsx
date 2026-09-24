@@ -20,9 +20,7 @@ export function MealWhoPicker({
 
   return (
     <span style={{ display: "inline-flex", alignItems: "center", gap: "0.375rem" }}>
-      <label htmlFor={`${uid}-who`} style={{ fontSize: "0.71875rem", letterSpacing: ".05em", color: "var(--color-neutral-500)" }}>
-        SHOWING
-      </label>
+      <label htmlFor={`${uid}-who`} style={{ fontSize: "0.71875rem", letterSpacing: ".05em", color: "var(--color-neutral-500)" }}>Showing</label>
       <select
         id={`${uid}-who`}
         className="input"

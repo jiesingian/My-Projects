@@ -61,7 +61,7 @@ export function GalleryGrid({ media }: { media: MediaItem[] }) {
     <>
       <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: "0.5rem" }}>
         <button type="button" className="btn btn-secondary" style={{ fontSize: "0.8125rem", minHeight: "1.875rem", padding: "0 0.75rem" }} onClick={() => (selectMode ? exitSelectMode() : setSelectMode(true))}>
-          {selectMode ? "CANCEL" : "SELECT"}
+          {selectMode ? "Cancel" : "Select"}
         </button>
       </div>
 
@@ -117,7 +117,7 @@ export function GalleryGrid({ media }: { media: MediaItem[] }) {
         >
           <span style={{ fontSize: "0.84375rem", flex: 1, color: "var(--color-neutral-700)" }}>{selected.size} selected</span>
           <button type="button" className="btn btn-primary" style={{ minHeight: "2.25rem", fontSize: "0.84375rem", padding: "0 1rem" }} disabled={selected.size === 0 || busy} onClick={deleteSelected}>
-            {busy ? "DELETING…" : "DELETE"}
+            {busy ? "Deleting…" : "Delete"}
           </button>
         </div>
       )}

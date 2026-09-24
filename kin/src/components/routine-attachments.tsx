@@ -72,7 +72,7 @@ export function RoutineAttachments({ routineId, initial }: { routineId: string; 
 
   return (
     <div className="field" style={{ marginBottom: "1rem" }}>
-      <label htmlFor={`${uid}-file`}>FILES</label>
+      <label htmlFor={`${uid}-file`}>Files</label>
       {files.length > 0 && (
         <div style={{ marginBottom: "0.5rem" }}>
           {files.map((f) => (
@@ -110,7 +110,7 @@ export function RoutineAttachments({ routineId, initial }: { routineId: string; 
         }}
       />
       <button type="button" className="btn btn-secondary" disabled={busy} onClick={() => input.current?.click()} style={{ minHeight: "2.5rem", fontSize: "0.8125rem" }}>
-        {busy ? "UPLOADING…" : "+ ADD FILE"}
+        {busy ? "Uploading…" : "+ ADD FILE"}
       </button>
       {error && (
         <p role="alert" style={{ fontSize: "0.8125rem", color: "var(--cal-occasion)", marginTop: "0.375rem" }}>

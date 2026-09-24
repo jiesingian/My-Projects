@@ -41,7 +41,7 @@ export function TransferOrganizerRole({ candidates }: { candidates: { id: string
             if (!result.error) router.refresh();
           }}
         >
-          {busy ? "…" : "TRANSFER"}
+          {busy ? "…" : "Transfer"}
         </button>
       </div>
       {error && <p style={{ color: "var(--color-accent-700)", fontSize: "0.8125rem" }}>{error}</p>}

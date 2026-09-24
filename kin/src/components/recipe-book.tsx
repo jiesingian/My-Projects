@@ -422,7 +422,7 @@ function RecipeEditor({ recipe, known, onDone }: { recipe: EditableRecipe | null
       )}
 
       <div className="field" style={{ marginBottom: "0.75rem" }}>
-        <label htmlFor={`${uid}-name`}>NAME</label>
+        <label htmlFor={`${uid}-name`}>Name</label>
         <input id={`${uid}-name`} aria-label="Name" className="input" value={name} onChange={(e) => setName(e.target.value)} placeholder="Chicken adobo" maxLength={150} style={{ minHeight: "2.75rem" }} />
       </div>
 
@@ -458,11 +458,11 @@ function RecipeEditor({ recipe, known, onDone }: { recipe: EditableRecipe | null
 
       <div style={{ display: "flex", gap: "0.625rem", marginBottom: "0.75rem" }}>
         <div className="field" style={{ flex: 1 }}>
-          <label htmlFor={`${uid}-serves`}>SERVES</label>
+          <label htmlFor={`${uid}-serves`}>Serves</label>
           <input id={`${uid}-serves`} aria-label="Serves" className="input" type="number" min="1" max="30" value={serves} onChange={(e) => setServes(e.target.value)} style={{ minHeight: "2.75rem" }} />
         </div>
         <div className="field" style={{ flex: 1 }}>
-          <label htmlFor={`${uid}-minutes`}>MINUTES</label>
+          <label htmlFor={`${uid}-minutes`}>Minutes</label>
           <input id={`${uid}-minutes`} aria-label="Minutes" className="input" type="number" min="0" value={minutes} onChange={(e) => setMinutes(e.target.value)} style={{ minHeight: "2.75rem" }} />
         </div>
       </div>
@@ -524,7 +524,7 @@ function RecipeEditor({ recipe, known, onDone }: { recipe: EditableRecipe | null
       </button>
 
       <div className="field" style={{ marginBottom: "0.875rem" }}>
-        <label htmlFor={`${uid}-steps`}>HOW TO COOK IT — ONE STEP PER LINE</label>
+        <label htmlFor={`${uid}-steps`}>How to cook it — one step per line</label>
         <textarea id={`${uid}-steps`} aria-label="How To Cook It — One Step Per Line" className="input" value={steps} onChange={(e) => setSteps(e.target.value)} maxLength={8000} rows={5} />
       </div>
 

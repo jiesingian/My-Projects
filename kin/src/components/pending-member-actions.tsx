@@ -48,10 +48,10 @@ export function PendingMemberActions({ memberId, fullName }: { memberId: string;
         <option value="parent">Parent</option>
       </select>
       <button type="button" className="btn btn-primary" style={{ minHeight: "2.125rem", fontSize: "0.8125rem", padding: "0 0.75rem" }} disabled={!!busy} onClick={() => run("approve")}>
-        {busy === "approve" ? "…" : "APPROVE"}
+        {busy === "approve" ? "…" : "Approve"}
       </button>
       <button type="button" className="btn btn-secondary" style={{ minHeight: "2.125rem", fontSize: "0.8125rem", padding: "0 0.75rem" }} disabled={!!busy} onClick={() => run("reject")}>
-        {busy === "reject" ? "…" : "REJECT"}
+        {busy === "reject" ? "…" : "Reject"}
       </button>
     </div>
   );

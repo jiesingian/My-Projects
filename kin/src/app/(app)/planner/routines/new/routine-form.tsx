@@ -194,12 +194,12 @@ export function RoutineForm({
         <form action={formAction} ref={formRef}>
 
           <FieldBlock name="title" invalid={bad("title")} style={{ marginBottom: "0.875rem" }}>
-            <label htmlFor={`${uid}-title`}>NAME</label>
+            <label htmlFor={`${uid}-title`}>Name</label>
             <input id={`${uid}-title`} aria-label="Name" className="input" name="title" required maxLength={150} value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Grocery run" style={{ minHeight: "2.75rem" }} />
           </FieldBlock>
 
           <div className="field" style={{ marginBottom: "0.875rem" }}>
-            <label htmlFor={`${uid}-kind`}>KIND</label>
+            <label htmlFor={`${uid}-kind`}>Kind</label>
             <select id={`${uid}-kind`} aria-label="Kind" className="input" name="kind" value={kind} onChange={(e) => setKind(e.target.value as RoutineKind)} style={{ minHeight: "2.75rem" }}>
               {ROUTINE_KINDS.map((k) => (
                 <option key={k} value={k}>
@@ -210,7 +210,7 @@ export function RoutineForm({
           </div>
 
           <div className="field" style={{ marginBottom: "0.625rem" }}>
-            <label>REPEATS</label>
+            <label>Repeats</label>
             <div className="seg" style={{ marginTop: 0 }}>
               {["daily", "weekly", "monthly"].map((f) => (
                 <button key={f} type="button" data-active={freq === f} onClick={() => setFreq(f)}>
@@ -257,7 +257,7 @@ export function RoutineForm({
 
           {freq === "monthly" && (
             <FieldBlock name="bymonthday" invalid={bad("bymonthday")} style={{ marginBottom: "0.875rem" }}>
-              <label htmlFor={`${uid}-bymonthday`}>DAY OF THE MONTH</label>
+              <label htmlFor={`${uid}-bymonthday`}>Day of the month</label>
               <input id={`${uid}-bymonthday`} aria-label="Day Of The Month" className="input" type="number" name="bymonthday" min={1} max={31} defaultValue={edit?.bymonthday ?? 1} style={{ minHeight: "2.75rem" }} />
               <span style={{ fontSize: "0.78125rem", color: "var(--color-neutral-600)" }}>A day past the end of a short month falls on its last day.</span>
             </FieldBlock>
@@ -265,7 +265,7 @@ export function RoutineForm({
 
           <div style={{ display: "flex", gap: "0.75rem", marginBottom: "0.875rem" }}>
             <div className="field" style={{ flex: 1 }}>
-              <label htmlFor={`${uid}-repeat-interval`}>EVERY</label>
+              <label htmlFor={`${uid}-repeat-interval`}>Every</label>
               <select id={`${uid}-repeat-interval`} aria-label="Every" className="input" name="repeat_interval" defaultValue={edit?.repeat_interval ?? 1} style={{ minHeight: "2.75rem" }}>
                 {[1, 2, 3, 4, 6, 12].map((n) => (
                   <option key={n} value={n}>
@@ -275,7 +275,7 @@ export function RoutineForm({
               </select>
             </div>
             <FieldBlock name="time_of_day" invalid={bad("time_of_day")} style={{ flex: 1 }}>
-              <label htmlFor={`${uid}-time`}>TIME</label>
+              <label htmlFor={`${uid}-time`}>Time</label>
               <input id={`${uid}-time`} aria-label="Time" className="input" type="time" name="time_of_day" value={time} onChange={(e) => setTime(e.target.value)} style={{ minHeight: "2.75rem" }} />
             </FieldBlock>
           </div>
@@ -288,7 +288,7 @@ export function RoutineForm({
               both assume an hour. */}
           {time && (
             <FieldBlock name="duration_minutes" invalid={bad("duration_minutes")} style={{ marginBottom: "0.875rem" }}>
-              <label htmlFor={`${uid}-duration`}>HOW LONG (OPTIONAL)</label>
+              <label htmlFor={`${uid}-duration`}>How long (optional)</label>
               <input
                 id={`${uid}-duration`}
                 aria-label="How long (Optional)"
@@ -317,17 +317,17 @@ export function RoutineForm({
 
           <div style={{ display: "flex", gap: "0.75rem", marginBottom: "0.875rem" }}>
             <FieldBlock name="start_date" invalid={bad("start_date")} style={{ flex: 1 }}>
-              <label htmlFor={`${uid}-start-date`}>STARTS</label>
+              <label htmlFor={`${uid}-start-date`}>Starts</label>
               <DateInput id={`${uid}-start-date`} aria-label="Starts" className="input" name="start_date" required defaultValue={edit?.start_date ?? today} style={{ minHeight: "2.75rem" }} />
             </FieldBlock>
             <FieldBlock name="end_date" invalid={bad("end_date")} style={{ flex: 1 }}>
-              <label htmlFor={`${uid}-end-date`}>ENDS (OPTIONAL)</label>
+              <label htmlFor={`${uid}-end-date`}>Ends (optional)</label>
               <DateInput id={`${uid}-end-date`} aria-label="Ends (Optional)" className="input" name="end_date" defaultValue={edit?.end_date ?? undefined} style={{ minHeight: "2.75rem" }} />
             </FieldBlock>
           </div>
 
           <div className="field" style={{ marginBottom: "0.875rem" }}>
-            <label htmlFor={`${uid}-reminder`}>REMIND</label>
+            <label htmlFor={`${uid}-reminder`}>Remind</label>
             <select id={`${uid}-reminder`} aria-label="Remind" className="input" name="reminder_minutes" value={reminder} onChange={(e) => setReminder(e.target.value)} style={{ minHeight: "2.75rem" }}>
               {REMINDERS.map((r) => (
                 <option key={r.value} value={r.value}>
@@ -342,7 +342,7 @@ export function RoutineForm({
           </div>
 
           <div className="field" style={{ marginBottom: "0.875rem" }}>
-            <label htmlFor={`${uid}-location`}>WHERE (OPTIONAL)</label>
+            <label htmlFor={`${uid}-location`}>Where (optional)</label>
             <input id={`${uid}-location`} aria-label="Where (Optional)" className="input" name="location" maxLength={200} defaultValue={edit?.location ?? undefined} placeholder="SM Marikina" style={{ minHeight: "2.75rem" }} />
           </div>
 
@@ -387,7 +387,7 @@ export function RoutineForm({
               achievement, like taking medication. */}
           <div style={{ fontSize: "0.8125rem", color: "var(--color-neutral-700)", margin: "16px 0 6px" }}>What it is worth</div>
           <FieldBlock name="points" invalid={bad("points")} style={{ marginBottom: "0.375rem" }}>
-            <label htmlFor={`${uid}-points`}>POINTS</label>
+            <label htmlFor={`${uid}-points`}>Points</label>
             <input
               id={`${uid}-points`}
               aria-label="Points"
@@ -408,11 +408,11 @@ export function RoutineForm({
           <div style={{ fontSize: "0.8125rem", color: "var(--color-neutral-700)", margin: "16px 0 6px" }}>What it usually costs (optional)</div>
           <div style={{ display: "flex", gap: "0.75rem", marginBottom: "0.375rem" }}>
             <FieldBlock name="expected_cost" invalid={bad("expected_cost")} style={{ flex: 1 }}>
-              <label htmlFor={`${uid}-expected-cost`}>AMOUNT</label>
+              <label htmlFor={`${uid}-expected-cost`}>Amount</label>
               <input id={`${uid}-expected-cost`} aria-label="Amount" className="input" type="number" name="expected_cost" step="0.01" min="0" value={cost} onChange={(e) => setCost(e.target.value)} style={{ minHeight: "2.75rem" }} />
             </FieldBlock>
             <FieldBlock name="cost_account_id" invalid={bad("cost_account_id")} style={{ flex: 1.3 }}>
-              <label htmlFor={`${uid}-cost-account`}>FROM ACCOUNT</label>
+              <label htmlFor={`${uid}-cost-account`}>From account</label>
               <select id={`${uid}-cost-account`} aria-label="From Account" className="input" name="cost_account_id" defaultValue={edit?.cost_account_id ?? ""} style={{ minHeight: "2.75rem" }}>
                 <option value="">—</option>
                 {accounts.map((a) => (
@@ -431,7 +431,7 @@ export function RoutineForm({
           </p>
 
           <div className="field" style={{ marginBottom: "1rem" }}>
-            <label htmlFor={`${uid}-notes`}>NOTES</label>
+            <label htmlFor={`${uid}-notes`}>Notes</label>
             <textarea id={`${uid}-notes`} aria-label="Notes" className="input" name="notes" maxLength={1000} defaultValue={edit?.notes ?? undefined} />
           </div>
 
@@ -460,7 +460,7 @@ export function RoutineForm({
             </p>
           )}
 
-          <SubmitButton>{edit ? "SAVE TASK" : "ADD TASK"}</SubmitButton>
+          <SubmitButton>{edit ? "Save task" : "Add task"}</SubmitButton>
         </form>
       </div>
     </div>

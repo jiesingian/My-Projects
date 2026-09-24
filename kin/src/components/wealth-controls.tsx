@@ -244,7 +244,7 @@ export function AppLinksField({
       </div>
 
       <div className="field" style={{ marginBottom: "0.625rem" }}>
-        <label htmlFor={appId}>LINK APP</label>
+        <label htmlFor={appId}>Link app</label>
         <div style={{ display: "flex", gap: "0.5rem" }}>
           <input
             id={appId}
@@ -265,7 +265,7 @@ export function AppLinksField({
             style={{ minHeight: "2.625rem", fontSize: "0.78125rem", padding: "0 0.75rem", whiteSpace: "nowrap" }}
             onClick={test}
           >
-            TEST
+            Test
           </button>
         </div>
         {/* A blank tab after TEST reads as broken. That only actually
@@ -347,10 +347,10 @@ export function AddAccountForm({ isJoint }: { isJoint: boolean }) {
     <form action={formAction} style={{ marginTop: "1.125rem", borderTop: "1px solid var(--color-divider)", paddingTop: "1rem" }}>
       <input type="hidden" name="is_joint" value={isJoint ? "on" : ""} />
       <ErrorText message={state.error} />
-      <Labelled label="ACCOUNT NAME">
+      <Labelled label="Account name">
         <input className="input" name="name" required placeholder="Everyday savings" style={{ minHeight: "2.625rem" }} />
       </Labelled>
-      <Labelled label="TYPE">
+      <Labelled label="Type">
         <select
           className="input"
           name="account_type"
@@ -368,18 +368,18 @@ export function AddAccountForm({ isJoint }: { isJoint: boolean }) {
       <div style={{ marginBottom: "0.75rem" }}>
         <AppLinksField accountType={accountType} />
       </div>
-      <Labelled label="OPENING BALANCE (₱)">
+      <Labelled label="Opening balance (₱)">
         <input className="input" type="number" step="0.01" name="opening_balance" defaultValue={0} style={{ minHeight: "2.625rem" }} />
       </Labelled>
-      <Labelled label="NOTE">
+      <Labelled label="Note">
         <input className="input" name="sub_note" placeholder="Salary account" style={{ minHeight: "2.625rem" }} />
       </Labelled>
       <div style={{ display: "flex", gap: "0.625rem" }}>
         <SubmitButton className="btn btn-primary" style={{ flex: 1, minHeight: "2.625rem", fontSize: "0.875rem" }}>
-          SAVE ACCOUNT
+          Save account
         </SubmitButton>
         <button type="button" className="btn btn-secondary" style={{ flex: 1, minHeight: "2.625rem", fontSize: "0.875rem" }} onClick={() => setOpen(false)}>
-          CANCEL
+          Cancel
         </button>
       </div>
     </form>
@@ -411,11 +411,11 @@ export function AddBillForm() {
   return (
     <form action={formAction} style={{ marginTop: "1.125rem", borderTop: "1px solid var(--color-divider)", paddingTop: "1rem" }}>
       <ErrorText message={state.error} />
-      <Labelled label="EXPENSE">
+      <Labelled label="Expense">
         <input className="input" name="name" required placeholder="Meralco, groceries, mortgage…" style={{ minHeight: "2.625rem" }} />
       </Labelled>
       <div style={{ display: "flex", gap: "0.625rem" }}>
-        <Labelled label="AMOUNT (₱)" style={{ flex: 1 }}>
+        <Labelled label="Amount (₱)" style={{ flex: 1 }}>
           <input className="input" type="number" step="0.01" min="0" name="amount" required style={{ minHeight: "2.625rem" }} />
         </Labelled>
         <Labelled label="DUE" style={{ flex: 1 }}>
@@ -423,7 +423,7 @@ export function AddBillForm() {
         </Labelled>
       </div>
       <div style={{ display: "flex", gap: "0.625rem" }}>
-        <Labelled label="CATEGORY" style={{ flex: 1 }}>
+        <Labelled label="Category" style={{ flex: 1 }}>
           <select className="input" name="category" defaultValue="Utilities" style={{ minHeight: "2.625rem" }}>
             {EXPENSE_CATEGORIES.map((c) => (
               <option key={c} value={c}>
@@ -432,7 +432,7 @@ export function AddBillForm() {
             ))}
           </select>
         </Labelled>
-        <Labelled label="REPEATS" style={{ flex: 1 }}>
+        <Labelled label="Repeats" style={{ flex: 1 }}>
           <select className="input" name="recurrence" defaultValue="monthly" style={{ minHeight: "2.625rem" }}>
             <option value="monthly">Monthly</option>
             <option value="quarterly">Quarterly</option>
@@ -443,10 +443,10 @@ export function AddBillForm() {
       </div>
       <div style={{ display: "flex", gap: "0.625rem" }}>
         <SubmitButton className="btn btn-primary" style={{ flex: 1, minHeight: "2.625rem", fontSize: "0.875rem" }}>
-          SAVE EXPENSE
+          Save expense
         </SubmitButton>
         <button type="button" className="btn btn-secondary" style={{ flex: 1, minHeight: "2.625rem", fontSize: "0.875rem" }} onClick={() => setOpen(false)}>
-          CANCEL
+          Cancel
         </button>
       </div>
     </form>
@@ -473,19 +473,19 @@ export function AddIncomeScheduleForm({ accounts }: { accounts: { id: string; na
   return (
     <form action={formAction} style={{ marginTop: "1.125rem", borderTop: "1px solid var(--color-divider)", paddingTop: "1rem" }}>
       <ErrorText message={state.error} />
-      <Labelled label="SOURCE">
+      <Labelled label="Source">
         <input className="input" name="name" required placeholder="Salary" style={{ minHeight: "2.625rem" }} />
       </Labelled>
       <div style={{ display: "flex", gap: "0.625rem" }}>
-        <Labelled label="AMOUNT (₱)" style={{ flex: 1 }}>
+        <Labelled label="Amount (₱)" style={{ flex: 1 }}>
           <input className="input" type="number" step="0.01" min="0" name="amount" required style={{ minHeight: "2.625rem" }} />
         </Labelled>
-        <Labelled label="EXPECTED" style={{ flex: 1 }}>
+        <Labelled label="Expected" style={{ flex: 1 }}>
           <DateInput className="input" name="next_date" style={{ minHeight: "2.625rem" }} />
         </Labelled>
       </div>
       <div style={{ display: "flex", gap: "0.625rem" }}>
-        <Labelled label="CATEGORY" style={{ flex: 1 }}>
+        <Labelled label="Category" style={{ flex: 1 }}>
           <select className="input" name="category" defaultValue="Salary" style={{ minHeight: "2.625rem" }}>
             {INCOME_SOURCES.map((c) => (
               <option key={c} value={c}>
@@ -494,7 +494,7 @@ export function AddIncomeScheduleForm({ accounts }: { accounts: { id: string; na
             ))}
           </select>
         </Labelled>
-        <Labelled label="REPEATS" style={{ flex: 1 }}>
+        <Labelled label="Repeats" style={{ flex: 1 }}>
           <select className="input" name="recurrence" defaultValue="monthly" style={{ minHeight: "2.625rem" }}>
             <option value="monthly">Monthly</option>
             <option value="quarterly">Quarterly</option>
@@ -504,7 +504,7 @@ export function AddIncomeScheduleForm({ accounts }: { accounts: { id: string; na
         </Labelled>
       </div>
       {accounts.length > 0 && (
-        <Labelled label="USUALLY LANDS IN">
+        <Labelled label="Usually lands in">
           <select className="input" name="account_id" defaultValue="" style={{ minHeight: "2.625rem" }}>
             <option value="">Not decided yet</option>
             {accounts.map((a) => (
@@ -521,10 +521,10 @@ export function AddIncomeScheduleForm({ accounts }: { accounts: { id: string; na
       </label>
       <div style={{ display: "flex", gap: "0.625rem" }}>
         <SubmitButton className="btn btn-primary" style={{ flex: 1, minHeight: "2.625rem", fontSize: "0.875rem" }}>
-          SAVE
+          Save
         </SubmitButton>
         <button type="button" className="btn btn-secondary" style={{ flex: 1, minHeight: "2.625rem", fontSize: "0.875rem" }} onClick={() => setOpen(false)}>
-          CANCEL
+          Cancel
         </button>
       </div>
     </form>
@@ -550,7 +550,7 @@ export function SetBudgetControl({ month, year, current }: { month: number; year
           })
         }
       >
-        {pending ? "…" : "SET BUDGET"}
+        {pending ? "…" : "Set budget"}
       </button>
       {/* This used to fail by going quiet, which is exactly what it did when
           it succeeded. */}
@@ -582,7 +582,7 @@ export function SetTargetControl({ month, year, current }: { month: number; year
           })
         }
       >
-        {pending ? "…" : "SET TARGET"}
+        {pending ? "…" : "Set target"}
       </button>
       {/* This used to fail by going quiet, which is exactly what it did when
           it succeeded. */}
@@ -607,7 +607,7 @@ export function AllocationEditor({ budgeted }: { budgeted: string[] }) {
   if (!open) {
     return (
       <button type="button" className="btn btn-secondary btn-block" style={{ minHeight: "2.5rem", fontSize: "0.84375rem", marginBottom: "1.125rem" }} onClick={() => setOpen(true)}>
-        SET A CATEGORY BUDGET
+        Set a category budget
       </button>
     );
   }

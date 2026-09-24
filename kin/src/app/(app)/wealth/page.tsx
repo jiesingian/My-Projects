@@ -92,7 +92,7 @@ async function whoPicker(familyId: string, memberId: string, scope: WealthScope,
 function Hero({ label, amount, currency, caption, delta }: { label: string; amount: number; currency: string; caption?: string; delta?: React.ReactNode }) {
   return (
     <Blueprint style={{ padding: "0.9375rem", marginBottom: "0.875rem" }}>
-      <div style={{ font: "600 0.8125rem/1 var(--font-heading)", letterSpacing: ".02em", color: "var(--color-neutral-600)" }}>{label}</div>
+      <div className="kin-eyebrow">{label}</div>
       <div style={{ display: "flex", alignItems: "baseline", flexWrap: "wrap", gap: "0.5rem", margin: "9px 0 0" }}>
         <span style={{ font: "600 2.375rem/1.05 var(--font-heading)", letterSpacing: "-.02em" }}>{formatCurrency(amount, currency)}</span>
         {delta}
@@ -340,7 +340,7 @@ function CategorySpendBar({ categories, currency }: { categories: { category: st
 
 function SectionLabel({ children }: { children: React.ReactNode }) {
   return (
-    <div style={{ font: "600 0.8125rem/1 var(--font-heading)", letterSpacing: ".02em", color: "var(--color-neutral-600)", margin: "20px 0 8px" }}>{children}</div>
+    <div className="kin-eyebrow" style={{ margin: "20px 0 8px" }}>{children}</div>
   );
 }
 
@@ -576,7 +576,7 @@ async function CashFlowPane({ familyId, memberId, currency, range, scope }: { fa
       <CollapsibleGroup title="EXPENSES" defaultOpen={false}>
       {isJoint && (
         <>
-          <Meter label="SPENT OF BUDGET" value={budget.monthExpense} cap={budget.budgetAmount} currency={currency} note="Set the month's ceiling below." />
+          <Meter label="Spent of budget" value={budget.monthExpense} cap={budget.budgetAmount} currency={currency} note="Set the month's ceiling below." />
           <SetBudgetControl month={budget.month} year={budget.year} current={budget.budgetAmount} />
         </>
       )}
@@ -815,7 +815,7 @@ async function AssetsPane({ familyId, memberId, currency, scope }: { familyId: s
       </div>
 
       <Hero
-        label="NET WORTH"
+        label="Net worth"
         amount={netWorth}
         currency={currency}
         caption={`${formatCurrency(cashTotal, currency)} cash + ${formatCurrency(goalTotal, currency)} in goals + ${formatCurrency(assetTotal, currency)} owned − ${formatCurrency(liabilityTotal, currency)} owed`}

@@ -87,11 +87,11 @@ export function EditEntryForm({ entry, members }: { entry: Entry; members: Table
         <form onSubmit={onSubmit}>
           <ErrorText message={error} />
           <div className="field" style={{ marginBottom: "0.875rem" }}>
-            <label htmlFor={`${uid}-title`}>TITLE</label>
+            <label htmlFor={`${uid}-title`}>Title</label>
             <input id={`${uid}-title`} aria-label="Title" className="input" name="title" defaultValue={entry.title} required style={{ minHeight: "2.75rem" }} />
           </div>
           <div className="field" style={{ marginBottom: "1rem" }}>
-            <label htmlFor={`${uid}-date`}>DATE</label>
+            <label htmlFor={`${uid}-date`}>Date</label>
             <DateInput id={`${uid}-date`} aria-label="Date" className="input" name="date" defaultValue={entry.entry_date} required style={{ minHeight: "2.75rem" }} />
           </div>
           <div style={{ fontSize: "0.8125rem", color: "var(--color-neutral-700)", marginBottom: "0.375rem" }}>Who was there</div>
@@ -112,12 +112,12 @@ export function EditEntryForm({ entry, members }: { entry: Entry; members: Table
             })}
           </div>
           <div className="field" style={{ marginBottom: "1rem" }}>
-            <label htmlFor={`${uid}-note`}>NOTE</label>
+            <label htmlFor={`${uid}-note`}>Note</label>
             <textarea id={`${uid}-note`} aria-label="Note" className="input" name="note" defaultValue={entry.note ?? ""} placeholder="What happened?" />
           </div>
           {photos.length > 0 && (
             <div className="field" style={{ marginBottom: "0.625rem" }}>
-              <label>PHOTOS</label>
+              <label>Photos</label>
               <div style={{ display: "flex", gap: "0.3125rem", flexWrap: "wrap" }}>
                 {photos.map((p, i) => (
                   <div key={p.id} style={{ position: "relative" }}>
@@ -138,7 +138,7 @@ export function EditEntryForm({ entry, members }: { entry: Entry; members: Table
             </div>
           )}
           <div className="field" style={{ marginBottom: "0.625rem" }}>
-            <label htmlFor={`${uid}-photos`}>ADD PHOTOS</label>
+            <label htmlFor={`${uid}-photos`}>Add photos</label>
             <input id={`${uid}-photos`} aria-label="Photos" ref={fileRef} type="file" name="files" multiple accept="image/*,video/*" onChange={onFilesChosen} />
           </div>
           {previews.length > 0 && (
@@ -150,7 +150,7 @@ export function EditEntryForm({ entry, members }: { entry: Entry; members: Table
             </div>
           )}
           <button type="submit" className="btn btn-primary btn-block" style={{ minHeight: "2.875rem", fontSize: "0.875rem", letterSpacing: ".04em", marginTop: "0.5rem" }} disabled={saving}>
-            {saving ? "SAVING…" : "SAVE CHANGES"}
+            {saving ? "Saving…" : "Save changes"}
           </button>
         </form>
       </div>

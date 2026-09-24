@@ -96,23 +96,23 @@ export function MemberProfileEditor({
         <div style={{ marginBottom: "1.25rem" }}>
           <ProfileFieldsView fields={fields} dateFormat={dateFormat} />
           <button type="button" className="btn btn-secondary btn-block" style={{ minHeight: "2.5rem", fontSize: "0.84375rem", marginTop: "0.625rem" }} onClick={() => setMode("edit")}>
-            EDIT PROFILE
+            Edit profile
           </button>
         </div>
       ) : (
         <div style={{ marginBottom: "1.25rem" }}>
           <div className="field" style={{ marginBottom: "0.625rem" }}>
-            <label htmlFor={`${uid}-full-name`}>FULL NAME</label>
+            <label htmlFor={`${uid}-full-name`}>Full name</label>
             <input id={`${uid}-full-name`} aria-label="Full Name" className="input" value={fields.full_name} onChange={(e) => set("full_name", e.target.value)} maxLength={100} style={{ minHeight: "2.75rem" }} disabled={busy} />
           </div>
           <ProfileFieldsEditor fields={fields} set={set} busy={busy} />
           {error && <p style={{ color: "var(--color-accent-700)", fontSize: "0.8125rem", margin: "0 0 10px" }}>{error}</p>}
           <div style={{ display: "flex", gap: "0.5rem" }}>
             <button type="button" className="btn btn-secondary" style={{ flex: 1, minHeight: "2.75rem", fontSize: "0.8125rem" }} disabled={busy} onClick={cancel}>
-              CANCEL
+              Cancel
             </button>
             <button type="button" className="btn btn-primary" style={{ flex: 1, minHeight: "2.75rem", fontSize: "0.8125rem" }} disabled={busy} onClick={save}>
-              {busy ? "SAVING…" : "SAVE"}
+              {busy ? "Saving…" : "Save"}
             </button>
           </div>
         </div>

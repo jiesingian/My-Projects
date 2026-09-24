@@ -167,7 +167,7 @@ export function BuyList({
             style={{ width: "100%", minHeight: "2.5rem", fontSize: "0.84375rem", letterSpacing: ".04em", marginTop: "0.6875rem" }}
             onClick={() => setCheckingOut(true)}
           >
-            CHECK OUT {doneCount} ITEM{doneCount === 1 ? "" : "S"}
+            Check out {doneCount} Item{doneCount === 1 ? "" : "S"}
           </button>
         )}
       </Blueprint>
@@ -213,7 +213,7 @@ export function BuyList({
               <Icon name="chevronLeft" size={12} className="text-[var(--color-neutral-600)]" style={{ transform: isOpen ? "rotate(-90deg)" : "rotate(0deg)" }} />
               <span style={{ font: "600 0.8125rem/1 var(--font-heading)", letterSpacing: ".02em", textTransform: "uppercase" }}>{g.name}</span>
               <span style={{ font: "400 0.75rem/1 var(--font-numeric)", color: "var(--color-neutral-600)", marginLeft: "auto" }}>
-                {g.items.length} ITEM{g.items.length === 1 ? "" : "S"}
+                {g.items.length} Item{g.items.length === 1 ? "" : "S"}
                 {inBasket > 0 ? ` · ${inBasket} IN BASKET` : ""}
               </span>
             </button>
@@ -434,10 +434,10 @@ function EditItemRow({ item, onClose }: { item: Tables<"buy_items">; onClose: ()
           ))}
         </select>
         <button type="button" className="btn btn-primary" disabled={pending} style={{ minHeight: "2.5rem", fontSize: "0.8125rem", paddingInline: "0.875rem" }} onClick={save}>
-          {pending ? "…" : "SAVE"}
+          {pending ? "…" : "Save"}
         </button>
         <button type="button" className="btn btn-secondary" style={{ minHeight: "2.5rem", fontSize: "0.8125rem", paddingInline: "0.75rem" }} onClick={onClose}>
-          CANCEL
+          Cancel
         </button>
         <button
           type="button"
@@ -453,7 +453,7 @@ function EditItemRow({ item, onClose }: { item: Tables<"buy_items">; onClose: ()
             });
           }}
         >
-          REMOVE
+          Remove
         </button>
       </div>
     </div>
@@ -515,7 +515,7 @@ function ClearCheckedPanel({
       {accounts.length > 0 && (
         <div style={{ display: "flex", gap: "0.5rem", marginBottom: "0.625rem" }}>
           <div className="field" style={{ flex: 1, margin: 0 }}>
-            <label htmlFor={`${uid}-account`}>PAID FROM</label>
+            <label htmlFor={`${uid}-account`}>Paid from</label>
             <select id={`${uid}-account`} aria-label="Paid From" className="input" value={accountId} onChange={(e) => setAccountId(e.target.value)} style={{ minHeight: "2.5rem" }}>
               {accounts.map((a) => (
                 <option key={a.id} value={a.id}>
@@ -525,7 +525,7 @@ function ClearCheckedPanel({
             </select>
           </div>
           <div className="field" style={{ width: 106, margin: 0 }}>
-            <label htmlFor={`${uid}-total`}>TOTAL</label>
+            <label htmlFor={`${uid}-total`}>Total</label>
             <input id={`${uid}-total`} aria-label="Total" className="input" type="number" step="0.01" value={amount} onChange={(e) => setAmount(Number(e.target.value))} style={{ minHeight: "2.5rem" }} />
           </div>
         </div>
@@ -538,11 +538,11 @@ function ClearCheckedPanel({
           disabled={pending}
           onClick={() => finish(true)}
         >
-          {pending ? "…" : amount > 0 ? "CLEAR & LOG SPEND" : "CLEAR CHECKED"}
+          {pending ? "…" : amount > 0 ? "Clear & log spend" : "Clear checked"}
         </button>
         {amount > 0 && (
           <button type="button" className="btn btn-secondary" style={{ flex: "none", minHeight: "2.375rem", fontSize: "0.8125rem" }} disabled={pending} onClick={() => finish(false)}>
-            CLEAR ONLY
+            Clear only
           </button>
         )}
       </div>

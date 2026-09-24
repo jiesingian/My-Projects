@@ -106,7 +106,7 @@ export function NewHealthEntryForm({
               </div>
               {groupId === "__new__" && (
                 <div className="field" style={{ marginBottom: "1rem" }}>
-                  <label htmlFor={`${uid}-new-group-name`}>NEW GROUP NAME</label>
+                  <label htmlFor={`${uid}-new-group-name`}>New group name</label>
                   <input id={`${uid}-new-group-name`} aria-label="New Group Name" className="input" name="new_group_name" placeholder="Leave blank to use the title above" maxLength={150} style={{ minHeight: "2.75rem" }} />
                 </div>
               )}
@@ -115,7 +115,7 @@ export function NewHealthEntryForm({
 
           <div style={{ display: "flex", gap: "0.75rem", marginBottom: "0.875rem" }}>
             <div className="field" style={{ flex: 1 }}>
-              <label htmlFor={`${uid}-date`}>DATE</label>
+              <label htmlFor={`${uid}-date`}>Date</label>
               <DateInput id={`${uid}-date`} aria-label="Date" className="input" name="date" defaultValue={familyDay()} required style={{ minHeight: "2.75rem" }} />
             </div>
             <div className="field" style={{ flex: 1 }}>
@@ -126,17 +126,17 @@ export function NewHealthEntryForm({
 
           <div style={{ display: "flex", gap: "0.75rem", marginBottom: "0.875rem" }}>
             <div className="field" style={{ flex: 1 }}>
-              <label htmlFor={`${uid}-seen-by`}>SEEN BY</label>
+              <label htmlFor={`${uid}-seen-by`}>Seen by</label>
               <input id={`${uid}-seen-by`} aria-label="Seen By" className="input" name="seen_by" maxLength={100} style={{ minHeight: "2.75rem" }} />
             </div>
             <div className="field" style={{ flex: 1 }}>
-              <label htmlFor={`${uid}-where`}>WHERE</label>
+              <label htmlFor={`${uid}-where`}>Where</label>
               <input id={`${uid}-where`} aria-label="Where" className="input" name="where" maxLength={150} style={{ minHeight: "2.75rem" }} />
             </div>
           </div>
 
           <div className="field" style={{ marginBottom: "1rem" }}>
-            <label htmlFor={`${uid}-notes`}>NOTES</label>
+            <label htmlFor={`${uid}-notes`}>Notes</label>
             <input id={`${uid}-notes`} aria-label="Notes" className="input" name="notes" placeholder="Symptoms, dosage, instructions" maxLength={1000} style={{ minHeight: "2.75rem" }} />
           </div>
 
@@ -149,7 +149,7 @@ export function NewHealthEntryForm({
             ))}
           </div>
 
-          <SubmitButton style={{ minHeight: "2.875rem", fontSize: "0.875rem", letterSpacing: ".04em" }}>SAVE ENTRY</SubmitButton>
+          <SubmitButton style={{ minHeight: "2.875rem", fontSize: "0.875rem", letterSpacing: ".04em" }}>Save entry</SubmitButton>
         </form>
       </div>
     </div>
