@@ -39,11 +39,15 @@ export function FamilyTreeChart({
   meTreeId,
   matches = [],
   linkedFamilies = [],
+  inviteCode = null,
 }: {
   people: TreePerson[];
   meTreeId: string | null;
   matches?: TreeMatch[];
   linkedFamilies?: { id: string; name: string }[];
+  /** The organiser's invite code, so a relative not yet on Kin can be sent
+   * a join link from their card. Null for everyone else. */
+  inviteCode?: string | null;
 }) {
   const router = useRouter();
   const [selected, setSelected] = useState<string | null>(meTreeId);
@@ -366,6 +370,7 @@ export function FamilyTreeChart({
 
       {focus && byId.get(focus) && (
         <SelectedPanel
+          inviteCode={inviteCode}
           matches={matches.filter((m) => m.ourPersonId === focus)}
           linkedFamilies={linkedFamilies}
           shownBranches={shown}
@@ -400,7 +405,9 @@ function SelectedPanel({
   linkedFamilies,
   shownBranches,
   onToggleBranch,
+  inviteCode,
 }: {
+  inviteCode: string | null;
   matches: TreeMatch[];
   linkedFamilies: { id: string; name: string }[];
   shownBranches: string[];
@@ -435,6 +442,7 @@ function SelectedPanel({
             Profile
           </Link>
         )}
+        {!person.memberId && inviteCode && <InviteRelativeButton name={person.fullName} code={inviteCode} />}
       </div>
 
       <LinkedSection person={person} matches={matches} linkedFamilies={linkedFamilies} shownBranches={shownBranches} onToggleBranch={onToggleBranch} />
@@ -632,5 +640,36 @@ function LinkedSection({
           </button>
         ))}
     </div>
+  );
+}
+
+/** Sends a relative who is in the tree but not on Kin a link that opens
+ * straight into joining. Every relative who joins makes the tree, the feed
+ * and the calendar more useful to everyone already here. */
+function InviteRelativeButton({ name, code }: { name: string; code: string }) {
+  const [done, setDone] = useState(false);
+  const share = async () => {
+    const url = `${window.location.origin}/join/${code.replace(/[^A-Za-z0-9]/g, "")}`;
+    const text = `Hi ${name.split(" ")[0]}! Join our family on Kin:`;
+    if (navigator.share) {
+      try {
+        await navigator.share({ title: "Join our family on Kin", text, url });
+        return;
+      } catch {
+        // Cancelled: fall through to copying.
+      }
+    }
+    try {
+      await navigator.clipboard.writeText(`${text} ${url}`);
+      setDone(true);
+      setTimeout(() => setDone(false), 1600);
+    } catch {
+      window.prompt("Copy this invite", `${text} ${url}`);
+    }
+  };
+  return (
+    <button type="button" className="btn btn-secondary" style={{ minHeight: "2rem", padding: "0 0.625rem", fontSize: "var(--text-sm)" }} onClick={share}>
+      {done ? "Link copied" : "Invite to Kin"}
+    </button>
   );
 }

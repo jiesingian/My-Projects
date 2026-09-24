@@ -58,7 +58,7 @@ export default async function FamilyPage({
         {seg === "profile" && <ProfilePane familyId={me.family_id} isOrganiser={me.is_organiser} myId={me.id} myRole={me.role} />}
         {seg === "health" && <HealthPane familyId={me.family_id} />}
         {seg === "documents" && <DocumentsPane familyId={me.family_id} who={who} meId={me.id} />}
-        {seg === "tree" && <TreePane familyId={me.family_id} myId={me.id} />}
+        {seg === "tree" && <TreePane familyId={me.family_id} myId={me.id} inviteCode={me.is_organiser ? me.families.invite_code : null} />}
         {seg === "quicklinks" && <QuicklinksPane familyId={me.family_id} meId={me.id} myRole={me.role} />}
       </div>
     </div>
@@ -275,7 +275,7 @@ async function DocumentsPane({ familyId, who, meId }: { familyId: string; who: s
  * different person, which made a single family look like several trees. The
  * only thing that differs between members now is that each sees themselves
  * highlighted. */
-async function TreePane({ familyId, myId }: { familyId: string; myId: string }) {
+async function TreePane({ familyId, myId, inviteCode }: { familyId: string; myId: string; inviteCode: string | null }) {
   const [tree, allMembers, matches, offers, linkedFamilies] = await Promise.all([
     getFamilyTree(familyId, myId),
     getMembers(familyId),
@@ -300,10 +300,10 @@ async function TreePane({ familyId, myId }: { familyId: string; myId: string }) 
             line="Add yourself, then your father, your mother, and anyone else you know -- the tree grows from there, and everybody in the house sees the same one."
           />
           <AddMeToTreeButton memberId={myId} />
-          {tree.people.length > 0 && <FamilyTreeChart people={tree.people} meTreeId={null} matches={matches} linkedFamilies={linkedFamilies} />}
+          {tree.people.length > 0 && <FamilyTreeChart people={tree.people} meTreeId={null} matches={matches} linkedFamilies={linkedFamilies} inviteCode={inviteCode} />}
         </>
       ) : (
-        <FamilyTreeChart people={tree.people} meTreeId={meInTree.id} matches={matches} linkedFamilies={linkedFamilies} />
+        <FamilyTreeChart people={tree.people} meTreeId={meInTree.id} matches={matches} linkedFamilies={linkedFamilies} inviteCode={inviteCode} />
       )}
 
       <details className="kin-fold" style={{ marginTop: "1.25rem" }}>

@@ -47,7 +47,10 @@ export async function updateSession(request: NextRequest) {
     path.startsWith("/auth/callback");
   // The private calendar feed is fetched by Apple Calendar and Outlook, which
   // carry no session; its token is the credential (app/api/calendar/feed).
-  const isPublic = isAuthRoute || path === "/" || path.startsWith("/api/calendar/feed/");
+  const isPublic = isAuthRoute || path === "/" || path.startsWith("/api/calendar/feed/") ||
+    // An invite link has to reach someone with no account yet; it only
+    // remembers the code and redirects (app/join/[code]/route.ts).
+    path.startsWith("/join/");
 
   if (!user && !isPublic) {
     const url = request.nextUrl.clone();
