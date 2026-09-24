@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { promptForWeek } from "@/lib/story-prompts";
 import { redirect } from "next/navigation";
 import { after } from "next/server";
 import { getCurrentMember } from "@/lib/session";
@@ -120,16 +121,24 @@ async function EntriesPane({ familyId }: { familyId: string }) {
   const hasDriveMedia = entries.some((e) => e.hasDriveMedia);
   const driveDisconnected = hasDriveMedia && (await driveIsDisconnected(familyId));
 
+  const question = promptForWeek();
   return (
     <>
       {driveDisconnected && <DriveDisconnectedNotice />}
+      {/* This week's question: a reason for Lola to open the app, and a
+          record of the family nothing else keeps. */}
+      <Link href={`/journal/new?title=${encodeURIComponent(question)}`} className="kin-story">
+        <span className="kin-story-label">This week&apos;s question</span>
+        <span className="kin-story-q">{question}</span>
+        <span className="kin-story-cta">Answer it in the journal →</span>
+      </Link>
       {entries.length === 0 && (
         <div style={{ marginBottom: "1rem" }}>
           <Empty
             icon="📔"
             title="Nothing written down yet"
             line="An entry is a day worth remembering — where you went, who was there, what it was like. Small ones count."
-            action={{ label: "WRITE THE FIRST ONE", href: "/journal/new" }}
+            action={{ label: "Write the first one", href: "/journal/new" }}
           />
         </div>
       )}

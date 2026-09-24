@@ -39,6 +39,7 @@ export function FamilyFeed({
         <span style={{ fontSize: "0.75rem", letterSpacing: ".05em", textTransform: "uppercase", color: "var(--color-neutral-600)" }}>
           {links.filter((l) => l.status === "accepted").length > 0 ? "Shared between households" : "Shared memories"}
         </span>
+        <span style={{ fontSize: "0.75rem", color: "var(--color-neutral-600)" }}>· Only family can see this. No ads.</span>
         <button
           type="button"
           className="btn btn-ghost"

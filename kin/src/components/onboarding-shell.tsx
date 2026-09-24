@@ -72,6 +72,11 @@ export function Wordmark() {
       >
         KIN
       </div>
+      {/* The promise Facebook and Instagram cannot make, said once, where a
+          new family decides whether to trust the app. */}
+      <p style={{ margin: "14px 0 0", fontSize: "0.875rem", lineHeight: 1.45, color: "var(--color-neutral-700)", maxWidth: "24rem" }}>
+        Private to your family. No ads, no algorithm, no strangers — only the people you invite.
+      </p>
     </div>
   );
 }

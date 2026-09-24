@@ -10,7 +10,7 @@ import type { Tables } from "@/lib/database.types";
 import { familyDay } from "@/lib/time";
 import { DateInput } from "@/components/date-input";
 
-export function NewEntryForm({ members }: { members: Tables<"members">[] }) {
+export function NewEntryForm({ members, defaultTitle }: { members: Tables<"members">[]; defaultTitle?: string }) {
   const uid = useId();
   const [people, setPeople] = useState<string[]>([]);
   const [previews, setPreviews] = useState<string[]>([]);
@@ -71,7 +71,7 @@ export function NewEntryForm({ members }: { members: Tables<"members">[] }) {
           <ErrorText message={error} />
           <div className="field" style={{ marginBottom: "0.875rem" }}>
             <label htmlFor={`${uid}-title`}>Title</label>
-            <input id={`${uid}-title`} aria-label="Title" className="input" name="title" required style={{ minHeight: "2.75rem" }} />
+            <input id={`${uid}-title`} aria-label="Title" className="input" name="title" required defaultValue={defaultTitle} style={{ minHeight: "2.75rem" }} />
           </div>
           <div className="field" style={{ marginBottom: "1rem" }}>
             <label htmlFor={`${uid}-date`}>Date</label>
