@@ -3173,6 +3173,60 @@ textarea.input {
   .kin-scan-when .input:first-child { grid-column: 1 / -1; }
 }
 
+/* ── Ticking things off ───────────────────────────────────────────────── */
+/* A grocery item: the circle pops as it fills, the line draws across the
+   name left to right, and the row settles back from a small nudge. */
+.kin-tick[aria-pressed="true"] { animation: kin-pop 260ms var(--ease-overshoot); }
+.kin-strike {
+  background: linear-gradient(currentColor, currentColor) no-repeat 0 58% / 0% 1.5px;
+  transition: background-size 240ms var(--ease-out);
+}
+.kin-strike[data-on="true"] { background-size: 100% 1.5px; }
+.kin-buy-row[data-checked="true"] { animation: kin-settle 280ms var(--ease-out); }
+@keyframes kin-pop {
+  0% { transform: scale(0.7); }
+  60% { transform: scale(1.15); }
+  100% { transform: scale(1); }
+}
+@keyframes kin-settle {
+  0% { transform: translateX(0.5rem); opacity: 0.6; }
+  100% { transform: none; opacity: 1; }
+}
+
+/* A chore marked done just now: the chip pops and a ring of dots bursts out
+   of it once. Only the tick that was just made -- see routine-controls.tsx. */
+.kin-done-chip { position: relative; }
+.kin-celebrate { animation: kin-pop 320ms var(--ease-overshoot); }
+.kin-celebrate::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 0.375rem;
+  height: 0.375rem;
+  margin: -0.1875rem 0 0 -0.1875rem;
+  border-radius: 50%;
+  pointer-events: none;
+  box-shadow:
+    0 0 0 0 var(--color-accent), 0 0 0 0 var(--color-switch-on, #34c759), 0 0 0 0 #ff9f0a,
+    0 0 0 0 #ff375f, 0 0 0 0 var(--color-accent-2, #5ac8fa), 0 0 0 0 #bf5af2;
+  animation: kin-burst 620ms var(--ease-out) forwards;
+}
+@keyframes kin-burst {
+  0% { opacity: 1; box-shadow: 0 0 0 0 var(--color-accent), 0 0 0 0 var(--color-switch-on, #34c759), 0 0 0 0 #ff9f0a, 0 0 0 0 #ff375f, 0 0 0 0 var(--color-accent-2, #5ac8fa), 0 0 0 0 #bf5af2; }
+  100% {
+    opacity: 0;
+    box-shadow:
+      -3rem -1.25rem 0 -1px var(--color-accent), 3rem -1.5rem 0 -1px var(--color-switch-on, #34c759), -2.5rem 1.25rem 0 -1px #ff9f0a,
+      2.75rem 1.125rem 0 -1px #ff375f, 0 -2rem 0 -1px var(--color-accent-2, #5ac8fa), 0.5rem 1.75rem 0 -1px #bf5af2;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .kin-tick[aria-pressed="true"], .kin-buy-row[data-checked="true"], .kin-celebrate { animation: none; }
+  .kin-celebrate::after { display: none; }
+  .kin-strike { transition: none; }
+}
+
 /* ── Settings > Apple Calendar & Outlook ──────────────────────────────── */
 .kin-feed { display: flex; flex-direction: column; gap: 0.5rem; }
 .kin-feed-lede, .kin-feed-note { font-size: 0.84375rem; line-height: 1.45; color: var(--color-neutral-700); margin: 0; }
