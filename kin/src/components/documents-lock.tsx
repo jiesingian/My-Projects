@@ -19,7 +19,18 @@ const initialState: ActionState = { error: null };
  * so the list of what the household keeps is never rendered and then hidden
  * -- hiding it client-side would put every filename in the page source of a
  * screen that is supposed to be locked. */
-export function DocumentsLock({ hasPin, hasBiometric }: { hasPin: boolean; hasBiometric: boolean }) {
+export function DocumentsLock({
+  hasPin,
+  hasBiometric,
+  title = "Documents are locked",
+  blurb = "Passports, certificates and insurance live behind this. Unlocking lasts ten minutes.",
+}: {
+  hasPin: boolean;
+  hasBiometric: boolean;
+  /** The same lock guards more than one screen; each says what is behind it. */
+  title?: string;
+  blurb?: string;
+}) {
   const router = useRouter();
   const uid = useId();
   const [state, formAction] = useActionState(unlockWithPinAction, initialState);
@@ -72,10 +83,10 @@ export function DocumentsLock({ hasPin, hasBiometric }: { hasPin: boolean; hasBi
     <Blueprint style={{ padding: "1.375rem 1.125rem", maxWidth: 380 }}>
       <div style={{ display: "flex", alignItems: "center", gap: "0.625rem", marginBottom: "0.375rem" }}>
         <Icon name="keyRound" size={18} style={{ color: "var(--color-accent-700)" }} />
-        <h3 style={{ font: "600 1.125rem/1.2 var(--font-heading)", margin: 0 }}>Documents are locked</h3>
+        <h3 style={{ font: "600 1.125rem/1.2 var(--font-heading)", margin: 0 }}>{title}</h3>
       </div>
       <p style={{ fontSize: "0.84375rem", lineHeight: 1.45, color: "var(--color-neutral-700)", margin: "0 0 16px" }}>
-        Passports, certificates and insurance live behind this. Unlocking lasts ten minutes.
+        {blurb}
       </p>
 
       {bioAvailable && (

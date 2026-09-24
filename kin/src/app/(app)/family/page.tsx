@@ -7,6 +7,9 @@ import { EmergencyContactList } from "@/components/emergency-contact-list";
 import { DocumentsLock } from "@/components/documents-lock";
 import { DocumentsLockSettings } from "@/components/documents-lock-settings";
 import { getLockState } from "@/lib/security/gate";
+import { getVaultItems } from "@/lib/queries/vault";
+import { FamilyVault } from "@/components/family-vault";
+import { isGrownUp } from "@/lib/roles";
 import { getEnrolledDevices } from "@/lib/queries/security";
 import { HubHeader } from "@/components/hub-header";
 import { ChipRow } from "@/components/segmented";
@@ -322,7 +325,15 @@ async function TreePane({ familyId, myId }: { familyId: string; myId: string }) 
  * device it belongs to, and there is one row per person rather than a trail.
  * See the migration for why each of those is a policy and not a promise. */
 async function QuicklinksPane({ familyId, meId, myRole }: { familyId: string; meId: string; myRole: string }) {
-  const [contacts, people, members] = await Promise.all([getEmergencyContacts(familyId), getMemberLocations(familyId), getMembers(familyId)]);
+  const [contacts, people, members, lock] = await Promise.all([
+    getEmergencyContacts(familyId),
+    getMemberLocations(familyId),
+    getMembers(familyId),
+    getLockState(meId),
+  ]);
+  // The passwords are only fetched once the lock is open -- behind the same
+  // PIN or fingerprint as Documents, so nothing is in the page to peek at.
+  const vault = lock.unlocked ? await getVaultItems(familyId) : null;
   // Every parent in the household, in the order they joined -- including one
   // who is here as a managed profile without a login of their own, since
   // not having an account does not make somebody less of a person to ring.
@@ -336,6 +347,30 @@ async function QuicklinksPane({ familyId, meId, myRole }: { familyId: string; me
         EMERGENCY CONTACTS
       </div>
       <EmergencyContactList contacts={contacts} parents={parents} />
+
+      <div style={{ font: "600 0.8125rem/1 var(--font-heading)", letterSpacing: ".02em", color: "var(--color-neutral-600)", margin: "22px 0 8px" }}>
+        PASSWORDS
+      </div>
+      {vault ? (
+        <>
+          <FamilyVault items={vault} canEdit={isGrownUp(myRole)} />
+          {!lock.configured && isGrownUp(myRole) && (
+            <p style={{ fontSize: "0.8125rem", color: "var(--color-neutral-600)", margin: "-0.5rem 0 1.25rem" }}>
+              Anyone holding your phone can open these. Set a PIN or fingerprint under{" "}
+              <Link href="/family?seg=documents" style={{ color: "var(--color-accent-700)" }}>Documents</Link> to lock them too.
+            </p>
+          )}
+        </>
+      ) : (
+        <div style={{ marginBottom: "1.25rem" }}>
+          <DocumentsLock
+            hasPin={lock.hasPin}
+            hasBiometric={lock.credentialCount > 0}
+            title="Passwords are locked"
+            blurb="The Wi-Fi, door codes and logins the house shares. Same lock as Documents; unlocking lasts ten minutes."
+          />
+        </div>
+      )}
 
       <div style={{ font: "600 0.8125rem/1 var(--font-heading)", letterSpacing: ".02em", color: "var(--color-neutral-600)", margin: "22px 0 8px" }}>
         WHERE EVERYONE IS
