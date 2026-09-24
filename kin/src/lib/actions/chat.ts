@@ -1,7 +1,9 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { after } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { sendPush } from "@/lib/push";
 import { requireCurrentMember } from "@/lib/session";
 import type { ActionState } from "@/lib/actions/auth";
 import { humanDatabaseError } from "@/lib/db-errors";
@@ -84,6 +86,17 @@ export async function sendMessageAction(input: {
   await markChatReadAction();
 
   revalidatePath("/chat");
+  // Everyone else in the household with chat notifications on. One tag per
+  // household, so a busy evening is one notification that updates.
+  after(() =>
+    sendPush({
+      kind: "chat",
+      title: me.full_name.split(" ")[0],
+      body: body || (attachments.length === 1 ? "Sent an attachment" : `Sent ${attachments.length} attachments`),
+      url: "/chat",
+      tag: `chat-${me.family_id}`,
+    }),
+  );
   return { error: null, id: data.id };
 }
 

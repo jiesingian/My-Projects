@@ -1,8 +1,10 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { after } from "next/server";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { sendPush } from "@/lib/push";
 import { requireCurrentMember } from "@/lib/session";
 import { syncRowToCalendars, removeRowFromCalendars } from "@/lib/actions/calendar-sync";
 import { MARKET_SECTIONS, guessSection, parseQuantity } from "@/lib/grocery";
@@ -49,6 +51,7 @@ export async function addBuyItemAction(_prev: ActionState, formData: FormData): 
   });
   if (error) return { error: humanDatabaseError(error.message) };
   revalidatePath("/household");
+  after(() => sendPush({ kind: "shopping", title: "Added to the list", body: `${name} · by ${me.full_name.split(" ")[0]}`, url: "/household", tag: `list-${me.family_id}` }));
   return { error: null };
 }
 

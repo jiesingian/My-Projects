@@ -1,10 +1,12 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { after } from "next/server";
 import { redirect } from "next/navigation";
 import { requireCurrentMember } from "@/lib/session";
 import { isChild, isGrownUp } from "@/lib/roles";
 import { createClient } from "@/lib/supabase/server";
+import { sendPush } from "@/lib/push";
 import type { ActionState } from "@/lib/actions/auth";
 import { syncRowToCalendars, removeRowFromCalendars } from "@/lib/actions/calendar-sync";
 import { postHubExpenseAction } from "@/lib/actions/wealth";
@@ -436,6 +438,19 @@ export async function logRoutineAction(input: {
   revalidatePath("/planner");
   revalidatePath("/today");
   revalidatePath("/wealth");
+  if (approval === "pending") {
+    // Only the grown-ups are asked to answer for a chore.
+    after(async () => {
+      const { data: grownUps } = await supabase.from("members").select("id").eq("family_id", me.family_id).in("role", ["parent", "adult"]);
+      await sendPush({
+        kind: "approvals",
+        title: `${me.full_name.split(" ")[0]} finished a chore`,
+        body: `${routine.title} · tap to approve`,
+        url: "/today",
+        memberIds: (grownUps ?? []).map((g) => g.id),
+      });
+    });
+  }
   return { error: null };
 }
 

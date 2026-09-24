@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
+import { PushOptIn } from "@/components/push-opt-in";
 import { getCurrentMember } from "@/lib/session";
 import { createClient } from "@/lib/supabase/server";
 import { signOutAction } from "@/lib/actions/auth";
@@ -187,6 +188,7 @@ export default async function SettingsPage({
         <TextSizeControl current={me.text_scale} />
 
         <div className="kin-eyebrow" style={{ marginBottom: "0.125rem" }}>NOTIFICATIONS</div>
+        <PushOptIn />
         <NotificationToggles prefs={me.notification_prefs as Record<string, boolean>} />
 
         <div className="kin-eyebrow" style={{ margin: "22px 0 8px" }}>HOUSEHOLD</div>
