@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { cookies } from "next/headers";
 import "./globals.css";
 import { ServiceWorker } from "@/components/service-worker";
+import { paletteById } from "@/lib/palettes";
 
 export const metadata: Metadata = {
   title: "Kin — Family Operating System",
@@ -48,7 +49,10 @@ export default async function RootLayout({
 }>) {
   const cookieStore = await cookies();
   const theme = cookieStore.get("kin-theme")?.value;
-  const dataTheme = theme === "light" || theme === "dark" ? theme : undefined;
+  // A dark-only palette (Dracula, Midnight) is dark whatever the switch says,
+  // so the rest of the dark tokens -- charts, shadows, glass -- match it.
+  const darkOnly = paletteById(cookieStore.get("kin-palette")?.value).darkOnly;
+  const dataTheme = darkOnly ? "dark" : theme === "light" || theme === "dark" ? theme : undefined;
 
   return (
     <html lang="en" data-theme={dataTheme}>

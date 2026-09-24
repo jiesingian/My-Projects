@@ -1,7 +1,7 @@
 "use client";
 
 import { useId, useTransition } from "react";
-import { setThemeAction, setTextScaleAction, toggleNotificationAction, updateHouseholdNameAction, updateHouseholdPrefsAction } from "@/lib/actions/settings";
+import { setThemeAction, setTextScaleAction, setPaletteAction, toggleNotificationAction, updateHouseholdNameAction, updateHouseholdPrefsAction } from "@/lib/actions/settings";
 import { regenerateInviteCodeAction } from "@/lib/actions/family";
 import { disconnectDriveAction } from "@/lib/actions/drive";
 import { migrateProfilePhotosToDriveAction } from "@/lib/actions/photo-migration";
@@ -15,6 +15,7 @@ import { NOTIFICATION_DEFS } from "@/lib/notifications";
 import { CURRENCIES, DATE_FORMATS, WEEK_STARTS } from "@/lib/household-prefs";
 import { familyDateTime } from "@/lib/time";
 import { COUNTRIES } from "@/lib/countries";
+import { PALETTES, type PaletteMode } from "@/lib/palettes";
 
 export function ThemeControl({ current }: { current: string }) {
   const [pending, startTransition] = useTransition();
@@ -41,6 +42,79 @@ export function ThemeControl({ current }: { current: string }) {
             }
           >
             {o.label}
+          </button>
+        ))}
+      </div>
+      <DidNotSave message={failed} />
+    </>
+  );
+}
+
+function PaletteSwatch({ m }: { m: PaletteMode }) {
+  return (
+    <span className="kin-palette-swatch" style={{ background: m.bg }} aria-hidden="true">
+      <span className="kin-palette-card" style={{ background: m.surface, borderColor: m.divider }}>
+        <span className="kin-palette-line" style={{ background: m.text }} />
+        <span className="kin-palette-line kin-palette-line-short" style={{ background: m.muted }} />
+        <span className="kin-palette-row">
+          <span className="kin-palette-pill" style={{ background: m.accent }} />
+          <span className="kin-palette-dot" style={{ background: m.ink }} />
+          <span className="kin-palette-dot" style={{ background: m.accent2 }} />
+        </span>
+      </span>
+    </span>
+  );
+}
+
+/** Colour themes, each shown as a small picture of itself in light and dark
+ * rather than as a name, since nobody picks a theme by its name. Choosing one
+ * saves it and asks whether to restart, the same as text size: the colours
+ * arrive with the next load instead of repainting under the finger. */
+export function PaletteControl({ current }: { current: string }) {
+  const [selected, setSelected] = useState(current);
+  const [pending, startTransition] = useTransition();
+  const [failed, setFailed] = useState<string | null>(null);
+
+  const choose = (id: string, name: string) => {
+    if (id === selected) return;
+    const previous = selected;
+    setSelected(id);
+    startTransition(async () => {
+      const { error } = await setPaletteAction(id);
+      setFailed(error);
+      if (error) {
+        setSelected(previous);
+        return;
+      }
+      const restart = await confirm({
+        title: `Restart Kin to switch to ${name}?`,
+        description: "The new colours take effect when Kin reloads. Choose Later and they will apply the next time you open it.",
+        confirmLabel: "Restart",
+        cancelLabel: "Later",
+      });
+      if (restart) window.location.reload();
+    });
+  };
+
+  return (
+    <>
+      <div className="kin-palettes" role="radiogroup" aria-label="Colour theme">
+        {PALETTES.map((p) => (
+          <button
+            key={p.id}
+            type="button"
+            role="radio"
+            aria-checked={selected === p.id}
+            className="kin-palette"
+            disabled={pending}
+            onClick={() => choose(p.id, p.name)}
+          >
+            <span className="kin-palette-pair">
+              <PaletteSwatch m={p.light} />
+              {!p.darkOnly && <PaletteSwatch m={p.dark} />}
+            </span>
+            <span className="kin-palette-name">{p.name}</span>
+            <span className="kin-palette-blurb">{p.darkOnly ? `${p.blurb} · always dark` : p.blurb}</span>
           </button>
         ))}
       </div>

@@ -8,6 +8,7 @@ import { Blueprint, Tag } from "@/components/ui";
 import { Icon } from "@/components/icons";
 import {
   ThemeControl,
+  PaletteControl,
   TextSizeControl,
   NotificationToggles,
   InviteCodeCard,
@@ -170,6 +171,8 @@ export default async function SettingsPage({
         <div style={{ font: "600 0.8125rem/1 var(--font-heading)", letterSpacing: ".02em", color: "var(--color-neutral-600)", marginBottom: "0.5rem" }}>APPEARANCE</div>
         <div style={{ fontSize: "0.8125rem", color: "var(--color-neutral-700)", marginBottom: "0.375rem" }}>Theme</div>
         <ThemeControl current={me.theme} />
+        <div style={{ fontSize: "0.8125rem", color: "var(--color-neutral-700)", marginBottom: "0.375rem" }}>Colours</div>
+        <PaletteControl current={me.palette ?? "classic"} />
         <div style={{ fontSize: "0.8125rem", color: "var(--color-neutral-700)", marginBottom: "0.375rem" }}>Text size</div>
         <TextSizeControl current={me.text_scale} />
 
