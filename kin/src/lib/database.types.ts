@@ -2093,6 +2093,63 @@ export type Database = {
           },
         ]
       }
+      family_vault_items: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          family_id: string
+          group_name: string
+          id: string
+          label: string
+          note: string | null
+          secret: string
+          updated_at: string
+          username: string | null
+          visibility: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          family_id: string
+          group_name: string
+          id?: string
+          label: string
+          note?: string | null
+          secret: string
+          updated_at?: string
+          username?: string | null
+          visibility?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          family_id?: string
+          group_name?: string
+          id?: string
+          label?: string
+          note?: string | null
+          secret?: string
+          updated_at?: string
+          username?: string | null
+          visibility?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "family_vault_items_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "members"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "family_vault_items_family_id_fkey"
+            columns: ["family_id"]
+            isOneToOne: false
+            referencedRelation: "families"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       goals: {
         Row: {
           created_at: string
