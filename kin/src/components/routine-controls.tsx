@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useOptimistic, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { logRoutineAction, clearRoutineLogAction, setRoutinePausedAction, deleteRoutineAction } from "@/lib/actions/routines";
 import { Icon } from "@/components/icons";
@@ -44,12 +44,15 @@ export function RoutineTick({
   // this morning looks like on every later visit, and a burst each time the
   // page opens would stop meaning anything.
   const [celebrate, setCelebrate] = useState(false);
+  // The answer shows the moment it is tapped; the server's replaces it when
+  // it comes back (or the old state returns, with the error, if it fails).
+  const [shown, setShown] = useOptimistic(status);
 
-  if (status) {
+  if (shown) {
     return (
       <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
         <span
-          className={celebrate && status === "done" ? "kin-done-chip kin-celebrate" : "kin-done-chip"}
+          className={celebrate && shown === "done" ? "kin-done-chip kin-celebrate" : "kin-done-chip"}
           style={{
             display: "inline-flex",
             alignItems: "center",
@@ -59,19 +62,19 @@ export function RoutineTick({
             borderRadius: 999,
             fontSize: "0.8125rem",
             fontWeight: 500,
-            background: status === "done" ? "color-mix(in srgb, var(--color-switch-on) 18%, transparent)" : "color-mix(in srgb, var(--color-text) 7%, transparent)",
-            color: status === "done" ? "var(--color-neutral-900)" : "var(--color-neutral-700)",
+            background: shown === "done" ? "color-mix(in srgb, var(--color-switch-on) 18%, transparent)" : "color-mix(in srgb, var(--color-text) 7%, transparent)",
+            color: shown === "done" ? "var(--color-neutral-900)" : "var(--color-neutral-700)",
           }}
         >
-          <Icon name={status === "done" ? "check" : "x"} size={14} />
-          {status === "done" ? "Done today" : "Skipped today"}
+          <Icon name={shown === "done" ? "check" : "x"} size={14} />
+          {shown === "done" ? "Done today" : "Skipped today"}
         </span>
         <button
           type="button"
           className="btn btn-ghost"
           style={{ minHeight: "1.875rem", fontSize: "0.78125rem", padding: "0 0.5rem" }}
           disabled={pending}
-          onClick={() => run(() => clearRoutineLogAction(routineId, date))}
+          onClick={() => run(async () => { setShown(null); return clearRoutineLogAction(routineId, date); })}
         >
           Undo
         </button>
@@ -92,7 +95,7 @@ export function RoutineTick({
           // A short tick of haptic feedback where the phone offers it (Android);
           // iOS Safari has no vibration API and simply skips this.
           navigator.vibrate?.(12);
-          run(() => logRoutineAction({ routineId, date, status: "done" }));
+          run(async () => { setShown("done"); return logRoutineAction({ routineId, date, status: "done" }); });
         }}
       >
         <Icon name="check" size={14} />
@@ -103,7 +106,7 @@ export function RoutineTick({
         className="btn btn-secondary"
         style={{ minHeight: "2rem", fontSize: "0.8125rem", padding: "0 0.75rem" }}
         disabled={pending}
-        onClick={() => run(() => logRoutineAction({ routineId, date, status: "skipped" }))}
+        onClick={() => run(async () => { setShown("skipped"); return logRoutineAction({ routineId, date, status: "skipped" }); })}
       >
         Skip
       </button>

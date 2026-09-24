@@ -2,6 +2,8 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getCurrentMember } from "@/lib/session";
 import { createClient } from "@/lib/supabase/server";
+import { getOnThisDay, getWeekRecap } from "@/lib/queries/memories";
+import { OnThisDay, WeekRecapCard } from "@/components/memories";
 import { getHubCards, getTodayBriefing, getComingUp } from "@/lib/queries/today";
 import { getRoutinesNeedingAttention, getPendingApprovals, getPendingRedemptions } from "@/lib/queries/routines";
 import { TodayTaskList } from "@/components/today-task-list";
@@ -18,7 +20,7 @@ export default async function TodayPage() {
   if (!me) redirect("/onboarding/profile");
 
   const supabase = await createClient();
-  const [{ data: members }, hubs, brief, tasks, awaitingApproval, awaitingRedemption, familyPanel, comingUp] = await Promise.all([
+  const [{ data: members }, hubs, brief, tasks, awaitingApproval, awaitingRedemption, familyPanel, comingUp, memories, recap] = await Promise.all([
     supabase.from("members").select("id, full_name").eq("family_id", me.family_id).order("created_at"),
     getHubCards(me.family_id, me.families.currency, me.families.week_start),
     getTodayBriefing(me.family_id, me.families.currency),
@@ -29,6 +31,12 @@ export default async function TodayPage() {
     isGrownUp(me.role) ? getPendingRedemptions(me.family_id) : Promise.resolve([]),
     getFamilyPanel(me.family_id),
     getComingUp(me.family_id, me.families.currency),
+    getOnThisDay(me.family_id),
+    // The week in numbers, on the weekend and the Monday after: the time a
+    // family looks back rather than at the next thing.
+    ["Sat", "Sun", "Mon"].includes(new Date().toLocaleDateString("en-GB", { weekday: "short", timeZone: "Asia/Manila" }))
+      ? getWeekRecap(me.family_id)
+      : Promise.resolve(null),
   ]);
 
   const todayLabel = new Date().toLocaleDateString("en-GB", {
@@ -131,6 +139,10 @@ export default async function TodayPage() {
           </div>
         </section>
       )}
+
+      {recap && <WeekRecapCard recap={recap} />}
+
+      <OnThisDay memories={memories} />
 
       <ApprovalQueue pending={awaitingApproval} redemptions={awaitingRedemption} />
 
