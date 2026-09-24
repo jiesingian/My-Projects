@@ -3383,6 +3383,7 @@ export type Database = {
           shoe_size: string | null
           sss_number: string | null
           status: string
+          calendar_feed_hash: string | null
           palette: string
           text_scale: number
           text_size: string
@@ -3425,6 +3426,7 @@ export type Database = {
           shoe_size?: string | null
           sss_number?: string | null
           status?: string
+          calendar_feed_hash?: string | null
           palette?: string
           text_scale?: number
           text_size?: string
@@ -3467,6 +3469,7 @@ export type Database = {
           shoe_size?: string | null
           sss_number?: string | null
           status?: string
+          calendar_feed_hash?: string | null
           palette?: string
           text_scale?: number
           text_size?: string
@@ -4355,6 +4358,21 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      calendar_feed: {
+        Args: { feed_hash: string }
+        Returns: {
+          uid: string
+          title: string
+          starts_at: string | null
+          ends_at: string | null
+          all_day: string | null
+          all_day_end: string | null
+          yearly: boolean
+          repeat: string | null
+          location: string | null
+          notes: string | null
+        }[]
+      }
       offer_tree_person: {
         Args: { person: string; to_family: string }
         Returns: string

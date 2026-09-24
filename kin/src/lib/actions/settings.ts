@@ -1,6 +1,6 @@
 "use server";
 
-import { cookies } from "next/headers";
+import { cookies, headers } from "next/headers";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { requireCurrentMember } from "@/lib/session";
@@ -10,6 +10,7 @@ import { humanDatabaseError } from "@/lib/db-errors";
 import { isCountryCode } from "@/lib/countries";
 import { TEXT_SCALE_MAX, TEXT_SCALE_MIN } from "@/lib/text-scale";
 import { PALETTE_DEFAULT, isPaletteId } from "@/lib/palettes";
+import { randomToken, sha256, toBase64Url } from "@/lib/security/crypto";
 import { isCurrencyCode, isDateFormat, isWeekStart } from "@/lib/household-prefs";
 
 export async function setThemeAction(theme: "light" | "dark" | "system"): Promise<ActionState> {
@@ -129,4 +130,34 @@ export async function updateHouseholdPrefsAction(
     .eq("id", me.family_id);
   revalidatePath("/settings");
   return { error: error ? humanDatabaseError(error.message) : null };
+}
+
+/** Makes the member a new private calendar link for Apple Calendar, Outlook
+ * and the like, replacing any earlier one. Only the hash is stored, so this is
+ * the one moment the link exists anywhere readable: it is returned to show
+ * once, and a lost link is replaced, never recovered. */
+export async function createCalendarFeedAction(): Promise<{ error: string | null; https?: string; webcal?: string }> {
+  const me = await requireCurrentMember();
+  const token = randomToken();
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("members")
+    .update({ calendar_feed_hash: toBase64Url(sha256(token)) })
+    .eq("id", me.id);
+  if (error) return { error: `That did not save. ${humanDatabaseError(error.message)}` };
+  const h = await headers();
+  const host = h.get("x-forwarded-host") ?? h.get("host") ?? "";
+  const path = `/api/calendar/feed/${token}.ics`;
+  revalidatePath("/settings");
+  return { error: null, https: `https://${host}${path}`, webcal: `webcal://${host}${path}` };
+}
+
+/** Turns the private calendar link off. Subscribed calendars stop updating. */
+export async function removeCalendarFeedAction(): Promise<ActionState> {
+  const me = await requireCurrentMember();
+  const supabase = await createClient();
+  const { error } = await supabase.from("members").update({ calendar_feed_hash: null }).eq("id", me.id);
+  if (error) return { error: `That did not save. ${humanDatabaseError(error.message)}` };
+  revalidatePath("/settings");
+  return { error: null };
 }
