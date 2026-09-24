@@ -1,5 +1,6 @@
 "use server";
 
+import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
@@ -180,6 +181,8 @@ export async function joinFamilyAction(_prev: ActionState, formData: FormData): 
   }
 
   await clearOnboardingProfile();
+  // The invite link's code has done its job.
+  (await cookies()).delete("kin-invite");
   redirect("/onboarding/pending");
 }
 

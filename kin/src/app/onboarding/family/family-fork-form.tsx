@@ -15,14 +15,54 @@ export function FamilyForkForm({
   fullName,
   dob,
   mobile,
+  inviteCode = "",
 }: {
   fullName: string;
   dob: string;
   mobile: string;
+  /** From an invite link; fills the join code and puts joining first. */
+  inviteCode?: string;
 }) {
   const [createState, createAction] = useActionState(createFamilyAction, initialState);
   const [joinState, joinAction] = useActionState(joinFamilyAction, initialState);
   const uid = useId();
+
+  const joinForm = (
+        <form action={joinAction}>
+          <input type="hidden" name="full_name" value={fullName} />
+          <input type="hidden" name="dob" value={dob} />
+          <input type="hidden" name="mobile" value={mobile} />
+          <Blueprint className={inviteCode ? "bg-[var(--color-accent-100)] mb-4" : undefined} style={{ padding: "1.25rem" }}>
+            <Icon name="keyRound" size={22} className="text-[var(--color-accent-700)]" />
+            <span style={{ font: "600 1.375rem/1.1 var(--font-heading)", display: "block", margin: "9px 0 4px" }}>
+              Join with a code
+            </span>
+            <span style={{ fontSize: "0.875rem", color: "var(--color-neutral-700)", display: "block", marginBottom: "0.875rem" }}>
+              {inviteCode ? "You were invited. The code is filled in; tap Join." : "Ask the organizer for the six-character invite code."}
+            </span>
+            <ErrorText message={joinState.error} />
+            <div style={{ display: "flex", gap: "0.5625rem" }}>
+              <input
+                className="input"
+                name="invite_code"
+                aria-label="Invite code"
+                defaultValue={inviteCode}
+                placeholder="A7K-2QD"
+                required
+                style={{
+                  minHeight: "2.75rem",
+                  fontFamily: "var(--font-numeric)",
+                  letterSpacing: ".02em",
+                  textTransform: "uppercase",
+                }}
+              />
+              <SubmitButton className="btn btn-secondary" style={{ minHeight: "2.75rem", paddingInline: "1rem" }}>
+                Join
+              </SubmitButton>
+            </div>
+          </Blueprint>
+        </form>
+  );
 
   return (
     <OnboardingShell step="STEP 04 / 05" backHref="/onboarding/profile">
@@ -31,6 +71,7 @@ export function FamilyForkForm({
         One group per household. Everything in Kin belongs to it.
       </p>
 
+      {inviteCode && joinForm}
       <form action={createAction}>
         <input type="hidden" name="full_name" value={fullName} />
         <input type="hidden" name="dob" value={dob} />
@@ -88,38 +129,8 @@ export function FamilyForkForm({
         </Blueprint>
       </form>
 
-      <form action={joinAction}>
-        <input type="hidden" name="full_name" value={fullName} />
-        <input type="hidden" name="dob" value={dob} />
-        <input type="hidden" name="mobile" value={mobile} />
-        <Blueprint style={{ padding: "1.25rem" }}>
-          <Icon name="keyRound" size={22} className="text-[var(--color-accent-700)]" />
-          <span style={{ font: "600 1.375rem/1.1 var(--font-heading)", display: "block", margin: "9px 0 4px" }}>
-            Join with a code
-          </span>
-          <span style={{ fontSize: "0.875rem", color: "var(--color-neutral-700)", display: "block", marginBottom: "0.875rem" }}>
-            Ask the organizer for the six-character invite code.
-          </span>
-          <ErrorText message={joinState.error} />
-          <div style={{ display: "flex", gap: "0.5625rem" }}>
-            <input
-              className="input"
-              name="invite_code"
-              placeholder="A7K-2QD"
-              required
-              style={{
-                minHeight: "2.75rem",
-                fontFamily: "var(--font-numeric)",
-                letterSpacing: ".02em",
-                textTransform: "uppercase",
-              }}
-            />
-            <SubmitButton className="btn btn-secondary" style={{ minHeight: "2.75rem", paddingInline: "1rem" }}>
-              Join
-            </SubmitButton>
-          </div>
-        </Blueprint>
-      </form>
+
+      {!inviteCode && joinForm}
 
       <div style={{ marginTop: "auto", fontSize: "0.8125rem", color: "var(--color-neutral-600)", display: "flex", gap: "0.5rem", paddingTop: "1.25rem" }}>
         <Icon name="info" size={14} className="text-[var(--color-accent)]" />

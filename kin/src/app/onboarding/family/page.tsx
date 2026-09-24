@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation";
+import { cookies } from "next/headers";
 import { readOnboardingProfile } from "@/lib/onboarding-profile";
 import { FamilyForkForm } from "./family-fork-form";
 
@@ -17,5 +18,7 @@ import { FamilyForkForm } from "./family-fork-form";
 export default async function FamilyForkPage() {
   const profile = await readOnboardingProfile();
   if (!profile.full_name) redirect("/onboarding/profile");
-  return <FamilyForkForm fullName={profile.full_name} dob={profile.dob} mobile={profile.mobile} />;
+  // Arrived by an invite link: the code rides in, so joining is one tap.
+  const invite = (await cookies()).get("kin-invite")?.value ?? "";
+  return <FamilyForkForm fullName={profile.full_name} dob={profile.dob} mobile={profile.mobile} inviteCode={invite} />;
 }
