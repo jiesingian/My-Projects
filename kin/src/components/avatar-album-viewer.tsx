@@ -12,7 +12,7 @@ export function AvatarAlbumViewer({ photos, activeUrl, onClose }: { photos: Albu
       onSetActive={setActiveAvatarAction}
       onDelete={deleteAvatarFromAlbumAction}
       shape="circle"
-      emptyMessage="No photos yet — click EDIT PROFILE to add your first one."
+      emptyMessage="No photos yet — tap Edit profile to add your first one."
     />
   );
 }

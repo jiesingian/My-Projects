@@ -101,7 +101,7 @@ export default async function SettingsPage({
           </Blueprint>
         </Link>
 
-        <div style={{ font: "600 0.8125rem/1 var(--font-heading)", letterSpacing: ".02em", color: "var(--color-neutral-600)", marginBottom: "0.25rem" }}>
+        <div className="kin-eyebrow" style={{ marginBottom: "0.25rem" }}>
           CONNECTED SERVICES
         </div>
         <Blueprint style={{ padding: "0.875rem", marginBottom: "1.375rem" }}>
@@ -129,7 +129,7 @@ export default async function SettingsPage({
                 whatever sharing you set on that folder in Drive itself.
               </p>
               <a href="/api/drive/connect" className="btn btn-primary btn-block" style={{ minHeight: "2.75rem", fontSize: "0.84375rem", letterSpacing: ".04em" }}>
-                CONNECT GOOGLE DRIVE
+                Connect Google Drive
               </a>
             </>
           ) : (
@@ -158,7 +158,7 @@ export default async function SettingsPage({
                 you add or change there syncs back into Kin.
               </p>
               <a href="/api/calendar/connect" className="btn btn-primary btn-block" style={{ minHeight: "2.75rem", fontSize: "0.84375rem", letterSpacing: ".04em" }}>
-                CONNECT MY GOOGLE CALENDAR
+                Connect my Google Calendar
               </a>
             </>
           )}
@@ -178,7 +178,7 @@ export default async function SettingsPage({
           <CalendarFeedControl hasLink={Boolean(me.calendar_feed_hash)} />
         </Blueprint>
 
-        <div style={{ font: "600 0.8125rem/1 var(--font-heading)", letterSpacing: ".02em", color: "var(--color-neutral-600)", marginBottom: "0.5rem" }}>APPEARANCE</div>
+        <div className="kin-eyebrow" style={{ marginBottom: "0.5rem" }}>APPEARANCE</div>
         <div style={{ fontSize: "0.8125rem", color: "var(--color-neutral-700)", marginBottom: "0.375rem" }}>Theme</div>
         <ThemeControl current={me.theme} />
         <div style={{ fontSize: "0.8125rem", color: "var(--color-neutral-700)", marginBottom: "0.375rem" }}>Colours</div>
@@ -186,10 +186,10 @@ export default async function SettingsPage({
         <div style={{ fontSize: "0.8125rem", color: "var(--color-neutral-700)", marginBottom: "0.375rem" }}>Text size</div>
         <TextSizeControl current={me.text_scale} />
 
-        <div style={{ font: "600 0.8125rem/1 var(--font-heading)", letterSpacing: ".02em", color: "var(--color-neutral-600)", marginBottom: "0.125rem" }}>NOTIFICATIONS</div>
+        <div className="kin-eyebrow" style={{ marginBottom: "0.125rem" }}>NOTIFICATIONS</div>
         <NotificationToggles prefs={me.notification_prefs as Record<string, boolean>} />
 
-        <div style={{ font: "600 0.8125rem/1 var(--font-heading)", letterSpacing: ".02em", color: "var(--color-neutral-600)", margin: "22px 0 8px" }}>HOUSEHOLD</div>
+        <div className="kin-eyebrow" style={{ margin: "22px 0 8px" }}>HOUSEHOLD</div>
         <div style={{ fontSize: "0.8125rem", color: "var(--color-neutral-700)", marginBottom: "0.375rem" }}>Household name</div>
         {me.is_organiser ? (
           <HouseholdNameForm name={me.families.name} />
@@ -200,7 +200,7 @@ export default async function SettingsPage({
           Members · {memberCount ?? 0} · {managedCount ?? 0} managed profiles
         </div>
         <Link href="/family?seg=profile" className="btn btn-secondary btn-block" style={{ minHeight: "2.5rem", fontSize: "0.84375rem", marginBottom: "0.875rem" }}>
-          VIEW MEMBERS
+          View members
         </Link>
         {me.is_organiser && (
           <>
@@ -240,13 +240,13 @@ export default async function SettingsPage({
           </>
         )}
 
-        <div style={{ font: "600 0.8125rem/1 var(--font-heading)", letterSpacing: ".02em", color: "var(--color-neutral-600)", margin: "8px 0 2px" }}>ACCOUNT</div>
+        <div className="kin-eyebrow" style={{ margin: "8px 0 2px" }}>ACCOUNT</div>
         <div style={{ padding: "0.8125rem 0", borderBottom: "1px solid color-mix(in srgb, var(--color-text) 10%, transparent)", fontSize: "0.875rem" }}>
           {authUser.user?.email}
         </div>
         <form action={signOutAction}>
           <button type="submit" className="btn btn-secondary btn-block" style={{ minHeight: "2.875rem", fontSize: "0.84375rem", letterSpacing: ".04em", marginTop: "1.25rem" }}>
-            SIGN OUT
+            Sign out
           </button>
         </form>
         <div style={{ marginTop: "0.75rem" }}>

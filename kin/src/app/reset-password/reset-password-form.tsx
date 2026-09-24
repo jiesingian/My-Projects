@@ -37,7 +37,7 @@ export function ResetPasswordForm({ email, verified }: { email: string; verified
         {/* Only asked for when the emailed link did not sign them in already. */}
         {!verified && (
           <div className="field" style={{ marginBottom: "1rem" }}>
-            <label htmlFor={`${uid}-code`}>CODE FROM THE EMAIL</label>
+            <label htmlFor={`${uid}-code`}>Code from the email</label>
             <input
               id={`${uid}-code`}
               aria-label="Code from the email"
@@ -54,7 +54,7 @@ export function ResetPasswordForm({ email, verified }: { email: string; verified
         )}
 
         <div className="field" style={{ marginBottom: "1rem" }}>
-          <label htmlFor={`${uid}-password`}>NEW PASSWORD</label>
+          <label htmlFor={`${uid}-password`}>New password</label>
           <input
             id={`${uid}-password`}
             aria-label="New password"
@@ -68,7 +68,7 @@ export function ResetPasswordForm({ email, verified }: { email: string; verified
           />
         </div>
         <div className="field" style={{ marginBottom: "1.25rem" }}>
-          <label htmlFor={`${uid}-confirm`}>CONFIRM NEW PASSWORD</label>
+          <label htmlFor={`${uid}-confirm`}>Confirm new password</label>
           <input
             id={`${uid}-confirm`}
             aria-label="Confirm new password"
@@ -91,7 +91,7 @@ export function ResetPasswordForm({ email, verified }: { email: string; verified
           </span>
         </div>
         <SubmitButton style={{ minHeight: "2.875rem", fontSize: "0.9375rem", letterSpacing: ".04em" }}>
-          SAVE NEW PASSWORD
+          Save new password
         </SubmitButton>
       </form>
       <p style={{ fontSize: "0.8125rem", color: "var(--color-neutral-700)", marginTop: "1.25rem", textAlign: "center" }}>

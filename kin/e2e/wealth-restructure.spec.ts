@@ -76,7 +76,7 @@ test("Accounts kept a range picker of its own", async ({ page }) => {
   await page.getByRole("button", { name: "Choose graph range" }).click();
   await page.getByRole("menuitemradio", { name: "Days", exact: true }).click();
   await page.waitForURL(/seg=accounts.*range=day|range=day.*seg=accounts/);
-  await expect(page.getByText("BY DAYS", { exact: true })).toBeVisible();
+  await expect(page.getByText(/^BY DAYS$/i, { exact: true })).toBeVisible();
   await expect(page.getByText(/money in against money out, grouped by days/i)).toBeVisible();
 });
 
@@ -89,35 +89,35 @@ test("the budget ceiling moved to Cash Flow, under the spend it caps", async ({ 
   // confirms the closed state first -- the control genuinely isn't on the
   // page yet, not just hidden by CSS -- before opening the group to find it.
   await page.goto("/wealth?seg=cashflow&who=all", { waitUntil: "networkidle" });
-  const expenses = page.getByRole("button", { name: "EXPENSES", exact: true });
+  const expenses = page.getByRole("button", { name: /^EXPENSES$/i, exact: true });
   await expect(expenses).toHaveAttribute("aria-expanded", "false");
-  await expect(page.getByText("SPENT OF BUDGET")).toBeHidden();
+  await expect(page.getByText(/^SPENT OF BUDGET$/i)).toBeHidden();
 
   await expenses.click();
-  await expect(page.getByText("SPENT OF BUDGET")).toBeVisible();
-  await expect(page.getByRole("button", { name: "SET BUDGET" })).toBeVisible();
+  await expect(page.getByText(/^SPENT OF BUDGET$/i)).toBeVisible();
+  await expect(page.getByRole("button", { name: /^SET BUDGET$/i })).toBeVisible();
 
   // Collapsing EXPENSES should take the budget control with it -- which is
   // what proves it is in that group rather than sitting after it.
   await expenses.click();
-  await expect(page.getByRole("button", { name: "SET BUDGET" })).toBeHidden();
+  await expect(page.getByRole("button", { name: /^SET BUDGET$/i })).toBeHidden();
 
-  await expect(page.getByRole("button", { name: "SET BUDGET" }).or(page.getByText("SPENT OF BUDGET"))).toHaveCount(0);
+  await expect(page.getByRole("button", { name: /^SET BUDGET$/i }).or(page.getByText(/^SPENT OF BUDGET$/i))).toHaveCount(0);
 });
 
 test("the personal target moved to Cash Flow, under the income it measures", async ({ page }) => {
   const me = await whoAmI();
   await page.goto(`/wealth?seg=cashflow&who=${me}`, { waitUntil: "networkidle" });
-  const income = page.getByRole("button", { name: "INCOME", exact: true });
+  const income = page.getByRole("button", { name: /^INCOME$/i, exact: true });
   await expect(income).toHaveAttribute("aria-expanded", "false");
-  await expect(page.getByText("EARNED OF TARGET")).toBeHidden();
+  await expect(page.getByText(/^EARNED OF TARGET$/i)).toBeHidden();
 
   await income.click();
-  await expect(page.getByText("EARNED OF TARGET")).toBeVisible();
-  await expect(page.getByRole("button", { name: "SET TARGET" })).toBeVisible();
+  await expect(page.getByText(/^EARNED OF TARGET$/i)).toBeVisible();
+  await expect(page.getByRole("button", { name: /^SET TARGET$/i })).toBeVisible();
 
   await income.click();
-  await expect(page.getByRole("button", { name: "SET TARGET" })).toBeHidden();
+  await expect(page.getByRole("button", { name: /^SET TARGET$/i })).toBeHidden();
 });
 
 test("Accounts no longer carries the IN/OUT/NET summary", async ({ page }) => {
@@ -125,11 +125,11 @@ test("Accounts no longer carries the IN/OUT/NET summary", async ({ page }) => {
   // same number would be stated twice, from two different queries -- which is
   // how two screens start disagreeing about the same month.
   await page.goto("/wealth?seg=cashflow&who=all", { waitUntil: "networkidle" });
-  const onCashFlow = page.getByText("NET", { exact: true });
+  const onCashFlow = page.getByText(/^NET$/i, { exact: true });
   await expect(onCashFlow, "the summary should be on Cash Flow now").toHaveCount(1);
 
   await page.goto("/wealth?seg=accounts&who=all", { waitUntil: "networkidle" });
-  await expect(page.getByText("NET", { exact: true }), "and gone from Accounts").toHaveCount(0);
+  await expect(page.getByText(/^NET$/i, { exact: true }), "and gone from Accounts").toHaveCount(0);
 });
 
 test("the graph is no longer a collapsible group -- it's the tab's default display", async ({ page }) => {
@@ -138,7 +138,7 @@ test("the graph is no longer a collapsible group -- it's the tab's default displ
   // always on the page, with no toggle to hide them.
   await page.goto("/wealth?seg=cashflow&who=all", { waitUntil: "networkidle" });
 
-  await expect(page.getByRole("button", { name: "GRAPH", exact: true })).toHaveCount(0);
+  await expect(page.getByRole("button", { name: /^GRAPH$/i, exact: true })).toHaveCount(0);
   await expect(page.getByRole("button", { name: "Choose graph range" })).toBeVisible();
 });
 

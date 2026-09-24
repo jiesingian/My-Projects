@@ -21,7 +21,7 @@ export function AddToJournalButton({ activityId }: { activityId: string }) {
           })
         }
       >
-        {pending ? "Adding…" : "ADD TO JOURNAL"}
+        {pending ? "Adding…" : "Add to journal"}
       </button>
       {/* Without this the button reported success by going quiet, which is the
           same thing it did when the write failed. */}

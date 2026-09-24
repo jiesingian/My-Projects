@@ -93,18 +93,14 @@ function AddReward({ onDone }: { onDone: () => void }) {
       <ErrorText message={state.error} />
       <div style={{ display: "flex", gap: "0.4375rem", alignItems: "flex-end" }}>
         <span style={{ flex: 1 }}>
-          <label htmlFor={`${uid}-title`} style={{ display: "block", fontSize: "0.71875rem", color: "var(--color-neutral-600)", marginBottom: "0.1875rem" }}>
-            WHAT
-          </label>
+          <label htmlFor={`${uid}-title`} style={{ display: "block", fontSize: "0.71875rem", color: "var(--color-neutral-600)", marginBottom: "0.1875rem" }}>What</label>
           <input id={`${uid}-title`} className="input" name="title" required maxLength={100} placeholder="An hour of screen time" style={{ minHeight: "2.5rem", fontSize: "0.8125rem" }} />
         </span>
         <span style={{ width: 92 }}>
-          <label htmlFor={`${uid}-cost`} style={{ display: "block", fontSize: "0.71875rem", color: "var(--color-neutral-600)", marginBottom: "0.1875rem" }}>
-            POINTS
-          </label>
+          <label htmlFor={`${uid}-cost`} style={{ display: "block", fontSize: "0.71875rem", color: "var(--color-neutral-600)", marginBottom: "0.1875rem" }}>Points</label>
           <input id={`${uid}-cost`} className="input" name="cost_points" type="number" min="1" max="10000" required defaultValue={10} style={{ minHeight: "2.5rem", fontSize: "0.8125rem" }} />
         </span>
-        <SubmitButton style={{ minHeight: "2.5rem", fontSize: "0.8125rem", padding: "0 0.75rem" }}>SAVE</SubmitButton>
+        <SubmitButton style={{ minHeight: "2.5rem", fontSize: "0.8125rem", padding: "0 0.75rem" }}>Save</SubmitButton>
       </div>
     </form>
   );

@@ -21,11 +21,11 @@ export default async function PendingApprovalPage() {
         </p>
       </Blueprint>
       <Link href="/onboarding/pending" className="btn btn-secondary btn-block" style={{ minHeight: "2.875rem", fontSize: "0.875rem", letterSpacing: ".04em", marginBottom: "0.625rem" }}>
-        CHECK AGAIN
+        Check again
       </Link>
       <form action={signOutAction}>
         <button type="submit" className="btn btn-secondary btn-block" style={{ minHeight: "2.875rem", fontSize: "0.875rem", letterSpacing: ".04em" }}>
-          SIGN OUT
+          Sign out
         </button>
       </form>
     </OnboardingShell>

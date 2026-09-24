@@ -23,7 +23,7 @@ export default async function MembersPage() {
     <OnboardingShell step="STEP 05 / 05" backHref="/onboarding/family">
       <h2 style={{ fontSize: "2.125rem", margin: "0 0 18px" }}>Who is in it</h2>
       <div className="field" style={{ marginBottom: "1.25rem" }}>
-        <label htmlFor="onboarding-household-name">HOUSEHOLD NAME</label>
+        <label htmlFor="onboarding-household-name">Household name</label>
         <input id="onboarding-household-name" aria-label="Household Name" className="input" value={me.families.name} disabled style={{ minHeight: "2.75rem" }} />
       </div>
       <div
@@ -98,7 +98,7 @@ export default async function MembersPage() {
       </Blueprint>
 
       <Link href="/today" className="btn btn-primary btn-block" style={{ marginTop: "1.5rem", minHeight: "2.875rem", fontSize: "0.9375rem", letterSpacing: ".04em" }}>
-        ENTER KIN
+        Enter Kin
       </Link>
     </OnboardingShell>
   );

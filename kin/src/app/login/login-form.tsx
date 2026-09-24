@@ -27,11 +27,11 @@ export function LoginForm({ callbackError }: { callbackError?: string }) {
       <form action={formAction}>
         <ErrorText message={state.error} />
         <div className="field" style={{ marginBottom: "1rem" }}>
-          <label htmlFor={`${uid}-email`}>EMAIL</label>
+          <label htmlFor={`${uid}-email`}>Email</label>
           <input id={`${uid}-email`} aria-label="Email" className="input" type="email" name="email" required autoComplete="email" />
         </div>
         <div className="field" style={{ marginBottom: "0.625rem" }}>
-          <label htmlFor={`${uid}-password`}>PASSWORD</label>
+          <label htmlFor={`${uid}-password`}>Password</label>
           <input id={`${uid}-password`} aria-label="Password" className="input" type="password" name="password" required autoComplete="current-password" />
         </div>
         {/* Directly under the password, which is where it gets looked for the
@@ -39,7 +39,7 @@ export function LoginForm({ callbackError }: { callbackError?: string }) {
         <p style={{ fontSize: "0.8125rem", textAlign: "right", margin: "0 0 22px" }}>
           <Link href="/forgot-password">Forgot your password?</Link>
         </p>
-        <SubmitButton style={{ minHeight: "2.875rem", fontSize: "0.9375rem", letterSpacing: ".04em" }}>SIGN IN</SubmitButton>
+        <SubmitButton style={{ minHeight: "2.875rem", fontSize: "0.9375rem", letterSpacing: ".04em" }}>Sign in</SubmitButton>
       </form>
       <p style={{ fontSize: "0.8125rem", color: "var(--color-neutral-700)", marginTop: "1.25rem", textAlign: "center" }}>
         New here? <Link href="/signup">Create an account</Link>

@@ -48,7 +48,7 @@ function ItemForm({
   return (
     <div className="kin-vault-form">
       <div className="field">
-        <label htmlFor={`${uid}-group`}>GROUP</label>
+        <label htmlFor={`${uid}-group`}>Group</label>
         <input id={`${uid}-group`} className="input" list={`${uid}-groups`} placeholder="Wi-Fi" value={fields.group} onChange={(e) => set("group", e.target.value)} disabled={busy} maxLength={40} />
         <datalist id={`${uid}-groups`}>
           {groups.map((g) => (
@@ -57,15 +57,15 @@ function ItemForm({
         </datalist>
       </div>
       <div className="field">
-        <label htmlFor={`${uid}-label`}>NAME</label>
+        <label htmlFor={`${uid}-label`}>Name</label>
         <input id={`${uid}-label`} className="input" placeholder="Home Wi-Fi, Front gate, Netflix" value={fields.label} onChange={(e) => set("label", e.target.value)} disabled={busy} maxLength={80} />
       </div>
       <div className="field">
-        <label htmlFor={`${uid}-username`}>USERNAME OR NETWORK (OPTIONAL)</label>
+        <label htmlFor={`${uid}-username`}>Username or network (optional)</label>
         <input id={`${uid}-username`} className="input" autoComplete="off" value={fields.username} onChange={(e) => set("username", e.target.value)} disabled={busy} maxLength={200} />
       </div>
       <div className="field">
-        <label htmlFor={`${uid}-secret`}>PASSWORD OR CODE</label>
+        <label htmlFor={`${uid}-secret`}>Password or code</label>
         <div style={{ display: "flex", gap: "0.375rem" }}>
           <input
             id={`${uid}-secret`}
@@ -84,7 +84,7 @@ function ItemForm({
         </div>
       </div>
       <div className="field">
-        <label htmlFor={`${uid}-note`}>NOTE (OPTIONAL)</label>
+        <label htmlFor={`${uid}-note`}>Note (optional)</label>
         <input id={`${uid}-note`} className="input" placeholder="Router is behind the TV" value={fields.note} onChange={(e) => set("note", e.target.value)} disabled={busy} maxLength={500} />
       </div>
       <fieldset className="kin-vault-who" disabled={busy}>
@@ -99,10 +99,10 @@ function ItemForm({
       {error && <p className="kin-vault-error">{error}</p>}
       <div style={{ display: "flex", gap: "0.5rem" }}>
         <button type="button" className="btn btn-secondary" style={{ flex: 1 }} disabled={busy} onClick={onCancel}>
-          CANCEL
+          Cancel
         </button>
         <button type="button" className="btn btn-primary" style={{ flex: 1 }} disabled={busy} onClick={onSave}>
-          {busy ? "SAVING…" : "SAVE"}
+          {busy ? "Saving…" : "Save"}
         </button>
       </div>
     </div>
@@ -148,7 +148,7 @@ function SecretRow({ item, canEdit, onEdit, onRemove }: { item: VaultItem; canEd
         {canEdit && (
           <>
             <button type="button" onClick={onEdit} className="kin-vault-text">
-              EDIT
+              Edit
             </button>
             <button type="button" onClick={onRemove} aria-label={`Remove ${item.label}`}>
               <Icon name="trash" size={16} />

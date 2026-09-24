@@ -44,7 +44,7 @@ export function FamilyForkForm({
             Create a family
           </span>
           <div className="field" style={{ marginBottom: "0.75rem" }}>
-            <label htmlFor={`${uid}-household-name`}>HOUSEHOLD NAME</label>
+            <label htmlFor={`${uid}-household-name`}>Household name</label>
             <input id={`${uid}-household-name`} aria-label="Household Name" className="input" name="household_name" placeholder="The Reyes Household" required style={{ minHeight: "2.75rem" }} />
           </div>
           {/* One setting the household won't have to find its way to Settings
@@ -52,7 +52,7 @@ export function FamilyForkForm({
               Change it later same as currency; it never changes on its own
               just because a phone traveled. */}
           <div className="field" style={{ marginBottom: "0.75rem" }}>
-            <label htmlFor={`${uid}-country`}>COUNTRY</label>
+            <label htmlFor={`${uid}-country`}>Country</label>
             <select id={`${uid}-country`} aria-label="Country" className="input" name="country" defaultValue={DEFAULT_COUNTRY} style={{ minHeight: "2.75rem" }}>
               {COUNTRIES.map((c) => (
                 <option key={c.code} value={c.code}>
@@ -64,7 +64,7 @@ export function FamilyForkForm({
           {/* Starting a household is the one step a family invite code does
               not open — that code brings you into an existing family below. */}
           <div className="field" style={{ marginBottom: "0.75rem" }}>
-            <label htmlFor={`${uid}-access-code`}>ACCESS CODE</label>
+            <label htmlFor={`${uid}-access-code`}>Access code</label>
             <input aria-label="Access Code"
               id={`${uid}-access-code`}
               className="input"
@@ -83,7 +83,7 @@ export function FamilyForkForm({
           </div>
           <ErrorText message={createState.error} />
           <SubmitButton className="btn btn-primary btn-block" style={{ minHeight: "2.75rem" }}>
-            CREATE HOUSEHOLD
+            Create household
           </SubmitButton>
         </Blueprint>
       </form>
@@ -115,7 +115,7 @@ export function FamilyForkForm({
               }}
             />
             <SubmitButton className="btn btn-secondary" style={{ minHeight: "2.75rem", paddingInline: "1rem" }}>
-              JOIN
+              Join
             </SubmitButton>
           </div>
         </Blueprint>

@@ -149,7 +149,7 @@ async function EntriesPane({ familyId }: { familyId: string }) {
             <span style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: "0.625rem" }}>
               <EntryShareToggle entryId={e.id} shared={Boolean(e.shared_at)} linkedCount={linkedCount} />
               <Link href={`/journal/${e.id}/edit`} style={{ fontSize: "0.8125rem", fontWeight: 600, color: "var(--color-accent-700)" }}>
-                EDIT
+                Edit
               </Link>
             </span>
           </div>

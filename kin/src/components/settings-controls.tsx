@@ -322,7 +322,7 @@ export function HouseholdNameForm({ name }: { name: string }) {
             })
           }
         >
-          {pending ? "…" : "SAVE"}
+          {pending ? "…" : "Save"}
         </button>
       </div>
       {error && <p role="alert" style={{ color: "var(--color-accent-700)", fontSize: "0.8125rem", margin: "6px 0 0" }}>{error}</p>}
@@ -382,7 +382,7 @@ export function HouseholdPrefsForm({
           to searching. Blank stays a valid choice: nothing that reads this
           requires it. */}
       <div className="field" style={{ marginBottom: "0.5rem" }}>
-        <label htmlFor={`${uid}-country`}>COUNTRY</label>
+        <label htmlFor={`${uid}-country`}>Country</label>
         <select id={`${uid}-country`} className="input" value={k} onChange={(e) => setK(e.target.value)} style={{ minHeight: "2.5rem" }}>
           <option value="">— not set —</option>
           {COUNTRIES.map((cc) => (
@@ -404,7 +404,7 @@ export function HouseholdPrefsForm({
           })
         }
       >
-        {pending ? "…" : "SAVE HOUSEHOLD PREFERENCES"}
+        {pending ? "…" : "Save household preferences"}
       </button>
       {error && <p role="alert" style={{ color: "var(--color-accent-700)", fontSize: "0.8125rem", margin: "6px 0 0" }}>{error}</p>}
     </div>
@@ -446,7 +446,7 @@ export function DriveConnectedPanel({
           className="btn btn-secondary btn-block"
           style={{ minHeight: "2.5rem", fontSize: "0.84375rem", marginBottom: canManage ? 9 : 0 }}
         >
-          OPEN KIN FOLDER IN DRIVE
+          Open Kin folder in drive
         </a>
       )}
       {canManage && (
@@ -468,7 +468,7 @@ export function DriveConnectedPanel({
               })
             }
           >
-            {pending ? "…" : "DISCONNECT"}
+            {pending ? "…" : "Disconnect"}
           </button>
           {driveFailed && (
             <p role="alert" style={{ fontSize: "0.8125rem", color: "var(--color-accent-700)", margin: "6px 0 0" }}>
@@ -509,7 +509,7 @@ function MigratePhotosButton() {
           setMessage(result.error ?? (result.migrated ? `Moved ${result.migrated} photo${result.migrated === 1 ? "" : "s"} to Drive.` : "Nothing to move — already up to date."));
         }}
       >
-        {busy ? "MOVING…" : "MOVE EXISTING PHOTOS TO DRIVE"}
+        {busy ? "Moving…" : "Move existing photos to drive"}
       </button>
       {message && (
         <p role={isError ? "alert" : undefined} style={{ fontSize: "0.8125rem", color: isError ? "var(--color-accent-700)" : "var(--color-neutral-600)", margin: "6px 0 0" }}>{message}</p>
@@ -540,7 +540,7 @@ export function CalendarConnectedPanel({ email, lastSyncedAt }: { email: string 
           })
         }
       >
-        {pending ? "…" : "DISCONNECT"}
+        {pending ? "…" : "Disconnect"}
       </button>
       {/* A disconnect that quietly did not happen leaves the household
           believing Google is no longer reading their calendar. */}
@@ -581,7 +581,7 @@ function SyncCalendarButton() {
           setMessage(result.error ?? (result.synced ? `Synced ${result.synced} change${result.synced === 1 ? "" : "s"}.` : "Already up to date."));
         }}
       >
-        {busy ? "SYNCING…" : "SYNC NOW"}
+        {busy ? "Syncing…" : "Sync now"}
       </button>
       {message && (
         <p role={isError ? "alert" : undefined} style={{ fontSize: "0.8125rem", color: isError ? "var(--color-accent-700)" : "var(--color-neutral-600)", margin: "6px 0 0" }}>{message}</p>
@@ -643,7 +643,7 @@ export function CalendarFeedControl({ hasLink }: { hasLink: boolean }) {
       {links ? (
         <>
           <a href={links.webcal} className="btn btn-primary btn-block">
-            OPEN IN APPLE CALENDAR
+            Open in Apple Calendar
           </a>
           <div className="kin-feed-link">
             <code>{links.https}</code>
@@ -657,7 +657,7 @@ export function CalendarFeedControl({ hasLink }: { hasLink: boolean }) {
         </>
       ) : (
         <button type="button" className="btn btn-secondary btn-block" disabled={pending} onClick={make}>
-          {pending ? "MAKING A LINK…" : on ? "MAKE A NEW LINK" : "GET MY CALENDAR LINK"}
+          {pending ? "Making a link…" : on ? "Make a new link" : "Get my calendar link"}
         </button>
       )}
       {on && (

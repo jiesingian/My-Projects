@@ -20,7 +20,7 @@ export function OmronToggle({ memberId, connected }: { memberId: string; connect
           })
         }
       >
-        {pending ? "…" : connected ? "DISCONNECT DEVICE" : "CONNECT OMRON CONNECT"}
+        {pending ? "…" : connected ? "Disconnect device" : "Connect omron connect"}
       </button>
       {failed && (
         <p role="alert" style={{ fontSize: "0.8125rem", color: "var(--color-accent-700)", marginTop: "0.375rem" }}>

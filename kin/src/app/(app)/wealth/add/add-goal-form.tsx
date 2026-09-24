@@ -18,10 +18,10 @@ export function AddGoalForm({ accounts, currency }: { accounts: PickableAccount[
     <form action={formAction}>
       <input type="hidden" name="is_joint" value={isJoint ? "on" : ""} />
       <ErrorText message={state.error} />
-      <Field label="TITLE">
+      <Field label="Title">
         <input className="input" name="title" placeholder="Emergency fund · six months" required style={{ minHeight: "2.75rem" }} />
       </Field>
-      <Field label="NOTE">
+      <Field label="Note">
         <input className="input" name="sub_note" placeholder="Six months of household costs" style={{ minHeight: "2.75rem" }} />
       </Field>
       <div style={{ display: "flex", gap: "0.4375rem", marginBottom: "1rem" }}>
@@ -33,15 +33,15 @@ export function AddGoalForm({ accounts, currency }: { accounts: PickableAccount[
         </button>
       </div>
       <div style={{ display: "flex", gap: "0.75rem" }}>
-        <Field label="TARGET AMOUNT (₱)" style={{ flex: 1 }}>
+        <Field label="Target amount (₱)" style={{ flex: 1 }}>
           <input className="input" type="number" step="0.01" min="0" name="target_amount" required style={{ minHeight: "2.75rem" }} />
         </Field>
-        <Field label="TARGET DATE" style={{ flex: 1 }}>
+        <Field label="Target date" style={{ flex: 1 }}>
           <DateInput className="input" name="target_date" style={{ minHeight: "2.75rem" }} />
         </Field>
       </div>
       {accounts.length > 0 && (
-        <Field label="SAVED IN (OPTIONAL)">
+        <Field label="Saved in (optional)">
           <select className="input" name="linked_account_id" defaultValue="" style={{ minHeight: "2.75rem" }}>
             <option value="">No account yet</option>
             {accounts.map((a) => (
@@ -52,7 +52,7 @@ export function AddGoalForm({ accounts, currency }: { accounts: PickableAccount[
           </select>
         </Field>
       )}
-      <SubmitButton style={{ minHeight: "2.875rem", fontSize: "0.875rem", letterSpacing: ".04em" }}>SAVE GOAL</SubmitButton>
+      <SubmitButton style={{ minHeight: "2.875rem", fontSize: "0.875rem", letterSpacing: ".04em" }}>Save goal</SubmitButton>
       <p style={{ fontSize: "0.8125rem", color: "var(--color-neutral-600)", marginTop: "0.625rem" }}>
         A dated goal shows up on everyone&apos;s calendar, and money you put in comes out of a real account.
       </p>

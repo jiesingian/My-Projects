@@ -46,7 +46,7 @@ export function PhotoAlbumViewer({
         <div onClick={(e) => e.stopPropagation()} style={{ color: "#fff", textAlign: "center" }}>
           <p style={{ fontSize: "0.8125rem", marginBottom: "0.875rem" }}>{emptyMessage}</p>
           <button type="button" className="btn btn-secondary" style={{ minHeight: "2.5rem", fontSize: "0.84375rem", padding: "0 1.25rem" }} onClick={onClose}>
-            CLOSE
+            Close
           </button>
         </div>
       </div>
@@ -103,7 +103,7 @@ export function PhotoAlbumViewer({
                 }
               }}
             >
-              {isActive ? "CURRENT PICTURE" : busy ? "…" : "USE THIS PICTURE"}
+              {isActive ? "Current picture" : busy ? "…" : "Use this picture"}
             </button>
             <button
               type="button"
@@ -120,7 +120,7 @@ export function PhotoAlbumViewer({
                 else router.refresh();
               }}
             >
-              DELETE
+              Delete
             </button>
           </div>
         )}

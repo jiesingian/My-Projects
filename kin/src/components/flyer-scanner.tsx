@@ -93,7 +93,7 @@ export function FlyerScanner() {
         disabled={scanning || saving}
       />
       <label htmlFor={`${uid}-file`} className="btn btn-secondary btn-block" aria-disabled={scanning || saving}>
-        {scanning ? "READING THE PHOTO…" : rows ? "SCAN ANOTHER" : "TAKE OR CHOOSE A PHOTO"}
+        {scanning ? "Reading the photo…" : rows ? "Scan another" : "Take or choose a photo"}
       </label>
       {scanning && (
         <div className="kin-scan-reading" aria-hidden="true">
@@ -134,7 +134,7 @@ export function FlyerScanner() {
             ))}
           </ul>
           <button type="button" className="btn btn-primary btn-block" disabled={saving || kept === 0} onClick={save}>
-            {saving ? "ADDING…" : `ADD ${kept} TO THE FAMILY CALENDAR`}
+            {saving ? "Adding…" : `ADD ${kept} TO THE FAMILY CALENDAR`}
           </button>
         </>
       )}

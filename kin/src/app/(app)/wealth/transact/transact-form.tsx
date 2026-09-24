@@ -116,7 +116,7 @@ export function TransactForm({
       </Field>
 
       {mode === "transfer" && (
-        <Field label="TO ACCOUNT">
+        <Field label="To account">
           <select className="input" value={toAccountId} onChange={(e) => setToAccountId(e.target.value)} style={{ minHeight: "2.75rem" }}>
             {accounts.map((a) => (
               <option key={a.id} value={a.id}>
@@ -128,10 +128,10 @@ export function TransactForm({
       )}
 
       <div style={{ display: "flex", gap: "0.75rem" }}>
-        <Field label="AMOUNT (₱)" style={{ flex: 1 }}>
+        <Field label="Amount (₱)" style={{ flex: 1 }}>
           <input className="input" type="number" step="0.01" min="0" value={amount} onChange={(e) => setAmount(Number(e.target.value))} style={{ minHeight: "2.75rem" }} />
         </Field>
-        <Field label="DATE" style={{ flex: 1 }}>
+        <Field label="Date" style={{ flex: 1 }}>
           <DateInput className="input" value={occurredOn} onChange={(e) => setOccurredOn(e.target.value)} style={{ minHeight: "2.75rem" }} />
         </Field>
       </div>
@@ -178,7 +178,7 @@ export function TransactForm({
         </Field>
       )}
 
-      <Field label="PARTICULARS">
+      <Field label="Particulars">
         <input
           className="input"
           value={particulars}
@@ -196,7 +196,7 @@ export function TransactForm({
       )}
 
       <button type="button" className="btn btn-primary btn-block" disabled={pending} style={{ minHeight: "2.875rem", fontSize: "0.875rem", letterSpacing: ".04em" }} onClick={submit}>
-        {pending ? "…" : viaApp && canUseApp ? "OPEN APP & LOG IT" : "RECORD IT"}
+        {pending ? "…" : viaApp && canUseApp ? "Open app & log it" : "Record it"}
       </button>
 
       {viaApp && canUseApp && (

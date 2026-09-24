@@ -17,7 +17,7 @@ export const metadata: Metadata = {
   formatDetection: { telephone: false },
 };
 
-export const viewport: Viewport = {
+const BASE_VIEWPORT = {
   width: "device-width",
   initialScale: 1,
   // maximumScale is deliberately absent. Pinning it to 1 disabled pinch-zoom,
@@ -36,11 +36,23 @@ export const viewport: Viewport = {
   // the keyboard and 100dvh keeps its full-screen value. iOS already does
   // this; this is the line that makes Android behave the same way.
   interactiveWidget: "resizes-content",
-  themeColor: [
-    { media: "(prefers-color-scheme: light)", color: "#f2f2f7" },
-    { media: "(prefers-color-scheme: dark)", color: "#000000" },
-  ],
-};
+} satisfies Viewport;
+
+/** The phone's status bar takes the member's colour theme, so a cream
+ * Hearth page does not sit under a cool-grey bar. Read from the same cookie
+ * the root layout uses to switch a dark-only theme into dark mode. */
+export async function generateViewport(): Promise<Viewport> {
+  const palette = paletteById((await cookies()).get("kin-palette")?.value);
+  return {
+    ...BASE_VIEWPORT,
+    themeColor: palette.darkOnly
+      ? palette.dark.bg
+      : [
+          { media: "(prefers-color-scheme: light)", color: palette.light.bg },
+          { media: "(prefers-color-scheme: dark)", color: palette.dark.bg },
+        ],
+  };
+}
 
 export default async function RootLayout({
   children,

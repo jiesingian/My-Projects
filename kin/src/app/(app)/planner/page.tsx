@@ -992,7 +992,7 @@ async function EventsPane({ familyId, memberId, currency, who }: { familyId: str
                 category="Travel"
                 sourceTable="events"
                 sourceId={upcomingTrip.id}
-                label="LOG TRIP SPEND"
+                label="Log trip spend"
               />
             </div>
           </div>

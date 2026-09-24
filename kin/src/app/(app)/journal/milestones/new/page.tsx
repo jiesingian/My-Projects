@@ -28,14 +28,14 @@ export default function NewMilestonePage() {
         <form action={formAction}>
           <ErrorText message={state.error} />
           <div className="field" style={{ marginBottom: "0.875rem" }}>
-            <label htmlFor={`${uid}-title`}>TITLE</label>
+            <label htmlFor={`${uid}-title`}>Title</label>
             <input id={`${uid}-title`} aria-label="Title" className="input" name="title" required style={{ minHeight: "2.75rem" }} />
           </div>
           <div className="field" style={{ marginBottom: "1.125rem" }}>
-            <label htmlFor={`${uid}-date`}>DATE</label>
+            <label htmlFor={`${uid}-date`}>Date</label>
             <DateInput id={`${uid}-date`} aria-label="Date" className="input" name="date" defaultValue={familyDay()} required style={{ minHeight: "2.75rem" }} />
           </div>
-          <SubmitButton style={{ minHeight: "2.875rem", fontSize: "0.875rem", letterSpacing: ".04em" }}>SAVE MILESTONE</SubmitButton>
+          <SubmitButton style={{ minHeight: "2.875rem", fontSize: "0.875rem", letterSpacing: ".04em" }}>Save milestone</SubmitButton>
         </form>
       </div>
     </div>

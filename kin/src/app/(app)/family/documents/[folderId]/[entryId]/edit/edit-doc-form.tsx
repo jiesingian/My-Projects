@@ -74,13 +74,13 @@ export function EditDocForm({
           <ErrorText message={error} />
 
           <div className="field" style={{ marginBottom: "0.875rem" }}>
-            <label htmlFor={`${uid}-title`}>ENTRY TITLE</label>
+            <label htmlFor={`${uid}-title`}>Entry title</label>
             <input id={`${uid}-title`} aria-label="Entry Title" className="input" name="title" defaultValue={entry.title} required maxLength={150} style={{ minHeight: "2.75rem" }} />
           </div>
 
           <div style={{ display: "flex", gap: "0.75rem", marginBottom: "1rem" }}>
             <div className="field" style={{ flex: 1 }}>
-              <label htmlFor={`${uid}-owner`}>BELONGS TO</label>
+              <label htmlFor={`${uid}-owner`}>Belongs to</label>
               <select id={`${uid}-owner`} aria-label="Belongs To" className="input" name="owner_member_id" defaultValue={entry.owner_member_id ?? ""} style={{ minHeight: "2.75rem" }}>
                 <option value="">Whole family</option>
                 {members.map((m) => (
@@ -91,18 +91,18 @@ export function EditDocForm({
               </select>
             </div>
             <div className="field" style={{ flex: 1 }}>
-              <label htmlFor={`${uid}-expires`}>EXPIRES</label>
+              <label htmlFor={`${uid}-expires`}>Expires</label>
               <DateInput id={`${uid}-expires`} aria-label="Expires" className="input" name="expires_at" defaultValue={entry.expires_at ?? ""} style={{ minHeight: "2.75rem" }} />
             </div>
           </div>
 
           <div style={{ display: "flex", gap: "0.75rem", marginBottom: "1rem" }}>
             <div className="field" style={{ flex: 1 }}>
-              <label htmlFor={`${uid}-doc-type`}>DOCUMENT TYPE</label>
+              <label htmlFor={`${uid}-doc-type`}>Document type</label>
               <input id={`${uid}-doc-type`} aria-label="Document Type" className="input" name="doc_type" defaultValue={entry.doc_type ?? ""} placeholder="e.g. Application form" maxLength={50} style={{ minHeight: "2.75rem" }} />
             </div>
             <div className="field" style={{ flex: 1 }}>
-              <label htmlFor={`${uid}-reference-no`}>REFERENCE NO.</label>
+              <label htmlFor={`${uid}-reference-no`}>Reference no.</label>
               <input id={`${uid}-reference-no`} aria-label="Reference No." className="input" name="reference_no" defaultValue={entry.reference_no ?? ""} placeholder="Optional" maxLength={100} style={{ minHeight: "2.75rem" }} />
             </div>
           </div>
@@ -117,12 +117,12 @@ export function EditDocForm({
           </div>
 
           <div className="field" style={{ marginBottom: "1.125rem" }}>
-            <label htmlFor={`${uid}-note`}>NOTE</label>
+            <label htmlFor={`${uid}-note`}>Note</label>
             <input id={`${uid}-note`} aria-label="Note" className="input" name="note" defaultValue={entry.note ?? ""} placeholder="Anything worth remembering" maxLength={1000} style={{ minHeight: "2.75rem" }} />
           </div>
 
           <button type="submit" className="btn btn-primary btn-block" style={{ minHeight: "2.875rem", fontSize: "0.875rem", letterSpacing: ".04em" }} disabled={saving}>
-            {saving ? "SAVING…" : "SAVE CHANGES"}
+            {saving ? "Saving…" : "Save changes"}
           </button>
         </form>
       </div>

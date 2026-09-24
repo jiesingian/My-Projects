@@ -26,7 +26,7 @@ export default function SignupPage() {
         {/* First field, not last: if the code is wrong there is no reason to
             make them type an email and password before finding out. */}
         <div className="field" style={{ marginBottom: "1rem" }}>
-          <label htmlFor={`${uid}-access-code`}>ACCESS CODE</label>
+          <label htmlFor={`${uid}-access-code`}>Access code</label>
           <input aria-label="Access Code"
             id={`${uid}-access-code`}
             className="input"
@@ -42,11 +42,11 @@ export default function SignupPage() {
           </span>
         </div>
         <div className="field" style={{ marginBottom: "1rem" }}>
-          <label htmlFor={`${uid}-email`}>EMAIL</label>
+          <label htmlFor={`${uid}-email`}>Email</label>
           <input id={`${uid}-email`} aria-label="Email" className="input" type="email" name="email" required autoComplete="email" />
         </div>
         <div className="field" style={{ marginBottom: "1rem" }}>
-          <label htmlFor={`${uid}-password`}>PASSWORD</label>
+          <label htmlFor={`${uid}-password`}>Password</label>
           <input aria-label="Password"
             id={`${uid}-password`}
             className="input"
@@ -62,7 +62,7 @@ export default function SignupPage() {
           <span>Documents and health records stay in your own connected Drive. Kin stores only the index.</span>
         </div>
         <SubmitButton style={{ minHeight: "2.875rem", fontSize: "0.9375rem", letterSpacing: ".04em" }}>
-          SEND VERIFICATION CODE
+          Send verification code
         </SubmitButton>
       </form>
       <p style={{ fontSize: "0.8125rem", color: "var(--color-neutral-700)", marginTop: "1.25rem", textAlign: "center" }}>

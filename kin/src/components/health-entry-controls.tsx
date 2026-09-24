@@ -27,7 +27,7 @@ export function ConditionEntryControls({ entryId, memberId, date, note }: { entr
     return (
       <div style={rowStyle}>
         <button type="button" className="btn btn-secondary" style={smallBtn} onClick={() => setOpen(true)}>
-          EDIT
+          Edit
         </button>
         <DeleteButton
           label="Delete entry"
@@ -49,7 +49,7 @@ export function ConditionEntryControls({ entryId, memberId, date, note }: { entr
       </div>
       <div style={{ display: "flex", gap: "0.375rem" }}>
         <button type="button" className="btn btn-secondary" style={smallBtn} disabled={busy} onClick={() => { setOpen(false); setEntryDate(date); setEntryNote(note); setError(null); }}>
-          CANCEL
+          Cancel
         </button>
         <button
           type="button"
@@ -65,7 +65,7 @@ export function ConditionEntryControls({ entryId, memberId, date, note }: { entr
             router.refresh();
           }}
         >
-          {busy ? "SAVING…" : "SAVE"}
+          {busy ? "Saving…" : "Save"}
         </button>
       </div>
     </div>
@@ -95,7 +95,7 @@ export function LabControls({ labId, memberId, date, name, result }: { labId: st
     return (
       <div style={rowStyle}>
         <button type="button" className="btn btn-secondary" style={smallBtn} onClick={() => setOpen(true)}>
-          EDIT
+          Edit
         </button>
         <DeleteButton label="Delete lab result" confirmText="Delete this lab result? This can't be undone." onDelete={() => deleteLabAction(labId, memberId)} />
       </div>
@@ -122,7 +122,7 @@ export function LabControls({ labId, memberId, date, name, result }: { labId: st
           disabled={busy}
           onClick={() => { setOpen(false); setTestDate(date); setLabName(name); setLabResult(result); setError(null); }}
         >
-          CANCEL
+          Cancel
         </button>
         <button
           type="button"
@@ -138,7 +138,7 @@ export function LabControls({ labId, memberId, date, name, result }: { labId: st
             router.refresh();
           }}
         >
-          {busy ? "SAVING…" : "SAVE"}
+          {busy ? "Saving…" : "Save"}
         </button>
       </div>
     </div>

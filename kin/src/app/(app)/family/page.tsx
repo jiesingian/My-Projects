@@ -142,7 +142,7 @@ async function ProfilePane({ familyId, isOrganiser, myId, myRole }: { familyId: 
 
       {isOrganiser && removed.length > 0 && (
         <>
-          <div style={{ font: "600 0.8125rem/1 var(--font-heading)", letterSpacing: ".02em", color: "var(--color-neutral-600)", margin: "22px 0 8px" }}>
+          <div className="kin-eyebrow" style={{ margin: "22px 0 8px" }}>
             REMOVED · {removed.length}
           </div>
           {removed.map((m) => (
@@ -343,12 +343,12 @@ async function QuicklinksPane({ familyId, meId, myRole }: { familyId: string; me
     .map((m) => ({ id: m.id, name: m.full_name, phone: m.mobile?.trim() || null }));
   return (
     <>
-      <div style={{ font: "600 0.8125rem/1 var(--font-heading)", letterSpacing: ".02em", color: "var(--color-neutral-600)", marginBottom: "0.5rem" }}>
+      <div className="kin-eyebrow" style={{ marginBottom: "0.5rem" }}>
         EMERGENCY CONTACTS
       </div>
       <EmergencyContactList contacts={contacts} parents={parents} />
 
-      <div style={{ font: "600 0.8125rem/1 var(--font-heading)", letterSpacing: ".02em", color: "var(--color-neutral-600)", margin: "22px 0 8px" }}>
+      <div className="kin-eyebrow" style={{ margin: "22px 0 8px" }}>
         PASSWORDS
       </div>
       {vault ? (
@@ -372,7 +372,7 @@ async function QuicklinksPane({ familyId, meId, myRole }: { familyId: string; me
         </div>
       )}
 
-      <div style={{ font: "600 0.8125rem/1 var(--font-heading)", letterSpacing: ".02em", color: "var(--color-neutral-600)", margin: "22px 0 8px" }}>
+      <div className="kin-eyebrow" style={{ margin: "22px 0 8px" }}>
         WHERE EVERYONE IS
       </div>
       <LocationBoard people={people} meId={meId} myRole={myRole} />

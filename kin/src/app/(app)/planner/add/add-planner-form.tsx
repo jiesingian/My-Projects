@@ -108,13 +108,13 @@ function ActivityForm({ members, defaultDate, editActivity, prefill }: { members
         <input key={id} type="hidden" name="who" value={id} />
       ))}
       <ErrorText message={state.error} />
-      <Field label="TITLE"><input className="input" name="title" placeholder="Nursery orientation" required maxLength={150} defaultValue={editActivity?.title ?? prefill?.title} style={{ minHeight: "2.75rem" }} /></Field>
+      <Field label="Title"><input className="input" name="title" placeholder="Nursery orientation" required maxLength={150} defaultValue={editActivity?.title ?? prefill?.title} style={{ minHeight: "2.75rem" }} /></Field>
       <div style={{ display: "flex", gap: "0.75rem", marginBottom: "0.875rem" }}>
-        <Field label="DATE" style={{ flex: 1.2 }}><DateInput className="input" name="date" required defaultValue={startDate ?? defaultDate} style={{ minHeight: "2.75rem" }} /></Field>
-        <Field label="FROM" style={{ flex: 1 }}><input className="input" type="time" name="from" defaultValue={startTime ?? "08:30"} style={{ minHeight: "2.75rem" }} /></Field>
+        <Field label="Date" style={{ flex: 1.2 }}><DateInput className="input" name="date" required defaultValue={startDate ?? defaultDate} style={{ minHeight: "2.75rem" }} /></Field>
+        <Field label="From" style={{ flex: 1 }}><input className="input" type="time" name="from" defaultValue={startTime ?? "08:30"} style={{ minHeight: "2.75rem" }} /></Field>
         <Field label="TO" style={{ flex: 1 }}><input className="input" type="time" name="to" defaultValue={endTime} style={{ minHeight: "2.75rem" }} /></Field>
       </div>
-      <Field label="REPEATS">
+      <Field label="Repeats">
         <select className="input" name="repeat" defaultValue={editActivity?.repeat ?? "once"} style={{ minHeight: "2.75rem" }}>
           <option value="once">Once</option>
           <option value="weekly">Weekly</option>
@@ -145,9 +145,9 @@ function ActivityForm({ members, defaultDate, editActivity, prefill }: { members
           );
         })}
       </div>
-      <Field label="LOCATION"><input className="input" name="location" placeholder="Little Acorns, San Juan" maxLength={200} defaultValue={editActivity?.location ?? undefined} style={{ minHeight: "2.75rem" }} /></Field>
-      <Field label="NOTES"><textarea className="input" name="notes" maxLength={1000} defaultValue={editActivity?.notes ?? prefill?.notes} /></Field>
-      <SubmitButton style={{ minHeight: "2.875rem", fontSize: "0.875rem", letterSpacing: ".04em" }}>{editActivity ? "SAVE CHANGES" : "SAVE TO CALENDAR"}</SubmitButton>
+      <Field label="Location"><input className="input" name="location" placeholder="Little Acorns, San Juan" maxLength={200} defaultValue={editActivity?.location ?? undefined} style={{ minHeight: "2.75rem" }} /></Field>
+      <Field label="Notes"><textarea className="input" name="notes" maxLength={1000} defaultValue={editActivity?.notes ?? prefill?.notes} /></Field>
+      <SubmitButton style={{ minHeight: "2.875rem", fontSize: "0.875rem", letterSpacing: ".04em" }}>{editActivity ? "Save changes" : "Save to calendar"}</SubmitButton>
       {editActivity && (
         <button
           type="button"
@@ -166,7 +166,7 @@ function ActivityForm({ members, defaultDate, editActivity, prefill }: { members
             router.push("/planner?seg=calendar");
           }}
         >
-          {deleting ? "DELETING…" : "DELETE TASK"}
+          {deleting ? "Deleting…" : "Delete task"}
         </button>
       )}
       <ErrorText message={deleteError} />
@@ -268,18 +268,18 @@ function EventForm({
       }}
     >
       <ErrorText message={state.error} />
-      <Field label="TITLE"><input className="input" name="title" required maxLength={150} defaultValue={editEvent?.title ?? prefill?.title} style={{ minHeight: "2.75rem" }} /></Field>
+      <Field label="Title"><input className="input" name="title" required maxLength={150} defaultValue={editEvent?.title ?? prefill?.title} style={{ minHeight: "2.75rem" }} /></Field>
       <div style={{ display: "flex", gap: "0.625rem" }}>
-        <Field label="DATE" style={{ flex: 1 }}>
+        <Field label="Date" style={{ flex: 1 }}>
           <DateInput className="input" name="date" required defaultValue={editEvent?.event_date ?? defaultDate} style={{ minHeight: "2.75rem" }} />
         </Field>
         {/* Optional, and what makes travel an event rather than its own
             table: a birthday is a day, a trip is a run of them. */}
-        <Field label="ENDS (OPTIONAL)" style={{ flex: 1 }}>
+        <Field label="Ends (optional)" style={{ flex: 1 }}>
           <DateInput className="input" name="end_date" defaultValue={editEvent?.end_date ?? undefined} style={{ minHeight: "2.75rem" }} />
         </Field>
       </div>
-      <Field label="KIND">
+      <Field label="Kind">
         <select className="input" name="kind" defaultValue={editEvent?.kind ?? "birthday"} style={{ minHeight: "2.75rem" }}>
           <option value="birthday">Birthday</option>
           <option value="anniversary">Anniversary</option>
@@ -289,11 +289,11 @@ function EventForm({
           <option value="other">Other</option>
         </select>
       </Field>
-      <Field label="NOTE"><input className="input" name="sub_note" placeholder="Dinner at home" maxLength={200} defaultValue={editEvent?.sub_note ?? prefill?.notes} style={{ minHeight: "2.75rem" }} /></Field>
+      <Field label="Note"><input className="input" name="sub_note" placeholder="Dinner at home" maxLength={200} defaultValue={editEvent?.sub_note ?? prefill?.notes} style={{ minHeight: "2.75rem" }} /></Field>
       {/* type="text" rather than "url": a link copied from an address bar often
           arrives without https://, which "url" refuses with a browser message
           of its own. The action adds it and says plainly if it's not a link. */}
-      <Field label="INVITATION LINK (OPTIONAL)">
+      <Field label="Invitation link (optional)">
         <input
           className="input"
           name="invite_url"
@@ -308,7 +308,7 @@ function EventForm({
           style={{ minHeight: "2.75rem" }}
         />
       </Field>
-      <Field label="BUDGET (OPTIONAL)">
+      <Field label="Budget (optional)">
         <div style={{ display: "flex", gap: "0.5rem" }}>
           <select
             className="input"
@@ -341,7 +341,7 @@ function EventForm({
         chosen={who}
         setChosen={setWho}
       />
-      <SubmitButton pending={saving} style={{ minHeight: "2.875rem", fontSize: "0.875rem", letterSpacing: ".04em" }}>{editEvent ? "SAVE CHANGES" : "SAVE EVENT"}</SubmitButton>
+      <SubmitButton pending={saving} style={{ minHeight: "2.875rem", fontSize: "0.875rem", letterSpacing: ".04em" }}>{editEvent ? "Save changes" : "Save event"}</SubmitButton>
       {editEvent && (
         <button
           type="button"
@@ -360,7 +360,7 @@ function EventForm({
             router.push("/planner?seg=events");
           }}
         >
-          {deleting ? "DELETING…" : "DELETE EVENT"}
+          {deleting ? "Deleting…" : "Delete event"}
         </button>
       )}
       <ErrorText message={deleteError} />

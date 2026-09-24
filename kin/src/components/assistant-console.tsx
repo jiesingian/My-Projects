@@ -152,7 +152,7 @@ export function AssistantConsole({ memberName }: { memberName: string }) {
             }}
             style={{ marginLeft: "auto", background: "none", border: 0, cursor: "pointer", font: "600 0.75rem/1 var(--font-heading)", letterSpacing: ".02em", color: "var(--color-neutral-600)" }}
           >
-            CLEAR
+            Clear
           </button>
         )}
       </div>
@@ -224,7 +224,7 @@ export function AssistantConsole({ memberName }: { memberName: string }) {
           </button>
         )}
         <button type="submit" className="btn btn-primary" disabled={thinking || !draft.trim()} style={{ minHeight: "2.625rem", paddingInline: "1rem", fontSize: "0.875rem" }}>
-          {thinking ? "…" : "SEND"}
+          {thinking ? "…" : "Send"}
         </button>
       </form>
 

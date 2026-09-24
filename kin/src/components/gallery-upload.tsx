@@ -57,7 +57,7 @@ export function GalleryUpload() {
       <div style={{ display: "flex", gap: "0.625rem", alignItems: "center" }}>
         <input aria-label="Choose photos and videos to upload" ref={inputRef} type="file" name="files" multiple accept="image/*,video/*" style={{ flex: 1, fontSize: "0.84375rem" }} onChange={onFilesChosen} disabled={status.uploading} />
         <button type="button" className="btn btn-primary" style={{ minHeight: "2.5rem", fontSize: "0.84375rem" }} onClick={onUpload} disabled={status.uploading || previews.length === 0}>
-          {status.uploading ? `UPLOADING ${status.done + 1}/${status.total}…` : "UPLOAD"}
+          {status.uploading ? `UPLOADING ${status.done + 1}/${status.total}…` : "Upload"}
         </button>
       </div>
       <ErrorText message={status.error} />

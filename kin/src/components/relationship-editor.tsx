@@ -49,7 +49,7 @@ export function RelationshipEditor({ memberId, relationship }: { memberId: strin
             }
           }}
         >
-          {busy ? "…" : "SAVE"}
+          {busy ? "…" : "Save"}
         </button>
       </div>
       <button

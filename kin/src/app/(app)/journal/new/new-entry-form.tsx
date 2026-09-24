@@ -70,11 +70,11 @@ export function NewEntryForm({ members }: { members: Tables<"members">[] }) {
         <form onSubmit={onSubmit}>
           <ErrorText message={error} />
           <div className="field" style={{ marginBottom: "0.875rem" }}>
-            <label htmlFor={`${uid}-title`}>TITLE</label>
+            <label htmlFor={`${uid}-title`}>Title</label>
             <input id={`${uid}-title`} aria-label="Title" className="input" name="title" required style={{ minHeight: "2.75rem" }} />
           </div>
           <div className="field" style={{ marginBottom: "1rem" }}>
-            <label htmlFor={`${uid}-date`}>DATE</label>
+            <label htmlFor={`${uid}-date`}>Date</label>
             <DateInput id={`${uid}-date`} aria-label="Date" className="input" name="date" defaultValue={familyDay()} required style={{ minHeight: "2.75rem" }} />
           </div>
           <div style={{ fontSize: "0.8125rem", color: "var(--color-neutral-700)", marginBottom: "0.375rem" }}>Who was there</div>
@@ -95,11 +95,11 @@ export function NewEntryForm({ members }: { members: Tables<"members">[] }) {
             })}
           </div>
           <div className="field" style={{ marginBottom: "1rem" }}>
-            <label htmlFor={`${uid}-note`}>NOTE</label>
+            <label htmlFor={`${uid}-note`}>Note</label>
             <textarea id={`${uid}-note`} aria-label="Note" className="input" name="note" placeholder="What happened?" />
           </div>
           <div className="field" style={{ marginBottom: "0.625rem" }}>
-            <label htmlFor={`${uid}-photos`}>PHOTOS</label>
+            <label htmlFor={`${uid}-photos`}>Photos</label>
             <input id={`${uid}-photos`} aria-label="Photos" ref={fileRef} type="file" name="files" multiple accept="image/*,video/*" onChange={onFilesChosen} />
           </div>
           {previews.length > 0 && (
@@ -111,7 +111,7 @@ export function NewEntryForm({ members }: { members: Tables<"members">[] }) {
             </div>
           )}
           <button type="submit" className="btn btn-primary btn-block" style={{ minHeight: "2.875rem", fontSize: "0.875rem", letterSpacing: ".04em", marginTop: "0.5rem" }} disabled={saving}>
-            {saving ? "SAVING…" : "SAVE ENTRY"}
+            {saving ? "Saving…" : "Save entry"}
           </button>
         </form>
       </div>

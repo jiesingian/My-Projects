@@ -22,11 +22,11 @@ export function ForgotPasswordForm() {
       <form action={formAction}>
         <ErrorText message={state.error} />
         <div className="field" style={{ marginBottom: "1.5rem" }}>
-          <label htmlFor={`${uid}-email`}>EMAIL</label>
+          <label htmlFor={`${uid}-email`}>Email</label>
           <input id={`${uid}-email`} aria-label="Email" className="input" type="email" name="email" required autoComplete="email" autoFocus />
         </div>
         <SubmitButton style={{ minHeight: "2.875rem", fontSize: "0.9375rem", letterSpacing: ".04em" }}>
-          SEND RESET CODE
+          Send reset code
         </SubmitButton>
       </form>
       <p style={{ fontSize: "0.8125rem", color: "var(--color-neutral-700)", marginTop: "1.25rem", textAlign: "center" }}>

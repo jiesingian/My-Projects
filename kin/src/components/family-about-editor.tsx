@@ -13,7 +13,7 @@ export function FamilyAboutEditor({ about, canEdit }: { about: string | null; ca
 
   return (
     <div style={{ marginBottom: "1.25rem" }}>
-      <div style={{ font: "600 0.8125rem/1 var(--font-heading)", letterSpacing: ".02em", color: "var(--color-neutral-600)", marginBottom: "0.5rem" }}>
+      <div className="kin-eyebrow" style={{ marginBottom: "0.5rem" }}>
         ABOUT THE FAMILY
       </div>
 
@@ -52,7 +52,7 @@ export function FamilyAboutEditor({ about, canEdit }: { about: string | null; ca
                 setMode("view");
               }}
             >
-              CANCEL
+              Cancel
             </button>
             <button
               type="button"
@@ -71,7 +71,7 @@ export function FamilyAboutEditor({ about, canEdit }: { about: string | null; ca
                 }
               }}
             >
-              {busy ? "SAVING…" : "SAVE"}
+              {busy ? "Saving…" : "Save"}
             </button>
           </div>
         </div>

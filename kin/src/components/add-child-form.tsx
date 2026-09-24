@@ -23,7 +23,7 @@ export function AddChildForm() {
     return (
       <div style={{ display: "flex", gap: "0.625rem", marginTop: "1.125rem" }}>
         <button type="button" className="btn btn-secondary" style={{ flex: 1, minHeight: "2.625rem", fontSize: "0.875rem" }} onClick={() => setOpen(true)}>
-          ADD CHILD
+          Add child
         </button>
       </div>
     );
@@ -50,11 +50,11 @@ export function AddChildForm() {
       </div>
       <div style={{ display: "flex", gap: "0.75rem", marginBottom: "0.875rem" }}>
         <div className="field" style={{ flex: 1 }}>
-          <label htmlFor={`${uid}-dob`}>DATE OF BIRTH</label>
+          <label htmlFor={`${uid}-dob`}>Date of birth</label>
           <DateInput id={`${uid}-dob`} aria-label="Date of birth" className="input" name="dob" required style={{ minHeight: "2.75rem" }} />
         </div>
         <div className="field" style={{ flex: 1 }}>
-          <label htmlFor={`${uid}-relationship`}>RELATIONSHIP</label>
+          <label htmlFor={`${uid}-relationship`}>Relationship</label>
           <input id={`${uid}-relationship`} aria-label="Relationship" className="input" name="relationship" defaultValue="child" style={{ minHeight: "2.75rem" }} />
         </div>
       </div>
@@ -77,11 +77,11 @@ export function AddChildForm() {
       {withLogin && (
         <>
           <div className="field" style={{ marginBottom: "0.75rem" }}>
-            <label htmlFor={`${uid}-email`}>THEIR EMAIL</label>
+            <label htmlFor={`${uid}-email`}>Their email</label>
             <input id={`${uid}-email`} aria-label="Their email" className="input" type="email" name="email" required autoComplete="off" style={{ minHeight: "2.75rem" }} />
           </div>
           <div className="field" style={{ marginBottom: "0.75rem" }}>
-            <label htmlFor={`${uid}-password`}>FIRST PASSWORD</label>
+            <label htmlFor={`${uid}-password`}>First password</label>
             <input
               id={`${uid}-password`}
               aria-label="First password"
@@ -109,7 +109,7 @@ export function AddChildForm() {
 
       <div style={{ display: "flex", gap: "0.625rem" }}>
         <SubmitButton className="btn btn-primary" style={{ flex: 1, minHeight: "2.625rem", fontSize: "0.875rem" }}>
-          SAVE CHILD
+          Save child
         </SubmitButton>
         <button
           type="button"
@@ -121,7 +121,7 @@ export function AddChildForm() {
             setError(null);
           }}
         >
-          CANCEL
+          Cancel
         </button>
       </div>
     </form>

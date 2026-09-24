@@ -131,7 +131,7 @@ export function DocumentsLock({
             autoFocus={!bioAvailable}
             style={{ letterSpacing: ".3em", marginBottom: "0.625rem" }}
           />
-          <SubmitButton style={{ width: "100%" }}>UNLOCK</SubmitButton>
+          <SubmitButton style={{ width: "100%" }}>Unlock</SubmitButton>
         </form>
       )}
 

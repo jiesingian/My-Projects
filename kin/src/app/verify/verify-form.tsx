@@ -38,7 +38,7 @@ export function VerifyForm({ email }: { email: string }) {
           })
         }
       >
-        {pending ? "SENDING…" : "RESEND EMAIL"}
+        {pending ? "Sending…" : "Resend email"}
       </button>
       {resendNote && (
         <p style={{ fontSize: "0.875rem", color: "var(--color-neutral-600)", marginTop: "0.625rem" }}>{resendNote}</p>

@@ -35,11 +35,11 @@ function AssetForm() {
     <form action={formAction}>
       <input type="hidden" name="is_joint" value={isJoint ? "on" : ""} />
       <ErrorText message={state.error} />
-      <Field label="WHAT IS IT">
+      <Field label="What is it">
         <input className="input" name="name" required placeholder="House in San Juan" style={{ minHeight: "2.75rem" }} />
       </Field>
       <div style={{ display: "flex", gap: "0.75rem" }}>
-        <Field label="KIND" style={{ flex: 1 }}>
+        <Field label="Kind" style={{ flex: 1 }}>
           <select className="input" name="kind" defaultValue="property" style={{ minHeight: "2.75rem" }}>
             {ASSET_KINDS.map((k) => (
               <option key={k} value={k}>
@@ -48,18 +48,18 @@ function AssetForm() {
             ))}
           </select>
         </Field>
-        <Field label="VALUE (₱)" style={{ flex: 1 }}>
+        <Field label="Value (₱)" style={{ flex: 1 }}>
           <input className="input" type="number" step="0.01" min="0" name="value" required style={{ minHeight: "2.75rem" }} />
         </Field>
       </div>
-      <Field label="OWNED SINCE">
+      <Field label="Owned since">
         <DateInput className="input" name="acquired_on" style={{ minHeight: "2.75rem" }} />
       </Field>
       <JointToggle isJoint={isJoint} setIsJoint={setIsJoint} />
-      <Field label="NOTE">
+      <Field label="Note">
         <input className="input" name="note" placeholder="Title under both names" style={{ minHeight: "2.75rem" }} />
       </Field>
-      <SubmitButton style={{ minHeight: "2.875rem", fontSize: "0.875rem", letterSpacing: ".04em" }}>SAVE ASSET</SubmitButton>
+      <SubmitButton style={{ minHeight: "2.875rem", fontSize: "0.875rem", letterSpacing: ".04em" }}>Save asset</SubmitButton>
     </form>
   );
 }
@@ -72,11 +72,11 @@ function LiabilityForm() {
     <form action={formAction}>
       <input type="hidden" name="is_joint" value={isJoint ? "on" : ""} />
       <ErrorText message={state.error} />
-      <Field label="WHAT IS OWED">
+      <Field label="What is owed">
         <input className="input" name="name" required placeholder="Home loan" style={{ minHeight: "2.75rem" }} />
       </Field>
       <div style={{ display: "flex", gap: "0.75rem" }}>
-        <Field label="KIND" style={{ flex: 1 }}>
+        <Field label="Kind" style={{ flex: 1 }}>
           <select className="input" name="kind" defaultValue="mortgage" style={{ minHeight: "2.75rem" }}>
             {LIABILITY_KINDS.map((k) => (
               <option key={k} value={k}>
@@ -85,23 +85,23 @@ function LiabilityForm() {
             ))}
           </select>
         </Field>
-        <Field label="BALANCE (₱)" style={{ flex: 1 }}>
+        <Field label="Balance (₱)" style={{ flex: 1 }}>
           <input className="input" type="number" step="0.01" min="0" name="balance" required style={{ minHeight: "2.75rem" }} />
         </Field>
       </div>
       <div style={{ display: "flex", gap: "0.75rem" }}>
-        <Field label="LENDER" style={{ flex: 1 }}>
+        <Field label="Lender" style={{ flex: 1 }}>
           <input className="input" name="lender" placeholder="BPI" style={{ minHeight: "2.75rem" }} />
         </Field>
-        <Field label="PER MONTH (₱)" style={{ flex: 1 }}>
+        <Field label="Per month (₱)" style={{ flex: 1 }}>
           <input className="input" type="number" step="0.01" min="0" name="monthly_payment" style={{ minHeight: "2.75rem" }} />
         </Field>
       </div>
       <JointToggle isJoint={isJoint} setIsJoint={setIsJoint} />
-      <Field label="NOTE">
+      <Field label="Note">
         <input className="input" name="note" style={{ minHeight: "2.75rem" }} />
       </Field>
-      <SubmitButton style={{ minHeight: "2.875rem", fontSize: "0.875rem", letterSpacing: ".04em" }}>SAVE LIABILITY</SubmitButton>
+      <SubmitButton style={{ minHeight: "2.875rem", fontSize: "0.875rem", letterSpacing: ".04em" }}>Save liability</SubmitButton>
     </form>
   );
 }
