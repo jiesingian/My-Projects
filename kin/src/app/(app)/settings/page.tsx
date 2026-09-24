@@ -9,6 +9,7 @@ import { Icon } from "@/components/icons";
 import {
   ThemeControl,
   PaletteControl,
+  CalendarFeedControl,
   TextSizeControl,
   NotificationToggles,
   InviteCodeCard,
@@ -166,6 +167,15 @@ export default async function SettingsPage({
               Also connected: {otherConnectedNames.join(", ")}
             </div>
           )}
+        </Blueprint>
+
+        <Blueprint style={{ padding: "0.875rem", marginBottom: "1.375rem" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: "0.625rem", marginBottom: "0.5rem" }}>
+            <Icon name="calendarDays" size={18} className="text-[var(--color-accent-700)]" />
+            <span style={{ font: "600 1.125rem/1.05 var(--font-heading)", flex: 1 }}>Apple Calendar &amp; Outlook</span>
+            <Tag variant={me.calendar_feed_hash ? "accent" : "outline"}>{me.calendar_feed_hash ? "LINK ON" : "OFF"}</Tag>
+          </div>
+          <CalendarFeedControl hasLink={Boolean(me.calendar_feed_hash)} />
         </Blueprint>
 
         <div style={{ font: "600 0.8125rem/1 var(--font-heading)", letterSpacing: ".02em", color: "var(--color-neutral-600)", marginBottom: "0.5rem" }}>APPEARANCE</div>

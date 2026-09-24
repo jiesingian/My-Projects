@@ -1,7 +1,7 @@
 "use client";
 
 import { useId, useTransition } from "react";
-import { setThemeAction, setTextScaleAction, setPaletteAction, toggleNotificationAction, updateHouseholdNameAction, updateHouseholdPrefsAction } from "@/lib/actions/settings";
+import { setThemeAction, setTextScaleAction, setPaletteAction, createCalendarFeedAction, removeCalendarFeedAction, toggleNotificationAction, updateHouseholdNameAction, updateHouseholdPrefsAction } from "@/lib/actions/settings";
 import { regenerateInviteCodeAction } from "@/lib/actions/family";
 import { disconnectDriveAction } from "@/lib/actions/drive";
 import { migrateProfilePhotosToDriveAction } from "@/lib/actions/photo-migration";
@@ -586,6 +586,86 @@ function SyncCalendarButton() {
       {message && (
         <p role={isError ? "alert" : undefined} style={{ fontSize: "0.8125rem", color: isError ? "var(--color-accent-700)" : "var(--color-neutral-600)", margin: "6px 0 0" }}>{message}</p>
       )}
+    </div>
+  );
+}
+
+/** Apple Calendar (and Outlook, and anything else that subscribes to a link).
+ * Apple offers no sign-in a web app can use, so this is a private link the
+ * calendar checks every so often. It is shown once, when it is made. */
+export function CalendarFeedControl({ hasLink }: { hasLink: boolean }) {
+  const [links, setLinks] = useState<{ https: string; webcal: string } | null>(null);
+  const [on, setOn] = useState(hasLink);
+  const [copied, setCopied] = useState(false);
+  const [failed, setFailed] = useState<string | null>(null);
+  const [pending, startTransition] = useTransition();
+
+  const make = async () => {
+    if (on && !(await confirm({ title: "Make a new link?", description: "The old link stops working, so any calendar using it stops updating until you subscribe with the new one.", confirmLabel: "Make new link" }))) return;
+    startTransition(async () => {
+      const result = await createCalendarFeedAction();
+      setFailed(result.error);
+      if (!result.error && result.https && result.webcal) {
+        setLinks({ https: result.https, webcal: result.webcal });
+        setOn(true);
+      }
+    });
+  };
+
+  const turnOff = async () => {
+    if (!(await confirm({ title: "Turn off the calendar link?", description: "Calendars subscribed to it stop updating.", confirmLabel: "Turn off", danger: true }))) return;
+    startTransition(async () => {
+      const { error } = await removeCalendarFeedAction();
+      setFailed(error);
+      if (!error) {
+        setOn(false);
+        setLinks(null);
+      }
+    });
+  };
+
+  const copy = async () => {
+    if (!links) return;
+    try {
+      await navigator.clipboard.writeText(links.https);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1600);
+    } catch {
+      setFailed("Couldn't copy. Press and hold the link to copy it instead.");
+    }
+  };
+
+  return (
+    <div className="kin-feed">
+      <p className="kin-feed-lede">
+        See the family&apos;s plans in Apple Calendar or Outlook. Your tasks and the whole family&apos;s appear there and update by themselves.
+      </p>
+      {links ? (
+        <>
+          <a href={links.webcal} className="btn btn-primary btn-block">
+            OPEN IN APPLE CALENDAR
+          </a>
+          <div className="kin-feed-link">
+            <code>{links.https}</code>
+            <button type="button" className="btn btn-secondary" onClick={copy}>
+              {copied ? "Copied" : "Copy"}
+            </button>
+          </div>
+          <p className="kin-feed-note">
+            For Outlook or Google Calendar, add a calendar &ldquo;from URL&rdquo; and paste this. It is shown only now, and anyone with it can see these plans, so keep it to yourself.
+          </p>
+        </>
+      ) : (
+        <button type="button" className="btn btn-secondary btn-block" disabled={pending} onClick={make}>
+          {pending ? "MAKING A LINK…" : on ? "MAKE A NEW LINK" : "GET MY CALENDAR LINK"}
+        </button>
+      )}
+      {on && (
+        <button type="button" className="btn btn-ghost" disabled={pending} onClick={turnOff} style={{ marginTop: "0.25rem" }}>
+          Turn the link off
+        </button>
+      )}
+      <DidNotSave message={failed} />
     </div>
   );
 }
