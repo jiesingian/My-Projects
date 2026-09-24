@@ -61,7 +61,7 @@ export function AddPlannerForm({
 
   return (
     <div>
-      <DetailHeader backHref="/planner" eyebrow="HUB 03 · NEW" />
+      <DetailHeader backHref="/planner" eyebrow="Planner" />
       <div style={{ padding: "0 1.375rem 1.375rem" }}>
         <h3 style={{ fontSize: "2rem", margin: "0 0 14px" }}>{isEditing ? "Edit" : "Add to"} Planner</h3>
         {!isEditing && <FlyerScanner />}

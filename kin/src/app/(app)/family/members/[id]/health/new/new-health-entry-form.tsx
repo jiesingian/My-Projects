@@ -45,7 +45,7 @@ export function NewHealthEntryForm({
     <div>
       <DetailHeader
         backHref={`/family/members/${member.id}?view=health`}
-        eyebrow="HUB 01 · HEALTH ENTRY"
+        eyebrow="Family"
         trail={[
           { label: "Family", href: "/family?seg=profile" },
           { label: member.full_name, href: `/family/members/${member.id}?view=health` },

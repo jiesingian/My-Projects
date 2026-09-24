@@ -43,7 +43,7 @@ export default async function DocFolderPage({
 
   return (
     <div>
-      <DetailHeader backHref="/family?seg=documents" eyebrow="HUB 01 · DOCUMENTS" />
+      <DetailHeader backHref="/family?seg=documents" eyebrow="Family" />
       <div style={{ padding: "0 1.375rem 1.375rem" }}>
         <h3 style={{ fontSize: "1.875rem", margin: "0 0 4px" }}>{folder.name}</h3>
         <div style={{ font: "400 0.65625rem/1.5 var(--font-numeric)", color: "var(--color-neutral-600)", marginBottom: "1rem" }}>

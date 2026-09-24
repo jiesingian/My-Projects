@@ -81,7 +81,7 @@ export function EditEntryForm({ entry, members }: { entry: Entry; members: Table
 
   return (
     <div>
-      <DetailHeader backHref="/journal?view=list" eyebrow="HUB 02 · EDIT ENTRY" />
+      <DetailHeader backHref="/journal?view=list" eyebrow="Journal" />
       <div style={{ padding: "0 1.375rem 1.375rem" }}>
         <h3 style={{ fontSize: "1.875rem", margin: "0 0 16px" }}>Edit journal entry</h3>
         <form onSubmit={onSubmit}>

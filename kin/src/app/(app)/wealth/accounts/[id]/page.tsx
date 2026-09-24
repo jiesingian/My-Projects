@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { Icon } from "@/components/icons";
 import { notFound, redirect } from "next/navigation";
 import { getCurrentMember } from "@/lib/session";
 import { getAccountDetail } from "@/lib/queries/wealth";
@@ -25,7 +26,7 @@ export default async function AccountPage({ params }: { params: Promise<{ id: st
 
   return (
     <div>
-      <DetailHeader backHref={`/wealth?seg=accounts&who=${account.is_joint || !account.owner_member_id ? "all" : account.owner_member_id}`} eyebrow="HUB 05 · ACCOUNT" />
+      <DetailHeader backHref={`/wealth?seg=accounts&who=${account.is_joint || !account.owner_member_id ? "all" : account.owner_member_id}`} eyebrow="Wealth" />
       <div style={{ padding: "0 1.375rem 1.375rem" }}>
         <Blueprint style={{ padding: "0.9375rem", marginBottom: "0.875rem" }}>
           <div style={{ display: "flex", alignItems: "baseline", gap: "0.5rem" }}>
@@ -99,7 +100,7 @@ export default async function AccountPage({ params }: { params: Promise<{ id: st
 
         <SectionLabel>HISTORY</SectionLabel>
         {confirmed.length === 0 && (
-          <Empty icon="💸" title="Nothing has moved through this account yet" line="Money in and out will appear here as it happens, newest first." />
+          <Empty icon={<Icon name="wallet" size={26} />} title="Nothing has moved through this account yet" line="Money in and out will appear here as it happens, newest first." />
         )}
         {confirmed.map((e) => (
           <div key={e.id} style={{ display: "flex", gap: "0.625rem", alignItems: "center", padding: "0.6875rem 0", borderBottom: "1px solid color-mix(in srgb, var(--color-text) 10%, transparent)" }}>

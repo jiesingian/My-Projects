@@ -5,9 +5,9 @@ import type { MetadataRoute } from "next";
  * where a native app's would rather than above a browser toolbar. */
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: "Kin — Family Operating System",
+    name: "Kin",
     short_name: "Kin",
-    description: "One household, five ledgers.",
+    description: "Your family's calendar, chores, chat, memories and money. Private, in one place.",
     start_url: "/today",
     scope: "/",
     display: "standalone",

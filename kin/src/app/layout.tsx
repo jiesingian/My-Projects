@@ -5,8 +5,8 @@ import { ServiceWorker } from "@/components/service-worker";
 import { paletteById } from "@/lib/palettes";
 
 export const metadata: Metadata = {
-  title: "Kin — Family Operating System",
-  description: "One household, five ledgers.",
+  title: "Kin — your family, in one place",
+  description: "Your family's calendar, chores, chat, memories and money. Private, in one place.",
   manifest: "/manifest.webmanifest",
   // Kin gets opened from a home screen far more often than from a browser
   // tab, so it asks to be installed like an app: its own name under the icon

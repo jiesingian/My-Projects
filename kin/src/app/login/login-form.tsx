@@ -19,10 +19,7 @@ export function LoginForm({ callbackError }: { callbackError?: string }) {
   return (
     <OnboardingShell>
       <Wordmark />
-      <p style={{ fontSize: "0.875rem", color: "var(--color-neutral-700)", margin: "14px 0 30px", maxWidth: "26ch" }}>
-        One household, five ledgers. Sign in to your family.
-      </p>
-      <h2 style={{ fontSize: "2rem", margin: "0 0 20px" }}>Welcome back</h2>
+      <h2 style={{ fontSize: "2rem", margin: "30px 0 20px" }}>Welcome back</h2>
       {callbackError && <ErrorText message={CALLBACK_ERROR_MESSAGES[callbackError] ?? "Something went wrong — please try again."} />}
       <form action={formAction}>
         <ErrorText message={state.error} />

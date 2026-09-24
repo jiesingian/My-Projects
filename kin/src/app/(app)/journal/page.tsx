@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { Icon } from "@/components/icons";
 import { promptForWeek } from "@/lib/story-prompts";
 import { redirect } from "next/navigation";
 import { after } from "next/server";
@@ -87,7 +88,7 @@ async function GalleryPane({ familyId }: { familyId: string }) {
       {driveDisconnected && <DriveDisconnectedNotice />}
       {media.length === 0 ? (
         <Empty
-          icon="🖼"
+          icon={<Icon name="images" size={26} />}
           title="No photos yet"
           line="Everything you add here is private to your family and backs up to your own Google Drive. Start with one from today."
         />
@@ -135,7 +136,7 @@ async function EntriesPane({ familyId }: { familyId: string }) {
       {entries.length === 0 && (
         <div style={{ marginBottom: "1rem" }}>
           <Empty
-            icon="📔"
+            icon={<Icon name="fileText" size={26} />}
             title="Nothing written down yet"
             line="An entry is a day worth remembering — where you went, who was there, what it was like. Small ones count."
             action={{ label: "Write the first one", href: "/journal/new" }}
@@ -179,7 +180,7 @@ async function MilestonesPane({ familyId }: { familyId: string }) {
       <div style={{ borderLeft: "1px solid var(--color-divider)", paddingLeft: "1rem", marginBottom: "1.125rem" }}>
         {milestones.length === 0 && (
           <Empty
-            icon="🌱"
+            icon={<Icon name="leaf" size={26} />}
             title="No milestones yet"
             line="First steps, first day of school, a tooth lost. The things you will want the date of in ten years."
             action={{ label: "ADD A MILESTONE", href: "/journal/milestones/new" }}

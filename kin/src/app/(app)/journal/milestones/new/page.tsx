@@ -22,7 +22,7 @@ export default function NewMilestonePage() {
 
   return (
     <div>
-      <DetailHeader backHref="/journal?view=milestones" eyebrow="HUB 02 · MILESTONE" />
+      <DetailHeader backHref="/journal?view=milestones" eyebrow="Journal" />
       <div style={{ padding: "0 1.375rem 1.375rem" }}>
         <h3 style={{ fontSize: "1.875rem", margin: "0 0 16px" }}>Add a milestone</h3>
         <form action={formAction}>

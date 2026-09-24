@@ -86,7 +86,7 @@ export default async function SettingsPage({
 
   return (
     <div>
-      <DetailHeader backHref="/today" eyebrow="SETTINGS" />
+      <DetailHeader backHref="/today" eyebrow="Settings" />
       <div style={{ padding: "0 1.375rem 1.375rem" }}>
         <Link href={`/family/members/${me.id}?from=settings`} style={{ textDecoration: "none", color: "inherit" }}>
           <Blueprint style={{ padding: "0.875rem", display: "flex", gap: "0.8125rem", alignItems: "center", marginBottom: "1.375rem" }}>

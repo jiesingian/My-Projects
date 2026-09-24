@@ -19,7 +19,7 @@ export default function NewMealPage() {
 
   return (
     <div>
-      <DetailHeader backHref="/household?seg=meals" eyebrow="HUB 04 · NEW MEAL" />
+      <DetailHeader backHref="/household?seg=meals" eyebrow="Household" />
       <div style={{ padding: "0 1.375rem 1.375rem" }}>
         <h3 style={{ fontSize: "1.875rem", margin: "0 0 16px" }}>Add a meal</h3>
         <form action={formAction}>

@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { Icon } from "@/components/icons";
 import { redirect } from "next/navigation";
 import { getCurrentMember } from "@/lib/session";
 import { getWealthPane, getNetWorth, getAccounts, getCashFlowPane, type WealthScope, type LedgerEntry, type AccountWithBalance } from "@/lib/queries/wealth";
@@ -525,7 +526,7 @@ async function CashFlowPane({ familyId, memberId, currency, range, scope }: { fa
         </>
       )}
       {cf.expectedIncome.length === 0 && cf.receivedIncome.length === 0 && cf.recentIncome.length === 0 && (
-        <Empty icon="💰" title="Nothing recorded yet" line="Salary, a regular gift, business revenue — expect it here so receiving it is one tap." />
+        <Empty icon={<Icon name="wallet" size={26} />} title="Nothing recorded yet" line="Salary, a regular gift, business revenue — expect it here so receiving it is one tap." />
       )}
       {cf.expectedIncome.map((s) => (
         <div key={s.id} style={{ padding: "0.75rem 0", borderBottom: "1px solid color-mix(in srgb, var(--color-text) 10%, transparent)" }}>
@@ -583,7 +584,7 @@ async function CashFlowPane({ familyId, memberId, currency, range, scope }: { fa
 
       <SectionLabel>{isJoint ? "BUDGET VS SPEND BY CATEGORY" : "WHERE IT WENT THIS MONTH"}</SectionLabel>
       {categories.length === 0 && (
-        <Empty icon="📊" title="Nothing spent yet this month" line="Once money moves, this breaks it down by category so you can see where it actually goes." />
+        <Empty icon={<Icon name="activity" size={26} />} title="Nothing spent yet this month" line="Once money moves, this breaks it down by category so you can see where it actually goes." />
       )}
       <CategorySpendBar categories={categories} currency={currency} />
       {categories.map((c) => {
@@ -617,7 +618,7 @@ async function CashFlowPane({ familyId, memberId, currency, range, scope }: { fa
 
       <UpcomingBills bills={cf.openBills} currency={currency} fmtDate={fmtDate} />
       {cf.openBills.length === 0 && cf.settledBills.length === 0 && cf.recentExpense.length === 0 && (
-        <Empty icon="🧾" title="Nothing recorded yet" line="Mortgage payments, groceries, checkups, meals, travel, fuel — anything the household spends on." />
+        <Empty icon={<Icon name="receipt" size={26} />} title="Nothing recorded yet" line="Mortgage payments, groceries, checkups, meals, travel, fuel — anything the household spends on." />
       )}
       {cf.openBills.map((b) => (
         <div key={b.id} style={{ padding: "0.75rem 0", borderBottom: "1px solid color-mix(in srgb, var(--color-text) 10%, transparent)" }}>
@@ -731,7 +732,7 @@ async function ScopePane({ scope, familyId, memberId, currency, range }: { scope
 
       <SectionLabel>{isJoint ? "ACCOUNTS" : `${whosePossessive.toUpperCase()} ACCOUNTS`}</SectionLabel>
       {pane.accounts.length === 0 && (
-        <Empty icon="🏦" title="No accounts yet" line="Add the accounts the household actually uses — a bank, a wallet, the cash in the drawer — and Kin keeps the running balance." />
+        <Empty icon={<Icon name="wallet" size={26} />} title="No accounts yet" line="Add the accounts the household actually uses — a bank, a wallet, the cash in the drawer — and Kin keeps the running balance." />
       )}
       {accountGroups.map((group) => (
         <CollapsibleGroup key={group.type} title={`${ACCOUNT_TYPE_LABELS[group.type].toUpperCase()} · ${group.accounts.length}`} defaultOpen={false}>
@@ -824,7 +825,7 @@ async function AssetsPane({ familyId, memberId, currency, scope }: { familyId: s
       <CollapsibleGroup title="ASSETS" defaultOpen={false}>
       <SectionLabel>CASH & SAVINGS</SectionLabel>
       {cashAccounts.length === 0 && (
-        <Empty icon="🏦" title="No accounts yet" line="Every account you can see shows up here automatically once it exists — add one from the Accounts tab." />
+        <Empty icon={<Icon name="wallet" size={26} />} title="No accounts yet" line="Every account you can see shows up here automatically once it exists — add one from the Accounts tab." />
       )}
       {cashAccounts.map((a) => (
         <Link
@@ -850,7 +851,7 @@ async function AssetsPane({ familyId, memberId, currency, scope }: { familyId: s
 
       <SectionLabel>SAVINGS GOALS</SectionLabel>
       {goals.length === 0 && (
-        <Empty icon="🎯" title="No goals yet" line="A trip, a deposit, an emergency fund. Name what you are saving for and every contribution counts toward it." />
+        <Empty icon={<Icon name="target" size={26} />} title="No goals yet" line="A trip, a deposit, an emergency fund. Name what you are saving for and every contribution counts toward it." />
       )}
       {goals.map((g) => {
         const target = Number(g.target_amount ?? 0);
@@ -899,7 +900,7 @@ async function AssetsPane({ familyId, memberId, currency, scope }: { familyId: s
 
       <SectionLabel>OTHER ASSETS</SectionLabel>
       {assets.length === 0 && (
-        <Empty icon="🏠" title="Nothing recorded yet" line="Property, a vehicle, anything the family owns that holds value. Recorded here, it counts toward your net worth." />
+        <Empty icon={<Icon name="house" size={26} />} title="Nothing recorded yet" line="Property, a vehicle, anything the family owns that holds value. Recorded here, it counts toward your net worth." />
       )}
       {assets.map((a) => (
         <div key={a.id} style={{ padding: "0.75rem 0", borderBottom: "1px solid color-mix(in srgb, var(--color-text) 10%, transparent)" }}>
@@ -928,7 +929,7 @@ async function AssetsPane({ familyId, memberId, currency, scope }: { familyId: s
 
       <CollapsibleGroup title="LIABILITIES" defaultOpen={false}>
       {liabilities.length === 0 && (
-        <Empty icon="✅" title="Nothing owed" line="No loans or debts on record. If that changes, adding them here keeps the net worth figure honest." />
+        <Empty icon={<Icon name="check" size={26} />} title="Nothing owed" line="No loans or debts on record. If that changes, adding them here keeps the net worth figure honest." />
       )}
       {liabilities.map((l) => (
         <div key={l.id} style={{ padding: "0.75rem 0", borderBottom: "1px solid color-mix(in srgb, var(--color-text) 10%, transparent)" }}>
