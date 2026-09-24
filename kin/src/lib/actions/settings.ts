@@ -9,6 +9,7 @@ import { isNotificationKey } from "@/lib/notifications";
 import { humanDatabaseError } from "@/lib/db-errors";
 import { isCountryCode } from "@/lib/countries";
 import { TEXT_SCALE_MAX, TEXT_SCALE_MIN } from "@/lib/text-scale";
+import { PALETTE_DEFAULT, isPaletteId } from "@/lib/palettes";
 import { isCurrencyCode, isDateFormat, isWeekStart } from "@/lib/household-prefs";
 
 export async function setThemeAction(theme: "light" | "dark" | "system"): Promise<ActionState> {
@@ -41,6 +42,22 @@ export async function setTextScaleAction(percent: number): Promise<ActionState> 
   const supabase = await createClient();
   const { error } = await supabase.from("members").update({ text_scale: value }).eq("id", me.id);
   if (error) return { error: `That did not save. ${error.message}` };
+  return { error: null };
+}
+
+/** The member's colour theme. Saved to their row, so it follows them to every
+ * device, and to a cookie, so the root layout can switch a dark-only palette
+ * into dark mode before anything paints. Like text size, the settings page
+ * then asks whether to restart rather than repainting under the finger. */
+export async function setPaletteAction(id: string): Promise<ActionState> {
+  const me = await requireCurrentMember();
+  if (!isPaletteId(id)) return { error: "That is not one of the themes we offer." };
+  const supabase = await createClient();
+  const { error } = await supabase.from("members").update({ palette: id }).eq("id", me.id);
+  if (error) return { error: `That did not save. ${humanDatabaseError(error.message)}` };
+  const cookieStore = await cookies();
+  if (id === PALETTE_DEFAULT) cookieStore.delete("kin-palette");
+  else cookieStore.set("kin-palette", id, { path: "/", maxAge: 60 * 60 * 24 * 365 });
   return { error: null };
 }
 

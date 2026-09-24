@@ -7,6 +7,7 @@ import { ConfirmSheetHost } from "@/components/confirm-sheet";
 import { Toaster } from "@/components/toast";
 import { getChatUnread } from "@/lib/queries/chat";
 import { textScaleCss } from "@/lib/text-scale";
+import { paletteCss } from "@/lib/palettes";
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const member = await getCurrentMember();
@@ -33,6 +34,8 @@ export default async function AppLayout({ children }: { children: React.ReactNod
           never updated. Changing the setting re-rendered the layout and the
           old size stayed on screen until a full reload. */}
       <style>{textScaleCss(member.text_scale)}</style>
+      {/* The member's colour theme (palettes.ts). Empty for Kin Classic. */}
+      <style>{paletteCss(member.palette)}</style>
       {/* Clears the fixed navigation so the last row of any page stays
           reachable — below it on a phone, beside it on a desktop. Both live
           in CSS rather than here, because an inline style cannot answer a

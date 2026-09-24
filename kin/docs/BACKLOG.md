@@ -9,10 +9,11 @@ it in the same pull request that finishes or adds an item.
   future, not now. Needs merchant accounts and API keys, so it is
   Jonathan's (money and secrets). Start with the subscription checkout in
   `src/lib/billing/`; that path is watched.
-- **Warm palette** (#FDFBF7 cream, #1E293B slate, #10B981 emerald). There's
-  a preview; not applied yet. If it goes ahead, white text on #10B981 is only
-  2.5:1 contrast, so buttons need the darker #047857 and #10B981 stays for
-  icons and accents.
+
+## Done
+
+- Colour themes in Settings → Appearance: 13 palettes including the warm
+  "Hearth" look from the brief and a High contrast theme (24 September).
 
 ## Decided against, for now
 
@@ -26,7 +27,6 @@ it in the same pull request that finishes or adds an item.
   (5 of 24 have them).
 - Chore-done pop and a strike-and-slide animation when a grocery item is
   ticked (no new dependencies).
-- High-contrast / large-text switch in Settings, beside text size.
 - Photos attached to calendar events.
 - Taglish replies in Kin AI.
 - Pantry-based meal planner: suggest meals from what is already in stock.
