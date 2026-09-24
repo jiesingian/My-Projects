@@ -129,12 +129,12 @@ test.describe("parseOpenGraph", () => {
       `<meta property="og:title" content="Chicken Adobo"><meta content="Braised in vinegar &amp; soy" property="og:description"><meta property="og:site_name" content="Panlasang Pinoy">`,
       "https://www.panlasangpinoy.com/adobo",
     );
-    expect(p).toEqual({ url: "https://www.panlasangpinoy.com/adobo", site: "Panlasang Pinoy", title: "Chicken Adobo", description: "Braised in vinegar & soy" });
+    expect(p).toEqual({ url: "https://www.panlasangpinoy.com/adobo", site: "Panlasang Pinoy", title: "Chicken Adobo", description: "Braised in vinegar & soy", image: null });
   });
   test("falls back to <title> and the host", async () => {
     const { parseOpenGraph } = await import("@/lib/chat");
     expect(parseOpenGraph("<title>  School calendar 2026  </title>", "https://www.school.edu.ph/cal")).toEqual({
-      url: "https://www.school.edu.ph/cal", site: "school.edu.ph", title: "School calendar 2026", description: null,
+      url: "https://www.school.edu.ph/cal", site: "school.edu.ph", title: "School calendar 2026", description: null, image: null,
     });
   });
   test("markup inside a title comes back as text, never as markup", async () => {

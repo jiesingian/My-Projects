@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useState } from "react";
+import { startTransition, useActionState, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   createActivityAction,
@@ -237,7 +237,7 @@ function EventForm({
   householdCurrency: string;
 }) {
   const action = editEvent ? updateEventAction.bind(null, editEvent.id) : createEventAction;
-  const [state, formAction] = useActionState(action, initialState);
+  const [state, formAction, saving] = useActionState(action, initialState);
   const router = useRouter();
   const [deleting, setDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
@@ -252,7 +252,19 @@ function EventForm({
     : [{ code: budgetCurrency, label: budgetCurrency }, ...CURRENCIES];
 
   return (
-    <form action={formAction}>
+    <form
+      action={formAction}
+      onSubmit={(e) => {
+        // React resets a form once its action has run, whether it succeeded or
+        // not -- so a refused invitation link, or an end date before the start,
+        // wiped every field and the whole event had to be typed again.
+        // Submitting through the transition here keeps what was entered; the
+        // action attribute stays for a submit before the page has hydrated.
+        e.preventDefault();
+        const data = new FormData(e.currentTarget);
+        startTransition(() => formAction(data));
+      }}
+    >
       <ErrorText message={state.error} />
       <Field label="TITLE"><input className="input" name="title" required maxLength={150} defaultValue={editEvent?.title ?? prefill?.title} style={{ minHeight: "2.75rem" }} /></Field>
       <div style={{ display: "flex", gap: "0.625rem" }}>
@@ -276,6 +288,24 @@ function EventForm({
         </select>
       </Field>
       <Field label="NOTE"><input className="input" name="sub_note" placeholder="Dinner at home" maxLength={200} defaultValue={editEvent?.sub_note ?? prefill?.notes} style={{ minHeight: "2.75rem" }} /></Field>
+      {/* type="text" rather than "url": a link copied from an address bar often
+          arrives without https://, which "url" refuses with a browser message
+          of its own. The action adds it and says plainly if it's not a link. */}
+      <Field label="INVITATION LINK (OPTIONAL)">
+        <input
+          className="input"
+          name="invite_url"
+          type="text"
+          inputMode="url"
+          autoComplete="off"
+          autoCapitalize="off"
+          spellCheck={false}
+          maxLength={2048}
+          placeholder="Paste the invitation's link — Evite, Facebook, a wedding site"
+          defaultValue={editEvent?.invite_url ?? undefined}
+          style={{ minHeight: "2.75rem" }}
+        />
+      </Field>
       <Field label="BUDGET (OPTIONAL)">
         <div style={{ display: "flex", gap: "0.5rem" }}>
           <select
@@ -309,7 +339,7 @@ function EventForm({
         chosen={who}
         setChosen={setWho}
       />
-      <SubmitButton style={{ minHeight: "2.875rem", fontSize: "0.875rem", letterSpacing: ".04em" }}>{editEvent ? "SAVE CHANGES" : "SAVE EVENT"}</SubmitButton>
+      <SubmitButton pending={saving} style={{ minHeight: "2.875rem", fontSize: "0.875rem", letterSpacing: ".04em" }}>{editEvent ? "SAVE CHANGES" : "SAVE EVENT"}</SubmitButton>
       {editEvent && (
         <button
           type="button"

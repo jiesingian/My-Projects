@@ -1199,6 +1199,7 @@ export type Database = {
           drive_file_id: string | null
           drive_view_link: string | null
           end_date: string | null
+          invite_url: string | null
           event_date: string
           family_id: string
           id: string
@@ -1221,6 +1222,7 @@ export type Database = {
           drive_file_id?: string | null
           drive_view_link?: string | null
           end_date?: string | null
+          invite_url?: string | null
           event_date: string
           family_id: string
           id?: string
@@ -1243,6 +1245,7 @@ export type Database = {
           drive_file_id?: string | null
           drive_view_link?: string | null
           end_date?: string | null
+          invite_url?: string | null
           event_date?: string
           family_id?: string
           id?: string
