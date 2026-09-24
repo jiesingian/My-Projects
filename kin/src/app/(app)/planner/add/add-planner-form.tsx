@@ -1,5 +1,6 @@
 "use client";
 
+import { FlyerScanner } from "@/components/flyer-scanner";
 import { startTransition, useActionState, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
@@ -63,6 +64,7 @@ export function AddPlannerForm({
       <DetailHeader backHref="/planner" eyebrow="HUB 03 · NEW" />
       <div style={{ padding: "0 1.375rem 1.375rem" }}>
         <h3 style={{ fontSize: "2rem", margin: "0 0 14px" }}>{isEditing ? "Edit" : "Add to"} Planner</h3>
+        {!isEditing && <FlyerScanner />}
         {!isEditing && (
           <div className="seg" style={{ marginBottom: "1.125rem", marginTop: 0 }}>
             {TYPES.map((t) => (
