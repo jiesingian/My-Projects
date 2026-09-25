@@ -1,7 +1,8 @@
 /** Settings uses DetailHeader (a back button and an eyebrow, no large title
- * or segmented control) rather than HubHeader, and its body is a profile
- * card followed by several labelled sections -- nothing like the hub rows
- * the shared skeleton assumes. */
+ * or segmented control) rather than HubHeader. Its home is a profile card
+ * over three short lists, and each group page is a few labelled blocks, so
+ * one shape of card-then-blocks serves the home list and every page under
+ * it -- nothing like the hub rows the shared skeleton assumes. */
 export default function Loading() {
   return (
     <div aria-busy="true" aria-live="polite">

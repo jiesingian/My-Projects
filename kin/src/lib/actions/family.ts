@@ -288,7 +288,7 @@ export async function addChildWithLoginAction(_prev: ActionState, formData: Form
 export async function regenerateInviteCodeAction(): Promise<ActionState> {
   const supabase = await createClient();
   const { error } = await supabase.rpc("regenerate_invite_code");
-  revalidatePath("/settings");
+  revalidatePath("/settings", "layout");
   revalidatePath("/onboarding/members");
   return { error: error ? humanDatabaseError(error.message) : null };
 }

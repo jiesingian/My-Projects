@@ -24,7 +24,7 @@ phone mock-ups and a map of every setting, are in the artifact
    C: one family strip. The header initials become tappable, the family
    list at the bottom goes, and clock and weather move into the header. D:
    "Nothing needs you today" shrinks to one line.
-2. **Settings as short pages (item 8).** A home list (profile, Appearance,
+2. **Done: Settings as short pages (item 8).** Kid view gets its row when it is built (item 5). A home list (profile, Appearance,
    Notifications, Connected apps, Household, Kid view, Privacy & lock,
    Account), each row showing its current value. Every existing control
    moves, and nothing is removed. The documents lock stays on Family and is
@@ -52,6 +52,11 @@ Decided against in the same review: revising Journal (item 6) and Planner
 #209).
 
 ## Done
+
+- Settings as short pages: a home list with each group's current value, and
+  Appearance, Notifications, Connected apps, Household, Privacy & lock and
+  Account on pages of their own, with every control moved and none removed
+  (25 September).
 
 - Today: "At a glance" tiles in place of the hub cards, a "Quick add" row,
   one family strip in the header (tap initials for a person's card), and a

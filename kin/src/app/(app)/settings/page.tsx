@@ -1,44 +1,22 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
-import { PushOptIn } from "@/components/push-opt-in";
 import { getCurrentMember } from "@/lib/session";
 import { createClient } from "@/lib/supabase/server";
-import { signOutAction } from "@/lib/actions/auth";
+import { getLockState } from "@/lib/security/gate";
 import { DetailHeader } from "@/components/hub-header";
 import { Blueprint, Tag } from "@/components/ui";
-import { Icon } from "@/components/icons";
-import {
-  ThemeControl,
-  PaletteControl,
-  CalendarFeedControl,
-  TextSizeControl,
-  NotificationToggles,
-  InviteCodeCard,
-  HouseholdNameForm,
-  HouseholdPrefsForm,
-  DriveConnectedPanel,
-  CalendarConnectedPanel,
-} from "@/components/settings-controls";
-import { DeleteHouseholdButton } from "@/components/delete-household-button";
-import { DeleteAccountButton } from "@/components/delete-account-button";
+import { Icon, type IconName } from "@/components/icons";
 import { Avatar } from "@/components/avatar";
-import { TransferOrganizerRole } from "@/components/transfer-organizer-role";
 import { initials } from "@/lib/format";
-import { countryLabel } from "@/lib/countries";
+import { paletteById } from "@/lib/palettes";
+import { NOTIFICATION_DEFS } from "@/lib/notifications";
 
-const DRIVE_ERROR_MESSAGES: Record<string, string> = {
-  not_configured: "Google Drive linking isn't configured on this server yet — set GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET.",
-  invalid_state: "That connection attempt expired — try again.",
-  token_exchange_failed: "Google didn't accept that connection attempt — try again.",
-  organizer_only: "Only the household organizer can connect or disconnect Google Drive.",
-};
-
-const CALENDAR_ERROR_MESSAGES: Record<string, string> = {
-  not_configured: "Google Calendar linking isn't configured on this server yet — set GOOGLE_CALENDAR_REDIRECT_URI.",
-  invalid_state: "That connection attempt expired — try again.",
-  token_exchange_failed: "Google didn't accept that connection attempt — try again.",
-};
-
+/** Settings, as a short list. It used to be one long page -- profile,
+ * connected services, appearance, notifications, everything about the
+ * household, the danger zone and the account, top to bottom. Now each group
+ * is a row that says its current value and opens a page with only that
+ * group on it. Nothing was removed: every control moved to one of the pages
+ * below, as mapped in Jonathan's approved proposal (item 8, 25 September). */
 export default async function SettingsPage({
   searchParams,
 }: {
@@ -46,217 +24,82 @@ export default async function SettingsPage({
 }) {
   const me = await getCurrentMember();
   if (!me) redirect("/onboarding/profile");
-  const { drive_error, calendar_error } = await searchParams;
+
+  // Google's connect and callback routes still come back here, and an error
+  // they report belongs on Connected apps, where the button that failed is.
+  const sp = await searchParams;
+  if (sp.drive_error || sp.calendar_error) {
+    const q = new URLSearchParams();
+    if (sp.drive_error) q.set("drive_error", sp.drive_error);
+    if (sp.calendar_error) q.set("calendar_error", sp.calendar_error);
+    redirect(`/settings/connected?${q}`);
+  }
 
   const supabase = await createClient();
-  const [
-    { data: authUser },
-    { data: driveLink },
-    { data: calendarLink },
-    { data: otherCalendarLinks },
-    { count: memberCount },
-    { count: managedCount },
-    { data: transferCandidates },
-    { count: otherActiveCount },
-  ] = await Promise.all([
+  const [{ data: authUser }, { data: driveLink }, { data: calendarLink }, lock] = await Promise.all([
     supabase.auth.getUser(),
-    supabase.from("drive_links").select("*, connected_by:connected_by_member_id(full_name)").eq("family_id", me.family_id).maybeSingle(),
-    supabase.from("calendar_links").select("*").eq("member_id", me.id).maybeSingle(),
-    supabase.from("calendar_links").select("connected, members(full_name)").eq("family_id", me.family_id).eq("connected", true).neq("member_id", me.id),
-    supabase.from("members").select("id", { count: "exact", head: true }).eq("family_id", me.family_id),
-    supabase.from("members").select("id", { count: "exact", head: true }).eq("family_id", me.family_id).eq("status", "managed"),
-    supabase
-      .from("members")
-      .select("id, full_name")
-      .eq("family_id", me.family_id)
-      .eq("status", "active")
-      .in("role", ["parent", "adult"])
-      .neq("id", me.id),
-    supabase
-      .from("members")
-      .select("id", { count: "exact", head: true })
-      .eq("family_id", me.family_id)
-      .in("status", ["active", "managed"])
-      .neq("id", me.id),
+    supabase.from("drive_links").select("connected").eq("family_id", me.family_id).maybeSingle(),
+    supabase.from("calendar_links").select("connected").eq("member_id", me.id).maybeSingle(),
+    getLockState(me.id),
   ]);
-  const connectedByName = (driveLink?.connected_by as unknown as { full_name: string } | null)?.full_name ?? null;
-  const otherConnectedNames = (otherCalendarLinks ?? [])
-    .map((l) => (l.members as unknown as { full_name: string } | null)?.full_name)
-    .filter((v): v is string => !!v);
+
+  const themeLabel = { light: "Light", dark: "Dark", system: "System" }[me.theme as "light" | "dark" | "system"] ?? "System";
+  const prefs = (me.notification_prefs ?? {}) as Record<string, boolean>;
+  const notifOn = NOTIFICATION_DEFS.filter((n) => prefs[n.key] ?? true).length;
+  const connected = [driveLink?.connected && "Drive", calendarLink?.connected && "Google Calendar", me.calendar_feed_hash && "Apple & Outlook"].filter(Boolean) as string[];
+  const lockOn = lock.hasPin || lock.credentialCount > 0;
+
+  const groups: { href: string; icon: IconName; tint: "money" | "schedule" | "occasion" | "home" | undefined; title: string; value: string }[][] = [
+    [
+      { href: "/settings/appearance", icon: "sparkle", tint: "occasion", title: "Appearance", value: `${themeLabel} · ${paletteById(me.palette).name} · ${me.text_scale ?? 100}%` },
+      { href: "/settings/notifications", icon: "message", tint: "money", title: "Notifications", value: `${notifOn} of ${NOTIFICATION_DEFS.length} on` },
+      { href: "/settings/connected", icon: "hardDrive", tint: "schedule", title: "Connected apps", value: connected.length > 0 ? connected.join(", ") : "None connected" },
+    ],
+    [
+      { href: "/settings/household", icon: "house", tint: "home", title: "Household", value: `${me.families.name} · ${me.families.currency} · ${me.families.week_start === "monday" ? "Mon start" : "Sun start"}` },
+      { href: "/settings/privacy", icon: "keyRound", tint: undefined, title: "Privacy & lock", value: lockOn ? "Documents lock on" : "Documents lock off" },
+    ],
+    [{ href: "/settings/account", icon: "users", tint: undefined, title: "Account", value: authUser.user?.email ?? "Sign out" }],
+  ];
 
   return (
     <div>
       <DetailHeader backHref="/today" eyebrow="Settings" />
-      <div style={{ padding: "0 1.375rem 1.375rem" }}>
+      <div style={{ padding: "0 1.375rem 1.375rem", display: "flex", flexDirection: "column", gap: "1.125rem" }}>
         <Link href={`/family/members/${me.id}?from=settings`} style={{ textDecoration: "none", color: "inherit" }}>
-          <Blueprint style={{ padding: "0.875rem", display: "flex", gap: "0.8125rem", alignItems: "center", marginBottom: "1.375rem" }}>
+          <Blueprint style={{ padding: "0.875rem", display: "flex", gap: "0.8125rem", alignItems: "center" }}>
             <Avatar url={me.avatar_url} initials={initials(me.full_name)} label={me.full_name} size={48} />
             <span style={{ flex: 1, minWidth: 0 }}>
               <span style={{ font: "600 1.25rem/1.05 var(--font-heading)", display: "block" }}>{me.full_name}</span>
               <span style={{ fontSize: "0.8125rem", color: "var(--color-neutral-600)" }}>
                 {authUser.user?.email} · {authUser.user?.email_confirmed_at ? "verified" : "unverified"}
               </span>
-              <span style={{ fontSize: "0.8125rem", color: "var(--color-accent-700)", textDecoration: "underline" }}>Edit profile</span>
+              <span style={{ fontSize: "0.8125rem", color: "var(--color-accent-700)", textDecoration: "underline", display: "block" }}>Edit profile</span>
             </span>
             {me.is_organiser && <Tag variant="accent">ORGANIZER</Tag>}
           </Blueprint>
         </Link>
 
-        <div className="kin-eyebrow" style={{ marginBottom: "0.25rem" }}>
-          CONNECTED SERVICES
-        </div>
-        <Blueprint style={{ padding: "0.875rem", marginBottom: "1.375rem" }}>
-          <div style={{ display: "flex", alignItems: "center", gap: "0.625rem", marginBottom: "0.625rem" }}>
-            <Icon name="hardDrive" size={18} className="text-[var(--color-accent-700)]" />
-            <span style={{ font: "600 1.125rem/1.05 var(--font-heading)", flex: 1 }}>Google Drive</span>
-            <Tag variant={driveLink?.connected ? "accent" : "outline"}>{driveLink?.connected ? "CONNECTED" : "NOT CONNECTED"}</Tag>
-          </div>
-          {drive_error && (
-            <p style={{ fontSize: "0.84375rem", color: "var(--color-accent-700)", marginBottom: "0.625rem" }}>{DRIVE_ERROR_MESSAGES[drive_error] ?? "Something went wrong."}</p>
-          )}
-          {driveLink?.connected ? (
-            <DriveConnectedPanel
-              email={driveLink.account_email}
-              rootFolderLink={driveLink.root_folder_link}
-              lastSyncedAt={driveLink.last_synced_at}
-              connectedByName={connectedByName}
-              canManage={me.is_organiser}
-            />
-          ) : me.is_organiser ? (
-            <>
-              <p style={{ fontSize: "0.84375rem", color: "var(--color-neutral-700)", marginBottom: "0.75rem" }}>
-                Connect your Google Drive once, as organizer — Kin creates and organizes the household&apos;s folders
-                there automatically. Everyone else views files through the app or the Drive link, governed by
-                whatever sharing you set on that folder in Drive itself.
-              </p>
-              <a href="/api/drive/connect" className="btn btn-primary btn-block" style={{ minHeight: "2.75rem", fontSize: "0.84375rem", letterSpacing: ".04em" }}>
-                Connect Google Drive
-              </a>
-            </>
-          ) : (
-            <p style={{ fontSize: "0.84375rem", color: "var(--color-neutral-700)" }}>
-              Not connected yet. Only the household organizer can connect Google Drive.
-            </p>
-          )}
-        </Blueprint>
+        {groups.map((rows, gi) => (
+          <nav key={gi} className="kin-brief" aria-label={gi === 0 ? "You" : gi === 1 ? "Household" : "Account"}>
+            {rows.map((r) => (
+              <Link key={r.href} href={r.href} className="kin-brief-row">
+                <span className="kin-brief-ico" data-tint={r.tint}>
+                  <Icon name={r.icon} size="1.0625rem" />
+                </span>
+                <span style={{ minWidth: 0, flex: 1 }}>
+                  <span className="kin-brief-title">{r.title}</span>
+                  <span className="kin-brief-meta" style={{ color: "var(--color-neutral-600)" }}>
+                    {r.value}
+                  </span>
+                </span>
+                <Icon name="chevronLeft" size="0.9375rem" className="kin-brief-chev" />
+              </Link>
+            ))}
+          </nav>
+        ))}
 
-        <Blueprint style={{ padding: "0.875rem", marginBottom: "1.375rem" }}>
-          <div style={{ display: "flex", alignItems: "center", gap: "0.625rem", marginBottom: "0.625rem" }}>
-            <Icon name="calendarDays" size={18} className="text-[var(--color-accent-700)]" />
-            <span style={{ font: "600 1.125rem/1.05 var(--font-heading)", flex: 1 }}>My Google Calendar</span>
-            <Tag variant={calendarLink?.connected ? "accent" : "outline"}>{calendarLink?.connected ? "CONNECTED" : "NOT CONNECTED"}</Tag>
-          </div>
-          {calendar_error && (
-            <p style={{ fontSize: "0.84375rem", color: "var(--color-accent-700)", marginBottom: "0.625rem" }}>{CALENDAR_ERROR_MESSAGES[calendar_error] ?? "Something went wrong."}</p>
-          )}
-          {calendarLink?.connected ? (
-            <CalendarConnectedPanel email={calendarLink.account_email} lastSyncedAt={calendarLink.last_synced_at} />
-          ) : (
-            <>
-              <p style={{ fontSize: "0.84375rem", color: "var(--color-neutral-700)", marginBottom: "0.75rem" }}>
-                Everyone connects their own Google Calendar. Activities and events tagged to you (or the whole
-                family), plus your health appointments and document renewals, sync to your calendar — and anything
-                you add or change there syncs back into Kin.
-              </p>
-              <a href="/api/calendar/connect" className="btn btn-primary btn-block" style={{ minHeight: "2.75rem", fontSize: "0.84375rem", letterSpacing: ".04em" }}>
-                Connect my Google Calendar
-              </a>
-            </>
-          )}
-          {otherConnectedNames.length > 0 && (
-            <div style={{ fontSize: "0.8125rem", color: "var(--color-neutral-600)", marginTop: "0.625rem" }}>
-              Also connected: {otherConnectedNames.join(", ")}
-            </div>
-          )}
-        </Blueprint>
-
-        <Blueprint style={{ padding: "0.875rem", marginBottom: "1.375rem" }}>
-          <div style={{ display: "flex", alignItems: "center", gap: "0.625rem", marginBottom: "0.5rem" }}>
-            <Icon name="calendarDays" size={18} className="text-[var(--color-accent-700)]" />
-            <span style={{ font: "600 1.125rem/1.05 var(--font-heading)", flex: 1 }}>Apple Calendar &amp; Outlook</span>
-            <Tag variant={me.calendar_feed_hash ? "accent" : "outline"}>{me.calendar_feed_hash ? "LINK ON" : "OFF"}</Tag>
-          </div>
-          <CalendarFeedControl hasLink={Boolean(me.calendar_feed_hash)} />
-        </Blueprint>
-
-        <div className="kin-eyebrow" style={{ marginBottom: "0.5rem" }}>APPEARANCE</div>
-        <div style={{ fontSize: "0.8125rem", color: "var(--color-neutral-700)", marginBottom: "0.375rem" }}>Theme</div>
-        <ThemeControl current={me.theme} />
-        <div style={{ fontSize: "0.8125rem", color: "var(--color-neutral-700)", marginBottom: "0.375rem" }}>Colours</div>
-        <PaletteControl current={me.palette ?? "classic"} />
-        <div style={{ fontSize: "0.8125rem", color: "var(--color-neutral-700)", marginBottom: "0.375rem" }}>Text size</div>
-        <TextSizeControl current={me.text_scale} />
-
-        <div className="kin-eyebrow" style={{ marginBottom: "0.125rem" }}>NOTIFICATIONS</div>
-        <PushOptIn />
-        <NotificationToggles prefs={me.notification_prefs as Record<string, boolean>} />
-
-        <div className="kin-eyebrow" style={{ margin: "22px 0 8px" }}>HOUSEHOLD</div>
-        <div style={{ fontSize: "0.8125rem", color: "var(--color-neutral-700)", marginBottom: "0.375rem" }}>Household name</div>
-        {me.is_organiser ? (
-          <HouseholdNameForm name={me.families.name} />
-        ) : (
-          <div style={{ padding: "0.625rem 0", marginBottom: "0.875rem", fontSize: "0.9375rem" }}>{me.families.name}</div>
-        )}
-        <div style={{ fontSize: "0.8125rem", color: "var(--color-neutral-700)", marginBottom: "0.375rem" }}>
-          Members · {memberCount ?? 0} · {managedCount ?? 0} managed profiles
-        </div>
-        <Link href="/family?seg=profile" className="btn btn-secondary btn-block" style={{ minHeight: "2.5rem", fontSize: "0.84375rem", marginBottom: "0.875rem" }}>
-          View members
-        </Link>
-        {me.is_organiser && (
-          <>
-            <div style={{ fontSize: "0.8125rem", color: "var(--color-neutral-700)", marginBottom: "0.375rem" }}>Invite code</div>
-            <div style={{ marginBottom: "0.875rem" }}>
-              <InviteCodeCard code={me.families.invite_code} />
-            </div>
-            <div style={{ fontSize: "0.8125rem", color: "var(--color-neutral-700)", marginBottom: "0.375rem" }}>Transfer organizer role</div>
-            <div style={{ marginBottom: "0.875rem" }}>
-              <TransferOrganizerRole candidates={transferCandidates ?? []} />
-            </div>
-          </>
-        )}
-        <div style={{ fontSize: "0.8125rem", color: "var(--color-neutral-700)", marginBottom: "0.375rem" }}>Currency, dates, week start and country</div>
-        {me.is_organiser ? (
-          <HouseholdPrefsForm
-            currency={me.families.currency}
-            dateFormat={me.families.date_format}
-            weekStart={me.families.week_start}
-            country={me.families.country}
-          />
-        ) : (
-          <div style={{ padding: "0.625rem 0", marginBottom: "1.25rem", fontSize: "0.8125rem" }}>
-            {me.families.currency} · {me.families.date_format} · {me.families.week_start === "monday" ? "Mon start" : "Sun start"}
-            {me.families.country ? ` · ${countryLabel(me.families.country)}` : ""}
-          </div>
-        )}
-
-        {me.is_organiser && (
-          <>
-            <div style={{ font: "600 0.8125rem/1 var(--font-heading)", letterSpacing: ".02em", color: "var(--color-accent-700)", margin: "8px 0 8px" }}>
-              DANGER ZONE
-            </div>
-            <div style={{ marginBottom: "1.25rem" }}>
-              <DeleteHouseholdButton householdName={me.families.name} />
-            </div>
-          </>
-        )}
-
-        <div className="kin-eyebrow" style={{ margin: "8px 0 2px" }}>ACCOUNT</div>
-        <div style={{ padding: "0.8125rem 0", borderBottom: "1px solid color-mix(in srgb, var(--color-text) 10%, transparent)", fontSize: "0.875rem" }}>
-          {authUser.user?.email}
-        </div>
-        <form action={signOutAction}>
-          <button type="submit" className="btn btn-secondary btn-block" style={{ minHeight: "2.875rem", fontSize: "0.84375rem", letterSpacing: ".04em", marginTop: "1.25rem" }}>
-            Sign out
-          </button>
-        </form>
-        <div style={{ marginTop: "0.75rem" }}>
-          <DeleteAccountButton isSoleMember={(otherActiveCount ?? 0) === 0} />
-        </div>
-        <div style={{ font: "400 0.8125rem/1.6 var(--font-numeric)", color: "var(--color-neutral-500)", textAlign: "center", marginTop: "0.875rem" }}>
-          KIN 1.0.0
-        </div>
+        <div style={{ font: "400 0.8125rem/1.6 var(--font-numeric)", color: "var(--color-neutral-500)", textAlign: "center" }}>KIN 1.0.0</div>
       </div>
     </div>
   );
