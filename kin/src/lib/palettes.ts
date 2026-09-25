@@ -39,6 +39,10 @@ export type Palette = {
 };
 
 export const PALETTE_DEFAULT = "classic";
+/** What a profile created from 25 September starts on: the icon's look.
+ * PALETTE_DEFAULT stays Kin Classic, because it is also what an unknown or
+ * missing id falls back to, and existing people keep their look. */
+export const PALETTE_NEW_MEMBER = "coral";
 
 export const PALETTES: Palette[] = [
   {
@@ -47,6 +51,21 @@ export const PALETTES: Palette[] = [
     blurb: "Clean iOS blue on cool grey",
     light: { bg: "#f2f2f7", surface: "#ffffff", text: "#1c1c1e", muted: "#6c6c70", accent: "#007aff", ink: "#0062cc", accent2: "#5ac8fa", divider: "rgba(60,60,67,0.18)" },
     dark: { bg: "#000000", surface: "#1c1c1e", text: "#f5f5f7", muted: "#98989d", accent: "#0a84ff", ink: "#6bb2ff", accent2: "#5ac8fa", divider: "rgba(84,84,88,0.65)" },
+  },
+  {
+    // Kin's own look since the icon changed (#208): the icon's warm orange
+    // to coral-pink, on a faintly warm ground. The default for everyone who
+    // joins from 25 September; existing people are offered it once on Today
+    // and keep whatever they have unless they say yes (item 3).
+    //
+    // accent is a button background under white text, so it is the icon's
+    // coral taken deep enough for 4.5:1 (#d63a55 on white is 4.58:1); ink is
+    // accent-coloured text on the page ground, darker again (5.3:1).
+    id: "coral",
+    name: "Kin Coral",
+    blurb: "The icon's warm coral, on soft blush",
+    light: { bg: "#fff7f4", surface: "#ffffff", text: "#2a1a1c", muted: "#7a5f60", accent: "#d63a55", ink: "#c02f4a", accent2: "#ff9a4d", divider: "#f3dfd9" },
+    dark: { bg: "#1a1112", surface: "#261a1b", text: "#fbecec", muted: "#c7a7a8", accent: "#d63a55", ink: "#ff8a9b", accent2: "#ffb07a", divider: "#3d2a2c" },
   },
   {
     id: "hearth",

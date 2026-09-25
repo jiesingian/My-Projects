@@ -2707,6 +2707,41 @@ textarea.input {
 .kin-quick-ico[data-tint="occasion"] { background: var(--cal-occasion); }
 .kin-quick-ico[data-tint="home"] { background: var(--cal-home); }
 
+/* The one-time "try the new look" card on Today. */
+.kin-look-offer {
+  display: flex;
+  gap: 0.8125rem;
+  align-items: flex-start;
+  padding: 0.875rem;
+  margin-bottom: 1.25rem;
+  border-radius: var(--radius-card);
+  background: linear-gradient(135deg, color-mix(in srgb, #ff9a4d 14%, var(--color-surface)), color-mix(in srgb, #e8436a 12%, var(--color-surface)));
+  box-shadow: var(--shadow-sm);
+}
+.kin-look-offer-icon {
+  flex: none;
+  border-radius: 11px;
+}
+.kin-look-offer-title {
+  font: 600 1rem/1.25 var(--font-heading);
+  margin: 0 0 0.1875rem;
+}
+.kin-look-offer-text {
+  font-size: 0.84375rem;
+  line-height: 1.4;
+  color: var(--color-neutral-700);
+  margin: 0 0 0.625rem;
+}
+.kin-look-offer-actions {
+  display: flex;
+  gap: 0.5rem;
+}
+.kin-look-offer-actions > .btn {
+  min-height: 2.25rem;
+  font-size: 0.8125rem;
+  padding: 0 0.875rem;
+}
+
 /* A quiet day is one line, not a card. */
 .kin-allclear {
   display: flex;
