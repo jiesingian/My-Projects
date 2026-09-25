@@ -73,6 +73,11 @@ Decided against in the same review: revising Journal (item 6) and Planner
 
 ## Done
 
+- Family tree: a dashed "Add brother / Add sister" place beside whoever is
+  selected, and parents drawn close above their own child -- a married
+  child no longer drifts away from their parents when both sides of the
+  family are recorded (25 September).
+
 - Settings → Appearance shows each colour theme in the mode chosen above
   (Light, Dark or System), one sample instead of both; the Theme switch now
   changes the page and its highlight at once rather than a tap behind

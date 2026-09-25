@@ -120,3 +120,35 @@ test("an empty tree is an empty chart", () => {
   const l = layoutTree([], null);
   expect(l.people).toHaveLength(0);
 });
+
+// Jonathan and Janine, both with their parents recorded, and Jonathan's
+// sister. On 25 September the first layout put Jonathan 259 units away from
+// his own parents, Ernesto and Stella: a couple aimed at the middle of all
+// four of their parents, and rows could only push people right.
+const twoSides = [
+  P("ernesto", null, null, "stella"), P("stella", null, null, "ernesto"),
+  P("rodel", null, null, "myrna"), P("myrna", null, null, "rodel"),
+  P("sister", "ernesto", "stella"),
+  P("jonathan", "ernesto", "stella", "janine"), P("janine", "rodel", "myrna", "jonathan"),
+  P("erynne", "jonathan", "janine"), P("keira", "jonathan", "janine"),
+];
+const centre = (layout: ReturnType<typeof layoutTree>, id: string) => at(layout, id).x + CARD_W / 2;
+
+test("a married child stays close under their own parents when both sides are recorded", () => {
+  const layout = layoutTree(twoSides, "jonathan");
+  noOverlaps(layout);
+  const hisParents = (centre(layout, "ernesto") + centre(layout, "stella")) / 2;
+  const herParents = (centre(layout, "rodel") + centre(layout, "myrna")) / 2;
+  // Within about one card of their own parents' middle -- the first layout was 259 away.
+  expect(Math.abs(centre(layout, "jonathan") - hisParents)).toBeLessThan(CARD_W);
+  expect(Math.abs(centre(layout, "janine") - herParents)).toBeLessThan(CARD_W);
+});
+
+test("each spouse sits on the side of their own family", () => {
+  const layout = layoutTree(twoSides, "jonathan");
+  // His parents are laid out to the left of hers, so he takes the left seat,
+  // and his sister is beside him rather than across the chart.
+  expect(centre(layout, "ernesto")).toBeLessThan(centre(layout, "rodel"));
+  expect(centre(layout, "jonathan")).toBeLessThan(centre(layout, "janine"));
+  expect(Math.abs(centre(layout, "sister") - centre(layout, "jonathan"))).toBeLessThan(2 * CARD_W);
+});
