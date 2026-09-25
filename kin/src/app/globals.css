@@ -459,7 +459,7 @@ button,
   font-size: 1rem;
   letter-spacing: -0.01em;
   line-height: 1.2;
-  color: var(--color-accent);
+  color: var(--color-accent-700); /* see .btn-secondary */
   background: color-mix(in srgb, var(--color-text) 5%, transparent);
   border: 0;
   /* In rem with the label, so a button turned up to 200% grows its box
@@ -486,13 +486,17 @@ button,
 }
 .btn-secondary {
   background: color-mix(in srgb, var(--color-text) 6%, transparent);
-  color: var(--color-accent);
+  /* Link colour, not the fill colour. A theme's accent is chosen dark enough
+     to hold white text on a filled button, which in dark mode makes it too
+     dark to read as text on the page; accent-700 is the one every palette
+     is tested to read at 4.5:1 on a card (e2e/palettes.logic.spec.ts). */
+  color: var(--color-accent-700);
 }
 .btn-secondary:hover {
   background: color-mix(in srgb, var(--color-text) 10%, transparent);
 }
 .btn-ghost {
-  color: var(--color-accent);
+  color: var(--color-accent-700); /* see .btn-secondary */
   background: transparent;
   padding-inline: 0.25rem;
 }

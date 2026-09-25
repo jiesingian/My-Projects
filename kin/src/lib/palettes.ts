@@ -130,6 +130,50 @@ export const PALETTES: Palette[] = [
     light: { bg: "#f7f5fc", surface: "#ffffff", text: "#231d3a", muted: "#625b7c", accent: "#6d28d9", ink: "#6d28d9", accent2: "#c4b5fd", divider: "#e6e1f3" },
     dark: { bg: "#13111c", surface: "#1d1a2a", text: "#eeeaf8", muted: "#aba3c7", accent: "#6d28d9", ink: "#c4b5fd", accent2: "#a78bfa", divider: "#2f2a44" },
   },
+  // Five added 25 September from Janine's list. Each keeps the list's own
+  // colours where they are readable -- the ground, the ambient wash, text and
+  // links -- and where a colour is too light to carry white button text (the
+  // test's 4.5:1), the button takes a deeper shade of the same hue instead:
+  // #0096D1 is 3.34:1 under white, #9CCD62 1.85, #3B82F6 3.68, #52ADA2 2.67.
+  {
+    id: "milk",
+    name: "Pale Milk",
+    blurb: "Ocean blue on warm pale milk",
+    light: { bg: "#fff4ea", surface: "#ffffff", text: "#1b2530", muted: "#5e6670", accent: "#0077a8", ink: "#006d99", accent2: "#0096d1", divider: "#f0e2d4" },
+    dark: { bg: "#0b1720", surface: "#13222d", text: "#fff4ea", muted: "#a9b7c2", accent: "#0077a8", ink: "#4fc0ec", accent2: "#0096d1", divider: "#22384a" },
+  },
+  {
+    id: "editorial",
+    name: "Editorial",
+    blurb: "Warm neutrals with a terracotta accent",
+    light: { bg: "#f5f0eb", surface: "#fafaf8", text: "#1c1917", muted: "#6b625a", accent: "#c2410c", ink: "#a8380a", accent2: "#e3c3a8", divider: "#e6ddd3" },
+    dark: { bg: "#171412", surface: "#221e1b", text: "#f5f0eb", muted: "#b3a89e", accent: "#c2410c", ink: "#f0a27a", accent2: "#c2410c", divider: "#38302a" },
+  },
+  {
+    id: "electric",
+    name: "Electric Blue",
+    blurb: "Electric blue and slate, crisp and professional",
+    light: { bg: "#f1f5f9", surface: "#ffffff", text: "#1e293b", muted: "#475569", accent: "#2563eb", ink: "#1d4ed8", accent2: "#3b82f6", divider: "#e2e8f0" },
+    dark: { bg: "#0f172a", surface: "#1e293b", text: "#f1f5f9", muted: "#a3b1c6", accent: "#2563eb", ink: "#7fb0fa", accent2: "#3b82f6", divider: "#334155" },
+  },
+  {
+    id: "emerald",
+    name: "Emerald Wave",
+    blurb: "Emerald and brook green, calm and restful",
+    light: { bg: "#eef7f4", surface: "#ffffff", text: "#13302b", muted: "#4f6b65", accent: "#2b7a70", ink: "#246b62", accent2: "#addcca", divider: "#d5ebe3" },
+    dark: { bg: "#0d1a18", surface: "#152623", text: "#e6f4ef", muted: "#9fbfb7", accent: "#2b7a70", ink: "#7fd1c4", accent2: "#52ada2", divider: "#24403b" },
+  },
+  {
+    // Dark by design, as the list has it: Antarctic Deep is the ground and
+    // Woodland Green the highlight. The green is far too light under white
+    // text, so buttons are a deep woodland and the green itself is the links.
+    id: "antarctic",
+    name: "Antarctic",
+    blurb: "Deep grey with woodland green, for dark rooms",
+    darkOnly: true,
+    light: { bg: "#3a3c42", surface: "#45474e", text: "#f2f3ef", muted: "#c6c9cf", accent: "#3d7a1f", ink: "#9ccd62", accent2: "#9ccd62", divider: "#55585f" },
+    dark: { bg: "#3a3c42", surface: "#45474e", text: "#f2f3ef", muted: "#c6c9cf", accent: "#3d7a1f", ink: "#9ccd62", accent2: "#9ccd62", divider: "#55585f" },
+  },
   {
     id: "dracula",
     name: "Dracula",
