@@ -25,6 +25,7 @@ import {
 import type { ChatAttachment, ChatMember, ChatMessage, ChatPin, ChatPoll } from "@/lib/queries/chat";
 import { REACTIONS, amountIn, splitShoppingItems, firstUrl, type LinkPreview } from "@/lib/chat";
 import { toast } from "@/components/toast";
+import { PhotoViewer } from "@/components/photo-viewer";
 import Link from "next/link";
 
 // Rendered from the same list the action checks against, so a reaction the
@@ -259,9 +260,27 @@ function formatBytes(n: number) {
   return `${(n / (1024 * 1024)).toFixed(1)} MB`;
 }
 
+/** A message's files. Its photos open in the full-screen viewer, with the
+ * message's other photos a swipe away -- they used to open in a new browser
+ * tab, which on a phone left Kin behind altogether. */
+function MessageAttachments({ attachments }: { attachments: ChatAttachment[] }) {
+  const [open, setOpen] = useState<number | null>(null);
+  const photos = attachments.filter((a) => a.url && a.mimeType.startsWith("image/"));
+  return (
+    <>
+      {attachments.map((a) => (
+        <AttachmentView key={a.id} a={a} onOpenPhoto={() => setOpen(photos.findIndex((p) => p.id === a.id))} />
+      ))}
+      {open !== null && open >= 0 && (
+        <PhotoViewer items={photos.map((p) => ({ url: p.url!, alt: p.fileName }))} startIndex={open} onClose={() => setOpen(null)} label="Photo from chat" />
+      )}
+    </>
+  );
+}
+
 /** One file in a message. A photo is shown, a video plays in place, anything
  * else is a named chip that opens it. */
-function AttachmentView({ a }: { a: ChatAttachment }) {
+function AttachmentView({ a, onOpenPhoto }: { a: ChatAttachment; onOpenPhoto: () => void }) {
   if (!a.url) {
     return (
       <span className="kin-filechip" data-broken="true">
@@ -273,12 +292,12 @@ function AttachmentView({ a }: { a: ChatAttachment }) {
   }
   if (a.mimeType.startsWith("image/")) {
     return (
-      <a className="kin-attachment-photo" href={a.url} target="_blank" rel="noopener noreferrer">
+      <button type="button" className="kin-attachment-photo" onClick={onOpenPhoto} aria-label={`Open photo ${a.fileName}`}>
         {/* eslint-disable-next-line @next/next/no-img-element -- a signed URL
             that expires in half an hour gains nothing from the image
             optimiser, which would cache it past its own expiry. */}
         <img src={a.url} alt={a.fileName} loading="lazy" decoding="async" />
-      </a>
+      </button>
     );
   }
   if (a.mimeType.startsWith("audio/")) {
@@ -843,9 +862,7 @@ export function ChatThread({
                           a button is not valid and does not work on a phone. */}
                       {m.attachments.length > 0 && !m.deleted && (
                         <div className="kin-attachments" data-mine={mine || undefined} data-count={Math.min(m.attachments.length, 4)}>
-                          {m.attachments.map((a) => (
-                            <AttachmentView key={a.id} a={a} />
-                          ))}
+                          <MessageAttachments attachments={m.attachments} />
                         </div>
                       )}
 

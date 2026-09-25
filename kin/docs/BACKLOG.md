@@ -34,12 +34,17 @@ phone mock-ups and a map of every setting, are in the artifact
 4. **Done: The look matches the icon (item 3).** The warm coral look becomes the
    default for *new* households, and a one-time "try the new look" card goes
    to existing people. A theme someone chose is never overridden.
-5. **Kid view: design first, approval before code.** Per-child switch,
-   what children see, and only a grown-up can turn it off.
-6. **One locked vault for documents and passwords (item 5): design first,
-   approval before code.** A per-device passcode for each person and a
-   person dropdown like Wealth's, built on the existing documents lock.
-   Watched paths.
+5. **Kid view: approved 25 September (K1 + K2 + K3).** K1: switched on
+   per child, for children with a login of their own, and only a grown-up
+   can turn it off. K2: four tabs (Today, Chat, Journal, Family); money,
+   the vault and running the household are hidden *and* refused by the
+   server. K3: a new child with their own login starts in kid view (a
+   database change).
+6. **One locked vault for documents and passwords (item 5): approved 25
+   September (V1 + V2 + V4).** V1: one Vault tab with Documents and
+   Passwords. V2: a "Whose" dropdown like Wealth's. V4: Face ID first, a
+   PIN number pad, a lock countdown, press-and-hold to reveal. V3 ("just
+   me" passwords) was declined. Watched paths.
 7. **3D family tree (item 10).** An optional "3D view" toggle. The current
    tree stays the default.
 8. **Public home page (items 1 + 11).** A front page with a 3D house
@@ -47,11 +52,30 @@ phone mock-ups and a map of every setting, are in the artifact
    before sign-up. The largest item, done last in its own sessions. Check
    the existing onboarding first. It touches watched sign-up screens.
 
+Added 25 September, after the list above:
+
+9. **Done: photos open full screen** the way Facebook and Instagram show
+   them, never in a new tab.
+10. **Comments and reactions on photos** shared on a profile or in the
+    journal.
+11. **Family feed follows the family tree:** relatives on the tree see each
+    other's feed without a separate link. Changes who can see what, so the
+    trade-offs go to Jonathan before code.
+12. **Family tree:** each person on the tree opens their profile, and
+    brothers and sisters can be added, not only a father and mother.
+13. **Text that fits:** tab and button labels that fit at the default text
+    size, and pages that still work at a larger one.
+
 Decided against in the same review: revising Journal (item 6) and Planner
 (item 7). Done already: no hub numbers and no "five ledgers" motto (item 9,
 #209).
 
 ## Done
+
+- One full-screen photo viewer everywhere a photo opens (journal, Gallery,
+  profile and household albums, chat): the whole screen, swipe or arrow
+  keys for the next photo, swipe down to close, double-tap to zoom. Chat
+  photos no longer open a new browser tab (25 September).
 
 - Kin Coral, the icon's look: the default for every profile created from now
   on, and offered once on Today to everyone still on Kin Classic (25
@@ -83,6 +107,13 @@ Decided against in the same review: revising Journal (item 6) and Planner
 - Cutting the bottom navigation down to 4–5 tabs (declined 24 September).
 
 ## Next up
+
+- **Dev has no `documents` storage bucket,** so every upload on dev fails
+  with "Bucket not found". Production's bucket and its storage policies were
+  made by hand before the migration pipeline and are in no migration. A
+  migration that creates both, matching production's policies exactly,
+  would fix dev and make production reproducible; it needs production's
+  current storage policies read first.
 
 - Skeleton loaders on the pages that still show a blank screen while loading
   (5 of 24 have them).
