@@ -17,7 +17,7 @@ phone mock-ups and a map of every setting, are in the artifact
 "Today & Settings Proposals"
 (https://claude.ai/artifact/CCtrVkDYYGKM8a7DHvn1o9).
 
-1. **Today (item 4): A + B + C + D as one change.** A: "At a glance" tiles
+1. **Done: Today (item 4), A + B + C + D as one change.** A: "At a glance" tiles
    (money left this month, next calendar item, shopping list and its cost,
    what's waiting on you) replace the five hub cards, which only repeated
    the bottom bar. B: a "Quick add" row (expense, to buy, event, journal).
@@ -52,6 +52,10 @@ Decided against in the same review: revising Journal (item 6) and Planner
 #209).
 
 ## Done
+
+- Today: "At a glance" tiles in place of the hub cards, a "Quick add" row,
+  one family strip in the header (tap initials for a person's card), and a
+  one-line "all clear" (25 September).
 
 - Bottom sheets on Vaul: drag to close, and Prices & pantry no longer stuck
   at the top of the screen on phones (#212, 25 September).

@@ -39,9 +39,9 @@ const SWITCHES: { at: number; why: string; rules: string }[] = [
   },
   {
     at: 18,
-    why: "hub grid: one-up",
-    rules: `.kin-hubgrid{grid-template-columns:1fr}
-.kin-hub-wide{grid-column:span 1}`,
+    why: "Today: glance tiles one-up, quick add two-up",
+    rules: `.kin-glance{grid-template-columns:1fr}
+.kin-quick{grid-template-columns:1fr 1fr}`,
   },
   {
     at: 19,
