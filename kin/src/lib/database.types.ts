@@ -3374,6 +3374,7 @@ export type Database = {
           id: string
           insurance_info: string | null
           is_organiser: boolean
+          kid_view: boolean
           mobile: string | null
           notification_prefs: Json
           pagibig_number: string | null
@@ -3418,6 +3419,7 @@ export type Database = {
           id?: string
           insurance_info?: string | null
           is_organiser?: boolean
+          kid_view?: boolean
           mobile?: string | null
           notification_prefs?: Json
           pagibig_number?: string | null
@@ -3462,6 +3464,7 @@ export type Database = {
           id?: string
           insurance_info?: string | null
           is_organiser?: boolean
+          kid_view?: boolean
           mobile?: string | null
           notification_prefs?: Json
           pagibig_number?: string | null

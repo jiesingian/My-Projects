@@ -5,6 +5,7 @@ import { DetailHeader } from "@/components/hub-header";
 import { Blueprint, Tag } from "@/components/ui";
 import { Icon } from "@/components/icons";
 import { CalendarFeedControl, DriveConnectedPanel, CalendarConnectedPanel } from "@/components/settings-controls";
+import { keepKidViewOut } from "@/lib/kid-view";
 
 const DRIVE_ERROR_MESSAGES: Record<string, string> = {
   not_configured: "Google Drive linking isn't configured on this server yet — set GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET.",
@@ -27,6 +28,7 @@ export default async function ConnectedSettingsPage({
 }: {
   searchParams: Promise<{ drive_error?: string; calendar_error?: string }>;
 }) {
+  await keepKidViewOut();
   const me = await getCurrentMember();
   if (!me) redirect("/onboarding/profile");
   const { drive_error, calendar_error } = await searchParams;

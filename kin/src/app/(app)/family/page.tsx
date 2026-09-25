@@ -10,6 +10,7 @@ import { DocumentsLockSettings } from "@/components/documents-lock-settings";
 import { getLockState } from "@/lib/security/gate";
 import { getVaultItems } from "@/lib/queries/vault";
 import { FamilyVault } from "@/components/family-vault";
+import { inKidView } from "@/lib/kid-view";
 import { VaultBar } from "@/components/vault-bar";
 import { VaultWhosePicker } from "@/components/vault-whose-picker";
 import { isGrownUp } from "@/lib/roles";
@@ -45,9 +46,13 @@ export default async function FamilyPage({
 
   const sp = await searchParams;
   const seg: Seg = (SEGMENTS as readonly string[]).includes(sp.seg ?? "") ? (sp.seg as Seg) : "profile";
+  // Kid view: the tree and the profiles, and Links for who to ring. The vault
+  // and the family's health records are a grown-up's (K2, 25 September).
+  const kid = inKidView(me);
+  if (kid && (seg === "documents" || seg === "health")) redirect("/family");
   const who = sp.who ?? "all";
 
-  const segments = SEGMENTS.map((s) => ({
+  const segments = SEGMENTS.filter((s) => !kid || (s !== "documents" && s !== "health")).map((s) => ({
     // Short on purpose: five tabs share a phone's width, and "Documents" and
     // "Quicklinks" did not fit -- they broke mid-word. The page is already
     // called Family, so the tree does not need to say it again.

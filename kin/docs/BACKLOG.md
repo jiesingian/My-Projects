@@ -24,7 +24,7 @@ phone mock-ups and a map of every setting, are in the artifact
    C: one family strip. The header initials become tappable, the family
    list at the bottom goes, and clock and weather move into the header. D:
    "Nothing needs you today" shrinks to one line.
-2. **Done: Settings as short pages (item 8).** Kid view gets its row when it is built (item 5). A home list (profile, Appearance,
+2. **Done: Settings as short pages (item 8).** Kid view has its row (item 5). A home list (profile, Appearance,
    Notifications, Connected apps, Household, Kid view, Privacy & lock,
    Account), each row showing its current value. Every existing control
    moves, and nothing is removed. The documents lock stays on Family and is
@@ -34,7 +34,7 @@ phone mock-ups and a map of every setting, are in the artifact
 4. **Done: The look matches the icon (item 3).** The warm coral look becomes the
    default for *new* households, and a one-time "try the new look" card goes
    to existing people. A theme someone chose is never overridden.
-5. **Kid view: approved 25 September (K1 + K2 + K3).** K1: switched on
+5. **Done: Kid view: approved 25 September (K1 + K2 + K3).** K1: switched on
    per child, for children with a login of their own, and only a grown-up
    can turn it off. K2: four tabs (Today, Chat, Journal, Family); money,
    the vault and running the household are hidden *and* refused by the
@@ -72,6 +72,13 @@ Decided against in the same review: revising Journal (item 6) and Planner
 #209).
 
 ## Done
+
+- Kid view: Settings → Kid view (grown-ups, one switch per child with a
+  login); four tabs, a Today of their own jobs, stars, rewards and what's
+  coming up; Wealth, Household, the vault, health records, the household's
+  settings and Kin AI hidden and refused by the server. A child who gets a
+  login starts in it, and only a grown-up can turn it off (the database
+  enforces that) (25 September).
 
 - The family vault: Family → Vault holds Documents and Passwords behind one
   unlock, with a "Whose" picker (documents by who they are for, passwords by

@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { getCurrentMember } from "@/lib/session";
 import { readAccess } from "@/lib/access";
 import { TabBar } from "@/components/tab-bar";
+import { inKidView } from "@/lib/kid-view";
 import { AssistantFab } from "@/components/assistant-fab";
 import { ConfirmSheetHost } from "@/components/confirm-sheet";
 import { Toaster } from "@/components/toast";
@@ -42,8 +43,8 @@ export default async function AppLayout({ children }: { children: React.ReactNod
           in CSS rather than here, because an inline style cannot answer a
           media query and this has to change shape at 1024px. */}
       <div className="kin-content">{children}</div>
-      <AssistantFab memberName={member.full_name.split(" ")[0]} />
-      <TabBar chatUnread={unread.count} chatMentioned={unread.mentioned} />
+      {!inKidView(member) && <AssistantFab memberName={member.full_name.split(" ")[0]} />}
+      <TabBar chatUnread={unread.count} chatMentioned={unread.mentioned} kidView={inKidView(member)} />
       <ConfirmSheetHost />
       <Toaster />
       <ReturnToToday />

@@ -10,12 +10,14 @@ import { DocFileRow } from "@/components/doc-file-row";
 import { DocEntryDeleteButton } from "@/components/doc-entry-delete-button";
 import { DocSelectionProvider } from "@/lib/doc-selection-context";
 import { familyDate } from "@/lib/format-family";
+import { keepKidViewOut } from "@/lib/kid-view";
 
 export default async function DocFolderPage({
   params,
 }: {
   params: Promise<{ folderId: string }>;
 }) {
+  await keepKidViewOut();
   const fmtDate = await familyDate();
   const me = await getCurrentMember();
   if (!me) redirect("/onboarding/profile");

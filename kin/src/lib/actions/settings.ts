@@ -3,6 +3,7 @@
 import { cookies, headers } from "next/headers";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
+import { isGrownUp } from "@/lib/roles";
 import { requireCurrentMember } from "@/lib/session";
 import type { ActionState } from "@/lib/actions/auth";
 import { isNotificationKey } from "@/lib/notifications";
@@ -127,6 +128,24 @@ export async function updateShareWithRelativesAction(on: boolean): Promise<Actio
   revalidatePath("/settings", "layout");
   revalidatePath("/journal");
   return { error: error ? humanDatabaseError(error.message) : null };
+}
+
+/** Kid view on or off for one child with a login of their own (K1). Only a
+ * grown-up asks; the database refuses anyone else too (members_guard_kid_view),
+ * so this check is for a clear message, not the protection. */
+export async function setKidViewAction(memberId: string, on: boolean): Promise<ActionState> {
+  const me = await requireCurrentMember();
+  if (!isGrownUp(me.role)) return { error: "Only a grown-up can change kid view." };
+  const supabase = await createClient();
+  const { data: child } = await supabase.from("members").select("id, family_id, role").eq("id", memberId).maybeSingle();
+  if (!child || child.family_id !== me.family_id) return { error: "That person could not be found." };
+  if (child.role !== "child_self") return { error: "Kid view is for children with a login of their own." };
+  const { data: saved, error } = await supabase.from("members").update({ kid_view: on === true }).eq("id", memberId).select("id");
+  if (error) return { error: humanDatabaseError(error.message) };
+  // A policy that refuses an update matches no rows rather than erroring.
+  if (!saved || saved.length === 0) return { error: "That didn't save. Try again, or ask the household's organizer." };
+  revalidatePath("/settings", "layout");
+  return { error: null };
 }
 
 export async function updateHouseholdPrefsAction(

@@ -7,11 +7,13 @@ import { InviteCodeCard, HouseholdNameForm, HouseholdPrefsForm, ShareWithRelativ
 import { DeleteHouseholdButton } from "@/components/delete-household-button";
 import { TransferOrganizerRole } from "@/components/transfer-organizer-role";
 import { countryLabel } from "@/lib/countries";
+import { keepKidViewOut } from "@/lib/kid-view";
 
 /** The household's name, members, invite code, organizer role, currency and
  * calendar preferences, and -- last, for the organizer -- deleting it. The
  * Household group and the danger zone of the old single Settings page. */
 export default async function HouseholdSettingsPage() {
+  await keepKidViewOut();
   const me = await getCurrentMember();
   if (!me) redirect("/onboarding/profile");
 
