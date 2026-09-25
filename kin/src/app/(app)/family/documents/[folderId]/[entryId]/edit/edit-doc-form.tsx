@@ -63,7 +63,7 @@ export function EditDocForm({
         backHref={backHref}
         eyebrow="Family"
         trail={[
-          { label: "Documents", href: "/family?seg=documents" },
+          { label: "Docs", href: "/family?seg=documents" },
           { label: folderName, href: backHref },
           { label: entry.title },
         ]}

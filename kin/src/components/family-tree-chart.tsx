@@ -7,7 +7,7 @@ import { Avatar } from "@/components/avatar";
 import { Icon } from "@/components/icons";
 import { initials } from "@/lib/format";
 import { layoutTree, CARD_W, CARD_H } from "@/lib/tree-layout";
-import { addRelativeAction, type Relation } from "@/lib/actions/family";
+import { addRelativeAction, linkTreePersonToMemberAction, type Relation } from "@/lib/actions/family";
 import type { TreePerson } from "@/lib/queries/family";
 import type { TreeMatch, BranchPerson } from "@/lib/queries/tree-links";
 import { mergeBranch, type ChartPerson } from "@/lib/tree-merge";
@@ -26,6 +26,10 @@ const MAX_ZOOM = 2.5;
 
 type View = { x: number; y: number; k: number };
 type Ghost = { id: string; relation: "father" | "mother"; of: string };
+/** What the panel offers. Brother and sister are one relation to the tree
+ * (whoever shares the parents); the word only changes what the form says. */
+type AddAs = Exclude<Relation, "sibling"> | "brother" | "sister";
+type HouseholdMember = { id: string; full_name: string };
 
 /** The household's family tree as a chart: every person, their parents above,
  * their children below, drawn once for everybody in the house. The only thing
@@ -40,8 +44,12 @@ export function FamilyTreeChart({
   matches = [],
   linkedFamilies = [],
   inviteCode = null,
+  unaddedMembers = [],
 }: {
   people: TreePerson[];
+  /** Household members not on the tree yet: offered when adding a relative,
+   * and to tie a typed-in name to its Kin profile. */
+  unaddedMembers?: HouseholdMember[];
   meTreeId: string | null;
   matches?: TreeMatch[];
   linkedFamilies?: { id: string; name: string }[];
@@ -228,7 +236,7 @@ export function FamilyTreeChart({
   };
 
   // ── adding a relative ─────────────────────────────────────────────────────
-  const [adding, setAdding] = useState<{ to: string; relation: Relation } | null>(null);
+  const [adding, setAdding] = useState<{ to: string; relation: AddAs } | null>(null);
 
   return (
     <div className="kin-treechart">
@@ -377,6 +385,7 @@ export function FamilyTreeChart({
           onToggleBranch={toggleBranch}
           person={byId.get(focus)!}
           people={people}
+          unaddedMembers={unaddedMembers}
           isMe={focus === meTreeId}
           adding={adding?.to === focus ? adding.relation : null}
           onAdd={(relation) => setAdding({ to: focus, relation })}
@@ -396,6 +405,7 @@ export function FamilyTreeChart({
 function SelectedPanel({
   person,
   people,
+  unaddedMembers,
   isMe,
   adding,
   onAdd,
@@ -414,15 +424,18 @@ function SelectedPanel({
   onToggleBranch: (matchId: string) => void;
   person: TreePerson;
   people: TreePerson[];
+  unaddedMembers: HouseholdMember[];
   isMe: boolean;
-  adding: Relation | null;
-  onAdd: (r: Relation) => void;
+  adding: AddAs | null;
+  onAdd: (r: AddAs) => void;
   onCancel: () => void;
   onAdded: (newId: string | null) => void;
 }) {
-  const offers: { relation: Relation; label: string; can: boolean }[] = [
+  const offers: { relation: AddAs; label: string; can: boolean }[] = [
     { relation: "father", label: "Father", can: !person.fatherId },
     { relation: "mother", label: "Mother", can: !person.motherId },
+    { relation: "brother", label: "Brother", can: true },
+    { relation: "sister", label: "Sister", can: true },
     { relation: "spouse", label: "Spouse", can: !person.spouseId },
     { relation: "child", label: "Child", can: true },
   ];
@@ -438,17 +451,19 @@ function SelectedPanel({
           <div className="kin-treepanel-meta">{person.dob ? `Born ${person.dob}` : "No birthdate recorded"}</div>
         </div>
         {person.memberId && (
-          <Link href={`/family/members/${person.memberId}`} className="btn btn-ghost" style={{ minHeight: "2rem", padding: "0 0.5rem", fontSize: "var(--text-sm)" }}>
-            Profile
+          <Link href={`/family/members/${person.memberId}`} className="btn btn-secondary" style={{ minHeight: "2rem", padding: "0 0.75rem", fontSize: "var(--text-sm)" }}>
+            View profile
           </Link>
         )}
         {!person.memberId && inviteCode && <InviteRelativeButton name={person.fullName} code={inviteCode} />}
       </div>
 
+      {!person.memberId && unaddedMembers.length > 0 && <LinkProfile person={person} unaddedMembers={unaddedMembers} />}
+
       <LinkedSection person={person} matches={matches} linkedFamilies={linkedFamilies} shownBranches={shownBranches} onToggleBranch={onToggleBranch} />
 
       {adding ? (
-        <AddRelativeForm person={person} people={people} relation={adding} onCancel={onCancel} onAdded={onAdded} />
+        <AddRelativeForm person={person} people={people} unaddedMembers={unaddedMembers} relation={adding} onCancel={onCancel} onAdded={onAdded} />
       ) : (
         <div className="kin-treepanel-add">
           <span className="kin-treepanel-label">Add</span>
@@ -468,34 +483,47 @@ function SelectedPanel({
 function AddRelativeForm({
   person,
   people,
+  unaddedMembers,
   relation,
   onCancel,
   onAdded,
 }: {
   person: TreePerson;
   people: TreePerson[];
-  relation: Relation;
+  unaddedMembers: HouseholdMember[];
+  relation: AddAs;
   onCancel: () => void;
   onAdded: (newId: string | null) => void;
 }) {
   const [name, setName] = useState("");
   const [dob, setDob] = useState("");
+  const [memberId, setMemberId] = useState("");
   const [childOf, setChildOf] = useState<"father" | "mother">("father");
   const [other, setOther] = useState<string>(person.spouseId ?? "");
+  const [parentName, setParentName] = useState("");
+  const [parentIs, setParentIs] = useState<"father" | "mother">("father");
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
   const first = person.fullName.split(" ")[0];
   const title = relation === "child" ? `${first}'s child` : `${first}'s ${relation}`;
+  const sibling = relation === "brother" || relation === "sister";
+  // Brothers and sisters are whoever shares the parents. With none recorded
+  // there is nothing to share yet, so one parent is asked for here.
+  const needsParent = sibling && !person.fatherId && !person.motherId;
+  const ready = (memberId || name.trim()) && (!needsParent || parentName.trim());
 
   const save = () =>
     startTransition(async () => {
       const result = await addRelativeAction({
         toId: person.id,
-        relation,
+        relation: sibling ? "sibling" : relation,
         fullName: name,
         dob,
+        memberId: memberId || null,
         childOf,
         otherParentId: relation === "child" ? other || null : null,
+        parentName: needsParent ? parentName : undefined,
+        parentIs,
       });
       if (result.error) setError(result.error);
       else onAdded(result.id ?? null);
@@ -504,8 +532,38 @@ function AddRelativeForm({
   return (
     <div className="kin-treepanel-form">
       <div className="kin-treepanel-label">Add {title}</div>
-      <input className="input" placeholder="Full name" value={name} onChange={(e) => setName(e.target.value)} maxLength={100} autoFocus aria-label="Full name" />
-      <input className="input" type="date" value={dob} onChange={(e) => setDob(e.target.value)} aria-label="Date of birth (optional)" />
+      {unaddedMembers.length > 0 && (
+        <select className="input" value={memberId} onChange={(e) => setMemberId(e.target.value)} aria-label="Someone already in the household">
+          <option value="">Someone new</option>
+          {unaddedMembers.map((m) => (
+            <option key={m.id} value={m.id}>
+              {m.full_name} (in Kin)
+            </option>
+          ))}
+        </select>
+      )}
+      {!memberId && (
+        <>
+          <input className="input" placeholder="Full name" value={name} onChange={(e) => setName(e.target.value)} maxLength={100} autoFocus aria-label="Full name" />
+          <input className="input" type="date" value={dob} onChange={(e) => setDob(e.target.value)} aria-label="Date of birth (optional)" />
+        </>
+      )}
+      {needsParent && (
+        <>
+          <p style={{ margin: 0, fontSize: "var(--text-sm)", color: "var(--color-neutral-600)" }}>
+            Brothers and sisters share parents on the tree, so add one of {first}&rsquo;s parents too.
+          </p>
+          <input className="input" placeholder="Parent's full name" value={parentName} onChange={(e) => setParentName(e.target.value)} maxLength={100} aria-label="Parent's full name" />
+          <div className="seg" style={{ margin: 0 }}>
+            <button type="button" data-active={parentIs === "father"} onClick={() => setParentIs("father")}>
+              Father
+            </button>
+            <button type="button" data-active={parentIs === "mother"} onClick={() => setParentIs("mother")}>
+              Mother
+            </button>
+          </div>
+        </>
+      )}
       {relation === "child" && (
         <>
           <div className="seg" style={{ margin: 0 }}>
@@ -537,10 +595,56 @@ function AddRelativeForm({
         <button type="button" className="btn btn-ghost" onClick={onCancel} disabled={pending}>
           Cancel
         </button>
-        <button type="button" className="btn btn-primary" onClick={save} disabled={pending || !name.trim()}>
+        <button type="button" className="btn btn-primary" onClick={save} disabled={pending || !ready}>
           Add
         </button>
       </div>
+    </div>
+  );
+}
+
+/** Ties a name typed onto the tree to that person's Kin profile, so their
+ * card opens it. */
+function LinkProfile({ person, unaddedMembers }: { person: TreePerson; unaddedMembers: HouseholdMember[] }) {
+  const router = useRouter();
+  const [pending, startTransition] = useTransition();
+  const [error, setError] = useState<string | null>(null);
+  return (
+    <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: "0.375rem 0.5rem", margin: "0.5rem 0" }}>
+      <label className="kin-treepanel-label" htmlFor={`link-${person.id}`}>
+        Is this someone in Kin?
+      </label>
+      <select
+        id={`link-${person.id}`}
+        className="input"
+        style={{ flex: "1 1 10rem", minWidth: 0 }}
+        value=""
+        disabled={pending}
+        onChange={(e) => {
+          const memberId = e.target.value;
+          if (!memberId) return;
+          startTransition(async () => {
+            const result = await linkTreePersonToMemberAction(person.id, memberId);
+            if (result.error) setError(result.error);
+            else {
+              toast.success("Linked to their profile.");
+              router.refresh();
+            }
+          });
+        }}
+      >
+        <option value="">Link to their profile…</option>
+        {unaddedMembers.map((m) => (
+          <option key={m.id} value={m.id}>
+            {m.full_name}
+          </option>
+        ))}
+      </select>
+      {error && (
+        <p role="alert" style={{ margin: 0, flexBasis: "100%", fontSize: "var(--text-sm)", color: "var(--cal-occasion)" }}>
+          {error}
+        </p>
+      )}
     </div>
   );
 }

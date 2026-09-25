@@ -27,7 +27,9 @@ export function HubHeader({
         <span style={{ fontSize: "0.8125rem", color: "var(--color-neutral-600)", marginLeft: "auto" }}>{formatDate(new Date(), dateFormat)}</span>
       </div>
       {/* iOS large title */}
-      <h2 style={{ fontSize: "2.125rem", fontWeight: 700, letterSpacing: "-0.03em", margin: "2px 0 0" }}>{title}</h2>
+      {/* Capped at the phone's width, so at a large text size "Household"
+          stops growing instead of breaking in the middle. */}
+      <h2 style={{ fontSize: "min(2.125rem, 12vw)", fontWeight: 700, letterSpacing: "-0.03em", margin: "2px 0 0" }}>{title}</h2>
       {/* A segmented control with one item has nothing to switch between --
           Journal's merge into a single Entries segment is the first hub to
           hit this, and a lone always-active tab would say less than nothing. */}

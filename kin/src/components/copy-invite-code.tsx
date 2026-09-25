@@ -34,7 +34,7 @@ export function CopyInviteCode({ code }: { code: string }) {
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
-      <div style={{ display: "flex", alignItems: "center", gap: "0.625rem" }}>
+      <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: "0.625rem" }}>
         <span style={{ font: "400 1.5rem/1 var(--font-numeric)", letterSpacing: ".02em" }}>{code}</span>
         <button
           type="button"

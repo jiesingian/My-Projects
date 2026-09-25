@@ -194,7 +194,12 @@ export function FamilyAddressList({ addresses, canEdit }: { addresses: FamilyAdd
         editingId === a.id ? (
           <AddressForm key={a.id} fields={fields} set={set} busy={busy} error={error} onCancel={cancelForm} onSave={save} saveLabel="Save address" />
         ) : (
-          <div key={a.id} style={{ display: "flex", alignItems: "center", gap: "0.625rem", padding: "0.5625rem 0", borderBottom: "1px solid var(--color-divider)" }}>
+          /* The label tag, then the address, with Map / Edit / Remove on a line
+             of their own under it. They used to share one line with the
+             address, which left the address as the only thing able to shrink:
+             at a larger text size it was squeezed to one letter per line.
+             At a very large size the address drops under its tag instead. */
+          <div key={a.id} style={{ display: "flex", flexWrap: "wrap", alignItems: "flex-start", gap: "0.375rem 0.625rem", padding: "0.5625rem 0", borderBottom: "1px solid var(--color-divider)" }}>
             <span
               style={{
                 font: "600 0.5625rem/1 var(--font-heading)",
@@ -205,37 +210,34 @@ export function FamilyAddressList({ addresses, canEdit }: { addresses: FamilyAdd
                 borderRadius: 3,
                 padding: "0.1875rem 0.375rem",
                 flex: "none",
-                alignSelf: "flex-start",
+                marginTop: "0.125rem",
               }}
             >
               {a.label}
             </span>
-            <span style={{ flex: 1, minWidth: 0 }}>
+            <span style={{ flex: "1 1 12rem", minWidth: 0 }}>
               <span style={{ fontSize: "0.8125rem", display: "block" }}>
                 {[[a.house_no, a.building].filter(Boolean).join(" "), a.street].filter(Boolean).join(", ") || a.address_line}
               </span>
-              <span style={{ fontSize: "0.8125rem", color: "var(--color-neutral-600)" }}>
+              <span style={{ fontSize: "0.8125rem", color: "var(--color-neutral-600)", display: "block" }}>
                 {[a.barangay, a.city, a.province, a.zip_code].filter(Boolean).join(", ")}
               </span>
+              <span style={{ display: "flex", flexWrap: "wrap", gap: "0.25rem 1rem", marginTop: "0.25rem", fontSize: "0.8125rem" }}>
+                <a href={mapsUrl(a)} target="_blank" rel="noopener noreferrer" style={{ color: "var(--color-accent-700)", textDecoration: "none" }}>
+                  Map ↗
+                </a>
+                {canEdit && (
+                  <>
+                    <button type="button" onClick={() => startEdit(a)} style={{ all: "unset", cursor: "pointer", color: "var(--color-accent-700)" }}>
+                      Edit
+                    </button>
+                    <button type="button" onClick={() => remove(a.id)} style={{ all: "unset", cursor: "pointer", color: "var(--color-accent-700)" }}>
+                      Remove
+                    </button>
+                  </>
+                )}
+              </span>
             </span>
-            <a
-              href={mapsUrl(a)}
-              target="_blank"
-              rel="noopener noreferrer"
-              style={{ fontSize: "0.8125rem", color: "var(--color-accent-700)", textDecoration: "none", flex: "none" }}
-            >
-              MAP ↗
-            </a>
-            {canEdit && (
-              <>
-                <button type="button" onClick={() => startEdit(a)} style={{ all: "unset", cursor: "pointer", fontSize: "0.8125rem", color: "var(--color-accent-700)" }}>
-                  Edit
-                </button>
-                <button type="button" onClick={() => remove(a.id)} style={{ all: "unset", cursor: "pointer", fontSize: "0.8125rem", color: "var(--color-accent-700)" }}>
-                  Remove
-                </button>
-              </>
-            )}
           </div>
         ),
       )}

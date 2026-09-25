@@ -67,9 +67,9 @@ export default async function SettingsPage({
       <DetailHeader backHref="/today" eyebrow="Settings" />
       <div style={{ padding: "0 1.375rem 1.375rem", display: "flex", flexDirection: "column", gap: "1.125rem" }}>
         <Link href={`/family/members/${me.id}?from=settings`} style={{ textDecoration: "none", color: "inherit" }}>
-          <Blueprint style={{ padding: "0.875rem", display: "flex", gap: "0.8125rem", alignItems: "center" }}>
+          <Blueprint style={{ padding: "0.875rem", display: "flex", flexWrap: "wrap", gap: "0.5rem 0.8125rem", alignItems: "center" }}>
             <Avatar url={me.avatar_url} initials={initials(me.full_name)} label={me.full_name} size={48} />
-            <span style={{ flex: 1, minWidth: 0 }}>
+            <span style={{ flex: "1 1 10rem", minWidth: 0 }}>
               <span style={{ font: "600 1.25rem/1.05 var(--font-heading)", display: "block" }}>{me.full_name}</span>
               <span style={{ fontSize: "0.8125rem", color: "var(--color-neutral-600)" }}>
                 {authUser.user?.email} · {authUser.user?.email_confirmed_at ? "verified" : "unverified"}

@@ -450,8 +450,12 @@ button,
      320px phone and "Add a recurring expense" clipped its own last word.
      Normal wrapping only ever breaks at a space, so a one-word button still
      cannot wrap -- a two-word one simply takes a second line when it has to
-     rather than leaving the screen. */
-  min-width: 0;
+     rather than leaving the screen.
+     That only holds with overflow-wrap back at normal: body sets `anywhere`
+     for pasted text, a button inherited it, and "Hide" and "Save" were broken
+     into letters on a 390px phone at the default size. And no min-width: 0,
+     which let a button shrink narrower than its own longest word. */
+  overflow-wrap: normal;
   cursor: pointer;
   text-decoration: none;
   font-family: var(--font-body);
@@ -622,6 +626,10 @@ textarea.input {
 /* — segmented control: a track with the selection as a raised pill — */
 .seg {
   display: flex;
+  /* When the labels cannot sit side by side -- a small phone, a large text
+     size -- the row takes a second line rather than breaking a word or
+     hiding a tab off the edge. */
+  flex-wrap: wrap;
   gap: 0.125rem;
   padding: 0.125rem;
   border: 0;
@@ -630,8 +638,12 @@ textarea.input {
 }
 .seg > a,
 .seg > button {
-  flex: 1;
-  padding: 0.4375rem 0.25rem;
+  flex: 1 0 auto;
+  padding: 0.4375rem 0.5rem;
+  /* The page-wide overflow-wrap: anywhere (on body) exists for pasted text;
+     on a label it broke "Documents" into "Docume / nts". A label breaks at
+     a space or not at all. */
+  overflow-wrap: normal;
   cursor: pointer;
   text-align: center;
   text-decoration: none;
@@ -658,6 +670,7 @@ textarea.input {
    Same metrics as the calendar's legend pills, so a row of people and a row
    of categories read as one family of controls rather than two. */
 .chip {
+  overflow-wrap: normal;
   cursor: pointer;
   min-height: 2rem;
   padding: 0 0.8125rem;
@@ -751,7 +764,12 @@ textarea.input {
      wide and "Household" runs about 4.6x its own font-size, so anything
      above 3vw would run out of its tab. Growth stops there rather than
      clipping — and past roughly 150% the labels go entirely, below. */
-  font-size: min(0.59375rem, 3vw);
+  font-size: min(0.59375rem, 2.7vw);
+  /* 3vw was measured at the regular weight; the selected tab's heavier
+     weight, and a small phone, still broke "Household" at 3vw. 2.7 leaves
+     room for both, and nowrap means it never breaks mid-word regardless. */
+  white-space: nowrap;
+  overflow-wrap: normal;
   font-weight: 500;
   letter-spacing: 0.012em;
   transition: font-weight 0.15s ease;

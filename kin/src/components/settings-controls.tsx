@@ -257,14 +257,17 @@ export function NotificationToggles({ prefs }: { prefs: Record<string, boolean> 
               borderTop: i === 0 ? undefined : "1px solid var(--color-divider)",
               padding: "0.6875rem 0.9375rem 0.6875rem 0",
               display: "flex",
-              gap: "0.875rem",
+              flexWrap: "wrap",
+              gap: "0.375rem 0.875rem",
               alignItems: "center",
               minHeight: "3.5rem",
               font: "inherit",
               color: "inherit",
             }}
           >
-            <span style={{ flex: 1, minWidth: 0 }}>
+            {/* At a large text size the switch drops under the words rather
+                than squeezing them into a column too narrow for one word. */}
+            <span style={{ flex: "1 1 9rem", minWidth: 0 }}>
               <span style={{ fontSize: "1.0625rem", display: "block" }}>{n.name}</span>
               <span style={{ fontSize: "0.8125rem", color: "var(--color-neutral-600)" }}>{n.sub}</span>
             </span>
@@ -428,7 +431,7 @@ export function DriveConnectedPanel({
   const [driveFailed, setDriveFailed] = useState<string | null>(null);
   return (
     <>
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.0625rem", background: "var(--color-divider)", border: "1px solid var(--color-divider)", marginBottom: "0.75rem" }}>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 9rem), 1fr))", gap: "0.0625rem", background: "var(--color-divider)", border: "1px solid var(--color-divider)", marginBottom: "0.75rem" }}>
         <div style={{ background: "var(--color-bg)", padding: "0.5625rem 0.6875rem" }}>
           <div style={{ fontSize: "0.6875rem", letterSpacing: ".02em", textTransform: "uppercase", color: "var(--color-neutral-600)" }}>Account</div>
           <div style={{ fontSize: "0.875rem" }}>{email ?? "—"}</div>

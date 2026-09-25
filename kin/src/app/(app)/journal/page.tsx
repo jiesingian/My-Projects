@@ -145,7 +145,7 @@ async function EntriesPane({ familyId }: { familyId: string }) {
       )}
       {entries.map((e) => (
         <Blueprint key={e.id} style={{ padding: "0.8125rem", marginBottom: "1rem" }}>
-          <div style={{ display: "flex", alignItems: "baseline", gap: "0.5rem" }}>
+          <div style={{ display: "flex", flexWrap: "wrap", alignItems: "baseline", gap: "0.375rem 0.5rem" }}>
             <span style={{ font: "400 0.75rem/1 var(--font-numeric)", color: "var(--color-accent-700)" }}>{fmtDate(e.entry_date)}</span>
             <Tag variant="neutral" className="ml-auto">
               {e.source === "from_plan" ? "FROM PLAN" : "ADDED DIRECTLY"}
@@ -154,7 +154,7 @@ async function EntriesPane({ familyId }: { familyId: string }) {
           <div style={{ font: "600 1.3125rem/1.05 var(--font-heading)", margin: "7px 0 6px" }}>{e.title}</div>
           <JournalEntryPhotos urls={e.photoUrls} entryTitle={e.title} />
           {e.note && <p style={{ fontSize: "0.875rem", margin: "0 0 9px", color: "var(--color-neutral-800)" }}>{e.note}</p>}
-          <div style={{ display: "flex", alignItems: "baseline", gap: "0.5rem" }}>
+          <div style={{ display: "flex", flexWrap: "wrap", alignItems: "baseline", gap: "0.375rem 0.5rem" }}>
             <div style={{ fontSize: "0.8125rem", color: "var(--color-neutral-600)" }}>{e.people.map((p) => p.full_name.split(" ")[0]).join(" · ") || "Whole family"}</div>
             <span style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: "0.625rem" }}>
               <EntryShareToggle entryId={e.id} shared={Boolean(e.shared_at)} linkedCount={linkedCount} />

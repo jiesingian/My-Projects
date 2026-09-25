@@ -35,7 +35,7 @@ export function FamilyFeed({
 
   return (
     <div>
-      <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", marginBottom: "0.625rem" }}>
+      <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: "0.25rem 0.5rem", marginBottom: "0.625rem" }}>
         <span style={{ fontSize: "0.75rem", letterSpacing: ".05em", textTransform: "uppercase", color: "var(--color-neutral-600)" }}>
           {links.filter((l) => l.status === "accepted").length > 0 ? "Shared between households" : "Shared memories"}
         </span>
