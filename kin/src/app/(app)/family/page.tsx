@@ -10,10 +10,11 @@ import { DocumentsLockSettings } from "@/components/documents-lock-settings";
 import { getLockState } from "@/lib/security/gate";
 import { getVaultItems } from "@/lib/queries/vault";
 import { FamilyVault } from "@/components/family-vault";
+import { VaultBar } from "@/components/vault-bar";
+import { VaultWhosePicker } from "@/components/vault-whose-picker";
 import { isGrownUp } from "@/lib/roles";
 import { getEnrolledDevices } from "@/lib/queries/security";
 import { HubHeader } from "@/components/hub-header";
-import { ChipRow } from "@/components/segmented";
 import { Blueprint, Tag, Empty } from "@/components/ui";
 import { PendingMemberActions } from "@/components/pending-member-actions";
 import { RemoveMemberButton, ReinstateMemberButton } from "@/components/member-status-actions";
@@ -27,7 +28,7 @@ import { TreeOffers } from "@/components/tree-offers";
 import { getTreeMatches, getTreeOffers, getLinkedFamilies } from "@/lib/queries/tree-links";
 import { FamilyTreeEditor } from "@/components/family-tree-editor";
 import { AddMeToTreeButton } from "@/components/add-me-to-tree-button";
-import { formatAge, initials, shortNames } from "@/lib/format";
+import { formatAge, initials } from "@/lib/format";
 
 const SEGMENTS = ["profile", "health", "documents", "tree", "quicklinks"] as const;
 type Seg = (typeof SEGMENTS)[number];
@@ -37,7 +38,7 @@ export default async function FamilyPage({
 }: {
   // `center` is no longer read: the tree is the same for everybody. Old links
   // that carry it still open the tree, and simply ignore it.
-  searchParams: Promise<{ seg?: string; who?: string; center?: string }>;
+  searchParams: Promise<{ seg?: string; who?: string; tab?: string; center?: string }>;
 }) {
   const me = await getCurrentMember();
   if (!me) redirect("/onboarding/profile");
@@ -50,7 +51,7 @@ export default async function FamilyPage({
     // Short on purpose: five tabs share a phone's width, and "Documents" and
     // "Quicklinks" did not fit -- they broke mid-word. The page is already
     // called Family, so the tree does not need to say it again.
-    label: s === "profile" ? "Profile" : s === "health" ? "Health" : s === "documents" ? "Docs" : s === "tree" ? "Tree" : "Links",
+    label: s === "profile" ? "Profile" : s === "health" ? "Health" : s === "documents" ? "Vault" : s === "tree" ? "Tree" : "Links",
     href: `/family?seg=${s}`,
     active: s === seg,
   }));
@@ -61,7 +62,7 @@ export default async function FamilyPage({
       <div style={{ padding: "0 1.375rem 1.375rem" }}>
         {seg === "profile" && <ProfilePane familyId={me.family_id} isOrganiser={me.is_organiser} myId={me.id} myRole={me.role} />}
         {seg === "health" && <HealthPane familyId={me.family_id} />}
-        {seg === "documents" && <DocumentsPane familyId={me.family_id} who={who} meId={me.id} />}
+        {seg === "documents" && <VaultPane familyId={me.family_id} who={who} tab={sp.tab === "passwords" ? "passwords" : "documents"} meId={me.id} myRole={me.role} />}
         {seg === "tree" && <TreePane familyId={me.family_id} myId={me.id} inviteCode={me.is_organiser ? me.families.invite_code : null} />}
         {seg === "quicklinks" && <QuicklinksPane familyId={me.family_id} meId={me.id} myRole={me.role} />}
       </div>
@@ -203,74 +204,108 @@ function Fact({ k, v }: { k: string; v: string | null }) {
  * Rendering it and hiding it with CSS would put every document name in the
  * page source of a screen that is supposed to be locked, which is the
  * difference between a lock and a curtain. */
-async function DocumentsPane({ familyId, who, meId }: { familyId: string; who: string; meId: string }) {
+/** The family vault: documents and the passwords the house shares, behind
+ * one lock (V1, agreed 25 September). Unlock once and both open, for ten
+ * minutes. A "Whose" picker like Wealth's filters both (V2): documents by who
+ * they are for, passwords by who saved them. */
+async function VaultPane({ familyId, who, tab, meId, myRole }: { familyId: string; who: string; tab: "documents" | "passwords"; meId: string; myRole: string }) {
   const lock = await getLockState(meId);
   if (!lock.unlocked) {
     return (
       <div className="kin-docs-state">
-        <DocumentsLock hasPin={lock.hasPin} hasBiometric={lock.credentialCount > 0} />
+        <DocumentsLock
+          hasPin={lock.hasPin}
+          hasBiometric={lock.credentialCount > 0}
+          title="Family vault"
+          blurb="Documents and the passwords the house shares. Opens for ten minutes."
+        />
       </div>
     );
   }
 
   const members = (await getMembers(familyId)).filter((m) => m.status !== "pending" && m.status !== "removed");
-  const [folders, devices] = await Promise.all([getDocFolders(familyId), getEnrolledDevices(meId)]);
+  const [folders, devices, vault] = await Promise.all([
+    tab === "documents" ? getDocFolders(familyId) : Promise.resolve([]),
+    getEnrolledDevices(meId),
+    tab === "passwords" ? getVaultItems(familyId) : Promise.resolve([]),
+  ]);
   const filtered =
     who === "all"
       ? folders
       : folders.filter((f) => f.owners.includes(members.find((m) => m.id === who)?.full_name ?? "__none__"));
+  const items = who === "all" ? vault : vault.filter((i) => i.createdBy === who);
 
   return (
     <div className="kin-docs-state">
-      <Blueprint className="bg-[var(--color-accent-100)] mb-4" style={{ padding: "0.75rem", display: "flex", gap: "0.625rem", alignItems: "center" }}>
-        <span style={{ fontSize: "0.8125rem", lineHeight: 1.35 }}>
-          Files stay in your connected Drive. Kin holds the index and the expiry dates only.
-        </span>
-      </Blueprint>
-      <div style={{ marginBottom: "0.875rem" }}>
-        <ChipRow
-          items={[
-            { label: "All", href: "/family?seg=documents&who=all", active: who === "all" },
-            ...shortNames(members.map((m) => m.full_name)).map((label, i) => ({
-              label,
-              href: `/family?seg=documents&who=${members[i].id}`,
-              active: who === members[i].id,
-            })),
-          ]}
-        />
+      <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", justifyContent: "space-between", gap: "0.625rem 1rem", marginBottom: "0.875rem" }}>
+        <div className="seg" style={{ flex: "1 1 12rem", margin: 0 }}>
+          <Link href={`/family?seg=documents&tab=documents&who=${who}`} data-active={tab === "documents"}>
+            Documents
+          </Link>
+          <Link href={`/family?seg=documents&tab=passwords&who=${who}`} data-active={tab === "passwords"}>
+            Passwords
+          </Link>
+        </div>
+        <VaultWhosePicker members={members.map((m) => ({ id: m.id, name: m.full_name }))} who={who} tab={tab} />
       </div>
-      {filtered.map((folder) => (
-        <Link
-          key={folder.id}
-          href={`/family/documents/${folder.id}`}
-          style={{
-            display: "flex",
-            gap: "0.6875rem",
-            alignItems: "center",
-            padding: "0.75rem 0",
-            borderBottom: "1px solid color-mix(in srgb, var(--color-text) 10%, transparent)",
-            textDecoration: "none",
-            color: "inherit",
-          }}
-        >
-          <span style={{ flex: 1, minWidth: 0 }}>
-            <span style={{ font: "600 1rem/1.1 var(--font-heading)", display: "block" }}>{folder.name}</span>
-            <span style={{ fontSize: "0.8125rem", color: "var(--color-neutral-600)" }}>
-              {folder.fileCount} file{folder.fileCount === 1 ? "" : "s"}
+
+      {tab === "documents" ? (
+        <>
+          <Blueprint className="bg-[var(--color-accent-100)] mb-4" style={{ padding: "0.75rem", display: "flex", gap: "0.625rem", alignItems: "center" }}>
+            <span style={{ fontSize: "0.8125rem", lineHeight: 1.35 }}>
+              Files stay in your connected Drive. Kin holds the index and the expiry dates only.
             </span>
-          </span>
-          <Tag variant={folder.flag === "RENEWS SOON" ? "accent" : folder.flag === "EMPTY" ? "outline" : "neutral"}>
-            {folder.flag}
-          </Tag>
-        </Link>
-      ))}
-      <Link
-        href="/family/documents/new"
-        className="btn btn-primary btn-block"
-        style={{ minHeight: "2.875rem", fontSize: "0.875rem", letterSpacing: ".04em", marginTop: "1.125rem" }}
-      >
-        + NEW ENTRY
-      </Link>
+          </Blueprint>
+          {filtered.map((folder) => (
+            <Link
+              key={folder.id}
+              href={`/family/documents/${folder.id}`}
+              style={{
+                display: "flex",
+                gap: "0.6875rem",
+                alignItems: "center",
+                padding: "0.75rem 0",
+                borderBottom: "1px solid color-mix(in srgb, var(--color-text) 10%, transparent)",
+                textDecoration: "none",
+                color: "inherit",
+              }}
+            >
+              <span style={{ flex: 1, minWidth: 0 }}>
+                <span style={{ font: "600 1rem/1.1 var(--font-heading)", display: "block" }}>{folder.name}</span>
+                <span style={{ fontSize: "0.8125rem", color: "var(--color-neutral-600)" }}>
+                  {folder.fileCount} file{folder.fileCount === 1 ? "" : "s"}
+                </span>
+              </span>
+              <Tag variant={folder.flag === "RENEWS SOON" ? "accent" : folder.flag === "EMPTY" ? "outline" : "neutral"}>
+                {folder.flag}
+              </Tag>
+            </Link>
+          ))}
+          <Link
+            href="/family/documents/new"
+            className="btn btn-primary btn-block"
+            style={{ minHeight: "2.875rem", fontSize: "0.875rem", letterSpacing: ".04em", marginTop: "1.125rem" }}
+          >
+            + NEW ENTRY
+          </Link>
+        </>
+      ) : (
+        <>
+          {items.length === 0 && who !== "all" ? (
+            <p className="kin-vault-empty">Nothing saved by {members.find((m) => m.id === who)?.full_name.split(" ")[0] ?? "them"} yet.</p>
+          ) : (
+            <FamilyVault items={items} canEdit={isGrownUp(myRole)} />
+          )}
+          <p className="kin-vault-hint">Press and hold a password to see it. Copy never shows it on screen.</p>
+          {!lock.configured && isGrownUp(myRole) && (
+            <p style={{ fontSize: "0.8125rem", color: "var(--color-neutral-600)", margin: "0 0 1.25rem" }}>
+              Anyone holding your phone can open these. Set a PIN or Face ID below to lock the vault.
+            </p>
+          )}
+        </>
+      )}
+
+      <VaultBar expiresAt={lock.expiresAt} />
       <DocumentsLockSettings hasPin={lock.hasPin} devices={devices} unlocked={lock.unlocked} />
     </div>
   );
@@ -331,15 +366,11 @@ async function TreePane({ familyId, myId, inviteCode }: { familyId: string; myId
  * device it belongs to, and there is one row per person rather than a trail.
  * See the migration for why each of those is a policy and not a promise. */
 async function QuicklinksPane({ familyId, meId, myRole }: { familyId: string; meId: string; myRole: string }) {
-  const [contacts, people, members, lock] = await Promise.all([
+  const [contacts, people, members] = await Promise.all([
     getEmergencyContacts(familyId),
     getMemberLocations(familyId),
     getMembers(familyId),
-    getLockState(meId),
   ]);
-  // The passwords are only fetched once the lock is open -- behind the same
-  // PIN or fingerprint as Documents, so nothing is in the page to peek at.
-  const vault = lock.unlocked ? await getVaultItems(familyId) : null;
   // Every parent in the household, in the order they joined -- including one
   // who is here as a managed profile without a login of their own, since
   // not having an account does not make somebody less of a person to ring.
@@ -357,26 +388,12 @@ async function QuicklinksPane({ familyId, meId, myRole }: { familyId: string; me
       <div className="kin-eyebrow" style={{ margin: "22px 0 8px" }}>
         PASSWORDS
       </div>
-      {vault ? (
-        <>
-          <FamilyVault items={vault} canEdit={isGrownUp(myRole)} />
-          {!lock.configured && isGrownUp(myRole) && (
-            <p style={{ fontSize: "0.8125rem", color: "var(--color-neutral-600)", margin: "-0.5rem 0 1.25rem" }}>
-              Anyone holding your phone can open these. Set a PIN or fingerprint under{" "}
-              <Link href="/family?seg=documents" style={{ color: "var(--color-accent-700)" }}>Documents</Link> to lock them too.
-            </p>
-          )}
-        </>
-      ) : (
-        <div style={{ marginBottom: "1.25rem" }}>
-          <DocumentsLock
-            hasPin={lock.hasPin}
-            hasBiometric={lock.credentialCount > 0}
-            title="Passwords are locked"
-            blurb="The Wi-Fi, door codes and logins the house shares. Same lock as Documents; unlocking lasts ten minutes."
-          />
-        </div>
-      )}
+      {/* The Wi-Fi, door codes and logins moved into the Vault with the
+          documents (25 September): one place, one unlock. */}
+      <Link href="/family?seg=documents&tab=passwords" className="btn btn-secondary btn-block" style={{ minHeight: "2.5rem", fontSize: "0.84375rem", marginBottom: "1.25rem", gap: "0.375rem" }}>
+        <Icon name="keyRound" size={15} />
+        Passwords are in the Vault
+      </Link>
 
       <div className="kin-eyebrow" style={{ margin: "22px 0 8px" }}>
         WHERE EVERYONE IS

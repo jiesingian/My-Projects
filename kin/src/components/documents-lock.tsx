@@ -1,10 +1,10 @@
 "use client";
 
-import { useActionState, useEffect, useId, useState, useTransition } from "react";
+import { useActionState, useEffect, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Icon } from "@/components/icons";
 import { Blueprint } from "@/components/ui";
-import { SubmitButton, ErrorText } from "@/components/form";
+import { ErrorText } from "@/components/form";
 import {
   unlockWithPinAction,
   beginBiometricUnlockAction,
@@ -32,8 +32,7 @@ export function DocumentsLock({
   blurb?: string;
 }) {
   const router = useRouter();
-  const uid = useId();
-  const [state, formAction] = useActionState(unlockWithPinAction, initialState);
+  const [state, formAction, unlocking] = useActionState(unlockWithPinAction, initialState);
   const [bioAvailable, setBioAvailable] = useState(false);
   const [bioError, setBioError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
@@ -79,33 +78,56 @@ export function DocumentsLock({
     });
   };
 
-  return (
-    <Blueprint style={{ padding: "1.375rem 1.125rem", maxWidth: 380 }}>
-      <div style={{ display: "flex", alignItems: "center", gap: "0.625rem", marginBottom: "0.375rem" }}>
-        <Icon name="keyRound" size={18} style={{ color: "var(--color-accent-700)" }} />
-        <h3 style={{ font: "600 1.125rem/1.2 var(--font-heading)", margin: 0 }}>{title}</h3>
-      </div>
-      <p style={{ fontSize: "0.84375rem", lineHeight: 1.45, color: "var(--color-neutral-700)", margin: "0 0 16px" }}>
-        {blurb}
-      </p>
+  // The PIN pad. Digits collect here and go to the same server action the
+  // text box used to, through a hidden field -- the lock rules, the try
+  // limit and the ten minutes are all unchanged on the server.
+  const [pin, setPin] = useState("");
+  const press = (d: string) => setPin((p) => (p.length < 8 ? p + d : p));
+  const back = () => setPin((p) => p.slice(0, -1));
+  const formRef = useRef<HTMLFormElement>(null);
 
+  // A wrong PIN clears the dots, the way a phone's own lock screen does.
+  const [lastError, setLastError] = useState(state.error);
+  if (state.error !== lastError) {
+    setLastError(state.error);
+    if (state.error) setPin("");
+  }
+
+  // A computer's keyboard types into the pad too.
+  useEffect(() => {
+    if (!hasPin) return;
+    const onKey = (e: KeyboardEvent) => {
+      if ((e.target as HTMLElement | null)?.closest?.("input, textarea, select")) return;
+      if (/^\d$/.test(e.key)) press(e.key);
+      else if (e.key === "Backspace") back();
+      else if (e.key === "Enter") formRef.current?.requestSubmit();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [hasPin]);
+
+  return (
+    <Blueprint className="kin-lock" style={{ padding: "1.375rem 1.125rem", maxWidth: 380 }}>
+      <div className="kin-lock-icon" aria-hidden="true">
+        <Icon name="keyRound" size={22} />
+      </div>
+      <h3 style={{ font: "600 1.1875rem/1.2 var(--font-heading)", margin: "0 0 0.25rem", textAlign: "center" }}>{title}</h3>
+      <p style={{ fontSize: "0.84375rem", lineHeight: 1.45, color: "var(--color-neutral-700)", margin: "0 0 1rem", textAlign: "center" }}>{blurb}</p>
+
+      {/* Face ID or a fingerprint first: it is the faster of the two, and
+          the PIN is right underneath for when it fails. It needs the tap --
+          browsers only raise the prompt for something a person pressed. */}
       {bioAvailable && (
         <>
-          <button
-            type="button"
-            className="btn btn-primary"
-            disabled={pending}
-            onClick={unlockWithDevice}
-            style={{ width: "100%", gap: "0.4375rem" }}
-          >
-            <Icon name="shieldCheck" size={16} />
-            Unlock with this device
+          <button type="button" className="btn btn-primary" disabled={pending} onClick={unlockWithDevice} style={{ width: "100%", gap: "0.4375rem", minHeight: "3rem" }}>
+            <Icon name="shieldCheck" size={18} />
+            Unlock with Face ID or fingerprint
           </button>
           {bioError && <ErrorText message={bioError} />}
           {hasPin && (
             <div style={{ display: "flex", alignItems: "center", gap: "0.5625rem", margin: "14px 0 12px" }}>
               <span style={{ flex: 1, height: 1, background: "var(--color-divider)" }} />
-              <span style={{ fontSize: "0.71875rem", letterSpacing: ".06em", color: "var(--color-neutral-500)" }}>OR</span>
+              <span style={{ fontSize: "0.71875rem", letterSpacing: ".06em", color: "var(--color-neutral-500)" }}>OR ENTER YOUR PIN</span>
               <span style={{ flex: 1, height: 1, background: "var(--color-divider)" }} />
             </div>
           )}
@@ -113,25 +135,31 @@ export function DocumentsLock({
       )}
 
       {hasPin && (
-        <form action={formAction}>
+        <form ref={formRef} action={formAction} className="kin-pinpad">
+          <input type="hidden" name="pin" value={pin} />
+          <div className="kin-pin-dots" role="img" aria-label={`${pin.length} digit${pin.length === 1 ? "" : "s"} entered`}>
+            {Array.from({ length: Math.max(4, pin.length) }, (_, i) => (
+              <span key={i} data-filled={i < pin.length || undefined} />
+            ))}
+          </div>
           <ErrorText message={state.error} />
-          <label htmlFor={`${uid}-pin`} style={{ display: "block", fontSize: "0.71875rem", color: "var(--color-neutral-600)", marginBottom: "0.25rem" }}>
-            PIN
-          </label>
-          <input
-            id={`${uid}-pin`}
-            className="input"
-            name="pin"
-            type="password"
-            inputMode="numeric"
-            autoComplete="off"
-            pattern="\d{4,8}"
-            maxLength={8}
-            required
-            autoFocus={!bioAvailable}
-            style={{ letterSpacing: ".3em", marginBottom: "0.625rem" }}
-          />
-          <SubmitButton style={{ width: "100%" }}>Unlock</SubmitButton>
+          <div className="kin-pin-keys">
+            {["1", "2", "3", "4", "5", "6", "7", "8", "9"].map((d) => (
+              <button key={d} type="button" className="kin-pin-key" onClick={() => press(d)}>
+                {d}
+              </button>
+            ))}
+            <span />
+            <button type="button" className="kin-pin-key" onClick={() => press("0")}>
+              0
+            </button>
+            <button type="button" className="kin-pin-key kin-pin-back" onClick={back} aria-label="Delete a digit" disabled={pin.length === 0}>
+              ⌫
+            </button>
+          </div>
+          <button type="submit" className="btn btn-primary btn-block" disabled={pin.length < 4 || unlocking}>
+            {unlocking ? "Unlocking…" : "Unlock"}
+          </button>
         </form>
       )}
 

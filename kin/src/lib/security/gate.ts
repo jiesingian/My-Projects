@@ -17,6 +17,8 @@ export type LockState = {
   credentialCount: number;
   unlocked: boolean;
   lockedUntil: string | null;
+  /** When an open unlock runs out, for the vault's countdown. */
+  expiresAt: string | null;
 };
 
 export async function getLockState(memberId: string): Promise<LockState> {
@@ -38,7 +40,7 @@ export async function getLockState(memberId: string): Promise<LockState> {
   const configured = hasPin || credentialCount > 0;
 
   if (!configured) {
-    return { configured: false, hasPin: false, credentialCount: 0, unlocked: true, lockedUntil: null };
+    return { configured: false, hasPin: false, credentialCount: 0, unlocked: true, lockedUntil: null, expiresAt: null };
   }
 
   const jar = await cookies();
@@ -56,6 +58,7 @@ export async function getLockState(memberId: string): Promise<LockState> {
     credentialCount,
     unlocked: fresh,
     lockedUntil: row?.locked_until ?? null,
+    expiresAt: fresh ? (row?.unlock_expires_at ?? null) : null,
   };
 }
 
