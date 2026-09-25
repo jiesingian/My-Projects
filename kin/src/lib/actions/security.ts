@@ -108,7 +108,7 @@ export async function setDocumentsPinAction(_prev: ActionState, formData: FormDa
   if (error) return { error: humanDatabaseError(error.message) };
 
   revalidatePath("/family");
-  revalidatePath("/settings");
+  revalidatePath("/settings", "layout");
   return { error: null };
 }
 
@@ -152,7 +152,7 @@ export async function removeDocumentsPinAction(): Promise<ActionState> {
     .eq("member_id", me.id);
   if (error) return { error: humanDatabaseError(error.message) };
   revalidatePath("/family");
-  revalidatePath("/settings");
+  revalidatePath("/settings", "layout");
   return { error: null };
 }
 
@@ -232,7 +232,7 @@ export async function finishBiometricSetupAction(input: {
   if (error) return { error: humanDatabaseError(error.message) };
 
   revalidatePath("/family");
-  revalidatePath("/settings");
+  revalidatePath("/settings", "layout");
   return { error: null };
 }
 
@@ -301,6 +301,6 @@ export async function removeBiometricCredentialAction(credentialRowId: string): 
     .eq("member_id", me.id);
   if (error) return { error: humanDatabaseError(error.message) };
   revalidatePath("/family");
-  revalidatePath("/settings");
+  revalidatePath("/settings", "layout");
   return { error: null };
 }

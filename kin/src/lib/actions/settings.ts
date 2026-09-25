@@ -73,7 +73,7 @@ export async function toggleNotificationAction(key: string, value: boolean): Pro
   const prefs = { ...(me.notification_prefs as Record<string, boolean>), [key]: value };
   const { error } = await supabase.from("members").update({ notification_prefs: prefs }).eq("id", me.id);
   if (error) return { error: `That did not save. ${error.message}` };
-  revalidatePath("/settings");
+  revalidatePath("/settings", "layout");
   return { error: null };
 }
 
@@ -91,7 +91,7 @@ export async function updateHouseholdNameAction(name: string): Promise<ActionSta
   // household -- but a refusal that matches no rows is not an error, so the
   // rename silently did nothing and still reported success.
   const { error } = await supabase.from("families").update({ name: trimmed }).eq("id", me.family_id);
-  revalidatePath("/settings");
+  revalidatePath("/settings", "layout");
   revalidatePath("/today");
   return { error: error ? humanDatabaseError(error.message) : null };
 }
@@ -128,7 +128,7 @@ export async function updateHouseholdPrefsAction(
     .from("families")
     .update({ currency, date_format: dateFormat, week_start: weekStart, country: country || null })
     .eq("id", me.family_id);
-  revalidatePath("/settings");
+  revalidatePath("/settings", "layout");
   return { error: error ? humanDatabaseError(error.message) : null };
 }
 
@@ -148,7 +148,7 @@ export async function createCalendarFeedAction(): Promise<{ error: string | null
   const h = await headers();
   const host = h.get("x-forwarded-host") ?? h.get("host") ?? "";
   const path = `/api/calendar/feed/${token}.ics`;
-  revalidatePath("/settings");
+  revalidatePath("/settings", "layout");
   return { error: null, https: `https://${host}${path}`, webcal: `webcal://${host}${path}` };
 }
 
@@ -158,6 +158,6 @@ export async function removeCalendarFeedAction(): Promise<ActionState> {
   const supabase = await createClient();
   const { error } = await supabase.from("members").update({ calendar_feed_hash: null }).eq("id", me.id);
   if (error) return { error: `That did not save. ${humanDatabaseError(error.message)}` };
-  revalidatePath("/settings");
+  revalidatePath("/settings", "layout");
   return { error: null };
 }

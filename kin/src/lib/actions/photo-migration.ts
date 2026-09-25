@@ -120,12 +120,12 @@ export async function migrateProfilePhotosToDriveAction(): Promise<MigrateResult
     }
   } catch (err) {
     revalidatePath("/family");
-    revalidatePath("/settings");
+    revalidatePath("/settings", "layout");
     return { error: `Moved ${migrated} photo(s) before hitting an error: ${(err as Error).message}` };
   }
 
   revalidatePath("/family");
-  revalidatePath("/settings");
+  revalidatePath("/settings", "layout");
   if (stranded.length > 0) {
     return { error: `Moved ${migrated} photo(s). ${stranded.length} could not be finished: ${stranded.join("; ")}. The originals were kept.`, migrated };
   }

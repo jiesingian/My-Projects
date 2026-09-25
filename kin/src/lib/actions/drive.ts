@@ -21,6 +21,6 @@ export async function disconnectDriveAction(): Promise<ActionState> {
     if (tokenError) return { error: `Disconnected, but the stored Google token could not be removed. ${tokenError.message}` };
   }
 
-  revalidatePath("/settings");
+  revalidatePath("/settings", "layout");
   return { error: null };
 }

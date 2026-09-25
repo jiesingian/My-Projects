@@ -31,7 +31,7 @@ export async function updateOwnProfileAction(fields: ProfileFields): Promise<Act
 
   const supabase = await createClient();
   const { error } = await supabase.from("members").update({ ...clampProfileFields(fields), full_name: fullName }).eq("id", me.id);
-  revalidatePath("/settings");
+  revalidatePath("/settings", "layout");
   revalidatePath("/family");
   return { error: error ? humanDatabaseError(error.message) : null };
 }
@@ -95,7 +95,7 @@ export async function addAvatarToAlbumAction(uploaded: UploadedFile): Promise<Ac
   }
 
   const { error } = await supabase.from("members").update({ avatar_url: resolvePhotoUrl(supabase, row) }).eq("id", me.id);
-  revalidatePath("/settings");
+  revalidatePath("/settings", "layout");
   revalidatePath("/family");
   return { error: error ? humanDatabaseError(error.message) : null };
 }
@@ -110,7 +110,7 @@ export async function setActiveAvatarAction(avatarId: string): Promise<ActionSta
   if (!photo || photo.member_id !== me.id) return { error: "Photo not found." };
 
   const { error } = await supabase.from("members").update({ avatar_url: resolvePhotoUrl(supabase, photo) }).eq("id", me.id);
-  revalidatePath("/settings");
+  revalidatePath("/settings", "layout");
   revalidatePath("/family");
   return { error: error ? humanDatabaseError(error.message) : null };
 }
@@ -150,7 +150,7 @@ export async function deleteAvatarFromAlbumAction(avatarId: string): Promise<Act
     if (error) return { error: `The photo was removed, but your profile still points at it. ${error.message}` };
   }
 
-  revalidatePath("/settings");
+  revalidatePath("/settings", "layout");
   revalidatePath("/family");
   return { error: null };
 }
@@ -161,7 +161,7 @@ export async function transferOrganiserRoleAction(newOrganiserMemberId: string):
   const supabase = await createClient();
   const { error } = await supabase.rpc("transfer_organiser_role", { p_new_organiser_member_id: newOrganiserMemberId });
   revalidatePath("/family");
-  revalidatePath("/settings");
+  revalidatePath("/settings", "layout");
   return { error: error ? humanDatabaseError(error.message) : null };
 }
 

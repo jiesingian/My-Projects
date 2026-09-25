@@ -46,7 +46,7 @@ export async function disconnectCalendarAction(): Promise<ActionState> {
     }
   }
 
-  revalidatePath("/settings");
+  revalidatePath("/settings", "layout");
   return { error: null };
 }
 
@@ -582,7 +582,7 @@ export async function syncGoogleCalendarAction(): Promise<ActionState & { synced
   }
 
   revalidatePath("/planner");
-  revalidatePath("/settings");
+  revalidatePath("/settings", "layout");
 
   if (heldBack > 0) {
     trouble.push(
