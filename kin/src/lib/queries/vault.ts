@@ -8,6 +8,8 @@ export type VaultItem = {
   secret: string;
   note: string | null;
   visibility: "everyone" | "grown_ups";
+  /** Who saved it: what the vault's "Whose" filter goes by. */
+  createdBy: string | null;
 };
 
 /** The household's shared passwords the signed-in member may see. Which rows
@@ -18,7 +20,7 @@ export async function getVaultItems(familyId: string): Promise<VaultItem[]> {
   const supabase = await createClient();
   const { data } = await supabase
     .from("family_vault_items")
-    .select("id, group_name, label, username, secret, note, visibility")
+    .select("id, group_name, label, username, secret, note, visibility, created_by")
     .eq("family_id", familyId)
     .order("group_name")
     .order("label");
@@ -30,5 +32,6 @@ export async function getVaultItems(familyId: string): Promise<VaultItem[]> {
     secret: r.secret,
     note: r.note,
     visibility: r.visibility === "grown_ups" ? "grown_ups" : "everyone",
+    createdBy: r.created_by,
   }));
 }

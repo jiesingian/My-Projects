@@ -1,6 +1,6 @@
 "use client";
 
-import { useId, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Icon, type IconName } from "@/components/icons";
 import { confirm } from "@/components/confirm-sheet";
@@ -112,18 +112,26 @@ function ItemForm({
 function SecretRow({ item, canEdit, onEdit, onRemove }: { item: VaultItem; canEdit: boolean; onEdit: () => void; onRemove: () => void }) {
   const [shown, setShown] = useState(false);
   const [copied, setCopied] = useState(false);
+  const fallback = useRef<number | undefined>(undefined);
+  useEffect(() => () => window.clearTimeout(fallback.current), []);
 
+  // Copy never puts the password on the screen: it goes straight to the
+  // clipboard, which is what a person across the table cannot read.
   async function copy() {
     try {
       await navigator.clipboard.writeText(item.secret);
       setCopied(true);
       setTimeout(() => setCopied(false), 1600);
     } catch {
-      // Some browsers refuse the clipboard outside a secure context; showing
-      // it is the fallback, so the person can still read it off the screen.
+      // Some browsers refuse the clipboard outside a secure context. Showing
+      // it for a few seconds is the fallback, so it can still be read off.
       setShown(true);
+      window.clearTimeout(fallback.current);
+      fallback.current = window.setTimeout(() => setShown(false), 5000);
     }
   }
+
+  const hide = () => setShown(false);
 
   return (
     <div className="kin-vault-item">
@@ -133,17 +141,40 @@ function SecretRow({ item, canEdit, onEdit, onRemove }: { item: VaultItem; canEd
           {item.visibility === "grown_ups" && <span className="kin-vault-badge">GROWN-UPS</span>}
         </div>
         {item.username && <div className="kin-vault-sub">{item.username}</div>}
-        <div className="kin-vault-secret" aria-live="polite">
+        {/* Press and hold to see it; let go and it is dots again -- the way a
+            phone's own password manager shows one, so a glance over the
+            shoulder gets nothing and a tap by accident shows nothing. Space or
+            Enter held down does the same from a keyboard. */}
+        <button
+          type="button"
+          className="kin-vault-secret kin-vault-hold"
+          data-shown={shown || undefined}
+          aria-label={shown ? `${item.label}: ${item.secret}` : `Press and hold to show ${item.label}`}
+          onPointerDown={(e) => {
+            e.currentTarget.setPointerCapture(e.pointerId);
+            setShown(true);
+          }}
+          onPointerUp={hide}
+          onPointerCancel={hide}
+          onLostPointerCapture={hide}
+          onKeyDown={(e) => {
+            if (e.key === " " || e.key === "Enter") {
+              e.preventDefault();
+              setShown(true);
+            }
+          }}
+          onKeyUp={hide}
+          onBlur={hide}
+          onContextMenu={(e) => e.preventDefault()}
+        >
           {shown ? item.secret : "•".repeat(Math.min(Math.max(item.secret.length, 6), 14))}
-        </div>
+        </button>
         {item.note && <div className="kin-vault-sub">{item.note}</div>}
       </div>
       <div className="kin-vault-actions">
-        <button type="button" onClick={() => setShown((s) => !s)} aria-label={shown ? `Hide ${item.label}` : `Show ${item.label}`}>
-          <Icon name={shown ? "eyeOff" : "eye"} size={16} />
-        </button>
-        <button type="button" onClick={copy} aria-label={`Copy ${item.label}`}>
-          <Icon name={copied ? "check" : "copy"} size={16} />
+        <button type="button" onClick={copy} aria-label={`Copy ${item.label}`} className="kin-vault-text" style={{ gap: "0.25rem", display: "inline-flex", alignItems: "center" }}>
+          <Icon name={copied ? "check" : "copy"} size={15} />
+          {copied ? "Copied" : "Copy"}
         </button>
         {canEdit && (
           <>

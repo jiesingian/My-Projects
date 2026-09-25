@@ -3476,6 +3476,25 @@ button.kin-initial:focus-visible {
   background: var(--color-neutral-100); color: var(--color-neutral-700);
 }
 .kin-vault-sub { font-size: 0.8125rem; color: var(--color-neutral-600); overflow-wrap: anywhere; }
+/* The password itself is the press-and-hold control. */
+.kin-vault-hold {
+  display: block;
+  max-width: 100%;
+  text-align: left;
+  background: none;
+  border: 0;
+  padding: 0.125rem 0.375rem;
+  margin-left: -0.375rem;
+  border-radius: 6px;
+  color: inherit;
+  cursor: pointer;
+  touch-action: none;
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+}
+.kin-vault-hold[data-shown] { background: var(--color-accent-100); }
+.kin-vault-hint { font-size: 0.78125rem; color: var(--color-neutral-600); margin: 0.25rem 0 1rem; }
 .kin-vault-secret { font: 500 0.9375rem/1.4 var(--font-numeric); letter-spacing: .04em; overflow-wrap: anywhere; margin: 0.125rem 0; }
 .kin-vault-actions { display: flex; align-items: center; gap: 0.125rem; flex: none; }
 .kin-vault-actions button {
@@ -3719,3 +3738,57 @@ button.kin-initial:focus-visible {
 .kin-push p { margin: 0; font-size: 0.84375rem; line-height: 1.45; color: var(--color-neutral-700); }
 .kin-push .btn { min-height: 2.75rem; }
 .kin-push .kin-push-error { color: var(--color-accent-700); }
+
+/* The vault's lock: Face ID first, then a phone-style PIN pad. */
+.kin-lock { margin-inline: auto; }
+.kin-lock-icon {
+  width: 3rem;
+  height: 3rem;
+  margin: 0 auto 0.625rem;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  color: var(--color-accent-700);
+  background: var(--color-accent-100);
+}
+.kin-pinpad { display: flex; flex-direction: column; gap: 0.75rem; }
+.kin-pin-dots { display: flex; justify-content: center; gap: 0.75rem; min-height: 1rem; margin: 0.25rem 0; }
+.kin-pin-dots span {
+  width: 0.8125rem;
+  height: 0.8125rem;
+  border-radius: 50%;
+  border: 1.5px solid var(--color-neutral-500);
+  transition: background 0.12s ease, transform 0.18s var(--ease-overshoot, ease);
+}
+.kin-pin-dots span[data-filled] { background: var(--color-text); border-color: var(--color-text); transform: scale(1.08); }
+.kin-pin-keys { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.625rem; justify-items: center; }
+.kin-pin-key {
+  width: min(4rem, 19vw);
+  aspect-ratio: 1;
+  border-radius: 50%;
+  border: 0;
+  background: color-mix(in srgb, var(--color-text) 7%, transparent);
+  color: var(--color-text);
+  font: 500 1.5rem/1 var(--font-numeric);
+  cursor: pointer;
+  transition: background 0.12s ease, transform 0.1s ease;
+}
+.kin-pin-key:active { transform: scale(0.94); background: color-mix(in srgb, var(--color-text) 14%, transparent); }
+.kin-pin-key:focus-visible { outline: 2px solid var(--color-accent-700); outline-offset: 2px; }
+.kin-pin-back { background: transparent; font-size: 1.25rem; }
+.kin-pin-back:disabled { opacity: 0.35; cursor: default; }
+@media (prefers-reduced-motion: reduce) {
+  .kin-pin-dots span, .kin-pin-key { transition: none; }
+}
+
+/* "Locks again in 9 min · Lock now" under an open vault. */
+.kin-vault-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 0.25rem 0.5rem;
+  margin: 1.25rem 0 0.5rem;
+  font-size: 0.8125rem;
+  color: var(--color-neutral-600);
+}

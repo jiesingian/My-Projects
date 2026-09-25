@@ -126,7 +126,7 @@ export function DocumentsLockSettings({
           style={{ marginTop: "1.125rem", fontSize: "0.78125rem", gap: "0.3125rem", padding: "0 0.5rem", minHeight: "1.875rem" }}
         >
           <Icon name="keyRound" size={13} />
-          Lock these documents
+          Lock the vault
         </button>
       )}
 
@@ -135,7 +135,7 @@ export function DocumentsLockSettings({
     <Blueprint style={{ padding: "0.875rem", marginTop: "1.25rem" }}>
       <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", marginBottom: "0.25rem" }}>
         <Icon name="keyRound" size={15} style={{ color: "var(--color-accent-700)" }} />
-        <span style={{ font: "600 0.875rem/1 var(--font-heading)" }}>Lock on these documents</span>
+        <span style={{ font: "600 0.875rem/1 var(--font-heading)" }}>Lock on the vault</span>
         {configured && unlocked && (
           <button
             type="button"
@@ -270,7 +270,7 @@ export function DocumentsLockSettings({
                 description:
                   devices.length > 0
                     ? "You'll still be able to unlock with your face or fingerprint on a device you've added."
-                    : "Nothing will be locked after this — the documents go back to opening straight away.",
+                    : "Nothing will be locked after this — the vault goes back to opening straight away.",
                 confirmLabel: "Remove it",
               }))
             )

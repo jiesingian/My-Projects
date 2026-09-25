@@ -40,7 +40,7 @@ phone mock-ups and a map of every setting, are in the artifact
    the vault and running the household are hidden *and* refused by the
    server. K3: a new child with their own login starts in kid view (a
    database change).
-6. **One locked vault for documents and passwords (item 5): approved 25
+6. **Done: One locked vault for documents and passwords (item 5): approved 25
    September (V1 + V2 + V4).** V1: one Vault tab with Documents and
    Passwords. V2: a "Whose" dropdown like Wealth's. V4: Face ID first, a
    PIN number pad, a lock countdown, press-and-hold to reveal. V3 ("just
@@ -72,6 +72,12 @@ Decided against in the same review: revising Journal (item 6) and Planner
 #209).
 
 ## Done
+
+- The family vault: Family → Vault holds Documents and Passwords behind one
+  unlock, with a "Whose" picker (documents by who they are for, passwords by
+  who saved them), Face ID first and a number pad for the PIN, "Locks again
+  in N min · Lock now", and press-and-hold to see a password (Copy never
+  shows it). Passwords moved out of Links (25 September).
 
 - Family feed: new journal entries and milestones reach linked households
   on their own, with their photos (Kin storage; Drive-kept photos stay
