@@ -1,6 +1,6 @@
 "use client";
 
-import { useId, useTransition } from "react";
+import { useEffect, useId, useTransition } from "react";
 import { setThemeAction, setTextScaleAction, setPaletteAction, createCalendarFeedAction, removeCalendarFeedAction, toggleNotificationAction, updateHouseholdNameAction, updateHouseholdPrefsAction, updateShareWithRelativesAction, setKidViewAction } from "@/lib/actions/settings";
 import { regenerateInviteCodeAction } from "@/lib/actions/family";
 import { disconnectDriveAction } from "@/lib/actions/drive";
@@ -17,8 +17,20 @@ import { familyDateTime } from "@/lib/time";
 import { COUNTRIES } from "@/lib/countries";
 import { PALETTES, type PaletteMode } from "@/lib/palettes";
 
-export function ThemeControl({ current }: { current: string }) {
+export function ThemeControl({ current, forcedDark = false }: { current: string; forcedDark?: boolean }) {
   const [pending, startTransition] = useTransition();
+  // Its own record of the choice, like the palette picker's: the prop comes
+  // back from the server a step behind, which left the previous button lit.
+  const [selected, setSelected] = useState(current);
+  // Which mode the palette samples show: an attribute of the page's own that
+  // React never renders, so a refresh cannot put back an older value. Set
+  // from the saved choice when this loads, and on each tap below.
+  // Once, on load: a later refresh can carry an older value than the tap
+  // that caused it, and the tap has already set the right one.
+  useEffect(() => {
+    document.documentElement.dataset.themePick = current;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   const [failed, setFailed] = useState<string | null>(null);
   const options: { value: "light" | "dark" | "system"; label: string }[] = [
     { value: "light", label: "Light" },
@@ -32,14 +44,32 @@ export function ThemeControl({ current }: { current: string }) {
           <button
             key={o.value}
             type="button"
-            data-active={current === o.value}
+            data-active={selected === o.value}
             disabled={pending}
-            onClick={() =>
+            onClick={() => {
+              // The page and the palette samples below follow the choice at
+              // once. Waiting for the server left the page a step behind: it
+              // re-rendered with the previous choice, so Light stayed dark
+              // until the next tap. A dark-only palette keeps the page dark.
+              const root = document.documentElement;
+              const before = { pick: root.dataset.themePick, theme: root.dataset.theme };
+              const apply = (pick: string | undefined, theme: string | undefined) => {
+                if (pick) root.dataset.themePick = pick;
+                if (theme) root.dataset.theme = theme;
+                else delete root.dataset.theme;
+              };
+              const was = selected;
+              setSelected(o.value);
+              apply(o.value, forcedDark ? "dark" : o.value === "system" ? undefined : o.value);
               startTransition(async () => {
                 const { error } = await setThemeAction(o.value);
                 setFailed(error);
-              })
-            }
+                if (error) {
+                  setSelected(was);
+                  apply(before.pick, before.theme);
+                }
+              });
+            }}
           >
             {o.label}
           </button>
@@ -50,9 +80,9 @@ export function ThemeControl({ current }: { current: string }) {
   );
 }
 
-function PaletteSwatch({ m }: { m: PaletteMode }) {
+function PaletteSwatch({ m, mode }: { m: PaletteMode; mode?: "light" | "dark" }) {
   return (
-    <span className="kin-palette-swatch" style={{ background: m.bg }} aria-hidden="true">
+    <span className="kin-palette-swatch" data-mode={mode} style={{ background: m.bg }} aria-hidden="true">
       <span className="kin-palette-card" style={{ background: m.surface, borderColor: m.divider }}>
         <span className="kin-palette-line" style={{ background: m.text }} />
         <span className="kin-palette-line kin-palette-line-short" style={{ background: m.muted }} />
@@ -66,8 +96,8 @@ function PaletteSwatch({ m }: { m: PaletteMode }) {
   );
 }
 
-/** Colour themes, each shown as a small picture of itself in light and dark
- * rather than as a name, since nobody picks a theme by its name. Choosing one
+/** Colour themes, each shown as a small picture of itself -- in light or dark,
+ * whichever the Theme switch above is on -- rather than as a name, since nobody picks a theme by its name. Choosing one
  * saves it and asks whether to restart, the same as text size: the colours
  * arrive with the next load instead of repainting under the finger. */
 export function PaletteControl({ current }: { current: string }) {
@@ -110,8 +140,16 @@ export function PaletteControl({ current }: { current: string }) {
             onClick={() => choose(p.id, p.name)}
           >
             <span className="kin-palette-pair">
-              <PaletteSwatch m={p.light} />
-              {!p.darkOnly && <PaletteSwatch m={p.dark} />}
+              {/* One sample, in the mode chosen above (globals.css shows the
+                  matching one); a dark-only palette has only the one. */}
+              {p.darkOnly ? (
+                <PaletteSwatch m={p.dark} />
+              ) : (
+                <>
+                  <PaletteSwatch m={p.light} mode="light" />
+                  <PaletteSwatch m={p.dark} mode="dark" />
+                </>
+              )}
             </span>
             <span className="kin-palette-name">{p.name}</span>
             <span className="kin-palette-blurb">{p.darkOnly ? `${p.blurb} · always dark` : p.blurb}</span>

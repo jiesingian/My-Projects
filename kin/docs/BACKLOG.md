@@ -73,6 +73,11 @@ Decided against in the same review: revising Journal (item 6) and Planner
 
 ## Done
 
+- Settings → Appearance shows each colour theme in the mode chosen above
+  (Light, Dark or System), one sample instead of both; the Theme switch now
+  changes the page and its highlight at once rather than a tap behind
+  (25 September).
+
 - Public home page: signed-out visitors get a turning 3D house, setup one
   question at a time (family name, who lives there, what would help), and a
   tour of the features with their picks first, ending at sign-up or an
