@@ -72,6 +72,12 @@ Decided against in the same review: revising Journal (item 6) and Planner
 
 ## Done
 
+- Five more colour themes in Settings → Appearance: Pale Milk, Editorial,
+  Electric Blue, Emerald Wave and Antarctic (dark only), from Janine's list,
+  each passing the same readability test as the rest. Plain and outline
+  buttons now use each theme's link colour, so they read in dark mode too
+  (25 September).
+
 - One full-screen photo viewer everywhere a photo opens (journal, Gallery,
   profile and household albums, chat): the whole screen, swipe or arrow
   keys for the next photo, swipe down to close, double-tap to zoom. Chat
