@@ -56,7 +56,7 @@ Added 25 September, after the list above:
 
 9. **Done: photos open full screen** the way Facebook and Instagram show
    them, never in a new tab.
-10. **Comments and reactions on photos** shared on a profile or in the
+10. **Done: Comments and reactions on photos** shared on a profile or in the
     journal.
 11. **Family feed follows the family tree:** relatives on the tree see each
     other's feed without a separate link. Changes who can see what, so the
@@ -71,6 +71,11 @@ Decided against in the same review: revising Journal (item 6) and Planner
 #209).
 
 ## Done
+
+- Comments and reactions on photos: under every journal photo, profile
+  picture and household photo in the full-screen viewer, one reaction per
+  person and a comment thread, household-only. Other people's profile
+  pictures now open as an album too, read-only (25 September).
 
 - Family tree: Brother and Sister next to Father and Mother (they share the
   recorded parents; with none recorded, the form asks for one). A relative

@@ -2,8 +2,17 @@
 
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
+import { PhotoSocial } from "@/components/photo-social";
+import type { PhotoRef } from "@/lib/actions/photo-social";
 
-export type ViewerItem = { url: string; alt: string; kind?: "image" | "video" };
+export type ViewerItem = {
+  url: string;
+  alt: string;
+  kind?: "image" | "video";
+  /** Which stored photo this is, when it is one people can react to and
+   * comment on (a journal photo, a profile picture, the household photo). */
+  photo?: PhotoRef;
+};
 
 /** The one full-screen photo viewer, used everywhere Kin shows a photo large:
  * journal entries, the Gallery, profile and household albums, single photos,
@@ -71,7 +80,10 @@ export function PhotoViewer({
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
+      // Arrow keys in the comment box move the cursor, not the photo.
+      const typing = (e.target as HTMLElement | null)?.closest?.("input, textarea");
       if (e.key === "Escape") onClose();
+      else if (typing) return;
       else if (e.key === "ArrowRight") go(1);
       else if (e.key === "ArrowLeft") go(-1);
     };
@@ -235,7 +247,12 @@ export function PhotoViewer({
         )}
       </div>
 
-      {footer && <div className="kin-viewer-footer">{footer(index)}</div>}
+      {(footer || item.photo) && (
+        <div className="kin-viewer-footer">
+          {item.photo && <PhotoSocial key={`${item.photo.kind}:${item.photo.id}`} photo={item.photo} />}
+          {footer?.(index)}
+        </div>
+      )}
     </div>,
     document.body,
   );

@@ -3638,6 +3638,144 @@ export type Database = {
           },
         ]
       }
+      photo_comments: {
+        Row: {
+          body: string
+          created_at: string
+          family_background_id: string | null
+          family_id: string
+          id: string
+          journal_media_id: string | null
+          member_avatar_id: string | null
+          member_id: string
+        }
+        Insert: {
+          body: string
+          created_at?: string
+          family_background_id?: string | null
+          family_id: string
+          id?: string
+          journal_media_id?: string | null
+          member_avatar_id?: string | null
+          member_id: string
+        }
+        Update: {
+          body?: string
+          created_at?: string
+          family_background_id?: string | null
+          family_id?: string
+          id?: string
+          journal_media_id?: string | null
+          member_avatar_id?: string | null
+          member_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "photo_comments_family_background_id_fkey"
+            columns: ["family_background_id"]
+            isOneToOne: false
+            referencedRelation: "family_backgrounds"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "photo_comments_family_id_fkey"
+            columns: ["family_id"]
+            isOneToOne: false
+            referencedRelation: "families"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "photo_comments_journal_media_id_fkey"
+            columns: ["journal_media_id"]
+            isOneToOne: false
+            referencedRelation: "journal_media"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "photo_comments_member_avatar_id_fkey"
+            columns: ["member_avatar_id"]
+            isOneToOne: false
+            referencedRelation: "member_avatars"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "photo_comments_member_id_fkey"
+            columns: ["member_id"]
+            isOneToOne: false
+            referencedRelation: "members"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      photo_reactions: {
+        Row: {
+          created_at: string
+          emoji: string
+          family_background_id: string | null
+          family_id: string
+          id: string
+          journal_media_id: string | null
+          member_avatar_id: string | null
+          member_id: string
+        }
+        Insert: {
+          created_at?: string
+          emoji: string
+          family_background_id?: string | null
+          family_id: string
+          id?: string
+          journal_media_id?: string | null
+          member_avatar_id?: string | null
+          member_id: string
+        }
+        Update: {
+          created_at?: string
+          emoji?: string
+          family_background_id?: string | null
+          family_id?: string
+          id?: string
+          journal_media_id?: string | null
+          member_avatar_id?: string | null
+          member_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "photo_reactions_family_background_id_fkey"
+            columns: ["family_background_id"]
+            isOneToOne: false
+            referencedRelation: "family_backgrounds"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "photo_reactions_family_id_fkey"
+            columns: ["family_id"]
+            isOneToOne: false
+            referencedRelation: "families"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "photo_reactions_journal_media_id_fkey"
+            columns: ["journal_media_id"]
+            isOneToOne: false
+            referencedRelation: "journal_media"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "photo_reactions_member_avatar_id_fkey"
+            columns: ["member_avatar_id"]
+            isOneToOne: false
+            referencedRelation: "member_avatars"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "photo_reactions_member_id_fkey"
+            columns: ["member_id"]
+            isOneToOne: false
+            referencedRelation: "members"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       price_list: {
         Row: {
           family_id: string
