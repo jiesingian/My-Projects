@@ -7,7 +7,8 @@ import { requireCurrentMember } from "@/lib/session";
 import { humanDatabaseError } from "@/lib/db-errors";
 import { constantTimeEquals, hashPin, newSalt, randomToken, sha256, toBase64Url } from "@/lib/security/crypto";
 import { verifyAssertion, ES256, RS256 } from "@/lib/security/webauthn";
-import { CHALLENGE_COOKIE, UNLOCK_COOKIE, UNLOCK_MINUTES, relyingParty } from "@/lib/security/gate";
+import { CHALLENGE_COOKIE, UNLOCK_COOKIE, UNLOCK_MINUTES, getLockState, relyingParty } from "@/lib/security/gate";
+import { lockChangeProblem } from "@/lib/security/lock-rules";
 import type { ActionState } from "@/lib/actions/auth";
 
 const MAX_ATTEMPTS = 5;
@@ -26,6 +27,12 @@ async function readSecurity(memberId: string) {
     .eq("member_id", memberId)
     .maybeSingle();
   return { supabase, row: data };
+}
+
+/** The server's half of lockChangeProblem: null when this member may change
+ * their lock now, otherwise the reason they may not. */
+async function lockedAgainstChanges(memberId: string): Promise<string | null> {
+  return lockChangeProblem(await getLockState(memberId));
 }
 
 async function grantUnlock(memberId: string): Promise<ActionState> {
@@ -77,6 +84,8 @@ function pinProblem(pin: string): string | null {
 
 export async function setDocumentsPinAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
   const me = await requireCurrentMember();
+  const refused = await lockedAgainstChanges(me.id);
+  if (refused) return { error: refused };
   const pin = String(formData.get("pin") ?? "");
   const again = String(formData.get("pin_confirm") ?? "");
   const problem = pinProblem(pin);
@@ -145,6 +154,8 @@ export async function unlockWithPinAction(_prev: ActionState, formData: FormData
 
 export async function removeDocumentsPinAction(): Promise<ActionState> {
   const me = await requireCurrentMember();
+  const refused = await lockedAgainstChanges(me.id);
+  if (refused) return { error: refused };
   const supabase = await createClient();
   const { error } = await supabase
     .from("member_security")
@@ -178,6 +189,10 @@ export type RegistrationOptions = { challenge: string; rpId: string; memberId: s
 
 export async function beginBiometricSetupAction(): Promise<RegistrationOptions> {
   const me = await requireCurrentMember();
+  // Throws rather than returning an error: this hands back the options the
+  // browser needs, and the screen only offers setup once the lock is open.
+  const refused = await lockedAgainstChanges(me.id);
+  if (refused) throw new Error(refused);
   const supabase = await createClient();
   const { data } = await supabase.from("member_webauthn_credentials").select("credential_id").eq("member_id", me.id);
   const { rpId } = await relyingParty();
@@ -198,6 +213,8 @@ export async function finishBiometricSetupAction(input: {
   label: string;
 }): Promise<ActionState> {
   const me = await requireCurrentMember();
+  const refused = await lockedAgainstChanges(me.id);
+  if (refused) return { error: refused };
   const jar = await cookies();
   const expected = jar.get(CHALLENGE_COOKIE)?.value;
   jar.delete(CHALLENGE_COOKIE);
@@ -293,6 +310,8 @@ export async function finishBiometricUnlockAction(input: {
 
 export async function removeBiometricCredentialAction(credentialRowId: string): Promise<ActionState> {
   const me = await requireCurrentMember();
+  const refused = await lockedAgainstChanges(me.id);
+  if (refused) return { error: refused };
   const supabase = await createClient();
   const { error } = await supabase
     .from("member_webauthn_credentials")
