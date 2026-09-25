@@ -45,7 +45,7 @@ phone mock-ups and a map of every setting, are in the artifact
    Passwords. V2: a "Whose" dropdown like Wealth's. V4: Face ID first, a
    PIN number pad, a lock countdown, press-and-hold to reveal. V3 ("just
    me" passwords) was declined. Watched paths.
-7. **3D family tree (item 10).** An optional "3D view" toggle. The current
+7. **Done: 3D family tree (item 10).** An optional "3D view" toggle. The current
    tree stays the default.
 8. **Public home page (items 1 + 11).** A front page with a 3D house
    preview, setup one question at a time, then a tour of the features
@@ -72,6 +72,11 @@ Decided against in the same review: revising Journal (item 6) and Planner
 #209).
 
 ## Done
+
+- 3D family tree: a "3D" button under the tree tilts it into a floor with
+  every card standing up from it, and ⟲ ⟳ turn it; the flat tree stays the
+  default. Also fixed: clicking a person on the tree with a mouse did
+  nothing (it only worked by touch) (25 September).
 
 - Kid view: Settings → Kid view (grown-ups, one switch per child with a
   login); four tabs, a Today of their own jobs, stars, rewards and what's

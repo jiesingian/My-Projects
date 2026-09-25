@@ -3808,3 +3808,38 @@ button.kin-initial:focus-visible {
 .kin-kid-stars-go { font-size: 0.875rem; font-weight: 600; color: var(--color-accent-700); margin-left: 0.375rem; }
 .kin-kid-jobs { font-size: 1.125rem; }
 .kin-kid-jobs .btn { min-height: 3rem; font-size: 1.0625rem; padding-inline: 1.25rem; }
+
+/* The family tree's optional 3D view: a tilted floor with the lines on it,
+   and cards standing up from it, turned to face you. */
+.kin-treechart-viewport[data-3d] {
+  perspective: 1500px;
+  perspective-origin: 50% 0%;
+  background:
+    radial-gradient(ellipse at 50% 0%, color-mix(in srgb, var(--color-accent) 10%, transparent), transparent 70%),
+    color-mix(in srgb, var(--color-text) 3%, var(--color-surface));
+}
+.kin-treechart-viewport[data-3d] .kin-treechart-canvas { transform-style: preserve-3d; }
+.kin-treechart-floor {
+  position: absolute;
+  inset: -2.5rem;
+  border-radius: 2rem;
+  background:
+    radial-gradient(circle, color-mix(in srgb, var(--color-text) 14%, transparent) 1.2px, transparent 1.5px) 0 0 / 1.5rem 1.5rem,
+    linear-gradient(180deg, color-mix(in srgb, var(--color-accent) 8%, var(--color-surface)), var(--color-surface));
+  box-shadow: 0 2rem 4rem color-mix(in srgb, var(--color-text) 12%, transparent);
+}
+.kin-treechart-viewport[data-3d] .kin-treechart-lines { transform: translateZ(1px); }
+.kin-treechart-viewport[data-3d] .kin-treecard {
+  transform-origin: 50% 100%;
+  transform: translateZ(2px) rotateZ(calc(-1 * var(--tree-spin))) rotateX(calc(-1 * var(--tree-tilt)));
+  box-shadow: 0 0.75rem 1.25rem -0.5rem color-mix(in srgb, var(--color-text) 28%, transparent);
+}
+.kin-treechart-viewport[data-anim] .kin-treechart-canvas,
+.kin-treechart-viewport[data-anim] .kin-treecard {
+  transition: transform 0.6s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.kin-treechart-tool[data-on] { background: var(--color-accent); color: #fff; }
+@media (prefers-reduced-motion: reduce) {
+  .kin-treechart-viewport[data-anim] .kin-treechart-canvas,
+  .kin-treechart-viewport[data-anim] .kin-treecard { transition: none; }
+}
