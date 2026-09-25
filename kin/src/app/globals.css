@@ -3546,6 +3546,20 @@ button.kin-initial:focus-visible {
 .kin-palette:focus-visible { outline: 2px solid var(--color-accent-700); outline-offset: 2px; }
 .kin-palette:disabled { cursor: progress; }
 .kin-palette-pair { display: flex; gap: 0.25rem; }
+/* Only the sample for the chosen Light/Dark/System mode. data-theme-pick is
+   set by the Theme control (settings-controls.tsx); until it loads, the page's
+   own data-theme stands in. */
+.kin-palette-swatch[data-mode="dark"] { display: none; }
+:root[data-theme-pick="dark"] .kin-palette-swatch[data-mode="light"],
+:root:not([data-theme-pick])[data-theme="dark"] .kin-palette-swatch[data-mode="light"] { display: none; }
+:root[data-theme-pick="dark"] .kin-palette-swatch[data-mode="dark"],
+:root:not([data-theme-pick])[data-theme="dark"] .kin-palette-swatch[data-mode="dark"] { display: flex; }
+@media (prefers-color-scheme: dark) {
+  :root[data-theme-pick="system"] .kin-palette-swatch[data-mode="light"],
+  :root:not([data-theme-pick]):not([data-theme]) .kin-palette-swatch[data-mode="light"] { display: none; }
+  :root[data-theme-pick="system"] .kin-palette-swatch[data-mode="dark"],
+  :root:not([data-theme-pick]):not([data-theme]) .kin-palette-swatch[data-mode="dark"] { display: flex; }
+}
 .kin-palette-swatch {
   flex: 1;
   display: flex;
