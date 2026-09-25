@@ -195,11 +195,19 @@ export function FamilyTreeChart({
     return { x: e.clientX - r.left, y: e.clientY - r.top };
   };
 
+  // The pointer is captured only once it has actually moved. Capturing it on
+  // the press, as this first did, retargets the release to the viewport, so
+  // a mouse click on a card never reached the card: selecting someone worked
+  // by touch and silently did nothing with a mouse.
+  const capture = (id: number) => {
+    const el = viewport.current;
+    if (el && !el.hasPointerCapture(id)) el.setPointerCapture(id);
+  };
   const onPointerDown = (e: React.PointerEvent) => {
-    viewport.current?.setPointerCapture(e.pointerId);
     pointers.current.set(e.pointerId, local(e));
     if (pointers.current.size === 1) gesture.current = { moved: 0 };
     if (pointers.current.size === 2) {
+      for (const id of pointers.current.keys()) capture(id);
       const [a, b] = [...pointers.current.values()];
       gesture.current = { moved: 99, pinch: { dist: Math.hypot(a.x - b.x, a.y - b.y), k: view.k, mid: { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 }, start: view } };
     }
@@ -218,6 +226,7 @@ export function FamilyTreeChart({
       return;
     }
     g.moved += Math.abs(now.x - prev.x) + Math.abs(now.y - prev.y);
+    if (g.moved >= 8) capture(e.pointerId);
     setView((v) => ({ ...v, x: v.x + now.x - prev.x, y: v.y + now.y - prev.y }));
   };
   const onPointerUp = (e: React.PointerEvent) => {
@@ -238,11 +247,42 @@ export function FamilyTreeChart({
   // ── adding a relative ─────────────────────────────────────────────────────
   const [adding, setAdding] = useState<{ to: string; relation: AddAs } | null>(null);
 
+  // ── the 3D view (item 10, 25 September) ───────────────────────────────────
+  // An option, not the default: the flat chart is the one to read and edit
+  // on. In 3D the chart becomes a floor tilted away from you, the lines drawn
+  // on it, and every card stands up from its place like a pop-up book, turned
+  // to face you however the floor is turned. CSS 3D rather than a WebGL
+  // library: no new dependency, the cards stay real buttons (so tapping,
+  // selecting and screen readers all work unchanged), and it runs on any
+  // phone. Every visit opens flat, the default the design asked for; 3D is
+  // one tap away.
+  const TILT = 56;
+  const [threeD, setThreeD] = useState(false);
+  const [spin, setSpin] = useState(0);
+  const [animating, setAnimating] = useState(false);
+  const eased = (fn: () => void) => {
+    setAnimating(true);
+    fn();
+    window.setTimeout(() => setAnimating(false), 650);
+  };
+  const toggle3D = () =>
+    eased(() => {
+      const next = !threeD;
+      setThreeD(next);
+      if (!next) setSpin(0);
+    });
+  const half = { x: rem(layout.width / 2), y: rem(layout.height / 2) };
+  const canvasTransform = threeD
+    ? `translate(${view.x}px, ${view.y}px) scale(${view.k}) translate(${half.x}, ${half.y}) rotateX(${TILT}deg) rotateZ(${spin}deg) translate(-${half.x}, -${half.y})`
+    : `translate(${view.x}px, ${view.y}px) scale(${view.k})`;
+
   return (
     <div className="kin-treechart">
       <div
         ref={viewport}
         className="kin-treechart-viewport"
+        data-3d={threeD || undefined}
+        data-anim={animating || undefined}
         onPointerDown={onPointerDown}
         onPointerMove={onPointerMove}
         onPointerUp={onPointerUp}
@@ -253,8 +293,15 @@ export function FamilyTreeChart({
       >
         <div
           className="kin-treechart-canvas"
-          style={{ width: rem(layout.width), height: rem(layout.height), transform: `translate(${view.x}px, ${view.y}px) scale(${view.k})` }}
+          style={{
+            width: rem(layout.width),
+            height: rem(layout.height),
+            transform: canvasTransform,
+            ["--tree-spin" as string]: `${spin}deg`,
+            ["--tree-tilt" as string]: `${TILT}deg`,
+          }}
         >
+          {threeD && <div className="kin-treechart-floor" aria-hidden="true" />}
           <svg className="kin-treechart-lines" viewBox={`0 0 ${layout.width} ${layout.height}`} width="100%" height="100%" aria-hidden="true">
             {layout.couples.map((c) => (
               <line key={`c-${c.a}-${c.b}`} x1={c.x1} y1={c.y} x2={c.x2} y2={c.y} />
@@ -337,6 +384,19 @@ export function FamilyTreeChart({
             <button type="button" className="btn btn-secondary kin-treechart-tool" onClick={fit}>
               Whole tree
             </button>
+            <button type="button" className="btn btn-secondary kin-treechart-tool" aria-pressed={threeD} data-on={threeD || undefined} onClick={toggle3D}>
+              3D
+            </button>
+            {threeD && (
+              <>
+                <button type="button" className="btn btn-secondary btn-icon" aria-label="Turn the tree left" onClick={() => eased(() => setSpin((s) => s - 30))}>
+                  <span aria-hidden="true">⟲</span>
+                </button>
+                <button type="button" className="btn btn-secondary btn-icon" aria-label="Turn the tree right" onClick={() => eased(() => setSpin((s) => s + 30))}>
+                  <span aria-hidden="true">⟳</span>
+                </button>
+              </>
+            )}
             {meTreeId && (
               <button
                 type="button"
