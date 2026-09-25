@@ -11,6 +11,8 @@ import { ApprovalQueue } from "@/components/approval-queue";
 import { Icon } from "@/components/icons";
 import { isGrownUp } from "@/lib/roles";
 import { TodayHeader } from "@/components/family-panel";
+import { LookOffer } from "@/components/look-offer";
+import { PALETTE_DEFAULT } from "@/lib/palettes";
 import { getFamilyPanel } from "@/lib/queries/family-panel";
 
 export default async function TodayPage() {
@@ -60,6 +62,11 @@ export default async function TodayPage() {
   return (
     <div style={{ padding: "1.5rem 1.375rem 1.25rem" }}>
       <TodayHeader dateLabel={todayLabel} familyName={me.families.name} data={familyPanel} fallbackPeople={members ?? []} />
+
+      {/* Offered once, to people still on Kin Classic from before the new
+          look became the default. Anyone who picked another theme chose it,
+          and keeps it without being asked. */}
+      {me.palette === PALETTE_DEFAULT && !me.look_offer_answered_at && <LookOffer />}
 
       {/* The briefing. Everything the household has a date on, from every
           hub, in one list — overdue first, then the day in the order it

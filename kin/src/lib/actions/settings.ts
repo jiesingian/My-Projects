@@ -9,7 +9,7 @@ import { isNotificationKey } from "@/lib/notifications";
 import { humanDatabaseError } from "@/lib/db-errors";
 import { isCountryCode } from "@/lib/countries";
 import { TEXT_SCALE_MAX, TEXT_SCALE_MIN } from "@/lib/text-scale";
-import { PALETTE_DEFAULT, isPaletteId } from "@/lib/palettes";
+import { PALETTE_DEFAULT, PALETTE_NEW_MEMBER, isPaletteId } from "@/lib/palettes";
 import { randomToken, sha256, toBase64Url } from "@/lib/security/crypto";
 import { isCurrencyCode, isDateFormat, isWeekStart } from "@/lib/household-prefs";
 
@@ -59,6 +59,25 @@ export async function setPaletteAction(id: string): Promise<ActionState> {
   const cookieStore = await cookies();
   if (id === PALETTE_DEFAULT) cookieStore.delete("kin-palette");
   else cookieStore.set("kin-palette", id, { path: "/", maxAge: 60 * 60 * 24 * 365 });
+  return { error: null };
+}
+
+/** The one-time "try the new look" offer on Today, answered. Yes switches
+ * this member to the icon's coral palette; either way the answer is kept, so
+ * the offer does not come back on this device or another. */
+export async function answerLookOfferAction(accept: boolean): Promise<ActionState> {
+  const me = await requireCurrentMember();
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("members")
+    .update({ look_offer_answered_at: new Date().toISOString(), ...(accept ? { palette: PALETTE_NEW_MEMBER } : {}) })
+    .eq("id", me.id);
+  if (error) return { error: `That did not save. ${humanDatabaseError(error.message)}` };
+  if (accept) {
+    const cookieStore = await cookies();
+    cookieStore.set("kin-palette", PALETTE_NEW_MEMBER, { path: "/", maxAge: 60 * 60 * 24 * 365 });
+  }
+  revalidatePath("/today");
   return { error: null };
 }
 

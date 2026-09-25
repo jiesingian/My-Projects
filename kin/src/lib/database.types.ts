@@ -3385,6 +3385,7 @@ export type Database = {
           status: string
           calendar_feed_hash: string | null
           palette: string
+          look_offer_answered_at: string | null
           text_scale: number
           text_size: string
           theme: string
@@ -3428,6 +3429,7 @@ export type Database = {
           status?: string
           calendar_feed_hash?: string | null
           palette?: string
+          look_offer_answered_at?: string | null
           text_scale?: number
           text_size?: string
           theme?: string
@@ -3471,6 +3473,7 @@ export type Database = {
           status?: string
           calendar_feed_hash?: string | null
           palette?: string
+          look_offer_answered_at?: string | null
           text_scale?: number
           text_size?: string
           theme?: string
