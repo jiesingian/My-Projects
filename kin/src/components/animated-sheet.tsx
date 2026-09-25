@@ -1,16 +1,23 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { Drawer } from "vaul";
 
-/** The mount-timing dance every bottom sheet in this app needs, in one
- * place instead of three slightly different copies of it.
+/** Every bottom sheet in this app, in one place: the confirm dialogs, the
+ * recipe book, "Ask Kin".
  *
- * A CSS transition can't animate an element that unmounts the instant it
- * closes, and can't animate one that mounts already at its open value --
- * so this stays mounted through the close transition, and mounts closed,
- * then flips to open a frame later. `open` is the caller's source of
- * truth throughout; nothing here holds its own idea of whether the sheet
- * should be open. */
+ * Built on Vaul (https://vaul.emilkowal.ski), which gives the sheet what a
+ * phone's own sheets have and a CSS transition can't: it follows the finger
+ * when dragged, closes on a flick down or snaps back from a half-hearted
+ * one, and doesn't start dragging while the sheet's own content is scrolled.
+ * Underneath it is Radix's dialog, so focus is trapped while open and
+ * handed back to whatever opened it, Escape and a tap on the backdrop
+ * close it, the page behind stops scrolling, and a screen reader hears a
+ * modal dialog. The hand-timed mount/unmount dance this file used to do is
+ * gone with it.
+ *
+ * `open` is still the caller's source of truth; this never decides on its
+ * own that the sheet is open. The props are the same as before, so nothing
+ * that uses a sheet had to change. */
 export function AnimatedSheet({
   open,
   onClose,
@@ -30,70 +37,27 @@ export function AnimatedSheet({
   panelStyle?: React.CSSProperties;
   children: React.ReactNode;
 }) {
-  const [mounted, setMounted] = useState(open);
-  const [trackedOpen, setTrackedOpen] = useState(open);
-  const [entered, setEntered] = useState(false);
-  const restoreFocus = useRef<HTMLElement | null>(null);
-
-  // React's documented pattern for deriving state from a changing prop
-  // during render (not an effect): `open` can flip back to true before the
-  // close transition's onTransitionEnd ever fires, so an effect keyed on
-  // `open` would miss the re-open. This can't, because it runs every render.
-  if (open !== trackedOpen) {
-    setTrackedOpen(open);
-    if (open) setMounted(true);
-  }
-
-  useEffect(() => {
-    if (!open) return;
-    restoreFocus.current = document.activeElement as HTMLElement | null;
-    // Mount closed, open on the next frame -- the transition needs a
-    // painted "before" value to animate away from.
-    const raf = requestAnimationFrame(() => setEntered(true));
-    return () => cancelAnimationFrame(raf);
-  }, [open]);
-
-  useEffect(() => {
-    if (!open) restoreFocus.current?.focus();
-  }, [open]);
-
-  useEffect(() => {
-    if (!mounted) return;
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
-    };
-    window.addEventListener("keydown", onKey);
-    document.body.style.overflow = "hidden";
-    return () => {
-      window.removeEventListener("keydown", onKey);
-      document.body.style.overflow = "";
-    };
-  }, [mounted, onClose]);
-
-  if (!mounted) return null;
-
-  const showing = open && entered;
-
   return (
-    <div className="sheet-backdrop" data-open={showing} onClick={onClose}>
-      <div
-        role={role}
-        aria-modal="true"
-        aria-labelledby={labelledBy}
-        aria-describedby={describedBy}
-        onClick={(e) => e.stopPropagation()}
-        onTransitionEnd={(e) => {
-          if (e.target === e.currentTarget && !showing) {
-            setMounted(false);
-            setEntered(false);
-          }
-        }}
-        className={`sheet-panel kin-glass-bar ${panelClassName}`}
-        style={panelStyle}
-        data-open={showing}
-      >
-        {children}
-      </div>
-    </div>
+    <Drawer.Root
+      open={open}
+      onOpenChange={(next) => {
+        if (!next) onClose();
+      }}
+    >
+      <Drawer.Portal>
+        <Drawer.Overlay className="sheet-backdrop" />
+        <Drawer.Content
+          // The caller's own title and description, not Radix's: they are
+          // already on the page with ids of their own.
+          role={role}
+          aria-labelledby={labelledBy}
+          aria-describedby={describedBy}
+          className={`sheet-panel kin-glass-bar ${panelClassName}`}
+          style={panelStyle}
+        >
+          {children}
+        </Drawer.Content>
+      </Drawer.Portal>
+    </Drawer.Root>
   );
 }

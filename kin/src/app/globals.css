@@ -880,33 +880,28 @@ textarea.input {
 
 /* — animated sheet shell — the backdrop + panel every bottom sheet in this
    app is built from (confirm dialogs, the recipe book, "Ask Kin"), via
-   <AnimatedSheet>. Exit is faster than enter throughout, the same asymmetry
-   the rest of the app's presses already use: slow enough on the way in to
-   read as arriving, snappy on the way out because the decision is already
-   made. Two sizes sit on top of the shared shell -- full for a scrolling
-   content sheet, confirm for a short question -- because they need
-   different geometry, not different motion. */
+   <AnimatedSheet>. Vaul owns the motion now -- the slide in and out, the
+   drag, the flick-to-close and the snap back -- on its iOS sheet curve, so
+   none of the rules here animate anything; they only place the panel and
+   give it Kin's look. Two sizes sit on the shared shell -- full for a
+   scrolling content sheet, confirm for a short question -- because they
+   need different geometry, not different motion. */
 .sheet-backdrop {
   position: fixed;
   inset: 0;
   z-index: 60;
-  display: flex;
-  align-items: flex-end;
-  justify-content: center;
   background: rgba(0, 0, 0, 0.32);
-  opacity: 0;
-  transition: opacity 0.2s ease;
-}
-.sheet-backdrop[data-open="true"] {
-  opacity: 1;
 }
 .sheet-panel {
+  position: fixed;
+  z-index: 61;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  margin: 0 auto;
   border: 1px solid var(--glass-border);
   box-shadow: var(--shadow-lg);
-  transition: transform 0.26s var(--ease-drawer), opacity 0.2s ease;
-}
-.sheet-panel[data-open="true"] {
-  transition: transform 0.2s var(--ease-drawer), opacity 0.16s ease;
+  outline: none;
 }
 
 .sheet-panel--full {
@@ -916,24 +911,21 @@ textarea.input {
   border-top-left-radius: 22px;
   border-top-right-radius: 22px;
   border-bottom: 0;
-  transform: translateY(100%);
-}
-.sheet-panel--full[data-open="true"] {
-  transform: translateY(0);
 }
 
 .sheet-panel--confirm {
-  width: 100%;
+  width: calc(100% - 32px);
   max-width: 420px;
-  margin: 0 16px calc(env(safe-area-inset-bottom, 0px) + 16px);
-  padding: 10px 20px calc(env(safe-area-inset-bottom, 0px) + 18px);
+  bottom: calc(env(safe-area-inset-bottom, 0px) + 16px);
+  padding: 10px 20px 18px;
   border-radius: 20px;
-  transform: translateY(24px);
-  opacity: 0;
 }
-.sheet-panel--confirm[data-open="true"] {
-  transform: translateY(0);
-  opacity: 1;
+/* Vaul paints a strip of the panel's background below a bottom sheet so a
+   hard upward drag never shows a gap under it. The confirm card floats
+   clear of the bottom edge on purpose, so that strip would be a slab of
+   glass hanging under it. */
+.sheet-panel.sheet-panel--confirm[data-vaul-drawer]::after {
+  display: none;
 }
 
 .confirm-grabber {
@@ -965,11 +957,17 @@ textarea.input {
 .confirm-actions > .btn {
   flex: 1;
 }
+/* Reduced motion: the sheet fades where it would have slid. Dragging still
+   works -- that follows the finger, it isn't an animation playing at
+   someone. */
 @media (prefers-reduced-motion: reduce) {
-  .sheet-backdrop,
-  .sheet-panel {
-    transition: opacity 0.16s ease;
-    transform: none;
+  .sheet-panel[data-vaul-drawer][data-state="open"] {
+    animation-name: fadeIn;
+    animation-duration: 0.16s;
+  }
+  .sheet-panel[data-vaul-drawer][data-state="closed"] {
+    animation-name: fadeOut;
+    animation-duration: 0.16s;
   }
 }
 
