@@ -115,6 +115,20 @@ export async function updateHouseholdNameAction(name: string): Promise<ActionSta
   return { error: error ? humanDatabaseError(error.message) : null };
 }
 
+/** Whether new journal entries and milestones reach linked households on
+ * their own (the share_new_memory trigger reads this). Off means each one is
+ * shared by hand, as it was before 25 September. Nothing already written
+ * changes either way. */
+export async function updateShareWithRelativesAction(on: boolean): Promise<ActionState> {
+  const me = await requireCurrentMember();
+  if (!me.is_organiser) return { error: "Only the organizer can change what the household shares." };
+  const supabase = await createClient();
+  const { error } = await supabase.from("families").update({ share_with_relatives: on === true }).eq("id", me.family_id);
+  revalidatePath("/settings", "layout");
+  revalidatePath("/journal");
+  return { error: error ? humanDatabaseError(error.message) : null };
+}
+
 export async function updateHouseholdPrefsAction(
   currency: string,
   dateFormat: string,

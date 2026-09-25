@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { getSignedUrls } from "@/lib/storage";
 
 export type FamilyLink = {
   id: string;
@@ -50,6 +51,10 @@ export type FeedEntry = {
   familyId: string;
   householdName: string;
   isOurs: boolean;
+  /** The entry's photos, ours or a linked household's (shared entries carry
+   * their photos since 25 September). Ids only on ours: reactions and
+   * comments stay in the household whose photo it is. */
+  photos: { url: string; id: string | null }[];
 };
 
 /** Everyone's shared memories in one list, newest first -- "organise family
@@ -63,7 +68,7 @@ export async function getFamilyFeed(familyId: string): Promise<FeedEntry[]> {
   const supabase = await createClient();
   const { data } = await supabase
     .from("journal_entries")
-    .select("id, title, note, entry_date, family_id")
+    .select("id, title, note, entry_date, family_id, journal_entry_media(journal_media(id, storage_path, storage_provider))")
     .not("shared_at", "is", null)
     .order("entry_date", { ascending: false })
     .limit(200);
@@ -78,6 +83,16 @@ export async function getFamilyFeed(familyId: string): Promise<FeedEntry[]> {
     .limit(200);
 
   const rows = data ?? [];
+  // Signed with the reader's own session: the storage policy lets a linked
+  // household read a shared entry's photo files and nothing else. Photos kept
+  // in a household's Google Drive are left out -- another household has no
+  // Drive connection to fetch them with.
+  type Media = { id: string; storage_path: string | null; storage_provider: string };
+  const mediaOf = (r: (typeof rows)[number]) =>
+    (r.journal_entry_media ?? [])
+      .map((m) => m.journal_media as unknown as Media | null)
+      .filter((m): m is Media => !!m && m.storage_provider === "supabase" && !!m.storage_path);
+  const signed = await getSignedUrls("journal", rows.flatMap((r) => mediaOf(r).map((m) => m.storage_path as string)));
   const familyIds = [...new Set([...rows.map((r) => r.family_id), ...(milestones ?? []).map((m) => m.family_id)])];
   const { data: names } = await supabase.from("families").select("id, name").in("id", familyIds.length ? familyIds : [familyId]);
   const byId = new Map((names ?? []).map((f) => [f.id, f.name]));
@@ -91,6 +106,9 @@ export async function getFamilyFeed(familyId: string): Promise<FeedEntry[]> {
     familyId: r.family_id,
     householdName: byId.get(r.family_id) ?? "A linked household",
     isOurs: r.family_id === familyId,
+    photos: mediaOf(r)
+      .map((m) => ({ url: signed[m.storage_path as string], id: r.family_id === familyId ? m.id : null }))
+      .filter((p): p is { url: string; id: string | null } => !!p.url),
   }));
   const moments: FeedEntry[] = (milestones ?? []).map((m) => ({
     kind: "milestone" as const,
@@ -101,6 +119,7 @@ export async function getFamilyFeed(familyId: string): Promise<FeedEntry[]> {
     familyId: m.family_id,
     householdName: byId.get(m.family_id) ?? "A linked household",
     isOurs: m.family_id === familyId,
+    photos: [],
   }));
   return [...entries, ...moments].sort((a, b) => b.entryDate.localeCompare(a.entryDate));
 }

@@ -5,6 +5,7 @@ import { useActionState, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Icon } from "@/components/icons";
 import { Blueprint } from "@/components/ui";
+import { JournalEntryPhotos } from "@/components/journal-entry-photos";
 import { SubmitButton, ErrorText } from "@/components/form";
 import { confirm } from "@/components/confirm-sheet";
 import {
@@ -61,8 +62,8 @@ export function FamilyFeed({
         <Blueprint style={{ padding: "1.125rem 0.9375rem" }}>
           <div style={{ font: "600 0.9375rem/1.2 var(--font-heading)", marginBottom: "0.1875rem" }}>Nothing shared yet</div>
           <div style={{ fontSize: "0.8125rem", color: "var(--color-neutral-600)", lineHeight: 1.45 }}>
-            Entries stay private until someone shares them. Open a memory in the List view and choose Share to put it
-            here — for your own household, and for any household you&rsquo;ve linked with.
+            New memories land here on their own, for your household and any household you&rsquo;ve linked with,
+            photos included. Older ones can be shared from the List view with Share.
           </div>
         </Blueprint>
       ) : (
@@ -81,6 +82,11 @@ export function FamilyFeed({
               </div>
               {e.note && (
                 <p style={{ fontSize: "0.84375rem", lineHeight: 1.45, color: "var(--color-neutral-800)", margin: "7px 0 0" }}>{e.note}</p>
+              )}
+              {e.photos.length > 0 && (
+                <div style={{ marginTop: "0.5rem" }}>
+                  <JournalEntryPhotos photos={e.photos} entryTitle={e.title} />
+                </div>
               )}
             </Blueprint>
           ))}
@@ -106,8 +112,9 @@ function LinkManager({ links, ourCode, canManage }: { links: FamilyLink[]; ourCo
   return (
     <Blueprint style={{ padding: "0.875rem", marginBottom: "0.875rem" }}>
       <p style={{ fontSize: "0.78125rem", lineHeight: 1.45, color: "var(--color-neutral-700)", margin: "0 0 10px" }}>
-        A linked household sees the memories you mark shared, and you see theirs. Photos and everyone else&rsquo;s
-        records stay where they are. Either side can unlink at any time, and sharing stops the moment they do.
+        A linked household sees your new memories, photos included, and you see theirs. Tap Shared on an entry to
+        keep that one private. Money, health, documents and everything else stay where they are. Either side can
+        unlink at any time, and sharing stops the moment they do.
       </p>
 
       <div style={{ fontSize: "0.71875rem", letterSpacing: ".05em", color: "var(--color-neutral-500)", marginBottom: "0.25rem" }}>

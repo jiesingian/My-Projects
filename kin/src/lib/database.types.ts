@@ -1433,6 +1433,7 @@ export type Database = {
           id: string
           invite_code: string
           name: string
+          share_with_relatives: boolean
           week_start: string
         }
         Insert: {
@@ -1450,6 +1451,7 @@ export type Database = {
           id?: string
           invite_code: string
           name: string
+          share_with_relatives?: boolean
           week_start?: string
         }
         Update: {
@@ -1467,6 +1469,7 @@ export type Database = {
           id?: string
           invite_code?: string
           name?: string
+          share_with_relatives?: boolean
           week_start?: string
         }
         Relationships: []

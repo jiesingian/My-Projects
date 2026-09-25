@@ -58,9 +58,10 @@ Added 25 September, after the list above:
    them, never in a new tab.
 10. **Done: Comments and reactions on photos** shared on a profile or in the
     journal.
-11. **Family feed follows the family tree:** relatives on the tree see each
-    other's feed without a separate link. Changes who can see what, so the
-    trade-offs go to Jonathan before code.
+11. **Done: Family feed shares on its own:** decided 25 September -- once
+    two households are linked, new entries and milestones reach the other
+    household automatically, photos included; one tap keeps an entry private,
+    and a household switch turns it off.
 12. **Done: Family tree:** each person on the tree opens their profile, and
     brothers and sisters can be added, not only a father and mother.
 13. **Done: Text that fits:** tab and button labels that fit at the default text
@@ -71,6 +72,12 @@ Decided against in the same review: revising Journal (item 6) and Planner
 #209).
 
 ## Done
+
+- Family feed: new journal entries and milestones reach linked households
+  on their own, with their photos (Kin storage; Drive-kept photos stay
+  home). "Share new memories with relatives" in Settings → Household turns
+  it off; tapping Shared keeps one entry private. Earlier entries are
+  unchanged (25 September).
 
 - Comments and reactions on photos: under every journal photo, profile
   picture and household photo in the full-screen viewer, one reaction per

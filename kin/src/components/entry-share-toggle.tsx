@@ -37,6 +37,7 @@ export function EntryShareToggle({
         type="button"
         className="btn btn-ghost"
         disabled={pending}
+        title={shared ? "Shared with linked relatives. Tap to keep this one private." : undefined}
         onClick={async () => {
           if (shared) {
             run(false);
@@ -47,7 +48,7 @@ export function EntryShareToggle({
               title: "Put this in the Family Feed?",
               description:
                 linkedCount > 0
-                  ? `The ${linkedCount === 1 ? "household" : `${linkedCount} households`} you're linked with will see its title, date and note. Photos and tagged names stay here. You can take it back at any time.`
+                  ? `The ${linkedCount === 1 ? "household" : `${linkedCount} households`} you're linked with will see it, photos included. Tagged names stay here. You can take it back at any time.`
                   : "It'll appear in your own Family Feed. Nobody outside your household sees it until you link with one.",
               confirmLabel: "Share it",
             }))
@@ -57,6 +58,9 @@ export function EntryShareToggle({
         }}
         style={{ minHeight: "1.625rem", fontSize: "0.78125rem", padding: "0 0.4375rem", gap: "0.25rem", color: shared ? "var(--color-accent-700)" : "var(--color-neutral-700)" }}
       >
+        {/* New entries are shared on their own now (a household switch in
+            Settings), so "Shared" is the usual state and tapping it is how
+            one entry is kept to the household. */}
         <Icon name={shared ? "users" : "plus"} size={13} />
         {shared ? "Shared" : "Share"}
       </button>
