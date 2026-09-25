@@ -1,6 +1,7 @@
 "use client";
 
-import { useActionState, useId } from "react";
+import { useActionState, useEffect, useId, useRef } from "react";
+import { WELCOME_KEY, type WelcomeAnswers } from "@/components/welcome/welcome";
 import { createFamilyAction, joinFamilyAction } from "@/lib/actions/family";
 import type { ActionState } from "@/lib/actions/auth";
 import { SubmitButton, ErrorText } from "@/components/form";
@@ -26,6 +27,19 @@ export function FamilyForkForm({
   const [createState, createAction] = useActionState(createFamilyAction, initialState);
   const [joinState, joinAction] = useActionState(joinFamilyAction, initialState);
   const uid = useId();
+  // The family name given on the home page before sign-up, if there was one.
+  // Filled in after load rather than as the field's initial value, so the
+  // server-rendered form and the browser's agree; left alone once typed in.
+  const householdName = useRef<HTMLInputElement>(null);
+  useEffect(() => {
+    try {
+      const saved = JSON.parse(localStorage.getItem(WELCOME_KEY) ?? "null") as WelcomeAnswers | null;
+      const el = householdName.current;
+      if (saved?.familyName && el && !el.value) el.value = saved.familyName;
+    } catch {
+      // Nothing saved, or storage refused: the placeholder stays.
+    }
+  }, []);
 
   const joinForm = (
         <form action={joinAction}>
@@ -86,7 +100,7 @@ export function FamilyForkForm({
           </span>
           <div className="field" style={{ marginBottom: "0.75rem" }}>
             <label htmlFor={`${uid}-household-name`}>Household name</label>
-            <input id={`${uid}-household-name`} aria-label="Household Name" className="input" name="household_name" placeholder="The Reyes Household" required style={{ minHeight: "2.75rem" }} />
+            <input ref={householdName} id={`${uid}-household-name`} aria-label="Household Name" className="input" name="household_name" placeholder="The Reyes Household" required style={{ minHeight: "2.75rem" }} />
           </div>
           {/* One setting the household won't have to find its way to Settings
               for afterward -- it's used from the first account someone adds.

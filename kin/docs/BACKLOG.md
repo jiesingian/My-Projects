@@ -47,7 +47,7 @@ phone mock-ups and a map of every setting, are in the artifact
    me" passwords) was declined. Watched paths.
 7. **Done: 3D family tree (item 10).** An optional "3D view" toggle. The current
    tree stays the default.
-8. **Public home page (items 1 + 11).** A front page with a 3D house
+8. **Done: Public home page (items 1 + 11).** A front page with a 3D house
    preview, setup one question at a time, then a tour of the features
    before sign-up. The largest item, done last in its own sessions. Check
    the existing onboarding first. It touches watched sign-up screens.
@@ -72,6 +72,12 @@ Decided against in the same review: revising Journal (item 6) and Planner
 #209).
 
 ## Done
+
+- Public home page: signed-out visitors get a turning 3D house, setup one
+  question at a time (family name, who lives there, what would help), and a
+  tour of the features with their picks first, ending at sign-up or an
+  invite code; the family name carries into onboarding. Login and sign-up
+  screens are unchanged (25 September).
 
 - 3D family tree: a "3D" button under the tree tilts it into a floor with
   every card standing up from it, and ⟲ ⟳ turn it; the flat tree stays the
