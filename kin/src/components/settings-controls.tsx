@@ -1,7 +1,7 @@
 "use client";
 
 import { useId, useTransition } from "react";
-import { setThemeAction, setTextScaleAction, setPaletteAction, createCalendarFeedAction, removeCalendarFeedAction, toggleNotificationAction, updateHouseholdNameAction, updateHouseholdPrefsAction } from "@/lib/actions/settings";
+import { setThemeAction, setTextScaleAction, setPaletteAction, createCalendarFeedAction, removeCalendarFeedAction, toggleNotificationAction, updateHouseholdNameAction, updateHouseholdPrefsAction, updateShareWithRelativesAction } from "@/lib/actions/settings";
 import { regenerateInviteCodeAction } from "@/lib/actions/family";
 import { disconnectDriveAction } from "@/lib/actions/drive";
 import { migrateProfilePhotosToDriveAction } from "@/lib/actions/photo-migration";
@@ -670,5 +670,59 @@ export function CalendarFeedControl({ hasLink }: { hasLink: boolean }) {
       )}
       <DidNotSave message={failed} />
     </div>
+  );
+}
+
+/** Household switch: new memories go to linked relatives on their own. */
+export function ShareWithRelativesSwitch({ on, canChange }: { on: boolean; canChange: boolean }) {
+  const [value, setValue] = useState(on !== false); // unset reads as the column's default, on
+  const [pending, startTransition] = useTransition();
+  const [failed, setFailed] = useState<string | null>(null);
+  return (
+    <Blueprint style={{ padding: "0 0 0 0.9375rem", marginBottom: "0.875rem" }}>
+      <button
+        type="button"
+        role="switch"
+        aria-checked={value}
+        disabled={!canChange || pending}
+        onClick={() => {
+          const next = !value;
+          setValue(next);
+          setFailed(null);
+          startTransition(async () => {
+            const result = await updateShareWithRelativesAction(next);
+            if (result.error) {
+              setValue(!next);
+              setFailed(result.error);
+            }
+          });
+        }}
+        style={{
+          width: "100%",
+          textAlign: "left",
+          cursor: canChange ? "pointer" : "default",
+          background: "none",
+          border: 0,
+          padding: "0.6875rem 0.9375rem 0.6875rem 0",
+          display: "flex",
+          flexWrap: "wrap",
+          gap: "0.375rem 0.875rem",
+          alignItems: "center",
+          minHeight: "3.5rem",
+          font: "inherit",
+          color: "inherit",
+        }}
+      >
+        <span style={{ flex: "1 1 9rem", minWidth: 0 }}>
+          <span style={{ fontSize: "1.0625rem", display: "block" }}>Share new memories with relatives</span>
+          <span style={{ fontSize: "0.8125rem", color: "var(--color-neutral-600)", display: "block", lineHeight: 1.4, marginTop: "0.125rem" }}>
+            New journal entries and milestones, photos included, reach the households you&rsquo;re linked with. Tap Shared on an entry to keep one private.
+            {!canChange && " Only the organizer can change this."}
+          </span>
+        </span>
+        <span className="kin-switch" data-on={value} />
+      </button>
+      <DidNotSave message={failed} />
+    </Blueprint>
   );
 }
