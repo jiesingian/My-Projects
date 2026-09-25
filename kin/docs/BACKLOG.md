@@ -29,7 +29,7 @@ phone mock-ups and a map of every setting, are in the artifact
    Account), each row showing its current value. Every existing control
    moves, and nothing is removed. The documents lock stays on Family and is
    also reachable from Privacy & lock.
-3. **Return to Today after 30+ minutes in the background (item 2).** A fresh
+3. **Done: Return to Today after 30+ minutes in the background (item 2).** A fresh
    open already lands on Today. Shorter trips away come back where they were.
 4. **The look matches the icon (item 3).** The warm coral look becomes the
    default for *new* households, and a one-time "try the new look" card goes
@@ -52,6 +52,9 @@ Decided against in the same review: revising Journal (item 6) and Planner
 #209).
 
 ## Done
+
+- Coming back to Kin after 30+ minutes away opens Today; a shorter trip, or a
+  page with unsaved typing, comes back where it was (25 September).
 
 - Settings as short pages: a home list with each group's current value, and
   Appearance, Notifications, Connected apps, Household, Privacy & lock and

@@ -5,6 +5,7 @@ import { TabBar } from "@/components/tab-bar";
 import { AssistantFab } from "@/components/assistant-fab";
 import { ConfirmSheetHost } from "@/components/confirm-sheet";
 import { Toaster } from "@/components/toast";
+import { ReturnToToday } from "@/components/return-to-today";
 import { getChatUnread } from "@/lib/queries/chat";
 import { textScaleCss } from "@/lib/text-scale";
 import { paletteCss } from "@/lib/palettes";
@@ -45,6 +46,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       <TabBar chatUnread={unread.count} chatMentioned={unread.mentioned} />
       <ConfirmSheetHost />
       <Toaster />
+      <ReturnToToday />
     </div>
   );
 }
