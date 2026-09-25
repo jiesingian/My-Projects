@@ -2887,6 +2887,105 @@ textarea.input {
   .kin-viewer-media[data-settling="true"] { transition: none; }
 }
 
+/* Reactions and comments under a photo in the viewer. White on the viewer's
+   black whatever the theme, like the rest of the viewer. */
+.kin-psocial {
+  width: min(100%, 36rem);
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  color: #fff;
+}
+.kin-psocial-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+.kin-psocial-reacts {
+  display: flex;
+  gap: 0.25rem;
+}
+.kin-psocial-react {
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 50%;
+  border: 0;
+  background: rgb(255 255 255 / 0.1);
+  font-size: 1.25rem;
+  line-height: 1;
+  cursor: pointer;
+  transition: transform 0.2s var(--ease-overshoot, ease), background 0.15s ease;
+}
+.kin-psocial-react[data-mine] {
+  background: rgb(255 255 255 / 0.32);
+  transform: scale(1.12);
+}
+.kin-psocial-react:active { transform: scale(0.9); }
+.kin-psocial-toggle,
+.kin-psocial-send,
+.kin-psocial-meta button {
+  border: 0;
+  background: none;
+  color: #fff;
+  font: 600 0.875rem/1.2 var(--font-body);
+  cursor: pointer;
+  padding: 0.5rem 0.25rem;
+}
+.kin-psocial-summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem 0.625rem;
+  font-size: 0.8125rem;
+  color: rgb(255 255 255 / 0.85);
+}
+.kin-psocial-who { color: rgb(255 255 255 / 0.7); }
+.kin-psocial-comments {
+  max-height: 38vh;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  /* Room for the comment box's focus ring, which overflow would clip. */
+  padding: 0.25rem 0.1875rem 0.3125rem;
+  border-top: 1px solid rgb(255 255 255 / 0.15);
+}
+.kin-psocial-comment { font-size: 0.9375rem; line-height: 1.35; }
+.kin-psocial-author { font-weight: 650; }
+.kin-psocial-meta {
+  display: inline-flex;
+  gap: 0.5rem;
+  margin-left: 0.5rem;
+  font-size: 0.75rem;
+  color: rgb(255 255 255 / 0.65);
+}
+.kin-psocial-meta button { font-size: 0.75rem; padding: 0; color: rgb(255 255 255 / 0.75); }
+.kin-psocial-empty { margin: 0; font-size: 0.875rem; color: rgb(255 255 255 / 0.7); }
+.kin-psocial-form {
+  display: flex;
+  gap: 0.5rem;
+  position: sticky;
+  bottom: 0;
+  background: #000;
+  padding-top: 0.25rem;
+}
+.kin-psocial-input {
+  flex: 1;
+  min-width: 0;
+  min-height: 2.5rem;
+  border-radius: 999px;
+  border: 1px solid rgb(255 255 255 / 0.25);
+  background: rgb(255 255 255 / 0.08);
+  color: #fff;
+  padding: 0 0.875rem;
+  font: 400 1rem/1 var(--font-body); /* 16px: iOS zooms the page into a smaller field */
+}
+.kin-psocial-input::placeholder { color: rgb(255 255 255 / 0.55); }
+.kin-psocial-send:disabled { opacity: 0.45; cursor: default; }
+.kin-psocial-error { margin: 0; font-size: 0.8125rem; color: #ff8a9b; }
+
 /* A quiet day is one line, not a card. */
 .kin-allclear {
   display: flex;

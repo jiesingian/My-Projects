@@ -152,7 +152,7 @@ async function EntriesPane({ familyId }: { familyId: string }) {
             </Tag>
           </div>
           <div style={{ font: "600 1.3125rem/1.05 var(--font-heading)", margin: "7px 0 6px" }}>{e.title}</div>
-          <JournalEntryPhotos urls={e.photoUrls} entryTitle={e.title} />
+          <JournalEntryPhotos photos={e.photos} entryTitle={e.title} />
           {e.note && <p style={{ fontSize: "0.875rem", margin: "0 0 9px", color: "var(--color-neutral-800)" }}>{e.note}</p>}
           <div style={{ display: "flex", flexWrap: "wrap", alignItems: "baseline", gap: "0.375rem 0.5rem" }}>
             <div style={{ fontSize: "0.8125rem", color: "var(--color-neutral-600)" }}>{e.people.map((p) => p.full_name.split(" ")[0]).join(" · ") || "Whole family"}</div>

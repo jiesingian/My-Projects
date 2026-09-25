@@ -21,6 +21,7 @@ import { RemoveMemberButton } from "@/components/member-status-actions";
 import { Avatar } from "@/components/avatar";
 import { ProfileEditForm } from "@/components/profile-edit-form";
 import { MemberProfileEditor } from "@/components/member-profile-editor";
+import { ProfilePhotosButton } from "@/components/profile-photos-button";
 import type { AlbumPhoto } from "@/lib/actions/profile";
 import { memberToProfileFields } from "@/lib/profile-fields";
 import { resolvePhotoUrl } from "@/lib/photo-url";
@@ -68,8 +69,10 @@ export default async function MemberDetailPage({
     .filter((a) => a.is_joint || a.owner_member_id === me.id)
     .map((a) => ({ id: a.id, name: a.name, institution: a.institution, linked_app_url: a.linked_app_url, balance: a.balance, is_joint: a.is_joint }));
 
+  // Everyone's pictures, not only your own: on someone else's profile they
+  // open read-only, for the household to react to and comment on.
   let photos: AlbumPhoto[] = [];
-  if (isSelf) {
+  {
     const supabase = await createClient();
     const { data: albumRows } = await supabase
       .from("member_avatars")
@@ -116,7 +119,7 @@ export default async function MemberDetailPage({
           ) : (
             <>
               <div style={{ display: "flex", gap: "0.875rem", alignItems: "flex-end", marginBottom: "1.125rem" }}>
-                <Avatar url={member.avatar_url} initials={initials(member.full_name)} label={member.full_name} size={88} />
+                <ProfilePhotosButton photos={photos} url={member.avatar_url} initials={initials(member.full_name)} label={member.full_name} size={88} />
                 <div>
                   <div style={{ font: "600 2.125rem/.98 var(--font-heading)" }}>{member.full_name}</div>
                   <div style={{ fontSize: "0.84375rem", color: "var(--color-neutral-600)", marginTop: "0.25rem" }}>

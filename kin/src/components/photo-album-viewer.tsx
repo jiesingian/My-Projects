@@ -103,7 +103,12 @@ export function PhotoAlbumViewer({
   // crop is how it will sit on the page; this is for seeing the photo itself.
   return (
     <PhotoViewer
-      items={photos.map((p, i) => ({ url: p.url, alt: `${shape === "circle" ? "Profile picture" : "Household photo"} ${i + 1} of ${photos.length}` }))}
+      items={photos.map((p, i) => ({
+        url: p.url,
+        alt: `${shape === "circle" ? "Profile picture" : "Household photo"} ${i + 1} of ${photos.length}`,
+        // A circle album is someone's profile pictures; a banner, the household photo.
+        photo: { kind: shape === "circle" ? ("avatar" as const) : ("background" as const), id: p.id },
+      }))}
       startIndex={startIndex}
       onClose={onClose}
       footer={actions}

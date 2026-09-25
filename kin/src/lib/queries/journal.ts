@@ -115,12 +115,12 @@ export async function getEntries(familyId: string) {
   const supabase = await createClient();
   const { data } = await supabase
     .from("journal_entries")
-    .select("*, journal_entry_people(members(id, full_name)), journal_entry_media(journal_media(storage_path, storage_provider, drive_file_id))")
+    .select("*, journal_entry_people(members(id, full_name)), journal_entry_media(journal_media(id, storage_path, storage_provider, drive_file_id))")
     .eq("family_id", familyId)
     .order("entry_date", { ascending: false });
 
   const entries = data ?? [];
-  type MediaRef = { storage_path: string | null; storage_provider: string; drive_file_id: string | null };
+  type MediaRef = { id: string; storage_path: string | null; storage_provider: string; drive_file_id: string | null };
   const allPaths = entries.flatMap((e) =>
     (e.journal_entry_media ?? [])
       .map((m) => m.journal_media as unknown as MediaRef | null)
@@ -134,15 +134,23 @@ export async function getEntries(familyId: string) {
     people: (e.journal_entry_people ?? [])
       .map((p) => (p.members as unknown as { id: string; full_name: string } | null))
       .filter((v): v is { id: string; full_name: string } => !!v),
-    photoUrls: (e.journal_entry_media ?? [])
+    // With each photo's id, so the viewer can carry its reactions and comments.
+    photos: (e.journal_entry_media ?? [])
       .map((m) => {
         const media = m.journal_media as unknown as MediaRef | null;
         if (!media) return null;
-        if (media.storage_provider === "google_drive") return media.drive_file_id ? `/api/drive/file/${media.drive_file_id}` : null;
-        return media.storage_path ? urls[media.storage_path] ?? null : null;
+        const url =
+          media.storage_provider === "google_drive"
+            ? media.drive_file_id
+              ? `/api/drive/file/${media.drive_file_id}`
+              : null
+            : media.storage_path
+              ? (urls[media.storage_path] ?? null)
+              : null;
+        return url ? { id: media.id, url } : null;
       })
-      .filter((v): v is string => !!v),
-    // photoUrls flattens to strings, which loses where each photo came from --
+      .filter((v): v is { id: string; url: string } => !!v),
+    // photos carries only urls and ids, which loses where each photo came from --
     // and the Entries pane needs to know, to say why they are not loading.
     hasDriveMedia: (e.journal_entry_media ?? []).some(
       (m) => (m.journal_media as unknown as MediaRef | null)?.storage_provider === "google_drive",
