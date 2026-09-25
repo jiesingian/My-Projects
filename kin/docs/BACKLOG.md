@@ -10,7 +10,51 @@ it in the same pull request that finishes or adds an item.
   Jonathan's (money and secrets). Start with the subscription checkout in
   `src/lib/billing/`; that path is watched.
 
+## Agreed 25 September (Jonathan's revision list)
+
+Each is its own pull request, in this order. Proposals for 4 and 8, with
+phone mock-ups and a map of every setting, are in the artifact
+"Today & Settings Proposals"
+(https://claude.ai/artifact/CCtrVkDYYGKM8a7DHvn1o9).
+
+1. **Today (item 4): A + B + C + D as one change.** A: "At a glance" tiles
+   (money left this month, next calendar item, shopping list and its cost,
+   what's waiting on you) replace the five hub cards, which only repeated
+   the bottom bar. B: a "Quick add" row (expense, to buy, event, journal).
+   C: one family strip. The header initials become tappable, the family
+   list at the bottom goes, and clock and weather move into the header. D:
+   "Nothing needs you today" shrinks to one line.
+2. **Settings as short pages (item 8).** A home list (profile, Appearance,
+   Notifications, Connected apps, Household, Kid view, Privacy & lock,
+   Account), each row showing its current value. Every existing control
+   moves, and nothing is removed. The documents lock stays on Family and is
+   also reachable from Privacy & lock.
+3. **Return to Today after 30+ minutes in the background (item 2).** A fresh
+   open already lands on Today. Shorter trips away come back where they were.
+4. **The look matches the icon (item 3).** The warm coral look becomes the
+   default for *new* households, and a one-time "try the new look" card goes
+   to existing people. A theme someone chose is never overridden.
+5. **Kid view: design first, approval before code.** Per-child switch,
+   what children see, and only a grown-up can turn it off.
+6. **One locked vault for documents and passwords (item 5): design first,
+   approval before code.** A per-device passcode for each person and a
+   person dropdown like Wealth's, built on the existing documents lock.
+   Watched paths.
+7. **3D family tree (item 10).** An optional "3D view" toggle. The current
+   tree stays the default.
+8. **Public home page (items 1 + 11).** A front page with a 3D house
+   preview, setup one question at a time, then a tour of the features
+   before sign-up. The largest item, done last in its own sessions. Check
+   the existing onboarding first. It touches watched sign-up screens.
+
+Decided against in the same review: revising Journal (item 6) and Planner
+(item 7). Done already: no hub numbers and no "five ledgers" motto (item 9,
+#209).
+
 ## Done
+
+- Bottom sheets on Vaul: drag to close, and Prices & pantry no longer stuck
+  at the top of the screen on phones (#212, 25 September).
 
 - Colour themes in Settings → Appearance: 13 palettes including the warm
   "Hearth" look from the brief and a High contrast theme (24 September).
