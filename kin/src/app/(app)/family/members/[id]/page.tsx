@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { getCurrentMember } from "@/lib/session";
+import { inKidView } from "@/lib/kid-view";
 import { createClient } from "@/lib/supabase/server";
 import { getMemberDetail, buildBarSeries } from "@/lib/queries/health";
 import { getAccounts } from "@/lib/queries/wealth";
@@ -46,6 +47,8 @@ export default async function MemberDetailPage({
   const sp = await searchParams;
   const seg: Seg = (SEGMENTS as readonly string[]).includes(sp.seg ?? "") ? (sp.seg as Seg) : "schedule";
   const view: "profile" | "health" = sp.view === "health" ? "health" : "profile";
+  // Health records are kept by the grown-ups; kid view shows the profile.
+  if (view === "health" && inKidView(me)) redirect(`/family/members/${id}`);
 
   const { member, schedule, appointments, conditions, labs, vitals, omron } = await getMemberDetail(id, me.family_id);
   if (!member) redirect("/family?seg=profile");

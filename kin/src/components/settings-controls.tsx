@@ -1,7 +1,7 @@
 "use client";
 
 import { useId, useTransition } from "react";
-import { setThemeAction, setTextScaleAction, setPaletteAction, createCalendarFeedAction, removeCalendarFeedAction, toggleNotificationAction, updateHouseholdNameAction, updateHouseholdPrefsAction, updateShareWithRelativesAction } from "@/lib/actions/settings";
+import { setThemeAction, setTextScaleAction, setPaletteAction, createCalendarFeedAction, removeCalendarFeedAction, toggleNotificationAction, updateHouseholdNameAction, updateHouseholdPrefsAction, updateShareWithRelativesAction, setKidViewAction } from "@/lib/actions/settings";
 import { regenerateInviteCodeAction } from "@/lib/actions/family";
 import { disconnectDriveAction } from "@/lib/actions/drive";
 import { migrateProfilePhotosToDriveAction } from "@/lib/actions/photo-migration";
@@ -724,5 +724,57 @@ export function ShareWithRelativesSwitch({ on, canChange }: { on: boolean; canCh
       </button>
       <DidNotSave message={failed} />
     </Blueprint>
+  );
+}
+
+/** One child's kid view switch, on Settings -> Kid view. */
+export function KidViewSwitch({ memberId, name, on }: { memberId: string; name: string; on: boolean }) {
+  const [value, setValue] = useState(on);
+  const [pending, startTransition] = useTransition();
+  const [failed, setFailed] = useState<string | null>(null);
+  return (
+    <>
+      <button
+        type="button"
+        role="switch"
+        aria-checked={value}
+        disabled={pending}
+        onClick={() => {
+          const next = !value;
+          setValue(next);
+          setFailed(null);
+          startTransition(async () => {
+            const result = await setKidViewAction(memberId, next);
+            if (result.error) {
+              setValue(!next);
+              setFailed(result.error);
+            }
+          });
+        }}
+        style={{
+          width: "100%",
+          textAlign: "left",
+          cursor: "pointer",
+          background: "none",
+          border: 0,
+          borderBottom: "1px solid var(--color-divider)",
+          padding: "0.6875rem 0.9375rem 0.6875rem 0",
+          display: "flex",
+          flexWrap: "wrap",
+          gap: "0.375rem 0.875rem",
+          alignItems: "center",
+          minHeight: "3.5rem",
+          font: "inherit",
+          color: "inherit",
+        }}
+      >
+        <span style={{ flex: "1 1 9rem", minWidth: 0 }}>
+          <span style={{ fontSize: "1.0625rem", display: "block" }}>{name}</span>
+          <span style={{ fontSize: "0.8125rem", color: "var(--color-neutral-600)", display: "block" }}>{value ? "Kid view on" : "Sees everything a grown-up sees"}</span>
+        </span>
+        <span className="kin-switch" data-on={value} />
+      </button>
+      <DidNotSave message={failed} />
+    </>
   );
 }

@@ -6,6 +6,7 @@ import { getEnrolledDevices } from "@/lib/queries/security";
 import { DetailHeader } from "@/components/hub-header";
 import { DocumentsLock } from "@/components/documents-lock";
 import { DocumentsLockSettings } from "@/components/documents-lock-settings";
+import { keepKidViewOut } from "@/lib/kid-view";
 
 /** The lock on the family's documents, reachable from Settings as well as
  * from Family → Vault, where it has always lived and still does.
@@ -16,6 +17,7 @@ import { DocumentsLockSettings } from "@/components/documents-lock-settings";
  * documents -- so offering them to someone who has not unlocked would turn
  * "set up a lock" into a way around it. */
 export default async function PrivacySettingsPage() {
+  await keepKidViewOut();
   const me = await getCurrentMember();
   if (!me) redirect("/onboarding/profile");
 

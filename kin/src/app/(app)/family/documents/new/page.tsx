@@ -4,12 +4,14 @@ import { getLockState } from "@/lib/security/gate";
 import { getMembers } from "@/lib/queries/family";
 import { createClient } from "@/lib/supabase/server";
 import { NewDocForm } from "./new-doc-form";
+import { keepKidViewOut } from "@/lib/kid-view";
 
 export default async function NewDocPage({
   searchParams,
 }: {
   searchParams: Promise<{ folder?: string }>;
 }) {
+  await keepKidViewOut();
   const me = await getCurrentMember();
   if (!me) redirect("/onboarding/profile");
   const { folder } = await searchParams;

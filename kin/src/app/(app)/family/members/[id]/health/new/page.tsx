@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation";
+import { keepKidViewOut } from "@/lib/kid-view";
 import { getCurrentMember } from "@/lib/session";
 import { createClient } from "@/lib/supabase/server";
 import { NewHealthEntryForm } from "./new-health-entry-form";
@@ -8,6 +9,7 @@ export default async function NewHealthEntryPage({
 }: {
   params: Promise<{ id: string }>;
 }) {
+  await keepKidViewOut();
   const me = await getCurrentMember();
   if (!me) redirect("/onboarding/profile");
   const { id } = await params;

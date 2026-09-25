@@ -14,10 +14,13 @@ import { TodayHeader } from "@/components/family-panel";
 import { LookOffer } from "@/components/look-offer";
 import { PALETTE_DEFAULT } from "@/lib/palettes";
 import { getFamilyPanel } from "@/lib/queries/family-panel";
+import { inKidView } from "@/lib/kid-view";
+import { KidToday } from "@/components/kid-today";
 
 export default async function TodayPage() {
   const me = await getCurrentMember();
   if (!me) redirect("/onboarding/profile");
+  if (inKidView(me)) return <KidToday me={me} />;
 
   const supabase = await createClient();
   const [{ data: members }, glance, brief, tasks, awaitingApproval, awaitingRedemption, familyPanel, comingUp, memories, recap] = await Promise.all([

@@ -1,6 +1,8 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { getCurrentMember } from "@/lib/session";
+import { inKidView } from "@/lib/kid-view";
+import { isGrownUp } from "@/lib/roles";
 import { createClient } from "@/lib/supabase/server";
 import { getLockState } from "@/lib/security/gate";
 import { DetailHeader } from "@/components/hub-header";
@@ -49,7 +51,13 @@ export default async function SettingsPage({
   const connected = [driveLink?.connected && "Drive", calendarLink?.connected && "Google Calendar", me.calendar_feed_hash && "Apple & Outlook"].filter(Boolean) as string[];
   const lockOn = lock.hasPin || lock.credentialCount > 0;
 
-  const groups: { href: string; icon: IconName; tint: "money" | "schedule" | "occasion" | "home" | undefined; title: string; value: string }[][] = [
+  const kid = inKidView(me);
+  // Kid view's row is for grown-ups, and only in a household with a child
+  // who has a login of their own -- nobody else has anything to switch.
+  const { count: childLogins } = isGrownUp(me.role)
+    ? await supabase.from("members").select("id", { count: "exact", head: true }).eq("family_id", me.family_id).eq("role", "child_self")
+    : { count: 0 };
+  const allGroups: { href: string; icon: IconName; tint: "money" | "schedule" | "occasion" | "home" | undefined; title: string; value: string }[][] = [
     [
       { href: "/settings/appearance", icon: "sparkle", tint: "occasion", title: "Appearance", value: `${themeLabel} · ${paletteById(me.palette).name} · ${me.text_scale ?? 100}%` },
       { href: "/settings/notifications", icon: "message", tint: "money", title: "Notifications", value: `${notifOn} of ${NOTIFICATION_DEFS.length} on` },
@@ -57,10 +65,16 @@ export default async function SettingsPage({
     ],
     [
       { href: "/settings/household", icon: "house", tint: "home", title: "Household", value: `${me.families.name} · ${me.families.currency} · ${me.families.week_start === "monday" ? "Mon start" : "Sun start"}` },
-      { href: "/settings/privacy", icon: "keyRound", tint: undefined, title: "Privacy & lock", value: lockOn ? "Documents lock on" : "Documents lock off" },
+      { href: "/settings/privacy", icon: "keyRound", tint: undefined, title: "Privacy & lock", value: lockOn ? "Vault lock on" : "Vault lock off" },
+      ...((childLogins ?? 0) > 0 ? [{ href: "/settings/kid-view", icon: "gift" as IconName, tint: "occasion" as const, title: "Kid view", value: "A simpler Kin for children" }] : []),
     ],
     [{ href: "/settings/account", icon: "users", tint: undefined, title: "Account", value: authUser.user?.email ?? "Sign out" }],
   ];
+  // Kid view keeps Appearance, Notifications and their own Account (to sign
+  // out); the household's settings, connected apps and the lock are a
+  // grown-up's, and those pages send a child back to Today anyway.
+  const KID_ALLOWED = ["/settings/appearance", "/settings/notifications", "/settings/account"];
+  const groups = kid ? allGroups.map((g) => g.filter((r) => KID_ALLOWED.includes(r.href))).filter((g) => g.length > 0) : allGroups;
 
   return (
     <div>

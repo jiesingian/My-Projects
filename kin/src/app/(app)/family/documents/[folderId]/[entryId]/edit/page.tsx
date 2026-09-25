@@ -3,8 +3,10 @@ import { getCurrentMember } from "@/lib/session";
 import { getMembers } from "@/lib/queries/family";
 import { createClient } from "@/lib/supabase/server";
 import { EditDocForm } from "./edit-doc-form";
+import { keepKidViewOut } from "@/lib/kid-view";
 
 export default async function EditDocPage({ params }: { params: Promise<{ folderId: string; entryId: string }> }) {
+  await keepKidViewOut();
   const me = await getCurrentMember();
   if (!me) redirect("/onboarding/profile");
   const { folderId, entryId } = await params;

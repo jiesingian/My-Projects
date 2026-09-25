@@ -17,6 +17,16 @@ const TABS: { href: string; label: string; icon: IconName; home?: boolean }[] = 
   { href: "/wealth", label: "Wealth", icon: "wallet" },
 ];
 
+/** Kid view's four (K2, 25 September): their day, the family chat, the
+ * journal, and the family tree and profiles. Money, the household's running
+ * and the planner's grown-up side are not on it. */
+const KID_TABS: typeof TABS = [
+  { href: "/today", label: "Today", icon: "layoutGrid", home: true },
+  { href: "/chat", label: "Chat", icon: "message" },
+  { href: "/journal", label: "Journal", icon: "images" },
+  { href: "/family", label: "Family", icon: "users" },
+];
+
 /** One set of links that reads as two different pieces of furniture.
  *
  * On a phone it is the bottom tab bar it always was. From 1024px up the same
@@ -25,7 +35,8 @@ const TABS: { href: string; label: string; icon: IconName; home?: boolean }[] = 
  * axis a desktop has going spare. Nothing is duplicated or conditionally
  * rendered to do it: the layout is entirely CSS, so there is no second copy
  * to keep in step and no flash of the wrong shape before hydration. */
-export function TabBar({ chatUnread = 0, chatMentioned = false }: { chatUnread?: number; chatMentioned?: boolean }) {
+export function TabBar({ chatUnread = 0, chatMentioned = false, kidView = false }: { chatUnread?: number; chatMentioned?: boolean; kidView?: boolean }) {
+  const tabs = kidView ? KID_TABS : TABS;
   const pathname = usePathname();
   return (
     /* Fixed to the viewport, not sticky: a sticky element can only travel
@@ -37,7 +48,7 @@ export function TabBar({ chatUnread = 0, chatMentioned = false }: { chatUnread?:
       <div className="kin-nav-brand">Kin</div>
 
       <div className="kin-nav-inner">
-        {TABS.map((t) => {
+        {tabs.map((t) => {
           const active = pathname === t.href || pathname.startsWith(t.href + "/");
           const unread = t.href === "/chat" && chatUnread > 0;
           return (

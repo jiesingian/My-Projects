@@ -1,6 +1,7 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { NextResponse } from "next/server";
 import { getCurrentMember } from "@/lib/session";
+import { inKidView } from "@/lib/kid-view";
 import { createClient } from "@/lib/supabase/server";
 import { ASSISTANT_TOOLS, runAssistantTool } from "@/lib/assistant/tools";
 
@@ -30,6 +31,9 @@ How to behave:
 export async function POST(request: Request) {
   const me = await getCurrentMember();
   if (!me) return NextResponse.json({ error: "Not signed in." }, { status: 401 });
+  // Kin AI can read and record the household's money, which kid view keeps
+  // from a child (K2): its button is not shown there, and it is not answered.
+  if (inKidView(me)) return NextResponse.json({ error: "Kin AI isn't part of kid view." }, { status: 403 });
 
   if (!process.env.ANTHROPIC_API_KEY) {
     return NextResponse.json({ error: "The assistant isn't configured yet — ANTHROPIC_API_KEY is missing." }, { status: 503 });

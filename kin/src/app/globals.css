@@ -3792,3 +3792,19 @@ button.kin-initial:focus-visible {
   font-size: 0.8125rem;
   color: var(--color-neutral-600);
 }
+
+/* Kid view's Today: stars up top, and bigger ticks for their jobs. */
+.kin-kid-stars {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.5rem 0.875rem;
+  border-radius: var(--radius-pill);
+  background: color-mix(in srgb, #f5b301 18%, var(--color-surface));
+  color: var(--color-text);
+  font: 650 1.0625rem/1 var(--font-heading);
+  text-decoration: none;
+}
+.kin-kid-stars-go { font-size: 0.875rem; font-weight: 600; color: var(--color-accent-700); margin-left: 0.375rem; }
+.kin-kid-jobs { font-size: 1.125rem; }
+.kin-kid-jobs .btn { min-height: 3rem; font-size: 1.0625rem; padding-inline: 1.25rem; }
