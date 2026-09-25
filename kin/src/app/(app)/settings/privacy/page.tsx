@@ -8,7 +8,7 @@ import { DocumentsLock } from "@/components/documents-lock";
 import { DocumentsLockSettings } from "@/components/documents-lock-settings";
 
 /** The lock on the family's documents, reachable from Settings as well as
- * from Family → Documents, where it has always lived and still does.
+ * from Family → Docs, where it has always lived and still does.
  *
  * Gated exactly as it is there: while the documents are locked this page
  * shows the unlock prompt and nothing else. The settings below it can add a
@@ -28,7 +28,7 @@ export default async function PrivacySettingsPage() {
         <p style={{ fontSize: "0.84375rem", lineHeight: 1.5, color: "var(--color-neutral-700)", margin: "0 0 0.25rem" }}>
           The lock on the family&rsquo;s documents. It is the same one as on{" "}
           <Link href="/family?seg=documents" style={{ color: "var(--color-accent-700)" }}>
-            Family → Documents
+            Family → Docs
           </Link>
           , so a change here is a change there.
         </p>

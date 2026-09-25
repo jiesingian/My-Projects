@@ -47,7 +47,10 @@ export default async function FamilyPage({
   const who = sp.who ?? "all";
 
   const segments = SEGMENTS.map((s) => ({
-    label: s === "profile" ? "Profile" : s === "health" ? "Health" : s === "documents" ? "Documents" : s === "tree" ? "Family Tree" : "Quicklinks",
+    // Short on purpose: five tabs share a phone's width, and "Documents" and
+    // "Quicklinks" did not fit -- they broke mid-word. The page is already
+    // called Family, so the tree does not need to say it again.
+    label: s === "profile" ? "Profile" : s === "health" ? "Health" : s === "documents" ? "Docs" : s === "tree" ? "Tree" : "Links",
     href: `/family?seg=${s}`,
     active: s === seg,
   }));
@@ -109,13 +112,15 @@ async function ProfilePane({ familyId, isOrganiser, myId, myRole }: { familyId: 
           key={m.id}
           style={{
             display: "flex",
-            gap: "0.75rem",
+            // The tag and Remove drop under the name at a large text size.
+            flexWrap: "wrap",
+            gap: "0.5rem 0.75rem",
             alignItems: "center",
             padding: "0.8125rem 0",
             borderBottom: "1px solid color-mix(in srgb, var(--color-text) 10%, transparent)",
           }}
         >
-          <Link href={`/family/members/${m.id}`} style={{ display: "flex", gap: "0.75rem", alignItems: "center", flex: 1, minWidth: 0, textDecoration: "none", color: "inherit" }}>
+          <Link href={`/family/members/${m.id}`} style={{ display: "flex", gap: "0.75rem", alignItems: "center", flex: "1 1 13rem", minWidth: 0, textDecoration: "none", color: "inherit" }}>
             <Avatar url={m.avatar_url} initials={initials(m.full_name)} label={m.full_name} size={44} />
             <span style={{ flex: 1, minWidth: 0 }}>
               <span style={{ font: "600 1.125rem/1.1 var(--font-heading)", display: "block" }}>{m.full_name}</span>
@@ -166,13 +171,13 @@ async function HealthPane({ familyId }: { familyId: string }) {
       {rows.map(({ member, nextDue, hasAlert }) => (
         <Link key={member.id} href={`/family/members/${member.id}?view=health`} style={{ color: "inherit", textDecoration: "none" }}>
           <Blueprint style={{ padding: "0.8125rem", marginBottom: "0.75rem" }}>
-            <div style={{ display: "flex", alignItems: "baseline", gap: "0.5rem", marginBottom: "0.5rem" }}>
+            <div style={{ display: "flex", flexWrap: "wrap", alignItems: "baseline", gap: "0.375rem 0.5rem", marginBottom: "0.5rem" }}>
               <span style={{ font: "600 1.1875rem/1 var(--font-heading)" }}>{member.full_name.split(" ")[0]}</span>
               <Tag variant={hasAlert ? "accent" : "neutral"} className="ml-auto">
                 {nextDue}
               </Tag>
             </div>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.4375rem 0.875rem", fontSize: "0.8125rem" }}>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 9rem), 1fr))", gap: "0.4375rem 0.875rem", fontSize: "0.8125rem" }}>
               <Fact k="Blood type" v={member.blood_type} />
               <Fact k="Allergies" v={member.allergies} />
               <Fact k="Insurance" v={member.insurance_info} />
@@ -301,10 +306,10 @@ async function TreePane({ familyId, myId, inviteCode }: { familyId: string; myId
             line="Add yourself, then your father, your mother, and anyone else you know -- the tree grows from there, and everybody in the house sees the same one."
           />
           <AddMeToTreeButton memberId={myId} />
-          {tree.people.length > 0 && <FamilyTreeChart people={tree.people} meTreeId={null} matches={matches} linkedFamilies={linkedFamilies} inviteCode={inviteCode} />}
+          {tree.people.length > 0 && <FamilyTreeChart people={tree.people} meTreeId={null} matches={matches} linkedFamilies={linkedFamilies} inviteCode={inviteCode} unaddedMembers={unaddedMembers} />}
         </>
       ) : (
-        <FamilyTreeChart people={tree.people} meTreeId={meInTree.id} matches={matches} linkedFamilies={linkedFamilies} inviteCode={inviteCode} />
+        <FamilyTreeChart people={tree.people} meTreeId={meInTree.id} matches={matches} linkedFamilies={linkedFamilies} inviteCode={inviteCode} unaddedMembers={unaddedMembers} />
       )}
 
       <details className="kin-fold" style={{ marginTop: "1.25rem" }}>

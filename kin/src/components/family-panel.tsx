@@ -46,10 +46,15 @@ export function TodayHeader({
 
   return (
     <header style={{ marginBottom: "1.25rem" }}>
-      <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", gap: "0.75rem" }}>
-        <div style={{ minWidth: 0 }}>
+      {/* Wraps: at a large text size the initials and Settings take a line of
+          their own under the name, rather than squeezing the name into a
+          column one letter wide. */}
+      <div style={{ display: "flex", flexWrap: "wrap", alignItems: "flex-end", justifyContent: "space-between", gap: "0.625rem 0.75rem" }}>
+        <div style={{ flex: "1 1 11rem", minWidth: 0 }}>
           <div style={{ font: "600 0.8125rem/1 var(--font-heading)", letterSpacing: ".02em", color: "var(--color-accent-700)", marginBottom: "0.3125rem" }}>{dateLabel}</div>
-          <h2 style={{ fontSize: "1.875rem" }}>{familyName}</h2>
+          {/* Grows with the text size until a long word would no longer fit
+              the phone, and stops there instead of breaking the word. */}
+          <h2 style={{ fontSize: "min(1.875rem, 11vw)" }}>{familyName}</h2>
         </div>
         <div style={{ display: "flex", alignItems: "center", flex: "none" }}>
           {people.map((p) =>

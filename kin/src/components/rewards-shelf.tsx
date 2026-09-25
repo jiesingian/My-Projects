@@ -34,7 +34,7 @@ export function RewardsShelf({
 
   return (
     <div style={{ marginBottom: "1.125rem" }}>
-      <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", marginBottom: "0.5rem" }}>
+      <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: "0.25rem 0.5rem", marginBottom: "0.5rem" }}>
         <span style={{ fontSize: "0.75rem", letterSpacing: ".04em", textTransform: "uppercase", color: "var(--color-neutral-600)" }}>
           Rewards
         </span>

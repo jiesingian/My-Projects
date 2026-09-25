@@ -356,7 +356,10 @@ async function WeekView({ familyId, memberId, who, anchor, hidden, hide, weekSta
                 opacity: isPast(d.date, today) ? 0.55 : 1,
               }}
             >
-              <span style={{ fontSize: "0.6875rem", color: "var(--color-neutral-600)", height: "0.8125rem" }}>
+              {/* The label and the day number stop growing at what a seventh of a
+                  phone can hold, so "Sept" and "25" never break at a large
+                  text size. */}
+              <span style={{ fontSize: "min(0.6875rem, 3vw)", color: "var(--color-neutral-600)", height: "0.8125rem" }}>
                 {first ? d.date.toLocaleDateString("en-GB", { month: "short" }) : d.date.toLocaleDateString("en-GB", { weekday: "short" }).slice(0, 1)}
               </span>
               <span
@@ -367,7 +370,7 @@ async function WeekView({ familyId, memberId, who, anchor, hidden, hide, weekSta
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
-                  fontSize: "1rem",
+                  fontSize: "min(1rem, 4.4vw)",
                   fontWeight: d.isToday || d.isSelected ? 600 : 400,
                   background: d.isToday ? "var(--color-accent)" : "transparent",
                   color: d.isToday ? "#fff" : "var(--color-text)",

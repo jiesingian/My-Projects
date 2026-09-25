@@ -146,8 +146,8 @@ export function EmergencyContactList({ contacts, parents = [] }: { contacts: Eme
       {/* The parents come first and come by default: the first number anybody
           in a household reaches for. Edited on their profile, not here. */}
       {parents.map((p) => (
-        <div key={`parent-${p.id}`} className="kin-contact-parent" style={{ display: "flex", alignItems: "center", gap: "0.625rem", padding: "0.5625rem 0", borderBottom: "1px solid var(--color-divider)" }}>
-          <span style={{ flex: 1, minWidth: 0 }}>
+        <div key={`parent-${p.id}`} className="kin-contact-parent" style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: "0.25rem 0.625rem", padding: "0.5625rem 0", borderBottom: "1px solid var(--color-divider)" }}>
+          <span style={{ flex: "1 1 9rem", minWidth: 0 }}>
             <span style={{ font: "600 0.9375rem/1.1 var(--font-heading)", display: "block" }}>{p.name}</span>
             <span style={{ fontSize: "0.8125rem", color: "var(--color-neutral-600)" }}>Parent · from their profile</span>
           </span>

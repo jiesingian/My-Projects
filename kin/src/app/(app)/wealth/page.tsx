@@ -95,7 +95,7 @@ function Hero({ label, amount, currency, caption, delta }: { label: string; amou
     <Blueprint style={{ padding: "0.9375rem", marginBottom: "0.875rem" }}>
       <div className="kin-eyebrow">{label}</div>
       <div style={{ display: "flex", alignItems: "baseline", flexWrap: "wrap", gap: "0.5rem", margin: "9px 0 0" }}>
-        <span style={{ font: "600 2.375rem/1.05 var(--font-heading)", letterSpacing: "-.02em" }}>{formatCurrency(amount, currency)}</span>
+        <span style={{ font: "600 min(2.375rem, 10vw)/1.05 var(--font-heading)", letterSpacing: "-.02em" }}>{formatCurrency(amount, currency)}</span>
         {delta}
       </div>
       {caption && <div style={{ fontSize: "0.8125rem", color: "var(--color-neutral-600)", marginTop: "0.375rem" }}>{caption}</div>}

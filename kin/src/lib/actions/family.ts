@@ -928,12 +928,33 @@ export async function setTreeLinksAction(id: string, fields: TreeLinkFields): Pr
   return { error: error ? humanDatabaseError(error.message) : null };
 }
 
-export type Relation = "father" | "mother" | "spouse" | "child";
+export type Relation = "father" | "mother" | "spouse" | "child" | "sibling";
+
+/** A household member who can be placed on the tree: in this household, not
+ * pending or removed, and not on the tree already. Returns the refusal, or
+ * null when they can be placed. */
+async function treeMemberProblem(supabase: Awaited<ReturnType<typeof createClient>>, familyId: string, memberId: string): Promise<string | null> {
+  const { data: member } = await supabase.from("members").select("id, family_id, status").eq("id", memberId).maybeSingle();
+  if (!member || member.family_id !== familyId || member.status === "pending" || member.status === "removed") return "That person could not be found.";
+  const { data: placed } = await supabase.from("family_tree_people").select("id").eq("family_id", familyId).eq("member_id", memberId).maybeSingle();
+  if (placed) return "They're on the tree already.";
+  return null;
+}
 
 /** Add a relative straight onto somebody on the chart: their father, mother,
- * spouse or child, created and linked in one step -- what the + on a card
- * does, and what used to take adding a person and then editing someone else's
- * links separately.
+ * spouse, child, brother or sister, created and linked in one step -- what
+ * the + on a card does, and what used to take adding a person and then
+ * editing someone else's links separately.
+ *
+ * The relative is either a new name, or somebody already in the household
+ * (`memberId`), in which case the tree entry is tied to their Kin profile and
+ * the tree opens it -- typing the name of someone who is already in Kin used
+ * to leave an entry with no way through to them.
+ *
+ * A brother or sister is whoever shares the parents, so the new sibling takes
+ * both of the tapped person's recorded parents. With neither recorded there is
+ * nothing to share, so the form asks for one parent's name and that parent is
+ * added too (`parentName`, `parentIs`).
  *
  * Refuses rather than overwrites. Adding a father to somebody who already has
  * one recorded would silently re-parent them, and the old father would drop
@@ -948,17 +969,27 @@ export async function addRelativeAction(input: {
   childOf?: "father" | "mother";
   /** For a child: the other parent, if they are in the tree. */
   otherParentId?: string | null;
+  /** Somebody already in the household, instead of a new name. */
+  memberId?: string | null;
+  /** For a sibling of someone with no parents recorded: one parent to add. */
+  parentName?: string;
+  parentIs?: "father" | "mother";
 }): Promise<ActionState & { id?: string }> {
   const me = await requireCurrentMember();
-  const fullName = clamp(input.fullName, TREE_NAME_MAX);
-  const dob = clamp(input.dob ?? "", 10);
-  if (!fullName) return { error: "Give them a name." };
+  const memberId = input.memberId || null;
+  const fullName = memberId ? "" : clamp(input.fullName, TREE_NAME_MAX);
+  const dob = memberId ? "" : clamp(input.dob ?? "", 10);
+  if (!memberId && !fullName) return { error: "Give them a name." };
   if (dob) {
     const problem = treeDateProblem(dob);
     if (problem) return { error: problem };
   }
 
   const supabase = await createClient();
+  if (memberId) {
+    const problem = await treeMemberProblem(supabase, me.family_id, memberId);
+    if (problem) return { error: problem };
+  }
   const ids = [input.toId, input.otherParentId].filter((v): v is string => !!v);
   const { data: rows } = await supabase.from("family_tree_people").select("id, family_id, father_id, mother_id, spouse_id").in("id", ids);
   const target = rows?.find((r) => r.id === input.toId);
@@ -970,13 +1001,39 @@ export async function addRelativeAction(input: {
   if (input.relation === "spouse" && target.spouse_id) return { error: "They already have a spouse recorded. Change it from Manage people instead." };
   if (input.relation === "child" && input.otherParentId === input.toId) return { error: "Pick a different person as the other parent." };
 
+  // A sibling of someone with no parents recorded: add the parent first, so
+  // the two of them have somebody to share.
+  let siblingParents = { father_id: target.father_id, mother_id: target.mother_id };
+  let addedParentId: string | null = null;
+  if (input.relation === "sibling" && !target.father_id && !target.mother_id) {
+    const parentName = clamp(input.parentName ?? "", TREE_NAME_MAX);
+    if (!parentName) return { error: "Add one of their parents' names, so the tree knows they are brother and sister." };
+    const parentIs = input.parentIs === "mother" ? "mother" : "father";
+    const { data: parent, error: parentError } = await supabase
+      .from("family_tree_people")
+      .insert({ family_id: me.family_id, full_name: parentName, created_by: me.id })
+      .select("id")
+      .single();
+    if (parentError || !parent) return { error: parentError ? humanDatabaseError(parentError.message) : "Their parent couldn't be added." };
+    const link = parentIs === "father" ? { father_id: parent.id } : { mother_id: parent.id };
+    const { error: linkError } = await supabase.from("family_tree_people").update(link).eq("id", target.id);
+    if (linkError) {
+      await supabase.from("family_tree_people").delete().eq("id", parent.id);
+      return { error: humanDatabaseError(linkError.message) };
+    }
+    addedParentId = parent.id;
+    siblingParents = { father_id: parentIs === "father" ? parent.id : null, mother_id: parentIs === "mother" ? parent.id : null };
+  }
+
   const childOf = input.childOf === "mother" ? "mother" : "father";
   const newRow = {
     family_id: me.family_id,
-    full_name: fullName,
-    dob: dob || null,
+    member_id: memberId,
+    full_name: memberId ? null : fullName,
+    dob: memberId ? null : dob || null,
     created_by: me.id,
     ...(input.relation === "spouse" ? { spouse_id: target.id } : {}),
+    ...(input.relation === "sibling" ? siblingParents : {}),
     ...(input.relation === "child"
       ? childOf === "father"
         ? { father_id: target.id, mother_id: input.otherParentId ?? null }
@@ -984,7 +1041,12 @@ export async function addRelativeAction(input: {
       : {}),
   };
   const { data: created, error } = await supabase.from("family_tree_people").insert(newRow).select("id").single();
-  if (error || !created) return { error: error ? humanDatabaseError(error.message) : "They couldn't be added." };
+  if (error || !created) {
+    // Nothing half-done: the parent added for this sibling goes too, and
+    // setting it null on the tapped person is what ON DELETE SET NULL does.
+    if (addedParentId) await supabase.from("family_tree_people").delete().eq("id", addedParentId);
+    return { error: error ? humanDatabaseError(error.message) : "They couldn't be added." };
+  }
 
   // The other half of the link, on the person who was tapped.
   const back =
@@ -999,6 +1061,24 @@ export async function addRelativeAction(input: {
   }
   revalidatePath("/family");
   return { error: null, id: created.id };
+}
+
+/** Ties a name on the tree to somebody's Kin profile, so the tree opens it.
+ * For an entry typed in by name before that person joined, or before anybody
+ * thought to pick them from the household list. Their profile's name and
+ * birthdate take over from what was typed. */
+export async function linkTreePersonToMemberAction(treePersonId: string, memberId: string): Promise<ActionState> {
+  const me = await requireCurrentMember();
+  const supabase = await createClient();
+  const { data: row } = await supabase.from("family_tree_people").select("id, family_id, member_id").eq("id", treePersonId).maybeSingle();
+  if (!row || row.family_id !== me.family_id) return { error: "That person could not be found." };
+  if (row.member_id) return { error: "They're linked to a profile already." };
+  const problem = await treeMemberProblem(supabase, me.family_id, memberId);
+  if (problem) return { error: problem };
+
+  const { error } = await supabase.from("family_tree_people").update({ member_id: memberId }).eq("id", treePersonId);
+  revalidatePath("/family");
+  return { error: error ? humanDatabaseError(error.message) : null };
 }
 
 /** Removes a tree entry. Anyone linked to them as father, mother or spouse

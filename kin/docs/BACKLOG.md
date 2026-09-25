@@ -61,9 +61,9 @@ Added 25 September, after the list above:
 11. **Family feed follows the family tree:** relatives on the tree see each
     other's feed without a separate link. Changes who can see what, so the
     trade-offs go to Jonathan before code.
-12. **Family tree:** each person on the tree opens their profile, and
+12. **Done: Family tree:** each person on the tree opens their profile, and
     brothers and sisters can be added, not only a father and mother.
-13. **Text that fits:** tab and button labels that fit at the default text
+13. **Done: Text that fits:** tab and button labels that fit at the default text
     size, and pages that still work at a larger one.
 
 Decided against in the same review: revising Journal (item 6) and Planner
@@ -71,6 +71,18 @@ Decided against in the same review: revising Journal (item 6) and Planner
 #209).
 
 ## Done
+
+- Family tree: Brother and Sister next to Father and Mother (they share the
+  recorded parents; with none recorded, the form asks for one). A relative
+  can be picked from the household instead of typed, so their card opens
+  their profile, and a name typed earlier can be linked to its profile
+  (25 September).
+
+- Text that fits: the Family tabs are Profile, Health, Docs, Tree and
+  Links, and no label, button or name breaks mid-word at 100% on any phone.
+  At 150% and 200% rows wrap and headings stop at the phone's width instead
+  of breaking. Still breaking: 200% on a 320px phone, the original iPhone SE
+  (25 September).
 
 - Five more colour themes in Settings → Appearance: Pale Milk, Editorial,
   Electric Blue, Emerald Wave and Antarctic (dark only), from Janine's list,
