@@ -25,7 +25,7 @@ const MIN_ZOOM = 0.25;
 const MAX_ZOOM = 2.5;
 
 type View = { x: number; y: number; k: number };
-type Ghost = { id: string; relation: "father" | "mother"; of: string };
+type Ghost = { id: string; relation: "father" | "mother" | "sibling"; of: string };
 /** What the panel offers. Brother and sister are one relation to the tree
  * (whoever shares the parents); the word only changes what the form says. */
 type AddAs = Exclude<Relation, "sibling"> | "brother" | "sister";
@@ -104,15 +104,18 @@ export function FamilyTreeChart({
     setShown((s) => [...s, matchId]);
   };
 
-  // Dashed "Add father" / "Add mother" places, for whoever is selected, go
-  // into the layout as people of their own so they get a real place on the
-  // chart instead of being drawn over somebody who is already there.
+  // Dashed "Add father" / "Add mother" places, and an "Add brother or
+  // sister" one beside them, for whoever is selected. They go into the layout
+  // as people of their own so they get a real place on the chart instead of
+  // being drawn over somebody who is already there; the sibling place shares
+  // the person's parents (real or dashed), so it lands right beside them.
   const ghosts: Ghost[] = useMemo(() => {
     const p = chartById.get(focus ?? "");
     if (!p || p.fromHousehold) return [];
     return [
       ...(p.fatherId ? [] : [{ id: `ghost-father-${p.id}`, relation: "father" as const, of: p.id }]),
       ...(p.motherId ? [] : [{ id: `ghost-mother-${p.id}`, relation: "mother" as const, of: p.id }]),
+      { id: `ghost-sibling-${p.id}`, relation: "sibling" as const, of: p.id },
     ];
   }, [chartById, focus]);
 
@@ -120,6 +123,8 @@ export function FamilyTreeChart({
     const ghostOf = new Map(ghosts.map((g) => [g.of + g.relation, g.id]));
     const fatherGhost = ghosts.find((g) => g.relation === "father");
     const motherGhost = ghosts.find((g) => g.relation === "mother");
+    const siblingGhost = ghosts.find((g) => g.relation === "sibling");
+    const siblingOf = siblingGhost ? chartById.get(siblingGhost.of) : undefined;
     return layoutTree(
       [
         ...chartPeople.map((p) => ({
@@ -130,10 +135,13 @@ export function FamilyTreeChart({
         })),
         ...(fatherGhost ? [{ id: fatherGhost.id, fatherId: null, motherId: null, spouseId: motherGhost?.id ?? null }] : []),
         ...(motherGhost ? [{ id: motherGhost.id, fatherId: null, motherId: null, spouseId: fatherGhost?.id ?? null }] : []),
+        ...(siblingGhost && siblingOf
+          ? [{ id: siblingGhost.id, fatherId: siblingOf.fatherId ?? fatherGhost?.id ?? null, motherId: siblingOf.motherId ?? motherGhost?.id ?? null, spouseId: null }]
+          : []),
       ],
       meTreeId,
     );
-  }, [chartPeople, ghosts, meTreeId]);
+  }, [chartPeople, chartById, ghosts, meTreeId]);
 
   const byId = useMemo(() => new Map(people.map((p) => [p.id, p])), [people]);
   const ghostById = useMemo(() => new Map(ghosts.map((g) => [g.id, g])), [ghosts]);
@@ -321,6 +329,21 @@ export function FamilyTreeChart({
           {layout.people.map((spot) => {
             const ghost = ghostById.get(spot.id);
             const style = { left: rem(spot.x), top: rem(spot.y), width: rem(CARD_W), height: rem(CARD_H) };
+            if (ghost?.relation === "sibling") {
+              // Two choices in one place, so it is a group of buttons rather
+              // than one: brother or sister is only a word to the tree (both
+              // share the parents), but it is the word the form then uses.
+              return (
+                <div key={spot.id} className="kin-treecard kin-treecard-ghost kin-treecard-sibling" style={style} role="group" aria-label="Add a brother or sister">
+                  {(["brother", "sister"] as const).map((r) => (
+                    <button key={r} type="button" onClick={() => tapped() && setAdding({ to: ghost.of, relation: r })}>
+                      <Icon name="plus" size="0.875rem" />
+                      Add {r}
+                    </button>
+                  ))}
+                </div>
+              );
+            }
             if (ghost) {
               return (
                 <button
@@ -328,7 +351,7 @@ export function FamilyTreeChart({
                   type="button"
                   className="kin-treecard kin-treecard-ghost"
                   style={style}
-                  onClick={() => tapped() && setAdding({ to: ghost.of, relation: ghost.relation })}
+                  onClick={() => tapped() && setAdding({ to: ghost.of, relation: ghost.relation === "mother" ? "mother" : "father" })}
                 >
                   <Icon name="plus" size="1rem" />
                   Add {ghost.relation}

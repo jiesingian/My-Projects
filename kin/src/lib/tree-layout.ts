@@ -103,31 +103,70 @@ export function layoutTree(input: LayoutPerson[], anchorId: string | null): Tree
   };
   const unitCentre = (u: Unit) => u.x + unitWidth(u) / 2;
 
-  // Pack a row left to right, each unit at its wish or just clear of the
-  // unit before it, whichever is further right. Order never changes here, so
-  // nobody ever overlaps.
+  // Place a row: every unit as close to where it wants to be as it can get,
+  // in the row's order, with no overlaps. This is the least-squares answer
+  // (isotonic regression, pooling adjacent violators): where two units want
+  // the same spot they share the difference, rather than the later one being
+  // pushed right as far as it takes. The first version only ever pushed right,
+  // and a family with two sets of grandparents drifted: on 25 September
+  // Jonathan sat 260 units right of his own parents, Ernesto and Stella.
+  // A unit with no family to aim at weighs little, so it gives way first.
   const pack = (row: Unit[], wish: (u: Unit) => number | null) => {
-    // null until the first unit is placed. It used to start at -Infinity,
-    // which put a row's first unit with nothing to aim at at -Infinity too --
-    // and every coordinate after it became NaN. The specs found it.
-    let right: number | null = null;
-    for (const u of row) {
+    if (row.length === 0) return;
+    let offset = 0;
+    const items = row.map((u) => {
       const w = wish(u);
-      const want = w === null ? (right === null ? 0 : right + UNIT_GAP) : w - unitWidth(u) / 2;
-      u.x = right === null ? want : Math.max(want, right + UNIT_GAP);
-      right = u.x + unitWidth(u);
+      const target = (w === null ? unitCentre(u) : w) - unitWidth(u) / 2 - offset;
+      const item = { target, weight: w === null ? 0.25 : 1, offset };
+      offset += unitWidth(u) + UNIT_GAP;
+      return item;
+    });
+    const blocks: { value: number; weight: number; count: number }[] = [];
+    for (const it of items) {
+      blocks.push({ value: it.target, weight: it.weight, count: 1 });
+      while (blocks.length > 1 && blocks[blocks.length - 2].value > blocks[blocks.length - 1].value) {
+        const b = blocks.pop()!;
+        const a = blocks.pop()!;
+        const weight = a.weight + b.weight;
+        blocks.push({ value: (a.value * a.weight + b.value * b.weight) / weight, weight, count: a.count + b.count });
+      }
     }
+    let i = 0;
+    for (const b of blocks) for (let k = 0; k < b.count; k++, i++) row[i].x = b.value + items[i].offset;
   };
   const mean = (xs: number[]) => (xs.length ? xs.reduce((a, b) => a + b, 0) / xs.length : null);
-  const parentCentre = (u: Unit) => mean(u.ids.flatMap((id) => [father(byId.get(id)!), mother(byId.get(id)!)]).filter((v): v is string => !!v).map(centreOf));
+  const parentsOf = (id: string) => [father(byId.get(id)!), mother(byId.get(id)!)].filter((v): v is string => !!v);
+  const memberParentCentre = (id: string) => mean(parentsOf(id).map(centreOf));
+  // How far a member's card centre sits from its unit's centre.
+  const memberOffset = (u: Unit, id: string) => u.ids.indexOf(id) * (CARD_W + COUPLE_GAP) + CARD_W / 2 - unitWidth(u) / 2;
+  // Where a unit's centre should be so that each member sits under their own
+  // parents -- not the couple as a whole under all four of them.
+  const parentCentre = (u: Unit) => mean(u.ids.filter((id) => parentsOf(id).length).map((id) => memberParentCentre(id)! - memberOffset(u, id)));
   const childCentre = (u: Unit) => mean(u.ids.flatMap((id) => children.get(id) ?? []).map(centreOf));
+  // In a couple, the spouse whose parents sit further left takes the left
+  // seat, so each is on the side of their own family and the lines between
+  // generations do not cross.
+  const seatCouple = (u: Unit) => {
+    if (u.ids.length !== 2) return;
+    const [a, b] = u.ids.map(memberParentCentre);
+    const centre = unitCentre(u);
+    const aLeft = a !== null && b !== null ? a <= b : a !== null ? a <= centre : b !== null ? b > centre : true;
+    if (!aLeft) u.ids.reverse();
+  };
 
   // Initial positions in discovery order, then a few sweeps: order each row by
   // where its parents are (going down) or its children are (going up), and
-  // pull it towards them. Four sweeps settle every tree a household has.
-  for (const row of byRow) pack(row, () => null);
-  for (let sweep = 0; sweep < 4; sweep++) {
+  // pull it towards them. Eight sweeps settle every tree a household has.
+  for (const row of byRow) {
+    let x = 0;
+    for (const u of row) {
+      u.x = x;
+      x += unitWidth(u) + UNIT_GAP;
+    }
+  }
+  for (let sweep = 0; sweep < 8; sweep++) {
     for (let g = 1; g < rows; g++) {
+      byRow[g].forEach(seatCouple);
       byRow[g].sort((a, b) => (parentCentre(a) ?? unitCentre(a)) - (parentCentre(b) ?? unitCentre(b)));
       pack(byRow[g], parentCentre);
     }
