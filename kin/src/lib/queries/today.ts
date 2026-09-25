@@ -1,7 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
-import { formatCurrency } from "@/lib/format";
-import { familyDay as localDay, familyTime as localTime } from "@/lib/time";
-import { startOfWeek, weekStartOf } from "@/lib/week";
+import { formatAccounting, formatCurrency } from "@/lib/format";
+import { getPricedBuyList } from "@/lib/queries/household-money";
+import { familyDay as localDay, familyTime as localTime, familyMidnight, FAMILY_TZ } from "@/lib/time";
 import type { IconName } from "@/components/icons";
 
 /** One line in the briefing. Deliberately flat and pre-formatted: the page
@@ -20,93 +20,52 @@ export type BriefItem = {
   at?: number;
 };
 
-export type HubCard = {
-  n: string;
-  name: string;
+/** One tile in "At a glance": the single figure that matters in one part of
+ * the household, and where tapping it goes. These replaced the five hub
+ * cards, which only repeated the bottom bar -- a tile answers a question
+ * ("how much is left?") where a hub card only named a place. */
+export type GlanceTile = {
+  id: "money" | "next" | "shop" | "waiting";
   icon: IconName;
-  primary: string;
-  stat: string;
-  statLabel: string;
+  /** The figure itself, short enough to read at a glance: "₱18,400". */
+  value: string;
+  /** What the figure is: "left this month". */
+  label: string;
   href: string;
-  span?: "full";
+  /** 0..1, drawn as a thin bar under the figure. Only money has one. */
+  progress?: number;
+  /** Over budget, or something overdue: the figure takes the warning tint. */
+  warn?: boolean;
 };
 
-export async function getHubCards(familyId: string, currency: string, weekStartPref?: string | null): Promise<HubCard[]> {
+/** Three of the four "At a glance" tiles: money, the next thing on the
+ * calendar, and the shopping list. The fourth -- what is waiting on the
+ * reader -- is built on the page from queries Today already makes, rather
+ * than asking the database the same question twice. */
+export async function getGlance(familyId: string, currency: string): Promise<GlanceTile[]> {
   const supabase = await createClient();
-  const today = new Date();
-  const startOfMonth = new Date(today.getFullYear(), today.getMonth(), 1).toISOString();
+  const now = new Date();
+  // The month in the household's zone, not the server's: on a server in UTC
+  // the first eight hours of the 1st in Manila still belong to last month.
+  const [year, month] = localDay(now).split("-").map(Number);
+  const startOfMonth = (familyMidnight(`${year}-${String(month).padStart(2, "0")}-01`) ?? now).toISOString();
 
-  // Whichever day the household said its week starts on. This counted from
-  // getDay() -- Sunday, always -- while the Planner it links to has laid its
-  // columns out from the preference since lib/week.ts was written. So a
-  // household set to Monday saw "N THIS WEEK" counted Sunday to Saturday
-  // under a Planner drawn Monday to Sunday, and on a Sunday the two disagreed
-  // by a whole week: an activity that day counted here and appeared in last
-  // week there. That is the exact bug lib/week.ts exists to end -- "the
-  // setting saved cleanly and changed nothing" -- surviving in the one place
-  // that had not been converted.
-  const weekBegins = startOfWeek(today, weekStartOf(weekStartPref));
-  const weekEnds = new Date(weekBegins);
-  weekEnds.setDate(weekBegins.getDate() + 7);
-
-  const [
-    dueHealth,
-    journalCount,
-    upcomingActivity,
-    weekActivityCount,
-    unpaidBill,
-    openBuyCount,
-    budgetPeriod,
-    monthSpend,
-  ] = await Promise.all([
-    supabase
-      .from("health_schedule")
-      .select("what, when_date, member:members!health_schedule_member_id_fkey(full_name)")
-      .eq("family_id", familyId)
-      .in("status", ["due", "due_soon"])
-      .order("when_date", { ascending: true })
-      .limit(1)
-      .maybeSingle(),
-    supabase
-      .from("journal_entries")
-      .select("id", { count: "exact", head: true })
-      .eq("family_id", familyId)
-      .gte("entry_date", startOfMonth),
+  const [upcomingActivity, budgetPeriod, monthSpend, shop] = await Promise.all([
     supabase
       .from("activities")
       .select("title, start_at")
       .eq("family_id", familyId)
       .eq("status", "upcoming")
-      .gte("start_at", today.toISOString())
+      .gte("start_at", now.toISOString())
       .order("start_at", { ascending: true })
       .limit(1)
       .maybeSingle(),
     supabase
-      .from("activities")
-      .select("id", { count: "exact", head: true })
-      .eq("family_id", familyId)
-      .gte("start_at", weekBegins.toISOString())
-      .lt("start_at", weekEnds.toISOString()),
-    supabase
-      .from("bills")
-      .select("name, amount, due_date")
-      .eq("family_id", familyId)
-      .in("status", ["unpaid", "overdue"])
-      .order("due_date", { ascending: true })
-      .limit(1)
-      .maybeSingle(),
-    supabase
-      .from("buy_items")
-      .select("id", { count: "exact", head: true })
-      .eq("family_id", familyId)
-      .eq("checked", false)
-      .eq("cleared", false),
-    supabase
       .from("budget_periods")
       .select("budget_amount")
       .eq("family_id", familyId)
-      .eq("period_month", today.getMonth() + 1)
-      .eq("period_year", today.getFullYear())
+      .eq("period_month", month)
+      .eq("period_year", year)
       .maybeSingle(),
     supabase
       .from("wealth_transactions")
@@ -115,86 +74,43 @@ export async function getHubCards(familyId: string, currency: string, weekStartP
       .eq("direction", "out")
       .eq("status", "confirmed")
       .gte("occurred_at", startOfMonth),
+    getPricedBuyList(familyId),
   ]);
-
-  const alertCount = (dueHealth.data ? 1 : 0);
-  const healthPrimary = dueHealth.data
-    ? `${(dueHealth.data.member as unknown as { full_name: string } | null)?.full_name ?? "Someone"} · ${dueHealth.data.what}`
-    : "Nothing due — add a member to get started";
-
-  const journalPrimary =
-    (journalCount.count ?? 0) > 0
-      ? `${journalCount.count} entr${journalCount.count === 1 ? "y" : "ies"} logged this month`
-      : "Nothing logged yet this month";
-
-  const plannerPrimary = upcomingActivity.data
-    ? `${upcomingActivity.data.title}, ${new Date(upcomingActivity.data.start_at).toLocaleString("en-PH", {
-        weekday: "short",
-        hour: "numeric",
-        minute: "2-digit",
-      })}`
-    : "Nothing scheduled — add an activity";
-
-  const householdPrimary =
-    (openBuyCount.count ?? 0) > 0 ? `${openBuyCount.count} item${openBuyCount.count === 1 ? "" : "s"} still to buy` : "Shopping list is clear";
 
   const spent = (monthSpend.data ?? []).reduce((sum, t) => sum + Number(t.amount), 0);
   const target = budgetPeriod.data ? Number(budgetPeriod.data.budget_amount) : 0;
-  const pct = target > 0 ? Math.round((spent / target) * 100) : 0;
-  const wealthPrimary = unpaidBill.data
-    ? `${unpaidBill.data.name} due · ${formatCurrency(Number(unpaidBill.data.amount), currency)}`
-    : target > 0
-      ? `${today.toLocaleString("en-PH", { month: "long" })} budget — ${formatCurrency(spent, currency)} of ${formatCurrency(target, currency)}`
-      : `${formatCurrency(spent, currency)} spent this month`;
+  const money: GlanceTile =
+    target > 0
+      ? spent > target
+        ? { id: "money", icon: "wallet", value: formatAccounting(spent - target, currency), label: "over this month's budget", href: "/wealth", progress: 1, warn: true }
+        : { id: "money", icon: "wallet", value: formatAccounting(target - spent, currency), label: "left this month", href: "/wealth", progress: spent / target }
+      : { id: "money", icon: "wallet", value: formatAccounting(spent, currency), label: "spent this month", href: "/wealth" };
 
-  return [
-    {
-      n: "01",
-      name: "Family",
-      icon: "users",
-      primary: healthPrimary,
-      stat: String(alertCount),
-      statLabel: "alerts",
-      href: "/family",
-    },
-    {
-      n: "02",
-      name: "Journal",
-      icon: "images",
-      primary: journalPrimary,
-      stat: String(journalCount.count ?? 0),
-      statLabel: "entries",
-      href: "/journal",
-    },
-    {
-      n: "03",
-      name: "Planner",
-      icon: "calendarDays",
-      primary: plannerPrimary,
-      stat: String(weekActivityCount.count ?? 0),
-      statLabel: "this week",
-      href: "/planner",
-    },
-    {
-      n: "04",
-      name: "Household",
-      icon: "house",
-      primary: householdPrimary,
-      stat: String(openBuyCount.count ?? 0),
-      statLabel: "to buy",
-      href: "/household",
-    },
-    {
-      n: "05",
-      name: "Wealth",
-      icon: "wallet",
-      primary: wealthPrimary,
-      stat: `${pct}%`,
-      statLabel: "spent",
-      href: "/wealth",
-      span: "full",
-    },
-  ];
+  const next: GlanceTile = upcomingActivity.data
+    ? {
+        id: "next",
+        icon: "calendarDays",
+        value: `${new Intl.DateTimeFormat("en-GB", { timeZone: FAMILY_TZ, weekday: "short" }).format(new Date(upcomingActivity.data.start_at))} ${localTime(new Date(upcomingActivity.data.start_at))}`,
+        label: `next: ${upcomingActivity.data.title}`,
+        href: "/planner",
+      }
+    : { id: "next", icon: "calendarDays", value: "Nothing", label: "on the calendar yet", href: "/planner/add?type=task" };
+
+  const open = shop.items.filter((i) => !i.checked);
+  const shopTile: GlanceTile = {
+    id: "shop",
+    icon: "basket",
+    value: open.length === 0 ? "List clear" : `${open.length} to buy`,
+    label:
+      open.length === 0
+        ? "shopping list is empty"
+        : shop.estimatedRemaining > 0
+          ? `about ${formatAccounting(shop.estimatedRemaining, currency)}${shop.unpricedCount > 0 ? " + unpriced" : ""}`
+          : open.slice(0, 3).map((i) => i.name).join(", "),
+    href: "/household?seg=buy",
+  };
+
+  return [money, next, shopTile];
 }
 
 /** What actually needs the household today, gathered from every hub into one

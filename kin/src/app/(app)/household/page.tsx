@@ -35,7 +35,7 @@ type Seg = (typeof SEGMENTS)[number];
 
 const SEGMENT_LABEL: Record<Seg, string> = { buy: "To-buy", meals: "Meals" };
 
-export default async function HouseholdPage({ searchParams }: { searchParams: Promise<{ seg?: string; date?: string; who?: string }> }) {
+export default async function HouseholdPage({ searchParams }: { searchParams: Promise<{ seg?: string; date?: string; who?: string; add?: string }> }) {
   const me = await getCurrentMember();
   if (!me) redirect("/onboarding/profile");
   const sp = await searchParams;
@@ -48,14 +48,14 @@ export default async function HouseholdPage({ searchParams }: { searchParams: Pr
     <div>
       <HubHeader n="04" title="Household" segments={segments} dateFormat={me.families.date_format} />
       <div style={{ padding: "0 1.375rem 1.375rem" }}>
-        {seg === "buy" && <BuyPane familyId={me.family_id} memberId={me.id} currency={me.families.currency} />}
+        {seg === "buy" && <BuyPane familyId={me.family_id} memberId={me.id} currency={me.families.currency} startAdding={sp.add === "1"} />}
         {seg === "meals" && <MealsPane familyId={me.family_id} currency={me.families.currency} anchor={anchor} who={sp.who ?? "all"} />}
       </div>
     </div>
   );
 }
 
-async function BuyPane({ familyId, memberId, currency }: { familyId: string; memberId: string; currency: string }) {
+async function BuyPane({ familyId, memberId, currency, startAdding }: { familyId: string; memberId: string; currency: string; startAdding: boolean }) {
   const [{ groups, openCount, doneCount }, accounts, priced, run] = await Promise.all([
     getBuyItems(familyId),
     getAccounts(familyId),
@@ -82,6 +82,7 @@ async function BuyPane({ familyId, memberId, currency }: { familyId: string; mem
   return (
     <>
       <BuyList
+        startAdding={startAdding}
         groups={groups}
         openCount={openCount}
         doneCount={doneCount}

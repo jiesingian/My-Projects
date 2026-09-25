@@ -37,6 +37,7 @@ export function BuyList({
   unpriced,
   trip,
   pricesSlot,
+  startAdding = false,
 }: {
   groups: BuyGroup[];
   openCount: number;
@@ -47,6 +48,8 @@ export function BuyList({
   prices: Record<string, { estimated: number | null; unitPrice: number | null; source: string; inPantry: boolean }>;
   /** How many lines Kin has no price for, so the total can say so. */
   unpriced: number;
+  /** Open with the add box already out -- Today's "To buy" quick add. */
+  startAdding?: boolean;
   /** The day this list is being bought on, if one is set. */
   trip: {
     id: string;
@@ -75,7 +78,7 @@ export function BuyList({
   const isChecked = (item: { id: string; checked: boolean }) => optimisticChecked.get(item.id) ?? item.checked;
   const [addState, addAction] = useActionState(addBuyItemAction, initialState);
   const [editing, setEditing] = useState<string | null>(null);
-  const [adding, setAdding] = useState(false);
+  const [adding, setAdding] = useState(startAdding);
   const [newName, setNewName] = useState("");
   const [sectionTouched, setSectionTouched] = useState(false);
   const [sectionChoice, setSectionChoice] = useState<string>("Other");

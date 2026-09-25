@@ -2593,32 +2593,171 @@ textarea.input {
   }
 }
 
-/* The Today hub grid. Two up on a phone; on a desktop it fills the width
-   with as many columns as fit at a sensible card size, rather than stretching
-   the same two cards to 500px each. A card marked "full" still spans the row
-   whatever the count. */
-.kin-hubgrid {
+/* "At a glance" on Today: four tiles, two up on a phone and four across
+   from a desktop width. Each is one figure and what it means -- they took
+   the place of the hub cards, which repeated the bottom bar. */
+.kin-glance {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 0.875rem;
+  gap: 0.625rem;
 }
-
-/* Wealth is the wide one. It takes two cells rather than the whole row: the
-   column never goes past 1000px, so the grid is two or three across and never
-   more, and "the whole row" left Household sitting alone beside two empty
-   cells on a desktop. Two cells fills the second row in both cases. */
-.kin-hub-wide {
-  grid-column: span 2;
-}
-
-/* The text-relative switch that lived here (18em) is generated in
-   src/lib/text-scale.ts, so it can answer Kin's own text size as well as
-   the browser's. */
 @media (min-width: 1024px) {
-  .kin-hubgrid {
-    grid-template-columns: repeat(auto-fill, minmax(236px, 1fr));
-    gap: 16px;
+  .kin-glance {
+    grid-template-columns: repeat(4, 1fr);
   }
+}
+.kin-glance-tile {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  padding: 0.75rem 0.8125rem;
+  border-radius: var(--radius-card);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-sm);
+  color: inherit;
+  text-decoration: none;
+  min-width: 0;
+  transition: background-color 0.14s ease, transform 0.14s var(--ease-out);
+}
+.kin-glance-tile:active {
+  transform: scale(0.98);
+}
+.kin-glance-top {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  color: var(--color-accent-700);
+  min-width: 0;
+}
+.kin-glance-value {
+  font: 600 1.125rem/1.15 var(--font-heading);
+  font-variant-numeric: tabular-nums;
+  color: var(--color-text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.kin-glance-tile[data-warn="true"] .kin-glance-value,
+.kin-glance-tile[data-warn="true"] .kin-glance-top {
+  color: var(--cal-money);
+}
+.kin-glance-label {
+  font-size: 0.78125rem;
+  line-height: 1.3;
+  color: var(--color-neutral-600);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.kin-glance-bar {
+  display: block;
+  height: 4px;
+  border-radius: 999px;
+  margin-top: 0.25rem;
+  overflow: hidden;
+  background: color-mix(in srgb, var(--color-text) 9%, transparent);
+}
+.kin-glance-bar > i {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--color-accent);
+}
+.kin-glance-tile[data-warn="true"] .kin-glance-bar > i {
+  background: var(--cal-money);
+}
+
+/* Quick add: four round buttons straight into the four most-used forms. */
+.kin-quick {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0.5rem;
+  margin: -0.5rem 0 1.625rem;
+}
+.kin-quick-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.625rem 0.25rem;
+  border-radius: var(--radius-card);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-sm);
+  color: var(--color-text);
+  text-decoration: none;
+  font: 600 0.78125rem/1.1 var(--font-heading);
+  transition: transform 0.14s var(--ease-out);
+}
+.kin-quick-btn:active {
+  transform: scale(0.96);
+}
+.kin-quick-ico {
+  width: 2.25rem;
+  height: 2.25rem;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  background: var(--cal-goal);
+}
+.kin-quick-ico[data-tint="money"] { background: var(--cal-money); }
+.kin-quick-ico[data-tint="schedule"] { background: var(--cal-schedule); }
+.kin-quick-ico[data-tint="occasion"] { background: var(--cal-occasion); }
+.kin-quick-ico[data-tint="home"] { background: var(--cal-home); }
+
+/* A quiet day is one line, not a card. */
+.kin-allclear {
+  display: flex;
+  align-items: center;
+  gap: 0.4375rem;
+  margin: 0 0 1.25rem;
+  font: 600 0.9375rem/1.3 var(--font-heading);
+  color: var(--color-neutral-700);
+}
+.kin-allclear > svg {
+  color: var(--cal-home);
+}
+
+/* The initials at the top of Today. Each opens that person's card. */
+.kin-initial {
+  width: 27px;
+  height: 27px;
+  margin-left: -6px;
+  border: 1px solid var(--color-divider);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  font: 600 0.8125rem/1 var(--font-heading);
+  color: var(--color-neutral-700);
+  cursor: pointer;
+}
+button.kin-initial:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+  position: relative;
+  z-index: 1;
+}
+.kin-person-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 0.625rem;
+  margin: 0.25rem 0 1.125rem;
+  font-size: 0.90625rem;
+}
+.kin-person-row {
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+}
+.kin-person-row > svg {
+  flex: none;
+  color: var(--color-accent-700);
+}
+.kin-person-row a {
+  color: var(--color-accent-700);
 }
 
 /* ── the Today briefing ──────────────────────────────────────────────────
@@ -2835,17 +2974,17 @@ textarea.input {
    sequence down instead of taking the whole rectangle in at once. Capped at
    eight, because past that the last rows are waiting rather than arriving. */
 .kin-brief-row,
-.kin-hubgrid > * {
+.kin-glance > * {
   animation: kin-enter 0.26s var(--ease-out) both;
 }
-.kin-brief-row:nth-child(1), .kin-hubgrid > *:nth-child(1) { animation-delay: 0.02s; }
-.kin-brief-row:nth-child(2), .kin-hubgrid > *:nth-child(2) { animation-delay: 0.05s; }
-.kin-brief-row:nth-child(3), .kin-hubgrid > *:nth-child(3) { animation-delay: 0.08s; }
-.kin-brief-row:nth-child(4), .kin-hubgrid > *:nth-child(4) { animation-delay: 0.11s; }
-.kin-brief-row:nth-child(5), .kin-hubgrid > *:nth-child(5) { animation-delay: 0.14s; }
-.kin-brief-row:nth-child(6), .kin-hubgrid > *:nth-child(6) { animation-delay: 0.17s; }
-.kin-brief-row:nth-child(7), .kin-hubgrid > *:nth-child(7) { animation-delay: 0.19s; }
-.kin-brief-row:nth-child(n + 8), .kin-hubgrid > *:nth-child(n + 8) { animation-delay: 0.21s; }
+.kin-brief-row:nth-child(1), .kin-glance > *:nth-child(1) { animation-delay: 0.02s; }
+.kin-brief-row:nth-child(2), .kin-glance > *:nth-child(2) { animation-delay: 0.05s; }
+.kin-brief-row:nth-child(3), .kin-glance > *:nth-child(3) { animation-delay: 0.08s; }
+.kin-brief-row:nth-child(4), .kin-glance > *:nth-child(4) { animation-delay: 0.11s; }
+.kin-brief-row:nth-child(5), .kin-glance > *:nth-child(5) { animation-delay: 0.14s; }
+.kin-brief-row:nth-child(6), .kin-glance > *:nth-child(6) { animation-delay: 0.17s; }
+.kin-brief-row:nth-child(7), .kin-glance > *:nth-child(7) { animation-delay: 0.19s; }
+.kin-brief-row:nth-child(n + 8), .kin-glance > *:nth-child(n + 8) { animation-delay: 0.21s; }
 
 /* ── depth ───────────────────────────────────────────────────────────────
    --shadow-md and --shadow-lg were defined and never once used: every
@@ -2888,7 +3027,7 @@ textarea.input {
 @media (prefers-reduced-motion: reduce) {
   .kin-content > *,
   .kin-brief-row,
-  .kin-hubgrid > * {
+  .kin-glance > * {
     animation: none;
   }
   a > .blueprint,
