@@ -122,3 +122,11 @@ export function callClock(ms: number): string {
   const ss = String(s % 60).padStart(2, "0");
   return h ? `${h}:${mm}:${ss}` : `${mm}:${ss}`;
 }
+
+/** Who hears that a call is happening, besides the person rung (26 September):
+ * the household's grown-ups, never the two on the call, and never a child.
+ * Each grown-up's own "Family calls" switch is applied after this, by
+ * push_targets(). */
+export function callWatchers(members: { id: string; role: string | null; status: string | null }[], caller: string, callee: string): string[] {
+  return members.filter((m) => m.status === "active" && (m.role === "parent" || m.role === "adult") && m.id !== caller && m.id !== callee).map((m) => m.id);
+}

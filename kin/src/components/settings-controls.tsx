@@ -265,12 +265,12 @@ function DidNotSave({ message }: { message: string | null }) {
 
 const NOTIF_DEFS = NOTIFICATION_DEFS;
 
-export function NotificationToggles({ prefs }: { prefs: Record<string, boolean> }) {
+export function NotificationToggles({ prefs, grownUp }: { prefs: Record<string, boolean>; grownUp: boolean }) {
   const [pending, startTransition] = useTransition();
   const [failed, setFailed] = useState<string | null>(null);
   return (
     <Blueprint style={{ paddingLeft: "0.9375rem" }}>
-      {NOTIF_DEFS.map((n, i) => {
+      {NOTIF_DEFS.filter((n) => grownUp || !("grownUps" in n)).map((n, i) => {
         const on = prefs[n.key] ?? true;
         return (
           <button

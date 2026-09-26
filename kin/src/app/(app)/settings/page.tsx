@@ -47,7 +47,9 @@ export default async function SettingsPage({
 
   const themeLabel = { light: "Light", dark: "Dark", system: "System" }[me.theme as "light" | "dark" | "system"] ?? "System";
   const prefs = (me.notification_prefs ?? {}) as Record<string, boolean>;
-  const notifOn = NOTIFICATION_DEFS.filter((n) => prefs[n.key] ?? true).length;
+  // Only the switches this person is shown ("Family calls" is grown-ups').
+  const notifDefs = NOTIFICATION_DEFS.filter((n) => me.role === "parent" || me.role === "adult" || !("grownUps" in n));
+  const notifOn = notifDefs.filter((n) => prefs[n.key] ?? true).length;
   const connected = [driveLink?.connected && "Drive", calendarLink?.connected && "Google Calendar", me.calendar_feed_hash && "Apple & Outlook"].filter(Boolean) as string[];
   const lockOn = lock.hasPin || lock.credentialCount > 0;
 
@@ -60,7 +62,7 @@ export default async function SettingsPage({
   const allGroups: { href: string; icon: IconName; tint: "money" | "schedule" | "occasion" | "home" | undefined; title: string; value: string }[][] = [
     [
       { href: "/settings/appearance", icon: "sparkle", tint: "occasion", title: "Appearance", value: `${themeLabel} · ${paletteById(me.palette).name} · ${me.text_scale ?? 100}%` },
-      { href: "/settings/notifications", icon: "message", tint: "money", title: "Notifications", value: `${notifOn} of ${NOTIFICATION_DEFS.length} on` },
+      { href: "/settings/notifications", icon: "message", tint: "money", title: "Notifications", value: `${notifOn} of ${notifDefs.length} on` },
       { href: "/settings/connected", icon: "hardDrive", tint: "schedule", title: "Connected apps", value: connected.length > 0 ? connected.join(", ") : "None connected" },
     ],
     [

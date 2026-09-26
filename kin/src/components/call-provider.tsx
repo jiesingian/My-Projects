@@ -8,7 +8,7 @@ import { Icon, type IconName } from "@/components/icons";
 import { toast } from "@/components/toast";
 import { initials } from "@/lib/format";
 import { callClock, endLine, ended, forThisDevice, onSignal, RING_SECONDS, type CallState, type EndReason, type Signal } from "@/lib/calls";
-import { iceServersAction, ringAction } from "@/lib/actions/calls";
+import { iceServersAction, missedCallAction, ringAction } from "@/lib/actions/calls";
 
 /** Voice and video calls, anywhere in the app (26 September).
  *
@@ -318,6 +318,7 @@ export function CallProvider({ familyId, me, members, children }: { familyId: st
           if (stateRef.current === outgoing) {
             send({ t: "cancel", call: id, from: me });
             end("no-answer");
+            void missedCallAction(to, video);
           }
         }, RING_SECONDS * 1000),
       );
@@ -330,6 +331,7 @@ export function CallProvider({ familyId, me, members, children }: { familyId: st
     const s = stateRef.current;
     if (s.phase !== "incoming") return;
     ringtone.current?.stop();
+    void clearRingNotice(s.peer);
     try {
       local.current = await getMedia(s.video);
     } catch (e) {
@@ -347,6 +349,7 @@ export function CallProvider({ familyId, me, members, children }: { familyId: st
     const s = stateRef.current;
     if (s.phase !== "incoming") return;
     send({ t: "decline", call: s.call, from: me, fromDevice: device });
+    void clearRingNotice(s.peer);
     teardown();
     stateRef.current = { phase: "idle" };
     setCallState({ phase: "idle" });
@@ -357,6 +360,7 @@ export function CallProvider({ familyId, me, members, children }: { familyId: st
     if (s.phase === "outgoing") {
       send({ t: "cancel", call: s.call, from: me });
       end("cancelled");
+      void missedCallAction(s.peer, s.video);
     } else if (s.phase === "connecting" || s.phase === "active") {
       send({ t: "hangup", call: s.call, from: me });
       end("hung-up");
@@ -502,4 +506,15 @@ function startRingtone(): { stop: () => void } {
       ctx = null;
     },
   };
+}
+
+/** The lock-screen "Janine is calling" stays up until dealt with (sw.js), so
+ * once the call is answered or declined in the app it is taken down here. */
+async function clearRingNotice(caller: string) {
+  try {
+    const reg = await navigator.serviceWorker?.getRegistration();
+    for (const n of (await reg?.getNotifications({ tag: `call-${caller}` })) ?? []) n.close();
+  } catch {
+    // Nothing to clear, or no service worker on this browser.
+  }
 }

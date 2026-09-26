@@ -142,6 +142,10 @@ self.addEventListener("push", (event) => {
       badge: "/icon-192.png",
       tag: data.tag,
       data: { url: data.url || "/today" },
+      // A ringing call stays on screen and buzzes again, where the phone
+      // allows it, rather than sliding away like a chat message. The missed
+      // call that follows it has the same tag, so it takes the ring's place.
+      ...(data.ring ? { requireInteraction: true, renotify: true, vibrate: [400, 200, 400, 200, 400] } : {}),
     }),
   );
 });

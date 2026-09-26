@@ -13,13 +13,27 @@ import { createClient } from "@/lib/supabase/server";
  * Never throws: a notification that fails must not fail the message, post or
  * chore that caused it. Call it inside `after()` so it never slows a reply. */
 
-export type PushKind = "chat" | "journal" | "shopping" | "approvals" | "events" | "health" | "bills";
+export type PushKind = "chat" | "calls" | "family_calls" | "journal" | "shopping" | "approvals" | "events" | "health" | "bills";
 
 export function pushConfigured(): boolean {
   return Boolean(process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY && process.env.VAPID_PRIVATE_KEY);
 }
 
-export async function sendPush(input: { kind: PushKind; title: string; body: string; url: string; memberIds?: string[]; tag?: string }): Promise<void> {
+/** `ring`: a call that is ringing now. Sent as urgent, so a sleeping phone is
+ * woken rather than batched, and dropped after a minute -- "Janine is
+ * calling" arriving an hour late is worse than not arriving. The service
+ * worker keeps it on screen until it is dealt with. `ttlSeconds` overrides
+ * how long an undelivered notification is kept (12 hours otherwise). */
+export async function sendPush(input: {
+  kind: PushKind;
+  title: string;
+  body: string;
+  url: string;
+  memberIds?: string[];
+  tag?: string;
+  ring?: boolean;
+  ttlSeconds?: number;
+}): Promise<void> {
   if (!pushConfigured()) return;
   try {
     webpush.setVapidDetails(
@@ -35,11 +49,13 @@ export async function sendPush(input: { kind: PushKind; title: string; body: str
       body: input.body.slice(0, 180),
       url: input.url.startsWith("/") ? input.url : "/today",
       tag: input.tag,
+      ring: input.ring || undefined,
     });
+    const options = input.ring ? { TTL: 60, urgency: "high" as const } : { TTL: input.ttlSeconds ?? 60 * 60 * 12 };
     await Promise.all(
       targets.map(async (t) => {
         try {
-          await webpush.sendNotification({ endpoint: t.endpoint, keys: { p256dh: t.p256dh, auth: t.auth } }, payload, { TTL: 60 * 60 * 12 });
+          await webpush.sendNotification({ endpoint: t.endpoint, keys: { p256dh: t.p256dh, auth: t.auth } }, payload, options);
         } catch (err) {
           const status = (err as { statusCode?: number }).statusCode;
           // Gone or unsubscribed: stop trying that device.
