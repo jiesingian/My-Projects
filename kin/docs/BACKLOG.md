@@ -77,10 +77,15 @@ Added 26 September (Janine's list):
     was declined: Xiaomi has no official way in without the account password.
 17. **Done: Planner rows line up:** an event's title is the link to its
     invitation; the preview card moved to the event's own screen.
-18. **App icon:** sharp at every size, a polished drawing, and the home
+18. **Done: App icon:** sharp at every size, a polished drawing, and the home
     page's 3D house to match.
-19. **Voice and video calls in Chat:** direct phone-to-phone now; a relay
-    (TURN) key from Jonathan later so calls also connect on mobile data.
+19. **Done: Voice and video calls in Chat:** the phone and camera buttons at
+    the top of the chat ring a household member with a login, on any page
+    of Kin (and by notification when Kin is closed). Direct phone to phone;
+    set-up travels on a private per-household channel.
+    **Still to do (Jonathan):** a TURN relay so calls also connect on
+    mobile data -- add `TURN_URLS`, `TURN_USERNAME` and `TURN_CREDENTIAL` in
+    Vercel (Cloudflare Calls or Metered both have a free tier).
 20. **Apple Health through an iPhone Shortcut:** a private link per person
     that a daily Shortcut sends steps, weight, heart rate and sleep to.
 
