@@ -1,5 +1,5 @@
 import { test, expect } from "@playwright/test";
-import { rankByPantry } from "@/lib/pantry-match";
+import { planDinners, rankByPantry } from "@/lib/pantry-match";
 import { normalizeKey } from "@/lib/pricebook";
 
 /** "Cook from what you have" only suggests what the house nearly covers. */
@@ -20,4 +20,17 @@ test("less than half covered, or more than three missing, is not suggested", () 
 
 test("an empty pantry suggests nothing rather than everything", () => {
   expect(rankByPantry([r("Adobo", "pork", "soy sauce")], new Set())).toEqual([]);
+});
+
+test("the week plan fills only the empty dinners, each with a different recipe, until the matches run out", () => {
+  const matches = rankByPantry([r("Sinigang", "pork", "tamarind", "kangkong", "radish"), r("Adobo", "pork", "soy sauce", "vinegar", "garlic")], pantry);
+  const plan = planDinners(["2026-09-28", "2026-09-29", "2026-09-30", "2026-10-01"], new Set(["2026-09-29"]), matches);
+  expect(plan.map((p) => [p.date, p.match.recipe.name])).toEqual([
+    ["2026-09-28", "Sinigang"],
+    ["2026-09-30", "Adobo"],
+  ]);
+});
+
+test("nothing close enough in the pantry plans nothing", () => {
+  expect(planDinners(["2026-09-28"], new Set(), rankByPantry([r("Adobo", "pork", "soy sauce")], new Set()))).toEqual([]);
 });

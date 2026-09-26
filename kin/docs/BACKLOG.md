@@ -236,12 +236,22 @@ Decided against in the same review: revising Journal (item 6) and Planner
   production's own hand-made buckets reproducible is still open: that needs
   its policies read first.
 
-- Skeleton loaders on the pages that still show a blank screen while loading
-  (5 of 24 have them).
-- Chore-done pop and a strike-and-slide animation when a grocery item is
-  ticked (no new dependencies).
-- Photos attached to calendar events.
-- Pantry-based meal planner: suggest meals from what is already in stock.
+- **Done: loading placeholders.** Checked 26 September: every page in the
+  app has one -- the shared hub-shaped one in (app)/loading.tsx or its own
+  section's -- so none shows a blank screen. The "5 of 24" count was stale.
+- **Done: tick animations.** The chore-done pop and burst and the grocery
+  strike line were already in (#194). On 26 September the grocery tick
+  moved from keyframes to transitions: a shopping trip ticks dozens, often a
+  wrong one and straight back, and a transition turns round mid-way where a
+  keyframe restarts. The row's sideways nudge is gone.
+- **Done 26 September: photos on calendar events.** Several per event, from
+  the event's own screen (the venue, the invitation, the day). The Planner
+  row says how many. Same household-folder storage as visit photos.
+- **Done 26 September: pantry meal planner.** "Cook from what you have"
+  (#197) suggested tonight's dinner; now one tap plans every empty dinner
+  from today to Sunday, each a different recipe the pantry nearly covers,
+  and "Generate grocery list" picks up what's missing. Planned days are
+  never replaced.
 - Proactive reminders: low pantry items (bills, birthdays and "in 30
   minutes" are done, above). A true leave-by time needs travel times from a
   maps service, which is a key and a bill.

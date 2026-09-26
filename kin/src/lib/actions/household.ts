@@ -26,6 +26,8 @@ import { allDayEvent } from "@/lib/calendar-shape";
 import { familyDay, weekdayOf, addDays } from "@/lib/time";
 import { humanDatabaseError } from "@/lib/db-errors";
 import { clamp } from "@/lib/text";
+import { getRecipeBook } from "@/lib/queries/recipes";
+import { planDinners, rankByPantry } from "@/lib/pantry-match";
 
 export async function addBuyItemAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
   const me = await requireCurrentMember();
@@ -407,6 +409,76 @@ export async function addMealFromRecipeAction(input: {
   revalidatePath("/household");
   revalidatePath("/planner");
   return { error: null };
+}
+
+/** "Plan the week from the pantry" (26 September): every dinner still empty
+ * from today to the end of the week showing gets a different recipe the
+ * pantry nearly covers. Days already planned are left alone. The family's
+ * own and edited recipes bring their own ingredients, so "Generate grocery
+ * list" afterwards picks up exactly what is missing. */
+export async function planWeekFromPantryAction(weekOf: string): Promise<{ error: string | null; planned: { date: string; dish: string }[] }> {
+  const me = await requireCurrentMember();
+  const supabase = await createClient();
+
+  const anchor = weekOf?.trim() || familyDay();
+  const dow = weekdayOf(anchor);
+  const weekStart = dow === null ? null : addDays(anchor, -((dow + 6) % 7));
+  if (!weekStart) return { error: "That week could not be read.", planned: [] };
+  const today = familyDay();
+  // Past days are history, not a plan.
+  const days = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i)).filter((d): d is string => !!d && d >= today);
+  if (days.length === 0) return { error: "That week is already over.", planned: [] };
+
+  const [recipes, { data: pantry }, { data: dinners }] = await Promise.all([
+    getRecipeBook(me.family_id),
+    supabase.from("pantry_items").select("item_key").eq("family_id", me.family_id),
+    supabase.from("meal_plans").select("plan_date").eq("family_id", me.family_id).eq("slot", "dinner").gte("plan_date", days[0]).lte("plan_date", days[days.length - 1]),
+  ]);
+  const forDinner = recipes.filter((r) => r.slots.length === 0 || r.slots.includes("dinner"));
+  const matches = rankByPantry(forDinner, new Set((pantry ?? []).map((p) => p.item_key)), days.length);
+  if (matches.length === 0) return { error: "Nothing in the recipe book is close enough to what's in the pantry yet.", planned: [] };
+  const plan = planDinners(days, new Set((dinners ?? []).map((d) => d.plan_date)), matches);
+  if (plan.length === 0) return { error: null, planned: [] };
+
+  const { data: rows, error } = await supabase
+    .from("meal_plans")
+    .insert(
+      plan.map(({ date, match }) => ({
+        family_id: me.family_id,
+        plan_date: date,
+        slot: "dinner",
+        position: 0,
+        dish: match.recipe.name,
+        recipe_key: match.recipe.key,
+        created_by: me.id,
+      })),
+    )
+    .select("id, plan_date, dish");
+  if (error || !rows) return { error: error ? humanDatabaseError(error.message) : "Could not save the plan.", planned: [] };
+
+  const recipeOn = new Map(plan.map(({ date, match }) => [date, match.recipe]));
+  const ingredients = rows.flatMap((row) =>
+    (recipeOn.get(row.plan_date)?.ingredients ?? []).map((ing) => ({
+      meal_plan_id: row.id,
+      family_id: me.family_id,
+      ingredient_name: ing.name,
+      item_key: normalizeKey(ing.name),
+      qty_amount: ing.qty,
+      unit: ing.unit,
+      section: ing.section,
+      qty: [ing.qty, ing.unit].filter((p) => p != null && p !== "").join(" ") || null,
+    })),
+  );
+  if (ingredients.length > 0) {
+    const { error: ingredientError } = await supabase.from("meal_ingredients").insert(ingredients);
+    if (ingredientError) return { error: `The dinners were planned, but not what they need. ${ingredientError.message}`, planned: [] };
+  }
+
+  await Promise.all(rows.map((row) => syncRowToCalendars(me.family_id, "meal_plans", row.id, allDayEvent(row.dish, row.plan_date), { kind: "all" })));
+
+  revalidatePath("/household");
+  revalidatePath("/planner");
+  return { error: null, planned: rows.map((r) => ({ date: r.plan_date, dish: r.dish })).sort((a, b) => a.date.localeCompare(b.date)) };
 }
 
 export async function removeMealAction(mealId: string): Promise<ActionState> {

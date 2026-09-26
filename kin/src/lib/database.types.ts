@@ -2545,6 +2545,33 @@ export type Database = {
         }
         Relationships: []
       }
+      event_photos: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          event_id: string
+          family_id: string
+          id: string
+          storage_path: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          event_id: string
+          family_id: string
+          id?: string
+          storage_path: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          event_id?: string
+          family_id?: string
+          id?: string
+          storage_path?: string
+        }
+        Relationships: []
+      }
       health_labs: {
         Row: {
           created_at: string

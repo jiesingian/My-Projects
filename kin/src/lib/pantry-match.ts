@@ -24,3 +24,18 @@ export function rankByPantry<R extends { ingredients: { name: string }[] }>(reci
   }
   return out.sort((a, b) => a.missing.length - b.missing.length || b.have / b.need - a.have / a.need).slice(0, limit);
 }
+
+/** The week's dinners from the pantry (26 September): each day still without
+ * a dinner gets the best-matching recipe not already given to another day,
+ * in date order, until the matches run out. Days that have a dinner are left
+ * exactly as they are -- this only fills gaps, it never replaces a plan. */
+export function planDinners<R>(days: string[], hasDinner: Set<string>, matches: PantryMatch<R>[]): { date: string; match: PantryMatch<R> }[] {
+  const out: { date: string; match: PantryMatch<R> }[] = [];
+  let next = 0;
+  for (const date of days) {
+    if (hasDinner.has(date)) continue;
+    if (next >= matches.length) break;
+    out.push({ date, match: matches[next++] });
+  }
+  return out;
+}
