@@ -16,20 +16,17 @@ import {
   type PlannerCalendarItem,
 } from "@/lib/queries/planner";
 import { getMembers } from "@/lib/queries/family";
-import { getAccounts } from "@/lib/queries/wealth";
 import { syncGoogleCalendarIfStale } from "@/lib/actions/calendar-sync";
 import { HubHeader } from "@/components/hub-header";
 import { PickButton } from "@/components/pick-button";
 import { Blueprint, Tag } from "@/components/ui";
-import { formatAccounting, shortNames, selfLabel } from "@/lib/format";
-import { InviteCard } from "@/components/invite-card";
+import { shortNames, selfLabel } from "@/lib/format";
 import { AddToJournalButton } from "@/components/add-to-journal-button";
 import { Icon } from "@/components/icons";
 import { CALENDAR_LEGEND, styleFor } from "@/lib/calendar-style";
 import { parseHidden, serializeHidden, toggledHidden, type CalendarGroup } from "@/lib/calendar-groups";
 import { familyClock, familyDateLong, familyDay } from "@/lib/time";
 import { dayColumn, startOfWeek, weekdayInitials, weekStartOf, type WeekStart } from "@/lib/week";
-import { LogSpendControl } from "@/components/money-actions";
 import { CalendarJump, CalendarPeriod, DateRail, MonthScroller, TodayButton } from "@/components/calendar-nav";
 import { AddToCalendar } from "@/components/add-to-calendar";
 import { getRoutines, getMemberScores, getRewards, type MemberScore } from "@/lib/queries/routines";
@@ -95,7 +92,7 @@ export default async function PlannerPage({
           />
         )}
         {seg === "routines" && <RoutinesPane familyId={me.family_id} who={who} currency={me.families.currency} justSaved={sp.saved === "1"} />}
-        {seg === "events" && <EventsPane familyId={me.family_id} memberId={me.id} currency={me.families.currency} who={who} />}
+        {seg === "events" && <EventsPane familyId={me.family_id} who={who} />}
       </div>
     </div>
   );
@@ -911,12 +908,12 @@ function concerns(memberIds: string[], appliesToAll: boolean, who: string): bool
 /** Events and trips both live on this one segment now -- a household doesn't
  * think of a trip as a fundamentally different kind of thing from a
  * birthday, just a date-bearing plan with more attached to it (a budget, a
- * packing list, travellers). The nearest upcoming trip keeps its richer hero
- * card below, since that extra detail is exactly what's worth surfacing; every
- * other event and trip is one merged, date-ordered list beneath it. */
-async function EventsPane({ familyId, memberId, currency, who }: { familyId: string; memberId: string; currency: string; who: string }) {
+ * packing list, travellers). Every event and trip is one merged, date-ordered
+ * list; a trip's extra detail (budget, spend, invitation card) is on its own
+ * screen. */
+async function EventsPane({ familyId, who }: { familyId: string; who: string }) {
   const fmtDate = await familyDate();
-  const [allEvents, accounts, members] = await Promise.all([getEvents(familyId), getAccounts(familyId), getMembers(familyId)]);
+  const [allEvents, members] = await Promise.all([getEvents(familyId), getMembers(familyId)]);
   // One query now: travel is a kind of event, not a second table. Which of
   // them gets the richer hero card is decided by the kind, not by where the
   // row came from.
@@ -930,77 +927,18 @@ async function EventsPane({ familyId, memberId, currency, who }: { familyId: str
     e.applies_to_whole_family || e.memberIds.length !== 1 ? null : (colourOf.get(e.memberIds[0]) ?? null);
   const events = visible.filter((e) => e.kind !== "travel");
   const trips = visible.filter((e) => e.kind === "travel");
-  const pickable = accounts
-    .filter((a) => a.is_joint || a.owner_member_id === memberId)
-    .map((a) => ({ id: a.id, name: a.name, institution: a.institution, linked_app_url: a.linked_app_url, balance: a.balance, is_joint: a.is_joint }));
-  // The soonest trip that hasn't started yet -- not just whichever sorts
-  // first, which used to surface a trip a year out over one next week, or a
-  // trip already over, as the hero card.
-  const today = familyDay(new Date());
-  const upcomingTrip = trips
-    .filter((t) => t.event_date >= today)
-    .sort((a, b) => a.event_date.localeCompare(b.event_date))[0];
-  const earlierTrips = trips.filter((t) => t.id !== upcomingTrip?.id);
-
-  const rows: ({ date: string } & ({ kind: "event"; event: (typeof events)[number] } | { kind: "trip"; trip: (typeof earlierTrips)[number] }))[] = [
+  // Travel is one more row, the same shape as every other (26 September):
+  // the big card the next trip used to get pushed the list down and made
+  // travel look like a different thing. Its budget, spend and invitation
+  // card are on the trip's own screen now.
+  const rows: ({ date: string } & ({ kind: "event"; event: (typeof events)[number] } | { kind: "trip"; trip: (typeof trips)[number] }))[] = [
     ...events.map((e) => ({ kind: "event" as const, date: e.event_date, event: e })),
-    ...earlierTrips.map((t) => ({ kind: "trip" as const, date: t.event_date, trip: t })),
+    ...trips.map((t) => ({ kind: "trip" as const, date: t.event_date, trip: t })),
   ].sort((a, b) => a.date.localeCompare(b.date));
 
   return (
     <>
       <MemberChips familyId={familyId} seg="events" who={who} />
-      {upcomingTrip && (
-        <Blueprint style={{ marginBottom: "1rem", padding: 0 }}>
-          <div
-            className={upcomingTrip.photoUrl ? "" : "duotone"}
-            style={{
-              height: 130,
-              backgroundImage: upcomingTrip.photoUrl ? `url(${upcomingTrip.photoUrl})` : undefined,
-              backgroundSize: "cover",
-              backgroundPosition: "center",
-            }}
-          />
-          <div style={{ padding: "0.8125rem" }}>
-            <div style={{ font: "400 0.75rem/1 var(--font-numeric)", color: "var(--color-accent-700)" }}>
-              {fmtDate(upcomingTrip.event_date)}
-              {upcomingTrip.end_date ? ` — ${fmtDate(upcomingTrip.end_date)}` : ""}
-            </div>
-            <div style={{ font: "600 1.5rem/1.05 var(--font-heading)", margin: "6px 0 8px" }}>{upcomingTrip.title}</div>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "0.5rem", fontSize: "0.8125rem" }}>
-              <Fact k="Budget" v={upcomingTrip.budget_amount ? formatAccounting(Number(upcomingTrip.budget_amount), upcomingTrip.budget_currency ?? currency) : "—"} />
-              <Fact k="Packed" v={`${upcomingTrip.packed_count} / ${upcomingTrip.packed_total}`} />
-              <Fact
-                k="Travelling"
-                v={
-                  upcomingTrip.applies_to_whole_family || upcomingTrip.who.length === 0
-                    ? "Whole family"
-                    : upcomingTrip.who.map((n) => n.split(" ")[0]).join(", ")
-                }
-              />
-            </div>
-            {upcomingTrip.invite_url && <InviteCard eventId={upcomingTrip.id} url={upcomingTrip.invite_url} />}
-            <Link
-              href={`/planner/add?type=event&id=${upcomingTrip.id}`}
-              className="btn btn-secondary btn-block"
-              style={{ minHeight: "2.5rem", fontSize: "0.8125rem", marginTop: "0.75rem" }}
-            >
-              Edit trip
-            </Link>
-            <div style={{ marginTop: "0.625rem" }}>
-              <LogSpendControl
-                accounts={pickable}
-                currency={currency}
-                particulars={`${upcomingTrip.title} · travel`}
-                category="Travel"
-                sourceTable="events"
-                sourceId={upcomingTrip.id}
-                label="Log trip spend"
-              />
-            </div>
-          </div>
-        </Blueprint>
-      )}
       {rows.length === 0 && (
         <p style={{ fontSize: "0.84375rem", color: "var(--color-neutral-600)" }}>
           {allEvents.length === 0 ? "Nothing planned yet." : "Nothing planned for this person."}
@@ -1047,7 +985,18 @@ async function EventsPane({ familyId, memberId, currency, who }: { familyId: str
         ) : (
           <div key={`trip-${row.trip.id}`} className="kin-planrow">
             <Link href={`/planner/add?type=event&id=${row.trip.id}`} className="kin-planrow-hit" aria-label={`Open ${row.trip.title}`} />
-            <Blueprint style={{ width: 50, height: 50, flex: "none", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center" }}>
+            <Blueprint
+              style={{
+                width: 50,
+                height: 50,
+                flex: "none",
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "center",
+                justifyContent: "center",
+                borderLeft: stripeFor(row.trip) ? `3px solid ${stripeFor(row.trip)}` : undefined,
+              }}
+            >
               <span style={{ font: "600 1.125rem/1 var(--font-heading)" }}>{new Date(row.trip.event_date).getDate()}</span>
               <span style={{ fontSize: "0.53125rem", letterSpacing: ".02em", color: "var(--color-neutral-600)" }}>
                 {new Date(row.trip.event_date).toLocaleDateString("en-GB", { month: "short" }).toUpperCase()}
@@ -1057,15 +1006,13 @@ async function EventsPane({ familyId, memberId, currency, who }: { familyId: str
               <PlanTitle title={row.trip.title} inviteUrl={row.trip.invite_url} />
               <div style={{ fontSize: "0.8125rem", color: "var(--color-neutral-600)" }}>
                 {row.trip.applies_to_whole_family || row.trip.who.length === 0 ? "Whole family" : row.trip.who.map((n) => n.split(" ")[0]).join(", ")}
+                {row.trip.end_date && row.trip.end_date !== row.trip.event_date ? ` · until ${fmtDate(row.trip.end_date)}` : ""}
+                {row.trip.sub_note ? ` · ${row.trip.sub_note}` : ""}
               </div>
             </div>
-            {row.trip.journal_entry_id ? (
-              <Link href="/journal?view=list" className="btn btn-ghost kin-planrow-over" style={{ fontSize: "0.8125rem" }}>
-                In journal
-              </Link>
-            ) : (
-              <Tag variant="neutral" className="self-start">TRIP</Tag>
-            )}
+            <Tag variant="accent" className="self-start">
+              TRAVEL
+            </Tag>
           </div>
         ),
       )}
@@ -1073,23 +1020,11 @@ async function EventsPane({ familyId, memberId, currency, who }: { familyId: str
         <Link href="/planner/add?type=event" className="btn btn-primary btn-block" style={{ minHeight: "2.875rem", fontSize: "0.875rem", letterSpacing: ".04em" }}>
           + ADD EVENT
         </Link>
-        <Link href="/planner/add?type=trip" className="btn btn-primary btn-block" style={{ minHeight: "2.875rem", fontSize: "0.875rem", letterSpacing: ".04em" }}>
-          + ADD TRAVEL
-        </Link>
       </div>
       <div style={{ fontSize: "0.8125rem", color: "var(--color-neutral-600)", marginTop: "0.5rem" }}>
         Birthdays and anniversaries repeat yearly on their own.
       </div>
     </>
-  );
-}
-
-function Fact({ k, v }: { k: string; v: string }) {
-  return (
-    <div>
-      <span style={{ display: "block", fontSize: "0.6875rem", letterSpacing: ".02em", textTransform: "uppercase", color: "var(--color-neutral-600)" }}>{k}</span>
-      {v}
-    </div>
   );
 }
 

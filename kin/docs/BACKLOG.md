@@ -92,6 +92,22 @@ Added 26 September (Janine's list):
     on that person's Health page (Vitals). The Shortcut steps are written
     against iOS 17/18 but were not tried on an iPhone from here.
 
+Added 26 September, second list:
+
+21. **Done: No page zoom with two fingers.** Text size in Settings is the
+    way to larger text; photos and the family tree keep their own pinch.
+22. **Done: Travel is an event like any other:** one row per trip (date,
+    title linking to the invitation, TRAVEL tag), no separate "Add travel"
+    (Add event, Type: Travel), and the trip's spend logged from its own
+    screen.
+23. **Home-screen icon showed a "K":** the shortcut was saved before the
+    icon existed and iPhones never refresh one. Remove it and add Kin to
+    the Home Screen again; `/apple-touch-icon.png` now also answers at the
+    root for older iPhones.
+24. **Health tab, all six approved:** medicine reminders, a "this week"
+    summary, an emergency card, children's growth charts, visit notes with
+    photos, and an illness log.
+
 Decided against in the same review: revising Journal (item 6) and Planner
 (item 7). Done already: no hub numbers and no "five ledgers" motto (item 9,
 #209).
