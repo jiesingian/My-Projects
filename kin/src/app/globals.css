@@ -1285,6 +1285,23 @@ textarea.input {
 .kin-treechart-viewport:active {
   cursor: grabbing;
 }
+/* Full screen: the chart takes the whole window, the buttons stay under it,
+   and a selected person's panel scrolls below if there is one. */
+.kin-treechart[data-max] {
+  position: fixed;
+  inset: 0;
+  z-index: 55;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  background: var(--color-bg);
+  padding: calc(env(safe-area-inset-top, 0px) + 0.75rem) calc(env(safe-area-inset-right, 0px) + 0.75rem)
+    calc(env(safe-area-inset-bottom, 0px) + 0.75rem) calc(env(safe-area-inset-left, 0px) + 0.75rem);
+}
+.kin-treechart[data-max] .kin-treechart-viewport {
+  flex: none;
+  height: calc(100dvh - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px) - 5.5rem);
+  min-height: 18rem;
+}
 .kin-treechart-canvas {
   position: absolute;
   left: 0;
@@ -4030,3 +4047,71 @@ button.kin-initial:focus-visible {
 }
 .kin-treecard-sibling button:hover { background: color-mix(in srgb, var(--color-text) 6%, transparent); }
 .kin-treecard-sibling button:focus-visible { outline: 2px solid var(--color-accent-700); outline-offset: -2px; }
+
+/* Links: shortcuts to the appliance apps (smart-home-links.tsx). */
+.kin-smarthome {
+  display: grid;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+.kin-smarthome-app {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem 0.875rem;
+  border-radius: var(--radius-card);
+  border: 1px solid var(--color-divider);
+  background: var(--color-surface);
+  color: var(--color-text);
+  text-decoration: none;
+}
+.kin-smarthome-ico {
+  width: 2.25rem;
+  height: 2.25rem;
+  flex: none;
+  display: grid;
+  place-items: center;
+  border-radius: 0.625rem;
+  background: color-mix(in srgb, var(--color-accent) 14%, transparent);
+  color: var(--color-accent);
+}
+.kin-smarthome-name {
+  display: block;
+  font-weight: 600;
+  font-size: var(--text-sm);
+}
+.kin-smarthome-line {
+  display: block;
+  font-size: var(--text-xs);
+  color: var(--color-neutral-600);
+}
+
+/* A Planner row (planner/page.tsx). The whole row opens the event through a
+   link stretched underneath it; only the invitation title and the
+   "In journal" button sit above it and take their own taps. */
+.kin-planrow {
+  position: relative;
+  display: flex;
+  gap: 0.75rem;
+  align-items: flex-start;
+  padding: 0.8125rem 0;
+  border-bottom: 1px solid color-mix(in srgb, var(--color-text) 10%, transparent);
+  color: inherit;
+}
+.kin-planrow-hit {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  border-radius: 0.5rem;
+}
+.kin-planrow-over {
+  position: relative;
+  z-index: 2;
+}
+.kin-planrow-invite {
+  display: inline;
+  color: var(--color-accent);
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 0.2em;
+}

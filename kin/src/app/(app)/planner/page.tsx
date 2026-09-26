@@ -1008,14 +1008,14 @@ async function EventsPane({ familyId, memberId, currency, who }: { familyId: str
       )}
       {rows.map((row) =>
         row.kind === "event" ? (
-          // The card is a link of its own, so it sits beside the row's link
-          // rather than inside it: a link inside a link is invalid, and the tap
-          // would go to the edit screen instead of the invitation.
-          <div key={`event-${row.event.id}`} style={{ padding: "0.8125rem 0", borderBottom: "1px solid color-mix(in srgb, var(--color-text) 10%, transparent)" }}>
-          <Link
-            href={`/planner/add?type=event&id=${row.event.id}`}
-            style={{ display: "flex", gap: "0.75rem", textDecoration: "none", color: "inherit" }}
-          >
+          // Every row is the same shape, invitation or not (26 September): the
+          // title itself is the link to the invitation, and the preview card
+          // stays on the event's own screen, where there is room for it. The
+          // whole row still opens the event -- a link stretched under the row,
+          // which the title's own link sits above, since a link inside a link
+          // is invalid.
+          <div key={`event-${row.event.id}`} className="kin-planrow">
+            <Link href={`/planner/add?type=event&id=${row.event.id}`} className="kin-planrow-hit" aria-label={`Open ${row.event.title}`} />
             <Blueprint
               style={{
                 width: 50,
@@ -1034,7 +1034,7 @@ async function EventsPane({ familyId, memberId, currency, who }: { familyId: str
               </span>
             </Blueprint>
             <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ font: "600 1.125rem/1.1 var(--font-heading)" }}>{row.event.title}</div>
+              <PlanTitle title={row.event.title} inviteUrl={row.event.invite_url} />
               <div style={{ fontSize: "0.8125rem", color: "var(--color-neutral-600)" }}>
                 {row.event.applies_to_whole_family || row.event.who.length === 0 ? "Whole family" : row.event.who.map((n) => n.split(" ")[0]).join(", ")}
                 {row.event.sub_note ? ` · ${row.event.sub_note}` : ""}
@@ -1043,33 +1043,29 @@ async function EventsPane({ familyId, memberId, currency, who }: { familyId: str
             <Tag variant={row.event.kind === "birthday" || row.event.kind === "anniversary" ? "neutral" : "accent"} className="self-start">
               {row.event.kind.toUpperCase()}
             </Tag>
-          </Link>
-          {row.event.invite_url && <InviteCard eventId={row.event.id} url={row.event.invite_url} />}
           </div>
         ) : (
-          <div key={`trip-${row.trip.id}`} style={{ padding: "0.8125rem 0", borderBottom: "1px solid color-mix(in srgb, var(--color-text) 10%, transparent)" }}>
-          <div style={{ display: "flex", gap: "0.75rem", alignItems: "center" }}>
+          <div key={`trip-${row.trip.id}`} className="kin-planrow">
+            <Link href={`/planner/add?type=event&id=${row.trip.id}`} className="kin-planrow-hit" aria-label={`Open ${row.trip.title}`} />
             <Blueprint style={{ width: 50, height: 50, flex: "none", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center" }}>
               <span style={{ font: "600 1.125rem/1 var(--font-heading)" }}>{new Date(row.trip.event_date).getDate()}</span>
               <span style={{ fontSize: "0.53125rem", letterSpacing: ".02em", color: "var(--color-neutral-600)" }}>
                 {new Date(row.trip.event_date).toLocaleDateString("en-GB", { month: "short" }).toUpperCase()}
               </span>
             </Blueprint>
-            <Link href={`/planner/add?type=event&id=${row.trip.id}`} style={{ flex: 1, minWidth: 0, textDecoration: "none", color: "inherit" }}>
-              <div style={{ font: "600 1.125rem/1.1 var(--font-heading)" }}>{row.trip.title}</div>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <PlanTitle title={row.trip.title} inviteUrl={row.trip.invite_url} />
               <div style={{ fontSize: "0.8125rem", color: "var(--color-neutral-600)" }}>
                 {row.trip.applies_to_whole_family || row.trip.who.length === 0 ? "Whole family" : row.trip.who.map((n) => n.split(" ")[0]).join(", ")}
               </div>
-            </Link>
+            </div>
             {row.trip.journal_entry_id ? (
-              <Link href="/journal?view=list" className="btn btn-ghost" style={{ fontSize: "0.8125rem" }}>
+              <Link href="/journal?view=list" className="btn btn-ghost kin-planrow-over" style={{ fontSize: "0.8125rem" }}>
                 In journal
               </Link>
             ) : (
               <Tag variant="neutral" className="self-start">TRIP</Tag>
             )}
-          </div>
-          {row.trip.invite_url && <InviteCard eventId={row.trip.id} url={row.trip.invite_url} />}
           </div>
         ),
       )}
@@ -1094,5 +1090,19 @@ function Fact({ k, v }: { k: string; v: string }) {
       <span style={{ display: "block", fontSize: "0.6875rem", letterSpacing: ".02em", textTransform: "uppercase", color: "var(--color-neutral-600)" }}>{k}</span>
       {v}
     </div>
+  );
+}
+
+/** A row's title: plain, or -- when the event has an invitation -- the link
+ * to it, opening in a new tab. Same size and place either way, so rows with
+ * and without an invitation line up. */
+function PlanTitle({ title, inviteUrl }: { title: string; inviteUrl: string | null }) {
+  const style = { font: "600 1.125rem/1.1 var(--font-heading)" } as const;
+  if (!inviteUrl) return <div style={style}>{title}</div>;
+  return (
+    <a href={inviteUrl} target="_blank" rel="noopener noreferrer nofollow" className="kin-planrow-invite kin-planrow-over" style={style} aria-label={`${title}: open the invitation in a new tab`}>
+      {title}
+      <Icon name="external" size="0.8125rem" style={{ marginLeft: "0.3125rem", verticalAlign: "0.0625rem" }} />
+    </a>
   );
 }

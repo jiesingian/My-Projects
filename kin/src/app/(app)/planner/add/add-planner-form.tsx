@@ -1,6 +1,7 @@
 "use client";
 
 import { FlyerScanner } from "@/components/flyer-scanner";
+import { InviteCard } from "@/components/invite-card";
 import { startTransition, useActionState, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
@@ -317,6 +318,9 @@ function EventForm({
           style={{ minHeight: "2.75rem" }}
         />
       </Field>
+      {/* The preview card lives here now; the Planner list shows the title as
+          the link instead, so its rows line up. */}
+      {editEvent?.id && editEvent.invite_url && <InviteCard eventId={editEvent.id} url={editEvent.invite_url} />}
       <Field label="Budget (optional)">
         <div style={{ display: "flex", gap: "0.5rem" }}>
           <select

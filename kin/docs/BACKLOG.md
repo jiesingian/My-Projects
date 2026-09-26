@@ -67,6 +67,23 @@ Added 25 September, after the list above:
 13. **Done: Text that fits:** tab and button labels that fit at the default text
     size, and pages that still work at a larger one.
 
+Added 26 September (Janine's list):
+
+14. **Done: Family tree full screen:** a button beside the zoom buttons opens
+    the tree over the whole screen; the same button or Escape closes it.
+15. **Done: Links no longer mentions passwords:** they are only in the Vault.
+16. **Done: Smart home shortcuts in Links:** Xiaomi Home and LG ThinQ open
+    their own app (Android) or App Store page (iPhone). A real connection
+    was declined: Xiaomi has no official way in without the account password.
+17. **Done: Planner rows line up:** an event's title is the link to its
+    invitation; the preview card moved to the event's own screen.
+18. **App icon:** sharp at every size, a polished drawing, and the home
+    page's 3D house to match.
+19. **Voice and video calls in Chat:** direct phone-to-phone now; a relay
+    (TURN) key from Jonathan later so calls also connect on mobile data.
+20. **Apple Health through an iPhone Shortcut:** a private link per person
+    that a daily Shortcut sends steps, weight, heart rate and sleep to.
+
 Decided against in the same review: revising Journal (item 6) and Planner
 (item 7). Done already: no hub numbers and no "five ledgers" motto (item 9,
 #209).
