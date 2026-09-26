@@ -24,7 +24,7 @@ type Row = ScannedItem & { keep: boolean };
 
 /** Photograph a school memo, an invitation or a poster, and get calendar
  * entries back to check before anything is saved. */
-export function FlyerScanner() {
+export function FlyerScanner({ ready }: { ready: boolean }) {
   const uid = useId();
   const router = useRouter();
   const input = useRef<HTMLInputElement>(null);
@@ -82,6 +82,15 @@ export function FlyerScanner() {
           <p>Take a photo of a school memo, invite or poster, or choose one you already have (a screenshot works too). Kin finds the dates and you choose what to add.</p>
         </div>
       </div>
+      {!ready ? (
+        // Said up front (26 September): until the key is added, choosing a
+        // photo only led to an error naming an environment variable.
+        <p className="kin-scan-off" role="note">
+          Scanning isn&apos;t switched on yet. Jonathan needs to add it once (a few cents a scan). Until then, fill in the event
+          below.
+        </p>
+      ) : (
+      <>
       <input
         ref={input}
         id={`${uid}-file`}
@@ -98,6 +107,8 @@ export function FlyerScanner() {
       <label htmlFor={`${uid}-file`} className="btn btn-secondary btn-block" aria-disabled={scanning || saving}>
         {scanning ? "Reading the photo…" : rows ? "Scan another" : "Take or choose a photo"}
       </label>
+      </>
+      )}
       {scanning && (
         <div className="kin-scan-reading" aria-hidden="true">
           <span className="kin-skeleton" />

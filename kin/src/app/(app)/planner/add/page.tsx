@@ -71,6 +71,9 @@ export default async function AddPlannerPage({
       // arrives in a URL, and a URL is something anybody can type.
       prefill={id ? undefined : { title: title?.slice(0, 150), notes: notes?.slice(0, 1000) }}
       householdCurrency={me.families.currency}
+      // Whether the photo scanner can run: it reads the photo with Claude,
+      // which needs ANTHROPIC_API_KEY in Vercel (docs/SETUP_FOR_JONATHAN.md).
+      scanReady={!!process.env.ANTHROPIC_API_KEY}
     />
     {editEvent && (
       <div style={{ padding: "0 1.375rem 1.25rem" }}>
