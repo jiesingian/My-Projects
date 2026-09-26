@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { SmartHomeLinks } from "@/components/smart-home-links";
 import { Icon } from "@/components/icons";
 import { redirect } from "next/navigation";
 import { getCurrentMember } from "@/lib/session";
@@ -390,15 +391,12 @@ async function QuicklinksPane({ familyId, meId, myRole }: { familyId: string; me
       </div>
       <EmergencyContactList contacts={contacts} parents={parents} />
 
+      {/* Passwords live only in the Vault (26 September): Links no longer
+          mentions them at all. */}
       <div className="kin-eyebrow" style={{ margin: "22px 0 8px" }}>
-        PASSWORDS
+        SMART HOME
       </div>
-      {/* The Wi-Fi, door codes and logins moved into the Vault with the
-          documents (25 September): one place, one unlock. */}
-      <Link href="/family?seg=documents&tab=passwords" className="btn btn-secondary btn-block" style={{ minHeight: "2.5rem", fontSize: "0.84375rem", marginBottom: "1.25rem", gap: "0.375rem" }}>
-        <Icon name="keyRound" size={15} />
-        Passwords are in the Vault
-      </Link>
+      <SmartHomeLinks />
 
       <div className="kin-eyebrow" style={{ margin: "22px 0 8px" }}>
         WHERE EVERYONE IS

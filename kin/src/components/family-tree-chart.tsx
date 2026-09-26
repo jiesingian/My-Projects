@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from "react";
+import { createPortal } from "react-dom";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Avatar } from "@/components/avatar";
@@ -279,13 +280,40 @@ export function FamilyTreeChart({
       setThreeD(next);
       if (!next) setSpin(0);
     });
+  // ── full screen ───────────────────────────────────────────────────────────
+  // The whole chart, its buttons and the selected person's panel, over the
+  // page. A portal to <body> rather than position: fixed where it stands: an
+  // ancestor with a backdrop-filter traps a fixed element inside itself, and
+  // the Fullscreen API is not offered for anything but video on an iPhone.
+  // It sits under the sheets (z-index 60), so adding a relative still opens
+  // on top of it.
+  const [max, setMax] = useState(false);
+  useEffect(() => {
+    if (!max) return;
+    const root = document.documentElement;
+    const before = root.style.overflow;
+    root.style.overflow = "hidden";
+    const onKey = (e: KeyboardEvent) => e.key === "Escape" && setMax(false);
+    window.addEventListener("keydown", onKey);
+    return () => {
+      root.style.overflow = before;
+      window.removeEventListener("keydown", onKey);
+    };
+  }, [max]);
+  const toggleMax = () => {
+    const keep = focus ?? meTreeId;
+    setMax((m) => !m);
+    // The window changes size, so re-centre on whoever was in view once it has.
+    setTimeout(() => (keep ? centreOn(keep, view.k) : fit()), 60);
+  };
+
   const half = { x: rem(layout.width / 2), y: rem(layout.height / 2) };
   const canvasTransform = threeD
     ? `translate(${view.x}px, ${view.y}px) scale(${view.k}) translate(${half.x}, ${half.y}) rotateX(${TILT}deg) rotateZ(${spin}deg) translate(-${half.x}, -${half.y})`
     : `translate(${view.x}px, ${view.y}px) scale(${view.k})`;
 
-  return (
-    <div className="kin-treechart">
+  const chart = (
+    <div className="kin-treechart" data-max={max || undefined} role={max ? "dialog" : undefined} aria-modal={max || undefined} aria-label={max ? "Family tree, full screen" : undefined}>
       <div
         ref={viewport}
         className="kin-treechart-viewport"
@@ -398,6 +426,9 @@ export function FamilyTreeChart({
           and the first version covered the one person you were looking at. */}
       <div className="kin-treechart-bar">
         <div className="kin-treechart-tools">
+            <button type="button" className="btn btn-secondary btn-icon" aria-label={max ? "Leave full screen" : "Full screen"} aria-pressed={max} onClick={toggleMax}>
+              <Icon name={max ? "minimize" : "maximize"} size="1rem" />
+            </button>
             <button type="button" className="btn btn-secondary btn-icon" aria-label="Zoom in" onClick={() => zoomAt(1.25)}>
               <Icon name="plus" size="1rem" />
             </button>
@@ -483,6 +514,7 @@ export function FamilyTreeChart({
       )}
     </div>
   );
+  return max ? createPortal(chart, document.body) : chart;
 }
 
 function SelectedPanel({
