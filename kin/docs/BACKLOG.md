@@ -232,12 +232,13 @@ Decided against in the same review: revising Journal (item 6) and Planner
   them. Move `family-chat:` and `family-link:` to private channels with
   their own policies, then turn the setting off on dev and production.
 
-- **Dev has no `documents` storage bucket,** so every upload on dev fails
-  with "Bucket not found". Production's bucket and its storage policies were
-  made by hand before the migration pipeline and are in no migration. A
-  migration that creates both, matching production's policies exactly,
-  would fix dev and make production reproducible; it needs production's
-  current storage policies read first.
+- **Done 26 September: dev has storage.** Dev had no buckets at all, not only
+  `documents`, so no upload could be tested there.
+  20260926120000_storage_buckets_where_missing.sql creates journal, documents,
+  avatars (public) and recipe-photos where missing, with household-folder
+  policies, and does nothing where they exist (production). Making
+  production's own hand-made buckets reproducible is still open: that needs
+  its policies read first.
 
 - Skeleton loaders on the pages that still show a blank screen while loading
   (5 of 24 have them).
