@@ -17,7 +17,15 @@ import { familyDay } from "@/lib/time";
  * it, that happened twice on every load. The page now renders from the index
  * it already has and Drive is reconciled behind the response, so a change made
  * straight in Drive appears on the next visit rather than holding up this one. */
-export async function syncDriveJournalMedia(familyId: string, familyName: string): Promise<void> {
+export async function syncDriveJournalMedia(
+  familyId: string,
+  familyName: string,
+  // Made by the caller before after(): Next refuses cookies() inside an
+  // after() callback during a render, so a client made in here threw on every
+  // Journal visit with Drive connected and the reconcile never ran (seen in
+  // production's error log from 7 September until the 26th).
+  supabase: Awaited<ReturnType<typeof createClient>>,
+): Promise<void> {
   const token = await getValidDriveAccessToken(familyId);
   if (!token) return;
 
@@ -36,7 +44,6 @@ export async function syncDriveJournalMedia(familyId: string, familyName: string
     return;
   }
 
-  const supabase = await createClient();
   const { data: indexed } = await supabase
     .from("journal_media")
     .select("id, drive_file_id")

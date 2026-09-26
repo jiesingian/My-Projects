@@ -3651,23 +3651,28 @@ button.kin-initial:focus-visible {
 }
 
 /* ── Ticking things off ───────────────────────────────────────────────── */
-/* A grocery item: the circle pops as it fills, the line draws across the
-   name left to right, and the row settles back from a small nudge. */
-.kin-tick[aria-pressed="true"] { animation: kin-pop 260ms var(--ease-overshoot); }
+/* A grocery item: the circle gives under the thumb and fills, and the line
+   draws across the name left to right. Transitions rather than keyframes
+   (26 September): a shopping trip ticks dozens of these, often a wrong one
+   and straight back, and a transition turns round from wherever it is where a
+   keyframe restarts from zero. The row no longer nudges sideways -- a list
+   being read should not move under the reader. */
+.kin-tick {
+  transition:
+    transform 140ms var(--ease-out),
+    background-color 160ms var(--ease-out),
+    border-color 160ms var(--ease-out);
+}
+.kin-tick:active { transform: scale(0.88); }
 .kin-strike {
   background: linear-gradient(currentColor, currentColor) no-repeat 0 58% / 0% 1.5px;
   transition: background-size 240ms var(--ease-out);
 }
 .kin-strike[data-on="true"] { background-size: 100% 1.5px; }
-.kin-buy-row[data-checked="true"] { animation: kin-settle 280ms var(--ease-out); }
 @keyframes kin-pop {
   0% { transform: scale(0.7); }
   60% { transform: scale(1.15); }
   100% { transform: scale(1); }
-}
-@keyframes kin-settle {
-  0% { transform: translateX(0.5rem); opacity: 0.6; }
-  100% { transform: none; opacity: 1; }
 }
 
 /* A chore marked done just now: the chip pops and a ring of dots bursts out
@@ -3699,7 +3704,9 @@ button.kin-initial:focus-visible {
   }
 }
 @media (prefers-reduced-motion: reduce) {
-  .kin-tick[aria-pressed="true"], .kin-buy-row[data-checked="true"], .kin-celebrate { animation: none; }
+  .kin-celebrate { animation: none; }
+  .kin-tick { transition: background-color 160ms ease, border-color 160ms ease; }
+  .kin-tick:active { transform: none; }
   .kin-celebrate::after { display: none; }
   .kin-strike { transition: none; }
 }
@@ -3731,6 +3738,7 @@ button.kin-initial:focus-visible {
 .kin-pantry-meta { font-size: 0.8125rem; color: var(--color-neutral-700); }
 .kin-pantry .btn { flex: none; min-height: 2.25rem; font-size: 0.8125rem; padding: 0 0.75rem; }
 .kin-pantry-error { color: var(--color-accent-700); font-size: 0.8125rem; margin: 0.25rem 0 0; }
+.kin-pantry .kin-pantry-week { width: 100%; margin-top: 0.5rem; }
 
 /* ── Today > On this day, and the weekly recap ────────────────────────── */
 .kin-memories {

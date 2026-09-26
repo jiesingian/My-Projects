@@ -3,7 +3,7 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Icon } from "@/components/icons";
-import { addMealFromRecipeAction } from "@/lib/actions/household";
+import { addMealFromRecipeAction, planWeekFromPantryAction } from "@/lib/actions/household";
 
 export type PantrySuggestion = { key: string | null; name: string; minutes: number | null; have: number; need: number; missing: string[] };
 
@@ -15,7 +15,19 @@ export function CookFromPantry({ date, suggestions }: { date: string; suggestion
   const [pending, start] = useTransition();
   const [added, setAdded] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [week, setWeek] = useState<{ date: string; dish: string }[] | null>(null);
   if (suggestions.length === 0) return null;
+
+  // Every empty dinner from today to Sunday, each a different recipe.
+  const planWeek = () =>
+    start(async () => {
+      const result = await planWeekFromPantryAction(date);
+      setError(result.error);
+      if (!result.error) {
+        setWeek(result.planned);
+        router.refresh();
+      }
+    });
 
   const plan = (s: PantrySuggestion) =>
     start(async () => {
@@ -48,6 +60,16 @@ export function CookFromPantry({ date, suggestions }: { date: string; suggestion
           </li>
         ))}
       </ul>
+      <button type="button" className="btn btn-secondary btn-block kin-pantry-week" disabled={pending} onClick={planWeek}>
+        {pending ? "Planning…" : "Plan this week's dinners from the pantry"}
+      </button>
+      {week && (
+        <p className="kin-pantry-meta" role="status">
+          {week.length === 0
+            ? "Every dinner from today to Sunday already has a plan."
+            : `Planned: ${week.map((w) => `${new Date(`${w.date}T12:00:00Z`).toLocaleDateString("en-GB", { weekday: "short", timeZone: "UTC" })} ${w.dish}`).join(" · ")}. Generate the grocery list for what's missing.`}
+        </p>
+      )}
       {error && <p className="kin-pantry-error">{error}</p>}
     </section>
   );

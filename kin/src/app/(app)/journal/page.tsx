@@ -4,6 +4,7 @@ import { promptForWeek } from "@/lib/story-prompts";
 import { redirect } from "next/navigation";
 import { after } from "next/server";
 import { getCurrentMember } from "@/lib/session";
+import { createClient } from "@/lib/supabase/server";
 import { getGallery, getEntries, getMilestones, syncDriveJournalMedia, driveIsDisconnected } from "@/lib/queries/journal";
 import { DriveDisconnectedNotice } from "@/components/drive-disconnected-notice";
 import { HubHeader } from "@/components/hub-header";
@@ -44,7 +45,8 @@ export default async function JournalPage({
   // photo appeared until Google had answered. A file added or deleted straight
   // in Drive now shows up on the next visit instead of holding up this one.
   if (view === "gallery" || view === "list") {
-    after(() => syncDriveJournalMedia(me.family_id, me.families.name));
+    const supabase = await createClient();
+    after(() => syncDriveJournalMedia(me.family_id, me.families.name, supabase));
   }
 
   const segments = [{ label: "Entries", href: "/journal", active: true }];

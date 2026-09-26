@@ -6,6 +6,8 @@ import { AddPlannerForm } from "./add-planner-form";
 import { getAccounts } from "@/lib/queries/wealth";
 import { LogSpendControl } from "@/components/money-actions";
 import { inKidView } from "@/lib/kid-view";
+import { EventPhotos } from "@/components/event-photos";
+import { getSignedUrls } from "@/lib/storage";
 
 export default async function AddPlannerPage({
   searchParams,
@@ -48,6 +50,15 @@ export default async function AddPlannerPage({
         .map((a) => ({ id: a.id, name: a.name, institution: a.institution, linked_app_url: a.linked_app_url, balance: a.balance, is_joint: a.is_joint }))
     : [];
 
+  // An existing event's photos (20260926150000_event_photos.sql).
+  let eventPhotos: { id: string; url: string }[] = [];
+  if (editEvent) {
+    const supabase = await createClient();
+    const { data: rows } = await supabase.from("event_photos").select("id, storage_path").eq("event_id", editEvent.id).order("created_at");
+    const urls = await getSignedUrls("journal", (rows ?? []).map((r) => r.storage_path));
+    eventPhotos = (rows ?? []).filter((r) => urls[r.storage_path]).map((r) => ({ id: r.id, url: urls[r.storage_path] }));
+  }
+
   return (
     <>
     <AddPlannerForm
@@ -61,6 +72,14 @@ export default async function AddPlannerPage({
       prefill={id ? undefined : { title: title?.slice(0, 150), notes: notes?.slice(0, 1000) }}
       householdCurrency={me.families.currency}
     />
+    {editEvent && (
+      <div style={{ padding: "0 1.375rem 1.25rem" }}>
+        <div className="kin-eyebrow" style={{ marginBottom: "0.5rem" }}>
+          PHOTOS
+        </div>
+        <EventPhotos familyId={me.family_id} eventId={editEvent.id} photos={eventPhotos} />
+      </div>
+    )}
     {isTrip && editEvent && (
       <div style={{ padding: "0 1.375rem 1.375rem" }}>
         <LogSpendControl

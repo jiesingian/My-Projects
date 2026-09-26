@@ -1,3 +1,4 @@
+import { createClient } from "@/lib/supabase/server";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { after } from "next/server";
@@ -913,7 +914,15 @@ function concerns(memberIds: string[], appliesToAll: boolean, who: string): bool
  * screen. */
 async function EventsPane({ familyId, who }: { familyId: string; who: string }) {
   const fmtDate = await familyDate();
-  const [allEvents, members] = await Promise.all([getEvents(familyId), getMembers(familyId)]);
+  const supabase = await createClient();
+  const [allEvents, members, { data: photoRows }] = await Promise.all([
+    getEvents(familyId),
+    getMembers(familyId),
+    supabase.from("event_photos").select("event_id").eq("family_id", familyId),
+  ]);
+  const photoCount = new Map<string, number>();
+  for (const r of photoRows ?? []) photoCount.set(r.event_id, (photoCount.get(r.event_id) ?? 0) + 1);
+  const photos = (id: string) => (photoCount.get(id) ? ` · ${photoCount.get(id)} photo${photoCount.get(id) === 1 ? "" : "s"}` : "");
   // One query now: travel is a kind of event, not a second table. Which of
   // them gets the richer hero card is decided by the kind, not by where the
   // row came from.
@@ -976,6 +985,7 @@ async function EventsPane({ familyId, who }: { familyId: string; who: string }) 
               <div style={{ fontSize: "0.8125rem", color: "var(--color-neutral-600)" }}>
                 {row.event.applies_to_whole_family || row.event.who.length === 0 ? "Whole family" : row.event.who.map((n) => n.split(" ")[0]).join(", ")}
                 {row.event.sub_note ? ` · ${row.event.sub_note}` : ""}
+                {photos(row.event.id)}
               </div>
             </div>
             <Tag variant={row.event.kind === "birthday" || row.event.kind === "anniversary" ? "neutral" : "accent"} className="self-start">
@@ -1008,6 +1018,7 @@ async function EventsPane({ familyId, who }: { familyId: string; who: string }) 
                 {row.trip.applies_to_whole_family || row.trip.who.length === 0 ? "Whole family" : row.trip.who.map((n) => n.split(" ")[0]).join(", ")}
                 {row.trip.end_date && row.trip.end_date !== row.trip.event_date ? ` · until ${fmtDate(row.trip.end_date)}` : ""}
                 {row.trip.sub_note ? ` · ${row.trip.sub_note}` : ""}
+                {photos(row.trip.id)}
               </div>
             </div>
             <Tag variant="accent" className="self-start">
