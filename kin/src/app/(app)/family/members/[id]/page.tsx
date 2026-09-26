@@ -95,6 +95,11 @@ export default async function MemberDetailPage({
     ? buildBarSeries(lengthPoints, (v) => parseFloat(v), 25, dateFormat)
     : buildBarSeries(bpPoints, (v) => parseInt(v, 10), 30, dateFormat);
   const weightSeries = buildBarSeries(weightPoints, (v) => parseFloat(v), 20, dateFormat);
+  // From Apple Health (api/health/apple): the last two weeks of each.
+  const recent = (type: string) => vitals.filter((v) => v.vital_type === type).slice(-14);
+  const stepsSeries = buildBarSeries(recent("steps"), (v) => parseInt(v, 10), 10, dateFormat);
+  const heartSeries = buildBarSeries(recent("heart_rate"), (v) => parseInt(v, 10), 30, dateFormat);
+  const sleepSeries = buildBarSeries(recent("sleep"), (v) => parseFloat(v), 20, dateFormat);
 
   const segments = SEGMENTS.map((s) => ({
     label: s[0].toUpperCase() + s.slice(1),
@@ -298,6 +303,9 @@ export default async function MemberDetailPage({
 
               <BarChart title={isChild ? "LENGTH HISTORY" : "BLOOD PRESSURE HISTORY"} series={topSeries} unit={isChild ? "cm" : "mmHg"} />
               <BarChart title="WEIGHT HISTORY" series={weightSeries} unit="kg" />
+              {stepsSeries.length > 0 && <BarChart title="STEPS · APPLE HEALTH" series={stepsSeries} unit="steps" />}
+              {heartSeries.length > 0 && <BarChart title="RESTING HEART RATE · APPLE HEALTH" series={heartSeries} unit="bpm" />}
+              {sleepSeries.length > 0 && <BarChart title="SLEEP · APPLE HEALTH" series={sleepSeries} unit="hours" />}
             </>
           )}
         </div>

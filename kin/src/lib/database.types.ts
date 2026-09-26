@@ -4511,6 +4511,22 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      set_apple_health_token: {
+        Args: { p_token_hash: string; p_visibility: string }
+        Returns: undefined
+      }
+      clear_apple_health_token: {
+        Args: never
+        Returns: undefined
+      }
+      apple_health_status: {
+        Args: never
+        Returns: { connected_at: string; last_used_at: string | null; visibility: string }[]
+      }
+      ingest_apple_health: {
+        Args: { p_token_hash: string; p_samples: Json }
+        Returns: number
+      }
       forget_push_endpoint: {
         Args: { p_endpoint: string }
         Returns: undefined

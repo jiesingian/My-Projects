@@ -6,6 +6,7 @@ import { Blueprint, Tag } from "@/components/ui";
 import { Icon } from "@/components/icons";
 import { CalendarFeedControl, DriveConnectedPanel, CalendarConnectedPanel } from "@/components/settings-controls";
 import { keepKidViewOut } from "@/lib/kid-view";
+import { AppleHealthControl } from "@/components/apple-health-control";
 
 const DRIVE_ERROR_MESSAGES: Record<string, string> = {
   not_configured: "Google Drive linking isn't configured on this server yet — set GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET.",
@@ -34,11 +35,13 @@ export default async function ConnectedSettingsPage({
   const { drive_error, calendar_error } = await searchParams;
 
   const supabase = await createClient();
-  const [{ data: driveLink }, { data: calendarLink }, { data: otherCalendarLinks }] = await Promise.all([
+  const [{ data: driveLink }, { data: calendarLink }, { data: otherCalendarLinks }, { data: appleHealth }] = await Promise.all([
     supabase.from("drive_links").select("*, connected_by:connected_by_member_id(full_name)").eq("family_id", me.family_id).maybeSingle(),
     supabase.from("calendar_links").select("*").eq("member_id", me.id).maybeSingle(),
     supabase.from("calendar_links").select("connected, members(full_name)").eq("family_id", me.family_id).eq("connected", true).neq("member_id", me.id),
+    supabase.rpc("apple_health_status"),
   ]);
+  const appleHealthLink = appleHealth?.[0] ?? null;
   const connectedByName = (driveLink?.connected_by as unknown as { full_name: string } | null)?.full_name ?? null;
   const otherConnectedNames = (otherCalendarLinks ?? [])
     .map((l) => (l.members as unknown as { full_name: string } | null)?.full_name)
@@ -120,6 +123,15 @@ export default async function ConnectedSettingsPage({
             <Tag variant={me.calendar_feed_hash ? "accent" : "outline"}>{me.calendar_feed_hash ? "LINK ON" : "OFF"}</Tag>
           </div>
           <CalendarFeedControl hasLink={Boolean(me.calendar_feed_hash)} />
+        </Blueprint>
+
+        <Blueprint style={{ padding: "0.875rem", marginTop: "1.375rem" }}>
+          <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: "0.375rem 0.625rem", marginBottom: "0.5rem" }}>
+            <Icon name="activity" size={18} className="text-[var(--color-accent-700)]" />
+            <span style={{ font: "600 1.125rem/1.05 var(--font-heading)", flex: "1 1 8rem" }}>Apple Health</span>
+            <Tag variant={appleHealthLink ? "accent" : "outline"}>{appleHealthLink ? "CONNECTED" : "OFF"}</Tag>
+          </div>
+          <AppleHealthControl connected={Boolean(appleHealthLink)} lastUsedAt={appleHealthLink?.last_used_at ?? null} visibility={appleHealthLink?.visibility ?? null} role={me.role} />
         </Blueprint>
       </div>
     </div>
