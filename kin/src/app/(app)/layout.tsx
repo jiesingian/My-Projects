@@ -10,6 +10,8 @@ import { ReturnToToday } from "@/components/return-to-today";
 import { getChatUnread } from "@/lib/queries/chat";
 import { textScaleCss } from "@/lib/text-scale";
 import { paletteCss } from "@/lib/palettes";
+import { CallProvider, type CallMember } from "@/components/call-provider";
+import { createClient } from "@/lib/supabase/server";
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const member = await getCurrentMember();
@@ -22,7 +24,14 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   // the thing it walls off would redirect to itself.
   if (!readAccess(member.families).allowed) redirect("/subscribe");
 
-  const unread = await getChatUnread(member.family_id, member.id);
+  const supabase = await createClient();
+  const [unread, { data: people }] = await Promise.all([
+    getChatUnread(member.family_id, member.id),
+    // Who a call can reach, for the call screen's names and faces. Only a
+    // member with a login of their own has a Kin to ring.
+    supabase.from("members").select("id, full_name, avatar_url, status").eq("family_id", member.family_id).in("status", ["active", "managed"]).order("created_at"),
+  ]);
+  const callMembers: CallMember[] = (people ?? []).map((m) => ({ id: m.id, name: m.full_name, photoUrl: m.avatar_url, callable: m.status === "active" }));
 
   return (
     <div className="kin-shell">
@@ -42,12 +51,14 @@ export default async function AppLayout({ children }: { children: React.ReactNod
           reachable — below it on a phone, beside it on a desktop. Both live
           in CSS rather than here, because an inline style cannot answer a
           media query and this has to change shape at 1024px. */}
-      <div className="kin-content">{children}</div>
-      {!inKidView(member) && <AssistantFab memberName={member.full_name.split(" ")[0]} />}
-      <TabBar chatUnread={unread.count} chatMentioned={unread.mentioned} kidView={inKidView(member)} />
-      <ConfirmSheetHost />
-      <Toaster />
-      <ReturnToToday />
+      <CallProvider familyId={member.family_id} me={member.id} members={callMembers}>
+        <div className="kin-content">{children}</div>
+        {!inKidView(member) && <AssistantFab memberName={member.full_name.split(" ")[0]} />}
+        <TabBar chatUnread={unread.count} chatMentioned={unread.mentioned} kidView={inKidView(member)} />
+        <ConfirmSheetHost />
+        <Toaster />
+        <ReturnToToday />
+      </CallProvider>
     </div>
   );
 }

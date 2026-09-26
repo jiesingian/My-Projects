@@ -4121,3 +4121,162 @@ button.kin-initial:focus-visible {
   text-decoration-thickness: 1px;
   text-underline-offset: 0.2em;
 }
+
+/* ── Calls (call-provider.tsx) ──────────────────────────────────────────
+   Over everything, sheets and toasts included: a call is the one thing on
+   screen while it lasts. */
+.kin-callbuttons {
+  display: flex;
+  gap: 0.375rem;
+  flex: none;
+  padding-top: 0.25rem;
+}
+.kin-callpick {
+  all: unset;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  width: 100%;
+  min-height: 3.25rem;
+  padding: 0.375rem 0.5rem;
+  border-radius: 0.75rem;
+  cursor: pointer;
+  color: var(--color-text);
+  font-weight: 600;
+}
+.kin-callpick:hover,
+.kin-callpick:focus-visible {
+  background: color-mix(in srgb, var(--color-text) 6%, transparent);
+}
+.kin-call {
+  position: fixed;
+  inset: 0;
+  z-index: 2100;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: space-between;
+  padding: calc(env(safe-area-inset-top, 0px) + 3.5rem) 1.5rem calc(env(safe-area-inset-bottom, 0px) + 2.5rem);
+  color: #fff;
+  background:
+    radial-gradient(120% 80% at 30% 0%, rgb(255 154 77 / 0.55), transparent 60%),
+    linear-gradient(180deg, #3a1d2c, #17131a);
+  overflow: hidden;
+}
+.kin-call[data-video] {
+  background: #000;
+}
+.kin-call-remote {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  background: #000;
+}
+.kin-call-remote[data-waiting] {
+  visibility: hidden;
+}
+.kin-call-self {
+  position: absolute;
+  right: calc(env(safe-area-inset-right, 0px) + 1rem);
+  top: calc(env(safe-area-inset-top, 0px) + 1rem);
+  width: 6.5rem;
+  aspect-ratio: 3 / 4;
+  object-fit: cover;
+  border-radius: 0.875rem;
+  background: #222;
+  box-shadow: 0 0.5rem 1.5rem rgb(0 0 0 / 0.4);
+  z-index: 1;
+}
+.kin-call-self[data-mirror] {
+  transform: scaleX(-1);
+}
+/* Before the other person picks up, your own camera fills the screen, the
+   way a phone's own calling screen does. */
+.kin-call-self[data-full] {
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  aspect-ratio: auto;
+  border-radius: 0;
+  box-shadow: none;
+  z-index: 0;
+  filter: brightness(0.7);
+}
+.kin-call-self[data-off] {
+  visibility: hidden;
+}
+.kin-call-who {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.625rem;
+  text-align: center;
+  text-shadow: 0 1px 6px rgb(0 0 0 / 0.35);
+}
+.kin-call-who[data-over] {
+  align-self: flex-start;
+  align-items: flex-start;
+  text-align: left;
+}
+.kin-call-name {
+  font: 600 1.75rem/1.15 var(--font-heading);
+}
+.kin-call-status {
+  font-size: 1rem;
+  opacity: 0.85;
+  max-width: 22rem;
+}
+.kin-call-controls {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 1.25rem 1.5rem;
+}
+.kin-call-btn {
+  all: unset;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.375rem;
+  color: #fff;
+}
+.kin-call-btn-round {
+  width: 4.25rem;
+  height: 4.25rem;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: rgb(255 255 255 / 0.18);
+  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(12px);
+  transition: transform 0.12s ease, background-color 0.15s ease;
+}
+.kin-call-btn:active .kin-call-btn-round {
+  transform: scale(0.94);
+}
+.kin-call-btn[aria-pressed="true"] .kin-call-btn-round {
+  background: #fff;
+  color: #17131a;
+}
+.kin-call-btn[data-tone="end"] .kin-call-btn-round {
+  background: #e5484d;
+}
+.kin-call-btn[data-tone="answer"] .kin-call-btn-round {
+  background: #30a46c;
+}
+.kin-call-btn:focus-visible .kin-call-btn-round {
+  outline: 2px solid #fff;
+  outline-offset: 3px;
+}
+.kin-call-btn-label {
+  font-size: 0.8125rem;
+  opacity: 0.9;
+}

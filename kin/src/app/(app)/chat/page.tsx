@@ -3,6 +3,7 @@ import { getCurrentMember } from "@/lib/session";
 import { getChatMembers, getChatThread, getChatPin } from "@/lib/queries/chat";
 import { ChatThread } from "@/components/chat-thread";
 import { shortNames } from "@/lib/format";
+import { CallButtons } from "@/components/call-buttons";
 
 export const dynamic = "force-dynamic";
 
@@ -18,14 +19,17 @@ export default async function ChatPage() {
 
   return (
     <div className="kin-chatcolumn" style={{ padding: "1.125rem 1.375rem 0.5rem" }}>
-      <div style={{ marginBottom: "0.375rem" }}>
-        <div style={{ font: "600 0.8125rem/1 var(--font-heading)", letterSpacing: ".02em", color: "var(--color-accent-700)", marginBottom: "0.3125rem" }}>
-          FAMILY CHAT
+      <div style={{ marginBottom: "0.375rem", display: "flex", alignItems: "flex-start", gap: "0.75rem" }}>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ font: "600 0.8125rem/1 var(--font-heading)", letterSpacing: ".02em", color: "var(--color-accent-700)", marginBottom: "0.3125rem" }}>
+            FAMILY CHAT
+          </div>
+          <h2 style={{ fontSize: "1.5rem", margin: 0 }}>{me.families.name}</h2>
+          <p style={{ fontSize: "0.78125rem", color: "var(--color-neutral-600)", margin: "4px 0 0" }}>
+            {members.length} {members.length === 1 ? "person" : "people"} · everyone sees everything here
+          </p>
         </div>
-        <h2 style={{ fontSize: "1.5rem", margin: 0 }}>{me.families.name}</h2>
-        <p style={{ fontSize: "0.78125rem", color: "var(--color-neutral-600)", margin: "4px 0 0" }}>
-          {members.length} {members.length === 1 ? "person" : "people"} · everyone sees everything here
-        </p>
+        <CallButtons />
       </div>
 
       <ChatThread me={me.id} familyId={me.family_id} members={labelled} initial={thread} pin={pin} />
