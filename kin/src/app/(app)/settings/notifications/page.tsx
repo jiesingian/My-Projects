@@ -15,7 +15,7 @@ export default async function NotificationSettingsPage() {
       <DetailHeader backHref="/settings" eyebrow="Notifications" />
       <div style={{ padding: "0 1.375rem 1.375rem" }}>
         <PushOptIn />
-        <NotificationToggles prefs={me.notification_prefs as Record<string, boolean>} />
+        <NotificationToggles prefs={me.notification_prefs as Record<string, boolean>} grownUp={me.role === "parent" || me.role === "adult"} />
       </div>
     </div>
   );

@@ -255,6 +255,13 @@ Decided against in the same review: revising Journal (item 6) and Planner
 - Proactive reminders: low pantry items (bills, birthdays and "in 30
   minutes" are done, above). A true leave-by time needs travel times from a
   maps service, which is a key and a bill.
+- **Done 26 September: call notifications.** Calls have their own switch
+  (muting the chat no longer silences them); the ring is sent urgent, stays
+  on screen, expires after a minute, and turns into "Missed call from ..."
+  when nobody answers. Grown-ups can be told when anyone in the family calls
+  someone else ("Family calls", grown-ups only, own switch). On an iPhone the
+  ring only arrives when Kin is on the Home Screen with notifications
+  allowed -- Apple's rule for web apps.
 - **Apple Calendar two-way: decided against building (26 September).**
   Apple has no calendar API; the only way in is iCloud CalDAV with an
   app-specific password, which also opens that iCloud's mail and contacts --

@@ -1,5 +1,5 @@
 import { test, expect } from "@playwright/test";
-import { onSignal, forThisDevice, callClock, type CallState, type Me } from "@/lib/calls";
+import { onSignal, forThisDevice, callClock, callWatchers, type CallState, type Me } from "@/lib/calls";
 
 /** Calls: every device in a household hears every call signal, so each one
  * has to know which signals are about it. These are the rules it uses. */
@@ -77,4 +77,17 @@ test("the call clock", () => {
   expect(callClock(0)).toBe("0:00");
   expect(callClock(65_000)).toBe("1:05");
   expect(callClock(3_725_000)).toBe("1:02:05");
+});
+
+test("grown-ups hear about a call, never the two on it and never a child", () => {
+  const household = [
+    { id: "quinn", role: "parent", status: "active" },
+    { id: "jo", role: "adult", status: "active" },
+    { id: "robin", role: "child", status: "active" },
+    { id: "alex", role: "child", status: "managed" },
+    { id: "gran", role: "parent", status: "invited" },
+  ];
+  expect(callWatchers(household, "robin", "jo")).toEqual(["quinn"]);
+  expect(callWatchers(household, "quinn", "jo")).toEqual([]);
+  expect(callWatchers(household, "robin", "alex").sort()).toEqual(["jo", "quinn"]);
 });

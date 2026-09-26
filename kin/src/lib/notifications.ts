@@ -11,6 +11,12 @@ export const NOTIFICATION_DEFS = [
   { key: "journal", name: "Journal activity", sub: "When someone adds photos or a note" },
   { key: "shopping", name: "Shopping list", sub: "When an item is added by another member" },
   { key: "chat", name: "Family chat", sub: "New messages" },
+  // Its own switch (26 September): calls used to ride on "chat", so muting a
+  // busy chat silenced every call as well.
+  { key: "calls", name: "Calls", sub: "When someone in the family calls you" },
+  // Only offered to grown-ups, and only grown-ups are ever sent it (see
+  // ringAction): who in the family is calling whom, as it happens.
+  { key: "family_calls", name: "Family calls", sub: "When someone calls another family member", grownUps: true },
   { key: "approvals", name: "Chores to approve", sub: "When a child marks a chore done" },
 ] as const;
 
