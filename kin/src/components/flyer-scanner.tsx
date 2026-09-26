@@ -1,8 +1,9 @@
 "use client";
 
-import { useId, useRef, useState, useTransition } from "react";
+import { useEffect, useId, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Icon } from "@/components/icons";
+import { PhotoViewer } from "@/components/photo-viewer";
 import { scanFlyerAction, addScannedItemsAction } from "@/lib/actions/flyer";
 import type { ScannedItem } from "@/lib/flyer-scan";
 
@@ -34,8 +35,20 @@ export function FlyerScanner({ ready }: { ready: boolean }) {
   const [scanning, startScan] = useTransition();
   const [saving, startSave] = useTransition();
 
+  // Until scanning is switched on, the chosen photo is shown here to copy
+  // from while filling in the event below (26 September). It stays on the
+  // phone: nothing is uploaded or saved.
+  const [preview, setPreview] = useState<string | null>(null);
+  const [viewing, setViewing] = useState(false);
+  useEffect(() => () => void (preview && URL.revokeObjectURL(preview)), [preview]);
+
   const pick = (file: File | undefined) => {
     if (!file) return;
+    if (!ready) {
+      setPreview(URL.createObjectURL(file));
+      if (input.current) input.current.value = "";
+      return;
+    }
     setError(null);
     setDone(null);
     setRows(null);
@@ -82,15 +95,6 @@ export function FlyerScanner({ ready }: { ready: boolean }) {
           <p>Take a photo of a school memo, invite or poster, or choose one you already have (a screenshot works too). Kin finds the dates and you choose what to add.</p>
         </div>
       </div>
-      {!ready ? (
-        // Said up front (26 September): until the key is added, choosing a
-        // photo only led to an error naming an environment variable.
-        <p className="kin-scan-off" role="note">
-          Scanning isn&apos;t switched on yet. Jonathan needs to add it once (a few cents a scan). Until then, fill in the event
-          below.
-        </p>
-      ) : (
-      <>
       <input
         ref={input}
         id={`${uid}-file`}
@@ -105,10 +109,23 @@ export function FlyerScanner({ ready }: { ready: boolean }) {
         disabled={scanning || saving}
       />
       <label htmlFor={`${uid}-file`} className="btn btn-secondary btn-block" aria-disabled={scanning || saving}>
-        {scanning ? "Reading the photo…" : rows ? "Scan another" : "Take or choose a photo"}
+        {scanning ? "Reading the photo…" : rows || preview ? (ready ? "Scan another" : "Choose another photo") : "Take or choose a photo"}
       </label>
-      </>
+      {!ready && (
+        // Said up front: until the key is added, the photo can be looked at
+        // but not read for dates.
+        <p className="kin-scan-off" role="note">
+          Reading the dates automatically isn&apos;t switched on yet (Jonathan adds it once). Until then your photo shows here so
+          you can copy the details into the event below.
+        </p>
       )}
+      {preview && (
+        <button type="button" className="kin-scan-preview" onClick={() => setViewing(true)} aria-label="Open the photo full screen">
+          {/* eslint-disable-next-line @next/next/no-img-element -- a local object URL, not a static asset */}
+          <img src={preview} alt="The flyer or invitation you chose" />
+        </button>
+      )}
+      {viewing && preview && <PhotoViewer items={[{ url: preview, alt: "Flyer or invitation" }]} onClose={() => setViewing(false)} label="Photo" />}
       {scanning && (
         <div className="kin-scan-reading" aria-hidden="true">
           <span className="kin-skeleton" />
