@@ -310,9 +310,14 @@ export async function deleteEventAction(eventId: string): Promise<ActionState> {
   const me = await requireCurrentMember();
   const supabase = await createClient();
 
+  // The event's photo rows go with it (on delete cascade); their files would
+  // not, so they are read first and removed once the event is gone.
+  const { data: photos } = await supabase.from("event_photos").select("storage_path").eq("event_id", eventId).eq("family_id", me.family_id);
+
   await removeRowFromCalendars(me.family_id, "events", eventId);
   const { error } = await supabase.from("events").delete().eq("id", eventId).eq("family_id", me.family_id);
   if (error) return { error: humanDatabaseError(error.message) };
+  if (photos?.length) await supabase.storage.from("journal").remove(photos.map((p) => p.storage_path));
 
   revalidatePath("/planner");
   return { error: null };
