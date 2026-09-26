@@ -7,6 +7,7 @@ import { Icon } from "@/components/icons";
 import { CalendarFeedControl, DriveConnectedPanel, CalendarConnectedPanel } from "@/components/settings-controls";
 import { keepKidViewOut } from "@/lib/kid-view";
 import { AppleHealthControl } from "@/components/apple-health-control";
+import { familyDateTime } from "@/lib/time";
 
 const DRIVE_ERROR_MESSAGES: Record<string, string> = {
   not_configured: "Google Drive linking isn't configured on this server yet — set GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET.",
@@ -131,7 +132,7 @@ export default async function ConnectedSettingsPage({
             <span style={{ font: "600 1.125rem/1.05 var(--font-heading)", flex: "1 1 8rem" }}>Apple Health</span>
             <Tag variant={appleHealthLink ? "accent" : "outline"}>{appleHealthLink ? "CONNECTED" : "OFF"}</Tag>
           </div>
-          <AppleHealthControl connected={Boolean(appleHealthLink)} lastUsedAt={appleHealthLink?.last_used_at ?? null} visibility={appleHealthLink?.visibility ?? null} role={me.role} />
+          <AppleHealthControl connected={Boolean(appleHealthLink)} lastReceived={appleHealthLink?.last_used_at ? familyDateTime(new Date(appleHealthLink.last_used_at)) : null} visibility={appleHealthLink?.visibility ?? null} role={me.role} />
         </Blueprint>
       </div>
     </div>

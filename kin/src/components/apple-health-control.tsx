@@ -8,7 +8,10 @@ import { visibilityOptions } from "@/lib/visibility";
 /** Settings, Connected apps, Apple Health: make the link an iPhone Shortcut
  * sends the day's readings to, and say exactly how to build that Shortcut.
  * A web app can't read Apple Health itself; see api/health/apple. */
-export function AppleHealthControl({ connected, lastUsedAt, visibility: initialVisibility, role }: { connected: boolean; lastUsedAt: string | null; visibility: string | null; role: string }) {
+/** `lastReceived` arrives already worded by the server, in the family's own
+ * time zone: formatting it here would come out differently on the server
+ * and in the browser, and React would throw the page away over it. */
+export function AppleHealthControl({ connected, lastReceived, visibility: initialVisibility, role }: { connected: boolean; lastReceived: string | null; visibility: string | null; role: string }) {
   const [on, setOn] = useState(connected);
   const [url, setUrl] = useState<string | null>(null);
   const [visibility, setVisibility] = useState(initialVisibility ?? "family");
@@ -57,7 +60,7 @@ export function AppleHealthControl({ connected, lastUsedAt, visibility: initialV
         Your steps, weight, resting heart rate and sleep from the iPhone&apos;s Health app, in your Health page in Kin. An iPhone Shortcut sends them each evening; Kin
         can&apos;t read Apple Health by itself.
       </p>
-      {on && !url && <p className="kin-feed-note">{lastUsedAt ? `Last received ${new Date(lastUsedAt).toLocaleString("en-GB", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}.` : "Link made. Nothing received yet: run the Shortcut once to check."}</p>}
+      {on && !url && <p className="kin-feed-note">{lastReceived ? `Last received ${lastReceived}.` : "Link made. Nothing received yet: run the Shortcut once to check."}</p>}
 
       <label className="kin-feed-note" style={{ display: "grid", gap: "0.25rem", marginBottom: "0.625rem" }}>
         Who can see the readings
