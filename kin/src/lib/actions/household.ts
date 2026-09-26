@@ -432,11 +432,18 @@ export async function planWeekFromPantryAction(weekOf: string): Promise<{ error:
   const [recipes, { data: pantry }, { data: dinners }] = await Promise.all([
     getRecipeBook(me.family_id),
     supabase.from("pantry_items").select("item_key").eq("family_id", me.family_id),
-    supabase.from("meal_plans").select("plan_date").eq("family_id", me.family_id).eq("slot", "dinner").gte("plan_date", days[0]).lte("plan_date", days[days.length - 1]),
+    supabase.from("meal_plans").select("plan_date, dish").eq("family_id", me.family_id).eq("slot", "dinner").gte("plan_date", days[0]).lte("plan_date", days[days.length - 1]),
   ]);
-  const forDinner = recipes.filter((r) => r.slots.length === 0 || r.slots.includes("dinner"));
+  // Nothing already on a dinner this week again -- pressing the button twice
+  // used to put the same adobo on Saturday and Sunday.
+  const planned = new Set((dinners ?? []).map((d) => d.dish.trim().toLowerCase()));
+  const forDinner = recipes.filter((r) => (r.slots.length === 0 || r.slots.includes("dinner")) && !planned.has(r.name.trim().toLowerCase()));
   const matches = rankByPantry(forDinner, new Set((pantry ?? []).map((p) => p.item_key)), days.length);
-  if (matches.length === 0) return { error: "Nothing in the recipe book is close enough to what's in the pantry yet.", planned: [] };
+  if (matches.length === 0)
+    return {
+      error: planned.size > 0 ? "Nothing else in the recipe book is close enough to what's in the pantry." : "Nothing in the recipe book is close enough to what's in the pantry yet.",
+      planned: [],
+    };
   const plan = planDinners(days, new Set((dinners ?? []).map((d) => d.plan_date)), matches);
   if (plan.length === 0) return { error: null, planned: [] };
 
