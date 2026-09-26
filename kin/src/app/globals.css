@@ -4280,3 +4280,18 @@ button.kin-initial:focus-visible {
   font-size: 0.8125rem;
   opacity: 0.9;
 }
+
+/* Numbered set-up steps (apple-health-control.tsx). */
+.kin-steps {
+  margin: 0.5rem 0 0;
+  padding-left: 1.25rem;
+  display: grid;
+  gap: 0.5rem;
+  font-size: var(--text-sm);
+  line-height: 1.45;
+  color: var(--color-neutral-700);
+}
+.kin-steps b {
+  color: var(--color-text);
+  font-weight: 600;
+}

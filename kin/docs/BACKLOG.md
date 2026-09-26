@@ -86,8 +86,11 @@ Added 26 September (Janine's list):
     **Still to do (Jonathan):** a TURN relay so calls also connect on
     mobile data -- add `TURN_URLS`, `TURN_USERNAME` and `TURN_CREDENTIAL` in
     Vercel (Cloudflare Calls or Metered both have a free tier).
-20. **Apple Health through an iPhone Shortcut:** a private link per person
-    that a daily Shortcut sends steps, weight, heart rate and sleep to.
+20. **Done: Apple Health through an iPhone Shortcut:** Settings, Connected
+    apps, Apple Health makes a private link per person; a daily Shortcut
+    sends steps, weight, resting heart rate and sleep to it, and they chart
+    on that person's Health page (Vitals). The Shortcut steps are written
+    against iOS 17/18 but were not tried on an iPhone from here.
 
 Decided against in the same review: revising Journal (item 6) and Planner
 (item 7). Done already: no hub numbers and no "five ledgers" motto (item 9,
@@ -193,6 +196,14 @@ Decided against in the same review: revising Journal (item 6) and Planner
 - Cutting the bottom navigation down to 4–5 tabs (declined 24 September).
 
 ## Next up
+
+- **Private channels for the chat, then Realtime's public access off.**
+  Calls use a private channel (20260926090000_call_signalling.sql), but
+  Supabase only *enforces* private channels once "Allow public access" is
+  turned off in Realtime settings -- and the family chat's live updates and
+  typing dots still use public channels, so turning it off today would stop
+  them. Move `family-chat:` and `family-link:` to private channels with
+  their own policies, then turn the setting off on dev and production.
 
 - **Dev has no `documents` storage bucket,** so every upload on dev fails
   with "Bucket not found". Production's bucket and its storage policies were
