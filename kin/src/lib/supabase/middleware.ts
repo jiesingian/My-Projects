@@ -51,6 +51,9 @@ export async function updateSession(request: NextRequest) {
     // Likewise an iPhone Shortcut sending Apple Health readings: the link's
     // key is the credential (app/api/health/apple).
     path.startsWith("/api/health/apple/") ||
+    // And Supabase's five-minute reminder job: the shared secret is its
+    // credential (app/api/cron/reminders).
+    path === "/api/cron/reminders" ||
     // An invite link has to reach someone with no account yet; it only
     // remembers the code and redirects (app/join/[code]/route.ts).
     path.startsWith("/join/");

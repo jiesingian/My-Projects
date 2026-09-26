@@ -5,7 +5,8 @@ it in the same pull request that finishes or adds an item.
 
 ## Waiting on a decision
 
-- **PayMongo / HitPay payments (GCash, Maya, cards).** Agreed for the
+- **PayMongo / HitPay payments (GCash, Maya, cards).** Options, fees and a
+  recommendation for Jonathan in docs/PAYMENTS_OPTIONS.md. Agreed for the
   future, not now. Needs merchant accounts and API keys, so it is
   Jonathan's (money and secrets). Start with the subscription checkout in
   `src/lib/billing/`; that path is watched.
@@ -216,21 +217,16 @@ Decided against in the same review: revising Journal (item 6) and Planner
 
 ## Next up
 
-- **Medicine reminders as a push at the dose time.** Needs something that
-  runs every few minutes and can send a push for a household without anyone
-  signed in. Today there is no such scheduler: GitHub's cron runs hours
-  late, Vercel's Hobby cron is once a day, and the push helper sends in the
-  sender's own session. The honest shape is a Supabase pg_cron job calling
-  a Kin route with a secret, which is a secret and possibly a paid plan --
-  Jonathan's. Until then late doses show on the Health tab and in This week.
+- **Done 26 September in code: reminders at their time** -- medicine doses,
+  bills (the day before and on the day), birthdays, plans 30 minutes ahead --
+  run by Supabase pg_cron every five minutes through /api/cron/reminders.
+  **Still to do (Jonathan):** the secret in Vercel and Supabase Vault,
+  docs/SETUP_FOR_JONATHAN.md section 1. Until then nothing is sent.
 
-- **Private channels for the chat, then Realtime's public access off.**
-  Calls use a private channel (20260926090000_call_signalling.sql), but
-  Supabase only *enforces* private channels once "Allow public access" is
-  turned off in Realtime settings -- and the family chat's live updates and
-  typing dots still use public channels, so turning it off today would stop
-  them. Move `family-chat:` and `family-link:` to private channels with
-  their own policies, then turn the setting off on dev and production.
+- **Done 26 September in code: the chat is on private channels**
+  (20260926130000_private_chat_channels.sql). **Still to do (Janine or
+  Jonathan, both allowed):** switch Realtime's "Allow public access" off on
+  dev and production -- until then Supabase does not enforce it.
 
 - **Done 26 September: dev has storage.** Dev had no buckets at all, not only
   `documents`, so no upload could be tested there.
@@ -246,6 +242,13 @@ Decided against in the same review: revising Journal (item 6) and Planner
   ticked (no new dependencies).
 - Photos attached to calendar events.
 - Pantry-based meal planner: suggest meals from what is already in stock.
-- Proactive reminders: leave-by times, bills due, low pantry items, birthdays
-  coming up.
-- Apple Calendar sync (Google is done).
+- Proactive reminders: low pantry items (bills, birthdays and "in 30
+  minutes" are done, above). A true leave-by time needs travel times from a
+  maps service, which is a key and a bill.
+- **Apple Calendar two-way: decided against building (26 September).**
+  Apple has no calendar API; the only way in is iCloud CalDAV with an
+  app-specific password, which also opens that iCloud's mail and contacts --
+  not something Kin should hold. Instead: Kin's Apple Calendar link (one
+  way, done) for seeing the plans, and for two-way on an iPhone, add the
+  Google account in iPhone Settings, Calendar, Accounts -- Kin already syncs
+  both ways with Google Calendar.

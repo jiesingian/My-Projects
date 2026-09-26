@@ -4661,6 +4661,14 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      due_reminders: {
+        Args: { p_secret: string; p_now?: string }
+        Returns: { key: string; member_id: string; endpoint: string; p256dh: string; auth: string; title: string; body: string; url: string }[]
+      }
+      cron_forget_endpoint: {
+        Args: { p_secret: string; p_endpoint: string }
+        Returns: undefined
+      }
       set_apple_health_token: {
         Args: { p_token_hash: string; p_visibility: string }
         Returns: undefined
