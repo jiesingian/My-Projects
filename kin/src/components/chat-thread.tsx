@@ -414,23 +414,34 @@ export function ChatThread({
   // channel already knows the household's id, and an id on its own resolves
   // to a name only against the member list, which is fetched under RLS.
   const channelRef = useRef<ReturnType<ReturnType<typeof createClient>["channel"]> | null>(null);
+  //
+  // Private since 26 September (20260926130000_private_chat_channels.sql):
+  // only this household may join, so the typing dots are nobody else's to
+  // watch. A private channel checks the login, so the token goes first.
   useEffect(() => {
     const supabase = createClient();
-    const channel = supabase
-      .channel(`family-chat:${familyId}`)
-      .on("postgres_changes", { event: "*", schema: "public", table: "family_messages" }, () => router.refresh())
-      .on("postgres_changes", { event: "*", schema: "public", table: "family_message_reactions" }, () => router.refresh())
-      .on("postgres_changes", { event: "*", schema: "public", table: "family_chat_pins" }, () => router.refresh())
-      .on("broadcast", { event: "typing" }, ({ payload }) => {
-        const who = (payload as { id?: string })?.id;
-        if (!who || who === me) return;
-        setTyping((prev) => ({ ...prev, [who]: Date.now() + TYPING_TTL }));
-      })
-      .subscribe();
-    channelRef.current = channel;
+    let cancelled = false;
+    let channel: ReturnType<typeof supabase.channel> | null = null;
+    void (async () => {
+      await supabase.realtime.setAuth().catch(() => {});
+      if (cancelled) return;
+      channel = supabase
+        .channel(`family-chat:${familyId}`, { config: { private: true } })
+        .on("postgres_changes", { event: "*", schema: "public", table: "family_messages" }, () => router.refresh())
+        .on("postgres_changes", { event: "*", schema: "public", table: "family_message_reactions" }, () => router.refresh())
+        .on("postgres_changes", { event: "*", schema: "public", table: "family_chat_pins" }, () => router.refresh())
+        .on("broadcast", { event: "typing" }, ({ payload }) => {
+          const who = (payload as { id?: string })?.id;
+          if (!who || who === me) return;
+          setTyping((prev) => ({ ...prev, [who]: Date.now() + TYPING_TTL }));
+        })
+        .subscribe();
+      channelRef.current = channel;
+    })();
     return () => {
+      cancelled = true;
       channelRef.current = null;
-      void supabase.removeChannel(channel);
+      if (channel) void supabase.removeChannel(channel);
     };
   }, [router, familyId, me]);
 

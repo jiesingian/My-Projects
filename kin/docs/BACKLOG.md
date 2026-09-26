@@ -224,13 +224,10 @@ Decided against in the same review: revising Journal (item 6) and Planner
   a Kin route with a secret, which is a secret and possibly a paid plan --
   Jonathan's. Until then late doses show on the Health tab and in This week.
 
-- **Private channels for the chat, then Realtime's public access off.**
-  Calls use a private channel (20260926090000_call_signalling.sql), but
-  Supabase only *enforces* private channels once "Allow public access" is
-  turned off in Realtime settings -- and the family chat's live updates and
-  typing dots still use public channels, so turning it off today would stop
-  them. Move `family-chat:` and `family-link:` to private channels with
-  their own policies, then turn the setting off on dev and production.
+- **Done 26 September in code: the chat is on private channels**
+  (20260926130000_private_chat_channels.sql). **Still to do (Janine or
+  Jonathan, both allowed):** switch Realtime's "Allow public access" off on
+  dev and production -- until then Supabase does not enforce it.
 
 - **Done 26 September: dev has storage.** Dev had no buckets at all, not only
   `documents`, so no upload could be tested there.

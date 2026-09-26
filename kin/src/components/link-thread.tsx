@@ -24,14 +24,23 @@ export function LinkThread({ linkId, initial, ourName, theirName }: { linkId: st
 
   // Live, per link. Row-level security decides what arrives, so a household
   // that is not on this link receives nothing on it.
+  // Private (20260926130000_private_chat_channels.sql): only the two linked
+  // households may join.
   useEffect(() => {
     const supabase = createClient();
-    const channel = supabase
-      .channel(`family-link:${linkId}`)
-      .on("postgres_changes", { event: "*", schema: "public", table: "family_link_messages", filter: `link_id=eq.${linkId}` }, () => router.refresh())
-      .subscribe();
+    let cancelled = false;
+    let channel: ReturnType<typeof supabase.channel> | null = null;
+    void (async () => {
+      await supabase.realtime.setAuth().catch(() => {});
+      if (cancelled) return;
+      channel = supabase
+        .channel(`family-link:${linkId}`, { config: { private: true } })
+        .on("postgres_changes", { event: "*", schema: "public", table: "family_link_messages", filter: `link_id=eq.${linkId}` }, () => router.refresh())
+        .subscribe();
+    })();
     return () => {
-      void supabase.removeChannel(channel);
+      cancelled = true;
+      if (channel) void supabase.removeChannel(channel);
     };
   }, [linkId, router]);
 
