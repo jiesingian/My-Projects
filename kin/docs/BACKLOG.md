@@ -77,7 +77,7 @@ Added 26 September (Janine's list):
     was declined: Xiaomi has no official way in without the account password.
 17. **Done: Planner rows line up:** an event's title is the link to its
     invitation; the preview card moved to the event's own screen.
-18. **App icon:** sharp at every size, a polished drawing, and the home
+18. **Done: App icon:** sharp at every size, a polished drawing, and the home
     page's 3D house to match.
 19. **Voice and video calls in Chat:** direct phone-to-phone now; a relay
     (TURN) key from Jonathan later so calls also connect on mobile data.

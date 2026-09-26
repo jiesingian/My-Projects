@@ -3918,23 +3918,23 @@ button.kin-initial:focus-visible {
 .kin-house-front, .kin-house-back {
   width: var(--w); height: var(--h);
   margin: calc(var(--h) / -2) 0 0 calc(var(--w) / -2);
-  background: linear-gradient(180deg, #fff7ef, #f6e3d3);
-  border: 1px solid #ecd2bf;
+  background: linear-gradient(180deg, #ffffff, #fbf1ec);
+  border: 1px solid #f1ddd5;
 }
 .kin-house-front { transform: translateZ(calc(var(--d) / 2)); }
-.kin-house-back { transform: rotateY(180deg) translateZ(calc(var(--d) / 2)); background: #efd9c7; }
+.kin-house-back { transform: rotateY(180deg) translateZ(calc(var(--d) / 2)); background: #f6e6e0; }
 .kin-house-left, .kin-house-right {
   width: var(--d); height: var(--h);
   margin: calc(var(--h) / -2) 0 0 calc(var(--d) / -2);
-  background: linear-gradient(180deg, #f8e9dc, #eed4c1);
-  border: 1px solid #e5c7b1;
+  background: linear-gradient(180deg, #fbf3ef, #f1e0d9);
+  border: 1px solid #ead3ca;
 }
 .kin-house-left { transform: rotateY(-90deg) translateZ(calc(var(--w) / 2)); }
 .kin-house-right { transform: rotateY(90deg) translateZ(calc(var(--w) / 2)); }
 .kin-house-floor {
   width: var(--w); height: var(--d);
   margin: calc(var(--d) / -2) 0 0 calc(var(--w) / -2);
-  background: #e7cdb9;
+  background: #ecd6cd;
   transform: translateY(calc(var(--h) / 2)) rotateX(90deg);
 }
 .kin-house-roof {
@@ -3942,7 +3942,7 @@ button.kin-initial:focus-visible {
   margin: -3.45rem 0 0 calc((var(--w) + 1.25rem) / -2);
   background:
     repeating-linear-gradient(0deg, rgb(0 0 0 / 0.07) 0 2px, transparent 2px 0.9rem),
-    linear-gradient(180deg, #ff9a4d, #d63a55);
+    linear-gradient(180deg, #ff9a4d, #e8436a);
   border-radius: 0.25rem;
 }
 .kin-house-roof-front { transform: translate3d(0, calc(var(--h) / -2 - var(--r) / 2), calc(var(--d) / 4)) rotateX(51.34deg); }
@@ -3950,7 +3950,7 @@ button.kin-initial:focus-visible {
 .kin-house-gable {
   width: var(--d); height: var(--r);
   margin: calc(var(--r) / -2) 0 0 calc(var(--d) / -2);
-  background: #f3dccb;
+  background: #f8ece7;
   clip-path: polygon(50% 0, 100% 100%, 0 100%);
 }
 .kin-house-gable-left { transform: translateY(calc(var(--h) / -2 - var(--r) / 2)) rotateY(-90deg) translateZ(calc(var(--w) / 2)); }
@@ -3958,8 +3958,23 @@ button.kin-initial:focus-visible {
 .kin-house-chimney {
   width: 1.5rem; height: 3rem;
   margin: -1.5rem 0 0 -0.75rem;
-  background: linear-gradient(180deg, #b8404f, #8f2f3d);
+  background: linear-gradient(180deg, #ffffff, #f1e0d9);
+  border: 1px solid #ead3ca;
   transform: translate3d(3rem, calc(var(--h) / -2 - var(--r) - 0.25rem), -1.25rem);
+}
+/* The family from the icon, standing on the floor of the front wall. */
+.kin-house-family {
+  position: absolute;
+  left: 50%; bottom: 0;
+  width: 7.5rem; height: auto;
+  margin-left: -3.75rem;
+  overflow: hidden;
+}
+.kin-house-heart {
+  position: absolute;
+  left: 50%; top: 52%;
+  width: 1.25rem; height: auto;
+  margin-left: -0.625rem;
 }
 .kin-house-window {
   position: absolute;
@@ -3968,15 +3983,6 @@ button.kin-initial:focus-visible {
   background: linear-gradient(180deg, #ffe7a3, #ffc861);
   box-shadow: 0 0 1rem rgb(255 200 97 / 0.7), inset 0 0 0 2px #fff7e6;
 }
-.kin-house-door {
-  position: absolute;
-  left: 50%; bottom: 0;
-  width: 2.25rem; height: 3.5rem;
-  margin-left: -1.125rem;
-  border-radius: 1.125rem 1.125rem 0 0;
-  background: linear-gradient(180deg, #c0504f, #93333f);
-}
-
 /* ── The public home page ───────────────────────────────────────────────── */
 .kin-welcome {
   min-height: 100dvh;
