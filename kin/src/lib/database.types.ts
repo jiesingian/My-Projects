@@ -2232,6 +2232,7 @@ export type Database = {
       }
       health_appointments: {
         Row: {
+          notes: string | null
           cost: number | null
           created_at: string
           created_by: string | null
@@ -2243,6 +2244,7 @@ export type Database = {
           where_text: string | null
         }
         Insert: {
+          notes?: string | null
           cost?: number | null
           created_at?: string
           created_by?: string | null
@@ -2254,6 +2256,7 @@ export type Database = {
           where_text?: string | null
         }
         Update: {
+          notes?: string | null
           cost?: number | null
           created_at?: string
           created_by?: string | null
@@ -2397,6 +2400,150 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      health_medicines: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          dose: string | null
+          end_date: string | null
+          family_id: string
+          id: string
+          member_id: string
+          name: string
+          notes: string | null
+          start_date: string
+          times: string[]
+          visibility: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          dose?: string | null
+          end_date?: string | null
+          family_id: string
+          id?: string
+          member_id: string
+          name: string
+          notes?: string | null
+          start_date?: string
+          times?: string[]
+          visibility?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          dose?: string | null
+          end_date?: string | null
+          family_id?: string
+          id?: string
+          member_id?: string
+          name?: string
+          notes?: string | null
+          start_date?: string
+          times?: string[]
+          visibility?: string
+        }
+        Relationships: []
+      }
+      health_medicine_doses: {
+        Row: {
+          dose_date: string
+          dose_time: string
+          family_id: string
+          id: string
+          medicine_id: string
+          taken_at: string
+          taken_by: string | null
+        }
+        Insert: {
+          dose_date: string
+          dose_time: string
+          family_id: string
+          id?: string
+          medicine_id: string
+          taken_at?: string
+          taken_by?: string | null
+        }
+        Update: {
+          dose_date?: string
+          dose_time?: string
+          family_id?: string
+          id?: string
+          medicine_id?: string
+          taken_at?: string
+          taken_by?: string | null
+        }
+        Relationships: []
+      }
+      health_illness_logs: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          family_id: string
+          given: string | null
+          id: string
+          logged_at: string
+          member_id: string
+          note: string | null
+          symptoms: string | null
+          temperature_c: number | null
+          visibility: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          family_id: string
+          given?: string | null
+          id?: string
+          logged_at?: string
+          member_id: string
+          note?: string | null
+          symptoms?: string | null
+          temperature_c?: number | null
+          visibility?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          family_id?: string
+          given?: string | null
+          id?: string
+          logged_at?: string
+          member_id?: string
+          note?: string | null
+          symptoms?: string | null
+          temperature_c?: number | null
+          visibility?: string
+        }
+        Relationships: []
+      }
+      health_visit_photos: {
+        Row: {
+          appointment_id: string
+          created_at: string
+          created_by: string | null
+          family_id: string
+          id: string
+          storage_path: string
+        }
+        Insert: {
+          appointment_id: string
+          created_at?: string
+          created_by?: string | null
+          family_id: string
+          id?: string
+          storage_path: string
+        }
+        Update: {
+          appointment_id?: string
+          created_at?: string
+          created_by?: string | null
+          family_id?: string
+          id?: string
+          storage_path?: string
+        }
+        Relationships: []
       }
       health_labs: {
         Row: {
@@ -3355,6 +3502,7 @@ export type Database = {
       }
       members: {
         Row: {
+          sex: string | null
           allergies: string | null
           auth_user_id: string | null
           avatar_url: string | null
@@ -3400,6 +3548,7 @@ export type Database = {
           work_email: string | null
         }
         Insert: {
+          sex?: string | null
           allergies?: string | null
           auth_user_id?: string | null
           avatar_url?: string | null
@@ -3445,6 +3594,7 @@ export type Database = {
           work_email?: string | null
         }
         Update: {
+          sex?: string | null
           allergies?: string | null
           auth_user_id?: string | null
           avatar_url?: string | null
