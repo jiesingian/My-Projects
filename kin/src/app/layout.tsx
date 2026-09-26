@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from "next";
+import { NoPageZoom } from "@/components/no-page-zoom";
 import { cookies } from "next/headers";
 import "./globals.css";
 import { ServiceWorker } from "@/components/service-worker";
@@ -20,11 +21,17 @@ export const metadata: Metadata = {
 const BASE_VIEWPORT = {
   width: "device-width",
   initialScale: 1,
-  // maximumScale is deliberately absent. Pinning it to 1 disabled pinch-zoom,
-  // which takes the magnifier away from anyone who needs it (WCAG 1.4.4). The
-  // usual reason to pin it is to stop iOS zooming when an input takes focus,
-  // and .input already prevents that the right way -- by never dropping below
-  // a 17px font.
+  // No pinch-zoom of the page (26 September, Janine: a two-finger zoom kept
+  // happening by accident and left the app half off the screen). It used to
+  // be allowed on purpose, for anyone who needs a magnifier (WCAG 1.4.4); the
+  // way to larger text in Kin is now Settings, Appearance, Text size, which
+  // reflows every page instead of magnifying one. Three things, because each
+  // browser listens to a different one: this for Android and an installed
+  // app, touch-action on <html> for iPhone Safari (which ignores these two),
+  // and a gesturestart guard in the root layout for older iPhones. Photos
+  // and the family tree keep their own pinch-to-zoom.
+  maximumScale: 1,
+  userScalable: false,
   //
   // Lets the page draw under the notch and home indicator instead of
   // letterboxing inside them, so the tab bar and sheets can paint edge to
@@ -71,6 +78,7 @@ export default async function RootLayout({
       <body>
         {children}
         <ServiceWorker />
+        <NoPageZoom />
       </body>
     </html>
   );

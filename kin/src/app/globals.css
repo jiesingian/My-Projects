@@ -308,6 +308,13 @@
 * {
   box-sizing: border-box;
 }
+html {
+  /* Scrolling, never pinch-zooming the page: iPhone Safari ignores the
+     viewport's user-scalable, but honours this (layout.tsx says why the page
+     no longer zooms). Anything that zooms itself -- photos, the family tree
+     -- sets touch-action: none and handles the fingers on its own. */
+  touch-action: pan-x pan-y;
+}
 html,
 body {
   height: 100%;

@@ -3,6 +3,9 @@ import { getCurrentMember } from "@/lib/session";
 import { getMembers } from "@/lib/queries/family";
 import { createClient } from "@/lib/supabase/server";
 import { AddPlannerForm } from "./add-planner-form";
+import { getAccounts } from "@/lib/queries/wealth";
+import { LogSpendControl } from "@/components/money-actions";
+import { inKidView } from "@/lib/kid-view";
 
 export default async function AddPlannerPage({
   searchParams,
@@ -35,7 +38,18 @@ export default async function AddPlannerPage({
     if (data) editEvent = { ...data, memberIds: (data.event_members ?? []).map((em) => em.member_id) };
   }
 
+  // A trip's spending is logged from the trip itself now; it used to live on
+  // the big trip card at the top of the Planner, which is gone (26 September).
+  // Money, so never in kid view (lib/kid-view.ts).
+  const isTrip = editEvent?.kind === "travel" && !inKidView(me);
+  const pickable = isTrip
+    ? (await getAccounts(me.family_id))
+        .filter((a) => a.is_joint || a.owner_member_id === me.id)
+        .map((a) => ({ id: a.id, name: a.name, institution: a.institution, linked_app_url: a.linked_app_url, balance: a.balance, is_joint: a.is_joint }))
+    : [];
+
   return (
+    <>
     <AddPlannerForm
       members={members}
       defaultType={type ?? "task"}
@@ -47,5 +61,19 @@ export default async function AddPlannerPage({
       prefill={id ? undefined : { title: title?.slice(0, 150), notes: notes?.slice(0, 1000) }}
       householdCurrency={me.families.currency}
     />
+    {isTrip && editEvent && (
+      <div style={{ padding: "0 1.375rem 1.375rem" }}>
+        <LogSpendControl
+          accounts={pickable}
+          currency={editEvent.budget_currency ?? me.families.currency}
+          particulars={`${editEvent.title} · travel`}
+          category="Travel"
+          sourceTable="events"
+          sourceId={editEvent.id}
+          label="Log trip spend"
+        />
+      </div>
+    )}
+    </>
   );
 }
