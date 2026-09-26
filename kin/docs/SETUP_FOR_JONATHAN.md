@@ -86,7 +86,38 @@ Safe: nothing is deleted; switching it back on undoes it.
 
 ---
 
-## 4. Payments (GCash, Maya, cards)
+## 4. Scanning a flyer or invitation (Planner → Add)
+
+**What it switches on.** Planner → Add → *Scan a flyer or invitation*: take
+or choose a photo of a school memo, an invite or a poster, and Kin reads the
+dates off it and offers them as calendar entries to tick. It reads the photo
+with Claude (`src/lib/actions/flyer.ts`). Until the key below exists the card
+just says scanning isn't switched on, and nothing is sent anywhere.
+
+**What it costs.** Roughly US$0.02–0.06 a scan (a phone photo shrunk to
+1600px, read by Claude Opus 5 at medium effort) -- a few pesos. A monthly
+spend limit caps it; US$5 is hundreds of scans.
+
+**Safe to do.** Only the one photo being scanned is sent, and nothing is
+saved until someone ticks what to add. Deleting the key switches scanning
+off again.
+
+1. Open the [Claude Console](https://console.anthropic.com/) and sign in (or
+   sign up) with the account that should be billed.
+2. [Billing](https://console.anthropic.com/settings/billing): add a card and a
+   small amount of credit.
+3. [Limits](https://console.anthropic.com/settings/limits): set a monthly
+   spend limit, e.g. US$5.
+4. [API keys](https://console.anthropic.com/settings/keys) → **Create key**,
+   name it `kin-flyer-scan`, copy it (it is shown once).
+5. In [Vercel → Environment Variables](https://vercel.com/jisingian/kin-family-app/settings/environment-variables)
+   add `ANTHROPIC_API_KEY` = the key, Environment **Production** (and Preview
+   if you want scans on preview links), Sensitive on, Save.
+6. **Redeploy** as in 1.3. The card then shows *Take or choose a photo*.
+
+---
+
+## 5. Payments (GCash, Maya, cards)
 
 A decision, not a setting: see `docs/PAYMENTS_OPTIONS.md` for PayMongo and
 HitPay side by side, their fees, and what signing up involves.

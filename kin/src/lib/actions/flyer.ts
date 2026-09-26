@@ -19,7 +19,7 @@ const MAX_BYTES = 5 * 1024 * 1024;
 /** Reads a photo of a flyer and proposes calendar entries. Saves nothing. */
 export async function scanFlyerAction(formData: FormData): Promise<{ error: string | null; items: ScannedItem[] }> {
   await requireCurrentMember();
-  if (!process.env.ANTHROPIC_API_KEY) return { error: "Scanning isn't set up yet — ANTHROPIC_API_KEY is missing.", items: [] };
+  if (!process.env.ANTHROPIC_API_KEY) return { error: "Scanning isn't switched on yet. Fill in the event below for now.", items: [] };
 
   const file = formData.get("photo");
   if (!(file instanceof File) || file.size === 0) return { error: "Choose a photo first.", items: [] };
