@@ -7,7 +7,10 @@ import { getMemberDetail, buildBarSeries } from "@/lib/queries/health";
 import { getAccounts } from "@/lib/queries/wealth";
 import { LogSpendControl } from "@/components/money-actions";
 import { DetailHeader } from "@/components/hub-header";
-import { Segmented } from "@/components/segmented";
+import { ChipRow } from "@/components/segmented";
+import { MedicinesPanel, IllnessPanel, GrowthPanel } from "@/components/health-care";
+import { ageInMonths } from "@/lib/growth";
+import { familyDay, familyClock } from "@/lib/time";
 import { Blueprint, Tag } from "@/components/ui";
 import { Icon } from "@/components/icons";
 import { formatAge, initials } from "@/lib/format";
@@ -29,7 +32,7 @@ import { resolvePhotoUrl } from "@/lib/photo-url";
 import { familyDate } from "@/lib/format-family";
 import { familyDateTime } from "@/lib/time";
 
-const SEGMENTS = ["schedule", "conditions", "labs", "vitals"] as const;
+const SEGMENTS = ["schedule", "medicines", "illness", "conditions", "labs", "vitals"] as const;
 type Seg = (typeof SEGMENTS)[number];
 
 export default async function MemberDetailPage({
@@ -50,7 +53,7 @@ export default async function MemberDetailPage({
   // Health records are kept by the grown-ups; kid view shows the profile.
   if (view === "health" && inKidView(me)) redirect(`/family/members/${id}`);
 
-  const { member, schedule, appointments, conditions, labs, vitals, omron } = await getMemberDetail(id, me.family_id);
+  const { member, schedule, appointments, conditions, labs, vitals, omron, medicines, doses, illness, photoCount } = await getMemberDetail(id, me.family_id);
   if (!member) redirect("/family?seg=profile");
   const isSelf = me.id === member.id;
 
@@ -191,7 +194,10 @@ export default async function MemberDetailPage({
 
         {view === "health" && (
           <>
-        <Segmented items={segments} />
+        <Link href={`/family/members/${member.id}/emergency`} className="btn btn-secondary btn-block kin-care-sos">
+          <Icon name="shieldCheck" size="1rem" /> Emergency card
+        </Link>
+        <ChipRow items={segments} />
         <div style={{ marginTop: "1.125rem" }}>
           {seg === "schedule" && (
             <>
@@ -213,7 +219,12 @@ export default async function MemberDetailPage({
                     <span style={{ font: "400 0.8125rem/1.4 var(--font-numeric)", color: "var(--color-accent-700)", width: 140, flex: "none" }}>
                       {familyDateTime(new Date(a.when_at))}
                     </span>
-                    <span style={{ flex: 1, fontSize: "0.8125rem", minWidth: "7.5rem" }}>{a.what}</span>
+                    <span style={{ flex: 1, fontSize: "0.8125rem", minWidth: "7.5rem" }}>
+                      {a.what}
+                      <Link href={`/family/members/${member.id}/visit/${a.id}`} className="kin-care-visitlink">
+                        {a.notes || photoCount.get(a.id) ? `Notes${photoCount.get(a.id) ? ` · ${photoCount.get(a.id)} photo${photoCount.get(a.id) === 1 ? "" : "s"}` : ""}` : "Add notes & photos"}
+                      </Link>
+                    </span>
                     <LogSpendControl
                       accounts={payableAccounts}
                       currency={me.families.currency}
@@ -229,6 +240,27 @@ export default async function MemberDetailPage({
               ))}
               {schedule.length === 0 && appointments.length === 0 && <EmptyNote text="No check-ups or appointments scheduled. Adding one puts it in the Planner and on Today when it comes due." />}
             </>
+          )}
+
+          {seg === "medicines" && (
+            <MedicinesPanel
+              memberId={member.id}
+              firstName={member.full_name.split(" ")[0]}
+              medicines={medicines}
+              doses={doses}
+              today={familyDay()}
+              now={familyClock(new Date())}
+              role={me.role}
+            />
+          )}
+
+          {seg === "illness" && (
+            <IllnessPanel
+              memberId={member.id}
+              firstName={member.full_name.split(" ")[0]}
+              logs={illness.map((l) => ({ ...l, when: familyDateTime(new Date(l.logged_at)) }))}
+              role={me.role}
+            />
           )}
 
           {seg === "conditions" &&
@@ -306,6 +338,17 @@ export default async function MemberDetailPage({
               {stepsSeries.length > 0 && <BarChart title="STEPS · APPLE HEALTH" series={stepsSeries} unit="steps" />}
               {heartSeries.length > 0 && <BarChart title="RESTING HEART RATE · APPLE HEALTH" series={heartSeries} unit="bpm" />}
               {sleepSeries.length > 0 && <BarChart title="SLEEP · APPLE HEALTH" series={sleepSeries} unit="hours" />}
+              {/* The WHO standard covers birth to five. */}
+              {member.dob && ageInMonths(member.dob, familyDay()) <= 60 && (
+                <GrowthPanel
+                  memberId={member.id}
+                  firstName={member.full_name.split(" ")[0]}
+                  dob={member.dob}
+                  sex={member.sex === "female" || member.sex === "male" ? member.sex : null}
+                  weights={weightPoints.map((v) => ({ date: v.reading_date, value: parseFloat(v.value_text) })).filter((p) => p.value > 0)}
+                  lengths={lengthPoints.map((v) => ({ date: v.reading_date, value: parseFloat(v.value_text) })).filter((p) => p.value > 0)}
+                />
+              )}
             </>
           )}
         </div>

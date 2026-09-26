@@ -1,4 +1,6 @@
 import Link from "next/link";
+import { getHealthWeek } from "@/lib/queries/health";
+import { familyDay, familyClock } from "@/lib/time";
 import { SmartHomeLinks } from "@/components/smart-home-links";
 import { Icon } from "@/components/icons";
 import { redirect } from "next/navigation";
@@ -171,10 +173,26 @@ async function ProfilePane({ familyId, isOrganiser, myId, myRole }: { familyId: 
 }
 
 async function HealthPane({ familyId }: { familyId: string }) {
-  const rows = (await getHealthSummary(familyId)).filter((r) => r.member.status !== "pending" && r.member.status !== "removed");
+  const [summary, week] = await Promise.all([getHealthSummary(familyId), getHealthWeek(familyId, familyDay(), familyClock(new Date()))]);
+  const rows = summary.filter((r) => r.member.status !== "pending" && r.member.status !== "removed");
 
   return (
     <>
+      <Blueprint className="kin-week" style={{ padding: "0.8125rem", marginBottom: "0.875rem" }}>
+        <div className="kin-eyebrow" style={{ marginBottom: "0.375rem" }}>
+          THIS WEEK
+        </div>
+        {week.length === 0 ? (
+          <p style={{ fontSize: "0.84375rem", color: "var(--color-neutral-600)", margin: 0 }}>Nothing needs anyone this week.</p>
+        ) : (
+          week.slice(0, 8).map((w, i) => (
+            <Link key={i} href={w.href} className="kin-week-row" data-tone={w.tone}>
+              <b>{w.firstName}</b>
+              <span>{w.text}</span>
+            </Link>
+          ))
+        )}
+      </Blueprint>
       {rows.map(({ member, nextDue, hasAlert }) => (
         <Link key={member.id} href={`/family/members/${member.id}?view=health`} style={{ color: "inherit", textDecoration: "none" }}>
           <Blueprint style={{ padding: "0.8125rem", marginBottom: "0.75rem" }}>

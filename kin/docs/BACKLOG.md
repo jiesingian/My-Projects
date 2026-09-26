@@ -104,9 +104,12 @@ Added 26 September, second list:
     icon existed and iPhones never refresh one. Remove it and add Kin to
     the Home Screen again; `/apple-touch-icon.png` now also answers at the
     root for older iPhones.
-24. **Health tab, all six approved:** medicine reminders, a "this week"
-    summary, an emergency card, children's growth charts, visit notes with
-    photos, and an illness log.
+24. **Done: Health tab, all six approved:** medicines with a tick per dose
+    (late and missed ones flagged), a "This week" summary on Family, Health,
+    an emergency card per person (share as text, print), WHO growth charts
+    for children under five, notes and photos on each visit, and an illness
+    log with a temperature chart. **Not yet:** a push at the dose time --
+    see Next up.
 
 Decided against in the same review: revising Journal (item 6) and Planner
 (item 7). Done already: no hub numbers and no "five ledgers" motto (item 9,
@@ -212,6 +215,14 @@ Decided against in the same review: revising Journal (item 6) and Planner
 - Cutting the bottom navigation down to 4–5 tabs (declined 24 September).
 
 ## Next up
+
+- **Medicine reminders as a push at the dose time.** Needs something that
+  runs every few minutes and can send a push for a household without anyone
+  signed in. Today there is no such scheduler: GitHub's cron runs hours
+  late, Vercel's Hobby cron is once a day, and the push helper sends in the
+  sender's own session. The honest shape is a Supabase pg_cron job calling
+  a Kin route with a secret, which is a secret and possibly a paid plan --
+  Jonathan's. Until then late doses show on the Health tab and in This week.
 
 - **Private channels for the chat, then Realtime's public access off.**
   Calls use a private channel (20260926090000_call_signalling.sql), but
