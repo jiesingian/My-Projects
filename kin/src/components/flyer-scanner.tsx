@@ -79,7 +79,7 @@ export function FlyerScanner() {
         </span>
         <div style={{ flex: 1, minWidth: 0 }}>
           <h3 id={`${uid}-h`}>Scan a flyer or invitation</h3>
-          <p>Take a photo of a school memo, invite or poster. Kin finds the dates and you choose what to add.</p>
+          <p>Take a photo of a school memo, invite or poster, or choose one you already have (a screenshot works too). Kin finds the dates and you choose what to add.</p>
         </div>
       </div>
       <input
@@ -87,7 +87,10 @@ export function FlyerScanner() {
         id={`${uid}-file`}
         type="file"
         accept="image/*"
-        capture="environment"
+        // No `capture` (26 September): it sends a phone straight to the
+        // camera, so an invitation that arrived as a photo or a screenshot
+        // could not be chosen. Without it the phone offers Photo Library,
+        // Take Photo and Choose File.
         className="sr-only"
         onChange={(e) => pick(e.target.files?.[0])}
         disabled={scanning || saving}
