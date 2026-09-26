@@ -3632,6 +3632,8 @@ button.kin-initial:focus-visible {
 .kin-scan-reading .kin-skeleton { height: 4.5rem; border-radius: 0.75rem; }
 .kin-scan-error { color: var(--color-accent-700); font-size: 0.8125rem; margin: 0; }
 .kin-scan-off { font-size: 0.8125rem; line-height: 1.45; color: var(--color-neutral-700); margin: 0; padding: 0.625rem 0.75rem; border-radius: 0.625rem; background: color-mix(in srgb, var(--color-text) 5%, transparent); }
+.kin-scan-preview { display: block; width: 100%; padding: 0; border: 0; background: none; cursor: zoom-in; margin-top: 0.625rem; }
+.kin-scan-preview img { display: block; width: 100%; max-height: 60vh; object-fit: contain; border-radius: 0.625rem; background: color-mix(in srgb, var(--color-text) 5%, transparent); }
 .kin-scan-done { display: flex; align-items: center; gap: 0.375rem; font-size: 0.875rem; margin: 0; color: var(--color-text); }
 .kin-scan-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 0.5rem; }
 .kin-scan-list li {
