@@ -40,11 +40,15 @@ session (see the root CLAUDE.md on session cost).
    Message / Call; details under About; Remove in a "⋯" menu). **Plus
    (Jonathan): a person's profile opens from the family tree too** -- a
    second tap on someone picked in the tree, or their name in its panel.
-7. **Yes: birthday and anniversary moments** in the family feed.
+7. **Done: birthday and anniversary moments** in the family feed. **Plus
+   (Jonathan):** every relative who sees the card sees every greeting, under
+   the greeter's full name (who remembered is the point; which household does
+   not matter), and the family whose day it is can mark it a ★ milestone --
+   never automatic, since some birthdays are celebrated more than others.
+   Still to come: tapping a greeter from a *linked* household should open
+   their profile and show where they are on the family tree (a greeter from
+   your own household opens their profile already).
 8. **Done: a Sunday "week ahead" push** (with its own switch).
-9. **Yes: streaks for kids' chores** (bonus star at 7 and 30 days, one freeze a week).
-7. **Done: birthday and anniversary moments** in the family feed.
-8. **Yes: a Sunday "week ahead" push** (with its own switch).
 9. **Done: streaks for kids' chores** (bonus star at 7 and 30 days, one freeze a week).
 10. **No Filipino interface.** Kin AI keeps understanding and answering
     Filipino / Taglish, as it already does.

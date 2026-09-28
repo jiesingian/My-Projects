@@ -1,5 +1,5 @@
 import { test, expect } from "@playwright/test";
-import { occasionHeadline } from "@/lib/occasions";
+import { occasionHeadline, occasionMilestoneTitle } from "@/lib/occasions";
 
 test("a birthday with a real year says the age", () => {
   expect(occasionHeadline("Lola Rosa", "birthday", 72)).toBe("Lola Rosa turns 72 today 🎂");
@@ -18,4 +18,11 @@ test("an anniversary counts its years", () => {
   expect(occasionHeadline("Our anniversary", "anniversary", 1)).toBe("Our anniversary: 1 year today 💍");
   expect(occasionHeadline("Our anniversary", "anniversary", null)).toBe("Our anniversary, today 💍");
   expect(occasionHeadline("Marco & Tess", "anniversary", null)).toBe("Marco & Tess’s anniversary is today 💍");
+});
+
+test("a marked occasion's milestone reads without 'today'", () => {
+  expect(occasionMilestoneTitle("Lola Rosa's birthday", "birthday", 72)).toBe("Lola Rosa turns 72");
+  expect(occasionMilestoneTitle("Lola Rosa", "birthday", null)).toBe("Lola Rosa’s birthday");
+  expect(occasionMilestoneTitle("Marco & Tess", "anniversary", 25)).toBe("Marco & Tess: 25 years");
+  expect(occasionMilestoneTitle("Our anniversary", "anniversary", null)).toBe("Our anniversary");
 });

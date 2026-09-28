@@ -78,7 +78,7 @@ export async function getFamilyFeed(familyId: string): Promise<FeedEntry[]> {
   // households' shared ones and nothing else.
   const { data: milestones } = await supabase
     .from("milestones")
-    .select("id, title, milestone_date, family_id, shared_at")
+    .select("id, title, milestone_date, family_id, shared_at, event_id")
     .not("shared_at", "is", null)
     .order("milestone_date", { ascending: false })
     .limit(200);
@@ -111,7 +111,11 @@ export async function getFamilyFeed(familyId: string): Promise<FeedEntry[]> {
       .map((m) => ({ url: signed[m.storage_path as string], id: r.family_id === familyId ? m.id : null }))
       .filter((p): p is { url: string; id: string | null } => !!p.url),
   }));
-  const moments: FeedEntry[] = (milestones ?? []).map((m) => ({
+  // A birthday marked as a milestone is already on today's birthday card, as
+  // its ★; on its own day it is not listed a second time. Afterwards it is an
+  // ordinary milestone in the feed like any other.
+  const today = new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Manila" });
+  const moments: FeedEntry[] = (milestones ?? []).filter((m) => !(m.event_id && m.milestone_date === today)).map((m) => ({
     kind: "milestone" as const,
     id: m.id,
     title: m.title,
@@ -133,13 +137,22 @@ export async function getFeedOccasions(meId: string, familyId: string): Promise<
   const { data } = await supabase.rpc("feed_occasions_today");
   const rows = (data ?? []).filter((o) => o.kind === "birthday" || o.kind === "anniversary");
   if (rows.length === 0) return [];
-  const { data: greetings } = await supabase
-    .from("occasion_greetings")
-    .select("id, event_id, occasion_date, body, author_name, household_name, member_id, family_id, created_at")
-    .in("event_id", rows.map((o) => o.event_id))
-    .order("created_at", { ascending: true });
   // Only this year's day: the same event comes round again next year.
   const today = new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Manila" });
+  const eventIds = rows.map((o) => o.event_id);
+  const [{ data: greetings }, { data: marked }] = await Promise.all([
+    supabase
+      .from("occasion_greetings")
+      .select("id, event_id, occasion_date, body, author_name, member_id, family_id, created_at")
+      .in("event_id", eventIds)
+      .eq("occasion_date", today)
+      .order("created_at", { ascending: true }),
+    // Milestones are readable by their own household and, once shared, by
+    // linked ones -- so a linked household sees the ★ when the birthday
+    // household has shared it, the same as any other milestone.
+    supabase.from("milestones").select("event_id").in("event_id", eventIds).eq("milestone_date", today),
+  ]);
+  const milestoneFor = new Set((marked ?? []).map((m) => m.event_id));
   return rows.map((o) => ({
     eventId: o.event_id,
     title: o.title,
@@ -147,20 +160,20 @@ export async function getFeedOccasions(meId: string, familyId: string): Promise<
     years: o.years,
     householdName: o.household_name,
     isOurs: o.is_ours,
+    milestone: milestoneFor.has(o.event_id),
     greetings: (greetings ?? [])
-      .filter((g) => g.event_id === o.event_id && g.occasion_date === today)
+      .filter((g) => g.event_id === o.event_id)
       .map((g) => ({
         id: g.id,
         body: g.body,
         authorName: g.author_name,
-        householdName: g.household_name,
+        profileMemberId: g.family_id === familyId ? g.member_id : null,
         mine: g.member_id === meId,
-        ourHousehold: g.family_id === familyId,
       })),
   }));
 }
 
-export type LinkMessage ={ id: string; authorName: string; body: string; createdAt: string; mine: boolean; ourHousehold: boolean };
+export type LinkMessage = { id: string; authorName: string; body: string; createdAt: string; mine: boolean; ourHousehold: boolean };
 
 /** One linked household's conversation with this one, oldest first, and the
  * name of the household on the other end. Null when the link is not an
