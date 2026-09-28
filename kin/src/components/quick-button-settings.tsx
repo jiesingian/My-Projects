@@ -2,7 +2,8 @@
 
 import { useEffect, useState, useSyncExternalStore, useTransition } from "react";
 import { Icon, type IconName } from "@/components/icons";
-import { setQuickButtonAction } from "@/lib/actions/settings";
+import { createBriefLinkAction, previewBriefAction, removeBriefLinkAction, setQuickButtonAction } from "@/lib/actions/settings";
+import { speak, speechOutSupported, stopSpeaking } from "@/lib/speech";
 import { MENU_MAX, QUICK_ACTIONS, WIDGET_MAX, quickAction, type QuickActionId, type QuickPrefs } from "@/lib/quick-button";
 
 const noSubscribe = () => () => {};
@@ -20,7 +21,7 @@ const ICONS: Record<QuickActionId, IconName> = {
 
 /** Settings → Action Button & widget: what the Action Button's pop-up and the
  * Home Screen widget offer, a picture of each, and the one-time setup. */
-export function QuickButtonSettings({ initial }: { initial: QuickPrefs }) {
+export function QuickButtonSettings({ initial, briefOn }: { initial: QuickPrefs; briefOn: boolean }) {
   const [prefs, setPrefs] = useState<QuickPrefs>(initial);
   const [pending, startTransition] = useTransition();
   const [failed, setFailed] = useState<string | null>(null);
@@ -47,6 +48,8 @@ export function QuickButtonSettings({ initial }: { initial: QuickPrefs }) {
 
   return (
     <div className="kin-quickbtn">
+      <TodayBrief initialOn={briefOn} origin={origin} />
+
       <section className="kin-quickbtn-section" aria-labelledby="qb-menu">
         <h2 id="qb-menu" className="kin-quickbtn-h">Action Button</h2>
         <p className="kin-quickbtn-lead">Press the Action Button and a small menu pops up. Pick what&rsquo;s in it.</p>
@@ -308,5 +311,111 @@ function CopyLink({ label, url }: { label: string; url: string }) {
         </button>
       </div>
     </div>
+  );
+}
+
+/** "Today in Kin": one tap and the iPhone reads today's plan aloud, with
+ * times. A Shortcut fetches the member's private link (Get Contents of URL)
+ * and speaks it (Speak Text) in the phone's own voice -- free, and it works
+ * without the AI key. */
+function TodayBrief({ initialOn, origin }: { initialOn: boolean; origin: string }) {
+  const [on, setOn] = useState(initialOn);
+  const [url, setUrl] = useState<string | null>(null);
+  const [pending, startTransition] = useTransition();
+  const [failed, setFailed] = useState<string | null>(null);
+  const [preview, setPreview] = useState<string | null>(null);
+  const canSpeak = useSyncExternalStore(noSubscribe, speechOutSupported, () => false);
+
+  function make() {
+    startTransition(async () => {
+      const r = await createBriefLinkAction();
+      setFailed(r.error);
+      if (r.url) {
+        setUrl(r.url);
+        setOn(true);
+      }
+    });
+  }
+
+  function hear() {
+    startTransition(async () => {
+      const { text } = await previewBriefAction();
+      setPreview(text);
+      if (canSpeak) {
+        stopSpeaking();
+        speak(text);
+      }
+    });
+  }
+
+  return (
+    <section className="kin-quickbtn-section" aria-labelledby="qb-brief">
+      <h2 id="qb-brief" className="kin-quickbtn-h">Today in Kin, read aloud</h2>
+      <p className="kin-quickbtn-lead">
+        One tap and your iPhone says what&rsquo;s on today, with the times. It uses the phone&rsquo;s own voice, so it&rsquo;s free and works without Kin AI.
+      </p>
+      <div className="kin-quickbtn-row">
+        <button type="button" className="btn btn-secondary" onClick={hear} disabled={pending}>
+          <Icon name="play" size={15} /> Hear today&rsquo;s plan
+        </button>
+      </div>
+      {preview && <p className="kin-quickbtn-preview">{preview}</p>}
+
+      {url ? (
+        <>
+          <p className="kin-quickbtn-lead">
+            <b>Your private link.</b> Copy it now: Kin shows it only once. Anyone with it can hear your day, so keep it in the Shortcut and nowhere else.
+          </p>
+          <CopyLink label="Today in Kin" url={url} />
+        </>
+      ) : (
+        <div className="kin-quickbtn-row">
+          <button type="button" className="btn btn-primary" onClick={make} disabled={pending}>
+            {on ? "Make a new link" : "Make my link"}
+          </button>
+          {on && (
+            <button
+              type="button"
+              className="btn btn-secondary"
+              disabled={pending}
+              onClick={() =>
+                startTransition(async () => {
+                  const r = await removeBriefLinkAction();
+                  setFailed(r.error);
+                  if (!r.error) setOn(false);
+                })
+              }
+            >
+              Turn it off
+            </button>
+          )}
+        </div>
+      )}
+      {on && !url && <p className="kin-quickbtn-note">Your link is on. A new link replaces it, and the old one stops working.</p>}
+      {failed && (
+        <p role="alert" className="kin-quickbtn-error">
+          {failed}
+        </p>
+      )}
+
+      <ol className="kin-quickbtn-sub kin-quickbtn-brief-steps">
+        <li>
+          In Shortcuts, tap <b>+</b>, add <b>Get Contents of URL</b> and paste your link.
+        </li>
+        <li>
+          Add <b>Speak Text</b> under it. Name the shortcut <b>Today in Kin</b>.
+        </li>
+        <li>
+          <b>Widget:</b> move it into your <b>Kin</b> folder, and it&rsquo;s one tap on the Home Screen.
+        </li>
+        <li>
+          <b>Action Button:</b> in the <b>Kin</b> shortcut&rsquo;s menu add an item <b>Today in Kin</b>, with the action <b>Run Shortcut → Today in Kin</b>.
+        </li>
+        <li>
+          <b>Hands-free:</b> say &ldquo;Hey Siri, Today in Kin&rdquo;.
+        </li>
+      </ol>
+      {origin && <OpenShortcuts />}
+    </section>
   );
 }

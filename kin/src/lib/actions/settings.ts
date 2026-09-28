@@ -14,6 +14,7 @@ import { PALETTE_DEFAULT, PALETTE_NEW_MEMBER, isPaletteId } from "@/lib/palettes
 import { randomToken, sha256, toBase64Url } from "@/lib/security/crypto";
 import { isCurrencyCode, isDateFormat, isWeekStart } from "@/lib/household-prefs";
 import { MENU_MAX, WIDGET_MAX, cleanActions } from "@/lib/quick-button";
+import { buildBrief, type BriefItem } from "@/lib/brief";
 
 export async function setThemeAction(theme: "light" | "dark" | "system"): Promise<ActionState> {
   const me = await requireCurrentMember();
@@ -228,4 +229,54 @@ export async function setQuickButtonAction(prefs: { menu: string[]; widget: stri
   if (error) return { error: `That did not save. ${humanDatabaseError(error.message)}` };
   revalidatePath("/settings");
   return { error: null };
+}
+
+/** Makes the member a new private "Today in Kin" link, the one an iPhone
+ * Shortcut fetches and reads aloud, replacing any earlier one. Separate from
+ * the calendar link so making one never breaks the other. Like that link,
+ * only the hash is stored: this is the one moment it exists readable. */
+export async function createBriefLinkAction(): Promise<{ error: string | null; url?: string }> {
+  const me = await requireCurrentMember();
+  const token = randomToken();
+  const supabase = await createClient();
+  const { error } = await supabase.from("members").update({ brief_hash: toBase64Url(sha256(token)) }).eq("id", me.id);
+  if (error) return { error: `That did not save. ${humanDatabaseError(error.message)}` };
+  const h = await headers();
+  const host = h.get("x-forwarded-host") ?? h.get("host") ?? "";
+  revalidatePath("/settings", "layout");
+  return { error: null, url: `https://${host}/api/brief/${token}` };
+}
+
+/** Turns the "Today in Kin" link off. The Shortcut then says the link isn't
+ * working any more. */
+export async function removeBriefLinkAction(): Promise<ActionState> {
+  const me = await requireCurrentMember();
+  const supabase = await createClient();
+  const { error } = await supabase.from("members").update({ brief_hash: null }).eq("id", me.id);
+  if (error) return { error: `That did not save. ${humanDatabaseError(error.message)}` };
+  revalidatePath("/settings", "layout");
+  return { error: null };
+}
+
+/** What "Today in Kin" would say right now, for the Hear it button in
+ * Settings -- read as the member through row-level security, with the same
+ * reach as the link: whole-family items and the ones tagged to them. */
+export async function previewBriefAction(): Promise<{ text: string }> {
+  const me = await requireCurrentMember();
+  const supabase = await createClient();
+  const since = new Date(Date.now() - 2 * 86_400_000).toISOString();
+  const [{ data: acts }, { data: evs }] = await Promise.all([
+    supabase.from("activities").select("title, start_at, end_at, repeat, location, applies_to_whole_family, activity_members(member_id)").eq("family_id", me.family_id).or(`repeat.neq.once,start_at.gt.${since}`),
+    supabase.from("events").select("title, event_date, end_date, recurs_yearly, applies_to_whole_family, event_members(member_id)").eq("family_id", me.family_id),
+  ]);
+  const mine = (whole: boolean, tagged: { member_id: string }[] | null) => whole || (tagged ?? []).some((t) => t.member_id === me.id);
+  const items: BriefItem[] = [
+    ...(acts ?? [])
+      .filter((a) => mine(a.applies_to_whole_family, a.activity_members))
+      .map((a) => ({ title: a.title, starts_at: a.start_at, ends_at: a.end_at, all_day: null, all_day_end: null, yearly: false, repeat: a.repeat, location: a.location })),
+    ...(evs ?? [])
+      .filter((e) => mine(e.applies_to_whole_family, e.event_members))
+      .map((e) => ({ title: e.title, starts_at: null, ends_at: null, all_day: e.event_date, all_day_end: e.end_date, yearly: e.recurs_yearly, repeat: null, location: null })),
+  ];
+  return { text: buildBrief(me.full_name, items) };
 }

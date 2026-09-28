@@ -188,6 +188,12 @@ Decided against in the same review: revising Journal (item 6) and Planner
   live Kin information (today's events, the list) needs a native iPhone app
   (28 September).
 
+- Today in Kin, read aloud: one tap (widget, Action Button pop-up, or "Hey
+  Siri, Today in Kin") and the iPhone says today's plan with times in its own
+  voice. A private link per member, like the calendar link, that a Shortcut
+  fetches and speaks. Free, and works without the AI key. Settings has a
+  Hear it button to preview (28 September).
+
 - Five more colour themes in Settings → Appearance: Pale Milk, Editorial,
   Electric Blue, Emerald Wave and Antarctic (dark only), from Janine's list,
   each passing the same readability test as the rest. Plain and outline
