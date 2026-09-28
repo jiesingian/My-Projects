@@ -14,7 +14,8 @@ import { PALETTE_DEFAULT, PALETTE_NEW_MEMBER, isPaletteId } from "@/lib/palettes
 import { randomToken, sha256, toBase64Url } from "@/lib/security/crypto";
 import { isCurrencyCode, isDateFormat, isWeekStart } from "@/lib/household-prefs";
 import { MENU_MAX, WIDGET_MAX, cleanActions } from "@/lib/quick-button";
-import { buildBrief, type BriefItem } from "@/lib/brief";
+import { buildBrief, type BriefItem, type BriefRoutine } from "@/lib/brief";
+import { familyDay } from "@/lib/time";
 
 export async function setThemeAction(theme: "light" | "dark" | "system"): Promise<ActionState> {
   const me = await requireCurrentMember();
@@ -260,15 +261,42 @@ export async function removeBriefLinkAction(): Promise<ActionState> {
 
 /** What "Today in Kin" would say right now, for the Hear it button in
  * Settings -- read as the member through row-level security, with the same
- * reach as the link: whole-family items and the ones tagged to them. */
+ * reach as the link: whole-family items and the ones tagged to them, today's
+ * chores and routines, and for grown-ups what is running low. */
 export async function previewBriefAction(): Promise<{ text: string }> {
   const me = await requireCurrentMember();
   const supabase = await createClient();
   const since = new Date(Date.now() - 2 * 86_400_000).toISOString();
-  const [{ data: acts }, { data: evs }] = await Promise.all([
+  const today = familyDay();
+  const [{ data: acts }, { data: evs }, { data: rts }, { data: pantry }, { data: buy }] = await Promise.all([
     supabase.from("activities").select("title, start_at, end_at, repeat, location, applies_to_whole_family, activity_members(member_id)").eq("family_id", me.family_id).or(`repeat.neq.once,start_at.gt.${since}`),
     supabase.from("events").select("title, event_date, end_date, recurs_yearly, applies_to_whole_family, event_members(member_id)").eq("family_id", me.family_id),
+    supabase
+      .from("routines")
+      .select("id, title, freq, repeat_interval, byweekday, bymonthday, start_date, end_date, time_of_day, location, applies_to_whole_family, rotate_assignee, routine_members(member_id, position), routine_log(occurrence_date, status)")
+      .eq("family_id", me.family_id)
+      .eq("paused", false)
+      .eq("routine_log.occurrence_date", today),
+    isGrownUp(me.role) ? supabase.from("pantry_items").select("name").eq("family_id", me.family_id).eq("running_low", true) : Promise.resolve({ data: [] as { name: string }[] }),
+    isGrownUp(me.role) ? supabase.from("buy_items").select("name").eq("family_id", me.family_id).eq("checked", false).eq("cleared", false) : Promise.resolve({ data: [] as { name: string }[] }),
   ]);
+  const onList = new Set((buy ?? []).map((b) => b.name.trim().toLowerCase()));
+  const low = (pantry ?? []).map((p) => p.name).filter((n) => !onList.has(n.trim().toLowerCase())).sort();
+  const routines: BriefRoutine[] = (rts ?? []).map((r) => ({
+    title: r.title,
+    freq: r.freq as BriefRoutine["freq"],
+    repeat_interval: r.repeat_interval,
+    byweekday: r.byweekday,
+    bymonthday: r.bymonthday,
+    start_date: r.start_date,
+    end_date: r.end_date,
+    time_of_day: r.time_of_day,
+    location: r.location,
+    whole_family: r.applies_to_whole_family,
+    rotate: r.rotate_assignee,
+    members: [...(r.routine_members ?? [])].sort((a, b) => a.position - b.position).map((m) => m.member_id),
+    logged: (r.routine_log ?? []).filter((l) => l.status === "done" || l.status === "skipped").map((l) => l.occurrence_date),
+  }));
   const mine = (whole: boolean, tagged: { member_id: string }[] | null) => whole || (tagged ?? []).some((t) => t.member_id === me.id);
   const items: BriefItem[] = [
     ...(acts ?? [])
@@ -278,5 +306,5 @@ export async function previewBriefAction(): Promise<{ text: string }> {
       .filter((e) => mine(e.applies_to_whole_family, e.event_members))
       .map((e) => ({ title: e.title, starts_at: null, ends_at: null, all_day: e.event_date, all_day_end: e.end_date, yearly: e.recurs_yearly, repeat: null, location: null })),
   ];
-  return { text: buildBrief(me.full_name, items) };
+  return { text: buildBrief(me.full_name, items, new Date(), undefined, { me: me.id, routines, low }) };
 }
