@@ -33,3 +33,15 @@ export function isForMe(me: { id: string; role: string }, wholeFamily: boolean, 
 export function taggedFrom(rows: { member_id: string; members?: unknown }[] | null | undefined): Tagged[] {
   return (rows ?? []).map((r) => ({ id: r.member_id, role: (r.members as { role?: string } | null)?.role ?? null }));
 }
+
+/** Which of Today's "Coming up" pages something belongs on (28 September):
+ * yours, the family's, or someone else's. Janine: swipe one way for other
+ * members' activities and events, the other way for your own. A child's plan
+ * is someone else's here -- it has its own page to be found on -- while
+ * isForMe above still puts it in front of the grown-ups on Today. */
+export type Whose = "mine" | "family" | "others";
+
+export function whoseFor(me: { id: string }, wholeFamily: boolean, tagged: Tagged[]): Whose {
+  if (wholeFamily || tagged.length === 0) return "family";
+  return tagged.some((t) => t.id === me.id) ? "mine" : "others";
+}

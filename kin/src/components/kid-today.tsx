@@ -27,7 +27,8 @@ export async function KidToday({ me }: { me: { id: string; role: string; family_
   const mine = scores.find((s) => s.id === me.id);
   const stars = mine?.spendable ?? 0;
   const first = me.full_name.split(" ")[0];
-  const next = [...brief, ...comingUp].filter(forAChild).slice(0, 6);
+  // A child's coming-up is their own and the family's, not the grown-ups'.
+  const next = [...brief, ...comingUp.filter((b) => b.whose !== "others")].filter(forAChild).slice(0, 6);
   const day = new Date().toLocaleDateString("en-GB", { weekday: "long", timeZone: FAMILY_TZ }).toUpperCase();
 
   return (

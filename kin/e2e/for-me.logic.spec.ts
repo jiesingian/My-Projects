@@ -1,5 +1,5 @@
 import { test, expect } from "@playwright/test";
-import { isForMe, taggedFrom } from "@/lib/for-me";
+import { isForMe, taggedFrom, whoseFor } from "@/lib/for-me";
 
 /** Today and the reminders show a person what is theirs: the whole family's,
  * their own, and for a grown-up the children's -- not another grown-up's. */
@@ -35,4 +35,12 @@ test("taggedFrom reads PostgREST's nested rows", () => {
     { id: "e", role: null },
   ]);
   expect(taggedFrom(null)).toEqual([]);
+});
+
+test("Coming up pages: whole family or untagged is Family, tagged to me is Mine, anyone else's is Others", () => {
+  expect(whoseFor(jonathan, true, [{ id: "n" }])).toBe("family");
+  expect(whoseFor(jonathan, false, [])).toBe("family");
+  expect(whoseFor(jonathan, false, [{ id: "j" }, { id: "n" }])).toBe("mine");
+  expect(whoseFor(jonathan, false, [{ id: "n", role: "parent" }])).toBe("others");
+  expect(whoseFor(jonathan, false, [{ id: "e", role: "child_self" }])).toBe("others");
 });
