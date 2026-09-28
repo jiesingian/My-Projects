@@ -1,36 +1,43 @@
 "use client";
 
-import { useId, useState, useSyncExternalStore, useTransition } from "react";
-import { Icon } from "@/components/icons";
+import { useEffect, useState, useSyncExternalStore, useTransition } from "react";
+import { Icon, type IconName } from "@/components/icons";
 import { setQuickButtonAction } from "@/lib/actions/settings";
-import {
-  QUICK_ACTIONS,
-  QUICK_BUTTONS,
-  QUICK_SLOTS,
-  QUICK_SLOT_NAMES,
-  gestureFor,
-  type QuickActionId,
-  type QuickButton,
-  type QuickPrefs,
-  type QuickSlot,
-} from "@/lib/quick-button";
+import { MENU_MAX, QUICK_ACTIONS, WIDGET_MAX, quickAction, type QuickActionId, type QuickPrefs } from "@/lib/quick-button";
 
 const noSubscribe = () => () => {};
 
-/** Settings → Quick button: which of the phone's buttons, what each press
- * does, and the one-time Shortcuts setup that points the button at Kin. */
+const ICONS: Record<QuickActionId, IconName> = {
+  open: "house",
+  ask: "sparkle",
+  talk: "mic",
+  "family-chat": "message",
+  buy: "basket",
+  expense: "receipt",
+  event: "calendarDays",
+  journal: "images",
+};
+
+/** Settings → Action Button & widget: what the Action Button's pop-up and the
+ * Home Screen widget offer, a picture of each, and the one-time setup. */
 export function QuickButtonSettings({ initial }: { initial: QuickPrefs }) {
   const [prefs, setPrefs] = useState<QuickPrefs>(initial);
   const [pending, startTransition] = useTransition();
   const [failed, setFailed] = useState<string | null>(null);
-  const uid = useId();
   // The links are shown whole, because that is what gets pasted into
   // Shortcuts; the origin is only known in the browser.
   const origin = useSyncExternalStore(noSubscribe, () => window.location.origin, () => "");
 
-  function save(next: QuickPrefs) {
+  function toggle(list: "menu" | "widget", id: QuickActionId) {
+    const max = list === "menu" ? MENU_MAX : WIDGET_MAX;
+    const has = prefs[list].includes(id);
+    if (has && prefs[list].length === 1) return setFailed("Keep at least one.");
+    if (!has && prefs[list].length >= max) return setFailed(`That's the most it holds (${max}).`);
+    const nextList = QUICK_ACTIONS.map((a) => a.id).filter((a) => (a === id ? !has : prefs[list].includes(a)));
+    const next = { ...prefs, [list]: nextList };
     const previous = prefs;
     setPrefs(next);
+    setFailed(null);
     startTransition(async () => {
       const { error } = await setQuickButtonAction(next);
       setFailed(error);
@@ -38,152 +45,268 @@ export function QuickButtonSettings({ initial }: { initial: QuickPrefs }) {
     });
   }
 
-  const iphone = prefs.button !== "android";
-
   return (
     <div className="kin-quickbtn">
-      <div className="kin-quickbtn-label">Which button</div>
-      <div className="kin-quickbtn-buttons" role="radiogroup" aria-label="Which button">
-        {QUICK_BUTTONS.map((b) => (
-          <button
-            key={b.id}
-            type="button"
-            role="radio"
-            aria-checked={prefs.button === b.id}
-            disabled={pending}
-            className="kin-quickbtn-choice"
-            onClick={() => prefs.button !== b.id && save({ ...prefs, button: b.id as QuickButton })}
-          >
-            <span className="kin-quickbtn-choice-name">{b.name}</span>
-            <span className="kin-quickbtn-choice-line">{b.line}</span>
-          </button>
-        ))}
-      </div>
+      <section className="kin-quickbtn-section" aria-labelledby="qb-menu">
+        <h2 id="qb-menu" className="kin-quickbtn-h">Action Button</h2>
+        <p className="kin-quickbtn-lead">Press the Action Button and a small menu pops up. Pick what&rsquo;s in it.</p>
+        <MenuPreview ids={prefs.menu} />
+        <Picker list="menu" picked={prefs.menu} pending={pending} onToggle={toggle} />
+      </section>
 
-      <div className="kin-quickbtn-label">What each press does</div>
-      <div className="kin-quickbtn-slots">
-        {QUICK_SLOTS.map((slot) => {
-          const gesture = gestureFor(prefs.button, slot);
-          const off = iphone && !gesture;
-          return (
-            <div key={slot} className="kin-quickbtn-slot" data-off={off || undefined}>
-              <label htmlFor={`${uid}-${slot}`}>
-                <span className="kin-quickbtn-slot-name">{QUICK_SLOT_NAMES[slot]}</span>
-                {iphone && <span className="kin-quickbtn-slot-gesture">{gesture ?? "Back Tap has only two taps"}</span>}
-              </label>
-              <select
-                id={`${uid}-${slot}`}
-                className="input"
-                value={prefs[slot]}
-                disabled={pending}
-                onChange={(e) => save({ ...prefs, [slot]: e.target.value as QuickActionId })}
-              >
-                {QUICK_ACTIONS.map((a) => (
-                  <option key={a.id} value={a.id}>
-                    {a.name}
-                  </option>
-                ))}
-              </select>
-            </div>
-          );
-        })}
-      </div>
+      <section className="kin-quickbtn-section" aria-labelledby="qb-widget">
+        <h2 id="qb-widget" className="kin-quickbtn-h">Home Screen widget</h2>
+        <p className="kin-quickbtn-lead">Kin buttons on your Home Screen, one tap each. Four fit the medium size, eight the large.</p>
+        <WidgetPreview ids={prefs.widget} />
+        <Picker list="widget" picked={prefs.widget} pending={pending} onToggle={toggle} />
+      </section>
+
       {failed && (
         <p role="alert" className="kin-quickbtn-error">
           {failed}
         </p>
       )}
-      <p className="kin-quickbtn-note">Changes work straight away. Set the button up once below; after that, change what it does here.</p>
 
-      <div className="kin-quickbtn-label">Set it up once</div>
-      {iphone ? <IphoneSteps button={prefs.button} origin={origin} /> : <AndroidSteps origin={origin} />}
+      <section className="kin-quickbtn-section" aria-labelledby="qb-setup">
+        <h2 id="qb-setup" className="kin-quickbtn-h">Set it up once</h2>
+        <p className="kin-quickbtn-lead">About five minutes. Tick each step as you go; Kin remembers where you got to on this phone.</p>
+        <SetupGuide prefs={prefs} origin={origin} />
+      </section>
+
+      <details className="kin-quickbtn-more">
+        <summary>Why the volume and side buttons can&rsquo;t be used</summary>
+        <p>
+          Apple keeps the volume buttons for volume and the side button for Siri, and doesn&rsquo;t let any app change them. You can still reach Kin from the side button: hold
+          it and say the name of a widget button, such as &ldquo;Talk to Kin&rdquo;.
+        </p>
+      </details>
     </div>
   );
 }
 
-function CopyLink({ url, slot }: { url: string; slot: QuickSlot }) {
+function Picker({
+  list,
+  picked,
+  pending,
+  onToggle,
+}: {
+  list: "menu" | "widget";
+  picked: QuickActionId[];
+  pending: boolean;
+  onToggle: (list: "menu" | "widget", id: QuickActionId) => void;
+}) {
+  return (
+    <div className="kin-quickbtn-picker" role="group" aria-label={list === "menu" ? "In the pop-up" : "On the widget"}>
+      {QUICK_ACTIONS.map((a) => {
+        const on = picked.includes(a.id);
+        return (
+          <button key={a.id} type="button" aria-pressed={on} disabled={pending} className="kin-quickbtn-chip" onClick={() => onToggle(list, a.id)}>
+            <Icon name={on ? "check" : ICONS[a.id]} size={15} />
+            {a.name}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+/** What the Action Button shows: the Shortcuts menu, drawn as iOS draws it. */
+function MenuPreview({ ids }: { ids: QuickActionId[] }) {
+  return (
+    <div className="kin-qb-phone" aria-hidden="true">
+      <div className="kin-qb-menu">
+        <div className="kin-qb-menu-title">Kin</div>
+        {ids.map((id) => (
+          <div key={id} className="kin-qb-menu-row">
+            {quickAction(id).name}
+          </div>
+        ))}
+        <div className="kin-qb-menu-row kin-qb-menu-cancel">Cancel</div>
+      </div>
+    </div>
+  );
+}
+
+/** What the widget looks like on the Home Screen. */
+function WidgetPreview({ ids }: { ids: QuickActionId[] }) {
+  return (
+    <div className="kin-qb-widget" data-large={ids.length > 4 || undefined} aria-hidden="true">
+      {ids.map((id) => (
+        <div key={id} className="kin-qb-widget-btn">
+          <Icon name={ICONS[id]} size={16} />
+          <span>{quickAction(id).name}</span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+const DONE_KEY = "kin-quickbtn-done";
+
+function readDone(): string[] {
+  try {
+    return JSON.parse(localStorage.getItem(DONE_KEY) ?? "[]");
+  } catch {
+    return [];
+  }
+}
+
+function SetupGuide({ prefs, origin }: { prefs: QuickPrefs; origin: string }) {
+  const [done, setDone] = useState<string[]>([]);
+  // eslint-disable-next-line react-hooks/set-state-in-effect -- localStorage is only readable after mount
+  useEffect(() => setDone(readDone()), []);
+
+  function tick(key: string) {
+    const next = done.includes(key) ? done.filter((k) => k !== key) : [...done, key];
+    setDone(next);
+    try {
+      localStorage.setItem(DONE_KEY, JSON.stringify(next));
+    } catch {
+      /* private mode: the ticks just do not persist */
+    }
+  }
+
+  const menuNames = prefs.menu.map((id) => quickAction(id).name);
+  const steps: { key: string; title: string; body: React.ReactNode }[] = [
+    {
+      key: "safari",
+      title: "Sign in to Kin in Safari",
+      body: (
+        <p>
+          Shortcuts open Kin in Safari, not from the Home Screen icon, and Safari keeps its own sign-in. Open <b>{origin || "Kin"}</b> in Safari and sign in once.
+        </p>
+      ),
+    },
+    {
+      key: "menu",
+      title: "Make the “Kin” pop-up",
+      body: (
+        <>
+          <ol className="kin-quickbtn-sub">
+            <li>
+              In Shortcuts, tap <b>+</b> and name the shortcut <b>Kin</b>.
+            </li>
+            <li>
+              Add the action <b>Choose from Menu</b>, set its prompt to <b>Kin</b>, and give it {menuNames.length} item{menuNames.length === 1 ? "" : "s"}: {menuNames.map((n, i) => (
+                <span key={n}>
+                  <b>{n}</b>
+                  {i < menuNames.length - 1 ? ", " : ""}
+                </span>
+              ))}
+              .
+            </li>
+            <li>
+              Under each item, add <b>Open URLs</b> with its link:
+            </li>
+          </ol>
+          {prefs.menu.map((id) => (
+            <CopyLink key={id} label={quickAction(id).name} url={`${origin}/go/${id}`} />
+          ))}
+          <OpenShortcuts />
+        </>
+      ),
+    },
+    {
+      key: "action",
+      title: "Put it on the Action Button",
+      body: (
+        <p>
+          iPhone <b>Settings → Action Button</b>, swipe to <b>Shortcut</b>, tap <b>Choose a Shortcut</b> and pick <b>Kin</b>. Press the button: the menu pops up.
+        </p>
+      ),
+    },
+    {
+      key: "widget-shortcuts",
+      title: "Make one shortcut per widget button",
+      body: (
+        <>
+          <p>
+            For each one: in Shortcuts tap <b>+</b>, add <b>Open URLs</b> with the link, and name it as shown. Tap the icon at the top to give it Kin&rsquo;s coral colour.
+          </p>
+          {prefs.widget.map((id) => (
+            <CopyLink key={id} label={quickAction(id).name} url={`${origin}/go/${id}`} />
+          ))}
+          <p>
+            Then put them in one folder: in the Shortcuts list, touch and hold each → <b>Move</b> → <b>New Folder</b> called <b>Kin</b>.
+          </p>
+          <OpenShortcuts />
+        </>
+      ),
+    },
+    {
+      key: "widget",
+      title: "Add the widget to your Home Screen",
+      body: (
+        <p>
+          Touch and hold an empty spot on the Home Screen → <b>Edit</b> → <b>Add Widget</b> → <b>Shortcuts</b> → pick the {prefs.widget.length > 4 ? "large" : "medium"} size →{" "}
+          <b>Add Widget</b>. Then touch and hold the widget → <b>Edit Widget</b> → <b>Folder</b> → <b>Kin</b>.
+        </p>
+      ),
+    },
+  ];
+
+  const finished = steps.every((s) => done.includes(s.key));
+
+  return (
+    <>
+      {finished && (
+        <p className="kin-quickbtn-done">
+          <Icon name="check" size={16} /> All set. The pop-up and widget follow the lists above; if you add something new, make its shortcut too.
+        </p>
+      )}
+      <ol className="kin-quickbtn-guide">
+        {steps.map((s, i) => {
+          const isDone = done.includes(s.key);
+          return (
+            <li key={s.key} className="kin-quickbtn-step" data-done={isDone || undefined}>
+              <div className="kin-quickbtn-step-head">
+                <span className="kin-quickbtn-step-n">{isDone ? <Icon name="check" size={14} /> : i + 1}</span>
+                <span className="kin-quickbtn-step-title">{s.title}</span>
+              </div>
+              <div className="kin-quickbtn-step-body">{s.body}</div>
+              <button type="button" className="btn btn-secondary kin-quickbtn-tick" aria-pressed={isDone} onClick={() => tick(s.key)}>
+                {isDone ? "Done ✓" : "Mark as done"}
+              </button>
+            </li>
+          );
+        })}
+      </ol>
+    </>
+  );
+}
+
+function OpenShortcuts() {
+  return (
+    <a className="btn btn-primary kin-quickbtn-open" href="shortcuts://create-shortcut">
+      <Icon name="external" size={15} /> Open Shortcuts
+    </a>
+  );
+}
+
+function CopyLink({ label, url }: { label: string; url: string }) {
   const [copied, setCopied] = useState(false);
   return (
-    <div className="kin-quickbtn-link">
-      <code>{url}</code>
-      <button
-        type="button"
-        className="btn btn-secondary"
-        aria-label={`Copy the ${QUICK_SLOT_NAMES[slot].toLowerCase()} link`}
-        onClick={async () => {
-          try {
-            await navigator.clipboard.writeText(url);
-            setCopied(true);
-            setTimeout(() => setCopied(false), 1600);
-          } catch {
-            window.prompt("Copy this link", url);
-          }
-        }}
-      >
-        <Icon name={copied ? "check" : "copy"} size={15} /> {copied ? "Copied" : "Copy"}
-      </button>
+    <div className="kin-quickbtn-shortcut">
+      <div className="kin-quickbtn-shortcut-name">{label}</div>
+      <div className="kin-quickbtn-link">
+        <code>{url}</code>
+        <button
+          type="button"
+          className="btn btn-secondary"
+          aria-label={`Copy the link for ${label}`}
+          onClick={async () => {
+            try {
+              await navigator.clipboard.writeText(url);
+              setCopied(true);
+              setTimeout(() => setCopied(false), 1600);
+            } catch {
+              window.prompt("Copy this link", url);
+            }
+          }}
+        >
+          <Icon name={copied ? "check" : "copy"} size={15} /> {copied ? "Copied" : "Copy"}
+        </button>
+      </div>
     </div>
-  );
-}
-
-function IphoneSteps({ button, origin }: { button: QuickButton; origin: string }) {
-  const slots = QUICK_SLOTS.filter((s) => gestureFor(button, s));
-  return (
-    <ol className="kin-quickbtn-steps">
-      <li>
-        <strong>Sign in to Kin in Safari once.</strong> A Shortcut opens links in Safari rather than the Home Screen icon, and Safari keeps its own sign-in.
-      </li>
-      <li>
-        <strong>Make one shortcut per press.</strong> In the Shortcuts app tap <b>+</b>, add the action <b>Open URLs</b>, paste the link, and name it as shown.
-        <a className="btn btn-secondary kin-quickbtn-open" href="shortcuts://create-shortcut">
-          <Icon name="external" size={15} /> Open Shortcuts
-        </a>
-        {slots.map((s) => (
-          <div key={s} className="kin-quickbtn-shortcut">
-            <div className="kin-quickbtn-shortcut-name">Kin · {QUICK_SLOT_NAMES[s]}</div>
-            <CopyLink url={`${origin}/go/${s}`} slot={s} />
-          </div>
-        ))}
-      </li>
-      {button === "action" && (
-        <li>
-          <strong>Action Button:</strong> iPhone Settings → Action Button → swipe to <b>Shortcut</b> → choose <b>Kin · Tap</b>.
-        </li>
-      )}
-      <li>
-        <strong>Back Tap:</strong> iPhone Settings → Accessibility → Touch → Back Tap →{" "}
-        {button === "action" ? (
-          <>
-            <b>Double Tap</b> → <b>Kin · Double tap</b>, and <b>Triple Tap</b> → <b>Kin · Long press</b>.
-          </>
-        ) : (
-          <>
-            <b>Double Tap</b> → <b>Kin · Tap</b>, and <b>Triple Tap</b> → <b>Kin · Double tap</b>.
-          </>
-        )}
-      </li>
-    </ol>
-  );
-}
-
-function AndroidSteps({ origin }: { origin: string }) {
-  return (
-    <ol className="kin-quickbtn-steps">
-      <li>
-        <strong>Touch and hold the Kin icon</strong> on your home screen: <b>Chat with Kin</b>, <b>Talk to Kin</b> and <b>Family chat</b> are in the menu. Drag one out to make it an icon of its own.
-      </li>
-      <li>
-        <strong>Side key (Samsung):</strong> Settings → Advanced features → Side button → <b>Double press</b> → Open app → <b>Kin</b>.
-      </li>
-      <li>
-        <strong>Any other button or launcher</strong> that can open a link: use these, and they follow the choices above.
-        {QUICK_SLOTS.map((s) => (
-          <div key={s} className="kin-quickbtn-shortcut">
-            <div className="kin-quickbtn-shortcut-name">{QUICK_SLOT_NAMES[s]}</div>
-            <CopyLink url={`${origin}/go/${s}`} slot={s} />
-          </div>
-        ))}
-      </li>
-    </ol>
   );
 }
