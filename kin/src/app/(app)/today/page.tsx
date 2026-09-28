@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getCurrentMember } from "@/lib/session";
+import { isForMe } from "@/lib/for-me";
 import { createClient } from "@/lib/supabase/server";
 import { getOnThisDay, getWeekRecap } from "@/lib/queries/memories";
 import { OnThisDay, WeekRecapCard } from "@/components/memories";
@@ -32,15 +33,17 @@ export default async function TodayPage() {
   const supabase = await createClient();
   const [{ data: members }, glance, brief, tasks, awaitingApproval, awaitingRedemption, familyPanel, comingUp, memories, recap, startHere, goalRequests, rewardDuties] = await Promise.all([
     supabase.from("members").select("id, full_name").eq("family_id", me.family_id).order("created_at"),
-    getGlance(me.family_id, me.families.currency),
-    getTodayBriefing(me.family_id, me.families.currency),
-    getRoutinesNeedingAttention(me.family_id),
+    getGlance(me.family_id, me.families.currency, me),
+    getTodayBriefing(me.family_id, me.families.currency, me),
+    // Chores that are the reader's (lib/for-me): theirs, the whole family's,
+    // and for a grown-up the children's -- not another grown-up's own.
+    getRoutinesNeedingAttention(me.family_id).then((all) => all.filter((r) => isForMe(me, r.appliesToAll, r.members))),
     // Only a grown-up is ever asked to answer for a chore, so only a
     // grown-up pays for the query.
     isGrownUp(me.role) ? getPendingApprovals(me.family_id) : Promise.resolve([]),
     isGrownUp(me.role) ? getPendingRedemptions(me.family_id) : Promise.resolve([]),
     getFamilyPanel(me.family_id),
-    getComingUp(me.family_id, me.families.currency),
+    getComingUp(me.family_id, me.families.currency, me),
     getOnThisDay(me.family_id),
     // The week in numbers, on the weekend and the Monday after: the time a
     // family looks back rather than at the next thing.
