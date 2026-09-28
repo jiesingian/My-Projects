@@ -4890,3 +4890,12 @@ button.kin-initial:focus-visible {
   to { opacity: 1; transform: none; }
 }
 @media (prefers-reduced-motion: reduce) { .kin-why li { animation: none; } }
+/* "Start here" on Today (approved 28 September): Today's own list rows, so
+   it reads as part of the page rather than a banner laid on top. */
+.kin-start { margin-bottom: 1.625rem; }
+.kin-start-head { display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; margin-bottom: 0.375rem; }
+.kin-start-hide { min-height: 2.75rem; font-size: 0.84375rem; }
+.kin-start-btn { width: 100%; text-align: left; font: inherit; color: inherit; background: none; border: 0; cursor: pointer; }
+.kin-start-done { color: var(--color-neutral-600); }
+.kin-start-done .kin-brief-ico { color: var(--color-accent-700); }
+.kin-brief-title[data-done] { text-decoration: line-through; text-decoration-thickness: 1px; }

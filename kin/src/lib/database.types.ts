@@ -3573,6 +3573,7 @@ export type Database = {
           palette: string
           quick_actions: Json
           look_offer_answered_at: string | null
+          start_here_dismissed_at: string | null
           text_scale: number
           text_size: string
           theme: string
@@ -3621,6 +3622,7 @@ export type Database = {
           palette?: string
           quick_actions?: Json
           look_offer_answered_at?: string | null
+          start_here_dismissed_at?: string | null
           text_scale?: number
           text_size?: string
           theme?: string
@@ -3669,6 +3671,7 @@ export type Database = {
           palette?: string
           quick_actions?: Json
           look_offer_answered_at?: string | null
+          start_here_dismissed_at?: string | null
           text_scale?: number
           text_size?: string
           theme?: string

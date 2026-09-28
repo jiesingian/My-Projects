@@ -123,6 +123,12 @@ Decided against in the same review: revising Journal (item 6) and Planner
   your family (no selling, no ads, no AI training), and 14 days of Plus free
   then Free for good or ₱149 a month -- then Create or Join. The tour gets a
   "Skip, create account" for anyone ready sooner.
+- "Start here" on Today (approved 28 September): for grown-ups in a family
+  created from 28 September, for its first 30 days -- add this week's plans,
+  invite your partner (shares the join link), add this month's bills (on
+  Kin Free: give the kids a chore, since Wealth is Plus), start the grocery
+  list. Each ticks itself from the family's own records; the card goes when
+  all four are done or someone taps Hide (remembered per member).
 
 - Open sign-up (approved 28 September): an account is a person first, with
   no code. Anyone can then start a family, which begins on the 14-day Kin

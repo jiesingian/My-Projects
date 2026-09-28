@@ -308,3 +308,13 @@ export async function previewBriefAction(): Promise<{ text: string }> {
   ];
   return { text: buildBrief(me.full_name, items, new Date(), undefined, { me: me.id, routines, low }) };
 }
+
+/** Hides "Start here" on Today for this member, on every device. */
+export async function dismissStartHereAction(): Promise<ActionState> {
+  const me = await requireCurrentMember();
+  const supabase = await createClient();
+  const { error } = await supabase.from("members").update({ start_here_dismissed_at: new Date().toISOString() }).eq("id", me.id);
+  if (error) return { error: `That did not save. ${humanDatabaseError(error.message)}` };
+  revalidatePath("/today");
+  return { error: null };
+}
