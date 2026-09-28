@@ -41,7 +41,7 @@ export function TodayTaskList({ tasks }: { tasks: RoutineView[] }) {
   );
 }
 
-function TaskRow({ task }: { task: RoutineView }) {
+export function TaskRow({ task }: { task: RoutineView }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
