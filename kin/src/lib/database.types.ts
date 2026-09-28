@@ -3986,6 +3986,117 @@ export type Database = {
           },
         ]
       }
+      planner_goal_entries: {
+        Row: {
+          amount: number
+          created_at: string
+          entry_date: string
+          family_id: string
+          goal_id: string
+          id: string
+          member_id: string | null
+        }
+        Insert: {
+          amount?: number
+          created_at?: string
+          entry_date: string
+          family_id: string
+          goal_id: string
+          id?: string
+          member_id?: string | null
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          entry_date?: string
+          family_id?: string
+          goal_id?: string
+          id?: string
+          member_id?: string | null
+        }
+        Relationships: []
+      }
+      planner_goal_rewards: {
+        Row: {
+          created_at: string
+          decided_at: string | null
+          decided_by: string | null
+          family_id: string
+          goal_id: string
+          proposed_by: string | null
+          status: string
+          title: string
+        }
+        Insert: {
+          created_at?: string
+          decided_at?: string | null
+          decided_by?: string | null
+          family_id: string
+          goal_id: string
+          proposed_by?: string | null
+          status?: string
+          title: string
+        }
+        Update: {
+          created_at?: string
+          decided_at?: string | null
+          decided_by?: string | null
+          family_id?: string
+          goal_id?: string
+          proposed_by?: string | null
+          status?: string
+          title?: string
+        }
+        Relationships: []
+      }
+      planner_goals: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          due_date: string | null
+          family_id: string
+          id: string
+          kind: string
+          owner_member_id: string | null
+          period: string
+          savings_goal_id: string | null
+          start_value: number | null
+          target: number
+          title: string
+          unit: string | null
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          due_date?: string | null
+          family_id: string
+          id?: string
+          kind: string
+          owner_member_id?: string | null
+          period?: string
+          savings_goal_id?: string | null
+          start_value?: number | null
+          target: number
+          title: string
+          unit?: string | null
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          due_date?: string | null
+          family_id?: string
+          id?: string
+          kind?: string
+          owner_member_id?: string | null
+          period?: string
+          savings_goal_id?: string | null
+          start_value?: number | null
+          target?: number
+          title?: string
+          unit?: string | null
+        }
+        Relationships: []
+      }
       price_list: {
         Row: {
           family_id: string
