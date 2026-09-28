@@ -170,7 +170,7 @@ export function BuyList({
             style={{ width: "100%", minHeight: "2.5rem", fontSize: "0.84375rem", letterSpacing: ".04em", marginTop: "0.6875rem" }}
             onClick={() => setCheckingOut(true)}
           >
-            Check out {doneCount} Item{doneCount === 1 ? "" : "S"}
+            Check out {doneCount} item{doneCount === 1 ? "" : "s"}
           </button>
         )}
       </Blueprint>
@@ -213,11 +213,11 @@ export function BuyList({
                 gap: "0.5rem",
               }}
             >
-              <Icon name="chevronLeft" size={12} className="text-[var(--color-neutral-600)]" style={{ transform: isOpen ? "rotate(-90deg)" : "rotate(0deg)" }} />
+              <Icon name="chevronLeft" size={12} className="text-[var(--color-neutral-600)]" style={{ transform: isOpen ? "rotate(270deg)" : "rotate(180deg)", transition: "transform 160ms ease-out" }} />
               <span style={{ font: "600 0.8125rem/1 var(--font-heading)", letterSpacing: ".02em", textTransform: "uppercase" }}>{g.name}</span>
               <span style={{ font: "400 0.75rem/1 var(--font-numeric)", color: "var(--color-neutral-600)", marginLeft: "auto" }}>
-                {g.items.length} Item{g.items.length === 1 ? "" : "S"}
-                {inBasket > 0 ? ` · ${inBasket} IN BASKET` : ""}
+                {g.items.length} item{g.items.length === 1 ? "" : "s"}
+                {inBasket > 0 ? ` · ${inBasket} in the basket` : ""}
               </span>
             </button>
             {isOpen &&

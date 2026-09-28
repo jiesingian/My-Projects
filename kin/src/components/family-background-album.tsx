@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { Icon } from "@/components/icons";
 import { PhotoAlbumViewer, type AlbumPhotoLike } from "@/components/photo-album-viewer";
 import { FamilyBackgroundCropUpload } from "@/components/family-background-crop-upload";
 import { setActiveFamilyBackgroundAction, deleteFamilyBackgroundAction } from "@/lib/actions/family";
@@ -31,8 +32,10 @@ export function FamilyBackgroundAlbum({
           display: "block",
           width: "100%",
           position: "relative",
-          aspectRatio: "4 / 3",
-          borderRadius: 4,
+          // Empty, it is a slim invitation rather than 260px of grey; with a
+          // photo, the photo gets its 4:3 (review, 28 September).
+          aspectRatio: backgroundUrl ? "4 / 3" : "16 / 6",
+          borderRadius: 14,
           overflow: "hidden",
           background: backgroundUrl ? `center center / cover no-repeat url(${backgroundUrl})` : "var(--color-neutral-200)",
           border: "1px solid var(--color-divider)",
@@ -40,8 +43,9 @@ export function FamilyBackgroundAlbum({
         aria-label="View household photos"
       >
         {!backgroundUrl && (
-          <span style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", fontSize: "0.84375rem", color: "var(--color-neutral-600)" }}>
-            No household photo yet
+          <span style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column", gap: "0.375rem", alignItems: "center", justifyContent: "center", fontSize: "0.84375rem", color: "var(--color-neutral-600)" }}>
+            <Icon name="images" size={22} />
+            {canEdit ? "Add a photo of the whole family" : "No household photo yet"}
           </span>
         )}
       </button>

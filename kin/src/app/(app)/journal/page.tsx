@@ -149,9 +149,13 @@ async function EntriesPane({ familyId }: { familyId: string }) {
         <Blueprint key={e.id} style={{ padding: "0.8125rem", marginBottom: "1rem" }}>
           <div style={{ display: "flex", flexWrap: "wrap", alignItems: "baseline", gap: "0.375rem 0.5rem" }}>
             <span style={{ font: "400 0.75rem/1 var(--font-numeric)", color: "var(--color-accent-700)" }}>{fmtDate(e.entry_date)}</span>
-            <Tag variant="neutral" className="ml-auto">
-              {e.source === "from_plan" ? "FROM PLAN" : "ADDED DIRECTLY"}
-            </Tag>
+            {/* Only an entry Kin made from a plan says where it came from; one a
+                person wrote needs no badge saying so (review, 28 September). */}
+            {e.source === "from_plan" && (
+              <Tag variant="neutral" className="ml-auto">
+                FROM PLAN
+              </Tag>
+            )}
           </div>
           <div style={{ font: "600 1.3125rem/1.05 var(--font-heading)", margin: "7px 0 6px" }}>{e.title}</div>
           <JournalEntryPhotos photos={e.photos} entryTitle={e.title} />

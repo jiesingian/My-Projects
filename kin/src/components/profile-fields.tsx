@@ -87,10 +87,26 @@ function GroupHeader({ title }: { title: string }) {
  * "Personal Details" carries one extra row (Age) computed from DOB rather
  * than stored — it's never independently editable, so it isn't part of
  * ProfileFields. */
+/** Work and government IDs are grown-up sections. A 10-year-old's profile
+ * listed Company Name, Hired From and TIN as "Not recorded" (review, 28
+ * September); for anyone under 18 they are left out unless something has
+ * actually been recorded in them. */
+const ADULT_GROUPS = ["WORK", "GOVERNMENT IDS"];
+
+function isMinor(dob: string | null | undefined): boolean {
+  if (!dob) return false;
+  const born = new Date(`${dob}T00:00:00`);
+  const eighteen = new Date(born.getFullYear() + 18, born.getMonth(), born.getDate());
+  return eighteen.getTime() > Date.now();
+}
+
 export function ProfileFieldsView({ fields, dateFormat }: { fields: ProfileFields; dateFormat?: string }) {
+  const minor = isMinor(fields.dob);
   return (
     <>
-      {PROFILE_FIELD_GROUPS.map((group) => {
+      {PROFILE_FIELD_GROUPS.filter(
+        (group) => !(minor && ADULT_GROUPS.includes(group.title) && group.fields.every((spec) => !displayValue(fields, spec, dateFormat))),
+      ).map((group) => {
         const rows: { label: string; value: string | null }[] = [
           ...(group.title === "PERSONAL DETAILS" ? [{ label: "Age", value: formatAge(fields.dob) }] : []),
           ...group.fields.map((spec) => ({ label: spec.label, value: displayValue(fields, spec, dateFormat) })),

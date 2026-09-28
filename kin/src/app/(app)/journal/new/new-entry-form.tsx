@@ -1,6 +1,7 @@
 "use client";
 
 import { useId, useRef, useState } from "react";
+import { Icon } from "@/components/icons";
 import { useRouter } from "next/navigation";
 import { createJournalEntryAction, attachJournalMediaAction } from "@/lib/actions/journal";
 import { uploadFileDirect, rollbackUpload, type UploadedFile } from "@/lib/upload-client";
@@ -99,14 +100,21 @@ export function NewEntryForm({ members, defaultTitle }: { members: Tables<"membe
             <textarea id={`${uid}-note`} aria-label="Note" className="input" name="note" placeholder="What happened?" />
           </div>
           <div className="field" style={{ marginBottom: "0.625rem" }}>
-            <label htmlFor={`${uid}-photos`}>Photos</label>
-            <input id={`${uid}-photos`} aria-label="Photos" ref={fileRef} type="file" name="files" multiple accept="image/*,video/*" onChange={onFilesChosen} />
+            <span className="kin-file-caption">Photos</span>
+            {/* The browser's own file picker ("Choose Files · No file chosen")
+                read as unfinished; the input stays, hidden but focusable,
+                and this label is what people tap (review, 28 September). */}
+            <input id={`${uid}-photos`} aria-label="Photos" className="kin-file-input" ref={fileRef} type="file" name="files" multiple accept="image/*,video/*" onChange={onFilesChosen} />
+            <label htmlFor={`${uid}-photos`} className="btn btn-secondary kin-file-btn">
+              <Icon name="images" size={18} />
+              {previews.length > 0 ? `${previews.length} chosen · change` : "Add photos or videos"}
+            </label>
           </div>
           {previews.length > 0 && (
             <div style={{ display: "flex", gap: "0.3125rem", marginBottom: "0.5rem", flexWrap: "wrap" }}>
               {previews.map((url, i) => (
                 // eslint-disable-next-line @next/next/no-img-element
-                <img key={i} src={url} alt={`Photo ${i + 1} to upload`} style={{ width: 60, height: 60, objectFit: "cover", border: "1px solid var(--color-divider)" }} />
+                <img key={i} src={url} alt={`Photo ${i + 1} to upload`} style={{ width: 64, height: 64, objectFit: "cover", borderRadius: 10, border: "1px solid var(--color-divider)" }} />
               ))}
             </div>
           )}
