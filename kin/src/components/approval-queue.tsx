@@ -6,23 +6,26 @@ import { Icon } from "@/components/icons";
 import { Blueprint } from "@/components/ui";
 import { approveRoutineLogAction, rejectRoutineLogAction } from "@/lib/actions/routines";
 import { grantRedemptionAction, refuseRedemptionAction } from "@/lib/actions/rewards";
-import { approveGoalRewardAction, refuseGoalRewardAction } from "@/lib/actions/goals";
+import { approveGoalChangeAction, approveGoalRewardAction, refuseGoalChangeAction, refuseGoalRewardAction } from "@/lib/actions/goals";
 import type { PendingApproval, PendingRedemption } from "@/lib/queries/routines";
-import type { PendingGoalReward } from "@/lib/queries/goals";
+import type { PendingGoalChange, PendingGoalReward } from "@/lib/queries/goals";
 
-/** What the grown-ups still have to answer for. Only rendered for a parent
- * or an adult -- a child sees their own chore waiting instead, on the task
- * itself, which is the honest place for it. */
+/** What this person still has to answer for. Chores and redemptions come
+ * only to a parent or an adult (a child sees their own chore waiting on the
+ * task itself). Goal rewards and changes come to whoever gives the reward,
+ * child or grown-up, since a promise is the giver's to make. */
 export function ApprovalQueue({
   pending,
   redemptions,
   goalRewards = [],
+  goalChanges = [],
 }: {
   pending: PendingApproval[];
   redemptions: PendingRedemption[];
   goalRewards?: PendingGoalReward[];
+  goalChanges?: PendingGoalChange[];
 }) {
-  const total = pending.length + redemptions.length + goalRewards.length;
+  const total = pending.length + redemptions.length + goalRewards.length + goalChanges.length;
   if (total === 0) return null;
 
   return (
@@ -36,6 +39,9 @@ export function ApprovalQueue({
       ))}
       {goalRewards.map((g) => (
         <GoalRewardRow key={g.goalId} item={g} />
+      ))}
+      {goalChanges.map((c) => (
+        <GoalChangeRow key={c.changeId} item={c} />
       ))}
     </section>
   );
@@ -118,9 +124,9 @@ function RedemptionRow({ item }: { item: PendingRedemption }) {
   );
 }
 
-/** A reward set on a goal, waiting for someone other than the person it is
- * for to say yes. The query only hands over the ones this viewer may answer,
- * and the policy on planner_goal_rewards refuses the rest regardless. */
+/** A reward this person has been asked to give. Saying yes is a promise,
+ * so it is theirs alone to answer -- a child asked for a hug as much as a
+ * parent asked for ₱500. Rewording it is done on the goal itself. */
 function GoalRewardRow({ item }: { item: PendingGoalReward }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
@@ -165,7 +171,7 @@ function GoalRewardRow({ item }: { item: PendingGoalReward }) {
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ font: "600 0.96875rem/1.2 var(--font-heading)" }}>{item.reward}</div>
           <div style={{ fontSize: "0.78125rem", color: "var(--color-neutral-600)", marginTop: "0.125rem" }}>
-            {asked} · for {forWhom}, on reaching &ldquo;{item.goalTitle}&rdquo;
+            {asked} you · for {forWhom}, on reaching &ldquo;{item.goalTitle}&rdquo;
           </div>
         </div>
       </div>
@@ -179,7 +185,7 @@ function GoalRewardRow({ item }: { item: PendingGoalReward }) {
           style={{ minHeight: "2rem", fontSize: "0.8125rem", padding: "0 0.875rem", gap: "0.3125rem" }}
         >
           <Icon name="check" size={14} />
-          Approve
+          I&rsquo;ll give it
         </button>
         <button
           type="button"
@@ -189,6 +195,85 @@ function GoalRewardRow({ item }: { item: PendingGoalReward }) {
           style={{ minHeight: "2rem", fontSize: "0.8125rem", padding: "0 0.75rem" }}
         >
           Not this one
+        </button>
+      </div>
+      {error && <div style={{ fontSize: "0.78125rem", color: "var(--cal-occasion)", marginTop: "0.375rem" }}>{error}</div>}
+    </Blueprint>
+  );
+}
+
+/** A change to a goal whose reward this person gives. Agreeing applies it;
+ * keeping it as it was leaves the goal alone. */
+function GoalChangeRow({ item }: { item: PendingGoalChange }) {
+  const router = useRouter();
+  const [pending, startTransition] = useTransition();
+  const [error, setError] = useState<string | null>(null);
+  const [leaving, setLeaving] = useState(false);
+
+  const run = (fn: () => Promise<{ error: string | null }>) => {
+    setError(null);
+    startTransition(async () => {
+      const result = await fn();
+      if (result.error) {
+        setError(result.error);
+        router.refresh();
+        return;
+      }
+      setLeaving(true);
+      await new Promise((resolve) => setTimeout(resolve, 180));
+      router.refresh();
+    });
+  };
+
+  return (
+    <Blueprint className={leaving ? "kin-leaving" : undefined} style={{ padding: "0.8125rem", marginBottom: "0.5625rem" }}>
+      <div style={{ display: "flex", gap: "0.625rem", alignItems: "flex-start" }}>
+        <span
+          style={{
+            width: 30,
+            height: 30,
+            flex: "none",
+            borderRadius: 9,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            background: "color-mix(in srgb, var(--cal-goal) 22%, transparent)",
+          }}
+        >
+          <Icon name="target" size={16} style={{ color: "var(--cal-goal)" }} />
+        </span>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ font: "600 0.96875rem/1.2 var(--font-heading)" }}>Change &ldquo;{item.goalTitle}&rdquo;?</div>
+          <div style={{ fontSize: "0.78125rem", color: "var(--color-neutral-600)", marginTop: "0.125rem" }}>
+            {item.askedBy ? `${item.askedBy.split(" ")[0]} asks` : "Asked"} · you give its reward
+          </div>
+          {item.lines.map((l) => (
+            <div key={l} style={{ fontSize: "0.8125rem", marginTop: "0.25rem" }}>
+              {l}
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div style={{ display: "flex", gap: "0.375rem", marginTop: "0.625rem", flexWrap: "wrap" }}>
+        <button
+          type="button"
+          className="btn btn-primary"
+          disabled={pending}
+          onClick={() => run(() => approveGoalChangeAction(item.changeId))}
+          style={{ minHeight: "2rem", fontSize: "0.8125rem", padding: "0 0.875rem", gap: "0.3125rem" }}
+        >
+          <Icon name="check" size={14} />
+          Agree
+        </button>
+        <button
+          type="button"
+          className="btn btn-secondary"
+          disabled={pending}
+          onClick={() => run(() => refuseGoalChangeAction(item.changeId))}
+          style={{ minHeight: "2rem", fontSize: "0.8125rem", padding: "0 0.75rem" }}
+        >
+          Keep it as it was
         </button>
       </div>
       {error && <div style={{ fontSize: "0.78125rem", color: "var(--cal-occasion)", marginTop: "0.375rem" }}>{error}</div>}

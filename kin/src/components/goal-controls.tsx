@@ -3,7 +3,19 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Icon } from "@/components/icons";
-import { approveGoalRewardAction, deleteGoalAction, logGoalAction, refuseGoalRewardAction, unlogGoalAction } from "@/lib/actions/goals";
+import {
+  addGoalRewardAction,
+  approveGoalChangeAction,
+  approveGoalRewardAction,
+  deleteGoalAction,
+  logGoalAction,
+  markGoalRewardGivenAction,
+  refuseGoalChangeAction,
+  refuseGoalRewardAction,
+  unlogGoalAction,
+  withdrawGoalChangeAction,
+  withdrawGoalRewardAction,
+} from "@/lib/actions/goals";
 
 function useGoalAction() {
   const router = useRouter();
@@ -76,19 +88,133 @@ export function GoalLogButtons({ goalId, label, askAmount }: { goalId: string; l
   );
 }
 
-/** The answer, on the goal itself -- for a grown-up who is on the Planner
- * rather than on Today when it comes up. Only rendered for someone who may
- * give it. */
-export function GoalRewardAnswer({ goalId }: { goalId: string }) {
+/** The giver's answer, on the goal itself. They may reword the reward as
+ * they say yes -- that is them setting what they commit to. Only rendered
+ * for the giver. */
+export function GoalRewardAnswer({ goalId, title }: { goalId: string; title: string }) {
+  const { pending, error, run } = useGoalAction();
+  const [rewording, setRewording] = useState(false);
+  const [text, setText] = useState(title);
+  return (
+    <div style={{ marginTop: "0.5rem" }}>
+      {rewording && (
+        <input
+          className="input"
+          aria-label="What you'll give"
+          maxLength={120}
+          value={text}
+          onChange={(e) => setText(e.target.value)}
+          style={{ minHeight: "2.25rem", width: "100%", fontSize: "1rem", marginBottom: "0.375rem" }}
+        />
+      )}
+      <div style={{ display: "flex", gap: "0.375rem", flexWrap: "wrap" }}>
+        <button
+          type="button"
+          className="btn btn-primary"
+          disabled={pending || (rewording && !text.trim())}
+          onClick={() => run(() => approveGoalRewardAction(goalId, rewording ? text : undefined))}
+          style={small}
+        >
+          <Icon name="check" size={14} />
+          {rewording ? "Promise this" : "I'll give it"}
+        </button>
+        {!rewording && (
+          <button type="button" className="btn btn-secondary" disabled={pending} onClick={() => setRewording(true)} style={small}>
+            Change it
+          </button>
+        )}
+        <button type="button" className="btn btn-ghost" disabled={pending} onClick={() => run(() => refuseGoalRewardAction(goalId))} style={{ ...small, color: "var(--color-neutral-700)" }}>
+          Not this one
+        </button>
+        <ErrorLine error={error} />
+      </div>
+    </div>
+  );
+}
+
+export function GoalRewardGiven({ goalId }: { goalId: string }) {
   const { pending, error, run } = useGoalAction();
   return (
     <div style={{ display: "flex", gap: "0.375rem", flexWrap: "wrap", marginTop: "0.5rem" }}>
-      <button type="button" className="btn btn-primary" disabled={pending} onClick={() => run(() => approveGoalRewardAction(goalId))} style={small}>
-        <Icon name="check" size={14} />
-        Approve
+      <button type="button" className="btn btn-primary" disabled={pending} onClick={() => run(() => markGoalRewardGivenAction(goalId))} style={small}>
+        <Icon name="gift" size={14} />
+        Mark as given
       </button>
-      <button type="button" className="btn btn-secondary" disabled={pending} onClick={() => run(() => refuseGoalRewardAction(goalId))} style={small}>
-        Not this one
+      <ErrorLine error={error} />
+    </div>
+  );
+}
+
+export function GoalRewardWithdraw({ goalId }: { goalId: string }) {
+  const { pending, error, run } = useGoalAction();
+  return (
+    <>
+      <button type="button" className="btn btn-ghost" disabled={pending} onClick={() => run(() => withdrawGoalRewardAction(goalId))} style={{ minHeight: "1.75rem", fontSize: "0.75rem", padding: "0 0.375rem", color: "var(--color-neutral-700)" }}>
+        Take back
+      </button>
+      <ErrorLine error={error} />
+    </>
+  );
+}
+
+/** A change to what a goal measures, answered by the giver (or, with no
+ * reward in play, by anyone but the one who asked). */
+export function GoalChangeAnswer({ changeId, canAnswer, viewerAsked }: { changeId: string; canAnswer: boolean; viewerAsked: boolean }) {
+  const { pending, error, run } = useGoalAction();
+  return (
+    <div style={{ display: "flex", gap: "0.375rem", flexWrap: "wrap", marginTop: "0.5rem" }}>
+      {canAnswer && (
+        <>
+          <button type="button" className="btn btn-primary" disabled={pending} onClick={() => run(() => approveGoalChangeAction(changeId))} style={small}>
+            <Icon name="check" size={14} />
+            Agree
+          </button>
+          <button type="button" className="btn btn-secondary" disabled={pending} onClick={() => run(() => refuseGoalChangeAction(changeId))} style={small}>
+            Keep it as it was
+          </button>
+        </>
+      )}
+      {viewerAsked && (
+        <button type="button" className="btn btn-ghost" disabled={pending} onClick={() => run(() => withdrawGoalChangeAction(changeId))} style={{ ...small, color: "var(--color-neutral-700)" }}>
+          Take back
+        </button>
+      )}
+      <ErrorLine error={error} />
+    </div>
+  );
+}
+
+/** Asking for (or offering) a reward on a goal that has none. */
+export function GoalAddReward({ goalId, givers, meId }: { goalId: string; givers: { id: string; label: string }[]; meId: string }) {
+  const { pending, error, run } = useGoalAction();
+  const [title, setTitle] = useState("");
+  const [giver, setGiver] = useState("");
+  return (
+    <div>
+      <input className="input" aria-label="Reward" maxLength={120} placeholder="₱500, a hug, a massage, a day out" value={title} onChange={(e) => setTitle(e.target.value)} style={{ minHeight: "2.75rem", width: "100%", marginBottom: "0.5rem" }} />
+      <div style={{ fontSize: "0.8125rem", color: "var(--color-neutral-700)", marginBottom: "0.375rem" }}>Who gives it</div>
+      <div style={{ display: "flex", flexWrap: "wrap", gap: "0.375rem", marginBottom: "0.625rem" }}>
+        {givers.map((p) => (
+          <button key={p.id} type="button" className="chip" data-active={giver === p.id} aria-pressed={giver === p.id} onClick={() => setGiver(p.id)}>
+            {p.label}
+          </button>
+        ))}
+      </div>
+      <button
+        type="button"
+        className="btn btn-secondary"
+        disabled={pending || !title.trim() || !giver}
+        onClick={() =>
+          run(async () => {
+            const r = await addGoalRewardAction(goalId, title, giver);
+            if (!r.error) setTitle("");
+            return r;
+          })
+        }
+        style={small}
+      >
+        <Icon name="gift" size={14} />
+        {giver === meId ? "Promise it" : "Ask for it"}
       </button>
       <ErrorLine error={error} />
     </div>

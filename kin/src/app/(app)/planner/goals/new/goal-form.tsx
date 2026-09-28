@@ -40,6 +40,8 @@ export function GoalForm({
   const [owner, setOwner] = useState<string>(meId);
   const [period, setPeriod] = useState<GoalPeriod>(GOAL_KIND_META.water.defaultPeriod);
   const [target, setTarget] = useState(DEFAULT_TARGET.water);
+  const [reward, setReward] = useState("");
+  const [giver, setGiver] = useState("");
   const meta = GOAL_KIND_META[kind];
 
   useEffect(() => {
@@ -56,6 +58,12 @@ export function GoalForm({
     setTarget(DEFAULT_TARGET[k]);
     // A weight is one person's; a household cannot own it.
     if (!GOAL_KIND_META[k].household && owner === "household") setOwner(meId);
+  };
+
+  const pickOwner = (id: string) => {
+    setOwner(id);
+    // Nobody gives themselves a reward.
+    if (giver === id) setGiver("");
   };
 
   const unitLabel = kind === "money" ? currency : kind === "custom" ? "" : meta.unit;
@@ -106,13 +114,13 @@ export function GoalForm({
             <p style={eyebrow}>Whose goal</p>
             <div style={{ display: "flex", flexWrap: "wrap", gap: "0.375rem" }}>
               {meta.household && (
-                <button type="button" className="chip" data-active={owner === "household"} aria-pressed={owner === "household"} onClick={() => setOwner("household")}>
+                <button type="button" className="chip" data-active={owner === "household"} aria-pressed={owner === "household"} onClick={() => pickOwner("household")}>
                   <Icon name="house" size={13} />
                   Whole household
                 </button>
               )}
               {people.map((p) => (
-                <button key={p.id} type="button" className="chip" data-active={owner === p.id} aria-pressed={owner === p.id} onClick={() => setOwner(p.id)}>
+                <button key={p.id} type="button" className="chip" data-active={owner === p.id} aria-pressed={owner === p.id} onClick={() => pickOwner(p.id)}>
                   {p.label}
                 </button>
               ))}
@@ -199,12 +207,41 @@ export function GoalForm({
               <Icon name="gift" size={13} style={{ verticalAlign: "-2px", marginRight: "0.25rem" }} />
               Reward (optional)
             </label>
-            <input id={`${uid}-reward`} className="input" name="reward" maxLength={120} placeholder="A new book, pizza night, a day out" style={{ minHeight: "2.75rem" }} />
-            <span style={hint}>
-              For {ownerLabel}, when the goal is reached. A parent or another adult approves it first
-              {owner === "household" ? " — anyone but whoever asks for it." : " — never the person it is for."}
-            </span>
+            <input
+              id={`${uid}-reward`}
+              className="input"
+              name="reward"
+              maxLength={120}
+              value={reward}
+              onChange={(e) => setReward(e.target.value)}
+              placeholder="₱500, a hug, a massage, a day out"
+              style={{ minHeight: "2.75rem" }}
+            />
+            <span style={hint}>For {ownerLabel}, when the goal is reached. It&rsquo;s a promise, so whoever gives it says yes.</span>
           </div>
+
+          {reward.trim() && (
+            <div data-field="giver" style={{ marginBottom: "1.125rem" }}>
+              <p style={eyebrow}>Who gives it</p>
+              <div style={{ display: "flex", flexWrap: "wrap", gap: "0.375rem" }}>
+                {people
+                  .filter((p) => p.id !== owner)
+                  .map((p) => (
+                    <button key={p.id} type="button" className="chip" data-active={giver === p.id} aria-pressed={giver === p.id} onClick={() => setGiver(p.id)}>
+                      {p.label}
+                    </button>
+                  ))}
+              </div>
+              <input type="hidden" name="giver" value={giver} />
+              <span style={hint}>
+                {!giver
+                  ? "A parent, another adult or a child — anyone but the person it is for."
+                  : giver === meId
+                    ? "You are promising it, so it counts straight away."
+                    : `${people.find((p) => p.id === giver)?.label ?? "They"} will be asked, and can say yes, change it, or say not this one.`}
+              </span>
+            </div>
+          )}
 
           {state.error && (
             <p

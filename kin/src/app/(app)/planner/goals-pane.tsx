@@ -2,7 +2,7 @@ import Link from "next/link";
 import { Blueprint } from "@/components/ui";
 import { Icon } from "@/components/icons";
 import { GoalRing } from "@/components/goal-ring";
-import { GoalDeleteButton, GoalLogButtons, GoalRewardAnswer } from "@/components/goal-controls";
+import { GoalChangeAnswer, GoalDeleteButton, GoalLogButtons, GoalRewardAnswer, GoalRewardGiven, GoalRewardWithdraw } from "@/components/goal-controls";
 import { getGoals, type GoalView } from "@/lib/queries/goals";
 import { GOAL_KIND_META, PERIOD_NOW, goalNumber } from "@/lib/goals";
 import { formatCurrency } from "@/lib/format";
@@ -21,6 +21,7 @@ export async function GoalsPane({
   currency,
   weekStart,
   filter,
+  justAsked = false,
 }: {
   familyId: string;
   me: { id: string; role: string };
@@ -28,6 +29,8 @@ export async function GoalsPane({
   currency: string;
   weekStart: WeekStart;
   filter: React.ReactNode;
+  /** Back from an edit that went to the giver rather than applying. */
+  justAsked?: boolean;
 }) {
   const [goals, members] = await Promise.all([getGoals(familyId, me, weekStart), getMembers(familyId)]);
   const colourOf = new Map(members.map((m) => [m.id, memberColourVar(m.id, m.color)]));
@@ -38,6 +41,11 @@ export async function GoalsPane({
   return (
     <>
       {filter}
+      {justAsked && (
+        <p role="status" style={{ fontSize: "0.84375rem", lineHeight: 1.45, margin: "0 0 0.75rem", padding: "0.625rem 0.75rem", borderRadius: 12, background: "color-mix(in srgb, var(--cal-goal) 12%, transparent)" }}>
+          Sent for a yes. This goal has a reward, so the change waits for whoever gives it — they can agree or keep it as it was.
+        </p>
+      )}
       {visible.length === 0 && (
         <p style={{ fontSize: "0.84375rem", color: "var(--color-neutral-600)", lineHeight: 1.45 }}>
           {goals.length === 0
@@ -52,7 +60,7 @@ export async function GoalsPane({
         <Icon name="plus" size={17} /> Set a goal
       </Link>
       <p style={{ fontSize: "0.78125rem", color: "var(--color-neutral-600)", marginTop: "0.625rem", lineHeight: 1.45 }}>
-        A reward counts once a parent or another adult says yes to it — never the person it is for.
+        A reward is a promise, so the person who gives it says yes — a parent, another adult or a child. Nobody gives themselves one. Once a goal has a reward, changing what it measures needs the giver’s yes too.
       </p>
     </>
   );
@@ -105,7 +113,8 @@ function GoalCard({ goal, index, meId, currency, colour }: { goal: GoalView; ind
         </div>
       </div>
 
-      {goal.reward && <RewardLine goal={goal} />}
+      {goal.reward && <RewardLine goal={goal} meId={meId} />}
+      {goal.change && <ChangeLine goal={goal} />}
 
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "0.5rem", marginTop: "0.625rem", flexWrap: "wrap" }}>
         {logs ? (
@@ -113,23 +122,34 @@ function GoalCard({ goal, index, meId, currency, colour }: { goal: GoalView; ind
         ) : (
           <span style={{ fontSize: "0.75rem", color: "var(--color-neutral-600)" }}>{meta.hint}</span>
         )}
-        <GoalDeleteButton goalId={goal.id} title={goal.title} />
+        <span style={{ display: "inline-flex", alignItems: "center" }}>
+          <Link href={`/planner/goals/${goal.id}/edit`} className="btn btn-ghost" style={{ minHeight: "1.875rem", fontSize: "0.78125rem", padding: "0 0.5rem", color: "var(--color-neutral-700)" }}>
+            Edit
+          </Link>
+          <GoalDeleteButton goalId={goal.id} title={goal.title} />
+        </span>
       </div>
     </Blueprint>
   );
 }
 
-function RewardLine({ goal }: { goal: GoalView }) {
+function RewardLine({ goal, meId }: { goal: GoalView; meId: string }) {
   const r = goal.reward!;
+  const giver = r.giverId === meId ? "you" : (r.giverName?.split(" ")[0] ?? "someone");
+  const Giver = giver === "you" ? "You" : giver;
   const status =
     r.status === "pending"
-      ? "Waiting for a yes"
+      ? `Asked of ${giver} · waiting for a yes`
       : r.status === "refused"
-        ? `Not this one${r.decidedBy ? ` · ${r.decidedBy.split(" ")[0]}` : ""}`
-        : goal.reached
-          ? "Earned"
-          : `Approved${r.decidedBy ? ` by ${r.decidedBy.split(" ")[0]}` : ""}`;
-  const tone = r.status === "refused" ? "var(--color-neutral-600)" : r.status === "approved" ? "var(--cal-goal)" : "var(--cal-money)";
+        ? `${Giver} said not this one`
+        : r.status === "given"
+          ? `Given by ${giver}`
+          : goal.reached
+            ? `Earned · ${giver === "you" ? "yours to give" : `${giver} to give`}`
+            : `${Giver} promised`;
+  const tone = r.status === "refused" || r.status === "given" ? "var(--color-neutral-600)" : r.status === "approved" ? "var(--cal-goal)" : "var(--cal-money)";
+  // Whoever asked (while it waits), whoever gives it, or whose goal it is.
+  const mayWithdraw = (r.status === "pending" && r.proposedById === meId) || r.viewerGives || goal.ownerId === meId;
 
   return (
     <div
@@ -146,8 +166,30 @@ function RewardLine({ goal }: { goal: GoalView }) {
           <div style={{ fontSize: "0.875rem", fontWeight: 600, textDecoration: r.status === "refused" ? "line-through" : undefined }}>{r.title}</div>
           <div style={{ fontSize: "0.75rem", color: tone, fontWeight: 600, marginTop: "0.0625rem" }}>{status}</div>
         </div>
+        {mayWithdraw && r.status !== "given" && <GoalRewardWithdraw goalId={goal.id} />}
       </div>
-      {r.canAnswer && <GoalRewardAnswer goalId={goal.id} />}
+      {r.viewerGives && r.status === "pending" && <GoalRewardAnswer goalId={goal.id} title={r.title} />}
+      {r.viewerGives && r.status === "approved" && goal.reached && <GoalRewardGiven goalId={goal.id} />}
+    </div>
+  );
+}
+
+function ChangeLine({ goal }: { goal: GoalView }) {
+  const c = goal.change!;
+  const who = c.viewerAsked ? "You asked" : `${c.proposedBy?.split(" ")[0] ?? "Someone"} asks`;
+  const giver = goal.reward && (goal.reward.status === "pending" || goal.reward.status === "approved") ? goal.reward : null;
+  const waitingOn = c.canAnswer ? "" : giver ? ` · waiting for ${giver.giverName?.split(" ")[0] ?? "the giver"}` : "";
+  return (
+    <div style={{ marginTop: "0.5625rem", padding: "0.5625rem 0.6875rem", borderRadius: 12, border: "1px dashed color-mix(in srgb, var(--color-text) 18%, transparent)" }}>
+      <div style={{ fontSize: "0.75rem", color: "var(--color-neutral-600)", fontWeight: 600 }}>
+        {who} to change it{waitingOn}
+      </div>
+      {c.lines.map((l) => (
+        <div key={l} style={{ fontSize: "0.8125rem", marginTop: "0.125rem" }}>
+          {l}
+        </div>
+      ))}
+      {(c.canAnswer || c.viewerAsked) && <GoalChangeAnswer changeId={c.id} canAnswer={c.canAnswer} viewerAsked={c.viewerAsked} />}
     </div>
   );
 }

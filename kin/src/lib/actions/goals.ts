@@ -6,19 +6,19 @@ import { createClient } from "@/lib/supabase/server";
 import { requireCurrentMember } from "@/lib/session";
 import { humanDatabaseError } from "@/lib/db-errors";
 import { clamp } from "@/lib/text";
-import { isGrownUp } from "@/lib/roles";
 import { readAccess } from "@/lib/access";
 import { familyDay } from "@/lib/time";
 import { GOAL_KIND_META, isGoalKind, isGoalPeriod } from "@/lib/goals";
 
 export type GoalFormState = { error: string | null; field?: string };
 
-/** Setting a goal, and asking for its reward in the same breath.
+/** Setting a goal, and asking for (or offering) its reward in the same breath.
  *
  * Anyone may set a goal, for themselves, for someone else or for everyone.
- * The reward, if there is one, is written pending in the name of whoever set
- * it; a parent or another adult who is not the one it is for answers it on
- * Today. The policies on planner_goal_rewards are what hold that rule. */
+ * A reward names who gives it. Asked of someone else, it waits for their
+ * yes; offered by the giver themselves, it is promised at once. Anyone may
+ * give -- a parent, another adult, a child -- except the goal's owner. The
+ * policies on planner_goal_rewards are what hold that rule. */
 export async function createGoalAction(_prev: GoalFormState, formData: FormData): Promise<GoalFormState> {
   const me = await requireCurrentMember();
 
@@ -30,6 +30,7 @@ export async function createGoalAction(_prev: GoalFormState, formData: FormData)
   const savingsGoalId = String(formData.get("savings_goal_id") ?? "") || null;
   const dueDate = String(formData.get("due_date") ?? "") || null;
   const reward = clamp(String(formData.get("reward") ?? ""), 120);
+  const giver = String(formData.get("giver") ?? "");
 
   if (!isGoalKind(kind)) return { error: "Choose what kind of goal it is.", field: "kind" };
   const meta = GOAL_KIND_META[kind];
@@ -48,6 +49,15 @@ export async function createGoalAction(_prev: GoalFormState, formData: FormData)
     ownerId = m.id;
   }
   if (!ownerId && !meta.household) return { error: `A ${meta.label.toLowerCase()} goal is one person's. Choose whose.`, field: "owner" };
+
+  let giverId: string | null = null;
+  if (reward) {
+    if (!giver) return { error: "Choose who gives the reward.", field: "giver" };
+    const { data: g } = await supabase.from("members").select("id").eq("id", giver).eq("family_id", me.family_id).maybeSingle();
+    if (!g) return { error: "That person isn't in your household.", field: "giver" };
+    if (g.id === ownerId) return { error: "Nobody gives themselves a reward. Choose someone else to give it.", field: "giver" };
+    giverId = g.id;
+  }
 
   // Weight measures the way from here to there, so "here" is taken now: the
   // latest reading the owner has. Without one, the first reading after today
@@ -88,11 +98,15 @@ export async function createGoalAction(_prev: GoalFormState, formData: FormData)
   if (error || !goal) return { error: humanDatabaseError(error?.message ?? "Could not save the goal.") };
 
   if (reward) {
+    // Offered by the giver: promised now. Asked of someone else: pending.
+    const offered = giverId === me.id;
     const { error: rewardError } = await supabase.from("planner_goal_rewards").insert({
       goal_id: goal.id,
       family_id: me.family_id,
       title: reward,
       proposed_by: me.id,
+      giver_member_id: giverId,
+      ...(offered ? { status: "approved", decided_by: me.id, decided_at: new Date().toISOString() } : {}),
     });
     // The goal stands either way; say what did not.
     if (rewardError) return { error: `The goal is saved, but not its reward: ${humanDatabaseError(rewardError.message)}` };
@@ -157,34 +171,175 @@ export async function deleteGoalAction(goalId: string): Promise<{ error: string 
   return { error: null };
 }
 
-/** A grown-up's answer on a goal's reward. The role comes from the session
- * and the update is scoped to a reward still pending, like a chore or a
- * redemption; whether this grown-up may answer this one at all (not their
- * own, not one they asked for on a household goal) is the policy's to say,
- * and a refusal there touches no row. */
-async function decideGoalReward(goalId: string, status: "approved" | "refused"): Promise<{ error: string | null }> {
+/** The giver's answer. Only the giver may give it -- the policy refuses
+ * anyone else by touching no row -- and they may reword the reward as they
+ * say yes: that is them setting what they commit to ("₱300, not ₱500"). */
+async function decideGoalReward(goalId: string, status: "approved" | "refused", title?: string): Promise<{ error: string | null }> {
   const me = await requireCurrentMember();
-  if (!isGrownUp(me.role)) return { error: "Only a parent or another adult can answer a reward." };
-
   const supabase = await createClient();
+  const reworded = title !== undefined ? clamp(title, 120) : "";
   const { error, count } = await supabase
     .from("planner_goal_rewards")
-    .update({ status, decided_by: me.id, decided_at: new Date().toISOString() }, { count: "exact" })
+    .update({ status, decided_by: me.id, decided_at: new Date().toISOString(), ...(reworded ? { title: reworded } : {}) }, { count: "exact" })
     .eq("goal_id", goalId)
     .eq("family_id", me.family_id)
+    .eq("giver_member_id", me.id)
     .eq("status", "pending");
   if (error) return { error: humanDatabaseError(error.message) };
-  if (count === 0) return { error: "Someone else answers this one — nobody approves their own reward — or it has already been answered." };
+  if (count === 0) return { error: "Only the person giving the reward can answer it — or it has already been answered." };
 
   revalidatePath("/planner");
   revalidatePath("/today");
   return { error: null };
 }
 
-export async function approveGoalRewardAction(goalId: string) {
-  return decideGoalReward(goalId, "approved");
+export async function approveGoalRewardAction(goalId: string, title?: string) {
+  return decideGoalReward(goalId, "approved", title);
 }
 
 export async function refuseGoalRewardAction(goalId: string) {
   return decideGoalReward(goalId, "refused");
+}
+
+/** The promise kept. The giver's to say. */
+export async function markGoalRewardGivenAction(goalId: string): Promise<{ error: string | null }> {
+  const me = await requireCurrentMember();
+  const supabase = await createClient();
+  const { error, count } = await supabase
+    .from("planner_goal_rewards")
+    .update({ status: "given", given_at: new Date().toISOString(), decided_by: me.id }, { count: "exact" })
+    .eq("goal_id", goalId)
+    .eq("family_id", me.family_id)
+    .eq("giver_member_id", me.id)
+    .eq("status", "approved");
+  if (error) return { error: humanDatabaseError(error.message) };
+  if (count === 0) return { error: "Only the person giving the reward can mark it given." };
+  revalidatePath("/planner");
+  return { error: null };
+}
+
+/** Take a reward back: the asker while it waits, the giver, or the goal's
+ * owner. The policy says which of those the viewer is. */
+export async function withdrawGoalRewardAction(goalId: string): Promise<{ error: string | null }> {
+  const me = await requireCurrentMember();
+  const supabase = await createClient();
+  const { error, count } = await supabase.from("planner_goal_rewards").delete({ count: "exact" }).eq("goal_id", goalId).eq("family_id", me.family_id);
+  if (error) return { error: humanDatabaseError(error.message) };
+  if (count === 0) return { error: "Only whoever asked, whoever gives it, or whose goal it is can take the reward back." };
+  revalidatePath("/planner");
+  revalidatePath("/today");
+  return { error: null };
+}
+
+/** Asking for (or offering) a reward on a goal that has none. */
+export async function addGoalRewardAction(goalId: string, title: string, giverId: string): Promise<{ error: string | null }> {
+  const me = await requireCurrentMember();
+  const reward = clamp(title, 120);
+  if (!reward) return { error: "Say what the reward is." };
+  const supabase = await createClient();
+  const [{ data: goal }, { data: giver }] = await Promise.all([
+    supabase.from("planner_goals").select("id, owner_member_id").eq("id", goalId).eq("family_id", me.family_id).maybeSingle(),
+    supabase.from("members").select("id").eq("id", giverId).eq("family_id", me.family_id).maybeSingle(),
+  ]);
+  if (!goal) return { error: "That goal is no longer here." };
+  if (!giver) return { error: "Choose who gives the reward." };
+  if (giver.id === goal.owner_member_id) return { error: "Nobody gives themselves a reward. Choose someone else to give it." };
+  const offered = giver.id === me.id;
+  const { error } = await supabase.from("planner_goal_rewards").insert({
+    goal_id: goal.id,
+    family_id: me.family_id,
+    title: reward,
+    proposed_by: me.id,
+    giver_member_id: giver.id,
+    ...(offered ? { status: "approved", decided_by: me.id, decided_at: new Date().toISOString() } : {}),
+  });
+  if (error) return { error: humanDatabaseError(error.message) };
+  revalidatePath("/planner");
+  revalidatePath("/today");
+  return { error: null };
+}
+
+/** Editing a goal. The name always changes at once. What it measures --
+ * target, period, due date, unit -- changes at once only when no reward is
+ * waiting or promised, or when the editor is the one who gives it;
+ * otherwise it goes to the giver as a request they can accept or refuse,
+ * the way such a thing is negotiated in real life. The trigger on
+ * planner_goals holds the same line in the database. */
+export async function updateGoalAction(goalId: string, _prev: GoalFormState, formData: FormData): Promise<GoalFormState> {
+  const me = await requireCurrentMember();
+  const supabase = await createClient();
+  const [{ data: goal }, { data: reward }] = await Promise.all([
+    supabase.from("planner_goals").select("*").eq("id", goalId).eq("family_id", me.family_id).maybeSingle(),
+    supabase.from("planner_goal_rewards").select("giver_member_id, status").eq("goal_id", goalId).maybeSingle(),
+  ]);
+  if (!goal || !isGoalKind(goal.kind)) return { error: "That goal is no longer here." };
+
+  const title = clamp(String(formData.get("title") ?? ""), 80);
+  const target = Number(String(formData.get("target") ?? "").replace(/,/g, ""));
+  const period = goal.kind === "weight" ? goal.period : String(formData.get("period") ?? goal.period);
+  const unit = goal.kind === "custom" ? clamp(String(formData.get("unit") ?? ""), 24) || null : goal.unit;
+  const dueDate = String(formData.get("due_date") ?? "") || null;
+  if (!title) return { error: "Give the goal a name.", field: "title" };
+  if (!(target > 0 && target <= 1_000_000_000)) return { error: "The target has to be a number above zero.", field: "target" };
+  if (!isGoalPeriod(period)) return { error: "Choose how often it counts.", field: "period" };
+
+  const measures = Number(goal.target) !== target || goal.period !== period || goal.due_date !== dueDate || goal.unit !== unit;
+  const needsYes = measures && reward && (reward.status === "pending" || reward.status === "approved") && reward.giver_member_id !== me.id;
+
+  if (!needsYes) {
+    const { error } = await supabase.from("planner_goals").update({ title, target, period, unit, due_date: dueDate }).eq("id", goal.id).eq("family_id", me.family_id);
+    if (error) return { error: humanDatabaseError(error.message) };
+  } else {
+    // The name is nobody's promise: it changes now. The rest waits.
+    if (title !== goal.title) {
+      const { error } = await supabase.from("planner_goals").update({ title }).eq("id", goal.id).eq("family_id", me.family_id);
+      if (error) return { error: humanDatabaseError(error.message) };
+    }
+    const { error } = await supabase.from("planner_goal_changes").insert({
+      family_id: me.family_id,
+      goal_id: goal.id,
+      proposed_by: me.id,
+      target: Number(goal.target) !== target ? target : null,
+      period: goal.period !== period ? period : null,
+      unit: goal.unit !== unit ? unit : null,
+      due_date: dueDate,
+      change_due_date: goal.due_date !== dueDate,
+    });
+    if (error) return { error: humanDatabaseError(error.message) };
+  }
+
+  revalidatePath("/planner");
+  revalidatePath("/today");
+  redirect(`/planner?seg=goals${needsYes ? "&asked=1" : ""}`);
+}
+
+/** The giver's answer on a change -- or anyone's, when no reward is in
+ * play. decide_goal_change() checks who may, and applies it. */
+async function decideGoalChange(changeId: string, approve: boolean): Promise<{ error: string | null }> {
+  await requireCurrentMember();
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("decide_goal_change", { p_change: changeId, p_approve: approve });
+  if (error) return { error: humanDatabaseError(error.message) };
+  revalidatePath("/planner");
+  revalidatePath("/today");
+  return { error: null };
+}
+
+export async function approveGoalChangeAction(changeId: string) {
+  return decideGoalChange(changeId, true);
+}
+
+export async function refuseGoalChangeAction(changeId: string) {
+  return decideGoalChange(changeId, false);
+}
+
+export async function withdrawGoalChangeAction(changeId: string): Promise<{ error: string | null }> {
+  const me = await requireCurrentMember();
+  const supabase = await createClient();
+  const { error, count } = await supabase.from("planner_goal_changes").delete({ count: "exact" }).eq("id", changeId).eq("family_id", me.family_id);
+  if (error) return { error: humanDatabaseError(error.message) };
+  if (count === 0) return { error: "Only whoever asked can take the change back." };
+  revalidatePath("/planner");
+  revalidatePath("/today");
+  return { error: null };
 }

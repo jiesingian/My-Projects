@@ -4,14 +4,25 @@ import { clamp01, isGoalKind, isGoalPeriod, weightFraction, windowStart, type Go
 
 export type GoalRewardView = {
   title: string;
-  status: "pending" | "approved" | "refused";
+  status: "pending" | "approved" | "refused" | "given";
   proposedBy: string | null;
   proposedById: string | null;
-  decidedBy: string | null;
-  /** The viewer may answer it: a grown-up who is not the person it is for,
-   * and on a household goal not the one who asked. The policy is the real
-   * rule; this only decides whether the buttons are shown. */
+  /** Who keeps the promise -- a parent, another adult or a child. */
+  giverId: string | null;
+  giverName: string | null;
+  /** The viewer is the giver. Only the giver answers, rewords or marks it
+   * given; the policy is the real rule, this decides what is shown. */
+  viewerGives: boolean;
+};
+
+/** A change to what a goal measures, waiting for the giver's yes. */
+export type GoalChangeView = {
+  id: string;
+  proposedBy: string | null;
+  /** "Target 12 → 10 books", one line per field. */
+  lines: string[];
   canAnswer: boolean;
+  viewerAsked: boolean;
 };
 
 export type GoalView = {
@@ -37,29 +48,35 @@ export type GoalView = {
   /** Nothing to read yet (a weight goal with no reading, say). */
   noData: boolean;
   reward: GoalRewardView | null;
+  change: GoalChangeView | null;
 };
 
 type Viewer = { id: string; role: string };
 
-function mayAnswer(viewer: Viewer, ownerId: string | null, proposedById: string | null): boolean {
-  if (viewer.role !== "parent" && viewer.role !== "adult") return false;
-  if (ownerId) return ownerId !== viewer.id;
-  return proposedById !== viewer.id;
+/** A reward still in play: asked for or promised. Only then does changing
+ * the goal need anyone's yes. */
+function inPlay(status: string | undefined): boolean {
+  return status === "pending" || status === "approved";
 }
 
 /** Every goal in the household, with its ring filled from what Kin already
  * holds. A handful of reads for the whole list, not one per goal. */
 export async function getGoals(familyId: string, viewer: Viewer, weekStart: 0 | 1): Promise<GoalView[]> {
   const supabase = await createClient();
-  const [{ data: goals }, { data: rewards }, { data: members }] = await Promise.all([
+  const [{ data: goals }, { data: rewards }, { data: members }, { data: changes }] = await Promise.all([
     supabase.from("planner_goals").select("*").eq("family_id", familyId).order("created_at", { ascending: true }),
     supabase.from("planner_goal_rewards").select("*").eq("family_id", familyId),
     supabase.from("members").select("id, full_name").eq("family_id", familyId),
+    supabase.from("planner_goal_changes").select("*").eq("family_id", familyId).eq("status", "pending").order("created_at", { ascending: false }),
   ]);
   if (!goals || goals.length === 0) return [];
 
   const nameOf = new Map((members ?? []).map((m) => [m.id, m.full_name]));
   const rewardOf = new Map((rewards ?? []).map((r) => [r.goal_id, r]));
+  // The newest request per goal; an older one still waiting is answered
+  // after it.
+  const changeOf = new Map<string, NonNullable<typeof changes>[number]>();
+  for (const c of changes ?? []) if (!changeOf.has(c.goal_id)) changeOf.set(c.goal_id, c);
   const today = familyDay();
 
   const withWindow = goals
@@ -124,6 +141,8 @@ export async function getGoals(familyId: string, viewer: Viewer, weekStart: 0 | 
     if (g.kind !== "weight") fraction = clamp01(current / g.target);
 
     const r = rewardOf.get(g.id);
+    const c = changeOf.get(g.id);
+    const giverInPlay = r && inPlay(r.status) ? r.giver_member_id : null;
     return {
       id: g.id,
       title: g.title,
@@ -147,46 +166,84 @@ export async function getGoals(familyId: string, viewer: Viewer, weekStart: 0 | 
             status: r.status as GoalRewardView["status"],
             proposedBy: r.proposed_by ? (nameOf.get(r.proposed_by) ?? null) : null,
             proposedById: r.proposed_by,
-            decidedBy: r.decided_by ? (nameOf.get(r.decided_by) ?? null) : null,
-            canAnswer: r.status === "pending" && mayAnswer(viewer, g.owner_member_id, r.proposed_by),
+            giverId: r.giver_member_id,
+            giverName: r.giver_member_id ? (nameOf.get(r.giver_member_id) ?? null) : null,
+            viewerGives: !!r.giver_member_id && r.giver_member_id === viewer.id,
+          }
+        : null,
+      change: c
+        ? {
+            id: c.id,
+            proposedBy: c.proposed_by ? (nameOf.get(c.proposed_by) ?? null) : null,
+            lines: describeChange(c, g),
+            // The giver answers while a reward is in play; with none, anyone
+            // but the one who asked may.
+            canAnswer: giverInPlay ? giverInPlay === viewer.id : c.proposed_by !== viewer.id,
+            viewerAsked: c.proposed_by === viewer.id,
           }
         : null,
     };
   });
 }
 
+type ChangeRow = { title: string | null; target: number | null; period: string | null; unit: string | null; due_date: string | null; change_due_date: boolean };
+type GoalRow = { title: string; target: number; period: string; unit: string | null; due_date: string | null };
+
+const PERIOD_WORD: Record<string, string> = { day: "a day", week: "a week", month: "a month", total: "in all" };
+
+/** What a change request would do, in words: "Target 12 → 10". */
+export function describeChange(c: ChangeRow, g: GoalRow): string[] {
+  const lines: string[] = [];
+  if (c.title !== null && c.title !== g.title) lines.push(`Name “${g.title}” → “${c.title}”`);
+  if (c.target !== null && Number(c.target) !== Number(g.target)) lines.push(`Target ${Number(g.target).toLocaleString("en-PH")} → ${Number(c.target).toLocaleString("en-PH")}`);
+  if (c.period !== null && c.period !== g.period) lines.push(`Counted ${PERIOD_WORD[g.period] ?? g.period} → ${PERIOD_WORD[c.period] ?? c.period}`);
+  if (c.unit !== null && c.unit !== g.unit) lines.push(`Counting “${g.unit ?? ""}” → “${c.unit}”`);
+  if (c.change_due_date && c.due_date !== g.due_date) lines.push(`By ${g.due_date ?? "no date"} → ${c.due_date ?? "no date"}`);
+  return lines.length > 0 ? lines : ["No change to what it measures"];
+}
+
 export type PendingGoalReward = { goalId: string; goalTitle: string; reward: string; forWhom: string; askedBy: string | null };
+export type PendingGoalChange = { changeId: string; goalTitle: string; askedBy: string | null; lines: string[] };
 
-/** Rewards waiting on the viewer's yes, for the queue on Today. Only the
- * ones this viewer may answer: showing a parent their own reward with an
- * Approve button the database will refuse would be a button that lies. */
-export async function getPendingGoalRewards(familyId: string, viewer: Viewer): Promise<PendingGoalReward[]> {
-  if (viewer.role !== "parent" && viewer.role !== "adult") return [];
+/** What is waiting on this viewer's yes, for the queue on Today: rewards
+ * they have been asked to give, and changes to goals whose reward they
+ * give. Anyone can be a giver -- a child promising a hug counts as much as
+ * a parent promising ₱500 -- so this is not limited to grown-ups. */
+export async function getGoalRequestsFor(familyId: string, viewer: Viewer): Promise<{ rewards: PendingGoalReward[]; changes: PendingGoalChange[] }> {
   const supabase = await createClient();
-  const { data: rewards } = await supabase
-    .from("planner_goal_rewards")
-    .select("goal_id, title, proposed_by, created_at")
-    .eq("family_id", familyId)
-    .eq("status", "pending")
-    .order("created_at", { ascending: true });
-  if (!rewards || rewards.length === 0) return [];
+  const [{ data: rewards }, { data: changes }] = await Promise.all([
+    supabase.from("planner_goal_rewards").select("goal_id, title, proposed_by, giver_member_id, status, created_at").eq("family_id", familyId).in("status", ["pending", "approved"]),
+    supabase.from("planner_goal_changes").select("*").eq("family_id", familyId).eq("status", "pending").order("created_at", { ascending: true }),
+  ]);
+  const asked = (rewards ?? []).filter((r) => r.status === "pending" && r.giver_member_id === viewer.id);
+  const giverOf = new Map((rewards ?? []).map((r) => [r.goal_id, r.giver_member_id]));
+  const mine = (changes ?? []).filter((c) => giverOf.get(c.goal_id) === viewer.id && c.proposed_by !== viewer.id);
+  if (asked.length === 0 && mine.length === 0) return { rewards: [], changes: [] };
 
+  const goalIds = [...new Set([...asked.map((r) => r.goal_id), ...mine.map((c) => c.goal_id)])];
   const [{ data: goals }, { data: members }] = await Promise.all([
-    supabase.from("planner_goals").select("id, title, owner_member_id").in("id", rewards.map((r) => r.goal_id)),
+    supabase.from("planner_goals").select("id, title, owner_member_id, target, period, unit, due_date").in("id", goalIds),
     supabase.from("members").select("id, full_name").eq("family_id", familyId),
   ]);
   const goalOf = new Map((goals ?? []).map((g) => [g.id, g]));
   const nameOf = new Map((members ?? []).map((m) => [m.id, m.full_name]));
 
-  return rewards.flatMap((r) => {
-    const g = goalOf.get(r.goal_id);
-    if (!g || !mayAnswer(viewer, g.owner_member_id, r.proposed_by)) return [];
-    return [{
-      goalId: g.id,
-      goalTitle: g.title,
-      reward: r.title,
-      forWhom: g.owner_member_id ? (nameOf.get(g.owner_member_id) ?? "Someone") : "Everyone",
-      askedBy: r.proposed_by ? (nameOf.get(r.proposed_by) ?? null) : null,
-    }];
-  });
+  return {
+    rewards: asked.flatMap((r) => {
+      const g = goalOf.get(r.goal_id);
+      if (!g) return [];
+      return [{
+        goalId: g.id,
+        goalTitle: g.title,
+        reward: r.title,
+        forWhom: g.owner_member_id ? (nameOf.get(g.owner_member_id) ?? "Someone") : "Everyone",
+        askedBy: r.proposed_by ? (nameOf.get(r.proposed_by) ?? null) : null,
+      }];
+    }),
+    changes: mine.flatMap((c) => {
+      const g = goalOf.get(c.goal_id);
+      if (!g) return [];
+      return [{ changeId: c.id, goalTitle: g.title, askedBy: c.proposed_by ? (nameOf.get(c.proposed_by) ?? null) : null, lines: describeChange(c, g) }];
+    }),
+  };
 }

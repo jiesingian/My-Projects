@@ -47,7 +47,7 @@ type CalendarView = (typeof CALENDAR_VIEWS)[number];
 export default async function PlannerPage({
   searchParams,
 }: {
-  searchParams: Promise<{ seg?: string; who?: string; view?: string; date?: string; hide?: string; saved?: string }>;
+  searchParams: Promise<{ seg?: string; who?: string; view?: string; date?: string; hide?: string; saved?: string; asked?: string }>;
 }) {
   const me = await getCurrentMember();
   if (!me) redirect("/onboarding/profile");
@@ -107,6 +107,7 @@ export default async function PlannerPage({
             currency={me.families.currency}
             weekStart={weekStartOf(me.families.week_start)}
             filter={<MemberChips familyId={me.family_id} seg="goals" who={who} />}
+            justAsked={sp.asked === "1"}
           />
         )}
       </div>
