@@ -30,7 +30,10 @@ setup("sign in", async ({ page }) => {
   // Landing anywhere that is not /login means the session took.
   await expect(page).not.toHaveURL(/\/login/, { timeout: 30_000 });
   await page.goto("/today");
-  await expect(page.locator("body")).toContainText(/needs you today/i, { timeout: 30_000 });
+  // "At a glance" is on Today whatever the day holds. The old marker, "Needs
+  // you today", went when Today became one list (28 September) -- and was
+  // never there on a quiet day anyway.
+  await expect(page.locator("body")).toContainText(/at a glance/i, { timeout: 30_000 });
 
   fs.mkdirSync("e2e/.auth", { recursive: true });
   await page.context().storageState({ path: STATE });
