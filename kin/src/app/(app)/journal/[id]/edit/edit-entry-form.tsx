@@ -19,6 +19,9 @@ export function EditEntryForm({ entry, members }: { entry: Entry; members: Table
   const uid = useId();
   const [people, setPeople] = useState<string[]>(entry.people.map((p) => p.id));
   const [photos, setPhotos] = useState(entry.photos);
+  // A personal entry (Mine) keeps its photos in the person's own folder.
+  const personal = entry.visibility === "personal";
+  const backTo = personal ? "/journal?view=mine" : "/journal?view=household";
   const [previews, setPreviews] = useState<string[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
@@ -64,9 +67,9 @@ export function EditEntryForm({ entry, members }: { entry: Entry; members: Table
     for (let i = 0; i < files.length; i++) {
       let uploaded: UploadedFile | undefined;
       try {
-        uploaded = await uploadFileDirect(files[i], "journal");
+        uploaded = await uploadFileDirect(files[i], personal ? "journal_personal" : "journal");
         const mediaType = files[i].type.startsWith("video") ? "video" : "photo";
-        const result = await attachJournalMediaAction({ entryId: entry.id, mediaType, takenAt: date, sortOrder: photos.length + i, uploaded });
+        const result = await attachJournalMediaAction({ entryId: entry.id, mediaType, takenAt: date, sortOrder: photos.length + i, uploaded, visibility: entry.visibility === "personal" ? "personal" : "household" });
         if (result.error) throw new Error(result.error);
       } catch (err) {
         if (uploaded) await rollbackUpload(uploaded);
@@ -76,13 +79,13 @@ export function EditEntryForm({ entry, members }: { entry: Entry; members: Table
       }
     }
 
-    router.push("/journal?view=list");
+    router.push(backTo);
     router.refresh();
   }
 
   return (
     <div>
-      <DetailHeader backHref="/journal?view=list" eyebrow="Journal" />
+      <DetailHeader backHref={backTo} eyebrow="Journal" />
       <div style={{ padding: "0 var(--gutter) 1.375rem" }}>
         <h3 style={{ fontSize: "1.875rem", margin: "0 0 16px" }}>Edit journal entry</h3>
         <form onSubmit={onSubmit}>

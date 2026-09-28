@@ -5579,3 +5579,31 @@ button.kin-initial:focus-visible {
   font-size: 0.875rem;
   text-align: center;
 }
+
+/* A text button that reads like the Edit link beside it (journal entries). */
+.kin-linkbtn {
+  border: 0;
+  padding: 0;
+  background: none;
+  font: inherit;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--color-accent-700);
+  cursor: pointer;
+}
+.kin-linkbtn:disabled {
+  opacity: 0.6;
+}
+.kin-journal-milestones-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  margin: 0.875rem 0 0.25rem;
+  font-size: 0.84375rem;
+  font-weight: 600;
+  color: var(--color-accent-700);
+  text-decoration: none;
+}
+.kin-journal-milestones-link span {
+  color: var(--color-accent);
+}

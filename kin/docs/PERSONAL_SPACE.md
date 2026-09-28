@@ -166,3 +166,28 @@ Every migration in this series is checked the same two ways:
   row of the Family list.
 - The tree opens profiles: a second tap on someone already picked, or their
   name in the tree's panel; Back returns to the tree.
+
+## Decided 29 September (Jonathan)
+
+Left as they are, on purpose:
+- A reward on a goal that moves keeps its giver; a giver who stays in the old
+  household can no longer see or answer it.
+- Deleting a household deletes the personal entries kept in it.
+- Health records stay with the household when someone moves.
+
+## The journal in three layers (item 3), step 1
+
+- Tabs **Mine / Household / Family feed / Gallery**. Mine is everything you
+  wrote: your personal entries ("Just me") and the ones you put in the
+  household journal. Household and Gallery show household entries and photos
+  only. Milestones is a link inside Household until milestones become a ★ on
+  an entry (step 2).
+- A new entry chooses **Household journal** or **Just me**. A personal entry's
+  photos go to `journal/person/<you>/` in Kin's storage, never the household's
+  Drive or folder, and nobody is notified.
+- **Add to household** turns a personal entry, and its photos, into household
+  ones. The household can then read those files where they are and delete
+  them as it can any household photo; after a move, the writer cannot delete
+  a photo they gave the old household. Personal photos count toward the
+  household's Kin storage.
+- Sharing to the family feed is for household entries only.

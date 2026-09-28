@@ -82,6 +82,9 @@ export async function getGallery(familyId: string) {
     .from("journal_media")
     .select("*")
     .eq("family_id", familyId)
+    // The household's photos. Your own personal ones are on Mine, with their
+    // entries; the Gallery is what the whole household shares.
+    .eq("visibility", "household")
     .order("taken_at", { ascending: false })
     .limit(30);
   const media = data ?? [];
@@ -118,13 +121,18 @@ export async function driveIsDisconnected(familyId: string): Promise<boolean> {
   return data?.connected === false;
 }
 
-export async function getEntries(familyId: string) {
+/** The household journal (Household), or -- with `mine` -- everything this
+ * person wrote: their personal entries and the ones they put in the household
+ * journal (Mine). Row-level security keeps anybody else's personal entries out
+ * either way; the filters say which of what you may see belongs on the tab. */
+export async function getEntries(familyId: string, mine?: { personId: string }) {
   const supabase = await createClient();
-  const { data } = await supabase
+  let query = supabase
     .from("journal_entries")
     .select("*, journal_entry_people(members(id, full_name)), journal_entry_media(journal_media(id, storage_path, storage_provider, drive_file_id))")
-    .eq("family_id", familyId)
-    .order("entry_date", { ascending: false });
+    .eq("family_id", familyId);
+  query = mine ? query.eq("owner_person_id", mine.personId) : query.eq("visibility", "household");
+  const { data } = await query.order("entry_date", { ascending: false });
 
   const entries = data ?? [];
   type MediaRef = { id: string; storage_path: string | null; storage_provider: string; drive_file_id: string | null };

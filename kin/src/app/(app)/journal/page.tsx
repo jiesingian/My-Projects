@@ -19,14 +19,23 @@ import { FamilyFeed } from "@/components/family-feed";
 import { EntryShareToggle } from "@/components/entry-share-toggle";
 import { getFamilyFeed, getFamilyLinks, getFeedOccasions } from "@/lib/queries/family-links";
 import { isGrownUp } from "@/lib/roles";
+import { AddToHouseholdButton } from "@/components/add-to-household";
 
 /* Gallery, Entries and Milestones were three hub segments; now they are one
    -- Entries -- with these three as views inside it. A person reading a day
    back wants the write-up, the photos and the milestone in one place rather
    than three tabs that all say "Journal" and show nothing of each other. */
-const VIEWS = ["list", "gallery", "milestones", "feed"] as const;
+/* Three layers (28 September, BACKLOG item 3): Mine -- what you wrote,
+   including entries only you can see -- then the Household journal, then the
+   Family feed that reaches linked households. The Gallery is the household's
+   photos. Milestones stays a view of its own until milestones become a mark
+   on an entry. */
+const VIEWS = ["mine", "household", "feed", "gallery", "milestones"] as const;
+// Milestones is reached from Household, not a tab: five tabs wrap on a phone,
+// and milestones become a mark on an entry in the next step.
+const TABS: readonly View[] = ["mine", "household", "feed", "gallery"];
 type View = (typeof VIEWS)[number];
-const VIEW_LABELS: Record<View, string> = { list: "List", gallery: "Gallery", milestones: "Milestones", feed: "Family Feed" };
+const VIEW_LABELS: Record<View, string> = { mine: "Mine", household: "Household", feed: "Family feed", gallery: "Gallery", milestones: "Milestones" };
 
 export default async function JournalPage({
   searchParams,
@@ -36,7 +45,9 @@ export default async function JournalPage({
   const me = await getCurrentMember();
   if (!me) redirect("/onboarding/profile");
   const sp = await searchParams;
-  const view: View = (VIEWS as readonly string[]).includes(sp.view ?? "") ? (sp.view as View) : "list";
+  // "list" is what the household journal was called; old links still land there.
+  const asked = sp.view === "list" ? "household" : sp.view;
+  const view: View = (VIEWS as readonly string[]).includes(asked ?? "") ? (asked as View) : "household";
 
   // Reconcile the index against Drive both ways — still on every Journal load,
   // still only for the two views that show Drive files, but once rather than
@@ -44,13 +55,13 @@ export default async function JournalPage({
   // lists a whole folder before it can say anything, so awaiting it meant no
   // photo appeared until Google had answered. A file added or deleted straight
   // in Drive now shows up on the next visit instead of holding up this one.
-  if (view === "gallery" || view === "list") {
+  if (view === "gallery" || view === "household") {
     const supabase = await createClient();
     after(() => syncDriveJournalMedia(me.family_id, me.families.name, supabase));
   }
 
   const segments = [{ label: "Entries", href: "/journal", active: true }];
-  const views = VIEWS.map((v) => ({ label: VIEW_LABELS[v], href: `/journal?view=${v}`, active: v === view }));
+  const views = TABS.map((v) => ({ label: VIEW_LABELS[v], href: `/journal?view=${v}`, active: v === view || (v === "household" && view === "milestones") }));
 
   return (
     <div>
@@ -58,7 +69,8 @@ export default async function JournalPage({
       <div style={{ padding: "0 var(--gutter) 1.375rem" }}>
         <Segmented items={views} />
         {view === "gallery" && <GalleryPane familyId={me.family_id} />}
-        {view === "list" && <EntriesPane familyId={me.family_id} />}
+        {view === "household" && <EntriesPane familyId={me.family_id} />}
+        {view === "mine" && <EntriesPane familyId={me.family_id} mine={{ personId: me.person_id }} />}
         {view === "milestones" && <MilestonesPane familyId={me.family_id} />}
         {view === "feed" && (
           <FeedPane meId={me.id} familyId={me.family_id} inviteCode={me.families.invite_code} canManage={isGrownUp(me.role)} />
@@ -111,9 +123,9 @@ async function FeedPane({ meId, familyId, inviteCode, canManage }: { meId: strin
   return <FamilyFeed entries={entries} links={links} ourCode={inviteCode} canManage={canManage} occasions={occasions} />;
 }
 
-async function EntriesPane({ familyId }: { familyId: string }) {
+async function EntriesPane({ familyId, mine }: { familyId: string; mine?: { personId: string } }) {
   const fmtDate = await familyDate();
-  const [entries, links] = await Promise.all([getEntries(familyId), getFamilyLinks(familyId)]);
+  const [entries, links] = await Promise.all([getEntries(familyId, mine), getFamilyLinks(familyId)]);
   const linkedCount = links.filter((l) => l.status === "accepted").length;
 
   // Entries shows Drive-backed photos exactly as the Gallery does, and said
@@ -130,19 +142,38 @@ async function EntriesPane({ familyId }: { familyId: string }) {
       {driveDisconnected && <DriveDisconnectedNotice />}
       {/* This week's question: a reason for Lola to open the app, and a
           record of the family nothing else keeps. */}
-      <Link href={`/journal/new?title=${encodeURIComponent(question)}`} className="kin-story">
+      {mine && (
+        <p style={{ fontSize: "0.84375rem", lineHeight: 1.5, color: "var(--color-neutral-700)", margin: "0.875rem 0 0.75rem" }}>
+          What you wrote. Entries marked <strong>Just me</strong> are yours alone — they come with you if you ever start a household of your own.
+        </p>
+      )}
+      {!mine && (
+        <Link href="/journal?view=milestones" className="kin-journal-milestones-link">
+          <span aria-hidden="true">★</span> Milestones
+        </Link>
+      )}
+      {!mine && <Link href={`/journal/new?title=${encodeURIComponent(question)}`} className="kin-story">
         <span className="kin-story-label">This week&apos;s question</span>
         <span className="kin-story-q">{question}</span>
         <span className="kin-story-cta">Answer it in the journal →</span>
-      </Link>
+      </Link>}
       {entries.length === 0 && (
         <div style={{ marginBottom: "1rem" }}>
-          <Empty
-            icon={<Icon name="fileText" size={26} />}
-            title="Nothing written down yet"
-            line="An entry is a day worth remembering — where you went, who was there, what it was like. Small ones count."
-            action={{ label: "Write the first one", href: "/journal/new" }}
-          />
+          {mine ? (
+            <Empty
+              icon={<Icon name="fileText" size={26} />}
+              title="Nothing of yours yet"
+              line="Write something just for you — a thought, a day, a photo — or add to the household journal. Both show here."
+              action={{ label: "Write something", href: "/journal/new?for=me" }}
+            />
+          ) : (
+            <Empty
+              icon={<Icon name="fileText" size={26} />}
+              title="Nothing written down yet"
+              line="An entry is a day worth remembering — where you went, who was there, what it was like. Small ones count."
+              action={{ label: "Write the first one", href: "/journal/new" }}
+            />
+          )}
         </div>
       )}
       {entries.map((e) => (
@@ -156,14 +187,25 @@ async function EntriesPane({ familyId }: { familyId: string }) {
                 FROM PLAN
               </Tag>
             )}
+            {mine && (
+              <Tag variant={e.visibility === "personal" ? "outline" : "neutral"} className={e.source === "from_plan" ? undefined : "ml-auto"}>
+                {e.visibility === "personal" ? "JUST ME" : "HOUSEHOLD"}
+              </Tag>
+            )}
           </div>
           <div style={{ font: "600 1.3125rem/1.05 var(--font-heading)", margin: "7px 0 6px" }}>{e.title}</div>
           <JournalEntryPhotos photos={e.photos} entryTitle={e.title} />
           {e.note && <p style={{ fontSize: "0.875rem", margin: "0 0 9px", color: "var(--color-neutral-800)" }}>{e.note}</p>}
           <div style={{ display: "flex", flexWrap: "wrap", alignItems: "baseline", gap: "0.375rem 0.5rem" }}>
-            <div style={{ fontSize: "0.8125rem", color: "var(--color-neutral-600)" }}>{e.people.map((p) => p.full_name.split(" ")[0]).join(" · ") || "Whole family"}</div>
+            <div style={{ fontSize: "0.8125rem", color: "var(--color-neutral-600)" }}>
+              {e.people.map((p) => p.full_name.split(" ")[0]).join(" · ") || (e.visibility === "personal" ? "Only you" : "Whole family")}
+            </div>
             <span style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: "0.625rem" }}>
-              <EntryShareToggle entryId={e.id} shared={Boolean(e.shared_at)} linkedCount={linkedCount} />
+              {e.visibility === "personal" ? (
+                <AddToHouseholdButton entryId={e.id} title={e.title} />
+              ) : (
+                <EntryShareToggle entryId={e.id} shared={Boolean(e.shared_at)} linkedCount={linkedCount} />
+              )}
               <Link href={`/journal/${e.id}/edit`} style={{ fontSize: "0.8125rem", fontWeight: 600, color: "var(--color-accent-700)" }}>
                 Edit
               </Link>
@@ -171,7 +213,7 @@ async function EntriesPane({ familyId }: { familyId: string }) {
           </div>
         </Blueprint>
       ))}
-      <Link href="/journal/new" className="btn btn-primary btn-block" style={{ minHeight: "2.875rem", fontSize: "0.875rem", letterSpacing: ".04em" }}>
+      <Link href={mine ? "/journal/new?for=me" : "/journal/new"} className="btn btn-primary btn-block" style={{ minHeight: "2.875rem", fontSize: "0.875rem", letterSpacing: ".04em" }}>
         + ADD ENTRY
       </Link>
     </>

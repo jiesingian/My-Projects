@@ -19,6 +19,8 @@ export async function createJournalEntryAction(input: {
   date: string;
   note: string | null;
   people: string[];
+  /** "personal": only the writer sees it (the Mine tab). Default household. */
+  visibility?: "household" | "personal";
 }): Promise<{ error: string | null; entryId?: string }> {
   const me = await requireCurrentMember();
   const supabase = await createClient();
@@ -29,7 +31,15 @@ export async function createJournalEntryAction(input: {
 
   const { data: entry, error } = await supabase
     .from("journal_entries")
-    .insert({ family_id: me.family_id, entry_date: input.date, title, note, source: "manual", created_by: me.id })
+    .insert({
+      family_id: me.family_id,
+      entry_date: input.date,
+      title,
+      note,
+      source: "manual",
+      created_by: me.id,
+      visibility: input.visibility === "personal" ? "personal" : "household",
+    })
     .select()
     .single();
   if (error) return { error: humanDatabaseError(error.message) };
@@ -45,7 +55,10 @@ export async function createJournalEntryAction(input: {
   }
 
   revalidatePath("/journal");
-  after(() => sendPush({ kind: "journal", title: `${me.full_name.split(" ")[0]} added to the journal`, body: title, url: "/journal" }));
+  // A personal entry is nobody else's business, so nobody else is told.
+  if (entry.visibility === "household") {
+    after(() => sendPush({ kind: "journal", title: `${me.full_name.split(" ")[0]} added to the journal`, body: title, url: "/journal" }));
+  }
   return { error: null, entryId: entry.id };
 }
 
@@ -107,6 +120,41 @@ export async function updateJournalEntryAction(input: {
   return { error: null };
 }
 
+/** A personal entry ("Just me", on Mine) added to the household journal:
+ * the household sees it from now on, with its photos. It stays the writer's
+ * entry. Sharing it on to linked relatives is then the ordinary share. */
+export async function addEntryToHouseholdAction(entryId: string): Promise<{ error: string | null }> {
+  const me = await requireCurrentMember();
+  const supabase = await createClient();
+
+  const { data: entry, error } = await supabase
+    .from("journal_entries")
+    .update({ visibility: "household" })
+    .eq("id", entryId)
+    .eq("family_id", me.family_id)
+    .eq("owner_person_id", me.person_id)
+    .eq("visibility", "personal")
+    .select("id, title")
+    .maybeSingle();
+  if (error) return { error: humanDatabaseError(error.message) };
+  if (!entry) return { error: "That entry is not yours to add, or it is already in the household journal." };
+
+  const { data: links } = await supabase.from("journal_entry_media").select("media_id").eq("entry_id", entryId);
+  const mediaIds = (links ?? []).map((l) => l.media_id);
+  if (mediaIds.length > 0) {
+    const { error: mediaError } = await supabase
+      .from("journal_media")
+      .update({ visibility: "household" })
+      .in("id", mediaIds)
+      .eq("owner_person_id", me.person_id);
+    if (mediaError) return { error: `The entry is in the household journal, but its photos are still just yours. ${mediaError.message}` };
+  }
+
+  revalidatePath("/journal");
+  after(() => sendPush({ kind: "journal", title: `${me.full_name.split(" ")[0]} added to the journal`, body: entry.title, url: "/journal" }));
+  return { error: null };
+}
+
 /** Records a file the client already uploaded directly to Drive or Supabase
  * Storage (see uploadFileDirect) — this call only ever carries small JSON,
  * never the file itself, so it isn't subject to any request body limit. */
@@ -116,6 +164,7 @@ export async function attachJournalMediaAction(input: {
   takenAt: string;
   sortOrder?: number;
   uploaded: UploadedFile;
+  visibility?: "household" | "personal";
 }): Promise<{ error: string | null }> {
   const me = await requireCurrentMember();
   const supabase = await createClient();
@@ -123,8 +172,13 @@ export async function attachJournalMediaAction(input: {
   // A Storage path is trusted as belonging to this family only when it sits
   // under the family's own prefix -- otherwise this call would let a member
   // index (and later read or delete) another family's object by path alone.
-  if (input.uploaded.provider === "supabase" && !input.uploaded.storagePath.startsWith(`${me.family_id}/`)) {
-    return { error: "That file doesn't belong to this household." };
+  // A personal photo sits under the person's own prefix instead, and only
+  // ever in Kin's storage.
+  const personal = input.visibility === "personal";
+  if (personal && input.uploaded.provider !== "supabase") return { error: "A photo just for you is kept in Kin, not on Drive." };
+  const prefix = personal ? `person/${me.person_id}/` : `${me.family_id}/`;
+  if (input.uploaded.provider === "supabase" && !input.uploaded.storagePath.startsWith(prefix)) {
+    return { error: personal ? "That file isn't yours." : "That file doesn't belong to this household." };
   }
 
   const { data: media, error } = await supabase
@@ -148,6 +202,7 @@ export async function attachJournalMediaAction(input: {
             uploaded_by: me.id,
             storage_provider: "supabase",
             storage_path: input.uploaded.storagePath,
+            visibility: personal ? "personal" : "household",
           },
     )
     .select()
