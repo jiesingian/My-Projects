@@ -36,7 +36,8 @@ async function openAManagedChild(page: import("@playwright/test").Page) {
 
   await page.goto(href!, { waitUntil: "networkidle" });
   // Prove we are on a profile page before asserting what is missing from it.
-  await expect(page.getByText(/^HUB 01 · MEMBER RECORD$/i)).toBeVisible();
+  // The "HUB 01 · MEMBER RECORD" eyebrow went with the hub numbers in #209.
+  await expect(page).toHaveURL(/\/family\/members\/[0-9a-f-]{36}/);
   await expect(page.getByText("Relationship", { exact: true })).toBeVisible();
 }
 

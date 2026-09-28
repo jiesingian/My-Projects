@@ -142,18 +142,20 @@ test.describe("bugs that already got out once", () => {
    * different times. */
   test("Today's hub card agrees with the briefing above it", async ({ page }) => {
     await page.goto("/today", { waitUntil: "networkidle" });
-    const text = (await page.locator("body").innerText()).replace(/\s+/g, " ");
+    // Lower-cased: Today prints times the way its task rows do ("7:37 am")
+    // since it became one list (#292). The case was never what this tested.
+    const text = (await page.locator("body").innerText()).replace(/\s+/g, " ").toLowerCase();
     // The activity has to be on the page before "the wrong time is absent"
     // means anything -- on its own that assertion is satisfied by an empty
     // page, which is how it would have kept passing after its fixture aged
     // out. Both halves, in order.
-    expect(text, "this run's evening activity should be on Today at all").toContain(EVENING.label);
-    expect(text, `it should read ${EVENING.manila12}`).toContain(EVENING.manila12);
-    expect(text, "the hub card must not be eight hours off").not.toContain(EVENING.wrong12);
+    expect(text, "this run's evening activity should be on Today at all").toContain(EVENING.label.toLowerCase());
+    expect(text, `it should read ${EVENING.manila12}`).toContain(EVENING.manila12.toLowerCase());
+    expect(text, "the hub card must not be eight hours off").not.toContain(EVENING.wrong12.toLowerCase());
     // The morning one too, since the bug moved it across a day boundary and
     // this is the page where that showed up as two different times at once.
-    expect(text, `the morning activity should read ${MORNING.manila12}`).toContain(MORNING.manila12);
-    expect(text, `and never ${MORNING.wrong12}`).not.toContain(MORNING.wrong12);
+    expect(text, `the morning activity should read ${MORNING.manila12}`).toContain(MORNING.manila12.toLowerCase());
+    expect(text, `and never ${MORNING.wrong12}`).not.toContain(MORNING.wrong12.toLowerCase());
   });
 
   /** Chat is a client component that formatted timestamps in whichever zone

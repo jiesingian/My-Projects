@@ -38,7 +38,7 @@ async function fill(page: Page, name: string, value: string) {
 
 /** The agenda row for one activity, which is also the link to its edit form. */
 function rowFor(page: Page, title: string) {
-  return page.locator('a[href*="type=activity"]').filter({ hasText: title }).first();
+  return page.locator('a[href*="type=task"], a[href*="type=activity"]').filter({ hasText: title }).first();
 }
 
 /** Creates an activity with every text field populated, and returns the URL of
@@ -114,7 +114,7 @@ test.describe("changing things", () => {
     // and as the form reads it back. These have to agree: the form's value is
     // what the next save stores.
     await row.click();
-    await page.waitForURL(/type=activity&id=/, { timeout: 30_000 });
+    await page.waitForURL(/type=(task|activity)&id=/, { timeout: 30_000 });
     await expect(page.locator('[name="date"]'), "the edit form opens on the wrong day").toHaveValue("2026-09-19");
     await expect(page.locator('[name="from"]'), "the edit form shows a different time from the one entered").toHaveValue(
       "18:00",
