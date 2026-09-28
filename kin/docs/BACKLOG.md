@@ -35,6 +35,9 @@ session (see the root CLAUDE.md on session cost).
 6. **Yes: profiles that feel like a person** (cover, photo, recent moments,
    Message / Call; details under About; Remove in a "⋯" menu). **Plus
    (Jonathan): a person's profile opens from the family tree too.**
+7. **Yes: birthday and anniversary moments** in the family feed.
+8. **Done: a Sunday "week ahead" push** (with its own switch).
+9. **Yes: streaks for kids' chores** (bonus star at 7 and 30 days, one freeze a week).
 7. **Done: birthday and anniversary moments** in the family feed.
 8. **Yes: a Sunday "week ahead" push** (with its own switch).
 9. **Done: streaks for kids' chores** (bonus star at 7 and 30 days, one freeze a week).
@@ -158,6 +161,14 @@ Decided against in the same review: revising Journal (item 6) and Planner
 
 ## Done
 
+- The week ahead (agreed 28 September, item 8): Sundays from 19:00
+  Manila, the grown-ups get one push -- "Lia's recital Wed, Meralco due
+  Thu, Lola Rosa's birthday Sun" -- naming up to five of the coming
+  Monday-to-Sunday's one-off plans, unpaid bills, dated events and yearly
+  birthdays and anniversaries, then "+N more". Chores are left out; an
+  empty week sends nothing. due_week_ahead_reminders() on the existing
+  reminder job and ledger; its own "The week ahead" switch in Settings ->
+  Notifications (grown-ups only).
 - Birthday and anniversary moments on the family feed (agreed 28 September,
   item 7): on the day, Journal -> Family feed opens with "Lola Rosa turns 72
   today 🎂" for her household and every household linked with it (unless
