@@ -113,7 +113,7 @@ export default async function MemberDetailPage({
   return (
     <div>
       <DetailHeader backHref={backHref} eyebrow="Family" trail={trail} />
-      <div style={{ padding: "0 1.375rem 1.375rem" }}>
+      <div style={{ padding: "0 var(--gutter) 1.375rem" }}>
         {view === "profile" ? (
           isSelf ? (
             <MemberProfileEditor

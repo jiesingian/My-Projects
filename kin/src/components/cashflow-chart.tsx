@@ -78,7 +78,7 @@ export function CashFlowChart({ history, currency, periodNoun }: { history: Cash
           );
         })}
       </div>
-      <div aria-hidden="true" style={{ display: "flex", gap: "0.375rem", marginTop: "0.3125rem" }}>
+      <div aria-hidden="true" className="kin-cf-labels" style={{ display: "flex", gap: "0.375rem", marginTop: "0.3125rem" }}>
         {history.map((h, i) => (
           <span
             key={h.key}

@@ -11,7 +11,7 @@ function Shell({ children }: { children: React.ReactNode }) {
         <span className="kin-skeleton" style={{ width: 38, height: 38, borderRadius: "var(--radius-control)" }} />
         <span className="kin-skeleton" style={{ width: 70, height: 12, borderRadius: 4, marginLeft: "auto" }} />
       </div>
-      <div style={{ padding: "0 1.375rem 1.375rem" }}>{children}</div>
+      <div style={{ padding: "0 var(--gutter) 1.375rem" }}>{children}</div>
     </div>
   );
 }

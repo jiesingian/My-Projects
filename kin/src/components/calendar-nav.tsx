@@ -153,7 +153,7 @@ export function CalendarJump({
           textAlign: "left",
         }}
       >
-        <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{label}</span>
+        <span className="kin-jump-label" style={{ minWidth: 0 }}>{label}</span>
         <Icon name="chevronLeft" size={15} style={{ transform: "rotate(-90deg)", flex: "none", color: "var(--color-accent)" }} />
       </button>
 

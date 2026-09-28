@@ -68,7 +68,7 @@ export function EditDocForm({
           { label: entry.title },
         ]}
       />
-      <div style={{ padding: "0 1.375rem 1.375rem" }}>
+      <div style={{ padding: "0 var(--gutter) 1.375rem" }}>
         <h3 style={{ fontSize: "1.875rem", margin: "0 0 16px" }}>Edit document entry</h3>
         <form onSubmit={onSubmit}>
           <ErrorText message={error} />

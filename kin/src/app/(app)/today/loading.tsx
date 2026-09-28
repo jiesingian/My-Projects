@@ -5,7 +5,7 @@
  * bordered list of rows, then the glance tiles and the quick-add row. */
 export default function Loading() {
   return (
-    <div style={{ padding: "1.5rem 1.375rem 1.25rem" }} aria-busy="true" aria-live="polite">
+    <div style={{ padding: "1.5rem var(--gutter) 1.25rem" }} aria-busy="true" aria-live="polite">
       <span className="sr-only">Loading</span>
 
       <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", marginBottom: "1.25rem" }}>

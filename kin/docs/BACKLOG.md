@@ -172,8 +172,12 @@ Decided against in the same review: revising Journal (item 6) and Planner
 - Text that fits: the Family tabs are Profile, Health, Docs, Tree and
   Links, and no label, button or name breaks mid-word at 100% on any phone.
   At 150% and 200% rows wrap and headings stop at the phone's width instead
-  of breaking. Still breaking: 200% on a 320px phone, the original iPhone SE
-  (25 September).
+  of breaking (25 September). 200% on a 320px phone, the original iPhone SE,
+  now fits too: page margins stop growing with the text, Settings rows and
+  Today's tiles wrap instead of cutting to "A…", the chat title keeps its
+  width, and the cash-flow months thin out instead of stacking letter by
+  letter. Checked on every hub at 320, 375 and 390px, at 100%, 150% and
+  200% (28 September).
 
 - Five more colour themes in Settings → Appearance: Pale Milk, Editorial,
   Electric Blue, Emerald Wave and Antarctic (dark only), from Janine's list,

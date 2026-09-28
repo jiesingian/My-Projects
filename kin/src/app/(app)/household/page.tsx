@@ -47,7 +47,7 @@ export default async function HouseholdPage({ searchParams }: { searchParams: Pr
   return (
     <div>
       <HubHeader n="04" title="Household" segments={segments} dateFormat={me.families.date_format} />
-      <div style={{ padding: "0 1.375rem 1.375rem" }}>
+      <div style={{ padding: "0 var(--gutter) 1.375rem" }}>
         {seg === "buy" && <BuyPane familyId={me.family_id} memberId={me.id} currency={me.families.currency} startAdding={sp.add === "1"} />}
         {seg === "meals" && <MealsPane familyId={me.family_id} currency={me.families.currency} anchor={anchor} who={sp.who ?? "all"} />}
       </div>
@@ -232,7 +232,7 @@ async function MealsPane({
       {/* The date is a drop-down: tapping it opens the month, year and day
           picker. A meal plan is read one day at a time, so a whole rail of
           dates was more chrome than the page needed. */}
-      <div style={{ display: "flex", alignItems: "center", gap: "0.375rem", marginBottom: "0.625rem" }}>
+      <div className="kin-jump-bar" style={{ display: "flex", alignItems: "center", gap: "0.375rem", marginBottom: "0.625rem" }}>
         <CalendarJump label={label} hrefBase={MEALS_HREF_BASE} anchor={anchorISO} />
         <SheetButton
           label={String(recipes.length)}

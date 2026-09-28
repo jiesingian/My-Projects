@@ -55,7 +55,7 @@ export default async function JournalPage({
   return (
     <div>
       <HubHeader n="02" title="Journal" segments={segments} dateFormat={me.families.date_format} />
-      <div style={{ padding: "0 1.375rem 1.375rem" }}>
+      <div style={{ padding: "0 var(--gutter) 1.375rem" }}>
         <Segmented items={views} />
         {view === "gallery" && <GalleryPane familyId={me.family_id} />}
         {view === "list" && <EntriesPane familyId={me.family_id} />}

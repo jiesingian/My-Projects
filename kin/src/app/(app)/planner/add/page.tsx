@@ -76,7 +76,7 @@ export default async function AddPlannerPage({
       scanReady={!!process.env.ANTHROPIC_API_KEY}
     />
     {editEvent && (
-      <div style={{ padding: "0 1.375rem 1.25rem" }}>
+      <div style={{ padding: "0 var(--gutter) 1.25rem" }}>
         <div className="kin-eyebrow" style={{ marginBottom: "0.5rem" }}>
           PHOTOS
         </div>
@@ -84,7 +84,7 @@ export default async function AddPlannerPage({
       </div>
     )}
     {isTrip && editEvent && (
-      <div style={{ padding: "0 1.375rem 1.375rem" }}>
+      <div style={{ padding: "0 var(--gutter) 1.375rem" }}>
         <LogSpendControl
           accounts={pickable}
           currency={editEvent.budget_currency ?? me.families.currency}

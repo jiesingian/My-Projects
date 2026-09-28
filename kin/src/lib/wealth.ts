@@ -93,7 +93,9 @@ export function recentMonths(count: number, anchor: Date = new Date()): { year: 
       year: d.getFullYear(),
       month: d.getMonth() + 1,
       key: monthKey(d),
-      label: d.toLocaleDateString("en-GB", { month: "short" }).toUpperCase(),
+      // Three letters, every month: en-GB spells September "Sept", and that
+      // one extra letter was the label that wrapped on a phone.
+      label: d.toLocaleDateString("en-GB", { month: "short" }).slice(0, 3).toUpperCase(),
     };
   });
 }

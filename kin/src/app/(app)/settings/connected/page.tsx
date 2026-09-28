@@ -51,7 +51,7 @@ export default async function ConnectedSettingsPage({
   return (
     <div>
       <DetailHeader backHref="/settings" eyebrow="Connected apps" />
-      <div style={{ padding: "0 1.375rem 1.375rem" }}>
+      <div style={{ padding: "0 var(--gutter) 1.375rem" }}>
         <Blueprint style={{ padding: "0.875rem", marginBottom: "1.375rem" }}>
           <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: "0.375rem 0.625rem", marginBottom: "0.625rem" }}>
             <Icon name="hardDrive" size={18} className="text-[var(--color-accent-700)]" />

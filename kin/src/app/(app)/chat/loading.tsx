@@ -13,7 +13,7 @@ const BUBBLES: { mine: boolean; width: number }[] = [
 
 export default function Loading() {
   return (
-    <div style={{ padding: "1.125rem 1.375rem 0.5rem" }} aria-busy="true" aria-live="polite">
+    <div style={{ padding: "1.125rem var(--gutter) 0.5rem" }} aria-busy="true" aria-live="polite">
       <span className="sr-only">Loading</span>
 
       <div style={{ marginBottom: "1.125rem" }}>

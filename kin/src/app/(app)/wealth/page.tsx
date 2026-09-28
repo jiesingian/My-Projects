@@ -63,7 +63,7 @@ export default async function WealthPage({ searchParams }: { searchParams: Promi
   return (
     <div>
       <HubHeader n="05" title="Wealth" segments={segments} dateFormat={me.families.date_format} />
-      <div style={{ padding: "0 1.375rem 1.375rem" }}>
+      <div style={{ padding: "0 var(--gutter) 1.375rem" }}>
         {seg === "cashflow" && <CashFlowPane familyId={me.family_id} memberId={me.id} currency={currency} range={range} scope={who} />}
         {seg === "accounts" && <ScopePane scope={who} familyId={me.family_id} memberId={me.id} currency={currency} range={range} />}
         {seg === "assets" && <AssetsPane familyId={me.family_id} memberId={me.id} currency={currency} scope={who} />}
@@ -223,7 +223,7 @@ function HistoryStrip({ history, currency, title = "LAST SIX MONTHS" }: { histor
           </div>
         ))}
       </div>
-      <div aria-hidden="true" style={{ display: "flex", gap: "0.375rem", marginTop: "0.3125rem" }}>
+      <div aria-hidden="true" className="kin-cf-labels" style={{ display: "flex", gap: "0.375rem", marginTop: "0.3125rem" }}>
         {history.map((h) => (
           <div key={h.key} style={{ flex: 1, textAlign: "center", fontSize: "0.53125rem", letterSpacing: ".06em", color: "var(--color-neutral-600)" }}>
             {h.label}
@@ -439,7 +439,7 @@ function UpcomingBills<T extends { id: string; name: string; amount: number | st
 
 function QuickActions() {
   return (
-    <div style={{ display: "flex", gap: "0.5rem", marginBottom: "1.125rem" }}>
+    <div className="kin-money-actions" style={{ display: "flex", gap: "0.5rem", marginBottom: "1.125rem" }}>
       {[
         { label: "MONEY IN", mode: "in" },
         { label: "MONEY OUT", mode: "out" },

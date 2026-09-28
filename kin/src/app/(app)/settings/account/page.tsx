@@ -20,7 +20,7 @@ export default async function AccountSettingsPage() {
   return (
     <div>
       <DetailHeader backHref="/settings" eyebrow="Account" />
-      <div style={{ padding: "0 1.375rem 1.375rem" }}>
+      <div style={{ padding: "0 var(--gutter) 1.375rem" }}>
         <div style={{ fontSize: "0.8125rem", color: "var(--color-neutral-700)", marginBottom: "0.125rem" }}>Signed in as</div>
         <div style={{ padding: "0.5rem 0 0.8125rem", borderBottom: "1px solid color-mix(in srgb, var(--color-text) 10%, transparent)", fontSize: "0.875rem" }}>
           {authUser.user?.email}
