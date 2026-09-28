@@ -69,18 +69,9 @@ export async function getFamilyFeed(familyId: string): Promise<FeedEntry[]> {
   const supabase = await createClient();
   const { data } = await supabase
     .from("journal_entries")
-    .select("id, title, note, entry_date, family_id, journal_entry_media(journal_media(id, storage_path, storage_provider))")
+    .select("id, title, note, entry_date, family_id, milestone, event_id, journal_entry_media(journal_media(id, storage_path, storage_provider))")
     .not("shared_at", "is", null)
     .order("entry_date", { ascending: false })
-    .limit(200);
-
-  // Shared milestones, by the same rule: RLS returns ours and linked
-  // households' shared ones and nothing else.
-  const { data: milestones } = await supabase
-    .from("milestones")
-    .select("id, title, milestone_date, family_id, shared_at, event_id")
-    .not("shared_at", "is", null)
-    .order("milestone_date", { ascending: false })
     .limit(200);
 
   const rows = data ?? [];
@@ -94,39 +85,29 @@ export async function getFamilyFeed(familyId: string): Promise<FeedEntry[]> {
       .map((m) => m.journal_media as unknown as Media | null)
       .filter((m): m is Media => !!m && m.storage_provider === "supabase" && !!m.storage_path);
   const signed = await getSignedUrls("journal", rows.flatMap((r) => mediaOf(r).map((m) => m.storage_path as string)));
-  const familyIds = [...new Set([...rows.map((r) => r.family_id), ...(milestones ?? []).map((m) => m.family_id)])];
+  const familyIds = [...new Set(rows.map((r) => r.family_id))];
   const { data: names } = await supabase.from("families").select("id, name").in("id", familyIds.length ? familyIds : [familyId]);
   const byId = new Map((names ?? []).map((f) => [f.id, f.name]));
 
-  const entries: FeedEntry[] = rows.map((r) => ({
-    kind: "entry" as const,
-    id: r.id,
-    title: r.title,
-    note: r.note,
-    entryDate: r.entry_date,
-    familyId: r.family_id,
-    householdName: byId.get(r.family_id) ?? "A linked household",
-    isOurs: r.family_id === familyId,
-    photos: mediaOf(r)
-      .map((m) => ({ url: signed[m.storage_path as string], id: r.family_id === familyId ? m.id : null }))
-      .filter((p): p is { url: string; id: string | null } => !!p.url),
-  }));
-  // A birthday marked as a milestone is already on today's birthday card, as
-  // its ★; on its own day it is not listed a second time. Afterwards it is an
-  // ordinary milestone in the feed like any other.
+  // A milestone is an entry marked ★ (20260929023000). A birthday marked as a
+  // milestone is already on today's birthday card, as its ★; on its own day
+  // it is not listed a second time. Afterwards it is in the feed like any other.
   const today = new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Manila" });
-  const moments: FeedEntry[] = (milestones ?? []).filter((m) => !(m.event_id && m.milestone_date === today)).map((m) => ({
-    kind: "milestone" as const,
-    id: m.id,
-    title: m.title,
-    note: null,
-    entryDate: m.milestone_date,
-    familyId: m.family_id,
-    householdName: byId.get(m.family_id) ?? "A linked household",
-    isOurs: m.family_id === familyId,
-    photos: [],
-  }));
-  return [...entries, ...moments].sort((a, b) => b.entryDate.localeCompare(a.entryDate));
+  return rows
+    .filter((r) => !(r.milestone && r.event_id && r.entry_date === today))
+    .map((r) => ({
+      kind: r.milestone ? ("milestone" as const) : ("entry" as const),
+      id: r.id,
+      title: r.title,
+      note: r.note,
+      entryDate: r.entry_date,
+      familyId: r.family_id,
+      householdName: byId.get(r.family_id) ?? "A linked household",
+      isOurs: r.family_id === familyId,
+      photos: mediaOf(r)
+        .map((m) => ({ url: signed[m.storage_path as string], id: r.family_id === familyId ? m.id : null }))
+        .filter((p): p is { url: string; id: string | null } => !!p.url),
+    }));
 }
 
 /** Today's birthdays and anniversaries -- ours and linked households' -- with
@@ -147,10 +128,10 @@ export async function getFeedOccasions(meId: string, familyId: string): Promise<
       .in("event_id", eventIds)
       .eq("occasion_date", today)
       .order("created_at", { ascending: true }),
-    // Milestones are readable by their own household and, once shared, by
-    // linked ones -- so a linked household sees the ★ when the birthday
-    // household has shared it, the same as any other milestone.
-    supabase.from("milestones").select("event_id").in("event_id", eventIds).eq("milestone_date", today),
+    // Milestones (entries marked ★) are readable by their own household and,
+    // once shared, by linked ones -- so a linked household sees the ★ when
+    // the birthday household has shared it, the same as any other milestone.
+    supabase.from("journal_entries").select("event_id").in("event_id", eventIds).eq("entry_date", today).eq("milestone", true),
   ]);
   const milestoneFor = new Set((marked ?? []).map((m) => m.event_id));
   return rows.map((o) => ({

@@ -87,10 +87,11 @@ export async function setOccasionMilestoneAction(eventId: string, on: boolean): 
   const today = familyDay();
   if (!on) {
     const { error } = await supabase
-      .from("milestones")
+      .from("journal_entries")
       .delete()
       .eq("event_id", eventId)
-      .eq("milestone_date", today)
+      .eq("entry_date", today)
+      .eq("milestone", true)
       .eq("family_id", me.family_id);
     if (error) return { error: humanDatabaseError(error.message) };
     revalidatePath("/journal");
@@ -101,10 +102,13 @@ export async function setOccasionMilestoneAction(eventId: string, on: boolean): 
   const { data: occasions } = await supabase.rpc("feed_occasions_today");
   const o = (occasions ?? []).find((x) => x.event_id === eventId && x.is_ours);
   if (!o || (o.kind !== "birthday" && o.kind !== "anniversary")) return { error: "Only the family whose day it is can mark it a milestone." };
-  const { error } = await supabase.from("milestones").insert({
+  // A milestone is a journal entry marked ★ (20260929023000).
+  const { error } = await supabase.from("journal_entries").insert({
     family_id: me.family_id,
     title: clamp(occasionMilestoneTitle(o.title, o.kind, o.years), 150),
-    milestone_date: today,
+    entry_date: today,
+    source: "manual",
+    milestone: true,
     event_id: eventId,
     created_by: me.id,
   });
@@ -141,22 +145,6 @@ export async function setEntrySharedAction(entryId: string, shared: boolean): Pr
     // to the household journal first.
     .eq("visibility", "household");
   if (error) return { error: "That memory couldn't be updated." };
-  revalidatePath("/journal");
-  return { error: null };
-}
-
-/** Put a milestone on the family feed, or take it off. The same switch a
- * journal entry has: private until somebody shares it, and then visible to
- * this household and every household it is linked to. */
-export async function setMilestoneSharedAction(milestoneId: string, shared: boolean): Promise<ActionState> {
-  const me = await requireCurrentMember();
-  const supabase = await createClient();
-  const { error } = await supabase
-    .from("milestones")
-    .update({ shared_at: shared ? new Date().toISOString() : null })
-    .eq("id", milestoneId)
-    .eq("family_id", me.family_id);
-  if (error) return { error: "That milestone couldn't be updated." };
   revalidatePath("/journal");
   return { error: null };
 }

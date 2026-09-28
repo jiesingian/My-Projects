@@ -112,7 +112,7 @@ test("a household can be deleted, and takes everything with it", async () => {
     const account = await seed("accounts", { created_by: me.id, name: `${RUN} account`, account_type: "bank", is_joint: true, opening_balance: 1000 });
     await seed("activities", { created_by: me.id, title: `${RUN} activity`, start_at: new Date().toISOString(), repeat: "once", status: "upcoming", applies_to_whole_family: true });
     await seed("journal_entries", { created_by: me.id, title: `${RUN} entry`, entry_date: "2026-09-10", source: "manual" });
-    await seed("milestones", { created_by: me.id, member_id: me.id, title: `${RUN} milestone`, milestone_date: "2026-09-10" });
+    await seed("journal_entries", { created_by: me.id, milestone: true, milestone_member_id: me.id, title: `${RUN} milestone`, entry_date: "2026-09-10", source: "manual" });
     await seed("health_schedule", { created_by: me.id, member_id: me.id, what: `${RUN} check-up`, when_date: "2026-09-10", status: "due" });
     await seed("goals", { created_by: me.id, title: `${RUN} goal`, target_amount: 1000, is_joint: true });
     await seed("bills", { created_by: me.id, name: `${RUN} bill`, amount: 100, status: "unpaid" });

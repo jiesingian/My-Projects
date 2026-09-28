@@ -77,8 +77,9 @@ test.beforeAll(async () => {
     await post("health_schedule", [
       { family_id: familyId, created_by: memberId, member_id: memberId, what: DUE_HEALTH, when_date: manilaToday(), status: "due" },
     ]);
-    await post("milestones", [
-      { family_id: familyId, created_by: memberId, member_id: memberId, title: MILESTONE, milestone_date: manilaToday() },
+    // A milestone is a journal entry with the ★ since 29 September.
+    await post("journal_entries", [
+      { family_id: familyId, created_by: memberId, milestone: true, milestone_member_id: memberId, title: MILESTONE, entry_date: manilaToday(), source: "manual" },
     ]);
   } finally {
     await rest.ctx.dispose();

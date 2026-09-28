@@ -125,13 +125,17 @@ export async function driveIsDisconnected(familyId: string): Promise<boolean> {
  * person wrote: their personal entries and the ones they put in the household
  * journal (Mine). Row-level security keeps anybody else's personal entries out
  * either way; the filters say which of what you may see belongs on the tab. */
-export async function getEntries(familyId: string, mine?: { personId: string }) {
+export async function getEntries(familyId: string, mine?: { personId: string }, opts?: { milestonesOnly?: boolean }) {
   const supabase = await createClient();
   let query = supabase
     .from("journal_entries")
-    .select("*, journal_entry_people(members(id, full_name)), journal_entry_media(journal_media(id, storage_path, storage_provider, drive_file_id))")
+    .select(
+      "*, milestone_member:members!journal_entries_milestone_member_id_fkey(full_name), journal_entry_people(members(id, full_name)), journal_entry_media(journal_media(id, storage_path, storage_provider, drive_file_id))",
+    )
     .eq("family_id", familyId);
   query = mine ? query.eq("owner_person_id", mine.personId) : query.eq("visibility", "household");
+  // The ★ filter on Household: milestones are entries marked as one.
+  if (opts?.milestonesOnly) query = query.eq("milestone", true);
   const { data } = await query.order("entry_date", { ascending: false });
 
   const entries = data ?? [];
@@ -146,6 +150,7 @@ export async function getEntries(familyId: string, mine?: { personId: string }) 
 
   return entries.map((e) => ({
     ...e,
+    milestoneOf: (e.milestone_member as unknown as { full_name: string } | null)?.full_name ?? null,
     people: (e.journal_entry_people ?? [])
       .map((p) => (p.members as unknown as { id: string; full_name: string } | null))
       .filter((v): v is { id: string; full_name: string } => !!v),
@@ -206,16 +211,6 @@ export async function getEntry(familyId: string, entryId: string) {
   };
 }
 
-export async function getMilestones(familyId: string) {
-  const supabase = await createClient();
-  const { data } = await supabase
-    .from("milestones")
-    .select("*, members!milestones_member_id_fkey(full_name)")
-    .eq("family_id", familyId)
-    .order("milestone_date", { ascending: false });
-  return data ?? [];
-}
-
 /** A person's recent moments, for their profile: household journal entries
  * they wrote or are in, newest first, each with its first photo, and their
  * milestones. Row-level security decides what the viewer may see; a personal
@@ -225,11 +220,13 @@ export async function getPersonMoments(familyId: string, memberId: string, limit
   const [{ data: tagged }, { data: milestones }] = await Promise.all([
     supabase.from("journal_entry_people").select("entry_id").eq("member_id", memberId),
     supabase
-      .from("milestones")
-      .select("id, title, milestone_date")
+      .from("journal_entries")
+      .select("id, title, entry_date")
       .eq("family_id", familyId)
-      .eq("member_id", memberId)
-      .order("milestone_date", { ascending: false })
+      .eq("visibility", "household")
+      .eq("milestone", true)
+      .eq("milestone_member_id", memberId)
+      .order("entry_date", { ascending: false })
       .limit(8),
   ]);
   const ids = (tagged ?? []).map((t) => t.entry_id);
@@ -239,6 +236,7 @@ export async function getPersonMoments(familyId: string, memberId: string, limit
     .select("id, title, note, entry_date, journal_entry_media(sort_order, journal_media(id, storage_path, storage_provider, drive_file_id))")
     .eq("family_id", familyId)
     .eq("visibility", "household")
+    .eq("milestone", false)
     .or(who)
     .order("entry_date", { ascending: false })
     .limit(limit);
@@ -257,7 +255,7 @@ export async function getPersonMoments(familyId: string, memberId: string, limit
   const urls = await getSignedUrls("journal", paths);
 
   return {
-    milestones: milestones ?? [],
+    milestones: (milestones ?? []).map((m) => ({ id: m.id, title: m.title, milestone_date: m.entry_date })),
     moments: entries.map((e) => {
       const m = firstMedia(e);
       const photo = !m
