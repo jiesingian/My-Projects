@@ -31,6 +31,11 @@ export type ViewerItem = {
  *   for the next photo; swipe down to close; Escape closes too.
  * - Double-tap or double-click to zoom in on that spot; drag to look around;
  *   double-tap again to come back.
+ * - Pinch with two fingers to zoom, up to 4x (28 September: page zoom stays
+ *   off everywhere, photos get their own). The photo tracks both fingers 1:1
+ *   around the point between them, resists past its limits instead of
+ *   stopping dead, and settles back inside them on release. Lift one finger
+ *   and the other carries on panning, with no jump.
  * - `footer` renders under the photo for the current index -- the album's
  *   "Use this picture" and Delete, or anything else a caller needs. */
 export function PhotoViewer({
@@ -54,6 +59,11 @@ export function PhotoViewer({
   const start = useRef<{ x: number; y: number; t: number; px: number; py: number; backdrop: boolean } | null>(null);
   const lastTap = useRef<{ t: number; x: number; y: number } | null>(null);
   const closeTimer = useRef<number | undefined>(undefined);
+  const mediaRef = useRef<HTMLDivElement>(null);
+  /** Every finger or pointer down on the stage, for the pinch. */
+  const pointers = useRef(new Map<number, { x: number; y: number }>());
+  /** A pinch in progress: where it started, and the zoom it started from. */
+  const pinch = useRef<{ d0: number; m0: { x: number; y: number }; s0: number; t0: { x: number; y: number }; o: { x: number; y: number }; last: { x: number; y: number } } | null>(null);
   const count = items.length;
 
   const go = useCallback(
@@ -109,11 +119,84 @@ export function PhotoViewer({
   const item = items[index];
   const zoomed = zoom.scale > 1;
 
+  const MAX_ZOOM = 4;
+  /** Past the limits the photo still follows, at a third of the finger's
+   * pace -- a soft edge that says "no further" rather than a wall. */
+  const soften = (raw: number) => (raw < 1 ? 1 - (1 - raw) / 3 : raw > MAX_ZOOM ? MAX_ZOOM + (raw - MAX_ZOOM) / 3 : raw);
+
+  const pair = () => {
+    const [a, b] = [...pointers.current.values()];
+    return { d: Math.hypot(b.x - a.x, b.y - a.y), m: { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 } };
+  };
+
+  const beginPinch = () => {
+    const el = mediaRef.current;
+    const stage = el?.parentElement;
+    if (!el || !stage) return;
+    const { d, m } = pair();
+    if (d < 1) return;
+    const r = stage.getBoundingClientRect();
+    // Zooming out of the resting photo: anchor its origin under the fingers,
+    // so the spot being pinched is the spot that grows. Already zoomed: keep
+    // the origin and let the translation do the work.
+    let z = zoom;
+    if (!zoomed) {
+      z = { scale: 1, ox: ((m.x - r.left - el.offsetLeft) / el.offsetWidth) * 100, oy: ((m.y - r.top - el.offsetTop) / el.offsetHeight) * 100, px: 0, py: 0 };
+      setZoom(z);
+    }
+    pinch.current = {
+      d0: d,
+      m0: m,
+      s0: z.scale,
+      t0: { x: z.px, y: z.py },
+      o: { x: r.left + el.offsetLeft + (z.ox / 100) * el.offsetWidth, y: r.top + el.offsetTop + (z.oy / 100) * el.offsetHeight },
+      last: { x: z.px, y: z.py },
+    };
+    start.current = null;
+    lastTap.current = null;
+    window.clearTimeout(closeTimer.current);
+    setSettling(false);
+    setDrag({ x: 0, y: 0, axis: null });
+  };
+
+  const movePinch = () => {
+    const p = pinch.current;
+    if (!p || pointers.current.size < 2) return;
+    const { d, m } = pair();
+    const scale = soften((p.s0 * d) / p.d0);
+    // Keep the point that was under the fingers under the fingers: it sits at
+    // o + t + s(q - o) on screen, and was at m0 when the pinch began.
+    const k = scale / p.s0;
+    p.last = { x: m.x - p.o.x - k * (p.m0.x - p.o.x - p.t0.x), y: m.y - p.o.y - k * (p.m0.y - p.o.y - p.t0.y) };
+    const { x: px, y: py } = p.last;
+    setZoom((z) => ({ ...z, scale, px, py }));
+  };
+
+  const endPinch = () => {
+    const last = pinch.current?.last ?? { x: zoom.px, y: zoom.py };
+    pinch.current = null;
+    setSettling(true);
+    setZoom((z) => {
+      if (z.scale <= 1.05) return { scale: 1, ox: 50, oy: 50, px: 0, py: 0 };
+      return z.scale > MAX_ZOOM ? { ...z, scale: MAX_ZOOM } : z;
+    });
+    // One finger still down carries on as a pan from where it is now.
+    const rest = [...pointers.current.values()][0];
+    if (rest) start.current = { x: rest.x, y: rest.y, t: performance.now(), px: last.x, py: last.y, backdrop: false };
+  };
+
   const onPointerDown = (e: React.PointerEvent) => {
     if (e.pointerType === "mouse" && e.button !== 0) return;
     // The arrows and a video's own controls take their own presses; capturing
     // the pointer here would swallow them.
     if ((e.target as HTMLElement).closest("button, video")) return;
+    pointers.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+    if (pointers.current.size === 2 && item.kind !== "video") {
+      beginPinch();
+      return;
+    }
+    if (pointers.current.size > 2 || pinch.current) return;
     start.current = {
       x: e.clientX,
       y: e.clientY,
@@ -126,10 +209,14 @@ export function PhotoViewer({
       backdrop: e.pointerType === "mouse" && e.target === e.currentTarget,
     };
     setSettling(false);
-    (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
   };
 
   const onPointerMove = (e: React.PointerEvent) => {
+    if (pointers.current.has(e.pointerId)) pointers.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    if (pinch.current) {
+      movePinch();
+      return;
+    }
     const s = start.current;
     if (!s) return;
     const dx = e.clientX - s.x;
@@ -147,6 +234,12 @@ export function PhotoViewer({
   };
 
   const onPointerUp = (e: React.PointerEvent) => {
+    pointers.current.delete(e.pointerId);
+    if (pinch.current) {
+      // The end of a pinch is never a tap or a swipe.
+      if (pointers.current.size < 2) endPinch();
+      return;
+    }
     const s = start.current;
     start.current = null;
     if (!s) return;
@@ -210,12 +303,18 @@ export function PhotoViewer({
         onPointerDown={onPointerDown}
         onPointerMove={onPointerMove}
         onPointerUp={onPointerUp}
-        onPointerCancel={() => {
+        onPointerCancel={(e) => {
+          pointers.current.delete(e.pointerId);
+          if (pinch.current) {
+            if (pointers.current.size < 2) endPinch();
+            return;
+          }
           start.current = null;
           setDrag({ x: 0, y: 0, axis: null });
         }}
       >
         <div
+          ref={mediaRef}
           className="kin-viewer-media"
           data-settling={settling ? "true" : undefined}
           style={{
