@@ -118,6 +118,12 @@ Decided against in the same review: revising Journal (item 6) and Planner
 
 ## Done
 
+- Pinch to zoom on photos (28 September): page zoom stays off everywhere
+  (item 21), and the full-screen photo viewer -- journal, Gallery, profile,
+  event and chat photos -- now pinches with two fingers up to 4x, tracking
+  both fingers around the point between them, resisting softly past the
+  limits and settling back on release; lifting one finger keeps panning.
+
 - Download my data (approved 28 September): Settings → Account, grown-ups
   only, after typing the account password (checked server-side). A ZIP of
   CSV spreadsheets, one per section, read with the member's own session so
