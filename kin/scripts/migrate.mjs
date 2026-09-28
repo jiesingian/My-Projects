@@ -78,7 +78,23 @@ function localMigrations() {
       }
       return { version: m[1], name: m[2], file, sql: fs.readFileSync(path.join(dir, file), "utf8") };
     })
-    .sort((a, b) => a.version.localeCompare(b.version));
+    .sort((a, b) => a.version.localeCompare(b.version))
+    .map((m, i, all) => {
+      // Two files, one version (28 September): the ledger is keyed on the
+      // version alone, so once the first had run the second counted as done
+      // and never ran anywhere -- 20260928180000 was both planner_goals and
+      // people_and_personal_space, and production went without people for
+      // hours while the code that needs it was live. Refuse, loudly.
+      const twin = all.find((o, j) => j !== i && o.version === m.version);
+      if (twin) {
+        console.error(
+          `migrate: ${m.file} and ${twin.file} share the version ${m.version}.\n` +
+            `         Only one of them would ever run. Give the newer one a later timestamp.`,
+        );
+        process.exit(2);
+      }
+      return m;
+    });
 }
 
 /** The runner opens the transaction, so a file must not open its own.
