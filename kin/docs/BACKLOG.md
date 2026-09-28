@@ -3,6 +3,46 @@
 What is agreed but not built yet, and what is waiting on somebody. Update
 it in the same pull request that finishes or adds an item.
 
+## Agreed 28 September (Jonathan's answers to the page-by-page review)
+
+The review page: https://claude.ai/artifact/YCR7BHzEfyDsdVEoFkH87r. Each is its
+own pull request; 1 and 3 are large database changes and each deserves a fresh
+session (see the root CLAUDE.md on session cost).
+
+1. **Yes: every person owns their account; a household links them.** Each
+   account has a personal space (profile, own journal, own goals, private
+   notes) that belongs to the person, not the household. A married son or
+   daughter starts their own household (wife and children) and takes their
+   personal space with them; the parents' household keeps its shared history;
+   the family tree links the two so the feed still reaches them.
+2. **Yes: household name from both surnames, as an editable suggestion:** the
+   wife's maiden surname and the husband's surname, the Filipino way
+   ("Santos-Reyes Household"). Never forced (single parents, grandparents
+   raising grandchildren, blended families).
+3. **Yes: journal in three layers.** Tabs Mine / Household / Family feed (+
+   Gallery). A personal entry can be added to the household journal and shared
+   to the family feed. A milestone becomes a ★ mark on an entry, with a filter
+   chip; existing milestones move over. Feed is photo-first with reactions and
+   comments; the "link a household" panel shrinks to one line.
+4. **Yes: Planner → Goals tab** -- money (existing goals), water, steps,
+   weight, gym, custom -- progress rings fed by data Kin already has. **Plus
+   (Jonathan): a goal can carry a reward**, set when the goal is created, by the
+   person for themselves or by someone for another member; **the reward is
+   subject to approval by a parent or another household member** (the same
+   approval idea chores already use).
+5. **Yes: fold daily chores** into one "N chores" line per day on the Planner
+   agenda, with a "Show chores" switch.
+6. **Yes: profiles that feel like a person** (cover, photo, recent moments,
+   Message / Call; details under About; Remove in a "⋯" menu). **Plus
+   (Jonathan): a person's profile opens from the family tree too.**
+7. **Yes: birthday and anniversary moments** in the family feed.
+8. **Yes: a Sunday "week ahead" push** (with its own switch).
+9. **Yes: streaks for kids' chores** (bonus star at 7 and 30 days, one freeze a week).
+10. **No Filipino interface.** Kin AI keeps understanding and answering
+    Filipino / Taglish, as it already does.
+
+Also agreed the same day and done: **Today as one list** (see Done).
+
 ## Waiting on a decision
 
 - **PayMongo / HitPay payments (GCash, Maya, cards).** Options, fees and a
@@ -117,6 +157,16 @@ Decided against in the same review: revising Journal (item 6) and Planner
 #209).
 
 ## Done
+
+- Today as one list (Jonathan, 28 September: "shouldn't they be the same and
+  prioritized at the top? ... should be allowed to be marked as done or
+  skip"): "Needs you today" and "Today's tasks" are one "Today" list at the
+  top -- urgent first, the day in order, finished ones at the bottom with
+  Undo. Chores keep their Done / Skip / note; a one-off plan's Done / Skip
+  sets it completed / cancelled; a check-up's Done marks it given; a bill has
+  Pay (Wealth's pay flow) / Skip; the shopping has Shop / Skip; a birthday
+  or event just shows for the day, with nothing to tick. Marks live in today_marks (20260928170000). Meals stay in the
+  header's "Eating today".
 
 - Review fixes (28 September, every page rendered signed in against a local
   stand-in with an invented household): a child with their own login showed

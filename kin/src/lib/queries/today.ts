@@ -1,7 +1,8 @@
 import { createClient } from "@/lib/supabase/server";
 import { formatAccounting, formatCurrency } from "@/lib/format";
 import { getPricedBuyList } from "@/lib/queries/household-money";
-import { familyDay as localDay, familyTime as localTime, familyMidnight, FAMILY_TZ } from "@/lib/time";
+import { familyDay as localDay, familyTime as localTime, familyClock, familyMidnight, FAMILY_TZ } from "@/lib/time";
+import { formatTimeOfDay } from "@/lib/routines";
 import type { IconName } from "@/components/icons";
 
 /** One line in the briefing. Deliberately flat and pre-formatted: the page
@@ -18,6 +19,11 @@ export type BriefItem = {
   /** Epoch ms for things that happen at a time of day, so the day reads in
    * order. Absent for things that are simply true all day. */
   at?: number;
+  /** What Today offers on the row (28 September, one list): Done/Skip, Pay/Skip
+   * for a bill, Shop/Skip for the list. Absent: nothing to mark (a meal). */
+  action?: "done" | "pay" | "shop";
+  /** Marked today, from today_marks: shown done or skipped, with Undo. */
+  mark?: "done" | "skipped";
 };
 
 /** One tile in "At a glance": the single figure that matters in one part of
@@ -136,12 +142,14 @@ export async function getTodayBriefing(familyId: string, currency: string): Prom
   const windowStart = new Date(now.getTime() - 36 * 3600_000).toISOString();
   const windowEnd = new Date(now.getTime() + 48 * 3600_000).toISOString();
 
-  const [activities, events, bills, health, meals, buyCount] = await Promise.all([
+  const [activities, events, bills, health, meals, buyCount, marks] = await Promise.all([
     supabase
       .from("activities")
-      .select("id, title, start_at, location")
+      .select("id, title, start_at, location, status")
       .eq("family_id", familyId)
-      .eq("status", "upcoming")
+      // Completed and cancelled ones come back too, so a plan ticked off
+      // today stays on Today as done (with Undo) instead of vanishing.
+      .in("status", ["upcoming", "completed", "cancelled"])
       .gte("start_at", windowStart)
       .lt("start_at", windowEnd)
       .order("start_at", { ascending: true }),
@@ -164,11 +172,11 @@ export async function getTodayBriefing(familyId: string, currency: string): Prom
       .limit(4),
     supabase
       .from("health_schedule")
-      .select("id, what, when_date, member:members!health_schedule_member_id_fkey(full_name)")
+      .select("id, what, when_date, status, member:members!health_schedule_member_id_fkey(full_name)")
       .eq("family_id", familyId)
-      .in("status", ["due", "due_soon"])
+      .in("status", ["due", "due_soon", "given"])
       .order("when_date", { ascending: true })
-      .limit(3),
+      .limit(6),
     supabase
       .from("meal_plans")
       .select("id, dish, slot")
@@ -181,19 +189,31 @@ export async function getTodayBriefing(familyId: string, currency: string): Prom
       .eq("family_id", familyId)
       .eq("checked", false)
       .eq("cleared", false),
+    supabase.from("today_marks").select("item_key, state").eq("family_id", familyId).eq("day", today),
   ]);
+
+  // What the household has already done or skipped today. A table that is not
+  // there yet (before its migration runs) reads as "nothing marked".
+  const marked = new Map<string, "done" | "skipped">((marks.data ?? []).map((m) => [m.item_key, m.state as "done" | "skipped"]));
 
   const items: BriefItem[] = [];
 
   for (const a of activities.data ?? []) {
     const start = new Date(a.start_at);
     if (localDay(start) !== today) continue;
+    const key = `activity-${a.id}`;
+    // A plan completed or cancelled on another day, or from the Planner
+    // without a mark here, is not today's business any more.
+    if (a.status !== "upcoming" && !marked.has(key)) continue;
     items.push({
-      id: `activity-${a.id}`,
+      id: key,
+      action: "done",
+      mark: marked.get(key),
       icon: "calendarDays",
       tint: "schedule",
       title: a.title,
-      meta: [localTime(start), a.location].filter(Boolean).join(" · "),
+      // Written the way the chores beside it are ("6:00 pm"), not "6:00 PM".
+      meta: [formatTimeOfDay(familyClock(start)), a.location].filter(Boolean).join(" · "),
       href: "/planner",
       at: start.getTime(),
     });
@@ -208,6 +228,8 @@ export async function getTodayBriefing(familyId: string, currency: string): Prom
     const ordinal = e.kind === "birthday" && years > 0 ? `Turns ${years} today` : e.kind === "anniversary" && years > 0 ? `${years} years today` : "Today";
     items.push({
       id: `event-${e.id}`,
+      // No Done or Skip (Jonathan, 28 September): a birthday or an event is
+      // the whole day and finishes by itself; it only needs to be seen.
       icon: e.kind === "birthday" ? "cupcake" : "gift",
       tint: "occasion",
       title: e.title,
@@ -222,6 +244,8 @@ export async function getTodayBriefing(familyId: string, currency: string): Prom
     const overdue = !!b.due_date && b.due_date < today;
     items.push({
       id: `bill-${b.id}`,
+      action: "pay",
+      mark: marked.get(`bill-${b.id}`),
       icon: "wallet",
       tint: "money",
       title: b.name,
@@ -233,8 +257,12 @@ export async function getTodayBriefing(familyId: string, currency: string): Prom
 
   for (const h of health.data ?? []) {
     const who = (h.member as unknown as { full_name: string } | null)?.full_name?.split(" ")[0] ?? "Someone";
+    // Given long ago is history; given today (marked here) shows as done.
+    if (h.status === "given" && !marked.has(`health-${h.id}`)) continue;
     items.push({
       id: `health-${h.id}`,
+      action: "done",
+      mark: marked.get(`health-${h.id}`),
       icon: "activity",
       tint: "occasion",
       title: `${who} · ${h.what}`,
@@ -259,6 +287,8 @@ export async function getTodayBriefing(familyId: string, currency: string): Prom
   if ((buyCount.count ?? 0) > 0) {
     items.push({
       id: "buy",
+      action: "shop",
+      mark: marked.get("buy"),
       icon: "house",
       tint: "home",
       title: `${buyCount.count} thing${buyCount.count === 1 ? "" : "s"} to buy`,

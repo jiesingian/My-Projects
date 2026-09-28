@@ -164,6 +164,12 @@ export type Database = {
           },
         ]
       }
+      today_marks: {
+        Row: { family_id: string; item_key: string; day: string; state: string; marked_by: string | null; created_at: string }
+        Insert: { family_id: string; item_key: string; day: string; state: string; marked_by?: string | null; created_at?: string }
+        Update: { family_id?: string; item_key?: string; day?: string; state?: string; marked_by?: string | null; created_at?: string }
+        Relationships: []
+      }
       ai_usage: {
         Row: { family_id: string; month: string; uses: number }
         Insert: { family_id: string; month: string; uses?: number }

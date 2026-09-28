@@ -6,7 +6,8 @@ import { getOnThisDay, getWeekRecap } from "@/lib/queries/memories";
 import { OnThisDay, WeekRecapCard } from "@/components/memories";
 import { getGlance, getTodayBriefing, getComingUp, type GlanceTile } from "@/lib/queries/today";
 import { getRoutinesNeedingAttention, getPendingApprovals, getPendingRedemptions } from "@/lib/queries/routines";
-import { TodayTaskList } from "@/components/today-task-list";
+import { TodayList, type TodayEntry } from "@/components/today-list";
+import { familyClock } from "@/lib/time";
 import { ApprovalQueue } from "@/components/approval-queue";
 import { Icon } from "@/components/icons";
 import { isGrownUp } from "@/lib/roles";
@@ -48,6 +49,31 @@ export default async function TodayPage() {
     getStartHere(me),
   ]);
 
+  // Today's one list, ordered here on the server so the phone never re-sorts
+  // it: urgent, then the day in order (all-day first), then what is finished.
+  const minutes = (hhmm: string | null | undefined) => {
+    const m = /^(\d{1,2}):(\d{2})/.exec(hhmm ?? "");
+    return m ? Number(m[1]) * 60 + Number(m[2]) : -1;
+  };
+  const ranked: { entry: TodayEntry; group: number; at: number }[] = [
+    ...brief
+      .filter((b) => !b.id.startsWith("meal-"))
+      .map((item) => ({
+        entry: { kind: "item" as const, item },
+        group: item.mark ? 2 : item.urgent ? 0 : 1,
+        at: item.at != null ? minutes(familyClock(new Date(item.at))) : -1,
+      })),
+    ...tasks
+      .filter((t) => t.today)
+      .map((task) => ({
+        entry: { kind: "task" as const, task },
+        group: task.today?.status ? 2 : 1,
+        at: minutes(task.timeOfDay),
+      })),
+  ];
+  const entries = ranked.sort((a, b) => a.group - b.group || a.at - b.at).map((r) => r.entry);
+  const behind = tasks.filter((t) => !t.today && t.overdue.length > 0).length;
+
   const todayLabel = new Date().toLocaleDateString("en-GB", {
     weekday: "long",
     day: "2-digit",
@@ -87,33 +113,34 @@ export default async function TodayPage() {
 
       {startHere && <StartHere steps={startHere} inviteCode={me.families.invite_code} />}
 
-      {/* The briefing. Everything the household has a date on, from every
-          hub, in one list — overdue first, then the day in the order it
-          happens. This is the answer to "why would anyone open this app on a
-          Tuesday". On a quiet day it is one line, so the rest of the page
-          moves up instead of sitting under an empty card. */}
-      {brief.length === 0 ? (
+      {/* Today, as one list (Jonathan, 28 September: "shouldn't they be the
+          same and prioritized at the top?"). What used to be "Needs you
+          today" -- plans, bills, check-ups, birthdays, the shopping -- and
+          "Today's tasks" -- the chores -- are one list, and every row can be
+          answered: Done or Skip, or Pay and Shop where that happens elsewhere.
+          Urgent first, then the day in order (all-day things at its start),
+          finished ones sinking to the bottom with Undo. Meals are left to the
+          header's "Eating today". On a quiet day it is one line. */}
+      {entries.length === 0 ? (
         <p className="kin-allclear">
           <Icon name="check" size={15} />
           Nothing needs you today
         </p>
       ) : (
-        <section style={{ marginBottom: "1.625rem" }}>
-          <h3 className="kin-eyebrow">Needs you today</h3>
-          <div className="kin-brief">
-            {brief.map((b) => (
-              <Link key={b.id} href={b.href} className="kin-brief-row" data-urgent={b.urgent ? "true" : undefined}>
-                <span className="kin-brief-ico" data-tint={b.tint}>
-                  <Icon name={b.icon} size="1.0625rem" />
-                </span>
-                <span style={{ minWidth: 0 }}>
-                  <span className="kin-brief-title">{b.title}</span>
-                  <span className="kin-brief-meta">{b.meta}</span>
-                </span>
-                <Icon name="chevronLeft" size="0.9375rem" className="kin-brief-chev" />
-              </Link>
-            ))}
-          </div>
+        <section id="tasks" style={{ marginBottom: "1.625rem" }}>
+          <h3 className="kin-eyebrow">Today</h3>
+          <TodayList entries={entries} />
+          {behind > 0 && (
+            <p style={{ display: "flex", gap: "0.5rem", alignItems: "center", fontSize: "0.84375rem", margin: "0.25rem 0 0" }}>
+              <Icon name="info" size={16} style={{ color: "var(--cal-money)" }} />
+              <span>
+                {behind} task{behind === 1 ? "" : "s"} behind on other days —{" "}
+                <Link href="/planner?seg=routines" style={{ color: "var(--color-accent-700)", fontWeight: 500 }}>
+                  catch up on Planner
+                </Link>
+              </span>
+            </p>
+          )}
         </section>
       )}
 
@@ -192,9 +219,6 @@ export default async function TodayPage() {
         <ApprovalQueue pending={awaitingApproval} redemptions={awaitingRedemption} />
       </div>
 
-      <div id="tasks">
-        <TodayTaskList tasks={tasks} />
-      </div>
     </div>
   );
 }
