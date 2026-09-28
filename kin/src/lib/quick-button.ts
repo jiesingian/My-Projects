@@ -1,29 +1,27 @@
-/** The phone's own button, pointed at Kin.
+/** The iPhone's Action Button and a Home Screen widget, pointed at Kin.
  *
- * A web app cannot hear a hardware button. What an iPhone can do is run a
- * Shortcut from its Action Button or from Back Tap (a double or triple tap on
- * the back of the phone), and a Shortcut can open a link. So Kin gives each
- * member three links that never change -- /go/tap, /go/double, /go/hold -- and
- * this setting decides where each one lands. The Shortcut is set up once;
- * changing what a press does afterwards is a choice in Settings, not a trip
- * back into the Shortcuts app.
+ * A web app cannot hear a hardware button or draw a widget of its own. What an
+ * iPhone can do is run a Shortcut from its Action Button, and show Shortcuts as
+ * buttons in the Shortcuts app's Home Screen widget; and a Shortcut can open a
+ * link. So every Kin action has a link that never changes -- /go/open,
+ * /go/ask, /go/talk… -- and:
+ *
+ *  - the Action Button runs one Shortcut, "Kin", whose Choose from Menu step
+ *    pops up a small menu of the actions the member picked here;
+ *  - the widget shows a folder of one-action Shortcuts, the ones picked here.
+ *
+ * Each menu item and widget button is named after its action and opens that
+ * action's own link, so a label can never drift from what it does. What this
+ * setting stores is which actions the member wants in each, which is what the
+ * setup guide in Settings walks them through adding.
  */
 
-export const QUICK_SLOTS = ["tap", "double", "hold"] as const;
-export type QuickSlot = (typeof QUICK_SLOTS)[number];
-
-export const QUICK_SLOT_NAMES: Record<QuickSlot, string> = {
-  tap: "Tap",
-  double: "Double tap",
-  hold: "Long press",
-};
-
-export type QuickActionId = "open" | "ask" | "talk" | "family-chat" | "expense" | "buy" | "event" | "journal";
+export type QuickActionId = "open" | "ask" | "talk" | "family-chat" | "buy" | "expense" | "event" | "journal";
 
 export const QUICK_ACTIONS: { id: QuickActionId; name: string; path: string; kid: boolean }[] = [
   { id: "open", name: "Open Kin", path: "/today", kid: true },
   { id: "ask", name: "Chat with Kin", path: "/today?kin=chat", kid: false },
-  { id: "talk", name: "Talk to Kin (voice)", path: "/today?kin=voice", kid: false },
+  { id: "talk", name: "Talk to Kin", path: "/today?kin=voice", kid: false },
   { id: "family-chat", name: "Family chat", path: "/chat", kid: true },
   { id: "buy", name: "Shopping list", path: "/household?seg=buy", kid: false },
   { id: "expense", name: "Add an expense", path: "/wealth/transact?mode=out", kid: false },
@@ -31,59 +29,52 @@ export const QUICK_ACTIONS: { id: QuickActionId; name: string; path: string; kid
   { id: "journal", name: "Write in the journal", path: "/journal/new", kid: false },
 ];
 
-/** Which physical button the member uses. It only changes the setup steps
- * Settings shows; the three links are the same whichever it is. */
-export type QuickButton = "action" | "backtap" | "android";
+/** A medium Shortcuts widget holds four buttons and a large one eight. */
+export const WIDGET_MAX = 8;
+export const MENU_MAX = 8;
 
-export const QUICK_BUTTONS: { id: QuickButton; name: string; line: string }[] = [
-  { id: "action", name: "Action Button", line: "iPhone 15 Pro and later, with Back Tap for the other two" },
-  { id: "backtap", name: "Back Tap", line: "Any iPhone 8 or later: tap the back of the phone" },
-  { id: "android", name: "Android", line: "The home-screen icon and the side key" },
-];
+export type QuickPrefs = { menu: QuickActionId[]; widget: QuickActionId[] };
 
-export type QuickPrefs = { button: QuickButton } & Record<QuickSlot, QuickActionId>;
-
-export const QUICK_DEFAULTS: QuickPrefs = { button: "action", tap: "open", double: "ask", hold: "talk" };
+export const QUICK_DEFAULTS: QuickPrefs = {
+  menu: ["open", "ask", "talk"],
+  widget: ["open", "ask", "talk", "family-chat"],
+};
 
 export function isQuickAction(v: unknown): v is QuickActionId {
   return QUICK_ACTIONS.some((a) => a.id === v);
 }
 
-export function isQuickButton(v: unknown): v is QuickButton {
-  return QUICK_BUTTONS.some((b) => b.id === v);
-}
-
-export function isQuickSlot(v: unknown): v is QuickSlot {
-  return (QUICK_SLOTS as readonly unknown[]).includes(v);
+/** A list of actions, kept in Kin's own order with duplicates and unknowns
+ * dropped, so the setup steps always read the same way round. Null when the
+ * input is not a usable non-empty list. */
+export function cleanActions(raw: unknown, max: number): QuickActionId[] | null {
+  if (!Array.isArray(raw)) return null;
+  const picked = QUICK_ACTIONS.map((a) => a.id).filter((id) => raw.includes(id));
+  return picked.length > 0 && picked.length <= max ? picked : null;
 }
 
 /** The stored JSON, with anything missing or no longer offered replaced by
- * its default, so an old or hand-edited row still opens somewhere sensible. */
+ * the defaults, so an old or hand-edited row still reads sensibly. */
 export function readQuickPrefs(raw: unknown): QuickPrefs {
   const o = raw && typeof raw === "object" && !Array.isArray(raw) ? (raw as Record<string, unknown>) : {};
   return {
-    button: isQuickButton(o.button) ? o.button : QUICK_DEFAULTS.button,
-    tap: isQuickAction(o.tap) ? o.tap : QUICK_DEFAULTS.tap,
-    double: isQuickAction(o.double) ? o.double : QUICK_DEFAULTS.double,
-    hold: isQuickAction(o.hold) ? o.hold : QUICK_DEFAULTS.hold,
+    menu: cleanActions(o.menu, MENU_MAX) ?? QUICK_DEFAULTS.menu,
+    widget: cleanActions(o.widget, WIDGET_MAX) ?? QUICK_DEFAULTS.widget,
   };
 }
 
-/** Where one press lands. A member in kid view only gets what kid view
- * shows; anything else opens Kin. */
-export function quickPath(prefs: QuickPrefs, slot: QuickSlot, kid: boolean): string {
-  const action = QUICK_ACTIONS.find((a) => a.id === prefs[slot]) ?? QUICK_ACTIONS[0];
+export function quickAction(id: QuickActionId) {
+  return QUICK_ACTIONS.find((a) => a.id === id) ?? QUICK_ACTIONS[0];
+}
+
+/** Where /go/<name> lands. Anything that is not one of Kin's actions opens
+ * Kin, and a member in kid view only gets what kid view shows. The three
+ * press names from the first version of this (tap, double, hold) still
+ * resolve to what they meant then, for a Shortcut already made with them. */
+const LEGACY: Record<string, QuickActionId> = { tap: "open", double: "ask", hold: "talk" };
+
+export function goPath(name: string, kid: boolean): string {
+  const id = isQuickAction(name) ? name : LEGACY[name] ?? "open";
+  const action = quickAction(id);
   return kid && !action.kid ? "/today" : action.path;
-}
-
-export function quickActionName(id: QuickActionId): string {
-  return QUICK_ACTIONS.find((a) => a.id === id)?.name ?? "Open Kin";
-}
-
-/** Which phone gesture runs which link, for the setup steps. Null where that
- * button has no gesture to give: Back Tap has two, not three. */
-export function gestureFor(button: QuickButton, slot: QuickSlot): string | null {
-  if (button === "action") return { tap: "Action Button", double: "Back Tap · Double Tap", hold: "Back Tap · Triple Tap" }[slot];
-  if (button === "backtap") return { tap: "Back Tap · Double Tap", double: "Back Tap · Triple Tap", hold: null }[slot];
-  return null;
 }
