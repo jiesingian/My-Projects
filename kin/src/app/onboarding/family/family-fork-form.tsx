@@ -9,6 +9,7 @@ import { OnboardingShell } from "@/components/onboarding-shell";
 import { Blueprint } from "@/components/ui";
 import { Icon } from "@/components/icons";
 import { COUNTRIES, DEFAULT_COUNTRY } from "@/lib/countries";
+import { PLANS, pesos } from "@/lib/billing/plans";
 
 const initialState: ActionState = { error: null };
 
@@ -116,26 +117,32 @@ export function FamilyForkForm({
               ))}
             </select>
           </div>
-          {/* Starting a household is the one step a family invite code does
-              not open — that code brings you into an existing family below. */}
-          <div className="field" style={{ marginBottom: "0.75rem" }}>
-            <label htmlFor={`${uid}-access-code`}>Access code</label>
-            <input aria-label="Access Code"
-              id={`${uid}-access-code`}
-              className="input"
-              name="access_code"
-              placeholder="KIN-BETA-XXXXXX"
-              required
-              autoComplete="off"
-              spellCheck={false}
-              style={{
-                minHeight: "2.75rem",
-                fontFamily: "var(--font-numeric)",
-                letterSpacing: ".02em",
-                textTransform: "uppercase",
-              }}
-            />
-          </div>
+          {/* Optional since open sign-up (28 September): a new family starts
+              on a 14-day Kin Plus trial by itself. A Kin code -- a gift or a
+              tester's -- is tucked away rather than asked for. */}
+          <p style={{ fontSize: "0.8125rem", color: "var(--color-neutral-700)", margin: "0 0 0.75rem" }}>
+            Starts with 14 days of Kin Plus, free. After that, Kin Free for good, or Plus for {pesos(PLANS.monthly.amountCents)} a month.
+          </p>
+          <details className="kin-code-optional" style={{ marginBottom: "0.75rem" }}>
+            <summary>Have a Kin code?</summary>
+            <div className="field" style={{ marginTop: "0.5rem" }}>
+              <label htmlFor={`${uid}-access-code`}>Kin code (optional)</label>
+              <input aria-label="Access Code"
+                id={`${uid}-access-code`}
+                className="input"
+                name="access_code"
+                placeholder="KIN-XXXXXX"
+                autoComplete="off"
+                spellCheck={false}
+                style={{
+                  minHeight: "2.75rem",
+                  fontFamily: "var(--font-numeric)",
+                  letterSpacing: ".02em",
+                  textTransform: "uppercase",
+                }}
+              />
+            </div>
+          </details>
           <ErrorText message={createState.error} />
           <SubmitButton className="btn btn-primary btn-block" style={{ minHeight: "2.75rem" }}>
             Create household

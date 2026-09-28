@@ -4856,3 +4856,14 @@ button.kin-initial:focus-visible {
 .kin-legal-operator dd { margin: 0; color: var(--color-neutral-700); }
 .kin-welcome-legal { display: flex; justify-content: center; gap: 1.25rem; font-size: 0.8125rem; margin-top: 0.75rem; }
 .kin-welcome-legal a { color: var(--color-neutral-600); min-height: 2.75rem; display: inline-flex; align-items: center; }
+
+/* "Have a Kin code?" on Create a family: optional, so folded away. */
+.kin-code-optional summary {
+  cursor: pointer;
+  min-height: 2.75rem;
+  display: flex;
+  align-items: center;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--color-accent-700);
+}

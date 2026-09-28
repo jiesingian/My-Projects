@@ -205,6 +205,7 @@ export function Welcome() {
           >
             Create {familyName.trim() ? `${title}’s` : "our family’s"} Kin
           </button>
+          <p className="kin-welcome-small">14 days of Kin Plus free, no card needed. Then Kin Free for good, or Plus for the whole family.</p>
           <form
             className="kin-welcome-join"
             onSubmit={(e) => {
