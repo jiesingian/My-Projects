@@ -6,10 +6,9 @@ export type OccasionGreeting = {
   body: string;
   /** The greeter's full name: who remembered is the point. */
   authorName: string;
-  /** Their member id when they are in this household, so the name opens their
-   * profile; null for a relative in a linked household, whose profile is not
-   * this household's to open (yet -- see BACKLOG, profiles). */
-  profileMemberId: string | null;
+  /** Where their name leads: their profile in this household, or their
+   * relative's page when they are in a linked one. Null if they have left. */
+  profileHref: string | null;
   mine: boolean;
 };
 

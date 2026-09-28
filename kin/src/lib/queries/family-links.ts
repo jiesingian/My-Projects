@@ -167,7 +167,7 @@ export async function getFeedOccasions(meId: string, familyId: string): Promise<
         id: g.id,
         body: g.body,
         authorName: g.author_name,
-        profileMemberId: g.family_id === familyId ? g.member_id : null,
+        profileHref: !g.member_id ? null : g.family_id === familyId ? `/family/members/${g.member_id}` : `/family/relatives/${g.member_id}`,
         mine: g.member_id === meId,
       })),
   }));

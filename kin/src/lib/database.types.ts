@@ -5130,6 +5130,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      relative_profile: {
+        Args: { p_member_id: string }
+        Returns: { member_id: string; full_name: string; avatar_url: string | null; cover_path: string | null; family_id: string; household_name: string; link_id: string | null; match_id: string | null; tree_person_id: string | null; is_shared_person: boolean | null }[]
+      }
       due_goal_reward_reminders: {
         Args: { p_secret: string; p_now?: string }
         Returns: { key: string; member_id: string; endpoint: string; p256dh: string; auth: string; title: string; body: string; url: string }[]
