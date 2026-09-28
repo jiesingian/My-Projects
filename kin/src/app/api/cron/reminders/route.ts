@@ -28,7 +28,7 @@ export async function POST(request: Request) {
     // The organizer, 3 days before a Kin Plus trial ends and once it has
     // (20260928150000_kin_free_and_plus.sql).
     supabase.rpc("due_trial_reminders", { p_secret: secret }),
-    // The grown-ups, Sunday from 19:00: the week ahead (20260928190000).
+    // The grown-ups, Sunday from 19:00: the week ahead (20260928213000).
     supabase.rpc("due_week_ahead_reminders", { p_secret: secret }),
   ]);
   if (main.error) {
