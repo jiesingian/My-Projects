@@ -136,7 +136,10 @@ export async function setEntrySharedAction(entryId: string, shared: boolean): Pr
     .from("journal_entries")
     .update({ shared_at: shared ? new Date().toISOString() : null })
     .eq("id", entryId)
-    .eq("family_id", me.family_id);
+    .eq("family_id", me.family_id)
+    // Only a household entry goes to the family feed; a personal one is added
+    // to the household journal first.
+    .eq("visibility", "household");
   if (error) return { error: "That memory couldn't be updated." };
   revalidatePath("/journal");
   return { error: null };

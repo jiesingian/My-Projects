@@ -21,6 +21,7 @@ export async function getOnThisDay(familyId: string): Promise<Memory[]> {
       .from("journal_entries")
       .select("id, title, entry_date, journal_entry_media(journal_media(storage_path, storage_provider, drive_file_id, media_type))")
       .eq("family_id", familyId)
+      .eq("visibility", "household")
       .in("entry_date", days)
       .order("entry_date", { ascending: false })
       .limit(4),
@@ -62,8 +63,8 @@ export async function getWeekRecap(familyId: string): Promise<WeekRecap> {
   const since = new Date(Date.now() - 7 * 86_400_000);
   const sinceDay = familyDay(since);
   const [posts, photos, chores, milestones] = await Promise.all([
-    supabase.from("journal_entries").select("id", { count: "exact", head: true }).eq("family_id", familyId).gte("created_at", since.toISOString()),
-    supabase.from("journal_media").select("id", { count: "exact", head: true }).eq("family_id", familyId).gte("created_at", since.toISOString()),
+    supabase.from("journal_entries").select("id", { count: "exact", head: true }).eq("family_id", familyId).eq("visibility", "household").gte("created_at", since.toISOString()),
+    supabase.from("journal_media").select("id", { count: "exact", head: true }).eq("family_id", familyId).eq("visibility", "household").gte("created_at", since.toISOString()),
     supabase.from("routine_log").select("member_id, members!routine_log_member_id_fkey(full_name)").eq("family_id", familyId).eq("status", "done").gte("occurrence_date", sinceDay),
     supabase.from("milestones").select("id", { count: "exact", head: true }).eq("family_id", familyId).gte("milestone_date", sinceDay),
   ]);

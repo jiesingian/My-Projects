@@ -12,7 +12,7 @@ import {
 } from "@/lib/google-drive";
 
 type SessionRequest = {
-  kind: "journal" | "document" | "avatar" | "family_background" | "recipe" | "routine" | "chat";
+  kind: "journal" | "journal_personal" | "document" | "avatar" | "family_background" | "recipe" | "routine" | "chat";
   fileName: string;
   mimeType: string;
   fileSize: number;
@@ -26,6 +26,7 @@ type SessionRequest = {
  * handed out. */
 const UPLOAD_LIMITS: Record<SessionRequest["kind"], { types: RegExp; maxBytes: number; label: string }> = {
   journal: { types: /^(image|video)\//, maxBytes: 200 * 1024 * 1024, label: "a photo or video, up to 200MB" },
+  journal_personal: { types: /^(image|video)\//, maxBytes: 200 * 1024 * 1024, label: "a photo or video, up to 200MB" },
   recipe: { types: /^image\//, maxBytes: 15 * 1024 * 1024, label: "a photo, up to 15MB" },
   avatar: { types: /^image\//, maxBytes: 15 * 1024 * 1024, label: "a photo, up to 15MB" },
   family_background: { types: /^image\//, maxBytes: 15 * 1024 * 1024, label: "a photo, up to 15MB" },
@@ -99,6 +100,19 @@ export async function POST(request: Request) {
       { status: 413 },
     );
   };
+
+  // A photo on a personal journal entry ("Just me"): Kin's storage, under the
+  // person's own folder, never the household's Drive or folder -- nobody else
+  // in the household can read it (20260928185000_people_and_personal_space).
+  if (kind === "journal_personal") {
+    const refused = await storageRefusal();
+    if (refused) return refused;
+    return NextResponse.json({
+      provider: "supabase",
+      bucket: "journal",
+      path: `person/${me.person_id}/${Date.now()}-${crypto.randomUUID().slice(0, 8)}-${fileName}`,
+    });
+  }
 
   // Dish photos stay in Storage: the app reads them back on every meal card,
   // and a signed Storage URL renders in an <img> where a Drive link does not.

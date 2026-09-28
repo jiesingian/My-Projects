@@ -11,8 +11,20 @@ import type { Tables } from "@/lib/database.types";
 import { familyDay } from "@/lib/time";
 import { DateInput } from "@/components/date-input";
 
-export function NewEntryForm({ members, defaultTitle }: { members: Tables<"members">[]; defaultTitle?: string }) {
+export function NewEntryForm({
+  members,
+  defaultTitle,
+  defaultVisibility = "household",
+}: {
+  members: Tables<"members">[];
+  defaultTitle?: string;
+  /** "personal" when the entry was started from the Mine tab. */
+  defaultVisibility?: "household" | "personal";
+}) {
   const uid = useId();
+  const [visibility, setVisibility] = useState<"household" | "personal">(defaultVisibility);
+  const personal = visibility === "personal";
+  const backTo = personal ? "/journal?view=mine" : "/journal?view=household";
   const [people, setPeople] = useState<string[]>([]);
   const [previews, setPreviews] = useState<string[]>([]);
   const [error, setError] = useState<string | null>(null);
@@ -36,7 +48,7 @@ export function NewEntryForm({ members, defaultTitle }: { members: Tables<"membe
     const date = String(fd.get("date") ?? familyDay());
     const note = String(fd.get("note") ?? "").trim() || null;
 
-    const created = await createJournalEntryAction({ title, date, note, people });
+    const created = await createJournalEntryAction({ title, date, note, people, visibility });
     if (created.error || !created.entryId) {
       setError(created.error ?? "Something went wrong.");
       setSaving(false);
@@ -47,9 +59,11 @@ export function NewEntryForm({ members, defaultTitle }: { members: Tables<"membe
     for (let i = 0; i < files.length; i++) {
       let uploaded: UploadedFile | undefined;
       try {
-        uploaded = await uploadFileDirect(files[i], "journal");
+        // A personal entry's photos go to the person's own folder in Kin,
+        // never the household's Drive or folder.
+        uploaded = await uploadFileDirect(files[i], personal ? "journal_personal" : "journal");
         const mediaType = files[i].type.startsWith("video") ? "video" : "photo";
-        const result = await attachJournalMediaAction({ entryId: created.entryId, mediaType, takenAt: date, sortOrder: i, uploaded });
+        const result = await attachJournalMediaAction({ entryId: created.entryId, mediaType, takenAt: date, sortOrder: i, uploaded, visibility });
         if (result.error) throw new Error(result.error);
       } catch (err) {
         if (uploaded) await rollbackUpload(uploaded);
@@ -59,17 +73,32 @@ export function NewEntryForm({ members, defaultTitle }: { members: Tables<"membe
       }
     }
 
-    router.push("/journal?view=list");
+    router.push(backTo);
     router.refresh();
   }
 
   return (
     <div>
-      <DetailHeader backHref="/journal?view=list" eyebrow="Journal" />
+      <DetailHeader backHref={backTo} eyebrow="Journal" />
       <div style={{ padding: "0 var(--gutter) 1.375rem" }}>
         <h3 style={{ fontSize: "1.875rem", margin: "0 0 16px" }}>Add a journal entry</h3>
         <form onSubmit={onSubmit}>
           <ErrorText message={error} />
+          {/* Whose it is: the household's journal, or yours alone (Mine).
+              A personal entry can be added to the household later. */}
+          <div className="seg" role="radiogroup" aria-label="Who sees this" style={{ marginBottom: "0.5rem" }}>
+            <button type="button" role="radio" aria-checked={!personal} data-active={!personal} onClick={() => setVisibility("household")}>
+              Household journal
+            </button>
+            <button type="button" role="radio" aria-checked={personal} data-active={personal} onClick={() => setVisibility("personal")}>
+              Just me
+            </button>
+          </div>
+          <p style={{ fontSize: "0.78125rem", color: "var(--color-neutral-600)", margin: "0 0 1rem", lineHeight: 1.45 }}>
+            {personal
+              ? "Only you will see this, in Mine. You can add it to the household journal later."
+              : "Everyone in the household will see this."}
+          </p>
           <div className="field" style={{ marginBottom: "0.875rem" }}>
             <label htmlFor={`${uid}-title`}>Title</label>
             <input id={`${uid}-title`} aria-label="Title" className="input" name="title" required defaultValue={defaultTitle} style={{ minHeight: "2.75rem" }} />
