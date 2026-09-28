@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { formatDate } from "@/lib/format";
 import { addDays, dosesFor, FEVER_C, highBloodPressure } from "@/lib/health-plan";
+import { isGone } from "@/lib/member-status";
 
 export async function getMemberDetail(memberId: string, familyId: string) {
   const supabase = await createClient();
@@ -98,7 +99,7 @@ export async function getHealthWeek(familyId: string, today: string, now: string
     ? await supabase.from("health_medicine_doses").select("medicine_id, dose_date, dose_time").in("medicine_id", medicines.map((m) => m.id)).gte("dose_date", yesterday)
     : { data: [] };
 
-  const people = new Map((members ?? []).filter((m) => m.status !== "removed" && m.status !== "pending").map((m) => [m.id, m.full_name.split(" ")[0]]));
+  const people = new Map((members ?? []).filter((m) => !isGone(m.status) && m.status !== "pending").map((m) => [m.id, m.full_name.split(" ")[0]]));
   const items: WeekItem[] = [];
   const add = (memberId: string, text: string, seg: string, tone: WeekItem["tone"]) => {
     const firstName = people.get(memberId);

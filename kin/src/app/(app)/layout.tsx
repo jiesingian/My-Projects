@@ -17,6 +17,9 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   const member = await getCurrentMember();
   if (!member) redirect("/onboarding/profile");
   if (member.status === "pending") redirect("/onboarding/pending");
+  // Removed by their household: nothing here is theirs to see any more, but
+  // their personal space is, and they can take it to a household of their own.
+  if (member.status === "removed") redirect("/onboarding/removed");
 
   // No paywall here any more. A household whose Kin Plus trial has ended is
   // on Kin Free, never locked out of its own records; the Plus areas say so

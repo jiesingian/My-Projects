@@ -40,6 +40,7 @@ import {
 import { familyDate, householdDateFormat } from "@/lib/format-family";
 import { CollapsibleGroup } from "@/components/collapsible-group";
 import { CashFlowChart } from "@/components/cashflow-chart";
+import { isGone } from "@/lib/member-status";
 
 /* Joint and Mine were the same page twice; they are one Accounts tab now,
    with a Who button of the kind the Planner uses. Bills moved into Cash
@@ -78,7 +79,7 @@ export default async function WealthPage({ searchParams }: { searchParams: Promi
  * params (Cash Flow's range, in particular) when the picker changes who. */
 async function whoPicker(familyId: string, memberId: string, scope: WealthScope, hrefFor: (who: string) => string) {
   const members = await getMembers(familyId);
-  const active = members.filter((m) => m.status !== "pending" && m.status !== "removed");
+  const active = members.filter((m) => m.status !== "pending" && !isGone(m.status));
   const labels = shortNames(active.map((m) => m.full_name)).map((l, i) => selfLabel(l, active[i].id === memberId));
   const whoLabel = scope === "all" ? "All" : (labels[active.findIndex((m) => m.id === scope)] ?? "All");
   const options = [

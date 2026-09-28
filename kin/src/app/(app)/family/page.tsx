@@ -35,6 +35,7 @@ import { getTreeMatches, getTreeOffers, getLinkedFamilies } from "@/lib/queries/
 import { FamilyTreeEditor } from "@/components/family-tree-editor";
 import { AddMeToTreeButton } from "@/components/add-me-to-tree-button";
 import { formatAge, initials } from "@/lib/format";
+import { isGone } from "@/lib/member-status";
 
 const SEGMENTS = ["profile", "health", "documents", "tree", "quicklinks"] as const;
 type Seg = (typeof SEGMENTS)[number];
@@ -87,7 +88,7 @@ async function ProfilePane({ familyId, isOrganiser, myId, myRole }: { familyId: 
   const [allMembers, { backgroundUrl, about, addresses, backgroundPhotos }] = await Promise.all([getMembers(familyId), getFamilyProfile(familyId)]);
   const pending = allMembers.filter((m) => m.status === "pending");
   const removed = allMembers.filter((m) => m.status === "removed");
-  const members = allMembers.filter((m) => m.status !== "pending" && m.status !== "removed");
+  const members = allMembers.filter((m) => m.status !== "pending" && !isGone(m.status));
 
   return (
     <>
@@ -177,7 +178,7 @@ async function ProfilePane({ familyId, isOrganiser, myId, myRole }: { familyId: 
 
 async function HealthPane({ familyId }: { familyId: string }) {
   const [summary, week] = await Promise.all([getHealthSummary(familyId), getHealthWeek(familyId, familyDay(), familyClock(new Date()))]);
-  const rows = summary.filter((r) => r.member.status !== "pending" && r.member.status !== "removed");
+  const rows = summary.filter((r) => r.member.status !== "pending" && !isGone(r.member.status));
 
   return (
     <>
@@ -250,7 +251,7 @@ async function VaultPane({ familyId, who, tab, meId, myRole }: { familyId: strin
     );
   }
 
-  const members = (await getMembers(familyId)).filter((m) => m.status !== "pending" && m.status !== "removed");
+  const members = (await getMembers(familyId)).filter((m) => m.status !== "pending" && !isGone(m.status));
   const [folders, devices, vault] = await Promise.all([
     tab === "documents" ? getDocFolders(familyId) : Promise.resolve([]),
     getEnrolledDevices(meId),
@@ -351,7 +352,7 @@ async function TreePane({ familyId, myId, inviteCode }: { familyId: string; myId
     getTreeOffers(),
     getLinkedFamilies(familyId),
   ]);
-  const members = allMembers.filter((m) => m.status !== "pending" && m.status !== "removed");
+  const members = allMembers.filter((m) => m.status !== "pending" && !isGone(m.status));
   const memberIdsInTree = new Set(tree.people.filter((p) => p.memberId).map((p) => p.memberId));
   const unaddedMembers = members.filter((m) => !memberIdsInTree.has(m.id)).map((m) => ({ id: m.id, full_name: m.full_name }));
   const meInTree = tree.people.find((p) => p.memberId === myId) ?? null;

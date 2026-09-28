@@ -6,6 +6,7 @@ import { MARKET_SECTIONS, UNITS, guessSection, formatQuantity } from "@/lib/groc
 import type { CurrentMember } from "@/lib/session";
 import { familyDay, addDays, familyMidnight, familyInstant } from "@/lib/time";
 import { allDayEvent } from "@/lib/calendar-shape";
+import { GONE_STATUSES } from "@/lib/member-status";
 
 /** Every tool the Today assistant can reach. Each one is scoped to the
  * signed-in member's household by the executor — the model never supplies a
@@ -410,7 +411,7 @@ export async function runAssistantTool(name: string, rawInput: unknown, me: Curr
 
     case "get_family": {
       const [members, health] = await Promise.all([
-        supabase.from("members").select("full_name, relationship, role, dob, status").eq("family_id", familyId).neq("status", "removed"),
+        supabase.from("members").select("full_name, relationship, role, dob, status").eq("family_id", familyId).not("status", "in", GONE_STATUSES),
         supabase
           .from("health_schedule")
           .select("what, when_date, status, members!health_schedule_member_id_fkey(full_name)")

@@ -6,6 +6,7 @@ import { readAccess } from "@/lib/access";
 import { shortNames, selfLabel } from "@/lib/format";
 import { familyDay } from "@/lib/time";
 import { GoalForm } from "./goal-form";
+import { isGone } from "@/lib/member-status";
 
 export default async function NewGoalPage() {
   const me = await getCurrentMember();
@@ -18,7 +19,7 @@ export default async function NewGoalPage() {
     // goals already hides someone else's private one.
     supabase.from("goals").select("id, title").eq("family_id", me.family_id).order("created_at", { ascending: false }),
   ]);
-  const active = members.filter((m) => m.status !== "pending" && m.status !== "removed");
+  const active = members.filter((m) => m.status !== "pending" && !isGone(m.status));
   const labels = shortNames(active.map((m) => m.full_name)).map((l, i) => selfLabel(l, active[i].id === me.id));
 
   return (

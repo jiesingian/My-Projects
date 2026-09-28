@@ -17,6 +17,7 @@ import { clamp } from "@/lib/text";
 import { isCountryCode } from "@/lib/countries";
 import { birthdayProblem, familyDay, familyMidnight } from "@/lib/time";
 import { stashOnboardingProfile, clearOnboardingProfile } from "@/lib/onboarding-profile";
+import { isGone } from "@/lib/member-status";
 
 // Onboarding was the one path with no ceiling on what it stored: every other
 // form in the app clamps, but the first three screens a new household ever
@@ -190,6 +191,55 @@ export async function joinFamilyAction(_prev: ActionState, formData: FormData): 
   await clearOnboardingProfile();
   // The invite link's code has done its job.
   (await cookies()).delete("kin-invite");
+  redirect("/onboarding/pending");
+}
+
+/** What start_own_household / move_to_household refuse, in words a person
+ * can act on. Each names the household it is about where the database gives
+ * it (after the colon). */
+function moveError(message: string): string {
+  const household = message.split(": ").slice(1).join(": ").trim();
+  if (/organizer must hand over first/i.test(message)) {
+    return `You organize ${household}. Hand that role to another grown-up there first, in Settings → Household.`;
+  }
+  if (/already your own household/i.test(message)) return `${household} is already your own household.`;
+  if (/only member of/i.test(message)) {
+    return `You're the only one in ${household}. Invite someone to take it over first, or delete it in Settings → Household.`;
+  }
+  if (/already waiting/i.test(message)) return "You're already waiting to join a household.";
+  if (/only a grown-up/i.test(message)) return "Only a grown-up can start a household.";
+  if (/already in that household/i.test(message)) return "That's the household you're already in.";
+  if (/invalid invite code/i.test(message)) return "That invite code didn't match a household. Double-check it and try again.";
+  if (/household name required/i.test(message)) return "Give the new household a name.";
+  return humanDatabaseError(message);
+}
+
+/** A household of your own (BACKLOG 28 September, item 1). Your profile,
+ * personal journal, notes and personal goals come with you; everything shared
+ * with the household you leave stays there, and the two are linked so the
+ * family feed reaches both. See kin/docs/PERSONAL_SPACE.md. */
+export async function startOwnHouseholdAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
+  const name = clamp(String(formData.get("household_name") ?? ""), HOUSEHOLD_MAX);
+  if (!name) return { error: "Give the new household a name." };
+
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("start_own_household", { p_household_name: name });
+  if (error) return { error: moveError(error.message) };
+  revalidatePath("/", "layout");
+  redirect("/today");
+}
+
+/** Moving into someone else's household with its invite code -- a wife
+ * joining her husband's. Waits for their approval like any join; the personal
+ * space follows once they give it. */
+export async function moveToHouseholdAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
+  const inviteCode = clamp(String(formData.get("invite_code") ?? ""), CODE_MAX).toUpperCase();
+  if (!inviteCode) return { error: "Enter the six-character invite code." };
+
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("move_to_household", { p_invite_code: inviteCode });
+  if (error) return { error: moveError(error.message) };
+  revalidatePath("/", "layout");
   redirect("/onboarding/pending");
 }
 
@@ -967,7 +1017,7 @@ export type Relation = "father" | "mother" | "spouse" | "child" | "sibling";
  * null when they can be placed. */
 async function treeMemberProblem(supabase: Awaited<ReturnType<typeof createClient>>, familyId: string, memberId: string): Promise<string | null> {
   const { data: member } = await supabase.from("members").select("id, family_id, status").eq("id", memberId).maybeSingle();
-  if (!member || member.family_id !== familyId || member.status === "pending" || member.status === "removed") return "That person could not be found.";
+  if (!member || member.family_id !== familyId || member.status === "pending" || isGone(member.status)) return "That person could not be found.";
   const { data: placed } = await supabase.from("family_tree_people").select("id").eq("family_id", familyId).eq("member_id", memberId).maybeSingle();
   if (placed) return "They're on the tree already.";
   return null;

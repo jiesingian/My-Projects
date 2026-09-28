@@ -70,6 +70,11 @@ export default async function HouseholdSettingsPage() {
           </div>
         )}
 
+        <div style={{ fontSize: "0.8125rem", color: "var(--color-neutral-700)", marginBottom: "0.375rem" }}>Your own household</div>
+        <Link href="/settings/household/move" className="btn btn-secondary btn-block" style={{ minHeight: "2.5rem", fontSize: "0.84375rem", marginBottom: "1.25rem" }}>
+          Start your own, or move to another
+        </Link>
+
         {me.is_organiser && (
           <>
             <div style={{ font: "600 0.8125rem/1 var(--font-heading)", letterSpacing: ".02em", color: "var(--color-accent-700)", margin: "8px 0 8px" }}>DANGER ZONE</div>

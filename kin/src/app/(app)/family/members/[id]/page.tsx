@@ -31,6 +31,7 @@ import { memberToProfileFields } from "@/lib/profile-fields";
 import { resolvePhotoUrl } from "@/lib/photo-url";
 import { familyDate } from "@/lib/format-family";
 import { familyDateTime } from "@/lib/time";
+import { isGone } from "@/lib/member-status";
 
 const SEGMENTS = ["schedule", "medicines", "illness", "conditions", "labs", "vitals"] as const;
 type Seg = (typeof SEGMENTS)[number];
@@ -372,7 +373,7 @@ export default async function MemberDetailPage({
           </>
         )}
 
-        {view === "profile" && me.is_organiser && !member.is_organiser && member.status !== "removed" && (
+        {view === "profile" && me.is_organiser && !member.is_organiser && !isGone(member.status) && (
           <RemoveMemberButton memberId={member.id} fullName={member.full_name} variant="block" />
         )}
       </div>
