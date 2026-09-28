@@ -91,3 +91,10 @@ test("grown-ups hear about a call, never the two on it and never a child", () =>
   expect(callWatchers(household, "quinn", "jo")).toEqual([]);
   expect(callWatchers(household, "robin", "alex").sort()).toEqual(["jo", "quinn"]);
 });
+
+test("Decline pressed on the notification stops the caller's ringing, and any other open copy of the callee's", () => {
+  const outgoing: CallState = { phase: "outgoing", call: "c1", peer: "robin", video: false };
+  expect(onSignal(outgoing, { t: "decline", call: "c1", from: "robin", fromDevice: "notification" }, QUINN).state).toMatchObject({ phase: "ended", reason: "declined" });
+  const ringingOnLaptop: CallState = { phase: "incoming", call: "c1", peer: "quinn", peerDevice: "q-phone", video: false };
+  expect(onSignal(ringingOnLaptop, { t: "decline", call: "c1", from: "robin", fromDevice: "notification" }, ROBIN).state).toMatchObject({ phase: "ended" });
+});
