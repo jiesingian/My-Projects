@@ -1659,6 +1659,45 @@ export type Database = {
         Update: { created_at?: string; created_by?: string | null; family_id?: string; id?: string; name?: string }
         Relationships: []
       }
+      occasion_greetings: {
+        Row: {
+          author_name: string
+          body: string
+          created_at: string
+          event_family_id: string
+          event_id: string
+          family_id: string
+          household_name: string
+          id: string
+          member_id: string | null
+          occasion_date: string
+        }
+        Insert: {
+          author_name?: string
+          body: string
+          created_at?: string
+          event_family_id?: string
+          event_id: string
+          family_id?: string
+          household_name?: string
+          id?: string
+          member_id?: string | null
+          occasion_date?: string
+        }
+        Update: {
+          author_name?: string
+          body?: string
+          created_at?: string
+          event_family_id?: string
+          event_id?: string
+          family_id?: string
+          household_name?: string
+          id?: string
+          member_id?: string | null
+          occasion_date?: string
+        }
+        Relationships: []
+      }
       family_message_attachments: {
         Row: {
           created_at: string
@@ -4934,6 +4973,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      feed_occasions_today: {
+        Args: never
+        Returns: { event_id: string; family_id: string; household_name: string; title: string; kind: string; years: number | null; is_ours: boolean }[]
+      }
       due_trial_reminders: {
         Args: { p_secret: string; p_now?: string }
         Returns: { key: string; member_id: string; endpoint: string; p256dh: string; auth: string; title: string; body: string; url: string }[]

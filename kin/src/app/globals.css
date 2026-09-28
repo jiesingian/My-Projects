@@ -4950,6 +4950,31 @@ button.kin-initial:focus-visible {
     }
   }
 }
+/* A birthday or anniversary on the family feed (agreed 28 September). Tinted
+   with the calendar's occasion hue so it reads as the day's one special card,
+   not one more memory. A new greeting settles in from 4px below -- seen a few
+   times a year, so it may arrive rather than appear. */
+.kin-occasion {
+  background: color-mix(in srgb, var(--cal-occasion) 9%, var(--color-surface, #fff));
+}
+.kin-occasion-greeting {
+  padding: 0.5rem 0.6875rem;
+  border-radius: 14px;
+  background: color-mix(in srgb, var(--color-text) 5%, transparent);
+  transition: opacity 220ms var(--ease-out, ease-out), transform 220ms var(--ease-out, ease-out);
+  @starting-style {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .kin-occasion-greeting {
+    transition: opacity 180ms ease;
+    @starting-style {
+      transform: none;
+    }
+  }
+}
 
 /* "Why Kin" on the home page (approved 28 September). Seen once, before
    sign-up, so the three reasons may arrive: each rises 8px and fades in over

@@ -35,7 +35,7 @@ session (see the root CLAUDE.md on session cost).
 6. **Yes: profiles that feel like a person** (cover, photo, recent moments,
    Message / Call; details under About; Remove in a "⋯" menu). **Plus
    (Jonathan): a person's profile opens from the family tree too.**
-7. **Yes: birthday and anniversary moments** in the family feed.
+7. **Done: birthday and anniversary moments** in the family feed.
 8. **Yes: a Sunday "week ahead" push** (with its own switch).
 9. **Done: streaks for kids' chores** (bonus star at 7 and 30 days, one freeze a week).
 10. **No Filipino interface.** Kin AI keeps understanding and answering
@@ -158,6 +158,13 @@ Decided against in the same review: revising Journal (item 6) and Planner
 
 ## Done
 
+- Birthday and anniversary moments on the family feed (agreed 28 September,
+  item 7): on the day, Journal -> Family feed opens with "Lola Rosa turns 72
+  today 🎂" for her household and every household linked with it (unless
+  that household's "share with relatives" is off), from the yearly events
+  Kin already keeps. Relatives send a greeting under it; the birthday
+  household reads every greeting, each other household its own. One
+  self-contained card (OccasionCard) so the journal restructure can move it.
 - Streaks for kids' chores (agreed 28 September, item 9): a child's daily
   chore shows "🔥 7 days in a row" on its card -- in kid view and on the
   parents' Today -- with how many more days to the next bonus star.

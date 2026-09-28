@@ -56,6 +56,35 @@ export async function revokeFamilyLinkAction(linkId: string): Promise<ActionStat
   return { error: null };
 }
 
+/** A greeting under today's birthday or anniversary on the family feed. The
+ * database decides everything but the words -- who it is from, which
+ * household, which day, and whether this occasion is one the caller may greet
+ * at all (20260928203000_feed_occasions.sql). */
+export async function greetOccasionAction(eventId: string, body: string): Promise<ActionState> {
+  await requireCurrentMember();
+  const text = clamp(body.trim(), 500);
+  if (!text) return { error: "Write a greeting first." };
+  const supabase = await createClient();
+  const { error } = await supabase.from("occasion_greetings").insert({ event_id: eventId, body: text });
+  if (error) {
+    // The one refusal a person can meet: the day ended, or the link closed.
+    if (error.message.includes("event_family_id")) return { error: "That day has passed, so the greeting can't be sent." };
+    return { error: humanDatabaseError(error.message) };
+  }
+  revalidatePath("/journal");
+  return { error: null };
+}
+
+/** Take back your own greeting; row-level security refuses anyone else's. */
+export async function removeGreetingAction(greetingId: string): Promise<ActionState> {
+  const me = await requireCurrentMember();
+  const supabase = await createClient();
+  const { error } = await supabase.from("occasion_greetings").delete().eq("id", greetingId).eq("member_id", me.id);
+  if (error) return { error: humanDatabaseError(error.message) };
+  revalidatePath("/journal");
+  return { error: null };
+}
+
 /** Sharing is per entry and opt-in. Nothing is shared by writing it, and
  * un-sharing takes effect on the next read rather than leaving a copy
  * anywhere -- the other household sees the row through a policy, so there is
