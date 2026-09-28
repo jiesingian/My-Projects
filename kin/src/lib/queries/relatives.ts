@@ -25,26 +25,22 @@ export async function getRelativeProfile(memberId: string, ourMatches: { matchId
 
   // Their shared memories and milestones: the policies that let linked
   // households read shared ones decide, exactly as on the family feed.
-  const [{ data: entries }, { data: milestones }] = await Promise.all([
-    supabase
-      .from("journal_entries")
-      .select("id, title, entry_date")
-      .eq("created_by", memberId)
-      .not("shared_at", "is", null)
-      .order("entry_date", { ascending: false })
-      .limit(8),
-    supabase
-      .from("milestones")
-      .select("id, title, milestone_date")
-      .eq("member_id", memberId)
-      .not("shared_at", "is", null)
-      .order("milestone_date", { ascending: false })
-      .limit(8),
-  ]);
-  const moments = [
-    ...(entries ?? []).map((e) => ({ id: e.id, kind: "entry" as const, title: e.title, date: e.entry_date })),
-    ...(milestones ?? []).map((m) => ({ id: m.id, kind: "milestone" as const, title: m.title, date: m.milestone_date })),
-  ]
+  // A milestone is a journal entry with the ★ since 29 September: theirs when
+  // it is about them, whoever wrote it.
+  const { data: entries } = await supabase
+    .from("journal_entries")
+    .select("id, title, entry_date, milestone, milestone_member_id")
+    .or(`created_by.eq.${memberId},milestone_member_id.eq.${memberId}`)
+    .not("shared_at", "is", null)
+    .order("entry_date", { ascending: false })
+    .limit(8);
+  const moments = (entries ?? [])
+    .map((e) => ({
+      id: e.id,
+      kind: e.milestone && e.milestone_member_id === memberId ? ("milestone" as const) : ("entry" as const),
+      title: e.title,
+      date: e.entry_date,
+    }))
     .sort((a, b) => b.date.localeCompare(a.date))
     .slice(0, 8);
 

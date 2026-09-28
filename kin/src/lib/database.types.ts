@@ -3034,8 +3034,11 @@ export type Database = {
           created_at: string
           created_by: string | null
           entry_date: string
+          event_id: string | null
           family_id: string
           id: string
+          milestone: boolean
+          milestone_member_id: string | null
           note: string | null
           owner_person_id: string | null
           shared_at: string | null
@@ -3048,8 +3051,11 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           entry_date: string
+          event_id?: string | null
           family_id: string
           id?: string
+          milestone?: boolean
+          milestone_member_id?: string | null
           note?: string | null
           owner_person_id?: string | null
           shared_at?: string | null
@@ -3062,8 +3068,11 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           entry_date?: string
+          event_id?: string | null
           family_id?: string
           id?: string
+          milestone?: boolean
+          milestone_member_id?: string | null
           note?: string | null
           owner_person_id?: string | null
           shared_at?: string | null
@@ -3073,6 +3082,20 @@ export type Database = {
           visibility?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "journal_entries_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "journal_entries_milestone_member_id_fkey"
+            columns: ["milestone_member_id"]
+            isOneToOne: false
+            referencedRelation: "members"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "journal_entries_created_by_fkey"
             columns: ["created_by"]

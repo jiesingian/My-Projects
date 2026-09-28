@@ -191,3 +191,22 @@ Left as they are, on purpose:
   a photo they gave the old household. Personal photos count toward the
   household's Kin storage.
 - Sharing to the family feed is for household entries only.
+
+## The journal in three layers, step 2: milestones are ★ entries
+
+- A milestone is now a journal entry with the ★ (`journal_entries.milestone`),
+  whose it is (`milestone_member_id`, or the family's) and, for a marked
+  birthday or anniversary, the occasion (`event_id`, one per day).
+- Every existing milestone moved over with the **same id**, household, date,
+  title, author, creation time and `shared_at`; the auto-share trigger was
+  off for the copy, so nothing unshared became shared. The person it is
+  about is tagged on the entry.
+- The `milestones` table is kept, as it was, as a record. It refuses new and
+  changed rows, so nothing can write where nobody reads; deletes still go
+  through for a household's own deletion.
+- Household has a filter: **All entries / ★ Milestones**
+  (`/journal?view=milestones`). Any entry, new or old, can be marked in its
+  form; "Add a milestone" is the entry form with the ★ already on.
+- Readers switched over: journal, family feed and occasions, "On this day",
+  the weekly recap, a person's profile and a relative's profile. Export keeps
+  `milestones.csv` from the old table (the record).

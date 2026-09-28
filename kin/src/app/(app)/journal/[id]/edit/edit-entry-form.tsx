@@ -11,6 +11,7 @@ import { DetailHeader } from "@/components/hub-header";
 import type { Tables } from "@/lib/database.types";
 import { familyDay } from "@/lib/time";
 import { DateInput } from "@/components/date-input";
+import { MilestoneField } from "@/components/milestone-field";
 import { ZoomableImage } from "@/components/zoomable-image";
 
 type Entry = NonNullable<Awaited<ReturnType<typeof getEntry>>>;
@@ -19,6 +20,7 @@ export function EditEntryForm({ entry, members }: { entry: Entry; members: Table
   const uid = useId();
   const [people, setPeople] = useState<string[]>(entry.people.map((p) => p.id));
   const [photos, setPhotos] = useState(entry.photos);
+  const [star, setStar] = useState<{ on: boolean; memberId: string | null }>({ on: entry.milestone, memberId: entry.milestone_member_id });
   // A personal entry (Mine) keeps its photos in the person's own folder.
   const personal = entry.visibility === "personal";
   const backTo = personal ? "/journal?view=mine" : "/journal?view=household";
@@ -56,7 +58,7 @@ export function EditEntryForm({ entry, members }: { entry: Entry; members: Table
     const date = String(fd.get("date") ?? familyDay());
     const note = String(fd.get("note") ?? "").trim() || null;
 
-    const updated = await updateJournalEntryAction({ entryId: entry.id, title, date, note, people });
+    const updated = await updateJournalEntryAction({ entryId: entry.id, title, date, note, people, milestone: star.on ? { memberId: star.memberId } : null });
     if (updated.error) {
       setError(updated.error);
       setSaving(false);
@@ -98,6 +100,7 @@ export function EditEntryForm({ entry, members }: { entry: Entry; members: Table
             <label htmlFor={`${uid}-date`}>Date</label>
             <DateInput id={`${uid}-date`} aria-label="Date" className="input" name="date" defaultValue={entry.entry_date} required style={{ minHeight: "2.75rem" }} />
           </div>
+          <MilestoneField on={star.on} memberId={star.memberId} members={members} onChange={setStar} />
           <div style={{ fontSize: "0.8125rem", color: "var(--color-neutral-700)", marginBottom: "0.375rem" }}>Who was there</div>
           <div style={{ display: "flex", gap: "0.4375rem", flexWrap: "wrap", marginBottom: "1rem" }}>
             {members.map((m) => {

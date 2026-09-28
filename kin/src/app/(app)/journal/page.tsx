@@ -5,7 +5,7 @@ import { redirect } from "next/navigation";
 import { after } from "next/server";
 import { getCurrentMember } from "@/lib/session";
 import { createClient } from "@/lib/supabase/server";
-import { getGallery, getEntries, getMilestones, syncDriveJournalMedia, driveIsDisconnected } from "@/lib/queries/journal";
+import { getGallery, getEntries, syncDriveJournalMedia, driveIsDisconnected } from "@/lib/queries/journal";
 import { DriveDisconnectedNotice } from "@/components/drive-disconnected-notice";
 import { HubHeader } from "@/components/hub-header";
 import { Segmented } from "@/components/segmented";
@@ -13,7 +13,6 @@ import { Blueprint, Tag, Empty } from "@/components/ui";
 import { GalleryUpload } from "@/components/gallery-upload";
 import { GalleryGrid } from "@/components/gallery-grid";
 import { JournalEntryPhotos } from "@/components/journal-entry-photos";
-import { MilestoneControls } from "@/components/milestone-controls";
 import { familyDate } from "@/lib/format-family";
 import { FamilyFeed } from "@/components/family-feed";
 import { EntryShareToggle } from "@/components/entry-share-toggle";
@@ -28,11 +27,10 @@ import { AddToHouseholdButton } from "@/components/add-to-household";
 /* Three layers (28 September, BACKLOG item 3): Mine -- what you wrote,
    including entries only you can see -- then the Household journal, then the
    Family feed that reaches linked households. The Gallery is the household's
-   photos. Milestones stays a view of its own until milestones become a mark
-   on an entry. */
+   photos. Milestones are entries with a ★ (29 September), found with the
+   filter chip on Household; `?view=milestones` is that filter. */
 const VIEWS = ["mine", "household", "feed", "gallery", "milestones"] as const;
-// Milestones is reached from Household, not a tab: five tabs wrap on a phone,
-// and milestones become a mark on an entry in the next step.
+// Milestones is a filter on Household, not a tab: five tabs wrap on a phone.
 const TABS: readonly View[] = ["mine", "household", "feed", "gallery"];
 type View = (typeof VIEWS)[number];
 const VIEW_LABELS: Record<View, string> = { mine: "Mine", household: "Household", feed: "Family feed", gallery: "Gallery", milestones: "Milestones" };
@@ -71,7 +69,7 @@ export default async function JournalPage({
         {view === "gallery" && <GalleryPane familyId={me.family_id} />}
         {view === "household" && <EntriesPane familyId={me.family_id} />}
         {view === "mine" && <EntriesPane familyId={me.family_id} mine={{ personId: me.person_id }} />}
-        {view === "milestones" && <MilestonesPane familyId={me.family_id} />}
+        {view === "milestones" && <EntriesPane familyId={me.family_id} milestonesOnly />}
         {view === "feed" && (
           <FeedPane meId={me.id} familyId={me.family_id} inviteCode={me.families.invite_code} canManage={isGrownUp(me.role)} />
         )}
@@ -123,9 +121,9 @@ async function FeedPane({ meId, familyId, inviteCode, canManage }: { meId: strin
   return <FamilyFeed entries={entries} links={links} ourCode={inviteCode} canManage={canManage} occasions={occasions} />;
 }
 
-async function EntriesPane({ familyId, mine }: { familyId: string; mine?: { personId: string } }) {
+async function EntriesPane({ familyId, mine, milestonesOnly = false }: { familyId: string; mine?: { personId: string }; milestonesOnly?: boolean }) {
   const fmtDate = await familyDate();
-  const [entries, links] = await Promise.all([getEntries(familyId, mine), getFamilyLinks(familyId)]);
+  const [entries, links] = await Promise.all([getEntries(familyId, mine, { milestonesOnly }), getFamilyLinks(familyId)]);
   const linkedCount = links.filter((l) => l.status === "accepted").length;
 
   // Entries shows Drive-backed photos exactly as the Gallery does, and said
@@ -148,18 +146,30 @@ async function EntriesPane({ familyId, mine }: { familyId: string; mine?: { pers
         </p>
       )}
       {!mine && (
-        <Link href="/journal?view=milestones" className="kin-journal-milestones-link">
-          <span aria-hidden="true">★</span> Milestones
-        </Link>
+        <nav className="kin-journal-filter" aria-label="Show">
+          <Link href="/journal?view=household" className="chip" data-active={!milestonesOnly} aria-current={!milestonesOnly ? "page" : undefined}>
+            All entries
+          </Link>
+          <Link href="/journal?view=milestones" className="chip" data-active={milestonesOnly} aria-current={milestonesOnly ? "page" : undefined}>
+            <span aria-hidden="true">★</span> Milestones
+          </Link>
+        </nav>
       )}
-      {!mine && <Link href={`/journal/new?title=${encodeURIComponent(question)}`} className="kin-story">
+      {!mine && !milestonesOnly && <Link href={`/journal/new?title=${encodeURIComponent(question)}`} className="kin-story">
         <span className="kin-story-label">This week&apos;s question</span>
         <span className="kin-story-q">{question}</span>
         <span className="kin-story-cta">Answer it in the journal →</span>
       </Link>}
       {entries.length === 0 && (
         <div style={{ marginBottom: "1rem" }}>
-          {mine ? (
+          {milestonesOnly ? (
+            <Empty
+              icon={<Icon name="leaf" size={26} />}
+              title="No milestones yet"
+              line="First steps, first day of school, a tooth lost. Mark any entry with a ★, or add one here."
+              action={{ label: "ADD A MILESTONE", href: "/journal/milestones/new" }}
+            />
+          ) : mine ? (
             <Empty
               icon={<Icon name="fileText" size={26} />}
               title="Nothing of yours yet"
@@ -182,6 +192,11 @@ async function EntriesPane({ familyId, mine }: { familyId: string; mine?: { pers
             <span style={{ font: "400 0.75rem/1 var(--font-numeric)", color: "var(--color-accent-700)" }}>{fmtDate(e.entry_date)}</span>
             {/* Only an entry Kin made from a plan says where it came from; one a
                 person wrote needs no badge saying so (review, 28 September). */}
+            {e.milestone && (
+              <span className="kin-entry-star">
+                <span aria-hidden="true">★</span> {e.milestoneOf ? `${e.milestoneOf.split(" ")[0]}'s milestone` : "Milestone"}
+              </span>
+            )}
             {e.source === "from_plan" && (
               <Tag variant="neutral" className="ml-auto">
                 FROM PLAN
@@ -213,41 +228,12 @@ async function EntriesPane({ familyId, mine }: { familyId: string; mine?: { pers
           </div>
         </Blueprint>
       ))}
-      <Link href={mine ? "/journal/new?for=me" : "/journal/new"} className="btn btn-primary btn-block" style={{ minHeight: "2.875rem", fontSize: "0.875rem", letterSpacing: ".04em" }}>
-        + ADD ENTRY
-      </Link>
-    </>
-  );
-}
-
-async function MilestonesPane({ familyId }: { familyId: string }) {
-  const fmtDate = await familyDate();
-  const milestones = await getMilestones(familyId);
-  return (
-    <>
-      <div style={{ borderLeft: "1px solid var(--color-divider)", paddingLeft: "1rem", marginBottom: "1.125rem" }}>
-        {milestones.length === 0 && (
-          <Empty
-            icon={<Icon name="leaf" size={26} />}
-            title="No milestones yet"
-            line="First steps, first day of school, a tooth lost. The things you will want the date of in ten years."
-            action={{ label: "ADD A MILESTONE", href: "/journal/milestones/new" }}
-          />
-        )}
-        {milestones.map((m) => (
-          <div key={m.id} style={{ position: "relative", paddingBottom: "1.25rem" }}>
-            <span style={{ position: "absolute", left: -21, top: 5, width: 9, height: 9, background: "var(--color-accent)", display: "block" }} />
-            <div style={{ font: "400 0.75rem/1 var(--font-numeric)", color: "var(--color-accent-700)" }}>{fmtDate(m.milestone_date)}</div>
-            <div style={{ font: "600 1.1875rem/1.05 var(--font-heading)", margin: "4px 0 2px" }}>{m.title}</div>
-            <div style={{ fontSize: "0.8125rem", color: "var(--color-neutral-600)" }}>
-              {(m.members as unknown as { full_name: string } | null)?.full_name ?? "Whole family"}
-            </div>
-            <MilestoneControls milestoneId={m.id} title={m.title} date={m.milestone_date} memberId={m.member_id} shared={!!m.shared_at} />
-          </div>
-        ))}
-      </div>
-      <Link href="/journal/milestones/new" className="btn btn-primary btn-block" style={{ minHeight: "2.875rem", fontSize: "0.875rem", letterSpacing: ".04em" }}>
-        + ADD MILESTONE
+      <Link
+        href={mine ? "/journal/new?for=me" : milestonesOnly ? "/journal/milestones/new" : "/journal/new"}
+        className="btn btn-primary btn-block"
+        style={{ minHeight: "2.875rem", fontSize: "0.875rem", letterSpacing: ".04em" }}
+      >
+        {milestonesOnly ? "+ ADD MILESTONE" : "+ ADD ENTRY"}
       </Link>
     </>
   );

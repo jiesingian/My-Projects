@@ -10,21 +10,26 @@ import { DetailHeader } from "@/components/hub-header";
 import type { Tables } from "@/lib/database.types";
 import { familyDay } from "@/lib/time";
 import { DateInput } from "@/components/date-input";
+import { MilestoneField } from "@/components/milestone-field";
 
 export function NewEntryForm({
   members,
   defaultTitle,
   defaultVisibility = "household",
+  defaultMilestone = false,
 }: {
   members: Tables<"members">[];
   defaultTitle?: string;
   /** "personal" when the entry was started from the Mine tab. */
   defaultVisibility?: "household" | "personal";
+  /** Started from "Add a milestone": the ★ is already on. */
+  defaultMilestone?: boolean;
 }) {
   const uid = useId();
   const [visibility, setVisibility] = useState<"household" | "personal">(defaultVisibility);
+  const [star, setStar] = useState<{ on: boolean; memberId: string | null }>({ on: defaultMilestone, memberId: null });
   const personal = visibility === "personal";
-  const backTo = personal ? "/journal?view=mine" : "/journal?view=household";
+  const backTo = personal ? "/journal?view=mine" : defaultMilestone && star.on ? "/journal?view=milestones" : "/journal?view=household";
   const [people, setPeople] = useState<string[]>([]);
   const [previews, setPreviews] = useState<string[]>([]);
   const [error, setError] = useState<string | null>(null);
@@ -48,7 +53,7 @@ export function NewEntryForm({
     const date = String(fd.get("date") ?? familyDay());
     const note = String(fd.get("note") ?? "").trim() || null;
 
-    const created = await createJournalEntryAction({ title, date, note, people, visibility });
+    const created = await createJournalEntryAction({ title, date, note, people, visibility, milestone: star.on ? { memberId: star.memberId } : null });
     if (created.error || !created.entryId) {
       setError(created.error ?? "Something went wrong.");
       setSaving(false);
@@ -81,7 +86,7 @@ export function NewEntryForm({
     <div>
       <DetailHeader backHref={backTo} eyebrow="Journal" />
       <div style={{ padding: "0 var(--gutter) 1.375rem" }}>
-        <h3 style={{ fontSize: "1.875rem", margin: "0 0 16px" }}>Add a journal entry</h3>
+        <h3 style={{ fontSize: "1.875rem", margin: "0 0 16px" }}>{defaultMilestone ? "Add a milestone" : "Add a journal entry"}</h3>
         <form onSubmit={onSubmit}>
           <ErrorText message={error} />
           {/* Whose it is: the household's journal, or yours alone (Mine).
@@ -107,6 +112,7 @@ export function NewEntryForm({
             <label htmlFor={`${uid}-date`}>Date</label>
             <DateInput id={`${uid}-date`} aria-label="Date" className="input" name="date" defaultValue={familyDay()} required style={{ minHeight: "2.75rem" }} />
           </div>
+          <MilestoneField on={star.on} memberId={star.memberId} members={members} onChange={setStar} />
           <div style={{ fontSize: "0.8125rem", color: "var(--color-neutral-700)", marginBottom: "0.375rem" }}>Who was there</div>
           <div style={{ display: "flex", gap: "0.4375rem", flexWrap: "wrap", marginBottom: "1rem" }}>
             {members.map((m) => {

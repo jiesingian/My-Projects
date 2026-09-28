@@ -22,15 +22,20 @@ export async function getOnThisDay(familyId: string): Promise<Memory[]> {
       .select("id, title, entry_date, journal_entry_media(journal_media(storage_path, storage_provider, drive_file_id, media_type))")
       .eq("family_id", familyId)
       .eq("visibility", "household")
+      .eq("milestone", false)
       .in("entry_date", days)
       .order("entry_date", { ascending: false })
       .limit(4),
+    // Milestones are journal entries marked ★ (since 29 September); asked
+    // apart so a milestone keeps its "Name: title" and its place in the three.
     supabase
-      .from("milestones")
-      .select("id, title, milestone_date, members!milestones_member_id_fkey(full_name)")
+      .from("journal_entries")
+      .select("id, title, entry_date, members!journal_entries_milestone_member_id_fkey(full_name)")
       .eq("family_id", familyId)
-      .in("milestone_date", days)
-      .order("milestone_date", { ascending: false })
+      .eq("visibility", "household")
+      .eq("milestone", true)
+      .in("entry_date", days)
+      .order("entry_date", { ascending: false })
       .limit(3),
   ]);
 
@@ -48,7 +53,7 @@ export async function getOnThisDay(familyId: string): Promise<Memory[]> {
   }
   for (const ms of milestones ?? []) {
     const who = (ms.members as unknown as { full_name: string } | null)?.full_name?.split(" ")[0];
-    out.push({ id: ms.id, kind: "milestone", title: who ? `${who}: ${ms.title}` : ms.title, yearsAgo: year - Number(ms.milestone_date.slice(0, 4)), photoUrl: null, href: "/journal?seg=milestones" });
+    out.push({ id: ms.id, kind: "milestone", title: who ? `${who}: ${ms.title}` : ms.title, yearsAgo: year - Number(ms.entry_date.slice(0, 4)), photoUrl: null, href: "/journal?view=milestones" });
   }
   return out.sort((a, b) => a.yearsAgo - b.yearsAgo).slice(0, 5);
 }
@@ -66,7 +71,7 @@ export async function getWeekRecap(familyId: string): Promise<WeekRecap> {
     supabase.from("journal_entries").select("id", { count: "exact", head: true }).eq("family_id", familyId).eq("visibility", "household").gte("created_at", since.toISOString()),
     supabase.from("journal_media").select("id", { count: "exact", head: true }).eq("family_id", familyId).eq("visibility", "household").gte("created_at", since.toISOString()),
     supabase.from("routine_log").select("member_id, members!routine_log_member_id_fkey(full_name)").eq("family_id", familyId).eq("status", "done").gte("occurrence_date", sinceDay),
-    supabase.from("milestones").select("id", { count: "exact", head: true }).eq("family_id", familyId).gte("milestone_date", sinceDay),
+    supabase.from("journal_entries").select("id", { count: "exact", head: true }).eq("family_id", familyId).eq("visibility", "household").eq("milestone", true).gte("entry_date", sinceDay),
   ]);
   const byMember = new Map<string, { name: string; n: number }>();
   for (const r of chores.data ?? []) {

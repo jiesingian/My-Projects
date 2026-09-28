@@ -6,7 +6,6 @@ import { createClient } from "@/lib/supabase/server";
 import { sendPush } from "@/lib/push";
 import { requireCurrentMember } from "@/lib/session";
 import { getValidDriveAccessToken, deleteDriveFile, ensureDriveFolderStructure, ensureNamedSubfolder } from "@/lib/google-drive";
-import { familyDay } from "@/lib/time";
 import { humanDatabaseError } from "@/lib/db-errors";
 import { clamp } from "@/lib/text";
 
@@ -21,6 +20,8 @@ export async function createJournalEntryAction(input: {
   people: string[];
   /** "personal": only the writer sees it (the Mine tab). Default household. */
   visibility?: "household" | "personal";
+  /** The ★: a milestone, and whose (null: the family's). */
+  milestone?: { memberId: string | null } | null;
 }): Promise<{ error: string | null; entryId?: string }> {
   const me = await requireCurrentMember();
   const supabase = await createClient();
@@ -39,6 +40,8 @@ export async function createJournalEntryAction(input: {
       source: "manual",
       created_by: me.id,
       visibility: input.visibility === "personal" ? "personal" : "household",
+      milestone: !!input.milestone,
+      milestone_member_id: input.milestone?.memberId ?? null,
     })
     .select()
     .single();
@@ -68,6 +71,7 @@ export async function updateJournalEntryAction(input: {
   date: string;
   note: string | null;
   people: string[];
+  milestone?: { memberId: string | null } | null;
 }): Promise<{ error: string | null }> {
   const me = await requireCurrentMember();
   const supabase = await createClient();
@@ -78,7 +82,16 @@ export async function updateJournalEntryAction(input: {
 
   const { data: entry, error } = await supabase
     .from("journal_entries")
-    .update({ title, entry_date: input.date, note })
+    .update({
+      title,
+      entry_date: input.date,
+      note,
+      ...(input.milestone !== undefined
+        ? input.milestone
+          ? { milestone: true, milestone_member_id: input.milestone.memberId }
+          : { milestone: false, milestone_member_id: null, event_id: null }
+        : {}),
+    })
     .eq("id", input.entryId)
     .eq("family_id", me.family_id)
     .select()
@@ -272,58 +285,3 @@ export async function deleteJournalMediaAction(mediaId: string): Promise<{ error
   return { error: null };
 }
 
-export async function createMilestoneAction(_prev: { error: string | null }, formData: FormData): Promise<{ error: string | null }> {
-  const me = await requireCurrentMember();
-  const supabase = await createClient();
-
-  const title = clamp(String(formData.get("title") ?? ""), 150);
-  const date = String(formData.get("date") ?? familyDay());
-  const memberId = String(formData.get("member_id") ?? "") || null;
-  if (!title) return { error: "Give the milestone a title." };
-
-  const { error } = await supabase.from("milestones").insert({
-    family_id: me.family_id,
-    member_id: memberId,
-    milestone_date: date,
-    title,
-    created_by: me.id,
-  });
-  if (error) return { error: humanDatabaseError(error.message) };
-
-  revalidatePath("/journal");
-  return { error: null };
-}
-
-export async function updateMilestoneAction(input: {
-  milestoneId: string;
-  title: string;
-  date: string;
-  memberId: string | null;
-}): Promise<{ error: string | null }> {
-  const me = await requireCurrentMember();
-  const supabase = await createClient();
-
-  const title = clamp(input.title, 150);
-  if (!title) return { error: "Give the milestone a title." };
-
-  const { error, count } = await supabase
-    .from("milestones")
-    .update({ title, milestone_date: input.date, member_id: input.memberId }, { count: "exact" })
-    .eq("id", input.milestoneId)
-    .eq("family_id", me.family_id);
-  if (error) return { error: humanDatabaseError(error.message) };
-  if (count === 0) return { error: "That milestone is no longer there — someone may have removed it." };
-
-  revalidatePath("/journal");
-  return { error: null };
-}
-
-export async function deleteMilestoneAction(milestoneId: string): Promise<{ error: string | null }> {
-  const me = await requireCurrentMember();
-  const supabase = await createClient();
-  const { error } = await supabase.from("milestones").delete().eq("id", milestoneId).eq("family_id", me.family_id);
-  if (error) return { error: humanDatabaseError(error.message) };
-
-  revalidatePath("/journal");
-  return { error: null };
-}
