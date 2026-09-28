@@ -252,9 +252,12 @@ Decided against in the same review: revising Journal (item 6) and Planner
   from today to Sunday, each a different recipe the pantry nearly covers,
   and "Generate grocery list" picks up what's missing. Planned days are
   never replaced.
-- Proactive reminders: low pantry items (bills, birthdays and "in 30
-  minutes" are done, above). A true leave-by time needs travel times from a
-  maps service, which is a key and a bill.
+- **Done 28 September: running low.** Tap a pantry item (Household, Prices
+  & pantry) to mark it running low: it shows on Today's Coming up, one tap
+  adds everything low to the list, buying it clears it, and the grown-ups
+  get one push a morning from 09:00 (their Shopping list switch) once the
+  reminder secret is set. A true leave-by time still needs travel times
+  from a maps service, which is a key and a bill.
 - **Done 26 September: call notifications.** Calls have their own switch
   (muting the chat no longer silences them); the ring is sent urgent, stays
   on screen, expires after a minute, and turns into "Missed call from ..."
