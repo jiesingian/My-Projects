@@ -2,12 +2,12 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Icon, type IconName } from "@/components/icons";
+import { TabIcon3D, type TabIconName } from "@/components/tab-icon-3d";
 
 /** Today sits in the middle because it is where the app opens and where you
  * come back to. The people side of the house is to its left, the things
  * being run to its right. */
-const TABS: { href: string; label: string; icon: IconName; home?: boolean }[] = [
+const TABS: { href: string; label: string; icon: TabIconName; home?: boolean }[] = [
   { href: "/family", label: "Family", icon: "users" },
   { href: "/chat", label: "Chat", icon: "message" },
   { href: "/journal", label: "Journal", icon: "images" },
@@ -63,14 +63,14 @@ export function TabBar({ chatUnread = 0, chatMentioned = false, kidView = false 
               <span className="kin-tab-ico">
                 {t.home ? (
                   <span className="kin-tab-disc">
-                    <Icon name={t.icon} size="var(--kin-tab-disc-icon)" />
+                    <TabIcon3D name={t.icon} size="var(--kin-tab-disc-icon)" />
                   </span>
                 ) : (
                   /* The size is a variable rather than a number because the
                      bar has three shapes — phone, icon-only at large text,
                      sidebar — and only the stylesheet knows which is showing.
                      26 and 23 are still what it resolves to by default. */
-                  <Icon name={t.icon} size="var(--kin-tab-icon)" />
+                  <TabIcon3D name={t.icon} size="var(--kin-tab-icon)" />
                 )}
 
                 {/* Unread: a count, and a different tint when one of them
