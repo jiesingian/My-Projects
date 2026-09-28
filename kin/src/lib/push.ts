@@ -34,13 +34,8 @@ export async function sendPush(input: {
   ring?: boolean;
   ttlSeconds?: number;
 }): Promise<void> {
-  if (!pushConfigured()) return;
+  if (!vapidReady()) return;
   try {
-    webpush.setVapidDetails(
-      process.env.VAPID_SUBJECT || "mailto:hello@kin.family",
-      process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY!,
-      process.env.VAPID_PRIVATE_KEY!,
-    );
     const supabase = await createClient();
     const { data: targets, error } = await supabase.rpc("push_targets", { p_kind: input.kind, p_member_ids: input.memberIds ?? undefined });
     if (error || !targets?.length) return;
@@ -52,18 +47,51 @@ export async function sendPush(input: {
       ring: input.ring || undefined,
     });
     const options = input.ring ? { TTL: 60, urgency: "high" as const } : { TTL: input.ttlSeconds ?? 60 * 60 * 12 };
-    await Promise.all(
-      targets.map(async (t) => {
-        try {
-          await webpush.sendNotification({ endpoint: t.endpoint, keys: { p256dh: t.p256dh, auth: t.auth } }, payload, options);
-        } catch (err) {
-          const status = (err as { statusCode?: number }).statusCode;
-          // Gone or unsubscribed: stop trying that device.
-          if (status === 404 || status === 410) await supabase.rpc("forget_push_endpoint", { p_endpoint: t.endpoint });
-        }
-      }),
-    );
+    await deliver(targets, payload, options, async (endpoint) => {
+      await supabase.rpc("forget_push_endpoint", { p_endpoint: endpoint });
+    });
   } catch (err) {
     console.error("Push failed", err);
   }
+}
+
+export type PushDevice = { endpoint: string; p256dh: string; auth: string };
+
+/** Sends one payload to each device and says what happened to each. A device
+ * the push service calls gone (404/410) is forgotten; any other refusal is
+ * logged with the service's own status and reason (26 September -- those used
+ * to vanish, so a phone that never rang left no trace anywhere). */
+export async function deliver(
+  devices: PushDevice[],
+  payload: string,
+  options: webpush.RequestOptions,
+  forget: (endpoint: string) => Promise<void>,
+): Promise<{ sent: number; gone: number; failed: string[] }> {
+  const result = { sent: 0, gone: 0, failed: [] as string[] };
+  await Promise.all(
+    devices.map(async (d) => {
+      try {
+        await webpush.sendNotification({ endpoint: d.endpoint, keys: { p256dh: d.p256dh, auth: d.auth } }, payload, options);
+        result.sent++;
+      } catch (err) {
+        const status = (err as { statusCode?: number }).statusCode;
+        if (status === 404 || status === 410) {
+          result.gone++;
+          await forget(d.endpoint);
+          return;
+        }
+        const service = new URL(d.endpoint).host;
+        const body = String((err as { body?: unknown }).body ?? (err as Error).message ?? "").slice(0, 200);
+        console.error(`Push refused by ${service}: ${status ?? "no status"} ${body}`);
+        result.failed.push(`${service} ${status ?? ""}`.trim());
+      }
+    }),
+  );
+  return result;
+}
+
+export function vapidReady(): boolean {
+  if (!pushConfigured()) return false;
+  webpush.setVapidDetails(process.env.VAPID_SUBJECT || "mailto:hello@kin.family", process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY!, process.env.VAPID_PRIVATE_KEY!);
+  return true;
 }

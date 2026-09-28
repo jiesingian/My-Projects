@@ -322,9 +322,16 @@ export function CallProvider({ familyId, me, members, children }: { familyId: st
           }
         }, RING_SECONDS * 1000),
       );
-      void ringAction(to, video);
+      void ringAction(to, video).then((r) => {
+        // Kin open on their phone still rings through the live channel; this
+        // is about the phone in a pocket (26 September).
+        if (!r.error && !r.reachable) {
+          const name = members.find((m) => m.id === to)?.name.split(" ")[0];
+          toast.info(`${name ? `${name}'s` : "Their"} phone will only ring if Kin is open on it: notifications aren't turned on in Kin there.`);
+        }
+      });
     },
-    [attach, device, end, me, send, setCall, teardown],
+    [attach, device, end, me, members, send, setCall, teardown],
   );
 
   const accept = async () => {

@@ -3787,6 +3787,7 @@ button.kin-initial:focus-visible {
 .kin-push p { margin: 0; font-size: 0.84375rem; line-height: 1.45; color: var(--color-neutral-700); }
 .kin-push .btn { min-height: 2.75rem; }
 .kin-push .kin-push-error { color: var(--color-accent-700); }
+.kin-push .kin-push-ok { color: var(--color-neutral-700); }
 
 /* The vault's lock: Face ID first, then a phone-style PIN pad. */
 .kin-lock { margin-inline: auto; }

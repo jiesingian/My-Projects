@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useTransition } from "react";
-import { savePushSubscriptionAction, removePushSubscriptionAction } from "@/lib/actions/push";
+import { savePushSubscriptionAction, removePushSubscriptionAction, sendTestPushAction } from "@/lib/actions/push";
 
 const KEY = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY ?? "";
 
@@ -21,6 +21,16 @@ export function PushOptIn() {
   const [state, setState] = useState<State | null>(null);
   const [pending, start] = useTransition();
   const [error, setError] = useState<string | null>(null);
+  const [tested, setTested] = useState<string | null>(null);
+
+  const test = () =>
+    start(async () => {
+      setError(null);
+      setTested(null);
+      const r = await sendTestPushAction();
+      if (r.error) setError(r.error);
+      else setTested(`Sent to ${r.sent === 1 ? "1 device" : `${r.sent} devices`}. It should appear in a few seconds, even with Kin closed.`);
+    });
 
   useEffect(() => {
     (async () => {
@@ -82,11 +92,53 @@ export function PushOptIn() {
         </button>
       )}
       {state === "on" && (
-        <button type="button" className="btn btn-ghost" disabled={pending} onClick={turnOff}>
-          Turn off for this device
-        </button>
+        <>
+          <button type="button" className="btn btn-secondary btn-block" disabled={pending} onClick={test}>
+            {pending ? "Sending…" : "Send a test notification"}
+          </button>
+          <button type="button" className="btn btn-ghost" disabled={pending} onClick={turnOff}>
+            Turn off for this device
+          </button>
+        </>
       )}
+      {tested && <p role="status" className="kin-push-ok">{tested}</p>}
       {error && <p role="alert" className="kin-push-error">{error}</p>}
     </div>
   );
+}
+
+/** Keeps this device's notification address current (26 September). Push
+ * services replace a device's address from time to time -- iPhones in
+ * particular -- and nothing tells the app, so Kin went on sending to the old
+ * one: Settings said "on" and calls never rang. Each time Kin opens on a
+ * device where notifications are allowed, the current address is saved again
+ * (at most once a day unless it changed). It never asks for permission; that
+ * stays the button in Settings. */
+export function PushKeepAlive() {
+  useEffect(() => {
+    if (!KEY || !("serviceWorker" in navigator) || !("PushManager" in window) || !("Notification" in window)) return;
+    if (Notification.permission !== "granted") return;
+    const t = window.setTimeout(async () => {
+      try {
+        const reg = await navigator.serviceWorker.ready;
+        const sub = (await reg.pushManager.getSubscription()) ?? (await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: keyBytes(KEY) as BufferSource }));
+        const mark = `${sub.endpoint}|${new Date().toISOString().slice(0, 10)}`;
+        let last: string | null = null;
+        try {
+          last = localStorage.getItem("kin-push-saved");
+        } catch {}
+        if (last === mark) return;
+        const result = await savePushSubscriptionAction(sub.toJSON() as Parameters<typeof savePushSubscriptionAction>[0]);
+        if (!result.error) {
+          try {
+            localStorage.setItem("kin-push-saved", mark);
+          } catch {}
+        }
+      } catch {
+        // No worker yet, or the browser refused: Settings shows the state.
+      }
+    }, 3000);
+    return () => window.clearTimeout(t);
+  }, []);
+  return null;
 }
