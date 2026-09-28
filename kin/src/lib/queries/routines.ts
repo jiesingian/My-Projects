@@ -3,7 +3,7 @@ import { assigneeFor, currentStreak, expandRoutine, nextOccurrence, toISODate, t
 import { choreStreak, type ChoreStreak, type DayState } from "@/lib/streaks";
 import { isChild } from "@/lib/roles";
 
-export type RoutineMember = { id: string; name: string };
+export type RoutineMember = { id: string; name: string; role?: string };
 
 export type RoutineView = {
   id: string;
@@ -87,6 +87,7 @@ export async function getRoutines(familyId: string, memberId?: string): Promise<
       .map((rm) => ({
         id: (rm.members as unknown as { id: string } | null)?.id ?? rm.member_id,
         name: (rm.members as unknown as { full_name: string } | null)?.full_name ?? "",
+        role: (rm.members as unknown as { role: string } | null)?.role,
       }))
       .filter((m) => !!m.id);
 

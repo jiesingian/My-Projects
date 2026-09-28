@@ -4,6 +4,10 @@ import { getPricedBuyList } from "@/lib/queries/household-money";
 import { familyDay as localDay, familyTime as localTime, familyClock, familyMidnight, FAMILY_TZ } from "@/lib/time";
 import { formatTimeOfDay } from "@/lib/routines";
 import type { IconName } from "@/components/icons";
+import { isForMe, taggedFrom } from "@/lib/for-me";
+
+/** Who is looking: Today shows them what is theirs (lib/for-me). */
+type Viewer = { id: string; role: string };
 
 /** One line in the briefing. Deliberately flat and pre-formatted: the page
  * renders these without knowing which hub any of them came from. */
@@ -48,7 +52,7 @@ export type GlanceTile = {
  * calendar, and the shopping list. The fourth -- what is waiting on the
  * reader -- is built on the page from queries Today already makes, rather
  * than asking the database the same question twice. */
-export async function getGlance(familyId: string, currency: string): Promise<GlanceTile[]> {
+export async function getGlance(familyId: string, currency: string, me: Viewer): Promise<GlanceTile[]> {
   const supabase = await createClient();
   const now = new Date();
   // The month in the household's zone, not the server's: on a server in UTC
@@ -59,13 +63,14 @@ export async function getGlance(familyId: string, currency: string): Promise<Gla
   const [upcomingActivity, budgetPeriod, monthSpend, shop] = await Promise.all([
     supabase
       .from("activities")
-      .select("title, start_at")
+      .select("title, start_at, applies_to_whole_family, activity_members(member_id, members(role))")
       .eq("family_id", familyId)
       .eq("status", "upcoming")
       .gte("start_at", now.toISOString())
       .order("start_at", { ascending: true })
-      .limit(1)
-      .maybeSingle(),
+      // The next one that is the reader's, not another grown-up's (lib/for-me):
+      // a few, so one busy person's week does not hide the reader's own.
+      .limit(25),
     supabase
       .from("budget_periods")
       .select("budget_amount")
@@ -92,12 +97,13 @@ export async function getGlance(familyId: string, currency: string): Promise<Gla
         : { id: "money", icon: "wallet", value: formatAccounting(target - spent, currency), label: "left this month", href: "/wealth", progress: spent / target }
       : { id: "money", icon: "wallet", value: formatAccounting(spent, currency), label: "spent this month", href: "/wealth" };
 
-  const next: GlanceTile = upcomingActivity.data
+  const nextMine = (upcomingActivity.data ?? []).find((a) => isForMe(me, a.applies_to_whole_family, taggedFrom(a.activity_members)));
+  const next: GlanceTile = nextMine
     ? {
         id: "next",
         icon: "calendarDays",
-        value: `${new Intl.DateTimeFormat("en-GB", { timeZone: FAMILY_TZ, weekday: "short" }).format(new Date(upcomingActivity.data.start_at))} ${localTime(new Date(upcomingActivity.data.start_at))}`,
-        label: `next: ${upcomingActivity.data.title}`,
+        value: `${new Intl.DateTimeFormat("en-GB", { timeZone: FAMILY_TZ, weekday: "short" }).format(new Date(nextMine.start_at))} ${localTime(new Date(nextMine.start_at))}`,
+        label: `next: ${nextMine.title}`,
         href: "/planner",
       }
     : { id: "next", icon: "calendarDays", value: "Nothing", label: "on the calendar yet", href: "/planner/add?type=task" };
@@ -130,7 +136,7 @@ export async function getGlance(familyId: string, currency: string): Promise<Gla
  * Six sources, one shape, one order: anything overdue or due today first,
  * then whatever happens at a time of day in the order it happens, then the
  * things that are simply true all day. */
-export async function getTodayBriefing(familyId: string, currency: string): Promise<BriefItem[]> {
+export async function getTodayBriefing(familyId: string, currency: string, me: Viewer): Promise<BriefItem[]> {
   const supabase = await createClient();
   const now = new Date();
   const today = localDay(now);
@@ -145,7 +151,7 @@ export async function getTodayBriefing(familyId: string, currency: string): Prom
   const [activities, events, bills, health, meals, buyCount, marks] = await Promise.all([
     supabase
       .from("activities")
-      .select("id, title, start_at, location, status")
+      .select("id, title, start_at, location, status, applies_to_whole_family, activity_members(member_id, members(role))")
       .eq("family_id", familyId)
       // Completed and cancelled ones come back too, so a plan ticked off
       // today stays on Today as done (with Undo) instead of vanishing.
@@ -159,7 +165,7 @@ export async function getTodayBriefing(familyId: string, currency: string): Prom
     // so they come back whole and the month and day are compared here.
     supabase
       .from("events")
-      .select("id, title, kind, event_date, recurs_yearly, sub_note")
+      .select("id, title, kind, event_date, recurs_yearly, sub_note, applies_to_whole_family, event_members(member_id, members(role))")
       .eq("family_id", familyId)
       .or(`event_date.eq.${today},recurs_yearly.eq.true`),
     supabase
@@ -172,7 +178,7 @@ export async function getTodayBriefing(familyId: string, currency: string): Prom
       .limit(4),
     supabase
       .from("health_schedule")
-      .select("id, what, when_date, status, member:members!health_schedule_member_id_fkey(full_name)")
+      .select("id, what, when_date, status, member_id, member:members!health_schedule_member_id_fkey(full_name, role)")
       .eq("family_id", familyId)
       .in("status", ["due", "due_soon", "given"])
       .order("when_date", { ascending: true })
@@ -201,6 +207,7 @@ export async function getTodayBriefing(familyId: string, currency: string): Prom
   for (const a of activities.data ?? []) {
     const start = new Date(a.start_at);
     if (localDay(start) !== today) continue;
+    if (!isForMe(me, a.applies_to_whole_family, taggedFrom(a.activity_members))) continue;
     const key = `activity-${a.id}`;
     // A plan completed or cancelled on another day, or from the Planner
     // without a mark here, is not today's business any more.
@@ -223,6 +230,7 @@ export async function getTodayBriefing(familyId: string, currency: string): Prom
   for (const e of events.data ?? []) {
     const isToday = e.recurs_yearly ? e.event_date.slice(5) === monthDay : e.event_date === today;
     if (!isToday) continue;
+    if (!isForMe(me, e.applies_to_whole_family, taggedFrom(e.event_members))) continue;
     // A birthday reads better with the number on it than without.
     const years = e.recurs_yearly ? Number(today.slice(0, 4)) - Number(e.event_date.slice(0, 4)) : 0;
     const ordinal = e.kind === "birthday" && years > 0 ? `Turns ${years} today` : e.kind === "anniversary" && years > 0 ? `${years} years today` : "Today";
@@ -257,6 +265,7 @@ export async function getTodayBriefing(familyId: string, currency: string): Prom
 
   for (const h of health.data ?? []) {
     const who = (h.member as unknown as { full_name: string } | null)?.full_name?.split(" ")[0] ?? "Someone";
+    if (!isForMe(me, false, [{ id: h.member_id, role: (h.member as unknown as { role: string } | null)?.role }])) continue;
     // Given long ago is history; given today (marked here) shows as done.
     if (h.status === "given" && !marked.has(`health-${h.id}`)) continue;
     items.push({
@@ -324,7 +333,7 @@ function weekdayOf(day: string): string {
  * sort out now so it is not a scramble later", which is the reminder a good
  * family assistant gives without being asked. Nothing that is already in
  * today's briefing appears here. */
-export async function getComingUp(familyId: string, currency: string): Promise<BriefItem[]> {
+export async function getComingUp(familyId: string, currency: string, me: Viewer): Promise<BriefItem[]> {
   const supabase = await createClient();
   const now = new Date();
   const today = localDay(now);
@@ -336,7 +345,7 @@ export async function getComingUp(familyId: string, currency: string): Promise<B
   const [events, bills, health, tasks, meals] = await Promise.all([
     supabase
       .from("events")
-      .select("id, title, kind, event_date, recurs_yearly")
+      .select("id, title, kind, event_date, recurs_yearly, applies_to_whole_family, event_members(member_id, members(role))")
       .eq("family_id", familyId)
       .or(`and(event_date.gt.${today},event_date.lte.${weekOut}),recurs_yearly.eq.true`),
     supabase
@@ -350,7 +359,7 @@ export async function getComingUp(familyId: string, currency: string): Promise<B
       .limit(3),
     supabase
       .from("health_schedule")
-      .select("id, what, when_date, member:members!health_schedule_member_id_fkey(full_name)")
+      .select("id, what, when_date, member_id, member:members!health_schedule_member_id_fkey(full_name, role)")
       .eq("family_id", familyId)
       .in("status", ["due", "due_soon"])
       .gt("when_date", today)
@@ -359,7 +368,7 @@ export async function getComingUp(familyId: string, currency: string): Promise<B
       .limit(3),
     supabase
       .from("activities")
-      .select("id, title, start_at, location")
+      .select("id, title, start_at, location, applies_to_whole_family, activity_members(member_id, members(role))")
       .eq("family_id", familyId)
       .eq("status", "upcoming")
       .gte("start_at", new Date(now.getTime() + 6 * 3600_000).toISOString())
@@ -375,6 +384,7 @@ export async function getComingUp(familyId: string, currency: string): Promise<B
   const items: BriefItem[] = [];
 
   for (const e of events.data ?? []) {
+    if (!isForMe(me, e.applies_to_whole_family, taggedFrom(e.event_members))) continue;
     const inDays = e.recurs_yearly ? dayIndex.get(e.event_date.slice(5)) : e.event_date > today && e.event_date <= weekOut ? Math.round((Date.parse(e.event_date) - Date.parse(today)) / 86_400_000) : undefined;
     if (!inDays) continue;
     const on = inDays === 1 ? "tomorrow" : `on ${weekdayOf(addDays(today, inDays))}`;
@@ -400,6 +410,7 @@ export async function getComingUp(familyId: string, currency: string): Promise<B
 
   for (const h of health.data ?? []) {
     const who = (h.member as unknown as { full_name: string } | null)?.full_name?.split(" ")[0] ?? "Someone";
+    if (!isForMe(me, false, [{ id: h.member_id, role: (h.member as unknown as { role: string } | null)?.role }])) continue;
     const inDays = Math.round((Date.parse(h.when_date!) - Date.parse(today)) / 86_400_000);
     items.push({ id: `soon-health-${h.id}`, icon: "activity", tint: "occasion", title: `${who} · ${h.what}`, meta: `Due ${inDays === 1 ? "tomorrow" : `in ${inDays} days`} · book it now?`, href: "/family", at: inDays });
   }
@@ -407,6 +418,7 @@ export async function getComingUp(familyId: string, currency: string): Promise<B
   // Tomorrow's first thing, if it starts early enough to plan the evening
   // around -- school programs, flights, a 7am practice.
   const early = (tasks.data ?? []).find((a) => {
+    if (!isForMe(me, a.applies_to_whole_family, taggedFrom(a.activity_members))) return false;
     const start = new Date(a.start_at);
     return localDay(start) === tomorrow && Number(localTime(start).slice(0, 2)) < 10;
   });

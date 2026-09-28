@@ -16,13 +16,13 @@ function forAChild(b: BriefItem): boolean {
 /** Today in kid view (K2, 25 September): their own jobs with big ticks, their
  * stars and what they can spend them on, and what is coming up -- nothing
  * about money or the running of the house. */
-export async function KidToday({ me }: { me: { id: string; family_id: string; full_name: string; families: { currency: string } } }) {
+export async function KidToday({ me }: { me: { id: string; role: string; family_id: string; full_name: string; families: { currency: string } } }) {
   const [tasks, scores, rewards, brief, comingUp] = await Promise.all([
     getRoutinesNeedingAttention(me.family_id, me.id),
     getMemberScores(me.family_id),
     getRewards(me.family_id),
-    getTodayBriefing(me.family_id, me.families.currency),
-    getComingUp(me.family_id, me.families.currency),
+    getTodayBriefing(me.family_id, me.families.currency, me),
+    getComingUp(me.family_id, me.families.currency, me),
   ]);
   const mine = scores.find((s) => s.id === me.id);
   const stars = mine?.spendable ?? 0;
