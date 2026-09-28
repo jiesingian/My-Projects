@@ -95,6 +95,11 @@ export function Welcome() {
             Set up our Kin
           </button>
           <p className="kin-welcome-small">It takes a minute. Nothing is saved until you create an account.</p>
+          <nav className="kin-welcome-legal" aria-label="Legal">
+            <Link href="/legal/privacy">Privacy</Link>
+            <Link href="/legal/terms">Terms</Link>
+            <Link href="/legal/refunds">Refunds</Link>
+          </nav>
         </section>
       )}
 

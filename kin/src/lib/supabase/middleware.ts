@@ -59,7 +59,10 @@ export async function updateSession(request: NextRequest) {
     path === "/api/cron/reminders" ||
     // An invite link has to reach someone with no account yet; it only
     // remembers the code and redirects (app/join/[code]/route.ts).
-    path.startsWith("/join/");
+    path.startsWith("/join/") ||
+    // The privacy notice, terms and refund policy: read before an account
+    // exists, and by app-store reviewers who never have one (app/legal).
+    path.startsWith("/legal/");
 
   if (!user && !isPublic) {
     const url = request.nextUrl.clone();

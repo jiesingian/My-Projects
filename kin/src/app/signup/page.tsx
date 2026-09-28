@@ -59,11 +59,15 @@ export default function SignupPage() {
         </div>
         <div style={{ display: "flex", gap: "0.5625rem", alignItems: "flex-start", fontSize: "0.84375rem", color: "var(--color-neutral-700)", marginBottom: "1.5rem" }}>
           <Icon name="shieldCheck" size={15} className="text-[var(--color-accent)]" />
-          <span>Documents and health records stay in your own connected Drive. Kin stores only the index.</span>
+          <span>Your household is walled off from every other one. Connect Google Drive and your documents and photos are kept there.</span>
         </div>
         <SubmitButton style={{ minHeight: "2.875rem", fontSize: "0.9375rem", letterSpacing: ".04em" }}>
           Send verification code
         </SubmitButton>
+        <p style={{ fontSize: "0.78125rem", lineHeight: 1.5, color: "var(--color-neutral-600)", margin: "0.75rem 0 0", textAlign: "center" }}>
+          By creating an account you agree to the <Link href="/legal/terms">terms</Link> and have read the{" "}
+          <Link href="/legal/privacy">privacy notice</Link>.
+        </p>
       </form>
       <p style={{ fontSize: "0.8125rem", color: "var(--color-neutral-700)", marginTop: "1.25rem", textAlign: "center" }}>
         Already have an account? <Link href="/login">Sign in</Link>

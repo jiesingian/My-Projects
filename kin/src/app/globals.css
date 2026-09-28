@@ -4817,3 +4817,42 @@ button.kin-initial:focus-visible {
 .kin-plan ul { margin: 0; padding: 0; list-style: none; display: grid; gap: 0.4375rem; }
 .kin-plan li { display: flex; gap: 0.5rem; align-items: flex-start; font-size: 0.84375rem; line-height: 1.4; }
 .kin-plan li svg { flex: none; margin-top: 0.15em; color: var(--color-accent-700); }
+
+/* — privacy notice, terms, refunds (app/legal) —
+   Long reading, so a measure near 65 characters, the body face, and room
+   between sections. No motion: people come here to read. */
+.kin-legal {
+  min-height: 100dvh;
+  padding: 1.25rem var(--gutter, 1.25rem) 3rem;
+  background: var(--color-bg, var(--color-neutral-50));
+  color: var(--color-text);
+}
+.kin-legal-nav {
+  max-width: 40rem;
+  margin: 0 auto 1.5rem;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.25rem 1.25rem;
+  font-size: 0.875rem;
+}
+.kin-legal-nav .kin-welcome-logo { margin-right: auto; text-decoration: none; color: inherit; }
+.kin-legal-nav a { min-height: 2.75rem; display: inline-flex; align-items: center; }
+.kin-legal-body { max-width: 40rem; margin: 0 auto; font-size: 0.9375rem; line-height: 1.6; }
+.kin-legal-body h1 { font: 600 2rem/1.1 var(--font-heading); margin: 0 0 1rem; text-wrap: balance; }
+.kin-legal-body h2 { font: 600 1.1875rem/1.2 var(--font-heading); margin: 2rem 0 0.5rem; text-wrap: balance; }
+.kin-legal-body p { margin: 0 0 0.75rem; }
+.kin-legal-body ul { margin: 0 0 0.75rem; padding-left: 1.25rem; display: grid; gap: 0.375rem; }
+.kin-legal-meta { font: 400 0.8125rem/1.4 var(--font-numeric); color: var(--color-neutral-600); }
+.kin-legal-draft {
+  padding: 0.75rem 0.875rem;
+  border-radius: var(--radius-card, 1rem);
+  background: var(--color-accent-100);
+  font-size: 0.84375rem;
+}
+.kin-legal-operator { display: grid; gap: 0.5rem; margin: 0; }
+.kin-legal-operator div { display: flex; flex-wrap: wrap; gap: 0 1rem; border-bottom: 1px solid color-mix(in srgb, var(--color-text) 10%, transparent); padding-bottom: 0.5rem; }
+.kin-legal-operator dt { font-weight: 600; flex: 0 0 12rem; }
+.kin-legal-operator dd { margin: 0; color: var(--color-neutral-700); }
+.kin-welcome-legal { display: flex; justify-content: center; gap: 1.25rem; font-size: 0.8125rem; margin-top: 0.75rem; }
+.kin-welcome-legal a { color: var(--color-neutral-600); min-height: 2.75rem; display: inline-flex; align-items: center; }
