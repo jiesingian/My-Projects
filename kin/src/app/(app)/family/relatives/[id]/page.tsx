@@ -16,7 +16,7 @@ import { getTreeMatches } from "@/lib/queries/tree-links";
  * and deliberately thin -- their name, photo and cover, where they are on the
  * family tree, and the moments their household has already shared. Nothing
  * from About, and no health, documents or money: that stays in their own
- * household (20260929013000_relative_profile.sql). */
+ * household (20260929024500_relative_profile.sql). */
 export default async function RelativePage({ params }: { params: Promise<{ id: string }> }) {
   const me = await getCurrentMember();
   if (!me) redirect("/onboarding/profile");

@@ -1,7 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 
 /** A relative in a linked household, as this household may see them
- * (20260929013000_relative_profile.sql): name, photo, cover, their
+ * (20260929024500_relative_profile.sql): name, photo, cover, their
  * household and where they are on the shared tree -- nothing from About. */
 export type RelativeProfile = {
   memberId: string;
