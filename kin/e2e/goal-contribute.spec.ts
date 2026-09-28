@@ -143,6 +143,12 @@ test("putting money in moves the total, and the total matches the ledger", async
 
   const open = cardHaving(page.getByLabel("Amount"));
   await open.getByLabel("Amount").fill(String(CONTRIBUTION));
+  // An account with a banking app linked (the sample household's GCash)
+  // offers to open it, and a contribution made that way waits as pending
+  // until someone confirms the transfer went through -- by design, so the
+  // total is not supposed to move yet. This test is about the settled path.
+  const viaApp = open.getByRole("checkbox", { name: /to pay, then confirm here/i });
+  if (await viaApp.isVisible()) await viaApp.uncheck();
   await open.getByRole("button", { name: /^ADD TO GOAL$/i }).click();
   await page.waitForLoadState("networkidle");
 

@@ -260,7 +260,7 @@ export function GoalContributeControl({
           style={{ flex: 1, minHeight: "2.5rem", fontSize: "0.84375rem" }}
           onClick={() => run(() => contributeToGoalAction({ goalId, accountId, amount, viaApp: viaApp && !!account?.linked_app_url }), () => setOpen(false))}
         >
-          {pending ? "…" : "Add to goal"}
+          {pending ? "…" : viaApp && account?.linked_app_url ? "Open app & log" : "Add to goal"}
         </button>
         <button type="button" className="btn btn-secondary" style={{ flex: 1, minHeight: "2.5rem", fontSize: "0.84375rem" }} onClick={() => setOpen(false)}>
           Cancel
