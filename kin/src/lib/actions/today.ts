@@ -17,12 +17,13 @@ import type { ActionState } from "@/lib/actions/auth";
  * - a check-up or vaccination: done means given
  * - a bill: only Skip is here; paying goes through Wealth's pay flow, which
  *   records the money leaving an account
- * - a birthday, an event, the shopping: the mark is all there is
+ * - the shopping: the mark is all there is
+ * - a birthday or an event: nothing to mark; it is the day, and it ends with it
  *
  * Undo puts both back. Every write is the member's own session, so row-level
  * security keeps it inside their household. */
 
-const KEY = /^(activity|event|bill|health)-[0-9a-f-]{36}$|^buy$/;
+const KEY = /^(activity|bill|health)-[0-9a-f-]{36}$|^buy$/;
 
 export async function markTodayItemAction(itemKey: string, state: "done" | "skipped"): Promise<ActionState> {
   if (!KEY.test(itemKey) || (state !== "done" && state !== "skipped")) return { error: "That can't be marked." };

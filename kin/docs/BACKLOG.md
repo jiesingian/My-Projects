@@ -164,8 +164,8 @@ Decided against in the same review: revising Journal (item 6) and Planner
   top -- urgent first, the day in order, finished ones at the bottom with
   Undo. Chores keep their Done / Skip / note; a one-off plan's Done / Skip
   sets it completed / cancelled; a check-up's Done marks it given; a bill has
-  Pay (Wealth's pay flow) / Skip; a birthday or the shopping has Done or
-  Shop / Skip. Marks live in today_marks (20260928170000). Meals stay in the
+  Pay (Wealth's pay flow) / Skip; the shopping has Shop / Skip; a birthday
+  or event just shows for the day, with nothing to tick. Marks live in today_marks (20260928170000). Meals stay in the
   header's "Eating today".
 
 - Review fixes (28 September, every page rendered signed in against a local

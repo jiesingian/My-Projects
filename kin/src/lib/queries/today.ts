@@ -228,8 +228,8 @@ export async function getTodayBriefing(familyId: string, currency: string): Prom
     const ordinal = e.kind === "birthday" && years > 0 ? `Turns ${years} today` : e.kind === "anniversary" && years > 0 ? `${years} years today` : "Today";
     items.push({
       id: `event-${e.id}`,
-      action: "done",
-      mark: marked.get(`event-${e.id}`),
+      // No Done or Skip (Jonathan, 28 September): a birthday or an event is
+      // the whole day and finishes by itself; it only needs to be seen.
       icon: e.kind === "birthday" ? "cupcake" : "gift",
       tint: "occasion",
       title: e.title,
