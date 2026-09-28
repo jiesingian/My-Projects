@@ -34,6 +34,7 @@ import { getRoutines, getMemberScores, getRewards, type MemberScore } from "@/li
 import { describeRule, formatTimeOfDay, ROUTINE_KIND_META, type RoutineKind } from "@/lib/routines";
 import { RoutineTick, RoutineOccurrences, RoutinePauseButton, RoutineDeleteButton } from "@/components/routine-controls";
 import { CalendarSyncStatus, RememberFilter } from "@/components/calendar-sync-status";
+import { ShowChoresSwitch } from "@/components/show-chores-switch";
 import { cookies } from "next/headers";
 import { familyDate } from "@/lib/format-family";
 
@@ -58,6 +59,8 @@ export default async function PlannerPage({
   // last chosen. An empty one (from Show all) means "explicitly nothing".
   const remembered = sp.hide === undefined ? (await cookies()).get("kin_cal_hide")?.value : undefined;
   const hidden = parseHidden(sp.hide ?? remembered);
+  // Folded unless asked otherwise: chores repeat on every day (agreed 28 September).
+  const showChores = (await cookies()).get("kin_show_chores")?.value === "1";
 
   // Deliberately not awaited. This is a full two-way reconcile with Google —
   // every upcoming item pushed to each connected member's calendar, then each
@@ -90,6 +93,7 @@ export default async function PlannerPage({
             anchor={anchor}
             hidden={hidden}
             weekStart={weekStartOf(me.families.week_start)}
+            showChores={showChores}
           />
         )}
         {seg === "routines" && <RoutinesPane familyId={me.family_id} who={who} currency={me.families.currency} justSaved={sp.saved === "1"} />}
@@ -114,7 +118,7 @@ function calendarBase(who: string, view: CalendarView, hide = "") {
   return `/planner?seg=calendar&who=${who}&view=${view}&hide=${hide}&date=`;
 }
 
-async function CalendarPane({ familyId, meId, who, view, anchor, hidden, weekStart }: { familyId: string; meId: string; who: string; view: CalendarView; anchor: Date; hidden: Set<CalendarGroup>; weekStart: WeekStart }) {
+async function CalendarPane({ familyId, meId, who, view, anchor, hidden, weekStart, showChores }: { familyId: string; meId: string; who: string; view: CalendarView; anchor: Date; hidden: Set<CalendarGroup>; weekStart: WeekStart; showChores: boolean }) {
   const hide = serializeHidden(hidden);
   const [members, sync] = await Promise.all([getMembers(familyId), getCalendarSyncStatus(familyId)]);
   const activeMembers = members.filter((m) => m.status !== "pending" && m.status !== "removed");
@@ -183,8 +187,8 @@ async function CalendarPane({ familyId, meId, who, view, anchor, hidden, weekSta
         />
       </div>
 
-      {view === "week" && <WeekView familyId={familyId} memberId={memberId} who={who} anchor={anchor} hidden={hidden} hide={hide} weekStart={weekStart} />}
-      {view === "month" && <MonthView familyId={familyId} memberId={memberId} who={who} anchor={anchor} hidden={hidden} hide={hide} weekStart={weekStart} />}
+      {view === "week" && <WeekView familyId={familyId} memberId={memberId} who={who} anchor={anchor} hidden={hidden} hide={hide} weekStart={weekStart} showChores={showChores} />}
+      {view === "month" && <MonthView familyId={familyId} memberId={memberId} who={who} anchor={anchor} hidden={hidden} hide={hide} weekStart={weekStart} showChores={showChores} />}
       {view === "year" && <YearView familyId={familyId} memberId={memberId} who={who} anchor={anchor} hidden={hidden} hide={hide} />}
 
       {/* The legend is also the filter: each entry says what a colour means
@@ -232,6 +236,8 @@ async function CalendarPane({ familyId, meId, who, view, anchor, hidden, weekSta
         )}
       </div>
 
+      {view !== "year" && !hidden.has("routines") && <ShowChoresSwitch on={showChores} />}
+
       {/* Add anything the calendar can show, on the day being looked at. */}
       <AddToCalendar date={toISODate(anchor)} />
 
@@ -269,6 +275,43 @@ function AgendaRow({ item }: { item: PlannerCalendarItem }) {
         {isPastActivity && <AddToJournalButton activityId={item.id} />}
       </div>
     </div>
+  );
+}
+
+/** One day's agenda. Chores repeat on every day and used to bury the one-off
+ * plans, so unless "Show chores" is on they fold into a single "N chores"
+ * line after the plans (agreed 28 September) -- the browser's own
+ * disclosure, so it opens with no script and no round trip. */
+function DayAgenda({ items, showChores }: { items: PlannerCalendarItem[]; showChores: boolean }) {
+  const chores = items.filter((i) => i.chore);
+  if (showChores || chores.length === 0) {
+    return items.map((a) => <AgendaRow key={`${a.table}-${a.id}`} item={a} />);
+  }
+  const style = styleFor("routines");
+  return (
+    <>
+      {items.filter((i) => !i.chore).map((a) => <AgendaRow key={`${a.table}-${a.id}`} item={a} />)}
+      <details className="kin-chores-fold">
+        <summary>
+          <span style={{ width: 4, alignSelf: "stretch", borderRadius: 999, background: style.color, opacity: 0.45, flex: "none" }} />
+          <span style={{ width: "3.25rem", flex: "none", fontSize: "0.8125rem", color: "var(--color-neutral-600)" }}>
+            <Icon name="house" size={14} style={{ display: "inline-block", verticalAlign: "-2px" }} />
+          </span>
+          <span style={{ flex: 1, minWidth: 0 }}>
+            <span style={{ fontSize: "1rem", fontWeight: 500, display: "block", lineHeight: 1.25 }}>
+              {chores.length} {chores.length === 1 ? "chore" : "chores"}
+            </span>
+            <span style={{ fontSize: "0.8125rem", color: "var(--color-neutral-600)", display: "block", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+              {chores.map((c) => c.title).join(", ")}
+            </span>
+          </span>
+          <Icon name="chevronLeft" size={14} className="kin-fold-mark" />
+        </summary>
+        <div style={{ paddingLeft: "0.875rem" }}>
+          {chores.map((a) => <AgendaRow key={`${a.table}-${a.id}`} item={a} />)}
+        </div>
+      </details>
+    </>
   );
 }
 
@@ -320,7 +363,7 @@ function DayHeading({ date, isToday }: { date: Date; isToday: boolean }) {
   );
 }
 
-async function WeekView({ familyId, memberId, who, anchor, hidden, hide, weekStart }: { familyId: string; memberId?: string; who: string; anchor: Date; hidden: Set<CalendarGroup>; hide: string; weekStart: WeekStart }) {
+async function WeekView({ familyId, memberId, who, anchor, hidden, hide, weekStart, showChores }: { familyId: string; memberId?: string; who: string; anchor: Date; hidden: Set<CalendarGroup>; hide: string; weekStart: WeekStart; showChores: boolean }) {
   const { days, strip } = await getWeekAgenda(familyId, memberId, anchor, hidden, undefined, weekStart);
   const selected = days.find((d) => d.isSelected);
   const today = new Date();
@@ -378,7 +421,7 @@ async function WeekView({ familyId, memberId, who, anchor, hidden, hide, weekSta
                 {d.date.getDate()}
               </span>
               <span style={{ display: "flex", gap: "0.125rem", height: 4 }}>
-                {d.items.slice(0, 3).map((a) => (
+                {(showChores ? d.items : d.items.filter((i) => !i.chore)).slice(0, 3).map((a) => (
                   <span key={`${a.table}-${a.id}`} style={{ width: 4, height: 4, borderRadius: 999, background: styleFor(a.table).color }} />
                 ))}
               </span>
@@ -394,7 +437,7 @@ async function WeekView({ familyId, memberId, who, anchor, hidden, hide, weekSta
           {selected.activities.length === 0 ? (
             <p style={{ fontSize: "0.9375rem", color: "var(--color-neutral-600)", padding: "0.375rem 0" }}>Nothing on this day.</p>
           ) : (
-            selected.activities.map((a) => <AgendaRow key={`${a.table}-${a.id}`} item={a} />)
+            <DayAgenda items={selected.activities} showChores={showChores} />
           )}
         </div>
       )}
@@ -406,16 +449,14 @@ async function WeekView({ familyId, memberId, who, anchor, hidden, hide, weekSta
           // still to come.
           <div key={d.date.toISOString()} style={{ opacity: isPast(d.date, today) ? 0.62 : 1 }}>
             <DayHeading date={d.date} isToday={d.isToday} />
-            {d.activities.map((a) => (
-              <AgendaRow key={`${a.table}-${a.id}`} item={a} />
-            ))}
+            <DayAgenda items={d.activities} showChores={showChores} />
           </div>
         ))}
     </>
   );
 }
 
-async function MonthView({ familyId, memberId, who, anchor, hidden, hide, weekStart }: { familyId: string; memberId?: string; who: string; anchor: Date; hidden: Set<CalendarGroup>; hide: string; weekStart: WeekStart }) {
+async function MonthView({ familyId, memberId, who, anchor, hidden, hide, weekStart, showChores }: { familyId: string; memberId?: string; who: string; anchor: Date; hidden: Set<CalendarGroup>; hide: string; weekStart: WeekStart; showChores: boolean }) {
   const { months } = await getMonthsOverview(familyId, anchor, memberId, hidden);
   const today = new Date();
   const anchorMonth = months.find(
@@ -470,7 +511,9 @@ async function MonthView({ familyId, memberId, who, anchor, hidden, hide, weekSt
                   const date = new Date(m.monthStart.getFullYear(), m.monthStart.getMonth(), day);
                   const isToday = date.toDateString() === today.toDateString();
                   const isSelected = date.toDateString() === anchor.toDateString();
-                  const items = m.itemsByDay[day] ?? [];
+                  const dayItems = m.itemsByDay[day] ?? [];
+                  // Folded, a day's plans take its two chips before any chore does.
+                  const items = showChores ? dayItems : [...dayItems.filter((i) => !i.chore), ...dayItems.filter((i) => i.chore)];
                   return (
                     <Link
                       key={day}
@@ -560,7 +603,7 @@ async function MonthView({ familyId, memberId, who, anchor, hidden, hide, weekSt
             <p style={{ fontSize: "0.9375rem", color: "var(--color-neutral-600)", padding: "0.375rem 0" }}>Nothing on this day.</p>
           )
         ) : (
-          selectedItems.map((a) => <AgendaRow key={`${a.table}-${a.id}`} item={a} />)
+          <DayAgenda items={selectedItems} showChores={showChores} />
         )}
       </div>
     </div>

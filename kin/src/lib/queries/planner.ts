@@ -15,6 +15,10 @@ export type PlannerCalendarItem = {
   memberIds: string[];
   appliesToAll: boolean;
   href: string;
+  /** A recurring chore. They come round every day, so the agenda folds a
+   * day's worth of them into one line rather than letting them bury the
+   * one-off plans (agreed 28 September). */
+  chore?: boolean;
 };
 
 function firstNames(names: (string | undefined)[]): string {
@@ -202,6 +206,7 @@ async function fetchCalendarItems(familyId: string, rangeStart: Date, rangeEnd: 
         memberIds,
         appliesToAll: r.applies_to_whole_family,
         href: `/planner?seg=routines`,
+        chore: r.kind === "chore",
       });
     }
   }

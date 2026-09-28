@@ -911,6 +911,35 @@ textarea.input {
   color: var(--color-accent);
 }
 
+/* A day's chores folded into one agenda line (Planner, agreed 28 September).
+   Laid out like an AgendaRow -- rail, time column, title over a detail line
+   -- so the fold reads as one more thing on the day, not a control. Opened
+   tens of times a day, so nothing moves but the chevron. */
+.kin-chores-fold > summary {
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+  min-height: 2.75rem;
+  padding: 0.1875rem 0;
+  list-style: none;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+.kin-chores-fold > summary::-webkit-details-marker {
+  display: none;
+}
+.kin-chores-fold > summary > span:nth-child(3) {
+  padding: 0.4375rem 0;
+}
+.kin-chores-fold[open] > summary .kin-fold-mark {
+  transform: rotate(90deg);
+}
+@media (hover: hover) and (pointer: fine) {
+  .kin-chores-fold > summary:hover .kin-fold-mark {
+    color: var(--color-accent);
+  }
+}
+
 /* Shared frosted chrome for the sticky top and bottom bars. */
 .kin-glass-bar {
   background: var(--glass-bg);
