@@ -777,28 +777,53 @@ export async function removeEmergencyContactAction(contactId: string): Promise<A
  * actually sitting in Google Drive are left untouched (Kin only ever held
  * the index); best-effort cleanup of Supabase Storage objects happens here
  * since Storage isn't reachable from the RPC's plain SQL. */
+/** Every storage bucket that keeps a household's files under a first folder
+ * named after the household. */
+const HOUSEHOLD_BUCKETS = ["journal", "trip-photos", "avatars", "recipe-photos", "documents"] as const;
+
+/** Removes everything under `prefix`, however deep, and returns how many
+ * files could not be removed. Storage lists a folder as an entry with no id,
+ * so those are walked rather than deleted; files go in batches of 100, and a
+ * page of 1000 is listed again until the folder comes back empty or stops
+ * shrinking. Best effort, bounded: a household is never kept alive by a file. */
+async function removeFolder(supabase: Awaited<ReturnType<typeof createClient>>, bucket: string, prefix: string, depth = 0): Promise<number> {
+  if (depth > 6) return 0;
+  let left = 0;
+  for (let round = 0; round < 50; round++) {
+    const { data: entries, error } = await supabase.storage.from(bucket).list(prefix, { limit: 1000 });
+    if (error || !entries || entries.length === 0) break;
+    const files = entries.filter((e) => e.id !== null).map((e) => `${prefix}/${e.name}`);
+    const folders = entries.filter((e) => e.id === null);
+    for (const folder of folders) left += await removeFolder(supabase, bucket, `${prefix}/${folder.name}`, depth + 1);
+    let removed = 0;
+    for (let i = 0; i < files.length; i += 100) {
+      const { data, error: removeError } = await supabase.storage.from(bucket).remove(files.slice(i, i + 100));
+      if (!removeError) removed += data?.length ?? 0;
+    }
+    // Nothing more came off this round: whatever is left cannot be removed.
+    if (removed === 0) {
+      left += files.length;
+      break;
+    }
+    if (entries.length < 1000 && removed === files.length) break;
+  }
+  return left;
+}
+
 export async function deleteHouseholdAction(): Promise<ActionState> {
   const me = await requireCurrentMember();
   if (!me.is_organiser) return { error: "Only the organizer can delete the household." };
 
   const supabase = await createClient();
   try {
-    // journal/trip-photos/avatars: flat "<family_id>/<file>" paths.
-    for (const bucket of ["journal", "trip-photos", "avatars"] as const) {
-      const { data: objects } = await supabase.storage.from(bucket).list(me.family_id);
-      if (objects && objects.length > 0) {
-        const { error } = await supabase.storage.from(bucket).remove(objects.map((o) => `${me.family_id}/${o.name}`));
-        if (error) console.error(`Files in ${bucket} were left behind while deleting household ${me.family_id}`, error.message);
-      }
-    }
-    // documents: "<family_id>/<entry_id>/<file>" — one extra level to walk.
-    const { data: entryDirs } = await supabase.storage.from("documents").list(me.family_id);
-    for (const dir of entryDirs ?? []) {
-      const { data: files } = await supabase.storage.from("documents").list(`${me.family_id}/${dir.name}`);
-      if (files && files.length > 0) {
-        const { error } = await supabase.storage.from("documents").remove(files.map((f) => `${me.family_id}/${dir.name}/${f.name}`));
-        if (error) console.error(`Documents in ${dir.name} were left behind while deleting household ${me.family_id}`, error.message);
-      }
+    // Every bucket, every level. This used to list one level of journal,
+    // trip-photos and avatars and two of documents, so event and visit photos
+    // (journal/<family>/events/<id>/…, …/health/<id>/…) and every recipe photo
+    // outlived the household that owned them. Deleting a household has to
+    // mean its files too.
+    for (const bucket of HOUSEHOLD_BUCKETS) {
+      const left = await removeFolder(supabase, bucket, me.family_id);
+      if (left > 0) console.error(`${left} files in ${bucket} were left behind while deleting household ${me.family_id}`);
     }
   } catch {
     // Best effort — the household record itself is what matters most.
