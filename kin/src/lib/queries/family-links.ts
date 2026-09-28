@@ -56,6 +56,11 @@ export type FeedEntry = {
    * their photos since 25 September). Ids only on ours: reactions and
    * comments stay in the household whose photo it is. */
   photos: { url: string; id: string | null }[];
+  /** Reactions and comments from this household and the households linked
+   * with the one it came from (20260929034700). */
+  reactions: { emoji: string; count: number; names: string[] }[];
+  myReaction: string | null;
+  comments: { id: string; author: string; body: string; createdAt: string; mine: boolean; canRemove: boolean }[];
 };
 
 /** Everyone's shared memories in one list, newest first -- "organise family
@@ -65,7 +70,7 @@ export type FeedEntry = {
  * so selecting shared entries without a family filter returns ours plus the
  * linked households' and nothing else. Filtering by family here would be
  * writing the policy a second time, in a place where it could drift. */
-export async function getFamilyFeed(familyId: string): Promise<FeedEntry[]> {
+export async function getFamilyFeed(familyId: string, meId?: string): Promise<FeedEntry[]> {
   const supabase = await createClient();
   const { data } = await supabase
     .from("journal_entries")
@@ -89,6 +94,16 @@ export async function getFamilyFeed(familyId: string): Promise<FeedEntry[]> {
   const { data: names } = await supabase.from("families").select("id, name").in("id", familyIds.length ? familyIds : [familyId]);
   const byId = new Map((names ?? []).map((f) => [f.id, f.name]));
 
+  // The talk under each memory, in two queries for the whole feed.
+  const entryIds = rows.map((r) => r.id);
+  const [{ data: reactionRows }, { data: commentRows }] = entryIds.length
+    ? await Promise.all([
+        supabase.from("journal_reactions").select("entry_id, emoji, member_id, author_name").in("entry_id", entryIds),
+        supabase.from("journal_comments").select("id, entry_id, body, created_at, member_id, author_name").in("entry_id", entryIds).order("created_at", { ascending: true }),
+      ])
+    : [{ data: [] }, { data: [] }];
+  const first = (n: string) => n.split(" ")[0] || "Someone";
+
   // A milestone is an entry marked ★ (20260929023000). A birthday marked as a
   // milestone is already on today's birthday card, as its ★; on its own day
   // it is not listed a second time. Afterwards it is in the feed like any other.
@@ -107,7 +122,28 @@ export async function getFamilyFeed(familyId: string): Promise<FeedEntry[]> {
       photos: mediaOf(r)
         .map((m) => ({ url: signed[m.storage_path as string], id: r.family_id === familyId ? m.id : null }))
         .filter((p): p is { url: string; id: string | null } => !!p.url),
+      ...talkFor(r.id, r.family_id === familyId),
     }));
+
+  function talkFor(entryId: string, ours: boolean) {
+    const counts = new Map<string, { emoji: string; count: number; names: string[] }>();
+    let myReaction: string | null = null;
+    for (const x of reactionRows ?? []) {
+      if (x.entry_id !== entryId) continue;
+      if (x.member_id === meId) myReaction = x.emoji;
+      const c = counts.get(x.emoji) ?? { emoji: x.emoji, count: 0, names: [] };
+      c.count += 1;
+      c.names.push(x.member_id === meId ? "You" : first(x.author_name));
+      counts.set(x.emoji, c);
+    }
+    const comments = (commentRows ?? [])
+      .filter((c) => c.entry_id === entryId)
+      .map((c) => {
+        const mine = !!meId && c.member_id === meId;
+        return { id: c.id, author: mine ? "You" : first(c.author_name), body: c.body, createdAt: c.created_at, mine, canRemove: mine || ours };
+      });
+    return { reactions: [...counts.values()].sort((a, b) => b.count - a.count), myReaction, comments };
+  }
 }
 
 /** Today's birthdays and anniversaries -- ours and linked households' -- with

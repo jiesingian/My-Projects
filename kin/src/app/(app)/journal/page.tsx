@@ -117,7 +117,7 @@ async function GalleryPane({ familyId }: { familyId: string }) {
  * wrote them. Row-level security decides what is in here; this pane does not
  * filter by family at all, on purpose -- see getFamilyFeed. */
 async function FeedPane({ meId, familyId, inviteCode, canManage }: { meId: string; familyId: string; inviteCode: string; canManage: boolean }) {
-  const [entries, links, occasions] = await Promise.all([getFamilyFeed(familyId), getFamilyLinks(familyId), getFeedOccasions(meId, familyId)]);
+  const [entries, links, occasions] = await Promise.all([getFamilyFeed(familyId, meId), getFamilyLinks(familyId), getFeedOccasions(meId, familyId)]);
   return <FamilyFeed entries={entries} links={links} ourCode={inviteCode} canManage={canManage} occasions={occasions} />;
 }
 

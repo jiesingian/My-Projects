@@ -23,11 +23,12 @@ session (see the root CLAUDE.md on session cost).
    wife's maiden surname and the husband's surname, the Filipino way
    ("Santos-Reyes Household"). Never forced (single parents, grandparents
    raising grandchildren, blended families).
-3. **Yes: journal in three layers.** Tabs Mine / Household / Family feed (+
+3. **Done: journal in three layers.** Tabs Mine / Household / Family feed (+
    Gallery). A personal entry can be added to the household journal and shared
    to the family feed. A milestone becomes a ★ mark on an entry, with a filter
    chip; existing milestones move over. Feed is photo-first with reactions and
-   comments; the "link a household" panel shrinks to one line.
+   comments; the "link a household" panel shrinks to one line. (#335 layers,
+   #341 milestones as ★ entries, and the feed; docs/PERSONAL_SPACE.md.)
 4. **Done: Planner → Goals tab** -- money (existing goals), water, steps,
    weight, gym, custom -- progress rings fed by data Kin already has. **Plus
    (Jonathan): a goal can carry a reward**, set when the goal is created, by the
