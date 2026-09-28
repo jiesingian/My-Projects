@@ -14,6 +14,7 @@ import {
   getOneOffTasks,
   getCalendarSyncStatus,
   hasAnyCalendarRecords,
+  FAMILY_FILTER,
   type PlannerCalendarItem,
 } from "@/lib/queries/planner";
 import { getMembers } from "@/lib/queries/family";
@@ -179,9 +180,10 @@ async function CalendarPane({ familyId, meId, who, view, anchor, hidden, weekSta
         <PickButton
           title="Who"
           icon="users"
-          label={who === "all" ? "All" : (memberLabels[activeMembers.findIndex((m) => m.id === who)] ?? "All")}
+          label={who === "all" ? "All" : who === FAMILY_FILTER ? "Family" : (memberLabels[activeMembers.findIndex((m) => m.id === who)] ?? "All")}
           options={[
             { label: "Everyone", href: calendarHref("all", view, anchor, hide), active: who === "all" },
+            { label: "Family", href: calendarHref(FAMILY_FILTER, view, anchor, hide), active: who === FAMILY_FILTER },
             ...activeMembers.map((m, i) => ({
               label: memberLabels[i],
               href: calendarHref(m.id, view, anchor, hide),
@@ -945,9 +947,12 @@ async function MemberChips({ familyId, seg, who }: { familyId: string; seg: stri
       <PickButton
         title="Who"
         icon="users"
-        label={who === "all" ? "All" : (labels[active.findIndex((m) => m.id === who)] ?? "All")}
+        label={who === "all" ? "All" : who === FAMILY_FILTER ? "Family" : (labels[active.findIndex((m) => m.id === who)] ?? "All")}
         options={[
+          // Everyone: every member's plans together, to see what clashes.
+          // Family: only what the whole family is in (FAMILY_FILTER).
           { label: "Everyone", href: `/planner?seg=${seg}&who=all`, active: who === "all" },
+          { label: "Family", href: `/planner?seg=${seg}&who=${FAMILY_FILTER}`, active: who === FAMILY_FILTER },
           ...active.map((m, i) => ({ label: labels[i], href: `/planner?seg=${seg}&who=${m.id}`, active: who === m.id })),
         ]}
       />
@@ -957,8 +962,10 @@ async function MemberChips({ familyId, seg, who }: { familyId: string; seg: stri
 
 /** Whether a record concerns the person being filtered to. Whole-family
  * records always do — narrowing to one person should never hide the things
- * that person is part of. */
+ * that person is part of. "Family" keeps only those, and what is tagged to
+ * nobody in particular. */
 function concerns(memberIds: string[], appliesToAll: boolean, who: string): boolean {
+  if (who === FAMILY_FILTER) return appliesToAll || memberIds.length === 0;
   return who === "all" || appliesToAll || memberIds.includes(who);
 }
 
