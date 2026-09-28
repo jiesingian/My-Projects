@@ -190,7 +190,7 @@ export function FamilyForkForm({
 
       <div style={{ marginTop: "auto", fontSize: "0.8125rem", color: "var(--color-neutral-600)", display: "flex", gap: "0.5rem", paddingTop: "1.25rem" }}>
         <Icon name="info" size={14} className="text-[var(--color-accent)]" />
-        <span>You can be in one family group at a time. Organizers can transfer the role later.</span>
+        <span>You&apos;re in one household at a time. Your own journal and notes are yours, and come with you if you later start a household of your own.</span>
       </div>
     </OnboardingShell>
   );

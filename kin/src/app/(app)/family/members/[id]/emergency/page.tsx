@@ -8,6 +8,7 @@ import { EmergencyCardActions } from "@/components/emergency-card-actions";
 import { formatAge } from "@/lib/format";
 import { familyDay } from "@/lib/time";
 import { activeOn } from "@/lib/health-plan";
+import { isGone } from "@/lib/member-status";
 
 /** Everything a doctor or a stranger helping in an emergency needs, on one
  * screen that reads at arm's length (26 September): blood type, allergies,
@@ -33,7 +34,7 @@ export default async function EmergencyCardPage({ params }: { params: Promise<{ 
   const current = (medicines ?? []).filter((m) => activeOn(m, today));
   const ongoing = (conditions ?? []).filter((c) => !/resolved|past|healed/i.test(c.status));
   // The grown-ups of the house come first: they are who a hospital rings.
-  const parents = members.filter((m) => (m.role === "parent" || m.role === "adult") && m.id !== member.id && m.mobile?.trim() && m.status !== "removed");
+  const parents = members.filter((m) => (m.role === "parent" || m.role === "adult") && m.id !== member.id && m.mobile?.trim() && !isGone(m.status));
   const calls = [...parents.map((p) => ({ name: p.full_name, relationship: p.relationship ?? p.role, phone: p.mobile!.trim() })), ...contacts.map((c) => ({ name: c.name, relationship: c.relationship, phone: c.phone }))];
 
   const facts: [string, string | null][] = [

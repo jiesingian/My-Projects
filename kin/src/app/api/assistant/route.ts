@@ -5,6 +5,7 @@ import { inKidView } from "@/lib/kid-view";
 import { createClient } from "@/lib/supabase/server";
 import { ASSISTANT_TOOLS, runAssistantTool } from "@/lib/assistant/tools";
 import { takeKinAiUse } from "@/lib/kin-ai-allowance";
+import { GONE_STATUSES } from "@/lib/member-status";
 
 /** Enough turns for the assistant to look something up, act on it, and
  * report back, without ever looping unbounded on a user's request. */
@@ -76,7 +77,7 @@ export async function POST(request: Request) {
   const client = new Anthropic();
   const messages: Anthropic.Beta.BetaMessageParam[] = [...history];
 
-  const { data: memberRows } = await supabase.from("members").select("full_name").eq("family_id", me.family_id).neq("status", "removed");
+  const { data: memberRows } = await supabase.from("members").select("full_name").eq("family_id", me.family_id).not("status", "in", GONE_STATUSES);
 
   const system = systemPrompt({
     memberName: me.full_name.split(" ")[0],

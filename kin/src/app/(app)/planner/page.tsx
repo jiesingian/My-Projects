@@ -38,6 +38,7 @@ import { ShowChoresSwitch } from "@/components/show-chores-switch";
 import { cookies } from "next/headers";
 import { familyDate } from "@/lib/format-family";
 import { GoalsPane } from "./goals-pane";
+import { isGone } from "@/lib/member-status";
 
 const SEGMENTS = ["calendar", "routines", "events", "goals"] as const;
 type Seg = (typeof SEGMENTS)[number];
@@ -132,7 +133,7 @@ function calendarBase(who: string, view: CalendarView, hide = "") {
 async function CalendarPane({ familyId, meId, who, view, anchor, hidden, weekStart, showChores }: { familyId: string; meId: string; who: string; view: CalendarView; anchor: Date; hidden: Set<CalendarGroup>; weekStart: WeekStart; showChores: boolean }) {
   const hide = serializeHidden(hidden);
   const [members, sync] = await Promise.all([getMembers(familyId), getCalendarSyncStatus(familyId)]);
-  const activeMembers = members.filter((m) => m.status !== "pending" && m.status !== "removed");
+  const activeMembers = members.filter((m) => m.status !== "pending" && !isGone(m.status));
   // Your own entry says "Me": a filter naming you reads like someone else
   // looking at your house.
   const memberLabels = shortNames(activeMembers.map((m) => m.full_name)).map((l, i) => selfLabel(l, activeMembers[i].id === meId));
@@ -935,7 +936,7 @@ async function RoutinesPane({ familyId, who, currency, justSaved }: { familyId: 
  * the same thing wherever you are and survives switching tab. */
 async function MemberChips({ familyId, seg, who }: { familyId: string; seg: string; who: string }) {
   const [members, me] = await Promise.all([getMembers(familyId), getCurrentMember()]);
-  const active = members.filter((m) => m.status !== "pending" && m.status !== "removed");
+  const active = members.filter((m) => m.status !== "pending" && !isGone(m.status));
   const labels = shortNames(active.map((m) => m.full_name)).map((l, i) => selfLabel(l, active[i].id === me?.id));
 
   return (

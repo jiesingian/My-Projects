@@ -6,6 +6,7 @@ import { createClient } from "@/lib/supabase/server";
 import { toISODate } from "@/lib/routines";
 import { getRoutineAttachments, type RoutineAttachment } from "@/lib/queries/routines";
 import { RoutineForm, type EditRoutine } from "./routine-form";
+import { isGone } from "@/lib/member-status";
 
 export default async function RoutinePage({ searchParams }: { searchParams: Promise<{ id?: string }> }) {
   const me = await getCurrentMember();
@@ -14,7 +15,7 @@ export default async function RoutinePage({ searchParams }: { searchParams: Prom
 
   const [members, accounts] = await Promise.all([getMembers(me.family_id), getAccounts(me.family_id)]);
   const activeMembers = members
-    .filter((m) => m.status !== "pending" && m.status !== "removed")
+    .filter((m) => m.status !== "pending" && !isGone(m.status))
     .map((m) => ({ id: m.id, full_name: m.full_name }));
 
   let edit: EditRoutine | null = null;

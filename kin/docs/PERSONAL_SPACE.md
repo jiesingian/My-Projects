@@ -100,6 +100,34 @@ personal photo rows go with it. Household records it wrote stay.
   reaching.
 - **Private documents in the vault** stay in the household vault they were
   filed in. Their files are stored under the household's folder.
+- **Deleting a household** still deletes everything whose `family_id` is that
+  household -- including personal entries kept there at the time. Personal
+  rows carry the household they are kept in (for storage and Kin Plus), and a
+  row cannot outlive its household without making `family_id` nullable across
+  the journal. Worth deciding before the journal's Mine tab (item 3) lets
+  people write many of them.
+
+## Step 2, as built
+
+- `start_own_household(name)` and `move_to_household(code)`. An **organizer**
+  with anyone else in the household (active or managed) hands the role over
+  first; an organizer on their own already has a household of their own. Only
+  a grown-up (parent or adult) starts one; anyone with a login can move.
+- `members_bring_personal_space()` runs whenever a membership becomes active,
+  so starting a household, an approved join and a reinstatement all bring the
+  person's personal rows and photo album along -- including their own Planner
+  goals (water, steps, weight, gym, custom) with what was logged against them
+  and any reward. `planner_goals_fixed()` still refuses any change of owner,
+  except this one: the same person, while this trigger names them. Personal goals keep their
+  saved total; their ledger lines and linked account stay with the old
+  household's money.
+- A new household is linked to the one left behind (accepted: the mover was a
+  grown-up there) and the tree person is matched across both trees. An
+  approved move into someone else's household sends the old household a link
+  request instead, which its grown-ups answer as any other.
+- Someone **removed** from a household used to land on an empty app; they now
+  land on "You're no longer in …" with the same two choices. No link is made
+  to a household that removed them.
 
 ## How existing data is kept where it is
 

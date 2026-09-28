@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { getSignedUrls } from "@/lib/storage";
+import { GONE_STATUSES } from "@/lib/member-status";
 
 
 export type ChatMember = { id: string; name: string; first: string; initials: string; photoUrl: string | null };
@@ -189,7 +190,7 @@ export async function getChatMembers(familyId: string): Promise<ChatMember[]> {
     .from("members")
     .select("id, full_name, avatar_url, status")
     .eq("family_id", familyId)
-    .neq("status", "removed")
+    .not("status", "in", GONE_STATUSES)
     .order("created_at");
 
   return (data ?? []).map((m) => {

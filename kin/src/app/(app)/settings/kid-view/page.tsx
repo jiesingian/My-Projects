@@ -5,6 +5,7 @@ import { isGrownUp } from "@/lib/roles";
 import { DetailHeader } from "@/components/hub-header";
 import { Blueprint } from "@/components/ui";
 import { KidViewSwitch } from "@/components/settings-controls";
+import { GONE_STATUSES } from "@/lib/member-status";
 
 /** Kid view, per child (K1, 25 September): for children with a login of
  * their own. Any grown-up in the household switches it; the child can't. */
@@ -19,7 +20,7 @@ export default async function KidViewSettingsPage() {
     .select("id, full_name, kid_view")
     .eq("family_id", me.family_id)
     .eq("role", "child_self")
-    .neq("status", "removed")
+    .not("status", "in", GONE_STATUSES)
     .order("created_at");
 
   return (
