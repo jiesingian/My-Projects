@@ -9,7 +9,8 @@
 --   'blocked by RLS'  SQLSTATE 42501
 --   'error P0001'     a trigger or function said no; 'error P0002' not found
 --
--- Run against dev (peborutoxsqqwgxwgxjo) only. It ends in `rollback`. To
+-- Run against dev (peborutoxsqqwgxwgxjo) only. It ends in `rollback`.
+-- The move cases at the end need 20260928223000_goal_move_reconcile.sql. To
 -- check 20260928220500_goal_reward_giver.sql before it merges, paste it in
 -- just after `begin;`.
 
@@ -135,6 +136,41 @@ select pg_temp.probe('other household answers a reward of A', 'b0000000-0000-000
 
 select pg_temp.probe('CONTROL: household A reads its own changes', 'a0000000-0000-0000-0000-000000000003',
   $q$select * from planner_goal_changes where family_id = 'a1000000-0000-0000-0000-000000000000'$q$, 'allowed');
+
+-- Moving household (20260928214500, restored by 20260928223000): a goal and
+-- its reward follow the owner to their new household only while
+-- members_bring_personal_space() names the person moving. Run as the
+-- database owner, the way that function runs.
+select set_config('kin.privileged', 'on', true);
+insert into members (id, family_id, full_name, role, status, person_id)
+select 'b2000000-0000-0000-0000-000000000009', 'b1000000-0000-0000-0000-000000000000', 'Probe Parent (moved)', 'parent', 'invited', person_id
+from members where id = 'a2000000-0000-0000-0000-000000000001';
+select set_config('kin.privileged', 'off', true);
+
+do $$
+begin
+  begin
+    update planner_goal_rewards set family_id = 'b1000000-0000-0000-0000-000000000000' where goal_id = 'a3000000-0000-0000-0000-000000000003';
+    insert into probe_results values (nextval('probe_seq'), 'a reward changes household outside a move', 'error P0001', 'allowed');
+  exception when others then
+    insert into probe_results values (nextval('probe_seq'), 'a reward changes household outside a move', 'error P0001', 'error ' || SQLSTATE);
+  end;
+  begin
+    update planner_goals set family_id = 'b1000000-0000-0000-0000-000000000000', owner_member_id = 'b2000000-0000-0000-0000-000000000009' where id = 'a3000000-0000-0000-0000-000000000003';
+    insert into probe_results values (nextval('probe_seq'), 'a goal changes household outside a move', 'error P0001', 'allowed');
+  exception when others then
+    insert into probe_results values (nextval('probe_seq'), 'a goal changes household outside a move', 'error P0001', 'error ' || SQLSTATE);
+  end;
+  begin
+    perform set_config('kin.moving_person', (select person_id::text from members where id = 'a2000000-0000-0000-0000-000000000001'), true);
+    update planner_goals set family_id = 'b1000000-0000-0000-0000-000000000000', owner_member_id = 'b2000000-0000-0000-0000-000000000009' where id = 'a3000000-0000-0000-0000-000000000003';
+    update planner_goal_rewards set family_id = 'b1000000-0000-0000-0000-000000000000' where goal_id = 'a3000000-0000-0000-0000-000000000003';
+    perform set_config('kin.moving_person', '', true);
+    insert into probe_results values (nextval('probe_seq'), 'a goal and its reward follow the owner during a move', 'allowed', 'allowed');
+  exception when others then
+    insert into probe_results values (nextval('probe_seq'), 'a goal and its reward follow the owner during a move', 'allowed', 'error ' || SQLSTATE);
+  end;
+end $$;
 
 select n, label, expected, actual, case when expected = actual then 'ok' else 'FAIL' end as verdict
 from probe_results order by n;
