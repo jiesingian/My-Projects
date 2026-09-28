@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Icon, type IconName } from "@/components/icons";
 import { CALENDAR_STYLE } from "@/lib/calendar-style";
+import { readableDay } from "@/lib/time";
 
 /** Everything the calendar shows can now be added from it. Each kind lives
  * in the hub that owns it — a bill belongs to Wealth, a meal to Household —
@@ -39,7 +40,7 @@ export function AddToCalendar({ date }: { date: string }) {
     };
   }, [open]);
 
-  const readable = new Date(`${date}T00:00:00`).toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long" });
+  const readable = readableDay(date, { long: true });
 
   return (
     <>

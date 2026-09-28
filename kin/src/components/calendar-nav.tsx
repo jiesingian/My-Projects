@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Icon } from "@/components/icons";
 import { dayColumn, weekdayInitials, type WeekStart } from "@/lib/week";
-import { familyDay } from "@/lib/time";
+import { familyDay, readableDay } from "@/lib/time";
 
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 const MONTHS_LONG = [
@@ -261,12 +261,7 @@ export function CalendarJump({
                         key={day}
                         type="button"
                         onClick={() => go(target)}
-                        aria-label={new Date(year, month, day).toLocaleDateString("en-GB", {
-                          weekday: "long",
-                          day: "numeric",
-                          month: "long",
-                          year: "numeric",
-                        })}
+                        aria-label={readableDay(target, { long: true, year: true })}
                         aria-current={isSelected ? "date" : undefined}
                         style={{
                           height: "2.5rem",

@@ -25,6 +25,15 @@ function getSnapshot() {
   return items;
 }
 
+/** The server has no toasts. One shared empty list, not `() => []`: React
+ * compares snapshots by identity, and a fresh array on every call reads as the
+ * store changing on every render -- it warned about an infinite loop on every
+ * page, since this is mounted on every page. */
+const NO_TOASTS: typeof items = [];
+function getServerSnapshot() {
+  return NO_TOASTS;
+}
+
 const DURATION: Record<ToastKind, number> = { success: 3000, error: 5000, info: 3500 };
 // Matches the CSS transition below -- kept as one number instead of two so
 // they can't drift apart.
@@ -114,7 +123,7 @@ export const toast = {
 
 /** Mounted once, at the app shell. */
 export function Toaster() {
-  const list = useSyncExternalStore(subscribe, getSnapshot, () => []);
+  const list = useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
 
   useEffect(() => {
     const onVisibility = () => {
