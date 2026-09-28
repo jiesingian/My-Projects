@@ -214,10 +214,19 @@ async function fetchCalendarItems(familyId: string, rangeStart: Date, rangeEnd: 
   return items.sort((a, b) => a.date.getTime() - b.date.getTime());
 }
 
+/** The Planner's "Who: Family" (29 September): only what the whole family is
+ * in -- tagged "whole family", or the household's own (bills, meals, a plan
+ * tagged to nobody). "Everyone" is the other view: every member's plans
+ * together, to see what a new one would clash with. Passed where a member
+ * id otherwise goes. */
+export const FAMILY_FILTER = "family";
+
 /** An item is shown when it belongs to whoever is selected and its category
  * has not been switched off in the legend. */
 function shown(item: PlannerCalendarItem, memberId?: string, hidden?: Set<CalendarGroup>): boolean {
-  if (memberId && !item.appliesToAll && !item.memberIds.includes(memberId)) return false;
+  if (memberId === FAMILY_FILTER) {
+    if (!item.appliesToAll && item.memberIds.length > 0) return false;
+  } else if (memberId && !item.appliesToAll && !item.memberIds.includes(memberId)) return false;
   return !hidden?.has(GROUP_OF[item.table]);
 }
 

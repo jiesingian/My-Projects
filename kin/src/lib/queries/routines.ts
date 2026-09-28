@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { FAMILY_FILTER } from "@/lib/queries/planner";
 import { assigneeFor, currentStreak, expandRoutine, nextOccurrence, toISODate, type RoutineRule } from "@/lib/routines";
 import { choreStreak, type ChoreStreak, type DayState } from "@/lib/streaks";
 import { isChild } from "@/lib/roles";
@@ -93,7 +94,7 @@ export async function getRoutines(familyId: string, memberId?: string): Promise<
 
     // A member filter hides routines that are nobody else's business, but
     // never anything the whole household is on for.
-    if (memberId && !r.applies_to_whole_family && !members.some((m) => m.id === memberId)) continue;
+    if (memberId === FAMILY_FILTER ? !r.applies_to_whole_family && members.length > 0 : memberId && !r.applies_to_whole_family && !members.some((m) => m.id === memberId)) continue;
 
     const rule: RoutineRule = {
       freq: r.freq as RoutineRule["freq"],

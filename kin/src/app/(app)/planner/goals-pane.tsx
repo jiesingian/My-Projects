@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { FAMILY_FILTER } from "@/lib/queries/planner";
 import { Blueprint } from "@/components/ui";
 import { Icon } from "@/components/icons";
 import { GoalRing } from "@/components/goal-ring";
@@ -36,7 +37,8 @@ export async function GoalsPane({
   const colourOf = new Map(members.map((m) => [m.id, memberColourVar(m.id, m.color)]));
   // A household goal concerns everyone, so it stays when narrowing to one
   // person -- the same rule as whole-family tasks and events.
-  const visible = goals.filter((g) => who === "all" || g.ownerId === null || g.ownerId === who);
+  // "Family" is the household goals alone (FAMILY_FILTER).
+  const visible = goals.filter((g) => who === "all" || g.ownerId === null || (who !== FAMILY_FILTER && g.ownerId === who));
 
   return (
     <>
