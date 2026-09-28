@@ -138,21 +138,48 @@ self.addEventListener("push", (event) => {
   event.waitUntil(
     self.registration.showNotification(data.title || "Kin", {
       body: data.body || "",
-      icon: "/icon-192.png",
+      // A call shows who is calling, like a phone's incoming-call banner.
+      icon: data.icon || "/icon-192.png",
       badge: "/icon-192.png",
       tag: data.tag,
-      data: { url: data.url || "/today" },
+      data: { url: data.url || "/today", call: data.call },
+      // Answer and Decline on the notification itself, where the phone
+      // supports buttons (Android; iPhones show the banner without them).
+      ...(data.call
+        ? {
+            actions: [
+              { action: "answer", title: "Answer" },
+              { action: "decline", title: "Decline" },
+            ],
+          }
+        : {}),
       // A ringing call stays on screen and buzzes again, where the phone
       // allows it, rather than sliding away like a chat message. The missed
       // call that follows it has the same tag, so it takes the ring's place.
-      ...(data.ring ? { requireInteraction: true, renotify: true, vibrate: [400, 200, 400, 200, 400] } : {}),
+      ...(data.ring ? { requireInteraction: true, renotify: true, vibrate: [800, 400, 800, 400, 800, 400, 800] } : {}),
     }),
   );
 });
 
 self.addEventListener("notificationclick", (event) => {
   event.notification.close();
-  const target = new URL(event.notification.data?.url || "/today", self.location.origin).href;
+  const call = event.notification.data?.call;
+  // Decline without opening Kin: the server tells the caller's phone, which
+  // stops ringing and shows "declined" (28 September).
+  if (call && event.action === "decline") {
+    event.waitUntil(
+      fetch("/api/calls/decline", {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ call: call.id, from: call.from }),
+      }).catch(() => undefined),
+    );
+    return;
+  }
+  // Answer opens Kin and picks the call up as soon as its ring arrives.
+  const path = call && event.action === "answer" ? `/chat?answer=${encodeURIComponent(call.id)}` : event.notification.data?.url || "/today";
+  const target = new URL(path, self.location.origin).href;
   event.waitUntil(
     (async () => {
       const open = await self.clients.matchAll({ type: "window", includeUncontrolled: true });

@@ -19,30 +19,38 @@ const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
  *
  * The household's grown-ups are told as well (26 September), each under
  * their own "Family calls" switch: "Alex is calling Robin". */
-export async function ringAction(to: string, video: boolean): Promise<{ error: string | null; reachable: boolean }> {
+/**
+ * `again` (28 September): the caller's phone repeats the ring every few
+ * seconds while it is still ringing out, so the notification alerts again
+ * like a phone that keeps ringing. A repeat only re-sends the ring -- the
+ * grown-ups' notice and the reachability answer came with the first. */
+export async function ringAction(to: string, video: boolean, callId: string, again = false): Promise<{ error: string | null; reachable: boolean }> {
   const me = await requireCurrentMember();
-  if (!UUID.test(to) || to === me.id) return { error: "That person can't be called.", reachable: false };
+  if (!UUID.test(to) || to === me.id || !UUID.test(callId)) return { error: "That person can't be called.", reachable: false };
   const supabase = await createClient();
-  const { data: household } = await supabase.from("members").select("id, full_name, role, status").eq("family_id", me.family_id);
+  const { data: household } = await supabase.from("members").select("id, full_name, role, status, avatar_url").eq("family_id", me.family_id);
   const callee = household?.find((m) => m.id === to);
   if (!callee || callee.status !== "active") return { error: "That person can't be called.", reachable: false };
   // Whether any of their devices will get the ring when Kin isn't open on it:
   // the same question push_targets() answers for the send itself, asked first
   // so the caller can be told rather than left wondering (26 September).
-  const { data: devices } = pushConfigured() ? await supabase.rpc("push_targets", { p_kind: "calls", p_member_ids: [to] }) : { data: [] };
-  const reachable = (devices?.length ?? 0) > 0;
+  const { data: devices } = !again && pushConfigured() ? await supabase.rpc("push_targets", { p_kind: "calls", p_member_ids: [to] }) : { data: [] };
+  const reachable = again || (devices?.length ?? 0) > 0;
   const caller = first(me.full_name);
-  const watchers = callWatchers(household ?? [], me.id, to);
+  const watchers = again ? [] : callWatchers(household ?? [], me.id, to);
   after(() =>
     Promise.all([
       sendPush({
         kind: "calls",
         memberIds: [to],
+        // Laid out like a phone's incoming call: who, what kind, what to do.
         title: `${caller} is calling`,
-        body: video ? "Video call. Open Kin to answer." : "Voice call. Open Kin to answer.",
+        body: video ? "Kin video call · tap to answer" : "Kin voice call · tap to answer",
         url: "/chat",
         tag: `call-${me.id}`,
         ring: true,
+        icon: household?.find((m) => m.id === me.id)?.avatar_url ?? null,
+        call: { id: callId, from: me.id, video },
       }),
       watchers.length > 0 &&
         sendPush({
