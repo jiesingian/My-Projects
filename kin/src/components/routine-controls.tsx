@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { logRoutineAction, clearRoutineLogAction, setRoutinePausedAction, deleteRoutineAction } from "@/lib/actions/routines";
 import { Icon } from "@/components/icons";
 import { formatCurrency } from "@/lib/format";
-import { familyDay, daysBetween } from "@/lib/time";
+import { familyDay, daysBetween, readableDay } from "@/lib/time";
 
 function useRoutineAction() {
   const router = useRouter();
@@ -174,8 +174,7 @@ export function RoutineDeleteButton({ id, title }: { id: string; title: string }
 }
 
 function readableDate(iso: string): string {
-  const [y, m, d] = iso.split("-").map(Number);
-  return new Date(y, m - 1, d).toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short" });
+  return readableDay(iso);
 }
 
 /** How far behind a routine is, counted in the household's days rather than

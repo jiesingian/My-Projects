@@ -10,6 +10,7 @@ import { approveGoalChangeAction, approveGoalRewardAction, refuseGoalChangeActio
 import type { PendingApproval, PendingRedemption } from "@/lib/queries/routines";
 import type { PendingGoalChange, PendingGoalReward } from "@/lib/queries/goals";
 import { REWARD_TERMS } from "@/lib/goals";
+import { readableDay } from "@/lib/time";
 
 /** What this person still has to answer for. Chores and redemptions come
  * only to a parent or an adult (a child sees their own chore waiting on the
@@ -363,6 +364,5 @@ function ApprovalRow({ item }: { item: PendingApproval }) {
 }
 
 function readableDate(iso: string): string {
-  const [y, m, d] = iso.split("-").map(Number);
-  return new Date(y, m - 1, d).toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short" });
+  return readableDay(iso);
 }

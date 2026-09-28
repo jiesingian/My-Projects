@@ -147,6 +147,26 @@ export function weekdayOf(day: string): number | null {
   return utcNoonlessDay(day)?.getUTCDay() ?? null;
 }
 
+const WEEKDAY_NAMES = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+const MONTH_NAMES = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+
+/** A plain date as a person reads it: "Sun 27 Sept", or with `long`,
+ * "Sunday 27 September" (and the year, when asked).
+ *
+ * Spelled out by hand rather than through toLocaleDateString, because that
+ * answer depends on the ICU data of whoever runs it: Node on the server
+ * printed "Sun 27 Sept", Chrome "Sun, 27 Sept", and React threw away the
+ * Routines page on every load because the two disagreed. Older phones say
+ * "Sep". A client component that renders on the server needs one answer. */
+export function readableDay(day: string, opts: { long?: boolean; year?: boolean } = {}): string {
+  const w = weekdayOf(day);
+  const [y, m, d] = day.split("-").map(Number);
+  if (w === null || !m || !d) return day;
+  const weekday = opts.long ? WEEKDAY_NAMES[w] : WEEKDAY_NAMES[w].slice(0, 3);
+  const month = opts.long ? MONTH_NAMES[m - 1] : m === 9 ? "Sept" : MONTH_NAMES[m - 1].slice(0, 3);
+  return `${weekday} ${d} ${month}${opts.year ? ` ${y}` : ""}`;
+}
+
 /** Whole days from one plain date to another, positive when `to` is later.
  *
  * Both sides are plain dates, so this never touches a clock -- which is the
