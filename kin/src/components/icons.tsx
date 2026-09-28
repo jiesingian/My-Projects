@@ -1,5 +1,5 @@
-// Thin-stroke line glyphs, 24×24, single path each — vendored from the
-// Claude Design prototype (no icon CDN dependency).
+// Line glyphs, 24×24, single path each — vendored from the Claude Design
+// prototype (no icon CDN dependency). Drawn in soft 3D by Icon below.
 export const iconPaths = {
   chevronLeft: "M15 18 9 12 15 6",
   users:
@@ -95,20 +95,32 @@ export function Icon({
   className?: string;
   style?: React.CSSProperties;
 }) {
+  const d = iconPaths[name];
+  /* Soft 3D (28 September), the same satin as the tab bar's: every glyph is
+     the one line drawn four times -- a faint shadow below, a deeper rim just
+     under it (the tube's thickness, seen from a touch above), the line
+     itself, and a thin highlight along its upper left. Flat strokes, no
+     gradients or filters: nothing to give a unique id, and cheap enough for
+     a list of two hundred. The layers' tones and offsets live in
+     globals.css under .kin-i3. */
   return (
     <span
       className={`kin-i inline-flex ${className ?? ""}`}
       style={{ width: size, height: size, ...style }}
     >
       <svg
+        className="kin-i3"
         viewBox="0 0 24 24"
         fill="none"
         stroke="currentColor"
-        strokeWidth={1.5}
+        strokeWidth={1.8}
         strokeLinecap="round"
         strokeLinejoin="round"
       >
-        <path d={iconPaths[name]} />
+        <path className="kin-i3-shadow" d={d} />
+        <path className="kin-i3-rim" d={d} />
+        <path d={d} />
+        <path className="kin-i3-hi" d={d} />
       </svg>
     </span>
   );

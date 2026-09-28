@@ -67,7 +67,7 @@ function ItemRow({ item }: { item: BriefItem }) {
       }}
     >
       <Link href={item.href} style={{ display: "flex", gap: "0.625rem", alignItems: "flex-start", color: "inherit", textDecoration: "none" }}>
-        <span style={{ width: 30, height: 30, flex: "none", borderRadius: 9, display: "flex", alignItems: "center", justifyContent: "center", background: TINT[item.tint], color: "#fff" }}>
+        <span className="kin-tile3d" style={{ width: 30, height: 30, flex: "none", borderRadius: 9, display: "flex", alignItems: "center", justifyContent: "center", backgroundColor: TINT[item.tint], color: "#fff" }}>
           <Icon name={item.icon} size={16} />
         </span>
         <span style={{ flex: 1, minWidth: 0 }}>
