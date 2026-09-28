@@ -33,6 +33,10 @@ export async function sendPush(input: {
   tag?: string;
   ring?: boolean;
   ttlSeconds?: number;
+  /** The caller's photo, shown as the notification's picture. */
+  icon?: string | null;
+  /** A ringing call: lets the notification answer or decline it. */
+  call?: { id: string; from: string; video: boolean };
 }): Promise<void> {
   if (!vapidReady()) return;
   try {
@@ -45,6 +49,8 @@ export async function sendPush(input: {
       url: input.url.startsWith("/") ? input.url : "/today",
       tag: input.tag,
       ring: input.ring || undefined,
+      icon: input.icon && /^(https:\/\/|\/[^/])/.test(input.icon) ? input.icon : undefined,
+      call: input.call,
     });
     const options = input.ring ? { TTL: 60, urgency: "high" as const } : { TTL: input.ttlSeconds ?? 60 * 60 * 12 };
     await deliver(targets, payload, options, async (endpoint) => {

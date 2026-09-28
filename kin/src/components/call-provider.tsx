@@ -25,6 +25,12 @@ export const useCalls = () => useContext(CallContext);
 
 type Live = Extract<CallState, { phase: "connecting" | "active" }>;
 
+/** "Answer" on the call notification opens Kin at /chat?answer=<call id>;
+ * that call is picked up the moment its ring arrives (28 September). Module
+ * state rather than refs: there is one CallProvider, at the app shell. */
+let autoAnswerCall: string | null = null;
+let acceptNow: (() => void) | null = null;
+
 export function CallProvider({ familyId, me, members, children }: { familyId: string; me: string; members: CallMember[]; children: React.ReactNode }) {
   const [device] = useState(() => (typeof crypto !== "undefined" && "randomUUID" in crypto ? crypto.randomUUID() : String(Math.random())));
   const [call, setCallState] = useState<CallState>({ phase: "idle" });
@@ -235,6 +241,10 @@ export function CallProvider({ familyId, me, members, children }: { familyId: st
       if (step.state !== s) {
         setCall(step.state);
         if (step.state.phase === "incoming") {
+          if (autoAnswerCall === step.state.call) {
+            autoAnswerCall = null;
+            window.setTimeout(() => acceptNow?.(), 0);
+          }
           ringtone.current = startRingtone();
           // Nobody answered and the caller never said: stop ringing anyway.
           timers.current.push(window.setTimeout(() => stateRef.current === step.state && end("missed"), (RING_SECONDS + 5) * 1000));
@@ -245,6 +255,19 @@ export function CallProvider({ familyId, me, members, children }: { familyId: st
     [device, end, makeOffer, me, onRtc, send, setCall],
   );
   const handleRef = useRef(handle);
+  useEffect(() => {
+    const url = new URL(window.location.href);
+    const id = url.searchParams.get("answer");
+    if (!id) return;
+    autoAnswerCall = id;
+    url.searchParams.delete("answer");
+    window.history.replaceState(null, "", url.pathname + url.search + url.hash);
+    const s = stateRef.current;
+    if (s.phase === "incoming" && s.call === id) {
+      autoAnswerCall = null;
+      acceptNow?.();
+    }
+  }, []);
   useEffect(() => {
     handleRef.current = handle;
   }, [handle]);
@@ -328,7 +351,10 @@ export function CallProvider({ familyId, me, members, children }: { familyId: st
           }
         }, RING_SECONDS * 1000),
       );
-      void ringAction(to, video).then((r) => {
+      // The phone being called rings again every few seconds, like a phone
+      // that keeps ringing, until this one stops ringing out (28 September).
+      timers.current.push(window.setInterval(() => (stateRef.current === outgoing ? void ringAction(to, video, id, true) : undefined), 5000));
+      void ringAction(to, video, id).then((r) => {
         // Kin open on their phone still rings through the live channel; this
         // is about the phone in a pocket (26 September).
         if (!r.error && !r.reachable) {
@@ -357,6 +383,13 @@ export function CallProvider({ familyId, me, members, children }: { familyId: st
     setCall({ phase: "connecting", call: s.call, peer: s.peer, peerDevice: s.peerDevice, video: s.video, role: "callee" });
     send({ t: "accept", call: s.call, from: me, fromDevice: device, toDevice: s.peerDevice });
   };
+
+  useEffect(() => {
+    acceptNow = () => void accept();
+    return () => {
+      acceptNow = null;
+    };
+  });
 
   const decline = () => {
     const s = stateRef.current;
