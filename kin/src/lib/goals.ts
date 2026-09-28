@@ -97,3 +97,10 @@ export function goalNumber(n: number): string {
   const rounded = Math.round(n * 10) / 10;
   return rounded.toLocaleString("en-PH", { maximumFractionDigits: 1 });
 }
+
+/** The terms of a promised reward, disclosed wherever someone enters one --
+ * setting a reward, asking for one, and saying yes to one (Jonathan, 28
+ * September: "the penalty clause should be disclosed when entering an
+ * agreement"). The database holds the same terms (20260929003000). */
+export const REWARD_TERMS =
+  "A promise is binding: once the goal is reached, the giver has 1 day to give the reward. After that Kin reminds the giver every 5 minutes (09:00–21:00) until the one receiving it confirms they got it. The reward can't be changed or taken back by the giver.";

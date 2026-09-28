@@ -4232,6 +4232,9 @@ export type Database = {
       }
       planner_goal_rewards: {
         Row: {
+          claimed_at: string | null
+          confirmed_at: string | null
+          due_at: string | null
           created_at: string
           decided_at: string | null
           decided_by: string | null
@@ -4244,6 +4247,9 @@ export type Database = {
           title: string
         }
         Insert: {
+          claimed_at?: string | null
+          confirmed_at?: string | null
+          due_at?: string | null
           created_at?: string
           decided_at?: string | null
           decided_by?: string | null
@@ -4256,6 +4262,9 @@ export type Database = {
           title: string
         }
         Update: {
+          claimed_at?: string | null
+          confirmed_at?: string | null
+          due_at?: string | null
           created_at?: string
           decided_at?: string | null
           decided_by?: string | null
@@ -5046,6 +5055,14 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      due_goal_reward_reminders: {
+        Args: { p_secret: string; p_now?: string }
+        Returns: { key: string; member_id: string; endpoint: string; p256dh: string; auth: string; title: string; body: string; url: string }[]
+      }
+      goal_reward_act: {
+        Args: { p_goal: string; p_action: string }
+        Returns: string
+      }
       decide_goal_change: {
         Args: { p_approve: boolean; p_change: string }
         Returns: undefined

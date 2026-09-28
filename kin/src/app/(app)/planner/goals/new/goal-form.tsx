@@ -7,7 +7,7 @@ import { DetailHeader } from "@/components/hub-header";
 import { Icon } from "@/components/icons";
 import { PlusNote } from "@/components/plus";
 import { DateInput } from "@/components/date-input";
-import { GOAL_KINDS, GOAL_KIND_META, GOAL_PERIODS, PERIOD_LABEL, type GoalKind, type GoalPeriod } from "@/lib/goals";
+import { GOAL_KINDS, GOAL_KIND_META, GOAL_PERIODS, PERIOD_LABEL, REWARD_TERMS, type GoalKind, type GoalPeriod } from "@/lib/goals";
 
 const initialState: GoalFormState = { error: null };
 
@@ -217,7 +217,7 @@ export function GoalForm({
               placeholder="₱500, a hug, a massage, a day out"
               style={{ minHeight: "2.75rem" }}
             />
-            <span style={hint}>For {ownerLabel}, when the goal is reached. It&rsquo;s a promise, so whoever gives it says yes.</span>
+            <span style={hint}>For {ownerLabel}, when the goal is reached. It&rsquo;s a promise, so whoever gives it says yes. {REWARD_TERMS}</span>
           </div>
 
           {reward.trim() && (

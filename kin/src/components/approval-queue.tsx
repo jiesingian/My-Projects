@@ -9,6 +9,7 @@ import { grantRedemptionAction, refuseRedemptionAction } from "@/lib/actions/rew
 import { approveGoalChangeAction, approveGoalRewardAction, refuseGoalChangeAction, refuseGoalRewardAction } from "@/lib/actions/goals";
 import type { PendingApproval, PendingRedemption } from "@/lib/queries/routines";
 import type { PendingGoalChange, PendingGoalReward } from "@/lib/queries/goals";
+import { REWARD_TERMS } from "@/lib/goals";
 
 /** What this person still has to answer for. Chores and redemptions come
  * only to a parent or an adult (a child sees their own chore waiting on the
@@ -176,7 +177,8 @@ function GoalRewardRow({ item }: { item: PendingGoalReward }) {
         </div>
       </div>
 
-      <div style={{ display: "flex", gap: "0.375rem", marginTop: "0.625rem", flexWrap: "wrap" }}>
+      <p style={{ fontSize: "0.75rem", color: "var(--color-neutral-700)", lineHeight: 1.45, margin: "0.5rem 0 0" }}>{REWARD_TERMS}</p>
+      <div style={{ display: "flex", gap: "0.375rem", marginTop: "0.5rem", flexWrap: "wrap" }}>
         <button
           type="button"
           className="btn btn-primary"
@@ -185,7 +187,7 @@ function GoalRewardRow({ item }: { item: PendingGoalReward }) {
           style={{ minHeight: "2rem", fontSize: "0.8125rem", padding: "0 0.875rem", gap: "0.3125rem" }}
         >
           <Icon name="check" size={14} />
-          I&rsquo;ll give it
+          Agree and promise
         </button>
         <button
           type="button"

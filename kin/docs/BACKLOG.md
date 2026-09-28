@@ -170,6 +170,19 @@ Decided against in the same review: revising Journal (item 6) and Planner
 
 ## Done
 
+- A promised goal reward is kept (Jonathan, 28 September). Locked: what a
+  reward is never changes once asked for, the giver cannot take a promise
+  back or delete the goal under it. A day: the one receiving it claims it
+  when the goal is reached, and the giver has one day. Chased: past that,
+  Kin pushes the giver every 5 minutes, 09:00-21:00 Manila, until the
+  receiver confirms; "not yet" restarts it, and a given reward left
+  unconfirmed for a day resumes it. Same rule for children. Today shows a
+  banner that cannot be dismissed while a promise is due. The terms are
+  shown wherever a reward is set, asked for or agreed to. A change to a goal
+  with a reward in play needs the other side's yes, whichever side asks.
+  20260929003000; supabase/tests/rls_goal_reward_assurance.sql (32 cases on
+  dev, rolled back).
+
 - The week ahead (agreed 28 September, item 8): Sundays from 19:00
   Manila, the grown-ups get one push -- "Lia's recital Wed, Meralco due
   Thu, Lola Rosa's birthday Sun" -- naming up to five of the coming

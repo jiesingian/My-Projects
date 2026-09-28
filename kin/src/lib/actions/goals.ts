@@ -164,68 +164,71 @@ export async function deleteGoalAction(goalId: string): Promise<{ error: string 
   const me = await requireCurrentMember();
   const supabase = await createClient();
   const { error, count } = await supabase.from("planner_goals").delete({ count: "exact" }).eq("id", goalId).eq("family_id", me.family_id);
-  if (error) return { error: humanDatabaseError(error.message) };
+  if (error) {
+    // The one who promised a reward on it cannot delete the promise with it.
+    if (/goal_promised/.test(error.message)) return { error: "You promised a reward on this goal, so it stays until the reward is given — or the one receiving it lets it go." };
+    return { error: humanDatabaseError(error.message) };
+  }
   if (count === 0) return { error: "That goal is no longer here." };
   revalidatePath("/planner");
   revalidatePath("/today");
   return { error: null };
 }
 
-/** The giver's answer. Only the giver may give it -- the policy refuses
- * anyone else by touching no row -- and they may reword the reward as they
- * say yes: that is them setting what they commit to ("₱300, not ₱500"). */
-async function decideGoalReward(goalId: string, status: "approved" | "refused", title?: string): Promise<{ error: string | null }> {
-  const me = await requireCurrentMember();
+/** Every step of a reward, through goal_reward_act() -- which checks who is
+ * acting and from what state, so nothing here is the real rule. Whatever the
+ * step, a reward never changes what it is (20260929003000). */
+async function rewardStep(goalId: string, action: "promise" | "refuse" | "claim" | "give" | "confirm" | "dispute"): Promise<{ error: string | null }> {
+  await requireCurrentMember();
   const supabase = await createClient();
-  const reworded = title !== undefined ? clamp(title, 120) : "";
-  const { error, count } = await supabase
-    .from("planner_goal_rewards")
-    .update({ status, decided_by: me.id, decided_at: new Date().toISOString(), ...(reworded ? { title: reworded } : {}) }, { count: "exact" })
-    .eq("goal_id", goalId)
-    .eq("family_id", me.family_id)
-    .eq("giver_member_id", me.id)
-    .eq("status", "pending");
-  if (error) return { error: humanDatabaseError(error.message) };
-  if (count === 0) return { error: "Only the person giving the reward can answer it — or it has already been answered." };
-
+  const { error } = await supabase.rpc("goal_reward_act", { p_goal: goalId, p_action: action });
+  if (error) {
+    if (/goal_reward_not_yours/.test(error.message)) return { error: "That step isn't yours to take on this reward right now." };
+    return { error: humanDatabaseError(error.message) };
+  }
   revalidatePath("/planner");
   revalidatePath("/today");
   return { error: null };
 }
 
-export async function approveGoalRewardAction(goalId: string, title?: string) {
-  return decideGoalReward(goalId, "approved", title);
+/** The giver agrees, accepting the penalty disclosed beside the button. */
+export async function approveGoalRewardAction(goalId: string) {
+  return rewardStep(goalId, "promise");
 }
 
 export async function refuseGoalRewardAction(goalId: string) {
-  return decideGoalReward(goalId, "refused");
+  return rewardStep(goalId, "refuse");
 }
 
-/** The promise kept. The giver's to say. */
-export async function markGoalRewardGivenAction(goalId: string): Promise<{ error: string | null }> {
-  const me = await requireCurrentMember();
-  const supabase = await createClient();
-  const { error, count } = await supabase
-    .from("planner_goal_rewards")
-    .update({ status: "given", given_at: new Date().toISOString(), decided_by: me.id }, { count: "exact" })
-    .eq("goal_id", goalId)
-    .eq("family_id", me.family_id)
-    .eq("giver_member_id", me.id)
-    .eq("status", "approved");
-  if (error) return { error: humanDatabaseError(error.message) };
-  if (count === 0) return { error: "Only the person giving the reward can mark it given." };
-  revalidatePath("/planner");
-  return { error: null };
+/** The receiver: the goal is reached. The giver's day starts now. */
+export async function claimGoalRewardAction(goalId: string) {
+  return rewardStep(goalId, "claim");
 }
 
-/** Take a reward back: the asker while it waits, the giver, or the goal's
- * owner. The policy says which of those the viewer is. */
+/** The giver: it is given. The chase pauses until the receiver confirms. */
+export async function markGoalRewardGivenAction(goalId: string) {
+  return rewardStep(goalId, "give");
+}
+
+/** The receiver: it arrived. The chase stops for good. */
+export async function confirmGoalRewardAction(goalId: string) {
+  return rewardStep(goalId, "confirm");
+}
+
+/** The receiver: it did not arrive. Overdue again at once. */
+export async function disputeGoalRewardAction(goalId: string) {
+  return rewardStep(goalId, "dispute");
+}
+
+/** Take a reward back: the asker or the giver while it waits; once promised,
+ * only the one receiving it may let it go. The policy says which the viewer
+ * is. */
 export async function withdrawGoalRewardAction(goalId: string): Promise<{ error: string | null }> {
   const me = await requireCurrentMember();
   const supabase = await createClient();
   const { error, count } = await supabase.from("planner_goal_rewards").delete({ count: "exact" }).eq("goal_id", goalId).eq("family_id", me.family_id);
   if (error) return { error: humanDatabaseError(error.message) };
-  if (count === 0) return { error: "Only whoever asked, whoever gives it, or whose goal it is can take the reward back." };
+  if (count === 0) return { error: "A promised reward can only be let go by the one receiving it." };
   revalidatePath("/planner");
   revalidatePath("/today");
   return { error: null };
@@ -284,7 +287,9 @@ export async function updateGoalAction(goalId: string, _prev: GoalFormState, for
   if (!isGoalPeriod(period)) return { error: "Choose how often it counts.", field: "period" };
 
   const measures = Number(goal.target) !== target || goal.period !== period || goal.due_date !== dueDate || goal.unit !== unit;
-  const needsYes = measures && reward && (reward.status === "pending" || reward.status === "approved") && reward.giver_member_id !== me.id;
+  // With a reward in play, a change to what the goal measures needs the other
+  // side of the promise -- whichever side asks (20260929003000).
+  const needsYes = measures && !!reward && ["pending", "approved", "claimed", "given"].includes(reward.status);
 
   if (!needsYes) {
     const { error } = await supabase.from("planner_goals").update({ title, target, period, unit, due_date: dueDate }).eq("id", goal.id).eq("family_id", me.family_id);
