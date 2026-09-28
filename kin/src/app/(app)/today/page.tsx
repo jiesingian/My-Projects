@@ -14,6 +14,10 @@ import { getGoalRequestsFor, getGoals, getRewardDuties, type GoalView } from "@/
 import { weekStartOf } from "@/lib/week";
 import { ComingUpPager } from "@/components/coming-up-pager";
 import { PromiseBanner } from "@/components/promise-banner";
+import { getKinOffer } from "@/lib/queries/offers";
+import { canNameReferrer } from "@/lib/offers";
+import { KinOfferCard } from "@/components/kin-offer-card";
+import { ReferralEntry } from "@/components/referral-entry";
 import { Icon } from "@/components/icons";
 import { isGrownUp } from "@/lib/roles";
 import { TodayHeader } from "@/components/family-panel";
@@ -33,7 +37,7 @@ export default async function TodayPage() {
   if (inKidView(me)) return <KidToday me={me} />;
 
   const supabase = await createClient();
-  const [{ data: members }, glance, brief, tasks, awaitingApproval, awaitingRedemption, familyPanel, comingUp, memories, recap, startHere, goalRequests, rewardDuties, goals] = await Promise.all([
+  const [{ data: members }, glance, brief, tasks, awaitingApproval, awaitingRedemption, familyPanel, comingUp, memories, recap, startHere, goalRequests, rewardDuties, goals, kinOffer] = await Promise.all([
     supabase.from("members").select("id, full_name").eq("family_id", me.family_id).order("created_at"),
     getGlance(me.family_id, me.families.currency),
     getTodayBriefing(me.family_id, me.families.currency, me),
@@ -62,6 +66,8 @@ export default async function TodayPage() {
     // The goal tile in "At a glance" (28 September): it took the next-plan
     // tile's place, since the Planner and Coming up already show the plans.
     getGoals(me.family_id, me, weekStartOf(me.families.week_start)),
+    // Kin's offer, if it's time for one; credits any taken offer now done.
+    getKinOffer(me.role),
   ]);
 
   // Today's one list, ordered here on the server so the phone never re-sorts
@@ -131,6 +137,13 @@ export default async function TodayPage() {
       })()}
 
       {startHere && <StartHere steps={startHere} inviteCode={me.families.invite_code} />}
+
+      {/* A new household's first two weeks: who invited it, once. */}
+      {isGrownUp(me.role) && canNameReferrer(me.families) && <ReferralEntry />}
+
+      {/* Kin's own offers: days of Plus for trying something new, one at a
+          time (20260929020000_kin_offers.sql). */}
+      <KinOfferCard state={kinOffer} plus={readAccess(me.families).plus} referralCode={me.families.referral_code} />
 
       {/* Today, as one list (Jonathan, 28 September: "shouldn't they be the
           same and prioritized at the top?"). What used to be "Needs you
