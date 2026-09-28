@@ -2175,6 +2175,7 @@ export type Database = {
           is_joint: boolean
           linked_account_id: string | null
           owner_member_id: string | null
+          owner_person_id: string | null
           sub_note: string | null
           target_amount: number | null
           target_date: string | null
@@ -2190,6 +2191,7 @@ export type Database = {
           is_joint?: boolean
           linked_account_id?: string | null
           owner_member_id?: string | null
+          owner_person_id?: string | null
           sub_note?: string | null
           target_amount?: number | null
           target_date?: string | null
@@ -2205,6 +2207,7 @@ export type Database = {
           is_joint?: boolean
           linked_account_id?: string | null
           owner_member_id?: string | null
+          owner_person_id?: string | null
           sub_note?: string | null
           target_amount?: number | null
           target_date?: string | null
@@ -2238,6 +2241,13 @@ export type Database = {
             columns: ["owner_member_id"]
             isOneToOne: false
             referencedRelation: "members"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "goals_owner_person_id_fkey"
+            columns: ["owner_person_id"]
+            isOneToOne: false
+            referencedRelation: "people"
             referencedColumns: ["id"]
           },
         ]
@@ -2967,10 +2977,12 @@ export type Database = {
           family_id: string
           id: string
           note: string | null
+          owner_person_id: string | null
           shared_at: string | null
           source: string
           source_activity_id: string | null
           title: string
+          visibility: string
         }
         Insert: {
           created_at?: string
@@ -2979,10 +2991,12 @@ export type Database = {
           family_id: string
           id?: string
           note?: string | null
+          owner_person_id?: string | null
           shared_at?: string | null
           source?: string
           source_activity_id?: string | null
           title: string
+          visibility?: string
         }
         Update: {
           created_at?: string
@@ -2991,10 +3005,12 @@ export type Database = {
           family_id?: string
           id?: string
           note?: string | null
+          owner_person_id?: string | null
           shared_at?: string | null
           source?: string
           source_activity_id?: string | null
           title?: string
+          visibility?: string
         }
         Relationships: [
           {
@@ -3009,6 +3025,13 @@ export type Database = {
             columns: ["family_id"]
             isOneToOne: false
             referencedRelation: "families"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "journal_entries_owner_person_id_fkey"
+            columns: ["owner_person_id"]
+            isOneToOne: false
+            referencedRelation: "people"
             referencedColumns: ["id"]
           },
         ]
@@ -3085,10 +3108,12 @@ export type Database = {
           family_id: string
           id: string
           media_type: string
+          owner_person_id: string | null
           storage_path: string | null
           storage_provider: string
           taken_at: string | null
           uploaded_by: string | null
+          visibility: string
         }
         Insert: {
           created_at?: string
@@ -3098,10 +3123,12 @@ export type Database = {
           family_id: string
           id?: string
           media_type?: string
+          owner_person_id?: string | null
           storage_path?: string | null
           storage_provider?: string
           taken_at?: string | null
           uploaded_by?: string | null
+          visibility?: string
         }
         Update: {
           created_at?: string
@@ -3111,10 +3138,12 @@ export type Database = {
           family_id?: string
           id?: string
           media_type?: string
+          owner_person_id?: string | null
           storage_path?: string | null
           storage_provider?: string
           taken_at?: string | null
           uploaded_by?: string | null
+          visibility?: string
         }
         Relationships: [
           {
@@ -3122,6 +3151,13 @@ export type Database = {
             columns: ["family_id"]
             isOneToOne: false
             referencedRelation: "families"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "journal_media_owner_person_id_fkey"
+            columns: ["owner_person_id"]
+            isOneToOne: false
+            referencedRelation: "people"
             referencedColumns: ["id"]
           },
           {
@@ -3541,6 +3577,7 @@ export type Database = {
       }
       members: {
         Row: {
+          person_id: string
           sex: string | null
           allergies: string | null
           auth_user_id: string | null
@@ -3590,6 +3627,7 @@ export type Database = {
           work_email: string | null
         }
         Insert: {
+          person_id?: string
           sex?: string | null
           allergies?: string | null
           auth_user_id?: string | null
@@ -3639,6 +3677,7 @@ export type Database = {
           work_email?: string | null
         }
         Update: {
+          person_id?: string
           sex?: string | null
           allergies?: string | null
           auth_user_id?: string | null
@@ -3693,6 +3732,13 @@ export type Database = {
             columns: ["family_id"]
             isOneToOne: false
             referencedRelation: "families"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "members_person_id_fkey"
+            columns: ["person_id"]
+            isOneToOne: false
+            referencedRelation: "people"
             referencedColumns: ["id"]
           },
         ]
@@ -3844,6 +3890,56 @@ export type Database = {
             columns: ["updated_by"]
             isOneToOne: false
             referencedRelation: "members"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      people: {
+        Row: {
+          auth_user_id: string | null
+          created_at: string
+          id: string
+        }
+        Insert: {
+          auth_user_id?: string | null
+          created_at?: string
+          id?: string
+        }
+        Update: {
+          auth_user_id?: string | null
+          created_at?: string
+          id?: string
+        }
+        Relationships: []
+      }
+      personal_notes: {
+        Row: {
+          body: string
+          created_at: string
+          id: string
+          owner_person_id: string
+          updated_at: string
+        }
+        Insert: {
+          body: string
+          created_at?: string
+          id?: string
+          owner_person_id?: string
+          updated_at?: string
+        }
+        Update: {
+          body?: string
+          created_at?: string
+          id?: string
+          owner_person_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "personal_notes_owner_person_id_fkey"
+            columns: ["owner_person_id"]
+            isOneToOne: false
+            referencedRelation: "people"
             referencedColumns: ["id"]
           },
         ]
@@ -5148,6 +5244,7 @@ export type Database = {
       }
       current_family_id: { Args: never; Returns: string }
       current_member_id: { Args: never; Returns: string }
+      current_person_id: { Args: never; Returns: string }
       current_member_is_organiser: { Args: never; Returns: boolean }
       current_member_role: { Args: never; Returns: string }
       delete_household: { Args: never; Returns: undefined }
