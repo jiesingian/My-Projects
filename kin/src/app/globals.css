@@ -817,6 +817,30 @@ textarea.input {
   height: 100%;
   stroke-width: 1.8;
 }
+/* Every line icon in soft 3D, lit from the top left like the tab bar's
+   (src/components/tab-icon-3d.tsx) -- see Icon in src/components/icons.tsx.
+   All tones mix from currentColor, so an icon keeps whatever colour its
+   place gives it: accent on a link, white on a button, grey in a caption.
+   Offsets are in the glyph's own 24-unit space, so they scale with it. */
+.kin-i3 {
+  overflow: visible;
+}
+.kin-i3 .kin-i3-shadow {
+  stroke: var(--i-shade, #2b1219);
+  stroke-width: 2.5;
+  opacity: 0.13;
+  transform: translate(0, 1.1px);
+}
+.kin-i3 .kin-i3-rim {
+  stroke: color-mix(in srgb, currentColor 62%, var(--i-shade, #2b1219));
+  transform: translate(0, 0.6px);
+}
+.kin-i3 .kin-i3-hi {
+  stroke: #fff;
+  stroke-width: 0.65;
+  opacity: 0.5;
+  transform: translate(-0.3px, -0.4px);
+}
 
 /* Switch: 51×31 pill with a circular knob that slides, green when on — the
    platform keeps switches green even where the app's tint is blue. */
