@@ -133,7 +133,7 @@ export default function PrivacyPage() {
           .
         </li>
       </ul>
-      <p>To use any of these, write to the email below. We answer within 15 days.</p>
+      <p>You can download a copy of everything you can see in Kin yourself, from Settings → Account → Download my data. For anything else, write to the email below. We answer within 15 days.</p>
 
       <h2>Changes</h2>
       <p>

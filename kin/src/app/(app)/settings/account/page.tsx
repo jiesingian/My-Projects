@@ -5,6 +5,9 @@ import { createClient } from "@/lib/supabase/server";
 import { signOutAction } from "@/lib/actions/auth";
 import { DetailHeader } from "@/components/hub-header";
 import { DeleteAccountButton } from "@/components/delete-account-button";
+import { ExportData } from "@/components/export-data";
+import { isGrownUp } from "@/lib/roles";
+import { inKidView } from "@/lib/kid-view";
 
 /** The email you sign in with, signing out, and deleting your account -- the
  * Account group of the old single Settings page. */
@@ -31,6 +34,8 @@ export default async function AccountSettingsPage() {
             Sign out
           </button>
         </form>
+        {/* Grown-ups only; the action refuses anyone else as well. */}
+        {isGrownUp(me.role) && !inKidView(me) && <ExportData />}
         <div style={{ marginTop: "0.75rem" }}>
           <DeleteAccountButton isSoleMember={(otherActiveCount ?? 0) === 0} />
         </div>

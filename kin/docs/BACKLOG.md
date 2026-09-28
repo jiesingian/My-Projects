@@ -118,6 +118,13 @@ Decided against in the same review: revising Journal (item 6) and Planner
 
 ## Done
 
+- Download my data (approved 28 September): Settings → Account, grown-ups
+  only, after typing the account password (checked server-side). A ZIP of
+  CSV spreadsheets, one per section, read with the member's own session so
+  it holds exactly what they can see; vault secrets, tokens, hashes and
+  billing ids withheld; photos listed by name and path. No new dependency:
+  src/lib/export/zip.ts writes the ZIP.
+
 - "Why Kin" on the home page (approved 28 September): after the feature
   tour, one step with three reasons -- one app instead of five, private to
   your family (no selling, no ads, no AI training), and 14 days of Plus free
