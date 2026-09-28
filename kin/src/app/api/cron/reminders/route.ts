@@ -21,13 +21,15 @@ export async function POST(request: Request) {
   const supabase = createClient<Database>(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!, {
     auth: { persistSession: false, autoRefreshToken: false },
   });
-  const [main, pantry, trial] = await Promise.all([
+  const [main, pantry, trial, week] = await Promise.all([
     supabase.rpc("due_reminders", { p_secret: secret }),
     // What is running low, once a day from 09:00 (20260928100000).
     supabase.rpc("due_pantry_reminders", { p_secret: secret }),
     // The organizer, 3 days before a Kin Plus trial ends and once it has
     // (20260928150000_kin_free_and_plus.sql).
     supabase.rpc("due_trial_reminders", { p_secret: secret }),
+    // The grown-ups, Sunday from 19:00: the week ahead (20260928190000).
+    supabase.rpc("due_week_ahead_reminders", { p_secret: secret }),
   ]);
   if (main.error) {
     console.error("Reminders: due_reminders failed", main.error.message);
@@ -35,7 +37,8 @@ export async function POST(request: Request) {
   }
   if (pantry.error) console.error("Reminders: due_pantry_reminders failed", pantry.error.message);
   if (trial.error) console.error("Reminders: due_trial_reminders failed", trial.error.message);
-  const due = [...(main.data ?? []), ...(pantry.data ?? []), ...(trial.data ?? [])];
+  if (week.error) console.error("Reminders: due_week_ahead_reminders failed", week.error.message);
+  const due = [...(main.data ?? []), ...(pantry.data ?? []), ...(trial.data ?? []), ...(week.data ?? [])];
 
   vapidReady();
   // One payload per reminder, sent to all of its devices together through the
