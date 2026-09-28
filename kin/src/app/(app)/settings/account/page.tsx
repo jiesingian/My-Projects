@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getCurrentMember } from "@/lib/session";
 import { createClient } from "@/lib/supabase/server";
@@ -33,6 +34,11 @@ export default async function AccountSettingsPage() {
         <div style={{ marginTop: "0.75rem" }}>
           <DeleteAccountButton isSoleMember={(otherActiveCount ?? 0) === 0} />
         </div>
+        <nav aria-label="Legal" style={{ display: "flex", justifyContent: "center", gap: "1.25rem", marginTop: "1.25rem", fontSize: "0.84375rem" }}>
+          <Link href="/legal/privacy">Privacy</Link>
+          <Link href="/legal/terms">Terms</Link>
+          <Link href="/legal/refunds">Refunds</Link>
+        </nav>
         <div style={{ font: "400 0.8125rem/1.6 var(--font-numeric)", color: "var(--color-neutral-500)", textAlign: "center", marginTop: "0.875rem" }}>KIN 1.0.0</div>
       </div>
     </div>
