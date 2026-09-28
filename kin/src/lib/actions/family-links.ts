@@ -59,7 +59,7 @@ export async function revokeFamilyLinkAction(linkId: string): Promise<ActionStat
 /** A greeting under today's birthday or anniversary on the family feed. The
  * database decides everything but the words -- who it is from, which
  * household, which day, and whether this occasion is one the caller may greet
- * at all (20260928180000_feed_occasions.sql). */
+ * at all (20260928203000_feed_occasions.sql). */
 export async function greetOccasionAction(eventId: string, body: string): Promise<ActionState> {
   await requireCurrentMember();
   const text = clamp(body.trim(), 500);
