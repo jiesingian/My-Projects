@@ -400,6 +400,13 @@ export function FamilyTreeChart({
                 style={style}
                 onClick={() => {
                   if (!tapped()) return;
+                  // A second tap on someone already picked opens their profile
+                  // (Jonathan, 28 September); the first picks them, as before,
+                  // for adding relatives around them.
+                  if (p.id === selected && p.memberId && !p.fromHousehold) {
+                    router.push(`/family/members/${p.memberId}?from=tree`);
+                    return;
+                  }
                   setSelected(p.id);
                   setAdding(null);
                 }}
@@ -557,17 +564,31 @@ function SelectedPanel({
   return (
     <div className="kin-treepanel">
       <div className="kin-treepanel-head">
-        <Avatar url={person.avatarUrl} initials={initials(person.fullName)} label={person.fullName} size={36} />
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <div className="kin-treepanel-name">
-            {person.fullName}
-            {isMe && <span className="kin-treecard-you">You</span>}
-          </div>
-          <div className="kin-treepanel-meta">{person.dob ? `Born ${person.dob}` : "No birthdate recorded"}</div>
-        </div>
+        {person.memberId ? (
+          // Their face and name are the way to their profile, as on the
+          // Family list.
+          <Link href={`/family/members/${person.memberId}?from=tree`} className="kin-treepanel-who">
+            <Avatar url={person.avatarUrl} initials={initials(person.fullName)} label={person.fullName} size={36} clickable={false} />
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div className="kin-treepanel-name">
+                {person.fullName}
+                {isMe && <span className="kin-treecard-you">You</span>}
+              </div>
+              <div className="kin-treepanel-meta">{person.dob ? `Born ${person.dob}` : "No birthdate recorded"}</div>
+            </div>
+          </Link>
+        ) : (
+          <>
+            <Avatar url={person.avatarUrl} initials={initials(person.fullName)} label={person.fullName} size={36} />
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div className="kin-treepanel-name">{person.fullName}</div>
+              <div className="kin-treepanel-meta">{person.dob ? `Born ${person.dob}` : "No birthdate recorded"}</div>
+            </div>
+          </>
+        )}
         {person.memberId && (
-          <Link href={`/family/members/${person.memberId}`} className="btn btn-secondary" style={{ minHeight: "2rem", padding: "0 0.75rem", fontSize: "var(--text-sm)" }}>
-            View profile
+          <Link href={`/family/members/${person.memberId}?from=tree`} className="btn btn-secondary" style={{ minHeight: "2rem", padding: "0 0.75rem", fontSize: "var(--text-sm)" }}>
+            Open profile
           </Link>
         )}
         {!person.memberId && inviteCode && <InviteRelativeButton name={person.fullName} code={inviteCode} />}

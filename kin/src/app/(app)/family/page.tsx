@@ -23,7 +23,7 @@ import { getEnrolledDevices } from "@/lib/queries/security";
 import { HubHeader } from "@/components/hub-header";
 import { Blueprint, Tag, Empty } from "@/components/ui";
 import { PendingMemberActions } from "@/components/pending-member-actions";
-import { RemoveMemberButton, ReinstateMemberButton } from "@/components/member-status-actions";
+import { ReinstateMemberButton } from "@/components/member-status-actions";
 import { Avatar } from "@/components/avatar";
 import { FamilyBackgroundAlbum } from "@/components/family-background-album";
 import { FamilyAboutEditor } from "@/components/family-about-editor";
@@ -82,7 +82,7 @@ export default async function FamilyPage({
   );
 }
 
-async function ProfilePane({ familyId, isOrganiser, myId, myRole }: { familyId: string; isOrganiser: boolean; myId: string; myRole: string }) {
+async function ProfilePane({ familyId, isOrganiser, myRole }: { familyId: string; isOrganiser: boolean; myId: string; myRole: string }) {
   // Matches add_managed_child, which lets any parent or adult add one.
   const canAddChild = myRole === "parent" || myRole === "adult";
   const [allMembers, { backgroundUrl, about, addresses, backgroundPhotos }] = await Promise.all([getMembers(familyId), getFamilyProfile(familyId)]);
@@ -125,7 +125,9 @@ async function ProfilePane({ familyId, isOrganiser, myId, myRole }: { familyId: 
           key={m.id}
           style={{
             display: "flex",
-            // The tag and Remove drop under the name at a large text size.
+            // The tag drops under the name at a large text size. (Remove used to
+            // sit here in red on every row; it is in the "⋯" on the person's
+            // own page now, 28 September.)
             flexWrap: "wrap",
             gap: "0.5rem 0.75rem",
             alignItems: "center",
@@ -145,7 +147,6 @@ async function ProfilePane({ familyId, isOrganiser, myId, myRole }: { familyId: 
           <Tag variant={m.auth_user_id === null ? "neutral" : m.is_organiser ? "accent" : "outline"}>
             {m.auth_user_id === null ? "MANAGED" : m.is_organiser ? "ORGANIZER" : m.status.toUpperCase()}
           </Tag>
-          {isOrganiser && m.id !== myId && !m.is_organiser && <RemoveMemberButton memberId={m.id} fullName={m.full_name} />}
         </div>
       ))}
       </div>

@@ -147,3 +147,22 @@ Every migration in this series is checked the same two ways:
 - Production is read (never written) before the merge and after `migrate.yml`
   runs: the same counts and the same fingerprints of members, journal entries
   and goals (id, household, owner), which must match exactly.
+
+## Step 3, as built: profiles that feel like a person (item 6)
+
+- A cover above the photo: one of the person's own album photos, stored as
+  `members.cover_avatar_id` (an id, never a URL, so it can only ever be a
+  photo already in their album -- a trigger checks it is theirs). With none,
+  a wash of their colour with their photo blurred across it. It moves with
+  them: the album is copied, and the cover points at the same photo in it.
+- Name, age and relationship; **Message** (the family chat, opened as
+  "@Name ", tagged) and **Call** (the in-app call when they have a login, the
+  phone number for a managed profile).
+- **Moments** first: their milestones, then recent household journal entries
+  they wrote or are in, with a photo. Personal entries never show here.
+- **About**: every detail and editor that was on the page before.
+- A "⋯" menu: Health records, Emergency card, Show in the family tree, and
+  **Remove from household** (organizer only) -- no longer a red link on every
+  row of the Family list.
+- The tree opens profiles: a second tap on someone already picked, or their
+  name in the tree's panel; Back returns to the tree.

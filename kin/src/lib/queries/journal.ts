@@ -207,3 +207,61 @@ export async function getMilestones(familyId: string) {
     .order("milestone_date", { ascending: false });
   return data ?? [];
 }
+
+/** A person's recent moments, for their profile: household journal entries
+ * they wrote or are in, newest first, each with its first photo, and their
+ * milestones. Row-level security decides what the viewer may see; a personal
+ * entry is its owner's alone and never shows on anyone else's view of them. */
+export async function getPersonMoments(familyId: string, memberId: string, limit = 6) {
+  const supabase = await createClient();
+  const [{ data: tagged }, { data: milestones }] = await Promise.all([
+    supabase.from("journal_entry_people").select("entry_id").eq("member_id", memberId),
+    supabase
+      .from("milestones")
+      .select("id, title, milestone_date")
+      .eq("family_id", familyId)
+      .eq("member_id", memberId)
+      .order("milestone_date", { ascending: false })
+      .limit(8),
+  ]);
+  const ids = (tagged ?? []).map((t) => t.entry_id);
+  const who = ids.length ? `created_by.eq.${memberId},id.in.(${ids.join(",")})` : `created_by.eq.${memberId}`;
+  const { data } = await supabase
+    .from("journal_entries")
+    .select("id, title, note, entry_date, journal_entry_media(sort_order, journal_media(id, storage_path, storage_provider, drive_file_id))")
+    .eq("family_id", familyId)
+    .eq("visibility", "household")
+    .or(who)
+    .order("entry_date", { ascending: false })
+    .limit(limit);
+
+  type MediaRef = { id: string; storage_path: string | null; storage_provider: string; drive_file_id: string | null };
+  const firstMedia = (e: NonNullable<typeof data>[number]) =>
+    [...(e.journal_entry_media ?? [])]
+      .sort((a, b) => a.sort_order - b.sort_order)
+      .map((m) => m.journal_media as unknown as MediaRef | null)
+      .find((m): m is MediaRef => !!m) ?? null;
+  const entries = data ?? [];
+  const paths = entries
+    .map(firstMedia)
+    .filter((m): m is MediaRef => !!m && m.storage_provider === "supabase" && !!m.storage_path)
+    .map((m) => m.storage_path as string);
+  const urls = await getSignedUrls("journal", paths);
+
+  return {
+    milestones: milestones ?? [],
+    moments: entries.map((e) => {
+      const m = firstMedia(e);
+      const photo = !m
+        ? null
+        : m.storage_provider === "google_drive"
+          ? m.drive_file_id
+            ? `/api/drive/file/${m.drive_file_id}`
+            : null
+          : m.storage_path
+            ? (urls[m.storage_path] ?? null)
+            : null;
+      return { id: e.id, title: e.title, note: e.note, date: e.entry_date, photo };
+    }),
+  };
+}

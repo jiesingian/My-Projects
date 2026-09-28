@@ -115,6 +115,21 @@ export async function setActiveAvatarAction(avatarId: string): Promise<ActionSta
   return { error: error ? humanDatabaseError(error.message) : null };
 }
 
+/** Chooses one of your own album photos as the cover on your profile, or
+ * none (null) for a wash of your colour. Self only; the database also refuses
+ * a photo that is not yours (members_cover_is_theirs). */
+export async function setCoverAction(avatarId: string | null): Promise<ActionState> {
+  const me = await requireCurrentMember();
+  const supabase = await createClient();
+  if (avatarId) {
+    const { data: photo } = await supabase.from("member_avatars").select("member_id").eq("id", avatarId).maybeSingle();
+    if (!photo || photo.member_id !== me.id) return { error: "Photo not found." };
+  }
+  const { error } = await supabase.from("members").update({ cover_avatar_id: avatarId }).eq("id", me.id);
+  revalidatePath(`/family/members/${me.id}`);
+  return { error: error ? humanDatabaseError(error.message) : null };
+}
+
 /** Removes a photo from the album entirely. If it was the active avatar,
  * falls back to the most recent remaining photo, or clears it if none are
  * left. Self only. */
