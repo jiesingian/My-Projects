@@ -5,6 +5,8 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Icon, type IconName } from "@/components/icons";
 import { House3D } from "@/components/welcome/house-3d";
+import { PLANS, pesos } from "@/lib/billing/plans";
+import { TRIAL_DAYS } from "@/lib/access";
 
 /** What a visitor told the home page before signing up. Onboarding reads the
  * family name back to fill in "Household name" (family-fork-form.tsx). Kept in
@@ -30,12 +32,34 @@ const ALWAYS: Feature = {
   points: ["Link with relatives' households", "Kid view for children, set by a grown-up", "Every profile a tap away"],
 };
 
-const STEPS = ["hello", "name", "who", "wants", "tour"] as const;
+/** The "why Kin" step: what it replaces, the privacy promise, the price.
+ * Each line has to stay true of the app as built -- the privacy one is the
+ * same promise as /legal/privacy, and the price comes from plans.ts. */
+const WHY: { icon: IconName; title: string; line: string }[] = [
+  {
+    icon: "house",
+    title: "One app instead of five",
+    line: "The group chat, the notes app, the calendar and that spreadsheet of bills, in one place everyone in the house shares.",
+  },
+  {
+    icon: "shieldCheck",
+    title: "Private to your family",
+    line: "Each household is walled off from every other. Nothing is sold, there are no ads, and your records never train AI.",
+  },
+  {
+    icon: "sparkle",
+    title: "Free to start, fair to keep",
+    line: `${TRIAL_DAYS} days of Kin Plus free, no card needed. Then Kin Free for good, or ${pesos(PLANS.monthly.amountCents)} a month for the whole family, lolo to bunso.`,
+  },
+];
+
+const STEPS = ["hello", "name", "who", "wants", "tour", "why"] as const;
 type Step = (typeof STEPS)[number];
 
 /** The public home page (items 1 and 11 of the revision list): a 3D house,
- * setup one question at a time, then a tour of the features -- the ones the
- * visitor said they want first -- before sign-up. */
+ * setup one question at a time, a tour of the features -- the ones the
+ * visitor said they want first -- and then why Kin (approved 28 September):
+ * what it replaces, the privacy promise and the price, before sign-up. */
 export function Welcome() {
   const router = useRouter();
   const [step, setStep] = useState<Step>("hello");
@@ -195,6 +219,42 @@ export function Welcome() {
               />
             ))}
           </div>
+          <button type="button" className="btn btn-primary btn-block kin-welcome-cta" onClick={() => go("why")}>
+            Next
+          </button>
+          <button
+            type="button"
+            className="btn btn-ghost kin-welcome-small"
+            style={{ alignSelf: "center" }}
+            onClick={() => {
+              save();
+              router.push("/signup");
+            }}
+          >
+            Skip, create account
+          </button>
+          <button type="button" className="btn btn-ghost" onClick={() => go("wants")} style={{ alignSelf: "center" }}>
+            Back
+          </button>
+        </section>
+      )}
+
+      {step === "why" && (
+        <section className="kin-welcome-step">
+          <h2 ref={heading} tabIndex={-1}>Why Kin{familyName.trim() ? `, for ${title}` : ""}</h2>
+          <ul className="kin-why">
+            {WHY.map((w) => (
+              <li key={w.title}>
+                <span className="kin-welcome-card-ico">
+                  <Icon name={w.icon} size={22} />
+                </span>
+                <span>
+                  <strong>{w.title}</strong>
+                  <span>{w.line}</span>
+                </span>
+              </li>
+            ))}
+          </ul>
           <button
             type="button"
             className="btn btn-primary btn-block kin-welcome-cta"
@@ -205,7 +265,6 @@ export function Welcome() {
           >
             Create {familyName.trim() ? `${title}’s` : "our family’s"} Kin
           </button>
-          <p className="kin-welcome-small">14 days of Kin Plus free, no card needed. Then Kin Free for good, or Plus for the whole family.</p>
           <form
             className="kin-welcome-join"
             onSubmit={(e) => {
@@ -224,7 +283,10 @@ export function Welcome() {
               </button>
             </div>
           </form>
-          <button type="button" className="btn btn-ghost" onClick={() => go("wants")} style={{ alignSelf: "center" }}>
+          <p className="kin-welcome-small" style={{ textAlign: "center" }}>
+            <Link href="/legal/privacy">How Kin handles your family&rsquo;s information</Link>
+          </p>
+          <button type="button" className="btn btn-ghost" onClick={() => go("tour")} style={{ alignSelf: "center" }}>
             Back
           </button>
         </section>

@@ -118,6 +118,12 @@ Decided against in the same review: revising Journal (item 6) and Planner
 
 ## Done
 
+- "Why Kin" on the home page (approved 28 September): after the feature
+  tour, one step with three reasons -- one app instead of five, private to
+  your family (no selling, no ads, no AI training), and 14 days of Plus free
+  then Free for good or ₱149 a month -- then Create or Join. The tour gets a
+  "Skip, create account" for anyone ready sooner.
+
 - Open sign-up (approved 28 September): an account is a person first, with
   no code. Anyone can then start a family, which begins on the 14-day Kin
   Plus trial; a Kin code is optional there ("Have a Kin code?") and still
