@@ -1,3 +1,4 @@
+import { familyDay } from "@/lib/time";
 /** What an iPhone Shortcut sends, turned into readings the database will take
  * (ingest_apple_health in 20260926100000_apple_health_import.sql, which
  * checks every one again).
@@ -47,8 +48,10 @@ export function dayIn(v: unknown): string | null {
 }
 
 /** Today in Manila, for a Shortcut that didn't say which day it meant. */
+/** The household's day, from the shared helper so a change of family time
+ * zone reaches Apple Health readings too. Kept under this name for callers. */
 export function manilaToday(now = new Date()): string {
-  return new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Manila", year: "numeric", month: "2-digit", day: "2-digit" }).format(now);
+  return familyDay(now);
 }
 
 export function toSamples(body: unknown, today: string): HealthSample[] {

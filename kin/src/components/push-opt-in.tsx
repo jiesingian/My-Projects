@@ -4,6 +4,15 @@ import { useEffect, useState, useTransition } from "react";
 import { savePushSubscriptionAction, removePushSubscriptionAction, sendTestPushAction } from "@/lib/actions/push";
 
 const KEY = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY ?? "";
+/** Set when someone taps "Turn off for this device"; cleared when they turn
+ * it back on. PushKeepAlive never re-subscribes a device that carries it. */
+const OPTED_OUT = "kin-push-off";
+const setOptedOut = (on: boolean) => {
+  try {
+    if (on) localStorage.setItem(OPTED_OUT, "1");
+    else localStorage.removeItem(OPTED_OUT);
+  } catch {}
+};
 
 function keyBytes(b64: string): Uint8Array {
   const pad = "=".repeat((4 - (b64.length % 4)) % 4);
@@ -57,6 +66,7 @@ export function PushOptIn() {
           await sub.unsubscribe();
           return setError(result.error);
         }
+        setOptedOut(false);
         setState("on");
       } catch {
         setError("This browser wouldn't turn notifications on. Try again, or from another browser.");
@@ -71,6 +81,7 @@ export function PushOptIn() {
         await removePushSubscriptionAction(sub.endpoint);
         await sub.unsubscribe();
       }
+      setOptedOut(true);
       setState("off");
     });
 
@@ -118,6 +129,10 @@ export function PushKeepAlive() {
   useEffect(() => {
     if (!KEY || !("serviceWorker" in navigator) || !("PushManager" in window) || !("Notification" in window)) return;
     if (Notification.permission !== "granted") return;
+    // Switched off on purpose on this device: leave it off.
+    try {
+      if (localStorage.getItem(OPTED_OUT) === "1") return;
+    } catch {}
     const t = window.setTimeout(async () => {
       try {
         const reg = await navigator.serviceWorker.ready;

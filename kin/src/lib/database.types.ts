@@ -4688,6 +4688,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      cron_retry_reminder: {
+        Args: { p_secret: string; p_key: string }
+        Returns: undefined
+      }
       due_reminders: {
         Args: { p_secret: string; p_now?: string }
         Returns: { key: string; member_id: string; endpoint: string; p256dh: string; auth: string; title: string; body: string; url: string }[]

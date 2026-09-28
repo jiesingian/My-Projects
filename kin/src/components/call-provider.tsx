@@ -34,6 +34,7 @@ export function CallProvider({ familyId, me, members, children }: { familyId: st
   const [now, setNow] = useState(0);
 
   const stateRef = useRef<CallState>(call);
+  const finishedCalls = useRef(new Set<string>());
   const channel = useRef<ReturnType<ReturnType<typeof createClient>["channel"]> | null>(null);
   const pc = useRef<RTCPeerConnection | null>(null);
   const local = useRef<MediaStream | null>(null);
@@ -75,6 +76,10 @@ export function CallProvider({ familyId, me, members, children }: { familyId: st
       const prev = stateRef.current;
       stateRef.current = next;
       setCallState(next);
+      // A call this device has left -- declined, missed, hung up, or answered
+      // on another of my devices -- must not ring again when one of the
+      // caller's three-second repeats arrives a moment late.
+      if ("call" in prev && prev.call && (next.phase === "idle" || next.phase === "ended")) finishedCalls.current.add(prev.call);
       if (prev.phase === "incoming" && next.phase !== "incoming") {
         ringtone.current?.stop();
         ringtone.current = null;
@@ -224,6 +229,7 @@ export function CallProvider({ familyId, me, members, children }: { familyId: st
         void onRtc(sig as Extract<Signal, { t: "offer" | "answer" | "ice" }>);
         return;
       }
+      if (sig.t === "ring" && finishedCalls.current.has(sig.call)) return;
       const step = onSignal(s, sig, who);
       if (step.reply) send(step.reply);
       if (step.state !== s) {

@@ -5,6 +5,7 @@ import { requireCurrentMember } from "@/lib/session";
 import type { ActionState } from "@/lib/actions/auth";
 import { humanDatabaseError } from "@/lib/db-errors";
 import { clamp } from "@/lib/text";
+import { UUID } from "@/lib/ids";
 
 /** Comments and reactions on a photo: a journal photo, a profile picture, or
  * the household photo. Everything is household-scoped by the tables' own
@@ -21,7 +22,6 @@ const COLUMN = { journal: "journal_media_id", avatar: "member_avatar_id", backgr
 // Kept in step with REACTIONS in components/photo-social.tsx: a "use server"
 // file may export only async functions, so the list lives in both places.
 const ALLOWED = new Set(["❤️", "😂", "😮", "😢", "👍", "🙏"]);
-const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const COMMENT_MAX = 1000;
 
 function column(ref: PhotoRef) {

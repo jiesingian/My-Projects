@@ -1,7 +1,7 @@
-import webpush from "web-push";
 import { createClient } from "@supabase/supabase-js";
 import type { Database } from "@/lib/database.types";
 import { constantTimeEquals } from "@/lib/security/crypto";
+import { deliver, vapidReady } from "@/lib/push";
 
 /** The five-minute reminder tick (20260926140000_reminders.sql).
  *
@@ -27,18 +27,23 @@ export async function POST(request: Request) {
     return Response.json({ error: "Try again later." }, { status: 503 });
   }
 
-  webpush.setVapidDetails(process.env.VAPID_SUBJECT || "mailto:hello@kin.family", process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY, process.env.VAPID_PRIVATE_KEY);
+  vapidReady();
+  // One payload per reminder, sent to all of its devices together through the
+  // shared deliver(), which logs any refusal instead of swallowing it.
+  const byKey = new Map<string, NonNullable<typeof due>>();
+  for (const r of due ?? []) byKey.set(r.key, [...(byKey.get(r.key) ?? []), r]);
   let sent = 0;
   await Promise.all(
-    (due ?? []).map(async (r) => {
+    [...byKey.values()].map(async (rows) => {
+      const r = rows[0];
       const payload = JSON.stringify({ title: r.title.slice(0, 80), body: r.body.slice(0, 180), url: r.url.startsWith("/") ? r.url : "/today", tag: r.key });
-      try {
-        await webpush.sendNotification({ endpoint: r.endpoint, keys: { p256dh: r.p256dh, auth: r.auth } }, payload, { TTL: 60 * 60 });
-        sent++;
-      } catch (err) {
-        const status = (err as { statusCode?: number }).statusCode;
-        if (status === 404 || status === 410) await supabase.rpc("cron_forget_endpoint", { p_secret: secret, p_endpoint: r.endpoint });
-      }
+      const result = await deliver(rows, payload, { TTL: 60 * 60 }, async (endpoint) => {
+        await supabase.rpc("cron_forget_endpoint", { p_secret: secret, p_endpoint: endpoint });
+      });
+      sent += result.sent;
+      // Reached nobody but not because every device is gone: try it again
+      // on the next tick rather than lose a medicine dose for good.
+      if (result.sent === 0 && result.failed.length > 0) await supabase.rpc("cron_retry_reminder", { p_secret: secret, p_key: r.key });
     }),
   );
   return Response.json({ due: due?.length ?? 0, sent });

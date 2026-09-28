@@ -64,9 +64,27 @@ export function ReturnToToday() {
 
 /** Anything typed on this page and not yet saved: a text field or text area
  * whose value has moved from the one the page arrived with. */
-function hasUnsavedInput(): boolean {
-  const fields = document.querySelectorAll<HTMLInputElement | HTMLTextAreaElement>(
-    'textarea, input:not([type]), input[type="text"], input[type="search"], input[type="email"], input[type="number"], input[type="tel"], input[type="url"], input[type="date"], input[type="time"]',
+const TYPABLE =
+  'textarea, input:not([type]), input[type="text"], input[type="search"], input[type="email"], input[type="number"], input[type="tel"], input[type="url"], input[type="date"], input[type="time"]';
+
+/** Fields someone has typed into since this page loaded. Comparing value
+ * with defaultValue alone missed every controlled field -- React keeps a
+ * controlled input's defaultValue in step with its value -- so a half-typed
+ * chat message looked "unchanged" and was thrown away on the way to Today. */
+const typedInto = new WeakSet<Element>();
+if (typeof document !== "undefined") {
+  document.addEventListener(
+    "input",
+    (e) => {
+      if (e.target instanceof Element && e.target.matches(TYPABLE)) typedInto.add(e.target);
+    },
+    true,
   );
-  return Array.from(fields).some((f) => f.value !== f.defaultValue);
+}
+
+function hasUnsavedInput(): boolean {
+  const fields = document.querySelectorAll<HTMLInputElement | HTMLTextAreaElement>(TYPABLE);
+  // Typed into and still holding something (a sent chat message clears its
+  // box, and is not unsaved), or an uncontrolled field moved off its default.
+  return Array.from(fields).some((f) => (typedInto.has(f) && f.value !== "") || f.value !== f.defaultValue);
 }

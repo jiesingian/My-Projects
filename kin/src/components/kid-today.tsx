@@ -4,6 +4,7 @@ import { TodayTaskList } from "@/components/today-task-list";
 import { RewardsShelf } from "@/components/rewards-shelf";
 import { getRoutinesNeedingAttention, getMemberScores, getRewards } from "@/lib/queries/routines";
 import { getComingUp, getTodayBriefing, type BriefItem } from "@/lib/queries/today";
+import { FAMILY_TZ } from "@/lib/time";
 
 /** Things a child in kid view should not be sent to: money, the household's
  * running, and anybody's health records. */
@@ -27,7 +28,7 @@ export async function KidToday({ me }: { me: { id: string; family_id: string; fu
   const stars = mine?.spendable ?? 0;
   const first = me.full_name.split(" ")[0];
   const next = [...brief, ...comingUp].filter(forAChild).slice(0, 6);
-  const day = new Date().toLocaleDateString("en-GB", { weekday: "long", timeZone: "Asia/Manila" }).toUpperCase();
+  const day = new Date().toLocaleDateString("en-GB", { weekday: "long", timeZone: FAMILY_TZ }).toUpperCase();
 
   return (
     <div className="kin-kid" style={{ padding: "1.25rem 1.375rem 1.375rem" }}>

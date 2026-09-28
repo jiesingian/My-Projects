@@ -5,12 +5,12 @@ import { createClient } from "@/lib/supabase/server";
 import { requireCurrentMember } from "@/lib/session";
 import type { ActionState } from "@/lib/actions/auth";
 import { humanDatabaseError } from "@/lib/db-errors";
+import { UUID } from "@/lib/ids";
 
 /** Photos on a calendar event (20260926150000_event_photos.sql). The browser
  * has already put the file in Storage under <family id>/events/<event id>/;
  * this records it. */
 
-const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 export async function addEventPhotoAction(eventId: string, storagePath: string): Promise<ActionState> {
   const me = await requireCurrentMember();

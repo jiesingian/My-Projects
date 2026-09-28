@@ -123,9 +123,16 @@ export function MedicinesPanel({
               {m.notes ? ` · ${m.notes}` : ""}
             </div>
           </div>
-          <button type="button" className="btn btn-ghost" disabled={pending} onClick={async () => (await confirm({ title: `Stop ${m.name}?`, description: "It moves to Finished, and the doses already ticked stay on record.", confirmLabel: "Stop" })) && run(() => stopMedicineAction(m.id, memberId))}>
-            Stop
-          </button>
+          {/* Added today: most likely a mistake, so it can go entirely. */}
+          {m.start_date >= today ? (
+            <button type="button" className="btn btn-ghost" disabled={pending} onClick={async () => (await confirm({ title: `Remove ${m.name}?`, description: "It was added today. It is removed completely, with any doses ticked today.", confirmLabel: "Remove", danger: true })) && run(() => deleteMedicineAction(m.id, memberId))}>
+              Remove
+            </button>
+          ) : (
+            <button type="button" className="btn btn-ghost" disabled={pending} onClick={async () => (await confirm({ title: `Stop ${m.name}?`, description: "It moves to Finished, and the doses already ticked stay on record.", confirmLabel: "Stop" })) && run(() => stopMedicineAction(m.id, memberId))}>
+              Stop
+            </button>
+          )}
         </div>
       ))}
 

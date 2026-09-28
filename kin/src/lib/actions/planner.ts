@@ -315,8 +315,11 @@ export async function deleteEventAction(eventId: string): Promise<ActionState> {
   const { data: photos } = await supabase.from("event_photos").select("storage_path").eq("event_id", eventId).eq("family_id", me.family_id);
 
   await removeRowFromCalendars(me.family_id, "events", eventId);
-  const { error } = await supabase.from("events").delete().eq("id", eventId).eq("family_id", me.family_id);
+  const { data: gone, error } = await supabase.from("events").delete().eq("id", eventId).eq("family_id", me.family_id).select("id");
   if (error) return { error: humanDatabaseError(error.message) };
+  // A delete the database refused matches nothing and reports no error, so
+  // the files are only removed once the event is really gone.
+  if (!gone?.length) return { error: "That event couldn't be deleted. You may not have permission to." };
   if (photos?.length) await supabase.storage.from("journal").remove(photos.map((p) => p.storage_path));
 
   revalidatePath("/planner");
