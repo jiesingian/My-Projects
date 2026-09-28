@@ -6,6 +6,8 @@ import { requireCurrentMember } from "@/lib/session";
 import { humanDatabaseError } from "@/lib/db-errors";
 import { isGrownUp } from "@/lib/roles";
 import { clamp } from "@/lib/text";
+import { familyDay } from "@/lib/time";
+import { occasionMilestoneTitle } from "@/lib/occasions";
 import type { ActionState } from "@/lib/actions/auth";
 
 /** Linking two households is the only thing in Kin that reaches past
@@ -71,6 +73,44 @@ export async function greetOccasionAction(eventId: string, body: string): Promis
     if (error.message.includes("event_family_id")) return { error: "That day has passed, so the greeting can't be sent." };
     return { error: humanDatabaseError(error.message) };
   }
+  revalidatePath("/journal");
+  return { error: null };
+}
+
+/** Mark today's birthday or anniversary a milestone, or take the mark back.
+ * Only the household the occasion belongs to decides -- some birthdays are
+ * milestones and most are not. It writes an ordinary milestone carrying the
+ * event (20260929001000), so it lives on the Milestones tab afterwards. */
+export async function setOccasionMilestoneAction(eventId: string, on: boolean): Promise<ActionState> {
+  const me = await requireCurrentMember();
+  const supabase = await createClient();
+  const today = familyDay();
+  if (!on) {
+    const { error } = await supabase
+      .from("milestones")
+      .delete()
+      .eq("event_id", eventId)
+      .eq("milestone_date", today)
+      .eq("family_id", me.family_id);
+    if (error) return { error: humanDatabaseError(error.message) };
+    revalidatePath("/journal");
+    return { error: null };
+  }
+  // The occasion must be this household's own and today's; the function is
+  // the same one the card itself was built from.
+  const { data: occasions } = await supabase.rpc("feed_occasions_today");
+  const o = (occasions ?? []).find((x) => x.event_id === eventId && x.is_ours);
+  if (!o || (o.kind !== "birthday" && o.kind !== "anniversary")) return { error: "Only the family whose day it is can mark it a milestone." };
+  const { error } = await supabase.from("milestones").insert({
+    family_id: me.family_id,
+    title: clamp(occasionMilestoneTitle(o.title, o.kind, o.years), 150),
+    milestone_date: today,
+    event_id: eventId,
+    created_by: me.id,
+  });
+  // Marked twice (two taps, two phones): the unique index keeps one, and
+  // that is the answer either way.
+  if (error && !error.message.includes("milestones_event_day_idx")) return { error: humanDatabaseError(error.message) };
   revalidatePath("/journal");
   return { error: null };
 }

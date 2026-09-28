@@ -4957,6 +4957,15 @@ button.kin-initial:focus-visible {
 .kin-occasion {
   background: color-mix(in srgb, var(--cal-occasion) 9%, var(--color-surface, #fff));
 }
+.kin-occasion-star {
+  color: color-mix(in srgb, var(--cal-occasion) 75%, var(--color-text));
+}
+.kin-occasion-who {
+  color: inherit;
+  text-decoration: underline;
+  text-decoration-color: color-mix(in srgb, currentColor 30%, transparent);
+  text-underline-offset: 0.15em;
+}
 .kin-occasion-greeting {
   padding: 0.5rem 0.6875rem;
   border-radius: 14px;

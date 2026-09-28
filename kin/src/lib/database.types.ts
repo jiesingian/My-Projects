@@ -3811,6 +3811,7 @@ export type Database = {
         Row: {
           created_at: string
           created_by: string | null
+          event_id: string | null
           family_id: string
           id: string
           member_id: string | null
@@ -3821,6 +3822,7 @@ export type Database = {
         Insert: {
           created_at?: string
           created_by?: string | null
+          event_id?: string | null
           family_id: string
           id?: string
           member_id?: string | null
@@ -3831,6 +3833,7 @@ export type Database = {
         Update: {
           created_at?: string
           created_by?: string | null
+          event_id?: string | null
           family_id?: string
           id?: string
           member_id?: string | null

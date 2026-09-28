@@ -4,10 +4,13 @@
 export type OccasionGreeting = {
   id: string;
   body: string;
+  /** The greeter's full name: who remembered is the point. */
   authorName: string;
-  householdName: string;
+  /** Their member id when they are in this household, so the name opens their
+   * profile; null for a relative in a linked household, whose profile is not
+   * this household's to open (yet -- see BACKLOG, profiles). */
+  profileMemberId: string | null;
   mine: boolean;
-  ourHousehold: boolean;
 };
 
 export type FeedOccasion = {
@@ -17,6 +20,8 @@ export type FeedOccasion = {
   years: number | null;
   householdName: string;
   isOurs: boolean;
+  /** Marked a milestone by the household it belongs to. */
+  milestone: boolean;
   greetings: OccasionGreeting[];
 };
 
@@ -41,4 +46,16 @@ export function occasionHeadline(title: string, kind: "birthday" | "anniversary"
   const what = title.trim();
   if (years && years > 0) return `${what}: ${years} ${years === 1 ? "year" : "years"} today 💍`;
   return /anniversary/i.test(what) ? `${what}, today 💍` : `${what}’s anniversary is today 💍`;
+}
+
+/** The milestone a marked occasion becomes: the card's line without "today"
+ * or the emoji, since a milestone is read long after the day. */
+export function occasionMilestoneTitle(title: string, kind: "birthday" | "anniversary", years: number | null): string {
+  if (kind === "birthday") {
+    const who = personOf(title);
+    return years && years > 0 ? `${who} turns ${years}` : `${who}’s birthday`;
+  }
+  const what = title.trim();
+  if (years && years > 0) return `${what}: ${years} ${years === 1 ? "year" : "years"}`;
+  return /anniversary/i.test(what) ? what : `${what}’s anniversary`;
 }
