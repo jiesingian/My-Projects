@@ -1,6 +1,6 @@
 /** A birthday or anniversary on the family feed, on the day (agreed
  * 28 September). Built from the yearly events Kin already keeps; see
- * supabase/migrations/20260928170000_feed_occasions.sql. */
+ * supabase/migrations/20260928180000_feed_occasions.sql. */
 export type OccasionGreeting = {
   id: string;
   body: string;
