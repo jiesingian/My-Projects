@@ -24,13 +24,13 @@ session (see the root CLAUDE.md on session cost).
    to the family feed. A milestone becomes a ★ mark on an entry, with a filter
    chip; existing milestones move over. Feed is photo-first with reactions and
    comments; the "link a household" panel shrinks to one line.
-4. **Yes: Planner → Goals tab** -- money (existing goals), water, steps,
+4. **Done: Planner → Goals tab** -- money (existing goals), water, steps,
    weight, gym, custom -- progress rings fed by data Kin already has. **Plus
    (Jonathan): a goal can carry a reward**, set when the goal is created, by the
    person for themselves or by someone for another member; **the reward is
    subject to approval by a parent or another household member** (the same
    approval idea chores already use).
-5. **Yes: fold daily chores** into one "N chores" line per day on the Planner
+5. **Done: fold daily chores** into one "N chores" line per day on the Planner
    agenda, with a "Show chores" switch.
 6. **Yes: profiles that feel like a person** (cover, photo, recent moments,
    Message / Call; details under About; Remove in a "⋯" menu). **Plus
@@ -158,6 +158,12 @@ Decided against in the same review: revising Journal (item 6) and Planner
 
 ## Done
 
+- Chores folded on the Planner agenda (agreed 28 September, item 5): a
+  day's recurring chores (routines of kind "chore") fold into one
+  "N chores" line after that day's plans, opening in place to the list.
+  "Show chores" under the legend lists them in full again and is
+  remembered like the legend filter; folded, they also stay out of the
+  week rail's dots and behind plans in the month grid. Today is unchanged.
 - Household name from both surnames (agreed 28 September, item 2): "Create
   a family" has a folded "Suggest a name from surnames" -- the wife's maiden
   surname and the husband's give "Santos-Reyes Household" on a button that
@@ -173,6 +179,22 @@ Decided against in the same review: revising Journal (item 6) and Planner
   Pay (Wealth's pay flow) / Skip; the shopping has Shop / Skip; a birthday
   or event just shows for the day, with nothing to tick. Marks live in today_marks (20260928170000). Meals stay in the
   header's "Eating today".
+- Planner → Goals (approved 28 September, "Agreed 28 September" item 4, with
+  Jonathan's rewards): a fourth Planner tab beside Calendar, Tasks and
+  Events. Each goal has a target and a progress ring, an owner (a person or
+  the whole household) and a kind: money (a savings goal on Wealth, or what
+  is put by here), water (liquid_intake_log), steps and weight (vitals /
+  Apple Health), gym (sessions ticked, counted per week) or anything
+  countable. A goal can carry a reward, set when the goal is made; it counts
+  once a parent or another adult says yes, on the goal or in Today's queue,
+  and nobody approves their own (on a household goal, not whoever asked).
+  The policies hold that, not the app (supabase/tests/rls_planner_goals.sql,
+  32 cases, run on dev inside a rolled-back transaction). What a goal
+  measures cannot change after it is made, so an approved reward's target
+  cannot be lowered. Money, water, gym and custom goals are Kin Free; steps
+  and weight are Plus (require_kin_plus). Rings draw in once on entry and
+  sit still under reduced motion.
+
 - Review fixes (28 September, every page rendered signed in against a local
   stand-in with an invented household): a child with their own login showed
   as "Adult" in the role editor, and Edit then Save would have made them one
