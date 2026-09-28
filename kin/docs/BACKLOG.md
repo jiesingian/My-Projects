@@ -30,7 +30,7 @@ session (see the root CLAUDE.md on session cost).
    person for themselves or by someone for another member; **the reward is
    subject to approval by a parent or another household member** (the same
    approval idea chores already use).
-5. **Yes: fold daily chores** into one "N chores" line per day on the Planner
+5. **Done: fold daily chores** into one "N chores" line per day on the Planner
    agenda, with a "Show chores" switch.
 6. **Yes: profiles that feel like a person** (cover, photo, recent moments,
    Message / Call; details under About; Remove in a "⋯" menu). **Plus
@@ -158,6 +158,12 @@ Decided against in the same review: revising Journal (item 6) and Planner
 
 ## Done
 
+- Chores folded on the Planner agenda (agreed 28 September, item 5): a
+  day's recurring chores (routines of kind "chore") fold into one
+  "N chores" line after that day's plans, opening in place to the list.
+  "Show chores" under the legend lists them in full again and is
+  remembered like the legend filter; folded, they also stay out of the
+  week rail's dots and behind plans in the month grid. Today is unchanged.
 - Household name from both surnames (agreed 28 September, item 2): "Create
   a family" has a folded "Suggest a name from surnames" -- the wife's maiden
   surname and the husband's give "Santos-Reyes Household" on a button that
