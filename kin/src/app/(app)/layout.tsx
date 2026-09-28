@@ -1,3 +1,4 @@
+import { PushKeepAlive } from "@/components/push-opt-in";
 import { redirect } from "next/navigation";
 import { getCurrentMember } from "@/lib/session";
 import { readAccess } from "@/lib/access";
@@ -35,6 +36,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
 
   return (
     <div className="kin-shell">
+      <PushKeepAlive />
       {/* The member's text size, and the three layout switches that have to
           answer it -- see text-scale.ts for why they are generated rather than
           written in globals.css.
