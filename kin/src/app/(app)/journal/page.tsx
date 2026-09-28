@@ -17,7 +17,7 @@ import { MilestoneControls } from "@/components/milestone-controls";
 import { familyDate } from "@/lib/format-family";
 import { FamilyFeed } from "@/components/family-feed";
 import { EntryShareToggle } from "@/components/entry-share-toggle";
-import { getFamilyFeed, getFamilyLinks } from "@/lib/queries/family-links";
+import { getFamilyFeed, getFamilyLinks, getFeedOccasions } from "@/lib/queries/family-links";
 import { isGrownUp } from "@/lib/roles";
 
 /* Gallery, Entries and Milestones were three hub segments; now they are one
@@ -61,7 +61,7 @@ export default async function JournalPage({
         {view === "list" && <EntriesPane familyId={me.family_id} />}
         {view === "milestones" && <MilestonesPane familyId={me.family_id} />}
         {view === "feed" && (
-          <FeedPane familyId={me.family_id} inviteCode={me.families.invite_code} canManage={isGrownUp(me.role)} />
+          <FeedPane meId={me.id} familyId={me.family_id} inviteCode={me.families.invite_code} canManage={isGrownUp(me.role)} />
         )}
       </div>
     </div>
@@ -106,9 +106,9 @@ async function GalleryPane({ familyId }: { familyId: string }) {
 /** Everyone's shared memories, in date order, regardless of whose household
  * wrote them. Row-level security decides what is in here; this pane does not
  * filter by family at all, on purpose -- see getFamilyFeed. */
-async function FeedPane({ familyId, inviteCode, canManage }: { familyId: string; inviteCode: string; canManage: boolean }) {
-  const [entries, links] = await Promise.all([getFamilyFeed(familyId), getFamilyLinks(familyId)]);
-  return <FamilyFeed entries={entries} links={links} ourCode={inviteCode} canManage={canManage} />;
+async function FeedPane({ meId, familyId, inviteCode, canManage }: { meId: string; familyId: string; inviteCode: string; canManage: boolean }) {
+  const [entries, links, occasions] = await Promise.all([getFamilyFeed(familyId), getFamilyLinks(familyId), getFeedOccasions(meId, familyId)]);
+  return <FamilyFeed entries={entries} links={links} ourCode={inviteCode} canManage={canManage} occasions={occasions} />;
 }
 
 async function EntriesPane({ familyId }: { familyId: string }) {

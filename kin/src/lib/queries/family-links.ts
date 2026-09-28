@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { getSignedUrls } from "@/lib/storage";
+import type { FeedOccasion } from "@/lib/occasions";
 
 export type FamilyLink = {
   id: string;
@@ -124,7 +125,42 @@ export async function getFamilyFeed(familyId: string): Promise<FeedEntry[]> {
   return [...entries, ...moments].sort((a, b) => b.entryDate.localeCompare(a.entryDate));
 }
 
-export type LinkMessage = { id: string; authorName: string; body: string; createdAt: string; mine: boolean; ourHousehold: boolean };
+/** Today's birthdays and anniversaries -- ours and linked households' -- with
+ * the greetings this household may read under each (the birthday household
+ * reads them all; anyone else reads their own household's). */
+export async function getFeedOccasions(meId: string, familyId: string): Promise<FeedOccasion[]> {
+  const supabase = await createClient();
+  const { data } = await supabase.rpc("feed_occasions_today");
+  const rows = (data ?? []).filter((o) => o.kind === "birthday" || o.kind === "anniversary");
+  if (rows.length === 0) return [];
+  const { data: greetings } = await supabase
+    .from("occasion_greetings")
+    .select("id, event_id, occasion_date, body, author_name, household_name, member_id, family_id, created_at")
+    .in("event_id", rows.map((o) => o.event_id))
+    .order("created_at", { ascending: true });
+  // Only this year's day: the same event comes round again next year.
+  const today = new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Manila" });
+  return rows.map((o) => ({
+    eventId: o.event_id,
+    title: o.title,
+    kind: o.kind as FeedOccasion["kind"],
+    years: o.years,
+    householdName: o.household_name,
+    isOurs: o.is_ours,
+    greetings: (greetings ?? [])
+      .filter((g) => g.event_id === o.event_id && g.occasion_date === today)
+      .map((g) => ({
+        id: g.id,
+        body: g.body,
+        authorName: g.author_name,
+        householdName: g.household_name,
+        mine: g.member_id === meId,
+        ourHousehold: g.family_id === familyId,
+      })),
+  }));
+}
+
+export type LinkMessage ={ id: string; authorName: string; body: string; createdAt: string; mine: boolean; ourHousehold: boolean };
 
 /** One linked household's conversation with this one, oldest first, and the
  * name of the household on the other end. Null when the link is not an

@@ -15,6 +15,8 @@ import {
 } from "@/lib/actions/family-links";
 import type { ActionState } from "@/lib/actions/auth";
 import type { FamilyLink, FeedEntry } from "@/lib/queries/family-links";
+import type { FeedOccasion } from "@/lib/occasions";
+import { OccasionCard } from "@/components/occasion-card";
 
 const initialState: ActionState = { error: null };
 
@@ -26,11 +28,14 @@ export function FamilyFeed({
   links,
   ourCode,
   canManage,
+  occasions = [],
 }: {
   entries: FeedEntry[];
   links: FamilyLink[];
   ourCode: string;
   canManage: boolean;
+  /** Today's birthdays and anniversaries, ours and linked households'. */
+  occasions?: FeedOccasion[];
 }) {
   const [showLinks, setShowLinks] = useState(links.length === 0);
 
@@ -57,6 +62,14 @@ export function FamilyFeed({
           <LinkManager links={links} ourCode={ourCode} canManage={canManage} />
         </div>
       </div>
+
+      {occasions.length > 0 && (
+        <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem", marginBottom: "0.5rem" }}>
+          {occasions.map((o) => (
+            <OccasionCard key={o.eventId} occasion={o} />
+          ))}
+        </div>
+      )}
 
       {entries.length === 0 ? (
         <Blueprint style={{ padding: "1.125rem 0.9375rem" }}>
