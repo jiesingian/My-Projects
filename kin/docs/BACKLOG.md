@@ -193,6 +193,9 @@ Decided against in the same review: revising Journal (item 6) and Planner
   voice. A private link per member, like the calendar link, that a Shortcut
   fetches and speaks. Free, and works without the AI key. Settings has a
   Hear it button to preview (28 September).
+  It also says the chores that are yours today (your turn on a rota, not
+  already ticked off, timed ones in the timed list) and, for grown-ups,
+  what is running low and not yet on the list (28 September).
 
 - Five more colour themes in Settings → Appearance: Pale Milk, Editorial,
   Electric Blue, Emerald Wave and Antarctic (dark only), from Janine's list,

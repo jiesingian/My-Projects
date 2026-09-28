@@ -352,7 +352,7 @@ function TodayBrief({ initialOn, origin }: { initialOn: boolean; origin: string 
     <section className="kin-quickbtn-section" aria-labelledby="qb-brief">
       <h2 id="qb-brief" className="kin-quickbtn-h">Today in Kin, read aloud</h2>
       <p className="kin-quickbtn-lead">
-        One tap and your iPhone says what&rsquo;s on today, with the times. It uses the phone&rsquo;s own voice, so it&rsquo;s free and works without Kin AI.
+        One tap and your iPhone says what&rsquo;s on today with the times, the chores that are yours, and what&rsquo;s running low. It uses the phone&rsquo;s own voice, so it&rsquo;s free and works without Kin AI.
       </p>
       <div className="kin-quickbtn-row">
         <button type="button" className="btn btn-secondary" onClick={hear} disabled={pending}>
