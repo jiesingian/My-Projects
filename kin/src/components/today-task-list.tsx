@@ -106,6 +106,7 @@ export function TaskRow({ task }: { task: RoutineView }) {
     >
       <div style={{ display: "flex", gap: "0.625rem", alignItems: "flex-start" }}>
         <span
+          className="kin-tile3d"
           style={{
             width: 30,
             height: 30,
@@ -114,7 +115,7 @@ export function TaskRow({ task }: { task: RoutineView }) {
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
-            background: "var(--cal-schedule)",
+            backgroundColor: "var(--cal-schedule)",
             color: "#fff",
           }}
         >
