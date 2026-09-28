@@ -4,7 +4,9 @@
   "private": true,
   "license": "UNLICENSED",
   "scripts": {
+    "predev": "node scripts/copy-mediapipe.mjs",
     "dev": "TZ=Asia/Manila next dev",
+    "prebuild": "node scripts/copy-mediapipe.mjs",
     "build": "TZ=Asia/Manila next build",
     "start": "TZ=Asia/Manila next start",
     "lint": "eslint",
@@ -14,6 +16,7 @@
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.123.0",
+    "@mediapipe/tasks-vision": "1.0.1",
     "@supabase/ssr": "^0.12.5",
     "@supabase/supabase-js": "^2.112.4",
     "next": "16.3.4",
