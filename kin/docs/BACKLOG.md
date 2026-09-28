@@ -182,6 +182,19 @@ Decided against in the same review: revising Journal (item 6) and Planner
   with a reward in play needs the other side's yes, whichever side asks.
   20260929003000; supabase/tests/rls_goal_reward_assurance.sql (32 cases on
   dev, rolled back).
+- Kin's own offers (approved 28 September): now and then Today offers a
+  grown-up one small task for something the household hasn't used yet --
+  finish your profile, the emergency card, a second grown-up, water three
+  days, Google Calendar, a first goal, Kin AI, the vault (Plus households
+  only) -- for 1-3 days of Kin Plus. One at a time, at most one new a day,
+  none in the first week; take it (7 days to do it) or skip it (back in 30
+  days). Kin checks completion from the data. Feature offers earn each once
+  and at most 30 days a year. Inviting another family: 7 days when they
+  name this family's code (their first 14 days, on Today), 30 more when
+  they subscribe; outside the cap. Kin Free gets a taste of Plus; Plus with
+  an end date is extended; paying or comped households bank the days
+  (families.plus_credit_days) for when billing can use them.
+  20260929020000; supabase/tests/rls_kin_offers.sql (dev, rolled back).
 
 - The week ahead (agreed 28 September, item 8): Sundays from 19:00
   Manila, the grown-ups get one push -- "Lia's recital Wed, Meralco due

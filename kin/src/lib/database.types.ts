@@ -1431,6 +1431,9 @@ export type Database = {
       }
       families: {
         Row: {
+          plus_credit_days: number
+          referral_code: string
+          referred_by: string | null
           about: string | null
           access_expires_at: string | null
           access_source: string | null
@@ -1449,6 +1452,9 @@ export type Database = {
           week_start: string
         }
         Insert: {
+          plus_credit_days?: number
+          referral_code?: string
+          referred_by?: string | null
           about?: string | null
           access_expires_at?: string | null
           access_source?: string | null
@@ -1467,6 +1473,9 @@ export type Database = {
           week_start?: string
         }
         Update: {
+          plus_credit_days?: number
+          referral_code?: string
+          referred_by?: string | null
           about?: string | null
           access_expires_at?: string | null
           access_source?: string | null
@@ -3300,6 +3309,72 @@ export type Database = {
           },
         ]
       }
+      household_offers: {
+        Row: {
+          answered_at: string | null
+          answered_by: string | null
+          code: string
+          completed_at: string | null
+          days: number
+          expires_at: string
+          family_id: string
+          id: string
+          offered_at: string
+          status: string
+        }
+        Insert: {
+          answered_at?: string | null
+          answered_by?: string | null
+          code: string
+          completed_at?: string | null
+          days: number
+          expires_at?: string
+          family_id: string
+          id?: string
+          offered_at?: string
+          status?: string
+        }
+        Update: {
+          answered_at?: string | null
+          answered_by?: string | null
+          code?: string
+          completed_at?: string | null
+          days?: number
+          expires_at?: string
+          family_id?: string
+          id?: string
+          offered_at?: string
+          status?: string
+        }
+        Relationships: []
+      }
+      kin_plus_awards: {
+        Row: {
+          created_at: string
+          days: number
+          family_id: string
+          id: string
+          reason: string
+          source_family: string | null
+        }
+        Insert: {
+          created_at?: string
+          days: number
+          family_id: string
+          id?: string
+          reason: string
+          source_family?: string | null
+        }
+        Update: {
+          created_at?: string
+          days?: number
+          family_id?: string
+          id?: string
+          reason?: string
+          source_family?: string | null
+        }
+        Relationships: []
+      }
       liquid_intake_log: {
         Row: {
           family_id: string
@@ -5061,6 +5136,22 @@ export type Database = {
       }
       goal_reward_act: {
         Args: { p_goal: string; p_action: string }
+        Returns: string
+      }
+      check_kin_offers: {
+        Args: never
+        Returns: { code: string; days: number }[]
+      }
+      next_kin_offer: {
+        Args: never
+        Returns: { answered_at: string | null; answered_by: string | null; code: string; completed_at: string | null; days: number; expires_at: string; family_id: string; id: string; offered_at: string; status: string }[]
+      }
+      respond_kin_offer: {
+        Args: { p_accept: boolean; p_offer: string }
+        Returns: string
+      }
+      set_referrer: {
+        Args: { p_code: string }
         Returns: string
       }
       decide_goal_change: {
