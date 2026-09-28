@@ -109,8 +109,8 @@ Added 26 September, second list:
     (late and missed ones flagged), a "This week" summary on Family, Health,
     an emergency card per person (share as text, print), WHO growth charts
     for children under five, notes and photos on each visit, and an illness
-    log with a temperature chart. **Not yet:** a push at the dose time --
-    see Next up.
+    log with a temperature chart. A push at each dose time is in the
+    reminders (Next up), and starts once the reminder secret is set.
 
 Decided against in the same review: revising Journal (item 6) and Planner
 (item 7). Done already: no hub numbers and no "five ledgers" motto (item 9,
@@ -254,9 +254,13 @@ Decided against in the same review: revising Journal (item 6) and Planner
   `documents`, so no upload could be tested there.
   20260926120000_storage_buckets_where_missing.sql creates journal, documents,
   avatars (public) and recipe-photos where missing, with household-folder
-  policies, and does nothing where they exist (production). Making
-  production's own hand-made buckets reproducible is still open: that needs
-  its policies read first.
+  policies, and does nothing where they exist (production). Done 28
+  September: production's buckets and policies were read and are now in
+  20260928140000_storage_policies_as_production.sql, so dev matches
+  production exactly (dev also gains trip-photos). Production gained one
+  rule, a delete rule for trip-photos, and deleting a household now clears
+  every bucket at every depth (event and visit photos and recipe photos were
+  being left behind).
 
 - **Done: loading placeholders.** Checked 26 September: every page in the
   app has one -- the shared hub-shaped one in (app)/loading.tsx or its own
