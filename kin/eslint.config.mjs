@@ -12,6 +12,9 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // MediaPipe's engine, copied from node_modules at build time
+    // (scripts/copy-mediapipe.mjs) -- third-party output, not Kin's code.
+    "public/mediapipe/**",
   ]),
   {
     // A "use server" file may export nothing but async functions. Exporting a

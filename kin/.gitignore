@@ -53,3 +53,4 @@ graphify-out/20*/
 e2e/.auth/
 playwright-report/
 test-results/
+/public/mediapipe/

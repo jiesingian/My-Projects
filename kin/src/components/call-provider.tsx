@@ -6,6 +6,8 @@ import { createClient } from "@/lib/supabase/client";
 import { Avatar } from "@/components/avatar";
 import { Icon, type IconName } from "@/components/icons";
 import { toast } from "@/components/toast";
+import { CallEffectsTray } from "@/components/call-effects-tray";
+import { EffectsPipeline, type BackgroundId, type FaceId, type FilterId } from "@/lib/call-effects";
 import { initials } from "@/lib/format";
 import { callClock, endLine, ended, forThisDevice, onSignal, RING_SECONDS, type CallState, type EndReason, type Signal } from "@/lib/calls";
 import { iceServersAction, missedCallAction, ringAction } from "@/lib/actions/calls";
@@ -37,6 +39,14 @@ export function CallProvider({ familyId, me, members, children }: { familyId: st
   const [muted, setMuted] = useState(false);
   const [cameraOff, setCameraOff] = useState(false);
   const [facing, setFacing] = useState<"user" | "environment">("user");
+  // Video effects (28 September): the camera picture is redrawn on a canvas
+  // and that canvas is what the call sends (lib/call-effects.ts).
+  const [fx, setFx] = useState<{ filter: FilterId; background: BackgroundId }>({ filter: "none", background: "none" });
+  const [face, setFace] = useState<FaceId>("none");
+  const [fxOpen, setFxOpen] = useState(false);
+  const [fxLoading, setFxLoading] = useState(false);
+  const effects = useRef<EffectsPipeline | null>(null);
+  const preview = useRef<MediaStream | null>(null);
   const [now, setNow] = useState(0);
 
   const stateRef = useRef<CallState>(call);
@@ -73,6 +83,9 @@ export function CallProvider({ familyId, me, members, children }: { familyId: st
     pc.current = null;
     for (const t of local.current?.getTracks() ?? []) t.stop();
     local.current = null;
+    effects.current?.stop();
+    effects.current = null;
+    preview.current = null;
     remote.current = null;
     pendingIce.current = [];
   }, []);
@@ -94,6 +107,9 @@ export function CallProvider({ familyId, me, members, children }: { familyId: st
         teardown();
         setMuted(false);
         setCameraOff(false);
+        setFx({ filter: "none", background: "none" });
+        setFace("none");
+        setFxOpen(false);
         setFacing("user");
         // The line saying how it ended stays a moment, then goes.
         const t = window.setTimeout(() => {
@@ -125,7 +141,8 @@ export function CallProvider({ familyId, me, members, children }: { familyId: st
   };
 
   const attach = useCallback(() => {
-    if (localVideo.current && local.current && localVideo.current.srcObject !== local.current) localVideo.current.srcObject = local.current;
+    const mine = preview.current ?? local.current;
+    if (localVideo.current && mine && localVideo.current.srcObject !== mine) localVideo.current.srcObject = mine;
     if (remote.current) {
       if (remoteVideo.current && remoteVideo.current.srcObject !== remote.current) remoteVideo.current.srcObject = remote.current;
       if (remoteAudio.current && remoteAudio.current.srcObject !== remote.current) remoteAudio.current.srcObject = remote.current;
@@ -138,7 +155,8 @@ export function CallProvider({ familyId, me, members, children }: { familyId: st
       ice.current ??= await iceServersAction().catch(() => [{ urls: "stun:stun.l.google.com:19302" }]);
       const conn = new RTCPeerConnection({ iceServers: ice.current });
       pc.current = conn;
-      for (const track of local.current?.getTracks() ?? []) conn.addTrack(track, local.current!);
+      // With an effect on, the drawn picture is sent instead of the camera's.
+      for (const track of local.current?.getTracks() ?? []) conn.addTrack(track.kind === "video" && effects.current ? effects.current.output : track, local.current!);
       conn.onicecandidate = (e) => send({ t: "ice", call: s.call, fromDevice: device, toDevice: s.peerDevice, candidate: e.candidate ? e.candidate.toJSON() : null });
       conn.ontrack = (e) => {
         remote.current = e.streams[0] ?? new MediaStream([e.track]);
@@ -421,6 +439,7 @@ export function CallProvider({ familyId, me, members, children }: { familyId: st
   const toggleCamera = () => {
     const next = !cameraOff;
     for (const t of local.current?.getVideoTracks() ?? []) t.enabled = !next;
+    if (effects.current) effects.current.output.enabled = !next;
     setCameraOff(next);
   };
   const flip = async () => {
@@ -429,18 +448,81 @@ export function CallProvider({ familyId, me, members, children }: { familyId: st
       const fresh = await navigator.mediaDevices.getUserMedia({ video: { facingMode: want } });
       const track = fresh.getVideoTracks()[0];
       const old = local.current?.getVideoTracks()[0];
-      await pc.current?.getSenders().find((x) => x.track?.kind === "video")?.replaceTrack(track);
+      // With an effect on, the outgoing picture stays the drawn one; only its
+      // camera changes.
+      if (effects.current) effects.current.setSource(track);
+      else await pc.current?.getSenders().find((x) => x.track?.kind === "video")?.replaceTrack(track);
       if (old) {
         local.current?.removeTrack(old);
         old.stop();
       }
       local.current?.addTrack(track);
       track.enabled = !cameraOff;
-      if (localVideo.current) localVideo.current.srcObject = local.current;
+      if (localVideo.current) localVideo.current.srcObject = preview.current ?? local.current;
       setFacing(want);
     } catch {
       toast.error("This phone has only the one camera Kin can use.");
     }
+  };
+
+  // `faceNow`: the face choice as it is about to be, since the state update
+  // from applyFace has not landed yet when it calls this.
+  const applyEffects = async (filter: FilterId, background: BackgroundId, photo?: HTMLImageElement | null, faceNow: FaceId = face) => {
+    const raw = local.current?.getVideoTracks()[0];
+    if (!raw) return;
+    const sender = pc.current?.getSenders().find((x) => x.track?.kind === "video");
+    if (filter === "none" && background === "none" && faceNow === "none") {
+      if (effects.current) {
+        await sender?.replaceTrack(raw);
+        effects.current.stop();
+        effects.current = null;
+        preview.current = null;
+        if (localVideo.current) localVideo.current.srcObject = local.current;
+      }
+      setFx({ filter, background });
+      return;
+    }
+    const pipe = (effects.current ??= new EffectsPipeline(raw));
+    setFxLoading(background !== "none");
+    try {
+      await pipe.set(filter, background, photo);
+      setFx({ filter, background });
+    } catch {
+      await pipe.set(filter, "none");
+      setFx({ filter, background: "none" });
+      toast.error("Backgrounds couldn't start on this phone. Filters still work.");
+    } finally {
+      setFxLoading(false);
+    }
+    pipe.output.enabled = !cameraOff;
+    if (sender && sender.track !== pipe.output) await sender.replaceTrack(pipe.output);
+    if (!preview.current) {
+      preview.current = new MediaStream([pipe.output]);
+      if (localVideo.current) localVideo.current.srcObject = preview.current;
+    }
+  };
+
+  /** A face effect rides on the same drawn picture as filters and backgrounds. */
+  const applyFace = async (next: FaceId) => {
+    const raw = local.current?.getVideoTracks()[0];
+    if (!raw) return;
+    if (next === "none" && fx.filter === "none" && fx.background === "none") {
+      setFace("none");
+      await effects.current?.setFace("none");
+      return void applyEffects("none", "none", undefined, "none");
+    }
+    const pipe = (effects.current ??= new EffectsPipeline(raw));
+    setFxLoading(next !== "none");
+    try {
+      await pipe.setFace(next);
+      setFace(next);
+    } catch {
+      toast.error("Face effects couldn't start on this phone.");
+    } finally {
+      setFxLoading(false);
+    }
+    // Make sure the drawn picture is what is sent and shown.
+    await applyEffects(fx.filter, fx.background, undefined, next);
   };
 
   const peer = call.phase === "idle" ? null : members.find((m) => m.id === call.peer) ?? { id: call.peer, name: "Someone", photoUrl: null, callable: false };
@@ -473,6 +555,17 @@ export function CallProvider({ familyId, me, members, children }: { familyId: st
               </div>
             </div>
 
+            {call.video && fxOpen && busy && call.phase !== "incoming" && (
+              <CallEffectsTray
+                filter={fx.filter}
+                background={fx.background}
+                face={face}
+                loading={fxLoading}
+                onChange={(f, b, p) => void applyEffects(f, b, p)}
+                onFace={(f) => void applyFace(f)}
+                onClose={() => setFxOpen(false)}
+              />
+            )}
             <div className="kin-call-controls">
               {call.phase === "incoming" && (
                 <>
@@ -485,6 +578,7 @@ export function CallProvider({ familyId, me, members, children }: { familyId: st
                   <CallButton icon={muted ? "micOff" : "mic"} label={muted ? "Unmute" : "Mute"} pressed={muted} onClick={toggleMute} />
                   {call.video && <CallButton icon={cameraOff ? "videoOff" : "video"} label={cameraOff ? "Camera on" : "Camera off"} pressed={cameraOff} onClick={toggleCamera} />}
                   {call.video && <CallButton icon="repeat" label="Flip" onClick={() => void flip()} />}
+                  {call.video && <CallButton icon="sparkle" label="Effects" pressed={fxOpen || fx.filter !== "none" || fx.background !== "none" || face !== "none"} onClick={() => setFxOpen((o) => !o)} />}
                   <CallButton icon="phoneOff" label="End" tone="end" onClick={hangUp} />
                 </>
               )}
