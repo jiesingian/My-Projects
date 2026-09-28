@@ -37,7 +37,7 @@ session (see the root CLAUDE.md on session cost).
    (Jonathan): a person's profile opens from the family tree too.**
 7. **Yes: birthday and anniversary moments** in the family feed.
 8. **Yes: a Sunday "week ahead" push** (with its own switch).
-9. **Yes: streaks for kids' chores** (bonus star at 7 and 30 days, one freeze a week).
+9. **Done: streaks for kids' chores** (bonus star at 7 and 30 days, one freeze a week).
 10. **No Filipino interface.** Kin AI keeps understanding and answering
     Filipino / Taglish, as it already does.
 
@@ -158,6 +158,13 @@ Decided against in the same review: revising Journal (item 6) and Planner
 
 ## Done
 
+- Streaks for kids' chores (agreed 28 September, item 9): a child's daily
+  chore shows "🔥 7 days in a row" on its card -- in kid view and on the
+  parents' Today -- with how many more days to the next bonus star.
+  Reaching 7 and 30 days each adds a real star to the child's stars (once
+  a grown-up has approved that day, like points); one missed day a
+  Monday-to-Sunday week is covered by a freeze. Computed from routine_log
+  every time (lib/streaks.ts), never stored.
 - Chores folded on the Planner agenda (agreed 28 September, item 5): a
   day's recurring chores (routines of kind "chore") fold into one
   "N chores" line after that day's plans, opening in place to the list.

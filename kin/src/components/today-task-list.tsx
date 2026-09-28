@@ -9,6 +9,7 @@ import { Blueprint } from "@/components/ui";
 import { logRoutineAction, clearRoutineLogAction, setRoutineLogNoteAction } from "@/lib/actions/routines";
 import { ROUTINE_KIND_META, formatTimeOfDay, type RoutineKind } from "@/lib/routines";
 import type { RoutineView } from "@/lib/queries/routines";
+import { streakLabel, type ChoreStreak } from "@/lib/streaks";
 
 /** Today's tasks, with who is on each one, a tap to mark it done or skipped,
  * an optional note on how it went, and a way back if a tap was wrong — the
@@ -125,6 +126,7 @@ export function TaskRow({ task }: { task: RoutineView }) {
             {task.rotates && today.assignee ? `${today.assignee.name.split(" ")[0]}'s turn` : whoFor}
             {task.timeOfDay ? ` · ${formatTimeOfDay(task.timeOfDay)}` : ""}
           </div>
+          {task.kidStreak && <StreakLine streak={task.kidStreak} doneToday={today.status === "done" && today.approval !== "rejected"} />}
         </div>
       </div>
 
@@ -290,5 +292,37 @@ export function TaskRow({ task }: { task: RoutineView }) {
         {error && <div style={{ fontSize: "0.78125rem", color: "var(--cal-occasion)", marginTop: "0.375rem" }}>{error}</div>}
       </div>
     </Blueprint>
+  );
+}
+
+/** "🔥 7 days in a row" on a child's daily chore (agreed 28 September), with
+ * what the run is heading for: the next bonus star, or the one just earned.
+ * A week's freeze is mentioned only once it has been spent, so the line
+ * never reads as a warning before anything has gone wrong. */
+function StreakLine({ streak, doneToday }: { streak: ChoreStreak; doneToday: boolean }) {
+  if (streak.days < 2) return null;
+  const justEarned = doneToday && (streak.days === 7 || streak.days === 30);
+  const toGo = streak.nextStarAt ? streak.nextStarAt - streak.days : null;
+  return (
+    <div className="kin-streak" data-earned={justEarned ? "true" : undefined}>
+      <span className="kin-streak-run">
+        <span aria-hidden="true">🔥</span> {streakLabel(streak.days)}
+      </span>
+      {justEarned ? (
+        <span className="kin-streak-note">
+          <span aria-hidden="true">⭐</span> Bonus star!
+        </span>
+      ) : toGo !== null ? (
+        <span className="kin-streak-note">
+          {toGo} more for a bonus <span aria-hidden="true">⭐</span>
+          <span className="sr-only">star</span>
+        </span>
+      ) : null}
+      {streak.freezeUsedThisWeek && (
+        <span className="kin-streak-note">
+          <span aria-hidden="true">🧊</span> Freeze used this week
+        </span>
+      )}
+    </div>
   );
 }
