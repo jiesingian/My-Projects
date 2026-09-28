@@ -13,6 +13,7 @@ import { TEXT_SCALE_MAX, TEXT_SCALE_MIN } from "@/lib/text-scale";
 import { PALETTE_DEFAULT, PALETTE_NEW_MEMBER, isPaletteId } from "@/lib/palettes";
 import { randomToken, sha256, toBase64Url } from "@/lib/security/crypto";
 import { isCurrencyCode, isDateFormat, isWeekStart } from "@/lib/household-prefs";
+import { QUICK_SLOTS, isQuickAction, isQuickButton } from "@/lib/quick-button";
 
 export async function setThemeAction(theme: "light" | "dark" | "system"): Promise<ActionState> {
   const me = await requireCurrentMember();
@@ -211,5 +212,21 @@ export async function removeCalendarFeedAction(): Promise<ActionState> {
   const { error } = await supabase.from("members").update({ calendar_feed_hash: null }).eq("id", me.id);
   if (error) return { error: `That did not save. ${humanDatabaseError(error.message)}` };
   revalidatePath("/settings", "layout");
+  return { error: null };
+}
+
+/** What the phone's quick button does (quick-button.ts). Every value is checked
+ * against the lists Kin offers, so the /go links can only ever send the member
+ * to one of Kin's own pages. */
+export async function setQuickButtonAction(prefs: { button: string; tap: string; double: string; hold: string }): Promise<ActionState> {
+  const me = await requireCurrentMember();
+  if (!isQuickButton(prefs.button) || !QUICK_SLOTS.every((s) => isQuickAction(prefs[s]))) {
+    return { error: "That is not one of the choices Kin offers." };
+  }
+  const value = { button: prefs.button, tap: prefs.tap, double: prefs.double, hold: prefs.hold };
+  const supabase = await createClient();
+  const { error } = await supabase.from("members").update({ quick_actions: value }).eq("id", me.id);
+  if (error) return { error: `That did not save. ${humanDatabaseError(error.message)}` };
+  revalidatePath("/settings");
   return { error: null };
 }

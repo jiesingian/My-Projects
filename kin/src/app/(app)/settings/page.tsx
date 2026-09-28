@@ -10,6 +10,7 @@ import { Blueprint, Tag } from "@/components/ui";
 import { Icon, type IconName } from "@/components/icons";
 import { Avatar } from "@/components/avatar";
 import { initials } from "@/lib/format";
+import { QUICK_SLOTS, quickActionName, readQuickPrefs } from "@/lib/quick-button";
 import { paletteById } from "@/lib/palettes";
 import { NOTIFICATION_DEFS } from "@/lib/notifications";
 
@@ -59,9 +60,11 @@ export default async function SettingsPage({
   const { count: childLogins } = isGrownUp(me.role)
     ? await supabase.from("members").select("id", { count: "exact", head: true }).eq("family_id", me.family_id).eq("role", "child_self")
     : { count: 0 };
+  const quick = readQuickPrefs(me.quick_actions);
   const allGroups: { href: string; icon: IconName; tint: "money" | "schedule" | "occasion" | "home" | undefined; title: string; value: string }[][] = [
     [
       { href: "/settings/appearance", icon: "sparkle", tint: "occasion", title: "Appearance", value: `${themeLabel} · ${paletteById(me.palette).name} · ${me.text_scale ?? 100}%` },
+      { href: "/settings/quick-button", icon: "phone", tint: "schedule", title: "Quick button", value: QUICK_SLOTS.map((s) => quickActionName(quick[s])).join(" · ") },
       { href: "/settings/notifications", icon: "message", tint: "money", title: "Notifications", value: `${notifOn} of ${notifDefs.length} on` },
       { href: "/settings/connected", icon: "hardDrive", tint: "schedule", title: "Connected apps", value: connected.length > 0 ? connected.join(", ") : "None connected" },
     ],

@@ -15,7 +15,9 @@ function neverChanges() {
 
 const SUGGESTIONS = ["What's on this week?", "Add milk and eggs to the list", "How much is left this month?", "Any bills due?"];
 
-export function AssistantConsole({ memberName }: { memberName: string }) {
+/** `start` is how the phone's quick button (quick-button.ts) arrives: "chat"
+ * puts the cursor in the box, "voice" tries the microphone straight away. */
+export function AssistantConsole({ memberName, start }: { memberName: string; start?: "chat" | "voice" }) {
   const [turns, setTurns] = useState<Turn[]>([]);
   const [draft, setDraft] = useState("");
   const [thinking, setThinking] = useState(false);
@@ -130,6 +132,17 @@ export function AssistantConsole({ memberName }: { memberName: string }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [listening]);
 
+  // Arrived by the quick button's voice action: open the microphone at once.
+  // Safari may refuse a microphone nobody tapped for, so the big button below
+  // stays until the first question -- one tap, then speak.
+  const inputRef = useRef<HTMLInputElement>(null);
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- starting the microphone is the side effect
+    if (start === "voice" && speechSupported()) toggleListening();
+    else if (start === "chat") inputRef.current?.focus();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   // Leaving the screen mid-sentence should not leave the microphone open or
   // the browser talking to an empty room.
   useEffect(() => {
@@ -183,6 +196,19 @@ export function AssistantConsole({ memberName }: { memberName: string }) {
 
       {error && <p style={{ color: "var(--color-accent-700)", fontSize: "0.84375rem", margin: "0 0 9px" }}>{error}</p>}
 
+      {start === "voice" && canHear && turns.length === 0 && (
+        <button
+          type="button"
+          className={listening ? "btn btn-primary btn-block" : "btn btn-secondary btn-block"}
+          onClick={toggleListening}
+          aria-pressed={listening}
+          style={{ minHeight: "3.5rem", marginBottom: "0.625rem", gap: "0.5rem", fontSize: "1rem" }}
+        >
+          <Icon name={listening ? "pause" : "mic"} size={20} />
+          {listening ? "Listening… tap to stop" : "Tap and speak"}
+        </button>
+      )}
+
       {turns.length === 0 && (
         <div style={{ display: "flex", flexWrap: "wrap", gap: "0.375rem", marginBottom: "0.625rem" }}>
           {SUGGESTIONS.map((s) => (
@@ -201,6 +227,7 @@ export function AssistantConsole({ memberName }: { memberName: string }) {
         style={{ display: "flex", gap: "0.5rem" }}
       >
         <input
+          ref={inputRef}
           className="input"
           value={draft}
           onChange={(e) => setDraft(e.target.value)}
