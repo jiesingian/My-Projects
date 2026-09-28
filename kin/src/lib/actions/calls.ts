@@ -5,11 +5,11 @@ import { createClient } from "@/lib/supabase/server";
 import { requireCurrentMember } from "@/lib/session";
 import { pushConfigured, sendPush } from "@/lib/push";
 import { callWatchers } from "@/lib/calls";
+import { UUID } from "@/lib/ids";
 
 /** The two things a call needs from the server; the call itself never
  * touches it (lib/calls.ts, components/call-provider.tsx). */
 
-const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 /** Wakes the person being called when Kin isn't open on their phone: a
  * notification that opens Kin, which then hears the ring still going. Only

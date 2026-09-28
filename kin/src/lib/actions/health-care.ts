@@ -9,13 +9,13 @@ import { explainVisibilityRefusal } from "@/lib/visibility";
 import { clamp } from "@/lib/text";
 import { familyDay } from "@/lib/time";
 import { parseTimes } from "@/lib/health-plan";
+import { UUID } from "@/lib/ids";
 
 /** Medicines, the illness log, and notes and photos on a visit (26
  * September). Who may see and change each is the tables' own business
  * (20260926110000_health_medicines_illness_visits.sql); these shape the
  * input and say in words what went wrong. */
 
-const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const DAY = /^\d{4}-\d{2}-\d{2}$/;
 const VISIBILITY = new Set(["family", "parents", "private"]);
 
@@ -60,8 +60,15 @@ export async function stopMedicineAction(id: string, memberId: string): Promise<
   const supabase = await createClient();
   // Stopping ends the course yesterday rather than deleting it, so what was
   // taken stays on record; a medicine added by mistake is deleted instead.
-  const yesterday = new Date(Date.now() - 86_400_000);
-  const { error } = await supabase.from("health_medicines").update({ end_date: familyDay(yesterday) }).eq("id", id);
+  // A course that started today (or is set to start later) ends on its own
+  // start date instead: the table requires end_date >= start_date, so
+  // "yesterday" was refused and a medicine added by mistake today could be
+  // neither stopped nor deleted.
+  const { data: med } = await supabase.from("health_medicines").select("start_date").eq("id", id).maybeSingle();
+  if (!med) return { error: "That medicine could not be found." };
+  const yesterday = familyDay(new Date(Date.now() - 86_400_000));
+  const end = yesterday < med.start_date ? med.start_date : yesterday;
+  const { error } = await supabase.from("health_medicines").update({ end_date: end }).eq("id", id);
   return done(memberId, error ? say(error.message) : null);
 }
 
