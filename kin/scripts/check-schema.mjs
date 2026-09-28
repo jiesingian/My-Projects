@@ -163,8 +163,14 @@ function whatThisBranchWouldCreate() {
       for (const m of statement.matchAll(/create\s+table\s+(?:if\s+not\s+exists\s+)?(?:public\.)?"?(\w+)"?/gi)) {
         tables.add(m[1]);
       }
-      const added = /alter\s+table\s+(?:only\s+)?(?:public\.)?"?(\w+)"?[\s\S]*?add\s+column\s+(?:if\s+not\s+exists\s+)?"?(\w+)"?/i.exec(statement);
-      if (added) columns.add(`${added[1]}.${added[2]}`);
+      // Every column the statement adds, not just the first: one alter can
+      // add several (`add column a ..., add column b ...`), and taking only
+      // the first left b looking like a migration nobody had run (28
+      // September, planner_goal_rewards.given_at).
+      const altered = /alter\s+table\s+(?:only\s+)?(?:if\s+exists\s+)?(?:public\.)?"?(\w+)"?/i.exec(statement);
+      if (altered) {
+        for (const m of statement.matchAll(/add\s+column\s+(?:if\s+not\s+exists\s+)?"?(\w+)"?/gi)) columns.add(`${altered[1]}.${m[1]}`);
+      }
     }
   }
   return { files, tables, columns };

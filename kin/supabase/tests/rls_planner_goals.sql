@@ -1,5 +1,9 @@
--- Planner goals: can anyone approve their own reward? Can another household
--- see in? Asked of the database, not of the app.
+-- Planner goals: can another household see in, and does Kin Free stop at
+-- health goals? Asked of the database, not of the app.
+--
+-- Who may answer a reward, and who may change a goal that has one, moved to
+-- the giver on 28 September (20260928210000_goal_reward_giver.sql); those
+-- cases are in rls_goal_reward_giver.sql.
 -- =========================================================================
 --
 -- Same footing as rls_rewards_and_approval.sql: every case runs as a real
@@ -63,47 +67,17 @@ begin
 end;
 $fn$ language plpgsql;
 
--- Setting goals and asking for rewards ---------------------------------------
+-- Setting goals -----------------------------------------------------------------
 select pg_temp.probe('child sets a goal for themselves', 'a0000000-0000-0000-0000-000000000003',
   $q$insert into planner_goals (id, family_id, title, kind, owner_member_id, target, period, created_by) values ('a3000000-0000-0000-0000-000000000001', 'a1000000-0000-0000-0000-000000000000', 'Read 12 books', 'custom', 'a2000000-0000-0000-0000-000000000003', 12, 'total', 'a2000000-0000-0000-0000-000000000003')$q$, 'allowed');
-select pg_temp.probe('child asks for a reward on it', 'a0000000-0000-0000-0000-000000000003',
-  $q$insert into planner_goal_rewards (goal_id, family_id, title, proposed_by) values ('a3000000-0000-0000-0000-000000000001', 'a1000000-0000-0000-0000-000000000000', 'A new book', 'a2000000-0000-0000-0000-000000000003')$q$, 'allowed');
 select pg_temp.probe('parent sets a goal for themselves', 'a0000000-0000-0000-0000-000000000001',
   $q$insert into planner_goals (id, family_id, title, kind, owner_member_id, target, period, created_by) values ('a3000000-0000-0000-0000-000000000002', 'a1000000-0000-0000-0000-000000000000', 'Gym', 'gym', 'a2000000-0000-0000-0000-000000000001', 3, 'week', 'a2000000-0000-0000-0000-000000000001')$q$, 'allowed');
-select pg_temp.probe('parent writes their reward as already approved', 'a0000000-0000-0000-0000-000000000001',
-  $q$insert into planner_goal_rewards (goal_id, family_id, title, status, proposed_by) values ('a3000000-0000-0000-0000-000000000002', 'a1000000-0000-0000-0000-000000000000', 'New shoes', 'approved', 'a2000000-0000-0000-0000-000000000001')$q$, 'blocked by RLS');
-select pg_temp.probe('parent asks for it properly', 'a0000000-0000-0000-0000-000000000001',
-  $q$insert into planner_goal_rewards (goal_id, family_id, title, proposed_by) values ('a3000000-0000-0000-0000-000000000002', 'a1000000-0000-0000-0000-000000000000', 'New shoes', 'a2000000-0000-0000-0000-000000000001')$q$, 'allowed');
 select pg_temp.probe('parent sets a household goal', 'a0000000-0000-0000-0000-000000000001',
   $q$insert into planner_goals (id, family_id, title, kind, owner_member_id, target, period, created_by) values ('a3000000-0000-0000-0000-000000000003', 'a1000000-0000-0000-0000-000000000000', 'Water', 'water', null, 30, 'day', 'a2000000-0000-0000-0000-000000000001')$q$, 'allowed');
-select pg_temp.probe('parent asks a household reward', 'a0000000-0000-0000-0000-000000000001',
-  $q$insert into planner_goal_rewards (goal_id, family_id, title, proposed_by) values ('a3000000-0000-0000-0000-000000000003', 'a1000000-0000-0000-0000-000000000000', 'Pizza night', 'a2000000-0000-0000-0000-000000000001')$q$, 'allowed');
-select pg_temp.probe('child asks a reward in the parents name', 'a0000000-0000-0000-0000-000000000003',
-  $q$insert into planner_goal_rewards (goal_id, family_id, title, proposed_by) values ('a3000000-0000-0000-0000-000000000003', 'a1000000-0000-0000-0000-000000000000', 'x', 'a2000000-0000-0000-0000-000000000001')$q$, 'blocked by RLS');
-
--- Nobody approves their own reward ---------------------------------------------
-select pg_temp.probe('child approves their own reward', 'a0000000-0000-0000-0000-000000000003',
-  $q$update planner_goal_rewards set status = 'approved', decided_by = 'a2000000-0000-0000-0000-000000000003' where goal_id = 'a3000000-0000-0000-0000-000000000001'$q$, 'no rows');
-select pg_temp.probe('parent approves their own reward', 'a0000000-0000-0000-0000-000000000001',
-  $q$update planner_goal_rewards set status = 'approved', decided_by = 'a2000000-0000-0000-0000-000000000001' where goal_id = 'a3000000-0000-0000-0000-000000000002'$q$, 'no rows');
-select pg_temp.probe('parent approves the household reward they asked for', 'a0000000-0000-0000-0000-000000000001',
-  $q$update planner_goal_rewards set status = 'approved', decided_by = 'a2000000-0000-0000-0000-000000000001' where goal_id = 'a3000000-0000-0000-0000-000000000003'$q$, 'no rows');
-select pg_temp.probe('adult approves in the parents name', 'a0000000-0000-0000-0000-000000000002',
-  $q$update planner_goal_rewards set status = 'approved', decided_by = 'a2000000-0000-0000-0000-000000000001' where goal_id = 'a3000000-0000-0000-0000-000000000002'$q$, 'blocked by RLS');
-select pg_temp.probe('parent approves the childs reward', 'a0000000-0000-0000-0000-000000000001',
-  $q$update planner_goal_rewards set status = 'approved', decided_by = 'a2000000-0000-0000-0000-000000000001', decided_at = now() where goal_id = 'a3000000-0000-0000-0000-000000000001'$q$, 'allowed');
-select pg_temp.probe('adult approves the parents reward', 'a0000000-0000-0000-0000-000000000002',
-  $q$update planner_goal_rewards set status = 'approved', decided_by = 'a2000000-0000-0000-0000-000000000002', decided_at = now() where goal_id = 'a3000000-0000-0000-0000-000000000002'$q$, 'allowed');
-select pg_temp.probe('adult approves the household reward', 'a0000000-0000-0000-0000-000000000002',
-  $q$update planner_goal_rewards set status = 'refused', decided_by = 'a2000000-0000-0000-0000-000000000002', decided_at = now() where goal_id = 'a3000000-0000-0000-0000-000000000003'$q$, 'allowed');
-select pg_temp.probe('child deletes their approved reward', 'a0000000-0000-0000-0000-000000000003',
-  $q$delete from planner_goal_rewards where goal_id = 'a3000000-0000-0000-0000-000000000001'$q$, 'no rows');
 
 -- A goal keeps what it measures -----------------------------------------------
 select pg_temp.probe('child hands the goal to the parent', 'a0000000-0000-0000-0000-000000000003',
   $q$update planner_goals set owner_member_id = 'a2000000-0000-0000-0000-000000000001' where id = 'a3000000-0000-0000-0000-000000000001'$q$, 'error P0001');
-select pg_temp.probe('child lowers the target after approval', 'a0000000-0000-0000-0000-000000000003',
-  $q$update planner_goals set target = 1 where id = 'a3000000-0000-0000-0000-000000000001'$q$, 'error P0001');
 select pg_temp.probe('child renames it', 'a0000000-0000-0000-0000-000000000003',
   $q$update planner_goals set title = 'Read twelve books' where id = 'a3000000-0000-0000-0000-000000000001'$q$, 'allowed');
 select pg_temp.probe('child logs a book', 'a0000000-0000-0000-0000-000000000003',
@@ -137,8 +111,8 @@ select pg_temp.probe('plus household sets a steps goal', 'a0000000-0000-0000-000
 
 -- The control: the household itself can see all of it, so the 'no rows'
 -- above are RLS and not an empty table.
-select pg_temp.probe('CONTROL: household A reads its own rewards', 'a0000000-0000-0000-0000-000000000003',
-  $q$select * from planner_goal_rewards where family_id = 'a1000000-0000-0000-0000-000000000000'$q$, 'allowed');
+select pg_temp.probe('CONTROL: household A reads its own goals', 'a0000000-0000-0000-0000-000000000003',
+  $q$select * from planner_goals where family_id = 'a1000000-0000-0000-0000-000000000000'$q$, 'allowed');
 
 select n, label, expected, actual, case when expected = actual then 'ok' else 'FAIL' end as verdict
 from probe_results order by n;

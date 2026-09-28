@@ -4136,6 +4136,57 @@ export type Database = {
           },
         ]
       }
+      planner_goal_changes: {
+        Row: {
+          change_due_date: boolean
+          created_at: string
+          decided_at: string | null
+          decided_by: string | null
+          due_date: string | null
+          family_id: string
+          goal_id: string
+          id: string
+          period: string | null
+          proposed_by: string | null
+          status: string
+          target: number | null
+          title: string | null
+          unit: string | null
+        }
+        Insert: {
+          change_due_date?: boolean
+          created_at?: string
+          decided_at?: string | null
+          decided_by?: string | null
+          due_date?: string | null
+          family_id: string
+          goal_id: string
+          id?: string
+          period?: string | null
+          proposed_by?: string | null
+          status?: string
+          target?: number | null
+          title?: string | null
+          unit?: string | null
+        }
+        Update: {
+          change_due_date?: boolean
+          created_at?: string
+          decided_at?: string | null
+          decided_by?: string | null
+          due_date?: string | null
+          family_id?: string
+          goal_id?: string
+          id?: string
+          period?: string | null
+          proposed_by?: string | null
+          status?: string
+          target?: number | null
+          title?: string | null
+          unit?: string | null
+        }
+        Relationships: []
+      }
       planner_goal_entries: {
         Row: {
           amount: number
@@ -4172,6 +4223,8 @@ export type Database = {
           decided_at: string | null
           decided_by: string | null
           family_id: string
+          given_at: string | null
+          giver_member_id: string | null
           goal_id: string
           proposed_by: string | null
           status: string
@@ -4182,6 +4235,8 @@ export type Database = {
           decided_at?: string | null
           decided_by?: string | null
           family_id: string
+          given_at?: string | null
+          giver_member_id?: string | null
           goal_id: string
           proposed_by?: string | null
           status?: string
@@ -4192,6 +4247,8 @@ export type Database = {
           decided_at?: string | null
           decided_by?: string | null
           family_id?: string
+          given_at?: string | null
+          giver_member_id?: string | null
           goal_id?: string
           proposed_by?: string | null
           status?: string
@@ -4976,6 +5033,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      decide_goal_change: {
+        Args: { p_approve: boolean; p_change: string }
+        Returns: undefined
+      }
       feed_occasions_today: {
         Args: never
         Returns: { event_id: string; family_id: string; household_name: string; title: string; kind: string; years: number | null; is_ours: boolean }[]

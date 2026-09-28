@@ -176,6 +176,17 @@ Decided against in the same review: revising Journal (item 6) and Planner
   Kin already keeps. Relatives send a greeting under it; the birthday
   household reads every greeting, each other household its own. One
   self-contained card (OccasionCard) so the journal restructure can move it.
+- Goal rewards belong to the giver (Jonathan, 28 September, on #297): a
+  reward is a promise, so it names who gives it -- a parent, another adult
+  or a child (a hug, a massage, ₱500) -- and only the giver answers it. They
+  can reword it as they say yes ("₱300, not ₱500"); a giver setting it
+  themselves is promised at once; the giver marks it given. Nobody gives
+  themselves one. Goals can be edited now; with a reward waiting or
+  promised, a new target, period or date goes to the giver as a request
+  they can agree to or refuse (decide_goal_change), and the giver's own
+  edit applies at once. Checked with supabase/tests/rls_goal_reward_giver.sql
+  (31 cases, dev, rolled back).
+
 - Streaks for kids' chores (agreed 28 September, item 9): a child's daily
   chore shows "🔥 7 days in a row" on its card -- in kid view and on the
   parents' Today -- with how many more days to the next bonus star.
