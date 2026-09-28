@@ -18,6 +18,8 @@ import { PALETTE_DEFAULT } from "@/lib/palettes";
 import { getFamilyPanel } from "@/lib/queries/family-panel";
 import { inKidView } from "@/lib/kid-view";
 import { KidToday } from "@/components/kid-today";
+import { StartHere } from "@/components/start-here";
+import { getStartHere } from "@/lib/queries/start-here";
 
 export default async function TodayPage() {
   const me = await getCurrentMember();
@@ -25,7 +27,7 @@ export default async function TodayPage() {
   if (inKidView(me)) return <KidToday me={me} />;
 
   const supabase = await createClient();
-  const [{ data: members }, glance, brief, tasks, awaitingApproval, awaitingRedemption, familyPanel, comingUp, memories, recap] = await Promise.all([
+  const [{ data: members }, glance, brief, tasks, awaitingApproval, awaitingRedemption, familyPanel, comingUp, memories, recap, startHere] = await Promise.all([
     supabase.from("members").select("id, full_name").eq("family_id", me.family_id).order("created_at"),
     getGlance(me.family_id, me.families.currency),
     getTodayBriefing(me.family_id, me.families.currency),
@@ -42,6 +44,8 @@ export default async function TodayPage() {
     ["Sat", "Sun", "Mon"].includes(new Date().toLocaleDateString("en-GB", { weekday: "short", timeZone: "Asia/Manila" }))
       ? getWeekRecap(me.family_id)
       : Promise.resolve(null),
+    // A new family's first steps; null for everyone else (queries/start-here).
+    getStartHere(me),
   ]);
 
   const todayLabel = new Date().toLocaleDateString("en-GB", {
@@ -80,6 +84,8 @@ export default async function TodayPage() {
         const access = readAccess(me.families);
         return access.trialing && access.daysLeft !== null && access.daysLeft <= 3 ? <TrialBanner daysLeft={access.daysLeft} isOrganiser={me.is_organiser} /> : null;
       })()}
+
+      {startHere && <StartHere steps={startHere} inviteCode={me.families.invite_code} />}
 
       {/* The briefing. Everything the household has a date on, from every
           hub, in one list — overdue first, then the day in the order it
