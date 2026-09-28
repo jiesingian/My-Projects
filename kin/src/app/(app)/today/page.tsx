@@ -9,7 +9,8 @@ import { getRoutinesNeedingAttention, getPendingApprovals, getPendingRedemptions
 import { TodayList, type TodayEntry } from "@/components/today-list";
 import { familyClock } from "@/lib/time";
 import { ApprovalQueue } from "@/components/approval-queue";
-import { getGoalRequestsFor } from "@/lib/queries/goals";
+import { getGoalRequestsFor, getRewardDuties } from "@/lib/queries/goals";
+import { PromiseBanner } from "@/components/promise-banner";
 import { Icon } from "@/components/icons";
 import { isGrownUp } from "@/lib/roles";
 import { TodayHeader } from "@/components/family-panel";
@@ -29,7 +30,7 @@ export default async function TodayPage() {
   if (inKidView(me)) return <KidToday me={me} />;
 
   const supabase = await createClient();
-  const [{ data: members }, glance, brief, tasks, awaitingApproval, awaitingRedemption, familyPanel, comingUp, memories, recap, startHere, goalRequests] = await Promise.all([
+  const [{ data: members }, glance, brief, tasks, awaitingApproval, awaitingRedemption, familyPanel, comingUp, memories, recap, startHere, goalRequests, rewardDuties] = await Promise.all([
     supabase.from("members").select("id, full_name").eq("family_id", me.family_id).order("created_at"),
     getGlance(me.family_id, me.families.currency),
     getTodayBriefing(me.family_id, me.families.currency),
@@ -51,6 +52,8 @@ export default async function TodayPage() {
     // Goal rewards this person has been asked to give, and changes to goals
     // whose reward they give -- for anyone, child or grown-up.
     getGoalRequestsFor(me.family_id, me),
+    // Promises due or waiting on this person's word: the banner that stays.
+    getRewardDuties(me.family_id, me),
   ]);
 
   // Today's one list, ordered here on the server so the phone never re-sorts
@@ -101,6 +104,10 @@ export default async function TodayPage() {
   return (
     <div style={{ padding: "1.5rem var(--gutter) 1.25rem" }}>
       <TodayHeader dateLabel={todayLabel} familyName={me.families.name} data={familyPanel} fallbackPeople={members ?? []} />
+
+      {/* A promised reward that is due, or given and waiting for a word. First
+          on the page and not dismissible: it goes when the promise is settled. */}
+      <PromiseBanner duties={rewardDuties} />
 
       {/* Offered once, to people still on Kin Classic from before the new
           look became the default. Anyone who picked another theme chose it,

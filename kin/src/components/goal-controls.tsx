@@ -3,10 +3,14 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Icon } from "@/components/icons";
+import { REWARD_TERMS } from "@/lib/goals";
 import {
   addGoalRewardAction,
   approveGoalChangeAction,
   approveGoalRewardAction,
+  claimGoalRewardAction,
+  confirmGoalRewardAction,
+  disputeGoalRewardAction,
   deleteGoalAction,
   logGoalAction,
   markGoalRewardGivenAction,
@@ -88,41 +92,19 @@ export function GoalLogButtons({ goalId, label, askAmount }: { goalId: string; l
   );
 }
 
-/** The giver's answer, on the goal itself. They may reword the reward as
- * they say yes -- that is them setting what they commit to. Only rendered
- * for the giver. */
-export function GoalRewardAnswer({ goalId, title }: { goalId: string; title: string }) {
+/** The giver's answer, on the goal itself. What the reward is was set when
+ * it was asked for and cannot change here; saying yes accepts the terms
+ * printed right above the button. Only rendered for the giver. */
+export function GoalRewardAnswer({ goalId }: { goalId: string }) {
   const { pending, error, run } = useGoalAction();
-  const [rewording, setRewording] = useState(false);
-  const [text, setText] = useState(title);
   return (
     <div style={{ marginTop: "0.5rem" }}>
-      {rewording && (
-        <input
-          className="input"
-          aria-label="What you'll give"
-          maxLength={120}
-          value={text}
-          onChange={(e) => setText(e.target.value)}
-          style={{ minHeight: "2.25rem", width: "100%", fontSize: "1rem", marginBottom: "0.375rem" }}
-        />
-      )}
+      <p style={{ fontSize: "0.75rem", color: "var(--color-neutral-700)", lineHeight: 1.45, margin: "0 0 0.4375rem" }}>{REWARD_TERMS}</p>
       <div style={{ display: "flex", gap: "0.375rem", flexWrap: "wrap" }}>
-        <button
-          type="button"
-          className="btn btn-primary"
-          disabled={pending || (rewording && !text.trim())}
-          onClick={() => run(() => approveGoalRewardAction(goalId, rewording ? text : undefined))}
-          style={small}
-        >
+        <button type="button" className="btn btn-primary" disabled={pending} onClick={() => run(() => approveGoalRewardAction(goalId))} style={small}>
           <Icon name="check" size={14} />
-          {rewording ? "Promise this" : "I'll give it"}
+          Agree and promise
         </button>
-        {!rewording && (
-          <button type="button" className="btn btn-secondary" disabled={pending} onClick={() => setRewording(true)} style={small}>
-            Change it
-          </button>
-        )}
         <button type="button" className="btn btn-ghost" disabled={pending} onClick={() => run(() => refuseGoalRewardAction(goalId))} style={{ ...small, color: "var(--color-neutral-700)" }}>
           Not this one
         </button>
@@ -132,6 +114,7 @@ export function GoalRewardAnswer({ goalId, title }: { goalId: string; title: str
   );
 }
 
+/** The giver: it is given. Pauses the chase until the receiver confirms. */
 export function GoalRewardGiven({ goalId }: { goalId: string }) {
   const { pending, error, run } = useGoalAction();
   return (
@@ -139,6 +122,39 @@ export function GoalRewardGiven({ goalId }: { goalId: string }) {
       <button type="button" className="btn btn-primary" disabled={pending} onClick={() => run(() => markGoalRewardGivenAction(goalId))} style={small}>
         <Icon name="gift" size={14} />
         Mark as given
+      </button>
+      <ErrorLine error={error} />
+    </div>
+  );
+}
+
+/** The receiver, once the ring is full: the goal is reached. Starts the
+ * giver's day. */
+export function GoalRewardClaim({ goalId }: { goalId: string }) {
+  const { pending, error, run } = useGoalAction();
+  return (
+    <div style={{ display: "flex", gap: "0.375rem", flexWrap: "wrap", marginTop: "0.5rem" }}>
+      <button type="button" className="btn btn-primary" disabled={pending} onClick={() => run(() => claimGoalRewardAction(goalId))} style={small}>
+        <Icon name="gift" size={14} />
+        I did it — claim the reward
+      </button>
+      <ErrorLine error={error} />
+    </div>
+  );
+}
+
+/** The receiver, once it is marked given: did it arrive? "Not yet" makes it
+ * overdue at once and the chase starts again. */
+export function GoalRewardConfirm({ goalId }: { goalId: string }) {
+  const { pending, error, run } = useGoalAction();
+  return (
+    <div style={{ display: "flex", gap: "0.375rem", flexWrap: "wrap", marginTop: "0.5rem" }}>
+      <button type="button" className="btn btn-primary" disabled={pending} onClick={() => run(() => confirmGoalRewardAction(goalId))} style={small}>
+        <Icon name="check" size={14} />
+        I got it
+      </button>
+      <button type="button" className="btn btn-secondary" disabled={pending} onClick={() => run(() => disputeGoalRewardAction(goalId))} style={small}>
+        Not yet
       </button>
       <ErrorLine error={error} />
     </div>
@@ -200,6 +216,7 @@ export function GoalAddReward({ goalId, givers, meId }: { goalId: string; givers
           </button>
         ))}
       </div>
+      <p style={{ fontSize: "0.75rem", color: "var(--color-neutral-700)", lineHeight: 1.45, margin: "0 0 0.5rem" }}>{REWARD_TERMS}</p>
       <button
         type="button"
         className="btn btn-secondary"

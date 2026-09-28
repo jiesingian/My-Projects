@@ -2,7 +2,7 @@ import Link from "next/link";
 import { Blueprint } from "@/components/ui";
 import { Icon } from "@/components/icons";
 import { GoalRing } from "@/components/goal-ring";
-import { GoalChangeAnswer, GoalDeleteButton, GoalLogButtons, GoalRewardAnswer, GoalRewardGiven, GoalRewardWithdraw } from "@/components/goal-controls";
+import { GoalChangeAnswer, GoalDeleteButton, GoalLogButtons, GoalRewardAnswer, GoalRewardClaim, GoalRewardConfirm, GoalRewardGiven, GoalRewardWithdraw } from "@/components/goal-controls";
 import { getGoals, type GoalView } from "@/lib/queries/goals";
 import { GOAL_KIND_META, PERIOD_NOW, goalNumber } from "@/lib/goals";
 import { formatCurrency } from "@/lib/format";
@@ -60,7 +60,7 @@ export async function GoalsPane({
         <Icon name="plus" size={17} /> Set a goal
       </Link>
       <p style={{ fontSize: "0.78125rem", color: "var(--color-neutral-600)", marginTop: "0.625rem", lineHeight: 1.45 }}>
-        A reward is a promise, so the person who gives it says yes — a parent, another adult or a child. Nobody gives themselves one. Once a goal has a reward, changing what it measures needs the giver’s yes too.
+        A reward is a promise, so the person who gives it says yes — a parent, another adult or a child. Once promised it is binding: a day to give it after the goal is reached, then reminders every 5 minutes until it’s confirmed. Changing a goal with a reward needs the other side’s yes.
       </p>
     </>
   );
@@ -137,19 +137,36 @@ function RewardLine({ goal, meId }: { goal: GoalView; meId: string }) {
   const r = goal.reward!;
   const giver = r.giverId === meId ? "you" : (r.giverName?.split(" ")[0] ?? "someone");
   const Giver = giver === "you" ? "You" : giver;
+  const due = r.dueAt ? dueText(r.dueAt) : "";
   const status =
     r.status === "pending"
       ? `Asked of ${giver} · waiting for a yes`
       : r.status === "refused"
         ? `${Giver} said not this one`
-        : r.status === "given"
-          ? `Given by ${giver}`
-          : goal.reached
-            ? `Earned · ${giver === "you" ? "yours to give" : `${giver} to give`}`
-            : `${Giver} promised`;
-  const tone = r.status === "refused" || r.status === "given" ? "var(--color-neutral-600)" : r.status === "approved" ? "var(--cal-goal)" : "var(--cal-money)";
-  // Whoever asked (while it waits), whoever gives it, or whose goal it is.
-  const mayWithdraw = (r.status === "pending" && r.proposedById === meId) || r.viewerGives || goal.ownerId === meId;
+        : r.status === "approved"
+          ? goal.reached
+            ? `Reached · claim it and ${giver === "you" ? "your" : `${giver}'s`} day to give it starts`
+            : `${Giver} promised`
+          : r.status === "claimed"
+            ? r.overdue
+              ? `Overdue · ${giver === "you" ? "you owe it" : `${giver} owes it`} · Kin is reminding ${giver === "you" ? "you" : "them"} every 5 minutes`
+              : `Claimed · ${giver === "you" ? "give it" : `${giver} gives it`} ${due}`
+            : r.status === "given"
+              ? r.overdue
+                ? `Marked given · not confirmed, so the reminders are back on`
+                : `Marked given by ${giver} · waiting for a confirm`
+              : `Received · given by ${giver}`;
+  const tone =
+    r.status === "refused" || r.status === "received"
+      ? "var(--color-neutral-600)"
+      : r.overdue
+        ? "var(--cal-occasion)"
+        : r.status === "approved"
+          ? "var(--cal-goal)"
+          : "var(--cal-money)";
+  // Asked-only: whoever asked or the giver may take it back. Once promised,
+  // only the one receiving it may let it go.
+  const mayWithdraw = r.status === "pending" ? r.proposedById === meId || r.viewerGives : r.viewerReceives && r.status !== "received" && r.status !== "refused";
 
   return (
     <div
@@ -157,7 +174,7 @@ function RewardLine({ goal, meId }: { goal: GoalView; meId: string }) {
         marginTop: "0.6875rem",
         padding: "0.5625rem 0.6875rem",
         borderRadius: 12,
-        background: "color-mix(in srgb, var(--cal-goal) 10%, transparent)",
+        background: r.overdue ? "color-mix(in srgb, var(--cal-occasion) 12%, transparent)" : "color-mix(in srgb, var(--cal-goal) 10%, transparent)",
       }}
     >
       <div style={{ display: "flex", gap: "0.5rem", alignItems: "flex-start" }}>
@@ -166,12 +183,23 @@ function RewardLine({ goal, meId }: { goal: GoalView; meId: string }) {
           <div style={{ fontSize: "0.875rem", fontWeight: 600, textDecoration: r.status === "refused" ? "line-through" : undefined }}>{r.title}</div>
           <div style={{ fontSize: "0.75rem", color: tone, fontWeight: 600, marginTop: "0.0625rem" }}>{status}</div>
         </div>
-        {mayWithdraw && r.status !== "given" && <GoalRewardWithdraw goalId={goal.id} />}
+        {mayWithdraw && <GoalRewardWithdraw goalId={goal.id} />}
       </div>
-      {r.viewerGives && r.status === "pending" && <GoalRewardAnswer goalId={goal.id} title={r.title} />}
-      {r.viewerGives && r.status === "approved" && goal.reached && <GoalRewardGiven goalId={goal.id} />}
+      {r.viewerGives && r.status === "pending" && <GoalRewardAnswer goalId={goal.id} />}
+      {r.viewerReceives && r.status === "approved" && goal.reached && <GoalRewardClaim goalId={goal.id} />}
+      {r.viewerGives && r.status === "claimed" && <GoalRewardGiven goalId={goal.id} />}
+      {r.viewerReceives && r.status === "given" && <GoalRewardConfirm goalId={goal.id} />}
     </div>
   );
+}
+
+/** "by 3:40 pm tomorrow", in the household's time. */
+function dueText(iso: string): string {
+  const d = new Date(iso);
+  const time = d.toLocaleTimeString("en-PH", { hour: "numeric", minute: "2-digit", timeZone: "Asia/Manila" }).toLowerCase();
+  const day = d.toLocaleDateString("en-CA", { timeZone: "Asia/Manila" });
+  const today = new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Manila" });
+  return `by ${time}${day === today ? " today" : " tomorrow"}`;
 }
 
 function ChangeLine({ goal }: { goal: GoalView }) {
