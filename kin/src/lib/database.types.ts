@@ -2949,6 +2949,7 @@ export type Database = {
       }
       journal_comments: {
         Row: {
+          author_name: string
           body: string
           created_at: string
           entry_id: string
@@ -2957,6 +2958,7 @@ export type Database = {
           member_id: string | null
         }
         Insert: {
+          author_name?: string
           body: string
           created_at?: string
           entry_id: string
@@ -2965,6 +2967,7 @@ export type Database = {
           member_id?: string | null
         }
         Update: {
+          author_name?: string
           body?: string
           created_at?: string
           entry_id?: string
@@ -3028,6 +3031,58 @@ export type Database = {
           status?: string
         }
         Relationships: []
+      }
+      journal_reactions: {
+        Row: {
+          author_name: string
+          created_at: string
+          emoji: string
+          entry_id: string
+          family_id: string
+          id: string
+          member_id: string
+        }
+        Insert: {
+          author_name?: string
+          created_at?: string
+          emoji: string
+          entry_id: string
+          family_id: string
+          id?: string
+          member_id: string
+        }
+        Update: {
+          author_name?: string
+          created_at?: string
+          emoji?: string
+          entry_id?: string
+          family_id?: string
+          id?: string
+          member_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "journal_reactions_entry_id_fkey"
+            columns: ["entry_id"]
+            isOneToOne: false
+            referencedRelation: "journal_entries"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "journal_reactions_family_id_fkey"
+            columns: ["family_id"]
+            isOneToOne: false
+            referencedRelation: "families"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "journal_reactions_member_id_fkey"
+            columns: ["member_id"]
+            isOneToOne: false
+            referencedRelation: "members"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       journal_entries: {
         Row: {

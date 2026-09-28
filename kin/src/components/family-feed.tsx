@@ -5,7 +5,7 @@ import { useActionState, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Icon } from "@/components/icons";
 import { Blueprint } from "@/components/ui";
-import { JournalEntryPhotos } from "@/components/journal-entry-photos";
+import { FeedPhotos, FeedTalk } from "@/components/feed-talk";
 import { SubmitButton, ErrorText } from "@/components/form";
 import { confirm } from "@/components/confirm-sheet";
 import {
@@ -37,25 +37,29 @@ export function FamilyFeed({
   /** Today's birthdays and anniversaries, ours and linked households'. */
   occasions?: FeedOccasion[];
 }) {
-  const [showLinks, setShowLinks] = useState(links.length === 0);
+  const [showLinks, setShowLinks] = useState(false);
+  const linked = links.filter((l) => l.status === "accepted");
+  const asking = links.filter((l) => l.status === "pending" && !l.weAsked).length;
+
+  // Who the feed reaches, in one line; the codes and requests open under it.
+  const reach =
+    linked.length === 0
+      ? "Just your household so far"
+      : `With ${linked.map((l) => l.otherFamilyName).slice(0, 2).join(" and ")}${linked.length > 2 ? ` and ${linked.length - 2} more` : ""}`;
 
   return (
     <div>
-      <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: "0.25rem 0.5rem", marginBottom: "0.625rem" }}>
-        <span style={{ fontSize: "0.75rem", letterSpacing: ".05em", textTransform: "uppercase", color: "var(--color-neutral-600)" }}>
-          {links.filter((l) => l.status === "accepted").length > 0 ? "Shared between households" : "Shared memories"}
-        </span>
-        <span style={{ fontSize: "0.75rem", color: "var(--color-neutral-600)" }}>· Only family can see this. No ads.</span>
-        <button
-          type="button"
-          className="btn btn-ghost"
-          onClick={() => setShowLinks((v) => !v)}
-          style={{ marginLeft: "auto", minHeight: "1.75rem", fontSize: "0.78125rem", padding: "0 0.5rem", gap: "0.25rem" }}
-        >
-          <Icon name="users" size={13} />
-          {showLinks ? "Hide" : "Households"}
-        </button>
-      </div>
+      <button
+        type="button"
+        className="kin-feed-reach"
+        aria-expanded={showLinks}
+        onClick={() => setShowLinks((v) => !v)}
+      >
+        <Icon name="users" size={14} />
+        <span className="kin-feed-reach-text">{reach}</span>
+        {asking > 0 && <span className="kin-feed-reach-badge">{asking} asking</span>}
+        <span className="kin-feed-reach-action">{showLinks ? "Done" : linked.length === 0 ? "Link a household" : "Manage"}</span>
+      </button>
 
       <div className="kin-reveal" data-open={showLinks ? "true" : undefined}>
         <div>
@@ -76,31 +80,30 @@ export function FamilyFeed({
           <div style={{ font: "600 0.9375rem/1.2 var(--font-heading)", marginBottom: "0.1875rem" }}>Nothing shared yet</div>
           <div style={{ fontSize: "0.8125rem", color: "var(--color-neutral-600)", lineHeight: 1.45 }}>
             New memories land here on their own, for your household and any household you&rsquo;ve linked with,
-            photos included. Older ones can be shared from the List view with Share.
+            photos included. Older ones can be shared from Household with Share.
           </div>
         </Blueprint>
       ) : (
-        <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: "0.875rem" }}>
           {entries.map((e) => (
-            <Blueprint key={e.id} style={{ padding: "0.8125rem" }}>
-              <div style={{ display: "flex", alignItems: "baseline", gap: "0.5rem", flexWrap: "wrap" }}>
-                <span style={{ font: "600 0.96875rem/1.2 var(--font-heading)", flex: 1, minWidth: 140 }}>{e.title}</span>
-                <span style={{ fontSize: "0.75rem", color: "var(--color-neutral-600)", whiteSpace: "nowrap" }}>
-                  {readableDate(e.entryDate)}
-                </span>
-              </div>
-              <div style={{ fontSize: "0.75rem", color: e.isOurs ? "var(--color-accent-700)" : "var(--color-neutral-600)", marginTop: "0.1875rem" }}>
-                {e.kind === "milestone" && <span className="kin-feed-milestone">Milestone</span>}
-                {e.isOurs ? "Ours" : e.householdName}
-              </div>
-              {e.note && (
-                <p style={{ fontSize: "0.84375rem", lineHeight: 1.45, color: "var(--color-neutral-800)", margin: "7px 0 0" }}>{e.note}</p>
-              )}
-              {e.photos.length > 0 && (
-                <div style={{ marginTop: "0.5rem" }}>
-                  <JournalEntryPhotos photos={e.photos} entryTitle={e.title} />
+            <Blueprint key={e.id} className="kin-feed-card" style={{ padding: 0 }}>
+              <FeedPhotos photos={e.photos} title={e.title} />
+              <div style={{ padding: "0.75rem 0.8125rem 0.8125rem" }}>
+                <div style={{ fontSize: "0.75rem", color: e.isOurs ? "var(--color-accent-700)" : "var(--color-neutral-600)", display: "flex", gap: "0.375rem", alignItems: "baseline", flexWrap: "wrap" }}>
+                  {e.kind === "milestone" && (
+                    <span className="kin-entry-star">
+                      <span aria-hidden="true">★</span> Milestone
+                    </span>
+                  )}
+                  <span>{e.isOurs ? "Ours" : e.householdName}</span>
+                  <span style={{ color: "var(--color-neutral-500)" }}>· {readableDate(e.entryDate)}</span>
                 </div>
-              )}
+                <div style={{ font: "600 1.0625rem/1.2 var(--font-heading)", marginTop: "0.25rem" }}>{e.title}</div>
+                {e.note && (
+                  <p style={{ fontSize: "0.84375rem", lineHeight: 1.45, color: "var(--color-neutral-800)", margin: "0.3125rem 0 0" }}>{e.note}</p>
+                )}
+                <FeedTalk entry={e} />
+              </div>
             </Blueprint>
           ))}
         </div>

@@ -210,3 +210,21 @@ Left as they are, on purpose:
 - Readers switched over: journal, family feed and occasions, "On this day",
   the weekly recap, a person's profile and a relative's profile. Export keeps
   `milestones.csv` from the old table (the record).
+
+## The journal in three layers, step 3: the feed, photo first
+
+- Each memory on the Family feed leads with its first photo, full width; the
+  rest open in the viewer.
+- **Reactions and comments** on a feed entry (`journal_reactions`, and the
+  `journal_comments` table that had existed unused). They reach across
+  households, with one limit: you see what was said by your own household, by
+  the entry's household, and by households linked with yours. A third
+  household, linked with the entry's household but not with the writer's,
+  does not see a stranger's name and words. Names are stored on the row when
+  it is written, the way link messages do, so the members table stays
+  private. The database sets who wrote each one.
+- Only your own comment can be edited; you can remove your own, and the
+  entry's household can remove any comment under its memory. Unlinking hides
+  everything said across that link at once.
+- The linked-households panel is one line — "With Santos Household · Manage"
+  — and opens to the codes and requests.
