@@ -97,4 +97,24 @@ fi
   echo 'export E2E_EMAIL=kin-dev-qa@example.com'
 } >> "${CLAUDE_ENV_FILE:-/dev/null}"
 
+# ── the browser trusts the container's proxy ─────────────────────────────
+# Outbound HTTPS here goes through an agent proxy that re-terminates TLS with
+# its own CA. Node, curl and git are told about it; Chromium reads only its NSS
+# store, which arrives empty -- so every request the *browser* makes straight
+# to Supabase (Realtime, Storage photos) failed ERR_CERT_AUTHORITY_INVALID
+# locally while passing in CI. This trusts that one CA, with verification left
+# on. Best effort: without it the app is fine, only local browser runs are not.
+PROXY_CA=/root/.ccr/agent-proxy-ca.crt
+if [ -f "$PROXY_CA" ]; then
+  command -v certutil >/dev/null 2>&1 || \
+    (apt-get install -y -q libnss3-tools >/dev/null 2>&1 || \
+      (apt-get update -q >/dev/null 2>&1 && apt-get install -y -q libnss3-tools >/dev/null 2>&1)) || true
+  if command -v certutil >/dev/null 2>&1; then
+    mkdir -p "$HOME/.pki/nssdb"
+    [ -f "$HOME/.pki/nssdb/cert9.db" ] || certutil -N -d "sql:$HOME/.pki/nssdb" --empty-password
+    certutil -L -d "sql:$HOME/.pki/nssdb" -n ccr-agent-proxy >/dev/null 2>&1 || \
+      certutil -A -d "sql:$HOME/.pki/nssdb" -n ccr-agent-proxy -t "C,," -i "$PROXY_CA" || true
+  fi
+fi
+
 echo "kin is ready: npm run lint · npx tsc --noEmit · npm run build · npm run e2e"
