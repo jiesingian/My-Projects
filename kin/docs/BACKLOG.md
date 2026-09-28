@@ -118,6 +118,19 @@ Decided against in the same review: revising Journal (item 6) and Planner
 
 ## Done
 
+- Review fixes (28 September, every page rendered signed in against a local
+  stand-in with an invented household): a child with their own login showed
+  as "Adult" in the role editor, and Edit then Save would have made them one
+  -- a child's role is now shown, not edited; roles read "child · own login"
+  / "child · kept by a parent" instead of "child self"; Planner → Add's
+  Date/From/To row ran 100px off a phone; "2 ItemS" on the shopping list and
+  its checkout; closed list sections pointed left; icons squeezed to dots
+  beside long lines (plan screen); the journal's "ADDED DIRECTLY" badge;
+  a styled "Add photos or videos" button instead of the browser's bare file
+  picker; a slimmer empty household photo; children's profiles no longer
+  list empty Work and Government IDs. Still open: a React hydration
+  mismatch on Planner → Tasks (harmless, a re-render).
+
 - Pinch to zoom on photos (28 September): page zoom stays off everywhere
   (item 21), and the full-screen photo viewer -- journal, Gallery, profile,
   event and chat photos -- now pinches with two fingers up to 4x, tracking

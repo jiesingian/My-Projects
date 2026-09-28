@@ -21,3 +21,21 @@ export function isGrownUp(role: string): boolean {
 export function isChild(role: string): boolean {
   return role === "child_managed" || role === "child_self";
 }
+
+/** A role as a person reads it. The database's names ("child_self",
+ * "child_managed") showed through as "child self" and "child managed" on
+ * Family and every profile (review, 28 September). */
+export function roleLabel(role: string): string {
+  switch (role) {
+    case "parent":
+      return "parent";
+    case "adult":
+      return "adult";
+    case "child_self":
+      return "child · own login";
+    case "child_managed":
+      return "child · kept by a parent";
+    default:
+      return role.replace(/_/g, " ");
+  }
+}

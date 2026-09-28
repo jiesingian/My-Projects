@@ -1,6 +1,7 @@
 "use client";
 
 import { useId, useRef, useState } from "react";
+import { Icon } from "@/components/icons";
 import { useRouter } from "next/navigation";
 import { updateJournalEntryAction, attachJournalMediaAction, deleteJournalMediaAction } from "@/lib/actions/journal";
 import type { getEntry } from "@/lib/queries/journal";
@@ -121,7 +122,7 @@ export function EditEntryForm({ entry, members }: { entry: Entry; members: Table
               <div style={{ display: "flex", gap: "0.3125rem", flexWrap: "wrap" }}>
                 {photos.map((p, i) => (
                   <div key={p.id} style={{ position: "relative" }}>
-                    <ZoomableImage src={p.url} alt={`Photo ${i + 1}`} style={{ width: 60, height: 60, objectFit: "cover", border: "1px solid var(--color-divider)" }} />
+                    <ZoomableImage src={p.url} alt={`Photo ${i + 1}`} style={{ width: 64, height: 64, objectFit: "cover", borderRadius: 10, border: "1px solid var(--color-divider)" }} />
                     <button
                       type="button"
                       aria-label="Remove photo"
@@ -138,14 +139,21 @@ export function EditEntryForm({ entry, members }: { entry: Entry; members: Table
             </div>
           )}
           <div className="field" style={{ marginBottom: "0.625rem" }}>
-            <label htmlFor={`${uid}-photos`}>Add photos</label>
-            <input id={`${uid}-photos`} aria-label="Photos" ref={fileRef} type="file" name="files" multiple accept="image/*,video/*" onChange={onFilesChosen} />
+            <span className="kin-file-caption">Add photos</span>
+            {/* The browser's own file picker ("Choose Files · No file chosen")
+                read as unfinished; the input stays, hidden but focusable,
+                and this label is what people tap (review, 28 September). */}
+            <input id={`${uid}-photos`} aria-label="Photos" className="kin-file-input" ref={fileRef} type="file" name="files" multiple accept="image/*,video/*" onChange={onFilesChosen} />
+            <label htmlFor={`${uid}-photos`} className="btn btn-secondary kin-file-btn">
+              <Icon name="images" size={18} />
+              {previews.length > 0 ? `${previews.length} chosen · change` : "Add photos or videos"}
+            </label>
           </div>
           {previews.length > 0 && (
             <div style={{ display: "flex", gap: "0.3125rem", marginBottom: "0.5rem", flexWrap: "wrap" }}>
               {previews.map((url, i) => (
                 // eslint-disable-next-line @next/next/no-img-element
-                <img key={i} src={url} alt={`Photo ${i + 1} to upload`} style={{ width: 60, height: 60, objectFit: "cover", border: "1px solid var(--color-divider)" }} />
+                <img key={i} src={url} alt={`Photo ${i + 1} to upload`} style={{ width: 64, height: 64, objectFit: "cover", borderRadius: 10, border: "1px solid var(--color-divider)" }} />
               ))}
             </div>
           )}

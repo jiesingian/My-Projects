@@ -15,7 +15,7 @@ import { Blueprint, Tag } from "@/components/ui";
 import { Icon } from "@/components/icons";
 import { formatAge, initials } from "@/lib/format";
 import { MemberColourPicker } from "@/components/member-colour-picker";
-import { isGrownUp } from "@/lib/roles";
+import { isGrownUp, roleLabel } from "@/lib/roles";
 import { OmronToggle } from "./omron-toggle";
 import { ConditionEntryControls, ConditionDeleteButton, LabControls } from "@/components/health-entry-controls";
 import { RelationshipEditor } from "@/components/relationship-editor";
@@ -119,7 +119,7 @@ export default async function MemberDetailPage({
             <MemberProfileEditor
               dateFormat={dateFormat}
               fullName={member.full_name}
-              ageLabel={`${formatAge(member.dob)} · ${member.relationship ?? member.role.replace("_", " ")}`}
+              ageLabel={`${formatAge(member.dob)} · ${member.relationship ?? roleLabel(member.role)}`}
               statusLabel={member.is_organiser ? "ORGANIZER" : member.status.toUpperCase()}
               statusVariant={member.is_organiser ? "accent" : "neutral"}
               avatarUrl={member.avatar_url}
@@ -134,7 +134,7 @@ export default async function MemberDetailPage({
                 <div>
                   <div style={{ font: "600 2.125rem/.98 var(--font-heading)" }}>{member.full_name}</div>
                   <div style={{ fontSize: "0.84375rem", color: "var(--color-neutral-600)", marginTop: "0.25rem" }}>
-                    {formatAge(member.dob)} · {member.relationship ?? member.role.replace("_", " ")}
+                    {formatAge(member.dob)} · {member.relationship ?? roleLabel(member.role)}
                   </div>
                   <Tag variant={member.is_organiser ? "accent" : "neutral"} className="mt-2 inline-flex">
                     {member.is_organiser ? "ORGANIZER" : member.status.toUpperCase()}
@@ -157,7 +157,16 @@ export default async function MemberDetailPage({
               {me.is_organiser && member.id !== me.id && member.auth_user_id !== null && (
                 <>
                   <div style={{ fontSize: "0.8125rem", color: "var(--color-neutral-700)", marginBottom: "0.375rem" }}>Role</div>
-                  <RoleEditor memberId={member.id} fullName={member.full_name} role={member.role} />
+                  {/* Parent or adult is the one choice the editor offers. A
+                      child with their own login showed there as "Adult", and
+                      Edit then Save would have made a 10-year-old one
+                      (review, 28 September): a child's role is shown, not
+                      edited, here. */}
+                  {isGrownUp(member.role) ? (
+                    <RoleEditor memberId={member.id} fullName={member.full_name} role={member.role} />
+                  ) : (
+                    <div style={{ fontSize: "0.875rem", marginBottom: "1.25rem" }}>{roleLabel(member.role).replace(/^child/, "Child")}</div>
+                  )}
                   <ConvertToChild memberId={member.id} fullName={member.full_name} />
                 </>
               )}
@@ -186,7 +195,7 @@ export default async function MemberDetailPage({
             <div>
               <div style={{ font: "600 1.625rem/.98 var(--font-heading)" }}>{member.full_name}</div>
               <div style={{ fontSize: "0.84375rem", color: "var(--color-neutral-600)", marginTop: "0.25rem" }}>
-                {formatAge(member.dob)} · {member.relationship ?? member.role.replace("_", " ")}
+                {formatAge(member.dob)} · {member.relationship ?? roleLabel(member.role)}
               </div>
             </div>
           </div>

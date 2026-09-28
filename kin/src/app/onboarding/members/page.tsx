@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation";
+import { roleLabel } from "@/lib/roles";
 import Link from "next/link";
 import { getCurrentMember } from "@/lib/session";
 import { createClient } from "@/lib/supabase/server";
@@ -71,7 +72,7 @@ export default async function MembersPage() {
           <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{ font: "600 1.0625rem/1.1 var(--font-heading)" }}>{m.full_name}</div>
             <div style={{ fontSize: "0.8125rem", color: "var(--color-neutral-600)" }}>
-              {formatAge(m.dob)} · {m.role.replace("_", " ")}
+              {formatAge(m.dob)} · {roleLabel(m.role)}
               {m.is_organiser ? " · organizer" : ""}
             </div>
           </div>

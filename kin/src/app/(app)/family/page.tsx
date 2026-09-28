@@ -18,7 +18,7 @@ import { VaultBar } from "@/components/vault-bar";
 import { PlusNote } from "@/components/plus";
 import { readAccess } from "@/lib/access";
 import { VaultWhosePicker } from "@/components/vault-whose-picker";
-import { isGrownUp } from "@/lib/roles";
+import { isGrownUp, roleLabel } from "@/lib/roles";
 import { getEnrolledDevices } from "@/lib/queries/security";
 import { HubHeader } from "@/components/hub-header";
 import { Blueprint, Tag, Empty } from "@/components/ui";
@@ -107,7 +107,7 @@ async function ProfilePane({ familyId, isOrganiser, myId, myRole }: { familyId: 
               <span style={{ flex: 1, minWidth: 0 }}>
                 <span style={{ font: "600 0.9375rem/1.1 var(--font-heading)", display: "block" }}>{m.full_name}</span>
                 <span style={{ fontSize: "0.8125rem", color: "var(--color-neutral-600)" }}>
-                  {formatAge(m.dob)} · wants to join as {m.role.replace("_", " ")}
+                  {formatAge(m.dob)} · wants to join as {roleLabel(m.role)}
                 </span>
               </span>
               <PendingMemberActions memberId={m.id} fullName={m.full_name} />
@@ -137,7 +137,7 @@ async function ProfilePane({ familyId, isOrganiser, myId, myRole }: { familyId: 
             <span style={{ flex: 1, minWidth: 0 }}>
               <span style={{ font: "600 1.125rem/1.1 var(--font-heading)", display: "block" }}>{m.full_name}</span>
               <span style={{ fontSize: "0.8125rem", color: "var(--color-neutral-600)" }}>
-                {formatAge(m.dob)} · {m.relationship ?? m.role.replace("_", " ")}
+                {formatAge(m.dob)} · {m.relationship ?? roleLabel(m.role)}
               </span>
             </span>
           </Link>

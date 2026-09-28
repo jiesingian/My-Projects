@@ -122,10 +122,13 @@ function ActivityForm({ members, defaultDate, editActivity, prefill }: { members
       ))}
       <ErrorText message={state.error} />
       <Field label="Title"><input className="input" name="title" placeholder="Nursery orientation" required maxLength={150} defaultValue={editActivity?.title ?? prefill?.title} style={{ minHeight: "2.75rem" }} /></Field>
-      <div style={{ display: "flex", gap: "0.75rem", marginBottom: "0.875rem" }}>
-        <Field label="Date" style={{ flex: 1.2 }}><DateInput className="input" name="date" required defaultValue={startDate ?? defaultDate} style={{ minHeight: "2.75rem" }} /></Field>
-        <Field label="From" style={{ flex: 1 }}><input className="input" type="time" name="from" defaultValue={startTime ?? "08:30"} style={{ minHeight: "2.75rem" }} /></Field>
-        <Field label="TO" style={{ flex: 1 }}><input className="input" type="time" name="to" defaultValue={endTime} style={{ minHeight: "2.75rem" }} /></Field>
+      {/* Date on its own line, the two times under it. Three pickers in one
+          row ran ~100px past a 390px phone, the whole form scrolling sideways
+          (review, 28 September). */}
+      <Field label="Date"><DateInput className="input" name="date" required defaultValue={startDate ?? defaultDate} style={{ minHeight: "2.75rem" }} /></Field>
+      <div style={{ display: "flex", gap: "0.75rem" }}>
+        <Field label="From" style={{ flex: 1, minWidth: 0 }}><input className="input" type="time" name="from" defaultValue={startTime ?? "08:30"} style={{ minHeight: "2.75rem" }} /></Field>
+        <Field label="To" style={{ flex: 1, minWidth: 0 }}><input className="input" type="time" name="to" defaultValue={endTime} style={{ minHeight: "2.75rem" }} /></Field>
       </div>
       <Field label="Repeats">
         <select className="input" name="repeat" defaultValue={editActivity?.repeat ?? "once"} style={{ minHeight: "2.75rem" }}>
