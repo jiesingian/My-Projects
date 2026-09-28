@@ -144,7 +144,7 @@ async function PriceBookSheet({ familyId, currency }: { familyId: string; curren
           Skipped when a shopping list is built from the week&rsquo;s meals.
         </p>
         <PantryControls
-          items={pantry.map((p) => ({ item_key: p.item_key, name: p.name, quantity: p.quantity == null ? null : Number(p.quantity), unit: p.unit }))}
+          items={pantry.map((p) => ({ item_key: p.item_key, name: p.name, quantity: p.quantity == null ? null : Number(p.quantity), unit: p.unit, running_low: p.running_low }))}
         />
       </Collapsible>
 

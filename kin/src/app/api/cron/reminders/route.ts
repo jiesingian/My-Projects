@@ -21,11 +21,17 @@ export async function POST(request: Request) {
   const supabase = createClient<Database>(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!, {
     auth: { persistSession: false, autoRefreshToken: false },
   });
-  const { data: due, error } = await supabase.rpc("due_reminders", { p_secret: secret });
-  if (error) {
-    console.error("Reminders: due_reminders failed", error.message);
+  const [main, pantry] = await Promise.all([
+    supabase.rpc("due_reminders", { p_secret: secret }),
+    // What is running low, once a day from 09:00 (20260928100000).
+    supabase.rpc("due_pantry_reminders", { p_secret: secret }),
+  ]);
+  if (main.error) {
+    console.error("Reminders: due_reminders failed", main.error.message);
     return Response.json({ error: "Try again later." }, { status: 503 });
   }
+  if (pantry.error) console.error("Reminders: due_pantry_reminders failed", pantry.error.message);
+  const due = [...(main.data ?? []), ...(pantry.data ?? [])];
 
   vapidReady();
   // One payload per reminder, sent to all of its devices together through the

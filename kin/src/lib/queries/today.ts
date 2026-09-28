@@ -409,5 +409,24 @@ export async function getComingUp(familyId: string, currency: string): Promise<B
     }
   }
 
+  // Running low in the pantry and not yet on the list (20260928100000).
+  const [{ data: low }, { data: openList }] = await Promise.all([
+    supabase.from("pantry_items").select("name").eq("family_id", familyId).eq("running_low", true).order("name"),
+    supabase.from("buy_items").select("name").eq("family_id", familyId).eq("checked", false).eq("cleared", false),
+  ]);
+  const listed = new Set((openList ?? []).map((b) => b.name.trim().toLowerCase()));
+  const lowNames = (low ?? []).map((p) => p.name).filter((n) => !listed.has(n.trim().toLowerCase()));
+  if (lowNames.length > 0) {
+    items.push({
+      id: "soon-pantry-low",
+      icon: "basket",
+      tint: "home",
+      title: lowNames.length === 1 ? `Running low: ${lowNames[0]}` : `Running low on ${lowNames.length} things`,
+      meta: `${lowNames.slice(0, 4).join(", ")}${lowNames.length > 4 ? "…" : ""} · not on the list yet`,
+      href: "/household?seg=buy",
+      at: 0.5,
+    });
+  }
+
   return items.sort((a, b) => (a.at ?? 9) - (b.at ?? 9)).slice(0, 6);
 }

@@ -8,6 +8,8 @@ import {
   setBuyItemPriceAction,
   setPantryItemAction,
   removePantryItemAction,
+  setPantryLowAction,
+  addLowItemsToListAction,
 } from "@/lib/actions/household";
 import { Icon } from "@/components/icons";
 import { MARKET_SECTIONS, UNITS } from "@/lib/grocery";
@@ -308,8 +310,10 @@ export function BuyItemPriceEditor({
   );
 }
 
-/** What is already in the house. */
-export function PantryControls({ items }: { items: { item_key: string; name: string; quantity: number | null; unit: string | null }[] }) {
+/** What is already in the house. Tap an item to mark it running low: it
+ * shows on Today, the grown-ups get one reminder a morning, and it clears
+ * itself when it is bought. */
+export function PantryControls({ items }: { items: { item_key: string; name: string; quantity: number | null; unit: string | null; running_low?: boolean }[] }) {
   const { pending, error, run } = useHouseholdAction();
   const [name, setName] = useState("");
 
@@ -358,10 +362,22 @@ export function PantryControls({ items }: { items: { item_key: string; name: str
                 padding: "0 0.375rem 0 0.75rem",
                 borderRadius: 999,
                 fontSize: "0.8125rem",
-                background: "color-mix(in srgb, var(--color-switch-on) 15%, transparent)",
+                background: it.running_low
+                  ? "color-mix(in srgb, var(--cal-money) 18%, transparent)"
+                  : "color-mix(in srgb, var(--color-switch-on) 15%, transparent)",
               }}
             >
-              {it.name}
+              <button
+                type="button"
+                aria-pressed={Boolean(it.running_low)}
+                title={it.running_low ? "Running low. Tap when it's topped up." : "Tap if it's running low"}
+                onClick={() => run(() => setPantryLowAction(it.item_key, !it.running_low))}
+                disabled={pending}
+                style={{ border: 0, background: "none", cursor: "pointer", padding: 0, font: "inherit", color: "inherit", display: "inline-flex", alignItems: "center", gap: "0.3125rem" }}
+              >
+                {it.name}
+                {it.running_low && <span style={{ fontSize: "0.6875rem", fontWeight: 700, letterSpacing: ".03em", color: "var(--cal-money)" }}>LOW</span>}
+              </button>
               <button
                 type="button"
                 onClick={() => run(() => removePantryItemAction(it.item_key))}
@@ -374,6 +390,20 @@ export function PantryControls({ items }: { items: { item_key: string; name: str
             </span>
           ))}
         </div>
+      )}
+      {items.some((it) => it.running_low) && (
+        <button
+          type="button"
+          className="btn btn-secondary btn-block"
+          style={{ marginTop: "0.625rem", minHeight: "2.5rem", fontSize: "0.84375rem" }}
+          disabled={pending}
+          onClick={() => run(() => addLowItemsToListAction())}
+        >
+          Add what&rsquo;s running low to the list
+        </button>
+      )}
+      {items.length > 0 && (
+        <p style={{ fontSize: "0.78125rem", color: "var(--color-neutral-600)", margin: "0.5rem 0 0" }}>Tap an item when it&rsquo;s running low.</p>
       )}
       {error && <div style={{ fontSize: "0.78125rem", color: "var(--cal-occasion)", marginTop: "0.375rem" }}>{error}</div>}
     </div>

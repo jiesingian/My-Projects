@@ -106,7 +106,58 @@ export async function toggleBuyItemAction(itemId: string, checked: boolean) {
   // answer than an error message, not a worse one, and it is the reason this
   // action returns nothing at all.
   if (error) console.error(`Buy item ${itemId} did not change state`, error.message);
+  // Bought: whatever was marked running low under that name no longer is.
+  if (!error && checked) {
+    const { data: item } = await supabase.from("buy_items").select("name").eq("id", itemId).eq("family_id", me.family_id).maybeSingle();
+    if (item) {
+      await supabase
+        .from("pantry_items")
+        .update({ running_low: false, low_since: null })
+        .eq("family_id", me.family_id)
+        .eq("item_key", normalizeKey(item.name))
+        .eq("running_low", true);
+    }
+  }
   revalidatePath("/household");
+  revalidatePath("/today");
+}
+
+/** Marks a pantry item as running low, or not. */
+export async function setPantryLowAction(itemKey: string, low: boolean): Promise<ActionState> {
+  const me = await requireCurrentMember();
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("pantry_items")
+    .update({ running_low: low, low_since: low ? new Date().toISOString() : null, updated_by: me.id, updated_at: new Date().toISOString() })
+    .eq("family_id", me.family_id)
+    .eq("item_key", itemKey)
+    .select("item_key");
+  if (error) return { error: humanDatabaseError(error.message) };
+  if (!data?.length) return { error: "That item is no longer in the pantry." };
+  revalidatePath("/household");
+  revalidatePath("/today");
+  return { error: null };
+}
+
+/** Puts everything running low onto the shopping list, skipping what is
+ * already on it. */
+export async function addLowItemsToListAction(): Promise<ActionState & { added?: number }> {
+  const me = await requireCurrentMember();
+  const supabase = await createClient();
+  const [{ data: low }, { data: open }] = await Promise.all([
+    supabase.from("pantry_items").select("name").eq("family_id", me.family_id).eq("running_low", true),
+    supabase.from("buy_items").select("name").eq("family_id", me.family_id).eq("checked", false).eq("cleared", false),
+  ]);
+  const onList = new Set((open ?? []).map((b) => normalizeKey(b.name)));
+  const rows = (low ?? [])
+    .filter((p) => !onList.has(normalizeKey(p.name)))
+    .map((p) => ({ family_id: me.family_id, name: p.name, section: guessSection(p.name), source: "house", created_by: me.id }));
+  if (rows.length === 0) return { error: null, added: 0 };
+  const { error } = await supabase.from("buy_items").insert(rows);
+  if (error) return { error: humanDatabaseError(error.message) };
+  revalidatePath("/household");
+  revalidatePath("/today");
+  return { error: null, added: rows.length };
 }
 
 export async function clearCheckedAction() {

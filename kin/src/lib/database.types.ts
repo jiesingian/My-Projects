@@ -3772,6 +3772,8 @@ export type Database = {
       }
       pantry_items: {
         Row: {
+          low_since: string | null
+          running_low: boolean
           family_id: string
           id: string
           item_key: string
@@ -3783,6 +3785,8 @@ export type Database = {
           updated_by: string | null
         }
         Insert: {
+          low_since?: string | null
+          running_low?: boolean
           family_id: string
           id?: string
           item_key: string
@@ -3794,6 +3798,8 @@ export type Database = {
           updated_by?: string | null
         }
         Update: {
+          low_since?: string | null
+          running_low?: boolean
           family_id?: string
           id?: string
           item_key?: string
@@ -4688,6 +4694,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      due_pantry_reminders: {
+        Args: { p_secret: string; p_now?: string }
+        Returns: { key: string; member_id: string; endpoint: string; p256dh: string; auth: string; title: string; body: string; url: string }[]
+      }
       cron_retry_reminder: {
         Args: { p_secret: string; p_key: string }
         Returns: undefined
