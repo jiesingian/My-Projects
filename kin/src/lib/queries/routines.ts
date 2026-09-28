@@ -1,5 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { assigneeFor, currentStreak, expandRoutine, nextOccurrence, toISODate, type RoutineRule } from "@/lib/routines";
+import { choreStreak, type ChoreStreak, type DayState } from "@/lib/streaks";
+import { isChild } from "@/lib/roles";
 
 export type RoutineMember = { id: string; name: string };
 
@@ -24,6 +26,9 @@ export type RoutineView = {
    * whether it has been answered for. */
   today: { date: string; assignee: RoutineMember | null; status: "done" | "skipped" | null; note: string | null; approval: string } | null;
   streak: number;
+  /** A child's daily chore: the run, its freeze and its next bonus star
+   * (lib/streaks). Null for anything else. */
+  kidStreak: ChoreStreak | null;
   /** Recent history, newest first, for the small activity trail on the row. */
   recent: { date: string; status: "done" | "skipped" }[];
   /** Occurrences already past that nobody has answered for, newest first.
@@ -45,7 +50,7 @@ export async function getRoutines(familyId: string, memberId?: string): Promise<
   const [{ data: rows }, { data: logs }] = await Promise.all([
     supabase
       .from("routines")
-      .select("*, routine_members(member_id, position, members(id, full_name))")
+      .select("*, routine_members(member_id, position, members(id, full_name, role))")
       .eq("family_id", familyId)
       .order("created_at", { ascending: true }),
     supabase
@@ -105,6 +110,7 @@ export async function getRoutines(familyId: string, memberId?: string): Promise<
     const past = expandRoutine(rule, historyStart, tomorrow);
     const todayISO = toISODate(today);
     const todaysOccurrence = past.find((o) => toISODate(o.date) === todayISO);
+    const forAChild = (r.routine_members ?? []).some((rm) => isChild((rm.members as unknown as { role: string } | null)?.role ?? ""));
 
     // Behind on: gone by, and never answered for. Today's is not overdue —
     // the day is not out yet.
@@ -150,6 +156,14 @@ export async function getRoutines(familyId: string, memberId?: string): Promise<
         status,
         today,
       ),
+      kidStreak:
+        forAChild && isDailyChore(r)
+          ? choreStreak(
+              past.map((o) => toISODate(o.date)),
+              (iso) => dayState(status.get(iso), approvals.get(iso)),
+              todayISO,
+            )
+          : null,
       recent: past
         .map((o) => toISODate(o.date))
         .filter((iso) => status.has(iso))
@@ -180,6 +194,19 @@ export async function getRoutines(familyId: string, memberId?: string): Promise<
     if (rank(a) === 1) return (a.timeOfDay ?? "99:99").localeCompare(b.timeOfDay ?? "99:99");
     return (a.next?.getTime() ?? Infinity) - (b.next?.getTime() ?? Infinity);
   });
+}
+
+/** Streaks, freezes and bonus stars are for chores that come round every
+ * day; a weekly one has no week to freeze a day of. */
+function isDailyChore(r: { kind: string; freq: string; repeat_interval: number }): boolean {
+  return r.kind === "chore" && r.freq === "daily" && r.repeat_interval <= 1;
+}
+
+/** One day of a chore, as a streak reads it: done, done and waiting for a
+ * grown-up, or missed (unticked, skipped, or sent back). */
+function dayState(status: string | undefined, approval: string | undefined): DayState {
+  if (status !== "done" || approval === "rejected") return "missed";
+  return approval === "pending" ? "pending" : "done";
 }
 
 /** What the Today hub should raise: routines falling today, and any that
@@ -219,6 +246,8 @@ export type MemberScore = {
   spent: number;
   /** What is actually left to spend. */
   spendable: number;
+  /** Of `points`, the bonus stars earned by daily-chore streaks. */
+  bonus: number;
 };
 
 /** What each member has earned, and what is still waiting on a grown-up.
@@ -233,18 +262,25 @@ export type MemberScore = {
  * is not points either. */
 export async function getMemberScores(familyId: string): Promise<MemberScore[]> {
   const supabase = await createClient();
-  const [{ data: members }, { data: logs }] = await Promise.all([
+  const [{ data: members }, { data: logs }, { data: chores }] = await Promise.all([
     supabase
       .from("members")
-      .select("id, full_name")
+      .select("id, full_name, role")
       .eq("family_id", familyId)
       .not("status", "in", "(pending,removed)")
       .order("created_at"),
     supabase
       .from("routine_log")
-      .select("member_id, status, approval, routines(points)")
+      .select("routine_id, occurrence_date, member_id, status, approval, routines(points)")
       .eq("family_id", familyId)
       .eq("status", "done"),
+    // The daily chores, for their streaks' bonus stars.
+    supabase
+      .from("routines")
+      .select("id, kind, freq, repeat_interval, byweekday, bymonthday, start_date, end_date, routine_members(member_id)")
+      .eq("family_id", familyId)
+      .eq("kind", "chore")
+      .eq("freq", "daily"),
   ]);
 
   const byMember = new Map<string, { points: number; done: number; awaiting: number }>();
@@ -258,6 +294,35 @@ export async function getMemberScores(familyId: string): Promise<MemberScore[]> 
       tally.done += 1;
     }
     byMember.set(l.member_id, tally);
+  }
+
+  // Bonus stars: one each time a daily chore's run reaches 7 and 30 days
+  // (lib/streaks), to the child who ticked that day -- once a grown-up has
+  // said yes to it, the same as the chore's own points.
+  const children = new Set((members ?? []).filter((m) => isChild(m.role)).map((m) => m.id));
+  const bonusBy = new Map<string, number>();
+  const today = new Date();
+  const todayISO = toISODate(today);
+  const tomorrow = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 1);
+  for (const r of chores ?? []) {
+    if (!isDailyChore(r) || !(r.routine_members ?? []).some((rm) => children.has(rm.member_id))) continue;
+    const done = new Map((logs ?? []).filter((l) => l.routine_id === r.id).map((l) => [l.occurrence_date, l] as const));
+    const rule: RoutineRule = {
+      freq: "daily",
+      repeat_interval: r.repeat_interval,
+      byweekday: r.byweekday ?? [],
+      bymonthday: r.bymonthday,
+      start_date: r.start_date,
+      end_date: r.end_date,
+    };
+    const days = expandRoutine(rule, new Date(`${r.start_date}T00:00:00`), tomorrow).map((o) => toISODate(o.date));
+    const { milestones } = choreStreak(days, (iso) => dayState(done.get(iso)?.status, done.get(iso)?.approval), todayISO);
+    for (const m of milestones) {
+      const l = done.get(m.date);
+      if (!l?.member_id || !children.has(l.member_id)) continue;
+      if (l.approval !== "not_required" && l.approval !== "approved") continue;
+      bonusBy.set(l.member_id, (bonusBy.get(l.member_id) ?? 0) + 1);
+    }
   }
 
   // A pending redemption holds its points. Counting only granted ones would
@@ -276,13 +341,16 @@ export async function getMemberScores(familyId: string): Promise<MemberScore[]> 
 
   return (members ?? []).map((m) => {
     const tally = byMember.get(m.id) ?? { points: 0, done: 0, awaiting: 0 };
+    const bonus = bonusBy.get(m.id) ?? 0;
     const spent = spentBy.get(m.id) ?? 0;
     return {
       id: m.id,
       name: m.full_name,
       ...tally,
+      points: tally.points + bonus,
+      bonus,
       spent,
-      spendable: Math.max(0, tally.points - spent),
+      spendable: Math.max(0, tally.points + bonus - spent),
     };
   });
 }

@@ -4902,6 +4902,55 @@ button.kin-initial:focus-visible {
   color: var(--color-accent-700);
 }
 
+/* A child's chore streak (agreed 28 September): "🔥 7 days in a row" in a
+   warm pill, then what it is heading for. The day a bonus star lands the
+   pill settles in from a touch smaller -- a few times a month at most, so it
+   may celebrate; reduced motion keeps only the fade. */
+.kin-streak {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.25rem 0.5rem;
+  margin-top: 0.375rem;
+  font-size: 0.78125rem;
+}
+.kin-streak-run {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  min-height: 1.5rem;
+  padding: 0 0.5625rem;
+  border-radius: 999px;
+  font-weight: 600;
+  color: color-mix(in srgb, var(--cal-money) 70%, var(--color-text));
+  background: color-mix(in srgb, var(--cal-money) 14%, transparent);
+}
+.kin-streak-note {
+  color: var(--color-neutral-700);
+}
+.kin-streak[data-earned="true"] .kin-streak-run {
+  transition: transform 260ms var(--ease-out), opacity 260ms var(--ease-out);
+  @starting-style {
+    transform: scale(0.92);
+    opacity: 0;
+  }
+}
+.kin-streak[data-earned="true"] .kin-streak-note {
+  font-weight: 600;
+  color: var(--color-text);
+}
+.kin-kid-jobs .kin-streak {
+  font-size: 0.875rem;
+}
+@media (prefers-reduced-motion: reduce) {
+  .kin-streak[data-earned="true"] .kin-streak-run {
+    transition: opacity 200ms ease;
+    @starting-style {
+      transform: none;
+    }
+  }
+}
+
 /* "Why Kin" on the home page (approved 28 September). Seen once, before
    sign-up, so the three reasons may arrive: each rises 8px and fades in over
    300ms on the house ease-out, 60ms apart, after the step itself has landed.

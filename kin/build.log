@@ -1,0 +1,97 @@
+
+> kin@0.1.0 build
+> TZ=Asia/Manila next build
+
+▲ Next.js 16.3.4 (Turbopack)
+- Environments: .env.local
+✓ Running next.config.ts took 29ms
+
+  Creating an optimized production build ...
+✓ Compiled successfully in 1622ms
+  Running TypeScript ...
+  Finished TypeScript in 19.4s ...
+  Collecting page data using 3 workers ...
+  Generating static pages using 3 workers (0/53) ...
+  Generating static pages using 3 workers (13/53) 
+  Generating static pages using 3 workers (26/53) 
+  Generating static pages using 3 workers (39/53) 
+✓ Generating static pages using 3 workers (53/53) in 412ms
+  Finalizing page optimization ...
+
+Route (app)
+┌ ƒ /
+├ ƒ /_not-found
+├ ƒ /api/assistant
+├ ƒ /api/brief/[token]
+├ ƒ /api/calendar/callback
+├ ƒ /api/calendar/connect
+├ ƒ /api/calendar/feed/[token]
+├ ƒ /api/calls/decline
+├ ƒ /api/cron/reminders
+├ ƒ /api/drive/callback
+├ ƒ /api/drive/connect
+├ ƒ /api/drive/file/[fileId]
+├ ƒ /api/event-invite-image/[id]
+├ ƒ /api/health/apple/[token]
+├ ƒ /api/uploads/session
+├ ○ /apple-icon.png
+├ ƒ /auth/callback
+├ ƒ /chat
+├ ƒ /family
+├ ƒ /family/documents/[folderId]
+├ ƒ /family/documents/[folderId]/[entryId]/edit
+├ ƒ /family/documents/new
+├ ƒ /family/members/[id]
+├ ƒ /family/members/[id]/emergency
+├ ƒ /family/members/[id]/health/new
+├ ƒ /family/members/[id]/visit/[appt]
+├ ƒ /forgot-password
+├ ƒ /go/[action]
+├ ƒ /household
+├ ƒ /household/meals/new
+├ ○ /icon.png
+├ ƒ /join/[code]
+├ ƒ /journal
+├ ƒ /journal/[id]/edit
+├ ƒ /journal/links/[id]
+├ ƒ /journal/milestones/new
+├ ƒ /journal/new
+├ ƒ /legal/privacy
+├ ƒ /legal/refunds
+├ ƒ /legal/terms
+├ ƒ /login
+├ ○ /manifest.webmanifest
+├ ○ /offline
+├ ƒ /onboarding/family
+├ ƒ /onboarding/members
+├ ƒ /onboarding/pending
+├ ƒ /onboarding/profile
+├ ƒ /planner
+├ ƒ /planner/add
+├ ƒ /planner/routines/new
+├ ƒ /reset-password
+├ ƒ /settings
+├ ƒ /settings/account
+├ ƒ /settings/appearance
+├ ƒ /settings/connected
+├ ƒ /settings/household
+├ ƒ /settings/kid-view
+├ ƒ /settings/notifications
+├ ƒ /settings/privacy
+├ ƒ /settings/quick-button
+├ ƒ /signup
+├ ƒ /subscribe
+├ ƒ /today
+├ ƒ /verify
+├ ƒ /wealth
+├ ƒ /wealth/accounts/[id]
+├ ƒ /wealth/add
+├ ƒ /wealth/assets/new
+└ ƒ /wealth/transact
+
+
+ƒ Proxy (Middleware)
+
+○  (Static)   prerendered as static content
+ƒ  (Dynamic)  server-rendered on demand
+
