@@ -3,6 +3,8 @@ import { keepKidViewOut } from "@/lib/kid-view";
 import { getCurrentMember } from "@/lib/session";
 import { createClient } from "@/lib/supabase/server";
 import { NewHealthEntryForm } from "./new-health-entry-form";
+import { readAccess } from "@/lib/access";
+import { PlusNote } from "@/components/plus";
 
 export default async function NewHealthEntryPage({
   params,
@@ -22,5 +24,15 @@ export default async function NewHealthEntryPage({
   ]);
   if (!member) redirect("/family?seg=profile");
 
-  return <NewHealthEntryForm member={member} conditions={conditions ?? []} omronConnected={!!omron?.connected} myRole={me.role} />;
+  const form = <NewHealthEntryForm member={member} conditions={conditions ?? []} omronConnected={!!omron?.connected} myRole={me.role} />;
+  if (readAccess(me.families).plus) return form;
+  // Visits, conditions, vaccinations and the emergency card stay free.
+  return (
+    <>
+      <div style={{ padding: "0.75rem var(--gutter) 0" }}>
+        <PlusNote area="Vitals, medicines and the illness log" detail="Visits, conditions, vaccinations and the emergency card stay free. Adding vitals, a medicine or an illness needs Plus." />
+      </div>
+      {form}
+    </>
+  );
 }

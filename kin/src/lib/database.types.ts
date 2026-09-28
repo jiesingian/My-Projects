@@ -164,6 +164,12 @@ export type Database = {
           },
         ]
       }
+      ai_usage: {
+        Row: { family_id: string; month: string; uses: number }
+        Insert: { family_id: string; month: string; uses?: number }
+        Update: { family_id?: string; month?: string; uses?: number }
+        Relationships: []
+      }
       activities: {
         Row: {
           applies_to_whole_family: boolean
@@ -4700,6 +4706,12 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      due_trial_reminders: {
+        Args: { p_secret: string; p_now?: string }
+        Returns: { key: string; member_id: string; endpoint: string; p256dh: string; auth: string; title: string; body: string; url: string }[]
+      }
+      use_kin_ai: { Args: never; Returns: Json }
+      family_storage_bytes: { Args: never; Returns: number }
       due_pantry_reminders: {
         Args: { p_secret: string; p_now?: string }
         Returns: { key: string; member_id: string; endpoint: string; p256dh: string; auth: string; title: string; body: string; url: string }[]

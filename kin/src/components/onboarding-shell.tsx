@@ -1,15 +1,26 @@
 import type { ReactNode } from "react";
 import Link from "next/link";
 import { Icon } from "@/components/icons";
+import { paletteCss, PALETTE_NEW_MEMBER } from "@/lib/palettes";
 
+/** The screens around signing in and setting up: login, sign-up, verify,
+ * password reset and onboarding. None of them has a member's own theme to
+ * show yet, so they wear Kin Coral -- the icon's look and the public home
+ * page's -- instead of falling back to Kin Classic. That fallback's white on
+ * #007aff primary button measured 4.01:1 on login and sign-up (Lighthouse,
+ * 28 September), short of the 4.5:1 AA asks for; Coral's is 4.58:1.
+ * The plan screen passes ownLook={false}: it is signed in, and paints the
+ * member's own theme itself. */
 export function OnboardingShell({
   step,
   backHref,
   children,
+  ownLook = true,
 }: {
   step?: string;
   backHref?: string;
   children: ReactNode;
+  ownLook?: boolean;
 }) {
   return (
     <main
@@ -21,6 +32,7 @@ export function OnboardingShell({
         padding: "0 1.25rem",
       }}
     >
+      {ownLook && <style>{paletteCss(PALETTE_NEW_MEMBER)}</style>}
       <div style={{ width: "100%", maxWidth: 440, paddingTop: "3rem", paddingBottom: "3rem" }}>
         {(backHref || step) && (
           <div style={{ display: "flex", alignItems: "center", gap: "0.625rem", marginBottom: "2.125rem" }}>
