@@ -1,5 +1,6 @@
 "use client";
 
+import { AlbumPrompt } from "@/components/album-prompt";
 import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Icon } from "@/components/icons";
@@ -362,6 +363,7 @@ export function ChatThread({
   const [replyingTo, setReplyingTo] = useState<ChatMessage | null>(null);
   /** Files picked and not yet sent, with a local preview for the images. */
   const [picked, setPicked] = useState<{ file: File; preview: string | null }[]>([]);
+  const [albumFor, setAlbumFor] = useState<string[] | null>(null);
   const [uploading, setUploading] = useState(false);
   const [asking, setAsking] = useState(false);
   const [trayOpen, setTrayOpen] = useState(false);
@@ -667,6 +669,8 @@ export function ChatThread({
         return;
       }
       setPicked([]);
+      // Photos just sent: offer to keep them in an album (28 September).
+      if (result.photoIds?.length) setAlbumFor(result.photoIds);
       // Both inside the transition, so the optimistic bubble is only taken
       // away in the same commit that brings the real one in.
       router.refresh();
@@ -705,6 +709,7 @@ export function ChatThread({
     /* Tall enough that the composer sits just above the tab bar even when
        only one thing has been said. */
     <div style={{ display: "flex", flexDirection: "column", flex: 1 }}>
+      {albumFor && <AlbumPrompt photoIds={albumFor} onClose={() => setAlbumFor(null)} />}
       <div className="kin-chatsearch">
         {searching ? (
           <>

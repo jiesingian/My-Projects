@@ -27,7 +27,7 @@ export async function sendMessageAction(input: {
   mentions?: string[];
   replyTo?: string | null;
   attachments?: OutgoingAttachment[];
-}): Promise<ActionState & { id?: string }> {
+}): Promise<ActionState & { id?: string; photoIds?: string[] }> {
   const me = await requireCurrentMember();
   const supabase = await createClient();
 
@@ -60,8 +60,9 @@ export async function sendMessageAction(input: {
     .single();
   if (error || !data) return { error: error ? humanDatabaseError(error.message) : "That didn't send." };
 
+  let photoIds: string[] = [];
   if (attachments.length > 0) {
-    const { error: attachError } = await supabase.from("family_message_attachments").insert(
+    const { data: attached, error: attachError } = await supabase.from("family_message_attachments").insert(
       attachments.map((a, position) => ({
         message_id: data.id,
         family_id: me.family_id,
@@ -71,7 +72,9 @@ export async function sendMessageAction(input: {
         size_bytes: a.sizeBytes,
         position,
       })),
-    );
+    ).select("id, mime_type");
+    // The photos among them, so the sender can be offered an album for them.
+    photoIds = (attached ?? []).filter((f) => f.mime_type.startsWith("image/")).map((f) => f.id);
     if (attachError) {
       // The message went and its files did not. Better to withdraw it than to
       // leave "here's the receipt" sitting in the thread with no receipt.
@@ -97,7 +100,7 @@ export async function sendMessageAction(input: {
       tag: `chat-${me.family_id}`,
     }),
   );
-  return { error: null, id: data.id };
+  return { error: null, id: data.id, photoIds };
 }
 
 /** Withdraw your own message. It leaves its place in the thread, so what was

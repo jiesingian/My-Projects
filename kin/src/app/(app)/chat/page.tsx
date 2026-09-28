@@ -1,4 +1,6 @@
+import Link from "next/link";
 import { redirect } from "next/navigation";
+import { Icon } from "@/components/icons";
 import { getCurrentMember } from "@/lib/session";
 import { getChatMembers, getChatThread, getChatPin } from "@/lib/queries/chat";
 import { ChatThread } from "@/components/chat-thread";
@@ -32,6 +34,10 @@ export default async function ChatPage() {
             {members.length} {members.length === 1 ? "person" : "people"} · everyone sees everything here
           </p>
         </div>
+        <Link href="/chat/albums" className="kin-chat-albums" aria-label="Albums">
+          <Icon name="images" size={18} />
+          <span>Albums</span>
+        </Link>
         <CallButtons />
       </div>
 

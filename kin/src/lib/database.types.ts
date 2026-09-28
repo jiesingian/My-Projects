@@ -1647,6 +1647,18 @@ export type Database = {
         }
         Relationships: []
       }
+      chat_album_photos: {
+        Row: { added_at: string; added_by: string | null; album_id: string; attachment_id: string; family_id: string }
+        Insert: { added_at?: string; added_by?: string | null; album_id: string; attachment_id: string; family_id: string }
+        Update: { added_at?: string; added_by?: string | null; album_id?: string; attachment_id?: string; family_id?: string }
+        Relationships: []
+      }
+      chat_albums: {
+        Row: { created_at: string; created_by: string | null; family_id: string; id: string; name: string }
+        Insert: { created_at?: string; created_by?: string | null; family_id: string; id?: string; name: string }
+        Update: { created_at?: string; created_by?: string | null; family_id?: string; id?: string; name?: string }
+        Relationships: []
+      }
       family_message_attachments: {
         Row: {
           created_at: string
