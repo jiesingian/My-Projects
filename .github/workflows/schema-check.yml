@@ -74,7 +74,11 @@ jobs:
           set -euo pipefail
           if [ "${{ github.event_name }}" = "pull_request" ]; then
             git fetch --no-tags --depth=0 origin "${{ github.base_ref }}" >/dev/null 2>&1 || true
-            FILES=$(git diff --name-only --diff-filter=A \
+            # --no-renames: a migration renamed to a new timestamp is a new
+            # version to the ledger and has never run, so it is as new as an
+            # added file (28 September: the fix for a duplicate version was a
+            # rename, and was otherwise refused by the very check it fixed).
+            FILES=$(git diff --name-only --no-renames --diff-filter=A \
               "origin/${{ github.base_ref }}...HEAD" -- 'kin/supabase/migrations/*.sql' || true)
           else
             FILES=""
