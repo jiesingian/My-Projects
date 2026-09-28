@@ -37,8 +37,9 @@ import { CalendarSyncStatus, RememberFilter } from "@/components/calendar-sync-s
 import { ShowChoresSwitch } from "@/components/show-chores-switch";
 import { cookies } from "next/headers";
 import { familyDate } from "@/lib/format-family";
+import { GoalsPane } from "./goals-pane";
 
-const SEGMENTS = ["calendar", "routines", "events"] as const;
+const SEGMENTS = ["calendar", "routines", "events", "goals"] as const;
 type Seg = (typeof SEGMENTS)[number];
 const CALENDAR_VIEWS = ["week", "month", "year"] as const;
 type CalendarView = (typeof CALENDAR_VIEWS)[number];
@@ -98,6 +99,16 @@ export default async function PlannerPage({
         )}
         {seg === "routines" && <RoutinesPane familyId={me.family_id} who={who} currency={me.families.currency} justSaved={sp.saved === "1"} />}
         {seg === "events" && <EventsPane familyId={me.family_id} who={who} />}
+        {seg === "goals" && (
+          <GoalsPane
+            familyId={me.family_id}
+            me={{ id: me.id, role: me.role }}
+            who={who}
+            currency={me.families.currency}
+            weekStart={weekStartOf(me.families.week_start)}
+            filter={<MemberChips familyId={me.family_id} seg="goals" who={who} />}
+          />
+        )}
       </div>
     </div>
   );

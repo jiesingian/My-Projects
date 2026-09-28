@@ -9,6 +9,7 @@ import { getRoutinesNeedingAttention, getPendingApprovals, getPendingRedemptions
 import { TodayList, type TodayEntry } from "@/components/today-list";
 import { familyClock } from "@/lib/time";
 import { ApprovalQueue } from "@/components/approval-queue";
+import { getPendingGoalRewards } from "@/lib/queries/goals";
 import { Icon } from "@/components/icons";
 import { isGrownUp } from "@/lib/roles";
 import { TodayHeader } from "@/components/family-panel";
@@ -28,7 +29,7 @@ export default async function TodayPage() {
   if (inKidView(me)) return <KidToday me={me} />;
 
   const supabase = await createClient();
-  const [{ data: members }, glance, brief, tasks, awaitingApproval, awaitingRedemption, familyPanel, comingUp, memories, recap, startHere] = await Promise.all([
+  const [{ data: members }, glance, brief, tasks, awaitingApproval, awaitingRedemption, familyPanel, comingUp, memories, recap, startHere, awaitingGoalReward] = await Promise.all([
     supabase.from("members").select("id, full_name").eq("family_id", me.family_id).order("created_at"),
     getGlance(me.family_id, me.families.currency),
     getTodayBriefing(me.family_id, me.families.currency),
@@ -47,6 +48,8 @@ export default async function TodayPage() {
       : Promise.resolve(null),
     // A new family's first steps; null for everyone else (queries/start-here).
     getStartHere(me),
+    // Goal rewards this grown-up may answer (never their own); [] for anyone else.
+    getPendingGoalRewards(me.family_id, me),
   ]);
 
   // Today's one list, ordered here on the server so the phone never re-sorts
@@ -84,7 +87,7 @@ export default async function TodayPage() {
   // The fourth glance tile is built from what Today already asked for: the
   // chores and rewards waiting on a grown-up's OK, else the household's
   // chores due today or overdue.
-  const toApprove = awaitingApproval.length + awaitingRedemption.length;
+  const toApprove = awaitingApproval.length + awaitingRedemption.length + awaitingGoalReward.length;
   const overdueTasks = tasks.filter((t) => t.overdue.length > 0).length;
   const waiting: GlanceTile =
     toApprove > 0
@@ -216,7 +219,7 @@ export default async function TodayPage() {
       <OnThisDay memories={memories} />
 
       <div id="approvals">
-        <ApprovalQueue pending={awaitingApproval} redemptions={awaitingRedemption} />
+        <ApprovalQueue pending={awaitingApproval} redemptions={awaitingRedemption} goalRewards={awaitingGoalReward} />
       </div>
 
     </div>
