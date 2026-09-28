@@ -63,7 +63,7 @@ export default async function TodayPage() {
   const tiles = [...glance, waiting];
 
   return (
-    <div style={{ padding: "1.5rem 1.375rem 1.25rem" }}>
+    <div style={{ padding: "1.5rem var(--gutter) 1.25rem" }}>
       <TodayHeader dateLabel={todayLabel} familyName={me.families.name} data={familyPanel} fallbackPeople={members ?? []} />
 
       {/* Offered once, to people still on Kin Classic from before the new

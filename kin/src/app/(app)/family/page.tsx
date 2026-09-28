@@ -67,7 +67,7 @@ export default async function FamilyPage({
   return (
     <div>
       <HubHeader n="01" title="Family" segments={segments} dateFormat={me.families.date_format} />
-      <div style={{ padding: "0 1.375rem 1.375rem" }}>
+      <div style={{ padding: "0 var(--gutter) 1.375rem" }}>
         {seg === "profile" && <ProfilePane familyId={me.family_id} isOrganiser={me.is_organiser} myId={me.id} myRole={me.role} />}
         {seg === "health" && <HealthPane familyId={me.family_id} />}
         {seg === "documents" && <VaultPane familyId={me.family_id} who={who} tab={sp.tab === "passwords" ? "passwords" : "documents"} meId={me.id} myRole={me.role} />}

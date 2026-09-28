@@ -26,7 +26,7 @@ export default async function PrivacySettingsPage() {
   return (
     <div>
       <DetailHeader backHref="/settings" eyebrow="Privacy & lock" />
-      <div style={{ padding: "0 1.375rem 1.375rem" }}>
+      <div style={{ padding: "0 var(--gutter) 1.375rem" }}>
         <p style={{ fontSize: "0.84375rem", lineHeight: 1.5, color: "var(--color-neutral-700)", margin: "0 0 0.25rem" }}>
           The lock on the family&rsquo;s documents. It is the same one as on{" "}
           <Link href="/family?seg=documents" style={{ color: "var(--color-accent-700)" }}>

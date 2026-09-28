@@ -49,9 +49,59 @@ const SWITCHES: { at: number; why: string; rules: string }[] = [
     rules: `.kin-composer-field{order:-1;flex-basis:100%}
 .kin-composer-row>.btn:last-child{margin-left:auto}`,
   },
+  {
+    // The narrowest case: under 14 ems of the reader's text, which is 200% on
+    // any phone up to 448px and 150% on a 320px one. Measured at 320px and
+    // 390px, every hub, on 28 September: Settings rows cut to "A…", Today's
+    // tiles to "List cl…", and a tile's own padding took a fifth of the
+    // width. (The chat title, the cash-flow months, the money buttons and the
+    // meals date broke at 150% too, so they are fixed in globals.css for
+    // every size.)
+    at: 14,
+    why: "tab bar: labels go, icons take the room",
+    rules: `.kin-nav{--kin-tab-icon:min(2rem,12vw);--kin-tab-disc:min(3.5rem,15vw);--kin-tab-disc-icon:min(2.25rem,9vw)}
+.kin-tab-label{display:none}
+.kin-tab{padding:0.625rem 0 0}
+.kin-tab-ico{max-width:3.25rem;height:min(2.5rem,14vw)}`,
+  },
+  {
+    at: 18,
+    why: "Today: glance tiles one-up, quick add two-up",
+    rules: `.kin-glance{grid-template-columns:1fr}
+.kin-quick{grid-template-columns:1fr 1fr}`,
+  },
+  {
+    at: 19,
+    why: "composer: the field takes a line of its own",
+    rules: `.kin-composer-field{order:-1;flex-basis:100%}
+.kin-composer-row>.btn:last-child{margin-left:auto}`,
+  },
+  {
+    // The narrowest case: under 14 ems of the reader's text, which is 200% on
+    // any phone up to 448px and 150% on a 320px one. Measured at 320px and
+    // 390px, every hub, on 28 September: the chat title went one letter a line beside its call
+    // buttons, Settings rows cut to "A…", the cash-flow months stacked letter
+    // by letter, and a tile's own padding was taking a fifth of the width.
+    at: 14,
+    why: "narrowest: rows wrap instead of cutting off, padding stops growing",
+    rules: `.kin-brief-title{white-space:normal;overflow-wrap:break-word}
+.kin-brief-meta{white-space:normal;overflow-wrap:break-word}
+.kin-glance-value{white-space:normal;overflow-wrap:break-word}
+.kin-brief-row{padding-left:12px;padding-right:12px}
+.kin-glance-tile{padding-left:12px;padding-right:12px}
+.kin-story{padding-left:12px;padding-right:12px}
+.kin-brief-row{gap:10px}
+.kin-brief-ico{display:none}
+.kin-smarthome-ico{display:none}
+.kin-smarthome-app{padding-left:12px;padding-right:12px}
+.kin-quick{grid-template-columns:1fr}
+body{-webkit-hyphens:auto;hyphens:auto;overflow-wrap:break-word}`,
+  },
 ];
 
-/** The stylesheet for one member's scale. Each rule is prefixed with :root so
+/** The stylesheet for one member's scale. One rule per line, and no selector
+ * lists: the prefix goes on the line, so a comma would leave the rest unscoped.
+ * Each rule is prefixed with :root so
  * it outranks the base rule it overrides whatever order the two stylesheets
  * land in, and every query stops short of 1024px, where the tab bar has become
  * a sidebar and none of these switches mean anything. */

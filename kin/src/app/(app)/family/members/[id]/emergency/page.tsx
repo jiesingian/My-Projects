@@ -53,7 +53,7 @@ export default async function EmergencyCardPage({ params }: { params: Promise<{ 
   return (
     <div>
       <DetailHeader backHref={`/family/members/${id}?view=health`} eyebrow="Emergency card" />
-      <div style={{ padding: "0 1.375rem 1.375rem" }}>
+      <div style={{ padding: "0 var(--gutter) 1.375rem" }}>
         <div className="kin-sos">
           <div className="kin-sos-head">
             <span className="kin-sos-badge">EMERGENCY</span>

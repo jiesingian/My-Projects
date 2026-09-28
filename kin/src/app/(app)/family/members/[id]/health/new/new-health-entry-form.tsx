@@ -52,7 +52,7 @@ export function NewHealthEntryForm({
           { label: "New entry" },
         ]}
       />
-      <div style={{ padding: "0 1.375rem 1.375rem" }}>
+      <div style={{ padding: "0 var(--gutter) 1.375rem" }}>
         <h3 style={{ fontSize: "1.875rem", margin: "0 0 4px" }}>New entry</h3>
         <div style={{ fontSize: "0.875rem", color: "var(--color-neutral-700)", marginBottom: "1rem" }}>For {member.full_name}</div>
 

@@ -22,7 +22,7 @@ export function HubHeader({
   dateFormat?: string;
 }) {
   return (
-    <div style={{ padding: "1.25rem 1.25rem 0.75rem" }}>
+    <div style={{ padding: "1.25rem var(--gutter-head) 0.75rem" }}>
       <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
         <span style={{ fontSize: "0.8125rem", color: "var(--color-neutral-600)", marginLeft: "auto" }}>{formatDate(new Date(), dateFormat)}</span>
       </div>
@@ -51,7 +51,7 @@ export function DetailHeader({
   trail?: { label: string; href?: string }[];
 }) {
   return (
-    <div style={{ padding: "1.125rem 1.25rem 0" }}>
+    <div style={{ padding: "1.125rem var(--gutter-head) 0" }}>
       {trail && trail.length > 0 && (
         <nav aria-label="Breadcrumb" style={{ marginBottom: "0.375rem" }}>
           <ol style={{ listStyle: "none", display: "flex", flexWrap: "wrap", alignItems: "center", gap: "0.25rem", margin: 0, padding: 0, fontSize: "0.78125rem", color: "var(--color-neutral-600)" }}>

@@ -25,7 +25,7 @@ export default async function KidViewSettingsPage() {
   return (
     <div>
       <DetailHeader backHref="/settings" eyebrow="Kid view" />
-      <div style={{ padding: "0 1.375rem 1.375rem" }}>
+      <div style={{ padding: "0 var(--gutter) 1.375rem" }}>
         <p style={{ fontSize: "0.9375rem", lineHeight: 1.45, color: "var(--color-neutral-700)", margin: "0 0 1rem" }}>
           A simpler Kin for children with a login of their own. Only a grown-up can change this.
         </p>

@@ -18,9 +18,12 @@ export default async function ChatPage() {
   const labelled = members.map((m, i) => ({ ...m, label: labels[i] }));
 
   return (
-    <div className="kin-chatcolumn" style={{ padding: "1.125rem 1.375rem 0.5rem" }}>
-      <div style={{ marginBottom: "0.375rem", display: "flex", alignItems: "flex-start", gap: "0.75rem" }}>
-        <div style={{ flex: 1, minWidth: 0 }}>
+    <div className="kin-chatcolumn" style={{ padding: "1.125rem var(--gutter) 0.5rem" }}>
+      {/* The call buttons drop under the title when the two would leave the
+          title less than about eight characters of its own, at large text on a
+          small phone, rather than squeezing it one letter a line. */}
+      <div style={{ marginBottom: "0.375rem", display: "flex", flexWrap: "wrap", alignItems: "flex-start", gap: "0.75rem" }}>
+        <div style={{ flex: "1 1 9rem", minWidth: 0 }}>
           <div style={{ font: "600 0.8125rem/1 var(--font-heading)", letterSpacing: ".02em", color: "var(--color-accent-700)", marginBottom: "0.3125rem" }}>
             FAMILY CHAT
           </div>

@@ -31,7 +31,7 @@ export async function KidToday({ me }: { me: { id: string; family_id: string; fu
   const day = new Date().toLocaleDateString("en-GB", { weekday: "long", timeZone: FAMILY_TZ }).toUpperCase();
 
   return (
-    <div className="kin-kid" style={{ padding: "1.25rem 1.375rem 1.375rem" }}>
+    <div className="kin-kid" style={{ padding: "1.25rem var(--gutter) 1.375rem" }}>
       <div style={{ font: "600 0.8125rem/1 var(--font-heading)", letterSpacing: ".02em", color: "var(--color-accent-700)", marginBottom: "0.3125rem" }}>{day}</div>
       <h2 style={{ fontSize: "min(2.25rem, 12vw)", margin: "0 0 0.5rem" }}>Hi {first}!</h2>
       <Link href="/planner?seg=routines" className="kin-kid-stars">

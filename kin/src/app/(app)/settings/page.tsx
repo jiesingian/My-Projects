@@ -81,7 +81,7 @@ export default async function SettingsPage({
   return (
     <div>
       <DetailHeader backHref="/today" eyebrow="Settings" />
-      <div style={{ padding: "0 1.375rem 1.375rem", display: "flex", flexDirection: "column", gap: "1.125rem" }}>
+      <div style={{ padding: "0 var(--gutter) 1.375rem", display: "flex", flexDirection: "column", gap: "1.125rem" }}>
         <Link href={`/family/members/${me.id}?from=settings`} style={{ textDecoration: "none", color: "inherit" }}>
           <Blueprint style={{ padding: "0.875rem", display: "flex", flexWrap: "wrap", gap: "0.5rem 0.8125rem", alignItems: "center" }}>
             <Avatar url={me.avatar_url} initials={initials(me.full_name)} label={me.full_name} size={48} />
@@ -97,7 +97,7 @@ export default async function SettingsPage({
         </Link>
 
         {groups.map((rows, gi) => (
-          <nav key={gi} className="kin-brief" aria-label={gi === 0 ? "You" : gi === 1 ? "Household" : "Account"}>
+          <nav key={gi} className="kin-brief" data-wrap aria-label={gi === 0 ? "You" : gi === 1 ? "Household" : "Account"}>
             {rows.map((r) => (
               <Link key={r.href} href={r.href} className="kin-brief-row">
                 <span className="kin-brief-ico" data-tint={r.tint}>

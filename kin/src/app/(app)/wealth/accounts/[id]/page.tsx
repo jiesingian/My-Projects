@@ -27,7 +27,7 @@ export default async function AccountPage({ params }: { params: Promise<{ id: st
   return (
     <div>
       <DetailHeader backHref={`/wealth?seg=accounts&who=${account.is_joint || !account.owner_member_id ? "all" : account.owner_member_id}`} eyebrow="Wealth" />
-      <div style={{ padding: "0 1.375rem 1.375rem" }}>
+      <div style={{ padding: "0 var(--gutter) 1.375rem" }}>
         <Blueprint style={{ padding: "0.9375rem", marginBottom: "0.875rem" }}>
           <div style={{ display: "flex", alignItems: "baseline", gap: "0.5rem" }}>
             <span style={{ font: "600 0.8125rem/1 var(--font-heading)", letterSpacing: ".02em", color: "var(--color-neutral-600)" }}>

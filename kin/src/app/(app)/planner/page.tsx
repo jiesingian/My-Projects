@@ -80,7 +80,7 @@ export default async function PlannerPage({
   return (
     <div>
       <HubHeader n="03" title="Planner" segments={segments} dateFormat={me.families.date_format} />
-      <div style={{ padding: "0 1.375rem 1.375rem" }}>
+      <div style={{ padding: "0 var(--gutter) 1.375rem" }}>
         {seg === "calendar" && (
           <CalendarPane
             familyId={me.family_id}

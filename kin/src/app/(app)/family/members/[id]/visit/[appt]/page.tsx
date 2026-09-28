@@ -28,7 +28,7 @@ export default async function VisitPage({ params }: { params: Promise<{ id: stri
   return (
     <div>
       <DetailHeader backHref={back} eyebrow="Visit" trail={[{ label: "Family", href: "/family?seg=health" }, { label: member.full_name, href: back }, { label: visit.what }]} />
-      <div style={{ padding: "0 1.375rem 1.375rem" }}>
+      <div style={{ padding: "0 var(--gutter) 1.375rem" }}>
         <h2 style={{ fontSize: "1.5rem", margin: "0.25rem 0 0.25rem" }}>{visit.what}</h2>
         <p style={{ fontSize: "0.875rem", color: "var(--color-neutral-600)", margin: "0 0 1.125rem" }}>
           {member.full_name.split(" ")[0]} · {familyDateTime(new Date(visit.when_at))}

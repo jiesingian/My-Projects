@@ -33,7 +33,7 @@ export default async function HouseholdSettingsPage() {
   return (
     <div>
       <DetailHeader backHref="/settings" eyebrow="Household" />
-      <div style={{ padding: "0 1.375rem 1.375rem" }}>
+      <div style={{ padding: "0 var(--gutter) 1.375rem" }}>
         <div style={{ fontSize: "0.8125rem", color: "var(--color-neutral-700)", marginBottom: "0.375rem" }}>Household name</div>
         {me.is_organiser ? (
           <HouseholdNameForm name={me.families.name} />
