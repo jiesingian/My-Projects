@@ -1,7 +1,6 @@
 import { PushKeepAlive } from "@/components/push-opt-in";
 import { redirect } from "next/navigation";
 import { getCurrentMember } from "@/lib/session";
-import { readAccess } from "@/lib/access";
 import { TabBar } from "@/components/tab-bar";
 import { inKidView } from "@/lib/kid-view";
 import { AssistantFab } from "@/components/assistant-fab";
@@ -19,11 +18,10 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   if (!member) redirect("/onboarding/profile");
   if (member.status === "pending") redirect("/onboarding/pending");
 
-  // One check for the whole app, rather than every page remembering to make
-  // it. getCurrentMember already loads the family row, so it costs no extra
-  // query. /subscribe deliberately sits outside this group — a paywall inside
-  // the thing it walls off would redirect to itself.
-  if (!readAccess(member.families).allowed) redirect("/subscribe");
+  // No paywall here any more. A household whose Kin Plus trial has ended is
+  // on Kin Free, never locked out of its own records; the Plus areas say so
+  // where they are, and the database refuses new entries in them
+  // (20260928150000_kin_free_and_plus.sql).
 
   const supabase = await createClient();
   const [unread, { data: people }] = await Promise.all([

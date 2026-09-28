@@ -12,6 +12,8 @@ import { Icon } from "@/components/icons";
 import { isGrownUp } from "@/lib/roles";
 import { TodayHeader } from "@/components/family-panel";
 import { LookOffer } from "@/components/look-offer";
+import { TrialBanner } from "@/components/plus";
+import { readAccess } from "@/lib/access";
 import { PALETTE_DEFAULT } from "@/lib/palettes";
 import { getFamilyPanel } from "@/lib/queries/family-panel";
 import { inKidView } from "@/lib/kid-view";
@@ -70,6 +72,14 @@ export default async function TodayPage() {
           look became the default. Anyone who picked another theme chose it,
           and keeps it without being asked. */}
       {me.palette === PALETTE_DEFAULT && !me.look_offer_answered_at && <LookOffer />}
+
+      {/* The last three days of a Kin Plus trial, and only then: before
+          that it would be nagging, and after it the Plus areas say so where
+          they are. The organizer gets the same push (due_trial_reminders). */}
+      {(() => {
+        const access = readAccess(me.families);
+        return access.trialing && access.daysLeft !== null && access.daysLeft <= 3 ? <TrialBanner daysLeft={access.daysLeft} isOrganiser={me.is_organiser} /> : null;
+      })()}
 
       {/* The briefing. Everything the household has a date on, from every
           hub, in one list — overdue first, then the day in the order it

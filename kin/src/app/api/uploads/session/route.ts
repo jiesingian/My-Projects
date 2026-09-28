@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { getCurrentMember } from "@/lib/session";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { createClient } from "@/lib/supabase/server";
+import { readAccess, FREE_STORAGE_BYTES, PLUS_STORAGE_BYTES } from "@/lib/access";
 import {
   getValidDriveAccessToken,
   ensureDriveFolderStructure,
@@ -73,9 +75,36 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: `That file is too large — the limit here is ${limit.label}.` }, { status: 400 });
   }
 
+  // Kin's own storage has a size per household: 1 GB on Kin Free, 50 GB on
+  // Kin Plus (20260928150000_kin_free_and_plus.sql). Only files headed for
+  // Kin's storage count -- a household's Google Drive is its own. Asked once,
+  // and only on the paths that end in Storage. If the count can't be read the
+  // upload goes ahead: a stuck photo is worse than an uncounted one.
+  const storageRefusal = async (): Promise<NextResponse | null> => {
+    const supabase = await createClient();
+    const { data: used, error } = await supabase.rpc("family_storage_bytes");
+    if (error || typeof used !== "number") {
+      if (error) console.error("family_storage_bytes failed; allowing the upload", error.message);
+      return null;
+    }
+    const plus = readAccess(me.families).plus;
+    const cap = plus ? PLUS_STORAGE_BYTES : FREE_STORAGE_BYTES;
+    if (used + fileSize <= cap) return null;
+    return NextResponse.json(
+      {
+        error: plus
+          ? "Your household has used its 50 GB of Kin storage. Connect Google Drive in Settings → Connected apps to keep adding photos there."
+          : "Your household has used the 1 GB of storage in Kin Free. Kin Plus has 50 GB, or connect Google Drive in Settings → Connected apps and photos go there instead.",
+      },
+      { status: 413 },
+    );
+  };
+
   // Dish photos stay in Storage: the app reads them back on every meal card,
   // and a signed Storage URL renders in an <img> where a Drive link does not.
   if (kind === "recipe") {
+    const refused = await storageRefusal();
+    if (refused) return refused;
     return NextResponse.json({
       provider: "supabase",
       bucket: "recipe-photos",
@@ -88,6 +117,8 @@ export async function POST(request: Request) {
   // and routines aren't folders) -- straight to Storage, same bucket as
   // documents.
   if (kind === "routine") {
+    const refused = await storageRefusal();
+    if (refused) return refused;
     return NextResponse.json({
       provider: "supabase",
       bucket: "documents",
@@ -101,6 +132,8 @@ export async function POST(request: Request) {
   // here. The random segment keeps two photos picked in the same
   // millisecond, which a multi-select does, from landing on one path.
   if (kind === "chat") {
+    const refused = await storageRefusal();
+    if (refused) return refused;
     return NextResponse.json({
       provider: "supabase",
       bucket: "documents",
@@ -138,6 +171,9 @@ export async function POST(request: Request) {
       console.error(`Drive upload session failed for kind=${kind}, falling back to Supabase:`, err);
     }
   }
+
+  const refused = await storageRefusal();
+  if (refused) return refused;
 
   const bucket = kind === "journal" ? "journal" : kind === "avatar" || kind === "family_background" ? "avatars" : "documents";
   const prefix =

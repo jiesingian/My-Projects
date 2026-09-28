@@ -1,11 +1,14 @@
 import { redirect } from "next/navigation";
 import { getCurrentMember } from "@/lib/session";
 import { readAccess } from "@/lib/access";
+import { paletteCss } from "@/lib/palettes";
 import { SubscribeScreen } from "./subscribe-screen";
 
-/** Sits outside the (app) group on purpose: the layout in there sends lapsed
- * households here, and a paywall inside the thing it is walling off would
- * redirect to itself forever. */
+/** The plan screen: Kin Free beside Kin Plus, where the household stands, and
+ * (for the organizer) how to get Plus. It used to be the paywall a lapsed
+ * household was sent to; since 28 September nobody is sent here -- Settings,
+ * the trial banner and the Plus notes link to it. It stays outside the (app)
+ * group, where it has always been. */
 export default async function SubscribePage() {
   const member = await getCurrentMember();
   if (!member) redirect("/login");
@@ -13,12 +16,17 @@ export default async function SubscribePage() {
   const access = readAccess(member.families);
 
   return (
-    <SubscribeScreen
-      householdName={member.families.name}
-      isOrganiser={member.is_organiser}
-      status={access.status}
-      daysLeft={access.daysLeft}
-      allowed={access.allowed}
-    />
+    <>
+      {/* Outside the (app) layout, so the member's theme is applied here. */}
+      <style>{paletteCss(member.palette)}</style>
+      <SubscribeScreen
+        householdName={member.families.name}
+        isOrganiser={member.is_organiser}
+        status={access.status}
+        plan={access.plan}
+        trialing={access.trialing}
+        daysLeft={access.daysLeft}
+      />
+    </>
   );
 }

@@ -4,6 +4,7 @@ import { getCurrentMember } from "@/lib/session";
 import { inKidView } from "@/lib/kid-view";
 import { createClient } from "@/lib/supabase/server";
 import { ASSISTANT_TOOLS, runAssistantTool } from "@/lib/assistant/tools";
+import { takeKinAiUse } from "@/lib/kin-ai-allowance";
 
 /** Enough turns for the assistant to look something up, act on it, and
  * report back, without ever looping unbounded on a user's request. */
@@ -67,10 +68,14 @@ export async function POST(request: Request) {
     today = new Date().toLocaleDateString("en-GB", { weekday: "long", year: "numeric", month: "long", day: "numeric" });
   }
 
+  const supabase = await createClient();
+  // One question, one use -- however many tool turns it takes to answer.
+  const allowance = await takeKinAiUse(supabase);
+  if (!allowance.ok) return NextResponse.json({ error: allowance.error }, { status: 402 });
+
   const client = new Anthropic();
   const messages: Anthropic.Beta.BetaMessageParam[] = [...history];
 
-  const supabase = await createClient();
   const { data: memberRows } = await supabase.from("members").select("full_name").eq("family_id", me.family_id).neq("status", "removed");
 
   const system = systemPrompt({

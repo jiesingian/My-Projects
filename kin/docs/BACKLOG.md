@@ -5,6 +5,12 @@ it in the same pull request that finishes or adds an item.
 
 ## Waiting on a decision
 
+- **Open sign-up (no access code).** The Kin Free / Kin Plus split and the
+  14-day trial are built (28 September), but sign-up and "Create a family"
+  still ask for a code: removing that gate was held for Jonathan's explicit
+  OK, because it opens account creation to anyone. Until then a new
+  household still comes in by code, and codes default to free for good.
+
 - **PayMongo / HitPay payments (GCash, Maya, cards).** Options, fees and a
   recommendation for Jonathan in docs/PAYMENTS_OPTIONS.md. Agreed for the
   future, not now. Needs merchant accounts and API keys, so it is
@@ -117,6 +123,22 @@ Decided against in the same review: revising Journal (item 6) and Planner
 #209).
 
 ## Done
+
+- Kin Free and Kin Plus (approved 28 September, 14-day trial): nobody is
+  locked out any more. When a trial ends the household drops to Kin Free and
+  keeps its calendar, chores, lists, chat, calls, journal (1 GB), tree,
+  relatives' feed, health profiles and emergency card, and 5 Kin AI questions
+  or flyer scans a month. Kin Plus (₱149/mo, ₱1,490/yr) adds Wealth, the
+  vault, medicines, the illness log, vitals and Apple Health, unlimited Kin AI
+  and 50 GB. The database refuses new entries in a Plus area for a Free
+  household (require_kin_plus); what is already there stays readable and
+  editable. New households default to a 14-day trial; the organizer gets a
+  push 3 days before it ends and when it has; Today shows a banner in the last
+  3 days; Settings → Your plan shows both plans. The old "trialing, no end
+  date = forever" bug is gone. Also: the sign-in and onboarding screens wear
+  Kin Coral, fixing the 4.01:1 button contrast on Kin Classic blue.
+  Not yet: event and visit photos (photo-strip.tsx) upload straight to
+  storage and are not counted against the storage size.
 
 - Family tree: a dashed "Add brother / Add sister" place beside whoever is
   selected, and parents drawn close above their own child -- a married

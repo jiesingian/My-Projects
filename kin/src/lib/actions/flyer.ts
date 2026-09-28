@@ -9,6 +9,7 @@ import { humanDatabaseError } from "@/lib/db-errors";
 import { activityInstants } from "@/lib/planner-time";
 import { familyDay } from "@/lib/time";
 import { SCAN_SCHEMA, normaliseScan, scanPrompt, type ScannedItem } from "@/lib/flyer-scan";
+import { takeKinAiUse } from "@/lib/kin-ai-allowance";
 
 const IMAGE_TYPES = ["image/jpeg", "image/png", "image/webp", "image/gif"] as const;
 type ImageType = (typeof IMAGE_TYPES)[number];
@@ -25,6 +26,10 @@ export async function scanFlyerAction(formData: FormData): Promise<{ error: stri
   if (!(file instanceof File) || file.size === 0) return { error: "Choose a photo first.", items: [] };
   if (!IMAGE_TYPES.includes(file.type as ImageType)) return { error: "That isn't a photo Kin can read. Try a JPEG or PNG.", items: [] };
   if (file.size > MAX_BYTES) return { error: "That photo is too large. Try a smaller one.", items: [] };
+
+  // Counted only once the photo is one Kin would actually send.
+  const allowance = await takeKinAiUse(await createClient());
+  if (!allowance.ok) return { error: allowance.error, items: [] };
 
   const data = Buffer.from(await file.arrayBuffer()).toString("base64");
   const client = new Anthropic();

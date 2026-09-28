@@ -15,6 +15,8 @@ import { getVaultItems } from "@/lib/queries/vault";
 import { FamilyVault } from "@/components/family-vault";
 import { inKidView } from "@/lib/kid-view";
 import { VaultBar } from "@/components/vault-bar";
+import { PlusNote } from "@/components/plus";
+import { readAccess } from "@/lib/access";
 import { VaultWhosePicker } from "@/components/vault-whose-picker";
 import { isGrownUp } from "@/lib/roles";
 import { getEnrolledDevices } from "@/lib/queries/security";
@@ -70,6 +72,7 @@ export default async function FamilyPage({
       <div style={{ padding: "0 var(--gutter) 1.375rem" }}>
         {seg === "profile" && <ProfilePane familyId={me.family_id} isOrganiser={me.is_organiser} myId={me.id} myRole={me.role} />}
         {seg === "health" && <HealthPane familyId={me.family_id} />}
+        {seg === "documents" && !readAccess(me.families).plus && <PlusNote area="The vault" />}
         {seg === "documents" && <VaultPane familyId={me.family_id} who={who} tab={sp.tab === "passwords" ? "passwords" : "documents"} meId={me.id} myRole={me.role} />}
         {seg === "tree" && <TreePane familyId={me.family_id} myId={me.id} inviteCode={me.is_organiser ? me.families.invite_code : null} />}
         {seg === "quicklinks" && <QuicklinksPane familyId={me.family_id} meId={me.id} myRole={me.role} />}

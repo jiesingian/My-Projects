@@ -13,6 +13,7 @@ import { initials } from "@/lib/format";
 import { readQuickPrefs } from "@/lib/quick-button";
 import { paletteById } from "@/lib/palettes";
 import { NOTIFICATION_DEFS } from "@/lib/notifications";
+import { readAccess, planLabel } from "@/lib/access";
 
 /** Settings, as a short list. It used to be one long page -- profile,
  * connected services, appearance, notifications, everything about the
@@ -69,6 +70,7 @@ export default async function SettingsPage({
       { href: "/settings/connected", icon: "hardDrive", tint: "schedule", title: "Connected apps", value: connected.length > 0 ? connected.join(", ") : "None connected" },
     ],
     [
+      { href: "/subscribe", icon: "sparkle", tint: "money", title: "Your plan", value: planLabel(readAccess(me.families)) },
       { href: "/settings/household", icon: "house", tint: "home", title: "Household", value: `${me.families.name} · ${me.families.currency} · ${me.families.week_start === "monday" ? "Mon start" : "Sun start"}` },
       { href: "/settings/privacy", icon: "keyRound", tint: undefined, title: "Privacy & lock", value: lockOn ? "Vault lock on" : "Vault lock off" },
       ...((childLogins ?? 0) > 0 ? [{ href: "/settings/kid-view", icon: "gift" as IconName, tint: "occasion" as const, title: "Kid view", value: "A simpler Kin for children" }] : []),
