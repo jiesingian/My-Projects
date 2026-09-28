@@ -1,7 +1,7 @@
 "use client";
 
-import { useId, useState } from "react";
-import { usePathname } from "next/navigation";
+import { useEffect, useId, useState } from "react";
+import { usePathname, useRouter } from "next/navigation";
 import { Icon } from "@/components/icons";
 import { AssistantConsole } from "@/components/assistant-console";
 import { AnimatedSheet } from "@/components/animated-sheet";
@@ -10,8 +10,24 @@ import { AnimatedSheet } from "@/components/animated-sheet";
  * a help button does elsewhere, instead of taking the top of Today. */
 export function AssistantFab({ memberName }: { memberName: string }) {
   const [open, setOpen] = useState(false);
+  const [start, setStart] = useState<"chat" | "voice" | undefined>(undefined);
   const pathname = usePathname();
+  const router = useRouter();
   const titleId = useId();
+
+  // ?kin=chat or ?kin=voice is the phone's quick button arriving (see
+  // quick-button.ts): open straight into Ask Kin, then drop the parameter so
+  // a refresh or Back does not open it again.
+  useEffect(() => {
+    const url = new URL(window.location.href);
+    const kin = url.searchParams.get("kin");
+    if (kin !== "chat" && kin !== "voice") return;
+    url.searchParams.delete("kin");
+    router.replace(url.pathname + url.search, { scroll: false });
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- the URL is only readable after mount
+    setStart(kin);
+    setOpen(true);
+  }, [router]);
 
   // The family thread has its own composer down there; two things reaching
   // for the same corner is one too many.
@@ -19,7 +35,7 @@ export function AssistantFab({ memberName }: { memberName: string }) {
 
   return (
     <>
-      <button type="button" onClick={() => setOpen(true)} className="kin-fab" aria-haspopup="dialog" aria-expanded={open} aria-label="Ask Kin">
+      <button type="button" onClick={() => { setStart(undefined); setOpen(true); }} className="kin-fab" aria-haspopup="dialog" aria-expanded={open} aria-label="Ask Kin">
         <Icon name="sparkle" size={22} />
       </button>
 
@@ -39,7 +55,7 @@ export function AssistantFab({ memberName }: { memberName: string }) {
             <Icon name="x" size={15} />
           </button>
         </div>
-        <AssistantConsole memberName={memberName} />
+        <AssistantConsole key={start ?? "plain"} memberName={memberName} start={start} />
       </AnimatedSheet>
     </>
   );

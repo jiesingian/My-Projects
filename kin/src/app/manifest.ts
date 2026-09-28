@@ -15,6 +15,13 @@ export default function manifest(): MetadataRoute.Manifest {
     background_color: "#f2f2f7",
     theme_color: "#f2f2f7",
     categories: ["lifestyle", "productivity"],
+    // Touch and hold the icon (Android, and desktop Chrome): straight into
+    // the three things the quick button is most often set to.
+    shortcuts: [
+      { name: "Chat with Kin", short_name: "Ask Kin", url: "/today?kin=chat", icons: [{ src: "/icon-192.png", sizes: "192x192" }] },
+      { name: "Talk to Kin", short_name: "Talk", url: "/today?kin=voice", icons: [{ src: "/icon-192.png", sizes: "192x192" }] },
+      { name: "Family chat", short_name: "Chat", url: "/chat", icons: [{ src: "/icon-192.png", sizes: "192x192" }] },
+    ],
     icons: [
       { src: "/icon-192.png", sizes: "192x192", type: "image/png", purpose: "any" },
       { src: "/icon-512.png", sizes: "512x512", type: "image/png", purpose: "any" },

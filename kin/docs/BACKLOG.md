@@ -179,6 +179,13 @@ Decided against in the same review: revising Journal (item 6) and Planner
   letter. Checked on every hub at 320, 375 and 390px, at 100%, 150% and
   200% (28 September).
 
+- Quick button: the iPhone's Action Button and Back Tap (or Android's icon
+  menu and side key) open Kin. Settings → Quick button picks what a tap, a
+  double tap and a long press do (open Kin, chat with Kin, talk to Kin,
+  family chat, shopping list, an expense, the calendar, the journal), and
+  shows the one-time Shortcuts setup with links to copy. The links never
+  change, so a new choice needs no new Shortcut (28 September).
+
 - Five more colour themes in Settings → Appearance: Pale Milk, Editorial,
   Electric Blue, Emerald Wave and Antarctic (dark only), from Janine's list,
   each passing the same readability test as the rest. Plain and outline
