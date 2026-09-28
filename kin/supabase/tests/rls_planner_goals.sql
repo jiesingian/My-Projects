@@ -2,7 +2,7 @@
 -- health goals? Asked of the database, not of the app.
 --
 -- Who may answer a reward, and who may change a goal that has one, moved to
--- the giver on 28 September (20260928210000_goal_reward_giver.sql); those
+-- the giver on 28 September (20260928220500_goal_reward_giver.sql); those
 -- cases are in rls_goal_reward_giver.sql.
 -- =========================================================================
 --

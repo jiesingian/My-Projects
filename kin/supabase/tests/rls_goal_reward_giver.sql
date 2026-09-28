@@ -10,7 +10,7 @@
 --   'error P0001'     a trigger or function said no; 'error P0002' not found
 --
 -- Run against dev (peborutoxsqqwgxwgxjo) only. It ends in `rollback`. To
--- check 20260928210000_goal_reward_giver.sql before it merges, paste it in
+-- check 20260928220500_goal_reward_giver.sql before it merges, paste it in
 -- just after `begin;`.
 
 begin;
