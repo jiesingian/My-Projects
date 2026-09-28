@@ -14,7 +14,7 @@ export default async function QuickButtonSettingsPage() {
     <div>
       <DetailHeader backHref="/settings" eyebrow="Action Button & widget" />
       <div style={{ padding: "0 var(--gutter) 1.375rem" }}>
-        <QuickButtonSettings initial={readQuickPrefs(me.quick_actions)} />
+        <QuickButtonSettings initial={readQuickPrefs(me.quick_actions)} briefOn={Boolean(me.brief_hash)} />
       </div>
     </div>
   );

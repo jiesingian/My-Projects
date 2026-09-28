@@ -3534,6 +3534,7 @@ export type Database = {
           auth_user_id: string | null
           avatar_url: string | null
           blood_type: string | null
+          brief_hash: string | null
           college: string | null
           color: string | null
           created_at: string
@@ -3581,6 +3582,7 @@ export type Database = {
           auth_user_id?: string | null
           avatar_url?: string | null
           blood_type?: string | null
+          brief_hash?: string | null
           college?: string | null
           color?: string | null
           created_at?: string
@@ -3628,6 +3630,7 @@ export type Database = {
           auth_user_id?: string | null
           avatar_url?: string | null
           blood_type?: string | null
+          brief_hash?: string | null
           college?: string | null
           color?: string | null
           created_at?: string
@@ -4737,6 +4740,7 @@ export type Database = {
         Args: { p_kind: string; p_member_ids?: string[] }
         Returns: { endpoint: string; p256dh: string; auth: string }[]
       }
+      today_brief: { Args: { p_hash: string }; Returns: Json }
       calendar_feed: {
         Args: { feed_hash: string }
         Returns: {

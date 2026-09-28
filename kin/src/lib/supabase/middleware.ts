@@ -48,6 +48,9 @@ export async function updateSession(request: NextRequest) {
   // The private calendar feed is fetched by Apple Calendar and Outlook, which
   // carry no session; its token is the credential (app/api/calendar/feed).
   const isPublic = isAuthRoute || path === "/" || path.startsWith("/api/calendar/feed/") ||
+    // Same for the spoken plan (app/api/brief): fetched by an iPhone Shortcut,
+    // which sends no cookie.
+    path.startsWith("/api/brief/") ||
     // Likewise an iPhone Shortcut sending Apple Health readings: the link's
     // key is the credential (app/api/health/apple).
     path.startsWith("/api/health/apple/") ||
