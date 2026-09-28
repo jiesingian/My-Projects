@@ -46,7 +46,11 @@ export function FamilyTreeChart({
   linkedFamilies = [],
   inviteCode = null,
   unaddedMembers = [],
+  open = null,
 }: {
+  /** Arrive with a linked relative picked (from their profile's "Show in
+   * the tree"): the joined branch they are in, opened, and them selected. */
+  open?: { matchId: string; personId: string } | null;
   people: TreePerson[];
   /** Household members not on the tree yet: offered when adding a relative,
    * and to tie a typed-in name to its Kin profile. */
@@ -104,6 +108,22 @@ export function FamilyTreeChart({
     }
     setShown((s) => [...s, matchId]);
   };
+
+  // Opened on a relative from their profile: fetch and show their branch
+  // once, then pick them. Only a branch this household has joined -- the
+  // same list the branch buttons offer.
+  const opened = useRef(false);
+  useEffect(() => {
+    if (opened.current || !open || !accepted.some((m) => m.matchId === open.matchId)) return;
+    opened.current = true;
+    void (async () => {
+      const result = await getSharedBranchAction(open.matchId);
+      if (result.error) return;
+      setBranches((b) => ({ ...b, [open.matchId]: result.people }));
+      setShown((s) => (s.includes(open.matchId) ? s : [...s, open.matchId]));
+      setSelected(open.personId);
+    })();
+  }, [open, accepted]);
 
   // Dashed "Add father" / "Add mother" places, and an "Add brother or
   // sister" one beside them, for whoever is selected. They go into the layout

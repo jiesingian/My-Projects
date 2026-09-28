@@ -87,8 +87,8 @@ export function OccasionCard({ occasion }: { occasion: FeedOccasion }) {
             <li key={g.id} className="kin-occasion-greeting">
               <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
                 <span style={{ flex: 1, minWidth: 0, fontSize: "0.84375rem", fontWeight: 600 }}>
-                  {g.profileMemberId ? (
-                    <Link href={`/family/members/${g.profileMemberId}`} className="kin-occasion-who">
+                  {g.profileHref ? (
+                    <Link href={g.profileHref} className="kin-occasion-who">
                       {g.authorName || "Someone"}
                     </Link>
                   ) : (

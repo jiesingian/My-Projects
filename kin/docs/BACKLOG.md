@@ -45,9 +45,11 @@ session (see the root CLAUDE.md on session cost).
    the greeter's full name (who remembered is the point; which household does
    not matter), and the family whose day it is can mark it a ★ milestone --
    never automatic, since some birthdays are celebrated more than others.
-   Still to come: tapping a greeter from a *linked* household should open
-   their profile and show where they are on the family tree (a greeter from
-   your own household opens their profile already).
+   A greeter's name opens their profile -- in your own household, their full
+   one; in a linked household, a read-only relative's page (name, photo,
+   cover, "Show in the tree" when they are in a joined branch, Message to
+   their household, and what they have already shared; nothing from About,
+   no health, documents or money).
 8. **Done: a Sunday "week ahead" push** (with its own switch).
 9. **Done: streaks for kids' chores** (bonus star at 7 and 30 days, one freeze a week).
 10. **No Filipino interface.** Kin AI keeps understanding and answering
