@@ -42,25 +42,15 @@ async function getOrigin(): Promise<string> {
 export async function signUp(_prev: ActionState, formData: FormData): Promise<ActionState> {
   const email = String(formData.get("email") ?? "").trim();
   const password = String(formData.get("password") ?? "");
-  const accessCode = String(formData.get("access_code") ?? "").trim();
   if (!email || tooLong(email) || password.length < PASSWORD_MIN) {
     return { error: `Enter a valid email and a password of at least ${PASSWORD_MIN} characters.` };
   }
-  if (!accessCode || accessCode.length > CODE_MAX) {
-    return { error: "Kin is invite-only. Enter the code you were given." };
-  }
 
+  // Open sign-up (Jonathan, 28 September): an account is a person, before it
+  // is part of any family. Codes come after registration -- a family's invite
+  // code to join it, or a Kin code for Plus -- and anyone may start a family,
+  // because every family on Kin begins with one person who brings it in.
   const supabase = await createClient();
-
-  // Checked in the database, not here: the codes never reach the browser, and
-  // the function returns only yes or no so a wrong guess learns nothing.
-  // A household's own invite code passes too, so someone joining a family
-  // needs the single code the organizer already gave them.
-  const { data: codeOk, error: codeError } = await supabase.rpc("signup_code_is_valid", {
-    p_code: accessCode,
-  });
-  if (codeError) return { error: "We couldn't check that code just now. Try again in a moment." };
-  if (!codeOk) return { error: "That code isn't valid. Check it with whoever invited you." };
 
   const origin = await getOrigin();
   const { error } = await supabase.auth.signUp({

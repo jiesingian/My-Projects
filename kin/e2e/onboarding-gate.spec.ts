@@ -70,9 +70,11 @@ test("someone already in a household is turned away before their access code is 
   await page.waitForURL(/\/onboarding\/family$/, { timeout: 30_000 });
 
   await page.getByLabel("Household Name").fill("A Second Household");
+  // Optional since open sign-up, and folded away under "Have a Kin code?".
+  await page.getByText("Have a Kin code?").click();
   await page.getByLabel("Access Code").fill("KIN-NOT-A-REAL-CODE");
   await page.getByRole("button", { name: /CREATE HOUSEHOLD/i }).click();
 
   await expect(page.locator("body")).toContainText(/already in a household/i);
-  await expect(page.locator("body")).not.toContainText(/access code isn't valid/i);
+  await expect(page.locator("body")).not.toContainText(/code isn't valid/i);
 });

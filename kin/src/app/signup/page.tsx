@@ -18,29 +18,11 @@ export default function SignupPage() {
     <OnboardingShell step="STEP 01 / 05" backHref="/login">
       <h2 style={{ fontSize: "2.125rem", margin: "0 0 6px" }}>Your account</h2>
       <p style={{ fontSize: "0.84375rem", color: "var(--color-neutral-700)", margin: "0 0 26px" }}>
-        Kin is invite-only while we build it. Every member signs in with their own verified email. Children
-        under 13 are added as managed profiles instead.
+        Your own account first: every member signs in with their own verified email. Next you start your
+        family or join one with its invite code. Children under 13 are added as managed profiles instead.
       </p>
       <form action={formAction}>
         <ErrorText message={state.error} />
-        {/* First field, not last: if the code is wrong there is no reason to
-            make them type an email and password before finding out. */}
-        <div className="field" style={{ marginBottom: "1rem" }}>
-          <label htmlFor={`${uid}-access-code`}>Access code</label>
-          <input aria-label="Access Code"
-            id={`${uid}-access-code`}
-            className="input"
-            name="access_code"
-            required
-            autoComplete="off"
-            spellCheck={false}
-            placeholder="KIN-BETA-XXXXXX"
-            style={{ fontFamily: "var(--font-numeric)", letterSpacing: ".02em", textTransform: "uppercase" }}
-          />
-          <span style={{ fontSize: "0.78125rem", color: "var(--color-neutral-600)", display: "block", marginTop: "0.375rem" }}>
-            Your household&apos;s invite code works here too.
-          </span>
-        </div>
         <div className="field" style={{ marginBottom: "1rem" }}>
           <label htmlFor={`${uid}-email`}>Email</label>
           <input id={`${uid}-email`} aria-label="Email" className="input" type="email" name="email" required autoComplete="email" />

@@ -62,7 +62,6 @@ export async function createFamilyAction(_prev: ActionState, formData: FormData)
   // the person comes from step 3, through a hidden field -- so "your name is
   // required" next to a name box they have just filled in reads as a bug.
   if (!fullName) return { error: "We lost your name along the way. Go back a step and enter it again." };
-  if (!accessCode) return { error: "Starting a new household needs an access code." };
   if (dob) {
     const problem = birthdayProblem(dob);
     if (problem) return { error: problem };
@@ -80,14 +79,18 @@ export async function createFamilyAction(_prev: ActionState, formData: FormData)
     return { error: "You are already in a household. Leave it first to start a new one." };
   }
 
-  // A new household is the thing worth protecting, so only a code we issued
-  // opens one. A family's own invite code gets you through signup and into
-  // that family — never into a household of your own.
-  const { data: redeemed, error: redeemError } = await supabase.rpc("redeem_household_code", {
-    p_code: accessCode,
-  });
-  if (redeemError) return { error: "We couldn't check that code just now. Try again in a moment." };
-  if (!redeemed) return { error: "That access code isn't valid, or it has already been used up." };
+  // Anyone may start a family (open sign-up, 28 September): it begins on a
+  // 14-day Kin Plus trial by itself (the families.access_expires_at default).
+  // A Kin code is optional -- a gift or a tester's code, worth Plus for good
+  // or a longer trial -- and is spent only when one was actually entered. A
+  // family's own invite code is for joining it, below, never for this.
+  if (accessCode) {
+    const { data: redeemed, error: redeemError } = await supabase.rpc("redeem_household_code", {
+      p_code: accessCode,
+    });
+    if (redeemError) return { error: "We couldn't check that code just now. Try again in a moment." };
+    if (!redeemed) return { error: "That Kin code isn't valid, or it has already been used up. Leave it empty to start with the free trial." };
+  }
 
   const { data: member, error } = await supabase.rpc("create_family", {
     p_household_name: householdName,
@@ -107,7 +110,9 @@ export async function createFamilyAction(_prev: ActionState, formData: FormData)
       reason: error.message,
     });
     return {
-      error: `${humanDatabaseError(error.message)} Your access code was already counted as used — ask for a fresh one if this keeps happening.`,
+      error: accessCode
+        ? `${humanDatabaseError(error.message)} Your Kin code was already counted as used — ask for a fresh one if this keeps happening.`
+        : humanDatabaseError(error.message),
     };
   }
 
@@ -125,7 +130,9 @@ export async function createFamilyAction(_prev: ActionState, formData: FormData)
   // ask for payment later. It reads the grant off the code rather than
   // trusting anything sent from here, and refuses once a household already
   // has a standing, so a second call with a better code changes nothing.
-  const { error: grantError } = await supabase.rpc("apply_code_grant_to_family", { p_code: accessCode });
+  const { error: grantError } = accessCode
+    ? await supabase.rpc("apply_code_grant_to_family", { p_code: accessCode })
+    : { error: null };
   if (grantError) {
     // The one place here that logs rather than tells the member, and on
     // purpose: the household already exists by now, so returning an error

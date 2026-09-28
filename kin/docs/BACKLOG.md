@@ -5,12 +5,6 @@ it in the same pull request that finishes or adds an item.
 
 ## Waiting on a decision
 
-- **Open sign-up (no access code).** The Kin Free / Kin Plus split and the
-  14-day trial are built (28 September), but sign-up and "Create a family"
-  still ask for a code: removing that gate was held for Jonathan's explicit
-  OK, because it opens account creation to anyone. Until then a new
-  household still comes in by code, and codes default to free for good.
-
 - **PayMongo / HitPay payments (GCash, Maya, cards).** Options, fees and a
   recommendation for Jonathan in docs/PAYMENTS_OPTIONS.md. Agreed for the
   future, not now. Needs merchant accounts and API keys, so it is
@@ -123,6 +117,12 @@ Decided against in the same review: revising Journal (item 6) and Planner
 #209).
 
 ## Done
+
+- Open sign-up (approved 28 September): an account is a person first, with
+  no code. Anyone can then start a family, which begins on the 14-day Kin
+  Plus trial; a Kin code is optional there ("Have a Kin code?") and still
+  honoured. Joining an existing family uses its invite code, after
+  registration.
 
 - Kin Free and Kin Plus (approved 28 September, 14-day trial): nobody is
   locked out any more. When a trial ends the household drops to Kin Free and
