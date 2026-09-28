@@ -3628,6 +3628,7 @@ export type Database = {
       }
       members: {
         Row: {
+          cover_avatar_id: string | null
           moved_at: string | null
           person_id: string
           sex: string | null
@@ -3679,6 +3680,7 @@ export type Database = {
           work_email: string | null
         }
         Insert: {
+          cover_avatar_id?: string | null
           moved_at?: string | null
           person_id?: string
           sex?: string | null
@@ -3730,6 +3732,7 @@ export type Database = {
           work_email?: string | null
         }
         Update: {
+          cover_avatar_id?: string | null
           moved_at?: string | null
           person_id?: string
           sex?: string | null
@@ -3781,6 +3784,13 @@ export type Database = {
           work_email?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "members_cover_avatar_id_fkey"
+            columns: ["cover_avatar_id"]
+            isOneToOne: false
+            referencedRelation: "member_avatars"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "members_family_id_fkey"
             columns: ["family_id"]
@@ -5057,6 +5067,7 @@ export type Database = {
           avatar_url: string | null
           blood_type: string | null
           college: string | null
+          cover_avatar_id: string | null
           created_at: string
           dob: string | null
           email: string | null
@@ -5106,6 +5117,7 @@ export type Database = {
           avatar_url: string | null
           blood_type: string | null
           college: string | null
+          cover_avatar_id: string | null
           created_at: string
           dob: string | null
           email: string | null
@@ -5273,6 +5285,7 @@ export type Database = {
           avatar_url: string | null
           blood_type: string | null
           college: string | null
+          cover_avatar_id: string | null
           created_at: string
           dob: string | null
           email: string | null
@@ -5321,6 +5334,7 @@ export type Database = {
           avatar_url: string | null
           blood_type: string | null
           college: string | null
+          cover_avatar_id: string | null
           created_at: string
           dob: string | null
           email: string | null
@@ -5370,6 +5384,7 @@ export type Database = {
           avatar_url: string | null
           blood_type: string | null
           college: string | null
+          cover_avatar_id: string | null
           created_at: string
           dob: string | null
           email: string | null
@@ -5423,6 +5438,7 @@ export type Database = {
           avatar_url: string | null
           blood_type: string | null
           college: string | null
+          cover_avatar_id: string | null
           created_at: string
           dob: string | null
           email: string | null
@@ -5484,6 +5500,7 @@ export type Database = {
           avatar_url: string | null
           blood_type: string | null
           college: string | null
+          cover_avatar_id: string | null
           created_at: string
           dob: string | null
           email: string | null

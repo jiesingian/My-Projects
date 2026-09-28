@@ -34,10 +34,14 @@ async function openAManagedChild(page: import("@playwright/test").Page) {
   const href = await row.getAttribute("href");
   expect(href, "the member row should link to a profile").toBeTruthy();
 
-  await page.goto(href!, { waitUntil: "networkidle" });
+  // The details and the organiser's editors are on the About tab since the
+  // profile opened on moments (28 September).
+  await page.goto(`${href!}?tab=about`, { waitUntil: "networkidle" });
   // Prove we are on a profile page before asserting what is missing from it.
   // The "HUB 01 · MEMBER RECORD" eyebrow went with the hub numbers in #209.
   await expect(page).toHaveURL(/\/family\/members\/[0-9a-f-]{36}/);
+  // The person's name is the page's one heading.
+  await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
   await expect(page.getByText("Relationship", { exact: true })).toBeVisible();
 }
 

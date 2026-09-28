@@ -9,9 +9,11 @@ import { CallButtons } from "@/components/call-buttons";
 
 export const dynamic = "force-dynamic";
 
-export default async function ChatPage() {
+export default async function ChatPage({ searchParams }: { searchParams: Promise<{ to?: string }> }) {
   const me = await getCurrentMember();
   if (!me) redirect("/onboarding/profile");
+  // Message, on a profile, lands here addressed to that person.
+  const { to } = await searchParams;
 
   const [members, thread, pin] = await Promise.all([getChatMembers(me.family_id), getChatThread(me.family_id), getChatPin(me.family_id)]);
   // Two people in one house can share a first name; the tag has to tell them
@@ -41,7 +43,7 @@ export default async function ChatPage() {
         <CallButtons />
       </div>
 
-      <ChatThread me={me.id} familyId={me.family_id} members={labelled} initial={thread} pin={pin} />
+      <ChatThread me={me.id} familyId={me.family_id} members={labelled} initial={thread} pin={pin} addressTo={to} />
     </div>
   );
 }

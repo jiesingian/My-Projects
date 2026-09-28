@@ -344,19 +344,24 @@ export function ChatThread({
   members,
   initial,
   pin,
+  addressTo,
 }: {
   me: string;
   familyId: string;
   members: (ChatMember & { label: string })[];
   initial: ChatMessage[];
   pin: ChatPin;
+  /** From Message on someone's profile: the composer starts as "@Name ",
+   * tagged, so the message reaches them in a room where everyone listens. */
+  addressTo?: string;
 }) {
   const router = useRouter();
   // The thread itself is the server's; this component keeps only what the
   // server does not know yet — a message on its way out.
   const messages = initial;
-  const [draft, setDraft] = useState("");
-  const [mentioned, setMentioned] = useState<string[]>([]);
+  const addressee = addressTo && addressTo !== me ? members.find((m) => m.id === addressTo) : undefined;
+  const [draft, setDraft] = useState(addressee ? `@${addressee.label} ` : "");
+  const [mentioned, setMentioned] = useState<string[]>(addressee ? [addressee.id] : []);
   const [pendingBody, setPendingBody] = useState<string | null>(null);
   const [openFor, setOpenFor] = useState<string | null>(null);
   const [editing, setEditing] = useState<{ id: string; body: string } | null>(null);

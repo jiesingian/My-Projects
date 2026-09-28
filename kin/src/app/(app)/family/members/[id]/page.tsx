@@ -21,7 +21,6 @@ import { ConditionEntryControls, ConditionDeleteButton, LabControls } from "@/co
 import { RelationshipEditor } from "@/components/relationship-editor";
 import { RoleEditor } from "@/components/role-editor";
 import { ConvertToChild } from "@/components/convert-to-child";
-import { RemoveMemberButton } from "@/components/member-status-actions";
 import { Avatar } from "@/components/avatar";
 import { ProfileEditForm } from "@/components/profile-edit-form";
 import { MemberProfileEditor } from "@/components/member-profile-editor";
@@ -32,6 +31,10 @@ import { resolvePhotoUrl } from "@/lib/photo-url";
 import { familyDate } from "@/lib/format-family";
 import { familyDateTime } from "@/lib/time";
 import { isGone } from "@/lib/member-status";
+import { Segmented } from "@/components/segmented";
+import { getPersonMoments } from "@/lib/queries/journal";
+import { memberColourVar } from "@/lib/member-colours";
+import { PersonActions, ProfileMoreMenu, CoverPicker } from "@/components/person-profile";
 
 const SEGMENTS = ["schedule", "medicines", "illness", "conditions", "labs", "vitals"] as const;
 type Seg = (typeof SEGMENTS)[number];
@@ -41,7 +44,7 @@ export default async function MemberDetailPage({
   searchParams,
 }: {
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ seg?: string; view?: string; from?: string }>;
+  searchParams: Promise<{ seg?: string; view?: string; from?: string; tab?: string }>;
 }) {
   const me = await getCurrentMember();
   const dateFormat = me?.families.date_format;
@@ -64,12 +67,16 @@ export default async function MemberDetailPage({
   // gap `docs/PAGE_PATTERNS.md` names for the other two nested routes.
   // `from` only ever means Settings (nothing else links here that way), so
   // Family stays the default for everybody arriving the ordinary route.
+  // And from the family tree (Jonathan, 28 September): back goes to the tree.
   const cameFromSettings = isSelf && sp.from === "settings";
-  const familyHref = view === "health" ? "/family?seg=health" : "/family?seg=profile";
+  const cameFromTree = sp.from === "tree";
+  const familyHref = cameFromTree ? "/family?seg=tree" : view === "health" ? "/family?seg=health" : "/family?seg=profile";
   const backHref = cameFromSettings ? "/settings" : familyHref;
   const trail = cameFromSettings
     ? [{ label: "Settings", href: "/settings" }, { label: member.full_name }]
-    : [{ label: "Family", href: familyHref }, { label: member.full_name }];
+    : [{ label: cameFromTree ? "Tree" : "Family", href: familyHref }, { label: member.full_name }];
+  const tab: "moments" | "about" = sp.tab === "about" ? "about" : "moments";
+  const from = cameFromSettings ? "&from=settings" : cameFromTree ? "&from=tree" : "";
 
   const accounts = await getAccounts(me.family_id);
   const payableAccounts = accounts
@@ -90,6 +97,16 @@ export default async function MemberDetailPage({
       .map((row) => ({ id: row.id, url: resolvePhotoUrl(supabase, row) }))
       .filter((p): p is AlbumPhoto => p.url !== null);
   }
+
+  const coverUrl = photos.find((p) => p.id === member.cover_avatar_id)?.url ?? null;
+  const grownUpView = isGrownUp(me.role) && !inKidView(me);
+  const moreLinks = [
+    ...(grownUpView ? [{ label: "Health records", href: `/family/members/${member.id}?view=health`, icon: "activity" as const }] : []),
+    ...(grownUpView ? [{ label: "Emergency card", href: `/family/members/${member.id}/emergency`, icon: "shieldCheck" as const }] : []),
+    ...(cameFromTree ? [] : [{ label: "Show in the family tree", href: "/family?seg=tree", icon: "users" as const }]),
+  ];
+  // Remove used to sit in red on every row of the Family list; it lives here now.
+  const canRemove = me.is_organiser && !isSelf && !member.is_organiser && !isGone(member.status);
 
   const isChild = member.role === "child_managed" || member.role === "child_self";
   const bpPoints = vitals.filter((v) => v.vital_type === "blood_pressure");
@@ -116,7 +133,65 @@ export default async function MemberDetailPage({
       <DetailHeader backHref={backHref} eyebrow="Family" trail={trail} />
       <div style={{ padding: "0 var(--gutter) 1.375rem" }}>
         {view === "profile" ? (
-          isSelf ? (
+          <>
+            <div className="kin-profile-hero">
+              <div className="kin-profile-cover" style={{ ["--member" as string]: memberColourVar(member.id, member.color) }}>
+                {coverUrl ? (
+                  // eslint-disable-next-line @next/next/no-img-element -- signed storage URL
+                  <img src={coverUrl} alt="" />
+                ) : member.avatar_url ? (
+                  // Their colour, with their own photo washed across it.
+                  // eslint-disable-next-line @next/next/no-img-element -- signed storage URL
+                  <img src={member.avatar_url} alt="" className="kin-profile-wash" />
+                ) : null}
+                {isSelf && <CoverPicker photos={photos} current={member.cover_avatar_id} />}
+              </div>
+              {/* On the hero, not inside the cover: the cover clips to its
+                  rounded corners, and the menu has to be able to leave it. */}
+              <ProfileMoreMenu memberId={member.id} fullName={member.full_name} links={moreLinks} canRemove={canRemove} />
+              <div className="kin-profile-id">
+                <div className="kin-profile-photo">
+                  <ProfilePhotosButton photos={photos} url={member.avatar_url} initials={initials(member.full_name)} label={member.full_name} size={96} />
+                </div>
+                <h1 className="kin-profile-name">{member.full_name}</h1>
+                <div className="kin-profile-meta">
+                  {[member.dob ? formatAge(member.dob) : null, member.relationship ?? roleLabel(member.role)].filter(Boolean).join(" · ")}
+                  {member.is_organiser && (
+                    <Tag variant="accent" className="ml-2 inline-flex">
+                      ORGANIZER
+                    </Tag>
+                  )}
+                </div>
+              </div>
+              {isSelf ? (
+                tab === "moments" && (
+                  <div className="kin-profile-actions">
+                    <Link href={`/family/members/${member.id}?tab=about${from}`} className="btn btn-secondary">
+                      Edit profile
+                    </Link>
+                  </div>
+                )
+              ) : (
+                !isGone(member.status) && (
+                  <PersonActions
+                    memberId={member.id}
+                    firstName={member.full_name.split(" ")[0]}
+                    callable={member.status === "active" && member.auth_user_id !== null}
+                    mobile={member.mobile}
+                  />
+                )
+              )}
+            </div>
+            <Segmented
+              items={[
+                { label: "Moments", href: `/family/members/${member.id}?tab=moments${from}`, active: tab === "moments" },
+                { label: "About", href: `/family/members/${member.id}?tab=about${from}`, active: tab === "about" },
+              ]}
+            />
+            <div style={{ marginTop: "1.125rem" }}>
+              {tab === "moments" ? (
+                <MomentsPane memberId={member.id} familyId={me.family_id} firstName={member.full_name.split(" ")[0]} isSelf={isSelf} fmtDate={fmtDate} />
+              ) : isSelf ? (
             <MemberProfileEditor
               dateFormat={dateFormat}
               fullName={member.full_name}
@@ -127,22 +202,10 @@ export default async function MemberDetailPage({
               initials={initials(member.full_name)}
               photos={photos}
               initial={memberToProfileFields(member)}
+              compact
             />
-          ) : (
-            <>
-              <div style={{ display: "flex", gap: "0.875rem", alignItems: "flex-end", marginBottom: "1.125rem" }}>
-                <ProfilePhotosButton photos={photos} url={member.avatar_url} initials={initials(member.full_name)} label={member.full_name} size={88} />
-                <div>
-                  <div style={{ font: "600 2.125rem/.98 var(--font-heading)" }}>{member.full_name}</div>
-                  <div style={{ fontSize: "0.84375rem", color: "var(--color-neutral-600)", marginTop: "0.25rem" }}>
-                    {formatAge(member.dob)} · {member.relationship ?? roleLabel(member.role)}
-                  </div>
-                  <Tag variant={member.is_organiser ? "accent" : "neutral"} className="mt-2 inline-flex">
-                    {member.is_organiser ? "ORGANIZER" : member.status.toUpperCase()}
-                  </Tag>
-                </div>
-              </div>
-
+              ) : (
+                <>
               {me.is_organiser && (
                 <>
                   <div style={{ fontSize: "0.8125rem", color: "var(--color-neutral-700)", marginBottom: "0.375rem" }}>Relationship</div>
@@ -188,8 +251,10 @@ export default async function MemberDetailPage({
                   <MemberColourPicker memberId={member.id} chosen={member.color} />
                 </div>
               )}
-            </>
-          )
+                </>
+              )}
+            </div>
+          </>
         ) : (
           <div style={{ display: "flex", gap: "0.875rem", alignItems: "flex-end", marginBottom: "1.125rem" }}>
             <Avatar url={member.avatar_url} initials={initials(member.full_name)} label={member.full_name} size={64} />
@@ -373,9 +438,6 @@ export default async function MemberDetailPage({
           </>
         )}
 
-        {view === "profile" && me.is_organiser && !member.is_organiser && !isGone(member.status) && (
-          <RemoveMemberButton memberId={member.id} fullName={member.full_name} variant="block" />
-        )}
       </div>
     </div>
   );
@@ -425,6 +487,88 @@ function BarChart({
           ))}
         </div>
       </Blueprint>
+    </>
+  );
+}
+
+/** A person's recent moments and milestones -- the front of their profile,
+ * the way Facebook and Instagram open on what someone has been up to rather
+ * than on their shoe size. Household journal entries only: a personal entry
+ * is its owner's, and never shows here even to them. */
+async function MomentsPane({
+  memberId,
+  familyId,
+  firstName,
+  isSelf,
+  fmtDate,
+}: {
+  memberId: string;
+  familyId: string;
+  firstName: string;
+  isSelf: boolean;
+  fmtDate: (iso: string) => string;
+}) {
+  const { milestones, moments } = await getPersonMoments(familyId, memberId);
+  if (milestones.length === 0 && moments.length === 0) {
+    return (
+      <Blueprint style={{ padding: "1rem" }}>
+        <p style={{ fontSize: "0.875rem", lineHeight: 1.5, margin: "0 0 0.75rem" }}>
+          {isSelf ? "Nothing here yet. Journal entries you write or are in show up here." : `Nothing here yet. When ${firstName} is in a journal entry, it shows up here.`}
+        </p>
+        <Link href="/journal/new" className="btn btn-secondary btn-block">
+          Add a moment
+        </Link>
+      </Blueprint>
+    );
+  }
+  return (
+    <>
+      {milestones.length > 0 && (
+        <>
+          <div className="kin-eyebrow" style={{ marginBottom: "0.5rem" }}>
+            MILESTONES
+          </div>
+          <ol className="kin-profile-milestones">
+            {milestones.map((m) => (
+              <li key={m.id}>
+                <span className="kin-profile-star" aria-hidden="true">
+                  ★
+                </span>
+                <span className="kin-profile-milestone-title">{m.title}</span>
+                <time dateTime={m.milestone_date}>{fmtDate(m.milestone_date)}</time>
+              </li>
+            ))}
+          </ol>
+        </>
+      )}
+      {moments.length > 0 && (
+        <>
+          <div className="kin-eyebrow" style={{ margin: milestones.length ? "1.375rem 0 0.5rem" : "0 0 0.5rem" }}>
+            RECENT MOMENTS
+          </div>
+          <div className="kin-profile-moments">
+            {moments.map((m) => (
+              <Link key={m.id} href={`/journal/${m.id}`} className="kin-profile-moment">
+                <div className="kin-profile-moment-media">
+                  {m.photo ? (
+                    // eslint-disable-next-line @next/next/no-img-element -- signed storage URL
+                    <img src={m.photo} alt="" loading="lazy" />
+                  ) : m.note ? (
+                    <span>{m.note}</span>
+                  ) : (
+                    <Icon name="fileText" size="1.375rem" className="kin-profile-moment-icon" />
+                  )}
+                </div>
+                <div className="kin-profile-moment-title">{m.title}</div>
+                <time dateTime={m.date}>{fmtDate(m.date)}</time>
+              </Link>
+            ))}
+          </div>
+          <Link href="/journal" className="btn btn-ghost btn-block" style={{ marginTop: "0.5rem", fontSize: "0.84375rem" }}>
+            All of the journal
+          </Link>
+        </>
+      )}
     </>
   );
 }

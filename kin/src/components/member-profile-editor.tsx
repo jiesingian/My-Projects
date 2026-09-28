@@ -27,6 +27,7 @@ export function MemberProfileEditor({
   photos,
   initial,
   dateFormat,
+  compact = false,
 }: {
   fullName: string;
   ageLabel: string;
@@ -37,6 +38,9 @@ export function MemberProfileEditor({
   photos: AlbumPhoto[];
   initial: ProfileFields;
   dateFormat?: string;
+  /** Under the profile's own header (the About tab), where the name and
+   * status are already shown above: just the pictures and the fields. */
+  compact?: boolean;
 }) {
   const [mode, setMode] = useState<"view" | "edit">("view");
   const [albumOpen, setAlbumOpen] = useState(false);
@@ -77,17 +81,26 @@ export function MemberProfileEditor({
             style={{ all: "unset", cursor: "pointer", display: "block" }}
             aria-label="View profile pictures"
           >
-            <Avatar url={avatarUrl} initials={initials} label={fullName} size={88} clickable={false} />
+            <Avatar url={avatarUrl} initials={initials} label={fullName} size={compact ? 64 : 88} clickable={false} />
           </button>
           {mode === "edit" && <AvatarCropUpload onDone={() => {}} />}
         </div>
-        <div>
-          <div style={{ font: "600 2.125rem/.98 var(--font-heading)" }}>{fullName}</div>
-          <div style={{ fontSize: "0.84375rem", color: "var(--color-neutral-600)", marginTop: "0.25rem" }}>{ageLabel}</div>
-          <Tag variant={statusVariant} className="mt-2 inline-flex">
-            {statusLabel}
-          </Tag>
-        </div>
+        {compact ? (
+          <div style={{ fontSize: "0.84375rem", color: "var(--color-neutral-700)", alignSelf: "center" }}>
+            Profile pictures
+            <div style={{ fontSize: "0.78125rem", color: "var(--color-neutral-600)", marginTop: "0.125rem" }}>
+              {mode === "edit" ? "Add or crop a new one" : "Tap to see them all"}
+            </div>
+          </div>
+        ) : (
+          <div>
+            <div style={{ font: "600 2.125rem/.98 var(--font-heading)" }}>{fullName}</div>
+            <div style={{ fontSize: "0.84375rem", color: "var(--color-neutral-600)", marginTop: "0.25rem" }}>{ageLabel}</div>
+            <Tag variant={statusVariant} className="mt-2 inline-flex">
+              {statusLabel}
+            </Tag>
+          </div>
+        )}
       </div>
 
       {albumOpen && <AvatarAlbumViewer photos={photos} activeUrl={avatarUrl} onClose={() => setAlbumOpen(false)} />}

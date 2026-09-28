@@ -9,12 +9,16 @@ The review page: https://claude.ai/artifact/YCR7BHzEfyDsdVEoFkH87r. Each is its
 own pull request; 1 and 3 are large database changes and each deserves a fresh
 session (see the root CLAUDE.md on session cost).
 
-1. **Yes: every person owns their account; a household links them.** Each
+1. **Done: every person owns their account; a household links them.** Each
    account has a personal space (profile, own journal, own goals, private
    notes) that belongs to the person, not the household. A married son or
    daughter starts their own household (wife and children) and takes their
    personal space with them; the parents' household keeps its shared history;
-   the family tree links the two so the feed still reaches them.
+   the family tree links the two so the feed still reaches them. Design and
+   what moves: docs/PERSONAL_SPACE.md (#298 data model, #306 moving, #318
+   goals fix). Private notes have their table (`personal_notes`) but no
+   screen yet; the journal's Mine tab (item 3) is where personal entries get
+   written.
 2. **Done: household name from both surnames, as an editable suggestion:** the
    wife's maiden surname and the husband's surname, the Filipino way
    ("Santos-Reyes Household"). Never forced (single parents, grandparents
@@ -32,9 +36,10 @@ session (see the root CLAUDE.md on session cost).
    approval idea chores already use).
 5. **Done: fold daily chores** into one "N chores" line per day on the Planner
    agenda, with a "Show chores" switch.
-6. **Yes: profiles that feel like a person** (cover, photo, recent moments,
+6. **Done: profiles that feel like a person** (cover, photo, recent moments,
    Message / Call; details under About; Remove in a "⋯" menu). **Plus
-   (Jonathan): a person's profile opens from the family tree too.**
+   (Jonathan): a person's profile opens from the family tree too** -- a
+   second tap on someone picked in the tree, or their name in its panel.
 7. **Yes: birthday and anniversary moments** in the family feed.
 8. **Done: a Sunday "week ahead" push** (with its own switch).
 9. **Yes: streaks for kids' chores** (bonus star at 7 and 30 days, one freeze a week).
