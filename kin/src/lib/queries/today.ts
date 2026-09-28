@@ -1,10 +1,10 @@
 import { createClient } from "@/lib/supabase/server";
 import { formatAccounting, formatCurrency } from "@/lib/format";
 import { getPricedBuyList } from "@/lib/queries/household-money";
-import { familyDay as localDay, familyTime as localTime, familyClock, familyMidnight, FAMILY_TZ } from "@/lib/time";
+import { familyDay as localDay, familyTime as localTime, familyClock, familyMidnight } from "@/lib/time";
 import { formatTimeOfDay } from "@/lib/routines";
 import type { IconName } from "@/components/icons";
-import { isForMe, taggedFrom } from "@/lib/for-me";
+import { isForMe, taggedFrom, whoseFor, type Whose } from "@/lib/for-me";
 
 /** Who is looking: Today shows them what is theirs (lib/for-me). */
 type Viewer = { id: string; role: string };
@@ -28,6 +28,9 @@ export type BriefItem = {
   action?: "done" | "pay" | "shop";
   /** Marked today, from today_marks: shown done or skipped, with Undo. */
   mark?: "done" | "skipped";
+  /** Coming up only: which page it sits on -- the reader's own, the
+   * family's, or another member's (lib/for-me, whoseFor). */
+  whose?: Whose;
 };
 
 /** One tile in "At a glance": the single figure that matters in one part of
@@ -35,7 +38,7 @@ export type BriefItem = {
  * cards, which only repeated the bottom bar -- a tile answers a question
  * ("how much is left?") where a hub card only named a place. */
 export type GlanceTile = {
-  id: "money" | "next" | "shop" | "waiting";
+  id: "money" | "goal" | "shop" | "waiting";
   icon: IconName;
   /** The figure itself, short enough to read at a glance: "₱18,400". */
   value: string;
@@ -48,11 +51,11 @@ export type GlanceTile = {
   warn?: boolean;
 };
 
-/** Three of the four "At a glance" tiles: money, the next thing on the
- * calendar, and the shopping list. The fourth -- what is waiting on the
- * reader -- is built on the page from queries Today already makes, rather
- * than asking the database the same question twice. */
-export async function getGlance(familyId: string, currency: string, me: Viewer): Promise<GlanceTile[]> {
+/** Two of the four "At a glance" tiles: money and the shopping list. The
+ * other two -- the reader's goal (it took the next-plan tile's place, 28
+ * September) and what is waiting on them -- are built on the page from
+ * queries Today already makes, rather than asking the database twice. */
+export async function getGlance(familyId: string, currency: string): Promise<GlanceTile[]> {
   const supabase = await createClient();
   const now = new Date();
   // The month in the household's zone, not the server's: on a server in UTC
@@ -60,17 +63,7 @@ export async function getGlance(familyId: string, currency: string, me: Viewer):
   const [year, month] = localDay(now).split("-").map(Number);
   const startOfMonth = (familyMidnight(`${year}-${String(month).padStart(2, "0")}-01`) ?? now).toISOString();
 
-  const [upcomingActivity, budgetPeriod, monthSpend, shop] = await Promise.all([
-    supabase
-      .from("activities")
-      .select("title, start_at, applies_to_whole_family, activity_members(member_id, members(role))")
-      .eq("family_id", familyId)
-      .eq("status", "upcoming")
-      .gte("start_at", now.toISOString())
-      .order("start_at", { ascending: true })
-      // The next one that is the reader's, not another grown-up's (lib/for-me):
-      // a few, so one busy person's week does not hide the reader's own.
-      .limit(25),
+  const [budgetPeriod, monthSpend, shop] = await Promise.all([
     supabase
       .from("budget_periods")
       .select("budget_amount")
@@ -97,17 +90,6 @@ export async function getGlance(familyId: string, currency: string, me: Viewer):
         : { id: "money", icon: "wallet", value: formatAccounting(target - spent, currency), label: "left this month", href: "/wealth", progress: spent / target }
       : { id: "money", icon: "wallet", value: formatAccounting(spent, currency), label: "spent this month", href: "/wealth" };
 
-  const nextMine = (upcomingActivity.data ?? []).find((a) => isForMe(me, a.applies_to_whole_family, taggedFrom(a.activity_members)));
-  const next: GlanceTile = nextMine
-    ? {
-        id: "next",
-        icon: "calendarDays",
-        value: `${new Intl.DateTimeFormat("en-GB", { timeZone: FAMILY_TZ, weekday: "short" }).format(new Date(nextMine.start_at))} ${localTime(new Date(nextMine.start_at))}`,
-        label: `next: ${nextMine.title}`,
-        href: "/planner",
-      }
-    : { id: "next", icon: "calendarDays", value: "Nothing", label: "on the calendar yet", href: "/planner/add?type=task" };
-
   const open = shop.items.filter((i) => !i.checked);
   const shopTile: GlanceTile = {
     id: "shop",
@@ -122,7 +104,7 @@ export async function getGlance(familyId: string, currency: string, me: Viewer):
     href: "/household?seg=buy",
   };
 
-  return [money, next, shopTile];
+  return [money, shopTile];
 }
 
 /** What actually needs the household today, gathered from every hub into one
@@ -384,7 +366,7 @@ export async function getComingUp(familyId: string, currency: string, me: Viewer
   const items: BriefItem[] = [];
 
   for (const e of events.data ?? []) {
-    if (!isForMe(me, e.applies_to_whole_family, taggedFrom(e.event_members))) continue;
+    const whose = whoseFor(me, e.applies_to_whole_family, taggedFrom(e.event_members));
     const inDays = e.recurs_yearly ? dayIndex.get(e.event_date.slice(5)) : e.event_date > today && e.event_date <= weekOut ? Math.round((Date.parse(e.event_date) - Date.parse(today)) / 86_400_000) : undefined;
     if (!inDays) continue;
     const on = inDays === 1 ? "tomorrow" : `on ${weekdayOf(addDays(today, inDays))}`;
@@ -392,7 +374,7 @@ export async function getComingUp(familyId: string, currency: string, me: Viewer
     const what =
       e.kind === "birthday" && years > 0 ? `Turns ${years} ${on}` : e.kind === "anniversary" && years > 0 ? `${years} years ${on}` : `${on[0].toUpperCase()}${on.slice(1)}`;
     const nudge = e.kind === "birthday" || e.kind === "anniversary" ? " · a gift or a greeting?" : "";
-    items.push({ id: `soon-event-${e.id}`, icon: e.kind === "birthday" ? "cupcake" : "gift", tint: "occasion", title: e.title, meta: `${what}${nudge}`, href: "/planner", at: inDays });
+    items.push({ id: `soon-event-${e.id}`, icon: e.kind === "birthday" ? "cupcake" : "gift", tint: "occasion", title: e.title, meta: `${what}${nudge}`, href: "/planner", at: inDays, whose });
   }
 
   for (const b of bills.data ?? []) {
@@ -410,21 +392,21 @@ export async function getComingUp(familyId: string, currency: string, me: Viewer
 
   for (const h of health.data ?? []) {
     const who = (h.member as unknown as { full_name: string } | null)?.full_name?.split(" ")[0] ?? "Someone";
-    if (!isForMe(me, false, [{ id: h.member_id, role: (h.member as unknown as { role: string } | null)?.role }])) continue;
     const inDays = Math.round((Date.parse(h.when_date!) - Date.parse(today)) / 86_400_000);
-    items.push({ id: `soon-health-${h.id}`, icon: "activity", tint: "occasion", title: `${who} · ${h.what}`, meta: `Due ${inDays === 1 ? "tomorrow" : `in ${inDays} days`} · book it now?`, href: "/family", at: inDays });
+    items.push({ id: `soon-health-${h.id}`, icon: "activity", tint: "occasion", title: `${who} · ${h.what}`, meta: `Due ${inDays === 1 ? "tomorrow" : `in ${inDays} days`} · book it now?`, href: "/family", at: inDays, whose: h.member_id === me.id ? "mine" : "others" });
   }
 
   // Tomorrow's first thing, if it starts early enough to plan the evening
   // around -- school programs, flights, a 7am practice.
-  const early = (tasks.data ?? []).find((a) => {
-    if (!isForMe(me, a.applies_to_whole_family, taggedFrom(a.activity_members))) return false;
+  // One per page: the reader's, the family's and someone else's.
+  const earlyOn = new Set<Whose>();
+  for (const a of tasks.data ?? []) {
     const start = new Date(a.start_at);
-    return localDay(start) === tomorrow && Number(localTime(start).slice(0, 2)) < 10;
-  });
-  if (early) {
-    const start = new Date(early.start_at);
-    items.push({ id: `soon-task-${early.id}`, icon: "clock", tint: "schedule", title: early.title, meta: ["Early start tomorrow", localTime(start), early.location].filter(Boolean).join(" · "), href: "/planner", at: 1 });
+    if (localDay(start) !== tomorrow || Number(localTime(start).slice(0, 2)) >= 10) continue;
+    const whose = whoseFor(me, a.applies_to_whole_family, taggedFrom(a.activity_members));
+    if (earlyOn.has(whose)) continue;
+    earlyOn.add(whose);
+    items.push({ id: `soon-task-${a.id}`, icon: "clock", tint: "schedule", title: a.title, meta: ["Early start tomorrow", localTime(start), a.location].filter(Boolean).join(" · "), href: "/planner", at: 1, whose });
   }
 
   // Tomorrow's meals, against what is in the house and already on the list.
@@ -470,5 +452,15 @@ export async function getComingUp(familyId: string, currency: string, me: Viewer
     });
   }
 
-  return items.sort((a, b) => (a.at ?? 9) - (b.at ?? 9)).slice(0, 6);
+  // Six a page at most, each page in date order. Anything without a page
+  // named (bills, meals, the pantry) is the family's.
+  const perPage = new Map<Whose, number>();
+  return items
+    .map((i) => ({ ...i, whose: i.whose ?? "family" }))
+    .sort((a, b) => (a.at ?? 9) - (b.at ?? 9))
+    .filter((i) => {
+      const n = perPage.get(i.whose) ?? 0;
+      perPage.set(i.whose, n + 1);
+      return n < 6;
+    });
 }

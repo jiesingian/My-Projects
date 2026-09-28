@@ -10,7 +10,9 @@ import { getRoutinesNeedingAttention, getPendingApprovals, getPendingRedemptions
 import { TodayList, type TodayEntry } from "@/components/today-list";
 import { familyClock } from "@/lib/time";
 import { ApprovalQueue } from "@/components/approval-queue";
-import { getGoalRequestsFor, getRewardDuties } from "@/lib/queries/goals";
+import { getGoalRequestsFor, getGoals, getRewardDuties, type GoalView } from "@/lib/queries/goals";
+import { weekStartOf } from "@/lib/week";
+import { ComingUpPager } from "@/components/coming-up-pager";
 import { PromiseBanner } from "@/components/promise-banner";
 import { Icon } from "@/components/icons";
 import { isGrownUp } from "@/lib/roles";
@@ -31,9 +33,9 @@ export default async function TodayPage() {
   if (inKidView(me)) return <KidToday me={me} />;
 
   const supabase = await createClient();
-  const [{ data: members }, glance, brief, tasks, awaitingApproval, awaitingRedemption, familyPanel, comingUp, memories, recap, startHere, goalRequests, rewardDuties] = await Promise.all([
+  const [{ data: members }, glance, brief, tasks, awaitingApproval, awaitingRedemption, familyPanel, comingUp, memories, recap, startHere, goalRequests, rewardDuties, goals] = await Promise.all([
     supabase.from("members").select("id, full_name").eq("family_id", me.family_id).order("created_at"),
-    getGlance(me.family_id, me.families.currency, me),
+    getGlance(me.family_id, me.families.currency),
     getTodayBriefing(me.family_id, me.families.currency, me),
     // Chores that are the reader's (lib/for-me): theirs, the whole family's,
     // and for a grown-up the children's -- not another grown-up's own.
@@ -57,6 +59,9 @@ export default async function TodayPage() {
     getGoalRequestsFor(me.family_id, me),
     // Promises due or waiting on this person's word: the banner that stays.
     getRewardDuties(me.family_id, me),
+    // The goal tile in "At a glance" (28 September): it took the next-plan
+    // tile's place, since the Planner and Coming up already show the plans.
+    getGoals(me.family_id, me, weekStartOf(me.families.week_start)),
   ]);
 
   // Today's one list, ordered here on the server so the phone never re-sorts
@@ -102,7 +107,7 @@ export default async function TodayPage() {
       : tasks.length > 0
         ? { id: "waiting", icon: "check", value: `${tasks.length} chore${tasks.length === 1 ? "" : "s"}`, label: overdueTasks > 0 ? `${overdueTasks} overdue` : "due today", href: "#tasks", warn: overdueTasks > 0 }
         : { id: "waiting", icon: "check", value: "All done", label: "no chores waiting", href: "/planner" };
-  const tiles = [...glance, waiting];
+  const tiles = [glance[0], goalTile(goals, me.id), ...glance.slice(1), waiting];
 
   return (
     <div style={{ padding: "1.5rem var(--gutter) 1.25rem" }}>
@@ -208,20 +213,10 @@ export default async function TodayPage() {
       {comingUp.length > 0 && (
         <section style={{ marginBottom: "1.625rem" }}>
           <h3 className="kin-eyebrow">Coming up</h3>
-          <div className="kin-brief">
-            {comingUp.map((b) => (
-              <Link key={b.id} href={b.href} className="kin-brief-row">
-                <span className="kin-brief-ico" data-tint={b.tint}>
-                  <Icon name={b.icon} size="1.0625rem" />
-                </span>
-                <span style={{ minWidth: 0 }}>
-                  <span className="kin-brief-title">{b.title}</span>
-                  <span className="kin-brief-meta">{b.meta}</span>
-                </span>
-                <Icon name="chevronLeft" size="0.9375rem" className="kin-brief-chev" />
-              </Link>
-            ))}
-          </div>
+          {/* Three pages, swiped (28 September): other members' plans to the
+              left, the family's in the middle where it opens, the reader's
+              own to the right. */}
+          <ComingUpPager items={comingUp} />
         </section>
       )}
 
@@ -235,4 +230,25 @@ export default async function TodayPage() {
 
     </div>
   );
+}
+
+/** The reader's goal for "At a glance": their own unfinished one due soonest,
+ * else a household goal still going, else their own finished one -- the
+ * Planner's Goals, with the same ring. None yet: a way to set one. */
+function goalTile(goals: GoalView[], meId: string): GlanceTile {
+  const soonest = (list: GoalView[]) =>
+    list
+      .filter((g) => !g.reached)
+      .sort((a, b) => (a.dueDate ?? "9999").localeCompare(b.dueDate ?? "9999"))[0];
+  const mine = goals.filter((g) => g.ownerId === meId);
+  const g = soonest(mine) ?? soonest(goals.filter((x) => x.ownerId === null)) ?? mine[0];
+  if (!g) return { id: "goal", icon: "target", value: "No goal yet", label: "set one in the Planner", href: "/planner/goals/new" };
+  return {
+    id: "goal",
+    icon: "target",
+    value: g.reached ? "Reached!" : g.noData ? "Not started" : `${Math.round(g.fraction * 100)}%`,
+    label: g.title,
+    href: "/planner?seg=goals",
+    progress: g.noData ? undefined : g.fraction,
+  };
 }
