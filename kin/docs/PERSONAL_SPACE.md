@@ -107,6 +107,12 @@ personal photo rows go with it. Household records it wrote stay.
   the journal. Worth deciding before the journal's Mine tab (item 3) lets
   people write many of them.
 
+- **A reward on a goal that moves** keeps its giver and its status. Since
+  #311 a reward's giver is a member of the household (a parent who promised
+  it), and one who stays behind can no longer see or answer it from there.
+  Whether a move should withdraw such a reward, or let a linked household's
+  giver still answer it, is for whoever next works on goals to decide.
+
 ## Step 2, as built
 
 - `start_own_household(name)` and `move_to_household(code)`. An **organizer**
