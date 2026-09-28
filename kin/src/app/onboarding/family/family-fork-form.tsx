@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useEffect, useId, useRef } from "react";
+import { useActionState, useEffect, useId, useRef, useState } from "react";
 import { WELCOME_KEY, type WelcomeAnswers } from "@/components/welcome/welcome";
 import { createFamilyAction, joinFamilyAction } from "@/lib/actions/family";
 import type { ActionState } from "@/lib/actions/auth";
@@ -10,6 +10,7 @@ import { Blueprint } from "@/components/ui";
 import { Icon } from "@/components/icons";
 import { COUNTRIES, DEFAULT_COUNTRY } from "@/lib/countries";
 import { PLANS, pesos } from "@/lib/billing/plans";
+import { suggestHouseholdName } from "@/lib/household-name";
 
 const initialState: ActionState = { error: null };
 
@@ -41,6 +42,19 @@ export function FamilyForkForm({
       // Nothing saved, or storage refused: the placeholder stays.
     }
   }, []);
+  // "Suggest from surnames" (agreed 28 September). The two surnames carry no
+  // name attribute, so nothing about them is sent or stored: they only offer
+  // a household name, which lands in the field above as ordinary, editable
+  // text. Nothing is filled until the button says exactly what it will put.
+  const [maiden, setMaiden] = useState("");
+  const [husband, setHusband] = useState("");
+  const suggestion = suggestHouseholdName(maiden, husband);
+  function applySuggestion() {
+    const el = householdName.current;
+    if (!el || !suggestion) return;
+    el.value = suggestion;
+    el.focus();
+  }
 
   const joinForm = (
         <form action={joinAction}>
@@ -103,6 +117,27 @@ export function FamilyForkForm({
             <label htmlFor={`${uid}-household-name`}>Household name</label>
             <input ref={householdName} id={`${uid}-household-name`} aria-label="Household Name" className="input" name="household_name" placeholder="The Reyes Household" required style={{ minHeight: "2.75rem" }} />
           </div>
+          <details className="kin-code-optional" style={{ marginTop: "-0.25rem", marginBottom: "0.75rem" }}>
+            <summary>Suggest a name from surnames</summary>
+            <p style={{ fontSize: "0.8125rem", color: "var(--color-neutral-700)", margin: "0.25rem 0 0.625rem" }}>
+              The Filipino way: her maiden name, then his. Only a suggestion; name your household however you like.
+            </p>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(9rem, 1fr))", gap: "0.5625rem" }}>
+              <div className="field">
+                <label htmlFor={`${uid}-maiden`}>Wife&rsquo;s maiden surname</label>
+                <input id={`${uid}-maiden`} className="input" value={maiden} onChange={(e) => setMaiden(e.target.value)} placeholder="Santos" autoComplete="off" style={{ minHeight: "2.75rem" }} />
+              </div>
+              <div className="field">
+                <label htmlFor={`${uid}-husband`}>Husband&rsquo;s surname</label>
+                <input id={`${uid}-husband`} className="input" value={husband} onChange={(e) => setHusband(e.target.value)} placeholder="Reyes" autoComplete="off" style={{ minHeight: "2.75rem" }} />
+              </div>
+            </div>
+            {suggestion && (
+              <button type="button" className="btn btn-secondary btn-block" onClick={applySuggestion} style={{ minHeight: "2.75rem", marginTop: "0.5625rem" }}>
+                Use &ldquo;{suggestion}&rdquo;
+              </button>
+            )}
+          </details>
           {/* One setting the household won't have to find its way to Settings
               for afterward -- it's used from the first account someone adds.
               Change it later same as currency; it never changes on its own

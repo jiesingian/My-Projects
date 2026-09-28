@@ -15,7 +15,7 @@ session (see the root CLAUDE.md on session cost).
    daughter starts their own household (wife and children) and takes their
    personal space with them; the parents' household keeps its shared history;
    the family tree links the two so the feed still reaches them.
-2. **Yes: household name from both surnames, as an editable suggestion:** the
+2. **Done: household name from both surnames, as an editable suggestion:** the
    wife's maiden surname and the husband's surname, the Filipino way
    ("Santos-Reyes Household"). Never forced (single parents, grandparents
    raising grandchildren, blended families).
@@ -158,6 +158,12 @@ Decided against in the same review: revising Journal (item 6) and Planner
 
 ## Done
 
+- Household name from both surnames (agreed 28 September, item 2): "Create
+  a family" has a folded "Suggest a name from surnames" -- the wife's maiden
+  surname and the husband's give "Santos-Reyes Household" on a button that
+  says exactly what it will fill. Only a suggestion: the field stays
+  editable, the home page's family name still pre-fills it, and the two
+  surnames are never sent or stored.
 - Today as one list (Jonathan, 28 September: "shouldn't they be the same and
   prioritized at the top? ... should be allowed to be marked as done or
   skip"): "Needs you today" and "Today's tasks" are one "Today" list at the
@@ -167,7 +173,6 @@ Decided against in the same review: revising Journal (item 6) and Planner
   Pay (Wealth's pay flow) / Skip; the shopping has Shop / Skip; a birthday
   or event just shows for the day, with nothing to tick. Marks live in today_marks (20260928170000). Meals stay in the
   header's "Eating today".
-
 - Review fixes (28 September, every page rendered signed in against a local
   stand-in with an invented household): a child with their own login showed
   as "Adult" in the role editor, and Edit then Save would have made them one
