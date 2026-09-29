@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { cookies } from "next/headers";
 import { createClient } from "@/lib/supabase/server";
 import { requireCurrentMember } from "@/lib/session";
 import { isGrownUp } from "@/lib/roles";
@@ -41,7 +42,10 @@ export async function requestConnectionByCodeAction(_prev: ActionState, formData
   if (!code) return { error: "Enter the code they gave you." };
   const supabase = await createClient();
   const { error } = await supabase.rpc("request_connection_by_code", { p_code: code });
-  return error ? { error: readable(error.message) } : done();
+  if (error) return { error: readable(error.message) };
+  // A connection link remembered this code through sign-up; it has done its job.
+  (await cookies()).delete("kin-connect");
+  return done();
 }
 
 export async function respondConnectionAction(id: string, accept: boolean): Promise<ActionState> {
@@ -81,4 +85,9 @@ export async function guardianRemoveConnectionAction(id: string): Promise<Action
   const supabase = await createClient();
   const { error } = await supabase.rpc("guardian_remove_connection", { p_id: id });
   return error ? { error: readable(error.message) } : done();
+}
+
+/** "Not now" on the reminder to finish a connection link. */
+export async function dismissConnectLinkAction(): Promise<void> {
+  (await cookies()).delete("kin-connect");
 }

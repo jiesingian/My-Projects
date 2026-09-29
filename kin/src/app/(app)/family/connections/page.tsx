@@ -5,6 +5,7 @@ import { ConnectionsManager } from "@/components/connections-manager";
 import { getChildrenConnections, getConnectionCandidates, getConnections } from "@/lib/queries/connections";
 import { isGrownUp } from "@/lib/roles";
 import { createClient } from "@/lib/supabase/server";
+import { cookies } from "next/headers";
 
 export const dynamic = "force-dynamic";
 
@@ -16,7 +17,8 @@ export const dynamic = "force-dynamic";
 export default async function ConnectionsPage({ searchParams }: { searchParams: Promise<{ code?: string }> }) {
   const me = await getCurrentMember();
   if (!me) redirect("/onboarding/profile");
-  const { code } = await searchParams;
+  // A connection link remembered its code through sign-up (app/connect).
+  const code = (await searchParams).code ?? (await cookies()).get("kin-connect")?.value;
 
   const grownUp = isGrownUp(me.role);
   const supabase = await createClient();

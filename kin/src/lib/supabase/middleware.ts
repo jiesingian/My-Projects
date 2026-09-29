@@ -60,6 +60,9 @@ export async function updateSession(request: NextRequest) {
     // An invite link has to reach someone with no account yet; it only
     // remembers the code and redirects (app/join/[code]/route.ts).
     path.startsWith("/join/") ||
+    // Likewise a connection link (app/connect/[code]/route.ts): remembers
+    // the code and redirects; the other person still has to accept.
+    path.startsWith("/connect/") ||
     // The privacy notice, terms and refund policy: read before an account
     // exists, and by app-store reviewers who never have one (app/legal).
     path.startsWith("/legal/");

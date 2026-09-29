@@ -8,6 +8,8 @@ import { ConfirmSheetHost } from "@/components/confirm-sheet";
 import { Toaster } from "@/components/toast";
 import { ReturnToToday } from "@/components/return-to-today";
 import { getThreadPrefs } from "@/lib/queries/chat-rooms";
+import { cookies } from "next/headers";
+import { ConnectLinkReminder } from "@/components/connect-link-reminder";
 import { getChatUnread } from "@/lib/queries/chat";
 import { textScaleCss } from "@/lib/text-scale";
 import { paletteCss } from "@/lib/palettes";
@@ -43,6 +45,9 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   const chatUnread =
     (mutedNow.has("household") ? 0 : unread.count) +
     (elsewhere ?? []).filter((r) => !mutedNow.has(r.thread)).reduce((n, r) => n + (Number(r.unread) || 0), 0);
+  // Joined through someone's connection link and not asked yet (app/connect).
+  const rawConnect = (await cookies()).get("kin-connect")?.value ?? "";
+  const connectCode = /^[A-Z2-9]{8}$/.test(rawConnect) ? rawConnect : null;
   const callMembers: CallMember[] = (people ?? []).map((m) => ({ id: m.id, name: m.full_name, photoUrl: m.avatar_url, callable: m.status === "active" }));
 
   return (
@@ -65,7 +70,10 @@ export default async function AppLayout({ children }: { children: React.ReactNod
           in CSS rather than here, because an inline style cannot answer a
           media query and this has to change shape at 1024px. */}
       <CallProvider familyId={member.family_id} me={member.id} members={callMembers}>
-        <div className="kin-content">{children}</div>
+        <div className="kin-content">
+          {connectCode && <ConnectLinkReminder code={connectCode} />}
+          {children}
+        </div>
         {!inKidView(member) && <AssistantFab memberName={member.full_name.split(" ")[0]} />}
         <TabBar chatUnread={chatUnread} chatMentioned={unread.mentioned} kidView={inKidView(member)} />
         <ConfirmSheetHost />

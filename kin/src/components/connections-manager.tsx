@@ -63,8 +63,10 @@ export function ConnectionsManager({
 
   const share = async () => {
     if (!ownCode) return;
-    const url = `${window.location.origin}/family/connections?code=${ownCode}`;
-    const text = `Connect with me on Kin: ${url} (or enter my code ${ownCode} under Family → Connections)`;
+    // Works for someone who has no Kin yet too: the link carries them
+    // through sign-up and back to asking (app/connect/[code]).
+    const url = `${window.location.origin}/connect/${ownCode}`;
+    const text = `Connect with me on Kin, our family app: ${url} (already on Kin? enter my code ${ownCode} under Family → Connections)`;
     try {
       if (navigator.share) await navigator.share({ text });
       else {
@@ -295,8 +297,8 @@ export function ConnectionsManager({
                   </button>
                 </div>
                 <p style={{ ...sub, margin: "0.375rem 0 0", lineHeight: 1.45 }}>
-                  Anyone with your code can ask to connect. Nothing happens until you accept, and they won&rsquo;t see
-                  your name until you do.
+                  Anyone with your code can ask to connect, including someone not on Kin yet: the link takes them
+                  through signing up. Nothing happens until you accept, and they won&rsquo;t see your name until you do.
                 </p>
               </div>
             )}
