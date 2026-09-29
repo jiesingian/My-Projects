@@ -1734,8 +1734,8 @@ export type Database = {
         Relationships: []
       }
       chat_room_attachments: {
-        Row: { created_at: string; direct_message_id: string | null; family_id: string; family_message_id: string | null; file_name: string; group_message_id: string | null; id: string; mime_type: string; position: number; size_bytes: number; storage_path: string }
-        Insert: { created_at?: string; direct_message_id?: string | null; family_id: string; family_message_id?: string | null; file_name: string; group_message_id?: string | null; id?: string; mime_type: string; position?: number; size_bytes: number; storage_path: string }
+        Row: { created_at: string; direct_message_id: string | null; family_id: string; family_message_id: string | null; file_name: string; group_message_id: string | null; id: string; mime_type: string; position: number; size_bytes: number; storage_path: string; transcript: string | null }
+        Insert: { created_at?: string; direct_message_id?: string | null; family_id: string; family_message_id?: string | null; file_name: string; group_message_id?: string | null; id?: string; mime_type: string; position?: number; size_bytes: number; storage_path: string; transcript?: string | null }
         Update: { created_at?: string; direct_message_id?: string | null; family_id?: string; family_message_id?: string | null; file_name?: string; group_message_id?: string | null; id?: string; mime_type?: string; position?: number; size_bytes?: number; storage_path?: string }
         Relationships: []
       }
@@ -1861,6 +1861,7 @@ export type Database = {
           position: number
           size_bytes: number
           storage_path: string
+          transcript: string | null
         }
         Insert: {
           created_at?: string
@@ -1872,6 +1873,7 @@ export type Database = {
           position?: number
           size_bytes: number
           storage_path: string
+          transcript?: string | null
         }
         Update: {
           created_at?: string
@@ -1883,6 +1885,7 @@ export type Database = {
           position?: number
           size_bytes?: number
           storage_path?: string
+          transcript?: string | null
         }
         Relationships: [
           {

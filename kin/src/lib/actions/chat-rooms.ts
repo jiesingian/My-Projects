@@ -29,7 +29,7 @@ export async function markThreadReadAction(thread: Thread): Promise<ActionState>
 
 /** A photo already uploaded to the sender's own chat folder, straight from
  * the phone (uploadFileDirect(file, "chat")). */
-export type RoomPhoto = { storagePath: string; fileName: string; mimeType: string; sizeBytes: number };
+export type RoomPhoto = { storagePath: string; fileName: string; mimeType: string; sizeBytes: number; transcript?: string };
 
 /** At most this many photos on one message, as in the household chat. */
 const MAX_PHOTOS = 10;
@@ -65,6 +65,8 @@ async function attachPhotos(
       file_name: p.fileName.slice(0, 255) || "photo",
       mime_type: p.mimeType,
       size_bytes: Math.max(1, Math.round(p.sizeBytes)),
+      // Only a voice note carries words (written on the sender's phone).
+      transcript: p.mimeType.startsWith("audio/") && p.transcript ? clamp(p.transcript.trim(), 5000) || null : null,
       position,
     })),
   );

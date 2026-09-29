@@ -17,7 +17,7 @@ export type RoomMessage = {
   /** Photos sent with it (20260929120000), signed in the reader's own
    * session -- the storage policy lets them open exactly these. url is null
    * only if signing failed. */
-  photos: { id: string; url: string | null; fileName: string; mimeType: string }[];
+  photos: { id: string; url: string | null; fileName: string; mimeType: string; transcript: string | null }[];
   /** The message this one answers, as one line -- null when it answers
    * nothing, or when that message is gone or outside the window. */
   replyTo: { id: string; authorName: string; excerpt: string } | null;
@@ -76,13 +76,13 @@ async function photosFor(column: MessageColumn, ids: string[]): Promise<Map<stri
   const supabase = await createClient();
   const { data } = await supabase
     .from("chat_room_attachments")
-    .select("id, family_message_id, direct_message_id, group_message_id, storage_path, file_name, mime_type, position")
+    .select("id, family_message_id, direct_message_id, group_message_id, storage_path, file_name, mime_type, transcript, position")
     .in(column, ids)
     .order("position");
   const signed = await getSignedUrls("documents", (data ?? []).map((a) => a.storage_path));
   for (const a of data ?? []) {
     const key = a[column] as string;
-    out.set(key, [...(out.get(key) ?? []), { id: a.id, url: signed[a.storage_path] ?? null, fileName: a.file_name, mimeType: a.mime_type }]);
+    out.set(key, [...(out.get(key) ?? []), { id: a.id, url: signed[a.storage_path] ?? null, fileName: a.file_name, mimeType: a.mime_type, transcript: a.transcript }]);
   }
   return out;
 }
