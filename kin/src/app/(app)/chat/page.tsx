@@ -2,53 +2,78 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { Icon } from "@/components/icons";
 import { getCurrentMember } from "@/lib/session";
-import { getChatMembers, getChatThread, getChatPin, getHouseholdChatTheme } from "@/lib/queries/chat";
-import { ChatThread } from "@/components/chat-thread";
-import { shortNames } from "@/lib/format";
-import { CallButtons } from "@/components/call-buttons";
+import { getChatThreads, type ChatThreadSummary } from "@/lib/queries/chat-threads";
 
 export const dynamic = "force-dynamic";
 
-export default async function ChatPage({ searchParams }: { searchParams: Promise<{ to?: string }> }) {
+/** Chat opens on a list of conversations (Janine, 29 September): the
+ * household's own chat first, then the others, each with its last message and
+ * how many are waiting. Tapping one opens it. */
+export default async function ChatListPage({ searchParams }: { searchParams: Promise<{ to?: string }> }) {
   const me = await getCurrentMember();
   if (!me) redirect("/onboarding/profile");
-  // Message, on a profile, lands here addressed to that person.
+  // Message, on a profile, used to land on /chat addressed to that person;
+  // old links and notifications still do.
   const { to } = await searchParams;
+  if (to) redirect(`/chat/household?to=${encodeURIComponent(to)}`);
 
-  const [members, thread, pin, theme] = await Promise.all([
-    getChatMembers(me.family_id),
-    getChatThread(me.family_id),
-    getChatPin(me.family_id),
-    getHouseholdChatTheme(me.family_id),
-  ]);
-  // Two people in one house can share a first name; the tag has to tell them
-  // apart, and the same label is what the message text carries.
-  const labels = shortNames(members.map((m) => m.name));
-  const labelled = members.map((m, i) => ({ ...m, label: labels[i] }));
+  const threads = await getChatThreads({ id: me.id, family_id: me.family_id, familyName: me.families.name });
 
   return (
-    <div className="kin-chatcolumn" data-chat-theme={theme} style={{ padding: "1.125rem var(--gutter) 0.5rem" }}>
-      {/* The call buttons drop under the title when the two would leave the
-          title less than about eight characters of its own, at large text on a
-          small phone, rather than squeezing it one letter a line. */}
-      <div style={{ marginBottom: "0.375rem", display: "flex", flexWrap: "wrap", alignItems: "flex-start", gap: "0.75rem" }}>
-        <div style={{ flex: "1 1 9rem", minWidth: 0 }}>
-          <div style={{ font: "600 0.8125rem/1 var(--font-heading)", letterSpacing: ".02em", color: "var(--color-accent-700)", marginBottom: "0.3125rem" }}>
-            FAMILY CHAT
-          </div>
-          <h2 style={{ fontSize: "1.5rem", margin: 0 }}>{me.families.name}</h2>
-          <p style={{ fontSize: "0.78125rem", color: "var(--color-neutral-600)", margin: "4px 0 0" }}>
-            {members.length} {members.length === 1 ? "person" : "people"} · everyone sees everything here
-          </p>
-        </div>
-        <Link href="/chat/albums" className="kin-chat-albums" aria-label="Albums">
-          <Icon name="images" size={18} />
-          <span>Albums</span>
-        </Link>
-        <CallButtons />
-      </div>
+    <div style={{ padding: "1.125rem var(--gutter) 1.375rem" }}>
+      <div style={{ font: "600 0.8125rem/1 var(--font-heading)", letterSpacing: ".02em", color: "var(--color-accent-700)", marginBottom: "0.3125rem" }}>CHAT</div>
+      <h2 style={{ fontSize: "1.5rem", margin: "0 0 0.875rem" }}>Conversations</h2>
 
-      <ChatThread theme={theme} me={me.id} familyId={me.family_id} members={labelled} initial={thread} pin={pin} addressTo={to} gifReady={!!process.env.GIPHY_API_KEY} />
+      <ul className="kin-threadlist">
+        {threads.map((t) => (
+          <li key={t.key}>
+            <ThreadRow thread={t} />
+          </li>
+        ))}
+      </ul>
+
+      <Link href="/family/connections" className="kin-threadlist-more">
+        <Icon name="users" size={16} />
+        <span>Connections · message people one to one</span>
+      </Link>
     </div>
   );
+}
+
+function ThreadRow({ thread: t }: { thread: ChatThreadSummary }) {
+  const icon = t.kind === "household" ? "house" : "users";
+  return (
+    <Link href={t.href} className="kin-threadrow" data-unread={t.unread > 0 ? "true" : undefined}>
+      <span className="kin-threadrow-icon" aria-hidden="true">
+        <Icon name={icon} size={20} />
+      </span>
+      <span className="kin-threadrow-main">
+        <span className="kin-threadrow-top">
+          <span className="kin-threadrow-title">{t.title}</span>
+          {t.last && <span className="kin-threadrow-time">{when(t.last.at)}</span>}
+        </span>
+        <span className="kin-threadrow-bottom">
+          <span className="kin-threadrow-last">{t.last ? `${t.last.author}: ${t.last.body}` : t.subtitle}</span>
+          {t.unread > 0 && (
+            <span className="kin-threadrow-badge" aria-label={`${t.unread} unread${t.mentioned ? ", you were mentioned" : ""}`}>
+              {t.mentioned ? "@ " : ""}
+              {t.unread > 99 ? "99+" : t.unread}
+            </span>
+          )}
+        </span>
+      </span>
+    </Link>
+  );
+}
+
+/** Today as a time, this week as a day, otherwise a date -- the way every
+ * phone's message list reads. Manila time, like the rest of the app. */
+function when(iso: string): string {
+  const d = new Date(iso);
+  const tz = "Asia/Manila";
+  const day = (x: Date) => x.toLocaleDateString("en-CA", { timeZone: tz });
+  const now = new Date();
+  if (day(d) === day(now)) return d.toLocaleTimeString("en-US", { timeZone: tz, hour: "numeric", minute: "2-digit" });
+  if (now.getTime() - d.getTime() < 6 * 86400000) return d.toLocaleDateString("en-US", { timeZone: tz, weekday: "short" });
+  return d.toLocaleDateString("en-US", { timeZone: tz, month: "short", day: "numeric" });
 }

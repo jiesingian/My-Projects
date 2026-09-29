@@ -5892,3 +5892,20 @@ button.kin-initial:focus-visible {
 .kin-theme-chip[aria-pressed="true"] .kin-theme-swatch { border-color: var(--color-text); transform: scale(1.06); }
 .kin-theme-chip:active .kin-theme-swatch { transform: scale(0.94); }
 @media (prefers-reduced-motion: reduce) { .kin-theme-swatch { transition: border-color 140ms ease; } .kin-theme-chip[aria-pressed="true"] .kin-theme-swatch, .kin-theme-chip:active .kin-theme-swatch { transform: none; } }
+/* The chat list (29 September): one row per conversation, the way a phone's
+   messages app reads -- icon, name and time on top, the last line and an
+   unread count under it. Rows are links, 44px+ tall for a thumb. */
+.kin-threadlist { list-style: none; margin: 0; padding: 0; }
+.kin-threadrow { display: flex; align-items: center; gap: 0.75rem; padding: 0.75rem 0; min-height: 3.5rem; color: inherit; text-decoration: none; border-bottom: 1px solid color-mix(in srgb, var(--color-text) 10%, transparent); -webkit-tap-highlight-color: transparent; }
+.kin-threadrow:active { background: color-mix(in srgb, var(--color-accent) 6%, transparent); }
+.kin-threadrow-icon { flex: none; width: 2.75rem; height: 2.75rem; border-radius: 50%; display: grid; place-items: center; overflow: hidden; color: var(--color-accent-700); background: color-mix(in srgb, var(--color-accent) 12%, transparent); }
+.kin-threadrow-icon img { width: 100%; height: 100%; object-fit: cover; }
+.kin-threadrow-main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 0.1875rem; }
+.kin-threadrow-top, .kin-threadrow-bottom { display: flex; align-items: baseline; gap: 0.5rem; min-width: 0; }
+.kin-threadrow-title { flex: 1; min-width: 0; font: 600 1rem/1.2 var(--font-heading); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.kin-threadrow-time { flex: none; font-size: 0.75rem; color: var(--color-neutral-500); }
+.kin-threadrow-last { flex: 1; min-width: 0; font-size: 0.84375rem; color: var(--color-neutral-600); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.kin-threadrow[data-unread] .kin-threadrow-last { color: var(--color-text); font-weight: 600; }
+.kin-threadrow[data-unread] .kin-threadrow-time { color: var(--color-accent-700); }
+.kin-threadrow-badge { flex: none; min-width: 1.375rem; height: 1.375rem; padding: 0 0.4375rem; border-radius: 999px; display: inline-grid; place-items: center; font-size: 0.75rem; font-weight: 700; color: #fff; background: var(--color-accent-700); }
+.kin-threadlist-more { display: inline-flex; align-items: center; gap: 0.4375rem; margin-top: 1rem; min-height: 2.75rem; font-size: 0.84375rem; font-weight: 600; color: var(--color-accent-700); text-decoration: none; }

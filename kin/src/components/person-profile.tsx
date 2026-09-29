@@ -20,7 +20,7 @@ export function PersonActions({ memberId, firstName, callable, mobile }: { membe
   const canRing = callable && !!calls && calls.members.some((m) => m.id === memberId && m.callable);
   return (
     <div className="kin-profile-actions">
-      <Link href={`/chat?to=${memberId}`} className="btn btn-primary">
+      <Link href={`/chat/household?to=${memberId}`} className="btn btn-primary">
         <Icon name="message" size="1rem" /> Message
       </Link>
       {canRing ? (

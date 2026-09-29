@@ -46,7 +46,7 @@ export async function ringAction(to: string, video: boolean, callId: string, aga
         // Laid out like a phone's incoming call: who, what kind, what to do.
         title: `${caller} is calling`,
         body: video ? "Kin video call · tap to answer" : "Kin voice call · tap to answer",
-        url: "/chat",
+        url: "/chat/household",
         tag: `call-${me.id}`,
         ring: true,
         icon: household?.find((m) => m.id === me.id)?.avatar_url ?? null,
@@ -58,7 +58,7 @@ export async function ringAction(to: string, video: boolean, callId: string, aga
           memberIds: watchers,
           title: `${caller} is calling ${first(callee.full_name)}`,
           body: video ? "Video call in Kin" : "Voice call in Kin",
-          url: "/chat",
+          url: "/chat/household",
           tag: `family-call-${me.id}`,
           // Old news after a few minutes; not worth delivering late.
           ttlSeconds: 5 * 60,
@@ -80,7 +80,7 @@ export async function missedCallAction(to: string, video: boolean): Promise<void
       memberIds: [to],
       title: `Missed ${video ? "video" : "voice"} call from ${first(me.full_name)}`,
       body: "Open Kin to call back.",
-      url: "/chat",
+      url: "/chat/household",
       tag: `call-${me.id}`,
     }),
   );

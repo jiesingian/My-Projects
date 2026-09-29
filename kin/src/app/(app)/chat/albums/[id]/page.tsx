@@ -17,7 +17,7 @@ export default async function ChatAlbumPage({ params }: { params: Promise<{ id: 
 
   return (
     <div>
-      <DetailHeader backHref="/chat/albums" eyebrow="Albums" trail={[{ label: "Chat", href: "/chat" }, { label: "Albums", href: "/chat/albums" }, { label: album.name }]} />
+      <DetailHeader backHref="/chat/albums" eyebrow="Albums" trail={[{ label: "Household chat", href: "/chat/household" }, { label: "Albums", href: "/chat/albums" }, { label: album.name }]} />
       <div style={{ padding: "0 var(--gutter) 1.375rem" }}>
         <h2 className="kin-album-title">{album.name}</h2>
         <p className="kin-album-sub">

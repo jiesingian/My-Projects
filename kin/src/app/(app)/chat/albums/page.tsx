@@ -16,7 +16,7 @@ export default async function ChatAlbumsPage() {
 
   return (
     <div>
-      <DetailHeader backHref="/chat" eyebrow="Albums" />
+      <DetailHeader backHref="/chat/household" eyebrow="Albums" />
       <div style={{ padding: "0 var(--gutter) 1.375rem" }}>
         {albums.length === 0 ? (
           <p className="kin-albums-empty">

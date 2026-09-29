@@ -16,6 +16,6 @@ export async function setHouseholdChatThemeAction(theme: string): Promise<{ erro
     .from("chat_themes")
     .upsert({ topic: householdTopic(me.family_id), theme: chatTheme(theme), set_by: me.id, updated_at: new Date().toISOString() });
   if (error) return { error: humanDatabaseError(error.message) };
-  revalidatePath("/chat");
+  revalidatePath("/chat", "layout");
   return { error: null };
 }
