@@ -2907,6 +2907,22 @@ textarea.input {
   cursor: zoom-in;
   overflow: hidden;
 }
+/* The last tile of a full strip: "+N", and it opens the entry's gallery. */
+.kin-photo-more {
+  position: relative;
+  display: block;
+  cursor: pointer;
+}
+.kin-photo-more span {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgb(0 0 0 / 0.45);
+  color: #fff;
+  font: 600 1.125rem/1 var(--font-numeric);
+}
 
 /* The full-screen photo viewer (components/photo-viewer.tsx), drawn into
    <body> so it covers the whole screen rather than the content column. */

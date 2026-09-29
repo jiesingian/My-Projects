@@ -1,0 +1,58 @@
+import Link from "next/link";
+import { notFound, redirect } from "next/navigation";
+import { getCurrentMember } from "@/lib/session";
+import { getEntry } from "@/lib/queries/journal";
+import { familyDate } from "@/lib/format-family";
+import { DetailHeader } from "@/components/hub-header";
+import { JournalEntryGallery } from "@/components/journal-entry-gallery";
+
+/** One entry, read on its own: the write-up and every photo it holds, as a
+ * gallery. Opened by tapping an entry in Mine or Household. Row-level
+ * security decides whether it can be read at all -- a Just-me entry is its
+ * owner's alone, and anyone else gets the 404. */
+export default async function JournalEntryPage({ params }: { params: Promise<{ id: string }> }) {
+  const me = await getCurrentMember();
+  if (!me) redirect("/onboarding/profile");
+  const { id } = await params;
+  const [entry, fmtDate] = await Promise.all([getEntry(me.family_id, id), familyDate()]);
+  if (!entry) notFound();
+
+  const personal = entry.visibility === "personal";
+  const names = entry.people.map((p) => p.full_name.split(" ")[0]).join(" · ");
+
+  return (
+    <div>
+      <DetailHeader backHref={personal ? "/journal?view=mine" : "/journal?view=household"} eyebrow="Journal" />
+      <div style={{ padding: "0 var(--gutter) 1.375rem" }}>
+        <div style={{ display: "flex", flexWrap: "wrap", alignItems: "baseline", gap: "0.375rem 0.5rem" }}>
+          <span style={{ font: "400 0.75rem/1 var(--font-numeric)", color: "var(--color-accent-700)" }}>{fmtDate(entry.entry_date)}</span>
+          {entry.milestone && (
+            <span className="kin-entry-star">
+              <span aria-hidden="true">★</span> {entry.milestoneOf ? `${entry.milestoneOf.split(" ")[0]}'s milestone` : "Milestone"}
+            </span>
+          )}
+          <Link href={`/journal/${entry.id}/edit`} style={{ marginLeft: "auto", fontSize: "0.8125rem", fontWeight: 600, color: "var(--color-accent-700)" }}>
+            Edit
+          </Link>
+        </div>
+        <h3 style={{ font: "600 1.5rem/1.1 var(--font-heading)", margin: "0.5rem 0 0.375rem" }}>{entry.title}</h3>
+        <div style={{ fontSize: "0.8125rem", color: "var(--color-neutral-600)", marginBottom: "0.75rem" }}>
+          {names || (personal ? "Only you" : "Whole family")}
+        </div>
+        {entry.note && <p style={{ fontSize: "0.9375rem", lineHeight: 1.55, margin: "0 0 1rem", color: "var(--color-neutral-800)", whiteSpace: "pre-wrap" }}>{entry.note}</p>}
+        {entry.photos.length > 0 ? (
+          <>
+            <div style={{ fontSize: "0.75rem", fontWeight: 600, letterSpacing: ".06em", textTransform: "uppercase", color: "var(--color-neutral-600)", margin: "0 0 0.5rem" }}>
+              {entry.photos.length} photo{entry.photos.length === 1 ? "" : "s"}
+            </div>
+            <JournalEntryGallery photos={entry.photos} entryTitle={entry.title} />
+          </>
+        ) : (
+          <p style={{ fontSize: "0.8125rem", color: "var(--color-neutral-600)" }}>
+            No photos yet. <Link href={`/journal/${entry.id}/edit`} style={{ color: "var(--color-accent-700)", fontWeight: 600 }}>Add some</Link>
+          </p>
+        )}
+      </div>
+    </div>
+  );
+}

@@ -183,7 +183,7 @@ export async function getEntry(familyId: string, entryId: string) {
   const { data } = await supabase
     .from("journal_entries")
     .select(
-      "*, journal_entry_people(members(id, full_name)), journal_entry_media(journal_media(id, storage_path, storage_provider, drive_file_id))",
+      "*, milestone_member:members!journal_entries_milestone_member_id_fkey(full_name), journal_entry_people(members(id, full_name)), journal_entry_media(journal_media(id, storage_path, storage_provider, drive_file_id))",
     )
     .eq("family_id", familyId)
     .eq("id", entryId)
@@ -199,6 +199,7 @@ export async function getEntry(familyId: string, entryId: string) {
 
   return {
     ...data,
+    milestoneOf: (data.milestone_member as unknown as { full_name: string } | null)?.full_name ?? null,
     people: (data.journal_entry_people ?? [])
       .map((p) => (p.members as unknown as { id: string; full_name: string } | null))
       .filter((v): v is { id: string; full_name: string } => !!v),
