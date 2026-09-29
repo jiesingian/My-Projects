@@ -19,6 +19,7 @@ import { Icon } from "@/components/icons";
 import { PhotoViewer } from "@/components/photo-viewer";
 import { SaveToJournalButton } from "@/components/save-to-journal";
 import { uploadFileDirect } from "@/lib/upload-client";
+import { recordingIsSilent, startTranscript } from "@/lib/voice-note";
 import type { RoomMessage } from "@/lib/queries/chat-rooms";
 import type { RoomPhoto } from "@/lib/actions/chat-rooms";
 
@@ -64,7 +65,7 @@ export function RoomThread({
   const [draft, setDraft] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
-  const [picked, setPicked] = useState<{ file: File; preview: string }[]>([]);
+  const [picked, setPicked] = useState<{ file: File; preview: string; transcript?: string }[]>([]);
   const [uploading, setUploading] = useState(false);
   const [viewing, setViewing] = useState<{ photos: RoomMessage["photos"]; id: string } | null>(null);
   const [active, setActive] = useState<string | null>(null);
@@ -98,17 +99,28 @@ export function RoomThread({
     rec.ondataavailable = (e) => {
       if (e.data.size > 0) chunks.push(e.data);
     };
-    rec.onstop = () => {
+    rec.onstop = async () => {
       stream.getTracks().forEach((t) => t.stop());
       recorder.current = null;
       setRecordingSince(null);
+      const words = transcript.finish();
       const seconds = (Date.now() - started) / 1000;
       if (seconds < 0.8 || chunks.length === 0) return;
       const type = (rec.mimeType || mimeType || "audio/webm").split(";")[0];
       const ext = type.includes("mp4") ? "m4a" : type.includes("ogg") ? "ogg" : "webm";
       const file = new File(chunks, `Voice note ${Math.round(seconds)}s.${ext}`, { type });
-      setPicked((prev) => [...prev, { file, preview: URL.createObjectURL(file) }].slice(0, MAX_PHOTOS));
+      // Some phones can't transcribe and record at once, and the recording
+      // loses. Then the words are what's left: they go in the message box to
+      // send as text, rather than a silent note going out.
+      if (words && (await recordingIsSilent(file))) {
+        setDraft((d) => (d ? `${d} ${words}` : words));
+        setError("The recording came out silent on this phone, so your words are in the message box to send as text.");
+        return;
+      }
+      setPicked((prev) => [...prev, { file, preview: URL.createObjectURL(file), transcript: words || undefined }].slice(0, MAX_PHOTOS));
     };
+    // Written down while it records (src/lib/voice-note.ts).
+    const transcript = startTranscript();
     recorder.current = rec;
     rec.start();
     setRecordedFor(0);
@@ -187,6 +199,7 @@ export function RoomThread({
             fileName: files[i].file.name,
             mimeType: files[i].file.type,
             sizeBytes: files[i].file.size,
+            transcript: files[i].transcript,
           }));
         } catch (e) {
           setUploading(false);
@@ -270,9 +283,12 @@ export function RoomThread({
                   <div className="kin-attachments" data-count={Math.min(m.photos.length, 4)}>
                     {m.photos.map((p) =>
                       p.url && p.mimeType.startsWith("audio/") ? (
-                        <span key={p.id} className="kin-attachment-audio">
-                          <Icon name="mic" size="1rem" />
-                          <audio src={p.url} controls preload="metadata" aria-label={p.fileName} />
+                        <span key={p.id} className="kin-attachment-voice">
+                          <span className="kin-attachment-audio">
+                            <Icon name="mic" size="1rem" />
+                            <audio src={p.url} controls preload="metadata" aria-label={p.fileName} />
+                          </span>
+                          {p.transcript && <VoiceTranscript text={p.transcript} />}
                         </span>
                       ) : p.url && p.mimeType.startsWith("video/") ? (
                         <video key={p.id} className="kin-attachment-video" src={p.url} controls preload="metadata" playsInline aria-label={p.fileName} />
@@ -506,5 +522,15 @@ export function RoomThread({
         </p>
       )}
     </div>
+  );
+}
+
+/** A voice note's words, folded away under the player until asked for. */
+export function VoiceTranscript({ text }: { text: string }) {
+  return (
+    <details className="kin-voice-transcript">
+      <summary>Transcript</summary>
+      <p>{text}</p>
+    </details>
   );
 }

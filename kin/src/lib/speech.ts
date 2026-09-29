@@ -56,6 +56,9 @@ export function listen(
   onText: (text: string, final: boolean) => void,
   onError: (message: string) => void,
   onEnd: () => void,
+  /** Keep listening through pauses -- a voice note's transcript, rather than
+   * one sentence for Ask Kin. */
+  continuous = false,
 ): Listener | null {
   const Ctor = recognitionCtor();
   if (!Ctor) return null;
@@ -64,7 +67,7 @@ export function listen(
   // Undefined language lets the browser follow the device, which is right for
   // a household that may not speak the page's language at home.
   recognition.lang = typeof navigator !== "undefined" ? navigator.language : "en-US";
-  recognition.continuous = false;
+  recognition.continuous = continuous;
   recognition.interimResults = true;
   recognition.maxAlternatives = 1;
 

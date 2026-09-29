@@ -45,6 +45,8 @@ export type ChatAttachment = {
    * file in the app gets. Null only if signing failed, which the thread shows
    * as a file that is there but cannot be opened, rather than as nothing. */
   url: string | null;
+  /** A voice note's words (20260929170000), null when none were caught. */
+  transcript: string | null;
 };
 
 export type ChatPin = { messageId: string; pinnedBy: string; pinnedAt: string } | null;
@@ -117,7 +119,7 @@ export async function getChatThread(familyId: string, limit = 200): Promise<Chat
   const { data: files } = live.length
     ? await supabase
         .from("family_message_attachments")
-        .select("id, message_id, storage_path, file_name, mime_type, size_bytes, position")
+        .select("id, message_id, storage_path, file_name, mime_type, size_bytes, position, transcript")
         .in("message_id", live)
         .order("position")
     : { data: [] };
@@ -150,7 +152,7 @@ export async function getChatThread(familyId: string, limit = 200): Promise<Chat
   for (const f of files ?? []) {
     filesByMessage.set(f.message_id, [
       ...(filesByMessage.get(f.message_id) ?? []),
-      { id: f.id, fileName: f.file_name, mimeType: f.mime_type, sizeBytes: f.size_bytes, url: signed[f.storage_path] ?? null },
+      { id: f.id, fileName: f.file_name, mimeType: f.mime_type, sizeBytes: f.size_bytes, url: signed[f.storage_path] ?? null, transcript: f.transcript },
     ]);
   }
 

@@ -28,6 +28,8 @@ import { REACTIONS, amountIn, splitShoppingItems, firstUrl, type LinkPreview } f
 import { toast } from "@/components/toast";
 import { PhotoViewer } from "@/components/photo-viewer";
 import { SaveToJournalButton } from "@/components/save-to-journal";
+import { VoiceTranscript } from "@/components/room-thread";
+import { recordingIsSilent, startTranscript } from "@/lib/voice-note";
 import { ChatMediaView, MediaPicker } from "@/components/chat-media";
 import { chatMedia, mediaSummary } from "@/lib/chat-media";
 import { ThemePicker } from "@/components/chat-theme-picker";
@@ -314,9 +316,12 @@ function AttachmentView({ a, onOpenPhoto }: { a: ChatAttachment; onOpenPhoto: ()
   }
   if (a.mimeType.startsWith("audio/")) {
     return (
-      <span className="kin-attachment-audio">
-        <Icon name="mic" size="1rem" />
-        <audio src={a.url} controls preload="metadata" aria-label={a.fileName} />
+      <span className="kin-attachment-voice">
+        <span className="kin-attachment-audio">
+          <Icon name="mic" size="1rem" />
+          <audio src={a.url} controls preload="metadata" aria-label={a.fileName} />
+        </span>
+        {a.transcript && <VoiceTranscript text={a.transcript} />}
       </span>
     );
   }
@@ -384,7 +389,7 @@ export function ChatThread({
   const [editing, setEditing] = useState<{ id: string; body: string } | null>(null);
   const [replyingTo, setReplyingTo] = useState<ChatMessage | null>(null);
   /** Files picked and not yet sent, with a local preview for the images. */
-  const [picked, setPicked] = useState<{ file: File; preview: string | null }[]>([]);
+  const [picked, setPicked] = useState<{ file: File; preview: string | null; transcript?: string }[]>([]);
   const [albumFor, setAlbumFor] = useState<string[] | null>(null);
   const [uploading, setUploading] = useState(false);
   const [asking, setAsking] = useState(false);
@@ -506,18 +511,28 @@ export function ChatThread({
     rec.ondataavailable = (e) => {
       if (e.data.size > 0) chunks.push(e.data);
     };
-    rec.onstop = () => {
+    rec.onstop = async () => {
       stream.getTracks().forEach((t) => t.stop());
       recorder.current = null;
       setRecordingSince(null);
+      const words = transcript.finish();
       const seconds = (Date.now() - started) / 1000;
       // A tap that started and stopped at once is a mistake, not a message.
       if (seconds < 0.8 || chunks.length === 0) return;
       const type = rec.mimeType || mimeType || "audio/webm";
       const ext = type.includes("mp4") ? "m4a" : type.includes("ogg") ? "ogg" : "webm";
       const file = new File(chunks, `Voice note ${mmss(seconds).replace(":", "m")}s.${ext}`, { type: type.split(";")[0] });
-      setPicked((prev) => [...prev, { file, preview: null }].slice(0, 10));
+      // Some phones can't transcribe and record at once, and the recording
+      // loses: then the words go in the message box instead of a silent note.
+      if (words && (await recordingIsSilent(file))) {
+        setDraft((d) => (d ? `${d} ${words}` : words));
+        toast.info("The recording came out silent on this phone, so your words are in the message box to send as text.");
+        return;
+      }
+      setPicked((prev) => [...prev, { file, preview: null, transcript: words || undefined }].slice(0, 10));
     };
+    // Written down while it records (src/lib/voice-note.ts).
+    const transcript = startTranscript();
     recorder.current = rec;
     rec.start();
     setRecordedFor(0);
@@ -664,7 +679,7 @@ export function ChatThread({
       // Files first, straight to Storage. The message is only written once
       // every one of them has landed, so a thread never shows "here's the
       // photo" with the photo still on its way -- or never arriving.
-      let attachments: { storagePath: string; fileName: string; mimeType: string; sizeBytes: number }[] = [];
+      let attachments: { storagePath: string; fileName: string; mimeType: string; sizeBytes: number; transcript?: string }[] = [];
       if (files.length > 0) {
         setUploading(true);
         try {
@@ -674,6 +689,7 @@ export function ChatThread({
             fileName: files[i].file.name,
             mimeType: files[i].file.type,
             sizeBytes: files[i].file.size,
+            transcript: files[i].transcript,
           }));
         } catch (e) {
           setUploading(false);

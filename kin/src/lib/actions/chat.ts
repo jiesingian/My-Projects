@@ -17,7 +17,7 @@ const MAX_LENGTH = 4000;
 /** Say something to the household. Mentions are passed as member ids the
  * composer resolved, not parsed back out of the text — a name is not a
  * reliable key, and two people here can share one. */
-export type OutgoingAttachment = { storagePath: string; fileName: string; mimeType: string; sizeBytes: number };
+export type OutgoingAttachment = { storagePath: string; fileName: string; mimeType: string; sizeBytes: number; transcript?: string };
 
 /** At most this many files on one message. Beyond it, a message stops being a
  * message and becomes an album, which is what Journal is for. */
@@ -71,6 +71,8 @@ export async function sendMessageAction(input: {
         file_name: a.fileName.slice(0, 255) || "file",
         mime_type: a.mimeType || "application/octet-stream",
         size_bytes: a.sizeBytes,
+        // A voice note's words, written on the sender's phone while recording.
+        transcript: a.mimeType.startsWith("audio/") && a.transcript ? a.transcript.trim().slice(0, 5000) || null : null,
         position,
       })),
     ).select("id, mime_type");

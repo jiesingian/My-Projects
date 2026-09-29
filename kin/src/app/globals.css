@@ -5985,3 +5985,9 @@ button.kin-initial:focus-visible {
 /* After joining through a connection link: the one step left. */
 .kin-connect-reminder { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem 0.75rem; margin: 0.75rem var(--gutter) 0; padding: 0.75rem 0.875rem; border-radius: 14px; font-size: 0.875rem; background: color-mix(in srgb, var(--color-accent) 12%, transparent); }
 .kin-connect-reminder span { flex: 1 1 12rem; }
+
+/* A voice note's transcript, folded under its player. */
+.kin-attachment-voice { display: flex; flex-direction: column; gap: 0.25rem; grid-column: 1 / -1; }
+.kin-voice-transcript { font-size: 0.84375rem; line-height: 1.45; padding: 0 0.25rem; }
+.kin-voice-transcript summary { cursor: pointer; min-height: 1.75rem; display: flex; align-items: center; font-size: 0.78125rem; font-weight: 600; color: var(--color-accent-700); }
+.kin-voice-transcript p { margin: 0.125rem 0 0; white-space: pre-wrap; }
