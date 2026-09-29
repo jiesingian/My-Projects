@@ -3,6 +3,7 @@ import { getCurrentMember } from "@/lib/session";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import { readAccess, FREE_STORAGE_BYTES, PLUS_STORAGE_BYTES } from "@/lib/access";
+import { HIGHLIGHT_PHOTO_BYTES, HIGHLIGHT_VIDEO_BYTES } from "@/lib/highlights";
 import {
   getValidDriveAccessToken,
   ensureDriveFolderStructure,
@@ -12,7 +13,7 @@ import {
 } from "@/lib/google-drive";
 
 type SessionRequest = {
-  kind: "journal" | "journal_personal" | "document" | "avatar" | "family_background" | "recipe" | "routine" | "chat";
+  kind: "journal" | "journal_personal" | "document" | "avatar" | "family_background" | "recipe" | "routine" | "chat" | "highlight";
   fileName: string;
   mimeType: string;
   fileSize: number;
@@ -25,6 +26,10 @@ type SessionRequest = {
  * this session is the last point before a Drive/Storage upload URL is
  * handed out. */
 const UPLOAD_LIMITS: Record<SessionRequest["kind"], { types: RegExp; maxBytes: number; label: string }> = {
+  // A highlight lasts a day, so it is kept small: a photo, or a video of up
+  // to 30 seconds (the app checks the length before asking). Photos are
+  // held to 15 MB below.
+  highlight: { types: /^(image|video)\//, maxBytes: HIGHLIGHT_VIDEO_BYTES, label: "a photo up to 15MB or a video up to 25MB" },
   journal: { types: /^(image|video)\//, maxBytes: 200 * 1024 * 1024, label: "a photo or video, up to 200MB" },
   journal_personal: { types: /^(image|video)\//, maxBytes: 200 * 1024 * 1024, label: "a photo or video, up to 200MB" },
   recipe: { types: /^image\//, maxBytes: 15 * 1024 * 1024, label: "a photo, up to 15MB" },
@@ -145,6 +150,22 @@ export async function POST(request: Request) {
   // <img> where a Drive link does not -- the same reason dish photos stay
   // here. The random segment keeps two photos picked in the same
   // millisecond, which a multi-select does, from landing on one path.
+  // Highlights: Storage only, under the household's own folder, where the
+  // documents bucket's policies keep them to the household. Gone in 24 hours
+  // (20260929100000_highlights.sql).
+  if (kind === "highlight") {
+    if (mimeType.startsWith("image/") && fileSize > HIGHLIGHT_PHOTO_BYTES) {
+      return NextResponse.json({ error: "That photo is too large for a highlight — the limit is 15MB." }, { status: 400 });
+    }
+    const refused = await storageRefusal();
+    if (refused) return refused;
+    return NextResponse.json({
+      provider: "supabase",
+      bucket: "documents",
+      path: `${me.family_id}/highlights/${Date.now()}-${crypto.randomUUID().slice(0, 8)}-${fileName.replace(/[^\w.-]+/g, "_").slice(-80)}`,
+    });
+  }
+
   if (kind === "chat") {
     const refused = await storageRefusal();
     if (refused) return refused;

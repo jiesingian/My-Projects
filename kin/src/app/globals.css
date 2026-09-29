@@ -5910,3 +5910,37 @@ button.kin-initial:focus-visible {
 .kin-threadrow-badge { flex: none; min-width: 1.375rem; height: 1.375rem; padding: 0 0.4375rem; border-radius: 999px; display: inline-grid; place-items: center; font-size: 0.75rem; font-weight: 700; color: #fff; background: var(--color-accent-700); }
 .kin-threadlist-more { display: inline-flex; align-items: center; gap: 0.4375rem; margin-top: 1rem; min-height: 2.75rem; font-size: 0.84375rem; font-weight: 600; color: var(--color-accent-700); text-decoration: none; }
 .kin-chat-back { display: inline-flex; align-items: center; gap: 0.25rem; min-height: 1.75rem; font: 600 0.8125rem/1 var(--font-heading); letter-spacing: .02em; color: var(--color-accent-700); margin-bottom: 0.3125rem; text-decoration: none; }
+
+
+/* Highlights (29 September): the button beside the call buttons, the row of
+   people in its sheet, and the full-screen viewer. A lit ring means
+   something new, as on every stories app. */
+.kin-hl-button { position: relative; }
+.kin-hl-button[data-new]::after { content: ""; position: absolute; inset: -3px; border-radius: 999px; padding: 2px; background: conic-gradient(#f9ce34, #ee2a7b, #6228d7, #f9ce34); -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0); -webkit-mask-composite: xor; mask-composite: exclude; pointer-events: none; }
+.kin-hl-row { display: flex; gap: 0.875rem; overflow-x: auto; scrollbar-width: none; padding: 0.25rem 0.125rem 0.5rem; }
+.kin-hl-row::-webkit-scrollbar { display: none; }
+.kin-hl-person { flex: none; display: flex; flex-direction: column; align-items: center; gap: 0.25rem; width: 4.5rem; background: none; border: 0; padding: 0; color: var(--color-text); cursor: pointer; }
+.kin-hl-person:disabled { opacity: 0.6; }
+.kin-hl-add { display: grid; place-items: center; width: 62px; height: 62px; border-radius: 999px; border: 2px dashed var(--color-divider); color: var(--color-accent); }
+.kin-hl-ring { display: grid; place-items: center; width: 62px; height: 62px; border-radius: 999px; background: var(--color-divider); padding: 3px; box-sizing: border-box; }
+.kin-hl-ring[data-new] { background: conic-gradient(#f9ce34, #ee2a7b, #6228d7, #f9ce34); }
+.kin-hl-ring > * { box-shadow: 0 0 0 2px var(--color-surface, #fff); border-radius: 999px; }
+.kin-hl-name { font-size: 0.75rem; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.kin-hl-left { font-size: 0.625rem; color: var(--color-neutral-600); margin-top: -0.125rem; }
+.kin-hl-spinner { width: 1.25rem; height: 1.25rem; border-radius: 999px; border: 2px solid currentColor; border-right-color: transparent; animation: kin-hl-spin 800ms linear infinite; }
+@keyframes kin-hl-spin { to { transform: rotate(1turn); } }
+.kin-hl-viewer { position: fixed; inset: 0; z-index: 1000; background: #000; color: #fff; display: flex; flex-direction: column; }
+.kin-hl-bars { display: flex; gap: 3px; padding: calc(env(safe-area-inset-top, 0px) + 0.5rem) 0.625rem 0; position: relative; z-index: 2; }
+.kin-hl-bar { flex: 1; height: 2.5px; border-radius: 2px; background: rgb(255 255 255 / 0.35); overflow: hidden; }
+.kin-hl-bar > span { display: block; height: 100%; background: #fff; transform-origin: left; }
+.kin-hl-top { display: flex; align-items: center; gap: 0.5rem; padding: 0.5rem 0.625rem; position: relative; z-index: 2; }
+.kin-hl-who { flex: 1; min-width: 0; font: 600 0.875rem/1.2 var(--font-heading); display: flex; flex-direction: column; }
+.kin-hl-who > span { font: 400 0.6875rem/1.2 var(--font-body, inherit); opacity: 0.75; }
+.kin-hl-action { background: rgb(255 255 255 / 0.14); color: #fff; border: 0; border-radius: 999px; min-height: 2.25rem; min-width: 2.25rem; padding: 0 0.75rem; font: 600 0.8125rem/1 inherit; display: grid; place-items: center; cursor: pointer; }
+.kin-hl-stage { position: absolute; inset: 0; display: grid; place-items: center; }
+.kin-hl-stage img, .kin-hl-stage video { max-width: 100%; max-height: 100%; object-fit: contain; }
+.kin-hl-missing { opacity: 0.7; font-size: 0.875rem; }
+.kin-hl-tap { position: absolute; top: calc(env(safe-area-inset-top, 0px) + 4.5rem); bottom: 0; width: 50%; background: none; border: 0; padding: 0; z-index: 1; -webkit-tap-highlight-color: transparent; cursor: pointer; }
+.kin-hl-tap[data-side="prev"] { left: 0; width: 35%; }
+.kin-hl-tap[data-side="next"] { right: 0; width: 65%; }
+@media (prefers-reduced-motion: reduce) { .kin-hl-spinner { animation-duration: 2400ms; } }

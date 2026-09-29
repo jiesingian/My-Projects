@@ -14,6 +14,54 @@ export type Database = {
   }
   public: {
     Tables: {
+      highlights: {
+        Row: {
+          created_at: string
+          duration_seconds: number | null
+          expires_at: string
+          family_id: string
+          id: string
+          media_type: string
+          member_id: string
+          storage_path: string
+        }
+        Insert: {
+          created_at?: string
+          duration_seconds?: number | null
+          expires_at?: string
+          family_id: string
+          id?: string
+          media_type: string
+          member_id: string
+          storage_path: string
+        }
+        Update: {
+          created_at?: string
+          duration_seconds?: number | null
+          expires_at?: string
+          family_id?: string
+          id?: string
+          media_type?: string
+          member_id?: string
+          storage_path?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "highlights_family_id_fkey"
+            columns: ["family_id"]
+            isOneToOne: false
+            referencedRelation: "families"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "highlights_member_id_fkey"
+            columns: ["member_id"]
+            isOneToOne: false
+            referencedRelation: "members"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       access_codes: {
         Row: {
           code: string
@@ -5465,6 +5513,11 @@ export type Database = {
       }
       use_kin_ai: { Args: never; Returns: Json }
       family_storage_bytes: { Args: never; Returns: number }
+      expired_highlights: {
+        Args: never
+        Returns: { id: string; storage_path: string }[]
+      }
+      forget_expired_highlights: { Args: { p_ids: string[] }; Returns: number }
       due_pantry_reminders: {
         Args: { p_secret: string; p_now?: string }
         Returns: { key: string; member_id: string; endpoint: string; p256dh: string; auth: string; title: string; body: string; url: string }[]
