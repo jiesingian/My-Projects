@@ -164,6 +164,35 @@ export type Database = {
           },
         ]
       }
+      chat_themes: {
+        Row: {
+          set_by: string | null
+          theme: string
+          topic: string
+          updated_at: string
+        }
+        Insert: {
+          set_by?: string | null
+          theme: string
+          topic: string
+          updated_at?: string
+        }
+        Update: {
+          set_by?: string | null
+          theme?: string
+          topic?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "chat_themes_set_by_fkey"
+            columns: ["set_by"]
+            isOneToOne: false
+            referencedRelation: "members"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       today_marks: {
         Row: { family_id: string; item_key: string; day: string; state: string; marked_by: string | null; created_at: string }
         Insert: { family_id: string; item_key: string; day: string; state: string; marked_by?: string | null; created_at?: string }

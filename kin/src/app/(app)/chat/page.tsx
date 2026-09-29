@@ -2,7 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { Icon } from "@/components/icons";
 import { getCurrentMember } from "@/lib/session";
-import { getChatMembers, getChatThread, getChatPin } from "@/lib/queries/chat";
+import { getChatMembers, getChatThread, getChatPin, getHouseholdChatTheme } from "@/lib/queries/chat";
 import { ChatThread } from "@/components/chat-thread";
 import { shortNames } from "@/lib/format";
 import { CallButtons } from "@/components/call-buttons";
@@ -15,14 +15,19 @@ export default async function ChatPage({ searchParams }: { searchParams: Promise
   // Message, on a profile, lands here addressed to that person.
   const { to } = await searchParams;
 
-  const [members, thread, pin] = await Promise.all([getChatMembers(me.family_id), getChatThread(me.family_id), getChatPin(me.family_id)]);
+  const [members, thread, pin, theme] = await Promise.all([
+    getChatMembers(me.family_id),
+    getChatThread(me.family_id),
+    getChatPin(me.family_id),
+    getHouseholdChatTheme(me.family_id),
+  ]);
   // Two people in one house can share a first name; the tag has to tell them
   // apart, and the same label is what the message text carries.
   const labels = shortNames(members.map((m) => m.name));
   const labelled = members.map((m, i) => ({ ...m, label: labels[i] }));
 
   return (
-    <div className="kin-chatcolumn" style={{ padding: "1.125rem var(--gutter) 0.5rem" }}>
+    <div className="kin-chatcolumn" data-chat-theme={theme} style={{ padding: "1.125rem var(--gutter) 0.5rem" }}>
       {/* The call buttons drop under the title when the two would leave the
           title less than about eight characters of its own, at large text on a
           small phone, rather than squeezing it one letter a line. */}
@@ -43,7 +48,7 @@ export default async function ChatPage({ searchParams }: { searchParams: Promise
         <CallButtons />
       </div>
 
-      <ChatThread me={me.id} familyId={me.family_id} members={labelled} initial={thread} pin={pin} addressTo={to} gifReady={!!process.env.GIPHY_API_KEY} />
+      <ChatThread theme={theme} me={me.id} familyId={me.family_id} members={labelled} initial={thread} pin={pin} addressTo={to} gifReady={!!process.env.GIPHY_API_KEY} />
     </div>
   );
 }
