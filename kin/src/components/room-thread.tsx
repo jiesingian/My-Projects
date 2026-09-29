@@ -17,6 +17,7 @@ import { REACTIONS } from "@/lib/chat";
 import { familyClock, familyDateLong } from "@/lib/time";
 import { Icon } from "@/components/icons";
 import { PhotoViewer } from "@/components/photo-viewer";
+import { SaveToJournalButton } from "@/components/save-to-journal";
 import { uploadFileDirect } from "@/lib/upload-client";
 import type { RoomMessage } from "@/lib/queries/chat-rooms";
 import type { RoomPhoto } from "@/lib/actions/chat-rooms";
@@ -39,6 +40,7 @@ export function RoomThread({
   placeholder,
   emptyText,
   canWrite = true,
+  saveFrom = "chat",
   canReact = canWrite,
   readOnlyNote = "You’re no longer connected, so nothing new can be sent here.",
   seenAt = null,
@@ -49,6 +51,8 @@ export function RoomThread({
   placeholder: string;
   emptyText: string;
   canWrite?: boolean;
+  /** What a photo saved to the Journal says it came from ("Family", a name). */
+  saveFrom?: string;
   /** An announcement channel lets everyone react, but only admins post. */
   canReact?: boolean;
   /** What shows where the message box would be, when writing is closed. */
@@ -379,6 +383,10 @@ export function RoomThread({
           startIndex={Math.max(0, viewing.photos.filter((p) => p.url).findIndex((p) => p.id === viewing.id))}
           onClose={() => setViewing(null)}
           label="Photo from chat"
+          footer={(i) => {
+            const p = viewing.photos.filter((x) => x.url)[i];
+            return p?.url ? <SaveToJournalButton url={p.url} fileName={p.fileName} from={saveFrom} /> : null;
+          }}
         />
       )}
 

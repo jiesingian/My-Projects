@@ -16,6 +16,7 @@ function readable(message: string): string {
   if (message.includes("not in your family tree")) return "That person isn't in your family tree.";
   if (message.includes("no longer open")) return "That request has already been answered.";
   if (message.includes("not yours to change")) return "That connection isn't yours to change.";
+  if (message.includes("Only a parent")) return "Only a parent or another adult of the child's household can do that.";
   if (message.includes("grown-ups")) return "Codes are for grown-ups. You can still connect with anyone in your family.";
   return "That didn't work. Try again in a moment.";
 }
@@ -63,5 +64,21 @@ export async function newConnectionCodeAction(): Promise<ActionState> {
   if (!isGrownUp(me.role)) return { error: readable("grown-ups") };
   const supabase = await createClient();
   const { error } = await supabase.rpc("my_connection_code", { p_new: true });
+  return error ? { error: readable(error.message) } : done();
+}
+
+/** A parent's yes or no to their child's new connection (20260929163000). */
+export async function guardianDecideConnectionAction(id: string, approve: boolean): Promise<ActionState> {
+  await requireCurrentMember();
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("guardian_decide_connection", { p_id: id, p_approve: approve });
+  return error ? { error: readable(error.message) } : done();
+}
+
+/** A parent ending one of their child's connections. */
+export async function guardianRemoveConnectionAction(id: string): Promise<ActionState> {
+  await requireCurrentMember();
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("guardian_remove_connection", { p_id: id });
   return error ? { error: readable(error.message) } : done();
 }

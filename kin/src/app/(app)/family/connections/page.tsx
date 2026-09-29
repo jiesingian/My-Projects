@@ -2,7 +2,7 @@ import { redirect } from "next/navigation";
 import { getCurrentMember } from "@/lib/session";
 import { DetailHeader } from "@/components/hub-header";
 import { ConnectionsManager } from "@/components/connections-manager";
-import { getConnectionCandidates, getConnections } from "@/lib/queries/connections";
+import { getChildrenConnections, getConnectionCandidates, getConnections } from "@/lib/queries/connections";
 import { isGrownUp } from "@/lib/roles";
 import { createClient } from "@/lib/supabase/server";
 
@@ -20,10 +20,11 @@ export default async function ConnectionsPage({ searchParams }: { searchParams: 
 
   const grownUp = isGrownUp(me.role);
   const supabase = await createClient();
-  const [connections, candidates, ownCode] = await Promise.all([
+  const [connections, candidates, ownCode, childConnections] = await Promise.all([
     getConnections(),
     getConnectionCandidates(),
     grownUp ? supabase.rpc("my_connection_code").then((r) => r.data ?? null) : Promise.resolve(null),
+    grownUp ? getChildrenConnections() : Promise.resolve([]),
   ]);
 
   return (
@@ -40,6 +41,7 @@ export default async function ConnectionsPage({ searchParams }: { searchParams: 
           candidates={candidates}
           ownCode={ownCode}
           canUseCodes={grownUp}
+          childConnections={childConnections}
           prefillCode={code && /^[A-Za-z2-9]{8}$/.test(code) ? code.toUpperCase() : ""}
         />
       </div>

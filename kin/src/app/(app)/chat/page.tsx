@@ -22,7 +22,13 @@ export default async function ChatListPage({ searchParams }: { searchParams: Pro
   return (
     <div style={{ padding: "1.125rem var(--gutter) 1.375rem" }}>
       <div style={{ font: "600 0.8125rem/1 var(--font-heading)", letterSpacing: ".02em", color: "var(--color-accent-700)", marginBottom: "0.3125rem" }}>CHAT</div>
-      <h2 style={{ fontSize: "1.5rem", margin: "0 0 0.875rem" }}>Conversations</h2>
+      <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", margin: "0 0 0.875rem" }}>
+        <h2 style={{ fontSize: "1.5rem", margin: 0, flex: 1 }}>Conversations</h2>
+        <Link href="/chat/search" className="kin-chat-albums" aria-label="Search all chats">
+          <Icon name="search" size={18} />
+          <span>Search</span>
+        </Link>
+      </div>
 
       <ul className="kin-threadlist">
         {threads.map((t) => (

@@ -33,6 +33,7 @@ export default async function FamilyRoomPage() {
         {reach} Everyone in those households can read and write here.
       </p>
       <RoomThread
+        saveFrom="the Family chat"
         room={{ kind: "family" }}
         messages={messages}
         topic={`family-tree:${me.family_id}`}

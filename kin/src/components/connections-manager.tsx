@@ -14,9 +14,11 @@ import {
   requestConnectionAction,
   requestConnectionByCodeAction,
   respondConnectionAction,
+  guardianDecideConnectionAction,
+  guardianRemoveConnectionAction,
 } from "@/lib/actions/connections";
 import type { ActionState } from "@/lib/actions/auth";
-import type { Connection, ConnectionCandidate } from "@/lib/queries/connections";
+import type { ChildConnection, Connection, ConnectionCandidate } from "@/lib/queries/connections";
 
 const initialState: ActionState = { error: null };
 
@@ -30,7 +32,9 @@ export function ConnectionsManager({
   ownCode,
   canUseCodes,
   prefillCode,
+  childConnections = [],
 }: {
+  childConnections?: ChildConnection[];
   connections: Connection[];
   candidates: ConnectionCandidate[];
   ownCode: string | null;
@@ -53,6 +57,9 @@ export function ConnectionsManager({
   const incoming = connections.filter((c) => c.status === "pending" && c.incoming);
   const outgoing = connections.filter((c) => c.status === "pending" && !c.incoming);
   const accepted = connections.filter((c) => c.status === "accepted");
+  const awaitingParent = connections.filter((c) => c.status === "awaiting_guardian");
+  const kidsWaiting = childConnections.filter((c) => c.status === "awaiting_guardian");
+  const kidsLive = childConnections.filter((c) => c.status !== "awaiting_guardian");
 
   const share = async () => {
     if (!ownCode) return;
@@ -98,7 +105,31 @@ export function ConnectionsManager({
         </>
       )}
 
-      <div style={{ ...eyebrow, marginTop: incoming.length ? undefined : 0 }}>YOUR CONNECTIONS · {accepted.length}</div>
+      {kidsWaiting.length > 0 && (
+        <>
+          <div style={{ ...eyebrow, marginTop: incoming.length ? undefined : 0 }}>YOUR CHILD WANTS TO CONNECT · {kidsWaiting.length}</div>
+          {kidsWaiting.map((c) => (
+            <Blueprint key={c.id} className="bg-[var(--color-accent-100)]" style={{ padding: "0.75rem", marginBottom: "0.625rem", display: "flex", alignItems: "center", gap: "0.75rem", flexWrap: "wrap" }}>
+              <span style={{ flex: "1 1 10rem", minWidth: 0 }}>
+                <span style={{ font: "600 0.9375rem/1.2 var(--font-heading)", display: "block" }}>
+                  {c.childName.split(" ")[0]} and {c.otherName}
+                </span>
+                <span style={sub}>{c.otherHousehold ?? ""} · they&rsquo;ve both said yes; it needs yours</span>
+              </span>
+              <span style={{ display: "flex", gap: "0.5rem" }}>
+                <button type="button" className="btn btn-primary" disabled={pending} onClick={() => run(() => guardianDecideConnectionAction(c.id, true))}>
+                  Allow
+                </button>
+                <button type="button" className="btn btn-secondary" disabled={pending} onClick={() => run(() => guardianDecideConnectionAction(c.id, false))}>
+                  Don&rsquo;t allow
+                </button>
+              </span>
+            </Blueprint>
+          ))}
+        </>
+      )}
+
+      <div style={{ ...eyebrow, marginTop: incoming.length || kidsWaiting.length ? undefined : 0 }}>YOUR CONNECTIONS · {accepted.length}</div>
       {accepted.length === 0 ? (
         <p style={{ ...sub, margin: 0 }}>No one yet. Ask someone below.</p>
       ) : (
@@ -130,6 +161,59 @@ export function ConnectionsManager({
             </button>
           </div>
         ))
+      )}
+
+      {awaitingParent.length > 0 && (
+        <>
+          <div style={eyebrow}>WAITING FOR A PARENT · {awaitingParent.length}</div>
+          {awaitingParent.map((c) => (
+            <div key={c.id} style={row}>
+              <Avatar url={c.avatarUrl} initials={initials(who(c))} label={who(c)} size={36} clickable={false} />
+              <span style={{ flex: "1 1 8rem", minWidth: 0 }}>
+                <span style={{ font: "600 0.9375rem/1.1 var(--font-heading)", display: "block" }}>{who(c)}</span>
+                <span style={sub}>You&rsquo;ve both said yes. A parent needs to allow it too.</span>
+              </span>
+              <button type="button" className="btn btn-ghost" disabled={pending} onClick={() => run(() => removeConnectionAction(c.id))}>
+                Cancel
+              </button>
+            </div>
+          ))}
+        </>
+      )}
+
+      {kidsLive.length > 0 && (
+        <>
+          <div style={eyebrow}>YOUR CHILDREN&rsquo;S CONNECTIONS · {kidsLive.length}</div>
+          {kidsLive.map((c) => (
+            <div key={c.id} style={row}>
+              <span style={{ flex: "1 1 10rem", minWidth: 0 }}>
+                <span style={{ font: "600 0.9375rem/1.1 var(--font-heading)", display: "block" }}>
+                  {c.childName.split(" ")[0]} · {c.otherName}
+                </span>
+                <span style={sub}>
+                  {c.otherHousehold ?? ""}
+                  {c.status === "pending" ? " · asked, not answered yet" : ""}
+                </span>
+              </span>
+              <button
+                type="button"
+                className="btn btn-ghost"
+                disabled={pending}
+                onClick={async () => {
+                  const ok = await confirm({
+                    title: `End ${c.childName.split(" ")[0]}'s connection with ${c.otherName}?`,
+                    description: "They'll stop being able to message each other one to one.",
+                    confirmLabel: "End it",
+                    danger: true,
+                  });
+                  if (ok) run(() => guardianRemoveConnectionAction(c.id));
+                }}
+              >
+                Remove
+              </button>
+            </div>
+          ))}
+        </>
       )}
 
       {outgoing.length > 0 && (

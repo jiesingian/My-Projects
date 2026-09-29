@@ -5979,3 +5979,5 @@ button.kin-initial:focus-visible {
 .kin-threadrow-muted { flex: none; font-size: 0.75rem; }
 .kin-threadrow-badge[data-muted] { background: var(--color-neutral-500); }
 .kin-threadlist-actions { display: flex; flex-wrap: wrap; gap: 0 1.25rem; }
+.kin-search-hit { font-size: 0.875rem; color: var(--color-neutral-700, var(--color-text)); line-height: 1.4; }
+.kin-search-hit mark { background: color-mix(in srgb, var(--color-accent) 25%, transparent); color: inherit; border-radius: 3px; padding: 0 1px; }

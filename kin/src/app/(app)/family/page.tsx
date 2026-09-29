@@ -36,7 +36,7 @@ import { FamilyTreeEditor } from "@/components/family-tree-editor";
 import { AddMeToTreeButton } from "@/components/add-me-to-tree-button";
 import { formatAge, initials } from "@/lib/format";
 import { isGone } from "@/lib/member-status";
-import { getIncomingConnectionCount } from "@/lib/queries/connections";
+import { getGuardianWaitingCount, getIncomingConnectionCount } from "@/lib/queries/connections";
 
 const SEGMENTS = ["profile", "health", "documents", "tree", "quicklinks"] as const;
 type Seg = (typeof SEGMENTS)[number];
@@ -89,7 +89,7 @@ async function ProfilePane({ familyId, isOrganiser, myRole }: { familyId: string
   const [allMembers, { backgroundUrl, about, addresses, backgroundPhotos }, asking] = await Promise.all([
     getMembers(familyId),
     getFamilyProfile(familyId),
-    getIncomingConnectionCount(),
+    getIncomingConnectionCount().then(async (n) => n + (isGrownUp(myRole) ? await getGuardianWaitingCount() : 0)),
   ]);
   const pending = allMembers.filter((m) => m.status === "pending");
   const removed = allMembers.filter((m) => m.status === "removed");
