@@ -305,6 +305,53 @@ jobs:
             # checks ran, so a green result can never merge a commit it did
             # not test. A conflict makes this fail, which is correct and
             # visible; it does not stop the sweep looking at the others.
+            # A migration named earlier than one already on main would merge
+            # green and then be refused by migrate.mjs, which keeps "order of
+            # file names" and "order they ran" the same so dev can be rebuilt
+            # from the directory. That happened three times on 28-29 September,
+            # each time two sessions merging migrations the same day, each time
+            # found only after the merge and fixed by hand with a rename. The
+            # check has to live here, at the moment of merging: a check on the
+            # PR itself goes stale the instant some other PR merges first.
+            gh api "repos/$REPO/pulls/$PR/files?per_page=100" \
+              --jq '.[] | select(.status == "added") | .filename' \
+              | grep -E '^kin/supabase/migrations/[0-9]{14}_.*\.sql$' > /tmp/added-migrations.txt || true
+            if [ -s /tmp/added-migrations.txt ]; then
+              NEWEST=$(gh api "repos/$REPO/contents/kin/supabase/migrations?ref=main" --jq '.[].name' \
+                | grep -oE '^[0-9]{14}' | sort | tail -1 || true)
+              LATE=""
+              while IFS= read -r F; do
+                V=$(basename "$F" | cut -c1-14)
+                if [ -n "$NEWEST" ] && [[ ! "$V" > "$NEWEST" ]]; then LATE="$LATE $F"; fi
+              done < /tmp/added-migrations.txt
+              if [ -n "$LATE" ]; then
+                echo "PR #$PR: not merging — migration(s) named no later than $NEWEST, main's newest:$LATE"
+                MARK="<!-- automerge:migration-order:$SHA -->"
+                if ! gh api "repos/$REPO/issues/$PR/comments?per_page=100" --jq '.[].body' | grep -qF "$MARK"; then
+                  # Now, or one second past main's newest if that is later:
+                  # sessions have dated migrations ahead of the clock before.
+                  NEXT=$(date -u +%Y%m%d%H%M%S)
+                  if [[ ! "$NEXT" > "$NEWEST" ]]; then NEXT=$((NEWEST + 1)); fi
+                  {
+                    echo "$MARK"
+                    echo "**Not merging yet: a migration here is dated before one already on main.**"
+                    echo
+                    echo "Main's newest migration is \`$NEWEST\`. Migrate applies files in name order and refuses one older than what has already run, so this would merge and then stop both databases."
+                    echo
+                    echo "Rename it with a later timestamp and push; everything else is unchanged:"
+                    echo
+                    for F in $LATE; do
+                      echo "    git mv $F $(dirname "$F")/${NEXT}_$(basename "$F" | cut -c16-)"
+                    done
+                    echo
+                    echo "_Posted by automerge.yml._"
+                  } > /tmp/late-comment.md
+                  gh pr comment "$PR" --repo "$REPO" --body-file /tmp/late-comment.md || true
+                fi
+                return 0
+              fi
+            fi
+
             if gh pr merge "$PR" --repo "$REPO" --squash --match-head-commit "$SHA"; then
               echo "Merged PR #$PR at $SHA."
 
