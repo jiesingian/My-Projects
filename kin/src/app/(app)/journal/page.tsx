@@ -93,7 +93,7 @@ async function FeedPane({ meId, familyId, inviteCode, canManage }: { meId: strin
 
 /** Public: what the people you are connected with chose to share with their
  * connections, and what you did. Row-level security decides what is in here
- * (20260929100000); nobody who is not connected with the writer can read it. */
+ * (20260929100200); nobody who is not connected with the writer can read it. */
 async function PublicPane({ personId, familyId }: { personId: string; familyId: string }) {
   const fmtDate = await familyDate();
   const [entries, connections] = await Promise.all([getPublicFeed(personId, familyId), getConnections()]);

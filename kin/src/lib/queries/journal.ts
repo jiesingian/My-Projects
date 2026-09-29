@@ -347,7 +347,7 @@ export type PublicFeedEntry = {
 
 /** The Public feed: entries marked Public by the people you are connected
  * with, and your own. Row-level security lets a reader see a Public entry only
- * when they are connected with its writer (20260929100000); the filter below
+ * when they are connected with its writer (20260929100200); the filter below
  * also drops the household's own Public entries whose writer you are not
  * connected with -- the household can see those anyway, but in Household,
  * not here. Names come from my_connections(), which gives one only for a

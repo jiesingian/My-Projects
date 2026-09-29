@@ -81,7 +81,7 @@ export async function getFamilyFeed(familyId: string, meId?: string): Promise<Fe
 
   // Only our household and the households linked with it. Row-level security
   // also lets a reader see entries made Public by people they are connected
-  // with (20260929100000) -- those belong in the Public feed, not here, even
+  // with (20260929100200) -- those belong in the Public feed, not here, even
   // when they happen to be shared with relatives too.
   const { data: links } = await supabase.from("family_links").select("requester_family_id, addressee_family_id").eq("status", "accepted");
   const feedFamilies = new Set([familyId, ...(links ?? []).flatMap((l) => [l.requester_family_id, l.addressee_family_id])]);
