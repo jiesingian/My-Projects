@@ -29,6 +29,8 @@ import { toast } from "@/components/toast";
 import { PhotoViewer } from "@/components/photo-viewer";
 import { ChatMediaView, MediaPicker } from "@/components/chat-media";
 import { chatMedia, mediaSummary } from "@/lib/chat-media";
+import { ThemePicker } from "@/components/chat-theme-picker";
+import { setHouseholdChatThemeAction } from "@/lib/actions/chat-theme";
 import Link from "next/link";
 
 // Rendered from the same list the action checks against, so a reaction the
@@ -348,6 +350,7 @@ export function ChatThread({
   pin,
   addressTo,
   gifReady = false,
+  theme = "default",
 }: {
   me: string;
   familyId: string;
@@ -359,6 +362,8 @@ export function ChatThread({
   addressTo?: string;
   /** GIF search is on: GIPHY_API_KEY is set. Stickers need nothing. */
   gifReady?: boolean;
+  /** The chat's theme, the same for everyone in it (chat_themes). */
+  theme?: string;
 }) {
   const router = useRouter();
   // The thread itself is the server's; this component keeps only what the
@@ -378,6 +383,7 @@ export function ChatThread({
   const [asking, setAsking] = useState(false);
   const [trayOpen, setTrayOpen] = useState(false);
   const [mediaOpen, setMediaOpen] = useState(false);
+  const [themeOpen, setThemeOpen] = useState(false);
   const [recordingSince, setRecordingSince] = useState<number | null>(null);
   const [recordedFor, setRecordedFor] = useState(0);
   const recorder = useRef<MediaRecorder | null>(null);
@@ -1180,6 +1186,16 @@ export function ChatThread({
         )}
 
         {mediaOpen && <MediaPicker gifReady={gifReady} onSend={sendMedia} onClose={() => setMediaOpen(false)} />}
+        {themeOpen && (
+          <ThemePicker
+            current={theme}
+            onPick={(id) => {
+              setThemeOpen(false);
+              act(() => setHouseholdChatThemeAction(id));
+            }}
+            onClose={() => setThemeOpen(false)}
+          />
+        )}
 
         {asking && <PollBuilder onSend={askPoll} onCancel={() => setAsking(false)} busy={uploading} />}
 
@@ -1280,6 +1296,9 @@ export function ChatThread({
             </button>
             <button type="button" className="chip" onClick={() => { setTrayOpen(false); setMediaOpen(true); }} disabled={uploading}>
               <span aria-hidden="true">🙂</span> Sticker or GIF
+            </button>
+            <button type="button" className="chip" onClick={() => { setTrayOpen(false); setThemeOpen(true); }}>
+              <span aria-hidden="true">🎨</span> Chat theme
             </button>
             <button
               type="button"

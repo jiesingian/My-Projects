@@ -2,6 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getSignedUrls } from "@/lib/storage";
 import { GONE_STATUSES } from "@/lib/member-status";
 import { mediaSummary } from "@/lib/chat-media";
+import { chatTheme, householdTopic } from "@/lib/chat-themes";
 
 
 export type ChatMember = { id: string; name: string; first: string; initials: string; photoUrl: string | null };
@@ -215,4 +216,12 @@ export async function getChatPin(familyId: string): Promise<ChatPin> {
     .eq("family_id", familyId)
     .maybeSingle();
   return data ? { messageId: data.message_id, pinnedBy: data.pinned_by, pinnedAt: data.pinned_at } : null;
+}
+
+/** The household chat's theme; "default" when nobody has chosen one, or when
+ * the table isn't there yet (a deploy that runs ahead of its migration). */
+export async function getHouseholdChatTheme(familyId: string): Promise<string> {
+  const supabase = await createClient();
+  const { data } = await supabase.from("chat_themes").select("theme").eq("topic", householdTopic(familyId)).maybeSingle();
+  return chatTheme(data?.theme);
 }
