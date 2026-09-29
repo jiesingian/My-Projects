@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useId } from "react";
+import { startTransition, useActionState, useId } from "react";
 import Link from "next/link";
 import { signUp, type ActionState } from "@/lib/actions/auth";
 import { PASSWORD_MIN } from "@/lib/password";
@@ -11,7 +11,7 @@ import { Icon } from "@/components/icons";
 const initialState: ActionState = { error: null };
 
 export default function SignupPage() {
-  const [state, formAction] = useActionState(signUp, initialState);
+  const [state, formAction, pending] = useActionState(signUp, initialState);
   const uid = useId();
 
   return (
@@ -21,7 +21,17 @@ export default function SignupPage() {
         Your own account first: every member signs in with their own verified email. Next you start your
         family or join one with its invite code. Children under 13 are added as managed profiles instead.
       </p>
-      <form action={formAction}>
+      {/* Submitted from onSubmit rather than action= because React resets a
+          form after its action runs, and on an error -- the mailer's hourly
+          cap, most often -- that wiped the email and password the person had
+          just typed, when trying again is all they need to do. */}
+      <form
+        onSubmit={(e) => {
+          e.preventDefault();
+          const data = new FormData(e.currentTarget);
+          startTransition(() => formAction(data));
+        }}
+      >
         <ErrorText message={state.error} />
         <div className="field" style={{ marginBottom: "1rem" }}>
           <label htmlFor={`${uid}-email`}>Email</label>
@@ -43,7 +53,7 @@ export default function SignupPage() {
           <Icon name="shieldCheck" size={15} className="text-[var(--color-accent)]" />
           <span>Your household is walled off from every other one. Connect Google Drive and your documents and photos are kept there.</span>
         </div>
-        <SubmitButton style={{ minHeight: "2.875rem", fontSize: "0.9375rem", letterSpacing: ".04em" }}>
+        <SubmitButton pending={pending} style={{ minHeight: "2.875rem", fontSize: "0.9375rem", letterSpacing: ".04em" }}>
           Send verification code
         </SubmitButton>
         <p style={{ fontSize: "0.78125rem", lineHeight: 1.5, color: "var(--color-neutral-600)", margin: "0.75rem 0 0", textAlign: "center" }}>

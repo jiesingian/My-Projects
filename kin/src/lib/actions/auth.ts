@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { headers } from "next/headers";
 import { createClient } from "@/lib/supabase/server";
 import { PASSWORD_MIN, PASSWORD_TOO_SHORT } from "@/lib/password";
+import { humanAuthError, isEmailRateLimit } from "@/lib/auth-errors";
 
 export type ActionState = { error: string | null };
 
@@ -58,7 +59,14 @@ export async function signUp(_prev: ActionState, formData: FormData): Promise<Ac
     password,
     options: { emailRedirectTo: `${origin}/auth/callback` },
   });
-  if (error) return { error: error.message };
+  // A sign-up whose confirmation email could not be sent is rolled back by
+  // GoTrue -- no account is left behind -- so the same email and password
+  // simply work again once the mailer's hourly cap resets. The form keeps
+  // what was typed (see signup/page.tsx) so trying again is one tap.
+  if (error) {
+    if (isEmailRateLimit(error)) console.error("Sign-up confirmation email hit the mail rate limit", error.code);
+    return { error: humanAuthError(error) };
+  }
 
   redirect(`/verify?email=${encodeURIComponent(email)}`);
 }
@@ -71,7 +79,8 @@ export async function resendConfirmation(email: string): Promise<ActionState> {
     email,
     options: { emailRedirectTo: `${origin}/auth/callback` },
   });
-  return { error: error?.message ?? null };
+  if (isEmailRateLimit(error)) console.error("Confirmation resend hit the mail rate limit", error?.code);
+  return { error: humanAuthError(error) };
 }
 
 export async function signIn(_prev: ActionState, formData: FormData): Promise<ActionState> {
@@ -109,7 +118,15 @@ export async function requestPasswordReset(_prev: ActionState, formData: FormDat
     // the confirmation email uses and arrives already signed in.
     redirectTo: `${origin}/auth/callback?next=/reset-password`,
   });
-  if (mailError) console.error("Password reset email could not be sent", mailError.message);
+  //
+  // That includes the mailer's rate limit. GoTrue only sends -- and so only
+  // hits the cap -- for an address that has an account, so "too many emails
+  // right now" here would answer the very question this form refuses to.
+  // It is logged by its code so a capped mailer is recognisable in the logs.
+  if (mailError) {
+    const reason = isEmailRateLimit(mailError) ? "mail rate limit" : mailError.message;
+    console.error("Password reset email could not be sent", reason);
+  }
 
   redirect(`/reset-password?email=${encodeURIComponent(email)}`);
 }
