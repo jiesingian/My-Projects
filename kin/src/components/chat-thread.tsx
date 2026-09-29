@@ -27,6 +27,7 @@ import type { ChatAttachment, ChatMember, ChatMessage, ChatPin, ChatPoll } from 
 import { REACTIONS, amountIn, splitShoppingItems, firstUrl, type LinkPreview } from "@/lib/chat";
 import { toast } from "@/components/toast";
 import { PhotoViewer } from "@/components/photo-viewer";
+import { SaveToJournalButton } from "@/components/save-to-journal";
 import { ChatMediaView, MediaPicker } from "@/components/chat-media";
 import { chatMedia, mediaSummary } from "@/lib/chat-media";
 import { ThemePicker } from "@/components/chat-theme-picker";
@@ -277,7 +278,13 @@ function MessageAttachments({ attachments }: { attachments: ChatAttachment[] }) 
         <AttachmentView key={a.id} a={a} onOpenPhoto={() => setOpen(photos.findIndex((p) => p.id === a.id))} />
       ))}
       {open !== null && open >= 0 && (
-        <PhotoViewer items={photos.map((p) => ({ url: p.url!, alt: p.fileName }))} startIndex={open} onClose={() => setOpen(null)} label="Photo from chat" />
+        <PhotoViewer
+          items={photos.map((p) => ({ url: p.url!, alt: p.fileName }))}
+          startIndex={open}
+          onClose={() => setOpen(null)}
+          label="Photo from chat"
+          footer={(i) => (photos[i]?.url ? <SaveToJournalButton url={photos[i].url!} fileName={photos[i].fileName} from="the household chat" /> : null)}
+        />
       )}
     </>
   );

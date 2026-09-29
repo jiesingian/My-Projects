@@ -11,7 +11,9 @@ export type Connection = {
   fullName: string | null;
   avatarUrl: string | null;
   householdName: string | null;
-  status: "pending" | "accepted";
+  /** awaiting_guardian: the other side said yes, and a child's parent has
+   * still to (20260929163000). Not a connection yet. */
+  status: "pending" | "awaiting_guardian" | "accepted";
   /** They asked you -- only you can answer it. */
   incoming: boolean;
   via: "tree" | "code";
@@ -37,7 +39,7 @@ export async function getConnections(): Promise<Connection[]> {
     fullName: r.full_name,
     avatarUrl: r.avatar_url,
     householdName: r.household_name,
-    status: r.status === "accepted" ? "accepted" : "pending",
+    status: r.status === "accepted" ? "accepted" : r.status === "awaiting_guardian" ? "awaiting_guardian" : "pending",
     incoming: r.incoming,
     via: r.via === "code" ? "code" : "tree",
     requestedAt: r.requested_at,
@@ -62,4 +64,25 @@ export async function getConnectionCandidates(): Promise<ConnectionCandidate[]> 
 /** How many requests are waiting on this person's answer -- the badge. */
 export async function getIncomingConnectionCount(): Promise<number> {
   return (await getConnections()).filter((c) => c.status === "pending" && c.incoming).length;
+}
+
+export type ChildConnection = { id: string; childName: string; otherName: string; otherHousehold: string | null; status: "pending" | "awaiting_guardian" | "accepted" };
+
+/** For a grown-up: every connection of the children in their household,
+ * waiting ones first. Empty for anyone else. */
+export async function getChildrenConnections(): Promise<ChildConnection[]> {
+  const supabase = await createClient();
+  const { data } = await supabase.rpc("children_connections");
+  return (data ?? []).map((r) => ({
+    id: r.id,
+    childName: r.child_name,
+    otherName: r.other_name,
+    otherHousehold: r.other_household,
+    status: r.status === "accepted" ? "accepted" : r.status === "awaiting_guardian" ? "awaiting_guardian" : "pending",
+  }));
+}
+
+/** Waiting on this person, as a parent: the badge adds these. */
+export async function getGuardianWaitingCount(): Promise<number> {
+  return (await getChildrenConnections()).filter((c) => c.status === "awaiting_guardian").length;
 }

@@ -38,6 +38,7 @@ export default async function DirectThreadPage({ params }: { params: Promise<{ p
         <ThreadMenu thread={`dm:${person}`} muted={pref?.muted ?? false} pinned={pref?.pinned ?? false} mutedUntil={pref?.mutedUntil ?? null} />
       </div>
       <RoomThread
+        saveFrom={thread.peer.fullName}
         room={{ kind: "dm", personId: person, low, high }}
         messages={thread.messages}
         topic={`dm:${low}:${high}`}

@@ -1704,7 +1704,7 @@ export type Database = {
         ]
       }
       connections: {
-        Row: { addressee_person_id: string; decided_at: string | null; ended_by: string | null; id: string; requested_at: string; requester_person_id: string; status: string; via: string }
+        Row: { addressee_person_id: string; decided_at: string | null; ended_by: string | null; guardian_decided_by: string | null; id: string; requested_at: string; requester_person_id: string; status: string; via: string }
         Insert: { addressee_person_id: string; decided_at?: string | null; ended_by?: string | null; id?: string; requested_at?: string; requester_person_id: string; status?: string; via?: string }
         Update: { addressee_person_id?: string; decided_at?: string | null; ended_by?: string | null; id?: string; requested_at?: string; requester_person_id?: string; status?: string; via?: string }
         Relationships: []
@@ -5354,6 +5354,18 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      children_connections: {
+        Args: never
+        Returns: { id: string; child_person_id: string; child_name: string; other_person_id: string; other_name: string; other_household: string | null; status: string; requested_at: string }[]
+      }
+      guardian_decide_connection: {
+        Args: { p_id: string; p_approve: boolean }
+        Returns: undefined
+      }
+      guardian_remove_connection: {
+        Args: { p_id: string }
+        Returns: undefined
+      }
       create_chat_group: {
         Args: { p_name: string; p_announce_only: boolean; p_people: string[] }
         Returns: string

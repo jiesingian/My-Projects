@@ -5979,3 +5979,9 @@ button.kin-initial:focus-visible {
 .kin-threadrow-muted { flex: none; font-size: 0.75rem; }
 .kin-threadrow-badge[data-muted] { background: var(--color-neutral-500); }
 .kin-threadlist-actions { display: flex; flex-wrap: wrap; gap: 0 1.25rem; }
+.kin-search-hit { font-size: 0.875rem; color: var(--color-neutral-700, var(--color-text)); line-height: 1.4; }
+.kin-search-hit mark { background: color-mix(in srgb, var(--color-accent) 25%, transparent); color: inherit; border-radius: 3px; padding: 0 1px; }
+
+/* After joining through a connection link: the one step left. */
+.kin-connect-reminder { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem 0.75rem; margin: 0.75rem var(--gutter) 0; padding: 0.75rem 0.875rem; border-radius: 14px; font-size: 0.875rem; background: color-mix(in srgb, var(--color-accent) 12%, transparent); }
+.kin-connect-reminder span { flex: 1 1 12rem; }

@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { cookies } from "next/headers";
 import { createClient } from "@/lib/supabase/server";
 import { requireCurrentMember } from "@/lib/session";
 import { isGrownUp } from "@/lib/roles";
@@ -16,6 +17,7 @@ function readable(message: string): string {
   if (message.includes("not in your family tree")) return "That person isn't in your family tree.";
   if (message.includes("no longer open")) return "That request has already been answered.";
   if (message.includes("not yours to change")) return "That connection isn't yours to change.";
+  if (message.includes("Only a parent")) return "Only a parent or another adult of the child's household can do that.";
   if (message.includes("grown-ups")) return "Codes are for grown-ups. You can still connect with anyone in your family.";
   return "That didn't work. Try again in a moment.";
 }
@@ -40,7 +42,10 @@ export async function requestConnectionByCodeAction(_prev: ActionState, formData
   if (!code) return { error: "Enter the code they gave you." };
   const supabase = await createClient();
   const { error } = await supabase.rpc("request_connection_by_code", { p_code: code });
-  return error ? { error: readable(error.message) } : done();
+  if (error) return { error: readable(error.message) };
+  // A connection link remembered this code through sign-up; it has done its job.
+  (await cookies()).delete("kin-connect");
+  return done();
 }
 
 export async function respondConnectionAction(id: string, accept: boolean): Promise<ActionState> {
@@ -64,4 +69,25 @@ export async function newConnectionCodeAction(): Promise<ActionState> {
   const supabase = await createClient();
   const { error } = await supabase.rpc("my_connection_code", { p_new: true });
   return error ? { error: readable(error.message) } : done();
+}
+
+/** A parent's yes or no to their child's new connection (20260929163000). */
+export async function guardianDecideConnectionAction(id: string, approve: boolean): Promise<ActionState> {
+  await requireCurrentMember();
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("guardian_decide_connection", { p_id: id, p_approve: approve });
+  return error ? { error: readable(error.message) } : done();
+}
+
+/** A parent ending one of their child's connections. */
+export async function guardianRemoveConnectionAction(id: string): Promise<ActionState> {
+  await requireCurrentMember();
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("guardian_remove_connection", { p_id: id });
+  return error ? { error: readable(error.message) } : done();
+}
+
+/** "Not now" on the reminder to finish a connection link. */
+export async function dismissConnectLinkAction(): Promise<void> {
+  (await cookies()).delete("kin-connect");
 }
