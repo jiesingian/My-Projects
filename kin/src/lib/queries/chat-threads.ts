@@ -1,12 +1,15 @@
 import { createClient } from "@/lib/supabase/server";
 import { getChatUnread } from "@/lib/queries/chat";
 import { mediaSummary } from "@/lib/chat-media";
+import { getDirectPeers, getRoomUnread } from "@/lib/queries/chat-rooms";
 
 /** One row of the chat list (Janine, 29 September): every conversation this
  * person can open, each with its last message and what is waiting unread. */
 export type ChatThreadSummary = {
   key: string;
-  kind: "household" | "link";
+  kind: "household" | "family" | "link" | "dm";
+  /** A person's photo, for a one-to-one conversation. */
+  avatarUrl?: string | null;
   title: string;
   subtitle: string;
   href: string;
@@ -18,10 +21,10 @@ export type ChatThreadSummary = {
 const first = (name: string | null | undefined) => (name ?? "").trim().split(/\s+/)[0] || "Someone";
 const oneLine = (s: string) => s.replace(/\s+/g, " ").trim().slice(0, 120);
 
-export async function getChatThreads(me: { id: string; family_id: string; familyName: string }): Promise<ChatThreadSummary[]> {
+export async function getChatThreads(me: { id: string; family_id: string; person_id: string; familyName: string }): Promise<ChatThreadSummary[]> {
   const supabase = await createClient();
 
-  const [unread, { data: lastHousehold }, { data: links }, { data: people }] = await Promise.all([
+  const [unread, { data: lastHousehold }, { data: links }, { data: people }, roomUnread, peers, { data: lastFamily }, { data: directRows }] = await Promise.all([
     getChatUnread(me.family_id, me.id),
     supabase
       .from("family_messages")
@@ -36,6 +39,12 @@ export async function getChatThreads(me: { id: string; family_id: string; family
       .select("id, requester_family_id, addressee_family_id")
       .eq("status", "accepted"),
     supabase.from("members").select("id, full_name").eq("family_id", me.family_id),
+    getRoomUnread(),
+    getDirectPeers(),
+    supabase.from("family_tree_messages").select("member_id, author_name, body, created_at").order("created_at", { ascending: false }).limit(1).maybeSingle(),
+    // Newest first across every one-to-one conversation; the first row per
+    // person is that conversation's last message.
+    supabase.from("direct_messages").select("person_low, person_high, sender_person_id, body, created_at").order("created_at", { ascending: false }).limit(300),
   ]);
   const nameOf = new Map((people ?? []).map((p) => [p.id, p.full_name]));
 
@@ -90,8 +99,52 @@ export async function getChatThreads(me: { id: string; family_id: string; family
     };
   });
 
-  // The household stays first -- it is the one most people open most -- and
-  // the rest follow the conversation, newest first.
-  linked.sort((a, b) => (b.last?.at ?? "").localeCompare(a.last?.at ?? ""));
-  return [household, ...linked];
+  // The whole family tree in one room (20260929090000): shown once there is
+  // a linked household to talk to, or once anything has been said there.
+  const family: ChatThreadSummary[] =
+    rows.length > 0 || lastFamily
+      ? [
+          {
+            key: "family",
+            kind: "family",
+            title: "Family",
+            subtitle: "Your household and every linked one",
+            href: "/chat/family",
+            last: lastFamily
+              ? { author: lastFamily.member_id === me.id ? "You" : first(lastFamily.author_name), body: oneLine(lastFamily.body), at: lastFamily.created_at }
+              : null,
+            unread: roomUnread.get("family") ?? 0,
+            mentioned: false,
+          },
+        ]
+      : [];
+
+  const lastDirect = new Map<string, NonNullable<typeof directRows>[number]>();
+  for (const d of directRows ?? []) {
+    const other = d.person_low === me.person_id ? d.person_high : d.person_low;
+    if (!lastDirect.has(other)) lastDirect.set(other, d);
+  }
+  const direct: ChatThreadSummary[] = peers
+    // A connection with nothing said yet is offered from Connections, not
+    // listed here as an empty conversation.
+    .filter((p) => lastDirect.has(p.personId))
+    .map((p) => {
+      const d = lastDirect.get(p.personId)!;
+      return {
+        key: `dm:${p.personId}`,
+        kind: "dm" as const,
+        title: p.fullName,
+        subtitle: p.householdName ?? "",
+        href: `/chat/dm/${p.personId}`,
+        avatarUrl: p.avatarUrl,
+        last: { author: d.sender_person_id === me.person_id ? "You" : first(p.fullName), body: oneLine(d.body), at: d.created_at },
+        unread: roomUnread.get(`dm:${p.personId}`) ?? 0,
+        mentioned: false,
+      };
+    });
+
+  // Household and Family stay first -- the two every person has -- and the
+  // rest follow the conversation, newest first.
+  const rest = [...linked, ...direct].sort((a, b) => (b.last?.at ?? "").localeCompare(a.last?.at ?? ""));
+  return [household, ...family, ...rest];
 }

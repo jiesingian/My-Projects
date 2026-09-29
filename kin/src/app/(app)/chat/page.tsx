@@ -17,7 +17,7 @@ export default async function ChatListPage({ searchParams }: { searchParams: Pro
   const { to } = await searchParams;
   if (to) redirect(`/chat/household?to=${encodeURIComponent(to)}`);
 
-  const threads = await getChatThreads({ id: me.id, family_id: me.family_id, familyName: me.families.name });
+  const threads = await getChatThreads({ id: me.id, family_id: me.family_id, person_id: me.person_id, familyName: me.families.name });
 
   return (
     <div style={{ padding: "1.125rem var(--gutter) 1.375rem" }}>
@@ -34,18 +34,23 @@ export default async function ChatListPage({ searchParams }: { searchParams: Pro
 
       <Link href="/family/connections" className="kin-threadlist-more">
         <Icon name="users" size={16} />
-        <span>Connections · message people one to one</span>
+        <span>New message · pick one of your connections</span>
       </Link>
     </div>
   );
 }
 
 function ThreadRow({ thread: t }: { thread: ChatThreadSummary }) {
-  const icon = t.kind === "household" ? "house" : "users";
+  const icon = t.kind === "household" ? "house" : t.kind === "dm" ? "message" : "users";
   return (
     <Link href={t.href} className="kin-threadrow" data-unread={t.unread > 0 ? "true" : undefined}>
       <span className="kin-threadrow-icon" aria-hidden="true">
-        <Icon name={icon} size={20} />
+        {t.avatarUrl ? (
+          // eslint-disable-next-line @next/next/no-img-element -- public avatars bucket, like every other avatar
+          <img src={t.avatarUrl} alt="" />
+        ) : (
+          <Icon name={icon} size={20} />
+        )}
       </span>
       <span className="kin-threadrow-main">
         <span className="kin-threadrow-top">

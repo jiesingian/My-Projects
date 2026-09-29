@@ -27,12 +27,16 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   // (20260928150000_kin_free_and_plus.sql).
 
   const supabase = await createClient();
-  const [unread, { data: people }] = await Promise.all([
+  const [unread, { data: people }, { data: elsewhere }] = await Promise.all([
     getChatUnread(member.family_id, member.id),
     // Who a call can reach, for the call screen's names and faces. Only a
     // member with a login of their own has a Kin to ring.
     supabase.from("members").select("id, full_name, avatar_url, status").eq("family_id", member.family_id).in("status", ["active", "managed"]).order("created_at"),
+    // The family room and one-to-one conversations
+    // (20260929090000) -- so the Chat tab's badge counts every one of them.
+    supabase.rpc("my_chat_unread"),
   ]);
+  const chatUnread = unread.count + (elsewhere ?? []).reduce((n, r) => n + (Number(r.unread) || 0), 0);
   const callMembers: CallMember[] = (people ?? []).map((m) => ({ id: m.id, name: m.full_name, photoUrl: m.avatar_url, callable: m.status === "active" }));
 
   return (
@@ -57,7 +61,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       <CallProvider familyId={member.family_id} me={member.id} members={callMembers}>
         <div className="kin-content">{children}</div>
         {!inKidView(member) && <AssistantFab memberName={member.full_name.split(" ")[0]} />}
-        <TabBar chatUnread={unread.count} chatMentioned={unread.mentioned} kidView={inKidView(member)} />
+        <TabBar chatUnread={chatUnread} chatMentioned={unread.mentioned} kidView={inKidView(member)} />
         <ConfirmSheetHost />
         <Toaster />
         <ReturnToToday />
