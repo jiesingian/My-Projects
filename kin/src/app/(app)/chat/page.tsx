@@ -32,16 +32,26 @@ export default async function ChatListPage({ searchParams }: { searchParams: Pro
         ))}
       </ul>
 
-      <Link href="/family/connections" className="kin-threadlist-more">
-        <Icon name="users" size={16} />
-        <span>New message · pick one of your connections</span>
-      </Link>
+      <div className="kin-threadlist-actions">
+        <Link href="/family/connections" className="kin-threadlist-more">
+          <Icon name="message" size={16} />
+          <span>New message</span>
+        </Link>
+        <Link href="/chat/groups/new" className="kin-threadlist-more">
+          <Icon name="users" size={16} />
+          <span>New group</span>
+        </Link>
+        <Link href="/chat/groups/new?announce=1" className="kin-threadlist-more">
+          <Icon name="sparkle" size={16} />
+          <span>New channel</span>
+        </Link>
+      </div>
     </div>
   );
 }
 
 function ThreadRow({ thread: t }: { thread: ChatThreadSummary }) {
-  const icon = t.kind === "household" ? "house" : t.kind === "dm" ? "message" : "users";
+  const icon = t.kind === "household" ? "house" : t.kind === "dm" ? "message" : t.kind === "channel" ? "sparkle" : "users";
   return (
     <Link href={t.href} className="kin-threadrow" data-unread={t.unread > 0 ? "true" : undefined}>
       <span className="kin-threadrow-icon" aria-hidden="true">
@@ -54,13 +64,21 @@ function ThreadRow({ thread: t }: { thread: ChatThreadSummary }) {
       </span>
       <span className="kin-threadrow-main">
         <span className="kin-threadrow-top">
-          <span className="kin-threadrow-title">{t.title}</span>
+          <span className="kin-threadrow-title">
+            {t.pinned && <span aria-label="Pinned">📌 </span>}
+            {t.title}
+          </span>
+          {t.muted && (
+            <span className="kin-threadrow-muted" aria-label="Muted">
+              🔕
+            </span>
+          )}
           {t.last && <span className="kin-threadrow-time">{when(t.last.at)}</span>}
         </span>
         <span className="kin-threadrow-bottom">
           <span className="kin-threadrow-last">{t.last ? `${t.last.author}: ${t.last.body}` : t.subtitle}</span>
           {t.unread > 0 && (
-            <span className="kin-threadrow-badge" aria-label={`${t.unread} unread${t.mentioned ? ", you were mentioned" : ""}`}>
+            <span className="kin-threadrow-badge" data-muted={t.muted || undefined} aria-label={`${t.unread} unread${t.mentioned ? ", you were mentioned" : ""}`}>
               {t.mentioned ? "@ " : ""}
               {t.unread > 99 ? "99+" : t.unread}
             </span>

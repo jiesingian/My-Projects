@@ -65,7 +65,7 @@ export async function sendPush(input: {
  * reaches people in other households: chat_push_targets() (20260929090000)
  * decides who, for conversations the sender is in, honouring each person's
  * "chat" switch. Same promises as sendPush: never throws, call in after(). */
-export async function sendChatPush(thread: "family" | `dm:${string}`, input: { title: string; body: string; url: string; tag: string }): Promise<void> {
+export async function sendChatPush(thread: "family" | `dm:${string}` | `group:${string}`, input: { title: string; body: string; url: string; tag: string }): Promise<void> {
   if (!vapidReady()) return;
   try {
     const supabase = await createClient();

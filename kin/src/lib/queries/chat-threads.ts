@@ -1,13 +1,13 @@
 import { createClient } from "@/lib/supabase/server";
 import { getChatUnread } from "@/lib/queries/chat";
 import { mediaSummary } from "@/lib/chat-media";
-import { getDirectPeers, getRoomUnread } from "@/lib/queries/chat-rooms";
+import { getDirectPeers, getMyGroups, getRoomUnread, getThreadPrefs } from "@/lib/queries/chat-rooms";
 
 /** One row of the chat list (Janine, 29 September): every conversation this
  * person can open, each with its last message and what is waiting unread. */
 export type ChatThreadSummary = {
   key: string;
-  kind: "household" | "family" | "link" | "dm";
+  kind: "household" | "family" | "link" | "dm" | "group" | "channel";
   /** A person's photo, for a one-to-one conversation. */
   avatarUrl?: string | null;
   title: string;
@@ -16,6 +16,10 @@ export type ChatThreadSummary = {
   last: { author: string; body: string; at: string } | null;
   unread: number;
   mentioned: boolean;
+  /** This person's own choices (20260929161000): pinned first in the list,
+   * muted sends no notifications and stays out of the tab's badge. */
+  pinned?: boolean;
+  muted?: boolean;
 };
 
 const first = (name: string | null | undefined) => (name ?? "").trim().split(/\s+/)[0] || "Someone";
@@ -144,7 +148,31 @@ export async function getChatThreads(me: { id: string; family_id: string; person
     });
 
   // Household and Family stay first -- the two every person has -- and the
-  // rest follow the conversation, newest first.
-  const rest = [...linked, ...direct].sort((a, b) => (b.last?.at ?? "").localeCompare(a.last?.at ?? ""));
-  return [household, ...family, ...rest];
+  // rest follow the conversation, newest first. Anything pinned goes above
+  // all of it, in that same order.
+  const groups: ChatThreadSummary[] = (await getMyGroups()).map((g) => ({
+    key: `group:${g.id}`,
+    kind: g.announceOnly ? ("channel" as const) : ("group" as const),
+    title: g.name,
+    subtitle: g.announceOnly ? "Announcements" : "Group",
+    href: `/chat/groups/${g.id}`,
+    // A group with nothing said yet still sorts by when it was made.
+    last:
+      g.last && (g.senderPersonId || g.last.body)
+        ? {
+            author: g.senderPersonId === me.person_id ? "You" : first(g.last.authorName),
+            body: mediaSummary(g.last.body) ?? (oneLine(g.last.body) || "Sent an attachment"),
+            at: g.last.at,
+          }
+        : g.last
+          ? { author: "New", body: g.announceOnly ? "Channel created" : "Group created", at: g.last.at }
+          : null,
+    unread: roomUnread.get(`group:${g.id}`) ?? 0,
+    mentioned: false,
+  }));
+
+  const rest = [...linked, ...direct, ...groups].sort((a, b) => (b.last?.at ?? "").localeCompare(a.last?.at ?? ""));
+  const prefs = await getThreadPrefs();
+  const all = [household, ...family, ...rest].map((t) => ({ ...t, pinned: prefs.get(t.key)?.pinned ?? false, muted: prefs.get(t.key)?.muted ?? false }));
+  return [...all.filter((t) => t.pinned), ...all.filter((t) => !t.pinned)];
 }

@@ -9,7 +9,11 @@ import {
   markThreadReadAction,
   sendDirectMessageAction,
   sendFamilyMessageAction,
+  sendGroupMessageAction,
+  deleteGroupMessageAction,
+  toggleRoomReactionAction,
 } from "@/lib/actions/chat-rooms";
+import { REACTIONS } from "@/lib/chat";
 import { familyClock, familyDateLong } from "@/lib/time";
 import { Icon } from "@/components/icons";
 import { PhotoViewer } from "@/components/photo-viewer";
@@ -35,13 +39,22 @@ export function RoomThread({
   placeholder,
   emptyText,
   canWrite = true,
+  canReact = canWrite,
+  readOnlyNote = "You’re no longer connected, so nothing new can be sent here.",
+  seenAt = null,
 }: {
-  room: { kind: "family" } | { kind: "dm"; personId: string; low: string; high: string };
+  room: { kind: "family" } | { kind: "dm"; personId: string; low: string; high: string } | { kind: "group"; groupId: string; isAdmin: boolean };
   messages: RoomMessage[];
   topic: string;
   placeholder: string;
   emptyText: string;
   canWrite?: boolean;
+  /** An announcement channel lets everyone react, but only admins post. */
+  canReact?: boolean;
+  /** What shows where the message box would be, when writing is closed. */
+  readOnlyNote?: string;
+  /** One to one: when the other person last read this conversation. */
+  seenAt?: string | null;
 }) {
   const router = useRouter();
   const [draft, setDraft] = useState("");
@@ -50,7 +63,10 @@ export function RoomThread({
   const [picked, setPicked] = useState<{ file: File; preview: string }[]>([]);
   const [uploading, setUploading] = useState(false);
   const [viewing, setViewing] = useState<{ photos: RoomMessage["photos"]; id: string } | null>(null);
+  const [active, setActive] = useState<string | null>(null);
+  const [replyingTo, setReplyingTo] = useState<RoomMessage | null>(null);
   const bottom = useRef<HTMLDivElement>(null);
+  const textArea = useRef<HTMLTextAreaElement>(null);
   const fileInput = useRef<HTMLInputElement>(null);
 
   // A voice note, recorded in the browser and then treated exactly like a
@@ -116,9 +132,9 @@ export function RoomThread({
     setPicked((prev) => [...prev, ...media.map((file) => ({ file, preview: URL.createObjectURL(file) }))].slice(0, MAX_PHOTOS));
     if (fileInput.current) fileInput.current.value = "";
   };
-  const readKey = room.kind === "family" ? "family" : (`dm:${room.personId}` as const);
-  const table = room.kind === "family" ? "family_tree_messages" : "direct_messages";
-  const filter = room.kind === "dm" ? `person_low=eq.${room.low}` : undefined;
+  const readKey = room.kind === "family" ? "family" : room.kind === "dm" ? (`dm:${room.personId}` as const) : (`group:${room.groupId}` as const);
+  const table = room.kind === "family" ? "family_tree_messages" : room.kind === "dm" ? "direct_messages" : "chat_group_messages";
+  const filter = room.kind === "dm" ? `person_low=eq.${room.low}` : room.kind === "group" ? `group_id=eq.${room.groupId}` : undefined;
 
   useEffect(() => {
     bottom.current?.scrollIntoView({ block: "end" });
@@ -139,6 +155,7 @@ export function RoomThread({
         // Photos are indexed just after their message, so the message can
         // arrive a beat before them; this brings them in when they land.
         .on("postgres_changes", { event: "INSERT", schema: "public", table: "chat_room_attachments" }, () => router.refresh())
+        .on("postgres_changes", { event: "*", schema: "public", table: "chat_room_reactions" }, () => router.refresh())
         .subscribe();
     })();
     return () => {
@@ -175,12 +192,19 @@ export function RoomThread({
         }
         setUploading(false);
       }
-      const r = room.kind === "family" ? await sendFamilyMessageAction(body, photos) : await sendDirectMessageAction(room.personId, body, photos);
+      const answering = replyingTo?.id ?? null;
+      const r =
+        room.kind === "family"
+          ? await sendFamilyMessageAction(body, photos, answering)
+          : room.kind === "dm"
+            ? await sendDirectMessageAction(room.personId, body, photos, answering)
+            : await sendGroupMessageAction(room.groupId, body, photos, answering);
       if (r.error) {
         setError(r.error);
         setDraft(body);
       } else {
         setPicked([]);
+        setReplyingTo(null);
       }
       router.refresh();
     });
@@ -188,10 +212,27 @@ export function RoomThread({
 
   const remove = (id: string) =>
     startTransition(async () => {
-      const r = room.kind === "family" ? await deleteFamilyMessageAction(id) : await deleteDirectMessageAction(id);
+      const r =
+        room.kind === "family"
+          ? await deleteFamilyMessageAction(id)
+          : room.kind === "dm"
+            ? await deleteDirectMessageAction(id)
+            : await deleteGroupMessageAction(id);
       if (r.error) setError(r.error);
       router.refresh();
     });
+
+  const react = (id: string, emoji: string) =>
+    startTransition(async () => {
+      setActive(null);
+      const r = await toggleRoomReactionAction(room.kind, id, emoji);
+      if (r.error) setError(r.error);
+      router.refresh();
+    });
+
+  // "Seen" goes under your newest message they have read, once, the way a
+  // phone's messages app shows it.
+  const lastSeenMine = seenAt ? [...messages].reverse().find((m) => m.mine && m.createdAt <= seenAt)?.id : undefined;
 
   const rows = messages.map((m, i) => {
     const day = familyDateLong(new Date(m.createdAt));
@@ -210,10 +251,15 @@ export function RoomThread({
             {showDay && <div className="kin-linkthread-day">{day}</div>}
             <div style={{ display: "flex", justifyContent: m.mine ? "flex-end" : "flex-start", marginTop: "0.5rem" }}>
               <div style={{ maxWidth: "80%", display: "flex", flexDirection: "column", alignItems: m.mine ? "flex-end" : "flex-start" }}>
-                {room.kind === "family" && !m.mine && (
+                {room.kind !== "dm" && !m.mine && (
                   <span className="kin-linkthread-who">
                     {m.authorName}
                     {m.householdName && !m.ourHousehold ? ` · ${m.householdName}` : ""}
+                  </span>
+                )}
+                {m.replyTo && (
+                  <span className="kin-room-quote">
+                    <strong>{m.replyTo.authorName}</strong> {m.replyTo.excerpt}
                   </span>
                 )}
                 {m.photos.length > 0 && (
@@ -248,17 +294,71 @@ export function RoomThread({
                   </div>
                 )}
                 {m.body && (
-                  <span className="kin-bubble" data-mine={m.mine || undefined} style={{ cursor: "default", whiteSpace: "pre-wrap" }}>
+                  // Tapping a message opens its reactions and Reply, as in
+                  // the household chat.
+                  <button
+                    type="button"
+                    className="kin-bubble"
+                    data-mine={m.mine || undefined}
+                    style={{ whiteSpace: "pre-wrap", textAlign: "left", font: "inherit", border: 0 }}
+                    aria-expanded={active === m.id}
+                    onClick={() => setActive((a) => (a === m.id ? null : m.id))}
+                  >
                     {m.body}
+                  </button>
+                )}
+                {m.reactions.length > 0 && (
+                  <span className="kin-room-reactions">
+                    {m.reactions.map((r) => (
+                      <button
+                        key={r.emoji}
+                        type="button"
+                        data-mine={r.mine || undefined}
+                        disabled={pending || !canReact}
+                        onClick={() => react(m.id, r.emoji)}
+                        aria-label={`${r.emoji} from ${r.names.join(", ")}`}
+                        title={r.names.join(", ")}
+                      >
+                        {r.emoji} {r.names.length > 1 ? r.names.length : ""}
+                      </button>
+                    ))}
+                  </span>
+                )}
+                {active === m.id && canReact && (
+                  <span className="kin-room-actions" role="group" aria-label={canWrite ? "React or reply" : "React"}>
+                    {REACTIONS.map((e) => (
+                      <button key={e} type="button" disabled={pending} onClick={() => react(m.id, e)} aria-label={`React ${e}`}>
+                        {e}
+                      </button>
+                    ))}
+                    {canWrite && (
+                      <button
+                        type="button"
+                        className="kin-room-actions-word"
+                        onClick={() => {
+                          setReplyingTo(m);
+                          setActive(null);
+                          textArea.current?.focus();
+                        }}
+                      >
+                        Reply
+                      </button>
+                    )}
                   </span>
                 )}
                 <span className="kin-linkthread-time">
                   {familyClock(new Date(m.createdAt))}
-                  {m.mine && (
+                  {m.photos.length > 0 && !m.body && canReact && (
+                    <button type="button" className="kin-linkthread-delete" onClick={() => setActive((a) => (a === m.id ? null : m.id))}>
+                      React
+                    </button>
+                  )}
+                  {(m.mine || (room.kind === "group" && room.isAdmin)) && (
                     <button type="button" className="kin-linkthread-delete" disabled={pending} onClick={() => remove(m.id)}>
                       Delete
                     </button>
                   )}
+                  {m.id === lastSeenMine && <span className="kin-room-seen"> · Seen</span>}
                 </span>
               </div>
             </div>
@@ -284,6 +384,17 @@ export function RoomThread({
 
       {canWrite ? (
         <div className="kin-glass-bar kin-composer">
+          {replyingTo && (
+            <div className="kin-room-replying">
+              <span>
+                Replying to <strong>{replyingTo.mine ? "yourself" : replyingTo.authorName.split(" ")[0]}</strong>
+                {replyingTo.body ? `: ${replyingTo.body.replace(/\s+/g, " ").slice(0, 80)}` : ""}
+              </span>
+              <button type="button" aria-label="Cancel reply" onClick={() => setReplyingTo(null)}>
+                <Icon name="x" size="0.875rem" />
+              </button>
+            </div>
+          )}
           {picked.length > 0 && (
             <div className="kin-room-tray" aria-label="Photos to send">
               {picked.map((p, i) => (
@@ -324,6 +435,7 @@ export function RoomThread({
               <Icon name="camera" size="1.125rem" />
             </button>
             <textarea
+              ref={textArea}
               className="input kin-composer-field"
               value={draft}
               onChange={(e) => setDraft(e.target.value)}
@@ -382,7 +494,7 @@ export function RoomThread({
         </div>
       ) : (
         <p style={{ fontSize: "0.8125rem", color: "var(--color-neutral-600)", textAlign: "center", padding: "0.75rem 0" }}>
-          You&rsquo;re no longer connected, so nothing new can be sent here.
+          {readOnlyNote}
         </p>
       )}
     </div>
