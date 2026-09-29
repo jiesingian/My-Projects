@@ -36,6 +36,8 @@ import {
   type AssetKind,
   type LiabilityKind,
   type CashFlowRange,
+  WEALTH_FAMILY,
+  isHouseholdScope,
 } from "@/lib/wealth";
 import { familyDate, householdDateFormat } from "@/lib/format-family";
 import { CollapsibleGroup } from "@/components/collapsible-group";
@@ -81,9 +83,12 @@ async function whoPicker(familyId: string, memberId: string, scope: WealthScope,
   const members = await getMembers(familyId);
   const active = members.filter((m) => m.status !== "pending" && !isGone(m.status));
   const labels = shortNames(active.map((m) => m.full_name)).map((l, i) => selfLabel(l, active[i].id === memberId));
-  const whoLabel = scope === "all" ? "All" : (labels[active.findIndex((m) => m.id === scope)] ?? "All");
+  const whoLabel = scope === "all" ? "All" : scope === WEALTH_FAMILY ? "Family" : (labels[active.findIndex((m) => m.id === scope)] ?? "All");
+  // All: every member's and the family's together. Family: joint and
+  // unassigned only (WEALTH_FAMILY). The same two words as the Planner's.
   const options = [
-    { label: "Everyone", href: hrefFor("all"), active: scope === "all" },
+    { label: "All", href: hrefFor("all"), active: scope === "all" },
+    { label: "Family", href: hrefFor(WEALTH_FAMILY), active: scope === WEALTH_FAMILY },
     ...active.map((m, i) => ({ label: labels[i], href: hrefFor(m.id), active: scope === m.id })),
   ];
   return { active, labels, whoLabel, options };
@@ -473,7 +478,7 @@ async function CashFlowPane({ familyId, memberId, currency, range, scope }: { fa
   const bareAccounts = pickable.map((a) => ({ id: a.id, name: a.name }));
   const periodNoun = range === "day" ? "day" : range === "week" ? "week" : range === "year" ? "year" : "month";
   const mine = scope === memberId;
-  const isJoint = scope === "all";
+  const isJoint = isHouseholdScope(scope);
   const whosePossessive = selfPossessive(who.whoLabel, mine);
   // Same budget-vs-target data the Accounts tab used to show, moved here:
   // one is the household's spending ceiling (Expenses), the other a
@@ -487,7 +492,7 @@ async function CashFlowPane({ familyId, memberId, currency, range, scope }: { fa
       <div style={{ display: "flex", alignItems: "center", gap: "0.375rem", margin: "14px 0 4px" }}>
         <PickButton title="Who" icon="users" label={who.whoLabel} options={who.options} />
         <span style={{ fontSize: "0.78125rem", color: "var(--color-neutral-600)" }}>
-          {scope === "all" ? "Everything you can see" : mine ? "Your own accounts" : "Their accounts, as shared"}
+          {scope === "all" ? "Everything you can see" : scope === WEALTH_FAMILY ? "Joint, and not in anyone's name" : mine ? "Your own accounts" : "Their accounts, as shared"}
         </span>
       </div>
 
@@ -685,7 +690,7 @@ async function ScopePane({ scope, familyId, memberId, currency, range }: { scope
     getCashFlowPane(familyId, range, scope),
     whoPicker(familyId, memberId, scope, (w) => `/wealth?seg=accounts&range=${range}&who=${w}`),
   ]);
-  const isJoint = scope === "all";
+  const isJoint = isHouseholdScope(scope);
   const mine = scope === memberId;
   const whosePossessive = selfPossessive(who.whoLabel, mine);
   const monthLabel = new Date(pane.year, pane.month - 1, 1).toLocaleString("en-PH", { month: "long", year: "numeric" }).toUpperCase();
@@ -702,12 +707,12 @@ async function ScopePane({ scope, familyId, memberId, currency, range }: { scope
       <div style={{ display: "flex", alignItems: "center", gap: "0.375rem", margin: "14px 0 4px" }}>
         <PickButton title="Who" icon="users" label={who.whoLabel} options={who.options} />
         <span style={{ fontSize: "0.78125rem", color: "var(--color-neutral-600)" }}>
-          {isJoint ? "Everything you can see" : mine ? "Your own accounts" : "Their accounts, as shared"}
+          {scope === "all" ? "Everything you can see" : scope === WEALTH_FAMILY ? "Joint, and not in anyone's name" : mine ? "Your own accounts" : "Their accounts, as shared"}
         </span>
       </div>
 
       <Hero
-        label={isJoint ? "ALL ACCOUNTS · COMBINED" : `${whosePossessive.toUpperCase()} ACCOUNTS · COMBINED`}
+        label={scope === WEALTH_FAMILY ? "FAMILY ACCOUNTS · COMBINED" : isJoint ? "ALL ACCOUNTS · COMBINED" : `${whosePossessive.toUpperCase()} ACCOUNTS · COMBINED`}
         amount={pane.total}
         currency={currency}
         delta={<DeltaBadge change={momChange} currency={currency} noun={`last ${periodNoun}`} />}
@@ -731,7 +736,7 @@ async function ScopePane({ scope, familyId, memberId, currency, range }: { scope
 
       <PendingBlock pending={pane.pending} currency={currency} dateFormat={dateFormat} />
 
-      <SectionLabel>{isJoint ? "ACCOUNTS" : `${whosePossessive.toUpperCase()} ACCOUNTS`}</SectionLabel>
+      <SectionLabel>{scope === WEALTH_FAMILY ? "FAMILY ACCOUNTS" : isJoint ? "ACCOUNTS" : `${whosePossessive.toUpperCase()} ACCOUNTS`}</SectionLabel>
       {pane.accounts.length === 0 && (
         <Empty icon={<Icon name="wallet" size={26} />} title="No accounts yet" line="Add the accounts the household actually uses — a bank, a wallet, the cash in the drawer — and Kin keeps the running balance." />
       )}
@@ -812,7 +817,7 @@ async function AssetsPane({ familyId, memberId, currency, scope }: { familyId: s
       <div style={{ display: "flex", alignItems: "center", gap: "0.375rem", margin: "14px 0 4px" }}>
         <PickButton title="Who" icon="users" label={who.whoLabel} options={who.options} />
         <span style={{ fontSize: "0.78125rem", color: "var(--color-neutral-600)" }}>
-          {scope === "all" ? "Everything you can see" : mine ? "Your own" : "Theirs, as shared"}
+          {scope === "all" ? "Everything you can see" : scope === WEALTH_FAMILY ? "Joint, and not in anyone's name" : mine ? "Your own" : "Theirs, as shared"}
         </span>
       </div>
 

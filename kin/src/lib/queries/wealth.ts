@@ -1,6 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import type { Tables } from "@/lib/database.types";
-import { monthKey, recentMonths, signedAmount, recentPeriods, periodKey, cashFlowRangeCount, inScope, type CashFlowRange, type WealthScope } from "@/lib/wealth";
+import { monthKey, recentMonths, signedAmount, recentPeriods, periodKey, cashFlowRangeCount, inScope, isHouseholdScope, type CashFlowRange, type WealthScope } from "@/lib/wealth";
 
 // Re-exported so the page keeps importing its scope type from the module it
 // already imports the queries from.
@@ -48,7 +48,7 @@ export async function getAccounts(familyId: string): Promise<AccountWithBalance[
  * money actually went, and six months of history behind it. */
 export async function getWealthPane(familyId: string, memberId: string, scope: WealthScope) {
   // Whose target to measure against when one person is named — their own.
-  const targetMemberId = scope === "all" ? memberId : scope;
+  const targetMemberId = isHouseholdScope(scope) ? memberId : scope;
   const supabase = await createClient();
   const { month, year } = currentPeriod();
   const months = recentMonths(6);
@@ -120,7 +120,7 @@ export async function getWealthPane(familyId: string, memberId: string, scope: W
     monthExpense: thisMonth.filter((t) => t.direction === "out").reduce((sum, t) => sum + Number(t.amount), 0),
     // All is measured against the household's budget; one person against
     // the target they set for themselves.
-    budgetAmount: scope === "all" ? Number(period?.budget_amount ?? 0) : Number(target?.target_amount ?? 0),
+    budgetAmount: isHouseholdScope(scope) ? Number(period?.budget_amount ?? 0) : Number(target?.target_amount ?? 0),
     allocations,
     unbudgeted,
     history,

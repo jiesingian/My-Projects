@@ -19,6 +19,7 @@ export function PickButton({
   title,
   icon,
   style,
+  onPick,
 }: {
   label: string;
   options: PickOption[];
@@ -26,6 +27,9 @@ export function PickButton({
   title: string;
   icon?: "users" | "calendarDays";
   style?: React.CSSProperties;
+  /** Choose without navigating: the option's href is handed back instead,
+   * for a filter that lives on the page (Today's Coming up). */
+  onPick?: (href: string) => void;
 }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
@@ -89,7 +93,7 @@ export function PickButton({
               held.current = false;
               return;
             }
-            if (next) router.push(next.href);
+            if (next) (onPick ?? router.push)(next.href);
           }}
           onContextMenu={(e) => {
             e.preventDefault();
@@ -154,7 +158,7 @@ export function PickButton({
               aria-checked={o.active}
               onClick={() => {
                 setOpen(false);
-                router.push(o.href);
+                (onPick ?? router.push)(o.href);
               }}
               style={{
                 display: "flex",
