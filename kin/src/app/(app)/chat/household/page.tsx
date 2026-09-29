@@ -10,6 +10,8 @@ import { HighlightsButton } from "@/components/highlights";
 import { getHighlights } from "@/lib/queries/highlights";
 import { sweepExpiredHighlights } from "@/lib/actions/highlights";
 import { after } from "next/server";
+import { getThreadPrefs } from "@/lib/queries/chat-rooms";
+import { ThreadMenu } from "@/components/thread-menu";
 
 export const dynamic = "force-dynamic";
 
@@ -22,12 +24,13 @@ export default async function HouseholdChatPage({ searchParams }: { searchParams
   // Message, on a profile, lands here addressed to that person.
   const { to } = await searchParams;
 
-  const [members, thread, pin, theme, highlights] = await Promise.all([
+  const [members, thread, pin, theme, highlights, prefs] = await Promise.all([
     getChatMembers(me.family_id),
     getChatThread(me.family_id),
     getChatPin(me.family_id),
     getHouseholdChatTheme(me.family_id),
     getHighlights(me.family_id),
+    getThreadPrefs(),
   ]);
   // Expired highlights' files go the next time anyone at home opens the
   // household chat (they are already hidden: the table only returns live ones).
@@ -58,6 +61,12 @@ export default async function HouseholdChatPage({ searchParams }: { searchParams
         </Link>
         <HighlightsButton me={me.id} people={labelled.map((m) => ({ id: m.id, label: m.label, initials: m.initials, photoUrl: m.photoUrl }))} highlights={highlights} />
         <CallButtons />
+        <ThreadMenu
+          thread="household"
+          muted={prefs.get("household")?.muted ?? false}
+          pinned={prefs.get("household")?.pinned ?? false}
+          mutedUntil={prefs.get("household")?.mutedUntil ?? null}
+        />
       </div>
 
       <ChatThread theme={theme} me={me.id} familyId={me.family_id} members={labelled} initial={thread} pin={pin} addressTo={to} gifReady={!!process.env.GIPHY_API_KEY} />

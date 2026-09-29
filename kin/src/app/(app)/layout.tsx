@@ -7,6 +7,7 @@ import { AssistantFab } from "@/components/assistant-fab";
 import { ConfirmSheetHost } from "@/components/confirm-sheet";
 import { Toaster } from "@/components/toast";
 import { ReturnToToday } from "@/components/return-to-today";
+import { getThreadPrefs } from "@/lib/queries/chat-rooms";
 import { getChatUnread } from "@/lib/queries/chat";
 import { textScaleCss } from "@/lib/text-scale";
 import { paletteCss } from "@/lib/palettes";
@@ -27,7 +28,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   // (20260928150000_kin_free_and_plus.sql).
 
   const supabase = await createClient();
-  const [unread, { data: people }, { data: elsewhere }] = await Promise.all([
+  const [unread, { data: people }, { data: elsewhere }, prefs] = await Promise.all([
     getChatUnread(member.family_id, member.id),
     // Who a call can reach, for the call screen's names and faces. Only a
     // member with a login of their own has a Kin to ring.
@@ -35,8 +36,13 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     // The family room and one-to-one conversations
     // (20260929090000) -- so the Chat tab's badge counts every one of them.
     supabase.rpc("my_chat_unread"),
+    // Muted conversations stay out of the badge, as on a phone.
+    getThreadPrefs(),
   ]);
-  const chatUnread = unread.count + (elsewhere ?? []).reduce((n, r) => n + (Number(r.unread) || 0), 0);
+  const mutedNow = new Set([...prefs].filter(([, p]) => p.muted).map(([thread]) => thread));
+  const chatUnread =
+    (mutedNow.has("household") ? 0 : unread.count) +
+    (elsewhere ?? []).filter((r) => !mutedNow.has(r.thread)).reduce((n, r) => n + (Number(r.unread) || 0), 0);
   const callMembers: CallMember[] = (people ?? []).map((m) => ({ id: m.id, name: m.full_name, photoUrl: m.avatar_url, callable: m.status === "active" }));
 
   return (

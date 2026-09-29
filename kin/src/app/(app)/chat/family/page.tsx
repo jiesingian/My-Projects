@@ -1,7 +1,8 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getCurrentMember } from "@/lib/session";
-import { getFamilyRoom } from "@/lib/queries/chat-rooms";
+import { getFamilyRoom, getThreadPrefs } from "@/lib/queries/chat-rooms";
+import { ThreadMenu } from "@/components/thread-menu";
 import { RoomThread } from "@/components/room-thread";
 
 export const dynamic = "force-dynamic";
@@ -11,7 +12,8 @@ export const dynamic = "force-dynamic";
 export default async function FamilyRoomPage() {
   const me = await getCurrentMember();
   if (!me) redirect("/onboarding/profile");
-  const { messages, households } = await getFamilyRoom(me);
+  const [{ messages, households }, prefs] = await Promise.all([getFamilyRoom(me), getThreadPrefs()]);
+  const pref = prefs.get("family");
 
   const reach =
     households.length === 0
@@ -23,7 +25,10 @@ export default async function FamilyRoomPage() {
       <Link href="/chat" className="kin-chat-back">
         <span aria-hidden="true">‹</span> CHATS · FAMILY
       </Link>
-      <h2 style={{ fontSize: "1.5rem", margin: 0 }}>Family</h2>
+      <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+        <h2 style={{ fontSize: "1.5rem", margin: 0, flex: 1 }}>Family</h2>
+        <ThreadMenu thread="family" muted={pref?.muted ?? false} pinned={pref?.pinned ?? false} mutedUntil={pref?.mutedUntil ?? null} />
+      </div>
       <p style={{ fontSize: "0.78125rem", color: "var(--color-neutral-600)", margin: "4px 0 0.75rem", lineHeight: 1.45 }}>
         {reach} Everyone in those households can read and write here.
       </p>

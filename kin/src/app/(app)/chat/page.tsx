@@ -54,13 +54,21 @@ function ThreadRow({ thread: t }: { thread: ChatThreadSummary }) {
       </span>
       <span className="kin-threadrow-main">
         <span className="kin-threadrow-top">
-          <span className="kin-threadrow-title">{t.title}</span>
+          <span className="kin-threadrow-title">
+            {t.pinned && <span aria-label="Pinned">📌 </span>}
+            {t.title}
+          </span>
+          {t.muted && (
+            <span className="kin-threadrow-muted" aria-label="Muted">
+              🔕
+            </span>
+          )}
           {t.last && <span className="kin-threadrow-time">{when(t.last.at)}</span>}
         </span>
         <span className="kin-threadrow-bottom">
           <span className="kin-threadrow-last">{t.last ? `${t.last.author}: ${t.last.body}` : t.subtitle}</span>
           {t.unread > 0 && (
-            <span className="kin-threadrow-badge" aria-label={`${t.unread} unread${t.mentioned ? ", you were mentioned" : ""}`}>
+            <span className="kin-threadrow-badge" data-muted={t.muted || undefined} aria-label={`${t.unread} unread${t.mentioned ? ", you were mentioned" : ""}`}>
               {t.mentioned ? "@ " : ""}
               {t.unread > 99 ? "99+" : t.unread}
             </span>

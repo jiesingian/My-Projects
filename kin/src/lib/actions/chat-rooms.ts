@@ -8,6 +8,7 @@ import { humanDatabaseError } from "@/lib/db-errors";
 import { clamp } from "@/lib/text";
 import { sendChatPush } from "@/lib/push";
 import { pairOf } from "@/lib/queries/chat-rooms";
+import { isReaction } from "@/lib/chat";
 import type { ActionState } from "@/lib/actions/auth";
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -95,13 +96,17 @@ function photoLine(photos: RoomPhoto[]): string {
 
 /** A message to everyone in the family tree: this household and each one
  * linked with it. Who wrote it and from where is set by the database. */
-export async function sendFamilyMessageAction(body: string, photos: RoomPhoto[] = []): Promise<ActionState> {
+export async function sendFamilyMessageAction(body: string, photos: RoomPhoto[] = [], replyTo: string | null = null): Promise<ActionState> {
   const me = await requireCurrentMember();
   const text = clamp(body.trim(), 2000);
   const refused = checkOutgoing(me, text, photos);
   if (refused) return { error: refused };
   const supabase = await createClient();
-  const { data, error } = await supabase.from("family_tree_messages").insert({ body: text }).select("id").single();
+  const { data, error } = await supabase
+    .from("family_tree_messages")
+    .insert({ body: text, reply_to: replyTo && UUID.test(replyTo) ? replyTo : null })
+    .select("id")
+    .single();
   if (error || !data) return { error: error ? humanDatabaseError(error.message) : "That didn't send." };
   const attachError = await attachPhotos(me, photos, { family_message_id: data.id });
   if (attachError) return { error: attachError };
@@ -134,7 +139,12 @@ export async function deleteFamilyMessageAction(id: string): Promise<ActionState
 
 /** One to one, to someone you are connected with. The database refuses it
  * otherwise (direct_messages_insert). */
-export async function sendDirectMessageAction(otherPersonId: string, body: string, photos: RoomPhoto[] = []): Promise<ActionState> {
+export async function sendDirectMessageAction(
+  otherPersonId: string,
+  body: string,
+  photos: RoomPhoto[] = [],
+  replyTo: string | null = null,
+): Promise<ActionState> {
   const me = await requireCurrentMember();
   if (!UUID.test(otherPersonId)) return { error: "That conversation doesn't exist." };
   const text = clamp(body.trim(), 2000);
@@ -142,7 +152,11 @@ export async function sendDirectMessageAction(otherPersonId: string, body: strin
   if (refused) return { error: refused };
   const [person_low, person_high] = pairOf(me.person_id, otherPersonId);
   const supabase = await createClient();
-  const { data, error } = await supabase.from("direct_messages").insert({ person_low, person_high, body: text }).select("id").single();
+  const { data, error } = await supabase
+    .from("direct_messages")
+    .insert({ person_low, person_high, body: text, reply_to: replyTo && UUID.test(replyTo) ? replyTo : null })
+    .select("id")
+    .single();
   if (error || !data) {
     if (error?.code === "42501") return { error: "You're no longer connected, so this can't be sent." };
     return { error: error ? humanDatabaseError(error.message) : "That didn't send." };
@@ -169,6 +183,68 @@ export async function deleteDirectMessageAction(id: string): Promise<ActionState
   if (!mine) return { error: "That message isn't yours to delete." };
   await removePhotosOf("direct_message_id", id);
   const { error } = await supabase.from("direct_messages").delete().eq("id", id).eq("sender_person_id", me.person_id);
+  if (error) return { error: humanDatabaseError(error.message) };
+  revalidatePath("/chat", "layout");
+  return { error: null };
+}
+
+/** Add a reaction, or take it back if it is already yours -- the household
+ * chat's six, one of each per person per message. */
+export async function toggleRoomReactionAction(kind: "family" | "dm", messageId: string, emoji: string): Promise<ActionState> {
+  const me = await requireCurrentMember();
+  if (!UUID.test(messageId) || !isReaction(emoji)) return { error: "That reaction isn't available." };
+  const column = kind === "family" ? "family_message_id" : "direct_message_id";
+  const supabase = await createClient();
+  const { data: existing } = await supabase
+    .from("chat_room_reactions")
+    .select("id")
+    .eq(column, messageId)
+    .eq("person_id", me.person_id)
+    .eq("emoji", emoji)
+    .maybeSingle();
+  const { error } = existing
+    ? await supabase.from("chat_room_reactions").delete().eq("id", existing.id)
+    : await supabase
+        .from("chat_room_reactions")
+        .insert(kind === "family" ? { family_message_id: messageId, emoji } : { direct_message_id: messageId, emoji });
+  if (error) return { error: humanDatabaseError(error.message) };
+  revalidatePath("/chat", "layout");
+  return { error: null };
+}
+
+const THREAD = /^(household|family|dm:[0-9a-f-]{36}|link:[0-9a-f-]{36})$/i;
+
+/** Mute a conversation (for a while, or until unmuted), unmute it, pin it
+ * to the top of the chat list or unpin it. Only ever this person's own
+ * choice: the row is theirs and nobody else can read it. */
+export async function setThreadPrefAction(
+  thread: string,
+  change: { mute?: "1h" | "8h" | "1w" | "always" | "off"; pinned?: boolean },
+): Promise<ActionState> {
+  const me = await requireCurrentMember();
+  if (!THREAD.test(thread)) return { error: "That conversation doesn't exist." };
+  const supabase = await createClient();
+  const { data: current } = await supabase
+    .from("chat_thread_prefs")
+    .select("muted, muted_until, pinned")
+    .eq("person_id", me.person_id)
+    .eq("thread", thread)
+    .maybeSingle();
+  const hours = { "1h": 1, "8h": 8, "1w": 24 * 7 } as const;
+  const next = {
+    person_id: me.person_id,
+    thread,
+    muted: change.mute === undefined ? (current?.muted ?? false) : change.mute !== "off",
+    muted_until:
+      change.mute === undefined
+        ? (current?.muted_until ?? null)
+        : change.mute === "off" || change.mute === "always"
+          ? null
+          : new Date(Date.now() + hours[change.mute] * 3600_000).toISOString(),
+    pinned: change.pinned ?? current?.pinned ?? false,
+    updated_at: new Date().toISOString(),
+  };
+  const { error } = await supabase.from("chat_thread_prefs").upsert(next, { onConflict: "person_id,thread" });
   if (error) return { error: humanDatabaseError(error.message) };
   revalidatePath("/chat", "layout");
   return { error: null };

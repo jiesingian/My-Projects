@@ -1716,15 +1716,15 @@ export type Database = {
         Relationships: []
       }
       family_tree_messages: {
-        Row: { author_name: string; body: string; created_at: string; family_id: string; id: string; member_id: string | null; person_id: string | null }
-        Insert: { author_name?: string; body: string; created_at?: string; family_id?: string; id?: string; member_id?: string | null; person_id?: string | null }
-        Update: { author_name?: string; body?: string; created_at?: string; family_id?: string; id?: string; member_id?: string | null; person_id?: string | null }
+        Row: { author_name: string; body: string; created_at: string; family_id: string; id: string; member_id: string | null; person_id: string | null; reply_to: string | null }
+        Insert: { author_name?: string; body: string; created_at?: string; family_id?: string; id?: string; member_id?: string | null; person_id?: string | null; reply_to?: string | null }
+        Update: { author_name?: string; body?: string; created_at?: string; family_id?: string; id?: string; member_id?: string | null; person_id?: string | null; reply_to?: string | null }
         Relationships: []
       }
       direct_messages: {
-        Row: { body: string; created_at: string; id: string; person_high: string; person_low: string; sender_person_id: string | null }
-        Insert: { body: string; created_at?: string; id?: string; person_high: string; person_low: string; sender_person_id?: string | null }
-        Update: { body?: string; created_at?: string; id?: string; person_high?: string; person_low?: string; sender_person_id?: string | null }
+        Row: { body: string; created_at: string; id: string; person_high: string; person_low: string; reply_to: string | null; sender_person_id: string | null }
+        Insert: { body: string; created_at?: string; id?: string; person_high: string; person_low: string; reply_to?: string | null; sender_person_id?: string | null }
+        Update: { body?: string; created_at?: string; id?: string; person_high?: string; person_low?: string; reply_to?: string | null; sender_person_id?: string | null }
         Relationships: []
       }
       chat_reads: {
@@ -1737,6 +1737,18 @@ export type Database = {
         Row: { created_at: string; direct_message_id: string | null; family_id: string; family_message_id: string | null; file_name: string; id: string; mime_type: string; position: number; size_bytes: number; storage_path: string }
         Insert: { created_at?: string; direct_message_id?: string | null; family_id: string; family_message_id?: string | null; file_name: string; id?: string; mime_type: string; position?: number; size_bytes: number; storage_path: string }
         Update: { created_at?: string; direct_message_id?: string | null; family_id?: string; family_message_id?: string | null; file_name?: string; id?: string; mime_type?: string; position?: number; size_bytes?: number; storage_path?: string }
+        Relationships: []
+      }
+      chat_room_reactions: {
+        Row: { author_name: string; created_at: string; direct_message_id: string | null; emoji: string; family_id: string | null; family_message_id: string | null; id: string; person_id: string }
+        Insert: { author_name?: string; created_at?: string; direct_message_id?: string | null; emoji: string; family_id?: string | null; family_message_id?: string | null; id?: string; person_id?: string }
+        Update: { author_name?: string; created_at?: string; direct_message_id?: string | null; emoji?: string; family_id?: string | null; family_message_id?: string | null; id?: string; person_id?: string }
+        Relationships: []
+      }
+      chat_thread_prefs: {
+        Row: { muted: boolean; muted_until: string | null; person_id: string; pinned: boolean; thread: string; updated_at: string }
+        Insert: { muted?: boolean; muted_until?: string | null; person_id: string; pinned?: boolean; thread: string; updated_at?: string }
+        Update: { muted?: boolean; muted_until?: string | null; person_id?: string; pinned?: boolean; thread?: string; updated_at?: string }
         Relationships: []
       }
       family_link_messages: {
@@ -5324,6 +5336,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      dm_seen_at: {
+        Args: { p_other: string }
+        Returns: string | null
+      }
       chat_push_targets: {
         Args: { p_thread: string }
         Returns: { endpoint: string; p256dh: string; auth: string }[]

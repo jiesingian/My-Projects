@@ -1,7 +1,8 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { getCurrentMember } from "@/lib/session";
-import { getDirectThread, pairOf } from "@/lib/queries/chat-rooms";
+import { getDirectThread, getThreadPrefs, pairOf } from "@/lib/queries/chat-rooms";
+import { ThreadMenu } from "@/components/thread-menu";
 import { RoomThread } from "@/components/room-thread";
 import { Avatar } from "@/components/avatar";
 import { initials } from "@/lib/format";
@@ -15,7 +16,8 @@ export default async function DirectThreadPage({ params }: { params: Promise<{ p
   if (!me) redirect("/onboarding/profile");
   const { person } = await params;
   if (!/^[0-9a-f-]{36}$/i.test(person) || person === me.person_id) notFound();
-  const thread = await getDirectThread(me.person_id, person);
+  const [thread, prefs] = await Promise.all([getDirectThread(me.person_id, person), getThreadPrefs()]);
+  const pref = prefs.get(`dm:${person}`);
   if (!thread) notFound();
   const [low, high] = pairOf(me.person_id, person);
   const first = thread.peer.fullName.split(" ")[0];
@@ -27,12 +29,13 @@ export default async function DirectThreadPage({ params }: { params: Promise<{ p
       </Link>
       <div style={{ display: "flex", alignItems: "center", gap: "0.75rem", marginBottom: "0.75rem" }}>
         <Avatar url={thread.peer.avatarUrl} initials={initials(thread.peer.fullName)} label={thread.peer.fullName} size={44} clickable={false} />
-        <div style={{ minWidth: 0 }}>
+        <div style={{ minWidth: 0, flex: 1 }}>
           <h2 style={{ fontSize: "1.375rem", margin: 0 }}>{thread.peer.fullName}</h2>
           <p style={{ fontSize: "0.78125rem", color: "var(--color-neutral-600)", margin: "2px 0 0" }}>
             {thread.peer.householdName ? `${thread.peer.householdName} · ` : ""}just the two of you
           </p>
         </div>
+        <ThreadMenu thread={`dm:${person}`} muted={pref?.muted ?? false} pinned={pref?.pinned ?? false} mutedUntil={pref?.mutedUntil ?? null} />
       </div>
       <RoomThread
         room={{ kind: "dm", personId: person, low, high }}
@@ -41,6 +44,7 @@ export default async function DirectThreadPage({ params }: { params: Promise<{ p
         placeholder={thread.peer.connected ? `Message ${first}…` : "Not connected"}
         emptyText={`Nothing said yet. Say hello to ${first}.`}
         canWrite={thread.peer.connected}
+        seenAt={thread.seenAt}
       />
     </div>
   );

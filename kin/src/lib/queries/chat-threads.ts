@@ -1,7 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { getChatUnread } from "@/lib/queries/chat";
 import { mediaSummary } from "@/lib/chat-media";
-import { getDirectPeers, getRoomUnread } from "@/lib/queries/chat-rooms";
+import { getDirectPeers, getRoomUnread, getThreadPrefs } from "@/lib/queries/chat-rooms";
 
 /** One row of the chat list (Janine, 29 September): every conversation this
  * person can open, each with its last message and what is waiting unread. */
@@ -16,6 +16,10 @@ export type ChatThreadSummary = {
   last: { author: string; body: string; at: string } | null;
   unread: number;
   mentioned: boolean;
+  /** This person's own choices (20260929161000): pinned first in the list,
+   * muted sends no notifications and stays out of the tab's badge. */
+  pinned?: boolean;
+  muted?: boolean;
 };
 
 const first = (name: string | null | undefined) => (name ?? "").trim().split(/\s+/)[0] || "Someone";
@@ -144,7 +148,10 @@ export async function getChatThreads(me: { id: string; family_id: string; person
     });
 
   // Household and Family stay first -- the two every person has -- and the
-  // rest follow the conversation, newest first.
+  // rest follow the conversation, newest first. Anything pinned goes above
+  // all of it, in that same order.
   const rest = [...linked, ...direct].sort((a, b) => (b.last?.at ?? "").localeCompare(a.last?.at ?? ""));
-  return [household, ...family, ...rest];
+  const prefs = await getThreadPrefs();
+  const all = [household, ...family, ...rest].map((t) => ({ ...t, pinned: prefs.get(t.key)?.pinned ?? false, muted: prefs.get(t.key)?.muted ?? false }));
+  return [...all.filter((t) => t.pinned), ...all.filter((t) => !t.pinned)];
 }

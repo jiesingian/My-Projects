@@ -18,7 +18,53 @@ export type RoomMessage = {
    * session -- the storage policy lets them open exactly these. url is null
    * only if signing failed. */
   photos: { id: string; url: string | null; fileName: string; mimeType: string }[];
+  /** The message this one answers, as one line -- null when it answers
+   * nothing, or when that message is gone or outside the window. */
+  replyTo: { id: string; authorName: string; excerpt: string } | null;
+  /** Reactions, grouped by emoji (20260929161000). */
+  reactions: { emoji: string; names: string[]; mine: boolean }[];
 };
+
+type ReactionRow = { family_message_id: string | null; direct_message_id: string | null; emoji: string; author_name: string; person_id: string };
+
+/** Reactions on a window of room messages, one query for all of them. Row-
+ * level security leaves out reactions from households the reader is not
+ * linked with. */
+async function reactionsFor(column: "family_message_id" | "direct_message_id", ids: string[], myPersonId: string): Promise<Map<string, RoomMessage["reactions"]>> {
+  const out = new Map<string, RoomMessage["reactions"]>();
+  if (ids.length === 0) return out;
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("chat_room_reactions")
+    .select("family_message_id, direct_message_id, emoji, author_name, person_id")
+    .in(column, ids)
+    .order("created_at");
+  const grouped = new Map<string, Map<string, ReactionRow[]>>();
+  for (const r of (data ?? []) as ReactionRow[]) {
+    const key = (column === "family_message_id" ? r.family_message_id : r.direct_message_id) as string;
+    const byEmoji = grouped.get(key) ?? new Map<string, ReactionRow[]>();
+    byEmoji.set(r.emoji, [...(byEmoji.get(r.emoji) ?? []), r]);
+    grouped.set(key, byEmoji);
+  }
+  for (const [key, byEmoji] of grouped) {
+    out.set(
+      key,
+      [...byEmoji.entries()].map(([emoji, rows]) => ({
+        emoji,
+        names: rows.map((r) => (r.person_id === myPersonId ? "You" : r.author_name.split(" ")[0] || "Someone")),
+        mine: rows.some((r) => r.person_id === myPersonId),
+      })),
+    );
+  }
+  return out;
+}
+
+/** One line of the message being answered -- enough to recognise it. */
+function quoteOf(parent: { id: string; body: string } | undefined, authorName: (id: string) => string, hasMedia: boolean): RoomMessage["replyTo"] {
+  if (!parent) return null;
+  const excerpt = parent.body.replace(/\s+/g, " ").trim().slice(0, 120) || (hasMedia ? "Photo or voice note" : "");
+  return { id: parent.id, authorName: authorName(parent.id), excerpt };
+}
 
 /** The photos on a set of room messages, keyed by message id, in the order
  * they were picked. One query and one signing call for the whole window. */
@@ -46,10 +92,10 @@ export function pairOf(a: string, b: string): [string, string] {
   return a < b ? [a, b] : [b, a];
 }
 
-export async function getFamilyRoom(me: { id: string; family_id: string }): Promise<{ messages: RoomMessage[]; households: string[] }> {
+export async function getFamilyRoom(me: { id: string; family_id: string; person_id: string }): Promise<{ messages: RoomMessage[]; households: string[] }> {
   const supabase = await createClient();
   const [{ data }, { data: links }] = await Promise.all([
-    supabase.from("family_tree_messages").select("id, family_id, member_id, author_name, body, created_at").order("created_at", { ascending: false }).limit(200),
+    supabase.from("family_tree_messages").select("id, family_id, member_id, author_name, body, created_at, reply_to").order("created_at", { ascending: false }).limit(200),
     supabase.from("family_links").select("requester_family_id, addressee_family_id").eq("status", "accepted"),
   ]);
   const rows = (data ?? []).slice().reverse();
@@ -57,7 +103,15 @@ export async function getFamilyRoom(me: { id: string; family_id: string }): Prom
   const ids = [...new Set([...rows.map((r) => r.family_id), ...linkedIds, me.family_id])];
   const { data: names } = await supabase.from("families").select("id, name").in("id", ids);
   const nameOf = new Map((names ?? []).map((f) => [f.id, f.name]));
-  const photos = await photosFor("family_message_id", rows.map((r) => r.id));
+  const [photos, reactions] = await Promise.all([
+    photosFor("family_message_id", rows.map((r) => r.id)),
+    reactionsFor("family_message_id", rows.map((r) => r.id), me.person_id),
+  ]);
+  const byId = new Map(rows.map((r) => [r.id, r]));
+  const authorOf = (id: string) => {
+    const r = byId.get(id);
+    return !r ? "Someone" : r.member_id === me.id ? "You" : (r.author_name || "Someone").split(" ")[0];
+  };
   return {
     households: linkedIds.map((id) => nameOf.get(id) ?? "A linked household"),
     messages: rows.map((r) => ({
@@ -69,6 +123,8 @@ export async function getFamilyRoom(me: { id: string; family_id: string }): Prom
       householdName: nameOf.get(r.family_id) ?? "A linked household",
       ourHousehold: r.family_id === me.family_id,
       photos: photos.get(r.id) ?? [],
+      replyTo: r.reply_to ? quoteOf(byId.get(r.reply_to), authorOf, (photos.get(r.reply_to) ?? []).length > 0) : null,
+      reactions: reactions.get(r.id) ?? [],
     })),
   };
 }
@@ -82,21 +138,33 @@ export async function getDirectPeers(): Promise<DirectPeer[]> {
 /** A conversation with one person, and who they are -- null when this person
  * has never been connected with them and has no history with them, so the
  * page shows "not found" rather than an empty thread nobody can write in. */
-export async function getDirectThread(myPersonId: string, otherPersonId: string): Promise<{ peer: DirectPeer; messages: RoomMessage[] } | null> {
+export async function getDirectThread(
+  myPersonId: string,
+  otherPersonId: string,
+): Promise<{ peer: DirectPeer; messages: RoomMessage[]; seenAt: string | null } | null> {
   const peer = (await getDirectPeers()).find((p) => p.personId === otherPersonId);
   if (!peer) return null;
   const supabase = await createClient();
   const [low, high] = pairOf(myPersonId, otherPersonId);
   const { data } = await supabase
     .from("direct_messages")
-    .select("id, sender_person_id, body, created_at")
+    .select("id, sender_person_id, body, created_at, reply_to")
     .eq("person_low", low)
     .eq("person_high", high)
     .order("created_at", { ascending: false })
     .limit(300);
-  const photos = await photosFor("direct_message_id", (data ?? []).map((m) => m.id));
+  const ids = (data ?? []).map((m) => m.id);
+  const [photos, reactions, { data: seenAt }] = await Promise.all([
+    photosFor("direct_message_id", ids),
+    reactionsFor("direct_message_id", ids, myPersonId),
+    // When they last read this conversation, for "Seen" under your last one.
+    supabase.rpc("dm_seen_at", { p_other: otherPersonId }),
+  ]);
+  const byId = new Map((data ?? []).map((m) => [m.id, m]));
+  const authorOf = (id: string) => (byId.get(id)?.sender_person_id === myPersonId ? "You" : peer.fullName.split(" ")[0]);
   return {
     peer,
+    seenAt: seenAt ?? null,
     messages: (data ?? [])
       .slice()
       .reverse()
@@ -109,6 +177,8 @@ export async function getDirectThread(myPersonId: string, otherPersonId: string)
         householdName: null,
         ourHousehold: m.sender_person_id === myPersonId,
         photos: photos.get(m.id) ?? [],
+        replyTo: m.reply_to ? quoteOf(byId.get(m.reply_to), authorOf, (photos.get(m.reply_to) ?? []).length > 0) : null,
+        reactions: reactions.get(m.id) ?? [],
       })),
   };
 }
@@ -118,4 +188,24 @@ export async function getRoomUnread(): Promise<Map<string, number>> {
   const supabase = await createClient();
   const { data } = await supabase.rpc("my_chat_unread");
   return new Map((data ?? []).map((r) => [r.thread, Number(r.unread) || 0]));
+}
+
+/** Conversation key -> this person's mute and pin choices. */
+export type ThreadPref = { muted: boolean; pinned: boolean; mutedUntil: string | null };
+
+export async function getThreadPrefs(): Promise<Map<string, ThreadPref>> {
+  const supabase = await createClient();
+  const { data } = await supabase.from("chat_thread_prefs").select("thread, muted, muted_until, pinned");
+  const now = Date.now();
+  return new Map(
+    (data ?? []).map((p) => [
+      p.thread,
+      {
+        // An expired "mute for an hour" reads as not muted, whatever the row says.
+        muted: p.muted && (!p.muted_until || new Date(p.muted_until).getTime() > now),
+        pinned: p.pinned,
+        mutedUntil: p.muted_until,
+      },
+    ]),
+  );
 }
