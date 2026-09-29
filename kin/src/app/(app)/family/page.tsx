@@ -36,6 +36,7 @@ import { FamilyTreeEditor } from "@/components/family-tree-editor";
 import { AddMeToTreeButton } from "@/components/add-me-to-tree-button";
 import { formatAge, initials } from "@/lib/format";
 import { isGone } from "@/lib/member-status";
+import { getIncomingConnectionCount } from "@/lib/queries/connections";
 
 const SEGMENTS = ["profile", "health", "documents", "tree", "quicklinks"] as const;
 type Seg = (typeof SEGMENTS)[number];
@@ -85,7 +86,11 @@ export default async function FamilyPage({
 async function ProfilePane({ familyId, isOrganiser, myRole }: { familyId: string; isOrganiser: boolean; myId: string; myRole: string }) {
   // Matches add_managed_child, which lets any parent or adult add one.
   const canAddChild = myRole === "parent" || myRole === "adult";
-  const [allMembers, { backgroundUrl, about, addresses, backgroundPhotos }] = await Promise.all([getMembers(familyId), getFamilyProfile(familyId)]);
+  const [allMembers, { backgroundUrl, about, addresses, backgroundPhotos }, asking] = await Promise.all([
+    getMembers(familyId),
+    getFamilyProfile(familyId),
+    getIncomingConnectionCount(),
+  ]);
   const pending = allMembers.filter((m) => m.status === "pending");
   const removed = allMembers.filter((m) => m.status === "removed");
   const members = allMembers.filter((m) => m.status !== "pending" && !isGone(m.status));
@@ -153,6 +158,18 @@ async function ProfilePane({ familyId, isOrganiser, myRole }: { familyId: string
       <div style={{ fontSize: "0.8125rem", color: "var(--color-neutral-600)", marginTop: "0.875rem" }}>
         Managed profiles are written by a parent. Children graduate to their own login at 13.
       </div>
+
+      {/* One to one, inside the family or out of it (29 September). */}
+      <Link href="/family/connections" style={{ textDecoration: "none", color: "inherit", display: "block", marginTop: "1rem" }}>
+        <Blueprint style={{ padding: "0.8125rem 0.875rem", display: "flex", alignItems: "center", gap: "0.75rem" }}>
+          <Icon name="users" size={18} />
+          <span style={{ flex: 1, minWidth: 0 }}>
+            <span style={{ font: "600 0.9375rem/1.1 var(--font-heading)", display: "block" }}>Connections</span>
+            <span style={{ fontSize: "0.78125rem", color: "var(--color-neutral-600)" }}>People you can message one to one, in the family or outside it</span>
+          </span>
+          {asking > 0 && <Tag variant="accent">{asking} ASKING</Tag>}
+        </Blueprint>
+      </Link>
 
       {/* A child arrives long after the household is set up — a baby, or one
           who was simply missed. This used to live only in onboarding, a page
