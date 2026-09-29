@@ -2,7 +2,7 @@
 
 import { FlyerScanner } from "@/components/flyer-scanner";
 import { InviteCard } from "@/components/invite-card";
-import { startTransition, useActionState, useState } from "react";
+import { startTransition, useActionState, useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   createActivityAction,
@@ -11,7 +11,9 @@ import {
   createEventAction,
   updateEventAction,
   deleteEventAction,
+  checkClashesAction,
 } from "@/lib/actions/planner";
+import type { ClashReport } from "@/lib/queries/clashes";
 import type { ActionState } from "@/lib/actions/auth";
 import { SubmitButton, ErrorText } from "@/components/form";
 import { DetailHeader } from "@/components/hub-header";
@@ -105,14 +107,48 @@ function ActivityForm({ members, defaultDate, editActivity, prefill }: { members
   const startTime = editActivity ? familyClock(new Date(editActivity.start_at)) : undefined;
   const endTime = editActivity?.end_at ? familyClock(new Date(editActivity.end_at)) : undefined;
 
+  // What this plan would clash with, asked again as the date, times or
+  // people change (29 September): overlapping plans for someone it involves,
+  // and all-day events that day as a reminder. lib/queries/clashes.
+  const formRef = useRef<HTMLFormElement>(null);
+  const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [report, setReport] = useState<ClashReport>({ clashes: [], sameDay: [] });
+  const check = useCallback(() => {
+    const f = formRef.current;
+    if (!f) return;
+    const d = new FormData(f);
+    const input = { date: String(d.get("date") ?? ""), from: String(d.get("from") ?? ""), to: String(d.get("to") ?? ""), wholeFamily, who, excludeId: editActivity?.id };
+    if (timer.current) clearTimeout(timer.current);
+    if (!input.date) return;
+    timer.current = setTimeout(() => {
+      checkClashesAction(input).then(setReport).catch(() => {});
+    }, 350);
+  }, [wholeFamily, who, editActivity?.id]);
+  useEffect(() => {
+    check();
+  }, [check]);
+
   return (
     <form
+      ref={formRef}
       action={formAction}
-      onSubmit={(e) => {
+      onChange={check}
+      onSubmit={async (e) => {
         // The same reset EventForm steps around: a refused save -- an end time
         // before the start -- used to clear the title, date, times and notes.
         e.preventDefault();
         const data = new FormData(e.currentTarget);
+        // A clash asks once before saving -- the nudge to move it -- but never
+        // stops a plan the family means to keep.
+        if (
+          report.clashes.length > 0 &&
+          !(await confirm({
+            title: report.clashes.length === 1 ? "This clashes with another plan" : `This clashes with ${report.clashes.length} plans`,
+            description: report.clashes.map((c) => `${c.title} at ${c.time} (${c.who})`).join("; ") + ". Change the time, or save it anyway?",
+            confirmLabel: "Save anyway",
+          }))
+        )
+          return;
         startTransition(() => formAction(data));
       }}
     >
@@ -163,6 +199,7 @@ function ActivityForm({ members, defaultDate, editActivity, prefill }: { members
       </div>
       <Field label="Location"><input className="input" name="location" placeholder="Little Acorns, San Juan" maxLength={200} defaultValue={editActivity?.location ?? undefined} style={{ minHeight: "2.75rem" }} /></Field>
       <Field label="Notes"><textarea className="input" name="notes" maxLength={1000} defaultValue={editActivity?.notes ?? prefill?.notes} /></Field>
+      <ClashNotice report={report} />
       <SubmitButton pending={saving} style={{ minHeight: "2.875rem", fontSize: "0.875rem", letterSpacing: ".04em" }}>{editActivity ? "Save changes" : "Save to calendar"}</SubmitButton>
       {editActivity && (
         <button
@@ -187,6 +224,34 @@ function ActivityForm({ members, defaultDate, editActivity, prefill }: { members
       )}
       <ErrorText message={deleteError} />
     </form>
+  );
+}
+
+/** The clash warning above Save: plans this one overlaps for someone it
+ * involves, then all-day events that day, which are only a reminder. */
+function ClashNotice({ report }: { report: ClashReport }) {
+  if (report.clashes.length === 0 && report.sameDay.length === 0) return null;
+  return (
+    <div className="kin-clash" role="status" aria-live="polite">
+      {report.clashes.length > 0 && (
+        <>
+          <div className="kin-clash-title">Clashes with {report.clashes.length === 1 ? "another plan" : `${report.clashes.length} plans`}</div>
+          <ul>
+            {report.clashes.map((c, i) => (
+              <li key={i}>
+                <b>{c.title}</b> · {c.time} · {c.who}
+              </li>
+            ))}
+          </ul>
+          <div className="kin-clash-hint">Try another time, or save it anyway.</div>
+        </>
+      )}
+      {report.sameDay.length > 0 && (
+        <div className="kin-clash-day">
+          That day: {report.sameDay.join(", ")}. Plans can still go around it.
+        </div>
+      )}
+    </div>
   );
 }
 
