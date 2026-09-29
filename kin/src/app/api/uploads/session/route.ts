@@ -152,7 +152,7 @@ export async function POST(request: Request) {
   // millisecond, which a multi-select does, from landing on one path.
   // Highlights: Storage only, under the household's own folder, where the
   // documents bucket's policies keep them to the household. Gone in 24 hours
-  // (20260929100000_highlights.sql).
+  // (20260929100100_highlights.sql).
   if (kind === "highlight") {
     if (mimeType.startsWith("image/") && fileSize > HIGHLIGHT_PHOTO_BYTES) {
       return NextResponse.json({ error: "That photo is too large for a highlight — the limit is 15MB." }, { status: 400 });
