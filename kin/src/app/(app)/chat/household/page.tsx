@@ -6,6 +6,10 @@ import { getChatMembers, getChatThread, getChatPin, getHouseholdChatTheme } from
 import { ChatThread } from "@/components/chat-thread";
 import { shortNames } from "@/lib/format";
 import { CallButtons } from "@/components/call-buttons";
+import { HighlightsButton } from "@/components/highlights";
+import { getHighlights } from "@/lib/queries/highlights";
+import { sweepExpiredHighlights } from "@/lib/actions/highlights";
+import { after } from "next/server";
 
 export const dynamic = "force-dynamic";
 
@@ -18,12 +22,16 @@ export default async function HouseholdChatPage({ searchParams }: { searchParams
   // Message, on a profile, lands here addressed to that person.
   const { to } = await searchParams;
 
-  const [members, thread, pin, theme] = await Promise.all([
+  const [members, thread, pin, theme, highlights] = await Promise.all([
     getChatMembers(me.family_id),
     getChatThread(me.family_id),
     getChatPin(me.family_id),
     getHouseholdChatTheme(me.family_id),
+    getHighlights(me.family_id),
   ]);
+  // Expired highlights' files go the next time anyone at home opens the
+  // household chat (they are already hidden: the table only returns live ones).
+  after(() => sweepExpiredHighlights());
   // Two people in one house can share a first name; the tag has to tell them
   // apart, and the same label is what the message text carries.
   const labels = shortNames(members.map((m) => m.name));
@@ -48,6 +56,7 @@ export default async function HouseholdChatPage({ searchParams }: { searchParams
           <Icon name="images" size={18} />
           <span>Albums</span>
         </Link>
+        <HighlightsButton me={me.id} people={labelled.map((m) => ({ id: m.id, label: m.label, initials: m.initials, photoUrl: m.photoUrl }))} highlights={highlights} />
         <CallButtons />
       </div>
 
