@@ -203,6 +203,7 @@ export async function getEntry(familyId: string, entryId: string) {
     people: (data.journal_entry_people ?? [])
       .map((p) => (p.members as unknown as { id: string; full_name: string } | null))
       .filter((v): v is { id: string; full_name: string } => !!v),
+    hasDriveMedia: mediaRefs.some((m) => m.storage_provider === "google_drive"),
     photos: mediaRefs
       .map((m) => ({
         id: m.id,
@@ -271,4 +272,108 @@ export async function getPersonMoments(familyId: string, memberId: string, limit
       return { id: e.id, title: e.title, note: e.note, date: e.entry_date, photo };
     }),
   };
+}
+
+type PublicMedia = { id: string; storage_path: string | null; storage_provider: string; drive_file_id: string | null; owner_person_id: string | null };
+
+/** Photos of a Public entry as the reader may see them: the writer's own, and
+ * for anyone outside the writer's household only Kin-stored ones -- the
+ * policies already hold back the rest, this just keeps the shapes tidy. */
+async function publicPhotos(rows: { owner_person_id: string | null; family_id: string; journal_entry_media: { journal_media: unknown }[] | null }[], myFamilyId: string | null) {
+  const mediaOf = (r: (typeof rows)[number]) =>
+    (r.journal_entry_media ?? [])
+      .map((m) => m.journal_media as PublicMedia | null)
+      .filter((m): m is PublicMedia => !!m && m.owner_person_id === r.owner_person_id);
+  const paths = rows.flatMap((r) => mediaOf(r).filter((m) => m.storage_provider === "supabase" && m.storage_path).map((m) => m.storage_path as string));
+  const urls = await getSignedUrls("journal", paths);
+  return (r: (typeof rows)[number]) => {
+    const ours = r.family_id === myFamilyId;
+    return mediaOf(r)
+      .map((m) => {
+        const url =
+          m.storage_provider === "google_drive"
+            ? ours && m.drive_file_id
+              ? `/api/drive/file/${m.drive_file_id}`
+              : null
+            : m.storage_path
+              ? (urls[m.storage_path] ?? null)
+              : null;
+        // Ids only on our own household's photos: reactions and comments stay
+        // in the household whose photo it is, as on the Family feed.
+        return url ? { id: ours ? m.id : null, url } : null;
+      })
+      .filter((p): p is { id: string | null; url: string } => !!p);
+  };
+}
+
+/** An entry from outside this household that someone you are connected with
+ * made Public -- for its own page, when getEntry (this household's) finds
+ * nothing. Row-level security decides whether it is readable at all. */
+export async function getPublicEntry(entryId: string) {
+  const supabase = await createClient();
+  const [{ data }, me] = await Promise.all([
+    supabase
+      .from("journal_entries")
+      .select("*, journal_entry_media(journal_media(id, storage_path, storage_provider, drive_file_id, owner_person_id))")
+      .eq("id", entryId)
+      .not("public_at", "is", null)
+      .maybeSingle(),
+    supabase.rpc("current_family_id"),
+  ]);
+  if (!data) return null;
+  const photosOf = await publicPhotos([data], (me.data as string | null) ?? null);
+  return {
+    ...data,
+    // A connection's household is theirs: who was there and whose milestone
+    // are names from inside it, and are not shown.
+    milestoneOf: null as string | null,
+    people: [] as { id: string; full_name: string }[],
+    // Another household's Drive is not ours to explain.
+    hasDriveMedia: false,
+    photos: photosOf(data),
+  };
+}
+
+export type PublicFeedEntry = {
+  id: string;
+  title: string;
+  note: string | null;
+  entryDate: string;
+  milestone: boolean;
+  author: string;
+  mine: boolean;
+  photos: { id: string | null; url: string }[];
+};
+
+/** The Public feed: entries marked Public by the people you are connected
+ * with, and your own. Row-level security lets a reader see a Public entry only
+ * when they are connected with its writer (20260929100000); the filter below
+ * also drops the household's own Public entries whose writer you are not
+ * connected with -- the household can see those anyway, but in Household,
+ * not here. Names come from my_connections(), which gives one only for a
+ * connection both people accepted. */
+export async function getPublicFeed(personId: string, familyId: string): Promise<PublicFeedEntry[]> {
+  const supabase = await createClient();
+  const [{ data }, { data: connections }] = await Promise.all([
+    supabase
+      .from("journal_entries")
+      .select("id, title, note, entry_date, milestone, family_id, owner_person_id, journal_entry_media(journal_media(id, storage_path, storage_provider, drive_file_id, owner_person_id))")
+      .not("public_at", "is", null)
+      .order("entry_date", { ascending: false })
+      .limit(200),
+    supabase.rpc("my_connections"),
+  ]);
+  const names = new Map((connections ?? []).filter((c) => c.status === "accepted").map((c) => [c.person_id, c.full_name ?? "Someone"]));
+  const rows = (data ?? []).filter((r) => r.owner_person_id === personId || (r.owner_person_id && names.has(r.owner_person_id)));
+  const photosOf = await publicPhotos(rows, familyId);
+  return rows.map((r) => ({
+    id: r.id,
+    title: r.title,
+    note: r.note,
+    entryDate: r.entry_date,
+    milestone: r.milestone,
+    author: r.owner_person_id === personId ? "You" : (names.get(r.owner_person_id as string) ?? "Someone"),
+    mine: r.owner_person_id === personId,
+    photos: photosOf(r),
+  }));
 }

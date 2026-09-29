@@ -3155,6 +3155,7 @@ export type Database = {
           milestone_member_id: string | null
           note: string | null
           owner_person_id: string | null
+          public_at: string | null
           shared_at: string | null
           source: string
           source_activity_id: string | null
@@ -3172,6 +3173,7 @@ export type Database = {
           milestone_member_id?: string | null
           note?: string | null
           owner_person_id?: string | null
+          public_at?: string | null
           shared_at?: string | null
           source?: string
           source_activity_id?: string | null
@@ -3189,6 +3191,7 @@ export type Database = {
           milestone_member_id?: string | null
           note?: string | null
           owner_person_id?: string | null
+          public_at?: string | null
           shared_at?: string | null
           source?: string
           source_activity_id?: string | null

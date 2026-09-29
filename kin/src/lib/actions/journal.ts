@@ -229,6 +229,26 @@ export async function setEntryMilestoneAction(entryId: string, on: boolean): Pro
   return { error: null };
 }
 
+/** Public: the people its writer is connected with can read it, in their
+ * Public feed. Only the writer may turn it on -- a database trigger refuses
+ * anyone else -- and the filter here says so before it gets that far. */
+export async function setEntryPublicAction(entryId: string, on: boolean): Promise<{ error: string | null }> {
+  const me = await requireCurrentMember();
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("journal_entries")
+    .update({ public_at: on ? new Date().toISOString() : null })
+    .eq("id", entryId)
+    .eq("family_id", me.family_id)
+    .eq("owner_person_id", me.person_id)
+    .select("id")
+    .maybeSingle();
+  if (error) return { error: humanDatabaseError(error.message) };
+  if (!data) return { error: "Only the person who wrote this entry can make it public." };
+  revalidatePath("/journal");
+  return { error: null };
+}
+
 /** Records a file the client already uploaded directly to Drive or Supabase
  * Storage (see uploadFileDirect) — this call only ever carries small JSON,
  * never the file itself, so it isn't subject to any request body limit. */

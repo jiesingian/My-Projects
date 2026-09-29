@@ -79,7 +79,13 @@ export async function getFamilyFeed(familyId: string, meId?: string): Promise<Fe
     .order("entry_date", { ascending: false })
     .limit(200);
 
-  const rows = data ?? [];
+  // Only our household and the households linked with it. Row-level security
+  // also lets a reader see entries made Public by people they are connected
+  // with (20260929100000) -- those belong in the Public feed, not here, even
+  // when they happen to be shared with relatives too.
+  const { data: links } = await supabase.from("family_links").select("requester_family_id, addressee_family_id").eq("status", "accepted");
+  const feedFamilies = new Set([familyId, ...(links ?? []).flatMap((l) => [l.requester_family_id, l.addressee_family_id])]);
+  const rows = (data ?? []).filter((r) => feedFamilies.has(r.family_id));
   // Signed with the reader's own session: the storage policy lets a linked
   // household read a shared entry's photo files and nothing else. Photos kept
   // in a household's Google Drive are left out -- another household has no
