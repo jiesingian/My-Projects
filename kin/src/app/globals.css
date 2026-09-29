@@ -5586,6 +5586,32 @@ button.kin-initial:focus-visible {
 .kin-entry-star span {
   color: var(--color-accent);
 }
+/* Where an entry you wrote is shared, and its star, on the entry itself. */
+.kin-entry-share {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.375rem;
+  margin: 0.25rem 0 0.625rem;
+}
+.kin-entry-share[aria-busy="true"] {
+  opacity: 0.6;
+}
+.kin-entry-share-label {
+  width: 100%;
+  font-size: 0.75rem;
+  color: var(--color-neutral-600);
+}
+.kin-entry-share .chip {
+  min-height: 1.875rem;
+  font-size: 0.8125rem;
+}
+.kin-entry-share-star span {
+  color: var(--color-accent);
+}
+.kin-entry-share-star[data-active="true"] span {
+  color: #fff;
+}
 /* Marking an entry as a milestone, in its form. */
 .kin-star-toggle {
   display: inline-flex;

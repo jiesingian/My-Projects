@@ -168,6 +168,67 @@ export async function addEntryToHouseholdAction(entryId: string): Promise<{ erro
   return { error: null };
 }
 
+/** The other way: a household entry back to Just me. Only its writer may --
+ * the update policy's check already refuses anyone else, and the filter on
+ * owner_person_id says so plainly. It leaves the Family feed with it.
+ *
+ * Its photos the writer added in Kin go back to being theirs alone. A photo
+ * kept in the household's Google Drive stays a household photo: the file is in
+ * the household's Drive either way, and the Drive sync, which cannot see a
+ * personal row, would otherwise index it again as new. A photo someone else
+ * added stays theirs, in the household. */
+export async function takeEntryBackAction(entryId: string): Promise<{ error: string | null }> {
+  const me = await requireCurrentMember();
+  const supabase = await createClient();
+
+  const { data: links } = await supabase.from("journal_entry_media").select("media_id").eq("entry_id", entryId);
+
+  const { data: entry, error } = await supabase
+    .from("journal_entries")
+    .update({ visibility: "personal", shared_at: null })
+    .eq("id", entryId)
+    .eq("family_id", me.family_id)
+    .eq("owner_person_id", me.person_id)
+    .eq("visibility", "household")
+    .select("id")
+    .maybeSingle();
+  if (error) return { error: humanDatabaseError(error.message) };
+  if (!entry) return { error: "Only the person who wrote this entry can make it just theirs again." };
+
+  const mediaIds = (links ?? []).map((l) => l.media_id);
+  if (mediaIds.length > 0) {
+    const { error: mediaError } = await supabase
+      .from("journal_media")
+      .update({ visibility: "personal" })
+      .in("id", mediaIds)
+      .eq("owner_person_id", me.person_id)
+      .eq("storage_provider", "supabase");
+    if (mediaError) return { error: `The entry is just yours again, but its photos are still in the household's. ${mediaError.message}` };
+  }
+
+  revalidatePath("/journal");
+  return { error: null };
+}
+
+/** The ★ from the entry itself, without opening the form. Whose milestone it
+ * is stays as it was when turning it on (the form is where that is chosen);
+ * turning it off clears it, as the column's check requires. */
+export async function setEntryMilestoneAction(entryId: string, on: boolean): Promise<{ error: string | null }> {
+  const me = await requireCurrentMember();
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("journal_entries")
+    .update(on ? { milestone: true } : { milestone: false, milestone_member_id: null, event_id: null })
+    .eq("id", entryId)
+    .eq("family_id", me.family_id)
+    .select("id")
+    .maybeSingle();
+  if (error) return { error: humanDatabaseError(error.message) };
+  if (!data) return { error: "Entry not found." };
+  revalidatePath("/journal");
+  return { error: null };
+}
+
 /** Records a file the client already uploaded directly to Drive or Supabase
  * Storage (see uploadFileDirect) — this call only ever carries small JSON,
  * never the file itself, so it isn't subject to any request body limit. */

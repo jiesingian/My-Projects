@@ -19,6 +19,7 @@ import { EntryShareToggle } from "@/components/entry-share-toggle";
 import { getFamilyFeed, getFamilyLinks, getFeedOccasions } from "@/lib/queries/family-links";
 import { isGrownUp } from "@/lib/roles";
 import { AddToHouseholdButton } from "@/components/add-to-household";
+import { EntryShareOptions } from "@/components/entry-share-options";
 
 /* Gallery, Entries and Milestones were three hub segments; now they are one
    -- Entries -- with these three as views inside it. A person reading a day
@@ -202,11 +203,6 @@ async function EntriesPane({ familyId, mine, milestonesOnly = false }: { familyI
                 FROM PLAN
               </Tag>
             )}
-            {mine && (
-              <Tag variant={e.visibility === "personal" ? "outline" : "neutral"} className={e.source === "from_plan" ? undefined : "ml-auto"}>
-                {e.visibility === "personal" ? "JUST ME" : "HOUSEHOLD"}
-              </Tag>
-            )}
           </div>
           {/* The title opens the entry on its own page, with every photo as a gallery. */}
           <Link href={`/journal/${e.id}`} style={{ display: "block", font: "600 1.3125rem/1.05 var(--font-heading)", margin: "7px 0 6px", color: "inherit" }}>
@@ -214,12 +210,23 @@ async function EntriesPane({ familyId, mine, milestonesOnly = false }: { familyI
           </Link>
           <JournalEntryPhotos photos={e.photos} entryTitle={e.title} galleryHref={`/journal/${e.id}`} />
           {e.note && <p style={{ fontSize: "0.875rem", margin: "0 0 9px", color: "var(--color-neutral-800)" }}>{e.note}</p>}
+          {/* Mine: where it is shared and its star, on the entry and changed in a tap. */}
+          {mine && (
+            <EntryShareOptions
+              entryId={e.id}
+              title={e.title}
+              personal={e.visibility === "personal"}
+              shared={Boolean(e.shared_at)}
+              milestone={e.milestone}
+              linkedCount={linkedCount}
+            />
+          )}
           <div style={{ display: "flex", flexWrap: "wrap", alignItems: "baseline", gap: "0.375rem 0.5rem" }}>
             <div style={{ fontSize: "0.8125rem", color: "var(--color-neutral-600)" }}>
               {e.people.map((p) => p.full_name.split(" ")[0]).join(" · ") || (e.visibility === "personal" ? "Only you" : "Whole family")}
             </div>
             <span style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: "0.625rem" }}>
-              {e.visibility === "personal" ? (
+              {mine ? null : e.visibility === "personal" ? (
                 <AddToHouseholdButton entryId={e.id} title={e.title} />
               ) : (
                 <EntryShareToggle entryId={e.id} shared={Boolean(e.shared_at)} linkedCount={linkedCount} />

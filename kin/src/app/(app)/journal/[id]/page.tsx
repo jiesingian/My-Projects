@@ -5,6 +5,8 @@ import { getEntry } from "@/lib/queries/journal";
 import { familyDate } from "@/lib/format-family";
 import { DetailHeader } from "@/components/hub-header";
 import { JournalEntryGallery } from "@/components/journal-entry-gallery";
+import { EntryShareOptions } from "@/components/entry-share-options";
+import { getFamilyLinks } from "@/lib/queries/family-links";
 
 /** One entry, read on its own: the write-up and every photo it holds, as a
  * gallery. Opened by tapping an entry in Mine or Household. Row-level
@@ -14,7 +16,7 @@ export default async function JournalEntryPage({ params }: { params: Promise<{ i
   const me = await getCurrentMember();
   if (!me) redirect("/onboarding/profile");
   const { id } = await params;
-  const [entry, fmtDate] = await Promise.all([getEntry(me.family_id, id), familyDate()]);
+  const [entry, fmtDate, links] = await Promise.all([getEntry(me.family_id, id), familyDate(), getFamilyLinks(me.family_id)]);
   if (!entry) notFound();
 
   const personal = entry.visibility === "personal";
@@ -39,6 +41,17 @@ export default async function JournalEntryPage({ params }: { params: Promise<{ i
         <div style={{ fontSize: "0.8125rem", color: "var(--color-neutral-600)", marginBottom: "0.75rem" }}>
           {names || (personal ? "Only you" : "Whole family")}
         </div>
+        {/* Its writer sees where it is shared, and changes it here as in Mine. */}
+        {entry.owner_person_id === me.person_id && (
+          <EntryShareOptions
+            entryId={entry.id}
+            title={entry.title}
+            personal={personal}
+            shared={Boolean(entry.shared_at)}
+            milestone={entry.milestone}
+            linkedCount={links.filter((l) => l.status === "accepted").length}
+          />
+        )}
         {entry.note && <p style={{ fontSize: "0.9375rem", lineHeight: 1.55, margin: "0 0 1rem", color: "var(--color-neutral-800)", whiteSpace: "pre-wrap" }}>{entry.note}</p>}
         {entry.photos.length > 0 ? (
           <>
