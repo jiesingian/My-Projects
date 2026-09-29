@@ -208,8 +208,11 @@ async function EntriesPane({ familyId, mine, milestonesOnly = false }: { familyI
               </Tag>
             )}
           </div>
-          <div style={{ font: "600 1.3125rem/1.05 var(--font-heading)", margin: "7px 0 6px" }}>{e.title}</div>
-          <JournalEntryPhotos photos={e.photos} entryTitle={e.title} />
+          {/* The title opens the entry on its own page, with every photo as a gallery. */}
+          <Link href={`/journal/${e.id}`} style={{ display: "block", font: "600 1.3125rem/1.05 var(--font-heading)", margin: "7px 0 6px", color: "inherit" }}>
+            {e.title}
+          </Link>
+          <JournalEntryPhotos photos={e.photos} entryTitle={e.title} galleryHref={`/journal/${e.id}`} />
           {e.note && <p style={{ fontSize: "0.875rem", margin: "0 0 9px", color: "var(--color-neutral-800)" }}>{e.note}</p>}
           <div style={{ display: "flex", flexWrap: "wrap", alignItems: "baseline", gap: "0.375rem 0.5rem" }}>
             <div style={{ fontSize: "0.8125rem", color: "var(--color-neutral-600)" }}>
