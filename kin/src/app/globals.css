@@ -5951,3 +5951,5 @@ button.kin-initial:focus-visible {
 .kin-room-tray-item img { width: 100%; height: 100%; object-fit: cover; display: block; }
 .kin-room-tray-item button { position: absolute; top: 2px; right: 2px; width: 1.5rem; height: 1.5rem; border-radius: 50%; border: 0; display: grid; place-items: center; color: #fff; background: rgb(0 0 0 / 0.55); }
 .kin-room-tray-note { font-size: 0.78125rem; color: var(--color-neutral-600); padding: 0 0.25rem; }
+.kin-room-tray-item video { width: 100%; height: 100%; object-fit: cover; display: block; }
+.kin-room-tray-voice { width: 100%; height: 100%; display: grid; place-items: center; color: var(--color-accent-700); }

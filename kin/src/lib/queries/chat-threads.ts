@@ -111,7 +111,7 @@ export async function getChatThreads(me: { id: string; family_id: string; person
             subtitle: "Your household and every linked one",
             href: "/chat/family",
             last: lastFamily
-              ? { author: lastFamily.member_id === me.id ? "You" : first(lastFamily.author_name), body: oneLine(lastFamily.body) || "Sent a photo", at: lastFamily.created_at }
+              ? { author: lastFamily.member_id === me.id ? "You" : first(lastFamily.author_name), body: oneLine(lastFamily.body) || "Sent an attachment", at: lastFamily.created_at }
               : null,
             unread: roomUnread.get("family") ?? 0,
             mentioned: false,
@@ -137,7 +137,7 @@ export async function getChatThreads(me: { id: string; family_id: string; person
         subtitle: p.householdName ?? "",
         href: `/chat/dm/${p.personId}`,
         avatarUrl: p.avatarUrl,
-        last: { author: d.sender_person_id === me.person_id ? "You" : first(p.fullName), body: oneLine(d.body) || "Sent a photo", at: d.created_at },
+        last: { author: d.sender_person_id === me.person_id ? "You" : first(p.fullName), body: oneLine(d.body) || "Sent an attachment", at: d.created_at },
         unread: roomUnread.get(`dm:${p.personId}`) ?? 0,
         mentioned: false,
       };

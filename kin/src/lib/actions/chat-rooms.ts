@@ -41,7 +41,7 @@ type Sender = { id: string; family_id: string; person_id: string };
 function checkOutgoing(me: Sender, body: string, photos: RoomPhoto[]): string | null {
   if (!body && photos.length === 0) return "Write something or add a photo first.";
   if (photos.length > MAX_PHOTOS) return `At most ${MAX_PHOTOS} photos at a time.`;
-  if (photos.some((p) => !p.mimeType.startsWith("image/"))) return "Only photos can be sent here.";
+  if (photos.some((p) => !/^(image|video|audio)\//.test(p.mimeType))) return "Only photos, videos and voice notes can be sent here.";
   if (photos.some((p) => !p.storagePath.startsWith(`${me.family_id}/chat/`))) return "One of those photos didn't upload properly. Try again.";
   return null;
 }
@@ -83,7 +83,15 @@ async function removePhotosOf(column: "family_message_id" | "direct_message_id",
   if (data?.length) await supabase.storage.from("documents").remove(data.map((a) => a.storage_path));
 }
 
-const photoLine = (n: number) => (n === 1 ? "Sent a photo" : `Sent ${n} photos`);
+/** What the notification says when there are no words: the kind of thing
+ * that was sent, the way a phone's messages app does. */
+function photoLine(photos: RoomPhoto[]): string {
+  if (photos.length === 1) {
+    const t = photos[0].mimeType;
+    return t.startsWith("audio/") ? "Sent a voice note" : t.startsWith("video/") ? "Sent a video" : "Sent a photo";
+  }
+  return `Sent ${photos.length} ${photos.every((p) => p.mimeType.startsWith("image/")) ? "photos" : "files"}`;
+}
 
 /** A message to everyone in the family tree: this household and each one
  * linked with it. Who wrote it and from where is set by the database. */
@@ -104,7 +112,7 @@ export async function sendFamilyMessageAction(body: string, photos: RoomPhoto[] 
   after(() =>
     sendChatPush("family", {
       title: `${me.full_name.split(" ")[0]} · Family`,
-      body: text || photoLine(photos.length),
+      body: text || photoLine(photos),
       url: "/chat/family",
       tag: `family-tree-${me.family_id}`,
     }),
@@ -146,7 +154,7 @@ export async function sendDirectMessageAction(otherPersonId: string, body: strin
   after(() =>
     sendChatPush(`dm:${otherPersonId}`, {
       title: me.full_name.split(" ")[0],
-      body: text || photoLine(photos.length),
+      body: text || photoLine(photos),
       url: `/chat/dm/${me.person_id}`,
       tag: `dm-${person_low}-${person_high}`,
     }),

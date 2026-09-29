@@ -17,7 +17,7 @@ export type RoomMessage = {
   /** Photos sent with it (20260929120000), signed in the reader's own
    * session -- the storage policy lets them open exactly these. url is null
    * only if signing failed. */
-  photos: { id: string; url: string | null; fileName: string }[];
+  photos: { id: string; url: string | null; fileName: string; mimeType: string }[];
 };
 
 /** The photos on a set of room messages, keyed by message id, in the order
@@ -28,13 +28,13 @@ async function photosFor(column: "family_message_id" | "direct_message_id", ids:
   const supabase = await createClient();
   const { data } = await supabase
     .from("chat_room_attachments")
-    .select("id, family_message_id, direct_message_id, storage_path, file_name, position")
+    .select("id, family_message_id, direct_message_id, storage_path, file_name, mime_type, position")
     .in(column, ids)
     .order("position");
   const signed = await getSignedUrls("documents", (data ?? []).map((a) => a.storage_path));
   for (const a of data ?? []) {
     const key = (column === "family_message_id" ? a.family_message_id : a.direct_message_id) as string;
-    out.set(key, [...(out.get(key) ?? []), { id: a.id, url: signed[a.storage_path] ?? null, fileName: a.file_name }]);
+    out.set(key, [...(out.get(key) ?? []), { id: a.id, url: signed[a.storage_path] ?? null, fileName: a.file_name, mimeType: a.mime_type }]);
   }
   return out;
 }
