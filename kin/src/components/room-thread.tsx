@@ -12,12 +12,18 @@ import {
 } from "@/lib/actions/chat-rooms";
 import { familyClock, familyDateLong } from "@/lib/time";
 import { Icon } from "@/components/icons";
+import { PhotoViewer } from "@/components/photo-viewer";
+import { uploadFileDirect } from "@/lib/upload-client";
 import type { RoomMessage } from "@/lib/queries/chat-rooms";
+import type { RoomPhoto } from "@/lib/actions/chat-rooms";
+
+/** As in the household chat: beyond this a message becomes an album. */
+const MAX_PHOTOS = 10;
 
 /** The family-tree room, or a conversation with one person (29 September).
  * Plainer than the household chat on purpose, like the linked-household
- * thread it is modelled on: words, live, with a notification -- the house's
- * photos, polls and shopping lists stay in the house's own chat.
+ * thread it is modelled on: words and photos, live, with a notification --
+ * the house's polls, albums and shopping lists stay in the house's own chat.
  *
  * Live over a private channel (chat_topic_is_mine): 'family-tree:<household>'
  * or 'dm:<low>:<high>'. Row-level security decides which changed rows arrive,
@@ -41,7 +47,21 @@ export function RoomThread({
   const [draft, setDraft] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
+  const [picked, setPicked] = useState<{ file: File; preview: string }[]>([]);
+  const [uploading, setUploading] = useState(false);
+  const [viewing, setViewing] = useState<{ photos: RoomMessage["photos"]; index: number } | null>(null);
   const bottom = useRef<HTMLDivElement>(null);
+  const fileInput = useRef<HTMLInputElement>(null);
+
+  // Previews are object URLs; hand each back when it leaves the tray.
+  useEffect(() => () => picked.forEach((p) => URL.revokeObjectURL(p.preview)), [picked]);
+
+  const pick = (list: FileList | null) => {
+    const images = Array.from(list ?? []).filter((f) => f.type.startsWith("image/"));
+    if (images.length < (list?.length ?? 0)) setError("Only photos can be sent here.");
+    setPicked((prev) => [...prev, ...images.map((file) => ({ file, preview: URL.createObjectURL(file) }))].slice(0, MAX_PHOTOS));
+    if (fileInput.current) fileInput.current.value = "";
+  };
   const readKey = room.kind === "family" ? "family" : (`dm:${room.personId}` as const);
   const table = room.kind === "family" ? "family_tree_messages" : "direct_messages";
   const filter = room.kind === "dm" ? `person_low=eq.${room.low}` : undefined;
@@ -62,6 +82,9 @@ export function RoomThread({
       channel = supabase
         .channel(topic, { config: { private: true } })
         .on("postgres_changes", { event: "*", schema: "public", table, ...(filter ? { filter } : {}) }, () => router.refresh())
+        // Photos are indexed just after their message, so the message can
+        // arrive a beat before them; this brings them in when they land.
+        .on("postgres_changes", { event: "INSERT", schema: "public", table: "chat_room_attachments" }, () => router.refresh())
         .subscribe();
     })();
     return () => {
@@ -72,14 +95,38 @@ export function RoomThread({
 
   const send = () => {
     const body = draft.trim();
-    if (!body) return;
+    const files = picked;
+    if (!body && files.length === 0) return;
     setDraft("");
     setError(null);
     startTransition(async () => {
-      const r = room.kind === "family" ? await sendFamilyMessageAction(body) : await sendDirectMessageAction(room.personId, body);
+      // Photos first, straight from the phone to Storage; the message is only
+      // written once every one has landed.
+      let photos: RoomPhoto[] = [];
+      if (files.length > 0) {
+        setUploading(true);
+        try {
+          const uploaded = await Promise.all(files.map((p) => uploadFileDirect(p.file, "chat")));
+          photos = uploaded.map((u, i) => ({
+            storagePath: u.provider === "supabase" ? u.storagePath : "",
+            fileName: files[i].file.name,
+            mimeType: files[i].file.type,
+            sizeBytes: files[i].file.size,
+          }));
+        } catch (e) {
+          setUploading(false);
+          setError(e instanceof Error ? e.message : "A photo didn't upload.");
+          setDraft(body);
+          return;
+        }
+        setUploading(false);
+      }
+      const r = room.kind === "family" ? await sendFamilyMessageAction(body, photos) : await sendDirectMessageAction(room.personId, body, photos);
       if (r.error) {
         setError(r.error);
         setDraft(body);
+      } else {
+        setPicked([]);
       }
       router.refresh();
     });
@@ -115,9 +162,29 @@ export function RoomThread({
                     {m.householdName && !m.ourHousehold ? ` · ${m.householdName}` : ""}
                   </span>
                 )}
-                <span className="kin-bubble" data-mine={m.mine || undefined} style={{ cursor: "default", whiteSpace: "pre-wrap" }}>
-                  {m.body}
-                </span>
+                {m.photos.length > 0 && (
+                  <div className="kin-attachments" data-count={Math.min(m.photos.length, 4)}>
+                    {m.photos.map((p, i) =>
+                      p.url ? (
+                        <button key={p.id} type="button" className="kin-attachment-photo" onClick={() => setViewing({ photos: m.photos, index: i })} aria-label={`Open photo ${p.fileName}`}>
+                          {/* eslint-disable-next-line @next/next/no-img-element -- a signed, short-lived Storage URL */}
+                          <img src={p.url} alt={p.fileName} loading="lazy" />
+                        </button>
+                      ) : (
+                        <span key={p.id} className="kin-filechip" data-broken="true">
+                          <Icon name="images" size="1rem" />
+                          <span className="kin-filechip-name">{p.fileName}</span>
+                          <span className="kin-filechip-size">couldn&rsquo;t load</span>
+                        </span>
+                      ),
+                    )}
+                  </div>
+                )}
+                {m.body && (
+                  <span className="kin-bubble" data-mine={m.mine || undefined} style={{ cursor: "default", whiteSpace: "pre-wrap" }}>
+                    {m.body}
+                  </span>
+                )}
                 <span className="kin-linkthread-time">
                   {familyClock(new Date(m.createdAt))}
                   {m.mine && (
@@ -139,9 +206,48 @@ export function RoomThread({
         </p>
       )}
 
+      {viewing && (
+        <PhotoViewer
+          items={viewing.photos.filter((p) => p.url).map((p) => ({ url: p.url!, alt: p.fileName }))}
+          startIndex={viewing.photos.filter((p) => p.url).findIndex((p) => p.id === viewing.photos[viewing.index].id)}
+          onClose={() => setViewing(null)}
+          label="Photo from chat"
+        />
+      )}
+
       {canWrite ? (
         <div className="kin-glass-bar kin-composer">
+          {picked.length > 0 && (
+            <div className="kin-room-tray" aria-label="Photos to send">
+              {picked.map((p, i) => (
+                <span key={p.preview} className="kin-room-tray-item">
+                  {/* eslint-disable-next-line @next/next/no-img-element -- a local preview of a file not yet sent */}
+                  <img src={p.preview} alt="" />
+                  <button
+                    type="button"
+                    aria-label="Remove this photo"
+                    disabled={pending}
+                    onClick={() => setPicked((prev) => prev.filter((_, j) => j !== i))}
+                  >
+                    <Icon name="x" size="0.75rem" />
+                  </button>
+                </span>
+              ))}
+              {uploading && <span className="kin-room-tray-note">Sending…</span>}
+            </div>
+          )}
           <div className="kin-composer-row">
+            <input ref={fileInput} type="file" accept="image/*" multiple hidden onChange={(e) => pick(e.target.files)} />
+            <button
+              type="button"
+              className="btn btn-ghost btn-icon"
+              style={{ width: "2.375rem", height: "2.375rem", flex: "none" }}
+              disabled={pending || picked.length >= MAX_PHOTOS}
+              onClick={() => fileInput.current?.click()}
+              aria-label="Add photos"
+            >
+              <Icon name="camera" size="1.125rem" />
+            </button>
             <textarea
               className="input kin-composer-field"
               value={draft}
@@ -162,7 +268,7 @@ export function RoomThread({
               type="button"
               className="btn btn-primary btn-icon"
               style={{ width: "2.375rem", height: "2.375rem", flex: "none" }}
-              disabled={pending || !draft.trim()}
+              disabled={pending || (!draft.trim() && picked.length === 0)}
               onClick={send}
               aria-label="Send"
             >
