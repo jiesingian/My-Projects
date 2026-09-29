@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useActionState, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Avatar } from "@/components/avatar";
@@ -108,6 +109,9 @@ export function ConnectionsManager({
               <span style={{ font: "600 1rem/1.1 var(--font-heading)", display: "block" }}>{who(c)}</span>
               <span style={sub}>{c.householdName ?? ""}</span>
             </span>
+            <Link href={`/chat/dm/${c.personId}`} className="btn btn-secondary">
+              Message
+            </Link>
             <button
               type="button"
               className="btn btn-ghost"

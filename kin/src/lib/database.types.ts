@@ -1667,6 +1667,24 @@ export type Database = {
         Update: { code?: string; created_at?: string; person_id?: string }
         Relationships: []
       }
+      family_tree_messages: {
+        Row: { author_name: string; body: string; created_at: string; family_id: string; id: string; member_id: string | null; person_id: string | null }
+        Insert: { author_name?: string; body: string; created_at?: string; family_id?: string; id?: string; member_id?: string | null; person_id?: string | null }
+        Update: { author_name?: string; body?: string; created_at?: string; family_id?: string; id?: string; member_id?: string | null; person_id?: string | null }
+        Relationships: []
+      }
+      direct_messages: {
+        Row: { body: string; created_at: string; id: string; person_high: string; person_low: string; sender_person_id: string | null }
+        Insert: { body: string; created_at?: string; id?: string; person_high: string; person_low: string; sender_person_id?: string | null }
+        Update: { body?: string; created_at?: string; id?: string; person_high?: string; person_low?: string; sender_person_id?: string | null }
+        Relationships: []
+      }
+      chat_reads: {
+        Row: { last_read_at: string; person_id: string; thread: string }
+        Insert: { last_read_at?: string; person_id: string; thread: string }
+        Update: { last_read_at?: string; person_id?: string; thread?: string }
+        Relationships: []
+      }
       family_link_messages: {
         Row: {
           author_name: string
@@ -5249,6 +5267,18 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      chat_push_targets: {
+        Args: { p_thread: string }
+        Returns: { endpoint: string; p256dh: string; auth: string }[]
+      }
+      my_direct_threads: {
+        Args: never
+        Returns: { person_id: string; full_name: string; avatar_url: string | null; household_name: string | null; connected: boolean }[]
+      }
+      my_chat_unread: {
+        Args: never
+        Returns: { thread: string; unread: number }[]
+      }
       my_connections: {
         Args: never
         Returns: { id: string; person_id: string; member_id: string | null; full_name: string | null; avatar_url: string | null; household_name: string | null; status: string; incoming: boolean; via: string; requested_at: string; decided_at: string | null }[]

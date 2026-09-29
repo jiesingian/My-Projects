@@ -61,6 +61,28 @@ export async function sendPush(input: {
   }
 }
 
+/** A message in the family-tree room or a one-to-one conversation, which
+ * reaches people in other households: chat_push_targets() (20260929090000)
+ * decides who, for conversations the sender is in, honouring each person's
+ * "chat" switch. Same promises as sendPush: never throws, call in after(). */
+export async function sendChatPush(thread: "family" | `dm:${string}`, input: { title: string; body: string; url: string; tag: string }): Promise<void> {
+  if (!vapidReady()) return;
+  try {
+    const supabase = await createClient();
+    const { data: targets, error } = await supabase.rpc("chat_push_targets", { p_thread: thread });
+    if (error || !targets?.length) return;
+    const payload = JSON.stringify({ title: input.title.slice(0, 80), body: input.body.slice(0, 180), url: input.url, tag: input.tag });
+    // A device in another household cannot be forgotten from this session
+    // (forget_push_endpoint is per household); its own household's next push
+    // clears it.
+    await deliver(targets, payload, { TTL: 60 * 60 * 12 }, async (endpoint) => {
+      await supabase.rpc("forget_push_endpoint", { p_endpoint: endpoint });
+    });
+  } catch (err) {
+    console.error("Chat push failed", err);
+  }
+}
+
 export type PushDevice = { endpoint: string; p256dh: string; auth: string };
 
 /** Sends one payload to each device and says what happened to each. A device
