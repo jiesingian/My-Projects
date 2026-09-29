@@ -24,8 +24,8 @@ export function PlusNote({ area, detail }: { area: string; detail?: string }) {
   );
 }
 
-/** Today, in the last three days of a trial. Rare by design -- three days in
- * fourteen -- so it can afford to arrive rather than simply be there. */
+/** Today, in the last three days of a trial (days 5 to 7 of seven), the
+ * same days the organizer is pushed about it (due_trial_reminders). */
 export function TrialBanner({ daysLeft, isOrganiser }: { daysLeft: number; isOrganiser: boolean }) {
   const when = daysLeft <= 1 ? "Today is the last day" : `${daysLeft} days left`;
   return (

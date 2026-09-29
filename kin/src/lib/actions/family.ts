@@ -81,7 +81,7 @@ export async function createFamilyAction(_prev: ActionState, formData: FormData)
   }
 
   // Anyone may start a family (open sign-up, 28 September): it begins on a
-  // 14-day Kin Plus trial by itself (the families.access_expires_at default).
+  // 7-day Kin Plus trial by itself (the families.access_expires_at default).
   // A Kin code is optional -- a gift or a tester's code, worth Plus for good
   // or a longer trial -- and is spent only when one was actually entered. A
   // family's own invite code is for joining it, below, never for this.
