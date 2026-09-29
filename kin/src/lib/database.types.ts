@@ -1733,6 +1733,12 @@ export type Database = {
         Update: { last_read_at?: string; person_id?: string; thread?: string }
         Relationships: []
       }
+      chat_room_attachments: {
+        Row: { created_at: string; direct_message_id: string | null; family_id: string; family_message_id: string | null; file_name: string; id: string; mime_type: string; position: number; size_bytes: number; storage_path: string }
+        Insert: { created_at?: string; direct_message_id?: string | null; family_id: string; family_message_id?: string | null; file_name: string; id?: string; mime_type: string; position?: number; size_bytes: number; storage_path: string }
+        Update: { created_at?: string; direct_message_id?: string | null; family_id?: string; family_message_id?: string | null; file_name?: string; id?: string; mime_type?: string; position?: number; size_bytes?: number; storage_path?: string }
+        Relationships: []
+      }
       family_link_messages: {
         Row: {
           author_name: string
