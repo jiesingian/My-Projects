@@ -49,17 +49,71 @@ export function RoomThread({
   const [pending, startTransition] = useTransition();
   const [picked, setPicked] = useState<{ file: File; preview: string }[]>([]);
   const [uploading, setUploading] = useState(false);
-  const [viewing, setViewing] = useState<{ photos: RoomMessage["photos"]; index: number } | null>(null);
+  const [viewing, setViewing] = useState<{ photos: RoomMessage["photos"]; id: string } | null>(null);
   const bottom = useRef<HTMLDivElement>(null);
   const fileInput = useRef<HTMLInputElement>(null);
+
+  // A voice note, recorded in the browser and then treated exactly like a
+  // picked file -- the household chat's recorder, the same limits.
+  const recorder = useRef<MediaRecorder | null>(null);
+  const [recordingSince, setRecordingSince] = useState<number | null>(null);
+  const [recordedFor, setRecordedFor] = useState(0);
+  const startRecording = async () => {
+    if (typeof window === "undefined" || !("MediaRecorder" in window) || !navigator.mediaDevices?.getUserMedia) {
+      setError("This browser can't record audio.");
+      return;
+    }
+    let stream: MediaStream;
+    try {
+      stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    } catch {
+      setError("Kin needs the microphone to record a voice note. It can be allowed in the browser's site settings.");
+      return;
+    }
+    // iOS Safari records mp4, most others webm.
+    const mimeType = ["audio/webm;codecs=opus", "audio/mp4", "audio/webm", "audio/ogg;codecs=opus"].find((t) => MediaRecorder.isTypeSupported(t));
+    const rec = new MediaRecorder(stream, mimeType ? { mimeType } : undefined);
+    const chunks: Blob[] = [];
+    const started = Date.now();
+    rec.ondataavailable = (e) => {
+      if (e.data.size > 0) chunks.push(e.data);
+    };
+    rec.onstop = () => {
+      stream.getTracks().forEach((t) => t.stop());
+      recorder.current = null;
+      setRecordingSince(null);
+      const seconds = (Date.now() - started) / 1000;
+      if (seconds < 0.8 || chunks.length === 0) return;
+      const type = (rec.mimeType || mimeType || "audio/webm").split(";")[0];
+      const ext = type.includes("mp4") ? "m4a" : type.includes("ogg") ? "ogg" : "webm";
+      const file = new File(chunks, `Voice note ${Math.round(seconds)}s.${ext}`, { type });
+      setPicked((prev) => [...prev, { file, preview: URL.createObjectURL(file) }].slice(0, MAX_PHOTOS));
+    };
+    recorder.current = rec;
+    rec.start();
+    setRecordedFor(0);
+    setRecordingSince(started);
+  };
+  const stopRecording = () => recorder.current?.state === "recording" && recorder.current.stop();
+  // The clock, and a hard stop at two minutes: a note left running in a
+  // pocket should not become a forty-minute upload.
+  useEffect(() => {
+    if (recordingSince === null) return;
+    const timer = setInterval(() => {
+      const seconds = (Date.now() - recordingSince) / 1000;
+      setRecordedFor(seconds);
+      if (seconds >= 120 && recorder.current?.state === "recording") recorder.current.stop();
+    }, 250);
+    return () => clearInterval(timer);
+  }, [recordingSince]);
 
   // Previews are object URLs; hand each back when it leaves the tray.
   useEffect(() => () => picked.forEach((p) => URL.revokeObjectURL(p.preview)), [picked]);
 
   const pick = (list: FileList | null) => {
-    const images = Array.from(list ?? []).filter((f) => f.type.startsWith("image/"));
-    if (images.length < (list?.length ?? 0)) setError("Only photos can be sent here.");
-    setPicked((prev) => [...prev, ...images.map((file) => ({ file, preview: URL.createObjectURL(file) }))].slice(0, MAX_PHOTOS));
+    const media = Array.from(list ?? []).filter((f) => /^(image|video)\//.test(f.type));
+    if (media.length < (list?.length ?? 0)) setError("Only photos and videos can be sent here.");
+    setPicked((prev) => [...prev, ...media.map((file) => ({ file, preview: URL.createObjectURL(file) }))].slice(0, MAX_PHOTOS));
     if (fileInput.current) fileInput.current.value = "";
   };
   const readKey = room.kind === "family" ? "family" : (`dm:${room.personId}` as const);
@@ -164,9 +218,22 @@ export function RoomThread({
                 )}
                 {m.photos.length > 0 && (
                   <div className="kin-attachments" data-count={Math.min(m.photos.length, 4)}>
-                    {m.photos.map((p, i) =>
-                      p.url ? (
-                        <button key={p.id} type="button" className="kin-attachment-photo" onClick={() => setViewing({ photos: m.photos, index: i })} aria-label={`Open photo ${p.fileName}`}>
+                    {m.photos.map((p) =>
+                      p.url && p.mimeType.startsWith("audio/") ? (
+                        <span key={p.id} className="kin-attachment-audio">
+                          <Icon name="mic" size="1rem" />
+                          <audio src={p.url} controls preload="metadata" aria-label={p.fileName} />
+                        </span>
+                      ) : p.url && p.mimeType.startsWith("video/") ? (
+                        <video key={p.id} className="kin-attachment-video" src={p.url} controls preload="metadata" playsInline aria-label={p.fileName} />
+                      ) : p.url ? (
+                        <button
+                          key={p.id}
+                          type="button"
+                          className="kin-attachment-photo"
+                          onClick={() => setViewing({ photos: m.photos.filter((x) => x.mimeType.startsWith("image/")), id: p.id })}
+                          aria-label={`Open photo ${p.fileName}`}
+                        >
                           {/* eslint-disable-next-line @next/next/no-img-element -- a signed, short-lived Storage URL */}
                           <img src={p.url} alt={p.fileName} loading="lazy" />
                         </button>
@@ -209,7 +276,7 @@ export function RoomThread({
       {viewing && (
         <PhotoViewer
           items={viewing.photos.filter((p) => p.url).map((p) => ({ url: p.url!, alt: p.fileName }))}
-          startIndex={viewing.photos.filter((p) => p.url).findIndex((p) => p.id === viewing.photos[viewing.index].id)}
+          startIndex={Math.max(0, viewing.photos.filter((p) => p.url).findIndex((p) => p.id === viewing.id))}
           onClose={() => setViewing(null)}
           label="Photo from chat"
         />
@@ -221,8 +288,16 @@ export function RoomThread({
             <div className="kin-room-tray" aria-label="Photos to send">
               {picked.map((p, i) => (
                 <span key={p.preview} className="kin-room-tray-item">
-                  {/* eslint-disable-next-line @next/next/no-img-element -- a local preview of a file not yet sent */}
-                  <img src={p.preview} alt="" />
+                  {p.file.type.startsWith("image/") ? (
+                    // eslint-disable-next-line @next/next/no-img-element -- a local preview of a file not yet sent
+                    <img src={p.preview} alt="" />
+                  ) : p.file.type.startsWith("video/") ? (
+                    <video src={p.preview} muted playsInline preload="metadata" />
+                  ) : (
+                    <span className="kin-room-tray-voice">
+                      <Icon name="mic" size="1rem" />
+                    </span>
+                  )}
                   <button
                     type="button"
                     aria-label="Remove this photo"
@@ -237,14 +312,14 @@ export function RoomThread({
             </div>
           )}
           <div className="kin-composer-row">
-            <input ref={fileInput} type="file" accept="image/*" multiple hidden onChange={(e) => pick(e.target.files)} />
+            <input ref={fileInput} type="file" accept="image/*,video/*" multiple hidden onChange={(e) => pick(e.target.files)} />
             <button
               type="button"
               className="btn btn-ghost btn-icon"
               style={{ width: "2.375rem", height: "2.375rem", flex: "none" }}
               disabled={pending || picked.length >= MAX_PHOTOS}
               onClick={() => fileInput.current?.click()}
-              aria-label="Add photos"
+              aria-label="Add photos or videos"
             >
               <Icon name="camera" size="1.125rem" />
             </button>
@@ -264,16 +339,45 @@ export function RoomThread({
               aria-label={placeholder}
               style={{ minHeight: "2.375rem", maxHeight: "7.5rem", fontSize: "1rem", resize: "none", paddingTop: "0.5625rem" }}
             />
-            <button
-              type="button"
-              className="btn btn-primary btn-icon"
-              style={{ width: "2.375rem", height: "2.375rem", flex: "none" }}
-              disabled={pending || (!draft.trim() && picked.length === 0)}
-              onClick={send}
-              aria-label="Send"
-            >
-              <Icon name="upload" size="1rem" />
-            </button>
+            {/* Send once there is something to send, the microphone when there
+                is not, Stop while it records -- as in the household chat. */}
+            {recordingSince !== null ? (
+              <button
+                type="button"
+                className="btn btn-primary btn-icon"
+                style={{ width: "auto", minWidth: "2.375rem", height: "2.375rem", flex: "none", padding: "0 0.625rem", gap: "0.375rem" }}
+                aria-label="Stop recording"
+                data-recording
+                onClick={stopRecording}
+              >
+                <Icon name="stop" size="1rem" />
+                <span style={{ fontSize: "0.8125rem", fontVariantNumeric: "tabular-nums" }}>
+                  {Math.floor(recordedFor / 60)}:{String(Math.floor(recordedFor % 60)).padStart(2, "0")}
+                </span>
+              </button>
+            ) : draft.trim() || picked.length > 0 ? (
+              <button
+                type="button"
+                className="btn btn-primary btn-icon"
+                style={{ width: "2.375rem", height: "2.375rem", flex: "none" }}
+                disabled={pending}
+                onClick={send}
+                aria-label="Send"
+              >
+                <Icon name="upload" size="1rem" />
+              </button>
+            ) : (
+              <button
+                type="button"
+                className="btn btn-secondary btn-icon"
+                style={{ width: "2.375rem", height: "2.375rem", flex: "none" }}
+                disabled={pending}
+                onClick={() => void startRecording()}
+                aria-label="Record a voice note"
+              >
+                <Icon name="mic" size="1.0625rem" />
+              </button>
+            )}
           </div>
         </div>
       ) : (
