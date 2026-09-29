@@ -74,6 +74,14 @@ docs/SETUP_FOR_JONATHAN.md.
   which the payment providers also ask for. The details go in
   `src/lib/legal.ts`; until then the pages say "Being registered".
 
+## Design finalization
+
+Held until the design is final (Jonathan, 29 September).
+
+- **GIFs in the chat (GIPHY).** Built (#354); needs a free GIPHY key, steps
+  in docs/SETUP_FOR_JONATHAN.md section 6. Until then the GIFs tab says
+  "coming soon" and stickers work as they are.
+
 ## Agreed 25 September (Jonathan's revision list)
 
 Each is its own pull request, in this order. Proposals for 4 and 8, with

@@ -4,6 +4,18 @@ Each item here is a secret, an outside account or money, which `CLAUDE.md`
 keeps with Jonathan. Everything else is already built and merged; these
 steps switch it on. Each says what it is for and what is safe.
 
+**Where things stand (29 September):**
+
+| | |
+|---|---|
+| 1. Reminders | Done: secrets set, `kin-reminders` runs every five minutes |
+| 2. Calls on mobile data | To do: free Metered account, steps below |
+| 3. Realtime public access off | Done on dev and production |
+| 4. Kin AI and flyer scanning | Final stage (costs money), see BACKLOG |
+| 5. Payments | Final stage (costs money), see BACKLOG |
+| 6. GIFs in the chat | Held for design finalization |
+| 7. Sign-up emails through Gmail | Done: sent from familyapp.kin@gmail.com |
+
 ---
 
 ## 1. Reminders at their time (medicines, bills, birthdays, "in 30 minutes")
@@ -48,29 +60,64 @@ Each person's reminders follow their own Settings → Notifications switches
 
 **What it switches on.** Voice and video calls already work on most Wi-Fi.
 On Globe or Smart mobile data the two phones often cannot reach each other
-directly, and a relay passes the call through. Kin reads three settings;
-until they exist it uses no relay.
+directly: carriers put many phones behind one shared address, so neither
+phone can be "called" from outside. A relay is a server both phones can
+reach; each connects out to it and it passes the call between them. Kin
+hands the phones the relay's details itself, so family members never set
+anything up. It is an account Kin holds, like Supabase or Vercel, which is
+why it is set up once, here.
+
+**What it costs.** Metered has a free plan with a monthly data allowance
+(check the current figure on its Plans & pricing page). The relay is only
+used when a direct connection fails, so most calls never touch it. With no
+card on file the account cannot charge anything; if the allowance ran out,
+calls would simply behave as they do today.
 
 **Safe to do.** A relay only forwards the call's encrypted packets; it cannot
-hear or see the call. Free tiers are enough for a family; check the
-provider's current free allowance when signing up.
+hear or see the call. Deleting the three settings switches it off again.
 
-1. Sign up for **Metered's free TURN** at
-   [metered.ca/stun-turn](https://www.metered.ca/stun-turn), then open the
-   [Metered dashboard](https://dashboard.metered.ca/) → TURN Server →
-   **Credentials** → add one.
-2. It shows a list of ICE servers with a **username** and **credential**.
-   In [Vercel → Environment Variables](https://vercel.com/jisingian/kin-family-app/settings/environment-variables)
-   add, for **Production**:
-   - `TURN_URLS` = the `turn:` and `turns:` addresses from that list, joined
-     with commas (e.g. `turn:a.relay.metered.ca:80,turns:a.relay.metered.ca:443?transport=tcp`)
-   - `TURN_USERNAME` = the username
-   - `TURN_CREDENTIAL` = the credential (Sensitive on)
-3. **Redeploy** as in 1.3.
+1. Sign up at [metered.ca/stun-turn](https://www.metered.ca/stun-turn) with
+   **familyapp.kin@gmail.com**, and choose the free plan. The workspace can be
+   called `kin`.
+2. In the [Metered dashboard](https://dashboard.metered.ca/), left menu
+   **TURN Server & SFU → Credentials**, then **+ Create Credential**
+   (top right). Fill the form like this:
+
+   | Field | Choose | Why |
+   |---|---|---|
+   | Label | `kin-production` | only a name, so you know what it is for |
+   | Region | **Workspace default** | the workspace is *Global (automatic)*: each phone uses the nearest relay, Singapore for the Philippines |
+   | Project | **Standalone (no project)** | projects are for splitting usage between customers; Kin is one app |
+
+   Then **Create credential**.
+3. The new credential appears in the list with a **Username** and a
+   **Password** (Metered also calls it the credential). Click **Show ICE
+   Servers Array** next to it. It shows a list like:
+
+       stun:stun.relay.metered.ca:80
+       turn:global.relay.metered.ca:80
+       turn:global.relay.metered.ca:80?transport=tcp
+       turn:global.relay.metered.ca:443
+       turns:global.relay.metered.ca:443?transport=tcp
+
+   Use your list if it differs from this one.
+4. In [Vercel → Environment Variables](https://vercel.com/jisingian/kin-family-app/settings/environment-variables)
+   add three, Environment **Production** only:
+   - `TURN_URLS` = every `turn:` and `turns:` line from step 3 (not the
+     `stun:` one), joined with commas and no spaces, e.g.
+     `turn:global.relay.metered.ca:80,turn:global.relay.metered.ca:80?transport=tcp,turn:global.relay.metered.ca:443,turns:global.relay.metered.ca:443?transport=tcp`
+   - `TURN_USERNAME` = the Username from step 3
+   - `TURN_CREDENTIAL` = the Password from step 3, with **Sensitive** on
+5. **Redeploy**: [Deployments](https://vercel.com/jisingian/kin-family-app/deployments)
+   → the top Production deployment → ⋯ → **Redeploy**.
+6. **Check**: call someone in the family while both phones are on mobile
+   data. Metered's **Analytics** page shows the relay being used.
 
 ---
 
 ## 3. Turn off Realtime's public access (Janine can do this too)
+
+**Done 29 September on dev and production.** Kept for reference.
 
 Not Jonathan-only: the Supabase dashboard is both of yours. Calls and both
 chats now use private channels, but Supabase only *enforces* that once public
@@ -126,6 +173,8 @@ HitPay side by side, their fees, and what signing up involves.
 
 ## 6. GIFs in the chat (Chat → + → Sticker or GIF)
 
+**Held for design finalization** (Jonathan, 29 September).
+
 **What it switches on.** The *GIFs* tab in the chat's sticker picker: search
 GIPHY and send a GIF, like Messenger. Stickers already work without this.
 Until the key below exists the GIFs tab just says "coming soon", and nothing
@@ -158,3 +207,34 @@ switches GIFs off again, and GIFs already sent stay in the thread.
    choose **Upgrade to Production** on the app if the hourly limit is ever
    hit. GIPHY asks for a screenshot or recording of the GIF picker. The
    picker already shows the "Powered by GIPHY" line they require.
+
+---
+
+## 7. Sign-up emails through Gmail (custom SMTP)
+
+**Done 29 September.** Supabase's built-in sender allows about two emails an
+hour and is only meant for testing; a friend's sign-up was refused by it.
+Production now sends every sign-in email (verification codes, password
+resets) through **familyapp.kin@gmail.com**, which Gmail allows about 500 a
+day. New users see it from **Kin <familyapp.kin@gmail.com>**. Confirmed by a
+password-reset email sent through it on 29 September.
+
+What is set, so it can be found again:
+
+- [Supabase production → Authentication → SMTP](https://supabase.com/dashboard/project/lffqluudphzviubygwjs/auth/smtp):
+  custom SMTP on; host `smtp.gmail.com`, port `465`, username and sender
+  `familyapp.kin@gmail.com`, sender name `Kin`, password = a Google **app
+  password** made on that account (not its normal password).
+- [Rate limits](https://supabase.com/dashboard/project/lffqluudphzviubygwjs/auth/rate-limits):
+  100 emails an hour.
+
+If sign-up emails stop arriving, the likely cause is that the app password
+was revoked or familyapp.kin's password was changed, which cancels app
+passwords. Make a new one at
+[myaccount.google.com/apppasswords](https://myaccount.google.com/apppasswords)
+(signed in as familyapp.kin, 2-Step Verification on), and paste it into the
+SMTP page above **without the spaces** Google shows between its four groups.
+Switching custom SMTP off returns to Supabase's built-in sender.
+
+Later, for better delivery: a sender on Kin's own domain (e.g. through
+Resend) once Kin has one.
