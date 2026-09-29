@@ -9,6 +9,8 @@ import {
   markThreadReadAction,
   sendDirectMessageAction,
   sendFamilyMessageAction,
+  sendGroupMessageAction,
+  deleteGroupMessageAction,
   toggleRoomReactionAction,
 } from "@/lib/actions/chat-rooms";
 import { REACTIONS } from "@/lib/chat";
@@ -37,14 +39,20 @@ export function RoomThread({
   placeholder,
   emptyText,
   canWrite = true,
+  canReact = canWrite,
+  readOnlyNote = "You’re no longer connected, so nothing new can be sent here.",
   seenAt = null,
 }: {
-  room: { kind: "family" } | { kind: "dm"; personId: string; low: string; high: string };
+  room: { kind: "family" } | { kind: "dm"; personId: string; low: string; high: string } | { kind: "group"; groupId: string; isAdmin: boolean };
   messages: RoomMessage[];
   topic: string;
   placeholder: string;
   emptyText: string;
   canWrite?: boolean;
+  /** An announcement channel lets everyone react, but only admins post. */
+  canReact?: boolean;
+  /** What shows where the message box would be, when writing is closed. */
+  readOnlyNote?: string;
   /** One to one: when the other person last read this conversation. */
   seenAt?: string | null;
 }) {
@@ -124,9 +132,9 @@ export function RoomThread({
     setPicked((prev) => [...prev, ...media.map((file) => ({ file, preview: URL.createObjectURL(file) }))].slice(0, MAX_PHOTOS));
     if (fileInput.current) fileInput.current.value = "";
   };
-  const readKey = room.kind === "family" ? "family" : (`dm:${room.personId}` as const);
-  const table = room.kind === "family" ? "family_tree_messages" : "direct_messages";
-  const filter = room.kind === "dm" ? `person_low=eq.${room.low}` : undefined;
+  const readKey = room.kind === "family" ? "family" : room.kind === "dm" ? (`dm:${room.personId}` as const) : (`group:${room.groupId}` as const);
+  const table = room.kind === "family" ? "family_tree_messages" : room.kind === "dm" ? "direct_messages" : "chat_group_messages";
+  const filter = room.kind === "dm" ? `person_low=eq.${room.low}` : room.kind === "group" ? `group_id=eq.${room.groupId}` : undefined;
 
   useEffect(() => {
     bottom.current?.scrollIntoView({ block: "end" });
@@ -188,7 +196,9 @@ export function RoomThread({
       const r =
         room.kind === "family"
           ? await sendFamilyMessageAction(body, photos, answering)
-          : await sendDirectMessageAction(room.personId, body, photos, answering);
+          : room.kind === "dm"
+            ? await sendDirectMessageAction(room.personId, body, photos, answering)
+            : await sendGroupMessageAction(room.groupId, body, photos, answering);
       if (r.error) {
         setError(r.error);
         setDraft(body);
@@ -202,7 +212,12 @@ export function RoomThread({
 
   const remove = (id: string) =>
     startTransition(async () => {
-      const r = room.kind === "family" ? await deleteFamilyMessageAction(id) : await deleteDirectMessageAction(id);
+      const r =
+        room.kind === "family"
+          ? await deleteFamilyMessageAction(id)
+          : room.kind === "dm"
+            ? await deleteDirectMessageAction(id)
+            : await deleteGroupMessageAction(id);
       if (r.error) setError(r.error);
       router.refresh();
     });
@@ -236,7 +251,7 @@ export function RoomThread({
             {showDay && <div className="kin-linkthread-day">{day}</div>}
             <div style={{ display: "flex", justifyContent: m.mine ? "flex-end" : "flex-start", marginTop: "0.5rem" }}>
               <div style={{ maxWidth: "80%", display: "flex", flexDirection: "column", alignItems: m.mine ? "flex-end" : "flex-start" }}>
-                {room.kind === "family" && !m.mine && (
+                {room.kind !== "dm" && !m.mine && (
                   <span className="kin-linkthread-who">
                     {m.authorName}
                     {m.householdName && !m.ourHousehold ? ` · ${m.householdName}` : ""}
@@ -299,7 +314,7 @@ export function RoomThread({
                         key={r.emoji}
                         type="button"
                         data-mine={r.mine || undefined}
-                        disabled={pending || !canWrite}
+                        disabled={pending || !canReact}
                         onClick={() => react(m.id, r.emoji)}
                         aria-label={`${r.emoji} from ${r.names.join(", ")}`}
                         title={r.names.join(", ")}
@@ -309,34 +324,36 @@ export function RoomThread({
                     ))}
                   </span>
                 )}
-                {active === m.id && canWrite && (
-                  <span className="kin-room-actions" role="group" aria-label="React or reply">
+                {active === m.id && canReact && (
+                  <span className="kin-room-actions" role="group" aria-label={canWrite ? "React or reply" : "React"}>
                     {REACTIONS.map((e) => (
                       <button key={e} type="button" disabled={pending} onClick={() => react(m.id, e)} aria-label={`React ${e}`}>
                         {e}
                       </button>
                     ))}
-                    <button
-                      type="button"
-                      className="kin-room-actions-word"
-                      onClick={() => {
-                        setReplyingTo(m);
-                        setActive(null);
-                        textArea.current?.focus();
-                      }}
-                    >
-                      Reply
-                    </button>
+                    {canWrite && (
+                      <button
+                        type="button"
+                        className="kin-room-actions-word"
+                        onClick={() => {
+                          setReplyingTo(m);
+                          setActive(null);
+                          textArea.current?.focus();
+                        }}
+                      >
+                        Reply
+                      </button>
+                    )}
                   </span>
                 )}
                 <span className="kin-linkthread-time">
                   {familyClock(new Date(m.createdAt))}
-                  {m.photos.length > 0 && !m.body && canWrite && (
+                  {m.photos.length > 0 && !m.body && canReact && (
                     <button type="button" className="kin-linkthread-delete" onClick={() => setActive((a) => (a === m.id ? null : m.id))}>
                       React
                     </button>
                   )}
-                  {m.mine && (
+                  {(m.mine || (room.kind === "group" && room.isAdmin)) && (
                     <button type="button" className="kin-linkthread-delete" disabled={pending} onClick={() => remove(m.id)}>
                       Delete
                     </button>
@@ -477,7 +494,7 @@ export function RoomThread({
         </div>
       ) : (
         <p style={{ fontSize: "0.8125rem", color: "var(--color-neutral-600)", textAlign: "center", padding: "0.75rem 0" }}>
-          You&rsquo;re no longer connected, so nothing new can be sent here.
+          {readOnlyNote}
         </p>
       )}
     </div>

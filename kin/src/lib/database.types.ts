@@ -1734,21 +1734,39 @@ export type Database = {
         Relationships: []
       }
       chat_room_attachments: {
-        Row: { created_at: string; direct_message_id: string | null; family_id: string; family_message_id: string | null; file_name: string; id: string; mime_type: string; position: number; size_bytes: number; storage_path: string }
-        Insert: { created_at?: string; direct_message_id?: string | null; family_id: string; family_message_id?: string | null; file_name: string; id?: string; mime_type: string; position?: number; size_bytes: number; storage_path: string }
-        Update: { created_at?: string; direct_message_id?: string | null; family_id?: string; family_message_id?: string | null; file_name?: string; id?: string; mime_type?: string; position?: number; size_bytes?: number; storage_path?: string }
+        Row: { created_at: string; direct_message_id: string | null; family_id: string; family_message_id: string | null; file_name: string; group_message_id: string | null; id: string; mime_type: string; position: number; size_bytes: number; storage_path: string }
+        Insert: { created_at?: string; direct_message_id?: string | null; family_id: string; family_message_id?: string | null; file_name: string; group_message_id?: string | null; id?: string; mime_type: string; position?: number; size_bytes: number; storage_path: string }
+        Update: { created_at?: string; direct_message_id?: string | null; family_id?: string; family_message_id?: string | null; file_name?: string; group_message_id?: string | null; id?: string; mime_type?: string; position?: number; size_bytes?: number; storage_path?: string }
         Relationships: []
       }
       chat_room_reactions: {
-        Row: { author_name: string; created_at: string; direct_message_id: string | null; emoji: string; family_id: string | null; family_message_id: string | null; id: string; person_id: string }
-        Insert: { author_name?: string; created_at?: string; direct_message_id?: string | null; emoji: string; family_id?: string | null; family_message_id?: string | null; id?: string; person_id?: string }
-        Update: { author_name?: string; created_at?: string; direct_message_id?: string | null; emoji?: string; family_id?: string | null; family_message_id?: string | null; id?: string; person_id?: string }
+        Row: { author_name: string; created_at: string; direct_message_id: string | null; emoji: string; family_id: string | null; family_message_id: string | null; group_message_id: string | null; id: string; person_id: string }
+        Insert: { author_name?: string; created_at?: string; direct_message_id?: string | null; emoji: string; family_id?: string | null; family_message_id?: string | null; group_message_id?: string | null; id?: string; person_id?: string }
+        Update: { author_name?: string; created_at?: string; direct_message_id?: string | null; emoji?: string; family_id?: string | null; family_message_id?: string | null; group_message_id?: string | null; id?: string; person_id?: string }
         Relationships: []
       }
       chat_thread_prefs: {
         Row: { muted: boolean; muted_until: string | null; person_id: string; pinned: boolean; thread: string; updated_at: string }
         Insert: { muted?: boolean; muted_until?: string | null; person_id: string; pinned?: boolean; thread: string; updated_at?: string }
         Update: { muted?: boolean; muted_until?: string | null; person_id?: string; pinned?: boolean; thread?: string; updated_at?: string }
+        Relationships: []
+      }
+      chat_groups: {
+        Row: { announce_only: boolean; created_at: string; created_by: string | null; id: string; name: string }
+        Insert: { announce_only?: boolean; created_at?: string; created_by?: string | null; id?: string; name: string }
+        Update: { announce_only?: boolean; created_at?: string; created_by?: string | null; id?: string; name?: string }
+        Relationships: []
+      }
+      chat_group_members: {
+        Row: { added_at: string; added_by: string | null; group_id: string; person_id: string; role: string }
+        Insert: { added_at?: string; added_by?: string | null; group_id: string; person_id: string; role?: string }
+        Update: { added_at?: string; added_by?: string | null; group_id?: string; person_id?: string; role?: string }
+        Relationships: []
+      }
+      chat_group_messages: {
+        Row: { author_name: string; body: string; created_at: string; group_id: string; id: string; reply_to: string | null; sender_person_id: string | null }
+        Insert: { author_name?: string; body: string; created_at?: string; group_id: string; id?: string; reply_to?: string | null; sender_person_id?: string | null }
+        Update: { author_name?: string; body?: string; created_at?: string; group_id?: string; id?: string; reply_to?: string | null; sender_person_id?: string | null }
         Relationships: []
       }
       family_link_messages: {
@@ -5336,6 +5354,34 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      create_chat_group: {
+        Args: { p_name: string; p_announce_only: boolean; p_people: string[] }
+        Returns: string
+      }
+      add_chat_group_members: {
+        Args: { p_group: string; p_people: string[] }
+        Returns: undefined
+      }
+      remove_chat_group_member: {
+        Args: { p_group: string; p_person: string }
+        Returns: undefined
+      }
+      update_chat_group: {
+        Args: { p_group: string; p_name: string; p_announce_only: boolean }
+        Returns: undefined
+      }
+      set_chat_group_admin: {
+        Args: { p_group: string; p_person: string; p_admin: boolean }
+        Returns: undefined
+      }
+      group_members_of: {
+        Args: { p_group: string }
+        Returns: { person_id: string; full_name: string; avatar_url: string | null; household_name: string | null; role: string }[]
+      }
+      group_candidates: {
+        Args: never
+        Returns: { person_id: string; full_name: string; avatar_url: string | null; household_name: string | null }[]
+      }
       dm_seen_at: {
         Args: { p_other: string }
         Returns: string | null

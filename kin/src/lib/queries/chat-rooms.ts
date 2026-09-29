@@ -25,23 +25,25 @@ export type RoomMessage = {
   reactions: { emoji: string; names: string[]; mine: boolean }[];
 };
 
-type ReactionRow = { family_message_id: string | null; direct_message_id: string | null; emoji: string; author_name: string; person_id: string };
+type MessageColumn = "family_message_id" | "direct_message_id" | "group_message_id";
+
+type ReactionRow = { family_message_id: string | null; direct_message_id: string | null; group_message_id: string | null; emoji: string; author_name: string; person_id: string };
 
 /** Reactions on a window of room messages, one query for all of them. Row-
  * level security leaves out reactions from households the reader is not
  * linked with. */
-async function reactionsFor(column: "family_message_id" | "direct_message_id", ids: string[], myPersonId: string): Promise<Map<string, RoomMessage["reactions"]>> {
+async function reactionsFor(column: MessageColumn, ids: string[], myPersonId: string): Promise<Map<string, RoomMessage["reactions"]>> {
   const out = new Map<string, RoomMessage["reactions"]>();
   if (ids.length === 0) return out;
   const supabase = await createClient();
   const { data } = await supabase
     .from("chat_room_reactions")
-    .select("family_message_id, direct_message_id, emoji, author_name, person_id")
+    .select("family_message_id, direct_message_id, group_message_id, emoji, author_name, person_id")
     .in(column, ids)
     .order("created_at");
   const grouped = new Map<string, Map<string, ReactionRow[]>>();
   for (const r of (data ?? []) as ReactionRow[]) {
-    const key = (column === "family_message_id" ? r.family_message_id : r.direct_message_id) as string;
+    const key = r[column] as string;
     const byEmoji = grouped.get(key) ?? new Map<string, ReactionRow[]>();
     byEmoji.set(r.emoji, [...(byEmoji.get(r.emoji) ?? []), r]);
     grouped.set(key, byEmoji);
@@ -68,18 +70,18 @@ function quoteOf(parent: { id: string; body: string } | undefined, authorName: (
 
 /** The photos on a set of room messages, keyed by message id, in the order
  * they were picked. One query and one signing call for the whole window. */
-async function photosFor(column: "family_message_id" | "direct_message_id", ids: string[]): Promise<Map<string, RoomMessage["photos"]>> {
+async function photosFor(column: MessageColumn, ids: string[]): Promise<Map<string, RoomMessage["photos"]>> {
   const out = new Map<string, RoomMessage["photos"]>();
   if (ids.length === 0) return out;
   const supabase = await createClient();
   const { data } = await supabase
     .from("chat_room_attachments")
-    .select("id, family_message_id, direct_message_id, storage_path, file_name, mime_type, position")
+    .select("id, family_message_id, direct_message_id, group_message_id, storage_path, file_name, mime_type, position")
     .in(column, ids)
     .order("position");
   const signed = await getSignedUrls("documents", (data ?? []).map((a) => a.storage_path));
   for (const a of data ?? []) {
-    const key = (column === "family_message_id" ? a.family_message_id : a.direct_message_id) as string;
+    const key = a[column] as string;
     out.set(key, [...(out.get(key) ?? []), { id: a.id, url: signed[a.storage_path] ?? null, fileName: a.file_name, mimeType: a.mime_type }]);
   }
   return out;
@@ -208,4 +210,96 @@ export async function getThreadPrefs(): Promise<Map<string, ThreadPref>> {
       },
     ]),
   );
+}
+
+export type GroupMember = { personId: string; fullName: string; avatarUrl: string | null; householdName: string | null; admin: boolean };
+export type GroupSummary = { id: string; name: string; announceOnly: boolean };
+
+/** A group chat or announcement channel the caller is in (20260929162000):
+ * its members, its messages, and whether the caller may post and manage it.
+ * Null when they are not in it -- the page shows "not found". */
+export async function getGroupRoom(
+  myPersonId: string,
+  groupId: string,
+): Promise<{ group: GroupSummary; members: GroupMember[]; messages: RoomMessage[]; isAdmin: boolean; canPost: boolean } | null> {
+  const supabase = await createClient();
+  const [{ data: group }, { data: memberRows }, { data }] = await Promise.all([
+    supabase.from("chat_groups").select("id, name, announce_only").eq("id", groupId).maybeSingle(),
+    supabase.rpc("group_members_of", { p_group: groupId }),
+    supabase
+      .from("chat_group_messages")
+      .select("id, sender_person_id, author_name, body, created_at, reply_to")
+      .eq("group_id", groupId)
+      .order("created_at", { ascending: false })
+      .limit(300),
+  ]);
+  if (!group) return null;
+  const members: GroupMember[] = (memberRows ?? []).map((m) => ({
+    personId: m.person_id,
+    fullName: m.full_name,
+    avatarUrl: m.avatar_url,
+    householdName: m.household_name,
+    admin: m.role === "admin",
+  }));
+  const isAdmin = members.some((m) => m.personId === myPersonId && m.admin);
+  const rows = (data ?? []).slice().reverse();
+  const ids = rows.map((r) => r.id);
+  const [photos, reactions] = await Promise.all([photosFor("group_message_id", ids), reactionsFor("group_message_id", ids, myPersonId)]);
+  const byId = new Map(rows.map((r) => [r.id, r]));
+  const authorOf = (id: string) => {
+    const r = byId.get(id);
+    return !r ? "Someone" : r.sender_person_id === myPersonId ? "You" : (r.author_name || "Someone").split(" ")[0];
+  };
+  return {
+    group: { id: group.id, name: group.name, announceOnly: group.announce_only },
+    members,
+    isAdmin,
+    canPost: !group.announce_only || isAdmin,
+    messages: rows.map((r) => ({
+      id: r.id,
+      authorName: r.author_name || "Someone",
+      body: r.body,
+      createdAt: r.created_at,
+      mine: r.sender_person_id === myPersonId,
+      householdName: null,
+      ourHousehold: r.sender_person_id === myPersonId,
+      photos: photos.get(r.id) ?? [],
+      replyTo: r.reply_to ? quoteOf(byId.get(r.reply_to), authorOf, (photos.get(r.reply_to) ?? []).length > 0) : null,
+      reactions: reactions.get(r.id) ?? [],
+    })),
+  };
+}
+
+/** Every group the caller is in, with its newest message, for the chat list. */
+export async function getMyGroups(): Promise<(GroupSummary & { last: { authorName: string; body: string; at: string; mine: boolean } | null; senderPersonId: string | null })[]> {
+  const supabase = await createClient();
+  const { data: groups } = await supabase.from("chat_groups").select("id, name, announce_only, created_at");
+  if (!groups?.length) return [];
+  const { data: recent } = await supabase
+    .from("chat_group_messages")
+    .select("group_id, sender_person_id, author_name, body, created_at")
+    .in("group_id", groups.map((g) => g.id))
+    .order("created_at", { ascending: false })
+    .limit(300);
+  const last = new Map<string, NonNullable<typeof recent>[number]>();
+  for (const m of recent ?? []) if (!last.has(m.group_id)) last.set(m.group_id, m);
+  return groups.map((g) => {
+    const m = last.get(g.id);
+    return {
+      id: g.id,
+      name: g.name,
+      announceOnly: g.announce_only,
+      senderPersonId: m?.sender_person_id ?? null,
+      last: m ? { authorName: m.author_name, body: m.body, at: m.created_at, mine: false } : { authorName: "", body: "", at: g.created_at, mine: false },
+    };
+  });
+}
+
+/** People the caller could put in a group: connections and family. */
+export async function getGroupCandidates(): Promise<{ personId: string; fullName: string; avatarUrl: string | null; householdName: string | null }[]> {
+  const supabase = await createClient();
+  const { data } = await supabase.rpc("group_candidates");
+  return (data ?? [])
+    .map((r) => ({ personId: r.person_id, fullName: r.full_name, avatarUrl: r.avatar_url, householdName: r.household_name }))
+    .sort((a, b) => a.fullName.localeCompare(b.fullName));
 }

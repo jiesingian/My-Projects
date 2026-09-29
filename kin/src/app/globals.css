@@ -5978,3 +5978,4 @@ button.kin-initial:focus-visible {
 .kin-threadmenu-panel .kin-threadmenu-close { position: absolute; top: 0.25rem; right: 0.25rem; min-height: 2rem; width: 2rem; padding: 0; display: grid; place-items: center; }
 .kin-threadrow-muted { flex: none; font-size: 0.75rem; }
 .kin-threadrow-badge[data-muted] { background: var(--color-neutral-500); }
+.kin-threadlist-actions { display: flex; flex-wrap: wrap; gap: 0 1.25rem; }

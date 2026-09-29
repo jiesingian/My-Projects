@@ -32,16 +32,26 @@ export default async function ChatListPage({ searchParams }: { searchParams: Pro
         ))}
       </ul>
 
-      <Link href="/family/connections" className="kin-threadlist-more">
-        <Icon name="users" size={16} />
-        <span>New message · pick one of your connections</span>
-      </Link>
+      <div className="kin-threadlist-actions">
+        <Link href="/family/connections" className="kin-threadlist-more">
+          <Icon name="message" size={16} />
+          <span>New message</span>
+        </Link>
+        <Link href="/chat/groups/new" className="kin-threadlist-more">
+          <Icon name="users" size={16} />
+          <span>New group</span>
+        </Link>
+        <Link href="/chat/groups/new?announce=1" className="kin-threadlist-more">
+          <Icon name="sparkle" size={16} />
+          <span>New channel</span>
+        </Link>
+      </div>
     </div>
   );
 }
 
 function ThreadRow({ thread: t }: { thread: ChatThreadSummary }) {
-  const icon = t.kind === "household" ? "house" : t.kind === "dm" ? "message" : "users";
+  const icon = t.kind === "household" ? "house" : t.kind === "dm" ? "message" : t.kind === "channel" ? "sparkle" : "users";
   return (
     <Link href={t.href} className="kin-threadrow" data-unread={t.unread > 0 ? "true" : undefined}>
       <span className="kin-threadrow-icon" aria-hidden="true">

@@ -12,13 +12,13 @@ import { isReaction } from "@/lib/chat";
 import type { ActionState } from "@/lib/actions/auth";
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-type Thread = "family" | `dm:${string}` | `link:${string}`;
+type Thread = "family" | `dm:${string}` | `link:${string}` | `group:${string}`;
 
 /** Opening a conversation is reading it. Kept per person, so it follows them
  * to whichever household they are in. */
 export async function markThreadReadAction(thread: Thread): Promise<ActionState> {
   const me = await requireCurrentMember();
-  if (thread !== "family" && !/^(dm|link):/.test(thread)) return { error: null };
+  if (thread !== "family" && !/^(dm|link|group):/.test(thread)) return { error: null };
   if (thread !== "family" && !UUID.test(thread.split(":")[1] ?? "")) return { error: null };
   const supabase = await createClient();
   const { error } = await supabase
@@ -53,7 +53,7 @@ function checkOutgoing(me: Sender, body: string, photos: RoomPhoto[]): string | 
 async function attachPhotos(
   me: Sender,
   photos: RoomPhoto[],
-  to: { family_message_id: string } | { direct_message_id: string },
+  to: { family_message_id: string } | { direct_message_id: string } | { group_message_id: string },
 ): Promise<string | null> {
   if (photos.length === 0) return null;
   const supabase = await createClient();
@@ -70,7 +70,8 @@ async function attachPhotos(
   );
   if (!error) return null;
   if ("family_message_id" in to) await supabase.from("family_tree_messages").delete().eq("id", to.family_message_id);
-  else await supabase.from("direct_messages").delete().eq("id", to.direct_message_id);
+  else if ("direct_message_id" in to) await supabase.from("direct_messages").delete().eq("id", to.direct_message_id);
+  else await supabase.from("chat_group_messages").delete().eq("id", to.group_message_id);
   await supabase.storage.from("documents").remove(photos.map((p) => p.storagePath));
   return `The photos didn't attach, so nothing was sent. ${humanDatabaseError(error.message)}`;
 }
@@ -78,7 +79,7 @@ async function attachPhotos(
 /** Deleting a message takes its photos with it -- the files, not only the
  * rows, which the database removes on its own. The files are in the
  * sender's own folder, so the sender may remove them. */
-async function removePhotosOf(column: "family_message_id" | "direct_message_id", id: string): Promise<void> {
+async function removePhotosOf(column: "family_message_id" | "direct_message_id" | "group_message_id", id: string): Promise<void> {
   const supabase = await createClient();
   const { data } = await supabase.from("chat_room_attachments").select("storage_path").eq(column, id);
   if (data?.length) await supabase.storage.from("documents").remove(data.map((a) => a.storage_path));
@@ -190,10 +191,10 @@ export async function deleteDirectMessageAction(id: string): Promise<ActionState
 
 /** Add a reaction, or take it back if it is already yours -- the household
  * chat's six, one of each per person per message. */
-export async function toggleRoomReactionAction(kind: "family" | "dm", messageId: string, emoji: string): Promise<ActionState> {
+export async function toggleRoomReactionAction(kind: "family" | "dm" | "group", messageId: string, emoji: string): Promise<ActionState> {
   const me = await requireCurrentMember();
   if (!UUID.test(messageId) || !isReaction(emoji)) return { error: "That reaction isn't available." };
-  const column = kind === "family" ? "family_message_id" : "direct_message_id";
+  const column = kind === "family" ? "family_message_id" : kind === "dm" ? "direct_message_id" : "group_message_id";
   const supabase = await createClient();
   const { data: existing } = await supabase
     .from("chat_room_reactions")
@@ -206,13 +207,19 @@ export async function toggleRoomReactionAction(kind: "family" | "dm", messageId:
     ? await supabase.from("chat_room_reactions").delete().eq("id", existing.id)
     : await supabase
         .from("chat_room_reactions")
-        .insert(kind === "family" ? { family_message_id: messageId, emoji } : { direct_message_id: messageId, emoji });
+        .insert(
+          kind === "family"
+            ? { family_message_id: messageId, emoji }
+            : kind === "dm"
+              ? { direct_message_id: messageId, emoji }
+              : { group_message_id: messageId, emoji },
+        );
   if (error) return { error: humanDatabaseError(error.message) };
   revalidatePath("/chat", "layout");
   return { error: null };
 }
 
-const THREAD = /^(household|family|dm:[0-9a-f-]{36}|link:[0-9a-f-]{36})$/i;
+const THREAD = /^(household|family|dm:[0-9a-f-]{36}|link:[0-9a-f-]{36}|group:[0-9a-f-]{36})$/i;
 
 /** Mute a conversation (for a while, or until unmuted), unmute it, pin it
  * to the top of the chat list or unpin it. Only ever this person's own
@@ -246,6 +253,119 @@ export async function setThreadPrefAction(
   };
   const { error } = await supabase.from("chat_thread_prefs").upsert(next, { onConflict: "person_id,thread" });
   if (error) return { error: humanDatabaseError(error.message) };
+  revalidatePath("/chat", "layout");
+  return { error: null };
+}
+
+// ------------------------------------------------------------ group chats
+
+/** Group management goes through security-definer functions
+ * (20260929162000) that re-check the caller; these say their refusals in
+ * words. */
+function groupError(message: string): string {
+  if (message.includes("only add")) return "You can only add your connections and people in your family.";
+  if (message.includes("Only an admin")) return "Only an admin of this group can do that.";
+  if (message.includes("Give the group a name")) return "Give the group a name.";
+  if (message.includes("at least one admin")) return "A group needs at least one admin.";
+  if (message.includes("not in that group")) return "You're not in that group.";
+  return "That didn't work. Try again in a moment.";
+}
+
+const uuids = (list: string[]) => [...new Set(list)].filter((id) => UUID.test(id)).slice(0, 200);
+
+export async function createGroupAction(name: string, announceOnly: boolean, people: string[]): Promise<ActionState & { id?: string }> {
+  await requireCurrentMember();
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("create_chat_group", { p_name: clamp(name.trim(), 60), p_announce_only: announceOnly, p_people: uuids(people) });
+  if (error || !data) return { error: groupError(error?.message ?? "") };
+  revalidatePath("/chat", "layout");
+  return { error: null, id: data };
+}
+
+export async function addGroupMembersAction(groupId: string, people: string[]): Promise<ActionState> {
+  await requireCurrentMember();
+  if (!UUID.test(groupId)) return { error: "That group doesn't exist." };
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("add_chat_group_members", { p_group: groupId, p_people: uuids(people) });
+  if (error) return { error: groupError(error.message) };
+  revalidatePath("/chat", "layout");
+  return { error: null };
+}
+
+/** Remove someone (an admin), or leave (yourself). */
+export async function removeGroupMemberAction(groupId: string, personId: string): Promise<ActionState> {
+  await requireCurrentMember();
+  if (!UUID.test(groupId) || !UUID.test(personId)) return { error: "That group doesn't exist." };
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("remove_chat_group_member", { p_group: groupId, p_person: personId });
+  if (error) return { error: groupError(error.message) };
+  revalidatePath("/chat", "layout");
+  return { error: null };
+}
+
+export async function updateGroupAction(groupId: string, name: string, announceOnly: boolean): Promise<ActionState> {
+  await requireCurrentMember();
+  if (!UUID.test(groupId)) return { error: "That group doesn't exist." };
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("update_chat_group", { p_group: groupId, p_name: clamp(name.trim(), 60), p_announce_only: announceOnly });
+  if (error) return { error: groupError(error.message) };
+  revalidatePath("/chat", "layout");
+  return { error: null };
+}
+
+export async function setGroupAdminAction(groupId: string, personId: string, admin: boolean): Promise<ActionState> {
+  await requireCurrentMember();
+  if (!UUID.test(groupId) || !UUID.test(personId)) return { error: "That group doesn't exist." };
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("set_chat_group_admin", { p_group: groupId, p_person: personId, p_admin: admin });
+  if (error) return { error: groupError(error.message) };
+  revalidatePath("/chat", "layout");
+  return { error: null };
+}
+
+export async function sendGroupMessageAction(groupId: string, body: string, photos: RoomPhoto[] = [], replyTo: string | null = null): Promise<ActionState> {
+  const me = await requireCurrentMember();
+  if (!UUID.test(groupId)) return { error: "That group doesn't exist." };
+  const text = clamp(body.trim(), 2000);
+  const refused = checkOutgoing(me, text, photos);
+  if (refused) return { error: refused };
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("chat_group_messages")
+    .insert({ group_id: groupId, body: text, reply_to: replyTo && UUID.test(replyTo) ? replyTo : null })
+    .select("id")
+    .single();
+  if (error || !data) {
+    if (error?.code === "42501") return { error: "Only this group's admins can post here." };
+    return { error: error ? humanDatabaseError(error.message) : "That didn't send." };
+  }
+  const attachError = await attachPhotos(me, photos, { group_message_id: data.id });
+  if (attachError) return { error: attachError };
+  await markThreadReadAction(`group:${groupId}`);
+  revalidatePath("/chat", "layout");
+  const { data: group } = await supabase.from("chat_groups").select("name").eq("id", groupId).maybeSingle();
+  after(() =>
+    sendChatPush(`group:${groupId}`, {
+      title: `${me.full_name.split(" ")[0]} · ${group?.name ?? "Group"}`,
+      body: text || photoLine(photos),
+      url: `/chat/groups/${groupId}`,
+      tag: `group-${groupId}`,
+    }),
+  );
+  return { error: null };
+}
+
+/** Your own message, or -- as an admin -- anything in your group. */
+export async function deleteGroupMessageAction(id: string): Promise<ActionState> {
+  await requireCurrentMember();
+  if (!UUID.test(id)) return { error: "That message doesn't exist." };
+  const supabase = await createClient();
+  const { data: row } = await supabase.from("chat_group_messages").select("id").eq("id", id).maybeSingle();
+  if (!row) return { error: "That message isn't there any more." };
+  await removePhotosOf("group_message_id", id);
+  const { data, error } = await supabase.from("chat_group_messages").delete().eq("id", id).select("id");
+  if (error) return { error: humanDatabaseError(error.message) };
+  if (!data?.length) return { error: "That message isn't yours to delete." };
   revalidatePath("/chat", "layout");
   return { error: null };
 }
