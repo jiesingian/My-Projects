@@ -14,6 +14,7 @@ import { clamp } from "@/lib/text";
 import { isCurrencyCode } from "@/lib/household-prefs";
 import { normalizeInviteUrl } from "@/lib/invite-link";
 import { fetchLinkPreview } from "@/lib/link-preview";
+import { findClashes, type ClashReport } from "@/lib/queries/clashes";
 
 function activityTarget(wholeFamily: boolean, who: string[]): CalendarTarget {
   return wholeFamily ? { kind: "all" } : { kind: "members", memberIds: who };
@@ -370,4 +371,12 @@ export async function getEventInvitePreviewAction(
   if (!event?.invite_url) return null;
   const preview = await fetchLinkPreview(event.invite_url);
   return preview ? { title: preview.title, description: preview.description, hasImage: !!preview.image } : null;
+}
+
+/** What a plan being written would clash with, asked by the form as its
+ * date, times and people change (lib/queries/clashes). Read-only. */
+export async function checkClashesAction(input: { date: string; from: string; to: string; wholeFamily: boolean; who: string[]; excludeId?: string }): Promise<ClashReport> {
+  const me = await requireCurrentMember();
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(input.date)) return { clashes: [], sameDay: [] };
+  return findClashes(me.family_id, { ...input, who: input.who.slice(0, 20) });
 }
