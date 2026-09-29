@@ -86,8 +86,9 @@ test("a dead Drive connection is explained on both journal panes", async ({ page
     });
     expect(dead.ok(), `marking the link dead: ${dead.status()} ${await dead.text()}`).toBeTruthy();
 
-    // Both panes, same question, same answer.
-    await page.goto("/journal?view=gallery");
+    // Both places, same question, same answer. The Gallery tab became the
+    // Public feed (29 September); an entry's photos are on its own page now.
+    await page.goto(`/journal/${entryId}`);
     await expect(page.getByText(BANNER)).toBeVisible();
 
     await page.goto("/journal?view=list");
@@ -103,7 +104,7 @@ test("a dead Drive connection is explained on both journal panes", async ({ page
 
     await page.goto("/journal?view=list");
     await expect(page.getByText(BANNER)).toHaveCount(0);
-    await page.goto("/journal?view=gallery");
+    await page.goto(`/journal/${entryId}`);
     await expect(page.getByText(BANNER)).toHaveCount(0);
   } finally {
     if (entryId) {

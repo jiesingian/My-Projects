@@ -4,7 +4,7 @@ import { useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { confirm } from "@/components/confirm-sheet";
 import { toast } from "@/components/toast";
-import { addEntryToHouseholdAction, takeEntryBackAction, setEntryMilestoneAction } from "@/lib/actions/journal";
+import { addEntryToHouseholdAction, takeEntryBackAction, setEntryMilestoneAction, setEntryPublicAction } from "@/lib/actions/journal";
 import { setEntrySharedAction } from "@/lib/actions/family-links";
 
 /** On an entry you wrote (Mine, and the entry's own page): where it is shared
@@ -15,21 +15,27 @@ import { setEntrySharedAction } from "@/lib/actions/family-links";
  * Neither chip lit is Just me. The Family feed reaches linked households, and
  * only a household entry goes there, so lighting it on a Just-me entry adds it
  * to the household too, and taking it out of the household takes it out of
- * the feed. Every widening asks first; narrowing just happens. */
+ * the feed. Public is its own thing: the people you are connected with,
+ * inside the family tree or outside it, whether or not the household has
+ * it. Every widening asks first; narrowing just happens. */
 export function EntryShareOptions({
   entryId,
   title,
   personal,
   shared,
   milestone,
+  isPublic,
   linkedCount,
+  connectionCount,
 }: {
   entryId: string;
   title: string;
   personal: boolean;
   shared: boolean;
   milestone: boolean;
+  isPublic: boolean;
   linkedCount: number;
+  connectionCount: number;
 }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
@@ -93,14 +99,38 @@ export function EntryShareOptions({
     run([...(personal ? [() => addEntryToHouseholdAction(entryId)] : []), () => setEntrySharedAction(entryId, true)], "In the Family feed.");
   }
 
+  async function togglePublic() {
+    if (isPublic) {
+      run([() => setEntryPublicAction(entryId, false)]);
+      return;
+    }
+    if (
+      !(await confirm({
+        title: "Make this public?",
+        description: `${
+          connectionCount > 0
+            ? `The ${connectionCount === 1 ? "person" : `${connectionCount} people`} you're connected with will see it in their Public feed, with the photos you added.`
+            : "It'll be in your Public feed. Nobody else sees it until you connect with someone."
+        } Only your connections — never anyone else. You can take it back at any time.`,
+        confirmLabel: "Make public",
+      }))
+    )
+      return;
+    run([() => setEntryPublicAction(entryId, true)], "Public to your connections.");
+  }
+
+  const justMe = personal && !shared && !isPublic;
   return (
     <div className="kin-entry-share" aria-busy={pending || undefined}>
-      <span className="kin-entry-share-label">{personal && !shared ? "Just me · share with" : "Shared with"}</span>
+      <span className="kin-entry-share-label">{justMe ? "Just me · share with" : "Shared with"}</span>
       <button type="button" className="chip" data-active={!personal} aria-pressed={!personal} disabled={pending} onClick={toggleHousehold}>
         Household
       </button>
       <button type="button" className="chip" data-active={shared} aria-pressed={shared} disabled={pending} onClick={toggleFeed}>
         Family feed
+      </button>
+      <button type="button" className="chip" data-active={isPublic} aria-pressed={isPublic} disabled={pending} onClick={togglePublic}>
+        Public
       </button>
       <button
         type="button"

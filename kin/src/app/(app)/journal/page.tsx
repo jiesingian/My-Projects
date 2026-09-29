@@ -5,13 +5,12 @@ import { redirect } from "next/navigation";
 import { after } from "next/server";
 import { getCurrentMember } from "@/lib/session";
 import { createClient } from "@/lib/supabase/server";
-import { getGallery, getEntries, syncDriveJournalMedia, driveIsDisconnected } from "@/lib/queries/journal";
+import { getEntries, getPublicFeed, syncDriveJournalMedia, driveIsDisconnected } from "@/lib/queries/journal";
+import { getConnections } from "@/lib/queries/connections";
 import { DriveDisconnectedNotice } from "@/components/drive-disconnected-notice";
 import { HubHeader } from "@/components/hub-header";
 import { Segmented } from "@/components/segmented";
 import { Blueprint, Tag, Empty } from "@/components/ui";
-import { GalleryUpload } from "@/components/gallery-upload";
-import { GalleryGrid } from "@/components/gallery-grid";
 import { JournalEntryPhotos } from "@/components/journal-entry-photos";
 import { familyDate } from "@/lib/format-family";
 import { FamilyFeed } from "@/components/family-feed";
@@ -30,11 +29,15 @@ import { EntryShareOptions } from "@/components/entry-share-options";
    Family feed that reaches linked households. The Gallery is the household's
    photos. Milestones are entries with a ★ (29 September), found with the
    filter chip on Household; `?view=milestones` is that filter. */
-const VIEWS = ["mine", "household", "feed", "gallery", "milestones"] as const;
+/* The Gallery became the Public feed (29 September, Janine): entries their
+   writers marked Public, from the people you are connected with, and yours.
+   Photos now live with their entry -- each opens as its own gallery -- so a
+   tab of loose photos had nothing left to do. */
+const VIEWS = ["mine", "household", "feed", "public", "milestones"] as const;
 // Milestones is a filter on Household, not a tab: five tabs wrap on a phone.
-const TABS: readonly View[] = ["mine", "household", "feed", "gallery"];
+const TABS: readonly View[] = ["mine", "household", "feed", "public"];
 type View = (typeof VIEWS)[number];
-const VIEW_LABELS: Record<View, string> = { mine: "Mine", household: "Household", feed: "Family feed", gallery: "Gallery", milestones: "Milestones" };
+const VIEW_LABELS: Record<View, string> = { mine: "Mine", household: "Household", feed: "Family feed", public: "Public", milestones: "Milestones" };
 
 export default async function JournalPage({
   searchParams,
@@ -44,17 +47,18 @@ export default async function JournalPage({
   const me = await getCurrentMember();
   if (!me) redirect("/onboarding/profile");
   const sp = await searchParams;
-  // "list" is what the household journal was called; old links still land there.
-  const asked = sp.view === "list" ? "household" : sp.view;
+  // "list" is what the household journal was called, and "gallery" the tab
+  // Public replaced; old links still land somewhere sensible.
+  const asked = sp.view === "list" ? "household" : sp.view === "gallery" ? "public" : sp.view;
   const view: View = (VIEWS as readonly string[]).includes(asked ?? "") ? (asked as View) : "household";
 
   // Reconcile the index against Drive both ways — still on every Journal load,
-  // still only for the two views that show Drive files, but once rather than
+  // still only for the view that shows Drive files, but once rather than
   // per pane and after the response has gone out. It refreshes a token and
   // lists a whole folder before it can say anything, so awaiting it meant no
   // photo appeared until Google had answered. A file added or deleted straight
   // in Drive now shows up on the next visit instead of holding up this one.
-  if (view === "gallery" || view === "household") {
+  if (view === "household") {
     const supabase = await createClient();
     after(() => syncDriveJournalMedia(me.family_id, me.families.name, supabase));
   }
@@ -67,7 +71,7 @@ export default async function JournalPage({
       <HubHeader n="02" title="Journal" segments={segments} dateFormat={me.families.date_format} />
       <div style={{ padding: "0 var(--gutter) 1.375rem" }}>
         <Segmented items={views} />
-        {view === "gallery" && <GalleryPane familyId={me.family_id} />}
+        {view === "public" && <PublicPane personId={me.person_id} familyId={me.family_id} />}
         {view === "household" && <EntriesPane familyId={me.family_id} />}
         {view === "mine" && <EntriesPane familyId={me.family_id} mine={{ personId: me.person_id }} />}
         {view === "milestones" && <EntriesPane familyId={me.family_id} milestonesOnly />}
@@ -79,41 +83,6 @@ export default async function JournalPage({
   );
 }
 
-async function GalleryPane({ familyId }: { familyId: string }) {
-  const fmtDate = await familyDate();
-  const media = await getGallery(familyId);
-
-  // A photo that's still indexed but whose Drive connection has since died
-  // (revoked in the household's Google Account, or expired unused) renders as
-  // a bare, unlabeled placeholder with nothing to click -- the household has
-  // no way to tell "temporarily broken" from "gone for good". If any photo
-  // here is Drive-backed and the link is no longer connected, say so and
-  // point at the one place that fixes it.
-  //
-  // Only asked when there is a Drive-backed photo on screen: a household that
-  // never linked Drive should never be told to reconnect it.
-  const hasDriveMedia = media.some((m) => m.storage_provider === "google_drive");
-  const driveDisconnected = hasDriveMedia && (await driveIsDisconnected(familyId));
-
-  return (
-    <>
-      <GalleryUpload />
-      {driveDisconnected && <DriveDisconnectedNotice />}
-      {media.length === 0 ? (
-        <Empty
-          icon={<Icon name="images" size={26} />}
-          title="No photos yet"
-          line="Everything you add here is private to your family and backs up to your own Google Drive. Start with one from today."
-        />
-      ) : (
-        <GalleryGrid
-          media={media.map((m) => ({ id: m.id, url: m.url, viewLink: m.viewLink, date: m.taken_at ? fmtDate(m.taken_at) : "", media_type: m.media_type }))}
-        />
-      )}
-    </>
-  );
-}
-
 /** Everyone's shared memories, in date order, regardless of whose household
  * wrote them. Row-level security decides what is in here; this pane does not
  * filter by family at all, on purpose -- see getFamilyFeed. */
@@ -122,10 +91,59 @@ async function FeedPane({ meId, familyId, inviteCode, canManage }: { meId: strin
   return <FamilyFeed entries={entries} links={links} ourCode={inviteCode} canManage={canManage} occasions={occasions} />;
 }
 
+/** Public: what the people you are connected with chose to share with their
+ * connections, and what you did. Row-level security decides what is in here
+ * (20260929100000); nobody who is not connected with the writer can read it. */
+async function PublicPane({ personId, familyId }: { personId: string; familyId: string }) {
+  const fmtDate = await familyDate();
+  const [entries, connections] = await Promise.all([getPublicFeed(personId, familyId), getConnections()]);
+  const connected = connections.filter((c) => c.status === "accepted").length;
+  return (
+    <>
+      <p style={{ fontSize: "0.84375rem", lineHeight: 1.5, color: "var(--color-neutral-700)", margin: "0.875rem 0 0.75rem" }}>
+        Moments marked <strong>Public</strong> by the people you&apos;re connected with, and yours. Only your connections see what you share here.
+      </p>
+      {entries.length === 0 && (
+        <div style={{ marginBottom: "1rem" }}>
+          <Empty
+            icon={<Icon name="images" size={26} />}
+            title={connected === 0 ? "No connections yet" : "Nothing public yet"}
+            line={
+              connected === 0
+                ? "Connect with someone — in the family or out of it — and what they make Public shows here. Anything you mark Public in Mine shows here too."
+                : "When you or someone you're connected with marks an entry Public in Mine, it shows here."
+            }
+            action={{ label: "Go to Mine", href: "/journal?view=mine" }}
+          />
+        </div>
+      )}
+      {entries.map((e) => (
+        <Blueprint key={e.id} style={{ padding: "0.8125rem", marginBottom: "1rem" }}>
+          <div style={{ display: "flex", flexWrap: "wrap", alignItems: "baseline", gap: "0.375rem 0.5rem" }}>
+            <span style={{ fontSize: "0.8125rem", fontWeight: 600 }}>{e.author === "You" ? "You" : e.author.split(" ")[0]}</span>
+            <span style={{ font: "400 0.75rem/1 var(--font-numeric)", color: "var(--color-accent-700)" }}>{fmtDate(e.entryDate)}</span>
+            {e.milestone && (
+              <span className="kin-entry-star">
+                <span aria-hidden="true">★</span> Milestone
+              </span>
+            )}
+          </div>
+          <Link href={`/journal/${e.id}`} style={{ display: "block", font: "600 1.3125rem/1.05 var(--font-heading)", margin: "7px 0 6px", color: "inherit" }}>
+            {e.title}
+          </Link>
+          <JournalEntryPhotos photos={e.photos} entryTitle={e.title} galleryHref={`/journal/${e.id}`} />
+          {e.note && <p style={{ fontSize: "0.875rem", margin: "0 0 4px", color: "var(--color-neutral-800)" }}>{e.note}</p>}
+        </Blueprint>
+      ))}
+    </>
+  );
+}
+
 async function EntriesPane({ familyId, mine, milestonesOnly = false }: { familyId: string; mine?: { personId: string }; milestonesOnly?: boolean }) {
   const fmtDate = await familyDate();
-  const [entries, links] = await Promise.all([getEntries(familyId, mine, { milestonesOnly }), getFamilyLinks(familyId)]);
+  const [entries, links, connections] = await Promise.all([getEntries(familyId, mine, { milestonesOnly }), getFamilyLinks(familyId), mine ? getConnections() : []]);
   const linkedCount = links.filter((l) => l.status === "accepted").length;
+  const connectionCount = connections.filter((c) => c.status === "accepted").length;
 
   // Entries shows Drive-backed photos exactly as the Gallery does, and said
   // nothing when they stopped loading. #59 added the explanation to the
@@ -218,7 +236,9 @@ async function EntriesPane({ familyId, mine, milestonesOnly = false }: { familyI
               personal={e.visibility === "personal"}
               shared={Boolean(e.shared_at)}
               milestone={e.milestone}
+              isPublic={Boolean(e.public_at)}
               linkedCount={linkedCount}
+              connectionCount={connectionCount}
             />
           )}
           <div style={{ display: "flex", flexWrap: "wrap", alignItems: "baseline", gap: "0.375rem 0.5rem" }}>
