@@ -27,6 +27,8 @@ import type { ChatAttachment, ChatMember, ChatMessage, ChatPin, ChatPoll } from 
 import { REACTIONS, amountIn, splitShoppingItems, firstUrl, type LinkPreview } from "@/lib/chat";
 import { toast } from "@/components/toast";
 import { PhotoViewer } from "@/components/photo-viewer";
+import { ChatMediaView, MediaPicker } from "@/components/chat-media";
+import { chatMedia, mediaSummary } from "@/lib/chat-media";
 import Link from "next/link";
 
 // Rendered from the same list the action checks against, so a reaction the
@@ -345,6 +347,7 @@ export function ChatThread({
   initial,
   pin,
   addressTo,
+  gifReady = false,
 }: {
   me: string;
   familyId: string;
@@ -354,6 +357,8 @@ export function ChatThread({
   /** From Message on someone's profile: the composer starts as "@Name ",
    * tagged, so the message reaches them in a room where everyone listens. */
   addressTo?: string;
+  /** GIF search is on: GIPHY_API_KEY is set. Stickers need nothing. */
+  gifReady?: boolean;
 }) {
   const router = useRouter();
   // The thread itself is the server's; this component keeps only what the
@@ -372,6 +377,7 @@ export function ChatThread({
   const [uploading, setUploading] = useState(false);
   const [asking, setAsking] = useState(false);
   const [trayOpen, setTrayOpen] = useState(false);
+  const [mediaOpen, setMediaOpen] = useState(false);
   const [recordingSince, setRecordingSince] = useState<number | null>(null);
   const [recordedFor, setRecordedFor] = useState(0);
   const recorder = useRef<MediaRecorder | null>(null);
@@ -683,6 +689,22 @@ export function ChatThread({
     });
   }, [draft, mentioned, byId, router, replyingTo, picked]);
 
+  /** A sticker or GIF goes the moment it is tapped, as its own message --
+   * whatever is typed in the field stays there. */
+  const sendMedia = (body: string) => {
+    const answering = replyingTo?.id ?? null;
+    setMediaOpen(false);
+    setReplyingTo(null);
+    setPendingBody(body);
+    setError(null);
+    startTransition(async () => {
+      const result = await sendMessageAction({ body, replyTo: answering });
+      if (result.error) setError(result.error);
+      router.refresh();
+      setPendingBody(null);
+    });
+  };
+
   const act = (fn: () => Promise<{ error: string | null }>) => {
     setOpenFor(null);
     startTransition(async () => {
@@ -905,6 +927,17 @@ export function ChatThread({
                             ···
                           </button>
                         </>
+                      ) : !m.deleted && chatMedia(m.body) ? (
+                        /* A sticker or GIF has no bubble: the picture is the message. */
+                        <button
+                          type="button"
+                          onClick={() => setOpenFor(openFor === m.id ? null : m.id)}
+                          className="kin-media-msg"
+                          data-mine={mine}
+                          aria-label={`${mediaSummary(m.body)} from ${mine ? "you" : (author?.label ?? "someone")} at ${clockOf(m.createdAt)}`}
+                        >
+                          <ChatMediaView media={chatMedia(m.body)!} />
+                        </button>
                       ) : m.deleted || m.body ? (
                         <button
                           type="button"
@@ -935,7 +968,7 @@ export function ChatThread({
                     </>
                   )}
 
-                  {!m.deleted && firstUrl(m.body) && <LinkPreviewCard messageId={m.id} />}
+                  {!m.deleted && firstUrl(m.body) && !chatMedia(m.body) && <LinkPreviewCard messageId={m.id} />}
 
                   {m.reactions.length > 0 && (
                     <div style={{ display: "flex", gap: "0.25rem", marginTop: -6, marginLeft: mine ? 0 : 8, marginRight: mine ? 8 : 0, zIndex: 1 }}>
@@ -1015,17 +1048,19 @@ export function ChatThread({
                       {mine && (
                         <>
                           <span style={{ width: 1, height: 18, background: "var(--color-divider)", margin: "0 3px" }} />
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setEditing({ id: m.id, body: m.body });
-                              setOpenFor(null);
-                            }}
-                            className="btn btn-ghost"
-                            style={{ minHeight: "1.625rem", fontSize: "0.75rem", padding: "0 0.375rem" }}
-                          >
-                            Edit
-                          </button>
+                          {!chatMedia(m.body) && (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setEditing({ id: m.id, body: m.body });
+                                setOpenFor(null);
+                              }}
+                              className="btn btn-ghost"
+                              style={{ minHeight: "1.625rem", fontSize: "0.75rem", padding: "0 0.375rem" }}
+                            >
+                              Edit
+                            </button>
+                          )}
                           <button
                             type="button"
                             onClick={() => act(() => deleteMessageAction(m.id))}
@@ -1044,7 +1079,7 @@ export function ChatThread({
                         open their own form filled in, since a date, an amount
                         or an account is exactly what a message does not
                         reliably contain. */}
-                    {m.body && !m.poll && (
+                    {m.body && !m.poll && !chatMedia(m.body) && (
                       <div className="kin-msgmenu-make">
                         <span className="kin-msgmenu-label">Make it</span>
                         <Link className="chip" href={handoffs(m, author?.label ?? (mine ? "you" : "someone")).task}>
@@ -1104,9 +1139,13 @@ export function ChatThread({
         {pendingBody && (
           <div style={{ display: "flex", justifyContent: "flex-end", marginTop: "0.5rem" }}>
             <div style={{ maxWidth: "76%", opacity: 0.6 }}>
-              <span className="kin-bubble" data-mine="true">
-                {pendingBody}
-              </span>
+              {chatMedia(pendingBody) ? (
+                <ChatMediaView media={chatMedia(pendingBody)!} />
+              ) : (
+                <span className="kin-bubble" data-mine="true">
+                  {pendingBody}
+                </span>
+              )}
             </div>
           </div>
         )}
@@ -1139,6 +1178,8 @@ export function ChatThread({
             </span>
           </p>
         )}
+
+        {mediaOpen && <MediaPicker gifReady={gifReady} onSend={sendMedia} onClose={() => setMediaOpen(false)} />}
 
         {asking && <PollBuilder onSend={askPoll} onCancel={() => setAsking(false)} busy={uploading} />}
 
@@ -1237,6 +1278,9 @@ export function ChatThread({
             <button type="button" className="chip" onClick={() => { setTrayOpen(false); setAsking(true); }} disabled={uploading}>
               <Icon name="poll" size="0.9375rem" /> Poll
             </button>
+            <button type="button" className="chip" onClick={() => { setTrayOpen(false); setMediaOpen(true); }} disabled={uploading}>
+              <span aria-hidden="true">🙂</span> Sticker or GIF
+            </button>
             <button
               type="button"
               className="chip"
@@ -1256,7 +1300,7 @@ export function ChatThread({
             type="button"
             className="btn btn-secondary btn-icon kin-composer-more"
             style={{ width: "2.375rem", height: "2.375rem", flex: "none" }}
-            aria-label={trayOpen ? "Close" : "Attach, ask a poll or tag someone"}
+            aria-label={trayOpen ? "Close" : "Attach, send a sticker, ask a poll or tag someone"}
             aria-expanded={trayOpen}
             data-open={trayOpen || undefined}
             disabled={recordingSince !== null}
