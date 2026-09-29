@@ -22,7 +22,7 @@ function readable(message: string): string {
 
 function done(): ActionState {
   revalidatePath("/family/connections");
-  revalidatePath("/chat");
+  revalidatePath("/chat", "layout");
   return { error: null };
 }
 

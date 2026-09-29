@@ -89,7 +89,7 @@ export async function sendMessageAction(input: {
   // waiting to be read.
   await markChatReadAction();
 
-  revalidatePath("/chat");
+  revalidatePath("/chat", "layout");
   // Everyone else in the household with chat notifications on. One tag per
   // household, so a busy evening is one notification that updates.
   after(() =>
@@ -97,7 +97,7 @@ export async function sendMessageAction(input: {
       kind: "chat",
       title: me.full_name.split(" ")[0],
       body: mediaSummary(body) ?? (body || (attachments.length === 1 ? "Sent an attachment" : `Sent ${attachments.length} attachments`)),
-      url: "/chat",
+      url: "/chat/household",
       tag: `chat-${me.family_id}`,
     }),
   );
@@ -133,7 +133,7 @@ export async function deleteMessageAction(messageId: string): Promise<ActionStat
     await supabase.from("family_message_attachments").delete().eq("message_id", messageId);
   }
 
-  revalidatePath("/chat");
+  revalidatePath("/chat", "layout");
   return { error: null };
 }
 
@@ -162,7 +162,7 @@ export async function editMessageAction(messageId: string, body: string): Promis
   if (error) return { error: humanDatabaseError(error.message) };
   if (!edited?.length) return { error: "That message can't be edited — it may have been withdrawn already." };
 
-  revalidatePath("/chat");
+  revalidatePath("/chat", "layout");
   return { error: null };
 }
 
@@ -203,7 +203,7 @@ export async function reactToMessageAction(messageId: string, emoji: string | nu
     if (error) return { error: humanDatabaseError(error.message) };
   }
 
-  revalidatePath("/chat");
+  revalidatePath("/chat", "layout");
   return { error: null };
 }
 
@@ -234,7 +234,7 @@ export async function pinMessageAction(messageId: string): Promise<ActionState> 
     );
   if (error) return { error: humanDatabaseError(error.message) };
 
-  revalidatePath("/chat");
+  revalidatePath("/chat", "layout");
   return { error: null };
 }
 
@@ -247,7 +247,7 @@ export async function unpinMessageAction(): Promise<ActionState> {
   const { error } = await supabase.from("family_chat_pins").delete().eq("family_id", me.family_id);
   if (error) return { error: humanDatabaseError(error.message) };
 
-  revalidatePath("/chat");
+  revalidatePath("/chat", "layout");
   return { error: null };
 }
 
@@ -393,7 +393,7 @@ export async function sendPollAction(input: { question: string; options: string[
   if (optionsError) return withdraw(humanDatabaseError(optionsError.message));
 
   await markChatReadAction();
-  revalidatePath("/chat");
+  revalidatePath("/chat", "layout");
   return { error: null };
 }
 
@@ -425,6 +425,6 @@ export async function votePollAction(pollId: string, optionId: string): Promise<
       .insert({ poll_id: pollId, option_id: optionId, member_id: me.id, family_id: me.family_id });
     if (error) return { error: humanDatabaseError(error.message) };
   }
-  revalidatePath("/chat");
+  revalidatePath("/chat", "layout");
   return { error: null };
 }

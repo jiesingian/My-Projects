@@ -165,7 +165,7 @@ test.describe("bugs that already got out once", () => {
   test("the chat thread survives hydration", async ({ page }) => {
     const pageErrors: string[] = [];
     page.on("pageerror", (e) => pageErrors.push(String(e)));
-    await page.goto("/chat", { waitUntil: "networkidle" });
+    await page.goto("/chat/household", { waitUntil: "networkidle" });
     await page.waitForTimeout(1500);
     expect(pageErrors.filter((e) => /hydration/i.test(e)), "chat hydration mismatch is back").toEqual([]);
   });
