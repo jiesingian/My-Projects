@@ -6,7 +6,7 @@
  *
  * Since 28 September there are two plans, Kin Free and Kin Plus, and nobody is
  * ever locked out (20260928150000_kin_free_and_plus.sql). A new household gets
- * a 14-day Plus trial; when it ends the household drops to Free and keeps its
+ * a 7-day Plus trial (14 before 29 September, 20260929140000); when it ends the household drops to Free and keeps its
  * calendar, lists, chat and everything it already added. The database is what
  * enforces the difference -- family_has_plus() and the require_kin_plus guard
  * on the Plus areas -- and this file is the same rule, read for the screen.
@@ -21,7 +21,7 @@ export type Plan = "plus" | "free";
 
 /** How long a new household's Kin Plus trial runs. The database default on
  * families.access_expires_at is the one that counts; this is for the copy. */
-export const TRIAL_DAYS = 14;
+export const TRIAL_DAYS = 7;
 
 /** Free households get this many Kin AI questions and flyer scans a month
  * (use_kin_ai() holds the real number). */

@@ -25,8 +25,8 @@ export async function POST(request: Request) {
     supabase.rpc("due_reminders", { p_secret: secret }),
     // What is running low, once a day from 09:00 (20260928100000).
     supabase.rpc("due_pantry_reminders", { p_secret: secret }),
-    // The organizer, 3 days before a Kin Plus trial ends and once it has
-    // (20260928150000_kin_free_and_plus.sql).
+    // The organizer, on day 5 and day 7 of a Kin Plus trial and the day after
+    // it ends (20260929140000_trial_seven_days.sql).
     supabase.rpc("due_trial_reminders", { p_secret: secret }),
     // The grown-ups, Sunday from 19:00: the week ahead (20260928221500).
     supabase.rpc("due_week_ahead_reminders", { p_secret: secret }),

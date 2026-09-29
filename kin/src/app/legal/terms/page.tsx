@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { OperatorDetails } from "@/components/legal-operator";
 import { PLANS, pesos } from "@/lib/billing/plans";
+import { TRIAL_DAYS } from "@/lib/access";
 
 export const metadata = {
   title: "Terms of service · Kin",
@@ -44,7 +45,7 @@ export default function TermsPage() {
           year for the whole household. Prices are in Philippine pesos and include any tax that applies.
         </li>
         <li>
-          A new household can get <strong>14 days of Kin Plus free</strong>. No payment details are asked for, and
+          A new household can get <strong>{TRIAL_DAYS} days of Kin Plus free</strong>. No payment details are asked for, and
           nothing is charged when it ends: the household moves to Kin Free.
         </li>
         <li>

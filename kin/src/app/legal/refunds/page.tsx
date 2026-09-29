@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { OperatorDetails } from "@/components/legal-operator";
+import { TRIAL_DAYS } from "@/lib/access";
 
 export const metadata = {
   title: "Refunds and cancellation · Kin",
@@ -14,7 +15,7 @@ export default function RefundsPage() {
       <h1>Refunds and cancellation</h1>
 
       <h2>The free trial</h2>
-      <p>The 14-day Kin Plus trial is free and asks for no payment details. There is nothing to cancel: when it ends, the household moves to Kin Free.</p>
+      <p>The {TRIAL_DAYS}-day Kin Plus trial is free and asks for no payment details. There is nothing to cancel: when it ends, the household moves to Kin Free.</p>
 
       <h2>Cancelling Kin Plus</h2>
       <ul>

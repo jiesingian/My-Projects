@@ -10,6 +10,7 @@ import { Blueprint } from "@/components/ui";
 import { Icon } from "@/components/icons";
 import { COUNTRIES, DEFAULT_COUNTRY } from "@/lib/countries";
 import { PLANS, pesos } from "@/lib/billing/plans";
+import { TRIAL_DAYS } from "@/lib/access";
 import { suggestHouseholdName } from "@/lib/household-name";
 
 const initialState: ActionState = { error: null };
@@ -153,10 +154,10 @@ export function FamilyForkForm({
             </select>
           </div>
           {/* Optional since open sign-up (28 September): a new family starts
-              on a 14-day Kin Plus trial by itself. A Kin code -- a gift or a
+              on a 7-day Kin Plus trial by itself. A Kin code -- a gift or a
               tester's -- is tucked away rather than asked for. */}
           <p style={{ fontSize: "0.8125rem", color: "var(--color-neutral-700)", margin: "0 0 0.75rem" }}>
-            Starts with 14 days of Kin Plus, free. After that, Kin Free for good, or Plus for {pesos(PLANS.monthly.amountCents)} a month.
+            Starts with {TRIAL_DAYS} days of Kin Plus, free. After that, Kin Free for good, or Plus for {pesos(PLANS.monthly.amountCents)} a month.
           </p>
           <details className="kin-code-optional" style={{ marginBottom: "0.75rem" }}>
             <summary>Have a Kin code?</summary>
