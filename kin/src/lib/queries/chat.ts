@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { getSignedUrls } from "@/lib/storage";
 import { GONE_STATUSES } from "@/lib/member-status";
+import { mediaSummary } from "@/lib/chat-media";
 
 
 export type ChatMember = { id: string; name: string; first: string; initials: string; photoUrl: string | null };
@@ -171,7 +172,7 @@ export async function getChatThread(familyId: string, limit = 200): Promise<Chat
         memberId: parent.member_id,
         // One line is what a quote is for -- enough to recognise which thing
         // is being answered, not enough to read twice.
-        excerpt: parent.deleted_at ? "" : parent.body.replace(/\s+/g, " ").slice(0, 120),
+        excerpt: parent.deleted_at ? "" : (mediaSummary(parent.body) ?? parent.body.replace(/\s+/g, " ").slice(0, 120)),
         deleted: !!parent.deleted_at,
       };
     })(),

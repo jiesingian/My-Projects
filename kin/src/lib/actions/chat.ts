@@ -9,6 +9,7 @@ import type { ActionState } from "@/lib/actions/auth";
 import { humanDatabaseError } from "@/lib/db-errors";
 import { isReaction, splitShoppingItems, firstUrl, type LinkPreview } from "@/lib/chat";
 import { fetchLinkPreview } from "@/lib/link-preview";
+import { mediaSummary } from "@/lib/chat-media";
 import { addBuyItemAction } from "@/lib/actions/household";
 
 const MAX_LENGTH = 4000;
@@ -95,7 +96,7 @@ export async function sendMessageAction(input: {
     sendPush({
       kind: "chat",
       title: me.full_name.split(" ")[0],
-      body: body || (attachments.length === 1 ? "Sent an attachment" : `Sent ${attachments.length} attachments`),
+      body: mediaSummary(body) ?? (body || (attachments.length === 1 ? "Sent an attachment" : `Sent ${attachments.length} attachments`)),
       url: "/chat",
       tag: `chat-${me.family_id}`,
     }),

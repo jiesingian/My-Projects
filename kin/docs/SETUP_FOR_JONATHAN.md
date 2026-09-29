@@ -121,3 +121,40 @@ off again.
 
 A decision, not a setting: see `docs/PAYMENTS_OPTIONS.md` for PayMongo and
 HitPay side by side, their fees, and what signing up involves.
+
+---
+
+## 6. GIFs in the chat (Chat → + → Sticker or GIF)
+
+**What it switches on.** The *GIFs* tab in the chat's sticker picker: search
+GIPHY and send a GIF, like Messenger. Stickers already work without this.
+Until the key below exists the GIFs tab just says "coming soon", and nothing
+is sent anywhere. Search is rated **G** because children are in the chat.
+
+**What it costs.** Nothing. GIPHY's API is free. A new key starts as a
+*beta* key, which GIPHY limits to about 100 searches an hour across the
+whole app. For a family that is usually enough, and if it runs out the picker
+says "Too many GIF searches this hour". GIPHY also offers a free
+*production* key with a higher limit, which you apply for from the same
+dashboard. (I couldn't open GIPHY's site from my session to recheck these
+numbers, so check them on the dashboard.)
+
+**Safe to do.** Only the search words go to GIPHY, from Kin's server, never
+from anyone's phone. The key is not a password to anything else. Deleting it
+switches GIFs off again, and GIFs already sent stay in the thread.
+
+1. Sign up or sign in at [GIPHY for Developers](https://developers.giphy.com/login/).
+2. Open the [Dashboard](https://developers.giphy.com/dashboard/) → **Create an
+   App** → choose **API** (not SDK), name it `Kin`, describe it as "family chat
+   app", and agree to the terms.
+3. Copy the **API key** shown for the new app.
+4. In [Vercel → Environment Variables](https://vercel.com/jisingian/kin-family-app/settings/environment-variables)
+   add `GIPHY_API_KEY` = the key, Environment **Production** (and Preview if
+   you want GIFs on preview links), Sensitive on, Save.
+5. **Redeploy**: [Deployments](https://vercel.com/jisingian/kin-family-app/deployments)
+   → the top one → ⋯ → Redeploy. The GIFs tab then shows trending GIFs and
+   a search box.
+6. Optional, later: on the same [Dashboard](https://developers.giphy.com/dashboard/)
+   choose **Upgrade to Production** on the app if the hourly limit is ever
+   hit. GIPHY asks for a screenshot or recording of the GIF picker. The
+   picker already shows the "Powered by GIPHY" line they require.

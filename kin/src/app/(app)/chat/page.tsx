@@ -43,7 +43,7 @@ export default async function ChatPage({ searchParams }: { searchParams: Promise
         <CallButtons />
       </div>
 
-      <ChatThread me={me.id} familyId={me.family_id} members={labelled} initial={thread} pin={pin} addressTo={to} />
+      <ChatThread me={me.id} familyId={me.family_id} members={labelled} initial={thread} pin={pin} addressTo={to} gifReady={!!process.env.GIPHY_API_KEY} />
     </div>
   );
 }
