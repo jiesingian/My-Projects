@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getCurrentMember } from "@/lib/session";
+import { shortNames, selfLabel } from "@/lib/format";
+import { isGone } from "@/lib/member-status";
 import { isForMe } from "@/lib/for-me";
 import { createClient } from "@/lib/supabase/server";
 import { getOnThisDay, getWeekRecap } from "@/lib/queries/memories";
@@ -38,8 +40,8 @@ export default async function TodayPage() {
 
   const supabase = await createClient();
   const [{ data: members }, glance, brief, tasks, awaitingApproval, awaitingRedemption, familyPanel, comingUp, memories, recap, startHere, goalRequests, rewardDuties, goals, kinOffer] = await Promise.all([
-    supabase.from("members").select("id, full_name").eq("family_id", me.family_id).order("created_at"),
-    getGlance(me.family_id, me.families.currency),
+    supabase.from("members").select("id, full_name, status").eq("family_id", me.family_id).order("created_at"),
+    getGlance(me.family_id, me.families.currency, me),
     getTodayBriefing(me.family_id, me.families.currency, me),
     // Chores that are the reader's (lib/for-me): theirs, the whole family's,
     // and for a grown-up the children's -- not another grown-up's own.
@@ -112,8 +114,19 @@ export default async function TodayPage() {
       ? { id: "waiting", icon: "check", value: `${toApprove} to approve`, label: "chores and rewards waiting for you", href: "#approvals" }
       : tasks.length > 0
         ? { id: "waiting", icon: "check", value: `${tasks.length} chore${tasks.length === 1 ? "" : "s"}`, label: overdueTasks > 0 ? `${overdueTasks} overdue` : "due today", href: "#tasks", warn: overdueTasks > 0 }
-        : { id: "waiting", icon: "check", value: "All done", label: "no chores waiting", href: "/planner" };
-  const tiles = [glance[0], goalTile(goals, me.id), ...glance.slice(1), waiting];
+        : // Nothing to tick or answer: the next plan of the reader's instead.
+          (glance.next ?? { id: "waiting", icon: "check", value: "All done", label: "nothing planned or waiting", href: "/planner" });
+  // Today's meal stands in for an empty shopping list: the Household tile
+  // still says something worth a glance.
+  const meal = brief.find((b) => b.id.startsWith("meal-"));
+  const shopOrMeal: GlanceTile =
+    glance.shop.value === "List clear" && meal ? { id: "shop", icon: "bowl", value: meal.title, label: `on today's menu · list clear`, href: "/household?seg=meals" } : glance.shop;
+  // In the order of the tabs (29 September): Planner's waiting-or-next and
+  // goal, Household's shopping, Wealth's money.
+  const tiles = [waiting, goalTile(goals, me.id), shopOrMeal, glance.money];
+  // Coming up's Who dropdown: the same names, and "Me", as the Planner's.
+  const people = (members ?? []).filter((m) => m.status !== "pending" && !isGone(m.status));
+  const peopleLabels = shortNames(people.map((m) => m.full_name)).map((l, i) => ({ id: people[i].id, label: selfLabel(l, people[i].id === me.id) }));
 
   return (
     <div style={{ padding: "1.5rem var(--gutter) 1.25rem" }}>
@@ -204,21 +217,23 @@ export default async function TodayPage() {
           into its form. Actions, not places -- the bottom bar already has the
           places. */}
       <nav aria-label="Quick add" className="kin-quick">
-        <Link href="/wealth/transact?mode=out" className="kin-quick-btn">
-          <span className="kin-quick-ico" data-tint="money"><Icon name="receipt" size={18} /></span>
-          Expense
-        </Link>
-        <Link href="/household?seg=buy&add=1" className="kin-quick-btn">
-          <span className="kin-quick-ico" data-tint="home"><Icon name="basket" size={18} /></span>
-          To buy
+        {/* In the order of the tabs, as At a glance is: Journal, Planner,
+            Household, Wealth. */}
+        <Link href="/journal/new" className="kin-quick-btn">
+          <span className="kin-quick-ico" data-tint="occasion"><Icon name="images" size={18} /></span>
+          Journal
         </Link>
         <Link href="/planner/add?type=event" className="kin-quick-btn">
           <span className="kin-quick-ico" data-tint="schedule"><Icon name="calendarDays" size={18} /></span>
           Event
         </Link>
-        <Link href="/journal/new" className="kin-quick-btn">
-          <span className="kin-quick-ico" data-tint="occasion"><Icon name="images" size={18} /></span>
-          Journal
+        <Link href="/household?seg=buy&add=1" className="kin-quick-btn">
+          <span className="kin-quick-ico" data-tint="home"><Icon name="basket" size={18} /></span>
+          To buy
+        </Link>
+        <Link href="/wealth/transact?mode=out" className="kin-quick-btn">
+          <span className="kin-quick-ico" data-tint="money"><Icon name="receipt" size={18} /></span>
+          Expense
         </Link>
       </nav>
 
@@ -226,10 +241,8 @@ export default async function TodayPage() {
       {comingUp.length > 0 && (
         <section style={{ marginBottom: "1.625rem" }}>
           <h3 className="kin-eyebrow">Coming up</h3>
-          {/* Three pages, swiped (28 September): other members' plans to the
-              left, the family's in the middle where it opens, the reader's
-              own to the right. */}
-          <ComingUpPager items={comingUp} />
+          {/* Whose, from the same Who dropdown as the Planner and Wealth. */}
+          <ComingUpPager items={comingUp} people={peopleLabels} />
         </section>
       )}
 

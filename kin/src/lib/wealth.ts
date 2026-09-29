@@ -24,7 +24,20 @@ export function inScope(
   row: { is_joint: boolean | null; owner_member_id: string | null },
   scope: WealthScope,
 ): boolean {
-  return scope === "all" ? true : !row.is_joint && row.owner_member_id === scope;
+  if (scope === "all") return true;
+  if (scope === WEALTH_FAMILY) return !!row.is_joint || row.owner_member_id === null;
+  return !row.is_joint && row.owner_member_id === scope;
+}
+
+/** "Family" in the Who picker (29 September, Janine): the money that is not
+ * one person's -- joint accounts, and anything nobody has been named on --
+ * as against "All", every member's and the family's together. */
+export const WEALTH_FAMILY = "family";
+
+/** All and Family are the household's view: its budget, its allocations,
+ * its joint accounts to add to. One named person is theirs. */
+export function isHouseholdScope(scope: WealthScope): boolean {
+  return scope === "all" || scope === WEALTH_FAMILY;
 }
 
 export const ACCOUNT_TYPES = ["bank", "cash", "ewallet", "credit", "investment", "other"] as const;

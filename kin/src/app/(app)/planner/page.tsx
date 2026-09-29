@@ -182,7 +182,7 @@ async function CalendarPane({ familyId, meId, who, view, anchor, hidden, weekSta
           icon="users"
           label={who === "all" ? "All" : who === FAMILY_FILTER ? "Family" : (memberLabels[activeMembers.findIndex((m) => m.id === who)] ?? "All")}
           options={[
-            { label: "Everyone", href: calendarHref("all", view, anchor, hide), active: who === "all" },
+            { label: "All", href: calendarHref("all", view, anchor, hide), active: who === "all" },
             { label: "Family", href: calendarHref(FAMILY_FILTER, view, anchor, hide), active: who === FAMILY_FILTER },
             ...activeMembers.map((m, i) => ({
               label: memberLabels[i],
@@ -949,9 +949,9 @@ async function MemberChips({ familyId, seg, who }: { familyId: string; seg: stri
         icon="users"
         label={who === "all" ? "All" : who === FAMILY_FILTER ? "Family" : (labels[active.findIndex((m) => m.id === who)] ?? "All")}
         options={[
-          // Everyone: every member's plans together, to see what clashes.
+          // All: every member's plans together, to see what clashes.
           // Family: only what the whole family is in (FAMILY_FILTER).
-          { label: "Everyone", href: `/planner?seg=${seg}&who=all`, active: who === "all" },
+          { label: "All", href: `/planner?seg=${seg}&who=all`, active: who === "all" },
           { label: "Family", href: `/planner?seg=${seg}&who=${FAMILY_FILTER}`, active: who === FAMILY_FILTER },
           ...active.map((m, i) => ({ label: labels[i], href: `/planner?seg=${seg}&who=${m.id}`, active: who === m.id })),
         ]}
