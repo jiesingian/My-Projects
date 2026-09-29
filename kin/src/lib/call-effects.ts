@@ -19,6 +19,56 @@
 export type FilterId = "none" | "warm" | "cool" | "mono" | "vintage" | "bright" | "rosy";
 export type BackgroundId = "none" | "blur" | "sunset" | "ocean" | "garden" | "studio" | "night" | "photo";
 export type FaceId = "none" | "sunglasses" | "partyhat" | "bunny" | "cat";
+export type HairStyleId = "none" | "afro" | "bun" | "pigtails" | "long" | "bob" | "mohawk";
+export type HairColourId = "none" | "blonde" | "ginger" | "pink" | "blue" | "purple" | "silver";
+
+/** Hairstyles (29 September) are drawn around the face, never over it: the
+ * face's own outline from the face tracker is cut out of every style. */
+export const HAIR_STYLES: { id: HairStyleId; label: string }[] = [
+  { id: "none", label: "None" },
+  { id: "afro", label: "Afro" },
+  { id: "bun", label: "Bun" },
+  { id: "pigtails", label: "Pigtails" },
+  { id: "long", label: "Long" },
+  { id: "bob", label: "Bob" },
+  { id: "mohawk", label: "Mohawk" },
+];
+
+/** Hair colours tint the person's real hair, found by MediaPipe's hair
+ * segmenter, and also colour a drawn style. */
+export const HAIR_COLOURS: { id: HairColourId; label: string; rgb: [number, number, number] }[] = [
+  { id: "none", label: "Natural", rgb: [0, 0, 0] },
+  { id: "blonde", label: "Blonde", rgb: [236, 200, 120] },
+  { id: "ginger", label: "Ginger", rgb: [214, 96, 38] },
+  { id: "pink", label: "Pink", rgb: [255, 105, 180] },
+  { id: "blue", label: "Blue", rgb: [60, 130, 255] },
+  { id: "purple", label: "Purple", rgb: [150, 80, 230] },
+  { id: "silver", label: "Silver", rgb: [215, 215, 225] },
+];
+
+/** Recolours hair in place. `mask` is one byte per pixel (0-255, how sure the
+ * segmenter is that it is hair). Colour is laid on the pixel's own lightness,
+ * lifted so that black hair still takes a visible tint -- a plain hue swap
+ * leaves dark hair dark. Pure, so it can be tested. */
+export function tintHair(px: Uint8ClampedArray, mask: Uint8ClampedArray, rgb: [number, number, number], strength = 0.75) {
+  for (let i = 0, j = 0; i < px.length; i += 4, j++) {
+    const a = (mask[j] / 255) * strength;
+    if (a <= 0) continue;
+    const r = px[i], g = px[i + 1], b = px[i + 2];
+    const lum = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+    const k = 0.45 + 0.75 * lum;
+    px[i] = r + (rgb[0] * k - r) * a;
+    px[i + 1] = g + (rgb[1] * k - g) * a;
+    px[i + 2] = b + (rgb[2] * k - b) * a;
+  }
+}
+
+/** The colour a drawn hairstyle is painted in: dark brown unless a colour is chosen. */
+export function hairPaint(colour: HairColourId): string {
+  const c = HAIR_COLOURS.find((h) => h.id === colour);
+  if (!c || colour === "none") return "#3a2418";
+  return `rgb(${c.rgb.map((v) => Math.round(v * 0.82)).join(",")})`;
+}
 
 export const FACES: { id: FaceId; label: string; glyph: string }[] = [
   { id: "none", label: "None", glyph: "" },
@@ -292,6 +342,148 @@ function drawFace(ctx: CanvasRenderingContext2D, face: FaceId, lm: Point[], w: n
   ctx.restore();
 }
 
+/** MediaPipe's face-oval points, in order round the face. */
+const FACE_OVAL = [10, 338, 297, 332, 284, 251, 389, 356, 454, 323, 361, 288, 397, 365, 379, 378, 400, 377, 152, 148, 176, 149, 150, 136, 172, 58, 132, 93, 234, 127, 162, 21, 54, 103, 67, 109];
+
+/** Where a hairstyle goes: the face's width (cheek 234 to cheek 454), its
+ * tilt, the hairline (10), the chin (152), and the outline to cut the face
+ * out of the hair. Pure, so it can be tested without a camera. */
+export function hairFrame(lm: Point[], w: number, h: number) {
+  const P = (i: number) => ({ x: lm[i].x * w, y: lm[i].y * h });
+  const l = P(234), r = P(454);
+  const width = Math.hypot(r.x - l.x, r.y - l.y);
+  const angle = Math.atan2(r.y - l.y, r.x - l.x);
+  const hairline = P(10), chin = P(152);
+  const length = Math.hypot(chin.x - hairline.x, chin.y - hairline.y);
+  return { width, angle, hairline, chin, length, oval: FACE_OVAL.map(P) };
+}
+
+export function drawHair(ctx: CanvasRenderingContext2D, style: HairStyleId, paint: string, lm: Point[], w: number, h: number) {
+  const f = hairFrame(lm, w, h);
+  const W = f.width, L = f.length;
+  ctx.save();
+  // Hair everywhere except the face: the frame, minus the face's outline.
+  ctx.beginPath();
+  ctx.rect(0, 0, w, h);
+  f.oval.forEach((p, i) => (i ? ctx.lineTo(p.x, p.y) : ctx.moveTo(p.x, p.y)));
+  ctx.closePath();
+  ctx.clip("evenodd");
+  // From here on: origin at the hairline, x across the face, y down it.
+  ctx.translate(f.hairline.x, f.hairline.y);
+  ctx.rotate(f.angle);
+  ctx.fillStyle = paint;
+  ctx.strokeStyle = "rgba(0,0,0,0.22)";
+  ctx.lineWidth = Math.max(1, W * 0.012);
+  ctx.lineCap = "round";
+  const blob = (x: number, y: number, rx: number, ry: number) => {
+    ctx.beginPath();
+    ctx.ellipse(x, y, rx, ry, 0, 0, Math.PI * 2);
+    ctx.fill();
+  };
+  // A cap over the crown, which most styles start from.
+  const cap = () => blob(0, L * 0.12, W * 0.6, L * 0.62);
+  // A few strands so the hair reads as hair rather than a hat.
+  const strands = (x0: number, x1: number, y0: number, y1: number, n: number) => {
+    for (let i = 0; i <= n; i++) {
+      const x = x0 + ((x1 - x0) * i) / n;
+      ctx.beginPath();
+      ctx.moveTo(x, y0);
+      ctx.quadraticCurveTo(x + W * 0.04, (y0 + y1) / 2, x, y1);
+      ctx.stroke();
+    }
+  };
+  if (style === "afro") {
+    const cy = L * 0.05, R = W * 0.95;
+    for (let i = 0; i < 18; i++) {
+      const t = (i / 18) * Math.PI * 2;
+      blob(Math.cos(t) * R * 0.78, cy + Math.sin(t) * R * 0.8, R * 0.32, R * 0.32);
+    }
+    blob(0, cy, R * 0.85, R * 0.88);
+  } else if (style === "bun") {
+    cap();
+    blob(0, -L * 0.62, W * 0.26, W * 0.24);
+    ctx.stroke();
+    strands(-W * 0.4, W * 0.4, -L * 0.35, -L * 0.05, 6);
+  } else if (style === "pigtails") {
+    cap();
+    for (const sx of [-1, 1]) {
+      ctx.save();
+      ctx.translate(sx * W * 0.62, L * 0.2);
+      ctx.rotate(sx * -0.35);
+      blob(0, L * 0.35, W * 0.17, L * 0.42);
+      ctx.fillStyle = "#e84a7f";
+      blob(0, -L * 0.04, W * 0.09, W * 0.06);
+      ctx.restore();
+    }
+  } else if (style === "long") {
+    cap();
+    ctx.beginPath();
+    ctx.moveTo(-W * 0.6, L * 0.1);
+    ctx.quadraticCurveTo(-W * 0.78, L * 0.9, -W * 0.55, L * 1.55);
+    ctx.lineTo(W * 0.55, L * 1.55);
+    ctx.quadraticCurveTo(W * 0.78, L * 0.9, W * 0.6, L * 0.1);
+    ctx.closePath();
+    ctx.fill();
+    strands(-W * 0.6, -W * 0.4, L * 0.25, L * 1.45, 3);
+    strands(W * 0.4, W * 0.6, L * 0.25, L * 1.45, 3);
+  } else if (style === "bob") {
+    cap();
+    ctx.beginPath();
+    ctx.moveTo(-W * 0.6, L * 0.05);
+    ctx.quadraticCurveTo(-W * 0.72, L * 0.6, -W * 0.6, L * 0.82);
+    ctx.lineTo(W * 0.6, L * 0.82);
+    ctx.quadraticCurveTo(W * 0.72, L * 0.6, W * 0.6, L * 0.05);
+    ctx.closePath();
+    ctx.fill();
+    strands(-W * 0.45, W * 0.45, -L * 0.3, L * 0.02, 7);
+  } else if (style === "mohawk") {
+    ctx.beginPath();
+    ctx.moveTo(-W * 0.14, L * 0.02);
+    for (let i = 0; i < 6; i++) {
+      const y = -L * 0.02 - i * L * 0.09;
+      ctx.lineTo(-W * 0.4 - i * W * 0.02, y - L * 0.06);
+      ctx.lineTo(-W * 0.1, y - L * 0.09);
+    }
+    ctx.lineTo(0, -L * 0.72);
+    for (let i = 5; i >= 0; i--) {
+      const y = -L * 0.02 - i * L * 0.09;
+      ctx.lineTo(W * 0.1, y - L * 0.09);
+      ctx.lineTo(W * 0.4 + i * W * 0.02, y - L * 0.06);
+    }
+    ctx.lineTo(W * 0.14, L * 0.02);
+    ctx.closePath();
+    ctx.fill();
+    ctx.stroke();
+  }
+  ctx.restore();
+}
+
+let hairLoad: Promise<Segmenter> | null = null;
+
+/** The hair finder for hair colours: MediaPipe's hair segmenter, about 780 KB,
+ * fetched the first time a colour is chosen. */
+function loadHairSegmenter(): Promise<Segmenter> {
+  hairLoad ??= (async () => {
+    const { FilesetResolver, ImageSegmenter } = await import("@mediapipe/tasks-vision");
+    const files = await FilesetResolver.forVisionTasks(`${window.location.origin}/mediapipe`);
+    const make = (delegate: "GPU" | "CPU") =>
+      ImageSegmenter.createFromOptions(files, {
+        baseOptions: {
+          modelAssetPath: "https://storage.googleapis.com/mediapipe-models/image_segmenter/hair_segmenter/float32/1/hair_segmenter.tflite",
+          delegate,
+        },
+        runningMode: "VIDEO",
+        outputConfidenceMasks: true,
+        outputCategoryMask: false,
+      });
+    return (await make("GPU").catch(() => make("CPU"))) as unknown as Segmenter;
+  })();
+  hairLoad.catch(() => {
+    hairLoad = null;
+  });
+  return hairLoad;
+}
+
 /** One segmenter for the whole app, made the first time a background is chosen. */
 function loadSegmenter(): Promise<Segmenter> {
   segmenterLoad ??= (async () => {
@@ -338,6 +530,14 @@ export class EffectsPipeline {
   private face: FaceId = "none";
   private landmarker: Landmarker | null = null;
   private faces: Point[][] = [];
+  private hairStyle: HairStyleId = "none";
+  private hairColour: HairColourId = "none";
+  private hairSegmenter: Segmenter | null = null;
+  private hairMask = document.createElement("canvas");
+  private hmctx: CanvasRenderingContext2D;
+  private hairFull = document.createElement("canvas");
+  private hfctx: CanvasRenderingContext2D;
+  private hairAlpha: Uint8ClampedArray | null = null;
   private frame = 0;
   private running = true;
   private timer = 0;
@@ -347,6 +547,8 @@ export class EffectsPipeline {
     this.pctx = this.person.getContext("2d")!;
     this.mctx = this.mask.getContext("2d")!;
     this.sctx = this.small.getContext("2d")!;
+    this.hmctx = this.hairMask.getContext("2d")!;
+    this.hfctx = this.hairFull.getContext("2d", { willReadFrequently: true })!;
     this.video.muted = true;
     this.video.playsInline = true;
     this.setSource(source);
@@ -363,7 +565,17 @@ export class EffectsPipeline {
   }
 
   get active() {
-    return this.filter !== "none" || this.background !== "none" || this.face !== "none";
+    return this.filter !== "none" || this.background !== "none" || this.face !== "none" || this.hairStyle !== "none" || this.hairColour !== "none";
+  }
+
+  /** A hairstyle and hair colour. A style needs the face tracker, a colour the
+   * hair segmenter; each is loaded the first time it is wanted. */
+  async setHair(style: HairStyleId, colour: HairColourId) {
+    if (style !== "none" && !this.landmarker) this.landmarker = await loadLandmarker();
+    if (colour !== "none" && !this.hairSegmenter) this.hairSegmenter = await loadHairSegmenter();
+    this.hairStyle = style;
+    this.hairColour = colour;
+    this.hairAlpha = null;
   }
 
   /** A face effect; the tracker is loaded the first time one is chosen. */
@@ -462,19 +674,58 @@ export class EffectsPipeline {
       result.close();
     }
 
-    // 3. The colour filter, over everything.
+    // 3. Hair colour, found every other frame, then the colour filter over
+    // everything -- one read of the pixels for both.
+    const even = this.frame++ % 2 === 0;
+    const tint = HAIR_COLOURS.find((c) => c.id === this.hairColour && c.id !== "none");
+    if (tint && this.hairSegmenter && (even || !this.hairAlpha || this.hairAlpha.length !== w * h)) this.findHair(v, w, h);
     const matrix = filterMatrix(this.filter);
-    if (matrix) {
+    if (matrix || (tint && this.hairAlpha)) {
       const frame = ctx.getImageData(0, 0, w, h);
-      applyMatrix(frame.data, matrix);
+      if (tint && this.hairAlpha?.length === w * h) tintHair(frame.data, this.hairAlpha, tint.rgb);
+      if (matrix) applyMatrix(frame.data, matrix);
       ctx.putImageData(frame, 0, 0);
     }
 
-    // 4. Face effects, drawn over the filter so their colours stay true. The
-    // face is found every other frame and drawn every frame.
-    if (this.face !== "none" && this.landmarker) {
-      if (this.frame++ % 2 === 0) this.faces = this.landmarker.detectForVideo(v, performance.now()).faceLandmarks ?? [];
-      for (const lm of this.faces) if (lm.length > 263) drawFace(ctx, this.face, lm, w, h);
+    // 4. Hairstyles, then face effects, drawn over the filter so their colours
+    // stay true (and sunglasses sit over a fringe). The face is found every
+    // other frame and drawn every frame.
+    if ((this.face !== "none" || this.hairStyle !== "none") && this.landmarker) {
+      if (even) this.faces = this.landmarker.detectForVideo(v, performance.now()).faceLandmarks ?? [];
+      for (const lm of this.faces) {
+        if (lm.length < 455) continue;
+        if (this.hairStyle !== "none") drawHair(ctx, this.hairStyle, hairPaint(this.hairColour), lm, w, h);
+        if (this.face !== "none") drawFace(ctx, this.face, lm, w, h);
+      }
     }
+  }
+
+  /** Where the hair is in this frame, as one byte per output pixel. */
+  private findHair(v: HTMLVideoElement, w: number, h: number) {
+    const result = this.hairSegmenter!.segmentForVideo(v, performance.now());
+    const masks = result.confidenceMasks ?? [];
+    const m = masks[masks.length - 1]; // the last category is hair
+    if (m) {
+      const data = m.getAsFloat32Array();
+      if (this.hairMask.width !== m.width || this.hairMask.height !== m.height) {
+        this.hairMask.width = m.width;
+        this.hairMask.height = m.height;
+      }
+      const img = this.hmctx.createImageData(m.width, m.height);
+      for (let i = 0; i < data.length; i++) img.data[i * 4 + 3] = Math.min(255, Math.max(0, (data[i] - 0.3) * 2.5 * 255));
+      this.hmctx.putImageData(img, 0, 0);
+      if (this.hairFull.width !== w || this.hairFull.height !== h) {
+        this.hairFull.width = w;
+        this.hairFull.height = h;
+      }
+      this.hfctx.clearRect(0, 0, w, h);
+      this.hfctx.imageSmoothingEnabled = true;
+      this.hfctx.drawImage(this.hairMask, 0, 0, w, h);
+      const px = this.hfctx.getImageData(0, 0, w, h).data;
+      const alpha = this.hairAlpha?.length === w * h ? this.hairAlpha : new Uint8ClampedArray(w * h);
+      for (let i = 0, j = 3; i < alpha.length; i++, j += 4) alpha[i] = px[j];
+      this.hairAlpha = alpha;
+    }
+    result.close();
   }
 }
