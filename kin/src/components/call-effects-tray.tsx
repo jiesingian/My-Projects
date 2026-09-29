@@ -1,26 +1,30 @@
 "use client";
 
 import { useRef } from "react";
-import { BACKGROUNDS, FACES, FILTERS, type BackgroundId, type FaceId, type FilterId } from "@/lib/call-effects";
+import { BACKGROUNDS, FACES, FILTERS, HAIR_COLOURS, HAIR_STYLES, type BackgroundId, type FaceId, type FilterId, type HairColourId, type HairStyleId } from "@/lib/call-effects";
 
 /** The row of effects under a video call (28 September): colour filters and
- * backgrounds, like Messenger's. The chosen photo for "Your photo" stays on
+ * backgrounds, like Messenger's; hairstyles and hair colours since 29 September. The chosen photo for "Your photo" stays on
  * this phone -- it is drawn into the picture, never uploaded. */
 export function CallEffectsTray({
   filter,
   background,
   face,
+  hair,
   loading,
   onChange,
   onFace,
+  onHair,
   onClose,
 }: {
   filter: FilterId;
   background: BackgroundId;
   face: FaceId;
+  hair: { style: HairStyleId; colour: HairColourId };
   loading: boolean;
   onChange: (filter: FilterId, background: BackgroundId, photo?: HTMLImageElement | null) => void;
   onFace: (face: FaceId) => void;
+  onHair: (style: HairStyleId, colour: HairColourId) => void;
   onClose: () => void;
 }) {
   const file = useRef<HTMLInputElement>(null);
@@ -50,6 +54,29 @@ export function CallEffectsTray({
               {f.glyph}
             </span>
             {f.label}
+          </button>
+        ))}
+      </div>
+      <div className="kin-fx-label">Hair</div>
+      <div className="kin-fx-row">
+        {HAIR_STYLES.map((h) => (
+          <button key={h.id} type="button" className="kin-fx-chip" aria-pressed={hair.style === h.id} disabled={loading} onClick={() => onHair(h.id, hair.colour)}>
+            <span className="kin-fx-swatch" data-hair={h.id} aria-hidden="true" />
+            {h.label}
+          </button>
+        ))}
+      </div>
+      <div className="kin-fx-label">Hair colour</div>
+      <div className="kin-fx-row">
+        {HAIR_COLOURS.map((c) => (
+          <button key={c.id} type="button" className="kin-fx-chip" aria-pressed={hair.colour === c.id} disabled={loading} onClick={() => onHair(hair.style, c.id)}>
+            <span
+              className="kin-fx-swatch"
+              data-hair-colour={c.id}
+              style={c.id === "none" ? undefined : { background: `rgb(${c.rgb.join(",")})` }}
+              aria-hidden="true"
+            />
+            {c.label}
           </button>
         ))}
       </div>

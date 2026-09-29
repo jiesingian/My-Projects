@@ -7,7 +7,7 @@ import { Avatar } from "@/components/avatar";
 import { Icon, type IconName } from "@/components/icons";
 import { toast } from "@/components/toast";
 import { CallEffectsTray } from "@/components/call-effects-tray";
-import { EffectsPipeline, type BackgroundId, type FaceId, type FilterId } from "@/lib/call-effects";
+import { EffectsPipeline, type BackgroundId, type FaceId, type FilterId, type HairColourId, type HairStyleId } from "@/lib/call-effects";
 import { initials } from "@/lib/format";
 import { callClock, endLine, ended, forThisDevice, onSignal, RING_SECONDS, type CallState, type EndReason, type Signal } from "@/lib/calls";
 import { iceServersAction, missedCallAction, ringAction } from "@/lib/actions/calls";
@@ -43,6 +43,7 @@ export function CallProvider({ familyId, me, members, children }: { familyId: st
   // and that canvas is what the call sends (lib/call-effects.ts).
   const [fx, setFx] = useState<{ filter: FilterId; background: BackgroundId }>({ filter: "none", background: "none" });
   const [face, setFace] = useState<FaceId>("none");
+  const [hair, setHair] = useState<{ style: HairStyleId; colour: HairColourId }>({ style: "none", colour: "none" });
   const [fxOpen, setFxOpen] = useState(false);
   const [fxLoading, setFxLoading] = useState(false);
   const effects = useRef<EffectsPipeline | null>(null);
@@ -109,6 +110,7 @@ export function CallProvider({ familyId, me, members, children }: { familyId: st
         setCameraOff(false);
         setFx({ filter: "none", background: "none" });
         setFace("none");
+        setHair({ style: "none", colour: "none" });
         setFxOpen(false);
         setFacing("user");
         // The line saying how it ended stays a moment, then goes.
@@ -465,13 +467,14 @@ export function CallProvider({ familyId, me, members, children }: { familyId: st
     }
   };
 
-  // `faceNow`: the face choice as it is about to be, since the state update
-  // from applyFace has not landed yet when it calls this.
-  const applyEffects = async (filter: FilterId, background: BackgroundId, photo?: HTMLImageElement | null, faceNow: FaceId = face) => {
+  // `faceNow`, `hairNow`: the face and hair choices as they are about to be,
+  // since the state update from applyFace/applyHair has not landed yet when
+  // they call this.
+  const applyEffects = async (filter: FilterId, background: BackgroundId, photo?: HTMLImageElement | null, faceNow: FaceId = face, hairNow = hair) => {
     const raw = local.current?.getVideoTracks()[0];
     if (!raw) return;
     const sender = pc.current?.getSenders().find((x) => x.track?.kind === "video");
-    if (filter === "none" && background === "none" && faceNow === "none") {
+    if (filter === "none" && background === "none" && faceNow === "none" && hairNow.style === "none" && hairNow.colour === "none") {
       if (effects.current) {
         await sender?.replaceTrack(raw);
         effects.current.stop();
@@ -506,7 +509,7 @@ export function CallProvider({ familyId, me, members, children }: { familyId: st
   const applyFace = async (next: FaceId) => {
     const raw = local.current?.getVideoTracks()[0];
     if (!raw) return;
-    if (next === "none" && fx.filter === "none" && fx.background === "none") {
+    if (next === "none" && fx.filter === "none" && fx.background === "none" && hair.style === "none" && hair.colour === "none") {
       setFace("none");
       await effects.current?.setFace("none");
       return void applyEffects("none", "none", undefined, "none");
@@ -523,6 +526,27 @@ export function CallProvider({ familyId, me, members, children }: { familyId: st
     }
     // Make sure the drawn picture is what is sent and shown.
     await applyEffects(fx.filter, fx.background, undefined, next);
+  };
+
+  /** Hairstyles and hair colours ride on the same drawn picture too. */
+  const applyHair = async (style: HairStyleId, colour: HairColourId) => {
+    const raw = local.current?.getVideoTracks()[0];
+    if (!raw) return;
+    let next = { style, colour };
+    const pipe = (effects.current ??= new EffectsPipeline(raw));
+    setFxLoading(style !== "none" || colour !== "none");
+    try {
+      await pipe.setHair(style, colour);
+    } catch {
+      // Most likely the hair finder; keep the style if the face tracker loaded.
+      next = { style: "none", colour: "none" };
+      await pipe.setHair("none", "none");
+      toast.error("Hair effects couldn't start on this phone.");
+    } finally {
+      setFxLoading(false);
+    }
+    setHair(next);
+    await applyEffects(fx.filter, fx.background, undefined, face, next);
   };
 
   const peer = call.phase === "idle" ? null : members.find((m) => m.id === call.peer) ?? { id: call.peer, name: "Someone", photoUrl: null, callable: false };
@@ -560,9 +584,11 @@ export function CallProvider({ familyId, me, members, children }: { familyId: st
                 filter={fx.filter}
                 background={fx.background}
                 face={face}
+                hair={hair}
                 loading={fxLoading}
                 onChange={(f, b, p) => void applyEffects(f, b, p)}
                 onFace={(f) => void applyFace(f)}
+                onHair={(style, colour) => void applyHair(style, colour)}
                 onClose={() => setFxOpen(false)}
               />
             )}
@@ -578,7 +604,7 @@ export function CallProvider({ familyId, me, members, children }: { familyId: st
                   <CallButton icon={muted ? "micOff" : "mic"} label={muted ? "Unmute" : "Mute"} pressed={muted} onClick={toggleMute} />
                   {call.video && <CallButton icon={cameraOff ? "videoOff" : "video"} label={cameraOff ? "Camera on" : "Camera off"} pressed={cameraOff} onClick={toggleCamera} />}
                   {call.video && <CallButton icon="repeat" label="Flip" onClick={() => void flip()} />}
-                  {call.video && <CallButton icon="sparkle" label="Effects" pressed={fxOpen || fx.filter !== "none" || fx.background !== "none" || face !== "none"} onClick={() => setFxOpen((o) => !o)} />}
+                  {call.video && <CallButton icon="sparkle" label="Effects" pressed={fxOpen || fx.filter !== "none" || fx.background !== "none" || face !== "none" || hair.style !== "none" || hair.colour !== "none"} onClick={() => setFxOpen((o) => !o)} />}
                   <CallButton icon="phoneOff" label="End" tone="end" onClick={hangUp} />
                 </>
               )}
