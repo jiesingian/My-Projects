@@ -58,13 +58,21 @@ session (see the root CLAUDE.md on session cost).
 
 Also agreed the same day and done: **Today as one list** (see Done).
 
-## Waiting on a decision
+## Final stage: everything that costs money, done together
 
-- **PayMongo / HitPay payments (GCash, Maya, cards).** Options, fees and a
-  recommendation for Jonathan in docs/PAYMENTS_OPTIONS.md. Agreed for the
-  future, not now. Needs merchant accounts and API keys, so it is
-  Jonathan's (money and secrets). Start with the subscription checkout in
-  `src/lib/billing/`; that path is watched.
+Jonathan, 29 September: every paid switch waits for the final stage and is
+done in one go. All the code is built; each is a key or an account. Steps in
+docs/SETUP_FOR_JONATHAN.md.
+
+- **Kin AI and flyer scanning: `ANTHROPIC_API_KEY`** (SETUP section 4).
+  Until it is set, Ask Kin says it isn't configured and scanning is off.
+  Pay-as-you-go with a monthly spend limit in the Claude Console.
+- **Payments: PayMongo or HitPay (GCash, Maya, cards)** (SETUP section 5,
+  docs/PAYMENTS_OPTIONS.md). Merchant account and keys. Start with the
+  subscription checkout in `src/lib/billing/`; that path is watched.
+- **Business registration for the legal pages** (DTI business name, BIR),
+  which the payment providers also ask for. The details go in
+  `src/lib/legal.ts`; until then the pages say "Being registered".
 
 ## Agreed 25 September (Jonathan's revision list)
 
