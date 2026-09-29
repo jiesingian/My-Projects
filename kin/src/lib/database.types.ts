@@ -1626,6 +1626,18 @@ export type Database = {
           },
         ]
       }
+      connections: {
+        Row: { addressee_person_id: string; decided_at: string | null; ended_by: string | null; id: string; requested_at: string; requester_person_id: string; status: string; via: string }
+        Insert: { addressee_person_id: string; decided_at?: string | null; ended_by?: string | null; id?: string; requested_at?: string; requester_person_id: string; status?: string; via?: string }
+        Update: { addressee_person_id?: string; decided_at?: string | null; ended_by?: string | null; id?: string; requested_at?: string; requester_person_id?: string; status?: string; via?: string }
+        Relationships: []
+      }
+      connection_codes: {
+        Row: { code: string; created_at: string; person_id: string }
+        Insert: { code: string; created_at?: string; person_id: string }
+        Update: { code?: string; created_at?: string; person_id?: string }
+        Relationships: []
+      }
       family_link_messages: {
         Row: {
           author_name: string
@@ -5208,6 +5220,46 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      my_connections: {
+        Args: never
+        Returns: { id: string; person_id: string; member_id: string | null; full_name: string | null; avatar_url: string | null; household_name: string | null; status: string; incoming: boolean; via: string; requested_at: string; decided_at: string | null }[]
+      }
+      connection_candidates: {
+        Args: never
+        Returns: { person_id: string; member_id: string; full_name: string; avatar_url: string | null; household_name: string; same_household: boolean }[]
+      }
+      request_connection: {
+        Args: { p_person_id: string }
+        Returns: string
+      }
+      request_connection_by_code: {
+        Args: { p_code: string }
+        Returns: string
+      }
+      respond_connection: {
+        Args: { p_id: string; p_accept: boolean }
+        Returns: undefined
+      }
+      remove_connection: {
+        Args: { p_id: string }
+        Returns: undefined
+      }
+      my_connection_code: {
+        Args: { p_new?: boolean }
+        Returns: string
+      }
+      are_connected: {
+        Args: { a: string; b: string }
+        Returns: boolean
+      }
+      my_connected_person_ids: {
+        Args: never
+        Returns: string[]
+      }
+      person_in_my_tree: {
+        Args: { p_person_id: string }
+        Returns: boolean
+      }
       relative_profile: {
         Args: { p_member_id: string }
         Returns: { member_id: string; full_name: string; avatar_url: string | null; cover_path: string | null; family_id: string; household_name: string; link_id: string | null; match_id: string | null; tree_person_id: string | null; is_shared_person: boolean | null }[]
