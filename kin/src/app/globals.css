@@ -5757,3 +5757,35 @@ button.kin-initial:focus-visible {
     transition: none;
   }
 }
+
+/* — the Planner's clash warning (29 September) — above Save on a plan. A
+   clash is a warning in the accent's tint; an all-day event that day is a
+   quieter line under it, a reminder rather than a problem. */
+.kin-clash {
+  margin: 0.25rem 0 0.875rem;
+  padding: 0.75rem 0.875rem;
+  border-radius: var(--radius-control);
+  background: color-mix(in srgb, var(--cal-money) 12%, var(--color-surface));
+  border: 1px solid color-mix(in srgb, var(--cal-money) 35%, transparent);
+  font-size: 0.8125rem;
+  line-height: 1.4;
+}
+.kin-clash-title {
+  font-weight: 650;
+  color: color-mix(in srgb, var(--cal-money) 70%, var(--color-text));
+}
+.kin-clash ul {
+  margin: 0.375rem 0 0;
+  padding-left: 1.125rem;
+}
+.kin-clash-hint {
+  margin-top: 0.375rem;
+  color: var(--color-neutral-600);
+}
+.kin-clash-day {
+  margin-top: 0.375rem;
+  color: var(--color-neutral-700);
+}
+.kin-clash-day:first-child {
+  margin-top: 0;
+}
