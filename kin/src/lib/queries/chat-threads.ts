@@ -7,7 +7,7 @@ import { getDirectPeers, getMyGroups, getRoomUnread, getThreadPrefs } from "@/li
  * person can open, each with its last message and what is waiting unread. */
 export type ChatThreadSummary = {
   key: string;
-  kind: "household" | "family" | "link" | "dm" | "group" | "channel";
+  kind: "household" | "family" | "link" | "dm" | "group" | "channel" | "saved";
   /** A person's photo, for a one-to-one conversation. */
   avatarUrl?: string | null;
   title: string;
@@ -172,7 +172,20 @@ export async function getChatThreads(me: { id: string; family_id: string; person
   }));
 
   const rest = [...linked, ...direct, ...groups].sort((a, b) => (b.last?.at ?? "").localeCompare(a.last?.at ?? ""));
+
+  // Saved messages (20260930190000): always there, after home and family.
+  const { data: lastSaved } = await supabase.from("saved_messages").select("body, created_at").order("created_at", { ascending: false }).limit(1).maybeSingle();
+  const saved: ChatThreadSummary = {
+    key: "saved",
+    kind: "saved",
+    title: "Saved messages",
+    subtitle: "Only you",
+    href: "/chat/saved",
+    last: lastSaved ? { author: "You", body: mediaSummary(lastSaved.body) ?? (oneLine(lastSaved.body) || "Photo"), at: lastSaved.created_at } : null,
+    unread: 0,
+    mentioned: false,
+  };
   const prefs = await getThreadPrefs();
-  const all = [household, ...family, ...rest].map((t) => ({ ...t, pinned: prefs.get(t.key)?.pinned ?? false, muted: prefs.get(t.key)?.muted ?? false }));
+  const all = [household, ...family, saved, ...rest].map((t) => ({ ...t, pinned: prefs.get(t.key)?.pinned ?? false, muted: prefs.get(t.key)?.muted ?? false }));
   return [...all.filter((t) => t.pinned), ...all.filter((t) => !t.pinned)];
 }

@@ -50,7 +50,11 @@ search across every chat.
    voice-note transcripts of what is loaded; tap a result to jump there).
    Search across every chat (/chat/search) already existed; its results now
    open the conversation at that message instead of at the bottom.
-8. Saved messages: a private note-to-self conversation.
+8. **Done: Saved messages.** A note-to-self conversation in the chat list,
+   under home and Family: words, photos and videos only you can see (not
+   your household, not a parent). Forward anything from another chat to
+   "Saved messages" to keep it; forward from it to share later. It belongs to
+   the person, so it goes with them to a household of their own.
 9. Polls in any group.
 10. Scheduled messages ("send at 7am"), on the reminders pipeline.
 
