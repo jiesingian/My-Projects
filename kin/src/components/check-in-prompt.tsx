@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState } from "react";
 import { answerCheckInAction } from "@/lib/actions/member-card";
 import styles from "./member-card.module.css";
 
@@ -23,16 +23,17 @@ export function CheckInPrompt({ checkIns }: { checkIns: PendingCheckIn[] }) {
 export function CheckInAnswer({ id, askedBy }: { id: string; askedBy: string }) {
   const [sent, setSent] = useState<"ok" | "call_me" | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [pending, startTransition] = useTransition();
+  const [pending, setPending] = useState(false);
   const first = askedBy.split(" ")[0];
 
-  const answer = (a: "ok" | "call_me") =>
-    startTransition(async () => {
-      setError(null);
-      const res = await answerCheckInAction(id, a);
-      if (res.error) setError(res.error);
-      else setSent(a);
-    });
+  const answer = async (a: "ok" | "call_me") => {
+    setPending(true);
+    setError(null);
+    const res = await answerCheckInAction(id, a).catch(() => ({ error: "Couldn't send that. Try again." }));
+    setPending(false);
+    if (res.error) setError(res.error);
+    else setSent(a);
+  };
 
   if (sent) {
     return (

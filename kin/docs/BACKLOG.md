@@ -242,6 +242,21 @@ Decided against in the same review: revising Journal (item 6) and Planner
 
 ## Done
 
+- Member card and Emergency SOS on Today (approved 30 September, #394).
+  Tapping someone's initials opens their card: their local time and zone
+  ("8:00 am in Dubai · 4 h behind you"; the zone is reported by their own
+  phone into `members.timezone`), location and weather only while they share
+  a location, their day and goals, spending this month (grown-ups only; their
+  budget only on their own card, since `wealth_targets` is private), medicines
+  due today (grown-ups, as Health allows), last active, and Call / Message /
+  "Are you okay?" (one tap to ask, one tap to answer, a push each way). Your
+  own card previews what grown-ups and children see. SOS: a pill on Today and
+  kid view; hold 3 s, then a 5 s countdown with Cancel; an urgent push to every
+  grown-up with the location if the phone allows; logged in `sos_alerts`;
+  `/today/sos/<id>` has the map link, time, call buttons, "I'm on it" and
+  "I'm safe now". 20260930100000; RLS verified on dev, rolled back. **Open
+  for Jonathan:** whether a member's monthly target should be visible to
+  other grown-ups on their card (today it is private to them).
 - A promised goal reward is kept (Jonathan, 28 September). Locked: what a
   reward is never changes once asked for, the giver cannot take a promise
   back or delete the goal under it. A day: the one receiving it claims it
