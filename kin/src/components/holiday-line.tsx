@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { Icon } from "@/components/icons";
-import { getHolidaysBetween, holidayLine } from "@/lib/holidays";
+import { getHolidaysBetween, holidayLine, mergeHolidays } from "@/lib/holidays";
+import { getCurrentMember } from "@/lib/session";
+import { getHouseholdSpecialDays } from "@/lib/queries/special-days";
 
 /** "Monday is a holiday — Bonifacio Day", on Today, when one is this week.
  * Its own component and its own fetch (cached for a day, lib/holidays), so
@@ -9,7 +11,9 @@ import { getHolidaysBetween, holidayLine } from "@/lib/holidays";
 export async function HolidayLine() {
   const todayISO = new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Manila" });
   const weekOut = new Date(Date.parse(`${todayISO}T00:00:00Z`) + 7 * 86400000).toISOString().slice(0, 10);
-  const line = holidayLine(await getHolidaysBetween(todayISO, weekOut), todayISO);
+  const me = await getCurrentMember();
+  const [pub, own] = await Promise.all([getHolidaysBetween(todayISO, weekOut), me ? getHouseholdSpecialDays(me.family_id, todayISO, weekOut) : Promise.resolve([])]);
+  const line = holidayLine(mergeHolidays(pub, own), todayISO);
   if (!line) return null;
   return (
     <p className="kin-holiday">

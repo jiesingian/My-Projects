@@ -102,9 +102,9 @@ One pull request each, in this order.
    holiday — Bonifacio Day"). From Nager.Date, free and keyless, cached for a
    day; the fixed-date holidays stand in if it is down. No Done or Skip, like
    birthdays. Kin adds a late Palace proclamation by hand in
-   `KIN_SPECIAL_DAYS` (src/lib/holidays.ts). **Not built: a household adding
-   its own special day** -- that needs a table, and a household event already
-   does the job.
+   `KIN_SPECIAL_DAYS` (src/lib/holidays.ts), and a grown-up adds the
+   household's own (a late proclamation, the town fiesta) in Settings →
+   Household (household_special_days, 20260930171000).
 2. **Done: invite by QR code**, wherever the household's invite code is shown
    (Settings → Household, and adding members while setting up). Drawn in the
    browser by qrcode-generator (no dependencies), so the invite never goes to
@@ -124,10 +124,8 @@ One pull request each, in this order.
    or more), goals, and next week's plans. Only household entries, never a
    "just me" one; goals as getGoals already shows them to that reader; next
    week by Today's rule (own, whole family's, and a grown-up sees the
-   children's); in kid view no money goals and no bills. **Not done: the
-   Sunday week-ahead push (#307) still opens the Planner.** Pointing it at
-   the digest means replacing its SQL function in a migration, left for a
-   quieter day given how many sessions are touching migrations.
+   children's); in kid view no money goals and no bills. The Sunday
+   week-ahead push (#307) opens it (20260930170000).
 
 ## Final stage: everything that costs money, done together
 
