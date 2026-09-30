@@ -607,7 +607,7 @@ export function ChatThread({
             onClick={() => document.getElementById(`msg-${pinned.id}`)?.scrollIntoView({ block: "center", behavior: "smooth" })}
           >
             <span className="kin-chatpin-who">{pinned.memberId ? (byId.get(pinned.memberId)?.label ?? "Someone") : "Someone"}</span>
-            <span className="kin-chatpin-text">{pinned.deleted ? "Message withdrawn" : pinned.body}</span>
+            <span className="kin-chatpin-text">{pinned.deleted ? "Message removed" : pinned.body}</span>
           </button>
           <button type="button" className="btn btn-ghost kin-chatpin-off" onClick={() => act(() => unpinMessageAction())}>
             Unpin
@@ -669,7 +669,7 @@ export function ChatThread({
                       <span className="kin-quote-who">
                         {m.replyTo.memberId ? (byId.get(m.replyTo.memberId)?.label ?? "Someone") : "Someone"}
                       </span>
-                      <span className="kin-quote-text">{m.replyTo.deleted ? "Message withdrawn" : m.replyTo.excerpt}</span>
+                      <span className="kin-quote-text">{m.replyTo.deleted ? "Message removed" : m.replyTo.excerpt}</span>
                     </button>
                   )}
 
@@ -750,7 +750,7 @@ export function ChatThread({
                           aria-label={`Message from ${mine ? "you" : (author?.label ?? "someone")} at ${clockOf(m.createdAt)}`}
                         >
                           {m.deleted ? (
-                            <span style={{ opacity: 0.65, fontStyle: "italic" }}>Message withdrawn</span>
+                            <span style={{ opacity: 0.65, fontStyle: "italic" }}>Message removed</span>
                           ) : (
                             <MessageBody body={m.body} members={members} me={me} mine={mine} />
                           )}
@@ -882,7 +882,7 @@ export function ChatThread({
                             className="btn btn-ghost"
                             style={{ minHeight: "1.625rem", fontSize: "0.75rem", padding: "0 0.375rem", color: "var(--cal-occasion)" }}
                           >
-                            Delete
+                            Unsend
                           </button>
                         </>
                       )}
@@ -1058,7 +1058,7 @@ export function ChatThread({
             <span className="kin-quote-who">
               Replying to {replyingTo.memberId === me ? "yourself" : (byId.get(replyingTo.memberId ?? "")?.label ?? "someone")}
             </span>
-            <span className="kin-quote-text">{replyingTo.deleted ? "Message withdrawn" : replyingTo.body}</span>
+            <span className="kin-quote-text">{replyingTo.deleted ? "Message removed" : replyingTo.body}</span>
             <button type="button" className="btn btn-ghost kin-replystrip-off" onClick={() => setReplyingTo(null)} aria-label="Stop replying">
               <Icon name="x" size="0.875rem" />
             </button>

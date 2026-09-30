@@ -536,3 +536,43 @@ export async function forwardMessageAction(source: ForwardSource, targetKeys: st
   if (failures.length) return { error: `Sent to ${sent} of ${targets.length}. ${failures[0]}`, sent, skippedFiles };
   return { error: null, sent, skippedFiles };
 }
+
+// ---------------------------------------------------------------- edit and unsend
+
+type RoomKind = "family" | "dm" | "group";
+const ROOM_TABLE = { family: "family_tree_messages", dm: "direct_messages", group: "chat_group_messages" } as const;
+const ROOM_COLUMN = { family: "family_message_id", dm: "direct_message_id", group: "group_message_id" } as const;
+
+/** Change the words of your own message (20260930150100). The database
+ * decides whose it is and stamps "edited"; this only says it in words. */
+export async function editRoomMessageAction(kind: RoomKind, id: string, body: string): Promise<ActionState> {
+  await requireCurrentMember();
+  if (!(kind in ROOM_TABLE) || !UUID.test(id)) return { error: "That message doesn't exist." };
+  const text = clamp(body.trim(), 2000);
+  if (!text) return { error: "An edit needs some words. Unsend it instead." };
+  const supabase = await createClient();
+  const { data, error } = await supabase.from(ROOM_TABLE[kind]).update({ body: text }).eq("id", id).select("id");
+  if (error) return { error: humanDatabaseError(error.message) };
+  if (!data?.length) return { error: "Only the person who sent a message can edit it." };
+  revalidatePath("/chat", "layout");
+  return { error: null };
+}
+
+/** Take back your own message: everyone sees "Message removed" where it was,
+ * and its photos go with it -- the files as well as the rows. */
+export async function unsendRoomMessageAction(kind: RoomKind, id: string): Promise<ActionState> {
+  await requireCurrentMember();
+  if (!(kind in ROOM_TABLE) || !UUID.test(id)) return { error: "That message doesn't exist." };
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from(ROOM_TABLE[kind])
+    .update({ deleted_at: new Date().toISOString() })
+    .eq("id", id)
+    .select("id");
+  if (error) return { error: humanDatabaseError(error.message) };
+  if (!data?.length) return { error: "Only the person who sent a message can unsend it." };
+  await removePhotosOf(ROOM_COLUMN[kind], id);
+  await supabase.from("chat_room_attachments").delete().eq(ROOM_COLUMN[kind], id);
+  revalidatePath("/chat", "layout");
+  return { error: null };
+}

@@ -27,6 +27,11 @@ export type RoomMessage = {
   /** Forwarded from another conversation (20260930031500): the original
    * writer's first name. */
   forwardedFrom: string | null;
+  /** Edited after sending (20260930150100): when, or null. */
+  editedAt: string | null;
+  /** Unsent by its writer: shown as "Message removed", words and photos
+   * gone, its place in the thread kept. */
+  removed: boolean;
 };
 
 type MessageColumn = "family_message_id" | "direct_message_id" | "group_message_id" | "link_message_id";
@@ -66,8 +71,13 @@ export async function reactionsFor(column: MessageColumn, ids: string[], myPerso
 }
 
 /** One line of the message being answered -- enough to recognise it. */
-function quoteOf(parent: { id: string; body: string } | undefined, authorName: (id: string) => string, hasMedia: boolean): RoomMessage["replyTo"] {
+function quoteOf(
+  parent: { id: string; body: string; deleted_at?: string | null } | undefined,
+  authorName: (id: string) => string,
+  hasMedia: boolean,
+): RoomMessage["replyTo"] {
   if (!parent) return null;
+  if (parent.deleted_at) return { id: parent.id, authorName: authorName(parent.id), excerpt: "Message removed" };
   const excerpt = parent.body.replace(/\s+/g, " ").trim().slice(0, 120) || (hasMedia ? "Photo or voice note" : "");
   return { id: parent.id, authorName: authorName(parent.id), excerpt };
 }
@@ -101,7 +111,7 @@ export function pairOf(a: string, b: string): [string, string] {
 export async function getFamilyRoom(me: { id: string; family_id: string; person_id: string }): Promise<{ messages: RoomMessage[]; households: string[] }> {
   const supabase = await createClient();
   const [{ data }, { data: links }] = await Promise.all([
-    supabase.from("family_tree_messages").select("id, family_id, member_id, author_name, body, created_at, reply_to, forwarded_from").order("created_at", { ascending: false }).limit(200),
+    supabase.from("family_tree_messages").select("id, family_id, member_id, author_name, body, created_at, reply_to, forwarded_from, edited_at, deleted_at").order("created_at", { ascending: false }).limit(200),
     supabase.from("family_links").select("requester_family_id, addressee_family_id").eq("status", "accepted"),
   ]);
   const rows = (data ?? []).slice().reverse();
@@ -123,15 +133,17 @@ export async function getFamilyRoom(me: { id: string; family_id: string; person_
     messages: rows.map((r) => ({
       id: r.id,
       authorName: r.author_name || "Someone",
-      body: r.body,
+      body: r.deleted_at ? "" : r.body,
       createdAt: r.created_at,
       mine: r.member_id === me.id,
       householdName: nameOf.get(r.family_id) ?? "A linked household",
       ourHousehold: r.family_id === me.family_id,
-      photos: photos.get(r.id) ?? [],
+      photos: r.deleted_at ? [] : (photos.get(r.id) ?? []),
       replyTo: r.reply_to ? quoteOf(byId.get(r.reply_to), authorOf, (photos.get(r.reply_to) ?? []).length > 0) : null,
       reactions: reactions.get(r.id) ?? [],
-      forwardedFrom: r.forwarded_from,
+      forwardedFrom: r.deleted_at ? null : r.forwarded_from,
+      editedAt: r.edited_at,
+      removed: !!r.deleted_at,
     })),
   };
 }
@@ -155,7 +167,7 @@ export async function getDirectThread(
   const [low, high] = pairOf(myPersonId, otherPersonId);
   const { data } = await supabase
     .from("direct_messages")
-    .select("id, sender_person_id, body, created_at, reply_to, forwarded_from")
+    .select("id, sender_person_id, body, created_at, reply_to, forwarded_from, edited_at, deleted_at")
     .eq("person_low", low)
     .eq("person_high", high)
     .order("created_at", { ascending: false })
@@ -178,15 +190,17 @@ export async function getDirectThread(
       .map((m) => ({
         id: m.id,
         authorName: m.sender_person_id === myPersonId ? "You" : peer.fullName,
-        body: m.body,
+        body: m.deleted_at ? "" : m.body,
         createdAt: m.created_at,
         mine: m.sender_person_id === myPersonId,
         householdName: null,
         ourHousehold: m.sender_person_id === myPersonId,
-        photos: photos.get(m.id) ?? [],
+        photos: m.deleted_at ? [] : (photos.get(m.id) ?? []),
         replyTo: m.reply_to ? quoteOf(byId.get(m.reply_to), authorOf, (photos.get(m.reply_to) ?? []).length > 0) : null,
         reactions: reactions.get(m.id) ?? [],
-        forwardedFrom: m.forwarded_from,
+        forwardedFrom: m.deleted_at ? null : m.forwarded_from,
+        editedAt: m.edited_at,
+        removed: !!m.deleted_at,
       })),
   };
 }
@@ -234,7 +248,7 @@ export async function getGroupRoom(
     supabase.rpc("group_members_of", { p_group: groupId }),
     supabase
       .from("chat_group_messages")
-      .select("id, sender_person_id, author_name, body, created_at, reply_to, forwarded_from")
+      .select("id, sender_person_id, author_name, body, created_at, reply_to, forwarded_from, edited_at, deleted_at")
       .eq("group_id", groupId)
       .order("created_at", { ascending: false })
       .limit(300),
@@ -264,15 +278,17 @@ export async function getGroupRoom(
     messages: rows.map((r) => ({
       id: r.id,
       authorName: r.author_name || "Someone",
-      body: r.body,
+      body: r.deleted_at ? "" : r.body,
       createdAt: r.created_at,
       mine: r.sender_person_id === myPersonId,
       householdName: null,
       ourHousehold: r.sender_person_id === myPersonId,
-      photos: photos.get(r.id) ?? [],
+      photos: r.deleted_at ? [] : (photos.get(r.id) ?? []),
       replyTo: r.reply_to ? quoteOf(byId.get(r.reply_to), authorOf, (photos.get(r.reply_to) ?? []).length > 0) : null,
       reactions: reactions.get(r.id) ?? [],
-      forwardedFrom: r.forwarded_from,
+      forwardedFrom: r.deleted_at ? null : r.forwarded_from,
+      editedAt: r.edited_at,
+      removed: !!r.deleted_at,
     })),
   };
 }

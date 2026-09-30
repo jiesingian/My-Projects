@@ -1761,15 +1761,15 @@ export type Database = {
         Relationships: []
       }
       family_tree_messages: {
-        Row: { forwarded_from: string | null; author_name: string; body: string; created_at: string; family_id: string; id: string; member_id: string | null; person_id: string | null; reply_to: string | null }
-        Insert: { forwarded_from?: string | null; author_name?: string; body: string; created_at?: string; family_id?: string; id?: string; member_id?: string | null; person_id?: string | null; reply_to?: string | null }
-        Update: { forwarded_from?: string | null; author_name?: string; body?: string; created_at?: string; family_id?: string; id?: string; member_id?: string | null; person_id?: string | null; reply_to?: string | null }
+        Row: { deleted_at: string | null; edited_at: string | null; forwarded_from: string | null; author_name: string; body: string; created_at: string; family_id: string; id: string; member_id: string | null; person_id: string | null; reply_to: string | null }
+        Insert: { deleted_at?: string | null; edited_at?: string | null; forwarded_from?: string | null; author_name?: string; body: string; created_at?: string; family_id?: string; id?: string; member_id?: string | null; person_id?: string | null; reply_to?: string | null }
+        Update: { deleted_at?: string | null; edited_at?: string | null; forwarded_from?: string | null; author_name?: string; body?: string; created_at?: string; family_id?: string; id?: string; member_id?: string | null; person_id?: string | null; reply_to?: string | null }
         Relationships: []
       }
       direct_messages: {
-        Row: { forwarded_from: string | null; body: string; created_at: string; id: string; person_high: string; person_low: string; reply_to: string | null; sender_person_id: string | null }
-        Insert: { forwarded_from?: string | null; body: string; created_at?: string; id?: string; person_high: string; person_low: string; reply_to?: string | null; sender_person_id?: string | null }
-        Update: { forwarded_from?: string | null; body?: string; created_at?: string; id?: string; person_high?: string; person_low?: string; reply_to?: string | null; sender_person_id?: string | null }
+        Row: { deleted_at: string | null; edited_at: string | null; forwarded_from: string | null; body: string; created_at: string; id: string; person_high: string; person_low: string; reply_to: string | null; sender_person_id: string | null }
+        Insert: { deleted_at?: string | null; edited_at?: string | null; forwarded_from?: string | null; body: string; created_at?: string; id?: string; person_high: string; person_low: string; reply_to?: string | null; sender_person_id?: string | null }
+        Update: { deleted_at?: string | null; edited_at?: string | null; forwarded_from?: string | null; body?: string; created_at?: string; id?: string; person_high?: string; person_low?: string; reply_to?: string | null; sender_person_id?: string | null }
         Relationships: []
       }
       chat_reads: {
@@ -1809,9 +1809,9 @@ export type Database = {
         Relationships: []
       }
       chat_group_messages: {
-        Row: { forwarded_from: string | null; author_name: string; body: string; created_at: string; group_id: string; id: string; reply_to: string | null; sender_person_id: string | null }
-        Insert: { forwarded_from?: string | null; author_name?: string; body: string; created_at?: string; group_id: string; id?: string; reply_to?: string | null; sender_person_id?: string | null }
-        Update: { forwarded_from?: string | null; author_name?: string; body?: string; created_at?: string; group_id?: string; id?: string; reply_to?: string | null; sender_person_id?: string | null }
+        Row: { deleted_at: string | null; edited_at: string | null; forwarded_from: string | null; author_name: string; body: string; created_at: string; group_id: string; id: string; reply_to: string | null; sender_person_id: string | null }
+        Insert: { deleted_at?: string | null; edited_at?: string | null; forwarded_from?: string | null; author_name?: string; body: string; created_at?: string; group_id: string; id?: string; reply_to?: string | null; sender_person_id?: string | null }
+        Update: { deleted_at?: string | null; edited_at?: string | null; forwarded_from?: string | null; author_name?: string; body?: string; created_at?: string; group_id?: string; id?: string; reply_to?: string | null; sender_person_id?: string | null }
         Relationships: []
       }
       family_link_messages: {
