@@ -1,5 +1,6 @@
 "use client";
 
+import { PlaceInput } from "@/components/place-input";
 import { useActionState, useEffect, useId, useRef, useState } from "react";
 import { createRoutineAction, updateRoutineAction, type RoutineActionState } from "@/lib/actions/routines";
 import { SubmitButton } from "@/components/form";
@@ -343,7 +344,7 @@ export function RoutineForm({
 
           <div className="field" style={{ marginBottom: "0.875rem" }}>
             <label htmlFor={`${uid}-location`}>Where (optional)</label>
-            <input id={`${uid}-location`} aria-label="Where (Optional)" className="input" name="location" maxLength={200} defaultValue={edit?.location ?? undefined} placeholder="SM Marikina" style={{ minHeight: "2.75rem" }} />
+            <PlaceInput id={`${uid}-location`} ariaLabel="Where (Optional)" name="location" maxLength={200} defaultValue={edit?.location ?? undefined} placeholder="SM Marikina" style={{ minHeight: "2.75rem" }} />
           </div>
 
           <div style={{ fontSize: "0.8125rem", color: "var(--color-neutral-700)", margin: "16px 0 6px" }}>Who it is for</div>

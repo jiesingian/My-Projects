@@ -2,6 +2,7 @@
 
 import { FlyerScanner } from "@/components/flyer-scanner";
 import { InviteCard } from "@/components/invite-card";
+import { PlaceInput } from "@/components/place-input";
 import { startTransition, useActionState, useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
@@ -197,7 +198,7 @@ function ActivityForm({ members, defaultDate, editActivity, prefill }: { members
           );
         })}
       </div>
-      <Field label="Location"><input className="input" name="location" placeholder="Little Acorns, San Juan" maxLength={200} defaultValue={editActivity?.location ?? undefined} style={{ minHeight: "2.75rem" }} /></Field>
+      <Field label="Location"><PlaceInput name="location" placeholder="Little Acorns, San Juan" maxLength={200} defaultValue={editActivity?.location ?? undefined} style={{ minHeight: "2.75rem" }} /></Field>
       <Field label="Notes"><textarea className="input" name="notes" maxLength={1000} defaultValue={editActivity?.notes ?? prefill?.notes} /></Field>
       <ClashNotice report={report} />
       <SubmitButton pending={saving} style={{ minHeight: "2.875rem", fontSize: "0.875rem", letterSpacing: ".04em" }}>{editActivity ? "Save changes" : "Save to calendar"}</SubmitButton>
