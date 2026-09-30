@@ -102,9 +102,13 @@ One pull request each, in this order.
    a third party. Save image shares a PNG where the phone has a share sheet
    and downloads it where it does not. The family tree's invite-a-relative
    button is left to the family tree work.
-3. **Address search**: type-ahead from OpenStreetMap's Nominatim through a
-   Kin server route (cached, at most one request a second, biased to the
-   Philippines); typing freely still works.
+3. **Done: address search**: type-ahead on the Planner's task and routine
+   location fields and the family address form (a pick fills street,
+   barangay, city, province, zip and country). From OpenStreetMap's Nominatim
+   through Kin's own route, /api/places: members only, one request a second
+   per server, each answer cached for a day, leaning to the Philippines.
+   Typing freely still works. Events and trips have no location field, so
+   they have no search.
 4. **Weekly family digest** on Sundays, built on the week-ahead push (#307),
    respecting kid view and "just me" / grown-ups-only visibility.
 
