@@ -29,7 +29,7 @@ import { toast } from "@/components/toast";
 import { PhotoViewer } from "@/components/photo-viewer";
 import { SaveToJournalButton } from "@/components/save-to-journal";
 import { VoiceTranscript } from "@/components/room-thread";
-import { recordingIsSilent, startTranscript } from "@/lib/voice-note";
+import { CONFLICT_MESSAGE, recordingIsSilent, rememberTranscriptConflict, startTranscript } from "@/lib/voice-note";
 import { ChatMediaView, MediaPicker } from "@/components/chat-media";
 import { chatMedia, mediaSummary } from "@/lib/chat-media";
 import { ThemePicker } from "@/components/chat-theme-picker";
@@ -526,7 +526,8 @@ export function ChatThread({
       // loses: then the words go in the message box instead of a silent note.
       if (words && (await recordingIsSilent(file))) {
         setDraft((d) => (d ? `${d} ${words}` : words));
-        toast.info("The recording came out silent on this phone, so your words are in the message box to send as text.");
+        rememberTranscriptConflict();
+        toast.info(CONFLICT_MESSAGE);
         return;
       }
       setPicked((prev) => [...prev, { file, preview: null, transcript: words || undefined }].slice(0, 10));

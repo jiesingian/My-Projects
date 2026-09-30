@@ -19,7 +19,7 @@ import { Icon } from "@/components/icons";
 import { PhotoViewer } from "@/components/photo-viewer";
 import { SaveToJournalButton } from "@/components/save-to-journal";
 import { uploadFileDirect } from "@/lib/upload-client";
-import { recordingIsSilent, startTranscript } from "@/lib/voice-note";
+import { CONFLICT_MESSAGE, recordingIsSilent, rememberTranscriptConflict, startTranscript } from "@/lib/voice-note";
 import type { RoomMessage } from "@/lib/queries/chat-rooms";
 import type { RoomPhoto } from "@/lib/actions/chat-rooms";
 
@@ -114,7 +114,8 @@ export function RoomThread({
       // send as text, rather than a silent note going out.
       if (words && (await recordingIsSilent(file))) {
         setDraft((d) => (d ? `${d} ${words}` : words));
-        setError("The recording came out silent on this phone, so your words are in the message box to send as text.");
+        rememberTranscriptConflict();
+        setError(CONFLICT_MESSAGE);
         return;
       }
       setPicked((prev) => [...prev, { file, preview: URL.createObjectURL(file), transcript: words || undefined }].slice(0, MAX_PHOTOS));
