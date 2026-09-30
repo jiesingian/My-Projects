@@ -45,7 +45,11 @@ search across every chat.
    in the household chat too, where mentions used to notify nobody specially.
    A muted conversation or chat notifications turned off stay silent for
    mentions as well. One to one has no mentions (it is only the two of you).
-7. Search inside a conversation, and jumping to a hit.
+7. **Done: search inside a conversation and across chats.** The family
+   room, one to one and groups get the household chat's Search (words and
+   voice-note transcripts of what is loaded; tap a result to jump there).
+   Search across every chat (/chat/search) already existed; its results now
+   open the conversation at that message instead of at the bottom.
 8. Saved messages: a private note-to-self conversation.
 9. Polls in any group.
 10. Scheduled messages ("send at 7am"), on the reminders pipeline.
