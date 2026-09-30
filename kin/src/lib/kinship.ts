@@ -10,7 +10,7 @@
  * father is a man. Where neither says, the word is the neutral one ("Parent",
  * "Sibling") rather than a guess.
  *
- * Pure, for the specs: e2e/household-layout.logic.spec.ts.
+ * Pure, for the specs: e2e/tree-chart.logic.spec.ts.
  */
 
 export type KinPerson = { id: string; fatherId: string | null; motherId: string | null; spouseId: string | null; sex?: string | null };
@@ -100,7 +100,15 @@ export function relationships(people: KinPerson[], meId: string | null): Map<str
     const words = WORDS[walk];
     if (!words) continue;
     const s = sex.get(id) ?? null;
-    out.set(id, s === "m" ? words[0] : s === "f" ? words[1] : words[2]);
+    const word = s === "m" ? words[0] : s === "f" ? words[1] : words[2];
+    // A brother or sister through one parent only -- a child of a father's
+    // or mother's other partner -- is a half-brother or half-sister.
+    const me = byId.get(meId)!;
+    const them = byId.get(id)!;
+    const mine = [me.fatherId, me.motherId].filter(has);
+    const theirs = [them.fatherId, them.motherId].filter(has);
+    const half = walk === "UD" && mine.length === 2 && theirs.length === 2 && mine.filter((x) => theirs.includes(x)).length === 1;
+    out.set(id, half ? `Half-${word.toLowerCase()}` : word);
   }
   return out;
 }

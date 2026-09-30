@@ -7,13 +7,13 @@ import { useRouter } from "next/navigation";
 import { Avatar } from "@/components/avatar";
 import { Icon } from "@/components/icons";
 import { initials } from "@/lib/format";
-import { layoutHouseholds, TILE_W, TILE_H, type PlacedHousehold, type PlacedSlot } from "@/lib/household-layout";
+import { buildChart, boxAround, withinDegree, TILE_W, TILE_H, type ChartNode, type HouseholdGroup } from "@/lib/tree-chart";
+import type { PlacedPerson } from "@/lib/tree-layout";
 import { relationships } from "@/lib/kinship";
-import { fallbackColour, memberColourVar } from "@/lib/member-colours";
 import { addRelativeAction, linkTreePersonToMemberAction, type Relation } from "@/lib/actions/family";
 import type { TreePerson } from "@/lib/queries/family";
 import type { TreeMatch, BranchPerson } from "@/lib/queries/tree-links";
-import { mergeBranch, type ChartPerson } from "@/lib/tree-merge";
+import { matchBranch, mergeBranch, type ChartPerson } from "@/lib/tree-merge";
 import { getSharedBranchAction, offerTreePersonAction, withdrawTreeMatchAction } from "@/lib/actions/tree-links";
 import { confirm } from "@/components/confirm-sheet";
 import { toast } from "@/components/toast";
@@ -34,15 +34,33 @@ type Box = { x: number; y: number; w: number; h: number };
 type AddAs = Exclude<Relation, "sibling"> | "brother" | "sister";
 type HouseholdMember = { id: string; full_name: string };
 
-const surname = (name: string) => name.trim().split(/\s+/).slice(-1)[0] ?? name;
+type Ghost = { id: string; relation: "father" | "mother" | "sibling"; of: string };
+
+/** Where somebody is on Kin. `household` is the region they are drawn in and
+ * the colour they take: MINE for yours, a linked household's name for
+ * theirs, null for a name nobody on Kin has confirmed. */
+type Status = { kind: "mine" | "linked" | "branch" | "name"; household: string | null };
+const MINE = "mine";
+function statusFor(p: ChartPerson, linkedTo: Map<string, string>): Status {
+  if (p.fromHousehold) return { kind: "branch", household: p.fromHousehold };
+  if (p.memberId) return { kind: "mine", household: MINE };
+  if (linkedTo.has(p.id)) return { kind: "linked", household: linkedTo.get(p.id)! };
+  return { kind: "name", household: null };
+}
+/** Linked households' colours, in the order of their names: the member
+ * colours furthest from the accent blue, so none reads as yours. */
+const LINKED_COLOURS = ["teal", "amber", "violet", "moss", "coral"] as const;
+/** How far "close family" reaches: the second degree (see withinDegree). */
+const CLOSE_DEGREE = 2;
 const clampK = (k: number) => Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, k));
 const reducedMotion = () => typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
-/** The household's family tree, drawn as households: each one a soft card in
- * its own colour, holding the couple and the children still at home, with a
- * curve from each down to the households its children went on to start. The
- * viewer's own household is the one in the accent colour, and the one the
- * chart opens on. See lib/household-layout.ts for who lives with whom.
+/** The household's family tree: one tile per person, parents above their
+ * children, and the households that exist on Kin -- yours, and any linked
+ * household that has confirmed a person on it -- as soft regions in their
+ * own colour behind their people. A relative typed in by name has no colour
+ * and a dashed ring until they are on Kin. See lib/tree-chart.ts for the
+ * geometry and docs/FAMILY_TREE.md for the decisions behind it.
  *
  * Drag to move (it keeps going when flicked), pinch or scroll to zoom, tap a
  * household's name to bring it forward, tap anybody to pick them, and tap
@@ -105,7 +123,7 @@ export function FamilyTreeChart({
     for (const id of shown) {
       const m = accepted.find((x) => x.matchId === id);
       const b = branches[id];
-      if (m && b) all = mergeBranch(all, b, id, m.ourPersonId, m.otherFamilyName);
+      if (m && b) all = mergeBranch(all, b, id, m.ourPersonId, m.otherFamilyName, matchBranch(all, b, m.ourPersonId));
     }
     return all;
   }, [people, shown, branches, accepted]);
@@ -144,30 +162,85 @@ export function FamilyTreeChart({
     })();
   }, [open, accepted]);
 
-  // Dashed places to add the picked person's father, mother, or a brother or
-  // sister go into the layout as places of their own, so they sit where that
-  // person would -- never drawn over somebody already there.
-  const addFor = focus && chartById.get(focus) && !chartById.get(focus)!.fromHousehold ? focus : null;
-  const layout = useMemo(() => layoutHouseholds(chartPeople, meTreeId, addFor), [chartPeople, meTreeId, addFor]);
-  const mine = useMemo(() => layout.households.find((h) => h.heads.some((s) => s.id === meTreeId) || h.kids.some((s) => s.id === meTreeId)) ?? null, [layout, meTreeId]);
+  // ── who is on Kin, and in which household ───────────────────────────────
+  // Colour means one thing on this chart: where somebody is on Kin. Your
+  // household is the accent colour; each linked household has its own; and a
+  // relative who is only a name on your tree has none -- a dashed ring,
+  // until they join or a household on Kin confirms them as theirs. The first
+  // redesign hashed a colour for every household it invented, and Jonathan
+  // rightly called it random (30 September).
+  const linkedColour = useMemo(() => {
+    const names = [...new Set([...linkedFamilies.map((f) => f.name), ...accepted.map((m) => m.otherFamilyName)])].sort((a, b) => a.localeCompare(b));
+    return new Map(names.map((n, i) => [n, LINKED_COLOURS[i % LINKED_COLOURS.length]]));
+  }, [linkedFamilies, accepted]);
+  const linkedTo = useMemo(() => new Map(accepted.map((m) => [m.ourPersonId, m.otherFamilyName])), [accepted]);
+  const colourOf = (household: string | null) =>
+    household === MINE ? "var(--color-accent)" : household ? `var(--member-${linkedColour.get(household) ?? "teal"})` : "var(--color-neutral-600)";
+  const groupName = (id: string) => (id === MINE ? (householdName ?? "Your household") : id);
 
-  /** A household's name: ours as the household called itself; anyone
-   * else's from their surnames, the Filipino way -- the wife's maiden name,
-   * then the husband's ("Robles-Villanueva"). */
-  const titleOf = (h: PlacedHousehold) => {
-    if (h.ghost) return "Add parents";
-    if (h.id === mine?.id && householdName) return householdName;
-    const heads = h.heads.filter((s) => s.kind === "person").map((s) => chartById.get(s.id)!);
-    const husband = heads.length === 2 ? heads.find((p) => p.sex === "male" || chartPeople.some((c) => c.fatherId === p.id)) : undefined;
-    const wife = heads.find((p) => p !== husband);
-    const family = surname((husband ?? heads[0]).fullName);
-    const maidenFrom = wife && husband ? chartById.get(wife.fatherId ?? wife.motherId ?? "") : undefined;
-    const maiden = maidenFrom ? surname(maidenFrom.fullName) : null;
-    // Somebody on their own has the narrowest card there is: the surname
-    // alone fits it, and "Household" adds nothing to one person.
-    if (heads.length === 1 && h.kids.length === 0) return family;
-    return `${maiden && maiden !== family ? `${maiden}-` : ""}${family} Household`;
-  };
+  // ── close family ──────────────────────────────────────────────────────────
+  // The tree opens on your relatives to the second degree -- parents and
+  // children, grandparents and grandchildren, brothers and sisters, and the
+  // same on your spouse's side (Jonathan, 30 September) -- with everyone
+  // else one tap away. It is how the big genealogy sites keep a family of two
+  // hundred readable: nobody reads all of it at once.
+  const near = useMemo(() => (meTreeId ? withinDegree(chartPeople, meTreeId, CLOSE_DEGREE) : null), [chartPeople, meTreeId]);
+  const big = !!near && chartPeople.some((p) => !near.has(p.id));
+  const [everyone, setEveryone] = useState(false);
+  const visible = useMemo(() => {
+    if (!big || everyone || !near) return chartPeople;
+    return chartPeople.filter((p) => near.has(p.id) || p.id === selected || p.fromHousehold);
+  }, [big, everyone, near, chartPeople, selected]);
+
+  // Dashed "Add father" / "Add mother" places, and an "Add brother or
+  // sister" one beside them, for whoever is selected. They go into the layout
+  // as people of their own so they get a real place on the chart instead of
+  // being drawn over somebody who is already there; the sibling place shares
+  // the person's parents (real or dashed), so it lands right beside them.
+  const ghosts: Ghost[] = useMemo(() => {
+    const p = chartById.get(focus ?? "");
+    if (!p || p.fromHousehold || !visible.includes(p)) return [];
+    return [
+      ...(p.fatherId ? [] : [{ id: `ghost-father-${p.id}`, relation: "father" as const, of: p.id }]),
+      ...(p.motherId ? [] : [{ id: `ghost-mother-${p.id}`, relation: "mother" as const, of: p.id }]),
+      { id: `ghost-sibling-${p.id}`, relation: "sibling" as const, of: p.id },
+    ];
+  }, [chartById, focus, visible]);
+  const ghostById = useMemo(() => new Map(ghosts.map((g) => [g.id, g])), [ghosts]);
+
+  const nodes: ChartNode[] = useMemo(() => {
+    const ghostOf = new Map(ghosts.map((g) => [g.of + g.relation, g.id]));
+    const fatherGhost = ghosts.find((g) => g.relation === "father");
+    const motherGhost = ghosts.find((g) => g.relation === "mother");
+    const siblingGhost = ghosts.find((g) => g.relation === "sibling");
+    const siblingOf = siblingGhost ? chartById.get(siblingGhost.of) : undefined;
+    return [
+      ...visible.map((p) => ({
+        id: p.id,
+        fatherId: p.fatherId ?? ghostOf.get(p.id + "father") ?? null,
+        motherId: p.motherId ?? ghostOf.get(p.id + "mother") ?? null,
+        spouseId: p.spouseId,
+      })),
+      ...(fatherGhost ? [{ id: fatherGhost.id, fatherId: null, motherId: null, spouseId: motherGhost?.id ?? null, ghost: true }] : []),
+      ...(motherGhost ? [{ id: motherGhost.id, fatherId: null, motherId: null, spouseId: fatherGhost?.id ?? null, ghost: true }] : []),
+      ...(siblingGhost && siblingOf
+        ? [{ id: siblingGhost.id, fatherId: siblingOf.fatherId ?? fatherGhost?.id ?? null, motherId: siblingOf.motherId ?? motherGhost?.id ?? null, spouseId: null, ghost: true }]
+        : []),
+    ];
+  }, [visible, chartById, ghosts]);
+
+  // The households that exist on Kin, and who on the chart is in each.
+  const groups: HouseholdGroup[] = useMemo(() => {
+    const by = new Map<string, string[]>();
+    for (const p of visible) {
+      const h = statusFor(p, linkedTo).household;
+      if (h) by.set(h, [...(by.get(h) ?? []), p.id]);
+    }
+    return [...by].map(([id, memberIds]) => ({ id, memberIds })).sort((a, b) => (a.id === MINE ? -1 : b.id === MINE ? 1 : a.id.localeCompare(b.id)));
+  }, [visible, linkedTo]);
+  const groupOf = useMemo(() => new Map(groups.flatMap((g) => g.memberIds.map((id) => [id, g.id] as const))), [groups]);
+  const layout = useMemo(() => buildChart(nodes, meTreeId, groups), [nodes, meTreeId, groups]);
+  const mineBox = useMemo(() => boxAround(layout, groups.find((g) => g.id === MINE)?.memberIds ?? []), [layout, groups]);
 
   // ── pan and zoom ──────────────────────────────────────────────────────────
   // The view lives in a ref and is written straight to the canvas's
@@ -330,17 +403,17 @@ export function FamilyTreeChart({
   };
 
   const centreOn = (id: string | null, k?: number) => {
-    const slot = id ? layout.households.flatMap((h) => h.slots).find((s) => s.id === id) : null;
+    const spot = id ? layout.people.find((p) => p.id === id) : null;
     if (!viewport.current) return;
-    if (!slot) return glideTo(framing(whole(), 1));
-    glideTo(framing({ x: slot.x, y: slot.y, w: TILE_W, h: TILE_H }, k ?? Math.max(view.current.k, 0.9)));
+    if (!spot) return glideTo(framing(whole(), 1));
+    glideTo(framing({ x: spot.x, y: spot.y, w: TILE_W, h: TILE_H }, k ?? Math.max(view.current.k, 0.9)));
   };
   const frameMine = (): View => {
     const all = framing(whole(), 1);
     // Small enough to read whole: show it all. Otherwise open on our own
     // household, which is the one a member comes here to see.
-    if (!mine || all.k >= 0.8) return all;
-    return framing(mine, 1);
+    if (!mineBox || all.k >= 0.8) return all;
+    return framing(mineBox, 1);
   };
   const fit = () => glideTo(framing(whole(), 1));
 
@@ -466,14 +539,16 @@ export function FamilyTreeChart({
   // ── a household brought forward ───────────────────────────────────────────
   // Tapping a household's name frames it and dims everybody else, so one
   // family can be read without the rest of the tree around it. Tapping it
-  // again, the empty space around the cards, or Escape, lets go.
+  // again, the empty space around the people, or Escape, lets go.
   const [focusHousehold, setFocusHousehold] = useState<string | null>(null);
-  const toggleHousehold = (h: PlacedHousehold) => {
-    if (focusHousehold === h.id) return setFocusHousehold(null);
-    setFocusHousehold(h.id);
-    glideTo(framing(h, 1.2));
+  const boxOf = (group: string) => boxAround(layout, groups.find((g) => g.id === group)?.memberIds ?? []);
+  const toggleHousehold = (group: string) => {
+    if (focusHousehold === group) return setFocusHousehold(null);
+    setFocusHousehold(group);
+    const b = boxOf(group);
+    if (b) glideTo(framing(b, 1.2));
   };
-  const focused = focusHousehold ? layout.households.find((h) => h.id === focusHousehold) : null;
+  const focusBox = focusHousehold ? boxOf(focusHousehold) : null;
 
   // ── adding a relative ─────────────────────────────────────────────────────
   const [adding, setAdding] = useState<{ to: string; relation: AddAs } | null>(null);
@@ -505,57 +580,69 @@ export function FamilyTreeChart({
   const toggleMax = () => {
     setMax((m) => !m);
     // The window changes size, so frame the same thing again once it has.
-    setTimeout(() => glideTo(focused ? framing(focused, 1.2) : frameMine()), 60);
+    setTimeout(() => glideTo(focusBox ? framing(focusBox, 1.2) : frameMine()), 60);
   };
 
-  const households = layout.households.length - layout.households.filter((h) => h.ghost).length;
-  const dimmed = (householdIds: string[]) => (focusHousehold && !householdIds.includes(focusHousehold) ? true : undefined);
+  const dimmed = (ids: string[]) => (focusHousehold && ids.some((id) => groupOf.get(id) !== focusHousehold) ? true : undefined);
+  const hasName = visible.some((p) => statusFor(p, linkedTo).kind === "name");
+  const hasUnmarried = layout.couples.some((c) => !c.married && !c.ghost);
+  const notPlaced = linkedFamilies.filter((f) => !groups.some((g) => g.id === f.name));
 
-  const slotButton = (h: PlacedHousehold, s: PlacedSlot) => {
-    const style = { left: rem(s.x - h.x), top: rem(s.y - h.y), width: rem(TILE_W), height: rem(TILE_H) };
-    if (s.kind === "sibling") {
+  const tile = (spot: PlacedPerson) => {
+    const style = { left: rem(spot.x), top: rem(spot.y), width: rem(TILE_W), height: rem(TILE_H) };
+    const ghost = ghostById.get(spot.id);
+    if (ghost?.relation === "sibling") {
       // Two choices in one place, so it is a group of buttons rather than
       // one: brother or sister is only a word to the tree (both share the
       // parents), but it is the word the form then uses.
       return (
-        <div key={s.id} className="kin-tp kin-tp-ghost" style={style} role="group" aria-label="Add a brother or sister">
+        <div key={spot.id} className="kin-tp kin-tp-ghost" style={style} role="group" aria-label="Add a brother or sister">
           <span className="kin-tp-av" aria-hidden="true">
             <Icon name="plus" size="1.125rem" />
           </span>
           <span className="kin-tp-choices">
-            {(["brother", "sister"] as const).map((r) => (
-              <button key={r} type="button" onClick={() => tapped() && setAdding({ to: s.of, relation: r })}>
-                {r === "brother" ? "Brother" : "Sister"}
+            {(["brother", "sister"] as const).map((rel) => (
+              <button key={rel} type="button" onClick={() => tapped() && setAdding({ to: ghost.of, relation: rel })}>
+                {rel === "brother" ? "Brother" : "Sister"}
               </button>
             ))}
           </span>
         </div>
       );
     }
-    if (s.kind !== "person") {
+    if (ghost) {
       return (
-        <button key={s.id} type="button" className="kin-tp kin-tp-ghost" style={style} onClick={() => tapped() && setAdding({ to: s.of, relation: s.kind === "mother" ? "mother" : "father" })}>
+        <button key={spot.id} type="button" className="kin-tp kin-tp-ghost" style={style} onClick={() => tapped() && setAdding({ to: ghost.of, relation: ghost.relation === "mother" ? "mother" : "father" })}>
           <span className="kin-tp-av" aria-hidden="true">
             <Icon name="plus" size="1.125rem" />
           </span>
-          <span className="kin-tp-name">Add {s.kind}</span>
+          <span className="kin-tp-name">Add {ghost.relation}</span>
         </button>
       );
     }
-    const p = chartById.get(s.id)!;
+    const p = chartById.get(spot.id)!;
+    const status = statusFor(p, linkedTo);
     const isMe = p.id === meTreeId;
-    const linked = accepted.some((m) => m.ourPersonId === p.id);
+    const alsoLinked = status.kind === "mine" ? linkedTo.get(p.id) : undefined;
     const word = relation.get(p.id);
-    const colour = memberColourVar(p.memberId ?? p.id, p.color);
+    const where =
+      status.kind === "mine"
+        ? `in your household on Kin${alsoLinked ? ` and linked with ${alsoLinked}` : ""}`
+        : status.kind === "linked"
+          ? `linked with ${status.household} on Kin`
+          : status.kind === "branch"
+            ? `from the ${status.household} tree`
+            : "not on Kin yet";
     return (
       <button
-        key={s.id}
+        key={spot.id}
         type="button"
         className="kin-tp"
+        data-status={status.kind}
         data-me={isMe || undefined}
         data-selected={p.id === selected || undefined}
-        data-branch={p.fromHousehold ? true : undefined}
-        style={{ ...style, ["--p" as string]: colour }}
+        data-dim={dimmed([p.id])}
+        style={{ ...style, ["--p" as string]: colourOf(status.household) }}
         onClick={() => {
           if (!tapped()) return;
           // A second tap on someone already picked opens their profile
@@ -568,7 +655,7 @@ export function FamilyTreeChart({
           setSelected(p.id);
           setAdding(null);
         }}
-        aria-label={`${p.fullName}${word && !isMe ? `, your ${word.toLowerCase()}` : ""}${isMe ? ", you" : ""}${p.birthYear ? `, born ${p.birthYear}` : ""}${p.fromHousehold ? `, from the ${p.fromHousehold} tree` : ""}`}
+        aria-label={`${p.fullName}${word && !isMe ? `, your ${word.toLowerCase()}` : ""}${isMe ? ", you" : ""}${p.birthYear ? `, born ${p.birthYear}` : ""}, ${where}`}
       >
         <span className="kin-tp-av" aria-hidden="true">
           {p.avatarUrl ? (
@@ -577,8 +664,8 @@ export function FamilyTreeChart({
           ) : (
             initials(p.fullName)
           )}
-          {linked && (
-            <span className="kin-tp-linked" title="Linked with another household">
+          {(status.kind === "linked" || alsoLinked) && (
+            <span className="kin-tp-linked" style={{ ["--p" as string]: colourOf(status.kind === "linked" ? status.household : (alsoLinked ?? null)) }}>
               <Icon name="users" size="0.625rem" />
             </span>
           )}
@@ -603,7 +690,7 @@ export function FamilyTreeChart({
         onClick={(e) => {
           // A tap on the space between households lets go of a focused one.
           const t = e.target as HTMLElement;
-          if (tapped() && focusHousehold && !t.closest(".kin-hh")) setFocusHousehold(null);
+          if (tapped() && focusHousehold && !t.closest(".kin-tp, .kin-treechart-hh")) setFocusHousehold(null);
         }}
         role="application"
         aria-label="Family tree. Drag to move, pinch or scroll to zoom."
@@ -621,62 +708,41 @@ export function FamilyTreeChart({
         >
           {threeD && <div className="kin-treechart-floor" aria-hidden="true" />}
 
-          {layout.households.map((h) => {
-            const isMine = h.id === mine?.id;
-            const title = titleOf(h);
-            const branch = h.heads.every((s) => s.kind !== "person" || chartById.get(s.id)?.fromHousehold);
-            const from = branch && !h.ghost ? chartById.get(h.heads[0].id)?.fromHousehold : null;
-            const size = h.slots.filter((s) => s.kind === "person").length;
-            return (
-              <div
-                key={h.id}
-                className="kin-hh"
-                role="group"
-                aria-label={`${title}${isMine ? ", your household" : ""}${from ? `, from the ${from} tree` : ""}, ${size} ${size === 1 ? "person" : "people"}`}
-                data-mine={isMine || undefined}
-                data-ghost={h.ghost || undefined}
-                data-branch={from ? true : undefined}
-                data-dim={dimmed([h.id])}
-                data-focused={focusHousehold === h.id || undefined}
-                style={{
-                  left: rem(h.x),
-                  top: rem(h.y),
-                  width: rem(h.w),
-                  height: rem(h.h),
-                  ["--hh" as string]: isMine ? "var(--color-accent)" : h.ghost ? "var(--color-neutral-600)" : `var(--member-${fallbackColour(h.id)})`,
-                }}
-              >
-                {h.ghost ? (
-                  <span className="kin-hh-name">{title}</span>
-                ) : (
-                  <button type="button" className="kin-hh-name" aria-pressed={focusHousehold === h.id} title={from ? `${title} · from the ${from} tree` : title} onClick={() => tapped() && toggleHousehold(h)}>
-                    <span className="kin-hh-dot" aria-hidden="true" />
-                    <span className="kin-hh-title">{title}</span>
-                  </button>
-                )}
-                <svg className="kin-hh-lines" viewBox={`${h.x} ${h.y} ${h.w} ${h.h}`} width="100%" height="100%" aria-hidden="true">
-                  {layout.inner
-                    .filter((l) => l.household === h.id)
-                    .map((l, i) => (
-                      <path key={i} d={l.d} data-ghost={l.ghost || undefined} />
-                    ))}
-                </svg>
-                {h.slots.map((s) => slotButton(h, s))}
-              </div>
-            );
-          })}
-
-          <svg className="kin-treechart-lines" viewBox={`0 0 ${layout.width} ${layout.height}`} width="100%" height="100%" aria-hidden="true">
-            {layout.connectors.map((c) => {
-              const to = layout.households.find((h) => h.slots.some((s) => s.id === c.to))?.id ?? "";
-              return (
-                <g key={`${c.from}>${c.to}`} data-ghost={c.ghost || undefined} data-dim={dimmed([c.from, to])}>
-                  <path d={c.d} />
-                  <circle cx={c.end.x} cy={c.end.y} r={3} />
-                </g>
-              );
-            })}
+          {/* The households that exist on Kin, as soft regions behind their
+              people; the lines on top of them; then the people. */}
+          <svg className="kin-treechart-regions" viewBox={`0 0 ${layout.width} ${layout.height}`} width="100%" height="100%" aria-hidden="true">
+            {layout.regions.map((r) => (
+              <g key={r.group} data-mine={r.group === MINE || undefined} data-dim={focusHousehold && focusHousehold !== r.group ? true : undefined} style={{ ["--hh" as string]: colourOf(r.group) }}>
+                {r.rects.map((rect, i) => (
+                  <rect key={i} x={rect.x} y={rect.y} width={rect.w} height={rect.h} rx={18} />
+                ))}
+              </g>
+            ))}
           </svg>
+          <svg className="kin-treechart-lines" viewBox={`0 0 ${layout.width} ${layout.height}`} width="100%" height="100%" aria-hidden="true">
+            {layout.families.map((f) => (
+              <path key={`f-${f.parentIds.join("+")}>${f.childIds.join("+")}`} d={f.d} data-ghost={f.ghost || undefined} data-dim={dimmed([...f.parentIds, ...f.childIds])} />
+            ))}
+            {layout.couples.map((c) => (
+              <path key={`c-${c.a}-${c.b}`} d={c.d} data-couple="" data-unmarried={!c.married || undefined} data-ghost={c.ghost || undefined} data-dim={dimmed([c.a, c.b])} />
+            ))}
+          </svg>
+          {layout.regions.map((r) => (
+            <button
+              key={r.group}
+              type="button"
+              className="kin-treechart-hh"
+              data-mine={r.group === MINE || undefined}
+              aria-pressed={focusHousehold === r.group}
+              aria-label={`Bring ${groupName(r.group)} forward`}
+              style={{ left: rem(r.label.x), top: rem(r.label.y), ["--hh" as string]: colourOf(r.group) }}
+              onClick={() => tapped() && toggleHousehold(r.group)}
+            >
+              <span className="kin-hh-dot" aria-hidden="true" />
+              {groupName(r.group)}
+            </button>
+          ))}
+          {layout.people.map(tile)}
         </div>
       </div>
 
@@ -685,7 +751,9 @@ export function FamilyTreeChart({
           and the first version covered the one person you were looking at. */}
       <div className="kin-treechart-bar">
         <span className="kin-treechart-count" aria-live="polite">
-          {chartPeople.length} {chartPeople.length === 1 ? "person" : "people"} · {households} {households === 1 ? "household" : "households"}
+          {visible.length < chartPeople.length
+            ? `Close family, to the 2nd degree: ${visible.length} of ${chartPeople.length} people`
+            : `${chartPeople.length} ${chartPeople.length === 1 ? "person" : "people"}`}
           {chartPeople.length !== people.length ? ` · ${chartPeople.length - people.length} from linked households` : ""}
         </span>
         <div className="kin-treechart-tools">
@@ -704,6 +772,16 @@ export function FamilyTreeChart({
               </svg>
             </button>
           </div>
+          {big && meTreeId && (
+            <div className="kin-treechart-group" role="group" aria-label="Who is on the tree">
+              <button type="button" aria-pressed={!everyone} data-on={!everyone || undefined} onClick={() => setEveryone(false)}>
+                Close family
+              </button>
+              <button type="button" aria-pressed={everyone} data-on={everyone || undefined} onClick={() => setEveryone(true)}>
+                Everyone
+              </button>
+            </div>
+          )}
           <div className="kin-treechart-group">
             <button type="button" onClick={fit}>
               Fit
@@ -714,7 +792,7 @@ export function FamilyTreeChart({
                 onClick={() => {
                   setSelected(meTreeId);
                   setFocusHousehold(null);
-                  glideTo(mine ? framing(mine, 1) : view.current);
+                  glideTo(mineBox ? framing(mineBox, 1) : view.current);
                 }}
               >
                 Me
@@ -739,6 +817,36 @@ export function FamilyTreeChart({
           </div>
         </div>
       </div>
+
+      {/* What the colours and lines mean. Only what is on the chart now. */}
+      <ul className="kin-treelegend" aria-label="What the colours mean">
+        {groups.map((g) => (
+          <li key={g.id} style={{ ["--hh" as string]: colourOf(g.id) }}>
+            <i aria-hidden="true" />
+            <span>
+              <strong>{groupName(g.id)}</strong> {g.id === MINE ? "· your household" : "· linked on Kin"}
+            </span>
+          </li>
+        ))}
+        {hasName && (
+          <li data-hollow="">
+            <i aria-hidden="true" />
+            <span>Name only, not on Kin yet</span>
+          </li>
+        )}
+        {hasUnmarried && (
+          <li data-line="dashed">
+            <i aria-hidden="true" />
+            <span>Parents together, not recorded as married</span>
+          </li>
+        )}
+      </ul>
+      {notPlaced.length > 0 && (
+        <p className="kin-treelegend-note">
+          Linked on Kin but not on this tree yet: {notPlaced.map((f) => f.name).join(", ")}. To place them, pick the relative you share and choose
+          &ldquo;Share with a linked household&rdquo;.
+        </p>
+      )}
 
       {/* What you can do with whoever is selected. Outside the canvas, so it
           stays put and readable however the tree is zoomed. */}
@@ -769,6 +877,7 @@ export function FamilyTreeChart({
           onToggleBranch={toggleBranch}
           person={people.find((p) => p.id === focus)!}
           relation={focus === meTreeId ? null : (relation.get(focus) ?? null)}
+          where={linkedTo.has(focus) ? `Linked with ${linkedTo.get(focus)} on Kin` : "Name only, not on Kin yet"}
           people={people}
           unaddedMembers={unaddedMembers}
           isMe={focus === meTreeId}
@@ -803,8 +912,12 @@ function SelectedPanel({
   onToggleBranch,
   inviteCode,
   relation,
+  where,
 }: {
   inviteCode: string | null;
+  /** For somebody without a profile in the household: whether a linked
+   * household on Kin has confirmed them, or they are a name only. */
+  where: string;
   /** What they are to the viewer ("Grandmother"), when the viewer is on the tree. */
   relation: string | null;
   matches: TreeMatch[];
@@ -852,6 +965,7 @@ function SelectedPanel({
               <div className="kin-treepanel-name">{person.fullName}</div>
               <div className="kin-treepanel-meta">{relation ? `${relation} · ` : ""}
                 {person.dob ? `Born ${person.dob}` : "No birthdate recorded"}</div>
+              <div className="kin-treepanel-meta">{where}</div>
             </div>
           </>
         )}
