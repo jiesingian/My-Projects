@@ -2,7 +2,7 @@ import Link from "next/link";
 import { Icon } from "@/components/icons";
 import { redirect } from "next/navigation";
 import { getCurrentMember } from "@/lib/session";
-import { getWealthPane, getNetWorth, getAccounts, getCashFlowPane, type WealthScope, type LedgerEntry, type AccountWithBalance } from "@/lib/queries/wealth";
+import { getWealthPane, getNetWorth, getAccounts, getCashFlowPane, getBudgetHistory, getSpendingByMember, recordAndGetNetWorthHistory, type WealthScope, type LedgerEntry, type AccountWithBalance } from "@/lib/queries/wealth";
 import { CashFlowSources } from "@/components/cashflow-sources";
 import { HubHeader } from "@/components/hub-header";
 import { Blueprint, Tag, Empty } from "@/components/ui";
@@ -37,13 +37,14 @@ import {
   type LiabilityKind,
   type CashFlowRange,
   WEALTH_FAMILY,
+  TRANSFER_CATEGORY,
   isHouseholdScope,
 } from "@/lib/wealth";
 import { familyDate, householdDateFormat } from "@/lib/format-family";
 import { CollapsibleGroup } from "@/components/collapsible-group";
-import { CashFlowChart } from "@/components/cashflow-chart";
-import { isGone } from "@/lib/member-status";
+import { CashFlowChart, CategoryDonut, NetWorthLine, SpendingByPerson } from "@/components/wealth-charts";
 import { isGrownUp } from "@/lib/roles";
+import { isGone } from "@/lib/member-status";
 
 /* Joint and Mine were the same page twice; they are one Accounts tab now,
    with a Who button of the kind the Planner uses. Bills moved into Cash
@@ -307,45 +308,6 @@ function CashTrendLine({ trend, currency }: { trend: { key: string; label: strin
   );
 }
 
-/** Where this period's spend actually went, as one bar instead of a column
- * of separate ones -- proportion reads faster from a single divided bar
- * than from five stacked progress meters (a donut would say the same thing,
- * but a stacked bar is the steadier form for part-to-whole and doesn't run
- * into the same colour-adjacency limits a pie's wedges do). Categories
- * beyond the seven coloured ones share the neutral rather than a colour
- * nobody could tell apart from its neighbour (expenseCategoryColor). */
-function CategorySpendBar({ categories, currency }: { categories: { category: string; spent: number }[]; currency: string }) {
-  const spent = categories.filter((c) => c.spent > 0).sort((a, b) => b.spent - a.spent);
-  const total = spent.reduce((sum, c) => sum + c.spent, 0);
-  if (total <= 0) return null;
-
-  return (
-    <div style={{ marginBottom: "1rem" }}>
-      <div aria-hidden="true" style={{ display: "flex", height: 14, borderRadius: 7, overflow: "hidden", gap: "0.125rem" }}>
-        {spent.map((c) => (
-          <span
-            key={c.category}
-            title={`${c.category}: ${formatCurrency(c.spent, currency)}`}
-            style={{ width: `${(c.spent / total) * 100}%`, minWidth: 3, background: expenseCategoryColor(c.category) }}
-          />
-        ))}
-      </div>
-      <div aria-hidden="true" style={{ display: "flex", flexWrap: "wrap", gap: "0.375rem 0.875rem", marginTop: "0.5625rem" }}>
-        {spent.map((c) => (
-          <span key={c.category} style={{ display: "flex", alignItems: "center", gap: "0.3125rem", fontSize: "0.75rem", color: "var(--color-neutral-700)" }}>
-            <i style={{ width: 8, height: 8, borderRadius: "50%", background: expenseCategoryColor(c.category), display: "inline-block" }} />
-            {c.category} · {Math.round((c.spent / total) * 100)}%
-          </span>
-        ))}
-      </div>
-      <p className="sr-only">
-        Spending by category this period, total {formatCurrency(total, currency)}.{" "}
-        {spent.map((c) => `${c.category}: ${formatCurrency(c.spent, currency)}, ${Math.round((c.spent / total) * 100)}%`).join("; ")}.
-      </p>
-    </div>
-  );
-}
-
 function SectionLabel({ children }: { children: React.ReactNode }) {
   return (
     <div className="kin-eyebrow" style={{ margin: "20px 0 8px" }}>{children}</div>
@@ -475,6 +437,20 @@ async function CashFlowPane({ familyId, memberId, currency, range, scope, grownU
     getAccounts(familyId),
     whoPicker(familyId, memberId, scope, (w) => `/wealth?seg=cashflow&range=${range}&who=${w}`),
   ]);
+  // The band behind the cash-flow bars: each month's budget, household or
+  // personal to match the Who picker. Monthly only -- a budget is a month's.
+  const [budgetHistory, byPerson] = await Promise.all([
+    range === "month" ? getBudgetHistory(familyId, scope, cf.history.map((h) => h.key)) : Promise.resolve(new Map<string, number>()),
+    scope === "all" ? getSpendingByMember(familyId, budget.year, budget.month) : Promise.resolve([]),
+  ]);
+  const people = byPerson
+    .map((p) => {
+      const i = p.memberId ? who.active.findIndex((m) => m.id === p.memberId) : -1;
+      return { ...p, label: p.memberId === null ? "Family" : (who.labels[i] ?? ""), order: p.memberId === null ? who.active.length : i };
+    })
+    .filter((p) => p.memberId === null || p.order >= 0)
+    .filter((p) => p.memberId !== null || p.hasVisibleAccounts)
+    .sort((a, b) => a.order - b.order);
   const pickable = toPickable(accounts, memberId);
   const bareAccounts = pickable.map((a) => ({ id: a.id, name: a.name }));
   const periodNoun = range === "day" ? "day" : range === "week" ? "week" : range === "year" ? "year" : "month";
@@ -516,7 +492,7 @@ async function CashFlowPane({ familyId, memberId, currency, range, scope, grownU
           options={CASH_FLOW_RANGES.map((r) => ({ label: CASH_FLOW_RANGE_LABELS[r], href: `/wealth?seg=cashflow&range=${r}&who=${scope}`, active: range === r }))}
         />
       </div>
-      <CashFlowChart history={cf.history} currency={currency} periodNoun={periodNoun} />
+      <CashFlowChart history={cf.history} currency={currency} periodNoun={periodNoun} budgets={Object.fromEntries(budgetHistory)} />
 
       <CollapsibleGroup title="INCOME" defaultOpen={false}>
       {!isJoint && (
@@ -606,7 +582,12 @@ async function CashFlowPane({ familyId, memberId, currency, range, scope, grownU
       {categories.length === 0 && (
         <Empty icon={<Icon name="activity" size={26} />} title="Nothing spent yet this month" line="Once money moves, this breaks it down by category so you can see where it actually goes." />
       )}
-      <CategorySpendBar categories={categories} currency={currency} />
+      <CategoryDonut
+        categories={categories.filter((c) => c.category !== TRANSFER_CATEGORY).map((c) => ({ category: c.category, spent: c.spent, budget: c.amount }))}
+        currency={currency}
+        monthBudget={isJoint && budget.budgetAmount > 0 ? budget.budgetAmount : null}
+        showList={false}
+      />
       {categories.map((c) => {
         const cap = c.amount > 0 ? c.amount : c.spent;
         const pct = cap > 0 ? Math.min(100, Math.round((c.spent / cap) * 100)) : 0;
@@ -632,6 +613,13 @@ async function CashFlowPane({ familyId, memberId, currency, range, scope, grownU
         );
       })}
       {isJoint && <div style={{ marginTop: "0.75rem" }}><AllocationEditor budgeted={budget.allocations.map((a) => a.category)} /></div>}
+
+      {people.length > 0 && (
+        <>
+          <SectionLabel>SPENDING BY PERSON</SectionLabel>
+          <SpendingByPerson people={people} currency={currency} canSetBudgets={grownUp} />
+        </>
+      )}
 
       <SectionLabel>BILLS</SectionLabel>
       <CashFlowSources sources={cf.sources} currency={currency} />
@@ -825,6 +813,13 @@ async function AssetsPane({ familyId, memberId, currency, scope }: { familyId: s
   // whose net worth they're looking at.
   const pickableCash = toPickable(allAccounts, memberId);
   const mine = scope === memberId;
+  const netWorthHistory = await recordAndGetNetWorthHistory(familyId, memberId, scope, {
+    cash: cashTotal,
+    goals: goalTotal,
+    assets: assetTotal,
+    liabilities: liabilityTotal,
+    netWorth,
+  });
 
   return (
     <>
@@ -841,6 +836,8 @@ async function AssetsPane({ familyId, memberId, currency, scope }: { familyId: s
         currency={currency}
         caption={`${formatCurrency(cashTotal, currency)} cash + ${formatCurrency(goalTotal, currency)} in goals + ${formatCurrency(assetTotal, currency)} owned − ${formatCurrency(liabilityTotal, currency)} owed`}
       />
+
+      <NetWorthLine points={netWorthHistory} currency={currency} />
 
       <CollapsibleGroup title="ASSETS" defaultOpen={false}>
       <SectionLabel>CASH & SAVINGS</SectionLabel>
