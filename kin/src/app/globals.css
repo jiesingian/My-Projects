@@ -6397,3 +6397,5 @@ button.kin-room-quote { font: inherit; font-size: 0.78125rem; text-align: left; 
 .kin-specialdays-list li { display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; font-size: 0.9375rem; }
 .kin-specialdays-date { color: var(--color-neutral-600); }
 .kin-specialdays-form { display: grid; grid-template-columns: minmax(0, 9.5rem) minmax(0, 1fr) auto; gap: 0.5rem; }
+/* "Mama is typing…" in the family room, one to one and groups (20261006100000). */
+.kin-room-typing { margin: 0.375rem 0 0; font-size: 0.78125rem; font-style: italic; color: var(--color-neutral-600); }
