@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useSyncExternalStore, useTransition } from "react";
+import { useEffect, useState, useSyncExternalStore } from "react";
 import Link from "next/link";
 import { Icon } from "@/components/icons";
 import { Avatar } from "@/components/avatar";
@@ -20,15 +20,17 @@ export function MemberCardBody({ memberId, meId, glasses, titleId, onClose }: { 
   const isMe = memberId === meId;
   const [view, setView] = useState<View>("self");
   const [loaded, setLoaded] = useState<{ key: string; card: MemberCardData | null; error: string | null } | null>(null);
-  const [, startTransition] = useTransition();
   const key = `${memberId}:${isMe ? view : "self"}`;
 
   useEffect(() => {
     let live = true;
-    startTransition(async () => {
-      const res = await getMemberCardAction(memberId, isMe && view !== "self" ? view : undefined);
-      if (live) setLoaded({ key, card: res.card, error: res.error });
-    });
+    // A plain promise, not startTransition(async ...): the state set after
+    // the await in a transition never reached the screen, and the card sat on
+    // its skeleton (found on dev, 30 September).
+    getMemberCardAction(memberId, isMe && view !== "self" ? view : undefined).then(
+      (res) => live && setLoaded({ key, card: res.card, error: res.error }),
+      () => live && setLoaded({ key, card: null, error: "The card couldn't load. Try again." }),
+    );
     return () => {
       live = false;
     };
@@ -290,19 +292,22 @@ function Actions({ card, onClose }: { card: MemberCardData; onClose: () => void 
     card.checkIn ? { at: card.checkIn.askedAt, answer: card.checkIn.answer, answeredAt: card.checkIn.answeredAt } : null,
   );
   const [error, setError] = useState<string | null>(null);
-  const [pending, startTransition] = useTransition();
+  const [pending, setPending] = useState(false);
   const now = useNow();
   // An ask that is still waiting, and recent, is shown as waiting; an old
   // or answered one leaves the button free to ask again.
   const waiting = asked && !asked.answer && now !== null && now.getTime() - new Date(asked.at).getTime() < 15 * 60_000;
 
-  const ask = () =>
-    startTransition(async () => {
-      setError(null);
-      const res = await askAreYouOkayAction(card.id);
-      if (res.error) setError(res.error);
-      else setAsked({ at: new Date().toISOString(), answer: null, answeredAt: null });
-    });
+  // Plain async with a busy flag rather than startTransition: state set after
+  // an awaited action inside a transition did not reach the screen here.
+  const ask = async () => {
+    setPending(true);
+    setError(null);
+    const res = await askAreYouOkayAction(card.id).catch(() => ({ error: "Couldn't ask just now. Try again." }));
+    setPending(false);
+    if (res.error) setError(res.error);
+    else setAsked({ at: new Date().toISOString(), answer: null, answeredAt: null });
+  };
 
   return (
     <section className={styles.section} aria-label={`Reach ${first}`}>

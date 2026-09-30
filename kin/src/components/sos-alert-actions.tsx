@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Icon } from "@/components/icons";
 import { useCalls } from "@/components/call-provider";
@@ -12,17 +12,18 @@ import styles from "./member-card.module.css";
 export function SosAlertActions({ id, callMemberId, callName, canSafe, canHandle }: { id: string; callMemberId: string | null; callName: string; canSafe: boolean; canHandle: boolean }) {
   const calls = useCalls();
   const router = useRouter();
-  const [pending, startTransition] = useTransition();
+  const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const inApp = callMemberId && calls?.members.find((m) => m.id === callMemberId)?.callable && !calls.busy;
 
-  const act = (action: "safe" | "handling") =>
-    startTransition(async () => {
-      setError(null);
-      const res = await sosAction(id, action);
-      if (res.error) setError(res.error);
-      else router.refresh();
-    });
+  const act = async (action: "safe" | "handling") => {
+    setPending(true);
+    setError(null);
+    const res = await sosAction(id, action).catch(() => ({ error: "Couldn't send that. Try again." }));
+    setPending(false);
+    if (res.error) setError(res.error);
+    else router.refresh();
+  };
 
   if (!inApp && !canSafe && !canHandle) return null;
   return (
