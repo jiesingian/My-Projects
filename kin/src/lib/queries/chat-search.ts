@@ -50,18 +50,18 @@ export async function searchChats(me: { id: string; family_id: string; person_id
     ...(household.data ?? []).map((m) => ({
       id: `h-${m.id}`,
       where: me.familyName,
-      href: "/chat/household",
+      href: `/chat/household#msg-${m.id}`,
       author: m.member_id === me.id ? "You" : first(nameOf.get(m.member_id ?? "")),
       body: m.body,
       at: m.created_at,
     })),
-    ...(family.data ?? []).map((m) => ({ id: `f-${m.id}`, where: "Family", href: "/chat/family", author: m.member_id === me.id ? "You" : first(m.author_name), body: m.body, at: m.created_at })),
+    ...(family.data ?? []).map((m) => ({ id: `f-${m.id}`, where: "Family", href: `/chat/family#msg-${m.id}`, author: m.member_id === me.id ? "You" : first(m.author_name), body: m.body, at: m.created_at })),
     ...(direct.data ?? []).map((m) => {
       const other = m.person_low === me.person_id ? m.person_high : m.person_low;
       return {
         id: `d-${m.id}`,
         where: peerOf.get(other) ?? "One to one",
-        href: `/chat/dm/${other}`,
+        href: `/chat/dm/${other}#msg-${m.id}`,
         author: m.sender_person_id === me.person_id ? "You" : first(peerOf.get(other)),
         body: m.body,
         at: m.created_at,
@@ -70,19 +70,19 @@ export async function searchChats(me: { id: string; family_id: string; person_id
     ...(group.data ?? []).map((m) => ({
       id: `g-${m.id}`,
       where: groupOf.get(m.group_id) ?? "Group",
-      href: `/chat/groups/${m.group_id}`,
+      href: `/chat/groups/${m.group_id}#msg-${m.id}`,
       author: m.sender_person_id === me.person_id ? "You" : first(m.author_name),
       body: m.body,
       at: m.created_at,
     })),
-    ...(homeVoice.data ?? []).map((a) => ({ id: `hv-${a.id}`, where: me.familyName, href: "/chat/household", author: "🎤 Voice note", body: a.transcript ?? "", at: a.created_at })),
+    ...(homeVoice.data ?? []).map((a) => ({ id: `hv-${a.id}`, where: me.familyName, href: `/chat/household#msg-${a.message_id}`, author: "🎤 Voice note", body: a.transcript ?? "", at: a.created_at })),
     ...(roomVoice.data ?? []).flatMap((a) => {
       const base = { id: `rv-${a.id}`, author: "🎤 Voice note", body: a.transcript ?? "", at: a.created_at };
-      if (a.family_message_id) return [{ ...base, where: "Family", href: "/chat/family" }];
+      if (a.family_message_id) return [{ ...base, where: "Family", href: `/chat/family#msg-${a.family_message_id}` }];
       const other = a.direct_message_id ? dmOther.get(a.direct_message_id) : undefined;
-      if (other) return [{ ...base, where: peerOf.get(other) ?? "One to one", href: `/chat/dm/${other}` }];
+      if (other) return [{ ...base, where: peerOf.get(other) ?? "One to one", href: `/chat/dm/${other}#msg-${a.direct_message_id}` }];
       const g = a.group_message_id ? groupOfMsg.get(a.group_message_id) : undefined;
-      if (g) return [{ ...base, where: groupOf.get(g) ?? "Group", href: `/chat/groups/${g}` }];
+      if (g) return [{ ...base, where: groupOf.get(g) ?? "Group", href: `/chat/groups/${g}#msg-${a.group_message_id}` }];
       return [];
     }),
   ];

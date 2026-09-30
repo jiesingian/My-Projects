@@ -383,6 +383,41 @@ export function RoomThread({
     setTimeout(() => setFound((f) => (f === id ? null : f)), 1600);
   };
 
+  // Arriving from a search result ("…#msg-<id>"): go straight there.
+  const arrived = useRef(false);
+  useEffect(() => {
+    if (arrived.current) return;
+    arrived.current = true;
+    const id = /^#msg-([0-9a-f-]{36})$/i.exec(window.location.hash)?.[1];
+    if (!id) return;
+    const t = setTimeout(() => {
+      const el = document.getElementById(`msg-${id}`);
+      if (!el) return;
+      el.scrollIntoView({ block: "center" });
+      setFound(id);
+      setTimeout(() => setFound((f) => (f === id ? null : f)), 1600);
+    }, 120);
+    return () => clearTimeout(t);
+  }, []);
+
+  // Search inside this conversation (item 7): the words and voice-note
+  // transcripts of what is loaded, newest first. Across every chat is
+  // /chat/search, whose results now land on the message itself.
+  const [searching, setSearching] = useState(false);
+  const [query, setQuery] = useState("");
+  const q = query.trim().toLowerCase();
+  const hits =
+    searching && q.length >= 2
+      ? messages
+          .filter((m) => !m.removed && (m.body.toLowerCase().includes(q) || m.photos.some((p) => p.transcript?.toLowerCase().includes(q))))
+          .reverse()
+          .slice(0, 50)
+      : null;
+  const closeSearch = () => {
+    setSearching(false);
+    setQuery("");
+  };
+
   // "Seen" goes under your newest message they have read, once, the way a
   // phone's messages app shows it.
   const lastSeenMine = seenAt ? [...messages].reverse().find((m) => m.mine && m.createdAt <= seenAt)?.id : undefined;
@@ -403,6 +438,53 @@ export function RoomThread({
 
   return (
     <div style={{ display: "flex", flexDirection: "column", flex: 1 }}>
+      <div className="kin-chatsearch">
+        {searching ? (
+          <>
+            <input
+              className="input kin-chatsearch-field"
+              type="search"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Search this conversation"
+              aria-label="Search this conversation"
+              autoFocus
+            />
+            <button type="button" className="btn btn-ghost" onClick={closeSearch}>
+              Cancel
+            </button>
+          </>
+        ) : (
+          <button type="button" className="btn btn-ghost kin-chatsearch-open" onClick={() => setSearching(true)}>
+            <Icon name="search" size="0.9375rem" /> Search
+          </button>
+        )}
+      </div>
+      {hits !== null && (
+        <div className="kin-chatsearch-results" role="list" aria-label="Search results">
+          {hits.length === 0 ? (
+            <p className="kin-chatsearch-empty">Nothing here says &ldquo;{query.trim()}&rdquo;.</p>
+          ) : (
+            hits.map((m) => (
+              <button
+                key={m.id}
+                type="button"
+                role="listitem"
+                className="kin-chatsearch-hit"
+                onClick={() => {
+                  closeSearch();
+                  jumpTo(m.id);
+                }}
+              >
+                <span className="kin-chatsearch-meta">
+                  {m.mine ? "You" : m.authorName.split(" ")[0]} · {familyDateLong(new Date(m.createdAt))}, {familyClock(new Date(m.createdAt))}
+                </span>
+                <span>{m.body || m.photos.find((p) => p.transcript?.toLowerCase().includes(q))?.transcript || ""}</span>
+              </button>
+            ))
+          )}
+        </div>
+      )}
       {pinnedMessage && (
         <div className="kin-chatpin">
           <Icon name="mapPin" size="0.875rem" style={{ flex: "none", color: "var(--color-accent-700)" }} />
