@@ -39,6 +39,7 @@ const MIGRATIONS = [
   "20260930171000_household_special_days.sql",
   "20261002090000_wealth_include_private_in_totals.sql",
   "20261002100000_account_numbers.sql",
+  "20261006100000_group_seen_by.sql",
 ];
 
 const only = process.argv[2];

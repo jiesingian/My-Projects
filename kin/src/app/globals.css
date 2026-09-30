@@ -6512,3 +6512,5 @@ button.kin-room-quote { font: inherit; font-size: 0.78125rem; text-align: left; 
 @media (prefers-reduced-motion: reduce) {
   .kin-offline-bar { animation: none; }
 }
+/* "Mama is typing…" in the family room, one to one and groups (20261006100000). */
+.kin-room-typing { margin: 0.375rem 0 0; font-size: 0.78125rem; font-style: italic; color: var(--color-neutral-600); }

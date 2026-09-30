@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState, useTransition } from "react";
+import { useCallback, useEffect, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import {
@@ -49,6 +49,8 @@ export function RoomThread({
   canReact = canWrite,
   readOnlyNote = "You’re no longer connected, so nothing new can be sent here.",
   seenAt = null,
+  seenBy = [],
+  me,
 }: {
   room: { kind: "family" } | { kind: "dm"; personId: string; low: string; high: string } | { kind: "group"; groupId: string; isAdmin: boolean };
   messages: RoomMessage[];
@@ -64,6 +66,10 @@ export function RoomThread({
   readOnlyNote?: string;
   /** One to one: when the other person last read this conversation. */
   seenAt?: string | null;
+  /** A group: who else has opened it, and when (20261006100000). */
+  seenBy?: { firstName: string; lastReadAt: string }[];
+  /** Who is reading, for the typing signal on the channel's presence. */
+  me: { personId: string; firstName: string };
 }) {
   const router = useRouter();
   const [draft, setDraft] = useState("");
@@ -168,6 +174,35 @@ export function RoomThread({
     void markThreadReadAction(readKey);
   }, [messages.length, readKey]);
 
+  /** First names of whoever is typing here now, from the channel's presence
+   * (20261006100000). Nothing is stored: a typing indicator that outlives
+   * the typing is worse than none. */
+  const [typingNames, setTypingNames] = useState<string[]>([]);
+  const channelRef = useRef<ReturnType<ReturnType<typeof createClient>["channel"]> | null>(null);
+  const typingSince = useRef(0);
+  const typingStop = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const stopTyping = useCallback(() => {
+    typingSince.current = 0;
+    if (typingStop.current) clearTimeout(typingStop.current);
+    void channelRef.current?.track({ name: me.firstName, typing: false });
+  }, [me.firstName]);
+  const signalTyping = useCallback(
+    (typing: boolean) => {
+      const ch = channelRef.current;
+      if (!ch) return;
+      if (!typing) return stopTyping();
+      // One track call per few seconds however fast somebody types.
+      const now = Date.now();
+      if (now - typingSince.current > 3000) {
+        typingSince.current = now;
+        void ch.track({ name: me.firstName, typing: true });
+      }
+      if (typingStop.current) clearTimeout(typingStop.current);
+      typingStop.current = setTimeout(stopTyping, 4000);
+    },
+    [me.firstName, stopTyping],
+  );
+
   useEffect(() => {
     const supabase = createClient();
     let cancelled = false;
@@ -176,25 +211,40 @@ export function RoomThread({
       await supabase.realtime.setAuth().catch(() => {});
       if (cancelled) return;
       channel = supabase
-        .channel(topic, { config: { private: true } })
+        .channel(topic, { config: { private: true, presence: { key: me.personId } } })
         .on("postgres_changes", { event: "*", schema: "public", table, ...(filter ? { filter } : {}) }, () => router.refresh())
         // Photos are indexed just after their message, so the message can
         // arrive a beat before them; this brings them in when they land.
         .on("postgres_changes", { event: "INSERT", schema: "public", table: "chat_room_attachments" }, () => router.refresh())
         .on("postgres_changes", { event: "*", schema: "public", table: "chat_room_reactions" }, () => router.refresh())
-        .subscribe();
+        // Typing, on the same private channel: only people who may read this
+        // conversation can join it (chat_topic_is_mine).
+        .on("presence", { event: "sync" }, () => {
+          const state = channel?.presenceState<{ name: string; typing: boolean }>() ?? {};
+          setTypingNames(
+            Object.entries(state)
+              .filter(([key, metas]) => key !== me.personId && metas.some((x) => x.typing))
+              .map(([, metas]) => metas[0].name),
+          );
+        })
+        .subscribe((status) => {
+          if (status === "SUBSCRIBED") void channel?.track({ name: me.firstName, typing: false });
+        });
+      channelRef.current = channel;
     })();
     return () => {
       cancelled = true;
+      channelRef.current = null;
       if (channel) void supabase.removeChannel(channel);
     };
-  }, [topic, table, filter, router]);
+  }, [topic, table, filter, router, me.personId, me.firstName]);
 
   const send = () => {
     const body = draft.trim();
     const files = picked;
     if (!body && files.length === 0) return;
     setDraft("");
+    stopTyping();
     setError(null);
     startTransition(async () => {
       // Photos first, straight from the phone to Storage; the message is only
@@ -305,6 +355,14 @@ export function RoomThread({
   // "Seen" goes under your newest message they have read, once, the way a
   // phone's messages app shows it.
   const lastSeenMine = seenAt ? [...messages].reverse().find((m) => m.mine && m.createdAt <= seenAt)?.id : undefined;
+  // A group: "Seen by Mama, Lola" under your newest message anyone has read.
+  const groupSeen = (() => {
+    if (room.kind !== "group" || seenBy.length === 0) return null;
+    const m = [...messages].reverse().find((x) => x.mine && !x.removed && seenBy.some((s) => s.lastReadAt >= x.createdAt));
+    if (!m) return null;
+    const names = seenBy.filter((s) => s.lastReadAt >= m.createdAt).map((s) => s.firstName);
+    return { id: m.id, label: names.length <= 3 ? names.join(", ") : `${names.slice(0, 2).join(", ")} and ${names.length - 2} more` };
+  })();
 
   const rows = messages.map((m, i) => {
     const day = familyDateLong(new Date(m.createdAt));
@@ -519,6 +577,7 @@ export function RoomThread({
                     </button>
                   )}
                   {m.id === lastSeenMine && <span className="kin-room-seen"> · Seen</span>}
+                  {m.id === groupSeen?.id && <span className="kin-room-seen"> · Seen by {groupSeen.label}</span>}
                 </span>
               </div>
             </div>
@@ -526,6 +585,12 @@ export function RoomThread({
         ))}
         <div ref={bottom} />
       </div>
+
+      {typingNames.length > 0 && (
+        <p className="kin-room-typing" aria-live="polite">
+          {typingNames.length === 1 ? `${typingNames[0]} is typing…` : `${typingNames.slice(0, 2).join(" and ")}${typingNames.length > 2 ? " and others" : ""} are typing…`}
+        </p>
+      )}
 
       {error && (
         <p role="alert" style={{ fontSize: "0.78125rem", color: "var(--cal-occasion)", margin: "0.375rem 0 0" }}>
@@ -608,7 +673,10 @@ export function RoomThread({
               ref={textArea}
               className="input kin-composer-field"
               value={draft}
-              onChange={(e) => setDraft(e.target.value)}
+              onChange={(e) => {
+                setDraft(e.target.value);
+                signalTyping(e.target.value.trim().length > 0);
+              }}
               onKeyDown={(e) => {
                 if (e.key === "Enter" && !e.shiftKey) {
                   e.preventDefault();

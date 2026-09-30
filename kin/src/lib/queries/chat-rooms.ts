@@ -249,9 +249,17 @@ export type GroupSummary = { id: string; name: string; announceOnly: boolean };
 export async function getGroupRoom(
   myPersonId: string,
   groupId: string,
-): Promise<{ group: GroupSummary; members: GroupMember[]; messages: RoomMessage[]; isAdmin: boolean; canPost: boolean } | null> {
+): Promise<{
+  group: GroupSummary;
+  members: GroupMember[];
+  messages: RoomMessage[];
+  isAdmin: boolean;
+  canPost: boolean;
+  /** Who else has opened it, and when (20261006100000), for "Seen by". */
+  seenBy: { firstName: string; lastReadAt: string }[];
+} | null> {
   const supabase = await createClient();
-  const [{ data: group }, { data: memberRows }, { data }] = await Promise.all([
+  const [{ data: group }, { data: memberRows }, { data }, { data: seen }] = await Promise.all([
     supabase.from("chat_groups").select("id, name, announce_only").eq("id", groupId).maybeSingle(),
     supabase.rpc("group_members_of", { p_group: groupId }),
     supabase
@@ -260,6 +268,7 @@ export async function getGroupRoom(
       .eq("group_id", groupId)
       .order("created_at", { ascending: false })
       .limit(300),
+    supabase.rpc("group_seen_by", { p_group: groupId }),
   ]);
   if (!group) return null;
   const members: GroupMember[] = (memberRows ?? []).map((m) => ({
@@ -283,6 +292,7 @@ export async function getGroupRoom(
     members,
     isAdmin,
     canPost: !group.announce_only || isAdmin,
+    seenBy: (seen ?? []).map((s) => ({ firstName: s.first_name || "Someone", lastReadAt: s.last_read_at })),
     messages: rows.map((r) => ({
       id: r.id,
       authorName: r.author_name || "Someone",
