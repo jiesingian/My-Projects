@@ -5,7 +5,7 @@
  * as a donut, cash flow against a budget band, net worth over time, and each
  * person's spending against their budget.
  *
- * Drawn with visx, which is React rendering plain SVG: ~22 KB on the page
+ * Drawn with visx, which is React rendering plain SVG: ~17 KB on the page
  * against Recharts' 118 and ECharts' 198 for the same four charts, measured.
  * Touch is ours rather than a library's hover tooltip -- a tap selects, a
  * drag along the net-worth line scrubs it -- because a hover does not exist on
