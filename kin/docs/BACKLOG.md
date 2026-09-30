@@ -258,6 +258,20 @@ Decided against in the same review: revising Journal (item 6) and Planner
 
 ## Done
 
+- Family tree drawn as households (Jonathan: "looks Windows XP era";
+  approved 30 September, #393). Each household is a soft card in its own
+  colour with its name on it: the couple side by side, the children at home
+  under them, and a curve down to each household their children started.
+  Yours is in the accent colour and the tree opens on it. Who lives with whom
+  is read off the tree (lib/household-layout.ts): married or with children
+  heads a household, everyone else is a child at home. Photos, or initials on
+  the person's colour, and what each person is to you ("Sister-in-law",
+  lib/kinship.ts). Drag with momentum, pinch or scroll to zoom, Fit, tap a
+  household's name to bring it forward. Adding relatives, linking profiles,
+  linked branches, full screen and the 3D view are kept (3D restyled).
+  **Still open:** the QR code on the tree's "Invite to Kin" button (item 2
+  above left it to this work; not done here), and a look at it on a real
+  phone with real photos.
 - Member card and Emergency SOS on Today (approved 30 September, #394).
   Tapping someone's initials opens their card: their local time and zone
   ("8:00 am in Dubai · 4 h behind you"; the zone is reported by their own
