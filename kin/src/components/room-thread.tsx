@@ -51,6 +51,7 @@ export function RoomThread({
   seenAt = null,
   seenBy = [],
   me,
+  mentionable = [],
 }: {
   room: { kind: "family" } | { kind: "dm"; personId: string; low: string; high: string } | { kind: "group"; groupId: string; isAdmin: boolean };
   messages: RoomMessage[];
@@ -70,6 +71,9 @@ export function RoomThread({
   seenBy?: { firstName: string; lastReadAt: string }[];
   /** Who is reading, for the typing signal on the channel's presence. */
   me: { personId: string; firstName: string };
+  /** People who can be @-named here besides those who have written (a
+   * group's members). One to one has no mentions. */
+  mentionable?: { personId: string; firstName: string }[];
 }) {
   const router = useRouter();
   const [draft, setDraft] = useState("");
@@ -239,6 +243,26 @@ export function RoomThread({
     };
   }, [topic, table, filter, router, me.personId, me.firstName]);
 
+  // @mentions (20261006100100): anyone who has written here, plus the
+  // group's members; never yourself, never in one to one.
+  const [mentioned, setMentioned] = useState<string[]>([]);
+  const candidates = (() => {
+    if (room.kind === "dm") return [];
+    const seen = new Map<string, string>();
+    for (const p of mentionable) if (p.personId !== me.personId) seen.set(p.personId, p.firstName);
+    for (const m of messages)
+      if (m.authorPersonId && !m.mine && !seen.has(m.authorPersonId)) seen.set(m.authorPersonId, m.authorName.split(" ")[0] || "Someone");
+    return [...seen.entries()].map(([personId, firstName]) => ({ personId, firstName }));
+  })();
+  const mentionQuery = /(?:^|\s)@([^\s@]*)$/.exec(draft)?.[1];
+  const suggestions =
+    mentionQuery === undefined ? [] : candidates.filter((c) => c.firstName.toLowerCase().startsWith(mentionQuery.toLowerCase())).slice(0, 5);
+  const pickMention = (c: { personId: string; firstName: string }) => {
+    setDraft((d) => d.replace(/@([^\s@]*)$/, `@${c.firstName} `));
+    setMentioned((prev) => (prev.includes(c.personId) ? prev : [...prev, c.personId]));
+    textArea.current?.focus();
+  };
+
   const send = () => {
     const body = draft.trim();
     const files = picked;
@@ -270,18 +294,25 @@ export function RoomThread({
         setUploading(false);
       }
       const answering = replyingTo?.id ?? null;
+      // Only names still in the words count: a tag deleted while typing
+      // notifies nobody.
+      const named = mentioned.filter((id) => {
+        const c = candidates.find((x) => x.personId === id);
+        return c && body.includes(`@${c.firstName}`);
+      });
       const r =
         room.kind === "family"
-          ? await sendFamilyMessageAction(body, photos, answering)
+          ? await sendFamilyMessageAction(body, photos, answering, null, named)
           : room.kind === "dm"
             ? await sendDirectMessageAction(room.personId, body, photos, answering)
-            : await sendGroupMessageAction(room.groupId, body, photos, answering);
+            : await sendGroupMessageAction(room.groupId, body, photos, answering, null, named);
       if (r.error) {
         setError(r.error);
         setDraft(body);
       } else {
         setPicked([]);
         setReplyingTo(null);
+        setMentioned([]);
       }
       router.refresh();
     });
@@ -485,6 +516,7 @@ export function RoomThread({
                     type="button"
                     className="kin-bubble"
                     data-mine={m.mine || undefined}
+                    data-tagged={(m.mentionsMe && !m.mine) || undefined}
                     style={{ whiteSpace: "pre-wrap", textAlign: "left", font: "inherit", border: 0 }}
                     aria-expanded={active === m.id}
                     onClick={() => setActive((a) => (a === m.id ? null : m.id))}
@@ -655,6 +687,15 @@ export function RoomThread({
                 </span>
               ))}
               {uploading && <span className="kin-room-tray-note">Sending…</span>}
+            </div>
+          )}
+          {suggestions.length > 0 && (
+            <div className="kin-room-mentions" role="listbox" aria-label="Mention someone">
+              {suggestions.map((c) => (
+                <button key={c.personId} type="button" role="option" aria-selected={false} onClick={() => pickMention(c)}>
+                  @{c.firstName}
+                </button>
+              ))}
             </div>
           )}
           <div className="kin-composer-row">
