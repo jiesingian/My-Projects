@@ -1,5 +1,23 @@
+<!--
+Maintainer note: the short rules under each heading are what Claude reads.
+The full reasoning and history for each section is kept verbatim in the HTML
+comment below it. Claude Code strips block-level HTML comments before loading
+this file, so they cost no tokens but stay here for people. Edit both together.
+-->
+
+## Working sessions
+
+- One job per session; end it once the PR is open and its checks have started. See "What a session costs" below.
+- Procedures live in skills: `ship` (open a PR), `migrations`, `ask-a-person`, `new-project`.
+- Path-scoped rules load from `.claude/rules/` when you touch those files.
+
 ## How a change reaches main
 
+- Branch → pull request → checks (`ci.yml`, `e2e.yml` smoke tier, `schema-check.yml`, `secret-scan.yml`, Vercel) → `automerge.yml` merges when all green and no conflict.
+- Never commit to `main`. No manual approvals, ever; nobody hand-merges.
+- The comprehensive write-heavy e2e suite runs weekly (`weekly-check.yml`), not per PR.
+
+<!--
 **Branch, pull request, automatic checks, automatic merge.** Nobody approves
 anything by hand.
 
@@ -33,9 +51,16 @@ were green. Pull requests then got merged by hand, a hand merge waits for
 nothing, and a stale test reached `main` while its own suite was still
 running. The machinery was right. It was broken, and the failure looked like
 something else.
+-->
 
 ### Before you open the pull request
 
+- From `kin/`: `npx tsc --noEmit`, `npm run lint`, `npm run build` (and `npm run e2e` if you have QA credentials). CI repeats them; it is the real gate.
+- Can't run the suite? Open the PR anyway and say so in the body.
+- `git pull --rebase origin main` before opening. Never force-push `main`.
+- Step by step: the `ship` skill.
+
+<!--
 Run the checks locally first, from `kin/`: `npx tsc --noEmit`, `npm run lint`,
 `npm run build`, `npm run e2e`. CI runs them again — that is the actual gate —
 but a failure found on your own machine costs a minute and the same failure
@@ -49,9 +74,13 @@ call, not a corner cut.
 Rebase onto `main` before opening, and again if it falls behind:
 `git pull --rebase origin main`. Never force-push `main` itself, for any
 reason.
+-->
 
 ### One check a week, not constant watching
 
+- The human check is `weekly-check.yml` (Fridays, ~17:00 Manila but GitHub's cron runs hours late). Nobody watches every push.
+
+<!--
 Neither person is expected to watch the other's work or follow every push.
 The automatic checks are the gate. The human-facing check is a **weekly run
 of the whole setup, on Jonathan's account, in `weekly-check.yml`** — one
@@ -74,9 +103,14 @@ best-effort on shared runners; there is no setting that fixes this, and
 moving the cron earlier only aims at a moving target. Expect Friday evening
 rather than exactly 5pm. If a dependable hour is ever wanted, it has to be
 triggered by something that keeps time rather than by GitHub's cron.
+-->
 
 ### When you ask a person to do something by hand
 
+- First check whether it can be done without a person.
+- If not: a direct URL for every step (not menu paths), what it's for, and what is safe. See the `ask-a-person` skill.
+
+<!--
 Some things cannot be automated away — a repository secret, a dashboard toggle,
 a password only one person can reset. When a session needs one of those, it
 **asks with a link on every step that has one**: the exact project page, the
@@ -96,9 +130,15 @@ hesitates over a manual step is usually not the clicking.
 And before asking at all, check whether it can be done without a person. It
 often can: half the work in this file exists because something that looked
 like a manual step was not one.
+-->
 
 ### The watched list, and the flag it needs
 
+- If the diff touches a watched path or changes >~400 lines, add a commit-message line: `WATCHED: <area> — <what>`.
+- Watched: `kin/src/lib/actions/{auth,family,billing,wealth,drive}.ts`, `kin/src/lib/supabase/`, `kin/src/lib/session.ts`, `kin/src/lib/access.ts`, `kin/src/lib/billing/`, `kin/src/proxy.ts`, `kin/src/app/api/`, `kin/src/app/auth/`, account screens (`login/ signup/ verify/ forgot-password/ reset-password/ subscribe/`), `kin/next.config.*`, `kin/package{,-lock}.json`, `kin/eslint.config.*`, `.github/`, `.claude/`, `.gitignore`, `CLAUDE.md`, any `AGENTS.md`, `LICENSE`, any `.sql`.
+- `watched-change.yml` flags these anyway; don't move code to dodge the list.
+
+<!--
 Most of the app is revertible. A bad component ships, somebody notices, it is
 reverted, and the cost was an afternoon. Some of it is not: the way into the
 app, session handling, who may see whose data, money, anything that runs code
@@ -131,9 +171,15 @@ so the flag is a courtesy that saves Jonathan finding out from a robot, not
 the thing being relied on. Do not move code out of a watched path to keep it
 quiet; the list exists because those files are where a mistake is expensive,
 and a change is not made safer by being harder to see.
+-->
 
 ### Neither session gates the other
 
+- No session approves or waits on another's PR. Found a problem in someone else's PR: say so; that's all.
+- Either session may fix anything broken (workflows, tests, migrations, components) through the normal path.
+- Never a session's to do: apply a migration outside the pipeline, repo settings/secrets, spending money (Jonathan's).
+
+<!--
 No Claude session approves another's work, waits for one, or is waited on.
 Janine's branch and Janine's pull requests go through on the checks alone, and
 so do Jonathan's. If a session finds a problem in the other's pull request, it
@@ -157,9 +203,13 @@ are, not because of who noticed.
 the schema check have actually *run* before something merges is the opposite of
 an approval: it is what makes merging without a person safe. The thing to
 refuse is a human in the path, not a test.
+-->
 
 ### Two people, one branch
 
+- Say what you're about to work on. A rebase conflict that is a real behaviour disagreement: keep both, flag it, don't pick a side.
+
+<!--
 Both sessions run in their own container against their own clone. Nothing
 collides while you are working; `main` is the only shared thing, which is what
 the rebase rule above is for. Beyond that, the practical courtesy is to say
@@ -169,9 +219,16 @@ component in parallel is not a merge conflict git can help with.
 If a rebase conflict is a real disagreement about how the app should behave,
 rather than two edits landing on the same line, do not settle it by picking a
 side in a rebase. Leave both, say so, and let the two of you decide.
+-->
 
 ## Who does what
 
+- **Jonathan** (`jiesingian`) and **Janine** (`jnnarenassingian-star`) both land work the same way and never need each other's approval.
+- Both: open self-merging PRs, revert anything, write migrations, read production data when needed, use the Supabase dashboard.
+- Jonathan only: repository settings and secrets; anything that spends money.
+- Migrations reach dev then production automatically on merge via `migrate.yml` (see the `migrations` skill).
+
+<!--
 Two people build Kin: **Jonathan** (`jiesingian`) and **Janine**
 (`jnnarenassingian-star`). Both hold write access to this repository, both
 land work the same way — branch, pull request, automatic merge — and neither
@@ -223,9 +280,17 @@ Nothing else here is a gate. `watched-change.yml` reads every push to `main`
 and opens an issue from the actual diff, whoever pushed and whatever the
 commit message claimed — so nobody grades their own homework and nobody has
 to police anybody.
+-->
 
 ## Real data is never a test target
 
+- Never write, edit or delete anything in a real household. Reading real data is fine when a question needs it.
+- Test only as the sample household named by `E2E_EMAIL` (`kin/docs/QA_HOUSEHOLDS.md`); never repoint it.
+- Never copy production data into dev. Never use the service-role key to get around RLS.
+- The only route to the live schema is a `.sql` in `kin/supabase/migrations/` merged through the pipeline (Actions → Migrate may be re-run by hand; raw SQL never).
+- Can't verify without touching real data? Leave it unverified and say so.
+
+<!--
 Jonathan's and Janine's own records are real: their money, their health,
 their documents, their children's birthdays. Today there is **one** Supabase
 project and it holds all of it, and every session points at it — including
@@ -269,9 +334,18 @@ never at a real account.
 If a change cannot be verified without touching real data, say so and leave it
 unverified rather than touching it. An unverified fix is a known unknown; a
 corrupted record is somebody's actual life.
+-->
 
 ## What a session costs, and what it costs it in
 
+- The plan has a usage limit; a long session re-reads its whole context every turn, so cost grows ~with length². Most usage is re-reading, not output.
+- **One job per session.** Done = PR open with checks started (or merged). Then end the session; `automerge.yml` and `migrate.yml` finish without anyone watching. Come back only if something fails.
+- Don't wait on CI inside a working session: no polling, no acknowledging notifications turn by turn.
+- Independent tool calls in one block. Read schemas/constraints before writing against them. Don't re-read files you just edited or re-check settled state.
+- Opus is Jonathan's choice for this project; routine reading (logs, CI status) can go to a cheaper subagent where he agrees.
+- The long comments in `.github/workflows/` stay; they are how failures get recognised.
+
+<!--
 **Nobody here is billed per token.** Both accounts are on a Claude plan with a
 usage limit, so a long session does not produce an invoice — it produces a
 session that stops. The thing being spent is the ability to keep working, and it
@@ -347,9 +421,15 @@ And one thing deliberately *not* done. The heavy comment blocks in
 the repository, and both stay. Those comments found the third 403 on the 14th by
 making it recognisable as the same block failing the same way as the first. They
 are not to be trimmed for cost.
+-->
 
 ## graphify
 
+- Each project has a graph at `<project>/graphify-out/` (built free by the session hook; not committed). Root `graphify-out/graph.json` aggregates them (weekly CI artifact `projects-graph`).
+- Use it for relationship/breadth questions (`graphify query|path|explain`); use grep to find a known symbol — measured cheaper and more precise at this size.
+- After code changes: `graphify update <project>`. Never run `graphify label` (paid, Jonathan's call).
+
+<!--
 This is a monorepo. Each project folder (e.g. `kin/`) has its own knowledge
 graph at `<project>/graphify-out/`, and `graphify-out/graph.json` at this root
 is an aggregate of all of them, rebuilt by
@@ -385,3 +465,4 @@ When to reach for it, measured rather than assumed:
 - After modifying code, run `graphify update <project>` there. It writes only
   ignored files, so it will not dirty the tree.
 - Never run `graphify label` — a paid LLM pass, and Jonathan's decision.
+-->
