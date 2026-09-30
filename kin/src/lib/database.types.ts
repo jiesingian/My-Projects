@@ -1790,6 +1790,12 @@ export type Database = {
         Update: { created_at?: string; option_id?: string; person_id?: string; poll_id?: string; voter_name?: string }
         Relationships: []
       }
+      scheduled_messages: {
+        Row: { body: string; created_at: string; failed: string | null; id: string; person_id: string; send_at: string; sent_at: string | null; thread: string }
+        Insert: { body: string; created_at?: string; failed?: string | null; id?: string; person_id?: string; send_at: string; sent_at?: string | null; thread: string }
+        Update: { body?: string; created_at?: string; failed?: string | null; id?: string; person_id?: string; send_at?: string; sent_at?: string | null; thread?: string }
+        Relationships: []
+      }
       saved_messages: {
         Row: { body: string; created_at: string; forwarded_from: string | null; id: string; person_id: string }
         Insert: { body?: string; created_at?: string; forwarded_from?: string | null; id?: string; person_id?: string }
@@ -5621,6 +5627,10 @@ export type Database = {
       create_group_poll: {
         Args: { p_group: string; p_question: string; p_options: string[]; p_allow_multiple: boolean }
         Returns: string
+      }
+      due_scheduled_messages: {
+        Args: { p_secret: string; p_now?: string }
+        Returns: { key: string; endpoint: string; p256dh: string; auth: string; title: string; body: string; url: string }[]
       }
       group_seen_by: {
         Args: { p_group: string }

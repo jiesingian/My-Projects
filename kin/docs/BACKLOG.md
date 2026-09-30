@@ -62,7 +62,14 @@ search across every chat.
    household chat keeps its own polls. The family room and one to one have
    none (the family room reaches too many households; one to one is two
    people).
-10. Scheduled messages ("send at 7am"), on the reminders pipeline.
+10. **Done: scheduled messages.** Type a message, tap "Send later", pick a
+    day and time: it waits (listed above the message box, with Cancel) and
+    is posted as you within five minutes of that time, in any conversation,
+    with the usual notification. It rides the reminders pipeline (pg_cron
+    every five minutes -> /api/cron/reminders), so it needs the same
+    kin_cron_url / kin_cron_secret as reminders -- already set wherever
+    reminders work. If by then you may no longer post there (left the
+    group, connection removed), it is not sent.
 
 ## Agreed 28 September (Jonathan's answers to the page-by-page review)
 

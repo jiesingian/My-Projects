@@ -84,3 +84,8 @@ insert into accounts (id,family_id,name,is_joint,owner_member_id,is_private) val
  ('a4000000-0000-0000-0000-000000000001','a0000000-0000-0000-0000-000000000000','Joint BDO',true,null,false),
  ('a4000000-0000-0000-0000-000000000002','a0000000-0000-0000-0000-000000000000','Ann GCash',false,'00000000-0000-0000-0000-0000000000a1',true),
  ('d4000000-0000-0000-0000-000000000001','d0000000-0000-0000-0000-000000000000','Dan bank',true,null,false);
+
+-- Scheduled messages (20260930210000) write into the household chat and read
+-- the cron secret from Vault; stand-ins for both.
+create table if not exists public.family_messages (id uuid primary key default gen_random_uuid(), family_id uuid not null, member_id uuid, body text not null, mentions uuid[] not null default '{}', created_at timestamptz not null default now(), edited_at timestamptz, deleted_at timestamptz, reply_to uuid, forwarded_from text);
+create or replace function public.kin_vault_secret(p_name text) returns text language sql stable as $$ select 'pglite-cron-secret-0123456789abcdef0123456789' $$;
