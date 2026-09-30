@@ -31,7 +31,13 @@ search across every chat.
    top ("pinned by Ben"); tap it to jump there, Unpin to clear it. Anyone who
    can read the message may pin it; in an announcement channel, admins only.
    The household chat keeps its one pin.
-5. "Seen by" and typing in every conversation.
+5. **Done: "seen by" and typing in every conversation.** Groups now show
+   "Seen by Mama, Lola" under your newest message anyone has read (one to one
+   already showed "Seen"; the household chat already had seen-by). "Mama is
+   typing…" shows in the family room, one to one and groups, over the private
+   channel's presence -- nothing is stored. The family room keeps no seen-by
+   (too many households for it to mean anything), and its typing line shows
+   your own household only, because each household has its own channel.
 6. @mentions that notify, in every conversation.
 7. Search inside a conversation, and jumping to a hit.
 8. Saved messages: a private note-to-self conversation.

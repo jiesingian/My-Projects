@@ -5590,6 +5590,10 @@ export type Database = {
         Args: { p_other: string }
         Returns: string | null
       }
+      group_seen_by: {
+        Args: { p_group: string }
+        Returns: { person_id: string; first_name: string; last_read_at: string }[]
+      }
       pin_chat_message: {
         Args: { p_kind: string; p_id: string; p_pinned: boolean }
         Returns: undefined

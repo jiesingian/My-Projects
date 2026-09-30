@@ -33,6 +33,7 @@ export default async function FamilyRoomPage() {
         {reach} Everyone in those households can read and write here.
       </p>
       <RoomThread
+        me={{ personId: me.person_id, firstName: me.full_name.split(" ")[0] }}
         saveFrom="the Family chat"
         room={{ kind: "family" }}
         messages={messages}
