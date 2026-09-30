@@ -426,3 +426,25 @@ export async function getAttributableTargets(familyId: string): Promise<{ assets
   // difference is flattened here rather than in the component.
   return { assets: assets ?? [], goals: (goals ?? []).map((g) => ({ id: g.id, name: g.title })) };
 }
+
+export type RemittanceWithAllocations = Tables<"remittances"> & { allocations: Tables<"remittance_allocations">[] };
+
+/** Every remittance this grown-up may see, newest first, with what each one
+ * went to. Row-level security decides "may see": a child gets none, and a
+ * "Just me" row reaches only whoever recorded it. `since` (YYYY-MM-DD) bounds
+ * the list for pages that only want recent months. */
+export async function getRemittances(familyId: string, since?: string): Promise<RemittanceWithAllocations[]> {
+  const supabase = await createClient();
+  let query = supabase.from("remittances").select("*").eq("family_id", familyId).order("sent_on", { ascending: false }).order("created_at", { ascending: false });
+  if (since) query = query.gte("sent_on", since);
+  const { data: rows } = await query;
+  if (!rows || rows.length === 0) return [];
+  const { data: allocations } = await supabase
+    .from("remittance_allocations")
+    .select("*")
+    .in("remittance_id", rows.map((r) => r.id))
+    .order("created_at");
+  const byRemittance = new Map<string, Tables<"remittance_allocations">[]>();
+  for (const a of allocations ?? []) byRemittance.set(a.remittance_id, [...(byRemittance.get(a.remittance_id) ?? []), a]);
+  return rows.map((r) => ({ ...r, allocations: byRemittance.get(r.id) ?? [] }));
+}

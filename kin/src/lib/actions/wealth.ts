@@ -5,13 +5,15 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { requireCurrentMember } from "@/lib/session";
 import { syncRowToCalendars, type CalendarTarget } from "@/lib/actions/calendar-sync";
-import { ACCOUNT_TYPES, GOAL_CATEGORY, TRANSFER_CATEGORY, explainLedgerRefusal, type AccountType } from "@/lib/wealth";
+import { ACCOUNT_TYPES, GOAL_CATEGORY, TRANSFER_CATEGORY, REMITTANCE_CHANNELS, explainLedgerRefusal, type AccountType, type RemittanceChannel } from "@/lib/wealth";
 import type { ActionState } from "@/lib/actions/auth";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database, Tables, TablesInsert } from "@/lib/database.types";
 import { allDayEvent } from "@/lib/calendar-shape";
 import { humanDatabaseError } from "@/lib/db-errors";
 import { clamp } from "@/lib/text";
+import { isGrownUp } from "@/lib/roles";
+import { pesoRate, type PesoRate } from "@/lib/fx";
 
 type Db = SupabaseClient<Database>;
 
@@ -1039,5 +1041,101 @@ export async function deleteLiabilityAction(liabilityId: string): Promise<Action
   const { error } = await supabase.from("liabilities").delete().eq("id", liabilityId).eq("family_id", me.family_id);
   if (error) return { error: humanDatabaseError(error.message) };
   revalidateWealth();
+  return { error: null };
+}
+
+/* ------------------------------------------------------------- remittances */
+
+/** The reference rate the form shows while it is being filled in. Only a
+ * preview: logRemittanceAction looks the rate up again itself rather than
+ * storing whatever number a form sends back. */
+export async function lookupRemittanceRateAction(currency: string, date: string): Promise<PesoRate | null> {
+  const me = await requireCurrentMember();
+  if (!isGrownUp(me.role)) return null;
+  return pesoRate(currency, date);
+}
+
+export async function logRemittanceAction(input: {
+  senderMemberId: string | null;
+  senderName: string;
+  receiverMemberId: string | null;
+  amount: number;
+  currency: string;
+  sentOn: string;
+  phpReceived: number;
+  channel: string;
+  channelName: string;
+  accountId: string | null;
+  note: string;
+  isPrivate: boolean;
+  allocations: { purpose: string; amount: number; category: string | null }[];
+}): Promise<ActionState> {
+  const me = await requireCurrentMember();
+  // The row-level policy is the lock; this is the sentence a child would
+  // read instead of a database error, if they ever reached the form.
+  if (!isGrownUp(me.role)) return { error: "Remittances are for grown-ups to record." };
+
+  const currency = input.currency.trim().toUpperCase();
+  const senderName = clamp(input.senderName, 120);
+  if (!input.senderMemberId && !senderName) return { error: "Say who sent it." };
+  if (!(input.amount > 0)) return { error: "Enter how much was sent." };
+  if (!/^[A-Z]{3}$/.test(currency)) return { error: "Choose the currency it was sent in." };
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(input.sentOn)) return { error: "Choose the day it was sent." };
+  if (!(input.phpReceived > 0)) return { error: "Enter the pesos that actually arrived." };
+  if (!REMITTANCE_CHANNELS.includes(input.channel as RemittanceChannel)) return { error: "Choose how it was sent." };
+
+  const allocations = input.allocations
+    .map((a) => ({ purpose: clamp(a.purpose, 80), amount: Number(a.amount), category: a.category ? clamp(a.category, 60) : null }))
+    .filter((a) => a.purpose || a.amount > 0);
+  if (allocations.some((a) => !a.purpose)) return { error: "Name what each part went to." };
+  if (allocations.some((a) => !(a.amount > 0))) return { error: "Each part needs an amount." };
+  const allocated = allocations.reduce((sum, a) => sum + a.amount, 0);
+  if (allocated > input.phpReceived + 0.005) return { error: "What it went to adds up to more than arrived." };
+
+  const rate = await pesoRate(currency, input.sentOn);
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("log_remittance", {
+    p_sender_member_id: input.senderMemberId,
+    p_sender_name: input.senderMemberId ? null : senderName,
+    p_receiver_member_id: input.receiverMemberId,
+    p_amount: input.amount,
+    p_currency: currency,
+    p_sent_on: input.sentOn,
+    p_ecb_rate: rate ? Number(rate.rate.toFixed(8)) : null,
+    p_ecb_rate_date: rate?.rateDate ?? null,
+    p_rate_source: rate?.source ?? null,
+    p_php_received: input.phpReceived,
+    p_channel: input.channel,
+    p_channel_name: clamp(input.channelName, 120) || null,
+    p_account_id: input.accountId,
+    p_note: clamp(input.note, 1000) || null,
+    p_is_private: input.isPrivate,
+    p_allocations: allocations,
+  });
+  if (error) {
+    if (/row-level security/i.test(error.message) && input.accountId) {
+      return {
+        error: input.isPrivate
+          ? "A Just-me remittance can only go into an account of your own. Choose one of yours, or share it with the household."
+          : "That account belongs to someone else in the household. Choose a joint account or one of your own.",
+      };
+    }
+    if (/remittance_over_allocated/.test(error.message)) return { error: "What it went to adds up to more than arrived." };
+    return { error: humanDatabaseError(error.message) };
+  }
+
+  revalidateWealth();
+  revalidatePath("/wealth/remittances");
+  return { error: null };
+}
+
+/** Removes the remittance and the money-in it put on an account, together. */
+export async function deleteRemittanceAction(remittanceId: string): Promise<ActionState> {
+  await requireCurrentMember();
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("delete_remittance", { p_id: remittanceId });
+  if (error) return { error: /remittance_not_found/.test(error.message) ? "That remittance is no longer there." : humanDatabaseError(error.message) };
+  revalidateWealth();
+  revalidatePath("/wealth/remittances");
   return { error: null };
 }
