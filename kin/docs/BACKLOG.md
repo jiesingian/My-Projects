@@ -258,18 +258,20 @@ Decided against in the same review: revising Journal (item 6) and Planner
 
 ## Done
 
-- Remittance log for OFW families (Jonathan, 30 September). Wealth, Cash
-  Flow, Income, "Remittances from abroad": what was sent and in which
-  currency, the European Central Bank's peso value that day (Frankfurter,
-  cached on the server; the Gulf currencies through their fixed dollar peg,
-  the Kuwaiti dinar has none), the pesos that actually arrived, who sent it,
-  who got it, how (bank, GCash, Maya, a remittance centre), and what it went
-  to. A monthly total. When it landed in an account, the money-in appears
-  there too, and removing the remittance removes it. Grown-ups only, and
-  "Just me" keeps one to whoever logged it (it can then land only in their
-  own account). Checked on dev with supabase/tests/rls_remittances.sql.
-  The same migration let the ledger accept money recorded against an asset
-  or an event, which both databases had been refusing.
+- Family tree drawn as households (Jonathan: "looks Windows XP era";
+  approved 30 September, #393). Each household is a soft card in its own
+  colour with its name on it: the couple side by side, the children at home
+  under them, and a curve down to each household their children started.
+  Yours is in the accent colour and the tree opens on it. Who lives with whom
+  is read off the tree (lib/household-layout.ts): married or with children
+  heads a household, everyone else is a child at home. Photos, or initials on
+  the person's colour, and what each person is to you ("Sister-in-law",
+  lib/kinship.ts). Drag with momentum, pinch or scroll to zoom, Fit, tap a
+  household's name to bring it forward. Adding relatives, linking profiles,
+  linked branches, full screen and the 3D view are kept (3D restyled).
+  **Still open:** the QR code on the tree's "Invite to Kin" button (item 2
+  above left it to this work; not done here), and a look at it on a real
+  phone with real photos.
 - Member card and Emergency SOS on Today (approved 30 September, #394).
   Tapping someone's initials opens their card: their local time and zone
   ("8:00 am in Dubai · 4 h behind you"; the zone is reported by their own
@@ -555,6 +557,19 @@ Decided against in the same review: revising Journal (item 6) and Planner
 
 - Scan a flyer or invitation (Planner → Add) into calendar entries you
   review first; Kin AI answers in Taglish when you write in it (24 September).
+- Remittance log for OFW families (Jonathan, 30 September). Wealth, Cash
+  Flow, Income, "Remittances from abroad": what was sent and in which
+  currency, the European Central Bank's peso value that day (Frankfurter,
+  cached on the server; the Gulf currencies through their fixed dollar peg,
+  the Kuwaiti dinar has none), the pesos that actually arrived, who sent it,
+  who got it, how (bank, GCash, Maya, a remittance centre), and what it went
+  to. A monthly total. When it landed in an account, the money-in appears
+  there too, and removing the remittance removes it. Grown-ups only, and
+  "Just me" keeps one to whoever logged it (it can then land only in their
+  own account). RLS: npm run test:rls (probes/remittances.mjs) and
+  supabase/tests/rls_remittances.sql on dev. The same migration let the
+  ledger accept money recorded against an asset or an event, which both
+  databases had been refusing.
 
 ## Decided against, for now
 
