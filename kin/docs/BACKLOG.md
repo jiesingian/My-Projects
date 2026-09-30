@@ -70,8 +70,12 @@ One pull request each, in this order.
    `KIN_SPECIAL_DAYS` (src/lib/holidays.ts). **Not built: a household adding
    its own special day** -- that needs a table, and a household event already
    does the job.
-2. **Invite by QR code**, generated inside Kin (the invite never goes to a
-   third party), with Save image / Share.
+2. **Done: invite by QR code**, wherever the household's invite code is shown
+   (Settings → Household, and adding members while setting up). Drawn in the
+   browser by qrcode-generator (no dependencies), so the invite never goes to
+   a third party. Save image shares a PNG where the phone has a share sheet
+   and downloads it where it does not. The family tree's invite-a-relative
+   button is left to the family tree work.
 3. **Address search**: type-ahead from OpenStreetMap's Nominatim through a
    Kin server route (cached, at most one request a second, biased to the
    Philippines); typing freely still works.

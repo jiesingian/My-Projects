@@ -2,17 +2,20 @@
 
 import { useState } from "react";
 import { Icon } from "@/components/icons";
+import { InviteQr } from "@/components/invite-qr";
+import { joinUrl } from "@/lib/qr";
 
 /** The household's invite code, with the two ways to pass it on: copy the
  * code, or share a link that opens straight into joining (app/join). The
- * link is what most relatives should get -- nobody has to type anything. */
-export function CopyInviteCode({ code }: { code: string }) {
+ * link is what most relatives should get -- nobody has to type anything.
+ * With the family in the same room, the QR code below it is quicker still. */
+export function CopyInviteCode({ code, householdName }: { code: string; householdName?: string }) {
   const [copied, setCopied] = useState<"code" | "link" | null>(null);
   const flash = (what: "code" | "link") => {
     setCopied(what);
     setTimeout(() => setCopied(null), 1500);
   };
-  const link = () => `${window.location.origin}/join/${code.replace(/[^A-Za-z0-9]/g, "")}`;
+  const link = () => joinUrl(window.location.origin, code);
 
   const share = async () => {
     const url = link();
@@ -53,6 +56,8 @@ export function CopyInviteCode({ code }: { code: string }) {
         <Icon name={copied === "link" ? "check" : "users"} size={16} />
         {copied === "link" ? "Link copied" : "Share an invite link"}
       </button>
+      {/* Or in person: point a phone at the screen (30 September). */}
+      <InviteQr code={code} householdName={householdName} />
     </div>
   );
 }

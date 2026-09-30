@@ -6009,4 +6009,30 @@ button.kin-initial:focus-visible {
 .kin-holiday > a {
   color: inherit;
   text-decoration: none;
+/* The invite QR code (components/invite-qr). The frame is white in both
+   themes: a scanner wants dark on light, and the quiet zone is part of the
+   code, not decoration. */
+.kin-qr {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 0.75rem 0 0;
+}
+.kin-qr-frame {
+  width: 11rem;
+  aspect-ratio: 1;
+  border-radius: 0.875rem;
+  background: #fff;
+  overflow: hidden;
+  box-shadow: 0 0 0 1px var(--color-divider);
+}
+.kin-qr-frame > svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+.kin-qr-caption {
+  font-size: 0.8125rem;
+  color: var(--color-neutral-600);
 }
