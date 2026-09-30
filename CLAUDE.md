@@ -7,7 +7,7 @@ this file, so they cost no tokens but stay here for people. Edit both together.
 
 ## Working sessions
 
-- One job per session; end it once the PR is open and its checks have started. See "What a session costs" below.
+- One job per session; end it once the PR is open and its checks have started. A job can be a series of related PRs (a numbered feature list on one area, each item its own PR): keep the whole series in one session, since the items share the context it took to learn the area; end once the last PR is open. See "What a session costs" below.
 - Procedures live in skills: `ship` (open a PR), `migrations`, `ask-a-person`, `new-project`.
 - Path-scoped rules load from `.claude/rules/` when you touch those files.
 
@@ -339,7 +339,7 @@ corrupted record is somebody's actual life.
 ## What a session costs, and what it costs it in
 
 - The plan has a usage limit; a long session re-reads its whole context every turn, so cost grows ~with length². Most usage is re-reading, not output.
-- **One job per session.** Done = PR open with checks started (or merged). Then end the session; `automerge.yml` and `migrate.yml` finish without anyone watching. Come back only if something fails.
+- **One job per session.** Done = PR open with checks started (or merged). A series of related PRs on one area is one job (Jonathan, 30 September): re-learning the area in a fresh session costs more than carrying it, so stay until the series is done. Unrelated jobs still get their own sessions. Then end the session; `automerge.yml` and `migrate.yml` finish without anyone watching. Come back only if something fails.
 - Don't wait on CI inside a working session: no polling, no acknowledging notifications turn by turn.
 - Independent tool calls in one block. Read schemas/constraints before writing against them. Don't re-read files you just edited or re-check settled state.
 - Opus is Jonathan's choice for this project; routine reading (logs, CI status) can go to a cheaper subagent where he agrees.
