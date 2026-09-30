@@ -2,6 +2,9 @@
 
 ## graphify
 
+Same rules as the root `CLAUDE.md`'s graphify section: here the graph is `graphify-out/`, update it with `graphify update .`, grep beats it for finding a known symbol, never `graphify label`.
+
+<!--
 This project has a knowledge graph at `graphify-out/`. `graph.json` is **not
 committed** — it regenerates from source, and its diffs buried every real
 change — so the session hook builds it on a fresh clone, for free, with no
@@ -28,3 +31,4 @@ rather than assumed:
   (AST-only, no API cost). It writes only ignored files now, so it will not
   dirty the tree.
 - Never run `graphify label`. It is a paid LLM pass and Jonathan's call.
+-->
