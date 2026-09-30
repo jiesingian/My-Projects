@@ -8,6 +8,9 @@ import { listen, speechSupported } from "@/lib/speech";
  * none. Start it when recording starts; `finish()` stops it and hands back
  * whatever it heard. */
 export function startTranscript(): { finish: () => string } {
+  // A phone that has already lost a recording to this keeps its sound from
+  // now on (rememberTranscriptConflict): no transcript, never a silent note.
+  if (transcriptConflicts()) return { finish: () => "" };
   let heard = "";
   let listener: ReturnType<typeof listen> = null;
   let stopped = false;
@@ -68,3 +71,30 @@ export async function recordingIsSilent(blob: Blob): Promise<boolean> {
     return false;
   }
 }
+
+const CONFLICT_KEY = "kin-voice-no-transcript";
+
+/** Has this device shown that it cannot transcribe and record at once?
+ * (30 September: Janine's iPhone.) Remembered on the device, not the
+ * account -- it is the phone's limit, not the person's choice. */
+export function transcriptConflicts(): boolean {
+  try {
+    return window.localStorage.getItem(CONFLICT_KEY) === "1";
+  } catch {
+    return false;
+  }
+}
+
+/** Remember it, so the next voice note on this phone skips the transcript
+ * and keeps the sound. */
+export function rememberTranscriptConflict(): void {
+  try {
+    window.localStorage.setItem(CONFLICT_KEY, "1");
+  } catch {
+    /* private mode: it will simply be found out again next time */
+  }
+}
+
+/** What to tell the person the one time it happens. */
+export const CONFLICT_MESSAGE =
+  "This phone can't write down words and record at the same time, so your words are in the message box to send as text. From now on, voice notes on this phone keep the sound, without a transcript.";
