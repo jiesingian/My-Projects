@@ -42,14 +42,14 @@ export type RoomMessage = {
   mentionsMe: boolean;
 };
 
-type MessageColumn = "family_message_id" | "direct_message_id" | "group_message_id" | "link_message_id";
+type MessageColumn = "family_message_id" | "direct_message_id" | "group_message_id" | "link_message_id" | "saved_message_id";
 
 type ReactionRow = { family_message_id: string | null; direct_message_id: string | null; group_message_id: string | null; link_message_id: string | null; emoji: string; author_name: string; person_id: string };
 
 /** Reactions on a window of room messages, one query for all of them. Row-
  * level security leaves out reactions from households the reader is not
  * linked with. */
-export async function reactionsFor(column: MessageColumn, ids: string[], myPersonId: string): Promise<Map<string, RoomMessage["reactions"]>> {
+export async function reactionsFor(column: Exclude<MessageColumn, "saved_message_id">, ids: string[], myPersonId: string): Promise<Map<string, RoomMessage["reactions"]>> {
   const out = new Map<string, RoomMessage["reactions"]>();
   if (ids.length === 0) return out;
   const supabase = await createClient();
@@ -98,7 +98,7 @@ async function photosFor(column: Exclude<MessageColumn, "link_message_id">,ids: 
   const supabase = await createClient();
   const { data } = await supabase
     .from("chat_room_attachments")
-    .select("id, family_message_id, direct_message_id, group_message_id, storage_path, file_name, mime_type, transcript, position")
+    .select("id, family_message_id, direct_message_id, group_message_id, saved_message_id, storage_path, file_name, mime_type, transcript, position")
     .in(column, ids)
     .order("position");
   const signed = await getSignedUrls("documents", (data ?? []).map((a) => a.storage_path));
@@ -370,6 +370,7 @@ export async function getForwardTargets(me: { person_id: string; familyName: str
   ]);
   const admin = new Set((roles ?? []).filter((r) => r.role === "admin").map((r) => r.group_id));
   return [
+    { key: "saved", kind: "saved", title: "Saved messages", subtitle: "Only you" },
     { key: "household", kind: "household", title: me.familyName, subtitle: "Household" },
     { key: "family", kind: "family", title: "Family", subtitle: "Everyone in the family tree" },
     ...peers
@@ -381,4 +382,33 @@ export async function getForwardTargets(me: { person_id: string; familyName: str
       .sort((a, b) => a.name.localeCompare(b.name))
       .map((g): ForwardTarget => ({ key: `group:${g.id}`, kind: "group", title: g.name, subtitle: g.announceOnly ? "Channel" : "Group" })),
   ];
+}
+
+/** Saved messages (20261006100200): this person's notes to self, oldest
+ * first, in the rooms' shape so the thread can draw them the same way. Only
+ * they can read them; row-level security says so, not this. */
+export async function getSavedMessages(myPersonId: string): Promise<RoomMessage[]> {
+  const supabase = await createClient();
+  const { data } = await supabase.from("saved_messages").select("id, body, forwarded_from, created_at").order("created_at", { ascending: false }).limit(300);
+  const rows = (data ?? []).slice().reverse();
+  const photos = await photosFor("saved_message_id", rows.map((r) => r.id));
+  return rows.map((r) => ({
+    id: r.id,
+    authorName: "You",
+    body: r.body,
+    createdAt: r.created_at,
+    mine: true,
+    householdName: null,
+    ourHousehold: true,
+    photos: photos.get(r.id) ?? [],
+    replyTo: null,
+    reactions: [],
+    forwardedFrom: r.forwarded_from,
+    editedAt: null,
+    removed: false,
+    pinnedAt: null,
+    pinnedBy: null,
+    authorPersonId: myPersonId,
+    mentionsMe: false,
+  }));
 }

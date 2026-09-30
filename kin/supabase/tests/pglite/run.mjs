@@ -41,6 +41,7 @@ const MIGRATIONS = [
   "20261002100000_account_numbers.sql",
   "20261006100000_group_seen_by.sql",
   "20261006100100_chat_room_mentions.sql",
+  "20261006100200_saved_messages.sql",
 ];
 
 const only = process.argv[2];

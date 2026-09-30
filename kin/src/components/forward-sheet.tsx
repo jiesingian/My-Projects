@@ -70,7 +70,7 @@ export function ForwardSheet({ source, preview, onClose }: { source: ForwardSour
                   <Avatar url={t.avatarUrl ?? null} initials={initials(t.title)} label={t.title} size={36} clickable={false} />
                 ) : (
                   <span className="kin-forward-icon" aria-hidden="true">
-                    <Icon name={t.kind === "household" ? "house" : t.kind === "family" ? "users" : "message"} size="1.125rem" />
+                    <Icon name={t.kind === "household" ? "house" : t.kind === "family" ? "users" : t.kind === "saved" ? "fileText" : "message"} size="1.125rem" />
                   </span>
                 )}
                 <span style={{ flex: 1, minWidth: 0, textAlign: "left" }}>

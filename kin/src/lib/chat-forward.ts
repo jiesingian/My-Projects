@@ -5,7 +5,7 @@
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
-export type ForwardKind = "household" | "family" | "dm" | "group";
+export type ForwardKind = "household" | "family" | "dm" | "group" | "saved";
 
 /** Where a message came from: its conversation kind and its id. */
 export type ForwardSource = { kind: ForwardKind; id: string };
@@ -19,10 +19,10 @@ export type ForwardTarget = { key: string; kind: ForwardKind; title: string; sub
  * tap can start. */
 export const MAX_FORWARD_TARGETS = 5;
 
-export type ParsedTarget = { kind: "household" } | { kind: "family" } | { kind: "dm"; id: string } | { kind: "group"; id: string };
+export type ParsedTarget = { kind: "household" } | { kind: "family" } | { kind: "saved" } | { kind: "dm"; id: string } | { kind: "group"; id: string };
 
 export function parseTargetKey(key: string): ParsedTarget | null {
-  if (key === "household" || key === "family") return { kind: key };
+  if (key === "household" || key === "family" || key === "saved") return { kind: key };
   const m = /^(dm|group):(.+)$/.exec(key);
   if (!m || !UUID.test(m[2])) return null;
   return m[1] === "dm" ? { kind: "dm", id: m[2].toLowerCase() } : { kind: "group", id: m[2].toLowerCase() };
@@ -33,7 +33,7 @@ export function isForwardSource(value: unknown): value is ForwardSource {
   const v = value as Record<string, unknown>;
   return (
     typeof v.kind === "string" &&
-    ["household", "family", "dm", "group"].includes(v.kind) &&
+    ["household", "family", "dm", "group", "saved"].includes(v.kind) &&
     typeof v.id === "string" &&
     UUID.test(v.id)
   );
