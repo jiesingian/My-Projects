@@ -27,6 +27,9 @@ export type ChatMessage = {
   seenBy: string[];
   attachments: ChatAttachment[];
   poll: ChatPoll | null;
+  /** Forwarded from another conversation (20260930031500): the original
+   * writer's first name, shown above the bubble. */
+  forwardedFrom: string | null;
 };
 
 export type ChatPoll = {
@@ -79,7 +82,7 @@ export async function getChatThread(familyId: string, limit = 200): Promise<Chat
 
   const { data } = await supabase
     .from("family_messages")
-    .select("id, member_id, body, mentions, created_at, edited_at, deleted_at, reply_to")
+    .select("id, member_id, body, mentions, created_at, edited_at, deleted_at, reply_to, forwarded_from")
     .eq("family_id", familyId)
     .order("created_at", { ascending: false })
     .limit(limit);
@@ -166,6 +169,7 @@ export async function getChatThread(familyId: string, limit = 200): Promise<Chat
     createdAt: r.created_at,
     editedAt: r.edited_at,
     deleted: !!r.deleted_at,
+    forwardedFrom: r.deleted_at ? null : r.forwarded_from,
     reactions: Array.from(byMessage.get(r.id)?.entries() ?? []).map(([emoji, memberIds]) => ({ emoji, memberIds })),
     replyTo: (() => {
       const parent = r.reply_to ? quoted.get(r.reply_to) : undefined;

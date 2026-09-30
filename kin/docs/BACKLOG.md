@@ -3,6 +3,30 @@
 What is agreed but not built yet, and what is waiting on somebody. Update
 it in the same pull request that finishes or adds an item.
 
+## Agreed 30 September: chat competitive with Telegram
+
+Jonathan approved ten chat features, each its own pull request, in this
+order. Already in Kin before this list: replies, reactions, edit, withdraw,
+one pin, "seen by", typing and @mentions in the household chat; replies,
+reactions and "Seen" (one to one) in the family room, one to one and groups;
+search across every chat.
+
+1. **Done: reply and forward.** A quote in the family room, one to one and
+   groups now jumps to the message it quotes, as the household's always did.
+   Forward sends any message (words, photos, videos, voice notes; not polls)
+   to up to five conversations at once, labelled "Forwarded from Mama".
+   Files are copied into the forwarder's own chat folder, so deleting the
+   original never empties a forward.
+2. Reactions on every message, the journal's set where sensible.
+3. Edit ("edited") and unsend ("message removed") in every conversation.
+4. Pin a message in every conversation.
+5. "Seen by" and typing in every conversation.
+6. @mentions that notify, in every conversation.
+7. Search inside a conversation, and jumping to a hit.
+8. Saved messages: a private note-to-self conversation.
+9. Polls in any group.
+10. Scheduled messages ("send at 7am"), on the reminders pipeline.
+
 ## Agreed 28 September (Jonathan's answers to the page-by-page review)
 
 The review page: https://claude.ai/artifact/YCR7BHzEfyDsdVEoFkH87r. Each is its
