@@ -11,13 +11,14 @@ export type UploadedFile =
  * first to get a destination, then pass its result in here. */
 export async function uploadFileDirect(
   file: File,
-  kind: "journal" | "journal_personal" | "document" | "avatar" | "family_background" | "recipe" | "routine" | "chat" | "highlight",
+  kind: "journal" | "journal_personal" | "journal_video" | "document" | "avatar" | "family_background" | "recipe" | "routine" | "chat" | "highlight",
   folderId?: string,
+  options?: { personal?: boolean },
 ): Promise<UploadedFile> {
   const sessionRes = await fetch("/api/uploads/session", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ kind, fileName: file.name, mimeType: file.type, fileSize: file.size, folderId }),
+    body: JSON.stringify({ kind, fileName: file.name, mimeType: file.type, fileSize: file.size, folderId, personal: options?.personal }),
   });
   if (!sessionRes.ok) {
     const body = await sessionRes.json().catch(() => null);
