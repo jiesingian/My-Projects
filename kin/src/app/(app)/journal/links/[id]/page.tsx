@@ -11,7 +11,7 @@ export default async function LinkThreadPage({ params }: { params: Promise<{ id:
   const me = await getCurrentMember();
   if (!me) redirect("/onboarding/profile");
   const { id } = await params;
-  const thread = await getLinkThread(id, me.family_id, me.id);
+  const thread = await getLinkThread(id, me.family_id, me.id, me.person_id);
   if (!thread) notFound();
 
   return (

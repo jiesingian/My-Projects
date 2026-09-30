@@ -29,20 +29,20 @@ export type RoomMessage = {
   forwardedFrom: string | null;
 };
 
-type MessageColumn = "family_message_id" | "direct_message_id" | "group_message_id";
+type MessageColumn = "family_message_id" | "direct_message_id" | "group_message_id" | "link_message_id";
 
-type ReactionRow = { family_message_id: string | null; direct_message_id: string | null; group_message_id: string | null; emoji: string; author_name: string; person_id: string };
+type ReactionRow = { family_message_id: string | null; direct_message_id: string | null; group_message_id: string | null; link_message_id: string | null; emoji: string; author_name: string; person_id: string };
 
 /** Reactions on a window of room messages, one query for all of them. Row-
  * level security leaves out reactions from households the reader is not
  * linked with. */
-async function reactionsFor(column: MessageColumn, ids: string[], myPersonId: string): Promise<Map<string, RoomMessage["reactions"]>> {
+export async function reactionsFor(column: MessageColumn, ids: string[], myPersonId: string): Promise<Map<string, RoomMessage["reactions"]>> {
   const out = new Map<string, RoomMessage["reactions"]>();
   if (ids.length === 0) return out;
   const supabase = await createClient();
   const { data } = await supabase
     .from("chat_room_reactions")
-    .select("family_message_id, direct_message_id, group_message_id, emoji, author_name, person_id")
+    .select("family_message_id, direct_message_id, group_message_id, link_message_id, emoji, author_name, person_id")
     .in(column, ids)
     .order("created_at");
   const grouped = new Map<string, Map<string, ReactionRow[]>>();
@@ -74,7 +74,7 @@ function quoteOf(parent: { id: string; body: string } | undefined, authorName: (
 
 /** The photos on a set of room messages, keyed by message id, in the order
  * they were picked. One query and one signing call for the whole window. */
-async function photosFor(column: MessageColumn, ids: string[]): Promise<Map<string, RoomMessage["photos"]>> {
+async function photosFor(column: Exclude<MessageColumn, "link_message_id">,ids: string[]): Promise<Map<string, RoomMessage["photos"]>> {
   const out = new Map<string, RoomMessage["photos"]>();
   if (ids.length === 0) return out;
   const supabase = await createClient();
