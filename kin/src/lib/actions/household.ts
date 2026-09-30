@@ -37,12 +37,17 @@ export async function addBuyItemAction(_prev: ActionState, formData: FormData): 
   const unit = String(formData.get("unit") ?? "").trim() || null;
   const sectionRaw = String(formData.get("section") ?? "").trim();
   const source = String(formData.get("source") ?? "house");
+  // Made on the phone when an item is added offline (lib/offline), so a
+  // replay that is sent twice finds its own row rather than adding a second.
+  const clientId = String(formData.get("id") ?? "");
+  const id = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(clientId) ? clientId : undefined;
   if (!name) return { error: "Name the item." };
 
   // An empty section means the member didn't pick one — file it themselves.
   const section = (MARKET_SECTIONS as readonly string[]).includes(sectionRaw) ? sectionRaw : guessSection(name);
 
   const { error } = await supabase.from("buy_items").insert({
+    ...(id ? { id } : {}),
     family_id: me.family_id,
     name,
     quantity: quantityRaw ? Number(quantityRaw) : null,
@@ -51,6 +56,8 @@ export async function addBuyItemAction(_prev: ActionState, formData: FormData): 
     source,
     created_by: me.id,
   });
+  // Already added by an earlier send of the same offline change.
+  if (error && id && error.code === "23505") return { error: null };
   if (error) return { error: humanDatabaseError(error.message) };
   revalidatePath("/household");
   after(() => sendPush({ kind: "shopping", title: "Added to the list", body: `${name} · by ${me.full_name.split(" ")[0]}`, url: "/household", tag: `list-${me.family_id}` }));
