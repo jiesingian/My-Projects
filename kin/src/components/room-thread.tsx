@@ -15,6 +15,8 @@ import {
   editRoomMessageAction,
   unsendRoomMessageAction,
   pinRoomMessageAction,
+  sendGroupPollAction,
+  voteGroupPollAction,
 } from "@/lib/actions/chat-rooms";
 import { REACTIONS } from "@/lib/chat";
 import { familyClock, familyDateLong } from "@/lib/time";
@@ -24,7 +26,7 @@ import { SaveToJournalButton } from "@/components/save-to-journal";
 import { ForwardSheet } from "@/components/forward-sheet";
 import { uploadFileDirect } from "@/lib/upload-client";
 import { CONFLICT_MESSAGE, recordingIsSilent, rememberTranscriptConflict, startTranscript } from "@/lib/voice-note";
-import type { RoomMessage } from "@/lib/queries/chat-rooms";
+import type { RoomMessage, RoomPoll } from "@/lib/queries/chat-rooms";
 import type { RoomPhoto } from "@/lib/actions/chat-rooms";
 
 /** As in the household chat: beyond this a message becomes an album. */
@@ -221,6 +223,9 @@ export function RoomThread({
         // arrive a beat before them; this brings them in when they land.
         .on("postgres_changes", { event: "INSERT", schema: "public", table: "chat_room_attachments" }, () => router.refresh())
         .on("postgres_changes", { event: "*", schema: "public", table: "chat_room_reactions" }, () => router.refresh())
+        // Votes on a group's polls (20261006100300); row-level security sends
+        // only this person's groups' votes.
+        .on("postgres_changes", { event: "*", schema: "public", table: "group_poll_votes" }, () => router.refresh())
         // Typing, on the same private channel: only people who may read this
         // conversation can join it (chat_topic_is_mine).
         .on("presence", { event: "sync" }, () => {
@@ -262,6 +267,38 @@ export function RoomThread({
     setMentioned((prev) => (prev.includes(c.personId) ? prev : [...prev, c.personId]));
     textArea.current?.focus();
   };
+
+  // A poll, in a group (20261006100300).
+  const [asking, setAsking] = useState(false);
+  const [pollQuestion, setPollQuestion] = useState("");
+  const [pollOptions, setPollOptions] = useState(["", ""]);
+  const [pollMultiple, setPollMultiple] = useState(false);
+  const ask = () => {
+    if (room.kind !== "group") return;
+    const question = pollQuestion.trim();
+    const options = pollOptions.map((o) => o.trim()).filter(Boolean);
+    if (!question || options.length < 2) {
+      setError("A poll needs a question and at least two answers.");
+      return;
+    }
+    startTransition(async () => {
+      const r = await sendGroupPollAction(room.groupId, question, options, pollMultiple);
+      if (r.error) setError(r.error);
+      else {
+        setAsking(false);
+        setPollQuestion("");
+        setPollOptions(["", ""]);
+        setPollMultiple(false);
+      }
+      router.refresh();
+    });
+  };
+  const vote = (poll: RoomPoll, optionId: string) =>
+    startTransition(async () => {
+      const r = await voteGroupPollAction(poll.id, optionId);
+      if (r.error) setError(r.error);
+      router.refresh();
+    });
 
   const send = () => {
     const body = draft.trim();
@@ -561,7 +598,9 @@ export function RoomThread({
                     )}
                   </div>
                 )}
-                {m.removed ? (
+                {m.poll && !m.removed ? (
+                  <GroupPollCard poll={m.poll} disabled={pending || !canReact} onVote={(o) => vote(m.poll!, o)} onMore={() => setActive((a) => (a === m.id ? null : m.id))} />
+                ) : m.removed ? (
                   <span className="kin-bubble kin-bubble-removed" data-mine={m.mine || undefined}>
                     Message removed
                   </span>
@@ -658,7 +697,7 @@ export function RoomThread({
                         {m.pinnedAt ? "Unpin" : "Pin"}
                       </button>
                     )}
-                    {m.mine && m.body && (
+                    {m.mine && m.body && !m.poll && (
                       <button
                         type="button"
                         className="kin-room-actions-word"
@@ -780,7 +819,62 @@ export function RoomThread({
               ))}
             </div>
           )}
+          {asking && room.kind === "group" && (
+            <div className="kin-room-pollform">
+              <input
+                className="input"
+                value={pollQuestion}
+                onChange={(e) => setPollQuestion(e.target.value)}
+                placeholder="Ask a question"
+                maxLength={200}
+                aria-label="Poll question"
+                autoFocus
+              />
+              {pollOptions.map((o, i) => (
+                <input
+                  key={i}
+                  className="input"
+                  value={o}
+                  onChange={(e) => setPollOptions((prev) => prev.map((x, j) => (j === i ? e.target.value : x)))}
+                  placeholder={`Answer ${i + 1}`}
+                  maxLength={100}
+                  aria-label={`Answer ${i + 1}`}
+                />
+              ))}
+              <div className="kin-room-pollform-row">
+                {pollOptions.length < 10 && (
+                  <button type="button" className="btn btn-ghost" onClick={() => setPollOptions((prev) => [...prev, ""])}>
+                    Add an answer
+                  </button>
+                )}
+                <label className="kin-room-pollform-multi">
+                  <input type="checkbox" checked={pollMultiple} onChange={(e) => setPollMultiple(e.target.checked)} /> More than one answer
+                </label>
+              </div>
+              <div className="kin-room-pollform-row">
+                <button type="button" className="btn btn-secondary" onClick={() => setAsking(false)}>
+                  Cancel
+                </button>
+                <button type="button" className="btn btn-primary" disabled={pending} onClick={ask}>
+                  Ask
+                </button>
+              </div>
+            </div>
+          )}
           <div className="kin-composer-row">
+            {room.kind === "group" && (
+              <button
+                type="button"
+                className="btn btn-ghost btn-icon"
+                style={{ width: "2.375rem", height: "2.375rem", flex: "none" }}
+                disabled={pending}
+                aria-pressed={asking}
+                onClick={() => setAsking((a) => !a)}
+                aria-label="Ask a poll"
+              >
+                <Icon name="poll" size="1.125rem" />
+              </button>
+            )}
             <input ref={fileInput} type="file" accept="image/*,video/*" multiple hidden onChange={(e) => pick(e.target.files)} />
             <button
               type="button"
@@ -869,5 +963,30 @@ export function VoiceTranscript({ text }: { text: string }) {
       <summary>Transcript</summary>
       <p>{text}</p>
     </details>
+  );
+}
+
+/** A group poll in the thread (20261006100300): tap an answer to vote or take
+ * it back; each answer shows how many and who. */
+function GroupPollCard({ poll, disabled, onVote, onMore }: { poll: RoomPoll; disabled: boolean; onVote: (optionId: string) => void; onMore: () => void }) {
+  const total = poll.options.reduce((n, o) => n + o.voters.length, 0);
+  return (
+    <div className="kin-room-poll">
+      <button type="button" className="kin-room-poll-q" onClick={onMore}>
+        {poll.question}
+      </button>
+      <span className="kin-room-poll-hint">{poll.allowMultiple ? "Choose any" : "Choose one"}</span>
+      {poll.options.map((o) => {
+        const share = total ? Math.round((o.voters.length / total) * 100) : 0;
+        return (
+          <button key={o.id} type="button" className="kin-room-poll-option" data-mine={o.mine || undefined} disabled={disabled} onClick={() => onVote(o.id)} aria-pressed={o.mine}>
+            <span className="kin-room-poll-bar" style={{ width: `${share}%` }} aria-hidden="true" />
+            <span className="kin-room-poll-label">{o.label}</span>
+            <span className="kin-room-poll-count">{o.voters.length || ""}</span>
+            {o.voters.length > 0 && <span className="kin-room-poll-who">{o.voters.join(", ")}</span>}
+          </button>
+        );
+      })}
+    </div>
   );
 }

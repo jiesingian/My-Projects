@@ -1860,6 +1860,24 @@ export type Database = {
         Update: { mentions?: string[]; pinned_at?: string | null; pinned_by?: string | null; deleted_at?: string | null; edited_at?: string | null; forwarded_from?: string | null; body?: string; created_at?: string; id?: string; person_high?: string; person_low?: string; reply_to?: string | null; sender_person_id?: string | null }
         Relationships: []
       }
+      group_polls: {
+        Row: { allow_multiple: boolean; created_at: string; group_id: string; id: string; message_id: string; question: string }
+        Insert: { allow_multiple?: boolean; created_at?: string; group_id: string; id?: string; message_id: string; question: string }
+        Update: { allow_multiple?: boolean; created_at?: string; group_id?: string; id?: string; message_id?: string; question?: string }
+        Relationships: []
+      }
+      group_poll_options: {
+        Row: { id: string; label: string; poll_id: string; position: number }
+        Insert: { id?: string; label: string; poll_id: string; position?: number }
+        Update: { id?: string; label?: string; poll_id?: string; position?: number }
+        Relationships: []
+      }
+      group_poll_votes: {
+        Row: { created_at: string; option_id: string; person_id: string; poll_id: string; voter_name: string }
+        Insert: { created_at?: string; option_id: string; person_id?: string; poll_id: string; voter_name?: string }
+        Update: { created_at?: string; option_id?: string; person_id?: string; poll_id?: string; voter_name?: string }
+        Relationships: []
+      }
       saved_messages: {
         Row: { body: string; created_at: string; forwarded_from: string | null; id: string; person_id: string }
         Insert: { body?: string; created_at?: string; forwarded_from?: string | null; id?: string; person_id?: string }
@@ -5690,6 +5708,10 @@ export type Database = {
       chat_push_targets_mentioning: {
         Args: { p_thread: string; p_people: string[] }
         Returns: { endpoint: string; p256dh: string; auth: string; mentioned: boolean }[]
+      }
+      create_group_poll: {
+        Args: { p_group: string; p_question: string; p_options: string[]; p_allow_multiple: boolean }
+        Returns: string
       }
       group_seen_by: {
         Args: { p_group: string }
