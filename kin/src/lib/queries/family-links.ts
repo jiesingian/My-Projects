@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { getSignedUrls } from "@/lib/storage";
 import type { FeedOccasion } from "@/lib/occasions";
+import { reactionsFor, type RoomMessage } from "@/lib/queries/chat-rooms";
 
 export type FamilyLink = {
   id: string;
@@ -196,13 +197,27 @@ export async function getFeedOccasions(meId: string, familyId: string): Promise<
   }));
 }
 
-export type LinkMessage = { id: string; authorName: string; body: string; createdAt: string; mine: boolean; ourHousehold: boolean };
+export type LinkMessage = {
+  id: string;
+  authorName: string;
+  body: string;
+  createdAt: string;
+  mine: boolean;
+  ourHousehold: boolean;
+  /** The chat's six, grouped by emoji (20260930041000). */
+  reactions: RoomMessage["reactions"];
+};
 
 /** One linked household's conversation with this one, oldest first, and the
  * name of the household on the other end. Null when the link is not an
  * accepted one this household is on -- the page shows nothing rather than an
  * empty thread that looks like it could be written to. */
-export async function getLinkThread(linkId: string, familyId: string, memberId: string): Promise<{ otherFamilyName: string; messages: LinkMessage[] } | null> {
+export async function getLinkThread(
+  linkId: string,
+  familyId: string,
+  memberId: string,
+  personId: string,
+): Promise<{ otherFamilyName: string; messages: LinkMessage[] } | null> {
   const supabase = await createClient();
   const { data: link } = await supabase
     .from("family_links")
@@ -215,6 +230,11 @@ export async function getLinkThread(linkId: string, familyId: string, memberId: 
     supabase.from("families").select("name").eq("id", otherId).maybeSingle(),
     supabase.from("family_link_messages").select("id, family_id, member_id, author_name, body, created_at").eq("link_id", linkId).order("created_at").limit(300),
   ]);
+  const reactions = await reactionsFor(
+    "link_message_id",
+    (messages ?? []).map((m) => m.id),
+    personId,
+  );
   return {
     otherFamilyName: other?.name ?? "A linked household",
     messages: (messages ?? []).map((m) => ({
@@ -224,6 +244,7 @@ export async function getLinkThread(linkId: string, familyId: string, memberId: 
       createdAt: m.created_at,
       mine: m.member_id === memberId,
       ourHousehold: m.family_id === familyId,
+      reactions: reactions.get(m.id) ?? [],
     })),
   };
 }

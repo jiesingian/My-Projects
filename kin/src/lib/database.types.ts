@@ -1740,8 +1740,8 @@ export type Database = {
         Relationships: []
       }
       chat_room_reactions: {
-        Row: { author_name: string; created_at: string; direct_message_id: string | null; emoji: string; family_id: string | null; family_message_id: string | null; group_message_id: string | null; id: string; person_id: string }
-        Insert: { author_name?: string; created_at?: string; direct_message_id?: string | null; emoji: string; family_id?: string | null; family_message_id?: string | null; group_message_id?: string | null; id?: string; person_id?: string }
+        Row: { author_name: string; created_at: string; direct_message_id: string | null; emoji: string; family_id: string | null; family_message_id: string | null; group_message_id: string | null; id: string; link_message_id: string | null; person_id: string }
+        Insert: { author_name?: string; created_at?: string; direct_message_id?: string | null; emoji: string; family_id?: string | null; family_message_id?: string | null; group_message_id?: string | null; id?: string; link_message_id?: string | null; person_id?: string }
         Update: { author_name?: string; created_at?: string; direct_message_id?: string | null; emoji?: string; family_id?: string | null; family_message_id?: string | null; group_message_id?: string | null; id?: string; person_id?: string }
         Relationships: []
       }

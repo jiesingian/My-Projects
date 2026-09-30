@@ -4,6 +4,8 @@ import { useEffect, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { sendLinkMessageAction, deleteLinkMessageAction } from "@/lib/actions/family-links";
+import { toggleRoomReactionAction } from "@/lib/actions/chat-rooms";
+import { REACTIONS } from "@/lib/chat";
 import { familyClock, familyDateLong } from "@/lib/time";
 import { Icon } from "@/components/icons";
 import type { LinkMessage } from "@/lib/queries/family-links";
@@ -16,7 +18,18 @@ export function LinkThread({ linkId, initial, ourName, theirName }: { linkId: st
   const [draft, setDraft] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
+  /** The message whose reactions are open -- tap a message, as everywhere
+   * else in the chat. */
+  const [active, setActive] = useState<string | null>(null);
   const bottom = useRef<HTMLDivElement>(null);
+
+  const react = (id: string, emoji: string) =>
+    startTransition(async () => {
+      setActive(null);
+      const r = await toggleRoomReactionAction("link", id, emoji);
+      if (r.error) setError(r.error);
+      router.refresh();
+    });
 
   useEffect(() => {
     bottom.current?.scrollIntoView({ block: "end" });
@@ -36,6 +49,9 @@ export function LinkThread({ linkId, initial, ourName, theirName }: { linkId: st
       channel = supabase
         .channel(`family-link:${linkId}`, { config: { private: true } })
         .on("postgres_changes", { event: "*", schema: "public", table: "family_link_messages", filter: `link_id=eq.${linkId}` }, () => router.refresh())
+        // Row-level security sends only reactions on messages this household
+        // can read (20260930041000).
+        .on("postgres_changes", { event: "*", schema: "public", table: "chat_room_reactions" }, () => router.refresh())
         .subscribe();
     })();
     return () => {
@@ -84,9 +100,42 @@ export function LinkThread({ linkId, initial, ourName, theirName }: { linkId: st
                   <span className="kin-linkthread-who">
                     {m.authorName} · {m.ourHousehold ? ourName : theirName}
                   </span>
-                  <span className="kin-bubble" data-mine={m.ourHousehold || undefined} style={{ cursor: "default" }}>
+                  <button
+                    type="button"
+                    className="kin-bubble"
+                    data-mine={m.ourHousehold || undefined}
+                    style={{ whiteSpace: "pre-wrap", textAlign: "left", font: "inherit", border: 0 }}
+                    aria-expanded={active === m.id}
+                    onClick={() => setActive((a) => (a === m.id ? null : m.id))}
+                  >
                     {m.body}
-                  </span>
+                  </button>
+                  {m.reactions.length > 0 && (
+                    <span className="kin-room-reactions">
+                      {m.reactions.map((r) => (
+                        <button
+                          key={r.emoji}
+                          type="button"
+                          data-mine={r.mine || undefined}
+                          disabled={pending}
+                          onClick={() => react(m.id, r.emoji)}
+                          aria-label={`${r.emoji} from ${r.names.join(", ")}`}
+                          title={r.names.join(", ")}
+                        >
+                          {r.emoji} {r.names.length > 1 ? r.names.length : ""}
+                        </button>
+                      ))}
+                    </span>
+                  )}
+                  {active === m.id && (
+                    <span className="kin-room-actions" role="group" aria-label="React">
+                      {REACTIONS.map((e) => (
+                        <button key={e} type="button" disabled={pending} onClick={() => react(m.id, e)} aria-label={`React ${e}`}>
+                          {e}
+                        </button>
+                      ))}
+                    </span>
+                  )}
                   <span className="kin-linkthread-time">
                     {familyClock(new Date(m.createdAt))}
                     {m.mine && (

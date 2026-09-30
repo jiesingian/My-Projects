@@ -212,10 +212,10 @@ export async function deleteDirectMessageAction(id: string): Promise<ActionState
 
 /** Add a reaction, or take it back if it is already yours -- the household
  * chat's six, one of each per person per message. */
-export async function toggleRoomReactionAction(kind: "family" | "dm" | "group", messageId: string, emoji: string): Promise<ActionState> {
+export async function toggleRoomReactionAction(kind: "family" | "dm" | "group" | "link", messageId: string, emoji: string): Promise<ActionState> {
   const me = await requireCurrentMember();
   if (!UUID.test(messageId) || !isReaction(emoji)) return { error: "That reaction isn't available." };
-  const column = kind === "family" ? "family_message_id" : kind === "dm" ? "direct_message_id" : "group_message_id";
+  const column = kind === "family" ? "family_message_id" : kind === "dm" ? "direct_message_id" : kind === "link" ? "link_message_id" : "group_message_id";
   const supabase = await createClient();
   const { data: existing } = await supabase
     .from("chat_room_reactions")
@@ -233,10 +233,14 @@ export async function toggleRoomReactionAction(kind: "family" | "dm" | "group", 
             ? { family_message_id: messageId, emoji }
             : kind === "dm"
               ? { direct_message_id: messageId, emoji }
-              : { group_message_id: messageId, emoji },
+              : kind === "link"
+                ? { link_message_id: messageId, emoji }
+                : { group_message_id: messageId, emoji },
         );
   if (error) return { error: humanDatabaseError(error.message) };
   revalidatePath("/chat", "layout");
+  // The linked-household thread lives under Journal (20260930041000).
+  if (kind === "link") revalidatePath("/journal/links", "layout");
   return { error: null };
 }
 
