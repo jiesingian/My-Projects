@@ -10,7 +10,7 @@
 --   'error P0001'     a trigger or function said no; 'error P0002' not found
 --
 -- Run against dev (peborutoxsqqwgxwgxjo) only. It ends in `rollback`. To
--- check 20260930100000_remittance_log.sql before it merges, paste it in just
+-- check 20260930130000_remittance_log.sql before it merges, paste it in just
 -- after `begin;`.
 
 begin;
