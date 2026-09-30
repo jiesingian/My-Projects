@@ -204,7 +204,7 @@ export type LinkMessage = {
   createdAt: string;
   mine: boolean;
   ourHousehold: boolean;
-  /** The chat's six, grouped by emoji (20260930041000). */
+  /** The chat's six, grouped by emoji (20260930100001). */
   reactions: RoomMessage["reactions"];
 };
 

@@ -239,7 +239,7 @@ export async function toggleRoomReactionAction(kind: "family" | "dm" | "group" |
         );
   if (error) return { error: humanDatabaseError(error.message) };
   revalidatePath("/chat", "layout");
-  // The linked-household thread lives under Journal (20260930041000).
+  // The linked-household thread lives under Journal (20260930100001).
   if (kind === "link") revalidatePath("/journal/links", "layout");
   return { error: null };
 }

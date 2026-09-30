@@ -50,7 +50,7 @@ export function LinkThread({ linkId, initial, ourName, theirName }: { linkId: st
         .channel(`family-link:${linkId}`, { config: { private: true } })
         .on("postgres_changes", { event: "*", schema: "public", table: "family_link_messages", filter: `link_id=eq.${linkId}` }, () => router.refresh())
         // Row-level security sends only reactions on messages this household
-        // can read (20260930041000).
+        // can read (20260930100001).
         .on("postgres_changes", { event: "*", schema: "public", table: "chat_room_reactions" }, () => router.refresh())
         .subscribe();
     })();
