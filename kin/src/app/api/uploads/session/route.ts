@@ -13,11 +13,14 @@ import {
 } from "@/lib/google-drive";
 
 type SessionRequest = {
-  kind: "journal" | "journal_personal" | "document" | "avatar" | "family_background" | "recipe" | "routine" | "chat" | "highlight";
+  kind: "journal" | "journal_personal" | "journal_video" | "document" | "avatar" | "family_background" | "recipe" | "routine" | "chat" | "highlight";
   fileName: string;
   mimeType: string;
   fileSize: number;
   folderId?: string;
+  /** journal_video only: the entry is Just me, so its video goes in the
+   * person's own folder rather than the household's. */
+  personal?: boolean;
 };
 
 /** What each upload kind will accept, checked here because the client's
@@ -32,6 +35,10 @@ const UPLOAD_LIMITS: Record<SessionRequest["kind"], { types: RegExp; maxBytes: n
   highlight: { types: /^(image|video)\//, maxBytes: HIGHLIGHT_VIDEO_BYTES, label: "a photo up to 15MB or a video up to 25MB" },
   journal: { types: /^(image|video)\//, maxBytes: 200 * 1024 * 1024, label: "a photo or video, up to 200MB" },
   journal_personal: { types: /^(image|video)\//, maxBytes: 200 * 1024 * 1024, label: "a photo or video, up to 200MB" },
+  // A video made in Kin from an entry's photos, and its poster (a JPEG of the
+  // title card). A minute at 720p comes to about 20MB; 80MB leaves room for a
+  // phone whose encoder ignores the bitrate it was asked for.
+  journal_video: { types: /^(video\/|image\/jpeg$)/, maxBytes: 80 * 1024 * 1024, label: "a video up to 80MB, or its JPEG poster" },
   recipe: { types: /^image\//, maxBytes: 15 * 1024 * 1024, label: "a photo, up to 15MB" },
   avatar: { types: /^image\//, maxBytes: 15 * 1024 * 1024, label: "a photo, up to 15MB" },
   family_background: { types: /^image\//, maxBytes: 15 * 1024 * 1024, label: "a photo, up to 15MB" },
@@ -64,7 +71,7 @@ export async function POST(request: Request) {
   if (!me) return NextResponse.json({ error: "Not signed in." }, { status: 401 });
 
   const body = (await request.json()) as SessionRequest;
-  const { kind, fileName, mimeType, fileSize, folderId } = body;
+  const { kind, fileName, mimeType, fileSize, folderId, personal } = body;
   if (!fileName || (kind === "document" && !folderId)) {
     return NextResponse.json({ error: "Missing fileName or folderId." }, { status: 400 });
   }
@@ -116,6 +123,23 @@ export async function POST(request: Request) {
       provider: "supabase",
       bucket: "journal",
       path: `person/${me.person_id}/${Date.now()}-${crypto.randomUUID().slice(0, 8)}-${fileName}`,
+    });
+  }
+
+  // A video made from an entry's photos: always Kin's storage, never Drive.
+  // It plays inline in the journal and the Family feed, which a signed Storage
+  // URL does in a <video> and a Drive link does not, and a linked household
+  // has no Drive to fetch it from. Under the household's folder, or the
+  // person's own for a Just-me entry; journal_entry_videos checks the same.
+  if (kind === "journal_video") {
+    const refused = await storageRefusal();
+    if (refused) return refused;
+    const safe = fileName.replace(/[^\w.-]+/g, "_").slice(-60);
+    const folder = personal ? `person/${me.person_id}` : me.family_id;
+    return NextResponse.json({
+      provider: "supabase",
+      bucket: "journal",
+      path: `${folder}/videos/${Date.now()}-${crypto.randomUUID().slice(0, 8)}-${safe}`,
     });
   }
 

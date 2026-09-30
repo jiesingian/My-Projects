@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { getSignedUrls } from "@/lib/storage";
 import type { FeedOccasion } from "@/lib/occasions";
+import { getEntryVideos, type EntryVideo } from "@/lib/queries/entry-video";
 
 export type FamilyLink = {
   id: string;
@@ -56,6 +57,8 @@ export type FeedEntry = {
    * their photos since 25 September). Ids only on ours: reactions and
    * comments stay in the household whose photo it is. */
   photos: { url: string; id: string | null }[];
+  /** The entry's video, made from its photos, when it has one. */
+  video: EntryVideo | null;
   /** Reactions and comments from this household and the households linked
    * with the one it came from (20260929034700). */
   reactions: { emoji: string; count: number; names: string[] }[];
@@ -74,7 +77,7 @@ export async function getFamilyFeed(familyId: string, meId?: string): Promise<Fe
   const supabase = await createClient();
   const { data } = await supabase
     .from("journal_entries")
-    .select("id, title, note, entry_date, family_id, milestone, event_id, journal_entry_media(journal_media(id, storage_path, storage_provider))")
+    .select(`id, title, note, entry_date, family_id, milestone, event_id, journal_entry_media(journal_media(id, storage_path, storage_provider))`)
     .not("shared_at", "is", null)
     .order("entry_date", { ascending: false })
     .limit(200);
@@ -95,7 +98,10 @@ export async function getFamilyFeed(familyId: string, meId?: string): Promise<Fe
     (r.journal_entry_media ?? [])
       .map((m) => m.journal_media as unknown as Media | null)
       .filter((m): m is Media => !!m && m.storage_provider === "supabase" && !!m.storage_path);
-  const signed = await getSignedUrls("journal", rows.flatMap((r) => mediaOf(r).map((m) => m.storage_path as string)));
+  const [signed, videos] = await Promise.all([
+    getSignedUrls("journal", rows.flatMap((r) => mediaOf(r).map((m) => m.storage_path as string))),
+    getEntryVideos(rows.map((r) => r.id)),
+  ]);
   const familyIds = [...new Set(rows.map((r) => r.family_id))];
   const { data: names } = await supabase.from("families").select("id, name").in("id", familyIds.length ? familyIds : [familyId]);
   const byId = new Map((names ?? []).map((f) => [f.id, f.name]));
@@ -128,6 +134,7 @@ export async function getFamilyFeed(familyId: string, meId?: string): Promise<Fe
       photos: mediaOf(r)
         .map((m) => ({ url: signed[m.storage_path as string], id: r.family_id === familyId ? m.id : null }))
         .filter((p): p is { url: string; id: string | null } => !!p.url),
+      video: videos.get(r.id) ?? null,
       ...talkFor(r.id, r.family_id === familyId),
     }));
 

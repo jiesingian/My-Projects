@@ -2,6 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getSignedUrls } from "@/lib/storage";
 import { getValidDriveAccessToken, ensureDriveFolderStructure, ensureNamedSubfolder, listDriveFolderFiles } from "@/lib/google-drive";
 import { familyDay } from "@/lib/time";
+import { getEntryVideos, type EntryVideo } from "@/lib/queries/entry-video";
 
 /** Drive has no push notifications wired up here, so this reconciles the
  * index against Drive's own Journal folder both ways on every load:
@@ -130,7 +131,7 @@ export async function getEntries(familyId: string, mine?: { personId: string }, 
   let query = supabase
     .from("journal_entries")
     .select(
-      "*, milestone_member:members!journal_entries_milestone_member_id_fkey(full_name), journal_entry_people(members(id, full_name)), journal_entry_media(journal_media(id, storage_path, storage_provider, drive_file_id))",
+      `*, milestone_member:members!journal_entries_milestone_member_id_fkey(full_name), journal_entry_people(members(id, full_name)), journal_entry_media(journal_media(id, storage_path, storage_provider, drive_file_id))`,
     )
     .eq("family_id", familyId);
   query = mine ? query.eq("owner_person_id", mine.personId) : query.eq("visibility", "household");
@@ -146,10 +147,11 @@ export async function getEntries(familyId: string, mine?: { personId: string }, 
       .filter((v): v is MediaRef => !!v && v.storage_provider === "supabase" && !!v.storage_path)
       .map((v) => v.storage_path as string),
   );
-  const urls = await getSignedUrls("journal", allPaths);
+  const [urls, videos] = await Promise.all([getSignedUrls("journal", allPaths), getEntryVideos(entries.map((e) => e.id))]);
 
   return entries.map((e) => ({
     ...e,
+    video: videos.get(e.id) ?? null,
     milestoneOf: (e.milestone_member as unknown as { full_name: string } | null)?.full_name ?? null,
     people: (e.journal_entry_people ?? [])
       .map((p) => (p.members as unknown as { id: string; full_name: string } | null))
@@ -183,22 +185,23 @@ export async function getEntry(familyId: string, entryId: string) {
   const { data } = await supabase
     .from("journal_entries")
     .select(
-      "*, milestone_member:members!journal_entries_milestone_member_id_fkey(full_name), journal_entry_people(members(id, full_name)), journal_entry_media(journal_media(id, storage_path, storage_provider, drive_file_id))",
+      `*, milestone_member:members!journal_entries_milestone_member_id_fkey(full_name), journal_entry_people(members(id, full_name)), journal_entry_media(journal_media(id, storage_path, storage_provider, drive_file_id, media_type))`,
     )
     .eq("family_id", familyId)
     .eq("id", entryId)
     .maybeSingle();
   if (!data) return null;
 
-  type MediaRef = { id: string; storage_path: string | null; storage_provider: string; drive_file_id: string | null };
+  type MediaRef = { id: string; storage_path: string | null; storage_provider: string; drive_file_id: string | null; media_type: string };
   const mediaRefs = (data.journal_entry_media ?? [])
     .map((m) => m.journal_media as unknown as MediaRef | null)
     .filter((v): v is MediaRef => !!v);
   const supabasePaths = mediaRefs.filter((v) => v.storage_provider === "supabase" && v.storage_path).map((v) => v.storage_path as string);
-  const urls = await getSignedUrls("journal", supabasePaths);
+  const [urls, videos] = await Promise.all([getSignedUrls("journal", supabasePaths), getEntryVideos([data.id])]);
 
   return {
     ...data,
+    video: videos.get(data.id) ?? null,
     milestoneOf: (data.milestone_member as unknown as { full_name: string } | null)?.full_name ?? null,
     people: (data.journal_entry_people ?? [])
       .map((p) => (p.members as unknown as { id: string; full_name: string } | null))
@@ -207,9 +210,10 @@ export async function getEntry(familyId: string, entryId: string) {
     photos: mediaRefs
       .map((m) => ({
         id: m.id,
+        kind: m.media_type === "video" ? ("video" as const) : ("photo" as const),
         url: m.storage_provider === "google_drive" && m.drive_file_id ? `/api/drive/file/${m.drive_file_id}` : m.storage_path ? (urls[m.storage_path] ?? null) : null,
       }))
-      .filter((p): p is { id: string; url: string } => !!p.url),
+      .filter((p): p is { id: string; kind: "photo" | "video"; url: string } => !!p.url),
   };
 }
 
@@ -314,16 +318,17 @@ export async function getPublicEntry(entryId: string) {
   const [{ data }, me] = await Promise.all([
     supabase
       .from("journal_entries")
-      .select("*, journal_entry_media(journal_media(id, storage_path, storage_provider, drive_file_id, owner_person_id))")
+      .select(`*, journal_entry_media(journal_media(id, storage_path, storage_provider, drive_file_id, owner_person_id))`)
       .eq("id", entryId)
       .not("public_at", "is", null)
       .maybeSingle(),
     supabase.rpc("current_family_id"),
   ]);
   if (!data) return null;
-  const photosOf = await publicPhotos([data], (me.data as string | null) ?? null);
+  const [photosOf, videos] = await Promise.all([publicPhotos([data], (me.data as string | null) ?? null), getEntryVideos([data.id])]);
   return {
     ...data,
+    video: videos.get(data.id) ?? null,
     // A connection's household is theirs: who was there and whose milestone
     // are names from inside it, and are not shown.
     milestoneOf: null as string | null,
@@ -343,6 +348,7 @@ export type PublicFeedEntry = {
   author: string;
   mine: boolean;
   photos: { id: string | null; url: string }[];
+  video: EntryVideo | null;
 };
 
 /** The Public feed: entries marked Public by the people you are connected
@@ -357,7 +363,7 @@ export async function getPublicFeed(personId: string, familyId: string): Promise
   const [{ data }, { data: connections }] = await Promise.all([
     supabase
       .from("journal_entries")
-      .select("id, title, note, entry_date, milestone, family_id, owner_person_id, journal_entry_media(journal_media(id, storage_path, storage_provider, drive_file_id, owner_person_id))")
+      .select(`id, title, note, entry_date, milestone, family_id, owner_person_id, journal_entry_media(journal_media(id, storage_path, storage_provider, drive_file_id, owner_person_id))`)
       .not("public_at", "is", null)
       .order("entry_date", { ascending: false })
       .limit(200),
@@ -365,7 +371,7 @@ export async function getPublicFeed(personId: string, familyId: string): Promise
   ]);
   const names = new Map((connections ?? []).filter((c) => c.status === "accepted").map((c) => [c.person_id, c.full_name ?? "Someone"]));
   const rows = (data ?? []).filter((r) => r.owner_person_id === personId || (r.owner_person_id && names.has(r.owner_person_id)));
-  const photosOf = await publicPhotos(rows, familyId);
+  const [photosOf, videos] = await Promise.all([publicPhotos(rows, familyId), getEntryVideos(rows.map((r) => r.id))]);
   return rows.map((r) => ({
     id: r.id,
     title: r.title,
@@ -375,5 +381,6 @@ export async function getPublicFeed(personId: string, familyId: string): Promise
     author: r.owner_person_id === personId ? "You" : (names.get(r.owner_person_id as string) ?? "Someone"),
     mine: r.owner_person_id === personId,
     photos: photosOf(r),
+    video: videos.get(r.id) ?? null,
   }));
 }

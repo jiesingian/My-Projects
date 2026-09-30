@@ -3386,6 +3386,70 @@ export type Database = {
           },
         ]
       }
+      journal_entry_videos: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          duration_seconds: number
+          entry_id: string
+          family_id: string
+          height: number
+          look: string
+          mime_type: string
+          poster_path: string
+          storage_path: string
+          width: number
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          duration_seconds: number
+          entry_id: string
+          family_id: string
+          height: number
+          look?: string
+          mime_type: string
+          poster_path: string
+          storage_path: string
+          width: number
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          duration_seconds?: number
+          entry_id?: string
+          family_id?: string
+          height?: number
+          look?: string
+          mime_type?: string
+          poster_path?: string
+          storage_path?: string
+          width?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "journal_entry_videos_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "members"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "journal_entry_videos_entry_id_fkey"
+            columns: ["entry_id"]
+            isOneToOne: true
+            referencedRelation: "journal_entries"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "journal_entry_videos_family_id_fkey"
+            columns: ["family_id"]
+            isOneToOne: false
+            referencedRelation: "families"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       journal_media: {
         Row: {
           created_at: string

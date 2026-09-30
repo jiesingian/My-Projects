@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { Icon } from "@/components/icons";
 import { Blueprint } from "@/components/ui";
 import { FeedPhotos, FeedTalk } from "@/components/feed-talk";
+import { EntryVideoCover } from "@/components/entry-video";
 import { SubmitButton, ErrorText } from "@/components/form";
 import { confirm } from "@/components/confirm-sheet";
 import {
@@ -87,6 +88,7 @@ export function FamilyFeed({
         <div style={{ display: "flex", flexDirection: "column", gap: "0.875rem" }}>
           {entries.map((e) => (
             <Blueprint key={e.id} className="kin-feed-card" style={{ padding: 0 }}>
+              {e.video && <EntryVideoCover video={e.video} title={e.title} />}
               <FeedPhotos photos={e.photos} title={e.title} />
               <div style={{ padding: "0.75rem 0.8125rem 0.8125rem" }}>
                 <div style={{ fontSize: "0.75rem", color: e.isOurs ? "var(--color-accent-700)" : "var(--color-neutral-600)", display: "flex", gap: "0.375rem", alignItems: "baseline", flexWrap: "wrap" }}>

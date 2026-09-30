@@ -5991,3 +5991,420 @@ button.kin-initial:focus-visible {
 .kin-voice-transcript { font-size: 0.84375rem; line-height: 1.45; padding: 0 0.25rem; }
 .kin-voice-transcript summary { cursor: pointer; min-height: 1.75rem; display: flex; align-items: center; font-size: 0.78125rem; font-weight: 600; color: var(--color-accent-700); }
 .kin-voice-transcript p { margin: 0.125rem 0 0; white-space: pre-wrap; }
+
+/* ── Video maker (components/video-maker.tsx) ─────────────────────────────
+   Full screen, drawn into <body> like the photo viewer, under it and the
+   call screen. Rises from the bottom as a sheet would, and only fades when
+   the phone asks for less motion. */
+.kin-vm {
+  position: fixed;
+  inset: 0;
+  z-index: 1500;
+  display: flex;
+  flex-direction: column;
+  background: var(--color-bg);
+  color: var(--color-text);
+  padding: env(safe-area-inset-top, 0px) 0 0;
+  transition: transform 320ms var(--ease-drawer), opacity 200ms ease;
+  @starting-style {
+    transform: translateY(6%);
+    opacity: 0;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .kin-vm {
+    transition: opacity 200ms ease;
+    @starting-style {
+      transform: none;
+    }
+  }
+}
+.kin-vm-head {
+  display: grid;
+  grid-template-columns: 2.75rem 1fr 2.75rem;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.375rem var(--gutter, 1rem);
+  border-bottom: 1px solid var(--color-divider);
+}
+.kin-vm-title {
+  font: 600 1.0625rem/1.2 var(--font-heading);
+  text-align: center;
+}
+.kin-vm-steps {
+  display: flex;
+  gap: 4px;
+  justify-content: flex-end;
+}
+.kin-vm-steps > span {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--color-neutral-300);
+  transition: background-color 200ms ease;
+}
+.kin-vm-steps > span[data-on="true"] {
+  background: var(--color-accent);
+}
+.kin-vm-body {
+  flex: 1;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 1rem var(--gutter, 1rem);
+  width: 100%;
+  max-width: 44rem;
+  margin: 0 auto;
+}
+.kin-vm-foot {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  padding: 0.75rem var(--gutter, 1rem) calc(0.75rem + env(safe-area-inset-bottom, 0px));
+  border-top: 1px solid var(--color-divider);
+  background: var(--color-surface);
+}
+.kin-vm-meta {
+  margin-right: auto;
+  font: 400 0.8125rem/1.3 var(--font-numeric);
+  color: var(--color-neutral-600);
+  font-variant-numeric: tabular-nums;
+}
+.kin-vm-note {
+  font-size: 0.875rem;
+  line-height: 1.5;
+  color: var(--color-neutral-700);
+  margin: 0 0 0.875rem;
+}
+.kin-vm-error {
+  font-size: 0.875rem;
+  line-height: 1.45;
+  color: var(--color-accent-700);
+  margin: 0.75rem 0 0;
+}
+.kin-vm-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(6.25rem, 1fr));
+  gap: 0.375rem;
+}
+.kin-vm-pick {
+  position: relative;
+  aspect-ratio: 1;
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  background: var(--color-neutral-200);
+  cursor: pointer;
+  touch-action: manipulation;
+  -webkit-user-select: none;
+  user-select: none;
+  transition: transform 140ms var(--ease-out);
+}
+.kin-vm-pick:active {
+  transform: scale(0.96);
+}
+.kin-vm-pick img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  transition: opacity 180ms ease, filter 180ms ease;
+}
+.kin-vm-pick[data-on="false"] img {
+  opacity: 0.4;
+  filter: grayscale(0.6);
+}
+.kin-vm-badge {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  min-width: 1.5rem;
+  height: 1.5rem;
+  padding: 0 0.375rem;
+  border-radius: var(--radius-pill);
+  display: grid;
+  place-items: center;
+  font: 600 0.75rem/1 var(--font-numeric);
+  color: #fff;
+  background: var(--color-accent);
+  box-shadow: 0 0 0 2px rgb(255 255 255 / 0.9);
+  transition: transform 160ms var(--ease-out), opacity 160ms ease;
+}
+.kin-vm-pick[data-on="false"] .kin-vm-badge {
+  opacity: 0;
+  transform: scale(0.8);
+}
+.kin-vm-order {
+  display: flex;
+  gap: 0.5rem;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  scroll-snap-type: x proximity;
+  list-style: none;
+  margin: 0;
+  padding: 0 0 0.25rem;
+}
+.kin-vm-order li {
+  position: relative;
+  flex: 0 0 5.5rem;
+  scroll-snap-align: start;
+}
+.kin-vm-order img {
+  width: 100%;
+  aspect-ratio: 1;
+  object-fit: cover;
+  border-radius: var(--radius-md);
+  display: block;
+}
+.kin-vm-order-n {
+  position: absolute;
+  top: 4px;
+  left: 4px;
+  font: 600 0.6875rem/1 var(--font-numeric);
+  color: #fff;
+  background: rgb(0 0 0 / 0.55);
+  border-radius: var(--radius-pill);
+  padding: 0.25rem 0.4375rem;
+}
+.kin-vm-order-moves {
+  display: flex;
+  gap: 0.25rem;
+  margin-top: 0.25rem;
+}
+.kin-vm-order-moves button {
+  flex: 1;
+  height: 2.25rem;
+  border: 0;
+  border-radius: var(--radius-control);
+  background: color-mix(in srgb, var(--color-text) 7%, transparent);
+  color: var(--color-text);
+  font-size: 1.25rem;
+  line-height: 1;
+  cursor: pointer;
+  touch-action: manipulation;
+  -webkit-user-select: none;
+  user-select: none;
+  transition: transform 120ms var(--ease-out);
+}
+.kin-vm-order-moves button:active {
+  transform: scale(0.94);
+}
+.kin-vm-order-moves button:disabled {
+  opacity: 0.3;
+}
+.kin-vm-stage {
+  position: relative;
+  margin: 0 auto;
+  border-radius: var(--radius-card);
+  overflow: hidden;
+  background: #0b0a09;
+  box-shadow: var(--shadow-md);
+}
+.kin-vm-stage[data-shape="wide"] {
+  aspect-ratio: 16 / 9;
+  width: 100%;
+}
+.kin-vm-stage[data-shape="tall"] {
+  aspect-ratio: 9 / 16;
+  width: min(100%, 42dvh);
+}
+.kin-vm-stage canvas,
+.kin-vm-stage video {
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-fit: contain;
+  background: #0b0a09;
+}
+.kin-vm-loading {
+  position: absolute;
+  inset: auto 0 0 0;
+  padding: 0.625rem;
+  font: 500 0.8125rem/1.2 var(--font-body);
+  color: #fff;
+  text-align: center;
+  background: linear-gradient(to top, rgb(0 0 0 / 0.6), transparent);
+}
+.kin-vm-mute {
+  position: absolute;
+  right: 0.5rem;
+  bottom: 0.5rem;
+  border: 0;
+  border-radius: var(--radius-pill);
+  padding: 0.375rem 0.6875rem;
+  font: 600 0.75rem/1 var(--font-body);
+  color: #fff;
+  background: rgb(0 0 0 / 0.45);
+  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(12px);
+  cursor: pointer;
+  touch-action: manipulation;
+  -webkit-user-select: none;
+  user-select: none;
+}
+.kin-vm-looks {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.5rem;
+}
+.kin-vm-look {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  align-items: flex-start;
+  text-align: left;
+  padding: 0.75rem;
+  border-radius: var(--radius-md);
+  border: 1.5px solid var(--color-divider);
+  background: var(--color-surface);
+  color: var(--color-text);
+  cursor: pointer;
+  touch-action: manipulation;
+  -webkit-user-select: none;
+  user-select: none;
+  transition: border-color 160ms ease, transform 140ms var(--ease-out);
+}
+.kin-vm-look:active {
+  transform: scale(0.97);
+}
+.kin-vm-look strong {
+  font: 600 0.9375rem/1.1 var(--font-heading);
+}
+.kin-vm-look span {
+  font-size: 0.75rem;
+  line-height: 1.3;
+  color: var(--color-neutral-600);
+}
+/* A swatch of each look's colour, so the choice can be seen before it is read. */
+.kin-vm-look::before {
+  content: "";
+  width: 100%;
+  height: 0.375rem;
+  border-radius: var(--radius-pill);
+  margin-bottom: 0.25rem;
+}
+.kin-vm-look[data-look="warm"]::before {
+  background: linear-gradient(90deg, #f3b56a, #d9804a);
+}
+.kin-vm-look[data-look="classic"]::before {
+  background: linear-gradient(90deg, #d9ccb4, #8f877a);
+}
+.kin-vm-look[data-look="lively"]::before {
+  background: linear-gradient(90deg, #4fb3ff, #ffcc3d);
+}
+.kin-vm-look[aria-pressed="true"] {
+  border-color: var(--color-accent);
+}
+.kin-vm-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.375rem;
+}
+.kin-vm-making {
+  margin-top: 1rem;
+}
+.kin-vm-bar {
+  height: 6px;
+  border-radius: var(--radius-pill);
+  background: var(--color-neutral-200);
+  overflow: hidden;
+  margin-bottom: 0.5rem;
+}
+.kin-vm-bar > span {
+  display: block;
+  height: 100%;
+  background: var(--color-accent);
+  transform-origin: left;
+}
+
+/* ── An entry's video (components/entry-video.tsx) ── */
+.kin-video-cover {
+  position: relative;
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  background: #0b0a09;
+  margin-bottom: 0.5625rem;
+}
+.kin-video-cover video {
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-fit: cover;
+}
+.kin-video-cover-hit {
+  position: absolute;
+  inset: 0;
+  border: 0;
+  padding: 0;
+  background: none;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+.kin-video-pill {
+  position: absolute;
+  left: 0.5rem;
+  bottom: 0.5rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3125rem;
+  padding: 0.3125rem 0.5625rem;
+  border-radius: var(--radius-pill);
+  font: 600 0.75rem/1 var(--font-numeric);
+  color: #fff;
+  background: rgb(0 0 0 / 0.45);
+  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(12px);
+  transition: opacity 200ms ease;
+}
+.kin-video-cover[data-playing="true"] .kin-video-pill {
+  opacity: 0.75;
+}
+.kin-video-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.375rem;
+  margin-top: 0.25rem;
+}
+.kin-video-invite {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  width: 100%;
+  text-align: left;
+  padding: 0.75rem 0.875rem;
+  margin: 0 0 1rem;
+  border-radius: var(--radius-card);
+  border: 1px solid var(--color-divider);
+  background: var(--color-surface);
+  color: var(--color-text);
+  cursor: pointer;
+  touch-action: manipulation;
+  -webkit-user-select: none;
+  user-select: none;
+  transition: transform 140ms var(--ease-out);
+}
+.kin-video-invite:active {
+  transform: scale(0.98);
+}
+.kin-video-invite strong {
+  display: block;
+  font: 600 0.9375rem/1.2 var(--font-heading);
+}
+.kin-video-invite > span:last-child > span {
+  display: block;
+  font-size: 0.8125rem;
+  color: var(--color-neutral-600);
+  margin-top: 0.125rem;
+}
+.kin-video-invite-ico {
+  flex: 0 0 auto;
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  color: var(--color-accent-700);
+  background: color-mix(in srgb, var(--color-accent) 12%, transparent);
+}
