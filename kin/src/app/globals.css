@@ -6420,3 +6420,14 @@ button.kin-room-quote { font: inherit; font-size: 0.78125rem; text-align: left; 
 .kin-room-pollform-row { display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; }
 .kin-room-pollform-multi { display: inline-flex; align-items: center; gap: 0.375rem; font-size: 0.8125rem; }
 @media (prefers-reduced-motion: reduce) { .kin-room-poll-bar { transition: none; } }
+
+/* Scheduled messages (20261006100400). */
+.kin-scheduled { display: flex; flex-direction: column; gap: 0.25rem; padding: 0 0 0.5rem; }
+.kin-scheduled-row { display: grid; grid-template-columns: auto auto 1fr auto; align-items: center; gap: 0.375rem; font-size: 0.78125rem; color: var(--color-neutral-600); }
+.kin-scheduled-when { font-weight: 600; color: var(--color-text); white-space: nowrap; }
+.kin-scheduled-body { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+.kin-scheduled-row .btn { min-height: 2rem; padding: 0 0.5rem; font-size: 0.75rem; }
+.kin-scheduled-pick { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 0.5rem; padding: 0 0 0.5rem; }
+.kin-scheduled-pick label { display: flex; flex-direction: column; gap: 0.25rem; flex: 1 1 12rem; font-size: 0.78125rem; font-weight: 600; }
+.kin-scheduled-pick .input { font-size: 1rem; }
+.kin-scheduled-open { all: unset; display: inline-flex; align-items: center; gap: 0.25rem; margin: 0 0 0.375rem; font-size: 0.78125rem; font-weight: 600; color: var(--color-accent-700); cursor: pointer; }

@@ -700,3 +700,50 @@ export async function voteGroupPollAction(pollId: string, optionId: string): Pro
   revalidatePath("/chat", "layout");
   return { error: null };
 }
+
+// ---------------------------------------------------------------- scheduled messages
+
+export type ScheduledMessage = { id: string; body: string; sendAt: string };
+const SCHEDULE_THREAD = /^(household|family|dm:[0-9a-f-]{36}|group:[0-9a-f-]{36})$/i;
+
+/** Write now, send later (20261006100400). The reminders pipeline posts it
+ * as you at that time (within five minutes) and notifies as usual. */
+export async function scheduleMessageAction(thread: string, body: string, sendAt: string): Promise<ActionState> {
+  await requireCurrentMember();
+  if (!SCHEDULE_THREAD.test(thread)) return { error: "That conversation doesn't exist." };
+  const text = clamp(body.trim(), 2000);
+  if (!text) return { error: "Write the message first." };
+  const when = new Date(sendAt);
+  if (Number.isNaN(when.getTime())) return { error: "Pick a day and time." };
+  if (when.getTime() < Date.now() + 60_000) return { error: "Pick a time at least a minute from now." };
+  if (when.getTime() > Date.now() + 365 * 86_400_000) return { error: "Pick a time within a year." };
+  const supabase = await createClient();
+  const { error } = await supabase.from("scheduled_messages").insert({ thread: thread.toLowerCase(), body: text, send_at: when.toISOString() });
+  if (error) return { error: humanDatabaseError(error.message) };
+  revalidatePath("/chat", "layout");
+  return { error: null };
+}
+
+/** Your messages waiting to go in this conversation, soonest first. */
+export async function listScheduledAction(thread: string): Promise<ScheduledMessage[]> {
+  await requireCurrentMember();
+  if (!SCHEDULE_THREAD.test(thread)) return [];
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("scheduled_messages")
+    .select("id, body, send_at")
+    .eq("thread", thread.toLowerCase())
+    .is("sent_at", null)
+    .order("send_at");
+  return (data ?? []).map((r) => ({ id: r.id, body: r.body, sendAt: r.send_at }));
+}
+
+export async function cancelScheduledAction(id: string): Promise<ActionState> {
+  await requireCurrentMember();
+  if (!UUID.test(id)) return { error: "That message doesn't exist." };
+  const supabase = await createClient();
+  const { data, error } = await supabase.from("scheduled_messages").delete().eq("id", id).is("sent_at", null).select("id");
+  if (error) return { error: humanDatabaseError(error.message) };
+  if (!data?.length) return { error: "That one has already been sent." };
+  return { error: null };
+}
