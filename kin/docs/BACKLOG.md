@@ -109,8 +109,16 @@ One pull request each, in this order.
    per server, each answer cached for a day, leaning to the Philippines.
    Typing freely still works. Events and trips have no location field, so
    they have no search.
-4. **Weekly family digest** on Sundays, built on the week-ahead push (#307),
-   respecting kid view and "just me" / grown-ups-only visibility.
+4. **Done: weekly family digest** at /today/week, opened from "Your
+   family's week" on Today (Saturday to Monday): the week's household photos
+   and journal (★ milestones first), chores kept up (streaks of three days
+   or more), goals, and next week's plans. Only household entries, never a
+   "just me" one; goals as getGoals already shows them to that reader; next
+   week by Today's rule (own, whole family's, and a grown-up sees the
+   children's); in kid view no money goals and no bills. **Not done: the
+   Sunday week-ahead push (#307) still opens the Planner.** Pointing it at
+   the digest means replacing its SQL function in a migration, left for a
+   quieter day given how many sessions are touching migrations.
 
 ## Final stage: everything that costs money, done together
 
