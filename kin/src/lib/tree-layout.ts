@@ -10,15 +10,18 @@
  * browser -- see e2e/tree-layout.logic.spec.ts.
  */
 
-export type LayoutPerson = { id: string; fatherId: string | null; motherId: string | null; spouseId: string | null };
+/** `w` and `h` let a node be something other than one person's card -- the
+ * household chart lays out whole households with this same code, each as wide
+ * as the people in it. Both default to a person's card. */
+export type LayoutPerson = { id: string; fatherId: string | null; motherId: string | null; spouseId: string | null; w?: number; h?: number };
 
 export const CARD_W = 150;
 export const CARD_H = 66;
 const COUPLE_GAP = 18; // between two spouses
-const UNIT_GAP = 30; // between one family unit and the next
-const ROW_GAP = 78; // between generations
+const DEFAULT_UNIT_GAP = 30; // between one family unit and the next
+const DEFAULT_ROW_GAP = 78; // between generations
 
-export type PlacedPerson = { id: string; x: number; y: number; generation: number };
+export type PlacedPerson = { id: string; x: number; y: number; w: number; h: number; generation: number };
 export type Couple = { a: string; b: string; y: number; x1: number; x2: number };
 /** One set of children and the parent(s) they share, drawn as a line down
  * from the parents, a bar across, and a line down to each child. */
@@ -26,8 +29,12 @@ export type Family = { parentIds: string[]; childIds: string[]; fromX: number; f
 
 export type TreeLayout = { people: PlacedPerson[]; couples: Couple[]; families: Family[]; width: number; height: number };
 
-export function layoutTree(input: LayoutPerson[], anchorId: string | null): TreeLayout {
+export function layoutTree(input: LayoutPerson[], anchorId: string | null, gaps: { unit?: number; row?: number } = {}): TreeLayout {
   const byId = new Map(input.map((p) => [p.id, p]));
+  const UNIT_GAP = gaps.unit ?? DEFAULT_UNIT_GAP;
+  const ROW_GAP = gaps.row ?? DEFAULT_ROW_GAP;
+  const wOf = (id: string) => byId.get(id)?.w ?? CARD_W;
+  const hOf = (id: string) => byId.get(id)?.h ?? CARD_H;
   // Links to anyone not in this list (removed, or another household's) are
   // dropped, so a dangling id can never place a card at undefined.
   const father = (p: LayoutPerson) => (p.fatherId && byId.has(p.fatherId) ? p.fatherId : null);
@@ -96,10 +103,19 @@ export function layoutTree(input: LayoutPerson[], anchorId: string | null): Tree
     for (const m of ids) unitOf.set(m, unit);
     byRow[unit.gen].push(unit);
   }
-  const unitWidth = (u: Unit) => u.ids.length * CARD_W + (u.ids.length - 1) * COUPLE_GAP;
+  const unitWidth = (u: Unit) => u.ids.reduce((sum, id) => sum + wOf(id), 0) + (u.ids.length - 1) * COUPLE_GAP;
+  // How far a member's left edge sits from its unit's.
+  const leftIn = (u: Unit, id: string) => {
+    let x = 0;
+    for (const m of u.ids) {
+      if (m === id) break;
+      x += wOf(m) + COUPLE_GAP;
+    }
+    return x;
+  };
   const centreOf = (id: string) => {
     const u = unitOf.get(id)!;
-    return u.x + u.ids.indexOf(id) * (CARD_W + COUPLE_GAP) + CARD_W / 2;
+    return u.x + leftIn(u, id) + wOf(id) / 2;
   };
   const unitCentre = (u: Unit) => u.x + unitWidth(u) / 2;
 
@@ -138,7 +154,7 @@ export function layoutTree(input: LayoutPerson[], anchorId: string | null): Tree
   const parentsOf = (id: string) => [father(byId.get(id)!), mother(byId.get(id)!)].filter((v): v is string => !!v);
   const memberParentCentre = (id: string) => mean(parentsOf(id).map(centreOf));
   // How far a member's card centre sits from its unit's centre.
-  const memberOffset = (u: Unit, id: string) => u.ids.indexOf(id) * (CARD_W + COUPLE_GAP) + CARD_W / 2 - unitWidth(u) / 2;
+  const memberOffset = (u: Unit, id: string) => leftIn(u, id) + wOf(id) / 2 - unitWidth(u) / 2;
   // Where a unit's centre should be so that each member sits under their own
   // parents -- not the couple as a whole under all four of them.
   const parentCentre = (u: Unit) => mean(u.ids.filter((id) => parentsOf(id).length).map((id) => memberParentCentre(id)! - memberOffset(u, id)));
@@ -183,14 +199,19 @@ export function layoutTree(input: LayoutPerson[], anchorId: string | null): Tree
   const allUnits = byRow.flat();
   const minX = allUnits.length ? Math.min(...allUnits.map((u) => u.x)) : 0;
   for (const u of allUnits) u.x -= minX;
-  const rowY = (g: number) => g * (CARD_H + ROW_GAP);
+  // Each row as tall as its tallest card; with every card the same height
+  // this is the plain g * (CARD_H + ROW_GAP) it always was.
+  const rowH = byRow.map((row) => Math.max(0, ...row.flatMap((u) => u.ids.map(hOf))) || CARD_H);
+  const rowTop: number[] = [];
+  rowH.forEach((h, g) => rowTop.push(g === 0 ? 0 : rowTop[g - 1] + rowH[g - 1] + ROW_GAP));
+  const rowY = (g: number) => rowTop[g] ?? 0;
 
   const people: PlacedPerson[] = [];
-  for (const u of allUnits) u.ids.forEach((id, i) => people.push({ id, x: u.x + i * (CARD_W + COUPLE_GAP), y: rowY(u.gen), generation: u.gen }));
+  for (const u of allUnits) u.ids.forEach((id) => people.push({ id, x: u.x + leftIn(u, id), y: rowY(u.gen), w: wOf(id), h: hOf(id), generation: u.gen }));
 
   const couples: Couple[] = allUnits
     .filter((u) => u.ids.length === 2)
-    .map((u) => ({ a: u.ids[0], b: u.ids[1], y: rowY(u.gen) + CARD_H / 2, x1: u.x + CARD_W, x2: u.x + CARD_W + COUPLE_GAP }));
+    .map((u) => ({ a: u.ids[0], b: u.ids[1], y: rowY(u.gen) + hOf(u.ids[0]) / 2, x1: u.x + wOf(u.ids[0]), x2: u.x + wOf(u.ids[0]) + COUPLE_GAP }));
 
   // Children grouped by the exact pair of parents they share, so a
   // half-sibling hangs from the right parent rather than the whole couple.
@@ -212,13 +233,13 @@ export function layoutTree(input: LayoutPerson[], anchorId: string | null): Tree
     const childXs = kids.map(centreOf).sort((a, b) => a - b);
     // A two-parent family's line starts from the marriage line between them;
     // a single parent's from the bottom of their card.
-    const fromY = parents.length === 2 && spouse.get(parents[0]) === parents[1] ? rowY(parentGen) + CARD_H / 2 : rowY(parentGen) + CARD_H;
+    const fromY = parents.length === 2 && spouse.get(parents[0]) === parents[1] ? rowY(parentGen) + hOf(parents[0]) / 2 : rowY(parentGen) + hOf(parents[0]);
     const childY = rowY(childGen);
     const barY = childY - ROW_GAP / 2;
     families.push({ parentIds: parents, childIds: kids, fromX, fromY, barY, barX1: Math.min(fromX, ...childXs), barX2: Math.max(fromX, ...childXs), childXs, childY });
   }
 
   const width = Math.max(CARD_W, ...allUnits.map((u) => u.x + unitWidth(u)));
-  const height = rows * CARD_H + (rows - 1) * ROW_GAP;
+  const height = rowY(rows - 1) + rowH[rows - 1];
   return { people, couples, families, width, height };
 }

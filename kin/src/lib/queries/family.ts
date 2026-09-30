@@ -67,6 +67,10 @@ export type TreePerson = {
   fatherId: string | null;
   motherId: string | null;
   spouseId: string | null;
+  /** From their Kin profile, when they have one: the colour behind their
+   * initials on the tree, and "female"/"male" for words like Aunt or Uncle. */
+  color?: string | null;
+  sex?: string | null;
 };
 
 export type FamilyTree = {
@@ -178,6 +182,8 @@ export async function getFamilyTree(familyId: string, centerMemberId: string | n
       dob: member?.dob ?? r.dob,
       notes: r.notes,
       avatarUrl: member?.avatar_url ?? null,
+      color: member?.color ?? null,
+      sex: member?.sex ?? null,
       fatherId: r.father_id,
       motherId: r.mother_id,
       spouseId: r.spouse_id,

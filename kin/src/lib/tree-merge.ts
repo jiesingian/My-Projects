@@ -10,6 +10,9 @@ export type ChartPerson = {
   fatherId: string | null;
   motherId: string | null;
   spouseId: string | null;
+  /** From a Kin profile; never known for somebody from another household's branch. */
+  color?: string | null;
+  sex?: string | null;
   /** Set for somebody from a linked household's branch, drawn read-only. */
   fromHousehold: string | null;
 };
