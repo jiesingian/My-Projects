@@ -74,7 +74,7 @@ export function RoomThread({
   const [active, setActive] = useState<string | null>(null);
   const [replyingTo, setReplyingTo] = useState<RoomMessage | null>(null);
   const [forwarding, setForwarding] = useState<RoomMessage | null>(null);
-  /** Your own message being rewritten in place (20260930100100). */
+  /** Your own message being rewritten in place (20260930150100). */
   const [editing, setEditing] = useState<{ id: string; body: string } | null>(null);
   /** The message a quote was tapped for, lit for a moment where it lands. */
   const [found, setFound] = useState<string | null>(null);

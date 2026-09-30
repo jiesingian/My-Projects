@@ -27,7 +27,7 @@ export type RoomMessage = {
   /** Forwarded from another conversation (20260930031500): the original
    * writer's first name. */
   forwardedFrom: string | null;
-  /** Edited after sending (20260930100100): when, or null. */
+  /** Edited after sending (20260930150100): when, or null. */
   editedAt: string | null;
   /** Unsent by its writer: shown as "Message removed", words and photos
    * gone, its place in the thread kept. */

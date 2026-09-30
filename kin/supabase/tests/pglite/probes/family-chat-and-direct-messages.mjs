@@ -18,7 +18,12 @@ export default async function ({ db, as, check, refused }) {
   await check("Cat (not linked with B) does not see Ben's message; Ann does", async () =>
     (await as(cat, "select 1 from family_tree_messages where body='hi from B'")).length === 0 && (await as(ann, "select 1 from family_tree_messages where body='hi from B'")).length === 1);
   await check("Ann cannot delete Ben's message", async () => { await as(ann, "delete from family_tree_messages where body='hi from B'"); return (await as(ben, "select 1 from family_tree_messages where body='hi from B'")).length === 1; });
-  await check("Nobody can edit (update revoked)", async () => refused(() => as(ann, "update family_tree_messages set body='edited' where body='hi from A'")));
+  // Since 20260930150100 the writer may edit their own words (edit-unsend.mjs
+  // covers it); nobody else can, and a linked reader changes no row.
+  await check("Only the writer can edit: Ben's update changes nothing", async () => {
+    await as(ben, "update family_tree_messages set body='edited' where body='hi from A'");
+    return (await as(ann, "select 1 from family_tree_messages where body='hi from A'")).length === 1;
+  });
   await check("Revoking A-B hides each side's words from the other at once", async () => {
     await db.exec(`update family_links set status='revoked' where requester_family_id='${A}' and addressee_family_id='${B}'`);
     const r = (await as(ben, "select 1 from family_tree_messages where body='hi from A'")).length === 0;

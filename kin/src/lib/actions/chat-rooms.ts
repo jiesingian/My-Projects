@@ -543,7 +543,7 @@ type RoomKind = "family" | "dm" | "group";
 const ROOM_TABLE = { family: "family_tree_messages", dm: "direct_messages", group: "chat_group_messages" } as const;
 const ROOM_COLUMN = { family: "family_message_id", dm: "direct_message_id", group: "group_message_id" } as const;
 
-/** Change the words of your own message (20260930100100). The database
+/** Change the words of your own message (20260930150100). The database
  * decides whose it is and stamps "edited"; this only says it in words. */
 export async function editRoomMessageAction(kind: RoomKind, id: string, body: string): Promise<ActionState> {
   await requireCurrentMember();
