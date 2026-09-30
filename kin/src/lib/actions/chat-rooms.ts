@@ -110,6 +110,13 @@ function photoLine(photos: RoomPhoto[]): string {
   return `Sent ${photos.length} ${photos.every((p) => p.mimeType.startsWith("image/")) ? "photos" : "files"}`;
 }
 
+/** The people a message names (20260930180000): real ids, never the sender,
+ * at most 20. Naming someone outside the room gives them nothing -- the
+ * notification only ever reaches the room's own people. */
+function named(me: Sender, people: string[]): string[] {
+  return [...new Set((Array.isArray(people) ? people : []).filter((p) => typeof p === "string" && UUID.test(p) && p !== me.person_id))].slice(0, 20);
+}
+
 /** A message to everyone in the family tree: this household and each one
  * linked with it. Who wrote it and from where is set by the database. */
 export async function sendFamilyMessageAction(
@@ -117,6 +124,7 @@ export async function sendFamilyMessageAction(
   photos: RoomPhoto[] = [],
   replyTo: string | null = null,
   forwardedFrom: string | null = null,
+  mentions: string[] = [],
 ): Promise<ActionState> {
   const me = await requireCurrentMember();
   const text = clamp(body.trim(), 2000);
@@ -125,7 +133,7 @@ export async function sendFamilyMessageAction(
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("family_tree_messages")
-    .insert({ body: text, reply_to: replyTo && UUID.test(replyTo) ? replyTo : null, forwarded_from: forwardedFrom?.slice(0, 60) || null })
+    .insert({ body: text, reply_to: replyTo && UUID.test(replyTo) ? replyTo : null, forwarded_from: forwardedFrom?.slice(0, 60) || null, mentions: named(me, mentions) })
     .select("id")
     .single();
   if (error || !data) return { error: error ? humanDatabaseError(error.message) : "That didn't send." };
@@ -141,7 +149,7 @@ export async function sendFamilyMessageAction(
       body: text || photoLine(photos),
       url: "/chat/family",
       tag: `family-tree-${me.family_id}`,
-    }),
+    }, { people: named(me, mentions), title: `${me.full_name.split(" ")[0]} mentioned you · Family`, tag: `mention-${data.id}` }),
   );
   return { error: null };
 }
@@ -166,6 +174,7 @@ export async function sendDirectMessageAction(
   photos: RoomPhoto[] = [],
   replyTo: string | null = null,
   forwardedFrom: string | null = null,
+  mentions: string[] = [],
 ): Promise<ActionState> {
   const me = await requireCurrentMember();
   if (!UUID.test(otherPersonId)) return { error: "That conversation doesn't exist." };
@@ -176,7 +185,7 @@ export async function sendDirectMessageAction(
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("direct_messages")
-    .insert({ person_low, person_high, body: text, reply_to: replyTo && UUID.test(replyTo) ? replyTo : null, forwarded_from: forwardedFrom?.slice(0, 60) || null })
+    .insert({ person_low, person_high, body: text, reply_to: replyTo && UUID.test(replyTo) ? replyTo : null, forwarded_from: forwardedFrom?.slice(0, 60) || null, mentions: named(me, mentions) })
     .select("id")
     .single();
   if (error || !data) {
@@ -193,7 +202,7 @@ export async function sendDirectMessageAction(
       body: text || photoLine(photos),
       url: `/chat/dm/${me.person_id}`,
       tag: `dm-${person_low}-${person_high}`,
-    }),
+    }, { people: named(me, mentions), title: `${me.full_name.split(" ")[0]} mentioned you`, tag: `mention-${data.id}` }),
   );
   return { error: null };
 }
@@ -354,6 +363,7 @@ export async function sendGroupMessageAction(
   photos: RoomPhoto[] = [],
   replyTo: string | null = null,
   forwardedFrom: string | null = null,
+  mentions: string[] = [],
 ): Promise<ActionState> {
   const me = await requireCurrentMember();
   if (!UUID.test(groupId)) return { error: "That group doesn't exist." };
@@ -363,7 +373,7 @@ export async function sendGroupMessageAction(
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("chat_group_messages")
-    .insert({ group_id: groupId, body: text, reply_to: replyTo && UUID.test(replyTo) ? replyTo : null, forwarded_from: forwardedFrom?.slice(0, 60) || null })
+    .insert({ group_id: groupId, body: text, reply_to: replyTo && UUID.test(replyTo) ? replyTo : null, forwarded_from: forwardedFrom?.slice(0, 60) || null, mentions: named(me, mentions) })
     .select("id")
     .single();
   if (error || !data) {
@@ -381,7 +391,7 @@ export async function sendGroupMessageAction(
       body: text || photoLine(photos),
       url: `/chat/groups/${groupId}`,
       tag: `group-${groupId}`,
-    }),
+    }, { people: named(me, mentions), title: `${me.full_name.split(" ")[0]} mentioned you · ${group?.name ?? "Group"}`, tag: `mention-${data.id}` }),
   );
   return { error: null };
 }

@@ -36,6 +36,10 @@ export type RoomMessage = {
    * first name of who pinned it. */
   pinnedAt: string | null;
   pinnedBy: string | null;
+  /** Who wrote it, as a person (for @-mentioning them back), and whether it
+   * names the reader (20260930180000). */
+  authorPersonId: string | null;
+  mentionsMe: boolean;
 };
 
 type MessageColumn = "family_message_id" | "direct_message_id" | "group_message_id" | "link_message_id";
@@ -115,7 +119,7 @@ export function pairOf(a: string, b: string): [string, string] {
 export async function getFamilyRoom(me: { id: string; family_id: string; person_id: string }): Promise<{ messages: RoomMessage[]; households: string[] }> {
   const supabase = await createClient();
   const [{ data }, { data: links }] = await Promise.all([
-    supabase.from("family_tree_messages").select("id, family_id, member_id, author_name, body, created_at, reply_to, forwarded_from, edited_at, deleted_at, pinned_at, pinned_by").order("created_at", { ascending: false }).limit(200),
+    supabase.from("family_tree_messages").select("id, family_id, member_id, person_id, mentions, author_name, body, created_at, reply_to, forwarded_from, edited_at, deleted_at, pinned_at, pinned_by").order("created_at", { ascending: false }).limit(200),
     supabase.from("family_links").select("requester_family_id, addressee_family_id").eq("status", "accepted"),
   ]);
   const rows = (data ?? []).slice().reverse();
@@ -150,6 +154,8 @@ export async function getFamilyRoom(me: { id: string; family_id: string; person_
       removed: !!r.deleted_at,
       pinnedAt: r.deleted_at ? null : r.pinned_at,
       pinnedBy: r.pinned_by,
+      authorPersonId: r.person_id,
+      mentionsMe: !r.deleted_at && (r.mentions ?? []).includes(me.person_id),
     })),
   };
 }
@@ -173,7 +179,7 @@ export async function getDirectThread(
   const [low, high] = pairOf(myPersonId, otherPersonId);
   const { data } = await supabase
     .from("direct_messages")
-    .select("id, sender_person_id, body, created_at, reply_to, forwarded_from, edited_at, deleted_at, pinned_at, pinned_by")
+    .select("id, sender_person_id, mentions, body, created_at, reply_to, forwarded_from, edited_at, deleted_at, pinned_at, pinned_by")
     .eq("person_low", low)
     .eq("person_high", high)
     .order("created_at", { ascending: false })
@@ -209,6 +215,8 @@ export async function getDirectThread(
         removed: !!m.deleted_at,
         pinnedAt: m.deleted_at ? null : m.pinned_at,
         pinnedBy: m.pinned_by,
+        authorPersonId: m.sender_person_id,
+        mentionsMe: !m.deleted_at && (m.mentions ?? []).includes(myPersonId),
       })),
   };
 }
@@ -264,7 +272,7 @@ export async function getGroupRoom(
     supabase.rpc("group_members_of", { p_group: groupId }),
     supabase
       .from("chat_group_messages")
-      .select("id, sender_person_id, author_name, body, created_at, reply_to, forwarded_from, edited_at, deleted_at, pinned_at, pinned_by")
+      .select("id, sender_person_id, mentions, author_name, body, created_at, reply_to, forwarded_from, edited_at, deleted_at, pinned_at, pinned_by")
       .eq("group_id", groupId)
       .order("created_at", { ascending: false })
       .limit(300),
@@ -309,6 +317,8 @@ export async function getGroupRoom(
       removed: !!r.deleted_at,
       pinnedAt: r.deleted_at ? null : r.pinned_at,
       pinnedBy: r.pinned_by,
+      authorPersonId: r.sender_person_id,
+      mentionsMe: !r.deleted_at && (r.mentions ?? []).includes(myPersonId),
     })),
   };
 }
