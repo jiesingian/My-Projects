@@ -20,7 +20,12 @@ search across every chat.
 2. **Done: reactions on every message.** The six (👍 ❤️ 😂 😮 😢 🙏) were
    already the journal's and every chat's; the conversation between two
    linked households now has them too (tap a message).
-3. Edit ("edited") and unsend ("message removed") in every conversation.
+3. **Done: edit and unsend in every conversation.** Tap your own message in
+   the family room, one to one or a group: Edit (shows "edited") or Unsend
+   (everyone sees "Message removed"; its photos go too). The household chat
+   already had both; its "withdrawn" now reads "removed" and its Delete
+   reads Unsend. No time limit, as in the household chat. A group admin's
+   Delete on someone else's message is unchanged.
 4. Pin a message in every conversation.
 5. "Seen by" and typing in every conversation.
 6. @mentions that notify, in every conversation.

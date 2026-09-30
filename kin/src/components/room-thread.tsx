@@ -12,6 +12,8 @@ import {
   sendGroupMessageAction,
   deleteGroupMessageAction,
   toggleRoomReactionAction,
+  editRoomMessageAction,
+  unsendRoomMessageAction,
 } from "@/lib/actions/chat-rooms";
 import { REACTIONS } from "@/lib/chat";
 import { familyClock, familyDateLong } from "@/lib/time";
@@ -72,6 +74,8 @@ export function RoomThread({
   const [active, setActive] = useState<string | null>(null);
   const [replyingTo, setReplyingTo] = useState<RoomMessage | null>(null);
   const [forwarding, setForwarding] = useState<RoomMessage | null>(null);
+  /** Your own message being rewritten in place (20260930100100). */
+  const [editing, setEditing] = useState<{ id: string; body: string } | null>(null);
   /** The message a quote was tapped for, lit for a moment where it lands. */
   const [found, setFound] = useState<string | null>(null);
   const bottom = useRef<HTMLDivElement>(null);
@@ -244,6 +248,27 @@ export function RoomThread({
       router.refresh();
     });
 
+  // Your own message is unsent (everyone sees "Message removed"); a group
+  // admin taking down someone else's still deletes it outright.
+  const unsend = (id: string) =>
+    startTransition(async () => {
+      setActive(null);
+      const r = await unsendRoomMessageAction(room.kind, id);
+      if (r.error) setError(r.error);
+      router.refresh();
+    });
+
+  const saveEdit = () => {
+    if (!editing) return;
+    const { id, body } = editing;
+    setEditing(null);
+    startTransition(async () => {
+      const r = await editRoomMessageAction(room.kind, id, body);
+      if (r.error) setError(r.error);
+      router.refresh();
+    });
+  };
+
   const react = (id: string, emoji: string) =>
     startTransition(async () => {
       setActive(null);
@@ -333,7 +358,37 @@ export function RoomThread({
                     )}
                   </div>
                 )}
-                {m.body && (
+                {m.removed ? (
+                  <span className="kin-bubble kin-bubble-removed" data-mine={m.mine || undefined}>
+                    Message removed
+                  </span>
+                ) : editing?.id === m.id ? (
+                  <span className="kin-room-edit">
+                    <textarea
+                      className="input"
+                      value={editing.body}
+                      onChange={(e) => setEditing({ id: m.id, body: e.target.value })}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" && !e.shiftKey) {
+                          e.preventDefault();
+                          saveEdit();
+                        } else if (e.key === "Escape") setEditing(null);
+                      }}
+                      maxLength={2000}
+                      rows={2}
+                      autoFocus
+                      aria-label="Edit this message"
+                    />
+                    <span className="kin-room-edit-row">
+                      <button type="button" className="btn btn-ghost" onClick={() => setEditing(null)}>
+                        Cancel
+                      </button>
+                      <button type="button" className="btn btn-primary" disabled={pending || !editing.body.trim()} onClick={saveEdit}>
+                        Save
+                      </button>
+                    </span>
+                  </span>
+                ) : m.body && (
                   // Tapping a message opens its reactions and Reply, as in
                   // the household chat.
                   <button
@@ -364,7 +419,7 @@ export function RoomThread({
                     ))}
                   </span>
                 )}
-                {active === m.id && canReact && (
+                {active === m.id && canReact && !m.removed && (
                   <span className="kin-room-actions" role="group" aria-label={canWrite ? "React or reply" : "React"}>
                     {REACTIONS.map((e) => (
                       <button key={e} type="button" disabled={pending} onClick={() => react(m.id, e)} aria-label={`React ${e}`}>
@@ -394,16 +449,34 @@ export function RoomThread({
                     >
                       Forward
                     </button>
+                    {m.mine && m.body && (
+                      <button
+                        type="button"
+                        className="kin-room-actions-word"
+                        onClick={() => {
+                          setEditing({ id: m.id, body: m.body });
+                          setActive(null);
+                        }}
+                      >
+                        Edit
+                      </button>
+                    )}
+                    {m.mine && (
+                      <button type="button" className="kin-room-actions-word" data-danger disabled={pending} onClick={() => unsend(m.id)}>
+                        Unsend
+                      </button>
+                    )}
                   </span>
                 )}
                 <span className="kin-linkthread-time">
                   {familyClock(new Date(m.createdAt))}
+                  {m.editedAt && !m.removed ? " · edited" : ""}
                   {m.photos.length > 0 && !m.body && canReact && (
                     <button type="button" className="kin-linkthread-delete" onClick={() => setActive((a) => (a === m.id ? null : m.id))}>
                       React
                     </button>
                   )}
-                  {(m.mine || (room.kind === "group" && room.isAdmin)) && (
+                  {!m.mine && room.kind === "group" && room.isAdmin && !m.removed && (
                     <button type="button" className="kin-linkthread-delete" disabled={pending} onClick={() => remove(m.id)}>
                       Delete
                     </button>
