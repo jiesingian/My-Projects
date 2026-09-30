@@ -1761,15 +1761,15 @@ export type Database = {
         Relationships: []
       }
       family_tree_messages: {
-        Row: { deleted_at: string | null; edited_at: string | null; forwarded_from: string | null; author_name: string; body: string; created_at: string; family_id: string; id: string; member_id: string | null; person_id: string | null; reply_to: string | null }
-        Insert: { deleted_at?: string | null; edited_at?: string | null; forwarded_from?: string | null; author_name?: string; body: string; created_at?: string; family_id?: string; id?: string; member_id?: string | null; person_id?: string | null; reply_to?: string | null }
-        Update: { deleted_at?: string | null; edited_at?: string | null; forwarded_from?: string | null; author_name?: string; body?: string; created_at?: string; family_id?: string; id?: string; member_id?: string | null; person_id?: string | null; reply_to?: string | null }
+        Row: { pinned_at: string | null; pinned_by: string | null; deleted_at: string | null; edited_at: string | null; forwarded_from: string | null; author_name: string; body: string; created_at: string; family_id: string; id: string; member_id: string | null; person_id: string | null; reply_to: string | null }
+        Insert: { pinned_at?: string | null; pinned_by?: string | null; deleted_at?: string | null; edited_at?: string | null; forwarded_from?: string | null; author_name?: string; body: string; created_at?: string; family_id?: string; id?: string; member_id?: string | null; person_id?: string | null; reply_to?: string | null }
+        Update: { pinned_at?: string | null; pinned_by?: string | null; deleted_at?: string | null; edited_at?: string | null; forwarded_from?: string | null; author_name?: string; body?: string; created_at?: string; family_id?: string; id?: string; member_id?: string | null; person_id?: string | null; reply_to?: string | null }
         Relationships: []
       }
       direct_messages: {
-        Row: { deleted_at: string | null; edited_at: string | null; forwarded_from: string | null; body: string; created_at: string; id: string; person_high: string; person_low: string; reply_to: string | null; sender_person_id: string | null }
-        Insert: { deleted_at?: string | null; edited_at?: string | null; forwarded_from?: string | null; body: string; created_at?: string; id?: string; person_high: string; person_low: string; reply_to?: string | null; sender_person_id?: string | null }
-        Update: { deleted_at?: string | null; edited_at?: string | null; forwarded_from?: string | null; body?: string; created_at?: string; id?: string; person_high?: string; person_low?: string; reply_to?: string | null; sender_person_id?: string | null }
+        Row: { pinned_at: string | null; pinned_by: string | null; deleted_at: string | null; edited_at: string | null; forwarded_from: string | null; body: string; created_at: string; id: string; person_high: string; person_low: string; reply_to: string | null; sender_person_id: string | null }
+        Insert: { pinned_at?: string | null; pinned_by?: string | null; deleted_at?: string | null; edited_at?: string | null; forwarded_from?: string | null; body: string; created_at?: string; id?: string; person_high: string; person_low: string; reply_to?: string | null; sender_person_id?: string | null }
+        Update: { pinned_at?: string | null; pinned_by?: string | null; deleted_at?: string | null; edited_at?: string | null; forwarded_from?: string | null; body?: string; created_at?: string; id?: string; person_high?: string; person_low?: string; reply_to?: string | null; sender_person_id?: string | null }
         Relationships: []
       }
       chat_reads: {
@@ -1809,9 +1809,9 @@ export type Database = {
         Relationships: []
       }
       chat_group_messages: {
-        Row: { deleted_at: string | null; edited_at: string | null; forwarded_from: string | null; author_name: string; body: string; created_at: string; group_id: string; id: string; reply_to: string | null; sender_person_id: string | null }
-        Insert: { deleted_at?: string | null; edited_at?: string | null; forwarded_from?: string | null; author_name?: string; body: string; created_at?: string; group_id: string; id?: string; reply_to?: string | null; sender_person_id?: string | null }
-        Update: { deleted_at?: string | null; edited_at?: string | null; forwarded_from?: string | null; author_name?: string; body?: string; created_at?: string; group_id?: string; id?: string; reply_to?: string | null; sender_person_id?: string | null }
+        Row: { pinned_at: string | null; pinned_by: string | null; deleted_at: string | null; edited_at: string | null; forwarded_from: string | null; author_name: string; body: string; created_at: string; group_id: string; id: string; reply_to: string | null; sender_person_id: string | null }
+        Insert: { pinned_at?: string | null; pinned_by?: string | null; deleted_at?: string | null; edited_at?: string | null; forwarded_from?: string | null; author_name?: string; body: string; created_at?: string; group_id: string; id?: string; reply_to?: string | null; sender_person_id?: string | null }
+        Update: { pinned_at?: string | null; pinned_by?: string | null; deleted_at?: string | null; edited_at?: string | null; forwarded_from?: string | null; author_name?: string; body?: string; created_at?: string; group_id?: string; id?: string; reply_to?: string | null; sender_person_id?: string | null }
         Relationships: []
       }
       family_link_messages: {
@@ -5589,6 +5589,10 @@ export type Database = {
       dm_seen_at: {
         Args: { p_other: string }
         Returns: string | null
+      }
+      pin_chat_message: {
+        Args: { p_kind: string; p_id: string; p_pinned: boolean }
+        Returns: undefined
       }
       chat_push_targets: {
         Args: { p_thread: string }

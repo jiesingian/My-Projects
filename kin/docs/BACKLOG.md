@@ -26,7 +26,11 @@ search across every chat.
    already had both; its "withdrawn" now reads "removed" and its Delete
    reads Unsend. No time limit, as in the household chat. A group admin's
    Delete on someone else's message is unchanged.
-4. Pin a message in every conversation.
+4. **Done: pin a message in every conversation.** Tap a message in the family
+   room, one to one or a group: Pin. The most recently pinned shows at the
+   top ("pinned by Ben"); tap it to jump there, Unpin to clear it. Anyone who
+   can read the message may pin it; in an announcement channel, admins only.
+   The household chat keeps its one pin.
 5. "Seen by" and typing in every conversation.
 6. @mentions that notify, in every conversation.
 7. Search inside a conversation, and jumping to a hit.
