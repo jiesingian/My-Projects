@@ -40,7 +40,44 @@ export type RoomMessage = {
    * names the reader (20261006100100). */
   authorPersonId: string | null;
   mentionsMe: boolean;
+  /** A group poll asked in this message (20261006100300). */
+  poll?: RoomPoll | null;
 };
+
+export type RoomPoll = {
+  id: string;
+  question: string;
+  allowMultiple: boolean;
+  options: { id: string; label: string; voters: string[]; mine: boolean }[];
+};
+
+/** The polls asked in a window of group messages, with who voted for what. */
+async function pollsFor(messageIds: string[], myPersonId: string): Promise<Map<string, RoomPoll>> {
+  const out = new Map<string, RoomPoll>();
+  if (messageIds.length === 0) return out;
+  const supabase = await createClient();
+  const { data: polls } = await supabase.from("group_polls").select("id, message_id, question, allow_multiple").in("message_id", messageIds);
+  if (!polls?.length) return out;
+  const ids = polls.map((p) => p.id);
+  const [{ data: options }, { data: votes }] = await Promise.all([
+    supabase.from("group_poll_options").select("id, poll_id, label, position").in("poll_id", ids).order("position"),
+    supabase.from("group_poll_votes").select("poll_id, option_id, person_id, voter_name").in("poll_id", ids).order("created_at"),
+  ]);
+  for (const p of polls) {
+    out.set(p.message_id, {
+      id: p.id,
+      question: p.question,
+      allowMultiple: p.allow_multiple,
+      options: (options ?? [])
+        .filter((o) => o.poll_id === p.id)
+        .map((o) => {
+          const v = (votes ?? []).filter((x) => x.option_id === o.id);
+          return { id: o.id, label: o.label, voters: v.map((x) => (x.person_id === myPersonId ? "You" : x.voter_name || "Someone")), mine: v.some((x) => x.person_id === myPersonId) };
+        }),
+    });
+  }
+  return out;
+}
 
 type MessageColumn = "family_message_id" | "direct_message_id" | "group_message_id" | "link_message_id" | "saved_message_id";
 
@@ -289,7 +326,11 @@ export async function getGroupRoom(
   const isAdmin = members.some((m) => m.personId === myPersonId && m.admin);
   const rows = (data ?? []).slice().reverse();
   const ids = rows.map((r) => r.id);
-  const [photos, reactions] = await Promise.all([photosFor("group_message_id", ids), reactionsFor("group_message_id", ids, myPersonId)]);
+  const [photos, reactions, polls] = await Promise.all([
+    photosFor("group_message_id", ids),
+    reactionsFor("group_message_id", ids, myPersonId),
+    pollsFor(ids, myPersonId),
+  ]);
   const byId = new Map(rows.map((r) => [r.id, r]));
   const authorOf = (id: string) => {
     const r = byId.get(id);
@@ -319,6 +360,7 @@ export async function getGroupRoom(
       pinnedBy: r.pinned_by,
       authorPersonId: r.sender_person_id,
       mentionsMe: !r.deleted_at && (r.mentions ?? []).includes(myPersonId),
+      poll: r.deleted_at ? null : (polls.get(r.id) ?? null),
     })),
   };
 }

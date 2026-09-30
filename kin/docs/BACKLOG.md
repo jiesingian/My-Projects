@@ -55,7 +55,13 @@ search across every chat.
    your household, not a parent). Forward anything from another chat to
    "Saved messages" to keep it; forward from it to share later. It belongs to
    the person, so it goes with them to a household of their own.
-9. Polls in any group.
+9. **Done: polls in any group.** The poll button beside the camera in a group
+   (in an announcement channel, admins): a question, 2 to 10 answers, one or
+   several choices. Everyone in the group votes (channel members too), sees
+   the count and who chose what, and can change or take back a vote. The
+   household chat keeps its own polls. The family room and one to one have
+   none (the family room reaches too many households; one to one is two
+   people).
 10. Scheduled messages ("send at 7am"), on the reminders pipeline.
 
 ## Agreed 28 September (Jonathan's answers to the page-by-page review)

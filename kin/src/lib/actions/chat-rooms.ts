@@ -647,3 +647,56 @@ export async function deleteSavedMessageAction(id: string): Promise<ActionState>
   revalidatePath("/chat", "layout");
   return { error: null };
 }
+
+// ---------------------------------------------------------------- group polls
+
+/** Ask a poll in a group (20261006100300): the message, the question and its
+ * answers are written together by create_group_poll(), which also decides
+ * who may ask (a member; in a channel, an admin). */
+export async function sendGroupPollAction(groupId: string, question: string, options: string[], allowMultiple: boolean): Promise<ActionState> {
+  const me = await requireCurrentMember();
+  if (!UUID.test(groupId)) return { error: "That group doesn't exist." };
+  const q = clamp(question.trim(), 200);
+  const answers = (Array.isArray(options) ? options : []).map((o) => clamp(String(o).trim(), 100)).filter(Boolean).slice(0, 10);
+  if (!q) return { error: "A poll needs a question." };
+  if (answers.length < 2) return { error: "A poll needs at least two answers." };
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("create_group_poll", { p_group: groupId, p_question: q, p_options: answers, p_allow_multiple: !!allowMultiple });
+  if (error || !data) return { error: error?.code === "42501" ? "Only this channel's admins can ask here." : humanDatabaseError(error?.message ?? "That didn't send.") };
+  await markThreadReadAction(`group:${groupId}`);
+  revalidatePath("/chat", "layout");
+  const { data: group } = await supabase.from("chat_groups").select("name").eq("id", groupId).maybeSingle();
+  after(() =>
+    sendChatPush(`group:${groupId}`, {
+      title: `${me.full_name.split(" ")[0]} · ${group?.name ?? "Group"}`,
+      body: `📊 ${q}`,
+      url: `/chat/groups/${groupId}`,
+      tag: `group-${groupId}`,
+    }),
+  );
+  return { error: null };
+}
+
+/** Tap an answer: vote for it, or take the vote back. On a one-answer poll,
+ * choosing another answer moves the vote. */
+export async function voteGroupPollAction(pollId: string, optionId: string): Promise<ActionState> {
+  const me = await requireCurrentMember();
+  if (!UUID.test(pollId) || !UUID.test(optionId)) return { error: "That poll doesn't exist." };
+  const supabase = await createClient();
+  const [{ data: poll }, { data: mine }] = await Promise.all([
+    supabase.from("group_polls").select("allow_multiple").eq("id", pollId).maybeSingle(),
+    supabase.from("group_poll_votes").select("option_id").eq("poll_id", pollId).eq("person_id", me.person_id),
+  ]);
+  if (!poll) return { error: "That poll isn't there any more." };
+  const already = (mine ?? []).some((v) => v.option_id === optionId);
+  if (already) {
+    const { error } = await supabase.from("group_poll_votes").delete().eq("poll_id", pollId).eq("option_id", optionId).eq("person_id", me.person_id);
+    if (error) return { error: humanDatabaseError(error.message) };
+  } else {
+    if (!poll.allow_multiple && (mine ?? []).length) await supabase.from("group_poll_votes").delete().eq("poll_id", pollId).eq("person_id", me.person_id);
+    const { error } = await supabase.from("group_poll_votes").insert({ poll_id: pollId, option_id: optionId });
+    if (error) return { error: humanDatabaseError(error.message) };
+  }
+  revalidatePath("/chat", "layout");
+  return { error: null };
+}
