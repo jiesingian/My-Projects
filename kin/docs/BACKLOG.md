@@ -17,7 +17,9 @@ search across every chat.
    to up to five conversations at once, labelled "Forwarded from Mama".
    Files are copied into the forwarder's own chat folder, so deleting the
    original never empties a forward.
-2. Reactions on every message, the journal's set where sensible.
+2. **Done: reactions on every message.** The six (👍 ❤️ 😂 😮 😢 🙏) were
+   already the journal's and every chat's; the conversation between two
+   linked households now has them too (tap a message).
 3. Edit ("edited") and unsend ("message removed") in every conversation.
 4. Pin a message in every conversation.
 5. "Seen by" and typing in every conversation.
