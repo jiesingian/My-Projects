@@ -4748,6 +4748,105 @@ export type Database = {
           },
         ]
       }
+      remittance_allocations: {
+        Row: {
+          amount: number
+          category: string | null
+          created_at: string
+          family_id: string
+          id: string
+          purpose: string
+          remittance_id: string
+        }
+        Insert: {
+          amount: number
+          category?: string | null
+          created_at?: string
+          family_id: string
+          id?: string
+          purpose: string
+          remittance_id: string
+        }
+        Update: {
+          amount?: number
+          category?: string | null
+          created_at?: string
+          family_id?: string
+          id?: string
+          purpose?: string
+          remittance_id?: string
+        }
+        Relationships: []
+      }
+      remittances: {
+        Row: {
+          account_id: string | null
+          amount: number
+          channel: string
+          channel_name: string | null
+          created_at: string
+          currency: string
+          ecb_rate: number | null
+          ecb_rate_date: string | null
+          family_id: string
+          id: string
+          is_private: boolean
+          note: string | null
+          php_received: number
+          rate_source: string | null
+          receiver_member_id: string | null
+          recorded_by: string | null
+          sender_member_id: string | null
+          sender_name: string | null
+          sent_on: string
+          transaction_id: string | null
+        }
+        Insert: {
+          account_id?: string | null
+          amount: number
+          channel: string
+          channel_name?: string | null
+          created_at?: string
+          currency: string
+          ecb_rate?: number | null
+          ecb_rate_date?: string | null
+          family_id: string
+          id?: string
+          is_private?: boolean
+          note?: string | null
+          php_received: number
+          rate_source?: string | null
+          receiver_member_id?: string | null
+          recorded_by?: string | null
+          sender_member_id?: string | null
+          sender_name?: string | null
+          sent_on: string
+          transaction_id?: string | null
+        }
+        Update: {
+          account_id?: string | null
+          amount?: number
+          channel?: string
+          channel_name?: string | null
+          created_at?: string
+          currency?: string
+          ecb_rate?: number | null
+          ecb_rate_date?: string | null
+          family_id?: string
+          id?: string
+          is_private?: boolean
+          note?: string | null
+          php_received?: number
+          rate_source?: string | null
+          receiver_member_id?: string | null
+          recorded_by?: string | null
+          sender_member_id?: string | null
+          sender_name?: string | null
+          sent_on?: string
+          transaction_id?: string | null
+        }
+        Relationships: []
+      }
       reward_redemptions: {
         Row: {
           cost_points: number
@@ -5958,6 +6057,7 @@ export type Database = {
       current_member_is_organiser: { Args: never; Returns: boolean }
       current_member_role: { Args: never; Returns: string }
       delete_household: { Args: never; Returns: undefined }
+      delete_remittance: { Args: { p_id: string }; Returns: undefined }
       generate_invite_code: { Args: never; Returns: string }
       join_family: {
         Args: {
@@ -6016,6 +6116,27 @@ export type Database = {
         }
       }
       leave_household_self: { Args: never; Returns: undefined }
+      log_remittance: {
+        Args: {
+          p_account_id: string | null
+          p_allocations: Json
+          p_amount: number
+          p_channel: string
+          p_channel_name: string | null
+          p_currency: string
+          p_ecb_rate: number | null
+          p_ecb_rate_date: string | null
+          p_is_private: boolean
+          p_note: string | null
+          p_php_received: number
+          p_rate_source: string | null
+          p_receiver_member_id: string | null
+          p_sender_member_id: string | null
+          p_sender_name: string | null
+          p_sent_on: string
+        }
+        Returns: string
+      }
       recalc_goal_total: { Args: { p_goal_id: string }; Returns: number }
       redeem_code_for_household: { Args: { p_code: string }; Returns: string }
       redeem_household_code: { Args: { p_code: string }; Returns: boolean }

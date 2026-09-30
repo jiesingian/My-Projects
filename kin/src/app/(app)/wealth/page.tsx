@@ -43,6 +43,7 @@ import { familyDate, householdDateFormat } from "@/lib/format-family";
 import { CollapsibleGroup } from "@/components/collapsible-group";
 import { CashFlowChart } from "@/components/cashflow-chart";
 import { isGone } from "@/lib/member-status";
+import { isGrownUp } from "@/lib/roles";
 
 /* Joint and Mine were the same page twice; they are one Accounts tab now,
    with a Who button of the kind the Planner uses. Bills moved into Cash
@@ -67,7 +68,7 @@ export default async function WealthPage({ searchParams }: { searchParams: Promi
     <div>
       <HubHeader n="05" title="Wealth" segments={segments} dateFormat={me.families.date_format} />
       <div style={{ padding: "0 var(--gutter) 1.375rem" }}>
-        {seg === "cashflow" && <CashFlowPane familyId={me.family_id} memberId={me.id} currency={currency} range={range} scope={who} />}
+        {seg === "cashflow" && <CashFlowPane familyId={me.family_id} memberId={me.id} currency={currency} range={range} scope={who} grownUp={isGrownUp(me.role)} />}
         {seg === "accounts" && <ScopePane scope={who} familyId={me.family_id} memberId={me.id} currency={currency} range={range} />}
         {seg === "assets" && <AssetsPane familyId={me.family_id} memberId={me.id} currency={currency} scope={who} />}
       </div>
@@ -466,7 +467,7 @@ function QuickActions() {
 
 /* ----------------------------------------------------------------- cash flow */
 
-async function CashFlowPane({ familyId, memberId, currency, range, scope }: { familyId: string; memberId: string; currency: string; range: CashFlowRange; scope: WealthScope }) {
+async function CashFlowPane({ familyId, memberId, currency, range, scope, grownUp }: { familyId: string; memberId: string; currency: string; range: CashFlowRange; scope: WealthScope; grownUp: boolean }) {
   const [fmtDate, dateFormat] = await Promise.all([familyDate(), householdDateFormat()]);
   const [cf, budget, accounts, who] = await Promise.all([
     getCashFlowPane(familyId, range, scope),
@@ -578,6 +579,19 @@ async function CashFlowPane({ familyId, memberId, currency, range, scope }: { fa
         </>
       )}
       <AddIncomeScheduleForm accounts={bareAccounts} />
+      {/* Money sent home from abroad has its own log -- the currency it was
+          sent in, what arrived, what it went to -- and its money-in still
+          lands in this list like any other income. */}
+      {grownUp && (
+        <Link
+          href="/wealth/remittances"
+          style={{ display: "flex", alignItems: "center", gap: "0.5rem", padding: "0.75rem 0", marginTop: "0.25rem", fontSize: "0.875rem", color: "inherit", textDecoration: "none", borderTop: "1px solid color-mix(in srgb, var(--color-text) 10%, transparent)" }}
+        >
+          <Icon name="wallet" size={18} />
+          <span style={{ flex: 1 }}>Remittances from abroad</span>
+          <span aria-hidden="true" style={{ color: "var(--color-neutral-600)" }}>›</span>
+        </Link>
+      )}
       </CollapsibleGroup>
 
       <CollapsibleGroup title="EXPENSES" defaultOpen={false}>

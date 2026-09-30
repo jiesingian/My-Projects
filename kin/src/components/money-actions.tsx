@@ -18,6 +18,7 @@ import {
   archiveAccountAction,
   setAccountPrivacyAction,
   postHubExpenseAction,
+  deleteRemittanceAction,
 } from "@/lib/actions/wealth";
 import { formatCurrency } from "@/lib/format";
 import { Icon } from "@/components/icons";
@@ -424,6 +425,7 @@ const DELETERS = {
   income_schedule: deleteIncomeScheduleAction,
   goal: deleteGoalAction,
   account: archiveAccountAction,
+  remittance: deleteRemittanceAction,
 } as const;
 
 export function RemoveButton({ id, kind, label }: { id: string; kind: keyof typeof DELETERS; label: string }) {

@@ -93,7 +93,7 @@ export const EXPENSE_CATEGORIES = [
 ] as const;
 
 /** Where money enters, when it comes from outside anything Kin tracks. */
-export const INCOME_SOURCES = ["Salary", "Business", "Gift", "Investment", "Refund", "Other"] as const;
+export const INCOME_SOURCES = ["Salary", "Remittance", "Business", "Gift", "Investment", "Refund", "Other"] as const;
 
 export const TRANSFER_CATEGORY = "Transfer";
 export const GOAL_CATEGORY = "Goal";
@@ -533,4 +533,37 @@ export function resolveInstitutionLinks(
     return { appUrl: "", appStoreUrl: "", playStoreUrl: "" };
   }
   return null;
+}
+
+/* ------------------------------------------------------------- remittances */
+
+/** How a padala reached home. GCash and Maya are named because they are how
+ * most of it arrives now; a remittance centre (Western Union, Palawan, LBC,
+ * Cebuana) keeps its own name in `channel_name`. */
+export const REMITTANCE_CHANNELS = ["bank", "gcash", "maya", "remittance_centre", "cash", "other"] as const;
+export type RemittanceChannel = (typeof REMITTANCE_CHANNELS)[number];
+export const REMITTANCE_CHANNEL_LABELS: Record<RemittanceChannel, string> = {
+  bank: "Bank transfer",
+  gcash: "GCash",
+  maya: "Maya",
+  remittance_centre: "Remittance centre",
+  cash: "Hand-carried",
+  other: "Other",
+};
+
+/** The category a remittance's money-in carries on the ledger, so Cash Flow
+ * can tell it apart from salary. */
+export const REMITTANCE_CATEGORY = "Remittance";
+
+/** A remittance's months, newest first, each with its peso total -- the
+ * "how much came home this month" number, and the one a family abroad is
+ * most often asked. Pesos received, not the reference value: that is what
+ * the household actually had to spend. */
+export function remittancesByMonth<T extends { sent_on: string; php_received: number | string }>(rows: T[]): { key: string; total: number; rows: T[] }[] {
+  const months = new Map<string, T[]>();
+  for (const r of [...rows].sort((a, b) => b.sent_on.localeCompare(a.sent_on))) {
+    const key = r.sent_on.slice(0, 7);
+    months.set(key, [...(months.get(key) ?? []), r]);
+  }
+  return [...months.entries()].map(([key, list]) => ({ key, rows: list, total: list.reduce((sum, r) => sum + Number(r.php_received), 0) }));
 }

@@ -557,6 +557,19 @@ Decided against in the same review: revising Journal (item 6) and Planner
 
 - Scan a flyer or invitation (Planner → Add) into calendar entries you
   review first; Kin AI answers in Taglish when you write in it (24 September).
+- Remittance log for OFW families (Jonathan, 30 September). Wealth, Cash
+  Flow, Income, "Remittances from abroad": what was sent and in which
+  currency, the European Central Bank's peso value that day (Frankfurter,
+  cached on the server; the Gulf currencies through their fixed dollar peg,
+  the Kuwaiti dinar has none), the pesos that actually arrived, who sent it,
+  who got it, how (bank, GCash, Maya, a remittance centre), and what it went
+  to. A monthly total. When it landed in an account, the money-in appears
+  there too, and removing the remittance removes it. Grown-ups only, and
+  "Just me" keeps one to whoever logged it (it can then land only in their
+  own account). RLS: npm run test:rls (probes/remittances.mjs) and
+  supabase/tests/rls_remittances.sql on dev. The same migration let the
+  ledger accept money recorded against an asset or an event, which both
+  databases had been refusing.
 
 ## Decided against, for now
 

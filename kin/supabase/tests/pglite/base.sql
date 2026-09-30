@@ -64,3 +64,23 @@ insert into storage.objects (bucket_id, name) values
  ('documents', 'a0000000-0000-0000-0000-000000000000/chat/household-only.jpg'),
  ('documents', 'a0000000-0000-0000-0000-000000000000/chat/dm.jpg');
 create table if not exists public.family_message_attachments (id uuid primary key default gen_random_uuid(), family_id uuid);
+
+-- Wealth stand-ins, for the remittance log (20260930130000). Accounts and the
+-- ledger carry the same row-level policies as the real ones; Kin Plus is not
+-- what these probes are about, so its guard lets everything through.
+create function public.current_member_role() returns text language sql stable security definer set search_path=public as $$ select role from members where auth_user_id = auth.uid() and status='active' limit 1 $$;
+create function public.require_kin_plus() returns trigger language plpgsql as $$ begin return new; end $$;
+create table public.accounts (id uuid primary key default gen_random_uuid(), family_id uuid not null references families(id), name text not null, opening_balance numeric not null default 0, is_joint boolean not null default false, owner_member_id uuid references members(id), is_private boolean not null default false, is_archived boolean not null default false);
+create table public.wealth_transactions (id uuid primary key default gen_random_uuid(), family_id uuid not null references families(id), account_id uuid not null references accounts(id), direction text not null, amount numeric not null check (amount > 0), particulars text not null, category text, occurred_at timestamptz not null default now(), status text not null default 'confirmed', source_table text, source_id uuid, goal_id uuid, recorded_by uuid, created_at timestamptz not null default now(),
+  constraint wealth_transactions_source_table_check check (source_table is null or source_table = any (array['bills','trips','buy_items','health_appointments','goals','routines','income_schedules'])));
+alter table accounts enable row level security; alter table wealth_transactions enable row level security;
+create policy accounts_select on accounts for select using (family_id = current_family_id() and (is_joint or owner_member_id = current_member_id() or not is_private));
+create policy wealth_transactions_select on wealth_transactions for select using (family_id = current_family_id() and exists (select 1 from accounts a where a.id = wealth_transactions.account_id and (a.is_joint or a.owner_member_id = current_member_id() or not a.is_private)));
+create policy wealth_transactions_insert on wealth_transactions for insert with check (family_id = current_family_id());
+create policy wealth_transactions_delete on wealth_transactions for delete using (family_id = current_family_id());
+insert into members (id,family_id,person_id,auth_user_id,full_name,role) values
+ ('00000000-0000-0000-0000-0000000000a4','a0000000-0000-0000-0000-000000000000',null,'10000000-0000-0000-0000-0000000000a4','Abe A','adult');
+insert into accounts (id,family_id,name,is_joint,owner_member_id,is_private) values
+ ('a4000000-0000-0000-0000-000000000001','a0000000-0000-0000-0000-000000000000','Joint BDO',true,null,false),
+ ('a4000000-0000-0000-0000-000000000002','a0000000-0000-0000-0000-000000000000','Ann GCash',false,'00000000-0000-0000-0000-0000000000a1',true),
+ ('d4000000-0000-0000-0000-000000000001','d0000000-0000-0000-0000-000000000000','Dan bank',true,null,false);
