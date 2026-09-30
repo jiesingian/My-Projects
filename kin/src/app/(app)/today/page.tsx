@@ -253,7 +253,7 @@ export default async function TodayPage() {
         </section>
       )}
 
-      {recap && <WeekRecapCard recap={recap} />}
+      {recap && <WeekRecapCard recap={recap} href="/today/week" />}
 
       <OnThisDay memories={memories} />
 
