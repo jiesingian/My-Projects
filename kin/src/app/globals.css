@@ -6358,3 +6358,6 @@ button.kin-room-quote { font: inherit; font-size: 0.78125rem; text-align: left; 
 .kin-room-edit-row { display: flex; justify-content: flex-end; gap: 0.375rem; }
 .kin-room-edit-row .btn { min-height: 2.125rem; font-size: 0.8125rem; padding: 0 0.75rem; }
 .kin-room-actions .kin-room-actions-word[data-danger] { color: var(--cal-occasion); }
+
+/* "Mama is typing…" in the family room, one to one and groups (20260930170000). */
+.kin-room-typing { margin: 0.375rem 0 0; font-size: 0.78125rem; font-style: italic; color: var(--color-neutral-600); }
