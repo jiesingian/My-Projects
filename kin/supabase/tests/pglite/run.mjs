@@ -40,6 +40,7 @@ const MIGRATIONS = [
   "20261002090000_wealth_include_private_in_totals.sql",
   "20261002100000_account_numbers.sql",
   "20261006100000_group_seen_by.sql",
+  "20261006100100_chat_room_mentions.sql",
 ];
 
 const only = process.argv[2];

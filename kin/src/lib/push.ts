@@ -79,19 +79,33 @@ export async function sendPush(input: {
  * reaches people in other households: chat_push_targets() (20260929090000)
  * decides who, for conversations the sender is in, honouring each person's
  * "chat" switch. Same promises as sendPush: never throws, call in after(). */
-export async function sendChatPush(thread: "family" | `dm:${string}` | `group:${string}`, input: { title: string; body: string; url: string; tag: string }): Promise<void> {
+export async function sendChatPush(
+  thread: "family" | `dm:${string}` | `group:${string}`,
+  input: { title: string; body: string; url: string; tag: string },
+  /** People named in the message (20261006100100): their devices get this
+   * title instead, as a notification of its own, and not the plain one. */
+  mention?: { people: string[]; title: string; tag: string },
+): Promise<void> {
   if (!vapidReady()) return;
   try {
     const supabase = await createClient();
-    const { data: targets, error } = await supabase.rpc("chat_push_targets", { p_thread: thread });
+    const { data: targets, error } = mention?.people.length
+      ? await supabase.rpc("chat_push_targets_mentioning", { p_thread: thread, p_people: mention.people })
+      : await supabase.rpc("chat_push_targets", { p_thread: thread });
     if (error || !targets?.length) return;
+    const forget = async (endpoint: string) => {
+      await supabase.rpc("forget_push_endpoint", { p_endpoint: endpoint });
+    };
+    const named = (t: (typeof targets)[number]) => "mentioned" in t && t.mentioned === true;
     const payload = JSON.stringify({ title: input.title.slice(0, 80), body: input.body.slice(0, 180), url: input.url, tag: input.tag });
     // A device in another household cannot be forgotten from this session
     // (forget_push_endpoint is per household); its own household's next push
     // clears it.
-    await deliver(targets, payload, { TTL: 60 * 60 * 12 }, async (endpoint) => {
-      await supabase.rpc("forget_push_endpoint", { p_endpoint: endpoint });
-    });
+    await deliver(targets.filter((t) => !named(t)), payload, { TTL: 60 * 60 * 12 }, forget);
+    if (mention) {
+      const mentionPayload = JSON.stringify({ title: mention.title.slice(0, 80), body: input.body.slice(0, 180), url: input.url, tag: mention.tag });
+      await deliver(targets.filter(named), mentionPayload, { TTL: 60 * 60 * 12 }, forget);
+    }
   } catch (err) {
     console.error("Chat push failed", err);
   }

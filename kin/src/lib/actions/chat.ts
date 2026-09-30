@@ -96,15 +96,30 @@ export async function sendMessageAction(input: {
   revalidatePath("/chat", "layout");
   // Everyone else in the household with chat notifications on. One tag per
   // household, so a busy evening is one notification that updates.
-  after(() =>
-    sendPush({
+  // Anyone named gets "mentioned you" as a notification of its own
+  // (20261006100100) instead of the plain one, so nobody gets both. The same
+  // "chat" switch and household mute apply to both (push_targets).
+  const text = mediaSummary(body) ?? (body || (attachments.length === 1 ? "Sent an attachment" : `Sent ${attachments.length} attachments`));
+  const named = mentions.filter((id) => id !== me.id);
+  after(async () => {
+    await sendPush({
       kind: "chat",
       title: me.full_name.split(" ")[0],
-      body: mediaSummary(body) ?? (body || (attachments.length === 1 ? "Sent an attachment" : `Sent ${attachments.length} attachments`)),
+      body: text,
       url: "/chat/household",
       tag: `chat-${me.family_id}`,
-    }),
-  );
+      memberIds: named.length ? [...known].filter((id) => !named.includes(id)) : undefined,
+    });
+    if (named.length)
+      await sendPush({
+        kind: "chat",
+        title: `${me.full_name.split(" ")[0]} mentioned you`,
+        body: text,
+        url: "/chat/household",
+        tag: `mention-${data.id}`,
+        memberIds: named,
+      });
+  });
   return { error: null, id: data.id, photoIds };
 }
 

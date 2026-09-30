@@ -38,7 +38,13 @@ search across every chat.
    channel's presence -- nothing is stored. The family room keeps no seen-by
    (too many households for it to mean anything), and its typing line shows
    your own household only, because each household has its own channel.
-6. @mentions that notify, in every conversation.
+6. **Done: @mentions that notify, in every conversation.** Type @ in the
+   family room or a group to name someone who writes there (or any group
+   member); a message naming you is highlighted. The person named gets
+   "Mama mentioned you" as its own notification instead of the plain one --
+   in the household chat too, where mentions used to notify nobody specially.
+   A muted conversation or chat notifications turned off stay silent for
+   mentions as well. One to one has no mentions (it is only the two of you).
 7. Search inside a conversation, and jumping to a hit.
 8. Saved messages: a private note-to-self conversation.
 9. Polls in any group.
