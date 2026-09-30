@@ -32,7 +32,7 @@ export function OnThisDay({ memories }: { memories: Memory[] }) {
 
 /** The week in numbers, shown at the weekend. Only the parts that happened:
  * a line that says "0 photos" reads as a scolding, not a recap. */
-export function WeekRecapCard({ recap }: { recap: WeekRecap }) {
+export function WeekRecapCard({ recap, href }: { recap: WeekRecap; href?: string }) {
   const parts: { n: number; label: string }[] = [
     { n: recap.choresDone, label: recap.choresDone === 1 ? "chore done" : "chores done" },
     { n: recap.posts, label: recap.posts === 1 ? "post" : "posts" },
@@ -54,6 +54,13 @@ export function WeekRecapCard({ recap }: { recap: WeekRecap }) {
         ))}
       </div>
       {recap.topHelper && <p className="kin-recap-line">Most helpful this week: {recap.topHelper}</p>}
+      {/* On Today it opens the whole week (today/week); on that page it is
+          the page's own opening, so it does not link to itself. */}
+      {href && (
+        <Link href={href} className="kin-recap-line kin-recap-more">
+          Photos, the journal, goals and next week →
+        </Link>
+      )}
     </section>
   );
 }

@@ -3,6 +3,32 @@
 What is agreed but not built yet, and what is waiting on somebody. Update
 it in the same pull request that finishes or adds an item.
 
+## Agreed 30 September: chat competitive with Telegram
+
+Jonathan approved ten chat features, each its own pull request, in this
+order. Already in Kin before this list: replies, reactions, edit, withdraw,
+one pin, "seen by", typing and @mentions in the household chat; replies,
+reactions and "Seen" (one to one) in the family room, one to one and groups;
+search across every chat.
+
+1. **Done: reply and forward.** A quote in the family room, one to one and
+   groups now jumps to the message it quotes, as the household's always did.
+   Forward sends any message (words, photos, videos, voice notes; not polls)
+   to up to five conversations at once, labelled "Forwarded from Mama".
+   Files are copied into the forwarder's own chat folder, so deleting the
+   original never empties a forward.
+2. **Done: reactions on every message.** The six (👍 ❤️ 😂 😮 😢 🙏) were
+   already the journal's and every chat's; the conversation between two
+   linked households now has them too (tap a message).
+3. Edit ("edited") and unsend ("message removed") in every conversation.
+4. Pin a message in every conversation.
+5. "Seen by" and typing in every conversation.
+6. @mentions that notify, in every conversation.
+7. Search inside a conversation, and jumping to a hit.
+8. Saved messages: a private note-to-self conversation.
+9. Polls in any group.
+10. Scheduled messages ("send at 7am"), on the reminders pipeline.
+
 ## Agreed 28 September (Jonathan's answers to the page-by-page review)
 
 The review page: https://claude.ai/artifact/YCR7BHzEfyDsdVEoFkH87r. Each is its
@@ -70,13 +96,29 @@ One pull request each, in this order.
    `KIN_SPECIAL_DAYS` (src/lib/holidays.ts). **Not built: a household adding
    its own special day** -- that needs a table, and a household event already
    does the job.
-2. **Invite by QR code**, generated inside Kin (the invite never goes to a
-   third party), with Save image / Share.
-3. **Address search**: type-ahead from OpenStreetMap's Nominatim through a
-   Kin server route (cached, at most one request a second, biased to the
-   Philippines); typing freely still works.
-4. **Weekly family digest** on Sundays, built on the week-ahead push (#307),
-   respecting kid view and "just me" / grown-ups-only visibility.
+2. **Done: invite by QR code**, wherever the household's invite code is shown
+   (Settings → Household, and adding members while setting up). Drawn in the
+   browser by qrcode-generator (no dependencies), so the invite never goes to
+   a third party. Save image shares a PNG where the phone has a share sheet
+   and downloads it where it does not. The family tree's invite-a-relative
+   button is left to the family tree work.
+3. **Done: address search**: type-ahead on the Planner's task and routine
+   location fields and the family address form (a pick fills street,
+   barangay, city, province, zip and country). From OpenStreetMap's Nominatim
+   through Kin's own route, /api/places: members only, one request a second
+   per server, each answer cached for a day, leaning to the Philippines.
+   Typing freely still works. Events and trips have no location field, so
+   they have no search.
+4. **Done: weekly family digest** at /today/week, opened from "Your
+   family's week" on Today (Saturday to Monday): the week's household photos
+   and journal (★ milestones first), chores kept up (streaks of three days
+   or more), goals, and next week's plans. Only household entries, never a
+   "just me" one; goals as getGoals already shows them to that reader; next
+   week by Today's rule (own, whole family's, and a grown-up sees the
+   children's); in kid view no money goals and no bills. **Not done: the
+   Sunday week-ahead push (#307) still opens the Planner.** Pointing it at
+   the digest means replacing its SQL function in a migration, left for a
+   quieter day given how many sessions are touching migrations.
 
 ## Final stage: everything that costs money, done together
 
@@ -228,7 +270,21 @@ Decided against in the same review: revising Journal (item 6) and Planner
   own account). Checked on dev with supabase/tests/rls_remittances.sql.
   The same migration let the ledger accept money recorded against an asset
   or an event, which both databases had been refusing.
-
+- Member card and Emergency SOS on Today (approved 30 September, #394).
+  Tapping someone's initials opens their card: their local time and zone
+  ("8:00 am in Dubai · 4 h behind you"; the zone is reported by their own
+  phone into `members.timezone`), location and weather only while they share
+  a location, their day and goals, spending this month (grown-ups only; their
+  budget only on their own card, since `wealth_targets` is private), medicines
+  due today (grown-ups, as Health allows), last active, and Call / Message /
+  "Are you okay?" (one tap to ask, one tap to answer, a push each way). Your
+  own card previews what grown-ups and children see. SOS: a pill on Today and
+  kid view; hold 3 s, then a 5 s countdown with Cancel; an urgent push to every
+  grown-up with the location if the phone allows; logged in `sos_alerts`;
+  `/today/sos/<id>` has the map link, time, call buttons, "I'm on it" and
+  "I'm safe now". 20260930100000; RLS verified on dev, rolled back. **Open
+  for Jonathan:** whether a member's monthly target should be visible to
+  other grown-ups on their card (today it is private to them).
 - A promised goal reward is kept (Jonathan, 28 September). Locked: what a
   reward is never changes once asked for, the giver cannot take a promise
   back or delete the goal under it. A day: the one receiving it claims it

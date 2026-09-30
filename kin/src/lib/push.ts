@@ -11,9 +11,13 @@ import { createClient } from "@/lib/supabase/server";
  * is on -- so there is no list here to get wrong.
  *
  * Never throws: a notification that fails must not fail the message, post or
- * chore that caused it. Call it inside `after()` so it never slows a reply. */
+ * chore that caused it. Call it inside `after()` so it never slows a reply.
+ * Resolves to how many devices accepted it -- the SOS says so to its sender. */
 
-export type PushKind = "chat" | "calls" | "family_calls" | "journal" | "shopping" | "approvals" | "events" | "health" | "bills";
+// "sos" and "checkins" (30 September) are not in lib/notifications, so there
+// is no switch for them and push_targets() reads them as on: an emergency
+// and "Are you okay?" are not things to be able to mute by accident.
+export type PushKind = "chat" | "calls" | "family_calls" | "journal" | "shopping" | "approvals" | "events" | "health" | "bills" | "sos" | "checkins";
 
 export function pushConfigured(): boolean {
   return Boolean(process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY && process.env.VAPID_PRIVATE_KEY);
@@ -37,27 +41,37 @@ export async function sendPush(input: {
   icon?: string | null;
   /** A ringing call: lets the notification answer or decline it. */
   call?: { id: string; from: string; video: boolean };
-}): Promise<void> {
-  if (!vapidReady()) return;
+  /** An SOS: sent as urgent and kept on screen like a ring, but not dropped
+   * after a minute -- it is kept for `ttlSeconds` (an hour if unset). */
+  urgent?: boolean;
+}): Promise<number> {
+  if (!vapidReady()) return 0;
   try {
     const supabase = await createClient();
     const { data: targets, error } = await supabase.rpc("push_targets", { p_kind: input.kind, p_member_ids: input.memberIds ?? undefined });
-    if (error || !targets?.length) return;
+    if (error || !targets?.length) return 0;
     const payload = JSON.stringify({
       title: input.title.slice(0, 80),
       body: input.body.slice(0, 180),
       url: input.url.startsWith("/") ? input.url : "/today",
       tag: input.tag,
       ring: input.ring || undefined,
+      urgent: input.urgent || undefined,
       icon: input.icon && /^(https:\/\/|\/[^/])/.test(input.icon) ? input.icon : undefined,
       call: input.call,
     });
-    const options = input.ring ? { TTL: 60, urgency: "high" as const } : { TTL: input.ttlSeconds ?? 60 * 60 * 12 };
-    await deliver(targets, payload, options, async (endpoint) => {
+    const options = input.ring
+      ? { TTL: 60, urgency: "high" as const }
+      : input.urgent
+        ? { TTL: input.ttlSeconds ?? 60 * 60, urgency: "high" as const }
+        : { TTL: input.ttlSeconds ?? 60 * 60 * 12 };
+    const result = await deliver(targets, payload, options, async (endpoint) => {
       await supabase.rpc("forget_push_endpoint", { p_endpoint: endpoint });
     });
+    return result.sent;
   } catch (err) {
     console.error("Push failed", err);
+    return 0;
   }
 }
 

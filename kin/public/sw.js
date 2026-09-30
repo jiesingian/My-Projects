@@ -157,6 +157,9 @@ self.addEventListener("push", (event) => {
       // allows it, rather than sliding away like a chat message. The missed
       // call that follows it has the same tag, so it takes the ring's place.
       ...(data.ring ? { requireInteraction: true, renotify: true, vibrate: [800, 400, 800, 400, 800, 400, 800] } : {}),
+      // An SOS (30 September) stays on screen the same way, with its own
+      // pattern: three short, three long, three short.
+      ...(data.urgent ? { requireInteraction: true, renotify: true, vibrate: [200, 100, 200, 100, 200, 300, 600, 100, 600, 100, 600, 300, 200, 100, 200, 100, 200] } : {}),
     }),
   );
 });

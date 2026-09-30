@@ -28,6 +28,8 @@ export async function sendMessageAction(input: {
   mentions?: string[];
   replyTo?: string | null;
   attachments?: OutgoingAttachment[];
+  /** Set by forwardMessageAction: whose words these first were. */
+  forwardedFrom?: string | null;
 }): Promise<ActionState & { id?: string; photoIds?: string[] }> {
   const me = await requireCurrentMember();
   const supabase = await createClient();
@@ -56,7 +58,7 @@ export async function sendMessageAction(input: {
 
   const { data, error } = await supabase
     .from("family_messages")
-    .insert({ family_id: me.family_id, member_id: me.id, body, mentions, reply_to: replyTo })
+    .insert({ family_id: me.family_id, member_id: me.id, body, mentions, reply_to: replyTo, forwarded_from: input.forwardedFrom?.slice(0, 60) || null })
     .select("id")
     .single();
   if (error || !data) return { error: error ? humanDatabaseError(error.message) : "That didn't send." };

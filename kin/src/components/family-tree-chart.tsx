@@ -1,13 +1,15 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState, useTransition } from "react";
 import { createPortal } from "react-dom";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Avatar } from "@/components/avatar";
 import { Icon } from "@/components/icons";
 import { initials } from "@/lib/format";
-import { layoutTree, CARD_W, CARD_H } from "@/lib/tree-layout";
+import { layoutHouseholds, TILE_W, TILE_H, type PlacedHousehold, type PlacedSlot } from "@/lib/household-layout";
+import { relationships } from "@/lib/kinship";
+import { fallbackColour, memberColourVar } from "@/lib/member-colours";
 import { addRelativeAction, linkTreePersonToMemberAction, type Relation } from "@/lib/actions/family";
 import type { TreePerson } from "@/lib/queries/family";
 import type { TreeMatch, BranchPerson } from "@/lib/queries/tree-links";
@@ -22,26 +24,34 @@ import { toast } from "@/components/toast";
  * boxes of a fixed size. */
 const rem = (px: number) => `${px / 16}rem`;
 
-const MIN_ZOOM = 0.25;
+const MIN_ZOOM = 0.2;
 const MAX_ZOOM = 2.5;
 
 type View = { x: number; y: number; k: number };
-type Ghost = { id: string; relation: "father" | "mother" | "sibling"; of: string };
+type Box = { x: number; y: number; w: number; h: number };
 /** What the panel offers. Brother and sister are one relation to the tree
  * (whoever shares the parents); the word only changes what the form says. */
 type AddAs = Exclude<Relation, "sibling"> | "brother" | "sister";
 type HouseholdMember = { id: string; full_name: string };
 
-/** The household's family tree as a chart: every person, their parents above,
- * their children below, drawn once for everybody in the house. The only thing
- * that differs between members is that each sees themselves highlighted.
+const surname = (name: string) => name.trim().split(/\s+/).slice(-1)[0] ?? name;
+const clampK = (k: number) => Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, k));
+const reducedMotion = () => typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+/** The household's family tree, drawn as households: each one a soft card in
+ * its own colour, holding the couple and the children still at home, with a
+ * curve from each down to the households its children went on to start. The
+ * viewer's own household is the one in the accent colour, and the one the
+ * chart opens on. See lib/household-layout.ts for who lives with whom.
  *
- * Drag to move, pinch or the buttons to zoom, "Me" to come back. Tap anybody
- * to add their father, mother, spouse or child on the spot.
+ * Drag to move (it keeps going when flicked), pinch or scroll to zoom, tap a
+ * household's name to bring it forward, tap anybody to pick them, and tap
+ * them again for their profile.
  */
 export function FamilyTreeChart({
   people,
   meTreeId,
+  householdName = null,
   matches = [],
   linkedFamilies = [],
   inviteCode = null,
@@ -52,6 +62,9 @@ export function FamilyTreeChart({
    * the tree"): the joined branch they are in, opened, and them selected. */
   open?: { matchId: string; personId: string } | null;
   people: TreePerson[];
+  /** The viewer's household's own name, for its card. The others are named
+   * from their surnames. */
+  householdName?: string | null;
   /** Household members not on the tree yet: offered when adding a relative,
    * and to tie a typed-in name to its Kin profile. */
   unaddedMembers?: HouseholdMember[];
@@ -73,17 +86,22 @@ export function FamilyTreeChart({
   const accepted = useMemo(() => matches.filter((m) => m.status === "accepted"), [matches]);
 
   const chartPeople: ChartPerson[] = useMemo(() => {
-    let all: ChartPerson[] = people.map((p) => ({
-      id: p.id,
-      fullName: p.fullName,
-      birthYear: p.dob ? p.dob.slice(0, 4) : null,
-      avatarUrl: p.avatarUrl,
-      memberId: p.memberId,
-      fatherId: p.fatherId,
-      motherId: p.motherId,
-      spouseId: p.spouseId,
-      fromHousehold: null,
-    }));
+    // Eldest first, so the children at home sit in birth order.
+    let all: ChartPerson[] = [...people]
+      .sort((a, b) => (a.dob ?? "9999").localeCompare(b.dob ?? "9999"))
+      .map((p) => ({
+        id: p.id,
+        fullName: p.fullName,
+        birthYear: p.dob ? p.dob.slice(0, 4) : null,
+        avatarUrl: p.avatarUrl,
+        memberId: p.memberId,
+        fatherId: p.fatherId,
+        motherId: p.motherId,
+        spouseId: p.spouseId,
+        color: p.color ?? null,
+        sex: p.sex ?? null,
+        fromHousehold: null,
+      }));
     for (const id of shown) {
       const m = accepted.find((x) => x.matchId === id);
       const b = branches[id];
@@ -92,6 +110,7 @@ export function FamilyTreeChart({
     return all;
   }, [people, shown, branches, accepted]);
   const chartById = useMemo(() => new Map(chartPeople.map((p) => [p.id, p])), [chartPeople]);
+  const relation = useMemo(() => relationships(chartPeople, meTreeId), [chartPeople, meTreeId]);
 
   const toggleBranch = async (matchId: string) => {
     if (shown.includes(matchId)) {
@@ -125,166 +144,51 @@ export function FamilyTreeChart({
     })();
   }, [open, accepted]);
 
-  // Dashed "Add father" / "Add mother" places, and an "Add brother or
-  // sister" one beside them, for whoever is selected. They go into the layout
-  // as people of their own so they get a real place on the chart instead of
-  // being drawn over somebody who is already there; the sibling place shares
-  // the person's parents (real or dashed), so it lands right beside them.
-  const ghosts: Ghost[] = useMemo(() => {
-    const p = chartById.get(focus ?? "");
-    if (!p || p.fromHousehold) return [];
-    return [
-      ...(p.fatherId ? [] : [{ id: `ghost-father-${p.id}`, relation: "father" as const, of: p.id }]),
-      ...(p.motherId ? [] : [{ id: `ghost-mother-${p.id}`, relation: "mother" as const, of: p.id }]),
-      { id: `ghost-sibling-${p.id}`, relation: "sibling" as const, of: p.id },
-    ];
-  }, [chartById, focus]);
+  // Dashed places to add the picked person's father, mother, or a brother or
+  // sister go into the layout as places of their own, so they sit where that
+  // person would -- never drawn over somebody already there.
+  const addFor = focus && chartById.get(focus) && !chartById.get(focus)!.fromHousehold ? focus : null;
+  const layout = useMemo(() => layoutHouseholds(chartPeople, meTreeId, addFor), [chartPeople, meTreeId, addFor]);
+  const mine = useMemo(() => layout.households.find((h) => h.heads.some((s) => s.id === meTreeId) || h.kids.some((s) => s.id === meTreeId)) ?? null, [layout, meTreeId]);
 
-  const layout = useMemo(() => {
-    const ghostOf = new Map(ghosts.map((g) => [g.of + g.relation, g.id]));
-    const fatherGhost = ghosts.find((g) => g.relation === "father");
-    const motherGhost = ghosts.find((g) => g.relation === "mother");
-    const siblingGhost = ghosts.find((g) => g.relation === "sibling");
-    const siblingOf = siblingGhost ? chartById.get(siblingGhost.of) : undefined;
-    return layoutTree(
-      [
-        ...chartPeople.map((p) => ({
-          id: p.id,
-          fatherId: p.fatherId ?? ghostOf.get(p.id + "father") ?? null,
-          motherId: p.motherId ?? ghostOf.get(p.id + "mother") ?? null,
-          spouseId: p.spouseId,
-        })),
-        ...(fatherGhost ? [{ id: fatherGhost.id, fatherId: null, motherId: null, spouseId: motherGhost?.id ?? null }] : []),
-        ...(motherGhost ? [{ id: motherGhost.id, fatherId: null, motherId: null, spouseId: fatherGhost?.id ?? null }] : []),
-        ...(siblingGhost && siblingOf
-          ? [{ id: siblingGhost.id, fatherId: siblingOf.fatherId ?? fatherGhost?.id ?? null, motherId: siblingOf.motherId ?? motherGhost?.id ?? null, spouseId: null }]
-          : []),
-      ],
-      meTreeId,
-    );
-  }, [chartPeople, chartById, ghosts, meTreeId]);
-
-  const byId = useMemo(() => new Map(people.map((p) => [p.id, p])), [people]);
-  const ghostById = useMemo(() => new Map(ghosts.map((g) => [g.id, g])), [ghosts]);
+  /** A household's name: ours as the household called itself; anyone
+   * else's from their surnames, the Filipino way -- the wife's maiden name,
+   * then the husband's ("Robles-Villanueva"). */
+  const titleOf = (h: PlacedHousehold) => {
+    if (h.ghost) return "Add parents";
+    if (h.id === mine?.id && householdName) return householdName;
+    const heads = h.heads.filter((s) => s.kind === "person").map((s) => chartById.get(s.id)!);
+    const husband = heads.length === 2 ? heads.find((p) => p.sex === "male" || chartPeople.some((c) => c.fatherId === p.id)) : undefined;
+    const wife = heads.find((p) => p !== husband);
+    const family = surname((husband ?? heads[0]).fullName);
+    const maidenFrom = wife && husband ? chartById.get(wife.fatherId ?? wife.motherId ?? "") : undefined;
+    const maiden = maidenFrom ? surname(maidenFrom.fullName) : null;
+    // Somebody on their own has the narrowest card there is: the surname
+    // alone fits it, and "Household" adds nothing to one person.
+    if (heads.length === 1 && h.kids.length === 0) return family;
+    return `${maiden && maiden !== family ? `${maiden}-` : ""}${family} Household`;
+  };
 
   // ── pan and zoom ──────────────────────────────────────────────────────────
+  // The view lives in a ref and is written straight to the canvas's
+  // transform: a drag, a flick or a glide moves one element sixty times a
+  // second without re-rendering forty people. React only hears the zoom
+  // level, when the motion ends, for the percentage under the chart.
   const viewport = useRef<HTMLDivElement>(null);
-  const [view, setView] = useState<View>({ x: 0, y: 0, k: 1 });
+  const canvas = useRef<HTMLDivElement>(null);
+  const view = useRef<View>({ x: 0, y: 0, k: 1 });
+  const [zoom, setZoom] = useState(1);
+  const anim = useRef<number | null>(null);
   const pointers = useRef(new Map<number, { x: number; y: number }>());
-  const gesture = useRef<{ moved: number; pinch?: { dist: number; k: number; mid: { x: number; y: number }; start: View } } | null>(null);
-
-  const remPx = () => (typeof window === "undefined" ? 16 : parseFloat(getComputedStyle(document.documentElement).fontSize) || 16);
-
-  /** Put one person in the middle of the viewport at a given zoom. */
-  const centreOn = useCallback(
-    (id: string | null, k?: number) => {
-      const el = viewport.current;
-      const spot = id ? layout.people.find((p) => p.id === id) : null;
-      if (!el) return;
-      const scale = remPx() / 16;
-      const zoom = k ?? view.k;
-      const cx = spot ? (spot.x + CARD_W / 2) * scale : (layout.width * scale) / 2;
-      const cy = spot ? (spot.y + CARD_H / 2) * scale : (layout.height * scale) / 2;
-      setView({ k: zoom, x: el.clientWidth / 2 - cx * zoom, y: el.clientHeight / 2 - cy * zoom });
-    },
-    [layout, view.k],
-  );
-
-  /** The whole tree in view, or as much of it as can be read. */
-  const fit = useCallback(() => {
-    const el = viewport.current;
-    if (!el) return;
-    const scale = remPx() / 16;
-    const k = Math.min(1, Math.max(MIN_ZOOM, Math.min(el.clientWidth / (layout.width * scale + 48), el.clientHeight / (layout.height * scale + 48))));
-    centreOn(null, k);
-  }, [layout, centreOn]);
-
-  // First view: yourself, in the middle, at a size you can read.
-  const placedOnce = useRef(false);
-  useEffect(() => {
-    if (placedOnce.current || !viewport.current) return;
-    placedOnce.current = true;
-    const id = requestAnimationFrame(() => (meTreeId ? centreOn(meTreeId, 1) : fit()));
-    return () => cancelAnimationFrame(id);
-  }, [meTreeId, centreOn, fit]);
-
-  const zoomAt = (factor: number, at?: { x: number; y: number }) => {
-    const el = viewport.current;
-    if (!el) return;
-    const p = at ?? { x: el.clientWidth / 2, y: el.clientHeight / 2 };
-    setView((v) => {
-      const k = Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, v.k * factor));
-      // Zoom about the point under the finger, not the corner of the canvas.
-      return { k, x: p.x - ((p.x - v.x) * k) / v.k, y: p.y - ((p.y - v.y) * k) / v.k };
-    });
-  };
-
-  const local = (e: { clientX: number; clientY: number }) => {
-    const r = viewport.current!.getBoundingClientRect();
-    return { x: e.clientX - r.left, y: e.clientY - r.top };
-  };
-
-  // The pointer is captured only once it has actually moved. Capturing it on
-  // the press, as this first did, retargets the release to the viewport, so
-  // a mouse click on a card never reached the card: selecting someone worked
-  // by touch and silently did nothing with a mouse.
-  const capture = (id: number) => {
-    const el = viewport.current;
-    if (el && !el.hasPointerCapture(id)) el.setPointerCapture(id);
-  };
-  const onPointerDown = (e: React.PointerEvent) => {
-    pointers.current.set(e.pointerId, local(e));
-    if (pointers.current.size === 1) gesture.current = { moved: 0 };
-    if (pointers.current.size === 2) {
-      for (const id of pointers.current.keys()) capture(id);
-      const [a, b] = [...pointers.current.values()];
-      gesture.current = { moved: 99, pinch: { dist: Math.hypot(a.x - b.x, a.y - b.y), k: view.k, mid: { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 }, start: view } };
-    }
-  };
-  const onPointerMove = (e: React.PointerEvent) => {
-    const prev = pointers.current.get(e.pointerId);
-    if (!prev || !gesture.current) return;
-    const now = local(e);
-    pointers.current.set(e.pointerId, now);
-    const g = gesture.current;
-    if (g.pinch && pointers.current.size >= 2) {
-      const [a, b] = [...pointers.current.values()];
-      const k = Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, (g.pinch.k * Math.hypot(a.x - b.x, a.y - b.y)) / (g.pinch.dist || 1)));
-      const { start, mid } = g.pinch;
-      setView({ k, x: mid.x - ((mid.x - start.x) * k) / start.k, y: mid.y - ((mid.y - start.y) * k) / start.k });
-      return;
-    }
-    g.moved += Math.abs(now.x - prev.x) + Math.abs(now.y - prev.y);
-    if (g.moved >= 8) capture(e.pointerId);
-    setView((v) => ({ ...v, x: v.x + now.x - prev.x, y: v.y + now.y - prev.y }));
-  };
-  const onPointerUp = (e: React.PointerEvent) => {
-    pointers.current.delete(e.pointerId);
-    if (pointers.current.size === 0) setTimeout(() => (gesture.current = null), 0);
-  };
-  // A card only counts as tapped if the finger did not travel: a drag that
-  // happens to start and end on a card is a drag.
-  const tapped = () => !gesture.current || gesture.current.moved < 8;
-
-  const onWheel = (e: React.WheelEvent) => {
-    // Pinch on a trackpad arrives as a wheel with ctrl held; that zooms. A
-    // plain wheel or two-finger scroll moves the chart.
-    if (e.ctrlKey) zoomAt(Math.exp(-e.deltaY / 200), local(e));
-    else setView((v) => ({ ...v, x: v.x - e.deltaX, y: v.y - e.deltaY }));
-  };
-
-  // ── adding a relative ─────────────────────────────────────────────────────
-  const [adding, setAdding] = useState<{ to: string; relation: AddAs } | null>(null);
+  const gesture = useRef<{ moved: number; samples: { t: number; x: number; y: number }[]; pinch?: { dist: number; mid: { x: number; y: number }; start: View } } | null>(null);
 
   // ── the 3D view (item 10, 25 September) ───────────────────────────────────
   // An option, not the default: the flat chart is the one to read and edit
-  // on. In 3D the chart becomes a floor tilted away from you, the lines drawn
-  // on it, and every card stands up from its place like a pop-up book, turned
-  // to face you however the floor is turned. CSS 3D rather than a WebGL
-  // library: no new dependency, the cards stay real buttons (so tapping,
-  // selecting and screen readers all work unchanged), and it runs on any
-  // phone. Every visit opens flat, the default the design asked for; 3D is
-  // one tap away.
+  // on. In 3D the chart becomes a floor tilted away from you, the curves drawn
+  // on it, and every household's card stands up from its place like a pop-up
+  // book, turned to face you however the floor is turned. CSS 3D rather than
+  // a WebGL library: no new dependency, the cards stay real buttons, and it
+  // runs on any phone.
   const TILT = 56;
   const [threeD, setThreeD] = useState(false);
   const [spin, setSpin] = useState(0);
@@ -300,6 +204,280 @@ export function FamilyTreeChart({
       setThreeD(next);
       if (!next) setSpin(0);
     });
+
+  const half = { x: rem(layout.width / 2), y: rem(layout.height / 2) };
+  const transformOf = (v: View) =>
+    threeD
+      ? `translate(${v.x}px, ${v.y}px) scale(${v.k}) translate(${half.x}, ${half.y}) rotateX(${TILT}deg) rotateZ(${spin}deg) translate(-${half.x}, -${half.y})`
+      : `translate(${v.x}px, ${v.y}px) scale(${v.k})`;
+  const transformRef = useRef(transformOf);
+  useLayoutEffect(() => {
+    transformRef.current = transformOf;
+    if (canvas.current) canvas.current.style.transform = transformOf(view.current);
+  });
+
+  const paint = () => {
+    if (canvas.current) canvas.current.style.transform = transformRef.current(view.current);
+  };
+  const stop = () => {
+    if (anim.current !== null) cancelAnimationFrame(anim.current);
+    anim.current = null;
+  };
+  const scale = () => (typeof window === "undefined" ? 1 : (parseFloat(getComputedStyle(document.documentElement).fontSize) || 16) / 16);
+
+  /** Where a box of the chart sits in the middle of the window, at the
+   * largest zoom that shows all of it (and no more than `maxK`). */
+  const framing = (b: Box, maxK: number): View => {
+    const el = viewport.current!;
+    const s = scale();
+    const k = clampK(Math.min(maxK, (el.clientWidth - 32) / (b.w * s), (el.clientHeight - 32) / (b.h * s)));
+    return { k, x: el.clientWidth / 2 - (b.x + b.w / 2) * s * k, y: el.clientHeight / 2 - (b.y + b.h / 2) * s * k };
+  };
+  const whole = (): Box => ({ x: 0, y: 0, w: layout.width, h: layout.height });
+
+  /** When motion ends: if the tree has been flung almost out of sight, bring
+   * it back -- an empty window with no way to tell where the family went is
+   * the one outcome a drag should never have. */
+  const settle = () => {
+    const el = viewport.current;
+    setZoom(view.current.k);
+    if (!el || threeD) return;
+    const { x, y, k } = view.current;
+    const s = scale() * k;
+    const margin = 56;
+    const nx = Math.min(el.clientWidth - margin, Math.max(margin - layout.width * s, x));
+    const ny = Math.min(el.clientHeight - margin, Math.max(margin - layout.height * s, y));
+    if (nx !== x || ny !== y) glideTo({ x: nx, y: ny, k });
+  };
+
+  /** Move the view with a critically damped spring -- no overshoot, and it
+   * starts from wherever the view is now, so a glide interrupted by a finger
+   * or another button simply carries on from there. Zoom springs in log
+   * space, so zooming in and out feel alike. Reduced motion: it just goes. */
+  const glideTo = (target: View) => {
+    stop();
+    target = { ...target, k: clampK(target.k) };
+    if (reducedMotion()) {
+      view.current = target;
+      paint();
+      setZoom(target.k);
+      return;
+    }
+    const w = (2 * Math.PI) / 0.45; // response 0.45s
+    const cur = { x: view.current.x, y: view.current.y, l: Math.log(view.current.k) };
+    const to = { x: target.x, y: target.y, l: Math.log(target.k) };
+    const vel = { x: 0, y: 0, l: 0 };
+    let last: number | null = null;
+    const step = (now: number) => {
+      let dt = Math.min(0.064, (now - (last ?? now)) / 1000);
+      last = now;
+      while (dt > 0) {
+        const h = Math.min(dt, 1 / 240);
+        for (const a of ["x", "y", "l"] as const) {
+          vel[a] += (w * w * (to[a] - cur[a]) - 2 * w * vel[a]) * h;
+          cur[a] += vel[a] * h;
+        }
+        dt -= h;
+      }
+      const done = Math.abs(to.x - cur.x) < 0.5 && Math.abs(to.y - cur.y) < 0.5 && Math.abs(to.l - cur.l) < 0.002;
+      view.current = done ? target : { x: cur.x, y: cur.y, k: Math.exp(cur.l) };
+      paint();
+      if (done) {
+        anim.current = null;
+        setZoom(target.k);
+        return;
+      }
+      anim.current = requestAnimationFrame(step);
+    };
+    anim.current = requestAnimationFrame(step);
+  };
+
+  /** A flick keeps going and slows the way a scrolled page does. */
+  const coast = (vx: number, vy: number) => {
+    stop();
+    if (reducedMotion() || Math.hypot(vx, vy) < 0.15) return settle();
+    let last: number | null = null;
+    const step = (now: number) => {
+      const dt = Math.min(64, now - (last ?? now));
+      last = now;
+      view.current = { ...view.current, x: view.current.x + vx * dt, y: view.current.y + vy * dt };
+      paint();
+      const decay = Math.pow(0.995, dt);
+      vx *= decay;
+      vy *= decay;
+      if (Math.hypot(vx, vy) < 0.02) {
+        anim.current = null;
+        return settle();
+      }
+      anim.current = requestAnimationFrame(step);
+    };
+    anim.current = requestAnimationFrame(step);
+  };
+
+  const zoomAbout = (factor: number, at?: { x: number; y: number }, smooth = false) => {
+    const el = viewport.current;
+    if (!el) return;
+    const p = at ?? { x: el.clientWidth / 2, y: el.clientHeight / 2 };
+    const v = view.current;
+    const k = clampK(v.k * factor);
+    // Zoom about the point under the finger, not the corner of the canvas.
+    const next = { k, x: p.x - ((p.x - v.x) * k) / v.k, y: p.y - ((p.y - v.y) * k) / v.k };
+    if (smooth) glideTo(next);
+    else {
+      view.current = next;
+      paint();
+    }
+  };
+
+  const centreOn = (id: string | null, k?: number) => {
+    const slot = id ? layout.households.flatMap((h) => h.slots).find((s) => s.id === id) : null;
+    if (!viewport.current) return;
+    if (!slot) return glideTo(framing(whole(), 1));
+    glideTo(framing({ x: slot.x, y: slot.y, w: TILE_W, h: TILE_H }, k ?? Math.max(view.current.k, 0.9)));
+  };
+  const frameMine = (): View => {
+    const all = framing(whole(), 1);
+    // Small enough to read whole: show it all. Otherwise open on our own
+    // household, which is the one a member comes here to see.
+    if (!mine || all.k >= 0.8) return all;
+    return framing(mine, 1);
+  };
+  const fit = () => glideTo(framing(whole(), 1));
+
+  // First view: no glide in from nowhere, just there.
+  const placedOnce = useRef(false);
+  useLayoutEffect(() => {
+    if (placedOnce.current || !viewport.current) return;
+    placedOnce.current = true;
+    view.current = frameMine();
+    paint();
+    setZoom(view.current.k);
+    // Once, when the chart first has a size: later layouts must not yank
+    // the view back from wherever the reader has taken it.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+  useEffect(() => stop, []);
+
+  const local = (e: { clientX: number; clientY: number }) => {
+    const r = viewport.current!.getBoundingClientRect();
+    return { x: e.clientX - r.left, y: e.clientY - r.top };
+  };
+
+  // The pointer is captured only once it has actually moved. Capturing it on
+  // the press retargets the release to the viewport, so a mouse click on a
+  // card never reached the card: selecting someone worked by touch and
+  // silently did nothing with a mouse.
+  const capture = (id: number) => {
+    const el = viewport.current;
+    if (el && !el.hasPointerCapture(id)) el.setPointerCapture(id);
+  };
+  const onPointerDown = (e: React.PointerEvent) => {
+    stop(); // a finger on a moving tree stops it where it is
+    const at = local(e);
+    pointers.current.set(e.pointerId, at);
+    if (pointers.current.size === 1) gesture.current = { moved: 0, samples: [{ t: e.timeStamp, ...at }] };
+    if (pointers.current.size === 2) {
+      for (const id of pointers.current.keys()) capture(id);
+      const [a, b] = [...pointers.current.values()];
+      gesture.current = { moved: 99, samples: [], pinch: { dist: Math.hypot(a.x - b.x, a.y - b.y), mid: { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 }, start: view.current } };
+    }
+  };
+  const onPointerMove = (e: React.PointerEvent) => {
+    const prev = pointers.current.get(e.pointerId);
+    if (!prev || !gesture.current) return;
+    const now = local(e);
+    pointers.current.set(e.pointerId, now);
+    const g = gesture.current;
+    if (g.pinch) {
+      if (pointers.current.size < 2) return;
+      const [a, b] = [...pointers.current.values()];
+      const { start, mid, dist } = g.pinch;
+      const k = clampK((start.k * Math.hypot(a.x - b.x, a.y - b.y)) / (dist || 1));
+      const m = { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 };
+      // Pinch zooms about where it started and follows the fingers' middle,
+      // so two fingers can zoom and move at once.
+      view.current = { k, x: m.x - ((mid.x - start.x) * k) / start.k, y: m.y - ((mid.y - start.y) * k) / start.k };
+      paint();
+      return;
+    }
+    g.moved += Math.abs(now.x - prev.x) + Math.abs(now.y - prev.y);
+    if (g.moved >= 8) capture(e.pointerId);
+    g.samples = [...g.samples.filter((s) => e.timeStamp - s.t < 100), { t: e.timeStamp, ...now }];
+    view.current = { ...view.current, x: view.current.x + now.x - prev.x, y: view.current.y + now.y - prev.y };
+    paint();
+  };
+  const onPointerUp = (e: React.PointerEvent) => {
+    pointers.current.delete(e.pointerId);
+    const g = gesture.current;
+    if (pointers.current.size === 0) {
+      if (g && !g.pinch && g.moved >= 8) {
+        // Release velocity over the last few moves; a finger that stopped
+        // before lifting has none.
+        const s = g.samples;
+        const first = s[0];
+        const last = s[s.length - 1];
+        const fresh = last && e.timeStamp - last.t < 60;
+        const dt = last && first ? last.t - first.t : 0;
+        if (fresh && dt > 0) coast((last.x - first.x) / dt, (last.y - first.y) / dt);
+        else settle();
+      } else if (g?.pinch) settle();
+      setTimeout(() => (gesture.current = null), 0);
+    } else if (g?.pinch) {
+      // One finger of a pinch lifted: carry on as a drag from here, rather
+      // than the tree jumping to the remaining finger.
+      gesture.current = { moved: 99, samples: [] };
+    }
+  };
+  // A card only counts as tapped if the finger did not travel: a drag that
+  // happens to start and end on a card is a drag.
+  const tapped = () => !gesture.current || gesture.current.moved < 8;
+
+  // Pinch on a trackpad arrives as a wheel with ctrl held, and a mouse wheel
+  // in whole notches: both zoom. A trackpad's two-finger scroll moves the
+  // tree. Attached by hand because React's wheel listener is passive and
+  // could not stop the page scrolling underneath.
+  const wheelRef = useRef<(e: WheelEvent) => void>(() => {});
+  const onWheel = (e: WheelEvent) => {
+    e.preventDefault();
+    stop();
+    const at = local(e);
+    const notch = e.deltaMode !== 0 || (e.deltaX === 0 && Math.abs(e.deltaY) >= 50 && Number.isInteger(e.deltaY));
+    if (e.ctrlKey || e.metaKey) zoomAbout(Math.exp(-e.deltaY / 120), at);
+    else if (notch) zoomAbout(Math.exp(-(e.deltaMode === 1 ? e.deltaY * 33 : e.deltaY) / 500), at);
+    else {
+      view.current = { ...view.current, x: view.current.x - e.deltaX, y: view.current.y - e.deltaY };
+      paint();
+    }
+    window.clearTimeout(wheelEnd.current);
+    wheelEnd.current = window.setTimeout(settle, 140);
+  };
+  const wheelEnd = useRef<number | undefined>(undefined);
+  useEffect(() => {
+    wheelRef.current = onWheel;
+  });
+  useEffect(() => {
+    const el = viewport.current;
+    if (!el) return;
+    const on = (e: WheelEvent) => wheelRef.current(e);
+    el.addEventListener("wheel", on, { passive: false });
+    return () => el.removeEventListener("wheel", on);
+  }, []);
+
+  // ── a household brought forward ───────────────────────────────────────────
+  // Tapping a household's name frames it and dims everybody else, so one
+  // family can be read without the rest of the tree around it. Tapping it
+  // again, the empty space around the cards, or Escape, lets go.
+  const [focusHousehold, setFocusHousehold] = useState<string | null>(null);
+  const toggleHousehold = (h: PlacedHousehold) => {
+    if (focusHousehold === h.id) return setFocusHousehold(null);
+    setFocusHousehold(h.id);
+    glideTo(framing(h, 1.2));
+  };
+  const focused = focusHousehold ? layout.households.find((h) => h.id === focusHousehold) : null;
+
+  // ── adding a relative ─────────────────────────────────────────────────────
+  const [adding, setAdding] = useState<{ to: string; relation: AddAs } | null>(null);
+
   // ── full screen ───────────────────────────────────────────────────────────
   // The whole chart, its buttons and the selected person's panel, over the
   // page. A portal to <body> rather than position: fixed where it stands: an
@@ -309,28 +487,107 @@ export function FamilyTreeChart({
   // on top of it.
   const [max, setMax] = useState(false);
   useEffect(() => {
-    if (!max) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== "Escape") return;
+      if (focusHousehold) setFocusHousehold(null);
+      else if (max) setMax(false);
+    };
+    window.addEventListener("keydown", onKey);
+    if (!max) return () => window.removeEventListener("keydown", onKey);
     const root = document.documentElement;
     const before = root.style.overflow;
     root.style.overflow = "hidden";
-    const onKey = (e: KeyboardEvent) => e.key === "Escape" && setMax(false);
-    window.addEventListener("keydown", onKey);
     return () => {
       root.style.overflow = before;
       window.removeEventListener("keydown", onKey);
     };
-  }, [max]);
+  }, [max, focusHousehold]);
   const toggleMax = () => {
-    const keep = focus ?? meTreeId;
     setMax((m) => !m);
-    // The window changes size, so re-centre on whoever was in view once it has.
-    setTimeout(() => (keep ? centreOn(keep, view.k) : fit()), 60);
+    // The window changes size, so frame the same thing again once it has.
+    setTimeout(() => glideTo(focused ? framing(focused, 1.2) : frameMine()), 60);
   };
 
-  const half = { x: rem(layout.width / 2), y: rem(layout.height / 2) };
-  const canvasTransform = threeD
-    ? `translate(${view.x}px, ${view.y}px) scale(${view.k}) translate(${half.x}, ${half.y}) rotateX(${TILT}deg) rotateZ(${spin}deg) translate(-${half.x}, -${half.y})`
-    : `translate(${view.x}px, ${view.y}px) scale(${view.k})`;
+  const households = layout.households.length - layout.households.filter((h) => h.ghost).length;
+  const dimmed = (householdIds: string[]) => (focusHousehold && !householdIds.includes(focusHousehold) ? true : undefined);
+
+  const slotButton = (h: PlacedHousehold, s: PlacedSlot) => {
+    const style = { left: rem(s.x - h.x), top: rem(s.y - h.y), width: rem(TILE_W), height: rem(TILE_H) };
+    if (s.kind === "sibling") {
+      // Two choices in one place, so it is a group of buttons rather than
+      // one: brother or sister is only a word to the tree (both share the
+      // parents), but it is the word the form then uses.
+      return (
+        <div key={s.id} className="kin-tp kin-tp-ghost" style={style} role="group" aria-label="Add a brother or sister">
+          <span className="kin-tp-av" aria-hidden="true">
+            <Icon name="plus" size="1.125rem" />
+          </span>
+          <span className="kin-tp-choices">
+            {(["brother", "sister"] as const).map((r) => (
+              <button key={r} type="button" onClick={() => tapped() && setAdding({ to: s.of, relation: r })}>
+                {r === "brother" ? "Brother" : "Sister"}
+              </button>
+            ))}
+          </span>
+        </div>
+      );
+    }
+    if (s.kind !== "person") {
+      return (
+        <button key={s.id} type="button" className="kin-tp kin-tp-ghost" style={style} onClick={() => tapped() && setAdding({ to: s.of, relation: s.kind === "mother" ? "mother" : "father" })}>
+          <span className="kin-tp-av" aria-hidden="true">
+            <Icon name="plus" size="1.125rem" />
+          </span>
+          <span className="kin-tp-name">Add {s.kind}</span>
+        </button>
+      );
+    }
+    const p = chartById.get(s.id)!;
+    const isMe = p.id === meTreeId;
+    const linked = accepted.some((m) => m.ourPersonId === p.id);
+    const word = relation.get(p.id);
+    const colour = memberColourVar(p.memberId ?? p.id, p.color);
+    return (
+      <button
+        key={s.id}
+        type="button"
+        className="kin-tp"
+        data-me={isMe || undefined}
+        data-selected={p.id === selected || undefined}
+        data-branch={p.fromHousehold ? true : undefined}
+        style={{ ...style, ["--p" as string]: colour }}
+        onClick={() => {
+          if (!tapped()) return;
+          // A second tap on someone already picked opens their profile
+          // (Jonathan, 28 September); the first picks them, for adding
+          // relatives around them.
+          if (p.id === selected && p.memberId && !p.fromHousehold) {
+            router.push(`/family/members/${p.memberId}?from=tree`);
+            return;
+          }
+          setSelected(p.id);
+          setAdding(null);
+        }}
+        aria-label={`${p.fullName}${word && !isMe ? `, your ${word.toLowerCase()}` : ""}${isMe ? ", you" : ""}${p.birthYear ? `, born ${p.birthYear}` : ""}${p.fromHousehold ? `, from the ${p.fromHousehold} tree` : ""}`}
+      >
+        <span className="kin-tp-av" aria-hidden="true">
+          {p.avatarUrl ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={p.avatarUrl} alt="" draggable={false} />
+          ) : (
+            initials(p.fullName)
+          )}
+          {linked && (
+            <span className="kin-tp-linked" title="Linked with another household">
+              <Icon name="users" size="0.625rem" />
+            </span>
+          )}
+        </span>
+        <span className="kin-tp-name">{p.fullName}</span>
+        <span className="kin-tp-rel">{isMe ? "You" : (word ?? (p.birthYear ? `b. ${p.birthYear}` : ""))}</span>
+      </button>
+    );
+  };
 
   const chart = (
     <div className="kin-treechart" data-max={max || undefined} role={max ? "dialog" : undefined} aria-modal={max || undefined} aria-label={max ? "Family tree, full screen" : undefined}>
@@ -343,158 +600,144 @@ export function FamilyTreeChart({
         onPointerMove={onPointerMove}
         onPointerUp={onPointerUp}
         onPointerCancel={onPointerUp}
-        onWheel={onWheel}
+        onClick={(e) => {
+          // A tap on the space between households lets go of a focused one.
+          const t = e.target as HTMLElement;
+          if (tapped() && focusHousehold && !t.closest(".kin-hh")) setFocusHousehold(null);
+        }}
         role="application"
-        aria-label="Family tree. Drag to move, pinch or use the buttons to zoom."
+        aria-label="Family tree. Drag to move, pinch or scroll to zoom."
       >
         <div
+          ref={canvas}
           className="kin-treechart-canvas"
+          data-focus={focusHousehold ? true : undefined}
           style={{
             width: rem(layout.width),
             height: rem(layout.height),
-            transform: canvasTransform,
             ["--tree-spin" as string]: `${spin}deg`,
             ["--tree-tilt" as string]: `${TILT}deg`,
           }}
         >
           {threeD && <div className="kin-treechart-floor" aria-hidden="true" />}
+
+          {layout.households.map((h) => {
+            const isMine = h.id === mine?.id;
+            const title = titleOf(h);
+            const branch = h.heads.every((s) => s.kind !== "person" || chartById.get(s.id)?.fromHousehold);
+            const from = branch && !h.ghost ? chartById.get(h.heads[0].id)?.fromHousehold : null;
+            const size = h.slots.filter((s) => s.kind === "person").length;
+            return (
+              <div
+                key={h.id}
+                className="kin-hh"
+                role="group"
+                aria-label={`${title}${isMine ? ", your household" : ""}${from ? `, from the ${from} tree` : ""}, ${size} ${size === 1 ? "person" : "people"}`}
+                data-mine={isMine || undefined}
+                data-ghost={h.ghost || undefined}
+                data-branch={from ? true : undefined}
+                data-dim={dimmed([h.id])}
+                data-focused={focusHousehold === h.id || undefined}
+                style={{
+                  left: rem(h.x),
+                  top: rem(h.y),
+                  width: rem(h.w),
+                  height: rem(h.h),
+                  ["--hh" as string]: isMine ? "var(--color-accent)" : h.ghost ? "var(--color-neutral-600)" : `var(--member-${fallbackColour(h.id)})`,
+                }}
+              >
+                {h.ghost ? (
+                  <span className="kin-hh-name">{title}</span>
+                ) : (
+                  <button type="button" className="kin-hh-name" aria-pressed={focusHousehold === h.id} title={from ? `${title} · from the ${from} tree` : title} onClick={() => tapped() && toggleHousehold(h)}>
+                    <span className="kin-hh-dot" aria-hidden="true" />
+                    <span className="kin-hh-title">{title}</span>
+                  </button>
+                )}
+                <svg className="kin-hh-lines" viewBox={`${h.x} ${h.y} ${h.w} ${h.h}`} width="100%" height="100%" aria-hidden="true">
+                  {layout.inner
+                    .filter((l) => l.household === h.id)
+                    .map((l, i) => (
+                      <path key={i} d={l.d} data-ghost={l.ghost || undefined} />
+                    ))}
+                </svg>
+                {h.slots.map((s) => slotButton(h, s))}
+              </div>
+            );
+          })}
+
           <svg className="kin-treechart-lines" viewBox={`0 0 ${layout.width} ${layout.height}`} width="100%" height="100%" aria-hidden="true">
-            {layout.couples.map((c) => (
-              <line key={`c-${c.a}-${c.b}`} x1={c.x1} y1={c.y} x2={c.x2} y2={c.y} />
-            ))}
-            {layout.families.map((f) => {
-              const ghost = f.parentIds.some((id) => ghostById.has(id));
+            {layout.connectors.map((c) => {
+              const to = layout.households.find((h) => h.slots.some((s) => s.id === c.to))?.id ?? "";
               return (
-                <path
-                  key={`f-${f.parentIds.join("+")}`}
-                  data-ghost={ghost || undefined}
-                  d={[`M${f.fromX},${f.fromY}V${f.barY}`, `M${f.barX1},${f.barY}H${f.barX2}`, ...f.childXs.map((x) => `M${x},${f.barY}V${f.childY}`)].join("")}
-                />
+                <g key={`${c.from}>${c.to}`} data-ghost={c.ghost || undefined} data-dim={dimmed([c.from, to])}>
+                  <path d={c.d} />
+                  <circle cx={c.end.x} cy={c.end.y} r={3} />
+                </g>
               );
             })}
           </svg>
-
-          {layout.people.map((spot) => {
-            const ghost = ghostById.get(spot.id);
-            const style = { left: rem(spot.x), top: rem(spot.y), width: rem(CARD_W), height: rem(CARD_H) };
-            if (ghost?.relation === "sibling") {
-              // Two choices in one place, so it is a group of buttons rather
-              // than one: brother or sister is only a word to the tree (both
-              // share the parents), but it is the word the form then uses.
-              return (
-                <div key={spot.id} className="kin-treecard kin-treecard-ghost kin-treecard-sibling" style={style} role="group" aria-label="Add a brother or sister">
-                  {(["brother", "sister"] as const).map((r) => (
-                    <button key={r} type="button" onClick={() => tapped() && setAdding({ to: ghost.of, relation: r })}>
-                      <Icon name="plus" size="0.875rem" />
-                      Add {r}
-                    </button>
-                  ))}
-                </div>
-              );
-            }
-            if (ghost) {
-              return (
-                <button
-                  key={spot.id}
-                  type="button"
-                  className="kin-treecard kin-treecard-ghost"
-                  style={style}
-                  onClick={() => tapped() && setAdding({ to: ghost.of, relation: ghost.relation === "mother" ? "mother" : "father" })}
-                >
-                  <Icon name="plus" size="1rem" />
-                  Add {ghost.relation}
-                </button>
-              );
-            }
-            const p = chartById.get(spot.id)!;
-            const isMe = p.id === meTreeId;
-            const linked = accepted.some((m) => m.ourPersonId === p.id);
-            return (
-              <button
-                key={spot.id}
-                type="button"
-                className="kin-treecard"
-                data-me={isMe || undefined}
-                data-selected={p.id === selected || undefined}
-                data-branch={p.fromHousehold ? true : undefined}
-                style={style}
-                onClick={() => {
-                  if (!tapped()) return;
-                  // A second tap on someone already picked opens their profile
-                  // (Jonathan, 28 September); the first picks them, as before,
-                  // for adding relatives around them.
-                  if (p.id === selected && p.memberId && !p.fromHousehold) {
-                    router.push(`/family/members/${p.memberId}?from=tree`);
-                    return;
-                  }
-                  setSelected(p.id);
-                  setAdding(null);
-                }}
-                aria-label={`${p.fullName}${isMe ? ", you" : ""}${p.birthYear ? `, born ${p.birthYear}` : ""}${p.fromHousehold ? `, from the ${p.fromHousehold} tree` : ""}`}
-              >
-                <Avatar url={p.avatarUrl} initials={initials(p.fullName)} label={p.fullName} size={34} />
-                <span className="kin-treecard-text">
-                  <span className="kin-treecard-name">{p.fullName}</span>
-                  <span className="kin-treecard-meta">
-                    {p.birthYear ? `b. ${p.birthYear}` : "\u00a0"}
-                    {linked && <span className="kin-treecard-link"> · linked</span>}
-                  </span>
-                </span>
-                {isMe && <span className="kin-treecard-you">You</span>}
-              </button>
-            );
-          })}
         </div>
-
       </div>
 
       {/* The controls sit under the chart rather than floating over it: on a
           phone there is no corner of the canvas that is not somebody's card,
           and the first version covered the one person you were looking at. */}
       <div className="kin-treechart-bar">
+        <span className="kin-treechart-count" aria-live="polite">
+          {chartPeople.length} {chartPeople.length === 1 ? "person" : "people"} · {households} {households === 1 ? "household" : "households"}
+          {chartPeople.length !== people.length ? ` · ${chartPeople.length - people.length} from linked households` : ""}
+        </span>
         <div className="kin-treechart-tools">
-            <button type="button" className="btn btn-secondary btn-icon" aria-label={max ? "Leave full screen" : "Full screen"} aria-pressed={max} onClick={toggleMax}>
-              <Icon name={max ? "minimize" : "maximize"} size="1rem" />
+          <div className="kin-treechart-group">
+            <button type="button" aria-label="Zoom out" onClick={() => zoomAbout(0.8, undefined, true)}>
+              <svg viewBox="0 0 16 16" width="1rem" height="1rem" aria-hidden="true">
+                <path d="M3.5 8h9" />
+              </svg>
             </button>
-            <button type="button" className="btn btn-secondary btn-icon" aria-label="Zoom in" onClick={() => zoomAt(1.25)}>
-              <Icon name="plus" size="1rem" />
+            <span className="kin-treechart-zoom" aria-hidden="true">
+              {Math.round(zoom * 100)}%
+            </span>
+            <button type="button" aria-label="Zoom in" onClick={() => zoomAbout(1.25, undefined, true)}>
+              <svg viewBox="0 0 16 16" width="1rem" height="1rem" aria-hidden="true">
+                <path d="M3.5 8h9M8 3.5v9" />
+              </svg>
             </button>
-            <button type="button" className="btn btn-secondary btn-icon" aria-label="Zoom out" onClick={() => zoomAt(0.8)}>
-              <span aria-hidden="true" style={{ font: "600 1.125rem/1 var(--font-heading)" }}>−</span>
+          </div>
+          <div className="kin-treechart-group">
+            <button type="button" onClick={fit}>
+              Fit
             </button>
-            <button type="button" className="btn btn-secondary kin-treechart-tool" onClick={fit}>
-              Whole tree
-            </button>
-            <button type="button" className="btn btn-secondary kin-treechart-tool" aria-pressed={threeD} data-on={threeD || undefined} onClick={toggle3D}>
-              3D
-            </button>
-            {threeD && (
-              <>
-                <button type="button" className="btn btn-secondary btn-icon" aria-label="Turn the tree left" onClick={() => eased(() => setSpin((s) => s - 30))}>
-                  <span aria-hidden="true">⟲</span>
-                </button>
-                <button type="button" className="btn btn-secondary btn-icon" aria-label="Turn the tree right" onClick={() => eased(() => setSpin((s) => s + 30))}>
-                  <span aria-hidden="true">⟳</span>
-                </button>
-              </>
-            )}
             {meTreeId && (
               <button
                 type="button"
-                className="btn btn-secondary kin-treechart-tool"
                 onClick={() => {
                   setSelected(meTreeId);
-                  centreOn(meTreeId, Math.max(view.k, 0.9));
+                  setFocusHousehold(null);
+                  glideTo(mine ? framing(mine, 1) : view.current);
                 }}
               >
                 Me
               </button>
             )}
+            <button type="button" aria-pressed={threeD} data-on={threeD || undefined} onClick={toggle3D}>
+              3D
+            </button>
+            {threeD && (
+              <>
+                <button type="button" aria-label="Turn the tree left" onClick={() => eased(() => setSpin((s) => s - 30))}>
+                  <span aria-hidden="true">⟲</span>
+                </button>
+                <button type="button" aria-label="Turn the tree right" onClick={() => eased(() => setSpin((s) => s + 30))}>
+                  <span aria-hidden="true">⟳</span>
+                </button>
+              </>
+            )}
+            <button type="button" aria-label={max ? "Leave full screen" : "Full screen"} aria-pressed={max} onClick={toggleMax}>
+              <Icon name={max ? "minimize" : "maximize"} size="1rem" />
+            </button>
           </div>
-          <span className="kin-treechart-count" aria-live="polite">
-            {chartPeople.length} {chartPeople.length === 1 ? "person" : "people"}
-          {chartPeople.length !== people.length ? ` (${chartPeople.length - people.length} from linked households)` : ""} · {Math.round(view.k * 100)}%
-          </span>
+        </div>
       </div>
 
       {/* What you can do with whoever is selected. Outside the canvas, so it
@@ -503,7 +746,7 @@ export function FamilyTreeChart({
         <div className="kin-treepanel">
           <div className="kin-treepanel-head">
             <Avatar url={null} initials={initials(chartById.get(focus)!.fullName)} label={chartById.get(focus)!.fullName} size={36} />
-            <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ minWidth: 0 }}>
               <div className="kin-treepanel-name">{chartById.get(focus)!.fullName}</div>
               <div className="kin-treepanel-meta">
                 {chartById.get(focus)!.birthYear ? `Born ${chartById.get(focus)!.birthYear} · ` : ""}from the {chartById.get(focus)!.fromHousehold} household&rsquo;s tree
@@ -517,19 +760,20 @@ export function FamilyTreeChart({
         </div>
       )}
 
-      {focus && byId.get(focus) && (
+      {focus && people.find((p) => p.id === focus) && (
         <SelectedPanel
           inviteCode={inviteCode}
           matches={matches.filter((m) => m.ourPersonId === focus)}
           linkedFamilies={linkedFamilies}
           shownBranches={shown}
           onToggleBranch={toggleBranch}
-          person={byId.get(focus)!}
+          person={people.find((p) => p.id === focus)!}
+          relation={focus === meTreeId ? null : (relation.get(focus) ?? null)}
           people={people}
           unaddedMembers={unaddedMembers}
           isMe={focus === meTreeId}
           adding={adding?.to === focus ? adding.relation : null}
-          onAdd={(relation) => setAdding({ to: focus, relation })}
+          onAdd={(r) => setAdding({ to: focus, relation: r })}
           onCancel={() => setAdding(null)}
           onAdded={(newId) => {
             setAdding(null);
@@ -558,8 +802,11 @@ function SelectedPanel({
   shownBranches,
   onToggleBranch,
   inviteCode,
+  relation,
 }: {
   inviteCode: string | null;
+  /** What they are to the viewer ("Grandmother"), when the viewer is on the tree. */
+  relation: string | null;
   matches: TreeMatch[];
   linkedFamilies: { id: string; name: string }[];
   shownBranches: string[];
@@ -589,20 +836,22 @@ function SelectedPanel({
           // Family list.
           <Link href={`/family/members/${person.memberId}?from=tree`} className="kin-treepanel-who">
             <Avatar url={person.avatarUrl} initials={initials(person.fullName)} label={person.fullName} size={36} clickable={false} />
-            <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ minWidth: 0 }}>
               <div className="kin-treepanel-name">
                 {person.fullName}
                 {isMe && <span className="kin-treecard-you">You</span>}
               </div>
-              <div className="kin-treepanel-meta">{person.dob ? `Born ${person.dob}` : "No birthdate recorded"}</div>
+              <div className="kin-treepanel-meta">{relation ? `${relation} · ` : ""}
+                {person.dob ? `Born ${person.dob}` : "No birthdate recorded"}</div>
             </div>
           </Link>
         ) : (
           <>
             <Avatar url={person.avatarUrl} initials={initials(person.fullName)} label={person.fullName} size={36} />
-            <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ minWidth: 0 }}>
               <div className="kin-treepanel-name">{person.fullName}</div>
-              <div className="kin-treepanel-meta">{person.dob ? `Born ${person.dob}` : "No birthdate recorded"}</div>
+              <div className="kin-treepanel-meta">{relation ? `${relation} · ` : ""}
+                {person.dob ? `Born ${person.dob}` : "No birthdate recorded"}</div>
             </div>
           </>
         )}

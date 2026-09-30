@@ -1348,12 +1348,13 @@ textarea.input {
   position: relative;
   height: min(62dvh, 34rem);
   overflow: hidden;
-  border-radius: var(--radius-card);
+  border-radius: 1.5rem;
   background:
-    radial-gradient(circle, color-mix(in srgb, var(--color-text) 9%, transparent) 1px, transparent 1.2px) 0 0 / 1.25rem 1.25rem,
-    color-mix(in srgb, var(--color-text) 3%, var(--color-surface));
-  border: 1px solid var(--color-divider);
+    radial-gradient(circle, color-mix(in srgb, var(--color-text) 7%, transparent) 1px, transparent 1.2px) 0 0 / 1.5rem 1.5rem,
+    var(--color-surface);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--color-text) 6%, transparent);
   touch-action: none;
+  overscroll-behavior: contain;
   cursor: grab;
   user-select: none;
   -webkit-user-select: none;
@@ -1391,63 +1392,6 @@ textarea.input {
   overflow: visible;
   pointer-events: none;
 }
-.kin-treechart-lines line,
-.kin-treechart-lines path {
-  fill: none;
-  stroke: color-mix(in srgb, var(--color-text) 30%, transparent);
-  stroke-width: 1.5;
-  vector-effect: non-scaling-stroke;
-}
-.kin-treechart-lines [data-ghost] {
-  stroke-dasharray: 4 4;
-}
-
-/* A person. */
-.kin-treecard {
-  position: absolute;
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0.375rem 0.5rem;
-  border-radius: 12px;
-  border: 1.5px solid var(--color-divider);
-  background: var(--color-surface);
-  box-shadow: var(--shadow-sm);
-  color: var(--color-text);
-  text-align: left;
-  font: inherit;
-  cursor: pointer;
-  transition: border-color 0.15s ease, box-shadow 0.15s ease;
-}
-.kin-treecard[data-selected] {
-  border-color: color-mix(in srgb, var(--color-accent) 55%, transparent);
-}
-/* You. A filled accent ring and a label -- colour alone is not enough to be
-   found by in a tree of forty people. */
-.kin-treecard[data-me] {
-  border-color: var(--color-accent);
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-accent) 22%, transparent), var(--shadow-sm);
-  background: color-mix(in srgb, var(--color-accent) 7%, var(--color-surface));
-}
-.kin-treecard-text {
-  display: flex;
-  flex-direction: column;
-  min-width: 0;
-  flex: 1;
-}
-.kin-treecard-name {
-  font: 600 0.8125rem/1.15 var(--font-heading);
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-  overflow-wrap: anywhere;
-}
-.kin-treecard-meta {
-  font-size: 0.6875rem;
-  color: var(--color-neutral-600);
-  font-family: var(--font-numeric);
-}
 .kin-treecard-you {
   display: inline-block;
   padding: 0.0625rem 0.375rem;
@@ -1457,57 +1401,368 @@ textarea.input {
   font: 600 0.625rem/1.4 var(--font-heading);
   letter-spacing: 0.02em;
 }
-.kin-treecard > .kin-treecard-you {
+/* ── households on the tree (30 September) ────────────────────────────────
+   Each household one soft card tinted in its own colour (--hh): the couple
+   along the top, the children at home under them. No borders or bevels --
+   the tint is the edge. Ours is the accent colour and a step stronger, so it
+   is the one the eye lands on first. */
+.kin-hh {
   position: absolute;
-  top: -0.5rem;
-  right: 0.5rem;
+  border-radius: 1.375rem;
+  background: color-mix(in srgb, var(--hh) 9%, var(--color-surface));
+  box-shadow:
+    0 0 0 1px color-mix(in srgb, var(--hh) 14%, transparent),
+    0 0.5rem 1.5rem -0.75rem color-mix(in srgb, var(--hh) 35%, transparent);
+  transition: opacity 200ms ease, filter 200ms ease;
 }
-/* An empty place: "Add father", "Add mother". */
-.kin-treecard-ghost {
-  justify-content: center;
-  gap: 0.3125rem;
-  border-style: dashed;
-  border-color: color-mix(in srgb, var(--color-text) 28%, transparent);
-  background: color-mix(in srgb, var(--color-surface) 70%, transparent);
+.kin-hh[data-mine] {
+  background: color-mix(in srgb, var(--hh) 14%, var(--color-surface));
+  box-shadow:
+    0 0 0 1.5px color-mix(in srgb, var(--hh) 55%, transparent),
+    0 0.75rem 2rem -0.75rem color-mix(in srgb, var(--hh) 45%, transparent);
+}
+.kin-hh[data-ghost] {
+  background: color-mix(in srgb, var(--color-surface) 55%, transparent);
   box-shadow: none;
-  color: var(--color-neutral-600);
-  font-size: var(--text-sm);
-  font-weight: 500;
+  outline: 1.5px dashed color-mix(in srgb, var(--color-text) 22%, transparent);
+  outline-offset: -1.5px;
+}
+/* Another household's branch: theirs to keep, so drawn a little quieter. */
+.kin-hh[data-branch] {
+  background: color-mix(in srgb, var(--hh) 5%, var(--color-surface));
+}
+/* One household brought forward: the rest step back, but stay there. */
+.kin-hh[data-dim],
+.kin-treechart-lines [data-dim] {
+  opacity: 0.25;
+  filter: saturate(0.4);
+}
+.kin-hh[data-focused] {
+  box-shadow:
+    0 0 0 2px var(--hh),
+    0 1rem 2.5rem -0.75rem color-mix(in srgb, var(--hh) 50%, transparent);
 }
 
+.kin-hh-name {
+  position: absolute;
+  left: 0.5rem;
+  right: 0.5rem;
+  top: 0.4375rem;
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  min-width: 0;
+  height: 1.5rem;
+  padding: 0 0.375rem;
+  border: 0;
+  border-radius: 999px;
+  background: none;
+  color: color-mix(in srgb, var(--hh) 70%, var(--color-text));
+  font: 600 0.75rem/1 var(--font-heading);
+  letter-spacing: 0.01em;
+  text-align: left;
+  cursor: pointer;
+}
+span.kin-hh-name {
+  cursor: default;
+  color: var(--color-neutral-600);
+  justify-content: center;
+}
+.kin-hh-title {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.kin-hh-dot {
+  flex: none;
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 50%;
+  background: var(--hh);
+}
+.kin-hh-name:focus-visible {
+  outline: 2px solid var(--hh);
+  outline-offset: 1px;
+}
+@media (hover: hover) and (pointer: fine) {
+  button.kin-hh-name:hover {
+    background: color-mix(in srgb, var(--hh) 12%, transparent);
+  }
+}
+.kin-hh[data-mine] .kin-hh-name {
+  font-size: 0.8125rem;
+  color: var(--hh);
+}
+
+/* The lines inside a card, in the household's own colour. */
+.kin-hh-lines {
+  position: absolute;
+  inset: 0;
+  overflow: visible;
+  pointer-events: none;
+}
+.kin-hh-lines path {
+  fill: none;
+  stroke: color-mix(in srgb, var(--hh) 50%, transparent);
+  stroke-width: 1.5;
+  stroke-linecap: round;
+  vector-effect: non-scaling-stroke;
+}
+.kin-hh-lines [data-ghost],
+.kin-treechart-lines [data-ghost] path {
+  stroke-dasharray: 4 4;
+}
+/* Between households: from the card someone grew up in to the one they
+   head now, ending in a small dot over them. */
+.kin-treechart-lines path {
+  fill: none;
+  stroke: color-mix(in srgb, var(--color-text) 26%, transparent);
+  stroke-width: 1.5;
+  stroke-linecap: round;
+  vector-effect: non-scaling-stroke;
+}
+.kin-treechart-lines circle {
+  fill: var(--color-surface);
+  stroke: color-mix(in srgb, var(--color-text) 34%, transparent);
+  stroke-width: 1.5;
+  vector-effect: non-scaling-stroke;
+}
+.kin-treechart-lines g {
+  transition: opacity 200ms ease, filter 200ms ease;
+}
+
+/* A person: their photo, or initials on their colour, over their name and
+   what they are to you. */
+.kin-tp {
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.25rem 0.125rem 0;
+  border: 0;
+  border-radius: 1rem;
+  background: none;
+  color: var(--color-text);
+  font: inherit;
+  text-align: center;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition: transform 160ms var(--ease-out), background-color 160ms ease;
+}
+.kin-tp:active {
+  transform: scale(0.96);
+}
+@media (hover: hover) and (pointer: fine) {
+  .kin-tp:hover {
+    background: color-mix(in srgb, var(--hh) 10%, transparent);
+  }
+}
+.kin-tp:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: -2px;
+}
+.kin-tp-av {
+  position: relative;
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 3.25rem;
+  height: 3.25rem;
+  border-radius: 50%;
+  background: var(--p, var(--color-neutral-600));
+  color: #fff;
+  font: 600 1.0625rem/1 var(--font-heading);
+  letter-spacing: 0.02em;
+  box-shadow:
+    0 0 0 2.5px var(--color-surface),
+    0 0.25rem 0.625rem -0.25rem color-mix(in srgb, var(--color-text) 40%, transparent);
+  transition: box-shadow 160ms ease;
+}
+.kin-tp-av img {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  object-fit: cover;
+  pointer-events: none;
+}
+.kin-tp[data-selected] .kin-tp-av {
+  box-shadow:
+    0 0 0 2.5px var(--color-surface),
+    0 0 0 5px var(--color-accent);
+}
+.kin-tp-name {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  overflow-wrap: anywhere;
+  max-width: 100%;
+  font: 600 0.78125rem/1.2 var(--font-heading);
+  letter-spacing: -0.005em;
+}
+.kin-tp-rel {
+  margin-top: -0.125rem;
+  font-size: 0.6875rem;
+  line-height: 1.2;
+  color: var(--color-neutral-600);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
+.kin-tp[data-me] .kin-tp-rel {
+  color: var(--color-accent);
+  font-weight: 700;
+}
+.kin-tp[data-branch] .kin-tp-av {
+  background: color-mix(in srgb, var(--hh) 55%, var(--color-neutral-600));
+}
+/* Shared with a linked household: a small badge on the photo. */
+.kin-tp-linked {
+  position: absolute;
+  right: -0.125rem;
+  bottom: -0.125rem;
+  display: grid;
+  place-items: center;
+  width: 1.125rem;
+  height: 1.125rem;
+  border-radius: 50%;
+  background: var(--cal-schedule);
+  color: #fff;
+  box-shadow: 0 0 0 2px var(--color-surface);
+}
+/* An empty place: "Add father", "Add mother", "Brother / Sister". */
+.kin-tp-ghost {
+  color: var(--color-neutral-600);
+}
+.kin-tp-ghost .kin-tp-av {
+  background: color-mix(in srgb, var(--color-surface) 60%, transparent);
+  color: var(--color-neutral-600);
+  box-shadow: none;
+  outline: 1.5px dashed color-mix(in srgb, var(--color-text) 30%, transparent);
+  outline-offset: -1.5px;
+}
+.kin-tp-ghost .kin-tp-name {
+  font-weight: 500;
+}
+div.kin-tp-ghost {
+  cursor: default;
+}
+.kin-tp-choices {
+  display: flex;
+  flex-direction: column;
+  gap: 0.125rem;
+  width: 100%;
+}
+.kin-tp-choices button {
+  min-height: 1.25rem;
+  border: 0;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--color-text) 6%, transparent);
+  color: var(--color-text);
+  font: 500 0.6875rem/1.1 var(--font-heading);
+  cursor: pointer;
+}
+.kin-tp-choices button:active {
+  transform: scale(0.96);
+}
+.kin-tp-choices button:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 1px;
+}
+
+/* Under the chart: what is on it, and two pill groups of controls. */
 .kin-treechart-bar {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
-  gap: 0.5rem;
+  gap: 0.5rem 0.75rem;
   margin-top: -0.25rem;
-}
-.kin-treechart-tools {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.25rem;
-  margin-left: auto;
-}
-.kin-treechart-tool {
-  min-height: 2.375rem;
-  padding: 0 0.75rem;
-  font-size: var(--text-sm);
 }
 .kin-treechart-count {
   font-size: var(--text-xs);
   color: var(--color-neutral-600);
 }
-
-/* Somebody from a linked household's branch: drawn, but not ours to edit. */
-.kin-treecard[data-branch] {
-  border-style: dashed;
-  border-color: color-mix(in srgb, var(--cal-schedule) 55%, transparent);
-  background: color-mix(in srgb, var(--cal-schedule) 6%, var(--color-surface));
+.kin-treechart-tools {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.375rem;
+  margin-left: auto;
 }
-.kin-treecard-link {
-  color: var(--cal-schedule);
-  font-weight: 600;
+.kin-treechart-group {
+  display: flex;
+  align-items: center;
+  padding: 0.1875rem;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--color-text) 6%, var(--color-surface));
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--color-text) 6%, transparent);
+}
+.kin-treechart-group > button {
+  display: inline-grid;
+  place-items: center;
+  min-width: 2.25rem;
+  min-height: 2.25rem;
+  padding: 0 0.625rem;
+  border: 0;
+  border-radius: 999px;
+  background: none;
+  color: var(--color-text);
+  font: 600 var(--text-sm)/1 var(--font-heading);
+  cursor: pointer;
+  transition: transform 140ms var(--ease-out), background-color 160ms ease;
+}
+.kin-treechart-group > button svg path {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.75;
+  stroke-linecap: round;
+}
+.kin-treechart-group > button:active {
+  transform: scale(0.94);
+}
+@media (hover: hover) and (pointer: fine) {
+  .kin-treechart-group > button:hover {
+    background: color-mix(in srgb, var(--color-text) 7%, transparent);
+  }
+}
+.kin-treechart-group > button:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: -2px;
+}
+.kin-treechart-group > button[data-on] {
+  background: var(--color-accent);
+  color: #fff;
+}
+.kin-treechart-zoom {
+  min-width: 2.75rem;
+  text-align: center;
+  font: 500 var(--text-xs)/1 var(--font-numeric);
+  color: var(--color-neutral-600);
+  font-variant-numeric: tabular-nums;
+}
+@media (prefers-reduced-motion: reduce) {
+  .kin-tp,
+  .kin-treechart-group > button {
+    transition: background-color 160ms ease;
+  }
+  .kin-tp:active,
+  .kin-treechart-group > button:active,
+  .kin-tp-choices button:active {
+    transform: none;
+  }
+}
+
+/* Dark mode lifts the member colours to pastels, which white initials
+   cannot be read on; dark initials can. */
+:root[data-theme="dark"] .kin-tp:not(.kin-tp-ghost) .kin-tp-av {
+  color: rgb(0 0 0 / 0.78);
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .kin-tp:not(.kin-tp-ghost) .kin-tp-av {
+    color: rgb(0 0 0 / 0.78);
+  }
 }
 
 /* Offers of a relative from a linked household. */
@@ -1578,10 +1833,17 @@ textarea.input {
   background: var(--color-surface);
   box-shadow: var(--shadow-sm);
 }
+/* Wraps, so at a large text size on a narrow phone "Open profile" drops
+   under the name instead of squeezing it to a letter a line. */
 .kin-treepanel-head {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
-  gap: 0.625rem;
+  gap: 0.5rem 0.625rem;
+}
+.kin-treepanel-head > .kin-treepanel-who,
+.kin-treepanel-head > div {
+  flex: 1 1 9rem;
 }
 .kin-treepanel-name {
   display: flex;
@@ -1609,11 +1871,6 @@ textarea.input {
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
-}
-@media (prefers-reduced-motion: reduce) {
-  .kin-treecard {
-    transition: none;
-  }
 }
 
 /* ── chat: the pin, the quote, the reply strip, the typing line ──────────
@@ -3999,19 +4256,18 @@ button.kin-initial:focus-visible {
   box-shadow: 0 2rem 4rem color-mix(in srgb, var(--color-text) 12%, transparent);
 }
 .kin-treechart-viewport[data-3d] .kin-treechart-lines { transform: translateZ(1px); }
-.kin-treechart-viewport[data-3d] .kin-treecard {
+.kin-treechart-viewport[data-3d] .kin-hh {
   transform-origin: 50% 100%;
   transform: translateZ(2px) rotateZ(calc(-1 * var(--tree-spin))) rotateX(calc(-1 * var(--tree-tilt)));
   box-shadow: 0 0.75rem 1.25rem -0.5rem color-mix(in srgb, var(--color-text) 28%, transparent);
 }
 .kin-treechart-viewport[data-anim] .kin-treechart-canvas,
-.kin-treechart-viewport[data-anim] .kin-treecard {
+.kin-treechart-viewport[data-anim] .kin-hh {
   transition: transform 0.6s cubic-bezier(0.22, 1, 0.36, 1);
 }
-.kin-treechart-tool[data-on] { background: var(--color-accent); color: #fff; }
 @media (prefers-reduced-motion: reduce) {
   .kin-treechart-viewport[data-anim] .kin-treechart-canvas,
-  .kin-treechart-viewport[data-anim] .kin-treecard { transition: none; }
+  .kin-treechart-viewport[data-anim] .kin-hh { transition: none; }
 }
 
 /* ── The public home page's 3D house ──────────────────────────────────────
@@ -4175,23 +4431,6 @@ button.kin-initial:focus-visible {
 .kin-welcome-join > div { display: flex; gap: 0.5rem; }
 .kin-welcome-join .input { flex: 1; min-width: 0; min-height: 2.75rem; text-transform: uppercase; }
 
-/* The tree's "Add brother / Add sister" place: two choices in one dashed card. */
-.kin-treecard-sibling { flex-direction: column; align-items: stretch; gap: 0.125rem; padding: 0.25rem; }
-.kin-treecard-sibling button {
-  flex: 1;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.25rem;
-  border: 0;
-  border-radius: 8px;
-  background: transparent;
-  color: inherit;
-  font: inherit;
-  cursor: pointer;
-}
-.kin-treecard-sibling button:hover { background: color-mix(in srgb, var(--color-text) 6%, transparent); }
-.kin-treecard-sibling button:focus-visible { outline: 2px solid var(--color-accent-700); outline-offset: -2px; }
 
 /* Links: shortcuts to the appliance apps (smart-home-links.tsx). */
 .kin-smarthome {
@@ -5971,7 +6210,7 @@ button.kin-initial:focus-visible {
 /* A conversation's "⋯": pin and mute. */
 .kin-threadmenu { position: relative; flex: none; }
 .kin-threadmenu-button { min-width: 2.5rem; min-height: 2.5rem; border-radius: 999px; border: 0; font-size: 1.125rem; line-height: 1; color: var(--color-accent-700); background: color-mix(in srgb, var(--color-accent) 10%, transparent); }
-.kin-threadmenu-panel { position: absolute; right: 0; top: calc(100% + 0.375rem); z-index: 30; min-width: 15rem; display: flex; flex-direction: column; padding: 0.375rem; border-radius: 14px; background: var(--color-surface, var(--color-bg, #fff)); box-shadow: 0 12px 32px rgb(0 0 0 / 0.18); border: 1px solid color-mix(in srgb, var(--color-text) 10%, transparent); }
+.kin-threadmenu-panel { position: fixed; z-index: 60; width: max-content; min-width: min(15rem, calc(100vw - 16px)); max-width: calc(100vw - 16px); box-sizing: border-box; display: flex; flex-direction: column; padding: 0.375rem; border-radius: 14px; background: var(--color-surface, var(--color-bg, #fff)); box-shadow: 0 12px 32px rgb(0 0 0 / 0.18); border: 1px solid color-mix(in srgb, var(--color-text) 10%, transparent); }
 .kin-threadmenu-panel button { min-height: 2.75rem; padding: 0 0.75rem; border: 0; border-radius: 10px; background: transparent; text-align: left; font-size: 0.9375rem; color: inherit; }
 .kin-threadmenu-panel button:active { background: color-mix(in srgb, var(--color-accent) 10%, transparent); }
 .kin-threadmenu-label { padding: 0.5rem 0.75rem 0.125rem; font-size: 0.75rem; letter-spacing: .04em; text-transform: uppercase; color: var(--color-neutral-500); }
@@ -6010,3 +6249,105 @@ button.kin-initial:focus-visible {
   color: inherit;
   text-decoration: none;
 }
+
+/* The invite QR code (components/invite-qr). The frame is white in both
+   themes: a scanner wants dark on light, and the quiet zone is part of the
+   code, not decoration. */
+.kin-qr {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 0.75rem 0 0;
+}
+.kin-qr-frame {
+  width: 11rem;
+  aspect-ratio: 1;
+  border-radius: 0.875rem;
+  background: #fff;
+  overflow: hidden;
+  box-shadow: 0 0 0 1px var(--color-divider);
+}
+.kin-qr-frame > svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+.kin-qr-caption {
+  font-size: 0.8125rem;
+  color: var(--color-neutral-600);
+}
+
+/* Forwarding (20260930031500): the label above a forwarded message, and the
+   "Forward to…" picker. */
+.kin-forwarded { display: inline-flex; align-items: center; gap: 0.25rem; font-size: 0.71875rem; font-style: italic; color: var(--color-neutral-600); margin-bottom: 2px; }
+.kin-forwarded svg { transform: rotate(90deg); }
+button.kin-room-quote { font: inherit; font-size: 0.78125rem; text-align: left; border-top: 0; border-right: 0; border-bottom: 0; cursor: pointer; }
+.kin-forward-preview { margin: 0 0 0.625rem; padding: 0.375rem 0.625rem; border-left: 3px solid var(--color-accent-700); border-radius: 6px; font-size: 0.8125rem; color: var(--color-neutral-600); background: color-mix(in srgb, var(--color-text) 5%, transparent); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.kin-forward-list { display: grid; gap: 0.125rem; max-height: min(52vh, 26rem); overflow-y: auto; overscroll-behavior: contain; margin: 0 -0.5rem; padding: 0 0.5rem; }
+.kin-forward-empty { font-size: 0.875rem; color: var(--color-neutral-600); padding: 1rem 0; text-align: center; }
+.kin-forward-icon { width: 36px; height: 36px; flex: none; border-radius: 50%; display: grid; place-items: center; background: color-mix(in srgb, var(--color-accent) 14%, transparent); color: var(--color-accent-700); }
+.kin-forward-title { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.kin-forward-sub { display: block; font-size: 0.75rem; font-weight: 400; color: var(--color-neutral-600); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.kin-forward-tick { width: 1.375rem; height: 1.375rem; flex: none; border-radius: 50%; display: grid; place-items: center; border: 1.5px solid color-mix(in srgb, var(--color-text) 25%, transparent); color: #fff; transition: background-color 150ms ease-out, border-color 150ms ease-out, transform 150ms ease-out; }
+.kin-callpick[data-on] .kin-forward-tick { background: var(--color-accent-700); border-color: var(--color-accent-700); }
+.kin-callpick:active .kin-forward-tick { transform: scale(0.92); }
+@media (prefers-reduced-motion: reduce) { .kin-forward-tick { transition: none; } }
+
+/* Place suggestions under a location field (components/place-input). */
+.kin-place {
+  position: relative;
+}
+.kin-place-list {
+  position: absolute;
+  z-index: 30;
+  inset: calc(100% + 0.25rem) 0 auto;
+  margin: 0;
+  padding: 0.25rem;
+  list-style: none;
+  background: var(--color-surface);
+  border: 1px solid var(--color-divider);
+  border-radius: 0.875rem;
+  box-shadow: 0 8px 24px rgb(0 0 0 / 0.12);
+  max-height: 16rem;
+  overflow-y: auto;
+}
+.kin-place-option {
+  padding: 0.625rem 0.75rem;
+  border-radius: 0.625rem;
+  font-size: 0.9375rem;
+  line-height: 1.3;
+  cursor: pointer;
+}
+.kin-place-option[aria-selected="true"] {
+  background: var(--color-accent-100);
+}
+@media (hover: hover) {
+  .kin-place-option:hover {
+    background: var(--color-accent-100);
+  }
+}
+.kin-place-credit {
+  padding: 0.25rem 0.75rem 0.375rem;
+  font-size: 0.6875rem;
+  color: var(--color-neutral-600);
+}
+
+/* The family's week (app/(app)/today/week). */
+.kin-digest { padding: 0 var(--gutter) 1.5rem; display: flex; flex-direction: column; gap: 1.375rem; }
+.kin-digest .kin-recap { margin: 0; }
+.kin-digest-quiet { margin: 0; font-size: 0.9375rem; color: var(--color-neutral-600); }
+.kin-digest-photos { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0.25rem; border-radius: 14px; overflow: hidden; }
+.kin-digest-photo { aspect-ratio: 1; background: var(--color-divider); }
+.kin-digest-photo img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.kin-digest-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 0.5rem; font-size: 0.9375rem; line-height: 1.35; }
+.kin-digest-list li { display: flex; align-items: baseline; gap: 0.375rem; }
+.kin-digest-list a { color: inherit; text-decoration: none; font-weight: 500; }
+.kin-digest-meta { color: var(--color-neutral-600); font-weight: 400; }
+.kin-digest-goals { display: grid; grid-template-columns: repeat(auto-fill, minmax(9rem, 1fr)); gap: 0.75rem; }
+.kin-digest-goal { display: flex; align-items: center; gap: 0.625rem; color: inherit; text-decoration: none; font-size: 0.875rem; font-weight: 500; line-height: 1.25; }
+.kin-digest-pct { font: 600 0.75rem/1 var(--font-numeric); }
+.kin-digest-day + .kin-digest-day { margin-top: 0.75rem; }
+.kin-digest-dayname { font: 600 0.8125rem/1.2 var(--font-heading); color: var(--color-neutral-700); margin-bottom: 0.375rem; }
+.kin-digest-dot { width: 0.5rem; height: 0.5rem; border-radius: 999px; flex: none; align-self: center; }
+.kin-recap-more { display: block; color: var(--color-accent-700); font-weight: 600; text-decoration: none; }

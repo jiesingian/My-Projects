@@ -51,6 +51,12 @@ jobs:
       - name: Lint
         run: npm run lint
 
+      - name: Row-level security (PGlite)
+        # Applies the chat and connections migrations to an in-memory Postgres
+        # with stand-in tables and five invented households, then checks who
+        # can read and write what. No network, no real database, ~20 seconds.
+        run: npm run test:rls
+
       - name: Build
         # Every page in Kin is server-rendered on demand, so nothing is
         # prerendered and no real database is touched here. The placeholders

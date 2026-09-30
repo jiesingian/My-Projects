@@ -7,7 +7,20 @@ import { requireCurrentMember } from "@/lib/session";
 import { humanDatabaseError } from "@/lib/db-errors";
 import { clamp } from "@/lib/text";
 import { sendChatPush } from "@/lib/push";
-import { pairOf } from "@/lib/queries/chat-rooms";
+import { getDirectPeers, getForwardTargets, pairOf } from "@/lib/queries/chat-rooms";
+import { sendMessageAction } from "@/lib/actions/chat";
+import { mediaSummary } from "@/lib/chat-media";
+import {
+  MAX_FORWARD_TARGETS,
+  fileFitsTarget,
+  forwardLabel,
+  forwardedPath,
+  isForwardSource,
+  parseTargetKey,
+  type ForwardSource,
+  type ParsedTarget,
+  type ForwardTarget,
+} from "@/lib/chat-forward";
 import { isReaction } from "@/lib/chat";
 import type { ActionState } from "@/lib/actions/auth";
 
@@ -99,7 +112,12 @@ function photoLine(photos: RoomPhoto[]): string {
 
 /** A message to everyone in the family tree: this household and each one
  * linked with it. Who wrote it and from where is set by the database. */
-export async function sendFamilyMessageAction(body: string, photos: RoomPhoto[] = [], replyTo: string | null = null): Promise<ActionState> {
+export async function sendFamilyMessageAction(
+  body: string,
+  photos: RoomPhoto[] = [],
+  replyTo: string | null = null,
+  forwardedFrom: string | null = null,
+): Promise<ActionState> {
   const me = await requireCurrentMember();
   const text = clamp(body.trim(), 2000);
   const refused = checkOutgoing(me, text, photos);
@@ -107,7 +125,7 @@ export async function sendFamilyMessageAction(body: string, photos: RoomPhoto[] 
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("family_tree_messages")
-    .insert({ body: text, reply_to: replyTo && UUID.test(replyTo) ? replyTo : null })
+    .insert({ body: text, reply_to: replyTo && UUID.test(replyTo) ? replyTo : null, forwarded_from: forwardedFrom?.slice(0, 60) || null })
     .select("id")
     .single();
   if (error || !data) return { error: error ? humanDatabaseError(error.message) : "That didn't send." };
@@ -147,6 +165,7 @@ export async function sendDirectMessageAction(
   body: string,
   photos: RoomPhoto[] = [],
   replyTo: string | null = null,
+  forwardedFrom: string | null = null,
 ): Promise<ActionState> {
   const me = await requireCurrentMember();
   if (!UUID.test(otherPersonId)) return { error: "That conversation doesn't exist." };
@@ -157,7 +176,7 @@ export async function sendDirectMessageAction(
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("direct_messages")
-    .insert({ person_low, person_high, body: text, reply_to: replyTo && UUID.test(replyTo) ? replyTo : null })
+    .insert({ person_low, person_high, body: text, reply_to: replyTo && UUID.test(replyTo) ? replyTo : null, forwarded_from: forwardedFrom?.slice(0, 60) || null })
     .select("id")
     .single();
   if (error || !data) {
@@ -193,10 +212,10 @@ export async function deleteDirectMessageAction(id: string): Promise<ActionState
 
 /** Add a reaction, or take it back if it is already yours -- the household
  * chat's six, one of each per person per message. */
-export async function toggleRoomReactionAction(kind: "family" | "dm" | "group", messageId: string, emoji: string): Promise<ActionState> {
+export async function toggleRoomReactionAction(kind: "family" | "dm" | "group" | "link", messageId: string, emoji: string): Promise<ActionState> {
   const me = await requireCurrentMember();
   if (!UUID.test(messageId) || !isReaction(emoji)) return { error: "That reaction isn't available." };
-  const column = kind === "family" ? "family_message_id" : kind === "dm" ? "direct_message_id" : "group_message_id";
+  const column = kind === "family" ? "family_message_id" : kind === "dm" ? "direct_message_id" : kind === "link" ? "link_message_id" : "group_message_id";
   const supabase = await createClient();
   const { data: existing } = await supabase
     .from("chat_room_reactions")
@@ -214,10 +233,14 @@ export async function toggleRoomReactionAction(kind: "family" | "dm" | "group", 
             ? { family_message_id: messageId, emoji }
             : kind === "dm"
               ? { direct_message_id: messageId, emoji }
-              : { group_message_id: messageId, emoji },
+              : kind === "link"
+                ? { link_message_id: messageId, emoji }
+                : { group_message_id: messageId, emoji },
         );
   if (error) return { error: humanDatabaseError(error.message) };
   revalidatePath("/chat", "layout");
+  // The linked-household thread lives under Journal (20260930100001).
+  if (kind === "link") revalidatePath("/journal/links", "layout");
   return { error: null };
 }
 
@@ -325,7 +348,13 @@ export async function setGroupAdminAction(groupId: string, personId: string, adm
   return { error: null };
 }
 
-export async function sendGroupMessageAction(groupId: string, body: string, photos: RoomPhoto[] = [], replyTo: string | null = null): Promise<ActionState> {
+export async function sendGroupMessageAction(
+  groupId: string,
+  body: string,
+  photos: RoomPhoto[] = [],
+  replyTo: string | null = null,
+  forwardedFrom: string | null = null,
+): Promise<ActionState> {
   const me = await requireCurrentMember();
   if (!UUID.test(groupId)) return { error: "That group doesn't exist." };
   const text = clamp(body.trim(), 2000);
@@ -334,7 +363,7 @@ export async function sendGroupMessageAction(groupId: string, body: string, phot
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("chat_group_messages")
-    .insert({ group_id: groupId, body: text, reply_to: replyTo && UUID.test(replyTo) ? replyTo : null })
+    .insert({ group_id: groupId, body: text, reply_to: replyTo && UUID.test(replyTo) ? replyTo : null, forwarded_from: forwardedFrom?.slice(0, 60) || null })
     .select("id")
     .single();
   if (error || !data) {
@@ -370,4 +399,140 @@ export async function deleteGroupMessageAction(id: string): Promise<ActionState>
   if (!data?.length) return { error: "That message isn't yours to delete." };
   revalidatePath("/chat", "layout");
   return { error: null };
+}
+
+// ---------------------------------------------------------------- forward
+
+/** Where a message can be forwarded to, for the picker. */
+export async function listForwardTargetsAction(): Promise<ForwardTarget[]> {
+  const me = await requireCurrentMember();
+  return getForwardTargets({ person_id: me.person_id, familyName: me.families.name });
+}
+
+type ForwardFile = { storagePath: string; fileName: string; mimeType: string; sizeBytes: number; transcript: string | null };
+type Original = { body: string; from: string | null; files: ForwardFile[] };
+
+/** The message being forwarded, read under the forwarder's own session -- so
+ * only something they can already scroll to can be passed on. */
+async function readOriginal(me: Sender & { full_name: string }, source: ForwardSource): Promise<Original | { error: string }> {
+  const supabase = await createClient();
+  const gone = { error: "That message isn't there any more." };
+  const roomFiles = async (column: "family_message_id" | "direct_message_id" | "group_message_id") => {
+    const { data } = await supabase
+      .from("chat_room_attachments")
+      .select("storage_path, file_name, mime_type, size_bytes, transcript")
+      .eq(column, source.id)
+      .order("position");
+    return (data ?? []).map((a) => ({ storagePath: a.storage_path, fileName: a.file_name, mimeType: a.mime_type, sizeBytes: a.size_bytes, transcript: a.transcript }));
+  };
+
+  if (source.kind === "household") {
+    const { data: m } = await supabase
+      .from("family_messages")
+      .select("id, member_id, body, deleted_at, forwarded_from")
+      .eq("id", source.id)
+      .eq("family_id", me.family_id)
+      .maybeSingle();
+    if (!m || m.deleted_at) return gone;
+    const [{ data: poll }, { data: author }, { data: files }] = await Promise.all([
+      supabase.from("family_polls").select("id").eq("message_id", m.id).maybeSingle(),
+      m.member_id ? supabase.from("members").select("full_name").eq("id", m.member_id).maybeSingle() : Promise.resolve({ data: null }),
+      supabase
+        .from("family_message_attachments")
+        .select("storage_path, file_name, mime_type, size_bytes, transcript")
+        .eq("message_id", m.id)
+        .order("position"),
+    ]);
+    // A poll's votes belong to the room it was asked in.
+    if (poll) return { error: "A poll can't be forwarded. Start a new one where you'd like to ask." };
+    return {
+      body: m.body,
+      from: forwardLabel(author?.full_name, m.forwarded_from),
+      files: (files ?? []).map((a) => ({ storagePath: a.storage_path, fileName: a.file_name, mimeType: a.mime_type, sizeBytes: a.size_bytes, transcript: a.transcript })),
+    };
+  }
+  if (source.kind === "family") {
+    const { data: m } = await supabase.from("family_tree_messages").select("author_name, body, forwarded_from").eq("id", source.id).maybeSingle();
+    if (!m) return gone;
+    return { body: m.body, from: forwardLabel(m.author_name, m.forwarded_from), files: await roomFiles("family_message_id") };
+  }
+  if (source.kind === "dm") {
+    const { data: m } = await supabase.from("direct_messages").select("sender_person_id, body, forwarded_from").eq("id", source.id).maybeSingle();
+    if (!m) return gone;
+    const name =
+      m.sender_person_id === me.person_id ? me.full_name : ((await getDirectPeers()).find((p) => p.personId === m.sender_person_id)?.fullName ?? null);
+    return { body: m.body, from: forwardLabel(name, m.forwarded_from), files: await roomFiles("direct_message_id") };
+  }
+  const { data: m } = await supabase.from("chat_group_messages").select("author_name, body, forwarded_from").eq("id", source.id).maybeSingle();
+  if (!m) return gone;
+  return { body: m.body, from: forwardLabel(m.author_name, m.forwarded_from), files: await roomFiles("group_message_id") };
+}
+
+/** Forward a message into up to five conversations. Each copy is an ordinary
+ * new message from the forwarder, sent through the same action as anything
+ * they type -- the same checks, the same notification, the same mute -- and
+ * labelled with whose words it first was. Files are copied into the
+ * forwarder's own chat folder first, so a forward never depends on the
+ * original staying put. */
+export async function forwardMessageAction(source: ForwardSource, targetKeys: string[]): Promise<ActionState & { sent?: number; skippedFiles?: number }> {
+  const me = await requireCurrentMember();
+  if (!isForwardSource(source)) return { error: "That message can't be forwarded." };
+  const targets = [...new Set(Array.isArray(targetKeys) ? targetKeys : [])]
+    .map(parseTargetKey)
+    .filter((t): t is ParsedTarget => t !== null)
+    .slice(0, MAX_FORWARD_TARGETS);
+  if (targets.length === 0) return { error: "Pick where to send it." };
+
+  const original = await readOriginal(me, source);
+  if ("error" in original) return { error: original.error };
+
+  const supabase = await createClient();
+  const failures: string[] = [];
+  let sent = 0;
+  let skippedFiles = 0;
+  for (const target of targets) {
+    const files = original.files.filter((f) => fileFitsTarget(target.kind, f.mimeType));
+    skippedFiles += original.files.length - files.length;
+    // A sticker or GIF is drawn only in the household chat; elsewhere it
+    // travels as the words that describe it.
+    const body = target.kind === "household" ? original.body : (mediaSummary(original.body) ?? original.body);
+    if (!body.trim() && files.length === 0) {
+      failures.push("Files other than photos, videos and voice notes can only go to the household chat.");
+      continue;
+    }
+
+    const copies: ForwardFile[] = [];
+    for (const f of files) {
+      const to = forwardedPath(me.family_id, f.storagePath, Date.now(), crypto.randomUUID());
+      const { error } = await supabase.storage.from("documents").copy(f.storagePath, to);
+      if (error) break;
+      copies.push({ ...f, storagePath: to });
+    }
+    if (copies.length < files.length) {
+      if (copies.length) await supabase.storage.from("documents").remove(copies.map((c) => c.storagePath));
+      failures.push("A photo couldn’t be copied.");
+      continue;
+    }
+
+    const photos = copies.map((c) => ({ ...c, transcript: c.transcript ?? undefined }));
+    const r =
+      target.kind === "household"
+        ? await sendMessageAction({ body, attachments: photos, forwardedFrom: original.from })
+        : target.kind === "family"
+          ? await sendFamilyMessageAction(body, photos, null, original.from)
+          : target.kind === "dm"
+            ? await sendDirectMessageAction(target.id, body, photos, null, original.from)
+            : await sendGroupMessageAction(target.id, body, photos, null, original.from);
+    if (r.error) {
+      // The send actions tidy up after a failed attachment; a refused
+      // message leaves the copies behind, so remove them here.
+      if (copies.length) await supabase.storage.from("documents").remove(copies.map((c) => c.storagePath));
+      failures.push(r.error);
+    } else sent++;
+  }
+
+  revalidatePath("/chat", "layout");
+  if (sent === 0) return { error: failures[0] ?? "That didn't send." };
+  if (failures.length) return { error: `Sent to ${sent} of ${targets.length}. ${failures[0]}`, sent, skippedFiles };
+  return { error: null, sent, skippedFiles };
 }
