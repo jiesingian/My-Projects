@@ -21,7 +21,7 @@ export async function POST(request: Request) {
   const supabase = createClient<Database>(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!, {
     auth: { persistSession: false, autoRefreshToken: false },
   });
-  const [main, pantry, trial, week, promises] = await Promise.all([
+  const [main, pantry, trial, week, promises, scheduled] = await Promise.all([
     supabase.rpc("due_reminders", { p_secret: secret }),
     // What is running low, once a day from 09:00 (20260928100000).
     supabase.rpc("due_pantry_reminders", { p_secret: secret }),
@@ -33,6 +33,9 @@ export async function POST(request: Request) {
     // A promised goal reward: due a day after it is claimed, then chased every
     // five minutes until it is received (20260929003000).
     supabase.rpc("due_goal_reward_reminders", { p_secret: secret }),
+    // Chat messages written for later ("send at 7am", 20261006100400): each
+    // is posted as its writer, then its conversation is notified as usual.
+    supabase.rpc("due_scheduled_messages", { p_secret: secret }),
   ]);
   if (main.error) {
     console.error("Reminders: due_reminders failed", main.error.message);
@@ -42,7 +45,8 @@ export async function POST(request: Request) {
   if (trial.error) console.error("Reminders: due_trial_reminders failed", trial.error.message);
   if (week.error) console.error("Reminders: due_week_ahead_reminders failed", week.error.message);
   if (promises.error) console.error("Reminders: due_goal_reward_reminders failed", promises.error.message);
-  const due = [...(main.data ?? []), ...(pantry.data ?? []), ...(trial.data ?? []), ...(week.data ?? []), ...(promises.data ?? [])];
+  if (scheduled.error) console.error("Reminders: due_scheduled_messages failed", scheduled.error.message);
+  const due = [...(main.data ?? []), ...(pantry.data ?? []), ...(trial.data ?? []), ...(week.data ?? []), ...(promises.data ?? []), ...(scheduled.data ?? [])];
 
   vapidReady();
   // One payload per reminder, sent to all of its devices together through the

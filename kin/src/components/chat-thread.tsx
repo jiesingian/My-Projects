@@ -1,6 +1,7 @@
 "use client";
 
 import { ForwardSheet } from "@/components/forward-sheet";
+import { ScheduleMessage } from "@/components/schedule-message";
 import { AlbumPrompt } from "@/components/album-prompt";
 import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
@@ -1141,6 +1142,14 @@ export function ChatThread({
           </div>
         )}
 
+        <ScheduleMessage
+          thread="household"
+          draft={draft}
+          onScheduled={() => {
+            setDraft("");
+            setMentioned([]);
+          }}
+        />
         <div className="kin-composer-row">
           <button
             type="button"

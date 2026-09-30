@@ -24,6 +24,7 @@ import { Icon } from "@/components/icons";
 import { PhotoViewer } from "@/components/photo-viewer";
 import { SaveToJournalButton } from "@/components/save-to-journal";
 import { ForwardSheet } from "@/components/forward-sheet";
+import { ScheduleMessage } from "@/components/schedule-message";
 import { uploadFileDirect } from "@/lib/upload-client";
 import { CONFLICT_MESSAGE, recordingIsSilent, rememberTranscriptConflict, startTranscript } from "@/lib/voice-note";
 import type { RoomMessage, RoomPoll } from "@/lib/queries/chat-rooms";
@@ -861,6 +862,7 @@ export function RoomThread({
               </div>
             </div>
           )}
+          <ScheduleMessage thread={readKey} draft={draft} onScheduled={() => setDraft("")} />
           <div className="kin-composer-row">
             {room.kind === "group" && (
               <button
