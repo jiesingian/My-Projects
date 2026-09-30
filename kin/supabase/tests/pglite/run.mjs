@@ -36,6 +36,7 @@ const MIGRATIONS = [
   "20260930140000_wealth_charts.sql",
   "20260930150100_chat_room_edit_unsend.sql",
   "20260930160000_chat_room_pins.sql",
+  "20260930170000_group_seen_by.sql",
 ];
 
 const only = process.argv[2];
