@@ -1,5 +1,6 @@
 "use client";
 
+import { PlaceInput } from "@/components/place-input";
 import { useId, useState } from "react";
 import { useRouter } from "next/navigation";
 import { addFamilyAddressAction, updateFamilyAddressAction, removeFamilyAddressAction, type FamilyAddressFields } from "@/lib/actions/family";
@@ -76,6 +77,26 @@ function AddressForm({
       <div className="field" style={{ marginBottom: "0.5rem" }}>
         <label htmlFor={`${uid}-label`}>TAG</label>
         <input id={`${uid}-label`} aria-label="Tag" className="input" placeholder="Home" value={fields.label} onChange={(e) => set("label", e.target.value)} style={{ minHeight: "2.5rem" }} disabled={busy} />
+      </div>
+      {/* Search fills in the parts below; each stays editable, and the
+          house number is left to the family, who know it better. */}
+      <div className="field" style={{ marginBottom: "0.5rem" }}>
+        <label htmlFor={`${uid}-search`}>Search for the address</label>
+        <PlaceInput
+          id={`${uid}-search`}
+          ariaLabel="Search for the address"
+          placeholder="Street, barangay or city"
+          style={{ minHeight: "2.5rem" }}
+          disabled={busy}
+          onPick={(p) => {
+            if (p.street) set("street", p.street);
+            if (p.barangay) set("barangay", p.barangay);
+            if (p.city) set("city", p.city);
+            if (p.province) set("province", p.province);
+            if (p.zipCode) set("zipCode", p.zipCode);
+            if (p.country) set("country", p.country);
+          }}
+        />
       </div>
       <div style={{ display: "flex", gap: "0.5rem", marginBottom: "0.5rem" }}>
         <div className="field" style={{ flex: 1 }}>
