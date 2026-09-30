@@ -241,6 +241,18 @@ export type Database = {
           },
         ]
       }
+      member_checkins: {
+        Row: { id: string; family_id: string; asked_by: string; member_id: string; asked_at: string; answer: string | null; answered_at: string | null }
+        Insert: { id?: string; family_id: string; asked_by: string; member_id: string; asked_at?: string; answer?: string | null; answered_at?: string | null }
+        Update: { id?: string; family_id?: string; asked_by?: string; member_id?: string; asked_at?: string; answer?: string | null; answered_at?: string | null }
+        Relationships: []
+      }
+      sos_alerts: {
+        Row: { id: string; family_id: string; member_id: string; created_at: string; lat: number | null; lng: number | null; accuracy_m: number | null; notified: number; handled_by: string | null; handled_at: string | null; resolved_at: string | null }
+        Insert: { id?: string; family_id: string; member_id: string; created_at?: string; lat?: number | null; lng?: number | null; accuracy_m?: number | null; notified?: number; handled_by?: string | null; handled_at?: string | null; resolved_at?: string | null }
+        Update: { id?: string; family_id?: string; member_id?: string; created_at?: string; lat?: number | null; lng?: number | null; accuracy_m?: number | null; notified?: number; handled_by?: string | null; handled_at?: string | null; resolved_at?: string | null }
+        Relationships: []
+      }
       today_marks: {
         Row: { family_id: string; item_key: string; day: string; state: string; marked_by: string | null; created_at: string }
         Insert: { family_id: string; item_key: string; day: string; state: string; marked_by?: string | null; created_at?: string }
@@ -1716,15 +1728,15 @@ export type Database = {
         Relationships: []
       }
       family_tree_messages: {
-        Row: { author_name: string; body: string; created_at: string; family_id: string; id: string; member_id: string | null; person_id: string | null; reply_to: string | null }
-        Insert: { author_name?: string; body: string; created_at?: string; family_id?: string; id?: string; member_id?: string | null; person_id?: string | null; reply_to?: string | null }
-        Update: { author_name?: string; body?: string; created_at?: string; family_id?: string; id?: string; member_id?: string | null; person_id?: string | null; reply_to?: string | null }
+        Row: { forwarded_from: string | null; author_name: string; body: string; created_at: string; family_id: string; id: string; member_id: string | null; person_id: string | null; reply_to: string | null }
+        Insert: { forwarded_from?: string | null; author_name?: string; body: string; created_at?: string; family_id?: string; id?: string; member_id?: string | null; person_id?: string | null; reply_to?: string | null }
+        Update: { forwarded_from?: string | null; author_name?: string; body?: string; created_at?: string; family_id?: string; id?: string; member_id?: string | null; person_id?: string | null; reply_to?: string | null }
         Relationships: []
       }
       direct_messages: {
-        Row: { body: string; created_at: string; id: string; person_high: string; person_low: string; reply_to: string | null; sender_person_id: string | null }
-        Insert: { body: string; created_at?: string; id?: string; person_high: string; person_low: string; reply_to?: string | null; sender_person_id?: string | null }
-        Update: { body?: string; created_at?: string; id?: string; person_high?: string; person_low?: string; reply_to?: string | null; sender_person_id?: string | null }
+        Row: { forwarded_from: string | null; body: string; created_at: string; id: string; person_high: string; person_low: string; reply_to: string | null; sender_person_id: string | null }
+        Insert: { forwarded_from?: string | null; body: string; created_at?: string; id?: string; person_high: string; person_low: string; reply_to?: string | null; sender_person_id?: string | null }
+        Update: { forwarded_from?: string | null; body?: string; created_at?: string; id?: string; person_high?: string; person_low?: string; reply_to?: string | null; sender_person_id?: string | null }
         Relationships: []
       }
       chat_reads: {
@@ -1764,9 +1776,9 @@ export type Database = {
         Relationships: []
       }
       chat_group_messages: {
-        Row: { author_name: string; body: string; created_at: string; group_id: string; id: string; reply_to: string | null; sender_person_id: string | null }
-        Insert: { author_name?: string; body: string; created_at?: string; group_id: string; id?: string; reply_to?: string | null; sender_person_id?: string | null }
-        Update: { author_name?: string; body?: string; created_at?: string; group_id?: string; id?: string; reply_to?: string | null; sender_person_id?: string | null }
+        Row: { forwarded_from: string | null; author_name: string; body: string; created_at: string; group_id: string; id: string; reply_to: string | null; sender_person_id: string | null }
+        Insert: { forwarded_from?: string | null; author_name?: string; body: string; created_at?: string; group_id: string; id?: string; reply_to?: string | null; sender_person_id?: string | null }
+        Update: { forwarded_from?: string | null; author_name?: string; body?: string; created_at?: string; group_id?: string; id?: string; reply_to?: string | null; sender_person_id?: string | null }
         Relationships: []
       }
       family_link_messages: {
@@ -1990,6 +2002,7 @@ export type Database = {
           deleted_at: string | null
           edited_at: string | null
           family_id: string
+          forwarded_from: string | null
           id: string
           member_id: string | null
           mentions: string[]
@@ -2000,6 +2013,7 @@ export type Database = {
           created_at?: string
           deleted_at?: string | null
           edited_at?: string | null
+          forwarded_from?: string | null
           family_id: string
           id?: string
           member_id?: string | null
@@ -2011,6 +2025,7 @@ export type Database = {
           created_at?: string
           deleted_at?: string | null
           edited_at?: string | null
+          forwarded_from?: string | null
           family_id?: string
           id?: string
           member_id?: string | null
@@ -3976,6 +3991,7 @@ export type Database = {
           text_size: string
           theme: string
           tin_number: string | null
+          timezone: string | null
           tshirt_size: string | null
           weight: string | null
           work_contact_info: string | null
@@ -4028,6 +4044,7 @@ export type Database = {
           text_size?: string
           theme?: string
           tin_number?: string | null
+          timezone?: string | null
           tshirt_size?: string | null
           weight?: string | null
           work_contact_info?: string | null
@@ -4080,6 +4097,7 @@ export type Database = {
           text_size?: string
           theme?: string
           tin_number?: string | null
+          timezone?: string | null
           tshirt_size?: string | null
           weight?: string | null
           work_contact_info?: string | null
@@ -5635,6 +5653,18 @@ export type Database = {
       ingest_apple_health: {
         Args: { p_token_hash: string; p_samples: Json }
         Returns: number
+      }
+      answer_checkin: {
+        Args: { p_id: string; p_answer: string }
+        Returns: string | null
+      }
+      sos_record_notified: {
+        Args: { p_id: string; p_count: number }
+        Returns: undefined
+      }
+      sos_act: {
+        Args: { p_id: string; p_action: string }
+        Returns: string | null
       }
       forget_push_endpoint: {
         Args: { p_endpoint: string }

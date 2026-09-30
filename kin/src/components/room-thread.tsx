@@ -18,6 +18,7 @@ import { familyClock, familyDateLong } from "@/lib/time";
 import { Icon } from "@/components/icons";
 import { PhotoViewer } from "@/components/photo-viewer";
 import { SaveToJournalButton } from "@/components/save-to-journal";
+import { ForwardSheet } from "@/components/forward-sheet";
 import { uploadFileDirect } from "@/lib/upload-client";
 import { CONFLICT_MESSAGE, recordingIsSilent, rememberTranscriptConflict, startTranscript } from "@/lib/voice-note";
 import type { RoomMessage } from "@/lib/queries/chat-rooms";
@@ -70,6 +71,9 @@ export function RoomThread({
   const [viewing, setViewing] = useState<{ photos: RoomMessage["photos"]; id: string } | null>(null);
   const [active, setActive] = useState<string | null>(null);
   const [replyingTo, setReplyingTo] = useState<RoomMessage | null>(null);
+  const [forwarding, setForwarding] = useState<RoomMessage | null>(null);
+  /** The message a quote was tapped for, lit for a moment where it lands. */
+  const [found, setFound] = useState<string | null>(null);
   const bottom = useRef<HTMLDivElement>(null);
   const textArea = useRef<HTMLTextAreaElement>(null);
   const fileInput = useRef<HTMLInputElement>(null);
@@ -248,6 +252,16 @@ export function RoomThread({
       router.refresh();
     });
 
+  /** Tapping a quote goes to what it quotes, and lights it briefly so the
+   * eye finds it -- the household chat's behaviour, now in every room. */
+  const jumpTo = (id: string) => {
+    const el = document.getElementById(`msg-${id}`);
+    if (!el) return;
+    el.scrollIntoView({ block: "center", behavior: "smooth" });
+    setFound(id);
+    setTimeout(() => setFound((f) => (f === id ? null : f)), 1600);
+  };
+
   // "Seen" goes under your newest message they have read, once, the way a
   // phone's messages app shows it.
   const lastSeenMine = seenAt ? [...messages].reverse().find((m) => m.mine && m.createdAt <= seenAt)?.id : undefined;
@@ -265,7 +279,7 @@ export function RoomThread({
           <p style={{ fontSize: "0.875rem", color: "var(--color-neutral-600)", textAlign: "center", padding: "2rem 1rem", lineHeight: 1.5 }}>{emptyText}</p>
         )}
         {rows.map(({ m, day, showDay }) => (
-          <div key={m.id}>
+          <div key={m.id} id={`msg-${m.id}`} className={found === m.id ? "kin-msg-found" : undefined}>
             {showDay && <div className="kin-linkthread-day">{day}</div>}
             <div style={{ display: "flex", justifyContent: m.mine ? "flex-end" : "flex-start", marginTop: "0.5rem" }}>
               <div style={{ maxWidth: "80%", display: "flex", flexDirection: "column", alignItems: m.mine ? "flex-end" : "flex-start" }}>
@@ -275,10 +289,15 @@ export function RoomThread({
                     {m.householdName && !m.ourHousehold ? ` · ${m.householdName}` : ""}
                   </span>
                 )}
-                {m.replyTo && (
-                  <span className="kin-room-quote">
-                    <strong>{m.replyTo.authorName}</strong> {m.replyTo.excerpt}
+                {m.forwardedFrom && (
+                  <span className="kin-forwarded">
+                    <Icon name="upload" size="0.75rem" /> Forwarded from {m.forwardedFrom}
                   </span>
+                )}
+                {m.replyTo && (
+                  <button type="button" className="kin-room-quote" onClick={() => jumpTo(m.replyTo!.id)} aria-label={`Go to the message from ${m.replyTo.authorName}`}>
+                    <strong>{m.replyTo.authorName}</strong> {m.replyTo.excerpt}
+                  </button>
                 )}
                 {m.photos.length > 0 && (
                   <div className="kin-attachments" data-count={Math.min(m.photos.length, 4)}>
@@ -365,6 +384,16 @@ export function RoomThread({
                         Reply
                       </button>
                     )}
+                    <button
+                      type="button"
+                      className="kin-room-actions-word"
+                      onClick={() => {
+                        setForwarding(m);
+                        setActive(null);
+                      }}
+                    >
+                      Forward
+                    </button>
                   </span>
                 )}
                 <span className="kin-linkthread-time">
@@ -406,6 +435,12 @@ export function RoomThread({
           }}
         />
       )}
+
+      <ForwardSheet
+        source={forwarding ? { kind: room.kind, id: forwarding.id } : null}
+        preview={forwarding ? (forwarding.body || (forwarding.photos.length ? `${forwarding.photos.length} attachment${forwarding.photos.length > 1 ? "s" : ""}` : "")).replace(/\s+/g, " ").slice(0, 120) : ""}
+        onClose={() => setForwarding(null)}
+      />
 
       {canWrite ? (
         <div className="kin-glass-bar kin-composer">

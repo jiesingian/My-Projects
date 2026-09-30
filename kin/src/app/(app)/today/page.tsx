@@ -33,6 +33,7 @@ import { KidToday } from "@/components/kid-today";
 import { StartHere } from "@/components/start-here";
 import { getStartHere } from "@/lib/queries/start-here";
 import { HolidayLine } from "@/components/holiday-line";
+import { getMyPendingCheckIns } from "@/lib/queries/member-card";
 
 export default async function TodayPage() {
   const me = await getCurrentMember();
@@ -40,7 +41,7 @@ export default async function TodayPage() {
   if (inKidView(me)) return <KidToday me={me} />;
 
   const supabase = await createClient();
-  const [{ data: members }, glance, brief, tasks, awaitingApproval, awaitingRedemption, familyPanel, comingUp, memories, recap, startHere, goalRequests, rewardDuties, goals, kinOffer] = await Promise.all([
+  const [{ data: members }, glance, brief, tasks, awaitingApproval, awaitingRedemption, familyPanel, comingUp, memories, recap, startHere, goalRequests, rewardDuties, goals, kinOffer, checkIns] = await Promise.all([
     supabase.from("members").select("id, full_name, status").eq("family_id", me.family_id).order("created_at"),
     getGlance(me.family_id, me.families.currency, me),
     getTodayBriefing(me.family_id, me.families.currency, me),
@@ -71,6 +72,8 @@ export default async function TodayPage() {
     getGoals(me.family_id, me, weekStartOf(me.families.week_start)),
     // Kin's offer, if it's time for one; credits any taken offer now done.
     getKinOffer(me.role),
+    // "Are you okay?" asks waiting on this person (the member card, 30 September).
+    getMyPendingCheckIns(me.id),
   ]);
 
   // Today's one list, ordered here on the server so the phone never re-sorts
@@ -131,7 +134,7 @@ export default async function TodayPage() {
 
   return (
     <div style={{ padding: "1.5rem var(--gutter) 1.25rem" }}>
-      <TodayHeader dateLabel={todayLabel} familyName={me.families.name} data={familyPanel} fallbackPeople={members ?? []} />
+      <TodayHeader dateLabel={todayLabel} familyName={me.families.name} data={familyPanel} fallbackPeople={members ?? []} me={{ id: me.id, timezone: me.timezone }} checkIns={checkIns} />
 
       {/* A promised reward that is due, or given and waiting for a word. First
           on the page and not dismissible: it goes when the promise is settled. */}

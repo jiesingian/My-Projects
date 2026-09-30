@@ -1,5 +1,6 @@
 "use client";
 
+import { ForwardSheet } from "@/components/forward-sheet";
 import { AlbumPrompt } from "@/components/album-prompt";
 import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
@@ -388,6 +389,7 @@ export function ChatThread({
   const [openFor, setOpenFor] = useState<string | null>(null);
   const [editing, setEditing] = useState<{ id: string; body: string } | null>(null);
   const [replyingTo, setReplyingTo] = useState<ChatMessage | null>(null);
+  const [forwarding, setForwarding] = useState<ChatMessage | null>(null);
   /** Files picked and not yet sent, with a local preview for the images. */
   const [picked, setPicked] = useState<{ file: File; preview: string | null; transcript?: string }[]>([]);
   const [albumFor, setAlbumFor] = useState<string[] | null>(null);
@@ -767,6 +769,16 @@ export function ChatThread({
        only one thing has been said. */
     <div style={{ display: "flex", flexDirection: "column", flex: 1 }}>
       {albumFor && <AlbumPrompt photoIds={albumFor} onClose={() => setAlbumFor(null)} />}
+      <ForwardSheet
+        source={forwarding ? { kind: "household", id: forwarding.id } : null}
+        preview={
+          forwarding
+            ? (mediaSummary(forwarding.body) ?? forwarding.body ?? "").replace(/\s+/g, " ").slice(0, 120) ||
+              `${forwarding.attachments.length} attachment${forwarding.attachments.length === 1 ? "" : "s"}`
+            : ""
+        }
+        onClose={() => setForwarding(null)}
+      />
       <div className="kin-chatsearch">
         {searching ? (
           <>
@@ -882,6 +894,12 @@ export function ChatThread({
                   {runStart && !mine && (
                     <span style={{ fontSize: "0.71875rem", color: "var(--color-neutral-600)", margin: "0 0 2px 10px" }}>
                       {author?.label ?? "Someone"}
+                    </span>
+                  )}
+
+                  {m.forwardedFrom && !m.deleted && (
+                    <span className="kin-forwarded" style={{ margin: mine ? "0 8px 2px 0" : "0 0 2px 10px" }}>
+                      <Icon name="upload" size="0.75rem" /> Forwarded from {m.forwardedFrom}
                     </span>
                   )}
 
@@ -1067,6 +1085,19 @@ export function ChatThread({
                       >
                         Reply
                       </button>
+                      {!m.poll && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setForwarding(m);
+                            setOpenFor(null);
+                          }}
+                          className="btn btn-ghost"
+                          style={{ minHeight: "1.625rem", fontSize: "0.75rem", padding: "0 0.375rem" }}
+                        >
+                          Forward
+                        </button>
+                      )}
                       <button
                         type="button"
                         onClick={() => act(() => (pin?.messageId === m.id ? unpinMessageAction() : pinMessageAction(m.id)))}
