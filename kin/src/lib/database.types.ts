@@ -1860,6 +1860,12 @@ export type Database = {
         Update: { mentions?: string[]; pinned_at?: string | null; pinned_by?: string | null; deleted_at?: string | null; edited_at?: string | null; forwarded_from?: string | null; body?: string; created_at?: string; id?: string; person_high?: string; person_low?: string; reply_to?: string | null; sender_person_id?: string | null }
         Relationships: []
       }
+      saved_messages: {
+        Row: { body: string; created_at: string; forwarded_from: string | null; id: string; person_id: string }
+        Insert: { body?: string; created_at?: string; forwarded_from?: string | null; id?: string; person_id?: string }
+        Update: { body?: string; created_at?: string; forwarded_from?: string | null; id?: string; person_id?: string }
+        Relationships: []
+      }
       chat_reads: {
         Row: { last_read_at: string; person_id: string; thread: string }
         Insert: { last_read_at?: string; person_id: string; thread: string }
@@ -1867,9 +1873,9 @@ export type Database = {
         Relationships: []
       }
       chat_room_attachments: {
-        Row: { created_at: string; direct_message_id: string | null; family_id: string; family_message_id: string | null; file_name: string; group_message_id: string | null; id: string; mime_type: string; position: number; size_bytes: number; storage_path: string; transcript: string | null }
-        Insert: { created_at?: string; direct_message_id?: string | null; family_id: string; family_message_id?: string | null; file_name: string; group_message_id?: string | null; id?: string; mime_type: string; position?: number; size_bytes: number; storage_path: string; transcript?: string | null }
-        Update: { created_at?: string; direct_message_id?: string | null; family_id?: string; family_message_id?: string | null; file_name?: string; group_message_id?: string | null; id?: string; mime_type?: string; position?: number; size_bytes?: number; storage_path?: string }
+        Row: { created_at: string; direct_message_id: string | null; family_id: string; family_message_id: string | null; file_name: string; group_message_id: string | null; id: string; saved_message_id: string | null; mime_type: string; position: number; size_bytes: number; storage_path: string; transcript: string | null }
+        Insert: { created_at?: string; direct_message_id?: string | null; family_id: string; family_message_id?: string | null; file_name: string; group_message_id?: string | null; id?: string; saved_message_id?: string | null; mime_type: string; position?: number; size_bytes: number; storage_path: string; transcript?: string | null }
+        Update: { created_at?: string; direct_message_id?: string | null; family_id?: string; family_message_id?: string | null; file_name?: string; group_message_id?: string | null; id?: string; saved_message_id?: string | null; mime_type?: string; position?: number; size_bytes?: number; storage_path?: string }
         Relationships: []
       }
       chat_room_reactions: {

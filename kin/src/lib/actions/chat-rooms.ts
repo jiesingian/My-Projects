@@ -66,7 +66,7 @@ function checkOutgoing(me: Sender, body: string, photos: RoomPhoto[]): string | 
 async function attachPhotos(
   me: Sender,
   photos: RoomPhoto[],
-  to: { family_message_id: string } | { direct_message_id: string } | { group_message_id: string },
+  to: { family_message_id: string } | { direct_message_id: string } | { group_message_id: string } | { saved_message_id: string },
 ): Promise<string | null> {
   if (photos.length === 0) return null;
   const supabase = await createClient();
@@ -86,7 +86,8 @@ async function attachPhotos(
   if (!error) return null;
   if ("family_message_id" in to) await supabase.from("family_tree_messages").delete().eq("id", to.family_message_id);
   else if ("direct_message_id" in to) await supabase.from("direct_messages").delete().eq("id", to.direct_message_id);
-  else await supabase.from("chat_group_messages").delete().eq("id", to.group_message_id);
+  else if ("group_message_id" in to) await supabase.from("chat_group_messages").delete().eq("id", to.group_message_id);
+  else await supabase.from("saved_messages").delete().eq("id", to.saved_message_id);
   await supabase.storage.from("documents").remove(photos.map((p) => p.storagePath));
   return `The photos didn't attach, so nothing was sent. ${humanDatabaseError(error.message)}`;
 }
@@ -94,7 +95,7 @@ async function attachPhotos(
 /** Deleting a message takes its photos with it -- the files, not only the
  * rows, which the database removes on its own. The files are in the
  * sender's own folder, so the sender may remove them. */
-async function removePhotosOf(column: "family_message_id" | "direct_message_id" | "group_message_id", id: string): Promise<void> {
+async function removePhotosOf(column: "family_message_id" | "direct_message_id" | "group_message_id" | "saved_message_id", id: string): Promise<void> {
   const supabase = await createClient();
   const { data } = await supabase.from("chat_room_attachments").select("storage_path").eq(column, id);
   if (data?.length) await supabase.storage.from("documents").remove(data.map((a) => a.storage_path));
@@ -473,6 +474,20 @@ async function readOriginal(me: Sender & { full_name: string }, source: ForwardS
       m.sender_person_id === me.person_id ? me.full_name : ((await getDirectPeers()).find((p) => p.personId === m.sender_person_id)?.fullName ?? null);
     return { body: m.body, from: forwardLabel(name, m.forwarded_from), files: await roomFiles("direct_message_id") };
   }
+  if (source.kind === "saved") {
+    const { data: s } = await supabase.from("saved_messages").select("body, forwarded_from").eq("id", source.id).maybeSingle();
+    if (!s) return gone;
+    const { data: files } = await supabase
+      .from("chat_room_attachments")
+      .select("storage_path, file_name, mime_type, size_bytes, transcript")
+      .eq("saved_message_id", source.id)
+      .order("position");
+    return {
+      body: s.body,
+      from: forwardLabel(me.full_name, s.forwarded_from),
+      files: (files ?? []).map((a) => ({ storagePath: a.storage_path, fileName: a.file_name, mimeType: a.mime_type, sizeBytes: a.size_bytes, transcript: a.transcript })),
+    };
+  }
   const { data: m } = await supabase.from("chat_group_messages").select("author_name, body, forwarded_from").eq("id", source.id).maybeSingle();
   if (!m) return gone;
   return { body: m.body, from: forwardLabel(m.author_name, m.forwarded_from), files: await roomFiles("group_message_id") };
@@ -532,7 +547,9 @@ export async function forwardMessageAction(source: ForwardSource, targetKeys: st
           ? await sendFamilyMessageAction(body, photos, null, original.from)
           : target.kind === "dm"
             ? await sendDirectMessageAction(target.id, body, photos, null, original.from)
-            : await sendGroupMessageAction(target.id, body, photos, null, original.from);
+            : target.kind === "saved"
+              ? await sendSavedMessageAction(body, photos, original.from)
+              : await sendGroupMessageAction(target.id, body, photos, null, original.from);
     if (r.error) {
       // The send actions tidy up after a failed attachment; a refused
       // message leaves the copies behind, so remove them here.
@@ -595,6 +612,38 @@ export async function pinRoomMessageAction(kind: RoomKind, id: string, pinned: b
   const supabase = await createClient();
   const { error } = await supabase.rpc("pin_chat_message", { p_kind: kind, p_id: id, p_pinned: pinned });
   if (error) return { error: error.code === "42501" ? "Only this channel's admins can pin here." : humanDatabaseError(error.message) };
+  revalidatePath("/chat", "layout");
+  return { error: null };
+}
+
+// ---------------------------------------------------------------- saved messages
+
+/** A note to self (20261006100200): words and photos only you can see. */
+export async function sendSavedMessageAction(body: string, photos: RoomPhoto[] = [], forwardedFrom: string | null = null): Promise<ActionState> {
+  const me = await requireCurrentMember();
+  const text = clamp(body.trim(), 4000);
+  const refused = checkOutgoing(me, text, photos);
+  if (refused) return { error: refused };
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("saved_messages")
+    .insert({ body: text, forwarded_from: forwardedFrom?.slice(0, 60) || null })
+    .select("id")
+    .single();
+  if (error || !data) return { error: error ? humanDatabaseError(error.message) : "That didn't save." };
+  const attachError = await attachPhotos(me, photos, { saved_message_id: data.id });
+  if (attachError) return { error: attachError };
+  revalidatePath("/chat", "layout");
+  return { error: null };
+}
+
+export async function deleteSavedMessageAction(id: string): Promise<ActionState> {
+  await requireCurrentMember();
+  if (!UUID.test(id)) return { error: "That note doesn't exist." };
+  await removePhotosOf("saved_message_id", id);
+  const supabase = await createClient();
+  const { error } = await supabase.from("saved_messages").delete().eq("id", id);
+  if (error) return { error: humanDatabaseError(error.message) };
   revalidatePath("/chat", "layout");
   return { error: null };
 }
