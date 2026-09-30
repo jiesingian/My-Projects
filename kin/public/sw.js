@@ -1,58 +1,89 @@
-/* Kin's service worker: enough offline to be useful, and no more.
+/* Kin's service worker: offline Kin, push notifications, and nothing else.
  *
- * WHAT IS CACHED, AND WHY THE LIST IS SHORT
+ * WHAT OPENS OFFLINE, AND WHERE ITS DATA LIVES
  *
- * Only the two screens the request named -- the lists and the calendar --
- * plus Today, and only pages this household has already opened. Everything
- * else goes to the network and fails honestly when there isn't one.
+ * With no connection, any page of Kin opens the offline shell (app/offline):
+ * one static page, cached here with the build files it needs, that shows
+ * Today, the shopping list, this week's Planner, recent chat and the
+ * emergency cards from the phone's own copy in IndexedDB
+ * (lib/offline/store.ts).
  *
- * The temptation is to cache every page, because it is one line. The reason
- * not to is that a cached page is a rendered page, sitting on the device's
- * disk, readable without signing in again. For a household's shopping list
- * that is a fair trade. For the rest of Kin it is not:
+ * Rendered pages are no longer cached at all. The first version of this file
+ * kept the last-seen HTML of the list, the Planner and Today, which put a
+ * household's page on disk under a URL, for whoever held the phone next,
+ * cleared only if somebody reached the sign-in screen. The copy in IndexedDB
+ * is saved for one signed-in user, wiped when anyone else signs in, and built
+ * from a fixed list of fields -- the vault, Documents and Wealth are never in
+ * it. The shell itself holds no data, so caching it costs nothing.
  *
- *   /family  -- holds the Documents segment. Caching it would hand back a
- *               folder list that had been unlocked earlier, offline, with
- *               no PIN and no fingerprint. That would quietly undo the lock
- *               rather than merely fail to help.
- *   /wealth  -- money.
- *   /api, /auth -- sessions, tokens, mutations. Never.
+ * NEVER TOUCHED
  *
- * So the allow list below is an allow list on purpose. Adding to it is a
- * decision about what may sit unencrypted on a phone somebody leaves on a
- * table, not a performance tweak.
+ * /api and /auth go straight to the network, always: sessions, tokens,
+ * mutations, the snapshot and the replay. Nothing here stores a cookie or
+ * a response that carries one.
  *
- * WRITES DO NOT QUEUE
+ * WRITES
  *
- * Ticking something off while offline does not save. Queuing mutations
- * means replaying them later against row-level security, against rows that
- * may have changed, with no way to tell the person what happened to their
- * change -- and a sync that silently loses an edit is worse than a button
- * that plainly did not work. The offline page says so in those words.
+ * The first version refused to queue changes, because a replay that silently
+ * loses an edit is worse than a button that plainly did not work. Offline
+ * Kin now queues four -- tick, add to the list, mark a Today item done, send
+ * to the household chat -- and says what happened to each when it syncs,
+ * including the ones it did not apply and why (app/api/offline/replay). That
+ * is the condition the first version set, met rather than dropped.
  */
 
-const VERSION = "kin-v1";
+const VERSION = "kin-v2";
 const SHELL = `${VERSION}-shell`;
-const PAGES = `${VERSION}-pages`;
+const STATIC = `${VERSION}-static`;
 
 const OFFLINE_URL = "/offline";
-const SHELL_ASSETS = [OFFLINE_URL, "/icon-192.png", "/icon-512.png"];
+const ICONS = ["/icon-192.png", "/icon-512.png", "/apple-touch-icon.png"];
 
-/** Only these, and only their exact paths or sub-paths. */
-const CACHEABLE = ["/household", "/planner", "/today"];
+/** A navigation that has not answered in this long is treated as offline:
+ * a lift or a train gives a connection that is there and delivers nothing. */
+const NAVIGATION_TIMEOUT_MS = 10000;
 
-function mayCache(url) {
-  if (url.origin !== self.location.origin) return false;
-  return CACHEABLE.some((p) => url.pathname === p || url.pathname.startsWith(`${p}/`));
+/** Caches the offline shell and every build file its HTML names -- scripts,
+ * styles, fonts -- so it can start with no network at all. Written to a
+ * fresh cache and swapped in only once complete, so a refresh that fails
+ * half way never leaves a shell whose scripts are missing. */
+async function cacheShell() {
+  const res = await fetch(OFFLINE_URL, { cache: "no-store", credentials: "same-origin", redirect: "error" });
+  if (!res.ok) throw new Error(`offline shell ${res.status}`);
+  const html = await res.clone().text();
+  const current = await (await caches.open(SHELL)).match(OFFLINE_URL);
+  if (current && (await current.text()) === html) return;
+
+  const assets = [...new Set(html.match(/\/_next\/static\/[^"'\s)\\]+/g) ?? [])];
+  const staticCache = await caches.open(STATIC);
+  await Promise.all(
+    assets.map(async (path) => {
+      if (await staticCache.match(path)) return;
+      const asset = await fetch(path, { credentials: "same-origin" });
+      if (asset.ok) await staticCache.put(path, asset);
+    }),
+  );
+  const next = await caches.open(`${SHELL}-next`);
+  await next.put(OFFLINE_URL, res);
+  await Promise.all(ICONS.map((icon) => next.add(icon).catch(() => undefined)));
+  await caches.delete(SHELL);
+  const fresh = await caches.open(SHELL);
+  for (const req of await next.keys()) await fresh.put(req, await next.match(req));
+  await caches.delete(`${SHELL}-next`);
+  // A new shell means a new deploy: the old build's files are dead weight on
+  // the phone. Pages re-cache what they use as they are opened.
+  const keep = new Set(assets);
+  for (const req of await staticCache.keys()) {
+    if (!keep.has(new URL(req.url).pathname)) await staticCache.delete(req);
+  }
 }
 
 self.addEventListener("install", (event) => {
   event.waitUntil(
-    caches
-      .open(SHELL)
-      .then((cache) => cache.addAll(SHELL_ASSETS))
-      // A missing asset must not wedge the install, or the worker never
-      // activates and offline silently does nothing.
+    cacheShell()
+      // A shell that could not be fetched must not wedge the install, or the
+      // worker never activates and push notifications stop with it. The app
+      // asks again on its next load (components/offline-sync.tsx).
       .catch(() => undefined)
       .then(() => self.skipWaiting()),
   );
@@ -62,44 +93,72 @@ self.addEventListener("activate", (event) => {
   event.waitUntil(
     caches
       .keys()
+      // kin-v1's cache of rendered pages goes here, with everything else
+      // that is not this version's.
       .then((keys) => Promise.all(keys.filter((k) => !k.startsWith(VERSION)).map((k) => caches.delete(k))))
       .then(() => self.clients.claim()),
   );
 });
 
-/** Signing out has to take the cached pages with it. Without this, the next
- * person to pick up the phone could read the last household's list while
- * offline. The app posts this message from its sign-out path. */
 self.addEventListener("message", (event) => {
+  // The app, online, after each load: fetch the shell again if a deploy has
+  // changed it, so offline Kin is never more than one visit behind.
+  if (event.data === "kin:refresh-shell") {
+    event.waitUntil(cacheShell().catch(() => undefined));
+  }
+  // Kept for pages still running the old build. The shell holds no data, so
+  // there is nothing personal left in these caches to clear; the offline
+  // copy itself is cleared from the page (lib/offline/store.ts).
   if (event.data === "kin:clear-cache") {
-    event.waitUntil(caches.keys().then((keys) => Promise.all(keys.map((k) => caches.delete(k)))));
+    event.waitUntil(caches.keys().then((keys) => Promise.all(keys.filter((k) => !k.startsWith(VERSION)).map((k) => caches.delete(k)))));
   }
 });
+
+function withTimeout(promise, ms) {
+  return new Promise((resolve, reject) => {
+    const timer = setTimeout(() => reject(new Error("timeout")), ms);
+    promise.then(
+      (value) => {
+        clearTimeout(timer);
+        resolve(value);
+      },
+      (error) => {
+        clearTimeout(timer);
+        reject(error);
+      },
+    );
+  });
+}
+
+/** Screens that must reach the network or say plainly that they cannot:
+ * signing in with no connection is not something a cached page can fake. */
+const NEVER_SHELL = ["/login", "/signup", "/verify", "/forgot-password", "/reset-password", "/subscribe", "/onboarding", "/join", "/connect"];
 
 self.addEventListener("fetch", (event) => {
   const { request } = event;
   if (request.method !== "GET") return;
 
   const url = new URL(request.url);
+  if (url.origin !== self.location.origin) return;
   if (url.pathname.startsWith("/api/") || url.pathname.startsWith("/auth/")) return;
 
   if (request.mode === "navigate") {
     event.respondWith(
       (async () => {
         try {
-          const fresh = await fetch(request);
-          // Network-first, so a household online always sees the real thing
-          // and the cache is only ever a fallback.
-          if (fresh.ok && mayCache(url)) {
-            const copy = fresh.clone();
-            caches.open(PAGES).then((cache) => cache.put(request, copy)).catch(() => undefined);
-          }
-          return fresh;
+          // Network first, always: online, Kin is the real thing, and the
+          // shell is only ever the fallback.
+          return await withTimeout(fetch(request), NAVIGATION_TIMEOUT_MS);
         } catch {
-          const cached = await caches.match(request, { ignoreSearch: false });
-          if (cached) return cached;
-          const offline = await caches.match(OFFLINE_URL);
-          return offline ?? Response.error();
+          const shell = await caches.match(OFFLINE_URL, { cacheName: SHELL });
+          if (!shell || url.pathname === OFFLINE_URL) return shell ?? Response.error();
+          if (NEVER_SHELL.some((p) => url.pathname === p || url.pathname.startsWith(`${p}/`))) return shell;
+          // Sent to the shell's own address, which carries where they were
+          // going, so the shell opens on that screen and Next's router sees
+          // the page it actually rendered.
+          const to = new URL(OFFLINE_URL, self.location.origin);
+          to.searchParams.set("from", url.pathname + url.search);
+          return Response.redirect(to.href, 302);
         }
       })(),
     );
@@ -107,21 +166,26 @@ self.addEventListener("fetch", (event) => {
   }
 
   // Next's build output is content-hashed, so a hit is always the right file
-  // and a miss simply goes to the network.
+  // and a miss goes to the network (and is kept for next time).
   if (url.pathname.startsWith("/_next/static/")) {
     event.respondWith(
-      caches.match(request).then(
+      caches.match(request, { cacheName: STATIC }).then(
         (cached) =>
           cached ??
           fetch(request).then((response) => {
             if (response.ok) {
               const copy = response.clone();
-              caches.open(SHELL).then((cache) => cache.put(request, copy)).catch(() => undefined);
+              caches.open(STATIC).then((cache) => cache.put(request, copy)).catch(() => undefined);
             }
             return response;
           }),
       ),
     );
+    return;
+  }
+
+  if (ICONS.includes(url.pathname)) {
+    event.respondWith(caches.match(request, { cacheName: SHELL }).then((cached) => cached ?? fetch(request)));
   }
 });
 

@@ -189,6 +189,18 @@ Decided against in the same review: revising Journal (item 6) and Planner
 
 ## Done
 
+- Offline mode (Jonathan, 30 September). With no signal Kin opens on a saved
+  copy (app/offline): Today, the shopping list, this week's Planner, the last
+  50 messages of the household chat and up to three other recent
+  conversations, and every emergency card. Saved per signed-in user in
+  IndexedDB, wiped on the sign-in screen and whenever someone else signs in;
+  the vault, Documents and Wealth are never in it. Four changes queue while
+  offline -- tick/untick, add to the list, mark a Today item or chore done,
+  send to the household chat -- and replay in order on reconnect, once each
+  (the phone's id becomes the row's id), with the conflict rules written in
+  app/api/offline/replay. Rendered pages are no longer cached by the service
+  worker. Still to do: queue from the live pages too (today they point to
+  the saved copy when offline), and confirm on a real iPhone.
 - A promised goal reward is kept (Jonathan, 28 September). Locked: what a
   reward is never changes once asked for, the giver cannot take a promise
   back or delete the goal under it. A day: the one receiving it claims it

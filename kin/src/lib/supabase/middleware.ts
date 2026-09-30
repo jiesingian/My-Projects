@@ -65,7 +65,13 @@ export async function updateSession(request: NextRequest) {
     path.startsWith("/connect/") ||
     // The privacy notice, terms and refund policy: read before an account
     // exists, and by app-store reviewers who never have one (app/legal).
-    path.startsWith("/legal/");
+    path.startsWith("/legal/") ||
+    // The offline shell (app/offline): a static page with no data in it,
+    // which the service worker fetches at install -- often from the sign-in
+    // screen. Redirected to /login, the worker would store the sign-in form
+    // as the thing to show offline. Its data comes from the phone, and only
+    // for whoever is signed in (lib/offline/store.ts).
+    path === "/offline";
 
   if (!user && !isPublic) {
     const url = request.nextUrl.clone();
