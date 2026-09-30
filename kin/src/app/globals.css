@@ -5991,3 +5991,22 @@ button.kin-initial:focus-visible {
 .kin-voice-transcript { font-size: 0.84375rem; line-height: 1.45; padding: 0 0.25rem; }
 .kin-voice-transcript summary { cursor: pointer; min-height: 1.75rem; display: flex; align-items: center; font-size: 0.78125rem; font-weight: 600; color: var(--color-accent-700); }
 .kin-voice-transcript p { margin: 0.125rem 0 0; white-space: pre-wrap; }
+
+/* Today's holiday line (components/holiday-line): a quiet fact about the
+   week, set like the all-clear line rather than as a card to act on. */
+.kin-holiday {
+  display: flex;
+  align-items: center;
+  gap: 0.4375rem;
+  margin: 0 0 1rem;
+  font: 600 0.9375rem/1.3 var(--font-heading);
+  color: var(--color-neutral-700);
+}
+.kin-holiday > svg {
+  flex: none;
+  color: var(--cal-occasion);
+}
+.kin-holiday > a {
+  color: inherit;
+  text-decoration: none;
+}

@@ -32,6 +32,7 @@ import { inKidView } from "@/lib/kid-view";
 import { KidToday } from "@/components/kid-today";
 import { StartHere } from "@/components/start-here";
 import { getStartHere } from "@/lib/queries/start-here";
+import { HolidayLine } from "@/components/holiday-line";
 
 export default async function TodayPage() {
   const me = await getCurrentMember();
@@ -166,6 +167,9 @@ export default async function TodayPage() {
           Urgent first, then the day in order (all-day things at its start),
           finished ones sinking to the bottom with Undo. Meals are left to the
           header's "Eating today". On a quiet day it is one line. */}
+      {/* A public holiday today or this week (lib/holidays). */}
+      <HolidayLine />
+
       {entries.length === 0 ? (
         <p className="kin-allclear">
           <Icon name="check" size={15} />

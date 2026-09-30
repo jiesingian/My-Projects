@@ -2,12 +2,12 @@
  * their own: the query layer and the styling layer both need them, and each
  * already refers to the other. */
 
-export const CALENDAR_TABLES = ["activities", "events", "bills", "meal_plans", "goals", "routines"] as const;
+export const CALENDAR_TABLES = ["activities", "events", "bills", "meal_plans", "goals", "routines", "holidays"] as const;
 export type CalendarTable = (typeof CALENDAR_TABLES)[number];
 
 /** What the legend switches on and off. Travel lives with events now
  * rather than with one-off tasks, because travel is an event. */
-export const CALENDAR_GROUPS = ["schedule", "routines", "events", "bills", "meals", "goals"] as const;
+export const CALENDAR_GROUPS = ["schedule", "routines", "events", "bills", "meals", "goals", "holidays"] as const;
 export type CalendarGroup = (typeof CALENDAR_GROUPS)[number];
 
 export const GROUP_OF: Record<CalendarTable, CalendarGroup> = {
@@ -17,6 +17,8 @@ export const GROUP_OF: Record<CalendarTable, CalendarGroup> = {
   meal_plans: "meals",
   goals: "goals",
   routines: "routines",
+  // Not a table: Philippine public holidays, from lib/holidays.
+  holidays: "holidays",
 };
 
 /** Which groups are switched off, read from the URL. Absent means none are:

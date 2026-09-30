@@ -58,6 +58,26 @@ session (see the root CLAUDE.md on session cost).
 
 Also agreed the same day and done: **Today as one list** (see Done).
 
+## Agreed 30 September (Jonathan)
+
+One pull request each, in this order.
+
+1. **Done: Philippine public holidays** on the Planner (calendar and agenda,
+   with its own "Holidays" switch in the legend) and on Today ("Monday is a
+   holiday — Bonifacio Day"). From Nager.Date, free and keyless, cached for a
+   day; the fixed-date holidays stand in if it is down. No Done or Skip, like
+   birthdays. Kin adds a late Palace proclamation by hand in
+   `KIN_SPECIAL_DAYS` (src/lib/holidays.ts). **Not built: a household adding
+   its own special day** -- that needs a table, and a household event already
+   does the job.
+2. **Invite by QR code**, generated inside Kin (the invite never goes to a
+   third party), with Save image / Share.
+3. **Address search**: type-ahead from OpenStreetMap's Nominatim through a
+   Kin server route (cached, at most one request a second, biased to the
+   Philippines); typing freely still works.
+4. **Weekly family digest** on Sundays, built on the week-ahead push (#307),
+   respecting kid view and "just me" / grown-ups-only visibility.
+
 ## Final stage: everything that costs money, done together
 
 Jonathan, 29 September: every paid switch waits for the final stage and is
@@ -73,6 +93,13 @@ docs/SETUP_FOR_JONATHAN.md.
 - **Business registration for the legal pages** (DTI business name, BIR),
   which the payment providers also ask for. The details go in
   `src/lib/legal.ts`; until then the pages say "Being registered".
+- **Kin AI switches from Opus to Haiku 4.5 with a monthly spend cap when the
+  key is added** (Jonathan, 30 September).
+
+## Native app stage
+
+- **Home-screen and lock-screen widgets for shared lists and Today** (needs a
+  native app; approved 30 September).
 
 ## Design finalization
 
