@@ -241,6 +241,39 @@ export type Database = {
           },
         ]
       }
+      member_budgets: {
+        Row: {
+          amount: number
+          family_id: string
+          id: string
+          member_id: string
+          period_month: number
+          period_year: number
+          set_by: string | null
+          updated_at: string
+        }
+        Insert: {
+          amount: number
+          family_id: string
+          id?: string
+          member_id: string
+          period_month: number
+          period_year: number
+          set_by?: string | null
+          updated_at?: string
+        }
+        Update: {
+          amount?: number
+          family_id?: string
+          id?: string
+          member_id?: string
+          period_month?: number
+          period_year?: number
+          set_by?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       member_checkins: {
         Row: { id: string; family_id: string; asked_by: string; member_id: string; asked_at: string; answer: string | null; answered_at: string | null }
         Insert: { id?: string; family_id: string; asked_by: string; member_id: string; asked_at?: string; answer?: string | null; answered_at?: string | null }
@@ -1821,6 +1854,45 @@ export type Database = {
         Row: { created_at: string; created_by: string | null; family_id: string; id: string; name: string }
         Insert: { created_at?: string; created_by?: string | null; family_id: string; id?: string; name: string }
         Update: { created_at?: string; created_by?: string | null; family_id?: string; id?: string; name?: string }
+        Relationships: []
+      }
+      net_worth_snapshots: {
+        Row: {
+          assets: number
+          cash: number
+          family_id: string
+          goals: number
+          liabilities: number
+          month: string
+          net_worth: number
+          scope: string
+          updated_at: string
+          viewer_member_id: string
+        }
+        Insert: {
+          assets?: number
+          cash?: number
+          family_id: string
+          goals?: number
+          liabilities?: number
+          month: string
+          net_worth: number
+          scope: string
+          updated_at?: string
+          viewer_member_id: string
+        }
+        Update: {
+          assets?: number
+          cash?: number
+          family_id?: string
+          goals?: number
+          liabilities?: number
+          month?: string
+          net_worth?: number
+          scope?: string
+          updated_at?: string
+          viewer_member_id?: string
+        }
         Relationships: []
       }
       occasion_greetings: {

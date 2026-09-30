@@ -1,6 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import type { Tables } from "@/lib/database.types";
-import { monthKey, recentMonths, signedAmount, recentPeriods, periodKey, cashFlowRangeCount, inScope, isHouseholdScope, type CashFlowRange, type WealthScope } from "@/lib/wealth";
+import { monthKey, recentMonths, signedAmount, recentPeriods, periodKey, cashFlowRangeCount, inScope, isHouseholdScope, TRANSFER_CATEGORY, type CashFlowRange, type WealthScope } from "@/lib/wealth";
 
 // Re-exported so the page keeps importing its scope type from the module it
 // already imports the queries from.
@@ -447,4 +447,126 @@ export async function getRemittances(familyId: string, since?: string): Promise<
   const byRemittance = new Map<string, Tables<"remittance_allocations">[]>();
   for (const a of allocations ?? []) byRemittance.set(a.remittance_id, [...(byRemittance.get(a.remittance_id) ?? []), a]);
   return rows.map((r) => ({ ...r, allocations: byRemittance.get(r.id) ?? [] }));
+}
+
+/* ------------------------------------------------------------ chart data */
+
+/** Each person's spending budget for one month, as a grown-up set it
+ * (member_budgets). The whole household may read these, so this is the same
+ * map for every viewer. A person with no budget that month is absent. */
+export async function getMemberBudgets(familyId: string, year: number, month: number): Promise<Map<string, number>> {
+  const supabase = await createClient();
+  const { data } = await supabase.from("member_budgets").select("member_id, amount").eq("family_id", familyId).eq("period_year", year).eq("period_month", month);
+  return new Map((data ?? []).map((b) => [b.member_id, Number(b.amount)]));
+}
+
+export type MemberSpending = {
+  /** null is the household's joint (or unassigned) accounts. */
+  memberId: string | null;
+  spent: number;
+  /** Whether the viewer can see any account of theirs at all. False for
+   * someone whose accounts are all private, or who has none: the page then
+   * says nothing about their spending rather than showing a zero. */
+  hasVisibleAccounts: boolean;
+  budget: number | null;
+};
+
+/** Spending per person this month, against their budget -- the shared helper
+ * for Wealth's per-person chart and Today's member card.
+ *
+ * Spending is money out of the person's own accounts, confirmed, in the month,
+ * transfers between accounts left out (moving money is not spending it). Only
+ * accounts the viewer can see count: another member's private account never
+ * reaches this function, so it never reaches a total either. */
+export async function getSpendingByMember(familyId: string, year: number, month: number): Promise<MemberSpending[]> {
+  const supabase = await createClient();
+  const from = new Date(year, month - 1, 1);
+  const to = new Date(year, month, 1);
+  const [accounts, budgets, { data: rows }] = await Promise.all([
+    loadAccounts(familyId),
+    getMemberBudgets(familyId, year, month),
+    supabase
+      .from("wealth_transactions")
+      .select("account_id, amount, category")
+      .eq("family_id", familyId)
+      .eq("direction", "out")
+      .eq("status", "confirmed")
+      .gte("occurred_at", from.toISOString())
+      .lt("occurred_at", to.toISOString()),
+  ]);
+  const ownerOf = new Map(accounts.map((a) => [a.id, a.is_joint ? null : a.owner_member_id]));
+  const spent = new Map<string | null, number>();
+  for (const r of rows ?? []) {
+    if (r.category === TRANSFER_CATEGORY || !ownerOf.has(r.account_id)) continue;
+    const who = ownerOf.get(r.account_id) ?? null;
+    spent.set(who, (spent.get(who) ?? 0) + Number(r.amount));
+  }
+  const owners = new Set<string | null>(accounts.map((a) => (a.is_joint ? null : a.owner_member_id)));
+  for (const id of budgets.keys()) owners.add(id);
+  return [...owners].map((memberId) => ({
+    memberId,
+    spent: spent.get(memberId) ?? 0,
+    hasVisibleAccounts: accounts.some((a) => (a.is_joint ? null : a.owner_member_id) === memberId),
+    budget: memberId ? (budgets.get(memberId) ?? null) : null,
+  }));
+}
+
+/** The budget each month in `keys` (YYYY-MM) was measured against: the
+ * household's (budget_periods) for All and Family, the person's own
+ * (member_budgets) for one person. Months with none are absent. */
+export async function getBudgetHistory(familyId: string, scope: WealthScope, keys: string[]): Promise<Map<string, number>> {
+  if (keys.length === 0) return new Map();
+  const supabase = await createClient();
+  const years = [...new Set(keys.map((k) => Number(k.slice(0, 4))))];
+  const wanted = new Set(keys);
+  const key = (y: number, m: number) => `${y}-${String(m).padStart(2, "0")}`;
+  if (isHouseholdScope(scope)) {
+    const { data } = await supabase.from("budget_periods").select("period_year, period_month, budget_amount").eq("family_id", familyId).in("period_year", years);
+    return new Map((data ?? []).filter((b) => wanted.has(key(b.period_year, b.period_month)) && Number(b.budget_amount) > 0).map((b) => [key(b.period_year, b.period_month), Number(b.budget_amount)]));
+  }
+  const { data } = await supabase.from("member_budgets").select("period_year, period_month, amount").eq("family_id", familyId).eq("member_id", scope).in("period_year", years);
+  return new Map((data ?? []).filter((b) => wanted.has(key(b.period_year, b.period_month)) && Number(b.amount) > 0).map((b) => [key(b.period_year, b.period_month), Number(b.amount)]));
+}
+
+export type NetWorthPoint = { month: string; netWorth: number };
+
+/** What this viewer's net worth was, month by month, for one Who choice --
+ * and this month's row brought up to date with `current` first. Each row is
+ * the viewer's own (row-level security reads and writes nobody else's), so
+ * the line only ever shows what that person could see. Best effort: on Kin
+ * Free, or with the table not there yet, the write is refused and the line
+ * simply has what it had. */
+export async function recordAndGetNetWorthHistory(
+  familyId: string,
+  viewerMemberId: string,
+  scope: WealthScope,
+  current: { cash: number; goals: number; assets: number; liabilities: number; netWorth: number },
+): Promise<NetWorthPoint[]> {
+  const supabase = await createClient();
+  const scopeKey: string = scope;
+  const now = new Date();
+  const month = `${monthKey(now)}-01`;
+  await supabase.from("net_worth_snapshots").upsert(
+    {
+      viewer_member_id: viewerMemberId,
+      family_id: familyId,
+      scope: scopeKey,
+      month,
+      cash: current.cash,
+      goals: current.goals,
+      assets: current.assets,
+      liabilities: current.liabilities,
+      net_worth: current.netWorth,
+      updated_at: now.toISOString(),
+    },
+    { onConflict: "viewer_member_id,scope,month" },
+  );
+  const { data } = await supabase
+    .from("net_worth_snapshots")
+    .select("month, net_worth")
+    .eq("viewer_member_id", viewerMemberId)
+    .eq("scope", scopeKey)
+    .order("month", { ascending: false })
+    .limit(24);
+  return (data ?? []).reverse().map((r) => ({ month: r.month.slice(0, 7), netWorth: Number(r.net_worth) }));
 }

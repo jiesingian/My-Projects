@@ -570,6 +570,20 @@ Decided against in the same review: revising Journal (item 6) and Planner
   supabase/tests/rls_remittances.sql on dev. The same migration let the
   ledger accept money recorded against an asset or an event, which both
   databases had been refusing.
+- Wealth charts (Jonathan, 30 September; preview approved the same day with
+  "yes" to all three of its questions:
+  https://claude.ai/artifact/1Qg7T8E3XFBYLf9rJ21WFn). Drawn with visx (about
+  17 KB on the page, against Recharts' 118 and ECharts' 198, measured). Cash
+  Flow: money in and out against a budget band (each month's household
+  budget, or the person's own under the Who picker), overspend hatched and
+  stated; spending by category as a donut; spending by person against a
+  budget any grown-up sets and the household can see (member_budgets). A&L:
+  net worth over time, kept per viewer per month in net_worth_snapshots from
+  now on, so nobody's line holds anything they could not see.
+  getSpendingByMember / getMemberBudgets in lib/queries/wealth are the shared
+  helper for Today's member card, which still reads the private income
+  target as its budget. RLS: npm run test:rls (probes/wealth-charts.mjs) and
+  supabase/tests/rls_wealth_charts.sql on dev.
 
 ## Decided against, for now
 

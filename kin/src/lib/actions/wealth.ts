@@ -1139,3 +1139,29 @@ export async function deleteRemittanceAction(remittanceId: string): Promise<Acti
   revalidatePath("/wealth/remittances");
   return { error: null };
 }
+
+/* ------------------------------------------------------ per-person budgets */
+
+/** A grown-up sets someone's spending budget for this month (0 clears it).
+ * The household can see it; only a grown-up can change it -- the row-level
+ * policy on member_budgets is the lock, this the sentence. */
+export async function setMemberBudgetAction(memberId: string, amount: number): Promise<ActionState> {
+  const me = await requireCurrentMember();
+  if (!isGrownUp(me.role)) return { error: "Only a grown-up can set a budget." };
+  if (!Number.isFinite(amount) || amount < 0) return { error: "Enter a budget of zero or more." };
+  const supabase = await createClient();
+  const now = new Date();
+  const period = { period_year: now.getFullYear(), period_month: now.getMonth() + 1 };
+  const { error } =
+    amount === 0
+      ? await supabase.from("member_budgets").delete().eq("family_id", me.family_id).eq("member_id", memberId).match(period)
+      : await supabase
+          .from("member_budgets")
+          .upsert(
+            { family_id: me.family_id, member_id: memberId, ...period, amount: Math.round(amount * 100) / 100, set_by: me.id, updated_at: now.toISOString() },
+            { onConflict: "member_id,period_year,period_month" },
+          );
+  if (error) return { error: humanDatabaseError(error.message) };
+  revalidateWealth();
+  return { error: null };
+}
