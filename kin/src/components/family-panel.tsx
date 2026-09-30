@@ -4,8 +4,12 @@ import { useEffect, useId, useState } from "react";
 import Link from "next/link";
 import { Icon } from "@/components/icons";
 import { AnimatedSheet } from "@/components/animated-sheet";
+import { MemberCardBody } from "@/components/member-card";
+import { SosButton } from "@/components/sos-button";
+import { CheckInPrompt, type PendingCheckIn } from "@/components/check-in-prompt";
 import { initials } from "@/lib/format";
-import type { FamilyPanel as FamilyPanelData, FamilyPanelPerson } from "@/lib/queries/family-panel";
+import { setMyTimezoneAction } from "@/lib/actions/member-card";
+import type { FamilyPanel as FamilyPanelData } from "@/lib/queries/family-panel";
 
 /** The top of Today: the date, the household's name, the time and weather
  * where the family is, what is being eaten today, and everyone's initials.
@@ -19,12 +23,20 @@ import type { FamilyPanel as FamilyPanelData, FamilyPanelPerson } from "@/lib/qu
  *
  * A client component for two reasons -- the clock, and the person cards. A
  * time rendered on the server is the server's time and is wrong by however
- * long the page has been open; this one ticks and is the reader's own. */
+ * long the page has been open; this one ticks and is the reader's own.
+ *
+ * Since 30 September the card is the member card (components/member-card):
+ * their time and weather, their day, and -- as far as the household's own
+ * rules allow -- their money and medicines, with call, message and "Are you
+ * okay?". The strip also carries Emergency SOS, and any "Are you okay?"
+ * waiting on the reader. */
 export function TodayHeader({
   dateLabel,
   familyName,
   data,
   fallbackPeople,
+  me,
+  checkIns,
 }: {
   dateLabel: string;
   familyName: string;
@@ -32,6 +44,9 @@ export function TodayHeader({
   /** Everyone in the household, for when the panel has no one (a brand new
    * household): the initials still show, without a card to open. */
   fallbackPeople: { id: string; full_name: string }[];
+  /** The reader: whose card is "yours", and the zone their phone last said. */
+  me: { id: string; timezone: string | null };
+  checkIns: PendingCheckIn[];
 }) {
   const [openId, setOpenId] = useState<string | null>(null);
   const [shownId, setShownId] = useState<string | null>(null);
@@ -40,9 +55,17 @@ export function TodayHeader({
   // The card keeps showing the last person while it slides away, so the
   // close animation never plays over an empty sheet.
   if (openId && openId !== shownId) setShownId(openId);
-  const shown = data.people.find((p) => p.id === shownId) ?? null;
 
-  const people = data.people.length > 0 ? data.people.map((p) => ({ id: p.id, name: p.name, card: true })) : fallbackPeople.map((m) => ({ id: m.id, name: m.full_name, card: false }));
+  // The card reads its data when it opens, so every initial opens one --
+  // including a brand new household's, which has no panel rows yet.
+  const people = data.people.length > 0 ? data.people.map((p) => ({ id: p.id, name: p.name })) : fallbackPeople.map((m) => ({ id: m.id, name: m.full_name }));
+
+  // Your phone says which zone it is in, so your card can show your local
+  // time to someone at home. Only when it has changed, and only your own.
+  useEffect(() => {
+    const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+    if (tz && tz !== me.timezone) void setMyTimezoneAction(tz);
+  }, [me.timezone]);
 
   return (
     <header style={{ marginBottom: "1.25rem" }}>
@@ -57,25 +80,20 @@ export function TodayHeader({
           <h2 style={{ fontSize: "min(1.875rem, 11vw)" }}>{familyName}</h2>
         </div>
         <div style={{ display: "flex", alignItems: "center", flex: "none" }}>
-          {people.map((p) =>
-            p.card ? (
-              <button
-                key={p.id}
-                type="button"
-                className="placeholder-fill kin-initial"
-                onClick={() => setOpenId(p.id)}
-                aria-haspopup="dialog"
-                aria-label={`${p.name}: location and today`}
-              >
-                {initials(p.name)}
-              </button>
-            ) : (
-              <span key={p.id} className="placeholder-fill kin-initial" aria-hidden="true">
-                {initials(p.name)}
-              </span>
-            ),
-          )}
-          <Link href="/settings" className="btn btn-secondary btn-icon" aria-label="Settings" style={{ marginLeft: "0.625rem" }}>
+          {people.map((p) => (
+            <button
+              key={p.id}
+              type="button"
+              className="placeholder-fill kin-initial"
+              onClick={() => setOpenId(p.id)}
+              aria-haspopup="dialog"
+              aria-label={p.id === me.id ? "Your card, and what others see on it" : `${p.name}: how they are`}
+            >
+              {initials(p.name)}
+            </button>
+          ))}
+          <SosButton householdName={familyName} />
+          <Link href="/settings" className="btn btn-secondary btn-icon" aria-label="Settings" style={{ marginLeft: "0.5rem" }}>
             <Icon name="settings" />
           </Link>
         </div>
@@ -110,46 +128,15 @@ export function TodayHeader({
 
       <AnimatedSheet open={openId !== null} onClose={() => setOpenId(null)} labelledBy={titleId} panelClassName="sheet-panel--confirm">
         <div className="confirm-grabber" />
-        {shown && <PersonCard person={shown} titleId={titleId} onClose={() => setOpenId(null)} />}
+        {shownId && <MemberCardBody key={shownId} memberId={shownId} meId={me.id} glasses={data.people.find((p) => p.id === shownId)?.glasses ?? null} titleId={titleId} onClose={() => setOpenId(null)} />}
       </AnimatedSheet>
-    </header>
-  );
-}
 
-function PersonCard({ person, titleId, onClose }: { person: FamilyPanelPerson; titleId: string; onClose: () => void }) {
-  const sharing = person.lat !== null && person.lng !== null;
-  return (
-    <>
-      <p id={titleId} className="confirm-title">
-        {person.name}
-      </p>
-      <div className="kin-person-rows">
-        <div className="kin-person-row">
-          <Icon name="mapPin" size={16} />
-          {sharing ? (
-            <a href={`https://www.google.com/maps/search/?api=1&query=${person.lat},${person.lng}`} target="_blank" rel="noopener noreferrer">
-              On the map · {sinceLabel(person.locationUpdatedAt) === "now" ? "just now" : `${sinceLabel(person.locationUpdatedAt)} ago`}
-            </a>
-          ) : (
-            <span style={{ color: "var(--color-neutral-600)" }}>Not sharing a location</span>
-          )}
+      {checkIns.length > 0 && (
+        <div style={{ marginTop: "0.875rem" }}>
+          <CheckInPrompt checkIns={checkIns} />
         </div>
-        <div className="kin-person-row">
-          <Icon name="glassWater" size={16} />
-          <span>
-            {person.glasses} glass{person.glasses === 1 ? "" : "es"} of water today
-          </span>
-        </div>
-      </div>
-      <div className="confirm-actions">
-        <button type="button" className="btn btn-secondary btn-block" onClick={onClose}>
-          Close
-        </button>
-        <Link href={`/family/members/${person.id}`} className="btn btn-primary btn-block" onClick={onClose}>
-          Open profile
-        </Link>
-      </div>
-    </>
+      )}
+    </header>
   );
 }
 
@@ -171,13 +158,4 @@ function Clock() {
       {now ?? " "}
     </span>
   );
-}
-
-function sinceLabel(iso: string | null): string {
-  if (!iso) return "now";
-  const mins = Math.floor((Date.now() - new Date(iso).getTime()) / 60000);
-  if (mins < 1) return "now";
-  if (mins < 60) return `${mins}m`;
-  const hours = Math.floor(mins / 60);
-  return hours < 24 ? `${hours}h` : `${Math.floor(hours / 24)}d`;
 }

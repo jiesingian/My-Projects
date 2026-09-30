@@ -5,6 +5,9 @@ import { RewardsShelf } from "@/components/rewards-shelf";
 import { getRoutinesNeedingAttention, getMemberScores, getRewards } from "@/lib/queries/routines";
 import { getComingUp, getTodayBriefing, type BriefItem } from "@/lib/queries/today";
 import { FAMILY_TZ } from "@/lib/time";
+import { SosButton } from "@/components/sos-button";
+import { CheckInPrompt } from "@/components/check-in-prompt";
+import { getMyPendingCheckIns } from "@/lib/queries/member-card";
 
 /** Things a child in kid view should not be sent to: money, the household's
  * running, and anybody's health records. */
@@ -16,13 +19,14 @@ function forAChild(b: BriefItem): boolean {
 /** Today in kid view (K2, 25 September): their own jobs with big ticks, their
  * stars and what they can spend them on, and what is coming up -- nothing
  * about money or the running of the house. */
-export async function KidToday({ me }: { me: { id: string; role: string; family_id: string; full_name: string; families: { currency: string } } }) {
-  const [tasks, scores, rewards, brief, comingUp] = await Promise.all([
+export async function KidToday({ me }: { me: { id: string; role: string; family_id: string; full_name: string; families: { currency: string; name: string } } }) {
+  const [tasks, scores, rewards, brief, comingUp, checkIns] = await Promise.all([
     getRoutinesNeedingAttention(me.family_id, me.id),
     getMemberScores(me.family_id),
     getRewards(me.family_id),
     getTodayBriefing(me.family_id, me.families.currency, me),
     getComingUp(me.family_id, me.families.currency, me),
+    getMyPendingCheckIns(me.id),
   ]);
   const mine = scores.find((s) => s.id === me.id);
   const stars = mine?.spendable ?? 0;
@@ -33,8 +37,14 @@ export async function KidToday({ me }: { me: { id: string; role: string; family_
 
   return (
     <div className="kin-kid" style={{ padding: "1.25rem var(--gutter) 1.375rem" }}>
-      <div style={{ font: "600 0.8125rem/1 var(--font-heading)", letterSpacing: ".02em", color: "var(--color-accent-700)", marginBottom: "0.3125rem" }}>{day}</div>
+      {/* A child in kid view has SOS too (30 September): it alerts the
+          household's grown-ups, which is who a child would want. */}
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "0.3125rem" }}>
+        <div style={{ font: "600 0.8125rem/1 var(--font-heading)", letterSpacing: ".02em", color: "var(--color-accent-700)" }}>{day}</div>
+        <SosButton householdName={me.families.name} />
+      </div>
       <h2 style={{ fontSize: "min(2.25rem, 12vw)", margin: "0 0 0.5rem" }}>Hi {first}!</h2>
+      <CheckInPrompt checkIns={checkIns} />
       <Link href="/planner?seg=routines" className="kin-kid-stars">
         <span aria-hidden="true">⭐</span> {stars} star{stars === 1 ? "" : "s"}
         <span className="kin-kid-stars-go">Rewards ›</span>

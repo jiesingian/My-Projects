@@ -241,6 +241,18 @@ export type Database = {
           },
         ]
       }
+      member_checkins: {
+        Row: { id: string; family_id: string; asked_by: string; member_id: string; asked_at: string; answer: string | null; answered_at: string | null }
+        Insert: { id?: string; family_id: string; asked_by: string; member_id: string; asked_at?: string; answer?: string | null; answered_at?: string | null }
+        Update: { id?: string; family_id?: string; asked_by?: string; member_id?: string; asked_at?: string; answer?: string | null; answered_at?: string | null }
+        Relationships: []
+      }
+      sos_alerts: {
+        Row: { id: string; family_id: string; member_id: string; created_at: string; lat: number | null; lng: number | null; accuracy_m: number | null; notified: number; handled_by: string | null; handled_at: string | null; resolved_at: string | null }
+        Insert: { id?: string; family_id: string; member_id: string; created_at?: string; lat?: number | null; lng?: number | null; accuracy_m?: number | null; notified?: number; handled_by?: string | null; handled_at?: string | null; resolved_at?: string | null }
+        Update: { id?: string; family_id?: string; member_id?: string; created_at?: string; lat?: number | null; lng?: number | null; accuracy_m?: number | null; notified?: number; handled_by?: string | null; handled_at?: string | null; resolved_at?: string | null }
+        Relationships: []
+      }
       today_marks: {
         Row: { family_id: string; item_key: string; day: string; state: string; marked_by: string | null; created_at: string }
         Insert: { family_id: string; item_key: string; day: string; state: string; marked_by?: string | null; created_at?: string }
@@ -3976,6 +3988,7 @@ export type Database = {
           text_size: string
           theme: string
           tin_number: string | null
+          timezone: string | null
           tshirt_size: string | null
           weight: string | null
           work_contact_info: string | null
@@ -4028,6 +4041,7 @@ export type Database = {
           text_size?: string
           theme?: string
           tin_number?: string | null
+          timezone?: string | null
           tshirt_size?: string | null
           weight?: string | null
           work_contact_info?: string | null
@@ -4080,6 +4094,7 @@ export type Database = {
           text_size?: string
           theme?: string
           tin_number?: string | null
+          timezone?: string | null
           tshirt_size?: string | null
           weight?: string | null
           work_contact_info?: string | null
@@ -5635,6 +5650,18 @@ export type Database = {
       ingest_apple_health: {
         Args: { p_token_hash: string; p_samples: Json }
         Returns: number
+      }
+      answer_checkin: {
+        Args: { p_id: string; p_answer: string }
+        Returns: string | null
+      }
+      sos_record_notified: {
+        Args: { p_id: string; p_count: number }
+        Returns: undefined
+      }
+      sos_act: {
+        Args: { p_id: string; p_action: string }
+        Returns: string | null
       }
       forget_push_endpoint: {
         Args: { p_endpoint: string }
