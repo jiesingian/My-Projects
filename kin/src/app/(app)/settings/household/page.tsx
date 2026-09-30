@@ -8,6 +8,9 @@ import { DeleteHouseholdButton } from "@/components/delete-household-button";
 import { TransferOrganizerRole } from "@/components/transfer-organizer-role";
 import { countryLabel } from "@/lib/countries";
 import { keepKidViewOut } from "@/lib/kid-view";
+import { isGrownUp } from "@/lib/roles";
+import { SpecialDays } from "@/components/special-days";
+import { getHouseholdSpecialDays } from "@/lib/queries/special-days";
 
 /** The household's name, members, invite code, organizer role, currency and
  * calendar preferences, and -- last, for the organizer -- deleting it. The
@@ -29,6 +32,11 @@ export default async function HouseholdSettingsPage() {
       .in("role", ["parent", "adult"])
       .neq("id", me.id),
   ]);
+
+  // The household's own special days from today on, for a grown-up to add to
+  // or tidy (20260930171000). Past ones stay on the Planner where they fell.
+  const today = new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Manila" });
+  const specialDays = isGrownUp(me.role) ? await getHouseholdSpecialDays(me.family_id, today, "9999-12-31") : [];
 
   return (
     <div>
@@ -67,6 +75,16 @@ export default async function HouseholdSettingsPage() {
           <div style={{ padding: "0.625rem 0", marginBottom: "1.25rem", fontSize: "0.8125rem" }}>
             {me.families.currency} · {me.families.date_format} · {me.families.week_start === "monday" ? "Mon start" : "Sun start"}
             {me.families.country ? ` · ${countryLabel(me.families.country)}` : ""}
+          </div>
+        )}
+
+        {isGrownUp(me.role) && (
+          <div style={{ marginBottom: "1.25rem" }}>
+            <div style={{ fontSize: "0.8125rem", color: "var(--color-neutral-700)", marginBottom: "0.375rem" }}>Special days</div>
+            <p style={{ fontSize: "0.8125rem", color: "var(--color-neutral-600)", margin: "0 0 0.5rem" }}>
+              Public holidays are already on the Planner. Add a day off they don&apos;t know yet: a late proclamation, the town fiesta.
+            </p>
+            <SpecialDays days={specialDays} />
           </div>
         )}
 

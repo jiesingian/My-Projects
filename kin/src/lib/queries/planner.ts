@@ -2,7 +2,8 @@ import { createClient } from "@/lib/supabase/server";
 import { getSignedUrls } from "@/lib/storage";
 import { GROUP_OF, type CalendarGroup, type CalendarTable } from "@/lib/calendar-groups";
 import { startOfWeek as firstDayOfWeek, type WeekStart } from "@/lib/week";
-import { getHolidaysBetween } from "@/lib/holidays";
+import { getHolidaysBetween, mergeHolidays } from "@/lib/holidays";
+import { getHouseholdSpecialDays } from "@/lib/queries/special-days";
 import { expandRoutine, assigneeFor, type RoutineRule } from "@/lib/routines";
 
 export type PlannerCalendarItem = {
@@ -72,7 +73,8 @@ async function fetchCalendarItems(familyId: string, rangeStart: Date, rangeEnd: 
       .or(`end_date.is.null,end_date.gte.${startDate}`),
     // Public holidays are the country's, not the household's: the same list
     // for everyone, cached for a day (lib/holidays).
-    getHolidaysBetween(startDate, endDate),
+    // With the household's own special days (20260930171000) among them.
+    Promise.all([getHolidaysBetween(startDate, endDate), getHouseholdSpecialDays(familyId, startDate, endDate)]).then(([pub, own]) => mergeHolidays(pub, own)),
   ]);
 
   const items: PlannerCalendarItem[] = [];

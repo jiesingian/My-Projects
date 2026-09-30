@@ -14,6 +14,48 @@ export type Database = {
   }
   public: {
     Tables: {
+      household_special_days: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          day: string
+          family_id: string
+          id: string
+          name: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          day: string
+          family_id: string
+          id?: string
+          name: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          day?: string
+          family_id?: string
+          id?: string
+          name?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "household_special_days_family_id_fkey"
+            columns: ["family_id"]
+            isOneToOne: false
+            referencedRelation: "families"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "household_special_days_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "members"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       highlights: {
         Row: {
           created_at: string

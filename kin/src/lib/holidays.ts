@@ -7,7 +7,8 @@
  *
  * Nager can lag behind a last-minute Palace proclamation -- a special
  * non-working day announced a week out. Those go in KIN_SPECIAL_DAYS below,
- * which Kin keeps by hand; a household adding its own is in the backlog.
+ * which Kin keeps by hand for everyone, and a household can add its own in
+ * Settings → Household (household_special_days, queries/special-days).
  *
  * Like a birthday, a holiday is something to know about, not something to
  * tick off: nothing here has a Done or a Skip.
