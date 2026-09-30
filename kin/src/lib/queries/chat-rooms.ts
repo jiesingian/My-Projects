@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { getSignedUrls } from "@/lib/storage";
+import type { ForwardTarget } from "@/lib/chat-forward";
 
 /** The family-tree room and one-to-one conversations
  * (20260929090000_family_chat_and_direct_messages.sql). Row-level security
@@ -23,6 +24,9 @@ export type RoomMessage = {
   replyTo: { id: string; authorName: string; excerpt: string } | null;
   /** Reactions, grouped by emoji (20260929161000). */
   reactions: { emoji: string; names: string[]; mine: boolean }[];
+  /** Forwarded from another conversation (20260930031500): the original
+   * writer's first name. */
+  forwardedFrom: string | null;
 };
 
 type MessageColumn = "family_message_id" | "direct_message_id" | "group_message_id";
@@ -97,7 +101,7 @@ export function pairOf(a: string, b: string): [string, string] {
 export async function getFamilyRoom(me: { id: string; family_id: string; person_id: string }): Promise<{ messages: RoomMessage[]; households: string[] }> {
   const supabase = await createClient();
   const [{ data }, { data: links }] = await Promise.all([
-    supabase.from("family_tree_messages").select("id, family_id, member_id, author_name, body, created_at, reply_to").order("created_at", { ascending: false }).limit(200),
+    supabase.from("family_tree_messages").select("id, family_id, member_id, author_name, body, created_at, reply_to, forwarded_from").order("created_at", { ascending: false }).limit(200),
     supabase.from("family_links").select("requester_family_id, addressee_family_id").eq("status", "accepted"),
   ]);
   const rows = (data ?? []).slice().reverse();
@@ -127,6 +131,7 @@ export async function getFamilyRoom(me: { id: string; family_id: string; person_
       photos: photos.get(r.id) ?? [],
       replyTo: r.reply_to ? quoteOf(byId.get(r.reply_to), authorOf, (photos.get(r.reply_to) ?? []).length > 0) : null,
       reactions: reactions.get(r.id) ?? [],
+      forwardedFrom: r.forwarded_from,
     })),
   };
 }
@@ -150,7 +155,7 @@ export async function getDirectThread(
   const [low, high] = pairOf(myPersonId, otherPersonId);
   const { data } = await supabase
     .from("direct_messages")
-    .select("id, sender_person_id, body, created_at, reply_to")
+    .select("id, sender_person_id, body, created_at, reply_to, forwarded_from")
     .eq("person_low", low)
     .eq("person_high", high)
     .order("created_at", { ascending: false })
@@ -181,6 +186,7 @@ export async function getDirectThread(
         photos: photos.get(m.id) ?? [],
         replyTo: m.reply_to ? quoteOf(byId.get(m.reply_to), authorOf, (photos.get(m.reply_to) ?? []).length > 0) : null,
         reactions: reactions.get(m.id) ?? [],
+        forwardedFrom: m.forwarded_from,
       })),
   };
 }
@@ -228,7 +234,7 @@ export async function getGroupRoom(
     supabase.rpc("group_members_of", { p_group: groupId }),
     supabase
       .from("chat_group_messages")
-      .select("id, sender_person_id, author_name, body, created_at, reply_to")
+      .select("id, sender_person_id, author_name, body, created_at, reply_to, forwarded_from")
       .eq("group_id", groupId)
       .order("created_at", { ascending: false })
       .limit(300),
@@ -266,6 +272,7 @@ export async function getGroupRoom(
       photos: photos.get(r.id) ?? [],
       replyTo: r.reply_to ? quoteOf(byId.get(r.reply_to), authorOf, (photos.get(r.reply_to) ?? []).length > 0) : null,
       reactions: reactions.get(r.id) ?? [],
+      forwardedFrom: r.forwarded_from,
     })),
   };
 }
@@ -302,4 +309,30 @@ export async function getGroupCandidates(): Promise<{ personId: string; fullName
   return (data ?? [])
     .map((r) => ({ personId: r.person_id, fullName: r.full_name, avatarUrl: r.avatar_url, householdName: r.household_name }))
     .sort((a, b) => a.fullName.localeCompare(b.fullName));
+}
+
+/** Every conversation this person could forward a message into, in the chat
+ * list's order of weight: home, the family room, then people and groups.
+ * Only ones they can write in -- a connection that has ended and an
+ * announcement channel they don't run are left out. */
+export async function getForwardTargets(me: { person_id: string; familyName: string }): Promise<ForwardTarget[]> {
+  const supabase = await createClient();
+  const [peers, groups, { data: roles }] = await Promise.all([
+    getDirectPeers(),
+    getMyGroups(),
+    supabase.from("chat_group_members").select("group_id, role").eq("person_id", me.person_id),
+  ]);
+  const admin = new Set((roles ?? []).filter((r) => r.role === "admin").map((r) => r.group_id));
+  return [
+    { key: "household", kind: "household", title: me.familyName, subtitle: "Household" },
+    { key: "family", kind: "family", title: "Family", subtitle: "Everyone in the family tree" },
+    ...peers
+      .filter((p) => p.connected)
+      .sort((a, b) => a.fullName.localeCompare(b.fullName))
+      .map((p): ForwardTarget => ({ key: `dm:${p.personId}`, kind: "dm", title: p.fullName, subtitle: p.householdName ?? "One to one", avatarUrl: p.avatarUrl })),
+    ...groups
+      .filter((g) => !g.announceOnly || admin.has(g.id))
+      .sort((a, b) => a.name.localeCompare(b.name))
+      .map((g): ForwardTarget => ({ key: `group:${g.id}`, kind: "group", title: g.name, subtitle: g.announceOnly ? "Channel" : "Group" })),
+  ];
 }
