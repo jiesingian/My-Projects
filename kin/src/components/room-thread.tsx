@@ -14,6 +14,7 @@ import {
   toggleRoomReactionAction,
   editRoomMessageAction,
   unsendRoomMessageAction,
+  pinRoomMessageAction,
 } from "@/lib/actions/chat-rooms";
 import { REACTIONS } from "@/lib/chat";
 import { familyClock, familyDateLong } from "@/lib/time";
@@ -269,6 +270,20 @@ export function RoomThread({
     });
   };
 
+  // Several can be pinned; the banner shows the most recent, as Telegram's
+  // does (20260930160000). A channel's members read it; only admins pin.
+  const canPin = room.kind === "group" ? canWrite || room.isAdmin : canReact;
+  const pinnedMessage = messages
+    .filter((m) => m.pinnedAt && !m.removed)
+    .sort((a, b) => (b.pinnedAt ?? "").localeCompare(a.pinnedAt ?? ""))[0];
+  const pin = (id: string, on: boolean) =>
+    startTransition(async () => {
+      setActive(null);
+      const r = await pinRoomMessageAction(room.kind, id, on);
+      if (r.error) setError(r.error);
+      router.refresh();
+    });
+
   const react = (id: string, emoji: string) =>
     startTransition(async () => {
       setActive(null);
@@ -299,6 +314,23 @@ export function RoomThread({
 
   return (
     <div style={{ display: "flex", flexDirection: "column", flex: 1 }}>
+      {pinnedMessage && (
+        <div className="kin-chatpin">
+          <Icon name="mapPin" size="0.875rem" style={{ flex: "none", color: "var(--color-accent-700)" }} />
+          <button type="button" className="kin-chatpin-body" onClick={() => jumpTo(pinnedMessage.id)}>
+            <span className="kin-chatpin-who">
+              {pinnedMessage.mine ? "You" : pinnedMessage.authorName.split(" ")[0]}
+              {pinnedMessage.pinnedBy ? ` · pinned by ${pinnedMessage.pinnedBy}` : ""}
+            </span>
+            <span className="kin-chatpin-text">{pinnedMessage.body || (pinnedMessage.photos.length ? "Photo" : "")}</span>
+          </button>
+          {canPin && (
+            <button type="button" className="btn btn-ghost kin-chatpin-off" disabled={pending} onClick={() => pin(pinnedMessage.id, false)}>
+              Unpin
+            </button>
+          )}
+        </div>
+      )}
       <div style={{ flex: 1 }}>
         {messages.length === 0 && (
           <p style={{ fontSize: "0.875rem", color: "var(--color-neutral-600)", textAlign: "center", padding: "2rem 1rem", lineHeight: 1.5 }}>{emptyText}</p>
@@ -449,6 +481,11 @@ export function RoomThread({
                     >
                       Forward
                     </button>
+                    {canPin && (
+                      <button type="button" className="kin-room-actions-word" disabled={pending} onClick={() => pin(m.id, !m.pinnedAt)}>
+                        {m.pinnedAt ? "Unpin" : "Pin"}
+                      </button>
+                    )}
                     {m.mine && m.body && (
                       <button
                         type="button"

@@ -576,3 +576,15 @@ export async function unsendRoomMessageAction(kind: RoomKind, id: string): Promi
   revalidatePath("/chat", "layout");
   return { error: null };
 }
+
+/** Pin or unpin a message in the family room, one to one or a group
+ * (20260930160000). Who may is the database's answer, not this one's. */
+export async function pinRoomMessageAction(kind: RoomKind, id: string, pinned: boolean): Promise<ActionState> {
+  await requireCurrentMember();
+  if (!(kind in ROOM_TABLE) || !UUID.test(id)) return { error: "That message doesn't exist." };
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("pin_chat_message", { p_kind: kind, p_id: id, p_pinned: pinned });
+  if (error) return { error: error.code === "42501" ? "Only this channel's admins can pin here." : humanDatabaseError(error.message) };
+  revalidatePath("/chat", "layout");
+  return { error: null };
+}
