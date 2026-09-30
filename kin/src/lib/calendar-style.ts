@@ -21,6 +21,9 @@ export const CALENDAR_STYLE: Record<CalendarSource, { label: string; color: stri
   // does not exist for the colourblind, and a routine is a kind of thing to
   // be somewhere for. The repeat glyph is what tells them apart.
   routines: { label: "Routine", color: "var(--cal-schedule)", icon: "repeat" },
+  // A holiday is an occasion everybody shares, so it takes the occasion hue;
+  // the sparkle is what tells it from a birthday.
+  holidays: { label: "Holiday", color: "var(--cal-occasion)", icon: "sparkle" },
 };
 
 /** The legend, in the order the colours were assigned. It doubles as the
@@ -34,6 +37,7 @@ export const CALENDAR_LEGEND: { group: CalendarGroup; label: string; color: stri
   { group: "bills", label: "Bills", color: "var(--cal-money)", icon: "receipt" },
   { group: "meals", label: "Meals", color: "var(--cal-home)", icon: "utensils" },
   { group: "goals", label: "Goals", color: "var(--cal-goal)", icon: "target" },
+  { group: "holidays", label: "Holidays", color: "var(--cal-occasion)", icon: "sparkle" },
 ];
 
 export function styleFor(table: CalendarSource) {

@@ -2,6 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getSignedUrls } from "@/lib/storage";
 import { GROUP_OF, type CalendarGroup, type CalendarTable } from "@/lib/calendar-groups";
 import { startOfWeek as firstDayOfWeek, type WeekStart } from "@/lib/week";
+import { getHolidaysBetween } from "@/lib/holidays";
 import { expandRoutine, assigneeFor, type RoutineRule } from "@/lib/routines";
 
 export type PlannerCalendarItem = {
@@ -38,7 +39,7 @@ async function fetchCalendarItems(familyId: string, rangeStart: Date, rangeEnd: 
 
   // No trips fetch: travel is a kind of event now, so it arrives with the
   // events and needs no second query or second loop.
-  const [{ data: activities }, { data: events }, { data: bills }, { data: meals }, { data: goals }, { data: routines }] = await Promise.all([
+  const [{ data: activities }, { data: events }, { data: bills }, { data: meals }, { data: goals }, { data: routines }, holidays] = await Promise.all([
     supabase
       .from("activities")
       .select("*, activity_members(members(id, full_name))")
@@ -69,6 +70,9 @@ async function fetchCalendarItems(familyId: string, rangeStart: Date, rangeEnd: 
       .eq("paused", false)
       .lte("start_date", endDate)
       .or(`end_date.is.null,end_date.gte.${startDate}`),
+    // Public holidays are the country's, not the household's: the same list
+    // for everyone, cached for a day (lib/holidays).
+    getHolidaysBetween(startDate, endDate),
   ]);
 
   const items: PlannerCalendarItem[] = [];
@@ -112,6 +116,22 @@ async function fetchCalendarItems(familyId: string, rangeStart: Date, rangeEnd: 
       memberIds,
       appliesToAll: e.applies_to_whole_family || memberIds.length === 0,
       href: `/planner/add?type=event&id=${e.id}`,
+    });
+  }
+
+  for (const h of holidays) {
+    items.push({
+      id: `holiday-${h.date}-${h.name}`,
+      table: "holidays",
+      date: new Date(`${h.date}T00:00:00`),
+      allDay: true,
+      title: h.name,
+      location: null,
+      who: "",
+      memberIds: [],
+      // Everyone's day off, whoever the Planner is showing.
+      appliesToAll: true,
+      href: `/planner?seg=calendar&view=month&date=${h.date}`,
     });
   }
 
