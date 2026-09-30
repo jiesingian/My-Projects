@@ -1401,77 +1401,64 @@ textarea.input {
   font: 600 0.625rem/1.4 var(--font-heading);
   letter-spacing: 0.02em;
 }
-/* ── households on the tree (30 September) ────────────────────────────────
-   Each household one soft card tinted in its own colour (--hh): the couple
-   along the top, the children at home under them. No borders or bevels --
-   the tint is the edge. Ours is the accent colour and a step stronger, so it
-   is the one the eye lands on first. */
-.kin-hh {
+/* ── the family tree: households that exist on Kin (30 September) ─────────
+   Colour on the tree means one thing: where somebody is on Kin. --hh is a
+   household's colour: the accent for yours, a member colour for each linked
+   household. Its people sit in a soft region of it; a relative who is only a
+   name has no region and a dashed ring (below). */
+.kin-treechart-regions {
   position: absolute;
-  border-radius: 1.375rem;
-  background: color-mix(in srgb, var(--hh) 9%, var(--color-surface));
-  box-shadow:
-    0 0 0 1px color-mix(in srgb, var(--hh) 14%, transparent),
-    0 0.5rem 1.5rem -0.75rem color-mix(in srgb, var(--hh) 35%, transparent);
-  transition: opacity 200ms ease, filter 200ms ease;
+  inset: 0;
+  overflow: visible;
+  pointer-events: none;
 }
-.kin-hh[data-mine] {
-  background: color-mix(in srgb, var(--hh) 14%, var(--color-surface));
-  box-shadow:
-    0 0 0 1.5px color-mix(in srgb, var(--hh) 55%, transparent),
-    0 0.75rem 2rem -0.75rem color-mix(in srgb, var(--hh) 45%, transparent);
+.kin-treechart-regions rect {
+  fill: color-mix(in srgb, var(--hh) 9%, var(--color-surface));
 }
-.kin-hh[data-ghost] {
-  background: color-mix(in srgb, var(--color-surface) 55%, transparent);
-  box-shadow: none;
-  outline: 1.5px dashed color-mix(in srgb, var(--color-text) 22%, transparent);
-  outline-offset: -1.5px;
+.kin-treechart-regions [data-mine] rect {
+  fill: color-mix(in srgb, var(--hh) 14%, var(--color-surface));
 }
-/* Another household's branch: theirs to keep, so drawn a little quieter. */
-.kin-hh[data-branch] {
-  background: color-mix(in srgb, var(--hh) 5%, var(--color-surface));
+.kin-treechart-regions g,
+.kin-treechart-lines path {
+  transition: opacity 200ms ease;
 }
-/* One household brought forward: the rest step back, but stay there. */
-.kin-hh[data-dim],
-.kin-treechart-lines [data-dim] {
+.kin-treechart-regions [data-dim],
+.kin-treechart-lines [data-dim],
+.kin-tp[data-dim] {
   opacity: 0.25;
-  filter: saturate(0.4);
 }
-.kin-hh[data-focused] {
-  box-shadow:
-    0 0 0 2px var(--hh),
-    0 1rem 2.5rem -0.75rem color-mix(in srgb, var(--hh) 50%, transparent);
-}
-
-.kin-hh-name {
+/* A household's name, on the top edge of its region. Tap to bring it
+   forward. */
+.kin-treechart-hh {
   position: absolute;
-  left: 0.5rem;
-  right: 0.5rem;
-  top: 0.4375rem;
-  display: flex;
+  transform: translateY(-50%);
+  display: inline-flex;
   align-items: center;
   gap: 0.375rem;
-  min-width: 0;
-  height: 1.5rem;
-  padding: 0 0.375rem;
+  max-width: 14rem;
+  min-height: 1.5rem;
+  padding: 0 0.625rem;
   border: 0;
   border-radius: 999px;
-  background: none;
-  color: color-mix(in srgb, var(--hh) 70%, var(--color-text));
+  background: var(--color-surface);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--hh) 40%, transparent), 0 1px 3px color-mix(in srgb, var(--color-text) 12%, transparent);
+  color: color-mix(in srgb, var(--hh) 75%, var(--color-text));
   font: 600 0.75rem/1 var(--font-heading);
-  letter-spacing: 0.01em;
-  text-align: left;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
   cursor: pointer;
 }
-span.kin-hh-name {
-  cursor: default;
-  color: var(--color-neutral-600);
-  justify-content: center;
+.kin-treechart-hh[aria-pressed="true"] {
+  background: var(--hh);
+  color: #fff;
 }
-.kin-hh-title {
-  overflow: hidden;
-  white-space: nowrap;
-  text-overflow: ellipsis;
+.kin-treechart-hh[aria-pressed="true"] .kin-hh-dot {
+  background: #fff;
+}
+.kin-treechart-hh:focus-visible {
+  outline: 2px solid var(--hh);
+  outline-offset: 2px;
 }
 .kin-hh-dot {
   flex: none;
@@ -1480,55 +1467,28 @@ span.kin-hh-name {
   border-radius: 50%;
   background: var(--hh);
 }
-.kin-hh-name:focus-visible {
-  outline: 2px solid var(--hh);
-  outline-offset: 1px;
-}
-@media (hover: hover) and (pointer: fine) {
-  button.kin-hh-name:hover {
-    background: color-mix(in srgb, var(--hh) 12%, transparent);
-  }
-}
-.kin-hh[data-mine] .kin-hh-name {
-  font-size: 0.8125rem;
-  color: var(--hh);
-}
 
-/* The lines inside a card, in the household's own colour. */
-.kin-hh-lines {
-  position: absolute;
-  inset: 0;
-  overflow: visible;
-  pointer-events: none;
-}
-.kin-hh-lines path {
-  fill: none;
-  stroke: color-mix(in srgb, var(--hh) 50%, transparent);
-  stroke-width: 1.5;
-  stroke-linecap: round;
-  vector-effect: non-scaling-stroke;
-}
-.kin-hh-lines [data-ghost],
-.kin-treechart-lines [data-ghost] path {
-  stroke-dasharray: 4 4;
-}
-/* Between households: from the card someone grew up in to the one they
-   head now, ending in a small dot over them. */
+/* Parents to children: down to a bar, across, and down to each child. A
+   couple is joined between their photos: solid if married, dashed if they
+   are only recorded as the parents of the same child. */
 .kin-treechart-lines path {
   fill: none;
-  stroke: color-mix(in srgb, var(--color-text) 26%, transparent);
+  stroke: color-mix(in srgb, var(--color-text) 32%, transparent);
   stroke-width: 1.5;
   stroke-linecap: round;
+  stroke-linejoin: round;
   vector-effect: non-scaling-stroke;
 }
-.kin-treechart-lines circle {
-  fill: var(--color-surface);
-  stroke: color-mix(in srgb, var(--color-text) 34%, transparent);
-  stroke-width: 1.5;
-  vector-effect: non-scaling-stroke;
+.kin-treechart-lines [data-couple] {
+  stroke: color-mix(in srgb, var(--color-text) 45%, transparent);
+  stroke-width: 2;
 }
-.kin-treechart-lines g {
-  transition: opacity 200ms ease, filter 200ms ease;
+.kin-treechart-lines [data-unmarried] {
+  stroke-dasharray: 5 4;
+}
+.kin-treechart-lines [data-ghost] {
+  stroke-dasharray: 3 4;
+  stroke: color-mix(in srgb, var(--color-text) 22%, transparent);
 }
 
 /* A person: their photo, or initials on their colour, over their name and
@@ -1548,7 +1508,7 @@ span.kin-hh-name {
   text-align: center;
   cursor: pointer;
   -webkit-tap-highlight-color: transparent;
-  transition: transform 160ms var(--ease-out), background-color 160ms ease;
+  transition: transform 160ms var(--ease-out), background-color 160ms ease, opacity 200ms ease;
 }
 .kin-tp:active {
   transform: scale(0.96);
@@ -1615,10 +1575,23 @@ span.kin-hh-name {
   color: var(--color-accent);
   font-weight: 700;
 }
-.kin-tp[data-branch] .kin-tp-av {
-  background: color-mix(in srgb, var(--hh) 55%, var(--color-neutral-600));
+/* Only a name: nobody on Kin has confirmed them. No colour, a dashed ring. */
+.kin-tp[data-status="name"] .kin-tp-av {
+  background: var(--color-surface);
+  color: var(--color-neutral-600);
+  box-shadow: none;
+  outline: 1.5px dashed color-mix(in srgb, var(--color-text) 38%, transparent);
+  outline-offset: -1.5px;
 }
-/* Shared with a linked household: a small badge on the photo. */
+.kin-tp[data-status="name"][data-selected] .kin-tp-av {
+  outline-color: var(--color-accent);
+}
+/* From a linked household's own tree, shown with "Show their side": theirs,
+   so a lighter shade of their colour. */
+.kin-tp[data-status="branch"] .kin-tp-av {
+  background: color-mix(in srgb, var(--p) 55%, var(--color-surface));
+}
+/* Also confirmed by a linked household: a badge in that household's colour. */
 .kin-tp-linked {
   position: absolute;
   right: -0.125rem;
@@ -1628,7 +1601,7 @@ span.kin-hh-name {
   width: 1.125rem;
   height: 1.125rem;
   border-radius: 50%;
-  background: var(--cal-schedule);
+  background: var(--p);
   color: #fff;
   box-shadow: 0 0 0 2px var(--color-surface);
 }
@@ -1670,6 +1643,53 @@ div.kin-tp-ghost {
 .kin-tp-choices button:focus-visible {
   outline: 2px solid var(--color-accent);
   outline-offset: 1px;
+}
+
+/* Under the chart: what the colours and lines mean. */
+.kin-treelegend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.375rem 1rem;
+  margin: -0.25rem 0 0;
+  padding: 0;
+  list-style: none;
+  font-size: var(--text-xs);
+  color: var(--color-neutral-600);
+}
+.kin-treelegend li {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  min-width: 0;
+}
+.kin-treelegend strong {
+  color: var(--color-text);
+  font-weight: 600;
+}
+.kin-treelegend i {
+  flex: none;
+  width: 0.75rem;
+  height: 0.75rem;
+  border-radius: 50%;
+  background: var(--hh);
+}
+.kin-treelegend [data-hollow] i {
+  background: none;
+  outline: 1.5px dashed color-mix(in srgb, var(--color-text) 45%, transparent);
+  outline-offset: -1.5px;
+}
+.kin-treelegend [data-line] i {
+  width: 1.25rem;
+  height: 0;
+  border-radius: 0;
+  background: none;
+  border-top: 2px dashed color-mix(in srgb, var(--color-text) 45%, transparent);
+}
+.kin-treelegend-note {
+  margin: 0;
+  font-size: var(--text-xs);
+  line-height: 1.4;
+  color: var(--color-neutral-600);
 }
 
 /* Under the chart: what is on it, and two pill groups of controls. */
@@ -4256,18 +4276,18 @@ button.kin-initial:focus-visible {
   box-shadow: 0 2rem 4rem color-mix(in srgb, var(--color-text) 12%, transparent);
 }
 .kin-treechart-viewport[data-3d] .kin-treechart-lines { transform: translateZ(1px); }
-.kin-treechart-viewport[data-3d] .kin-hh {
+.kin-treechart-viewport[data-3d] .kin-tp {
   transform-origin: 50% 100%;
   transform: translateZ(2px) rotateZ(calc(-1 * var(--tree-spin))) rotateX(calc(-1 * var(--tree-tilt)));
   box-shadow: 0 0.75rem 1.25rem -0.5rem color-mix(in srgb, var(--color-text) 28%, transparent);
 }
 .kin-treechart-viewport[data-anim] .kin-treechart-canvas,
-.kin-treechart-viewport[data-anim] .kin-hh {
+.kin-treechart-viewport[data-anim] .kin-tp {
   transition: transform 0.6s cubic-bezier(0.22, 1, 0.36, 1);
 }
 @media (prefers-reduced-motion: reduce) {
   .kin-treechart-viewport[data-anim] .kin-treechart-canvas,
-  .kin-treechart-viewport[data-anim] .kin-hh { transition: none; }
+  .kin-treechart-viewport[data-anim] .kin-tp { transition: none; }
 }
 
 /* ── The public home page's 3D house ──────────────────────────────────────

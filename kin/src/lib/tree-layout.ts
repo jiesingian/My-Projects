@@ -13,7 +13,17 @@
 /** `w` and `h` let a node be something other than one person's card -- the
  * household chart lays out whole households with this same code, each as wide
  * as the people in it. Both default to a person's card. */
-export type LayoutPerson = { id: string; fatherId: string | null; motherId: string | null; spouseId: string | null; w?: number; h?: number };
+export type LayoutPerson = {
+  id: string;
+  fatherId: string | null;
+  motherId: string | null;
+  spouseId: string | null;
+  w?: number;
+  h?: number;
+  /** Somebody else to seat beside them: the other parent of a child from
+   * another relationship. They sit on the far side from the spouse. */
+  partners?: string[];
+};
 
 export const CARD_W = 150;
 export const CARD_H = 66;
@@ -98,7 +108,9 @@ export function layoutTree(input: LayoutPerson[], anchorId: string | null, gaps:
   for (const id of order) {
     if (unitOf.has(id)) continue;
     const s = spouse.get(id);
-    const ids = s && !unitOf.has(s) && gen.get(s) === gen.get(id) ? [id, s] : [id];
+    let ids = s && !unitOf.has(s) && gen.get(s) === gen.get(id) ? [id, s] : [id];
+    const extra = (who: string) => (byId.get(who)?.partners ?? []).filter((o) => byId.has(o) && !unitOf.has(o) && !ids.includes(o) && gen.get(o) === gen.get(who));
+    ids = [...extra(id), ...ids, ...(ids.length > 1 ? extra(ids[1]) : [])];
     const unit: Unit = { ids, gen: gen.get(id)!, x: 0 };
     for (const m of ids) unitOf.set(m, unit);
     byRow[unit.gen].push(unit);
