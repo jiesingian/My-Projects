@@ -15,7 +15,7 @@ export type ViewerItem = {
 };
 
 /** The one full-screen photo viewer, used everywhere Kin shows a photo large:
- * journal entries, the Gallery, profile and household albums, single photos,
+ * journal entries and their galleries, profile and household albums, single photos,
  * and photos in chat.
  *
  * Before this there were five hand-made overlays, and none of them was full

@@ -26,8 +26,7 @@ import { EntryShareOptions } from "@/components/entry-share-options";
    than three tabs that all say "Journal" and show nothing of each other. */
 /* Three layers (28 September, BACKLOG item 3): Mine -- what you wrote,
    including entries only you can see -- then the Household journal, then the
-   Family feed that reaches linked households. The Gallery is the household's
-   photos. Milestones are entries with a ★ (29 September), found with the
+   Family feed that reaches linked households. Milestones are entries with a ★ (29 September), found with the
    filter chip on Household; `?view=milestones` is that filter. */
 /* The Gallery became the Public feed (29 September, Janine): entries their
    writers marked Public, from the people you are connected with, and yours.
@@ -145,7 +144,7 @@ async function EntriesPane({ familyId, mine, milestonesOnly = false }: { familyI
   const linkedCount = links.filter((l) => l.status === "accepted").length;
   const connectionCount = connections.filter((c) => c.status === "accepted").length;
 
-  // Entries shows Drive-backed photos exactly as the Gallery does, and said
+  // Entries shows Drive-backed photos exactly as the Gallery did, and said
   // nothing when they stopped loading. #59 added the explanation to the
   // Gallery only, so a household reading an entry still got bare placeholders
   // and no way back -- the failure that PR existed to end, surviving in the
