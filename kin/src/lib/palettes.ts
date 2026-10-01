@@ -103,25 +103,11 @@ export const PALETTES: Palette[] = [
     dark: { bg: "#1a1216", surface: "#261a20", text: "#fbeff3", muted: "#c4a7b2", accent: "#c2185b", ink: "#f48fb1", accent2: "#f06292", divider: "#3d2a33" },
   },
   {
-    id: "forest",
-    name: "Forest",
-    blurb: "Moss, pine and bark",
-    light: { bg: "#f4f7f2", surface: "#ffffff", text: "#1f2a1f", muted: "#56655a", accent: "#2f6b3a", ink: "#2f6b3a", accent2: "#a3b18a", divider: "#dfe7da" },
-    dark: { bg: "#0f1511", surface: "#18211a", text: "#e8f0e8", muted: "#9fb3a3", accent: "#2f7d43", ink: "#7fd08f", accent2: "#588157", divider: "#2a3a2d" },
-  },
-  {
     id: "ocean",
     name: "Ocean",
     blurb: "Sea glass and deep teal",
     light: { bg: "#f0f7fa", surface: "#ffffff", text: "#0b2530", muted: "#4e6b77", accent: "#0e7490", ink: "#0e7490", accent2: "#67e8f9", divider: "#d6e8ef" },
     dark: { bg: "#06141a", surface: "#0e222b", text: "#e3f4f8", muted: "#93b4bf", accent: "#0e7490", ink: "#5ec8e0", accent2: "#22d3ee", divider: "#1b3a46" },
-  },
-  {
-    id: "sunset",
-    name: "Sunset",
-    blurb: "Terracotta, apricot and sand",
-    light: { bg: "#fff8f3", surface: "#ffffff", text: "#2b1a12", muted: "#735a4c", accent: "#c2410c", ink: "#b13b0b", accent2: "#fdba74", divider: "#f3e2d6" },
-    dark: { bg: "#1a120e", surface: "#261b15", text: "#fbeee6", muted: "#c4a898", accent: "#c2410c", ink: "#fdba74", accent2: "#fb923c", divider: "#3d2c22" },
   },
   {
     id: "lavender",
@@ -144,6 +130,49 @@ export const PALETTES: Palette[] = [
     darkOnly: true,
     light: { bg: "#3a3c42", surface: "#45474e", text: "#f2f3ef", muted: "#c6c9cf", accent: "#3d7a1f", ink: "#9ccd62", accent2: "#9ccd62", divider: "#55585f" },
     dark: { bg: "#3a3c42", surface: "#45474e", text: "#f2f3ef", muted: "#c6c9cf", accent: "#3d7a1f", ink: "#9ccd62", accent2: "#9ccd62", divider: "#55585f" },
+  },
+  // Four from Aura design systems, added 1 October from the DESIGN.md files
+  // Janine downloaded (aura.build itself only renders in a browser); a fifth,
+  // Ecosystem, was left out as a near-copy of Auralis's orange. Each
+  // file gives one light palette: page, card, text, secondary text, border,
+  // and a primary and accent colour. Those are used as given wherever they
+  // pass the readability test. Where a primary is too light under white
+  // button text it is taken deeper in the same hue, and the file's own
+  // colour becomes the link or the ambient wash. The files give no dark
+  // mode, so each dark half is built from the file's darkest colour (its
+  // #191C21 or olive or deep-green surface) with Tailwind grey text, which is
+  // the scale the files' #111827 and #4B5563 come from.
+  {
+    // Primary #EA580C, accent #FDBA74 on white; #191C21 the dark panel.
+    id: "auralis",
+    name: "Auralis",
+    blurb: "Vivid orange and apricot on white and charcoal",
+    light: { bg: "#ffffff", surface: "#ffffff", text: "#111827", muted: "#4b5563", accent: "#c9480b", ink: "#c2410c", accent2: "#fdba74", divider: "#e5e7eb" },
+    dark: { bg: "#191c21", surface: "#22262d", text: "#f3f4f6", muted: "#9ca3af", accent: "#c9480b", ink: "#fdba74", accent2: "#ea580c", divider: "#374151" },
+  },
+  {
+    // Primary #CC8066 (clay), accent #334155 (slate) on white.
+    id: "neurosync",
+    name: "NeuroSync",
+    blurb: "Dusty clay and slate, quiet and focused",
+    light: { bg: "#ffffff", surface: "#ffffff", text: "#111827", muted: "#4b5563", accent: "#b05c41", ink: "#a9583e", accent2: "#334155", divider: "#e5e7eb" },
+    dark: { bg: "#191c21", surface: "#22262d", text: "#f3f4f6", muted: "#9ca3af", accent: "#b05c41", ink: "#cc8066", accent2: "#334155", divider: "#374151" },
+  },
+  {
+    // Sage #7A9E7E on sage-grey #E1E5DF, deep green #2C3B31 borders.
+    id: "curation",
+    name: "Aura Curation",
+    blurb: "Sage green on soft sage grey, like a gallery",
+    light: { bg: "#e1e5df", surface: "#f3f5f1", text: "#111827", muted: "#4b5563", accent: "#557a59", ink: "#2c3b31", accent2: "#7a9e7e", divider: "#c9d1c6" },
+    dark: { bg: "#18201b", surface: "#2c3b31", text: "#e1e5df", muted: "#aebbb0", accent: "#557a59", ink: "#a9c6ac", accent2: "#7a9e7e", divider: "#3d5043" },
+  },
+  {
+    // Stone #E0DCD1 and #E2DCD0, olive-charcoal #4F5343, sand #CEBFA9.
+    id: "premium",
+    name: "Premium Card",
+    blurb: "Warm stone and olive charcoal, calm and earthy",
+    light: { bg: "#e0dcd1", surface: "#e2dcd0", text: "#111827", muted: "#4b5563", accent: "#4f5343", ink: "#4f5343", accent2: "#cebfa9", divider: "#cebfa9" },
+    dark: { bg: "#1d1e19", surface: "#282a23", text: "#e2dcd0", muted: "#b0aa9c", accent: "#4f5343", ink: "#cebfa9", accent2: "#cebfa9", divider: "#3d3f35" },
   },
   {
     id: "dracula",
@@ -168,7 +197,9 @@ export const PALETTES: Palette[] = [
  * picked one -- no row is rewritten -- and reads as the nearest kept theme in
  * the same colour family. Any other unknown id falls back to Kin Classic. */
 export const REMOVED_PALETTES: Record<string, string> = {
-  editorial: "sunset", // #c2410c terracotta, the same accent as Sunset
+  sunset: "auralis", // #c2410c and apricot #fdba74: Auralis's button and wash
+  editorial: "auralis", // #c2410c terracotta, as Sunset was
+  forest: "curation", // pine #2f6b3a (131deg); Aura Curation's sage is 127deg
   milk: "solarized", // ocean blue (198deg) on warm cream; Solarized is 205deg on parchment
   electric: "classic", // #2563eb (221deg) on slate; Classic's #007aff is 211deg on grey
   emerald: "hearth", // #2b7a70 (172deg); Hearth's #047857 is 163deg
