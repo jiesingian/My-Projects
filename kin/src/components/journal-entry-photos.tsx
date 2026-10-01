@@ -5,7 +5,7 @@ import Link from "next/link";
 import { PhotoViewer } from "@/components/photo-viewer";
 
 /** The entry card shows photos cropped into a fixed-height strip -- same as
- * the Gallery grid's tiles. Tapping one opens the full-screen viewer on it,
+ * an entry's own gallery page. Tapping one opens the full-screen viewer on it,
  * with the entry's other photos a swipe away. */
 /** `id` is null for a linked household's photo: it shows, but reactions and
  * comments stay with the household whose photo it is. */

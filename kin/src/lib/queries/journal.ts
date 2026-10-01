@@ -76,33 +76,6 @@ export async function syncDriveJournalMedia(
   }
 }
 
-export async function getGallery(familyId: string) {
-  const supabase = await createClient();
-  const { data } = await supabase
-    .from("journal_media")
-    .select("*")
-    .eq("family_id", familyId)
-    // The household's photos. Your own personal ones are on Mine, with their
-    // entries; the Gallery is what the whole household shares.
-    .eq("visibility", "household")
-    .order("taken_at", { ascending: false })
-    .limit(30);
-  const media = data ?? [];
-  const supabasePaths = media.map((m) => m.storage_path).filter((p): p is string => !!p);
-  const urls = await getSignedUrls("journal", supabasePaths);
-
-  return media.map((m) => ({
-    ...m,
-    url:
-      m.storage_provider === "google_drive" && m.drive_file_id
-        ? `/api/drive/file/${m.drive_file_id}`
-        : m.storage_path
-          ? urls[m.storage_path] ?? null
-          : null,
-    viewLink: m.storage_provider === "google_drive" ? m.drive_view_link : null,
-  }));
-}
-
 /** Has this household's Drive connection died?
  *
  * Read as its own question rather than inferred, and deliberately strict:
