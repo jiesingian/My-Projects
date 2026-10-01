@@ -17,7 +17,7 @@ export default async function AppearanceSettingsPage() {
         <div style={{ fontSize: "0.8125rem", color: "var(--color-neutral-700)", marginBottom: "0.375rem" }}>Theme</div>
         <ThemeControl current={me.theme} forcedDark={Boolean(paletteById(me.palette).darkOnly)} />
         <div style={{ fontSize: "0.8125rem", color: "var(--color-neutral-700)", marginBottom: "0.375rem" }}>Colours</div>
-        <PaletteControl current={me.palette ?? "classic"} />
+        <PaletteControl current={paletteById(me.palette).id} />
         <div style={{ fontSize: "0.8125rem", color: "var(--color-neutral-700)", marginBottom: "0.375rem" }}>Text size</div>
         <TextSizeControl current={me.text_scale} />
       </div>

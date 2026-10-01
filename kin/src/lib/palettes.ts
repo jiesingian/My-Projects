@@ -9,7 +9,7 @@
  * e2e/palettes.logic.spec.ts: body text and secondary text on both the page
  * and a card, link-coloured text on a card, and white on a filled button.
  *
- * `darkOnly` palettes are designed for a dark room (Dracula, Midnight). They
+ * `darkOnly` palettes are designed for a dark room (Dracula, Antarctic). They
  * ignore the light/dark switch, and the root layout forces dark mode, so the
  * rest of the dark tokens (charts, shadows, glass) come along with them. */
 
@@ -130,39 +130,10 @@ export const PALETTES: Palette[] = [
     light: { bg: "#f7f5fc", surface: "#ffffff", text: "#231d3a", muted: "#625b7c", accent: "#6d28d9", ink: "#6d28d9", accent2: "#c4b5fd", divider: "#e6e1f3" },
     dark: { bg: "#13111c", surface: "#1d1a2a", text: "#eeeaf8", muted: "#aba3c7", accent: "#6d28d9", ink: "#c4b5fd", accent2: "#a78bfa", divider: "#2f2a44" },
   },
-  // Five added 25 September from Janine's list. Each keeps the list's own
-  // colours where they are readable -- the ground, the ambient wash, text and
-  // links -- and where a colour is too light to carry white button text (the
-  // test's 4.5:1), the button takes a deeper shade of the same hue instead:
-  // #0096D1 is 3.34:1 under white, #9CCD62 1.85, #3B82F6 3.68, #52ADA2 2.67.
-  {
-    id: "milk",
-    name: "Pale Milk",
-    blurb: "Ocean blue on warm pale milk",
-    light: { bg: "#fff4ea", surface: "#ffffff", text: "#1b2530", muted: "#5e6670", accent: "#0077a8", ink: "#006d99", accent2: "#0096d1", divider: "#f0e2d4" },
-    dark: { bg: "#0b1720", surface: "#13222d", text: "#fff4ea", muted: "#a9b7c2", accent: "#0077a8", ink: "#4fc0ec", accent2: "#0096d1", divider: "#22384a" },
-  },
-  {
-    id: "editorial",
-    name: "Editorial",
-    blurb: "Warm neutrals with a terracotta accent",
-    light: { bg: "#f5f0eb", surface: "#fafaf8", text: "#1c1917", muted: "#6b625a", accent: "#c2410c", ink: "#a8380a", accent2: "#e3c3a8", divider: "#e6ddd3" },
-    dark: { bg: "#171412", surface: "#221e1b", text: "#f5f0eb", muted: "#b3a89e", accent: "#c2410c", ink: "#f0a27a", accent2: "#c2410c", divider: "#38302a" },
-  },
-  {
-    id: "electric",
-    name: "Electric Blue",
-    blurb: "Electric blue and slate, crisp and professional",
-    light: { bg: "#f1f5f9", surface: "#ffffff", text: "#1e293b", muted: "#475569", accent: "#2563eb", ink: "#1d4ed8", accent2: "#3b82f6", divider: "#e2e8f0" },
-    dark: { bg: "#0f172a", surface: "#1e293b", text: "#f1f5f9", muted: "#a3b1c6", accent: "#2563eb", ink: "#7fb0fa", accent2: "#3b82f6", divider: "#334155" },
-  },
-  {
-    id: "emerald",
-    name: "Emerald Wave",
-    blurb: "Emerald and brook green, calm and restful",
-    light: { bg: "#eef7f4", surface: "#ffffff", text: "#13302b", muted: "#4f6b65", accent: "#2b7a70", ink: "#246b62", accent2: "#addcca", divider: "#d5ebe3" },
-    dark: { bg: "#0d1a18", surface: "#152623", text: "#e6f4ef", muted: "#9fbfb7", accent: "#2b7a70", ink: "#7fd1c4", accent2: "#52ada2", divider: "#24403b" },
-  },
+  // Added 25 September from Janine's list; Pale Milk, Editorial, Electric
+  // Blue and Emerald Wave went on 1 October as near-copies (REMOVED_PALETTES).
+  // Where a list colour is too light to carry white button text (the test's
+  // 4.5:1), the button takes a deeper shade of the same hue instead.
   {
     // Dark by design, as the list has it: Antarctic Deep is the ground and
     // Woodland Green the highlight. The green is far too light under white
@@ -183,14 +154,6 @@ export const PALETTES: Palette[] = [
     dark: { bg: "#282a36", surface: "#343746", text: "#f8f8f2", muted: "#b4b8cf", accent: "#7c3aed", ink: "#bd93f9", accent2: "#ff79c6", divider: "#44475a" },
   },
   {
-    id: "midnight",
-    name: "Midnight",
-    blurb: "True black, easy on OLED screens at night",
-    darkOnly: true,
-    light: { bg: "#000000", surface: "#0f0f10", text: "#f2f2f2", muted: "#a1a1a6", accent: "#2563eb", ink: "#7aa7ff", accent2: "#1e3a8a", divider: "#26262a" },
-    dark: { bg: "#000000", surface: "#0f0f10", text: "#f2f2f2", muted: "#a1a1a6", accent: "#2563eb", ink: "#7aa7ff", accent2: "#1e3a8a", divider: "#26262a" },
-  },
-  {
     id: "contrast",
     name: "High contrast",
     blurb: "Maximum legibility: black, white and bold blue",
@@ -199,8 +162,22 @@ export const PALETTES: Palette[] = [
   },
 ];
 
+/** Themes taken out of the picker on 1 October because another theme had
+ * almost the same accent (hue within ~10 degrees, similar ground). The id
+ * stays in members.palette and the kin-palette cookie for anyone who had
+ * picked one -- no row is rewritten -- and reads as the nearest kept theme in
+ * the same colour family. Any other unknown id falls back to Kin Classic. */
+export const REMOVED_PALETTES: Record<string, string> = {
+  editorial: "sunset", // #c2410c terracotta, the same accent as Sunset
+  milk: "solarized", // ocean blue (198deg) on warm cream; Solarized is 205deg on parchment
+  electric: "classic", // #2563eb (221deg) on slate; Classic's #007aff is 211deg on grey
+  emerald: "hearth", // #2b7a70 (172deg); Hearth's #047857 is 163deg
+  midnight: "classic", // black ground and blue accent: Classic in dark mode
+};
+
 export function paletteById(id: string | null | undefined): Palette {
-  return PALETTES.find((p) => p.id === id) ?? PALETTES[0];
+  const want = (id && REMOVED_PALETTES[id]) || id;
+  return PALETTES.find((p) => p.id === want) ?? PALETTES[0];
 }
 
 export function isPaletteId(id: string): boolean {

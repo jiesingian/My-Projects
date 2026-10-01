@@ -1,5 +1,5 @@
 import { test, expect } from "@playwright/test";
-import { PALETTES, contrast, paletteCss } from "@/lib/palettes";
+import { PALETTES, REMOVED_PALETTES, contrast, paletteById, paletteCss } from "@/lib/palettes";
 
 /** Every colour theme in Settings has to stay readable.
  *
@@ -33,4 +33,12 @@ test("a dark-only palette is dark whatever the switch says", () => {
   const css = paletteCss("dracula");
   expect(css).toContain("color-scheme:dark");
   expect(css).not.toContain('data-theme="dark"');
+});
+
+test("a removed theme reads as its nearest kept theme, never as nothing", () => {
+  for (const [gone, kept] of Object.entries(REMOVED_PALETTES)) {
+    expect(PALETTES.some((p) => p.id === gone), `${gone} is out of the picker`).toBe(false);
+    expect(paletteById(gone).id, gone).toBe(kept);
+    expect(paletteCss(gone)).toBe(paletteCss(kept));
+  }
 });

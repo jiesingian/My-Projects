@@ -68,7 +68,7 @@ export default async function RootLayout({
 }>) {
   const cookieStore = await cookies();
   const theme = cookieStore.get("kin-theme")?.value;
-  // A dark-only palette (Dracula, Midnight) is dark whatever the switch says,
+  // A dark-only palette (Dracula, Antarctic) is dark whatever the switch says,
   // so the rest of the dark tokens -- charts, shadows, glass -- match it.
   const darkOnly = paletteById(cookieStore.get("kin-palette")?.value).darkOnly;
   const dataTheme = darkOnly ? "dark" : theme === "light" || theme === "dark" ? theme : undefined;
