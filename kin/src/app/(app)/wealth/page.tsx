@@ -2,7 +2,7 @@ import Link from "next/link";
 import { Icon } from "@/components/icons";
 import { redirect } from "next/navigation";
 import { getCurrentMember } from "@/lib/session";
-import { getWealthPane, getNetWorth, getAccounts, getCashFlowPane, getBudgetHistory, getSpendingByMember, recordAndGetNetWorthHistory, type WealthScope, type LedgerEntry, type AccountWithBalance } from "@/lib/queries/wealth";
+import { getWealthPane, getNetWorth, getAccounts, getArchivedAccounts, getCashFlowPane, getBudgetHistory, getSpendingByMember, recordAndGetNetWorthHistory, type WealthScope, type LedgerEntry, type AccountWithBalance } from "@/lib/queries/wealth";
 import { CashFlowSources } from "@/components/cashflow-sources";
 import { HubHeader } from "@/components/hub-header";
 import { Blueprint, Tag, Empty } from "@/components/ui";
@@ -16,6 +16,8 @@ import {
   RemoveButton,
   AccountPrivacyToggle,
   MoveMoneyButton,
+  RestoreAccountButton,
+  DeleteAccountButton,
   type PickableAccount,
 } from "@/components/money-actions";
 import { formatCurrency, formatDate, shortNames, selfLabel, selfPossessive } from "@/lib/format";
@@ -40,6 +42,7 @@ import {
   WEALTH_FAMILY,
   TRANSFER_CATEGORY,
   isHouseholdScope,
+  inScope,
 } from "@/lib/wealth";
 import { familyDate, householdDateFormat } from "@/lib/format-family";
 import { CollapsibleGroup } from "@/components/collapsible-group";
@@ -603,7 +606,7 @@ async function CashFlowPane({ familyId, memberId, currency, range, scope, grownU
 /* ------------------------------------------------------------- accounts */
 
 async function ScopePane({ scope, familyId, memberId, currency, range, newAccountId }: { scope: WealthScope; familyId: string; memberId: string; currency: string; range: CashFlowRange; newAccountId?: string }) {
-  const [dateFormat, pane, cf, who] = await Promise.all([
+  const [dateFormat, pane, cf, who, allArchived] = await Promise.all([
     householdDateFormat(),
     getWealthPane(familyId, memberId, scope),
     // Budget and target now live on Cash Flow -- this pane only still
@@ -611,7 +614,9 @@ async function ScopePane({ scope, familyId, memberId, currency, range, newAccoun
     // the picker below is set to.
     getCashFlowPane(familyId, range, scope),
     whoPicker(familyId, memberId, scope, (w) => `/wealth?seg=accounts&range=${range}&who=${w}`),
+    getArchivedAccounts(familyId),
   ]);
+  const archived = allArchived.filter((a) => inScope(a, scope));
   const isJoint = isHouseholdScope(scope);
   const mine = scope === memberId;
   const whosePossessive = selfPossessive(who.whoLabel, mine);
@@ -723,6 +728,31 @@ async function ScopePane({ scope, familyId, memberId, currency, range, newAccoun
       {/* A new account is opened in your own name, so it is only offered
           where that is what you would mean. */}
       {(isJoint || mine) && <AddAccountForm isJoint={isJoint} returnWho={scope} />}
+
+      {/* Archive hides an account and keeps its history; this is where
+          they wait, to be restored -- or deleted, if nothing ever moved
+          through them. */}
+      {archived.length > 0 && (
+        <CollapsibleGroup title={`ARCHIVED · ${archived.length}`} defaultOpen={false}>
+          <p style={{ fontSize: "0.78125rem", color: "var(--color-neutral-600)", margin: "0.5rem 0", lineHeight: 1.45 }}>
+            Hidden from every list and total above, with their history kept. Restore brings one back. Delete is only for an account nothing has moved through.
+          </p>
+          {archived.map((a) => (
+            <div key={a.id} style={{ display: "flex", gap: "0.625rem", alignItems: "center", padding: "0.75rem 0", borderBottom: "1px solid color-mix(in srgb, var(--color-text) 10%, transparent)" }}>
+              <Link href={`/wealth/accounts/${a.id}`} style={{ flex: 1, minWidth: 0, textDecoration: "none", color: "inherit" }}>
+                <span style={{ font: "600 1rem/1.1 var(--font-heading)", display: "block" }}>{a.name}</span>
+                <span style={{ fontSize: "0.8125rem", color: "var(--color-neutral-600)" }}>
+                  {formatCurrency(a.balance, currency)} · {a.movementCount} movement{a.movementCount === 1 ? "" : "s"}
+                </span>
+              </Link>
+              <span style={{ display: "flex", gap: "0.375rem", flex: "none", alignItems: "flex-start" }}>
+                <RestoreAccountButton accountId={a.id} />
+                <DeleteAccountButton accountId={a.id} accountName={a.name} movementCount={a.movementCount} archived />
+              </span>
+            </div>
+          ))}
+        </CollapsibleGroup>
+      )}
 
       {pane.recent.length > 0 && (
         <>

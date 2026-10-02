@@ -6,7 +6,9 @@ import { monthKey, recentMonths, signedAmount, recentPeriods, periodKey, periodH
 // already imports the queries from.
 export type { WealthScope };
 
-export type AccountWithBalance = Tables<"accounts"> & { balance: number; pendingCount: number };
+/** movementCount is every entry on the account, pending included -- what
+ * decides whether it can still be deleted outright (deleteAccountAction). */
+export type AccountWithBalance = Tables<"accounts"> & { balance: number; pendingCount: number; movementCount: number };
 
 export type LedgerEntry = Tables<"wealth_transactions"> & { accountName: string; recordedByName: string | null };
 
@@ -18,16 +20,18 @@ function currentPeriod() {
 /** Balances are never stored — an account is its opening balance plus every
  * confirmed movement since, so a bill paid in Household and a transfer made
  * here can never disagree. */
-async function loadAccounts(familyId: string): Promise<AccountWithBalance[]> {
+async function loadAccounts(familyId: string, archived = false): Promise<AccountWithBalance[]> {
   const supabase = await createClient();
   const [{ data: accounts }, { data: movements }] = await Promise.all([
-    supabase.from("accounts").select("*").eq("family_id", familyId).eq("is_archived", false).order("created_at"),
+    supabase.from("accounts").select("*").eq("family_id", familyId).eq("is_archived", archived).order("created_at"),
     supabase.from("wealth_transactions").select("account_id, direction, amount, status").eq("family_id", familyId),
   ]);
 
   const delta = new Map<string, number>();
   const pending = new Map<string, number>();
+  const count = new Map<string, number>();
   for (const m of movements ?? []) {
+    count.set(m.account_id, (count.get(m.account_id) ?? 0) + 1);
     delta.set(m.account_id, (delta.get(m.account_id) ?? 0) + signedAmount(m));
     if (m.status === "pending") pending.set(m.account_id, (pending.get(m.account_id) ?? 0) + 1);
   }
@@ -36,11 +40,19 @@ async function loadAccounts(familyId: string): Promise<AccountWithBalance[]> {
     ...a,
     balance: Number(a.opening_balance) + (delta.get(a.id) ?? 0),
     pendingCount: pending.get(a.id) ?? 0,
+    movementCount: count.get(a.id) ?? 0,
   }));
 }
 
 export async function getAccounts(familyId: string): Promise<AccountWithBalance[]> {
   return loadAccounts(familyId);
+}
+
+/** Archived accounts the viewer can see, for the Accounts tab's ARCHIVED
+ * list -- where they can be restored, or deleted if nothing ever moved
+ * through them. Kept out of every other list and total. */
+export async function getArchivedAccounts(familyId: string): Promise<AccountWithBalance[]> {
+  return loadAccounts(familyId, true);
 }
 
 /** Everything the Joint and Mine panes render: the combined balance across
@@ -152,7 +164,9 @@ export async function getAccountDetail(familyId: string, accountId: string) {
       .limit(200),
   ]);
 
-  const account = accounts.find((a) => a.id === accountId) ?? null;
+  // An archived account still has a page -- its history is what archiving
+  // kept -- so look there before calling it gone.
+  const account = accounts.find((a) => a.id === accountId) ?? (await loadAccounts(familyId, true)).find((a) => a.id === accountId) ?? null;
   return { account, entries: (transactions ?? []).map(toLedgerEntry) };
 }
 

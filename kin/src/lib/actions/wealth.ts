@@ -152,6 +152,44 @@ export async function archiveAccountAction(accountId: string): Promise<ActionSta
   return { error: null };
 }
 
+/** Undoes archiveAccountAction: the account is back in every list and total,
+ * with the history it kept the whole time. */
+export async function restoreAccountAction(accountId: string): Promise<ActionState> {
+  const me = await requireCurrentMember();
+  const supabase = await createClient();
+  const { error, count } = await supabase.from("accounts").update({ is_archived: false }, { count: "exact" }).eq("id", accountId).eq("family_id", me.family_id);
+  if (error) return { error: humanDatabaseError(error.message) };
+  if (count === 0) return { error: "That account is no longer there — someone may have removed it." };
+  revalidateWealth();
+  return { error: null };
+}
+
+/** Deletes an account outright -- but only one nothing has ever moved
+ * through. An account with movements is refused and pointed at Archive:
+ * deleting it would have to take its entries with it, and one leg of a
+ * transfer gone means money that left another account and arrived
+ * nowhere, in that account's history and every total built from it.
+ * Archive keeps all of that whole and only hides the account. Pending
+ * entries count, since each is a movement waiting to happen. */
+export async function deleteAccountAction(accountId: string): Promise<ActionState> {
+  const me = await requireCurrentMember();
+  const supabase = await createClient();
+  const { count: movements, error: countError } = await supabase
+    .from("wealth_transactions")
+    .select("id", { count: "exact", head: true })
+    .eq("account_id", accountId)
+    .eq("family_id", me.family_id);
+  if (countError) return { error: humanDatabaseError(countError.message) };
+  if ((movements ?? 0) > 0) {
+    return { error: `This account has ${movements} movement${movements === 1 ? "" : "s"} in its history, so it can't be deleted without breaking that history. Archive it instead — it disappears from your lists and totals, and its history stays.` };
+  }
+  const { error, count } = await supabase.from("accounts").delete({ count: "exact" }).eq("id", accountId).eq("family_id", me.family_id);
+  if (error) return { error: humanDatabaseError(error.message) };
+  if (count === 0) return { error: "That account couldn't be deleted — it may already be gone, or it isn't yours to delete." };
+  revalidateWealth();
+  return { error: null };
+}
+
 /* ------------------------------------------------------------- the ledger */
 
 type LedgerInput = {
