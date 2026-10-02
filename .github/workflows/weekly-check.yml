@@ -224,6 +224,9 @@ jobs:
           E2E_PASSWORD: ${{ secrets.E2E_PASSWORD }}
           E2E_DELETE_EMAIL: ${{ secrets.E2E_DELETE_EMAIL }}
           E2E_DELETE_PASSWORD: ${{ secrets.E2E_DELETE_PASSWORD }}
+          # private-accounts.spec.ts; skips and says so when unset.
+          E2E_PARTNER_EMAIL: ${{ secrets.E2E_PARTNER_EMAIL }}
+          E2E_PARTNER_PASSWORD: ${{ secrets.E2E_PARTNER_PASSWORD }}
         # Piped through tee rather than left to the runner's own log, because
         # the runner's log is not reachable from here: it is served from
         # Actions' blob storage, which this project's tooling cannot reach.

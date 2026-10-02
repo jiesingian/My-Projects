@@ -27,6 +27,7 @@ password.
 |---|---|---|
 | `kin-dev-qa@example.com` | `ZZ QA Testbed (throwaway)` | every machine, and CI |
 | `kin-dev-delete@example.com` | **nothing, between runs** | `delete-household.spec.ts` only |
+| `kin-dev-qa-partner@example.com` | `ZZ QA Testbed (throwaway)`, as an **adult** ("Pat QA Partner") | `private-accounts.spec.ts` only |
 
 The second is different in kind. `delete-household.spec.ts` is the one test
 that destroys the household it runs against: it creates one, fills every table
@@ -39,6 +40,25 @@ and it skips loudly when they are unset rather than pretending to have run.
 resolved from the session — so the only family it can reach is the disposable
 account's own. The spec's last act is to sign in as `E2E_EMAIL` and check that
 household is still exactly where it was.
+
+The third is the household's second grown-up. Privacy between members can
+only be checked by a member who is *not* the owner, and every other spec signs
+in as the owner. `private-accounts.spec.ts` has Quinn (`E2E_EMAIL`) make a
+private, a shared and a joint account, then signs in as the partner and checks
+the private one, its movement, its number and its balance appear nowhere —
+REST or any Wealth page, under every Who. It reads `E2E_PARTNER_EMAIL` /
+`E2E_PARTNER_PASSWORD` (in the session environment; never in a file) and skips
+loudly when they are unset.
+
+The partner joined through the app's own path: it redeemed the household's
+invite code (`join_family`, always "adult") and Quinn, as organizer, let it in
+as an adult. The spec's `beforeAll` repeats that only if it is missing, so a
+rerun adds nobody; it fails rather than "fixes" a partner found anywhere else.
+
+CI needs the same two as repository secrets — Jonathan's to add, at
+https://github.com/jiesingian/My-Projects/settings/secrets/actions/new
+(`E2E_PARTNER_EMAIL`, then `E2E_PARTNER_PASSWORD`). Until then the spec skips
+in CI. Both are for kin-dev only; no such account exists in production.
 
 ## In production — leave these alone
 
