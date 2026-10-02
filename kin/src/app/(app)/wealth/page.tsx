@@ -15,6 +15,7 @@ import {
   ValueUpdateControl,
   RemoveButton,
   AccountPrivacyToggle,
+  MoveMoneyButton,
   type PickableAccount,
 } from "@/components/money-actions";
 import { formatCurrency, formatDate, shortNames, selfLabel, selfPossessive } from "@/lib/format";
@@ -407,27 +408,6 @@ function UpcomingBills<T extends { id: string; name: string; amount: number | st
   );
 }
 
-function QuickActions() {
-  return (
-    <div className="kin-money-actions" style={{ display: "flex", gap: "0.5rem", marginBottom: "1.125rem" }}>
-      {[
-        { label: "MONEY IN", mode: "in" },
-        { label: "MONEY OUT", mode: "out" },
-        { label: "TRANSFER", mode: "transfer" },
-      ].map((a) => (
-        <Link
-          key={a.mode}
-          href={`/wealth/transact?mode=${a.mode}`}
-          className="btn btn-secondary"
-          style={{ flex: 1, minHeight: "2.5rem", fontSize: "0.8125rem", letterSpacing: ".04em", display: "flex", alignItems: "center", justifyContent: "center" }}
-        >
-          {a.label}
-        </Link>
-      ))}
-    </div>
-  );
-}
-
 /* ----------------------------------------------------------------- cash flow */
 
 async function CashFlowPane({ familyId, memberId, currency, range, scope, grownUp }: { familyId: string; memberId: string; currency: string; range: CashFlowRange; scope: WealthScope; grownUp: boolean }) {
@@ -735,8 +715,6 @@ async function ScopePane({ scope, familyId, memberId, currency, range, newAccoun
       </div>
       <HistoryStrip history={cf.history} currency={currency} title={`BY ${CASH_FLOW_RANGE_LABELS[range].toUpperCase()}`} />
 
-      <QuickActions />
-
       <PendingBlock pending={pane.pending} currency={currency} dateFormat={dateFormat} />
 
       <SectionLabel>{scope === WEALTH_FAMILY ? "FAMILY ACCOUNTS" : isJoint ? "ACCOUNTS" : `${whosePossessive.toUpperCase()} ACCOUNTS`}</SectionLabel>
@@ -792,7 +770,8 @@ async function ScopePane({ scope, familyId, memberId, currency, range, newAccoun
                 <span style={{ textAlign: "right", flex: "none" }}>
                   <span style={{ fontFamily: "var(--font-numeric)", fontSize: "0.8125rem", display: "block" }}>{formatCurrency(a.balance, currency)}</span>
                   {a.pendingCount > 0 && <Tag variant="outline">{a.pendingCount} PENDING</Tag>}
-                  <span style={{ display: "block", marginTop: "0.375rem" }}>
+                  <span style={{ display: "flex", gap: "0.375rem", justifyContent: "flex-end", marginTop: "0.375rem" }}>
+                    <MoveMoneyButton accountId={a.id} accountName={a.name} />
                     <RemoveButton id={a.id} kind="account" label={`Archive "${a.name}"`} />
                   </span>
                 </span>

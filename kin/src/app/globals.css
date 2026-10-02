@@ -5039,11 +5039,6 @@ button.kin-initial:focus-visible {
   .kin-cf-labels > :nth-last-child(3n + 1) { visibility: visible; }
 }
 
-/* Money in, Money out, Transfer: side by side while they fit, and Transfer
-   takes a line of its own when they do not, instead of running off the
-   screen. */
-.kin-money-actions { flex-wrap: wrap; }
-.kin-money-actions > * { min-width: min-content; }
 
 /* A date title (Planner, Meals) wraps onto a second line rather than being
    cut to "Today · 28 Sept…", and on Meals the recipe and list buttons move
