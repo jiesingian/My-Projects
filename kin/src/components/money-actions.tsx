@@ -23,6 +23,7 @@ import {
 import { formatCurrency } from "@/lib/format";
 import { Icon } from "@/components/icons";
 import { confirm } from "@/components/confirm-sheet";
+import { AmountInput } from "@/components/amount-input";
 
 export type PickableAccount = {
   id: string;
@@ -124,7 +125,7 @@ export function PayBillControl({ billId, amount, accounts, currency }: { billId:
       </div>
       <div className="field" style={{ marginBottom: "0.5rem" }}>
         <label htmlFor={`${uid}-amount`}>Amount (₱)</label>
-        <input id={`${uid}-amount`} aria-label="Amount (₱)" className="input" type="number" step="0.01" min="0" value={payAmount} onChange={(e) => setPayAmount(Number(e.target.value))} style={{ minHeight: "2.625rem" }} />
+        <AmountInput id={`${uid}-amount`} ariaLabel="Amount (₱)" defaultValue={payAmount} onValueChange={setPayAmount} style={{ minHeight: "2.625rem" }} />
       </div>
       <ViaAppToggle checked={viaApp} onChange={setViaApp} account={account} />
       <div style={{ display: "flex", gap: "0.5rem" }}>
@@ -175,7 +176,7 @@ export function ReceiveIncomeControl({ scheduleId, amount, accounts, currency }:
       </div>
       <div className="field" style={{ marginBottom: "0.5rem" }}>
         <label htmlFor={`${uid}-amount`}>Amount (₱)</label>
-        <input id={`${uid}-amount`} aria-label="Amount (₱)" className="input" type="number" step="0.01" min="0" value={receiveAmount} onChange={(e) => setReceiveAmount(Number(e.target.value))} style={{ minHeight: "2.625rem" }} />
+        <AmountInput id={`${uid}-amount`} ariaLabel="Amount (₱)" defaultValue={receiveAmount} onValueChange={setReceiveAmount} style={{ minHeight: "2.625rem" }} />
       </div>
       <ViaAppToggle checked={viaApp} onChange={setViaApp} account={account} />
       <div style={{ display: "flex", gap: "0.5rem" }}>
@@ -249,7 +250,7 @@ export function GoalContributeControl({
         </div>
         <div className="field" style={{ width: 110, margin: 0 }}>
           <label htmlFor={`${uid}-amount`}>Amount</label>
-          <input id={`${uid}-amount`} aria-label="Amount" className="input" type="number" step="0.01" min="0" value={amount} onChange={(e) => setAmount(Number(e.target.value))} style={{ minHeight: "2.625rem" }} />
+          <AmountInput id={`${uid}-amount`} ariaLabel="Amount" defaultValue={amount} onValueChange={setAmount} style={{ minHeight: "2.625rem" }} />
         </div>
       </div>
       <ViaAppToggle checked={viaApp} onChange={setViaApp} account={account} />
@@ -319,7 +320,7 @@ export function LogSpendControl({
         </div>
         <div className="field" style={{ width: 110, margin: 0 }}>
           <label htmlFor={`${uid}-amount`}>Amount</label>
-          <input id={`${uid}-amount`} aria-label="Amount" className="input" type="number" step="0.01" min="0" value={amount} onChange={(e) => setAmount(Number(e.target.value))} style={{ minHeight: "2.625rem" }} />
+          <AmountInput id={`${uid}-amount`} ariaLabel="Amount" defaultValue={amount} onValueChange={setAmount} style={{ minHeight: "2.625rem" }} />
         </div>
       </div>
       <div style={{ display: "flex", gap: "0.5rem" }}>
@@ -402,7 +403,7 @@ export function ValueUpdateControl({ id, current, kind }: { id: string; current:
 
   return (
     <span style={{ display: "flex", gap: "0.375rem" }}>
-      <input className="input" type="number" value={value} onChange={(e) => setValue(Number(e.target.value))} style={{ minHeight: "2rem", width: "6.875rem", fontSize: "0.84375rem" }} />
+      <AmountInput ariaLabel="New value" defaultValue={value} onValueChange={setValue} style={{ minHeight: "2rem", width: "6.875rem", fontSize: "0.84375rem" }} />
       <button
         type="button"
         className="btn btn-primary"
