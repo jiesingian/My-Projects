@@ -1,5 +1,5 @@
 import { test, expect } from "@playwright/test";
-import { resolveInstitutionLinks, isKnownInstitutionLabel, KNOWN_APPS, appStoreSearchUrl, playStoreSearchUrl } from "@/lib/wealth";
+import { resolveInstitutionLinks, isKnownInstitutionLabel, KNOWN_APPS, appStoreSearchUrl, playStoreSearchUrl, appLaunchPlan } from "@/lib/wealth";
 
 /** What BANK / WALLET should do to LINK APP / APP STORE LINK / PLAY STORE
  * LINK as it changes, pulled out of AppLinksField so it can be checked
@@ -101,4 +101,36 @@ test("the App Store search uses the household's own country, not a fixed one", (
   expect(appStoreSearchUrl("Some Bank", "sg")).toBe("https://apps.apple.com/sg/search?term=Some%20Bank");
   expect(appStoreSearchUrl("Some Bank", null)).toBe("https://apps.apple.com/us/search?term=Some%20Bank");
   expect(appStoreSearchUrl("Some Bank")).toBe("https://apps.apple.com/us/search?term=Some%20Bank");
+});
+
+/* OPEN <bank> replaced OPEN plus GET … APP STORE / PLAY STORE: one button
+ * that goes into the app when it's installed and to the right store when
+ * it isn't, decided per phone by appLaunchPlan. */
+const BDO = KNOWN_APPS.find((a) => a.label === "BDO")!;
+const bdoLinks = { linkedAppUrl: BDO.appStoreUrl!, appStoreUrl: BDO.appStoreUrl!, playStoreUrl: BDO.playStoreUrl!, institution: "BDO", country: "ph" };
+
+test("on Android, OPEN asks for the app by package and falls back to its Play Store page", () => {
+  const plan = appLaunchPlan("android", bdoLinks)!;
+  expect(plan.href).toBe(`intent://#Intent;package=ph.com.bdo.retail;S.browser_fallback_url=${encodeURIComponent(BDO.playStoreUrl!)};end`);
+  expect(plan.fallback).toBeNull();
+});
+
+test("on an iPhone with no scheme to try, OPEN goes to the App Store page, which offers Open once installed", () => {
+  expect(appLaunchPlan("ios", bdoLinks)).toEqual({ href: BDO.appStoreUrl, fallback: null });
+});
+
+test("an app's own scheme is tried first, with the phone's store behind it", () => {
+  const gcash = { linkedAppUrl: "gcash://", appStoreUrl: null, playStoreUrl: null, institution: "GCash", country: "ph" };
+  expect(appLaunchPlan("ios", gcash)).toEqual({ href: "gcash://", fallback: appStoreSearchUrl("GCash", "ph") });
+  expect(appLaunchPlan("android", gcash)).toEqual({ href: "gcash://", fallback: playStoreSearchUrl("GCash") });
+});
+
+test("on a computer, OPEN is a web page, never a phone scheme", () => {
+  expect(appLaunchPlan("other", bdoLinks)?.href).toBe(BDO.appStoreUrl);
+  const gcash = { linkedAppUrl: "gcash://", appStoreUrl: null, playStoreUrl: null, institution: "GCash", country: "ph" };
+  expect(appLaunchPlan("other", gcash)?.href).toBe(appStoreSearchUrl("GCash", "ph"));
+});
+
+test("with no links and no institution there is nothing to open", () => {
+  expect(appLaunchPlan("ios", { linkedAppUrl: null, appStoreUrl: null, playStoreUrl: null, institution: null })).toBeNull();
 });

@@ -1,5 +1,5 @@
 /** Where a household is, for the one thing that currently depends on it:
- * which App Store region a GET APP search falls back to (@/lib/wealth's
+ * which App Store region an OPEN search falls back to (@/lib/wealth's
  * appStoreSearchUrl). Not tied to the phone's current location -- a
  * household set this once, the same way currency is set once, and it
  * doesn't change just because someone opened Kin while traveling.

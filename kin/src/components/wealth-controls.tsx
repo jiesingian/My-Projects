@@ -63,7 +63,7 @@ export function usePhoneKind(): "ios" | "android" | "other" {
  * matching store page, App Store or Play Store, since that opens fine on
  * any device). The APP STORE LINK / PLAY STORE LINK boxes disappear
  * entirely; both values are still saved underneath so the account page's
- * GET APP button gets the right one for whoever views it later, on
+ * OPEN button gets the right one for whoever views it later, on
  * whichever phone that is, not just whoever filled in the form.
  *
  * For anything else, Kin has no memorized link to reach for, so LINK APP

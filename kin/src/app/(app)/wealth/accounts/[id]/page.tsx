@@ -7,7 +7,7 @@ import { DetailHeader } from "@/components/hub-header";
 import { Blueprint, Tag, Empty } from "@/components/ui";
 import { PendingEntryActions, DeleteEntryButton, RemoveButton } from "@/components/money-actions";
 import { AccountEditForm } from "./account-edit-form";
-import { GetAppButton } from "./get-app-button";
+import { OpenAppButton } from "./open-app-button";
 import { formatCurrency } from "@/lib/format";
 import { ACCOUNT_TYPE_LABELS, type AccountType } from "@/lib/wealth";
 import { familyDate } from "@/lib/format-family";
@@ -57,19 +57,8 @@ export default async function AccountPage({ params }: { params: Promise<{ id: st
           </Link>
         </div>
 
-        {account.linked_app_url && (
-          <a
-            href={account.linked_app_url}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="btn btn-primary btn-block"
-            style={{ minHeight: "2.75rem", fontSize: "0.875rem", letterSpacing: ".04em", display: "flex", alignItems: "center", justifyContent: "center" }}
-          >
-            Open {(account.institution ?? account.name).toUpperCase()}
-          </a>
-        )}
-
-        <GetAppButton
+        <OpenAppButton
+          linkedAppUrl={account.linked_app_url}
           appStoreUrl={account.app_store_url}
           playStoreUrl={account.play_store_url}
           institution={account.institution}
