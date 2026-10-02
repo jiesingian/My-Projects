@@ -11,7 +11,13 @@
  *
  * `darkOnly` palettes are designed for a dark room (Dracula, Antarctic). They
  * ignore the light/dark switch, and the root layout forces dark mode, so the
- * rest of the dark tokens (charts, shadows, glass) come along with them. */
+ * rest of the dark tokens (charts, shadows, glass) come along with them.
+ *
+ * `flat` palettes (Clay) also change shape, not just colour: tighter corners,
+ * no soft shadow, solid cards instead of frosted glass, and a plain page
+ * instead of the ambient wash. Only the existing radius, shadow and glass
+ * tokens are overridden, so pills stay pills and floating sheets keep their
+ * shadow. */
 
 export type PaletteMode = {
   bg: string;
@@ -36,6 +42,7 @@ export type Palette = {
   light: PaletteMode;
   dark: PaletteMode;
   darkOnly?: boolean;
+  flat?: boolean;
 };
 
 export const PALETTE_DEFAULT = "classic";
@@ -133,7 +140,8 @@ export const PALETTES: Palette[] = [
   },
   // Four from Aura design systems, added 1 October from the DESIGN.md files
   // Janine downloaded (aura.build itself only renders in a browser); a fifth,
-  // Ecosystem, was left out as a near-copy of Auralis's orange. Each
+  // Ecosystem, was left out as a near-copy of Auralis's orange, and NeuroSync
+  // went on 2 October as a near-copy of Clay (REMOVED_PALETTES). Each
   // file gives one light palette: page, card, text, secondary text, border,
   // and a primary and accent colour. Those are used as given wherever they
   // pass the readability test. Where a primary is too light under white
@@ -151,14 +159,6 @@ export const PALETTES: Palette[] = [
     dark: { bg: "#191c21", surface: "#22262d", text: "#f3f4f6", muted: "#9ca3af", accent: "#c9480b", ink: "#fdba74", accent2: "#ea580c", divider: "#374151" },
   },
   {
-    // Primary #CC8066 (clay), accent #334155 (slate) on white.
-    id: "neurosync",
-    name: "NeuroSync",
-    blurb: "Dusty clay and slate, quiet and focused",
-    light: { bg: "#ffffff", surface: "#ffffff", text: "#111827", muted: "#4b5563", accent: "#b05c41", ink: "#a9583e", accent2: "#334155", divider: "#e5e7eb" },
-    dark: { bg: "#191c21", surface: "#22262d", text: "#f3f4f6", muted: "#9ca3af", accent: "#b05c41", ink: "#cc8066", accent2: "#334155", divider: "#374151" },
-  },
-  {
     // Sage #7A9E7E on sage-grey #E1E5DF, deep green #2C3B31 borders.
     id: "curation",
     name: "Aura Curation",
@@ -173,6 +173,20 @@ export const PALETTES: Palette[] = [
     blurb: "Warm stone and olive charcoal, calm and earthy",
     light: { bg: "#e0dcd1", surface: "#e2dcd0", text: "#111827", muted: "#4b5563", accent: "#4f5343", ink: "#4f5343", accent2: "#cebfa9", divider: "#cebfa9" },
     dark: { bg: "#1d1e19", surface: "#282a23", text: "#e2dcd0", muted: "#b0aa9c", accent: "#4f5343", ink: "#cebfa9", accent2: "#cebfa9", divider: "#3d3f35" },
+  },
+  {
+    // From the earthy six-colour board Janine shared on 2 October, in its
+    // brutalist layout: cream page, sand panels, stone borders, a clay header
+    // and pill button, bark blocks, moss second accent, warm brown text. The
+    // board's clay #C48A62 is 2.9:1 under white text, so buttons are the
+    // same hue taken deeper (#a0603a, 5.0:1) and #C48A62 is the wash; links
+    // are darker again to read on sand. The dark half is built from bark.
+    id: "clay",
+    name: "Clay",
+    blurb: "Earthy clay, sand and bark in flat, bold blocks",
+    flat: true,
+    light: { bg: "#faf7f0", surface: "#e8dcc8", text: "#4a4038", muted: "#6b5a4a", accent: "#a0603a", ink: "#8a4f2e", accent2: "#c48a62", divider: "#cfc6b8" },
+    dark: { bg: "#2a231d", surface: "#3a3029", text: "#faf7f0", muted: "#cfc6b8", accent: "#a0603a", ink: "#e0a87f", accent2: "#8a9a78", divider: "#4f4338" },
   },
   {
     id: "dracula",
@@ -204,6 +218,8 @@ export const REMOVED_PALETTES: Record<string, string> = {
   electric: "classic", // #2563eb (221deg) on slate; Classic's #007aff is 211deg on grey
   emerald: "hearth", // #2b7a70 (172deg); Hearth's #047857 is 163deg
   midnight: "classic", // black ground and blue accent: Classic in dark mode
+  // 2 October:
+  neurosync: "clay", // clay #CC8066 (15deg) on white; Clay's #C48A62 is 24deg on cream
 };
 
 export function paletteById(id: string | null | undefined): Palette {
@@ -215,7 +231,7 @@ export function isPaletteId(id: string): boolean {
   return PALETTES.some((p) => p.id === id);
 }
 
-function tokens(m: PaletteMode): string {
+function tokens(m: PaletteMode, flat = false): string {
   const mix = (a: string, pct: number, b: string) => `color-mix(in oklab, ${a} ${pct}%, ${b})`;
   return [
     `--color-bg:${m.bg}`,
@@ -242,8 +258,21 @@ function tokens(m: PaletteMode): string {
     `--color-accent-700:${m.ink}`,
     `--color-accent-800:${mix(m.ink, 70, m.text)}`,
     `--color-accent-900:${mix(m.ink, 45, m.text)}`,
-    `--glass-bg:color-mix(in srgb, ${m.surface} 72%, transparent)`,
-    `--glass-border:color-mix(in srgb, ${m.text} 10%, transparent)`,
+    ...(flat
+      ? [
+          `--glass-bg:${m.surface}`,
+          `--glass-border:${m.divider}`,
+          `--glass-blur:none`,
+          `--radius-card:6px`,
+          `--radius-control:6px`,
+          `--radius-md:4px`,
+          `--shadow-sm:none`,
+          `--shadow-md:none`,
+        ]
+      : [
+          `--glass-bg:color-mix(in srgb, ${m.surface} 72%, transparent)`,
+          `--glass-border:color-mix(in srgb, ${m.text} 10%, transparent)`,
+        ]),
   ].join(";");
 }
 
@@ -256,10 +285,13 @@ function tokens(m: PaletteMode): string {
 export function paletteCss(id: string | null | undefined): string {
   const p = paletteById(id);
   if (p.id === PALETTE_DEFAULT) return "";
-  const light = tokens(p.light);
-  const dark = tokens(p.dark);
-  if (p.darkOnly) return `html:root{${dark};color-scheme:dark}`;
+  const light = tokens(p.light, p.flat);
+  const dark = tokens(p.dark, p.flat);
+  // A flat palette's page is one solid colour, without the ambient wash.
+  const page = p.flat ? `html:root body{background:var(--color-bg)}` : "";
+  if (p.darkOnly) return `html:root{${dark};color-scheme:dark}${page}`;
   return (
+    page +
     `html:root{${light}}` +
     `html:root[data-theme="dark"]{${dark}}` +
     `@media (prefers-color-scheme: dark){html:root:not([data-theme="light"]){${dark}}}`

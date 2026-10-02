@@ -42,3 +42,14 @@ test("a removed theme reads as its nearest kept theme, never as nothing", () => 
     expect(paletteCss(gone)).toBe(paletteCss(kept));
   }
 });
+
+test("a flat palette drops shadows, glass and the wash, and only it does", () => {
+  const css = paletteCss("clay");
+  expect(css).toContain("--shadow-sm:none");
+  expect(css).toContain("--glass-blur:none");
+  expect(css).toContain("html:root body{background:var(--color-bg)}");
+  // The flat tokens have to be in the dark blocks too, or globals.css's dark
+  // shadows (a heavier selector than html:root) would come back at night.
+  expect(css.split("--shadow-sm:none").length - 1).toBe(3);
+  expect(paletteCss("auralis")).not.toContain("--shadow-sm:none");
+});
