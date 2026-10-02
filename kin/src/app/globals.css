@@ -769,6 +769,23 @@ textarea.input {
   transform: scale(0.88);
   transition-duration: 0.09s;
 }
+/* Under the finger, every tab takes the selected colour at once (2 October,
+   Janine), so a tap answers before the page has loaded; untouched, it keeps
+   the default. The disc's own selected look is set below. */
+.kin-tab:active {
+  color: var(--color-accent);
+  transition-duration: 0s;
+}
+.kin-tab-home:active .kin-tab-disc {
+  background: radial-gradient(
+    circle at 36% 28%,
+    color-mix(in srgb, var(--color-accent) 72%, #fff) 0%,
+    var(--color-accent) 52%,
+    color-mix(in srgb, var(--color-accent) 80%, #000) 100%
+  );
+  color: #fff;
+  --i-shade: color-mix(in srgb, var(--color-accent) 55%, #000);
+}
 .kin-tab-label {
   /* 10px is the platform's tab label size; seven tabs crowd above that, so
      the label rides just under it at 9.5 by default.
