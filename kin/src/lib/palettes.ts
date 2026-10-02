@@ -180,12 +180,14 @@ export const PALETTES: Palette[] = [
     // and pill button, bark blocks, moss second accent, warm brown text. The
     // board's clay #C48A62 is 2.9:1 under white text, so buttons are the
     // same hue taken deeper (#a0603a, 5.0:1) and #C48A62 is the wash; links
-    // are darker again to read on sand. The dark half is built from bark.
+    // are darker again. Cards are a warm white, lighter than the cream page as
+    // in every other theme (2 October: the board's sand cards read as sunken),
+    // so sand shows only in the derived greys. The dark half is from bark.
     id: "clay",
     name: "Clay",
     blurb: "Earthy clay, sand and bark in flat, bold blocks",
     flat: true,
-    light: { bg: "#faf7f0", surface: "#e8dcc8", text: "#4a4038", muted: "#6b5a4a", accent: "#a0603a", ink: "#8a4f2e", accent2: "#c48a62", divider: "#cfc6b8" },
+    light: { bg: "#faf7f0", surface: "#fffdf8", text: "#4a4038", muted: "#6b5a4a", accent: "#a0603a", ink: "#8a4f2e", accent2: "#c48a62", divider: "#cfc6b8" },
     dark: { bg: "#2a231d", surface: "#3a3029", text: "#faf7f0", muted: "#cfc6b8", accent: "#a0603a", ink: "#e0a87f", accent2: "#8a9a78", divider: "#4f4338" },
   },
   {
