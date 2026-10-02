@@ -128,9 +128,9 @@ test.describe("adding things", () => {
     await expect(page.locator("body")).toContainText(name);
   });
 
-  /** Archiving is the only way to remove an account -- there's no undo in
-   * the UI, so the row has to actually be gone from the list, not just say
-   * so, and the account's own past transactions (which archiving must not
+  /** Archiving hides an account from the list (ARCHIVED, at the foot, is
+   * where it can be restored from), so the row has to actually be gone
+   * from the live list, not just say so, and the account's own past transactions (which archiving must not
    * touch) are exactly what would make a body-text check here a false
    * pass: the name legitimately stays in Recent Activity afterwards.
    *
@@ -163,7 +163,10 @@ test.describe("adding things", () => {
 
     await page.goto("/wealth?seg=accounts", { waitUntil: "networkidle" });
     await expandAllCollapsedGroups(page);
-    await expect(accountLinks().filter({ hasText: name })).toHaveCount(0);
+    // Gone from the live list (its rows carry id="account-…"), and waiting
+    // under ARCHIVED instead, where it can be restored.
+    await expect(page.locator('a[id^="account-"]').filter({ hasText: name })).toHaveCount(0);
+    await expect(accountLinks().filter({ hasText: name }), "an archived account is listed under ARCHIVED").toHaveCount(1);
 
     const rest = await restAsQa();
     if (rest && accountId) {

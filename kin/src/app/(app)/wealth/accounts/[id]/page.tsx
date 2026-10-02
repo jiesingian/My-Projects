@@ -7,7 +7,7 @@ import { CashTrendLine } from "@/components/wealth-charts";
 import { PickButton } from "@/components/pick-button";
 import { DetailHeader } from "@/components/hub-header";
 import { Blueprint, Tag, Empty } from "@/components/ui";
-import { PendingEntryActions, DeleteEntryButton, RemoveButton } from "@/components/money-actions";
+import { PendingEntryActions, DeleteEntryButton, RemoveButton, RestoreAccountButton, DeleteAccountButton } from "@/components/money-actions";
 import { AccountEditForm } from "./account-edit-form";
 import { OpenAppButton } from "./open-app-button";
 import { formatCurrency } from "@/lib/format";
@@ -41,9 +41,10 @@ export default async function AccountPage({ params, searchParams }: { params: Pr
               {ACCOUNT_TYPE_LABELS[account.account_type as AccountType] ?? account.account_type}
               {account.institution ? ` · ${account.institution}` : ""}
             </span>
-            <Tag variant={account.is_joint ? "accent" : "neutral"} className="ml-auto">
-              {account.is_joint ? "JOINT" : "PRIVATE"}
-            </Tag>
+            <span className="ml-auto" style={{ display: "inline-flex", gap: "0.375rem" }}>
+              {account.is_archived && <Tag variant="outline">ARCHIVED</Tag>}
+              <Tag variant={account.is_joint ? "accent" : "neutral"}>{account.is_joint ? "JOINT" : "PRIVATE"}</Tag>
+            </span>
           </div>
           <h3 style={{ fontSize: "1.625rem", margin: "8px 0 2px" }}>{account.name}</h3>
           <div style={{ font: "600 2.125rem/1.05 var(--font-heading)", letterSpacing: "-.02em", marginTop: "0.5rem" }}>{formatCurrency(account.balance, currency)}</div>
@@ -128,9 +129,23 @@ export default async function AccountPage({ params, searchParams }: { params: Pr
         ))}
 
         <AccountEditForm account={account} />
-        <div style={{ display: "flex", justifyContent: "flex-end", marginTop: "0.625rem" }}>
-          <RemoveButton id={account.id} kind="account" label={`Archive "${account.name}"? Its history stays, but it drops off your totals`} />
+        {/* Archive hides the account and keeps its history; Delete removes
+            it for good, and only while it has no history to lose. */}
+        <div style={{ display: "flex", justifyContent: "flex-end", alignItems: "flex-start", gap: "0.5rem", marginTop: "0.625rem" }}>
+          {account.is_archived ? <RestoreAccountButton accountId={account.id} /> : <RemoveButton id={account.id} kind="account" label={`Archive "${account.name}"`} />}
+          <DeleteAccountButton
+            accountId={account.id}
+            accountName={account.name}
+            movementCount={account.movementCount}
+            archived={account.is_archived}
+            afterDelete="/wealth?seg=accounts"
+          />
         </div>
+        {account.is_archived && (
+          <p style={{ fontSize: "0.78125rem", color: "var(--color-neutral-600)", marginTop: "0.625rem", lineHeight: 1.45 }}>
+            Archived: left out of every list and total, with its history kept. Restore puts it back.
+          </p>
+        )}
       </div>
     </div>
   );

@@ -16,6 +16,8 @@ import {
   deleteIncomeScheduleAction,
   deleteGoalAction,
   archiveAccountAction,
+  restoreAccountAction,
+  deleteAccountAction,
   setAccountPrivacyAction,
   postHubExpenseAction,
   deleteRemittanceAction,
@@ -444,12 +446,98 @@ export function RemoveButton({ id, kind, label }: { id: string; kind: keyof type
         // following it.
         e.preventDefault();
         e.stopPropagation();
-        if (!(await confirm({ title: `${label}?`, confirmLabel: kind === "account" ? "Archive" : "Remove", danger: true }))) return;
+        if (
+          !(await confirm({
+            title: `${label}?`,
+            description:
+              kind === "account"
+                ? "It drops off your lists and totals, and its history is kept exactly as it is. You can restore it any time from ARCHIVED at the foot of the Accounts tab."
+                : undefined,
+            confirmLabel: kind === "account" ? "Archive" : "Remove",
+            danger: true,
+          }))
+        )
+          return;
         run(() => DELETERS[kind](id));
       }}
     >
       {pending ? "…" : kind === "account" ? "Archive" : "Remove"}
     </button>
+  );
+}
+
+const smallButton: React.CSSProperties = { minHeight: "1.875rem", fontSize: "0.78125rem", padding: "0 0.5625rem" };
+
+/** Brings an archived account back into every list and total. */
+export function RestoreAccountButton({ accountId }: { accountId: string }) {
+  const { error, pending, run } = useMoneyAction();
+  return (
+    <span style={{ display: "inline-flex", flexDirection: "column", alignItems: "flex-end" }}>
+      <button type="button" className="btn btn-secondary" disabled={pending} style={smallButton} onClick={() => run(() => restoreAccountAction(accountId))}>
+        {pending ? "…" : "Restore"}
+      </button>
+      <Err message={error} />
+    </span>
+  );
+}
+
+/** Delete, the permanent one. Only an account nothing has moved through can
+ * go: one with movements is offered Archive instead, in the same sheet,
+ * because deleting it would take its history -- and the other half of any
+ * transfer -- with it (deleteAccountAction refuses it too, in case this
+ * count is stale). `afterDelete` is where to go once it's gone, for the
+ * account's own page, which has nothing left to show. */
+export function DeleteAccountButton({
+  accountId,
+  accountName,
+  movementCount,
+  archived,
+  afterDelete,
+}: {
+  accountId: string;
+  accountName: string;
+  movementCount: number;
+  archived: boolean;
+  afterDelete?: string;
+}) {
+  const { error, pending, run } = useMoneyAction();
+  const router = useRouter();
+  return (
+    <span style={{ display: "inline-flex", flexDirection: "column", alignItems: "flex-end" }}>
+      <button
+        type="button"
+        className="btn btn-secondary"
+        disabled={pending}
+        style={{ ...smallButton, color: "var(--color-accent-700)", borderColor: "var(--color-accent-700)" }}
+        onClick={async (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          if (movementCount > 0) {
+            const archiveInstead = await confirm({
+              title: `"${accountName}" can't be deleted`,
+              description: `It has ${movementCount} movement${movementCount === 1 ? "" : "s"} in its history. Deleting it would erase them — including its side of any transfer, leaving money that left another account and arrived nowhere. ${archived ? "It is already archived: hidden from your lists and totals, with its history kept." : "Archive it instead: it disappears from your lists and totals, its history stays, and you can restore it any time."}`,
+              confirmLabel: archived ? "OK" : "Archive instead",
+              cancelLabel: archived ? "Close" : "Cancel",
+            });
+            if (archiveInstead && !archived) run(() => archiveAccountAction(accountId), () => afterDelete && router.push(afterDelete));
+            return;
+          }
+          if (
+            !(await confirm({
+              title: `Delete "${accountName}"?`,
+              description: "This removes the account for good, for everyone in the household. Nothing has moved through it, so no history is lost. This can't be undone.",
+              confirmLabel: "Delete",
+              danger: true,
+            }))
+          )
+            return;
+          run(() => deleteAccountAction(accountId), () => afterDelete && router.push(afterDelete));
+        }}
+      >
+        {pending ? "…" : "Delete"}
+      </button>
+      <Err message={error} />
+    </span>
   );
 }
 
