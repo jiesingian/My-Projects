@@ -50,6 +50,26 @@ async function account(rest: Rest, id: string): Promise<{ is_archived: boolean }
   return ((await res.json()) as { is_archived: boolean }[])[0] ?? null;
 }
 
+/** What the switch should move All by: the balance of every unarchived
+ * private account in the login's own name (opening balance plus confirmed
+ * movements, the way the app works it out). */
+async function myPrivateBalance(rest: Rest, who: Me): Promise<number> {
+  const res = await rest.ctx.get(
+    `${rest.url}/rest/v1/accounts?select=id,opening_balance&owner_member_id=eq.${who.memberId}&is_private=eq.true&is_joint=eq.false&is_archived=eq.false`,
+    { headers: rest.headers },
+  );
+  expect(res.ok()).toBeTruthy();
+  const accounts = (await res.json()) as { id: string; opening_balance: number }[];
+  if (accounts.length === 0) return 0;
+  const moves = await rest.ctx.get(
+    `${rest.url}/rest/v1/wealth_transactions?select=direction,amount&status=eq.confirmed&account_id=in.(${accounts.map((a) => a.id).join(",")})`,
+    { headers: rest.headers },
+  );
+  expect(moves.ok()).toBeTruthy();
+  const net = ((await moves.json()) as { direction: string; amount: number }[]).reduce((sum, m) => sum + (m.direction === "in" ? 1 : -1) * Number(m.amount), 0);
+  return accounts.reduce((sum, a) => sum + Number(a.opening_balance), 0) + net;
+}
+
 /** The number under ALL ACCOUNTS · COMBINED, as a number. */
 async function allHeroTotal(page: Page): Promise<number> {
   const amount = page.locator(".kin-eyebrow", { hasText: /^ALL ACCOUNTS · COMBINED$/ }).locator("xpath=following-sibling::div[1]/span[1]");
@@ -166,8 +186,10 @@ test.describe("archiving, deleting and numbering an account", () => {
     await page.locator('input[name="account_number"]').fill("1234 5678 9012");
     await page.getByRole("button", { name: "Save" }).click();
 
-    await page.waitForLoadState("networkidle");
-    await page.goto(`/wealth/accounts/${id}`, { waitUntil: "networkidle" });
+    // Saving redirects back to this page with the form closed. Waiting for
+    // that, not for the network to go quiet, is what says the save is done.
+    await expect(page.getByRole("button", { name: "Edit account" })).toBeVisible({ timeout: 30_000 });
+    await page.reload({ waitUntil: "networkidle" });
     await expect(page.getByText("•••• 9012", { exact: true })).toBeVisible();
     await expect(page.getByText("1234 5678 9012")).toHaveCount(0);
     await expect(page.getByRole("button", { name: "Copy", exact: true })).toBeVisible();
@@ -175,9 +197,12 @@ test.describe("archiving, deleting and numbering an account", () => {
     await expect(page.getByText("1234 5678 9012", { exact: true })).toBeVisible();
   });
 
-  test("Include my private accounts in All totals moves the All total by that account's balance", async ({ page }) => {
-    const balance = 12_345;
-    await addAccount(rest, who, `${RUN} private`, { is_private: true, opening_balance: balance });
+  test("Include my private accounts in All totals moves the All total by my private accounts' balance", async ({ page }) => {
+    await addAccount(rest, who, `${RUN} private`, { is_private: true, opening_balance: 12_345 });
+    // The switch moves every private account of mine, not only this one:
+    // the QA household already has a private e-wallet of the login's.
+    const balance = await myPrivateBalance(rest, who);
+    expect(balance).toBeGreaterThanOrEqual(12_345);
 
     await page.goto("/wealth?seg=accounts&who=all", { waitUntil: "networkidle" });
     const toggle = page.getByLabel("Include my private accounts in All totals");
