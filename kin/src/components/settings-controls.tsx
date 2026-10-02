@@ -419,7 +419,7 @@ export function HouseholdPrefsForm({
         </select>
       </div>
       {/* Where the household is, not where a phone currently happens to be
-          -- used today to pick which App Store region GET APP falls back
+          -- used today to pick which App Store region OPEN falls back
           to searching. Blank stays a valid choice: nothing that reads this
           requires it. */}
       <div className="field" style={{ marginBottom: "0.5rem" }}>

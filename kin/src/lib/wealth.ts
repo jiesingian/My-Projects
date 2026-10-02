@@ -535,6 +535,53 @@ export function resolveInstitutionLinks(
   return null;
 }
 
+/** Where OPEN <bank> should send this phone: straight into the bank's app
+ * when it's installed, and to the store page to install it when it isn't
+ * -- one button instead of OPEN plus a row of GET … APP STORE / PLAY STORE
+ * buttons beside it.
+ *
+ * A web page cannot ask a phone whether an app is installed, so each
+ * platform gets the nearest thing it allows:
+ *   - Android: an intent: link naming the app's package (read off its Play
+ *     Store link). Chrome opens the app if it can, and otherwise follows
+ *     S.browser_fallback_url to the Play Store page itself.
+ *   - iPhone with a scheme of the app's own (gcash://): try that, and if
+ *     the page is still showing a moment later nothing opened, so go to
+ *     the App Store (`fallback`).
+ *   - iPhone without one (most banks publish none): the App Store page,
+ *     which shows OPEN instead of GET when the app is already there.
+ *   - A computer: the link as saved if it's a web page, else the App Store
+ *     page -- there is no phone app to open.
+ * A store link Kin doesn't have is a search for the institution's name,
+ * the same fallback GET APP used. `null` when there is nothing to open. */
+export function appLaunchPlan(
+  kind: PhoneKind,
+  links: { linkedAppUrl: string | null; appStoreUrl: string | null; playStoreUrl: string | null; institution: string | null; country?: string | null },
+): { href: string; fallback: string | null } | null {
+  const isWeb = (u: string | null): u is string => !!u && /^https?:\/\//i.test(u);
+  const scheme = links.linkedAppUrl && !isWeb(links.linkedAppUrl) ? links.linkedAppUrl : null;
+  const appStore = links.appStoreUrl || (links.institution ? appStoreSearchUrl(links.institution, links.country) : null);
+  const playStore = links.playStoreUrl || (links.institution ? playStoreSearchUrl(links.institution) : null);
+
+  if (kind === "android") {
+    const pkg = links.playStoreUrl ? new URL(links.playStoreUrl).searchParams.get("id") : null;
+    if (pkg && /^[\w.]+$/.test(pkg)) {
+      const fallback = encodeURIComponent(links.playStoreUrl!);
+      return { href: `intent://#Intent;package=${pkg};S.browser_fallback_url=${fallback};end`, fallback: null };
+    }
+    if (scheme) return { href: scheme, fallback: playStore };
+    const href = playStore ?? links.linkedAppUrl;
+    return href ? { href, fallback: null } : null;
+  }
+  if (kind === "ios") {
+    if (scheme) return { href: scheme, fallback: appStore };
+    const href = appStore ?? links.linkedAppUrl;
+    return href ? { href, fallback: null } : null;
+  }
+  const href = isWeb(links.linkedAppUrl) ? links.linkedAppUrl : appStore ?? playStore;
+  return href ? { href, fallback: null } : null;
+}
+
 /* ------------------------------------------------------------- remittances */
 
 /** How a padala reached home. GCash and Maya are named because they are how
