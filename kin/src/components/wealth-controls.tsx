@@ -326,7 +326,7 @@ export function AppLinksField({
   );
 }
 
-export function AddAccountForm({ isJoint }: { isJoint: boolean }) {
+export function AddAccountForm({ isJoint, returnWho }: { isJoint: boolean; returnWho: string }) {
   const [open, setOpen] = useState(false);
   const [state, formAction] = useActionState(addAccountAction, initialState);
   const [accountType, setAccountType] = useState<AccountType>("bank");
@@ -347,6 +347,7 @@ export function AddAccountForm({ isJoint }: { isJoint: boolean }) {
   return (
     <form action={formAction} style={{ marginTop: "1.125rem", borderTop: "1px solid var(--color-divider)", paddingTop: "1rem" }}>
       <input type="hidden" name="is_joint" value={isJoint ? "on" : ""} />
+      <input type="hidden" name="return_who" value={returnWho} />
       <ErrorText message={state.error} />
       <Labelled label="Account name">
         <input className="input" name="name" required placeholder="Everyday savings" style={{ minHeight: "2.625rem" }} />
@@ -370,7 +371,7 @@ export function AddAccountForm({ isJoint }: { isJoint: boolean }) {
         <AppLinksField accountType={accountType} />
       </div>
       <Labelled label="Opening balance (₱)">
-        <input className="input" type="number" step="0.01" name="opening_balance" defaultValue={0} style={{ minHeight: "2.625rem" }} />
+        <input className="input" type="number" step="0.01" inputMode="decimal" name="opening_balance" placeholder="0.00" style={{ minHeight: "2.625rem" }} />
       </Labelled>
       <Labelled label="Note">
         <input className="input" name="sub_note" placeholder="Salary account" style={{ minHeight: "2.625rem" }} />
