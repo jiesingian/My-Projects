@@ -23,6 +23,7 @@ import {
 import type { ActionState } from "@/lib/actions/auth";
 import { SubmitButton, ErrorText } from "@/components/form";
 import { DateInput } from "@/components/date-input";
+import { AmountInput } from "@/components/amount-input";
 
 const initialState: ActionState = { error: null };
 
@@ -537,7 +538,7 @@ export function SetBudgetControl({ month, year, current }: { month: number; year
   const [failed, setFailed] = useState<string | null>(null);
   return (
     <div style={{ display: "flex", gap: "0.5rem", marginBottom: "1rem" }}>
-      <input className="input" type="number" value={value} onChange={(e) => setValue(Number(e.target.value))} style={{ minHeight: "2.5rem" }} />
+      <AmountInput ariaLabel="Amount" defaultValue={value} onValueChange={setValue} style={{ minHeight: "2.5rem" }} />
       <button
         type="button"
         className="btn btn-secondary"
@@ -569,7 +570,7 @@ export function SetTargetControl({ month, year, current }: { month: number; year
   const [failed, setFailed] = useState<string | null>(null);
   return (
     <div style={{ display: "flex", gap: "0.5rem", marginBottom: "1rem" }}>
-      <input className="input" type="number" value={value} onChange={(e) => setValue(Number(e.target.value))} style={{ minHeight: "2.5rem" }} />
+      <AmountInput ariaLabel="Amount" defaultValue={value} onValueChange={setValue} style={{ minHeight: "2.5rem" }} />
       <button
         type="button"
         className="btn btn-secondary"
@@ -621,7 +622,7 @@ export function AllocationEditor({ budgeted }: { budgeted: string[] }) {
           </option>
         ))}
       </select>
-      <input className="input" type="number" value={amount} onChange={(e) => setAmount(Number(e.target.value))} style={{ minHeight: "2.5rem", width: 96 }} />
+      <AmountInput ariaLabel="Amount" defaultValue={amount} onValueChange={setAmount} style={{ minHeight: "2.5rem", width: 96 }} />
       <button
         type="button"
         className="btn btn-primary"
