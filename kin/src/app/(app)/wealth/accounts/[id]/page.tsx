@@ -2,7 +2,9 @@ import Link from "next/link";
 import { Icon } from "@/components/icons";
 import { notFound, redirect } from "next/navigation";
 import { getCurrentMember } from "@/lib/session";
-import { getAccountDetail, getAccountHistory } from "@/lib/queries/wealth";
+import { getAccountDetail, getAccountHistory, getAccountNumbers } from "@/lib/queries/wealth";
+import { AccountNumber } from "@/components/account-number";
+import { isGrownUp } from "@/lib/roles";
 import { CashTrendLine } from "@/components/wealth-charts";
 import { PickButton } from "@/components/pick-button";
 import { DetailHeader } from "@/components/hub-header";
@@ -20,8 +22,14 @@ export default async function AccountPage({ params, searchParams }: { params: Pr
   const { id } = await params;
   const sp = await searchParams;
   const range: CashFlowRange = (CASH_FLOW_RANGES as readonly string[]).includes(sp.range ?? "") ? (sp.range as CashFlowRange) : "month";
-  const [{ account, entries }, history] = await Promise.all([getAccountDetail(me.family_id, id), getAccountHistory(me.family_id, id, range)]);
+  const [{ account, entries }, history, numbers] = await Promise.all([
+    getAccountDetail(me.family_id, id),
+    getAccountHistory(me.family_id, id, range),
+    getAccountNumbers(me.family_id, [id]),
+  ]);
   if (!account) notFound();
+  const number = numbers.get(account.id) ?? null;
+  const canNumber = account.is_joint ? isGrownUp(me.role) : account.owner_member_id === me.id;
   // The Accounts tab's cash trend, for this account alone: the same line,
   // walked back from this account's balance instead of the combined total.
   const trend = cashBalanceTrend(history, account.balance);
@@ -51,6 +59,11 @@ export default async function AccountPage({ params, searchParams }: { params: Pr
           <div style={{ fontSize: "0.8125rem", color: "var(--color-neutral-600)", marginTop: "0.3125rem" }}>
             Opened at {formatCurrency(Number(account.opening_balance), currency)} · {confirmed.length} movement{confirmed.length === 1 ? "" : "s"} since
           </div>
+          {number && (
+            <div style={{ marginTop: "0.75rem", paddingTop: "0.625rem", borderTop: "1px solid var(--color-divider)" }}>
+              <AccountNumber number={number} />
+            </div>
+          )}
         </Blueprint>
 
         <CashTrendLine trend={trend} currency={currency} />
@@ -128,7 +141,7 @@ export default async function AccountPage({ params, searchParams }: { params: Pr
           </div>
         ))}
 
-        <AccountEditForm account={account} />
+        <AccountEditForm account={account} number={number} canNumber={canNumber} />
         {/* Archive hides the account and keeps its history; Delete removes
             it for good, and only while it has no history to lose. */}
         <div style={{ display: "flex", justifyContent: "flex-end", alignItems: "flex-start", gap: "0.5rem", marginTop: "0.625rem" }}>

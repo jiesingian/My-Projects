@@ -1,5 +1,5 @@
 import { test, expect } from "@playwright/test";
-import { inScope } from "@/lib/wealth";
+import { inScope, inTotalsScope } from "@/lib/wealth";
 
 /** The rule behind the Who picker, which is not the rule people expect.
  *
@@ -79,4 +79,19 @@ test("the four collections are narrowed by one rule, not four", () => {
   const goal = { is_joint: false, owner_member_id: HER };
   expect([asset, liability, goal].map((r) => inScope(r, ME))).toEqual([true, false, false]);
   expect([asset, liability, goal].map((r) => inScope(r, "all"))).toEqual([true, true, true]);
+});
+
+/* "Include my private accounts in All totals" (2 October): off leaves the
+ * viewer's own private accounts out of All only -- never anyone else's,
+ * never their own Who, never a joint or shared one. */
+test("leaving my private accounts out of All touches only my private ones, and only in All", () => {
+  const me = "m-me";
+  const minePrivate = { is_joint: false, owner_member_id: me, is_private: true };
+  const mineShared = { is_joint: false, owner_member_id: me, is_private: false };
+  const joint = { is_joint: true, owner_member_id: null, is_private: false };
+  expect(inTotalsScope(minePrivate, "all", null)).toBe(true);
+  expect(inTotalsScope(minePrivate, "all", me)).toBe(false);
+  expect(inTotalsScope(minePrivate, me, me)).toBe(true);
+  expect(inTotalsScope(mineShared, "all", me)).toBe(true);
+  expect(inTotalsScope(joint, "all", me)).toBe(true);
 });

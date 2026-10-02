@@ -24,6 +24,7 @@ import type { ActionState } from "@/lib/actions/auth";
 import { SubmitButton, ErrorText } from "@/components/form";
 import { DateInput } from "@/components/date-input";
 import { AmountInput } from "@/components/amount-input";
+import { AccountNumberField } from "@/components/account-number";
 
 const initialState: ActionState = { error: null };
 
@@ -326,7 +327,9 @@ export function AppLinksField({
   );
 }
 
-export function AddAccountForm({ isJoint, returnWho }: { isJoint: boolean; returnWho: string }) {
+/** `canNumber`: whether this person may set the new account's number --
+ * always on their own account, only a grown-up on a joint one. */
+export function AddAccountForm({ isJoint, returnWho, canNumber }: { isJoint: boolean; returnWho: string; canNumber: boolean }) {
   const [open, setOpen] = useState(false);
   const [state, formAction] = useActionState(addAccountAction, initialState);
   const [accountType, setAccountType] = useState<AccountType>("bank");
@@ -373,6 +376,7 @@ export function AddAccountForm({ isJoint, returnWho }: { isJoint: boolean; retur
       <Labelled label="Opening balance (₱)">
         <input className="input" type="number" step="0.01" inputMode="decimal" name="opening_balance" placeholder="0.00" style={{ minHeight: "2.625rem" }} />
       </Labelled>
+      {canNumber && <AccountNumberField />}
       <Labelled label="Note">
         <input className="input" name="sub_note" placeholder="Salary account" style={{ minHeight: "2.625rem" }} />
       </Labelled>

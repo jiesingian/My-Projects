@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import type { Tables } from "@/lib/database.types";
-import { monthKey, recentMonths, signedAmount, recentPeriods, periodKey, periodHistory, cashFlowRangeCount, inScope, isHouseholdScope, TRANSFER_CATEGORY, type CashFlowRange, type WealthScope } from "@/lib/wealth";
+import { getCurrentMember } from "@/lib/session";
+import { monthKey, recentMonths, signedAmount, recentPeriods, periodKey, periodHistory, cashFlowRangeCount, inScope, inTotalsScope, isHouseholdScope, TRANSFER_CATEGORY, type CashFlowRange, type WealthScope } from "@/lib/wealth";
 
 // Re-exported so the page keeps importing its scope type from the module it
 // already imports the queries from.
@@ -42,6 +43,13 @@ async function loadAccounts(familyId: string, archived = false): Promise<Account
     pendingCount: pending.get(a.id) ?? 0,
     movementCount: count.get(a.id) ?? 0,
   }));
+}
+
+/** The viewer's member id if they've chosen to leave their own private
+ * accounts out of All, else null -- what inTotalsScope takes. */
+async function privateLeftOutOfAll(): Promise<string | null> {
+  const me = await getCurrentMember();
+  return me && me.wealth_include_private === false ? me.id : null;
 }
 
 export async function getAccounts(familyId: string): Promise<AccountWithBalance[]> {
@@ -90,7 +98,8 @@ export async function getWealthPane(familyId: string, memberId: string, scope: W
       .order("occurred_at", { ascending: false }),
   ]);
 
-  const accounts = allAccounts.filter((a) => inScope(a, scope));
+  const leaveOut = await privateLeftOutOfAll();
+  const accounts = allAccounts.filter((a) => inTotalsScope(a, scope, leaveOut));
   const accountIds = new Set(accounts.map((a) => a.id));
   const scoped = (transactions ?? []).filter((t) => accountIds.has(t.account_id));
   const thisMonth = scoped.filter((t) => t.status === "confirmed" && monthKey(t.occurred_at) === monthKey(new Date()));
@@ -187,6 +196,18 @@ export async function getAccountHistory(familyId: string, accountId: string, ran
   return periodHistory(data ?? [], range, periods);
 }
 
+/** Account numbers the viewer may see, by account id. Which ones those are
+ * is account_numbers' row-level security (owner; grown-ups for a joint or
+ * shared account), so nothing here filters. Read only where a number is
+ * shown -- never with the account lists. */
+export async function getAccountNumbers(familyId: string, accountIds?: string[]): Promise<Map<string, string>> {
+  const supabase = await createClient();
+  let query = supabase.from("account_numbers").select("account_id, number").eq("family_id", familyId);
+  if (accountIds) query = query.in("account_id", accountIds);
+  const { data } = await query;
+  return new Map((data ?? []).map((r) => [r.account_id, r.number]));
+}
+
 export async function getBills(familyId: string) {
   const supabase = await createClient();
   const { data } = await supabase
@@ -239,7 +260,8 @@ export async function getNetWorth(familyId: string, scope: WealthScope = "all") 
   const scopedAssets = (assets ?? []).filter((a) => inScope(a, scope));
   const scopedLiabilities = (liabilities ?? []).filter((l) => inScope(l, scope));
   const scopedGoals = (goals ?? []).filter((g) => inScope(g, scope));
-  const cashAccounts = accounts.filter((a) => inScope(a, scope));
+  const leaveOut = await privateLeftOutOfAll();
+  const cashAccounts = accounts.filter((a) => inTotalsScope(a, scope, leaveOut));
 
   const assetTotal = scopedAssets.reduce((sum, a) => sum + Number(a.value), 0);
   const liabilityTotal = scopedLiabilities.reduce((sum, l) => sum + Number(l.balance), 0);
@@ -301,7 +323,8 @@ export async function getCashFlowPane(familyId: string, range: CashFlowRange, sc
     getIncomeSchedules(familyId),
   ]);
 
-  const accountIds = new Set(allAccounts.filter((a) => inScope(a, scope)).map((a) => a.id));
+  const leaveOut = await privateLeftOutOfAll();
+  const accountIds = new Set(allAccounts.filter((a) => inTotalsScope(a, scope, leaveOut)).map((a) => a.id));
   const rows = (transactions ?? []).map(toLedgerEntry).filter((t) => accountIds.has(t.account_id));
   const confirmed = rows.filter((t) => t.status === "confirmed");
   const thisPeriodKey = periodKey(new Date(), range);

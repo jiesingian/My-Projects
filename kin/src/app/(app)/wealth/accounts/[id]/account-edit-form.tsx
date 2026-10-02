@@ -6,11 +6,15 @@ import { ACCOUNT_TYPES, ACCOUNT_TYPE_LABELS, type AccountType } from "@/lib/weal
 import type { ActionState } from "@/lib/actions/auth";
 import { SubmitButton, ErrorText } from "@/components/form";
 import { AppLinksField } from "@/components/wealth-controls";
+import { AccountNumberField } from "@/components/account-number";
 import type { Tables } from "@/lib/database.types";
 
 const initialState: ActionState = { error: null };
 
-export function AccountEditForm({ account }: { account: Tables<"accounts"> }) {
+/** `canNumber` is whether this person may set the number (the account's
+ * owner, or a grown-up on a joint account); without it the field is left
+ * off and the number is untouched. */
+export function AccountEditForm({ account, number, canNumber }: { account: Tables<"accounts">; number: string | null; canNumber: boolean }) {
   const [open, setOpen] = useState(false);
   const [state, formAction] = useActionState(updateAccountAction.bind(null, account.id), initialState);
   const [accountType, setAccountType] = useState<AccountType>(account.account_type as AccountType);
@@ -53,6 +57,7 @@ export function AccountEditForm({ account }: { account: Tables<"accounts"> }) {
           defaultPlayStoreUrl={account.play_store_url ?? ""}
         />
       </div>
+      {canNumber && <AccountNumberField defaultValue={number ?? ""} />}
       <Field label="Note">
         <input className="input" name="sub_note" defaultValue={account.sub_note ?? ""} style={{ minHeight: "2.625rem" }} />
       </Field>

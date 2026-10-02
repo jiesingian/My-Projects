@@ -16,6 +16,7 @@ import {
   RemoveButton,
   AccountPrivacyToggle,
   MoveMoneyButton,
+  IncludePrivateToggle,
   RestoreAccountButton,
   DeleteAccountButton,
   type PickableAccount,
@@ -75,7 +76,7 @@ export default async function WealthPage({ searchParams }: { searchParams: Promi
       <HubHeader n="05" title="Wealth" segments={segments} dateFormat={me.families.date_format} />
       <div style={{ padding: "0 var(--gutter) 1.375rem" }}>
         {seg === "cashflow" && <CashFlowPane familyId={me.family_id} memberId={me.id} currency={currency} range={range} scope={who} grownUp={isGrownUp(me.role)} />}
-        {seg === "accounts" && <ScopePane scope={who} familyId={me.family_id} memberId={me.id} currency={currency} range={range} newAccountId={sp.new} />}
+        {seg === "accounts" && <ScopePane scope={who} familyId={me.family_id} memberId={me.id} currency={currency} range={range} newAccountId={sp.new} includePrivate={me.wealth_include_private} grownUp={isGrownUp(me.role)} />}
         {seg === "assets" && <AssetsPane familyId={me.family_id} memberId={me.id} currency={currency} scope={who} />}
       </div>
     </div>
@@ -605,7 +606,7 @@ async function CashFlowPane({ familyId, memberId, currency, range, scope, grownU
 
 /* ------------------------------------------------------------- accounts */
 
-async function ScopePane({ scope, familyId, memberId, currency, range, newAccountId }: { scope: WealthScope; familyId: string; memberId: string; currency: string; range: CashFlowRange; newAccountId?: string }) {
+async function ScopePane({ scope, familyId, memberId, currency, range, newAccountId, includePrivate, grownUp }: { scope: WealthScope; familyId: string; memberId: string; currency: string; range: CashFlowRange; newAccountId?: string; includePrivate: boolean; grownUp: boolean }) {
   const [dateFormat, pane, cf, who, allArchived] = await Promise.all([
     householdDateFormat(),
     getWealthPane(familyId, memberId, scope),
@@ -634,9 +635,18 @@ async function ScopePane({ scope, familyId, memberId, currency, range, newAccoun
       <div style={{ display: "flex", alignItems: "center", gap: "0.375rem", margin: "14px 0 4px" }}>
         <PickButton title="Who" icon="users" label={who.whoLabel} options={who.options} />
         <span style={{ fontSize: "0.78125rem", color: "var(--color-neutral-600)" }}>
-          {scope === "all" ? "Everything you can see" : scope === WEALTH_FAMILY ? "Joint, and not in anyone's name" : mine ? "Your own accounts" : "Their accounts, as shared"}
+          {scope === "all"
+            ? includePrivate
+              ? "Everything you can see"
+              : "Everything you can see, except your private accounts"
+            : scope === WEALTH_FAMILY
+              ? "Joint, and not in anyone's name"
+              : mine
+                ? "Your own accounts"
+                : "Their accounts, as shared"}
         </span>
       </div>
+      {scope === "all" && <IncludePrivateToggle include={includePrivate} />}
 
       <Hero
         label={scope === WEALTH_FAMILY ? "FAMILY ACCOUNTS · COMBINED" : isJoint ? "ALL ACCOUNTS · COMBINED" : `${whosePossessive.toUpperCase()} ACCOUNTS · COMBINED`}
@@ -727,7 +737,7 @@ async function ScopePane({ scope, familyId, memberId, currency, range, newAccoun
       {newAccountId && pane.accounts.some((a) => a.id === newAccountId) && <ScrollIntoView targetId={`account-${newAccountId}`} />}
       {/* A new account is opened in your own name, so it is only offered
           where that is what you would mean. */}
-      {(isJoint || mine) && <AddAccountForm isJoint={isJoint} returnWho={scope} />}
+      {(isJoint || mine) && <AddAccountForm isJoint={isJoint} returnWho={scope} canNumber={!isJoint || grownUp} />}
 
       {/* Archive hides an account and keeps its history; this is where
           they wait, to be restored -- or deleted, if nothing ever moved
@@ -764,8 +774,9 @@ async function ScopePane({ scope, familyId, memberId, currency, range, newAccoun
       )}
 
       <div style={{ fontSize: "0.78125rem", color: "var(--color-neutral-600)", marginTop: "0.875rem", lineHeight: 1.45 }}>
-        A personal account is private until its owner opens it to the family. Private ones are not hidden from you by the
-        app — the database never sends them, so nobody sees them but their owner.
+        A personal account is private until its owner opens it to the family. Nobody else sees a private account, its
+        history or its balance — not in a list and not in any total — because the database never sends it to them. Its
+        owner can also leave it out of their own All totals with the switch at the top.
       </div>
     </>
   );
