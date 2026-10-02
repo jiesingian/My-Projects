@@ -23,6 +23,7 @@ export function TransactForm({
   accounts,
   currency,
   defaultMode,
+  defaultAccountId,
   assets,
   goals,
   defaultParticulars,
@@ -31,6 +32,9 @@ export function TransactForm({
   accounts: PickableAccount[];
   currency: string;
   defaultMode: string;
+  /** The account this was opened from, chosen to start with. Ignored if it
+   * isn't one of `accounts` -- archived, or not the viewer's to see. */
+  defaultAccountId?: string;
   assets: { id: string; name: string }[];
   goals: { id: string; name: string }[];
   /** Carried in from a chat message someone chose to record as money. A
@@ -40,8 +44,9 @@ export function TransactForm({
 }) {
   const router = useRouter();
   const [mode, setMode] = useState<Mode>((MODES as readonly string[]).includes(defaultMode) ? (defaultMode as Mode) : "in");
-  const [accountId, setAccountId] = useState(accounts[0]?.id ?? "");
-  const [toAccountId, setToAccountId] = useState(accounts[1]?.id ?? accounts[0]?.id ?? "");
+  const startId = accounts.some((a) => a.id === defaultAccountId) ? defaultAccountId! : (accounts[0]?.id ?? "");
+  const [accountId, setAccountId] = useState(startId);
+  const [toAccountId, setToAccountId] = useState(accounts.find((a) => a.id !== startId)?.id ?? startId);
   const [amount, setAmount] = useState<number>(defaultAmount ?? 0);
   const [particulars, setParticulars] = useState(defaultParticulars ?? "");
   const [category, setCategory] = useState<string>(INCOME_SOURCES[0]);

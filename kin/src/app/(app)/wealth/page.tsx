@@ -15,6 +15,7 @@ import {
   ValueUpdateControl,
   RemoveButton,
   AccountPrivacyToggle,
+  MoveMoneyButton,
   type PickableAccount,
 } from "@/components/money-actions";
 import { formatCurrency, formatDate, shortNames, selfLabel, selfPossessive } from "@/lib/format";
@@ -42,6 +43,7 @@ import {
 } from "@/lib/wealth";
 import { familyDate, householdDateFormat } from "@/lib/format-family";
 import { CollapsibleGroup } from "@/components/collapsible-group";
+import { ScrollIntoView } from "@/components/scroll-into-view";
 import { CashFlowChart, CategoryDonut, NetWorthLine, SpendingByPerson } from "@/components/wealth-charts";
 import { isGrownUp } from "@/lib/roles";
 import { isGone } from "@/lib/member-status";
@@ -54,7 +56,7 @@ const SEGMENTS = ["cashflow", "accounts", "assets"] as const;
 type Seg = (typeof SEGMENTS)[number];
 const SEGMENT_LABELS: Record<Seg, string> = { cashflow: "Cash Flow", accounts: "Accounts", assets: "A&L" };
 
-export default async function WealthPage({ searchParams }: { searchParams: Promise<{ seg?: string; who?: string; range?: string }> }) {
+export default async function WealthPage({ searchParams }: { searchParams: Promise<{ seg?: string; who?: string; range?: string; new?: string }> }) {
   const me = await getCurrentMember();
   if (!me) redirect("/onboarding/profile");
   const sp = await searchParams;
@@ -70,7 +72,7 @@ export default async function WealthPage({ searchParams }: { searchParams: Promi
       <HubHeader n="05" title="Wealth" segments={segments} dateFormat={me.families.date_format} />
       <div style={{ padding: "0 var(--gutter) 1.375rem" }}>
         {seg === "cashflow" && <CashFlowPane familyId={me.family_id} memberId={me.id} currency={currency} range={range} scope={who} grownUp={isGrownUp(me.role)} />}
-        {seg === "accounts" && <ScopePane scope={who} familyId={me.family_id} memberId={me.id} currency={currency} range={range} />}
+        {seg === "accounts" && <ScopePane scope={who} familyId={me.family_id} memberId={me.id} currency={currency} range={range} newAccountId={sp.new} />}
         {seg === "assets" && <AssetsPane familyId={me.family_id} memberId={me.id} currency={currency} scope={who} />}
       </div>
     </div>
@@ -406,27 +408,6 @@ function UpcomingBills<T extends { id: string; name: string; amount: number | st
   );
 }
 
-function QuickActions() {
-  return (
-    <div className="kin-money-actions" style={{ display: "flex", gap: "0.5rem", marginBottom: "1.125rem" }}>
-      {[
-        { label: "MONEY IN", mode: "in" },
-        { label: "MONEY OUT", mode: "out" },
-        { label: "TRANSFER", mode: "transfer" },
-      ].map((a) => (
-        <Link
-          key={a.mode}
-          href={`/wealth/transact?mode=${a.mode}`}
-          className="btn btn-secondary"
-          style={{ flex: 1, minHeight: "2.5rem", fontSize: "0.8125rem", letterSpacing: ".04em", display: "flex", alignItems: "center", justifyContent: "center" }}
-        >
-          {a.label}
-        </Link>
-      ))}
-    </div>
-  );
-}
-
 /* ----------------------------------------------------------------- cash flow */
 
 async function CashFlowPane({ familyId, memberId, currency, range, scope, grownUp }: { familyId: string; memberId: string; currency: string; range: CashFlowRange; scope: WealthScope; grownUp: boolean }) {
@@ -682,7 +663,7 @@ async function CashFlowPane({ familyId, memberId, currency, range, scope, grownU
 
 /* ------------------------------------------------------------- accounts */
 
-async function ScopePane({ scope, familyId, memberId, currency, range }: { scope: WealthScope; familyId: string; memberId: string; currency: string; range: CashFlowRange }) {
+async function ScopePane({ scope, familyId, memberId, currency, range, newAccountId }: { scope: WealthScope; familyId: string; memberId: string; currency: string; range: CashFlowRange; newAccountId?: string }) {
   const [dateFormat, pane, cf, who] = await Promise.all([
     householdDateFormat(),
     getWealthPane(familyId, memberId, scope),
@@ -734,52 +715,75 @@ async function ScopePane({ scope, familyId, memberId, currency, range }: { scope
       </div>
       <HistoryStrip history={cf.history} currency={currency} title={`BY ${CASH_FLOW_RANGE_LABELS[range].toUpperCase()}`} />
 
-      <QuickActions />
-
       <PendingBlock pending={pane.pending} currency={currency} dateFormat={dateFormat} />
 
       <SectionLabel>{scope === WEALTH_FAMILY ? "FAMILY ACCOUNTS" : isJoint ? "ACCOUNTS" : `${whosePossessive.toUpperCase()} ACCOUNTS`}</SectionLabel>
       {pane.accounts.length === 0 && (
         <Empty icon={<Icon name="wallet" size={26} />} title="No accounts yet" line="Add the accounts the household actually uses — a bank, a wallet, the cash in the drawer — and Kin keeps the running balance." />
       )}
-      {accountGroups.map((group) => (
-        <CollapsibleGroup key={group.type} title={`${ACCOUNT_TYPE_LABELS[group.type].toUpperCase()} · ${group.accounts.length}`} defaultOpen={false}>
-          {group.accounts.map((a) => (
-            <Link
-              key={a.id}
-              href={`/wealth/accounts/${a.id}`}
-              style={{ display: "flex", gap: "0.625rem", alignItems: "center", padding: "0.75rem 0", borderBottom: "1px solid color-mix(in srgb, var(--color-text) 10%, transparent)", textDecoration: "none", color: "inherit" }}
-            >
-              <span style={{ flex: 1, minWidth: 0 }}>
-                <span style={{ font: "600 1rem/1.1 var(--font-heading)", display: "block" }}>{a.name}</span>
-                <span style={{ fontSize: "0.8125rem", color: "var(--color-neutral-600)" }}>
-                  {a.institution ? a.institution : ACCOUNT_TYPE_LABELS[a.account_type as AccountType] ?? a.account_type}
-                  {a.sub_note ? ` · ${a.sub_note}` : ""}
+      {/* Just saved from the form below: its group opens (the key makes it
+          remount, so defaultOpen applies even if it was already on screen
+          closed), the row is tinted and marked NEW, and the page scrolls to it. */}
+      {accountGroups.map((group) => {
+        const holdsNew = !!newAccountId && group.accounts.some((a) => a.id === newAccountId);
+        return (
+          <CollapsibleGroup key={holdsNew ? `${group.type}-${newAccountId}` : group.type} title={`${ACCOUNT_TYPE_LABELS[group.type].toUpperCase()} · ${group.accounts.length}`} defaultOpen={holdsNew}>
+            {group.accounts.map((a) => (
+              <Link
+                key={a.id}
+                id={`account-${a.id}`}
+                href={`/wealth/accounts/${a.id}`}
+                style={{
+                  display: "flex",
+                  gap: "0.625rem",
+                  alignItems: "center",
+                  padding: "0.75rem 0",
+                  borderBottom: "1px solid color-mix(in srgb, var(--color-text) 10%, transparent)",
+                  textDecoration: "none",
+                  color: "inherit",
+                  ...(a.id === newAccountId ? { background: "var(--color-accent-100)", margin: "0 calc(-1 * 0.5rem)", padding: "0.75rem 0.5rem", borderRadius: 6 } : null),
+                }}
+              >
+                <span style={{ flex: 1, minWidth: 0 }}>
+                  <span style={{ font: "600 1rem/1.1 var(--font-heading)", display: "block" }}>
+                    {a.name}
+                    {a.id === newAccountId && (
+                      <span style={{ marginLeft: "0.5rem", verticalAlign: "middle" }}>
+                        <Tag variant="accent">NEW</Tag>
+                      </span>
+                    )}
+                  </span>
+                  <span style={{ fontSize: "0.8125rem", color: "var(--color-neutral-600)" }}>
+                    {a.institution ? a.institution : ACCOUNT_TYPE_LABELS[a.account_type as AccountType] ?? a.account_type}
+                    {a.sub_note ? ` · ${a.sub_note}` : ""}
+                  </span>
+                  {/* Who can see it, and — if it is yours — a tap to change that. */}
+                  <span style={{ display: "inline-flex", marginTop: "0.3125rem" }}>
+                    <AccountPrivacyToggle
+                      accountId={a.id}
+                      isPrivate={a.is_private}
+                      isJoint={a.is_joint}
+                      canChange={!a.is_joint && a.owner_member_id === memberId}
+                    />
+                  </span>
                 </span>
-                {/* Who can see it, and — if it is yours — a tap to change that. */}
-                <span style={{ display: "inline-flex", marginTop: "0.3125rem" }}>
-                  <AccountPrivacyToggle
-                    accountId={a.id}
-                    isPrivate={a.is_private}
-                    isJoint={a.is_joint}
-                    canChange={!a.is_joint && a.owner_member_id === memberId}
-                  />
+                <span style={{ textAlign: "right", flex: "none" }}>
+                  <span style={{ fontFamily: "var(--font-numeric)", fontSize: "0.8125rem", display: "block" }}>{formatCurrency(a.balance, currency)}</span>
+                  {a.pendingCount > 0 && <Tag variant="outline">{a.pendingCount} PENDING</Tag>}
+                  <span style={{ display: "flex", gap: "0.375rem", justifyContent: "flex-end", marginTop: "0.375rem" }}>
+                    <MoveMoneyButton accountId={a.id} accountName={a.name} />
+                    <RemoveButton id={a.id} kind="account" label={`Archive "${a.name}"`} />
+                  </span>
                 </span>
-              </span>
-              <span style={{ textAlign: "right", flex: "none" }}>
-                <span style={{ fontFamily: "var(--font-numeric)", fontSize: "0.8125rem", display: "block" }}>{formatCurrency(a.balance, currency)}</span>
-                {a.pendingCount > 0 && <Tag variant="outline">{a.pendingCount} PENDING</Tag>}
-                <span style={{ display: "block", marginTop: "0.375rem" }}>
-                  <RemoveButton id={a.id} kind="account" label={`Archive "${a.name}"`} />
-                </span>
-              </span>
-            </Link>
-          ))}
-        </CollapsibleGroup>
-      ))}
+              </Link>
+            ))}
+          </CollapsibleGroup>
+        );
+      })}
+      {newAccountId && pane.accounts.some((a) => a.id === newAccountId) && <ScrollIntoView targetId={`account-${newAccountId}`} />}
       {/* A new account is opened in your own name, so it is only offered
           where that is what you would mean. */}
-      {(isJoint || mine) && <AddAccountForm isJoint={isJoint} />}
+      {(isJoint || mine) && <AddAccountForm isJoint={isJoint} returnWho={scope} />}
 
       {pane.recent.length > 0 && (
         <>

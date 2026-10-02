@@ -453,6 +453,32 @@ export function RemoveButton({ id, kind, label }: { id: string; kind: keyof type
   );
 }
 
+/** Move money for one account: a single banknote icon beside its Archive
+ * button, where three MONEY IN / MONEY OUT / TRANSFER buttons used to sit
+ * above the whole list. Which of the three is picked inside the form; this
+ * only carries the account in, so it starts out chosen. A button, not a
+ * link, for the same reason as RemoveButton: the row it sits in already is
+ * one, and links can't nest. */
+export function MoveMoneyButton({ accountId, accountName }: { accountId: string; accountName: string }) {
+  const router = useRouter();
+  return (
+    <button
+      type="button"
+      className="btn btn-secondary"
+      aria-label={`Move money: ${accountName}`}
+      title="Move money"
+      style={{ minHeight: "1.875rem", minWidth: "1.875rem", padding: "0 0.4375rem", display: "inline-flex", alignItems: "center", justifyContent: "center" }}
+      onClick={(e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        router.push(`/wealth/transact?account=${accountId}`);
+      }}
+    >
+      <Icon name="banknote" size={16} />
+    </button>
+  );
+}
+
 /** Whether this account is the owner's business alone or the household's to
  * see. Shown on every account so the state is never a guess; only the owner
  * of a personal one can move it. */

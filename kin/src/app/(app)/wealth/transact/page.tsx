@@ -7,11 +7,11 @@ import { TransactForm } from "./transact-form";
 export default async function TransactPage({
   searchParams,
 }: {
-  searchParams: Promise<{ mode?: string; note?: string; amount?: string }>;
+  searchParams: Promise<{ mode?: string; note?: string; amount?: string; account?: string }>;
 }) {
   const me = await getCurrentMember();
   if (!me) redirect("/onboarding/profile");
-  const { mode, note, amount: rawAmount } = await searchParams;
+  const { mode, note, amount: rawAmount, account: fromAccount } = await searchParams;
   // From a URL, so parsed rather than trusted: a positive, finite number with
   // at most two decimals, or nothing at all.
   const parsed = Number(rawAmount);
@@ -20,7 +20,9 @@ export default async function TransactPage({
 
   return (
     <div>
-      <DetailHeader backHref="/wealth" eyebrow="Wealth" />
+      {/* Opened from one account (its row's Move money icon, or its own
+          page), so back returns to the Accounts list rather than Cash Flow. */}
+      <DetailHeader backHref={fromAccount ? "/wealth?seg=accounts" : "/wealth"} eyebrow="Wealth" />
       <div style={{ padding: "0 var(--gutter) 1.375rem" }}>
         <h3 style={{ fontSize: "2rem", margin: "0 0 14px" }}>Move money</h3>
         <TransactForm
@@ -34,6 +36,7 @@ export default async function TransactPage({
           }))}
           currency={me.families.currency}
           defaultMode={mode ?? "in"}
+          defaultAccountId={fromAccount}
           assets={targets.assets}
           goals={targets.goals}
           defaultParticulars={note?.slice(0, 200)}

@@ -11,6 +11,9 @@ export const iconPaths = {
   housePlus: "M3 10.5 12 3l9 7.5M5.5 9.5V21h13V9.5M9.5 15.5h5M12 13v5",
   wallet:
     "M3 6.5h15.5a2.5 2.5 0 0 1 2.5 2.5v9a2.5 2.5 0 0 1-2.5 2.5H5.5A2.5 2.5 0 0 1 3 18zM16 13.5h3M3 6.5a2 2 0 0 1 2-2h11.5",
+  // A banknote: Move money on an account row, where "wallet" already means
+  // the account itself.
+  banknote: "M2.5 6.5h19v11h-19zM12 9.5a2.5 2.5 0 1 0 0 5a2.5 2.5 0 0 0 0-5M5.5 10v4M18.5 10v4",
   layoutGrid: "M3 3h8v8H3zM13 3h8v8h-8zM3 13h8v8H3zM13 13h8v8h-8z",
   shieldCheck: "M12 3l8 3v6c0 5-3.5 8-8 9.5C7.5 20 4 17 4 12V6zM8.5 12l2.5 2.5 4.5-5",
   keyRound: "M17 2.8a4.6 4.6 0 1 0 0 9.2a4.6 4.6 0 0 0 0-9.2M13.8 10.6 3.2 21.2M6.4 18l2.8 2.8",

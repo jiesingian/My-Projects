@@ -46,13 +46,13 @@ export default async function AccountPage({ params }: { params: Promise<{ id: st
         </Blueprint>
 
         <div style={{ display: "flex", gap: "0.5rem", marginBottom: "0.5rem" }}>
-          <Link href="/wealth/transact?mode=in" className="btn btn-secondary" style={{ flex: 1, minHeight: "2.5rem", fontSize: "0.8125rem", display: "flex", alignItems: "center", justifyContent: "center" }}>
+          <Link href={`/wealth/transact?mode=in&account=${account.id}`} className="btn btn-secondary" style={{ flex: 1, minHeight: "2.5rem", fontSize: "0.8125rem", display: "flex", alignItems: "center", justifyContent: "center" }}>
             Money in
           </Link>
-          <Link href="/wealth/transact?mode=out" className="btn btn-secondary" style={{ flex: 1, minHeight: "2.5rem", fontSize: "0.8125rem", display: "flex", alignItems: "center", justifyContent: "center" }}>
+          <Link href={`/wealth/transact?mode=out&account=${account.id}`} className="btn btn-secondary" style={{ flex: 1, minHeight: "2.5rem", fontSize: "0.8125rem", display: "flex", alignItems: "center", justifyContent: "center" }}>
             Money out
           </Link>
-          <Link href="/wealth/transact?mode=transfer" className="btn btn-secondary" style={{ flex: 1, minHeight: "2.5rem", fontSize: "0.8125rem", display: "flex", alignItems: "center", justifyContent: "center" }}>
+          <Link href={`/wealth/transact?mode=transfer&account=${account.id}`} className="btn btn-secondary" style={{ flex: 1, minHeight: "2.5rem", fontSize: "0.8125rem", display: "flex", alignItems: "center", justifyContent: "center" }}>
             Transfer
           </Link>
         </div>

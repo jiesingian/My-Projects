@@ -38,6 +38,10 @@ export async function addAccountAction(_prev: ActionState, formData: FormData): 
   const accountType = String(formData.get("account_type") ?? "bank");
   const openingBalance = Number(formData.get("opening_balance") ?? 0);
   const isJoint = formData.get("is_joint") === "on";
+  // Which Who the Accounts tab was showing when the form was opened, so
+  // saving lands back on the same list. A query value, so only ever a
+  // plain id-shaped word, never anything that could reshape the URL.
+  const returnWho = String(formData.get("return_who") ?? "all");
   if (!name) return { error: "Name the account." };
   // The select only ever offers these six, but a form field is a request,
   // not a fact -- nothing stops a replayed or hand-built submission from
@@ -46,7 +50,7 @@ export async function addAccountAction(_prev: ActionState, formData: FormData): 
   if (!ACCOUNT_TYPES.includes(accountType as AccountType)) return { error: "That isn't a valid account type." };
   if (!Number.isFinite(openingBalance)) return { error: "Enter a valid opening balance." };
 
-  const { error } = await supabase.from("accounts").insert({
+  const { data: created, error } = await supabase.from("accounts").insert({
     family_id: me.family_id,
     name,
     sub_note: subNote,
@@ -69,11 +73,14 @@ export async function addAccountAction(_prev: ActionState, formData: FormData): 
     // owner unless they choose otherwise.
     is_private: isJoint ? false : true,
     created_by: me.id,
-  });
+  }).select("id").single();
   if (error) return { error: humanDatabaseError(error.message) };
 
   revalidateWealth();
-  return { error: null };
+  // Saving closes the form and goes back to the list, with the new account
+  // opened up and picked out (`new`) so it's plain the save landed.
+  const who = /^[\w-]{1,64}$/.test(returnWho) ? returnWho : "all";
+  redirect(`/wealth?seg=accounts&who=${who}&new=${created.id}`);
 }
 
 export async function updateAccountAction(accountId: string, _prev: ActionState, formData: FormData): Promise<ActionState> {
