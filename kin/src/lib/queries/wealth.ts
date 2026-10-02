@@ -1,6 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import type { Tables } from "@/lib/database.types";
-import { monthKey, recentMonths, signedAmount, recentPeriods, periodKey, cashFlowRangeCount, inScope, isHouseholdScope, TRANSFER_CATEGORY, type CashFlowRange, type WealthScope } from "@/lib/wealth";
+import { monthKey, recentMonths, signedAmount, recentPeriods, periodKey, periodHistory, cashFlowRangeCount, inScope, isHouseholdScope, TRANSFER_CATEGORY, type CashFlowRange, type WealthScope } from "@/lib/wealth";
 
 // Re-exported so the page keeps importing its scope type from the module it
 // already imports the queries from.
@@ -156,6 +156,23 @@ export async function getAccountDetail(familyId: string, accountId: string) {
   return { account, entries: (transactions ?? []).map(toLedgerEntry) };
 }
 
+/** One account's money in and out per period, over the same window the
+ * Accounts tab's graph covers -- what its own cash trend is drawn from.
+ * Queried by date rather than read off getAccountDetail's entries, which
+ * stop at the latest 200. */
+export async function getAccountHistory(familyId: string, accountId: string, range: CashFlowRange) {
+  const supabase = await createClient();
+  const periods = recentPeriods(range, cashFlowRangeCount(range));
+  const { data } = await supabase
+    .from("wealth_transactions")
+    .select("occurred_at, direction, amount, status")
+    .eq("family_id", familyId)
+    .eq("account_id", accountId)
+    .eq("status", "confirmed")
+    .gte("occurred_at", periods[0].start.toISOString());
+  return periodHistory(data ?? [], range, periods);
+}
+
 export async function getBills(familyId: string) {
   const supabase = await createClient();
   const { data } = await supabase
@@ -276,15 +293,7 @@ export async function getCashFlowPane(familyId: string, range: CashFlowRange, sc
   const thisPeriodKey = periodKey(new Date(), range);
   const thisPeriod = confirmed.filter((t) => periodKey(t.occurred_at, range) === thisPeriodKey);
 
-  const history = periods.map((p) => {
-    const inPeriod = confirmed.filter((t) => periodKey(t.occurred_at, range) === p.key);
-    return {
-      key: p.key,
-      label: p.label,
-      income: inPeriod.filter((t) => t.direction === "in").reduce((sum, t) => sum + Number(t.amount), 0),
-      expense: inPeriod.filter((t) => t.direction === "out").reduce((sum, t) => sum + Number(t.amount), 0),
-    };
-  });
+  const history = periodHistory(confirmed, range, periods);
 
   const periodIncome = thisPeriod.filter((t) => t.direction === "in").reduce((sum, t) => sum + Number(t.amount), 0);
   const periodExpense = thisPeriod.filter((t) => t.direction === "out").reduce((sum, t) => sum + Number(t.amount), 0);

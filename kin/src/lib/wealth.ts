@@ -199,6 +199,26 @@ export function periodKey(date: Date | string, range: CashFlowRange): string {
   return monthKey(date);
 }
 
+/** Confirmed money in and out per period, oldest first -- the history the
+ * Cash Flow and Accounts graphs draw, and an account's own trend. `rows`
+ * may include pending entries; only confirmed ones count. */
+export function periodHistory(
+  rows: { occurred_at: string; direction: string; amount: number | string; status: string }[],
+  range: CashFlowRange,
+  periods: { key: string; label: string }[],
+): { key: string; label: string; income: number; expense: number }[] {
+  const confirmed = rows.filter((t) => t.status === "confirmed");
+  return periods.map((p) => {
+    const inPeriod = confirmed.filter((t) => periodKey(t.occurred_at, range) === p.key);
+    return {
+      key: p.key,
+      label: p.label,
+      income: inPeriod.filter((t) => t.direction === "in").reduce((sum, t) => sum + Number(t.amount), 0),
+      expense: inPeriod.filter((t) => t.direction === "out").reduce((sum, t) => sum + Number(t.amount), 0),
+    };
+  });
+}
+
 /** A transaction only moves money once it is confirmed — anything still
  * waiting on the member finishing up in their banking app is held out of
  * every balance and total. */

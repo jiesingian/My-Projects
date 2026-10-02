@@ -237,6 +237,68 @@ function Key({ swatch, label }: { swatch: React.ReactNode; label: string }) {
 
 /* ------------------------------------------------------- category donut */
 
+/** Cash balance across the same window the history strip already covers --
+ * the trend line every net-worth screen from Mint to Monarch leads with,
+ * reconstructed from cashBalanceTrend (lib/wealth.ts) rather than stored.
+ * Cash only: assets, liabilities and goals don't carry a per-period history
+ * the way transactions do, so a full net-worth trend needs a stored monthly
+ * snapshot -- a migration, not this. Shared by the Accounts tab and each
+ * account's own page, which draws the same line for that account alone. */
+export function CashTrendLine({ trend, currency }: { trend: { key: string; label: string; balance: number }[]; currency: string }) {
+  if (trend.length < 2) return null;
+  const values = trend.map((t) => t.balance);
+  const min = Math.min(...values);
+  const max = Math.max(...values);
+  const span = max - min || 1;
+  const w = 100;
+  const h = 30;
+  const points = trend.map((t, i) => ({
+    x: (i / (trend.length - 1)) * w,
+    y: h - ((t.balance - min) / span) * h,
+    ...t,
+  }));
+  const changed = trend[trend.length - 1].balance - trend[0].balance;
+  const up = changed >= 0;
+
+  return (
+    <div style={{ marginBottom: "0.875rem" }}>
+      <div style={{ display: "flex", alignItems: "baseline", marginBottom: "0.375rem" }}>
+        <span style={{ font: "600 0.8125rem/1 var(--font-heading)", letterSpacing: ".02em", color: "var(--color-neutral-600)" }}>CASH TREND</span>
+        <span
+          style={{
+            marginLeft: "auto",
+            fontSize: "0.78125rem",
+            fontFamily: "var(--font-numeric)",
+            color: up ? "var(--color-accent-700)" : "var(--color-neutral-700)",
+          }}
+        >
+          <span aria-hidden="true">{up ? "▲" : "▼"}</span> {formatCurrency(Math.abs(changed), currency)} over {trend.length} periods
+        </span>
+      </div>
+      <svg viewBox={`0 0 ${w} ${h}`} preserveAspectRatio="none" style={{ width: "100%", height: 44, display: "block" }} aria-hidden="true">
+        <polyline
+          points={points.map((p) => `${p.x},${p.y}`).join(" ")}
+          fill="none"
+          stroke="var(--color-accent)"
+          strokeWidth={2}
+          vectorEffect="non-scaling-stroke"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+        {points.map((p) => (
+          <circle key={p.key} cx={p.x} cy={p.y} r={1.6} fill="var(--color-accent)">
+            <title>{`${p.label}: ${formatCurrency(p.balance, currency)}`}</title>
+          </circle>
+        ))}
+      </svg>
+      <p className="sr-only">
+        Cash trend, {trend.length} periods, {formatCurrency(trend[0].balance, currency)} to {formatCurrency(trend[trend.length - 1].balance, currency)}.{" "}
+        {trend.map((t) => `${t.label}: ${formatCurrency(t.balance, currency)}`).join("; ")}.
+      </p>
+    </div>
+  );
+}
+
 export type CategorySlice = { category: string; spent: number; budget: number };
 
 /** Where the month's money went, as a donut (Jonathan's choice over a divided
