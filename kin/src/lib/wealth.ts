@@ -20,6 +20,22 @@ export type WealthScope = "all" | (string & {});
  * It lives in this module rather than beside its callers so it can be tested
  * without a request behind it -- `queries/wealth.ts` reaches for
  * `next/headers` the moment it is imported. */
+/** inScope, for the lists and totals of the Accounts, Cash Flow and A&L
+ * tabs -- plus the viewer's own choice to leave their private accounts out
+ * of All (members.wealth_include_private). `leaveOutPrivateOf` is the
+ * viewer's member id when they've turned that off, else null. Only All
+ * changes: the viewer's own Who still shows everything that's theirs.
+ * Nobody else's private account is ever here to leave out -- the database
+ * never returns it to them. */
+export function inTotalsScope(
+  account: { is_joint: boolean | null; owner_member_id: string | null; is_private: boolean | null },
+  scope: WealthScope,
+  leaveOutPrivateOf: string | null,
+): boolean {
+  if (!inScope(account, scope)) return false;
+  return !(scope === "all" && leaveOutPrivateOf !== null && !account.is_joint && !!account.is_private && account.owner_member_id === leaveOutPrivateOf);
+}
+
 export function inScope(
   row: { is_joint: boolean | null; owner_member_id: string | null },
   scope: WealthScope,

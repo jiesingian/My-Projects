@@ -4107,6 +4107,7 @@ export type Database = {
           tin_number: string | null
           timezone: string | null
           tshirt_size: string | null
+          wealth_include_private: boolean
           weight: string | null
           work_contact_info: string | null
           work_email: string | null
@@ -4160,6 +4161,7 @@ export type Database = {
           tin_number?: string | null
           timezone?: string | null
           tshirt_size?: string | null
+          wealth_include_private?: boolean
           weight?: string | null
           work_contact_info?: string | null
           work_email?: string | null
@@ -4213,6 +4215,7 @@ export type Database = {
           tin_number?: string | null
           timezone?: string | null
           tshirt_size?: string | null
+          wealth_include_private?: boolean
           weight?: string | null
           work_contact_info?: string | null
           work_email?: string | null

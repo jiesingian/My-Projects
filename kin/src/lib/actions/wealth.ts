@@ -142,6 +142,19 @@ export async function setAccountPrivacyAction(accountId: string, isPrivate: bool
   return { error: null };
 }
 
+/** The viewer's own choice: count their private accounts in All's totals,
+ * or leave them out (they still show under their own name in Who). Their
+ * own member row only. */
+export async function setIncludePrivateInTotalsAction(include: boolean): Promise<ActionState> {
+  const me = await requireCurrentMember();
+  const supabase = await createClient();
+  const { error, count } = await supabase.from("members").update({ wealth_include_private: include }, { count: "exact" }).eq("id", me.id);
+  if (error) return { error: humanDatabaseError(error.message) };
+  if (count === 0) return { error: "That setting couldn't be saved. Try again." };
+  revalidateWealth();
+  return { error: null };
+}
+
 export async function archiveAccountAction(accountId: string): Promise<ActionState> {
   const me = await requireCurrentMember();
   const supabase = await createClient();

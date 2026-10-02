@@ -17,6 +17,7 @@ import {
   deleteGoalAction,
   archiveAccountAction,
   restoreAccountAction,
+  setIncludePrivateInTotalsAction,
   deleteAccountAction,
   setAccountPrivacyAction,
   postHubExpenseAction,
@@ -538,6 +539,22 @@ export function DeleteAccountButton({
       </button>
       <Err message={error} />
     </span>
+  );
+}
+
+/** "Include my private accounts in All totals" -- the viewer's own switch,
+ * shown on All. Off leaves their private accounts out of All's lists and
+ * totals; they still show under their own name. */
+export function IncludePrivateToggle({ include }: { include: boolean }) {
+  const { error, pending, run } = useMoneyAction();
+  return (
+    <div style={{ margin: "0 0 0.75rem" }}>
+      <label style={{ display: "flex", alignItems: "center", gap: "0.5rem", fontSize: "0.8125rem", color: "var(--color-neutral-700)" }}>
+        <input type="checkbox" checked={include} disabled={pending} onChange={(e) => run(() => setIncludePrivateInTotalsAction(e.target.checked))} />
+        Include my private accounts in All totals
+      </label>
+      <Err message={error} />
+    </div>
   );
 }
 
