@@ -5,7 +5,7 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { requireCurrentMember } from "@/lib/session";
 import { syncRowToCalendars, type CalendarTarget } from "@/lib/actions/calendar-sync";
-import { ACCOUNT_TYPES, GOAL_CATEGORY, TRANSFER_CATEGORY, REMITTANCE_CHANNELS, explainLedgerRefusal, type AccountType, type RemittanceChannel } from "@/lib/wealth";
+import { ACCOUNT_TYPES, GOAL_CATEGORY, cleanAccountNumber, TRANSFER_CATEGORY, REMITTANCE_CHANNELS, explainLedgerRefusal, type AccountType, type RemittanceChannel } from "@/lib/wealth";
 import type { ActionState } from "@/lib/actions/auth";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database, Tables, TablesInsert } from "@/lib/database.types";
@@ -25,6 +25,30 @@ function revalidateWealth() {
 
 /* ---------------------------------------------------------------- accounts */
 
+/** Sets or clears an account's number (account_numbers, its own table so it
+ * isn't read with every account row). Row-level security decides who may:
+ * the owner of a personal account, any grown-up on a joint one. A refusal
+ * comes back as words rather than a silent nothing. */
+async function saveAccountNumber(
+  supabase: SupabaseClient<Database>,
+  familyId: string,
+  memberId: string,
+  accountId: string,
+  number: string | null,
+): Promise<string | null> {
+  if (number === null) {
+    const { error } = await supabase.from("account_numbers").delete().eq("account_id", accountId).eq("family_id", familyId);
+    return error ? humanDatabaseError(error.message) : null;
+  }
+  const { error } = await supabase
+    .from("account_numbers")
+    .upsert({ account_id: accountId, family_id: familyId, number, updated_by: memberId, updated_at: new Date().toISOString() }, { onConflict: "account_id" });
+  if (!error) return null;
+  return /row-level security/i.test(error.message)
+    ? "Only the account’s owner can set its number — or, on a joint account, a grown-up."
+    : humanDatabaseError(error.message);
+}
+
 export async function addAccountAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
   const me = await requireCurrentMember();
   const supabase = await createClient();
@@ -42,6 +66,8 @@ export async function addAccountAction(_prev: ActionState, formData: FormData): 
   // saving lands back on the same list. A query value, so only ever a
   // plain id-shaped word, never anything that could reshape the URL.
   const returnWho = String(formData.get("return_who") ?? "all");
+  const numbered = cleanAccountNumber(String(formData.get("account_number") ?? ""));
+  if ("error" in numbered) return { error: numbered.error };
   if (!name) return { error: "Name the account." };
   // The select only ever offers these six, but a form field is a request,
   // not a fact -- nothing stops a replayed or hand-built submission from
@@ -75,6 +101,15 @@ export async function addAccountAction(_prev: ActionState, formData: FormData): 
     created_by: me.id,
   }).select("id").single();
   if (error) return { error: humanDatabaseError(error.message) };
+  if (numbered.number) {
+    const numberError = await saveAccountNumber(supabase, me.family_id, me.id, created.id, numbered.number);
+    // The account exists either way; say so rather than leave the form
+    // looking as if nothing was saved.
+    if (numberError) {
+      revalidateWealth();
+      return { error: `The account was saved, but not its number: ${numberError}` };
+    }
+  }
 
   revalidateWealth();
   // Saving closes the form and goes back to the list, with the new account
@@ -91,6 +126,10 @@ export async function updateAccountAction(accountId: string, _prev: ActionState,
   if (!name) return { error: "Name the account." };
   const accountType = String(formData.get("account_type") ?? "bank");
   if (!ACCOUNT_TYPES.includes(accountType as AccountType)) return { error: "That isn't a valid account type." };
+  // Only sent by a form that offered the field (to someone who may set it);
+  // absent, the number is left as it is.
+  const numbered = formData.has("account_number") ? cleanAccountNumber(String(formData.get("account_number"))) : null;
+  if (numbered && "error" in numbered) return { error: numbered.error };
 
   const { error, count } = await supabase
     .from("accounts")
@@ -107,6 +146,10 @@ export async function updateAccountAction(accountId: string, _prev: ActionState,
     .eq("family_id", me.family_id);
   if (error) return { error: humanDatabaseError(error.message) };
   if (count === 0) return { error: "That account is no longer there — someone may have removed it." };
+  if (numbered) {
+    const numberError = await saveAccountNumber(supabase, me.family_id, me.id, accountId, numbered.number);
+    if (numberError) return { error: numberError };
+  }
 
   revalidateWealth();
   redirect(`/wealth/accounts/${accountId}`);

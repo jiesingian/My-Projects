@@ -196,6 +196,18 @@ export async function getAccountHistory(familyId: string, accountId: string, ran
   return periodHistory(data ?? [], range, periods);
 }
 
+/** Account numbers the viewer may see, by account id. Which ones those are
+ * is account_numbers' row-level security (owner; grown-ups for a joint or
+ * shared account), so nothing here filters. Read only where a number is
+ * shown -- never with the account lists. */
+export async function getAccountNumbers(familyId: string, accountIds?: string[]): Promise<Map<string, string>> {
+  const supabase = await createClient();
+  let query = supabase.from("account_numbers").select("account_id, number").eq("family_id", familyId);
+  if (accountIds) query = query.in("account_id", accountIds);
+  const { data } = await query;
+  return new Map((data ?? []).map((r) => [r.account_id, r.number]));
+}
+
 export async function getBills(familyId: string) {
   const supabase = await createClient();
   const { data } = await supabase

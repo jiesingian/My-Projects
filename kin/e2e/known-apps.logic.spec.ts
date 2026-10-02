@@ -1,5 +1,5 @@
 import { test, expect } from "@playwright/test";
-import { resolveInstitutionLinks, isKnownInstitutionLabel, KNOWN_APPS, appStoreSearchUrl, playStoreSearchUrl, appLaunchPlan } from "@/lib/wealth";
+import { resolveInstitutionLinks, isKnownInstitutionLabel, KNOWN_APPS, appStoreSearchUrl, playStoreSearchUrl, appLaunchPlan, maskAccountNumber, accountNumberForPaste, cleanAccountNumber } from "@/lib/wealth";
 
 /** What BANK / WALLET should do to LINK APP / APP STORE LINK / PLAY STORE
  * LINK as it changes, pulled out of AppLinksField so it can be checked
@@ -133,4 +133,15 @@ test("on a computer, OPEN is a web page, never a phone scheme", () => {
 
 test("with no links and no institution there is nothing to open", () => {
   expect(appLaunchPlan("ios", { linkedAppUrl: null, appStoreUrl: null, playStoreUrl: null, institution: null })).toBeNull();
+});
+
+/* Account numbers (2 October): masked to the last four, copied without the
+ * spaces and dashes bank apps refuse, and only number-shaped input kept. */
+test("an account number is masked, pasted plain, and checked for shape", () => {
+  expect(maskAccountNumber("0012 3456 7890")).toBe("•••• 7890");
+  expect(accountNumberForPaste("0012-3456 7890")).toBe("001234567890");
+  expect(cleanAccountNumber("  0012  3456 ")).toEqual({ number: "0012 3456" });
+  expect(cleanAccountNumber("")).toEqual({ number: null });
+  expect("error" in cleanAccountNumber("12")).toBe(true);
+  expect("error" in cleanAccountNumber("<script>alert(1)</script>")).toBe(true);
 });

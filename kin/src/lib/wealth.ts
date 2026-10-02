@@ -618,6 +618,32 @@ export function appLaunchPlan(
   return href ? { href, fallback: null } : null;
 }
 
+/* --------------------------------------------------------- account numbers */
+
+/** An account number as typed, checked against the same shape the table
+ * allows (account_numbers_number_shape): 4 to 40 letters, digits, spaces
+ * and dashes -- room for an IBAN, nothing that isn't a number. Empty means
+ * "no number", which clears one. */
+export function cleanAccountNumber(raw: string): { number: string | null } | { error: string } {
+  const number = raw.trim().replace(/\s+/g, " ");
+  if (number === "") return { number: null };
+  if (!/^[A-Za-z0-9 -]{4,40}$/.test(number)) return { error: "An account number is 4 to 40 digits or letters; spaces and dashes are fine." };
+  return { number };
+}
+
+/** "•••• 7890": the last four characters that are digits or letters, for
+ * showing a number without showing it. */
+export function maskAccountNumber(number: string): string {
+  const plain = accountNumberForPaste(number);
+  return `•••• ${plain.slice(-4)}`;
+}
+
+/** What Copy puts on the clipboard: the number without its spaces or
+ * dashes, which bank apps' fields generally refuse. */
+export function accountNumberForPaste(number: string): string {
+  return number.replace(/[\s-]/g, "");
+}
+
 /* ------------------------------------------------------------- remittances */
 
 /** How a padala reached home. GCash and Maya are named because they are how

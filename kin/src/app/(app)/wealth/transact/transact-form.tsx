@@ -9,6 +9,7 @@ import { ErrorText } from "@/components/form";
 import type { PickableAccount } from "@/components/money-actions";
 import { DateInput } from "@/components/date-input";
 import { AmountInput } from "@/components/amount-input";
+import { AccountNumber } from "@/components/account-number";
 
 const MODES = ["in", "out", "transfer"] as const;
 type Mode = (typeof MODES)[number];
@@ -24,6 +25,7 @@ export function TransactForm({
   currency,
   defaultMode,
   defaultAccountId,
+  accountNumbers = {},
   assets,
   goals,
   defaultParticulars,
@@ -35,6 +37,9 @@ export function TransactForm({
   /** The account this was opened from, chosen to start with. Ignored if it
    * isn't one of `accounts` -- archived, or not the viewer's to see. */
   defaultAccountId?: string;
+  /** Numbers of the accounts the viewer may see them for, by id -- shown in
+   * Transfer with Copy, to paste into the bank's app. */
+  accountNumbers?: Record<string, string>;
   assets: { id: string; name: string }[];
   goals: { id: string; name: string }[];
   /** Carried in from a chat message someone chose to record as money. A
@@ -131,6 +136,12 @@ export function TransactForm({
             ))}
           </select>
         </Field>
+      )}
+      {/* The number to paste into the bank's app when sending the transfer. */}
+      {mode === "transfer" && accountNumbers[toAccountId] && (
+        <div style={{ margin: "-0.375rem 0 0.875rem" }}>
+          <AccountNumber number={accountNumbers[toAccountId]} label="To account no." />
+        </div>
       )}
 
       <div style={{ display: "flex", gap: "0.75rem" }}>

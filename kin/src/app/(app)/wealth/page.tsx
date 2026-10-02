@@ -76,7 +76,7 @@ export default async function WealthPage({ searchParams }: { searchParams: Promi
       <HubHeader n="05" title="Wealth" segments={segments} dateFormat={me.families.date_format} />
       <div style={{ padding: "0 var(--gutter) 1.375rem" }}>
         {seg === "cashflow" && <CashFlowPane familyId={me.family_id} memberId={me.id} currency={currency} range={range} scope={who} grownUp={isGrownUp(me.role)} />}
-        {seg === "accounts" && <ScopePane scope={who} familyId={me.family_id} memberId={me.id} currency={currency} range={range} newAccountId={sp.new} includePrivate={me.wealth_include_private} />}
+        {seg === "accounts" && <ScopePane scope={who} familyId={me.family_id} memberId={me.id} currency={currency} range={range} newAccountId={sp.new} includePrivate={me.wealth_include_private} grownUp={isGrownUp(me.role)} />}
         {seg === "assets" && <AssetsPane familyId={me.family_id} memberId={me.id} currency={currency} scope={who} />}
       </div>
     </div>
@@ -606,7 +606,7 @@ async function CashFlowPane({ familyId, memberId, currency, range, scope, grownU
 
 /* ------------------------------------------------------------- accounts */
 
-async function ScopePane({ scope, familyId, memberId, currency, range, newAccountId, includePrivate }: { scope: WealthScope; familyId: string; memberId: string; currency: string; range: CashFlowRange; newAccountId?: string; includePrivate: boolean }) {
+async function ScopePane({ scope, familyId, memberId, currency, range, newAccountId, includePrivate, grownUp }: { scope: WealthScope; familyId: string; memberId: string; currency: string; range: CashFlowRange; newAccountId?: string; includePrivate: boolean; grownUp: boolean }) {
   const [dateFormat, pane, cf, who, allArchived] = await Promise.all([
     householdDateFormat(),
     getWealthPane(familyId, memberId, scope),
@@ -737,7 +737,7 @@ async function ScopePane({ scope, familyId, memberId, currency, range, newAccoun
       {newAccountId && pane.accounts.some((a) => a.id === newAccountId) && <ScrollIntoView targetId={`account-${newAccountId}`} />}
       {/* A new account is opened in your own name, so it is only offered
           where that is what you would mean. */}
-      {(isJoint || mine) && <AddAccountForm isJoint={isJoint} returnWho={scope} />}
+      {(isJoint || mine) && <AddAccountForm isJoint={isJoint} returnWho={scope} canNumber={!isJoint || grownUp} />}
 
       {/* Archive hides an account and keeps its history; this is where
           they wait, to be restored -- or deleted, if nothing ever moved

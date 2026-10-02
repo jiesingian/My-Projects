@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import { getCurrentMember } from "@/lib/session";
-import { getAccounts, getAttributableTargets } from "@/lib/queries/wealth";
+import { getAccounts, getAttributableTargets, getAccountNumbers } from "@/lib/queries/wealth";
 import { DetailHeader } from "@/components/hub-header";
 import { TransactForm } from "./transact-form";
 
@@ -16,7 +16,7 @@ export default async function TransactPage({
   // at most two decimals, or nothing at all.
   const parsed = Number(rawAmount);
   const amount = Number.isFinite(parsed) && parsed > 0 ? Math.round(parsed * 100) / 100 : undefined;
-  const [accounts, targets] = await Promise.all([getAccounts(me.family_id), getAttributableTargets(me.family_id)]);
+  const [accounts, targets, numbers] = await Promise.all([getAccounts(me.family_id), getAttributableTargets(me.family_id), getAccountNumbers(me.family_id)]);
 
   return (
     <div>
@@ -37,6 +37,7 @@ export default async function TransactPage({
           currency={me.families.currency}
           defaultMode={mode ?? "in"}
           defaultAccountId={fromAccount}
+          accountNumbers={Object.fromEntries(numbers)}
           assets={targets.assets}
           goals={targets.goals}
           defaultParticulars={note?.slice(0, 200)}
