@@ -1,5 +1,5 @@
 import { test, expect } from "@playwright/test";
-import { dayKey, recentDays, periodKey, recentPeriods, cashFlowRangeCount, CASH_FLOW_RANGES, knownAppsForType, KNOWN_APPS } from "@/lib/wealth";
+import { dayKey, recentDays, periodKey, recentPeriods, periodHistory, cashFlowRangeCount, CASH_FLOW_RANGES, knownAppsForType, KNOWN_APPS } from "@/lib/wealth";
 
 /** "Days" added as a fourth granularity to the Cash Flow / Accounts graph
  * range picker, alongside the existing week/month/year. Checked here
@@ -52,4 +52,19 @@ test("every KNOWN_APPS entry is tagged bank or ewallet, nothing else", () => {
   for (const app of KNOWN_APPS) {
     expect(["bank", "ewallet"], app.label).toContain(app.kind);
   }
+});
+
+test("periodHistory counts only confirmed money, in the period it happened", () => {
+  const anchor = new Date(2026, 9, 15);
+  const periods = recentPeriods("month", 2, anchor);
+  const rows = [
+    { occurred_at: new Date(2026, 9, 3).toISOString(), direction: "in", amount: 1000, status: "confirmed" },
+    { occurred_at: new Date(2026, 9, 4).toISOString(), direction: "out", amount: "250", status: "confirmed" },
+    { occurred_at: new Date(2026, 9, 5).toISOString(), direction: "out", amount: 999, status: "pending" },
+    { occurred_at: new Date(2026, 8, 20).toISOString(), direction: "in", amount: 40, status: "confirmed" },
+  ];
+  expect(periodHistory(rows, "month", periods).map((h) => [h.income, h.expense])).toEqual([
+    [40, 0],
+    [1000, 250],
+  ]);
 });

@@ -2,22 +2,29 @@ import Link from "next/link";
 import { Icon } from "@/components/icons";
 import { notFound, redirect } from "next/navigation";
 import { getCurrentMember } from "@/lib/session";
-import { getAccountDetail } from "@/lib/queries/wealth";
+import { getAccountDetail, getAccountHistory } from "@/lib/queries/wealth";
+import { CashTrendLine } from "@/components/wealth-charts";
+import { PickButton } from "@/components/pick-button";
 import { DetailHeader } from "@/components/hub-header";
 import { Blueprint, Tag, Empty } from "@/components/ui";
 import { PendingEntryActions, DeleteEntryButton, RemoveButton } from "@/components/money-actions";
 import { AccountEditForm } from "./account-edit-form";
 import { OpenAppButton } from "./open-app-button";
 import { formatCurrency } from "@/lib/format";
-import { ACCOUNT_TYPE_LABELS, type AccountType } from "@/lib/wealth";
+import { ACCOUNT_TYPE_LABELS, CASH_FLOW_RANGES, CASH_FLOW_RANGE_LABELS, cashBalanceTrend, type AccountType, type CashFlowRange } from "@/lib/wealth";
 import { familyDate } from "@/lib/format-family";
 
-export default async function AccountPage({ params }: { params: Promise<{ id: string }> }) {
+export default async function AccountPage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ range?: string }> }) {
   const me = await getCurrentMember();
   if (!me) redirect("/onboarding/profile");
   const { id } = await params;
-  const { account, entries } = await getAccountDetail(me.family_id, id);
+  const sp = await searchParams;
+  const range: CashFlowRange = (CASH_FLOW_RANGES as readonly string[]).includes(sp.range ?? "") ? (sp.range as CashFlowRange) : "month";
+  const [{ account, entries }, history] = await Promise.all([getAccountDetail(me.family_id, id), getAccountHistory(me.family_id, id, range)]);
   if (!account) notFound();
+  // The Accounts tab's cash trend, for this account alone: the same line,
+  // walked back from this account's balance instead of the combined total.
+  const trend = cashBalanceTrend(history, account.balance);
 
   const currency = me.families.currency;
   const fmtDate = await familyDate();
@@ -44,6 +51,17 @@ export default async function AccountPage({ params }: { params: Promise<{ id: st
             Opened at {formatCurrency(Number(account.opening_balance), currency)} · {confirmed.length} movement{confirmed.length === 1 ? "" : "s"} since
           </div>
         </Blueprint>
+
+        <CashTrendLine trend={trend} currency={currency} />
+        <div style={{ display: "flex", alignItems: "center", gap: "0.375rem", margin: "-0.25rem 0 0.875rem" }}>
+          <PickButton
+            title="Graph range"
+            icon="calendarDays"
+            label={CASH_FLOW_RANGE_LABELS[range]}
+            options={CASH_FLOW_RANGES.map((r) => ({ label: CASH_FLOW_RANGE_LABELS[r], href: `/wealth/accounts/${account.id}?range=${r}`, active: range === r }))}
+          />
+          <span style={{ fontSize: "0.78125rem", color: "var(--color-neutral-600)" }}>Balance at the end of each {CASH_FLOW_RANGE_LABELS[range].toLowerCase().replace(/s$/, "")}</span>
+        </div>
 
         <div style={{ display: "flex", gap: "0.5rem", marginBottom: "0.5rem" }}>
           <Link href={`/wealth/transact?mode=in&account=${account.id}`} className="btn btn-secondary" style={{ flex: 1, minHeight: "2.5rem", fontSize: "0.8125rem", display: "flex", alignItems: "center", justifyContent: "center" }}>
