@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useSyncExternalStore } from "react";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { toast } from "@/components/toast";
 import { refreshSnapshot, replayQueue, describeSync } from "@/lib/offline/sync";
 
@@ -10,9 +10,13 @@ import { refreshSnapshot, replayQueue, describeSync } from "@/lib/offline/sync";
  *
  * Online: sends anything queued offline, then saves a fresh snapshot for the
  * phone -- on load, on coming back online, and on returning to the app, at
- * most every three minutes. Offline, on a live page: a calm line at the top saying
- * changes here won't save, with the way to the saved copy, where the four
- * things that can wait for a connection do. */
+ * most every three minutes. Offline, on a live page: a calm line at the top,
+ * with the way to the saved copy. On Today, the shopping list and the
+ * household chat it says what waits for a connection (lib/offline/live
+ * queues it); anywhere else, that changes there won't save. */
+
+/** The live pages that queue their changes offline. */
+const QUEUES_HERE = /^\/(today|household|chat\/household)$/;
 
 const REFRESH_EVERY_MS = 3 * 60_000;
 
@@ -39,6 +43,7 @@ export function useOnline(): boolean {
 export function OfflineSync() {
   const online = useOnline();
   const router = useRouter();
+  const pathname = usePathname();
   useEffect(() => {
     if (process.env.NODE_ENV === "production") {
       navigator.serviceWorker?.ready.then((r) => r.active?.postMessage("kin:refresh-shell")).catch(() => undefined);
@@ -73,7 +78,11 @@ export function OfflineSync() {
   if (online) return null;
   return (
     <div className="kin-offline-bar" role="status">
-      <span>Offline — changes on this screen won&rsquo;t save.</span>
+      <span>
+        {QUEUES_HERE.test(pathname)
+          ? "Offline — Done, ticks, new items and messages wait here and send when you’re back."
+          : "Offline — changes on this screen won’t save."}
+      </span>
       <a
         href="/offline"
         // Where they are, read at the tap, so the saved copy opens on the
