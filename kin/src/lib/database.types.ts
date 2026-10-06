@@ -2395,6 +2395,30 @@ export type Database = {
           },
         ]
       }
+      family_tree_match_dismissals: {
+        Row: {
+          dismissed_at: string
+          dismissed_by: string | null
+          family_id: string
+          other_person_id: string
+          person_id: string
+        }
+        Insert: {
+          dismissed_at?: string
+          dismissed_by?: string | null
+          family_id: string
+          other_person_id: string
+          person_id: string
+        }
+        Update: {
+          dismissed_at?: string
+          dismissed_by?: string | null
+          family_id?: string
+          other_person_id?: string
+          person_id?: string
+        }
+        Relationships: []
+      }
       family_tree_matches: {
         Row: {
           decided_at: string | null
@@ -6085,6 +6109,28 @@ export type Database = {
           spouse_id: string | null
           is_shared_person: boolean
         }[]
+      }
+      tree_match_suggestions: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          person_id: string
+          other_family_id: string
+          other_family_name: string
+          other_person_id: string
+          other_name: string
+          other_birth_year: string | null
+          reason: string
+          their_offer_id: string | null
+          we_offered: boolean
+        }[]
+      }
+      dismiss_tree_suggestion: {
+        Args: { p_person: string; p_other_person: string }
+        Returns: undefined
+      }
+      tree_name_key: {
+        Args: { p_name: string }
+        Returns: string | null
       }
       tree_offers_for_me: {
         Args: Record<PropertyKey, never>

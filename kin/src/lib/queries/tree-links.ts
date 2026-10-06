@@ -68,3 +68,36 @@ export async function getLinkedFamilies(familyId: string): Promise<{ id: string;
   const { data: families } = await supabase.from("families").select("id, name").in("id", ids);
   return (families ?? []).map((f) => ({ id: f.id, name: f.name }));
 }
+
+/** "Is this the same Stella?" -- somebody in a linked household's tree who
+ * looks like somebody in ours (20261006120000_tree_match_suggestions.sql).
+ * Grown-ups only; a child gets none. */
+export type TreeSuggestion = {
+  ourPersonId: string;
+  otherFamilyId: string;
+  otherFamilyName: string;
+  otherPersonId: string;
+  otherName: string;
+  otherBirthYear: string | null;
+  reason: "birth date" | "parents";
+  /** They already said yes: their offer of this person, for us to accept. */
+  theirOfferId: string | null;
+  /** We already said yes and are waiting on them. */
+  weOffered: boolean;
+};
+
+export async function getTreeSuggestions(): Promise<TreeSuggestion[]> {
+  const supabase = await createClient();
+  const { data } = await supabase.rpc("tree_match_suggestions");
+  return (data ?? []).map((s) => ({
+    ourPersonId: s.person_id,
+    otherFamilyId: s.other_family_id,
+    otherFamilyName: s.other_family_name,
+    otherPersonId: s.other_person_id,
+    otherName: s.other_name,
+    otherBirthYear: s.other_birth_year,
+    reason: s.reason === "parents" ? "parents" : "birth date",
+    theirOfferId: s.their_offer_id,
+    weOffered: s.we_offered,
+  }));
+}
