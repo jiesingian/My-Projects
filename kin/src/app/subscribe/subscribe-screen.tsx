@@ -9,32 +9,10 @@ import { OnboardingShell, Wordmark } from "@/components/onboarding-shell";
 import { Blueprint } from "@/components/ui";
 import { Icon } from "@/components/icons";
 import { PLANS, pesos, perMonth } from "@/lib/billing/plans";
-import { FREE_AI_PER_MONTH, type AccessStatus, type Plan } from "@/lib/access";
+import type { AccessStatus, Plan } from "@/lib/access";
+import { FREE_FEATURES, PLUS_FEATURES } from "@/lib/plan-features";
 
 const initialState: ActionState = { error: null };
-
-/** What each plan holds, in the words of the proposal Jonathan approved on
- * 28 September. The database is what enforces it; this is the list people
- * read before choosing. */
-const FREE: string[] = [
-  "Family calendar, planner and Google Calendar sync",
-  "Chores, stars, rewards and kid view",
-  "Shopping list, pantry and meal plans",
-  "Family chat, polls, voice and video calls",
-  "Journal and photos, 1 GB",
-  "Family tree and the relatives' feed",
-  "Health profiles and the emergency card",
-  `Kin AI and flyer scans, ${FREE_AI_PER_MONTH} a month`,
-];
-
-const PLUS: string[] = [
-  "Everything in Kin Free",
-  "Wealth: accounts, budgets, bills and reminders, net worth",
-  "The vault: documents and passwords behind Face ID",
-  "Medicines with dose reminders, the illness log, vitals, growth charts, Apple Health",
-  "Kin AI and flyer scans without a monthly limit",
-  "50 GB for photos and files",
-];
 
 function standing(status: AccessStatus, plan: Plan, trialing: boolean, daysLeft: number | null): string {
   if (status === "comped") return "Your household has Kin Plus for free, for good.";
@@ -77,7 +55,7 @@ export function SubscribeScreen({
           </h3>
           <p className="kin-plan-price">₱0, for good</p>
           <ul>
-            {FREE.map((f) => (
+            {FREE_FEATURES.map((f) => (
               <li key={f}>
                 <Icon name="check" size="0.875rem" />
                 {f}
@@ -93,7 +71,7 @@ export function SubscribeScreen({
             {pesos(PLANS.monthly.amountCents)} a month, or {pesos(PLANS.annual.amountCents)} a year ({perMonth(PLANS.annual)}/mo). One price for the whole household.
           </p>
           <ul>
-            {PLUS.map((f) => (
+            {PLUS_FEATURES.map((f) => (
               <li key={f}>
                 <Icon name="check" size="0.875rem" />
                 {f}
