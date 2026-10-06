@@ -31,7 +31,10 @@ export async function getStartHere(me: CurrentMember): Promise<StartStep[] | nul
   if (!created || created < SHOWN_FROM) return null;
   if (Date.now() - new Date(created).getTime() > SHOWN_FOR_DAYS * 24 * 60 * 60 * 1000) return null;
 
-  const plus = readAccess(me.families).plus;
+  // On a trial the bill is one of the Kin Plus card's three (plus-trial.ts),
+  // so Start here offers the chore instead of asking twice.
+  const access = readAccess(me.families);
+  const plus = access.plus && !access.trialing;
   const supabase = await createClient();
   const count = (table: "events" | "activities" | "bills" | "routines" | "buy_items") =>
     supabase.from(table).select("id", { count: "exact", head: true }).eq("family_id", me.family_id);
