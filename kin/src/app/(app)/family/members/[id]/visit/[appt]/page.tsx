@@ -40,7 +40,7 @@ export default async function VisitPage({ params }: { params: Promise<{ id: stri
           PHOTOS
         </div>
         <p style={{ fontSize: "0.8125rem", color: "var(--color-neutral-600)", margin: "0 0 0.625rem" }}>The prescription, lab results, the doctor&apos;s note. Seen only by your household.</p>
-        <VisitPhotos familyId={me.family_id} appointmentId={visit.id} memberId={member.id} photos={photos} />
+        <VisitPhotos appointmentId={visit.id} memberId={member.id} photos={photos} />
       </div>
     </div>
   );

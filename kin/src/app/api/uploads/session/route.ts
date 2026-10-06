@@ -4,6 +4,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import { readAccess, FREE_STORAGE_BYTES, PLUS_STORAGE_BYTES } from "@/lib/access";
 import { HIGHLIGHT_PHOTO_BYTES, HIGHLIGHT_VIDEO_BYTES } from "@/lib/highlights";
+import { UUID } from "@/lib/ids";
 import {
   getValidDriveAccessToken,
   ensureDriveFolderStructure,
@@ -13,10 +14,12 @@ import {
 } from "@/lib/google-drive";
 
 type SessionRequest = {
-  kind: "journal" | "journal_personal" | "journal_video" | "document" | "avatar" | "family_background" | "recipe" | "routine" | "chat" | "highlight";
+  kind: "journal" | "journal_personal" | "journal_video" | "document" | "avatar" | "family_background" | "recipe" | "routine" | "chat" | "highlight" | "event_photo" | "visit_photo";
   fileName: string;
   mimeType: string;
   fileSize: number;
+  /** document: the doc folder. event_photo / visit_photo: the event's or
+   * visit's id, whose folder the photo goes in. */
   folderId?: string;
   /** journal_video only: the entry is Just me, so its video goes in the
    * person's own folder rather than the household's. */
@@ -39,6 +42,9 @@ const UPLOAD_LIMITS: Record<SessionRequest["kind"], { types: RegExp; maxBytes: n
   // title card). A minute at 720p comes to about 20MB; 80MB leaves room for a
   // phone whose encoder ignores the bitrate it was asked for.
   journal_video: { types: /^(video\/|image\/jpeg$)/, maxBytes: 80 * 1024 * 1024, label: "a video up to 80MB, or its JPEG poster" },
+  // A calendar event's or a doctor's visit's photos (photo-strip.tsx).
+  event_photo: { types: /^image\//, maxBytes: 15 * 1024 * 1024, label: "a photo, up to 15MB" },
+  visit_photo: { types: /^image\//, maxBytes: 15 * 1024 * 1024, label: "a photo, up to 15MB" },
   recipe: { types: /^image\//, maxBytes: 15 * 1024 * 1024, label: "a photo, up to 15MB" },
   avatar: { types: /^image\//, maxBytes: 15 * 1024 * 1024, label: "a photo, up to 15MB" },
   family_background: { types: /^image\//, maxBytes: 15 * 1024 * 1024, label: "a photo, up to 15MB" },
@@ -72,7 +78,7 @@ export async function POST(request: Request) {
 
   const body = (await request.json()) as SessionRequest;
   const { kind, fileName, mimeType, fileSize, folderId, personal } = body;
-  if (!fileName || (kind === "document" && !folderId)) {
+  if (!fileName || ((kind === "document" || kind === "event_photo" || kind === "visit_photo") && !folderId)) {
     return NextResponse.json({ error: "Missing fileName or folderId." }, { status: 400 });
   }
 
@@ -140,6 +146,23 @@ export async function POST(request: Request) {
       provider: "supabase",
       bucket: "journal",
       path: `${folder}/videos/${Date.now()}-${crypto.randomUUID().slice(0, 8)}-${safe}`,
+    });
+  }
+
+  // A calendar event's or a doctor's visit's photos: Kin's storage, under
+  // <family id>/events/<event id>/ or <family id>/health/<visit id>/, where
+  // addEventPhotoAction / addVisitPhotoAction expect them. They used to go
+  // straight from the phone to Storage and so were never held to the
+  // household's allowance, though family_storage_bytes counted them.
+  if (kind === "event_photo" || kind === "visit_photo") {
+    if (!UUID.test(folderId!)) return NextResponse.json({ error: "Missing or invalid folderId." }, { status: 400 });
+    const refused = await storageRefusal();
+    if (refused) return refused;
+    const ext = (fileName.split(".").pop() || "jpg").toLowerCase().replace(/[^a-z0-9]/g, "").slice(0, 5) || "jpg";
+    return NextResponse.json({
+      provider: "supabase",
+      bucket: "journal",
+      path: `${me.family_id}/${kind === "event_photo" ? "events" : "health"}/${folderId}/${crypto.randomUUID()}.${ext}`,
     });
   }
 

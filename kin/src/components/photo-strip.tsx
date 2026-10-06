@@ -3,24 +3,30 @@
 import { useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import { uploadFileDirect } from "@/lib/upload-client";
 import { Icon } from "@/components/icons";
 import { toast } from "@/components/toast";
 import { confirm } from "@/components/confirm-sheet";
 import { PhotoViewer } from "@/components/photo-viewer";
 
 /** A row of photos with an "Add photo" tile: a doctor's visit, a calendar
- * event. The file goes from the phone straight to Storage under `folder`
- * (always <family id>/...), which the journal bucket's policies confine to
- * the household; `onAdd` then records it, and a failed record removes the
- * file again so nothing is left orphaned. */
+ * event. Each file is asked for at /api/uploads/session like every other
+ * upload into Kin's storage, so it counts against the household's Free or
+ * Plus allowance; the session puts it under the household's folder for that
+ * event or visit, which the journal bucket's policies confine to the
+ * household. `onAdd` then records it, and a failed record removes the file
+ * again so nothing is left orphaned. */
 export function PhotoStrip({
-  folder,
+  kind,
+  ownerId,
   photos,
   label,
   onAdd,
   onDelete,
 }: {
-  folder: string;
+  kind: "event_photo" | "visit_photo";
+  /** The event's or visit's id. */
+  ownerId: string;
   photos: { id: string; url: string }[];
   label: string;
   onAdd: (path: string) => Promise<{ error: string | null }>;
@@ -42,11 +48,15 @@ export function PhotoStrip({
         toast.error(`${file.name} isn't a photo under 15MB.`);
         continue;
       }
-      const ext = (file.name.split(".").pop() || "jpg").toLowerCase().replace(/[^a-z0-9]/g, "").slice(0, 5) || "jpg";
-      const path = `${folder}/${crypto.randomUUID()}.${ext}`;
-      const { error } = await supabase.storage.from("journal").upload(path, file, { contentType: file.type, upsert: false });
-      if (error) {
-        toast.error(`${file.name} didn't upload. ${error.message}`);
+      let path: string;
+      try {
+        const uploaded = await uploadFileDirect(file, kind, ownerId);
+        if (uploaded.provider !== "supabase") throw new Error(`${file.name} didn't upload.`);
+        path = uploaded.storagePath;
+      } catch (e) {
+        toast.error(e instanceof Error ? e.message : `${file.name} didn't upload.`);
+        // Over the allowance: every file after this one would be refused too.
+        if (e instanceof Error && /has used (its|the) .*storage/i.test(e.message)) break;
         continue;
       }
       const saved = await onAdd(path);

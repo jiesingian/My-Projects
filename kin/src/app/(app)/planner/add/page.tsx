@@ -80,7 +80,7 @@ export default async function AddPlannerPage({
         <div className="kin-eyebrow" style={{ marginBottom: "0.5rem" }}>
           PHOTOS
         </div>
-        <EventPhotos familyId={me.family_id} eventId={editEvent.id} photos={eventPhotos} />
+        <EventPhotos eventId={editEvent.id} photos={eventPhotos} />
       </div>
     )}
     {isTrip && editEvent && (

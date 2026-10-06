@@ -49,10 +49,11 @@ export function VisitNotes({ appointmentId, memberId, initial }: { appointmentId
 }
 
 /** A visit's photos: the shared strip, pointed at the visit's folder. */
-export function VisitPhotos({ familyId, appointmentId, memberId, photos }: { familyId: string; appointmentId: string; memberId: string; photos: { id: string; url: string }[] }) {
+export function VisitPhotos({ appointmentId, memberId, photos }: { appointmentId: string; memberId: string; photos: { id: string; url: string }[] }) {
   return (
     <PhotoStrip
-      folder={`${familyId}/health/${appointmentId}`}
+      kind="visit_photo"
+      ownerId={appointmentId}
       photos={photos}
       label="Visit photo"
       onAdd={(path) => addVisitPhotoAction(appointmentId, memberId, path)}
