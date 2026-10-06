@@ -72,10 +72,19 @@ handles this in three steps:
    as their father or spouse. Middle names and accents are ignored, and birth
    years that disagree keep them apart (`matchBranch` in `lib/tree-merge.ts`).
    This is for drawing only and changes nobody's records.
-3. **Suggesting matches** (proposal): "Is this the same Stella?" with one tap
-   to confirm, creating the same kind of accepted match as step 1. This is
-   MyHeritage's *Smart Matches* and Geni's *Tree Matches*. It needs a small
-   database function; not built yet.
+3. **Suggesting matches** (built 6 October): "Is this the same Stella?" at
+   the top of the tree, for grown-ups, when a linked household's tree has
+   someone with the same name (first and last word; case, accents and middle
+   names ignored) and either the same full birth date or the same father's
+   and mother's names. This is MyHeritage's *Smart Matches* and Geni's *Tree
+   Matches*. Nothing is merged on its own, and one household's yes is not
+   enough: "Same person" offers your person to them (step 1), or accepts
+   their offer if they said yes first, so the match exists only once both
+   households have confirmed. "Not the same" stops that pair being suggested
+   to your household for good; the other household still answers for
+   itself. A suggestion tells you only that their tree holds someone with a
+   name and birth date or parents you had already typed in
+   (`tree_match_suggestions`, 20261006120000).
 
 When a name-only relative joins Kin, the organiser links their tile to the new
 profile ("Is this someone in Kin?"), and it turns from dashed to filled.

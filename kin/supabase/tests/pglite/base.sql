@@ -111,3 +111,12 @@ insert into storage.objects (bucket_id, name) values
  ('journal', 'a0000000-0000-0000-0000-000000000000/videos/v.jpg'),
  ('journal', 'person/00000000-0000-0000-0000-0000000000a1/videos/mine.mp4'),
  ('journal', 'person/00000000-0000-0000-0000-0000000000a1/videos/mine.jpg');
+
+-- Family tree stand-ins (for 20260923160000_tree_shared_relatives and
+-- 20261006120000_tree_match_suggestions): a person row with the columns and
+-- the household-only policies the real table has.
+alter table members add column if not exists dob date;
+create table public.family_tree_people (id uuid primary key default gen_random_uuid(), family_id uuid not null references families(id), member_id uuid references members(id), full_name text, dob date, notes text, father_id uuid references family_tree_people(id), mother_id uuid references family_tree_people(id), spouse_id uuid references family_tree_people(id), created_by uuid, created_at timestamptz not null default now());
+alter table family_tree_people enable row level security;
+create policy ftp_select on family_tree_people for select using (family_id = current_family_id());
+create policy ftp_insert on family_tree_people for insert with check (family_id = current_family_id());

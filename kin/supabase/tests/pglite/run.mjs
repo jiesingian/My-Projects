@@ -23,6 +23,7 @@ const migrationsDir = path.join(here, "..", "..", "migrations");
 
 // The migrations these probes cover, in the order they ran on main.
 const MIGRATIONS = [
+  "20260923160000_tree_shared_relatives.sql",
   "20260929060000_connections.sql",
   "20260929090000_family_chat_and_direct_messages.sql",
   "20260929120000_chat_room_photos.sql",
@@ -45,6 +46,7 @@ const MIGRATIONS = [
   "20261006100300_group_polls.sql",
   "20261006100400_scheduled_messages.sql",
   "20261006100500_journal_entry_videos.sql",
+  "20261006120000_tree_match_suggestions.sql",
 ];
 
 const only = process.argv[2];
