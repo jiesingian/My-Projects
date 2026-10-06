@@ -9,6 +9,7 @@ import { Icon } from "@/components/icons";
 import { familyDay, familyClock, familyDateLong } from "@/lib/time";
 import { Avatar } from "@/components/avatar";
 import { createClient } from "@/lib/supabase/client";
+import { isNetworkFailure, isOffline, newOpId, queueOffline, useQueue } from "@/lib/offline/live";
 import { uploadFileDirect } from "@/lib/upload-client";
 import {
   sendMessageAction,
@@ -141,6 +142,8 @@ export function ChatThread({
   const [draft, setDraft] = useState(addressee ? `@${addressee.label} ` : "");
   const [mentioned, setMentioned] = useState<string[]>(addressee ? [addressee.id] : []);
   const [pendingBody, setPendingBody] = useState<string | null>(null);
+  const queue = useQueue();
+  const waiting = queue.flatMap((q) => (q.kind === "chat.send" ? [q] : []));
   const [openFor, setOpenFor] = useState<string | null>(null);
   const [editing, setEditing] = useState<{ id: string; body: string } | null>(null);
   const [replyingTo, setReplyingTo] = useState<ChatMessage | null>(null);
@@ -439,10 +442,31 @@ export function ChatThread({
     input.current?.focus();
   };
 
+  /** Offline, a message waits in the queue (lib/offline/live) and is posted
+   * on reconnect, in order, once (app/api/offline/replay). Words only: a
+   * reply's quote and @mentions are not carried, and files need a signal. */
+  const later = async (body: string): Promise<boolean> => {
+    const why = await queueOffline({ id: newOpId(), at: new Date().toISOString(), kind: "chat.send", body, label: "A message" });
+    if (why) setError(why);
+    return !why;
+  };
+
   const send = useCallback(() => {
     const body = draft.trim();
     const files = picked;
     if (!body && files.length === 0) return;
+    if (isOffline()) {
+      if (files.length > 0) {
+        setError("You're offline. Words can wait to send; photos and files need a signal.");
+        return;
+      }
+      setDraft("");
+      setMentioned([]);
+      setReplyingTo(null);
+      setError(null);
+      void later(body).then((ok) => !ok && setDraft(body));
+      return;
+    }
     // Only tags still standing in the text count.
     const stillThere = mentioned.filter((id) => body.includes(`@${byId.get(id)?.label ?? ""}`));
     const answering = replyingTo?.id ?? null;
@@ -477,7 +501,16 @@ export function ChatThread({
         setUploading(false);
       }
 
-      const result = await sendMessageAction({ body, mentions: stillThere, replyTo: answering, attachments });
+      let result: Awaited<ReturnType<typeof sendMessageAction>>;
+      try {
+        result = await sendMessageAction({ body, mentions: stillThere, replyTo: answering, attachments });
+      } catch (e) {
+        setPendingBody(null);
+        if (isNetworkFailure(e) && attachments.length === 0 && body && (await later(body))) return;
+        setError("That message didn't send. Try again.");
+        setDraft(body);
+        return;
+      }
       if (result.error) {
         setError(result.error);
         setPendingBody(null);
@@ -500,11 +533,20 @@ export function ChatThread({
     const answering = replyingTo?.id ?? null;
     setMediaOpen(false);
     setReplyingTo(null);
+    if (isOffline()) {
+      setError(null);
+      void later(body);
+      return;
+    }
     setPendingBody(body);
     setError(null);
     startTransition(async () => {
-      const result = await sendMessageAction({ body, replyTo: answering });
-      if (result.error) setError(result.error);
+      try {
+        const result = await sendMessageAction({ body, replyTo: answering });
+        if (result.error) setError(result.error);
+      } catch (e) {
+        if (!(isNetworkFailure(e) && (await later(body)))) setError("That didn't send. Try again.");
+      }
       router.refresh();
       setPendingBody(null);
     });
@@ -635,7 +677,7 @@ export function ChatThread({
       )}
 
       <div style={{ flex: 1 }}>
-        {messages.length === 0 && !pendingBody && (
+        {messages.length === 0 && !pendingBody && waiting.length === 0 && (
           <p style={{ fontSize: "0.875rem", color: "var(--color-neutral-600)", textAlign: "center", padding: "2.5rem 1.25rem", lineHeight: 1.5 }}>
             Nothing said yet. This is the whole household&rsquo;s thread — type <strong>@</strong> to tag someone in particular.
           </p>
@@ -968,6 +1010,25 @@ export function ChatThread({
             </div>
           );
         })}
+
+        {/* Written offline, waiting in the queue; each goes as the replay
+            posts it, and the refresh after brings the real one in. */}
+        {waiting.map((q) => (
+          <div key={q.id} style={{ display: "flex", justifyContent: "flex-end", marginTop: "0.5rem" }}>
+            <div style={{ maxWidth: "76%", opacity: 0.6, display: "flex", flexDirection: "column", alignItems: "flex-end", gap: "0.1875rem" }}>
+              {chatMedia(q.body) ? (
+                <ChatMediaView media={chatMedia(q.body)!} />
+              ) : (
+                <span className="kin-bubble" data-mine="true">
+                  {q.body}
+                </span>
+              )}
+              <span style={{ display: "inline-flex", alignItems: "center", gap: "0.25rem", fontSize: "0.6875rem", color: "var(--color-neutral-600)" }}>
+                <Icon name="clock" size={11} /> Sends when you&rsquo;re back online
+              </span>
+            </div>
+          </div>
+        ))}
 
         {/* Your own message, on screen before the server has it. */}
         {pendingBody && (

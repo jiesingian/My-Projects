@@ -4460,6 +4460,9 @@ button.kin-initial:focus-visible {
 .kin-welcome-card p { font-size: 1.0625rem; line-height: 1.45; color: var(--color-neutral-700); margin: 0 0 0.75rem; }
 .kin-welcome-card ul { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 0.5rem; }
 .kin-welcome-card li { padding: 0.75rem 0.875rem; border-radius: 0.875rem; background: var(--color-surface); border: 1px solid var(--color-divider); font-size: 0.9375rem; }
+/* Plus features in the tour (6 October): a tag beside the title, or beside the one line that is Plus. */
+.kin-welcome-card .kin-plus-badge { display: inline-block; margin-left: 0.5rem; vertical-align: middle; }
+.kin-welcome-plans { margin: 0.25rem 0 0.75rem; text-align: left; }
 .kin-welcome-card[data-picked] h3::after { content: "You picked this"; display: inline-block; margin-left: 0.5rem; vertical-align: middle; font: 600 0.6875rem/1 var(--font-body); letter-spacing: 0.03em; text-transform: uppercase; color: var(--color-accent-700); background: var(--color-accent-100); padding: 0.25rem 0.5rem; border-radius: 999px; }
 .kin-welcome-dots { display: flex; justify-content: center; gap: 0.375rem; }
 .kin-welcome-dots button { width: 0.5rem; height: 0.5rem; padding: 0; border: 0; border-radius: 999px; background: var(--color-neutral-300); cursor: pointer; transition: width 0.2s ease, background 0.2s ease; }

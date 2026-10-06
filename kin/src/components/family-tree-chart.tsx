@@ -16,6 +16,7 @@ import type { TreeMatch, BranchPerson } from "@/lib/queries/tree-links";
 import { matchBranch, mergeBranch, type ChartPerson } from "@/lib/tree-merge";
 import { getSharedBranchAction, offerTreePersonAction, withdrawTreeMatchAction } from "@/lib/actions/tree-links";
 import { confirm } from "@/components/confirm-sheet";
+import { InviteQr } from "@/components/invite-qr";
 import { toast } from "@/components/toast";
 
 /** Layout units are px at the default text size; the chart draws them in rem,
@@ -941,6 +942,9 @@ function SelectedPanel({
     { relation: "spouse", label: "Spouse", can: !person.spouseId },
     { relation: "child", label: "Child", can: true },
   ];
+  // Whose invite QR is showing: by person, so picking someone else closes it.
+  const [qrFor, setQrFor] = useState<string | null>(null);
+  const showQr = qrFor === person.id && !person.memberId && !!inviteCode;
   return (
     <div className="kin-treepanel">
       <div className="kin-treepanel-head">
@@ -974,8 +978,25 @@ function SelectedPanel({
             Open profile
           </Link>
         )}
-        {!person.memberId && inviteCode && <InviteRelativeButton name={person.fullName} code={inviteCode} />}
+        {!person.memberId && inviteCode && (
+          <>
+            <InviteRelativeButton name={person.fullName} code={inviteCode} />
+            <button
+              type="button"
+              className={showQr ? "btn btn-secondary" : "btn btn-ghost"}
+              style={{ minHeight: "2rem", width: "2rem", padding: 0 }}
+              aria-label={showQr ? "Hide the invite QR code" : `Show a QR code ${person.fullName.split(" ")[0]} can scan to join`}
+              aria-expanded={showQr}
+              onClick={() => setQrFor(showQr ? null : person.id)}
+            >
+              <Icon name="qr" size="1rem" />
+            </button>
+          </>
+        )}
       </div>
+      {/* The same invite QR as Settings → Household (#391): for a relative
+          sitting next to you, who can scan it rather than be sent a link. */}
+      {showQr && <InviteQr code={inviteCode!} />}
 
       {!person.memberId && unaddedMembers.length > 0 && <LinkProfile person={person} unaddedMembers={unaddedMembers} />}
 

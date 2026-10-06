@@ -7,7 +7,9 @@ import { useRouter } from "next/navigation";
 import { Icon } from "@/components/icons";
 import { Blueprint } from "@/components/ui";
 import { logRoutineAction, clearRoutineLogAction, setRoutineLogNoteAction } from "@/lib/actions/routines";
+import { isNetworkFailure, isOffline, newOpId, queueOffline } from "@/lib/offline/live";
 import { ROUTINE_KIND_META, formatTimeOfDay, type RoutineKind } from "@/lib/routines";
+import { familyDay } from "@/lib/time";
 import type { RoutineView } from "@/lib/queries/routines";
 import { streakLabel, type ChoreStreak } from "@/lib/streaks";
 
@@ -42,7 +44,21 @@ export function TodayTaskList({ tasks }: { tasks: RoutineView[] }) {
   );
 }
 
-export function TaskRow({ task }: { task: RoutineView }) {
+/** "Done", tapped offline and waiting to send. */
+export function WaitingToSend() {
+  return (
+    <span style={{ display: "inline-flex", alignItems: "center", gap: "0.3125rem", fontSize: "0.78125rem", fontWeight: 500, color: "var(--color-neutral-700)" }}>
+      <Icon name="clock" size={14} />
+      Done · sends when you&rsquo;re back online
+    </span>
+  );
+}
+
+export const OFFLINE_ONLY_DONE = "You're offline. Only Done can wait to send — try this again with a signal.";
+
+/** `queued`: Done was tapped offline and is waiting to send (TodayList reads
+ * the queue). */
+export function TaskRow({ task, queued = false }: { task: RoutineView; queued?: boolean }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
@@ -60,12 +76,28 @@ export function TaskRow({ task }: { task: RoutineView }) {
       ? `Taking turns · ${task.members.map((m) => m.name.split(" ")[0]).join(", ")}`
       : task.members.map((m) => m.name.split(" ")[0]).join(", ") || "House";
 
+  // Offline, Done waits in the queue (lib/offline/live) -- without a note,
+  // as the saved copy's does; the replay logs it as done.
+  const later = async (status: "done" | "skipped") => {
+    if (status !== "done" || noteDraft.trim()) return setError(status === "done" ? "You're offline. Done can wait to send, but not with a note — clear the note or try again with a signal." : OFFLINE_ONLY_DONE);
+    const why = await queueOffline({ id: newOpId(), at: new Date().toISOString(), kind: "today.mark", key: `chore-${task.id}`, day: familyDay(), date: today.date, label: task.title });
+    if (why) setError(why);
+    else setNoteOpen(false);
+  };
+
   const log = (status: "done" | "skipped") => {
     setError(null);
     const note = noteDraft;
     startTransition(async () => {
-      const result = await logRoutineAction({ routineId: task.id, date: today.date, status, note: note || null });
-      if (result.error) setError(result.error);
+      if (isOffline()) return later(status);
+      try {
+        const result = await logRoutineAction({ routineId: task.id, date: today.date, status, note: note || null });
+        if (result.error) setError(result.error);
+      } catch (e) {
+        if (isNetworkFailure(e)) return later(status);
+        setError("That didn't save. Try again.");
+        return;
+      }
       setNoteOpen(false);
       setNoteDraft("");
       router.refresh();
@@ -75,9 +107,14 @@ export function TaskRow({ task }: { task: RoutineView }) {
   const undo = () => {
     setError(null);
     startTransition(async () => {
-      const result = await clearRoutineLogAction(task.id, today.date);
-      if (result.error) setError(result.error);
-      router.refresh();
+      if (isOffline()) return setError(OFFLINE_ONLY_DONE);
+      try {
+        const result = await clearRoutineLogAction(task.id, today.date);
+        if (result.error) setError(result.error);
+        router.refresh();
+      } catch {
+        setError(isOffline() ? OFFLINE_ONLY_DONE : "That didn't save. Try again.");
+      }
     });
   };
 
@@ -132,7 +169,9 @@ export function TaskRow({ task }: { task: RoutineView }) {
       </div>
 
       <div style={{ marginTop: "0.625rem" }}>
-        {!today.status ? (
+        {queued && !today.status ? (
+          <WaitingToSend />
+        ) : !today.status ? (
           <>
             <div style={{ display: "flex", gap: "0.375rem", flexWrap: "wrap", alignItems: "center" }}>
               <button

@@ -32,6 +32,8 @@ import { inKidView } from "@/lib/kid-view";
 import { KidToday } from "@/components/kid-today";
 import { StartHere } from "@/components/start-here";
 import { getStartHere } from "@/lib/queries/start-here";
+import { PlusTrialCard } from "@/components/plus-trial-card";
+import { getPlusTrialCard } from "@/lib/queries/plus-trial";
 import { HolidayLine } from "@/components/holiday-line";
 import { getMyPendingCheckIns } from "@/lib/queries/member-card";
 
@@ -41,7 +43,7 @@ export default async function TodayPage() {
   if (inKidView(me)) return <KidToday me={me} />;
 
   const supabase = await createClient();
-  const [{ data: members }, glance, brief, tasks, awaitingApproval, awaitingRedemption, familyPanel, comingUp, memories, recap, startHere, goalRequests, rewardDuties, goals, kinOffer, checkIns] = await Promise.all([
+  const [{ data: members }, glance, brief, tasks, awaitingApproval, awaitingRedemption, familyPanel, comingUp, memories, recap, startHere, goalRequests, rewardDuties, goals, kinOffer, checkIns, plusTrial] = await Promise.all([
     supabase.from("members").select("id, full_name, status").eq("family_id", me.family_id).order("created_at"),
     getGlance(me.family_id, me.families.currency, me),
     getTodayBriefing(me.family_id, me.families.currency, me),
@@ -74,6 +76,8 @@ export default async function TodayPage() {
     getKinOffer(me.role),
     // "Are you okay?" asks waiting on this person (the member card, 30 September).
     getMyPendingCheckIns(me.id),
+    // The first days of a Kin Plus trial: three Plus things to try.
+    getPlusTrialCard(me),
   ]);
 
   // Today's one list, ordered here on the server so the phone never re-sorts
@@ -152,6 +156,8 @@ export default async function TodayPage() {
         const access = readAccess(me.families);
         return access.trialing && access.daysLeft !== null && access.daysLeft <= 3 ? <TrialBanner daysLeft={access.daysLeft} isOrganiser={me.is_organiser} /> : null;
       })()}
+
+      {plusTrial && <PlusTrialCard steps={plusTrial.steps} daysLeft={plusTrial.daysLeft} />}
 
       {startHere && <StartHere steps={startHere} inviteCode={me.families.invite_code} />}
 
