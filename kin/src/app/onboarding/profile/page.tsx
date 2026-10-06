@@ -15,7 +15,11 @@ export default function ProfilePage() {
 
   return (
     <OnboardingShell step="STEP 03 / 05">
-      <h2 style={{ fontSize: "2.125rem", margin: "0 0 22px" }}>Your profile</h2>
+      <h2 style={{ fontSize: "2.125rem", margin: "0 0 6px" }}>Your profile</h2>
+      {/* Only the name is needed to start (approved 6 October). Birthday and
+          mobile were already optional but looked required, so people stopped
+          to look them up. "Fill in your profile" is one of Kin's offers later. */}
+      <p style={{ fontSize: "0.875rem", color: "var(--color-neutral-700)", margin: "0 0 18px" }}>Just your name to start. Birthday and mobile can wait.</p>
       <form action={formAction}>
         <ErrorText message={state.error} />
         <div className="field" style={{ marginBottom: "0.875rem" }}>
@@ -24,11 +28,11 @@ export default function ProfilePage() {
         </div>
         <div style={{ display: "flex", gap: "0.75rem", marginBottom: "1.125rem" }}>
           <div className="field" style={{ flex: 1 }}>
-            <label htmlFor={`${uid}-dob`}>Date of birth</label>
+            <label htmlFor={`${uid}-dob`}>Date of birth <span style={{ fontWeight: 400, color: "var(--color-neutral-600)" }}>(optional)</span></label>
             <DateInput aria-label="Date Of Birth" id={`${uid}-dob`} className="input" name="dob" style={{ minHeight: "2.75rem" }} />
           </div>
           <div className="field" style={{ flex: 1 }}>
-            <label htmlFor={`${uid}-mobile`}>Mobile</label>
+            <label htmlFor={`${uid}-mobile`}>Mobile <span style={{ fontWeight: 400, color: "var(--color-neutral-600)" }}>(optional)</span></label>
             <input id={`${uid}-mobile`} aria-label="Mobile" className="input" type="tel" name="mobile" placeholder="+63 917 000 0000" style={{ minHeight: "2.75rem" }} />
           </div>
         </div>
