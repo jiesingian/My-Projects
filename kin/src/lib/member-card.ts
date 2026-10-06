@@ -165,3 +165,33 @@ export function cleanPosition(lat: unknown, lng: unknown, accuracy: unknown): { 
 export function mapLink(lat: number, lng: number): string {
   return `https://www.google.com/maps/search/?api=1&query=${lat.toFixed(6)},${lng.toFixed(6)}`;
 }
+
+/** The push that asks "are you okay?", to the one person asked. It opens the
+ * one-tap answer page and lasts six hours: an ask that arrives the next day
+ * is worse than none. */
+export function checkInAskPush(askerName: string, memberId: string, checkInId: string) {
+  return {
+    kind: "checkins" as const,
+    memberIds: [memberId],
+    title: `${askerName.split(" ")[0]} asks: are you okay?`,
+    body: "One tap to answer.",
+    url: `/today/check-in/${checkInId}`,
+    tag: `checkin-${checkInId}`,
+    ttlSeconds: 6 * 60 * 60,
+  };
+}
+
+/** The push back to whoever asked. Same tag as the ask, so it replaces it on
+ * a phone that shows both; "call me" is sent urgent. */
+export function checkInAnswerPush(answererName: string, askerId: string, checkInId: string, answer: "ok" | "call_me") {
+  const first = answererName.split(" ")[0];
+  return {
+    kind: "checkins" as const,
+    memberIds: [askerId],
+    title: answer === "ok" ? `${first} is okay` : `${first} asked you to call`,
+    body: answer === "ok" ? "Answered your check-in just now." : "Answered your check-in: call me. Tap to open Kin.",
+    url: `/today/check-in/${checkInId}`,
+    tag: `checkin-${checkInId}`,
+    urgent: answer === "call_me",
+  };
+}

@@ -1,5 +1,5 @@
 import { test, expect } from "@playwright/test";
-import { apartLabel, audienceOf, cleanPosition, clockIn, dayIn, forPreview, isNightIn, isTimeZone, latest, offsetMinutes, ownSpendingAccounts, sectionsFor, sinceLabel, zoneCity } from "@/lib/member-card";
+import { apartLabel, audienceOf, checkInAnswerPush, checkInAskPush, cleanPosition, clockIn, dayIn, forPreview, isNightIn, isTimeZone, latest, offsetMinutes, ownSpendingAccounts, sectionsFor, sinceLabel, zoneCity } from "@/lib/member-card";
 
 /** The member card on Today (30 September): who sees which part of whose
  * card, and the arithmetic of "3:40 pm in Dubai, 4 h behind you". */
@@ -90,4 +90,28 @@ test("an SOS position is real or it is nothing", () => {
   expect(cleanPosition(Number.NaN, 0, 5)).toBeNull();
   expect(cleanPosition("25", 55, 5)).toBeNull();
   expect(cleanPosition(0, 0, -3)).toEqual({ lat: 0, lng: 0, accuracy_m: null });
+});
+
+/** "Are you okay?" (#394): one push each way. Who may ask, see and answer is
+ * row-level security, checked in supabase/tests/pglite/probes/member-checkins. */
+test("are you okay: the ask goes to the one asked, the answer back to the asker", () => {
+  const id = "11111111-1111-1111-1111-111111111111";
+  const ask = checkInAskPush("Maria Santos", "lola", id);
+  expect(ask.memberIds).toEqual(["lola"]);
+  expect(ask.kind).toBe("checkins");
+  expect(ask.title).toBe("Maria asks: are you okay?");
+  expect(ask.url).toBe(`/today/check-in/${id}`);
+  expect(ask.ttlSeconds).toBe(6 * 60 * 60);
+
+  const ok = checkInAnswerPush("Lola Rosa", "maria", id, "ok");
+  expect(ok.memberIds).toEqual(["maria"]);
+  expect(ok.title).toBe("Lola is okay");
+  expect(ok.urgent).toBe(false);
+  // Same tag as the ask, so the answer replaces it rather than stacking.
+  expect(ok.tag).toBe(ask.tag);
+  expect(ok.url).toBe(ask.url);
+
+  const call = checkInAnswerPush("Lola Rosa", "maria", id, "call_me");
+  expect(call.title).toBe("Lola asked you to call");
+  expect(call.urgent).toBe(true);
 });

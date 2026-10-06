@@ -15,7 +15,7 @@ import { weekStartOf } from "@/lib/week";
 import { inKidView } from "@/lib/kid-view";
 import { dosesFor } from "@/lib/health-plan";
 import { FAMILY_TZ, familyMidnight } from "@/lib/time";
-import { audienceOf, dayIn, forPreview, isTimeZone, latest, ownSpendingAccounts, sectionsFor, type CardAudience, type CardSections } from "@/lib/member-card";
+import { audienceOf, checkInAnswerPush, checkInAskPush, dayIn, forPreview, isTimeZone, latest, ownSpendingAccounts, sectionsFor, type CardAudience, type CardSections } from "@/lib/member-card";
 import type { ActionState } from "@/lib/actions/auth";
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -236,18 +236,7 @@ export async function askAreYouOkayAction(memberId: string): Promise<ActionState
   const { data, error } = await supabase.from("member_checkins").insert({ family_id: me.family_id, asked_by: me.id, member_id: memberId }).select("id").single();
   if (error) return { error: humanDatabaseError(error.message) };
 
-  const first = me.full_name.split(" ")[0];
-  after(() =>
-    sendPush({
-      kind: "checkins",
-      memberIds: [memberId],
-      title: `${first} asks: are you okay?`,
-      body: "One tap to answer.",
-      url: `/today/check-in/${data.id}`,
-      tag: `checkin-${data.id}`,
-      ttlSeconds: 6 * 60 * 60,
-    }),
-  );
+  after(() => sendPush(checkInAskPush(me.full_name, memberId, data.id)));
   revalidatePath("/today");
   return { error: null, id: data.id };
 }
@@ -262,18 +251,7 @@ export async function answerCheckInAction(id: string, answer: "ok" | "call_me"):
     revalidatePath("/today");
     return { error: null };
   }
-  const first = me.full_name.split(" ")[0];
-  after(() =>
-    sendPush({
-      kind: "checkins",
-      memberIds: [asker],
-      title: answer === "ok" ? `${first} is okay` : `${first} asked you to call`,
-      body: answer === "ok" ? "Answered your check-in just now." : "Answered your check-in: call me. Tap to open Kin.",
-      url: `/today/check-in/${id}`,
-      tag: `checkin-${id}`,
-      urgent: answer === "call_me",
-    }),
-  );
+  after(() => sendPush(checkInAnswerPush(me.full_name, asker, id, answer)));
   revalidatePath("/today");
   return { error: null };
 }
