@@ -57,7 +57,7 @@ export default async function ChatListPage({ searchParams }: { searchParams: Pro
 }
 
 function ThreadRow({ thread: t }: { thread: ChatThreadSummary }) {
-  const icon = t.kind === "household" ? "house" : t.kind === "dm" ? "message" : t.kind === "channel" ? "sparkle" : "users";
+  const icon = t.kind === "household" ? "house" : t.kind === "dm" ? "message" : t.kind === "channel" ? "sparkle" : t.kind === "saved" ? "fileText" : "users";
   return (
     <Link href={t.href} className="kin-threadrow" data-unread={t.unread > 0 ? "true" : undefined}>
       <span className="kin-threadrow-icon" aria-hidden="true">

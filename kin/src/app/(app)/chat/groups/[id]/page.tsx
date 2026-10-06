@@ -36,6 +36,9 @@ export default async function GroupPage({ params }: { params: Promise<{ id: stri
         {names.length > 6 ? ` and ${names.length - 6} more` : ""} · <span style={{ color: "var(--color-accent-700)", fontWeight: 600 }}>Members</span>
       </Link>
       <RoomThread
+        me={{ personId: me.person_id, firstName: me.full_name.split(" ")[0] }}
+        seenBy={room.seenBy}
+        mentionable={room.members.map((m) => ({ personId: m.personId, firstName: m.fullName.split(" ")[0] }))}
         saveFrom={room.group.name}
         room={{ kind: "group", groupId: id, isAdmin: room.isAdmin }}
         messages={room.messages}

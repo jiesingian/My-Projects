@@ -1,6 +1,7 @@
 "use client";
 
 import { ForwardSheet } from "@/components/forward-sheet";
+import { ScheduleMessage } from "@/components/schedule-message";
 import { AlbumPrompt } from "@/components/album-prompt";
 import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
@@ -370,6 +371,24 @@ export function ChatThread({
     setTimeout(() => setHighlight((h) => (h === id ? null : h)), 2000);
     return true;
   };
+
+  // Arriving from a search result across chats ("/chat/household#msg-<id>"):
+  // go straight to that message once the thread is on screen.
+  const arrived = useRef(false);
+  useEffect(() => {
+    if (arrived.current) return;
+    arrived.current = true;
+    const id = /^#msg-([0-9a-f-]{36})$/i.exec(window.location.hash)?.[1];
+    if (!id) return;
+    const t = setTimeout(() => {
+      const el = document.getElementById(`msg-${id}`);
+      if (!el) return;
+      el.scrollIntoView({ block: "center" });
+      setHighlight(id);
+      setTimeout(() => setHighlight((h) => (h === id ? null : h)), 2000);
+    }, 120);
+    return () => clearTimeout(t);
+  }, []);
 
   // Sweeps expired signals. A sender that closes the tab mid-word sends no
   // retraction, so the only thing that can end an indicator is time.
@@ -1123,6 +1142,14 @@ export function ChatThread({
           </div>
         )}
 
+        <ScheduleMessage
+          thread="household"
+          draft={draft}
+          onScheduled={() => {
+            setDraft("");
+            setMentioned([]);
+          }}
+        />
         <div className="kin-composer-row">
           <button
             type="button"

@@ -31,12 +31,45 @@ search across every chat.
    top ("pinned by Ben"); tap it to jump there, Unpin to clear it. Anyone who
    can read the message may pin it; in an announcement channel, admins only.
    The household chat keeps its one pin.
-5. "Seen by" and typing in every conversation.
-6. @mentions that notify, in every conversation.
-7. Search inside a conversation, and jumping to a hit.
-8. Saved messages: a private note-to-self conversation.
-9. Polls in any group.
-10. Scheduled messages ("send at 7am"), on the reminders pipeline.
+5. **Done: "seen by" and typing in every conversation.** Groups now show
+   "Seen by Mama, Lola" under your newest message anyone has read (one to one
+   already showed "Seen"; the household chat already had seen-by). "Mama is
+   typing…" shows in the family room, one to one and groups, over the private
+   channel's presence -- nothing is stored. The family room keeps no seen-by
+   (too many households for it to mean anything), and its typing line shows
+   your own household only, because each household has its own channel.
+6. **Done: @mentions that notify, in every conversation.** Type @ in the
+   family room or a group to name someone who writes there (or any group
+   member); a message naming you is highlighted. The person named gets
+   "Mama mentioned you" as its own notification instead of the plain one --
+   in the household chat too, where mentions used to notify nobody specially.
+   A muted conversation or chat notifications turned off stay silent for
+   mentions as well. One to one has no mentions (it is only the two of you).
+7. **Done: search inside a conversation and across chats.** The family
+   room, one to one and groups get the household chat's Search (words and
+   voice-note transcripts of what is loaded; tap a result to jump there).
+   Search across every chat (/chat/search) already existed; its results now
+   open the conversation at that message instead of at the bottom.
+8. **Done: Saved messages.** A note-to-self conversation in the chat list,
+   under home and Family: words, photos and videos only you can see (not
+   your household, not a parent). Forward anything from another chat to
+   "Saved messages" to keep it; forward from it to share later. It belongs to
+   the person, so it goes with them to a household of their own.
+9. **Done: polls in any group.** The poll button beside the camera in a group
+   (in an announcement channel, admins): a question, 2 to 10 answers, one or
+   several choices. Everyone in the group votes (channel members too), sees
+   the count and who chose what, and can change or take back a vote. The
+   household chat keeps its own polls. The family room and one to one have
+   none (the family room reaches too many households; one to one is two
+   people).
+10. **Done: scheduled messages.** Type a message, tap "Send later", pick a
+    day and time: it waits (listed above the message box, with Cancel) and
+    is posted as you within five minutes of that time, in any conversation,
+    with the usual notification. It rides the reminders pipeline (pg_cron
+    every five minutes -> /api/cron/reminders), so it needs the same
+    kin_cron_url / kin_cron_secret as reminders -- already set wherever
+    reminders work. If by then you may no longer post there (left the
+    group, connection removed), it is not sent.
 
 ## Agreed 28 September (Jonathan's answers to the page-by-page review)
 
@@ -125,7 +158,7 @@ One pull request each, in this order.
    "just me" one; goals as getGoals already shows them to that reader; next
    week by Today's rule (own, whole family's, and a grown-up sees the
    children's); in kid view no money goals and no bills. The Sunday
-   week-ahead push (#307) opens it (20260930170000).
+   week-ahead push (#307) opens it (20261006100000).
 
 ## Final stage: everything that costs money, done together
 

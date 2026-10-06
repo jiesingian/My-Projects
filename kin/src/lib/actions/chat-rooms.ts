@@ -66,7 +66,7 @@ function checkOutgoing(me: Sender, body: string, photos: RoomPhoto[]): string | 
 async function attachPhotos(
   me: Sender,
   photos: RoomPhoto[],
-  to: { family_message_id: string } | { direct_message_id: string } | { group_message_id: string },
+  to: { family_message_id: string } | { direct_message_id: string } | { group_message_id: string } | { saved_message_id: string },
 ): Promise<string | null> {
   if (photos.length === 0) return null;
   const supabase = await createClient();
@@ -86,7 +86,8 @@ async function attachPhotos(
   if (!error) return null;
   if ("family_message_id" in to) await supabase.from("family_tree_messages").delete().eq("id", to.family_message_id);
   else if ("direct_message_id" in to) await supabase.from("direct_messages").delete().eq("id", to.direct_message_id);
-  else await supabase.from("chat_group_messages").delete().eq("id", to.group_message_id);
+  else if ("group_message_id" in to) await supabase.from("chat_group_messages").delete().eq("id", to.group_message_id);
+  else await supabase.from("saved_messages").delete().eq("id", to.saved_message_id);
   await supabase.storage.from("documents").remove(photos.map((p) => p.storagePath));
   return `The photos didn't attach, so nothing was sent. ${humanDatabaseError(error.message)}`;
 }
@@ -94,7 +95,7 @@ async function attachPhotos(
 /** Deleting a message takes its photos with it -- the files, not only the
  * rows, which the database removes on its own. The files are in the
  * sender's own folder, so the sender may remove them. */
-async function removePhotosOf(column: "family_message_id" | "direct_message_id" | "group_message_id", id: string): Promise<void> {
+async function removePhotosOf(column: "family_message_id" | "direct_message_id" | "group_message_id" | "saved_message_id", id: string): Promise<void> {
   const supabase = await createClient();
   const { data } = await supabase.from("chat_room_attachments").select("storage_path").eq(column, id);
   if (data?.length) await supabase.storage.from("documents").remove(data.map((a) => a.storage_path));
@@ -110,6 +111,13 @@ function photoLine(photos: RoomPhoto[]): string {
   return `Sent ${photos.length} ${photos.every((p) => p.mimeType.startsWith("image/")) ? "photos" : "files"}`;
 }
 
+/** The people a message names (20261006100100): real ids, never the sender,
+ * at most 20. Naming someone outside the room gives them nothing -- the
+ * notification only ever reaches the room's own people. */
+function named(me: Sender, people: string[]): string[] {
+  return [...new Set((Array.isArray(people) ? people : []).filter((p) => typeof p === "string" && UUID.test(p) && p !== me.person_id))].slice(0, 20);
+}
+
 /** A message to everyone in the family tree: this household and each one
  * linked with it. Who wrote it and from where is set by the database. */
 export async function sendFamilyMessageAction(
@@ -117,6 +125,7 @@ export async function sendFamilyMessageAction(
   photos: RoomPhoto[] = [],
   replyTo: string | null = null,
   forwardedFrom: string | null = null,
+  mentions: string[] = [],
 ): Promise<ActionState> {
   const me = await requireCurrentMember();
   const text = clamp(body.trim(), 2000);
@@ -125,7 +134,7 @@ export async function sendFamilyMessageAction(
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("family_tree_messages")
-    .insert({ body: text, reply_to: replyTo && UUID.test(replyTo) ? replyTo : null, forwarded_from: forwardedFrom?.slice(0, 60) || null })
+    .insert({ body: text, reply_to: replyTo && UUID.test(replyTo) ? replyTo : null, forwarded_from: forwardedFrom?.slice(0, 60) || null, mentions: named(me, mentions) })
     .select("id")
     .single();
   if (error || !data) return { error: error ? humanDatabaseError(error.message) : "That didn't send." };
@@ -141,7 +150,7 @@ export async function sendFamilyMessageAction(
       body: text || photoLine(photos),
       url: "/chat/family",
       tag: `family-tree-${me.family_id}`,
-    }),
+    }, { people: named(me, mentions), title: `${me.full_name.split(" ")[0]} mentioned you · Family`, tag: `mention-${data.id}` }),
   );
   return { error: null };
 }
@@ -166,6 +175,7 @@ export async function sendDirectMessageAction(
   photos: RoomPhoto[] = [],
   replyTo: string | null = null,
   forwardedFrom: string | null = null,
+  mentions: string[] = [],
 ): Promise<ActionState> {
   const me = await requireCurrentMember();
   if (!UUID.test(otherPersonId)) return { error: "That conversation doesn't exist." };
@@ -176,7 +186,7 @@ export async function sendDirectMessageAction(
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("direct_messages")
-    .insert({ person_low, person_high, body: text, reply_to: replyTo && UUID.test(replyTo) ? replyTo : null, forwarded_from: forwardedFrom?.slice(0, 60) || null })
+    .insert({ person_low, person_high, body: text, reply_to: replyTo && UUID.test(replyTo) ? replyTo : null, forwarded_from: forwardedFrom?.slice(0, 60) || null, mentions: named(me, mentions) })
     .select("id")
     .single();
   if (error || !data) {
@@ -193,7 +203,7 @@ export async function sendDirectMessageAction(
       body: text || photoLine(photos),
       url: `/chat/dm/${me.person_id}`,
       tag: `dm-${person_low}-${person_high}`,
-    }),
+    }, { people: named(me, mentions), title: `${me.full_name.split(" ")[0]} mentioned you`, tag: `mention-${data.id}` }),
   );
   return { error: null };
 }
@@ -354,6 +364,7 @@ export async function sendGroupMessageAction(
   photos: RoomPhoto[] = [],
   replyTo: string | null = null,
   forwardedFrom: string | null = null,
+  mentions: string[] = [],
 ): Promise<ActionState> {
   const me = await requireCurrentMember();
   if (!UUID.test(groupId)) return { error: "That group doesn't exist." };
@@ -363,7 +374,7 @@ export async function sendGroupMessageAction(
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("chat_group_messages")
-    .insert({ group_id: groupId, body: text, reply_to: replyTo && UUID.test(replyTo) ? replyTo : null, forwarded_from: forwardedFrom?.slice(0, 60) || null })
+    .insert({ group_id: groupId, body: text, reply_to: replyTo && UUID.test(replyTo) ? replyTo : null, forwarded_from: forwardedFrom?.slice(0, 60) || null, mentions: named(me, mentions) })
     .select("id")
     .single();
   if (error || !data) {
@@ -381,7 +392,7 @@ export async function sendGroupMessageAction(
       body: text || photoLine(photos),
       url: `/chat/groups/${groupId}`,
       tag: `group-${groupId}`,
-    }),
+    }, { people: named(me, mentions), title: `${me.full_name.split(" ")[0]} mentioned you · ${group?.name ?? "Group"}`, tag: `mention-${data.id}` }),
   );
   return { error: null };
 }
@@ -463,6 +474,20 @@ async function readOriginal(me: Sender & { full_name: string }, source: ForwardS
       m.sender_person_id === me.person_id ? me.full_name : ((await getDirectPeers()).find((p) => p.personId === m.sender_person_id)?.fullName ?? null);
     return { body: m.body, from: forwardLabel(name, m.forwarded_from), files: await roomFiles("direct_message_id") };
   }
+  if (source.kind === "saved") {
+    const { data: s } = await supabase.from("saved_messages").select("body, forwarded_from").eq("id", source.id).maybeSingle();
+    if (!s) return gone;
+    const { data: files } = await supabase
+      .from("chat_room_attachments")
+      .select("storage_path, file_name, mime_type, size_bytes, transcript")
+      .eq("saved_message_id", source.id)
+      .order("position");
+    return {
+      body: s.body,
+      from: forwardLabel(me.full_name, s.forwarded_from),
+      files: (files ?? []).map((a) => ({ storagePath: a.storage_path, fileName: a.file_name, mimeType: a.mime_type, sizeBytes: a.size_bytes, transcript: a.transcript })),
+    };
+  }
   const { data: m } = await supabase.from("chat_group_messages").select("author_name, body, forwarded_from").eq("id", source.id).maybeSingle();
   if (!m) return gone;
   return { body: m.body, from: forwardLabel(m.author_name, m.forwarded_from), files: await roomFiles("group_message_id") };
@@ -522,7 +547,9 @@ export async function forwardMessageAction(source: ForwardSource, targetKeys: st
           ? await sendFamilyMessageAction(body, photos, null, original.from)
           : target.kind === "dm"
             ? await sendDirectMessageAction(target.id, body, photos, null, original.from)
-            : await sendGroupMessageAction(target.id, body, photos, null, original.from);
+            : target.kind === "saved"
+              ? await sendSavedMessageAction(body, photos, original.from)
+              : await sendGroupMessageAction(target.id, body, photos, null, original.from);
     if (r.error) {
       // The send actions tidy up after a failed attachment; a refused
       // message leaves the copies behind, so remove them here.
@@ -586,5 +613,137 @@ export async function pinRoomMessageAction(kind: RoomKind, id: string, pinned: b
   const { error } = await supabase.rpc("pin_chat_message", { p_kind: kind, p_id: id, p_pinned: pinned });
   if (error) return { error: error.code === "42501" ? "Only this channel's admins can pin here." : humanDatabaseError(error.message) };
   revalidatePath("/chat", "layout");
+  return { error: null };
+}
+
+// ---------------------------------------------------------------- saved messages
+
+/** A note to self (20261006100200): words and photos only you can see. */
+export async function sendSavedMessageAction(body: string, photos: RoomPhoto[] = [], forwardedFrom: string | null = null): Promise<ActionState> {
+  const me = await requireCurrentMember();
+  const text = clamp(body.trim(), 4000);
+  const refused = checkOutgoing(me, text, photos);
+  if (refused) return { error: refused };
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("saved_messages")
+    .insert({ body: text, forwarded_from: forwardedFrom?.slice(0, 60) || null })
+    .select("id")
+    .single();
+  if (error || !data) return { error: error ? humanDatabaseError(error.message) : "That didn't save." };
+  const attachError = await attachPhotos(me, photos, { saved_message_id: data.id });
+  if (attachError) return { error: attachError };
+  revalidatePath("/chat", "layout");
+  return { error: null };
+}
+
+export async function deleteSavedMessageAction(id: string): Promise<ActionState> {
+  await requireCurrentMember();
+  if (!UUID.test(id)) return { error: "That note doesn't exist." };
+  await removePhotosOf("saved_message_id", id);
+  const supabase = await createClient();
+  const { error } = await supabase.from("saved_messages").delete().eq("id", id);
+  if (error) return { error: humanDatabaseError(error.message) };
+  revalidatePath("/chat", "layout");
+  return { error: null };
+}
+
+// ---------------------------------------------------------------- group polls
+
+/** Ask a poll in a group (20261006100300): the message, the question and its
+ * answers are written together by create_group_poll(), which also decides
+ * who may ask (a member; in a channel, an admin). */
+export async function sendGroupPollAction(groupId: string, question: string, options: string[], allowMultiple: boolean): Promise<ActionState> {
+  const me = await requireCurrentMember();
+  if (!UUID.test(groupId)) return { error: "That group doesn't exist." };
+  const q = clamp(question.trim(), 200);
+  const answers = (Array.isArray(options) ? options : []).map((o) => clamp(String(o).trim(), 100)).filter(Boolean).slice(0, 10);
+  if (!q) return { error: "A poll needs a question." };
+  if (answers.length < 2) return { error: "A poll needs at least two answers." };
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("create_group_poll", { p_group: groupId, p_question: q, p_options: answers, p_allow_multiple: !!allowMultiple });
+  if (error || !data) return { error: error?.code === "42501" ? "Only this channel's admins can ask here." : humanDatabaseError(error?.message ?? "That didn't send.") };
+  await markThreadReadAction(`group:${groupId}`);
+  revalidatePath("/chat", "layout");
+  const { data: group } = await supabase.from("chat_groups").select("name").eq("id", groupId).maybeSingle();
+  after(() =>
+    sendChatPush(`group:${groupId}`, {
+      title: `${me.full_name.split(" ")[0]} · ${group?.name ?? "Group"}`,
+      body: `📊 ${q}`,
+      url: `/chat/groups/${groupId}`,
+      tag: `group-${groupId}`,
+    }),
+  );
+  return { error: null };
+}
+
+/** Tap an answer: vote for it, or take the vote back. On a one-answer poll,
+ * choosing another answer moves the vote. */
+export async function voteGroupPollAction(pollId: string, optionId: string): Promise<ActionState> {
+  const me = await requireCurrentMember();
+  if (!UUID.test(pollId) || !UUID.test(optionId)) return { error: "That poll doesn't exist." };
+  const supabase = await createClient();
+  const [{ data: poll }, { data: mine }] = await Promise.all([
+    supabase.from("group_polls").select("allow_multiple").eq("id", pollId).maybeSingle(),
+    supabase.from("group_poll_votes").select("option_id").eq("poll_id", pollId).eq("person_id", me.person_id),
+  ]);
+  if (!poll) return { error: "That poll isn't there any more." };
+  const already = (mine ?? []).some((v) => v.option_id === optionId);
+  if (already) {
+    const { error } = await supabase.from("group_poll_votes").delete().eq("poll_id", pollId).eq("option_id", optionId).eq("person_id", me.person_id);
+    if (error) return { error: humanDatabaseError(error.message) };
+  } else {
+    if (!poll.allow_multiple && (mine ?? []).length) await supabase.from("group_poll_votes").delete().eq("poll_id", pollId).eq("person_id", me.person_id);
+    const { error } = await supabase.from("group_poll_votes").insert({ poll_id: pollId, option_id: optionId });
+    if (error) return { error: humanDatabaseError(error.message) };
+  }
+  revalidatePath("/chat", "layout");
+  return { error: null };
+}
+
+// ---------------------------------------------------------------- scheduled messages
+
+export type ScheduledMessage = { id: string; body: string; sendAt: string };
+const SCHEDULE_THREAD = /^(household|family|dm:[0-9a-f-]{36}|group:[0-9a-f-]{36})$/i;
+
+/** Write now, send later (20261006100400). The reminders pipeline posts it
+ * as you at that time (within five minutes) and notifies as usual. */
+export async function scheduleMessageAction(thread: string, body: string, sendAt: string): Promise<ActionState> {
+  await requireCurrentMember();
+  if (!SCHEDULE_THREAD.test(thread)) return { error: "That conversation doesn't exist." };
+  const text = clamp(body.trim(), 2000);
+  if (!text) return { error: "Write the message first." };
+  const when = new Date(sendAt);
+  if (Number.isNaN(when.getTime())) return { error: "Pick a day and time." };
+  if (when.getTime() < Date.now() + 60_000) return { error: "Pick a time at least a minute from now." };
+  if (when.getTime() > Date.now() + 365 * 86_400_000) return { error: "Pick a time within a year." };
+  const supabase = await createClient();
+  const { error } = await supabase.from("scheduled_messages").insert({ thread: thread.toLowerCase(), body: text, send_at: when.toISOString() });
+  if (error) return { error: humanDatabaseError(error.message) };
+  revalidatePath("/chat", "layout");
+  return { error: null };
+}
+
+/** Your messages waiting to go in this conversation, soonest first. */
+export async function listScheduledAction(thread: string): Promise<ScheduledMessage[]> {
+  await requireCurrentMember();
+  if (!SCHEDULE_THREAD.test(thread)) return [];
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("scheduled_messages")
+    .select("id, body, send_at")
+    .eq("thread", thread.toLowerCase())
+    .is("sent_at", null)
+    .order("send_at");
+  return (data ?? []).map((r) => ({ id: r.id, body: r.body, sendAt: r.send_at }));
+}
+
+export async function cancelScheduledAction(id: string): Promise<ActionState> {
+  await requireCurrentMember();
+  if (!UUID.test(id)) return { error: "That message doesn't exist." };
+  const supabase = await createClient();
+  const { data, error } = await supabase.from("scheduled_messages").delete().eq("id", id).is("sent_at", null).select("id");
+  if (error) return { error: humanDatabaseError(error.message) };
+  if (!data?.length) return { error: "That one has already been sent." };
   return { error: null };
 }

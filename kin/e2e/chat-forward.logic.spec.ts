@@ -9,6 +9,7 @@ const A = "0f1e2d3c-4b5a-4968-8776-655443322110";
 test("a conversation key names exactly one conversation", () => {
   expect(parseTargetKey("household")).toEqual({ kind: "household" });
   expect(parseTargetKey("family")).toEqual({ kind: "family" });
+  expect(parseTargetKey("saved")).toEqual({ kind: "saved" });
   expect(parseTargetKey(`dm:${A}`)).toEqual({ kind: "dm", id: A });
   expect(parseTargetKey(`group:${A.toUpperCase()}`)).toEqual({ kind: "group", id: A });
   // Link threads are not forward targets, and nothing loose gets through.
@@ -47,7 +48,7 @@ test("a forwarded file is copied into the forwarder's own chat folder", () => {
 
 test("only the household chat takes files other than media", () => {
   expect(fileFitsTarget("household", "application/pdf")).toBe(true);
-  for (const kind of ["family", "dm", "group"] as const) {
+  for (const kind of ["family", "dm", "group", "saved"] as const) {
     expect(fileFitsTarget(kind, "application/pdf")).toBe(false);
     expect(fileFitsTarget(kind, "image/jpeg")).toBe(true);
     expect(fileFitsTarget(kind, "video/mp4")).toBe(true);

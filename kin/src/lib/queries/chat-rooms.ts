@@ -36,16 +36,57 @@ export type RoomMessage = {
    * first name of who pinned it. */
   pinnedAt: string | null;
   pinnedBy: string | null;
+  /** Who wrote it, as a person (for @-mentioning them back), and whether it
+   * names the reader (20261006100100). */
+  authorPersonId: string | null;
+  mentionsMe: boolean;
+  /** A group poll asked in this message (20261006100300). */
+  poll?: RoomPoll | null;
 };
 
-type MessageColumn = "family_message_id" | "direct_message_id" | "group_message_id" | "link_message_id";
+export type RoomPoll = {
+  id: string;
+  question: string;
+  allowMultiple: boolean;
+  options: { id: string; label: string; voters: string[]; mine: boolean }[];
+};
+
+/** The polls asked in a window of group messages, with who voted for what. */
+async function pollsFor(messageIds: string[], myPersonId: string): Promise<Map<string, RoomPoll>> {
+  const out = new Map<string, RoomPoll>();
+  if (messageIds.length === 0) return out;
+  const supabase = await createClient();
+  const { data: polls } = await supabase.from("group_polls").select("id, message_id, question, allow_multiple").in("message_id", messageIds);
+  if (!polls?.length) return out;
+  const ids = polls.map((p) => p.id);
+  const [{ data: options }, { data: votes }] = await Promise.all([
+    supabase.from("group_poll_options").select("id, poll_id, label, position").in("poll_id", ids).order("position"),
+    supabase.from("group_poll_votes").select("poll_id, option_id, person_id, voter_name").in("poll_id", ids).order("created_at"),
+  ]);
+  for (const p of polls) {
+    out.set(p.message_id, {
+      id: p.id,
+      question: p.question,
+      allowMultiple: p.allow_multiple,
+      options: (options ?? [])
+        .filter((o) => o.poll_id === p.id)
+        .map((o) => {
+          const v = (votes ?? []).filter((x) => x.option_id === o.id);
+          return { id: o.id, label: o.label, voters: v.map((x) => (x.person_id === myPersonId ? "You" : x.voter_name || "Someone")), mine: v.some((x) => x.person_id === myPersonId) };
+        }),
+    });
+  }
+  return out;
+}
+
+type MessageColumn = "family_message_id" | "direct_message_id" | "group_message_id" | "link_message_id" | "saved_message_id";
 
 type ReactionRow = { family_message_id: string | null; direct_message_id: string | null; group_message_id: string | null; link_message_id: string | null; emoji: string; author_name: string; person_id: string };
 
 /** Reactions on a window of room messages, one query for all of them. Row-
  * level security leaves out reactions from households the reader is not
  * linked with. */
-export async function reactionsFor(column: MessageColumn, ids: string[], myPersonId: string): Promise<Map<string, RoomMessage["reactions"]>> {
+export async function reactionsFor(column: Exclude<MessageColumn, "saved_message_id">, ids: string[], myPersonId: string): Promise<Map<string, RoomMessage["reactions"]>> {
   const out = new Map<string, RoomMessage["reactions"]>();
   if (ids.length === 0) return out;
   const supabase = await createClient();
@@ -94,7 +135,7 @@ async function photosFor(column: Exclude<MessageColumn, "link_message_id">,ids: 
   const supabase = await createClient();
   const { data } = await supabase
     .from("chat_room_attachments")
-    .select("id, family_message_id, direct_message_id, group_message_id, storage_path, file_name, mime_type, transcript, position")
+    .select("id, family_message_id, direct_message_id, group_message_id, saved_message_id, storage_path, file_name, mime_type, transcript, position")
     .in(column, ids)
     .order("position");
   const signed = await getSignedUrls("documents", (data ?? []).map((a) => a.storage_path));
@@ -115,7 +156,7 @@ export function pairOf(a: string, b: string): [string, string] {
 export async function getFamilyRoom(me: { id: string; family_id: string; person_id: string }): Promise<{ messages: RoomMessage[]; households: string[] }> {
   const supabase = await createClient();
   const [{ data }, { data: links }] = await Promise.all([
-    supabase.from("family_tree_messages").select("id, family_id, member_id, author_name, body, created_at, reply_to, forwarded_from, edited_at, deleted_at, pinned_at, pinned_by").order("created_at", { ascending: false }).limit(200),
+    supabase.from("family_tree_messages").select("id, family_id, member_id, person_id, mentions, author_name, body, created_at, reply_to, forwarded_from, edited_at, deleted_at, pinned_at, pinned_by").order("created_at", { ascending: false }).limit(200),
     supabase.from("family_links").select("requester_family_id, addressee_family_id").eq("status", "accepted"),
   ]);
   const rows = (data ?? []).slice().reverse();
@@ -150,6 +191,8 @@ export async function getFamilyRoom(me: { id: string; family_id: string; person_
       removed: !!r.deleted_at,
       pinnedAt: r.deleted_at ? null : r.pinned_at,
       pinnedBy: r.pinned_by,
+      authorPersonId: r.person_id,
+      mentionsMe: !r.deleted_at && (r.mentions ?? []).includes(me.person_id),
     })),
   };
 }
@@ -173,7 +216,7 @@ export async function getDirectThread(
   const [low, high] = pairOf(myPersonId, otherPersonId);
   const { data } = await supabase
     .from("direct_messages")
-    .select("id, sender_person_id, body, created_at, reply_to, forwarded_from, edited_at, deleted_at, pinned_at, pinned_by")
+    .select("id, sender_person_id, mentions, body, created_at, reply_to, forwarded_from, edited_at, deleted_at, pinned_at, pinned_by")
     .eq("person_low", low)
     .eq("person_high", high)
     .order("created_at", { ascending: false })
@@ -209,6 +252,8 @@ export async function getDirectThread(
         removed: !!m.deleted_at,
         pinnedAt: m.deleted_at ? null : m.pinned_at,
         pinnedBy: m.pinned_by,
+        authorPersonId: m.sender_person_id,
+        mentionsMe: !m.deleted_at && (m.mentions ?? []).includes(myPersonId),
       })),
   };
 }
@@ -249,17 +294,26 @@ export type GroupSummary = { id: string; name: string; announceOnly: boolean };
 export async function getGroupRoom(
   myPersonId: string,
   groupId: string,
-): Promise<{ group: GroupSummary; members: GroupMember[]; messages: RoomMessage[]; isAdmin: boolean; canPost: boolean } | null> {
+): Promise<{
+  group: GroupSummary;
+  members: GroupMember[];
+  messages: RoomMessage[];
+  isAdmin: boolean;
+  canPost: boolean;
+  /** Who else has opened it, and when (20261006100000), for "Seen by". */
+  seenBy: { firstName: string; lastReadAt: string }[];
+} | null> {
   const supabase = await createClient();
-  const [{ data: group }, { data: memberRows }, { data }] = await Promise.all([
+  const [{ data: group }, { data: memberRows }, { data }, { data: seen }] = await Promise.all([
     supabase.from("chat_groups").select("id, name, announce_only").eq("id", groupId).maybeSingle(),
     supabase.rpc("group_members_of", { p_group: groupId }),
     supabase
       .from("chat_group_messages")
-      .select("id, sender_person_id, author_name, body, created_at, reply_to, forwarded_from, edited_at, deleted_at, pinned_at, pinned_by")
+      .select("id, sender_person_id, mentions, author_name, body, created_at, reply_to, forwarded_from, edited_at, deleted_at, pinned_at, pinned_by")
       .eq("group_id", groupId)
       .order("created_at", { ascending: false })
       .limit(300),
+    supabase.rpc("group_seen_by", { p_group: groupId }),
   ]);
   if (!group) return null;
   const members: GroupMember[] = (memberRows ?? []).map((m) => ({
@@ -272,7 +326,11 @@ export async function getGroupRoom(
   const isAdmin = members.some((m) => m.personId === myPersonId && m.admin);
   const rows = (data ?? []).slice().reverse();
   const ids = rows.map((r) => r.id);
-  const [photos, reactions] = await Promise.all([photosFor("group_message_id", ids), reactionsFor("group_message_id", ids, myPersonId)]);
+  const [photos, reactions, polls] = await Promise.all([
+    photosFor("group_message_id", ids),
+    reactionsFor("group_message_id", ids, myPersonId),
+    pollsFor(ids, myPersonId),
+  ]);
   const byId = new Map(rows.map((r) => [r.id, r]));
   const authorOf = (id: string) => {
     const r = byId.get(id);
@@ -283,6 +341,7 @@ export async function getGroupRoom(
     members,
     isAdmin,
     canPost: !group.announce_only || isAdmin,
+    seenBy: (seen ?? []).map((s) => ({ firstName: s.first_name || "Someone", lastReadAt: s.last_read_at })),
     messages: rows.map((r) => ({
       id: r.id,
       authorName: r.author_name || "Someone",
@@ -299,6 +358,9 @@ export async function getGroupRoom(
       removed: !!r.deleted_at,
       pinnedAt: r.deleted_at ? null : r.pinned_at,
       pinnedBy: r.pinned_by,
+      authorPersonId: r.sender_person_id,
+      mentionsMe: !r.deleted_at && (r.mentions ?? []).includes(myPersonId),
+      poll: r.deleted_at ? null : (polls.get(r.id) ?? null),
     })),
   };
 }
@@ -350,6 +412,7 @@ export async function getForwardTargets(me: { person_id: string; familyName: str
   ]);
   const admin = new Set((roles ?? []).filter((r) => r.role === "admin").map((r) => r.group_id));
   return [
+    { key: "saved", kind: "saved", title: "Saved messages", subtitle: "Only you" },
     { key: "household", kind: "household", title: me.familyName, subtitle: "Household" },
     { key: "family", kind: "family", title: "Family", subtitle: "Everyone in the family tree" },
     ...peers
@@ -361,4 +424,33 @@ export async function getForwardTargets(me: { person_id: string; familyName: str
       .sort((a, b) => a.name.localeCompare(b.name))
       .map((g): ForwardTarget => ({ key: `group:${g.id}`, kind: "group", title: g.name, subtitle: g.announceOnly ? "Channel" : "Group" })),
   ];
+}
+
+/** Saved messages (20261006100200): this person's notes to self, oldest
+ * first, in the rooms' shape so the thread can draw them the same way. Only
+ * they can read them; row-level security says so, not this. */
+export async function getSavedMessages(myPersonId: string): Promise<RoomMessage[]> {
+  const supabase = await createClient();
+  const { data } = await supabase.from("saved_messages").select("id, body, forwarded_from, created_at").order("created_at", { ascending: false }).limit(300);
+  const rows = (data ?? []).slice().reverse();
+  const photos = await photosFor("saved_message_id", rows.map((r) => r.id));
+  return rows.map((r) => ({
+    id: r.id,
+    authorName: "You",
+    body: r.body,
+    createdAt: r.created_at,
+    mine: true,
+    householdName: null,
+    ourHousehold: true,
+    photos: photos.get(r.id) ?? [],
+    replyTo: null,
+    reactions: [],
+    forwardedFrom: r.forwarded_from,
+    editedAt: null,
+    removed: false,
+    pinnedAt: null,
+    pinnedBy: null,
+    authorPersonId: myPersonId,
+    mentionsMe: false,
+  }));
 }

@@ -1849,15 +1849,45 @@ export type Database = {
         Relationships: []
       }
       family_tree_messages: {
-        Row: { pinned_at: string | null; pinned_by: string | null; deleted_at: string | null; edited_at: string | null; forwarded_from: string | null; author_name: string; body: string; created_at: string; family_id: string; id: string; member_id: string | null; person_id: string | null; reply_to: string | null }
-        Insert: { pinned_at?: string | null; pinned_by?: string | null; deleted_at?: string | null; edited_at?: string | null; forwarded_from?: string | null; author_name?: string; body: string; created_at?: string; family_id?: string; id?: string; member_id?: string | null; person_id?: string | null; reply_to?: string | null }
-        Update: { pinned_at?: string | null; pinned_by?: string | null; deleted_at?: string | null; edited_at?: string | null; forwarded_from?: string | null; author_name?: string; body?: string; created_at?: string; family_id?: string; id?: string; member_id?: string | null; person_id?: string | null; reply_to?: string | null }
+        Row: { mentions: string[]; pinned_at: string | null; pinned_by: string | null; deleted_at: string | null; edited_at: string | null; forwarded_from: string | null; author_name: string; body: string; created_at: string; family_id: string; id: string; member_id: string | null; person_id: string | null; reply_to: string | null }
+        Insert: { mentions?: string[]; pinned_at?: string | null; pinned_by?: string | null; deleted_at?: string | null; edited_at?: string | null; forwarded_from?: string | null; author_name?: string; body: string; created_at?: string; family_id?: string; id?: string; member_id?: string | null; person_id?: string | null; reply_to?: string | null }
+        Update: { mentions?: string[]; pinned_at?: string | null; pinned_by?: string | null; deleted_at?: string | null; edited_at?: string | null; forwarded_from?: string | null; author_name?: string; body?: string; created_at?: string; family_id?: string; id?: string; member_id?: string | null; person_id?: string | null; reply_to?: string | null }
         Relationships: []
       }
       direct_messages: {
-        Row: { pinned_at: string | null; pinned_by: string | null; deleted_at: string | null; edited_at: string | null; forwarded_from: string | null; body: string; created_at: string; id: string; person_high: string; person_low: string; reply_to: string | null; sender_person_id: string | null }
-        Insert: { pinned_at?: string | null; pinned_by?: string | null; deleted_at?: string | null; edited_at?: string | null; forwarded_from?: string | null; body: string; created_at?: string; id?: string; person_high: string; person_low: string; reply_to?: string | null; sender_person_id?: string | null }
-        Update: { pinned_at?: string | null; pinned_by?: string | null; deleted_at?: string | null; edited_at?: string | null; forwarded_from?: string | null; body?: string; created_at?: string; id?: string; person_high?: string; person_low?: string; reply_to?: string | null; sender_person_id?: string | null }
+        Row: { mentions: string[]; pinned_at: string | null; pinned_by: string | null; deleted_at: string | null; edited_at: string | null; forwarded_from: string | null; body: string; created_at: string; id: string; person_high: string; person_low: string; reply_to: string | null; sender_person_id: string | null }
+        Insert: { mentions?: string[]; pinned_at?: string | null; pinned_by?: string | null; deleted_at?: string | null; edited_at?: string | null; forwarded_from?: string | null; body: string; created_at?: string; id?: string; person_high: string; person_low: string; reply_to?: string | null; sender_person_id?: string | null }
+        Update: { mentions?: string[]; pinned_at?: string | null; pinned_by?: string | null; deleted_at?: string | null; edited_at?: string | null; forwarded_from?: string | null; body?: string; created_at?: string; id?: string; person_high?: string; person_low?: string; reply_to?: string | null; sender_person_id?: string | null }
+        Relationships: []
+      }
+      group_polls: {
+        Row: { allow_multiple: boolean; created_at: string; group_id: string; id: string; message_id: string; question: string }
+        Insert: { allow_multiple?: boolean; created_at?: string; group_id: string; id?: string; message_id: string; question: string }
+        Update: { allow_multiple?: boolean; created_at?: string; group_id?: string; id?: string; message_id?: string; question?: string }
+        Relationships: []
+      }
+      group_poll_options: {
+        Row: { id: string; label: string; poll_id: string; position: number }
+        Insert: { id?: string; label: string; poll_id: string; position?: number }
+        Update: { id?: string; label?: string; poll_id?: string; position?: number }
+        Relationships: []
+      }
+      group_poll_votes: {
+        Row: { created_at: string; option_id: string; person_id: string; poll_id: string; voter_name: string }
+        Insert: { created_at?: string; option_id: string; person_id?: string; poll_id: string; voter_name?: string }
+        Update: { created_at?: string; option_id?: string; person_id?: string; poll_id?: string; voter_name?: string }
+        Relationships: []
+      }
+      scheduled_messages: {
+        Row: { body: string; created_at: string; failed: string | null; id: string; person_id: string; send_at: string; sent_at: string | null; thread: string }
+        Insert: { body: string; created_at?: string; failed?: string | null; id?: string; person_id?: string; send_at: string; sent_at?: string | null; thread: string }
+        Update: { body?: string; created_at?: string; failed?: string | null; id?: string; person_id?: string; send_at?: string; sent_at?: string | null; thread?: string }
+        Relationships: []
+      }
+      saved_messages: {
+        Row: { body: string; created_at: string; forwarded_from: string | null; id: string; person_id: string }
+        Insert: { body?: string; created_at?: string; forwarded_from?: string | null; id?: string; person_id?: string }
+        Update: { body?: string; created_at?: string; forwarded_from?: string | null; id?: string; person_id?: string }
         Relationships: []
       }
       chat_reads: {
@@ -1867,9 +1897,9 @@ export type Database = {
         Relationships: []
       }
       chat_room_attachments: {
-        Row: { created_at: string; direct_message_id: string | null; family_id: string; family_message_id: string | null; file_name: string; group_message_id: string | null; id: string; mime_type: string; position: number; size_bytes: number; storage_path: string; transcript: string | null }
-        Insert: { created_at?: string; direct_message_id?: string | null; family_id: string; family_message_id?: string | null; file_name: string; group_message_id?: string | null; id?: string; mime_type: string; position?: number; size_bytes: number; storage_path: string; transcript?: string | null }
-        Update: { created_at?: string; direct_message_id?: string | null; family_id?: string; family_message_id?: string | null; file_name?: string; group_message_id?: string | null; id?: string; mime_type?: string; position?: number; size_bytes?: number; storage_path?: string }
+        Row: { created_at: string; direct_message_id: string | null; family_id: string; family_message_id: string | null; file_name: string; group_message_id: string | null; id: string; saved_message_id: string | null; mime_type: string; position: number; size_bytes: number; storage_path: string; transcript: string | null }
+        Insert: { created_at?: string; direct_message_id?: string | null; family_id: string; family_message_id?: string | null; file_name: string; group_message_id?: string | null; id?: string; saved_message_id?: string | null; mime_type: string; position?: number; size_bytes: number; storage_path: string; transcript?: string | null }
+        Update: { created_at?: string; direct_message_id?: string | null; family_id?: string; family_message_id?: string | null; file_name?: string; group_message_id?: string | null; id?: string; saved_message_id?: string | null; mime_type?: string; position?: number; size_bytes?: number; storage_path?: string }
         Relationships: []
       }
       chat_room_reactions: {
@@ -1897,9 +1927,9 @@ export type Database = {
         Relationships: []
       }
       chat_group_messages: {
-        Row: { pinned_at: string | null; pinned_by: string | null; deleted_at: string | null; edited_at: string | null; forwarded_from: string | null; author_name: string; body: string; created_at: string; group_id: string; id: string; reply_to: string | null; sender_person_id: string | null }
-        Insert: { pinned_at?: string | null; pinned_by?: string | null; deleted_at?: string | null; edited_at?: string | null; forwarded_from?: string | null; author_name?: string; body: string; created_at?: string; group_id: string; id?: string; reply_to?: string | null; sender_person_id?: string | null }
-        Update: { pinned_at?: string | null; pinned_by?: string | null; deleted_at?: string | null; edited_at?: string | null; forwarded_from?: string | null; author_name?: string; body?: string; created_at?: string; group_id?: string; id?: string; reply_to?: string | null; sender_person_id?: string | null }
+        Row: { mentions: string[]; pinned_at: string | null; pinned_by: string | null; deleted_at: string | null; edited_at: string | null; forwarded_from: string | null; author_name: string; body: string; created_at: string; group_id: string; id: string; reply_to: string | null; sender_person_id: string | null }
+        Insert: { mentions?: string[]; pinned_at?: string | null; pinned_by?: string | null; deleted_at?: string | null; edited_at?: string | null; forwarded_from?: string | null; author_name?: string; body: string; created_at?: string; group_id: string; id?: string; reply_to?: string | null; sender_person_id?: string | null }
+        Update: { mentions?: string[]; pinned_at?: string | null; pinned_by?: string | null; deleted_at?: string | null; edited_at?: string | null; forwarded_from?: string | null; author_name?: string; body?: string; created_at?: string; group_id?: string; id?: string; reply_to?: string | null; sender_person_id?: string | null }
         Relationships: []
       }
       family_link_messages: {
@@ -5680,6 +5710,22 @@ export type Database = {
       dm_seen_at: {
         Args: { p_other: string }
         Returns: string | null
+      }
+      chat_push_targets_mentioning: {
+        Args: { p_thread: string; p_people: string[] }
+        Returns: { endpoint: string; p256dh: string; auth: string; mentioned: boolean }[]
+      }
+      create_group_poll: {
+        Args: { p_group: string; p_question: string; p_options: string[]; p_allow_multiple: boolean }
+        Returns: string
+      }
+      due_scheduled_messages: {
+        Args: { p_secret: string; p_now?: string }
+        Returns: { key: string; endpoint: string; p256dh: string; auth: string; title: string; body: string; url: string }[]
+      }
+      group_seen_by: {
+        Args: { p_group: string }
+        Returns: { person_id: string; first_name: string; last_read_at: string }[]
       }
       pin_chat_message: {
         Args: { p_kind: string; p_id: string; p_pinned: boolean }
