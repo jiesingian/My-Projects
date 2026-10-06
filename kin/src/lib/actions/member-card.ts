@@ -9,6 +9,8 @@ import { sendPush } from "@/lib/push";
 import { getWeather, type Weather } from "@/lib/weather";
 import { getRoutinesNeedingAttention } from "@/lib/queries/routines";
 import { getGoals } from "@/lib/queries/goals";
+import { getMemberBudgets } from "@/lib/queries/wealth";
+import { TRANSFER_CATEGORY } from "@/lib/wealth";
 import { weekStartOf } from "@/lib/week";
 import { inKidView } from "@/lib/kid-view";
 import { dosesFor } from "@/lib/health-plan";
@@ -106,7 +108,7 @@ export async function getMemberCardAction(memberId: string, as?: "grownup" | "ch
       ? Promise.resolve({ data: null })
       : supabase.from("member_checkins").select("id, asked_at, answer, answered_at").eq("asked_by", me.id).eq("member_id", target.id).order("asked_at", { ascending: false }).limit(1).maybeSingle(),
     isMe || !target.person_id ? Promise.resolve({ data: [] as { person_id: string }[] }) : supabase.rpc("my_direct_threads"),
-    sections.money ? readMoney(me.family_id, target.id, isMe, preview, day, monthStart, nextMonth) : Promise.resolve(null),
+    sections.money ? readMoney(me.family_id, target.id, preview, day, monthStart, nextMonth) : Promise.resolve(null),
     sections.care ? readCare(target.id, preview, day, tz ?? FAMILY_TZ, now) : Promise.resolve(null),
   ]);
 
@@ -164,16 +166,19 @@ export async function getMemberCardAction(memberId: string, as?: "grownup" | "ch
   };
 }
 
-/** This month's spending on the person's own accounts. The budget is their
- * own monthly target, which wealth_targets lets nobody but them read -- so a
- * grown-up looking at someone else's card sees the spending and no budget,
- * and a preview says the same. */
-async function readMoney(familyId: string, memberId: string, isMe: boolean, preview: boolean, day: string, from: Date | null, to: Date | null) {
+/** This month's spending on the person's own accounts, against the monthly
+ * spending budget a grown-up set for them on Wealth (member_budgets). The
+ * household can read those, so the budget shows on anyone's card and in a
+ * preview -- the same figure Wealth's "Spending by person" draws. It used to
+ * be the person's private income target, which only they could see; that
+ * stays on Wealth's Cash Flow, where it belongs. Transfers between accounts
+ * are moving money, not spending it, so they are left out, as on Wealth. */
+async function readMoney(familyId: string, memberId: string, preview: boolean, day: string, from: Date | null, to: Date | null) {
   if (!from || !to) return null;
   const supabase = await createClient();
   const { data: accounts } = await supabase.from("accounts").select("id, owner_member_id, is_joint, is_private, is_archived").eq("family_id", familyId).eq("owner_member_id", memberId);
   const own = ownSpendingAccounts(accounts ?? [], memberId, preview).filter((a) => !a.is_archived);
-  const [{ data: rows }, { data: target }] = await Promise.all([
+  const [{ data: rows }, budgets] = await Promise.all([
     own.length
       ? supabase
           .from("wealth_transactions")
@@ -181,15 +186,15 @@ async function readMoney(familyId: string, memberId: string, isMe: boolean, prev
           .in("account_id", own.map((a) => a.id))
           .eq("direction", "out")
           .eq("status", "confirmed")
+          .or(`category.is.null,category.neq.${TRANSFER_CATEGORY}`)
           .gte("occurred_at", from.toISOString())
           .lt("occurred_at", to.toISOString())
       : Promise.resolve({ data: [] as { amount: number }[] }),
-    isMe && !preview
-      ? supabase.from("wealth_targets").select("target_amount").eq("member_id", memberId).eq("period_month", Number(day.slice(5, 7))).eq("period_year", Number(day.slice(0, 4))).maybeSingle()
-      : Promise.resolve({ data: null }),
+    getMemberBudgets(familyId, Number(day.slice(0, 4)), Number(day.slice(5, 7))),
   ]);
   const spent = (rows ?? []).reduce((sum, r) => sum + Number(r.amount), 0);
-  const budget = target?.target_amount != null && Number(target.target_amount) > 0 ? Number(target.target_amount) : null;
+  const set = budgets.get(memberId);
+  const budget = set != null && set > 0 ? set : null;
   return { spent, budget, hasAccounts: own.length > 0 };
 }
 

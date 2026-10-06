@@ -230,7 +230,7 @@ function CardContent({ card, glasses, titleId, isMe, onClose }: { card: MemberCa
                 </div>
               ) : (
                 <p className={styles.muted} style={{ margin: 0, fontSize: "0.8125rem" }}>
-                  {isMe && !card.preview ? "Set a monthly target in Wealth to measure against." : "Their monthly target is private to them."}
+                  {isMe && !card.preview ? "No budget this month. A grown-up can set one in Wealth, under Spending by person." : "No budget set this month."}
                 </p>
               )}
             </>

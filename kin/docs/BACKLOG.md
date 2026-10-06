@@ -291,9 +291,10 @@ Decided against in the same review: revising Journal (item 6) and Planner
   kid view; hold 3 s, then a 5 s countdown with Cancel; an urgent push to every
   grown-up with the location if the phone allows; logged in `sos_alerts`;
   `/today/sos/<id>` has the map link, time, call buttons, "I'm on it" and
-  "I'm safe now". 20260930100000; RLS verified on dev, rolled back. **Open
-  for Jonathan:** whether a member's monthly target should be visible to
-  other grown-ups on their card (today it is private to them).
+  "I'm safe now". 20260930100000; RLS verified on dev, rolled back. Since 6
+  October the card's budget is the spending budget a grown-up sets in
+  Wealth (member_budgets, visible to the household), not the private
+  income target, which settles the question that was open here.
 - A promised goal reward is kept (Jonathan, 28 September). Locked: what a
   reward is never changes once asked for, the giver cannot take a promise
   back or delete the goal under it. A day: the one receiving it claims it
@@ -588,8 +589,7 @@ Decided against in the same review: revising Journal (item 6) and Planner
   net worth over time, kept per viewer per month in net_worth_snapshots from
   now on, so nobody's line holds anything they could not see.
   getSpendingByMember / getMemberBudgets in lib/queries/wealth are the shared
-  helper for Today's member card, which still reads the private income
-  target as its budget. RLS: npm run test:rls (probes/wealth-charts.mjs) and
+  helper for Today's member card, which uses it since 6 October. RLS: npm run test:rls (probes/wealth-charts.mjs) and
   supabase/tests/rls_wealth_charts.sql on dev.
 
 ## Decided against, for now
