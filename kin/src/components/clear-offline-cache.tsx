@@ -1,8 +1,10 @@
 "use client";
 
 import { useEffect } from "react";
+import { clearAll } from "@/lib/offline/store";
 
-/** Empties the offline cache.
+/** Empties offline Kin: the phone's copy of the last person's household
+ * (lib/offline/store.ts), and anything the old worker cached.
  *
  * Rendered on the sign-in screen rather than wired into the sign-out button,
  * which is a server action and cannot talk to a service worker. Arriving
@@ -11,6 +13,7 @@ import { useEffect } from "react";
  * being readable on this device, and the button only covers the first. */
 export function ClearOfflineCache() {
   useEffect(() => {
+    void clearAll();
     if (typeof navigator === "undefined" || !("serviceWorker" in navigator)) return;
     navigator.serviceWorker.ready
       .then((registration) => registration.active?.postMessage("kin:clear-cache"))

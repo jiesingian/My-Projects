@@ -30,6 +30,9 @@ export async function sendMessageAction(input: {
   attachments?: OutgoingAttachment[];
   /** Set by forwardMessageAction: whose words these first were. */
   forwardedFrom?: string | null;
+  /** Made on the phone for a message written offline (lib/offline): sent
+   * twice, it is still one message. */
+  clientId?: string;
 }): Promise<ActionState & { id?: string; photoIds?: string[] }> {
   const me = await requireCurrentMember();
   const supabase = await createClient();
@@ -56,11 +59,14 @@ export async function sendMessageAction(input: {
   // message and the database is for the rule.
   const replyTo = input.replyTo ?? null;
 
+  const clientId = input.clientId && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(input.clientId) ? input.clientId : undefined;
   const { data, error } = await supabase
     .from("family_messages")
-    .insert({ family_id: me.family_id, member_id: me.id, body, mentions, reply_to: replyTo, forwarded_from: input.forwardedFrom?.slice(0, 60) || null })
+    .insert({ ...(clientId ? { id: clientId } : {}), family_id: me.family_id, member_id: me.id, body, mentions, reply_to: replyTo, forwarded_from: input.forwardedFrom?.slice(0, 60) || null })
     .select("id")
     .single();
+  // Already sent by an earlier try of the same offline message.
+  if (error && clientId && error.code === "23505") return { error: null, id: clientId, photoIds: [] };
   if (error || !data) return { error: error ? humanDatabaseError(error.message) : "That didn't send." };
 
   let photoIds: string[] = [];

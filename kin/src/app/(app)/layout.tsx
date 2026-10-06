@@ -15,6 +15,7 @@ import { textScaleCss } from "@/lib/text-scale";
 import { paletteCss } from "@/lib/palettes";
 import { CallProvider, type CallMember } from "@/components/call-provider";
 import { createClient } from "@/lib/supabase/server";
+import { OfflineSync } from "@/components/offline-sync";
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const member = await getCurrentMember();
@@ -79,6 +80,8 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         <ConfirmSheetHost />
         <Toaster />
         <ReturnToToday />
+        {/* Offline Kin: keeps the phone's copy current, and says so when offline. */}
+        <OfflineSync />
       </CallProvider>
     </div>
   );
