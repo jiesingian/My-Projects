@@ -1,5 +1,6 @@
 import { test, expect, type Page } from "@playwright/test";
 import fs from "node:fs";
+import { restAsQa } from "./support/qa-household";
 
 /** Offline Kin, end to end, against the throwaway household only.
  *
@@ -66,7 +67,9 @@ test.describe("offline Kin", () => {
 
     // A live page, as the connection drops: it says so, calmly.
     await context.setOffline(true);
-    await expect(page.getByRole("status").filter({ hasText: "changes on this screen won’t save" })).toBeVisible();
+    // Today queues its own Done, so it says what waits rather than that
+    // nothing saves.
+    await expect(page.getByRole("status").filter({ hasText: "wait here and send when you’re back" })).toBeVisible();
     await shot(page, "1-live-page-offline-banner");
 
     // Opening Kin with no signal lands on the saved copy of that screen.
@@ -117,6 +120,63 @@ test.describe("offline Kin", () => {
     await expect(page.getByText(item, { exact: true })).toHaveCount(1);
     await page.goto("/chat/household");
     await expect(page.getByText(message, { exact: true })).toHaveCount(1);
+  });
+
+  test("the live list and chat queue while offline, and sync once", async ({ page, context }) => {
+    test.setTimeout(180_000);
+    const run = Date.now().toString(36);
+    const item = `Live offline ${run}`;
+    const message = `Live sent offline ${run}`;
+
+    // Two tabs, both opened online: the list, and the household chat.
+    await page.goto("/household?seg=buy");
+    await page.waitForTimeout(1500);
+    await page.reload();
+    await waitForOfflineReady(page);
+    const chat = await context.newPage();
+    await chat.goto("/chat/household");
+    await expect(chat.getByLabel("Your message")).toBeVisible();
+
+    await context.setOffline(true);
+    await expect(page.getByRole("status").filter({ hasText: "wait here and send when you’re back" })).toBeVisible();
+
+    // Added on the live list, not the saved copy.
+    await page.getByRole("button", { name: "Add an item" }).click();
+    await page.getByPlaceholder("Add an item").fill(item);
+    await page.getByRole("button", { name: "ADD", exact: true }).click();
+    await expect(page.getByText("Waiting to add")).toBeVisible();
+    await expect(page.getByText(item)).toBeVisible();
+    await expect(page).toHaveURL(/\/household/);
+    await shot(page, "8-live-list-offline");
+
+    await chat.getByLabel("Your message").fill(message);
+    await chat.keyboard.press("Enter");
+    await expect(chat.getByText(message)).toBeVisible();
+    await expect(chat.getByText("Sends when you’re back online")).toBeVisible();
+    await shot(chat, "9-live-chat-offline");
+
+    // Signal again: one tab sends both, once.
+    await context.setOffline(false);
+    const said = /Back online · 2 changes saved/;
+    await expect.poll(async () => (await page.getByText(said).count()) + (await chat.getByText(said).count()), { timeout: 30_000 }).toBeGreaterThan(0);
+    await expect(chat.getByText("Sends when you’re back online")).toHaveCount(0, { timeout: 15_000 });
+
+    await page.goto("/household?seg=buy");
+    await page.getByRole("button", { name: /^Other/ }).click();
+    await expect(page.getByText(item, { exact: true })).toHaveCount(1);
+    await chat.goto("/chat/household");
+    await expect(chat.getByText(message, { exact: true })).toHaveCount(1);
+
+    // Tidy the throwaway household: this test's two rows only.
+    const qa = await restAsQa();
+    if (qa) {
+      await qa.ctx.delete(`${qa.url}/rest/v1/buy_items?name=eq.${encodeURIComponent(item)}`, { headers: qa.headers });
+      // A message cannot be deleted, only unsent, as the app does.
+      await qa.ctx.patch(`${qa.url}/rest/v1/family_messages?body=eq.${encodeURIComponent(message)}`, {
+        headers: qa.headers,
+        data: { deleted_at: new Date().toISOString(), body: "" },
+      });
+    }
   });
 
   test("the shell shows nothing once signed out", async ({ browser }) => {

@@ -15,6 +15,7 @@ import { formatCurrency } from "@/lib/format";
 import { confirm } from "@/components/confirm-sheet";
 import type { PickableAccount } from "@/components/money-actions";
 import type { Tables } from "@/lib/database.types";
+import { isNetworkFailure, isOffline, newOpId, queueOffline, useQueue } from "@/lib/offline/live";
 
 const initialState: ActionState = { error: null };
 
@@ -75,13 +76,69 @@ export function BuyList({
     new Map<string, boolean>(),
     (prev, [id, value]: [string, boolean]) => new Map(prev).set(id, value),
   );
-  const isChecked = (item: { id: string; checked: boolean }) => optimisticChecked.get(item.id) ?? item.checked;
-  const [addState, addAction] = useActionState(addBuyItemAction, initialState);
-  const [editing, setEditing] = useState<string | null>(null);
-  const [adding, setAdding] = useState(startAdding);
   const [newName, setNewName] = useState("");
   const [sectionTouched, setSectionTouched] = useState(false);
   const [sectionChoice, setSectionChoice] = useState<string>("Other");
+  // Ticks and adds made offline wait in the queue (lib/offline/live) and are
+  // shown from it until the replay settles them.
+  const queue = useQueue();
+  const queuedTicks = new Map(queue.flatMap((q) => (q.kind === "buy.toggle" ? [[q.itemId, q.checked] as const] : [])));
+  const queuedAdds = queue.flatMap((q) => (q.kind === "buy.add" ? [q] : []));
+  const [queueError, setQueueError] = useState<string | null>(null);
+  const isChecked = (item: { id: string; checked: boolean }) => optimisticChecked.get(item.id) ?? queuedTicks.get(item.id) ?? item.checked;
+  const tick = async (item: { id: string; name: string; checked: boolean }) => {
+    const checked = !isChecked(item);
+    const later = async () => {
+      const why = await queueOffline({ id: newOpId(), at: new Date().toISOString(), kind: "buy.toggle", itemId: item.id, checked, label: item.name });
+      setQueueError(why);
+    };
+    setQueueError(null);
+    if (isOffline()) return later();
+    // Ticked on screen the moment the thumb lands; the server's answer
+    // replaces it when it comes back.
+    setOptimisticChecked([item.id, checked]);
+    try {
+      await toggleBuyItemAction(item.id, checked);
+    } catch (e) {
+      if (isNetworkFailure(e)) await later();
+      else setQueueError("That tick didn't save. Try again.");
+    }
+  };
+  const [addState, addAction] = useActionState(async (prev: ActionState, form: FormData): Promise<ActionState> => {
+    const later = async (): Promise<ActionState> => {
+      const name = String(form.get("name") ?? "").trim();
+      if (!name) return { error: null };
+      const why = await queueOffline({
+        id: newOpId(),
+        at: new Date().toISOString(),
+        kind: "buy.add",
+        name,
+        label: name,
+        quantity: String(form.get("quantity") ?? ""),
+        unit: String(form.get("unit") ?? ""),
+        section: String(form.get("section") ?? ""),
+      });
+      if (!why) {
+        setNewName("");
+        setSectionTouched(false);
+      }
+      return { error: why };
+    };
+    if (isOffline()) return later();
+    try {
+      const r = await addBuyItemAction(prev, form);
+      if (!r.error) {
+        setNewName("");
+        setSectionTouched(false);
+      }
+      return r;
+    } catch (e) {
+      if (isNetworkFailure(e)) return later();
+      return { error: "That item didn't save. Try again." };
+    }
+  }, initialState);
+  const [editing, setEditing] = useState<string | null>(null);
+  const [adding, setAdding] = useState(startAdding);
 
   // What the basket comes to, and what the whole list would. Both are
   // estimates built from the price book, so a line Kin cannot price is
@@ -229,14 +286,7 @@ export function BuyList({
                     aria-label={item.name}
                     aria-pressed={isChecked(item)}
                     className="kin-tick"
-                    onClick={() =>
-                      startTransition(async () => {
-                        // Ticked on screen the moment the thumb lands; the
-                        // server's answer replaces it when it comes back.
-                        setOptimisticChecked([item.id, !isChecked(item)]);
-                        await toggleBuyItemAction(item.id, !isChecked(item));
-                      })
-                    }
+                    onClick={() => startTransition(() => tick(item))}
                     style={{
                       width: "1.5rem",
                       height: "1.5rem",
@@ -310,6 +360,22 @@ export function BuyList({
           </div>
         );
       })}
+
+      {queuedAdds.length > 0 && (
+        <div style={{ marginBottom: "1.125rem" }}>
+          <div style={{ font: "600 0.8125rem/1 var(--font-heading)", letterSpacing: ".02em", textTransform: "uppercase", borderBottom: "1px solid var(--color-divider)", padding: "0 0 0.375rem", display: "flex", gap: "0.375rem", alignItems: "center" }}>
+            <Icon name="clock" size={13} />
+            Waiting to add
+          </div>
+          {queuedAdds.map((q) => (
+            <div key={q.id} style={{ display: "flex", gap: "0.5rem", alignItems: "baseline", padding: "0.625rem 0", fontSize: "0.875rem", borderBottom: "1px solid color-mix(in srgb, var(--color-text) 10%, transparent)" }}>
+              <span style={{ flex: 1, minWidth: 0 }}>{q.name}</span>
+              <span style={{ fontSize: "0.75rem", color: "var(--color-neutral-600)" }}>sends when you&rsquo;re back online</span>
+            </div>
+          ))}
+        </div>
+      )}
+      <ErrorText message={queueError} />
 
       {/* Adding is one tap away, not four fields permanently in the way. The
           panel stays open after each item, because a list is usually written

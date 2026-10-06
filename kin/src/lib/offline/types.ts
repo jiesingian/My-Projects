@@ -91,7 +91,17 @@ export type OfflineSnapshot = {
  * sent again carries the same id, and the server treats a repeat as done. */
 export type QueuedOp =
   | { id: string; at: string; kind: "buy.toggle"; itemId: string; checked: boolean; label: string }
-  | { id: string; at: string; kind: "buy.add"; name: string; label: string }
+  | {
+      id: string;
+      at: string;
+      kind: "buy.add";
+      name: string;
+      label: string;
+      /** From the live list's add form; the saved copy sends the name only. */
+      quantity?: string;
+      unit?: string;
+      section?: string;
+    }
   | { id: string; at: string; kind: "today.mark"; key: string; day: string; date?: string; label: string }
   | { id: string; at: string; kind: "chat.send"; body: string; label: string };
 
