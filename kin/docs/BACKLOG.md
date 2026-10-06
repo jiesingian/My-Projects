@@ -298,6 +298,23 @@ Decided against in the same review: revising Journal (item 6) and Planner
 
 ## Done
 
+- Videos from an entry's photos (Jonathan, 30 September): "Make a video" on
+  an entry, or ticked when writing one, makes a wedding-style same-day edit
+  on the phone -- a title card, each photo with a slow zoom and drift,
+  crossfades cut on the beat, an end card, at most a minute, 720p, wide or
+  tall. Three looks (Warm, Classic, Lively) and three tunes written for Kin
+  in code and dedicated CC0, or none. Choose and reorder the photos, watch
+  it before making it, cancel while it records. Kept as the entry's cover:
+  it plays muted inline in Mine, Household, Public and the Family feed while
+  on screen (not with reduced motion or Data Saver) and with sound when
+  tapped; anyone who can see the entry can save it to their phone, and a
+  household entry can be sent to the Family feed from it. Made in the
+  browser with MediaRecorder (MP4 on iPhone and recent Chrome, WebM
+  otherwise); nothing goes to a video service. Stored in Kin's journal
+  storage under the household's (or, for Just me, the person's) folder,
+  counted against the Free and Plus allowances; visible exactly where its
+  entry is (20261006100500_journal_entry_videos.sql). **Needs a real
+  iPhone to confirm** recording and the share sheet's Save Video.
 - Family tree, redone after Jonathan's review (30 September; first pass
   #393 invented households from surnames and hashed their colours). One tile
   per person; only households that exist on Kin get a region: yours in the

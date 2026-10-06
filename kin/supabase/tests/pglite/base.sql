@@ -89,3 +89,25 @@ insert into accounts (id,family_id,name,is_joint,owner_member_id,is_private) val
 -- the cron secret from Vault; stand-ins for both.
 create table if not exists public.family_messages (id uuid primary key default gen_random_uuid(), family_id uuid not null, member_id uuid, body text not null, mentions uuid[] not null default '{}', created_at timestamptz not null default now(), edited_at timestamptz, deleted_at timestamptz, reply_to uuid, forwarded_from text);
 create or replace function public.kin_vault_secret(p_name text) returns text language sql stable as $$ select 'pglite-cron-secret-0123456789abcdef0123456789' $$;
+-- Journal stand-ins (for 20261006100500_journal_entry_videos.sql): an entry is
+-- seen by its household when it is a household entry, by its owner when it is
+-- Just me, and by a linked household once shared -- the same three rules
+-- production's journal_entries policies give, reduced to what the video
+-- policies lean on.
+create table public.journal_entries (id uuid primary key default gen_random_uuid(), family_id uuid not null references families(id), title text not null default 'An entry', visibility text not null default 'household', owner_person_id uuid, shared_at timestamptz);
+alter table journal_entries enable row level security;
+create policy je_household on journal_entries for select using (family_id = current_family_id() and (visibility = 'household' or owner_person_id = current_person_id()));
+create policy je_linked on journal_entries for select using (shared_at is not null and visibility = 'household' and families_are_linked(family_id, current_family_id()));
+grant select on journal_entries to authenticated;
+grant delete on storage.objects to authenticated;
+create policy journal_own_family on storage.objects for select to authenticated using (bucket_id = 'journal' and split_part(name, '/', 1) = public.current_family_id()::text);
+create policy journal_own_person on storage.objects for select to authenticated using (bucket_id = 'journal' and split_part(name, '/', 1) = 'person' and split_part(name, '/', 2) = public.current_person_id()::text);
+insert into journal_entries (id, family_id, visibility, owner_person_id) values
+ ('e0000000-0000-0000-0000-0000000000a1','a0000000-0000-0000-0000-000000000000','household','00000000-0000-0000-0000-0000000000a1'),
+ ('e0000000-0000-0000-0000-0000000000a2','a0000000-0000-0000-0000-000000000000','personal','00000000-0000-0000-0000-0000000000a1'),
+ ('e0000000-0000-0000-0000-0000000000b1','b0000000-0000-0000-0000-000000000000','household','00000000-0000-0000-0000-0000000000b1');
+insert into storage.objects (bucket_id, name) values
+ ('journal', 'a0000000-0000-0000-0000-000000000000/videos/v.mp4'),
+ ('journal', 'a0000000-0000-0000-0000-000000000000/videos/v.jpg'),
+ ('journal', 'person/00000000-0000-0000-0000-0000000000a1/videos/mine.mp4'),
+ ('journal', 'person/00000000-0000-0000-0000-0000000000a1/videos/mine.jpg');

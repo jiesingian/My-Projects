@@ -12,6 +12,7 @@ import { HubHeader } from "@/components/hub-header";
 import { Segmented } from "@/components/segmented";
 import { Blueprint, Tag, Empty } from "@/components/ui";
 import { JournalEntryPhotos } from "@/components/journal-entry-photos";
+import { EntryVideoCover } from "@/components/entry-video";
 import { familyDate } from "@/lib/format-family";
 import { FamilyFeed } from "@/components/family-feed";
 import { EntryShareToggle } from "@/components/entry-share-toggle";
@@ -130,7 +131,8 @@ async function PublicPane({ personId, familyId }: { personId: string; familyId: 
           <Link href={`/journal/${e.id}`} style={{ display: "block", font: "600 1.3125rem/1.05 var(--font-heading)", margin: "7px 0 6px", color: "inherit" }}>
             {e.title}
           </Link>
-          <JournalEntryPhotos photos={e.photos} entryTitle={e.title} galleryHref={`/journal/${e.id}`} />
+          {/* A video made from the photos is the entry's cover; its photos are a tap away, on the entry. */}
+          {e.video ? <EntryVideoCover video={e.video} title={e.title} /> : <JournalEntryPhotos photos={e.photos} entryTitle={e.title} galleryHref={`/journal/${e.id}`} />}
           {e.note && <p style={{ fontSize: "0.875rem", margin: "0 0 4px", color: "var(--color-neutral-800)" }}>{e.note}</p>}
         </Blueprint>
       ))}
@@ -225,7 +227,8 @@ async function EntriesPane({ familyId, mine, milestonesOnly = false }: { familyI
           <Link href={`/journal/${e.id}`} style={{ display: "block", font: "600 1.3125rem/1.05 var(--font-heading)", margin: "7px 0 6px", color: "inherit" }}>
             {e.title}
           </Link>
-          <JournalEntryPhotos photos={e.photos} entryTitle={e.title} galleryHref={`/journal/${e.id}`} />
+          {/* A video made from the photos is the entry's cover; its photos are a tap away, on the entry. */}
+          {e.video ? <EntryVideoCover video={e.video} title={e.title} /> : <JournalEntryPhotos photos={e.photos} entryTitle={e.title} galleryHref={`/journal/${e.id}`} />}
           {e.note && <p style={{ fontSize: "0.875rem", margin: "0 0 9px", color: "var(--color-neutral-800)" }}>{e.note}</p>}
           {/* Mine: where it is shared and its star, on the entry and changed in a tap. */}
           {mine && (

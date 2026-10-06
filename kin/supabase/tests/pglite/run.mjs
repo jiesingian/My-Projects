@@ -44,6 +44,7 @@ const MIGRATIONS = [
   "20261006100200_saved_messages.sql",
   "20261006100300_group_polls.sql",
   "20261006100400_scheduled_messages.sql",
+  "20261006100500_journal_entry_videos.sql",
 ];
 
 const only = process.argv[2];

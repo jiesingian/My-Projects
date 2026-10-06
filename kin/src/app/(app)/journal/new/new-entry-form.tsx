@@ -34,6 +34,7 @@ export function NewEntryForm({
   const [previews, setPreviews] = useState<string[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const [makeVideo, setMakeVideo] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
   const router = useRouter();
 
@@ -78,7 +79,8 @@ export function NewEntryForm({
       }
     }
 
-    router.push(backTo);
+    // "Make a video" goes straight on to the entry, with the maker open.
+    router.push(makeVideo && previews.length > 0 ? `/journal/${created.entryId}?video=1` : backTo);
     router.refresh();
   }
 
@@ -152,6 +154,12 @@ export function NewEntryForm({
                 <img key={i} src={url} alt={`Photo ${i + 1} to upload`} style={{ width: 64, height: 64, objectFit: "cover", borderRadius: 10, border: "1px solid var(--color-divider)" }} />
               ))}
             </div>
+          )}
+          {previews.length > 0 && (
+            <label style={{ display: "flex", alignItems: "center", gap: "0.5rem", fontSize: "0.875rem", margin: "0.25rem 0 0.5rem", cursor: "pointer" }}>
+              <input type="checkbox" checked={makeVideo} onChange={(e) => setMakeVideo(e.target.checked)} style={{ width: 18, height: 18, accentColor: "var(--color-accent)" }} />
+              Make a video from these photos next
+            </label>
           )}
           <button type="submit" className="btn btn-primary btn-block" style={{ minHeight: "2.875rem", fontSize: "0.875rem", letterSpacing: ".04em", marginTop: "0.5rem" }} disabled={saving}>
             {saving ? "Saving…" : "Save entry"}
