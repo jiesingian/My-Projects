@@ -7,6 +7,7 @@ import { Icon, type IconName } from "@/components/icons";
 import { House3D } from "@/components/welcome/house-3d";
 import { PLANS, pesos } from "@/lib/billing/plans";
 import { TRIAL_DAYS } from "@/lib/access";
+import { FREE_FEATURES, PLUS_FEATURES } from "@/lib/plan-features";
 
 /** What a visitor told the home page before signing up. Onboarding reads the
  * family name back to fill in "Household name" (family-fork-form.tsx). Kept in
@@ -14,13 +15,16 @@ import { TRIAL_DAYS } from "@/lib/access";
 export const WELCOME_KEY = "kin-welcome";
 export type WelcomeAnswers = { familyName: string; grownUps: number; children: number; wants: string[] };
 
-type Feature = { id: string; icon: IconName; title: string; line: string; points: string[] };
+/** plus: the whole feature is Kin Plus. plusPoints: only these lines are.
+ * Shown in the tour so nobody meets Plus for the first time when a note stops
+ * them after the trial (approved 6 October). */
+type Feature = { id: string; icon: IconName; title: string; line: string; points: string[]; plus?: boolean; plusPoints?: string[] };
 
 const FEATURES: Feature[] = [
-  { id: "money", icon: "wallet", title: "Money, together", line: "What’s left this month, who’s paying what, and when the bills fall due.", points: ["Accounts and budgets in one view", "Bills and due dates in one list", "A Whose picker for each person’s share"] },
+  { id: "money", icon: "wallet", title: "Money, together", line: "What’s left this month, who’s paying what, and when the bills fall due.", points: ["Accounts and budgets in one view", "Bills and due dates in one list", "A Whose picker for each person’s share"], plus: true },
   { id: "schedule", icon: "calendarDays", title: "One family calendar", line: "Everyone’s school, work and plans, with chores the kids earn stars for.", points: ["Syncs with Google Calendar", "Chores with stars and rewards", "Today shows what needs you"] },
   { id: "memories", icon: "images", title: "Memories that stay", line: "A family journal with photos you can open full screen, react to and share with relatives.", points: ["Photos, milestones and first days", "Reactions and comments", "Shared with linked relatives, photos included"] },
-  { id: "health", icon: "shieldCheck", title: "Health and documents", line: "Check-ups, records and passports behind one vault that opens with Face ID.", points: ["Vaccinations and check-ups on time", "Documents and passwords in the vault", "A PIN or Face ID on each person’s phone"] },
+  { id: "health", icon: "shieldCheck", title: "Health and documents", line: "Check-ups, records and passports behind one vault that opens with Face ID.", points: ["Vaccinations and check-ups on time", "Documents and passwords in the vault", "A PIN or Face ID on each person’s phone"], plusPoints: ["Documents and passwords in the vault"] },
   { id: "home", icon: "basket", title: "Groceries and meals", line: "A buy list with prices, what’s in the pantry, and what’s for dinner.", points: ["Shopping list with running cost", "Pantry and price book", "Meal plans for the week"] },
   { id: "chat", icon: "message", title: "Family chat", line: "The group chat that lives next to everything it’s about.", points: ["Photos, polls and @mentions", "Replies and pinned messages", "Kin AI when you want a hand"] },
 ];
@@ -196,11 +200,17 @@ export function Welcome() {
                 <span className="kin-welcome-card-ico">
                   <Icon name={f.icon} size={24} />
                 </span>
-                <h3>{f.title}</h3>
+                <h3>
+                  {f.title}
+                  {f.plus && <span className="kin-plus-badge">PLUS</span>}
+                </h3>
                 <p>{f.line}</p>
                 <ul>
                   {f.points.map((pt) => (
-                    <li key={pt}>{pt}</li>
+                    <li key={pt}>
+                      {pt}
+                      {f.plusPoints?.includes(pt) && <span className="kin-plus-badge">PLUS</span>}
+                    </li>
                   ))}
                 </ul>
               </article>
@@ -255,6 +265,36 @@ export function Welcome() {
               </li>
             ))}
           </ul>
+          {/* Free beside Plus before anyone signs up (approved 6 October),
+              from the same lists as the plan screen. */}
+          <div className="kin-plans kin-welcome-plans">
+            <section className="kin-plan" aria-labelledby="kin-welcome-free">
+              <h3 id="kin-welcome-free">Kin Free</h3>
+              <p className="kin-plan-price">₱0, for good</p>
+              <ul>
+                {FREE_FEATURES.map((f) => (
+                  <li key={f}>
+                    <Icon name="check" size="0.875rem" />
+                    {f}
+                  </li>
+                ))}
+              </ul>
+            </section>
+            <section className="kin-plan" aria-labelledby="kin-welcome-plus">
+              <h3 id="kin-welcome-plus">
+                Kin Plus <span className="kin-plus-badge">{TRIAL_DAYS} DAYS FREE</span>
+              </h3>
+              <p className="kin-plan-price">Then {pesos(PLANS.monthly.amountCents)} a month for the whole family</p>
+              <ul>
+                {PLUS_FEATURES.map((f) => (
+                  <li key={f}>
+                    <Icon name="check" size="0.875rem" />
+                    {f}
+                  </li>
+                ))}
+              </ul>
+            </section>
+          </div>
           <button
             type="button"
             className="btn btn-primary btn-block kin-welcome-cta"
