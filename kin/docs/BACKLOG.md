@@ -265,8 +265,7 @@ Added 26 September (Janine's list):
     of Kin (and by notification when Kin is closed). Direct phone to phone;
     set-up travels on a private per-household channel.
     **Still to do (Jonathan):** a TURN relay so calls also connect on
-    mobile data -- add `TURN_URLS`, `TURN_USERNAME` and `TURN_CREDENTIAL` in
-    Vercel (Cloudflare Calls or Metered both have a free tier).
+    mobile data -- docs/SETUP_FOR_JONATHAN.md section 2.
 20. **Done: Apple Health through an iPhone Shortcut:** Settings, Connected
     apps, Apple Health makes a private link per person; a daily Shortcut
     sends steps, weight, resting heart rate and sleep to it, and they chart
@@ -298,6 +297,14 @@ Decided against in the same review: revising Journal (item 6) and Planner
 
 ## Done
 
+- Event and visit photos count against the storage allowance (6 October,
+  #453): the photo strip on a calendar event or a doctor's visit asks
+  /api/uploads/session like the journal and chat, so Kin Free's 1 GB and
+  Kin Plus's 50 GB hold for them too.
+- Tests for "Are you okay?" check-ins (6 October, #461): ask -> answer and
+  who may see, ask and answer, in PGlite (probes/member-checkins.mjs), and
+  the push each way in member-card.logic.spec.
+
 - Videos from an entry's photos (Jonathan, 30 September): "Make a video" on
   an entry, or ticked when writing one, makes a wedding-style same-day edit
   on the phone -- a title card, each photo with a slow zoom and drift,
@@ -326,9 +333,10 @@ Decided against in the same review: revising Journal (item 6) and Planner
   to the second degree, with "Everyone" for the rest. A relative both
   households typed in is drawn once when "Show their side" is open. Answers
   to his questions (merging trees, big trees, fake trees, linked households
-  not on the tree): docs/FAMILY_TREE.md. **Still open:** suggested matches
-  ("Is this the same Stella?"), the QR code on "Invite to Kin", and a look on
-  a real phone with real photos.
+  not on the tree): docs/FAMILY_TREE.md. Since 6 October a relative who is
+  not on Kin has a QR code beside "Invite to Kin" (the invite QR from #391,
+  #455). **Still open:** suggested matches ("Is this the same Stella?"); a
+  look with real photos is under "Needs a real phone".
 - Member card and Emergency SOS on Today (approved 30 September, #394).
   Tapping someone's initials opens their card: their local time and zone
   ("8:00 am in Dubai · 4 h behind you"; the zone is reported by their own
@@ -355,8 +363,10 @@ Decided against in the same review: revising Journal (item 6) and Planner
   send to the household chat -- and replay in order on reconnect, once each
   (the phone's id becomes the row's id), with the conflict rules written in
   app/api/offline/replay. Rendered pages are no longer cached by the service
-  worker. Still to do: queue from the live pages too (today they point to
-  the saved copy when offline), and confirm on a real iPhone.
+  worker. Since 6 October the live Today, shopping list and household chat
+  queue the same four changes into the same queue when the signal drops
+  (#460; words only in the chat, no files). The iPhone check is under
+  "Needs a real phone".
 - A promised goal reward is kept (Jonathan, 28 September). Locked: what a
   reward is never changes once asked for, the giver cannot take a promise
   back or delete the goal under it. A day: the one receiving it claims it
@@ -658,18 +668,35 @@ Decided against in the same review: revising Journal (item 6) and Planner
 
 - Cutting the bottom navigation down to 4–5 tabs (declined 24 September).
 
+## Needs a real phone
+
+What only Jonathan can check, on his iPhone with Kin on the Home Screen:
+
+- **Journal video:** make a video from an entry's photos, watch it record,
+  then Save Video from the share sheet and find it in Photos.
+- **Offline mode:** with Kin open, turn on Airplane Mode; tick the list,
+  mark something Done on Today, send a chat message; turn it off and see
+  "Back online · N changes saved". Then open Kin from cold in Airplane Mode
+  and see the saved copy.
+- **The tree with real photos:** open Family -> Tree with relatives who have
+  profile photos; tiles, regions and the panel should read well.
+- **Apple Health via Shortcut:** Settings -> Connected apps -> Apple Health,
+  set up the Shortcut as written, run it, and see steps and weight on Health.
+- **The "K" home-screen icon:** remove the old Kin icon and add Kin to the
+  Home Screen again; it should show the house icon.
+
 ## Next up
 
-- **Done 26 September in code: reminders at their time** -- medicine doses,
-  bills (the day before and on the day), birthdays, plans 30 minutes ahead --
-  run by Supabase pg_cron every five minutes through /api/cron/reminders.
-  **Still to do (Jonathan):** the secret in Vercel and Supabase Vault,
-  docs/SETUP_FOR_JONATHAN.md section 1. Until then nothing is sent.
+- **Done: reminders at their time** -- medicine doses, bills (the day
+  before and on the day), birthdays, plans 30 minutes ahead -- run by
+  Supabase pg_cron every five minutes through /api/cron/reminders. The
+  secret is set in Vercel and Supabase Vault (docs/SETUP_FOR_JONATHAN.md
+  section 1) and the pg_cron job `kin-reminders` runs.
 
-- **Done 26 September in code: the chat is on private channels**
-  (20260926130000_private_chat_channels.sql). **Still to do (Janine or
-  Jonathan, both allowed):** switch Realtime's "Allow public access" off on
-  dev and production -- until then Supabase does not enforce it.
+- **Done: the chat is on private channels**
+  (20260926130000_private_chat_channels.sql), and Realtime's "Allow public
+  access" has been off on dev and production since 29 September, so
+  Supabase enforces them.
 
 - **Done 26 September: dev has storage.** Dev had no buckets at all, not only
   `documents`, so no upload could be tested there.
