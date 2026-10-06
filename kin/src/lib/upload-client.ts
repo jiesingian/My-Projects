@@ -11,7 +11,7 @@ export type UploadedFile =
  * first to get a destination, then pass its result in here. */
 export async function uploadFileDirect(
   file: File,
-  kind: "journal" | "journal_personal" | "journal_video" | "document" | "avatar" | "family_background" | "recipe" | "routine" | "chat" | "highlight",
+  kind: "journal" | "journal_personal" | "journal_video" | "document" | "avatar" | "family_background" | "recipe" | "routine" | "chat" | "highlight" | "event_photo" | "visit_photo",
   folderId?: string,
   options?: { personal?: boolean },
 ): Promise<UploadedFile> {
