@@ -4,7 +4,7 @@ import { useActionState, useState } from "react";
 import { createGoalAction } from "@/lib/actions/wealth";
 import type { ActionState } from "@/lib/actions/auth";
 import { SubmitButton, ErrorText } from "@/components/form";
-import { formatCurrency } from "@/lib/format";
+import { formatCurrency, currencySymbol } from "@/lib/format";
 import type { PickableAccount } from "@/components/money-actions";
 import { DateInput } from "@/components/date-input";
 
@@ -33,7 +33,7 @@ export function AddGoalForm({ accounts, currency }: { accounts: PickableAccount[
         </button>
       </div>
       <div style={{ display: "flex", gap: "0.75rem" }}>
-        <Field label="Target amount (₱)" style={{ flex: 1 }}>
+        <Field label={`Target amount (${currencySymbol(currency)})`} style={{ flex: 1 }}>
           <input className="input" type="number" step="0.01" min="0" name="target_amount" required style={{ minHeight: "2.75rem" }} />
         </Field>
         <Field label="Target date" style={{ flex: 1 }}>

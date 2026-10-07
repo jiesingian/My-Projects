@@ -30,6 +30,16 @@ export const CURRENCIES = [
   { code: "PHP", label: "PHP ₱" },
   { code: "USD", label: "USD $" },
   { code: "EUR", label: "EUR €" },
+  { code: "GBP", label: "GBP £" },
+  { code: "CAD", label: "CAD C$" },
+  { code: "AUD", label: "AUD A$" },
+  { code: "NZD", label: "NZD NZ$" },
+  { code: "SGD", label: "SGD S$" },
+  { code: "HKD", label: "HKD HK$" },
+  { code: "JPY", label: "JPY ¥" },
+  { code: "AED", label: "AED" },
+  { code: "SAR", label: "SAR" },
+  { code: "QAR", label: "QAR" },
 ] as const;
 
 export const DATE_FORMATS = ["DD/MM/YYYY", "MM/DD/YYYY"] as const;

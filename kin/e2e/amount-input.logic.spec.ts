@@ -64,5 +64,5 @@ test("a budget reads back in its own currency, always with two places", () => {
   expect(formatAccounting(12345.5, "USD")).toBe("$12,345.50");
   expect(formatAccounting(0.5, "EUR")).toBe("€0.50");
   // A code outside the list still reads, prefixed rather than guessed at.
-  expect(formatAccounting(10, "JPY")).toBe("JPY 10.00");
+  expect(formatAccounting(10, "KRW")).toBe("KRW 10.00");
 });

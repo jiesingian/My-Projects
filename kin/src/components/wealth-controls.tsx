@@ -1,5 +1,6 @@
 "use client";
 
+import { useCurrencySymbol } from "@/components/household-currency";
 import { cloneElement, isValidElement, useActionState, useId, useState, useSyncExternalStore, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import {
@@ -330,6 +331,7 @@ export function AppLinksField({
 /** `canNumber`: whether this person may set the new account's number --
  * always on their own account, only a grown-up on a joint one. */
 export function AddAccountForm({ isJoint, returnWho, canNumber }: { isJoint: boolean; returnWho: string; canNumber: boolean }) {
+  const sym = useCurrencySymbol();
   const [open, setOpen] = useState(false);
   const [state, formAction] = useActionState(addAccountAction, initialState);
   const [accountType, setAccountType] = useState<AccountType>("bank");
@@ -373,7 +375,7 @@ export function AddAccountForm({ isJoint, returnWho, canNumber }: { isJoint: boo
       <div style={{ marginBottom: "0.75rem" }}>
         <AppLinksField accountType={accountType} />
       </div>
-      <Labelled label="Opening balance (₱)">
+      <Labelled label={`Opening balance (${sym})`}>
         <input className="input" type="number" step="0.01" inputMode="decimal" name="opening_balance" placeholder="0.00" style={{ minHeight: "2.625rem" }} />
       </Labelled>
       {canNumber && <AccountNumberField />}
@@ -398,6 +400,7 @@ export function AddAccountForm({ isJoint, returnWho, canNumber }: { isJoint: boo
  * addBillAction/bills throughout the code would be a much bigger change for
  * no functional gain, so only the copy shown to a member changed. */
 export function AddBillForm() {
+  const sym = useCurrencySymbol();
   const [open, setOpen] = useState(false);
   const [state, formAction] = useActionState(addBillAction, initialState);
 
@@ -421,7 +424,7 @@ export function AddBillForm() {
         <input className="input" name="name" required placeholder="Meralco, groceries, mortgage…" style={{ minHeight: "2.625rem" }} />
       </Labelled>
       <div style={{ display: "flex", gap: "0.625rem" }}>
-        <Labelled label="Amount (₱)" style={{ flex: 1 }}>
+        <Labelled label={`Amount (${sym})`} style={{ flex: 1 }}>
           <input className="input" type="number" step="0.01" min="0" name="amount" required style={{ minHeight: "2.625rem" }} />
         </Labelled>
         <Labelled label="DUE" style={{ flex: 1 }}>
@@ -460,6 +463,7 @@ export function AddBillForm() {
 }
 
 export function AddIncomeScheduleForm({ accounts }: { accounts: { id: string; name: string }[] }) {
+  const sym = useCurrencySymbol();
   const [open, setOpen] = useState(false);
   const [state, formAction] = useActionState(addIncomeScheduleAction, initialState);
 
@@ -483,7 +487,7 @@ export function AddIncomeScheduleForm({ accounts }: { accounts: { id: string; na
         <input className="input" name="name" required placeholder="Salary" style={{ minHeight: "2.625rem" }} />
       </Labelled>
       <div style={{ display: "flex", gap: "0.625rem" }}>
-        <Labelled label="Amount (₱)" style={{ flex: 1 }}>
+        <Labelled label={`Amount (${sym})`} style={{ flex: 1 }}>
           <input className="input" type="number" step="0.01" min="0" name="amount" required style={{ minHeight: "2.625rem" }} />
         </Labelled>
         <Labelled label="Expected" style={{ flex: 1 }}>
