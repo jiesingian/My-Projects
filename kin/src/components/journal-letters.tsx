@@ -1,9 +1,16 @@
 import { readableDay } from "@/lib/time";
-import type { LetterDay, SealedEnvelope, TimeCapsule } from "@/lib/queries/time-capsules";
+import type { LetterDay, OpenCard, SealedEnvelope, TimeCapsule } from "@/lib/queries/time-capsules";
+import { CardSign } from "@/components/card-sign";
 import { LetterForm, type LetterRecipient } from "@/components/letter-form";
 import { LetterRemove } from "@/components/letter-remove";
 
 const first = (name: string) => name.split(" ")[0] || name;
+
+/** "Ana", "Ana and Ben", "Ana, Ben and Mia". */
+function names(list: string[]): string {
+  const xs = [...new Set(list.filter(Boolean))];
+  return xs.length <= 1 ? xs.join("") : `${xs.slice(0, -1).join(", ")} and ${xs[xs.length - 1]}`;
+}
 
 /** The letters of one special day. Under the person's own entry for the day
  * (`underEntry`), or on their own under the day's name when they wrote none,
@@ -23,7 +30,9 @@ export function LetterDayLetters({ day, meId, underEntry = false }: { day: Lette
         </>
       )}
       <p className="kin-eyebrow" style={{ margin: underEntry ? "0.75rem 0 0.375rem" : "0.25rem 0 0.5rem" }}>
-        {day.letters.length === 1 ? "A letter" : `${day.letters.length} letters`} {forMe ? "for you" : `for ${first(day.recipientName)}`}
+        {day.letters.length === 1
+          ? `A letter ${forMe ? "for you" : `for ${first(day.recipientName)}`}`
+          : `A card from ${names(day.letters.map((l) => first(l.writerName)))}`}
         {underEntry && day.occasion ? ` · ${day.occasion}` : ""}
       </p>
       {day.letters.map((l) => (
@@ -55,8 +64,17 @@ function Letter({ letter: l, meId }: { letter: TimeCapsule; meId: string }) {
 }
 
 /** Envelopes waiting for the reader: who from, the day, the occasion. */
-export function SealedEnvelopes({ envelopes }: { envelopes: SealedEnvelope[] }) {
-  if (envelopes.length === 0) return null;
+export function SealedEnvelopes({ envelopes: all }: { envelopes: SealedEnvelope[] }) {
+  if (all.length === 0) return null;
+  // Several notes for the same day are one card.
+  const byDay = new Map<string, { id: string; writers: string[]; opensOn: string; occasion: string }>();
+  for (const e of all) {
+    const g = byDay.get(e.opensOn) ?? { id: e.id, writers: [], opensOn: e.opensOn, occasion: "" };
+    g.writers.push(first(e.writerName));
+    if (!g.occasion && e.occasion) g.occasion = e.occasion;
+    byDay.set(e.opensOn, g);
+  }
+  const envelopes = [...byDay.values()];
   return (
     <section className="kin-envelopes" aria-label="Letters waiting for you">
       <p className="kin-eyebrow" style={{ margin: "0 0 0.375rem" }}>Sealed for you</p>
@@ -65,7 +83,7 @@ export function SealedEnvelopes({ envelopes }: { envelopes: SealedEnvelope[] }) 
           <li key={e.id}>
             <span className="kin-letter-seal" aria-hidden="true" />
             <span>
-              From {first(e.writerName) || "someone in your family"}
+              {e.writers.length > 1 ? `A card from ${names(e.writers)}` : `From ${e.writers[0] || "someone in your family"}`}
               {e.occasion ? ` · ${e.occasion}` : ""}
               <span className="kin-letter-meta">Opens {readableDay(e.opensOn, { year: true })}</span>
             </span>
@@ -84,7 +102,7 @@ export function LetterCompose({ recipients, today, sealedByMe }: { recipients: L
       <summary>
         <span className="kin-letter-seal" aria-hidden="true" />
         <span>
-          Write a letter for a special day
+          Write a letter or start a card for a special day
           {sealedByMe.length > 0 && <span className="kin-letter-meta">{sealedByMe.length} sealed by you</span>}
         </span>
       </summary>
@@ -108,5 +126,38 @@ export function LetterCompose({ recipients, today, sealedByMe }: { recipients: L
         )}
       </div>
     </details>
+  );
+}
+
+/** Cards being signed in the household: whose day, when, who has signed --
+ * and a way to add your own note. Never shown to the person it's for. */
+export function OpenCards({ cards }: { cards: OpenCard[] }) {
+  if (cards.length === 0) return null;
+  return (
+    <section className="kin-envelopes" aria-label="Cards to sign">
+      <p className="kin-eyebrow" style={{ margin: "0 0 0.375rem" }}>Cards to sign</p>
+      <ul>
+        {cards.map((c) => {
+          const who = first(c.recipientName);
+          const what = c.occasion ? c.occasion.charAt(0).toLowerCase() + c.occasion.slice(1) : "special day";
+          return (
+            <li key={`${c.recipientMemberId}-${c.opensOn}`} className="kin-card-row">
+              <span className="kin-letter-seal" aria-hidden="true" />
+              <span style={{ flex: 1 }}>
+                {who}&apos;s {what}
+                <span className="kin-letter-meta">
+                  Opens {readableDay(c.opensOn, { year: true })} · signed by {names(c.signers)}
+                </span>
+              </span>
+              {c.signedByMe ? (
+                <span className="kin-letter-meta" style={{ fontWeight: 600 }}>✓ Signed</span>
+              ) : (
+                <CardSign recipientId={c.recipientMemberId} recipientFirst={who} opensOn={c.opensOn} occasion={c.occasion} />
+              )}
+            </li>
+          );
+        })}
+      </ul>
+    </section>
   );
 }

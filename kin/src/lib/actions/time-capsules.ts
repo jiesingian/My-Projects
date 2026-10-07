@@ -17,7 +17,9 @@ export async function sealLetterAction(input: {
   body: string;
 }): Promise<{ error: string | null }> {
   const me = await requireCurrentMember();
-  if (!isGrownUp(me.role)) return { error: "Only a grown-up can write a letter for later." };
+  // A child with their own login may sign a card a grown-up started; the
+  // table checks there is one (20261007170000).
+  if (!isGrownUp(me.role) && me.role !== "child_self") return { error: "Only a grown-up can write a letter for later." };
   const body = input.body.trim();
   const title = input.title.trim().slice(0, 120);
   const occasion = input.occasion.trim().slice(0, 80);
@@ -32,6 +34,7 @@ export async function sealLetterAction(input: {
     .insert({ recipient_member_id: input.recipientId, title, body, occasion, ...(opensOn ? { opens_on: opensOn } : {}) });
   if (error) {
     if (error.message.includes("Pick the day")) return { error: "They have no birthday saved, so pick the day it opens." };
+    if (!isGrownUp(me.role)) return { error: "Only a grown-up can start a card. You can sign one once it's started." };
     return { error: "It didn't save. Try again." };
   }
   revalidatePath("/journal");

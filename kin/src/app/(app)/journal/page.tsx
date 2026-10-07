@@ -21,8 +21,8 @@ import { isGrownUp } from "@/lib/roles";
 import { AddToHouseholdButton } from "@/components/add-to-household";
 import { EntryShareOptions } from "@/components/entry-share-options";
 import { getMembers } from "@/lib/queries/family";
-import { getTimeCapsules, getSealedForMe, letterDays, type LetterDay } from "@/lib/queries/time-capsules";
-import { LetterDayLetters, SealedEnvelopes, LetterCompose } from "@/components/journal-letters";
+import { getTimeCapsules, getSealedForMe, getOpenCards, letterDays, type LetterDay } from "@/lib/queries/time-capsules";
+import { LetterDayLetters, SealedEnvelopes, LetterCompose, OpenCards } from "@/components/journal-letters";
 import { familyDay } from "@/lib/time";
 
 /* Gallery, Entries and Milestones were three hub segments; now they are one
@@ -68,7 +68,7 @@ export default async function JournalPage({
   }
 
   const segments = [{ label: "Entries", href: "/journal", active: true }];
-  const reader: Reader = { id: me.id, grownUp: isGrownUp(me.role), timeZone: me.families.time_zone };
+  const reader: Reader = { id: me.id, grownUp: isGrownUp(me.role), canSign: isGrownUp(me.role) || me.role === "child_self", timeZone: me.families.time_zone };
   const views = TABS.map((v) => ({ label: VIEW_LABELS[v], href: `/journal?view=${v}`, active: v === view || (v === "household" && view === "milestones") }));
 
   return (
@@ -145,7 +145,7 @@ async function PublicPane({ personId, familyId }: { personId: string; familyId: 
   );
 }
 
-type Reader = { id: string; grownUp: boolean; timeZone: string };
+type Reader = { id: string; grownUp: boolean; canSign: boolean; timeZone: string };
 
 /* Letters (7 October): a letter belongs to a special day -- a person and a
    date. Opened, the day's letters sit under that person's own entry for the
@@ -155,13 +155,14 @@ type Reader = { id: string; grownUp: boolean; timeZone: string };
 async function EntriesPane({ familyId, me, mine, milestonesOnly = false }: { familyId: string; me: Reader; mine?: { personId: string }; milestonesOnly?: boolean }) {
   const fmtDate = await familyDate();
   const withLetters = !milestonesOnly;
-  const [entries, links, connections, letters, envelopes, members] = await Promise.all([
+  const [entries, links, connections, letters, envelopes, members, cards] = await Promise.all([
     getEntries(familyId, mine, { milestonesOnly }),
     getFamilyLinks(familyId),
     mine ? getConnections() : [],
     withLetters ? getTimeCapsules(familyId, { timeZone: me.timeZone }) : Promise.resolve([]),
     withLetters ? getSealedForMe() : Promise.resolve([]),
     withLetters && me.grownUp ? getMembers(familyId) : Promise.resolve([]),
+    withLetters && me.canSign ? getOpenCards() : Promise.resolve([]),
   ]);
   const today = familyDay(new Date(), me.timeZone);
   const sealedByMe = letters.filter((l) => l.sealed && l.writerMemberId === me.id);
@@ -226,6 +227,7 @@ async function EntriesPane({ familyId, me, mine, milestonesOnly = false }: { fam
         </nav>
       )}
       {withLetters && <SealedEnvelopes envelopes={envelopes} />}
+      {withLetters && <OpenCards cards={cards} />}
       {withLetters && me.grownUp && <LetterCompose recipients={recipients} today={today} sealedByMe={sealedByMe} />}
       {!mine && !milestonesOnly && <Link href={`/journal/new?title=${encodeURIComponent(question)}`} className="kin-story">
         <span className="kin-story-label">This week&apos;s question</span>

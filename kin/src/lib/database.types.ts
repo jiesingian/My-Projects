@@ -5882,6 +5882,14 @@ export type Database = {
         Args: { p_secret: string; p_now?: string }
         Returns: { key: string; endpoint: string; p256dh: string; auth: string; title: string; body: string; url: string }[]
       }
+      open_cards: {
+        Args: Record<PropertyKey, never>
+        Returns: { recipient_member_id: string; recipient_name: string; opens_on: string; occasion: string; signers: string[] | null; signed_by_me: boolean }[]
+      }
+      time_capsule_card_open: {
+        Args: { p_recipient: string; p_opens: string }
+        Returns: boolean
+      }
       my_sealed_letters: {
         Args: Record<PropertyKey, never>
         Returns: { id: string; writer_name: string; opens_on: string; occasion: string }[]

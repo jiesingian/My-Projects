@@ -53,6 +53,7 @@ const MIGRATIONS = [
   "20261007140000_reminders_follow_household_zone.sql",
   "20261007150000_time_capsules_recipient_only.sql",
   "20261007160000_journal_letters.sql",
+  "20261007170000_letter_cards.sql",
 ];
 
 const only = process.argv[2];

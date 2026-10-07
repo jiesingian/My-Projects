@@ -66,7 +66,7 @@ export function LetterForm({ recipients, today }: { recipients: LetterRecipient[
       <input className="input" aria-label="Title (optional)" placeholder="Title (optional)" maxLength={120} value={title} onChange={(e) => setTitle(e.target.value)} disabled={pending} />
       <textarea className="input" aria-label="Your letter" placeholder="Dear…" rows={8} maxLength={20000} value={body} onChange={(e) => setBody(e.target.value)} disabled={pending} />
       <p style={{ fontSize: "0.8125rem", margin: 0, color: "var(--color-neutral-700)" }}>
-        Until the day it opens, they only see a sealed envelope from you. On the day, it opens for them in the journal with any other letters for that day — only they and you can read it.
+        The rest of the family can sign it too, until the day it opens — they see who signed, not what anyone wrote. Until then they only see a sealed envelope. On the day it opens for them in the journal as one card — only they and each writer can read it.
       </p>
       <button type="button" className="btn btn-primary" disabled={pending || !recipientId || !body.trim() || needsDate} onClick={seal}>
         {pending ? "Sealing…" : "Seal the letter"}

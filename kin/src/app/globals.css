@@ -7092,3 +7092,6 @@ button.kin-room-quote { font: inherit; font-size: 0.78125rem; text-align: left; 
 @media (prefers-reduced-motion: reduce) {
   .kin-letter-paper { animation: none; }
 }
+/* Cards to sign: the row wraps so the note box gets the full width. */
+.kin-envelopes li.kin-card-row { flex-wrap: wrap; }
+.kin-card-sign { flex-basis: 100%; display: grid; gap: 0.5rem; }

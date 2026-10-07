@@ -60,6 +60,24 @@ export async function getTimeCapsules(familyId: string, opts: { openingOn?: stri
   }));
 }
 
+/** A card being signed in the household, for anyone but the reader: whose
+ * day, when, and who has signed -- never a word of a note (open_cards,
+ * 20261007170000). */
+export type OpenCard = { recipientMemberId: string; recipientName: string; opensOn: string; occasion: string; signers: string[]; signedByMe: boolean };
+
+export async function getOpenCards(): Promise<OpenCard[]> {
+  const supabase = await createClient();
+  const { data } = await supabase.rpc("open_cards");
+  return (data ?? []).map((r) => ({
+    recipientMemberId: r.recipient_member_id,
+    recipientName: r.recipient_name,
+    opensOn: r.opens_on,
+    occasion: r.occasion,
+    signers: r.signers ?? [],
+    signedByMe: r.signed_by_me,
+  }));
+}
+
 export async function getSealedForMe(): Promise<SealedEnvelope[]> {
   const supabase = await createClient();
   const { data } = await supabase.rpc("my_sealed_letters");
