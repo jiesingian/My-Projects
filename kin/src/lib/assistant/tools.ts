@@ -254,6 +254,24 @@ export async function runAssistantTool(name: string, rawInput: unknown, me: Curr
     return data ?? [];
   };
 
+  // A bill paid from an account the member cannot see -- someone else's
+  // private account -- is not theirs to hear about, as on Cash Flow, the
+  // Planner and Subscriptions (e2e/private-accounts.spec.ts). Which accounts
+  // they can see is the accounts policy's answer, read as them; the column
+  // used to decide is dropped before anything reaches the model.
+  const visibleBills = async <T extends { paid_from_account_id: string | null }>(rows: T[] | null): Promise<Omit<T, "paid_from_account_id">[]> => {
+    const list = rows ?? [];
+    const tied = list.some((b) => b.paid_from_account_id);
+    const canSee = tied ? new Set(((await supabase.from("accounts").select("id").eq("family_id", familyId)).data ?? []).map((a) => a.id)) : new Set<string>();
+    return list
+      .filter((b) => !b.paid_from_account_id || canSee.has(b.paid_from_account_id))
+      .map((b) => {
+        const rest: Partial<T> = { ...b };
+        delete rest.paid_from_account_id;
+        return rest as Omit<T, "paid_from_account_id">;
+      });
+  };
+
   switch (name) {
     case "search": {
       const q = str(input, "query");
@@ -262,7 +280,7 @@ export async function runAssistantTool(name: string, rawInput: unknown, me: Curr
       const [activities, events, bills, goals, buyItems, meals, journal, docs, accounts, assets] = await Promise.all([
         supabase.from("activities").select("id, title, start_at, location").eq("family_id", familyId).ilike("title", like).limit(8),
         supabase.from("events").select("id, title, event_date, kind").eq("family_id", familyId).ilike("title", like).limit(8),
-        supabase.from("bills").select("id, name, amount, due_date, status").eq("family_id", familyId).ilike("name", like).limit(8),
+        supabase.from("bills").select("id, name, amount, due_date, status, paid_from_account_id").eq("family_id", familyId).ilike("name", like).limit(8),
         supabase.from("goals").select("id, title, target_amount, current_amount, target_date").eq("family_id", familyId).ilike("title", like).limit(8),
         supabase.from("buy_items").select("id, name, quantity, unit, section, checked").eq("family_id", familyId).eq("cleared", false).ilike("name", like).limit(8),
         supabase.from("meal_plans").select("id, dish, plan_date").eq("family_id", familyId).ilike("dish", like).limit(8),
@@ -278,7 +296,7 @@ export async function runAssistantTool(name: string, rawInput: unknown, me: Curr
       };
       put("activities", activities.data);
       put("events", events.data);
-      put("bills", bills.data);
+      put("bills", await visibleBills(bills.data));
       put("goals", goals.data);
       put("shopping_list", buyItems.data);
       put("meal_plans", meals.data);
@@ -320,7 +338,7 @@ export async function runAssistantTool(name: string, rawInput: unknown, me: Curr
           .lt("start_at", toInstant)
           .order("start_at"),
         supabase.from("events").select("title, event_date, kind").eq("family_id", familyId).gte("event_date", from).lt("event_date", toStr),
-        supabase.from("bills").select("name, amount, due_date, status").eq("family_id", familyId).gte("due_date", from).lt("due_date", toStr),
+        supabase.from("bills").select("name, amount, due_date, status, paid_from_account_id").eq("family_id", familyId).gte("due_date", from).lt("due_date", toStr),
         supabase.from("meal_plans").select("dish, plan_date").eq("family_id", familyId).gte("plan_date", from).lt("plan_date", toStr),
         supabase.from("goals").select("title, target_date, target_amount, current_amount").eq("family_id", familyId).gte("target_date", from).lt("target_date", toStr),
       ]);
@@ -335,7 +353,7 @@ export async function runAssistantTool(name: string, rawInput: unknown, me: Curr
             : (a.activity_members ?? []).map((m) => (m.members as unknown as { full_name: string } | null)?.full_name).filter(Boolean),
         })),
         events: events.data ?? [],
-        bills_due: bills.data ?? [],
+        bills_due: await visibleBills(bills.data),
         meals: meals.data ?? [],
         goal_deadlines: goals.data ?? [],
       });
@@ -349,7 +367,7 @@ export async function runAssistantTool(name: string, rawInput: unknown, me: Curr
       const [accountsRes, movementsRes, billsRes, goalsRes, assetsRes, liabilitiesRes] = await Promise.all([
         supabase.from("accounts").select("id, name, institution, opening_balance, is_joint, owner_member_id").eq("family_id", familyId).eq("is_archived", false),
         supabase.from("wealth_transactions").select("account_id, direction, amount, status, occurred_at, particulars, category").eq("family_id", familyId),
-        supabase.from("bills").select("name, amount, due_date, status").eq("family_id", familyId).neq("status", "paid"),
+        supabase.from("bills").select("name, amount, due_date, status, paid_from_account_id").eq("family_id", familyId).neq("status", "paid"),
         supabase.from("goals").select("title, target_amount, current_amount, target_date").eq("family_id", familyId),
         supabase.from("assets").select("name, value").eq("family_id", familyId),
         supabase.from("liabilities").select("name, balance").eq("family_id", familyId),
@@ -376,7 +394,7 @@ export async function runAssistantTool(name: string, rawInput: unknown, me: Curr
         combined_balance: cash,
         this_month_in: thisMonth.filter((m) => m.direction === "in").reduce((s, m) => s + Number(m.amount), 0),
         this_month_out: thisMonth.filter((m) => m.direction === "out").reduce((s, m) => s + Number(m.amount), 0),
-        unpaid_bills: billsRes.data ?? [],
+        unpaid_bills: await visibleBills(billsRes.data),
         goals: goalsRes.data ?? [],
         assets_total: assetTotal,
         liabilities_total: liabilityTotal,
