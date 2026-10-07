@@ -66,6 +66,13 @@ export default async function ({ db, as, check, refused }) {
     const who = rows.map((r) => r.endpoint);
     return (rows.length === 1 && who[0] === "https://push/Kid A" && /letters open today/.test(rows[0].title) && rows[0].url.startsWith("/journal#letters-") && again.length === 0) || { rows, again };
   });
+  await check("With their Letters switch off, Kid isn't told", async () => {
+    await db.exec("update time_capsules set notified_at = null, opens_on = '2030-06-01' where recipient_member_id = '" + kidM + "'");
+    await db.exec("update members set notification_prefs = notification_prefs || '{\"letters\": false}' where id = '" + kidM + "'");
+    const rows = await due("2030-06-01 09:00+08");
+    await db.exec("update members set notification_prefs = notification_prefs - 'letters' where id = '" + kidM + "'");
+    return rows.length === 0 || rows;
+  });
   await check("A letter that opened long ago is never announced", async () => {
     await db.exec("update time_capsules set notified_at = null, opens_on = '2029-01-01' where recipient_member_id = '" + kidM + "'");
     return (await due("2030-05-01 09:00+08")).length === 0;
