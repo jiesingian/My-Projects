@@ -1,6 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentMember } from "@/lib/session";
-import { familyDay } from "@/lib/time";
+import { familyDay, FAMILY_TZ } from "@/lib/time";
 import { subscriptionsFrom, yearlyTotal, type RepeatingRow } from "@/lib/subscriptions";
 
 /** The Subscriptions page: repeating charges (bills) and repeating money in
@@ -35,7 +35,8 @@ export async function getSubscriptions(familyId: string) {
     .filter((s) => allowed(s.account_id))
     .map((s) => ({ id: s.id, name: s.name, amount: s.amount, recurrence: s.recurrence, date: s.next_date, settled: s.status === "received", category: s.category }));
 
-  const today = familyDay(new Date());
+  // "Next charge" and "overdue" by the household's own calendar day.
+  const today = familyDay(new Date(), me?.families.time_zone ?? FAMILY_TZ);
   const out = subscriptionsFrom(charges, today);
   const inn = subscriptionsFrom(incoming, today);
   return { today, charges: out, chargesPerYear: yearlyTotal(out), income: inn, incomePerYear: yearlyTotal(inn) };
