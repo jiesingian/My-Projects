@@ -8,6 +8,7 @@ import { House3D } from "@/components/welcome/house-3d";
 import { PLANS, pesos } from "@/lib/billing/plans";
 import { TRIAL_DAYS } from "@/lib/access";
 import { FREE_FEATURES, PLUS_FEATURES } from "@/lib/plan-features";
+import { scrollBehavior } from "@/lib/motion";
 
 /** What a visitor told the home page before signing up. Onboarding reads the
  * family name back to fill in "Household name" (family-fork-form.tsx). Kept in
@@ -225,7 +226,7 @@ export function Welcome() {
                 aria-selected={i === slide}
                 aria-label={f.title}
                 data-on={i === slide || undefined}
-                onClick={() => tourRef.current?.scrollTo({ left: i * tourRef.current.clientWidth, behavior: "smooth" })}
+                onClick={() => tourRef.current?.scrollTo({ left: i * tourRef.current.clientWidth, behavior: scrollBehavior() })}
               />
             ))}
           </div>
