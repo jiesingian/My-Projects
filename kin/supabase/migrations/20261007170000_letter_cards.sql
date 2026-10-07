@@ -83,3 +83,42 @@ $$;
 
 revoke execute on function public.open_cards() from public, anon;
 grant execute on function public.open_cards() to authenticated;
+
+-- "Ana started a card for Lola -- sign it": who is told when a card is
+-- started. Asked by the app right after the first letter for a day is
+-- written; it answers only to that letter's writer, only while theirs is
+-- still the card's only letter, and only in the first ten minutes, so
+-- nobody can use it to announce a card twice or someone else's. Told:
+-- everyone else in the household who could sign it -- grown-ups and
+-- children with their own login -- never the person the card is for.
+-- notification_prefs.letters (default on) is each person's switch.
+create or replace function public.card_started_push_targets(p_recipient uuid, p_opens date)
+returns table (endpoint text, p256dh text, auth text)
+language sql
+stable
+security definer
+set search_path = ''
+as $$
+  select s.endpoint, s.p256dh, s.auth
+  from public.push_subscriptions s
+  join public.members m on m.id = s.member_id
+  where m.family_id = public.current_family_id()
+    and m.status = 'active'
+    and m.id <> public.current_member_id()
+    and m.id <> p_recipient
+    and m.role in ('parent', 'adult', 'child_self')
+    and coalesce((m.notification_prefs ->> 'letters')::boolean, true)
+    and (
+      select count(*) = 1
+         and bool_and(t.writer_member_id = public.current_member_id())
+         and bool_and(t.created_at > now() - interval '10 minutes')
+      from public.time_capsules t
+      where t.family_id = public.current_family_id()
+        and t.recipient_member_id = p_recipient
+        and t.opens_on = p_opens
+        and t.opens_on > public.time_capsule_today()
+    );
+$$;
+
+revoke execute on function public.card_started_push_targets(uuid, date) from public, anon;
+grant execute on function public.card_started_push_targets(uuid, date) to authenticated;

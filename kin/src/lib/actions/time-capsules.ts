@@ -1,6 +1,8 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { after } from "next/server";
+import { sendCardStartedPush } from "@/lib/push";
 import { createClient } from "@/lib/supabase/server";
 import { requireCurrentMember } from "@/lib/session";
 import { isGrownUp } from "@/lib/roles";
@@ -29,13 +31,30 @@ export async function sealLetterAction(input: {
   const opensOn = input.opensOn || null;
   if (opensOn && (!/^\d{4}-\d{2}-\d{2}$/.test(opensOn) || opensOn <= familyDay(new Date(), me.families.time_zone))) return { error: "Pick a day after today." };
   const supabase = await createClient();
-  const { error } = await supabase
+  const { data: saved, error } = await supabase
     .from("time_capsules")
-    .insert({ recipient_member_id: input.recipientId, title, body, occasion, ...(opensOn ? { opens_on: opensOn } : {}) });
+    .insert({ recipient_member_id: input.recipientId, title, body, occasion, ...(opensOn ? { opens_on: opensOn } : {}) })
+    .select("opens_on, occasion, recipient:members!time_capsules_recipient_member_id_fkey(full_name)")
+    .single();
   if (error) {
     if (error.message.includes("Pick the day")) return { error: "They have no birthday saved, so pick the day it opens." };
     if (!isGrownUp(me.role)) return { error: "Only a grown-up can start a card. You can sign one once it's started." };
     return { error: "It didn't save. Try again." };
+  }
+  // The first letter for a day starts a card: tell the rest of the household
+  // so they can sign it. The database answers only if this is that first
+  // letter, so signing someone else's card tells nobody (20261007170000).
+  if (saved && isGrownUp(me.role)) {
+    const recipientFirst = ((saved.recipient as { full_name: string } | null)?.full_name ?? "").split(" ")[0];
+    after(() =>
+      sendCardStartedPush({
+        recipientId: input.recipientId,
+        opensOn: saved.opens_on,
+        writerFirst: me.full_name.split(" ")[0],
+        recipientFirst,
+        occasion: saved.occasion,
+      }),
+    );
   }
   revalidatePath("/journal");
   return { error: null };

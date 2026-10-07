@@ -8,6 +8,13 @@ export default async function ({ as, check, refused }) {
   await check("A child can't start a card", async () =>
     refused(() => as(kid, `insert into time_capsules (recipient_member_id, body, opens_on, occasion) values ($1, 'hi', ${day}, 'Birthday')`, [annM])));
   await as(abe, `insert into time_capsules (recipient_member_id, body, opens_on, occasion) values ($1, 'From Abe', ${day}, 'Birthday')`, [annM]);
+  await check("Abe starting it tells Kid's and the others' devices, never Ann's or Abe's own; another household's none", async () => {
+    const who = (await as(abe, "select endpoint from card_started_push_targets($1, (current_date + 20))", [annM])).map((r) => r.endpoint.split("/").pop());
+    return (who.length > 0 && !who.includes("Ann A") && !who.includes("Abe A") && !who.includes("Ben B")) || who;
+  });
+  await check("Nobody else can announce Abe's card", async () =>
+    (await as(kid, "select 1 from card_started_push_targets($1, (current_date + 20))", [annM])).length === 0 &&
+    (await as(ben, "select 1 from card_started_push_targets($1, (current_date + 20))", [annM])).length === 0);
   await check("Abe started Ann's card: Kid sees it to sign, with who signed, not a word of it", async () => {
     const cards = await as(kid, "select * from open_cards()");
     const c = cards.find((r) => r.recipient_member_id === annM);
@@ -21,6 +28,8 @@ export default async function ({ as, check, refused }) {
     const c = (await as(abe, "select * from open_cards()")).find((r) => r.recipient_member_id === annM);
     return (c?.signers.sort().join() === "Abe,Kid") || c;
   });
+  await check("Once someone has signed, the card can't be announced again", async () =>
+    (await as(abe, "select 1 from card_started_push_targets($1, (current_date + 20))", [annM])).length === 0);
   await check("Kid still reads only Kid's own note; Abe only Abe's", async () => {
     const k = await as(kid, "select body from time_capsules where recipient_member_id = $1", [annM]);
     const a = await as(abe, "select body from time_capsules where recipient_member_id = $1", [annM]);

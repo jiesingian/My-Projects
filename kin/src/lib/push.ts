@@ -111,6 +111,31 @@ export async function sendChatPush(
   }
 }
 
+/** "Ana started a card for Lola -- sign it" (20261007170000), to everyone
+ * else in the household who can sign, never the person it's for.
+ * card_started_push_targets() answers only to the card's first writer, once.
+ * Same promises as sendPush: never throws, call in after(). */
+export async function sendCardStartedPush(card: { recipientId: string; opensOn: string; writerFirst: string; recipientFirst: string; occasion: string }): Promise<void> {
+  if (!vapidReady()) return;
+  try {
+    const supabase = await createClient();
+    const { data: targets, error } = await supabase.rpc("card_started_push_targets", { p_recipient: card.recipientId, p_opens: card.opensOn });
+    if (error || !targets?.length) return;
+    const what = card.occasion ? card.occasion.charAt(0).toLowerCase() + card.occasion.slice(1) : "special day";
+    const payload = JSON.stringify({
+      title: `${card.writerFirst} started a card for ${card.recipientFirst}`.slice(0, 80),
+      body: `For ${card.recipientFirst}'s ${what} — add your note. ${card.recipientFirst} won't see it until the day.`.slice(0, 180),
+      url: "/journal",
+      tag: `card:${card.recipientId}:${card.opensOn}`,
+    });
+    await deliver(targets, payload, { TTL: 60 * 60 * 24 }, async (endpoint) => {
+      await supabase.rpc("forget_push_endpoint", { p_endpoint: endpoint });
+    });
+  } catch (err) {
+    console.error("Card push failed", err);
+  }
+}
+
 export type PushDevice = { endpoint: string; p256dh: string; auth: string };
 
 /** Sends one payload to each device and says what happened to each. A device
