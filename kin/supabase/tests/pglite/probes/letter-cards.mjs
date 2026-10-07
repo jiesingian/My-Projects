@@ -43,4 +43,18 @@ export default async function ({ as, check, refused }) {
     const env = await as(ann, "select writer_name from my_sealed_letters()");
     return env.map((r) => r.writer_name).sort().join() === "Abe A,Kid A" || env;
   });
+  await check("A private letter makes no card: nobody sees it to sign, nobody is told, a child can't sign it", async () => {
+    await as(ann, "insert into time_capsules (recipient_member_id, body, opens_on, occasion, open_to_sign) values ($1, 'Just from me', current_date + 30, 'Graduation', false)", [abeM]);
+    const seen = (await as(kid, "select * from open_cards()")).some((r) => r.recipient_member_id === abeM);
+    const told = (await as(ann, "select 1 from card_started_push_targets($1, (current_date + 30))", [abeM])).length;
+    const kidSigns = await refused(() => as(kid, "insert into time_capsules (recipient_member_id, body, opens_on) values ($1, 'x', current_date + 30)", [abeM]));
+    return (!seen && told === 0 && kidSigns) || { seen, told, kidSigns };
+  });
+  await check("A card started after a private letter for the same day is announced, without the private writer as a signer", async () => {
+    await as(abe, "insert into time_capsules (recipient_member_id, body, opens_on, occasion) values ($1, 'Card', current_date + 40, 'Anniversary')", [kidM]);
+    await as(ann, "insert into time_capsules (recipient_member_id, body, opens_on, open_to_sign) values ($1, 'Private', current_date + 40, false)", [kidM]);
+    const c = (await as(abe, "select * from open_cards()")).find((r) => r.recipient_member_id === kidM && r.occasion === "Anniversary");
+    const told = (await as(abe, "select 1 from card_started_push_targets($1, (current_date + 40))", [kidM])).length;
+    return (c?.signers.join() === "Abe" && told > 0) || { c, told };
+  });
 }

@@ -22,6 +22,7 @@ export type Database = {
           id: string
           notified_at: string | null
           occasion: string
+          open_to_sign: boolean
           opens_on: string
           recipient_member_id: string
           title: string
@@ -35,6 +36,7 @@ export type Database = {
           id?: string
           notified_at?: string | null
           occasion?: string
+          open_to_sign?: boolean
           opens_on?: string
           recipient_member_id: string
           title?: string
@@ -48,6 +50,7 @@ export type Database = {
           id?: string
           notified_at?: string | null
           occasion?: string
+          open_to_sign?: boolean
           opens_on?: string
           recipient_member_id?: string
           title?: string

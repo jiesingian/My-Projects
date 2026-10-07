@@ -117,6 +117,7 @@ export function LetterCompose({ recipients, today, sealedByMe }: { recipients: L
                   <span className="kin-letter-meta">
                     For {first(l.recipientName)}
                     {l.occasion ? ` · ${l.occasion}` : ""} · opens {readableDay(l.opensOn, { year: true })}
+                    {l.openToSign ? "" : " · private"}
                   </span>
                 </span>
                 <LetterRemove id={l.id} />

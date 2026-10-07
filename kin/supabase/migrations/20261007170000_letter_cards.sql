@@ -17,6 +17,12 @@
 --   same person and the same day -- but not start one, and not one for
 --   themselves.
 
+-- A letter can stay private (open_to_sign = false): the writer's alone, no
+-- card around it, nobody told. It still opens for its recipient on the day,
+-- alongside any card for that day. Only letters open to signing make a card.
+alter table public.time_capsules
+  add column if not exists open_to_sign boolean not null default true;
+
 -- Is there a card still sealed for this person and day in the caller's
 -- household? Security definer: the caller can't read others' letters.
 create or replace function public.time_capsule_card_open(p_recipient uuid, p_opens date)
@@ -32,6 +38,7 @@ as $$
       and t.recipient_member_id = p_recipient
       and t.opens_on = p_opens
       and t.opens_on > public.time_capsule_today()
+      and t.open_to_sign
   );
 $$;
 
@@ -52,6 +59,7 @@ create policy time_capsules_insert on public.time_capsules
       (select public.current_member_role()) in ('parent', 'adult')
       or (
         (select public.current_member_role()) = 'child_self'
+        and open_to_sign
         and recipient_member_id <> (select public.current_member_id())
         and public.time_capsule_card_open(recipient_member_id, opens_on)
       )
@@ -77,6 +85,7 @@ as $$
   where t.family_id = public.current_family_id()
     and t.recipient_member_id <> public.current_member_id()
     and t.opens_on > public.time_capsule_today()
+    and t.open_to_sign
   group by t.recipient_member_id, t.opens_on
   order by t.opens_on;
 $$;
@@ -117,6 +126,7 @@ as $$
         and t.recipient_member_id = p_recipient
         and t.opens_on = p_opens
         and t.opens_on > public.time_capsule_today()
+        and t.open_to_sign
     );
 $$;
 

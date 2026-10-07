@@ -15,6 +15,9 @@ export async function sealLetterAction(input: {
   recipientId: string;
   opensOn: string | null;
   occasion: string;
+  /** Others may sign it as a card (the default); off keeps it private --
+   * no card, nobody told (20261007170000). A child's note always signs. */
+  openToSign?: boolean;
   title: string;
   body: string;
 }): Promise<{ error: string | null }> {
@@ -25,6 +28,7 @@ export async function sealLetterAction(input: {
   const body = input.body.trim();
   const title = input.title.trim().slice(0, 120);
   const occasion = input.occasion.trim().slice(0, 80);
+  const openToSign = isGrownUp(me.role) ? input.openToSign !== false : true;
   if (!input.recipientId) return { error: "Choose who the letter is for." };
   if (!body) return { error: "Write the letter first." };
   if (body.length > 20000) return { error: "That letter is too long to keep." };
@@ -33,7 +37,7 @@ export async function sealLetterAction(input: {
   const supabase = await createClient();
   const { data: saved, error } = await supabase
     .from("time_capsules")
-    .insert({ recipient_member_id: input.recipientId, title, body, occasion, ...(opensOn ? { opens_on: opensOn } : {}) })
+    .insert({ recipient_member_id: input.recipientId, title, body, occasion, open_to_sign: openToSign, ...(opensOn ? { opens_on: opensOn } : {}) })
     .select("opens_on, occasion, recipient:members!time_capsules_recipient_member_id_fkey(full_name)")
     .single();
   if (error) {
@@ -44,7 +48,7 @@ export async function sealLetterAction(input: {
   // The first letter for a day starts a card: tell the rest of the household
   // so they can sign it. The database answers only if this is that first
   // letter, so signing someone else's card tells nobody (20261007170000).
-  if (saved && isGrownUp(me.role)) {
+  if (saved && isGrownUp(me.role) && openToSign) {
     const recipientFirst = ((saved.recipient as { full_name: string } | null)?.full_name ?? "").split(" ")[0];
     after(() =>
       sendCardStartedPush({

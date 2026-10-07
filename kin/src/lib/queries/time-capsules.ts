@@ -11,6 +11,7 @@ export type TimeCapsule = {
   body: string;
   opensOn: string;
   occasion: string;
+  openToSign: boolean;
   createdAt: string;
   sealed: boolean;
 };
@@ -38,7 +39,7 @@ export async function getTimeCapsules(familyId: string, opts: { openingOn?: stri
   const supabase = await createClient();
   let q = supabase
     .from("time_capsules")
-    .select("id, writer_member_id, writer_name, recipient_member_id, title, body, opens_on, occasion, created_at, recipient:members!time_capsules_recipient_member_id_fkey(full_name)")
+    .select("id, writer_member_id, writer_name, recipient_member_id, title, body, opens_on, occasion, open_to_sign, created_at, recipient:members!time_capsules_recipient_member_id_fkey(full_name)")
     .eq("family_id", familyId)
     .order("opens_on", { ascending: false })
     .order("created_at");
@@ -55,6 +56,7 @@ export async function getTimeCapsules(familyId: string, opts: { openingOn?: stri
     body: r.body,
     opensOn: r.opens_on,
     occasion: r.occasion,
+    openToSign: r.open_to_sign,
     createdAt: r.created_at,
     sealed: r.opens_on > today,
   }));

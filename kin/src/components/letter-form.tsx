@@ -14,6 +14,7 @@ export function LetterForm({ recipients, today }: { recipients: LetterRecipient[
   const [recipientId, setRecipientId] = useState("");
   const [opensOn, setOpensOn] = useState("");
   const [occasion, setOccasion] = useState("");
+  const [openToSign, setOpenToSign] = useState(true);
   const [title, setTitle] = useState("");
   const [body, setBody] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -27,12 +28,13 @@ export function LetterForm({ recipients, today }: { recipients: LetterRecipient[
 
   const seal = () =>
     startTransition(async () => {
-      const r = await sealLetterAction({ recipientId, opensOn: opensOn || null, occasion, title, body });
+      const r = await sealLetterAction({ recipientId, opensOn: opensOn || null, occasion, openToSign, title, body });
       setError(r.error);
       if (!r.error) {
         setRecipientId("");
         setOpensOn("");
         setOccasion("");
+        setOpenToSign(true);
         setTitle("");
         setBody("");
         setDone(true);
@@ -65,8 +67,19 @@ export function LetterForm({ recipients, today }: { recipients: LetterRecipient[
       </label>
       <input className="input" aria-label="Title (optional)" placeholder="Title (optional)" maxLength={120} value={title} onChange={(e) => setTitle(e.target.value)} disabled={pending} />
       <textarea className="input" aria-label="Your letter" placeholder="Dear…" rows={8} maxLength={20000} value={body} onChange={(e) => setBody(e.target.value)} disabled={pending} />
+      <label className="kin-letter-switch">
+        <input type="checkbox" checked={openToSign} onChange={(e) => setOpenToSign(e.target.checked)} disabled={pending} />
+        <span>
+          Let the family sign it too
+          <span className="kin-letter-meta">
+            {openToSign
+              ? "It becomes a card: the family is told and can add their own notes. They see who signed, never what anyone wrote."
+              : "Private: just from you. Nobody else is told it exists."}
+          </span>
+        </span>
+      </label>
       <p style={{ fontSize: "0.8125rem", margin: 0, color: "var(--color-neutral-700)" }}>
-        The rest of the family can sign it too, until the day it opens — they see who signed, not what anyone wrote. Until then they only see a sealed envelope. On the day it opens for them in the journal as one card — only they and each writer can read it.
+        Until the day it opens they only see a sealed envelope. On the day it opens for them in the journal — only they and each writer can read it.
       </p>
       <button type="button" className="btn btn-primary" disabled={pending || !recipientId || !body.trim() || needsDate} onClick={seal}>
         {pending ? "Sealing…" : "Seal the letter"}
