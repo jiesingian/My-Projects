@@ -9,9 +9,14 @@ export type TimeCapsule = {
   recipientName: string;
   title: string;
   body: string;
+  /** The day it opens -- or, for an "open when" letter, the day it was
+   * opened ("" while it waits). */
   opensOn: string;
   occasion: string;
   openToSign: boolean;
+  /** "Open when..." letters: the moment, and when the recipient opened it. */
+  openWhen: string | null;
+  openedAt: string | null;
   createdAt: string;
   sealed: boolean;
 };
@@ -39,14 +44,17 @@ export async function getTimeCapsules(familyId: string, opts: { openingOn?: stri
   const supabase = await createClient();
   let q = supabase
     .from("time_capsules")
-    .select("id, writer_member_id, writer_name, recipient_member_id, title, body, opens_on, occasion, open_to_sign, created_at, recipient:members!time_capsules_recipient_member_id_fkey(full_name)")
+    .select("id, writer_member_id, writer_name, recipient_member_id, title, body, opens_on, occasion, open_to_sign, open_when, opened_at, created_at, recipient:members!time_capsules_recipient_member_id_fkey(full_name)")
     .eq("family_id", familyId)
     .order("opens_on", { ascending: false })
     .order("created_at");
   if (opts.openingOn) q = q.eq("opens_on", opts.openingOn);
   const { data } = await q;
   const today = familyDay(new Date(), opts.timeZone);
-  return (data ?? []).map((r) => ({
+  return (data ?? []).map((r) => {
+    const openedOn = r.opened_at ? familyDay(new Date(r.opened_at), opts.timeZone) : "";
+    const opensOn = r.open_when ? openedOn : (r.opens_on ?? "");
+    return {
     id: r.id,
     writerMemberId: r.writer_member_id,
     writerName: r.writer_name,
@@ -54,12 +62,15 @@ export async function getTimeCapsules(familyId: string, opts: { openingOn?: stri
     recipientName: (r.recipient as { full_name: string } | null)?.full_name ?? "",
     title: r.title,
     body: r.body,
-    opensOn: r.opens_on,
-    occasion: r.occasion,
+    opensOn,
+    occasion: r.open_when ? `Open when ${r.open_when}` : r.occasion,
     openToSign: r.open_to_sign,
+    openWhen: r.open_when,
+    openedAt: r.opened_at,
     createdAt: r.created_at,
-    sealed: r.opens_on > today,
-  }));
+    sealed: r.open_when ? !r.opened_at : opensOn > today,
+  };
+  });
 }
 
 /** A card being signed in the household, for anyone but the reader: whose
@@ -80,6 +91,16 @@ export async function getOpenCards(): Promise<OpenCard[]> {
   }));
 }
 
+/** "Open when..." envelopes waiting for the reader (my_open_when_letters,
+ * 20261007180000): who from and the moment, never a word of it. */
+export type OpenWhenEnvelope = { id: string; writerName: string; openWhen: string };
+
+export async function getOpenWhenForMe(): Promise<OpenWhenEnvelope[]> {
+  const supabase = await createClient();
+  const { data } = await supabase.rpc("my_open_when_letters");
+  return (data ?? []).map((r) => ({ id: r.id, writerName: r.writer_name, openWhen: r.open_when }));
+}
+
 export async function getSealedForMe(): Promise<SealedEnvelope[]> {
   const supabase = await createClient();
   const { data } = await supabase.rpc("my_sealed_letters");
@@ -91,7 +112,8 @@ export function letterDays(letters: TimeCapsule[]): LetterDay[] {
   const days = new Map<string, LetterDay>();
   for (const l of letters) {
     if (l.sealed) continue;
-    const key = `${l.recipientMemberId}-${l.opensOn}`;
+    // An "open when" letter is its own moment, on the day it was opened.
+    const key = l.openWhen ? `${l.recipientMemberId}-${l.opensOn}-w${l.id}` : `${l.recipientMemberId}-${l.opensOn}`;
     const day = days.get(key) ?? { key, recipientMemberId: l.recipientMemberId, recipientName: l.recipientName, opensOn: l.opensOn, occasion: "", letters: [] };
     day.letters.push(l);
     if (!day.occasion && l.occasion) day.occasion = l.occasion;

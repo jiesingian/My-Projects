@@ -23,7 +23,9 @@ export type Database = {
           notified_at: string | null
           occasion: string
           open_to_sign: boolean
-          opens_on: string
+          opens_on: string | null
+          open_when: string | null
+          opened_at: string | null
           recipient_member_id: string
           title: string
           writer_member_id: string | null
@@ -37,7 +39,9 @@ export type Database = {
           notified_at?: string | null
           occasion?: string
           open_to_sign?: boolean
-          opens_on?: string
+          opens_on?: string | null
+          open_when?: string | null
+          opened_at?: string | null
           recipient_member_id: string
           title?: string
           writer_member_id?: string | null
@@ -51,7 +55,9 @@ export type Database = {
           notified_at?: string | null
           occasion?: string
           open_to_sign?: boolean
-          opens_on?: string
+          opens_on?: string | null
+          open_when?: string | null
+          opened_at?: string | null
           recipient_member_id?: string
           title?: string
           writer_member_id?: string | null
@@ -5933,6 +5939,14 @@ export type Database = {
       card_started_push_targets: {
         Args: { p_recipient: string; p_opens: string }
         Returns: { endpoint: string; p256dh: string; auth: string }[]
+      }
+      my_open_when_letters: {
+        Args: Record<PropertyKey, never>
+        Returns: { id: string; writer_name: string; open_when: string }[]
+      }
+      open_letter: {
+        Args: { p_id: string }
+        Returns: boolean
       }
       open_cards: {
         Args: Record<PropertyKey, never>

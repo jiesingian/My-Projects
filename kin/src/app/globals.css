@@ -7097,3 +7097,5 @@ button.kin-room-quote { font: inherit; font-size: 0.78125rem; text-align: left; 
 .kin-card-sign { flex-basis: 100%; display: grid; gap: 0.5rem; }
 .kin-letter-switch { display: flex; gap: 0.625rem; align-items: flex-start; font-size: 0.875rem; cursor: pointer; }
 .kin-letter-switch input { margin-top: 0.2rem; width: 1.125rem; height: 1.125rem; accent-color: var(--color-accent-700); flex: none; }
+/* "On a day" or "Open when…" on the letter form. */
+.kin-letter-mode { display: flex; gap: 0.4375rem; flex-wrap: wrap; }
