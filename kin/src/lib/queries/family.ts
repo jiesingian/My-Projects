@@ -1,3 +1,4 @@
+import type { SavedPlace } from "@/lib/location-places";
 import { createClient } from "@/lib/supabase/server";
 import { resolvePhotoUrl } from "@/lib/photo-url";
 import type { Tables } from "@/lib/database.types";
@@ -246,6 +247,12 @@ export type MemberLocation = {
   lng: number | null;
   accuracyM: number | null;
   updatedAt: string | null;
+  /** Paused until then (20261007160000): sharing, but no position. */
+  pausedUntil: string | null;
+  /** A child with their own login: whether a grown-up has okayed sharing. */
+  parentOk: boolean;
+  /** The saved place they are at, if any. */
+  placeName: string | null;
 };
 
 /** The Quicklinks board: everyone in the household, and for each of them
@@ -254,10 +261,12 @@ export type MemberLocation = {
  * still appears -- with an off switch, which is the honest thing to show. */
 export async function getMemberLocations(familyId: string): Promise<MemberLocation[]> {
   const supabase = await createClient();
-  const [{ data: members }, { data: rows }] = await Promise.all([
+  const [{ data: members }, { data: rows }, { data: places }] = await Promise.all([
     supabase.from("members").select("id, full_name, role, status").eq("family_id", familyId).order("created_at"),
-    supabase.from("member_locations").select("member_id, sharing, lat, lng, accuracy_m, updated_at").eq("family_id", familyId),
+    supabase.from("member_locations").select("member_id, sharing, lat, lng, accuracy_m, updated_at, paused_until, parent_ok, place_id").eq("family_id", familyId),
+    supabase.from("household_places").select("id, name").eq("family_id", familyId),
   ]);
+  const placeName = new Map((places ?? []).map((p) => [p.id, p.name]));
 
   const byMember = new Map((rows ?? []).map((r) => [r.member_id, r]));
   return (members ?? [])
@@ -273,6 +282,17 @@ export async function getMemberLocations(familyId: string): Promise<MemberLocati
         lng: row?.lng ?? null,
         accuracyM: row?.accuracy_m ?? null,
         updatedAt: row?.updated_at ?? null,
+        pausedUntil: row?.paused_until ?? null,
+        parentOk: row?.parent_ok ?? false,
+        placeName: row?.place_id ? (placeName.get(row.place_id) ?? null) : null,
       };
     });
+}
+
+/** The household's saved places (20261007160000), for the board and for
+ * telling which one someone is at. */
+export async function getHouseholdPlaces(familyId: string): Promise<SavedPlace[]> {
+  const supabase = await createClient();
+  const { data } = await supabase.from("household_places").select("id, name, lat, lng, radius_m, notify").eq("family_id", familyId).order("created_at");
+  return (data ?? []).map((p) => ({ id: p.id, name: p.name, lat: p.lat, lng: p.lng, radiusM: p.radius_m, notify: p.notify }));
 }
