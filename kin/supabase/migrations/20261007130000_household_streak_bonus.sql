@@ -3,13 +3,18 @@
 --
 -- A daily chore's run reaching 7 and 30 days earns bonus points: 10 and 50
 -- unless the household says otherwise (lib/streaks STREAK_BONUS). A parent
--- sets them on the Rewards panel.
+-- sets them on the Rewards panel. Until this shipped, a bonus was 1 point.
 --
 -- A change applies to streaks reached from that day on, never to ones
 -- already earned (Janine, 7 October) -- lowering the bonus must not take
 -- points back, and raising it must not hand out more for last month. So
 -- each change is a dated row, and a streak is paid at the rate in force on
 -- the day it was reached. Rows are never edited; the newest one wins.
+--
+-- Streaks already reached when this runs stay at the 1 point they were
+-- worth (Janine, 7 October): every existing household is seeded with a rate
+-- of 1 for all time before today, and 10/50 from today. A household made
+-- later has no rows and gets the 10/50 default; it has no past to protect.
 --
 -- Writing is a grown-up's job: bonuses are summed into every child's
 -- balance. There is no insert/update/delete policy, so the only way in is
@@ -54,3 +59,14 @@ $$;
 
 revoke all on function public.set_streak_bonus(integer, integer) from public, anon;
 grant execute on function public.set_streak_bonus(integer, integer) to authenticated;
+
+-- The seed: once per household, and only for households with no rates yet,
+-- so a re-run adds nothing.
+insert into public.streak_bonus_rates (family_id, effective_from, seven, thirty)
+select f.id, d.effective_from, d.seven, d.thirty
+from public.families f
+cross join (values
+  (date '2000-01-01', 1, 1),
+  ((now() at time zone 'Asia/Manila')::date, 10, 50)
+) as d(effective_from, seven, thirty)
+where not exists (select 1 from public.streak_bonus_rates r where r.family_id = f.id);
