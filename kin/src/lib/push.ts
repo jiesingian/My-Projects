@@ -17,7 +17,7 @@ import { createClient } from "@/lib/supabase/server";
 // "sos" and "checkins" (30 September) are not in lib/notifications, so there
 // is no switch for them and push_targets() reads them as on: an emergency
 // and "Are you okay?" are not things to be able to mute by accident.
-export type PushKind = "chat" | "calls" | "family_calls" | "journal" | "shopping" | "approvals" | "events" | "health" | "bills" | "sos" | "checkins";
+export type PushKind = "chat" | "calls" | "family_calls" | "journal" | "shopping" | "approvals" | "events" | "health" | "bills" | "sos" | "checkins" | "arrivals";
 
 export function pushConfigured(): boolean {
   return Boolean(process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY && process.env.VAPID_PRIVATE_KEY);
