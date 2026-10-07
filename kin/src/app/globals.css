@@ -3155,6 +3155,48 @@ div.kin-tp-ghost {
 .kin-quick-ico[data-tint="occasion"] { background: var(--cal-occasion); }
 .kin-quick-ico[data-tint="home"] { background: var(--cal-home); }
 
+/* One-line add (components/quick-line.tsx): type a sentence, see what was
+   read, save. 16px input so iOS does not zoom the page on focus. */
+.kin-quickline { margin: -0.5rem 0 0.625rem; }
+.kin-quickline + .kin-quick { margin-top: 0; }
+.kin-quickline-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0 0.875rem;
+  min-height: 2.875rem;
+  border-radius: var(--radius-card);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-sm);
+}
+.kin-quickline-input {
+  flex: 1;
+  min-width: 0;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: var(--color-text);
+  font-size: 1rem;
+  padding: 0.625rem 0;
+}
+.kin-quickline-preview {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.5rem 0.625rem;
+  margin-top: 0.5rem;
+  padding: 0.625rem 0.75rem;
+  border-radius: var(--radius-card);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-sm);
+}
+.kin-quickline-preview .kin-quick-ico { width: 1.75rem; height: 1.75rem; flex: none; }
+.kin-quickline-read { flex: 1 1 10rem; min-width: 0; font-size: 0.875rem; line-height: 1.35; overflow-wrap: anywhere; }
+.kin-quickline-actions { display: flex; gap: 0.375rem; margin-left: auto; }
+.kin-quickline-actions .btn { min-height: 2.25rem; padding: 0 0.875rem; font-size: 0.8125rem; }
+.kin-quickline-msg { margin: 0.375rem 0.25rem 0; font-size: 0.8125rem; color: var(--color-neutral-700); }
+.kin-quickline-msg[data-error] { color: var(--color-accent-700); }
+
 /* The one-time "try the new look" card on Today. */
 .kin-look-offer {
   display: flex;
