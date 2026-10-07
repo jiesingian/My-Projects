@@ -15,7 +15,7 @@
   --color-bg: #f2f2f7;
   --color-surface: #ffffff;
   --color-text: #1c1c1e;
-  --color-accent: #007aff;
+  --color-accent: #0068d9;
   --color-accent-2: #5ac8fa;
   --color-divider: rgba(60, 60, 67, 0.18);
 
@@ -185,7 +185,7 @@
   --color-neutral-700: #c7c7cc;
   --color-neutral-800: #f5f5f7;
   --color-neutral-900: #ffffff;
-  --color-accent: #0a84ff;
+  --color-accent: #0068d9;
   --color-accent-100: #0b2545;
   --color-accent-200: #10365f;
   --color-accent-400: #4b95ff;
@@ -244,7 +244,7 @@
     --color-neutral-700: #c7c7cc;
     --color-neutral-800: #f5f5f7;
     --color-neutral-900: #ffffff;
-    --color-accent: #0a84ff;
+    --color-accent: #0068d9;
     --color-accent-100: #0b2545;
     --color-accent-200: #10365f;
     --color-accent-400: #4b95ff;
@@ -378,7 +378,7 @@ h6 {
   margin: 0;
 }
 a {
-  color: var(--color-accent);
+  color: var(--color-accent-700);
   text-underline-offset: 3px;
 }
 /* Removes the double-tap-zoom wait on every tap target, and stops a held
@@ -614,7 +614,7 @@ textarea.input {
 }
 .tag-outline {
   border: 1px solid color-mix(in srgb, var(--color-accent) 55%, transparent);
-  color: var(--color-accent);
+  color: var(--color-accent-700);
 }
 
 /* — table — */
@@ -733,7 +733,7 @@ textarea.input {
   -webkit-tap-highlight-color: transparent;
 }
 .kin-tab[data-active="true"] {
-  color: var(--color-accent);
+  color: var(--color-accent-700);
 }
 
 /* The icon's own little stage. Giving it a box of its own is what lets the
@@ -773,7 +773,7 @@ textarea.input {
    Janine), so a tap answers before the page has loaded; untouched, it keeps
    the default. The disc's own selected look is set below. */
 .kin-tab:active {
-  color: var(--color-accent);
+  color: var(--color-accent-700);
   transition-duration: 0s;
 }
 .kin-tab-home:active .kin-tab-disc {
@@ -954,7 +954,7 @@ textarea.input {
   transform: rotate(90deg);
 }
 .kin-fold > summary:hover {
-  color: var(--color-accent);
+  color: var(--color-accent-700);
 }
 
 /* A day's chores folded into one agenda line (Planner, agreed 28 September).
@@ -982,7 +982,7 @@ textarea.input {
 }
 @media (hover: hover) and (pointer: fine) {
   .kin-chores-fold > summary:hover .kin-fold-mark {
-    color: var(--color-accent);
+    color: var(--color-accent-700);
   }
 }
 
@@ -1589,7 +1589,7 @@ textarea.input {
   max-width: 100%;
 }
 .kin-tp[data-me] .kin-tp-rel {
-  color: var(--color-accent);
+  color: var(--color-accent-700);
   font-weight: 700;
 }
 /* Only a name: nobody on Kin has confirmed them. No colour, a dashed ring. */
@@ -3554,7 +3554,7 @@ button.kin-initial:focus-visible {
   flex: none;
   margin-left: auto;
   transform: rotate(180deg);
-  color: var(--color-neutral-400);
+  color: var(--color-neutral-600);
 }
 
 /* ── empty states ────────────────────────────────────────────────────────
@@ -4500,7 +4500,7 @@ button.kin-initial:focus-visible {
   place-items: center;
   border-radius: 0.625rem;
   background: color-mix(in srgb, var(--color-accent) 14%, transparent);
-  color: var(--color-accent);
+  color: var(--color-accent-700);
 }
 .kin-smarthome-name {
   display: block;
@@ -4538,7 +4538,7 @@ button.kin-initial:focus-visible {
 }
 .kin-planrow-invite {
   display: inline;
-  color: var(--color-accent);
+  color: var(--color-accent-700);
   text-decoration: underline;
   text-decoration-thickness: 1px;
   text-underline-offset: 0.2em;
@@ -5000,7 +5000,7 @@ button.kin-initial:focus-visible {
   font-weight: 600;
 }
 .kin-sos-facts > div[data-empty] dd {
-  color: var(--color-neutral-500);
+  color: var(--color-neutral-600);
   font-weight: 400;
 }
 .kin-sos-facts > div[data-alert] dd {
@@ -5230,6 +5230,9 @@ button.kin-initial:focus-visible {
 .kin-legal-body h1 { font: 600 2rem/1.1 var(--font-heading); margin: 0 0 1rem; text-wrap: balance; }
 .kin-legal-body h2 { font: 600 1.1875rem/1.2 var(--font-heading); margin: 2rem 0 0.5rem; text-wrap: balance; }
 .kin-legal-body p { margin: 0 0 0.75rem; }
+/* Links in running text are underlined, not told apart by colour alone
+   (WCAG 1.4.1; axe measured the coral links at 2.96:1 against the text). */
+.kin-legal-body a { text-decoration: underline; text-underline-offset: 0.15em; }
 .kin-legal-body ul { margin: 0 0 0.75rem; padding-left: 1.25rem; display: grid; gap: 0.375rem; }
 .kin-legal-meta { font: 400 0.8125rem/1.4 var(--font-numeric); color: var(--color-neutral-600); }
 .kin-legal-draft {
@@ -5701,7 +5704,7 @@ button.kin-initial:focus-visible {
   border-bottom: 1px solid var(--color-divider);
 }
 .kin-profile-star {
-  color: var(--color-accent);
+  color: var(--color-accent-700);
   flex: none;
 }
 .kin-profile-milestone-title {
@@ -5843,7 +5846,7 @@ button.kin-initial:focus-visible {
   text-decoration: none;
 }
 .kin-journal-filter .chip span {
-  color: var(--color-accent);
+  color: var(--color-accent-700);
 }
 .kin-journal-filter .chip[data-active="true"] span {
   color: inherit;
@@ -5858,7 +5861,7 @@ button.kin-initial:focus-visible {
   color: var(--color-accent-700);
 }
 .kin-entry-star span {
-  color: var(--color-accent);
+  color: var(--color-accent-700);
 }
 /* Where an entry you wrote is shared, and its star, on the entry itself. */
 .kin-entry-share {
@@ -5881,7 +5884,7 @@ button.kin-initial:focus-visible {
   font-size: 0.8125rem;
 }
 .kin-entry-share-star span {
-  color: var(--color-accent);
+  color: var(--color-accent-700);
 }
 .kin-entry-share-star[data-active="true"] span {
   color: #fff;
@@ -5904,7 +5907,7 @@ button.kin-initial:focus-visible {
 }
 .kin-star-toggle span {
   font-size: 1rem;
-  color: var(--color-accent);
+  color: var(--color-accent-700);
 }
 .kin-star-toggle[data-active] {
   border-color: var(--color-accent);
@@ -6048,7 +6051,7 @@ button.kin-initial:focus-visible {
   padding: 0 0.375rem;
   border: 0;
   background: none;
-  color: var(--color-neutral-500);
+  color: var(--color-neutral-600);
   font-size: 1rem;
   line-height: 1;
   cursor: pointer;
@@ -6195,7 +6198,7 @@ button.kin-initial:focus-visible {
 .kin-hl-row::-webkit-scrollbar { display: none; }
 .kin-hl-person { flex: none; display: flex; flex-direction: column; align-items: center; gap: 0.25rem; width: 4.5rem; background: none; border: 0; padding: 0; color: var(--color-text); cursor: pointer; }
 .kin-hl-person:disabled { opacity: 0.6; }
-.kin-hl-add { display: grid; place-items: center; width: 62px; height: 62px; border-radius: 999px; border: 2px dashed var(--color-divider); color: var(--color-accent); }
+.kin-hl-add { display: grid; place-items: center; width: 62px; height: 62px; border-radius: 999px; border: 2px dashed var(--color-divider); color: var(--color-accent-700); }
 .kin-hl-ring { display: grid; place-items: center; width: 62px; height: 62px; border-radius: 999px; background: var(--color-divider); padding: 3px; box-sizing: border-box; }
 .kin-hl-ring[data-new] { background: conic-gradient(#f9ce34, #ee2a7b, #6228d7, #f9ce34); }
 .kin-hl-ring > * { box-shadow: 0 0 0 2px var(--color-surface, #fff); border-radius: 999px; }
@@ -6965,4 +6968,20 @@ button.kin-room-quote { font: inherit; font-size: 0.78125rem; text-align: left; 
   place-items: center;
   color: var(--color-accent-700);
   background: color-mix(in srgb, var(--color-accent) 12%, transparent);
+}
+
+/* Reduce Motion, everywhere (accessibility pass, roadmap item 7). Most
+   animations above already have their own reduced version; this catches the
+   ones that do not, so nothing slides, bounces or loops for someone who has
+   asked their phone not to. Near-zero rather than none, so code waiting on
+   animationend / transitionend still hears it. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }
