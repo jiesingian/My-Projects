@@ -37,7 +37,7 @@ export async function POST(request: Request) {
     // is posted as its writer, then its conversation is notified as usual.
     supabase.rpc("due_scheduled_messages", { p_secret: secret }),
     // Letters for later, on the morning they open: one notification per
-    // person and day, however many letters (20261007160000).
+    // person and day, however many letters (20261007160100).
     supabase.rpc("due_letter_notifications", { p_secret: secret }),
   ]);
   if (main.error) {

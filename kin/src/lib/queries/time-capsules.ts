@@ -28,12 +28,12 @@ export type LetterDay = {
 };
 
 /** An envelope waiting for the reader: who it's from, when it opens and for
- * what -- never a word of it (my_sealed_letters, 20261007160000). */
+ * what -- never a word of it (my_sealed_letters, 20261007160100). */
 export type SealedEnvelope = { id: string; writerName: string; opensOn: string; occasion: string };
 
 /** Every letter this person may read: the ones they wrote, and the
  * opened ones written to them. The table's own rules decide which
- * (20261007150000_time_capsules_recipient_only.sql); nothing is filtered here. */
+ * (20261007160050_time_capsules_recipient_only.sql); nothing is filtered here. */
 export async function getTimeCapsules(familyId: string, opts: { openingOn?: string; timeZone?: string } = {}): Promise<TimeCapsule[]> {
   const supabase = await createClient();
   let q = supabase
