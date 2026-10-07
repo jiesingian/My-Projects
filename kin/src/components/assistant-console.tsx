@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Blueprint } from "@/components/ui";
 import { Icon } from "@/components/icons";
 import { listen, speak, speechOutSupported, speechSupported, stopSpeaking, type Listener } from "@/lib/speech";
+import { scrollBehavior } from "@/lib/motion";
 
 type Turn = { role: "user" | "assistant"; content: string };
 
@@ -43,7 +44,7 @@ export function AssistantConsole({ memberName, start }: { memberName: string; st
   const transcriptRef = useRef("");
 
   useEffect(() => {
-    scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
+    scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: scrollBehavior() });
   }, [turns, thinking]);
 
   async function send(text: string) {
