@@ -18,6 +18,7 @@
 -- * due_letter_notifications(): on the morning a letter opens (8am in the
 --   household's zone, or the first cron tick after), its recipient's devices
 --   are told once. Several letters for the same day make one notification.
+--   Each person's Letters switch (notification_prefs.letters) turns it off.
 
 alter table public.time_capsules
   add column if not exists occasion text not null default '' check (char_length(occasion) <= 80);
@@ -144,6 +145,9 @@ begin
          end || case when g.occasion <> '' then ' · ' || g.occasion else '' end,
          '/journal#letters-' || g.recipient_member_id || '-' || g.opens_on
   from grouped g
+  join public.members pm on pm.id = g.recipient_member_id
+    -- Their Letters switch (Settings -> Notifications), on unless turned off.
+    and coalesce((pm.notification_prefs ->> 'letters')::boolean, true)
   join public.push_subscriptions s on s.member_id = g.recipient_member_id;
 end;
 $$;
