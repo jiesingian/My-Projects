@@ -1,5 +1,5 @@
 import { test, expect } from "@playwright/test";
-import { buildIcs, icsEscape, icsFold } from "@/lib/ics";
+import { buildIcs, icsEscape, icsFold, feedSubscribeLinks } from "@/lib/ics";
 
 /** The calendar link Apple Calendar and Outlook subscribe to. A malformed
  * feed is not an error anyone sees: the phone just quietly stops updating. */
@@ -28,4 +28,14 @@ test("a timed task, a weekly one and a yearly birthday come out as the right eve
   expect(ics).toContain("DTSTART;VALUE=DATE:19461002\r\nDTEND;VALUE=DATE:19461003\r\nRRULE:FREQ=YEARLY");
   expect(ics.match(/BEGIN:VEVENT/g)).toHaveLength(3);
   expect(ics.endsWith("END:VCALENDAR\r\n")).toBe(true);
+});
+
+test("the subscribe buttons carry the feed to Apple, Google and Outlook intact", () => {
+  const https = "https://kin.example/api/calendar/feed/abc_DEF-123.ics";
+  const links = feedSubscribeLinks(https);
+  expect(links.apple).toBe("webcal://kin.example/api/calendar/feed/abc_DEF-123.ics");
+  // Google wants the webcal form, encoded, as cid.
+  expect(new URL(links.google).searchParams.get("cid")).toBe(links.apple);
+  expect(new URL(links.outlook).searchParams.get("url")).toBe(https);
+  expect(new URL(links.outlook).searchParams.get("name")).toBe("Kin");
 });
