@@ -12,7 +12,7 @@ import { isCountryCode } from "@/lib/countries";
 import { TEXT_SCALE_MAX, TEXT_SCALE_MIN } from "@/lib/text-scale";
 import { PALETTE_DEFAULT, PALETTE_NEW_MEMBER, isPaletteId } from "@/lib/palettes";
 import { randomToken, sha256, toBase64Url } from "@/lib/security/crypto";
-import { isCurrencyCode, isDateFormat, isWeekStart } from "@/lib/household-prefs";
+import { isCurrencyCode, isDateFormat, isWeekStart, isTimeZone } from "@/lib/household-prefs";
 import { MENU_MAX, WIDGET_MAX, cleanActions } from "@/lib/quick-button";
 import { buildBrief, type BriefItem, type BriefRoutine } from "@/lib/brief";
 import { familyDay } from "@/lib/time";
@@ -156,6 +156,7 @@ export async function updateHouseholdPrefsAction(
   dateFormat: string,
   weekStart: string,
   country: string,
+  timeZone: string,
 ): Promise<ActionState> {
   const me = await requireCurrentMember();
   if (!me.is_organiser) return { error: "Only the organizer can change household preferences." };
@@ -175,13 +176,14 @@ export async function updateHouseholdPrefsAction(
   // setup can leave it unset, and everything that reads it treats null as
   // "not stated". An unrecognized value is still refused.
   if (country && !isCountryCode(country)) return { error: "That isn't a country we recognize." };
+  if (!isTimeZone(timeZone)) return { error: "That isn't a time zone we offer." };
 
   const supabase = await createClient();
   // Same reasoning as the rename above: the household is the caller's own,
   // taken from the session rather than accepted as an argument.
   const { error } = await supabase
     .from("families")
-    .update({ currency, date_format: dateFormat, week_start: weekStart, country: country || null })
+    .update({ currency, date_format: dateFormat, week_start: weekStart, country: country || null, time_zone: timeZone })
     .eq("id", me.family_id);
   revalidatePath("/settings", "layout");
   return { error: error ? humanDatabaseError(error.message) : null };

@@ -7,6 +7,7 @@ import { InviteCodeCard, HouseholdNameForm, HouseholdPrefsForm, ShareWithRelativ
 import { DeleteHouseholdButton } from "@/components/delete-household-button";
 import { TransferOrganizerRole } from "@/components/transfer-organizer-role";
 import { countryLabel } from "@/lib/countries";
+import { TIME_ZONES } from "@/lib/household-prefs";
 import { keepKidViewOut } from "@/lib/kid-view";
 import { isGrownUp } from "@/lib/roles";
 import { SpecialDays } from "@/components/special-days";
@@ -70,11 +71,12 @@ export default async function HouseholdSettingsPage() {
         <ShareWithRelativesSwitch on={me.families.share_with_relatives} canChange={me.is_organiser} />
         <div style={{ fontSize: "0.8125rem", color: "var(--color-neutral-700)", marginBottom: "0.375rem" }}>Currency, dates, week start and country</div>
         {me.is_organiser ? (
-          <HouseholdPrefsForm currency={me.families.currency} dateFormat={me.families.date_format} weekStart={me.families.week_start} country={me.families.country} />
+          <HouseholdPrefsForm currency={me.families.currency} dateFormat={me.families.date_format} weekStart={me.families.week_start} country={me.families.country} timeZone={me.families.time_zone} />
         ) : (
           <div style={{ padding: "0.625rem 0", marginBottom: "1.25rem", fontSize: "0.8125rem" }}>
             {me.families.currency} · {me.families.date_format} · {me.families.week_start === "monday" ? "Mon start" : "Sun start"}
             {me.families.country ? ` · ${countryLabel(me.families.country)}` : ""}
+            {` · ${TIME_ZONES.find((tz) => tz.value === me.families.time_zone)?.label ?? me.families.time_zone}`}
           </div>
         )}
 
