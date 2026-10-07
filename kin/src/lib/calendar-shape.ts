@@ -1,4 +1,4 @@
-import { familyDay, familyMidnight, FAMILY_TZ } from "@/lib/time";
+import { familyDay, familyMidnight, addDays, FAMILY_TZ } from "@/lib/time";
 
 /** The shape of what goes to Google and what comes back, with no network and
  * no database anywhere near it.
@@ -24,6 +24,13 @@ export type CalendarEventInput = {
    * phone: the member's own calendar app raises it, lock screen and all. */
   reminderMinutes?: number | null;
   description?: string | null;
+  /** An all-day item's own plain dates (allDayEvent sets them). Sent to
+   * Google as they are, so no time zone can move a birthday a day. */
+  day?: string;
+  endDay?: string | null;
+  /** The household's time zone (families.time_zone). Google is told it, so a
+   * repeating event keeps its local hour; Manila when not given. */
+  timeZone?: string;
 };
 
 export type GoogleCalendarEvent = {
@@ -35,7 +42,7 @@ export type GoogleCalendarEvent = {
   end?: { date?: string; dateTime?: string };
 };
 
-export function toGoogleEventBody(input: CalendarEventInput, tz: string = FAMILY_TZ) {
+export function toGoogleEventBody(input: CalendarEventInput) {
   const end = input.endAt ?? new Date(input.startAt.getTime() + 60 * 60 * 1000);
   const extras = {
     description: input.description ?? undefined,
@@ -52,15 +59,19 @@ export function toGoogleEventBody(input: CalendarEventInput, tz: string = FAMILY
     // `new Date(`${date}T00:00:00`)`, which in Manila is 16:00 the previous
     // day in UTC -- so slicing the ISO string put every birthday, trip, bill
     // and meal on the family's phones one day early.
-    const startDate = familyDay(input.startAt, tz);
-    const endExclusive = familyDay(new Date((input.endAt ?? input.startAt).getTime() + 86_400_000), tz);
+    // And since each household has its own zone (20261007110000), the plain
+    // dates go through untouched when the item has them.
+    const tz = input.timeZone ?? FAMILY_TZ;
+    const startDate = input.day ?? familyDay(input.startAt, tz);
+    const endExclusive = (input.day ? addDays(input.endDay ?? input.day, 1) : null) ?? familyDay(new Date((input.endAt ?? input.startAt).getTime() + 86_400_000), tz);
     return { summary: input.title, location: input.location ?? undefined, start: { date: startDate }, end: { date: endExclusive }, ...extras };
   }
   return {
     summary: input.title,
     location: input.location ?? undefined,
-    start: { dateTime: input.startAt.toISOString() },
-    end: { dateTime: end.toISOString() },
+    // The instant says when; the zone says whose clock a repeat follows.
+    start: { dateTime: input.startAt.toISOString(), timeZone: input.timeZone ?? FAMILY_TZ },
+    end: { dateTime: end.toISOString(), timeZone: input.timeZone ?? FAMILY_TZ },
     ...extras,
   };
 }
@@ -91,7 +102,7 @@ export function allDayEvent(
     description?: string | null;
     reminderMinutes?: number | null;
   } = {},
-  tz: string = FAMILY_TZ
+  tz: string = FAMILY_TZ,
 ): CalendarEventInput | null {
   const startAt = familyMidnight(day, tz);
   if (!startAt) return null;
@@ -109,6 +120,8 @@ export function allDayEvent(
     startAt,
     endAt,
     allDay: true,
+    day,
+    endDay: opts.endDay ?? null,
     location: opts.location ?? null,
     description: opts.description ?? null,
     reminderMinutes: opts.reminderMinutes ?? null,

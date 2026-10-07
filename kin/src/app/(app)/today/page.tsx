@@ -36,6 +36,7 @@ import { getStartHere } from "@/lib/queries/start-here";
 import { PlusTrialCard } from "@/components/plus-trial-card";
 import { getPlusTrialCard } from "@/lib/queries/plus-trial";
 import { HolidayLine } from "@/components/holiday-line";
+import { WhosWhere } from "@/components/whos-where";
 import { getMyPendingCheckIns } from "@/lib/queries/member-card";
 import { LettersOpeningToday } from "@/components/letters-opening";
 
@@ -252,6 +253,9 @@ export default async function TodayPage() {
           Expense
         </Link>
       </nav>
+
+      {/* Who's where: only when someone in the household shares (item 10). */}
+      <WhosWhere familyId={me.family_id} meId={me.id} tz={me.families.time_zone} />
 
       {/* Coming up: what to sort out now so the week is not a scramble. */}
       {comingUp.length > 0 && (
