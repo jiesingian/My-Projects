@@ -25,7 +25,7 @@ import { useId } from "react";
  * Today disc sets it to a deep accent, so its white tiles shade pink rather
  * than grey. */
 
-export type TabIconName = "users" | "message" | "images" | "layoutGrid" | "calendarDays" | "house" | "wallet";
+export type TabIconName = "users" | "message" | "images" | "layoutGrid" | "calendarDays" | "house" | "wallet" | "envelope";
 
 /** body: a satin solid. light: a raised cream detail. tone: a band of deeper
  * colour laid on the body below it (the calendar's header). */
@@ -89,6 +89,11 @@ const ICONS: Record<TabIconName, Part[]> = {
     { kind: "light", d: "M12.8 27.5v-5.6a3.2 3.2 0 0 1 6.4 0v5.6z" },
   ],
   // A wallet with a card tucked in behind and a clasp on the right.
+  // A sealed letter, its flap a lighter fold on top (kid view's Letters).
+  envelope: [
+    { kind: "body", d: rect(3, 7, 26, 19, 4) },
+    { kind: "light", d: "M6.2 9.6h19.6l-8.7 7a1.8 1.8 0 0 1-2.2 0z" },
+  ],
   wallet: [
     { kind: "body", d: "M6.3 9.8l-.5-2.7a2 2 0 0 1 1.6-2.3l12.4-2.2a2 2 0 0 1 2.3 1.6l.9 5.6z" },
     { kind: "body", d: rect(3, 8.5, 25, 19, 4.5) },

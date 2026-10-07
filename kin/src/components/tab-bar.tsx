@@ -17,13 +17,15 @@ const TABS: { href: string; label: string; icon: TabIconName; home?: boolean }[]
   { href: "/wealth", label: "Wealth", icon: "wallet" },
 ];
 
-/** Kid view's four (K2, 25 September): their day, the family chat, the
+/** Kid view's tabs (K2, 25 September): their day, the family chat, the
  * journal, and the family tree and profiles. Money, the household's running
- * and the planner's grown-up side are not on it. */
+ * and the planner's grown-up side are not on it. Letters (7 October): the
+ * time-capsule letters written to them, once they open. */
 const KID_TABS: typeof TABS = [
   { href: "/today", label: "Today", icon: "layoutGrid", home: true },
   { href: "/chat", label: "Chat", icon: "message" },
   { href: "/journal", label: "Journal", icon: "images" },
+  { href: "/journal/letters", label: "Letters", icon: "envelope" },
   { href: "/family", label: "Family", icon: "users" },
 ];
 
@@ -38,6 +40,10 @@ const KID_TABS: typeof TABS = [
 export function TabBar({ chatUnread = 0, chatMentioned = false, kidView = false }: { chatUnread?: number; chatMentioned?: boolean; kidView?: boolean }) {
   const tabs = kidView ? KID_TABS : TABS;
   const pathname = usePathname();
+  // The longest tab that matches is the active one, so /journal/letters
+  // lights Letters and not Journal too.
+  const matches = (href: string) => pathname === href || pathname.startsWith(href + "/");
+  const current = tabs.filter((t) => matches(t.href)).sort((a, b) => b.href.length - a.href.length)[0]?.href;
   return (
     /* Fixed to the viewport, not sticky: a sticky element can only travel
        inside its own parent, and this bar's wrapper is exactly as tall as the
@@ -49,7 +55,7 @@ export function TabBar({ chatUnread = 0, chatMentioned = false, kidView = false 
 
       <div className="kin-nav-inner">
         {tabs.map((t) => {
-          const active = pathname === t.href || pathname.startsWith(t.href + "/");
+          const active = t.href === current;
           const unread = t.href === "/chat" && chatUnread > 0;
           return (
             <Link

@@ -38,7 +38,7 @@ export default async function LettersPage() {
       </p>
 
       {opened.length === 0 && sealed.length === 0 && (
-        <Empty icon={<Icon name="fileText" size={26} />} title="No letters yet" line="Write one now for a birthday years away. Nobody else sees it until then." />
+        <Empty icon={<Icon name="fileText" size={26} />} title="No letters yet" line={isGrownUp(me.role) ? "Write one now for a birthday years away. Nobody else sees it until then." : "When someone writes you a letter for later, it shows up here on the day it opens."} />
       )}
 
       {opened.map((l) => (
