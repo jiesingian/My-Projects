@@ -1,5 +1,6 @@
 "use client";
 
+import { useHouseholdZone } from "@/components/household-zone";
 import { useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -48,6 +49,7 @@ export function TodayList({ entries }: { entries: TodayEntry[] }) {
 /** A due thing that is not a chore, in the chore card's shape, so the list
  * reads as one. The title opens its place in Kin; the buttons answer it. */
 function ItemRow({ item, queued }: { item: BriefItem; queued: boolean }) {
+  const tz = useHouseholdZone();
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
@@ -57,7 +59,7 @@ function ItemRow({ item, queued }: { item: BriefItem; queued: boolean }) {
   const queueable = item.action === "done" && /^(activity|health)-/.test(item.id);
   const later = async (state: "done" | "skipped") => {
     if (state !== "done" || !queueable) return setError(OFFLINE_ONLY_DONE);
-    const why = await queueOffline({ id: newOpId(), at: new Date().toISOString(), kind: "today.mark", key: item.id, day: familyDay(), label: item.title });
+    const why = await queueOffline({ id: newOpId(), at: new Date().toISOString(), kind: "today.mark", key: item.id, day: familyDay(new Date(), tz), label: item.title });
     if (why) setError(why);
   };
   const mark = (state: "done" | "skipped") =>

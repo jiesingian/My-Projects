@@ -1,3 +1,4 @@
+import { householdZone } from "@/lib/household-zone";
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentMember } from "@/lib/session";
@@ -63,6 +64,7 @@ export async function POST(request: Request) {
 }
 
 async function apply(op: QueuedOp, memberId: string, familyId: string): Promise<ReplayResult> {
+  const tz = await householdZone();
   const supabase = await createClient();
   const done = { id: op.id, outcome: "applied" as const };
   const skip = (note: string): ReplayResult => ({ id: op.id, outcome: "skipped", note });
@@ -97,7 +99,7 @@ async function apply(op: QueuedOp, memberId: string, familyId: string): Promise<
     }
 
     case "today.mark": {
-      if (op.day !== familyDay()) return skip(`${op.label} was for ${op.day}, so it was left as it was.`);
+      if (op.day !== familyDay(new Date(), tz)) return skip(`${op.label} was for ${op.day}, so it was left as it was.`);
       const chore = /^chore-([0-9a-f-]{36})$/i.exec(op.key);
       if (chore) {
         const date = op.date ?? op.day;

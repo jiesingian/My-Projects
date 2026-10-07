@@ -1,3 +1,4 @@
+import { householdZone } from "@/lib/household-zone";
 import { createClient } from "@/lib/supabase/server";
 import { getSignedUrls } from "@/lib/storage";
 import { familyDay } from "@/lib/time";
@@ -8,8 +9,9 @@ export type Memory = { id: string; kind: "entry" | "milestone"; title: string; y
  * years, newest first. A handful at most -- it is a nudge to look back, not
  * an archive. Nothing new is stored for it. */
 export async function getOnThisDay(familyId: string): Promise<Memory[]> {
+  const tz = await householdZone();
   const supabase = await createClient();
-  const today = familyDay();
+  const today = familyDay(new Date(), tz);
   const year = Number(today.slice(0, 4));
   const monthDay = today.slice(4);
   // Twenty years back is further than any household's journal goes, and an
@@ -64,9 +66,10 @@ export type WeekRecap = { posts: number; photos: number; choresDone: number; mil
  * what they posted, what they got done, what happened. Shown on Today at the
  * weekend (see the page), built from rows Kin already keeps. */
 export async function getWeekRecap(familyId: string): Promise<WeekRecap> {
+  const tz = await householdZone();
   const supabase = await createClient();
   const since = new Date(Date.now() - 7 * 86_400_000);
-  const sinceDay = familyDay(since);
+  const sinceDay = familyDay(since, tz);
   const [posts, photos, chores, milestones] = await Promise.all([
     supabase.from("journal_entries").select("id", { count: "exact", head: true }).eq("family_id", familyId).eq("visibility", "household").gte("created_at", since.toISOString()),
     supabase.from("journal_media").select("id", { count: "exact", head: true }).eq("family_id", familyId).eq("visibility", "household").gte("created_at", since.toISOString()),

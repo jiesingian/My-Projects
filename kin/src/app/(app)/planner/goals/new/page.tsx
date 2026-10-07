@@ -1,3 +1,4 @@
+import { householdZone } from "@/lib/household-zone";
 import { redirect } from "next/navigation";
 import { getCurrentMember } from "@/lib/session";
 import { getMembers } from "@/lib/queries/family";
@@ -9,6 +10,7 @@ import { GoalForm } from "./goal-form";
 import { isGone } from "@/lib/member-status";
 
 export default async function NewGoalPage() {
+  const tz = await householdZone();
   const me = await getCurrentMember();
   if (!me) redirect("/onboarding/profile");
 
@@ -29,7 +31,7 @@ export default async function NewGoalPage() {
       savings={(savings ?? []).map((s) => ({ id: s.id, title: s.title }))}
       plus={readAccess(me.families).plus}
       currency={me.families.currency}
-      today={familyDay()}
+      today={familyDay(new Date(), tz)}
     />
   );
 }

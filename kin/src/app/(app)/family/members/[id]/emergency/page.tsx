@@ -1,3 +1,4 @@
+import { householdZone } from "@/lib/household-zone";
 import { redirect } from "next/navigation";
 import { keepKidViewOut } from "@/lib/kid-view";
 import { getCurrentMember } from "@/lib/session";
@@ -16,12 +17,13 @@ import { isGone } from "@/lib/member-status";
  * and who to call. Everything here is already in Health; this only gathers
  * it. Share sends it as text, and Print makes a wallet card. */
 export default async function EmergencyCardPage({ params }: { params: Promise<{ id: string }> }) {
+  const tz = await householdZone();
   await keepKidViewOut();
   const me = await getCurrentMember();
   if (!me) redirect("/onboarding/profile");
   const { id } = await params;
   const supabase = await createClient();
-  const today = familyDay();
+  const today = familyDay(new Date(), tz);
   const [{ data: member }, { data: medicines }, { data: conditions }, contacts, members] = await Promise.all([
     supabase.from("members").select("*").eq("id", id).eq("family_id", me.family_id).maybeSingle(),
     supabase.from("health_medicines").select("name, dose, times, start_date, end_date").eq("member_id", id),

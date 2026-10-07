@@ -1,5 +1,6 @@
 "use client";
 
+import { useHouseholdZone } from "@/components/household-zone";
 import { useState, useTransition } from "react";
 import { useId } from "react";
 import Link from "next/link";
@@ -59,6 +60,7 @@ export const OFFLINE_ONLY_DONE = "You're offline. Only Done can wait to send —
 /** `queued`: Done was tapped offline and is waiting to send (TodayList reads
  * the queue). */
 export function TaskRow({ task, queued = false }: { task: RoutineView; queued?: boolean }) {
+  const tz = useHouseholdZone();
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
@@ -80,7 +82,7 @@ export function TaskRow({ task, queued = false }: { task: RoutineView; queued?: 
   // as the saved copy's does; the replay logs it as done.
   const later = async (status: "done" | "skipped") => {
     if (status !== "done" || noteDraft.trim()) return setError(status === "done" ? "You're offline. Done can wait to send, but not with a note — clear the note or try again with a signal." : OFFLINE_ONLY_DONE);
-    const why = await queueOffline({ id: newOpId(), at: new Date().toISOString(), kind: "today.mark", key: `chore-${task.id}`, day: familyDay(), date: today.date, label: task.title });
+    const why = await queueOffline({ id: newOpId(), at: new Date().toISOString(), kind: "today.mark", key: `chore-${task.id}`, day: familyDay(new Date(), tz), date: today.date, label: task.title });
     if (why) setError(why);
     else setNoteOpen(false);
   };

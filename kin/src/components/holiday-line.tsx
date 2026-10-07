@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { householdZone } from "@/lib/household-zone";
 import { Icon } from "@/components/icons";
 import { getHolidaysBetween, holidayLine, mergeHolidays } from "@/lib/holidays";
 import { getCurrentMember } from "@/lib/session";
@@ -9,7 +10,7 @@ import { getHouseholdSpecialDays } from "@/lib/queries/special-days";
  * Today's page only has to place it. No Done or Skip: like a birthday, it is
  * something to know, not to do. */
 export async function HolidayLine() {
-  const todayISO = new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Manila" });
+  const todayISO = new Date().toLocaleDateString("en-CA", { timeZone: await householdZone() });
   const weekOut = new Date(Date.parse(`${todayISO}T00:00:00Z`) + 7 * 86400000).toISOString().slice(0, 10);
   const me = await getCurrentMember();
   const [pub, own] = await Promise.all([getHolidaysBetween(todayISO, weekOut), me ? getHouseholdSpecialDays(me.family_id, todayISO, weekOut) : Promise.resolve([])]);

@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { householdZone } from "@/lib/household-zone";
 import { FAMILY_FILTER } from "@/lib/queries/planner";
 import { Blueprint } from "@/components/ui";
 import { Icon } from "@/components/icons";
@@ -135,11 +136,12 @@ function GoalCard({ goal, index, meId, currency, colour }: { goal: GoalView; ind
   );
 }
 
-function RewardLine({ goal, meId }: { goal: GoalView; meId: string }) {
+async function RewardLine({ goal, meId }: { goal: GoalView; meId: string }) {
+  const tz = await householdZone();
   const r = goal.reward!;
   const giver = r.giverId === meId ? "you" : (r.giverName?.split(" ")[0] ?? "someone");
   const Giver = giver === "you" ? "You" : giver;
-  const due = r.dueAt ? dueText(r.dueAt) : "";
+  const due = r.dueAt ? dueText(r.dueAt, tz) : "";
   const status =
     r.status === "pending"
       ? `Asked of ${giver} · waiting for a yes`
@@ -196,11 +198,11 @@ function RewardLine({ goal, meId }: { goal: GoalView; meId: string }) {
 }
 
 /** "by 3:40 pm tomorrow", in the household's time. */
-function dueText(iso: string): string {
+function dueText(iso: string, tz: string): string {
   const d = new Date(iso);
-  const time = d.toLocaleTimeString("en-PH", { hour: "numeric", minute: "2-digit", timeZone: "Asia/Manila" }).toLowerCase();
-  const day = d.toLocaleDateString("en-CA", { timeZone: "Asia/Manila" });
-  const today = new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Manila" });
+  const time = d.toLocaleTimeString("en-PH", { hour: "numeric", minute: "2-digit", timeZone: tz }).toLowerCase();
+  const day = d.toLocaleDateString("en-CA", { timeZone: tz });
+  const today = new Date().toLocaleDateString("en-CA", { timeZone: tz });
   return `by ${time}${day === today ? " today" : " tomorrow"}`;
 }
 

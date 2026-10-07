@@ -1,3 +1,4 @@
+import { householdZone } from "@/lib/household-zone";
 import { createClient } from "@/lib/supabase/server";
 import Link from "next/link";
 import { redirect } from "next/navigation";
@@ -265,7 +266,8 @@ async function CalendarPane({ familyId, meId, who, view, anchor, hidden, weekSta
 
 /** One agenda row: a coloured rail and glyph for the category, the time, and
  * what it is. Colour groups; the glyph and title identify. */
-function AgendaRow({ item }: { item: PlannerCalendarItem }) {
+async function AgendaRow({ item }: { item: PlannerCalendarItem }) {
+  const tz = await householdZone();
   const style = styleFor(item.table);
   const isPastActivity = item.table === "activities" && item.date < new Date();
 
@@ -275,7 +277,7 @@ function AgendaRow({ item }: { item: PlannerCalendarItem }) {
       <div style={{ flex: 1, minWidth: 0, padding: "0.4375rem 0" }}>
         <Link href={item.href} style={{ display: "flex", gap: "0.625rem", textDecoration: "none", color: "inherit", alignItems: "baseline" }}>
           <span style={{ fontSize: "0.8125rem", color: "var(--color-neutral-600)", width: "3.25rem", flex: "none" }}>
-            {item.allDay ? "all-day" : familyClock(item.date)}
+            {item.allDay ? "all-day" : familyClock(item.date, tz)}
           </span>
           <span style={{ flex: 1, minWidth: 0 }}>
             <span style={{ fontSize: "1rem", fontWeight: 500, display: "block", lineHeight: 1.25 }}>{item.title}</span>
@@ -688,7 +690,8 @@ function Scoreboard({ scores }: { scores: MemberScore[] }) {
  * finished by happening rather than by being answered for. It is here so that
  * something added as a Task can be read back in the tab called Tasks, which
  * was not true of these until now. */
-function OneOffTasks({ tasks }: { tasks: Awaited<ReturnType<typeof getOneOffTasks>> }) {
+async function OneOffTasks({ tasks }: { tasks: Awaited<ReturnType<typeof getOneOffTasks>> }) {
+  const tz = await householdZone();
   if (tasks.length === 0) return null;
 
   return (
@@ -722,7 +725,7 @@ function OneOffTasks({ tasks }: { tasks: Awaited<ReturnType<typeof getOneOffTask
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ font: "600 1.0625rem/1.2 var(--font-heading)" }}>{t.title}</div>
                 <div style={{ fontSize: "0.8125rem", color: "var(--color-neutral-600)", marginTop: "0.125rem" }}>
-                  {familyDateLong(start)} · {familyClock(start)}
+                  {familyDateLong(start, tz)} · {familyClock(start, tz)}
                   {t.location ? ` · ${t.location}` : ""}
                 </div>
                 <div style={{ fontSize: "0.8125rem", color: "var(--color-neutral-600)" }}>{whoFor}</div>
@@ -737,12 +740,13 @@ function OneOffTasks({ tasks }: { tasks: Awaited<ReturnType<typeof getOneOffTask
 }
 
 async function RoutinesPane({ familyId, who, currency, justSaved }: { familyId: string; who: string; currency: string; justSaved: boolean }) {
+  const tz = await householdZone();
   const memberId = who === "all" ? undefined : who;
   // Both kinds of task: the recurring ones, and the one-offs that used to be
   // called activities and could be read back nowhere but the calendar.
   const [routines, allOneOffs, scores, rewards, me] = await Promise.all([
     getRoutines(familyId, memberId),
-    getOneOffTasks(familyId, `${familyDay()}T00:00:00.000Z`),
+    getOneOffTasks(familyId, `${familyDay(new Date(), tz)}T00:00:00.000Z`),
     getMemberScores(familyId),
     getRewards(familyId),
     getCurrentMember(),

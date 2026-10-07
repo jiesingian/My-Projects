@@ -1,3 +1,4 @@
+import { householdZone } from "@/lib/household-zone";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getCurrentMember } from "@/lib/session";
@@ -39,6 +40,7 @@ import { getMyPendingCheckIns } from "@/lib/queries/member-card";
 import { LettersOpeningToday } from "@/components/letters-opening";
 
 export default async function TodayPage() {
+  const tz = await householdZone();
   const me = await getCurrentMember();
   if (!me) redirect("/onboarding/profile");
   if (inKidView(me)) return <KidToday me={me} />;
@@ -60,7 +62,7 @@ export default async function TodayPage() {
     getOnThisDay(me.family_id),
     // The week in numbers, on the weekend and the Monday after: the time a
     // family looks back rather than at the next thing.
-    ["Sat", "Sun", "Mon"].includes(new Date().toLocaleDateString("en-GB", { weekday: "short", timeZone: "Asia/Manila" }))
+    ["Sat", "Sun", "Mon"].includes(new Date().toLocaleDateString("en-GB", { weekday: "short", timeZone: tz }))
       ? getWeekRecap(me.family_id)
       : Promise.resolve(null),
     // A new family's first steps; null for everyone else (queries/start-here).
@@ -93,7 +95,7 @@ export default async function TodayPage() {
       .map((item) => ({
         entry: { kind: "item" as const, item },
         group: item.mark ? 2 : item.urgent ? 0 : 1,
-        at: item.at != null ? minutes(familyClock(new Date(item.at))) : -1,
+        at: item.at != null ? minutes(familyClock(new Date(item.at), tz)) : -1,
       })),
     ...tasks
       .filter((t) => t.today)

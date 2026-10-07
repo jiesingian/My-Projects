@@ -1,3 +1,4 @@
+import { householdZone } from "@/lib/household-zone";
 import { redirect } from "next/navigation";
 import { keepKidViewOut } from "@/lib/kid-view";
 import { getCurrentMember } from "@/lib/session";
@@ -10,6 +11,7 @@ import { familyDateTime } from "@/lib/time";
 /** One doctor's visit: when and where, what was said, and photos of what came
  * home from it (26 September). */
 export default async function VisitPage({ params }: { params: Promise<{ id: string; appt: string }> }) {
+  const tz = await householdZone();
   await keepKidViewOut();
   const me = await getCurrentMember();
   if (!me) redirect("/onboarding/profile");
@@ -31,7 +33,7 @@ export default async function VisitPage({ params }: { params: Promise<{ id: stri
       <div style={{ padding: "0 var(--gutter) 1.375rem" }}>
         <h2 style={{ fontSize: "1.5rem", margin: "0.25rem 0 0.25rem" }}>{visit.what}</h2>
         <p style={{ fontSize: "0.875rem", color: "var(--color-neutral-600)", margin: "0 0 1.125rem" }}>
-          {member.full_name.split(" ")[0]} · {familyDateTime(new Date(visit.when_at))}
+          {member.full_name.split(" ")[0]} · {familyDateTime(new Date(visit.when_at), tz)}
           {visit.where_text ? ` · ${visit.where_text}` : ""}
         </p>
         <div className="kin-eyebrow">NOTES</div>

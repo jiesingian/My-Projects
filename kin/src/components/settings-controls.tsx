@@ -1,5 +1,6 @@
 "use client";
 
+import { useHouseholdZone } from "@/components/household-zone";
 import { useEffect, useId, useTransition } from "react";
 import { setThemeAction, setTextScaleAction, setPaletteAction, createCalendarFeedAction, removeCalendarFeedAction, toggleNotificationAction, updateHouseholdNameAction, updateHouseholdPrefsAction, updateShareWithRelativesAction, setKidViewAction } from "@/lib/actions/settings";
 import { regenerateInviteCodeAction } from "@/lib/actions/family";
@@ -492,6 +493,7 @@ export function DriveConnectedPanel({
   connectedByName: string | null;
   canManage: boolean;
 }) {
+  const tz = useHouseholdZone();
   const [pending, startTransition] = useTransition();
   const [driveFailed, setDriveFailed] = useState<string | null>(null);
   return (
@@ -546,7 +548,7 @@ export function DriveConnectedPanel({
         </>
       )}
       {lastSyncedAt && (
-        <div style={{ fontSize: "0.8125rem", color: "var(--color-neutral-600)", marginTop: "0.625rem" }}>Last synced {familyDateTime(new Date(lastSyncedAt))}</div>
+        <div style={{ fontSize: "0.8125rem", color: "var(--color-neutral-600)", marginTop: "0.625rem" }}>Last synced {familyDateTime(new Date(lastSyncedAt), tz)}</div>
       )}
     </>
   );
@@ -587,6 +589,7 @@ function MigratePhotosButton() {
 }
 
 export function CalendarConnectedPanel({ email, lastSyncedAt }: { email: string | null; lastSyncedAt: string | null }) {
+  const tz = useHouseholdZone();
   const [pending, startTransition] = useTransition();
   const [failed, setFailed] = useState<string | null>(null);
   return (
@@ -618,7 +621,7 @@ export function CalendarConnectedPanel({ email, lastSyncedAt }: { email: string 
         </p>
       )}
       {lastSyncedAt && (
-        <div style={{ fontSize: "0.8125rem", color: "var(--color-neutral-600)", marginTop: "0.625rem" }}>Last synced {familyDateTime(new Date(lastSyncedAt))}</div>
+        <div style={{ fontSize: "0.8125rem", color: "var(--color-neutral-600)", marginTop: "0.625rem" }}>Last synced {familyDateTime(new Date(lastSyncedAt), tz)}</div>
       )}
     </>
   );

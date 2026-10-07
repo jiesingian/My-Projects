@@ -1,5 +1,6 @@
 "use server";
 
+import { householdZone } from "@/lib/household-zone";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { requireCurrentMember } from "@/lib/session";
@@ -15,6 +16,7 @@ export async function sealLetterAction(input: {
   title: string;
   body: string;
 }): Promise<{ error: string | null }> {
+  const tz = await householdZone();
   const me = await requireCurrentMember();
   if (!isGrownUp(me.role)) return { error: "Only a grown-up can write a letter for later." };
   const body = input.body.trim();
@@ -23,7 +25,7 @@ export async function sealLetterAction(input: {
   if (!body) return { error: "Write the letter first." };
   if (body.length > 20000) return { error: "That letter is too long to keep." };
   const opensOn = input.opensOn || null;
-  if (opensOn && (!/^\d{4}-\d{2}-\d{2}$/.test(opensOn) || opensOn <= familyDay())) return { error: "Pick a day after today." };
+  if (opensOn && (!/^\d{4}-\d{2}-\d{2}$/.test(opensOn) || opensOn <= familyDay(new Date(), tz))) return { error: "Pick a day after today." };
   const supabase = await createClient();
   const { error } = await supabase
     .from("time_capsules")

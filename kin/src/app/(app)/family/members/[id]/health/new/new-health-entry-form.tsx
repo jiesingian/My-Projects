@@ -1,5 +1,6 @@
 "use client";
 
+import { useHouseholdZone } from "@/components/household-zone";
 import { useActionState, useId, useState } from "react";
 import { createHealthEntryAction } from "@/lib/actions/health";
 import type { ActionState } from "@/lib/actions/auth";
@@ -34,6 +35,7 @@ export function NewHealthEntryForm({
   omronConnected: boolean;
   myRole: string;
 }) {
+  const tz = useHouseholdZone();
   const uid = useId();
   const VISIBILITY = visibilityOptions(myRole);
   const [state, formAction] = useActionState(createHealthEntryAction, initialState);
@@ -116,7 +118,7 @@ export function NewHealthEntryForm({
           <div style={{ display: "flex", gap: "0.75rem", marginBottom: "0.875rem" }}>
             <div className="field" style={{ flex: 1 }}>
               <label htmlFor={`${uid}-date`}>Date</label>
-              <DateInput id={`${uid}-date`} aria-label="Date" className="input" name="date" defaultValue={familyDay()} required style={{ minHeight: "2.75rem" }} />
+              <DateInput id={`${uid}-date`} aria-label="Date" className="input" name="date" defaultValue={familyDay(new Date(), tz)} required style={{ minHeight: "2.75rem" }} />
             </div>
             <div className="field" style={{ flex: 1 }}>
               <label htmlFor={`${uid}-value`}>{type.valueLabel.toUpperCase()}</label>

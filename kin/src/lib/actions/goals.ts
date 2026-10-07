@@ -1,5 +1,6 @@
 "use server";
 
+import { householdZone } from "@/lib/household-zone";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
@@ -121,6 +122,7 @@ export async function createGoalAction(_prev: GoalFormState, formData: FormData)
  * may log against any goal of the house -- the same trust as ticking a
  * shared task -- and each entry is dated today, Manila time. */
 export async function logGoalAction(goalId: string, amount = 1): Promise<{ error: string | null }> {
+  const tz = await householdZone();
   const me = await requireCurrentMember();
   if (!(amount > 0 && amount <= 1_000_000_000)) return { error: "That amount doesn't look right." };
   const supabase = await createClient();
@@ -132,7 +134,7 @@ export async function logGoalAction(goalId: string, amount = 1): Promise<{ error
     family_id: me.family_id,
     goal_id: goal.id,
     member_id: goal.owner_member_id ?? me.id,
-    entry_date: familyDay(),
+    entry_date: familyDay(new Date(), tz),
     amount,
   });
   if (error) return { error: humanDatabaseError(error.message) };
@@ -142,6 +144,7 @@ export async function logGoalAction(goalId: string, amount = 1): Promise<{ error
 
 /** Undo the last entry of today -- a tap too many. */
 export async function unlogGoalAction(goalId: string): Promise<{ error: string | null }> {
+  const tz = await householdZone();
   const me = await requireCurrentMember();
   const supabase = await createClient();
   const { data: last } = await supabase
@@ -149,7 +152,7 @@ export async function unlogGoalAction(goalId: string): Promise<{ error: string |
     .select("id")
     .eq("goal_id", goalId)
     .eq("family_id", me.family_id)
-    .eq("entry_date", familyDay())
+    .eq("entry_date", familyDay(new Date(), tz))
     .order("created_at", { ascending: false })
     .limit(1)
     .maybeSingle();

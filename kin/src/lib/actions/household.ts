@@ -1,5 +1,6 @@
 "use server";
 
+import { householdZone } from "@/lib/household-zone";
 import { revalidatePath } from "next/cache";
 import { after } from "next/server";
 import { redirect } from "next/navigation";
@@ -227,6 +228,7 @@ export async function addMealPlanAction(_prev: ActionState, formData: FormData):
 /** `weekOf` is any day in the week to build from — the week the meal plan is
  * showing, which is not always this one. */
 export async function generateGroceryListAction(weekOf?: string): Promise<{ error: string | null; added: number }> {
+  const tz = await householdZone();
   // Both the household and the author come from the session. As arguments,
   // the household was merely redundant -- RLS already scoped it -- but the
   // author was not: one member could hand another member's id and have the
@@ -240,7 +242,7 @@ export async function generateGroceryListAction(weekOf?: string): Promise<{ erro
   // week boundary used to be computed through a Date and therefore through
   // whatever clock the process was running on, which agrees with the
   // household's zone only because instrumentation.ts makes it.
-  const anchor = weekOf?.trim() || familyDay();
+  const anchor = weekOf?.trim() || familyDay(new Date(), tz);
   const dow = weekdayOf(anchor);
   if (dow === null) return { error: "That week could not be read.", added: 0 };
   // The Monday on or before that day — a Sunday belongs to the week it ends,
@@ -475,14 +477,15 @@ export async function addMealFromRecipeAction(input: {
  * own and edited recipes bring their own ingredients, so "Generate grocery
  * list" afterwards picks up exactly what is missing. */
 export async function planWeekFromPantryAction(weekOf: string): Promise<{ error: string | null; planned: { date: string; dish: string }[] }> {
+  const tz = await householdZone();
   const me = await requireCurrentMember();
   const supabase = await createClient();
 
-  const anchor = weekOf?.trim() || familyDay();
+  const anchor = weekOf?.trim() || familyDay(new Date(), tz);
   const dow = weekdayOf(anchor);
   const weekStart = dow === null ? null : addDays(anchor, -((dow + 6) % 7));
   if (!weekStart) return { error: "That week could not be read.", planned: [] };
-  const today = familyDay();
+  const today = familyDay(new Date(), tz);
   // Past days are history, not a plan.
   const days = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i)).filter((d): d is string => !!d && d >= today);
   if (days.length === 0) return { error: "That week is already over.", planned: [] };

@@ -1,6 +1,7 @@
 import { PushKeepAlive } from "@/components/push-opt-in";
 import { redirect } from "next/navigation";
 import { getCurrentMember } from "@/lib/session";
+import { HouseholdZoneProvider } from "@/components/household-zone";
 import { TabBar } from "@/components/tab-bar";
 import { inKidView } from "@/lib/kid-view";
 import { AssistantFab } from "@/components/assistant-fab";
@@ -70,6 +71,8 @@ export default async function AppLayout({ children }: { children: React.ReactNod
           reachable — below it on a phone, beside it on a desktop. Both live
           in CSS rather than here, because an inline style cannot answer a
           media query and this has to change shape at 1024px. */}
+      {/* The household's time zone for client components (household-zone). */}
+      <HouseholdZoneProvider zone={member.families.time_zone}>
       <CallProvider familyId={member.family_id} me={member.id} members={callMembers}>
         <div className="kin-content">
           {connectCode && <ConnectLinkReminder code={connectCode} />}
@@ -83,6 +86,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         {/* Offline Kin: keeps the phone's copy current, and says so when offline. */}
         <OfflineSync />
       </CallProvider>
+      </HouseholdZoneProvider>
     </div>
   );
 }

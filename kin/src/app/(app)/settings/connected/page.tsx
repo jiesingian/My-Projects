@@ -1,3 +1,4 @@
+import { householdZone } from "@/lib/household-zone";
 import { redirect } from "next/navigation";
 import { getCurrentMember } from "@/lib/session";
 import { createClient } from "@/lib/supabase/server";
@@ -30,6 +31,7 @@ export default async function ConnectedSettingsPage({
 }: {
   searchParams: Promise<{ drive_error?: string; calendar_error?: string }>;
 }) {
+  const tz = await householdZone();
   await keepKidViewOut();
   const me = await getCurrentMember();
   if (!me) redirect("/onboarding/profile");
@@ -132,7 +134,7 @@ export default async function ConnectedSettingsPage({
             <span style={{ font: "600 1.125rem/1.05 var(--font-heading)", flex: "1 1 8rem" }}>Apple Health</span>
             <Tag variant={appleHealthLink ? "accent" : "outline"}>{appleHealthLink ? "CONNECTED" : "OFF"}</Tag>
           </div>
-          <AppleHealthControl connected={Boolean(appleHealthLink)} lastReceived={appleHealthLink?.last_used_at ? familyDateTime(new Date(appleHealthLink.last_used_at)) : null} visibility={appleHealthLink?.visibility ?? null} role={me.role} />
+          <AppleHealthControl connected={Boolean(appleHealthLink)} lastReceived={appleHealthLink?.last_used_at ? familyDateTime(new Date(appleHealthLink.last_used_at), tz) : null} visibility={appleHealthLink?.visibility ?? null} role={me.role} />
         </Blueprint>
       </div>
     </div>
