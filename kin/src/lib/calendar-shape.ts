@@ -1,4 +1,4 @@
-import { familyDay, familyMidnight } from "@/lib/time";
+import { familyDay, familyMidnight, addDays, FAMILY_TZ } from "@/lib/time";
 
 /** The shape of what goes to Google and what comes back, with no network and
  * no database anywhere near it.
@@ -24,6 +24,13 @@ export type CalendarEventInput = {
    * phone: the member's own calendar app raises it, lock screen and all. */
   reminderMinutes?: number | null;
   description?: string | null;
+  /** An all-day item's own plain dates (allDayEvent sets them). Sent to
+   * Google as they are, so no time zone can move a birthday a day. */
+  day?: string;
+  endDay?: string | null;
+  /** The household's time zone (families.time_zone). Google is told it, so a
+   * repeating event keeps its local hour; Manila when not given. */
+  timeZone?: string;
 };
 
 export type GoogleCalendarEvent = {
@@ -52,15 +59,19 @@ export function toGoogleEventBody(input: CalendarEventInput) {
     // `new Date(`${date}T00:00:00`)`, which in Manila is 16:00 the previous
     // day in UTC -- so slicing the ISO string put every birthday, trip, bill
     // and meal on the family's phones one day early.
-    const startDate = familyDay(input.startAt);
-    const endExclusive = familyDay(new Date((input.endAt ?? input.startAt).getTime() + 86_400_000));
+    // And since each household has its own zone (20261007110000), the plain
+    // dates go through untouched when the item has them.
+    const tz = input.timeZone ?? FAMILY_TZ;
+    const startDate = input.day ?? familyDay(input.startAt, tz);
+    const endExclusive = (input.day ? addDays(input.endDay ?? input.day, 1) : null) ?? familyDay(new Date((input.endAt ?? input.startAt).getTime() + 86_400_000), tz);
     return { summary: input.title, location: input.location ?? undefined, start: { date: startDate }, end: { date: endExclusive }, ...extras };
   }
   return {
     summary: input.title,
     location: input.location ?? undefined,
-    start: { dateTime: input.startAt.toISOString() },
-    end: { dateTime: end.toISOString() },
+    // The instant says when; the zone says whose clock a repeat follows.
+    start: { dateTime: input.startAt.toISOString(), timeZone: input.timeZone ?? FAMILY_TZ },
+    end: { dateTime: end.toISOString(), timeZone: input.timeZone ?? FAMILY_TZ },
     ...extras,
   };
 }
@@ -91,13 +102,14 @@ export function allDayEvent(
     description?: string | null;
     reminderMinutes?: number | null;
   } = {},
+  tz: string = FAMILY_TZ,
 ): CalendarEventInput | null {
-  const startAt = familyMidnight(day);
+  const startAt = familyMidnight(day, tz);
   if (!startAt) return null;
 
   let endAt: Date | null = null;
   if (opts.endDay) {
-    endAt = familyMidnight(opts.endDay);
+    endAt = familyMidnight(opts.endDay, tz);
     // A trip whose end we cannot read is worse than one that does not sync:
     // it would silently become a one-day event.
     if (!endAt) return null;
@@ -108,6 +120,8 @@ export function allDayEvent(
     startAt,
     endAt,
     allDay: true,
+    day,
+    endDay: opts.endDay ?? null,
     location: opts.location ?? null,
     description: opts.description ?? null,
     reminderMinutes: opts.reminderMinutes ?? null,
@@ -143,6 +157,7 @@ export function allDayEvent(
  * right question to ask of it. */
 export function eventStartEnd(
   event: GoogleCalendarEvent,
+  tz: string = FAMILY_TZ,
 ): { start: Date; end: Date | null; allDay: boolean; day: string } | null {
   if (event.start?.dateTime) {
     const start = new Date(event.start.dateTime);
@@ -151,14 +166,14 @@ export function eventStartEnd(
       start,
       end: event.end?.dateTime ? new Date(event.end.dateTime) : null,
       allDay: false,
-      day: familyDay(start),
+      day: familyDay(start, tz),
     };
   }
   if (event.start?.date) {
     const day = event.start.date;
     // Still produce an instant, because activities and appointments store one.
     // Midnight in the household's zone, stated rather than inherited.
-    const start = familyMidnight(day);
+    const start = familyMidnight(day, tz);
     if (!start) return null;
     return { start, end: null, allDay: true, day };
   }
