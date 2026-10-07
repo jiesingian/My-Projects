@@ -14,6 +14,64 @@ export type Database = {
   }
   public: {
     Tables: {
+      time_capsules: {
+        Row: {
+          body: string
+          created_at: string
+          family_id: string
+          id: string
+          opens_on: string
+          recipient_member_id: string
+          title: string
+          writer_member_id: string | null
+          writer_name: string
+        }
+        Insert: {
+          body: string
+          created_at?: string
+          family_id?: string
+          id?: string
+          opens_on?: string
+          recipient_member_id: string
+          title?: string
+          writer_member_id?: string | null
+          writer_name?: string
+        }
+        Update: {
+          body?: string
+          created_at?: string
+          family_id?: string
+          id?: string
+          opens_on?: string
+          recipient_member_id?: string
+          title?: string
+          writer_member_id?: string | null
+          writer_name?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "time_capsules_family_id_fkey"
+            columns: ["family_id"]
+            isOneToOne: false
+            referencedRelation: "families"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "time_capsules_recipient_member_id_fkey"
+            columns: ["recipient_member_id"]
+            isOneToOne: false
+            referencedRelation: "members"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "time_capsules_writer_member_id_fkey"
+            columns: ["writer_member_id"]
+            isOneToOne: false
+            referencedRelation: "members"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       household_special_days: {
         Row: {
           created_at: string

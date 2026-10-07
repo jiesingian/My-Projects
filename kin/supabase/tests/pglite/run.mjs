@@ -48,6 +48,7 @@ const MIGRATIONS = [
   "20261006100400_scheduled_messages.sql",
   "20261006100500_journal_entry_videos.sql",
   "20261006120000_tree_match_suggestions.sql",
+  "20261007090000_time_capsule_letters.sql",
 ];
 
 const only = process.argv[2];

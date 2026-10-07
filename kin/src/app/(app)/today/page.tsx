@@ -36,6 +36,7 @@ import { PlusTrialCard } from "@/components/plus-trial-card";
 import { getPlusTrialCard } from "@/lib/queries/plus-trial";
 import { HolidayLine } from "@/components/holiday-line";
 import { getMyPendingCheckIns } from "@/lib/queries/member-card";
+import { LettersOpeningToday } from "@/components/letters-opening";
 
 export default async function TodayPage() {
   const me = await getCurrentMember();
@@ -260,6 +261,8 @@ export default async function TodayPage() {
       )}
 
       {recap && <WeekRecapCard recap={recap} href="/today/week" />}
+
+      <LettersOpeningToday familyId={me.family_id} />
 
       <OnThisDay memories={memories} />
 
