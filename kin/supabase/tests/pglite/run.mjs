@@ -51,6 +51,7 @@ const MIGRATIONS = [
   "20261007090000_time_capsule_letters.sql",
   "20261007110000_household_time_zone.sql",
   "20261007140000_reminders_follow_household_zone.sql",
+  "20261007160000_location_pause_and_places.sql",
 ];
 
 const only = process.argv[2];
