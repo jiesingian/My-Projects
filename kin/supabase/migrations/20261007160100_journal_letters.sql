@@ -5,7 +5,7 @@
 -- they wrote one, or on its own under the day's name if they didn't. Letters
 -- from different people for the same day are kept together.
 --
--- What this adds to 20261007090000 and 20261007150000:
+-- What this adds to 20261007090000 and 20261007160050:
 -- * occasion: the special day's name. A letter left without a date opens on
 --   the 18th birthday and is named so.
 -- * The household's own day: letters open by the household's time zone

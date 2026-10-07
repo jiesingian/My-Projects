@@ -1,7 +1,7 @@
 const U = (s) => `10000000-0000-0000-0000-0000000000${s}`;
 const P = (s) => `00000000-0000-0000-0000-0000000000${s}`;
-// Time-capsule letters (20261007090000, read rule from 20261007150000,
-// envelopes, occasions and notifications from 20261007160000).
+// Time-capsule letters (20261007090000, read rule from 20261007160050,
+// envelopes, occasions and notifications from 20261007160100).
 const SECRET = "pglite-cron-secret-0123456789abcdef0123456789";
 export default async function ({ db, as, check, refused }) {
   const ann = U("a1"), kid = U("a2"), abe = U("a4"), ben = U("b1");
