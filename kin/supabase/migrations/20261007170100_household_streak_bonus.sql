@@ -40,7 +40,8 @@ drop policy if exists streak_bonus_rates_select on public.streak_bonus_rates;
 create policy streak_bonus_rates_select on public.streak_bonus_rates
   for select using (family_id = public.current_family_id());
 
--- The household's day is Manila's (lib/time FAMILY_TZ), not the server's.
+-- "Today" is the household's own day (families.time_zone, through
+-- safe_time_zone from 20261007140000), not the server's.
 create or replace function public.set_streak_bonus(p_seven integer, p_thirty integer)
 returns void
 language plpgsql
@@ -53,7 +54,9 @@ begin
       using errcode = '42501';
   end if;
   insert into public.streak_bonus_rates (family_id, effective_from, seven, thirty, set_by)
-  values (public.current_family_id(), (now() at time zone 'Asia/Manila')::date, p_seven, p_thirty, public.current_member_id());
+  select f.id, (now() at time zone public.safe_time_zone(f.time_zone))::date, p_seven, p_thirty, public.current_member_id()
+  from public.families f
+  where f.id = public.current_family_id();
 end;
 $$;
 
@@ -63,10 +66,10 @@ grant execute on function public.set_streak_bonus(integer, integer) to authentic
 -- The seed: once per household, and only for households with no rates yet,
 -- so a re-run adds nothing.
 insert into public.streak_bonus_rates (family_id, effective_from, seven, thirty)
-select f.id, d.effective_from, d.seven, d.thirty
+select f.id, coalesce(d.effective_from, (now() at time zone public.safe_time_zone(f.time_zone))::date), d.seven, d.thirty
 from public.families f
 cross join (values
   (date '2000-01-01', 1, 1),
-  ((now() at time zone 'Asia/Manila')::date, 10, 50)
+  (null::date, 10, 50)
 ) as d(effective_from, seven, thirty)
 where not exists (select 1 from public.streak_bonus_rates r where r.family_id = f.id);
