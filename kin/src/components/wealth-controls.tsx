@@ -620,7 +620,7 @@ export function AllocationEditor({ budgeted }: { budgeted: string[] }) {
 
   return (
     <div style={{ display: "flex", gap: "0.5rem", marginBottom: "1.125rem" }}>
-      <select className="input" value={category} onChange={(e) => setCategory(e.target.value)} style={{ minHeight: "2.5rem", flex: 1 }}>
+      <select aria-label="Category" className="input" value={category} onChange={(e) => setCategory(e.target.value)} style={{ minHeight: "2.5rem", flex: 1 }}>
         {EXPENSE_CATEGORIES.map((c) => (
           <option key={c} value={c}>
             {c}

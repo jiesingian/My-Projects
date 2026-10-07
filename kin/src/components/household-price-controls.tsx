@@ -174,10 +174,10 @@ export function AddPriceControl() {
 
   return (
     <div style={{ marginTop: "0.875rem", padding: "0.8125rem", borderRadius: 14, background: "color-mix(in srgb, var(--color-text) 4%, transparent)" }}>
-      <input className="input" placeholder="Item name" value={name} onChange={(e) => setName(e.target.value)} maxLength={150} style={{ minHeight: "2.625rem", marginBottom: "0.5rem" }} />
+      <input aria-label="Item name" className="input" placeholder="Item name" value={name} onChange={(e) => setName(e.target.value)} maxLength={150} style={{ minHeight: "2.625rem", marginBottom: "0.5rem" }} />
       <div style={{ display: "flex", gap: "0.375rem", marginBottom: "0.5rem" }}>
-        <input className="input" type="number" step="0.01" min="0" inputMode="decimal" placeholder="Price" value={price} onChange={(e) => setPrice(e.target.value)} style={{ minHeight: "2.625rem", flex: 1 }} />
-        <select className="input" value={unit} onChange={(e) => setUnit(e.target.value)} style={{ minHeight: "2.625rem", width: 100 }}>
+        <input aria-label="Price" className="input" type="number" step="0.01" min="0" inputMode="decimal" placeholder="Price" value={price} onChange={(e) => setPrice(e.target.value)} style={{ minHeight: "2.625rem", flex: 1 }} />
+        <select aria-label="Unit" className="input" value={unit} onChange={(e) => setUnit(e.target.value)} style={{ minHeight: "2.625rem", width: 100 }}>
           {UNITS.map((u) => (
             <option key={u} value={u}>
               {u}
@@ -185,7 +185,7 @@ export function AddPriceControl() {
           ))}
         </select>
       </div>
-      <select className="input" value={section} onChange={(e) => setSection(e.target.value)} style={{ minHeight: "2.625rem", marginBottom: "0.625rem" }}>
+      <select aria-label="Market section" className="input" value={section} onChange={(e) => setSection(e.target.value)} style={{ minHeight: "2.625rem", marginBottom: "0.625rem" }}>
         {MARKET_SECTIONS.map((s) => (
           <option key={s} value={s}>
             {s}

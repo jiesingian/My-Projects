@@ -223,7 +223,7 @@ function LinkManager({ links, ourCode, canManage }: { links: FamilyLink[]; ourCo
             LINK WITH ANOTHER HOUSEHOLD
           </div>
           <div style={{ display: "flex", gap: "0.375rem", flexWrap: "wrap" }}>
-            <input
+            <input aria-label="Other household's link code"
               className="input"
               name="code"
               required

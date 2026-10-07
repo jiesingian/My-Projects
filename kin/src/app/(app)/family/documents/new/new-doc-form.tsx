@@ -90,7 +90,7 @@ export function NewDocForm({
           <div className="blueprint placeholder-fill" style={{ padding: "1.375rem 1rem", textAlign: "center", marginBottom: "1.125rem" }}>
             <div style={{ font: "600 1.0625rem/1.15 var(--font-heading)", margin: "0 0 4px" }}>Choose files</div>
             <div style={{ fontSize: "0.8125rem", color: "var(--color-neutral-700)", marginBottom: "0.75rem" }}>PDF, JPG, PNG, HEIC.</div>
-            <input
+            <input aria-label="Choose files"
               ref={fileRef}
               type="file"
               name="files"
