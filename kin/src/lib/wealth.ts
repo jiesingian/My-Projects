@@ -360,7 +360,7 @@ export function timeSinceLabel(iso: string, now: Date = new Date()): string {
 
 /** How many days before a bill falls due its first reminder comes (a push
  * and a line on Today); the day before and the day itself always follow.
- * 3 unless the bill says otherwise (20261007100000_bill_reminder_days). */
+ * 3 unless the bill says otherwise (20261007170000_bill_reminder_days). */
 export const BILL_REMIND_DAYS = [1, 2, 3, 5, 7, 14] as const;
 export const DEFAULT_BILL_REMIND_DAYS = 3;
 

@@ -76,6 +76,7 @@ const SECTIONS: [file: string, table: string][] = [
   ["vault-files.csv", "doc_files"],
   ["vault-passwords-list.csv", "family_vault_items"],
   ["locations.csv", "member_locations"],
+  ["saved-places.csv", "household_places"],
 ];
 
 const PAGE = 1000;

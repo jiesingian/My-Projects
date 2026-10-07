@@ -1,7 +1,7 @@
 const SECRET = "pglite-cron-secret-0123456789abcdef0123456789";
 const A = "a0000000-0000-0000-0000-000000000000";
 const D = "d0000000-0000-0000-0000-000000000000";
-// A bill a set number of days ahead (20261007100000_bill_reminder_days).
+// A bill a set number of days ahead (20261007170000_bill_reminder_days).
 // 7 October 2026, 10:00 in Manila is 02:00 UTC.
 export default async function ({ db, check, refused }) {
   const at = (day, hhmm = "02:00") => `2026-10-${day} ${hhmm}+00`;
@@ -24,6 +24,8 @@ export default async function ({ db, check, refused }) {
   await check("0 or 31 days is refused", async () =>
     (await refused(() => db.query("insert into bills (family_id, name, amount, remind_days_before) values ($1, 'y', 1, 0)", [A]))) &&
     (await refused(() => db.query("insert into bills (family_id, name, amount, remind_days_before) values ($1, 'y', 1, 31)", [A]))));
+  // House D keeps its own clock: New York, 12 hours behind Manila.
+  await db.query("update families set time_zone = 'America/New_York' where id = $1", [D]);
   await check("A wrong secret gets nothing", async () => (await db.query("select * from due_bill_ahead_reminders('nope', $1)", [at("07")])).rows.length === 0);
   await check("Before 09:00 Manila: nothing", async () => (await due(at("07", "00:30"))).length === 0);
   let rows;
@@ -32,9 +34,13 @@ export default async function ({ db, check, refused }) {
     const titles = [...new Set(rows.filter((r) => r.endpoint !== "https://push/Dan D").map((r) => r.title))].sort();
     return (titles.join("|") === "Meralco is due in 3 days|Water is due in 7 days") || titles;
   });
-  await check("Each household's grown-ups get their own bills only; children get none", async () => {
+  await check("Ann's grown-ups get House A's bills; children get none; House D, still 6 Oct 22:00 in New York, nothing yet", async () => {
     const who = rows.map((r) => `${r.endpoint.split("/").pop()}: ${r.title}`).sort();
-    return who.join("|") === "Ann A: Meralco is due in 3 days|Ann A: Water is due in 7 days|Dan D: Dan power is due in 3 days" || who;
+    return who.join("|") === "Ann A: Meralco is due in 3 days|Ann A: Water is due in 7 days" || who;
+  });
+  await check("New York's 7 Oct, 10:00 (14:00 UTC): Dan gets his own bill, three days out", async () => {
+    const who = (await due(at("07", "14:00"))).map((r) => `${r.endpoint.split("/").pop()}: ${r.title}`);
+    return who.join("|") === "Dan D: Dan power is due in 3 days" || who;
   });
   await check("Says the day it is due", async () => rows.find((r) => r.title.startsWith("Meralco")).body === "Due Saturday 10 Oct. Tap to pay or mark it paid.");
   await check("Once only", async () => (await due(at("07", "03:00"))).length === 0);

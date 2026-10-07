@@ -37,7 +37,7 @@ export async function POST(request: Request) {
     // is posted as its writer, then its conversation is notified as usual.
     supabase.rpc("due_scheduled_messages", { p_secret: secret }),
     // A bill its own number of days ahead (3 unless set), from 09:00; the
-    // day before and the day itself stay in due_reminders (20261007100000).
+    // day before and the day itself stay in due_reminders (20261007170000).
     supabase.rpc("due_bill_ahead_reminders", { p_secret: secret }),
   ]);
   if (main.error) {

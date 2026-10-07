@@ -11,6 +11,8 @@
 -- due_bill_ahead_reminders() next to the others, with the same secret, the
 -- same once-only ledger (reminder_sends) and the same "bills" switch in
 -- Settings, Notifications. The grown-ups get it, as with every bill push.
+-- "N days ahead" and "from 09:00" are in each household's own time zone,
+-- through household_clock() (20261007140000_reminders_follow_household_zone).
 --
 -- No begin/commit: migrate.mjs wraps this file and its ledger row in one
 -- transaction.
@@ -29,19 +31,16 @@ as $$
 #variable_conflict use_column
 declare
   expected text := public.kin_vault_secret('kin_cron_secret');
-  local_now timestamp := p_now at time zone 'Asia/Manila';
-  today date := (p_now at time zone 'Asia/Manila')::date;
 begin
   if expected is null or length(expected) < 32 or p_secret is distinct from expected then
     return;
   end if;
-  -- From 09:00, like the day-before and on-the-day bill pushes.
-  if local_now::time < time '09:00' then
-    return;
-  end if;
 
   return query
-  with candidates as (
+  with zones as (
+    select hc.family_id, hc.local_now, hc.today from public.household_clock(p_now) hc
+  ),
+  candidates as (
     select 'bill:' || b.id || ':' || b.due_date || ':ahead' as key,
            b.family_id,
            array(select m.id from public.members m where m.family_id = b.family_id and m.status = 'active' and m.role in ('parent', 'adult')) as recipients,
@@ -49,9 +48,13 @@ begin
            'Due ' || to_char(b.due_date, 'FMDay FMDD Mon') || '. Tap to pay or mark it paid.' as body,
            '/wealth?seg=cashflow' as url
     from public.bills b
+    join zones z on z.family_id = b.family_id
     where b.status <> 'paid' and b.paid_at is null
       and b.remind_days_before >= 2
-      and b.due_date = today + b.remind_days_before
+      and b.due_date = z.today + b.remind_days_before
+      -- From 09:00 in the household's own zone, like the day-before and
+      -- on-the-day bill pushes.
+      and z.local_now::time >= time '09:00'
   ),
   fresh as (
     insert into public.reminder_sends (key)

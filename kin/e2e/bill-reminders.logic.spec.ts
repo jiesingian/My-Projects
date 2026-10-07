@@ -1,7 +1,7 @@
 import { test, expect } from "@playwright/test";
 import { billRemindDays, BILL_REMIND_DAYS, DEFAULT_BILL_REMIND_DAYS } from "@/lib/wealth";
 
-/** A bill's "remind me" days (20261007100000_bill_reminder_days): whatever a
+/** A bill's "remind me" days (20261007170000_bill_reminder_days): whatever a
  * form sends is held to what the database accepts, 1 to 30, and anything
  * else falls back to 3 rather than failing the save. */
 test.describe("billRemindDays", () => {
