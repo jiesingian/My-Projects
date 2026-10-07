@@ -14,6 +14,64 @@ export type Database = {
   }
   public: {
     Tables: {
+      time_capsules: {
+        Row: {
+          body: string
+          created_at: string
+          family_id: string
+          id: string
+          opens_on: string
+          recipient_member_id: string
+          title: string
+          writer_member_id: string | null
+          writer_name: string
+        }
+        Insert: {
+          body: string
+          created_at?: string
+          family_id?: string
+          id?: string
+          opens_on?: string
+          recipient_member_id: string
+          title?: string
+          writer_member_id?: string | null
+          writer_name?: string
+        }
+        Update: {
+          body?: string
+          created_at?: string
+          family_id?: string
+          id?: string
+          opens_on?: string
+          recipient_member_id?: string
+          title?: string
+          writer_member_id?: string | null
+          writer_name?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "time_capsules_family_id_fkey"
+            columns: ["family_id"]
+            isOneToOne: false
+            referencedRelation: "families"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "time_capsules_recipient_member_id_fkey"
+            columns: ["recipient_member_id"]
+            isOneToOne: false
+            referencedRelation: "members"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "time_capsules_writer_member_id_fkey"
+            columns: ["writer_member_id"]
+            isOneToOne: false
+            referencedRelation: "members"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       household_special_days: {
         Row: {
           created_at: string
@@ -1285,6 +1343,42 @@ export type Database = {
           },
         ]
       }
+      household_places: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          family_id: string
+          id: string
+          lat: number
+          lng: number
+          name: string
+          notify: boolean
+          radius_m: number
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          family_id: string
+          id?: string
+          lat: number
+          lng: number
+          name: string
+          notify?: boolean
+          radius_m?: number
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          family_id?: string
+          id?: string
+          lat?: number
+          lng?: number
+          name?: string
+          notify?: boolean
+          radius_m?: number
+        }
+        Relationships: []
+      }
       member_locations: {
         Row: {
           accuracy_m: number | null
@@ -1293,6 +1387,9 @@ export type Database = {
           lat: number | null
           lng: number | null
           member_id: string
+          parent_ok: boolean
+          paused_until: string | null
+          place_id: string | null
           sharing: boolean
           updated_at: string | null
         }
@@ -1303,6 +1400,9 @@ export type Database = {
           lat?: number | null
           lng?: number | null
           member_id: string
+          parent_ok?: boolean
+          paused_until?: string | null
+          place_id?: string | null
           sharing?: boolean
           updated_at?: string | null
         }
@@ -1313,6 +1413,9 @@ export type Database = {
           lat?: number | null
           lng?: number | null
           member_id?: string
+          parent_ok?: boolean
+          paused_until?: string | null
+          place_id?: string | null
           sharing?: boolean
           updated_at?: string | null
         }
@@ -1659,6 +1762,7 @@ export type Database = {
           invite_code: string
           name: string
           share_with_relatives: boolean
+          time_zone: string
           week_start: string
         }
         Insert: {
@@ -1680,6 +1784,7 @@ export type Database = {
           invite_code: string
           name: string
           share_with_relatives?: boolean
+          time_zone?: string
           week_start?: string
         }
         Update: {
@@ -1701,6 +1806,7 @@ export type Database = {
           invite_code?: string
           name?: string
           share_with_relatives?: boolean
+          time_zone?: string
           week_start?: string
         }
         Relationships: []

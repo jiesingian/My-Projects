@@ -54,3 +54,40 @@ export function isDateFormat(value: string): value is DateFormat {
 export function isWeekStart(value: string): value is WeekStartPref {
   return WEEK_STARTS.some((w) => w.value === value);
 }
+
+/** Where the household's day starts and ends (families.time_zone, roadmap
+ * item 9). A short list of real IANA names rather than all ~400: one per
+ * place Kin's families actually are, in the same spirit as COUNTRIES. The
+ * database default is Asia/Manila, so a household that never opens this is
+ * exactly where it was. */
+export const TIME_ZONES = [
+  { value: "Asia/Manila", label: "Manila (GMT+8)" },
+  { value: "Asia/Singapore", label: "Singapore (GMT+8)" },
+  { value: "Asia/Hong_Kong", label: "Hong Kong (GMT+8)" },
+  { value: "Asia/Tokyo", label: "Tokyo (GMT+9)" },
+  { value: "Asia/Dubai", label: "Dubai (GMT+4)" },
+  { value: "Asia/Qatar", label: "Doha (GMT+3)" },
+  { value: "Asia/Riyadh", label: "Riyadh (GMT+3)" },
+  { value: "Europe/London", label: "London" },
+  { value: "Europe/Paris", label: "Paris, Berlin, Rome" },
+  { value: "America/New_York", label: "New York, Toronto (Eastern)" },
+  { value: "America/Chicago", label: "Chicago (Central)" },
+  { value: "America/Denver", label: "Denver (Mountain)" },
+  { value: "America/Los_Angeles", label: "Los Angeles, Vancouver (Pacific)" },
+  { value: "Pacific/Honolulu", label: "Honolulu" },
+  { value: "Australia/Perth", label: "Perth" },
+  { value: "Australia/Sydney", label: "Sydney, Melbourne" },
+  { value: "Pacific/Auckland", label: "Auckland" },
+] as const;
+
+export const DEFAULT_TIME_ZONE = "Asia/Manila";
+
+export function isTimeZone(value: string): boolean {
+  return TIME_ZONES.some((z) => z.value === value);
+}
+
+/** The usual zone for a country, so picking a country can suggest one. */
+export const COUNTRY_TIME_ZONE: Record<string, string> = {
+  ph: "Asia/Manila", us: "America/New_York", ca: "America/New_York", gb: "Europe/London", au: "Australia/Sydney",
+  sg: "Asia/Singapore", ae: "Asia/Dubai", sa: "Asia/Riyadh", qa: "Asia/Qatar", hk: "Asia/Hong_Kong", jp: "Asia/Tokyo",
+};
