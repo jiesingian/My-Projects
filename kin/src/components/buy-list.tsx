@@ -1,10 +1,10 @@
 "use client";
 
-import { useActionState, useId, useOptimistic, useState, useTransition } from "react";
+import { useActionState, useId, useOptimistic, useState, useSyncExternalStore, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { addBuyItemAction, toggleBuyItemAction, clearCheckedAction, updateBuyItemAction, removeBuyItemAction } from "@/lib/actions/household";
 import { postHubExpenseAction } from "@/lib/actions/wealth";
-import { MARKET_SECTIONS, UNITS, guessSection, formatQuantity } from "@/lib/grocery";
+import { MARKET_SECTIONS, UNITS, guessSection, formatQuantity, groupByAisle } from "@/lib/grocery";
 import { BuyItemPriceButton, BuyItemPriceEditor } from "@/components/household-price-controls";
 import type { ActionState } from "@/lib/actions/auth";
 import { SubmitButton, ErrorText } from "@/components/form";
@@ -18,6 +18,33 @@ import type { Tables } from "@/lib/database.types";
 import { isNetworkFailure, isOffline, newOpId, queueOffline, useQueue } from "@/lib/offline/live";
 
 const initialState: ActionState = { error: null };
+
+type ListOrder = "aisle" | "added";
+const ORDER_KEY = "kin.buy-list.order";
+// Kept here too, so the toggle still works where storage is blocked (a
+// private window); it is just not remembered there.
+let orderNow: ListOrder = "aisle";
+const orderListeners = new Set<() => void>();
+function readOrder(): ListOrder {
+  try {
+    const saved = localStorage.getItem(ORDER_KEY);
+    if (saved === "aisle" || saved === "added") orderNow = saved;
+  } catch {}
+  return orderNow;
+}
+function subscribeOrder(onChange: () => void) {
+  orderListeners.add(onChange);
+  return () => {
+    orderListeners.delete(onChange);
+  };
+}
+function chooseOrder(next: ListOrder) {
+  orderNow = next;
+  try {
+    localStorage.setItem(ORDER_KEY, next);
+  } catch {}
+  orderListeners.forEach((f) => f());
+}
 
 type BuyGroup = { name: string; items: Tables<"buy_items">[]; openCount: number };
 
@@ -139,6 +166,10 @@ export function BuyList({
   }, initialState);
   const [editing, setEditing] = useState<string | null>(null);
   const [adding, setAdding] = useState(startAdding);
+  // Walked aisle by aisle, or read in the order things were added. Starts by
+  // aisle -- which is also what the server draws -- and the choice is
+  // remembered on this phone only.
+  const order = useSyncExternalStore(subscribeOrder, readOrder, () => "aisle" as ListOrder);
 
   // What the basket comes to, and what the whole list would. Both are
   // estimates built from the price book, so a line Kin cannot price is
@@ -147,6 +178,12 @@ export function BuyList({
   const estimateOf = (id: string) => prices[id]?.estimated ?? 0;
   const basketTotal = allItems.filter((i) => i.checked).reduce((sum, i) => sum + estimateOf(i.id), 0);
   const listTotal = allItems.reduce((sum, i) => sum + estimateOf(i.id), 0);
+  const shown =
+    order === "aisle"
+      ? groupByAisle(allItems)
+      : allItems.length > 0
+        ? [{ name: "In the order added", items: [...allItems].sort((a, b) => a.created_at.localeCompare(b.created_at) || a.name.localeCompare(b.name) || a.id.localeCompare(b.id)) }]
+        : [];
 
   // The section follows what's being typed until the member overrides it.
   const section = sectionTouched ? sectionChoice : guessSection(newName);
@@ -242,8 +279,20 @@ export function BuyList({
         />
       )}
 
-      {groups.map((g) => {
-        const isOpen = expanded.has(g.name);
+      {allItems.length > 0 && (
+        <div role="group" aria-label="Order the list" style={{ display: "flex", gap: "0.375rem", marginBottom: "0.875rem" }}>
+          <button type="button" className="chip" data-active={order === "aisle"} aria-pressed={order === "aisle"} onClick={() => chooseOrder("aisle")}>
+            By aisle
+          </button>
+          <button type="button" className="chip" data-active={order === "added"} aria-pressed={order === "added"} onClick={() => chooseOrder("added")}>
+            As added
+          </button>
+        </div>
+      )}
+
+      {shown.map((g) => {
+        // One long list has nothing to fold away, so it is always open.
+        const isOpen = order === "added" || expanded.has(g.name);
         const inBasket = g.items.filter((i) => i.checked).length;
         return (
           <div key={g.name} style={{ marginBottom: "1.125rem" }}>
