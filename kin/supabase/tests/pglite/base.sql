@@ -120,3 +120,9 @@ create table public.family_tree_people (id uuid primary key default gen_random_u
 alter table family_tree_people enable row level security;
 create policy ftp_select on family_tree_people for select using (family_id = current_family_id());
 create policy ftp_insert on family_tree_people for insert with check (family_id = current_family_id());
+
+-- Bills and the reminder ledger (for 20261007100000_bill_reminder_days): the
+-- columns the ahead-of-time bill push reads, and reminder_sends as
+-- 20260926140000_reminders made it.
+create table public.bills (id uuid primary key default gen_random_uuid(), family_id uuid not null references families(id), name text not null, amount numeric not null, due_date date, status text not null default 'unpaid', paid_at timestamptz, recurrence text);
+create table if not exists public.reminder_sends (key text primary key, sent_at timestamptz not null default now());

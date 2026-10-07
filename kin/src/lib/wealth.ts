@@ -358,6 +358,18 @@ export function timeSinceLabel(iso: string, now: Date = new Date()): string {
   return years === 1 ? "a year ago" : `${years} years ago`;
 }
 
+/** How many days before a bill falls due its first reminder comes (a push
+ * and a line on Today); the day before and the day itself always follow.
+ * 3 unless the bill says otherwise (20261007100000_bill_reminder_days). */
+export const BILL_REMIND_DAYS = [1, 2, 3, 5, 7, 14] as const;
+export const DEFAULT_BILL_REMIND_DAYS = 3;
+
+/** A form's "remind me" value, held to what the database accepts (1-30). */
+export function billRemindDays(raw: unknown): number {
+  const n = Math.round(Number(raw));
+  return Number.isFinite(n) && n >= 1 && n <= 30 ? n : DEFAULT_BILL_REMIND_DAYS;
+}
+
 export type BillLike = { due_date: string | null; status: string; amount: number | string };
 
 /** Bills due within the next `days`, soonest (or most overdue) first, with a
