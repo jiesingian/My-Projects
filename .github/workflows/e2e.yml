@@ -155,7 +155,10 @@ jobs:
           E2E_BASE_URL: ${{ inputs.base_url }}
           NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
           NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
-        run: npx playwright test e2e/smoke.spec.ts e2e/*.logic.spec.ts --workers=4
+        # 2 workers, not 4: every page signs the request in against dev's
+        # auth server, and with twenty pull requests testing at once 4 each was
+        # enough to run it out of database connections (7 October).
+        run: npx playwright test e2e/smoke.spec.ts e2e/*.logic.spec.ts --workers=2
 
       - uses: actions/upload-artifact@v6
         if: ${{ !cancelled() }}

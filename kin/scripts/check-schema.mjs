@@ -252,11 +252,24 @@ async function probe(url, table, cols, headers) {
  */
 async function checkOne(label, url, key, email, password, tables) {
   let headers = { apikey: key };
-  const auth = await fetch(`${url}/auth/v1/token?grant_type=password`, {
-    method: "POST",
-    headers: { apikey: key, "Content-Type": "application/json" },
-    body: JSON.stringify({ email, password }),
-  }).catch((e) => ({ ok: false, status: String(e.message ?? e) }));
+  // Sign-in is retried on a 5xx or a dropped connection, with a pause that
+  // grows. On 7 October some twenty pull requests ran their checks at once,
+  // dev's auth server ran out of database connections ("dial tcp :5432: i/o
+  // timeout"), answered 504 for a few minutes, and every check that signed in
+  // during them failed -- none of them about the schema. A wrong password
+  // (400) is not retried: that answer will not change.
+  let auth;
+  for (let attempt = 1; attempt <= 4; attempt++) {
+    auth = await fetch(`${url}/auth/v1/token?grant_type=password`, {
+      method: "POST",
+      headers: { apikey: key, "Content-Type": "application/json" },
+      body: JSON.stringify({ email, password }),
+    }).catch((e) => ({ ok: false, status: String(e.message ?? e) }));
+    const busy = !auth.ok && (typeof auth.status !== "number" || auth.status >= 500);
+    if (!busy || attempt === 4) break;
+    console.error(`${label}: sign-in answered ${auth.status}; trying again in ${15 * attempt}s.`);
+    await sleep(15_000 * attempt);
+  }
   if (!auth.ok) {
     console.error(`\n${label}: could NOT sign in (${auth.status}) — nothing was checked against ${new URL(url).host}.`);
     return "unchecked";
