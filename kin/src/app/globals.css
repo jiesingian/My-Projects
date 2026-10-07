@@ -5836,6 +5836,9 @@ button.kin-initial:focus-visible {
 /* Household's filter: all entries, or only the ones marked ★. */
 .kin-journal-filter {
   display: flex;
+  /* Three chips are ~330px at 200% text on their own; they wrap rather
+     than push the page sideways. */
+  flex-wrap: wrap;
   gap: 0.4375rem;
   margin: 0.875rem 0 1rem;
 }
