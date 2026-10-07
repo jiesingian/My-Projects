@@ -17,8 +17,8 @@ import { expandAllCollapsedGroups } from "./support/collapsible-groups";
  *     its balance moves no total on any page, under any Who;
  *   - the shared and joint accounts and their movements are visible;
  *   - the joint account's number is readable; the private one's is not;
- *   - a monthly income landing in it and a bill paid from it are not on
- *     Subscriptions, and move none of its totals.
+ *   - a monthly income landing in it and a bill paid from it are on no
+ *     page (Cash Flow, Subscriptions) and move no total.
  *
  * "In no total" is measured rather than reasoned about: every amount on each
  * page is read before the private account exists and again after, and they
@@ -164,6 +164,18 @@ test.describe("a private account, seen by the other grown-up", () => {
     }
 
     const secretId = await addAccount(qa!, quinn, secret, { is_private: true, is_joint: false }, PRIVATE_BALANCE);
+    // Something repeating tied to it: a monthly income that lands in it and a
+    // monthly bill paid from it. Both are the household's kind of row, but
+    // they point at the private account, so Cash Flow and Subscriptions
+    // leave them out for the partner -- every page below checks that.
+    await post(qa!, "income_schedules", {
+      family_id: quinn.familyId, name: `${secret} salary`, amount: 87_654.32, recurrence: "monthly", next_date: new Date(Date.now() + 9 * 86_400_000).toISOString().slice(0, 10),
+      status: "expected", account_id: secretId, is_joint: false, owner_member_id: quinn.memberId, created_by: quinn.memberId,
+    });
+    await post(qa!, "bills", {
+      family_id: quinn.familyId, name: `${secret} subscription`, amount: 765.43, recurrence: "monthly", due_date: new Date(Date.now() - 3 * 86_400_000).toISOString().slice(0, 10),
+      status: "paid", paid_at: new Date().toISOString(), paid_from_account_id: secretId, created_by: quinn.memberId,
+    });
 
     // Through the API, as the partner.
     await test.step("REST: the private account is invisible, shared and joint are not", async () => {
@@ -190,26 +202,6 @@ test.describe("a private account, seen by the other grown-up", () => {
         expect(await amounts(page), `${path}: an amount changed when Quinn's private account was added`).toEqual(before.get(path));
       });
     }
-
-    await test.step("UI: Subscriptions leaves out what repeats through the private account", async () => {
-      // A monthly income that lands in it and a monthly bill paid from it.
-      // Both are the household's kind of row, but they point at the private
-      // account, so Subscriptions drops them for the partner -- list and
-      // totals. Checked on this page only: Cash Flow lists every income
-      // schedule and bill as it always has (not this spec's business yet).
-      await post(qa!, "income_schedules", {
-        family_id: quinn.familyId, name: `${secret} salary`, amount: 87_654.32, recurrence: "monthly", next_date: new Date(Date.now() + 9 * 86_400_000).toISOString().slice(0, 10),
-        status: "expected", account_id: secretId, is_joint: false, owner_member_id: quinn.memberId, created_by: quinn.memberId,
-      });
-      await post(qa!, "bills", {
-        family_id: quinn.familyId, name: `${secret} subscription`, amount: 765.43, recurrence: "monthly", due_date: new Date(Date.now() - 3 * 86_400_000).toISOString().slice(0, 10),
-        status: "paid", paid_at: new Date().toISOString(), paid_from_account_id: secretId, created_by: quinn.memberId,
-      });
-      await page.goto("/wealth/subscriptions", { waitUntil: "networkidle" });
-      const html = await page.content();
-      expect(html, "Subscriptions carries something tied to the private account").not.toContain(secret);
-      expect(await amounts(page), "Subscriptions: an amount changed with the private account's income and bill").toEqual(before.get("/wealth/subscriptions"));
-    });
 
     await test.step("UI: shared and joint accounts are listed for the partner", async () => {
       await page.goto("/wealth?seg=accounts&who=all", { waitUntil: "networkidle" });
