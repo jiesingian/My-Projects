@@ -11,7 +11,7 @@ import { isNetworkFailure, isOffline, newOpId, queueOffline } from "@/lib/offlin
 import { ROUTINE_KIND_META, formatTimeOfDay, type RoutineKind } from "@/lib/routines";
 import { familyDay } from "@/lib/time";
 import type { RoutineView } from "@/lib/queries/routines";
-import { streakLabel, type ChoreStreak } from "@/lib/streaks";
+import { streakLabel, STREAK_BONUS, type ChoreStreak } from "@/lib/streaks";
 
 /** Today's tasks, with who is on each one, a tap to mark it done or skipped,
  * an optional note on how it went, and a way back if a tap was wrong — the
@@ -350,12 +350,12 @@ function StreakLine({ streak, doneToday }: { streak: ChoreStreak; doneToday: boo
       </span>
       {justEarned ? (
         <span className="kin-streak-note">
-          <span aria-hidden="true">⭐</span> Bonus star!
+          <span aria-hidden="true">⭐</span> +{STREAK_BONUS[streak.days as 7 | 30]} bonus points!
         </span>
       ) : toGo !== null ? (
         <span className="kin-streak-note">
-          {toGo} more for a bonus <span aria-hidden="true">⭐</span>
-          <span className="sr-only">star</span>
+          {toGo} more for +{STREAK_BONUS[streak.nextStarAt as 7 | 30]} <span aria-hidden="true">⭐</span>
+          <span className="sr-only">bonus points</span>
         </span>
       ) : null}
       {streak.freezeUsedThisWeek && (

@@ -1,7 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { FAMILY_FILTER } from "@/lib/queries/planner";
 import { assigneeFor, currentStreak, expandRoutine, nextOccurrence, toISODate, type RoutineRule } from "@/lib/routines";
-import { choreStreak, type ChoreStreak, type DayState } from "@/lib/streaks";
+import { choreStreak, STREAK_BONUS, type ChoreStreak, type DayState } from "@/lib/streaks";
 import { isChild } from "@/lib/roles";
 
 export type RoutineMember = { id: string; name: string; role?: string };
@@ -248,7 +248,7 @@ export type MemberScore = {
   spent: number;
   /** What is actually left to spend. */
   spendable: number;
-  /** Of `points`, the bonus stars earned by daily-chore streaks. */
+  /** Of `points`, the bonus points earned by daily-chore streaks. */
   bonus: number;
 };
 
@@ -331,7 +331,7 @@ async function loadPoints(familyId: string, historyFor?: string): Promise<{ scor
     }
   }
 
-  // Bonus stars: one each time a daily chore's run reaches 7 and 30 days
+  // Bonus points (STREAK_BONUS) each time a daily chore's run reaches 7 and 30 days
   // (lib/streaks), to the child who ticked that day -- once a grown-up has
   // said yes to it, the same as the chore's own points.
   const children = new Set((members ?? []).filter((m) => isChild(m.role)).map((m) => m.id));
@@ -356,9 +356,9 @@ async function loadPoints(familyId: string, historyFor?: string): Promise<{ scor
       const l = done.get(m.date);
       if (!l?.member_id || !children.has(l.member_id)) continue;
       if (l.approval !== "not_required" && l.approval !== "approved") continue;
-      bonusBy.set(l.member_id, (bonusBy.get(l.member_id) ?? 0) + 1);
+      bonusBy.set(l.member_id, (bonusBy.get(l.member_id) ?? 0) + STREAK_BONUS[m.reached]);
       if (l.member_id === historyFor) {
-        entries.push({ date: m.date, kind: "streak", title: `${r.title} — streak bonus`, points: 1, status: "counted" });
+        entries.push({ date: m.date, kind: "streak", title: `${r.title} — ${m.reached}-day streak bonus`, points: STREAK_BONUS[m.reached], status: "counted" });
       }
     }
   }

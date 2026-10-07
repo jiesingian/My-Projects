@@ -1,5 +1,5 @@
 /** Streaks for kids' daily chores (agreed 28 September, item 9): "🔥 7 days in
- * a row", a bonus star at 7 and at 30 days, and one "freeze" a week.
+ * a row", bonus points at 7 and at 30 days, and one "freeze" a week.
  *
  * Computed from routine_log every time, never stored -- the same reason
  * points are summed rather than kept (queries/routines getMemberScores): a
@@ -14,8 +14,8 @@
  * - A missed day (unticked, skipped, or sent back) ends the run -- unless it
  *   is the first miss in that Monday-to-Sunday week, which a freeze covers.
  *   A frozen day keeps the run alive but does not add to it.
- * - Reaching 7 and reaching 30 each earn one bonus star. A broken run that is
- *   built up again earns them again. */
+ * - Reaching 7 and reaching 30 each earn bonus points (STREAK_BONUS). A
+ *   broken run that is built up again earns them again. */
 
 export type DayState = "done" | "pending" | "missed";
 
@@ -33,6 +33,10 @@ export type ChoreStreak = {
 };
 
 const STARS = [7, 30] as const;
+
+/** Bonus points for reaching a run of 7 and 30 days (Janine, 7 October:
+ * one point each was too small to notice next to 5- and 10-point chores). */
+export const STREAK_BONUS: Record<7 | 30, number> = { 7: 10, 30: 50 };
 
 /** Monday of the ISO week an ISO date falls in, as an ISO date. */
 export function weekOf(iso: string): string {
