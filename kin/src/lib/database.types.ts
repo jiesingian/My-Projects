@@ -1717,6 +1717,8 @@ export type Database = {
           invite_code: string
           name: string
           share_with_relatives: boolean
+          streak_bonus_30: number
+          streak_bonus_7: number
           week_start: string
         }
         Insert: {
@@ -1738,6 +1740,8 @@ export type Database = {
           invite_code: string
           name: string
           share_with_relatives?: boolean
+          streak_bonus_30?: number
+          streak_bonus_7?: number
           week_start?: string
         }
         Update: {
@@ -1759,6 +1763,8 @@ export type Database = {
           invite_code?: string
           name?: string
           share_with_relatives?: boolean
+          streak_bonus_30?: number
+          streak_bonus_7?: number
           week_start?: string
         }
         Relationships: []
@@ -5816,6 +5822,10 @@ export type Database = {
       children_connections: {
         Args: never
         Returns: { id: string; child_person_id: string; child_name: string; other_person_id: string; other_name: string; other_household: string | null; status: string; requested_at: string }[]
+      }
+      set_streak_bonus: {
+        Args: { p_seven: number; p_thirty: number }
+        Returns: undefined
       }
       guardian_decide_connection: {
         Args: { p_id: string; p_approve: boolean }

@@ -1,7 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { FAMILY_FILTER } from "@/lib/queries/planner";
 import { assigneeFor, currentStreak, expandRoutine, nextOccurrence, toISODate, type RoutineRule } from "@/lib/routines";
-import { choreStreak, STREAK_BONUS, type ChoreStreak, type DayState } from "@/lib/streaks";
+import { choreStreak, STREAK_BONUS, type ChoreStreak, type DayState, type StreakBonus } from "@/lib/streaks";
 import { isChild } from "@/lib/roles";
 
 export type RoutineMember = { id: string; name: string; role?: string };
@@ -43,12 +43,19 @@ export type RoutineView = {
  * routine to show a meaningful run, short enough to stay one cheap query. */
 const HISTORY_DAYS = 180;
 
+/** What this household pays for a 7- and a 30-day run. */
+export async function getStreakBonus(familyId: string): Promise<StreakBonus> {
+  const supabase = await createClient();
+  const { data } = await supabase.from("families").select("streak_bonus_7, streak_bonus_30").eq("id", familyId).maybeSingle();
+  return data ? { 7: data.streak_bonus_7, 30: data.streak_bonus_30 } : STREAK_BONUS;
+}
+
 export async function getRoutines(familyId: string, memberId?: string): Promise<RoutineView[]> {
   const supabase = await createClient();
   const today = new Date();
   const historyStart = new Date(today.getFullYear(), today.getMonth(), today.getDate() - HISTORY_DAYS);
 
-  const [{ data: rows }, { data: logs }] = await Promise.all([
+  const [{ data: rows }, { data: logs }, bonus] = await Promise.all([
     supabase
       .from("routines")
       .select("*, routine_members(member_id, position, members(id, full_name, role))")
@@ -60,6 +67,7 @@ export async function getRoutines(familyId: string, memberId?: string): Promise<
       .eq("family_id", familyId)
       .gte("occurrence_date", toISODate(historyStart))
       .order("occurrence_date", { ascending: false }),
+    getStreakBonus(familyId),
   ]);
 
   const logByRoutine = new Map<string, Map<string, "done" | "skipped">>();
@@ -160,11 +168,14 @@ export async function getRoutines(familyId: string, memberId?: string): Promise<
       ),
       kidStreak:
         forAChild && isDailyChore(r)
-          ? choreStreak(
-              past.map((o) => toISODate(o.date)),
-              (iso) => dayState(status.get(iso), approvals.get(iso)),
-              todayISO,
-            )
+          ? {
+              ...choreStreak(
+                past.map((o) => toISODate(o.date)),
+                (iso) => dayState(status.get(iso), approvals.get(iso)),
+                todayISO,
+              ),
+              bonus,
+            }
           : null,
       recent: past
         .map((o) => toISODate(o.date))
@@ -287,7 +298,7 @@ export async function getPointsHistory(familyId: string, memberId: string): Prom
 async function loadPoints(familyId: string, historyFor?: string): Promise<{ scores: MemberScore[]; entries: PointsEntry[] }> {
   const supabase = await createClient();
   const entries: PointsEntry[] = [];
-  const [{ data: members }, { data: logs }, { data: chores }] = await Promise.all([
+  const [{ data: members }, { data: logs }, { data: chores }, bonus] = await Promise.all([
     supabase
       .from("members")
       .select("id, full_name, role")
@@ -306,6 +317,7 @@ async function loadPoints(familyId: string, historyFor?: string): Promise<{ scor
       .eq("family_id", familyId)
       .eq("kind", "chore")
       .eq("freq", "daily"),
+    getStreakBonus(familyId),
   ]);
 
   const byMember = new Map<string, { points: number; done: number; awaiting: number }>();
@@ -331,7 +343,7 @@ async function loadPoints(familyId: string, historyFor?: string): Promise<{ scor
     }
   }
 
-  // Bonus points (STREAK_BONUS) each time a daily chore's run reaches 7 and 30 days
+  // Bonus points (the household's streak bonus) each time a daily chore's run reaches 7 and 30 days
   // (lib/streaks), to the child who ticked that day -- once a grown-up has
   // said yes to it, the same as the chore's own points.
   const children = new Set((members ?? []).filter((m) => isChild(m.role)).map((m) => m.id));
@@ -356,9 +368,9 @@ async function loadPoints(familyId: string, historyFor?: string): Promise<{ scor
       const l = done.get(m.date);
       if (!l?.member_id || !children.has(l.member_id)) continue;
       if (l.approval !== "not_required" && l.approval !== "approved") continue;
-      bonusBy.set(l.member_id, (bonusBy.get(l.member_id) ?? 0) + STREAK_BONUS[m.reached]);
+      bonusBy.set(l.member_id, (bonusBy.get(l.member_id) ?? 0) + bonus[m.reached]);
       if (l.member_id === historyFor) {
-        entries.push({ date: m.date, kind: "streak", title: `${r.title} — ${m.reached}-day streak bonus`, points: STREAK_BONUS[m.reached], status: "counted" });
+        entries.push({ date: m.date, kind: "streak", title: `${r.title} — ${m.reached}-day streak bonus`, points: bonus[m.reached], status: "counted" });
       }
     }
   }

@@ -343,6 +343,7 @@ function StreakLine({ streak, doneToday }: { streak: ChoreStreak; doneToday: boo
   if (streak.days < 2) return null;
   const justEarned = doneToday && (streak.days === 7 || streak.days === 30);
   const toGo = streak.nextStarAt ? streak.nextStarAt - streak.days : null;
+  const bonus = streak.bonus ?? STREAK_BONUS;
   return (
     <div className="kin-streak" data-earned={justEarned ? "true" : undefined}>
       <span className="kin-streak-run">
@@ -350,11 +351,11 @@ function StreakLine({ streak, doneToday }: { streak: ChoreStreak; doneToday: boo
       </span>
       {justEarned ? (
         <span className="kin-streak-note">
-          <span aria-hidden="true">⭐</span> +{STREAK_BONUS[streak.days as 7 | 30]} bonus points!
+          <span aria-hidden="true">⭐</span> +{bonus[streak.days as 7 | 30]} bonus points!
         </span>
       ) : toGo !== null ? (
         <span className="kin-streak-note">
-          {toGo} more for +{STREAK_BONUS[streak.nextStarAt as 7 | 30]} <span aria-hidden="true">⭐</span>
+          {toGo} more for +{bonus[streak.nextStarAt as 7 | 30]} <span aria-hidden="true">⭐</span>
           <span className="sr-only">bonus points</span>
         </span>
       ) : null}

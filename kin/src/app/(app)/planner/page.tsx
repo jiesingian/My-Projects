@@ -31,7 +31,7 @@ import { familyClock, familyDateLong, familyDay } from "@/lib/time";
 import { dayColumn, startOfWeek, weekdayInitials, weekStartOf, type WeekStart } from "@/lib/week";
 import { CalendarJump, CalendarPeriod, DateRail, MonthScroller, TodayButton } from "@/components/calendar-nav";
 import { AddToCalendar } from "@/components/add-to-calendar";
-import { getRoutines, getMemberScores, getRewards, type MemberScore } from "@/lib/queries/routines";
+import { getRoutines, getMemberScores, getRewards, getStreakBonus, type MemberScore } from "@/lib/queries/routines";
 import { describeRule, formatTimeOfDay, ROUTINE_KIND_META, type RoutineKind } from "@/lib/routines";
 import { RoutineTick, RoutineOccurrences, RoutinePauseButton, RoutineDeleteButton } from "@/components/routine-controls";
 import { CalendarSyncStatus, RememberFilter } from "@/components/calendar-sync-status";
@@ -745,12 +745,13 @@ async function RoutinesPane({ familyId, who, currency, justSaved }: { familyId: 
   const memberId = who === "all" ? undefined : who;
   // Both kinds of task: the recurring ones, and the one-offs that used to be
   // called activities and could be read back nowhere but the calendar.
-  const [routines, allOneOffs, scores, rewards, me] = await Promise.all([
+  const [routines, allOneOffs, scores, rewards, me, streakBonus] = await Promise.all([
     getRoutines(familyId, memberId),
     getOneOffTasks(familyId, `${familyDay()}T00:00:00.000Z`),
     getMemberScores(familyId),
     getRewards(familyId),
     getCurrentMember(),
+    getStreakBonus(familyId),
   ]);
   const oneOffs = allOneOffs.filter((t) => concerns(t.memberIds, t.applies_to_whole_family, who));
   const dueToday = routines.filter((r) => !r.paused && r.today);
@@ -784,6 +785,7 @@ async function RoutinesPane({ familyId, who, currency, justSaved }: { familyId: 
         rewards={rewards}
         me={scores.find((s) => s.id === me?.id)}
         canManage={isGrownUp(me?.role ?? "")}
+        streakBonus={isGrownUp(me?.role ?? "") ? streakBonus : undefined}
       />
 
       <OneOffTasks tasks={oneOffs} />

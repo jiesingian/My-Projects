@@ -30,13 +30,19 @@ export type ChoreStreak = {
   nextStarAt: 7 | 30 | null;
   /** Every point at which a run reached 7 or 30, oldest first. */
   milestones: StreakMilestone[];
+  /** What the household pays for reaching 7 and 30, when the caller knows. */
+  bonus?: StreakBonus;
 };
 
 const STARS = [7, 30] as const;
 
-/** Bonus points for reaching a run of 7 and 30 days (Janine, 7 October:
- * one point each was too small to notice next to 5- and 10-point chores). */
-export const STREAK_BONUS: Record<7 | 30, number> = { 7: 10, 30: 50 };
+export type StreakBonus = Record<7 | 30, number>;
+
+/** Bonus points for reaching a run of 7 and 30 days, until a household sets
+ * its own (families.streak_bonus_7/_30, on the Rewards panel). Janine, 7
+ * October: one point each was too small to notice next to 5- and 10-point
+ * chores. */
+export const STREAK_BONUS: StreakBonus = { 7: 10, 30: 50 };
 
 /** Monday of the ISO week an ISO date falls in, as an ISO date. */
 export function weekOf(iso: string): string {
