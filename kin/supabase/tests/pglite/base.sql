@@ -120,3 +120,12 @@ create table public.family_tree_people (id uuid primary key default gen_random_u
 alter table family_tree_people enable row level security;
 create policy ftp_select on family_tree_people for select using (family_id = current_family_id());
 create policy ftp_insert on family_tree_people for insert with check (family_id = current_family_id());
+
+-- Chores, their log and their points (the tables predate the migrations folder; policies as shipped: household-wide).
+create table public.routines (id uuid primary key default gen_random_uuid(), family_id uuid not null references families(id), title text not null, kind text not null default 'chore', freq text not null default 'daily', start_date date not null default current_date, points integer not null default 1);
+create table public.routine_log (id uuid primary key default gen_random_uuid(), routine_id uuid not null references routines(id), family_id uuid not null references families(id), occurrence_date date not null, status text not null, member_id uuid references members(id), note text, approval text not null default 'not_required', approved_by uuid references members(id), approved_at timestamptz, logged_by uuid);
+alter table routines enable row level security; alter table routine_log enable row level security;
+create policy routines_all on routines for all using (family_id = current_family_id()) with check (family_id = current_family_id());
+create policy routine_log_select on routine_log for select using (family_id = current_family_id());
+create policy routine_log_insert on routine_log for insert with check (family_id = current_family_id());
+create policy routine_log_update on routine_log for update using (family_id = current_family_id()) with check (family_id = current_family_id());

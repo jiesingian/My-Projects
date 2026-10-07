@@ -666,7 +666,8 @@ function Scoreboard({ scores }: { scores: MemberScore[] }) {
   return (
     <div style={{ display: "flex", gap: "0.5rem", overflowX: "auto", paddingBottom: "0.25rem", marginBottom: "0.875rem" }}>
       {worth.map((s) => (
-        <Blueprint key={s.id} style={{ padding: "0.5625rem 0.75rem", flex: "none", minWidth: 96 }}>
+        <Link key={s.id} href={`/planner/points/${s.id}`} aria-label={`${s.name}: points and history`} style={{ textDecoration: "none", color: "inherit", flex: "none" }}>
+        <Blueprint style={{ padding: "0.5625rem 0.75rem", minWidth: 96 }}>
           <div style={{ fontSize: "0.78125rem", color: "var(--color-neutral-600)" }}>{s.name.split(" ")[0]}</div>
           <div style={{ display: "flex", alignItems: "baseline", gap: "0.3125rem" }}>
             <span style={{ font: "600 1.375rem/1.1 var(--font-heading)", color: "var(--color-accent-700)" }}>{s.points}</span>
@@ -677,7 +678,11 @@ function Scoreboard({ scores }: { scores: MemberScore[] }) {
               {s.awaiting} waiting
             </div>
           )}
+          {s.spent > 0 && (
+            <div style={{ fontSize: "0.71875rem", color: "var(--color-neutral-600)", marginTop: "0.125rem" }}>{s.spendable} to spend</div>
+          )}
         </Blueprint>
+        </Link>
       ))}
     </div>
   );

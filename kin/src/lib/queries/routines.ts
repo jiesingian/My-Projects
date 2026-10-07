@@ -263,7 +263,30 @@ export type MemberScore = {
  * chore a parent has not answered for yet is not points, and a skipped day
  * is not points either. */
 export async function getMemberScores(familyId: string): Promise<MemberScore[]> {
+  return (await loadPoints(familyId)).scores;
+}
+
+/** One line of a member's points history. `points` is signed: earned is
+ * positive, spent negative, and a request still waiting is held (negative,
+ * but given back if it is declined). */
+export type PointsEntry = {
+  date: string;
+  kind: "chore" | "streak" | "reward";
+  title: string;
+  points: number;
+  status: "counted" | "waiting" | "granted" | "held" | "declined";
+};
+
+/** Where a member's balance came from, newest first: the same rows the
+ * balance is summed from, so the two can never disagree. */
+export async function getPointsHistory(familyId: string, memberId: string): Promise<{ score: MemberScore | undefined; entries: PointsEntry[] }> {
+  const { scores, entries } = await loadPoints(familyId, memberId);
+  return { score: scores.find((s) => s.id === memberId), entries };
+}
+
+async function loadPoints(familyId: string, historyFor?: string): Promise<{ scores: MemberScore[]; entries: PointsEntry[] }> {
   const supabase = await createClient();
+  const entries: PointsEntry[] = [];
   const [{ data: members }, { data: logs }, { data: chores }] = await Promise.all([
     supabase
       .from("members")
@@ -273,13 +296,13 @@ export async function getMemberScores(familyId: string): Promise<MemberScore[]> 
       .order("created_at"),
     supabase
       .from("routine_log")
-      .select("routine_id, occurrence_date, member_id, status, approval, routines(points)")
+      .select("routine_id, occurrence_date, member_id, status, approval, routines(title, points)")
       .eq("family_id", familyId)
       .eq("status", "done"),
     // The daily chores, for their streaks' bonus stars.
     supabase
       .from("routines")
-      .select("id, kind, freq, repeat_interval, byweekday, bymonthday, start_date, end_date, routine_members(member_id)")
+      .select("id, title, kind, freq, repeat_interval, byweekday, bymonthday, start_date, end_date, routine_members(member_id)")
       .eq("family_id", familyId)
       .eq("kind", "chore")
       .eq("freq", "daily"),
@@ -296,6 +319,16 @@ export async function getMemberScores(familyId: string): Promise<MemberScore[]> 
       tally.done += 1;
     }
     byMember.set(l.member_id, tally);
+    if (l.member_id === historyFor && l.approval !== "rejected") {
+      const r = l.routines as unknown as { title: string; points: number } | null;
+      entries.push({
+        date: l.occurrence_date,
+        kind: "chore",
+        title: r?.title ?? "A chore",
+        points: r?.points ?? 0,
+        status: l.approval === "pending" ? "waiting" : "counted",
+      });
+    }
   }
 
   // Bonus stars: one each time a daily chore's run reaches 7 and 30 days
@@ -324,6 +357,9 @@ export async function getMemberScores(familyId: string): Promise<MemberScore[]> 
       if (!l?.member_id || !children.has(l.member_id)) continue;
       if (l.approval !== "not_required" && l.approval !== "approved") continue;
       bonusBy.set(l.member_id, (bonusBy.get(l.member_id) ?? 0) + 1);
+      if (l.member_id === historyFor) {
+        entries.push({ date: m.date, kind: "streak", title: `${r.title} — streak bonus`, points: 1, status: "counted" });
+      }
     }
   }
 
@@ -332,16 +368,25 @@ export async function getMemberScores(familyId: string): Promise<MemberScore[]> 
   // request would look affordable right up until the grown-up answered.
   const { data: spends } = await supabase
     .from("reward_redemptions")
-    .select("member_id, cost_points, status")
-    .eq("family_id", familyId)
-    .in("status", ["pending", "granted"]);
+    .select("member_id, cost_points, status, created_at, rewards(title)")
+    .eq("family_id", familyId);
 
   const spentBy = new Map<string, number>();
   for (const r of spends ?? []) {
-    spentBy.set(r.member_id, (spentBy.get(r.member_id) ?? 0) + r.cost_points);
+    if (r.status !== "refused") spentBy.set(r.member_id, (spentBy.get(r.member_id) ?? 0) + r.cost_points);
+    if (r.member_id === historyFor) {
+      entries.push({
+        date: String(r.created_at).slice(0, 10),
+        kind: "reward",
+        title: (r.rewards as unknown as { title: string } | null)?.title ?? "A reward",
+        points: -r.cost_points,
+        status: r.status === "granted" ? "granted" : r.status === "pending" ? "held" : "declined",
+      });
+    }
   }
+  entries.sort((a, b) => b.date.localeCompare(a.date));
 
-  return (members ?? []).map((m) => {
+  const scores = (members ?? []).map((m) => {
     const tally = byMember.get(m.id) ?? { points: 0, done: 0, awaiting: 0 };
     const bonus = bonusBy.get(m.id) ?? 0;
     const spent = spentBy.get(m.id) ?? 0;
@@ -355,6 +400,7 @@ export async function getMemberScores(familyId: string): Promise<MemberScore[]> 
       spendable: Math.max(0, tally.points + bonus - spent),
     };
   });
+  return { scores, entries };
 }
 
 export type PendingApproval = {

@@ -49,6 +49,8 @@ const MIGRATIONS = [
   "20261006100500_journal_entry_videos.sql",
   "20261006120000_tree_match_suggestions.sql",
   "20261007090000_time_capsule_letters.sql",
+  "20260922053456_rewards_and_redemption.sql",
+  "20261007120000_points_children_cannot_award.sql",
 ];
 
 const only = process.argv[2];
