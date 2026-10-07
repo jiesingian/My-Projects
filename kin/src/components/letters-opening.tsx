@@ -1,28 +1,34 @@
 import Link from "next/link";
 import { Blueprint } from "@/components/ui";
-import { getTimeCapsules } from "@/lib/queries/time-capsules";
-import { familyDay, readableDay } from "@/lib/time";
+import { getTimeCapsules, letterDays } from "@/lib/queries/time-capsules";
+import { familyDay } from "@/lib/time";
 
-/** Time-capsule letters that open today -- for their recipient and their
- * writer only -- on Today and atop the household
- * journal. Before today only their writer could see them; nothing shows
- * here for a letter still sealed, because the table won't return it. */
-export async function LettersOpeningToday({ familyId }: { familyId: string }) {
-  const letters = await getTimeCapsules(familyId, { openingOn: familyDay() });
-  if (letters.length === 0) return null;
+/** On Today, the morning a special day's letters open: one card per person
+ * and day, however many letters, leading to them in the journal. Only the
+ * person they're for and each letter's writer get it -- the table returns
+ * nothing to anyone else, and nothing still sealed. */
+export async function LettersOpeningToday({ familyId, meId, timeZone }: { familyId: string; meId?: string; timeZone?: string }) {
+  const days = letterDays(await getTimeCapsules(familyId, { openingOn: familyDay(new Date(), timeZone), timeZone }));
+  if (days.length === 0) return null;
   return (
     <section style={{ marginBottom: "1.25rem" }} aria-label="Letters opening today">
-      {letters.map((l) => (
-        <Blueprint key={l.id} style={{ padding: "0.8125rem", marginBottom: "0.75rem" }}>
-          <span className="kin-eyebrow">A letter opens today</span>
-          <Link href={`/journal/letters#letter-${l.id}`} style={{ display: "block", font: "600 1.3125rem/1.1 var(--font-heading)", margin: "6px 0 4px", color: "inherit" }}>
-            {l.title || `For ${l.recipientName.split(" ")[0]}`}
-          </Link>
-          <p style={{ fontSize: "0.84375rem", margin: 0, color: "var(--color-neutral-700)" }}>
-            For {l.recipientName.split(" ")[0]}, from {l.writerName.split(" ")[0] || "someone in the family"} · sealed {readableDay(familyDay(new Date(l.createdAt)), { year: true })}
-          </p>
-        </Blueprint>
-      ))}
+      {days.map((d) => {
+        const forMe = d.recipientMemberId === meId;
+        const who = d.recipientName.split(" ")[0];
+        const from = [...new Set(d.letters.map((l) => l.writerName.split(" ")[0]).filter(Boolean))];
+        return (
+          <Blueprint key={d.key} className="kin-letter-today" style={{ padding: "0.8125rem", marginBottom: "0.75rem" }}>
+            <span className="kin-eyebrow">{d.letters.length === 1 ? "A letter opens today" : `${d.letters.length} letters open today`}</span>
+            <Link href={`/journal#letters-${d.key}`} style={{ display: "block", font: "600 1.3125rem/1.1 var(--font-heading)", margin: "6px 0 4px", color: "inherit" }}>
+              {d.occasion || (forMe ? "For you" : `For ${who}`)}
+            </Link>
+            <p style={{ fontSize: "0.84375rem", margin: 0, color: "var(--color-neutral-700)" }}>
+              {forMe ? "For you" : `For ${who}`}
+              {from.length > 0 ? `, from ${from.join(", ")}` : ""} · open them in the journal
+            </p>
+          </Blueprint>
+        );
+      })}
     </section>
   );
 }

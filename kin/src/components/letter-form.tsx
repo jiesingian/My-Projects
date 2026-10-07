@@ -6,11 +6,14 @@ import { readableDay } from "@/lib/time";
 
 export type LetterRecipient = { id: string; name: string; eighteenth: string | null };
 
-/** Write a letter for later: who it's for, the day it opens (their 18th
- * birthday unless another day is picked), and the letter. */
+/** Write a letter for someone's special day: who it's for, the day it
+ * opens (their 18th birthday unless another day is picked), the occasion's
+ * name -- which is how the journal gathers everyone's letters for that day
+ * together -- and the letter. */
 export function LetterForm({ recipients, today }: { recipients: LetterRecipient[]; today: string }) {
   const [recipientId, setRecipientId] = useState("");
   const [opensOn, setOpensOn] = useState("");
+  const [occasion, setOccasion] = useState("");
   const [title, setTitle] = useState("");
   const [body, setBody] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -24,11 +27,12 @@ export function LetterForm({ recipients, today }: { recipients: LetterRecipient[
 
   const seal = () =>
     startTransition(async () => {
-      const r = await sealLetterAction({ recipientId, opensOn: opensOn || null, title, body });
+      const r = await sealLetterAction({ recipientId, opensOn: opensOn || null, occasion, title, body });
       setError(r.error);
       if (!r.error) {
         setRecipientId("");
         setOpensOn("");
+        setOccasion("");
         setTitle("");
         setBody("");
         setDone(true);
@@ -55,10 +59,14 @@ export function LetterForm({ recipients, today }: { recipients: LetterRecipient[
           </span>
         )}
       </label>
+      <label style={{ display: "grid", gap: 4, fontSize: "0.8125rem" }}>
+        The occasion
+        <input className="input" placeholder={eighteenth && !opensOn ? "18th birthday" : "Birthday, graduation, wedding day…"} maxLength={80} value={occasion} onChange={(e) => setOccasion(e.target.value)} disabled={pending} />
+      </label>
       <input className="input" aria-label="Title (optional)" placeholder="Title (optional)" maxLength={120} value={title} onChange={(e) => setTitle(e.target.value)} disabled={pending} />
       <textarea className="input" aria-label="Your letter" placeholder="Dear…" rows={8} maxLength={20000} value={body} onChange={(e) => setBody(e.target.value)} disabled={pending} />
       <p style={{ fontSize: "0.8125rem", margin: 0, color: "var(--color-neutral-700)" }}>
-        Until the day it opens, only you can see it. Then it shows on Today and here for the person itThen it shows on Today and here, for the whole household.apos;s for, and still for you — nobody else.
+        Until the day it opens, they only see a sealed envelope from you. On the day, it opens for them in the journal with any other letters for that day — only they and you can read it.
       </p>
       <button type="button" className="btn btn-primary" disabled={pending || !recipientId || !body.trim() || needsDate} onClick={seal}>
         {pending ? "Sealing…" : "Seal the letter"}
