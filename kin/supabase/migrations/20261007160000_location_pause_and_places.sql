@@ -145,3 +145,12 @@ drop trigger if exists member_locations_guard on public.member_locations;
 create trigger member_locations_guard
   before insert or update on public.member_locations
   for each row execute function public.member_locations_guard();
+
+-- A child with their own login who was already sharing, from before a
+-- parent's yes existed: switched off (and their spot cleared) until a grown-up
+-- allows it. Otherwise their last spot would stay on the board while every
+-- new reading was refused. Re-running finds nothing left to change.
+update public.member_locations ml
+set sharing = false, lat = null, lng = null, accuracy_m = null, place_id = null
+from public.members m
+where m.id = ml.member_id and m.role = 'child_self' and not ml.parent_ok and ml.sharing;

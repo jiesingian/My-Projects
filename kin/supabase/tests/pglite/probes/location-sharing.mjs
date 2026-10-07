@@ -1,3 +1,7 @@
+import fs from "node:fs";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+const require_fs = () => fs.readFileSync(path.join(path.dirname(fileURLToPath(import.meta.url)), "../../../migrations/20261007160000_location_pause_and_places.sql"), "utf8");
 const U = (s) => `10000000-0000-0000-0000-0000000000${s}`;
 const M = (s) => `00000000-0000-0000-0000-0000000000${s}`;
 const A = "a0000000-0000-0000-0000-000000000000";
@@ -5,9 +9,19 @@ const D = "d0000000-0000-0000-0000-000000000000";
 // Opt-in location sharing (20260922071500 + 20261007160000). Ann is a parent
 // and Kid a child with their own login in house A; Dan and Dee (a child_self)
 // are house D, strangers to A.
-export default async function ({ as, check, refused }) {
+export default async function ({ db, as, check, refused }) {
   const ann = U("a1"), kid = U("a2"), dan = U("d1"), dee = U("d2");
   const row = (who, member) => as(who, "select * from member_locations where member_id = $1", [member]);
+
+  await check("Re-running the migration finds a child who shared before a parent's yes, and switches them off", async () => {
+    await db.exec("alter table member_locations disable trigger member_locations_guard");
+    await db.query("insert into member_locations (member_id, family_id, sharing, lat, lng) values ($1, $2, true, 1, 1)", [M("d2"), D]);
+    await db.exec("alter table member_locations enable trigger member_locations_guard");
+    await db.exec(require_fs());
+    const r = await as(dan, "select sharing, lat from member_locations where member_id = $1", [M("d2")]);
+    await db.query("delete from member_locations where member_id = $1", [M("d2")]);
+    return r[0].sharing === false && r[0].lat === null;
+  });
 
   // --- saved places
   let home;
