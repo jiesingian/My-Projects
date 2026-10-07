@@ -39,10 +39,21 @@ const STARS = [7, 30] as const;
 export type StreakBonus = Record<7 | 30, number>;
 
 /** Bonus points for reaching a run of 7 and 30 days, until a household sets
- * its own (families.streak_bonus_7/_30, on the Rewards panel). Janine, 7
- * October: one point each was too small to notice next to 5- and 10-point
- * chores. */
+ * its own on the Rewards panel. Janine, 7 October: one point each was too
+ * small to notice next to 5- and 10-point chores. */
 export const STREAK_BONUS: StreakBonus = { 7: 10, 30: 50 };
+
+/** A household's bonus from a given day on (streak_bonus_rates). */
+export type StreakBonusRate = { from: string; bonus: StreakBonus };
+
+/** The bonus in force on `iso`: the newest rate from that day or earlier.
+ * A change applies to streaks reached from then on, never to ones already
+ * earned. `rates` is oldest first. */
+export function bonusOn(rates: StreakBonusRate[], iso: string): StreakBonus {
+  let found = STREAK_BONUS;
+  for (const r of rates) if (r.from <= iso) found = r.bonus;
+  return found;
+}
 
 /** Monday of the ISO week an ISO date falls in, as an ISO date. */
 export function weekOf(iso: string): string {

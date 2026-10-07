@@ -153,6 +153,9 @@ function StreakBonusForm({ bonus }: { bonus: StreakBonus }) {
         </span>
         <SubmitButton style={{ ...field, padding: "0 0.75rem" }}>Save</SubmitButton>
       </div>
+      <p style={{ fontSize: "0.71875rem", color: "var(--color-neutral-600)", margin: "0.3125rem 0 0" }}>
+        Applies to streaks reached from today. Bonuses already earned keep what they were worth.
+      </p>
     </form>
   );
 }

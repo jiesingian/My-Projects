@@ -1,52 +1,41 @@
--- Streak bonuses: the household sets what they are worth
--- ======================================================
+-- Streak bonuses: the household sets what they are worth, from now on
+-- ===================================================================
 --
--- A daily chore's run reaching 7 and 30 days earns bonus points. The app
--- defaulted them to 10 and 50 (lib/streaks STREAK_BONUS); a parent now sets
--- them per household, on the Rewards panel.
+-- A daily chore's run reaching 7 and 30 days earns bonus points: 10 and 50
+-- unless the household says otherwise (lib/streaks STREAK_BONUS). A parent
+-- sets them on the Rewards panel.
 --
--- Changing them is a grown-up's job: bonuses are summed into every child's
--- balance, so a child who could raise them could give themselves points.
--- Grown-ups write through set_streak_bonus() rather than a direct update,
--- because the families update policy predates the migrations folder and
--- may be organiser-only; the trigger below holds whichever way a write
--- comes in.
+-- A change applies to streaks reached from that day on, never to ones
+-- already earned (Janine, 7 October) -- lowering the bonus must not take
+-- points back, and raising it must not hand out more for last month. So
+-- each change is a dated row, and a streak is paid at the rate in force on
+-- the day it was reached. Rows are never edited; the newest one wins.
+--
+-- Writing is a grown-up's job: bonuses are summed into every child's
+-- balance. There is no insert/update/delete policy, so the only way in is
+-- set_streak_bonus(), which checks the role.
 
-alter table public.families add column if not exists streak_bonus_7 integer not null default 10;
-alter table public.families add column if not exists streak_bonus_30 integer not null default 50;
+create table if not exists public.streak_bonus_rates (
+  id uuid primary key default gen_random_uuid(),
+  family_id uuid not null references public.families(id) on delete cascade,
+  effective_from date not null,
+  seven integer not null,
+  thirty integer not null,
+  set_by uuid references public.members(id) on delete set null,
+  created_at timestamptz not null default now(),
+  constraint streak_bonus_rates_sane check (seven between 0 and 1000 and thirty between 0 and 1000)
+);
 
-alter table public.families drop constraint if exists families_streak_bonus_sane;
-alter table public.families add constraint families_streak_bonus_sane
-  check (streak_bonus_7 between 0 and 1000 and streak_bonus_30 between 0 and 1000);
+create index if not exists streak_bonus_rates_family_idx
+  on public.streak_bonus_rates (family_id, effective_from);
 
-create or replace function public.families_streak_bonus_grown_ups_only()
-returns trigger
-language plpgsql
-security definer
-set search_path = ''
-as $$
-declare
-  r text := public.current_member_role();
-begin
-  if r is null or r in ('parent', 'adult') then
-    return new;
-  end if;
-  if new.streak_bonus_7 is distinct from old.streak_bonus_7
-     or new.streak_bonus_30 is distinct from old.streak_bonus_30 then
-    raise exception 'Only a parent or another adult can change the streak bonus.'
-      using errcode = '42501';
-  end if;
-  return new;
-end;
-$$;
+alter table public.streak_bonus_rates enable row level security;
 
-revoke all on function public.families_streak_bonus_grown_ups_only() from public, anon;
+drop policy if exists streak_bonus_rates_select on public.streak_bonus_rates;
+create policy streak_bonus_rates_select on public.streak_bonus_rates
+  for select using (family_id = public.current_family_id());
 
-drop trigger if exists families_streak_bonus_grown_ups_only on public.families;
-create trigger families_streak_bonus_grown_ups_only
-  before update on public.families
-  for each row execute function public.families_streak_bonus_grown_ups_only();
-
+-- The household's day is Manila's (lib/time FAMILY_TZ), not the server's.
 create or replace function public.set_streak_bonus(p_seven integer, p_thirty integer)
 returns void
 language plpgsql
@@ -58,9 +47,8 @@ begin
     raise exception 'Only a parent or another adult can change the streak bonus.'
       using errcode = '42501';
   end if;
-  update public.families
-     set streak_bonus_7 = p_seven, streak_bonus_30 = p_thirty
-   where id = public.current_family_id();
+  insert into public.streak_bonus_rates (family_id, effective_from, seven, thirty, set_by)
+  values (public.current_family_id(), (now() at time zone 'Asia/Manila')::date, p_seven, p_thirty, public.current_member_id());
 end;
 $$;
 

@@ -1717,8 +1717,6 @@ export type Database = {
           invite_code: string
           name: string
           share_with_relatives: boolean
-          streak_bonus_30: number
-          streak_bonus_7: number
           week_start: string
         }
         Insert: {
@@ -1740,8 +1738,6 @@ export type Database = {
           invite_code: string
           name: string
           share_with_relatives?: boolean
-          streak_bonus_30?: number
-          streak_bonus_7?: number
           week_start?: string
         }
         Update: {
@@ -1763,8 +1759,6 @@ export type Database = {
           invite_code?: string
           name?: string
           share_with_relatives?: boolean
-          streak_bonus_30?: number
-          streak_bonus_7?: number
           week_start?: string
         }
         Relationships: []
@@ -5298,6 +5292,51 @@ export type Database = {
             columns: ["family_id"]
             isOneToOne: false
             referencedRelation: "families"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      streak_bonus_rates: {
+        Row: {
+          created_at: string
+          effective_from: string
+          family_id: string
+          id: string
+          set_by: string | null
+          seven: number
+          thirty: number
+        }
+        Insert: {
+          created_at?: string
+          effective_from: string
+          family_id: string
+          id?: string
+          set_by?: string | null
+          seven: number
+          thirty: number
+        }
+        Update: {
+          created_at?: string
+          effective_from?: string
+          family_id?: string
+          id?: string
+          set_by?: string | null
+          seven?: number
+          thirty?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "streak_bonus_rates_family_id_fkey"
+            columns: ["family_id"]
+            isOneToOne: false
+            referencedRelation: "families"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "streak_bonus_rates_set_by_fkey"
+            columns: ["set_by"]
+            isOneToOne: false
+            referencedRelation: "members"
             referencedColumns: ["id"]
           },
         ]

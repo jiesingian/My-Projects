@@ -30,7 +30,8 @@ export async function addRewardAction(_prev: ActionState, formData: FormData): P
   return { error: null };
 }
 
-/** What a 7- and a 30-day chore streak is worth in this household. Through
+/** What a 7- and a 30-day chore streak is worth in this household from
+ * today on; bonuses already earned keep their old value. Through
  * set_streak_bonus(), which checks the role in the database as well. */
 export async function setStreakBonusAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
   const me = await requireCurrentMember();
