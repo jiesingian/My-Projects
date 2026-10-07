@@ -16,7 +16,9 @@ import { expandAllCollapsedGroups } from "./support/collapsible-groups";
  *   - the private account, its movement and its number are invisible, and
  *     its balance moves no total on any page, under any Who;
  *   - the shared and joint accounts and their movements are visible;
- *   - the joint account's number is readable; the private one's is not.
+ *   - the joint account's number is readable; the private one's is not;
+ *   - a monthly income landing in it and a bill paid from it are not on
+ *     Subscriptions, and move none of its totals.
  *
  * "In no total" is measured rather than reasoned about: every amount on each
  * page is read before the private account exists and again after, and they
@@ -37,6 +39,7 @@ const PAGES = (who: string[]) => [
   ...who.map((w) => `/wealth?seg=cashflow&who=${w}`),
   ...who.map((w) => `/wealth?seg=assets&who=${w}`),
   "/wealth/transact",
+  "/wealth/subscriptions",
 ];
 
 type Me = { memberId: string; familyId: string };
@@ -119,6 +122,10 @@ test.describe("a private account, seen by the other grown-up", () => {
     try {
       if (!qa) return;
       const list = (await rows(qa, `accounts?select=id&name=like.${encodeURIComponent(FAMILY)}*`)) as { id: string }[];
+      // Repeating income and bills tied to this run's accounts (the
+      // Subscriptions page), before the accounts they point at.
+      await qa.ctx.delete(`${qa.url}/rest/v1/income_schedules?name=like.${encodeURIComponent(FAMILY)}*`, { headers: qa.headers });
+      await qa.ctx.delete(`${qa.url}/rest/v1/bills?name=like.${encodeURIComponent(FAMILY)}*`, { headers: qa.headers });
       if (list.length > 0) {
         const inList = `(${list.map((a) => a.id).join(",")})`;
         // Movements first: an account with history refuses to go.
@@ -183,6 +190,26 @@ test.describe("a private account, seen by the other grown-up", () => {
         expect(await amounts(page), `${path}: an amount changed when Quinn's private account was added`).toEqual(before.get(path));
       });
     }
+
+    await test.step("UI: Subscriptions leaves out what repeats through the private account", async () => {
+      // A monthly income that lands in it and a monthly bill paid from it.
+      // Both are the household's kind of row, but they point at the private
+      // account, so Subscriptions drops them for the partner -- list and
+      // totals. Checked on this page only: Cash Flow lists every income
+      // schedule and bill as it always has (not this spec's business yet).
+      await post(qa!, "income_schedules", {
+        family_id: quinn.familyId, name: `${secret} salary`, amount: 87_654.32, recurrence: "monthly", next_date: new Date(Date.now() + 9 * 86_400_000).toISOString().slice(0, 10),
+        status: "expected", account_id: secretId, is_joint: false, owner_member_id: quinn.memberId, created_by: quinn.memberId,
+      });
+      await post(qa!, "bills", {
+        family_id: quinn.familyId, name: `${secret} subscription`, amount: 765.43, recurrence: "monthly", due_date: new Date(Date.now() - 3 * 86_400_000).toISOString().slice(0, 10),
+        status: "paid", paid_at: new Date().toISOString(), paid_from_account_id: secretId, created_by: quinn.memberId,
+      });
+      await page.goto("/wealth/subscriptions", { waitUntil: "networkidle" });
+      const html = await page.content();
+      expect(html, "Subscriptions carries something tied to the private account").not.toContain(secret);
+      expect(await amounts(page), "Subscriptions: an amount changed with the private account's income and bill").toEqual(before.get("/wealth/subscriptions"));
+    });
 
     await test.step("UI: shared and joint accounts are listed for the partner", async () => {
       await page.goto("/wealth?seg=accounts&who=all", { waitUntil: "networkidle" });
