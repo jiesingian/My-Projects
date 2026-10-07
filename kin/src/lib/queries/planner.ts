@@ -5,6 +5,7 @@ import { startOfWeek as firstDayOfWeek, type WeekStart } from "@/lib/week";
 import { getHolidaysBetween, mergeHolidays } from "@/lib/holidays";
 import { getHouseholdSpecialDays } from "@/lib/queries/special-days";
 import { expandRoutine, assigneeFor, type RoutineRule } from "@/lib/routines";
+import { paidFromVisibleFilter } from "@/lib/wealth";
 
 export type PlannerCalendarItem = {
   id: string;
@@ -462,11 +463,14 @@ export async function getCalendarSyncStatus(familyId: string) {
  * from "nothing ever" — which want completely different things said to them. */
 export async function hasAnyCalendarRecords(familyId: string): Promise<boolean> {
   const supabase = await createClient();
+  // Bills paid from an account the viewer cannot see do not count: hidden
+  // means hidden, down to "you have something here".
+  const { data: seen } = await supabase.from("accounts").select("id").eq("family_id", familyId);
   const counts = await Promise.all([
     supabase.from("activities").select("id", { count: "exact", head: true }).eq("family_id", familyId),
     supabase.from("events").select("id", { count: "exact", head: true }).eq("family_id", familyId),
     supabase.from("trips").select("id", { count: "exact", head: true }).eq("family_id", familyId),
-    supabase.from("bills").select("id", { count: "exact", head: true }).eq("family_id", familyId).not("due_date", "is", null),
+    supabase.from("bills").select("id", { count: "exact", head: true }).eq("family_id", familyId).not("due_date", "is", null).or(paidFromVisibleFilter((seen ?? []).map((a) => a.id))),
     supabase.from("meal_plans").select("id", { count: "exact", head: true }).eq("family_id", familyId),
     supabase.from("goals").select("id", { count: "exact", head: true }).eq("family_id", familyId).not("target_date", "is", null),
   ]);

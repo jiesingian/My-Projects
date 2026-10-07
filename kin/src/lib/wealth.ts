@@ -358,6 +358,16 @@ export function timeSinceLabel(iso: string, now: Date = new Date()): string {
   return years === 1 ? "a year ago" : `${years} years ago`;
 }
 
+/** A PostgREST filter keeping only bills the viewer may know about: never
+ * paid, or paid from one of the accounts they can see (`seen`, read through
+ * the accounts policy as them). A bill paid from someone else's private
+ * account is theirs alone. In the query, so a limit or a count is of what
+ * may be shown, not of everything. */
+export function paidFromVisibleFilter(seen: string[]): string {
+  const ids = seen.filter((id) => /^[0-9a-f-]{36}$/i.test(id));
+  return ids.length > 0 ? `paid_from_account_id.is.null,paid_from_account_id.in.(${ids.join(",")})` : "paid_from_account_id.is.null";
+}
+
 export type BillLike = { due_date: string | null; status: string; amount: number | string };
 
 /** Bills due within the next `days`, soonest (or most overdue) first, with a

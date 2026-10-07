@@ -1,5 +1,6 @@
 import { test, expect } from "@playwright/test";
 import { addMonths, nextDate, subscriptionsFrom, yearlyTotal, type RepeatingRow } from "@/lib/subscriptions";
+import { paidFromVisibleFilter } from "@/lib/wealth";
 
 /** Subscriptions (src/lib/subscriptions.ts): what repeats, priced by the
  * month and the year, with when it next falls. */
@@ -51,4 +52,11 @@ test("monthly and yearly cost, one-offs left out, the same thing counted once", 
 test("an open charge past its date is overdue", () => {
   const [s] = subscriptionsFrom([row({ name: "PLDT", date: "2026-10-01" })], TODAY);
   expect(s).toMatchObject({ next: "2026-10-01", overdue: true });
+});
+
+test("bills paid from an account nobody showed you are filtered in the query", () => {
+  const a = "a4000000-0000-0000-0000-000000000001";
+  expect(paidFromVisibleFilter([])).toBe("paid_from_account_id.is.null");
+  expect(paidFromVisibleFilter([a])).toBe(`paid_from_account_id.is.null,paid_from_account_id.in.(${a})`);
+  expect(paidFromVisibleFilter([a, "x),name.eq.(y"])).toBe(`paid_from_account_id.is.null,paid_from_account_id.in.(${a})`);
 });
