@@ -34,7 +34,7 @@ export default async function LettersPage() {
       <Link href="/journal" style={{ fontSize: "0.8125rem", color: "var(--color-neutral-700)" }}>← Journal</Link>
       <h1 style={{ font: "600 1.75rem/1.1 var(--font-heading)", margin: "0.5rem 0 0.375rem" }}>Letters for later</h1>
       <p style={{ fontSize: "0.875rem", lineHeight: 1.5, color: "var(--color-neutral-700)", margin: "0 0 1.25rem" }}>
-        A letter to someone in the family, sealed until a day you choose — their 18th birthday, unless you pick another.
+        A letter to someone in the family, sealed until a day you choose — their 18th birthday, unless you pick another. Only you and they will ever read it.
       </p>
 
       {opened.length === 0 && sealed.length === 0 && (

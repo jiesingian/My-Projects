@@ -3,7 +3,8 @@ import { Blueprint } from "@/components/ui";
 import { getTimeCapsules } from "@/lib/queries/time-capsules";
 import { familyDay, readableDay } from "@/lib/time";
 
-/** Time-capsule letters that open today, on Today and atop the household
+/** Time-capsule letters that open today -- for their recipient and their
+ * writer only -- on Today and atop the household
  * journal. Before today only their writer could see them; nothing shows
  * here for a letter still sealed, because the table won't return it. */
 export async function LettersOpeningToday({ familyId }: { familyId: string }) {

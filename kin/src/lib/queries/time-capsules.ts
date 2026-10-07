@@ -14,9 +14,9 @@ export type TimeCapsule = {
   sealed: boolean;
 };
 
-/** Every letter this person may read: their own sealed ones and the
- * household's opened ones. The table's own rules decide which
- * (20261007090000_time_capsule_letters.sql); nothing is filtered here. */
+/** Every letter this person may read: the ones they wrote, and the
+ * opened ones written to them. The table's own rules decide which
+ * (20261007150000_time_capsules_recipient_only.sql); nothing is filtered here. */
 export async function getTimeCapsules(familyId: string, opts: { openingOn?: string } = {}): Promise<TimeCapsule[]> {
   const supabase = await createClient();
   let q = supabase

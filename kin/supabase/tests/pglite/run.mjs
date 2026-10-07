@@ -49,6 +49,7 @@ const MIGRATIONS = [
   "20261006100500_journal_entry_videos.sql",
   "20261006120000_tree_match_suggestions.sql",
   "20261007090000_time_capsule_letters.sql",
+  "20261007150000_time_capsules_recipient_only.sql",
 ];
 
 const only = process.argv[2];

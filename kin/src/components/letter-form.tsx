@@ -58,7 +58,7 @@ export function LetterForm({ recipients, today }: { recipients: LetterRecipient[
       <input className="input" aria-label="Title (optional)" placeholder="Title (optional)" maxLength={120} value={title} onChange={(e) => setTitle(e.target.value)} disabled={pending} />
       <textarea className="input" aria-label="Your letter" placeholder="Dear…" rows={8} maxLength={20000} value={body} onChange={(e) => setBody(e.target.value)} disabled={pending} />
       <p style={{ fontSize: "0.8125rem", margin: 0, color: "var(--color-neutral-700)" }}>
-        Until the day it opens, only you can see it. Then it shows on Today and here, for the whole household.
+        Until the day it opens, only you can see it. Then it shows on Today and here for the person itThen it shows on Today and here, for the whole household.apos;s for, and still for you — nobody else.
       </p>
       <button type="button" className="btn btn-primary" disabled={pending || !recipientId || !body.trim() || needsDate} onClick={seal}>
         {pending ? "Sealing…" : "Seal the letter"}

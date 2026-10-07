@@ -1,6 +1,6 @@
 const U = (s) => `10000000-0000-0000-0000-0000000000${s}`;
 const P = (s) => `00000000-0000-0000-0000-0000000000${s}`;
-// Time-capsule letters (20261007090000).
+// Time-capsule letters (20261007090000, read rule from 20261007150000).
 export default async function ({ db, as, check, refused }) {
   const ann = U("a1"), kid = U("a2"), abe = U("a4"), ben = U("b1");
   const kidM = P("a2"), annM = P("a1"), benM = P("b1");
@@ -36,9 +36,10 @@ export default async function ({ db, as, check, refused }) {
     return (early && r?.body === "Sealed words") || { early, r };
   });
   await db.exec(`update time_capsules set opens_on = current_date - 1 where id = '${sealed.id}'`);
-  await check("Opened: the whole household reads it; another household still can't", async () =>
+  await check("Opened: Kid (the recipient) and Ann (the writer) read it; Abe (same household) and Ben (another) still can't", async () =>
     (await as(kid, "select body from time_capsules where id = $1", [sealed.id]))[0]?.body === "Sealed words" &&
-    (await as(abe, "select 1 from time_capsules where id = $1", [sealed.id])).length === 1 &&
+    (await as(ann, "select 1 from time_capsules where id = $1", [sealed.id])).length === 1 &&
+    (await as(abe, "select 1 from time_capsules where id = $1", [sealed.id])).length === 0 &&
     (await as(ben, "select 1 from time_capsules where id = $1", [sealed.id])).length === 0);
   await check("Opened letters can't be rewritten, even by the writer", async () => {
     await as(ann, "update time_capsules set body = 'rewritten' where id = $1", [sealed.id]);
