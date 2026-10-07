@@ -65,8 +65,9 @@ test.describe("what we send to Google", () => {
     const start = new Date("2026-09-19T10:00:00.000Z"); // 18:00 in Manila
     const body = toGoogleEventBody({ title: "Evening mass", startAt: start });
 
-    expect(body.start).toEqual({ dateTime: "2026-09-19T10:00:00.000Z" });
-    expect(body.end).toEqual({ dateTime: "2026-09-19T11:00:00.000Z" });
+    // Manila's clock unless the household has its own (20261007140000).
+    expect(body.start).toEqual({ dateTime: "2026-09-19T10:00:00.000Z", timeZone: "Asia/Manila" });
+    expect(body.end).toEqual({ dateTime: "2026-09-19T11:00:00.000Z", timeZone: "Asia/Manila" });
   });
 
   test("an end that was given is the end that is sent", () => {
@@ -75,7 +76,7 @@ test.describe("what we send to Google", () => {
       startAt: new Date("2026-09-07T12:30:00.000Z"),
       endAt: new Date("2026-09-07T13:30:00.000Z"),
     });
-    expect(body.end).toEqual({ dateTime: "2026-09-07T13:30:00.000Z" });
+    expect(body.end).toEqual({ dateTime: "2026-09-07T13:30:00.000Z", timeZone: "Asia/Manila" });
   });
 
   /** A reminder is the only part of this that reaches a phone's lock screen,
@@ -343,4 +344,29 @@ test.describe("setting aside an event that never applies", () => {
     expect(syncLinkPatch("tok-2", 0, NOW).last_synced_at).toBe(NOW);
     expect(syncLinkPatch("tok-2", 5, NOW).last_synced_at).toBe(NOW);
   });
+});
+
+test("an all-day item keeps its own date whatever the household's zone (20261007140000)", () => {
+  const make = allDayEvent, body = toGoogleEventBody;
+  for (const tz of ["Asia/Manila", "America/Los_Angeles", "Pacific/Auckland"]) {
+    const trip = make("Cebu", "2026-10-09", { endDay: "2026-10-11" }, tz)!;
+    const sent = body({ ...trip, timeZone: tz });
+    expect(sent.start, tz).toEqual({ date: "2026-10-09" });
+    expect(sent.end, tz).toEqual({ date: "2026-10-12" });
+  }
+});
+
+test("a timed item tells Google whose clock it follows, so a weekly repeat keeps its local hour", () => {
+  const body = toGoogleEventBody;
+  const startAt = new Date("2026-10-09T16:00:00Z");
+  expect(body({ title: "Swim", startAt, timeZone: "America/Los_Angeles" }).start).toEqual({ dateTime: "2026-10-09T16:00:00.000Z", timeZone: "America/Los_Angeles" });
+  expect(body({ title: "Swim", startAt }).start.timeZone).toBe("Asia/Manila");
+});
+
+test("an event read back from Google lands on the household's own day", () => {
+  const read = eventStartEnd;
+  // 02:00 UTC on 10 Oct is the 10th in Manila and still the 9th in Los Angeles.
+  const ev = { id: "x", status: "confirmed" as const, start: { dateTime: "2026-10-10T02:00:00Z" } };
+  expect(read(ev)?.day).toBe("2026-10-10");
+  expect(read(ev, "America/Los_Angeles")?.day).toBe("2026-10-09");
 });
