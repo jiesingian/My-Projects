@@ -20,6 +20,7 @@ import { getFamilyFeed, getFamilyLinks, getFeedOccasions } from "@/lib/queries/f
 import { isGrownUp } from "@/lib/roles";
 import { AddToHouseholdButton } from "@/components/add-to-household";
 import { EntryShareOptions } from "@/components/entry-share-options";
+import { LettersOpeningToday } from "@/components/letters-opening";
 
 /* Gallery, Entries and Milestones were three hub segments; now they are one
    -- Entries -- with these three as views inside it. A person reading a day
@@ -173,8 +174,12 @@ async function EntriesPane({ familyId, mine, milestonesOnly = false }: { familyI
           <Link href="/journal?view=milestones" className="chip" data-active={milestonesOnly} aria-current={milestonesOnly ? "page" : undefined}>
             <span aria-hidden="true">★</span> Milestones
           </Link>
+          <Link href="/journal/letters" className="chip">
+            Letters for later
+          </Link>
         </nav>
       )}
+      {!mine && !milestonesOnly && <LettersOpeningToday familyId={familyId} />}
       {!mine && !milestonesOnly && <Link href={`/journal/new?title=${encodeURIComponent(question)}`} className="kin-story">
         <span className="kin-story-label">This week&apos;s question</span>
         <span className="kin-story-q">{question}</span>
