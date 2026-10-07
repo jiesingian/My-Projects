@@ -40,7 +40,7 @@ async function fetchCalendarItems(familyId: string, rangeStart: Date, rangeEnd: 
 
   // No trips fetch: travel is a kind of event now, so it arrives with the
   // events and needs no second query or second loop.
-  const [{ data: activities }, { data: events }, { data: bills }, { data: meals }, { data: goals }, { data: routines }, holidays] = await Promise.all([
+  const [{ data: activities }, { data: events }, { data: allBills }, { data: meals }, { data: goals }, { data: routines }, holidays, { data: seenAccounts }] = await Promise.all([
     supabase
       .from("activities")
       .select("*, activity_members(members(id, full_name))")
@@ -75,7 +75,16 @@ async function fetchCalendarItems(familyId: string, rangeStart: Date, rangeEnd: 
     // for everyone, cached for a day (lib/holidays).
     // With the household's own special days (20260930171000) among them.
     Promise.all([getHolidaysBetween(startDate, endDate), getHouseholdSpecialDays(familyId, startDate, endDate)]).then(([pub, own]) => mergeHolidays(pub, own)),
+    // The accounts the viewer can see (RLS, archived ones too), for the bills
+    // below.
+    supabase.from("accounts").select("id").eq("family_id", familyId),
   ]);
+
+  // A bill paid from an account the viewer cannot see -- someone's private
+  // account -- is left off their calendar, as on Cash Flow and Subscriptions
+  // (e2e/private-accounts.spec.ts).
+  const canSee = new Set((seenAccounts ?? []).map((a) => a.id));
+  const bills = (allBills ?? []).filter((b) => !b.paid_from_account_id || canSee.has(b.paid_from_account_id));
 
   const items: PlannerCalendarItem[] = [];
 
