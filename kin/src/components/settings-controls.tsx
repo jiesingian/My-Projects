@@ -12,7 +12,7 @@ import { TEXT_SCALE_DEFAULT, TEXT_SCALE_MAX, TEXT_SCALE_MIN } from "@/lib/text-s
 import { CopyInviteCode } from "@/components/copy-invite-code";
 import { Blueprint } from "@/components/ui";
 import { NOTIFICATION_DEFS } from "@/lib/notifications";
-import { CURRENCIES, DATE_FORMATS, WEEK_STARTS } from "@/lib/household-prefs";
+import { CURRENCIES, DATE_FORMATS, WEEK_STARTS, TIME_ZONES, COUNTRY_TIME_ZONE } from "@/lib/household-prefs";
 import { familyDateTime } from "@/lib/time";
 import { COUNTRIES } from "@/lib/countries";
 import { PALETTES, type PaletteMode } from "@/lib/palettes";
@@ -376,17 +376,20 @@ export function HouseholdPrefsForm({
   dateFormat,
   weekStart,
   country,
+  timeZone,
 }: {
   currency: string;
   dateFormat: string;
   weekStart: string;
   country: string | null;
+  timeZone: string;
 }) {
   const uid = useId();
   const [c, setC] = useState(currency);
   const [d, setD] = useState(dateFormat);
   const [w, setW] = useState(weekStart);
   const [k, setK] = useState(country ?? "");
+  const [z, setZ] = useState(timeZone);
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
   return (
@@ -424,11 +427,35 @@ export function HouseholdPrefsForm({
           requires it. */}
       <div className="field" style={{ marginBottom: "0.5rem" }}>
         <label htmlFor={`${uid}-country`}>Country</label>
-        <select id={`${uid}-country`} className="input" value={k} onChange={(e) => setK(e.target.value)} style={{ minHeight: "2.5rem" }}>
+        <select
+          id={`${uid}-country`}
+          className="input"
+          value={k}
+          onChange={(e) => {
+            setK(e.target.value);
+            // A new country suggests its usual zone; the zone can still be
+            // changed by hand (the US and Australia have several).
+            const suggested = COUNTRY_TIME_ZONE[e.target.value];
+            if (suggested) setZ(suggested);
+          }}
+          style={{ minHeight: "2.5rem" }}
+        >
           <option value="">— not set —</option>
           {COUNTRIES.map((cc) => (
             <option key={cc.code} value={cc.code}>
               {cc.label}
+            </option>
+          ))}
+        </select>
+      </div>
+      {/* Where the household's day starts and ends: "today", reminders and
+          times all follow this (families.time_zone). */}
+      <div className="field" style={{ marginBottom: "0.5rem" }}>
+        <label htmlFor={`${uid}-tz`}>Time zone</label>
+        <select id={`${uid}-tz`} className="input" value={z} onChange={(e) => setZ(e.target.value)} style={{ minHeight: "2.5rem" }}>
+          {TIME_ZONES.map((tz) => (
+            <option key={tz.value} value={tz.value}>
+              {tz.label}
             </option>
           ))}
         </select>
@@ -440,7 +467,7 @@ export function HouseholdPrefsForm({
         style={{ minHeight: "2.5rem", fontSize: "0.84375rem" }}
         onClick={() =>
           startTransition(async () => {
-            const result = await updateHouseholdPrefsAction(c, d, w, k);
+            const result = await updateHouseholdPrefsAction(c, d, w, k, z);
             setError(result.error);
           })
         }
