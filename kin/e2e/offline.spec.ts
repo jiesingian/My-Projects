@@ -202,13 +202,17 @@ test.describe("offline Kin", () => {
     await page.getByLabel("Your message").fill(target);
     await page.keyboard.press("Enter");
     await expect(page.locator(".kin-bubble", { hasText: target })).toBeVisible();
+    // Let the refresh that follows a send finish: cut off mid-refresh, Next
+    // falls back to a full load, which offline is the saved copy.
+    await page.waitForLoadState("networkidle");
 
     await context.setOffline(true);
     await page.locator(".kin-bubble", { hasText: target }).click();
     await page.getByRole("button", { name: "Reply", exact: true }).click();
     await expect(page.getByText(/Replying to/)).toBeVisible();
     await page.getByLabel("Your message").fill(`@${first.slice(0, 2)}`);
-    await page.getByRole("button", { name: new RegExp(`^${first}`) }).first().click();
+    // The chip reads its initials, then the name ("RT Robin").
+    await page.getByRole("button", { name: new RegExp(`\\b${first}$`) }).first().click();
     await page.getByLabel("Your message").pressSequentially(reply);
     await page.keyboard.press("Enter");
 
