@@ -28,10 +28,11 @@ import { Icon } from "@/components/icons";
 import { CALENDAR_LEGEND, styleFor } from "@/lib/calendar-style";
 import { parseHidden, serializeHidden, toggledHidden, type CalendarGroup } from "@/lib/calendar-groups";
 import { familyClock, familyDateLong, familyDay } from "@/lib/time";
+import { bonusOn } from "@/lib/streaks";
 import { dayColumn, startOfWeek, weekdayInitials, weekStartOf, type WeekStart } from "@/lib/week";
 import { CalendarJump, CalendarPeriod, DateRail, MonthScroller, TodayButton } from "@/components/calendar-nav";
 import { AddToCalendar } from "@/components/add-to-calendar";
-import { getRoutines, getMemberScores, getRewards, type MemberScore } from "@/lib/queries/routines";
+import { getRoutines, getMemberScores, getRewards, getStreakBonusRates, type MemberScore } from "@/lib/queries/routines";
 import { describeRule, formatTimeOfDay, ROUTINE_KIND_META, type RoutineKind } from "@/lib/routines";
 import { RoutineTick, RoutineOccurrences, RoutinePauseButton, RoutineDeleteButton } from "@/components/routine-controls";
 import { CalendarSyncStatus, RememberFilter } from "@/components/calendar-sync-status";
@@ -666,7 +667,8 @@ function Scoreboard({ scores }: { scores: MemberScore[] }) {
   return (
     <div style={{ display: "flex", gap: "0.5rem", overflowX: "auto", paddingBottom: "0.25rem", marginBottom: "0.875rem" }}>
       {worth.map((s) => (
-        <Blueprint key={s.id} style={{ padding: "0.5625rem 0.75rem", flex: "none", minWidth: 96 }}>
+        <Link key={s.id} href={`/planner/points/${s.id}`} aria-label={`${s.name}: points and history`} style={{ textDecoration: "none", color: "inherit", flex: "none" }}>
+        <Blueprint style={{ padding: "0.5625rem 0.75rem", minWidth: 96 }}>
           <div style={{ fontSize: "0.78125rem", color: "var(--color-neutral-600)" }}>{s.name.split(" ")[0]}</div>
           <div style={{ display: "flex", alignItems: "baseline", gap: "0.3125rem" }}>
             <span style={{ font: "600 1.375rem/1.1 var(--font-heading)", color: "var(--color-accent-700)" }}>{s.points}</span>
@@ -677,7 +679,11 @@ function Scoreboard({ scores }: { scores: MemberScore[] }) {
               {s.awaiting} waiting
             </div>
           )}
+          {s.spent > 0 && (
+            <div style={{ fontSize: "0.71875rem", color: "var(--color-neutral-600)", marginTop: "0.125rem" }}>{s.spendable} to spend</div>
+          )}
         </Blueprint>
+        </Link>
       ))}
     </div>
   );
@@ -740,12 +746,13 @@ async function RoutinesPane({ familyId, who, currency, justSaved }: { familyId: 
   const memberId = who === "all" ? undefined : who;
   // Both kinds of task: the recurring ones, and the one-offs that used to be
   // called activities and could be read back nowhere but the calendar.
-  const [routines, allOneOffs, scores, rewards, me] = await Promise.all([
+  const [routines, allOneOffs, scores, rewards, me, bonusRates] = await Promise.all([
     getRoutines(familyId, memberId),
     getOneOffTasks(familyId, `${familyDay()}T00:00:00.000Z`),
     getMemberScores(familyId),
     getRewards(familyId),
     getCurrentMember(),
+    getStreakBonusRates(familyId),
   ]);
   const oneOffs = allOneOffs.filter((t) => concerns(t.memberIds, t.applies_to_whole_family, who));
   const dueToday = routines.filter((r) => !r.paused && r.today);
@@ -779,6 +786,7 @@ async function RoutinesPane({ familyId, who, currency, justSaved }: { familyId: 
         rewards={rewards}
         me={scores.find((s) => s.id === me?.id)}
         canManage={isGrownUp(me?.role ?? "")}
+        streakBonus={isGrownUp(me?.role ?? "") ? bonusOn(bonusRates, familyDay()) : undefined}
       />
 
       <OneOffTasks tasks={oneOffs} />

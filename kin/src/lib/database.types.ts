@@ -5393,6 +5393,51 @@ export type Database = {
           },
         ]
       }
+      streak_bonus_rates: {
+        Row: {
+          created_at: string
+          effective_from: string
+          family_id: string
+          id: string
+          set_by: string | null
+          seven: number
+          thirty: number
+        }
+        Insert: {
+          created_at?: string
+          effective_from: string
+          family_id: string
+          id?: string
+          set_by?: string | null
+          seven: number
+          thirty: number
+        }
+        Update: {
+          created_at?: string
+          effective_from?: string
+          family_id?: string
+          id?: string
+          set_by?: string | null
+          seven?: number
+          thirty?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "streak_bonus_rates_family_id_fkey"
+            columns: ["family_id"]
+            isOneToOne: false
+            referencedRelation: "families"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "streak_bonus_rates_set_by_fkey"
+            columns: ["set_by"]
+            isOneToOne: false
+            referencedRelation: "members"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       routine_attachments: {
         Row: {
           created_at: string
@@ -5913,6 +5958,10 @@ export type Database = {
       children_connections: {
         Args: never
         Returns: { id: string; child_person_id: string; child_name: string; other_person_id: string; other_name: string; other_household: string | null; status: string; requested_at: string }[]
+      }
+      set_streak_bonus: {
+        Args: { p_seven: number; p_thirty: number }
+        Returns: undefined
       }
       guardian_decide_connection: {
         Args: { p_id: string; p_approve: boolean }
