@@ -10,6 +10,8 @@ import { familyDay, familyClock, familyDateLong } from "@/lib/time";
 import { Avatar } from "@/components/avatar";
 import { createClient } from "@/lib/supabase/client";
 import { isNetworkFailure, isOffline, newOpId, queueOffline, useQueue } from "@/lib/offline/live";
+import type { QueuedFile } from "@/lib/offline/types";
+import type { OutgoingAttachment } from "@/lib/actions/chat";
 import { uploadFileDirect } from "@/lib/upload-client";
 import {
   sendMessageAction,
@@ -105,6 +107,36 @@ function seenLabel(ids: string[], byId: Map<string, { label: string }>, househol
   if (names.length === 1) return names[0];
   if (names.length === 2) return `${names[0]} and ${names[1]}`;
   return `${names[0]} and ${names.length - 1} others`;
+}
+
+
+/** Picked files as the offline queue keeps them: the file itself, as a
+ * Blob IndexedDB can hold, with what Storage and the message need. */
+function keepable(picked: { file: File; transcript?: string }[]): QueuedFile[] {
+  return picked.map((p) => ({ name: p.file.name, type: p.file.type, size: p.file.size, blob: p.file, transcript: p.transcript }));
+}
+
+/** A waiting message's photos, drawn from the copies on the phone. */
+function QueuedFiles({ files }: { files: QueuedFile[] }) {
+  const urls = useMemo(() => files.map((f) => (f.type.startsWith("image/") ? URL.createObjectURL(f.blob) : null)), [files]);
+  // Each URL holds its photo in memory until released.
+  useEffect(() => () => {
+    for (const u of urls) if (u) URL.revokeObjectURL(u);
+  }, [urls]);
+  return (
+    <span style={{ display: "flex", flexWrap: "wrap", gap: "0.25rem", justifyContent: "flex-end" }}>
+      {files.map((f, i) =>
+        urls[i] ? (
+          // eslint-disable-next-line @next/next/no-img-element -- a local object URL, not something next/image can optimise
+          <img key={i} src={urls[i]!} alt={f.name} style={{ width: 96, height: 96, objectFit: "cover", borderRadius: 12 }} />
+        ) : (
+          <span key={i} className="kin-picked-file" style={{ fontSize: "0.75rem" }}>
+            <Icon name={f.type.startsWith("audio/") ? "mic" : "paperclip"} size={12} /> {f.type.startsWith("audio/") ? "Voice note" : f.name}
+          </span>
+        ),
+      )}
+    </span>
+  );
 }
 
 /** The household's thread. Messages arrive as they are sent — the page holds
@@ -444,8 +476,14 @@ export function ChatThread({
 
   /** Offline, a message waits in the queue (lib/offline/live) and is posted
    * on reconnect, in order, once (app/api/offline/replay) -- with its @tags
-   * and the message it answers. Files need a signal. */
-  const later = useCallback(async (body: string, mentions: string[], answering: ChatMessage | null): Promise<boolean> => {
+   * and the message it answers, and its photos and files: kept on the phone
+   * as picked, or already uploaded when only the send itself failed. */
+  const later = useCallback(async (
+    body: string,
+    mentions: string[],
+    answering: ChatMessage | null,
+    files?: { files?: QueuedFile[]; uploaded?: OutgoingAttachment[] },
+  ): Promise<boolean> => {
     const quote = answering
       ? {
           who: answering.memberId ? (byId.get(answering.memberId)?.label ?? "Someone") : "Someone",
@@ -461,6 +499,7 @@ export function ChatThread({
       mentions,
       replyTo: answering?.id ?? null,
       quote,
+      ...files,
     });
     if (why) setError(why);
     return !why;
@@ -475,16 +514,15 @@ export function ChatThread({
     const answeringMessage = replyingTo;
     const answering = replyingTo?.id ?? null;
     if (isOffline()) {
-      if (files.length > 0) {
-        setError("You're offline. Words can wait to send; photos and files need a signal.");
-        return;
-      }
       setDraft("");
       setMentioned([]);
       setReplyingTo(null);
       setError(null);
-      void later(body, stillThere, answeringMessage).then((ok) => {
-        if (ok) return;
+      void later(body, stillThere, answeringMessage, files.length ? { files: keepable(files) } : undefined).then((ok) => {
+        if (ok) {
+          setPicked([]);
+          return;
+        }
         // Not kept: everything goes back as it was, tags and quote included.
         setDraft(body);
         setMentioned(stillThere);
@@ -515,6 +553,13 @@ export function ChatThread({
           }));
         } catch (e) {
           setUploading(false);
+          // The signal went while the files were going up: they wait on the
+          // phone with the message, and go up on reconnect.
+          if (isNetworkFailure(e) && (await later(body, stillThere, answeringMessage, { files: keepable(files) }))) {
+            setPendingBody(null);
+            setPicked([]);
+            return;
+          }
           setError(e instanceof Error ? e.message : "A file didn't upload.");
           setPendingBody(null);
           setDraft(body);
@@ -528,7 +573,11 @@ export function ChatThread({
         result = await sendMessageAction({ body, mentions: stillThere, replyTo: answering, attachments });
       } catch (e) {
         setPendingBody(null);
-        if (isNetworkFailure(e) && attachments.length === 0 && body && (await later(body, stillThere, answeringMessage))) return;
+        // Files already up: only the message waits, pointing at them.
+        if (isNetworkFailure(e) && (await later(body, stillThere, answeringMessage, attachments.length ? { uploaded: attachments } : undefined))) {
+          setPicked([]);
+          return;
+        }
         setError("That message didn't send. Try again.");
         setDraft(body);
         return;
@@ -1045,13 +1094,19 @@ export function ChatThread({
                   <span className="kin-quote-text">{q.quote.text}</span>
                 </span>
               )}
+              {q.files && q.files.length > 0 && <QueuedFiles files={q.files} />}
+              {q.uploaded && q.uploaded.length > 0 && (
+                <span className="kin-picked-file" style={{ fontSize: "0.75rem" }}>
+                  <Icon name="paperclip" size={12} /> {q.uploaded.length === 1 ? "1 file" : `${q.uploaded.length} files`}
+                </span>
+              )}
               {chatMedia(q.body) ? (
                 <ChatMediaView media={chatMedia(q.body)!} />
-              ) : (
+              ) : q.body ? (
                 <span className="kin-bubble" data-mine="true">
                   {q.body}
                 </span>
-              )}
+              ) : null}
               <span style={{ display: "inline-flex", alignItems: "center", gap: "0.25rem", fontSize: "0.6875rem", color: "var(--color-neutral-600)" }}>
                 <Icon name="clock" size={11} /> Sends when you&rsquo;re back online
               </span>

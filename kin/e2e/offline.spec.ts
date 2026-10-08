@@ -244,6 +244,47 @@ test.describe("offline Kin", () => {
     }
   });
 
+  test("a photo sent offline waits on the phone and goes up on reconnect", async ({ page, context }) => {
+    test.setTimeout(180_000);
+    const qa = await restAsQa();
+    test.skip(!qa, "Needs the QA household's Supabase details to check the stored message.");
+    const run = Date.now().toString(36);
+    const words = `Offline photo ${run}`;
+    // A 1x1 PNG, made here so the suite carries no fixture file.
+    const png = Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==", "base64");
+
+    await page.goto("/chat/household");
+    await page.waitForTimeout(1500);
+    await page.reload();
+    await waitForOfflineReady(page);
+
+    await context.setOffline(true);
+    await page.locator('input[type="file"][accept^="image/*"]').setInputFiles({ name: `offline-${run}.png`, mimeType: "image/png", buffer: png });
+    await page.getByLabel("Your message").fill(words);
+    await page.keyboard.press("Enter");
+
+    // Waiting, with the photo drawn from the phone's own copy.
+    await expect(page.getByText("Sends when you’re back online")).toBeVisible();
+    await expect(page.getByRole("img", { name: `offline-${run}.png` })).toBeVisible();
+    await shot(page, "11-live-photo-offline");
+
+    await context.setOffline(false);
+    await expect(page.getByText("Sends when you’re back online")).toHaveCount(0, { timeout: 45_000 });
+
+    // Posted once, with its one photo.
+    const rows = (await (await qa!.ctx.get(`${qa!.url}/rest/v1/family_messages?select=id&body=eq.${encodeURIComponent(words)}`, { headers: qa!.headers })).json()) as { id: string }[];
+    expect(rows).toHaveLength(1);
+    const files = (await (
+      await qa!.ctx.get(`${qa!.url}/rest/v1/family_message_attachments?select=storage_path,mime_type&message_id=eq.${rows[0].id}`, { headers: qa!.headers })
+    ).json()) as { storage_path: string; mime_type: string }[];
+    expect(files).toHaveLength(1);
+    expect(files[0].mime_type).toBe("image/png");
+
+    // Tidy: the message unsent and its file removed, as the app does.
+    await qa!.ctx.patch(`${qa!.url}/rest/v1/family_messages?id=eq.${rows[0].id}`, { headers: qa!.headers, data: { deleted_at: new Date().toISOString(), body: "" } });
+    await qa!.ctx.delete(`${qa!.url}/storage/v1/object/documents`, { headers: { ...qa!.headers, "Content-Type": "application/json" }, data: { prefixes: files.map((f) => f.storage_path) } });
+  });
+
   test("the shell shows nothing once signed out", async ({ browser }) => {
     // A fresh, signed-out context: the sign-in screen clears the phone, and
     // with nothing saved the shell says so rather than showing anybody's data.

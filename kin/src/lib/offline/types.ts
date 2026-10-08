@@ -116,7 +116,21 @@ export type QueuedOp =
       /** The quote as it looked when written, so the waiting bubble can show
        * it even after the message it answers has scrolled out of the thread. */
       quote?: { who: string; text: string };
+      /** Photos, voice notes and files picked offline, kept on the phone as
+       * they were picked until there is a signal to upload them. Never sent
+       * to the replay route: the phone uploads them first (lib/offline/sync)
+       * and swaps them for `uploaded`. */
+      files?: QueuedFile[];
+      /** The same files once in Storage, ready to attach. Kept in the queue,
+       * so a replay that fails after uploading does not upload them twice. */
+      uploaded?: { storagePath: string; fileName: string; mimeType: string; sizeBytes: number; transcript?: string }[];
     };
+
+export type QueuedFile = { name: string; type: string; size: number; blob: Blob; transcript?: string };
+
+/** What may wait on the phone in files, across the whole queue: a handful
+ * of photos or a voice note, without filling a phone's browser storage. */
+export const MAX_QUEUED_FILE_BYTES = 100 * 1024 * 1024;
 
 export type ReplayResult = {
   id: string;
