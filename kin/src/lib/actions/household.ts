@@ -7,7 +7,7 @@ import { createClient } from "@/lib/supabase/server";
 import { sendPush } from "@/lib/push";
 import { requireCurrentMember } from "@/lib/session";
 import { syncRowToCalendars, removeRowFromCalendars } from "@/lib/actions/calendar-sync";
-import { MARKET_SECTIONS, guessSection, parseQuantity } from "@/lib/grocery";
+import { MARKET_SECTIONS, guessSection } from "@/lib/grocery";
 import { normalizeKey } from "@/lib/pricebook";
 import {
   MEAL_SLOTS,
@@ -21,13 +21,13 @@ import {
 import { MAX_GLASSES, type LiquidIntakeType } from "@/lib/liquid-intake";
 import { RECIPE_PHOTO_BUCKET } from "@/lib/meal-photos";
 import type { ActionState } from "@/lib/actions/auth";
-import type { TablesInsert } from "@/lib/database.types";
 import { allDayEvent } from "@/lib/calendar-shape";
 import { familyDay, weekdayOf, addDays } from "@/lib/time";
 import { humanDatabaseError } from "@/lib/db-errors";
 import { clamp } from "@/lib/text";
 import { getRecipeBook } from "@/lib/queries/recipes";
 import { planDinners, rankByPantry } from "@/lib/pantry-match";
+import { planAdd, planRemove } from "@/lib/meal-shopping";
 
 export async function addBuyItemAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
   const me = await requireCurrentMember();
@@ -216,12 +216,118 @@ export async function addMealPlanAction(_prev: ActionState, formData: FormData):
       })),
     );
     if (ingredientError) return { error: `The meal was saved, but not what it needs. ${ingredientError.message}` };
+    if (date >= familyDay(new Date(), me.families.time_zone)) {
+      const listed = await putMealsOnList(supabase, me, [plan.id]);
+      if (listed.error) return { error: `The meal was saved, but the shopping list wasn't updated. ${listed.error}` };
+    }
   }
 
   await syncRowToCalendars(me.family_id, "meal_plans", plan.id, allDayEvent(dish, date), { kind: "all" });
 
   revalidatePath("/household");
   redirect("/household?seg=meals");
+}
+
+type Supabase = Awaited<ReturnType<typeof createClient>>;
+
+/** Puts these meals' missing ingredients on the list (lib/meal-shopping):
+ * merged by item and unit into what is already there, each line linked to
+ * the meals it is for, nothing added twice for the same meal. Returns how
+ * many lines were added or grew. */
+async function putMealsOnList(supabase: Supabase, me: { id: string; family_id: string }, mealIds: string[]): Promise<{ error: string | null; added: number }> {
+  if (mealIds.length === 0) return { error: null, added: 0 };
+  const [{ data: meals, error: mealError }, { data: open }, { data: links }, { data: pantry }] = await Promise.all([
+    supabase
+      .from("meal_plans")
+      .select("id, meal_ingredients(ingredient_name, item_key, qty, qty_amount, unit, section)")
+      .eq("family_id", me.family_id)
+      .in("id", mealIds),
+    supabase.from("buy_items").select("id, name, quantity, unit, source").eq("family_id", me.family_id).eq("checked", false).eq("cleared", false).order("created_at"),
+    supabase.from("buy_item_meals").select("buy_item_id, meal_plan_id, quantity").eq("family_id", me.family_id).in("meal_plan_id", mealIds),
+    supabase.from("pantry_items").select("item_key").eq("family_id", me.family_id),
+  ]);
+  if (mealError) return { error: humanDatabaseError(mealError.message), added: 0 };
+
+  const plan = planAdd(
+    (meals ?? []).map((m) => ({ id: m.id, ingredients: m.meal_ingredients ?? [] })),
+    open ?? [],
+    links ?? [],
+    new Set((pantry ?? []).map((p) => p.item_key)),
+  );
+
+  // Ids made here so each new line's links can be written alongside it.
+  const created = plan.create.map((c) => ({ ...c, id: crypto.randomUUID() }));
+  if (created.length > 0) {
+    const { error } = await supabase.from("buy_items").insert(
+      created.map((c) => ({
+        id: c.id,
+        family_id: me.family_id,
+        name: c.name,
+        quantity: c.quantity,
+        unit: c.unit,
+        section: c.section,
+        source: "meal_plan",
+        created_by: me.id,
+      })),
+    );
+    if (error) return { error: `The shopping list could not be written. ${humanDatabaseError(error.message)}`, added: 0 };
+  }
+  for (const g of plan.grow) {
+    const { error } = await supabase.from("buy_items").update({ quantity: g.quantity }).eq("id", g.id).eq("family_id", me.family_id);
+    if (error) return { error: `The shopping list could not be updated. ${humanDatabaseError(error.message)}`, added: 0 };
+  }
+  const newLinks = [
+    ...plan.links,
+    ...created.flatMap((c) => c.meals.map((m) => ({ buy_item_id: c.id, meal_plan_id: m.mealId, quantity: m.quantity }))),
+  ].map((l) => ({ ...l, family_id: me.family_id }));
+  if (newLinks.length > 0) {
+    const { error } = await supabase.from("buy_item_meals").insert(newLinks);
+    if (error) return { error: `The list was updated, but not which meals it is for. ${humanDatabaseError(error.message)}`, added: 0 };
+  }
+  return { error: null, added: created.length + plan.grow.length };
+}
+
+/** What removing this meal takes back off the list (lib/meal-shopping).
+ * Worked out while the links still exist -- they go with the meal, by
+ * cascade -- and carried out only once the meal is really gone. */
+async function planMealOffList(
+  supabase: Supabase,
+  familyId: string,
+  mealId: string,
+): Promise<{ error: string | null; remove: string[]; shrink: { id: string; quantity: number | null }[] }> {
+  const none = { remove: [], shrink: [] };
+  const { data: mine, error } = await supabase
+    .from("buy_item_meals")
+    .select("quantity, buy_items(id, quantity, source, checked, cleared)")
+    .eq("family_id", familyId)
+    .eq("meal_plan_id", mealId);
+  if (error) return { error: humanDatabaseError(error.message), ...none };
+  const lines = (mine ?? []).flatMap((l) => (l.buy_items ? [{ ...l.buy_items, share: l.quantity }] : []));
+  if (lines.length === 0) return { error: null, ...none };
+
+  const { data: others, error: othersError } = await supabase
+    .from("buy_item_meals")
+    .select("buy_item_id")
+    .eq("family_id", familyId)
+    .neq("meal_plan_id", mealId)
+    .in("buy_item_id", lines.map((l) => l.id));
+  if (othersError) return { error: humanDatabaseError(othersError.message), ...none };
+  const count = new Map<string, number>();
+  for (const o of others ?? []) count.set(o.buy_item_id, (count.get(o.buy_item_id) ?? 0) + 1);
+
+  return { error: null, ...planRemove(lines.map((l) => ({ ...l, others: count.get(l.id) ?? 0 }))) };
+}
+
+async function applyMealOffList(supabase: Supabase, familyId: string, { remove, shrink }: { remove: string[]; shrink: { id: string; quantity: number | null }[] }): Promise<string | null> {
+  if (remove.length > 0) {
+    const { error: removeError } = await supabase.from("buy_items").delete().eq("family_id", familyId).in("id", remove);
+    if (removeError) return humanDatabaseError(removeError.message);
+  }
+  for (const s of shrink) {
+    const { error: shrinkError } = await supabase.from("buy_items").update({ quantity: s.quantity }).eq("id", s.id).eq("family_id", familyId);
+    if (shrinkError) return humanDatabaseError(shrinkError.message);
+  }
+  return null;
 }
 
 /** `weekOf` is any day in the week to build from — the week the meal plan is
@@ -249,54 +355,24 @@ export async function generateGroceryListAction(weekOf?: string): Promise<{ erro
   const weekEnd = weekStart && addDays(weekStart, 7);
   if (!weekStart || !weekEnd) return { error: "That week could not be read.", added: 0 };
 
-  const [{ data: meals }, { data: openBuy }] = await Promise.all([
-    supabase
-      .from("meal_plans")
-      .select("meal_ingredients(ingredient_name, qty, qty_amount, unit, section, item_key)")
-      .eq("family_id", familyId)
-      .gte("plan_date", weekStart)
-      .lt("plan_date", weekEnd),
-    supabase.from("buy_items").select("name").eq("family_id", familyId).eq("cleared", false),
-  ]);
+  const { data: meals, error: mealError } = await supabase
+    .from("meal_plans")
+    .select("id")
+    .eq("family_id", familyId)
+    .gte("plan_date", weekStart)
+    .lt("plan_date", weekEnd);
+  if (mealError) return { error: humanDatabaseError(mealError.message), added: 0 };
 
-  // What is already in the house does not need buying — the whole reason the
-  // pantry exists.
-  const { data: pantry } = await supabase.from("pantry_items").select("item_key").eq("family_id", familyId);
-  const atHome = new Set((pantry ?? []).map((p) => p.item_key));
-  const existing = new Set((openBuy ?? []).map((b) => normalizeKey(b.name)));
-  const seen = new Set<string>();
-  const toInsert: TablesInsert<"buy_items">[] = [];
-
-  for (const meal of meals ?? []) {
-    for (const ing of meal.meal_ingredients ?? []) {
-      const key = ing.item_key ?? normalizeKey(ing.ingredient_name);
-      if (existing.has(key) || seen.has(key) || atHome.has(key)) continue;
-      seen.add(key);
-      const parsed = parseQuantity(ing.qty);
-      const quantity = ing.qty_amount == null ? parsed.quantity : Number(ing.qty_amount);
-      const unit = ing.unit ?? parsed.unit;
-      toInsert.push({
-        family_id: familyId,
-        name: ing.ingredient_name,
-        quantity,
-        unit,
-        // Filed by name so a generated list already reads in market order.
-        section: ing.section ?? guessSection(ing.ingredient_name),
-        source: "meal_plan",
-        created_by: createdBy,
-      });
-    }
-  }
-
-  if (toInsert.length > 0) {
-    const { error } = await supabase.from("buy_items").insert(toInsert);
-    // Silently returning a count here sent the caller on to the shopping list
-    // to admire items that were never written to it.
-    if (error) return { error: `The grocery list could not be written. ${error.message}`, added: 0 };
-  }
+  // The same merge as picking a meal: whatever a meal already put on the
+  // list is not added again, so this only catches up meals that never were
+  // (planned before 7 October, or whose add failed).
+  const result = await putMealsOnList(supabase, { id: createdBy, family_id: familyId }, (meals ?? []).map((m) => m.id));
+  // Silently returning a count here sent the caller on to the shopping list
+  // to admire items that were never written to it.
+  if (result.error) return result;
 
   revalidatePath("/household");
-  return { error: null, added: toInsert.length };
+  return result;
 }
 
 // ————————————————————————————————————————————————————————————————
@@ -454,6 +530,12 @@ export async function addMealFromRecipeAction(input: {
       })),
     );
     if (ingredientError) return { error: `The meal was saved, but not what it needs. ${ingredientError.message}` };
+    // Picking the meal is writing the shopping list. A day already past is a
+    // record of what was eaten, not something to shop for.
+    if (input.date >= familyDay(new Date(), me.families.time_zone)) {
+      const listed = await putMealsOnList(supabase, me, [plan.id]);
+      if (listed.error) return { error: `The meal was saved, but the shopping list wasn't updated. ${listed.error}` };
+    }
   }
 
   await syncRowToCalendars(
@@ -538,6 +620,8 @@ export async function planWeekFromPantryAction(weekOf: string): Promise<{ error:
     const { error: ingredientError } = await supabase.from("meal_ingredients").insert(ingredients);
     if (ingredientError) return { error: `The dinners were planned, but not what they need. ${ingredientError.message}`, planned: [] };
   }
+  const listed = await putMealsOnList(supabase, me, rows.map((r) => r.id));
+  if (listed.error) return { error: `The dinners were planned, but the shopping list wasn't updated. ${listed.error}`, planned: [] };
 
   await Promise.all(rows.map((row) => syncRowToCalendars(me.family_id, "meal_plans", row.id, allDayEvent(row.dish, row.plan_date), { kind: "all" })));
 
@@ -549,9 +633,14 @@ export async function planWeekFromPantryAction(weekOf: string): Promise<{ error:
 export async function removeMealAction(mealId: string): Promise<ActionState> {
   const me = await requireCurrentMember();
   const supabase = await createClient();
+  // What only this meal put on the list goes with it.
+  const offList = await planMealOffList(supabase, me.family_id, mealId);
+  if (offList.error) return { error: `The meal is still here: its shopping couldn't be read. ${offList.error}` };
   await removeRowFromCalendars(me.family_id, "meal_plans", mealId);
   const { error } = await supabase.from("meal_plans").delete().eq("id", mealId).eq("family_id", me.family_id);
   if (error) return { error: humanDatabaseError(error.message) };
+  const listError = await applyMealOffList(supabase, me.family_id, offList);
+  if (listError) return { error: `The meal was removed, but what it added is still on the shopping list. ${listError}` };
   revalidatePath("/household");
   revalidatePath("/planner");
   return { error: null };
@@ -824,51 +913,19 @@ export async function deleteRecipeAction(recipeId: string): Promise<ActionState>
 }
 
 /** Put one meal's ingredients on the shopping list — everything not already
- * in the house and not already on it. */
+ * in the house and not already on it for this meal. */
 export async function addMealIngredientsToBuyAction(mealId: string): Promise<ActionState & { added?: number }> {
   const me = await requireCurrentMember();
   const supabase = await createClient();
 
-  const { data: meal } = await supabase
-    .from("meal_plans")
-    .select("id, dish, meal_ingredients(ingredient_name, item_key, qty, qty_amount, unit, section)")
-    .eq("id", mealId)
-    .eq("family_id", me.family_id)
-    .maybeSingle();
+  const { data: meal } = await supabase.from("meal_plans").select("id").eq("id", mealId).eq("family_id", me.family_id).maybeSingle();
   if (!meal) return { error: "That meal is no longer here." };
 
-  const [{ data: openBuy }, { data: pantry }] = await Promise.all([
-    supabase.from("buy_items").select("name").eq("family_id", me.family_id).eq("cleared", false),
-    supabase.from("pantry_items").select("item_key").eq("family_id", me.family_id),
-  ]);
-
-  const already = new Set((openBuy ?? []).map((b) => normalizeKey(b.name)));
-  const atHome = new Set((pantry ?? []).map((p) => p.item_key));
-
-  const rows: TablesInsert<"buy_items">[] = [];
-  for (const ing of meal.meal_ingredients ?? []) {
-    const key = ing.item_key ?? normalizeKey(ing.ingredient_name);
-    if (already.has(key) || atHome.has(key)) continue;
-    already.add(key);
-    const parsed = parseQuantity(ing.qty);
-    rows.push({
-      family_id: me.family_id,
-      name: ing.ingredient_name,
-      quantity: ing.qty_amount == null ? parsed.quantity : Number(ing.qty_amount),
-      unit: ing.unit ?? parsed.unit,
-      section: ing.section ?? guessSection(ing.ingredient_name),
-      source: "meal_plan",
-      created_by: me.id,
-    });
-  }
-
-  if (rows.length > 0) {
-    const { error } = await supabase.from("buy_items").insert(rows);
-    if (error) return { error: humanDatabaseError(error.message) };
-  }
+  const result = await putMealsOnList(supabase, me, [meal.id]);
+  if (result.error) return { error: result.error };
 
   revalidatePath("/household");
-  return { error: null, added: rows.length };
+  return { error: null, added: result.added };
 }
 
 /** Change how much of one ingredient this particular meal needs. It is the

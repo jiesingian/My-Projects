@@ -121,6 +121,17 @@ alter table family_tree_people enable row level security;
 create policy ftp_select on family_tree_people for select using (family_id = current_family_id());
 create policy ftp_insert on family_tree_people for insert with check (family_id = current_family_id());
 
+-- Bills and the reminder ledger (for 20261007170000_bill_reminder_days): the
+-- columns the ahead-of-time bill push reads, and reminder_sends as
+-- 20260926140000_reminders made it.
+create table public.bills (id uuid primary key default gen_random_uuid(), family_id uuid not null references families(id), name text not null, amount numeric not null default 1, due_date date, status text not null default 'unpaid', paid_at timestamptz, recurrence text);
+create table if not exists public.reminder_sends (key text primary key, sent_at timestamptz not null default now());
+-- The shopping list and the meal plan, for buy_item_meals (20261008100000): the household's own rows, nobody else's.
+create table public.buy_items (id uuid primary key default gen_random_uuid(), family_id uuid not null references families(id), name text not null, quantity numeric, unit text, section text not null default 'Other', source text not null default 'house', checked boolean not null default false, cleared boolean not null default false);
+create table public.meal_plans (id uuid primary key default gen_random_uuid(), family_id uuid not null references families(id), plan_date date not null default current_date, slot text not null default 'dinner', dish text not null);
+alter table buy_items enable row level security; alter table meal_plans enable row level security;
+create policy bi_all on buy_items for all using (family_id = current_family_id()) with check (family_id = current_family_id());
+create policy mp_all on meal_plans for all using (family_id = current_family_id()) with check (family_id = current_family_id());
 -- member_locations as 20260922071500_member_locations made it (that file is not
 -- re-runnable, so it stands in here rather than in run.mjs MIGRATIONS).
 create table public.member_locations (
@@ -209,3 +220,11 @@ create policy member_locations_delete on public.member_locations
     )
   );
 grant all on public.member_locations to authenticated;
+-- Chores, their log and their points (the tables predate the migrations folder; policies as shipped: household-wide).
+create table public.routines (id uuid primary key default gen_random_uuid(), family_id uuid not null references families(id), title text not null, kind text not null default 'chore', freq text not null default 'daily', start_date date not null default current_date, points integer not null default 1);
+create table public.routine_log (id uuid primary key default gen_random_uuid(), routine_id uuid not null references routines(id), family_id uuid not null references families(id), occurrence_date date not null, status text not null, member_id uuid references members(id), note text, approval text not null default 'not_required', approved_by uuid references members(id), approved_at timestamptz, logged_by uuid);
+alter table routines enable row level security; alter table routine_log enable row level security;
+create policy routines_all on routines for all using (family_id = current_family_id()) with check (family_id = current_family_id());
+create policy routine_log_select on routine_log for select using (family_id = current_family_id());
+create policy routine_log_insert on routine_log for insert with check (family_id = current_family_id());
+create policy routine_log_update on routine_log for update using (family_id = current_family_id()) with check (family_id = current_family_id());
