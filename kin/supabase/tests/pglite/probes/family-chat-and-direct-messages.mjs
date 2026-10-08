@@ -88,6 +88,14 @@ export default async function ({ db, as, check, refused }) {
     const r = Object.fromEntries((await as(ben, "select thread, unread from my_chat_unread()")).map((x) => [x.thread, Number(x.unread)]));
     return r.family === 0 || r;
   });
+  await check("Unread: family messages older than 14 days are not counted", async () => {
+    await as(ben, "delete from chat_reads where thread = 'family'");
+    const before = Object.fromEntries((await as(ben, "select thread, unread from my_chat_unread()")).map((x) => [x.thread, Number(x.unread)])).family;
+    await db.exec("update family_tree_messages set created_at = created_at - interval '15 days'");
+    const after = Object.fromEntries((await as(ben, "select thread, unread from my_chat_unread()")).map((x) => [x.thread, Number(x.unread)])).family;
+    await db.exec("update family_tree_messages set created_at = created_at + interval '15 days'");
+    return (before === 1 && after === 0) || { before, after };
+  });
   await check("Unread: Dan counts nothing of anyone's", async () => (await as(dan, "select coalesce(sum(unread),0) s from my_chat_unread()"))[0].s == 0);
   await check("Dan cannot get Ben's devices via dm push", async () => (await targets(dan, `dm:${P("b1")}`)).length === 0);
 }
