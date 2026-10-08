@@ -52,6 +52,18 @@ export default async function ({ db, as, check, refused }) {
     const r = Object.fromEntries((await as(ben, "select thread, unread from my_chat_unread()")).map((x) => [x.thread, Number(x.unread)]));
     return r[`group:${g}`] === 1 || r;
   });
+  // 20261008090000 reads only the viewer's own groups and the last 14 days;
+  // these pin that the counts stay what they were.
+  await check("Unread: Cat, not in the group, counts nothing for it", async () => {
+    const r = (await as(cat, "select thread, unread from my_chat_unread()")).filter((x) => x.thread === `group:${g}`);
+    return r.length === 0 || r;
+  });
+  await check("Unread: a group message older than 14 days is not counted", async () => {
+    await db.query("update chat_group_messages set created_at = now() - interval '15 days' where id = $1", [msg.id]);
+    const r = (await as(ben, "select thread, unread from my_chat_unread()")).filter((x) => x.thread === `group:${g}`);
+    await db.query("update chat_group_messages set created_at = now() where id = $1", [msg.id]);
+    return r.length === 0 || r;
+  });
   // Announcements
   let n;
   await check("Announcement channel: only admins post", async () => {
