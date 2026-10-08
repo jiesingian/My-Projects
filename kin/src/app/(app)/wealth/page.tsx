@@ -6,7 +6,7 @@ import { getWealthPane, getNetWorth, getAccounts, getArchivedAccounts, getCashFl
 import { CashFlowSources } from "@/components/cashflow-sources";
 import { HubHeader } from "@/components/hub-header";
 import { Blueprint, Tag, Empty } from "@/components/ui";
-import { AddAccountForm, AddBillForm, AddIncomeScheduleForm, SetBudgetControl, SetTargetControl, AllocationEditor } from "@/components/wealth-controls";
+import { AddAccountForm, AddBillForm, AddIncomeScheduleForm, BillReminderPicker, SetBudgetControl, SetTargetControl, AllocationEditor } from "@/components/wealth-controls";
 import {
   PayBillControl,
   ReceiveIncomeControl,
@@ -34,6 +34,7 @@ import {
   periodOverPeriodChange,
   cashBalanceTrend,
   billsDueWithin,
+  DEFAULT_BILL_REMIND_DAYS,
   expenseCategoryColor,
   timeSinceLabel,
   type AccountType,
@@ -579,6 +580,7 @@ async function CashFlowPane({ familyId, memberId, currency, range, scope, grownU
           </div>
           <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", marginTop: "0.25rem" }}>
             <PayBillControl billId={b.id} amount={Number(b.amount)} accounts={pickable} currency={currency} />
+            {b.due_date && <BillReminderPicker billId={b.id} days={b.remind_days_before ?? DEFAULT_BILL_REMIND_DAYS} />}
             <span style={{ marginLeft: "auto" }}>
               <RemoveButton id={b.id} kind="bill" label={`Delete "${b.name}"`} />
             </span>

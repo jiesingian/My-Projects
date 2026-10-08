@@ -121,6 +121,11 @@ alter table family_tree_people enable row level security;
 create policy ftp_select on family_tree_people for select using (family_id = current_family_id());
 create policy ftp_insert on family_tree_people for insert with check (family_id = current_family_id());
 
+-- Bills and the reminder ledger (for 20261007170000_bill_reminder_days): the
+-- columns the ahead-of-time bill push reads, and reminder_sends as
+-- 20260926140000_reminders made it.
+create table public.bills (id uuid primary key default gen_random_uuid(), family_id uuid not null references families(id), name text not null, amount numeric not null default 1, due_date date, status text not null default 'unpaid', paid_at timestamptz, recurrence text);
+create table if not exists public.reminder_sends (key text primary key, sent_at timestamptz not null default now());
 -- member_locations as 20260922071500_member_locations made it (that file is not
 -- re-runnable, so it stands in here rather than in run.mjs MIGRATIONS).
 create table public.member_locations (
