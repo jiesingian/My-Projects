@@ -1,6 +1,6 @@
 const U = (s) => `10000000-0000-0000-0000-0000000000${s}`;
 const A = "a0000000-0000-0000-0000-000000000000";
-// Streak bonus amounts per household, from the day they are set (20261007170100).
+// Streak bonus amounts per household, from the day they are set (20261008110100).
 export default async function ({ db, as, check, refused }) {
   const ann = U("a1"), kid = U("a2"), ben = U("b1");
   // Parent-set rates only; the two seeded rows have no set_by.

@@ -1,7 +1,7 @@
 const U = (s) => `10000000-0000-0000-0000-0000000000${s}`;
 const P = (s) => `00000000-0000-0000-0000-0000000000${s}`;
 const A = "a0000000-0000-0000-0000-000000000000";
-// Chore points and rewards (20260922053456, 20261007170000): a child can earn
+// Chore points and rewards (20260922053456, 20261008110000): a child can earn
 // and ask, never award or answer.
 export default async function ({ db, as, check, refused }) {
   const ann = U("a1"), kid = U("a2"), ben = U("b1");
