@@ -11,6 +11,8 @@ const STATE = "e2e/.auth/state.json";
  * leaked, and because whoever runs this suite next may point it at a
  * different throwaway. See e2e/README.md. */
 setup("sign in", async ({ page }) => {
+  // Room for three tries and the pauses between them (below).
+  setup.setTimeout(180_000);
   const email = process.env.E2E_EMAIL;
   const password = process.env.E2E_PASSWORD;
 
@@ -22,13 +24,25 @@ setup("sign in", async ({ page }) => {
     );
   }
 
-  await page.goto("/login");
-  await page.fill('input[name="email"]', email);
-  await page.fill('input[name="password"]', password);
-  await page.click('button[type="submit"]');
-
-  // Landing anywhere that is not /login means the session took.
-  await expect(page).not.toHaveURL(/\/login/, { timeout: 30_000 });
+  // Up to three tries, a growing pause between them. Dev's auth server is
+  // small; when many pull requests test at once it can run out of database
+  // connections and time out for a few minutes (7 October), which failed every
+  // run that signed in during them. A wrong password fails all three tries,
+  // as it should.
+  for (let attempt = 1; ; attempt++) {
+    await page.goto("/login");
+    await page.fill('input[name="email"]', email);
+    await page.fill('input[name="password"]', password);
+    await page.click('button[type="submit"]');
+    try {
+      // Landing anywhere that is not /login means the session took.
+      await expect(page).not.toHaveURL(/\/login/, { timeout: 30_000 });
+      break;
+    } catch (e) {
+      if (attempt === 3) throw e;
+      await page.waitForTimeout(15_000 * attempt);
+    }
+  }
   await page.goto("/today");
   // "At a glance" is on Today whatever the day holds. The old marker, "Needs
   // you today", went when Today became one list (28 September) -- and was
