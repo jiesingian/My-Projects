@@ -8,6 +8,10 @@ import { normalizeKey } from "@/lib/pricebook";
 
 const STAPLES = new Set(["salt", "water", "oil", "cooking oil", "pepper", "black pepper", "ground pepper", "sugar", "ice"].map(normalizeKey));
 
+export function isStaple(name: string): boolean {
+  return STAPLES.has(normalizeKey(name));
+}
+
 export type PantryMatch<R> = { recipe: R; have: number; need: number; missing: string[] };
 
 export function rankByPantry<R extends { ingredients: { name: string }[] }>(recipes: R[], pantryKeys: Set<string>, limit = 5): PantryMatch<R>[] {

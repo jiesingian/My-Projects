@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getCurrentMember } from "@/lib/session";
-import { getBuyItems, getMealsForDay, getLiquidIntake, type PlannedMeal } from "@/lib/queries/household";
+import { getBuyItems, getBuyItemMeals, getMealsForDay, getLiquidIntake, type PlannedMeal } from "@/lib/queries/household";
 import { getMembers } from "@/lib/queries/family";
 import { MealWhoPicker } from "@/components/meal-who-picker";
 import { MealWhoEditor } from "@/components/meal-who-editor";
@@ -56,11 +56,12 @@ export default async function HouseholdPage({ searchParams }: { searchParams: Pr
 }
 
 async function BuyPane({ familyId, memberId, currency, startAdding }: { familyId: string; memberId: string; currency: string; startAdding: boolean }) {
-  const [{ groups, openCount, doneCount }, accounts, priced, run] = await Promise.all([
+  const [{ groups, openCount, doneCount }, accounts, priced, run, mealsFor] = await Promise.all([
     getBuyItems(familyId),
     getAccounts(familyId),
     getPricedBuyList(familyId),
     getNextShoppingRun(familyId),
+    getBuyItemMeals(familyId),
   ]);
 
   // Whichever comes first is what the list counts down to, and either can be
@@ -102,6 +103,7 @@ async function BuyPane({ familyId, memberId, currency, startAdding }: { familyId
             <PriceBookSheet familyId={familyId} currency={currency} />
           </SheetButton>
         }
+        mealsFor={mealsFor}
         prices={Object.fromEntries(
           priced.items.map((it) => [it.id, { estimated: it.estimated, unitPrice: it.unitPrice, source: it.priceSource, inPantry: it.inPantry }]),
         )}
