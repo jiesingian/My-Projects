@@ -79,8 +79,17 @@ jobs:
     runs-on: ubuntu-latest
     # Minutes, not the old suite's seven-plus -- see the header. The default
     # job limit is six hours, which is how a hung browser quietly spends a
-    # month of Actions minutes; ten is generous for what this file runs now.
-    timeout-minutes: 10
+    # month of Actions minutes, so there is still a cap.
+    #
+    # Twenty, not ten (7 October). Ten stopped being generous: the smoke and
+    # logic specs had grown to ~480 tests and a normal run took 8 to 10
+    # minutes, so on a slow runner the job was cut off at 10m15s and reported
+    # "cancelled" -- seven pull requests stuck that day with nothing wrong in
+    # them, and one more failed on a single page load at the 60s test timeout
+    # while its other 478 tests passed. Twenty is double a healthy run: room
+    # for a slow runner, still nowhere near a hung browser's six hours. If
+    # runs creep towards twenty, split the suite rather than raise this again.
+    timeout-minutes: 20
     defaults:
       run:
         working-directory: kin
