@@ -201,13 +201,17 @@ test.describe("offline Kin", () => {
     // Said online, so it has a real id to answer.
     await page.getByLabel("Your message").fill(target);
     await page.keyboard.press("Enter");
-    await expect(page.locator(".kin-bubble", { hasText: target })).toBeVisible();
-    // Let the refresh that follows a send finish: cut off mid-refresh, Next
-    // falls back to a full load, which offline is the saved copy.
+    // Wait for the server's copy, not the optimistic one: the bubble becomes
+    // a button ("Message from you at …") once the thread has refreshed with
+    // it. Cut off mid-refresh, Next falls back to a full load, which offline
+    // is the saved copy -- the wrong page to test the live composer on.
+    const posted = page.getByRole("button", { name: /^Message from you at/ }).filter({ hasText: target });
+    await expect(posted).toBeVisible();
     await page.waitForLoadState("networkidle");
 
     await context.setOffline(true);
-    await page.locator(".kin-bubble", { hasText: target }).click();
+    await expect(page).toHaveURL(/\/chat\/household/);
+    await posted.click();
     await page.getByRole("button", { name: "Reply", exact: true }).click();
     await expect(page.getByText(/Replying to/)).toBeVisible();
     await page.getByLabel("Your message").fill(`@${first.slice(0, 2)}`);
