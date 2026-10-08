@@ -255,7 +255,7 @@ async function CalendarPane({ familyId, meId, who, view, anchor, hidden, weekSta
       {view !== "year" && !hidden.has("routines") && <ShowChoresSwitch on={showChores} />}
 
       {/* Add anything the calendar can show, on the day being looked at. */}
-      <AddToCalendar date={toISODate(anchor)} />
+      <AddToCalendar date={toISODate(anchor)} members={activeMembers.map((m) => ({ id: m.id, name: m.full_name }))} meId={meId} today={familyDay()} />
 
       {sync.connected > 0 && <CalendarSyncStatus lastSyncedISO={sync.lastSyncedAt?.toISOString() ?? null} />}
 
