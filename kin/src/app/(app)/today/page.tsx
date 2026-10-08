@@ -11,7 +11,8 @@ import { OnThisDay, WeekRecapCard } from "@/components/memories";
 import { getGlance, getTodayBriefing, getComingUp, type GlanceTile } from "@/lib/queries/today";
 import { getRoutinesNeedingAttention, getPendingApprovals, getPendingRedemptions } from "@/lib/queries/routines";
 import { TodayList, type TodayEntry } from "@/components/today-list";
-import { familyClock } from "@/lib/time";
+import { familyClock, familyDay } from "@/lib/time";
+import { QuickLine } from "@/components/quick-line";
 import { wrapUp, isWrapUpTime } from "@/lib/wrap-up";
 import { EveningWrapUp } from "@/components/evening-wrap-up";
 import { ApprovalQueue } from "@/components/approval-queue";
@@ -238,7 +239,8 @@ export default async function TodayPage() {
 
       {/* Quick add: the four things a family writes down most, each straight
           into its form. Actions, not places -- the bottom bar already has the
-          places. */}
+          places. Above them, one-line add: type it and Kin files it. */}
+      <QuickLine members={people.map((m) => ({ id: m.id, name: m.full_name }))} meId={me.id} today={familyDay()} />
       <nav aria-label="Quick add" className="kin-quick">
         {/* In the order of the tabs, as At a glance is: Journal, Planner,
             Household, Wealth. */}

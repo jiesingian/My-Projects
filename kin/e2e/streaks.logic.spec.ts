@@ -1,5 +1,5 @@
 import { test, expect } from "@playwright/test";
-import { choreStreak, weekOf, type DayState } from "@/lib/streaks";
+import { bonusOn, choreStreak, weekOf, type DayState } from "@/lib/streaks";
 
 /** ISO dates from `start`, `n` days. */
 function days(start: string, n: number): string[] {
@@ -69,4 +69,17 @@ test("thirty days earn both stars, and a rebuilt run earns them again", () => {
 
   const again = walk([...Array(7).fill("done"), "missed", "missed", ...Array(7).fill("done")]);
   expect(again.milestones.map((m) => m.reached)).toEqual([7, 7]);
+});
+
+test("a changed bonus applies from its day on, never to streaks already earned", () => {
+  const rates = [
+    { from: "2026-10-07", bonus: { 7: 20, 30: 80 } as const },
+    { from: "2026-10-07", bonus: { 7: 25, 30: 90 } as const }, // changed twice that day: the later one wins
+    { from: "2026-11-01", bonus: { 7: 5, 30: 40 } as const },
+  ];
+  expect(bonusOn([], "2026-10-07")).toEqual({ 7: 10, 30: 50 });
+  expect(bonusOn(rates, "2026-10-06")).toEqual({ 7: 10, 30: 50 });
+  expect(bonusOn(rates, "2026-10-07")).toEqual({ 7: 25, 30: 90 });
+  expect(bonusOn(rates, "2026-10-31")[7]).toBe(25);
+  expect(bonusOn(rates, "2026-11-01")[30]).toBe(40);
 });

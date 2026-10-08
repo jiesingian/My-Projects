@@ -75,7 +75,8 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  # Two runs on dev at a time, the rest waiting their turn (8 October).
+  # One run on dev at a time, the rest waiting their turn (8 October; it was
+  # two until that afternoon -- see the end of this comment).
   #
   # Smoke opens every hub at every width in both themes -- about forty page
   # loads, each signing in and firing twenty-odd queries -- against the one
@@ -88,11 +89,18 @@ jobs:
   # page and was cancelled at twenty minutes. Nothing failed; dev never
   # returned an error; it was simply queued solid.
   #
-  # So a run waits here, before it builds, until fewer than two e2e runs that
-  # started before it are still going -- first come, first served, nothing
+  # So a run waits here, before it builds, until no e2e run that started
+  # before it is still going -- first come, first served, nothing
   # cancelled, no test dropped. The wait is its own job so it never eats into
   # the suite's twenty minutes. After forty minutes it goes anyway and says
   # so, rather than holding a pull request forever behind a stuck run.
+  #
+  # Two was still too many. From 10:07 UTC the same day, with two e2e runs
+  # and a couple of Schema checks going, dev stopped answering: sign-in 504s
+  # for minutes, and statements timing out on every table, Supabase's own
+  # `SELECT version();` included. One at a time is slower through a backlog
+  # (about eight minutes a pull request) but a run that finishes beats two
+  # that both time out.
   turn:
     runs-on: ubuntu-latest
     timeout-minutes: 45
@@ -104,7 +112,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           REPO: ${{ github.repository }}
           RUN_ID: ${{ github.run_id }}
-          SLOTS: "2"
+          SLOTS: "1"
         run: |
           set -euo pipefail
           # run_started_at, not created_at: a re-run attempt starts afresh

@@ -179,6 +179,71 @@ test.describe("offline Kin", () => {
     }
   });
 
+  test("a reply with an @tag written offline keeps both when it sends", async ({ page, context }) => {
+    test.setTimeout(180_000);
+    const qa = await restAsQa();
+    test.skip(!qa, "Needs the QA household's Supabase details to check the stored message.");
+    const run = Date.now().toString(36);
+    const target = `Reply target ${run}`;
+    const reply = `Offline reply ${run}`;
+
+    // Someone to tag: the first other person in the throwaway household.
+    const people = (await (await qa!.ctx.get(`${qa!.url}/rest/v1/members?select=id,full_name,status`, { headers: qa!.headers })).json()) as { id: string; full_name: string; status: string }[];
+    const tagged = people.find((p) => p.status === "active" || p.status === "managed");
+    test.skip(!tagged, "The QA household has nobody to tag.");
+    const first = tagged!.full_name.split(" ")[0];
+
+    await page.goto("/chat/household");
+    await page.waitForTimeout(1500);
+    await page.reload();
+    await waitForOfflineReady(page);
+
+    // Said online, so it has a real id to answer.
+    await page.getByLabel("Your message").fill(target);
+    await page.keyboard.press("Enter");
+    // Wait for the server's copy, not the optimistic one: the bubble becomes
+    // a button ("Message from you at …") once the thread has refreshed with
+    // it. Cut off mid-refresh, Next falls back to a full load, which offline
+    // is the saved copy -- the wrong page to test the live composer on.
+    const posted = page.getByRole("button", { name: /^Message from you at/ }).filter({ hasText: target });
+    await expect(posted).toBeVisible();
+    await page.waitForLoadState("networkidle");
+
+    await context.setOffline(true);
+    await expect(page).toHaveURL(/\/chat\/household/);
+    await posted.click();
+    await page.getByRole("button", { name: "Reply", exact: true }).click();
+    await expect(page.getByText(/Replying to/)).toBeVisible();
+    await page.getByLabel("Your message").fill(`@${first.slice(0, 2)}`);
+    // The chip reads its initials, then the name ("RT Robin").
+    await page.getByRole("button", { name: new RegExp(`\\b${first}$`) }).first().click();
+    await page.getByLabel("Your message").pressSequentially(reply);
+    await page.keyboard.press("Enter");
+
+    // Waiting, with its quote.
+    await expect(page.getByText("Sends when you’re back online")).toBeVisible();
+    await expect(page.locator(".kin-quote", { hasText: target }).last()).toBeVisible();
+    await shot(page, "10-live-reply-offline");
+
+    await context.setOffline(false);
+    await expect(page.getByText("Sends when you’re back online")).toHaveCount(0, { timeout: 30_000 });
+
+    // Stored as written: answering the target, tagging the person.
+    const rows = (await (
+      await qa!.ctx.get(`${qa!.url}/rest/v1/family_messages?select=id,body,reply_to,mentions&body=in.(${encodeURIComponent(`"${target}"`)},${encodeURIComponent(`"@${first} ${reply}"`)})`, { headers: qa!.headers })
+    ).json()) as { id: string; body: string; reply_to: string | null; mentions: string[] }[];
+    const original = rows.find((r) => r.body === target);
+    const sent = rows.filter((r) => r.body !== target);
+    expect(sent).toHaveLength(1);
+    expect(sent[0].reply_to).toBe(original?.id);
+    expect(sent[0].mentions).toContain(tagged!.id);
+
+    // Tidy: both messages unsent, as the app does.
+    for (const r of rows) {
+      await qa!.ctx.patch(`${qa!.url}/rest/v1/family_messages?id=eq.${r.id}`, { headers: qa!.headers, data: { deleted_at: new Date().toISOString(), body: "" } });
+    }
+  });
+
   test("the shell shows nothing once signed out", async ({ browser }) => {
     // A fresh, signed-out context: the sign-in screen clears the phone, and
     // with nothing saved the shell says so rather than showing anybody's data.
