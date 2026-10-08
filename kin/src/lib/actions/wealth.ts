@@ -5,7 +5,7 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { requireCurrentMember } from "@/lib/session";
 import { syncRowToCalendars, type CalendarTarget } from "@/lib/actions/calendar-sync";
-import { ACCOUNT_TYPES, GOAL_CATEGORY, cleanAccountNumber, TRANSFER_CATEGORY, REMITTANCE_CHANNELS, explainLedgerRefusal, type AccountType, type RemittanceChannel } from "@/lib/wealth";
+import { ACCOUNT_TYPES, GOAL_CATEGORY, billRemindDays, DEFAULT_BILL_REMIND_DAYS, cleanAccountNumber, TRANSFER_CATEGORY, REMITTANCE_CHANNELS, explainLedgerRefusal, type AccountType, type RemittanceChannel } from "@/lib/wealth";
 import type { ActionState } from "@/lib/actions/auth";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database, Tables, TablesInsert } from "@/lib/database.types";
@@ -629,6 +629,7 @@ export async function addBillAction(_prev: ActionState, formData: FormData): Pro
   const dueDate = String(formData.get("due_date") ?? "") || null;
   const category = clamp(String(formData.get("category") ?? ""), 100) || null;
   const recurrence = String(formData.get("recurrence") ?? "monthly");
+  const remindDaysBefore = billRemindDays(formData.get("remind_days_before"));
   if (!name) return { error: "Name and amount are required." };
   // Every other money path checks `> 0`; this one checked `!amount`, which is
   // false for -500. A negative bill subtracts from what the household owes and
@@ -637,7 +638,8 @@ export async function addBillAction(_prev: ActionState, formData: FormData): Pro
 
   const { data: bill, error } = await supabase
     .from("bills")
-    .insert({ family_id: me.family_id, name, amount, due_date: dueDate, category, recurrence, status: "unpaid", created_by: me.id })
+    // The default is the column's own, so a bill left at 3 writes nothing new.
+    .insert({ family_id: me.family_id, name, amount, due_date: dueDate, category, recurrence, status: "unpaid", created_by: me.id, ...(remindDaysBefore === DEFAULT_BILL_REMIND_DAYS ? {} : { remind_days_before: remindDaysBefore }) })
     .select()
     .single();
   if (error) return { error: humanDatabaseError(error.message) };
@@ -697,6 +699,24 @@ export async function payBillAction(input: {
 
   revalidateWealth();
   return { error: null, appUrl: input.viaApp ? account.linked_app_url : null };
+}
+
+/** How many days ahead this bill's first reminder comes, changed on the bill
+ * itself -- every bill already in the household started at 3. */
+export async function setBillReminderAction(billId: string, days: number): Promise<ActionState> {
+  const me = await requireCurrentMember();
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("bills")
+    .update({ remind_days_before: billRemindDays(days) })
+    .eq("id", billId)
+    .eq("family_id", me.family_id)
+    .select("id");
+  if (error) return { error: humanDatabaseError(error.message) };
+  if (!data?.length) return { error: "Bill not found." };
+  revalidateWealth();
+  revalidatePath("/today");
+  return { error: null };
 }
 
 export async function deleteBillAction(billId: string): Promise<ActionState> {
