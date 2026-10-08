@@ -257,9 +257,11 @@ test.describe("offline Kin", () => {
     await page.waitForTimeout(1500);
     await page.reload();
     await waitForOfflineReady(page);
+    await page.waitForLoadState("networkidle");
 
     await context.setOffline(true);
-    await page.locator('input[type="file"][accept^="image/*"]').setInputFiles({ name: `offline-${run}.png`, mimeType: "image/png", buffer: png });
+    // The composer's own picker: the one that takes several files.
+    await page.locator('input[type="file"][multiple]').setInputFiles({ name: `offline-${run}.png`, mimeType: "image/png", buffer: png });
     await page.getByLabel("Your message").fill(words);
     await page.keyboard.press("Enter");
 
