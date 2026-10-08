@@ -114,8 +114,17 @@ export async function exportMyDataAction(_prev: unknown, formData: FormData): Pr
   const { data: family } = await db.from("families").select("*").eq("id", me.family_id).maybeSingle();
   if (family) files.push({ name: "household.csv", data: enc.encode(toCsv(withoutSecrets([family]))) });
 
+  // A bill paid from, or an income landing in, an account this member
+  // cannot see -- someone else's private account -- is not theirs to
+  // download, as it is not theirs to see in the app (Cash Flow, the Planner,
+  // Subscriptions; e2e/private-accounts.spec.ts). The accounts policy says
+  // which accounts those are, read as them.
+  const { data: seenAccounts } = await db.from("accounts").select("id").eq("family_id", me.family_id);
+  const canSee = new Set(((seenAccounts ?? []) as { id: string }[]).map((a) => a.id));
+  const tiedTo: Record<string, string> = { bills: "paid_from_account_id", income_schedules: "account_id" };
+
   for (const [file, table] of SECTIONS) {
-    const rows: Record<string, unknown>[] = [];
+    let rows: Record<string, unknown>[] = [];
     for (let from = 0; from < MAX_ROWS; from += PAGE) {
       const { data, error } = await db.from(table).select("*").eq("family_id", me.family_id).range(from, from + PAGE - 1);
       if (error) {
@@ -127,6 +136,8 @@ export async function exportMyDataAction(_prev: unknown, formData: FormData): Pr
       rows.push(...(data ?? []));
       if (!data || data.length < PAGE) break;
     }
+    const column = tiedTo[table];
+    if (column) rows = rows.filter((r) => !r[column] || canSee.has(String(r[column])));
     if (rows.length === 0) continue;
     files.push({ name: file, data: enc.encode(toCsv(withoutSecrets(rows))) });
     counts.push(`  ${file.padEnd(30)} ${rows.length} row${rows.length === 1 ? "" : "s"}`);
