@@ -265,7 +265,7 @@ async function EntriesPane({ familyId, me, mine, milestonesOnly = false }: { fam
         if (it.kind === "day") {
           return (
             <Blueprint key={`day-${it.day.key}`} className="kin-letterday-card" style={{ padding: "0.8125rem", marginBottom: "1rem" }}>
-              <LetterDayLetters day={it.day} meId={me.id} />
+              <LetterDayLetters day={it.day} meId={me.id} all={letters} today={today} />
             </Blueprint>
           );
         }
@@ -323,7 +323,7 @@ async function EntriesPane({ familyId, me, mine, milestonesOnly = false }: { fam
               </Link>
             </span>
           </div>
-          {day && <LetterDayLetters day={day} meId={me.id} underEntry />}
+          {day && <LetterDayLetters day={day} meId={me.id} underEntry all={letters} today={today} />}
         </Blueprint>
         );
       })}

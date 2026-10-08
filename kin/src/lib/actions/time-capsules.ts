@@ -21,6 +21,9 @@ export async function sealLetterAction(input: {
   /** "Open when..." instead of a day: the moment; they open it themselves
    * (20261007180000). Never a card. */
   openWhen?: string;
+  /** Writing back (20261007190000): the letter this answers. A reply may
+   * open today; it goes to that letter's writer, and is never a card. */
+  replyTo?: string;
   title: string;
   body: string;
 }): Promise<{ error: string | null }> {
@@ -31,13 +34,13 @@ export async function sealLetterAction(input: {
   const body = input.body.trim();
   const title = input.title.trim().slice(0, 120);
   const occasion = input.occasion.trim().slice(0, 80);
-  const openToSign = (isGrownUp(me.role) ? input.openToSign !== false : true) && !(input.openWhen ?? "").trim();
+  const openToSign = (isGrownUp(me.role) ? input.openToSign !== false : true) && !(input.openWhen ?? "").trim() && !input.replyTo;
   if (!input.recipientId) return { error: "Choose who the letter is for." };
   if (!body) return { error: "Write the letter first." };
   if (body.length > 20000) return { error: "That letter is too long to keep." };
   const openWhen = (input.openWhen ?? "").trim().replace(/^open when\s+/i, "").slice(0, 120);
   const opensOn = openWhen ? null : input.opensOn || null;
-  if (opensOn && (!/^\d{4}-\d{2}-\d{2}$/.test(opensOn) || opensOn <= familyDay(new Date(), me.families.time_zone))) return { error: "Pick a day after today." };
+  if (opensOn && (!/^\d{4}-\d{2}-\d{2}$/.test(opensOn) || (input.replyTo ? opensOn < familyDay(new Date(), me.families.time_zone) : opensOn <= familyDay(new Date(), me.families.time_zone)))) return { error: input.replyTo ? "Pick today or a day after." : "Pick a day after today." };
   const supabase = await createClient();
   const { data: saved, error } = await supabase
     .from("time_capsules")
@@ -47,12 +50,14 @@ export async function sealLetterAction(input: {
       body,
       occasion: openWhen ? "" : occasion,
       open_to_sign: openToSign,
+      ...(input.replyTo ? { reply_to: input.replyTo } : {}),
       ...(openWhen ? { open_when: openWhen } : opensOn ? { opens_on: opensOn } : {}),
     })
     .select("opens_on, occasion, recipient:members!time_capsules_recipient_member_id_fkey(full_name)")
     .single();
   if (error) {
     if (error.message.includes("Pick the day")) return { error: "They have no birthday saved, so pick the day it opens." };
+    if (input.replyTo) return { error: "It didn't send. Try again." };
     if (!isGrownUp(me.role)) return { error: "Only a grown-up can start a card. You can sign one once it's started." };
     return { error: "It didn't save. Try again." };
   }

@@ -7099,3 +7099,7 @@ button.kin-room-quote { font: inherit; font-size: 0.78125rem; text-align: left; 
 .kin-letter-switch input { margin-top: 0.2rem; width: 1.125rem; height: 1.125rem; accent-color: var(--color-accent-700); flex: none; }
 /* "On a day" or "Open when…" on the letter form. */
 .kin-letter-mode { display: flex; gap: 0.4375rem; flex-wrap: wrap; }
+/* Writing back: a reply sits under the letter it answers, a step in. */
+.kin-letter-thread[data-reply="true"] { margin-left: 1rem; padding-left: 0.625rem; border-left: 2px solid var(--color-accent-100); }
+.kin-write-back { margin: 0.25rem 0 0.75rem; }
+.kin-letter-open { white-space: nowrap; flex: none; }

@@ -1,6 +1,7 @@
 import { readableDay } from "@/lib/time";
 import type { LetterDay, OpenCard, OpenWhenEnvelope, SealedEnvelope, TimeCapsule } from "@/lib/queries/time-capsules";
 import { OpenWhenButton } from "@/components/open-when-button";
+import { WriteBack } from "@/components/write-back";
 import { CardSign } from "@/components/card-sign";
 import { LetterForm, type LetterRecipient } from "@/components/letter-form";
 import { LetterRemove } from "@/components/letter-remove";
@@ -17,7 +18,7 @@ function names(list: string[]): string {
  * (`underEntry`), or on their own under the day's name when they wrote none,
  * so the letters are still there and easy to find. Each letter is an
  * envelope that opens with a tap. */
-export function LetterDayLetters({ day, meId, underEntry = false }: { day: LetterDay; meId: string; underEntry?: boolean }) {
+export function LetterDayLetters({ day, meId, underEntry = false, all = [], today = "" }: { day: LetterDay; meId: string; underEntry?: boolean; all?: TimeCapsule[]; today?: string }) {
   const forMe = day.recipientMemberId === meId;
   const name = day.occasion || "A special day";
   // An "open when" letter, opened on this day by its recipient.
@@ -42,30 +43,48 @@ export function LetterDayLetters({ day, meId, underEntry = false }: { day: Lette
         {underEntry && day.occasion ? ` · ${day.occasion}` : ""}
       </p>
       {day.letters.map((l) => (
-        <Letter key={l.id} letter={l} meId={meId} />
+        <Letter key={l.id} letter={l} meId={meId} all={all} today={today} />
       ))}
     </section>
   );
 }
 
-function Letter({ letter: l, meId }: { letter: TimeCapsule; meId: string }) {
+function Letter({ letter: l, meId, all, today, depth = 0 }: { letter: TimeCapsule; meId: string; all: TimeCapsule[]; today: string; depth?: number }) {
   const mineToSend = l.writerMemberId === meId && l.recipientMemberId !== meId;
+  const isReply = depth > 0;
+  // Writing back (20261007190000): answers to this letter, and a way to
+  // answer it for the one it was written to, once it's open.
+  const replies = all.filter((r) => r.replyTo === l.id);
+  const canWriteBack = !!today && l.recipientMemberId === meId && !l.sealed && !!l.writerMemberId && l.writerMemberId !== meId;
+  const when = l.openWhen ? `open when ${l.openWhen}` : `opens ${readableDay(l.opensOn, { year: true })}`;
   return (
-    <details className="kin-letter" id={`letter-${l.id}`}>
-      <summary>
-        <span className="kin-letter-seal" aria-hidden="true" />
-        <span>
-          <strong>{mineToSend ? `Your letter to ${first(l.recipientName)}` : `From ${first(l.writerName) || "someone in your family"}`}</strong>
-          <span className="kin-letter-meta">Written {readableDay(l.createdAt.slice(0, 10), { year: true })}</span>
-        </span>
-        <span className="kin-letter-open" aria-hidden="true">Open</span>
-      </summary>
-      <div className="kin-letter-paper">
-        {l.title && <h4>{l.title}</h4>}
-        <p>{l.body}</p>
-        <p className="kin-letter-sign">— {first(l.writerName) || "Your family"}</p>
-      </div>
-    </details>
+    <div className="kin-letter-thread" data-reply={isReply}>
+      <details className="kin-letter" id={`letter-${l.id}`}>
+        <summary>
+          <span className="kin-letter-seal" aria-hidden="true" />
+          <span>
+            <strong>
+              {mineToSend
+                ? isReply ? `Your reply to ${first(l.recipientName)}` : `Your letter to ${first(l.recipientName)}`
+                : isReply ? `${first(l.writerName) || "They"} wrote back` : `From ${first(l.writerName) || "someone in your family"}`}
+            </strong>
+            <span className="kin-letter-meta">
+              {l.sealed ? `Sealed · ${when}` : `Written ${readableDay(l.createdAt.slice(0, 10), { year: true })}`}
+            </span>
+          </span>
+          <span className="kin-letter-open" aria-hidden="true">Open</span>
+        </summary>
+        <div className="kin-letter-paper">
+          {l.title && <h4>{l.title}</h4>}
+          <p>{l.body}</p>
+          <p className="kin-letter-sign">— {first(l.writerName) || "Your family"}</p>
+        </div>
+      </details>
+      {replies.map((r) => (
+        <Letter key={r.id} letter={r} meId={meId} all={all} today={today} depth={depth + 1} />
+      ))}
+      {canWriteBack && <WriteBack letterId={l.id} writerId={l.writerMemberId as string} writerFirst={first(l.writerName) || "them"} today={today} />}
+    </div>
   );
 }
 

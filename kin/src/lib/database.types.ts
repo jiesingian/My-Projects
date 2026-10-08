@@ -27,6 +27,7 @@ export type Database = {
           open_when: string | null
           opened_at: string | null
           recipient_member_id: string
+          reply_to: string | null
           title: string
           writer_member_id: string | null
           writer_name: string
@@ -43,6 +44,7 @@ export type Database = {
           open_when?: string | null
           opened_at?: string | null
           recipient_member_id: string
+          reply_to?: string | null
           title?: string
           writer_member_id?: string | null
           writer_name?: string
@@ -59,6 +61,7 @@ export type Database = {
           open_when?: string | null
           opened_at?: string | null
           recipient_member_id?: string
+          reply_to?: string | null
           title?: string
           writer_member_id?: string | null
           writer_name?: string
@@ -5946,6 +5949,10 @@ export type Database = {
       }
       open_letter: {
         Args: { p_id: string }
+        Returns: boolean
+      }
+      time_capsule_can_reply: {
+        Args: { p_letter: string; p_to: string }
         Returns: boolean
       }
       open_cards: {

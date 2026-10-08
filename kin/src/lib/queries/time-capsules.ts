@@ -17,6 +17,8 @@ export type TimeCapsule = {
   /** "Open when..." letters: the moment, and when the recipient opened it. */
   openWhen: string | null;
   openedAt: string | null;
+  /** Writing back (20261007190000): the letter this one answers. */
+  replyTo: string | null;
   createdAt: string;
   sealed: boolean;
 };
@@ -44,7 +46,7 @@ export async function getTimeCapsules(familyId: string, opts: { openingOn?: stri
   const supabase = await createClient();
   let q = supabase
     .from("time_capsules")
-    .select("id, writer_member_id, writer_name, recipient_member_id, title, body, opens_on, occasion, open_to_sign, open_when, opened_at, created_at, recipient:members!time_capsules_recipient_member_id_fkey(full_name)")
+    .select("id, writer_member_id, writer_name, recipient_member_id, title, body, opens_on, occasion, open_to_sign, open_when, opened_at, reply_to, created_at, recipient:members!time_capsules_recipient_member_id_fkey(full_name)")
     .eq("family_id", familyId)
     .order("opens_on", { ascending: false })
     .order("created_at");
@@ -67,6 +69,7 @@ export async function getTimeCapsules(familyId: string, opts: { openingOn?: stri
     openToSign: r.open_to_sign,
     openWhen: r.open_when,
     openedAt: r.opened_at,
+    replyTo: r.reply_to,
     createdAt: r.created_at,
     sealed: r.open_when ? !r.opened_at : opensOn > today,
   };
@@ -110,8 +113,11 @@ export async function getSealedForMe(): Promise<SealedEnvelope[]> {
 /** Opened letters, gathered into their special days, newest first. */
 export function letterDays(letters: TimeCapsule[]): LetterDay[] {
   const days = new Map<string, LetterDay>();
+  // A reply sits under the letter it answers, when that letter is here too.
+  const here = new Set(letters.map((l) => l.id));
   for (const l of letters) {
     if (l.sealed) continue;
+    if (l.replyTo && here.has(l.replyTo)) continue;
     // An "open when" letter is its own moment, on the day it was opened.
     const key = l.openWhen ? `${l.recipientMemberId}-${l.opensOn}-w${l.id}` : `${l.recipientMemberId}-${l.opensOn}`;
     const day = days.get(key) ?? { key, recipientMemberId: l.recipientMemberId, recipientName: l.recipientName, opensOn: l.opensOn, occasion: "", letters: [] };
