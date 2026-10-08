@@ -20,6 +20,9 @@ export const NOTIFICATION_DEFS = [
   { key: "approvals", name: "Chores to approve", sub: "When a child marks a chore done" },
   // Sunday evening, to grown-ups only (20260928221500_week_ahead_push.sql):
   // the coming week's plans, bills and birthdays in one line.
+  // Saved places (20261007160000): someone who shares their location arrived
+  // at Home, School or Work. Nobody is sent it unless someone is sharing.
+  { key: "arrivals", name: "Arrivals", sub: "When someone arrives at a saved place" },
   { key: "week_ahead", name: "The week ahead", sub: "Sunday at 7pm: plans, bills and birthdays", grownUps: true },
 ] as const;
 

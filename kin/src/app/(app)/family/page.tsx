@@ -5,7 +5,7 @@ import { SmartHomeLinks } from "@/components/smart-home-links";
 import { Icon } from "@/components/icons";
 import { redirect } from "next/navigation";
 import { getCurrentMember } from "@/lib/session";
-import { getMembers, getHealthSummary, getDocFolders, getFamilyProfile, getFamilyTree, getEmergencyContacts, getMemberLocations } from "@/lib/queries/family";
+import { getMembers, getHealthSummary, getDocFolders, getFamilyProfile, getFamilyTree, getEmergencyContacts, getMemberLocations, getHouseholdPlaces } from "@/lib/queries/family";
 import { LocationBoard } from "@/components/location-board";
 import { EmergencyContactList } from "@/components/emergency-contact-list";
 import { DocumentsLock } from "@/components/documents-lock";
@@ -419,10 +419,11 @@ async function TreePane({ familyId, householdName, myId, inviteCode, open }: { f
  * device it belongs to, and there is one row per person rather than a trail.
  * See the migration for why each of those is a policy and not a promise. */
 async function QuicklinksPane({ familyId, meId, myRole }: { familyId: string; meId: string; myRole: string }) {
-  const [contacts, people, members] = await Promise.all([
+  const [contacts, people, members, places] = await Promise.all([
     getEmergencyContacts(familyId),
     getMemberLocations(familyId),
     getMembers(familyId),
+    getHouseholdPlaces(familyId),
   ]);
   // Every parent in the household, in the order they joined -- including one
   // who is here as a managed profile without a login of their own, since
@@ -448,7 +449,7 @@ async function QuicklinksPane({ familyId, meId, myRole }: { familyId: string; me
       <div className="kin-eyebrow" style={{ margin: "22px 0 8px" }}>
         WHERE EVERYONE IS
       </div>
-      <LocationBoard people={people} meId={meId} myRole={myRole} />
+      <LocationBoard people={people} meId={meId} myRole={myRole} places={places} />
     </>
   );
 }

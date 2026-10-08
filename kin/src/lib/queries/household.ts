@@ -191,3 +191,17 @@ export async function getLiquidIntake(familyId: string, dateISO: string): Promis
     glasses: byMember.get(m.id) ?? { water: 0, juice: 0, milk: 0 },
   }));
 }
+
+/** Which meals each open line on the list is for, by line id, soonest first:
+ * "for Chicken adobo (Tue)". Lines nobody planned a meal around are absent. */
+export async function getBuyItemMeals(familyId: string): Promise<Record<string, { dish: string; date: string }[]>> {
+  const supabase = await createClient();
+  const { data } = await supabase.from("buy_item_meals").select("buy_item_id, meal_plans(dish, plan_date)").eq("family_id", familyId);
+  const out: Record<string, { dish: string; date: string }[]> = {};
+  for (const link of data ?? []) {
+    if (!link.meal_plans) continue;
+    (out[link.buy_item_id] ??= []).push({ dish: link.meal_plans.dish, date: link.meal_plans.plan_date });
+  }
+  for (const list of Object.values(out)) list.sort((a, b) => a.date.localeCompare(b.date) || a.dish.localeCompare(b.dish));
+  return out;
+}

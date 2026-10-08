@@ -11,6 +11,8 @@ import { getGlance, getTodayBriefing, getComingUp, type GlanceTile } from "@/lib
 import { getRoutinesNeedingAttention, getPendingApprovals, getPendingRedemptions } from "@/lib/queries/routines";
 import { TodayList, type TodayEntry } from "@/components/today-list";
 import { familyClock } from "@/lib/time";
+import { wrapUp, isWrapUpTime } from "@/lib/wrap-up";
+import { EveningWrapUp } from "@/components/evening-wrap-up";
 import { ApprovalQueue } from "@/components/approval-queue";
 import { getGoalRequestsFor, getGoals, getRewardDuties, type GoalView } from "@/lib/queries/goals";
 import { weekStartOf } from "@/lib/week";
@@ -35,6 +37,7 @@ import { getStartHere } from "@/lib/queries/start-here";
 import { PlusTrialCard } from "@/components/plus-trial-card";
 import { getPlusTrialCard } from "@/lib/queries/plus-trial";
 import { HolidayLine } from "@/components/holiday-line";
+import { WhosWhere } from "@/components/whos-where";
 import { getMyPendingCheckIns } from "@/lib/queries/member-card";
 import { LettersOpeningToday } from "@/components/letters-opening";
 
@@ -180,6 +183,10 @@ export default async function TodayPage() {
       {/* A public holiday today or this week (lib/holidays). */}
       <HolidayLine />
 
+      {/* From 6pm: what got done, what is open, and one tap to move the open
+          plans to tomorrow (lib/wrap-up.ts). */}
+      {entries.length > 0 && isWrapUpTime(familyClock(new Date())) && <EveningWrapUp wrap={wrapUp(entries)} />}
+
       {entries.length === 0 ? (
         <p className="kin-allclear">
           <Icon name="check" size={15} />
@@ -250,6 +257,9 @@ export default async function TodayPage() {
           Expense
         </Link>
       </nav>
+
+      {/* Who's where: only when someone in the household shares (item 10). */}
+      <WhosWhere familyId={me.family_id} meId={me.id} tz={me.families.time_zone} />
 
       {/* Coming up: what to sort out now so the week is not a scramble. */}
       {comingUp.length > 0 && (
