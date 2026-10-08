@@ -103,7 +103,20 @@ export type QueuedOp =
       section?: string;
     }
   | { id: string; at: string; kind: "today.mark"; key: string; day: string; date?: string; label: string }
-  | { id: string; at: string; kind: "chat.send"; body: string; label: string };
+  | {
+      id: string;
+      at: string;
+      kind: "chat.send";
+      body: string;
+      label: string;
+      /** From the live household chat: who it tags and what it answers,
+       * sent with it on reconnect. The saved copy sends words only. */
+      mentions?: string[];
+      replyTo?: string | null;
+      /** The quote as it looked when written, so the waiting bubble can show
+       * it even after the message it answers has scrolled out of the thread. */
+      quote?: { who: string; text: string };
+    };
 
 export type ReplayResult = {
   id: string;
