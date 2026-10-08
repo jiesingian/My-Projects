@@ -691,6 +691,7 @@ export type Database = {
           paid_by_member_id: string | null
           paid_from_account_id: string | null
           recurrence: string | null
+          remind_days_before: number
           status: string
           sub_note: string | null
           transaction_id: string | null
@@ -708,6 +709,7 @@ export type Database = {
           paid_by_member_id?: string | null
           paid_from_account_id?: string | null
           recurrence?: string | null
+          remind_days_before?: number
           status?: string
           sub_note?: string | null
           transaction_id?: string | null
@@ -725,6 +727,7 @@ export type Database = {
           paid_by_member_id?: string | null
           paid_from_account_id?: string | null
           recurrence?: string | null
+          remind_days_before?: number
           status?: string
           sub_note?: string | null
           transaction_id?: string | null
@@ -834,6 +837,52 @@ export type Database = {
             columns: ["family_id"]
             isOneToOne: false
             referencedRelation: "families"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      buy_item_meals: {
+        Row: {
+          buy_item_id: string
+          created_at: string
+          family_id: string
+          meal_plan_id: string
+          quantity: number | null
+        }
+        Insert: {
+          buy_item_id: string
+          created_at?: string
+          family_id: string
+          meal_plan_id: string
+          quantity?: number | null
+        }
+        Update: {
+          buy_item_id?: string
+          created_at?: string
+          family_id?: string
+          meal_plan_id?: string
+          quantity?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "buy_item_meals_buy_item_id_fkey"
+            columns: ["buy_item_id"]
+            isOneToOne: false
+            referencedRelation: "buy_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "buy_item_meals_family_id_fkey"
+            columns: ["family_id"]
+            isOneToOne: false
+            referencedRelation: "families"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "buy_item_meals_meal_plan_id_fkey"
+            columns: ["meal_plan_id"]
+            isOneToOne: false
+            referencedRelation: "meal_plans"
             referencedColumns: ["id"]
           },
         ]
@@ -1343,6 +1392,42 @@ export type Database = {
           },
         ]
       }
+      household_places: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          family_id: string
+          id: string
+          lat: number
+          lng: number
+          name: string
+          notify: boolean
+          radius_m: number
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          family_id: string
+          id?: string
+          lat: number
+          lng: number
+          name: string
+          notify?: boolean
+          radius_m?: number
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          family_id?: string
+          id?: string
+          lat?: number
+          lng?: number
+          name?: string
+          notify?: boolean
+          radius_m?: number
+        }
+        Relationships: []
+      }
       member_locations: {
         Row: {
           accuracy_m: number | null
@@ -1351,6 +1436,9 @@ export type Database = {
           lat: number | null
           lng: number | null
           member_id: string
+          parent_ok: boolean
+          paused_until: string | null
+          place_id: string | null
           sharing: boolean
           updated_at: string | null
         }
@@ -1361,6 +1449,9 @@ export type Database = {
           lat?: number | null
           lng?: number | null
           member_id: string
+          parent_ok?: boolean
+          paused_until?: string | null
+          place_id?: string | null
           sharing?: boolean
           updated_at?: string | null
         }
@@ -1371,6 +1462,9 @@ export type Database = {
           lat?: number | null
           lng?: number | null
           member_id?: string
+          parent_ok?: boolean
+          paused_until?: string | null
+          place_id?: string | null
           sharing?: boolean
           updated_at?: string | null
         }
@@ -1717,6 +1811,7 @@ export type Database = {
           invite_code: string
           name: string
           share_with_relatives: boolean
+          time_zone: string
           week_start: string
         }
         Insert: {
@@ -1738,6 +1833,7 @@ export type Database = {
           invite_code: string
           name: string
           share_with_relatives?: boolean
+          time_zone?: string
           week_start?: string
         }
         Update: {
@@ -1759,6 +1855,7 @@ export type Database = {
           invite_code?: string
           name?: string
           share_with_relatives?: boolean
+          time_zone?: string
           week_start?: string
         }
         Relationships: []
@@ -5932,6 +6029,10 @@ export type Database = {
       relative_profile: {
         Args: { p_member_id: string }
         Returns: { member_id: string; full_name: string; avatar_url: string | null; cover_path: string | null; family_id: string; household_name: string; link_id: string | null; match_id: string | null; tree_person_id: string | null; is_shared_person: boolean | null }[]
+      }
+      due_bill_ahead_reminders: {
+        Args: { p_secret: string; p_now?: string }
+        Returns: { key: string; member_id: string; endpoint: string; p256dh: string; auth: string; title: string; body: string; url: string }[]
       }
       due_goal_reward_reminders: {
         Args: { p_secret: string; p_now?: string }
