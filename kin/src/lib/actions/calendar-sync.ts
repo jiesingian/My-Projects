@@ -16,7 +16,7 @@ import {
 import type { ActionState } from "@/lib/actions/auth";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/lib/database.types";
-import { familyDay } from "@/lib/time";
+import { familyDay, FAMILY_TZ } from "@/lib/time";
 import { eventStartEnd, allDayEvent, syncLinkPatch, isQuarantined, QUARANTINE_AFTER } from "@/lib/calendar-shape";
 
 type Db = SupabaseClient<Database>;
@@ -58,6 +58,13 @@ export async function disconnectCalendarAction(): Promise<ActionState> {
  * the event from every phone that already had it. The row stayed in Kin
  * looking fine and the item quietly left the family's calendars. Saying "I
  * could not tell" leaves them alone instead. */
+/** The household's time zone (families.time_zone), Manila if it cannot be
+ * read -- the same answer every household had before it could be set. */
+async function familyZone(supabase: Db, familyId: string): Promise<string> {
+  const { data } = await supabase.from("families").select("time_zone").eq("id", familyId).maybeSingle();
+  return data?.time_zone || FAMILY_TZ;
+}
+
 async function resolveTargetMemberIds(supabase: Db, familyId: string, target: CalendarTarget): Promise<string[] | null> {
   const { data: connectedRows, error } = await supabase.from("calendar_links").select("member_id").eq("family_id", familyId).eq("connected", true);
   if (error) {
@@ -82,6 +89,9 @@ async function resolveTargetMemberIds(supabase: Db, familyId: string, target: Ca
 export async function syncRowToCalendars(familyId: string, table: SourceTable, rowId: string, input: CalendarEventInput | null, target: CalendarTarget): Promise<void> {
   if (!input) return;
   const supabase = await createClient();
+  // Google is told the household's own zone, so a repeating event keeps its
+  // local hour wherever the household is.
+  input = { ...input, timeZone: input.timeZone ?? (await familyZone(supabase, familyId)) };
   const desiredMemberIds = await resolveTargetMemberIds(supabase, familyId, target);
   if (!desiredMemberIds) return;
 
@@ -277,6 +287,7 @@ async function applyIncomingEvent(
   familyId: string,
   memberId: string,
   event: GoogleCalendarEvent,
+  tz: string,
 ): Promise<string | null> {
   const { data: link, error: linkError } = await supabase.from("calendar_event_links").select("*").eq("member_id", memberId).eq("google_event_id", event.id).maybeSingle();
   // Treating this as "not linked yet" would send an edit down the create path
@@ -308,7 +319,7 @@ async function applyIncomingEvent(
     return null;
   }
 
-  const when = eventStartEnd(event);
+  const when = eventStartEnd(event, tz);
   // Not a failure: an event Google sent with no usable start is one we cannot
   // place, and replaying it forever would not help.
   if (!when) return null;
@@ -420,9 +431,10 @@ async function pullMemberCalendar(
 
   const retrying: string[] = [];
   const setAside: string[] = [];
+  const tz = await familyZone(supabase, familyId);
 
   for (const event of result.events) {
-    const failed = await applyIncomingEvent(supabase, familyId, memberId, event);
+    const failed = await applyIncomingEvent(supabase, familyId, memberId, event, tz);
 
     if (!failed) {
       // It worked. Any record of it failing before is history, and leaving it
