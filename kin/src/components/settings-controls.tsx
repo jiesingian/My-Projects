@@ -14,6 +14,7 @@ import { Blueprint } from "@/components/ui";
 import { NOTIFICATION_DEFS } from "@/lib/notifications";
 import { CURRENCIES, DATE_FORMATS, WEEK_STARTS, TIME_ZONES, COUNTRY_TIME_ZONE } from "@/lib/household-prefs";
 import { familyDateTime } from "@/lib/time";
+import { feedSubscribeLinks } from "@/lib/ics";
 import { COUNTRIES } from "@/lib/countries";
 import { PALETTES, type PaletteMode } from "@/lib/palettes";
 
@@ -669,7 +670,7 @@ export function CalendarFeedControl({ hasLink }: { hasLink: boolean }) {
   const [pending, startTransition] = useTransition();
 
   const make = async () => {
-    if (on && !(await confirm({ title: "Make a new link?", description: "The old link stops working, so any calendar using it stops updating until you subscribe with the new one.", confirmLabel: "Make new link" }))) return;
+    if (on && !(await confirm({ title: "Reset the link?", description: "The old link stops working, so any calendar using it stops updating until you subscribe with the new one.", confirmLabel: "Reset link" }))) return;
     startTransition(async () => {
       const result = await createCalendarFeedAction();
       setFailed(result.error);
@@ -706,13 +707,21 @@ export function CalendarFeedControl({ hasLink }: { hasLink: boolean }) {
   return (
     <div className="kin-feed">
       <p className="kin-feed-lede">
-        See the family&apos;s plans in Apple Calendar or Outlook. Your tasks and the whole family&apos;s appear there and update by themselves.
+        See the family&apos;s plans in Apple Calendar, Google Calendar or Outlook. Your tasks and the whole family&apos;s appear there and update by themselves.
       </p>
       {links ? (
         <>
           <a href={links.webcal} className="btn btn-primary btn-block">
             Open in Apple Calendar
           </a>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.5rem", marginTop: "0.5rem" }}>
+            <a href={feedSubscribeLinks(links.https).google} target="_blank" rel="noopener noreferrer" className="btn btn-secondary">
+              Add to Google
+            </a>
+            <a href={feedSubscribeLinks(links.https).outlook} target="_blank" rel="noopener noreferrer" className="btn btn-secondary">
+              Add to Outlook
+            </a>
+          </div>
           <div className="kin-feed-link">
             <code>{links.https}</code>
             <button type="button" className="btn btn-secondary" onClick={copy}>
@@ -720,12 +729,12 @@ export function CalendarFeedControl({ hasLink }: { hasLink: boolean }) {
             </button>
           </div>
           <p className="kin-feed-note">
-            For Outlook or Google Calendar, add a calendar &ldquo;from URL&rdquo; and paste this. It is shown only now, and anyone with it can see these plans, so keep it to yourself.
+            Anywhere else (a work Outlook, for one), add a calendar &ldquo;from URL&rdquo; and paste this. It is shown only now, and anyone with it can see these plans, so keep it to yourself. Lost it, or shared it by mistake? Reset the link.
           </p>
         </>
       ) : (
         <button type="button" className="btn btn-secondary btn-block" disabled={pending} onClick={make}>
-          {pending ? "Making a link…" : on ? "Make a new link" : "Get my calendar link"}
+          {pending ? "Making a link…" : on ? "Reset link (shows a new one)" : "Get my calendar link"}
         </button>
       )}
       {on && (
