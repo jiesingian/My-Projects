@@ -116,3 +116,48 @@ export function formatQuantity(quantity: number | null, unit: string | null): st
   const shown = Number.isInteger(amount) ? String(amount) : String(amount);
   return unit ? `${shown} ${unit}` : shown;
 }
+
+/** The five aisles a list is walked in (7 October, Janine's roadmap): fresh
+ * first, then the fridge, then everything on a shelf, then the non-food
+ * aisles. Coarser than MARKET_SECTIONS on purpose -- a supermarket has these
+ * five, a palengke has the first two, and nobody walks sixteen. Anything
+ * Kin could not file stays in Other, at the end, where it is easy to spot. */
+export const AISLES = ["Produce", "Meat", "Dairy", "Dry goods", "Household", "Other"] as const;
+
+export type Aisle = (typeof AISLES)[number];
+
+const AISLE_OF: Record<MarketSection, Aisle> = {
+  Produce: "Produce",
+  Meat: "Meat",
+  "Fish & Seafood": "Meat",
+  "Dairy & Eggs": "Dairy",
+  Frozen: "Dairy",
+  Bakery: "Dry goods",
+  "Rice & Grains": "Dry goods",
+  "Canned & Packaged": "Dry goods",
+  "Condiments & Spices": "Dry goods",
+  Snacks: "Dry goods",
+  Beverages: "Dry goods",
+  Household: "Household",
+  "Personal Care": "Household",
+  Baby: "Household",
+  Pet: "Household",
+  Other: "Other",
+};
+
+export function aisleOf(section: string): Aisle {
+  return AISLE_OF[section as MarketSection] ?? "Other";
+}
+
+/** The list in aisle order: one group per aisle that has something in it, and
+ * inside an aisle by market section, keeping the order each was added in. */
+export function groupByAisle<T extends { section: string }>(items: T[]): { name: Aisle; items: T[] }[] {
+  return AISLES.map((name) => ({
+    name,
+    items: items
+      .map((item, i) => ({ item, i }))
+      .filter(({ item }) => aisleOf(item.section) === name)
+      .sort((a, b) => sectionOrder(a.item.section) - sectionOrder(b.item.section) || a.i - b.i)
+      .map(({ item }) => item),
+  })).filter((g) => g.items.length > 0);
+}

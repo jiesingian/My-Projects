@@ -10,12 +10,15 @@ import {
   setAllocationAction,
   addBillAction,
   addIncomeScheduleAction,
+  setBillReminderAction,
 } from "@/lib/actions/wealth";
 import {
   ACCOUNT_TYPES,
   ACCOUNT_TYPE_LABELS,
   EXPENSE_CATEGORIES,
   INCOME_SOURCES,
+  BILL_REMIND_DAYS,
+  DEFAULT_BILL_REMIND_DAYS,
   knownAppsForType,
   isKnownInstitutionLabel,
   resolveInstitutionLinks,
@@ -450,6 +453,15 @@ export function AddBillForm() {
           </select>
         </Labelled>
       </div>
+      <Labelled label="Remind me">
+        <select className="input" name="remind_days_before" defaultValue={DEFAULT_BILL_REMIND_DAYS} style={{ minHeight: "2.625rem" }}>
+          {BILL_REMIND_DAYS.map((d) => (
+            <option key={d} value={d}>
+              {remindLabel(d)}
+            </option>
+          ))}
+        </select>
+      </Labelled>
       <div style={{ display: "flex", gap: "0.625rem" }}>
         <SubmitButton className="btn btn-primary" style={{ flex: 1, minHeight: "2.625rem", fontSize: "0.875rem" }}>
           Save expense
@@ -459,6 +471,52 @@ export function AddBillForm() {
         </button>
       </div>
     </form>
+  );
+}
+
+function remindLabel(days: number): string {
+  return days === 1 ? "The day before" : `${days} days before`;
+}
+
+/** A bill's own "remind me" setting, changed in place on its row. The push
+ * and Today's line come this many days ahead; the day before and the day
+ * itself always follow. */
+export function BillReminderPicker({ billId, days }: { billId: string; days: number }) {
+  const [value, setValue] = useState(days);
+  const [error, setError] = useState<string | null>(null);
+  const [pending, startTransition] = useTransition();
+  const options: number[] = (BILL_REMIND_DAYS as readonly number[]).includes(days) ? [...BILL_REMIND_DAYS] : [...BILL_REMIND_DAYS, days].sort((a, b) => a - b);
+  return (
+    <label style={{ display: "inline-flex", alignItems: "center", gap: "0.375rem", fontSize: "0.78125rem", color: "var(--color-neutral-600)" }}>
+      <span>Remind</span>
+      <select
+        className="input"
+        aria-label="Remind me"
+        value={value}
+        disabled={pending}
+        style={{ minHeight: "2rem", padding: "0 0.5rem", fontSize: "0.78125rem", width: "auto" }}
+        onChange={(e) => {
+          const next = Number(e.target.value);
+          const before = value;
+          setValue(next);
+          setError(null);
+          startTransition(async () => {
+            const res = await setBillReminderAction(billId, next);
+            if (res.error) {
+              setValue(before);
+              setError(res.error);
+            }
+          });
+        }}
+      >
+        {options.map((d) => (
+          <option key={d} value={d}>
+            {remindLabel(d).toLowerCase()}
+          </option>
+        ))}
+      </select>
+      {error && <span role="alert" style={{ color: "var(--color-accent-700)" }}>{error}</span>}
+    </label>
   );
 }
 
