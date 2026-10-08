@@ -5,6 +5,7 @@ import { familyDay as localDay, familyTime as localTime, familyClock, familyMidn
 import { formatTimeOfDay } from "@/lib/routines";
 import type { IconName } from "@/components/icons";
 import { isForMe, taggedFrom, whoseFor, type Whose } from "@/lib/for-me";
+import { DEFAULT_BILL_REMIND_DAYS } from "@/lib/wealth";
 
 /** Who is looking: Today shows them what is theirs (lib/for-me). */
 type Viewer = { id: string; role: string };
@@ -357,13 +358,14 @@ export async function getComingUp(familyId: string, currency: string, me: Viewer
       .or(`and(event_date.gt.${today},event_date.lte.${weekOut}),recurs_yearly.eq.true`),
     supabase
       .from("bills")
-      .select("id, name, amount, due_date")
+      .select("*")
       .eq("family_id", familyId)
       .eq("status", "unpaid")
       .gt("due_date", today)
-      .lte("due_date", addDays(today, 3))
-      .order("due_date", { ascending: true })
-      .limit(3),
+      // Each bill says how far ahead it wants to be heard of (3 days unless
+      // set, at most 30); the ones not yet inside their window drop below.
+      .lte("due_date", addDays(today, 30))
+      .order("due_date", { ascending: true }),
     supabase
       .from("health_schedule")
       .select("id, what, when_date, member_id, member:members!health_schedule_member_id_fkey(full_name, role)")
@@ -403,8 +405,12 @@ export async function getComingUp(familyId: string, currency: string, me: Viewer
     items.push({ id: `soon-event-${e.id}`, icon: e.kind === "birthday" ? "cupcake" : "gift", tint: "occasion", title: e.title, meta: `${what}${nudge}`, href: "/planner", at: inDays, whose, memberIds: e.applies_to_whole_family ? [] : tagged.map((t) => t.id) });
   }
 
-  for (const b of bills.data ?? []) {
-    const inDays = Math.round((Date.parse(b.due_date!) - Date.parse(today)) / 86_400_000);
+  const billsInWindow = (bills.data ?? [])
+    .map((b) => ({ ...b, inDays: Math.round((Date.parse(b.due_date!) - Date.parse(today)) / 86_400_000) }))
+    .filter((b) => b.inDays <= (b.remind_days_before ?? DEFAULT_BILL_REMIND_DAYS))
+    .slice(0, 3);
+  for (const b of billsInWindow) {
+    const inDays = b.inDays;
     items.push({
       id: `soon-bill-${b.id}`,
       icon: "wallet",
