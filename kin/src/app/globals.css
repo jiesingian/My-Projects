@@ -7017,3 +7017,16 @@ button.kin-room-quote { font: inherit; font-size: 0.78125rem; text-align: left; 
   color: var(--color-accent-700);
   background: color-mix(in srgb, var(--color-accent) 12%, transparent);
 }
+
+/* Evening wrap-up on Today (components/evening-wrap-up.tsx). */
+.kin-wrapup {
+  margin-bottom: 1.625rem;
+  padding: 0.875rem 1rem;
+  border-radius: var(--radius-card);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-sm);
+}
+.kin-wrapup .kin-eyebrow { margin-top: 0; }
+.kin-wrapup-line { display: flex; gap: 0.5rem; align-items: flex-start; font-size: 0.875rem; line-height: 1.4; margin: 0.375rem 0 0; overflow-wrap: anywhere; }
+.kin-wrapup-line svg { flex: none; margin-top: 0.15rem; }
+.kin-wrapup-note { font-size: 0.8125rem; color: var(--color-neutral-700); margin: 0.5rem 0 0; }
