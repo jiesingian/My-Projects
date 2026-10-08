@@ -15,6 +15,7 @@ import { formatCurrency } from "@/lib/format";
 import { confirm } from "@/components/confirm-sheet";
 import type { PickableAccount } from "@/components/money-actions";
 import type { Tables } from "@/lib/database.types";
+import { mealDayLabel } from "@/lib/meal-shopping";
 import { isNetworkFailure, isOffline, newOpId, queueOffline, useQueue } from "@/lib/offline/live";
 
 const initialState: ActionState = { error: null };
@@ -62,6 +63,7 @@ export function BuyList({
   accounts,
   currency,
   prices,
+  mealsFor = {},
   unpriced,
   trip,
   pricesSlot,
@@ -74,6 +76,8 @@ export function BuyList({
   currency: string;
   /** What each line is expected to cost, keyed by item id. */
   prices: Record<string, { estimated: number | null; unitPrice: number | null; source: string; inPantry: boolean }>;
+  /** Which planned meals each line is for, by item id. */
+  mealsFor?: Record<string, { dish: string; date: string }[]>;
   /** How many lines Kin has no price for, so the total can say so. */
   unpriced: number;
   /** Open with the add box already out -- Today's "To buy" quick add. */
@@ -379,6 +383,13 @@ export function BuyList({
                         {formatQuantity(item.quantity, item.unit)}
                       </span>
                     </span>
+                    {/* The meals this line is for, so nobody wonders why there
+                        is a kilo of beef shank on the list. */}
+                    {mealsFor[item.id]?.length ? (
+                      <span style={{ display: "block", marginTop: "0.125rem", fontSize: "0.71875rem", color: "var(--color-neutral-600)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                        For {mealsFor[item.id].map((m) => `${m.dish} (${mealDayLabel(m.date)})`).join(", ")}
+                      </span>
+                    ) : null}
                   </button>
                   {/* What this line is expected to come to. Tapping it sets a
                       price for today only, without changing the price book —

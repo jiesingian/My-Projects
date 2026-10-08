@@ -841,6 +841,52 @@ export type Database = {
           },
         ]
       }
+      buy_item_meals: {
+        Row: {
+          buy_item_id: string
+          created_at: string
+          family_id: string
+          meal_plan_id: string
+          quantity: number | null
+        }
+        Insert: {
+          buy_item_id: string
+          created_at?: string
+          family_id: string
+          meal_plan_id: string
+          quantity?: number | null
+        }
+        Update: {
+          buy_item_id?: string
+          created_at?: string
+          family_id?: string
+          meal_plan_id?: string
+          quantity?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "buy_item_meals_buy_item_id_fkey"
+            columns: ["buy_item_id"]
+            isOneToOne: false
+            referencedRelation: "buy_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "buy_item_meals_family_id_fkey"
+            columns: ["family_id"]
+            isOneToOne: false
+            referencedRelation: "families"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "buy_item_meals_meal_plan_id_fkey"
+            columns: ["meal_plan_id"]
+            isOneToOne: false
+            referencedRelation: "meal_plans"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       buy_items: {
         Row: {
           checked: boolean
