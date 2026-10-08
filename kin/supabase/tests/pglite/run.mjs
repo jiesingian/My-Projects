@@ -55,6 +55,9 @@ const MIGRATIONS = [
   "20261007170000_bill_reminder_days.sql",
   "20261008090000_cheaper_chat_unread.sql",
   "20261008100000_buy_item_meals.sql",
+  "20260922053456_rewards_and_redemption.sql",
+  "20261008110000_points_children_cannot_award.sql",
+  "20261008110100_household_streak_bonus.sql",
 ];
 
 const only = process.argv[2];

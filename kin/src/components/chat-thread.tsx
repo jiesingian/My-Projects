@@ -443,18 +443,37 @@ export function ChatThread({
   };
 
   /** Offline, a message waits in the queue (lib/offline/live) and is posted
-   * on reconnect, in order, once (app/api/offline/replay). Words only: a
-   * reply's quote and @mentions are not carried, and files need a signal. */
-  const later = async (body: string): Promise<boolean> => {
-    const why = await queueOffline({ id: newOpId(), at: new Date().toISOString(), kind: "chat.send", body, label: "A message" });
+   * on reconnect, in order, once (app/api/offline/replay) -- with its @tags
+   * and the message it answers. Files need a signal. */
+  const later = useCallback(async (body: string, mentions: string[], answering: ChatMessage | null): Promise<boolean> => {
+    const quote = answering
+      ? {
+          who: answering.memberId ? (byId.get(answering.memberId)?.label ?? "Someone") : "Someone",
+          text: (mediaSummary(answering.body) ?? answering.body).replace(/\s+/g, " ").trim().slice(0, 120) || "Attachment",
+        }
+      : undefined;
+    const why = await queueOffline({
+      id: newOpId(),
+      at: new Date().toISOString(),
+      kind: "chat.send",
+      body,
+      label: "A message",
+      mentions,
+      replyTo: answering?.id ?? null,
+      quote,
+    });
     if (why) setError(why);
     return !why;
-  };
+  }, [byId]);
 
   const send = useCallback(() => {
     const body = draft.trim();
     const files = picked;
     if (!body && files.length === 0) return;
+    // Only tags still standing in the text count.
+    const stillThere = mentioned.filter((id) => body.includes(`@${byId.get(id)?.label ?? ""}`));
+    const answeringMessage = replyingTo;
+    const answering = replyingTo?.id ?? null;
     if (isOffline()) {
       if (files.length > 0) {
         setError("You're offline. Words can wait to send; photos and files need a signal.");
@@ -464,12 +483,15 @@ export function ChatThread({
       setMentioned([]);
       setReplyingTo(null);
       setError(null);
-      void later(body).then((ok) => !ok && setDraft(body));
+      void later(body, stillThere, answeringMessage).then((ok) => {
+        if (ok) return;
+        // Not kept: everything goes back as it was, tags and quote included.
+        setDraft(body);
+        setMentioned(stillThere);
+        setReplyingTo(answeringMessage);
+      });
       return;
     }
-    // Only tags still standing in the text count.
-    const stillThere = mentioned.filter((id) => body.includes(`@${byId.get(id)?.label ?? ""}`));
-    const answering = replyingTo?.id ?? null;
     setDraft("");
     setMentioned([]);
     setReplyingTo(null);
@@ -506,7 +528,7 @@ export function ChatThread({
         result = await sendMessageAction({ body, mentions: stillThere, replyTo: answering, attachments });
       } catch (e) {
         setPendingBody(null);
-        if (isNetworkFailure(e) && attachments.length === 0 && body && (await later(body))) return;
+        if (isNetworkFailure(e) && attachments.length === 0 && body && (await later(body, stillThere, answeringMessage))) return;
         setError("That message didn't send. Try again.");
         setDraft(body);
         return;
@@ -525,17 +547,18 @@ export function ChatThread({
       router.refresh();
       setPendingBody(null);
     });
-  }, [draft, mentioned, byId, router, replyingTo, picked]);
+  }, [draft, mentioned, byId, router, replyingTo, picked, later]);
 
   /** A sticker or GIF goes the moment it is tapped, as its own message --
    * whatever is typed in the field stays there. */
   const sendMedia = (body: string) => {
+    const answeringMessage = replyingTo;
     const answering = replyingTo?.id ?? null;
     setMediaOpen(false);
     setReplyingTo(null);
     if (isOffline()) {
       setError(null);
-      void later(body);
+      void later(body, [], answeringMessage);
       return;
     }
     setPendingBody(body);
@@ -545,7 +568,7 @@ export function ChatThread({
         const result = await sendMessageAction({ body, replyTo: answering });
         if (result.error) setError(result.error);
       } catch (e) {
-        if (!(isNetworkFailure(e) && (await later(body)))) setError("That didn't send. Try again.");
+        if (!(isNetworkFailure(e) && (await later(body, [], answeringMessage)))) setError("That didn't send. Try again.");
       }
       router.refresh();
       setPendingBody(null);
@@ -1016,6 +1039,12 @@ export function ChatThread({
         {waiting.map((q) => (
           <div key={q.id} style={{ display: "flex", justifyContent: "flex-end", marginTop: "0.5rem" }}>
             <div style={{ maxWidth: "76%", opacity: 0.6, display: "flex", flexDirection: "column", alignItems: "flex-end", gap: "0.1875rem" }}>
+              {q.quote && (
+                <span className="kin-quote" data-mine>
+                  <span className="kin-quote-who">{q.quote.who}</span>
+                  <span className="kin-quote-text">{q.quote.text}</span>
+                </span>
+              )}
               {chatMedia(q.body) ? (
                 <ChatMediaView media={chatMedia(q.body)!} />
               ) : (
