@@ -304,7 +304,13 @@ export async function getIncomeSchedules(familyId: string) {
  * Who picker narrows accounts -- naming a member shows the flow through
  * their own accounts only. Bills and income schedules stay unscoped: they
  * are the household's shared plans, not tied to one person's account, the
- * same way a bill has never had an owner. */
+ * same way a bill has never had an owner.
+ *
+ * Except where one points at an account the viewer cannot see -- an income
+ * that lands in, or a bill paid from, someone's private account. That row
+ * is left out for everyone but whoever can see the account (accounts RLS,
+ * read as the viewer), as on Subscriptions: a private account is its
+ * owner's alone (e2e/private-accounts.spec.ts). */
 export async function getCashFlowPane(familyId: string, range: CashFlowRange, scope: WealthScope = "all") {
   const supabase = await createClient();
   const count = cashFlowRangeCount(range);
@@ -322,6 +328,11 @@ export async function getCashFlowPane(familyId: string, range: CashFlowRange, sc
     getBills(familyId),
     getIncomeSchedules(familyId),
   ]);
+  // Archived accounts too: a bill paid from one is still the viewer's to see.
+  const { data: seen } = await supabase.from("accounts").select("id").eq("family_id", familyId);
+  const canSee = new Set((seen ?? []).map((a) => a.id));
+  const visibleBills = bills.filter((b) => !b.paid_from_account_id || canSee.has(b.paid_from_account_id));
+  const visibleIncome = incomeSchedules.filter((s) => !s.account_id || canSee.has(s.account_id));
 
   const leaveOut = await privateLeftOutOfAll();
   const accountIds = new Set(allAccounts.filter((a) => inTotalsScope(a, scope, leaveOut)).map((a) => a.id));
@@ -341,11 +352,11 @@ export async function getCashFlowPane(familyId: string, range: CashFlowRange, sc
     periodExpense,
     net: periodIncome - periodExpense,
     history,
-    expectedIncome: incomeSchedules.filter((s) => s.status !== "received"),
-    receivedIncome: incomeSchedules.filter((s) => s.status === "received").slice(0, 12),
+    expectedIncome: visibleIncome.filter((s) => s.status !== "received"),
+    receivedIncome: visibleIncome.filter((s) => s.status === "received").slice(0, 12),
     recentIncome: confirmed.filter((t) => t.direction === "in" && t.source_table !== "income_schedules").slice(0, 8),
-    openBills: bills.filter((b) => b.status !== "paid"),
-    settledBills: bills.filter((b) => b.status === "paid").slice(0, 12),
+    openBills: visibleBills.filter((b) => b.status !== "paid"),
+    settledBills: visibleBills.filter((b) => b.status === "paid").slice(0, 12),
     recentExpense: confirmed.filter((t) => t.direction === "out" && t.source_table !== "bills").slice(0, 8),
     // What this period's money was actually tied to -- an asset, a goal, a
     // bill -- rather than only how much of it there was.

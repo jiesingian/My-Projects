@@ -548,6 +548,16 @@ async function CashFlowPane({ familyId, memberId, currency, range, scope, grownU
 
       <SectionLabel>BILLS</SectionLabel>
       <CashFlowSources sources={cf.sources} currency={currency} />
+      {/* Everything that repeats -- monthly, quarterly, yearly -- and what it
+          all comes to in a year, built from these same bills. */}
+      <Link
+        href="/wealth/subscriptions"
+        style={{ display: "flex", alignItems: "center", gap: "0.5rem", padding: "0.75rem 0", fontSize: "0.875rem", color: "inherit", textDecoration: "none", borderBottom: "1px solid color-mix(in srgb, var(--color-text) 10%, transparent)" }}
+      >
+        <Icon name="receipt" size={18} />
+        <span style={{ flex: 1 }}>Subscriptions: what repeats, and its cost a year</span>
+        <span aria-hidden="true" style={{ color: "var(--color-neutral-600)" }}>›</span>
+      </Link>
 
       <UpcomingBills bills={cf.openBills} currency={currency} fmtDate={fmtDate} />
       {cf.openBills.length === 0 && cf.settledBills.length === 0 && cf.recentExpense.length === 0 && (
