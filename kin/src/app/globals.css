@@ -539,6 +539,13 @@ button,
   margin-bottom: 0.375rem;
   color: var(--color-neutral-600);
 }
+/* Two fields side by side (amount and date, mostly) share a flex row. A
+   native date input won't shrink below its own text, so at 200% the pair ran
+   ~115px off a phone. Letting the row wrap puts the second field on its own
+   line only when the two don't fit; at ordinary sizes nothing moves. */
+:where(div:has(> .field + .field)) {
+  flex-wrap: wrap;
+}
 /* Sits under a native date input, which renders in the browser's locale and
    not the household's. Quiet enough to ignore once you trust it. */
 .date-echo {
