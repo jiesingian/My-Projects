@@ -233,7 +233,15 @@ jobs:
         # The list reporter's own summary -- every failing test's name and
         # error together -- lands in /tmp/e2e-output.log instead, for "Say
         # what broke" below to fold into the issue it opens.
-        run: npm run e2e 2>&1 | tee /tmp/e2e-output.log
+        #
+        # pipefail is not optional. Without it the step's exit code is tee's,
+        # which is always 0: on 9 October four tests failed (private-accounts
+        # and three Who-picker specs) and this step, and the whole Weekly
+        # check, reported success. A run: with no `shell:` gets `bash -e`,
+        # not `-o pipefail`, so it has to be said here.
+        run: |
+          set -o pipefail
+          npm run e2e 2>&1 | tee /tmp/e2e-output.log
 
       - uses: actions/upload-artifact@v6
         if: always()
