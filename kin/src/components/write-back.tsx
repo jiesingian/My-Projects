@@ -5,7 +5,7 @@ import { sealLetterAction } from "@/lib/actions/time-capsules";
 
 type Mode = "now" | "day" | "when";
 
-/** Write back to a letter that opened for you (20261007190000): now, on a
+/** Write back to a letter that opened for you (20261009090400): now, on a
  * day you pick, or "open when...". It goes to the letter's writer only. */
 export function WriteBack({ letterId, writerId, writerFirst, today }: { letterId: string; writerId: string; writerFirst: string; today: string }) {
   const [open, setOpen] = useState(false);

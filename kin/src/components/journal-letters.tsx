@@ -52,7 +52,7 @@ export function LetterDayLetters({ day, meId, underEntry = false, all = [], toda
 function Letter({ letter: l, meId, all, today, depth = 0 }: { letter: TimeCapsule; meId: string; all: TimeCapsule[]; today: string; depth?: number }) {
   const mineToSend = l.writerMemberId === meId && l.recipientMemberId !== meId;
   const isReply = depth > 0;
-  // Writing back (20261007190000): answers to this letter, and a way to
+  // Writing back (20261009090400): answers to this letter, and a way to
   // answer it for the one it was written to, once it's open.
   const replies = all.filter((r) => r.replyTo === l.id);
   const canWriteBack = !!today && l.recipientMemberId === meId && !l.sealed && !!l.writerMemberId && l.writerMemberId !== meId;

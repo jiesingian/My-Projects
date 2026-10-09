@@ -62,7 +62,7 @@ const MIGRATIONS = [
   "20261009090100_journal_letters.sql",
   "20261009090200_letter_cards.sql",
   "20261009090300_open_when_letters.sql",
-  "20261007190000_letter_replies.sql",
+  "20261009090400_letter_replies.sql",
 ];
 
 const only = process.argv[2];
