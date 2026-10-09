@@ -34,12 +34,12 @@ export type LetterDay = {
 };
 
 /** An envelope waiting for the reader: who it's from, when it opens and for
- * what -- never a word of it (my_sealed_letters, 20261007160100). */
+ * what -- never a word of it (my_sealed_letters, 20261009090100). */
 export type SealedEnvelope = { id: string; writerName: string; opensOn: string; occasion: string };
 
 /** Every letter this person may read: the ones they wrote, and the
  * opened ones written to them. The table's own rules decide which
- * (20261007160050_time_capsules_recipient_only.sql); nothing is filtered here. */
+ * (20261009090000_time_capsules_recipient_only.sql); nothing is filtered here. */
 export async function getTimeCapsules(familyId: string, opts: { openingOn?: string; timeZone?: string } = {}): Promise<TimeCapsule[]> {
   const supabase = await createClient();
   let q = supabase
@@ -75,7 +75,7 @@ export async function getTimeCapsules(familyId: string, opts: { openingOn?: stri
 
 /** A card being signed in the household, for anyone but the reader: whose
  * day, when, and who has signed -- never a word of a note (open_cards,
- * 20261007170000). */
+ * 20261009090200). */
 export type OpenCard = { recipientMemberId: string; recipientName: string; opensOn: string; occasion: string; signers: string[]; signedByMe: boolean };
 
 export async function getOpenCards(): Promise<OpenCard[]> {

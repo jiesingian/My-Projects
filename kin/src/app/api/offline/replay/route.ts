@@ -126,7 +126,18 @@ async function apply(op: QueuedOp, memberId: string, familyId: string): Promise<
     }
 
     case "chat.send": {
-      const r = await sendMessageAction({ body: String(op.body ?? ""), clientId: op.id });
+      // Tags and the answered message travel as the composer had them;
+      // sendMessageAction keeps only tags of people in this household, and
+      // the database refuses a reply to another household's message.
+      const mentions = Array.isArray(op.mentions) ? op.mentions.filter((m): m is string => typeof m === "string" && UUID.test(m)).slice(0, 20) : [];
+      const replyTo = typeof op.replyTo === "string" && UUID.test(op.replyTo) ? op.replyTo : null;
+      // Files the phone uploaded before sending (lib/offline/sync). The
+      // action refuses any path outside this household's chat folder.
+      const attachments = (Array.isArray(op.uploaded) ? op.uploaded : [])
+        .filter((a) => a && typeof a.storagePath === "string" && typeof a.fileName === "string" && typeof a.mimeType === "string" && Number.isFinite(a.sizeBytes))
+        .slice(0, 10)
+        .map((a) => ({ storagePath: a.storagePath, fileName: a.fileName, mimeType: a.mimeType, sizeBytes: Number(a.sizeBytes), transcript: typeof a.transcript === "string" ? a.transcript : undefined }));
+      const r = await sendMessageAction({ body: String(op.body ?? ""), mentions, replyTo, attachments, clientId: op.id });
       return r.error ? skip(r.error) : done;
     }
 

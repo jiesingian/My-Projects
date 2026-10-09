@@ -43,7 +43,10 @@ export function newOpId(): string {
 export async function queueOffline(op: QueuedOp): Promise<string | null> {
   try {
     if (!(await getOwner())) return "You're offline, and this phone has no saved copy of Kin yet, so this can't wait. Try again with a signal.";
-    return (await enqueue(op)) ? null : "Too many changes are waiting to send. Try again once you're back online.";
+    if (await enqueue(op)) return null;
+    return op.kind === "chat.send" && op.files?.length
+      ? "Too many photos and files are waiting on this phone. They'll send once you're back online; try this one then."
+      : "Too many changes are waiting to send. Try again once you're back online.";
   } catch {
     return "You're offline, and this change couldn't be kept on the phone.";
   }

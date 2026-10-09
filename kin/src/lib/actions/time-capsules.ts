@@ -16,7 +16,7 @@ export async function sealLetterAction(input: {
   opensOn: string | null;
   occasion: string;
   /** Others may sign it as a card (the default); off keeps it private --
-   * no card, nobody told (20261007170000). A child's note always signs. */
+   * no card, nobody told (20261009090200). A child's note always signs. */
   openToSign?: boolean;
   /** "Open when..." instead of a day: the moment; they open it themselves
    * (20261007180000). Never a card. */
@@ -26,7 +26,7 @@ export async function sealLetterAction(input: {
 }): Promise<{ error: string | null }> {
   const me = await requireCurrentMember();
   // A child with their own login may sign a card a grown-up started; the
-  // table checks there is one (20261007170000).
+  // table checks there is one (20261009090200).
   if (!isGrownUp(me.role) && me.role !== "child_self") return { error: "Only a grown-up can write a letter for later." };
   const body = input.body.trim();
   const title = input.title.trim().slice(0, 120);
