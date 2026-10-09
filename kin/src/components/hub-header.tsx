@@ -76,7 +76,7 @@ export function DetailHeader({
         <Link href={backHref} className="btn btn-secondary btn-icon" aria-label="Back">
           <Icon name="chevronLeft" />
         </Link>
-        <span style={{ fontSize: "0.8125rem", fontWeight: 600, color: "var(--color-accent)", marginLeft: "auto" }}>{eyebrow}</span>
+        <span style={{ fontSize: "0.8125rem", fontWeight: 600, color: "var(--color-accent-700)", marginLeft: "auto" }}>{eyebrow}</span>
       </div>
     </div>
   );

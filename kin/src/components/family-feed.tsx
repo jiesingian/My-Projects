@@ -98,7 +98,7 @@ export function FamilyFeed({
                     </span>
                   )}
                   <span>{e.isOurs ? "Ours" : e.householdName}</span>
-                  <span style={{ color: "var(--color-neutral-500)" }}>· {readableDate(e.entryDate)}</span>
+                  <span style={{ color: "var(--color-neutral-600)" }}>· {readableDate(e.entryDate)}</span>
                 </div>
                 <div style={{ font: "600 1.0625rem/1.2 var(--font-heading)", marginTop: "0.25rem" }}>{e.title}</div>
                 {e.note && (
@@ -135,7 +135,7 @@ function LinkManager({ links, ourCode, canManage }: { links: FamilyLink[]; ourCo
         unlink at any time, and sharing stops the moment they do.
       </p>
 
-      <div style={{ fontSize: "0.71875rem", letterSpacing: ".05em", color: "var(--color-neutral-500)", marginBottom: "0.25rem" }}>
+      <div style={{ fontSize: "0.71875rem", letterSpacing: ".05em", color: "var(--color-neutral-600)", marginBottom: "0.25rem" }}>
         YOUR CODE — GIVE THIS TO THEM
       </div>
       <div style={{ font: "600 1.0625rem/1 var(--font-numeric)", letterSpacing: ".12em", marginBottom: "0.75rem" }}>{ourCode}</div>
@@ -219,7 +219,7 @@ function LinkManager({ links, ourCode, canManage }: { links: FamilyLink[]; ourCo
           }}
         >
           <ErrorText message={state.error} />
-          <div style={{ fontSize: "0.71875rem", letterSpacing: ".05em", color: "var(--color-neutral-500)", marginBottom: "0.25rem" }}>
+          <div style={{ fontSize: "0.71875rem", letterSpacing: ".05em", color: "var(--color-neutral-600)", marginBottom: "0.25rem" }}>
             LINK WITH ANOTHER HOUSEHOLD
           </div>
           <div style={{ display: "flex", gap: "0.375rem", flexWrap: "wrap" }}>

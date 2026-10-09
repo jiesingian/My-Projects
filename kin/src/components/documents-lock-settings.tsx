@@ -155,7 +155,7 @@ export function DocumentsLockSettings({
 
       {bioError && <ErrorText message={bioError} />}
 
-      <div style={{ fontSize: "0.71875rem", letterSpacing: ".05em", color: "var(--color-neutral-500)", marginBottom: "0.375rem" }}>
+      <div style={{ fontSize: "0.71875rem", letterSpacing: ".05em", color: "var(--color-neutral-600)", marginBottom: "0.375rem" }}>
         FACE, FINGERPRINT OR DEVICE PASSCODE
       </div>
       {devices.length > 0 && (
@@ -211,7 +211,7 @@ export function DocumentsLockSettings({
         </p>
       )}
 
-      <div style={{ fontSize: "0.71875rem", letterSpacing: ".05em", color: "var(--color-neutral-500)", marginBottom: "0.375rem" }}>
+      <div style={{ fontSize: "0.71875rem", letterSpacing: ".05em", color: "var(--color-neutral-600)", marginBottom: "0.375rem" }}>
         {hasPin ? "CHANGE YOUR PIN" : "SET A PIN"}
       </div>
       <form action={formAction}>

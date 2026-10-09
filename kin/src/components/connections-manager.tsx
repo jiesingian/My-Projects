@@ -276,7 +276,7 @@ export function ConnectionsManager({
             <ErrorText message={state.error} />
             {ownCode && (
               <div style={{ marginTop: "0.875rem" }}>
-                <div style={{ fontSize: "0.71875rem", letterSpacing: ".05em", color: "var(--color-neutral-500)", marginBottom: "0.25rem" }}>
+                <div style={{ fontSize: "0.71875rem", letterSpacing: ".05em", color: "var(--color-neutral-600)", marginBottom: "0.25rem" }}>
                   YOUR CODE — GIVE THIS TO PEOPLE YOU KNOW
                 </div>
                 <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", flexWrap: "wrap" }}>

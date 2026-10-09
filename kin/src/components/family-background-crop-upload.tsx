@@ -202,7 +202,7 @@ export function FamilyBackgroundCropUpload({ onDone }: { onDone: () => void }) {
             <input aria-label="Zoom" type="range" min={1} max={3} step={0.05} value={zoom} onChange={(e) => onZoomChange(Number(e.target.value))} style={{ flex: 1 }} disabled={busy} />
             <span style={{ color: "#fff", fontSize: "1rem" }}>+</span>
           </div>
-          {error && <p style={{ color: "var(--color-accent-400)", fontSize: "0.8125rem" }}>{error}</p>}
+          {error && <p style={{ color: "var(--color-accent-700)", fontSize: "0.8125rem" }}>{error}</p>}
           <div style={{ display: "flex", gap: "0.625rem" }}>
             <button type="button" className="btn btn-secondary" style={{ minHeight: "2.5rem", fontSize: "0.84375rem", padding: "0 1.25rem" }} disabled={busy} onClick={cancel}>
               Cancel

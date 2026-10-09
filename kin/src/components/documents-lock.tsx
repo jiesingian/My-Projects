@@ -127,7 +127,7 @@ export function DocumentsLock({
           {hasPin && (
             <div style={{ display: "flex", alignItems: "center", gap: "0.5625rem", margin: "14px 0 12px" }}>
               <span style={{ flex: 1, height: 1, background: "var(--color-divider)" }} />
-              <span style={{ fontSize: "0.71875rem", letterSpacing: ".06em", color: "var(--color-neutral-500)" }}>OR ENTER YOUR PIN</span>
+              <span style={{ fontSize: "0.71875rem", letterSpacing: ".06em", color: "var(--color-neutral-600)" }}>OR ENTER YOUR PIN</span>
               <span style={{ flex: 1, height: 1, background: "var(--color-divider)" }} />
             </div>
           )}

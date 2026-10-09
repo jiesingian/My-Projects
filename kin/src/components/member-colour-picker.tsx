@@ -31,7 +31,7 @@ export function MemberColourPicker({
 
   return (
     <div>
-      <div style={{ fontSize: "0.71875rem", letterSpacing: ".05em", color: "var(--color-neutral-500)", marginBottom: "0.375rem" }}>
+      <div style={{ fontSize: "0.71875rem", letterSpacing: ".05em", color: "var(--color-neutral-600)", marginBottom: "0.375rem" }}>
         CALENDAR COLOUR
       </div>
       <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>

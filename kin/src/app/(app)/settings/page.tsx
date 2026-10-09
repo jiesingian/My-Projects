@@ -120,7 +120,7 @@ export default async function SettingsPage({
           </nav>
         ))}
 
-        <div style={{ font: "400 0.8125rem/1.6 var(--font-numeric)", color: "var(--color-neutral-500)", textAlign: "center" }}>KIN 1.0.0</div>
+        <div style={{ font: "400 0.8125rem/1.6 var(--font-numeric)", color: "var(--color-neutral-600)", textAlign: "center" }}>KIN 1.0.0</div>
       </div>
     </div>
   );
