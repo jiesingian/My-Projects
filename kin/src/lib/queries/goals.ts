@@ -1,3 +1,4 @@
+import { householdZone } from "@/lib/household-zone";
 import { createClient } from "@/lib/supabase/server";
 import { familyDay } from "@/lib/time";
 import { clamp01, isGoalKind, isGoalPeriod, weightFraction, windowStart, type GoalKind, type GoalPeriod } from "@/lib/goals";
@@ -69,6 +70,7 @@ function inPlay(status: string | undefined): boolean {
 /** Every goal in the household, with its ring filled from what Kin already
  * holds. A handful of reads for the whole list, not one per goal. */
 export async function getGoals(familyId: string, viewer: Viewer, weekStart: 0 | 1): Promise<GoalView[]> {
+  const tz = await householdZone();
   const supabase = await createClient();
   const [{ data: goals }, { data: rewards }, { data: members }, { data: changes }] = await Promise.all([
     supabase.from("planner_goals").select("*").eq("family_id", familyId).order("created_at", { ascending: true }),
@@ -84,11 +86,11 @@ export async function getGoals(familyId: string, viewer: Viewer, weekStart: 0 | 
   // after it.
   const changeOf = new Map<string, NonNullable<typeof changes>[number]>();
   for (const c of changes ?? []) if (!changeOf.has(c.goal_id)) changeOf.set(c.goal_id, c);
-  const today = familyDay();
+  const today = familyDay(new Date(), tz);
 
   const withWindow = goals
     .filter((g) => isGoalKind(g.kind) && isGoalPeriod(g.period))
-    .map((g) => ({ ...g, kind: g.kind as GoalKind, period: g.period as GoalPeriod, from: windowStart(g.period as GoalPeriod, today, weekStart, familyDay(new Date(g.created_at))) }));
+    .map((g) => ({ ...g, kind: g.kind as GoalKind, period: g.period as GoalPeriod, from: windowStart(g.period as GoalPeriod, today, weekStart, familyDay(new Date(g.created_at), tz)) }));
   const earliest = withWindow.reduce((min, g) => (g.from < min ? g.from : min), today);
 
   const has = (k: GoalKind) => withWindow.some((g) => g.kind === k);

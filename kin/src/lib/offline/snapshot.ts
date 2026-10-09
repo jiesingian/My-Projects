@@ -1,3 +1,4 @@
+import { householdZone } from "@/lib/household-zone";
 import "server-only";
 import type { CurrentMember } from "@/lib/session";
 import { createClient } from "@/lib/supabase/server";
@@ -38,8 +39,9 @@ const words = (body: string, files: number) => mediaSummary(body) ?? (body || (f
  * Each part fails on its own: a snapshot with no Planner is still worth
  * saving, and one slow query must not cost the whole thing. */
 export async function buildSnapshot(me: CurrentMember, userId: string): Promise<OfflineSnapshot> {
+  const tz = await householdZone();
   const kid = inKidView(me);
-  const day = familyDay();
+  const day = familyDay(new Date(), tz);
   const soft = <T,>(p: Promise<T>, fallback: T) => p.catch(() => fallback);
 
   const [today, shopping, planner, conversations, emergency] = await Promise.all([
@@ -69,6 +71,7 @@ export async function buildSnapshot(me: CurrentMember, userId: string): Promise<
 
 /** Today's one list, in the order today/page.tsx gives it. */
 async function todayItems(me: CurrentMember): Promise<OfflineTodayItem[]> {
+  const tz = await householdZone();
   const [brief, tasks] = await Promise.all([
     getTodayBriefing(me.family_id, me.families.currency, me),
     getRoutinesNeedingAttention(me.family_id).then((all) => all.filter((r) => isForMe(me, r.appliesToAll, r.members))),
@@ -90,7 +93,7 @@ async function todayItems(me: CurrentMember): Promise<OfflineTodayItem[]> {
           mark: b.mark ?? null,
         },
         group: b.mark ? 2 : b.urgent ? 0 : 1,
-        at: b.at != null ? minutes(familyClock(new Date(b.at))) : -1,
+        at: b.at != null ? minutes(familyClock(new Date(b.at), tz)) : -1,
       })),
     ...tasks
       .filter((t) => t.today)
@@ -120,6 +123,7 @@ async function shoppingList(familyId: string) {
 }
 
 async function plannerWeek(me: CurrentMember) {
+  const tz = await householdZone();
   const { days } = await getWeekAgenda(me.family_id, undefined, new Date(), undefined, 0, weekStartOf(me.families.week_start));
   return days.map((d) => ({
     date: iso(d.date),
@@ -127,7 +131,7 @@ async function plannerWeek(me: CurrentMember) {
     items: d.activities.map((a) => ({
       id: `${a.table}-${a.id}`,
       title: a.title,
-      time: a.allDay ? null : familyClock(a.date),
+      time: a.allDay ? null : familyClock(a.date, tz),
       who: a.who,
       location: a.location,
     })),

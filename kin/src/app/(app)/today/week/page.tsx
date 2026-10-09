@@ -1,3 +1,4 @@
+import { householdZone } from "@/lib/household-zone";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getCurrentMember } from "@/lib/session";
@@ -14,6 +15,7 @@ import { getWeeklyDigest } from "@/lib/queries/digest";
  * coming. Opened from "Your family's week" on Today. What each person sees
  * is theirs to see -- see queries/digest. */
 export default async function WeekDigestPage() {
+  const tz = await householdZone();
   const me = await getCurrentMember();
   if (!me) redirect("/onboarding/profile");
   const d = await getWeeklyDigest(me);
@@ -99,7 +101,7 @@ export default async function WeekDigestPage() {
                     <li key={`${it.table}-${it.id}`}>
                       <span className="kin-digest-dot" style={{ background: styleFor(it.table).color }} aria-hidden="true" />
                       <Link href={it.href}>{it.title}</Link>
-                      <span className="kin-digest-meta"> · {it.allDay ? styleFor(it.table).label.toLowerCase() : familyClock(it.date)}</span>
+                      <span className="kin-digest-meta"> · {it.allDay ? styleFor(it.table).label.toLowerCase() : familyClock(it.date, tz)}</span>
                     </li>
                   ))}
                 </ul>

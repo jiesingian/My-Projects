@@ -1,5 +1,6 @@
 "use server";
 
+import { householdZone } from "@/lib/household-zone";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { requireCurrentMember } from "@/lib/session";
@@ -27,6 +28,7 @@ import type { ActionState } from "@/lib/actions/auth";
 const KEY = /^(activity|bill|health)-[0-9a-f-]{36}$|^buy$/;
 
 export async function markTodayItemAction(itemKey: string, state: "done" | "skipped"): Promise<ActionState> {
+  const tz = await householdZone();
   if (!KEY.test(itemKey) || (state !== "done" && state !== "skipped")) return { error: "That can't be marked." };
   const me = await requireCurrentMember();
   const supabase = await createClient();
@@ -50,7 +52,7 @@ export async function markTodayItemAction(itemKey: string, state: "done" | "skip
 
   const { error } = await supabase
     .from("today_marks")
-    .upsert({ family_id: me.family_id, item_key: itemKey, day: familyDay(), state, marked_by: me.id }, { onConflict: "family_id,item_key,day" });
+    .upsert({ family_id: me.family_id, item_key: itemKey, day: familyDay(new Date(), tz), state, marked_by: me.id }, { onConflict: "family_id,item_key,day" });
   if (error) return { error: humanDatabaseError(error.message) };
 
   revalidatePath("/today");
@@ -58,6 +60,7 @@ export async function markTodayItemAction(itemKey: string, state: "done" | "skip
 }
 
 export async function unmarkTodayItemAction(itemKey: string): Promise<ActionState> {
+  const tz = await householdZone();
   if (!KEY.test(itemKey)) return { error: "That can't be changed." };
   const me = await requireCurrentMember();
   const supabase = await createClient();
@@ -75,7 +78,7 @@ export async function unmarkTodayItemAction(itemKey: string): Promise<ActionStat
     if (error) return { error: humanDatabaseError(error.message) };
   }
 
-  const { error } = await supabase.from("today_marks").delete().eq("family_id", me.family_id).eq("item_key", itemKey).eq("day", familyDay());
+  const { error } = await supabase.from("today_marks").delete().eq("family_id", me.family_id).eq("item_key", itemKey).eq("day", familyDay(new Date(), tz));
   if (error) return { error: humanDatabaseError(error.message) };
 
   revalidatePath("/today");

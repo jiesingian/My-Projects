@@ -1,3 +1,4 @@
+import { householdZone } from "@/lib/household-zone";
 import { notFound, redirect } from "next/navigation";
 import { getCurrentMember } from "@/lib/session";
 import { getMembers } from "@/lib/queries/family";
@@ -8,6 +9,7 @@ import { isGoalKind, isGoalPeriod } from "@/lib/goals";
 import { GoalEditForm } from "./goal-edit-form";
 
 export default async function EditGoalPage({ params }: { params: Promise<{ id: string }> }) {
+  const tz = await householdZone();
   const me = await getCurrentMember();
   if (!me) redirect("/onboarding/profile");
   const { id } = await params;
@@ -30,7 +32,7 @@ export default async function EditGoalPage({ params }: { params: Promise<{ id: s
       goal={{ id: goal.id, title: goal.title, kind: goal.kind, target: Number(goal.target), period: goal.period, unit: goal.unit, dueDate: goal.due_date }}
       meId={me.id}
       currency={me.families.currency}
-      today={familyDay()}
+      today={familyDay(new Date(), tz)}
       // Who has to say yes to a change, when it is not the editor.
       giverName={inPlay && reward.giver_member_id !== me.id ? (giverIdx >= 0 ? labels[giverIdx] : "whoever gives the reward") : null}
       // A reward can be added when there is none in play. Nobody gives

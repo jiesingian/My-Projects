@@ -1,5 +1,6 @@
 "use server";
 
+import { householdZone } from "@/lib/household-zone";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
@@ -328,6 +329,7 @@ export async function deleteEventAction(eventId: string): Promise<ActionState> {
 }
 
 export async function addActivityToJournalAction(activityId: string): Promise<ActionState> {
+  const tz = await householdZone();
   const me = await requireCurrentMember();
   const supabase = await createClient();
 
@@ -336,7 +338,7 @@ export async function addActivityToJournalAction(activityId: string): Promise<Ac
 
   const { error } = await supabase.from("journal_entries").insert({
     family_id: me.family_id,
-    entry_date: familyDay(new Date(activity.start_at)),
+    entry_date: familyDay(new Date(activity.start_at), tz),
     title: activity.title,
     note: activity.notes,
     source: "from_plan",

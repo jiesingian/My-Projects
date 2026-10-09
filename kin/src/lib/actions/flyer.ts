@@ -1,5 +1,6 @@
 "use server";
 
+import { householdZone } from "@/lib/household-zone";
 import Anthropic from "@anthropic-ai/sdk";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
@@ -19,6 +20,7 @@ const MAX_BYTES = 5 * 1024 * 1024;
 
 /** Reads a photo of a flyer and proposes calendar entries. Saves nothing. */
 export async function scanFlyerAction(formData: FormData): Promise<{ error: string | null; items: ScannedItem[] }> {
+  const tz = await householdZone();
   await requireCurrentMember();
   if (!process.env.ANTHROPIC_API_KEY) return { error: "Scanning isn't switched on yet. Fill in the event below for now.", items: [] };
 
@@ -45,7 +47,7 @@ export async function scanFlyerAction(formData: FormData): Promise<{ error: stri
           role: "user",
           content: [
             { type: "image", source: { type: "base64", media_type: file.type as ImageType, data } },
-            { type: "text", text: scanPrompt(familyDay()) },
+            { type: "text", text: scanPrompt(familyDay(new Date(), tz)) },
           ],
         },
       ],

@@ -36,7 +36,7 @@ export default async function HouseholdSettingsPage() {
 
   // The household's own special days from today on, for a grown-up to add to
   // or tidy (20260930171000). Past ones stay on the Planner where they fell.
-  const today = new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Manila" });
+  const today = new Date().toLocaleDateString("en-CA", { timeZone: me.families.time_zone });
   const specialDays = isGrownUp(me.role) ? await getHouseholdSpecialDays(me.family_id, today, "9999-12-31") : [];
 
   return (

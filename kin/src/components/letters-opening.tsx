@@ -1,3 +1,4 @@
+import { householdZone } from "@/lib/household-zone";
 import Link from "next/link";
 import { Blueprint } from "@/components/ui";
 import { getTimeCapsules } from "@/lib/queries/time-capsules";
@@ -7,7 +8,8 @@ import { familyDay, readableDay } from "@/lib/time";
  * journal. Before today only their writer could see them; nothing shows
  * here for a letter still sealed, because the table won't return it. */
 export async function LettersOpeningToday({ familyId }: { familyId: string }) {
-  const letters = await getTimeCapsules(familyId, { openingOn: familyDay() });
+  const tz = await householdZone();
+  const letters = await getTimeCapsules(familyId, { openingOn: familyDay(new Date(), tz) });
   if (letters.length === 0) return null;
   return (
     <section style={{ marginBottom: "1.25rem" }} aria-label="Letters opening today">
@@ -18,7 +20,7 @@ export async function LettersOpeningToday({ familyId }: { familyId: string }) {
             {l.title || `For ${l.recipientName.split(" ")[0]}`}
           </Link>
           <p style={{ fontSize: "0.84375rem", margin: 0, color: "var(--color-neutral-700)" }}>
-            For {l.recipientName.split(" ")[0]}, from {l.writerName.split(" ")[0] || "someone in the family"} · sealed {readableDay(familyDay(new Date(l.createdAt)), { year: true })}
+            For {l.recipientName.split(" ")[0]}, from {l.writerName.split(" ")[0] || "someone in the family"} · sealed {readableDay(familyDay(new Date(l.createdAt), tz), { year: true })}
           </p>
         </Blueprint>
       ))}

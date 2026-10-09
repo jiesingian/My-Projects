@@ -1,3 +1,4 @@
+import { householdZone } from "@/lib/household-zone";
 import { createClient } from "@/lib/supabase/server";
 import { familyDay } from "@/lib/time";
 
@@ -18,6 +19,7 @@ export type TimeCapsule = {
  * household's opened ones. The table's own rules decide which
  * (20261007090000_time_capsule_letters.sql); nothing is filtered here. */
 export async function getTimeCapsules(familyId: string, opts: { openingOn?: string } = {}): Promise<TimeCapsule[]> {
+  const tz = await householdZone();
   const supabase = await createClient();
   let q = supabase
     .from("time_capsules")
@@ -26,7 +28,7 @@ export async function getTimeCapsules(familyId: string, opts: { openingOn?: stri
     .order("opens_on", { ascending: false });
   if (opts.openingOn) q = q.eq("opens_on", opts.openingOn);
   const { data } = await q;
-  const today = familyDay();
+  const today = familyDay(new Date(), tz);
   return (data ?? []).map((r) => ({
     id: r.id,
     writerMemberId: r.writer_member_id,

@@ -1,3 +1,4 @@
+import { householdZone } from "@/lib/household-zone";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getCurrentMember } from "@/lib/session";
@@ -15,9 +16,10 @@ import { LetterRemove } from "@/components/letter-remove";
  * Sealed ones are listed only to their writer; the table's rules see to
  * that (20261007090000_time_capsule_letters.sql). */
 export default async function LettersPage() {
+  const tz = await householdZone();
   const me = await getCurrentMember();
   if (!me) redirect("/onboarding/profile");
-  const today = familyDay();
+  const today = familyDay(new Date(), tz);
   const [letters, members] = await Promise.all([getTimeCapsules(me.family_id), isGrownUp(me.role) ? getMembers(me.family_id) : Promise.resolve([])]);
   const opened = letters.filter((l) => !l.sealed);
   const sealed = letters.filter((l) => l.sealed && l.writerMemberId === me.id);
@@ -49,7 +51,7 @@ export default async function LettersPage() {
             </span>
             <h2 style={{ font: "600 1.3125rem/1.1 var(--font-heading)", margin: "7px 0 4px" }}>{l.title || `For ${first(l.recipientName)}`}</h2>
             <p style={{ fontSize: "0.8125rem", margin: "0 0 0.625rem", color: "var(--color-neutral-700)" }}>
-              For {first(l.recipientName)}, from {first(l.writerName) || "someone in the family"} · written {readableDay(familyDay(new Date(l.createdAt)), { year: true })}
+              For {first(l.recipientName)}, from {first(l.writerName) || "someone in the family"} · written {readableDay(familyDay(new Date(l.createdAt), tz), { year: true })}
             </p>
             <p style={{ fontSize: "0.9375rem", lineHeight: 1.6, whiteSpace: "pre-wrap", margin: 0 }}>{l.body}</p>
           </article>

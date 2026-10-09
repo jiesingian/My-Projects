@@ -1,10 +1,10 @@
 import Link from "next/link";
+import { householdZone } from "@/lib/household-zone";
 import { Icon } from "@/components/icons";
 import { TodayTaskList } from "@/components/today-task-list";
 import { RewardsShelf } from "@/components/rewards-shelf";
 import { getRoutinesNeedingAttention, getMemberScores, getRewards } from "@/lib/queries/routines";
 import { getComingUp, getTodayBriefing, type BriefItem } from "@/lib/queries/today";
-import { FAMILY_TZ } from "@/lib/time";
 import { SosButton } from "@/components/sos-button";
 import { CheckInPrompt } from "@/components/check-in-prompt";
 import { getMyPendingCheckIns } from "@/lib/queries/member-card";
@@ -33,7 +33,7 @@ export async function KidToday({ me }: { me: { id: string; role: string; family_
   const first = me.full_name.split(" ")[0];
   // A child's coming-up is their own and the family's, not the grown-ups'.
   const next = [...brief, ...comingUp.filter((b) => b.whose !== "others")].filter(forAChild).slice(0, 6);
-  const day = new Date().toLocaleDateString("en-GB", { weekday: "long", timeZone: FAMILY_TZ }).toUpperCase();
+  const day = new Date().toLocaleDateString("en-GB", { weekday: "long", timeZone: await householdZone() }).toUpperCase();
 
   return (
     <div className="kin-kid" style={{ padding: "1.25rem var(--gutter) 1.375rem" }}>
