@@ -40,7 +40,7 @@ export async function POST(request: Request) {
     // day before and the day itself stay in due_reminders (20261008110000).
     supabase.rpc("due_bill_ahead_reminders", { p_secret: secret }),
     // Letters for later, on the morning they open: one notification per
-    // person and day, however many letters (20261007160100).
+    // person and day, however many letters (20261009090100).
     supabase.rpc("due_letter_notifications", { p_secret: secret }),
   ]);
   if (main.error) {
