@@ -18,7 +18,7 @@ export const NOTIFICATION_DEFS = [
   // ringAction): who in the family is calling whom, as it happens.
   { key: "family_calls", name: "Family calls", sub: "When someone calls another family member", grownUps: true },
   { key: "approvals", name: "Chores to approve", sub: "When a child marks a chore done" },
-  // Letters for a special day (20261007160100): the morning a letter opens
+  // Letters for a special day (20261009090100): the morning a letter opens
   // for you, and when someone starts a card you can sign.
   { key: "letters", name: "Letters and cards", sub: "When a letter opens for you, or a card is started to sign" },
   // Sunday evening, to grown-ups only (20260928221500_week_ahead_push.sql):
