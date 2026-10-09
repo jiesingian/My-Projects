@@ -19,7 +19,7 @@ export async function sealLetterAction(input: {
    * no card, nobody told (20261009090200). A child's note always signs. */
   openToSign?: boolean;
   /** "Open when..." instead of a day: the moment; they open it themselves
-   * (20261007180000). Never a card. */
+   * (20261009090300). Never a card. */
   openWhen?: string;
   title: string;
   body: string;
@@ -58,7 +58,7 @@ export async function sealLetterAction(input: {
   }
   // The first letter for a day starts a card: tell the rest of the household
   // so they can sign it. The database answers only if this is that first
-  // letter, so signing someone else's card tells nobody (20261007170000).
+  // letter, so signing someone else's card tells nobody (20261009090200).
   if (saved?.opens_on && isGrownUp(me.role) && openToSign) {
     const recipientFirst = ((saved.recipient as { full_name: string } | null)?.full_name ?? "").split(" ")[0];
     after(() =>
@@ -76,7 +76,7 @@ export async function sealLetterAction(input: {
 }
 
 /** The person an "open when" letter is for opens it -- once, when the
- * moment comes. Only they can (open_letter, 20261007180000). */
+ * moment comes. Only they can (open_letter, 20261009090300). */
 export async function openLetterAction(id: string): Promise<{ error: string | null }> {
   await requireCurrentMember();
   const supabase = await createClient();

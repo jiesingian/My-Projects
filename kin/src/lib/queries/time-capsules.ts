@@ -92,7 +92,7 @@ export async function getOpenCards(): Promise<OpenCard[]> {
 }
 
 /** "Open when..." envelopes waiting for the reader (my_open_when_letters,
- * 20261007180000): who from and the moment, never a word of it. */
+ * 20261009090300): who from and the moment, never a word of it. */
 export type OpenWhenEnvelope = { id: string; writerName: string; openWhen: string };
 
 export async function getOpenWhenForMe(): Promise<OpenWhenEnvelope[]> {

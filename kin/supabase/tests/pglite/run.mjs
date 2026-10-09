@@ -61,7 +61,7 @@ const MIGRATIONS = [
   "20261009090000_time_capsules_recipient_only.sql",
   "20261009090100_journal_letters.sql",
   "20261009090200_letter_cards.sql",
-  "20261007180000_open_when_letters.sql",
+  "20261009090300_open_when_letters.sql",
 ];
 
 const only = process.argv[2];
