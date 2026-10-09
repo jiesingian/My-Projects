@@ -1,5 +1,7 @@
 import { test, expect, request as playwrightRequest, type Locator, type Page } from "@playwright/test";
 import { expandAllCollapsedGroups } from "./support/collapsible-groups";
+import { shortNames, selfLabel } from "@/lib/format";
+import { isGone } from "@/lib/member-status";
 
 /** The Who picker in the app, on the three tabs that offer one.
  *
@@ -84,14 +86,38 @@ async function openWho(page: Page) {
   return menu;
 }
 
+/** What the picker should offer, read from the household itself: All and
+ * Family, then every member who is in the household now, by the same short
+ * name the app uses and "Me" for the signed-in account. Read rather than
+ * written down, because the household changes -- the partner joined on
+ * 2 October -- and a fixed list would go stale the way "Everyone" did. */
+async function expectedWho(): Promise<string[]> {
+  const { ctx, url, headers } = await api();
+  try {
+    const me = await meAndFamily();
+    const res = await ctx.get(`${url}/rest/v1/members?select=id,full_name,status&family_id=eq.${me.family_id}&order=created_at`, { headers });
+    expect(res.ok(), `could not read the household's members: ${res.status()}`).toBeTruthy();
+    const rows: { id: string; full_name: string; status: string }[] = await res.json();
+    const active = rows.filter((m) => m.status !== "pending" && !isGone(m.status));
+    expect(active.map((m) => m.id), "the throwaway account is not among its own household's members").toContain(me.id);
+    return ["All", "Family", ...shortNames(active.map((m) => m.full_name)).map((l, i) => selfLabel(l, active[i].id === me.id))];
+  } finally {
+    await ctx.dispose();
+  }
+}
+
 for (const seg of ["cashflow", "accounts", "assets"] as const) {
   test(`the ${seg} tab offers a Who picker, and every member is in it`, async ({ page }) => {
+    const want = await expectedWho();
     await page.goto(`/wealth?seg=${seg}`, { waitUntil: "networkidle" });
     const menu = await openWho(page);
-    await expect(menu.getByRole("menuitemradio", { name: "Everyone" })).toBeVisible();
-    // Everyone plus at least one member. A picker that lost its members would
-    // still render "Everyone" and look fine.
-    expect(await menu.getByRole("menuitemradio").count()).toBeGreaterThan(1);
+    // "All" and "Family" since #431 renamed "Everyone"; this spec kept
+    // looking for the old word. Every member by name, too: Family is always
+    // there, so counting "more than one" would pass with no members at all.
+    const items = menu.getByRole("menuitemradio");
+    await expect(items.first()).toBeVisible();
+    expect((await items.allInnerTexts()).map((t) => t.trim()).sort()).toEqual([...want].sort());
+    await expect(menu.getByRole("menuitemradio", { name: "Me" })).toBeVisible();
   });
 }
 
