@@ -7018,6 +7018,128 @@ button.kin-room-quote { font: inherit; font-size: 0.78125rem; text-align: left; 
   background: color-mix(in srgb, var(--color-accent) 12%, transparent);
 }
 
+/* Letters for a special day (7 October): envelopes in the journal. A letter
+   is a <details>; the wax seal and the paper unfolding are the opening
+   moment. Under an entry they sit below a hairline; on their own they are
+   the card. */
+.kin-letterday[data-under-entry="true"] {
+  border-top: 1px solid var(--color-neutral-200);
+  margin-top: 0.75rem;
+}
+.kin-letter-seal {
+  flex: none;
+  width: 1.75rem;
+  height: 1.25rem;
+  border-radius: 4px;
+  background: var(--color-accent-100);
+  border: 1px solid var(--color-accent-200);
+  position: relative;
+  overflow: hidden;
+}
+.kin-letter-seal::before {
+  content: "";
+  position: absolute;
+  inset: -0.55rem 0.15rem auto;
+  height: 1.1rem;
+  border-right: 1px solid var(--color-accent-200);
+  border-bottom: 1px solid var(--color-accent-200);
+  transform: rotate(45deg) scale(0.9);
+}
+.kin-letter-seal::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 52%;
+  width: 0.5rem;
+  height: 0.5rem;
+  margin: -0.25rem 0 0 -0.25rem;
+  border-radius: 50%;
+  background: var(--color-accent-700);
+}
+.kin-letter-meta {
+  display: block;
+  font-size: 0.75rem;
+  color: var(--color-neutral-600);
+  font-weight: 400;
+}
+.kin-letter {
+  border: 1px solid var(--color-neutral-200);
+  border-radius: var(--radius-control);
+  background: var(--color-surface);
+  margin-bottom: 0.5rem;
+}
+.kin-letter > summary,
+.kin-letter-compose > summary {
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+  min-height: 2.75rem;
+  padding: 0.5rem 0.75rem;
+  cursor: pointer;
+  list-style: none;
+  font-size: 0.875rem;
+}
+.kin-letter > summary::-webkit-details-marker,
+.kin-letter-compose > summary::-webkit-details-marker { display: none; }
+.kin-letter-open {
+  margin-left: auto;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--color-accent-700);
+}
+.kin-letter[open] .kin-letter-open { visibility: hidden; }
+.kin-letter[open] .kin-letter-seal::after { background: transparent; border: 1px dashed var(--color-accent-700); }
+.kin-letter-paper {
+  padding: 0.25rem 0.875rem 0.875rem;
+  transform-origin: top center;
+  animation: kin-letter-unfold 420ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+.kin-letter-paper h4 { font: 600 1.0625rem/1.2 var(--font-heading); margin: 0.25rem 0 0.375rem; }
+.kin-letter-paper p { font-size: 0.9375rem; line-height: 1.6; white-space: pre-wrap; margin: 0; }
+.kin-letter-paper .kin-letter-sign { margin-top: 0.625rem; color: var(--color-neutral-700); font-style: italic; }
+@keyframes kin-letter-unfold {
+  from { opacity: 0; transform: translateY(-6px) scaleY(0.96); }
+  to { opacity: 1; transform: none; }
+}
+.kin-envelopes {
+  margin: 0 0 1rem;
+}
+.kin-envelopes ul,
+.kin-letter-sealed-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.375rem;
+}
+.kin-envelopes li,
+.kin-letter-sealed-list li {
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+  font-size: 0.875rem;
+  padding: 0.5rem 0.75rem;
+  border: 1px dashed var(--color-accent-200);
+  border-radius: var(--radius-control);
+}
+.kin-letter-sealed-list { margin-top: 1rem; }
+.kin-letter-sealed-list li { justify-content: space-between; }
+.kin-letter-compose {
+  border: 1px solid var(--color-neutral-200);
+  border-radius: var(--radius-card);
+  padding: 0 0.75rem;
+  margin: 0 0 1rem;
+}
+.kin-letter-compose[open] > summary { border-bottom: 1px solid var(--color-neutral-200); }
+@media (prefers-reduced-motion: reduce) {
+  .kin-letter-paper { animation: none; }
+}
+/* Cards to sign: the row wraps so the note box gets the full width. */
+.kin-envelopes li.kin-card-row { flex-wrap: wrap; }
+.kin-card-sign { flex-basis: 100%; display: grid; gap: 0.5rem; }
+.kin-letter-switch { display: flex; gap: 0.625rem; align-items: flex-start; font-size: 0.875rem; cursor: pointer; }
+.kin-letter-switch input { margin-top: 0.2rem; width: 1.125rem; height: 1.125rem; accent-color: var(--color-accent-700); flex: none; }
+
 /* Evening wrap-up on Today (components/evening-wrap-up.tsx). */
 .kin-wrapup {
   margin-bottom: 1.625rem;

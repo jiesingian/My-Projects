@@ -1,6 +1,8 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { after } from "next/server";
+import { sendCardStartedPush } from "@/lib/push";
 import { createClient } from "@/lib/supabase/server";
 import { requireCurrentMember } from "@/lib/session";
 import { isGrownUp } from "@/lib/roles";
@@ -12,27 +14,53 @@ import { familyDay } from "@/lib/time";
 export async function sealLetterAction(input: {
   recipientId: string;
   opensOn: string | null;
+  occasion: string;
+  /** Others may sign it as a card (the default); off keeps it private --
+   * no card, nobody told (20261009090200). A child's note always signs. */
+  openToSign?: boolean;
   title: string;
   body: string;
 }): Promise<{ error: string | null }> {
   const me = await requireCurrentMember();
-  if (!isGrownUp(me.role)) return { error: "Only a grown-up can write a letter for later." };
+  // A child with their own login may sign a card a grown-up started; the
+  // table checks there is one (20261009090200).
+  if (!isGrownUp(me.role) && me.role !== "child_self") return { error: "Only a grown-up can write a letter for later." };
   const body = input.body.trim();
   const title = input.title.trim().slice(0, 120);
+  const occasion = input.occasion.trim().slice(0, 80);
+  const openToSign = isGrownUp(me.role) ? input.openToSign !== false : true;
   if (!input.recipientId) return { error: "Choose who the letter is for." };
   if (!body) return { error: "Write the letter first." };
   if (body.length > 20000) return { error: "That letter is too long to keep." };
   const opensOn = input.opensOn || null;
-  if (opensOn && (!/^\d{4}-\d{2}-\d{2}$/.test(opensOn) || opensOn <= familyDay())) return { error: "Pick a day after today." };
+  if (opensOn && (!/^\d{4}-\d{2}-\d{2}$/.test(opensOn) || opensOn <= familyDay(new Date(), me.families.time_zone))) return { error: "Pick a day after today." };
   const supabase = await createClient();
-  const { error } = await supabase
+  const { data: saved, error } = await supabase
     .from("time_capsules")
-    .insert({ recipient_member_id: input.recipientId, title, body, ...(opensOn ? { opens_on: opensOn } : {}) });
+    .insert({ recipient_member_id: input.recipientId, title, body, occasion, open_to_sign: openToSign, ...(opensOn ? { opens_on: opensOn } : {}) })
+    .select("opens_on, occasion, recipient:members!time_capsules_recipient_member_id_fkey(full_name)")
+    .single();
   if (error) {
     if (error.message.includes("Pick the day")) return { error: "They have no birthday saved, so pick the day it opens." };
+    if (!isGrownUp(me.role)) return { error: "Only a grown-up can start a card. You can sign one once it's started." };
     return { error: "It didn't save. Try again." };
   }
-  revalidatePath("/journal/letters");
+  // The first letter for a day starts a card: tell the rest of the household
+  // so they can sign it. The database answers only if this is that first
+  // letter, so signing someone else's card tells nobody (20261009090200).
+  if (saved && isGrownUp(me.role) && openToSign) {
+    const recipientFirst = ((saved.recipient as { full_name: string } | null)?.full_name ?? "").split(" ")[0];
+    after(() =>
+      sendCardStartedPush({
+        recipientId: input.recipientId,
+        opensOn: saved.opens_on,
+        writerFirst: me.full_name.split(" ")[0],
+        recipientFirst,
+        occasion: saved.occasion,
+      }),
+    );
+  }
+  revalidatePath("/journal");
   return { error: null };
 }
 
@@ -42,7 +70,6 @@ export async function removeLetterAction(id: string): Promise<{ error: string | 
   const supabase = await createClient();
   const { error } = await supabase.from("time_capsules").delete().eq("id", id).eq("writer_member_id", me.id);
   if (error) return { error: "It didn't remove. Try again." };
-  revalidatePath("/journal/letters");
   revalidatePath("/journal");
   revalidatePath("/today");
   return { error: null };
