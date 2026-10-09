@@ -25,7 +25,7 @@ export function RelationshipEditor({ memberId, relationship }: { memberId: strin
   return (
     <div style={{ marginBottom: "1.25rem" }}>
       <div style={{ display: "flex", gap: "0.5rem" }}>
-        <input
+        <input aria-label="Relationship"
           className="input"
           placeholder="e.g. Mother, Son, Daughter"
           value={value}

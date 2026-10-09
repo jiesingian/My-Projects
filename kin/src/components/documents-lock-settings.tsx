@@ -217,7 +217,7 @@ export function DocumentsLockSettings({
       <form action={formAction}>
         <ErrorText message={state.error} />
         {hasPin && (
-          <input
+          <input aria-label="Current PIN"
             className="input"
             name="current_pin"
             type="password"
@@ -243,7 +243,7 @@ export function DocumentsLockSettings({
             required
             style={{ flex: 1, minWidth: 110 }}
           />
-          <input
+          <input aria-label="New PIN again"
             className="input"
             name="pin_confirm"
             type="password"
