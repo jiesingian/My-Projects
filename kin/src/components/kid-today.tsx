@@ -8,6 +8,7 @@ import { FAMILY_TZ } from "@/lib/time";
 import { SosButton } from "@/components/sos-button";
 import { CheckInPrompt } from "@/components/check-in-prompt";
 import { getMyPendingCheckIns } from "@/lib/queries/member-card";
+import { LettersOpeningToday } from "@/components/letters-opening";
 
 /** Things a child in kid view should not be sent to: money, the household's
  * running, and anybody's health records. */
@@ -45,6 +46,8 @@ export async function KidToday({ me }: { me: { id: string; role: string; family_
       </div>
       <h2 style={{ fontSize: "min(2.25rem, 12vw)", margin: "0 0 0.5rem" }}>Hi {first}!</h2>
       <CheckInPrompt checkIns={checkIns} />
+      {/* A letter written to them years ago, on the day it opens. */}
+      <LettersOpeningToday familyId={me.family_id} />
       <Link href="/planner?seg=routines" className="kin-kid-stars">
         <span aria-hidden="true">⭐</span> {stars} star{stars === 1 ? "" : "s"}
         <span className="kin-kid-stars-go">Rewards ›</span>
