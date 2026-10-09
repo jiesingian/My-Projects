@@ -2,7 +2,8 @@ import { createClient } from "@/lib/supabase/server";
 import { getSignedUrls } from "@/lib/storage";
 import { GROUP_OF, type CalendarGroup, type CalendarTable } from "@/lib/calendar-groups";
 import { startOfWeek as firstDayOfWeek, type WeekStart } from "@/lib/week";
-import { getHolidaysBetween, mergeHolidays } from "@/lib/holidays";
+import { getHolidaysBetween, holidayCountry, mergeHolidays } from "@/lib/holidays";
+import { getCurrentMember } from "@/lib/session";
 import { getHouseholdSpecialDays } from "@/lib/queries/special-days";
 import { expandRoutine, assigneeFor, type RoutineRule } from "@/lib/routines";
 import { paidFromVisibleFilter } from "@/lib/wealth";
@@ -72,10 +73,13 @@ async function fetchCalendarItems(familyId: string, rangeStart: Date, rangeEnd: 
       .eq("paused", false)
       .lte("start_date", endDate)
       .or(`end_date.is.null,end_date.gte.${startDate}`),
-    // Public holidays are the country's, not the household's: the same list
-    // for everyone, cached for a day (lib/holidays).
+    // Public holidays are the household's country's (families.country,
+    // Philippines when unset), cached for a day per country (lib/holidays).
     // With the household's own special days (20260930171000) among them.
-    Promise.all([getHolidaysBetween(startDate, endDate), getHouseholdSpecialDays(familyId, startDate, endDate)]).then(([pub, own]) => mergeHolidays(pub, own)),
+    getCurrentMember()
+      .then((me) => holidayCountry(me?.family_id === familyId ? me.families.country : null))
+      .then((country) => Promise.all([getHolidaysBetween(startDate, endDate, country), getHouseholdSpecialDays(familyId, startDate, endDate)]))
+      .then(([pub, own]) => mergeHolidays(pub, own)),
     // The accounts the viewer can see (RLS, archived ones too), for the bills
     // below.
     supabase.from("accounts").select("id").eq("family_id", familyId),
