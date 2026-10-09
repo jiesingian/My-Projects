@@ -64,7 +64,7 @@ export async function getTimeCapsules(familyId: string, opts: { openingOn?: stri
 
 /** A card being signed in the household, for anyone but the reader: whose
  * day, when, and who has signed -- never a word of a note (open_cards,
- * 20261007170000). */
+ * 20261009090200). */
 export type OpenCard = { recipientMemberId: string; recipientName: string; opensOn: string; occasion: string; signers: string[]; signedByMe: boolean };
 
 export async function getOpenCards(): Promise<OpenCard[]> {

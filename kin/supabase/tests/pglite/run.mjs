@@ -60,7 +60,7 @@ const MIGRATIONS = [
   "20261008110100_household_streak_bonus.sql",
   "20261009090000_time_capsules_recipient_only.sql",
   "20261009090100_journal_letters.sql",
-  "20261007170000_letter_cards.sql",
+  "20261009090200_letter_cards.sql",
 ];
 
 const only = process.argv[2];

@@ -111,7 +111,7 @@ export async function sendChatPush(
   }
 }
 
-/** "Ana started a card for Lola -- sign it" (20261007170000), to everyone
+/** "Ana started a card for Lola -- sign it" (20261009090200), to everyone
  * else in the household who can sign, never the person it's for.
  * card_started_push_targets() answers only to the card's first writer, once.
  * Same promises as sendPush: never throws, call in after(). */
