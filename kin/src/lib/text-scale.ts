@@ -40,7 +40,10 @@ const SWITCHES: { at: number; why: string; rules: string }[] = [
   {
     at: 18,
     why: "Today: glance tiles one-up, quick add two-up",
+    // One-up tiles have the width for a whole label, so it isn't cut at two
+    // lines: at 200% a tile listing names lost most of them to the ellipsis.
     rules: `.kin-glance{grid-template-columns:1fr}
+.kin-glance-label{-webkit-line-clamp:unset;display:block}
 .kin-quick{grid-template-columns:1fr 1fr}`,
   },
   {
