@@ -16,10 +16,10 @@ export async function sealLetterAction(input: {
   opensOn: string | null;
   occasion: string;
   /** Others may sign it as a card (the default); off keeps it private --
-   * no card, nobody told (20261007170000). A child's note always signs. */
+   * no card, nobody told (20261009090200). A child's note always signs. */
   openToSign?: boolean;
   /** "Open when..." instead of a day: the moment; they open it themselves
-   * (20261007180000). Never a card. */
+   * (20261009090300). Never a card. */
   openWhen?: string;
   /** Writing back (20261007190000): the letter this answers. A reply may
    * open today; it goes to that letter's writer, and is never a card. */
@@ -29,7 +29,7 @@ export async function sealLetterAction(input: {
 }): Promise<{ error: string | null }> {
   const me = await requireCurrentMember();
   // A child with their own login may sign a card a grown-up started; the
-  // table checks there is one (20261007170000).
+  // table checks there is one (20261009090200).
   if (!isGrownUp(me.role) && me.role !== "child_self") return { error: "Only a grown-up can write a letter for later." };
   const body = input.body.trim();
   const title = input.title.trim().slice(0, 120);
@@ -63,7 +63,7 @@ export async function sealLetterAction(input: {
   }
   // The first letter for a day starts a card: tell the rest of the household
   // so they can sign it. The database answers only if this is that first
-  // letter, so signing someone else's card tells nobody (20261007170000).
+  // letter, so signing someone else's card tells nobody (20261009090200).
   if (saved?.opens_on && isGrownUp(me.role) && openToSign) {
     const recipientFirst = ((saved.recipient as { full_name: string } | null)?.full_name ?? "").split(" ")[0];
     after(() =>
@@ -81,7 +81,7 @@ export async function sealLetterAction(input: {
 }
 
 /** The person an "open when" letter is for opens it -- once, when the
- * moment comes. Only they can (open_letter, 20261007180000). */
+ * moment comes. Only they can (open_letter, 20261009090300). */
 export async function openLetterAction(id: string): Promise<{ error: string | null }> {
   await requireCurrentMember();
   const supabase = await createClient();

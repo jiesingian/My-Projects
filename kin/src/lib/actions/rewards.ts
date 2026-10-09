@@ -30,6 +30,27 @@ export async function addRewardAction(_prev: ActionState, formData: FormData): P
   return { error: null };
 }
 
+/** What a 7- and a 30-day chore streak is worth in this household from
+ * today on; bonuses already earned keep their old value. Through
+ * set_streak_bonus(), which checks the role in the database as well. */
+export async function setStreakBonusAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
+  const me = await requireCurrentMember();
+  if (!isGrownUp(me.role)) return { error: "Only a parent or another adult can change the streak bonus." };
+
+  const seven = Number(String(formData.get("seven") ?? ""));
+  const thirty = Number(String(formData.get("thirty") ?? ""));
+  const ok = (n: number) => Number.isInteger(n) && n >= 0 && n <= 1000;
+  if (!ok(seven) || !ok(thirty)) return { error: "Each bonus has to be a whole number from 0 to 1000." };
+
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("set_streak_bonus", { p_seven: seven, p_thirty: thirty });
+  if (error) return { error: humanDatabaseError(error.message) };
+
+  revalidatePath("/planner");
+  revalidatePath("/today");
+  return { error: null };
+}
+
 /** Retired, not deleted: a redemption from last month still has to be able
  * to say what it was for. */
 export async function retireRewardAction(rewardId: string): Promise<ActionState> {

@@ -1,6 +1,6 @@
 const U = (s) => `10000000-0000-0000-0000-0000000000${s}`;
 const P = (s) => `00000000-0000-0000-0000-0000000000${s}`;
-// A card everyone signs (20261007170000).
+// A card everyone signs (20261009090200).
 export default async function ({ as, check, refused }) {
   const ann = U("a1"), kid = U("a2"), abe = U("a4"), ben = U("b1");
   const annM = P("a1"), kidM = P("a2"), abeM = P("a4");

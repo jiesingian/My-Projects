@@ -52,7 +52,7 @@ export default async function SettingsPage({
   // Only the switches this person is shown ("Family calls" is grown-ups').
   const notifDefs = NOTIFICATION_DEFS.filter((n) => me.role === "parent" || me.role === "adult" || !("grownUps" in n));
   const notifOn = notifDefs.filter((n) => prefs[n.key] ?? true).length;
-  const connected = [driveLink?.connected && "Drive", calendarLink?.connected && "Google Calendar", me.calendar_feed_hash && "Apple & Outlook"].filter(Boolean) as string[];
+  const connected = [driveLink?.connected && "Drive", calendarLink?.connected && "Google Calendar", me.calendar_feed_hash && "Calendar link"].filter(Boolean) as string[];
   const lockOn = lock.hasPin || lock.credentialCount > 0;
 
   const kid = inKidView(me);

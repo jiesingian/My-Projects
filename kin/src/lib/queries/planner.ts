@@ -5,6 +5,7 @@ import { startOfWeek as firstDayOfWeek, type WeekStart } from "@/lib/week";
 import { getHolidaysBetween, mergeHolidays } from "@/lib/holidays";
 import { getHouseholdSpecialDays } from "@/lib/queries/special-days";
 import { expandRoutine, assigneeFor, type RoutineRule } from "@/lib/routines";
+import { paidFromVisibleFilter } from "@/lib/wealth";
 
 export type PlannerCalendarItem = {
   id: string;
@@ -40,7 +41,7 @@ async function fetchCalendarItems(familyId: string, rangeStart: Date, rangeEnd: 
 
   // No trips fetch: travel is a kind of event now, so it arrives with the
   // events and needs no second query or second loop.
-  const [{ data: activities }, { data: events }, { data: bills }, { data: meals }, { data: goals }, { data: routines }, holidays] = await Promise.all([
+  const [{ data: activities }, { data: events }, { data: allBills }, { data: meals }, { data: goals }, { data: routines }, holidays, { data: seenAccounts }] = await Promise.all([
     supabase
       .from("activities")
       .select("*, activity_members(members(id, full_name))")
@@ -75,7 +76,16 @@ async function fetchCalendarItems(familyId: string, rangeStart: Date, rangeEnd: 
     // for everyone, cached for a day (lib/holidays).
     // With the household's own special days (20260930171000) among them.
     Promise.all([getHolidaysBetween(startDate, endDate), getHouseholdSpecialDays(familyId, startDate, endDate)]).then(([pub, own]) => mergeHolidays(pub, own)),
+    // The accounts the viewer can see (RLS, archived ones too), for the bills
+    // below.
+    supabase.from("accounts").select("id").eq("family_id", familyId),
   ]);
+
+  // A bill paid from an account the viewer cannot see -- someone's private
+  // account -- is left off their calendar, as on Cash Flow and Subscriptions
+  // (e2e/private-accounts.spec.ts).
+  const canSee = new Set((seenAccounts ?? []).map((a) => a.id));
+  const bills = (allBills ?? []).filter((b) => !b.paid_from_account_id || canSee.has(b.paid_from_account_id));
 
   const items: PlannerCalendarItem[] = [];
 
@@ -453,11 +463,14 @@ export async function getCalendarSyncStatus(familyId: string) {
  * from "nothing ever" — which want completely different things said to them. */
 export async function hasAnyCalendarRecords(familyId: string): Promise<boolean> {
   const supabase = await createClient();
+  // Bills paid from an account the viewer cannot see do not count: hidden
+  // means hidden, down to "you have something here".
+  const { data: seen } = await supabase.from("accounts").select("id").eq("family_id", familyId);
   const counts = await Promise.all([
     supabase.from("activities").select("id", { count: "exact", head: true }).eq("family_id", familyId),
     supabase.from("events").select("id", { count: "exact", head: true }).eq("family_id", familyId),
     supabase.from("trips").select("id", { count: "exact", head: true }).eq("family_id", familyId),
-    supabase.from("bills").select("id", { count: "exact", head: true }).eq("family_id", familyId).not("due_date", "is", null),
+    supabase.from("bills").select("id", { count: "exact", head: true }).eq("family_id", familyId).not("due_date", "is", null).or(paidFromVisibleFilter((seen ?? []).map((a) => a.id))),
     supabase.from("meal_plans").select("id", { count: "exact", head: true }).eq("family_id", familyId),
     supabase.from("goals").select("id", { count: "exact", head: true }).eq("family_id", familyId).not("target_date", "is", null),
   ]);

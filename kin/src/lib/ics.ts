@@ -90,3 +90,17 @@ export function buildIcs(calendarName: string, rows: FeedRow[], now: Date = new 
   lines.push("END:VCALENDAR");
   return lines.map(icsFold).join("\r\n") + "\r\n";
 }
+
+/** One-tap subscribe links for the private calendar feed, so nobody has to
+ * find "add from URL" in a settings menu. Apple opens webcal:// itself;
+ * Google takes the feed as `cid` (it must be the webcal:// form, an https://
+ * one is refused as "invalid"); Outlook.com takes the https:// URL and a name.
+ * Work Outlook (Microsoft 365) still needs the URL pasted. */
+export function feedSubscribeLinks(https: string): { apple: string; google: string; outlook: string } {
+  const webcal = https.replace(/^https?:\/\//, "webcal://");
+  return {
+    apple: webcal,
+    google: `https://calendar.google.com/calendar/r?cid=${encodeURIComponent(webcal)}`,
+    outlook: `https://outlook.live.com/calendar/0/addfromweb?url=${encodeURIComponent(https)}&name=${encodeURIComponent("Kin")}`,
+  };
+}
