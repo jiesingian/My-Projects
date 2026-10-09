@@ -274,7 +274,7 @@ export default async function TodayPage() {
 
       {recap && <WeekRecapCard recap={recap} href="/today/week" />}
 
-      <LettersOpeningToday familyId={me.family_id} />
+      <LettersOpeningToday familyId={me.family_id} meId={me.id} timeZone={me.families.time_zone} />
 
       <OnThisDay memories={memories} />
 

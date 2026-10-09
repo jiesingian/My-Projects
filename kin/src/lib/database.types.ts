@@ -20,8 +20,14 @@ export type Database = {
           created_at: string
           family_id: string
           id: string
-          opens_on: string
+          notified_at: string | null
+          occasion: string
+          open_to_sign: boolean
+          opens_on: string | null
+          open_when: string | null
+          opened_at: string | null
           recipient_member_id: string
+          reply_to: string | null
           title: string
           writer_member_id: string | null
           writer_name: string
@@ -31,8 +37,14 @@ export type Database = {
           created_at?: string
           family_id?: string
           id?: string
-          opens_on?: string
+          notified_at?: string | null
+          occasion?: string
+          open_to_sign?: boolean
+          opens_on?: string | null
+          open_when?: string | null
+          opened_at?: string | null
           recipient_member_id: string
+          reply_to?: string | null
           title?: string
           writer_member_id?: string | null
           writer_name?: string
@@ -42,8 +54,14 @@ export type Database = {
           created_at?: string
           family_id?: string
           id?: string
-          opens_on?: string
+          notified_at?: string | null
+          occasion?: string
+          open_to_sign?: boolean
+          opens_on?: string | null
+          open_when?: string | null
+          opened_at?: string | null
           recipient_member_id?: string
+          reply_to?: string | null
           title?: string
           writer_member_id?: string | null
           writer_name?: string
@@ -6014,6 +6032,38 @@ export type Database = {
       due_scheduled_messages: {
         Args: { p_secret: string; p_now?: string }
         Returns: { key: string; endpoint: string; p256dh: string; auth: string; title: string; body: string; url: string }[]
+      }
+      due_letter_notifications: {
+        Args: { p_secret: string; p_now?: string }
+        Returns: { key: string; endpoint: string; p256dh: string; auth: string; title: string; body: string; url: string }[]
+      }
+      card_started_push_targets: {
+        Args: { p_recipient: string; p_opens: string }
+        Returns: { endpoint: string; p256dh: string; auth: string }[]
+      }
+      my_open_when_letters: {
+        Args: Record<PropertyKey, never>
+        Returns: { id: string; writer_name: string; open_when: string }[]
+      }
+      open_letter: {
+        Args: { p_id: string }
+        Returns: boolean
+      }
+      time_capsule_can_reply: {
+        Args: { p_letter: string; p_to: string }
+        Returns: boolean
+      }
+      open_cards: {
+        Args: Record<PropertyKey, never>
+        Returns: { recipient_member_id: string; recipient_name: string; opens_on: string; occasion: string; signers: string[] | null; signed_by_me: boolean }[]
+      }
+      time_capsule_card_open: {
+        Args: { p_recipient: string; p_opens: string }
+        Returns: boolean
+      }
+      my_sealed_letters: {
+        Args: Record<PropertyKey, never>
+        Returns: { id: string; writer_name: string; opens_on: string; occasion: string }[]
       }
       group_seen_by: {
         Args: { p_group: string }
