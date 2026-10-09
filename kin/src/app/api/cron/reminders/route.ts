@@ -21,7 +21,7 @@ export async function POST(request: Request) {
   const supabase = createClient<Database>(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!, {
     auth: { persistSession: false, autoRefreshToken: false },
   });
-  const [main, pantry, trial, week, promises, scheduled, letters] = await Promise.all([
+  const [main, pantry, trial, week, promises, scheduled, billsAhead, letters] = await Promise.all([
     supabase.rpc("due_reminders", { p_secret: secret }),
     // What is running low, once a day from 09:00 (20260928100000).
     supabase.rpc("due_pantry_reminders", { p_secret: secret }),
@@ -36,6 +36,9 @@ export async function POST(request: Request) {
     // Chat messages written for later ("send at 7am", 20261006100400): each
     // is posted as its writer, then its conversation is notified as usual.
     supabase.rpc("due_scheduled_messages", { p_secret: secret }),
+    // A bill its own number of days ahead (3 unless set), from 09:00; the
+    // day before and the day itself stay in due_reminders (20261008110000).
+    supabase.rpc("due_bill_ahead_reminders", { p_secret: secret }),
     // Letters for later, on the morning they open: one notification per
     // person and day, however many letters (20261007160100).
     supabase.rpc("due_letter_notifications", { p_secret: secret }),
@@ -49,8 +52,9 @@ export async function POST(request: Request) {
   if (week.error) console.error("Reminders: due_week_ahead_reminders failed", week.error.message);
   if (promises.error) console.error("Reminders: due_goal_reward_reminders failed", promises.error.message);
   if (scheduled.error) console.error("Reminders: due_scheduled_messages failed", scheduled.error.message);
+  if (billsAhead.error) console.error("Reminders: due_bill_ahead_reminders failed", billsAhead.error.message);
   if (letters.error) console.error("Reminders: due_letter_notifications failed", letters.error.message);
-  const due = [...(main.data ?? []), ...(pantry.data ?? []), ...(trial.data ?? []), ...(week.data ?? []), ...(promises.data ?? []), ...(scheduled.data ?? []), ...(letters.data ?? [])];
+  const due = [...(main.data ?? []), ...(pantry.data ?? []), ...(trial.data ?? []), ...(week.data ?? []), ...(promises.data ?? []), ...(scheduled.data ?? []), ...(billsAhead.data ?? []), ...(letters.data ?? [])];
 
   vapidReady();
   // One payload per reminder, sent to all of its devices together through the

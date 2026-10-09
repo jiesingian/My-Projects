@@ -7,9 +7,10 @@ import { Icon } from "@/components/icons";
 import { Blueprint } from "@/components/ui";
 import { SubmitButton, ErrorText } from "@/components/form";
 import { confirm } from "@/components/confirm-sheet";
-import { addRewardAction, retireRewardAction, redeemRewardAction } from "@/lib/actions/rewards";
+import { addRewardAction, retireRewardAction, redeemRewardAction, setStreakBonusAction } from "@/lib/actions/rewards";
 import type { ActionState } from "@/lib/actions/auth";
 import type { RewardView, MemberScore } from "@/lib/queries/routines";
+import type { StreakBonus } from "@/lib/streaks";
 
 const initialState: ActionState = { error: null };
 
@@ -22,12 +23,16 @@ export function RewardsShelf({
   rewards,
   me,
   canManage,
+  streakBonus,
 }: {
   rewards: RewardView[];
   me: MemberScore | undefined;
   canManage: boolean;
+  /** Passed only where a grown-up may change it. */
+  streakBonus?: StreakBonus;
 }) {
   const [adding, setAdding] = useState(false);
+  const [bonusOpen, setBonusOpen] = useState(false);
   const spendable = me?.spendable ?? 0;
 
   if (rewards.length === 0 && !canManage) return null;
@@ -43,12 +48,23 @@ export function RewardsShelf({
             · {spendable} to spend
           </span>
         )}
+        {streakBonus && (
+          <button
+            type="button"
+            className="btn btn-ghost"
+            onClick={() => setBonusOpen((o) => !o)}
+            aria-expanded={bonusOpen}
+            style={{ minHeight: "1.75rem", fontSize: "0.78125rem", padding: "0 0.5rem", marginLeft: "auto" }}
+          >
+            Streak bonus
+          </button>
+        )}
         {canManage && (
           <button
             type="button"
             className="btn btn-ghost"
             onClick={() => setAdding((a) => !a)}
-            style={{ minHeight: "1.75rem", fontSize: "0.78125rem", padding: "0 0.5rem", gap: "0.25rem", marginLeft: "auto" }}
+            style={{ minHeight: "1.75rem", fontSize: "0.78125rem", padding: "0 0.5rem", gap: "0.25rem", marginLeft: streakBonus ? undefined : "auto" }}
           >
             <Icon name={adding ? "x" : "plus"} size={13} />
             {adding ? "Cancel" : "Add"}
@@ -57,6 +73,7 @@ export function RewardsShelf({
       </div>
 
       {adding && <AddReward onDone={() => setAdding(false)} />}
+      {bonusOpen && streakBonus && <StreakBonusForm bonus={streakBonus} />}
 
       {rewards.length === 0 ? (
         <p style={{ fontSize: "0.78125rem", color: "var(--color-neutral-600)", margin: 0 }}>
@@ -102,6 +119,43 @@ function AddReward({ onDone }: { onDone: () => void }) {
         </span>
         <SubmitButton style={{ minHeight: "2.5rem", fontSize: "0.8125rem", padding: "0 0.75rem" }}>Save</SubmitButton>
       </div>
+    </form>
+  );
+}
+
+/** What a daily chore's 7- and 30-day run is worth. Behind its own button,
+ * since it is set once and rarely touched. */
+function StreakBonusForm({ bonus }: { bonus: StreakBonus }) {
+  const [state, formAction] = useActionState(setStreakBonusAction, initialState);
+  const router = useRouter();
+  const uid = useId();
+  const field = { minHeight: "2.5rem", fontSize: "0.8125rem" };
+  const label = { display: "block", fontSize: "0.71875rem", color: "var(--color-neutral-600)", marginBottom: "0.1875rem" };
+
+  return (
+    <form
+      action={async (fd) => {
+        await formAction(fd);
+        router.refresh();
+      }}
+      style={{ marginBottom: "0.75rem" }}
+    >
+      <div style={{ fontSize: "0.78125rem", fontWeight: 500, marginBottom: "0.3125rem" }}>Streak bonus, for a daily chore done every day</div>
+      <ErrorText message={state.error} />
+      <div style={{ display: "flex", gap: "0.4375rem", alignItems: "flex-end" }}>
+        <span style={{ width: 92 }}>
+          <label htmlFor={`${uid}-7`} style={label}>7 days</label>
+          <input id={`${uid}-7`} className="input" name="seven" type="number" min="0" max="1000" required defaultValue={bonus[7]} style={field} />
+        </span>
+        <span style={{ width: 92 }}>
+          <label htmlFor={`${uid}-30`} style={label}>30 days</label>
+          <input id={`${uid}-30`} className="input" name="thirty" type="number" min="0" max="1000" required defaultValue={bonus[30]} style={field} />
+        </span>
+        <SubmitButton style={{ ...field, padding: "0 0.75rem" }}>Save</SubmitButton>
+      </div>
+      <p style={{ fontSize: "0.71875rem", color: "var(--color-neutral-600)", margin: "0.3125rem 0 0" }}>
+        Applies to streaks reached from today. Bonuses already earned keep what they were worth.
+      </p>
     </form>
   );
 }

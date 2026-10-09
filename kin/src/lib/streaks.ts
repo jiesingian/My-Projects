@@ -1,5 +1,5 @@
 /** Streaks for kids' daily chores (agreed 28 September, item 9): "🔥 7 days in
- * a row", a bonus star at 7 and at 30 days, and one "freeze" a week.
+ * a row", bonus points at 7 and at 30 days, and one "freeze" a week.
  *
  * Computed from routine_log every time, never stored -- the same reason
  * points are summed rather than kept (queries/routines getMemberScores): a
@@ -14,8 +14,8 @@
  * - A missed day (unticked, skipped, or sent back) ends the run -- unless it
  *   is the first miss in that Monday-to-Sunday week, which a freeze covers.
  *   A frozen day keeps the run alive but does not add to it.
- * - Reaching 7 and reaching 30 each earn one bonus star. A broken run that is
- *   built up again earns them again. */
+ * - Reaching 7 and reaching 30 each earn bonus points (STREAK_BONUS). A
+ *   broken run that is built up again earns them again. */
 
 export type DayState = "done" | "pending" | "missed";
 
@@ -30,9 +30,30 @@ export type ChoreStreak = {
   nextStarAt: 7 | 30 | null;
   /** Every point at which a run reached 7 or 30, oldest first. */
   milestones: StreakMilestone[];
+  /** What the household pays for reaching 7 and 30, when the caller knows. */
+  bonus?: StreakBonus;
 };
 
 const STARS = [7, 30] as const;
+
+export type StreakBonus = Record<7 | 30, number>;
+
+/** Bonus points for reaching a run of 7 and 30 days, until a household sets
+ * its own on the Rewards panel. Janine, 7 October: one point each was too
+ * small to notice next to 5- and 10-point chores. */
+export const STREAK_BONUS: StreakBonus = { 7: 10, 30: 50 };
+
+/** A household's bonus from a given day on (streak_bonus_rates). */
+export type StreakBonusRate = { from: string; bonus: StreakBonus };
+
+/** The bonus in force on `iso`: the newest rate from that day or earlier.
+ * A change applies to streaks reached from then on, never to ones already
+ * earned. `rates` is oldest first. */
+export function bonusOn(rates: StreakBonusRate[], iso: string): StreakBonus {
+  let found = STREAK_BONUS;
+  for (const r of rates) if (r.from <= iso) found = r.bonus;
+  return found;
+}
 
 /** Monday of the ISO week an ISO date falls in, as an ISO date. */
 export function weekOf(iso: string): string {

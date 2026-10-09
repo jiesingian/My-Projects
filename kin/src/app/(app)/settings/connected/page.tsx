@@ -120,7 +120,7 @@ export default async function ConnectedSettingsPage({
         <Blueprint style={{ padding: "0.875rem" }}>
           <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: "0.375rem 0.625rem", marginBottom: "0.5rem" }}>
             <Icon name="calendarDays" size={18} className="text-[var(--color-accent-700)]" />
-            <span style={{ font: "600 1.125rem/1.05 var(--font-heading)", flex: "1 1 8rem" }}>Apple Calendar &amp; Outlook</span>
+            <span style={{ font: "600 1.125rem/1.05 var(--font-heading)", flex: "1 1 8rem" }}>Calendar subscription</span>
             <Tag variant={me.calendar_feed_hash ? "accent" : "outline"}>{me.calendar_feed_hash ? "LINK ON" : "OFF"}</Tag>
           </div>
           <CalendarFeedControl hasLink={Boolean(me.calendar_feed_hash)} />

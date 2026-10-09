@@ -75,7 +75,67 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  # One run on dev at a time, the rest waiting their turn (8 October; it was
+  # two until that afternoon -- see the end of this comment).
+  #
+  # Smoke opens every hub at every width in both themes -- about forty page
+  # loads, each signing in and firing twenty-odd queries -- against the one
+  # small dev project every pull request shares. Two runs at once it takes in
+  # its stride (05:02-05:10 UTC that morning: ~0.5s a request, both green).
+  # When a merge to main sent six to eight pull requests back through CI
+  # within minutes, dev's response time went from ~0.5s to 9-20s on average
+  # (worst ~2 minutes) on every table alike -- not one slow query, just too
+  # many at once -- and every run, main's own included, timed out page by
+  # page and was cancelled at twenty minutes. Nothing failed; dev never
+  # returned an error; it was simply queued solid.
+  #
+  # So a run waits here, before it builds, until no e2e run that started
+  # before it is still going -- first come, first served, nothing
+  # cancelled, no test dropped. The wait is its own job so it never eats into
+  # the suite's twenty minutes. After forty minutes it goes anyway and says
+  # so, rather than holding a pull request forever behind a stuck run.
+  #
+  # Two was still too many. From 10:07 UTC the same day, with two e2e runs
+  # and a couple of Schema checks going, dev stopped answering: sign-in 504s
+  # for minutes, and statements timing out on every table, Supabase's own
+  # `SELECT version();` included. One at a time is slower through a backlog
+  # (about eight minutes a pull request) but a run that finishes beats two
+  # that both time out.
+  turn:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    permissions:
+      actions: read
+    steps:
+      - name: Wait for a turn on dev
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          RUN_ID: ${{ github.run_id }}
+          SLOTS: "1"
+        run: |
+          set -euo pipefail
+          # run_started_at, not created_at: a re-run attempt starts afresh
+          # and joins the back of the queue.
+          mine=$(gh api "repos/$REPO/actions/runs/$RUN_ID" --jq .run_started_at)
+          deadline=$(( $(date +%s) + 40 * 60 ))
+          while :; do
+            ahead=$(gh api "repos/$REPO/actions/workflows/e2e.yml/runs?status=in_progress&per_page=100" \
+              --jq "[.workflow_runs[] | select(.id != $RUN_ID) | select(.run_started_at < \"$mine\" or (.run_started_at == \"$mine\" and .id < $RUN_ID))] | length")
+            if [ "$ahead" -lt "$SLOTS" ]; then
+              echo "Dev has room: $ahead e2e run(s) ahead of this one."
+              break
+            fi
+            if [ "$(date +%s)" -ge "$deadline" ]; then
+              echo "::warning::Waited 40 minutes for a turn on dev ($ahead runs still ahead); running anyway."
+              break
+            fi
+            echo "$ahead e2e runs ahead of this one on dev; waiting for a turn."
+            sleep 30
+          done
+
   e2e:
+    needs: turn
     runs-on: ubuntu-latest
     # Minutes, not the old suite's seven-plus -- see the header. The default
     # job limit is six hours, which is how a hung browser quietly spends a
@@ -164,7 +224,10 @@ jobs:
           E2E_BASE_URL: ${{ inputs.base_url }}
           NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
           NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
-        run: npx playwright test e2e/smoke.spec.ts e2e/*.logic.spec.ts --workers=4
+        # 2 workers, not 4: every page signs the request in against dev's
+        # auth server, and with twenty pull requests testing at once 4 each was
+        # enough to run it out of database connections (7 October).
+        run: npx playwright test e2e/smoke.spec.ts e2e/*.logic.spec.ts --workers=2
 
       - uses: actions/upload-artifact@v6
         if: ${{ !cancelled() }}

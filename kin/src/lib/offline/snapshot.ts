@@ -182,6 +182,9 @@ async function recentConversations(me: CurrentMember): Promise<OfflineConversati
         const t = await getDirectThread(me.person_id, s.key.slice("dm:".length));
         return t ? { key: s.key, title: s.title, canSend: false, messages: fromRoom(t.messages) } : null;
       }
+      // Saved messages has no room to snapshot; anything else unknown would
+      // reach getGroupRoom with an empty id and four failing queries.
+      if (s.kind !== "group" && s.kind !== "channel") return null;
       const g = await getGroupRoom(me.person_id, s.key.slice("group:".length));
       return g ? { key: s.key, title: s.title, canSend: false, messages: fromRoom(g.messages) } : null;
     }).map((p) => p.catch(() => null)),

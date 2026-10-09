@@ -697,6 +697,7 @@ export type Database = {
           paid_by_member_id: string | null
           paid_from_account_id: string | null
           recurrence: string | null
+          remind_days_before: number
           status: string
           sub_note: string | null
           transaction_id: string | null
@@ -714,6 +715,7 @@ export type Database = {
           paid_by_member_id?: string | null
           paid_from_account_id?: string | null
           recurrence?: string | null
+          remind_days_before?: number
           status?: string
           sub_note?: string | null
           transaction_id?: string | null
@@ -731,6 +733,7 @@ export type Database = {
           paid_by_member_id?: string | null
           paid_from_account_id?: string | null
           recurrence?: string | null
+          remind_days_before?: number
           status?: string
           sub_note?: string | null
           transaction_id?: string | null
@@ -840,6 +843,52 @@ export type Database = {
             columns: ["family_id"]
             isOneToOne: false
             referencedRelation: "families"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      buy_item_meals: {
+        Row: {
+          buy_item_id: string
+          created_at: string
+          family_id: string
+          meal_plan_id: string
+          quantity: number | null
+        }
+        Insert: {
+          buy_item_id: string
+          created_at?: string
+          family_id: string
+          meal_plan_id: string
+          quantity?: number | null
+        }
+        Update: {
+          buy_item_id?: string
+          created_at?: string
+          family_id?: string
+          meal_plan_id?: string
+          quantity?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "buy_item_meals_buy_item_id_fkey"
+            columns: ["buy_item_id"]
+            isOneToOne: false
+            referencedRelation: "buy_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "buy_item_meals_family_id_fkey"
+            columns: ["family_id"]
+            isOneToOne: false
+            referencedRelation: "families"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "buy_item_meals_meal_plan_id_fkey"
+            columns: ["meal_plan_id"]
+            isOneToOne: false
+            referencedRelation: "meal_plans"
             referencedColumns: ["id"]
           },
         ]
@@ -5350,6 +5399,51 @@ export type Database = {
           },
         ]
       }
+      streak_bonus_rates: {
+        Row: {
+          created_at: string
+          effective_from: string
+          family_id: string
+          id: string
+          set_by: string | null
+          seven: number
+          thirty: number
+        }
+        Insert: {
+          created_at?: string
+          effective_from: string
+          family_id: string
+          id?: string
+          set_by?: string | null
+          seven: number
+          thirty: number
+        }
+        Update: {
+          created_at?: string
+          effective_from?: string
+          family_id?: string
+          id?: string
+          set_by?: string | null
+          seven?: number
+          thirty?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "streak_bonus_rates_family_id_fkey"
+            columns: ["family_id"]
+            isOneToOne: false
+            referencedRelation: "families"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "streak_bonus_rates_set_by_fkey"
+            columns: ["set_by"]
+            isOneToOne: false
+            referencedRelation: "members"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       routine_attachments: {
         Row: {
           created_at: string
@@ -5871,6 +5965,10 @@ export type Database = {
         Args: never
         Returns: { id: string; child_person_id: string; child_name: string; other_person_id: string; other_name: string; other_household: string | null; status: string; requested_at: string }[]
       }
+      set_streak_bonus: {
+        Args: { p_seven: number; p_thirty: number }
+        Returns: undefined
+      }
       guardian_decide_connection: {
         Args: { p_id: string; p_approve: boolean }
         Returns: undefined
@@ -5994,6 +6092,10 @@ export type Database = {
       relative_profile: {
         Args: { p_member_id: string }
         Returns: { member_id: string; full_name: string; avatar_url: string | null; cover_path: string | null; family_id: string; household_name: string; link_id: string | null; match_id: string | null; tree_person_id: string | null; is_shared_person: boolean | null }[]
+      }
+      due_bill_ahead_reminders: {
+        Args: { p_secret: string; p_now?: string }
+        Returns: { key: string; member_id: string; endpoint: string; p256dh: string; auth: string; title: string; body: string; url: string }[]
       }
       due_goal_reward_reminders: {
         Args: { p_secret: string; p_now?: string }
