@@ -4,7 +4,7 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { recordMovementAction, transferAction } from "@/lib/actions/wealth";
 import { EXPENSE_CATEGORIES, INCOME_SOURCES } from "@/lib/wealth";
-import { formatCurrency } from "@/lib/format";
+import { formatCurrency, currencySymbol } from "@/lib/format";
 import { ErrorText } from "@/components/form";
 import type { PickableAccount } from "@/components/money-actions";
 import { DateInput } from "@/components/date-input";
@@ -145,7 +145,7 @@ export function TransactForm({
       )}
 
       <div style={{ display: "flex", gap: "0.75rem" }}>
-        <Field label="Amount (₱)" style={{ flex: 1 }}>
+        <Field label={`Amount (${currencySymbol(currency)})`} style={{ flex: 1 }}>
           <AmountInput defaultValue={defaultAmount} onValueChange={setAmount} style={{ minHeight: "2.75rem" }} />
         </Field>
         <Field label="Date" style={{ flex: 1 }}>

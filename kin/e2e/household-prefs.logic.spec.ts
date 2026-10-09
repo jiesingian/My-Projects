@@ -30,7 +30,7 @@ test("the currencies on offer are accepted", () => {
 });
 
 test("anything else is not a currency", () => {
-  expect(isCurrencyCode("GBP"), "plausible, but not offered").toBe(false);
+  expect(isCurrencyCode("KRW"), "plausible, but not offered").toBe(false);
   expect(isCurrencyCode("php"), "the stored value is compared exactly").toBe(false);
   expect(isCurrencyCode(""), "blank is not a currency -- unlike country, this one is required").toBe(false);
   expect(isCurrencyCode("X".repeat(2000)), "the one that was actually stored").toBe(false);

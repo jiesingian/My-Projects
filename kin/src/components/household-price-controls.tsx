@@ -1,5 +1,6 @@
 "use client";
 
+import { useCurrencySymbol } from "@/components/household-currency";
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import {
@@ -29,8 +30,8 @@ function useHouseholdAction() {
   return { pending, error, run };
 }
 
-function peso(n: number) {
-  return `₱${n.toLocaleString("en-PH", { minimumFractionDigits: 0, maximumFractionDigits: 2 })}`;
+function peso(n: number, sym: string) {
+  return `${sym}${n.toLocaleString("en-PH", { minimumFractionDigits: 0, maximumFractionDigits: 2 })}`;
 }
 
 /** One row of the price book. Tapping the price opens it for editing; a
@@ -50,6 +51,7 @@ export function PriceRowControl({
   section: string;
   source: "family" | "starter";
 }) {
+  const sym = useCurrencySymbol();
   const { pending, error, run } = useHouseholdAction();
   const [editing, setEditing] = useState(false);
   const [value, setValue] = useState(String(price));
@@ -76,7 +78,7 @@ export function PriceRowControl({
           }}
           aria-label={`Edit the price of ${name}`}
         >
-          <span style={{ fontWeight: source === "family" ? 600 : 400 }}>{peso(price)}</span>
+          <span style={{ fontWeight: source === "family" ? 600 : 400 }}>{peso(price, sym)}</span>
           <span style={{ fontSize: "0.78125rem", color: "var(--color-neutral-600)" }}>/{unit}</span>
           {source === "starter" && (
             <span
@@ -238,6 +240,7 @@ export function BuyItemPriceButton({
   editing: boolean;
   onToggle: () => void;
 }) {
+  const sym = useCurrencySymbol();
   return (
     <button
       type="button"
@@ -258,7 +261,7 @@ export function BuyItemPriceButton({
         fontWeight: source === "override" ? 600 : 400,
       }}
     >
-      {estimated == null ? "price?" : peso(estimated)}
+      {estimated == null ? "price?" : peso(estimated, sym)}
     </button>
   );
 }

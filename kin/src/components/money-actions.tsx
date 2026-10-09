@@ -23,7 +23,7 @@ import {
   postHubExpenseAction,
   deleteRemittanceAction,
 } from "@/lib/actions/wealth";
-import { formatCurrency } from "@/lib/format";
+import { formatCurrency, currencySymbol } from "@/lib/format";
 import { Icon } from "@/components/icons";
 import { confirm } from "@/components/confirm-sheet";
 import { AmountInput } from "@/components/amount-input";
@@ -127,8 +127,8 @@ export function PayBillControl({ billId, amount, accounts, currency }: { billId:
         <AccountSelect id={`${uid}-account`} accounts={accounts} value={accountId} onChange={setAccountId} currency={currency} />
       </div>
       <div className="field" style={{ marginBottom: "0.5rem" }}>
-        <label htmlFor={`${uid}-amount`}>Amount (₱)</label>
-        <AmountInput id={`${uid}-amount`} ariaLabel="Amount (₱)" defaultValue={payAmount} onValueChange={setPayAmount} style={{ minHeight: "2.625rem" }} />
+        <label htmlFor={`${uid}-amount`}>Amount ({currencySymbol(currency)})</label>
+        <AmountInput id={`${uid}-amount`} ariaLabel={`Amount (${currencySymbol(currency)})`} defaultValue={payAmount} onValueChange={setPayAmount} style={{ minHeight: "2.625rem" }} />
       </div>
       <ViaAppToggle checked={viaApp} onChange={setViaApp} account={account} />
       <div style={{ display: "flex", gap: "0.5rem" }}>
@@ -178,8 +178,8 @@ export function ReceiveIncomeControl({ scheduleId, amount, accounts, currency }:
         <AccountSelect id={`${uid}-account`} accounts={accounts} value={accountId} onChange={setAccountId} currency={currency} />
       </div>
       <div className="field" style={{ marginBottom: "0.5rem" }}>
-        <label htmlFor={`${uid}-amount`}>Amount (₱)</label>
-        <AmountInput id={`${uid}-amount`} ariaLabel="Amount (₱)" defaultValue={receiveAmount} onValueChange={setReceiveAmount} style={{ minHeight: "2.625rem" }} />
+        <label htmlFor={`${uid}-amount`}>Amount ({currencySymbol(currency)})</label>
+        <AmountInput id={`${uid}-amount`} ariaLabel={`Amount (${currencySymbol(currency)})`} defaultValue={receiveAmount} onValueChange={setReceiveAmount} style={{ minHeight: "2.625rem" }} />
       </div>
       <ViaAppToggle checked={viaApp} onChange={setViaApp} account={account} />
       <div style={{ display: "flex", gap: "0.5rem" }}>
