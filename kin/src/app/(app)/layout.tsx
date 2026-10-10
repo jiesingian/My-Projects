@@ -84,7 +84,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         <Toaster />
         <ReturnToToday />
         {/* Offline Kin: keeps the phone's copy current, and says so when offline. */}
-        <OfflineSync />
+        <OfflineSync userId={member.auth_user_id ?? ""} />
       </CallProvider>
       </HouseholdCurrencyProvider>
     </div>

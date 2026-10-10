@@ -1,3 +1,4 @@
+import { cache } from "react";
 import { createClient } from "@/lib/supabase/server";
 import { getSignedUrls } from "@/lib/storage";
 import type { ForwardTarget } from "@/lib/chat-forward";
@@ -197,11 +198,14 @@ export async function getFamilyRoom(me: { id: string; family_id: string; person_
   };
 }
 
-export async function getDirectPeers(): Promise<DirectPeer[]> {
+/** Once per request: my_direct_threads is among the costliest reads in the
+ * app (about 110 ms on dev), and one page -- or the offline snapshot, which
+ * opens several conversations -- used to ask for it up to four times. */
+export const getDirectPeers = cache(async (): Promise<DirectPeer[]> => {
   const supabase = await createClient();
   const { data } = await supabase.rpc("my_direct_threads");
   return (data ?? []).map((r) => ({ personId: r.person_id, fullName: r.full_name, avatarUrl: r.avatar_url, householdName: r.household_name, connected: r.connected }));
-}
+});
 
 /** A conversation with one person, and who they are -- null when this person
  * has never been connected with them and has no history with them, so the
