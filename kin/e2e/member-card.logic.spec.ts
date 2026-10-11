@@ -1,5 +1,5 @@
 import { test, expect } from "@playwright/test";
-import { apartLabel, audienceOf, checkInAnswerPush, checkInAskPush, cleanPosition, clockIn, dayIn, forPreview, isNightIn, isTimeZone, latest, offsetMinutes, ownSpendingAccounts, sectionsFor, sinceLabel, zoneCity } from "@/lib/member-card";
+import { apartLabel, audienceOf, checkInAnswerPush, checkInAskPush, cleanPosition, clockIn, dayIn, forPreview, isNightIn, isTimeZone, latest, offsetMinutes, ownSpendingAccounts, sectionsFor, showsBudget, sinceLabel, zoneCity } from "@/lib/member-card";
 
 /** The member card on Today (30 September): who sees which part of whose
  * card, and the arithmetic of "3:40 pm in Dubai, 4 h behind you". */
@@ -114,4 +114,11 @@ test("are you okay: the ask goes to the one asked, the answer back to the asker"
   const call = checkInAnswerPush("Lola Rosa", "maria", id, "call_me");
   expect(call.title).toBe("Lola asked you to call");
   expect(call.urgent).toBe(true);
+});
+
+test("the monthly budget is shown only to the person themself", () => {
+  expect(showsBudget("self", false)).toBe(true);
+  expect(showsBudget("self", true)).toBe(false); // previewing as others
+  expect(showsBudget("grownup", false)).toBe(false);
+  expect(showsBudget("child", false)).toBe(false);
 });

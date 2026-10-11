@@ -54,6 +54,13 @@ export function sectionsFor(audience: CardAudience): CardSections {
   }
 }
 
+/** Whether the card shows the person's monthly budget. Only to the person
+ * themself (Jonathan, 11 October): other grown-ups see what was spent, never
+ * the budget, and the "Grown-ups see" preview says the same. */
+export function showsBudget(audience: CardAudience, preview: boolean): boolean {
+  return audience === "self" && !preview;
+}
+
 /** Your own card, as someone else would see it. The preview is read with your
  * own session, which can see your "Just me" things, so this is where they come
  * out again: only what the household is shown. */
