@@ -70,15 +70,28 @@ export function holidayCountry(country: string | null | undefined): string {
   return country && /^[a-z]{2}$/i.test(country) ? country.toUpperCase() : "PH";
 }
 
+export function nagerUrl(year: number, country: string): string {
+  return `https://date.nager.at/api/v3/PublicHolidays/${year}/${country}`;
+}
+
 async function fromNager(year: number, country: string): Promise<Holiday[] | null> {
   try {
-    const response = await fetch(`https://date.nager.at/api/v3/PublicHolidays/${year}/${country}`, { next: { revalidate: 86400 } });
-    if (!response.ok) return null;
+    const response = await fetch(nagerUrl(year, country), { next: { revalidate: 86400 } });
+    if (!response.ok) {
+      // Still nobody sees an error, but the logs do: without this a broken
+      // Nager looked exactly like a working one (api/upstream-check).
+      console.warn(`holidays: Nager answered ${response.status} for ${year}/${country}`);
+      return null;
+    }
     const json = (await response.json()) as { date?: string; name?: string }[];
-    if (!Array.isArray(json)) return null;
+    if (!Array.isArray(json)) {
+      console.warn(`holidays: Nager's answer for ${year}/${country} was not a list`);
+      return null;
+    }
     return json.filter((h) => typeof h.date === "string" && typeof h.name === "string").map((h) => ({ date: h.date!, name: h.name! }));
-  } catch {
+  } catch (error) {
     // Down or unreachable: the fixed dates stand in, and nobody sees an error.
+    console.warn(`holidays: Nager unreachable for ${year}/${country}:`, error instanceof Error ? error.message : error);
     return null;
   }
 }
