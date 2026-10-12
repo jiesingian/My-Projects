@@ -11,19 +11,18 @@ import { initials } from "@/lib/format";
 import { setMyTimezoneAction } from "@/lib/actions/member-card";
 import type { FamilyPanel as FamilyPanelData } from "@/lib/queries/family-panel";
 
-/** The top of Today: the date, the household's name, the time and weather
- * where the family is, what is being eaten today, and everyone's initials.
+/** The top of Today: the date, the household's name, the weather where the
+ * family is, what is being eaten today, and everyone's initials. (The clock
+ * was taken off on 12 October: the phone already shows the time.)
  *
  * This used to be two things. The initials sat up here doing nothing, and a
  * Family panel at the bottom of the page listed the same people again with
  * their location and water. Now there is one strip: tap someone's initials
- * and their card opens with what the panel used to show for them. The clock,
+ * and their card opens with what the panel used to show for them. The
  * weather and meals moved up here because they describe the day, which is
  * what the top of the page is about.
  *
- * A client component for two reasons -- the clock, and the person cards. A
- * time rendered on the server is the server's time and is wrong by however
- * long the page has been open; this one ticks and is the reader's own.
+ * A client component for the person cards and the meals list that opens.
  *
  * Since 30 September the card is the member card (components/member-card):
  * their time and weather, their day, and -- as far as the household's own
@@ -74,16 +73,13 @@ export function TodayHeader({
           their own under the name, rather than squeezing the name into a
           column one letter wide. */}
       <div style={{ display: "flex", flexWrap: "wrap", alignItems: "flex-end", justifyContent: "space-between", gap: "0.625rem 0.75rem" }}>
-        {/* The name, and the time beside it filling the space to its right
-            (Janine, 12 October): as tall as the date and name together. */}
-        <div style={{ flex: "1 1 15rem", minWidth: 0, display: "flex", alignItems: "flex-end", gap: "0.75rem" }}>
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ font: "600 0.8125rem/1 var(--font-heading)", letterSpacing: ".02em", color: "var(--color-accent-700)", marginBottom: "0.3125rem" }}>{dateLabel}</div>
-            {/* Grows with the text size until a long word would no longer fit
-                the phone, and stops there instead of breaking the word. */}
-            <h2 style={{ fontSize: "min(1.875rem, 11vw)" }}>{familyName}</h2>
-          </div>
-          <Clock />
+        {/* The initials, SOS and Settings share the name's line (Janine, 12
+            October), so the name only gives up its line to them below 8rem. */}
+        <div style={{ flex: "1 1 8rem", minWidth: 0 }}>
+          <div style={{ font: "600 0.8125rem/1 var(--font-heading)", letterSpacing: ".02em", color: "var(--color-accent-700)", marginBottom: "0.3125rem" }}>{dateLabel}</div>
+          {/* Grows with the text size until a long word would no longer fit
+              the phone, and stops there instead of breaking the word. */}
+          <h2 style={{ fontSize: "min(1.875rem, 11vw)" }}>{familyName}</h2>
         </div>
         <div style={{ display: "flex", alignItems: "center", flex: "none" }}>
           {people.map((p) => (
@@ -158,41 +154,5 @@ export function TodayHeader({
         </div>
       )}
     </header>
-  );
-}
-
-function Clock() {
-  // Rendered empty first, then filled once mounted. The server has no idea
-  // what time it is where the reader is, and printing its own guess would
-  // hydrate into a visible correction.
-  // The hours and minutes large, AM/PM small beside them, so the number
-  // itself fills the space beside the household's name.
-  const [now, setNow] = useState<{ time: string; period: string } | null>(null);
-
-  useEffect(() => {
-    const tick = () => {
-      const parts = new Intl.DateTimeFormat(undefined, { hour: "2-digit", minute: "2-digit" }).formatToParts(new Date());
-      const period = parts.find((p) => p.type === "dayPeriod")?.value ?? "";
-      const time = parts
-        .filter((p) => p.type !== "dayPeriod")
-        .map((p) => p.value)
-        .join("")
-        .trim();
-      setNow({ time, period });
-    };
-    tick();
-    const timer = setInterval(tick, 30_000);
-    return () => clearInterval(timer);
-  }, []);
-
-  return (
-    <span
-      className={now ? "kin-fade-in" : undefined}
-      style={{ flex: "none", font: "600 clamp(2rem, 11vw, 3.25rem)/0.9 var(--font-heading)", letterSpacing: "-.02em", fontVariantNumeric: "tabular-nums", color: "var(--color-text)", whiteSpace: "nowrap" }}
-      suppressHydrationWarning
-    >
-      {now ? now.time : " "}
-      {now?.period && <span style={{ fontSize: "0.34em", letterSpacing: ".02em", marginLeft: "0.2em", color: "var(--color-neutral-600)" }}>{now.period}</span>}
-    </span>
   );
 }
