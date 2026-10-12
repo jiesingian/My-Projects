@@ -62,6 +62,17 @@ on:
     - cron: "*/15 * * * *"
   workflow_dispatch:
 
+  # Vercel reports as a commit status, not a check run, and a status is not a
+  # workflow_run -- so when Vercel was the last thing on a commit to go green,
+  # its success woke nothing. That stranded #544 on 12 October: End-to-end
+  # finished at 09:16:52, this job found Vercel's status still pending and
+  # stopped ("a commit status is still pending"), Vercel went green a minute
+  # later, and the pull request sat green and unmerged for over an hour with
+  # the sweep above nowhere to be seen. Every pull request touching kin/
+  # races Vercel this way. A status turning green now wakes the job for that
+  # commit's pull request; pending and failed ones are filtered out below.
+  status:
+
 permissions:
   contents: write
   pull-requests: write
@@ -118,9 +129,11 @@ jobs:
     # pull request has nothing to merge. The sweep and a manual dispatch carry
     # no workflow_run at all and are always allowed through.
     if: >
-      github.event_name != 'workflow_run' ||
-      (github.event.workflow_run.conclusion == 'success' &&
-       github.event.workflow_run.event == 'pull_request')
+      (github.event_name != 'workflow_run' && github.event_name != 'status') ||
+      (github.event_name == 'workflow_run' &&
+       github.event.workflow_run.conclusion == 'success' &&
+       github.event.workflow_run.event == 'pull_request') ||
+      (github.event_name == 'status' && github.event.state == 'success')
     runs-on: ubuntu-latest
     steps:
       - name: Merge whatever is green
@@ -128,7 +141,9 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           REPO: ${{ github.repository }}
           EVENT: ${{ github.event_name }}
-          SHA: ${{ github.event.workflow_run.head_sha }}
+          # The commit the waking event was about: a finished workflow's head,
+          # or the commit a status was posted on.
+          SHA: ${{ github.event.workflow_run.head_sha || github.event.sha }}
         run: |
           set -euo pipefail
 
@@ -395,7 +410,7 @@ jobs:
             fi
           }
 
-          if [ "$EVENT" = "workflow_run" ]; then
+          if [ "$EVENT" = "workflow_run" ] || [ "$EVENT" = "status" ]; then
             # One pull request: the one whose commit the finished run was for.
             PRS=$(gh api "repos/$REPO/commits/$SHA/pulls" --jq '.[].number')
             if [ -z "$PRS" ]; then
