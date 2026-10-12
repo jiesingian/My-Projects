@@ -1,4 +1,11 @@
-/** Philippine public holidays, without an account, a key or a bill.
+/** Public holidays for the household's own country (families.country,
+ * Philippines when unset), without an account, a key or a bill.
+ *
+ * Nager.Date covers about a hundred countries with the same free call. The
+ * hand-kept parts below -- the fixed-date fallback and Kin's special days --
+ * are Philippine, so they only ever apply to Philippine households; a
+ * household elsewhere that Nager cannot reach for a moment simply sees no
+ * holiday line until it can.
  *
  * Nager.Date publishes them as a plain GET, the same kind of free, keyless
  * service as the weather (lib/weather). The list for a year changes a few
@@ -56,32 +63,58 @@ export function mergeHolidays(...lists: Holiday[][]): Holiday[] {
   return out.sort((a, b) => a.date.localeCompare(b.date));
 }
 
-async function fromNager(year: number): Promise<Holiday[] | null> {
+/** A household's country as Nager wants it: the two-letter code, upper case.
+ * Unset or anything odd is the Philippines, which every household was until
+ * country could be set. */
+export function holidayCountry(country: string | null | undefined): string {
+  return country && /^[a-z]{2}$/i.test(country) ? country.toUpperCase() : "PH";
+}
+
+export function nagerUrl(year: number, country: string): string {
+  return `https://date.nager.at/api/v3/PublicHolidays/${year}/${country}`;
+}
+
+async function fromNager(year: number, country: string): Promise<Holiday[] | null> {
   try {
-    const response = await fetch(`https://date.nager.at/api/v3/PublicHolidays/${year}/PH`, { next: { revalidate: 86400 } });
-    if (!response.ok) return null;
+    const response = await fetch(nagerUrl(year, country), { next: { revalidate: 86400 } });
+    if (!response.ok) {
+      // Still nobody sees an error, but the logs do: without this a broken
+      // Nager looked exactly like a working one (api/upstream-check).
+      console.warn(`holidays: Nager answered ${response.status} for ${year}/${country}`);
+      return null;
+    }
     const json = (await response.json()) as { date?: string; name?: string }[];
-    if (!Array.isArray(json)) return null;
+    if (!Array.isArray(json)) {
+      console.warn(`holidays: Nager's answer for ${year}/${country} was not a list`);
+      return null;
+    }
     return json.filter((h) => typeof h.date === "string" && typeof h.name === "string").map((h) => ({ date: h.date!, name: h.name! }));
-  } catch {
+  } catch (error) {
     // Down or unreachable: the fixed dates stand in, and nobody sees an error.
+    console.warn(`holidays: Nager unreachable for ${year}/${country}:`, error instanceof Error ? error.message : error);
     return null;
   }
 }
 
 export async function getPhHolidays(year: number): Promise<Holiday[]> {
-  const nager = await fromNager(year);
+  return getHolidays(year, "PH");
+}
+
+/** One year's public holidays for a country (holidayCountry's form). */
+export async function getHolidays(year: number, country: string): Promise<Holiday[]> {
+  const nager = await fromNager(year, country);
+  if (country !== "PH") return nager ?? [];
   const own = KIN_SPECIAL_DAYS.filter((h) => h.date.startsWith(`${year}-`));
   return mergeHolidays(nager ?? fixedFor(year), own);
 }
 
 /** Every holiday from `startISO` up to, not including, `endISO`
  * (YYYY-MM-DD). */
-export async function getHolidaysBetween(startISO: string, endISO: string): Promise<Holiday[]> {
+export async function getHolidaysBetween(startISO: string, endISO: string, country: string = "PH"): Promise<Holiday[]> {
   const first = Number(startISO.slice(0, 4));
   const last = Number(endISO.slice(0, 4));
   const years = Array.from({ length: last - first + 1 }, (_, i) => first + i);
-  const all = (await Promise.all(years.map(getPhHolidays))).flat();
+  const all = (await Promise.all(years.map((y) => getHolidays(y, country)))).flat();
   return all.filter((h) => h.date >= startISO && h.date < endISO);
 }
 

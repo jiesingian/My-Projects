@@ -56,8 +56,8 @@ export const PALETTES: Palette[] = [
     id: "classic",
     name: "Kin Classic",
     blurb: "Clean iOS blue on cool grey",
-    light: { bg: "#f2f2f7", surface: "#ffffff", text: "#1c1c1e", muted: "#6c6c70", accent: "#007aff", ink: "#0062cc", accent2: "#5ac8fa", divider: "rgba(60,60,67,0.18)" },
-    dark: { bg: "#000000", surface: "#1c1c1e", text: "#f5f5f7", muted: "#98989d", accent: "#0a84ff", ink: "#6bb2ff", accent2: "#5ac8fa", divider: "rgba(84,84,88,0.65)" },
+    light: { bg: "#f2f2f7", surface: "#ffffff", text: "#1c1c1e", muted: "#6c6c70", accent: "#0068d9", ink: "#0062cc", accent2: "#5ac8fa", divider: "rgba(60,60,67,0.18)" },
+    dark: { bg: "#000000", surface: "#1c1c1e", text: "#f5f5f7", muted: "#98989d", accent: "#0068d9", ink: "#6bb2ff", accent2: "#5ac8fa", divider: "rgba(84,84,88,0.65)" },
   },
   {
     // Kin's own look since the icon changed (#208): the icon's warm orange

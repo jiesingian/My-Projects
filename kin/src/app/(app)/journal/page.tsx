@@ -20,7 +20,10 @@ import { getFamilyFeed, getFamilyLinks, getFeedOccasions } from "@/lib/queries/f
 import { isGrownUp } from "@/lib/roles";
 import { AddToHouseholdButton } from "@/components/add-to-household";
 import { EntryShareOptions } from "@/components/entry-share-options";
-import { LettersOpeningToday } from "@/components/letters-opening";
+import { getMembers } from "@/lib/queries/family";
+import { getTimeCapsules, getSealedForMe, letterDays, type LetterDay } from "@/lib/queries/time-capsules";
+import { LetterDayLetters, SealedEnvelopes, LetterCompose } from "@/components/journal-letters";
+import { familyDay } from "@/lib/time";
 
 /* Gallery, Entries and Milestones were three hub segments; now they are one
    -- Entries -- with these three as views inside it. A person reading a day
@@ -65,6 +68,7 @@ export default async function JournalPage({
   }
 
   const segments = [{ label: "Entries", href: "/journal", active: true }];
+  const reader: Reader = { id: me.id, grownUp: isGrownUp(me.role), timeZone: me.families.time_zone };
   const views = TABS.map((v) => ({ label: VIEW_LABELS[v], href: `/journal?view=${v}`, active: v === view || (v === "household" && view === "milestones") }));
 
   return (
@@ -73,9 +77,9 @@ export default async function JournalPage({
       <div style={{ padding: "0 var(--gutter) 1.375rem" }}>
         <Segmented items={views} />
         {view === "public" && <PublicPane personId={me.person_id} familyId={me.family_id} />}
-        {view === "household" && <EntriesPane familyId={me.family_id} />}
-        {view === "mine" && <EntriesPane familyId={me.family_id} mine={{ personId: me.person_id }} />}
-        {view === "milestones" && <EntriesPane familyId={me.family_id} milestonesOnly />}
+        {view === "household" && <EntriesPane familyId={me.family_id} me={reader} />}
+        {view === "mine" && <EntriesPane familyId={me.family_id} me={reader} mine={{ personId: me.person_id }} />}
+        {view === "milestones" && <EntriesPane familyId={me.family_id} me={reader} milestonesOnly />}
         {view === "feed" && (
           <FeedPane meId={me.id} familyId={me.family_id} inviteCode={me.families.invite_code} canManage={isGrownUp(me.role)} />
         )}
@@ -141,9 +145,54 @@ async function PublicPane({ personId, familyId }: { personId: string; familyId: 
   );
 }
 
-async function EntriesPane({ familyId, mine, milestonesOnly = false }: { familyId: string; mine?: { personId: string }; milestonesOnly?: boolean }) {
+type Reader = { id: string; grownUp: boolean; timeZone: string };
+
+/* Letters (7 October): a letter belongs to a special day -- a person and a
+   date. Opened, the day's letters sit under that person's own entry for the
+   day; if they wrote none, the day shows on its own in date order, so the
+   letters are still easy to find. Row-level security decides who reads
+   which: the person they're for and each letter's writer, nobody else. */
+async function EntriesPane({ familyId, me, mine, milestonesOnly = false }: { familyId: string; me: Reader; mine?: { personId: string }; milestonesOnly?: boolean }) {
   const fmtDate = await familyDate();
-  const [entries, links, connections] = await Promise.all([getEntries(familyId, mine, { milestonesOnly }), getFamilyLinks(familyId), mine ? getConnections() : []]);
+  const withLetters = !milestonesOnly;
+  const [entries, links, connections, letters, envelopes, members] = await Promise.all([
+    getEntries(familyId, mine, { milestonesOnly }),
+    getFamilyLinks(familyId),
+    mine ? getConnections() : [],
+    withLetters ? getTimeCapsules(familyId, { timeZone: me.timeZone }) : Promise.resolve([]),
+    withLetters ? getSealedForMe() : Promise.resolve([]),
+    withLetters && me.grownUp ? getMembers(familyId) : Promise.resolve([]),
+  ]);
+  const today = familyDay(new Date(), me.timeZone);
+  const sealedByMe = letters.filter((l) => l.sealed && l.writerMemberId === me.id);
+  const recipients = members
+    .filter((m) => m.status === "active")
+    .map((m) => ({
+      id: m.id,
+      name: m.full_name,
+      eighteenth: m.dob && /^\d{4}-\d{2}-\d{2}/.test(m.dob) ? `${Number(m.dob.slice(0, 4)) + 18}${m.dob.slice(4, 10)}` : null,
+    }));
+  // Each opened day goes under the recipient's own entry for that date --
+  // one they wrote, one about them, or their milestone -- else on its own.
+  const days = letterDays(letters);
+  const dayOfEntry = new Map<string, LetterDay>();
+  const onTheirOwn: LetterDay[] = [];
+  for (const d of days) {
+    const entry = entries.find(
+      (e) => e.entry_date === d.opensOn && !dayOfEntry.has(e.id) &&
+        (e.created_by === d.recipientMemberId || e.milestone_member_id === d.recipientMemberId || e.people.some((p) => p.id === d.recipientMemberId)),
+    );
+    if (entry) dayOfEntry.set(entry.id, d);
+    else onTheirOwn.push(d);
+  }
+  type Item = { kind: "entry"; entry: (typeof entries)[number] } | { kind: "day"; day: LetterDay };
+  const items: Item[] = [];
+  let next = 0;
+  for (const entry of entries) {
+    while (next < onTheirOwn.length && onTheirOwn[next].opensOn >= entry.entry_date) items.push({ kind: "day", day: onTheirOwn[next++] });
+    items.push({ kind: "entry", entry });
+  }
+  while (next < onTheirOwn.length) items.push({ kind: "day", day: onTheirOwn[next++] });
   const linkedCount = links.filter((l) => l.status === "accepted").length;
   const connectionCount = connections.filter((c) => c.status === "accepted").length;
 
@@ -174,12 +223,10 @@ async function EntriesPane({ familyId, mine, milestonesOnly = false }: { familyI
           <Link href="/journal?view=milestones" className="chip" data-active={milestonesOnly} aria-current={milestonesOnly ? "page" : undefined}>
             <span aria-hidden="true">★</span> Milestones
           </Link>
-          <Link href="/journal/letters" className="chip">
-            Letters for later
-          </Link>
         </nav>
       )}
-      {!mine && !milestonesOnly && <LettersOpeningToday familyId={familyId} />}
+      {withLetters && <SealedEnvelopes envelopes={envelopes} />}
+      {withLetters && me.grownUp && <LetterCompose recipients={recipients} today={today} sealedByMe={sealedByMe} />}
       {!mine && !milestonesOnly && <Link href={`/journal/new?title=${encodeURIComponent(question)}`} className="kin-story">
         <span className="kin-story-label">This week&apos;s question</span>
         <span className="kin-story-q">{question}</span>
@@ -211,7 +258,17 @@ async function EntriesPane({ familyId, mine, milestonesOnly = false }: { familyI
           )}
         </div>
       )}
-      {entries.map((e) => (
+      {items.map((it) => {
+        if (it.kind === "day") {
+          return (
+            <Blueprint key={`day-${it.day.key}`} className="kin-letterday-card" style={{ padding: "0.8125rem", marginBottom: "1rem" }}>
+              <LetterDayLetters day={it.day} meId={me.id} />
+            </Blueprint>
+          );
+        }
+        const e = it.entry;
+        const day = dayOfEntry.get(e.id);
+        return (
         <Blueprint key={e.id} style={{ padding: "0.8125rem", marginBottom: "1rem" }}>
           <div style={{ display: "flex", flexWrap: "wrap", alignItems: "baseline", gap: "0.375rem 0.5rem" }}>
             <span style={{ font: "400 0.75rem/1 var(--font-numeric)", color: "var(--color-accent-700)" }}>{fmtDate(e.entry_date)}</span>
@@ -263,8 +320,10 @@ async function EntriesPane({ familyId, mine, milestonesOnly = false }: { familyI
               </Link>
             </span>
           </div>
+          {day && <LetterDayLetters day={day} meId={me.id} underEntry />}
         </Blueprint>
-      ))}
+        );
+      })}
       <Link
         href={mine ? "/journal/new?for=me" : milestonesOnly ? "/journal/milestones/new" : "/journal/new"}
         className="btn btn-primary btn-block"

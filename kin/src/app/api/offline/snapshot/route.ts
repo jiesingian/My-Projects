@@ -1,5 +1,4 @@
 import { NextResponse } from "next/server";
-import { createClient } from "@/lib/supabase/server";
 import { getCurrentMember } from "@/lib/session";
 import { buildSnapshot } from "@/lib/offline/snapshot";
 
@@ -9,11 +8,10 @@ import { buildSnapshot } from "@/lib/offline/snapshot";
  * the service worker leaves /api alone, so no shared or HTTP cache ever
  * holds one household's list for the next person to open the phone. */
 export async function GET() {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  const me = user ? await getCurrentMember() : null;
+  // One auth round trip: getCurrentMember asks for the user itself, and its
+  // member row carries the auth id.
+  const me = await getCurrentMember();
+  const user = me?.auth_user_id ? { id: me.auth_user_id } : null;
   if (!user || !me || me.status === "pending" || me.status === "removed") {
     return NextResponse.json({ error: "signed-out" }, { status: 401, headers: { "Cache-Control": "no-store" } });
   }

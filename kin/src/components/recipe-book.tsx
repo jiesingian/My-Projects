@@ -192,11 +192,11 @@ function NewCategoryTile({ onClick }: { onClick: () => void }) {
     >
       <span
         className="kin-tile"
-        style={{ border: "1.5px dashed var(--color-neutral-400)", color: "var(--color-accent)", background: "transparent" }}
+        style={{ border: "1.5px dashed var(--color-neutral-400)", color: "var(--color-accent-700)", background: "transparent" }}
       >
         <Icon name="plus" size={22} />
       </span>
-      <span style={{ fontSize: "0.71875rem", lineHeight: 1.2, textAlign: "center", color: "var(--color-accent)" }}>New</span>
+      <span style={{ fontSize: "0.71875rem", lineHeight: 1.2, textAlign: "center", color: "var(--color-accent-700)" }}>New</span>
     </button>
   );
 }

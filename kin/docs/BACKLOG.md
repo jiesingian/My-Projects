@@ -352,8 +352,10 @@ Decided against in the same review: revising Journal (item 6) and Planner
   `/today/sos/<id>` has the map link, time, call buttons, "I'm on it" and
   "I'm safe now". 20260930100000; RLS verified on dev, rolled back. Since 6
   October the card's budget is the spending budget a grown-up sets in
-  Wealth (member_budgets, visible to the household), not the private
-  income target, which settles the question that was open here.
+  Wealth (member_budgets), not the private income target. **Decided
+  (Jonathan, 11 October):** the card shows that budget only to the person
+  themself; other grown-ups, and the "Grown-ups see" preview, see the
+  spending without it. Wealth's "Spending by person" is unchanged.
 - Offline mode (Jonathan, 30 September). With no signal Kin opens on a saved
   copy (app/offline): Today, the shopping list, this week's Planner, the last
   50 messages of the household chat and up to three other recent

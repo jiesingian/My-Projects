@@ -2,6 +2,7 @@ import { PushKeepAlive } from "@/components/push-opt-in";
 import { redirect } from "next/navigation";
 import { getCurrentMember } from "@/lib/session";
 import { HouseholdZoneProvider } from "@/components/household-zone";
+import { HouseholdCurrencyProvider } from "@/components/household-currency";
 import { TabBar } from "@/components/tab-bar";
 import { inKidView } from "@/lib/kid-view";
 import { AssistantFab } from "@/components/assistant-fab";
@@ -73,6 +74,8 @@ export default async function AppLayout({ children }: { children: React.ReactNod
           media query and this has to change shape at 1024px. */}
       {/* The household's time zone for client components (household-zone). */}
       <HouseholdZoneProvider zone={member.families.time_zone}>
+      {/* The household's currency for client components (household-currency). */}
+      <HouseholdCurrencyProvider currency={member.families.currency}>
       <CallProvider familyId={member.family_id} me={member.id} members={callMembers}>
         <div className="kin-content">
           {connectCode && <ConnectLinkReminder code={connectCode} />}
@@ -84,8 +87,9 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         <Toaster />
         <ReturnToToday />
         {/* Offline Kin: keeps the phone's copy current, and says so when offline. */}
-        <OfflineSync />
+        <OfflineSync userId={member.auth_user_id ?? ""} />
       </CallProvider>
+      </HouseholdCurrencyProvider>
       </HouseholdZoneProvider>
     </div>
   );

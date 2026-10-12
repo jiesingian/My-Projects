@@ -35,19 +35,31 @@ export function formatAge(dob: string | null): string {
 }
 
 export function formatCurrency(amount: number, currency = "PHP"): string {
-  const symbol = currency === "PHP" ? "₱" : currency + " ";
-  return symbol + amount.toLocaleString("en-PH", { minimumFractionDigits: 0, maximumFractionDigits: 2 });
+  return moneyPrefix(currency) + amount.toLocaleString("en-PH", { minimumFractionDigits: 0, maximumFractionDigits: 2 });
 }
 
-const CURRENCY_SYMBOLS: Record<string, string> = { PHP: "₱", USD: "$", EUR: "€" };
+/** The sign for each currency Settings offers (household-prefs CURRENCIES).
+ * Ones without a widely read sign (the Gulf currencies) show their code. */
+const CURRENCY_SYMBOLS: Record<string, string> = {
+  PHP: "₱", USD: "$", EUR: "€", GBP: "£", CAD: "C$", AUD: "A$", NZD: "NZ$", SGD: "S$", HKD: "HK$", JPY: "¥",
+};
+
+/** "₱" for a label like "Amount (₱)"; the code itself when there is no sign. */
+export function currencySymbol(currency: string): string {
+  return CURRENCY_SYMBOLS[currency] ?? currency;
+}
+
+/** What goes in front of an amount: the sign, or the code and a space. */
+function moneyPrefix(currency: string): string {
+  return CURRENCY_SYMBOLS[currency] ?? `${currency} `;
+}
 
 /** An amount the way it was entered as a budget: grouped thousands and always
  * two places, "₱12,345.00". formatCurrency above drops trailing zeros, which
  * suits a balance glanced at in passing and is left as it is for that reason;
  * a budget somebody typed to the centavo should read back the same way. */
 export function formatAccounting(amount: number, currency = "PHP"): string {
-  const symbol = CURRENCY_SYMBOLS[currency] ?? `${currency} `;
-  return symbol + amount.toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  return moneyPrefix(currency) + amount.toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 
 export function formatDate(date: string | Date, pattern = "DD/MM/YYYY"): string {

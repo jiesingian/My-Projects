@@ -1,5 +1,5 @@
 import { getCurrentMember } from "@/lib/session";
-import { nominatimUrl, normalizeQuery, parseNominatim, type Place } from "@/lib/places";
+import { nominatimHeaders, nominatimUrl, normalizeQuery, parseNominatim, type Place } from "@/lib/places";
 
 /** Place suggestions for a location field (components/place-input).
  *
@@ -31,13 +31,15 @@ export async function GET(request: Request) {
   try {
     const response = await politely(() =>
       fetch(nominatimUrl(q), {
-        headers: { "User-Agent": `Kin family app (${origin})`, Referer: origin },
+        headers: nominatimHeaders(origin),
         next: { revalidate: 86400 },
         signal: AbortSignal.timeout(6000),
       }),
     );
     if (response.ok) places = parseNominatim(await response.json());
-  } catch {
+    else console.warn(`places: Nominatim answered ${response.status}`);
+  } catch (error) {
+    console.warn("places: Nominatim unreachable:", error instanceof Error ? error.message : error);
     // Down, slow or unreachable: no suggestions, and the field still takes
     // whatever was typed.
   }

@@ -156,7 +156,7 @@ export function CalendarJump({
         }}
       >
         <span className="kin-jump-label" style={{ minWidth: 0 }}>{label}</span>
-        <Icon name="chevronLeft" size={15} style={{ transform: "rotate(-90deg)", flex: "none", color: "var(--color-accent)" }} />
+        <Icon name="chevronLeft" size={15} style={{ transform: "rotate(-90deg)", flex: "none", color: "var(--color-accent-700)" }} />
       </button>
 
       {open && (
@@ -224,7 +224,7 @@ export function CalendarJump({
                 <Icon
                   name="chevronLeft"
                   size={14}
-                  style={{ transform: picking === "days" ? "rotate(-90deg)" : "rotate(90deg)", color: "var(--color-accent)" }}
+                  style={{ transform: picking === "days" ? "rotate(-90deg)" : "rotate(90deg)", color: "var(--color-accent-700)" }}
                 />
               </button>
               <button

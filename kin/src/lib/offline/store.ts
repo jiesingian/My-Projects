@@ -1,7 +1,7 @@
 "use client";
 
 import type { OfflineSnapshot, QueuedOp } from "@/lib/offline/types";
-import { MAX_QUEUE } from "@/lib/offline/types";
+import { MAX_QUEUE, MAX_QUEUED_FILE_BYTES } from "@/lib/offline/types";
 
 /** The phone's copy of Kin for offline use, in IndexedDB.
  *
@@ -131,11 +131,21 @@ export async function enqueue(op: QueuedOp): Promise<boolean> {
     }
   }
   if (waiting.length >= MAX_QUEUE) return false;
+  const bytes = (q: QueuedOp) => (q.kind === "chat.send" ? (q.files ?? []).reduce((n, f) => n + f.size, 0) : 0);
+  if (bytes(op) > 0 && waiting.reduce((n, w) => n + bytes(w), 0) + bytes(op) > MAX_QUEUED_FILE_BYTES) return false;
   await run([QUEUE], "readwrite", (tx) => {
     tx.objectStore(QUEUE).add(op);
   });
   announce();
   return true;
+}
+
+/** Rewrites one waiting change in place, keeping its place in the queue. */
+export async function updateQueued(q: Queued): Promise<void> {
+  await run([QUEUE], "readwrite", (tx) => {
+    tx.objectStore(QUEUE).put(q);
+  });
+  announce();
 }
 
 export async function removeQueued(seqs: number[]): Promise<void> {
