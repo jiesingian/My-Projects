@@ -244,9 +244,11 @@ export default async function TodayPage() {
       <nav aria-label="Quick add" className="kin-quick">
         {/* In the order of the tabs, as At a glance is: Journal, Planner,
             Household, Wealth. */}
-        <Link href="/journal/new" className="kin-quick-btn">
-          <span className="kin-quick-ico" data-tint="occasion"><Icon name="images" size={18} /></span>
-          Journal
+        {/* A milestone rather than a plain entry (Janine, 12 October): the
+            moment worth a star is the one worth a shortcut. */}
+        <Link href="/journal/milestones/new" className="kin-quick-btn">
+          <span className="kin-quick-ico" data-tint="occasion"><Icon name="star" size={18} /></span>
+          Milestone
         </Link>
         <Link href="/planner/add?type=event" className="kin-quick-btn">
           <span className="kin-quick-ico" data-tint="schedule"><Icon name="calendarDays" size={18} /></span>
