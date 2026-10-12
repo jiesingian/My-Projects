@@ -1,3 +1,5 @@
+import { addMonths } from "@/lib/subscriptions";
+
 /** Which slice of the household's money is on screen: everything the
  * viewer is allowed to see, or one person's own accounts. */
 export type WealthScope = "all" | (string & {});
@@ -749,4 +751,26 @@ export function remittancesByMonth<T extends { sent_on: string; php_received: nu
     months.set(key, [...(months.get(key) ?? []), r]);
   }
   return [...months.entries()].map(([key, list]) => ({ key, rows: list, total: list.reduce((sum, r) => sum + Number(r.php_received), 0) }));
+}
+
+/** A loan's payment schedule as entered: monthly from `nextPaymentDate`,
+ * `paymentsRemaining` of them. Null when either is missing. */
+export type LoanSchedule = { next_payment_date: string | null; payments_remaining: number | null };
+
+/** Every payment date in the schedule, first to last (YYYY-MM-DD). A 31st
+ * stays the 31st wherever the month has one, and the month's last day where
+ * it does not. */
+export function loanPaymentDates(loan: LoanSchedule): string[] {
+  if (!loan.next_payment_date || !loan.payments_remaining || loan.payments_remaining < 1) return [];
+  const first = loan.next_payment_date.slice(0, 10);
+  return Array.from({ length: Math.min(loan.payments_remaining, 1200) }, (_, i) => addMonths(first, i));
+}
+
+/** Where a loan stands today: the next payment still ahead (today counts as
+ * ahead -- it is still to pay), how many are left including it, and the last
+ * one. Counted from the dates, so nobody ticks the number down each month. */
+export function loanStatus(loan: LoanSchedule, today: string): { next: string | null; left: number; last: string | null } {
+  const dates = loanPaymentDates(loan);
+  const ahead = dates.filter((d) => d >= today);
+  return { next: ahead[0] ?? null, left: ahead.length, last: dates[dates.length - 1] ?? null };
 }

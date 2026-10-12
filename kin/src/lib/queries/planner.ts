@@ -6,7 +6,8 @@ import { getHolidaysBetween, holidayCountry, mergeHolidays } from "@/lib/holiday
 import { getCurrentMember } from "@/lib/session";
 import { getHouseholdSpecialDays } from "@/lib/queries/special-days";
 import { expandRoutine, assigneeFor, type RoutineRule } from "@/lib/routines";
-import { paidFromVisibleFilter } from "@/lib/wealth";
+import { loanPaymentDates, paidFromVisibleFilter } from "@/lib/wealth";
+import { formatCurrency } from "@/lib/format";
 
 export type PlannerCalendarItem = {
   id: string;
@@ -42,7 +43,7 @@ async function fetchCalendarItems(familyId: string, rangeStart: Date, rangeEnd: 
 
   // No trips fetch: travel is a kind of event now, so it arrives with the
   // events and needs no second query or second loop.
-  const [{ data: activities }, { data: events }, { data: allBills }, { data: meals }, { data: goals }, { data: routines }, holidays, { data: seenAccounts }] = await Promise.all([
+  const [{ data: activities }, { data: events }, { data: allBills }, { data: meals }, { data: goals }, { data: routines }, holidays, { data: seenAccounts }, { data: loans }, currency] = await Promise.all([
     supabase
       .from("activities")
       .select("*, activity_members(members(id, full_name))")
@@ -83,6 +84,15 @@ async function fetchCalendarItems(familyId: string, rangeStart: Date, rangeEnd: 
     // The accounts the viewer can see (RLS, archived ones too), for the bills
     // below.
     supabase.from("accounts").select("id").eq("family_id", familyId),
+    // Loans with a payment schedule: a rule like a routine's, expanded below
+    // into the payments that land in this range.
+    supabase
+      .from("liabilities")
+      .select("id, name, monthly_payment, next_payment_date, payments_remaining")
+      .eq("family_id", familyId)
+      .not("next_payment_date", "is", null)
+      .lt("next_payment_date", endDate),
+    getCurrentMember().then((me) => (me?.family_id === familyId ? me.families.currency : null)),
   ]);
 
   // A bill paid from an account the viewer cannot see -- someone's private
@@ -167,6 +177,29 @@ async function fetchCalendarItems(familyId: string, rangeStart: Date, rangeEnd: 
       // Household's default tab instead of the bill.
       href: `/wealth?seg=cashflow`,
     });
+  }
+
+  // Each loan payment on its own day, with what it comes to -- filed with
+  // the bills (same colour, same legend switch, hidden from a child's digest
+  // the same way) because that is what it is. Not a bills row: there is
+  // nothing to settle here, so it goes to A&L, where the loan is.
+  for (const l of loans ?? []) {
+    const amount = l.monthly_payment != null && Number(l.monthly_payment) > 0 ? ` · ${formatCurrency(Number(l.monthly_payment), currency ?? "PHP")}` : "";
+    for (const day of loanPaymentDates(l)) {
+      if (day < startDate || day >= endDate) continue;
+      items.push({
+        id: `liability-${l.id}-${day}`,
+        table: "bills",
+        date: new Date(`${day}T00:00:00`),
+        allDay: true,
+        title: `${l.name} payment${amount}`,
+        location: null,
+        who: "HOUSE",
+        memberIds: [],
+        appliesToAll: true,
+        href: `/wealth?seg=assets`,
+      });
+    }
   }
 
   for (const m of meals ?? []) {

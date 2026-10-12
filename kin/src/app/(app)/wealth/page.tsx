@@ -13,6 +13,7 @@ import {
   GoalContributeControl,
   PendingEntryActions,
   ValueUpdateControl,
+  LoanScheduleControl,
   RemoveButton,
   AccountPrivacyToggle,
   MoveMoneyButton,
@@ -45,7 +46,10 @@ import {
   TRANSFER_CATEGORY,
   isHouseholdScope,
   inScope,
+  loanStatus,
 } from "@/lib/wealth";
+import { householdZone } from "@/lib/household-zone";
+import { familyDay } from "@/lib/time";
 import { familyDate, householdDateFormat } from "@/lib/format-family";
 import { CollapsibleGroup } from "@/components/collapsible-group";
 import { ScrollIntoView } from "@/components/scroll-into-view";
@@ -824,7 +828,7 @@ async function ScopePane({ scope, familyId, memberId, currency, range, newAccoun
 /* -------------------------------------------------------------------- A&L */
 
 async function AssetsPane({ familyId, memberId, currency, scope }: { familyId: string; memberId: string; currency: string; scope: WealthScope }) {
-  const fmtDate = await familyDate();
+  const [fmtDate, today] = await Promise.all([familyDate(), householdZone().then((tz) => familyDay(new Date(), tz))]);
   const [{ assets, liabilities, goals, cashAccounts, assetTotal, liabilityTotal, goalTotal, cashTotal, netWorth }, who, allAccounts] = await Promise.all([
     getNetWorth(familyId, scope),
     whoPicker(familyId, memberId, scope, (w) => `/wealth?seg=assets&who=${w}`),
@@ -986,12 +990,20 @@ async function AssetsPane({ familyId, memberId, currency, scope }: { familyId: s
                 {l.monthly_payment ? ` · ${formatCurrency(Number(l.monthly_payment), currency)}/mo` : ""}
                 {l.updated_at ? ` · updated ${timeSinceLabel(l.updated_at)}` : ""}
               </span>
+              <LoanScheduleLine loan={l} today={today} currency={currency} fmtDate={fmtDate} />
             </span>
             <span style={{ fontFamily: "var(--font-numeric)", fontSize: "0.8125rem", flex: "none", color: "var(--color-accent-700)" }}>
               −{formatCurrency(Number(l.balance), currency)}
             </span>
           </div>
           <div style={{ display: "flex", gap: "0.5rem", justifyContent: "flex-end", marginTop: "0.4375rem" }}>
+            <LoanScheduleControl
+              id={l.id}
+              monthlyPayment={l.monthly_payment == null ? null : Number(l.monthly_payment)}
+              nextPaymentDate={loanStatus(l, today).next}
+              paymentsLeft={loanStatus(l, today).next ? loanStatus(l, today).left : null}
+              interestRate={l.interest_rate == null ? null : Number(l.interest_rate)}
+            />
             <ValueUpdateControl id={l.id} current={Number(l.balance)} kind="liability" />
             <RemoveButton id={l.id} kind="liability" label={`Remove "${l.name}"`} />
           </div>
@@ -1007,6 +1019,42 @@ async function AssetsPane({ familyId, memberId, currency, scope }: { familyId: s
         Update a value whenever it changes.
       </div>
     </>
+  );
+}
+
+/** Where a loan's payments stand: the next one and what it comes to, how
+ * many are left and when the last falls, and the interest rate. Nothing when
+ * no schedule was given; "Paid off" once the last date has passed. */
+function LoanScheduleLine({
+  loan,
+  today,
+  currency,
+  fmtDate,
+}: {
+  loan: { next_payment_date: string | null; payments_remaining: number | null; monthly_payment: number | null; interest_rate: number | null };
+  today: string;
+  currency: string;
+  fmtDate: (d: string) => string;
+}) {
+  const status = loanStatus(loan, today);
+  const rate = loan.interest_rate == null ? null : `${Number(loan.interest_rate)}% a year`;
+  if (!loan.next_payment_date && !rate) return null;
+  const parts: string[] = [];
+  if (status.next) {
+    const amount = loan.monthly_payment ? `${formatCurrency(Number(loan.monthly_payment), currency)} ` : "";
+    parts.push(`Next ${amount}due ${fmtDate(status.next)}`);
+    parts.push(`${status.left} payment${status.left === 1 ? "" : "s"} left${status.last && status.left > 1 ? `, last ${fmtDate(status.last)}` : ""}`);
+  } else if (loan.next_payment_date && loan.payments_remaining) {
+    parts.push("Paid off — no payments left");
+  } else if (loan.next_payment_date) {
+    parts.push(`Next due ${fmtDate(loan.next_payment_date)}`);
+  }
+  if (rate) parts.push(rate);
+  return (
+    <span style={{ display: "flex", alignItems: "center", gap: "0.3125rem", fontSize: "0.78125rem", color: "var(--color-neutral-700)", marginTop: "0.1875rem" }}>
+      <Icon name="calendarDays" size={12} style={{ flex: "none" }} />
+      <span>{parts.join(" · ")}</span>
+    </span>
   );
 }
 
