@@ -38,7 +38,7 @@ import { FamilyTreeEditor } from "@/components/family-tree-editor";
 import { AddMeToTreeButton } from "@/components/add-me-to-tree-button";
 import { formatAge, initials } from "@/lib/format";
 import { isGone } from "@/lib/member-status";
-import { getGuardianWaitingCount, getIncomingConnectionCount } from "@/lib/queries/connections";
+import { getConnections, getGuardianWaitingCount, getIncomingConnectionCount } from "@/lib/queries/connections";
 
 const SEGMENTS = ["profile", "health", "documents", "tree", "quicklinks"] as const;
 type Seg = (typeof SEGMENTS)[number];
@@ -366,7 +366,7 @@ async function VaultPane({ familyId, who, tab, meId, myRole }: { familyId: strin
  * only thing that differs between members now is that each sees themselves
  * highlighted. */
 async function TreePane({ familyId, householdName, myId, inviteCode, open }: { familyId: string; householdName: string; myId: string; inviteCode: string | null; open: { matchId: string; personId: string } | null }) {
-  const [tree, allMembers, matches, allOffers, linkedFamilies, suggestions, blocks] = await Promise.all([
+  const [tree, allMembers, matches, allOffers, linkedFamilies, suggestions, blocks, allConnections] = await Promise.all([
     getFamilyTree(familyId, myId),
     getMembers(familyId),
     getTreeMatches(familyId),
@@ -374,7 +374,11 @@ async function TreePane({ familyId, householdName, myId, inviteCode, open }: { f
     getLinkedFamilies(familyId),
     getTreeSuggestions(),
     getTreeOfferBlocks(),
+    getConnections(),
   ]);
+  const connections = allConnections
+    .filter((c) => c.status === "accepted" && c.fullName)
+    .map((c) => ({ id: c.id, fullName: c.fullName!, avatarUrl: c.avatarUrl, householdName: c.householdName }));
   // An offer a suggestion already explains ("They say it's the same person")
   // is answered there, not twice.
   const suggested = new Set(suggestions.flatMap((s) => (s.theirOfferId ? [s.theirOfferId] : [])));
@@ -397,10 +401,10 @@ async function TreePane({ familyId, householdName, myId, inviteCode, open }: { f
             line="Add yourself, then your father, your mother, and anyone else you know -- the tree grows from there, and everybody in the house sees the same one."
           />
           <AddMeToTreeButton memberId={myId} />
-          {tree.people.length > 0 && <FamilyTreeChart people={tree.people} meTreeId={null} householdName={householdName} matches={matches} linkedFamilies={linkedFamilies} inviteCode={inviteCode} unaddedMembers={unaddedMembers} open={open} />}
+          {tree.people.length > 0 && <FamilyTreeChart people={tree.people} meTreeId={null} householdName={householdName} matches={matches} linkedFamilies={linkedFamilies} inviteCode={inviteCode} unaddedMembers={unaddedMembers} open={open} connections={connections} />}
         </>
       ) : (
-        <FamilyTreeChart people={tree.people} meTreeId={meInTree.id} householdName={householdName} matches={matches} linkedFamilies={linkedFamilies} inviteCode={inviteCode} unaddedMembers={unaddedMembers} open={open} />
+        <FamilyTreeChart people={tree.people} meTreeId={meInTree.id} householdName={householdName} matches={matches} linkedFamilies={linkedFamilies} inviteCode={inviteCode} unaddedMembers={unaddedMembers} open={open} connections={connections} />
       )}
 
       <details className="kin-fold" style={{ marginTop: "1.25rem" }}>
