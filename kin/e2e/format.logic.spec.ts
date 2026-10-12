@@ -72,3 +72,13 @@ test("spellDate and formatDate agree on which day it is", () => {
     expect(mm, day).toBe(day.slice(5, 7));
   }
 });
+
+test("every currency Settings offers has a sign or reads as its code (any family, anywhere)", async () => {
+  const { formatCurrency, currencySymbol } = await import("@/lib/format");
+  const { CURRENCIES } = await import("@/lib/household-prefs");
+  expect(formatCurrency(1234.5, "PHP")).toBe("₱1,234.5");
+  expect(formatCurrency(20, "GBP")).toBe("£20");
+  expect(formatCurrency(20, "AED")).toBe("AED 20");
+  for (const c of CURRENCIES) expect(currencySymbol(c.code).length).toBeGreaterThan(0);
+  expect(currencySymbol("SGD")).toBe("S$");
+});

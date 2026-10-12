@@ -1,5 +1,6 @@
 "use client";
 
+import { useCurrencySymbol } from "@/components/household-currency";
 import { useActionState, useState } from "react";
 import { addAssetAction, addLiabilityAction } from "@/lib/actions/wealth";
 import { ASSET_KINDS, ASSET_KIND_LABELS, LIABILITY_KINDS, LIABILITY_KIND_LABELS } from "@/lib/wealth";
@@ -28,6 +29,7 @@ export function AddHoldingForm({ defaultKind }: { defaultKind: string }) {
 }
 
 function AssetForm() {
+  const sym = useCurrencySymbol();
   const [state, formAction] = useActionState(addAssetAction, initialState);
   const [isJoint, setIsJoint] = useState(true);
 
@@ -48,7 +50,7 @@ function AssetForm() {
             ))}
           </select>
         </Field>
-        <Field label="Value (₱)" style={{ flex: 1 }}>
+        <Field label={`Value (${sym})`} style={{ flex: 1 }}>
           <input className="input" type="number" step="0.01" min="0" name="value" required style={{ minHeight: "2.75rem" }} />
         </Field>
       </div>
@@ -65,6 +67,7 @@ function AssetForm() {
 }
 
 function LiabilityForm() {
+  const sym = useCurrencySymbol();
   const [state, formAction] = useActionState(addLiabilityAction, initialState);
   const [isJoint, setIsJoint] = useState(true);
 
@@ -85,7 +88,7 @@ function LiabilityForm() {
             ))}
           </select>
         </Field>
-        <Field label="Balance (₱)" style={{ flex: 1 }}>
+        <Field label={`Balance (${sym})`} style={{ flex: 1 }}>
           <input className="input" type="number" step="0.01" min="0" name="balance" required style={{ minHeight: "2.75rem" }} />
         </Field>
       </div>
@@ -93,7 +96,7 @@ function LiabilityForm() {
         <Field label="Lender" style={{ flex: 1 }}>
           <input className="input" name="lender" placeholder="BPI" style={{ minHeight: "2.75rem" }} />
         </Field>
-        <Field label="Per month (₱)" style={{ flex: 1 }}>
+        <Field label={`Per month (${sym})`} style={{ flex: 1 }}>
           <input className="input" type="number" step="0.01" min="0" name="monthly_payment" style={{ minHeight: "2.75rem" }} />
         </Field>
       </div>

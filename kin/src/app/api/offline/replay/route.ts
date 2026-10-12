@@ -34,11 +34,10 @@ import { MAX_QUEUE, type QueuedOp, type ReplayResult } from "@/lib/offline/types
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 export async function POST(request: Request) {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  const me = user ? await getCurrentMember() : null;
+  // One auth round trip: getCurrentMember asks for the user itself, and its
+  // member row carries the auth id.
+  const me = await getCurrentMember();
+  const user = me?.auth_user_id ? { id: me.auth_user_id } : null;
   if (!user || !me) return NextResponse.json({ error: "signed-out" }, { status: 401 });
 
   const body = (await request.json().catch(() => null)) as { userId?: string; ops?: QueuedOp[] } | null;

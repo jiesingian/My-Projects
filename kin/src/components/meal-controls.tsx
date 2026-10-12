@@ -46,7 +46,7 @@ export function AddMealControl({ date, slot }: { date: string; slot: MealSlot })
         type="button"
         onClick={() => setOpen(true)}
         className="btn btn-ghost"
-        style={{ minHeight: "2.125rem", fontSize: "0.8125rem", padding: "0 0.5rem", gap: "0.25rem", color: "var(--color-accent)" }}
+        style={{ minHeight: "2.125rem", fontSize: "0.8125rem", padding: "0 0.5rem", gap: "0.25rem", color: "var(--color-accent-700)" }}
       >
         <Icon name="plus" size={14} />
         Add {MEAL_SLOT_LABEL[slot].toLowerCase()}
@@ -99,7 +99,7 @@ export function AddMealControl({ date, slot }: { date: string; slot: MealSlot })
                 {r.ingredients.length} ingredients · {r.minutes} min · serves {r.serves}
               </span>
             </span>
-            <Icon name="plus" size={15} style={{ color: "var(--color-accent)", flex: "none" }} />
+            <Icon name="plus" size={15} style={{ color: "var(--color-accent-700)", flex: "none" }} />
           </button>
         ))}
         {suggestions.length === 0 && (

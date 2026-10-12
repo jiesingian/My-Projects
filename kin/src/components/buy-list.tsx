@@ -454,7 +454,7 @@ export function BuyList({
         <form action={addAction} style={{ marginTop: "0.625rem", padding: "0.75rem", borderRadius: 14, background: "color-mix(in srgb, var(--color-text) 4%, transparent)" }}>
           <input type="hidden" name="source" value="house" />
           <div style={{ display: "flex", gap: "0.5rem", marginBottom: "0.5rem" }}>
-            <input
+            <input aria-label="Item to buy"
               className="input"
               name="name"
               placeholder="Add an item"
@@ -465,8 +465,8 @@ export function BuyList({
               maxLength={150}
               style={{ minHeight: "2.625rem", flex: 1 }}
             />
-            <input className="input" name="quantity" type="number" step="0.01" min="0" placeholder="Qty" style={{ minHeight: "2.625rem", width: 68 }} />
-            <select className="input" name="unit" defaultValue="pc" style={{ minHeight: "2.625rem", width: 82 }}>
+            <input aria-label="Quantity" className="input" name="quantity" type="number" step="0.01" min="0" placeholder="Qty" style={{ minHeight: "2.625rem", width: 68 }} />
+            <select aria-label="Unit" className="input" name="unit" defaultValue="pc" style={{ minHeight: "2.625rem", width: 82 }}>
               {UNITS.map((u) => (
                 <option key={u} value={u}>
                   {u}
@@ -476,7 +476,7 @@ export function BuyList({
           </div>
           <div style={{ display: "flex", gap: "0.5rem" }}>
             {/* Pre-filled from the name as it's typed, so the common case is one tap. */}
-            <select className="input" name="section" value={section} onChange={(e) => setSection(e.target.value)} style={{ minHeight: "2.625rem", flex: 1 }}>
+            <select aria-label="Market section" className="input" name="section" value={section} onChange={(e) => setSection(e.target.value)} style={{ minHeight: "2.625rem", flex: 1 }}>
               {MARKET_SECTIONS.map((s) => (
                 <option key={s} value={s}>
                   {s}
@@ -535,8 +535,8 @@ function EditItemRow({ item, onClose }: { item: Tables<"buy_items">; onClose: ()
   return (
     <div style={{ padding: "0.625rem 0 0.75rem", borderBottom: "1px solid color-mix(in srgb, var(--color-text) 10%, transparent)" }}>
       <div style={{ display: "flex", gap: "0.5rem", marginBottom: "0.5rem" }}>
-        <input className="input" value={name} onChange={(e) => setName(e.target.value)} maxLength={150} style={{ minHeight: "2.5rem", flex: 1 }} />
-        <input
+        <input aria-label="Item name" className="input" value={name} onChange={(e) => setName(e.target.value)} maxLength={150} style={{ minHeight: "2.5rem", flex: 1 }} />
+        <input aria-label="Quantity"
           className="input"
           type="number"
           step="0.01"
@@ -546,7 +546,7 @@ function EditItemRow({ item, onClose }: { item: Tables<"buy_items">; onClose: ()
           placeholder="Qty"
           style={{ minHeight: "2.5rem", width: 68 }}
         />
-        <select className="input" value={unit} onChange={(e) => setUnit(e.target.value)} style={{ minHeight: "2.5rem", width: 82 }}>
+        <select aria-label="Unit" className="input" value={unit} onChange={(e) => setUnit(e.target.value)} style={{ minHeight: "2.5rem", width: 82 }}>
           {UNITS.map((u) => (
             <option key={u} value={u}>
               {u}
@@ -555,7 +555,7 @@ function EditItemRow({ item, onClose }: { item: Tables<"buy_items">; onClose: ()
         </select>
       </div>
       <div style={{ display: "flex", gap: "0.5rem" }}>
-        <select className="input" value={section} onChange={(e) => setSection(e.target.value)} style={{ minHeight: "2.5rem", flex: 1 }}>
+        <select aria-label="Market section" className="input" value={section} onChange={(e) => setSection(e.target.value)} style={{ minHeight: "2.5rem", flex: 1 }}>
           {MARKET_SECTIONS.map((s) => (
             <option key={s} value={s}>
               {s}

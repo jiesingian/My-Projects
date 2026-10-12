@@ -17,7 +17,7 @@
 import { useId, useState, useTransition } from "react";
 import { Pie } from "@visx/shape";
 import { scaleBand, scaleLinear } from "@visx/scale";
-import { formatCurrency } from "@/lib/format";
+import { formatCurrency, currencySymbol } from "@/lib/format";
 import { expenseCategoryColor } from "@/lib/wealth";
 import { setMemberBudgetAction } from "@/lib/actions/wealth";
 
@@ -29,7 +29,7 @@ const muted: React.CSSProperties = { fontSize: "0.78125rem", color: "var(--color
 const tabular: React.CSSProperties = { fontFamily: "var(--font-numeric)", fontVariantNumeric: "tabular-nums" };
 
 function shortMoney(n: number, currency: string) {
-  const sym = currency === "PHP" ? "₱" : "";
+  const sym = currencySymbol(currency);
   if (n >= 1_000_000) return `${sym}${(n / 1_000_000).toFixed(n % 1_000_000 === 0 ? 0 : 1)}M`;
   if (n >= 1000) return `${sym}${Math.round(n / 1000)}k`;
   return `${sym}${Math.round(n)}`;
