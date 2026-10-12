@@ -100,7 +100,17 @@ async function whoPicker(familyId: string, memberId: string, scope: WealthScope,
     { label: "Family", href: hrefFor(WEALTH_FAMILY), active: scope === WEALTH_FAMILY },
     ...active.map((m, i) => ({ label: labels[i], href: hrefFor(m.id), active: scope === m.id })),
   ];
-  return { active, labels, whoLabel, options };
+  // Whose a thing is, for lists that mix people (All, Family): two
+  // "BDO - Savings" read as one account without it. Null when the row has
+  // no owner to name, or one who has left.
+  const ownerOf = (ownerId: string | null, isJoint: boolean): string | null => {
+    if (isJoint) return "Joint";
+    if (!ownerId) return null;
+    if (ownerId === memberId) return "Yours";
+    const i = active.findIndex((m) => m.id === ownerId);
+    return i < 0 ? null : `${labels[i]}\u2019s`;
+  };
+  return { active, labels, whoLabel, options, ownerOf };
 }
 
 /* --------------------------------------------------------------- shared bits */
@@ -260,7 +270,7 @@ function SectionLabel({ children }: { children: React.ReactNode }) {
   );
 }
 
-function EntryRow({ entry, currency, dateFormat, showAccount }: { entry: LedgerEntry; currency: string; dateFormat: string; showAccount?: boolean }) {
+function EntryRow({ entry, currency, dateFormat, showAccount, owner }: { entry: LedgerEntry; currency: string; dateFormat: string; showAccount?: boolean; owner?: string | null }) {
   const isIn = entry.direction === "in";
   return (
     <div style={{ display: "flex", gap: "0.625rem", alignItems: "baseline", padding: "0.625rem 0", borderBottom: "1px solid color-mix(in srgb, var(--color-text) 10%, transparent)" }}>
@@ -269,7 +279,7 @@ function EntryRow({ entry, currency, dateFormat, showAccount }: { entry: LedgerE
         <span style={{ fontSize: "0.78125rem", color: "var(--color-neutral-600)" }}>
           {formatDate(entry.occurred_at, dateFormat)}
           {entry.category ? ` · ${entry.category}` : ""}
-          {showAccount && entry.accountName ? ` · ${entry.accountName}` : ""}
+          {showAccount && entry.accountName ? ` · ${entry.accountName}${owner ? ` (${owner})` : ""}` : ""}
         </span>
       </span>
       <span style={{ fontFamily: "var(--font-numeric)", fontSize: "0.8125rem", flex: "none", color: isIn ? "var(--color-accent-700)" : "inherit" }}>
@@ -475,7 +485,7 @@ async function CashFlowPane({ familyId, memberId, currency, range, scope, grownU
         <>
           <div style={{ fontSize: "0.75rem", color: "var(--color-neutral-600)", margin: "12px 0 2px" }}>OTHER RECENT ACTIVITY</div>
           {cf.recentIncome.map((e) => (
-            <EntryRow key={e.id} entry={e} currency={currency} dateFormat={dateFormat} showAccount />
+            <EntryRow key={e.id} entry={e} currency={currency} dateFormat={dateFormat} showAccount owner={isJoint ? who.ownerOf(e.accountOwnerId, e.accountIsJoint) : null} />
           ))}
         </>
       )}
@@ -606,7 +616,7 @@ async function CashFlowPane({ familyId, memberId, currency, range, scope, grownU
         <>
           <div style={{ fontSize: "0.75rem", color: "var(--color-neutral-600)", margin: "16px 0 2px" }}>OTHER RECENT ACTIVITY</div>
           {cf.recentExpense.map((e) => (
-            <EntryRow key={e.id} entry={e} currency={currency} dateFormat={dateFormat} showAccount />
+            <EntryRow key={e.id} entry={e} currency={currency} dateFormat={dateFormat} showAccount owner={isJoint ? who.ownerOf(e.accountOwnerId, e.accountIsJoint) : null} />
           ))}
         </>
       )}
@@ -637,12 +647,6 @@ async function ScopePane({ scope, familyId, memberId, currency, range, newAccoun
   const periodNoun = range === "day" ? "day" : range === "week" ? "week" : range === "year" ? "year" : "month";
   const momChange = periodOverPeriodChange(cf.history);
   const cashTrend = cashBalanceTrend(cf.history, pane.total);
-  const ownerLabel = (ownerId: string | null) => {
-    if (!ownerId) return null;
-    if (ownerId === memberId) return "Yours";
-    const i = who.active.findIndex((m) => m.id === ownerId);
-    return i < 0 ? null : `${who.labels[i]}\u2019s`;
-  };
   const accountGroups = ACCOUNT_TYPES.map((t) => ({
     type: t,
     accounts: pane.accounts.filter((a) => (a.account_type as AccountType) === t),
@@ -733,8 +737,8 @@ async function ScopePane({ scope, familyId, memberId, currency, range, newAccoun
                       see it and -- if it is yours -- a tap to change that. Two
                       "BDO - Savings" rows read as one account without the name. */}
                   <span style={{ display: "flex", alignItems: "center", gap: "0.375rem", marginTop: "0.3125rem" }}>
-                    {isJoint && !a.is_joint && ownerLabel(a.owner_member_id) && (
-                      <span style={{ fontSize: "0.6875rem", fontWeight: 600, color: "var(--color-neutral-700)" }}>{ownerLabel(a.owner_member_id)}</span>
+                    {isJoint && !a.is_joint && who.ownerOf(a.owner_member_id, false) && (
+                      <span style={{ fontSize: "0.6875rem", fontWeight: 600, color: "var(--color-neutral-700)" }}>{who.ownerOf(a.owner_member_id, false)}</span>
                     )}
                     <AccountPrivacyToggle
                       accountId={a.id}
@@ -791,7 +795,7 @@ async function ScopePane({ scope, familyId, memberId, currency, range, newAccoun
         <>
           <SectionLabel>RECENT ACTIVITY</SectionLabel>
           {pane.recent.map((e) => (
-            <EntryRow key={e.id} entry={e} currency={currency} dateFormat={dateFormat} showAccount />
+            <EntryRow key={e.id} entry={e} currency={currency} dateFormat={dateFormat} showAccount owner={isJoint ? who.ownerOf(e.accountOwnerId, e.accountIsJoint) : null} />
           ))}
         </>
       )}
@@ -820,6 +824,7 @@ async function AssetsPane({ familyId, memberId, currency, scope }: { familyId: s
   // whose net worth they're looking at.
   const pickableCash = toPickable(allAccounts, memberId);
   const mine = scope === memberId;
+  const ownerOf = (ownerId: string | null, isJoint: boolean | null) => (isHouseholdScope(scope) ? who.ownerOf(ownerId, !!isJoint) : null);
   const netWorthHistory = await recordAndGetNetWorthHistory(familyId, memberId, scope, {
     cash: cashTotal,
     goals: goalTotal,
@@ -862,6 +867,7 @@ async function AssetsPane({ familyId, memberId, currency, scope }: { familyId: s
             <span style={{ fontSize: "0.78125rem", color: "var(--color-neutral-600)" }}>
               {ACCOUNT_TYPE_LABELS[a.account_type as AccountType] ?? a.account_type}
               {a.institution ? ` · ${a.institution}` : ""}
+              {ownerOf(a.owner_member_id, a.is_joint) ? ` · ${ownerOf(a.owner_member_id, a.is_joint)}` : ""}
             </span>
           </span>
           <span style={{ fontFamily: "var(--font-numeric)", fontSize: "0.8125rem", flex: "none" }}>{formatCurrency(a.balance, currency)}</span>
@@ -933,6 +939,7 @@ async function AssetsPane({ familyId, memberId, currency, scope }: { familyId: s
               <span style={{ font: "600 1rem/1.1 var(--font-heading)", display: "block" }}>{a.name}</span>
               <span style={{ fontSize: "0.8125rem", color: "var(--color-neutral-600)" }}>
                 {ASSET_KIND_LABELS[a.kind as AssetKind] ?? a.kind}
+                {ownerOf(a.owner_member_id, a.is_joint) ? ` · ${ownerOf(a.owner_member_id, a.is_joint)}` : ""}
                 {a.acquired_on ? ` · since ${fmtDate(a.acquired_on)}` : ""}
                 {a.note ? ` · ${a.note}` : ""}
                 {a.updated_at ? ` · updated ${timeSinceLabel(a.updated_at)}` : ""}
@@ -962,6 +969,7 @@ async function AssetsPane({ familyId, memberId, currency, scope }: { familyId: s
               <span style={{ font: "600 1rem/1.1 var(--font-heading)", display: "block" }}>{l.name}</span>
               <span style={{ fontSize: "0.8125rem", color: "var(--color-neutral-600)" }}>
                 {LIABILITY_KIND_LABELS[l.kind as LiabilityKind] ?? l.kind}
+                {ownerOf(l.owner_member_id, l.is_joint) ? ` · ${ownerOf(l.owner_member_id, l.is_joint)}` : ""}
                 {l.lender ? ` · ${l.lender}` : ""}
                 {l.monthly_payment ? ` · ${formatCurrency(Number(l.monthly_payment), currency)}/mo` : ""}
                 {l.updated_at ? ` · updated ${timeSinceLabel(l.updated_at)}` : ""}
