@@ -25,7 +25,7 @@ import { useId } from "react";
  * Today disc sets it to a deep accent, so its white tiles shade pink rather
  * than grey. */
 
-export type TabIconName = "users" | "message" | "images" | "layoutGrid" | "calendarDays" | "house" | "wallet";
+export type TabIconName = "users" | "family" | "message" | "images" | "layoutGrid" | "calendarDays" | "house" | "wallet";
 
 /** body: a satin solid. light: a raised cream detail. tone: a band of deeper
  * colour laid on the body below it (the calendar's header). */
@@ -40,8 +40,14 @@ const rect = (x: number, y: number, w: number, h: number, r: number) =>
 const ICONS: Record<TabIconName, Part[]> = {
   // Two people, the one behind a little smaller and to the right.
   users: [
-    // Two parents and a child under the Kin roof (2 October, Janine's pick
-    // from the icon options): the household, not just two people.
+    { kind: "body", d: circle(22, 8.9, 4.1) },
+    { kind: "body", d: "M15.2 23.9c0-4.9 3.1-8.2 6.8-8.2s6.9 3.3 6.9 8.2a1.8 1.8 0 0 1-1.8 1.8h-10.1a1.8 1.8 0 0 1-1.8-1.8z" },
+    { kind: "body", d: circle(11.4, 10, 4.9) },
+    { kind: "body", d: "M2.8 25.4c0-5.6 3.9-9.3 8.6-9.3s8.6 3.7 8.6 9.3a1.9 1.9 0 0 1-1.9 1.9H4.7a1.9 1.9 0 0 1-1.9-1.9z" },
+  ],
+  // Two parents and a child under the Kin roof (2 October, Janine's pick
+  // from the icon options). Today's since 12 October: the household's day.
+  family: [
     { kind: "body", d: "M2.8 13.6 15 4.1a1.6 1.6 0 0 1 2 0l12.2 9.5a1.4 1.4 0 0 1-1.7 2.2L16 7.2 4.5 15.8a1.4 1.4 0 0 1-1.7-2.2z" },
     { kind: "body", d: circle(10.5, 16, 2.9) },
     { kind: "body", d: "M5.2 28c0-3.8 2.4-6.6 5.3-6.6s5.3 2.8 5.3 6.6z" },

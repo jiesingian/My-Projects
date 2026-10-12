@@ -11,7 +11,7 @@ const TABS: { href: string; label: string; icon: TabIconName; home?: boolean }[]
   { href: "/family", label: "Family", icon: "users" },
   { href: "/chat", label: "Chat", icon: "message" },
   { href: "/journal", label: "Journal", icon: "images" },
-  { href: "/today", label: "Today", icon: "layoutGrid", home: true },
+  { href: "/today", label: "Today", icon: "family", home: true },
   { href: "/planner", label: "Planner", icon: "calendarDays" },
   { href: "/household", label: "Household", icon: "house" },
   { href: "/wealth", label: "Wealth", icon: "wallet" },
@@ -21,7 +21,7 @@ const TABS: { href: string; label: string; icon: TabIconName; home?: boolean }[]
  * journal, and the family tree and profiles. Money, the household's running
  * and the planner's grown-up side are not on it. */
 const KID_TABS: typeof TABS = [
-  { href: "/today", label: "Today", icon: "layoutGrid", home: true },
+  { href: "/today", label: "Today", icon: "family", home: true },
   { href: "/chat", label: "Chat", icon: "message" },
   { href: "/journal", label: "Journal", icon: "images" },
   { href: "/family", label: "Family", icon: "users" },

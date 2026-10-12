@@ -1,6 +1,6 @@
 "use client";
 
-import { useId, useState } from "react";
+import { useId, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   addTreeMemberAction,
@@ -13,6 +13,7 @@ import {
 } from "@/lib/actions/family";
 import type { TreePerson } from "@/lib/queries/family";
 import { confirm } from "@/components/confirm-sheet";
+import { buildChart } from "@/lib/tree-chart";
 
 type MemberOption = { id: string; full_name: string };
 
@@ -112,6 +113,20 @@ export function FamilyTreeEditor({ people, unaddedMembers }: { people: TreePerso
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
+
+  // In the order the chart draws them (Janine, 12 October): top to bottom,
+  // then left to right, so the list reads like the tree above it.
+  const ordered = useMemo(() => {
+    const byAge = [...people].sort((a, b) => (a.dob ?? "9999").localeCompare(b.dob ?? "9999"));
+    const spots = buildChart(byAge.map((p) => ({ id: p.id, fatherId: p.fatherId, motherId: p.motherId, spouseId: p.spouseId })), null).people;
+    const at = new Map(spots.map((sp) => [sp.id, sp]));
+    return [...people].sort((a, b) => {
+      const pa = at.get(a.id);
+      const pb = at.get(b.id);
+      if (!pa || !pb) return pa ? -1 : pb ? 1 : 0;
+      return pa.y - pb.y || pa.x - pb.x;
+    });
+  }, [people]);
 
   function set<K extends keyof TreePersonFields>(key: K, value: string) {
     setFields((f) => ({ ...f, [key]: value }));
@@ -214,7 +229,7 @@ export function FamilyTreeEditor({ people, unaddedMembers }: { people: TreePerso
 
       {people.length === 0 && <div style={{ fontSize: "0.84375rem", color: "var(--color-neutral-600)", marginBottom: "0.625rem" }}>Nobody&apos;s been added yet.</div>}
 
-      {people.map((p) =>
+      {ordered.map((p) =>
         typeof mode === "object" && "editLinks" in mode && mode.editLinks === p.id ? (
           <div key={p.id} style={{ padding: "0.625rem 0", borderBottom: "1px solid var(--color-divider)" }}>
             <div style={{ font: "600 0.875rem/1.1 var(--font-heading)", marginBottom: "0.5rem" }}>{p.fullName}</div>
