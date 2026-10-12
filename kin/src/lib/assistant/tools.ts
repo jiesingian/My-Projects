@@ -1,7 +1,7 @@
 import type Anthropic from "@anthropic-ai/sdk";
 import { createClient } from "@/lib/supabase/server";
 import { syncRowToCalendars, type CalendarTarget } from "@/lib/actions/calendar-sync";
-import { EXPENSE_CATEGORIES, INCOME_SOURCES, signedAmount, paidFromVisibleFilter } from "@/lib/wealth";
+import { EXPENSE_CATEGORIES, INCOME_SOURCES, signedAmount, paidFromVisibleFilter, assetWorth } from "@/lib/wealth";
 import { MARKET_SECTIONS, UNITS, guessSection, formatQuantity } from "@/lib/grocery";
 import type { CurrentMember } from "@/lib/session";
 import { familyDay, addDays, familyMidnight, familyInstant } from "@/lib/time";
@@ -358,7 +358,7 @@ export async function runAssistantTool(name: string, rawInput: unknown, me: Curr
         supabase.from("wealth_transactions").select("account_id, direction, amount, status, occurred_at, particulars, category").eq("family_id", familyId),
         supabase.from("bills").select("name, amount, due_date, status").eq("family_id", familyId).or(await billsTheyMaySee()).neq("status", "paid"),
         supabase.from("goals").select("title, target_amount, current_amount, target_date").eq("family_id", familyId),
-        supabase.from("assets").select("name, value").eq("family_id", familyId),
+        supabase.from("assets").select("name, value, annual_change_pct, valued_on, asset_items(kind, cost, acquired_on, value_now)").eq("family_id", familyId),
         supabase.from("liabilities").select("name, balance").eq("family_id", familyId),
       ]);
 
@@ -373,7 +373,8 @@ export async function runAssistantTool(name: string, rawInput: unknown, me: Curr
       }));
 
       const thisMonth = movements.filter((m) => m.status === "confirmed" && new Date(m.occurred_at) >= monthStart);
-      const assetTotal = (assetsRes.data ?? []).reduce((s, a) => s + Number(a.value), 0);
+      // Each asset with what is in it, aged to today (the same sum as the A&L tab).
+      const assetTotal = (assetsRes.data ?? []).reduce((s, a) => s + assetWorth(a, a.asset_items ?? [], new Date().toISOString().slice(0, 10)).total, 0);
       const liabilityTotal = (liabilitiesRes.data ?? []).reduce((s, l) => s + Number(l.balance), 0);
       const cash = accounts.reduce((s, a) => s + a.balance, 0);
 

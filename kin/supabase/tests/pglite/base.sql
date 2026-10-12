@@ -231,3 +231,10 @@ create policy routines_all on routines for all using (family_id = current_family
 create policy routine_log_select on routine_log for select using (family_id = current_family_id());
 create policy routine_log_insert on routine_log for insert with check (family_id = current_family_id());
 create policy routine_log_update on routine_log for update using (family_id = current_family_id()) with check (family_id = current_family_id());
+-- Assets (the table predates the migrations folder): household-wide, as shipped. asset_items (20261012190000) follows it.
+create table public.assets (id uuid primary key default gen_random_uuid(), family_id uuid not null references families(id), name text not null, kind text not null default 'other', value numeric not null default 0, acquired_on date, note text, is_joint boolean not null default true, owner_member_id uuid references members(id), created_by uuid, created_at timestamptz not null default now(), updated_at timestamptz not null default now());
+alter table assets enable row level security;
+create policy assets_all on assets for all using (family_id = current_family_id()) with check (family_id = current_family_id());
+insert into assets (id, family_id, name, kind, value) values
+ ('a5000000-0000-0000-0000-000000000001','a0000000-0000-0000-0000-000000000000','House in San Juan','property',8000000),
+ ('d5000000-0000-0000-0000-000000000001','d0000000-0000-0000-0000-000000000000','Dan condo','property',4000000);

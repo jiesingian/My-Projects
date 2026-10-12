@@ -581,9 +581,60 @@ export type Database = {
           },
         ]
       }
+      asset_items: {
+        Row: {
+          acquired_on: string | null
+          asset_id: string
+          cost: number
+          created_at: string
+          created_by: string | null
+          family_id: string
+          id: string
+          kind: string
+          name: string
+          note: string | null
+          value_now: number | null
+        }
+        Insert: {
+          acquired_on?: string | null
+          asset_id: string
+          cost: number
+          created_at?: string
+          created_by?: string | null
+          family_id: string
+          id?: string
+          kind?: string
+          name: string
+          note?: string | null
+          value_now?: number | null
+        }
+        Update: {
+          acquired_on?: string | null
+          asset_id?: string
+          cost?: number
+          created_at?: string
+          created_by?: string | null
+          family_id?: string
+          id?: string
+          kind?: string
+          name?: string
+          note?: string | null
+          value_now?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "asset_items_asset_id_fkey"
+            columns: ["asset_id"]
+            isOneToOne: false
+            referencedRelation: "assets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       assets: {
         Row: {
           acquired_on: string | null
+          annual_change_pct: number | null
           created_at: string
           created_by: string | null
           family_id: string
@@ -595,9 +646,11 @@ export type Database = {
           owner_member_id: string | null
           updated_at: string
           value: number
+          valued_on: string | null
         }
         Insert: {
           acquired_on?: string | null
+          annual_change_pct?: number | null
           created_at?: string
           created_by?: string | null
           family_id: string
@@ -609,9 +662,11 @@ export type Database = {
           owner_member_id?: string | null
           updated_at?: string
           value?: number
+          valued_on?: string | null
         }
         Update: {
           acquired_on?: string | null
+          annual_change_pct?: number | null
           created_at?: string
           created_by?: string | null
           family_id?: string
@@ -623,6 +678,7 @@ export type Database = {
           owner_member_id?: string | null
           updated_at?: string
           value?: number
+          valued_on?: string | null
         }
         Relationships: [
           {

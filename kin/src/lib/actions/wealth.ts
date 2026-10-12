@@ -5,7 +5,7 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { requireCurrentMember } from "@/lib/session";
 import { syncRowToCalendars, type CalendarTarget } from "@/lib/actions/calendar-sync";
-import { ACCOUNT_TYPES, GOAL_CATEGORY, billRemindDays, DEFAULT_BILL_REMIND_DAYS, cleanAccountNumber, TRANSFER_CATEGORY, REMITTANCE_CHANNELS, explainLedgerRefusal, type AccountType, type RemittanceChannel } from "@/lib/wealth";
+import { ACCOUNT_TYPES, ASSET_ITEM_KINDS, GOAL_CATEGORY, billRemindDays, DEFAULT_BILL_REMIND_DAYS, cleanAccountNumber, TRANSFER_CATEGORY, REMITTANCE_CHANNELS, explainLedgerRefusal, type AccountType, type RemittanceChannel } from "@/lib/wealth";
 import type { ActionState } from "@/lib/actions/auth";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database, Tables, TablesInsert } from "@/lib/database.types";
@@ -14,6 +14,8 @@ import { humanDatabaseError } from "@/lib/db-errors";
 import { clamp } from "@/lib/text";
 import { isGrownUp } from "@/lib/roles";
 import { pesoRate, type PesoRate } from "@/lib/fx";
+import { householdZone } from "@/lib/household-zone";
+import { familyDay } from "@/lib/time";
 
 type Db = SupabaseClient<Database>;
 
@@ -1089,6 +1091,34 @@ function readLoanSchedule(raw: { next: unknown; left: unknown; rate: unknown }):
   return { next_payment_date: next || null, payments_remaining: leftN, interest_rate: rateN };
 }
 
+/** A property's yearly change off a form: blank is none (the value stays as
+ * typed), otherwise a percentage between -50 and 50 -- minus for a place
+ * losing value. */
+function yearlyChangeFromForm(raw: FormDataEntryValue | string | null): { pct: number | null } | { error: string } {
+  const text = String(raw ?? "").trim();
+  if (!text) return { pct: null };
+  const n = Number(text);
+  if (!Number.isFinite(n) || n < -50 || n > 50) return { error: "The yearly change is a percentage between -50 and 50 (minus if it loses value)." };
+  return { pct: n === 0 ? null : n };
+}
+
+type AssetItemInput = { name: string; kind: string; cost: string | number; acquired_on?: string | null; value_now?: string | number | null; note?: string | null };
+
+/** One breakdown item, checked and shaped for the table; an error names it. */
+function assetItemRow(input: AssetItemInput): { row: { name: string; kind: string; cost: number; acquired_on: string | null; value_now: number | null; note: string | null } } | { error: string } {
+  const name = clamp(String(input.name ?? ""), 120);
+  if (!name) return { error: "Name each thing in the breakdown." };
+  const kind = (ASSET_ITEM_KINDS as readonly string[]).includes(input.kind) ? input.kind : "other";
+  const cost = moneyFromForm(String(input.cost ?? ""));
+  if (cost === null || String(input.cost ?? "").trim() === "") return { error: `What "${name}" cost has to be a number, and cannot be less than zero.` };
+  const valueText = String(input.value_now ?? "").trim();
+  const valueNow = valueText ? moneyFromForm(valueText) : null;
+  if (valueText && valueNow === null) return { error: `What "${name}" would sell for has to be a number, and cannot be less than zero.` };
+  const acquired = String(input.acquired_on ?? "").trim();
+  if (acquired && !/^\d{4}-\d{2}-\d{2}$/.test(acquired)) return { error: `When "${name}" was bought has to be a date.` };
+  return { row: { name, kind, cost, acquired_on: acquired || null, value_now: valueNow, note: clamp(String(input.note ?? ""), 500) || null } };
+}
+
 export async function addAssetAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
   const me = await requireCurrentMember();
   const supabase = await createClient();
@@ -1098,19 +1128,53 @@ export async function addAssetAction(_prev: ActionState, formData: FormData): Pr
   const isJoint = formData.get("is_joint") === "on";
   if (!name) return { error: "Name the asset." };
   if (value === null) return { error: "What it is worth has to be a number, and cannot be less than zero." };
+  const change = yearlyChangeFromForm(formData.get("annual_change_pct"));
+  if ("error" in change) return { error: change.error };
 
-  const { error } = await supabase.from("assets").insert({
-    family_id: me.family_id,
-    name,
-    kind: String(formData.get("kind") ?? "other"),
-    value,
-    acquired_on: String(formData.get("acquired_on") ?? "") || null,
-    note: String(formData.get("note") ?? "").trim() || null,
-    is_joint: isJoint,
-    owner_member_id: isJoint ? null : me.id,
-    created_by: me.id,
-  });
+  // The breakdown travels as JSON from the form's rows; blank rows are dropped there.
+  let rawItems: AssetItemInput[] = [];
+  try {
+    const parsed = JSON.parse(String(formData.get("items") ?? "[]"));
+    rawItems = Array.isArray(parsed) ? parsed.slice(0, 100) : [];
+  } catch {
+    return { error: "The breakdown could not be read. Try again." };
+  }
+  const items = [];
+  for (const raw of rawItems) {
+    const shaped = assetItemRow(raw);
+    if ("error" in shaped) return { error: shaped.error };
+    items.push(shaped.row);
+  }
+
+  const { data: asset, error } = await supabase
+    .from("assets")
+    .insert({
+      family_id: me.family_id,
+      name,
+      kind: String(formData.get("kind") ?? "other"),
+      value,
+      annual_change_pct: change.pct,
+      valued_on: familyDay(new Date(), await householdZone()),
+      acquired_on: String(formData.get("acquired_on") ?? "") || null,
+      note: String(formData.get("note") ?? "").trim() || null,
+      is_joint: isJoint,
+      owner_member_id: isJoint ? null : me.id,
+      created_by: me.id,
+    })
+    .select("id")
+    .single();
   if (error) return { error: humanDatabaseError(error.message) };
+
+  if (items.length > 0) {
+    const { error: itemsError } = await supabase
+      .from("asset_items")
+      .insert(items.map((row) => ({ ...row, asset_id: asset.id, family_id: me.family_id, created_by: me.id })));
+    // The asset is saved either way; say so rather than lose it to a retry that doubles it.
+    if (itemsError) {
+      revalidateWealth();
+      return { error: `The asset is saved, but its breakdown was not: ${humanDatabaseError(itemsError.message)} Add the items from Breakdown on the A&L tab.` };
+    }
+  }
 
   revalidateWealth();
   redirect("/wealth?seg=assets");
@@ -1154,19 +1218,81 @@ export async function addLiabilityAction(_prev: ActionState, formData: FormData)
   redirect("/wealth?seg=assets");
 }
 
-export async function updateAssetValueAction(assetId: string, value: number): Promise<ActionState> {
+/** A new value for the asset itself, as of today -- and, when given, its
+ * yearly change ("" for none). The change compounds from today on. */
+export async function updateAssetValueAction(assetId: string, value: number, annualChangePct?: string): Promise<ActionState> {
   if (!Number.isFinite(value) || value < 0) return { error: "What it is worth has to be a number, and cannot be less than zero." };
+  const change = annualChangePct === undefined ? null : yearlyChangeFromForm(annualChangePct);
+  if (change && "error" in change) return { error: change.error };
   const me = await requireCurrentMember();
   const supabase = await createClient();
   const { error, count } = await supabase
     .from("assets")
-    .update({ value, updated_at: new Date().toISOString() }, { count: "exact" })
+    .update(
+      {
+        value,
+        valued_on: familyDay(new Date(), await householdZone()),
+        ...(change ? { annual_change_pct: change.pct } : {}),
+        updated_at: new Date().toISOString(),
+      },
+      { count: "exact" },
+    )
     .eq("id", assetId)
     .eq("family_id", me.family_id);
   if (error) return { error: humanDatabaseError(error.message) };
   if (count === 0) return { error: "That asset is no longer there — someone may have removed it." };
   revalidateWealth();
   return { error: null };
+}
+
+/** Add one thing to an asset's breakdown: a sofa, the aircon, a year's dues. */
+export async function addAssetItemAction(assetId: string, input: AssetItemInput): Promise<ActionState> {
+  const shaped = assetItemRow(input);
+  if ("error" in shaped) return { error: shaped.error };
+  const me = await requireCurrentMember();
+  if (!isGrownUp(me.role)) return { error: "Only a grown-up in the household can change this." };
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("asset_items")
+    .insert({ ...shaped.row, asset_id: assetId, family_id: me.family_id, created_by: me.id });
+  if (error) return { error: humanDatabaseError(error.message) };
+  await touchAsset(supabase, assetId, me.family_id);
+  revalidateWealth();
+  return { error: null };
+}
+
+export async function updateAssetItemAction(itemId: string, input: AssetItemInput): Promise<ActionState> {
+  const shaped = assetItemRow(input);
+  if ("error" in shaped) return { error: shaped.error };
+  const me = await requireCurrentMember();
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("asset_items")
+    .update(shaped.row)
+    .eq("id", itemId)
+    .eq("family_id", me.family_id)
+    .select("asset_id");
+  if (error) return { error: humanDatabaseError(error.message) };
+  if (!data?.length) return { error: "That item is no longer there — someone may have removed it." };
+  await touchAsset(supabase, data[0].asset_id, me.family_id);
+  revalidateWealth();
+  return { error: null };
+}
+
+export async function deleteAssetItemAction(itemId: string): Promise<ActionState> {
+  const me = await requireCurrentMember();
+  const supabase = await createClient();
+  const { data, error } = await supabase.from("asset_items").delete().eq("id", itemId).eq("family_id", me.family_id).select("asset_id");
+  if (error) return { error: humanDatabaseError(error.message) };
+  if (data?.[0]) await touchAsset(supabase, data[0].asset_id, me.family_id);
+  revalidateWealth();
+  return { error: null };
+}
+
+/** The asset's "updated … ago" covers its breakdown too. Not valued_on: the
+ * place's own value was not set again. */
+async function touchAsset(supabase: SupabaseClient<Database>, assetId: string, familyId: string) {
+  await supabase.from("assets").update({ updated_at: new Date().toISOString() }).eq("id", assetId).eq("family_id", familyId);
 }
 
 export async function updateLiabilityBalanceAction(liabilityId: string, balance: number): Promise<ActionState> {
