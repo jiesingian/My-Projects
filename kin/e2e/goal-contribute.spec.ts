@@ -141,7 +141,8 @@ test("putting money in moves the total, and the total matches the ledger", async
   const putMoneyIn = page.getByRole("button", { name: /PUT MONEY IN/i });
   await cardHaving(putMoneyIn).getByRole("button", { name: /PUT MONEY IN/i }).click();
 
-  const open = cardHaving(page.getByLabel("Amount"));
+  // The form opens in a sheet over the page since #547, not inside the card.
+  const open = page.locator(".kin-form-sheet").filter({ hasText: "Put money in" });
   await open.getByLabel("Amount").fill(String(CONTRIBUTION));
   // An account with a banking app linked (the sample household's GCash)
   // offers to open it, and a contribution made that way waits as pending
