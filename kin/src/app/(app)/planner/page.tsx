@@ -1016,7 +1016,7 @@ async function EventsPane({ familyId, who, when }: { familyId: string; who: stri
     supabase.from("event_photos").select("event_id").eq("family_id", familyId),
     // Entries already made from an event's photos, found by title and day
     // (addEventToJournalAction), so the row can open the entry instead.
-    supabase.from("journal_entries").select("id, title, entry_date").eq("family_id", familyId).eq("source", "from_plan").is("source_activity_id", null),
+    supabase.from("journal_entries").select("id, title, entry_date").eq("family_id", familyId).eq("source", "manual"),
   ]);
   const entryFor = new Map((journalled ?? []).map((j) => [`${j.title}|${j.entry_date}`, j.id]));
   const photoCount = new Map<string, number>();
