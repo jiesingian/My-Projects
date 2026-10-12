@@ -30,9 +30,19 @@ export function ErrorText({ message }: { message: string | null | undefined }) {
   return (
     <p
       role="alert"
-      style={{ color: "var(--color-accent-700)", fontSize: "0.8125rem", margin: "0 0 14px" }}
+      className="kin-form-error"
     >
       {message}
     </p>
+  );
+}
+
+/** The red asterisk after a required field's label, for a label that wraps
+ * its input (where the CSS rule in globals.css cannot reach). */
+export function RequiredMark() {
+  return (
+    <span className="kin-req" aria-hidden="true">
+      {" "}*
+    </span>
   );
 }

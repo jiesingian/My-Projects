@@ -7224,3 +7224,35 @@ button.kin-room-quote { font: inherit; font-size: 0.78125rem; text-align: left; 
 }
 .kin-tp[data-pid] { touch-action: none; -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
 .kin-treepanel .chip[data-on] { background: var(--color-accent); color: #fff; }
+
+/* Required fields and errors, app-wide (Janine, 12 October). A required
+   field's label ends in a red asterisk -- the CSS rule covers every .field
+   whose label stands apart from its control; a label that wraps its control
+   uses <RequiredMark />. A field an error is about is outlined in red:
+   aria-invalid where a form names the field, and :user-invalid for a
+   required field left empty once someone has tried to submit. */
+:root { --color-danger: var(--member-coral); }
+.kin-req,
+.field:has([required], [aria-required="true"]) > label:not(:has(input, select, textarea))::after {
+  color: var(--color-danger);
+  font-weight: 600;
+}
+.field:has([required], [aria-required="true"]) > label:not(:has(input, select, textarea))::after { content: " *"; }
+.input[aria-invalid="true"],
+.input:user-invalid {
+  border-color: var(--color-danger);
+  box-shadow: 0 0 0 1.5px var(--color-danger);
+}
+.kin-form-error {
+  color: var(--color-danger);
+  font-size: 0.8125rem;
+  margin: 0 0 14px;
+}
+/* Inside a form sheet, the form's own "unfolded under the list" spacing and
+   divider have nothing to separate it from. */
+.kin-form-sheet form:first-child,
+.kin-form-sheet > div > :first-child {
+  margin-top: 0 !important;
+  border-top: 0 !important;
+  padding-top: 0 !important;
+}

@@ -1,5 +1,6 @@
 "use client";
 
+import { FormSheet } from "@/components/form-sheet";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import {
@@ -23,8 +24,9 @@ export function ConditionEntryControls({ entryId, memberId, date, note }: { entr
   const [busy, setBusy] = useState(false);
   const router = useRouter();
 
-  if (!open) {
-    return (
+
+  return (
+    <>
       <div style={rowStyle}>
         <button type="button" className="btn btn-secondary" style={smallBtn} onClick={() => setOpen(true)}>
           Edit
@@ -35,40 +37,39 @@ export function ConditionEntryControls({ entryId, memberId, date, note }: { entr
           onDelete={() => deleteConditionEntryAction(entryId, memberId)}
         />
       </div>
-    );
-  }
-
-  return (
-    <div style={{ marginTop: "0.375rem" }}>
-      {error && <p style={{ color: "var(--color-accent-700)", fontSize: "0.78125rem", margin: "0 0 6px" }}>{error}</p>}
-      <div className="field" style={{ marginBottom: "0.375rem" }}>
-        <DateInput aria-label="Entry date" className="input" value={entryDate} onChange={(e) => setEntryDate(e.target.value)} style={{ minHeight: "2.25rem", fontSize: "0.8125rem" }} />
-      </div>
-      <div className="field" style={{ marginBottom: "0.375rem" }}>
-        <textarea aria-label="Note" className="input" value={entryNote} onChange={(e) => setEntryNote(e.target.value)} maxLength={1000} style={{ fontSize: "0.8125rem" }} />
-      </div>
-      <div style={{ display: "flex", gap: "0.375rem" }}>
-        <button type="button" className="btn btn-secondary" style={smallBtn} disabled={busy} onClick={() => { setOpen(false); setEntryDate(date); setEntryNote(note); setError(null); }}>
-          Cancel
-        </button>
-        <button
-          type="button"
-          className="btn btn-primary"
-          style={smallBtn}
-          disabled={busy}
-          onClick={async () => {
-            setBusy(true);
-            const result = await updateConditionEntryAction({ entryId, memberId, date: entryDate, note: entryNote });
-            setBusy(false);
-            if (result.error) return setError(result.error);
-            setOpen(false);
-            router.refresh();
-          }}
-        >
-          {busy ? "Saving…" : "Save"}
-        </button>
-      </div>
-    </div>
+      <FormSheet open={open} onClose={() => setOpen(false)} title="Edit entry">
+        <div style={{ marginTop: "0.375rem" }}>
+          {error && <p style={{ color: "var(--color-accent-700)", fontSize: "0.78125rem", margin: "0 0 6px" }}>{error}</p>}
+          <div className="field" style={{ marginBottom: "0.375rem" }}>
+            <DateInput aria-label="Entry date" className="input" value={entryDate} onChange={(e) => setEntryDate(e.target.value)} style={{ minHeight: "2.25rem", fontSize: "0.8125rem" }} />
+          </div>
+          <div className="field" style={{ marginBottom: "0.375rem" }}>
+            <textarea aria-label="Note" className="input" value={entryNote} onChange={(e) => setEntryNote(e.target.value)} maxLength={1000} style={{ fontSize: "0.8125rem" }} />
+          </div>
+          <div style={{ display: "flex", gap: "0.375rem" }}>
+            <button type="button" className="btn btn-secondary" style={smallBtn} disabled={busy} onClick={() => { setOpen(false); setEntryDate(date); setEntryNote(note); setError(null); }}>
+              Cancel
+            </button>
+            <button
+              type="button"
+              className="btn btn-primary"
+              style={smallBtn}
+              disabled={busy}
+              onClick={async () => {
+                setBusy(true);
+                const result = await updateConditionEntryAction({ entryId, memberId, date: entryDate, note: entryNote });
+                setBusy(false);
+                if (result.error) return setError(result.error);
+                setOpen(false);
+                router.refresh();
+              }}
+            >
+              {busy ? "Saving…" : "Save"}
+            </button>
+          </div>
+        </div>
+      </FormSheet>
+    </>
   );
 }
 
@@ -91,56 +92,56 @@ export function LabControls({ labId, memberId, date, name, result }: { labId: st
   const [busy, setBusy] = useState(false);
   const router = useRouter();
 
-  if (!open) {
-    return (
+
+  return (
+    <>
       <div style={rowStyle}>
         <button type="button" className="btn btn-secondary" style={smallBtn} onClick={() => setOpen(true)}>
           Edit
         </button>
         <DeleteButton label="Delete lab result" confirmText="Delete this lab result? This can't be undone." onDelete={() => deleteLabAction(labId, memberId)} />
       </div>
-    );
-  }
-
-  return (
-    <div style={{ marginTop: "0.375rem" }}>
-      {error && <p style={{ color: "var(--color-accent-700)", fontSize: "0.78125rem", margin: "0 0 6px" }}>{error}</p>}
-      <div className="field" style={{ marginBottom: "0.375rem" }}>
-        <input aria-label="Test name" className="input" value={labName} onChange={(e) => setLabName(e.target.value)} maxLength={150} style={{ minHeight: "2.25rem", fontSize: "0.8125rem" }} />
-      </div>
-      <div className="field" style={{ marginBottom: "0.375rem" }}>
-        <DateInput aria-label="Test date" className="input" value={testDate} onChange={(e) => setTestDate(e.target.value)} style={{ minHeight: "2.25rem", fontSize: "0.8125rem" }} />
-      </div>
-      <div className="field" style={{ marginBottom: "0.375rem" }}>
-        <input aria-label="Result" className="input" value={labResult} onChange={(e) => setLabResult(e.target.value)} maxLength={300} style={{ minHeight: "2.25rem", fontSize: "0.8125rem" }} />
-      </div>
-      <div style={{ display: "flex", gap: "0.375rem" }}>
-        <button
-          type="button"
-          className="btn btn-secondary"
-          style={smallBtn}
-          disabled={busy}
-          onClick={() => { setOpen(false); setTestDate(date); setLabName(name); setLabResult(result); setError(null); }}
-        >
-          Cancel
-        </button>
-        <button
-          type="button"
-          className="btn btn-primary"
-          style={smallBtn}
-          disabled={busy}
-          onClick={async () => {
-            setBusy(true);
-            const result2 = await updateLabAction({ labId, memberId, date: testDate, name: labName, result: labResult });
-            setBusy(false);
-            if (result2.error) return setError(result2.error);
-            setOpen(false);
-            router.refresh();
-          }}
-        >
-          {busy ? "Saving…" : "Save"}
-        </button>
-      </div>
-    </div>
+      <FormSheet open={open} onClose={() => setOpen(false)} title="Edit lab result">
+        <div style={{ marginTop: "0.375rem" }}>
+          {error && <p style={{ color: "var(--color-accent-700)", fontSize: "0.78125rem", margin: "0 0 6px" }}>{error}</p>}
+          <div className="field" style={{ marginBottom: "0.375rem" }}>
+            <input aria-label="Test name" className="input" value={labName} onChange={(e) => setLabName(e.target.value)} maxLength={150} style={{ minHeight: "2.25rem", fontSize: "0.8125rem" }} />
+          </div>
+          <div className="field" style={{ marginBottom: "0.375rem" }}>
+            <DateInput aria-label="Test date" className="input" value={testDate} onChange={(e) => setTestDate(e.target.value)} style={{ minHeight: "2.25rem", fontSize: "0.8125rem" }} />
+          </div>
+          <div className="field" style={{ marginBottom: "0.375rem" }}>
+            <input aria-label="Result" className="input" value={labResult} onChange={(e) => setLabResult(e.target.value)} maxLength={300} style={{ minHeight: "2.25rem", fontSize: "0.8125rem" }} />
+          </div>
+          <div style={{ display: "flex", gap: "0.375rem" }}>
+            <button
+              type="button"
+              className="btn btn-secondary"
+              style={smallBtn}
+              disabled={busy}
+              onClick={() => { setOpen(false); setTestDate(date); setLabName(name); setLabResult(result); setError(null); }}
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              className="btn btn-primary"
+              style={smallBtn}
+              disabled={busy}
+              onClick={async () => {
+                setBusy(true);
+                const result2 = await updateLabAction({ labId, memberId, date: testDate, name: labName, result: labResult });
+                setBusy(false);
+                if (result2.error) return setError(result2.error);
+                setOpen(false);
+                router.refresh();
+              }}
+            >
+              {busy ? "Saving…" : "Save"}
+            </button>
+          </div>
+        </div>
+      </FormSheet>
+    </>
   );
 }

@@ -20,7 +20,11 @@ export function AmountInput({
   ariaLabel,
   style,
   onValueChange,
+  required,
+  invalid,
 }: {
+  required?: boolean;
+  invalid?: boolean;
   name?: string;
   id?: string;
   defaultValue?: number | string | null;
@@ -42,6 +46,8 @@ export function AmountInput({
         inputMode="decimal"
         autoComplete="off"
         aria-label={ariaLabel}
+        aria-required={required || undefined}
+        aria-invalid={invalid || undefined}
         placeholder={placeholder}
         value={display}
         onChange={(e) => {

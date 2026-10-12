@@ -1,5 +1,6 @@
 "use client";
 
+import { FormSheet } from "@/components/form-sheet";
 import { useId, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import {
@@ -111,41 +112,41 @@ export function PayBillControl({ billId, amount, accounts, currency }: { billId:
     return <span style={{ fontSize: "0.78125rem", color: "var(--color-neutral-600)" }}>Add an account first</span>;
   }
 
-  if (!open) {
-    return (
+
+  return (
+    <>
       <button type="button" className="btn btn-secondary" style={{ minHeight: "2rem", fontSize: "0.8125rem", padding: "0 0.625rem", marginTop: "0.375rem" }} onClick={() => setOpen(true)}>
         Settle
       </button>
-    );
-  }
-
-  return (
-    <div style={{ marginTop: "0.625rem", paddingTop: "0.625rem", borderTop: "1px solid var(--color-divider)", textAlign: "left" }}>
-      <Err message={error} />
-      <div className="field" style={{ marginBottom: "0.5rem" }}>
-        <label htmlFor={`${uid}-account`}>Pay from</label>
-        <AccountSelect id={`${uid}-account`} accounts={accounts} value={accountId} onChange={setAccountId} currency={currency} />
-      </div>
-      <div className="field" style={{ marginBottom: "0.5rem" }}>
-        <label htmlFor={`${uid}-amount`}>Amount ({currencySymbol(currency)})</label>
-        <AmountInput id={`${uid}-amount`} ariaLabel={`Amount (${currencySymbol(currency)})`} defaultValue={payAmount} onValueChange={setPayAmount} style={{ minHeight: "2.625rem" }} />
-      </div>
-      <ViaAppToggle checked={viaApp} onChange={setViaApp} account={account} />
-      <div style={{ display: "flex", gap: "0.5rem" }}>
-        <button
-          type="button"
-          className="btn btn-primary"
-          disabled={pending}
-          style={{ flex: 1, minHeight: "2.5rem", fontSize: "0.84375rem" }}
-          onClick={() => run(() => payBillAction({ billId, accountId, amount: payAmount, viaApp: viaApp && !!account?.linked_app_url }), () => setOpen(false))}
-        >
-          {pending ? "…" : viaApp && account?.linked_app_url ? "Open app & log" : "Mark paid"}
-        </button>
-        <button type="button" className="btn btn-secondary" style={{ flex: 1, minHeight: "2.5rem", fontSize: "0.84375rem" }} onClick={() => setOpen(false)}>
-          Cancel
-        </button>
-      </div>
-    </div>
+      <FormSheet open={open} onClose={() => setOpen(false)} title="Settle">
+        <div style={{ marginTop: "0.625rem", paddingTop: "0.625rem", borderTop: "1px solid var(--color-divider)", textAlign: "left" }}>
+          <Err message={error} />
+          <div className="field" style={{ marginBottom: "0.5rem" }}>
+            <label htmlFor={`${uid}-account`}>Pay from</label>
+            <AccountSelect id={`${uid}-account`} accounts={accounts} value={accountId} onChange={setAccountId} currency={currency} />
+          </div>
+          <div className="field" style={{ marginBottom: "0.5rem" }}>
+            <label htmlFor={`${uid}-amount`}>Amount ({currencySymbol(currency)})</label>
+            <AmountInput id={`${uid}-amount`} ariaLabel={`Amount (${currencySymbol(currency)})`} defaultValue={payAmount} onValueChange={setPayAmount} style={{ minHeight: "2.625rem" }} />
+          </div>
+          <ViaAppToggle checked={viaApp} onChange={setViaApp} account={account} />
+          <div style={{ display: "flex", gap: "0.5rem" }}>
+            <button
+              type="button"
+              className="btn btn-primary"
+              disabled={pending}
+              style={{ flex: 1, minHeight: "2.5rem", fontSize: "0.84375rem" }}
+              onClick={() => run(() => payBillAction({ billId, accountId, amount: payAmount, viaApp: viaApp && !!account?.linked_app_url }), () => setOpen(false))}
+            >
+              {pending ? "…" : viaApp && account?.linked_app_url ? "Open app & log" : "Mark paid"}
+            </button>
+            <button type="button" className="btn btn-secondary" style={{ flex: 1, minHeight: "2.5rem", fontSize: "0.84375rem" }} onClick={() => setOpen(false)}>
+              Cancel
+            </button>
+          </div>
+        </div>
+      </FormSheet>
+    </>
   );
 }
 
@@ -162,46 +163,46 @@ export function ReceiveIncomeControl({ scheduleId, amount, accounts, currency }:
     return <span style={{ fontSize: "0.78125rem", color: "var(--color-neutral-600)" }}>Add an account first</span>;
   }
 
-  if (!open) {
-    return (
+
+  return (
+    <>
       <button type="button" className="btn btn-secondary" style={{ minHeight: "2rem", fontSize: "0.8125rem", padding: "0 0.625rem", marginTop: "0.375rem" }} onClick={() => setOpen(true)}>
         Received
       </button>
-    );
-  }
-
-  return (
-    <div style={{ marginTop: "0.625rem", paddingTop: "0.625rem", borderTop: "1px solid var(--color-divider)", textAlign: "left" }}>
-      <Err message={error} />
-      <div className="field" style={{ marginBottom: "0.5rem" }}>
-        <label htmlFor={`${uid}-account`}>Into</label>
-        <AccountSelect id={`${uid}-account`} accounts={accounts} value={accountId} onChange={setAccountId} currency={currency} />
-      </div>
-      <div className="field" style={{ marginBottom: "0.5rem" }}>
-        <label htmlFor={`${uid}-amount`}>Amount ({currencySymbol(currency)})</label>
-        <AmountInput id={`${uid}-amount`} ariaLabel={`Amount (${currencySymbol(currency)})`} defaultValue={receiveAmount} onValueChange={setReceiveAmount} style={{ minHeight: "2.625rem" }} />
-      </div>
-      <ViaAppToggle checked={viaApp} onChange={setViaApp} account={account} />
-      <div style={{ display: "flex", gap: "0.5rem" }}>
-        <button
-          type="button"
-          className="btn btn-primary"
-          disabled={pending}
-          style={{ flex: 1, minHeight: "2.5rem", fontSize: "0.84375rem" }}
-          onClick={() =>
-            run(
-              () => receiveIncomeAction({ scheduleId, accountId, amount: receiveAmount, viaApp: viaApp && !!account?.linked_app_url }),
-              () => setOpen(false),
-            )
-          }
-        >
-          {pending ? "…" : viaApp && account?.linked_app_url ? "Open app & log" : "Mark received"}
-        </button>
-        <button type="button" className="btn btn-secondary" style={{ flex: 1, minHeight: "2.5rem", fontSize: "0.84375rem" }} onClick={() => setOpen(false)}>
-          Cancel
-        </button>
-      </div>
-    </div>
+      <FormSheet open={open} onClose={() => setOpen(false)} title="Mark as received">
+        <div style={{ marginTop: "0.625rem", paddingTop: "0.625rem", borderTop: "1px solid var(--color-divider)", textAlign: "left" }}>
+          <Err message={error} />
+          <div className="field" style={{ marginBottom: "0.5rem" }}>
+            <label htmlFor={`${uid}-account`}>Into</label>
+            <AccountSelect id={`${uid}-account`} accounts={accounts} value={accountId} onChange={setAccountId} currency={currency} />
+          </div>
+          <div className="field" style={{ marginBottom: "0.5rem" }}>
+            <label htmlFor={`${uid}-amount`}>Amount ({currencySymbol(currency)})</label>
+            <AmountInput id={`${uid}-amount`} ariaLabel={`Amount (${currencySymbol(currency)})`} defaultValue={receiveAmount} onValueChange={setReceiveAmount} style={{ minHeight: "2.625rem" }} />
+          </div>
+          <ViaAppToggle checked={viaApp} onChange={setViaApp} account={account} />
+          <div style={{ display: "flex", gap: "0.5rem" }}>
+            <button
+              type="button"
+              className="btn btn-primary"
+              disabled={pending}
+              style={{ flex: 1, minHeight: "2.5rem", fontSize: "0.84375rem" }}
+              onClick={() =>
+                run(
+                  () => receiveIncomeAction({ scheduleId, accountId, amount: receiveAmount, viaApp: viaApp && !!account?.linked_app_url }),
+                  () => setOpen(false),
+                )
+              }
+            >
+              {pending ? "…" : viaApp && account?.linked_app_url ? "Open app & log" : "Mark received"}
+            </button>
+            <button type="button" className="btn btn-secondary" style={{ flex: 1, minHeight: "2.5rem", fontSize: "0.84375rem" }} onClick={() => setOpen(false)}>
+              Cancel
+            </button>
+          </div>
+        </div>
+      </FormSheet>
+    </>
   );
 }
 
@@ -235,43 +236,43 @@ export function GoalContributeControl({
 
   if (accounts.length === 0) return null;
 
-  if (!open) {
-    return (
+
+  return (
+    <>
       <button type="button" className="btn btn-secondary btn-block" style={{ minHeight: "2.375rem", fontSize: "0.8125rem", marginTop: "0.625rem" }} onClick={() => setOpen(true)}>
         + PUT MONEY IN
       </button>
-    );
-  }
-
-  return (
-    <div style={{ marginTop: "0.75rem", paddingTop: "0.625rem", borderTop: "1px solid var(--color-divider)" }}>
-      <Err message={error} />
-      <div style={{ display: "flex", gap: "0.5rem", marginBottom: "0.5rem" }}>
-        <div className="field" style={{ flex: 1, margin: 0 }}>
-          <label htmlFor={`${uid}-account`}>From</label>
-          <AccountSelect id={`${uid}-account`} accounts={accounts} value={accountId} onChange={setAccountId} currency={currency} />
+      <FormSheet open={open} onClose={() => setOpen(false)} title="Put money in">
+        <div style={{ marginTop: "0.75rem", paddingTop: "0.625rem", borderTop: "1px solid var(--color-divider)" }}>
+          <Err message={error} />
+          <div style={{ display: "flex", gap: "0.5rem", marginBottom: "0.5rem" }}>
+            <div className="field" style={{ flex: 1, margin: 0 }}>
+              <label htmlFor={`${uid}-account`}>From</label>
+              <AccountSelect id={`${uid}-account`} accounts={accounts} value={accountId} onChange={setAccountId} currency={currency} />
+            </div>
+            <div className="field" style={{ width: 110, margin: 0 }}>
+              <label htmlFor={`${uid}-amount`}>Amount</label>
+              <AmountInput id={`${uid}-amount`} ariaLabel="Amount" defaultValue={amount} onValueChange={setAmount} style={{ minHeight: "2.625rem" }} />
+            </div>
+          </div>
+          <ViaAppToggle checked={viaApp} onChange={setViaApp} account={account} />
+          <div style={{ display: "flex", gap: "0.5rem" }}>
+            <button
+              type="button"
+              className="btn btn-primary"
+              disabled={pending}
+              style={{ flex: 1, minHeight: "2.5rem", fontSize: "0.84375rem" }}
+              onClick={() => run(() => contributeToGoalAction({ goalId, accountId, amount, viaApp: viaApp && !!account?.linked_app_url }), () => setOpen(false))}
+            >
+              {pending ? "…" : viaApp && account?.linked_app_url ? "Open app & log" : "Add to goal"}
+            </button>
+            <button type="button" className="btn btn-secondary" style={{ flex: 1, minHeight: "2.5rem", fontSize: "0.84375rem" }} onClick={() => setOpen(false)}>
+              Cancel
+            </button>
+          </div>
         </div>
-        <div className="field" style={{ width: 110, margin: 0 }}>
-          <label htmlFor={`${uid}-amount`}>Amount</label>
-          <AmountInput id={`${uid}-amount`} ariaLabel="Amount" defaultValue={amount} onValueChange={setAmount} style={{ minHeight: "2.625rem" }} />
-        </div>
-      </div>
-      <ViaAppToggle checked={viaApp} onChange={setViaApp} account={account} />
-      <div style={{ display: "flex", gap: "0.5rem" }}>
-        <button
-          type="button"
-          className="btn btn-primary"
-          disabled={pending}
-          style={{ flex: 1, minHeight: "2.5rem", fontSize: "0.84375rem" }}
-          onClick={() => run(() => contributeToGoalAction({ goalId, accountId, amount, viaApp: viaApp && !!account?.linked_app_url }), () => setOpen(false))}
-        >
-          {pending ? "…" : viaApp && account?.linked_app_url ? "Open app & log" : "Add to goal"}
-        </button>
-        <button type="button" className="btn btn-secondary" style={{ flex: 1, minHeight: "2.5rem", fontSize: "0.84375rem" }} onClick={() => setOpen(false)}>
-          Cancel
-        </button>
-      </div>
-    </div>
+      </FormSheet>
+    </>
   );
 }
 
@@ -305,42 +306,42 @@ export function LogSpendControl({
 
   if (accounts.length === 0) return null;
 
-  if (!open) {
-    return (
+
+  return (
+    <>
       <button type="button" className="btn btn-secondary" style={{ minHeight: "2rem", fontSize: "0.78125rem", padding: "0 0.625rem" }} onClick={() => setOpen(true)}>
         {label}
       </button>
-    );
-  }
-
-  return (
-    <div style={{ marginTop: "0.625rem", paddingTop: "0.625rem", borderTop: "1px solid var(--color-divider)", width: "100%" }}>
-      <Err message={error} />
-      <div style={{ display: "flex", gap: "0.5rem", marginBottom: "0.5rem" }}>
-        <div className="field" style={{ flex: 1, margin: 0 }}>
-          <label htmlFor={`${uid}-account`}>Paid from</label>
-          <AccountSelect id={`${uid}-account`} accounts={accounts} value={accountId} onChange={setAccountId} currency={currency} />
+      <FormSheet open={open} onClose={() => setOpen(false)} title={label}>
+        <div style={{ marginTop: "0.625rem", paddingTop: "0.625rem", borderTop: "1px solid var(--color-divider)", width: "100%" }}>
+          <Err message={error} />
+          <div style={{ display: "flex", gap: "0.5rem", marginBottom: "0.5rem" }}>
+            <div className="field" style={{ flex: 1, margin: 0 }}>
+              <label htmlFor={`${uid}-account`}>Paid from</label>
+              <AccountSelect id={`${uid}-account`} accounts={accounts} value={accountId} onChange={setAccountId} currency={currency} />
+            </div>
+            <div className="field" style={{ width: 110, margin: 0 }}>
+              <label htmlFor={`${uid}-amount`}>Amount</label>
+              <AmountInput id={`${uid}-amount`} ariaLabel="Amount" defaultValue={amount} onValueChange={setAmount} style={{ minHeight: "2.625rem" }} />
+            </div>
+          </div>
+          <div style={{ display: "flex", gap: "0.5rem" }}>
+            <button
+              type="button"
+              className="btn btn-primary"
+              disabled={pending}
+              style={{ flex: 1, minHeight: "2.375rem", fontSize: "0.8125rem" }}
+              onClick={() => run(() => postHubExpenseAction({ accountId, amount, particulars, category, sourceTable, sourceId }), () => setOpen(false))}
+            >
+              {pending ? "…" : "Record it"}
+            </button>
+            <button type="button" className="btn btn-secondary" style={{ flex: 1, minHeight: "2.375rem", fontSize: "0.8125rem" }} onClick={() => setOpen(false)}>
+              Cancel
+            </button>
+          </div>
         </div>
-        <div className="field" style={{ width: 110, margin: 0 }}>
-          <label htmlFor={`${uid}-amount`}>Amount</label>
-          <AmountInput id={`${uid}-amount`} ariaLabel="Amount" defaultValue={amount} onValueChange={setAmount} style={{ minHeight: "2.625rem" }} />
-        </div>
-      </div>
-      <div style={{ display: "flex", gap: "0.5rem" }}>
-        <button
-          type="button"
-          className="btn btn-primary"
-          disabled={pending}
-          style={{ flex: 1, minHeight: "2.375rem", fontSize: "0.8125rem" }}
-          onClick={() => run(() => postHubExpenseAction({ accountId, amount, particulars, category, sourceTable, sourceId }), () => setOpen(false))}
-        >
-          {pending ? "…" : "Record it"}
-        </button>
-        <button type="button" className="btn btn-secondary" style={{ flex: 1, minHeight: "2.375rem", fontSize: "0.8125rem" }} onClick={() => setOpen(false)}>
-          Cancel
-        </button>
-      </div>
-    </div>
+      </FormSheet>
+    </>
   );
 }
 
@@ -396,29 +397,29 @@ export function ValueUpdateControl({ id, current, kind }: { id: string; current:
   const [value, setValue] = useState(current);
   const { pending, run } = useMoneyAction();
 
-  if (!open) {
-    return (
+
+  return (
+    <>
       <button type="button" className="btn btn-secondary" style={{ minHeight: "1.875rem", fontSize: "0.78125rem", padding: "0 0.5625rem" }} onClick={() => setOpen(true)}>
         Update
       </button>
-    );
-  }
-
-  return (
-    <span style={{ display: "flex", gap: "0.375rem" }}>
-      <AmountInput ariaLabel="New value" defaultValue={value} onValueChange={setValue} style={{ minHeight: "2rem", width: "6.875rem", fontSize: "0.84375rem" }} />
-      <button
-        type="button"
-        className="btn btn-primary"
-        disabled={pending}
-        style={{ minHeight: "2rem", fontSize: "0.78125rem", padding: "0 0.5625rem" }}
-        onClick={() =>
-          run(() => (kind === "asset" ? updateAssetValueAction(id, value) : updateLiabilityBalanceAction(id, value)), () => setOpen(false))
-        }
-      >
-        {pending ? "…" : "Save"}
-      </button>
-    </span>
+      <FormSheet open={open} onClose={() => setOpen(false)} title="Update value">
+        <span style={{ display: "flex", gap: "0.375rem" }}>
+          <AmountInput ariaLabel="New value" defaultValue={value} onValueChange={setValue} style={{ minHeight: "2rem", width: "6.875rem", fontSize: "0.84375rem" }} />
+          <button
+            type="button"
+            className="btn btn-primary"
+            disabled={pending}
+            style={{ minHeight: "2rem", fontSize: "0.78125rem", padding: "0 0.5625rem" }}
+            onClick={() =>
+              run(() => (kind === "asset" ? updateAssetValueAction(id, value) : updateLiabilityBalanceAction(id, value)), () => setOpen(false))
+            }
+          >
+            {pending ? "…" : "Save"}
+          </button>
+        </span>
+      </FormSheet>
+    </>
   );
 }
 
