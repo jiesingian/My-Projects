@@ -132,6 +132,9 @@ jobs:
           MIGRATE_LABEL: dev
         working-directory: kin
         run: |
+          # pipefail: without it a failing migrate.mjs piped into tee reports
+          # success (see weekly-check.yml, 9 October).
+          set -o pipefail
           if [ -z "${MIGRATE_DB_URL:-}" ]; then
             echo "::warning::DEV_DB_URL is not set, so dev cannot be healed automatically."
             echo "pending=unknown" >> "$GITHUB_OUTPUT"; exit 0
@@ -154,6 +157,7 @@ jobs:
           MIGRATE_LABEL: dev
         working-directory: kin
         run: |
+          set -o pipefail
           echo "Dev was behind. Applying." | tee -a "$GITHUB_STEP_SUMMARY"
           node scripts/migrate.mjs | tee -a "$GITHUB_STEP_SUMMARY"
 

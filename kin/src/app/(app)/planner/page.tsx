@@ -245,7 +245,7 @@ async function CalendarPane({ familyId, meId, who, view, anchor, hidden, weekSta
         {hidden.size > 0 && (
           <Link
             href={calendarHref(who, view, anchor)}
-            style={{ minHeight: "2rem", display: "flex", alignItems: "center", padding: "0 0.5rem", fontSize: "0.8125rem", color: "var(--color-accent)", textDecoration: "none" }}
+            style={{ minHeight: "2rem", display: "flex", alignItems: "center", padding: "0 0.5rem", fontSize: "0.8125rem", color: "var(--color-accent-700)", textDecoration: "none" }}
           >
             Show all
           </Link>

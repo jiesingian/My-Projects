@@ -61,7 +61,7 @@ export function ShoppingDayControl({
           setOpen(true);
         }}
         className="btn btn-ghost"
-        style={{ minHeight: "1.875rem", fontSize: "0.78125rem", padding: "0 0.375rem", gap: "0.25rem", color: "var(--color-accent)" }}
+        style={{ minHeight: "1.875rem", fontSize: "0.78125rem", padding: "0 0.375rem", gap: "0.25rem", color: "var(--color-accent-700)" }}
       >
         <Icon name="calendarDays" size={13} />
         {run ? "Change the day" : "Set a shopping day"}

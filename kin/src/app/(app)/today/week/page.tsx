@@ -32,7 +32,7 @@ export default async function WeekDigestPage() {
             <h3 className="kin-eyebrow">Photos</h3>
             <div className="kin-digest-photos">
               {d.photos.map((p) => (
-                <Link key={p.id} href="/journal?view=household" className="kin-digest-photo">
+                <Link key={p.id} href="/journal?view=household" className="kin-digest-photo" aria-label="A photo from this week, in the household journal">
                   {/* eslint-disable-next-line @next/next/no-img-element -- signed, short-lived URLs; see queries/journal */}
                   <img src={p.url} alt="" loading="lazy" />
                 </Link>

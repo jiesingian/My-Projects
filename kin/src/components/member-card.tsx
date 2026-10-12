@@ -90,7 +90,7 @@ const WHO: Record<string, string> = {
   now: "Everyone at home",
   location: "Everyone, while you share it",
   today: "Everyone at home",
-  money: "Grown-ups only",
+  money: "Grown-ups see spending; the budget only you",
   care: "Grown-ups, as Health allows",
 };
 
@@ -230,7 +230,7 @@ function CardContent({ card, glasses, titleId, isMe, onClose }: { card: MemberCa
                 </div>
               ) : (
                 <p className={styles.muted} style={{ margin: 0, fontSize: "0.8125rem" }}>
-                  {isMe && !card.preview ? "No budget this month. A grown-up can set one in Wealth, under Spending by person." : "No budget set this month."}
+                  {isMe && !card.preview ? "No budget this month. A grown-up can set one in Wealth, under Spending by person." : "Their monthly budget is private to them."}
                 </p>
               )}
             </>

@@ -26,3 +26,12 @@ test("Kin's own day is not shown twice when Nager catches up", () => {
   const merged = mergeHolidays([bonifacio], [{ date: "2026-11-30", name: "bonifacio day" }, { date: "2026-11-02", name: "All Souls' Day" }]);
   expect(merged).toEqual([{ date: "2026-11-02", name: "All Souls' Day" }, bonifacio]);
 });
+
+test("a household's country picks whose holidays it sees; unset is the Philippines", async () => {
+  const { holidayCountry } = await import("@/lib/holidays");
+  expect(holidayCountry("us")).toBe("US");
+  expect(holidayCountry("gb")).toBe("GB");
+  expect(holidayCountry(null)).toBe("PH");
+  expect(holidayCountry("")).toBe("PH");
+  expect(holidayCountry("../x")).toBe("PH");
+});

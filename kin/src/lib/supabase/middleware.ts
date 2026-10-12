@@ -57,6 +57,10 @@ export async function updateSession(request: NextRequest) {
     // And Supabase's five-minute reminder job: the shared secret is its
     // credential (app/api/cron/reminders).
     path === "/api/cron/reminders" ||
+    // The upstream check answers without a session only on a preview, which
+    // Vercel Authentication already guards; in production it asks for a
+    // member itself (app/api/upstream-check).
+    path === "/api/upstream-check" ||
     // An invite link has to reach someone with no account yet; it only
     // remembers the code and redirects (app/join/[code]/route.ts).
     path.startsWith("/join/") ||

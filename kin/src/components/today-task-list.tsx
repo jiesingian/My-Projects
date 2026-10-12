@@ -312,7 +312,7 @@ export function TaskRow({ task, queued = false }: { task: RoutineView; queued?: 
                   lineHeight: 1.4,
                 }}
               >
-                &ldquo;{today.note}&rdquo; <span style={{ fontSize: "0.71875rem", color: "var(--color-neutral-500)" }}>· edit</span>
+                &ldquo;{today.note}&rdquo; <span style={{ fontSize: "0.71875rem", color: "var(--color-neutral-600)" }}>· edit</span>
               </button>
             ) : (
               <button

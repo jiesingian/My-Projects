@@ -90,8 +90,30 @@ async function amounts(page: Page): Promise<string[]> {
   return (await page.locator("body").innerText()).match(/-?₱\s?-?[\d,]+(?:\.\d+)?/g) ?? [];
 }
 
+/** Opens `path` and refuses to go on unless the page on screen is that page.
+ *
+ * The weekly check of 9 October failed here on a child's Cash Flow tab with
+ * 15 amounts before and 3 after -- and the 3 were not Cash Flow at all. The
+ * service worker gives a navigation 10 seconds (NAVIGATION_TIMEOUT_MS,
+ * public/sw.js) and then redirects to the offline shell, whose saved Today
+ * screen lists the bills due: ₱890, ₱4,380.5, ₱2,499. A slow render on the
+ * CI server, read as "an amount changed".
+ *
+ * This spec measures what the server renders for the partner, not offline
+ * Kin, so the browser context it signs in with blocks service workers. The
+ * address check stays as well: a redirect -- to /offline, /today, /login --
+ * fails loudly as the wrong page, never as a quiet comparison of two
+ * different screens. */
+async function open(page: Page, path: string) {
+  await page.goto(path, { waitUntil: "networkidle" });
+  const want = new URL(path, page.url());
+  const got = new URL(page.url());
+  expect(`${got.pathname}${got.search}`, `${path} was not the page on screen`).toBe(`${want.pathname}${want.search}`);
+  await expandAllCollapsedGroups(page);
+}
+
 async function signIn(browser: Browser): Promise<Page> {
-  const context = await browser.newContext({ storageState: { cookies: [], origins: [] }, viewport: { width: 1280, height: 900 }, timezoneId: "America/New_York" });
+  const context = await browser.newContext({ storageState: { cookies: [], origins: [] }, viewport: { width: 1280, height: 900 }, timezoneId: "America/New_York", serviceWorkers: "block" });
   const page = await context.newPage();
   await page.goto("/login");
   await page.fill('input[name="email"]', process.env.E2E_PARTNER_EMAIL!);
@@ -159,8 +181,7 @@ test.describe("a private account, seen by the other grown-up", () => {
     // Before the private account exists: every amount on every page.
     const before = new Map<string, string[]>();
     for (const path of pages) {
-      await page.goto(path, { waitUntil: "networkidle" });
-      await expandAllCollapsedGroups(page);
+      await open(page, path);
       before.set(path, await amounts(page));
     }
 
@@ -195,8 +216,7 @@ test.describe("a private account, seen by the other grown-up", () => {
     // In the app, as the partner: the same pages again.
     for (const path of pages) {
       await test.step(`UI: ${path}`, async () => {
-        await page.goto(path, { waitUntil: "networkidle" });
-        await expandAllCollapsedGroups(page);
+        await open(page, path);
         const html = await page.content();
         expect(html, `${path} carries the private account's name`).not.toContain(secret);
         expect(html, `${path} carries the private account's id`).not.toContain(secretId);

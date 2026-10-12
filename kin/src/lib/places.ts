@@ -52,6 +52,12 @@ export function nominatimUrl(q: string, limit = 5): string {
   return `https://nominatim.openstreetmap.org/search?${params}`;
 }
 
+/** Who is asking, as Nominatim's policy wants it said: the app and where it
+ * runs. A missing or generic User-Agent is what gets a 403. */
+export function nominatimHeaders(origin: string): Record<string, string> {
+  return { "User-Agent": `Kin family app (${origin})`, Referer: origin };
+}
+
 const first = (a: NominatimAddress, keys: string[]) => keys.map((k) => a[k]).find((v) => v && v.trim()) ?? "";
 
 /** Nominatim's answer as Kin's places. Its address keys follow OpenStreetMap's
