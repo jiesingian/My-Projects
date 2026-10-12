@@ -21,7 +21,7 @@ export async function sealLetterAction(input: {
   /** "Open when..." instead of a day: the moment; they open it themselves
    * (20261012090000). Never a card. */
   openWhen?: string;
-  /** Writing back (20261009090400): the letter this answers. A reply may
+  /** Writing back (20261012090100): the letter this answers. A reply may
    * open today; it goes to that letter's writer, and is never a card. */
   replyTo?: string;
   title: string;

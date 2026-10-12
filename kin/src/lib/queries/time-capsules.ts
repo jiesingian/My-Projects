@@ -17,7 +17,7 @@ export type TimeCapsule = {
   /** "Open when..." letters: the moment, and when the recipient opened it. */
   openWhen: string | null;
   openedAt: string | null;
-  /** Writing back (20261009090400): the letter this one answers. */
+  /** Writing back (20261012090100): the letter this one answers. */
   replyTo: string | null;
   createdAt: string;
   sealed: boolean;
