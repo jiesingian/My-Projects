@@ -9,6 +9,7 @@ import { ErrorText } from "@/components/form";
 import type { PickableAccount } from "@/components/money-actions";
 import { DateInput } from "@/components/date-input";
 import { AmountInput } from "@/components/amount-input";
+import { RequiredMark } from "@/components/form";
 import { AccountNumber } from "@/components/account-number";
 
 const MODES = ["in", "out", "transfer"] as const;
@@ -61,6 +62,9 @@ export function TransactForm({
   // money is not tied to either.
   const [against, setAgainst] = useState("");
   const [error, setError] = useState<string | null>(null);
+  // Which field the error is about, so it is outlined in red and focused
+  // rather than only named at the top (Janine, 12 October).
+  const [bad, setBad] = useState<"amount" | "particulars" | null>(null);
   const [pending, startTransition] = useTransition();
 
   const account = accounts.find((a) => a.id === accountId);
@@ -73,6 +77,14 @@ export function TransactForm({
 
   function submit() {
     setError(null);
+    setBad(null);
+    const missing = mode !== "transfer" && !particulars.trim() ? "particulars" : !(amount > 0) ? "amount" : null;
+    if (missing) {
+      setError(missing === "particulars" ? "Say what this is for." : "Enter an amount greater than zero.");
+      setBad(missing);
+      requestAnimationFrame(() => document.querySelector<HTMLElement>(`[data-field="${missing}"] .input`)?.focus());
+      return;
+    }
     startTransition(async () => {
       const occurredAt = new Date(`${occurredOn}T${new Date().toTimeString().slice(0, 8)}`).toISOString();
       const res =
@@ -145,8 +157,8 @@ export function TransactForm({
       )}
 
       <div style={{ display: "flex", gap: "0.75rem" }}>
-        <Field label={`Amount (${currencySymbol(currency)})`} style={{ flex: 1 }}>
-          <AmountInput defaultValue={defaultAmount} onValueChange={setAmount} style={{ minHeight: "2.75rem" }} />
+        <Field label={`Amount (${currencySymbol(currency)})`} style={{ flex: 1 }} required name="amount">
+          <AmountInput defaultValue={defaultAmount} onValueChange={(v) => { setAmount(v); if (bad === "amount") setBad(null); }} style={{ minHeight: "2.75rem" }} required invalid={bad === "amount"} />
         </Field>
         <Field label="Date" style={{ flex: 1 }}>
           <DateInput className="input" value={occurredOn} onChange={(e) => setOccurredOn(e.target.value)} style={{ minHeight: "2.75rem" }} />
@@ -195,11 +207,16 @@ export function TransactForm({
         </Field>
       )}
 
-      <Field label="Particulars">
+      <Field label="Particulars" required={mode !== "transfer"} name="particulars">
         <input
           className="input"
           value={particulars}
-          onChange={(e) => setParticulars(e.target.value)}
+          aria-required={mode !== "transfer" || undefined}
+          aria-invalid={bad === "particulars" || undefined}
+          onChange={(e) => {
+            setParticulars(e.target.value);
+            if (bad === "particulars") setBad(null);
+          }}
           placeholder={mode === "in" ? "October salary" : mode === "out" ? "Hardware for the gate" : "Moving savings across"}
           style={{ minHeight: "2.75rem" }}
         />
@@ -225,11 +242,12 @@ export function TransactForm({
   );
 }
 
-function Field({ label, children, style }: { label: string; children: React.ReactNode; style?: React.CSSProperties }) {
+function Field({ label, children, style, required, name }: { label: string; children: React.ReactNode; style?: React.CSSProperties; required?: boolean; name?: string }) {
   return (
-    <div className="field" style={{ marginBottom: "0.875rem", ...style }}>
+    <div className="field" data-field={name} style={{ marginBottom: "0.875rem", ...style }}>
       <label>
         {label}
+        {required && <RequiredMark />}
         {children}
       </label>
     </div>
