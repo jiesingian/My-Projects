@@ -11,6 +11,8 @@ import { formatCurrency } from "@/lib/format";
 import { memberColourVar } from "@/lib/member-colours";
 import { getMembers } from "@/lib/queries/family";
 import type { WeekStart } from "@/lib/week";
+import { goalIsFinished } from "@/lib/planner-done";
+import { CompletedToggle } from "@/components/completed-toggle";
 
 /** Planner → Goals. Each goal is a ring that fills itself from what Kin
  * already holds (water, steps, weight, a savings goal) or from a tap
@@ -24,6 +26,7 @@ export async function GoalsPane({
   weekStart,
   filter,
   justAsked = false,
+  done = false,
 }: {
   familyId: string;
   me: { id: string; role: string };
@@ -33,6 +36,8 @@ export async function GoalsPane({
   filter: React.ReactNode;
   /** Back from an edit that went to the giver rather than applying. */
   justAsked?: boolean;
+  /** Show finished goals too (done=1); folded away otherwise. */
+  done?: boolean;
 }) {
   const [goals, members] = await Promise.all([getGoals(familyId, me, weekStart), getMembers(familyId)]);
   const colourOf = new Map(members.map((m) => [m.id, memberColourVar(m.id, m.color)]));
@@ -40,6 +45,10 @@ export async function GoalsPane({
   // person -- the same rule as whole-family tasks and events.
   // "Family" is the household goals alone (FAMILY_FILTER).
   const visible = goals.filter((g) => who === "all" || g.ownerId === null || (who !== FAMILY_FILTER && g.ownerId === who));
+  // A reached one-off goal with nothing left owed on it is finished: folded
+  // under its own heading at the end, the same as past events.
+  const open = visible.filter((g) => !goalIsFinished(g));
+  const finished = visible.filter((g) => goalIsFinished(g));
 
   return (
     <>
@@ -49,16 +58,23 @@ export async function GoalsPane({
           Sent for a yes. This goal has a reward, so the change waits for whoever gives it — they can agree or keep it as it was.
         </p>
       )}
-      {visible.length === 0 && (
+      {open.length === 0 && (
         <p style={{ fontSize: "0.84375rem", color: "var(--color-neutral-600)", lineHeight: 1.45 }}>
           {goals.length === 0
             ? "No goals yet. Set one for yourself, for someone else or for the whole household — eight glasses a day, three gym sessions a week, a first ₱10,000 saved."
-            : "No goals for this person."}
+            : finished.length > 0
+              ? "Every goal here is reached."
+              : "No goals for this person."}
         </p>
       )}
-      {visible.map((g, i) => (
+      {open.map((g, i) => (
         <GoalCard key={g.id} goal={g} index={i} meId={me.id} currency={currency} colour={g.ownerId ? (colourOf.get(g.ownerId) ?? null) : null} />
       ))}
+      <CompletedToggle seg="goals" who={who} count={finished.length} shown={done} />
+      {done &&
+        finished.map((g, i) => (
+          <GoalCard key={g.id} goal={g} index={open.length + i} meId={me.id} currency={currency} colour={g.ownerId ? (colourOf.get(g.ownerId) ?? null) : null} />
+        ))}
       <Link href="/planner/goals/new" className="btn btn-secondary" style={{ width: "100%", gap: "0.375rem", marginTop: "0.25rem" }}>
         <Icon name="plus" size={17} /> Set a goal
       </Link>
