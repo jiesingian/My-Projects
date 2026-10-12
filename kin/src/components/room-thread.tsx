@@ -182,12 +182,6 @@ export function RoomThread({
   const table = room.kind === "family" ? "family_tree_messages" : room.kind === "dm" ? "direct_messages" : "chat_group_messages";
   const filter = room.kind === "dm" ? `person_low=eq.${room.low}` : room.kind === "group" ? `group_id=eq.${room.groupId}` : undefined;
 
-  useEffect(() => {
-    bottom.current?.scrollIntoView({ block: "end" });
-    // Seeing it is reading it, including what arrives while it is open.
-    void markThreadReadAction(readKey);
-  }, [messages.length, readKey]);
-
   /** Whoever is typing here now, against the instant their signal goes
    * stale (20261006100000). Broadcast on the room's private channel, as the
    * household chat does -- not presence, which it was until 12 October:
@@ -201,6 +195,19 @@ export function RoomThread({
   const [typing, setTyping] = useState<Record<string, { name: string; until: number }>>({});
   const channelRef = useRef<ReturnType<ReturnType<typeof createClient>["channel"]> | null>(null);
   const lastTypingSent = useRef(0);
+  const readRefresh = useRef<ReturnType<typeof setTimeout> | null>(null);
+  /** A read written before the channel has joined is said when it joins. */
+  const readUnsaid = useRef(false);
+  const announceRead = useCallback(() => {
+    if (room.kind === "family") return;
+    const ch = channelRef.current;
+    if (ch?.state !== "joined") {
+      readUnsaid.current = true;
+      return;
+    }
+    readUnsaid.current = false;
+    void ch.send({ type: "broadcast", event: "read", payload: { id: me.personId } });
+  }, [room.kind, me.personId]);
   const sendTyping = useCallback(
     (on: boolean) => void channelRef.current?.send({ type: "broadcast", event: "typing", payload: { id: me.personId, name: me.firstName, typing: on } }),
     [me.personId, me.firstName],
@@ -272,15 +279,41 @@ export function RoomThread({
             return { ...prev, [who]: { name: (p.name ?? "").slice(0, 40) || "Someone", until: Date.now() + TYPING_TTL } };
           });
         })
-        .subscribe();
+        // Somebody here has just read it (12 October): their "Seen" and
+        // "Seen by" are drawn from chat_reads, which nobody else may read
+        // row by row, so the reader says so on the channel and the others
+        // draw the page again. Not in the family room, which shows no
+        // receipts.
+        .on("broadcast", { event: "read" }, ({ payload }) => {
+          const who = (payload as { id?: string })?.id;
+          if (!who || who === me.personId || room.kind === "family") return;
+          // A burst of readers is one redraw.
+          if (readRefresh.current) return;
+          readRefresh.current = setTimeout(() => {
+            readRefresh.current = null;
+            router.refresh();
+          }, 400);
+        })
+        .subscribe((status) => {
+          if (status === "SUBSCRIBED" && readUnsaid.current) announceRead();
+        });
       channelRef.current = channel;
     })();
     return () => {
       cancelled = true;
       channelRef.current = null;
+      if (readRefresh.current) clearTimeout(readRefresh.current);
+      readRefresh.current = null;
       if (channel) void supabase.removeChannel(channel);
     };
-  }, [topic, table, filter, router, me.personId]);
+  }, [topic, table, filter, router, me.personId, room.kind, announceRead]);
+
+  useEffect(() => {
+    bottom.current?.scrollIntoView({ block: "end" });
+    // Seeing it is reading it, including what arrives while it is open --
+    // and then saying so, once the read is written.
+    void markThreadReadAction(readKey).then(announceRead);
+  }, [messages.length, readKey, announceRead]);
 
   // @mentions (20261006100100): anyone who has written here, plus the
   // group's members; never yourself, never in one to one.
