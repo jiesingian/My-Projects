@@ -7,8 +7,8 @@ import { restAsPartner, ensurePartnerInHousehold } from "./support/qa-partner";
  *
  * Everything the chat does live travels over Supabase Realtime: a new
  * message, an edit, an unsend and a pin arrive as postgres_changes, a poll
- * vote and a reaction likewise, and "is typing…" is a broadcast on the same
- * private channel. None of it can be seen from one login. Every other chat
+ * vote and a reaction likewise, and "is typing…" and "I've read it" are
+ * broadcasts on the same private channel. None of it can be seen from one login. Every other chat
  * spec is one person, or a pure function; this is the only check that the
  * other person's screen moves without a refresh.
  *
@@ -127,7 +127,7 @@ test.describe("a group chat, live on the other person's screen", () => {
     }
   });
 
-  test("typing, a message, an edit, a pin, an unsend, a poll and a reaction reach the other screen without a refresh", async ({ page: quinn, browser }) => {
+  test("typing, a message and its receipt, an edit, a pin, an unsend, a poll and a reaction reach the other screen without a refresh", async ({ page: quinn, browser }) => {
     test.setTimeout(240_000);
     await quinn.setViewportSize({ width: 390, height: 844 });
     const pat = await signInAsPat(browser);
@@ -153,6 +153,8 @@ test.describe("a group chat, live on the other person's screen", () => {
       await send(quinn, first);
       await expect(bubble(pat, first)).toBeVisible({ timeout: LIVE });
       await expect(pat.locator(".kin-room-typing")).toHaveCount(0, { timeout: LIVE });
+      // Pat's screen has it, so Pat has read it: the receipt comes back live.
+      await expect(quinn.locator(".kin-room-seen")).toContainText("Seen by Pat", { timeout: LIVE });
     });
 
     const edited = `${RUN} lunch on Sunday, 12 noon?`;
@@ -185,8 +187,8 @@ test.describe("a group chat, live on the other person's screen", () => {
       // made, and Quinn's screen has nothing to show.
       await expect(pat.locator(".kin-room-reactions").getByRole("button", { name: "👍 from You" })).toBeVisible({ timeout: LIVE });
       const quinnSees = quinn.locator(".kin-room-reactions").getByRole("button", { name: /👍 from Pat/ });
-      // Soft, so one missing live update does not hide whether the poll and
-      // the receipt below work too; the test still fails.
+      // Soft, so one missing live update does not hide whether the poll
+      // below works too; the test still fails.
       await expect.soft(quinnSees, "Pat's reaction did not reach Quinn's screen live").toBeVisible({ timeout: LIVE });
       if (!(await quinnSees.isVisible())) {
         // Stored but not pushed, or not readable by Quinn at all.
@@ -209,13 +211,6 @@ test.describe("a group chat, live on the other person's screen", () => {
       const quinnSinigang = quinn.locator(".kin-room-poll", { hasText: question }).locator(".kin-room-poll-option", { hasText: "Sinigang" });
       await expect(quinnSinigang.locator(".kin-room-poll-count")).toHaveText("1", { timeout: LIVE });
       await expect(quinnSinigang.locator(".kin-room-poll-who")).toContainText("Pat");
-    });
-
-    await test.step("Pat has read it: 'Seen by Pat' under Quinn's message", async () => {
-      // Read receipts are drawn when the thread loads (group_seen_by); a
-      // read is not pushed live, so this one reloads.
-      await quinn.reload();
-      await expect(quinn.locator(".kin-room-seen")).toContainText("Seen by Pat", { timeout: LIVE });
     });
 
     await pat.context().close();
