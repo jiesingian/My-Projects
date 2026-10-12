@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { mealCost, type MealCost } from "@/lib/meal-cost";
+import { stockPhotoFor, type StockPhoto } from "@/lib/meal-stock-photo";
 import { loadFamilyPrices } from "@/lib/queries/household-money";
 import { normalizeKey } from "@/lib/pricebook";
 import { sectionOrder } from "@/lib/grocery";
@@ -94,6 +95,8 @@ export type PlannedMeal = {
   /** The dish's own name for its photo — see recipeRef. */
   ref: string;
   photoUrl: string | null;
+  /** A Pexels picture of the dish while the household has none of its own. */
+  stockPhoto: StockPhoto | null;
   minutes: number | null;
   serves: number | null;
   steps: string[];
@@ -136,7 +139,12 @@ export async function getMealsForDay(familyId: string, anchor: Date = new Date()
   const photoOf = new Map((photos ?? []).map((p) => [p.recipe_ref, p.storage_path]));
   const rows = dayRows ?? [];
   const wanted = Array.from(new Set(rows.map((m) => photoOf.get(recipeRef(m))).filter((p): p is string => !!p)));
-  const signed = await getSignedUrls(RECIPE_PHOTO_BUCKET, wanted);
+  // Pexels only for dishes the household has not photographed itself.
+  const unphotographed = Array.from(new Set(rows.filter((m) => !photoOf.get(recipeRef(m))).map((m) => m.dish.trim())));
+  const [signed, stock] = await Promise.all([
+    getSignedUrls(RECIPE_PHOTO_BUCKET, wanted),
+    Promise.all(unphotographed.map(async (dish) => [dish, await stockPhotoFor(dish)] as const)).then((pairs) => new Map(pairs)),
+  ]);
 
   const meals: PlannedMeal[] = rows.map((m) => {
     const shipped = m.recipe_key ? RECIPES_BY_KEY.get(m.recipe_key) : undefined;
@@ -170,6 +178,7 @@ export async function getMealsForDay(familyId: string, anchor: Date = new Date()
       familyRecipeId: m.family_recipe_id,
       ref,
       photoUrl: path ? (signed[path] ?? null) : null,
+      stockPhoto: path ? null : (stock.get(m.dish.trim()) ?? null),
       minutes: own?.minutes ?? shipped?.minutes ?? null,
       serves: own?.serves ?? shipped?.serves ?? null,
       steps: own?.steps ?? shipped?.steps ?? [],
