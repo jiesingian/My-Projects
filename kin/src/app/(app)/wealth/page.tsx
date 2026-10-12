@@ -762,9 +762,21 @@ async function ScopePane({ scope, familyId, memberId, currency, range, newAccoun
         );
       })}
       {newAccountId && pane.accounts.some((a) => a.id === newAccountId) && <ScrollIntoView targetId={`account-${newAccountId}`} />}
-      {/* A new account is opened in your own name, so it is only offered
-          where that is what you would mean. */}
-      {(isJoint || mine) && <AddAccountForm isJoint={isJoint} returnWho={scope} canNumber={!isJoint || grownUp} />}
+      {/* Offered on every Who; whose it is is asked, not taken from the tab:
+          you, the family, or a child whose profile you keep -- never another
+          grown-up. */}
+      <AddAccountForm
+        owners={[
+          { value: "me", label: "Mine" },
+          { value: "joint", label: "Family (joint)" },
+          ...(grownUp
+            ? who.active.flatMap((m, i) => (m.role === "child_managed" ? [{ value: m.id, label: `${who.labels[i]} (managed)` }] : []))
+            : []),
+        ]}
+        defaultOwner={scope === WEALTH_FAMILY ? "joint" : grownUp && who.active.some((m) => m.id === scope && m.role === "child_managed") ? scope : "me"}
+        returnWho={scope}
+        grownUp={grownUp}
+      />
 
       {/* Archive hides an account and keeps its history; this is where
           they wait, to be restored -- or deleted, if nothing ever moved

@@ -331,9 +331,13 @@ export function AppLinksField({
   );
 }
 
-/** `canNumber`: whether this person may set the new account's number --
- * always on their own account, only a grown-up on a joint one. */
-export function AddAccountForm({ isJoint, returnWho, canNumber }: { isJoint: boolean; returnWho: string; canNumber: boolean }) {
+/** `owners`: whose the account can be -- you, the family (joint), and the
+ * children whose profiles you keep; `defaultOwner` the one the tab you are
+ * on suggests. `grownUp`: whether you may set a joint account's number (you
+ * always may on your own). */
+export function AddAccountForm({ owners, defaultOwner, returnWho, grownUp }: { owners: { value: string; label: string }[]; defaultOwner: string; returnWho: string; grownUp: boolean }) {
+  const [owner, setOwner] = useState(defaultOwner);
+  const canNumber = owner === "me" || (owner === "joint" && grownUp);
   const sym = useCurrencySymbol();
   const [open, setOpen] = useState(false);
   const [state, formAction] = useActionState(addAccountAction, initialState);
@@ -354,11 +358,19 @@ export function AddAccountForm({ isJoint, returnWho, canNumber }: { isJoint: boo
 
   return (
     <form action={formAction} style={{ marginTop: "1.125rem", borderTop: "1px solid var(--color-divider)", paddingTop: "1rem" }}>
-      <input type="hidden" name="is_joint" value={isJoint ? "on" : ""} />
       <input type="hidden" name="return_who" value={returnWho} />
       <ErrorText message={state.error} />
       <Labelled label="Account name">
         <input className="input" name="name" required placeholder="Everyday savings" style={{ minHeight: "2.625rem" }} />
+      </Labelled>
+      <Labelled label="Whose account">
+        <select className="input" name="owner" value={owner} onChange={(e) => setOwner(e.target.value)} style={{ minHeight: "2.625rem" }}>
+          {owners.map((o) => (
+            <option key={o.value} value={o.value}>
+              {o.label}
+            </option>
+          ))}
+        </select>
       </Labelled>
       <Labelled label="Type">
         <select

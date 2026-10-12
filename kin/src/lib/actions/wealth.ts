@@ -61,7 +61,18 @@ export async function addAccountAction(_prev: ActionState, formData: FormData): 
   const playStoreUrl = clamp(String(formData.get("play_store_url") ?? ""), 500) || null;
   const accountType = String(formData.get("account_type") ?? "bank");
   const openingBalance = Number(formData.get("opening_balance") ?? 0);
-  const isJoint = formData.get("is_joint") === "on";
+  // Whose it is (Janine, 12 October): "me", "joint", or a managed child's
+  // member id -- never another grown-up, whose accounts are theirs to open.
+  // Where it is added from no longer decides it.
+  const ownerPick = String(formData.get("owner") ?? (formData.get("is_joint") === "on" ? "joint" : "me"));
+  const isJoint = ownerPick === "joint";
+  let ownerId: string | null = isJoint ? null : me.id;
+  if (!isJoint && ownerPick !== "me") {
+    if (!isGrownUp(me.role)) return { error: "Only a grown-up can open an account for a child." };
+    const { data: child } = await supabase.from("members").select("id, role, family_id").eq("id", ownerPick).maybeSingle();
+    if (!child || child.family_id !== me.family_id || child.role !== "child_managed") return { error: "Choose yourself, the family, or a child whose profile you keep." };
+    ownerId = child.id;
+  }
   // Which Who the Accounts tab was showing when the form was opened, so
   // saving lands back on the same list. A query value, so only ever a
   // plain id-shaped word, never anything that could reshape the URL.
@@ -87,7 +98,7 @@ export async function addAccountAction(_prev: ActionState, formData: FormData): 
     account_type: accountType,
     opening_balance: openingBalance,
     is_joint: isJoint,
-    owner_member_id: isJoint ? null : me.id,
+    owner_member_id: ownerId,
     // A joint account has no single owner, so "private" on one means
     // private to nobody -- the row's `is_private` column defaults to true
     // at the database level, and leaving it unset here inherited that
@@ -97,7 +108,9 @@ export async function addAccountAction(_prev: ActionState, formData: FormData): 
     // flip this -- a joint account has no owner to do that flipping.
     // Personal accounts keep the old, correct behaviour: private to their
     // owner unless they choose otherwise.
-    is_private: isJoint ? false : true,
+    // A managed child has no login to see a private account with, so theirs
+    // is open to the household.
+    is_private: isJoint || ownerId !== me.id ? false : true,
     created_by: me.id,
   }).select("id").single();
   if (error) return { error: humanDatabaseError(error.message) };
