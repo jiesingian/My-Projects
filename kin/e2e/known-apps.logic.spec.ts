@@ -52,7 +52,7 @@ test("every entry in KNOWN_APPS counts as known, and nothing else does", () => {
   for (const app of KNOWN_APPS) {
     expect(isKnownInstitutionLabel(app.label)).toBe(true);
   }
-  expect(isKnownInstitutionLabel("PalawanPay")).toBe(false);
+  expect(isKnownInstitutionLabel("UnionDigital")).toBe(false);
   expect(isKnownInstitutionLabel("other")).toBe(false);
   expect(isKnownInstitutionLabel("")).toBe(false);
 });

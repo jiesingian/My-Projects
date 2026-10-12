@@ -202,7 +202,7 @@ export function AppLinksField({
     </div>
   );
   const otherStoreLabel = kind === "ios" ? "Play Store" : "App Store";
-  // "BANK / WALLET" only actually describes two of the six account types --
+  // "BANK / WALLET" only actually describes two of the seven account types --
   // a credit card's issuer, an investment platform, or "other" all still
   // have a linkable institution or app, just not one that's a bank or a
   // wallet, so the label generalizes for them. Cash has none at all: no
