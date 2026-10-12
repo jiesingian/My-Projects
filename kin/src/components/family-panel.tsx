@@ -49,6 +49,7 @@ export function TodayHeader({
   checkIns: PendingCheckIn[];
 }) {
   const [openId, setOpenId] = useState<string | null>(null);
+  const [mealsOpen, setMealsOpen] = useState(false);
   const [shownId, setShownId] = useState<string | null>(null);
   const titleId = useId();
 
@@ -73,11 +74,16 @@ export function TodayHeader({
           their own under the name, rather than squeezing the name into a
           column one letter wide. */}
       <div style={{ display: "flex", flexWrap: "wrap", alignItems: "flex-end", justifyContent: "space-between", gap: "0.625rem 0.75rem" }}>
-        <div style={{ flex: "1 1 11rem", minWidth: 0 }}>
-          <div style={{ font: "600 0.8125rem/1 var(--font-heading)", letterSpacing: ".02em", color: "var(--color-accent-700)", marginBottom: "0.3125rem" }}>{dateLabel}</div>
-          {/* Grows with the text size until a long word would no longer fit
-              the phone, and stops there instead of breaking the word. */}
-          <h2 style={{ fontSize: "min(1.875rem, 11vw)" }}>{familyName}</h2>
+        {/* The name, and the time beside it filling the space to its right
+            (Janine, 12 October): as tall as the date and name together. */}
+        <div style={{ flex: "1 1 15rem", minWidth: 0, display: "flex", alignItems: "flex-end", gap: "0.75rem" }}>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ font: "600 0.8125rem/1 var(--font-heading)", letterSpacing: ".02em", color: "var(--color-accent-700)", marginBottom: "0.3125rem" }}>{dateLabel}</div>
+            {/* Grows with the text size until a long word would no longer fit
+                the phone, and stops there instead of breaking the word. */}
+            <h2 style={{ fontSize: "min(1.875rem, 11vw)" }}>{familyName}</h2>
+          </div>
+          <Clock />
         </div>
         <div style={{ display: "flex", alignItems: "center", flex: "none" }}>
           {people.map((p) => (
@@ -99,8 +105,10 @@ export function TodayHeader({
         </div>
       </div>
 
-      <div style={{ display: "flex", alignItems: "baseline", gap: "0.5rem", flexWrap: "wrap", marginTop: "0.5rem", fontSize: "0.84375rem", color: "var(--color-neutral-700)" }}>
-        <Clock />
+      {/* The weather and the day's meals. With no location shared, the
+          weather is a sun-and-cloud button to where one is shared; the meals
+          are a plate button that opens the list (Janine, 12 October). */}
+      <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", flexWrap: "wrap", marginTop: "0.5rem", fontSize: "0.84375rem", color: "var(--color-neutral-700)" }}>
         {data.weather ? (
           <span>
             {data.weather.tempC}°C · {data.weather.label}
@@ -108,22 +116,35 @@ export function TodayHeader({
           </span>
         ) : (
           data.people.length > 0 && (
-            <Link href="/family?seg=quicklinks" style={{ fontSize: "0.78125rem", color: "var(--color-neutral-600)" }}>
-              Share a location to see the weather
+            <Link href="/family?seg=quicklinks" className="btn btn-secondary btn-icon" aria-label="Share a location to see the weather" title="Share a location to see the weather">
+              <Icon name="cloudSun" size={20} />
             </Link>
           )
         )}
+        {data.meals.length > 0 && (
+          <button
+            type="button"
+            className="btn btn-secondary btn-icon"
+            onClick={() => setMealsOpen((v) => !v)}
+            aria-expanded={mealsOpen}
+            aria-controls={`${titleId}-meals`}
+            aria-label={mealsOpen ? "Hide what we're eating today" : "What we're eating today"}
+            title="Eating today"
+            data-active={mealsOpen}
+          >
+            <Icon name="mealSetting" size={20} />
+          </button>
+        )}
       </div>
 
-      {data.meals.length > 0 && (
-        <div style={{ display: "flex", flexWrap: "wrap", gap: "0.125rem 0.75rem", marginTop: "0.25rem", fontSize: "0.8125rem" }}>
-          <span style={{ color: "var(--color-neutral-600)" }}>Eating today</span>
+      {data.meals.length > 0 && mealsOpen && (
+        <ul id={`${titleId}-meals`} className="kin-fade-in" style={{ listStyle: "none", margin: "0.5rem 0 0", padding: "0.625rem 0.75rem", borderRadius: 14, background: "color-mix(in srgb, var(--color-text) 5%, transparent)", fontSize: "0.875rem", display: "grid", gap: "0.25rem" }}>
           {data.meals.map((m, i) => (
-            <span key={`${m.slot}-${i}`}>
-              <span style={{ color: "var(--color-neutral-600)", textTransform: "capitalize" }}>{m.slot}</span> {m.dish}
-            </span>
+            <li key={`${m.slot}-${i}`}>
+              <span style={{ color: "var(--color-neutral-600)", textTransform: "capitalize", display: "inline-block", minWidth: "5rem" }}>{m.slot}</span> {m.dish}
+            </li>
           ))}
-        </div>
+        </ul>
       )}
 
       <AnimatedSheet open={openId !== null} onClose={() => setOpenId(null)} labelledBy={titleId} panelClassName="sheet-panel--confirm">
@@ -144,18 +165,34 @@ function Clock() {
   // Rendered empty first, then filled once mounted. The server has no idea
   // what time it is where the reader is, and printing its own guess would
   // hydrate into a visible correction.
-  const [now, setNow] = useState<string | null>(null);
+  // The hours and minutes large, AM/PM small beside them, so the number
+  // itself fills the space beside the household's name.
+  const [now, setNow] = useState<{ time: string; period: string } | null>(null);
 
   useEffect(() => {
-    const tick = () => setNow(new Date().toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" }));
+    const tick = () => {
+      const parts = new Intl.DateTimeFormat(undefined, { hour: "2-digit", minute: "2-digit" }).formatToParts(new Date());
+      const period = parts.find((p) => p.type === "dayPeriod")?.value ?? "";
+      const time = parts
+        .filter((p) => p.type !== "dayPeriod")
+        .map((p) => p.value)
+        .join("")
+        .trim();
+      setNow({ time, period });
+    };
     tick();
     const timer = setInterval(tick, 30_000);
     return () => clearInterval(timer);
   }, []);
 
   return (
-    <span className={now ? "kin-fade-in" : undefined} style={{ font: "600 0.9375rem/1 var(--font-heading)", color: "var(--color-text)", minWidth: "2.75rem" }} suppressHydrationWarning>
-      {now ?? " "}
+    <span
+      className={now ? "kin-fade-in" : undefined}
+      style={{ flex: "none", font: "600 clamp(2rem, 11vw, 3.25rem)/0.9 var(--font-heading)", letterSpacing: "-.02em", fontVariantNumeric: "tabular-nums", color: "var(--color-text)", whiteSpace: "nowrap" }}
+      suppressHydrationWarning
+    >
+      {now ? now.time : " "}
+      {now?.period && <span style={{ fontSize: "0.34em", letterSpacing: ".02em", marginLeft: "0.2em", color: "var(--color-neutral-600)" }}>{now.period}</span>}
     </span>
   );
 }
