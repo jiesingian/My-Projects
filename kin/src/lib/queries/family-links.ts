@@ -1,3 +1,4 @@
+import { householdZone } from "@/lib/household-zone";
 import { createClient } from "@/lib/supabase/server";
 import { getSignedUrls } from "@/lib/storage";
 import type { FeedOccasion } from "@/lib/occasions";
@@ -120,7 +121,7 @@ export async function getFamilyFeed(familyId: string, meId?: string): Promise<Fe
   // A milestone is an entry marked ★ (20260929023000). A birthday marked as a
   // milestone is already on today's birthday card, as its ★; on its own day
   // it is not listed a second time. Afterwards it is in the feed like any other.
-  const today = new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Manila" });
+  const today = new Date().toLocaleDateString("en-CA", { timeZone: await householdZone() });
   return rows
     .filter((r) => !(r.milestone && r.event_id && r.entry_date === today))
     .map((r) => ({
@@ -169,7 +170,7 @@ export async function getFeedOccasions(meId: string, familyId: string): Promise<
   const rows = (data ?? []).filter((o) => o.kind === "birthday" || o.kind === "anniversary");
   if (rows.length === 0) return [];
   // Only this year's day: the same event comes round again next year.
-  const today = new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Manila" });
+  const today = new Date().toLocaleDateString("en-CA", { timeZone: await householdZone() });
   const eventIds = rows.map((o) => o.event_id);
   const [{ data: greetings }, { data: marked }] = await Promise.all([
     supabase

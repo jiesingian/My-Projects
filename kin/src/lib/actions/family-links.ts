@@ -1,5 +1,6 @@
 "use server";
 
+import { householdZone } from "@/lib/household-zone";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { requireCurrentMember } from "@/lib/session";
@@ -82,9 +83,10 @@ export async function greetOccasionAction(eventId: string, body: string): Promis
  * milestones and most are not. It writes an ordinary milestone carrying the
  * event (20260929001000), so it lives on the Milestones tab afterwards. */
 export async function setOccasionMilestoneAction(eventId: string, on: boolean): Promise<ActionState> {
+  const tz = await householdZone();
   const me = await requireCurrentMember();
   const supabase = await createClient();
-  const today = familyDay();
+  const today = familyDay(new Date(), tz);
   if (!on) {
     const { error } = await supabase
       .from("journal_entries")

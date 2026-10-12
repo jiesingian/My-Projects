@@ -1,5 +1,6 @@
 "use server";
 
+import { householdZone } from "@/lib/household-zone";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { requireCurrentMember } from "@/lib/session";
@@ -29,13 +30,14 @@ const say = (message: string) => explainVisibilityRefusal(humanDatabaseError(mes
 // ── medicines ────────────────────────────────────────────────────────────────
 
 export async function addMedicineAction(input: { memberId: string; name: string; dose: string; times: string; startDate: string; endDate: string; notes: string; visibility: string }): Promise<ActionState> {
+  const tz = await householdZone();
   const me = await requireCurrentMember();
   if (!UUID.test(input.memberId)) return { error: "Choose who it's for." };
   const name = clamp(input.name, 120);
   if (!name) return { error: "Give the medicine a name." };
   const times = parseTimes(input.times);
   if (input.times.trim() && times.length === 0) return { error: "Kin couldn't read those times. Try something like 8am, 8pm." };
-  const start = DAY.test(input.startDate) ? input.startDate : familyDay();
+  const start = DAY.test(input.startDate) ? input.startDate : familyDay(new Date(), tz);
   const end = DAY.test(input.endDate) ? input.endDate : null;
   if (end && end < start) return { error: "The last day is before the first." };
   const supabase = await createClient();
@@ -55,6 +57,7 @@ export async function addMedicineAction(input: { memberId: string; name: string;
 }
 
 export async function stopMedicineAction(id: string, memberId: string): Promise<ActionState> {
+  const tz = await householdZone();
   await requireCurrentMember();
   if (!UUID.test(id)) return { error: "That medicine could not be found." };
   const supabase = await createClient();
@@ -66,7 +69,7 @@ export async function stopMedicineAction(id: string, memberId: string): Promise<
   // neither stopped nor deleted.
   const { data: med } = await supabase.from("health_medicines").select("start_date").eq("id", id).maybeSingle();
   if (!med) return { error: "That medicine could not be found." };
-  const yesterday = familyDay(new Date(Date.now() - 86_400_000));
+  const yesterday = familyDay(new Date(Date.now() - 86_400_000), tz);
   const end = yesterday < med.start_date ? med.start_date : yesterday;
   const { error } = await supabase.from("health_medicines").update({ end_date: end }).eq("id", id);
   return done(memberId, error ? say(error.message) : null);

@@ -13,6 +13,9 @@ export type ChartPerson = {
   /** From a Kin profile; never known for somebody from another household's branch. */
   color?: string | null;
   sex?: string | null;
+  /** For somebody from a linked household's branch: whether they have a Kin
+   * account there. Unknown (undefined) for our own people. */
+  hasAccount?: boolean;
   /** Set for somebody from a linked household's branch, drawn read-only. */
   fromHousehold: string | null;
 };
@@ -51,6 +54,7 @@ export function mergeBranch(
       birthYear: b.birthYear,
       avatarUrl: null,
       memberId: null,
+      hasAccount: b.hasAccount ?? false,
       fatherId: map(b.fatherId),
       motherId: map(b.motherId),
       spouseId: map(b.spouseId),
@@ -138,4 +142,52 @@ export function matchBranch(ours: ChartPerson[], branch: BranchPerson[], ourShar
   }
   known.delete(shared.id); // mergeBranch maps the shared person itself
   return known;
+}
+
+/** One place two households' records of the same person disagree. */
+export type BranchConflict = {
+  /** Our person, who it is about. */
+  personId: string;
+  personName: string;
+  relation: "father" | "mother";
+  ours: string;
+  theirs: string;
+  household: string;
+  matchId: string;
+};
+
+/** Where a linked household's record of a person we share (or one matchBranch
+ * has matched to ours) names a different father or mother than ours does.
+ *
+ * mergeBranch never overrules a parent we recorded -- the branch only fills
+ * gaps -- so the disagreement is invisible unless it is said. It is only a
+ * disagreement when both record one and the names differ (same first and last
+ * name is the same person, however each typed it); a parent only one of us
+ * recorded is a gap, not a conflict. Pure, for the specs. */
+export function branchConflicts(
+  ours: ChartPerson[],
+  branch: BranchPerson[],
+  ourSharedPersonId: string,
+  household: string,
+  matchId: string,
+  known: Map<string, string> = new Map(),
+): BranchConflict[] {
+  const shared = branch.find((b) => b.isSharedPerson);
+  const toOurs = new Map(known);
+  if (shared) toOurs.set(shared.id, ourSharedPersonId);
+  const oursById = new Map(ours.map((p) => [p.id, p]));
+  const theirs = new Map(branch.map((b) => [b.id, b]));
+  const out: BranchConflict[] = [];
+  for (const b of branch) {
+    const mine = oursById.get(toOurs.get(b.id) ?? "");
+    if (!mine || mine.fromHousehold) continue;
+    for (const role of ["father", "mother"] as const) {
+      const [theirId, ourId] = role === "father" ? [b.fatherId, mine.fatherId] : [b.motherId, mine.motherId];
+      const t = theirId ? theirs.get(theirId) : undefined;
+      const o = ourId ? oursById.get(ourId) : undefined;
+      if (!t || !o || sameName(t, o)) continue;
+      out.push({ personId: mine.id, personName: mine.fullName, relation: role, ours: o.fullName, theirs: t.fullName, household, matchId });
+    }
+  }
+  return out;
 }

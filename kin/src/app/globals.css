@@ -1618,9 +1618,17 @@ textarea.input {
   outline-color: var(--color-accent);
 }
 /* From a linked household's own tree, shown with "Show their side": theirs,
-   so a lighter shade of their colour. */
+   so a lighter shade of their colour when they have an account there, and
+   only a dashed ring in it when they are a name in that household's tree. */
 .kin-tp[data-status="branch"] .kin-tp-av {
   background: color-mix(in srgb, var(--p) 55%, var(--color-surface));
+}
+.kin-tp[data-status="branch"][data-account="false"] .kin-tp-av {
+  background: var(--color-surface);
+  color: color-mix(in srgb, var(--p) 70%, var(--color-text));
+  box-shadow: none;
+  outline: 1.5px dashed var(--p);
+  outline-offset: -1.5px;
 }
 /* Also confirmed by a linked household: a badge in that household's colour. */
 .kin-tp-linked {
@@ -1715,6 +1723,16 @@ div.kin-tp-ghost {
   border-radius: 0;
   background: none;
   border-top: 2px dashed color-mix(in srgb, var(--color-text) 45%, transparent);
+}
+.kin-treelegend-note ul {
+  margin: 0.25rem 0;
+  padding-left: 1.125rem;
+}
+.kin-treelegend-note[data-conflict] {
+  padding: 0.625rem 0.75rem;
+  border-radius: var(--radius-card);
+  background: color-mix(in srgb, var(--cal-occasion) 8%, var(--color-surface));
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--cal-occasion) 30%, transparent);
 }
 .kin-treelegend-note {
   margin: 0;
@@ -1814,6 +1832,29 @@ div.kin-tp-ghost {
   :root:not([data-theme="light"]) .kin-tp:not(.kin-tp-ghost) .kin-tp-av {
     color: rgb(0 0 0 / 0.78);
   }
+}
+
+/* Households blocked from offering relatives. */
+.kin-treeblocks {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: var(--text-xs);
+  color: var(--color-neutral-600);
+}
+.kin-treeblocks li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+.kin-treeblocks .btn {
+  min-height: 1.875rem;
+  padding: 0 0.5rem;
+  font-size: var(--text-xs);
 }
 
 /* Offers of a relative from a linked household. */

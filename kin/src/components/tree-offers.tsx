@@ -2,7 +2,8 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { respondTreeOfferAction } from "@/lib/actions/tree-links";
+import { blockTreeOffersAction, respondTreeOfferAction, unblockTreeOffersAction } from "@/lib/actions/tree-links";
+import { confirm } from "@/components/confirm-sheet";
 import { toast } from "@/components/toast";
 import type { TreeOffer } from "@/lib/queries/tree-links";
 
@@ -10,14 +11,57 @@ import type { TreeOffer } from "@/lib/queries/tree-links";
  * year of birth -- all the other household chose to reveal -- and three
  * answers: that is somebody already in our tree, add them to it, or not ours.
  * Answering "that's our Eduardo" is what joins the two trees at him. */
-export function TreeOffers({ offers, people }: { offers: TreeOffer[]; people: { id: string; fullName: string; dob: string | null }[] }) {
-  if (!offers.length) return null;
+export function TreeOffers({
+  offers,
+  people,
+  blocks = [],
+}: {
+  offers: TreeOffer[];
+  people: { id: string; fullName: string; dob: string | null }[];
+  /** Households this one has blocked from offering it relatives. */
+  blocks?: { familyId: string; familyName: string }[];
+}) {
+  if (!offers.length && !blocks.length) return null;
   return (
     <div className="kin-treeoffers">
       {offers.map((o) => (
         <OfferCard key={o.matchId} offer={o} people={people} />
       ))}
+      {blocks.length > 0 && <BlockedHouseholds blocks={blocks} />}
     </div>
+  );
+}
+
+/** Who is blocked, and the way back. Blocking is only ever about receiving:
+ * the two households stay linked, and this one can still offer to theirs. */
+function BlockedHouseholds({ blocks }: { blocks: { familyId: string; familyName: string }[] }) {
+  const router = useRouter();
+  const [pending, startTransition] = useTransition();
+  return (
+    <ul className="kin-treeblocks" aria-label="Households you have blocked from offering relatives">
+      {blocks.map((b) => (
+        <li key={b.familyId}>
+          <span>
+            Not taking relatives from <strong>{b.familyName}</strong>
+          </span>
+          <button
+            type="button"
+            className="btn btn-ghost"
+            disabled={pending}
+            onClick={() =>
+              startTransition(async () => {
+                const r = await unblockTreeOffersAction(b.familyId);
+                if (r.error) toast.error(r.error);
+                else toast.success(`${b.familyName} can offer relatives again.`);
+                router.refresh();
+              })
+            }
+          >
+            Unblock
+          </button>
+        </li>
+      ))}
+    </ul>
   );
 }
 
@@ -70,6 +114,29 @@ function OfferCard({ offer, people }: { offer: TreeOffer; people: { id: string; 
         </button>
         <button type="button" className="btn btn-ghost" disabled={pending} onClick={() => answer(false, null)}>
           Not our family
+        </button>
+        <button
+          type="button"
+          className="btn btn-ghost"
+          disabled={pending}
+          onClick={async () => {
+            if (
+              !(await confirm({
+                title: `No more relatives from ${offer.fromFamilyName}?`,
+                description: "This declines what they have offered and stops new offers. You stay linked, and you can undo it here any time.",
+                confirmLabel: "Block offers",
+              }))
+            )
+              return;
+            startTransition(async () => {
+              const r = await blockTreeOffersAction(offer.matchId);
+              if (r.error) toast.error(r.error);
+              else toast.success(`${offer.fromFamilyName} can no longer offer you relatives.`);
+              router.refresh();
+            });
+          }}
+        >
+          Block {offer.fromFamilyName}
         </button>
       </div>
     </div>

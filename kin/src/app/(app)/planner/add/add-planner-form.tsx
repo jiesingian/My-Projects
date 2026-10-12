@@ -1,5 +1,6 @@
 "use client";
 
+import { useHouseholdZone } from "@/components/household-zone";
 import { FlyerScanner } from "@/components/flyer-scanner";
 import { InviteCard } from "@/components/invite-card";
 import { PlaceInput } from "@/components/place-input";
@@ -89,6 +90,7 @@ export function AddPlannerForm({
 }
 
 function ActivityForm({ members, defaultDate, editActivity, prefill }: { members: Tables<"members">[]; defaultDate?: string; editActivity?: EditActivity; prefill?: PlannerPrefill }) {
+  const tz = useHouseholdZone();
   const action = editActivity ? updateActivityAction.bind(null, editActivity.id) : createActivityAction;
   const [state, formAction, saving] = useActionState(action, initialState);
   const [wholeFamily, setWholeFamily] = useState(editActivity?.applies_to_whole_family ?? true);
@@ -104,9 +106,9 @@ function ActivityForm({ members, defaultDate, editActivity, prefill }: { members
   // save, parsing date and time in the household's zone, so opening an
   // activity and changing only its title used to walk it eight hours earlier,
   // every time, silently.
-  const startDate = editActivity ? familyDay(new Date(editActivity.start_at)) : undefined;
-  const startTime = editActivity ? familyClock(new Date(editActivity.start_at)) : undefined;
-  const endTime = editActivity?.end_at ? familyClock(new Date(editActivity.end_at)) : undefined;
+  const startDate = editActivity ? familyDay(new Date(editActivity.start_at), tz) : undefined;
+  const startTime = editActivity ? familyClock(new Date(editActivity.start_at), tz) : undefined;
+  const endTime = editActivity?.end_at ? familyClock(new Date(editActivity.end_at), tz) : undefined;
 
   // What this plan would clash with, asked again as the date, times or
   // people change (29 September): overlapping plans for someone it involves,

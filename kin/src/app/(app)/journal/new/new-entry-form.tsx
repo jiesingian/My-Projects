@@ -1,5 +1,6 @@
 "use client";
 
+import { useHouseholdZone } from "@/components/household-zone";
 import { useId, useRef, useState } from "react";
 import { Icon } from "@/components/icons";
 import { useRouter } from "next/navigation";
@@ -25,6 +26,7 @@ export function NewEntryForm({
   /** Started from "Add a milestone": the ★ is already on. */
   defaultMilestone?: boolean;
 }) {
+  const tz = useHouseholdZone();
   const uid = useId();
   const [visibility, setVisibility] = useState<"household" | "personal">(defaultVisibility);
   const [star, setStar] = useState<{ on: boolean; memberId: string | null }>({ on: defaultMilestone, memberId: null });
@@ -51,7 +53,7 @@ export function NewEntryForm({
 
     const fd = new FormData(e.currentTarget);
     const title = String(fd.get("title") ?? "");
-    const date = String(fd.get("date") ?? familyDay());
+    const date = String(fd.get("date") ?? familyDay(new Date(), tz));
     const note = String(fd.get("note") ?? "").trim() || null;
 
     const created = await createJournalEntryAction({ title, date, note, people, visibility, milestone: star.on ? { memberId: star.memberId } : null });
@@ -112,7 +114,7 @@ export function NewEntryForm({
           </div>
           <div className="field" style={{ marginBottom: "1rem" }}>
             <label htmlFor={`${uid}-date`}>Date</label>
-            <DateInput id={`${uid}-date`} aria-label="Date" className="input" name="date" defaultValue={familyDay()} required style={{ minHeight: "2.75rem" }} />
+            <DateInput id={`${uid}-date`} aria-label="Date" className="input" name="date" defaultValue={familyDay(new Date(), tz)} required style={{ minHeight: "2.75rem" }} />
           </div>
           <MilestoneField on={star.on} memberId={star.memberId} members={members} onChange={setStar} />
           <div style={{ fontSize: "0.8125rem", color: "var(--color-neutral-700)", marginBottom: "0.375rem" }}>Who was there</div>

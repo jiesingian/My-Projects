@@ -1,5 +1,6 @@
 "use client";
 
+import { useHouseholdZone } from "@/components/household-zone";
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
@@ -65,6 +66,7 @@ export function CalendarJump({
    * the calendar it is jumping around in. */
   weekStart?: WeekStart;
 }) {
+  const tz = useHouseholdZone();
   const router = useRouter();
   const [open, setOpen] = useState(false);
   // What the header names follows the scroller when there is one; without a
@@ -122,7 +124,7 @@ export function CalendarJump({
   // zones disagreed -- eight hours out of every twenty-four for a household in
   // Manila viewed from anywhere at or west of UTC, and React does not patch a
   // mismatched attribute up.
-  const todayISO = familyDay();
+  const todayISO = familyDay(new Date(), tz);
 
   return (
     <>
@@ -320,7 +322,7 @@ export function CalendarJump({
                 type="button"
                 className="btn btn-primary"
                 style={{ flex: 1, minHeight: "2.75rem" }}
-                onClick={() => go(familyDay())}
+                onClick={() => go(familyDay(new Date(), tz))}
               >
                 Today
               </button>
@@ -427,10 +429,11 @@ export function MonthScroller({ anchor, children }: { anchor: string; children: 
 /** Today. Navigates to the current date, and re-centres the scrollers by
  * hand for the case where that is the date already shown. */
 export function TodayButton({ hrefBase }: { hrefBase: string }) {
+  const tz = useHouseholdZone();
   // Rendered straight into the href, so a browser in another zone produced a
   // different link from the one the server sent. That is the attribute the
   // hydration warning was about.
-  const target = familyDay();
+  const target = familyDay(new Date(), tz);
 
   return (
     <Link

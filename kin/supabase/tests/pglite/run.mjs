@@ -48,6 +48,7 @@ const MIGRATIONS = [
   "20261006100400_scheduled_messages.sql",
   "20261006100500_journal_entry_videos.sql",
   "20261006120000_tree_match_suggestions.sql",
+  "20261011100000_tree_offer_limits_blocks_accounts.sql",
   "20261007090000_time_capsule_letters.sql",
   "20261007110000_household_time_zone.sql",
   "20261007140000_reminders_follow_household_zone.sql",
