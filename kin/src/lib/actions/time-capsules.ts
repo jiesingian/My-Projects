@@ -19,7 +19,7 @@ export async function sealLetterAction(input: {
    * no card, nobody told (20261009090200). A child's note always signs. */
   openToSign?: boolean;
   /** "Open when..." instead of a day: the moment; they open it themselves
-   * (20261009090300). Never a card. */
+   * (20261012090000). Never a card. */
   openWhen?: string;
   title: string;
   body: string;
@@ -76,7 +76,7 @@ export async function sealLetterAction(input: {
 }
 
 /** The person an "open when" letter is for opens it -- once, when the
- * moment comes. Only they can (open_letter, 20261009090300). */
+ * moment comes. Only they can (open_letter, 20261012090000). */
 export async function openLetterAction(id: string): Promise<{ error: string | null }> {
   await requireCurrentMember();
   const supabase = await createClient();
