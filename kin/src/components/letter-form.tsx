@@ -9,12 +9,15 @@ export type LetterRecipient = { id: string; name: string; eighteenth: string | n
 /** Write a letter for someone's special day: who it's for, the day it
  * opens (their 18th birthday unless another day is picked), the occasion's
  * name -- which is how the journal gathers everyone's letters for that day
- * together -- and the letter. */
+ * together -- and the letter. Or, instead of a day, "Open when...": a
+ * moment, and they open it themselves when it comes. */
 export function LetterForm({ recipients, today }: { recipients: LetterRecipient[]; today: string }) {
   const [recipientId, setRecipientId] = useState("");
   const [opensOn, setOpensOn] = useState("");
   const [occasion, setOccasion] = useState("");
   const [openToSign, setOpenToSign] = useState(true);
+  const [whenMode, setWhenMode] = useState(false);
+  const [openWhen, setOpenWhen] = useState("");
   const [title, setTitle] = useState("");
   const [body, setBody] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -24,17 +27,18 @@ export function LetterForm({ recipients, today }: { recipients: LetterRecipient[
   const who = recipients.find((r) => r.id === recipientId);
   // Their 18th birthday is the default only while it is still ahead.
   const eighteenth = who?.eighteenth && who.eighteenth > today ? who.eighteenth : null;
-  const needsDate = !!who && !eighteenth && !opensOn;
+  const needsDate = whenMode ? !openWhen.trim() : !!who && !eighteenth && !opensOn;
 
   const seal = () =>
     startTransition(async () => {
-      const r = await sealLetterAction({ recipientId, opensOn: opensOn || null, occasion, openToSign, title, body });
+      const r = await sealLetterAction({ recipientId, opensOn: whenMode ? null : opensOn || null, occasion, openToSign, openWhen: whenMode ? openWhen : "", title, body });
       setError(r.error);
       if (!r.error) {
         setRecipientId("");
         setOpensOn("");
         setOccasion("");
         setOpenToSign(true);
+        setOpenWhen("");
         setTitle("");
         setBody("");
         setDone(true);
@@ -52,6 +56,22 @@ export function LetterForm({ recipients, today }: { recipients: LetterRecipient[
           ))}
         </select>
       </label>
+      <div className="kin-letter-mode" role="radiogroup" aria-label="When it opens">
+        <button type="button" role="radio" aria-checked={!whenMode} className="chip" data-active={!whenMode} onClick={() => setWhenMode(false)} disabled={pending}>
+          On a day
+        </button>
+        <button type="button" role="radio" aria-checked={whenMode} className="chip" data-active={whenMode} onClick={() => setWhenMode(true)} disabled={pending}>
+          Open when…
+        </button>
+      </div>
+      {whenMode ? (
+        <label style={{ display: "grid", gap: 4, fontSize: "0.8125rem" }}>
+          Open when…
+          <input className="input" placeholder="you're sad · you miss home · you get your first job" maxLength={120} value={openWhen} onChange={(e) => setOpenWhen(e.target.value)} disabled={pending} />
+          <span style={{ color: "var(--color-neutral-700)" }}>They&apos;ll see the envelope and open it themselves when the moment comes.</span>
+        </label>
+      ) : (
+        <>
       <label style={{ display: "grid", gap: 4, fontSize: "0.8125rem" }}>
         Opens on
         <input className="input" type="date" min={today} value={opensOn} onChange={(e) => setOpensOn(e.target.value)} disabled={pending} />
@@ -65,9 +85,11 @@ export function LetterForm({ recipients, today }: { recipients: LetterRecipient[
         The occasion
         <input className="input" placeholder={eighteenth && !opensOn ? "18th birthday" : "Birthday, graduation, wedding day…"} maxLength={80} value={occasion} onChange={(e) => setOccasion(e.target.value)} disabled={pending} />
       </label>
+        </>
+      )}
       <input className="input" aria-label="Title (optional)" placeholder="Title (optional)" maxLength={120} value={title} onChange={(e) => setTitle(e.target.value)} disabled={pending} />
       <textarea className="input" aria-label="Your letter" placeholder="Dear…" rows={8} maxLength={20000} value={body} onChange={(e) => setBody(e.target.value)} disabled={pending} />
-      <label className="kin-letter-switch">
+      {!whenMode && <label className="kin-letter-switch">
         <input type="checkbox" checked={openToSign} onChange={(e) => setOpenToSign(e.target.checked)} disabled={pending} />
         <span>
           Let the family sign it too
@@ -77,14 +99,16 @@ export function LetterForm({ recipients, today }: { recipients: LetterRecipient[
               : "Private: just from you. Nobody else is told it exists."}
           </span>
         </span>
-      </label>
+      </label>}
       <p style={{ fontSize: "0.8125rem", margin: 0, color: "var(--color-neutral-700)" }}>
-        Until the day it opens they only see a sealed envelope. On the day it opens for them in the journal — only they and each writer can read it.
+        {whenMode
+          ? "Just from you, and nobody else is told. Until they open it they only see the envelope; then it's in their journal — only they and you can read it."
+          : "Until the day it opens they only see a sealed envelope. On the day it opens for them in the journal — only they and each writer can read it."}
       </p>
       <button type="button" className="btn btn-primary" disabled={pending || !recipientId || !body.trim() || needsDate} onClick={seal}>
         {pending ? "Sealing…" : "Seal the letter"}
       </button>
-      {done && <p role="status" style={{ fontSize: "0.8125rem", margin: 0 }}>Sealed. It&apos;s safe here until the day it opens.</p>}
+      {done && <p role="status" style={{ fontSize: "0.8125rem", margin: 0 }}>{whenMode ? "Sealed. It's waiting for them until the moment comes." : "Sealed. It's safe here until the day it opens."}</p>}
       {error && <p role="alert" style={{ color: "var(--color-accent-700)", fontSize: "0.8125rem", margin: 0 }}>{error}</p>}
     </div>
   );

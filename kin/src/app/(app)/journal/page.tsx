@@ -21,7 +21,7 @@ import { isGrownUp } from "@/lib/roles";
 import { AddToHouseholdButton } from "@/components/add-to-household";
 import { EntryShareOptions } from "@/components/entry-share-options";
 import { getMembers } from "@/lib/queries/family";
-import { getTimeCapsules, getSealedForMe, getOpenCards, letterDays, type LetterDay } from "@/lib/queries/time-capsules";
+import { getTimeCapsules, getSealedForMe, getOpenCards, getOpenWhenForMe, letterDays, type LetterDay } from "@/lib/queries/time-capsules";
 import { LetterDayLetters, SealedEnvelopes, LetterCompose, OpenCards } from "@/components/journal-letters";
 import { familyDay } from "@/lib/time";
 
@@ -155,7 +155,7 @@ type Reader = { id: string; grownUp: boolean; canSign: boolean; timeZone: string
 async function EntriesPane({ familyId, me, mine, milestonesOnly = false }: { familyId: string; me: Reader; mine?: { personId: string }; milestonesOnly?: boolean }) {
   const fmtDate = await familyDate();
   const withLetters = !milestonesOnly;
-  const [entries, links, connections, letters, envelopes, members, cards] = await Promise.all([
+  const [entries, links, connections, letters, envelopes, members, cards, openWhen] = await Promise.all([
     getEntries(familyId, mine, { milestonesOnly }),
     getFamilyLinks(familyId),
     mine ? getConnections() : [],
@@ -163,6 +163,7 @@ async function EntriesPane({ familyId, me, mine, milestonesOnly = false }: { fam
     withLetters ? getSealedForMe() : Promise.resolve([]),
     withLetters && me.grownUp ? getMembers(familyId) : Promise.resolve([]),
     withLetters && me.canSign ? getOpenCards() : Promise.resolve([]),
+    withLetters ? getOpenWhenForMe() : Promise.resolve([]),
   ]);
   const today = familyDay(new Date(), me.timeZone);
   const sealedByMe = letters.filter((l) => l.sealed && l.writerMemberId === me.id);
@@ -226,7 +227,7 @@ async function EntriesPane({ familyId, me, mine, milestonesOnly = false }: { fam
           </Link>
         </nav>
       )}
-      {withLetters && <SealedEnvelopes envelopes={envelopes} />}
+      {withLetters && <SealedEnvelopes envelopes={envelopes} openWhen={openWhen} />}
       {withLetters && <OpenCards cards={cards} />}
       {withLetters && me.grownUp && <LetterCompose recipients={recipients} today={today} sealedByMe={sealedByMe} />}
       {!mine && !milestonesOnly && <Link href={`/journal/new?title=${encodeURIComponent(question)}`} className="kin-story">

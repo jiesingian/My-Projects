@@ -1,5 +1,6 @@
 import { readableDay } from "@/lib/time";
-import type { LetterDay, OpenCard, SealedEnvelope, TimeCapsule } from "@/lib/queries/time-capsules";
+import type { LetterDay, OpenCard, OpenWhenEnvelope, SealedEnvelope, TimeCapsule } from "@/lib/queries/time-capsules";
+import { OpenWhenButton } from "@/components/open-when-button";
 import { CardSign } from "@/components/card-sign";
 import { LetterForm, type LetterRecipient } from "@/components/letter-form";
 import { LetterRemove } from "@/components/letter-remove";
@@ -19,13 +20,18 @@ function names(list: string[]): string {
 export function LetterDayLetters({ day, meId, underEntry = false }: { day: LetterDay; meId: string; underEntry?: boolean }) {
   const forMe = day.recipientMemberId === meId;
   const name = day.occasion || "A special day";
+  // An "open when" letter, opened on this day by its recipient.
+  const moment = day.letters.length === 1 && !!day.letters[0].openWhen;
   return (
     <section id={`letters-${day.key}`} className="kin-letterday" data-under-entry={underEntry} aria-label={`Letters for ${forMe ? "you" : first(day.recipientName)} · ${name}`}>
       {!underEntry && (
         <>
-          <span style={{ font: "400 0.75rem/1 var(--font-numeric)", color: "var(--color-accent-700)" }}>{readableDay(day.opensOn, { year: true })}</span>
+          <span style={{ font: "400 0.75rem/1 var(--font-numeric)", color: "var(--color-accent-700)" }}>
+            {moment ? "Opened " : ""}
+            {readableDay(day.opensOn, { year: true })}
+          </span>
           <h3 style={{ font: "600 1.3125rem/1.1 var(--font-heading)", margin: "7px 0 4px" }}>
-            {forMe ? "Your" : `${first(day.recipientName)}'s`} {name.charAt(0).toLowerCase() + name.slice(1)}
+            {moment ? name : `${forMe ? "Your" : `${first(day.recipientName)}'s`} ${name.charAt(0).toLowerCase() + name.slice(1)}`}
           </h3>
         </>
       )}
@@ -64,8 +70,8 @@ function Letter({ letter: l, meId }: { letter: TimeCapsule; meId: string }) {
 }
 
 /** Envelopes waiting for the reader: who from, the day, the occasion. */
-export function SealedEnvelopes({ envelopes: all }: { envelopes: SealedEnvelope[] }) {
-  if (all.length === 0) return null;
+export function SealedEnvelopes({ envelopes: all, openWhen = [] }: { envelopes: SealedEnvelope[]; openWhen?: OpenWhenEnvelope[] }) {
+  if (all.length === 0 && openWhen.length === 0) return null;
   // Several notes for the same day are one card.
   const byDay = new Map<string, { id: string; writers: string[]; opensOn: string; occasion: string }>();
   for (const e of all) {
@@ -79,6 +85,16 @@ export function SealedEnvelopes({ envelopes: all }: { envelopes: SealedEnvelope[
     <section className="kin-envelopes" aria-label="Letters waiting for you">
       <p className="kin-eyebrow" style={{ margin: "0 0 0.375rem" }}>Sealed for you</p>
       <ul>
+        {openWhen.map((e) => (
+          <li key={e.id} className="kin-card-row">
+            <span className="kin-letter-seal" aria-hidden="true" />
+            <span style={{ flex: 1 }}>
+              Open when {e.openWhen}
+              <span className="kin-letter-meta">From {first(e.writerName) || "someone in your family"} · whenever the moment comes</span>
+            </span>
+            <OpenWhenButton id={e.id} moment={e.openWhen} />
+          </li>
+        ))}
         {envelopes.map((e) => (
           <li key={e.id}>
             <span className="kin-letter-seal" aria-hidden="true" />
@@ -116,7 +132,7 @@ export function LetterCompose({ recipients, today, sealedByMe }: { recipients: L
                   <strong>{l.title || `For ${first(l.recipientName)}`}</strong>
                   <span className="kin-letter-meta">
                     For {first(l.recipientName)}
-                    {l.occasion ? ` · ${l.occasion}` : ""} · opens {readableDay(l.opensOn, { year: true })}
+                    {l.openWhen ? ` · ${l.occasion} · not opened yet` : <>{l.occasion ? ` · ${l.occasion}` : ""} · opens {readableDay(l.opensOn, { year: true })}</>}
                     {l.openToSign ? "" : " · private"}
                   </span>
                 </span>
