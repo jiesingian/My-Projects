@@ -1,3 +1,4 @@
+import { formatCurrency } from "@/lib/format";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getCurrentMember } from "@/lib/session";
@@ -279,7 +280,7 @@ async function MealsPane({
             </div>
 
             {inSlot.map((m) => (
-              <DishCard key={m.id} meal={m} members={members} />
+              <DishCard key={m.id} meal={m} members={members} currency={currency} />
             ))}
 
             <AddMealControl date={anchorISO} slot={slot} />
@@ -306,7 +307,7 @@ async function MealsPane({
 /** One dish, given the room it deserves: its picture across the full width,
  * its name on the picture, and its amounts underneath where they can be
  * changed for this meal without opening the recipe. */
-function DishCard({ meal, members }: { meal: PlannedMeal; members: { id: string; name: string }[] }) {
+function DishCard({ meal, members, currency }: { meal: PlannedMeal; members: { id: string; name: string }[]; currency: string }) {
   const tone = plateTone(meal.dish);
   const meta = [
     MEAL_SLOT_LABEL[meal.slot],
@@ -382,6 +383,25 @@ function DishCard({ meal, members }: { meal: PlannedMeal; members: { id: string;
       </div>
 
       <div style={{ padding: "0.625rem 0.75rem 0.75rem" }}>
+        {/* What the whole meal costs, from the price book; amounts it
+            cannot price honestly are counted, not guessed (lib/meal-cost). */}
+        {meal.ingredientCount > 0 && (
+          <div style={{ display: "flex", alignItems: "baseline", gap: "0.5rem", paddingBottom: "0.5rem", marginBottom: "0.5rem", borderBottom: "1px solid var(--color-divider)" }}>
+            <span style={{ flex: 1, minWidth: 0, fontSize: "0.8125rem", color: "var(--color-neutral-700)" }}>
+              Cost of this meal
+              {meal.cost.priced > 0 && meal.cost.unpriced > 0 && (
+                <span style={{ color: "var(--color-neutral-600)", fontSize: "0.71875rem" }}>
+                  {" "}· {meal.cost.unpriced} not priced
+                </span>
+              )}
+            </span>
+            {meal.cost.priced > 0 ? (
+              <strong style={{ font: "600 1rem/1.2 var(--font-numeric)" }}>{formatCurrency(meal.cost.total, currency)}</strong>
+            ) : (
+              <span style={{ fontSize: "0.78125rem", color: "var(--color-neutral-600)" }}>No price yet</span>
+            )}
+          </div>
+        )}
         <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
           <span style={{ flex: 1, minWidth: 0, fontSize: "0.78125rem", color: "var(--color-neutral-700)" }}>
             {meal.ingredientCount === 0

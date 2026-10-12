@@ -1,4 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
+import { mealCost, type MealCost } from "@/lib/meal-cost";
+import { loadFamilyPrices } from "@/lib/queries/household-money";
 import { normalizeKey } from "@/lib/pricebook";
 import { sectionOrder } from "@/lib/grocery";
 import { getSignedUrls } from "@/lib/storage";
@@ -103,6 +105,8 @@ export type PlannedMeal = {
    * reason it is expressed by an absence of rows rather than by tagging
    * everybody. */
   memberIds: string[];
+  /** What the whole meal costs from the price book (lib/meal-cost). */
+  cost: MealCost;
 };
 
 /** Everything cooked on one day, with the amounts each meal needs and the
@@ -112,7 +116,7 @@ export async function getMealsForDay(familyId: string, anchor: Date = new Date()
   const supabase = await createClient();
   const anchorISO = toISODate(anchor);
 
-  const [{ data: dayRows }, { data: activeBuy }, { data: pantry }, { data: photos }] = await Promise.all([
+  const [{ data: dayRows }, { data: activeBuy }, { data: pantry }, { data: photos }, familyPrices] = await Promise.all([
     supabase
       .from("meal_plans")
       .select("*, meal_ingredients(*), family_recipes(minutes, serves, steps), meal_plan_members(member_id)")
@@ -122,7 +126,9 @@ export async function getMealsForDay(familyId: string, anchor: Date = new Date()
     supabase.from("buy_items").select("name").eq("family_id", familyId).eq("cleared", false).eq("checked", false),
     supabase.from("pantry_items").select("item_key").eq("family_id", familyId),
     supabase.from("recipe_photos").select("recipe_ref, storage_path").eq("family_id", familyId),
+    loadFamilyPrices(familyId),
   ]);
+  const priceMap = new Map([...familyPrices].map(([k, v]) => [k, { unit_price: Number(v.unit_price), unit: v.unit }]));
 
   const atHome = new Set((pantry ?? []).map((p) => p.item_key));
   const openNames = new Set((activeBuy ?? []).map((b) => normalizeKey(b.name)));
@@ -173,6 +179,7 @@ export async function getMealsForDay(familyId: string, anchor: Date = new Date()
       have: ingredients.filter((i) => i.inPantry).length,
       ingredientCount: ingredients.length,
       memberIds: (m.meal_plan_members ?? []).map((r: { member_id: string }) => r.member_id),
+      cost: mealCost(ingredients, priceMap),
     };
   });
 
