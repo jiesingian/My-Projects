@@ -10,6 +10,7 @@ import { ROUTINE_KINDS, ROUTINE_KIND_META, type RoutineKind } from "@/lib/routin
 import { DateInput } from "@/components/date-input";
 import { RoutineAttachments } from "@/components/routine-attachments";
 import type { RoutineAttachment } from "@/lib/queries/routines";
+import { scrollBehavior } from "@/lib/motion";
 
 const initialState: RoutineActionState = { error: null, field: null };
 const WEEKDAYS = [
@@ -142,7 +143,7 @@ export function RoutineForm({
     if (!state.error || !state.field) return;
     const el = formRef.current?.querySelector<HTMLElement>(`[data-field="${state.field}"]`);
     if (!el) return;
-    el.scrollIntoView({ behavior: "smooth", block: "center" });
+    el.scrollIntoView({ behavior: scrollBehavior(), block: "center" });
     el.querySelector<HTMLElement>("input, select, textarea, button")?.focus({ preventScroll: true });
   }, [state]);
 

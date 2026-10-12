@@ -8,6 +8,7 @@ import { Icon } from "@/components/icons";
 import { PlusNote } from "@/components/plus";
 import { DateInput } from "@/components/date-input";
 import { GOAL_KINDS, GOAL_KIND_META, GOAL_PERIODS, PERIOD_LABEL, REWARD_TERMS, type GoalKind, type GoalPeriod } from "@/lib/goals";
+import { scrollBehavior } from "@/lib/motion";
 
 const initialState: GoalFormState = { error: null };
 
@@ -48,7 +49,7 @@ export function GoalForm({
     if (!state.error || !state.field) return;
     const el = formRef.current?.querySelector<HTMLElement>(`[data-field="${state.field}"]`);
     if (!el) return;
-    el.scrollIntoView({ behavior: "smooth", block: "center" });
+    el.scrollIntoView({ behavior: scrollBehavior(), block: "center" });
     el.querySelector<HTMLElement>("input, select, textarea, button")?.focus({ preventScroll: true });
   }, [state]);
 
