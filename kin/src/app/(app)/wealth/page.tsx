@@ -637,6 +637,12 @@ async function ScopePane({ scope, familyId, memberId, currency, range, newAccoun
   const periodNoun = range === "day" ? "day" : range === "week" ? "week" : range === "year" ? "year" : "month";
   const momChange = periodOverPeriodChange(cf.history);
   const cashTrend = cashBalanceTrend(cf.history, pane.total);
+  const ownerLabel = (ownerId: string | null) => {
+    if (!ownerId) return null;
+    if (ownerId === memberId) return "Yours";
+    const i = who.active.findIndex((m) => m.id === ownerId);
+    return i < 0 ? null : `${who.labels[i]}\u2019s`;
+  };
   const accountGroups = ACCOUNT_TYPES.map((t) => ({
     type: t,
     accounts: pane.accounts.filter((a) => (a.account_type as AccountType) === t),
@@ -723,8 +729,13 @@ async function ScopePane({ scope, familyId, memberId, currency, range, newAccoun
                     {a.institution ? a.institution : ACCOUNT_TYPE_LABELS[a.account_type as AccountType] ?? a.account_type}
                     {a.sub_note ? ` · ${a.sub_note}` : ""}
                   </span>
-                  {/* Who can see it, and — if it is yours — a tap to change that. */}
-                  <span style={{ display: "inline-flex", marginTop: "0.3125rem" }}>
+                  {/* Whose it is, where the list mixes people (All), then who can
+                      see it and -- if it is yours -- a tap to change that. Two
+                      "BDO - Savings" rows read as one account without the name. */}
+                  <span style={{ display: "flex", alignItems: "center", gap: "0.375rem", marginTop: "0.3125rem" }}>
+                    {isJoint && !a.is_joint && ownerLabel(a.owner_member_id) && (
+                      <span style={{ fontSize: "0.6875rem", fontWeight: 600, color: "var(--color-neutral-700)" }}>{ownerLabel(a.owner_member_id)}</span>
+                    )}
                     <AccountPrivacyToggle
                       accountId={a.id}
                       isPrivate={a.is_private}
