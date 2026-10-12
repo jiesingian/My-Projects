@@ -28,9 +28,13 @@ export async function updateSession(request: NextRequest) {
     },
   );
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  // getClaims() verifies the JWT locally (asymmetric signing keys), so a
+  // request makes no auth-server call unless the token has expired and needs
+  // refreshing. getUser() here was one round trip per request, prefetches
+  // included, and overloaded the dev project. Pages and RLS still enforce
+  // access; this only decides who is bounced to /login.
+  const { data: claimsData } = await supabase.auth.getClaims();
+  const user = claimsData?.claims?.sub ? claimsData.claims : null;
 
   const path = request.nextUrl.pathname;
   const isAuthRoute =

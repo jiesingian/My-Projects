@@ -1,6 +1,5 @@
 import { redirect } from "next/navigation";
-import { createClient } from "@/lib/supabase/server";
-import { getCurrentMember } from "@/lib/session";
+import { getCurrentMember, getSessionUser } from "@/lib/session";
 import { Welcome } from "@/components/welcome/welcome";
 import { paletteCss } from "@/lib/palettes";
 
@@ -13,10 +12,7 @@ export const metadata = {
  * -- the 3D house, setup one question at a time, and a tour of the features
  * before sign-up -- instead of being dropped on a login form. */
 export default async function RootPage() {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getSessionUser();
 
   if (!user) {
     return (

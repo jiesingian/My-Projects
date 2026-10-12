@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { getCurrentMember } from "@/lib/session";
+import { getCurrentMember, getSessionUser } from "@/lib/session";
 import { createClient } from "@/lib/supabase/server";
 import { signOutAction } from "@/lib/actions/auth";
 import { DetailHeader } from "@/components/hub-header";
@@ -16,8 +16,8 @@ export default async function AccountSettingsPage() {
   if (!me) redirect("/onboarding/profile");
 
   const supabase = await createClient();
-  const [{ data: authUser }, { count: otherActiveCount }] = await Promise.all([
-    supabase.auth.getUser(),
+  const [authUser, { count: otherActiveCount }] = await Promise.all([
+    getSessionUser(),
     supabase.from("members").select("id", { count: "exact", head: true }).eq("family_id", me.family_id).in("status", ["active", "managed"]).neq("id", me.id),
   ]);
 
@@ -27,7 +27,7 @@ export default async function AccountSettingsPage() {
       <div style={{ padding: "0 var(--gutter) 1.375rem" }}>
         <div style={{ fontSize: "0.8125rem", color: "var(--color-neutral-700)", marginBottom: "0.125rem" }}>Signed in as</div>
         <div style={{ padding: "0.5rem 0 0.8125rem", borderBottom: "1px solid color-mix(in srgb, var(--color-text) 10%, transparent)", fontSize: "0.875rem" }}>
-          {authUser.user?.email}
+          {authUser?.email}
         </div>
         <form action={signOutAction}>
           <button type="submit" className="btn btn-secondary btn-block" style={{ minHeight: "2.875rem", fontSize: "0.84375rem", letterSpacing: ".04em", marginTop: "1.25rem" }}>
