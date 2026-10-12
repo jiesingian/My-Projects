@@ -20,7 +20,7 @@ import { isNetworkFailure, isOffline, newOpId, queueOffline, useQueue } from "@/
 
 const initialState: ActionState = { error: null };
 
-type ListOrder = "aisle" | "added" | "event";
+type ListOrder = "aisle" | "event";
 const ORDER_KEY = "kin.buy-list.order";
 // Kept here too, so the toggle still works where storage is blocked (a
 // private window); it is just not remembered there.
@@ -29,7 +29,8 @@ const orderListeners = new Set<() => void>();
 function readOrder(): ListOrder {
   try {
     const saved = localStorage.getItem(ORDER_KEY);
-    if (saved === "aisle" || saved === "added" || saved === "event") orderNow = saved;
+    // "added" was a third order until 12 October; it reads as By aisle now.
+    if (saved === "aisle" || saved === "event") orderNow = saved;
   } catch {}
   return orderNow;
 }
@@ -233,14 +234,7 @@ export function BuyList({
         items: groupByAisle(allItems.filter((i) => eventOf(i)?.id === e.id)).flatMap((g) => g.items),
       }))
       .filter((g) => g.items.length > 0);
-  const shown: ShownGroup[] =
-    order === "aisle"
-      ? groupByAisle(allItems)
-      : order === "event"
-        ? byEvent()
-        : allItems.length > 0
-          ? [{ name: "In the order added", items: [...allItems].sort((a, b) => a.created_at.localeCompare(b.created_at) || a.name.localeCompare(b.name) || a.id.localeCompare(b.id)) }]
-          : [];
+  const shown: ShownGroup[] = order === "event" ? byEvent() : groupByAisle(allItems);
   // Grouping by event is only worth offering once there is an event to group under.
   const canGroupByEvent = events.length > 0 || allItems.some((i) => i.event_id);
 
@@ -348,17 +342,13 @@ export function BuyList({
               By event
             </button>
           )}
-          <button type="button" className="chip" data-active={order === "added"} aria-pressed={order === "added"} onClick={() => chooseOrder("added")}>
-            As added
-          </button>
         </div>
       )}
 
       {shown.map((g) => {
-        // One long list has nothing to fold away, so it is always open. Aisles
-        // start closed; events start open (a party's list is read as a whole),
-        // so for them the set holds the ones folded away.
-        const isOpen = order === "added" || (order === "event" ? !expanded.has(`event:${g.name}`) : expanded.has(g.name));
+        // Every group starts folded to its header and opens on a tap
+        // (Jonathan, 12 October); the set holds the open ones.
+        const isOpen = expanded.has(order === "event" ? `event:${g.name}` : g.name);
         const toggleKey = order === "event" ? `event:${g.name}` : g.name;
         const inBasket = g.items.filter((i) => i.checked).length;
         // What an event's shopping comes to, from the same estimates as the
