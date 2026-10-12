@@ -49,9 +49,7 @@ function chooseOrder(next: ListOrder) {
 
 type BuyGroup = { name: string; items: Tables<"buy_items">[]; openCount: number };
 /** A group as shown: an aisle, the whole list, or an event (title and day apart). */
-type ShownGroup = { name: string; items: Tables<"buy_items">[]; event?: { title: string; when: EventDay } };
-/** An event's day as its header shows it: "16" over "Oct" ("Jan '27" in another year). */
-type EventDay = { day: string; month: string; full: string };
+type ShownGroup = { name: string; items: Tables<"buy_items">[]; event?: { title: string; when: string } };
 /** An event a line can be for, at its next date (YYYY-MM-DD). */
 type ListEvent = { id: string; title: string; date: string };
 
@@ -63,28 +61,11 @@ function eventLabel(e: ListEvent): string {
   return `${e.title} · ${day}`;
 }
 
-function eventWhen(e: ListEvent): EventDay {
+/** "Fri 16 Oct", with the year once it is not this year's ("Fri 22 Jan 2027"). */
+function eventWhen(e: ListEvent): string {
   const [y, m, d] = e.date.split("-").map(Number);
-  const date = new Date(y, m - 1, d);
-  const month = date.toLocaleDateString("en-GB", { month: "short" });
-  return {
-    day: String(d),
-    month: y === new Date().getFullYear() ? month : `${month} '${String(y).slice(2)}`,
-    full: date.toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long", year: "numeric" }),
-  };
-}
-
-const SOURCE_LABEL: Record<string, string> = {
-  meal_plan: "Meal plan",
-  house: "House",
-  maintenance: "Maintenance",
-  member: "Member",
-};
-
-/** Where a group's lines came from, said once under its header instead of a
- * tag on every line: "House · Meal plan". */
-function sourcesOf(items: Tables<"buy_items">[]): string {
-  return [...new Set(items.map((i) => SOURCE_LABEL[i.source] ?? i.source))].join(" · ");
+  const sameYear = y === new Date().getFullYear();
+  return new Date(y, m - 1, d).toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short", ...(sameYear ? {} : { year: "numeric" }) }).replace(",", "");
 }
 
 export function BuyList({
@@ -367,11 +348,10 @@ export function BuyList({
         const groupUnpriced = g.items.filter((i) => prices[i.id]?.estimated == null).length;
         return (
           <div key={g.name} style={{ marginBottom: "1.125rem" }}>
-            {/* One header for every grouping: what the group is (an event's
-                day in its own column, so a long name wraps under itself),
-                how many lines and how many are in the basket, then its total
-                on the right; where the lines came from under the name
-                (Jonathan, 12 October). */}
+            {/* One header for every grouping: its name and total on one
+                line, then (an event's day ·) how many lines and how many are
+                in the basket -- the By event header Jonathan preferred (12
+                October), used by all three. */}
             <button
               type="button"
               onClick={() =>
@@ -383,18 +363,16 @@ export function BuyList({
                 })
               }
               aria-expanded={isOpen}
-              aria-label={g.event ? `${g.event.title}, ${g.event.when.full}` : undefined}
               style={{
                 width: "100%",
                 cursor: "pointer",
                 background: "none",
                 border: 0,
                 borderBottom: "1px solid var(--color-divider)",
-                padding: "0.375rem 0 0.625rem",
-                display: "grid",
-                gridTemplateColumns: g.event ? "0.75rem 2.5rem minmax(0, 1fr) auto auto" : "0.75rem minmax(0, 1fr) auto auto",
-                columnGap: "0.5rem",
-                alignItems: "start",
+                padding: "0.5rem 0 0.625rem",
+                display: "flex",
+                alignItems: "flex-start",
+                gap: "0.5rem",
                 textAlign: "left",
                 color: "inherit",
               }}
@@ -403,32 +381,22 @@ export function BuyList({
                 name="chevronLeft"
                 size={12}
                 className="text-[var(--color-neutral-600)]"
-                style={{ marginTop: "0.3125rem", transform: isOpen ? "rotate(270deg)" : "rotate(180deg)", transition: "transform 160ms ease-out" }}
+                style={{ flex: "none", marginTop: "0.3125rem", transform: isOpen ? "rotate(270deg)" : "rotate(180deg)", transition: "transform 160ms ease-out" }}
               />
-              {g.event && (
-                <span aria-hidden style={{ display: "grid", justifyItems: "center", padding: "0.25rem 0", borderRadius: 10, background: "color-mix(in srgb, var(--color-accent) 10%, transparent)", color: "var(--color-accent)" }}>
-                  <span style={{ font: "700 1rem/1 var(--font-numeric)" }}>{g.event.when.day}</span>
-                  <span style={{ font: "600 0.625rem/1.2 var(--font-body)", textTransform: "uppercase", letterSpacing: ".04em", whiteSpace: "nowrap" }}>{g.event.when.month}</span>
-                </span>
-              )}
-              <span style={{ display: "grid", gap: "0.1875rem", minWidth: 0 }}>
+              <span style={{ flex: 1, minWidth: 0, display: "grid", gap: "0.25rem" }}>
                 <span style={{ font: "600 0.9375rem/1.3 var(--font-heading)", overflowWrap: "anywhere" }}>{g.event ? g.event.title : g.name}</span>
-                <span style={{ fontSize: "0.71875rem", lineHeight: 1.3, color: "var(--color-neutral-600)" }}>{sourcesOf(g.items)}</span>
+                <span style={{ font: "400 0.75rem/1.3 var(--font-numeric)", color: "var(--color-neutral-600)" }}>
+                  {g.event ? `${g.event.when} · ` : ""}
+                  {g.items.length} item{g.items.length === 1 ? "" : "s"}
+                  {inBasket > 0 ? (inBasket === g.items.length ? " · all in the basket" : ` · ${inBasket} in the basket`) : ""}
+                  {groupUnpriced > 0 && groupUnpriced < g.items.length ? ` · ${groupUnpriced} not priced` : ""}
+                </span>
               </span>
-              <span style={{ display: "grid", justifyItems: "end", gap: "0.1875rem", font: "400 0.71875rem/1.3 var(--font-numeric)", color: "var(--color-neutral-600)", whiteSpace: "nowrap", paddingTop: "0.125rem" }}>
-                <span>{g.items.length} item{g.items.length === 1 ? "" : "s"}</span>
-                {inBasket > 0 && <span>{inBasket === g.items.length ? "all" : inBasket} in basket</span>}
-              </span>
-              <span style={{ display: "grid", justifyItems: "end", gap: "0.1875rem", minWidth: "3.75rem" }}>
-                {groupUnpriced === g.items.length ? (
-                  <span style={{ font: "400 0.8125rem/1.3 var(--font-body)", color: "var(--color-neutral-600)", whiteSpace: "nowrap" }}>No price</span>
-                ) : (
-                  <strong style={{ font: "600 0.9375rem/1.3 var(--font-numeric)", whiteSpace: "nowrap" }}>{formatCurrency(groupTotal, currency)}</strong>
-                )}
-                {groupUnpriced > 0 && groupUnpriced < g.items.length && (
-                  <span style={{ font: "400 0.6875rem/1.3 var(--font-body)", color: "var(--color-neutral-600)", whiteSpace: "nowrap" }}>+{groupUnpriced} unpriced</span>
-                )}
-              </span>
+              {groupUnpriced === g.items.length ? (
+                <span style={{ flex: "none", font: "400 0.8125rem/1.3 var(--font-body)", color: "var(--color-neutral-600)", whiteSpace: "nowrap" }}>No price yet</span>
+              ) : (
+                <strong style={{ flex: "none", font: "600 0.9375rem/1.3 var(--font-numeric)", whiteSpace: "nowrap" }}>{formatCurrency(groupTotal, currency)}</strong>
+              )}
             </button>
             {isOpen &&
               g.items.map((item) => (
