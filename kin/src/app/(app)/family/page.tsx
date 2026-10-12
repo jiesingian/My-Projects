@@ -1,3 +1,4 @@
+import { householdZone } from "@/lib/household-zone";
 import Link from "next/link";
 import { getHealthWeek } from "@/lib/queries/health";
 import { familyDay, familyClock } from "@/lib/time";
@@ -196,7 +197,8 @@ async function ProfilePane({ familyId, isOrganiser, myRole }: { familyId: string
 }
 
 async function HealthPane({ familyId }: { familyId: string }) {
-  const [summary, week] = await Promise.all([getHealthSummary(familyId), getHealthWeek(familyId, familyDay(), familyClock(new Date()))]);
+  const tz = await householdZone();
+  const [summary, week] = await Promise.all([getHealthSummary(familyId), getHealthWeek(familyId, familyDay(new Date(), tz), familyClock(new Date(), tz))]);
   const rows = summary.filter((r) => r.member.status !== "pending" && !isGone(r.member.status));
 
   return (

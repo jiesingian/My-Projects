@@ -1,3 +1,4 @@
+import { householdZone } from "@/lib/household-zone";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { getCurrentMember } from "@/lib/session";
@@ -46,6 +47,7 @@ export default async function MemberDetailPage({
   params: Promise<{ id: string }>;
   searchParams: Promise<{ seg?: string; view?: string; from?: string; tab?: string }>;
 }) {
+  const tz = await householdZone();
   const me = await getCurrentMember();
   const dateFormat = me?.families.date_format;
   const fmtDate = await familyDate();
@@ -292,7 +294,7 @@ export default async function MemberDetailPage({
                 <div key={a.id} style={{ padding: "0.6875rem 0", borderBottom: "1px solid color-mix(in srgb, var(--color-text) 10%, transparent)" }}>
                   <div style={{ display: "flex", gap: "0.75rem", alignItems: "center", flexWrap: "wrap" }}>
                     <span style={{ font: "400 0.8125rem/1.4 var(--font-numeric)", color: "var(--color-accent-700)", width: 140, flex: "none" }}>
-                      {familyDateTime(new Date(a.when_at))}
+                      {familyDateTime(new Date(a.when_at), tz)}
                     </span>
                     <span style={{ flex: 1, fontSize: "0.8125rem", minWidth: "7.5rem" }}>
                       {a.what}
@@ -323,8 +325,8 @@ export default async function MemberDetailPage({
               firstName={member.full_name.split(" ")[0]}
               medicines={medicines}
               doses={doses}
-              today={familyDay()}
-              now={familyClock(new Date())}
+              today={familyDay(new Date(), tz)}
+              now={familyClock(new Date(), tz)}
               role={me.role}
             />
           )}
@@ -333,7 +335,7 @@ export default async function MemberDetailPage({
             <IllnessPanel
               memberId={member.id}
               firstName={member.full_name.split(" ")[0]}
-              logs={illness.map((l) => ({ ...l, when: familyDateTime(new Date(l.logged_at)) }))}
+              logs={illness.map((l) => ({ ...l, when: familyDateTime(new Date(l.logged_at), tz) }))}
               role={me.role}
             />
           )}
@@ -402,7 +404,7 @@ export default async function MemberDetailPage({
                 </div>
                 <div style={{ fontSize: "0.8125rem", color: "var(--color-neutral-700)", margin: "8px 0 10px" }}>
                   {omron?.connected
-                    ? `Last sync ${omron.last_synced_at ? familyDateTime(new Date(omron.last_synced_at)) : "just now"}. Readings arrive automatically.`
+                    ? `Last sync ${omron.last_synced_at ? familyDateTime(new Date(omron.last_synced_at), tz) : "just now"}. Readings arrive automatically.`
                     : "Link the Omron Connect app to pull blood pressure and weight readings straight into this record."}
                 </div>
                 <OmronToggle memberId={member.id} connected={!!omron?.connected} />
@@ -414,7 +416,7 @@ export default async function MemberDetailPage({
               {heartSeries.length > 0 && <BarChart title="RESTING HEART RATE · APPLE HEALTH" series={heartSeries} unit="bpm" />}
               {sleepSeries.length > 0 && <BarChart title="SLEEP · APPLE HEALTH" series={sleepSeries} unit="hours" />}
               {/* The WHO standard covers birth to five. */}
-              {member.dob && ageInMonths(member.dob, familyDay()) <= 60 && (
+              {member.dob && ageInMonths(member.dob, familyDay(new Date(), tz)) <= 60 && (
                 <GrowthPanel
                   memberId={member.id}
                   firstName={member.full_name.split(" ")[0]}

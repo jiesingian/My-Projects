@@ -1,5 +1,6 @@
 "use client";
 
+import { useHouseholdZone } from "@/components/household-zone";
 import { useId, useRef, useState } from "react";
 import { Icon } from "@/components/icons";
 import { useRouter } from "next/navigation";
@@ -17,6 +18,7 @@ import { ZoomableImage } from "@/components/zoomable-image";
 type Entry = NonNullable<Awaited<ReturnType<typeof getEntry>>>;
 
 export function EditEntryForm({ entry, members }: { entry: Entry; members: Tables<"members">[] }) {
+  const tz = useHouseholdZone();
   const uid = useId();
   const [people, setPeople] = useState<string[]>(entry.people.map((p) => p.id));
   const [photos, setPhotos] = useState(entry.photos);
@@ -55,7 +57,7 @@ export function EditEntryForm({ entry, members }: { entry: Entry; members: Table
 
     const fd = new FormData(e.currentTarget);
     const title = String(fd.get("title") ?? "");
-    const date = String(fd.get("date") ?? familyDay());
+    const date = String(fd.get("date") ?? familyDay(new Date(), tz));
     const note = String(fd.get("note") ?? "").trim() || null;
 
     const updated = await updateJournalEntryAction({ entryId: entry.id, title, date, note, people, milestone: star.on ? { memberId: star.memberId } : null });

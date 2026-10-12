@@ -1,3 +1,4 @@
+import { householdZone } from "@/lib/household-zone";
 import { createClient } from "@/lib/supabase/server";
 import { familyInstant, familyClock } from "@/lib/time";
 import { expandRoutine, type RoutineRule } from "@/lib/routines";
@@ -18,9 +19,10 @@ export async function findClashes(
   familyId: string,
   input: { date: string; from: string; to: string; wholeFamily: boolean; who: string[]; excludeId?: string },
 ): Promise<ClashReport> {
-  const startAt = familyInstant(input.date, input.from || "09:00");
+  const tz = await householdZone();
+  const startAt = familyInstant(input.date, input.from || "09:00", tz);
   if (!startAt) return { clashes: [], sameDay: [] };
-  const endAt = (input.to && familyInstant(input.date, input.to)) || new Date(startAt.getTime() + DEFAULT_MINUTES * 60_000);
+  const endAt = (input.to && familyInstant(input.date, input.to, tz)) || new Date(startAt.getTime() + DEFAULT_MINUTES * 60_000);
   const mine: ClashPlan = { start: startAt.getTime(), end: Math.max(endAt.getTime(), startAt.getTime() + 60_000), wholeFamily: input.wholeFamily, memberIds: input.wholeFamily ? [] : input.who };
 
   const supabase = await createClient();
@@ -55,7 +57,7 @@ export async function findClashes(
     const e = a.end_at ? new Date(a.end_at).getTime() : s + DEFAULT_MINUTES * 60_000;
     const people = namesOf(a.activity_members);
     if (!clashes(mine, { start: s, end: e, wholeFamily: a.applies_to_whole_family, memberIds: people.map((p) => p.id) })) continue;
-    found.push({ title: a.title, time: `${familyClock(new Date(s))}${a.end_at ? `–${familyClock(new Date(e))}` : ""}`, who: whoOf(a.applies_to_whole_family, people) });
+    found.push({ title: a.title, time: `${familyClock(new Date(s), tz)}${a.end_at ? `–${familyClock(new Date(e), tz)}` : ""}`, who: whoOf(a.applies_to_whole_family, people) });
   }
 
   // Timed routines that come round that day (Mass, a class) -- not the
@@ -66,12 +68,12 @@ export async function findClashes(
     if (r.paused || r.kind === "chore" || !r.time_of_day) continue;
     const rule: RoutineRule = { freq: r.freq as RoutineRule["freq"], repeat_interval: r.repeat_interval, byweekday: r.byweekday ?? [], bymonthday: r.bymonthday, start_date: r.start_date, end_date: r.end_date };
     if (expandRoutine(rule, dayStart, dayEnd).length === 0) continue;
-    const at = familyInstant(input.date, r.time_of_day.slice(0, 5));
+    const at = familyInstant(input.date, r.time_of_day.slice(0, 5), tz);
     if (!at) continue;
     const people = namesOf(r.routine_members);
     const plan: ClashPlan = { start: at.getTime(), end: at.getTime() + DEFAULT_MINUTES * 60_000, wholeFamily: r.applies_to_whole_family, memberIds: people.map((p) => p.id) };
     if (!clashes(mine, plan)) continue;
-    found.push({ title: r.title, time: familyClock(at), who: whoOf(r.applies_to_whole_family, people) });
+    found.push({ title: r.title, time: familyClock(at, tz), who: whoOf(r.applies_to_whole_family, people) });
   }
 
   // All-day events that day, for the people involved: a reminder only.
