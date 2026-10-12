@@ -1,5 +1,6 @@
 "use server";
 
+import { householdZone } from "@/lib/household-zone";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
@@ -13,12 +14,13 @@ import { clamp } from "@/lib/text";
 const GROUPED_TYPES = new Set(["illness", "checkup", "medication", "vaccination"]);
 
 export async function createHealthEntryAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
+  const tz = await householdZone();
   const me = await requireCurrentMember();
   const supabase = await createClient();
 
   const memberId = String(formData.get("member_id") ?? "");
   const type = String(formData.get("type") ?? "");
-  const date = String(formData.get("date") ?? familyDay());
+  const date = String(formData.get("date") ?? familyDay(new Date(), tz));
   const title = clamp(String(formData.get("title") ?? ""), 150);
   const value = clamp(String(formData.get("value") ?? ""), 100);
   const seenBy = clamp(String(formData.get("seen_by") ?? ""), 100) || null;

@@ -1,3 +1,4 @@
+import { householdZone } from "@/lib/household-zone";
 import { createClient } from "@/lib/supabase/server";
 import { getSignedUrls } from "@/lib/storage";
 import { familyDay } from "@/lib/time";
@@ -32,11 +33,12 @@ type Reader = { id: string; role: string; family_id: string; kid_view?: boolean 
  * - in kid view, money goals and bills are left out, as they are on a
  *   child's Today. */
 export async function getWeeklyDigest(me: Reader): Promise<WeeklyDigest> {
+  const tz = await householdZone();
   const supabase = await createClient();
   const kid = inKidView(me);
   const weekStart = weekStartOf(me.families.week_start);
   const since = new Date(Date.now() - 7 * 86_400_000);
-  const sinceDay = familyDay(since);
+  const sinceDay = familyDay(since, tz);
   const nextWeekAnchor = startOfWeek(new Date(Date.now() + 7 * 86_400_000), weekStart);
 
   const [recap, { data: media }, { data: entries }, routines, goals, agenda, { data: members }] = await Promise.all([

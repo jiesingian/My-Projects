@@ -1,3 +1,4 @@
+import { householdZone } from "@/lib/household-zone";
 import { createClient } from "@/lib/supabase/server";
 import { getSignedUrls } from "@/lib/storage";
 import { getValidDriveAccessToken, ensureDriveFolderStructure, ensureNamedSubfolder, listDriveFolderFiles } from "@/lib/google-drive";
@@ -27,6 +28,7 @@ export async function syncDriveJournalMedia(
   // production's error log from 7 September until the 26th).
   supabase: Awaited<ReturnType<typeof createClient>>,
 ): Promise<void> {
+  const tz = await householdZone();
   const token = await getValidDriveAccessToken(familyId);
   if (!token) return;
 
@@ -67,7 +69,7 @@ export async function syncDriveJournalMedia(
       newFiles.map((f) => ({
         family_id: familyId,
         media_type: f.mimeType.startsWith("video/") ? "video" : "photo",
-        taken_at: f.createdTime ? f.createdTime.slice(0, 10) : familyDay(),
+        taken_at: f.createdTime ? f.createdTime.slice(0, 10) : familyDay(new Date(), tz),
         storage_provider: "google_drive" as const,
         drive_file_id: f.id,
         drive_view_link: f.webViewLink ?? null,

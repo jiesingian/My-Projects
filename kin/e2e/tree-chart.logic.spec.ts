@@ -1,7 +1,7 @@
 import { test, expect } from "@playwright/test";
 import { buildChart, seatCouples, withinDegree, TILE_W, type ChartNode } from "@/lib/tree-chart";
 import { relationships } from "@/lib/kinship";
-import { matchBranch, mergeBranch, sameName, type ChartPerson } from "@/lib/tree-merge";
+import { branchConflicts, matchBranch, mergeBranch, sameName, type ChartPerson } from "@/lib/tree-merge";
 import type { BranchPerson } from "@/lib/queries/tree-links";
 
 /** The family tree chart after Jonathan's review of 30 September: people,
@@ -107,6 +107,45 @@ test("a matching name somewhere else on the tree is not taken to be the same per
   const mine = [ours("ed", "Eduardo Reyes"), ours("gp", "Ramon Reyes")];
   const branch = [theirs("T-ed", "Eduardo Reyes", { isSharedPerson: true, fatherId: "T-gp" }), theirs("T-gp", "Ramon Reyes")];
   expect(matchBranch(mine, branch, "ed").size).toBe(0);
+});
+
+// ── where two households disagree, and who has an account ─────────────────
+test("a different father recorded by the other household is reported, and not drawn over ours", () => {
+  const mine = [ours("ed", "Eduardo Reyes", { fatherId: "dad" }), ours("dad", "Ramon Reyes")];
+  const branch = [theirs("T-ed", "Eduardo Reyes", { isSharedPerson: true, fatherId: "T-dad" }), theirs("T-dad", "Roberto Reyes")];
+  const c = branchConflicts(mine, branch, "ed", "Reyes Household", "m1");
+  expect(c).toHaveLength(1);
+  expect(c[0]).toMatchObject({ personId: "ed", relation: "father", ours: "Ramon Reyes", theirs: "Roberto Reyes", household: "Reyes Household" });
+  expect(mergeBranch(mine, branch, "m1", "ed", "Reyes Household").find((p) => p.id === "ed")!.fatherId).toBe("dad");
+});
+
+test("the same father typed differently, or recorded by only one household, is not a conflict", () => {
+  const mine = [ours("ed", "Eduardo Reyes", { fatherId: "dad" }), ours("dad", "Ramon M. Reyes"), ours("lonely", "No Parents")];
+  const branch = [
+    theirs("T-ed", "Eduardo Reyes", { isSharedPerson: true, fatherId: "T-dad", motherId: "T-mum" }),
+    theirs("T-dad", "ramon reyes"),
+    theirs("T-mum", "Lita Reyes"),
+  ];
+  expect(branchConflicts(mine, branch, "ed", "Reyes Household", "m1")).toEqual([]); // his mother is only theirs: a gap
+});
+
+test("a conflict is found on a person matched by name, not only on the shared one", () => {
+  const mine = [
+    ours("ed", "Eduardo Reyes", { fatherId: "dad" }), ours("dad", "Ramon Reyes", { fatherId: "gp" }), ours("gp", "Jose Reyes"),
+  ];
+  const branch = [
+    theirs("T-ed", "Eduardo Reyes", { isSharedPerson: true, fatherId: "T-dad" }),
+    theirs("T-dad", "Ramon Reyes", { fatherId: "T-gp" }),
+    theirs("T-gp", "Pedro Reyes"),
+  ];
+  const known = matchBranch(mine, branch, "ed");
+  expect(branchConflicts(mine, branch, "ed", "R", "m1", known).map((c) => [c.personId, c.theirs])).toEqual([["dad", "Pedro Reyes"]]);
+});
+
+test("a person in a linked branch carries whether they have an account there", () => {
+  const branch = [theirs("T-ed", "Eduardo Reyes", { isSharedPerson: true, fatherId: "T-dad", hasAccount: true }), theirs("T-dad", "Roberto Reyes", { hasAccount: false })];
+  const merged = mergeBranch([ours("ed", "Eduardo Reyes")], branch, "m1", "ed", "Reyes Household");
+  expect(merged.find((p) => p.fullName === "Roberto Reyes")!.hasAccount).toBe(false);
 });
 
 // ── what everybody is to you ──────────────────────────────────────────────

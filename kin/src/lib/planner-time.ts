@@ -1,4 +1,4 @@
-import { familyInstant } from "@/lib/time";
+import { familyInstant, FAMILY_TZ } from "@/lib/time";
 
 /** The two instants an activity is made of, or a sentence saying why not.
  *
@@ -18,11 +18,11 @@ import { familyInstant } from "@/lib/time";
  * tools, where a model was composing the same strings. The form a person uses
  * was left as it was, so the AI path was careful and the human one was not.
  */
-export function activityInstants(date: string, from: string, to: string): { startAt: Date; endAt: Date | null } | { error: string } {
-  const startAt = familyInstant(date, from || "09:00");
+export function activityInstants(date: string, from: string, to: string, tz: string = FAMILY_TZ): { startAt: Date; endAt: Date | null } | { error: string } {
+  const startAt = familyInstant(date, from || "09:00", tz);
   if (!startAt) return { error: "That date and start time aren't a real moment — check them." };
   if (!to) return { startAt, endAt: null };
-  const endAt = familyInstant(date, to);
+  const endAt = familyInstant(date, to, tz);
   if (!endAt) return { error: "That end time isn't a real time — check it." };
   // Nothing in the database refuses this, and an activity that ends before it
   // begins renders as a negative span wherever a duration is shown.

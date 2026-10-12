@@ -1,7 +1,8 @@
+import { householdZone } from "@/lib/household-zone";
 import { createClient } from "@/lib/supabase/server";
 import { formatAccounting, formatCurrency } from "@/lib/format";
 import { getPricedBuyList } from "@/lib/queries/household-money";
-import { familyDay as localDay, familyTime as localTime, familyClock, familyMidnight, FAMILY_TZ } from "@/lib/time";
+import { familyDay as localDay, familyTime as localTime, familyClock, familyMidnight } from "@/lib/time";
 import { formatTimeOfDay } from "@/lib/routines";
 import type { IconName } from "@/components/icons";
 import { isForMe, taggedFrom, whoseFor, type Whose } from "@/lib/for-me";
@@ -61,12 +62,13 @@ export type GlanceTile = {
  * (Planner), the goal (Planner), shopping or today's meal (Household), money
  * (Wealth). */
 export async function getGlance(familyId: string, currency: string, me: Viewer): Promise<{ money: GlanceTile; shop: GlanceTile; next: GlanceTile | null }> {
+  const tz = await householdZone();
   const supabase = await createClient();
   const now = new Date();
   // The month in the household's zone, not the server's: on a server in UTC
   // the first eight hours of the 1st in Manila still belong to last month.
-  const [year, month] = localDay(now).split("-").map(Number);
-  const startOfMonth = (familyMidnight(`${year}-${String(month).padStart(2, "0")}-01`) ?? now).toISOString();
+  const [year, month] = localDay(now, tz).split("-").map(Number);
+  const startOfMonth = (familyMidnight(`${year}-${String(month).padStart(2, "0")}-01`, tz) ?? now).toISOString();
 
   const [budgetPeriod, monthSpend, shop, upcoming] = await Promise.all([
     supabase
@@ -101,7 +103,7 @@ export async function getGlance(familyId: string, currency: string, me: Viewer):
     ? {
         id: "next",
         icon: "calendarDays",
-        value: `${new Intl.DateTimeFormat("en-GB", { timeZone: FAMILY_TZ, weekday: "short" }).format(new Date(nextMine.start_at))} ${localTime(new Date(nextMine.start_at))}`,
+        value: `${new Intl.DateTimeFormat("en-GB", { timeZone: tz, weekday: "short" }).format(new Date(nextMine.start_at))} ${localTime(new Date(nextMine.start_at), tz)}`,
         label: `next: ${nextMine.title}`,
         href: "/planner",
       }
@@ -145,9 +147,10 @@ export async function getGlance(familyId: string, currency: string, me: Viewer):
  * then whatever happens at a time of day in the order it happens, then the
  * things that are simply true all day. */
 export async function getTodayBriefing(familyId: string, currency: string, me: Viewer): Promise<BriefItem[]> {
+  const tz = await householdZone();
   const supabase = await createClient();
   const now = new Date();
-  const today = localDay(now);
+  const today = localDay(now, tz);
 
   // Activities are stored as instants, so they cannot be filtered on the
   // household's local day in the query. A 48-hour window either way is small
@@ -214,7 +217,7 @@ export async function getTodayBriefing(familyId: string, currency: string, me: V
 
   for (const a of activities.data ?? []) {
     const start = new Date(a.start_at);
-    if (localDay(start) !== today) continue;
+    if (localDay(start, tz) !== today) continue;
     if (!isForMe(me, a.applies_to_whole_family, taggedFrom(a.activity_members))) continue;
     const key = `activity-${a.id}`;
     // A plan completed or cancelled on another day, or from the Planner
@@ -228,7 +231,7 @@ export async function getTodayBriefing(familyId: string, currency: string, me: V
       tint: "schedule",
       title: a.title,
       // Written the way the chores beside it are ("6:00 pm"), not "6:00 PM".
-      meta: [formatTimeOfDay(familyClock(start)), a.location].filter(Boolean).join(" · "),
+      meta: [formatTimeOfDay(familyClock(start, tz)), a.location].filter(Boolean).join(" · "),
       href: "/planner",
       at: start.getTime(),
     });
@@ -342,9 +345,10 @@ function weekdayOf(day: string): string {
  * family assistant gives without being asked. Nothing that is already in
  * today's briefing appears here. */
 export async function getComingUp(familyId: string, currency: string, me: Viewer): Promise<BriefItem[]> {
+  const tz = await householdZone();
   const supabase = await createClient();
   const now = new Date();
-  const today = localDay(now);
+  const today = localDay(now, tz);
   const tomorrow = addDays(today, 1);
   const weekOut = addDays(today, 7);
   const dayIndex = new Map<string, number>();
@@ -434,10 +438,10 @@ export async function getComingUp(familyId: string, currency: string, me: Viewer
   // dropdown shows whichever are wanted.
   for (const a of tasks.data ?? []) {
     const start = new Date(a.start_at);
-    if (localDay(start) !== tomorrow || Number(localTime(start).slice(0, 2)) >= 10) continue;
+    if (localDay(start, tz) !== tomorrow || Number(localTime(start, tz).slice(0, 2)) >= 10) continue;
     const tagged = taggedFrom(a.activity_members);
     const whose = whoseFor(me, a.applies_to_whole_family, tagged);
-    items.push({ id: `soon-task-${a.id}`, icon: "clock", tint: "schedule", title: a.title, meta: ["Early start tomorrow", localTime(start), a.location].filter(Boolean).join(" · "), href: "/planner", at: 1, whose, memberIds: a.applies_to_whole_family ? [] : tagged.map((t) => t.id) });
+    items.push({ id: `soon-task-${a.id}`, icon: "clock", tint: "schedule", title: a.title, meta: ["Early start tomorrow", localTime(start, tz), a.location].filter(Boolean).join(" · "), href: "/planner", at: 1, whose, memberIds: a.applies_to_whole_family ? [] : tagged.map((t) => t.id) });
   }
 
   // Tomorrow's meals, against what is in the house and already on the list.

@@ -109,9 +109,20 @@ What already stops a made-up tree from reaching anybody:
 - A name on your tree never becomes somebody's account. A profile is attached
   only by a member of your own household, and only to a member of it.
 
-Proposals, not built:
-- Rate-limit offers.
-- Let a household decline an offer and block that household from offering
-  again.
-- Flag a conflict when two linked households record different parents for
-  the same confirmed person, and show both until one withdraws.
+Built 11 October (`20261011100000_tree_offer_limits_blocks_accounts.sql`):
+- **A limit on offers:** at most 15 waiting on any one household, and 40 a
+  day in all. Offering somebody already waiting is still fine at the limit.
+- **Blocking:** a grown-up who has been offered a relative can block that
+  household. What is waiting from them is declined, and they cannot offer
+  again until it is undone, from the same screen. It stops offers *to* the
+  blocking household only: the two stay linked, and the blocking household
+  can still offer to theirs. The blocked household is told only that the
+  other is "not taking relatives from you right now".
+- **A conflict is said, not settled:** when a linked household records a
+  different father or mother for somebody you share, the chart keeps yours
+  and says so under the legend, with both names. A parent only one of you
+  recorded is a gap, not a conflict. Either household can unlink the match.
+- **Who has an account:** in a linked household's side, a relative with a Kin
+  account there is filled in their colour, and one who is only a name in
+  their tree has a dashed ring in it. That is a yes or no from
+  `shared_branch_accounts`, only for a branch you have an accepted match with.

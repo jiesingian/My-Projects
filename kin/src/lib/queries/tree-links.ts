@@ -21,6 +21,8 @@ export type BranchPerson = {
   motherId: string | null;
   spouseId: string | null;
   isSharedPerson: boolean;
+  /** Whether this person has a Kin account in the other household. */
+  hasAccount?: boolean;
 };
 
 export type TreeOffer = { matchId: string; fromFamilyName: string; fullName: string; birthYear: string | null };
@@ -57,6 +59,13 @@ export async function getTreeOffers(): Promise<TreeOffer[]> {
   const supabase = await createClient();
   const { data } = await supabase.rpc("tree_offers_for_me");
   return (data ?? []).map((o) => ({ matchId: o.match_id, fromFamilyName: o.from_family_name, fullName: o.full_name, birthYear: o.birth_year }));
+}
+
+/** Households this one has blocked from offering it relatives. */
+export async function getTreeOfferBlocks(): Promise<{ familyId: string; familyName: string }[]> {
+  const supabase = await createClient();
+  const { data } = await supabase.rpc("tree_offer_blocks_for_me");
+  return (data ?? []).map((b) => ({ familyId: b.family_id, familyName: b.family_name }));
 }
 
 /** Linked households this one could share a relative with. */

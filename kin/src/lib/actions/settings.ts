@@ -1,5 +1,6 @@
 "use server";
 
+import { householdZone } from "@/lib/household-zone";
 import { cookies, headers } from "next/headers";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
@@ -266,10 +267,11 @@ export async function removeBriefLinkAction(): Promise<ActionState> {
  * reach as the link: whole-family items and the ones tagged to them, today's
  * chores and routines, and for grown-ups what is running low. */
 export async function previewBriefAction(): Promise<{ text: string }> {
+  const tz = await householdZone();
   const me = await requireCurrentMember();
   const supabase = await createClient();
   const since = new Date(Date.now() - 2 * 86_400_000).toISOString();
-  const today = familyDay();
+  const today = familyDay(new Date(), tz);
   const [{ data: acts }, { data: evs }, { data: rts }, { data: pantry }, { data: buy }] = await Promise.all([
     supabase.from("activities").select("title, start_at, end_at, repeat, location, applies_to_whole_family, activity_members(member_id)").eq("family_id", me.family_id).or(`repeat.neq.once,start_at.gt.${since}`),
     supabase.from("events").select("title, event_date, end_date, recurs_yearly, applies_to_whole_family, event_members(member_id)").eq("family_id", me.family_id),
