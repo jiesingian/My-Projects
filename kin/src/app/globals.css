@@ -7147,6 +7147,11 @@ button.kin-room-quote { font: inherit; font-size: 0.78125rem; text-align: left; 
 @media (prefers-reduced-motion: reduce) {
   .kin-letter-paper { animation: none; }
 }
+/* Cards to sign: the row wraps so the note box gets the full width. */
+.kin-envelopes li.kin-card-row { flex-wrap: wrap; }
+.kin-card-sign { flex-basis: 100%; display: grid; gap: 0.5rem; }
+.kin-letter-switch { display: flex; gap: 0.625rem; align-items: flex-start; font-size: 0.875rem; cursor: pointer; }
+.kin-letter-switch input { margin-top: 0.2rem; width: 1.125rem; height: 1.125rem; accent-color: var(--color-accent-700); flex: none; }
 
 /* Evening wrap-up on Today (components/evening-wrap-up.tsx). */
 .kin-wrapup {

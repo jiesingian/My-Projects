@@ -11,6 +11,7 @@ export type TimeCapsule = {
   body: string;
   opensOn: string;
   occasion: string;
+  openToSign: boolean;
   createdAt: string;
   sealed: boolean;
 };
@@ -38,7 +39,7 @@ export async function getTimeCapsules(familyId: string, opts: { openingOn?: stri
   const supabase = await createClient();
   let q = supabase
     .from("time_capsules")
-    .select("id, writer_member_id, writer_name, recipient_member_id, title, body, opens_on, occasion, created_at, recipient:members!time_capsules_recipient_member_id_fkey(full_name)")
+    .select("id, writer_member_id, writer_name, recipient_member_id, title, body, opens_on, occasion, open_to_sign, created_at, recipient:members!time_capsules_recipient_member_id_fkey(full_name)")
     .eq("family_id", familyId)
     .order("opens_on", { ascending: false })
     .order("created_at");
@@ -55,8 +56,27 @@ export async function getTimeCapsules(familyId: string, opts: { openingOn?: stri
     body: r.body,
     opensOn: r.opens_on,
     occasion: r.occasion,
+    openToSign: r.open_to_sign,
     createdAt: r.created_at,
     sealed: r.opens_on > today,
+  }));
+}
+
+/** A card being signed in the household, for anyone but the reader: whose
+ * day, when, and who has signed -- never a word of a note (open_cards,
+ * 20261009090200). */
+export type OpenCard = { recipientMemberId: string; recipientName: string; opensOn: string; occasion: string; signers: string[]; signedByMe: boolean };
+
+export async function getOpenCards(): Promise<OpenCard[]> {
+  const supabase = await createClient();
+  const { data } = await supabase.rpc("open_cards");
+  return (data ?? []).map((r) => ({
+    recipientMemberId: r.recipient_member_id,
+    recipientName: r.recipient_name,
+    opensOn: r.opens_on,
+    occasion: r.occasion,
+    signers: r.signers ?? [],
+    signedByMe: r.signed_by_me,
   }));
 }
 
