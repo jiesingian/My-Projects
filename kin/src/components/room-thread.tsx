@@ -33,6 +33,13 @@ import type { RoomPhoto } from "@/lib/actions/chat-rooms";
 /** As in the household chat: beyond this a message becomes an album. */
 const MAX_PHOTOS = 10;
 
+/** How long a typing signal stands before it is assumed stale, and how often
+ * one is sent: the household chat's numbers (chat-thread.tsx). Somebody
+ * typing steadily never flickers; somebody who stops without sending
+ * disappears within about four seconds. */
+const TYPING_EVERY = 2000;
+const TYPING_TTL = 4000;
+
 /** The family-tree room, or a conversation with one person (29 September).
  * Plainer than the household chat on purpose, like the linked-household
  * thread it is modelled on: words and photos, live, with a notification --
@@ -181,34 +188,56 @@ export function RoomThread({
     void markThreadReadAction(readKey);
   }, [messages.length, readKey]);
 
-  /** First names of whoever is typing here now, from the channel's presence
-   * (20261006100000). Nothing is stored: a typing indicator that outlives
-   * the typing is worse than none. */
-  const [typingNames, setTypingNames] = useState<string[]>([]);
+  /** Whoever is typing here now, against the instant their signal goes
+   * stale (20261006100000). Broadcast on the room's private channel, as the
+   * household chat does -- not presence, which it was until 12 October:
+   * Realtime closes a channel whose client sends more than five presence
+   * updates in thirty seconds (ClientPresenceRateLimitReached), and with a
+   * track on join, on typing, on every send and on every pause, a few quick
+   * messages were enough. The channel carries every live update in the room,
+   * so all of them stopped until a reload. Broadcast has no such limit.
+   * Nothing is stored: a typing indicator that outlives the typing is worse
+   * than none. */
+  const [typing, setTyping] = useState<Record<string, { name: string; until: number }>>({});
   const channelRef = useRef<ReturnType<ReturnType<typeof createClient>["channel"]> | null>(null);
-  const typingSince = useRef(0);
-  const typingStop = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const stopTyping = useCallback(() => {
-    typingSince.current = 0;
-    if (typingStop.current) clearTimeout(typingStop.current);
-    void channelRef.current?.track({ name: me.firstName, typing: false });
-  }, [me.firstName]);
-  const signalTyping = useCallback(
-    (typing: boolean) => {
-      const ch = channelRef.current;
-      if (!ch) return;
-      if (!typing) return stopTyping();
-      // One track call per few seconds however fast somebody types.
-      const now = Date.now();
-      if (now - typingSince.current > 3000) {
-        typingSince.current = now;
-        void ch.track({ name: me.firstName, typing: true });
-      }
-      if (typingStop.current) clearTimeout(typingStop.current);
-      typingStop.current = setTimeout(stopTyping, 4000);
-    },
-    [me.firstName, stopTyping],
+  const lastTypingSent = useRef(0);
+  const sendTyping = useCallback(
+    (on: boolean) => void channelRef.current?.send({ type: "broadcast", event: "typing", payload: { id: me.personId, name: me.firstName, typing: on } }),
+    [me.personId, me.firstName],
   );
+  /** Typing stopped: say so once, rather than leave the others to wait out
+   * the signal's life -- and only if a start was said in the first place. */
+  const stopTyping = useCallback(() => {
+    if (!lastTypingSent.current) return;
+    lastTypingSent.current = 0;
+    sendTyping(false);
+  }, [sendTyping]);
+  /** One signal per TYPING_EVERY at most, however fast somebody types. */
+  const signalTyping = useCallback(
+    (on: boolean) => {
+      if (!on) return stopTyping();
+      const now = Date.now();
+      if (now - lastTypingSent.current < TYPING_EVERY) return;
+      lastTypingSent.current = now;
+      sendTyping(true);
+    },
+    [sendTyping, stopTyping],
+  );
+
+  // Sweeps expired signals. A sender that closes the tab mid-word sends no
+  // retraction, so the only thing that can end an indicator is time.
+  useEffect(() => {
+    if (Object.keys(typing).length === 0) return;
+    const timer = setInterval(() => {
+      setTyping((prev) => {
+        const now = Date.now();
+        const next = Object.fromEntries(Object.entries(prev).filter(([, t]) => t.until > now));
+        return Object.keys(next).length === Object.keys(prev).length ? prev : next;
+      });
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [typing]);
+  const typingNames = Object.values(typing).map((t) => t.name);
 
   useEffect(() => {
     const supabase = createClient();
@@ -218,7 +247,7 @@ export function RoomThread({
       await supabase.realtime.setAuth().catch(() => {});
       if (cancelled) return;
       channel = supabase
-        .channel(topic, { config: { private: true, presence: { key: me.personId } } })
+        .channel(topic, { config: { private: true } })
         .on("postgres_changes", { event: "*", schema: "public", table, ...(filter ? { filter } : {}) }, () => router.refresh())
         // Photos are indexed just after their message, so the message can
         // arrive a beat before them; this brings them in when they land.
@@ -229,17 +258,21 @@ export function RoomThread({
         .on("postgres_changes", { event: "*", schema: "public", table: "group_poll_votes" }, () => router.refresh())
         // Typing, on the same private channel: only people who may read this
         // conversation can join it (chat_topic_is_mine).
-        .on("presence", { event: "sync" }, () => {
-          const state = channel?.presenceState<{ name: string; typing: boolean }>() ?? {};
-          setTypingNames(
-            Object.entries(state)
-              .filter(([key, metas]) => key !== me.personId && metas.some((x) => x.typing))
-              .map(([, metas]) => metas[0].name),
-          );
+        .on("broadcast", { event: "typing" }, ({ payload }) => {
+          const p = payload as { id?: string; name?: string; typing?: boolean };
+          if (!p?.id || p.id === me.personId) return;
+          const who = p.id;
+          setTyping((prev) => {
+            if (p.typing === false) {
+              if (!(who in prev)) return prev;
+              const next = { ...prev };
+              delete next[who];
+              return next;
+            }
+            return { ...prev, [who]: { name: (p.name ?? "").slice(0, 40) || "Someone", until: Date.now() + TYPING_TTL } };
+          });
         })
-        .subscribe((status) => {
-          if (status === "SUBSCRIBED") void channel?.track({ name: me.firstName, typing: false });
-        });
+        .subscribe();
       channelRef.current = channel;
     })();
     return () => {
@@ -247,7 +280,7 @@ export function RoomThread({
       channelRef.current = null;
       if (channel) void supabase.removeChannel(channel);
     };
-  }, [topic, table, filter, router, me.personId, me.firstName]);
+  }, [topic, table, filter, router, me.personId]);
 
   // @mentions (20261006100100): anyone who has written here, plus the
   // group's members; never yourself, never in one to one.

@@ -34,8 +34,11 @@ search across every chat.
 5. **Done: "seen by" and typing in every conversation.** Groups now show
    "Seen by Mama, Lola" under your newest message anyone has read (one to one
    already showed "Seen"; the household chat already had seen-by). "Mama is
-   typing…" shows in the family room, one to one and groups, over the private
-   channel's presence -- nothing is stored. The family room keeps no seen-by
+   typing…" shows in the family room, one to one and groups, as a broadcast on
+   the private channel -- nothing is stored. (It was presence until 12
+   October; Realtime closes a channel after five presence updates in thirty
+   seconds, which a few quick messages reached, and every live update in the
+   room stopped until a reload. chat-live.spec.ts found it.) The family room keeps no seen-by
    (too many households for it to mean anything), and its typing line shows
    your own household only, because each household has its own channel.
 6. **Done: @mentions that notify, in every conversation.** Type @ in the

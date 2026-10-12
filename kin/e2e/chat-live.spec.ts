@@ -7,7 +7,7 @@ import { restAsPartner, ensurePartnerInHousehold } from "./support/qa-partner";
  *
  * Everything the chat does live travels over Supabase Realtime: a new
  * message, an edit, an unsend and a pin arrive as postgres_changes, a poll
- * vote and a reaction likewise, and "is typing…" is presence on the same
+ * vote and a reaction likewise, and "is typing…" is a broadcast on the same
  * private channel. None of it can be seen from one login. Every other chat
  * spec is one person, or a pure function; this is the only check that the
  * other person's screen moves without a refresh.
@@ -134,14 +134,16 @@ test.describe("a group chat, live on the other person's screen", () => {
     const url = `/chat/groups/${groupId}`;
     await Promise.all([quinn.goto(url), pat.goto(url)]);
     await Promise.all([expect(quinn.locator("textarea.kin-composer-field")).toBeVisible(), expect(pat.locator("textarea.kin-composer-field")).toBeVisible()]);
-    // Both channels join after hydration; there is nothing on the page that
-    // says so, and a typing signal sent before Pat has joined still arrives
-    // (presence is state, not an event) -- this only keeps the first live
-    // step from racing the join on a slow runner.
+    // Both channels join after hydration, and nothing on the page says so.
+    // A typing signal sent before Pat has joined is simply lost (a broadcast
+    // is an event, not state); this wait, and typing for a few seconds
+    // rather than an instant, keep the first live step from racing the join
+    // on a slow runner.
     await quinn.waitForTimeout(3_000);
 
     await test.step("Quinn types; Pat sees 'is typing…'", async () => {
-      await quinn.locator("textarea.kin-composer-field").pressSequentially("hel", { delay: 80 });
+      // ~4.5 seconds of typing: a signal goes out every two.
+      await quinn.locator("textarea.kin-composer-field").pressSequentially("hello there", { delay: 400 });
       await expect(pat.locator(".kin-room-typing")).toContainText("is typing", { timeout: LIVE });
       await quinn.locator("textarea.kin-composer-field").fill("");
     });
@@ -179,7 +181,19 @@ test.describe("a group chat, live on the other person's screen", () => {
     await test.step("Pat reacts; Quinn sees it", async () => {
       await bubble(pat, edited).click();
       await pat.locator(".kin-room-actions").getByRole("button", { name: "React 👍" }).click();
-      await expect(quinn.locator(".kin-room-reactions").getByRole("button", { name: /👍 from Pat/ })).toBeVisible({ timeout: LIVE });
+      // On Pat's own screen first: if it is not there, the reaction was never
+      // made, and Quinn's screen has nothing to show.
+      await expect(pat.locator(".kin-room-reactions").getByRole("button", { name: "👍 from You" })).toBeVisible({ timeout: LIVE });
+      const quinnSees = quinn.locator(".kin-room-reactions").getByRole("button", { name: /👍 from Pat/ });
+      // Soft, so one missing live update does not hide whether the poll and
+      // the receipt below work too; the test still fails.
+      await expect.soft(quinnSees, "Pat's reaction did not reach Quinn's screen live").toBeVisible({ timeout: LIVE });
+      if (!(await quinnSees.isVisible())) {
+        // Stored but not pushed, or not readable by Quinn at all.
+        await quinn.reload();
+        await expect(quinnSees, "Pat's reaction is not on Quinn's screen even after a reload").toBeVisible({ timeout: LIVE });
+        await quinn.waitForTimeout(3_000);
+      }
     });
 
     const question = `${RUN} dinner tonight?`;
