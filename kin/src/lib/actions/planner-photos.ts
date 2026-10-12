@@ -39,7 +39,9 @@ export async function deleteEventPhotoAction(id: string): Promise<ActionState> {
  * file would let either side break the other. The copy sits under the
  * household's own folder like any Journal upload.
  *
- * An entry made this way is found again by its source, title and day, so a
+ * An entry made this way is found again by its title and day among the
+ * Planner's entries that no activity made (source 'from_plan', no
+ * source_activity_id), so a
  * second tap opens it rather than making a duplicate. journal_entries.event_id
  * is reserved for milestones (milestones_are_entries.sql), so it is not used. */
 export async function addEventToJournalAction(eventId: string): Promise<{ error: string | null; entryId?: string }> {
@@ -59,7 +61,8 @@ export async function addEventToJournalAction(eventId: string): Promise<{ error:
     .from("journal_entries")
     .select("id")
     .eq("family_id", me.family_id)
-    .eq("source", "from_event")
+    .eq("source", "from_plan")
+    .is("source_activity_id", null)
     .eq("title", event.title)
     .eq("entry_date", event.event_date)
     .limit(1)
@@ -73,7 +76,10 @@ export async function addEventToJournalAction(eventId: string): Promise<{ error:
       entry_date: event.event_date,
       title: event.title,
       note: event.sub_note,
-      source: "from_event",
+      // The database allows only the sources it knows ('from_event' was
+      // refused, 12 October). 'from_plan' is the one the Planner already
+      // writes; an event's entry is the one with no activity behind it.
+      source: "from_plan",
       created_by: me.id,
       visibility: "household",
     })
