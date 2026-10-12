@@ -27,7 +27,7 @@ password.
 |---|---|---|
 | `kin-dev-qa@example.com` | `ZZ QA Testbed (throwaway)` | every machine, and CI |
 | `kin-dev-delete@example.com` | **nothing, between runs** | `delete-household.spec.ts` only |
-| `kin-dev-qa-partner@example.com` | `ZZ QA Testbed (throwaway)`, as an **adult** ("Pat QA Partner") | `private-accounts.spec.ts` only |
+| `kin-dev-qa-partner@example.com` | `ZZ QA Testbed (throwaway)`, as an **adult** ("Pat QA Partner") | `private-accounts.spec.ts`, `chat-live.spec.ts` |
 
 The second is different in kind. `delete-household.spec.ts` is the one test
 that destroys the household it runs against: it creates one, fills every table
@@ -55,10 +55,16 @@ invite code (`join_family`, always "adult") and Quinn, as organizer, let it in
 as an adult. The spec's `beforeAll` repeats that only if it is missing, so a
 rerun adds nobody; it fails rather than "fixes" a partner found anywhere else.
 
-CI needs the same two as repository secrets — Jonathan's to add, at
-https://github.com/jiesingian/My-Projects/settings/secrets/actions/new
-(`E2E_PARTNER_EMAIL`, then `E2E_PARTNER_PASSWORD`). Until then the spec skips
-in CI. Both are for kin-dev only; no such account exists in production.
+`chat-live.spec.ts` uses the partner too: Quinn and Pat open one group chat
+in two browsers, and each live change (typing, a message, an edit, a pin, an
+unsend, a poll vote, a reaction) must reach the other screen without a
+refresh. Its group, "E2E live chat", is made once and reused; each run takes
+its own messages back out.
+
+CI has both as repository secrets (`E2E_PARTNER_EMAIL`,
+`E2E_PARTNER_PASSWORD`; confirmed set on 12 October by the weekly run's log,
+which shows them masked and private-accounts.spec.ts running rather than
+skipping). Both are for kin-dev only; no such account exists in production.
 
 ## In production — leave these alone
 

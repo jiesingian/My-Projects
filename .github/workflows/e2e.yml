@@ -208,17 +208,22 @@ jobs:
           npm run start &
           npx wait-on http://localhost:3000/login --timeout 120000
 
-      # smoke.spec.ts and the logic specs only -- see the header for why the
-      # rest moved to weekly-check.yml. `--workers=4` is safe specifically
-      # because none of this writes anything: playwright.config.ts pins
+      # smoke.spec.ts and the logic specs -- see the header for why the
+      # rest moved to weekly-check.yml -- plus chat-live.spec.ts (12 October):
+      # two people in one group chat in two browsers, the one check that
+      # Realtime reaches the other person's screen. It cannot run in an agent
+      # sandbox (no WebSockets through its proxy), so this is where it runs.
+      # It writes, but only its own messages into its own "E2E live chat"
+      # group, and takes them back out. `--workers=4` is safe specifically
+      # because nothing else here writes anything: playwright.config.ts pins
       # `workers: 1` globally for the specs that do, but nothing here needs
       # that serialization, so the CLI flag overrides it for this run only.
-      - name: Run the suite (smoke + logic, not the full regression)
+      - name: Run the suite (smoke + logic + live chat, not the full regression)
         env:
           E2E_EMAIL: ${{ secrets.E2E_EMAIL }}
           E2E_PASSWORD: ${{ secrets.E2E_PASSWORD }}
-          # The household's second grown-up, for private-accounts.spec.ts
-          # (docs/QA_HOUSEHOLDS.md). Unset, that spec skips and says so.
+          # The household's second grown-up, for private-accounts.spec.ts and
+          # chat-live.spec.ts (docs/QA_HOUSEHOLDS.md). Unset, both skip and say so.
           E2E_PARTNER_EMAIL: ${{ secrets.E2E_PARTNER_EMAIL }}
           E2E_PARTNER_PASSWORD: ${{ secrets.E2E_PARTNER_PASSWORD }}
           E2E_BASE_URL: ${{ inputs.base_url }}
@@ -227,7 +232,7 @@ jobs:
         # 2 workers, not 4: every page signs the request in against dev's
         # auth server, and with twenty pull requests testing at once 4 each was
         # enough to run it out of database connections (7 October).
-        run: npx playwright test e2e/smoke.spec.ts e2e/*.logic.spec.ts --workers=2
+        run: npx playwright test e2e/smoke.spec.ts e2e/chat-live.spec.ts e2e/*.logic.spec.ts --workers=2
 
       - uses: actions/upload-artifact@v6
         if: ${{ !cancelled() }}

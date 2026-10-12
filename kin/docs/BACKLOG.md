@@ -71,6 +71,14 @@ search across every chat.
     reminders work. If by then you may no longer post there (left the
     group, connection removed), it is not sent.
 
+**Live on the other screen: checked in CI (12 October).** `e2e/chat-live.spec.ts`
+opens one group chat as two people in two browsers (the QA account and its
+partner) and checks typing, a new message, an edit, a pin, an unsend, a poll
+vote and a reaction each reach the other screen without a refresh. It runs in
+e2e.yml on every pull request, because an agent sandbox cannot open
+WebSockets. "Seen by" in a group is drawn when the thread loads; a read is
+not pushed live yet.
+
 ## Agreed 28 September (Jonathan's answers to the page-by-page review)
 
 The review page: https://claude.ai/artifact/YCR7BHzEfyDsdVEoFkH87r. Each is its
