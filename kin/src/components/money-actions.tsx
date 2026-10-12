@@ -610,7 +610,10 @@ export function AccountPrivacyToggle({
     );
   }
 
-  const label = isPrivate ? "Private" : "Family";
+  // "All", not "Family": Family is the Who for joint accounts, and a personal
+  // account everyone can see is not one of those (Janine, 12 October). Same
+  // word as the Who picker's All, which is where it shows.
+  const label = isPrivate ? "Private" : "All";
   if (!canChange) {
     return (
       <span style={{ fontSize: "0.6875rem", color: "var(--color-neutral-600)", display: "inline-flex", alignItems: "center", gap: "0.25rem" }}>
@@ -630,7 +633,7 @@ export function AccountPrivacyToggle({
         e.stopPropagation();
         run(() => setAccountPrivacyAction(accountId, !isPrivate));
       }}
-      title={isPrivate ? "Only you can see this account. Tap to show the family." : "The family can see this account. Tap to keep it to yourself."}
+      title={isPrivate ? "Only you can see this account. Tap to let everyone in the household see it." : "Everyone in the household can see this account. Tap to keep it to yourself."}
       style={{
         display: "inline-flex",
         alignItems: "center",
