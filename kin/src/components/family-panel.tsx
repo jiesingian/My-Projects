@@ -3,6 +3,7 @@
 import { useEffect, useId, useState } from "react";
 import Link from "next/link";
 import { Icon } from "@/components/icons";
+import { scriptFamily } from "@/lib/script-font";
 import { AnimatedSheet } from "@/components/animated-sheet";
 import { MemberCardBody } from "@/components/member-card";
 import { SosButton } from "@/components/sos-button";
@@ -79,7 +80,9 @@ export function TodayHeader({
           <div style={{ font: "600 0.8125rem/1 var(--font-heading)", letterSpacing: ".02em", color: "var(--color-accent-700)", marginBottom: "0.3125rem" }}>{dateLabel}</div>
           {/* Grows with the text size until a long word would no longer fit
               the phone, and stops there instead of breaking the word. */}
-          <h2 style={{ fontSize: "min(1.875rem, 11vw)" }}>{familyName}</h2>
+          <h2 style={{ fontSize: "min(1.875rem, 11vw)" }}>
+            <FamilyName name={familyName} />
+          </h2>
         </div>
         <div style={{ display: "flex", alignItems: "center", flex: "none" }}>
           {people.map((p) => (
@@ -154,5 +157,19 @@ export function TodayHeader({
         </div>
       )}
     </header>
+  );
+}
+
+/** "The Singian": the surname -- the last word -- in handwriting, the rest as
+ * it was. A one-word name is all surname. */
+function FamilyName({ name }: { name: string }) {
+  const cut = name.trimEnd().lastIndexOf(" ");
+  const lead = cut > 0 ? name.slice(0, cut + 1) : "";
+  const surname = cut > 0 ? name.slice(cut + 1) : name;
+  return (
+    <>
+      {lead}
+      <span style={{ fontFamily: scriptFamily, fontWeight: 600, fontSize: "1.15em", letterSpacing: 0 }}>{surname}</span>
+    </>
   );
 }
