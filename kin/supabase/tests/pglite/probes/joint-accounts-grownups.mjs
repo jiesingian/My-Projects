@@ -1,6 +1,7 @@
 // Joint accounts are for the grown-ups (20261012210000): a child sees no
 // joint account and no movement on one; the grown-ups still see both; a
-// child's own account and the household-visible personal ones are unchanged.
+// child's own account is unchanged; since 20261013190000 a personal account
+// open to everyone is hidden from a child too.
 const U = (s) => `10000000-0000-0000-0000-0000000000${s}`;
 const P = (s) => `00000000-0000-0000-0000-0000000000${s}`;
 const A = "a0000000-0000-0000-0000-000000000000";
@@ -28,6 +29,8 @@ export default async function ({ db, as, check }) {
   await check("Kid still sees his own account and its movement", async () =>
     (await as(kid, `select 1 from accounts where id = '${KID_OWN}'`)).length === 1 &&
     (await as(kid, `select 1 from wealth_transactions where account_id = '${KID_OWN}'`)).length === 1);
-  await check("A personal account open to all is unchanged (Kid still sees Abe's)", async () =>
-    (await as(kid, `select 1 from accounts where id = '${ABE_OPEN}'`)).length === 1);
+  // Since 20261013190000: "everyone" on a personal account means every grown-up.
+  await check("Kid does not see Abe's account open to everyone; Ann does", async () =>
+    (await as(kid, `select 1 from accounts where id = '${ABE_OPEN}'`)).length === 0 &&
+    (await as(ann, `select 1 from accounts where id = '${ABE_OPEN}'`)).length === 1);
 }

@@ -2,17 +2,19 @@ import Link from "next/link";
 import { Icon } from "@/components/icons";
 import { notFound, redirect } from "next/navigation";
 import { getCurrentMember } from "@/lib/session";
-import { getAccountDetail, getAccountHistory, getAccountNumbers } from "@/lib/queries/wealth";
+import { getAccountDetail, getAccountHistory, getAccountNumbers, getAccountViewers } from "@/lib/queries/wealth";
+import { getMembers } from "@/lib/queries/family";
+import { isGone } from "@/lib/member-status";
 import { AccountNumber } from "@/components/account-number";
 import { isGrownUp } from "@/lib/roles";
 import { CashTrendLine } from "@/components/wealth-charts";
 import { PickButton } from "@/components/pick-button";
 import { DetailHeader } from "@/components/hub-header";
 import { Blueprint, Tag, Empty } from "@/components/ui";
-import { PendingEntryActions, DeleteEntryButton, RemoveButton, RestoreAccountButton, DeleteAccountButton } from "@/components/money-actions";
+import { PendingEntryActions, DeleteEntryButton, RemoveButton, RestoreAccountButton, DeleteAccountButton, AccountPrivacyToggle } from "@/components/money-actions";
 import { AccountEditForm } from "./account-edit-form";
 import { OpenAppButton } from "./open-app-button";
-import { formatCurrency } from "@/lib/format";
+import { formatCurrency, shortNames } from "@/lib/format";
 import { ACCOUNT_TYPE_LABELS, CASH_FLOW_RANGES, CASH_FLOW_RANGE_LABELS, cashBalanceTrend, type AccountType, type CashFlowRange } from "@/lib/wealth";
 import { familyDate } from "@/lib/format-family";
 
@@ -22,12 +24,18 @@ export default async function AccountPage({ params, searchParams }: { params: Pr
   const { id } = await params;
   const sp = await searchParams;
   const range: CashFlowRange = (CASH_FLOW_RANGES as readonly string[]).includes(sp.range ?? "") ? (sp.range as CashFlowRange) : "month";
-  const [{ account, entries }, history, numbers] = await Promise.all([
+  const [{ account, entries }, history, numbers, viewers, members] = await Promise.all([
     getAccountDetail(me.family_id, id),
     getAccountHistory(me.family_id, id, range),
     getAccountNumbers(me.family_id, [id]),
+    getAccountViewers(me.family_id),
+    getMembers(me.family_id),
   ]);
   if (!account) notFound();
+  // Who else this account can be shown to, as on the Accounts tab.
+  const others = members.filter((m) => m.status !== "pending" && !isGone(m.status) && m.id !== me.id && m.role !== "child_managed");
+  const otherNames = shortNames(others.map((m) => m.full_name));
+  const people = others.map((m, i) => ({ id: m.id, label: otherNames[i], grownUp: isGrownUp(m.role) }));
   const number = numbers.get(account.id) ?? null;
   const canNumber = account.is_joint ? isGrownUp(me.role) : account.owner_member_id === me.id;
   // The Accounts tab's cash trend, for this account alone: the same line,
@@ -51,7 +59,20 @@ export default async function AccountPage({ params, searchParams }: { params: Pr
             </span>
             <span className="ml-auto" style={{ display: "inline-flex", gap: "0.375rem" }}>
               {account.is_archived && <Tag variant="outline">ARCHIVED</Tag>}
-              <Tag variant={account.is_joint ? "accent" : "neutral"}>{account.is_joint ? "JOINT" : "PRIVATE"}</Tag>
+              {account.is_joint ? (
+                <Tag variant="accent">JOINT</Tag>
+              ) : (
+                <AccountPrivacyToggle
+                  accountId={account.id}
+                  isPrivate={account.is_private}
+                  isJoint={false}
+                  ownerId={account.owner_member_id}
+                  canChange={account.owner_member_id === me.id}
+                  viewers={viewers.get(account.id) ?? []}
+                  people={people}
+                  me={me.id}
+                />
+              )}
             </span>
           </div>
           <h3 style={{ fontSize: "1.625rem", margin: "8px 0 2px" }}>{account.name}</h3>

@@ -24,7 +24,7 @@ import {
   restoreAccountAction,
   setIncludePrivateInTotalsAction,
   deleteAccountAction,
-  setAccountPrivacyAction,
+  setAccountVisibilityAction,
   postHubExpenseAction,
   deleteRemittanceAction,
 } from "@/lib/actions/wealth";
@@ -32,6 +32,7 @@ import { formatCurrency, currencySymbol } from "@/lib/format";
 import { Icon } from "@/components/icons";
 import { confirm } from "@/components/confirm-sheet";
 import { AmountInput } from "@/components/amount-input";
+import { accountAudienceLabel, type AccountAudienceMember } from "@/lib/wealth";
 import { DateInput } from "@/components/date-input";
 import { ASSET_ITEM_KINDS, ASSET_ITEM_KIND_HINTS, ASSET_ITEM_KIND_LABELS, type AssetItemKind } from "@/lib/wealth";
 
@@ -831,71 +832,167 @@ export function MoveMoneyButton({ accountId, accountName }: { accountId: string;
   );
 }
 
-/** Whether this account is the owner's business alone or the household's to
- * see. Shown on every account so the state is never a guess; only the owner
- * of a personal one can move it. */
+export type AudienceMode = "everyone" | "only_me" | "chosen";
+
+/** The choices for who can see an account: everyone, only you, or people
+ * picked one by one from the household -- with a shortcut for all its
+ * grown-ups. Controlled; `people` excludes the owner. */
+export function AudienceChoices({
+  mode,
+  chosen,
+  people,
+  onChange,
+}: {
+  mode: AudienceMode;
+  chosen: string[];
+  people: AccountAudienceMember[];
+  onChange: (mode: AudienceMode, chosen: string[]) => void;
+}) {
+  const grownUps = people.filter((p) => p.grownUp).map((p) => p.id);
+  const onlyGrownUps = mode === "chosen" && grownUps.length > 0 && chosen.length === grownUps.length && grownUps.every((id) => chosen.includes(id));
+  // "All grown-ups" ticks every grown-up; ticking a child from there keeps
+  // the grown-ups and adds the child by name.
+  const ticked = mode === "everyone" ? grownUps : mode === "chosen" ? chosen : [];
+  const toggle = (id: string) => {
+    const next = ticked.includes(id) ? ticked.filter((c) => c !== id) : [...ticked, id];
+    onChange(next.length ? "chosen" : "only_me", next);
+  };
+
+  return (
+    <div>
+      <div style={{ display: "flex", flexWrap: "wrap", gap: "0.4375rem" }}>
+        <button type="button" className="chip" data-active={mode === "everyone" || onlyGrownUps} onClick={() => onChange("everyone", [])}>
+          All grown-ups
+        </button>
+        <button type="button" className="chip" data-active={mode === "only_me"} onClick={() => onChange("only_me", [])}>
+          Only me
+        </button>
+      </div>
+      {people.length > 0 && (
+        <>
+          <div style={{ fontSize: "0.75rem", color: "var(--color-neutral-600)", margin: "0.75rem 0 0.375rem" }}>Or pick people — you always see it:</div>
+          <div style={{ display: "grid", gap: "0.375rem" }}>
+            {people.map((p) => (
+              <label key={p.id} style={{ display: "flex", alignItems: "center", gap: "0.5rem", fontSize: "0.875rem", minHeight: "2rem" }}>
+                <input type="checkbox" checked={ticked.includes(p.id)} onChange={() => toggle(p.id)} />
+                {p.label}
+                {!p.grownUp && <span style={{ fontSize: "0.75rem", color: "var(--color-neutral-600)" }}>· child</span>}
+              </label>
+            ))}
+          </div>
+        </>
+      )}
+      <p style={{ fontSize: "0.75rem", color: "var(--color-neutral-600)", margin: "0.625rem 0 0" }}>
+        {mode === "everyone"
+          ? "Every grown-up in the household sees its balance and movements. Children do not, unless you tick them."
+          : mode === "only_me"
+            ? "Only you see it."
+            : "Only you and the people ticked see its balance and movements. Nobody else knows it is there."}
+      </p>
+    </div>
+  );
+}
+
+/** Who can see this account, shown on every account so it is never a guess.
+ * The owner of a personal one taps it to choose: everyone, only them, or
+ * people picked from the household. */
 export function AccountPrivacyToggle({
   accountId,
   isPrivate,
   isJoint,
+  ownerId,
   canChange,
+  viewers,
+  people,
+  me,
 }: {
   accountId: string;
   isPrivate: boolean;
   isJoint: boolean;
+  ownerId: string | null;
   canChange: boolean;
+  /** Who it is shared with besides its owner. */
+  viewers: string[];
+  /** The household, the viewer excluded. */
+  people: AccountAudienceMember[];
+  me: string;
 }) {
-  const { pending, run } = useMoneyAction();
+  const { error, pending, run } = useMoneyAction();
+  const [open, setOpen] = useState(false);
+  const startMode: AudienceMode = !isPrivate ? "everyone" : viewers.length ? "chosen" : "only_me";
+  const [mode, setMode] = useState<AudienceMode>(startMode);
+  const [chosen, setChosen] = useState<string[]>(viewers);
 
-  if (isJoint) {
-    return (
-      <span style={{ fontSize: "0.6875rem", color: "var(--color-neutral-600)", display: "inline-flex", alignItems: "center", gap: "0.25rem" }}>
-        <Icon name="users" size={12} />
-        Joint
-      </span>
-    );
-  }
+  // Never "Family": Family is the Who for joint accounts (Janine, 12 October).
+  const label = accountAudienceLabel({ is_joint: isJoint, is_private: isPrivate, owner_member_id: ownerId }, viewers, people, me);
+  const icon = isJoint || !isPrivate || viewers.length ? "users" : "keyRound";
+  const look = { display: "inline-flex", alignItems: "center", gap: "0.25rem", fontSize: "0.6875rem", color: "var(--color-neutral-700)" } as const;
 
-  // "All", not "Family": Family is the Who for joint accounts, and a personal
-  // account everyone can see is not one of those (Janine, 12 October). Same
-  // word as the Who picker's All, which is where it shows.
-  const label = isPrivate ? "Private" : "All";
-  if (!canChange) {
+  if (isJoint || !canChange) {
     return (
-      <span style={{ fontSize: "0.6875rem", color: "var(--color-neutral-600)", display: "inline-flex", alignItems: "center", gap: "0.25rem" }}>
-        <Icon name={isPrivate ? "keyRound" : "users"} size={12} />
+      <span style={{ ...look, color: "var(--color-neutral-600)" }}>
+        <Icon name={icon} size={12} />
         {label}
       </span>
     );
   }
 
   return (
-    <button
-      type="button"
-      disabled={pending}
-      onClick={(e) => {
-        // The row is a link to the account; this is not part of following it.
-        e.preventDefault();
-        e.stopPropagation();
-        run(() => setAccountPrivacyAction(accountId, !isPrivate));
-      }}
-      title={isPrivate ? "Only you can see this account. Tap to let everyone in the household see it." : "Everyone in the household can see this account. Tap to keep it to yourself."}
-      style={{
-        display: "inline-flex",
-        alignItems: "center",
-        gap: "0.25rem",
-        fontSize: "0.6875rem",
-        padding: "0.125rem 0.5rem",
-        borderRadius: 999,
-        border: 0,
-        cursor: "pointer",
-        fontFamily: "var(--font-body)",
-        background: isPrivate ? "color-mix(in srgb, var(--color-text) 8%, transparent)" : "color-mix(in srgb, var(--color-switch-on) 18%, transparent)",
-        color: "var(--color-neutral-700)",
-      }}
-    >
-      <Icon name={isPrivate ? "keyRound" : "users"} size={12} />
-      {pending ? "…" : label}
-    </button>
+    <>
+      <button
+        type="button"
+        disabled={pending}
+        onClick={(e) => {
+          // The row is a link to the account; this is not part of following it.
+          e.preventDefault();
+          e.stopPropagation();
+          setMode(startMode);
+          setChosen(viewers);
+          setOpen(true);
+        }}
+        title="Who can see this account. Tap to choose."
+        style={{
+          ...look,
+          padding: "0.125rem 0.5rem",
+          borderRadius: 999,
+          border: 0,
+          cursor: "pointer",
+          fontFamily: "var(--font-body)",
+          background: isPrivate ? "color-mix(in srgb, var(--color-text) 8%, transparent)" : "color-mix(in srgb, var(--color-switch-on) 18%, transparent)",
+        }}
+      >
+        <Icon name={icon} size={12} />
+        {pending ? "…" : label}
+      </button>
+      {/* The row is a link; nothing in the sheet (a portal, but still inside
+          it in React's tree) may bubble up and follow it. */}
+      <span onClick={(e) => e.stopPropagation()}>
+        <FormSheet open={open} onClose={() => setOpen(false)} title="Who can see this account">
+          <AudienceChoices
+            mode={mode}
+            chosen={chosen}
+            people={people}
+            onChange={(m, c) => {
+              setMode(m);
+              setChosen(c);
+            }}
+          />
+          {error && (
+            <p role="alert" style={{ color: "var(--color-accent-700)", fontSize: "0.8125rem", margin: "0.5rem 0 0" }}>
+              {error}
+            </p>
+          )}
+          <button
+            type="button"
+            className="btn btn-primary"
+            disabled={pending}
+            style={{ width: "100%", minHeight: "2.5rem", fontSize: "0.84375rem", marginTop: "0.75rem" }}
+            onClick={() => run(() => setAccountVisibilityAction(accountId, { mode, memberIds: chosen }), () => setOpen(false))}
+          >
+            {pending ? "…" : "Save"}
+          </button>
+        </FormSheet>
+      </span>
+    </>
   );
 }

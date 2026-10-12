@@ -644,3 +644,14 @@ export async function recordAndGetNetWorthHistory(
     .limit(24);
   return (data ?? []).reverse().map((r) => ({ month: r.month.slice(0, 7), netWorth: Number(r.net_worth) }));
 }
+
+/** Who each account is shared with, by account id. Read as the viewer, so it
+ * holds the full list for their own accounts and only themselves on anyone
+ * else's (account_viewers RLS). */
+export async function getAccountViewers(familyId: string): Promise<Map<string, string[]>> {
+  const supabase = await createClient();
+  const { data } = await supabase.from("account_viewers").select("account_id, member_id").eq("family_id", familyId);
+  const byAccount = new Map<string, string[]>();
+  for (const row of data ?? []) byAccount.set(row.account_id, [...(byAccount.get(row.account_id) ?? []), row.member_id]);
+  return byAccount;
+}

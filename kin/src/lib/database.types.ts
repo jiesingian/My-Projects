@@ -297,6 +297,30 @@ export type Database = {
           },
         ]
       }
+      account_viewers: {
+        Row: {
+          account_id: string
+          added_by: string | null
+          created_at: string
+          family_id: string
+          member_id: string
+        }
+        Insert: {
+          account_id: string
+          added_by?: string | null
+          created_at?: string
+          family_id: string
+          member_id: string
+        }
+        Update: {
+          account_id?: string
+          added_by?: string | null
+          created_at?: string
+          family_id?: string
+          member_id?: string
+        }
+        Relationships: []
+      }
       accounts: {
         Row: {
           account_type: string

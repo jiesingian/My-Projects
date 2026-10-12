@@ -24,12 +24,14 @@ import {
   isKnownInstitutionLabel,
   resolveInstitutionLinks,
   type AccountType,
+  type AccountAudienceMember,
 } from "@/lib/wealth";
 import type { ActionState } from "@/lib/actions/auth";
 import { SubmitButton, ErrorText } from "@/components/form";
 import { DateInput } from "@/components/date-input";
 import { AmountInput } from "@/components/amount-input";
 import { AccountNumberField } from "@/components/account-number";
+import { AudienceChoices, type AudienceMode } from "@/components/money-actions";
 
 const initialState: ActionState = { error: null };
 
@@ -336,8 +338,23 @@ export function AppLinksField({
  * children whose profiles you keep; `defaultOwner` the one the tab you are
  * on suggests. `grownUp`: whether you may set a joint account's number (you
  * always may on your own). */
-export function AddAccountForm({ owners, defaultOwner, returnWho, grownUp }: { owners: { value: string; label: string }[]; defaultOwner: string; returnWho: string; grownUp: boolean }) {
+export function AddAccountForm({
+  owners,
+  defaultOwner,
+  returnWho,
+  grownUp,
+  people,
+}: {
+  owners: { value: string; label: string }[];
+  defaultOwner: string;
+  returnWho: string;
+  grownUp: boolean;
+  /** Who else in the household an account of yours can be shown to. */
+  people: AccountAudienceMember[];
+}) {
   const [owner, setOwner] = useState(defaultOwner);
+  // Your own account starts as yours alone, as it always has.
+  const [audience, setAudience] = useState<{ mode: AudienceMode; chosen: string[] }>({ mode: "only_me", chosen: [] });
   const canNumber = owner === "me" || (owner === "joint" && grownUp);
   const sym = useCurrencySymbol();
   const [open, setOpen] = useState(false);
@@ -371,6 +388,14 @@ export function AddAccountForm({ owners, defaultOwner, returnWho, grownUp }: { o
               ))}
             </select>
           </Labelled>
+          {owner === "me" && (
+            <div style={{ marginBottom: "0.875rem" }}>
+              <div style={{ fontSize: "0.8125rem", fontWeight: 600, marginBottom: "0.4375rem" }}>Who can see it</div>
+              <input type="hidden" name="visibility" value={audience.mode} />
+              {audience.mode === "chosen" && audience.chosen.map((id) => <input key={id} type="hidden" name="viewer" value={id} />)}
+              <AudienceChoices mode={audience.mode} chosen={audience.chosen} people={people} onChange={(mode, chosen) => setAudience({ mode, chosen })} />
+            </div>
+          )}
           <Labelled label="Type">
             <select
               className="input"
