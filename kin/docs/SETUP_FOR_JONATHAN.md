@@ -15,6 +15,7 @@ steps switch it on. Each says what it is for and what is safe.
 | 5. Payments | Final stage (costs money), see BACKLOG |
 | 6. GIFs in the chat | Held for design finalization |
 | 7. Sign-up emails through Gmail | Done: sent from familyapp.kin@gmail.com |
+| 8. Meal pictures from Pexels | To do: free Pexels key, steps below |
 
 ---
 
@@ -238,3 +239,33 @@ Switching custom SMTP off returns to Supabase's built-in sender.
 
 Later, for better delivery: a sender on Kin's own domain (e.g. through
 Resend) once Kin has one.
+
+---
+
+## 8. Meal pictures from Pexels (Household → Meals)
+
+**What it switches on.** A meal the household hasn't photographed yet shows an
+appetizing photo of the dish from Pexels, with the small "Photo: … on Pexels"
+credit Pexels asks for, instead of the letter plate. The household's own photo
+("Add a photo") always replaces it. Built in `src/lib/meal-stock-photo.ts`.
+
+**What it costs.** Nothing: the Pexels API is free (200 requests an hour). Kin
+keeps each dish's photo for 30 days, so a dish costs about one request a month.
+
+**Safe to do.** Only the dish's name ("Oatmeal") is sent to Pexels, never
+anything about the family. Deleting the key brings the letter plates back.
+
+1. Open [pexels.com/api](https://www.pexels.com/api/) and sign up or log in
+   with **familyapp.kin@gmail.com**, then press **Get Started** / **Your API
+   Key**.
+2. Fill the short form: project name `Kin`, use "Showing photos of family
+   meals in a family organiser app", website
+   `https://kin-family-app.vercel.app`. Accept the terms and submit.
+3. Copy the API key shown on that page.
+4. In [Vercel → Environment Variables](https://vercel.com/jisingian/kin-family-app/settings/environment-variables)
+   add `PEXELS_API_KEY` = the key, Environment **Production** and **Preview**,
+   Sensitive on, Save.
+5. **Redeploy**: [Deployments](https://vercel.com/jisingian/kin-family-app/deployments)
+   → the top Production deployment → ⋯ → **Redeploy**.
+6. **Check**: Household → Meals, a meal with no photo of its own now shows a
+   picture with a Pexels credit under its name.
