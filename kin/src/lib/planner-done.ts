@@ -56,3 +56,16 @@ export function eventMatches(e: { event_date: string; end_date?: string | null; 
   if (when === "current") return eventIsCurrent(e, today);
   return !eventIsOver(e, today);
 }
+
+/** A task is finished once it has run its course: its end date has gone
+ * with nothing left overdue, or -- for one that happens once -- it has been
+ * answered for on its day. A repeating task with no end date never is. */
+export function taskIsFinished(
+  t: { rule: { end_date: string | null }; today: { status: string | null } | null; overdue: string[] },
+  today: string,
+): boolean {
+  const end = t.rule.end_date;
+  if (!end) return false;
+  if (end < today) return t.overdue.length === 0;
+  return end === today && !!t.today?.status;
+}

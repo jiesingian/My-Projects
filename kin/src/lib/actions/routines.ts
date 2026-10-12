@@ -93,7 +93,9 @@ function readForm(formData: FormData) {
   const byweekday = formData.getAll("byweekday").map(Number).filter((n) => n >= 0 && n <= 6);
   const bymonthdayRaw = String(formData.get("bymonthday") ?? "");
   const startDate = String(formData.get("start_date") ?? "");
-  const endDate = String(formData.get("end_date") ?? "");
+  // "Once": one day, so the end is the start (lib/routines isOnce).
+  const once = formData.get("once") === "1";
+  const endDate = once ? startDate : String(formData.get("end_date") ?? "");
   const timeOfDay = String(formData.get("time_of_day") ?? "");
   const durationRaw = String(formData.get("duration_minutes") ?? "");
   const reminderRaw = String(formData.get("reminder_minutes") ?? "");
@@ -103,8 +105,8 @@ function readForm(formData: FormData) {
   return {
     title,
     kind: (ROUTINE_KINDS as readonly string[]).includes(kind) ? kind : "other",
-    freq: ["daily", "weekly", "monthly"].includes(freq) ? freq : "weekly",
-    repeat_interval: Number.isFinite(repeatInterval) && repeatInterval >= 1 && repeatInterval <= 12 ? Math.floor(repeatInterval) : 1,
+    freq: once ? "daily" : ["daily", "weekly", "monthly"].includes(freq) ? freq : "weekly",
+    repeat_interval: once ? 1 : Number.isFinite(repeatInterval) && repeatInterval >= 1 && repeatInterval <= 12 ? Math.floor(repeatInterval) : 1,
     byweekday: [...new Set(byweekday)].sort((a, b) => a - b),
     bymonthday: bymonthdayRaw ? Math.min(31, Math.max(1, Number(bymonthdayRaw))) : null,
     start_date: startDate,

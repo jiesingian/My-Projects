@@ -1,6 +1,7 @@
 import { householdZone } from "@/lib/household-zone";
 import { createClient } from "@/lib/supabase/server";
 import Link from "next/link";
+import { Fragment } from "react";
 import { redirect } from "next/navigation";
 import { after } from "next/server";
 import { getCurrentMember } from "@/lib/session";
@@ -41,7 +42,8 @@ import { ShowChoresSwitch } from "@/components/show-chores-switch";
 import { cookies } from "next/headers";
 import { familyDate } from "@/lib/format-family";
 import { nextEventDate } from "@/lib/grocery";
-import { eventIsOver, eventMatches, eventWhen, showsDone, type EventWhen } from "@/lib/planner-done";
+import { eventIsOver, eventMatches, eventWhen, showsDone, taskIsFinished, type EventWhen } from "@/lib/planner-done";
+import { CompletedToggle } from "@/components/completed-toggle";
 import { EventToJournal } from "@/components/event-to-journal";
 import { GoalsPane } from "./goals-pane";
 import { isGone } from "@/lib/member-status";
@@ -106,7 +108,7 @@ export default async function PlannerPage({
             showChores={showChores}
           />
         )}
-        {seg === "routines" && <RoutinesPane familyId={me.family_id} who={who} currency={me.families.currency} justSaved={sp.saved === "1"} />}
+        {seg === "routines" && <RoutinesPane familyId={me.family_id} who={who} currency={me.families.currency} justSaved={sp.saved === "1"} done={done} />}
         {seg === "events" && <EventsPane familyId={me.family_id} who={who} when={eventWhen(sp.when)} />}
         {seg === "goals" && (
           <GoalsPane
@@ -751,12 +753,12 @@ async function OneOffTasks({ tasks }: { tasks: Awaited<ReturnType<typeof getOneO
   );
 }
 
-async function RoutinesPane({ familyId, who, currency, justSaved }: { familyId: string; who: string; currency: string; justSaved: boolean }) {
+async function RoutinesPane({ familyId, who, currency, justSaved, done }: { familyId: string; who: string; currency: string; justSaved: boolean; done: boolean }) {
   const tz = await householdZone();
   const memberId = who === "all" ? undefined : who;
   // Both kinds of task: the recurring ones, and the one-offs that used to be
   // called activities and could be read back nowhere but the calendar.
-  const [routines, allOneOffs, scores, rewards, me, bonusRates] = await Promise.all([
+  const [allRoutines, allOneOffs, scores, rewards, me, bonusRates] = await Promise.all([
     getRoutines(familyId, memberId),
     getOneOffTasks(familyId, `${familyDay(new Date(), tz)}T00:00:00.000Z`),
     getMemberScores(familyId),
@@ -765,6 +767,12 @@ async function RoutinesPane({ familyId, who, currency, justSaved }: { familyId: 
     getStreakBonusRates(familyId),
   ]);
   const oneOffs = allOneOffs.filter((t) => concerns(t.memberIds, t.applies_to_whole_family, who));
+  // A task that has run its course -- a one-off answered for, or one whose
+  // end date has gone -- folds under Completed at the end, like past events.
+  const todayISO = familyDay(new Date(), tz);
+  const finished = allRoutines.filter((r) => taskIsFinished(r, todayISO));
+  const routines = done ? [...allRoutines.filter((r) => !taskIsFinished(r, todayISO)), ...finished] : allRoutines.filter((r) => !taskIsFinished(r, todayISO));
+  const openCount = allRoutines.length - finished.length;
   const dueToday = routines.filter((r) => !r.paused && r.today);
 
   return (
@@ -788,7 +796,7 @@ async function RoutinesPane({ familyId, who, currency, justSaved }: { familyId: 
         </div>
       )}
 
-      <MemberChips familyId={familyId} seg="routines" who={who} />
+      <MemberChips familyId={familyId} seg="routines" who={who} done={done} />
 
       <Scoreboard scores={scores} />
 
@@ -801,7 +809,7 @@ async function RoutinesPane({ familyId, who, currency, justSaved }: { familyId: 
 
       <OneOffTasks tasks={oneOffs} />
 
-      {routines.length === 0 && oneOffs.length === 0 ? (
+      {allRoutines.length === 0 && oneOffs.length === 0 ? (
         <Blueprint style={{ padding: "1.125rem", marginBottom: "1rem" }}>
           <div style={{ font: "600 1.125rem/1.2 var(--font-heading)", marginBottom: "0.375rem" }}>The week&rsquo;s rhythm lives here</div>
           <p style={{ fontSize: "0.90625rem", color: "var(--color-neutral-600)", margin: 0, lineHeight: 1.45 }}>
@@ -817,7 +825,7 @@ async function RoutinesPane({ familyId, who, currency, justSaved }: { familyId: 
               Today · {dueToday.length}
             </div>
           )}
-          {routines.map((r) => {
+          {routines.map((r, i) => {
             const meta = ROUTINE_KIND_META[(r.kind as RoutineKind) ?? "other"] ?? ROUTINE_KIND_META.other;
             const whoFor = r.appliesToAll
               ? "Whole family"
@@ -826,119 +834,123 @@ async function RoutinesPane({ familyId, who, currency, justSaved }: { familyId: 
                 : r.members.map((m) => m.name.split(" ")[0]).join(", ") || "House";
 
             return (
-              <Blueprint
-                key={r.id}
-                style={{
-                  padding: "0.875rem",
-                  marginBottom: "0.625rem",
-                  opacity: r.paused ? 0.62 : 1,
-                  // Behind gets an amber edge, settled-for-today a green one,
-                  // so the state of each routine reads before it is read.
-                  boxShadow:
-                    !r.paused && r.overdue.length > 0
-                      ? "inset 3px 0 0 var(--cal-money)"
-                      : !r.paused && r.today?.status === "done"
-                        ? "inset 3px 0 0 var(--color-switch-on)"
-                        : undefined,
-                }}
-              >
-                <div style={{ display: "flex", gap: "0.6875rem", alignItems: "flex-start" }}>
-                  <span
-                    style={{
-                      width: 34,
-                      height: 34,
-                      flex: "none",
-                      borderRadius: 10,
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      background: "var(--cal-schedule)",
-                      color: "#fff",
-                    }}
-                  >
-                    <Icon name={meta.icon} size={18} />
-                  </span>
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ font: "600 1.0625rem/1.2 var(--font-heading)" }}>{r.title}</div>
-                    <div style={{ fontSize: "0.8125rem", color: "var(--color-neutral-600)", marginTop: "0.125rem" }}>
-                      {describeRule(r.rule, r.timeOfDay)}
-                      {r.location ? ` · ${r.location}` : ""}
-                    </div>
-                    <div style={{ fontSize: "0.8125rem", color: "var(--color-neutral-600)" }}>{whoFor}</div>
-                  </div>
-                  {!r.paused && r.today?.status === "done" && (
-                    <span style={{ flex: "none", display: "inline-flex", alignItems: "center", gap: "0.25rem", fontSize: "0.78125rem", color: "var(--color-neutral-700)" }}>
-                      <Icon name="check" size={14} style={{ color: "var(--color-switch-on)" }} />
-                      Done
-                    </span>
-                  )}
-                  {r.streak > 1 && (
+              <Fragment key={r.id}>
+                {i === openCount && <CompletedToggle seg="routines" who={who} count={finished.length} shown />}
+                <Blueprint
+                  key={r.id}
+                  style={{
+                    padding: "0.875rem",
+                    marginBottom: "0.625rem",
+                    opacity: r.paused ? 0.62 : 1,
+                    // Behind gets an amber edge, settled-for-today a green one,
+                    // so the state of each routine reads before it is read.
+                    boxShadow:
+                      !r.paused && r.overdue.length > 0
+                        ? "inset 3px 0 0 var(--cal-money)"
+                        : !r.paused && r.today?.status === "done"
+                          ? "inset 3px 0 0 var(--color-switch-on)"
+                          : undefined,
+                  }}
+                >
+                  <div style={{ display: "flex", gap: "0.6875rem", alignItems: "flex-start" }}>
                     <span
                       style={{
+                        width: 34,
+                        height: 34,
                         flex: "none",
-                        fontSize: "0.75rem",
-                        fontWeight: 600,
-                        padding: "0.1875rem 0.5625rem",
-                        borderRadius: 999,
-                        background: "color-mix(in srgb, var(--color-switch-on) 18%, transparent)",
-                        color: "var(--color-neutral-900)",
+                        borderRadius: 10,
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        background: "var(--cal-schedule)",
+                        color: "#fff",
                       }}
-                      title={`${r.streak} in a row`}
                     >
-                      {r.streak}×
+                      <Icon name={meta.icon} size={18} />
                     </span>
-                  )}
-                </div>
-
-                {!r.paused && (r.today || r.overdue.length > 0 || r.upcoming.length > 0) && (
-                  <div style={{ marginTop: "0.6875rem", paddingTop: "0.6875rem", borderTop: "1px solid var(--color-divider)" }}>
-                    {r.today && (
-                      <>
-                        {r.today.assignee && (
-                          <div style={{ fontSize: "0.8125rem", color: "var(--color-neutral-700)", marginBottom: "0.4375rem" }}>
-                            Today it is {r.today.assignee.name.split(" ")[0]}&rsquo;s turn
-                            {r.timeOfDay ? ` · ${formatTimeOfDay(r.timeOfDay)}` : ""}
-                          </div>
-                        )}
-                        <RoutineTick
-                          routineId={r.id}
-                          date={r.today.date}
-                          status={r.today.status}
-                          cost={r.expectedCost}
-                          currency={currency}
-                        />
-                      </>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ font: "600 1.0625rem/1.2 var(--font-heading)" }}>{r.title}</div>
+                      <div style={{ fontSize: "0.8125rem", color: "var(--color-neutral-600)", marginTop: "0.125rem" }}>
+                        {describeRule(r.rule, r.timeOfDay)}
+                        {r.location ? ` · ${r.location}` : ""}
+                      </div>
+                      <div style={{ fontSize: "0.8125rem", color: "var(--color-neutral-600)" }}>{whoFor}</div>
+                    </div>
+                    {!r.paused && r.today?.status === "done" && (
+                      <span style={{ flex: "none", display: "inline-flex", alignItems: "center", gap: "0.25rem", fontSize: "0.78125rem", color: "var(--color-neutral-700)" }}>
+                        <Icon name="check" size={14} style={{ color: "var(--color-switch-on)" }} />
+                        Done
+                      </span>
                     )}
-                    {/* Behind on, and a way to answer for any other day —
-                        ahead of it, or afterwards against the day it happened. */}
-                    <RoutineOccurrences
-                      routineId={r.id}
-                      overdue={r.overdue}
-                      upcoming={r.upcoming}
-                      cost={r.expectedCost}
-                      currency={currency}
-                    />
+                    {r.streak > 1 && (
+                      <span
+                        style={{
+                          flex: "none",
+                          fontSize: "0.75rem",
+                          fontWeight: 600,
+                          padding: "0.1875rem 0.5625rem",
+                          borderRadius: 999,
+                          background: "color-mix(in srgb, var(--color-switch-on) 18%, transparent)",
+                          color: "var(--color-neutral-900)",
+                        }}
+                        title={`${r.streak} in a row`}
+                      >
+                        {r.streak}×
+                      </span>
+                    )}
                   </div>
-                )}
 
-                <div style={{ display: "flex", alignItems: "center", gap: "0.25rem", marginTop: "0.5625rem", flexWrap: "wrap" }}>
-                  <span style={{ flex: 1, minWidth: 0, fontSize: "0.78125rem", color: "var(--color-neutral-600)" }}>
-                    {r.paused
-                      ? "Paused — off everyone&rsquo;s calendar until resumed"
-                      : r.next
-                        ? `Next ${r.next.toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short" })}`
-                        : "No more occurrences"}
-                    {r.reminderMinutes != null && !r.paused ? ` · reminder ${r.reminderMinutes} min before` : ""}
-                  </span>
-                  <Link href={`/planner/routines/new?id=${r.id}`} className="btn btn-ghost" style={{ minHeight: "1.875rem", fontSize: "0.78125rem", padding: "0 0.5rem" }}>
-                    Edit
-                  </Link>
-                  <RoutinePauseButton id={r.id} paused={r.paused} />
-                  <RoutineDeleteButton id={r.id} title={r.title} />
-                </div>
-              </Blueprint>
+                  {!r.paused && (r.today || r.overdue.length > 0 || r.upcoming.length > 0) && (
+                    <div style={{ marginTop: "0.6875rem", paddingTop: "0.6875rem", borderTop: "1px solid var(--color-divider)" }}>
+                      {r.today && (
+                        <>
+                          {r.today.assignee && (
+                            <div style={{ fontSize: "0.8125rem", color: "var(--color-neutral-700)", marginBottom: "0.4375rem" }}>
+                              Today it is {r.today.assignee.name.split(" ")[0]}&rsquo;s turn
+                              {r.timeOfDay ? ` · ${formatTimeOfDay(r.timeOfDay)}` : ""}
+                            </div>
+                          )}
+                          <RoutineTick
+                            routineId={r.id}
+                            date={r.today.date}
+                            status={r.today.status}
+                            cost={r.expectedCost}
+                            currency={currency}
+                          />
+                        </>
+                      )}
+                      {/* Behind on, and a way to answer for any other day —
+                          ahead of it, or afterwards against the day it happened. */}
+                      <RoutineOccurrences
+                        routineId={r.id}
+                        overdue={r.overdue}
+                        upcoming={r.upcoming}
+                        cost={r.expectedCost}
+                        currency={currency}
+                      />
+                    </div>
+                  )}
+
+                  <div style={{ display: "flex", alignItems: "center", gap: "0.25rem", marginTop: "0.5625rem", flexWrap: "wrap" }}>
+                    <span style={{ flex: 1, minWidth: 0, fontSize: "0.78125rem", color: "var(--color-neutral-600)" }}>
+                      {r.paused
+                        ? "Paused — off everyone&rsquo;s calendar until resumed"
+                        : r.next
+                          ? `Next ${r.next.toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short" })}`
+                          : "No more occurrences"}
+                      {r.reminderMinutes != null && !r.paused ? ` · reminder ${r.reminderMinutes} min before` : ""}
+                    </span>
+                    <Link href={`/planner/routines/new?id=${r.id}`} className="btn btn-ghost" style={{ minHeight: "1.875rem", fontSize: "0.78125rem", padding: "0 0.5rem" }}>
+                      Edit
+                    </Link>
+                    <RoutinePauseButton id={r.id} paused={r.paused} />
+                    <RoutineDeleteButton id={r.id} title={r.title} />
+                  </div>
+                </Blueprint>
+              </Fragment>
             );
           })}
+          {!done && <CompletedToggle seg="routines" who={who} count={finished.length} shown={false} />}
         </>
       )}
 

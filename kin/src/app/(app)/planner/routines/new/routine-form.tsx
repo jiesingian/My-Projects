@@ -6,7 +6,7 @@ import { createRoutineAction, updateRoutineAction, type RoutineActionState } fro
 import { SubmitButton } from "@/components/form";
 import { DetailHeader } from "@/components/hub-header";
 import { Icon } from "@/components/icons";
-import { ROUTINE_KINDS, ROUTINE_KIND_META, type RoutineKind } from "@/lib/routines";
+import { ROUTINE_KINDS, ROUTINE_KIND_META, isOnce, type RoutineKind } from "@/lib/routines";
 import { DateInput } from "@/components/date-input";
 import { RoutineAttachments } from "@/components/routine-attachments";
 import type { RoutineAttachment } from "@/lib/queries/routines";
@@ -149,7 +149,8 @@ export function RoutineForm({
 
   const [kind, setKind] = useState<RoutineKind>((edit?.kind as RoutineKind) ?? "other");
   const [title, setTitle] = useState(edit?.title ?? "");
-  const [freq, setFreq] = useState(edit?.freq ?? "weekly");
+  // "once" is a task that doesn't repeat: saved as one day (lib/routines isOnce).
+  const [freq, setFreq] = useState(edit && isOnce(edit) ? "once" : (edit?.freq ?? "weekly"));
   const [byweekday, setByweekday] = useState<number[]>(edit?.byweekday ?? [1, 3, 5]);
   const [time, setTime] = useState(edit?.time_of_day?.slice(0, 5) ?? "");
   const [reminder, setReminder] = useState(edit?.reminder_minutes == null ? "" : String(edit.reminder_minutes));
@@ -214,13 +215,14 @@ export function RoutineForm({
           <div className="field" style={{ marginBottom: "0.625rem" }}>
             <label>Repeats</label>
             <div className="seg" style={{ marginTop: 0 }}>
-              {["daily", "weekly", "monthly"].map((f) => (
+              {["once", "daily", "weekly", "monthly"].map((f) => (
                 <button key={f} type="button" data-active={freq === f} onClick={() => setFreq(f)}>
                   {f}
                 </button>
               ))}
             </div>
-            <input type="hidden" name="freq" value={freq} />
+            <input type="hidden" name="freq" value={freq === "once" ? "daily" : freq} />
+            {freq === "once" && <input type="hidden" name="once" value="1" />}
           </div>
 
           {freq === "weekly" && (
@@ -266,16 +268,18 @@ export function RoutineForm({
           )}
 
           <div style={{ display: "flex", gap: "0.75rem", marginBottom: "0.875rem" }}>
-            <div className="field" style={{ flex: 1 }}>
-              <label htmlFor={`${uid}-repeat-interval`}>Every</label>
-              <select id={`${uid}-repeat-interval`} aria-label="Every" className="input" name="repeat_interval" defaultValue={edit?.repeat_interval ?? 1} style={{ minHeight: "2.75rem" }}>
-                {[1, 2, 3, 4, 6, 12].map((n) => (
-                  <option key={n} value={n}>
-                    {n === 1 ? `1 ${freq === "daily" ? "day" : freq === "weekly" ? "week" : "month"}` : `${n} ${freq === "daily" ? "days" : freq === "weekly" ? "weeks" : "months"}`}
-                  </option>
-                ))}
-              </select>
-            </div>
+            {freq !== "once" && (
+              <div className="field" style={{ flex: 1 }}>
+                <label htmlFor={`${uid}-repeat-interval`}>Every</label>
+                <select id={`${uid}-repeat-interval`} aria-label="Every" className="input" name="repeat_interval" defaultValue={edit?.repeat_interval ?? 1} style={{ minHeight: "2.75rem" }}>
+                  {[1, 2, 3, 4, 6, 12].map((n) => (
+                    <option key={n} value={n}>
+                      {n === 1 ? `1 ${freq === "daily" ? "day" : freq === "weekly" ? "week" : "month"}` : `${n} ${freq === "daily" ? "days" : freq === "weekly" ? "weeks" : "months"}`}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
             <FieldBlock name="time_of_day" invalid={bad("time_of_day")} style={{ flex: 1 }}>
               <label htmlFor={`${uid}-time`}>Time</label>
               <input id={`${uid}-time`} aria-label="Time" className="input" type="time" name="time_of_day" value={time} onChange={(e) => setTime(e.target.value)} style={{ minHeight: "2.75rem" }} />
@@ -319,13 +323,15 @@ export function RoutineForm({
 
           <div style={{ display: "flex", gap: "0.75rem", marginBottom: "0.875rem" }}>
             <FieldBlock name="start_date" invalid={bad("start_date")} style={{ flex: 1 }}>
-              <label htmlFor={`${uid}-start-date`}>Starts</label>
+              <label htmlFor={`${uid}-start-date`}>{freq === "once" ? "On" : "Starts"}</label>
               <DateInput id={`${uid}-start-date`} aria-label="Starts" className="input" name="start_date" required defaultValue={edit?.start_date ?? today} style={{ minHeight: "2.75rem" }} />
             </FieldBlock>
-            <FieldBlock name="end_date" invalid={bad("end_date")} style={{ flex: 1 }}>
-              <label htmlFor={`${uid}-end-date`}>Ends (optional)</label>
-              <DateInput id={`${uid}-end-date`} aria-label="Ends (Optional)" className="input" name="end_date" defaultValue={edit?.end_date ?? undefined} style={{ minHeight: "2.75rem" }} />
-            </FieldBlock>
+            {freq !== "once" && (
+              <FieldBlock name="end_date" invalid={bad("end_date")} style={{ flex: 1 }}>
+                <label htmlFor={`${uid}-end-date`}>Ends (optional)</label>
+                <DateInput id={`${uid}-end-date`} aria-label="Ends (Optional)" className="input" name="end_date" defaultValue={edit?.end_date ?? undefined} style={{ minHeight: "2.75rem" }} />
+              </FieldBlock>
+            )}
           </div>
 
           <div className="field" style={{ marginBottom: "0.875rem" }}>

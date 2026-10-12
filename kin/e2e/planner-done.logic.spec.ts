@@ -1,5 +1,6 @@
 import { test, expect } from "@playwright/test";
-import { eventIsCurrent, eventIsOver, eventMatches, eventWhen, goalIsFinished, showsDone } from "@/lib/planner-done";
+import { eventIsCurrent, eventIsOver, eventMatches, eventWhen, goalIsFinished, showsDone, taskIsFinished } from "@/lib/planner-done";
+import { describeRule, expandRoutine, isOnce, toRRule } from "@/lib/routines";
 
 /** Completed plans are folded away on the Planner by default. An event is
  * over once its last day has gone; a yearly one never is. A goal is finished
@@ -63,4 +64,30 @@ test("When param: upcoming unless it names another", () => {
   expect(eventWhen("nonsense")).toBe("upcoming");
   expect(eventWhen("current")).toBe("current");
   expect(eventWhen("past")).toBe("past");
+});
+
+test("a task is finished once it has run its course", () => {
+  const task = (end_date: string | null, status: string | null) => ({ rule: { end_date }, today: { status }, overdue: [] as string[] });
+  // Repeating with no end: never.
+  expect(taskIsFinished(task(null, "done"), today)).toBe(false);
+  // A one-off today: finished once answered for, not before.
+  expect(taskIsFinished(task(today, null), today)).toBe(false);
+  expect(taskIsFinished(task(today, "done"), today)).toBe(true);
+  expect(taskIsFinished(task(today, "skipped"), today)).toBe(true);
+  // Ended in the past: finished, unless something is still owed.
+  expect(taskIsFinished({ rule: { end_date: "2026-10-01" }, today: null, overdue: [] }, today)).toBe(true);
+  expect(taskIsFinished({ rule: { end_date: "2026-10-01" }, today: null, overdue: ["2026-10-01"] }, today)).toBe(false);
+  // Ends later: not yet.
+  expect(taskIsFinished({ rule: { end_date: "2026-10-20" }, today: null, overdue: [] }, today)).toBe(false);
+});
+
+test("a task that doesn't repeat is one day, described as Once", () => {
+  const once = { freq: "daily" as const, repeat_interval: 1, byweekday: [], bymonthday: null, start_date: "2026-10-14", end_date: "2026-10-14" };
+  expect(isOnce(once)).toBe(true);
+  expect(isOnce({ ...once, end_date: null })).toBe(false);
+  expect(isOnce({ ...once, end_date: "2026-10-15" })).toBe(false);
+  expect(isOnce({ ...once, freq: "weekly" })).toBe(false);
+  expect(expandRoutine(once, new Date(2026, 9, 1), new Date(2026, 11, 1)).map((o) => o.date.getDate())).toEqual([14]);
+  expect(describeRule(once)).toBe("Once · Wed 14 Oct");
+  expect(toRRule(once)).toBe("RRULE:FREQ=DAILY;UNTIL=20261014T235959Z");
 });
