@@ -58,7 +58,6 @@ function eventLabel(e: ListEvent): string {
   const day = new Date(y, m - 1, d).toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short" });
   return `${e.title} · ${day}`;
 }
-const NO_EVENT = "Not for an event";
 
 const SOURCE_LABEL: Record<string, string> = {
   meal_plan: "MEAL PLAN",
@@ -200,15 +199,14 @@ export function BuyList({
   const listTotal = allItems.reduce((sum, i) => sum + estimateOf(i.id), 0);
   const eventById = new Map(events.map((e) => [e.id, e]));
   const eventOf = (item: { event_id: string | null }) => (item.event_id ? eventById.get(item.event_id) ?? null : null);
-  // By event: each event with something on the list, soonest first, then
-  // everything that is for no event. Each group is still walked by aisle.
-  const byEvent = () => {
-    const groupsOut = events
+  // By event: each event with something on the list, soonest first, each
+  // still walked by aisle. Only what is for an event -- the everyday items
+  // are in By aisle, and listing them here as "Not for an event" read as an
+  // event of its own (Janine, 12 October).
+  const byEvent = () =>
+    events
       .map((e) => ({ name: eventLabel(e), items: groupByAisle(allItems.filter((i) => eventOf(i)?.id === e.id)).flatMap((g) => g.items) }))
       .filter((g) => g.items.length > 0);
-    const rest = groupByAisle(allItems.filter((i) => !eventOf(i))).flatMap((g) => g.items);
-    return rest.length > 0 ? [...groupsOut, { name: NO_EVENT, items: rest }] : groupsOut;
-  };
   const shown =
     order === "aisle"
       ? groupByAisle(allItems)
@@ -337,6 +335,10 @@ export function BuyList({
         const isOpen = order === "added" || (order === "event" ? !expanded.has(`event:${g.name}`) : expanded.has(g.name));
         const toggleKey = order === "event" ? `event:${g.name}` : g.name;
         const inBasket = g.items.filter((i) => i.checked).length;
+        // What an event's shopping comes to, from the same estimates as the
+        // card above; lines with no price are counted, not guessed.
+        const groupTotal = g.items.reduce((sum, i) => sum + estimateOf(i.id), 0);
+        const groupUnpriced = g.items.filter((i) => prices[i.id]?.estimated == null).length;
         return (
           <div key={g.name} style={{ marginBottom: "1.125rem" }}>
             <button
@@ -369,6 +371,17 @@ export function BuyList({
                 {inBasket > 0 ? ` · ${inBasket} in the basket` : ""}
               </span>
             </button>
+            {order === "event" && (
+              <div style={{ display: "flex", alignItems: "baseline", gap: "0.5rem", padding: "0.4375rem 0 0.125rem", fontSize: "0.8125rem" }}>
+                <span style={{ color: "var(--color-neutral-700)" }}>Total for this event</span>
+                <strong style={{ marginLeft: "auto", font: "600 0.9375rem/1 var(--font-numeric)" }}>{formatCurrency(groupTotal, currency)}</strong>
+              </div>
+            )}
+            {order === "event" && groupUnpriced > 0 && (
+              <div style={{ fontSize: "0.71875rem", color: "var(--color-neutral-600)", paddingBottom: "0.25rem" }}>
+                {groupUnpriced === 1 ? "One item has no price yet" : `${groupUnpriced} items have no price yet`} — left out of this total.
+              </div>
+            )}
             {isOpen &&
               g.items.map((item) => (
                 <div key={item.id}>
@@ -467,6 +480,12 @@ export function BuyList({
           </div>
         );
       })}
+
+      {order === "event" && shown.length === 0 && allItems.length > 0 && (
+        <p style={{ fontSize: "0.8125rem", color: "var(--color-neutral-600)", margin: "0 0 1.125rem" }}>
+          Nothing on the list is for an event yet. Pick one under &ldquo;For an event&rdquo; when adding an item, or tap an item to set it.
+        </p>
+      )}
 
       {queuedAdds.length > 0 && (
         <div style={{ marginBottom: "1.125rem" }}>
