@@ -1,5 +1,6 @@
 "use client";
 
+import { FormSheet } from "@/components/form-sheet";
 import { useCurrencySymbol } from "@/components/household-currency";
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
@@ -166,60 +167,60 @@ export function AddPriceControl() {
   const [unit, setUnit] = useState("pc");
   const [section, setSection] = useState<string>("Other");
 
-  if (!open) {
-    return (
+
+  return (
+    <>
       <button type="button" className="btn btn-secondary btn-block" style={{ minHeight: "2.75rem", fontSize: "0.875rem", marginTop: "0.875rem" }} onClick={() => setOpen(true)}>
         <Icon name="plus" size={15} /> Add an item to the price book
       </button>
-    );
-  }
-
-  return (
-    <div style={{ marginTop: "0.875rem", padding: "0.8125rem", borderRadius: 14, background: "color-mix(in srgb, var(--color-text) 4%, transparent)" }}>
-      <input aria-label="Item name" className="input" placeholder="Item name" value={name} onChange={(e) => setName(e.target.value)} maxLength={150} style={{ minHeight: "2.625rem", marginBottom: "0.5rem" }} />
-      <div style={{ display: "flex", gap: "0.375rem", marginBottom: "0.5rem" }}>
-        <input aria-label="Price" className="input" type="number" step="0.01" min="0" inputMode="decimal" placeholder="Price" value={price} onChange={(e) => setPrice(e.target.value)} style={{ minHeight: "2.625rem", flex: 1 }} />
-        <select aria-label="Unit" className="input" value={unit} onChange={(e) => setUnit(e.target.value)} style={{ minHeight: "2.625rem", width: 100 }}>
-          {UNITS.map((u) => (
-            <option key={u} value={u}>
-              {u}
-            </option>
-          ))}
-        </select>
-      </div>
-      <select aria-label="Market section" className="input" value={section} onChange={(e) => setSection(e.target.value)} style={{ minHeight: "2.625rem", marginBottom: "0.625rem" }}>
-        {MARKET_SECTIONS.map((s) => (
-          <option key={s} value={s}>
-            {s}
-          </option>
-        ))}
-      </select>
-      <div style={{ display: "flex", gap: "0.375rem" }}>
-        <button
-          type="button"
-          className="btn btn-primary"
-          style={{ flex: 1, minHeight: "2.625rem", fontSize: "0.875rem" }}
-          disabled={pending || !name.trim() || price === ""}
-          onClick={() =>
-            run(async () => {
-              const result = await setItemPriceAction({ name, unitPrice: Number(price), unit, section });
-              if (!result.error) {
-                setName("");
-                setPrice("");
-                setOpen(false);
+      <FormSheet open={open} onClose={() => setOpen(false)} title="Add to the price book">
+        <div style={{ marginTop: "0.875rem", padding: "0.8125rem", borderRadius: 14, background: "color-mix(in srgb, var(--color-text) 4%, transparent)" }}>
+          <input aria-label="Item name" className="input" placeholder="Item name" value={name} onChange={(e) => setName(e.target.value)} maxLength={150} style={{ minHeight: "2.625rem", marginBottom: "0.5rem" }} />
+          <div style={{ display: "flex", gap: "0.375rem", marginBottom: "0.5rem" }}>
+            <input aria-label="Price" className="input" type="number" step="0.01" min="0" inputMode="decimal" placeholder="Price" value={price} onChange={(e) => setPrice(e.target.value)} style={{ minHeight: "2.625rem", flex: 1 }} />
+            <select aria-label="Unit" className="input" value={unit} onChange={(e) => setUnit(e.target.value)} style={{ minHeight: "2.625rem", width: 100 }}>
+              {UNITS.map((u) => (
+                <option key={u} value={u}>
+                  {u}
+                </option>
+              ))}
+            </select>
+          </div>
+          <select aria-label="Market section" className="input" value={section} onChange={(e) => setSection(e.target.value)} style={{ minHeight: "2.625rem", marginBottom: "0.625rem" }}>
+            {MARKET_SECTIONS.map((s) => (
+              <option key={s} value={s}>
+                {s}
+              </option>
+            ))}
+          </select>
+          <div style={{ display: "flex", gap: "0.375rem" }}>
+            <button
+              type="button"
+              className="btn btn-primary"
+              style={{ flex: 1, minHeight: "2.625rem", fontSize: "0.875rem" }}
+              disabled={pending || !name.trim() || price === ""}
+              onClick={() =>
+                run(async () => {
+                  const result = await setItemPriceAction({ name, unitPrice: Number(price), unit, section });
+                  if (!result.error) {
+                    setName("");
+                    setPrice("");
+                    setOpen(false);
+                  }
+                  return result;
+                })
               }
-              return result;
-            })
-          }
-        >
-          Save
-        </button>
-        <button type="button" className="btn btn-ghost" style={{ minHeight: "2.625rem", fontSize: "0.8125rem", padding: "0 0.75rem" }} onClick={() => setOpen(false)}>
-          Cancel
-        </button>
-      </div>
-      {error && <div style={{ fontSize: "0.78125rem", color: "var(--cal-occasion)", marginTop: "0.375rem" }}>{error}</div>}
-    </div>
+            >
+              Save
+            </button>
+            <button type="button" className="btn btn-ghost" style={{ minHeight: "2.625rem", fontSize: "0.8125rem", padding: "0 0.75rem" }} onClick={() => setOpen(false)}>
+              Cancel
+            </button>
+          </div>
+          {error && <div style={{ fontSize: "0.78125rem", color: "var(--cal-occasion)", marginTop: "0.375rem" }}>{error}</div>}
+        </div>
+      </FormSheet>
+    </>
   );
 }
 

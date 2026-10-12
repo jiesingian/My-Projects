@@ -1,5 +1,6 @@
 "use client";
 
+import { FormSheet } from "@/components/form-sheet";
 import { useCurrencySymbol } from "@/components/household-currency";
 import { cloneElement, isValidElement, useActionState, useId, useState, useSyncExternalStore, useTransition } from "react";
 import { useRouter } from "next/navigation";
@@ -343,8 +344,9 @@ export function AddAccountForm({ owners, defaultOwner, returnWho, grownUp }: { o
   const [state, formAction] = useActionState(addAccountAction, initialState);
   const [accountType, setAccountType] = useState<AccountType>("bank");
 
-  if (!open) {
-    return (
+
+  return (
+    <>
       <button
         type="button"
         className="btn btn-primary btn-block"
@@ -353,59 +355,58 @@ export function AddAccountForm({ owners, defaultOwner, returnWho, grownUp }: { o
       >
         + ADD ACCOUNT
       </button>
-    );
-  }
-
-  return (
-    <form action={formAction} style={{ marginTop: "1.125rem", borderTop: "1px solid var(--color-divider)", paddingTop: "1rem" }}>
-      <input type="hidden" name="return_who" value={returnWho} />
-      <ErrorText message={state.error} />
-      <Labelled label="Account name">
-        <input className="input" name="name" required placeholder="Everyday savings" style={{ minHeight: "2.625rem" }} />
-      </Labelled>
-      <Labelled label="Whose account">
-        <select className="input" name="owner" value={owner} onChange={(e) => setOwner(e.target.value)} style={{ minHeight: "2.625rem" }}>
-          {owners.map((o) => (
-            <option key={o.value} value={o.value}>
-              {o.label}
-            </option>
-          ))}
-        </select>
-      </Labelled>
-      <Labelled label="Type">
-        <select
-          className="input"
-          name="account_type"
-          value={accountType}
-          onChange={(e) => setAccountType(e.target.value as AccountType)}
-          style={{ minHeight: "2.625rem" }}
-        >
-          {ACCOUNT_TYPES.map((t) => (
-            <option key={t} value={t}>
-              {ACCOUNT_TYPE_LABELS[t]}
-            </option>
-          ))}
-        </select>
-      </Labelled>
-      <div style={{ marginBottom: "0.75rem" }}>
-        <AppLinksField accountType={accountType} />
-      </div>
-      <Labelled label={`Opening balance (${sym})`}>
-        <input className="input" type="number" step="0.01" inputMode="decimal" name="opening_balance" placeholder="0.00" style={{ minHeight: "2.625rem" }} />
-      </Labelled>
-      {canNumber && <AccountNumberField />}
-      <Labelled label="Note">
-        <input className="input" name="sub_note" placeholder="Salary account" style={{ minHeight: "2.625rem" }} />
-      </Labelled>
-      <div style={{ display: "flex", gap: "0.625rem" }}>
-        <SubmitButton className="btn btn-primary" style={{ flex: 1, minHeight: "2.625rem", fontSize: "0.875rem" }}>
-          Save account
-        </SubmitButton>
-        <button type="button" className="btn btn-secondary" style={{ flex: 1, minHeight: "2.625rem", fontSize: "0.875rem" }} onClick={() => setOpen(false)}>
-          Cancel
-        </button>
-      </div>
-    </form>
+      <FormSheet open={open} onClose={() => setOpen(false)} title="Add account">
+        <form action={formAction} style={{ marginTop: "1.125rem", borderTop: "1px solid var(--color-divider)", paddingTop: "1rem" }}>
+          <input type="hidden" name="return_who" value={returnWho} />
+          <ErrorText message={state.error} />
+          <Labelled label="Account name">
+            <input className="input" name="name" required placeholder="Everyday savings" style={{ minHeight: "2.625rem" }} />
+          </Labelled>
+          <Labelled label="Whose account">
+            <select className="input" name="owner" value={owner} onChange={(e) => setOwner(e.target.value)} style={{ minHeight: "2.625rem" }}>
+              {owners.map((o) => (
+                <option key={o.value} value={o.value}>
+                  {o.label}
+                </option>
+              ))}
+            </select>
+          </Labelled>
+          <Labelled label="Type">
+            <select
+              className="input"
+              name="account_type"
+              value={accountType}
+              onChange={(e) => setAccountType(e.target.value as AccountType)}
+              style={{ minHeight: "2.625rem" }}
+            >
+              {ACCOUNT_TYPES.map((t) => (
+                <option key={t} value={t}>
+                  {ACCOUNT_TYPE_LABELS[t]}
+                </option>
+              ))}
+            </select>
+          </Labelled>
+          <div style={{ marginBottom: "0.75rem" }}>
+            <AppLinksField accountType={accountType} />
+          </div>
+          <Labelled label={`Opening balance (${sym})`}>
+            <input className="input" type="number" step="0.01" inputMode="decimal" name="opening_balance" placeholder="0.00" style={{ minHeight: "2.625rem" }} />
+          </Labelled>
+          {canNumber && <AccountNumberField />}
+          <Labelled label="Note">
+            <input className="input" name="sub_note" placeholder="Salary account" style={{ minHeight: "2.625rem" }} />
+          </Labelled>
+          <div style={{ display: "flex", gap: "0.625rem" }}>
+            <SubmitButton className="btn btn-primary" style={{ flex: 1, minHeight: "2.625rem", fontSize: "0.875rem" }}>
+              Save account
+            </SubmitButton>
+            <button type="button" className="btn btn-secondary" style={{ flex: 1, minHeight: "2.625rem", fontSize: "0.875rem" }} onClick={() => setOpen(false)}>
+              Cancel
+            </button>
+          </div>
+        </form>
+      </FormSheet>
+    </>
   );
 }
 
@@ -419,8 +420,9 @@ export function AddBillForm() {
   const [open, setOpen] = useState(false);
   const [state, formAction] = useActionState(addBillAction, initialState);
 
-  if (!open) {
-    return (
+
+  return (
+    <>
       <button
         type="button"
         className="btn btn-primary btn-block"
@@ -429,60 +431,59 @@ export function AddBillForm() {
       >
         + ADD EXPENSE
       </button>
-    );
-  }
-
-  return (
-    <form action={formAction} style={{ marginTop: "1.125rem", borderTop: "1px solid var(--color-divider)", paddingTop: "1rem" }}>
-      <ErrorText message={state.error} />
-      <Labelled label="Expense">
-        <input className="input" name="name" required placeholder="Meralco, groceries, mortgage…" style={{ minHeight: "2.625rem" }} />
-      </Labelled>
-      <div style={{ display: "flex", gap: "0.625rem" }}>
-        <Labelled label={`Amount (${sym})`} style={{ flex: 1 }}>
-          <input className="input" type="number" step="0.01" min="0" name="amount" required style={{ minHeight: "2.625rem" }} />
-        </Labelled>
-        <Labelled label="DUE" style={{ flex: 1 }}>
-          <DateInput className="input" name="due_date" style={{ minHeight: "2.625rem" }} />
-        </Labelled>
-      </div>
-      <div style={{ display: "flex", gap: "0.625rem" }}>
-        <Labelled label="Category" style={{ flex: 1 }}>
-          <select className="input" name="category" defaultValue="Utilities" style={{ minHeight: "2.625rem" }}>
-            {EXPENSE_CATEGORIES.map((c) => (
-              <option key={c} value={c}>
-                {c}
-              </option>
-            ))}
-          </select>
-        </Labelled>
-        <Labelled label="Repeats" style={{ flex: 1 }}>
-          <select className="input" name="recurrence" defaultValue="monthly" style={{ minHeight: "2.625rem" }}>
-            <option value="monthly">Monthly</option>
-            <option value="quarterly">Quarterly</option>
-            <option value="yearly">Yearly</option>
-            <option value="once">One-off</option>
-          </select>
-        </Labelled>
-      </div>
-      <Labelled label="Remind me">
-        <select className="input" name="remind_days_before" defaultValue={DEFAULT_BILL_REMIND_DAYS} style={{ minHeight: "2.625rem" }}>
-          {BILL_REMIND_DAYS.map((d) => (
-            <option key={d} value={d}>
-              {remindLabel(d)}
-            </option>
-          ))}
-        </select>
-      </Labelled>
-      <div style={{ display: "flex", gap: "0.625rem" }}>
-        <SubmitButton className="btn btn-primary" style={{ flex: 1, minHeight: "2.625rem", fontSize: "0.875rem" }}>
-          Save expense
-        </SubmitButton>
-        <button type="button" className="btn btn-secondary" style={{ flex: 1, minHeight: "2.625rem", fontSize: "0.875rem" }} onClick={() => setOpen(false)}>
-          Cancel
-        </button>
-      </div>
-    </form>
+      <FormSheet open={open} onClose={() => setOpen(false)} title="Add expense">
+        <form action={formAction} style={{ marginTop: "1.125rem", borderTop: "1px solid var(--color-divider)", paddingTop: "1rem" }}>
+          <ErrorText message={state.error} />
+          <Labelled label="Expense">
+            <input className="input" name="name" required placeholder="Meralco, groceries, mortgage…" style={{ minHeight: "2.625rem" }} />
+          </Labelled>
+          <div style={{ display: "flex", gap: "0.625rem" }}>
+            <Labelled label={`Amount (${sym})`} style={{ flex: 1 }}>
+              <input className="input" type="number" step="0.01" min="0" name="amount" required style={{ minHeight: "2.625rem" }} />
+            </Labelled>
+            <Labelled label="DUE" style={{ flex: 1 }}>
+              <DateInput className="input" name="due_date" style={{ minHeight: "2.625rem" }} />
+            </Labelled>
+          </div>
+          <div style={{ display: "flex", gap: "0.625rem" }}>
+            <Labelled label="Category" style={{ flex: 1 }}>
+              <select className="input" name="category" defaultValue="Utilities" style={{ minHeight: "2.625rem" }}>
+                {EXPENSE_CATEGORIES.map((c) => (
+                  <option key={c} value={c}>
+                    {c}
+                  </option>
+                ))}
+              </select>
+            </Labelled>
+            <Labelled label="Repeats" style={{ flex: 1 }}>
+              <select className="input" name="recurrence" defaultValue="monthly" style={{ minHeight: "2.625rem" }}>
+                <option value="monthly">Monthly</option>
+                <option value="quarterly">Quarterly</option>
+                <option value="yearly">Yearly</option>
+                <option value="once">One-off</option>
+              </select>
+            </Labelled>
+          </div>
+          <Labelled label="Remind me">
+            <select className="input" name="remind_days_before" defaultValue={DEFAULT_BILL_REMIND_DAYS} style={{ minHeight: "2.625rem" }}>
+              {BILL_REMIND_DAYS.map((d) => (
+                <option key={d} value={d}>
+                  {remindLabel(d)}
+                </option>
+              ))}
+            </select>
+          </Labelled>
+          <div style={{ display: "flex", gap: "0.625rem" }}>
+            <SubmitButton className="btn btn-primary" style={{ flex: 1, minHeight: "2.625rem", fontSize: "0.875rem" }}>
+              Save expense
+            </SubmitButton>
+            <button type="button" className="btn btn-secondary" style={{ flex: 1, minHeight: "2.625rem", fontSize: "0.875rem" }} onClick={() => setOpen(false)}>
+              Cancel
+            </button>
+          </div>
+        </form>
+      </FormSheet>
+    </>
   );
 }
 
@@ -537,8 +538,9 @@ export function AddIncomeScheduleForm({ accounts }: { accounts: { id: string; na
   const [open, setOpen] = useState(false);
   const [state, formAction] = useActionState(addIncomeScheduleAction, initialState);
 
-  if (!open) {
-    return (
+
+  return (
+    <>
       <button
         type="button"
         className="btn btn-primary btn-block"
@@ -547,67 +549,66 @@ export function AddIncomeScheduleForm({ accounts }: { accounts: { id: string; na
       >
         + ADD INCOME
       </button>
-    );
-  }
-
-  return (
-    <form action={formAction} style={{ marginTop: "1.125rem", borderTop: "1px solid var(--color-divider)", paddingTop: "1rem" }}>
-      <ErrorText message={state.error} />
-      <Labelled label="Source">
-        <input className="input" name="name" required placeholder="Salary" style={{ minHeight: "2.625rem" }} />
-      </Labelled>
-      <div style={{ display: "flex", gap: "0.625rem" }}>
-        <Labelled label={`Amount (${sym})`} style={{ flex: 1 }}>
-          <input className="input" type="number" step="0.01" min="0" name="amount" required style={{ minHeight: "2.625rem" }} />
-        </Labelled>
-        <Labelled label="Expected" style={{ flex: 1 }}>
-          <DateInput className="input" name="next_date" style={{ minHeight: "2.625rem" }} />
-        </Labelled>
-      </div>
-      <div style={{ display: "flex", gap: "0.625rem" }}>
-        <Labelled label="Category" style={{ flex: 1 }}>
-          <select className="input" name="category" defaultValue="Salary" style={{ minHeight: "2.625rem" }}>
-            {INCOME_SOURCES.map((c) => (
-              <option key={c} value={c}>
-                {c}
-              </option>
-            ))}
-          </select>
-        </Labelled>
-        <Labelled label="Repeats" style={{ flex: 1 }}>
-          <select className="input" name="recurrence" defaultValue="monthly" style={{ minHeight: "2.625rem" }}>
-            <option value="monthly">Monthly</option>
-            <option value="quarterly">Quarterly</option>
-            <option value="yearly">Yearly</option>
-            <option value="once">One-off</option>
-          </select>
-        </Labelled>
-      </div>
-      {accounts.length > 0 && (
-        <Labelled label="Usually lands in">
-          <select className="input" name="account_id" defaultValue="" style={{ minHeight: "2.625rem" }}>
-            <option value="">Not decided yet</option>
-            {accounts.map((a) => (
-              <option key={a.id} value={a.id}>
-                {a.name}
-              </option>
-            ))}
-          </select>
-        </Labelled>
-      )}
-      <label style={{ display: "flex", alignItems: "center", gap: "0.5rem", fontSize: "0.8125rem", color: "var(--color-neutral-700)", margin: "2px 0 12px" }}>
-        <input type="checkbox" name="is_joint" defaultChecked />
-        Household income, not just mine
-      </label>
-      <div style={{ display: "flex", gap: "0.625rem" }}>
-        <SubmitButton className="btn btn-primary" style={{ flex: 1, minHeight: "2.625rem", fontSize: "0.875rem" }}>
-          Save
-        </SubmitButton>
-        <button type="button" className="btn btn-secondary" style={{ flex: 1, minHeight: "2.625rem", fontSize: "0.875rem" }} onClick={() => setOpen(false)}>
-          Cancel
-        </button>
-      </div>
-    </form>
+      <FormSheet open={open} onClose={() => setOpen(false)} title="Add income">
+        <form action={formAction} style={{ marginTop: "1.125rem", borderTop: "1px solid var(--color-divider)", paddingTop: "1rem" }}>
+          <ErrorText message={state.error} />
+          <Labelled label="Source">
+            <input className="input" name="name" required placeholder="Salary" style={{ minHeight: "2.625rem" }} />
+          </Labelled>
+          <div style={{ display: "flex", gap: "0.625rem" }}>
+            <Labelled label={`Amount (${sym})`} style={{ flex: 1 }}>
+              <input className="input" type="number" step="0.01" min="0" name="amount" required style={{ minHeight: "2.625rem" }} />
+            </Labelled>
+            <Labelled label="Expected" style={{ flex: 1 }}>
+              <DateInput className="input" name="next_date" style={{ minHeight: "2.625rem" }} />
+            </Labelled>
+          </div>
+          <div style={{ display: "flex", gap: "0.625rem" }}>
+            <Labelled label="Category" style={{ flex: 1 }}>
+              <select className="input" name="category" defaultValue="Salary" style={{ minHeight: "2.625rem" }}>
+                {INCOME_SOURCES.map((c) => (
+                  <option key={c} value={c}>
+                    {c}
+                  </option>
+                ))}
+              </select>
+            </Labelled>
+            <Labelled label="Repeats" style={{ flex: 1 }}>
+              <select className="input" name="recurrence" defaultValue="monthly" style={{ minHeight: "2.625rem" }}>
+                <option value="monthly">Monthly</option>
+                <option value="quarterly">Quarterly</option>
+                <option value="yearly">Yearly</option>
+                <option value="once">One-off</option>
+              </select>
+            </Labelled>
+          </div>
+          {accounts.length > 0 && (
+            <Labelled label="Usually lands in">
+              <select className="input" name="account_id" defaultValue="" style={{ minHeight: "2.625rem" }}>
+                <option value="">Not decided yet</option>
+                {accounts.map((a) => (
+                  <option key={a.id} value={a.id}>
+                    {a.name}
+                  </option>
+                ))}
+              </select>
+            </Labelled>
+          )}
+          <label style={{ display: "flex", alignItems: "center", gap: "0.5rem", fontSize: "0.8125rem", color: "var(--color-neutral-700)", margin: "2px 0 12px" }}>
+            <input type="checkbox" name="is_joint" defaultChecked />
+            Household income, not just mine
+          </label>
+          <div style={{ display: "flex", gap: "0.625rem" }}>
+            <SubmitButton className="btn btn-primary" style={{ flex: 1, minHeight: "2.625rem", fontSize: "0.875rem" }}>
+              Save
+            </SubmitButton>
+            <button type="button" className="btn btn-secondary" style={{ flex: 1, minHeight: "2.625rem", fontSize: "0.875rem" }} onClick={() => setOpen(false)}>
+              Cancel
+            </button>
+          </div>
+        </form>
+      </FormSheet>
+    </>
   );
 }
 
@@ -684,40 +685,40 @@ export function AllocationEditor({ budgeted }: { budgeted: string[] }) {
   const [pending, startTransition] = useTransition();
   const router = useRouter();
 
-  if (!open) {
-    return (
+
+  return (
+    <>
       <button type="button" className="btn btn-secondary btn-block" style={{ minHeight: "2.5rem", fontSize: "0.84375rem", marginBottom: "1.125rem" }} onClick={() => setOpen(true)}>
         Set a category budget
       </button>
-    );
-  }
-
-  return (
-    <div style={{ display: "flex", gap: "0.5rem", marginBottom: "1.125rem" }}>
-      <select aria-label="Category" className="input" value={category} onChange={(e) => setCategory(e.target.value)} style={{ minHeight: "2.5rem", flex: 1 }}>
-        {EXPENSE_CATEGORIES.map((c) => (
-          <option key={c} value={c}>
-            {c}
-          </option>
-        ))}
-      </select>
-      <AmountInput ariaLabel="Amount" defaultValue={amount} onValueChange={setAmount} style={{ minHeight: "2.5rem", width: 96 }} />
-      <button
-        type="button"
-        className="btn btn-primary"
-        disabled={pending}
-        style={{ minHeight: "2.5rem", fontSize: "0.84375rem" }}
-        onClick={() =>
-          startTransition(async () => {
-            await setAllocationAction({ category, amount });
-            setOpen(false);
-            router.refresh();
-          })
-        }
-      >
-        {pending ? "…" : "SET"}
-      </button>
-    </div>
+      <FormSheet open={open} onClose={() => setOpen(false)} title="Category budget">
+        <div style={{ display: "flex", gap: "0.5rem", marginBottom: "1.125rem" }}>
+          <select aria-label="Category" className="input" value={category} onChange={(e) => setCategory(e.target.value)} style={{ minHeight: "2.5rem", flex: 1 }}>
+            {EXPENSE_CATEGORIES.map((c) => (
+              <option key={c} value={c}>
+                {c}
+              </option>
+            ))}
+          </select>
+          <AmountInput ariaLabel="Amount" defaultValue={amount} onValueChange={setAmount} style={{ minHeight: "2.5rem", width: 96 }} />
+          <button
+            type="button"
+            className="btn btn-primary"
+            disabled={pending}
+            style={{ minHeight: "2.5rem", fontSize: "0.84375rem" }}
+            onClick={() =>
+              startTransition(async () => {
+                await setAllocationAction({ category, amount });
+                setOpen(false);
+                router.refresh();
+              })
+            }
+          >
+            {pending ? "…" : "SET"}
+          </button>
+        </div>
+      </FormSheet>
+    </>
   );
 }
 

@@ -7248,3 +7248,11 @@ button.kin-room-quote { font: inherit; font-size: 0.78125rem; text-align: left; 
   font-size: 0.8125rem;
   margin: 0 0 14px;
 }
+/* Inside a form sheet, the form's own "unfolded under the list" spacing and
+   divider have nothing to separate it from. */
+.kin-form-sheet form:first-child,
+.kin-form-sheet > div > :first-child {
+  margin-top: 0 !important;
+  border-top: 0 !important;
+  padding-top: 0 !important;
+}
