@@ -1,7 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import type { Tables } from "@/lib/database.types";
 import { getCurrentMember } from "@/lib/session";
-import { monthKey, recentMonths, signedAmount, recentPeriods, periodKey, periodHistory, cashFlowRangeCount, inScope, inTotalsScope, isHouseholdScope, TRANSFER_CATEGORY, type CashFlowRange, type WealthScope } from "@/lib/wealth";
+import { monthKey, recentMonths, signedAmount, recentPeriods, periodKey, periodHistory, cashFlowRangeCount, inScope, inTotalsScope, assetWorth, itemWorth, isHouseholdScope, TRANSFER_CATEGORY, type CashFlowRange, type WealthScope } from "@/lib/wealth";
 
 // Re-exported so the page keeps importing its scope type from the module it
 // already imports the queries from.
@@ -254,22 +254,33 @@ export async function getGoals(familyId: string) {
  * is that member's own things only, joint included under "all" alone. So a
  * joint asset or a joint goal shows only under Everyone, matching how a
  * joint account already works. */
-export async function getNetWorth(familyId: string, scope: WealthScope = "all") {
+export async function getNetWorth(familyId: string, scope: WealthScope = "all", today: string = new Date().toISOString().slice(0, 10)) {
   const supabase = await createClient();
-  const [{ data: assets }, { data: liabilities }, { data: goals }, accounts] = await Promise.all([
-    supabase.from("assets").select("*, owner:owner_member_id(full_name)").eq("family_id", familyId).order("value", { ascending: false }),
+  const [{ data: rawAssets }, { data: assetItems }, { data: liabilities }, { data: goals }, accounts] = await Promise.all([
+    supabase.from("assets").select("*, owner:owner_member_id(full_name)").eq("family_id", familyId),
+    supabase.from("asset_items").select("*").eq("family_id", familyId).order("acquired_on", { ascending: false, nullsFirst: false }),
     supabase.from("liabilities").select("*, owner:owner_member_id(full_name)").eq("family_id", familyId).order("balance", { ascending: false }),
     supabase.from("goals").select("*, owner:owner_member_id(full_name)").eq("family_id", familyId).order("created_at", { ascending: false }),
     loadAccounts(familyId),
   ]);
 
-  const scopedAssets = (assets ?? []).filter((a) => inScope(a, scope));
+  // An asset is worth the place itself plus everything in it, each aged to
+  // today (assetWorth); that total is what counts, and what it sorts by.
+  const assets = (rawAssets ?? [])
+    .map((a) => {
+      const items = (assetItems ?? [])
+        .filter((i) => i.asset_id === a.id)
+        .map((i) => ({ ...i, worth: itemWorth(i, today, a.annual_change_pct) }));
+      return { ...a, items, worth: assetWorth(a, items, today) };
+    })
+    .sort((x, y) => y.worth.total - x.worth.total);
+  const scopedAssets = assets.filter((a) => inScope(a, scope));
   const scopedLiabilities = (liabilities ?? []).filter((l) => inScope(l, scope));
   const scopedGoals = (goals ?? []).filter((g) => inScope(g, scope));
   const leaveOut = await privateLeftOutOfAll();
   const cashAccounts = accounts.filter((a) => inTotalsScope(a, scope, leaveOut));
 
-  const assetTotal = scopedAssets.reduce((sum, a) => sum + Number(a.value), 0);
+  const assetTotal = scopedAssets.reduce((sum, a) => sum + a.worth.total, 0);
   const liabilityTotal = scopedLiabilities.reduce((sum, l) => sum + Number(l.balance), 0);
   const goalTotal = scopedGoals.reduce((sum, g) => sum + Number(g.current_amount), 0);
   const cashTotal = cashAccounts.reduce((sum, a) => sum + a.balance, 0);

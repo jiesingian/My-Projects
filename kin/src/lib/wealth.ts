@@ -774,3 +774,87 @@ export function loanStatus(loan: LoanSchedule, today: string): { next: string | 
   const ahead = dates.filter((d) => d >= today);
   return { next: ahead[0] ?? null, left: ahead.length, last: dates[dates.length - 1] ?? null };
 }
+
+/* ------------------------------------------------- what an asset is made of */
+
+/** The things inside an asset -- mostly a house or condo -- each with its own
+ * price and the day it was bought. */
+export const ASSET_ITEM_KINDS = ["appliance", "furniture", "electronics", "improvement", "fees", "other"] as const;
+export type AssetItemKind = (typeof ASSET_ITEM_KINDS)[number];
+
+export const ASSET_ITEM_KIND_LABELS: Record<AssetItemKind, string> = {
+  appliance: "Appliance",
+  furniture: "Furniture",
+  electronics: "Gadgets & electronics",
+  improvement: "Renovation / fixture",
+  fees: "Fees & dues",
+  other: "Other",
+};
+
+/** How each kind ages, in plain words for the form. */
+export const ASSET_ITEM_KIND_HINTS: Record<AssetItemKind, string> = {
+  appliance: "Resells for about a tenth less each year it ages, never below a tenth of its price.",
+  furniture: "Resells for about a tenth less each year it ages, never below a tenth of its price.",
+  electronics: "Resells for about a fifth less each year it ages, never below a tenth of its price.",
+  improvement: "Part of the place now: rises or falls with the property's yearly change.",
+  fees: "Money spent, not something you could sell: counts toward what you put in, not what it is worth.",
+  other: "Kept at what it cost, unless you type what it would sell for now.",
+};
+
+/** Straight-line loss a year, and the floor it stops at, as fractions of the
+ * price. Rough on purpose: a household wants "about what would the aircon
+ * fetch", not an accountant's schedule, and can type the real figure. */
+const ITEM_AGEING: Partial<Record<AssetItemKind, { perYear: number; floor: number }>> = {
+  appliance: { perYear: 0.1, floor: 0.1 },
+  furniture: { perYear: 0.1, floor: 0.1 },
+  electronics: { perYear: 0.2, floor: 0.1 },
+};
+
+export type AssetForWorth = { value: number | string; annual_change_pct: number | string | null; valued_on: string | null };
+export type AssetItemForWorth = { kind: string; cost: number | string; acquired_on: string | null; value_now: number | string | null };
+
+/** Whole years (fractional) from one YYYY-MM-DD to another; 0 if either is
+ * missing or the first is later. */
+export function yearsBetween(from: string | null, to: string): number {
+  if (!from) return 0;
+  const ms = Date.parse(to.slice(0, 10)) - Date.parse(from.slice(0, 10));
+  return Number.isFinite(ms) && ms > 0 ? ms / (365.25 * 24 * 60 * 60 * 1000) : 0;
+}
+
+const cents = (n: number) => Math.round(n * 100) / 100;
+
+/** The place itself today: its value as last set, grown (or shrunk) by its
+ * yearly change, compounded from the day it was set. */
+export function propertyWorth(asset: AssetForWorth, today: string): number {
+  const value = Number(asset.value);
+  const pct = asset.annual_change_pct == null ? 0 : Number(asset.annual_change_pct);
+  if (!pct) return value;
+  return cents(value * Math.pow(1 + pct / 100, yearsBetween(asset.valued_on, today)));
+}
+
+/** One item today: what someone typed it would sell for, if they did;
+ * otherwise worked out from its kind and age (see ASSET_ITEM_KIND_HINTS). */
+export function itemWorth(item: AssetItemForWorth, today: string, propertyChangePct: number | string | null = null): number {
+  if (item.value_now != null) return Number(item.value_now);
+  const cost = Number(item.cost);
+  const kind = item.kind as AssetItemKind;
+  if (kind === "fees") return 0;
+  if (kind === "improvement") {
+    const pct = propertyChangePct == null ? 0 : Number(propertyChangePct);
+    return pct ? cents(cost * Math.pow(1 + pct / 100, yearsBetween(item.acquired_on, today))) : cost;
+  }
+  const ageing = ITEM_AGEING[kind];
+  if (!ageing) return cost;
+  const left = Math.max(ageing.floor, 1 - ageing.perYear * yearsBetween(item.acquired_on, today));
+  return cents(cost * left);
+}
+
+/** An asset with everything in it: the place, the items, their sum (what
+ * counts toward net worth), and what was put in altogether (value as set
+ * plus every item's price, fees included) -- the gap is what time did. */
+export function assetWorth(asset: AssetForWorth, items: AssetItemForWorth[], today: string) {
+  const property = propertyWorth(asset, today);
+  const itemsWorth = cents(items.reduce((sum, i) => sum + itemWorth(i, today, asset.annual_change_pct), 0));
+  const itemsCost = cents(items.reduce((sum, i) => sum + Number(i.cost), 0));
+  return { property, items: itemsWorth, total: cents(property + itemsWorth), putIn: cents(Number(asset.value) + itemsCost) };
+}

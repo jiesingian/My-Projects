@@ -3,7 +3,7 @@
 import { useCurrencySymbol } from "@/components/household-currency";
 import { useActionState, useState } from "react";
 import { addAssetAction, addLiabilityAction } from "@/lib/actions/wealth";
-import { ASSET_KINDS, ASSET_KIND_LABELS, LIABILITY_KINDS, LIABILITY_KIND_LABELS } from "@/lib/wealth";
+import { ASSET_ITEM_KINDS, ASSET_ITEM_KIND_HINTS, ASSET_ITEM_KIND_LABELS, ASSET_KINDS, ASSET_KIND_LABELS, LIABILITY_KINDS, LIABILITY_KIND_LABELS, type AssetItemKind } from "@/lib/wealth";
 import type { ActionState } from "@/lib/actions/auth";
 import { SubmitButton, ErrorText } from "@/components/form";
 import { DateInput } from "@/components/date-input";
@@ -28,21 +28,30 @@ export function AddHoldingForm({ defaultKind }: { defaultKind: string }) {
   );
 }
 
+type ItemRow = { key: number; name: string; kind: AssetItemKind; cost: string; acquired_on: string };
+
 function AssetForm() {
   const sym = useCurrencySymbol();
   const [state, formAction] = useActionState(addAssetAction, initialState);
   const [isJoint, setIsJoint] = useState(true);
+  const [kind, setKind] = useState("property");
+  const [items, setItems] = useState<ItemRow[]>([]);
+  const isPlace = kind === "property";
+  // Rows left wholly blank are dropped; a half-filled one is sent and named in the error.
+  const filled = items.filter((i) => i.name.trim() || i.cost.trim());
+  const update = (key: number, patch: Partial<ItemRow>) => setItems((rows) => rows.map((r) => (r.key === key ? { ...r, ...patch } : r)));
 
   return (
     <form action={formAction}>
       <input type="hidden" name="is_joint" value={isJoint ? "on" : ""} />
+      <input type="hidden" name="items" value={JSON.stringify(filled.map(({ key: _key, ...rest }) => rest))} />
       <ErrorText message={state.error} />
       <Field label="What is it">
         <input className="input" name="name" required placeholder="House in San Juan" style={{ minHeight: "2.75rem" }} />
       </Field>
       <div style={{ display: "flex", gap: "0.75rem" }}>
         <Field label="Kind" style={{ flex: 1 }}>
-          <select className="input" name="kind" defaultValue="property" style={{ minHeight: "2.75rem" }}>
+          <select className="input" name="kind" value={kind} onChange={(e) => setKind(e.target.value)} style={{ minHeight: "2.75rem" }}>
             {ASSET_KINDS.map((k) => (
               <option key={k} value={k}>
                 {ASSET_KIND_LABELS[k]}
@@ -50,13 +59,58 @@ function AssetForm() {
             ))}
           </select>
         </Field>
-        <Field label={`Value (${sym})`} style={{ flex: 1 }}>
+        <Field label={isPlace ? `The place itself (${sym})` : `Value (${sym})`} style={{ flex: 1 }}>
           <input className="input" type="number" step="0.01" min="0" name="value" required style={{ minHeight: "2.75rem" }} />
         </Field>
       </div>
-      <Field label="Owned since">
-        <DateInput className="input" name="acquired_on" style={{ minHeight: "2.75rem" }} />
-      </Field>
+      <div style={{ display: "flex", gap: "0.75rem" }}>
+        <Field label="Owned since" style={{ flex: 1 }}>
+          <DateInput className="input" name="acquired_on" style={{ minHeight: "2.75rem" }} />
+        </Field>
+        <Field label="Changes a year (%)" style={{ flex: 1 }}>
+          <input className="input" type="number" step="0.1" min="-50" max="50" name="annual_change_pct" placeholder={isPlace ? "5, or -2 if it loses" : "Leave blank"} style={{ minHeight: "2.75rem" }} />
+        </Field>
+      </div>
+
+      <div style={{ margin: "0.25rem 0 1rem" }}>
+        <div style={{ font: "600 0.9375rem/1.2 var(--font-heading)" }}>{isPlace ? "What's in it" : "Breakdown"}</div>
+        <p style={{ fontSize: "0.8125rem", color: "var(--color-neutral-600)", margin: "0.25rem 0 0.625rem" }}>
+          Optional. Furniture, appliances, a renovation, dues: each with its price and when it was bought. They add to the value above, and each ages on its own.
+        </p>
+        {items.map((row) => (
+          <div key={row.key} style={{ padding: "0.625rem 0", borderTop: "1px solid color-mix(in srgb, var(--color-text) 10%, transparent)" }}>
+            <div style={{ display: "flex", gap: "0.5rem" }}>
+              <input className="input" aria-label="What it is" placeholder="Aircon, sala set…" value={row.name} onChange={(e) => update(row.key, { name: e.target.value })} style={{ flex: 2, minHeight: "2.5rem" }} />
+              <select className="input" aria-label="Kind" value={row.kind} onChange={(e) => update(row.key, { kind: e.target.value as AssetItemKind })} style={{ flex: 1.4, minHeight: "2.5rem" }}>
+                {ASSET_ITEM_KINDS.map((k) => (
+                  <option key={k} value={k}>
+                    {ASSET_ITEM_KIND_LABELS[k]}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div style={{ display: "flex", gap: "0.5rem", marginTop: "0.5rem", alignItems: "flex-start" }}>
+              <input className="input" aria-label={`Price (${sym})`} placeholder={`Price (${sym})`} type="number" step="0.01" min="0" inputMode="decimal" value={row.cost} onChange={(e) => update(row.key, { cost: e.target.value })} style={{ flex: 1, minHeight: "2.5rem" }} />
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <DateInput className="input" aria-label="Bought on" value={row.acquired_on} onChange={(e) => update(row.key, { acquired_on: e.target.value })} style={{ width: "100%", minHeight: "2.5rem" }} />
+              </div>
+              <button type="button" className="btn btn-secondary" aria-label="Remove this row" onClick={() => setItems((rows) => rows.filter((r) => r.key !== row.key))} style={{ minHeight: "2.5rem", padding: "0 0.625rem" }}>
+                ✕
+              </button>
+            </div>
+            <div style={{ fontSize: "0.75rem", color: "var(--color-neutral-600)", marginTop: "0.3125rem" }}>{ASSET_ITEM_KIND_HINTS[row.kind]}</div>
+          </div>
+        ))}
+        <button
+          type="button"
+          className="btn btn-secondary btn-block"
+          onClick={() => setItems((rows) => [...rows, { key: Date.now() + rows.length, name: "", kind: "appliance", cost: "", acquired_on: "" }])}
+          style={{ minHeight: "2.5rem", fontSize: "0.8125rem" }}
+        >
+          + Add a thing in it
+        </button>
+      </div>
+
       <JointToggle isJoint={isJoint} setIsJoint={setIsJoint} />
       <Field label="Note">
         <input className="input" name="note" placeholder="Title under both names" style={{ minHeight: "2.75rem" }} />

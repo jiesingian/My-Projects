@@ -13,6 +13,7 @@ import {
   GoalContributeControl,
   PendingEntryActions,
   ValueUpdateControl,
+  AssetBreakdownControl,
   LoanScheduleControl,
   RemoveButton,
   AccountPrivacyToggle,
@@ -830,7 +831,7 @@ async function ScopePane({ scope, familyId, memberId, currency, range, newAccoun
 async function AssetsPane({ familyId, memberId, currency, scope }: { familyId: string; memberId: string; currency: string; scope: WealthScope }) {
   const [fmtDate, today] = await Promise.all([familyDate(), householdZone().then((tz) => familyDay(new Date(), tz))]);
   const [{ assets, liabilities, goals, cashAccounts, assetTotal, liabilityTotal, goalTotal, cashTotal, netWorth }, who, allAccounts] = await Promise.all([
-    getNetWorth(familyId, scope),
+    getNetWorth(familyId, scope, today),
     whoPicker(familyId, memberId, scope, (w) => `/wealth?seg=assets&who=${w}`),
     getAccounts(familyId),
   ]);
@@ -961,10 +962,25 @@ async function AssetsPane({ familyId, memberId, currency, scope }: { familyId: s
                 {a.updated_at ? ` · updated ${timeSinceLabel(a.updated_at)}` : ""}
               </span>
             </span>
-            <span style={{ fontFamily: "var(--font-numeric)", fontSize: "0.8125rem", flex: "none" }}>{formatCurrency(Number(a.value), currency)}</span>
+            <span style={{ fontFamily: "var(--font-numeric)", fontSize: "0.8125rem", flex: "none" }}>{formatCurrency(a.worth.total, currency)}</span>
           </div>
+          <AssetWorthLine asset={a} currency={currency} />
           <div style={{ display: "flex", gap: "0.5rem", justifyContent: "flex-end", marginTop: "0.4375rem" }}>
-            <ValueUpdateControl id={a.id} current={Number(a.value)} kind="asset" />
+            <AssetBreakdownControl
+              assetId={a.id}
+              assetName={a.name}
+              currency={currency}
+              items={a.items.map((i) => ({
+                id: i.id,
+                name: i.name,
+                kind: i.kind,
+                cost: Number(i.cost),
+                acquired_on: i.acquired_on,
+                value_now: i.value_now == null ? null : Number(i.value_now),
+                worth: i.worth,
+              }))}
+            />
+            <ValueUpdateControl id={a.id} current={Number(a.value)} kind="asset" yearlyChange={a.annual_change_pct == null ? null : Number(a.annual_change_pct)} />
             <RemoveButton id={a.id} kind="asset" label={`Remove "${a.name}"`} />
           </div>
         </div>
@@ -1025,6 +1041,31 @@ async function AssetsPane({ familyId, memberId, currency, scope }: { familyId: s
 /** Where a loan's payments stand: the next one and what it comes to, how
  * many are left and when the last falls, and the interest rate. Nothing when
  * no schedule was given; "Paid off" once the last date has passed. */
+
+/** Under an asset's name: how its total splits between the place itself and
+ * what is in it, and which way time has moved it (against everything put in,
+ * fees included). Nothing for an asset with no breakdown and no yearly change. */
+function AssetWorthLine({
+  asset,
+  currency,
+}: {
+  asset: { value: number; annual_change_pct: number | null; items: unknown[]; worth: { property: number; items: number; total: number; putIn: number } };
+  currency: string;
+}) {
+  const pct = asset.annual_change_pct == null ? null : Number(asset.annual_change_pct);
+  if (asset.items.length === 0 && !pct) return null;
+  const parts: string[] = [];
+  if (asset.items.length > 0) {
+    parts.push(`Itself ${formatCurrency(asset.worth.property, currency)} + ${asset.items.length} ${asset.items.length === 1 ? "thing" : "things"} in it ${formatCurrency(asset.worth.items, currency)}`);
+  }
+  if (pct) parts.push(`${pct > 0 ? "+" : ""}${pct}% a year`);
+  const moved = asset.worth.total - asset.worth.putIn;
+  if (asset.items.length > 0 && Math.abs(moved) >= 1) {
+    parts.push(`${moved > 0 ? "up" : "down"} ${formatCurrency(Math.abs(moved), currency)} on ${formatCurrency(asset.worth.putIn, currency)} put in`);
+  }
+  return <div style={{ fontSize: "0.78125rem", color: "var(--color-neutral-600)", marginTop: "0.3125rem" }}>{parts.join(" · ")}</div>;
+}
+
 function LoanScheduleLine({
   loan,
   today,

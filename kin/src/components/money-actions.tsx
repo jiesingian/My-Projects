@@ -10,6 +10,9 @@ import {
   confirmTransactionAction,
   deleteTransactionAction,
   updateAssetValueAction,
+  addAssetItemAction,
+  updateAssetItemAction,
+  deleteAssetItemAction,
   updateLiabilityBalanceAction,
   updateLiabilityScheduleAction,
   deleteAssetAction,
@@ -30,6 +33,7 @@ import { Icon } from "@/components/icons";
 import { confirm } from "@/components/confirm-sheet";
 import { AmountInput } from "@/components/amount-input";
 import { DateInput } from "@/components/date-input";
+import { ASSET_ITEM_KINDS, ASSET_ITEM_KIND_HINTS, ASSET_ITEM_KIND_LABELS, type AssetItemKind } from "@/lib/wealth";
 
 export type PickableAccount = {
   id: string;
@@ -394,32 +398,197 @@ export function DeleteEntryButton({ transactionId }: { transactionId: string }) 
   );
 }
 
-export function ValueUpdateControl({ id, current, kind }: { id: string; current: number; kind: "asset" | "liability" }) {
+export function ValueUpdateControl({
+  id,
+  current,
+  kind,
+  yearlyChange,
+}: {
+  id: string;
+  current: number;
+  kind: "asset" | "liability";
+  /** An asset's yearly change in %, null for none. */
+  yearlyChange?: number | null;
+}) {
+  const uid = useId();
   const [open, setOpen] = useState(false);
   const [value, setValue] = useState(current);
-  const { pending, run } = useMoneyAction();
-
+  const [change, setChange] = useState(yearlyChange == null ? "" : String(yearlyChange));
+  const { error, pending, run } = useMoneyAction();
 
   return (
     <>
       <button type="button" className="btn btn-secondary" style={{ minHeight: "1.875rem", fontSize: "0.78125rem", padding: "0 0.5625rem" }} onClick={() => setOpen(true)}>
         Update
       </button>
-      <FormSheet open={open} onClose={() => setOpen(false)} title="Update value">
-        <span style={{ display: "flex", gap: "0.375rem" }}>
+      <FormSheet open={open} onClose={() => setOpen(false)} title={kind === "asset" ? "Update value" : "Update balance"}>
+        <span style={{ display: "flex", gap: "0.375rem", alignItems: "flex-end" }}>
           <AmountInput ariaLabel="New value" defaultValue={value} onValueChange={setValue} style={{ minHeight: "2rem", width: "6.875rem", fontSize: "0.84375rem" }} />
+          {kind === "asset" && (
+            <span className="field" style={{ margin: 0 }}>
+              <label htmlFor={`${uid}-change`} style={{ fontSize: "0.75rem" }}>Changes a year (%)</label>
+              <input id={`${uid}-change`} className="input" type="number" step="0.1" min="-50" max="50" inputMode="decimal" placeholder="None" value={change} onChange={(e) => setChange(e.target.value)} style={{ minHeight: "2rem", width: "6rem", fontSize: "0.84375rem" }} />
+            </span>
+          )}
           <button
             type="button"
             className="btn btn-primary"
             disabled={pending}
             style={{ minHeight: "2rem", fontSize: "0.78125rem", padding: "0 0.5625rem" }}
             onClick={() =>
-              run(() => (kind === "asset" ? updateAssetValueAction(id, value) : updateLiabilityBalanceAction(id, value)), () => setOpen(false))
+              run(() => (kind === "asset" ? updateAssetValueAction(id, value, change) : updateLiabilityBalanceAction(id, value)), () => setOpen(false))
             }
           >
             {pending ? "…" : "Save"}
           </button>
         </span>
+        {kind === "asset" && (
+          <p style={{ fontSize: "0.75rem", color: "var(--color-neutral-600)", margin: "0.5rem 0 0" }}>
+            The value of the asset itself as of today. A yearly change grows it from today on (minus if it loses value); a breakdown adds on top.
+          </p>
+        )}
+        {error && (
+          <p role="alert" style={{ color: "var(--color-accent-700)", fontSize: "0.8125rem", margin: "0.5rem 0 0" }}>
+            {error}
+          </p>
+        )}
+      </FormSheet>
+    </>
+  );
+}
+
+export type BreakdownItem = {
+  id: string;
+  name: string;
+  kind: string;
+  cost: number;
+  acquired_on: string | null;
+  value_now: number | null;
+  /** What it is worth today, typed or worked out (assetWorth). */
+  worth: number;
+};
+
+const monthYear = (iso: string) => new Date(`${iso.slice(0, 10)}T00:00:00`).toLocaleDateString("en-PH", { month: "short", year: "numeric" });
+
+/** What an asset is made of: each thing with its price, when it was bought
+ * and what it is worth now, and a form to add or change one. */
+export function AssetBreakdownControl({ assetId, assetName, items, currency }: { assetId: string; assetName: string; items: BreakdownItem[]; currency: string }) {
+  const uid = useId();
+  const [open, setOpen] = useState(false);
+  const [editing, setEditing] = useState<string | null>(null);
+  const blank = { name: "", kind: "appliance" as AssetItemKind, cost: "", acquired_on: "", value_now: "" };
+  const [draft, setDraft] = useState(blank);
+  const { error, pending, run } = useMoneyAction();
+  const field = { minHeight: "2.5rem", width: "100%" } as const;
+  const sym = currencySymbol(currency);
+
+  const startEdit = (i: BreakdownItem) => {
+    setEditing(i.id);
+    setDraft({
+      name: i.name,
+      kind: (ASSET_ITEM_KINDS as readonly string[]).includes(i.kind) ? (i.kind as AssetItemKind) : "other",
+      cost: String(i.cost),
+      acquired_on: i.acquired_on ?? "",
+      value_now: i.value_now == null ? "" : String(i.value_now),
+    });
+  };
+  const reset = () => {
+    setEditing(null);
+    setDraft(blank);
+  };
+
+  return (
+    <>
+      <button type="button" className="btn btn-secondary" style={{ minHeight: "1.875rem", fontSize: "0.78125rem", padding: "0 0.5625rem" }} onClick={() => setOpen(true)}>
+        Breakdown{items.length ? ` (${items.length})` : ""}
+      </button>
+      <FormSheet open={open} onClose={() => setOpen(false)} title={`What's in ${assetName}`}>
+        {items.length === 0 && (
+          <p style={{ fontSize: "0.8125rem", color: "var(--color-neutral-600)", margin: "0 0 0.75rem" }}>
+            Nothing yet. Add the furniture, appliances, renovations and dues that went into it — each adds to what it is worth, and ages on its own.
+          </p>
+        )}
+        {items.map((i) => (
+          <div key={i.id} style={{ display: "flex", gap: "0.5rem", alignItems: "baseline", padding: "0.5rem 0", borderBottom: "1px solid color-mix(in srgb, var(--color-text) 10%, transparent)" }}>
+            <span style={{ flex: 1, minWidth: 0 }}>
+              <span style={{ fontWeight: 600, display: "block" }}>{i.name}</span>
+              <span style={{ fontSize: "0.75rem", color: "var(--color-neutral-600)" }}>
+                {ASSET_ITEM_KIND_LABELS[i.kind as AssetItemKind] ?? i.kind} · paid {formatCurrency(i.cost, currency)}
+                {i.acquired_on ? ` · ${monthYear(i.acquired_on)}` : ""}
+                {i.value_now != null ? " · resale typed" : ""}
+              </span>
+            </span>
+            <span style={{ fontFamily: "var(--font-numeric)", fontSize: "0.8125rem", flex: "none" }}>{formatCurrency(i.worth, currency)}</span>
+            <button type="button" className="btn btn-secondary" style={{ minHeight: "1.75rem", fontSize: "0.75rem", padding: "0 0.5rem" }} onClick={() => startEdit(i)}>
+              Edit
+            </button>
+            <button
+              type="button"
+              className="btn btn-secondary"
+              disabled={pending}
+              aria-label={`Remove ${i.name}`}
+              style={{ minHeight: "1.75rem", fontSize: "0.75rem", padding: "0 0.5rem", color: "var(--color-accent-700)", borderColor: "var(--color-accent-700)" }}
+              onClick={async () => {
+                if (!(await confirm({ title: `Remove "${i.name}"?`, confirmLabel: "Remove", danger: true }))) return;
+                run(() => deleteAssetItemAction(i.id), () => editing === i.id && reset());
+              }}
+            >
+              ✕
+            </button>
+          </div>
+        ))}
+
+        <div style={{ font: "600 0.875rem/1.2 var(--font-heading)", margin: "0.875rem 0 0.5rem" }}>{editing ? "Change it" : "Add a thing in it"}</div>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.625rem" }}>
+          <div className="field" style={{ margin: 0 }}>
+            <label htmlFor={`${uid}-name`}>What it is</label>
+            <input id={`${uid}-name`} className="input" placeholder="Aircon, sala set…" value={draft.name} onChange={(e) => setDraft({ ...draft, name: e.target.value })} style={field} />
+          </div>
+          <div className="field" style={{ margin: 0 }}>
+            <label htmlFor={`${uid}-kind`}>Kind</label>
+            <select id={`${uid}-kind`} className="input" value={draft.kind} onChange={(e) => setDraft({ ...draft, kind: e.target.value as AssetItemKind })} style={field}>
+              {ASSET_ITEM_KINDS.map((k) => (
+                <option key={k} value={k}>
+                  {ASSET_ITEM_KIND_LABELS[k]}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div className="field" style={{ margin: 0 }}>
+            <label htmlFor={`${uid}-cost`}>Price ({sym})</label>
+            <input id={`${uid}-cost`} className="input" type="number" step="0.01" min="0" inputMode="decimal" value={draft.cost} onChange={(e) => setDraft({ ...draft, cost: e.target.value })} style={field} />
+          </div>
+          <div className="field" style={{ margin: 0 }}>
+            <label htmlFor={`${uid}-bought`}>Bought on</label>
+            <DateInput id={`${uid}-bought`} className="input" value={draft.acquired_on} onChange={(e) => setDraft({ ...draft, acquired_on: e.target.value })} style={field} />
+          </div>
+          <div className="field" style={{ margin: 0, gridColumn: "1 / -1" }}>
+            <label htmlFor={`${uid}-now`}>Would sell for now ({sym}, optional)</label>
+            <input id={`${uid}-now`} className="input" type="number" step="0.01" min="0" inputMode="decimal" placeholder="Leave blank to estimate from its age" value={draft.value_now} onChange={(e) => setDraft({ ...draft, value_now: e.target.value })} style={field} />
+          </div>
+        </div>
+        <p style={{ fontSize: "0.75rem", color: "var(--color-neutral-600)", margin: "0.5rem 0 0" }}>{ASSET_ITEM_KIND_HINTS[draft.kind]}</p>
+        {error && (
+          <p role="alert" style={{ color: "var(--color-accent-700)", fontSize: "0.8125rem", margin: "0.5rem 0 0" }}>
+            {error}
+          </p>
+        )}
+        <div style={{ display: "flex", gap: "0.5rem", marginTop: "0.75rem" }}>
+          {editing && (
+            <button type="button" className="btn btn-secondary" disabled={pending} style={{ flex: 1, minHeight: "2.5rem", fontSize: "0.84375rem" }} onClick={reset}>
+              Cancel
+            </button>
+          )}
+          <button
+            type="button"
+            className="btn btn-primary"
+            disabled={pending}
+            style={{ flex: 2, minHeight: "2.5rem", fontSize: "0.84375rem" }}
+            onClick={() => run(() => (editing ? updateAssetItemAction(editing, draft) : addAssetItemAction(assetId, draft)), reset)}
+          >
+            {pending ? "…" : editing ? "Save" : "Add"}
+          </button>
+        </div>
       </FormSheet>
     </>
   );
