@@ -65,6 +65,7 @@ const MIGRATIONS = [
   "20261012090000_open_when_letters.sql",
   "20261012090100_letter_replies.sql",
   "20261012190000_asset_breakdown.sql",
+  "20261012210000_joint_accounts_grownups_only.sql",
   "20261012150000_buy_items_for_event.sql",
 ];
 
