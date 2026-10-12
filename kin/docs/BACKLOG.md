@@ -34,8 +34,11 @@ search across every chat.
 5. **Done: "seen by" and typing in every conversation.** Groups now show
    "Seen by Mama, Lola" under your newest message anyone has read (one to one
    already showed "Seen"; the household chat already had seen-by). "Mama is
-   typing…" shows in the family room, one to one and groups, over the private
-   channel's presence -- nothing is stored. The family room keeps no seen-by
+   typing…" shows in the family room, one to one and groups, as a broadcast on
+   the private channel -- nothing is stored. (It was presence until 12
+   October; Realtime closes a channel after five presence updates in thirty
+   seconds, which a few quick messages reached, and every live update in the
+   room stopped until a reload. chat-live.spec.ts found it.) The family room keeps no seen-by
    (too many households for it to mean anything), and its typing line shows
    your own household only, because each household has its own channel.
 6. **Done: @mentions that notify, in every conversation.** Type @ in the
@@ -70,6 +73,14 @@ search across every chat.
     kin_cron_url / kin_cron_secret as reminders -- already set wherever
     reminders work. If by then you may no longer post there (left the
     group, connection removed), it is not sent.
+
+**Live on the other screen: checked in CI (12 October).** `e2e/chat-live.spec.ts`
+opens one group chat as two people in two browsers (the QA account and its
+partner) and checks typing, a new message, an edit, a pin, an unsend, a poll
+vote and a reaction each reach the other screen without a refresh. It runs in
+e2e.yml on every pull request, because an agent sandbox cannot open
+WebSockets. "Seen by" in a group is drawn when the thread loads; a read is
+not pushed live yet.
 
 ## Agreed 28 September (Jonathan's answers to the page-by-page review)
 
