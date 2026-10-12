@@ -61,7 +61,6 @@ export function AddMealControl({ date, slot }: { date: string; slot: MealSlot })
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             style={{ minHeight: "2.625rem", marginBottom: "0.5rem" }}
-            autoFocus
             aria-label="Search the recipe library"
           />
 

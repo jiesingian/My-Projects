@@ -7,11 +7,17 @@ import { AnimatedSheet } from "@/components/animated-sheet";
 /** A form that opens over the page instead of unfolding under whatever was
  * last on it (Janine, 12 October: Add account opening under the E-wallet
  * group read as part of it). The same sheet on a phone and a computer; the
- * component keeps its own open state and passes it in. */
+ * component keeps its own open state and passes it in.
+ *
+ * 92dvh, not 92vh: on an iPhone vh is the screen with Safari's bars hidden,
+ * so a tall sheet's top -- where its first field is -- sat above the visible
+ * page (Janine, 12 October: "Add breakfast", the search box out of sight).
+ * And nothing inside one focuses itself on open: the keyboard rising while
+ * the sheet is still sliding in pushes the sheet off the top of the screen. */
 export function FormSheet({ open, onClose, title, children }: { open: boolean; onClose: () => void; title: React.ReactNode; children: React.ReactNode }) {
   const titleId = useId();
   return (
-    <AnimatedSheet open={open} onClose={onClose} labelledBy={titleId} panelClassName="sheet-panel--full kin-form-sheet" panelStyle={{ maxWidth: 520, maxHeight: "92vh" }}>
+    <AnimatedSheet open={open} onClose={onClose} labelledBy={titleId} panelClassName="sheet-panel--full kin-form-sheet" panelStyle={{ maxWidth: 520, maxHeight: "92dvh" }}>
       <div style={{ padding: "0.625rem 1.125rem 0.5rem", flex: "none" }}>
         <div style={{ width: 36, height: 5, borderRadius: 999, background: "var(--color-neutral-400)", margin: "0 auto 12px" }} />
         <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
