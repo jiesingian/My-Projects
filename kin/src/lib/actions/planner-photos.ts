@@ -39,10 +39,12 @@ export async function deleteEventPhotoAction(id: string): Promise<ActionState> {
  * file would let either side break the other. The copy sits under the
  * household's own folder like any Journal upload.
  *
- * An entry made this way is found again by its title and day among the
- * Planner's entries that no activity made (source 'from_plan', no
- * source_activity_id), so a
- * second tap opens it rather than making a duplicate. journal_entries.event_id
+ * Saved as source 'manual', the one value every Journal entry is known to be
+ * allowed: 'from_event' and then 'from_plan' were both refused by the
+ * journal_entries check in production (12 October), and that check is older
+ * than supabase/migrations, so the repo cannot say what else it takes. An
+ * entry made this way is found again by its title and day, so a second tap
+ * opens it rather than making a duplicate. journal_entries.event_id
  * is reserved for milestones (milestones_are_entries.sql), so it is not used. */
 export async function addEventToJournalAction(eventId: string): Promise<{ error: string | null; entryId?: string }> {
   const me = await requireCurrentMember();
@@ -61,8 +63,7 @@ export async function addEventToJournalAction(eventId: string): Promise<{ error:
     .from("journal_entries")
     .select("id")
     .eq("family_id", me.family_id)
-    .eq("source", "from_plan")
-    .is("source_activity_id", null)
+    .eq("source", "manual")
     .eq("title", event.title)
     .eq("entry_date", event.event_date)
     .limit(1)
@@ -76,19 +77,23 @@ export async function addEventToJournalAction(eventId: string): Promise<{ error:
       entry_date: event.event_date,
       title: event.title,
       note: event.sub_note,
-      // The database allows only the sources it knows ('from_event' was
-      // refused, 12 October). 'from_plan' is the one the Planner already
-      // writes; an event's entry is the one with no activity behind it.
-      source: "from_plan",
+      source: "manual",
       created_by: me.id,
       visibility: "household",
     })
     .select("id")
     .single();
-  if (error) return { error: humanDatabaseError(error.message) };
+  // Each step says which it was, and the raw error goes to the server log:
+  // a bare "isn't allowed here" twice over, with nothing recorded, is how
+  // this took two rounds to find.
+  if (error) {
+    console.error("addEventToJournal: entry", error.message);
+    return { error: `The Journal entry couldn't be made. ${humanDatabaseError(error.message)}` };
+  }
 
   if (people?.length) {
     const { error: peopleError } = await supabase.from("journal_entry_people").insert(people.map((p) => ({ entry_id: entry.id, member_id: p.member_id })));
+    if (peopleError) console.error("addEventToJournal: people", peopleError.message);
     if (peopleError) return { error: `The entry was made, but not who was there. ${humanDatabaseError(peopleError.message)}`, entryId: entry.id };
   }
 
@@ -98,6 +103,7 @@ export async function addEventToJournalAction(eventId: string): Promise<{ error:
     const to = `${me.family_id}/${Date.now()}-${crypto.randomUUID().slice(0, 8)}-event.${ext}`;
     const { error: copyError } = await supabase.storage.from("journal").copy(photo.storage_path, to);
     if (copyError) {
+      console.error("addEventToJournal: copy", copyError.message);
       failed++;
       continue;
     }
@@ -107,12 +113,16 @@ export async function addEventToJournalAction(eventId: string): Promise<{ error:
       .select("id")
       .single();
     if (mediaError) {
+      console.error("addEventToJournal: media", mediaError.message);
       await supabase.storage.from("journal").remove([to]);
       failed++;
       continue;
     }
     const { error: linkError } = await supabase.from("journal_entry_media").insert({ entry_id: entry.id, media_id: media.id, sort_order: i });
-    if (linkError) failed++;
+    if (linkError) {
+      console.error("addEventToJournal: link", linkError.message);
+      failed++;
+    }
   }
 
   revalidatePath("/journal");
