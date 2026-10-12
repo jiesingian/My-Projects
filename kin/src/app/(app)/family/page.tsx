@@ -33,7 +33,7 @@ import { AddChildForm } from "@/components/add-child-form";
 import { FamilyTreeChart } from "@/components/family-tree-chart";
 import { TreeOffers } from "@/components/tree-offers";
 import { TreeSuggestions } from "@/components/tree-suggestions";
-import { getTreeMatches, getTreeOffers, getLinkedFamilies, getTreeSuggestions } from "@/lib/queries/tree-links";
+import { getTreeMatches, getTreeOffers, getTreeOfferBlocks, getLinkedFamilies, getTreeSuggestions } from "@/lib/queries/tree-links";
 import { FamilyTreeEditor } from "@/components/family-tree-editor";
 import { AddMeToTreeButton } from "@/components/add-me-to-tree-button";
 import { formatAge, initials } from "@/lib/format";
@@ -366,13 +366,14 @@ async function VaultPane({ familyId, who, tab, meId, myRole }: { familyId: strin
  * only thing that differs between members now is that each sees themselves
  * highlighted. */
 async function TreePane({ familyId, householdName, myId, inviteCode, open }: { familyId: string; householdName: string; myId: string; inviteCode: string | null; open: { matchId: string; personId: string } | null }) {
-  const [tree, allMembers, matches, allOffers, linkedFamilies, suggestions] = await Promise.all([
+  const [tree, allMembers, matches, allOffers, linkedFamilies, suggestions, blocks] = await Promise.all([
     getFamilyTree(familyId, myId),
     getMembers(familyId),
     getTreeMatches(familyId),
     getTreeOffers(),
     getLinkedFamilies(familyId),
     getTreeSuggestions(),
+    getTreeOfferBlocks(),
   ]);
   // An offer a suggestion already explains ("They say it's the same person")
   // is answered there, not twice.
@@ -386,7 +387,7 @@ async function TreePane({ familyId, householdName, myId, inviteCode, open }: { f
   return (
     <>
       <TreeSuggestions suggestions={suggestions} people={tree.people.map((p) => ({ id: p.id, fullName: p.fullName }))} />
-      <TreeOffers offers={offers} people={tree.people.map((p) => ({ id: p.id, fullName: p.fullName, dob: p.dob }))} />
+      <TreeOffers offers={offers} blocks={blocks} people={tree.people.map((p) => ({ id: p.id, fullName: p.fullName, dob: p.dob }))} />
 
       {tree.people.length === 0 || !meInTree ? (
         <>

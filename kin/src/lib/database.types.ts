@@ -2559,6 +2559,27 @@ export type Database = {
           },
         ]
       }
+      family_tree_offer_blocks: {
+        Row: {
+          blocked_at: string
+          blocked_by: string | null
+          blocked_family_id: string
+          family_id: string
+        }
+        Insert: {
+          blocked_at?: string
+          blocked_by?: string | null
+          blocked_family_id: string
+          family_id: string
+        }
+        Update: {
+          blocked_at?: string
+          blocked_by?: string | null
+          blocked_family_id?: string
+          family_id?: string
+        }
+        Relationships: []
+      }
       family_tree_match_dismissals: {
         Row: {
           dismissed_at: string
@@ -6345,6 +6366,28 @@ export type Database = {
           mother_id: string | null
           spouse_id: string | null
           is_shared_person: boolean
+        }[]
+      }
+      block_tree_offers: {
+        Args: { p_match: string }
+        Returns: undefined
+      }
+      unblock_tree_offers: {
+        Args: { p_family: string }
+        Returns: undefined
+      }
+      tree_offer_blocks_for_me: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          family_id: string
+          family_name: string
+        }[]
+      }
+      shared_branch_accounts: {
+        Args: { match: string }
+        Returns: {
+          id: string
+          has_account: boolean
         }[]
       }
       tree_match_suggestions: {

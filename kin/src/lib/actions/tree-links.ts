@@ -30,6 +30,26 @@ export async function respondTreeOfferAction(matchId: string, accept: boolean, t
   return { error: null };
 }
 
+/** "No more from this household": declines what is waiting from them and
+ * refuses their next offers (20261011100000). Grown-ups only. */
+export async function blockTreeOffersAction(matchId: string): Promise<ActionState> {
+  await requireCurrentMember();
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("block_tree_offers", { p_match: matchId });
+  if (error) return { error: humanDatabaseError(error.message) };
+  revalidatePath("/family");
+  return { error: null };
+}
+
+export async function unblockTreeOffersAction(familyId: string): Promise<ActionState> {
+  await requireCurrentMember();
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("unblock_tree_offers", { p_family: familyId });
+  if (error) return { error: humanDatabaseError(error.message) };
+  revalidatePath("/family");
+  return { error: null };
+}
+
 export async function withdrawTreeMatchAction(matchId: string): Promise<ActionState> {
   await requireCurrentMember();
   const supabase = await createClient();
@@ -68,11 +88,16 @@ export async function dismissTreeSuggestionAction(ourPersonId: string, otherPers
 export async function getSharedBranchAction(matchId: string): Promise<{ error: string | null; people: BranchPerson[] }> {
   await requireCurrentMember();
   const supabase = await createClient();
-  const { data, error } = await supabase.rpc("shared_branch", { match: matchId });
+  const [{ data, error }, { data: accounts }] = await Promise.all([
+    supabase.rpc("shared_branch", { match: matchId }),
+    supabase.rpc("shared_branch_accounts", { match: matchId }),
+  ]);
   if (error) return { error: humanDatabaseError(error.message), people: [] };
+  const hasAccount = new Map((accounts ?? []).map((a) => [a.id, a.has_account]));
   return {
     error: null,
     people: (data ?? []).map((p) => ({
+      hasAccount: hasAccount.get(p.id) ?? false,
       id: p.id,
       fullName: p.full_name,
       birthYear: p.birth_year,
