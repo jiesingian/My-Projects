@@ -504,8 +504,13 @@ export function BuyList({
                         <span style={{ overflow: "hidden", textOverflow: "ellipsis" }}>For {eventLabel(eventOf(item)!)}</span>
                       </span>
                     ) : null}
+                    {/* Quiet, like the lines above it: a list with a dozen
+                        pantry items read loud in the accent colour. */}
                     {prices[item.id]?.inPantry ? (
-                      <span style={{ display: "block", marginTop: "0.125rem", fontSize: "0.71875rem", fontWeight: 600, color: "var(--color-accent)" }}>Already at home</span>
+                      <span style={{ display: "flex", alignItems: "center", gap: "0.25rem", marginTop: "0.125rem", fontSize: "0.71875rem", color: "var(--color-neutral-600)" }}>
+                        <Icon name="house" size={11} style={{ flex: "none" }} />
+                        Already at home
+                      </span>
                     ) : null}
                   </button>
                   {/* Tapping the amount is how anyone would expect to change
