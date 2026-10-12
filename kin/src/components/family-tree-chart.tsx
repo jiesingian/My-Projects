@@ -13,7 +13,7 @@ import { relationships } from "@/lib/kinship";
 import { addRelativeAction, linkTreePersonToMemberAction, type Relation } from "@/lib/actions/family";
 import type { TreePerson } from "@/lib/queries/family";
 import type { TreeMatch, BranchPerson } from "@/lib/queries/tree-links";
-import { matchBranch, mergeBranch, type ChartPerson } from "@/lib/tree-merge";
+import { branchConflicts, matchBranch, mergeBranch, type BranchConflict, type ChartPerson } from "@/lib/tree-merge";
 import { getSharedBranchAction, offerTreePersonAction, withdrawTreeMatchAction } from "@/lib/actions/tree-links";
 import { confirm } from "@/components/confirm-sheet";
 import { InviteQr } from "@/components/invite-qr";
@@ -40,10 +40,10 @@ type Ghost = { id: string; relation: "father" | "mother" | "sibling"; of: string
 /** Where somebody is on Kin. `household` is the region they are drawn in and
  * the colour they take: MINE for yours, a linked household's name for
  * theirs, null for a name nobody on Kin has confirmed. */
-type Status = { kind: "mine" | "linked" | "branch" | "name"; household: string | null };
+type Status = { kind: "mine" | "linked" | "branch" | "name"; household: string | null; account?: boolean };
 const MINE = "mine";
 function statusFor(p: ChartPerson, linkedTo: Map<string, string>): Status {
-  if (p.fromHousehold) return { kind: "branch", household: p.fromHousehold };
+  if (p.fromHousehold) return { kind: "branch", household: p.fromHousehold, account: !!p.hasAccount };
   if (p.memberId) return { kind: "mine", household: MINE };
   if (linkedTo.has(p.id)) return { kind: "linked", household: linkedTo.get(p.id)! };
   return { kind: "name", household: null };
@@ -104,7 +104,11 @@ export function FamilyTreeChart({
   const [shown, setShown] = useState<string[]>([]);
   const accepted = useMemo(() => matches.filter((m) => m.status === "accepted"), [matches]);
 
-  const chartPeople: ChartPerson[] = useMemo(() => {
+  // Where a linked household's record of somebody we share names a different
+  // father or mother than ours. The chart never overrules a parent we recorded,
+  // so a disagreement would otherwise be invisible; it is said under the chart.
+  const merged = useMemo(() => {
+    const conflicts: BranchConflict[] = [];
     // Eldest first, so the children at home sit in birth order.
     let all: ChartPerson[] = [...people]
       .sort((a, b) => (a.dob ?? "9999").localeCompare(b.dob ?? "9999"))
@@ -124,10 +128,15 @@ export function FamilyTreeChart({
     for (const id of shown) {
       const m = accepted.find((x) => x.matchId === id);
       const b = branches[id];
-      if (m && b) all = mergeBranch(all, b, id, m.ourPersonId, m.otherFamilyName, matchBranch(all, b, m.ourPersonId));
+      if (!m || !b) continue;
+      const known = matchBranch(all, b, m.ourPersonId);
+      conflicts.push(...branchConflicts(all, b, m.ourPersonId, m.otherFamilyName, id, known));
+      all = mergeBranch(all, b, id, m.ourPersonId, m.otherFamilyName, known);
     }
-    return all;
+    return { all, conflicts };
   }, [people, shown, branches, accepted]);
+  const chartPeople: ChartPerson[] = merged.all;
+  const conflicts = merged.conflicts;
   const chartById = useMemo(() => new Map(chartPeople.map((p) => [p.id, p])), [chartPeople]);
   const relation = useMemo(() => relationships(chartPeople, meTreeId), [chartPeople, meTreeId]);
 
@@ -632,7 +641,7 @@ export function FamilyTreeChart({
         : status.kind === "linked"
           ? `linked with ${status.household} on Kin`
           : status.kind === "branch"
-            ? `from the ${status.household} tree`
+            ? `from the ${status.household} tree, ${status.account ? "on Kin" : "name only, not on Kin yet"}`
             : "not on Kin yet";
     return (
       <button
@@ -640,6 +649,7 @@ export function FamilyTreeChart({
         type="button"
         className="kin-tp"
         data-status={status.kind}
+        data-account={status.kind === "branch" ? String(!!status.account) : undefined}
         data-me={isMe || undefined}
         data-selected={p.id === selected || undefined}
         data-dim={dimmed([p.id])}
@@ -842,6 +852,22 @@ export function FamilyTreeChart({
           </li>
         )}
       </ul>
+      {conflicts.length > 0 && (
+        <div className="kin-treelegend-note" role="status" data-conflict="">
+          <strong>Their records differ from yours.</strong> Yours is the one drawn.
+          <ul>
+            {conflicts.map((c) => (
+              <li key={`${c.matchId}-${c.personId}-${c.relation}`}>
+                {c.personName}&rsquo;s {c.relation}: you have {c.ours}; {c.household} has {c.theirs}.
+              </li>
+            ))}
+          </ul>
+          <span>
+            If yours is the one that is wrong, change it from Manage people. If theirs is, or you are not sure, ask them; either household can unlink
+            a match from the person&rsquo;s panel.
+          </span>
+        </div>
+      )}
       {notPlaced.length > 0 && (
         <p className="kin-treelegend-note">
           Linked on Kin but not on this tree yet: {notPlaced.map((f) => f.name).join(", ")}. To place them, pick the relative you share and choose

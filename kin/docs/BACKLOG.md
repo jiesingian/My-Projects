@@ -336,8 +336,13 @@ Decided against in the same review: revising Journal (item 6) and Planner
   not on the tree): docs/FAMILY_TREE.md. Since 6 October a relative who is
   not on Kin has a QR code beside "Invite to Kin" (the invite QR from #391,
   #455), and suggested matches ask "Is this the same Stella?", linking only
-  once both households say yes (docs/FAMILY_TREE.md, step 3). A look with
-  real photos is under "Needs a real phone".
+  once both households say yes (docs/FAMILY_TREE.md, step 3). Since 11
+  October: at most 15 offers waiting on a household and 40 a day; a grown-up
+  can block a household's offers (and undo it); a linked household's
+  differing record of a shared person's parents is said under the legend, not
+  drawn over yours; and a linked relative with a Kin account is filled in,
+  one who is only a name there is a dashed ring. A look with real photos is
+  under "Needs a real phone".
 - Member card and Emergency SOS on Today (approved 30 September, #394).
   Tapping someone's initials opens their card: their local time and zone
   ("8:00 am in Dubai · 4 h behind you"; the zone is reported by their own
