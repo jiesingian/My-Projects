@@ -48,6 +48,8 @@ function chooseOrder(next: ListOrder) {
 }
 
 type BuyGroup = { name: string; items: Tables<"buy_items">[]; openCount: number };
+/** A group as shown: an aisle, the whole list, or an event (title and day apart). */
+type ShownGroup = { name: string; items: Tables<"buy_items">[]; event?: { title: string; when: string } };
 /** An event a line can be for, at its next date (YYYY-MM-DD). */
 type ListEvent = { id: string; title: string; date: string };
 
@@ -57,6 +59,13 @@ function eventLabel(e: ListEvent): string {
   const [y, m, d] = e.date.split("-").map(Number);
   const day = new Date(y, m - 1, d).toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short" });
   return `${e.title} · ${day}`;
+}
+
+/** "Fri 16 Oct", with the year once it is not this year's ("Fri 22 Jan 2027"). */
+function eventWhen(e: ListEvent): string {
+  const [y, m, d] = e.date.split("-").map(Number);
+  const sameYear = y === new Date().getFullYear();
+  return new Date(y, m - 1, d).toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short", ...(sameYear ? {} : { year: "numeric" }) }).replace(",", "");
 }
 
 const SOURCE_LABEL: Record<string, string> = {
@@ -203,11 +212,16 @@ export function BuyList({
   // still walked by aisle. Only what is for an event -- the everyday items
   // are in By aisle, and listing them here as "Not for an event" read as an
   // event of its own (Janine, 12 October).
-  const byEvent = () =>
-    events
-      .map((e) => ({ name: eventLabel(e), items: groupByAisle(allItems.filter((i) => eventOf(i)?.id === e.id)).flatMap((g) => g.items) }))
+  const byEvent = (): ShownGroup[] =>
+    [...events]
+      .sort((a, b) => a.date.localeCompare(b.date) || a.title.localeCompare(b.title))
+      .map((e) => ({
+        name: eventLabel(e),
+        event: { title: e.title, when: eventWhen(e) },
+        items: groupByAisle(allItems.filter((i) => eventOf(i)?.id === e.id)).flatMap((g) => g.items),
+      }))
       .filter((g) => g.items.length > 0);
-  const shown =
+  const shown: ShownGroup[] =
     order === "aisle"
       ? groupByAisle(allItems)
       : order === "event"
@@ -358,30 +372,48 @@ export function BuyList({
                 background: "none",
                 border: 0,
                 borderBottom: "1px solid var(--color-divider)",
-                padding: "0 0 0.375rem",
+                padding: g.event ? "0.5rem 0 0.625rem" : "0 0 0.375rem",
                 display: "flex",
-                alignItems: "baseline",
+                alignItems: g.event ? "flex-start" : "baseline",
                 gap: "0.5rem",
+                textAlign: "left",
+                color: "inherit",
               }}
             >
-              <Icon name="chevronLeft" size={12} className="text-[var(--color-neutral-600)]" style={{ transform: isOpen ? "rotate(270deg)" : "rotate(180deg)", transition: "transform 160ms ease-out" }} />
-              <span style={{ font: "600 0.8125rem/1 var(--font-heading)", letterSpacing: ".02em", textTransform: "uppercase" }}>{g.name}</span>
-              <span style={{ font: "400 0.75rem/1 var(--font-numeric)", color: "var(--color-neutral-600)", marginLeft: "auto" }}>
-                {g.items.length} item{g.items.length === 1 ? "" : "s"}
-                {inBasket > 0 ? ` · ${inBasket} in the basket` : ""}
-              </span>
+              <Icon
+                name="chevronLeft"
+                size={12}
+                className="text-[var(--color-neutral-600)]"
+                style={{ flex: "none", marginTop: g.event ? "0.3125rem" : 0, transform: isOpen ? "rotate(270deg)" : "rotate(180deg)", transition: "transform 160ms ease-out" }}
+              />
+              {g.event ? (
+                // An event: its name and total on one line, the day and what is
+                // in the basket under it, all in date order (Jonathan, 12 October).
+                <>
+                  <span style={{ flex: 1, minWidth: 0, display: "grid", gap: "0.25rem" }}>
+                    <span style={{ font: "600 0.9375rem/1.3 var(--font-heading)", overflowWrap: "anywhere" }}>{g.event.title}</span>
+                    <span style={{ font: "400 0.75rem/1.3 var(--font-numeric)", color: "var(--color-neutral-600)" }}>
+                      {g.event.when} · {g.items.length} item{g.items.length === 1 ? "" : "s"}
+                      {inBasket > 0 ? (inBasket === g.items.length ? " · all in the basket" : ` · ${inBasket} in the basket`) : ""}
+                      {groupUnpriced > 0 && groupUnpriced < g.items.length ? ` · ${groupUnpriced} not priced` : ""}
+                    </span>
+                  </span>
+                  {groupUnpriced === g.items.length ? (
+                    <span style={{ flex: "none", font: "400 0.8125rem/1.3 var(--font-body)", color: "var(--color-neutral-600)", whiteSpace: "nowrap" }}>No price yet</span>
+                  ) : (
+                    <strong style={{ flex: "none", font: "600 0.9375rem/1.3 var(--font-numeric)", whiteSpace: "nowrap" }}>{formatCurrency(groupTotal, currency)}</strong>
+                  )}
+                </>
+              ) : (
+                <>
+                  <span style={{ font: "600 0.8125rem/1 var(--font-heading)", letterSpacing: ".02em", textTransform: "uppercase" }}>{g.name}</span>
+                  <span style={{ font: "400 0.75rem/1 var(--font-numeric)", color: "var(--color-neutral-600)", marginLeft: "auto", whiteSpace: "nowrap" }}>
+                    {g.items.length} item{g.items.length === 1 ? "" : "s"}
+                    {inBasket > 0 ? ` · ${inBasket} in the basket` : ""}
+                  </span>
+                </>
+              )}
             </button>
-            {order === "event" && (
-              <div style={{ display: "flex", alignItems: "baseline", gap: "0.5rem", padding: "0.4375rem 0 0.125rem", fontSize: "0.8125rem" }}>
-                <span style={{ color: "var(--color-neutral-700)" }}>Total for this event</span>
-                <strong style={{ marginLeft: "auto", font: "600 0.9375rem/1 var(--font-numeric)" }}>{formatCurrency(groupTotal, currency)}</strong>
-              </div>
-            )}
-            {order === "event" && groupUnpriced > 0 && (
-              <div style={{ fontSize: "0.71875rem", color: "var(--color-neutral-600)", paddingBottom: "0.25rem" }}>
-                {groupUnpriced === 1 ? "One item has no price yet" : `${groupUnpriced} items have no price yet`} — left out of this total.
-              </div>
-            )}
             {isOpen &&
               g.items.map((item) => (
                 <div key={item.id}>
