@@ -8,7 +8,7 @@ import { MARKET_SECTIONS, UNITS, guessSection, formatQuantity, groupByAisle } fr
 import { BuyItemPriceButton, BuyItemPriceEditor } from "@/components/household-price-controls";
 import type { ActionState } from "@/lib/actions/auth";
 import { SubmitButton, ErrorText } from "@/components/form";
-import { Blueprint, Tag } from "@/components/ui";
+import { Blueprint } from "@/components/ui";
 import { Icon } from "@/components/icons";
 import { ShoppingDayControl } from "@/components/shopping-day";
 import { formatCurrency } from "@/lib/format";
@@ -49,7 +49,9 @@ function chooseOrder(next: ListOrder) {
 
 type BuyGroup = { name: string; items: Tables<"buy_items">[]; openCount: number };
 /** A group as shown: an aisle, the whole list, or an event (title and day apart). */
-type ShownGroup = { name: string; items: Tables<"buy_items">[]; event?: { title: string; when: string } };
+type ShownGroup = { name: string; items: Tables<"buy_items">[]; event?: { title: string; when: EventDay } };
+/** An event's day as its header shows it: "16" over "Oct" ("Jan '27" in another year). */
+type EventDay = { day: string; month: string; full: string };
 /** An event a line can be for, at its next date (YYYY-MM-DD). */
 type ListEvent = { id: string; title: string; date: string };
 
@@ -61,19 +63,29 @@ function eventLabel(e: ListEvent): string {
   return `${e.title} · ${day}`;
 }
 
-/** "Fri 16 Oct", with the year once it is not this year's ("Fri 22 Jan 2027"). */
-function eventWhen(e: ListEvent): string {
+function eventWhen(e: ListEvent): EventDay {
   const [y, m, d] = e.date.split("-").map(Number);
-  const sameYear = y === new Date().getFullYear();
-  return new Date(y, m - 1, d).toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short", ...(sameYear ? {} : { year: "numeric" }) }).replace(",", "");
+  const date = new Date(y, m - 1, d);
+  const month = date.toLocaleDateString("en-GB", { month: "short" });
+  return {
+    day: String(d),
+    month: y === new Date().getFullYear() ? month : `${month} '${String(y).slice(2)}`,
+    full: date.toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long", year: "numeric" }),
+  };
 }
 
 const SOURCE_LABEL: Record<string, string> = {
-  meal_plan: "MEAL PLAN",
-  house: "HOUSE",
-  maintenance: "MAINTENANCE",
-  member: "MEMBER",
+  meal_plan: "Meal plan",
+  house: "House",
+  maintenance: "Maintenance",
+  member: "Member",
 };
+
+/** Where a group's lines came from, said once under its header instead of a
+ * tag on every line: "House · Meal plan". */
+function sourcesOf(items: Tables<"buy_items">[]): string {
+  return [...new Set(items.map((i) => SOURCE_LABEL[i.source] ?? i.source))].join(" · ");
+}
 
 export function BuyList({
   groups,
@@ -355,6 +367,11 @@ export function BuyList({
         const groupUnpriced = g.items.filter((i) => prices[i.id]?.estimated == null).length;
         return (
           <div key={g.name} style={{ marginBottom: "1.125rem" }}>
+            {/* One header for every grouping: what the group is (an event's
+                day in its own column, so a long name wraps under itself),
+                how many lines and how many are in the basket, then its total
+                on the right; where the lines came from under the name
+                (Jonathan, 12 October). */}
             <button
               type="button"
               onClick={() =>
@@ -366,16 +383,18 @@ export function BuyList({
                 })
               }
               aria-expanded={isOpen}
+              aria-label={g.event ? `${g.event.title}, ${g.event.when.full}` : undefined}
               style={{
                 width: "100%",
                 cursor: "pointer",
                 background: "none",
                 border: 0,
                 borderBottom: "1px solid var(--color-divider)",
-                padding: g.event ? "0.5rem 0 0.625rem" : "0 0 0.375rem",
-                display: "flex",
-                alignItems: g.event ? "flex-start" : "baseline",
-                gap: "0.5rem",
+                padding: "0.375rem 0 0.625rem",
+                display: "grid",
+                gridTemplateColumns: g.event ? "0.75rem 2.5rem minmax(0, 1fr) auto auto" : "0.75rem minmax(0, 1fr) auto auto",
+                columnGap: "0.5rem",
+                alignItems: "start",
                 textAlign: "left",
                 color: "inherit",
               }}
@@ -384,40 +403,52 @@ export function BuyList({
                 name="chevronLeft"
                 size={12}
                 className="text-[var(--color-neutral-600)]"
-                style={{ flex: "none", marginTop: g.event ? "0.3125rem" : 0, transform: isOpen ? "rotate(270deg)" : "rotate(180deg)", transition: "transform 160ms ease-out" }}
+                style={{ marginTop: "0.3125rem", transform: isOpen ? "rotate(270deg)" : "rotate(180deg)", transition: "transform 160ms ease-out" }}
               />
-              {g.event ? (
-                // An event: its name and total on one line, the day and what is
-                // in the basket under it, all in date order (Jonathan, 12 October).
-                <>
-                  <span style={{ flex: 1, minWidth: 0, display: "grid", gap: "0.25rem" }}>
-                    <span style={{ font: "600 0.9375rem/1.3 var(--font-heading)", overflowWrap: "anywhere" }}>{g.event.title}</span>
-                    <span style={{ font: "400 0.75rem/1.3 var(--font-numeric)", color: "var(--color-neutral-600)" }}>
-                      {g.event.when} · {g.items.length} item{g.items.length === 1 ? "" : "s"}
-                      {inBasket > 0 ? (inBasket === g.items.length ? " · all in the basket" : ` · ${inBasket} in the basket`) : ""}
-                      {groupUnpriced > 0 && groupUnpriced < g.items.length ? ` · ${groupUnpriced} not priced` : ""}
-                    </span>
-                  </span>
-                  {groupUnpriced === g.items.length ? (
-                    <span style={{ flex: "none", font: "400 0.8125rem/1.3 var(--font-body)", color: "var(--color-neutral-600)", whiteSpace: "nowrap" }}>No price yet</span>
-                  ) : (
-                    <strong style={{ flex: "none", font: "600 0.9375rem/1.3 var(--font-numeric)", whiteSpace: "nowrap" }}>{formatCurrency(groupTotal, currency)}</strong>
-                  )}
-                </>
-              ) : (
-                <>
-                  <span style={{ font: "600 0.8125rem/1 var(--font-heading)", letterSpacing: ".02em", textTransform: "uppercase" }}>{g.name}</span>
-                  <span style={{ font: "400 0.75rem/1 var(--font-numeric)", color: "var(--color-neutral-600)", marginLeft: "auto", whiteSpace: "nowrap" }}>
-                    {g.items.length} item{g.items.length === 1 ? "" : "s"}
-                    {inBasket > 0 ? ` · ${inBasket} in the basket` : ""}
-                  </span>
-                </>
+              {g.event && (
+                <span aria-hidden style={{ display: "grid", justifyItems: "center", padding: "0.25rem 0", borderRadius: 10, background: "color-mix(in srgb, var(--color-accent) 10%, transparent)", color: "var(--color-accent)" }}>
+                  <span style={{ font: "700 1rem/1 var(--font-numeric)" }}>{g.event.when.day}</span>
+                  <span style={{ font: "600 0.625rem/1.2 var(--font-body)", textTransform: "uppercase", letterSpacing: ".04em", whiteSpace: "nowrap" }}>{g.event.when.month}</span>
+                </span>
               )}
+              <span style={{ display: "grid", gap: "0.1875rem", minWidth: 0 }}>
+                <span style={{ font: "600 0.9375rem/1.3 var(--font-heading)", overflowWrap: "anywhere" }}>{g.event ? g.event.title : g.name}</span>
+                <span style={{ fontSize: "0.71875rem", lineHeight: 1.3, color: "var(--color-neutral-600)" }}>{sourcesOf(g.items)}</span>
+              </span>
+              <span style={{ display: "grid", justifyItems: "end", gap: "0.1875rem", font: "400 0.71875rem/1.3 var(--font-numeric)", color: "var(--color-neutral-600)", whiteSpace: "nowrap", paddingTop: "0.125rem" }}>
+                <span>{g.items.length} item{g.items.length === 1 ? "" : "s"}</span>
+                {inBasket > 0 && <span>{inBasket === g.items.length ? "all" : inBasket} in basket</span>}
+              </span>
+              <span style={{ display: "grid", justifyItems: "end", gap: "0.1875rem", minWidth: "3.75rem" }}>
+                {groupUnpriced === g.items.length ? (
+                  <span style={{ font: "400 0.8125rem/1.3 var(--font-body)", color: "var(--color-neutral-600)", whiteSpace: "nowrap" }}>No price</span>
+                ) : (
+                  <strong style={{ font: "600 0.9375rem/1.3 var(--font-numeric)", whiteSpace: "nowrap" }}>{formatCurrency(groupTotal, currency)}</strong>
+                )}
+                {groupUnpriced > 0 && groupUnpriced < g.items.length && (
+                  <span style={{ font: "400 0.6875rem/1.3 var(--font-body)", color: "var(--color-neutral-600)", whiteSpace: "nowrap" }}>+{groupUnpriced} unpriced</span>
+                )}
+              </span>
             </button>
             {isOpen &&
               g.items.map((item) => (
                 <div key={item.id}>
-                <div className="kin-buy-row" data-checked={isChecked(item)} style={{ display: "flex", gap: "0.6875rem", alignItems: "center", padding: "0.625rem 0", borderBottom: "1px solid color-mix(in srgb, var(--color-text) 10%, transparent)" }}>
+                {/* Every grouping draws a line the same way: tick, name with
+                    what it is for under it, then quantity and price in columns
+                    of their own so they line up down the list. Where a line
+                    came from is said once in its group's header. */}
+                <div
+                  className="kin-buy-row"
+                  data-checked={isChecked(item)}
+                  style={{
+                    display: "grid",
+                    gridTemplateColumns: "1.5rem minmax(0, 1fr) auto 4.25rem",
+                    columnGap: "0.6875rem",
+                    alignItems: "center",
+                    padding: "0.625rem 0",
+                    borderBottom: "1px solid color-mix(in srgb, var(--color-text) 10%, transparent)",
+                  }}
+                >
                   <button
                     type="button"
                     aria-label={item.name}
@@ -446,7 +477,6 @@ export function BuyList({
                     type="button"
                     onClick={() => setEditing(editing === item.id ? null : item.id)}
                     style={{
-                      flex: 1,
                       minWidth: 0,
                       textAlign: "left",
                       background: "none",
@@ -458,15 +488,7 @@ export function BuyList({
                       transition: "color 220ms var(--ease-out)",
                     }}
                   >
-                    {/* Name and quantity are one target: tapping the amount
-                        is how anyone would expect to change the amount, and
-                        it used to be dead text beside the button. */}
-                    <span style={{ display: "flex", alignItems: "baseline", gap: "0.5rem" }}>
-                      <span className="kin-strike" data-on={isChecked(item)} style={{ flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{item.name}</span>
-                      <span style={{ fontFamily: "var(--font-numeric)", fontSize: "0.8125rem", color: "var(--color-neutral-600)", flex: "none" }}>
-                        {formatQuantity(item.quantity, item.unit)}
-                      </span>
-                    </span>
+                    <span className="kin-strike" data-on={isChecked(item)} style={{ display: "block", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{item.name}</span>
                     {/* The meals this line is for, so nobody wonders why there
                         is a kilo of beef shank on the list. */}
                     {mealsFor[item.id]?.length ? (
@@ -482,12 +504,27 @@ export function BuyList({
                         <span style={{ overflow: "hidden", textOverflow: "ellipsis" }}>For {eventLabel(eventOf(item)!)}</span>
                       </span>
                     ) : null}
+                    {prices[item.id]?.inPantry ? (
+                      <span style={{ display: "block", marginTop: "0.125rem", fontSize: "0.71875rem", fontWeight: 600, color: "var(--color-accent)" }}>Already at home</span>
+                    ) : null}
+                  </button>
+                  {/* Tapping the amount is how anyone would expect to change
+                      the amount, so it opens the same editor as the name. */}
+                  <button
+                    type="button"
+                    onClick={() => setEditing(editing === item.id ? null : item.id)}
+                    aria-label={`Change the amount of ${item.name}`}
+                    style={{ background: "none", border: 0, padding: "0.375rem 0", cursor: "pointer", fontFamily: "var(--font-numeric)", fontSize: "0.8125rem", color: "var(--color-neutral-600)", textAlign: "right", whiteSpace: "nowrap" }}
+                  >
+                    {formatQuantity(item.quantity, item.unit)}
                   </button>
                   {/* What this line is expected to come to. Tapping it sets a
                       price for today only, without changing the price book —
                       in an editor that opens under the row, where there is
                       room for it. */}
-                  <span style={{ flex: "none" }}>
+                  {/* The button's padding pulled in, so the figure sits flush
+                      under its group's total. */}
+                  <span style={{ justifySelf: "end", marginRight: "-0.5rem" }}>
                     <BuyItemPriceButton
                       estimated={prices[item.id]?.estimated ?? null}
                       source={prices[item.id]?.source ?? "unknown"}
@@ -495,13 +532,6 @@ export function BuyList({
                       onToggle={() => setPricing(pricing === item.id ? null : item.id)}
                     />
                   </span>
-                  {prices[item.id]?.inPantry ? (
-                    <Tag variant="accent">at home</Tag>
-                  ) : (
-                    <Tag variant={item.source === "meal_plan" ? "accent" : item.source === "maintenance" ? "outline" : "neutral"}>
-                      {SOURCE_LABEL[item.source] ?? item.source}
-                    </Tag>
-                  )}
                 </div>
                 {pricing === item.id && (
                   <BuyItemPriceEditor itemId={item.id} unitPrice={prices[item.id]?.unitPrice ?? null} onClose={() => setPricing(null)} />
