@@ -160,16 +160,8 @@ export function TodayHeader({
   );
 }
 
-/** "The Singian": the surname -- the last word -- in handwriting, the rest as
- * it was. A one-word name is all surname. */
+/** The household's name in handwriting, the whole of it ("The" too, Janine,
+ * 12 October). */
 function FamilyName({ name }: { name: string }) {
-  const cut = name.trimEnd().lastIndexOf(" ");
-  const lead = cut > 0 ? name.slice(0, cut + 1) : "";
-  const surname = cut > 0 ? name.slice(cut + 1) : name;
-  return (
-    <>
-      {lead}
-      <span style={{ fontFamily: scriptFamily, fontWeight: 600, fontSize: "1.15em", letterSpacing: 0 }}>{surname}</span>
-    </>
-  );
+  return <span style={{ fontFamily: scriptFamily, fontWeight: 600, fontSize: "1.15em", letterSpacing: 0 }}>{name}</span>;
 }

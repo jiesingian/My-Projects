@@ -81,6 +81,7 @@ export const iconPaths = {
   glassWater: "M6 3h12l-1.3 16.2a2 2 0 0 1-2 1.8H9.3a2 2 0 0 1-2-1.8zM5.5 9.5h13",
   // Today's header (12 October): the weather prompt and the day's meals as
   // a glyph each. A sun half behind a cloud; a plate between fork and spoon.
+  star: "M12 3.2l2.7 5.5 6 .9-4.35 4.25 1 6L12 17l-5.35 2.85 1-6L3.3 9.6l6-.9z",
   cloudSun: "M9 2.5V4M3.5 8H5M4.9 3.9l1 1M13.1 3.9l-1 1M6.4 10.6a3.6 3.6 0 1 1 6.4-3.2M8 20.5h9.2a3.6 3.6 0 0 0 .3-7.2 5 5 0 0 0-9.6 1.3A3 3 0 0 0 8 20.5",
   mealSetting: "M12 6.5a5.5 5.5 0 1 0 0 11a5.5 5.5 0 0 0 0-11M12 9.3a2.7 2.7 0 1 0 0 5.4a2.7 2.7 0 0 0 0-5.4M2.5 4v4a1.5 1.5 0 0 0 3 0V4M4 9.5V20M20.5 4c-1.2 0-2 1.4-2 3s.8 2.8 2 2.8 2-1.2 2-2.8-.8-3-2-3M20.5 9.8V20",
 } as const;
