@@ -5,6 +5,7 @@ import { after } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { requireCurrentMember } from "@/lib/session";
 import { humanDatabaseError } from "@/lib/db-errors";
+import { sweepExpiredHighlightsFor } from "@/lib/highlights-sweep";
 import { HIGHLIGHT_MAX_SECONDS, HIGHLIGHT_PHOTO_BYTES, HIGHLIGHT_VIDEO_BYTES } from "@/lib/highlights";
 
 /** Posts a highlight whose file has already been uploaded (upload kind
@@ -60,30 +61,9 @@ export async function deleteHighlightAction(id: string): Promise<{ error: string
   return { error: null };
 }
 
-/** Removes the files of this household's expired highlights, then their
- * rows. Run as the signed-in member, whenever someone in the household opens
- * Chat or posts a highlight: the files go through the Storage API, which is
- * the only way a file is really removed, and the bucket's policies already
- * let a member delete in their own household's folder. Nothing expired is
- * ever shown in the meantime -- the table's read policy hides it on the
- * minute. Failures are logged and left for the next sweep. */
+/** The sweep, as the signed-in member (lib/highlights-sweep). Safe inside
+ * after() here: a Server Action may read cookies there; a page may not. */
 export async function sweepExpiredHighlights(): Promise<number> {
   const me = await requireCurrentMember();
-  const supabase = await createClient();
-  const { data: expired, error } = await supabase.rpc("expired_highlights");
-  if (error) {
-    // Most likely the migration hasn't run here yet; nothing to sweep.
-    if (!/does not exist|Could not find/i.test(error.message)) console.error("Highlights: expired_highlights failed", error.message);
-    return 0;
-  }
-  const mine = (expired ?? []).filter((h) => h.storage_path.startsWith(`${me.family_id}/highlights/`));
-  if (mine.length === 0) return 0;
-  const { error: removeError } = await supabase.storage.from("documents").remove(mine.map((h) => h.storage_path));
-  if (removeError) {
-    console.error("Highlights: removing expired files failed", removeError.message);
-    return 0;
-  }
-  const { data: forgotten, error: forgetError } = await supabase.rpc("forget_expired_highlights", { p_ids: mine.map((h) => h.id) });
-  if (forgetError) console.error("Highlights: forget_expired_highlights failed", forgetError.message);
-  return forgotten ?? 0;
+  return sweepExpiredHighlightsFor(await createClient(), me.family_id);
 }

@@ -178,7 +178,7 @@ export function PickButton({
               }}
             >
               <span style={{ flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{o.label}</span>
-              {o.active && <Icon name="check" size={14} style={{ color: "var(--color-accent)", flex: "none" }} />}
+              {o.active && <Icon name="check" size={14} style={{ color: "var(--color-accent-700)", flex: "none" }} />}
             </button>
           ))}
         </div>

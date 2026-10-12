@@ -30,7 +30,7 @@ export function FamilyAboutEditor({ about, canEdit }: { about: string | null; ca
         </div>
       ) : (
         <div>
-          <textarea
+          <textarea aria-label="About your family"
             className="input"
             rows={4}
             placeholder="Share a bit of your family's story, values, or history…"

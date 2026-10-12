@@ -15,7 +15,7 @@ import { weekStartOf } from "@/lib/week";
 import { inKidView } from "@/lib/kid-view";
 import { dosesFor } from "@/lib/health-plan";
 import { FAMILY_TZ, familyMidnight } from "@/lib/time";
-import { audienceOf, checkInAnswerPush, checkInAskPush, dayIn, forPreview, isTimeZone, latest, ownSpendingAccounts, sectionsFor, type CardAudience, type CardSections } from "@/lib/member-card";
+import { showsBudget, audienceOf, checkInAnswerPush, checkInAskPush, dayIn, forPreview, isTimeZone, latest, ownSpendingAccounts, sectionsFor, type CardAudience, type CardSections } from "@/lib/member-card";
 import type { ActionState } from "@/lib/actions/auth";
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -108,7 +108,7 @@ export async function getMemberCardAction(memberId: string, as?: "grownup" | "ch
       ? Promise.resolve({ data: null })
       : supabase.from("member_checkins").select("id, asked_at, answer, answered_at").eq("asked_by", me.id).eq("member_id", target.id).order("asked_at", { ascending: false }).limit(1).maybeSingle(),
     isMe || !target.person_id ? Promise.resolve({ data: [] as { person_id: string }[] }) : supabase.rpc("my_direct_threads"),
-    sections.money ? readMoney(me.family_id, target.id, preview, day, monthStart, nextMonth) : Promise.resolve(null),
+    sections.money ? readMoney(me.family_id, target.id, preview, showsBudget(audience, preview), day, monthStart, nextMonth) : Promise.resolve(null),
     sections.care ? readCare(target.id, preview, day, tz ?? FAMILY_TZ, now) : Promise.resolve(null),
   ]);
 
@@ -168,12 +168,12 @@ export async function getMemberCardAction(memberId: string, as?: "grownup" | "ch
 
 /** This month's spending on the person's own accounts, against the monthly
  * spending budget a grown-up set for them on Wealth (member_budgets). The
- * household can read those, so the budget shows on anyone's card and in a
- * preview -- the same figure Wealth's "Spending by person" draws. It used to
- * be the person's private income target, which only they could see; that
- * stays on Wealth's Cash Flow, where it belongs. Transfers between accounts
- * are moving money, not spending it, so they are left out, as on Wealth. */
-async function readMoney(familyId: string, memberId: string, preview: boolean, day: string, from: Date | null, to: Date | null) {
+ * budget is shown only on the person's own card (Jonathan, 11 October):
+ * member_budgets is readable by the household, so it is left out here rather
+ * than by the database -- other grown-ups and the "Grown-ups see" preview get
+ * the spending alone. Transfers between accounts are moving money, not
+ * spending it, so they are left out, as on Wealth. */
+async function readMoney(familyId: string, memberId: string, preview: boolean, withBudget: boolean, day: string, from: Date | null, to: Date | null) {
   if (!from || !to) return null;
   const supabase = await createClient();
   const { data: accounts } = await supabase.from("accounts").select("id, owner_member_id, is_joint, is_private, is_archived").eq("family_id", familyId).eq("owner_member_id", memberId);
@@ -190,7 +190,7 @@ async function readMoney(familyId: string, memberId: string, preview: boolean, d
           .gte("occurred_at", from.toISOString())
           .lt("occurred_at", to.toISOString())
       : Promise.resolve({ data: [] as { amount: number }[] }),
-    getMemberBudgets(familyId, Number(day.slice(0, 4)), Number(day.slice(5, 7))),
+    withBudget ? getMemberBudgets(familyId, Number(day.slice(0, 4)), Number(day.slice(5, 7))) : Promise.resolve(new Map<string, number>()),
   ]);
   const spent = (rows ?? []).reduce((sum, r) => sum + Number(r.amount), 0);
   const set = budgets.get(memberId);

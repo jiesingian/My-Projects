@@ -8,7 +8,8 @@ import { shortNames } from "@/lib/format";
 import { CallButtons } from "@/components/call-buttons";
 import { HighlightsButton } from "@/components/highlights";
 import { getHighlights } from "@/lib/queries/highlights";
-import { sweepExpiredHighlights } from "@/lib/actions/highlights";
+import { sweepExpiredHighlightsFor } from "@/lib/highlights-sweep";
+import { createClient } from "@/lib/supabase/server";
 import { after } from "next/server";
 import { getThreadPrefs } from "@/lib/queries/chat-rooms";
 import { ThreadMenu } from "@/components/thread-menu";
@@ -34,7 +35,10 @@ export default async function HouseholdChatPage({ searchParams }: { searchParams
   ]);
   // Expired highlights' files go the next time anyone at home opens the
   // household chat (they are already hidden: the table only returns live ones).
-  after(() => sweepExpiredHighlights());
+  // The client is made here, during render: reading cookies inside after()
+  // throws in a page (lib/highlights-sweep).
+  const sweeper = await createClient();
+  after(() => sweepExpiredHighlightsFor(sweeper, me.family_id));
   // Two people in one house can share a first name; the tag has to tell them
   // apart, and the same label is what the message text carries.
   const labels = shortNames(members.map((m) => m.name));

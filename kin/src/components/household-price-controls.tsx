@@ -1,5 +1,6 @@
 "use client";
 
+import { useCurrencySymbol } from "@/components/household-currency";
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import {
@@ -29,8 +30,8 @@ function useHouseholdAction() {
   return { pending, error, run };
 }
 
-function peso(n: number) {
-  return `₱${n.toLocaleString("en-PH", { minimumFractionDigits: 0, maximumFractionDigits: 2 })}`;
+function peso(n: number, sym: string) {
+  return `${sym}${n.toLocaleString("en-PH", { minimumFractionDigits: 0, maximumFractionDigits: 2 })}`;
 }
 
 /** One row of the price book. Tapping the price opens it for editing; a
@@ -50,6 +51,7 @@ export function PriceRowControl({
   section: string;
   source: "family" | "starter";
 }) {
+  const sym = useCurrencySymbol();
   const { pending, error, run } = useHouseholdAction();
   const [editing, setEditing] = useState(false);
   const [value, setValue] = useState(String(price));
@@ -76,7 +78,7 @@ export function PriceRowControl({
           }}
           aria-label={`Edit the price of ${name}`}
         >
-          <span style={{ fontWeight: source === "family" ? 600 : 400 }}>{peso(price)}</span>
+          <span style={{ fontWeight: source === "family" ? 600 : 400 }}>{peso(price, sym)}</span>
           <span style={{ fontSize: "0.78125rem", color: "var(--color-neutral-600)" }}>/{unit}</span>
           {source === "starter" && (
             <span
@@ -174,10 +176,10 @@ export function AddPriceControl() {
 
   return (
     <div style={{ marginTop: "0.875rem", padding: "0.8125rem", borderRadius: 14, background: "color-mix(in srgb, var(--color-text) 4%, transparent)" }}>
-      <input className="input" placeholder="Item name" value={name} onChange={(e) => setName(e.target.value)} maxLength={150} style={{ minHeight: "2.625rem", marginBottom: "0.5rem" }} />
+      <input aria-label="Item name" className="input" placeholder="Item name" value={name} onChange={(e) => setName(e.target.value)} maxLength={150} style={{ minHeight: "2.625rem", marginBottom: "0.5rem" }} />
       <div style={{ display: "flex", gap: "0.375rem", marginBottom: "0.5rem" }}>
-        <input className="input" type="number" step="0.01" min="0" inputMode="decimal" placeholder="Price" value={price} onChange={(e) => setPrice(e.target.value)} style={{ minHeight: "2.625rem", flex: 1 }} />
-        <select className="input" value={unit} onChange={(e) => setUnit(e.target.value)} style={{ minHeight: "2.625rem", width: 100 }}>
+        <input aria-label="Price" className="input" type="number" step="0.01" min="0" inputMode="decimal" placeholder="Price" value={price} onChange={(e) => setPrice(e.target.value)} style={{ minHeight: "2.625rem", flex: 1 }} />
+        <select aria-label="Unit" className="input" value={unit} onChange={(e) => setUnit(e.target.value)} style={{ minHeight: "2.625rem", width: 100 }}>
           {UNITS.map((u) => (
             <option key={u} value={u}>
               {u}
@@ -185,7 +187,7 @@ export function AddPriceControl() {
           ))}
         </select>
       </div>
-      <select className="input" value={section} onChange={(e) => setSection(e.target.value)} style={{ minHeight: "2.625rem", marginBottom: "0.625rem" }}>
+      <select aria-label="Market section" className="input" value={section} onChange={(e) => setSection(e.target.value)} style={{ minHeight: "2.625rem", marginBottom: "0.625rem" }}>
         {MARKET_SECTIONS.map((s) => (
           <option key={s} value={s}>
             {s}
@@ -238,6 +240,7 @@ export function BuyItemPriceButton({
   editing: boolean;
   onToggle: () => void;
 }) {
+  const sym = useCurrencySymbol();
   return (
     <button
       type="button"
@@ -258,7 +261,7 @@ export function BuyItemPriceButton({
         fontWeight: source === "override" ? 600 : 400,
       }}
     >
-      {estimated == null ? "price?" : peso(estimated)}
+      {estimated == null ? "price?" : peso(estimated, sym)}
     </button>
   );
 }
