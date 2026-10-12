@@ -41,8 +41,8 @@ import { ShowChoresSwitch } from "@/components/show-chores-switch";
 import { cookies } from "next/headers";
 import { familyDate } from "@/lib/format-family";
 import { nextEventDate } from "@/lib/grocery";
-import { eventIsOver, showsDone } from "@/lib/planner-done";
-import { CompletedToggle } from "@/components/completed-toggle";
+import { eventIsOver, eventMatches, eventWhen, showsDone, type EventWhen } from "@/lib/planner-done";
+import { EventToJournal } from "@/components/event-to-journal";
 import { GoalsPane } from "./goals-pane";
 import { isGone } from "@/lib/member-status";
 
@@ -54,7 +54,7 @@ type CalendarView = (typeof CALENDAR_VIEWS)[number];
 export default async function PlannerPage({
   searchParams,
 }: {
-  searchParams: Promise<{ seg?: string; who?: string; view?: string; date?: string; hide?: string; saved?: string; asked?: string; done?: string }>;
+  searchParams: Promise<{ seg?: string; who?: string; view?: string; date?: string; hide?: string; saved?: string; asked?: string; done?: string; when?: string }>;
 }) {
   const me = await getCurrentMember();
   if (!me) redirect("/onboarding/profile");
@@ -107,7 +107,7 @@ export default async function PlannerPage({
           />
         )}
         {seg === "routines" && <RoutinesPane familyId={me.family_id} who={who} currency={me.families.currency} justSaved={sp.saved === "1"} />}
-        {seg === "events" && <EventsPane familyId={me.family_id} who={who} done={done} />}
+        {seg === "events" && <EventsPane familyId={me.family_id} who={who} when={eventWhen(sp.when)} />}
         {seg === "goals" && (
           <GoalsPane
             familyId={me.family_id}
@@ -955,13 +955,13 @@ async function RoutinesPane({ familyId, who, currency, justSaved }: { familyId: 
 
 /** The member filter, shared by every Planner tab so choosing a person means
  * the same thing wherever you are and survives switching tab. */
-async function MemberChips({ familyId, seg, who, done = false }: { familyId: string; seg: string; who: string; done?: boolean }) {
+async function MemberChips({ familyId, seg, who, done = false, keep = "", children }: { familyId: string; seg: string; who: string; done?: boolean; keep?: string; children?: React.ReactNode }) {
   const [members, me] = await Promise.all([getMembers(familyId), getCurrentMember()]);
   const active = members.filter((m) => m.status !== "pending" && !isGone(m.status));
   const labels = shortNames(active.map((m) => m.full_name)).map((l, i) => selfLabel(l, active[i].id === me?.id));
 
   return (
-    <div style={{ display: "flex", marginBottom: "0.875rem" }}>
+    <div style={{ display: "flex", flexWrap: "wrap", gap: "0.5rem", marginBottom: "0.875rem" }}>
       <PickButton
         title="Who"
         icon="users"
@@ -969,11 +969,12 @@ async function MemberChips({ familyId, seg, who, done = false }: { familyId: str
         options={[
           // All: every member's plans together, to see what clashes.
           // Family: only what the whole family is in (FAMILY_FILTER).
-          { label: "All", href: `/planner?seg=${seg}&who=all${done ? "&done=1" : ""}`, active: who === "all" },
-          { label: "Family", href: `/planner?seg=${seg}&who=${FAMILY_FILTER}${done ? "&done=1" : ""}`, active: who === FAMILY_FILTER },
-          ...active.map((m, i) => ({ label: labels[i], href: `/planner?seg=${seg}&who=${m.id}${done ? "&done=1" : ""}`, active: who === m.id })),
+          { label: "All", href: `/planner?seg=${seg}&who=all${done ? "&done=1" : ""}${keep}`, active: who === "all" },
+          { label: "Family", href: `/planner?seg=${seg}&who=${FAMILY_FILTER}${done ? "&done=1" : ""}${keep}`, active: who === FAMILY_FILTER },
+          ...active.map((m, i) => ({ label: labels[i], href: `/planner?seg=${seg}&who=${m.id}${done ? "&done=1" : ""}${keep}`, active: who === m.id })),
         ]}
       />
+      {children}
     </div>
   );
 }
@@ -993,15 +994,19 @@ function concerns(memberIds: string[], appliesToAll: boolean, who: string): bool
  * packing list, travellers). Every event and trip is one merged, date-ordered
  * list; a trip's extra detail (budget, spend, invitation card) is on its own
  * screen. */
-async function EventsPane({ familyId, who, done }: { familyId: string; who: string; done: boolean }) {
+async function EventsPane({ familyId, who, when }: { familyId: string; who: string; when: EventWhen }) {
   const fmtDate = await familyDate();
   const today = familyDay(new Date(), await householdZone());
   const supabase = await createClient();
-  const [allEvents, members, { data: photoRows }] = await Promise.all([
+  const [allEvents, members, { data: photoRows }, { data: journalled }] = await Promise.all([
     getEvents(familyId),
     getMembers(familyId),
     supabase.from("event_photos").select("event_id").eq("family_id", familyId),
+    // Entries already made from an event's photos, found by title and day
+    // (addEventToJournalAction), so the row can open the entry instead.
+    supabase.from("journal_entries").select("id, title, entry_date").eq("family_id", familyId).eq("source", "from_event"),
   ]);
+  const entryFor = new Map((journalled ?? []).map((j) => [`${j.title}|${j.entry_date}`, j.id]));
   const photoCount = new Map<string, number>();
   for (const r of photoRows ?? []) photoCount.set(r.event_id, (photoCount.get(r.event_id) ?? 0) + 1);
   const photos = (id: string) => (photoCount.get(id) ? ` · ${photoCount.get(id)} photo${photoCount.get(id) === 1 ? "" : "s"}` : "");
@@ -1023,16 +1028,19 @@ async function EventsPane({ familyId, who, done }: { familyId: string; who: stri
   // travel look like a different thing. Its budget, spend and invitation
   // card are on the trip's own screen now.
   // A yearly event sorts at its next turn, so a birthday already gone this
-  // year waits at next year's place rather than sitting at the top.
+  // year waits at next year's place rather than sitting at the top. Past is
+  // most recent first; the others soonest first.
   type Row = { date: string; over: boolean } & ({ kind: "event"; event: (typeof events)[number] } | { kind: "trip"; trip: (typeof trips)[number] });
-  const all: Row[] = [
-    ...events.map((e) => ({ kind: "event" as const, date: nextEventDate(e, today), over: eventIsOver(e, today), event: e })),
-    ...trips.map((t) => ({ kind: "trip" as const, date: nextEventDate(t, today), over: eventIsOver(t, today), trip: t })),
-  ];
-  // What is still ahead, soonest first; what is over, most recent first,
-  // folded under its own heading at the end and shown only on request.
-  const rows = all.filter((r) => !r.over).sort((a, b) => a.date.localeCompare(b.date));
-  const past = all.filter((r) => r.over).sort((a, b) => b.date.localeCompare(a.date));
+  const rows: Row[] = [
+    ...events.filter((e) => eventMatches(e, when, today)).map((e) => ({ kind: "event" as const, date: nextEventDate(e, today), over: eventIsOver(e, today), event: e })),
+    ...trips.filter((t) => eventMatches(t, when, today)).map((t) => ({ kind: "trip" as const, date: nextEventDate(t, today), over: eventIsOver(t, today), trip: t })),
+  ].sort((a, b) => (when === "past" ? b.date.localeCompare(a.date) : a.date.localeCompare(b.date)));
+  const whenLabel = { upcoming: "Upcoming", current: "Current", past: "Past" } as const;
+  const empty = { upcoming: "Nothing coming up.", current: "Nothing on today.", past: "Nothing in the past yet." } as const;
+  // A past event with photos can go to the Journal as one entry.
+  const toJournal = (e: { id: string; title: string; event_date: string }, over: boolean) =>
+    over && photoCount.get(e.id) ? <EventToJournal eventId={e.id} entryId={entryFor.get(`${e.title}|${e.event_date}`) ?? null} /> : null;
+
   const renderRow = (row: Row) =>
     row.kind === "event" ? (
       // Every row is the same shape, invitation or not (26 September): the
@@ -1067,6 +1075,7 @@ async function EventsPane({ familyId, who, done }: { familyId: string; who: stri
             {row.event.sub_note ? ` · ${row.event.sub_note}` : ""}
             {photos(row.event.id)}
           </div>
+          {toJournal(row.event, row.over)}
         </div>
         <Tag variant={row.event.kind === "birthday" || row.event.kind === "anniversary" ? "neutral" : "accent"} className="self-start">
           {row.event.kind.toUpperCase()}
@@ -1100,6 +1109,7 @@ async function EventsPane({ familyId, who, done }: { familyId: string; who: stri
             {row.trip.sub_note ? ` · ${row.trip.sub_note}` : ""}
             {photos(row.trip.id)}
           </div>
+          {toJournal(row.trip, row.over)}
         </div>
         <Tag variant="accent" className="self-start">
           TRAVEL
@@ -1109,15 +1119,26 @@ async function EventsPane({ familyId, who, done }: { familyId: string; who: stri
 
   return (
     <>
-      <MemberChips familyId={familyId} seg="events" who={who} />
+      <MemberChips familyId={familyId} seg="events" who={who} keep={when === "upcoming" ? "" : `&when=${when}`}>
+        {/* When, beside Who: Upcoming by default, so what is over stays out
+            of the way until asked for (12 October). In the URL, like Who. */}
+        <PickButton
+          title="When"
+          icon="calendarDays"
+          label={whenLabel[when]}
+          options={(["upcoming", "current", "past"] as const).map((w) => ({
+            label: whenLabel[w],
+            href: `/planner?seg=events&who=${who}${w === "upcoming" ? "" : `&when=${w}`}`,
+            active: when === w,
+          }))}
+        />
+      </MemberChips>
       {rows.length === 0 && (
         <p style={{ fontSize: "0.84375rem", color: "var(--color-neutral-600)" }}>
-          {allEvents.length === 0 ? "Nothing planned yet." : past.length > 0 ? "Nothing coming up." : "Nothing planned for this person."}
+          {allEvents.length === 0 ? "Nothing planned yet." : visible.length === 0 ? "Nothing planned for this person." : empty[when]}
         </p>
       )}
       {rows.map(renderRow)}
-      <CompletedToggle seg="events" who={who} count={past.length} shown={done} />
-      {done && past.map(renderRow)}
       <div style={{ display: "flex", gap: "0.5rem", marginTop: "1rem" }}>
         <Link href="/planner/add?type=event" className="btn btn-primary btn-block" style={{ minHeight: "2.875rem", fontSize: "0.875rem", letterSpacing: ".04em" }}>
           + ADD EVENT

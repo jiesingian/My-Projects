@@ -1,5 +1,5 @@
 import { test, expect } from "@playwright/test";
-import { eventIsOver, goalIsFinished, showsDone } from "@/lib/planner-done";
+import { eventIsCurrent, eventIsOver, eventMatches, eventWhen, goalIsFinished, showsDone } from "@/lib/planner-done";
 
 /** Completed plans are folded away on the Planner by default. An event is
  * over once its last day has gone; a yearly one never is. A goal is finished
@@ -42,4 +42,25 @@ test("completed things are hidden unless done=1", () => {
   expect(showsDone("")).toBe(false);
   expect(showsDone("0")).toBe(false);
   expect(showsDone("1")).toBe(true);
+});
+
+test("When: upcoming includes what is on today, current is only today, past is over", () => {
+  const trip = { event_date: "2026-10-10", end_date: "2026-10-14" };
+  const fieldtrip = { event_date: "2026-10-01" };
+  const scienceWeek = { event_date: "2026-10-16" };
+  const today_ = { event_date: "2026-10-12" };
+  const birthday = { event_date: "1990-10-12", recurs_yearly: true };
+  const otherBirthday = { event_date: "1990-09-25", recurs_yearly: true };
+
+  expect([trip, fieldtrip, scienceWeek, today_, birthday, otherBirthday].map((e) => eventMatches(e, "upcoming", today))).toEqual([true, false, true, true, true, true]);
+  expect([trip, fieldtrip, scienceWeek, today_, birthday, otherBirthday].map((e) => eventMatches(e, "current", today))).toEqual([true, false, false, true, true, false]);
+  expect([trip, fieldtrip, scienceWeek, today_, birthday, otherBirthday].map((e) => eventMatches(e, "past", today))).toEqual([false, true, false, false, false, false]);
+  expect(eventIsCurrent({ event_date: "2026-10-12", end_date: "2026-10-01" }, today)).toBe(true);
+});
+
+test("When param: upcoming unless it names another", () => {
+  expect(eventWhen(undefined)).toBe("upcoming");
+  expect(eventWhen("nonsense")).toBe("upcoming");
+  expect(eventWhen("current")).toBe("current");
+  expect(eventWhen("past")).toBe("past");
 });
