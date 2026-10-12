@@ -20,7 +20,7 @@ import { isNetworkFailure, isOffline, newOpId, queueOffline, useQueue } from "@/
 
 const initialState: ActionState = { error: null };
 
-type ListOrder = "aisle" | "added";
+type ListOrder = "aisle" | "added" | "event";
 const ORDER_KEY = "kin.buy-list.order";
 // Kept here too, so the toggle still works where storage is blocked (a
 // private window); it is just not remembered there.
@@ -29,7 +29,7 @@ const orderListeners = new Set<() => void>();
 function readOrder(): ListOrder {
   try {
     const saved = localStorage.getItem(ORDER_KEY);
-    if (saved === "aisle" || saved === "added") orderNow = saved;
+    if (saved === "aisle" || saved === "added" || saved === "event") orderNow = saved;
   } catch {}
   return orderNow;
 }
@@ -48,6 +48,17 @@ function chooseOrder(next: ListOrder) {
 }
 
 type BuyGroup = { name: string; items: Tables<"buy_items">[]; openCount: number };
+/** An event a line can be for, at its next date (YYYY-MM-DD). */
+type ListEvent = { id: string; title: string; date: string };
+
+/** "Robin turns 8 · Sat 24 Oct". Built from the date's own parts, so the
+ * server and the phone print the same day whatever zone each is in. */
+function eventLabel(e: ListEvent): string {
+  const [y, m, d] = e.date.split("-").map(Number);
+  const day = new Date(y, m - 1, d).toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short" });
+  return `${e.title} · ${day}`;
+}
+const NO_EVENT = "Not for an event";
 
 const SOURCE_LABEL: Record<string, string> = {
   meal_plan: "MEAL PLAN",
@@ -64,6 +75,7 @@ export function BuyList({
   currency,
   prices,
   mealsFor = {},
+  events = [],
   unpriced,
   trip,
   pricesSlot,
@@ -78,6 +90,8 @@ export function BuyList({
   prices: Record<string, { estimated: number | null; unitPrice: number | null; source: string; inPantry: boolean }>;
   /** Which planned meals each line is for, by item id. */
   mealsFor?: Record<string, { dish: string; date: string }[]>;
+  /** The events a line can be for, soonest first. */
+  events?: ListEvent[];
   /** How many lines Kin has no price for, so the total can say so. */
   unpriced: number;
   /** Open with the add box already out -- Today's "To buy" quick add. */
@@ -110,6 +124,7 @@ export function BuyList({
   const [newName, setNewName] = useState("");
   const [sectionTouched, setSectionTouched] = useState(false);
   const [sectionChoice, setSectionChoice] = useState<string>("Other");
+  const [eventChoice, setEventChoice] = useState("");
   // Ticks and adds made offline wait in the queue (lib/offline/live) and are
   // shown from it until the replay settles them.
   const queue = useQueue();
@@ -148,6 +163,7 @@ export function BuyList({
         quantity: String(form.get("quantity") ?? ""),
         unit: String(form.get("unit") ?? ""),
         section: String(form.get("section") ?? ""),
+        ...(form.get("event_id") ? { eventId: String(form.get("event_id")) } : {}),
       });
       if (!why) {
         setNewName("");
@@ -182,12 +198,27 @@ export function BuyList({
   const estimateOf = (id: string) => prices[id]?.estimated ?? 0;
   const basketTotal = allItems.filter((i) => i.checked).reduce((sum, i) => sum + estimateOf(i.id), 0);
   const listTotal = allItems.reduce((sum, i) => sum + estimateOf(i.id), 0);
+  const eventById = new Map(events.map((e) => [e.id, e]));
+  const eventOf = (item: { event_id: string | null }) => (item.event_id ? eventById.get(item.event_id) ?? null : null);
+  // By event: each event with something on the list, soonest first, then
+  // everything that is for no event. Each group is still walked by aisle.
+  const byEvent = () => {
+    const groupsOut = events
+      .map((e) => ({ name: eventLabel(e), items: groupByAisle(allItems.filter((i) => eventOf(i)?.id === e.id)).flatMap((g) => g.items) }))
+      .filter((g) => g.items.length > 0);
+    const rest = groupByAisle(allItems.filter((i) => !eventOf(i))).flatMap((g) => g.items);
+    return rest.length > 0 ? [...groupsOut, { name: NO_EVENT, items: rest }] : groupsOut;
+  };
   const shown =
     order === "aisle"
       ? groupByAisle(allItems)
-      : allItems.length > 0
-        ? [{ name: "In the order added", items: [...allItems].sort((a, b) => a.created_at.localeCompare(b.created_at) || a.name.localeCompare(b.name) || a.id.localeCompare(b.id)) }]
-        : [];
+      : order === "event"
+        ? byEvent()
+        : allItems.length > 0
+          ? [{ name: "In the order added", items: [...allItems].sort((a, b) => a.created_at.localeCompare(b.created_at) || a.name.localeCompare(b.name) || a.id.localeCompare(b.id)) }]
+          : [];
+  // Grouping by event is only worth offering once there is an event to group under.
+  const canGroupByEvent = events.length > 0 || allItems.some((i) => i.event_id);
 
   // The section follows what's being typed until the member overrides it.
   const section = sectionTouched ? sectionChoice : guessSection(newName);
@@ -288,6 +319,11 @@ export function BuyList({
           <button type="button" className="chip" data-active={order === "aisle"} aria-pressed={order === "aisle"} onClick={() => chooseOrder("aisle")}>
             By aisle
           </button>
+          {canGroupByEvent && (
+            <button type="button" className="chip" data-active={order === "event"} aria-pressed={order === "event"} onClick={() => chooseOrder("event")}>
+              By event
+            </button>
+          )}
           <button type="button" className="chip" data-active={order === "added"} aria-pressed={order === "added"} onClick={() => chooseOrder("added")}>
             As added
           </button>
@@ -295,8 +331,11 @@ export function BuyList({
       )}
 
       {shown.map((g) => {
-        // One long list has nothing to fold away, so it is always open.
-        const isOpen = order === "added" || expanded.has(g.name);
+        // One long list has nothing to fold away, so it is always open. Aisles
+        // start closed; events start open (a party's list is read as a whole),
+        // so for them the set holds the ones folded away.
+        const isOpen = order === "added" || (order === "event" ? !expanded.has(`event:${g.name}`) : expanded.has(g.name));
+        const toggleKey = order === "event" ? `event:${g.name}` : g.name;
         const inBasket = g.items.filter((i) => i.checked).length;
         return (
           <div key={g.name} style={{ marginBottom: "1.125rem" }}>
@@ -305,8 +344,8 @@ export function BuyList({
               onClick={() =>
                 setExpanded((prev) => {
                   const next = new Set(prev);
-                  if (next.has(g.name)) next.delete(g.name);
-                  else next.add(g.name);
+                  if (next.has(toggleKey)) next.delete(toggleKey);
+                  else next.add(toggleKey);
                   return next;
                 })
               }
@@ -390,6 +429,14 @@ export function BuyList({
                         For {mealsFor[item.id].map((m) => `${m.dish} (${mealDayLabel(m.date)})`).join(", ")}
                       </span>
                     ) : null}
+                    {/* The event it is for -- said on the line except when the
+                        list is already grouped under it. */}
+                    {order !== "event" && eventOf(item) ? (
+                      <span style={{ display: "flex", alignItems: "center", gap: "0.25rem", marginTop: "0.125rem", fontSize: "0.71875rem", color: "var(--color-neutral-600)", overflow: "hidden", whiteSpace: "nowrap" }}>
+                        <Icon name="calendarDays" size={11} style={{ flex: "none" }} />
+                        <span style={{ overflow: "hidden", textOverflow: "ellipsis" }}>For {eventLabel(eventOf(item)!)}</span>
+                      </span>
+                    ) : null}
                   </button>
                   {/* What this line is expected to come to. Tapping it sets a
                       price for today only, without changing the price book —
@@ -414,7 +461,7 @@ export function BuyList({
                 {pricing === item.id && (
                   <BuyItemPriceEditor itemId={item.id} unitPrice={prices[item.id]?.unitPrice ?? null} onClose={() => setPricing(null)} />
                 )}
-                {editing === item.id && <EditItemRow item={item} onClose={() => setEditing(null)} />}
+                {editing === item.id && <EditItemRow item={item} events={events} onClose={() => setEditing(null)} />}
                 </div>
               ))}
           </div>
@@ -474,6 +521,18 @@ export function BuyList({
               ))}
             </select>
           </div>
+          {/* Which event it is for, if any -- its own row, since event names
+              are long. Kept between adds, for writing a party's list in one go. */}
+          {events.length > 0 && (
+            <select aria-label="For an event" className="input" name="event_id" value={eventChoice} onChange={(e) => setEventChoice(e.target.value)} style={{ minHeight: "2.625rem", width: "100%", marginBottom: "0.5rem" }}>
+              <option value="">Not for an event</option>
+              {events.map((e) => (
+                <option key={e.id} value={e.id}>
+                  For {eventLabel(e)}
+                </option>
+              ))}
+            </select>
+          )}
           <div style={{ display: "flex", gap: "0.5rem" }}>
             {/* Pre-filled from the name as it's typed, so the common case is one tap. */}
             <select aria-label="Market section" className="input" name="section" value={section} onChange={(e) => setSection(e.target.value)} style={{ minHeight: "2.625rem", flex: 1 }}>
@@ -503,7 +562,7 @@ export function BuyList({
       <ErrorText message={addState.error} />
       <div style={{ fontSize: "0.8125rem", color: "var(--color-neutral-600)", marginTop: "0.625rem" }}>
         Sections follow the order you walk the market. Items from the meal plan are filed by name automatically — tap any item to fix its
-        quantity or section. Ticked items stay until cleared.
+        quantity, section or the event it is for. Ticked items stay until cleared.
       </div>
     </>
   );
@@ -511,11 +570,12 @@ export function BuyList({
 
 /** Tapping an item opens this — fix the quantity, the unit, or which section
  * it was filed under when it came off a meal plan. */
-function EditItemRow({ item, onClose }: { item: Tables<"buy_items">; onClose: () => void }) {
+function EditItemRow({ item, events, onClose }: { item: Tables<"buy_items">; events: ListEvent[]; onClose: () => void }) {
   const [name, setName] = useState(item.name);
   const [quantity, setQuantity] = useState(item.quantity === null ? "" : String(item.quantity));
   const [unit, setUnit] = useState(item.unit ?? "pc");
   const [section, setSection] = useState(item.section);
+  const [eventId, setEventId] = useState(item.event_id ?? "");
   const [pending, startTransition] = useTransition();
   const router = useRouter();
 
@@ -526,6 +586,8 @@ function EditItemRow({ item, onClose }: { item: Tables<"buy_items">; onClose: ()
         quantity: quantity.trim() ? Number(quantity) : null,
         unit: unit || null,
         section,
+        // Sent only when it changed, so an ordinary edit never touches it.
+        ...(eventId !== (item.event_id ?? "") ? { eventId: eventId || null } : {}),
       });
       onClose();
       router.refresh();
@@ -554,6 +616,16 @@ function EditItemRow({ item, onClose }: { item: Tables<"buy_items">; onClose: ()
           ))}
         </select>
       </div>
+      {(events.length > 0 || item.event_id) && (
+        <select aria-label="For an event" className="input" value={eventId} onChange={(e) => setEventId(e.target.value)} style={{ minHeight: "2.5rem", width: "100%", marginBottom: "0.5rem" }}>
+          <option value="">Not for an event</option>
+          {events.map((e) => (
+            <option key={e.id} value={e.id}>
+              For {eventLabel(e)}
+            </option>
+          ))}
+        </select>
+      )}
       <div style={{ display: "flex", gap: "0.5rem" }}>
         <select aria-label="Market section" className="input" value={section} onChange={(e) => setSection(e.target.value)} style={{ minHeight: "2.5rem", flex: 1 }}>
           {MARKET_SECTIONS.map((s) => (

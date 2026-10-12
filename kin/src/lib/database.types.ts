@@ -914,6 +914,7 @@ export type Database = {
           cost: number | null
           created_at: string
           created_by: string | null
+          event_id: string | null
           family_id: string
           id: string
           member_id: string | null
@@ -933,6 +934,7 @@ export type Database = {
           cost?: number | null
           created_at?: string
           created_by?: string | null
+          event_id?: string | null
           family_id: string
           id?: string
           member_id?: string | null
@@ -952,6 +954,7 @@ export type Database = {
           cost?: number | null
           created_at?: string
           created_by?: string | null
+          event_id?: string | null
           family_id?: string
           id?: string
           member_id?: string | null

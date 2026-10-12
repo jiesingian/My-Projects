@@ -6,6 +6,9 @@ import { recipeRef, RECIPE_PHOTO_BUCKET } from "@/lib/meal-photos";
 import { RECIPES_BY_KEY, type MealSlot } from "@/lib/recipes";
 import { toISODate } from "@/lib/routines";
 import { type LiquidIntakeType, type LiquidIntakeMember } from "@/lib/liquid-intake";
+import { householdZone } from "@/lib/household-zone";
+import { familyDay } from "@/lib/time";
+import { nextEventDate } from "@/lib/grocery";
 
 /** The open list, grouped by market section and ordered the way the sections
  * are walked, so it can be shopped straight down. */
@@ -45,6 +48,24 @@ export async function getBuyItems(familyId: string) {
     openCount: items.filter((i) => !i.checked).length,
     doneCount: items.filter((i) => i.checked).length,
   };
+}
+
+/** The events a line on the list can be for: everything still ahead -- a
+ * yearly one at its next turn -- soonest first, plus any already chosen by a
+ * line on the list, so a line keeps its event's name after the day passes. */
+export async function getBuyListEvents(familyId: string): Promise<{ id: string; title: string; date: string }[]> {
+  const supabase = await createClient();
+  const [tz, { data: events }, { data: linked }] = await Promise.all([
+    householdZone(),
+    supabase.from("events").select("id, title, event_date, end_date, recurs_yearly").eq("family_id", familyId),
+    supabase.from("buy_items").select("event_id").eq("family_id", familyId).eq("cleared", false).not("event_id", "is", null),
+  ]);
+  const today = familyDay(new Date(), tz);
+  const chosen = new Set((linked ?? []).map((l) => l.event_id));
+  return (events ?? [])
+    .map((e) => ({ id: e.id, title: e.title, date: nextEventDate(e, today) }))
+    .filter((e) => e.date >= today || chosen.has(e.id))
+    .sort((a, b) => a.date.localeCompare(b.date) || a.title.localeCompare(b.title));
 }
 
 export type PlannedIngredient = {

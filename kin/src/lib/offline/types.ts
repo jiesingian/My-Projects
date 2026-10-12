@@ -101,6 +101,8 @@ export type QueuedOp =
       quantity?: string;
       unit?: string;
       section?: string;
+      /** The event it is for, if one was picked. */
+      eventId?: string;
     }
   | { id: string; at: string; kind: "today.mark"; key: string; day: string; date?: string; label: string }
   | {

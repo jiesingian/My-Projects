@@ -161,3 +161,22 @@ export function groupByAisle<T extends { section: string }>(items: T[]): { name:
       .map(({ item }) => item),
   })).filter((g) => g.items.length > 0);
 }
+
+/** The day an event next falls on, as YYYY-MM-DD, seen from `today`: a yearly
+ * one (a birthday) at this year's turn, or next year's once this year's has
+ * gone; anything else on its own date, or its last day while it is still on.
+ * A 29 February birthday falls on 1 March in a year without one. */
+export function nextEventDate(
+  e: { event_date: string; end_date?: string | null; recurs_yearly?: boolean | null },
+  today: string,
+): string {
+  if (!e.recurs_yearly) return e.end_date && e.end_date >= today && e.event_date < today ? today : e.event_date;
+  const md = e.event_date.slice(5, 10);
+  const on = (year: number) => {
+    const d = new Date(Date.UTC(year, Number(md.slice(0, 2)) - 1, Number(md.slice(3, 5))));
+    return d.toISOString().slice(0, 10);
+  };
+  const year = Number(today.slice(0, 4));
+  const thisYear = on(year);
+  return thisYear >= today ? thisYear : on(year + 1);
+}

@@ -30,6 +30,12 @@ import { getRecipeBook } from "@/lib/queries/recipes";
 import { planDinners, rankByPantry } from "@/lib/pantry-match";
 import { planAdd, planRemove } from "@/lib/meal-shopping";
 
+/** An event id from a form or the editor; anything else is "no event". */
+function asEventId(value: unknown): string | null {
+  const v = typeof value === "string" ? value.trim() : "";
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(v) ? v : null;
+}
+
 export async function addBuyItemAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
   const me = await requireCurrentMember();
   const supabase = await createClient();
@@ -42,6 +48,8 @@ export async function addBuyItemAction(_prev: ActionState, formData: FormData): 
   // replay that is sent twice finds its own row rather than adding a second.
   const clientId = String(formData.get("id") ?? "");
   const id = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(clientId) ? clientId : undefined;
+  // Which event it is for, if any. The database checks it is this household's.
+  const eventId = asEventId(formData.get("event_id"));
   if (!name) return { error: "Name the item." };
 
   // An empty section means the member didn't pick one — file it themselves.
@@ -55,6 +63,8 @@ export async function addBuyItemAction(_prev: ActionState, formData: FormData): 
     unit,
     section,
     source,
+    // Only sent when chosen, so adding a plain item never depends on it.
+    ...(eventId ? { event_id: eventId } : {}),
     created_by: me.id,
   });
   // Already added by an earlier send of the same offline change.
@@ -67,7 +77,7 @@ export async function addBuyItemAction(_prev: ActionState, formData: FormData): 
 
 export async function updateBuyItemAction(
   itemId: string,
-  input: { name: string; quantity: number | null; unit: string | null; section: string },
+  input: { name: string; quantity: number | null; unit: string | null; section: string; eventId?: string | null },
 ): Promise<ActionState> {
   const me = await requireCurrentMember();
   const supabase = await createClient();
@@ -81,6 +91,8 @@ export async function updateBuyItemAction(
       quantity: input.quantity,
       unit: input.unit,
       section: (MARKET_SECTIONS as readonly string[]).includes(input.section) ? input.section : "Other",
+      // Left alone unless the editor sent it, so other callers keep the event.
+      ...(input.eventId !== undefined ? { event_id: asEventId(input.eventId) } : {}),
     }, { count: "exact" })
     .eq("id", itemId)
     .eq("family_id", me.family_id);
