@@ -11,7 +11,13 @@ export type { WealthScope };
  * decides whether it can still be deleted outright (deleteAccountAction). */
 export type AccountWithBalance = Tables<"accounts"> & { balance: number; pendingCount: number; movementCount: number };
 
-export type LedgerEntry = Tables<"wealth_transactions"> & { accountName: string; recordedByName: string | null };
+export type LedgerEntry = Tables<"wealth_transactions"> & {
+  accountName: string;
+  /** Whose account it moved through -- so a list mixing people can say. */
+  accountOwnerId: string | null;
+  accountIsJoint: boolean;
+  recordedByName: string | null;
+};
 
 function currentPeriod() {
   const now = new Date();
@@ -92,7 +98,7 @@ export async function getWealthPane(familyId: string, memberId: string, scope: W
       .maybeSingle(),
     supabase
       .from("wealth_transactions")
-      .select("*, accounts(name), members:recorded_by(full_name)")
+      .select("*, accounts(name, owner_member_id, is_joint), members:recorded_by(full_name)")
       .eq("family_id", familyId)
       .gte("occurred_at", historyStart.toISOString())
       .order("occurred_at", { ascending: false }),
@@ -151,13 +157,13 @@ export async function getWealthPane(familyId: string, memberId: string, scope: W
 }
 
 type RawLedgerRow = Tables<"wealth_transactions"> & {
-  accounts: { name: string } | null;
+  accounts: { name: string; owner_member_id: string | null; is_joint: boolean } | null;
   members: { full_name: string } | null;
 };
 
 function toLedgerEntry(row: unknown): LedgerEntry {
   const t = row as RawLedgerRow;
-  return { ...t, accountName: t.accounts?.name ?? "", recordedByName: t.members?.full_name ?? null };
+  return { ...t, accountName: t.accounts?.name ?? "", accountOwnerId: t.accounts?.owner_member_id ?? null, accountIsJoint: !!t.accounts?.is_joint, recordedByName: t.members?.full_name ?? null };
 }
 
 export async function getAccountDetail(familyId: string, accountId: string) {
@@ -166,7 +172,7 @@ export async function getAccountDetail(familyId: string, accountId: string) {
     loadAccounts(familyId),
     supabase
       .from("wealth_transactions")
-      .select("*, accounts(name), members:recorded_by(full_name)")
+      .select("*, accounts(name, owner_member_id, is_joint), members:recorded_by(full_name)")
       .eq("account_id", accountId)
       .eq("family_id", familyId)
       .order("occurred_at", { ascending: false })
@@ -321,7 +327,7 @@ export async function getCashFlowPane(familyId: string, range: CashFlowRange, sc
     loadAccounts(familyId),
     supabase
       .from("wealth_transactions")
-      .select("*, accounts(name), members:recorded_by(full_name)")
+      .select("*, accounts(name, owner_member_id, is_joint), members:recorded_by(full_name)")
       .eq("family_id", familyId)
       .gte("occurred_at", historyStart.toISOString())
       .order("occurred_at", { ascending: false }),
