@@ -105,7 +105,7 @@ function ItemRow({ item, queued }: { item: BriefItem; queued: boolean }) {
         </span>
         <span style={{ flex: 1, minWidth: 0 }}>
           <span style={{ display: "block", font: "600 0.96875rem/1.2 var(--font-heading)", textDecoration: item.mark ? "line-through" : undefined }}>{item.title}</span>
-          <span style={{ display: "block", fontSize: "0.78125rem", color: item.urgent && !item.mark ? "var(--cal-money)" : "var(--color-neutral-600)", marginTop: "0.125rem" }}>{item.meta}</span>
+          <span style={{ display: "block", fontSize: "0.78125rem", color: item.urgent && !item.mark ? "color-mix(in srgb, var(--cal-money) 70%, var(--color-text))" : "var(--color-neutral-600)", marginTop: "0.125rem" }}>{item.meta}</span>
         </span>
       </Link>
 

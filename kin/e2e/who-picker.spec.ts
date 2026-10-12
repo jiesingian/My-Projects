@@ -151,7 +151,8 @@ test("naming a person keeps the way to put money into their goal", async ({ page
   // account to pay from. An empty list is how this failed the first time --
   // GoalContributeControl renders nothing at all when handed one.
   await cardHaving(putMoneyIn).getByRole("button", { name: /PUT MONEY IN/i }).click();
-  const openForm = cardHaving(page.getByLabel("Amount"));
+  // The form opens in a sheet over the page since #547, not inside the card.
+  const openForm = page.locator(".kin-form-sheet").filter({ hasText: "Put money in" });
   await expect(openForm.getByLabel("Amount")).toBeVisible();
   await expect(openForm, "the form opened without an account to pay from").toContainText(/FROM/i);
 });
