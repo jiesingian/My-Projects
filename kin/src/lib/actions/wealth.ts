@@ -1069,6 +1069,26 @@ function moneyFromForm(raw: FormDataEntryValue | null): number | null {
 
 /* ------------------------------------------------------ assets & liabilities */
 
+/** A loan's schedule from a form or the editor: the next payment's date, how
+ * many payments are left, and the yearly interest rate in percent. Each is
+ * optional; one that is filled in but makes no sense is an error, not a
+ * silent blank. */
+function readLoanSchedule(raw: { next: unknown; left: unknown; rate: unknown }):
+  | { error: string }
+  | { next_payment_date: string | null; payments_remaining: number | null; interest_rate: number | null } {
+  const text = (v: unknown) => (typeof v === "string" ? v.trim() : "");
+  const next = text(raw.next);
+  const left = text(raw.left);
+  const rate = text(raw.rate);
+  if (next && !/^\d{4}-\d{2}-\d{2}$/.test(next)) return { error: "The next payment date isn't a date Kin can read." };
+  const leftN = left ? Number(left) : null;
+  if (leftN !== null && !(Number.isInteger(leftN) && leftN >= 1 && leftN <= 1200)) return { error: "Payments left has to be a whole number from 1 to 1200." };
+  const rateN = rate ? Number(rate.replace("%", "")) : null;
+  if (rateN !== null && !(Number.isFinite(rateN) && rateN >= 0 && rateN <= 100)) return { error: "The interest rate has to be a percentage from 0 to 100." };
+  if (leftN !== null && !next) return { error: "Say when the next payment is due, so Kin knows where the payments left start." };
+  return { next_payment_date: next || null, payments_remaining: leftN, interest_rate: rateN };
+}
+
 export async function addAssetAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
   const me = await requireCurrentMember();
   const supabase = await createClient();
@@ -1111,6 +1131,8 @@ export async function addLiabilityAction(_prev: ActionState, formData: FormData)
   if (formData.get("monthly_payment") && monthlyPayment === null) {
     return { error: "The monthly payment has to be a number, and cannot be less than zero." };
   }
+  const schedule = readLoanSchedule({ next: formData.get("next_payment_date"), left: formData.get("payments_remaining"), rate: formData.get("interest_rate") });
+  if ("error" in schedule) return { error: schedule.error };
 
   const { error } = await supabase.from("liabilities").insert({
     family_id: me.family_id,
@@ -1118,6 +1140,8 @@ export async function addLiabilityAction(_prev: ActionState, formData: FormData)
     kind: String(formData.get("kind") ?? "other"),
     balance,
     monthly_payment: monthlyPayment,
+    // Only sent when filled in, so adding a liability never depends on them.
+    ...Object.fromEntries(Object.entries(schedule).filter(([, v]) => v !== null)),
     lender: String(formData.get("lender") ?? "").trim() || null,
     note: String(formData.get("note") ?? "").trim() || null,
     is_joint: isJoint,
@@ -1157,6 +1181,30 @@ export async function updateLiabilityBalanceAction(liabilityId: string, balance:
   if (error) return { error: humanDatabaseError(error.message) };
   if (count === 0) return { error: "That liability is no longer there — someone may have removed it." };
   revalidateWealth();
+  return { error: null };
+}
+
+/** A loan's payment schedule and monthly amount, changed from its row on
+ * A&L -- the only way a liability saved before 12 October gets one. */
+export async function updateLiabilityScheduleAction(
+  liabilityId: string,
+  input: { monthlyPayment: string; nextPaymentDate: string; paymentsRemaining: string; interestRate: string },
+): Promise<ActionState> {
+  const schedule = readLoanSchedule({ next: input.nextPaymentDate, left: input.paymentsRemaining, rate: input.interestRate });
+  if ("error" in schedule) return { error: schedule.error };
+  const monthly = input.monthlyPayment.trim() ? Number(input.monthlyPayment) : null;
+  if (monthly !== null && !(Number.isFinite(monthly) && monthly >= 0)) return { error: "The monthly payment has to be a number, and cannot be less than zero." };
+  const me = await requireCurrentMember();
+  const supabase = await createClient();
+  const { error, count } = await supabase
+    .from("liabilities")
+    .update({ ...schedule, monthly_payment: monthly, updated_at: new Date().toISOString() }, { count: "exact" })
+    .eq("id", liabilityId)
+    .eq("family_id", me.family_id);
+  if (error) return { error: humanDatabaseError(error.message) };
+  if (count === 0) return { error: "That liability is no longer there — someone may have removed it." };
+  revalidateWealth();
+  revalidatePath("/planner");
   return { error: null };
 }
 

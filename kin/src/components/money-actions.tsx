@@ -11,6 +11,7 @@ import {
   deleteTransactionAction,
   updateAssetValueAction,
   updateLiabilityBalanceAction,
+  updateLiabilityScheduleAction,
   deleteAssetAction,
   deleteLiabilityAction,
   deleteBillAction,
@@ -28,6 +29,7 @@ import { formatCurrency, currencySymbol } from "@/lib/format";
 import { Icon } from "@/components/icons";
 import { confirm } from "@/components/confirm-sheet";
 import { AmountInput } from "@/components/amount-input";
+import { DateInput } from "@/components/date-input";
 
 export type PickableAccount = {
   id: string;
@@ -418,6 +420,81 @@ export function ValueUpdateControl({ id, current, kind }: { id: string; current:
             {pending ? "…" : "Save"}
           </button>
         </span>
+      </FormSheet>
+    </>
+  );
+}
+
+/** A loan's payments: the monthly amount, when the next one is due, how many
+ * are left and the yearly interest rate. With a date and a count, each
+ * payment shows on the calendar with its amount. */
+export function LoanScheduleControl({
+  id,
+  monthlyPayment,
+  nextPaymentDate,
+  paymentsLeft,
+  interestRate,
+}: {
+  id: string;
+  monthlyPayment: number | null;
+  /** The next payment still ahead, not the date first entered. */
+  nextPaymentDate: string | null;
+  /** How many are left from that one on. */
+  paymentsLeft: number | null;
+  interestRate: number | null;
+}) {
+  const uid = useId();
+  const [open, setOpen] = useState(false);
+  const [monthly, setMonthly] = useState(monthlyPayment == null ? "" : String(monthlyPayment));
+  const [next, setNext] = useState(nextPaymentDate ?? "");
+  const [left, setLeft] = useState(paymentsLeft == null ? "" : String(paymentsLeft));
+  const [rate, setRate] = useState(interestRate == null ? "" : String(interestRate));
+  const { error, pending, run } = useMoneyAction();
+  const field = { minHeight: "2.5rem", width: "100%" } as const;
+
+  return (
+    <>
+      <button type="button" className="btn btn-secondary" style={{ minHeight: "1.875rem", fontSize: "0.78125rem", padding: "0 0.5625rem" }} onClick={() => setOpen(true)}>
+        Payments
+      </button>
+      <FormSheet open={open} onClose={() => setOpen(false)} title="Payments">
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.625rem" }}>
+          <div className="field" style={{ margin: 0 }}>
+            <label htmlFor={`${uid}-monthly`}>Per month</label>
+            <input id={`${uid}-monthly`} className="input" type="number" step="0.01" min="0" inputMode="decimal" value={monthly} onChange={(e) => setMonthly(e.target.value)} style={field} />
+          </div>
+          <div className="field" style={{ margin: 0 }}>
+            <label htmlFor={`${uid}-rate`}>Interest (% a year)</label>
+            <input id={`${uid}-rate`} className="input" type="number" step="0.001" min="0" max="100" inputMode="decimal" value={rate} onChange={(e) => setRate(e.target.value)} style={field} />
+          </div>
+          <div className="field" style={{ margin: 0 }}>
+            <label htmlFor={`${uid}-next`}>Next payment</label>
+            <DateInput id={`${uid}-next`} className="input" value={next} onChange={(e) => setNext(e.target.value)} style={field} />
+          </div>
+          <div className="field" style={{ margin: 0 }}>
+            <label htmlFor={`${uid}-left`}>Payments left</label>
+            <input id={`${uid}-left`} className="input" type="number" step="1" min="1" max="1200" inputMode="numeric" value={left} onChange={(e) => setLeft(e.target.value)} style={field} />
+          </div>
+        </div>
+        {error && (
+          <p role="alert" style={{ color: "var(--color-accent-700)", fontSize: "0.8125rem", margin: "0.5rem 0 0" }}>
+            {error}
+          </p>
+        )}
+        <button
+          type="button"
+          className="btn btn-primary"
+          disabled={pending}
+          style={{ width: "100%", minHeight: "2.5rem", fontSize: "0.84375rem", marginTop: "0.75rem" }}
+          onClick={() =>
+            run(
+              () => updateLiabilityScheduleAction(id, { monthlyPayment: monthly, nextPaymentDate: next, paymentsRemaining: left, interestRate: rate }),
+              () => setOpen(false),
+            )
+          }
+        >
+          {pending ? "…" : "Save"}
+        </button>
       </FormSheet>
     </>
   );

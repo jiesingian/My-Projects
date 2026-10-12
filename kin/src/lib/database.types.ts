@@ -3950,14 +3950,17 @@ export type Database = {
           created_by: string | null
           family_id: string
           id: string
+          interest_rate: number | null
           is_joint: boolean
           kind: string
           lender: string | null
           linked_account_id: string | null
           monthly_payment: number | null
           name: string
+          next_payment_date: string | null
           note: string | null
           owner_member_id: string | null
+          payments_remaining: number | null
           updated_at: string
         }
         Insert: {
@@ -3966,14 +3969,17 @@ export type Database = {
           created_by?: string | null
           family_id: string
           id?: string
+          interest_rate?: number | null
           is_joint?: boolean
           kind?: string
           lender?: string | null
           linked_account_id?: string | null
           monthly_payment?: number | null
           name: string
+          next_payment_date?: string | null
           note?: string | null
           owner_member_id?: string | null
+          payments_remaining?: number | null
           updated_at?: string
         }
         Update: {
@@ -3982,14 +3988,17 @@ export type Database = {
           created_by?: string | null
           family_id?: string
           id?: string
+          interest_rate?: number | null
           is_joint?: boolean
           kind?: string
           lender?: string | null
           linked_account_id?: string | null
           monthly_payment?: number | null
           name?: string
+          next_payment_date?: string | null
           note?: string | null
           owner_member_id?: string | null
+          payments_remaining?: number | null
           updated_at?: string
         }
         Relationships: [

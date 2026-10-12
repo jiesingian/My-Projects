@@ -100,6 +100,19 @@ function LiabilityForm() {
           <input className="input" type="number" step="0.01" min="0" name="monthly_payment" style={{ minHeight: "2.75rem" }} />
         </Field>
       </div>
+      {/* The schedule: each payment then shows on the calendar, with its
+          amount, on its own day until the last one. All optional. */}
+      <div style={{ display: "flex", gap: "0.75rem" }}>
+        <Field label="Next payment" style={{ flex: 1 }}>
+          <DateInput className="input" name="next_payment_date" style={{ minHeight: "2.75rem" }} />
+        </Field>
+        <Field label="Payments left" style={{ flex: 1 }}>
+          <input className="input" type="number" step="1" min="1" max="1200" inputMode="numeric" name="payments_remaining" placeholder="e.g. 120" style={{ minHeight: "2.75rem" }} />
+        </Field>
+      </div>
+      <Field label="Interest rate (% a year)">
+        <input className="input" type="number" step="0.001" min="0" max="100" inputMode="decimal" name="interest_rate" placeholder="e.g. 6.5" style={{ minHeight: "2.75rem" }} />
+      </Field>
       <JointToggle isJoint={isJoint} setIsJoint={setIsJoint} />
       <Field label="Note">
         <input className="input" name="note" style={{ minHeight: "2.75rem" }} />
