@@ -56,7 +56,7 @@ export function isHouseholdScope(scope: WealthScope): boolean {
   return scope === "all" || scope === WEALTH_FAMILY;
 }
 
-export const ACCOUNT_TYPES = ["bank", "cash", "ewallet", "credit", "investment", "other"] as const;
+export const ACCOUNT_TYPES = ["bank", "cash", "ewallet", "credit", "investment", "stocks", "other"] as const;
 export type AccountType = (typeof ACCOUNT_TYPES)[number];
 
 export const ACCOUNT_TYPE_LABELS: Record<AccountType, string> = {
@@ -65,6 +65,7 @@ export const ACCOUNT_TYPE_LABELS: Record<AccountType, string> = {
   ewallet: "E-wallet",
   credit: "Credit card",
   investment: "Investment",
+  stocks: "Stocks",
   other: "Other",
 };
 
@@ -400,14 +401,14 @@ export function billsDueWithin<T extends BillLike>(bills: T[], days: number, fro
 
 export type PhoneKind = "ios" | "android" | "other";
 
-/** Which BANK/WALLET-adjacent account type a known app fits under, so the
- * dropdown can show only what's relevant once TYPE is picked: a bank
- * account isn't going to be GCash, and picking E-wallet shouldn't surface
- * BPI. GoTyme is technically a licensed digital bank, not a wallet app --
+/** Which account type a known app fits under, so the dropdown shows only
+ * what's relevant once TYPE is picked: a bank account isn't going to be
+ * GCash, picking E-wallet shouldn't surface BPI, and an investment isn't
+ * going to be any of them. GoTyme is technically a licensed digital bank, not a wallet app --
  * filed under "ewallet" anyway because that's how households actually
  * think of it (a phone-first account opened the same way GCash and Maya
  * are), and that's the only thing this classification is for. */
-export type KnownAppKind = "bank" | "ewallet";
+export type KnownAppKind = "bank" | "ewallet" | "investment" | "stocks";
 
 export type KnownApp = {
   label: string;
@@ -453,9 +454,31 @@ export type KnownApp = {
  *   LandBank     apps.apple.com id950232162 / com.landbank.mobilebanking,
  *                publisher Land Bank of the Philippines on both stores
  *
- * Left out on purpose, not overlooked: PalawanPay, MariBank and UnionBank's
- * own digital-only sibling (UnionDigital) turned up nothing verifiable on
- * one pass -- worth another look later, not worth guessing now. */
+ *   PalawanPay   apps.apple.com id1612022476 / com.palawanpay.ewallet,
+ *                Play publisher PPS-PEPP Financial Services Corporation
+ *                (Palawan Pawnshop's) -- not "PalawanPay Money Shop", a
+ *                separate listing
+ *   MariBank     apps.apple.com id1592249158 / ph.seabank.seabank, both
+ *                listed as "MariBank PH (SeaBank)", publisher MariBank
+ *                Philippines, Inc.; the package kept SeaBank's name
+ *   BanKo        apps.apple.com id1401097498 / com.banko.cm, both "BPI
+ *                BanKo Mobile App", publisher Bank of the Philippine
+ *                Islands -- not com.banko.pm, the agents' app
+ *   Virtual      apps.apple.com id6444034285 / pagibigfund.virtualpagibigapp,
+ *   Pag-IBIG     publisher Pag-IBIG Fund; where MP2 savings are seen
+ *   COL          apps.apple.com id1610734076 ("COL Mobile", publisher COL
+ *   Financial    Financial Group, Inc.). Its Play listing
+ *                (com.colfinancial.release) was reported pulled on 25 July
+ *                2026 and could not be confirmed either way, so Android
+ *                gets a Play search for the name instead of a dead page.
+ *
+ * Added 12 October 2026 from search results, not the stores themselves
+ * (unreachable from where this was written): ids and packages matched
+ * across more than one listing each, but worth a tap-through on a phone.
+ *
+ * Left out on purpose, not overlooked: UnionBank's digital-only sibling
+ * (UnionDigital) turned up nothing verifiable on one pass -- worth another
+ * look later, not worth guessing now. */
 export const KNOWN_APPS: KnownApp[] = [
   { label: "GCash", kind: "ewallet", appUrl: "gcash://" },
   {
@@ -512,6 +535,36 @@ export const KNOWN_APPS: KnownApp[] = [
     appStoreUrl: "https://apps.apple.com/ph/app/landbank-mobile-banking/id950232162",
     playStoreUrl: "https://play.google.com/store/apps/details?id=com.landbank.mobilebanking",
   },
+  {
+    label: "PalawanPay",
+    kind: "ewallet",
+    appStoreUrl: "https://apps.apple.com/ph/app/palawanpay/id1612022476",
+    playStoreUrl: "https://play.google.com/store/apps/details?id=com.palawanpay.ewallet",
+  },
+  {
+    label: "MariBank",
+    kind: "ewallet",
+    appStoreUrl: "https://apps.apple.com/ph/app/maribank-ph-seabank/id1592249158",
+    playStoreUrl: "https://play.google.com/store/apps/details?id=ph.seabank.seabank",
+  },
+  {
+    label: "BanKo",
+    kind: "ewallet",
+    appStoreUrl: "https://apps.apple.com/ph/app/bpi-banko-mobile-app/id1401097498",
+    playStoreUrl: "https://play.google.com/store/apps/details?id=com.banko.cm",
+  },
+  {
+    label: "MP2 (Virtual Pag-IBIG)",
+    kind: "investment",
+    appStoreUrl: "https://apps.apple.com/ph/app/virtual-pag-ibig/id6444034285",
+    playStoreUrl: "https://play.google.com/store/apps/details?id=pagibigfund.virtualpagibigapp",
+  },
+  {
+    label: "COL Financial",
+    kind: "stocks",
+    appStoreUrl: "https://apps.apple.com/ph/app/col-mobile/id1610734076",
+    playStoreUrl: "https://play.google.com/store/search?q=COL%20Financial&c=apps",
+  },
 ];
 
 export function isKnownInstitutionLabel(label: string): boolean {
@@ -520,14 +573,13 @@ export function isKnownInstitutionLabel(label: string): boolean {
 
 /** Which of KNOWN_APPS actually make sense to offer, given the account
  * type someone just picked -- a bank account isn't going to be GCash, and
- * an e-wallet isn't going to be BPI. Only bank and ewallet narrow the list;
- * every other type (credit, investment, other) shows all of it, since none
- * of those map to one of the two kinds a known app is ever tagged with,
- * and showing nothing would be worse than showing everything. */
+ * an e-wallet isn't going to be BPI. Every type shows only its own kind.
+ * Until 12 October the types with no apps of their own (credit, investment,
+ * other) showed the whole list, which offered every bank and wallet again
+ * under Investment; a type with none (cash, credit, other) now offers just
+ * Other, which is the honest answer. */
 export function knownAppsForType(accountType: AccountType): KnownApp[] {
-  if (accountType === "bank") return KNOWN_APPS.filter((a) => a.kind === "bank");
-  if (accountType === "ewallet") return KNOWN_APPS.filter((a) => a.kind === "ewallet");
-  return KNOWN_APPS;
+  return KNOWN_APPS.filter((a) => a.kind === accountType);
 }
 
 /** A working store link for literally any institution, in any country --

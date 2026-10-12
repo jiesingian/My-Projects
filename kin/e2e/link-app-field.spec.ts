@@ -119,14 +119,22 @@ test("the dropdown offers only the apps that match the account type", async ({ p
   expect(await labels()).toContain("GCash");
   expect(await labels(), "BPI is a bank and has no business under E-wallet").not.toContain("BPI");
 
-  // Every other type keeps the whole list, because none of them map to one of
-  // the two kinds an app is tagged with and offering nothing would be worse.
-  // The label changes with them, so this one is asked by its new name.
+  // Every other type offers only its own apps -- until 12 October they kept
+  // the whole list, so every bank and wallet reappeared under Investment.
+  // The label changes with them, so these are asked by its new name.
+  const otherType = page.getByLabel("INSTITUTION / APP");
+  const otherLabels = async () => otherType.locator("option").allTextContents();
+  await page.getByLabel("TYPE").selectOption("investment");
+  expect(await otherLabels()).toContain("MP2 (Virtual Pag-IBIG)");
+  expect(await otherLabels(), "a bank has no business under Investment").not.toContain("BPI");
+  expect(await otherLabels(), "a wallet has no business under Investment").not.toContain("GCash");
+
+  await page.getByLabel("TYPE").selectOption("stocks");
+  expect(await otherLabels()).toContain("COL Financial");
+  expect(await otherLabels()).not.toContain("MP2 (Virtual Pag-IBIG)");
+
   await page.getByLabel("TYPE").selectOption("credit");
-  const anyType = page.getByLabel("INSTITUTION / APP");
-  const anyLabels = await anyType.locator("option").allTextContents();
-  expect(anyLabels).toContain("GCash");
-  expect(anyLabels).toContain("BPI");
+  expect(await otherLabels(), "no app is tagged credit, so only Other is offered").not.toContain("BPI");
 });
 
 test("changing TYPE takes a pick that no longer applies with it", async ({ page }) => {

@@ -32,7 +32,7 @@ test("day is one of the four ranges the picker offers, with its own count", () =
   expect(cashFlowRangeCount("day")).toBeGreaterThan(0);
 });
 
-test("knownAppsForType narrows to the right kind, and only for bank/ewallet", () => {
+test("knownAppsForType narrows every type to its own kind", () => {
   const bankLabels = knownAppsForType("bank").map((a) => a.label);
   expect(bankLabels).toContain("BPI");
   expect(bankLabels).not.toContain("GCash");
@@ -41,16 +41,19 @@ test("knownAppsForType narrows to the right kind, and only for bank/ewallet", ()
   expect(walletLabels).toContain("GCash");
   expect(walletLabels).not.toContain("BPI");
 
-  // Every other type shows everything -- there's no third kind to narrow
-  // to, and showing nothing would be worse than showing all of it.
-  for (const other of ["credit", "investment", "other"] as const) {
-    expect(knownAppsForType(other)).toHaveLength(KNOWN_APPS.length);
+  expect(walletLabels).toEqual(expect.arrayContaining(["PalawanPay", "MariBank", "BanKo"]));
+
+  // No bank or wallet reappears under a type it does not belong to.
+  expect(knownAppsForType("investment").map((a) => a.label)).toEqual(["MP2 (Virtual Pag-IBIG)"]);
+  expect(knownAppsForType("stocks").map((a) => a.label)).toEqual(["COL Financial"]);
+  for (const none of ["cash", "credit", "other"] as const) {
+    expect(knownAppsForType(none)).toEqual([]);
   }
 });
 
-test("every KNOWN_APPS entry is tagged bank or ewallet, nothing else", () => {
+test("every KNOWN_APPS entry is tagged with a kind a TYPE can narrow to", () => {
   for (const app of KNOWN_APPS) {
-    expect(["bank", "ewallet"], app.label).toContain(app.kind);
+    expect(["bank", "ewallet", "investment", "stocks"], app.label).toContain(app.kind);
   }
 });
 
