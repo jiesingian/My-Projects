@@ -198,12 +198,22 @@ export function formatTimeOfDay(time: string | null): string | null {
   return d.toLocaleTimeString("en-GB", { hour: "numeric", minute: "2-digit", hour12: true }).toLowerCase();
 }
 
+/** A task that does not repeat (asked 12 October). Stored as a daily rule
+ * that starts and ends on the same day, so it has exactly one occurrence:
+ * it can still be ticked off, earn points and go to Google Calendar like any
+ * other task, with no second kind of row to keep in step. */
+export function isOnce(rule: { freq: string; repeat_interval: number; start_date: string; end_date: string | null }): boolean {
+  return rule.freq === "daily" && rule.repeat_interval === 1 && rule.end_date === rule.start_date;
+}
+
 /** The rule in words — what a person reads on the routine's row. */
 export function describeRule(rule: RoutineRule, timeOfDay: string | null = null): string {
   const every = rule.repeat_interval > 1;
   let when: string;
 
-  if (rule.freq === "daily") {
+  if (isOnce(rule)) {
+    when = `Once · ${parseISODate(rule.start_date).toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short" })}`;
+  } else if (rule.freq === "daily") {
     when = every ? `Every ${rule.repeat_interval} days` : "Every day";
   } else if (rule.freq === "weekly") {
     const days = [...new Set(rule.byweekday)].sort((a, b) => a - b).map((d) => WEEKDAY_NAMES[d]);
