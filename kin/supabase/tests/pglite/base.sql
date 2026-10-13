@@ -310,3 +310,26 @@ create table public.health_vitals (id uuid primary key default gen_random_uuid()
 alter table health_vitals enable row level security;
 create policy health_vitals_select on health_vitals for select using (family_id = current_family_id() and (visibility = 'family' or (visibility = 'parents' and current_member_role() = 'parent') or (visibility = 'private' and created_by = current_member_id())));
 create policy health_vitals_insert on health_vitals for insert with check (family_id = current_family_id());
+-- The rest of what the Start here bonus counts (20261013180000): a stand-in
+-- per part of Kin, reduced to the columns it reads, and Kin's offers as
+-- 20260929020000 made them, with kin_offer_done and family_has_plus cut down
+-- to what next_kin_offer() needs here.
+alter table bills add column if not exists created_at timestamptz not null default now();
+alter table accounts add column if not exists created_at timestamptz not null default now();
+alter table journal_entries add column if not exists created_at timestamptz not null default now();
+create table public.health_medicines (id uuid primary key default gen_random_uuid(), family_id uuid references families(id), member_id uuid references members(id), name text default 'Medicine', dose text, times text[], start_date date, end_date date, visibility text, created_by uuid, created_at timestamptz not null default now());
+create table public.doc_entries (id uuid primary key default gen_random_uuid(), family_id uuid not null references families(id), title text not null default 'Document', visibility text not null default 'family', created_at timestamptz not null default now());
+create table public.family_vault_items (id uuid primary key default gen_random_uuid(), family_id uuid not null references families(id), label text not null default 'Item', created_at timestamptz not null default now());
+create table public.ai_usage (family_id uuid not null references families(id) on delete cascade, month date not null, uses integer not null default 0, primary key (family_id, month));
+alter table health_medicines enable row level security; alter table doc_entries enable row level security; alter table family_vault_items enable row level security; alter table ai_usage enable row level security;
+create policy hm_all on health_medicines for all using (family_id = current_family_id()) with check (family_id = current_family_id());
+-- Documents only their keeper sees, to prove the checklist counts them anyway.
+create policy de_all on doc_entries for all using (family_id = current_family_id() and visibility = 'family') with check (family_id = current_family_id());
+create policy fvi_all on family_vault_items for all using (family_id = current_family_id()) with check (family_id = current_family_id());
+create policy au_select on ai_usage for select using (family_id = current_family_id());
+create table public.household_offers (id uuid primary key default gen_random_uuid(), family_id uuid not null references families(id) on delete cascade, code text not null, days integer not null, status text not null default 'offered', offered_at timestamptz not null default now(), expires_at timestamptz not null default (now() + interval '7 days'), answered_at timestamptz, completed_at timestamptz, answered_by uuid);
+alter table household_offers enable row level security;
+create policy household_offers_select on household_offers for select to authenticated using (family_id = (select current_family_id()));
+create function public.kin_offer_catalog() returns table (code text, days integer, plus_only boolean) language sql immutable as $$ values ('profile', 1, false), ('emergency', 2, false), ('goal', 1, false) $$;
+create function public.kin_offer_done(p_family uuid, p_code text) returns boolean language sql stable as $$ select false $$;
+create function public.family_has_plus(p_family uuid) returns boolean language sql stable as $$ select true $$;

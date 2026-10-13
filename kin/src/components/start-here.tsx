@@ -18,6 +18,14 @@ const ICONS: Record<StartStepId, IconName> = {
   location: "mapPin",
   emergency: "shieldCheck",
   documents: "fileText",
+  "try-plans": "calendarDays",
+  "try-list": "basket",
+  "try-chat": "message",
+  "try-journal": "images",
+  "try-health": "activity",
+  "try-vault": "fileText",
+  "try-wealth": "wallet",
+  "try-ai": "sparkle",
 };
 
 /** The steps this family sees, in its order: an extra only when its priority
@@ -30,8 +38,9 @@ function arrangeSteps(steps: StartStep[], top3: readonly Priority[]): StartStep[
     return i < 0 ? top3.length : i;
   };
   const shown = [...steps.filter((s) => s.extra && s.priority && top3.includes(s.priority)), ...steps.filter((s) => !s.extra)];
-  // Array.prototype.sort is stable, so ties keep the order above.
-  return shown.sort((a, b) => rank(a) - rank(b));
+  // Array.prototype.sort is stable, so ties keep the order above. The bonus
+  // checklist stays ahead of everything else.
+  return shown.sort((a, b) => Number(!a.bonus) - Number(!b.bonus) || rank(a) - rank(b));
 }
 
 // The saved check-up, read without a hydration mismatch: the server has none.
@@ -63,9 +72,13 @@ export function StartHere({ steps: all, bonus, inviteCode }: { steps: StartStep[
   // `saved` is what changes; readFirstOpen parses and checks that same value.
   const steps = useMemo(() => arrangeSteps(all, saved ? (readFirstOpen()?.top3 ?? []) : []), [all, saved]);
   const earned = typeof bonus === "number" ? bonus : 0;
+  const open = bonus !== null && typeof bonus === "object";
   if (hidden || (steps.every((s) => s.done) && !earned)) return null;
 
-  const done = steps.filter((s) => s.done).length;
+  // While the bonus is open the count is the eight it asks for; the rest of
+  // the card follows under "Also".
+  const counted = open ? steps.filter((s) => s.bonus) : steps;
+  const done = counted.filter((s) => s.done).length;
 
   const shareInvite = async () => {
     const url = `${window.location.origin}/join/${inviteCode.replace(/[^A-Za-z0-9]/g, "")}`;
@@ -90,7 +103,7 @@ export function StartHere({ steps: all, bonus, inviteCode }: { steps: StartStep[
     <section className="kin-start" aria-labelledby="kin-start-title">
       <header className="kin-start-head">
         <h3 id="kin-start-title" className="kin-eyebrow" style={{ margin: 0 }}>
-          Start here · {done} of {steps.length}
+          {open ? "Try every part of Kin" : "Start here"} · {done} of {counted.length}
         </h3>
         <button
           type="button"
@@ -106,48 +119,63 @@ export function StartHere({ steps: all, bonus, inviteCode }: { steps: StartStep[
           Hide
         </button>
       </header>
-      {/* The trial bonus (20261013160000): while it is still possible, and once
+      {/* The trial bonus (20261013180000): while it is still possible, and once
           when it is earned. role="status" so the earned line is announced. */}
-      {bonus === "open" && <p className="kin-start-bonus">Finish these today for 7 more days of Plus</p>}
+      {open && <p className="kin-start-bonus">Try all 8 by {bonus.ends} for 7 more days of Plus</p>}
       {earned > 0 && (
         <p className="kin-start-bonus" role="status">
-          <Icon name="sparkle" size="0.9375rem" /> Done in a day: {earned} more days of Plus added
+          <Icon name="sparkle" size="0.9375rem" /> You tried it all: {earned} more days of Plus added
         </p>
       )}
-      <div className="kin-brief">
-        {steps.map((s) => {
-          const body = (
-            <>
-              <span className="kin-brief-ico" data-tint={s.done ? undefined : "schedule"}>
-                <Icon name={s.done ? "check" : ICONS[s.id]} size="1.0625rem" />
-              </span>
-              <span style={{ minWidth: 0, flex: 1 }}>
-                <span className="kin-brief-title" data-done={s.done || undefined}>
-                  {s.id === "invite" && shared ? "Invite link copied" : s.title}
-                </span>
-                {!s.done && <span className="kin-brief-meta">{s.hint}</span>}
-              </span>
-              {!s.done && <Icon name="chevronLeft" size="0.9375rem" className="kin-brief-chev" />}
-            </>
-          );
-          if (s.done) {
-            return (
-              <div key={s.id} className="kin-brief-row kin-start-done" aria-label={`${s.title}: done`}>
-                {body}
-              </div>
-            );
-          }
-          return s.href ? (
-            <Link key={s.id} href={s.href} className="kin-brief-row">
-              {body}
-            </Link>
-          ) : (
-            <button key={s.id} type="button" className="kin-brief-row kin-start-btn" onClick={shareInvite}>
-              {body}
-            </button>
-          );
-        })}
-      </div>
+      <div className="kin-brief">{(open ? counted : steps).map(row)}</div>
+      {open && steps.some((s) => !s.bonus) && (
+        <>
+          <h4 className="kin-start-also">Also</h4>
+          <div className="kin-brief">{steps.filter((s) => !s.bonus).map(row)}</div>
+        </>
+      )}
     </section>
   );
+
+  function row(s: StartStep) {
+    const body = (
+      <>
+        <span className="kin-brief-ico" data-tint={s.done ? undefined : "schedule"}>
+          <Icon name={s.done ? "check" : ICONS[s.id]} size="1.0625rem" />
+        </span>
+        <span style={{ minWidth: 0, flex: 1 }}>
+          <span className="kin-brief-title" data-done={s.done || undefined}>
+            {s.id === "invite" && shared ? "Invite link copied" : s.title}
+            {s.plus && <span className="kin-plus-badge kin-start-plus">PLUS</span>}
+          </span>
+          {!s.done && <span className="kin-brief-meta">{s.hint}</span>}
+        </span>
+        {!s.done && <Icon name="chevronLeft" size="0.9375rem" className="kin-brief-chev" />}
+      </>
+    );
+    if (s.done) {
+      return (
+        <div key={s.id} className="kin-brief-row kin-start-done" aria-label={`${s.title}: done`}>
+          {body}
+        </div>
+      );
+    }
+    if (s.href && s.reload) {
+      // A full load, so Ask Kin sees ?kin=chat when it arrives.
+      return (
+        <a key={s.id} href={s.href} className="kin-brief-row">
+          {body}
+        </a>
+      );
+    }
+    return s.href ? (
+      <Link key={s.id} href={s.href} className="kin-brief-row">
+        {body}
+      </Link>
+    ) : (
+      <button key={s.id} type="button" className="kin-brief-row kin-start-btn" onClick={shareInvite}>
+        {body}
+      </button>
+    );
+  }
 }

@@ -95,15 +95,18 @@ name / who / wants / tour / why steps (answer 13).
   has). Invite partner and add the kids stay. Built 13 October: the top 3
   never leaves the phone, so the server sends every step and the card picks
   and orders them (a step moves up with its priority's rank).
-- Trial bonus (answer 6): 7 days, and a household that finishes every Start
-  here step within 24 hours of being created gets 7 more, once (14 in
-  all). Checked from the family's own records by a security-definer
-  function, the same way Kin offers are; Kin offers stay as they are.
-  Today's Start here says so ("Finish these today for 7 more days of Plus").
-  Built 13 October (20261013160000, probes/start-here-bonus.mjs): the steps
-  counted are the base ones (plans, invite, kids, chore, list), each needing
-  a record from the first 24 hours; the top-3 extras can't be known by the
-  database (answer 9A), so they don't count against it.
+- Trial bonus (answer 6, revised by Jonathan the same day): 7 days, and a
+  household that tries every part of Kin in its first 5 days gets 7 more,
+  once (14 in all). Eight actions, one per page, the same for everyone and
+  ordered by the top 3: a plan, the grocery list, a family chat message, a
+  journal entry, a medicine or reading (Plus), a vault document (Plus), a
+  bill or account (Plus), a Kin AI question (Plus). Half are Plus so the
+  family's own records are in Plus areas when the trial ends. Checked from
+  the records by security-definer functions; inviting a partner and adding
+  the kids stay on the card under "Also" but don't count. Kin's own offers
+  wait while the checklist is open, and the Plus trial card stays hidden
+  then (its three are among the eight). Built 13 October: 20261013160000,
+  then 20261013180000; probes/start-here-bonus.mjs.
 
 **Not now: the ad stage (answers 10 and 12).** Set up once the app is
 done: the Meta pixel and Conversions API on the public pages only, after a
