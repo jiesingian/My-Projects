@@ -86,6 +86,9 @@ name / who / wants / tour / why steps (answer 13).
 - Guided tour (answer 8A): 4-5 spotlight steps on the real Today (Today,
   Planner, Chat, Family/Health, Ask Kin), skippable, shown once per member,
   "Show me around" in Settings replays it. Built in-house, no new library.
+  Built 13 October (guided-tour.tsx, e2e/guided-tour.spec.ts): shown by
+  itself to members who joined from that day; "seen" is kept on the phone
+  per member, since no per-member setting on the server fits it.
 - Start here follows the top 3: health first adds "Add allergies and blood
   type", kids "Turn on location sharing", emergency "Fill in the emergency
   card", documents "Add one PSA certificate" (vault: Plus, which the trial

@@ -42,12 +42,15 @@ import { HolidayLine } from "@/components/holiday-line";
 import { WhosWhere } from "@/components/whos-where";
 import { getMyPendingCheckIns } from "@/lib/queries/member-card";
 import { LettersOpeningToday } from "@/components/letters-opening";
+import { GuidedTour } from "@/components/guided-tour";
 
-export default async function TodayPage() {
+export default async function TodayPage({ searchParams }: { searchParams: Promise<{ tour?: string }> }) {
   const tz = await householdZone();
   const me = await getCurrentMember();
   if (!me) redirect("/onboarding/profile");
   if (inKidView(me)) return <KidToday me={me} />;
+  // Settings -> Show me around replays the guided tour.
+  const replayTour = (await searchParams).tour === "1";
 
   const supabase = await createClient();
   const [{ data: members }, glance, brief, tasks, awaitingApproval, awaitingRedemption, familyPanel, comingUp, memories, recap, startHere, goalRequests, rewardDuties, goals, kinOffer, checkIns, plusTrial] = await Promise.all([
@@ -217,7 +220,7 @@ export default async function TodayPage() {
           the place of five hub cards that opened the same places as the
           bottom bar; a tile still opens its place, but it answers a question
           on the way. */}
-      <section style={{ marginBottom: "1.625rem" }}>
+      <section style={{ marginBottom: "1.625rem" }} data-tour="today">
         <h3 className="kin-eyebrow">At a glance</h3>
         <div className="kin-glance">
           {tiles.map((t) => (
@@ -285,6 +288,9 @@ export default async function TodayPage() {
       <div id="approvals">
         <ApprovalQueue pending={awaitingApproval} redemptions={awaitingRedemption} goalRewards={goalRequests.rewards} goalChanges={goalRequests.changes} />
       </div>
+
+      {/* Five spotlight steps, once per member and from Settings (guided-tour.tsx). */}
+      <GuidedTour memberId={me.id} memberSince={me.created_at} replay={replayTour} />
 
     </div>
   );

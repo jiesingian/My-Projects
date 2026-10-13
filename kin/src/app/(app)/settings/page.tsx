@@ -68,6 +68,9 @@ export default async function SettingsPage({
       { href: "/settings/quick-button", icon: "phone", tint: "schedule", title: "Action Button & widget", value: `Pop-up: ${quick.menu.length} · Widget: ${quick.widget.length}` },
       { href: "/settings/notifications", icon: "message", tint: "money", title: "Notifications", value: `${notifOn} of ${notifDefs.length} on` },
       { href: "/settings/connected", icon: "hardDrive", tint: "schedule", title: "Connected apps", value: connected.length > 0 ? connected.join(", ") : "None connected" },
+      // Replays the guided tour on Today (guided-tour.tsx). Not in Kid view,
+      // whose Today is a different page.
+      { href: "/today?tour=1", icon: "info", tint: undefined, title: "Show me around", value: "A quick tour of Kin" },
     ],
     [
       { href: "/subscribe", icon: "sparkle", tint: "money", title: "Your plan", value: planLabel(readAccess(me.families)) },
