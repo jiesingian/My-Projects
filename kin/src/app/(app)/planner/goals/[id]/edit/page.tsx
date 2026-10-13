@@ -7,6 +7,8 @@ import { shortNames, selfLabel } from "@/lib/format";
 import { familyDay } from "@/lib/time";
 import { isGoalKind, isGoalPeriod } from "@/lib/goals";
 import { GoalEditForm } from "./goal-edit-form";
+import { GoalVisibilitySwitch } from "@/components/goal-controls";
+import { isGrownUp } from "@/lib/roles";
 
 export default async function EditGoalPage({ params }: { params: Promise<{ id: string }> }) {
   const tz = await householdZone();
@@ -27,9 +29,15 @@ export default async function EditGoalPage({ params }: { params: Promise<{ id: s
   const inPlay = reward && (reward.status === "pending" || reward.status === "approved");
   const giverIdx = inPlay ? active.findIndex((m) => m.id === reward.giver_member_id) : -1;
 
+  // Who sees it is the owner's choice; a child's goals stay the household's.
+  const visibility = goal.visibility === "private" ? "private" : "household";
+  const showSwitch = goal.owner_member_id === me.id && (isGrownUp(me.role) || visibility === "private");
+
   return (
     <GoalEditForm
-      goal={{ id: goal.id, title: goal.title, kind: goal.kind, target: Number(goal.target), period: goal.period, unit: goal.unit, dueDate: goal.due_date }}
+      visibilitySwitch={showSwitch ? <GoalVisibilitySwitch goalId={goal.id} visibility={visibility} hasGiver={!!reward?.giver_member_id} /> : null}
+      goal={{ id: goal.id, title: goal.title, kind: goal.kind, target: Number(goal.target), period: goal.period, unit: goal.unit, dueDate: goal.due_date, points: goal.points ?? 0, ownerId: goal.owner_member_id }}
+      canSetPoints={isGrownUp(me.role)}
       meId={me.id}
       currency={me.families.currency}
       today={familyDay(new Date(), tz)}

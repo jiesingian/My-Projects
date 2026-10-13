@@ -7,7 +7,7 @@ import { DetailHeader } from "@/components/hub-header";
 import { Icon } from "@/components/icons";
 import { PlusNote } from "@/components/plus";
 import { DateInput } from "@/components/date-input";
-import { GOAL_KINDS, GOAL_KIND_META, GOAL_PERIODS, PERIOD_LABEL, REWARD_TERMS, type GoalKind, type GoalPeriod } from "@/lib/goals";
+import { GOAL_KINDS, GOAL_KIND_META, GOAL_PERIODS, MAX_GOAL_POINTS, PERIOD_LABEL, REWARD_TERMS, type GoalKind, type GoalPeriod } from "@/lib/goals";
 import { scrollBehavior } from "@/lib/motion";
 
 const initialState: GoalFormState = { error: null };
@@ -21,6 +21,8 @@ const DEFAULT_TARGET: Record<GoalKind, string> = { money: "10000", water: "8", s
 export function GoalForm({
   people,
   meId,
+  canHide,
+  canSetPoints,
   savings,
   plus,
   currency,
@@ -28,6 +30,10 @@ export function GoalForm({
 }: {
   people: { id: string; label: string }[];
   meId: string;
+  /** A grown-up may keep their own goal to themselves. */
+  canHide: boolean;
+  /** A grown-up may make a repeating goal worth points. */
+  canSetPoints: boolean;
   savings: { id: string; title: string }[];
   plus: boolean;
   currency: string;
@@ -43,7 +49,12 @@ export function GoalForm({
   const [target, setTarget] = useState(DEFAULT_TARGET.water);
   const [reward, setReward] = useState("");
   const [giver, setGiver] = useState("");
+  // Weight starts as "Just me", like a personal Wealth account; the rest
+  // start as the household's. A choice made by hand sticks.
+  const [visibility, setVisibility] = useState<"household" | "private" | null>(null);
   const meta = GOAL_KIND_META[kind];
+  const mayHide = canHide && owner === meId;
+  const shownVisibility = mayHide ? (visibility ?? (kind === "weight" ? "private" : "household")) : "household";
 
   useEffect(() => {
     if (!state.error || !state.field) return;
@@ -129,6 +140,28 @@ export function GoalForm({
             <input type="hidden" name="owner" value={owner} />
           </div>
 
+          {mayHide && (
+            <div data-field="visibility" style={{ marginBottom: "1rem" }}>
+              <p style={eyebrow}>Visible to</p>
+              <div style={{ display: "flex", flexWrap: "wrap", gap: "0.375rem" }}>
+                <button type="button" className="chip" data-active={shownVisibility === "household"} aria-pressed={shownVisibility === "household"} onClick={() => setVisibility("household")}>
+                  <Icon name="house" size={13} />
+                  Whole household
+                </button>
+                <button type="button" className="chip" data-active={shownVisibility === "private"} aria-pressed={shownVisibility === "private"} onClick={() => setVisibility("private")}>
+                  <Icon name="eyeOff" size={13} />
+                  Just me
+                </button>
+              </div>
+              <span style={hint}>
+                {shownVisibility === "private"
+                  ? "Only you see it — and whoever gives its reward, if you set one. Readings you log on it stay “Just me” in Health. You can change this later."
+                  : "Everyone in the house sees it and how far along it is. You can change this later."}
+              </span>
+            </div>
+          )}
+          <input type="hidden" name="visibility" value={shownVisibility} />
+
           <div className="field" data-field="title" style={{ marginBottom: "0.875rem" }}>
             <label htmlFor={`${uid}-title`}>Name</label>
             <input
@@ -195,6 +228,14 @@ export function GoalForm({
                 ))}
               </select>
               <span style={hint}>Linked, the ring follows the savings goal&rsquo;s balance on Wealth.</span>
+            </div>
+          )}
+
+          {canSetPoints && period !== "total" && owner !== "household" && (
+            <div className="field" data-field="points" style={{ marginBottom: "0.875rem" }}>
+              <label htmlFor={`${uid}-points`}>Points each time it&rsquo;s met (optional)</label>
+              <input id={`${uid}-points`} className="input" type="number" inputMode="numeric" name="points" min="0" max={MAX_GOAL_POINTS} step="1" defaultValue={undefined} placeholder="0" style={{ minHeight: "2.75rem" }} />
+              <span style={hint}>Added to their points, the same as chores, each {period === "day" ? "day" : period === "week" ? "week" : "month"} they meet it and claim it. A child&rsquo;s claim waits for a grown-up&rsquo;s yes.</span>
             </div>
           )}
 

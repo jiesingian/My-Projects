@@ -4,7 +4,7 @@ import { FAMILY_FILTER } from "@/lib/queries/planner";
 import { Blueprint } from "@/components/ui";
 import { Icon } from "@/components/icons";
 import { GoalRing } from "@/components/goal-ring";
-import { GoalChangeAnswer, GoalDeleteButton, GoalLog, GoalRewardAnswer, GoalRewardClaim, GoalRewardConfirm, GoalRewardGiven, GoalRewardWithdraw } from "@/components/goal-controls";
+import { GoalChangeAnswer, GoalClaim, GoalDeleteButton, GoalLog, GoalRewardAnswer, GoalRewardClaim, GoalRewardConfirm, GoalRewardGiven, GoalRewardWithdraw } from "@/components/goal-controls";
 import { getGoals, type GoalView } from "@/lib/queries/goals";
 import { GOAL_KIND_META, PERIOD_NOW, goalNumber } from "@/lib/goals";
 import { formatCurrency } from "@/lib/format";
@@ -129,6 +129,13 @@ function GoalCard({ goal, index, meId, today, plus, currency, colour }: { goal: 
           <div style={{ display: "flex", alignItems: "center", gap: "0.375rem", fontSize: "0.75rem", color: "var(--color-neutral-600)" }}>
             <Icon name={meta.icon} size={13} />
             {meta.label} · {whose}
+            {goal.visibility === "private" && (
+              <>
+                {" · "}
+                <Icon name="eyeOff" size={12} aria-hidden />
+                <span>{goal.ownerId === meId ? "Just me" : `Just ${goal.ownerName?.split(" ")[0] ?? "them"} and you`}</span>
+              </>
+            )}
           </div>
           <div style={{ font: "600 1.0625rem/1.25 var(--font-heading)", marginTop: "0.125rem" }}>{goal.title}</div>
           <div style={{ fontSize: "0.8125rem", color: "var(--color-neutral-700)", marginTop: "0.125rem" }}>{caption(goal, currency)}</div>
@@ -140,6 +147,7 @@ function GoalCard({ goal, index, meId, today, plus, currency, colour }: { goal: 
         </div>
       </div>
 
+      {goal.period !== "total" && goal.ownerId && (goal.points > 0 || goal.streak > 0 || goal.claim || goal.reached) && <ClaimLine goal={goal} meId={meId} />}
       {goal.reward && <RewardLine goal={goal} meId={meId} />}
       {goal.change && <ChangeLine goal={goal} />}
 
@@ -164,6 +172,50 @@ function GoalCard({ goal, index, meId, today, plus, currency, colour }: { goal: 
         </span>
       </div>
     </Blueprint>
+  );
+}
+
+const PERIOD_WORD: Record<"day" | "week" | "month", [string, string, string]> = {
+  day: ["day", "days", "today"],
+  week: ["week", "weeks", "this week"],
+  month: ["month", "months", "this month"],
+};
+
+/** A repeating goal: what meeting it is worth, this period's claim, and the
+ * run so far. Only the owner claims; everyone else sees where it stands. */
+function ClaimLine({ goal, meId }: { goal: GoalView; meId: string }) {
+  const [one, many, now] = PERIOD_WORD[goal.period as "day" | "week" | "month"];
+  const mine = goal.ownerId === meId;
+  const plus = goal.points > 0 ? ` +${goal.points}` : "";
+  const c = goal.claim;
+  const status = c
+    ? c.status === "counted"
+      ? `Done ${now}${c.points > 0 ? ` · +${c.points} point${c.points === 1 ? "" : "s"}` : ""}`
+      : c.status === "pending"
+        ? `Claimed ${now} · waiting for a grown-up’s yes`
+        : `Not counted ${now}`
+    : goal.reached
+      ? mine
+        ? ""
+        : `Met ${now} · not claimed yet`
+      : goal.points > 0
+        ? `Worth ${goal.points} point${goal.points === 1 ? "" : "s"} each ${one}`
+        : "";
+  return (
+    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "0.5rem", flexWrap: "wrap", marginTop: "0.625rem", padding: "0.5rem 0.6875rem", borderRadius: 12, background: "color-mix(in srgb, var(--cal-goal) 8%, transparent)" }}>
+      <div style={{ fontSize: "0.78125rem", lineHeight: 1.4 }}>
+        {goal.streak > 0 && (
+          <span style={{ fontWeight: 600 }}>
+            🔥 {goal.streak} {goal.streak === 1 ? one : many} in a row
+            {status ? " · " : ""}
+          </span>
+        )}
+        <span style={{ color: "var(--color-neutral-700)" }}>{status}</span>
+      </div>
+      {mine && (c ? c.status !== "refused" : goal.reached) && (
+        <GoalClaim goalId={goal.id} periodStart={goal.periodStart} claimed={!!c} label={`Done ${now}${plus}`} />
+      )}
+    </div>
   );
 }
 

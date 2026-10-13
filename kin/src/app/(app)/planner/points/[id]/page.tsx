@@ -117,7 +117,9 @@ export default async function PointsHistoryPage({
                     ? "gift"
                     : e.kind === "streak"
                       ? "sparkle"
-                      : "check"
+                      : e.kind === "goal"
+                        ? "target"
+                        : "check"
                 }
                 size={16}
                 style={{ color: "var(--color-neutral-600)", flex: "none" }}

@@ -140,3 +140,43 @@ export const READING_BOUNDS = {
   steps: { min: 0, max: 200_000 },
   weight: { min: 2, max: 400 },
 } as const;
+
+/** The first day of the period before the one starting on `start`. */
+export function periodBefore(period: Exclude<GoalPeriod, "total">, start: string): string {
+  if (period === "day") return daysBefore(start, 1);
+  if (period === "week") return daysBefore(start, 7);
+  const [y, m] = start.split("-").map(Number);
+  return new Date(Date.UTC(y, m - 2, 1)).toISOString().slice(0, 10);
+}
+
+/** How many periods in a row were met, counting back from this one -- or
+ * from the last one, while this one is still open and unclaimed, so a
+ * streak does not read as broken at breakfast. */
+export function claimStreak(period: Exclude<GoalPeriod, "total">, currentStart: string, claimed: Set<string>): number {
+  let at = claimed.has(currentStart) ? currentStart : periodBefore(period, currentStart);
+  let run = 0;
+  while (claimed.has(at)) {
+    run += 1;
+    at = periodBefore(period, at);
+  }
+  return run;
+}
+
+/** The days a daily goal's run of claims reached 7 and 30 days in a row --
+ * the household's streak bonus is paid on each (lib/streaks bonusOn), the
+ * same as a daily chore's. `days` are counted claims, any order. */
+export function streakMilestones(days: string[]): { date: string; reached: 7 | 30 }[] {
+  const sorted = [...new Set(days)].sort();
+  const out: { date: string; reached: 7 | 30 }[] = [];
+  let run = 0;
+  let prev: string | null = null;
+  for (const d of sorted) {
+    run = prev !== null && daysBefore(d, 1) === prev ? run + 1 : 1;
+    if (run === 7 || run === 30) out.push({ date: d, reached: run });
+    prev = d;
+  }
+  return out;
+}
+
+/** The most a goal can be worth each time it is met. */
+export const MAX_GOAL_POINTS = 1000;

@@ -1,5 +1,5 @@
 import { test, expect } from "@playwright/test";
-import { daysBefore, isLoggableDay, stepsForDay } from "@/lib/goals";
+import { claimStreak, daysBefore, isLoggableDay, periodBefore, stepsForDay, streakMilestones } from "@/lib/goals";
 
 /** Logging a goal by hand (Jonathan, 13 October): a day's steps are counted
  * once whichever way they arrived, and an entry can be dated back a week. */
@@ -31,4 +31,25 @@ test("an entry may be dated today or up to six days back, never ahead", () => {
 test("counting days back crosses months", () => {
   expect(daysBefore("2026-11-02", 3)).toBe("2026-10-30");
   expect(daysBefore("2026-03-01", 1)).toBe("2026-02-28");
+});
+
+test("the period before: a day, a week, a month (across a year)", () => {
+  expect(periodBefore("day", "2026-10-13")).toBe("2026-10-12");
+  expect(periodBefore("week", "2026-10-12")).toBe("2026-10-05");
+  expect(periodBefore("month", "2026-01-01")).toBe("2025-12-01");
+});
+
+test("a streak counts back from today, or from yesterday while today is open", () => {
+  const claimed = new Set(["2026-10-10", "2026-10-11", "2026-10-12"]);
+  expect(claimStreak("day", "2026-10-13", claimed)).toBe(3);
+  claimed.add("2026-10-13");
+  expect(claimStreak("day", "2026-10-13", claimed)).toBe(4);
+  expect(claimStreak("day", "2026-10-20", claimed)).toBe(0);
+});
+
+test("a streak bonus on the 7th and the 30th day in a row, again after a break", () => {
+  const run = (from: string, n: number) => Array.from({ length: n }, (_, i) => daysBefore(from, -i));
+  expect(streakMilestones(run("2026-09-01", 6))).toEqual([]);
+  expect(streakMilestones(run("2026-09-01", 30))).toEqual([{ date: "2026-09-07", reached: 7 }, { date: "2026-09-30", reached: 30 }]);
+  expect(streakMilestones([...run("2026-09-01", 7), ...run("2026-09-10", 7)]).map((m) => m.date)).toEqual(["2026-09-07", "2026-09-16"]);
 });

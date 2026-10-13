@@ -68,6 +68,8 @@ const MIGRATIONS = [
   "20261012210000_joint_accounts_grownups_only.sql",
   "20261012150000_buy_items_for_event.sql",
   "20261013160000_start_here_bonus.sql",
+  "20261013170000_goal_visibility.sql",
+  "20261013171000_goal_points.sql",
 ];
 
 const only = process.argv[2];

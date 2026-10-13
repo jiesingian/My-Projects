@@ -9,8 +9,11 @@ import { humanDatabaseError } from "@/lib/db-errors";
 import { clamp } from "@/lib/text";
 import { readAccess } from "@/lib/access";
 import { familyDay } from "@/lib/time";
-import { GOAL_KIND_META, LOG_BACK_DAYS, READING_BOUNDS, daysBefore, isGoalKind, isLoggableDay, isGoalPeriod, type GoalKind } from "@/lib/goals";
+import { GOAL_KIND_META, LOG_BACK_DAYS, MAX_GOAL_POINTS, READING_BOUNDS, daysBefore, isGoalKind, isLoggableDay, isGoalPeriod, type GoalKind } from "@/lib/goals";
 import { stepLiquidIntakeAction } from "@/lib/actions/household";
+import { isGrownUp } from "@/lib/roles";
+import { weekStartOf } from "@/lib/week";
+import { getGoals } from "@/lib/queries/goals";
 
 export type GoalFormState = { error: string | null; field?: string };
 
@@ -33,6 +36,8 @@ export async function createGoalAction(_prev: GoalFormState, formData: FormData)
   const dueDate = String(formData.get("due_date") ?? "") || null;
   const reward = clamp(String(formData.get("reward") ?? ""), 120);
   const giver = String(formData.get("giver") ?? "");
+  const wantsPrivate = String(formData.get("visibility") ?? "") === "private";
+  const pointsRaw = String(formData.get("points") ?? "").trim();
 
   if (!isGoalKind(kind)) return { error: "Choose what kind of goal it is.", field: "kind" };
   const meta = GOAL_KIND_META[kind];
@@ -51,6 +56,13 @@ export async function createGoalAction(_prev: GoalFormState, formData: FormData)
     ownerId = m.id;
   }
   if (!ownerId && !meta.household) return { error: `A ${meta.label.toLowerCase()} goal is one person's. Choose whose.`, field: "owner" };
+  // "Just me" is the owner's to choose, and a grown-up's (the database holds
+  // the same rule, 20261013170000). Anyone else's choice is ignored.
+  const visibility = wantsPrivate && ownerId === me.id && isGrownUp(me.role) ? "private" : "household";
+  // Points each time it is met: a grown-up's to set, on someone's repeating
+  // goal (the database holds the same rule, 20261013171000).
+  const points = pointsRaw && isGrownUp(me.role) && ownerId && period !== "total" ? Math.round(Number(pointsRaw)) : 0;
+  if (!(points >= 0 && points <= MAX_GOAL_POINTS)) return { error: `Points have to be between 0 and ${MAX_GOAL_POINTS}.`, field: "points" };
 
   let giverId: string | null = null;
   if (reward) {
@@ -94,6 +106,10 @@ export async function createGoalAction(_prev: GoalFormState, formData: FormData)
       savings_goal_id: kind === "money" ? savingsGoalId : null,
       due_date: dueDate,
       created_by: me.id,
+      // Sent only when hiding, so a household goal still saves in the
+      // minutes between this deploying and its migration running.
+      ...(visibility === "private" ? { visibility } : {}),
+      ...(points > 0 ? { points } : {}),
     })
     .select("id")
     .single();
@@ -178,7 +194,7 @@ export async function unlogGoalAction(goalId: string): Promise<{ error: string |
 async function goalForReading(goalId: string, kinds: GoalKind[]) {
   const me = await requireCurrentMember();
   const supabase = await createClient();
-  const { data: goal } = await supabase.from("planner_goals").select("id, kind, owner_member_id").eq("id", goalId).eq("family_id", me.family_id).maybeSingle();
+  const { data: goal } = await supabase.from("planner_goals").select("*").eq("id", goalId).eq("family_id", me.family_id).maybeSingle();
   if (!goal || !isGoalKind(goal.kind) || !kinds.includes(goal.kind)) return { error: "That goal is no longer here." as string, me, supabase, goal: null, memberId: null };
   return { error: null, me, supabase, goal: { ...goal, kind: goal.kind as GoalKind }, memberId: goal.owner_member_id ?? me.id };
 }
@@ -244,7 +260,8 @@ export async function logGoalReadingAction(goalId: string, value: number, day?: 
     value_text: valueText,
     unit: kind === "steps" ? "steps" : "kg",
     source: "manual",
-    visibility: "family",
+    // A reading follows its goal: "Just me" there is "Just me" in Health.
+    visibility: goal.visibility === "private" ? "private" : "family",
     created_by: me.id,
   });
   if (error) return { error: humanDatabaseError(error.message) };
@@ -282,6 +299,25 @@ export async function unlogGoalReadingAction(goalId: string): Promise<{ error: s
   const { error } = await supabase.from("health_vitals").delete().eq("id", last.id).eq("family_id", me.family_id);
   if (error) return { error: humanDatabaseError(error.message) };
   return readingSaved(memberId);
+}
+
+/** Who sees a goal: the whole household, or just its owner (and whoever
+ * gives its reward). Only the owner switches it, only a grown-up hides one,
+ * and it does not change what the goal measures, so it needs no one's yes.
+ * The database refuses anyone else (planner_goals_visibility_guard). */
+export async function setGoalVisibilityAction(goalId: string, visibility: "household" | "private"): Promise<{ error: string | null }> {
+  const me = await requireCurrentMember();
+  if (visibility !== "household" && visibility !== "private") return { error: "Choose who sees it." };
+  const supabase = await createClient();
+  const { data: goal } = await supabase.from("planner_goals").select("id, owner_member_id").eq("id", goalId).eq("family_id", me.family_id).maybeSingle();
+  if (!goal) return { error: "That goal is no longer here." };
+  if (goal.owner_member_id !== me.id) return { error: "Only the person whose goal it is can choose who sees it." };
+  if (visibility === "private" && !isGrownUp(me.role)) return { error: "A child's goals stay visible to the grown-ups of the house." };
+  const { error } = await supabase.from("planner_goals").update({ visibility }).eq("id", goalId).eq("family_id", me.family_id);
+  if (error) return { error: humanDatabaseError(error.message) };
+  revalidatePath("/planner");
+  revalidatePath("/today");
+  return { error: null };
 }
 
 export async function deleteGoalAction(goalId: string): Promise<{ error: string | null }> {
@@ -409,6 +445,16 @@ export async function updateGoalAction(goalId: string, _prev: GoalFormState, for
   if (!title) return { error: "Give the goal a name.", field: "title" };
   if (!(target > 0 && target <= 1_000_000_000)) return { error: "The target has to be a number above zero.", field: "target" };
   if (!isGoalPeriod(period)) return { error: "Choose how often it counts.", field: "period" };
+  // What meeting it is worth: a grown-up's, and it applies at once -- it is
+  // not what the goal measures, and what was earned keeps its own worth.
+  const pointsRaw = formData.get("points");
+  const grownUp = isGrownUp(me.role);
+  let points = Number(goal.points ?? 0);
+  if (grownUp && pointsRaw !== null) points = String(pointsRaw).trim() === "" ? 0 : Math.round(Number(pointsRaw));
+  if (period === "total" || !goal.owner_member_id) points = 0;
+  if (!(points >= 0 && points <= MAX_GOAL_POINTS)) return { error: `Points have to be between 0 and ${MAX_GOAL_POINTS}.`, field: "points" };
+  if (points !== Number(goal.points ?? 0) && !grownUp) return { error: "This goal earns points each time; a grown-up can change how often it counts.", field: "period" };
+  const pointsChange = points !== Number(goal.points ?? 0) ? { points } : {};
 
   const measures = Number(goal.target) !== target || goal.period !== period || goal.due_date !== dueDate || goal.unit !== unit;
   // With a reward in play, a change to what the goal measures needs the other
@@ -416,12 +462,12 @@ export async function updateGoalAction(goalId: string, _prev: GoalFormState, for
   const needsYes = measures && !!reward && ["pending", "approved", "claimed", "given"].includes(reward.status);
 
   if (!needsYes) {
-    const { error } = await supabase.from("planner_goals").update({ title, target, period, unit, due_date: dueDate }).eq("id", goal.id).eq("family_id", me.family_id);
+    const { error } = await supabase.from("planner_goals").update({ title, target, period, unit, due_date: dueDate, ...pointsChange }).eq("id", goal.id).eq("family_id", me.family_id);
     if (error) return { error: humanDatabaseError(error.message) };
   } else {
     // The name is nobody's promise: it changes now. The rest waits.
-    if (title !== goal.title) {
-      const { error } = await supabase.from("planner_goals").update({ title }).eq("id", goal.id).eq("family_id", me.family_id);
+    if (title !== goal.title || "points" in pointsChange) {
+      const { error } = await supabase.from("planner_goals").update({ title, ...pointsChange }).eq("id", goal.id).eq("family_id", me.family_id);
       if (error) return { error: humanDatabaseError(error.message) };
     }
     const { error } = await supabase.from("planner_goal_changes").insert({
@@ -468,6 +514,64 @@ export async function withdrawGoalChangeAction(changeId: string): Promise<{ erro
   const { error, count } = await supabase.from("planner_goal_changes").delete({ count: "exact" }).eq("id", changeId).eq("family_id", me.family_id);
   if (error) return { error: humanDatabaseError(error.message) };
   if (count === 0) return { error: "Only whoever asked can take the change back." };
+  revalidatePath("/planner");
+  revalidatePath("/today");
+  return { error: null };
+}
+
+/** "I did it" on a repeating goal: this period is met. Only offered, and
+ * only accepted here, once the ring is full -- read the same way the card
+ * reads it. A grown-up's claim counts at once; a child's waits for a
+ * grown-up's yes on Today. What it is worth is set by the database from
+ * the goal (20261013171000). */
+export async function claimGoalPeriodAction(goalId: string): Promise<{ error: string | null }> {
+  const me = await requireCurrentMember();
+  const goal = (await getGoals(me.family_id, me, weekStartOf(me.families.week_start))).find((g) => g.id === goalId);
+  if (!goal) return { error: "That goal is no longer here." };
+  if (goal.period === "total") return { error: "A one-off goal has its reward instead." };
+  if (goal.ownerId !== me.id) return { error: "Only the person whose goal it is can say it's done." };
+  if (!goal.reached) return { error: "Not there yet — the ring isn't full." };
+  if (goal.claim) return { error: "Already claimed for this one." };
+  const supabase = await createClient();
+  const { error } = await supabase.from("planner_goal_completions").insert({ family_id: me.family_id, goal_id: goal.id, member_id: me.id, period_start: goal.periodStart });
+  if (error) return { error: humanDatabaseError(error.message) };
+  revalidatePath("/planner");
+  revalidatePath("/today");
+  return { error: null };
+}
+
+/** Take back this period's claim -- a tap too early. A refused one stays. */
+export async function unclaimGoalPeriodAction(goalId: string, periodStart: string): Promise<{ error: string | null }> {
+  const me = await requireCurrentMember();
+  const supabase = await createClient();
+  const { error, count } = await supabase
+    .from("planner_goal_completions")
+    .delete({ count: "exact" })
+    .eq("goal_id", goalId)
+    .eq("period_start", periodStart)
+    .eq("member_id", me.id)
+    .neq("status", "refused");
+  if (error) return { error: humanDatabaseError(error.message) };
+  if (count === 0) return { error: "Nothing to take back." };
+  revalidatePath("/planner");
+  revalidatePath("/today");
+  return { error: null };
+}
+
+/** A grown-up's answer on a child's claim, from Today's queue. The policy
+ * holds who may: a grown-up, never on their own, once. */
+export async function answerGoalClaimAction(claimId: string, yes: boolean): Promise<{ error: string | null }> {
+  const me = await requireCurrentMember();
+  if (!isGrownUp(me.role)) return { error: "A grown-up answers these." };
+  const supabase = await createClient();
+  const { error, count } = await supabase
+    .from("planner_goal_completions")
+    .update({ status: yes ? "counted" : "refused", decided_by: me.id, decided_at: new Date().toISOString() }, { count: "exact" })
+    .eq("id", claimId)
+    .eq("family_id", me.family_id)
+    .eq("status", "pending");
+  if (error) return { error: humanDatabaseError(error.message) };
+  if (count === 0) return { error: "Already answered, or taken back." };
   revalidatePath("/planner");
   revalidatePath("/today");
   return { error: null };

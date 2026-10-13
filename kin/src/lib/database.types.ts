@@ -5063,6 +5063,45 @@ export type Database = {
         }
         Relationships: []
       }
+      planner_goal_completions: {
+        Row: {
+          created_at: string
+          decided_at: string | null
+          decided_by: string | null
+          family_id: string
+          goal_id: string
+          id: string
+          member_id: string
+          period_start: string
+          points: number
+          status: string
+        }
+        Insert: {
+          created_at?: string
+          decided_at?: string | null
+          decided_by?: string | null
+          family_id: string
+          goal_id: string
+          id?: string
+          member_id: string
+          period_start: string
+          points?: number
+          status?: string
+        }
+        Update: {
+          created_at?: string
+          decided_at?: string | null
+          decided_by?: string | null
+          family_id?: string
+          goal_id?: string
+          id?: string
+          member_id?: string
+          period_start?: string
+          points?: number
+          status?: string
+        }
+        Relationships: []
+      }
       planner_goal_entries: {
         Row: {
           amount: number
@@ -5151,11 +5190,13 @@ export type Database = {
           kind: string
           owner_member_id: string | null
           period: string
+          points: number
           savings_goal_id: string | null
           start_value: number | null
           target: number
           title: string
           unit: string | null
+          visibility: string
         }
         Insert: {
           created_at?: string
@@ -5166,11 +5207,13 @@ export type Database = {
           kind: string
           owner_member_id?: string | null
           period?: string
+          points?: number
           savings_goal_id?: string | null
           start_value?: number | null
           target: number
           title: string
           unit?: string | null
+          visibility?: string
         }
         Update: {
           created_at?: string
@@ -5181,11 +5224,13 @@ export type Database = {
           kind?: string
           owner_member_id?: string | null
           period?: string
+          points?: number
           savings_goal_id?: string | null
           start_value?: number | null
           target?: number
           title?: string
           unit?: string | null
+          visibility?: string
         }
         Relationships: []
       }
@@ -6225,6 +6270,14 @@ export type Database = {
       due_goal_reward_reminders: {
         Args: { p_secret: string; p_now?: string }
         Returns: { key: string; member_id: string; endpoint: string; p256dh: string; auth: string; title: string; body: string; url: string }[]
+      }
+      planner_goal_readings: {
+        Args: { p_since: string }
+        Returns: { goal_id: string; kind: string; reading_date: string; value: number; created_at: string | null }[]
+      }
+      planner_goal_visible: {
+        Args: { p_goal: string }
+        Returns: boolean
       }
       goal_reward_act: {
         Args: { p_goal: string; p_action: string }

@@ -3,6 +3,7 @@ import { FAMILY_FILTER } from "@/lib/queries/planner";
 import { assigneeFor, currentStreak, expandRoutine, nextOccurrence, toISODate, type RoutineRule } from "@/lib/routines";
 import { bonusOn, choreStreak, type ChoreStreak, type DayState, type StreakBonusRate } from "@/lib/streaks";
 import { isChild } from "@/lib/roles";
+import { streakMilestones } from "@/lib/goals";
 
 export type RoutineMember = { id: string; name: string; role?: string };
 
@@ -290,7 +291,7 @@ export async function getMemberScores(familyId: string): Promise<MemberScore[]> 
  * but given back if it is declined). */
 export type PointsEntry = {
   date: string;
-  kind: "chore" | "streak" | "reward";
+  kind: "chore" | "streak" | "goal" | "reward";
   title: string;
   points: number;
   status: "counted" | "waiting" | "granted" | "held" | "declined";
@@ -380,6 +381,41 @@ async function loadPoints(familyId: string, historyFor?: string): Promise<{ scor
       if (l.member_id === historyFor) {
         entries.push({ date: m.date, kind: "streak", title: `${r.title} — ${m.reached}-day streak bonus`, points: bonusOn(rates, m.date)[m.reached], status: "counted" });
       }
+    }
+  }
+
+  // Goals met (20261013171000): a counted claim is its points, a waiting one
+  // is awaiting a grown-up's yes like a chore, and a daily goal's run of
+  // claims earns the same 7- and 30-day bonus a daily chore does.
+  const { data: goalClaims } = await supabase
+    .from("planner_goal_completions")
+    .select("goal_id, member_id, period_start, points, status, planner_goals(title, period)")
+    .eq("family_id", familyId)
+    .neq("status", "refused");
+  const dailyCounted = new Map<string, { member: string; title: string; days: string[] }>();
+  for (const c of goalClaims ?? []) {
+    const g = c.planner_goals as unknown as { title: string; period: string } | null;
+    const tally = byMember.get(c.member_id) ?? { points: 0, done: 0, awaiting: 0 };
+    if (c.status === "pending") tally.awaiting += 1;
+    else {
+      tally.points += c.points;
+      tally.done += 1;
+      if (g?.period === "day") {
+        const run = dailyCounted.get(c.goal_id) ?? { member: c.member_id, title: g.title, days: [] };
+        run.days.push(c.period_start);
+        dailyCounted.set(c.goal_id, run);
+      }
+    }
+    byMember.set(c.member_id, tally);
+    if (c.member_id === historyFor && c.points > 0) {
+      entries.push({ date: c.period_start, kind: "goal", title: g?.title ?? "A goal", points: c.points, status: c.status === "pending" ? "waiting" : "counted" });
+    }
+  }
+  for (const run of dailyCounted.values()) {
+    for (const m of streakMilestones(run.days)) {
+      const points = bonusOn(rates, m.date)[m.reached];
+      bonusBy.set(run.member, (bonusBy.get(run.member) ?? 0) + points);
+      if (run.member === historyFor) entries.push({ date: m.date, kind: "streak", title: `${run.title} — ${m.reached}-day streak bonus`, points, status: "counted" });
     }
   }
 

@@ -16,7 +16,7 @@ import { QuickLine } from "@/components/quick-line";
 import { wrapUp, isWrapUpTime } from "@/lib/wrap-up";
 import { EveningWrapUp } from "@/components/evening-wrap-up";
 import { ApprovalQueue } from "@/components/approval-queue";
-import { getGoalRequestsFor, getGoals, getRewardDuties, type GoalView } from "@/lib/queries/goals";
+import { getGoalRequestsFor, getGoals, getPendingGoalClaims, getRewardDuties, type GoalView } from "@/lib/queries/goals";
 import { weekStartOf } from "@/lib/week";
 import { ComingUpPager } from "@/components/coming-up-pager";
 import { PromiseBanner } from "@/components/promise-banner";
@@ -53,7 +53,7 @@ export default async function TodayPage({ searchParams }: { searchParams: Promis
   const replayTour = (await searchParams).tour === "1";
 
   const supabase = await createClient();
-  const [{ data: members }, glance, brief, tasks, awaitingApproval, awaitingRedemption, familyPanel, comingUp, memories, recap, startHere, goalRequests, rewardDuties, goals, kinOffer, checkIns, plusTrial] = await Promise.all([
+  const [{ data: members }, glance, brief, tasks, awaitingApproval, awaitingRedemption, familyPanel, comingUp, memories, recap, startHere, goalRequests, rewardDuties, goals, kinOffer, checkIns, plusTrial, goalClaims] = await Promise.all([
     supabase.from("members").select("id, full_name, status").eq("family_id", me.family_id).order("created_at"),
     getGlance(me.family_id, me.families.currency, me),
     getTodayBriefing(me.family_id, me.families.currency, me),
@@ -88,6 +88,8 @@ export default async function TodayPage({ searchParams }: { searchParams: Promis
     getMyPendingCheckIns(me.id),
     // The first days of a Kin Plus trial: three Plus things to try.
     getPlusTrialCard(me),
+    // Children's claims that a repeating goal was met: a grown-up's to answer.
+    isGrownUp(me.role) ? getPendingGoalClaims(me.family_id, me) : Promise.resolve([]),
   ]);
 
   // Today's one list, ordered here on the server so the phone never re-sorts
@@ -125,7 +127,7 @@ export default async function TodayPage({ searchParams }: { searchParams: Promis
   // The fourth glance tile is built from what Today already asked for: the
   // chores and rewards waiting on a grown-up's OK, else the household's
   // chores due today or overdue.
-  const toApprove = awaitingApproval.length + awaitingRedemption.length + goalRequests.rewards.length + goalRequests.changes.length;
+  const toApprove = awaitingApproval.length + awaitingRedemption.length + goalRequests.rewards.length + goalRequests.changes.length + goalClaims.length;
   const overdueTasks = tasks.filter((t) => t.overdue.length > 0).length;
   const waiting: GlanceTile =
     toApprove > 0
@@ -286,7 +288,7 @@ export default async function TodayPage({ searchParams }: { searchParams: Promis
       <OnThisDay memories={memories} />
 
       <div id="approvals">
-        <ApprovalQueue pending={awaitingApproval} redemptions={awaitingRedemption} goalRewards={goalRequests.rewards} goalChanges={goalRequests.changes} />
+        <ApprovalQueue pending={awaitingApproval} redemptions={awaitingRedemption} goalRewards={goalRequests.rewards} goalChanges={goalRequests.changes} goalClaims={goalClaims} />
       </div>
 
       {/* Five spotlight steps, once per member and from Settings (guided-tour.tsx). */}
