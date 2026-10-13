@@ -1,21 +1,28 @@
 "use client";
 
-import { startTransition, useActionState, useId } from "react";
+import { startTransition, useActionState, useId, useState } from "react";
 import Link from "next/link";
-import { signUp, type ActionState } from "@/lib/actions/auth";
+import { signUp, type SignUpState } from "@/lib/actions/auth";
 import { PASSWORD_MIN } from "@/lib/password";
 import { SubmitButton, ErrorText } from "@/components/form";
 import { OnboardingShell } from "@/components/onboarding-shell";
 import { Icon } from "@/components/icons";
+import { CodeEntry } from "@/app/verify/verify-form";
 
-const initialState: ActionState = { error: null };
+const initialState: SignUpState = { error: null };
 
 export default function SignupPage() {
   const [state, formAction, pending] = useActionState(signUp, initialState);
   const uid = useId();
+  // "Wrong email? Change it" brings the form back with what was typed still
+  // in it (it stays mounted, hidden), and sending again shows the code box.
+  const [changing, setChanging] = useState(false);
+  const sentTo = !changing && !pending ? state.sentTo : undefined;
 
   return (
-    <OnboardingShell step="STEP 01 / 05" backHref="/login">
+    <OnboardingShell step={sentTo ? "STEP 02 / 05" : "STEP 01 / 05"} backHref="/login">
+      {sentTo && <CodeEntry key={sentTo} email={sentTo} onChangeEmail={() => setChanging(true)} />}
+      <div hidden={!!sentTo}>
       <h2 style={{ fontSize: "2.125rem", margin: "0 0 6px" }}>Your account</h2>
       <p style={{ fontSize: "0.84375rem", color: "var(--color-neutral-700)", margin: "0 0 26px" }}>
         Your own account first: every member signs in with their own verified email. Next you start your
@@ -29,6 +36,7 @@ export default function SignupPage() {
         onSubmit={(e) => {
           e.preventDefault();
           const data = new FormData(e.currentTarget);
+          setChanging(false);
           startTransition(() => formAction(data));
         }}
       >
@@ -64,6 +72,7 @@ export default function SignupPage() {
       <p style={{ fontSize: "0.8125rem", color: "var(--color-neutral-700)", marginTop: "1.25rem", textAlign: "center" }}>
         Already have an account? <Link href="/login">Sign in</Link>
       </p>
+      </div>
     </OnboardingShell>
   );
 }
