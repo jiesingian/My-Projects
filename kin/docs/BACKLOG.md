@@ -623,6 +623,15 @@ Decided against in the same review: revising Journal (item 6) and Planner
   steps/weight goal fills through planner_goal_readings() even when the
   readings are private in Health: sharing a goal shares its numbers.
   20261013170000; probes/goal-visibility.mjs (25 cases, PGlite).
+- Renewable goals earn points (Jonathan, 13 October): a daily, weekly or
+  monthly goal can be worth points each time it is met, set by a grown-up
+  on someone's goal (never a household or one-off goal). The owner claims
+  the period once the ring is full ("Done today +5"); a grown-up's claim
+  counts at once, a child's waits on Today's queue like a chore. Points go
+  into the same balance (loadPoints, kind "goal") and a daily goal's run of
+  claims earns the household's 7- and 30-day streak bonus; the card shows
+  "🔥 5 days in a row". What a claim is worth is copied from the goal when
+  made. 20261013171000; probes/goal-points.mjs (19 cases, PGlite).
 
 - Review fixes (28 September, every page rendered signed in against a local
   stand-in with an invented household): a child with their own login showed

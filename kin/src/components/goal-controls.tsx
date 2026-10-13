@@ -8,6 +8,7 @@ import {
   addGoalRewardAction,
   approveGoalChangeAction,
   approveGoalRewardAction,
+  claimGoalPeriodAction,
   claimGoalRewardAction,
   confirmGoalRewardAction,
   disputeGoalRewardAction,
@@ -20,6 +21,7 @@ import {
   setGoalVisibilityAction,
   stepGoalWaterAction,
   unlogGoalAction,
+  unclaimGoalPeriodAction,
   unlogGoalReadingAction,
   withdrawGoalChangeAction,
   withdrawGoalRewardAction,
@@ -356,6 +358,27 @@ export function GoalVisibilitySwitch({ goalId, visibility, hasGiver }: { goalId:
           ? `Only you see this goal${hasGiver ? ", and whoever gives its reward" : ""}. Readings you log on it stay “Just me” in Health.`
           : "Everyone in the house sees this goal and how far along it is. Your readings in Health keep their own setting."}
       </p>
+      <ErrorLine error={error} />
+    </div>
+  );
+}
+
+/** The owner's "I did it" on a repeating goal once its ring is full, and
+ * taking it back. A child's claim waits for a grown-up's yes on Today. */
+export function GoalClaim({ goalId, periodStart, label, claimed }: { goalId: string; periodStart: string; label: string; claimed: boolean }) {
+  const { pending, error, run } = useGoalAction();
+  return (
+    <div style={{ display: "flex", gap: "0.375rem", alignItems: "center", flexWrap: "wrap" }}>
+      {claimed ? (
+        <button type="button" className="btn btn-ghost" disabled={pending} onClick={() => run(() => unclaimGoalPeriodAction(goalId, periodStart))} style={{ ...small, color: "var(--color-neutral-700)" }}>
+          Take back
+        </button>
+      ) : (
+        <button type="button" className="btn btn-primary" disabled={pending} onClick={() => run(() => claimGoalPeriodAction(goalId))} style={small}>
+          <Icon name="check" size={14} />
+          {label}
+        </button>
+      )}
       <ErrorLine error={error} />
     </div>
   );

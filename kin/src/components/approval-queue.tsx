@@ -6,9 +6,9 @@ import { Icon } from "@/components/icons";
 import { Blueprint } from "@/components/ui";
 import { approveRoutineLogAction, rejectRoutineLogAction } from "@/lib/actions/routines";
 import { grantRedemptionAction, refuseRedemptionAction } from "@/lib/actions/rewards";
-import { approveGoalChangeAction, approveGoalRewardAction, refuseGoalChangeAction, refuseGoalRewardAction } from "@/lib/actions/goals";
+import { answerGoalClaimAction, approveGoalChangeAction, approveGoalRewardAction, refuseGoalChangeAction, refuseGoalRewardAction } from "@/lib/actions/goals";
 import type { PendingApproval, PendingRedemption } from "@/lib/queries/routines";
-import type { PendingGoalChange, PendingGoalReward } from "@/lib/queries/goals";
+import type { PendingGoalChange, PendingGoalClaim, PendingGoalReward } from "@/lib/queries/goals";
 import { REWARD_TERMS } from "@/lib/goals";
 import { readableDay } from "@/lib/time";
 
@@ -21,13 +21,16 @@ export function ApprovalQueue({
   redemptions,
   goalRewards = [],
   goalChanges = [],
+  goalClaims = [],
 }: {
   pending: PendingApproval[];
   redemptions: PendingRedemption[];
   goalRewards?: PendingGoalReward[];
   goalChanges?: PendingGoalChange[];
+  /** Children's claims that a repeating goal was met, like their chores. */
+  goalClaims?: PendingGoalClaim[];
 }) {
-  const total = pending.length + redemptions.length + goalRewards.length + goalChanges.length;
+  const total = pending.length + redemptions.length + goalRewards.length + goalChanges.length + goalClaims.length;
   if (total === 0) return null;
 
   return (
@@ -35,6 +38,9 @@ export function ApprovalQueue({
       <h3 className="kin-eyebrow">Waiting on you · {total}</h3>
       {pending.map((p) => (
         <ApprovalRow key={`${p.routineId}-${p.date}`} item={p} />
+      ))}
+      {goalClaims.map((c) => (
+        <GoalClaimRow key={c.id} item={c} />
       ))}
       {redemptions.map((r) => (
         <RedemptionRow key={r.id} item={r} />
@@ -277,6 +283,82 @@ function GoalChangeRow({ item }: { item: PendingGoalChange }) {
           style={{ minHeight: "2rem", fontSize: "0.8125rem", padding: "0 0.75rem" }}
         >
           Keep it as it was
+        </button>
+      </div>
+      {error && <div style={{ fontSize: "0.78125rem", color: "var(--cal-occasion)", marginTop: "0.375rem" }}>{error}</div>}
+    </Blueprint>
+  );
+}
+
+/** A child says they met a repeating goal -- eight glasses, a gym week.
+ * The same yes as a chore: it counts their points once a grown-up agrees. */
+function GoalClaimRow({ item }: { item: PendingGoalClaim }) {
+  const router = useRouter();
+  const [pending, startTransition] = useTransition();
+  const [error, setError] = useState<string | null>(null);
+  const [leaving, setLeaving] = useState(false);
+
+  const run = (fn: () => Promise<{ error: string | null }>) => {
+    setError(null);
+    startTransition(async () => {
+      const result = await fn();
+      if (result.error) {
+        setError(result.error);
+        router.refresh();
+        return;
+      }
+      setLeaving(true);
+      await new Promise((resolve) => setTimeout(resolve, 180));
+      router.refresh();
+    });
+  };
+  const when = item.period === "day" ? readableDate(item.periodStart) : item.period === "week" ? `week of ${readableDate(item.periodStart)}` : "this month";
+
+  return (
+    <Blueprint className={leaving ? "kin-leaving" : undefined} style={{ padding: "0.8125rem", marginBottom: "0.5625rem" }}>
+      <div style={{ display: "flex", gap: "0.625rem", alignItems: "flex-start" }}>
+        <span
+          style={{
+            width: 30,
+            height: 30,
+            flex: "none",
+            borderRadius: 9,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            background: "color-mix(in srgb, var(--cal-goal) 22%, transparent)",
+          }}
+        >
+          <Icon name="target" size={16} style={{ color: "var(--cal-goal)" }} />
+        </span>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ font: "600 0.96875rem/1.2 var(--font-heading)" }}>{item.goalTitle}</div>
+          <div style={{ fontSize: "0.78125rem", color: "var(--color-neutral-600)", marginTop: "0.125rem" }}>
+            {item.who.split(" ")[0]} met it · {when}
+            {item.points > 0 ? ` · ${item.points} point${item.points === 1 ? "" : "s"}` : ""}
+          </div>
+        </div>
+      </div>
+
+      <div style={{ display: "flex", gap: "0.375rem", marginTop: "0.625rem", flexWrap: "wrap" }}>
+        <button
+          type="button"
+          className="btn btn-primary"
+          disabled={pending}
+          onClick={() => run(() => answerGoalClaimAction(item.id, true))}
+          style={{ minHeight: "2rem", fontSize: "0.8125rem", padding: "0 0.875rem", gap: "0.3125rem" }}
+        >
+          <Icon name="check" size={14} />
+          Approve
+        </button>
+        <button
+          type="button"
+          className="btn btn-secondary"
+          disabled={pending}
+          onClick={() => run(() => answerGoalClaimAction(item.id, false))}
+          style={{ minHeight: "2rem", fontSize: "0.8125rem", padding: "0 0.75rem" }}
+        >
+          Not this time
         </button>
       </div>
       {error && <div style={{ fontSize: "0.78125rem", color: "var(--cal-occasion)", marginTop: "0.375rem" }}>{error}</div>}

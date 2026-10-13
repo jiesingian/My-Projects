@@ -36,7 +36,8 @@ export default async function EditGoalPage({ params }: { params: Promise<{ id: s
   return (
     <GoalEditForm
       visibilitySwitch={showSwitch ? <GoalVisibilitySwitch goalId={goal.id} visibility={visibility} hasGiver={!!reward?.giver_member_id} /> : null}
-      goal={{ id: goal.id, title: goal.title, kind: goal.kind, target: Number(goal.target), period: goal.period, unit: goal.unit, dueDate: goal.due_date }}
+      goal={{ id: goal.id, title: goal.title, kind: goal.kind, target: Number(goal.target), period: goal.period, unit: goal.unit, dueDate: goal.due_date, points: goal.points ?? 0, ownerId: goal.owner_member_id }}
+      canSetPoints={isGrownUp(me.role)}
       meId={me.id}
       currency={me.families.currency}
       today={familyDay(new Date(), tz)}

@@ -30,6 +30,7 @@ export default async function NewGoalPage() {
       people={active.map((m, i) => ({ id: m.id, label: labels[i] }))}
       meId={me.id}
       canHide={isGrownUp(me.role)}
+      canSetPoints={isGrownUp(me.role)}
       savings={(savings ?? []).map((s) => ({ id: s.id, title: s.title }))}
       plus={readAccess(me.families).plus}
       currency={me.families.currency}

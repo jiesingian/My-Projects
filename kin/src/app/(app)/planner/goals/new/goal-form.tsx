@@ -7,7 +7,7 @@ import { DetailHeader } from "@/components/hub-header";
 import { Icon } from "@/components/icons";
 import { PlusNote } from "@/components/plus";
 import { DateInput } from "@/components/date-input";
-import { GOAL_KINDS, GOAL_KIND_META, GOAL_PERIODS, PERIOD_LABEL, REWARD_TERMS, type GoalKind, type GoalPeriod } from "@/lib/goals";
+import { GOAL_KINDS, GOAL_KIND_META, GOAL_PERIODS, MAX_GOAL_POINTS, PERIOD_LABEL, REWARD_TERMS, type GoalKind, type GoalPeriod } from "@/lib/goals";
 import { scrollBehavior } from "@/lib/motion";
 
 const initialState: GoalFormState = { error: null };
@@ -22,6 +22,7 @@ export function GoalForm({
   people,
   meId,
   canHide,
+  canSetPoints,
   savings,
   plus,
   currency,
@@ -31,6 +32,8 @@ export function GoalForm({
   meId: string;
   /** A grown-up may keep their own goal to themselves. */
   canHide: boolean;
+  /** A grown-up may make a repeating goal worth points. */
+  canSetPoints: boolean;
   savings: { id: string; title: string }[];
   plus: boolean;
   currency: string;
@@ -225,6 +228,14 @@ export function GoalForm({
                 ))}
               </select>
               <span style={hint}>Linked, the ring follows the savings goal&rsquo;s balance on Wealth.</span>
+            </div>
+          )}
+
+          {canSetPoints && period !== "total" && owner !== "household" && (
+            <div className="field" data-field="points" style={{ marginBottom: "0.875rem" }}>
+              <label htmlFor={`${uid}-points`}>Points each time it&rsquo;s met (optional)</label>
+              <input id={`${uid}-points`} className="input" type="number" inputMode="numeric" name="points" min="0" max={MAX_GOAL_POINTS} step="1" defaultValue={undefined} placeholder="0" style={{ minHeight: "2.75rem" }} />
+              <span style={hint}>Added to their points, the same as chores, each {period === "day" ? "day" : period === "week" ? "week" : "month"} they meet it and claim it. A child&rsquo;s claim waits for a grown-up&rsquo;s yes.</span>
             </div>
           )}
 

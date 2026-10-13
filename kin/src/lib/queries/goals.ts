@@ -1,7 +1,7 @@
 import { householdZone } from "@/lib/household-zone";
 import { createClient } from "@/lib/supabase/server";
 import { familyDay } from "@/lib/time";
-import { clamp01, isGoalKind, isGoalPeriod, stepsForDay, weightFraction, windowStart, type GoalKind, type GoalPeriod } from "@/lib/goals";
+import { claimStreak, clamp01, daysBefore, isGoalKind, isGoalPeriod, stepsForDay, weightFraction, windowStart, type GoalKind, type GoalPeriod } from "@/lib/goals";
 
 export type GoalRewardView = {
   title: string;
@@ -64,6 +64,14 @@ export type GoalView = {
   manualToday: number | null;
   /** "household" or "private" (Just me: the owner and the reward's giver). */
   visibility: "household" | "private";
+  /** What meeting it each period is worth (0: nothing), and the first day
+   * of the period now running -- what a claim is for. */
+  points: number;
+  periodStart: string;
+  /** This period's claim, if made. */
+  claim: { status: "counted" | "pending" | "refused"; points: number } | null;
+  /** Periods met in a row (counted or waiting), for "🔥 5 days in a row". */
+  streak: number;
 };
 
 type Viewer = { id: string; role: string };
@@ -104,7 +112,8 @@ export async function getGoals(familyId: string, viewer: Viewer, weekStart: 0 | 
   const savingsIds = withWindow.map((g) => g.savings_goal_id).filter((v): v is string => !!v);
   const stepOwners = [...new Set(withWindow.filter((g) => g.kind === "steps" && g.owner_member_id).map((g) => g.owner_member_id as string))];
 
-  const [entriesRes, waterRes, readingsRes, todayStepsRes, savingsRes] = await Promise.all([
+  const repeating = withWindow.filter((g) => g.period !== "total").map((g) => g.id);
+  const [entriesRes, waterRes, readingsRes, todayStepsRes, savingsRes, claimsRes] = await Promise.all([
     supabase.from("planner_goal_entries").select("goal_id, entry_date, amount").eq("family_id", familyId).gte("entry_date", earliest),
     has("water")
       ? supabase.from("liquid_intake_log").select("member_id, log_date, glasses").eq("family_id", familyId).eq("type", "water").gte("log_date", earliest)
@@ -123,13 +132,30 @@ export async function getGoals(familyId: string, viewer: Viewer, weekStart: 0 | 
     savingsIds.length > 0
       ? supabase.from("goals").select("id, title, current_amount").in("id", savingsIds)
       : Promise.resolve({ data: [] as { id: string; title: string; current_amount: number }[] }),
+    // Periods met, for this period's claim and the streak: a run of 30 days
+    // or a year of months is plenty to count back through.
+    repeating.length > 0
+      ? supabase.from("planner_goal_completions").select("goal_id, period_start, status, points").in("goal_id", repeating).gte("period_start", daysBefore(today, 400))
+      : Promise.resolve({ data: [] as { goal_id: string; period_start: string; status: string; points: number }[] }),
   ]);
+  const claims = claimsRes.data ?? [];
 
   const entries = entriesRes.data ?? [];
   const water = waterRes.data ?? [];
   const readings = readingsRes.data ?? [];
   const todaySteps = todayStepsRes.data ?? [];
   const savings = new Map((savingsRes.data ?? []).map((s) => [s.id, s]));
+  const claimState = (goalId: string, period: GoalPeriod, from: string) => {
+    if (period === "total") return { claim: null, streak: 0 };
+    const mine = claims.filter((c) => c.goal_id === goalId);
+    const now = mine.find((c) => c.period_start === from);
+    const met = new Set(mine.filter((c) => c.status !== "refused").map((c) => c.period_start));
+    return {
+      claim: now ? { status: now.status as "counted" | "pending" | "refused", points: now.points } : null,
+      streak: claimStreak(period, from, met),
+    };
+  };
+
   return withWindow.map((g) => {
     const counts = (memberId: string | null) => g.owner_member_id === null || memberId === g.owner_member_id;
     let current = 0;
@@ -209,6 +235,9 @@ export async function getGoals(familyId: string, viewer: Viewer, weekStart: 0 | 
       autoToday,
       manualToday,
       visibility: g.visibility === "private" ? "private" : "household",
+      points: g.points ?? 0,
+      periodStart: g.from,
+      ...claimState(g.id, g.period, g.from),
       change: c
         ? {
             id: c.id,
@@ -338,5 +367,32 @@ export async function getRewardDuties(familyId: string, viewer: Viewer): Promise
     const receives = g.owner_member_id === null ? r.giver_member_id !== viewer.id : g.owner_member_id === viewer.id;
     if (receives && r.status === "given") return [{ ...base, kind: "confirm" as const, other: first(r.giver_member_id) }];
     return [];
+  });
+}
+
+export type PendingGoalClaim = { id: string; goalTitle: string; who: string; points: number; periodStart: string; period: GoalPeriod };
+
+/** Children's claims that a period was met, waiting on a grown-up's yes --
+ * the same queue on Today as their chores. Never one's own. */
+export async function getPendingGoalClaims(familyId: string, viewer: Viewer): Promise<PendingGoalClaim[]> {
+  const supabase = await createClient();
+  const { data: claims } = await supabase
+    .from("planner_goal_completions")
+    .select("id, goal_id, member_id, period_start, points")
+    .eq("family_id", familyId)
+    .eq("status", "pending")
+    .neq("member_id", viewer.id)
+    .order("period_start", { ascending: true });
+  if (!claims || claims.length === 0) return [];
+  const [{ data: goals }, { data: members }] = await Promise.all([
+    supabase.from("planner_goals").select("id, title, period").in("id", [...new Set(claims.map((c) => c.goal_id))]),
+    supabase.from("members").select("id, full_name").eq("family_id", familyId),
+  ]);
+  const goalOf = new Map((goals ?? []).map((g) => [g.id, g]));
+  const nameOf = new Map((members ?? []).map((m) => [m.id, m.full_name]));
+  return claims.flatMap((c) => {
+    const g = goalOf.get(c.goal_id);
+    if (!g || !isGoalPeriod(g.period)) return [];
+    return [{ id: c.id, goalTitle: g.title, who: nameOf.get(c.member_id) ?? "Someone", points: c.points, periodStart: c.period_start, period: g.period }];
   });
 }

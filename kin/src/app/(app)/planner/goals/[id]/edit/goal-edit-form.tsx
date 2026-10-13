@@ -7,7 +7,7 @@ import { DetailHeader } from "@/components/hub-header";
 import { Icon } from "@/components/icons";
 import { DateInput } from "@/components/date-input";
 import { GoalAddReward } from "@/components/goal-controls";
-import { GOAL_KIND_META, GOAL_PERIODS, PERIOD_LABEL, type GoalKind, type GoalPeriod } from "@/lib/goals";
+import { MAX_GOAL_POINTS, GOAL_KIND_META, GOAL_PERIODS, PERIOD_LABEL, type GoalKind, type GoalPeriod } from "@/lib/goals";
 
 const initialState: GoalFormState = { error: null };
 const hint = { display: "block", fontSize: "0.78125rem", color: "var(--color-neutral-600)", marginTop: "0.25rem", lineHeight: 1.45 } as const;
@@ -23,8 +23,11 @@ export function GoalEditForm({
   giverName,
   givers,
   visibilitySwitch = null,
+  canSetPoints = false,
 }: {
-  goal: { id: string; title: string; kind: GoalKind; target: number; period: GoalPeriod; unit: string | null; dueDate: string | null };
+  goal: { id: string; title: string; kind: GoalKind; target: number; period: GoalPeriod; unit: string | null; dueDate: string | null; points: number; ownerId: string | null };
+  /** A grown-up may set what meeting it is worth. */
+  canSetPoints?: boolean;
   meId: string;
   currency: string;
   today: string;
@@ -86,6 +89,14 @@ export function GoalEditForm({
             <div className="field" data-field="unit" style={{ marginBottom: "0.875rem" }}>
               <label htmlFor={`${uid}-unit`}>Counting what (optional)</label>
               <input id={`${uid}-unit`} className="input" name="unit" maxLength={24} defaultValue={goal.unit ?? ""} placeholder="books" style={{ minHeight: "2.75rem" }} />
+            </div>
+          )}
+
+          {canSetPoints && period !== "total" && goal.ownerId !== null && (
+            <div className="field" data-field="points" style={{ marginBottom: "0.875rem" }}>
+              <label htmlFor={`${uid}-points`}>Points each time it&rsquo;s met (optional)</label>
+              <input id={`${uid}-points`} className="input" type="number" inputMode="numeric" name="points" min="0" max={MAX_GOAL_POINTS} step="1" defaultValue={goal.points || undefined} placeholder="0" style={{ minHeight: "2.75rem" }} />
+              <span style={{ display: "block", fontSize: "0.78125rem", color: "var(--color-neutral-600)", marginTop: "0.25rem", lineHeight: 1.45 }}>Added to their points, the same as chores, each {period === "day" ? "day" : period === "week" ? "week" : "month"} they meet it and claim it. A child&rsquo;s claim waits for a grown-up&rsquo;s yes.</span>
             </div>
           )}
 

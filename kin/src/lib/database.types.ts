@@ -5063,6 +5063,45 @@ export type Database = {
         }
         Relationships: []
       }
+      planner_goal_completions: {
+        Row: {
+          created_at: string
+          decided_at: string | null
+          decided_by: string | null
+          family_id: string
+          goal_id: string
+          id: string
+          member_id: string
+          period_start: string
+          points: number
+          status: string
+        }
+        Insert: {
+          created_at?: string
+          decided_at?: string | null
+          decided_by?: string | null
+          family_id: string
+          goal_id: string
+          id?: string
+          member_id: string
+          period_start: string
+          points?: number
+          status?: string
+        }
+        Update: {
+          created_at?: string
+          decided_at?: string | null
+          decided_by?: string | null
+          family_id?: string
+          goal_id?: string
+          id?: string
+          member_id?: string
+          period_start?: string
+          points?: number
+          status?: string
+        }
+        Relationships: []
+      }
       planner_goal_entries: {
         Row: {
           amount: number
@@ -5151,6 +5190,7 @@ export type Database = {
           kind: string
           owner_member_id: string | null
           period: string
+          points: number
           savings_goal_id: string | null
           start_value: number | null
           target: number
@@ -5167,6 +5207,7 @@ export type Database = {
           kind: string
           owner_member_id?: string | null
           period?: string
+          points?: number
           savings_goal_id?: string | null
           start_value?: number | null
           target: number
@@ -5183,6 +5224,7 @@ export type Database = {
           kind?: string
           owner_member_id?: string | null
           period?: string
+          points?: number
           savings_goal_id?: string | null
           start_value?: number | null
           target?: number
