@@ -169,7 +169,9 @@ export default async function TodayPage({ searchParams }: { searchParams: Promis
         return access.trialing && access.daysLeft !== null && access.daysLeft <= 3 ? <TrialBanner daysLeft={access.daysLeft} isOrganiser={me.is_organiser} /> : null;
       })()}
 
-      {plusTrial && <PlusTrialCard steps={plusTrial.steps} daysLeft={plusTrial.daysLeft} />}
+      {/* The Plus card's three (a bill, the vault, a medicine) are among Start
+          here's eight while its bonus is open: one card asks, not two. */}
+      {plusTrial && !(startHere?.bonus && typeof startHere.bonus === "object") && <PlusTrialCard steps={plusTrial.steps} daysLeft={plusTrial.daysLeft} />}
 
       {startHere && <StartHere steps={startHere.steps} bonus={startHere.bonus} inviteCode={me.families.invite_code} />}
 

@@ -70,6 +70,7 @@ const MIGRATIONS = [
   "20261013160000_start_here_bonus.sql",
   "20261013170000_goal_visibility.sql",
   "20261013171000_goal_points.sql",
+  "20261013180000_try_every_page_bonus.sql",
 ];
 
 const only = process.argv[2];
