@@ -100,7 +100,30 @@ test("the check-up: one question per screen, kids only with kids, and the answer
   await expect(page.getByText("Private to your family. Nothing is sold, and your records never train AI.")).toBeVisible();
   expect(await page.locator(".kin-check-bars p").allTextContents()).not.toContain(expect.stringMatching(/fail/i));
   await expectTapTargets(page);
-  await expect(page.getByRole("button", { name: "See how it works" })).toBeVisible();
+
+  // The showcase: the top 3 first, then one app, private to your family.
+  await page.getByRole("button", { name: "See how it works" }).click();
+  await expect(page.getByRole("heading", { name: "How Kin helps" })).toBeFocused();
+  const slides = page.locator(".kin-check-slide h3");
+  await expect(slides).toHaveCount(4);
+  expect(await slides.allTextContents()).toEqual(["Home safe, without ten calls", "Everyone’s health, one tap away", "Papers you can findPLUS", "One app, private to your family"]);
+  // Only the sample household, never anyone real.
+  for (const phone of await page.locator(".kin-check-phone").all()) await expect(phone).toHaveAttribute("aria-label", /sample household$/);
+  await expectTapTargets(page);
+  for (let i = 0; i < 3; i++) await page.getByRole("button", { name: "Next" }).click();
+  await page.getByRole("button", { name: "Choose your plan" }).click();
+
+  // The plan: Plus highlighted and picked, prices from plans.ts, and the
+  // no-surprise-charges promise.
+  await expect(page.getByRole("heading", { name: "Pick how you start" })).toBeFocused();
+  await expect(page.getByRole("radio", { name: /Start with Plus free/ })).toBeChecked();
+  await expect(page.getByText(/₱149\/mo or ₱1,490\/yr/)).toBeVisible();
+  await expect(page.getByText("No automatic payment, ever, unless you subscribe yourself.")).toBeVisible();
+  await expect(page.getByText("Do nothing and you move to Kin Free and keep everything.")).toBeVisible();
+  await expectTapTargets(page);
+  await page.getByRole("button", { name: "Create your account" }).click();
+  await expect(page).toHaveURL(/\/signup/);
+  expect(await page.evaluate(() => JSON.parse(localStorage.getItem("kin-first-open") ?? "null")?.plan)).toBe("plus");
 });
 
 test("no kids at home: question 6 is skipped", async ({ page }) => {
@@ -120,4 +143,12 @@ test("no kids at home: question 6 is skipped", async ({ page }) => {
   await expect(page.getByRole("meter")).toHaveCount(4);
   await expect(page.getByText(/Private to your family/)).toHaveCount(0);
   await expect(page.locator(".kin-check-top")).toHaveCount(0);
+
+  // The showcase can be skipped, and Kin Free is a real choice.
+  await page.getByRole("button", { name: "See how it works" }).click();
+  await page.getByRole("button", { name: "Skip" }).click();
+  await page.getByText("Just Kin Free").click();
+  await page.getByRole("button", { name: "Create your account" }).click();
+  await expect(page).toHaveURL(/\/signup/);
+  expect(await page.evaluate(() => JSON.parse(localStorage.getItem("kin-first-open") ?? "null")?.plan)).toBe("free");
 });
