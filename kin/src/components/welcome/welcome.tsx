@@ -11,6 +11,7 @@ import { FREE_FEATURES, PLUS_FEATURES } from "@/lib/plan-features";
 import { writeFirstOpen } from "@/lib/first-open";
 import { areaScores, readinessScore, topThree, type Answers } from "@/lib/check-up";
 import { CheckUp } from "@/components/welcome/check-up";
+import { Results } from "@/components/welcome/results";
 
 /** What the home page used to ask before sign-up (family name, who's at home).
  * The check-up replaced those questions on 13 October and nothing writes this
@@ -41,7 +42,7 @@ const WHY: { icon: IconName; title: string; line: string }[] = [
   },
 ];
 
-type Step = "hello" | "quiz" | "why";
+type Step = "hello" | "quiz" | "results" | "why";
 
 /** The signed-out home page. Since 13 October (docs/BACKLOG.md, "Agreed 13
  * October: first open") it opens on a family check-up rather than on setting
@@ -74,13 +75,8 @@ export function Welcome({ startQuiz = false }: { startQuiz?: boolean }) {
   }, [joining]);
 
   const finish = (a: Answers) => {
-    writeFirstOpen({
-      answers: a,
-      top3: topThree(a),
-      score: readinessScore(a),
-      areas: areaScores(a),
-    });
-    setStep("why");
+    writeFirstOpen({ answers: a, top3: topThree(a), score: readinessScore(a), areas: areaScores(a) });
+    setStep("results");
   };
 
   return (
@@ -151,6 +147,18 @@ export function Welcome({ startQuiz = false }: { startQuiz?: boolean }) {
       )}
 
       {step === "quiz" && <CheckUp answers={answers} onChange={setAnswers} onDone={finish} onExit={() => setStep("hello")} focusFirst={!startQuiz} fromEnd={back} />}
+      {step === "results" && (
+        <Results
+          answers={answers}
+          heading={heading}
+          onNext={() => setStep("why")}
+          onBack={() => {
+            setBack(true);
+            setStep("quiz");
+          }}
+        />
+      )}
+
       {step === "why" && (
         <section className="kin-welcome-step">
           <h2 ref={heading} tabIndex={-1}>
@@ -208,10 +216,7 @@ export function Welcome({ startQuiz = false }: { startQuiz?: boolean }) {
           <button
             type="button"
             className="btn btn-ghost"
-            onClick={() => {
-              setBack(true);
-              setStep("quiz");
-            }}
+            onClick={() => setStep("results")}
             style={{ alignSelf: "center" }}
           >
             Back

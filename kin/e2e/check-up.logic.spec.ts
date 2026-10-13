@@ -1,5 +1,6 @@
 import { test, expect } from "@playwright/test";
-import { QUESTIONS, type Answers, areaScores, areaWeights, questionsFor, readinessScore, scoreLabel, toggle, topThree } from "@/lib/check-up";
+import { AREAS, PRIORITIES } from "@/lib/first-open";
+import { QUESTIONS, type Answers, PRIORITY_IN_KIN, areaLine, oneAppLine, wantsPrivacyFirst, areaScores, areaWeights, questionsFor, readinessScore, scoreLabel, toggle, topThree } from "@/lib/check-up";
 
 const q = (id: string) => QUESTIONS.find((x) => x.id === id)!;
 
@@ -133,4 +134,18 @@ test("the top 3 weigh most, first choice heaviest", () => {
 test("question 9 doesn't change the score", () => {
   const a = { sick: ["look"], papers: ["folder"] };
   expect(readinessScore({ ...a, ai: ["ready"] })).toBe(readinessScore({ ...a, ai: ["no"] }));
+});
+
+test("results: every bar's line is an easy win below 70, and 'one app instead of N' follows question 2", () => {
+  for (const a of AREAS) {
+    expect(areaLine(a, 20)).toMatch(/^The easy win/);
+    expect(areaLine(a, 69)).toMatch(/^The easy win/);
+    expect(areaLine(a, 70)).not.toMatch(/fail/i);
+  }
+  expect(oneAppLine({ apps: ["few"] })).toBe("One app instead of 3.");
+  expect(oneAppLine({ apps: ["lots"] })).toBe("One app instead of 4 or more.");
+  expect(oneAppLine({})).toBe("One app instead of five.");
+  expect(wantsPrivacyFirst({ ai: ["privacy"] })).toBe(true);
+  expect(wantsPrivacyFirst({ ai: ["ready"] })).toBe(false);
+  for (const p of PRIORITIES) expect(PRIORITY_IN_KIN[p].line.length).toBeGreaterThan(0);
 });

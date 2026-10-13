@@ -271,3 +271,80 @@ export function scoreLabel(score: number): ScoreLabel {
   if (score >= 40) return "On the way";
   return "Getting started";
 }
+
+/** The results page's words (agreed 13 October). */
+
+export const AREA_LABELS: Record<Area, string> = {
+  health: "Health & safety",
+  documents: "Documents",
+  kids: "Kids & location",
+  home: "Running the home",
+  close: "Staying close",
+};
+
+/** One line under each bar. Below 70 it names the easy win; from 70 it says
+ * what is already working. Never "you're failing". */
+const AREA_LINES: Record<Area, [string, string]> = {
+  health: [
+    "The easy win: everyone’s allergies, medicines, blood type and HMO card in one place you can open at 2 a.m.",
+    "You could find it fast. Kin keeps it that way for everyone at home, not just you.",
+  ],
+  documents: [
+    "The easy win: one safe place for the PSA certificates, passports and policies, not five phones.",
+    "Your papers are in order. Kin keeps a copy in one safe place, behind Face ID or a PIN.",
+  ],
+  kids: [
+    "The easy win: knowing they got home safe without calling ten times.",
+    "You’ve got a system. Kin puts it beside the family’s calendar and chat.",
+  ],
+  home: [
+    "The easy win: the list, the chores and the bills in one place, so nobody has to ask twice.",
+    "The home runs well. Kin saves the last few back-and-forths.",
+  ],
+  close: [
+    "The easy win: photos, polls and calls in the same place as everything else, lolo to bunso.",
+    "You’re close already. Kin gives it a home, photos and all.",
+  ],
+};
+
+export function areaLine(area: Area, score: number): string {
+  return AREA_LINES[area][score >= 70 ? 1 : 0];
+}
+
+/** "You said X -> in Kin, Y", naming the real feature. `plus` marks the
+ * ones that are Kin Plus after the trial, so nobody meets Plus later as a
+ * surprise. */
+export const PRIORITY_IN_KIN: Record<Priority, { line: string; plus?: boolean }> = {
+  health: { line: "a health profile for each person: allergies, blood type, doctor, PhilHealth and insurance, on everyone’s phone." },
+  documents: { line: "the vault: PSA certificates, passports and policies, behind Face ID or a PIN.", plus: true },
+  emergency: { line: "the emergency card: blood type, allergies, doctor and insurance on one screen that reads at arm’s length." },
+  kids: { line: "location sharing, which each person switches on for themselves, beside the family calendar." },
+  plans: { line: "one family calendar, synced with Google Calendar, with routines and chores the kids earn stars for." },
+  meals: { line: "a shared shopping list with prices, the pantry, and meal plans for the week." },
+  money: { line: "Wealth: accounts, budgets and bills with reminders, and who’s paying what.", plus: true },
+  memories: { line: "the family journal: photos, milestones and first days, shared with relatives." },
+};
+
+/** From question 2: what Kin replaces. */
+export function oneAppLine(answers: Answers): string {
+  switch (answers.apps?.[0]) {
+    case "one":
+      return "Already down to one app? Kin can be the one with everything in it.";
+    case "few":
+      return "One app instead of 3.";
+    case "lots":
+      return "One app instead of 4 or more.";
+    case "none":
+      return "One app to start with, instead of memory and the group chat.";
+    default:
+      return "One app instead of five.";
+  }
+}
+
+/** Shown when question 9 is "Curious but privacy first": the promise as
+ * /legal/privacy makes it. */
+export const PRIVACY_LINE = "Private to your family. Nothing is sold, and your records never train AI.";
+
+export function wantsPrivacyFirst(answers: Answers): boolean {
+  return answers.ai?.[0] === "privacy";
+}
