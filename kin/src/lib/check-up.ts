@@ -404,7 +404,7 @@ const BUSY_TIPS: Record<string, Tip> = {
   chores: { line: "chores with stars and rewards, given out and ticked off in the app, so nobody has to remind twice." },
   school: { line: PRIORITY_IN_KIN.plans.line },
   bills: PRIORITY_IN_KIN.money,
-  savings: { line: "Wealth: accounts, budgets and net worth in one view, so everyone can see how the savings are going.", plus: true },
+  savings: { line: "Wealth: name what you’re saving for (a trip, a deposit, an emergency fund) and every contribution counts toward it, for everyone to see.", plus: true },
   smooth: { line: "the calendar, the list and the chores shared by everyone, so it stays that way." },
 };
 
