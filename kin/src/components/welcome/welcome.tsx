@@ -11,14 +11,6 @@ import { Results } from "@/components/welcome/results";
 import { Showcase } from "@/components/welcome/showcase";
 import { PlanStep } from "@/components/welcome/plan-step";
 
-/** What the home page used to ask before sign-up (family name, who's at home).
- * The check-up replaced those questions on 13 October and nothing writes this
- * any more; it stays exported only because onboarding still reads it
- * (family-fork-form.tsx) and copes with it missing. Delete both once nothing
- * imports them. */
-export const WELCOME_KEY = "kin-welcome";
-export type WelcomeAnswers = { familyName: string; grownUps: number; children: number; wants: string[] };
-
 type Step = "hello" | "quiz" | "results" | "show" | "plan";
 
 /** The signed-out home page. Since 13 October (docs/BACKLOG.md, "Agreed 13
