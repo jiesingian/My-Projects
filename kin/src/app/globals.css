@@ -7256,3 +7256,36 @@ button.kin-room-quote { font: inherit; font-size: 0.78125rem; text-align: left; 
   border-top: 0 !important;
   padding-top: 0 !important;
 }
+
+/* Guided tour on Today (guided-tour.tsx). Above the tab bar and Ask Kin,
+   below a call. The spotlight's own shadow dims the page around the target;
+   without a target the scrim dims it. */
+.kin-tour { position: fixed; inset: 0; z-index: 1400; }
+.kin-tour-scrim { position: absolute; inset: 0; background: rgb(0 0 0 / 0.55); }
+.kin-tour-scrim[data-hole] { background: transparent; }
+.kin-tour-spot {
+  position: fixed;
+  border-radius: var(--radius-card);
+  box-shadow: 0 0 0 9999px rgb(0 0 0 / 0.55);
+  outline: 2px solid var(--color-accent-500);
+  outline-offset: 0;
+  pointer-events: none;
+  transition: top 280ms cubic-bezier(0.32, 0.72, 0, 1), left 280ms cubic-bezier(0.32, 0.72, 0, 1), width 280ms cubic-bezier(0.32, 0.72, 0, 1), height 280ms cubic-bezier(0.32, 0.72, 0, 1);
+}
+.kin-tour-card {
+  position: fixed;
+  width: min(22rem, calc(100vw - 32px));
+  padding: 1rem 1rem 0.75rem;
+  background: var(--color-surface);
+  color: var(--color-neutral-900);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-md);
+}
+.kin-tour-count { margin: 0 0 0.25rem; font-size: 0.8125rem; color: var(--color-neutral-600); }
+.kin-tour-title { margin: 0 0 0.375rem; font: 600 1.125rem/1.2 var(--font-heading); outline: none; }
+.kin-tour-body { margin: 0 0 0.75rem; font-size: 0.9375rem; line-height: 1.45; }
+.kin-tour-actions { display: flex; align-items: center; gap: 0.5rem; }
+.kin-tour-btn { min-height: 2.75rem; min-width: 2.75rem; }
+@media (prefers-reduced-motion: reduce) {
+  .kin-tour-spot { transition: none; }
+}
