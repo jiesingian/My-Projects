@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useId, useState } from "react";
+import { useActionState, useEffect, useId, useState } from "react";
 import { createFamilyAction, joinFamilyAction } from "@/lib/actions/family";
 import type { ActionState } from "@/lib/actions/auth";
 import { SubmitButton, ErrorText } from "@/components/form";
@@ -10,6 +10,7 @@ import { Icon } from "@/components/icons";
 import { COUNTRIES, DEFAULT_COUNTRY } from "@/lib/countries";
 import { PLANS, pesos } from "@/lib/billing/plans";
 import { TRIAL_DAYS } from "@/lib/access";
+import { readFirstOpen, type ChosenPlan } from "@/lib/first-open";
 
 const initialState: ActionState = { error: null };
 
@@ -34,6 +35,14 @@ export function SetupForm({ inviteCode = "" }: { inviteCode?: string }) {
   const [joinState, joinAction] = useActionState(joinFamilyAction, initialState);
   const [fullName, setFullName] = useState("");
   const uid = useId();
+  // The plan picked on the public plan step, if this browser went through it.
+  // Read after load (localStorage is the browser's), so the server-rendered
+  // form and the browser's agree; nothing at all when it was skipped.
+  const [plan, setPlan] = useState<ChosenPlan | null>(null);
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- browser-only storage, read once after hydration
+    setPlan(readFirstOpen()?.plan ?? null);
+  }, []);
 
   const joinForm = (
     <form action={joinAction}>
@@ -81,6 +90,7 @@ export function SetupForm({ inviteCode = "" }: { inviteCode?: string }) {
 
       <form action={createAction}>
         <input type="hidden" name="full_name" value={fullName} />
+        <input type="hidden" name="chosen_plan" value={plan ?? ""} />
         <Blueprint className={inviteCode ? "mb-4" : "bg-[var(--color-accent-100)] mb-4"} style={{ padding: "1.25rem" }}>
           {inviteCode && (
             <span style={{ font: "600 1.125rem/1.1 var(--font-heading)", display: "block", marginBottom: "10px" }}>Or start your own family</span>
@@ -116,8 +126,14 @@ export function SetupForm({ inviteCode = "" }: { inviteCode?: string }) {
             </div>
           </details>
           <p style={{ fontSize: "0.8125rem", color: "var(--color-neutral-700)", margin: "0 0 0.75rem" }}>
-            Starts with {TRIAL_DAYS} days of Kin Plus, free. No card. After that, Kin Free for good, or Plus for{" "}
-            {pesos(PLANS.monthly.amountCents)} a month if you choose it.
+            {plan === "free" ? (
+              <>Kin Free, as you chose, with {TRIAL_DAYS} days of the Plus extras to try first. No card, nothing to cancel.</>
+            ) : (
+              <>
+                Starts with {TRIAL_DAYS} days of Kin Plus, free. No card. After that, Kin Free for good, or Plus for{" "}
+                {pesos(PLANS.monthly.amountCents)} a month if you choose it.
+              </>
+            )}
           </p>
           <ErrorText message={createState.error} />
           <SubmitButton className={inviteCode ? "btn btn-secondary btn-block" : "btn btn-primary btn-block"} style={{ minHeight: "2.875rem" }}>
