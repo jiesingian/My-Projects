@@ -4,9 +4,13 @@ import { redirect } from "next/navigation";
 import { headers } from "next/headers";
 import { createClient } from "@/lib/supabase/server";
 import { PASSWORD_MIN, PASSWORD_TOO_SHORT } from "@/lib/password";
-import { humanAuthError, isEmailRateLimit } from "@/lib/auth-errors";
+import { humanAuthError, isEmailRateLimit, isRateLimit, REQUEST_RATE_LIMITED } from "@/lib/auth-errors";
+import { signupCode } from "@/lib/signup-code";
 
 export type ActionState = { error: string | null };
+/** Sign-up stays on one screen: once the email is sent, `sentTo` turns the
+ * form into the box for the code. */
+export type SignUpState = ActionState & { sentTo?: string };
 
 // An address longer than this cannot be delivered to -- 254 characters is the
 // ceiling RFC 5321 puts on a path -- and a code longer than this is not a code
@@ -40,7 +44,7 @@ async function getOrigin(): Promise<string> {
   return `${proto}://${host}`;
 }
 
-export async function signUp(_prev: ActionState, formData: FormData): Promise<ActionState> {
+export async function signUp(_prev: SignUpState, formData: FormData): Promise<SignUpState> {
   const email = String(formData.get("email") ?? "").trim();
   const password = String(formData.get("password") ?? "");
   if (!email || tooLong(email) || password.length < PASSWORD_MIN) {
@@ -57,6 +61,10 @@ export async function signUp(_prev: ActionState, formData: FormData): Promise<Ac
   const { error } = await supabase.auth.signUp({
     email,
     password,
+    // The email carries a 6-digit code once the "Confirm signup" template has
+    // {{ .Token }} in it; until then it carries only this link, which still
+    // works exactly as before. Kept after the switch too, for the person who
+    // reads the email on the same phone and would rather tap.
     options: { emailRedirectTo: `${origin}/auth/callback` },
   });
   // A sign-up whose confirmation email could not be sent is rolled back by
@@ -68,7 +76,43 @@ export async function signUp(_prev: ActionState, formData: FormData): Promise<Ac
     return { error: humanAuthError(error) };
   }
 
-  redirect(`/verify?email=${encodeURIComponent(email)}`);
+  // No redirect: the code is typed on this same screen (agreed 13 October).
+  // Moving to another page is harmless in itself, but the old next step was
+  // "open the link on this device", and inside Facebook's in-app browser the
+  // link opens somewhere else entirely and the sign-up is lost from view.
+  return { error: null, sentTo: email };
+}
+
+const CODE_REFUSED = "That code isn't right, or it has expired. Ask for a new one.";
+
+/** Confirms a new account with the code from its email, signing it in here.
+ * The same thing the emailed link does through /auth/callback, without
+ * leaving the browser the person signed up in. */
+export async function verifySignupCode(_prev: ActionState, formData: FormData): Promise<ActionState> {
+  const email = String(formData.get("email") ?? "").trim();
+  const raw = String(formData.get("code") ?? "");
+  if (!email || tooLong(email)) return { error: "Start again from the sign-up screen." };
+  if (raw.length > CODE_MAX) return { error: CODE_REFUSED };
+  const code = signupCode(raw);
+  if (!code) return { error: "Enter the 6-digit code from the email." };
+
+  const supabase = await createClient();
+  const { error } = await supabase.auth.verifyOtp({ email, token: code, type: "signup" });
+  if (error) {
+    // Supabase rate-limits verify attempts, and "wrong code" would send
+    // someone to try again straight into the same wall.
+    return { error: isRateLimit(error) ? REQUEST_RATE_LIMITED : CODE_REFUSED };
+  }
+
+  // A brand-new account has no member row, so this is the setup screen; the
+  // check is the callback's, for an account confirmed twice (link and code).
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  const { data: member } = user
+    ? await supabase.from("members").select("id").eq("auth_user_id", user.id).maybeSingle()
+    : { data: null };
+  redirect(member ? "/today" : "/onboarding/profile");
 }
 
 export async function resendConfirmation(email: string): Promise<ActionState> {
