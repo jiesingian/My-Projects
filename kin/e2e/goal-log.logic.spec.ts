@@ -1,5 +1,5 @@
 import { test, expect } from "@playwright/test";
-import { claimStreak, daysBefore, isLoggableDay, periodBefore, stepsForDay, streakMilestones } from "@/lib/goals";
+import { claimStreak, daysBefore, goalSource, isLoggableDay, periodBefore, stepsForDay, streakMilestones } from "@/lib/goals";
 
 /** Logging a goal by hand (Jonathan, 13 October): a day's steps are counted
  * once whichever way they arrived, and an entry can be dated back a week. */
@@ -52,4 +52,15 @@ test("a streak bonus on the 7th and the 30th day in a row, again after a break",
   expect(streakMilestones(run("2026-09-01", 6))).toEqual([]);
   expect(streakMilestones(run("2026-09-01", 30))).toEqual([{ date: "2026-09-07", reached: 7 }, { date: "2026-09-30", reached: 30 }]);
   expect(streakMilestones([...run("2026-09-01", 7), ...run("2026-09-10", 7)]).map((m) => m.date)).toEqual(["2026-09-07", "2026-09-16"]);
+});
+
+test("where a goal fills from, said plainly", () => {
+  const now = new Date("2026-10-13T10:00:00Z");
+  const base = { savingsTitle: null, mine: true, ownerFirst: "Janine", now };
+  expect(goalSource("steps", { ...base, appleHealth: null })).toEqual({ text: expect.stringContaining("isn’t connected"), connect: true });
+  expect(goalSource("weight", { ...base, appleHealth: { lastUsedAt: "2026-10-13T08:00:00Z" } }).text).toContain("last sent 2 h ago");
+  expect(goalSource("steps", { ...base, mine: false, appleHealth: null })).toEqual({ text: expect.stringContaining("Janine’s Apple Health"), connect: false });
+  expect(goalSource("water", { ...base, appleHealth: null }).text).toContain("No app sends water");
+  expect(goalSource("gym", { ...base, appleHealth: null }).text).toBe("No app source — log it here.");
+  expect(goalSource("money", { ...base, savingsTitle: "Japan trip", appleHealth: null }).text).toContain("“Japan trip” on Wealth");
 });

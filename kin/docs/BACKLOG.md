@@ -627,6 +627,11 @@ Decided against in the same review: revising Journal (item 6) and Planner
   claims earns the household's 7- and 30-day streak bonus; the card shows
   "🔥 5 days in a row". What a claim is worth is copied from the goal when
   made. 20261013171000; probes/goal-points.mjs (19 cases, PGlite).
+- Where a goal fills from (Jonathan, 13 October, item 2 of 3): each card
+  says it -- steps and weight from Apple Health ("last sent 2 h ago"),
+  with "Connect Apple Health" to Settings → Connected when the owner
+  hasn't; money from its savings goal on Wealth; water, gym and custom say
+  plainly that no app sends them (goalSource). No new integrations.
 
 - Review fixes (28 September, every page rendered signed in against a local
   stand-in with an invented household): a child with their own login showed
