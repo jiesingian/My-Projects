@@ -46,6 +46,7 @@ import { eventIsOver, eventMatches, eventWhen, showsDone, taskIsFinished, type E
 import { CompletedToggle } from "@/components/completed-toggle";
 import { EventToJournal } from "@/components/event-to-journal";
 import { GoalsPane } from "./goals-pane";
+import { readAccess } from "@/lib/access";
 import { isGone } from "@/lib/member-status";
 
 const SEGMENTS = ["calendar", "routines", "events", "goals"] as const;
@@ -120,6 +121,7 @@ export default async function PlannerPage({
             filter={<MemberChips familyId={me.family_id} seg="goals" who={who} done={done} />}
             done={done}
             justAsked={sp.asked === "1"}
+            plus={readAccess(me.families).plus}
           />
         )}
       </div>

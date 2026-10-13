@@ -4,7 +4,7 @@ import { FAMILY_FILTER } from "@/lib/queries/planner";
 import { Blueprint } from "@/components/ui";
 import { Icon } from "@/components/icons";
 import { GoalRing } from "@/components/goal-ring";
-import { GoalChangeAnswer, GoalDeleteButton, GoalLogButtons, GoalRewardAnswer, GoalRewardClaim, GoalRewardConfirm, GoalRewardGiven, GoalRewardWithdraw } from "@/components/goal-controls";
+import { GoalChangeAnswer, GoalDeleteButton, GoalLog, GoalRewardAnswer, GoalRewardClaim, GoalRewardConfirm, GoalRewardGiven, GoalRewardWithdraw } from "@/components/goal-controls";
 import { getGoals, type GoalView } from "@/lib/queries/goals";
 import { GOAL_KIND_META, PERIOD_NOW, goalNumber } from "@/lib/goals";
 import { formatCurrency } from "@/lib/format";
@@ -13,6 +13,7 @@ import { getMembers } from "@/lib/queries/family";
 import type { WeekStart } from "@/lib/week";
 import { goalIsFinished } from "@/lib/planner-done";
 import { CompletedToggle } from "@/components/completed-toggle";
+import { familyDay } from "@/lib/time";
 
 /** Planner → Goals. Each goal is a ring that fills itself from what Kin
  * already holds (water, steps, weight, a savings goal) or from a tap
@@ -27,6 +28,7 @@ export async function GoalsPane({
   filter,
   justAsked = false,
   done = false,
+  plus,
 }: {
   familyId: string;
   me: { id: string; role: string };
@@ -38,8 +40,11 @@ export async function GoalsPane({
   justAsked?: boolean;
   /** Show finished goals too (done=1); folded away otherwise. */
   done?: boolean;
+  /** Kin Plus: steps and weight readings can be logged. */
+  plus: boolean;
 }) {
-  const [goals, members] = await Promise.all([getGoals(familyId, me, weekStart), getMembers(familyId)]);
+  const [goals, members, tz] = await Promise.all([getGoals(familyId, me, weekStart), getMembers(familyId), householdZone()]);
+  const today = familyDay(new Date(), tz);
   const colourOf = new Map(members.map((m) => [m.id, memberColourVar(m.id, m.color)]));
   // A household goal concerns everyone, so it stays when narrowing to one
   // person -- the same rule as whole-family tasks and events.
@@ -68,12 +73,12 @@ export async function GoalsPane({
         </p>
       )}
       {open.map((g, i) => (
-        <GoalCard key={g.id} goal={g} index={i} meId={me.id} currency={currency} colour={g.ownerId ? (colourOf.get(g.ownerId) ?? null) : null} />
+        <GoalCard key={g.id} goal={g} index={i} meId={me.id} today={today} plus={plus} currency={currency} colour={g.ownerId ? (colourOf.get(g.ownerId) ?? null) : null} />
       ))}
       <CompletedToggle seg="goals" who={who} count={finished.length} shown={done} />
       {done &&
         finished.map((g, i) => (
-          <GoalCard key={g.id} goal={g} index={open.length + i} meId={me.id} currency={currency} colour={g.ownerId ? (colourOf.get(g.ownerId) ?? null) : null} />
+          <GoalCard key={g.id} goal={g} index={open.length + i} meId={me.id} today={today} plus={plus} currency={currency} colour={g.ownerId ? (colourOf.get(g.ownerId) ?? null) : null} />
         ))}
       <Link href="/planner/goals/new" className="btn btn-secondary" style={{ width: "100%", gap: "0.375rem", marginTop: "0.25rem" }}>
         <Icon name="plus" size={17} /> Set a goal
@@ -105,11 +110,13 @@ function caption(goal: GoalView, currency: string): string {
   return `${goalNumber(goal.current)} of ${goalNumber(goal.target)}${unit ? ` ${unit}` : ""} ${PERIOD_NOW[goal.period]}`;
 }
 
-function GoalCard({ goal, index, meId, currency, colour }: { goal: GoalView; index: number; meId: string; currency: string; colour: string | null }) {
+function GoalCard({ goal, index, meId, today, plus, currency, colour }: { goal: GoalView; index: number; meId: string; today: string; plus: boolean; currency: string; colour: string | null }) {
   const meta = GOAL_KIND_META[goal.kind];
   const whose = goal.ownerId === null ? "Whole household" : goal.ownerId === meId ? "You" : (goal.ownerName?.split(" ")[0] ?? "Someone");
   const pct = Math.round(goal.fraction * 100);
-  const logs = meta.logged && !goal.savingsTitle;
+  // A money goal filled from a savings goal on Wealth is the one kind that
+  // only fills itself: money goes in on Wealth.
+  const logs = !goal.savingsTitle;
   const ringColour = colour ?? "var(--color-accent-solid)";
 
   return (
@@ -129,6 +136,7 @@ function GoalCard({ goal, index, meId, currency, colour }: { goal: GoalView; ind
             <div style={{ fontSize: "0.75rem", color: "var(--color-neutral-600)", marginTop: "0.125rem" }}>From “{goal.savingsTitle}” on Wealth</div>
           )}
           {goal.dueDate && <div style={{ fontSize: "0.75rem", color: "var(--color-neutral-600)", marginTop: "0.125rem" }}>By {readableDate(goal.dueDate)}</div>}
+          {!meta.logged && <div style={{ fontSize: "0.75rem", color: "var(--color-neutral-600)", marginTop: "0.125rem", lineHeight: 1.4 }}>{meta.hint}</div>}
         </div>
       </div>
 
@@ -137,7 +145,14 @@ function GoalCard({ goal, index, meId, currency, colour }: { goal: GoalView; ind
 
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "0.5rem", marginTop: "0.625rem", flexWrap: "wrap" }}>
         {logs ? (
-          <GoalLogButtons goalId={goal.id} label={goal.kind === "gym" ? "Session" : goal.kind === "money" ? "Add" : "One more"} askAmount={goal.kind === "money"} />
+          <GoalLog
+            goalId={goal.id}
+            mode={goal.kind}
+            today={today}
+            autoToday={goal.autoToday}
+            manualToday={goal.manualToday}
+            locked={meta.plus && !plus ? `Logging ${meta.label.toLowerCase()} is part of Kin Plus.` : null}
+          />
         ) : (
           <span style={{ fontSize: "0.75rem", color: "var(--color-neutral-600)" }}>{meta.hint}</span>
         )}
