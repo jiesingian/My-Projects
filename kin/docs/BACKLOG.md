@@ -105,14 +105,6 @@ name / who / wants / tour / why steps (answer 13).
   a record from the first 24 hours; the top-3 extras can't be known by the
   database (answer 9A), so they don't count against it.
 
-**Group D: English and Taglish (answer 11C).** A language switch (English /
-Taglish) in Settings and on the first screen, remembered per person.
-Strings in typed dictionaries, no new library unless the Next docs in
-node_modules say otherwise. First the public pages, account screens and
-tour; then the app, area by area. Wording written by Claude, reviewed by
-Jonathan or Janine. Built after A-C are merged, since it touches the same
-screens.
-
 **Not now: the ad stage (answers 10 and 12).** Set up once the app is
 done: the Meta pixel and Conversions API on the public pages only, after a
 consent banner; anonymous per-screen drop-off counting; a privacy notice
@@ -835,6 +827,9 @@ Decided against in the same review: revising Journal (item 6) and Planner
   supabase/tests/rls_wealth_charts.sql on dev.
 
 ## Decided against, for now
+
+- An English / Taglish language switch (first-open Group D): not needed now
+  (Jonathan, 13 October).
 
 - Cutting the bottom navigation down to 4–5 tabs (declined 24 September).
 
