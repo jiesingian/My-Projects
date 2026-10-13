@@ -116,6 +116,15 @@ export async function addAccountAction(_prev: ActionState, formData: FormData): 
     created_by: me.id,
   }).select("id").single();
   if (error) return { error: humanDatabaseError(error.message) };
+  // Who can see it, asked on the form for an account of your own.
+  if (ownerId === me.id && !isJoint && formData.get("visibility")) {
+    const mode = String(formData.get("visibility")) as "everyone" | "only_me" | "chosen";
+    const shareError = await shareAccountWith(supabase, me, created.id, { mode, memberIds: formData.getAll("viewer").map(String) });
+    if (shareError) {
+      revalidateWealth();
+      return { error: `The account was saved, but not who can see it (it is kept to you for now): ${shareError}` };
+    }
+  }
   if (numbered.number) {
     const numberError = await saveAccountNumber(supabase, me.family_id, me.id, created.id, numbered.number);
     // The account exists either way; say so rather than leave the form
@@ -174,30 +183,53 @@ export async function updateAccountAction(accountId: string, _prev: ActionState,
  * owner can: the update policy on the table says so, so a wrong id from a
  * wrong person changes nothing. A joint account is the household's already
  * and has nothing to open. */
-export async function setAccountPrivacyAction(accountId: string, isPrivate: boolean): Promise<ActionState> {
+/** Who can see one of your accounts (Janine, 12 October): the whole
+ * household, only you, or you and the people you pick. Private-first, so a
+ * failure part-way never leaves it more open than either the old or the new
+ * choice: it is made private, then its list is replaced, then -- for
+ * "everyone" only -- opened. */
+export async function setAccountVisibilityAction(accountId: string, choice: { mode: "everyone" | "only_me" | "chosen"; memberIds?: string[] }): Promise<ActionState> {
   const me = await requireCurrentMember();
   const supabase = await createClient();
 
-  const { data: account } = await supabase
-    .from("accounts")
-    .select("is_joint, owner_member_id")
-    .eq("id", accountId)
-    .eq("family_id", me.family_id)
-    .maybeSingle();
+  const { data: account } = await supabase.from("accounts").select("is_joint, owner_member_id").eq("id", accountId).eq("family_id", me.family_id).maybeSingle();
   if (!account) return { error: "That account is no longer here." };
   if (account.is_joint) return { error: "A joint account belongs to the household already." };
   if (account.owner_member_id !== me.id) return { error: "Only the person whose account it is can change that." };
 
-  const { error, count } = await supabase
-    .from("accounts")
-    .update({ is_private: isPrivate }, { count: "exact" })
-    .eq("id", accountId)
-    .eq("family_id", me.family_id);
-  if (error) return { error: humanDatabaseError(error.message) };
-  if (count === 0) return { error: "That account is no longer there — someone may have removed it." };
-
+  const shared = await shareAccountWith(supabase, me, accountId, choice);
+  if (shared) return { error: shared };
   revalidateWealth();
   return { error: null };
+}
+
+/** Sets is_private and the viewer list for an account the caller owns;
+ * returns an error message or null. */
+async function shareAccountWith(
+  supabase: SupabaseClient<Database>,
+  me: { id: string; family_id: string },
+  accountId: string,
+  choice: { mode: "everyone" | "only_me" | "chosen"; memberIds?: string[] },
+): Promise<string | null> {
+  if (!["everyone", "only_me", "chosen"].includes(choice.mode)) return "Choose who can see it.";
+  const ids = choice.mode === "chosen" ? [...new Set((choice.memberIds ?? []).filter((id) => /^[0-9a-f-]{36}$/i.test(id) && id !== me.id))].slice(0, 50) : [];
+  if (choice.mode === "chosen" && ids.length === 0) return "Pick at least one person, or choose Only me.";
+
+  const { error: closeError } = await supabase.from("accounts").update({ is_private: true }).eq("id", accountId).eq("family_id", me.family_id);
+  if (closeError) return humanDatabaseError(closeError.message);
+  const { error: clearError } = await supabase.from("account_viewers").delete().eq("account_id", accountId);
+  if (clearError) return humanDatabaseError(clearError.message);
+  if (ids.length > 0) {
+    const { error } = await supabase
+      .from("account_viewers")
+      .insert(ids.map((member_id) => ({ account_id: accountId, member_id, family_id: me.family_id, added_by: me.id })));
+    if (error) return humanDatabaseError(error.message);
+  }
+  if (choice.mode === "everyone") {
+    const { error } = await supabase.from("accounts").update({ is_private: false }).eq("id", accountId).eq("family_id", me.family_id);
+    if (error) return humanDatabaseError(error.message);
+  }
+  return null;
 }
 
 /** The viewer's own choice: count their private accounts in All's totals,

@@ -858,3 +858,28 @@ export function assetWorth(asset: AssetForWorth, items: AssetItemForWorth[], tod
   const itemsCost = cents(items.reduce((sum, i) => sum + Number(i.cost), 0));
   return { property, items: itemsWorth, total: cents(property + itemsWorth), putIn: cents(Number(asset.value) + itemsCost) };
 }
+
+/** Someone an account can be shown to: a member of the household. */
+export type AccountAudienceMember = { id: string; label: string; grownUp: boolean };
+
+/** The chip on an account: who can see it, in a word or two. `viewers` are
+ * the people it is shared with besides its owner. */
+export function accountAudienceLabel(
+  account: { is_joint: boolean; is_private: boolean; owner_member_id: string | null },
+  viewers: string[],
+  people: AccountAudienceMember[],
+  me: string,
+): string {
+  if (account.is_joint) return "Joint";
+  // Open to "everyone" means every grown-up (children see only their own
+  // accounts and ones they are named on), so the chip says so.
+  if (!account.is_private) return "Grown-ups";
+  const mine = account.owner_member_id === me;
+  if (viewers.length === 0) return mine ? "Only you" : "Private";
+  if (!mine) return "Shared with you";
+  const names = viewers.map((id) => people.find((p) => p.id === id)?.label).filter((n): n is string => !!n);
+  const grownUps = people.filter((p) => p.grownUp && p.id !== me);
+  if (grownUps.length > 0 && grownUps.length === viewers.length && grownUps.every((g) => viewers.includes(g.id)) && people.some((p) => !p.grownUp)) return "Grown-ups";
+  if (names.length === 0) return "Only you";
+  return names.length <= 2 ? `You + ${names.join(", ")}` : `You + ${names.length} people`;
+}

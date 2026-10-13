@@ -2,7 +2,7 @@ import Link from "next/link";
 import { Icon } from "@/components/icons";
 import { redirect } from "next/navigation";
 import { getCurrentMember } from "@/lib/session";
-import { getWealthPane, getNetWorth, getAccounts, getArchivedAccounts, getCashFlowPane, getBudgetHistory, getSpendingByMember, recordAndGetNetWorthHistory, type WealthScope, type LedgerEntry, type AccountWithBalance } from "@/lib/queries/wealth";
+import { getWealthPane, getAccountViewers, getNetWorth, getAccounts, getArchivedAccounts, getCashFlowPane, getBudgetHistory, getSpendingByMember, recordAndGetNetWorthHistory, type WealthScope, type LedgerEntry, type AccountWithBalance } from "@/lib/queries/wealth";
 import { CashFlowSources } from "@/components/cashflow-sources";
 import { HubHeader } from "@/components/hub-header";
 import { Blueprint, Tag, Empty } from "@/components/ui";
@@ -40,6 +40,7 @@ import {
   expenseCategoryColor,
   timeSinceLabel,
   type AccountType,
+  type AccountAudienceMember,
   type AssetKind,
   type LiabilityKind,
   type CashFlowRange,
@@ -634,7 +635,7 @@ async function CashFlowPane({ familyId, memberId, currency, range, scope, grownU
 /* ------------------------------------------------------------- accounts */
 
 async function ScopePane({ scope, familyId, memberId, currency, range, newAccountId, includePrivate, grownUp }: { scope: WealthScope; familyId: string; memberId: string; currency: string; range: CashFlowRange; newAccountId?: string; includePrivate: boolean; grownUp: boolean }) {
-  const [dateFormat, pane, cf, who, allArchived] = await Promise.all([
+  const [dateFormat, pane, cf, who, allArchived, viewers] = await Promise.all([
     householdDateFormat(),
     getWealthPane(familyId, memberId, scope),
     // Budget and target now live on Cash Flow -- this pane only still
@@ -643,8 +644,14 @@ async function ScopePane({ scope, familyId, memberId, currency, range, newAccoun
     getCashFlowPane(familyId, range, scope),
     whoPicker(familyId, memberId, scope, (w) => `/wealth?seg=accounts&range=${range}&who=${w}`),
     getArchivedAccounts(familyId),
+    getAccountViewers(familyId),
   ]);
   const archived = allArchived.filter((a) => inScope(a, scope));
+  // Whom an account of yours can be shown to: everyone else in the
+  // household with a login of their own (a managed child has none).
+  const people: AccountAudienceMember[] = who.active.flatMap((m, i) =>
+    m.id === memberId || m.role === "child_managed" ? [] : [{ id: m.id, label: who.labels[i], grownUp: isGrownUp(m.role) }],
+  );
   const isJoint = isHouseholdScope(scope);
   const mine = scope === memberId;
   const whosePossessive = selfPossessive(who.whoLabel, mine);
@@ -749,7 +756,11 @@ async function ScopePane({ scope, familyId, memberId, currency, range, newAccoun
                       accountId={a.id}
                       isPrivate={a.is_private}
                       isJoint={a.is_joint}
+                      ownerId={a.owner_member_id}
                       canChange={!a.is_joint && a.owner_member_id === memberId}
+                      viewers={viewers.get(a.id) ?? []}
+                      people={people}
+                      me={memberId}
                     />
                   </span>
                 </span>
@@ -781,6 +792,7 @@ async function ScopePane({ scope, familyId, memberId, currency, range, newAccoun
         defaultOwner={scope === WEALTH_FAMILY ? "joint" : grownUp && who.active.some((m) => m.id === scope && m.role === "child_managed") ? scope : "me"}
         returnWho={scope}
         grownUp={grownUp}
+        people={people}
       />
 
       {/* Archive hides an account and keeps its history; this is where
