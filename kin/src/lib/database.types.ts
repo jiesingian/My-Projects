@@ -1904,6 +1904,7 @@ export type Database = {
           background_url: string | null
           billing_customer_id: string | null
           billing_subscription_id: string | null
+          chosen_plan: string | null
           country: string | null
           created_at: string
           currency: string
@@ -1926,6 +1927,7 @@ export type Database = {
           background_url?: string | null
           billing_customer_id?: string | null
           billing_subscription_id?: string | null
+          chosen_plan?: string | null
           country?: string | null
           created_at?: string
           currency?: string
@@ -1948,6 +1950,7 @@ export type Database = {
           background_url?: string | null
           billing_customer_id?: string | null
           billing_subscription_id?: string | null
+          chosen_plan?: string | null
           country?: string | null
           created_at?: string
           currency?: string
@@ -6776,6 +6779,7 @@ export type Database = {
       }
       create_family: {
         Args: {
+          p_chosen_plan?: string
           p_dob?: string
           p_full_name: string
           p_household_name: string

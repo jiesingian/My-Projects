@@ -34,6 +34,11 @@ export async function createFamilyAction(_prev: ActionState, formData: FormData)
   // Clamped like the rest, though isCountryCode below is the real guard: a
   // country arrives as a two-letter code and anything else is refused there.
   const country = clamp(String(formData.get("country") ?? ""), 100);
+  // The plan step's choice, kept in this browser by the public check-up and
+  // sent along by the setup screen. It changes only the trial card's and the
+  // reminders' wording; anything but the two plans is sent as nothing.
+  const plan = String(formData.get("chosen_plan") ?? "");
+  const chosenPlan = plan === "plus" || plan === "free" ? plan : undefined;
   // Both boxes are on the one setup screen (agreed 13 October). Birthday and
   // mobile are no longer asked here; they are filled in later from Family.
   if (!fullName) return { error: "Tell us your name." };
@@ -67,6 +72,7 @@ export async function createFamilyAction(_prev: ActionState, formData: FormData)
   const { data: member, error } = await supabase.rpc("create_family", {
     p_household_name: householdName,
     p_full_name: fullName,
+    p_chosen_plan: chosenPlan,
   });
   if (error) {
     // The check above closes the case that actually happens, but the two
