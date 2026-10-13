@@ -4569,6 +4569,33 @@ button.kin-initial:focus-visible {
 .kin-check-rank { flex: none; width: 1.75rem; height: 1.75rem; border-radius: 50%; display: grid; place-items: center; border: 1.5px solid var(--color-divider); font: 700 0.875rem/1 var(--font-numeric); }
 .kin-check-option[data-on] .kin-check-rank { border-color: var(--color-accent); background: var(--color-accent); color: #fff; }
 @media (prefers-reduced-motion: reduce) { .kin-check-option { transition: none; } .kin-check-option:active { transform: none; } }
+/* The check-up's result. The bars fill once on arrival, staggered 60ms, on
+   the house ease-out; reduced motion shows them already full. */
+.kin-check-score { text-align: center; padding: 1rem; border-radius: var(--radius-card); background: var(--color-surface); border: 1px solid var(--color-divider); }
+.kin-check-score p { margin: 0; }
+.kin-check-score p:first-child strong { font: 700 3.5rem/1 var(--font-numeric); letter-spacing: -0.03em; color: var(--color-accent-700); }
+.kin-check-score p:first-child span { font: 600 1.125rem/1 var(--font-numeric); color: var(--color-neutral-600); margin-left: 0.125rem; }
+.kin-check-score p:last-child { margin-top: 0.375rem; font-size: 1rem; color: var(--color-neutral-700); }
+.kin-check-bars, .kin-check-top { list-style: none; margin: 0; padding: 0; display: grid; gap: 1rem; }
+.kin-check-bar-head { display: flex; justify-content: space-between; font: 600 0.9375rem/1.2 var(--font-heading); margin-bottom: 0.375rem; }
+.kin-check-bar-head span:last-child { font-family: var(--font-numeric); color: var(--color-neutral-600); }
+.kin-check-bar { height: 0.5rem; border-radius: 999px; background: var(--color-neutral-200); overflow: hidden; }
+.kin-check-bar > span { display: block; height: 100%; border-radius: inherit; background: linear-gradient(90deg, var(--color-accent-2), var(--color-accent)); transform-origin: left; animation: kin-check-fill 600ms var(--ease-out) both; }
+.kin-check-bars li:nth-child(2) .kin-check-bar > span { animation-delay: 60ms; }
+.kin-check-bars li:nth-child(3) .kin-check-bar > span { animation-delay: 120ms; }
+.kin-check-bars li:nth-child(4) .kin-check-bar > span { animation-delay: 180ms; }
+.kin-check-bars li:nth-child(5) .kin-check-bar > span { animation-delay: 240ms; }
+@keyframes kin-check-fill { from { transform: scaleX(0); } to { transform: none; } }
+@media (prefers-reduced-motion: reduce) { .kin-check-bar > span { animation: none; } }
+.kin-check-bars p { margin: 0.375rem 0 0; font-size: 0.875rem; line-height: 1.45; color: var(--color-neutral-700); }
+.kin-check-sub { font: 700 1.25rem/1.2 var(--font-heading); margin: 0.5rem 0 0; }
+.kin-check-top { counter-reset: kin-check-top; gap: 0.625rem; }
+.kin-check-top li { counter-increment: kin-check-top; display: grid; gap: 0.25rem; padding: 0.75rem 0.875rem 0.75rem 3rem; position: relative; border-radius: 0.875rem; background: var(--color-surface); border: 1px solid var(--color-divider); }
+.kin-check-top li::before { content: counter(kin-check-top); position: absolute; left: 0.875rem; top: 0.75rem; width: 1.5rem; height: 1.5rem; border-radius: 50%; display: grid; place-items: center; background: var(--color-accent); color: #fff; font: 700 0.8125rem/1 var(--font-numeric); }
+.kin-check-top li > span:first-child { font: 600 0.9375rem/1.25 var(--font-heading); }
+.kin-check-top li > span:last-child { font-size: 0.875rem; line-height: 1.45; color: var(--color-neutral-700); }
+.kin-check-top .kin-plus-badge { margin-left: 0.375rem; vertical-align: middle; }
+.kin-check-callout { margin: 0; padding: 0.75rem 0.875rem; border-radius: 0.875rem; background: var(--color-accent-100); font: 600 0.9375rem/1.4 var(--font-heading); color: var(--color-text); }
 
 
 /* Links: shortcuts to the appliance apps (smart-home-links.tsx). */

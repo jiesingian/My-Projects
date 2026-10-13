@@ -86,6 +86,21 @@ test("the check-up: one question per screen, kids only with kids, and the answer
   expect(saved.score).toBeGreaterThanOrEqual(0);
   expect(saved.score).toBeLessThan(40);
   expect(Object.keys(saved.areas).sort()).toEqual(["close", "documents", "health", "home", "kids"]);
+
+  // The result: score and label, five bars, the top 3 in Kin, and the
+  // privacy line because question 9 was "privacy first".
+  await expect(page.getByRole("heading", { name: "Your family check-up" })).toBeFocused();
+  await expect(page.getByText(`${saved.score}/100`)).toBeVisible();
+  await expect(page.getByText("Family Readiness: Getting started")).toBeVisible();
+  await expect(page.getByRole("meter")).toHaveCount(5);
+  await expect(page.getByRole("meter", { name: "Health & safety" })).toHaveAttribute("aria-valuenow", String(saved.areas.health));
+  await expect(page.locator(".kin-check-top li")).toHaveCount(3);
+  await expect(page.locator(".kin-check-top li").first()).toContainText("You said Kids’ safety & location");
+  await expect(page.getByText("One app instead of 4 or more.")).toBeVisible();
+  await expect(page.getByText("Private to your family. Nothing is sold, and your records never train AI.")).toBeVisible();
+  expect(await page.locator(".kin-check-bars p").allTextContents()).not.toContain(expect.stringMatching(/fail/i));
+  await expectTapTargets(page);
+  await expect(page.getByRole("button", { name: "See how it works" })).toBeVisible();
 });
 
 test("no kids at home: question 6 is skipped", async ({ page }) => {
@@ -98,4 +113,11 @@ test("no kids at home: question 6 is skipped", async ({ page }) => {
   await page.getByRole("button", { name: "In the cloud" }).click();
   await expect(page.getByRole("heading", { name: /back-and-forth/ })).toBeVisible();
   await expect(page.getByText("Question 6 of 8")).toBeVisible();
+  await page.getByRole("button", { name: "Skip" }).click();
+  await page.getByRole("button", { name: "Skip" }).click();
+  await page.getByRole("button", { name: "Ready to try" }).click();
+  // No kids: four bars, no privacy line, and no top 3 to show.
+  await expect(page.getByRole("meter")).toHaveCount(4);
+  await expect(page.getByText(/Private to your family/)).toHaveCount(0);
+  await expect(page.locator(".kin-check-top")).toHaveCount(0);
 });
