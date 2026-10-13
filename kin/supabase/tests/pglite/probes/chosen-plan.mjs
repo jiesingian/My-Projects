@@ -1,4 +1,4 @@
-// families.chosen_plan (20261013150000): the plan chosen on the public plan
+// families.chosen_plan (20261013170000): the plan chosen on the public plan
 // step, saved by create_family, readable like the rest of the family row, not
 // changeable afterwards, and only changing the trial reminders' wording.
 const SECRET = "pglite-cron-secret-0123456789abcdef0123456789";
