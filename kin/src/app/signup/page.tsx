@@ -20,7 +20,7 @@ export default function SignupPage() {
   const sentTo = !changing && !pending ? state.sentTo : undefined;
 
   return (
-    <OnboardingShell step={sentTo ? "STEP 02 / 05" : "STEP 01 / 05"} backHref="/login">
+    <OnboardingShell step={sentTo ? "STEP 02 / 03" : "STEP 01 / 03"} backHref="/login">
       {sentTo && <CodeEntry key={sentTo} email={sentTo} onChangeEmail={() => setChanging(true)} />}
       <div hidden={!!sentTo}>
       <h2 style={{ fontSize: "2.125rem", margin: "0 0 6px" }}>Your account</h2>

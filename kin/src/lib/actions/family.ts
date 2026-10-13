@@ -16,7 +16,6 @@ import { humanDatabaseError } from "@/lib/db-errors";
 import { clamp } from "@/lib/text";
 import { isCountryCode } from "@/lib/countries";
 import { birthdayProblem, familyDay, familyMidnight } from "@/lib/time";
-import { stashOnboardingProfile, clearOnboardingProfile } from "@/lib/onboarding-profile";
 import { isGone } from "@/lib/member-status";
 
 // Onboarding was the one path with no ceiling on what it stored: every other
@@ -24,49 +23,21 @@ import { isGone } from "@/lib/member-status";
 // sees took a name of any length at all -- and the name is rendered in the
 // members list, the header and the family tree, none of which survive it.
 const NAME_MAX = 100;
-const MOBILE_MAX = 30;
 const HOUSEHOLD_MAX = 100;
 const CODE_MAX = 100;
 
 
-export async function saveProfile(_prev: ActionState, formData: FormData): Promise<ActionState> {
-  const fullName = clamp(String(formData.get("full_name") ?? ""), NAME_MAX);
-  const dob = String(formData.get("dob") ?? "").trim();
-  const mobile = clamp(String(formData.get("mobile") ?? ""), MOBILE_MAX);
-  if (!fullName) return { error: "Tell us your name." };
-  if (dob) {
-    const problem = birthdayProblem(dob);
-    if (problem) return { error: problem };
-  }
-
-  // The member row is created on the next screen, by create_family or
-  // join_family, so this step has nothing to write yet -- it only has to hand
-  // three fields forward. See ONBOARDING_PROFILE above for why they travel in
-  // a cookie rather than in the URL they used to.
-  await stashOnboardingProfile({ full_name: fullName, dob, mobile });
-  redirect("/onboarding/family");
-}
-
 export async function createFamilyAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
   const householdName = clamp(String(formData.get("household_name") ?? ""), HOUSEHOLD_MAX);
   const fullName = clamp(String(formData.get("full_name") ?? ""), NAME_MAX);
-  const dobRaw = String(formData.get("dob") ?? "").trim();
-  const dob = dobRaw || null;
-  const mobile = clamp(String(formData.get("mobile") ?? ""), MOBILE_MAX) || null;
   const accessCode = clamp(String(formData.get("access_code") ?? ""), CODE_MAX);
   // Clamped like the rest, though isCountryCode below is the real guard: a
   // country arrives as a two-letter code and anything else is refused there.
   const country = clamp(String(formData.get("country") ?? ""), 100);
-  if (!householdName) return { error: "Give the household a name." };
-  // Separated from the household name because they are not entered on the
-  // same screen. The name comes from the field in front of them; the name of
-  // the person comes from step 3, through a hidden field -- so "your name is
-  // required" next to a name box they have just filled in reads as a bug.
-  if (!fullName) return { error: "We lost your name along the way. Go back a step and enter it again." };
-  if (dob) {
-    const problem = birthdayProblem(dob);
-    if (problem) return { error: problem };
-  }
+  // Both boxes are on the one setup screen (agreed 13 October). Birthday and
+  // mobile are no longer asked here; they are filled in later from Family.
+  if (!fullName) return { error: "Tell us your name." };
+  if (!householdName) return { error: "Give your family a name." };
 
   const supabase = await createClient();
 
@@ -96,8 +67,6 @@ export async function createFamilyAction(_prev: ActionState, formData: FormData)
   const { data: member, error } = await supabase.rpc("create_family", {
     p_household_name: householdName,
     p_full_name: fullName,
-    p_dob: dob ?? undefined,
-    p_mobile: mobile ?? undefined,
   });
   if (error) {
     // The check above closes the case that actually happens, but the two
@@ -149,29 +118,21 @@ export async function createFamilyAction(_prev: ActionState, formData: FormData)
     });
   }
 
-  await clearOnboardingProfile();
-  redirect("/onboarding/members");
+  // Straight to Today: adding the kids and inviting a partner are Start here
+  // steps there, not a screen in the way of getting in.
+  redirect("/today");
 }
 
 export async function joinFamilyAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
   const inviteCode = clamp(String(formData.get("invite_code") ?? ""), CODE_MAX).toUpperCase();
   const fullName = clamp(String(formData.get("full_name") ?? ""), NAME_MAX);
-  const dobRaw = String(formData.get("dob") ?? "").trim();
-  const dob = dobRaw || null;
-  const mobile = clamp(String(formData.get("mobile") ?? ""), MOBILE_MAX) || null;
+  if (!fullName) return { error: "Tell us your name." };
   if (!inviteCode) return { error: "Enter the six-character invite code." };
-  if (!fullName) return { error: "We lost your name along the way. Go back a step and enter it again." };
-  if (dob) {
-    const problem = birthdayProblem(dob);
-    if (problem) return { error: problem };
-  }
 
   const supabase = await createClient();
   const { error } = await supabase.rpc("join_family", {
     p_invite_code: inviteCode,
     p_full_name: fullName,
-    p_dob: dob ?? undefined,
-    p_mobile: mobile ?? undefined,
     p_role: "adult",
   });
   // join_family raises three distinct things and this used to report all of
@@ -188,7 +149,6 @@ export async function joinFamilyAction(_prev: ActionState, formData: FormData): 
     return { error: "That invite code didn't match a household. Double-check it and try again." };
   }
 
-  await clearOnboardingProfile();
   // The invite link's code has done its job.
   (await cookies()).delete("kin-invite");
   redirect("/onboarding/pending");

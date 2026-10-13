@@ -87,7 +87,7 @@ export function CodeEntry({ email, onChangeEmail }: { email: string; onChangeEma
 
 export function VerifyForm({ email }: { email: string }) {
   return (
-    <OnboardingShell step="STEP 02 / 05" backHref="/signup">
+    <OnboardingShell step="STEP 02 / 03" backHref="/signup">
       <CodeEntry email={email} />
     </OnboardingShell>
   );

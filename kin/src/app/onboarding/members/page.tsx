@@ -21,7 +21,7 @@ export default async function MembersPage() {
     .order("created_at");
 
   return (
-    <OnboardingShell step="STEP 05 / 05" backHref="/onboarding/family">
+    <OnboardingShell backHref="/today">
       <h2 style={{ fontSize: "2.125rem", margin: "0 0 18px" }}>Who is in it</h2>
       <div className="field" style={{ marginBottom: "1.25rem" }}>
         <label htmlFor="onboarding-household-name">Household name</label>
