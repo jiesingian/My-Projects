@@ -17,4 +17,4 @@ when the PR is open and its checks have started.
 5. **Push** `git push -u origin <branch>` and open the PR, following `.github/pull_request_template.md` (What / Why / Unsure / Checked). Say plainly what was not verified.
 6. **Stop.** Don't wait on CI in the session. `automerge.yml` merges on green; `migrate.yml` applies migrations to dev then production. Come back only if a check fails or automerge comments a hold.
 
-Stacked PRs: squash-merging the upper PR carries the lower one's commits; the lower PR then has nothing left -- close it with a note naming the merge commit. Rebase the next branch with `git rebase --onto origin/main <old-base>`.
+Stacked PRs: squash-merging the upper PR carries the lower one's commits; the lower PR then has nothing left. `close-absorbed.yml` closes it with a note (after every merge, and hourly) -- nothing to do by hand. Better still, let a docs-only PR merge before building on its branch. Rebase the next branch with `git rebase --onto origin/main <old-base>`.
