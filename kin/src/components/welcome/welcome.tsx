@@ -3,15 +3,13 @@
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Icon, type IconName } from "@/components/icons";
 import { House3D } from "@/components/welcome/house-3d";
-import { PLANS, pesos } from "@/lib/billing/plans";
-import { TRIAL_DAYS } from "@/lib/access";
-import { FREE_FEATURES, PLUS_FEATURES } from "@/lib/plan-features";
-import { writeFirstOpen } from "@/lib/first-open";
+import { writeFirstOpen, type ChosenPlan } from "@/lib/first-open";
 import { areaScores, readinessScore, topThree, type Answers } from "@/lib/check-up";
 import { CheckUp } from "@/components/welcome/check-up";
 import { Results } from "@/components/welcome/results";
+import { Showcase } from "@/components/welcome/showcase";
+import { PlanStep } from "@/components/welcome/plan-step";
 
 /** What the home page used to ask before sign-up (family name, who's at home).
  * The check-up replaced those questions on 13 October and nothing writes this
@@ -21,28 +19,7 @@ import { Results } from "@/components/welcome/results";
 export const WELCOME_KEY = "kin-welcome";
 export type WelcomeAnswers = { familyName: string; grownUps: number; children: number; wants: string[] };
 
-/** The "why Kin" step: what it replaces, the privacy promise, the price.
- * Each line has to stay true of the app as built -- the privacy one is the
- * same promise as /legal/privacy, and the price comes from plans.ts. */
-const WHY: { icon: IconName; title: string; line: string }[] = [
-  {
-    icon: "house",
-    title: "One app instead of five",
-    line: "The group chat, the notes app, the calendar and that spreadsheet of bills, in one place everyone in the house shares.",
-  },
-  {
-    icon: "shieldCheck",
-    title: "Private to your family",
-    line: "Each household is walled off from every other. Nothing is sold, and your records never train AI.",
-  },
-  {
-    icon: "sparkle",
-    title: "Free to start, fair to keep",
-    line: `${TRIAL_DAYS} days of Kin Plus free, no card needed. Then Kin Free for good, or ${pesos(PLANS.monthly.amountCents)} a month for the whole family, lolo to bunso.`,
-  },
-];
-
-type Step = "hello" | "quiz" | "results" | "why";
+type Step = "hello" | "quiz" | "results" | "show" | "plan";
 
 /** The signed-out home page. Since 13 October (docs/BACKLOG.md, "Agreed 13
  * October: first open") it opens on a family check-up rather than on setting
@@ -50,8 +27,10 @@ type Step = "hello" | "quiz" | "results" | "why";
  * `/?start=quiz`, the link ads will use, opens straight at question 1 without
  * the house, so Facebook's in-app browser has nothing heavy to load.
  *
- * The answers and the score go into first-open (this browser only, never
- * sent), where sign-up, Start here and the tour read them. */
+ * Then the result, a few slides from the visitor's top 3, and the plan step,
+ * ending at /signup. The answers, the score and the plan go into first-open
+ * (this browser only, never sent), where sign-up, Start here and the tour
+ * read them. */
 export function Welcome({ startQuiz = false }: { startQuiz?: boolean }) {
   const router = useRouter();
   const [step, setStep] = useState<Step>(startQuiz ? "quiz" : "hello");
@@ -77,6 +56,10 @@ export function Welcome({ startQuiz = false }: { startQuiz?: boolean }) {
   const finish = (a: Answers) => {
     writeFirstOpen({ answers: a, top3: topThree(a), score: readinessScore(a), areas: areaScores(a) });
     setStep("results");
+  };
+  const choose = (plan: ChosenPlan) => {
+    writeFirstOpen({ plan });
+    router.push("/signup");
   };
 
   return (
@@ -151,7 +134,7 @@ export function Welcome({ startQuiz = false }: { startQuiz?: boolean }) {
         <Results
           answers={answers}
           heading={heading}
-          onNext={() => setStep("why")}
+          onNext={() => setStep("show")}
           onBack={() => {
             setBack(true);
             setStep("quiz");
@@ -159,70 +142,9 @@ export function Welcome({ startQuiz = false }: { startQuiz?: boolean }) {
         />
       )}
 
-      {step === "why" && (
-        <section className="kin-welcome-step">
-          <h2 ref={heading} tabIndex={-1}>
-            Why Kin
-          </h2>
-          <ul className="kin-why">
-            {WHY.map((w) => (
-              <li key={w.title}>
-                <span className="kin-welcome-card-ico">
-                  <Icon name={w.icon} size={22} />
-                </span>
-                <span>
-                  <strong>{w.title}</strong>
-                  <span>{w.line}</span>
-                </span>
-              </li>
-            ))}
-          </ul>
-          {/* Free beside Plus before anyone signs up (approved 6 October),
-              from the same lists as the plan screen. */}
-          <div className="kin-plans kin-welcome-plans">
-            <section className="kin-plan" aria-labelledby="kin-welcome-free">
-              <h3 id="kin-welcome-free">Kin Free</h3>
-              <p className="kin-plan-price">₱0, for good</p>
-              <ul>
-                {FREE_FEATURES.map((f) => (
-                  <li key={f}>
-                    <Icon name="check" size="0.875rem" />
-                    {f}
-                  </li>
-                ))}
-              </ul>
-            </section>
-            <section className="kin-plan" aria-labelledby="kin-welcome-plus">
-              <h3 id="kin-welcome-plus">
-                Kin Plus <span className="kin-plus-badge">{TRIAL_DAYS} DAYS FREE</span>
-              </h3>
-              <p className="kin-plan-price">Then {pesos(PLANS.monthly.amountCents)} a month for the whole family</p>
-              <ul>
-                {PLUS_FEATURES.map((f) => (
-                  <li key={f}>
-                    <Icon name="check" size="0.875rem" />
-                    {f}
-                  </li>
-                ))}
-              </ul>
-            </section>
-          </div>
-          <Link href="/signup" className="btn btn-primary btn-block kin-welcome-cta">
-            Create your account
-          </Link>
-          <p className="kin-welcome-small" style={{ textAlign: "center" }}>
-            <Link href="/legal/privacy">How Kin handles your family&rsquo;s information</Link>
-          </p>
-          <button
-            type="button"
-            className="btn btn-ghost"
-            onClick={() => setStep("results")}
-            style={{ alignSelf: "center" }}
-          >
-            Back
-          </button>
-        </section>
-      )}
+      {step === "show" && <Showcase top3={topThree(answers)} heading={heading} onDone={() => setStep("plan")} onBack={() => setStep("results")} />}
+
+      {step === "plan" && <PlanStep heading={heading} onChoose={choose} onBack={() => setStep("show")} />}
     </main>
   );
 }
