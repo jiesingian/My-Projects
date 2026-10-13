@@ -18,6 +18,7 @@ import { familyDateTime } from "@/lib/time";
 import { feedSubscribeLinks } from "@/lib/ics";
 import { COUNTRIES } from "@/lib/countries";
 import { PALETTES, type PaletteMode } from "@/lib/palettes";
+import { suggestHouseholdName } from "@/lib/household-name";
 
 export function ThemeControl({ current, forcedDark = false }: { current: string; forcedDark?: boolean }) {
   const [pending, startTransition] = useTransition();
@@ -369,7 +370,42 @@ export function HouseholdNameForm({ name }: { name: string }) {
         </button>
       </div>
       {error && <p role="alert" style={{ color: "var(--color-accent-700)", fontSize: "0.8125rem", margin: "6px 0 0" }}>{error}</p>}
+      <SurnameSuggestion onUse={setValue} />
     </div>
+  );
+}
+
+/** "Suggest from surnames" (agreed 28 September), moved here from sign-up on
+ * 13 October so setup asks for less. The two surnames carry no name and are
+ * never sent: they only offer a name, which lands in the box above as
+ * ordinary, editable text and is saved only by Save. */
+function SurnameSuggestion({ onUse }: { onUse: (name: string) => void }) {
+  const uid = useId();
+  const [maiden, setMaiden] = useState("");
+  const [husband, setHusband] = useState("");
+  const suggestion = suggestHouseholdName(maiden, husband);
+  return (
+    <details className="kin-code-optional" style={{ marginTop: "0.25rem" }}>
+      <summary>Suggest a name from surnames</summary>
+      <p style={{ fontSize: "0.8125rem", color: "var(--color-neutral-700)", margin: "0.25rem 0 0.625rem" }}>
+        The Filipino way: her maiden name, then his. Only a suggestion; name your household however you like.
+      </p>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(9rem, 1fr))", gap: "0.5625rem" }}>
+        <div className="field">
+          <label htmlFor={`${uid}-maiden`}>Wife&rsquo;s maiden surname</label>
+          <input id={`${uid}-maiden`} className="input" value={maiden} onChange={(e) => setMaiden(e.target.value)} placeholder="Santos" autoComplete="off" style={{ minHeight: "2.75rem" }} />
+        </div>
+        <div className="field">
+          <label htmlFor={`${uid}-husband`}>Husband&rsquo;s surname</label>
+          <input id={`${uid}-husband`} className="input" value={husband} onChange={(e) => setHusband(e.target.value)} placeholder="Reyes" autoComplete="off" style={{ minHeight: "2.75rem" }} />
+        </div>
+      </div>
+      {suggestion && (
+        <button type="button" className="btn btn-secondary btn-block" onClick={() => onUse(suggestion)} style={{ minHeight: "2.75rem", marginTop: "0.5625rem" }}>
+          Use &ldquo;{suggestion}&rdquo;
+        </button>
+      )}
+    </details>
   );
 }
 
