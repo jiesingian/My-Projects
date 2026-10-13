@@ -89,7 +89,9 @@ name / who / wants / tour / why steps (answer 13).
 - Start here follows the top 3: health first adds "Add allergies and blood
   type", kids "Turn on location sharing", emergency "Fill in the emergency
   card", documents "Add one PSA certificate" (vault: Plus, which the trial
-  has). Invite partner and add the kids stay.
+  has). Invite partner and add the kids stay. Built 13 October: the top 3
+  never leaves the phone, so the server sends every step and the card picks
+  and orders them (a step moves up with its priority's rank).
 - Trial bonus (answer 6): 7 days, and a household that finishes every Start
   here step within 24 hours of being created gets 7 more, once (14 in
   all). Checked from the family's own records by a security-definer
