@@ -166,7 +166,7 @@ export default async function TodayPage() {
 
       {plusTrial && <PlusTrialCard steps={plusTrial.steps} daysLeft={plusTrial.daysLeft} />}
 
-      {startHere && <StartHere steps={startHere} inviteCode={me.families.invite_code} />}
+      {startHere && <StartHere steps={startHere.steps} bonus={startHere.bonus} inviteCode={me.families.invite_code} />}
 
       {/* A new household's first two weeks: who invited it, once. */}
       {isGrownUp(me.role) && canNameReferrer(me.families) && <ReferralEntry />}

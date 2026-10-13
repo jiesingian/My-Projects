@@ -5,7 +5,7 @@ import Link from "next/link";
 import { Icon, type IconName } from "@/components/icons";
 import { dismissStartHereAction } from "@/lib/actions/settings";
 import { FIRST_OPEN_KEY, readFirstOpen, type Priority } from "@/lib/first-open";
-import type { StartStep, StartStepId } from "@/lib/queries/start-here";
+import type { StartHere as StartHereData, StartStep, StartStepId } from "@/lib/queries/start-here";
 
 const ICONS: Record<StartStepId, IconName> = {
   event: "calendarDays",
@@ -55,14 +55,15 @@ const savedCheckUp = () => {
  * No entrance animation: it sits on Today, which people open many times a
  * day. A done step is plain and struck through rather than animated away,
  * so the four stay in place and the progress reads at a glance. */
-export function StartHere({ steps: all, inviteCode }: { steps: StartStep[]; inviteCode: string }) {
+export function StartHere({ steps: all, bonus, inviteCode }: { steps: StartStep[]; bonus: StartHereData["bonus"]; inviteCode: string }) {
   const [hidden, setHidden] = useState(false);
   const [pending, startTransition] = useTransition();
   const [shared, setShared] = useState(false);
   const saved = useSyncExternalStore(subscribe, savedCheckUp, () => null);
   // `saved` is what changes; readFirstOpen parses and checks that same value.
   const steps = useMemo(() => arrangeSteps(all, saved ? (readFirstOpen()?.top3 ?? []) : []), [all, saved]);
-  if (hidden || steps.every((s) => s.done)) return null;
+  const earned = typeof bonus === "number" ? bonus : 0;
+  if (hidden || (steps.every((s) => s.done) && !earned)) return null;
 
   const done = steps.filter((s) => s.done).length;
 
@@ -105,6 +106,14 @@ export function StartHere({ steps: all, inviteCode }: { steps: StartStep[]; invi
           Hide
         </button>
       </header>
+      {/* The trial bonus (20261013120000): while it is still possible, and once
+          when it is earned. role="status" so the earned line is announced. */}
+      {bonus === "open" && <p className="kin-start-bonus">Finish these today for 7 more days of Plus</p>}
+      {earned > 0 && (
+        <p className="kin-start-bonus" role="status">
+          <Icon name="sparkle" size="0.9375rem" /> Done in a day: {earned} more days of Plus added
+        </p>
+      )}
       <div className="kin-brief">
         {steps.map((s) => {
           const body = (
