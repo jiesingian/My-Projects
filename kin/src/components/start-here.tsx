@@ -106,7 +106,7 @@ export function StartHere({ steps: all, bonus, inviteCode }: { steps: StartStep[
           Hide
         </button>
       </header>
-      {/* The trial bonus (20261013120000): while it is still possible, and once
+      {/* The trial bonus (20261013160000): while it is still possible, and once
           when it is earned. role="status" so the earned line is announced. */}
       {bonus === "open" && <p className="kin-start-bonus">Finish these today for 7 more days of Plus</p>}
       {earned > 0 && (

@@ -28,7 +28,7 @@ import type { CurrentMember } from "@/lib/session";
 const SHOWN_FROM = "2026-09-28T00:00:00Z";
 const SHOWN_FOR_DAYS = 30;
 
-/** The Start here bonus (20261013120000_start_here_bonus.sql): every base
+/** The Start here bonus (20261013160000_start_here_bonus.sql): every base
  * step done in a household's first day adds 7 days to its trial, once. The
  * database decides; this only says so on the card. Same date as claim_start_bonus(). */
 const BONUS_FROM = "2026-10-13T00:00:00Z";

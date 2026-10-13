@@ -3,7 +3,7 @@ const A = "a0000000-0000-0000-0000-000000000000";
 const B = "b0000000-0000-0000-0000-000000000000";
 const D = "d0000000-0000-0000-0000-000000000000";
 // Start here bonus: 7 more days of Plus for every first step done within a
-// day, once, checked from the records (20261013120000).
+// day, once, checked from the records (20261013160000).
 export default async function ({ db, as, check, refused }) {
   const ann = U("a1"), kid = U("a2"), ben = U("b1"), dan = U("d1");
   const expiry = async (f) => (await db.query("select access_expires_at::text e, access_status s, plus_credit_days c from families where id = $1", [f])).rows[0];

@@ -97,7 +97,7 @@ name / who / wants / tour / why steps (answer 13).
   all). Checked from the family's own records by a security-definer
   function, the same way Kin offers are; Kin offers stay as they are.
   Today's Start here says so ("Finish these today for 7 more days of Plus").
-  Built 13 October (20261013120000, probes/start-here-bonus.mjs): the steps
+  Built 13 October (20261013160000, probes/start-here-bonus.mjs): the steps
   counted are the base ones (plans, invite, kids, chore, list), each needing
   a record from the first 24 hours; the top-3 extras can't be known by the
   database (answer 9A), so they don't count against it.
