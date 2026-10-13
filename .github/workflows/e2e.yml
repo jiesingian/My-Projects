@@ -120,8 +120,17 @@ jobs:
           mine=$(gh api "repos/$REPO/actions/runs/$RUN_ID" --jq .run_started_at)
           deadline=$(( $(date +%s) + 40 * 60 ))
           while :; do
-            ahead=$(gh api "repos/$REPO/actions/workflows/e2e.yml/runs?status=in_progress&per_page=100" \
-              --jq "[.workflow_runs[] | select(.id != $RUN_ID) | select(.run_started_at < \"$mine\" or (.run_started_at == \"$mine\" and .id < $RUN_ID))] | length")
+            # in_progress AND queued (13 October). A run reads "queued", not
+            # "in_progress", for the few seconds between its turn job ending
+            # and its e2e job getting a runner. Counting only in_progress let
+            # main's run look exactly then, see nobody ahead, and start beside
+            # #597's: both ran chat-live.spec.ts in the one shared "E2E live
+            # chat" group at once and failed each other (runs 38364749584 and
+            # 38365163363, 07:50-07:57 UTC). Queued runs that have not started
+            # yet carry a later run_started_at, so they still wait behind us.
+            ahead=$(for status in in_progress queued; do
+                gh api "repos/$REPO/actions/workflows/e2e.yml/runs?status=$status&per_page=100" --jq '.workflow_runs[]'
+              done | jq -s "[.[] | select(.id != $RUN_ID) | select(.run_started_at < \"$mine\" or (.run_started_at == \"$mine\" and .id < $RUN_ID))] | unique_by(.id) | length")
             if [ "$ahead" -lt "$SLOTS" ]; then
               echo "Dev has room: $ahead e2e run(s) ahead of this one."
               break
