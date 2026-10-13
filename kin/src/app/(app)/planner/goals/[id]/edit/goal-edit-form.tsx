@@ -22,6 +22,7 @@ export function GoalEditForm({
   today,
   giverName,
   givers,
+  visibilitySwitch = null,
 }: {
   goal: { id: string; title: string; kind: GoalKind; target: number; period: GoalPeriod; unit: string | null; dueDate: string | null };
   meId: string;
@@ -29,6 +30,8 @@ export function GoalEditForm({
   today: string;
   giverName: string | null;
   givers: { id: string; label: string }[] | null;
+  /** The owner's "Visible to" switch; it applies at once, outside the form. */
+  visibilitySwitch?: React.ReactNode;
 }) {
   const [state, formAction] = useActionState(updateGoalAction.bind(null, goal.id), initialState);
   const uid = useId();
@@ -48,6 +51,8 @@ export function GoalEditForm({
             This goal has a reward from {giverName}. A new target, period or date goes to them for a yes — they can agree or keep it as it was. The name changes now.
           </p>
         )}
+
+        {visibilitySwitch}
 
         <form action={formAction}>
           <div className="field" data-field="title" style={{ marginBottom: "0.875rem" }}>

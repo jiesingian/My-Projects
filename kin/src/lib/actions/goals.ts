@@ -11,6 +11,7 @@ import { readAccess } from "@/lib/access";
 import { familyDay } from "@/lib/time";
 import { GOAL_KIND_META, LOG_BACK_DAYS, READING_BOUNDS, daysBefore, isGoalKind, isLoggableDay, isGoalPeriod, type GoalKind } from "@/lib/goals";
 import { stepLiquidIntakeAction } from "@/lib/actions/household";
+import { isGrownUp } from "@/lib/roles";
 
 export type GoalFormState = { error: string | null; field?: string };
 
@@ -33,6 +34,7 @@ export async function createGoalAction(_prev: GoalFormState, formData: FormData)
   const dueDate = String(formData.get("due_date") ?? "") || null;
   const reward = clamp(String(formData.get("reward") ?? ""), 120);
   const giver = String(formData.get("giver") ?? "");
+  const wantsPrivate = String(formData.get("visibility") ?? "") === "private";
 
   if (!isGoalKind(kind)) return { error: "Choose what kind of goal it is.", field: "kind" };
   const meta = GOAL_KIND_META[kind];
@@ -51,6 +53,9 @@ export async function createGoalAction(_prev: GoalFormState, formData: FormData)
     ownerId = m.id;
   }
   if (!ownerId && !meta.household) return { error: `A ${meta.label.toLowerCase()} goal is one person's. Choose whose.`, field: "owner" };
+  // "Just me" is the owner's to choose, and a grown-up's (the database holds
+  // the same rule, 20261013170000). Anyone else's choice is ignored.
+  const visibility = wantsPrivate && ownerId === me.id && isGrownUp(me.role) ? "private" : "household";
 
   let giverId: string | null = null;
   if (reward) {
@@ -94,6 +99,9 @@ export async function createGoalAction(_prev: GoalFormState, formData: FormData)
       savings_goal_id: kind === "money" ? savingsGoalId : null,
       due_date: dueDate,
       created_by: me.id,
+      // Sent only when hiding, so a household goal still saves in the
+      // minutes between this deploying and its migration running.
+      ...(visibility === "private" ? { visibility } : {}),
     })
     .select("id")
     .single();
@@ -178,7 +186,7 @@ export async function unlogGoalAction(goalId: string): Promise<{ error: string |
 async function goalForReading(goalId: string, kinds: GoalKind[]) {
   const me = await requireCurrentMember();
   const supabase = await createClient();
-  const { data: goal } = await supabase.from("planner_goals").select("id, kind, owner_member_id").eq("id", goalId).eq("family_id", me.family_id).maybeSingle();
+  const { data: goal } = await supabase.from("planner_goals").select("*").eq("id", goalId).eq("family_id", me.family_id).maybeSingle();
   if (!goal || !isGoalKind(goal.kind) || !kinds.includes(goal.kind)) return { error: "That goal is no longer here." as string, me, supabase, goal: null, memberId: null };
   return { error: null, me, supabase, goal: { ...goal, kind: goal.kind as GoalKind }, memberId: goal.owner_member_id ?? me.id };
 }
@@ -244,7 +252,8 @@ export async function logGoalReadingAction(goalId: string, value: number, day?: 
     value_text: valueText,
     unit: kind === "steps" ? "steps" : "kg",
     source: "manual",
-    visibility: "family",
+    // A reading follows its goal: "Just me" there is "Just me" in Health.
+    visibility: goal.visibility === "private" ? "private" : "family",
     created_by: me.id,
   });
   if (error) return { error: humanDatabaseError(error.message) };
@@ -282,6 +291,25 @@ export async function unlogGoalReadingAction(goalId: string): Promise<{ error: s
   const { error } = await supabase.from("health_vitals").delete().eq("id", last.id).eq("family_id", me.family_id);
   if (error) return { error: humanDatabaseError(error.message) };
   return readingSaved(memberId);
+}
+
+/** Who sees a goal: the whole household, or just its owner (and whoever
+ * gives its reward). Only the owner switches it, only a grown-up hides one,
+ * and it does not change what the goal measures, so it needs no one's yes.
+ * The database refuses anyone else (planner_goals_visibility_guard). */
+export async function setGoalVisibilityAction(goalId: string, visibility: "household" | "private"): Promise<{ error: string | null }> {
+  const me = await requireCurrentMember();
+  if (visibility !== "household" && visibility !== "private") return { error: "Choose who sees it." };
+  const supabase = await createClient();
+  const { data: goal } = await supabase.from("planner_goals").select("id, owner_member_id").eq("id", goalId).eq("family_id", me.family_id).maybeSingle();
+  if (!goal) return { error: "That goal is no longer here." };
+  if (goal.owner_member_id !== me.id) return { error: "Only the person whose goal it is can choose who sees it." };
+  if (visibility === "private" && !isGrownUp(me.role)) return { error: "A child's goals stay visible to the grown-ups of the house." };
+  const { error } = await supabase.from("planner_goals").update({ visibility }).eq("id", goalId).eq("family_id", me.family_id);
+  if (error) return { error: humanDatabaseError(error.message) };
+  revalidatePath("/planner");
+  revalidatePath("/today");
+  return { error: null };
 }
 
 export async function deleteGoalAction(goalId: string): Promise<{ error: string | null }> {

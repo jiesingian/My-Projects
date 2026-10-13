@@ -129,6 +129,13 @@ function GoalCard({ goal, index, meId, today, plus, currency, colour }: { goal: 
           <div style={{ display: "flex", alignItems: "center", gap: "0.375rem", fontSize: "0.75rem", color: "var(--color-neutral-600)" }}>
             <Icon name={meta.icon} size={13} />
             {meta.label} · {whose}
+            {goal.visibility === "private" && (
+              <>
+                {" · "}
+                <Icon name="eyeOff" size={12} aria-hidden />
+                <span>{goal.ownerId === meId ? "Just me" : `Just ${goal.ownerName?.split(" ")[0] ?? "them"} and you`}</span>
+              </>
+            )}
           </div>
           <div style={{ font: "600 1.0625rem/1.25 var(--font-heading)", marginTop: "0.125rem" }}>{goal.title}</div>
           <div style={{ fontSize: "0.8125rem", color: "var(--color-neutral-700)", marginTop: "0.125rem" }}>{caption(goal, currency)}</div>

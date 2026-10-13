@@ -62,6 +62,8 @@ export type GoalView = {
   autoToday: number | null;
   /** Steps: what was typed by hand for the owner today, if anything. */
   manualToday: number | null;
+  /** "household" or "private" (Just me: the owner and the reward's giver). */
+  visibility: "household" | "private";
 };
 
 type Viewer = { id: string; role: string };
@@ -100,19 +102,24 @@ export async function getGoals(familyId: string, viewer: Viewer, weekStart: 0 | 
 
   const has = (k: GoalKind) => withWindow.some((g) => g.kind === k);
   const savingsIds = withWindow.map((g) => g.savings_goal_id).filter((v): v is string => !!v);
-  const weightOwners = [...new Set(withWindow.filter((g) => g.kind === "weight" && g.owner_member_id).map((g) => g.owner_member_id as string))];
+  const stepOwners = [...new Set(withWindow.filter((g) => g.kind === "steps" && g.owner_member_id).map((g) => g.owner_member_id as string))];
 
-  const [entriesRes, waterRes, stepsRes, weightRes, savingsRes] = await Promise.all([
+  const [entriesRes, waterRes, readingsRes, todayStepsRes, savingsRes] = await Promise.all([
     supabase.from("planner_goal_entries").select("goal_id, entry_date, amount").eq("family_id", familyId).gte("entry_date", earliest),
     has("water")
       ? supabase.from("liquid_intake_log").select("member_id, log_date, glasses").eq("family_id", familyId).eq("type", "water").gte("log_date", earliest)
       : Promise.resolve({ data: [] as { member_id: string; log_date: string; glasses: number }[] }),
-    has("steps")
-      ? supabase.from("health_vitals").select("member_id, reading_date, value_text, source").eq("family_id", familyId).eq("vital_type", "steps").gte("reading_date", earliest)
-      : Promise.resolve({ data: [] as { member_id: string; reading_date: string; value_text: string; source: string }[] }),
-    weightOwners.length > 0
-      ? supabase.from("health_vitals").select("member_id, reading_date, value_text, created_at").eq("family_id", familyId).eq("vital_type", "weight").in("member_id", weightOwners).order("reading_date", { ascending: false }).order("created_at", { ascending: false }).limit(200)
-      : Promise.resolve({ data: [] as { member_id: string; reading_date: string; value_text: string; created_at: string }[] }),
+    // Steps and weight come through planner_goal_readings (20261013170000):
+    // a goal's own numbers for goals this viewer may see, steps counted once
+    // a day, even where the readings themselves are private in Health.
+    has("steps") || has("weight")
+      ? supabase.rpc("planner_goal_readings", { p_since: earliest })
+      : Promise.resolve({ data: [] as { goal_id: string; kind: string; reading_date: string; value: number; created_at: string | null }[] }),
+    // Today's steps by source, for the hint beside the hand entry -- what
+    // this viewer may read of it.
+    stepOwners.length > 0
+      ? supabase.from("health_vitals").select("member_id, value_text, source").eq("family_id", familyId).eq("vital_type", "steps").eq("reading_date", today).in("member_id", stepOwners)
+      : Promise.resolve({ data: [] as { member_id: string; value_text: string; source: string }[] }),
     savingsIds.length > 0
       ? supabase.from("goals").select("id, title, current_amount").in("id", savingsIds)
       : Promise.resolve({ data: [] as { id: string; title: string; current_amount: number }[] }),
@@ -120,18 +127,9 @@ export async function getGoals(familyId: string, viewer: Viewer, weekStart: 0 | 
 
   const entries = entriesRes.data ?? [];
   const water = waterRes.data ?? [];
-  const steps = stepsRes.data ?? [];
-  const weights = weightRes.data ?? [];
+  const readings = readingsRes.data ?? [];
+  const todaySteps = todayStepsRes.data ?? [];
   const savings = new Map((savingsRes.data ?? []).map((s) => [s.id, s]));
-  // One number per person per day, whatever sent it (stepsForDay).
-  const stepDays = new Map<string, { member: string; date: string; readings: { source: string; value: number }[] }>();
-  for (const s of steps) {
-    const key = `${s.member_id}|${s.reading_date}`;
-    const day = stepDays.get(key) ?? { member: s.member_id, date: s.reading_date, readings: [] };
-    day.readings.push({ source: s.source, value: parseFloat(s.value_text) || 0 });
-    stepDays.set(key, day);
-  }
-
   return withWindow.map((g) => {
     const counts = (memberId: string | null) => g.owner_member_id === null || memberId === g.owner_member_id;
     let current = 0;
@@ -145,18 +143,19 @@ export async function getGoals(familyId: string, viewer: Viewer, weekStart: 0 | 
     if (g.kind === "water") {
       current = water.filter((w) => w.log_date >= g.from && counts(w.member_id)).reduce((sum, w) => sum + w.glasses, 0);
     } else if (g.kind === "steps") {
-      for (const day of stepDays.values()) if (day.date >= g.from && counts(day.member)) current += stepsForDay(day.readings);
+      current = readings.filter((r) => r.goal_id === g.id && r.reading_date >= g.from).reduce((sum, r) => sum + Number(r.value), 0);
       if (g.owner_member_id) {
-        const todays = stepDays.get(`${g.owner_member_id}|${today}`)?.readings ?? [];
+        const todays = todaySteps.filter((r) => r.member_id === g.owner_member_id).map((r) => ({ source: r.source, value: parseFloat(r.value_text.replace(/,/g, "")) || 0 }));
         const auto = todays.filter((r) => r.source !== "manual");
         const typed = todays.filter((r) => r.source === "manual");
         autoToday = auto.length > 0 ? stepsForDay(auto) : null;
         manualToday = typed.length > 0 ? stepsForDay(typed) : null;
       }
     } else if (g.kind === "weight") {
-      const mine = weights.filter((w) => w.member_id === g.owner_member_id).map((w) => ({ date: w.reading_date, value: parseFloat(w.value_text) })).filter((w) => w.value > 0);
-      // Newest first. Where the goal started is what it was set with, or else
-      // the first reading since it was made.
+      // Newest first, from planner_goal_readings.
+      const mine = readings.filter((r) => r.goal_id === g.id).map((r) => ({ date: r.reading_date, value: Number(r.value) })).filter((w) => w.value > 0);
+      // Where the goal started is what it was set with, or else the first
+      // reading since it was made.
       const latest = mine[0]?.value ?? null;
       start = g.start_value ?? [...mine].reverse().find((w) => w.date >= g.from)?.value ?? null;
       noData = latest === null;
@@ -209,6 +208,7 @@ export async function getGoals(familyId: string, viewer: Viewer, weekStart: 0 | 
         : null,
       autoToday,
       manualToday,
+      visibility: g.visibility === "private" ? "private" : "household",
       change: c
         ? {
             id: c.id,

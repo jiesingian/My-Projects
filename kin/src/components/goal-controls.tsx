@@ -17,6 +17,7 @@ import {
   markGoalRewardGivenAction,
   refuseGoalChangeAction,
   refuseGoalRewardAction,
+  setGoalVisibilityAction,
   stepGoalWaterAction,
   unlogGoalAction,
   unlogGoalReadingAction,
@@ -327,5 +328,35 @@ export function GoalDeleteButton({ goalId, title }: { goalId: string; title: str
       </button>
       <ErrorLine error={error} />
     </span>
+  );
+}
+
+/** Who sees the goal, switched by its owner on the edit page. It does not
+ * change what the goal measures, so it applies at once. */
+export function GoalVisibilitySwitch({ goalId, visibility, hasGiver }: { goalId: string; visibility: "household" | "private"; hasGiver: boolean }) {
+  const { pending, error, run } = useGoalAction();
+  const pick = (v: "household" | "private") => {
+    if (v !== visibility) run(() => setGoalVisibilityAction(goalId, v));
+  };
+  return (
+    <div style={{ marginBottom: "1.125rem" }}>
+      <p style={{ fontSize: "0.75rem", letterSpacing: ".04em", textTransform: "uppercase", color: "var(--color-neutral-600)", margin: "0 0 0.5rem" }}>Visible to</p>
+      <div style={{ display: "flex", flexWrap: "wrap", gap: "0.375rem" }}>
+        <button type="button" className="chip" data-active={visibility === "household"} aria-pressed={visibility === "household"} disabled={pending} onClick={() => pick("household")}>
+          <Icon name="house" size={13} />
+          Whole household
+        </button>
+        <button type="button" className="chip" data-active={visibility === "private"} aria-pressed={visibility === "private"} disabled={pending} onClick={() => pick("private")}>
+          <Icon name="eyeOff" size={13} />
+          Just me
+        </button>
+      </div>
+      <p style={{ fontSize: "0.78125rem", color: "var(--color-neutral-600)", margin: "0.375rem 0 0", lineHeight: 1.45 }}>
+        {visibility === "private"
+          ? `Only you see this goal${hasGiver ? ", and whoever gives its reward" : ""}. Readings you log on it stay “Just me” in Health.`
+          : "Everyone in the house sees this goal and how far along it is. Your readings in Health keep their own setting."}
+      </p>
+      <ErrorLine error={error} />
+    </div>
   );
 }

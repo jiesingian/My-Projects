@@ -61,8 +61,8 @@ export default async function ({ db, check }) {
     `);
     await db.query("update families set time_zone = 'America/Los_Angeles', access_status = 'trialing', access_expires_at = '2026-10-08 12:00+00' where id = $1", [D]);
     await db.query("update members set is_organiser = true where full_name = 'Dan D'");
-    const g = (await db.query("insert into planner_goals (family_id, title, owner_member_id) values ($1, 'Read 5 books', '00000000-0000-0000-0000-0000000000d2') returning id", [D])).rows[0].id;
-    await db.query("insert into planner_goal_rewards values ($1, 'Pizza', 'claimed', '00000000-0000-0000-0000-0000000000d1', '2026-10-06 20:00+00', null, null)", [g]);
+    const g = (await db.query("insert into planner_goals (family_id, title, kind, owner_member_id) values ($1, 'Read 5 books', 'custom', '00000000-0000-0000-0000-0000000000d2') returning id", [D])).rows[0].id;
+    await db.query("insert into planner_goal_rewards (goal_id, family_id, title, status, giver_member_id, claimed_at) values ($1, $2, 'Pizza', 'claimed', '00000000-0000-0000-0000-0000000000d1', '2026-10-06 20:00+00')", [g, D]);
     // 7 Oct 05:00 UTC is 22:00 on 6 Oct in Los Angeles: quiet hours there.
     const quiet = (await run("due_trial_reminders", "2026-10-07 05:00+00")).length + (await run("due_goal_reward_reminders", "2026-10-07 05:00+00")).length;
     // 17:00 UTC is 10:00 in Los Angeles.

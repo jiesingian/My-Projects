@@ -612,6 +612,17 @@ Decided against in the same review: revising Journal (item 6) and Planner
   counts, whoever sent it. Undo takes back the latest hand entry of the
   week and never touches Apple Health's. Steps and weight logging stay Plus.
   The water tracker left Household → Meals (Jonathan, 13 October).
+- Goals "Whole household" / "Just me" (Jonathan, 13 October): a personal
+  goal's owner chooses, like a personal Wealth account; only a grown-up may
+  hide one, a household goal never is, and someone setting a goal for
+  another person cannot. Weight starts as "Just me", the rest as the
+  household's. Private hides the goal, its entries, reward and change
+  requests from everyone but the owner and the reward's giver -- held by
+  the policies, so Today, the digest, Kin AI and the export cannot show it.
+  Readings logged on a private goal are "Just me" in Health. A shared
+  steps/weight goal fills through planner_goal_readings() even when the
+  readings are private in Health: sharing a goal shares its numbers.
+  20261013170000; probes/goal-visibility.mjs (25 cases, PGlite).
 
 - Review fixes (28 September, every page rendered signed in against a local
   stand-in with an invented household): a child with their own login showed
