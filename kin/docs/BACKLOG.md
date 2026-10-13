@@ -3,6 +3,117 @@
 What is agreed but not built yet, and what is waiting on somebody. Update
 it in the same pull request that finishes or adds an item.
 
+## Agreed 13 October: first open (Jonathan)
+
+Why: not everyone who opens Kin came by referral or is sure they want it.
+Today's home page asks them to set up their family from the first tap ("I
+feel like I'm already committing ... I will stop the set-up and delete the
+app"), and people are wary of automatic subscription payments. The new
+order: a family check-up first, a graded result, a few slides, a plan, the
+least setup possible, then a guided tour. It will be advertised on Facebook,
+so it has to work inside Facebook's in-app browser. Shared state lives in
+`src/lib/first-open.ts` (browser only, never sent: answer 9A).
+
+**Group A: the public check-up (signed-out `/`).** Replaces today's
+name / who / wants / tour / why steps (answer 13).
+- First screen (typed-in visitors): the 3D house, "Take the 1-minute family
+  check-up", "I have an invite code", Sign in. `/?start=quiz` (the link ads
+  will use) opens straight at question 1. People with an invite link never
+  see the check-up.
+- Nine questions, one per screen, progress bar, Back, can't-answer-wrong:
+  1. Who's at home? (many) Partner, Kids under 13, Teens, Lolo/Lola,
+     Kasambahay/yaya, Someone working abroad, Just me for now.
+  2. How many apps does your family use to stay organised? 1, 2-3, 4 or
+     more, We don't really.
+  3. Your top 3, in order (tap order is the rank): Health & medicines,
+     Documents, Emergency info, Kids' safety & location, Plans & schedules,
+     Groceries & meals, Money & bills, Family memories.
+  4. If someone got sick at 2 a.m., how fast could you find their
+     allergies, medicines, blood type and HMO card? Under a minute, I'd
+     have to look, I'd have to ask someone, I couldn't.
+  5. Where are the PSA certificates, passports and insurance policies? One
+     folder at home, Photos on someone's phone, In the cloud, All over the
+     place.
+  6. When the kids are out, how do you know they're okay? (skipped when Q1
+     has no kids or teens) They message me, I keep calling, We use a
+     location app, Honestly, I worry.
+  7. What takes the most back-and-forth at home? (up to 3) Groceries &
+     meals, Chores, School & schedules, Bills & budget, Savings goals.
+  8. What would your family actually use in a family chat? (many) Photo
+     albums, Polls, Voice/video calls, A shared journal of events, An AI
+     helper that knows your family's info.
+  9. How do you feel about AI helping your family? Ready to try, Curious
+     but privacy first, Not for me.
+- Grading (answer 3A): a Family Readiness score out of 100 with a label
+  (0-39 Getting started, 40-69 On the way, 70-100 Well connected) and five
+  bars: Health & safety (Q4 + emergency), Documents (Q5), Kids & location
+  (Q6), Running the home (Q2, Q7), Staying close (Q8). The top 3 weigh
+  most. Fixed rules in the browser, no AI, unit-tested. Every line is "the
+  easy win", never "you're failing".
+- Results page: score and label, the five bars, for each of the top 3 "You
+  said X -> in Kin, Y" naming the real feature, "One app instead of N" from
+  Q2, and the privacy line when Q9 is "privacy first" ("Private to your
+  family. Nothing is sold, and your records never train AI."). Then "See how
+  it works". (A shareable result image: later, not this series.)
+- Showcase (answer 5): three slides from the top 3 plus one "one app,
+  private to your family", each a real phone screenshot of the sample
+  household (QA_HOUSEHOLDS.md), swipeable, skippable.
+- Plan step (answer 6A): "Start with Plus free" (highlighted) or "Just Kin
+  Free". Both start the same 7-day trial; under them, plainly: no card, no
+  automatic payment ever unless you subscribe yourself, a reminder on the
+  last day, do nothing and you move to Kin Free and keep everything. Prices
+  from plans.ts: ₱149/mo or ₱1,490/yr. The choice goes into first-open and on
+  to sign-up. Then "Create your account".
+
+**Group B: the least setup (watched account screens).**
+- Sign-up: email and password on one screen, then a 6-digit code typed on
+  the same screen (Supabase email OTP, `verifyOtp` type `signup`) instead of
+  the link, which opens outside Facebook's browser and loses the session.
+  Changing the email template on dev and production is Jonathan's or
+  Janine's step: the PR body gives the exact dashboard links (ask-a-person).
+  Until the template carries the code, the link must keep working.
+- One setup screen: your name and family name, Country folded away
+  (Philippines by default), the Kin code tucked away as now. Then Today.
+  Birthday, mobile, the surname suggestion and the members screen leave the
+  path (adding kids and inviting a partner are Start here steps); the
+  surname suggestion moves to Settings beside the household name.
+- The plan chosen is saved on the household (`families.chosen_plan`, set by
+  the create function, readable like the rest of the family row) and only
+  changes the trial card's and reminders' wording.
+- No "Sign in with Google": Google refuses it inside Facebook's browser.
+
+**Group C: inside the app (Today, Settings).**
+- Guided tour (answer 8A): 4-5 spotlight steps on the real Today (Today,
+  Planner, Chat, Family/Health, Ask Kin), skippable, shown once per member,
+  "Show me around" in Settings replays it. Built in-house, no new library.
+- Start here follows the top 3: health first adds "Add allergies and blood
+  type", kids "Turn on location sharing", emergency "Fill in the emergency
+  card", documents "Add one PSA certificate" (vault: Plus, which the trial
+  has). Invite partner and add the kids stay. Built 13 October: the top 3
+  never leaves the phone, so the server sends every step and the card picks
+  and orders them (a step moves up with its priority's rank).
+- Trial bonus (answer 6): 7 days, and a household that finishes every Start
+  here step within 24 hours of being created gets 7 more, once (14 in
+  all). Checked from the family's own records by a security-definer
+  function, the same way Kin offers are; Kin offers stay as they are.
+  Today's Start here says so ("Finish these today for 7 more days of Plus").
+
+**Group D: English and Taglish (answer 11C).** A language switch (English /
+Taglish) in Settings and on the first screen, remembered per person.
+Strings in typed dictionaries, no new library unless the Next docs in
+node_modules say otherwise. First the public pages, account screens and
+tour; then the app, area by area. Wording written by Claude, reviewed by
+Jonathan or Janine. Built after A-C are merged, since it touches the same
+screens.
+
+**Not now: the ad stage (answers 10 and 12).** Set up once the app is
+done: the Meta pixel and Conversions API on the public pages only, after a
+consent banner; anonymous per-screen drop-off counting; a privacy notice
+section naming Meta; campaigns (Philippines broad, a separate OFW one,
+quiz/pain/OFW creatives in Taglish and English). Kin no longer promises "no
+ads" (answer 10: running costs may need some revenue); as few ads inside
+the app as possible. The copy promising none was removed 13 October.
+
 ## Agreed 30 September: chat competitive with Telegram
 
 Jonathan approved ten chat features, each its own pull request, in this

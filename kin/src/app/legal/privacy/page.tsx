@@ -59,8 +59,7 @@ export default function PrivacyPage() {
         withdraw consent by deleting the information or your account.
       </p>
       <p>
-        <strong>We do not sell your information, show you ads, or use your family&rsquo;s records to train AI
-        models.</strong>
+        <strong>We do not sell your information or use your family&rsquo;s records to train AI models.</strong>
       </p>
 
       <h2>Who can see it</h2>

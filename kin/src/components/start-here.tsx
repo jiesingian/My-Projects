@@ -1,31 +1,68 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useMemo, useState, useSyncExternalStore, useTransition } from "react";
 import Link from "next/link";
 import { Icon, type IconName } from "@/components/icons";
 import { dismissStartHereAction } from "@/lib/actions/settings";
-import type { StartStep } from "@/lib/queries/start-here";
+import { FIRST_OPEN_KEY, readFirstOpen, type Priority } from "@/lib/first-open";
+import type { StartStep, StartStepId } from "@/lib/queries/start-here";
 
-const ICONS: Record<StartStep["id"], IconName> = {
+const ICONS: Record<StartStepId, IconName> = {
   event: "calendarDays",
   invite: "users",
+  children: "housePlus",
   bills: "receipt",
   chore: "check",
   list: "basket",
+  health: "activity",
+  location: "mapPin",
+  emergency: "shieldCheck",
+  documents: "fileText",
+};
+
+/** The steps this family sees, in its order: an extra only when its priority
+ * is in the top 3, and each step moved up by its priority's rank -- an extra
+ * just ahead of the base step that shares it. No top 3: the base steps as
+ * they come. */
+function arrangeSteps(steps: StartStep[], top3: readonly Priority[]): StartStep[] {
+  const rank = (s: StartStep) => {
+    const i = s.priority ? top3.indexOf(s.priority) : -1;
+    return i < 0 ? top3.length : i;
+  };
+  const shown = [...steps.filter((s) => s.extra && s.priority && top3.includes(s.priority)), ...steps.filter((s) => !s.extra)];
+  // Array.prototype.sort is stable, so ties keep the order above.
+  return shown.sort((a, b) => rank(a) - rank(b));
+}
+
+// The saved check-up, read without a hydration mismatch: the server has none.
+const subscribe = (onChange: () => void) => {
+  window.addEventListener("storage", onChange);
+  return () => window.removeEventListener("storage", onChange);
+};
+const savedCheckUp = () => {
+  try {
+    return localStorage.getItem(FIRST_OPEN_KEY);
+  } catch {
+    return null;
+  }
 };
 
 /** "Start here" on Today, for a new family (approved 28 September). Which
- * steps are done comes from the server (queries/start-here.ts); this only
- * draws them, shares the invite, and hides the card.
+ * steps are done comes from the server (queries/start-here.ts); this picks
+ * and orders them by the check-up's top 3 kept on this phone, draws them,
+ * shares the invite, and hides the card.
  *
  * No entrance animation: it sits on Today, which people open many times a
  * day. A done step is plain and struck through rather than animated away,
  * so the four stay in place and the progress reads at a glance. */
-export function StartHere({ steps, inviteCode }: { steps: StartStep[]; inviteCode: string }) {
+export function StartHere({ steps: all, inviteCode }: { steps: StartStep[]; inviteCode: string }) {
   const [hidden, setHidden] = useState(false);
   const [pending, startTransition] = useTransition();
   const [shared, setShared] = useState(false);
-  if (hidden) return null;
+  const saved = useSyncExternalStore(subscribe, savedCheckUp, () => null);
+  // `saved` is what changes; readFirstOpen parses and checks that same value.
+  const steps = useMemo(() => arrangeSteps(all, saved ? (readFirstOpen()?.top3 ?? []) : []), [all, saved]);
+  if (hidden || steps.every((s) => s.done)) return null;
 
   const done = steps.filter((s) => s.done).length;
 

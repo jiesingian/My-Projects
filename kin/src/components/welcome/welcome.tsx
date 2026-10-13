@@ -49,7 +49,7 @@ const WHY: { icon: IconName; title: string; line: string }[] = [
   {
     icon: "shieldCheck",
     title: "Private to your family",
-    line: "Each household is walled off from every other. Nothing is sold, there are no ads, and your records never train AI.",
+    line: "Each household is walled off from every other. Nothing is sold, and your records never train AI.",
   },
   {
     icon: "sparkle",
