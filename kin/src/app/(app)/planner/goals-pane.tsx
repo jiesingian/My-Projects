@@ -6,7 +6,8 @@ import { Icon } from "@/components/icons";
 import { GoalRing } from "@/components/goal-ring";
 import { GoalChangeAnswer, GoalClaim, GoalDeleteButton, GoalLog, GoalRewardAnswer, GoalRewardClaim, GoalRewardConfirm, GoalRewardGiven, GoalRewardWithdraw } from "@/components/goal-controls";
 import { getGoals, type GoalView } from "@/lib/queries/goals";
-import { GOAL_KIND_META, PERIOD_NOW, goalNumber } from "@/lib/goals";
+import { GOAL_KIND_META, PERIOD_NOW, goalNumber, goalSource, type AppleHealthLink } from "@/lib/goals";
+import { createClient } from "@/lib/supabase/server";
 import { formatCurrency } from "@/lib/format";
 import { memberColourVar } from "@/lib/member-colours";
 import { getMembers } from "@/lib/queries/family";
@@ -43,7 +44,16 @@ export async function GoalsPane({
   /** Kin Plus: steps and weight readings can be logged. */
   plus: boolean;
 }) {
-  const [goals, members, tz] = await Promise.all([getGoals(familyId, me, weekStart), getMembers(familyId), householdZone()]);
+  const supabase = await createClient();
+  const [goals, members, tz, { data: link }] = await Promise.all([
+    getGoals(familyId, me, weekStart),
+    getMembers(familyId),
+    householdZone(),
+    // The viewer's own Apple Health link, for "Fills from" on their steps and
+    // weight goals (only their own is theirs to know).
+    supabase.rpc("apple_health_status"),
+  ]);
+  const appleHealth: AppleHealthLink = link?.[0] ? { lastUsedAt: link[0].last_used_at } : null;
   const today = familyDay(new Date(), tz);
   const colourOf = new Map(members.map((m) => [m.id, memberColourVar(m.id, m.color)]));
   // A household goal concerns everyone, so it stays when narrowing to one
@@ -73,12 +83,12 @@ export async function GoalsPane({
         </p>
       )}
       {open.map((g, i) => (
-        <GoalCard key={g.id} goal={g} index={i} meId={me.id} today={today} plus={plus} currency={currency} colour={g.ownerId ? (colourOf.get(g.ownerId) ?? null) : null} />
+        <GoalCard key={g.id} goal={g} index={i} meId={me.id} today={today} plus={plus} appleHealth={appleHealth} currency={currency} colour={g.ownerId ? (colourOf.get(g.ownerId) ?? null) : null} />
       ))}
       <CompletedToggle seg="goals" who={who} count={finished.length} shown={done} />
       {done &&
         finished.map((g, i) => (
-          <GoalCard key={g.id} goal={g} index={open.length + i} meId={me.id} today={today} plus={plus} currency={currency} colour={g.ownerId ? (colourOf.get(g.ownerId) ?? null) : null} />
+          <GoalCard key={g.id} goal={g} index={open.length + i} meId={me.id} today={today} plus={plus} appleHealth={appleHealth} currency={currency} colour={g.ownerId ? (colourOf.get(g.ownerId) ?? null) : null} />
         ))}
       <Link href="/planner/goals/new" className="btn btn-secondary" style={{ width: "100%", gap: "0.375rem", marginTop: "0.25rem" }}>
         <Icon name="plus" size={17} /> Set a goal
@@ -110,7 +120,7 @@ function caption(goal: GoalView, currency: string): string {
   return `${goalNumber(goal.current)} of ${goalNumber(goal.target)}${unit ? ` ${unit}` : ""} ${PERIOD_NOW[goal.period]}`;
 }
 
-function GoalCard({ goal, index, meId, today, plus, currency, colour }: { goal: GoalView; index: number; meId: string; today: string; plus: boolean; currency: string; colour: string | null }) {
+function GoalCard({ goal, index, meId, today, plus, currency, colour, appleHealth }: { goal: GoalView; index: number; meId: string; today: string; plus: boolean; currency: string; colour: string | null; appleHealth: AppleHealthLink }) {
   const meta = GOAL_KIND_META[goal.kind];
   const whose = goal.ownerId === null ? "Whole household" : goal.ownerId === meId ? "You" : (goal.ownerName?.split(" ")[0] ?? "Someone");
   const pct = Math.round(goal.fraction * 100);
@@ -139,11 +149,8 @@ function GoalCard({ goal, index, meId, today, plus, currency, colour }: { goal: 
           </div>
           <div style={{ font: "600 1.0625rem/1.25 var(--font-heading)", marginTop: "0.125rem" }}>{goal.title}</div>
           <div style={{ fontSize: "0.8125rem", color: "var(--color-neutral-700)", marginTop: "0.125rem" }}>{caption(goal, currency)}</div>
-          {goal.savingsTitle && (
-            <div style={{ fontSize: "0.75rem", color: "var(--color-neutral-600)", marginTop: "0.125rem" }}>From “{goal.savingsTitle}” on Wealth</div>
-          )}
           {goal.dueDate && <div style={{ fontSize: "0.75rem", color: "var(--color-neutral-600)", marginTop: "0.125rem" }}>By {readableDate(goal.dueDate)}</div>}
-          {!meta.logged && <div style={{ fontSize: "0.75rem", color: "var(--color-neutral-600)", marginTop: "0.125rem", lineHeight: 1.4 }}>{meta.hint}</div>}
+          <SourceLine goal={goal} meId={meId} appleHealth={appleHealth} />
         </div>
       </div>
 
@@ -162,7 +169,7 @@ function GoalCard({ goal, index, meId, today, plus, currency, colour }: { goal: 
             locked={meta.plus && !plus ? `Logging ${meta.label.toLowerCase()} is part of Kin Plus.` : null}
           />
         ) : (
-          <span style={{ fontSize: "0.75rem", color: "var(--color-neutral-600)" }}>{meta.hint}</span>
+          <span />
         )}
         <span style={{ display: "inline-flex", alignItems: "center" }}>
           <Link href={`/planner/goals/${goal.id}/edit`} className="btn btn-ghost" style={{ minHeight: "1.875rem", fontSize: "0.78125rem", padding: "0 0.5rem", color: "var(--color-neutral-700)" }}>
@@ -172,6 +179,25 @@ function GoalCard({ goal, index, meId, today, plus, currency, colour }: { goal: 
         </span>
       </div>
     </Blueprint>
+  );
+}
+
+/** Where the goal fills from, and a way to connect Apple Health when the
+ * owner hasn't. */
+export function SourceLine({ goal, meId, appleHealth }: { goal: GoalView; meId: string; appleHealth: AppleHealthLink }) {
+  const { text, connect } = goalSource(goal.kind, { savingsTitle: goal.savingsTitle, mine: goal.ownerId === meId, ownerFirst: goal.ownerName?.split(" ")[0] ?? null, appleHealth });
+  return (
+    <div style={{ fontSize: "0.75rem", color: "var(--color-neutral-600)", marginTop: "0.125rem", lineHeight: 1.4 }}>
+      {text}
+      {connect && (
+        <>
+          {" "}
+          <Link href="/settings/connected" style={{ color: "var(--color-accent-solid)", fontWeight: 600 }}>
+            Connect Apple Health
+          </Link>
+        </>
+      )}
+    </div>
   );
 }
 

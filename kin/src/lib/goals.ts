@@ -180,3 +180,38 @@ export function streakMilestones(days: string[]): { date: string; reached: 7 | 3
 
 /** The most a goal can be worth each time it is met. */
 export const MAX_GOAL_POINTS = 1000;
+
+/** The viewer's own Apple Health link (apple_health_status), if any. */
+export type AppleHealthLink = { lastUsedAt: string | null } | null;
+
+/** Where a goal fills from, in a line for its card (Jonathan, 13 October:
+ * "show where it fills from, and offer to connect it if it isn't set up";
+ * say plainly which kinds have no app source). `connect` asks the card to
+ * link to Settings → Connected. Only the owner's own link is known to the
+ * viewer, so another person's goal says whose Apple Health it reads. */
+export function goalSource(
+  kind: GoalKind,
+  opts: { savingsTitle: string | null; mine: boolean; ownerFirst: string | null; appleHealth: AppleHealthLink; now?: Date },
+): { text: string; connect: boolean } {
+  if (kind === "steps" || kind === "weight") {
+    if (!opts.mine) {
+      return { text: opts.ownerFirst ? `Fills from ${opts.ownerFirst}’s Apple Health, if connected, and what’s logged here.` : "Fills from each person’s Apple Health, if connected, and what’s logged here.", connect: false };
+    }
+    if (!opts.appleHealth) return { text: "Apple Health isn’t connected — log it here, or connect it to fill this by itself.", connect: true };
+    const last = opts.appleHealth.lastUsedAt;
+    return { text: last ? `Fills from Apple Health · last sent ${sinceText(last, opts.now ?? new Date())}.` : "Apple Health is connected · nothing sent yet — run the Shortcut once.", connect: false };
+  }
+  if (kind === "water") return { text: "No app sends water yet. Add a glass here — it’s the same count as Today.", connect: false };
+  if (kind === "money") return { text: opts.savingsTitle ? `Fills from “${opts.savingsTitle}” on Wealth.` : "Fills from what’s put by here. No app source.", connect: false };
+  return { text: "No app source — log it here.", connect: false };
+}
+
+/** "5 min ago", "2 h ago", "3 days ago". */
+export function sinceText(iso: string, now: Date): string {
+  const mins = Math.max(0, Math.round((now.getTime() - new Date(iso).getTime()) / 60000));
+  if (mins < 60) return mins <= 1 ? "just now" : `${mins} min ago`;
+  const hours = Math.round(mins / 60);
+  if (hours < 24) return `${hours} h ago`;
+  const days = Math.round(hours / 24);
+  return days === 1 ? "yesterday" : `${days} days ago`;
+}
