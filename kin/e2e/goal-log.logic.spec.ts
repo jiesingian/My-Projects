@@ -1,5 +1,5 @@
 import { test, expect } from "@playwright/test";
-import { claimStreak, daysBefore, goalSource, isLoggableDay, periodBefore, stepsForDay, streakMilestones } from "@/lib/goals";
+import { claimStreak, daysBefore, goalSource, isEverydayGoal, isLoggableDay, periodBefore, stepsForDay, streakMilestones } from "@/lib/goals";
 
 /** Logging a goal by hand (Jonathan, 13 October): a day's steps are counted
  * once whichever way they arrived, and an entry can be dated back a week. */
@@ -63,4 +63,18 @@ test("where a goal fills from, said plainly", () => {
   expect(goalSource("water", { ...base, appleHealth: null }).text).toContain("No app sends water");
   expect(goalSource("gym", { ...base, appleHealth: null }).text).toBe("No app source — log it here.");
   expect(goalSource("money", { ...base, savingsTitle: "Japan trip", appleHealth: null }).text).toContain("“Japan trip” on Wealth");
+});
+
+test("which goals get a row on Today", () => {
+  const me = "me";
+  const g = (kind: Parameters<typeof isEverydayGoal>[0]["kind"], period: Parameters<typeof isEverydayGoal>[0]["period"], ownerId: string | null = me) => isEverydayGoal({ kind, period, ownerId }, me);
+  expect(g("water", "day")).toBe(true);
+  expect(g("steps", "day", null)).toBe(true);
+  expect(g("gym", "week")).toBe(true);
+  expect(g("weight", "total")).toBe(true);
+  expect(g("water", "day", "someone else")).toBe(false);
+  expect(g("money", "day")).toBe(false);
+  expect(g("custom", "total")).toBe(false);
+  expect(g("steps", "month")).toBe(false);
+  expect(g("weight", "total", null)).toBe(false);
 });

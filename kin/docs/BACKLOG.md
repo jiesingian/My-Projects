@@ -632,6 +632,12 @@ Decided against in the same review: revising Journal (item 6) and Planner
   with "Connect Apple Health" to Settings → Connected when the owner
   hasn't; money from its savings goal on Wealth; water, gym and custom say
   plainly that no app sends them (goalSource). No new integrations.
+- Daily goals on Today (Jonathan, 13 October, item 3 of 3): "Today's
+  goals", after the Today list -- the viewer's own and the household's
+  goals that move day to day (isEverydayGoal: daily goals but money, weekly
+  gym and counts, one's own weight), each with its ring, the same hand
+  entry as Planner (+ / − glass, the day's steps, a session, Undo) and the
+  claim once met. Not yet met first; nothing to show, no heading.
 
 - Review fixes (28 September, every page rendered signed in against a local
   stand-in with an invented household): a child with their own login showed

@@ -215,3 +215,15 @@ export function sinceText(iso: string, now: Date): string {
   const days = Math.round(hours / 24);
   return days === 1 ? "yesterday" : `${days} days ago`;
 }
+
+/** The goals worth a row on Today (Jonathan, 13 October, item 3): the
+ * viewer's own and the household's, that move day to day -- a daily goal
+ * of any kind but money, a weekly gym or count, and a weight goal for the
+ * day's weigh-in. Money stays on Wealth; one-off counts stay on Planner. */
+export function isEverydayGoal(g: { kind: GoalKind; period: GoalPeriod; ownerId: string | null }, meId: string): boolean {
+  if (g.ownerId !== null && g.ownerId !== meId) return false;
+  if (g.kind === "money") return false;
+  if (g.kind === "weight") return g.ownerId === meId;
+  if (g.period === "day") return true;
+  return g.period === "week" && (g.kind === "gym" || g.kind === "custom");
+}
