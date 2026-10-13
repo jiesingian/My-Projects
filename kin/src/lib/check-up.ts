@@ -5,7 +5,10 @@ import { AREAS, PRIORITIES, type Area, type Priority } from "@/lib/first-open";
  * score worked out here in the browser by fixed rules. No AI, nothing sent.
  *
  * There is no wrong answer. A low bar means "this is where Kin helps most",
- * and every line written from it is the easy win, never "you're failing". */
+ * and every line written from it shows what could be easier, never "you're
+ * failing". Every question needs an answer (Jonathan, 13 October: a skipped
+ * question scored as the middle made an empty check-up read 50/100), so
+ * each one has an answer for the family it doesn't fit. */
 
 export type Option = { id: string; label: string };
 
@@ -37,29 +40,33 @@ export const QUESTIONS: Question[] = [
   {
     id: "home",
     title: "Who’s at home?",
-    hint: "Pick everyone you live with. Walang maling sagot.",
+    hint: "Pick everyone you live with. There’s no wrong answer.",
     kind: "many",
     alone: "solo",
     options: [
       { id: "partner", label: "Partner" },
       { id: "kids", label: "Kids under 13" },
       { id: "teens", label: "Teens" },
-      { id: "lolo", label: "Lolo/Lola" },
-      { id: "helper", label: "Kasambahay/yaya" },
+      { id: "lolo", label: "Grandparents" },
+      { id: "helper", label: "Household helper or nanny" },
       { id: "abroad", label: "Someone working abroad" },
       { id: "solo", label: "Just me for now" },
     ],
   },
   {
-    id: "apps",
-    title: "How many apps does your family use to stay organised?",
-    hint: "The group chat, notes, calendars, that spreadsheet of bills.",
-    kind: "one",
+    id: "tools",
+    title: "How does your family keep track of things?",
+    hint: "Plans, lists, bills and reminders. Pick everything you use, on a phone or on paper.",
+    kind: "many",
+    alone: "none",
     options: [
-      { id: "one", label: "1" },
-      { id: "few", label: "2-3" },
-      { id: "lots", label: "4 or more" },
-      { id: "none", label: "We don’t really" },
+      { id: "chat", label: "A group chat (Messenger, Viber, WhatsApp)" },
+      { id: "calendar", label: "A shared calendar app" },
+      { id: "notes", label: "Notes or reminder apps" },
+      { id: "sheet", label: "Spreadsheets" },
+      { id: "paper", label: "Paper: a notebook, wall calendar or sticky notes" },
+      { id: "memory", label: "We remember and remind each other" },
+      { id: "none", label: "We don’t really keep track" },
     ],
   },
   {
@@ -86,10 +93,11 @@ export const QUESTIONS: Question[] = [
     title: "Where are the PSA certificates, passports and insurance policies?",
     kind: "one",
     options: [
+      { id: "safe", label: "In a safe or locked cabinet" },
       { id: "folder", label: "One folder at home" },
       { id: "photos", label: "Photos on someone’s phone" },
-      { id: "cloud", label: "In the cloud" },
-      { id: "scattered", label: "All over the place" },
+      { id: "cloud", label: "Scanned and saved online" },
+      { id: "scattered", label: "In different places" },
     ],
   },
   {
@@ -109,12 +117,14 @@ export const QUESTIONS: Question[] = [
     hint: "Up to 3.",
     kind: "ranked",
     max: 3,
+    alone: "smooth",
     options: [
       { id: "meals", label: "Groceries & meals" },
       { id: "chores", label: "Chores" },
       { id: "school", label: "School & schedules" },
       { id: "bills", label: "Bills & budget" },
       { id: "savings", label: "Savings goals" },
+      { id: "smooth", label: "Not much, it runs smoothly" },
     ],
   },
   {
@@ -122,12 +132,14 @@ export const QUESTIONS: Question[] = [
     title: "What would your family actually use in a family chat?",
     hint: "Pick as many as you like.",
     kind: "many",
+    alone: "nothing",
     options: [
       { id: "albums", label: "Photo albums" },
       { id: "polls", label: "Polls" },
       { id: "calls", label: "Voice/video calls" },
       { id: "journal", label: "A shared journal of events" },
       { id: "ai", label: "An AI helper that knows your family’s info" },
+      { id: "nothing", label: "None of these" },
     ],
   },
   {
@@ -135,6 +147,7 @@ export const QUESTIONS: Question[] = [
     title: "How do you feel about AI helping your family?",
     kind: "one",
     options: [
+      { id: "regular", label: "I already use AI tools regularly" },
       { id: "ready", label: "Ready to try" },
       { id: "privacy", label: "Curious but privacy first" },
       { id: "no", label: "Not for me" },
@@ -187,7 +200,7 @@ export const PRIORITY_AREA: Record<Priority, Area> = {
 };
 
 /** Where an unanswered question leaves its bar: the middle, neither praise
- * nor alarm. */
+ * nor alarm. Only answers saved before a question changed get here now. */
 const UNKNOWN = 50;
 
 const SICK: Record<string, number> = {
@@ -196,9 +209,12 @@ const SICK: Record<string, number> = {
   ask: 35,
   cant: 15,
 };
+// Originals locked away are well kept; what they lack is a copy you can
+// reach when you're away from home.
 const PAPERS: Record<string, number> = {
+  safe: 70,
   cloud: 75,
-  folder: 65,
+  folder: 60,
   photos: 40,
   scattered: 15,
 };
@@ -208,12 +224,35 @@ const KIDS: Record<string, number> = {
   calling: 40,
   worry: 20,
 };
-const APPS: Record<string, number> = { one: 80, few: 55, lots: 30, none: 35 };
 
 const one = (answers: Answers, id: string, table: Record<string, number>): number | null => {
   const a = answers[id]?.[0];
   return a !== undefined && a in table ? table[a] : null;
 };
+
+/** The places question 2 says the family keeps track in, leaving out "we
+ * remember" and "we don't", which aren't places. */
+export function trackingPlaces(answers: Answers): string[] {
+  return (answers.tools ?? []).filter((t) => t !== "memory" && t !== "none");
+}
+
+/** Question 2 as a bar: one place is organised; every extra place is one
+ * more to check; nothing written down at all is where Kin helps most. */
+function toolsScore(answers: Answers): number {
+  const tools = answers.tools;
+  if (!tools?.length) return UNKNOWN;
+  const places = trackingPlaces(answers).length;
+  if (places === 0) return tools.includes("memory") ? 35 : 25;
+  return [70, 70, 60, 50, 40][Math.min(places, 4)];
+}
+
+/** Question 7 as a bar: the more that takes back-and-forth, the lower. */
+function busyScore(answers: Answers): number {
+  const busy = answers.busy;
+  if (!busy?.length) return UNKNOWN;
+  if (busy.includes("smooth")) return 85;
+  return [85, 70, 55, 40][Math.min(busy.length, 3)];
+}
 
 /** Each bar, 0-100. Kids & location is left out when there are no children
  * at home, rather than scored as either perfect or empty. */
@@ -226,14 +265,13 @@ export function areaScores(answers: Answers): Partial<Record<Area, number>> {
 
   // Running the home: how scattered it is (question 2) and how much of it
   // takes back-and-forth (question 7), each half.
-  const apps = one(answers, "apps", APPS) ?? UNKNOWN;
-  const busy = answers.busy === undefined ? UNKNOWN : [85, 70, 55, 40][Math.min(answers.busy.length, 3)];
-  out.home = Math.round((apps + busy) / 2);
+  out.home = Math.round((toolsScore(answers) + busyScore(answers)) / 2);
 
   // Staying close: each thing they would use in a family chat is something
   // they don't have in one place yet, and someone working abroad makes it
   // matter more.
-  const close = answers.chat === undefined ? UNKNOWN : 75 - 10 * answers.chat.length;
+  const chat = (answers.chat ?? []).filter((c) => c !== "nothing");
+  const close = answers.chat?.length ? 75 - 10 * chat.length : UNKNOWN;
   out.close = Math.max(20, close - ((answers.home ?? []).includes("abroad") ? 10 : 0));
 
   return out;
@@ -282,27 +320,28 @@ export const AREA_LABELS: Record<Area, string> = {
   close: "Staying close",
 };
 
-/** One line under each bar. Below 70 it names the easy win; from 70 it says
- * what is already working. Never "you're failing". */
+/** One line under each bar. Below 70 it names what could be easier and
+ * how; from 70 it says what is already working. It never tells a family it
+ * is doing badly: the point is to notice, not to be told. */
 const AREA_LINES: Record<Area, [string, string]> = {
   health: [
-    "The easy win: everyone’s allergies, medicines, blood type and HMO card in one place you can open at 2 a.m.",
-    "You could find it fast. Kin keeps it that way for everyone at home, not just you.",
+    "At 2 a.m., finding it shouldn’t depend on who’s awake. With everyone’s allergies, medicines, blood type and HMO card in one place, anyone at home can open it.",
+    "You could find it fast. Kin makes that true for everyone at home, not just you.",
   ],
   documents: [
-    "The easy win: one safe place for the PSA certificates, passports and policies, not five phones.",
-    "Your papers are in order. Kin keeps a copy in one safe place, behind Face ID or a PIN.",
+    "The originals can stay safely where they are. What helps is knowing what you have, and a copy you can reach when you’re away from home.",
+    "Your papers are well kept. A copy in Kin’s vault, behind Face ID or a PIN, means you have them even when you’re away from home.",
   ],
   kids: [
-    "The easy win: knowing they got home safe without calling ten times.",
+    "Knowing they got home safe shouldn’t take ten calls. Location that each person chooses to share can do the asking for you.",
     "You’ve got a system. Kin puts it beside the family’s calendar and chat.",
   ],
   home: [
-    "The easy win: the list, the chores and the bills in one place, so nobody has to ask twice.",
-    "The home runs well. Kin saves the last few back-and-forths.",
+    "When plans, lists and bills live in different places, someone always ends up asking twice. One shared place takes that off everyone.",
+    "The home runs well. Kin can save the last few back-and-forths.",
   ],
   close: [
-    "The easy win: photos, polls and calls in the same place as everything else, lolo to bunso.",
+    "Photos, polls and calls are easier to share when they sit next to everything else, from the grandparents to the youngest.",
     "You’re close already. Kin gives it a home, photos and all.",
   ],
 };
@@ -325,20 +364,15 @@ export const PRIORITY_IN_KIN: Record<Priority, { line: string; plus?: boolean }>
   memories: { line: "the family journal: photos, milestones and first days, shared with relatives." },
 };
 
-/** From question 2: what Kin replaces. */
+/** From question 2: what Kin brings together. */
 export function oneAppLine(answers: Answers): string {
-  switch (answers.apps?.[0]) {
-    case "one":
-      return "Already down to one app? Kin can be the one with everything in it.";
-    case "few":
-      return "One app instead of 3.";
-    case "lots":
-      return "One app instead of 4 or more.";
-    case "none":
-      return "One app to start with, instead of memory and the group chat.";
-    default:
-      return "One app instead of five.";
-  }
+  const tools = answers.tools ?? [];
+  const places = trackingPlaces(answers).length;
+  if (tools.includes("none")) return "One place to start, without having to set up a system first.";
+  if (places === 0 && tools.includes("memory")) return "Less to carry in your heads: the dates, lists and bills in one place everyone can check.";
+  if (places === 1) return "Already one place? Kin keeps it that way, with the calendar, lists and bills side by side.";
+  if (places > 1) return `${places} places to keep track in today. In Kin, it’s one.`;
+  return "One place for the whole family, instead of five.";
 }
 
 /** Shown when question 9 is "Curious but privacy first": the promise as
@@ -348,3 +382,92 @@ export const PRIVACY_LINE = "Private to your family. Nothing is sold, and your r
 export function wantsPrivacyFirst(answers: Answers): boolean {
   return answers.ai?.[0] === "privacy";
 }
+
+/** What Kin does about an answer, shown under the question once it is
+ * answered (Jonathan, 13 October: each answer should show the feature that
+ * helps with it, not wait for the end). Only features Kin has today, in the
+ * words of plan-features.ts and PRIORITY_IN_KIN. `plus` as there. */
+export type Tip = { line: string; plus?: boolean };
+
+const HOME_TIPS: [string, Tip][] = [
+  ["abroad", { line: "Someone abroad sees the same calendar, lists and family chat, with voice and video calls built in." }],
+  ["lolo", { line: "Each person gets a health profile with their medicines and allergies, and an emergency card that reads at arm’s length." }],
+  ["kids", { line: "Kids get their own kid view: chores they earn stars for, and rewards they can save up for." }],
+  ["teens", { line: "Teens get the family calendar and chores on their own phone, and choose for themselves whether to share their location." }],
+  ["helper", { line: "One shared shopping list, pantry and meal plan, so everyone who runs the house works from the same list." }],
+  ["partner", { line: "You and your partner see the same calendar, lists and bills, so nobody has to ask twice." }],
+  ["solo", { line: "Start on your own, and invite the others with a code whenever you’re ready." }],
+];
+
+const BUSY_TIPS: Record<string, Tip> = {
+  meals: { line: PRIORITY_IN_KIN.meals.line },
+  chores: { line: "chores with stars and rewards, given out and ticked off in the app, so nobody has to remind twice." },
+  school: { line: PRIORITY_IN_KIN.plans.line },
+  bills: PRIORITY_IN_KIN.money,
+  savings: { line: "Wealth: accounts, budgets and net worth in one view, so everyone can see how the savings are going.", plus: true },
+  smooth: { line: "the calendar, the list and the chores shared by everyone, so it stays that way." },
+};
+
+const CHAT_TIPS: Record<string, Tip> = {
+  albums: { line: PRIORITY_IN_KIN.memories.line },
+  journal: { line: PRIORITY_IN_KIN.memories.line },
+  polls: { line: "polls in the family chat, to settle dinner or the weekend in a minute." },
+  calls: { line: "voice and video calls, built into the family chat." },
+  ai: { line: "Kin AI, which answers from your own family’s calendar, lists and records. Your records never train AI." },
+  nothing: { line: "a family chat that’s there when you want it, next to the calendar and lists it talks about." },
+};
+
+export function answerTip(id: string, answers: Answers): Tip | null {
+  const picked = answers[id] ?? [];
+  if (!picked.length) return null;
+  const first = picked[0];
+  switch (id) {
+    case "home":
+      return HOME_TIPS.find(([o]) => picked.includes(o))?.[1] ?? null;
+    case "tools":
+      if (picked.includes("none") || (picked.length === 1 && first === "memory"))
+        return { line: "Kin keeps the family calendar, the shopping list and bill reminders in one place, so nobody has to carry it all in their head." };
+      if (picked.includes("paper"))
+        return { line: "Keep the wall calendar if you love it. Kin puts the same plans on everyone’s phone, and Kin AI can read a school flyer for you." };
+      if (picked.length === 1 && first === "chat")
+        return { line: "Kin has its own family chat, with polls and calls, right next to the calendar and lists it’s talking about." };
+      return { line: "The calendar (synced with Google Calendar), the lists, the chat and the bills, all in one place everyone shares." };
+    case "top3": {
+      const p = topThree(answers)[0];
+      return p ? { line: `In Kin, ${PRIORITY_IN_KIN[p].line}`, plus: PRIORITY_IN_KIN[p].plus } : null;
+    }
+    case "sick":
+      return first === "minute"
+        ? { line: "Kin keeps it that fast for everyone at home: allergies, medicines, blood type and HMO details on each person’s health profile." }
+        : { line: "Each person’s allergies, medicines, blood type, doctor and HMO card on their health profile, and an emergency card that shows it all on one screen." };
+    case "papers":
+      if (first === "safe" || first === "folder")
+        return { line: "Keep the originals where they are. A copy in the vault, behind Face ID or a PIN, is there when you’re away from home.", plus: true };
+      if (first === "photos") return { line: "Instead of searching someone’s camera roll, keep each document in the vault, named, with whose it is.", plus: true };
+      if (first === "cloud") return { line: "The vault keeps them beside the rest of the family’s life, behind Face ID or a PIN.", plus: true };
+      return { line: "Start with one: add a document to the vault and it’s there for whoever needs it, behind Face ID or a PIN.", plus: true };
+    case "kids":
+      return first === "app"
+        ? { line: "Kin’s location sharing sits next to the family calendar and chat, so that’s one app less." }
+        : { line: "Location sharing that each person switches on for themselves, next to the family calendar, so you know where everyone should be." };
+    case "busy": {
+      const t = BUSY_TIPS[first];
+      return t ? { line: `In Kin, ${t.line}`, plus: t.plus } : null;
+    }
+    case "chat": {
+      const t = CHAT_TIPS[first];
+      return t ? { line: `In Kin, ${t.line}` } : null;
+    }
+    case "ai":
+      if (first === "privacy") return { line: PRIVACY_LINE };
+      if (first === "no") return { line: "That’s fine. Everything in Kin works without AI, and Kin AI only answers when someone asks it." };
+      return { line: "Kin AI answers from your own family’s calendar, lists and records, and can read a school flyer for you. Your records never train AI." };
+  }
+  return null;
+}
+
+/** Whether `q` has been answered enough to move on. Nothing is skipped. */
+export function answered(q: Question, answers: Answers): boolean {
+  return (answers[q.id] ?? []).length > 0;
+}
+
