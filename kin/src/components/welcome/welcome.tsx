@@ -8,34 +8,17 @@ import { House3D } from "@/components/welcome/house-3d";
 import { PLANS, pesos } from "@/lib/billing/plans";
 import { TRIAL_DAYS } from "@/lib/access";
 import { FREE_FEATURES, PLUS_FEATURES } from "@/lib/plan-features";
-import { scrollBehavior } from "@/lib/motion";
+import { writeFirstOpen } from "@/lib/first-open";
+import { areaScores, readinessScore, topThree, type Answers } from "@/lib/check-up";
+import { CheckUp } from "@/components/welcome/check-up";
 
-/** What a visitor told the home page before signing up. Onboarding reads the
- * family name back to fill in "Household name" (family-fork-form.tsx). Kept in
- * this browser only; nothing is sent anywhere until they create an account. */
+/** What the home page used to ask before sign-up (family name, who's at home).
+ * The check-up replaced those questions on 13 October and nothing writes this
+ * any more; it stays exported only because onboarding still reads it
+ * (family-fork-form.tsx) and copes with it missing. Delete both once nothing
+ * imports them. */
 export const WELCOME_KEY = "kin-welcome";
 export type WelcomeAnswers = { familyName: string; grownUps: number; children: number; wants: string[] };
-
-/** plus: the whole feature is Kin Plus. plusPoints: only these lines are.
- * Shown in the tour so nobody meets Plus for the first time when a note stops
- * them after the trial (approved 6 October). */
-type Feature = { id: string; icon: IconName; title: string; line: string; points: string[]; plus?: boolean; plusPoints?: string[] };
-
-const FEATURES: Feature[] = [
-  { id: "money", icon: "wallet", title: "Money, together", line: "What’s left this month, who’s paying what, and when the bills fall due.", points: ["Accounts and budgets in one view", "Bills and due dates in one list", "A Whose picker for each person’s share"], plus: true },
-  { id: "schedule", icon: "calendarDays", title: "One family calendar", line: "Everyone’s school, work and plans, with chores the kids earn stars for.", points: ["Syncs with Google Calendar", "Chores with stars and rewards", "Today shows what needs you"] },
-  { id: "memories", icon: "images", title: "Memories that stay", line: "A family journal with photos you can open full screen, react to and share with relatives.", points: ["Photos, milestones and first days", "Reactions and comments", "Shared with linked relatives, photos included"] },
-  { id: "health", icon: "shieldCheck", title: "Health and documents", line: "Check-ups, records and passports behind one vault that opens with Face ID.", points: ["Vaccinations and check-ups on time", "Documents and passwords in the vault", "A PIN or Face ID on each person’s phone"], plusPoints: ["Documents and passwords in the vault"] },
-  { id: "home", icon: "basket", title: "Groceries and meals", line: "A buy list with prices, what’s in the pantry, and what’s for dinner.", points: ["Shopping list with running cost", "Pantry and price book", "Meal plans for the week"] },
-  { id: "chat", icon: "message", title: "Family chat", line: "The group chat that lives next to everything it’s about.", points: ["Photos, polls and @mentions", "Replies and pinned messages", "Kin AI when you want a hand"] },
-];
-const ALWAYS: Feature = {
-  id: "tree",
-  icon: "users",
-  title: "Your family tree",
-  line: "Parents, brothers, sisters and grandparents, in 2D or 3D, linked to each person’s profile.",
-  points: ["Link with relatives' households", "Kid view for children, set by a grown-up", "Every profile a tap away"],
-};
 
 /** The "why Kin" step: what it replaces, the privacy promise, the price.
  * Each line has to stay true of the app as built -- the privacy one is the
@@ -58,72 +41,107 @@ const WHY: { icon: IconName; title: string; line: string }[] = [
   },
 ];
 
-const STEPS = ["hello", "name", "who", "wants", "tour", "why"] as const;
-type Step = (typeof STEPS)[number];
+type Step = "hello" | "quiz" | "why";
 
-/** The public home page (items 1 and 11 of the revision list): a 3D house,
- * setup one question at a time, a tour of the features -- the ones the
- * visitor said they want first -- and then why Kin (approved 28 September):
- * what it replaces, the privacy promise and the price, before sign-up. */
-export function Welcome() {
+/** The signed-out home page. Since 13 October (docs/BACKLOG.md, "Agreed 13
+ * October: first open") it opens on a family check-up rather than on setting
+ * the family up: the 3D house and the check-up, or an invite code, or Sign in.
+ * `/?start=quiz`, the link ads will use, opens straight at question 1 without
+ * the house, so Facebook's in-app browser has nothing heavy to load.
+ *
+ * The answers and the score go into first-open (this browser only, never
+ * sent), where sign-up, Start here and the tour read them. */
+export function Welcome({ startQuiz = false }: { startQuiz?: boolean }) {
   const router = useRouter();
-  const [step, setStep] = useState<Step>("hello");
-  const [familyName, setFamilyName] = useState("");
-  const [grownUps, setGrownUps] = useState(2);
-  const [children, setChildren] = useState(1);
-  const [wants, setWants] = useState<string[]>([]);
+  const [step, setStep] = useState<Step>(startQuiz ? "quiz" : "hello");
+  const [answers, setAnswers] = useState<Answers>({});
+  // Coming back from the step after the check-up lands on its last question.
+  const [back, setBack] = useState(false);
+  const [joining, setJoining] = useState(false);
   const [code, setCode] = useState("");
-  const [slide, setSlide] = useState(0);
   const heading = useRef<HTMLHeadingElement>(null);
-  const tourRef = useRef<HTMLDivElement>(null);
+  const codeInput = useRef<HTMLInputElement>(null);
+  const opened = useRef(false);
 
-  const index = STEPS.indexOf(step);
-  const go = (s: Step) => setStep(s);
-  // Each step moves focus to its question, so a screen reader hears it and a
-  // keyboard starts in the right place.
+  // Each step moves focus to its heading, so a screen reader hears it and a
+  // keyboard starts in the right place. Not on first load: nothing has moved.
   useEffect(() => {
-    if (step !== "hello") heading.current?.focus();
+    if (opened.current && step !== "quiz") heading.current?.focus();
+    opened.current = true;
   }, [step]);
+  useEffect(() => {
+    if (joining) codeInput.current?.focus();
+  }, [joining]);
 
-  const tour = [...FEATURES.filter((f) => wants.includes(f.id)), ...FEATURES.filter((f) => !wants.includes(f.id)), ALWAYS];
-
-  const save = () => {
-    const answers: WelcomeAnswers = { familyName: familyName.trim(), grownUps, children, wants };
-    try {
-      localStorage.setItem(WELCOME_KEY, JSON.stringify(answers));
-    } catch {
-      // A private window: onboarding just asks for the name again.
-    }
+  const finish = (a: Answers) => {
+    writeFirstOpen({
+      answers: a,
+      top3: topThree(a),
+      score: readinessScore(a),
+      areas: areaScores(a),
+    });
+    setStep("why");
   };
-
-  const title = familyName.trim() || "your family";
 
   return (
     <main className="kin-welcome">
       <header className="kin-welcome-top">
         <span className="kin-welcome-logo">Kin</span>
-        <Link href="/login" className="btn btn-ghost" style={{ minHeight: "2.25rem" }}>
+        <Link href="/login" className="btn btn-ghost kin-check-signin">
           Sign in
         </Link>
       </header>
 
-      {step !== "hello" && (
-        <div className="kin-welcome-progress" aria-label={`Step ${index} of ${STEPS.length - 1}`}>
-          {STEPS.slice(1).map((s, i) => (
-            <span key={s} data-done={i < index || undefined} />
-          ))}
-        </div>
-      )}
-
       {step === "hello" && (
         <section className="kin-welcome-hero">
           <House3D />
-          <h1>Your family, in one home.</h1>
-          <p>Money, plans, memories, health and the people you love, in one place everyone in the house shares.</p>
-          <button type="button" className="btn btn-primary btn-block kin-welcome-cta" onClick={() => go("name")}>
-            Set up our Kin
+          <h1 ref={heading} tabIndex={-1}>
+            Your family, in one home.
+          </h1>
+          <p>How ready is your family for the 2 a.m. emergency, the lost passport, the busy week? Find out in a minute, then see where Kin helps.</p>
+          <button
+            type="button"
+            className="btn btn-primary btn-block kin-welcome-cta"
+            onClick={() => {
+              setBack(false);
+              setStep("quiz");
+            }}
+          >
+            Take the 1-minute family check-up
           </button>
-          <p className="kin-welcome-small">It takes a minute. Nothing is saved until you create an account.</p>
+          {joining ? (
+            <form
+              className="kin-welcome-join kin-check-join"
+              onSubmit={(e) => {
+                e.preventDefault();
+                const c = code.trim().toUpperCase();
+                if (c) router.push(`/join/${encodeURIComponent(c)}`);
+              }}
+            >
+              <label htmlFor="kin-welcome-code">Your invite code</label>
+              <div>
+                <input
+                  ref={codeInput}
+                  id="kin-welcome-code"
+                  className="input"
+                  value={code}
+                  onChange={(e) => setCode(e.target.value)}
+                  placeholder="Invite code"
+                  maxLength={12}
+                  autoCapitalize="characters"
+                  autoComplete="off"
+                />
+                <button type="submit" className="btn btn-secondary" disabled={!code.trim()}>
+                  Join
+                </button>
+              </div>
+            </form>
+          ) : (
+            <button type="button" className="btn btn-ghost kin-check-secondary" onClick={() => setJoining(true)}>
+              I have an invite code
+            </button>
+          )}
+          <p className="kin-welcome-small">Your answers stay on this phone. Nothing is sent anywhere.</p>
           <nav className="kin-welcome-legal" aria-label="Legal">
             <Link href="/legal/privacy">Privacy</Link>
             <Link href="/legal/terms">Terms</Link>
@@ -132,127 +150,12 @@ export function Welcome() {
         </section>
       )}
 
-      {step === "name" && (
-        <section className="kin-welcome-step">
-          <h2 ref={heading} tabIndex={-1}>What do you call your family?</h2>
-          <p>It&rsquo;s what everyone sees at the top of Kin. You can change it later.</p>
-          <input
-            className="input kin-welcome-input"
-            value={familyName}
-            onChange={(e) => setFamilyName(e.target.value)}
-            placeholder="The Reyes Family"
-            maxLength={80}
-            aria-label="Family name"
-            onKeyDown={(e) => e.key === "Enter" && go("who")}
-          />
-          <StepNav onBack={() => go("hello")} onNext={() => go("who")} nextLabel={familyName.trim() ? "Next" : "Skip for now"} />
-        </section>
-      )}
-
-      {step === "who" && (
-        <section className="kin-welcome-step">
-          <h2 ref={heading} tabIndex={-1}>Who lives with {title}?</h2>
-          <p>So Kin can set up the right number of places. Children don&rsquo;t need an email.</p>
-          <Stepper label="Grown-ups" value={grownUps} min={1} max={8} onChange={setGrownUps} />
-          <Stepper label="Children" value={children} min={0} max={10} onChange={setChildren} />
-          <StepNav onBack={() => go("name")} onNext={() => go("wants")} />
-        </section>
-      )}
-
-      {step === "wants" && (
-        <section className="kin-welcome-step">
-          <h2 ref={heading} tabIndex={-1}>What would help most?</h2>
-          <p>Pick as many as you like. We&rsquo;ll show you those first.</p>
-          <div className="kin-welcome-chips">
-            {FEATURES.map((f) => {
-              const on = wants.includes(f.id);
-              return (
-                <button key={f.id} type="button" className="kin-welcome-chip" aria-pressed={on} data-on={on || undefined} onClick={() => setWants((w) => (on ? w.filter((x) => x !== f.id) : [...w, f.id]))}>
-                  <Icon name={f.icon} size={18} />
-                  {f.title}
-                </button>
-              );
-            })}
-          </div>
-          <StepNav
-            onBack={() => go("who")}
-            onNext={() => {
-              setSlide(0);
-              go("tour");
-            }}
-            nextLabel="Show me"
-          />
-        </section>
-      )}
-
-      {step === "tour" && (
-        <section className="kin-welcome-step kin-welcome-tourstep">
-          <h2 ref={heading} tabIndex={-1}>Here&rsquo;s {familyName.trim() ? `${title}’s` : "your"} Kin</h2>
-          <div
-            className="kin-welcome-tour"
-            ref={tourRef}
-            onScroll={(e) => {
-              const el = e.currentTarget;
-              setSlide(Math.round(el.scrollLeft / Math.max(1, el.clientWidth)));
-            }}
-          >
-            {tour.map((f) => (
-              <article key={f.id} className="kin-welcome-card" data-picked={wants.includes(f.id) || undefined}>
-                <span className="kin-welcome-card-ico">
-                  <Icon name={f.icon} size={24} />
-                </span>
-                <h3>
-                  {f.title}
-                  {f.plus && <span className="kin-plus-badge">PLUS</span>}
-                </h3>
-                <p>{f.line}</p>
-                <ul>
-                  {f.points.map((pt) => (
-                    <li key={pt}>
-                      {pt}
-                      {f.plusPoints?.includes(pt) && <span className="kin-plus-badge">PLUS</span>}
-                    </li>
-                  ))}
-                </ul>
-              </article>
-            ))}
-          </div>
-          <div className="kin-welcome-dots" role="tablist" aria-label="Features">
-            {tour.map((f, i) => (
-              <button
-                key={f.id}
-                type="button"
-                role="tab"
-                aria-selected={i === slide}
-                aria-label={f.title}
-                data-on={i === slide || undefined}
-                onClick={() => tourRef.current?.scrollTo({ left: i * tourRef.current.clientWidth, behavior: scrollBehavior() })}
-              />
-            ))}
-          </div>
-          <button type="button" className="btn btn-primary btn-block kin-welcome-cta" onClick={() => go("why")}>
-            Next
-          </button>
-          <button
-            type="button"
-            className="btn btn-ghost kin-welcome-small"
-            style={{ alignSelf: "center" }}
-            onClick={() => {
-              save();
-              router.push("/signup");
-            }}
-          >
-            Skip, create account
-          </button>
-          <button type="button" className="btn btn-ghost" onClick={() => go("wants")} style={{ alignSelf: "center" }}>
-            Back
-          </button>
-        </section>
-      )}
-
+      {step === "quiz" && <CheckUp answers={answers} onChange={setAnswers} onDone={finish} onExit={() => setStep("hello")} focusFirst={!startQuiz} fromEnd={back} />}
       {step === "why" && (
         <section className="kin-welcome-step">
-          <h2 ref={heading} tabIndex={-1}>Why Kin{familyName.trim() ? `, for ${title}` : ""}</h2>
+          <h2 ref={heading} tabIndex={-1}>
+            Why Kin
+          </h2>
           <ul className="kin-why">
             {WHY.map((w) => (
               <li key={w.title}>
@@ -296,72 +199,25 @@ export function Welcome() {
               </ul>
             </section>
           </div>
-          <button
-            type="button"
-            className="btn btn-primary btn-block kin-welcome-cta"
-            onClick={() => {
-              save();
-              router.push("/signup");
-            }}
-          >
-            Create {familyName.trim() ? `${title}’s` : "our family’s"} Kin
-          </button>
-          <form
-            className="kin-welcome-join"
-            onSubmit={(e) => {
-              e.preventDefault();
-              const c = code.trim().toUpperCase();
-              if (!c) return;
-              save();
-              router.push(`/join/${encodeURIComponent(c)}`);
-            }}
-          >
-            <label htmlFor="kin-welcome-code">Joining a family that&rsquo;s already on Kin?</label>
-            <div>
-              <input id="kin-welcome-code" className="input" value={code} onChange={(e) => setCode(e.target.value)} placeholder="Invite code" maxLength={12} autoCapitalize="characters" />
-              <button type="submit" className="btn btn-secondary" disabled={!code.trim()}>
-                Join
-              </button>
-            </div>
-          </form>
+          <Link href="/signup" className="btn btn-primary btn-block kin-welcome-cta">
+            Create your account
+          </Link>
           <p className="kin-welcome-small" style={{ textAlign: "center" }}>
             <Link href="/legal/privacy">How Kin handles your family&rsquo;s information</Link>
           </p>
-          <button type="button" className="btn btn-ghost" onClick={() => go("tour")} style={{ alignSelf: "center" }}>
+          <button
+            type="button"
+            className="btn btn-ghost"
+            onClick={() => {
+              setBack(true);
+              setStep("quiz");
+            }}
+            style={{ alignSelf: "center" }}
+          >
             Back
           </button>
         </section>
       )}
     </main>
-  );
-}
-
-function StepNav({ onBack, onNext, nextLabel = "Next" }: { onBack: () => void; onNext: () => void; nextLabel?: string }) {
-  return (
-    <div className="kin-welcome-nav">
-      <button type="button" className="btn btn-ghost" onClick={onBack}>
-        Back
-      </button>
-      <button type="button" className="btn btn-primary" onClick={onNext} style={{ flex: 1 }}>
-        {nextLabel}
-      </button>
-    </div>
-  );
-}
-
-function Stepper({ label, value, min, max, onChange }: { label: string; value: number; min: number; max: number; onChange: (n: number) => void }) {
-  return (
-    <div className="kin-welcome-stepper">
-      <span>{label}</span>
-      <div role="group" aria-label={label}>
-        <button type="button" aria-label={`One fewer ${label.toLowerCase()}`} disabled={value <= min} onClick={() => onChange(Math.max(min, value - 1))}>
-          −
-        </button>
-        <output aria-live="polite">{value}</output>
-        <button type="button" aria-label={`One more ${label.toLowerCase()}`} disabled={value >= max} onClick={() => onChange(Math.min(max, value + 1))}>
-          +
-        </button>
-      </div>
-    </div>
   );
 }

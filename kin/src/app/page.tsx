@@ -9,9 +9,10 @@ export const metadata = {
 };
 
 /** Signed in: straight to Today, as always. Signed out: the public home page
- * -- the 3D house, setup one question at a time, and a tour of the features
- * before sign-up -- instead of being dropped on a login form. */
-export default async function RootPage() {
+ * -- the family check-up, its result, and the plan before sign-up -- instead
+ * of being dropped on a login form. `/?start=quiz` (the link ads use) opens
+ * at the first question. */
+export default async function RootPage({ searchParams }: { searchParams: Promise<{ [key: string]: string | string[] | undefined }> }) {
   const user = await getSessionUser();
 
   if (!user) {
@@ -19,7 +20,7 @@ export default async function RootPage() {
       <>
         {/* Kin Coral, the icon's look: what a new profile starts on. */}
         <style>{paletteCss("coral")}</style>
-        <Welcome />
+        <Welcome startQuiz={(await searchParams).start === "quiz"} />
       </>
     );
   }
