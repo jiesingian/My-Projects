@@ -28,6 +28,23 @@ import type { CurrentMember } from "@/lib/session";
 const SHOWN_FROM = "2026-09-28T00:00:00Z";
 const SHOWN_FOR_DAYS = 30;
 
+/** The Start here bonus (20261013160000_start_here_bonus.sql): every base
+ * step done in a household's first day adds 7 days to its trial, once. The
+ * database decides; this only says so on the card. Same date as claim_start_bonus(). */
+const BONUS_FROM = "2026-10-13T00:00:00Z";
+const BONUS_DAYS = 7;
+const DAY = 24 * 60 * 60 * 1000;
+
+/** The steps the bonus counts: the ones every household has, on the trial. */
+const BONUS_STEPS: StartStepId[] = ["event", "invite", "children", "chore", "list"];
+
+export type StartHere = {
+  steps: StartStep[];
+  /** "open": still possible today, so the card says so. A number: the days
+   * just added, said once. Null: neither. */
+  bonus: "open" | number | null;
+};
+
 export type StartStepId = "event" | "invite" | "children" | "bills" | "chore" | "list" | "health" | "location" | "emergency" | "documents";
 
 export type StartStep = {
@@ -43,7 +60,7 @@ export type StartStep = {
   extra?: boolean;
 };
 
-export async function getStartHere(me: CurrentMember): Promise<StartStep[] | null> {
+export async function getStartHere(me: CurrentMember): Promise<StartHere | null> {
   if (!isGrownUp(me.role) || me.start_here_dismissed_at) return null;
   const created = me.families.created_at;
   if (!created || created < SHOWN_FROM) return null;
@@ -97,5 +114,21 @@ export async function getStartHere(me: CurrentMember): Promise<StartStep[] | nul
       ? [{ id: "documents" as const, title: "Add one PSA certificate", hint: "Kept in the vault, behind your lock, for everyone who needs it.", href: "/family?seg=documents", done: any(docs) || any(vault), priority: "documents" as const, extra: true }]
       : []),
   ];
-  return steps.every((s) => s.done) ? null : steps;
+
+  // The bonus, on a live trial in a household new enough for it. Claimed
+  // once the steps look done; the database checks they were done in time and
+  // that it is the first claim, so a reload asks again harmlessly.
+  let bonus: StartHere["bonus"] = null;
+  if (access.trialing && created >= BONUS_FROM) {
+    const baseDone = steps.filter((s) => BONUS_STEPS.includes(s.id)).every((s) => s.done);
+    if (baseDone) {
+      const { data: added } = await supabase.rpc("claim_start_bonus");
+      if ((added ?? 0) > 0) bonus = added ?? BONUS_DAYS;
+    } else if (Date.now() - new Date(created).getTime() < DAY) {
+      bonus = "open";
+    }
+  }
+  // Every step done: nothing left to show, unless it is the moment the days
+  // were added.
+  return steps.every((s) => s.done) && typeof bonus !== "number" ? null : { steps, bonus };
 }

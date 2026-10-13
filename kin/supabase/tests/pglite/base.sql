@@ -238,3 +238,50 @@ create policy assets_all on assets for all using (family_id = current_family_id(
 insert into assets (id, family_id, name, kind, value) values
  ('a5000000-0000-0000-0000-000000000001','a0000000-0000-0000-0000-000000000000','House in San Juan','property',8000000),
  ('d5000000-0000-0000-0000-000000000001','d0000000-0000-0000-0000-000000000000','Dan condo','property',4000000);
+
+-- Kin Plus access and awards, as 20260928150000_kin_free_and_plus and
+-- 20260929020000_kin_offers made them (those files lean on far more of the
+-- schema than is stood in here), for the Start here bonus. Every household
+-- starts on a live trial; a probe moves one to Free or comped itself.
+alter table families add column created_at timestamptz not null default now(),
+  add column access_status text not null default 'trialing',
+  add column access_source text,
+  add column access_expires_at timestamptz default (now() + interval '7 days'),
+  add column plus_credit_days integer not null default 0;
+alter table events add column created_at timestamptz not null default now();
+alter table buy_items add column created_at timestamptz not null default now();
+alter table routines add column created_at timestamptz not null default now();
+create table public.activities (id uuid primary key default gen_random_uuid(), family_id uuid references families(id), title text, start_at timestamptz, location text, status text default 'upcoming', applies_to_whole_family boolean default true, created_at timestamptz not null default now());
+alter table activities enable row level security;
+create policy act_all on activities for all using (family_id = current_family_id()) with check (family_id = current_family_id());
+create table public.kin_plus_awards (id uuid primary key default gen_random_uuid(), family_id uuid not null references families(id) on delete cascade, reason text not null, source_family uuid references families(id) on delete set null, days integer not null, created_at timestamptz not null default now(), constraint kin_plus_awards_days_sane check (days between 1 and 60));
+create unique index kin_plus_awards_once on kin_plus_awards (family_id, reason, coalesce(source_family, '00000000-0000-0000-0000-000000000000'::uuid));
+alter table kin_plus_awards enable row level security;
+create policy kin_plus_awards_select on kin_plus_awards for select to authenticated using (family_id = (select current_family_id()));
+-- grant_plus_days exactly as 20260929020000 wrote it.
+create function public.grant_plus_days(p_family uuid, p_days integer, p_reason text, p_source uuid default null)
+returns integer language plpgsql security definer set search_path = public as $$
+declare
+  f public.families%rowtype;
+  v_was text := coalesce(current_setting('kin.privileged', true), 'off');
+begin
+  insert into kin_plus_awards (family_id, reason, source_family, days)
+  values (p_family, p_reason, p_source, p_days)
+  on conflict do nothing;
+  if not found then
+    return 0;
+  end if;
+  select * into f from families where id = p_family for update;
+  perform set_config('kin.privileged', 'on', true);
+  if f.access_status = 'trialing' and f.access_expires_at is not null and f.access_expires_at > now() then
+    update families set access_expires_at = access_expires_at + make_interval(days => p_days) where id = p_family;
+  elsif f.access_status in ('active', 'past_due', 'comped') then
+    update families set plus_credit_days = plus_credit_days + p_days where id = p_family;
+  else
+    update families set access_status = 'trialing', access_expires_at = now() + make_interval(days => p_days) where id = p_family;
+  end if;
+  perform set_config('kin.privileged', v_was, true);
+  return p_days;
+end;
+$$;
+revoke execute on function public.grant_plus_days(uuid, integer, text, uuid) from public, anon, authenticated;

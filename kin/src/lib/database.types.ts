@@ -6234,6 +6234,10 @@ export type Database = {
         Args: never
         Returns: { code: string; days: number }[]
       }
+      claim_start_bonus: {
+        Args: never
+        Returns: number
+      }
       next_kin_offer: {
         Args: never
         Returns: { answered_at: string | null; answered_by: string | null; code: string; completed_at: string | null; days: number; expires_at: string; family_id: string; id: string; offered_at: string; status: string }[]
