@@ -314,16 +314,13 @@ function DishCard({ meal, members, currency }: { meal: PlannedMeal; members: { i
   return (
     <div className="kin-dish">
       <div
-        className={`kin-plate${meal.photoUrl || meal.stockPhoto ? "" : " kin-plate--glazed"}`}
+        className={`kin-plate${meal.photoUrl ? "" : " kin-plate--glazed"}`}
         style={{ "--plate-from": tone.from, "--plate-to": tone.to } as React.CSSProperties}
       >
         {meal.photoUrl ? (
           // Signed Storage URLs expire, so this stays a plain img: next/image
           // would cache a URL that has already gone stale.
           <ZoomableImage src={meal.photoUrl} alt={meal.dish} />
-        ) : meal.stockPhoto ? (
-          // Pexels' picture of the dish until the house takes its own.
-          <ZoomableImage src={meal.stockPhoto.url} alt={meal.dish} />
         ) : (
           // Until the house photographs its own, the dish gets a plate: its
           // own glaze, and a monogram struck once from the name.
@@ -371,19 +368,6 @@ function DishCard({ meal, members, currency }: { meal: PlannedMeal; members: { i
             {meal.minutes ? <Icon name="clock" size={12} /> : null}
             {meta.join(" · ")}
           </div>
-          {/* Pexels asks for a credit wherever its photos are shown. */}
-          {!meal.photoUrl && meal.stockPhoto && (
-            <div style={{ fontSize: "0.65625rem", opacity: 0.8, marginTop: "0.25rem" }}>
-              Photo:{" "}
-              <a href={meal.stockPhoto.photographerUrl} target="_blank" rel="noopener noreferrer" style={{ color: "inherit" }}>
-                {meal.stockPhoto.photographer}
-              </a>{" "}
-              on{" "}
-              <a href={meal.stockPhoto.pageUrl} target="_blank" rel="noopener noreferrer" style={{ color: "inherit" }}>
-                Pexels
-              </a>
-            </div>
-          )}
         </div>
       </div>
 
