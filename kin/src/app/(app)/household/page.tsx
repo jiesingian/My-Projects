@@ -2,11 +2,10 @@ import { formatCurrency } from "@/lib/format";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getCurrentMember } from "@/lib/session";
-import { getBuyItems, getBuyItemMeals, getBuyListEvents, getMealsForDay, getLiquidIntake, type PlannedMeal } from "@/lib/queries/household";
+import { getBuyItems, getBuyItemMeals, getBuyListEvents, getMealsForDay, type PlannedMeal } from "@/lib/queries/household";
 import { getMembers } from "@/lib/queries/family";
 import { MealWhoPicker } from "@/components/meal-who-picker";
 import { MealWhoEditor } from "@/components/meal-who-editor";
-import { LiquidIntakeTracker } from "@/components/liquid-intake-tracker";
 import { getAccounts } from "@/lib/queries/wealth";
 import { getPriceBook, getPricedBuyList, getNextShoppingRun, getPantry } from "@/lib/queries/household-money";
 import { HubHeader } from "@/components/hub-header";
@@ -185,11 +184,10 @@ async function MealsPane({
   who: string;
 }) {
   const supabase = await createClient();
-  const [{ meals: allMeals, anchorISO }, recipes, categories, liquidIntake, memberRows, { data: pantryRows }] = await Promise.all([
+  const [{ meals: allMeals, anchorISO }, recipes, categories, memberRows, { data: pantryRows }] = await Promise.all([
     getMealsForDay(familyId, anchor),
     getRecipeBook(familyId),
     getRecipeCategories(familyId),
-    getLiquidIntake(familyId, toISODate(anchor)),
     getMembers(familyId),
     supabase.from("pantry_items").select("item_key").eq("family_id", familyId),
   ]);
@@ -289,8 +287,6 @@ async function MealsPane({
       })}
 
       <CookFromPantry date={anchorISO} suggestions={suggestions} />
-
-      <LiquidIntakeTracker date={anchorISO} members={liquidIntake} />
 
       <div style={{ marginTop: "1.125rem" }}>
         <GenerateGroceryButton weekOf={anchorISO} />

@@ -9,7 +9,8 @@ import { humanDatabaseError } from "@/lib/db-errors";
 import { clamp } from "@/lib/text";
 import { readAccess } from "@/lib/access";
 import { familyDay } from "@/lib/time";
-import { GOAL_KIND_META, isGoalKind, isGoalPeriod } from "@/lib/goals";
+import { GOAL_KIND_META, LOG_BACK_DAYS, READING_BOUNDS, daysBefore, isGoalKind, isLoggableDay, isGoalPeriod, type GoalKind } from "@/lib/goals";
+import { stepLiquidIntakeAction } from "@/lib/actions/household";
 
 export type GoalFormState = { error: string | null; field?: string };
 
@@ -120,11 +121,15 @@ export async function createGoalAction(_prev: GoalFormState, formData: FormData)
 
 /** A session at the gym, a book finished, money put by. Anyone in the house
  * may log against any goal of the house -- the same trust as ticking a
- * shared task -- and each entry is dated today, Manila time. */
-export async function logGoalAction(goalId: string, amount = 1): Promise<{ error: string | null }> {
+ * shared task. Dated today (household time) unless a day in the past week
+ * is named: the session written down a day late. */
+export async function logGoalAction(goalId: string, amount = 1, day?: string): Promise<{ error: string | null }> {
   const tz = await householdZone();
   const me = await requireCurrentMember();
   if (!(amount > 0 && amount <= 1_000_000_000)) return { error: "That amount doesn't look right." };
+  const today = familyDay(new Date(), tz);
+  const entryDate = day ?? today;
+  if (!isLoggableDay(entryDate, today)) return { error: "Choose today or a day in the past week." };
   const supabase = await createClient();
   const { data: goal } = await supabase.from("planner_goals").select("id, kind, owner_member_id, savings_goal_id").eq("id", goalId).eq("family_id", me.family_id).maybeSingle();
   if (!goal || !isGoalKind(goal.kind)) return { error: "That goal is no longer here." };
@@ -134,33 +139,149 @@ export async function logGoalAction(goalId: string, amount = 1): Promise<{ error
     family_id: me.family_id,
     goal_id: goal.id,
     member_id: goal.owner_member_id ?? me.id,
-    entry_date: familyDay(new Date(), tz),
+    entry_date: entryDate,
     amount,
   });
   if (error) return { error: humanDatabaseError(error.message) };
   revalidatePath("/planner");
+  revalidatePath("/today");
   return { error: null };
 }
 
-/** Undo the last entry of today -- a tap too many. */
+/** Undo the latest entry of the past week -- a tap too many, or the wrong
+ * day. */
 export async function unlogGoalAction(goalId: string): Promise<{ error: string | null }> {
   const tz = await householdZone();
   const me = await requireCurrentMember();
   const supabase = await createClient();
+  const today = familyDay(new Date(), tz);
   const { data: last } = await supabase
     .from("planner_goal_entries")
     .select("id")
     .eq("goal_id", goalId)
     .eq("family_id", me.family_id)
-    .eq("entry_date", familyDay(new Date(), tz))
+    .gte("entry_date", daysBefore(today, LOG_BACK_DAYS))
     .order("created_at", { ascending: false })
     .limit(1)
     .maybeSingle();
-  if (!last) return { error: "Nothing logged today to take back." };
+  if (!last) return { error: "Nothing logged this week to take back." };
   const { error } = await supabase.from("planner_goal_entries").delete().eq("id", last.id).eq("family_id", me.family_id);
   if (error) return { error: humanDatabaseError(error.message) };
   revalidatePath("/planner");
+  revalidatePath("/today");
   return { error: null };
+}
+
+/** Whose number a hand entry is: the goal's owner, or on a household goal
+ * whoever is logging. Also checks the goal is this household's and of the
+ * kind asked for. */
+async function goalForReading(goalId: string, kinds: GoalKind[]) {
+  const me = await requireCurrentMember();
+  const supabase = await createClient();
+  const { data: goal } = await supabase.from("planner_goals").select("id, kind, owner_member_id").eq("id", goalId).eq("family_id", me.family_id).maybeSingle();
+  if (!goal || !isGoalKind(goal.kind) || !kinds.includes(goal.kind)) return { error: "That goal is no longer here." as string, me, supabase, goal: null, memberId: null };
+  return { error: null, me, supabase, goal: { ...goal, kind: goal.kind as GoalKind }, memberId: goal.owner_member_id ?? me.id };
+}
+
+/** A glass more or less on a water goal. It is the same count as the water
+ * on Today -- one number per person per day -- so a glass is never counted
+ * twice, wherever it was tapped. */
+export async function stepGoalWaterAction(goalId: string, delta: 1 | -1, day?: string): Promise<{ error: string | null }> {
+  const tz = await householdZone();
+  const today = familyDay(new Date(), tz);
+  const date = day ?? today;
+  if (!isLoggableDay(date, today)) return { error: "Choose today or a day in the past week." };
+  const found = await goalForReading(goalId, ["water"]);
+  if (found.error || !found.memberId) return { error: found.error };
+  return stepLiquidIntakeAction({ memberId: found.memberId, type: "water", date, delta });
+}
+
+/** A steps or weight reading typed by hand, saved in Health where Apple
+ * Health's readings already live (source 'manual'). Steps are the day's
+ * total: a second entry for the same day replaces the first, and the goal
+ * counts the larger of it and Apple Health's figure, never both. Weight is
+ * a reading: the latest one counts, whoever sent it. */
+export async function logGoalReadingAction(goalId: string, value: number, day?: string): Promise<{ error: string | null }> {
+  const tz = await householdZone();
+  const today = familyDay(new Date(), tz);
+  const date = day ?? today;
+  if (!isLoggableDay(date, today)) return { error: "Choose today or a day in the past week." };
+  const found = await goalForReading(goalId, ["steps", "weight"]);
+  if (found.error || !found.goal || !found.memberId) return { error: found.error };
+  const { me, supabase, goal, memberId } = found;
+  if (!readAccess(me.families).plus) return { error: "Steps and weight readings are part of Kin Plus." };
+  const kind = goal.kind as "steps" | "weight";
+  const bounds = READING_BOUNDS[kind];
+  if (!(Number.isFinite(value) && value > bounds.min && value <= bounds.max)) {
+    return { error: kind === "steps" ? "That many steps doesn't look right." : "That weight doesn't look right." };
+  }
+  const valueText = kind === "steps" ? String(Math.round(value)) : String(Math.round(value * 10) / 10);
+
+  if (kind === "steps") {
+    const { data: existing } = await supabase
+      .from("health_vitals")
+      .select("id")
+      .eq("family_id", me.family_id)
+      .eq("member_id", memberId)
+      .eq("vital_type", "steps")
+      .eq("source", "manual")
+      .eq("reading_date", date)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    if (existing) {
+      const { error } = await supabase.from("health_vitals").update({ value_text: valueText }).eq("id", existing.id).eq("family_id", me.family_id);
+      if (error) return { error: humanDatabaseError(error.message) };
+      return readingSaved(memberId);
+    }
+  }
+
+  const { error } = await supabase.from("health_vitals").insert({
+    family_id: me.family_id,
+    member_id: memberId,
+    vital_type: kind,
+    reading_date: date,
+    value_text: valueText,
+    unit: kind === "steps" ? "steps" : "kg",
+    source: "manual",
+    visibility: "family",
+    created_by: me.id,
+  });
+  if (error) return { error: humanDatabaseError(error.message) };
+  return readingSaved(memberId);
+}
+
+function readingSaved(memberId: string): { error: null } {
+  revalidatePath("/planner");
+  revalidatePath("/today");
+  revalidatePath(`/family/members/${memberId}`);
+  return { error: null };
+}
+
+/** Take back the latest reading this person typed for the goal in the past
+ * week. Never touches what Apple Health sent. */
+export async function unlogGoalReadingAction(goalId: string): Promise<{ error: string | null }> {
+  const tz = await householdZone();
+  const today = familyDay(new Date(), tz);
+  const found = await goalForReading(goalId, ["steps", "weight"]);
+  if (found.error || !found.goal || !found.memberId) return { error: found.error };
+  const { me, supabase, goal, memberId } = found;
+  const { data: last } = await supabase
+    .from("health_vitals")
+    .select("id")
+    .eq("family_id", me.family_id)
+    .eq("member_id", memberId)
+    .eq("vital_type", goal.kind)
+    .eq("source", "manual")
+    .eq("created_by", me.id)
+    .gte("reading_date", daysBefore(today, LOG_BACK_DAYS))
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  if (!last) return { error: "Nothing typed in this week to take back." };
+  const { error } = await supabase.from("health_vitals").delete().eq("id", last.id).eq("family_id", me.family_id);
+  if (error) return { error: humanDatabaseError(error.message) };
+  return readingSaved(memberId);
 }
 
 export async function deleteGoalAction(goalId: string): Promise<{ error: string | null }> {

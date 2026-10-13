@@ -3,7 +3,7 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Icon } from "@/components/icons";
-import { REWARD_TERMS } from "@/lib/goals";
+import { LOG_BACK_DAYS, REWARD_TERMS, daysBefore } from "@/lib/goals";
 import {
   addGoalRewardAction,
   approveGoalChangeAction,
@@ -13,10 +13,13 @@ import {
   disputeGoalRewardAction,
   deleteGoalAction,
   logGoalAction,
+  logGoalReadingAction,
   markGoalRewardGivenAction,
   refuseGoalChangeAction,
   refuseGoalRewardAction,
+  stepGoalWaterAction,
   unlogGoalAction,
+  unlogGoalReadingAction,
   withdrawGoalChangeAction,
   withdrawGoalRewardAction,
 } from "@/lib/actions/goals";
@@ -47,46 +50,109 @@ function ErrorLine({ error }: { error: string | null }) {
   );
 }
 
-/** Tick a session, a book, a page. Money asks how much. */
-export function GoalLogButtons({ goalId, label, askAmount }: { goalId: string; label: string; askAmount?: boolean }) {
+export type GoalLogMode = "water" | "steps" | "weight" | "gym" | "custom" | "money";
+
+/** "Today", "Yesterday", "Mon 6 Oct" -- the past week, newest first. */
+function dayChoices(today: string): { value: string; label: string }[] {
+  return Array.from({ length: LOG_BACK_DAYS + 1 }, (_, i) => {
+    const value = daysBefore(today, i);
+    const [y, m, d] = value.split("-").map(Number);
+    const label = i === 0 ? "Today" : i === 1 ? "Yesterday" : new Date(Date.UTC(y, m - 1, d)).toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short", timeZone: "UTC" });
+    return { value, label };
+  });
+}
+
+function DayPick({ today, value, onChange, disabled }: { today: string; value: string; onChange: (v: string) => void; disabled?: boolean }) {
+  return (
+    <select className="input" aria-label="Which day" value={value} disabled={disabled} onChange={(e) => onChange(e.target.value)} style={{ minHeight: "2rem", width: "auto", fontSize: "1rem", paddingBlock: 0 }}>
+      {dayChoices(today).map((d) => (
+        <option key={d.value} value={d.value}>
+          {d.label}
+        </option>
+      ))}
+    </select>
+  );
+}
+
+/** Logging by hand, on any goal. Each kind writes where Kin already keeps
+ * that number, so nothing is counted twice: a glass is Today's water count,
+ * steps and weight are readings in Health beside Apple Health's, and the
+ * rest are the goal's own entries. Any day of the past week can be named. */
+export function GoalLog({
+  goalId,
+  mode,
+  today,
+  autoToday = null,
+  manualToday = null,
+  locked = null,
+}: {
+  goalId: string;
+  mode: GoalLogMode;
+  /** The household's date, YYYY-MM-DD. */
+  today: string;
+  /** Steps: Apple Health's figure for today, if any. */
+  autoToday?: number | null;
+  /** Steps: what was typed for today, if anything. */
+  manualToday?: number | null;
+  /** Why logging is shut (Kin Plus lapsed, say), shown instead. */
+  locked?: string | null;
+}) {
   const { pending, error, run } = useGoalAction();
-  const [amount, setAmount] = useState("");
+  const [day, setDay] = useState(today);
+  const [value, setValue] = useState("");
+  if (locked) return <span style={{ fontSize: "0.75rem", color: "var(--color-neutral-600)" }}>{locked}</span>;
+
+  const reading = mode === "steps" || mode === "weight";
+  const typed = mode === "money" || mode === "custom" || reading;
+  const n = Number(value.replace(/,/g, ""));
+  // Custom counts one without a number; money and readings need one.
+  const ready = mode === "custom" ? value === "" || n > 0 : !typed || n > 0;
+  const placeholder = mode === "steps" ? "Steps" : mode === "weight" ? "kg" : mode === "money" ? "Amount" : "1";
+
+  const save = () =>
+    run(async () => {
+      const result =
+        mode === "water"
+          ? await stepGoalWaterAction(goalId, 1, day)
+          : reading
+            ? await logGoalReadingAction(goalId, n, day)
+            : await logGoalAction(goalId, typed && value !== "" ? n : 1, day);
+      if (!result.error) setValue("");
+      return result;
+    });
+  const undo = () => run(() => (mode === "water" ? stepGoalWaterAction(goalId, -1, day) : reading ? unlogGoalReadingAction(goalId) : unlogGoalAction(goalId)));
+  const label = mode === "water" ? "Glass" : mode === "gym" ? "Session" : mode === "steps" || mode === "weight" ? "Log" : mode === "money" ? "Add" : value ? "Add" : "One more";
 
   return (
     <div style={{ display: "flex", gap: "0.375rem", alignItems: "center", flexWrap: "wrap" }}>
-      {askAmount && (
+      {typed && (
         <input
           className="input"
           type="number"
-          inputMode="decimal"
+          inputMode={mode === "steps" ? "numeric" : "decimal"}
           min="0"
-          step="0.01"
-          aria-label="Amount"
-          placeholder="Amount"
-          value={amount}
-          onChange={(e) => setAmount(e.target.value)}
-          style={{ minHeight: "2rem", width: "7rem", fontSize: "1rem" }}
+          step={mode === "steps" ? "1" : mode === "weight" ? "0.1" : "0.01"}
+          aria-label={placeholder}
+          placeholder={placeholder}
+          value={value}
+          onChange={(e) => setValue(e.target.value)}
+          style={{ minHeight: "2rem", width: mode === "custom" ? "4.5rem" : "7.5rem", fontSize: "1rem" }}
         />
       )}
-      <button
-        type="button"
-        className="btn btn-primary"
-        disabled={pending || (askAmount && !(Number(amount) > 0))}
-        onClick={() =>
-          run(async () => {
-            const result = await logGoalAction(goalId, askAmount ? Number(amount) : 1);
-            if (!result.error) setAmount("");
-            return result;
-          })
-        }
-        style={small}
-      >
+      <button type="button" className="btn btn-primary" disabled={pending || !ready} onClick={save} style={small}>
         <Icon name="plus" size={14} />
         {label}
       </button>
-      <button type="button" className="btn btn-ghost" disabled={pending} onClick={() => run(() => unlogGoalAction(goalId))} style={{ ...small, color: "var(--color-neutral-700)" }}>
-        Undo
+      <button type="button" className="btn btn-ghost" disabled={pending} onClick={undo} style={{ ...small, color: "var(--color-neutral-700)" }}>
+        {mode === "water" ? "− Glass" : "Undo"}
       </button>
+      <DayPick today={today} value={day} onChange={setDay} disabled={pending} />
+      {mode === "steps" && day === today && (autoToday !== null || manualToday !== null) && (
+        <span style={{ fontSize: "0.75rem", color: "var(--color-neutral-600)", flexBasis: "100%" }}>
+          {autoToday !== null ? `Apple Health has ${autoToday.toLocaleString("en-PH")} today` : "Nothing from Apple Health yet today"}
+          {manualToday !== null ? ` · you typed ${manualToday.toLocaleString("en-PH")}` : ""} · the higher one counts, never both.
+        </span>
+      )}
       <ErrorLine error={error} />
     </div>
   );

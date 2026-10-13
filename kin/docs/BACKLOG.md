@@ -483,6 +483,18 @@ Decided against in the same review: revising Journal (item 6) and Planner
   and weight are Plus (require_kin_plus). Rings draw in once on entry and
   sit still under reduced motion.
 
+- Goals logged by hand (Jonathan, 13 October, item 1 of 3): every goal's
+  card takes a hand entry, dated today or up to six days back. Each kind
+  writes where Kin already keeps that number, so nothing counts twice: a
+  glass (+ / −) is the same per-person daily count Today used; steps and
+  weight are 'manual' readings in health_vitals beside Apple Health's.
+  Steps are a day's total -- a second hand entry for the day replaces the
+  first, and the day counts the higher of hand and Apple Health, never the
+  sum (stepsForDay, e2e/goal-log.logic.spec.ts). Weight: the latest reading
+  counts, whoever sent it. Undo takes back the latest hand entry of the
+  week and never touches Apple Health's. Steps and weight logging stay Plus.
+  The water tracker left Household → Meals (Jonathan, 13 October).
+
 - Review fixes (28 September, every page rendered signed in against a local
   stand-in with an invented household): a child with their own login showed
   as "Adult" in the role editor, and Edit then Save would have made them one

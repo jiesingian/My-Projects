@@ -1108,21 +1108,15 @@ async function saveLiquidIntake(
   if (error) return { error: humanDatabaseError(error.message) };
 
   revalidatePath("/household");
+  revalidatePath("/planner");
+  revalidatePath("/today");
   return { error: null };
 }
 
-/** The quick-add tap: one more glass than the database holds. Counting up
- * from a number the page passed in instead would drop a glass on a quick
- * double tap -- the page is a render behind until its refresh lands, so
- * both taps would send the same count and write the same answer. */
-export async function addLiquidIntakeAction(input: { memberId: string; type: LiquidIntakeType; date: string }): Promise<ActionState> {
-  return saveLiquidIntake(input.memberId, input.type, input.date, (current) => current + 1);
-}
-
-/** The long-press picker: set the day's count outright, for correcting a
- * mis-tap or logging several glasses from earlier in the day at once. */
-export async function setLiquidIntakeAction(input: { memberId: string; type: LiquidIntakeType; date: string; glasses: number }): Promise<ActionState> {
-  return saveLiquidIntake(input.memberId, input.type, input.date, () => input.glasses);
+/** A glass more or less, counted from what the database holds -- the water
+ * goal's + and − (Planner → Goals, and Today). Never below zero. */
+export async function stepLiquidIntakeAction(input: { memberId: string; type: LiquidIntakeType; date: string; delta: 1 | -1 }): Promise<ActionState> {
+  return saveLiquidIntake(input.memberId, input.type, input.date, (current) => current + input.delta);
 }
 
 /** Mark one ingredient as already in the house, or take it back off. */

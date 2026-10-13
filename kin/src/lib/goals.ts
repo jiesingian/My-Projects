@@ -22,7 +22,9 @@ export type GoalKindMeta = {
   defaultPeriod: GoalPeriod;
   /** Reads vitals, which are Kin Plus. */
   plus: boolean;
-  /** Filled by hand, with a button on the card. */
+  /** Filled into the goal's own entries by a button on the card. The other
+   * kinds are filled by hand too, but into where Kin already keeps that
+   * number: Today's water count, or a reading in Health. */
   logged: boolean;
   /** Can belong to the whole household. */
   household: boolean;
@@ -31,9 +33,9 @@ export type GoalKindMeta = {
 
 export const GOAL_KIND_META: Record<GoalKind, GoalKindMeta> = {
   money: { label: "Money", icon: "wallet", unit: "₱", defaultPeriod: "total", plus: false, logged: true, household: true, hint: "Fills from a savings goal on Wealth, or from what you put by here." },
-  water: { label: "Water", icon: "glassWater", unit: "glasses", defaultPeriod: "day", plus: false, logged: false, household: true, hint: "Fills from the glasses of water logged on Today." },
-  steps: { label: "Steps", icon: "activity", unit: "steps", defaultPeriod: "day", plus: true, logged: false, household: true, hint: "Fills from Apple Health." },
-  weight: { label: "Weight", icon: "target", unit: "kg", defaultPeriod: "total", plus: true, logged: false, household: false, hint: "From the weight when the goal is set, towards the target. Fills from Apple Health and readings on Family." },
+  water: { label: "Water", icon: "glassWater", unit: "glasses", defaultPeriod: "day", plus: false, logged: false, household: true, hint: "Add a glass here; the same count as the water on Today." },
+  steps: { label: "Steps", icon: "activity", unit: "steps", defaultPeriod: "day", plus: true, logged: false, household: true, hint: "Fills from Apple Health, or log the day's total here." },
+  weight: { label: "Weight", icon: "target", unit: "kg", defaultPeriod: "total", plus: true, logged: false, household: false, hint: "From the weight when the goal is set, towards the target. The latest reading counts: Apple Health, Family → Health, or one logged here." },
   gym: { label: "Gym", icon: "check", unit: "sessions", defaultPeriod: "week", plus: false, logged: true, household: true, hint: "Tick a session each time you go." },
   custom: { label: "Anything", icon: "sparkle", unit: "times", defaultPeriod: "total", plus: false, logged: true, household: true, hint: "Anything you can count: books, runs, pages, days without sweets." },
 };
@@ -104,3 +106,37 @@ export function goalNumber(n: number): string {
  * agreement"). The database holds the same terms (20260929003000). */
 export const REWARD_TERMS =
   "A promise is binding: once the goal is reached, the giver has 1 day to give the reward. After that Kin reminds the giver every 5 minutes (09:00–21:00) until the one receiving it confirms they got it. The reward can't be changed or taken back by the giver.";
+
+/** How far back a hand entry may be dated: today and the six days before,
+ * for the walk without the watch, or the weigh-in written down yesterday. */
+export const LOG_BACK_DAYS = 6;
+
+/** YYYY-MM-DD, n days before the given household date. */
+export function daysBefore(day: string, n: number): string {
+  const [y, m, d] = day.split("-").map(Number);
+  const date = new Date(Date.UTC(y, m - 1, d - n));
+  return date.toISOString().slice(0, 10);
+}
+
+/** A date a hand entry may carry: not in the future, not older than a week. */
+export function isLoggableDay(day: string, today: string): boolean {
+  return /^\d{4}-\d{2}-\d{2}$/.test(day) && day <= today && day >= daysBefore(today, LOG_BACK_DAYS);
+}
+
+/** A day's steps for one person, counted once. Apple Health sends the day's
+ * total, and a hand entry is the day's total too ("I walked 9,000 today,
+ * the watch was on the charger") -- so the larger of the two is the day,
+ * never their sum. Readings are grouped by source first, so a second
+ * Shortcut run or a second hand entry for the same day is not double
+ * counted either. */
+export function stepsForDay(readings: { source: string; value: number }[]): number {
+  const bySource = new Map<string, number>();
+  for (const r of readings) bySource.set(r.source, Math.max(bySource.get(r.source) ?? 0, r.value));
+  return Math.max(0, ...bySource.values());
+}
+
+/** The sane bounds of a hand-typed reading. */
+export const READING_BOUNDS = {
+  steps: { min: 0, max: 200_000 },
+  weight: { min: 2, max: 400 },
+} as const;

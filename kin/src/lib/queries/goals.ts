@@ -1,7 +1,7 @@
 import { householdZone } from "@/lib/household-zone";
 import { createClient } from "@/lib/supabase/server";
 import { familyDay } from "@/lib/time";
-import { clamp01, isGoalKind, isGoalPeriod, weightFraction, windowStart, type GoalKind, type GoalPeriod } from "@/lib/goals";
+import { clamp01, isGoalKind, isGoalPeriod, stepsForDay, weightFraction, windowStart, type GoalKind, type GoalPeriod } from "@/lib/goals";
 
 export type GoalRewardView = {
   title: string;
@@ -57,6 +57,11 @@ export type GoalView = {
   noData: boolean;
   reward: GoalRewardView | null;
   change: GoalChangeView | null;
+  /** Steps on a personal goal: what Apple Health has for the owner today,
+   * shown beside the hand entry so nobody types in what the watch counted. */
+  autoToday: number | null;
+  /** Steps: what was typed by hand for the owner today, if anything. */
+  manualToday: number | null;
 };
 
 type Viewer = { id: string; role: string };
@@ -103,8 +108,8 @@ export async function getGoals(familyId: string, viewer: Viewer, weekStart: 0 | 
       ? supabase.from("liquid_intake_log").select("member_id, log_date, glasses").eq("family_id", familyId).eq("type", "water").gte("log_date", earliest)
       : Promise.resolve({ data: [] as { member_id: string; log_date: string; glasses: number }[] }),
     has("steps")
-      ? supabase.from("health_vitals").select("member_id, reading_date, value_text").eq("family_id", familyId).eq("vital_type", "steps").gte("reading_date", earliest)
-      : Promise.resolve({ data: [] as { member_id: string; reading_date: string; value_text: string }[] }),
+      ? supabase.from("health_vitals").select("member_id, reading_date, value_text, source").eq("family_id", familyId).eq("vital_type", "steps").gte("reading_date", earliest)
+      : Promise.resolve({ data: [] as { member_id: string; reading_date: string; value_text: string; source: string }[] }),
     weightOwners.length > 0
       ? supabase.from("health_vitals").select("member_id, reading_date, value_text, created_at").eq("family_id", familyId).eq("vital_type", "weight").in("member_id", weightOwners).order("reading_date", { ascending: false }).order("created_at", { ascending: false }).limit(200)
       : Promise.resolve({ data: [] as { member_id: string; reading_date: string; value_text: string; created_at: string }[] }),
@@ -118,6 +123,14 @@ export async function getGoals(familyId: string, viewer: Viewer, weekStart: 0 | 
   const steps = stepsRes.data ?? [];
   const weights = weightRes.data ?? [];
   const savings = new Map((savingsRes.data ?? []).map((s) => [s.id, s]));
+  // One number per person per day, whatever sent it (stepsForDay).
+  const stepDays = new Map<string, { member: string; date: string; readings: { source: string; value: number }[] }>();
+  for (const s of steps) {
+    const key = `${s.member_id}|${s.reading_date}`;
+    const day = stepDays.get(key) ?? { member: s.member_id, date: s.reading_date, readings: [] };
+    day.readings.push({ source: s.source, value: parseFloat(s.value_text) || 0 });
+    stepDays.set(key, day);
+  }
 
   return withWindow.map((g) => {
     const counts = (memberId: string | null) => g.owner_member_id === null || memberId === g.owner_member_id;
@@ -126,11 +139,20 @@ export async function getGoals(familyId: string, viewer: Viewer, weekStart: 0 | 
     let fraction = 0;
     let noData = false;
     let savingsTitle: string | null = null;
+    let autoToday: number | null = null;
+    let manualToday: number | null = null;
 
     if (g.kind === "water") {
       current = water.filter((w) => w.log_date >= g.from && counts(w.member_id)).reduce((sum, w) => sum + w.glasses, 0);
     } else if (g.kind === "steps") {
-      current = steps.filter((s) => s.reading_date >= g.from && counts(s.member_id)).reduce((sum, s) => sum + (parseFloat(s.value_text) || 0), 0);
+      for (const day of stepDays.values()) if (day.date >= g.from && counts(day.member)) current += stepsForDay(day.readings);
+      if (g.owner_member_id) {
+        const todays = stepDays.get(`${g.owner_member_id}|${today}`)?.readings ?? [];
+        const auto = todays.filter((r) => r.source !== "manual");
+        const typed = todays.filter((r) => r.source === "manual");
+        autoToday = auto.length > 0 ? stepsForDay(auto) : null;
+        manualToday = typed.length > 0 ? stepsForDay(typed) : null;
+      }
     } else if (g.kind === "weight") {
       const mine = weights.filter((w) => w.member_id === g.owner_member_id).map((w) => ({ date: w.reading_date, value: parseFloat(w.value_text) })).filter((w) => w.value > 0);
       // Newest first. Where the goal started is what it was set with, or else
@@ -185,6 +207,8 @@ export async function getGoals(familyId: string, viewer: Viewer, weekStart: 0 | 
             overdue: !!r.due_at && new Date(r.due_at).getTime() <= Date.now(),
           }
         : null,
+      autoToday,
+      manualToday,
       change: c
         ? {
             id: c.id,
