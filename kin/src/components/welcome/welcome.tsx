@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { House3D } from "@/components/welcome/house-3d";
 import { writeFirstOpen, type ChosenPlan } from "@/lib/first-open";
-import { areaScores, readinessScore, topThree, type Answers } from "@/lib/check-up";
+import { areaScores, questionsFor, readinessScore, topThree, type Answers } from "@/lib/check-up";
 import { CheckUp } from "@/components/welcome/check-up";
 import { Results } from "@/components/welcome/results";
 import { Showcase } from "@/components/welcome/showcase";
@@ -22,13 +22,30 @@ type Step = "hello" | "quiz" | "results" | "show" | "plan";
  * Then the result, a few slides from the visitor's top 3, and the plan step,
  * ending at /signup. The answers, the score and the plan go into first-open
  * (this browser only, never sent), where sign-up, Start here and the tour
- * read them. */
+ * read them.
+ *
+ * Where the visitor is (step, question, answers) is also kept for this tab
+ * in sessionStorage, so following a link out -- the privacy notice, the
+ * terms -- and coming back, by Back or by the Kin logo, lands where they
+ * were rather than at question 1 with nothing answered. */
+const PROGRESS_KEY = "kin-check-up-progress";
+type Progress = { step: Step; answers: Answers; at: number };
+
+function readProgress(): Progress | null {
+  try {
+    const p = JSON.parse(sessionStorage.getItem(PROGRESS_KEY) ?? "null") as Progress | null;
+    return p && typeof p.step === "string" && p.answers && typeof p.at === "number" ? p : null;
+  } catch {
+    return null;
+  }
+}
+
 export function Welcome({ startQuiz = false }: { startQuiz?: boolean }) {
   const router = useRouter();
   const [step, setStep] = useState<Step>(startQuiz ? "quiz" : "hello");
   const [answers, setAnswers] = useState<Answers>({});
-  // Coming back from the step after the check-up lands on its last question.
-  const [back, setBack] = useState(false);
+  const [at, setAt] = useState(0);
+  const restored = useRef(false);
   const [joining, setJoining] = useState(false);
   const [code, setCode] = useState("");
   const heading = useRef<HTMLHeadingElement>(null);
@@ -44,6 +61,28 @@ export function Welcome({ startQuiz = false }: { startQuiz?: boolean }) {
   useEffect(() => {
     if (joining) codeInput.current?.focus();
   }, [joining]);
+
+  // Back from a link out: pick up where this tab left off. After the first
+  // render, so the server's page and the browser's first one agree.
+  useEffect(() => {
+    const p = readProgress();
+    if (p && !startQuiz) {
+      opened.current = false;
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- browser-only storage, read once after hydration
+      setAnswers(p.answers);
+      setAt(p.at);
+      setStep(p.step);
+    }
+    restored.current = true;
+  }, [startQuiz]);
+  useEffect(() => {
+    if (!restored.current) return;
+    try {
+      sessionStorage.setItem(PROGRESS_KEY, JSON.stringify({ step, answers, at } satisfies Progress));
+    } catch {
+      // Storage refused: the flow still works, it just won't resume.
+    }
+  }, [step, answers, at]);
 
   const finish = (a: Answers) => {
     writeFirstOpen({ answers: a, top3: topThree(a), score: readinessScore(a), areas: areaScores(a) });
@@ -74,7 +113,7 @@ export function Welcome({ startQuiz = false }: { startQuiz?: boolean }) {
             type="button"
             className="btn btn-primary btn-block kin-welcome-cta"
             onClick={() => {
-              setBack(false);
+              setAt(0);
               setStep("quiz");
             }}
           >
@@ -121,14 +160,15 @@ export function Welcome({ startQuiz = false }: { startQuiz?: boolean }) {
         </section>
       )}
 
-      {step === "quiz" && <CheckUp answers={answers} onChange={setAnswers} onDone={finish} onExit={() => setStep("hello")} focusFirst={!startQuiz} fromEnd={back} />}
+      {step === "quiz" && <CheckUp answers={answers} onChange={setAnswers} onDone={finish} onExit={() => setStep("hello")} focusFirst={!startQuiz} at={at} onMove={setAt} />}
       {step === "results" && (
         <Results
           answers={answers}
           heading={heading}
           onNext={() => setStep("show")}
           onBack={() => {
-            setBack(true);
+            // Back from the result lands on the last question.
+            setAt(questionsFor(answers).length - 1);
             setStep("quiz");
           }}
         />

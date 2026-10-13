@@ -32,7 +32,8 @@ test("the first screen offers the check-up, an invite code and Sign in", async (
 test("/?start=quiz opens at question 1, without the house", async ({ page }) => {
   await page.goto("/?start=quiz");
   await expect(page.getByRole("heading", { name: "Who’s at home?" })).toBeVisible();
-  await expect(page.getByText("Question 1 of 8")).toBeVisible();
+  // No total yet: it depends on the answer (kids at home or not).
+  await expect(page.getByText("Question 1", { exact: true })).toBeVisible();
   await expect(page.locator(".kin-house")).toHaveCount(0);
   const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
   expect(overflow).toBeLessThanOrEqual(0);
@@ -43,16 +44,25 @@ test("the check-up: one question per screen, kids only with kids, and the answer
   await page.goto("/");
   await page.getByRole("button", { name: "Take the 1-minute family check-up" }).click();
 
-  // 1: many. With kids at home there are nine questions.
+  // 1: many. The count has no total until it's answered, so it never
+  // changes under the visitor's thumb. Each answer shows what Kin does
+  // about it, and nothing moves on until Next.
   await expect(page.getByRole("heading", { name: "Who’s at home?" })).toBeFocused();
+  await expect(page.getByRole("button", { name: "Next" })).toBeDisabled();
   await page.getByRole("button", { name: "Partner" }).click();
   await page.getByRole("button", { name: "Kids under 13" }).click();
-  await expect(page.getByText("Question 1 of 9")).toBeVisible();
+  await expect(page.getByText("Question 1", { exact: true })).toBeVisible();
+  await expect(page.locator(".kin-check-tip")).toContainText("Kids get their own kid view");
   await page.getByRole("button", { name: "Next" }).click();
 
-  // 2: one answer moves straight on.
-  await expect(page.getByRole("heading", { name: /How many apps/ })).toBeFocused();
-  await page.getByRole("button", { name: "4 or more" }).click();
+  // 2: what the family keeps track in, paper included. With kids at home
+  // there are nine questions.
+  await expect(page.getByRole("heading", { name: /How does your family keep track/ })).toBeFocused();
+  await expect(page.getByText("Question 2 of 9")).toBeVisible();
+  await expect(page.getByRole("button", { name: "Next" })).toBeDisabled();
+  for (const t of [/A group chat/, "Notes or reminder apps", "Spreadsheets", /^Paper/]) await page.getByRole("button", { name: t }).click();
+  await expect(page.locator(".kin-check-tip")).toContainText("Keep the wall calendar");
+  await page.getByRole("button", { name: "Next" }).click();
 
   // 3: the order tapped is the rank, and a fourth can't be picked.
   await expect(page.getByRole("heading", { name: "Your top 3, in order" })).toBeFocused();
@@ -61,22 +71,32 @@ test("the check-up: one question per screen, kids only with kids, and the answer
   await expect(page.getByRole("button", { name: /Kids’ safety & location/ })).toHaveAttribute("aria-pressed", "true");
   await page.getByRole("button", { name: "Next" }).click();
 
+  // A single answer waits for Next too, so its tip can be read.
   await page.getByRole("button", { name: "I couldn’t" }).click();
-  await page.getByRole("button", { name: "All over the place" }).click();
+  await expect(page.locator(".kin-check-tip")).toContainText("emergency card");
+  await page.getByRole("button", { name: "Next" }).click();
+  await page.getByRole("button", { name: "In different places" }).click();
+  await page.getByRole("button", { name: "Next" }).click();
   // 6: asked, because there are kids.
   await expect(page.getByRole("heading", { name: /When the kids are out/ })).toBeFocused();
   // Back keeps what was answered.
   await page.getByRole("button", { name: "Back" }).click();
-  await expect(page.getByRole("button", { name: "All over the place" })).toHaveAttribute("aria-pressed", "true");
-  await page.getByRole("button", { name: "All over the place" }).click();
+  await expect(page.getByRole("button", { name: "In different places" })).toHaveAttribute("aria-pressed", "true");
+  await page.getByRole("button", { name: "Next" }).click();
   await page.getByRole("button", { name: "Honestly, I worry" }).click();
+  await page.getByRole("button", { name: "Next" }).click();
 
-  // 7 and 8 can be skipped: there's no wrong answer.
+  // 7: nothing can be skipped; there's an answer for a home that runs smoothly.
   await expect(page.getByRole("heading", { name: /back-and-forth/ })).toBeFocused();
-  await page.getByRole("button", { name: "Skip" }).click();
+  await expect(page.getByRole("button", { name: "Skip" })).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "Next" })).toBeDisabled();
+  await page.getByRole("button", { name: "Groceries & meals" }).click();
+  await page.getByRole("button", { name: "Next" }).click();
   await page.getByRole("button", { name: "Photo albums" }).click();
   await page.getByRole("button", { name: "Next" }).click();
+  await expect(page.getByRole("button", { name: "I already use AI tools regularly" })).toBeVisible();
   await page.getByRole("button", { name: "Curious but privacy first" }).click();
+  await page.getByRole("button", { name: "See my results" }).click();
 
   const saved = await page.evaluate(() => JSON.parse(localStorage.getItem("kin-first-open") ?? "null"));
   expect(saved.version).toBe(1);
@@ -96,9 +116,9 @@ test("the check-up: one question per screen, kids only with kids, and the answer
   await expect(page.getByRole("meter", { name: "Health & safety" })).toHaveAttribute("aria-valuenow", String(saved.areas.health));
   await expect(page.locator(".kin-check-top li")).toHaveCount(3);
   await expect(page.locator(".kin-check-top li").first()).toContainText("You said Kids’ safety & location");
-  await expect(page.getByText("One app instead of 4 or more.")).toBeVisible();
+  await expect(page.getByText("4 places to keep track in today. In Kin, it’s one.")).toBeVisible();
   await expect(page.getByText("Private to your family. Nothing is sold, and your records never train AI.")).toBeVisible();
-  expect(await page.locator(".kin-check-bars p").allTextContents()).not.toContain(expect.stringMatching(/fail/i));
+  expect(await page.locator(".kin-check-bars p").allTextContents()).not.toContain(expect.stringMatching(/fail|easy win/i));
   await expectTapTargets(page);
 
   // The showcase: the top 3 first, then one app, private to your family.
@@ -121,6 +141,13 @@ test("the check-up: one question per screen, kids only with kids, and the answer
   await expect(page.getByText("No automatic payment, ever, unless you subscribe yourself.")).toBeVisible();
   await expect(page.getByText("Do nothing and you move to Kin Free and keep everything.")).toBeVisible();
   await expectTapTargets(page);
+
+  // The privacy notice and back: the same step, nothing to answer again.
+  await page.getByRole("link", { name: "How Kin handles your family’s information" }).click();
+  await expect(page).toHaveURL(/\/legal\/privacy/);
+  await page.getByRole("button", { name: "← Back" }).click();
+  await expect(page.getByRole("heading", { name: "Pick how you start" })).toBeVisible();
+
   await page.getByRole("button", { name: "Create your account" }).click();
   await expect(page).toHaveURL(/\/signup/);
   expect(await page.evaluate(() => JSON.parse(localStorage.getItem("kin-first-open") ?? "null")?.plan)).toBe("plus");
@@ -130,19 +157,28 @@ test("no kids at home: question 6 is skipped", async ({ page }) => {
   await page.goto("/?start=quiz");
   await page.getByRole("button", { name: "Just me for now" }).click();
   await page.getByRole("button", { name: "Next" }).click();
-  await page.getByRole("button", { name: "1", exact: true }).click();
-  await page.getByRole("button", { name: "Skip" }).click();
+  await page.getByRole("button", { name: "We remember and remind each other" }).click();
+  await page.getByRole("button", { name: "Next" }).click();
+  await page.getByRole("button", { name: "Plans & schedules" }).click();
+  await page.getByRole("button", { name: "Next" }).click();
   await page.getByRole("button", { name: "Under a minute" }).click();
-  await page.getByRole("button", { name: "In the cloud" }).click();
+  await page.getByRole("button", { name: "Next" }).click();
+  // Originals kept in a safe are an answer of their own.
+  await page.getByRole("button", { name: "In a safe or locked cabinet" }).click();
+  await expect(page.locator(".kin-check-tip")).toContainText("Keep the originals where they are");
+  await page.getByRole("button", { name: "Next" }).click();
   await expect(page.getByRole("heading", { name: /back-and-forth/ })).toBeVisible();
   await expect(page.getByText("Question 6 of 8")).toBeVisible();
-  await page.getByRole("button", { name: "Skip" }).click();
-  await page.getByRole("button", { name: "Skip" }).click();
+  await page.getByRole("button", { name: "Not much, it runs smoothly" }).click();
+  await page.getByRole("button", { name: "Next" }).click();
+  await page.getByRole("button", { name: "None of these" }).click();
+  await page.getByRole("button", { name: "Next" }).click();
   await page.getByRole("button", { name: "Ready to try" }).click();
-  // No kids: four bars, no privacy line, and no top 3 to show.
+  await page.getByRole("button", { name: "See my results" }).click();
+  // No kids: four bars, no privacy line, and the one priority picked.
   await expect(page.getByRole("meter")).toHaveCount(4);
   await expect(page.getByText(/Private to your family/)).toHaveCount(0);
-  await expect(page.locator(".kin-check-top")).toHaveCount(0);
+  await expect(page.locator(".kin-check-top li")).toHaveCount(1);
 
   // The showcase can be skipped, and Kin Free is a real choice.
   await page.getByRole("button", { name: "See how it works" }).click();

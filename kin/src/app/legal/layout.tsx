@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { paletteCss, PALETTE_NEW_MEMBER } from "@/lib/palettes";
 import { OPERATOR, LEGAL_UPDATED } from "@/lib/legal";
+import { LegalBack } from "@/app/legal/legal-back";
 
 /** The privacy notice, terms and refund policy. Public, like the home page,
  * because people read them before they have an account -- and an app store
@@ -18,6 +19,9 @@ export default function LegalLayout({ children }: { children: React.ReactNode })
         <Link href="/legal/terms">Terms</Link>
         <Link href="/legal/refunds">Refunds</Link>
       </nav>
+      <div className="kin-legal-back">
+        <LegalBack />
+      </div>
       <article className="kin-legal-body">
         <p className="kin-legal-meta">Last updated {LEGAL_UPDATED}</p>
         {missing && (

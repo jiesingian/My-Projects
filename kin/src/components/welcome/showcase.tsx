@@ -89,7 +89,7 @@ const SLIDES: Record<Priority, Slide> = {
     rows: [
       { main: "Rice, 5 kg", side: "₱280" },
       { main: "Eggs, 1 tray", side: "₱230" },
-      { main: "Saging", side: "₱60" },
+      { main: "Bananas", side: "₱60" },
       { main: "Total", side: "₱570" },
     ],
   },

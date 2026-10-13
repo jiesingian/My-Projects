@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, type Ref } from "react";
+import Link from "next/link";
 import { Icon } from "@/components/icons";
 import { PLANS, pesos } from "@/lib/billing/plans";
 import { TRIAL_DAYS } from "@/lib/access";
@@ -22,7 +23,7 @@ export function PlanStep({ onChoose, onBack, heading }: { onChoose: (plan: Chose
       <h2 ref={heading} tabIndex={-1}>
         Pick how you start
       </h2>
-      <p>Either way, the whole family gets {TRIAL_DAYS} days of Kin Plus free. Sulit.</p>
+      <p>Either way, the whole family gets {TRIAL_DAYS} days of Kin Plus free.</p>
 
       <fieldset className="kin-check-plans">
         <legend className="sr-only">Plan</legend>
@@ -99,6 +100,11 @@ export function PlanStep({ onChoose, onBack, heading }: { onChoose: (plan: Chose
       <button type="button" className="btn btn-primary btn-block kin-welcome-cta" onClick={() => onChoose(plan)}>
         Create your account
       </button>
+      {/* The notice has a Back button, and the page keeps this tab's place,
+          so reading it doesn't mean answering the check-up again. */}
+      <Link href="/legal/privacy" className="kin-check-privacy">
+        How Kin handles your family&rsquo;s information
+      </Link>
       <button type="button" className="btn btn-ghost kin-check-secondary" onClick={onBack}>
         Back
       </button>

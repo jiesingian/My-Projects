@@ -4567,6 +4567,13 @@ button.kin-initial:focus-visible {
 .kin-check-top li > span:last-child { font-size: 0.875rem; line-height: 1.45; color: var(--color-neutral-700); }
 .kin-check-top .kin-plus-badge { margin-left: 0.375rem; vertical-align: middle; }
 .kin-check-callout { margin: 0; padding: 0.75rem 0.875rem; border-radius: 0.875rem; background: var(--color-accent-100); font: 600 0.9375rem/1.4 var(--font-heading); color: var(--color-text); }
+/* The check-up: what Kin does about the answer just given. The box keeps its
+   place before an answer so Next doesn't jump when the tip appears. */
+.kin-check-tip { min-height: 0.5rem; }
+.kin-check-tip p { margin: 0; padding: 0.75rem 0.875rem; border-radius: 0.875rem; background: var(--color-accent-100); font-size: 0.9375rem; line-height: 1.45; color: var(--color-text); }
+.kin-check-tip strong { display: block; font: 600 0.8125rem/1.3 var(--font-heading); color: var(--color-text); margin-bottom: 0.25rem; }
+.kin-check-tip .kin-plus-badge { margin-left: 0.375rem; vertical-align: middle; }
+.kin-check-privacy { display: flex; align-items: center; justify-content: center; min-height: 2.75rem; font-size: 0.875rem; text-decoration: underline; text-underline-offset: 0.15em; }
 /* The showcase: one slide per screen width, snapping, with a small phone
    drawn from sample data on each. */
 .kin-check-track { display: flex; overflow-x: auto; scroll-snap-type: x mandatory; scrollbar-width: none; margin: 0 -1.25rem; overscroll-behavior-x: contain; outline: none; }
@@ -5361,6 +5368,9 @@ button.kin-initial:focus-visible {
 }
 .kin-legal-nav .kin-welcome-logo { margin-right: auto; text-decoration: none; color: inherit; }
 .kin-legal-nav a { min-height: 2.75rem; display: inline-flex; align-items: center; }
+/* Back to the page the notice was opened from (the check-up keeps its place). */
+.kin-legal-back { max-width: 40rem; margin: -1rem auto 0.75rem; }
+.kin-legal-back .btn { padding-left: 0; }
 .kin-legal-body { max-width: 40rem; margin: 0 auto; font-size: 0.9375rem; line-height: 1.6; }
 .kin-legal-body h1 { font: 600 2rem/1.1 var(--font-heading); margin: 0 0 1rem; text-wrap: balance; }
 .kin-legal-body h2 { font: 600 1.1875rem/1.2 var(--font-heading); margin: 2rem 0 0.5rem; text-wrap: balance; }
@@ -7340,3 +7350,4 @@ button.kin-room-quote { font: inherit; font-size: 0.78125rem; text-align: left; 
 @media (prefers-reduced-motion: reduce) {
   .kin-tour-spot { transition: none; }
 }
+
