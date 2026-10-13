@@ -1,0 +1,128 @@
+name: Close absorbed PRs
+
+# Closes an open pull request that has nothing left to merge, so it does not
+# sit there with a conflict until somebody notices.
+#
+# How it keeps happening: a session opens a pull request (a spec, say), and the
+# sessions that build on it start from its branch before it merges. Their pull
+# requests carry its commit too. Whichever goes green first is squash-merged,
+# which writes one NEW commit on main -- so the lower pull request's commit is
+# on main in content but not by hash, git cannot see that, and the lower pull
+# request turns "conflicting" instead of "merged". The ship skill said to close
+# it by hand, but by then every session involved has ended by design and the
+# only person left to notice is Jonathan, reading an orange icon. That was
+# #588 on 13 October: its one commit went to main inside #591's squash merge
+# (4717cf2), and it sat open and conflicting for hours.
+#
+# Two tests, and a pull request is closed only when one of them proves there is
+# nothing left in it. A pull request with any work of its own fails both and
+# is left alone -- this closes nothing on a guess.
+#
+#  1. STACKED. Its head commit is one of the commits of a pull request that
+#     has already merged into main. A squash merge takes the merged branch's
+#     final tree, and every commit on that branch is behind its head, so the
+#     whole of this pull request went in with it. Read from the API (each
+#     merged pull request's commit list), which survives the squash because it
+#     is about the branch, not about main. A pull request that gained a commit
+#     after the other branched has a head that is not on that list, and stays.
+#
+#  2. DUPLICATE. Every file it touches is already, byte for byte, what it
+#     would make that file: merging it would change nothing. Covers the same
+#     work landed another way (rebased, re-opened, cherry-picked).
+#
+# It never deletes a branch -- closing is reversible with one click, a deleted
+# branch is not -- and it comments first, naming where the work went.
+#
+# WHEN IT RUNS. automerge.yml merges with GITHUB_TOKEN, and GitHub starts no
+# workflow from a push made with that token, so `push` below only catches merges
+# made by hand. automerge.yml therefore dispatches this by name after every
+# merge, next to migrate.yml and the rest. The hourly schedule is the backstop
+# for anything missed (GitHub runs it when it runs it; see self-heal.yml).
+on:
+  push:
+    branches: [main]
+  schedule:
+    - cron: "17 * * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pull-requests: write
+
+concurrency:
+  group: close-absorbed
+  cancel-in-progress: false
+
+jobs:
+  close:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - name: Close pull requests with nothing left to merge
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+
+          gh pr list --repo "$REPO" --state open --base main --limit 100 \
+            --json number,headRefOid,headRefName > /tmp/open.json
+          if [ "$(jq length /tmp/open.json)" -eq 0 ]; then
+            echo "No open pull request into main — nothing to do."; exit 0
+          fi
+
+          # Test 1's evidence: the commits of every pull request merged into
+          # main recently, as "sha merged-number" lines. A stacked pull request
+          # is absorbed by the one merged on top of it, which is never old, so
+          # the last 50 merges are plenty and keep this to a few API calls.
+          gh pr list --repo "$REPO" --state merged --base main --limit 50 \
+            --json number,mergeCommit --jq '.[] | "\(.number) \(.mergeCommit.oid // "")"' > /tmp/merged.txt
+          : > /tmp/merged-commits.txt
+          while read -r M MC; do
+            gh api "repos/$REPO/pulls/$M/commits?per_page=100" --paginate --jq '.[].sha' \
+              | sed "s/\$/ $M $MC/" >> /tmp/merged-commits.txt || true
+          done < /tmp/merged.txt
+
+          git fetch --quiet origin main
+          jq -r '.[] | "\(.number) \(.headRefOid)"' /tmp/open.json | while read -r PR HEAD; do
+            REASON=""
+
+            # 1. Stacked under something already merged.
+            HIT=$(grep -m1 "^$HEAD " /tmp/merged-commits.txt || true)
+            if [ -n "$HIT" ]; then
+              read -r _ BY BYC <<< "$HIT"
+              REASON="its head commit (\`${HEAD:0:7}\`) was part of #$BY, which merged into main as \`${BYC:0:7}\`. Everything in this pull request went in with it."
+            fi
+
+            # 2. Every file it touches already matches main.
+            if [ -z "$REASON" ]; then
+              if git fetch --quiet origin "+refs/pull/$PR/head:refs/remotes/pr/$PR" 2>/dev/null; then
+                BASE=$(git merge-base origin/main "pr/$PR" 2>/dev/null || true)
+                if [ -n "$BASE" ]; then
+                  mapfile -t FILES < <(git diff --name-only "$BASE" "pr/$PR")
+                  if [ "${#FILES[@]}" -gt 0 ] && git diff --quiet origin/main "pr/$PR" -- "${FILES[@]}"; then
+                    REASON="every file it changes (${#FILES[@]}) is already exactly this on main, so merging it would change nothing."
+                  fi
+                fi
+              fi
+            fi
+
+            if [ -z "$REASON" ]; then
+              echo "PR #$PR: has work of its own — leaving it."; continue
+            fi
+
+            echo "PR #$PR: absorbed — $REASON"
+            {
+              echo "Closing: nothing is left to merge here — $REASON"
+              echo
+              echo "Reopen it if that is wrong; the branch is kept."
+              echo
+              echo "_Posted by close-absorbed.yml._"
+            } > /tmp/comment.md
+            gh pr comment "$PR" --repo "$REPO" --body-file /tmp/comment.md \
+              && gh pr close "$PR" --repo "$REPO" \
+              || echo "PR #$PR: could not comment or close — leaving it."
+          done

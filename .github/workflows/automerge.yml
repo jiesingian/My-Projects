@@ -400,7 +400,11 @@ jobs:
                 && echo "  woke migrate.yml on main (dev, then production)" \
                 || echo "  could not wake migrate.yml — NEITHER database will have this merge's migrations"
 
-              for W in watched-change.yml schema-check.yml e2e.yml; do
+              # close-absorbed.yml closes any open pull request this merge
+              # just swallowed -- one stacked under it, whose commits went in
+              # with the squash and which would otherwise sit there
+              # "conflicting" until somebody noticed (#588, 13 October).
+              for W in watched-change.yml schema-check.yml e2e.yml close-absorbed.yml; do
                 gh workflow run "$W" --repo "$REPO" --ref main \
                   && echo "  woke $W on main" \
                   || echo "  could not wake $W — run it by hand if it matters"
