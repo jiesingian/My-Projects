@@ -16,6 +16,7 @@ import { QuickLine } from "@/components/quick-line";
 import { wrapUp, isWrapUpTime } from "@/lib/wrap-up";
 import { EveningWrapUp } from "@/components/evening-wrap-up";
 import { ApprovalQueue } from "@/components/approval-queue";
+import { TodayGoals } from "@/components/today-goals";
 import { getGoalRequestsFor, getGoals, getPendingGoalClaims, getRewardDuties, type GoalView } from "@/lib/queries/goals";
 import { weekStartOf } from "@/lib/week";
 import { ComingUpPager } from "@/components/coming-up-pager";
@@ -219,6 +220,11 @@ export default async function TodayPage({ searchParams }: { searchParams: Promis
           )}
         </section>
       )}
+
+      {/* Today's goals (Jonathan, 13 October): the viewer's own and the
+          household's goals that move day to day, with a glass, the day's
+          steps or a session right here. */}
+      <TodayGoals goals={goals} meId={me.id} today={familyDay(new Date(), tz)} plus={readAccess(me.families).plus} currency={me.families.currency} />
 
       {/* At a glance: one figure from each part of the household. These took
           the place of five hub cards that opened the same places as the

@@ -108,7 +108,7 @@ function unitFor(goal: GoalView, n: number): string {
   return n === 1 && unit.endsWith("s") ? unit.slice(0, -1) : unit;
 }
 
-function caption(goal: GoalView, currency: string): string {
+export function caption(goal: GoalView, currency: string): string {
   if (goal.kind === "weight") {
     if (goal.noData) return `Target ${goalNumber(goal.target)} kg · no weight recorded yet`;
     const from = goal.start !== null ? `from ${goalNumber(goal.start)} ` : "";
@@ -209,7 +209,7 @@ const PERIOD_WORD: Record<"day" | "week" | "month", [string, string, string]> = 
 
 /** A repeating goal: what meeting it is worth, this period's claim, and the
  * run so far. Only the owner claims; everyone else sees where it stands. */
-function ClaimLine({ goal, meId }: { goal: GoalView; meId: string }) {
+export function ClaimLine({ goal, meId }: { goal: GoalView; meId: string }) {
   const [one, many, now] = PERIOD_WORD[goal.period as "day" | "week" | "month"];
   const mine = goal.ownerId === meId;
   const plus = goal.points > 0 ? ` +${goal.points}` : "";
