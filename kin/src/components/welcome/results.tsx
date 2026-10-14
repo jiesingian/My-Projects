@@ -2,11 +2,12 @@
 
 import type { Ref } from "react";
 import { PRIVACY_LINE, SELF_CHECK_LINE, oneAppLine, readinessScore, scoreCategory, wantsPrivacyFirst, type Answers } from "@/lib/check-up";
-import { PROFILES, blueprintFeatures, blueprintProfile, blueprintWhy } from "@/lib/blueprint";
+import { PROFILES, blueprintFeatures, blueprintProfile } from "@/lib/blueprint";
 
 /** The check-up's result: Your Family’s Digital Blueprint (Janine, 14
  * October). The Family Digital Readiness Score and its category, the
- * family's profile and why it fits, and three to five Kin features to start
+ * family's profile and its tagline (Janine, 14 October: no explanation,
+ * it read too heavy), and three to five Kin features to start
  * with; then what Kin replaces and, for anyone who said "privacy first",
  * the privacy promise. Worked out here from the answers; nothing is sent. */
 export function Results({ answers, onNext, onBack, heading }: { answers: Answers; onNext: () => void; onBack: () => void; heading: Ref<HTMLHeadingElement> }) {
@@ -43,7 +44,6 @@ export function Results({ answers, onNext, onBack, heading }: { answers: Answers
         <p className="kin-check-eyebrow">Your family profile</p>
         <h3>{profile.name}</h3>
         <p className="kin-check-tagline">“{profile.tagline}”</p>
-        <p>{blueprintWhy(answers, profileId)}</p>
       </div>
 
       <h3 className="kin-check-sub">Your recommended family hub</h3>
