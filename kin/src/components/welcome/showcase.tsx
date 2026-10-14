@@ -116,6 +116,30 @@ const SLIDES: Record<Priority, Slide> = {
       { main: "Quinn", sub: "Video call · 24 min" },
     ],
   },
+  emergency: {
+    id: "emergency",
+    icon: "shieldCheck",
+    title: "The emergency card",
+    line: "Blood type, allergies, doctor and insurance on one screen that reads at arm’s length.",
+    screen: "Emergency · Quinn",
+    rows: [
+      { main: "Blood type", side: "A+" },
+      { main: "Allergies", side: "None known" },
+      { main: "Doctor", side: "Dr. Lim" },
+      { main: "Insurance", side: "Policy 88-1032" },
+    ],
+  },
+  kids: {
+    id: "kids",
+    icon: "mapPin",
+    title: "Home safe, without ten calls",
+    line: "Location sharing that each person switches on for themselves, next to the family calendar.",
+    screen: "Places",
+    rows: [
+      { main: "Pat", sub: "Home", side: "now" },
+      { main: "Quinn", sub: "Work", side: "12 min" },
+    ],
+  },
 };
 
 const LAST: Slide = {

@@ -34,6 +34,8 @@ export const PRIORITY_LABELS: Record<Priority, string> = {
   memories: "Family memories and milestones",
   meals: "Household management",
   together: "Family connection and quality time",
+  emergency: "Emergency information",
+  kids: "Kids’ safety and location",
 };
 
 export const QUESTIONS: Question[] = [
@@ -194,11 +196,13 @@ export function topThree(answers: Answers): Priority[] {
   return (answers.top3 ?? []).filter((p): p is Priority => (PRIORITIES as readonly string[]).includes(p)).slice(0, 3);
 }
 
-/** Which bar each priority belongs to. Plans, the household and money are
- * all running the home; travel, memories and time together are staying
- * close. No priority is about the kids now, so their bar weighs the least. */
+/** Which bar each priority belongs to. Emergency information is part of
+ * Health & safety; plans, the household and money are all running the home;
+ * travel, memories and time together are staying close. */
 export const PRIORITY_AREA: Record<Priority, Area> = {
   health: "health",
+  emergency: "health",
+  kids: "kids",
   documents: "documents",
   plans: "home",
   meals: "home",
@@ -361,7 +365,9 @@ export function areaLine(area: Area, score: number): string {
  * ones that are Kin Plus after the trial, so nobody meets Plus later as a
  * surprise. */
 export const PRIORITY_IN_KIN: Record<Priority, { line: string; plus?: boolean }> = {
-  health: { line: "a health profile for each person: allergies, blood type, doctor, PhilHealth and insurance, and an emergency card that reads at arm’s length." },
+  health: { line: "a health profile for each person: allergies, blood type, doctor, PhilHealth and insurance, on everyone’s phone." },
+  emergency: { line: "the emergency card: blood type, allergies, doctor and insurance on one screen that reads at arm’s length." },
+  kids: { line: "location sharing, which each person switches on for themselves, beside the family calendar." },
   money: { line: "Wealth: accounts, budgets and bills with reminders, and who’s paying what.", plus: true },
   documents: { line: "the vault: PSA certificates, passports and policies, behind Face ID or a PIN.", plus: true },
   plans: { line: "one family calendar, synced with Google Calendar, with appointments, routines and chores the kids earn stars for." },

@@ -39,8 +39,7 @@ test("the top 3 rank in the order tapped, and stop at three", () => {
   // Taking one back closes the gap: the rest move up a place.
   picked = toggle(top, picked, "money");
   expect(picked).toEqual(["health", "travel"]);
-  // Anything that isn't a priority now (like "kids", saved before 14 October) is dropped.
-  expect(topThree({ top3: [...picked, "nonsense", "kids"] })).toEqual(["health", "travel"]);
+  expect(topThree({ top3: [...picked, "nonsense"] })).toEqual(["health", "travel"]);
 });
 
 test("a single answer replaces, and 'Just me' and the other 'none' answers stand alone", () => {
@@ -80,7 +79,7 @@ test("every score and bar stays within 0-100, whatever the answers", () => {
     {
       home: ["kids", "grown", "parents", "relatives", "helper"],
       tools: ["none"],
-      top3: ["together", "health", "documents"],
+      top3: ["kids", "health", "documents"],
       sick: ["cant"],
       papers: ["scattered"],
       kids: ["worry"],
@@ -145,6 +144,9 @@ test("the top 3 weigh most, first choice heaviest", () => {
   // Travel, memories and time together are all staying close, so they add
   // to the same bar.
   expect(areaWeights({ top3: ["travel", "together", "memories"] }).close).toBe(7);
+  // Emergency information is part of Health & safety too.
+  expect(areaWeights({ top3: ["emergency", "health"] }).health).toBe(6);
+  expect(areaWeights({ top3: ["kids"] }).kids).toBe(4);
   // The same answers, but health first rather than last: a weak health bar
   // pulls the score down further.
   const base = {
@@ -226,6 +228,8 @@ test("questions 3 and 4 are Janine's wording, and question 4 keeps its scores fa
     "Family memories and milestones",
     "Household management",
     "Family connection and quality time",
+    "Emergency information",
+    "Kids’ safety and location",
   ]);
   expect(q("sick").title).toBe("If a medical emergency happened today, how quickly can you access your family’s health history and records?");
   expect(q("sick").options.map((o) => o.label)).toEqual([
