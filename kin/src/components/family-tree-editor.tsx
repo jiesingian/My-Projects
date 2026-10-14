@@ -196,7 +196,13 @@ export function FamilyTreeEditor({ people, unaddedMembers }: { people: TreePerso
   }
 
   async function remove(p: TreePerson) {
-    if (!(await confirm({ title: `Remove ${p.fullName} from the tree?`, description: "This can't be undone.", confirmLabel: "Remove", danger: true }))) return;
+    // Their stories go with them (20261014204000), so say how many.
+    const stories = p.storyCount ?? 0;
+    const description =
+      stories > 0
+        ? `${stories === 1 ? "Their story goes" : `Their ${stories} stories go`} too, with the recordings and photos. This can't be undone.`
+        : "This can't be undone.";
+    if (!(await confirm({ title: `Remove ${p.fullName} from the tree?`, description, confirmLabel: "Remove", danger: true }))) return;
     const result = await removeTreePersonAction(p.id);
     if (result.error) {
       setError(result.error);

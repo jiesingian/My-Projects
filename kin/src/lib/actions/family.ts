@@ -1132,14 +1132,31 @@ export async function linkTreePersonToMemberAction(treePersonId: string, memberI
 /** Removes a tree entry. Anyone linked to them as father, mother or spouse
  * simply loses that one link (ON DELETE SET NULL) rather than being removed
  * themselves -- and if the entry was a household member, only the tree
- * placement goes; the member and their Kin profile are untouched. */
+ * placement goes; the member and their Kin profile are untouched.
+ *
+ * Their stories go with them (20261014204000, on delete cascade), and so do
+ * the stories' files: read first, since once the rows are gone nothing says
+ * where they were. A failed read keeps the person rather than leave files in
+ * storage, still counted, that nothing points at. */
 export async function removeTreePersonAction(id: string): Promise<ActionState> {
   const me = await requireCurrentMember();
   const supabase = await createClient();
   const { data: row } = await supabase.from("family_tree_people").select("family_id").eq("id", id).maybeSingle();
   if (!row || row.family_id !== me.family_id) return { error: "That person could not be found." };
 
-  const { error } = await supabase.from("family_tree_people").delete().eq("id", id);
+  const { data: storyFiles, error: readError } = await supabase
+    .from("tree_person_story_files")
+    .select("storage_path, tree_person_stories!inner(person_id)")
+    .eq("tree_person_stories.person_id", id);
+  if (readError) return { error: humanDatabaseError(readError.message) };
+
+  const { data: removed, error } = await supabase.from("family_tree_people").delete().eq("id", id).select("id");
+  // Only once the person is really gone: a delete the database quietly
+  // matched to nothing keeps their stories, and so their files.
+  if (!error && (removed ?? []).length > 0 && storyFiles && storyFiles.length > 0) {
+    const { error: removeError } = await supabase.storage.from("documents").remove(storyFiles.map((f) => f.storage_path));
+    if (removeError) console.error(`${storyFiles.length} story files were left in storage after taking a person off the tree`, removeError.message);
+  }
   revalidatePath("/family");
   return { error: error ? humanDatabaseError(error.message) : null };
 }

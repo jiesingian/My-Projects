@@ -126,3 +126,37 @@ Built 11 October (`20261011100000_tree_offer_limits_blocks_accounts.sql`):
   account there is filled in their colour, and one who is only a name in
   their tree has a dashed ring in it. That is a yes or no from
   `shared_branch_accounts`, only for a branch you have an accepted match with.
+
+## Stories on the tree
+
+Built 14 October (`20261014204000_tree_person_stories.sql`), after
+FamilySearch's *Memories*: photos, documents and recorded interviews with
+older relatives, kept on the person they are about.
+
+- **Anyone on the tree can have stories**: a member, a relative who is only
+  a name, somebody who has passed. "Stories" in their panel on the tree, and
+  on a member's profile, opens `/family/stories/<person>`.
+- **A story** is a title (this week's journal question is offered), who
+  told it (a member, or words such as "Lolo Ben, told to Mia"), when it
+  happened (a year is enough; "the 1960s", "May 1975" and "3 May 1975" are
+  kept as exactly that, `lib/tree-stories.ts`), the words if it was written,
+  and its files: recordings, old photos, scanned papers (PDF).
+- **Recording** uses the chat's voice-note recorder with a twenty-minute
+  limit, and writes the words down as it goes where the phone can (the
+  browser's own speech recognition, as for voice notes; no key, nothing
+  paid).
+- **The files** are in Kin's storage, documents bucket, under
+  `<household>/stories/`, so they count toward the household's allowance
+  (1 GB on Kin Free, 50 GB on Plus). A file row cannot point anywhere else.
+- **On the tile**, a small count opposite the linked badge (at most "9+").
+- **Who sees them: the household only.** Not linked households, for now:
+  the shared-branch read gives a linked household a name and a birth year,
+  never anything a member wrote, and the files sit in the household's own
+  folder. Sharing stories is its own decision, with its own switch.
+- **Who writes them:** grown-ups, and teens with a login of their own (not
+  in kid view). Whoever added a story may change or delete it; a grown-up
+  may delete anyone's.
+- **Kin Free**, like the tree and the journal. Storage is what is paid for.
+- **Taking somebody off the tree** takes their stories and files with them
+  (Manage people says how many first). A child cannot take off somebody
+  who has stories.

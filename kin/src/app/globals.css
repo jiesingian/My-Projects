@@ -1965,6 +1965,232 @@ div.kin-tp-ghost {
   gap: 0.5rem;
 }
 
+/* ── Stories on the tree (14 October) ─────────────────────────────────────
+   The count on a tile sits opposite the linked badge, bottom-left of the
+   photo, and never holds more than two characters ("9+"), so a 320px phone
+   sees the same tile it did before. The row in the panel and on a profile
+   is the way to the person's stories page. */
+.kin-tp-stories {
+  position: absolute;
+  left: -0.125rem;
+  bottom: -0.125rem;
+  display: grid;
+  place-items: center;
+  min-width: 1.125rem;
+  height: 1.125rem;
+  padding: 0 0.1875rem;
+  border-radius: 0.5625rem;
+  background: var(--color-surface);
+  color: var(--color-accent-700);
+  font: 700 0.625rem/1 var(--font-numeric);
+  box-shadow:
+    0 0 0 1.5px var(--color-accent),
+    0 0 0 3px var(--color-surface);
+}
+.kin-treepanel-stories {
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+  min-height: 2.75rem;
+  padding: 0.5rem 0.625rem;
+  border-radius: var(--radius-card);
+  background: color-mix(in srgb, var(--color-accent) 8%, var(--color-surface));
+  color: inherit;
+  text-decoration: none;
+}
+.kin-treepanel-stories > span:first-of-type {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+.kin-treepanel-stories strong {
+  font: 600 var(--text-sm)/1.2 var(--font-heading);
+}
+.kin-treepanel-stories small {
+  font-size: var(--text-xs);
+  color: var(--color-neutral-600);
+}
+.kin-treepanel-stories-go {
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--color-accent-700);
+}
+.kin-stories-head {
+  display: flex;
+  align-items: center;
+  gap: 0.875rem;
+  margin: 0.5rem 0 0.625rem;
+}
+.kin-stories-name {
+  margin: 0;
+  font: 600 1.5rem/1.05 var(--font-heading);
+  overflow-wrap: anywhere;
+}
+.kin-stories-meta,
+.kin-stories-note,
+.kin-stories-empty {
+  font-size: var(--text-sm);
+  color: var(--color-neutral-600);
+}
+.kin-stories-meta {
+  margin-top: 0.25rem;
+}
+.kin-stories-note {
+  margin: 0 0 1rem;
+  line-height: 1.4;
+}
+.kin-stories {
+  display: flex;
+  flex-direction: column;
+  gap: 0.875rem;
+}
+.kin-stories-empty {
+  margin: 0.25rem 0;
+  line-height: 1.45;
+}
+.kin-story {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 0.875rem;
+  border-radius: var(--radius-card);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-sm);
+  min-width: 0;
+}
+.kin-story-title {
+  margin: 0;
+  font: 600 var(--text-md)/1.25 var(--font-heading);
+  overflow-wrap: anywhere;
+}
+.kin-story-meta,
+.kin-story-missing {
+  font-size: var(--text-xs);
+  color: var(--color-neutral-600);
+  margin: 0;
+}
+.kin-story-body {
+  margin: 0;
+  font-size: 0.9375rem;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.kin-story-audio {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+.kin-story-audio audio,
+.kin-story-files audio {
+  width: 100%;
+  max-width: 100%;
+  height: 2.5rem;
+}
+.kin-story-photos {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 6.5rem), 1fr));
+  gap: 0.375rem;
+}
+.kin-story-photos img {
+  display: block;
+  width: 100%;
+  aspect-ratio: 1;
+  object-fit: cover;
+  border-radius: 0.5rem;
+}
+.kin-story-paper {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  min-height: 2.25rem;
+  font-size: var(--text-sm);
+  color: var(--color-accent-700);
+  overflow-wrap: anywhere;
+}
+.kin-story-foot {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-size: var(--text-xs);
+  color: var(--color-neutral-600);
+}
+.kin-story-foot > span {
+  flex: 1;
+  min-width: 0;
+}
+.kin-story-foot .btn {
+  min-height: 2.25rem;
+  padding: 0 0.625rem;
+}
+.kin-story-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  font-size: var(--text-xs);
+  font-weight: 600;
+  color: var(--color-neutral-700);
+}
+.kin-story-prompt {
+  align-self: flex-start;
+  max-width: 100%;
+  white-space: normal;
+  text-align: left;
+  line-height: 1.3;
+  height: auto;
+  min-height: 2rem;
+  padding-block: 0.375rem;
+}
+.kin-story-hint {
+  margin: 0;
+  font-size: var(--text-xs);
+  color: var(--color-neutral-600);
+}
+.kin-story-hint[data-error] {
+  color: var(--cal-occasion);
+}
+.kin-story-files {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
+}
+.kin-story-files li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: var(--text-sm);
+}
+.kin-story-files li > span {
+  flex: 1 1 8rem;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.kin-story-files img {
+  width: 2.5rem;
+  height: 2.5rem;
+  object-fit: cover;
+  border-radius: 0.375rem;
+}
+.kin-story-files .btn {
+  min-height: 2.25rem;
+  width: 2.25rem;
+  padding: 0;
+}
+.kin-story-add,
+.kin-story-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+.kin-story-actions {
+  justify-content: flex-end;
+}
+
 /* ── chat: the pin, the quote, the reply strip, the typing line ──────────
    All four are secondary to the message they sit beside, so all four are a
    step down in size and weight rather than a different colour -- a thread

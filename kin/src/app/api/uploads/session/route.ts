@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/server";
 import { readAccess, FREE_STORAGE_BYTES, PLUS_STORAGE_BYTES } from "@/lib/access";
 import { HIGHLIGHT_PHOTO_BYTES, HIGHLIGHT_VIDEO_BYTES } from "@/lib/highlights";
 import { UUID } from "@/lib/ids";
+import { canAddStories, storySafeFileName } from "@/lib/tree-stories";
 import {
   getValidDriveAccessToken,
   ensureDriveFolderStructure,
@@ -14,7 +15,7 @@ import {
 } from "@/lib/google-drive";
 
 type SessionRequest = {
-  kind: "journal" | "journal_personal" | "journal_video" | "document" | "avatar" | "family_background" | "recipe" | "routine" | "chat" | "highlight" | "event_photo" | "visit_photo";
+  kind: "journal" | "journal_personal" | "journal_video" | "document" | "avatar" | "family_background" | "recipe" | "routine" | "chat" | "highlight" | "event_photo" | "visit_photo" | "tree_story";
   fileName: string;
   mimeType: string;
   fileSize: number;
@@ -65,6 +66,14 @@ const UPLOAD_LIMITS: Record<SessionRequest["kind"], { types: RegExp; maxBytes: n
     types: /^(image\/|video\/|audio\/|application\/pdf$|application\/vnd\.openxmlformats-officedocument\.|application\/msword$|application\/vnd\.ms-excel$|application\/vnd\.ms-powerpoint$)/,
     maxBytes: 50 * 1024 * 1024,
     label: "a photo, video, voice note, PDF, or office document, up to 50MB",
+  },
+  // A story on the family tree (20261014204000): a recording of somebody
+  // telling it, an old photo, or a scanned letter or certificate. Twenty
+  // minutes of a phone's recording is well under 50MB.
+  tree_story: {
+    types: /^(image\/|audio\/|application\/pdf$)/,
+    maxBytes: 50 * 1024 * 1024,
+    label: "a recording, a photo or a PDF, up to 50MB",
   },
 };
 
@@ -210,6 +219,23 @@ export async function POST(request: Request) {
       provider: "supabase",
       bucket: "documents",
       path: `${me.family_id}/highlights/${Date.now()}-${crypto.randomUUID().slice(0, 8)}-${fileName.replace(/[^\w.-]+/g, "_").slice(-80)}`,
+    });
+  }
+
+  // A story on the family tree: Kin's storage, never Drive, under the
+  // household's own stories folder -- the only folder a story's file row may
+  // point at (tree_person_story_files_in_household_folder), and one the
+  // documents bucket keeps to the household. Counts toward the allowance.
+  if (kind === "tree_story") {
+    // Only someone who may keep a story uploads for one (can_add_tree_stories
+    // says the same of the row), so a child in kid view fills no storage.
+    if (!canAddStories(me)) return NextResponse.json({ error: "Stories are added by grown-ups and teens with a login of their own." }, { status: 403 });
+    const refused = await storageRefusal();
+    if (refused) return refused;
+    return NextResponse.json({
+      provider: "supabase",
+      bucket: "documents",
+      path: `${me.family_id}/stories/${Date.now()}-${crypto.randomUUID().slice(0, 8)}-${storySafeFileName(fileName)}`,
     });
   }
 

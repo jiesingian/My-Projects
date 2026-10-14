@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { resolvePhotoUrl } from "@/lib/photo-url";
 import type { Tables } from "@/lib/database.types";
 import { familyDate } from "@/lib/format-family";
+import { getStoryCounts } from "@/lib/queries/tree-stories";
 
 export async function getFamilyProfile(familyId: string) {
   const supabase = await createClient();
@@ -72,6 +73,9 @@ export type TreePerson = {
    * initials on the tree, and "female"/"male" for words like Aunt or Uncle. */
   color?: string | null;
   sex?: string | null;
+  /** How many stories the household keeps about them
+   * (20261014204000_tree_person_stories). */
+  storyCount?: number;
 };
 
 export type FamilyTree = {
@@ -168,9 +172,10 @@ export function buildFamilyTree(people: TreePerson[], centerMemberId: string | n
 
 export async function getFamilyTree(familyId: string, centerMemberId: string | null): Promise<FamilyTree> {
   const supabase = await createClient();
-  const [{ data: rows }, members] = await Promise.all([
+  const [{ data: rows }, members, storyCounts] = await Promise.all([
     supabase.from("family_tree_people").select("*").eq("family_id", familyId),
     getMembers(familyId),
+    getStoryCounts(familyId),
   ]);
 
   const memberById = new Map(members.map((m) => [m.id, m]));
@@ -188,6 +193,7 @@ export async function getFamilyTree(familyId: string, centerMemberId: string | n
       fatherId: r.father_id,
       motherId: r.mother_id,
       spouseId: r.spouse_id,
+      storyCount: storyCounts.get(r.id) ?? 0,
     };
   });
 
