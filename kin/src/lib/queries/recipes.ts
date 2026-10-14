@@ -32,6 +32,8 @@ export type RecipeView = {
   /** Whether this is the household's own, an edit of a shipped one, or as
    * Kin shipped it. */
   origin: "own" | "edited" | "shipped";
+  /** The page a recipe was read from (Save a recipe from a link). */
+  sourceUrl: string | null;
 };
 
 export type CategoryView = {
@@ -103,6 +105,7 @@ export async function getRecipeBook(familyId: string): Promise<RecipeView[]> {
       ingredients,
       photoUrl: null,
       origin: r.base_key ? "edited" : "own",
+      sourceUrl: r.source_url ?? null,
     };
   });
 
@@ -119,6 +122,7 @@ export async function getRecipeBook(familyId: string): Promise<RecipeView[]> {
     ingredients: r.ingredients.map((ing) => ({ name: ing.name, qty: ing.qty, unit: ing.unit, section: ing.section as MarketSection })),
     photoUrl: null,
     origin: "shipped",
+    sourceUrl: null,
   }));
 
   const all = [...own, ...shipped].sort((a, b) => a.name.localeCompare(b.name));

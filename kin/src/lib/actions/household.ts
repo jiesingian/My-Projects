@@ -707,6 +707,9 @@ export async function saveRecipeAction(input: {
   minutes: number | null;
   steps: string[];
   ingredients: RecipeIngredientInput[];
+  /** The page it was read from (Save a recipe from a link). Left alone when
+   * not given, so editing a linked recipe keeps its link. */
+  sourceUrl?: string | null;
 }): Promise<ActionState> {
   const me = await requireCurrentMember();
   const name = clamp(input.name, 150);
@@ -728,6 +731,7 @@ export async function saveRecipeAction(input: {
     minutes: input.minutes,
     steps: input.steps.map((s) => clamp(s, 1000)).filter(Boolean),
     updated_at: new Date().toISOString(),
+    ...(input.sourceUrl !== undefined ? { source_url: input.sourceUrl && /^https:\/\//.test(input.sourceUrl) ? input.sourceUrl.slice(0, 2000) : null } : {}),
   };
 
   let recipeId = input.id ?? null;
