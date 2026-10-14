@@ -20,7 +20,9 @@ import type { ActionState } from "@/lib/actions/auth";
 import { SubmitButton, ErrorText } from "@/components/form";
 import { DetailHeader } from "@/components/hub-header";
 import type { Tables } from "@/lib/database.types";
-import { familyClock, familyDay } from "@/lib/time";
+import { familyClock, familyDay, readableDay, weekdayOf } from "@/lib/time";
+import { WeekdayPicker } from "@/components/weekday-picker";
+import { describeActivityRepeat, readRepeatFields } from "@/lib/activity-repeat";
 import { DateInput } from "@/components/date-input";
 import { confirm } from "@/components/confirm-sheet";
 import { AmountInput } from "@/components/amount-input";
@@ -110,6 +112,18 @@ function ActivityForm({ members, defaultDate, editActivity, prefill }: { members
   const startTime = editActivity ? familyClock(new Date(editActivity.start_at), tz) : undefined;
   const endTime = editActivity?.end_at ? familyClock(new Date(editActivity.end_at), tz) : undefined;
 
+  // How it repeats (Janine, 14 October). The date is the start; a weekly task
+  // picks its days, which begin as the start's own weekday and follow the
+  // date until someone taps one; anything repeating may have an end.
+  const firstDay = startDate ?? defaultDate ?? familyDay(new Date(), tz);
+  const [repeat, setRepeat] = useState(editActivity?.repeat ?? "once");
+  const [start, setStart] = useState(firstDay);
+  const [days, setDays] = useState<number[]>(editActivity?.repeat_days?.length ? editActivity.repeat_days : [weekdayOf(firstDay) ?? 1]);
+  const [daysChosen, setDaysChosen] = useState(!!editActivity?.repeat_days?.length);
+  const [until, setUntil] = useState(editActivity?.repeat_until ?? "");
+  const rule = readRepeatFields({ repeat, days: days.map(String), until, date: start });
+  const ruleWords = "error" in rule ? null : describeActivityRepeat(rule, rule.date);
+
   // What this plan would clash with, asked again as the date, times or
   // people change (29 September): overlapping plans for someone it involves,
   // and all-day events that day as a reminder. lib/queries/clashes.
@@ -164,19 +178,56 @@ function ActivityForm({ members, defaultDate, editActivity, prefill }: { members
       {/* Date on its own line, the two times under it. Three pickers in one
           row ran ~100px past a 390px phone, the whole form scrolling sideways
           (review, 28 September). */}
-      <Field label="Date"><DateInput className="input" name="date" required defaultValue={startDate ?? defaultDate} style={{ minHeight: "2.75rem" }} /></Field>
+      <Field label={repeat === "once" ? "Date" : "Starts"}>
+        <DateInput
+          className="input"
+          name="date"
+          required
+          defaultValue={firstDay}
+          onChange={(e) => {
+            setStart(e.target.value);
+            if (!daysChosen && e.target.value) setDays([weekdayOf(e.target.value) ?? 1]);
+          }}
+          style={{ minHeight: "2.75rem" }}
+        />
+      </Field>
       <div style={{ display: "flex", gap: "0.75rem" }}>
         <Field label="From" style={{ flex: 1, minWidth: 0 }}><input className="input" type="time" name="from" defaultValue={startTime ?? "08:30"} style={{ minHeight: "2.75rem" }} /></Field>
         <Field label="To" style={{ flex: 1, minWidth: 0 }}><input className="input" type="time" name="to" defaultValue={endTime} style={{ minHeight: "2.75rem" }} /></Field>
       </div>
       <Field label="Repeats">
-        <select className="input" name="repeat" defaultValue={editActivity?.repeat ?? "once"} style={{ minHeight: "2.75rem" }}>
+        <select className="input" name="repeat" value={repeat} onChange={(e) => setRepeat(e.target.value)} style={{ minHeight: "2.75rem" }}>
           <option value="once">Once</option>
           <option value="weekly">Weekly</option>
           <option value="monthly">Monthly</option>
           <option value="yearly">Yearly</option>
         </select>
       </Field>
+      {repeat === "weekly" && (
+        <div style={{ marginBottom: "0.875rem" }}>
+          <div style={{ fontSize: "0.8125rem", color: "var(--color-neutral-700)", marginBottom: "0.375rem" }}>On</div>
+          <WeekdayPicker
+            name="repeat_days"
+            value={days}
+            onToggle={(d) => {
+              setDaysChosen(true);
+              setDays((p) => (p.includes(d) ? p.filter((x) => x !== d) : [...p, d].sort((a, b) => a - b)));
+            }}
+          />
+        </div>
+      )}
+      {repeat !== "once" && (
+        <Field label="Ends (optional)">
+          <DateInput className="input" name="repeat_until" min={start || undefined} defaultValue={until || undefined} onChange={(e) => setUntil(e.target.value)} style={{ minHeight: "2.75rem" }} />
+        </Field>
+      )}
+      {repeat !== "once" && (
+        <p role="status" style={{ fontSize: "0.8125rem", color: "error" in rule ? "var(--cal-occasion)" : "var(--color-neutral-600)", margin: "-0.375rem 0 0.875rem" }}>
+          {"error" in rule
+            ? rule.error
+            : `${ruleWords}${until ? "" : " · never ends"}${rule.date !== start && start ? ` · first on ${readableDay(rule.date)}` : ""}`}
+        </p>
+      )}
       <div style={{ fontSize: "0.8125rem", color: "var(--color-neutral-700)", margin: "14px 0 6px" }}>Who it is for</div>
       <div style={{ display: "flex", flexWrap: "wrap", gap: "0.4375rem", marginBottom: "1rem" }}>
         <button type="button" className="chip" data-active={wholeFamily} onClick={() => setWholeFamily(true)}>

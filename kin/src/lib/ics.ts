@@ -1,3 +1,5 @@
+import { activityRRule } from "@/lib/activity-repeat";
+
 /** A calendar feed in iCalendar (RFC 5545) form, for Apple Calendar, Outlook
  * and anything else that subscribes to a link. Pure, so it is tested alone
  * (e2e/ics.logic.spec.ts). */
@@ -13,6 +15,12 @@ export type FeedRow = {
   repeat: string | null;
   location: string | null;
   notes: string | null;
+  /** A weekly task's days (0 = Sunday) and a repeating one's last day, as
+   * lib/activity-repeat reads them; absent or null on rows saved before. */
+  repeat_days?: number[] | null;
+  repeat_until?: string | null;
+  /** The household's zone, which those two are read in. Manila when absent. */
+  time_zone?: string | null;
 };
 
 /** Commas, semicolons, backslashes and newlines are syntax in iCalendar. */
@@ -54,8 +62,6 @@ function nextDay(d: string): string {
   return x.toISOString().slice(0, 10).replace(/-/g, "");
 }
 
-const RRULE: Record<string, string> = { weekly: "FREQ=WEEKLY", monthly: "FREQ=MONTHLY", yearly: "FREQ=YEARLY" };
-
 export function buildIcs(calendarName: string, rows: FeedRow[], now: Date = new Date()): string {
   const lines = [
     "BEGIN:VCALENDAR",
@@ -78,7 +84,9 @@ export function buildIcs(calendarName: string, rows: FeedRow[], now: Date = new 
     } else if (r.starts_at) {
       const end = r.ends_at && r.ends_at > r.starts_at ? r.ends_at : new Date(Date.parse(r.starts_at) + 3600_000).toISOString();
       ev.push(`DTSTART:${stamp(r.starts_at)}`, `DTEND:${stamp(end)}`);
-      if (r.repeat && RRULE[r.repeat]) ev.push(`RRULE:${RRULE[r.repeat]}`);
+      // DTSTART above is in UTC, so the days are moved to UTC's (utcStart).
+      const rrule = activityRRule(r, new Date(r.starts_at), r.time_zone ?? undefined, { utcStart: true });
+      if (rrule) ev.push(rrule);
     } else {
       continue;
     }

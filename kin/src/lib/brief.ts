@@ -1,5 +1,6 @@
 import { FAMILY_TZ, familyDay, familyInstant } from "@/lib/time";
 import { assigneeFor, expandRoutine, parseISODate, type RoutineFreq } from "@/lib/routines";
+import { occurrenceStarts } from "@/lib/activity-repeat";
 
 /** Today's plan as something to be heard, not read: what the "Today in Kin"
  * Shortcut fetches and the iPhone speaks aloud with its own voice. Plain
@@ -20,6 +21,9 @@ export type BriefItem = {
   yearly: boolean;
   repeat: string | null;
   location: string | null;
+  /** A weekly task's days and a repeating one's last day (lib/activity-repeat). */
+  repeat_days?: number[] | null;
+  repeat_until?: string | null;
 };
 
 /** A chore or routine as today_brief() returns it. */
@@ -62,30 +66,12 @@ export function routinesToday(routines: BriefRoutine[], me: string | undefined, 
 
 const listSaid = (xs: string[]) => (xs.length <= 1 ? xs.join("") : `${xs.slice(0, -1).join(", ")} and ${xs[xs.length - 1]}`);
 
-const dayParts = (day: string) => day.split("-").map(Number) as [number, number, number];
-
 /** Does a timed task happen today, and at what instant? */
 function timedToday(item: BriefItem, today: string, tz: string): Date | null {
   if (!item.starts_at) return null;
   const start = new Date(item.starts_at);
   if (Number.isNaN(start.getTime())) return null;
-  const first = familyDay(start, tz);
-  if (first > today) return null;
-  const [, fm, fd] = dayParts(first);
-  const [, tm, td] = dayParts(today);
-  const ok =
-    item.repeat === "weekly"
-      ? Math.round((Date.parse(today) - Date.parse(first)) / 86_400_000) % 7 === 0
-      : item.repeat === "monthly"
-        ? fd === td
-        : item.repeat === "yearly"
-          ? fm === tm && fd === td
-          : first === today;
-  if (!ok) return null;
-  // Same wall-clock time, moved to today. The family's zone has no daylight
-  // saving, so shifting by whole days keeps the time right.
-  const days = Math.round((Date.parse(today) - Date.parse(first)) / 86_400_000);
-  return new Date(start.getTime() + days * 86_400_000);
+  return occurrenceStarts(item, start, today, today, tz)[0] ?? null;
 }
 
 function allDayToday(item: BriefItem, today: string): boolean {

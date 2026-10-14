@@ -16,12 +16,20 @@ import { isCurrencyCode } from "@/lib/household-prefs";
 import { normalizeInviteUrl } from "@/lib/invite-link";
 import { fetchLinkPreview } from "@/lib/link-preview";
 import { findClashes, type ClashReport } from "@/lib/queries/clashes";
+import { activityRRule, readRepeatFields } from "@/lib/activity-repeat";
 
 function activityTarget(wholeFamily: boolean, who: string[]): CalendarTarget {
   return wholeFamily ? { kind: "all" } : { kind: "members", memberIds: who };
 }
 
+/** The task's rule for Google Calendar, which expands it itself. */
+function recurrenceOf(rule: Parameters<typeof activityRRule>[0], startAt: Date, tz: string): string[] | null {
+  const line = activityRRule(rule, startAt, tz);
+  return line ? [line] : null;
+}
+
 export async function createActivityAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
+  const tz = await householdZone();
   const me = await requireCurrentMember();
   const supabase = await createClient();
 
@@ -29,15 +37,25 @@ export async function createActivityAction(_prev: ActionState, formData: FormDat
   const date = String(formData.get("date") ?? "");
   const from = String(formData.get("from") ?? "09:00");
   const to = String(formData.get("to") ?? "");
-  const repeat = String(formData.get("repeat") ?? "once");
+  const rule = readRepeatFields({
+    repeat: String(formData.get("repeat") ?? "once"),
+    days: formData.getAll("repeat_days").map(String),
+    until: String(formData.get("repeat_until") ?? ""),
+    date: String(formData.get("date") ?? ""),
+  });
   const location = clamp(String(formData.get("location") ?? ""), 200) || null;
   const notes = clamp(String(formData.get("notes") ?? ""), 1000) || null;
   const wholeFamily = formData.get("whole_family") === "on";
   const who = formData.getAll("who").map(String);
 
   if (!title || !date) return { error: "Title and date are required." };
-  const when = activityInstants(date, from, to);
+  if ("error" in rule) return { error: rule.error };
+  // A weekly task starts on its first chosen day (lib/activity-repeat), and
+  // its date and times are read on the household's clock, as the form shows
+  // them.
+  const when = activityInstants(rule.date, from, to, tz);
   if ("error" in when) return { error: when.error };
+  const { repeat, repeat_days, repeat_until } = rule;
 
   const { data: activity, error } = await supabase
     .from("activities")
@@ -47,6 +65,8 @@ export async function createActivityAction(_prev: ActionState, formData: FormDat
       start_at: when.startAt.toISOString(),
       end_at: when.endAt ? when.endAt.toISOString() : null,
       repeat,
+      repeat_days,
+      repeat_until,
       location,
       notes,
       applies_to_whole_family: wholeFamily,
@@ -67,7 +87,7 @@ export async function createActivityAction(_prev: ActionState, formData: FormDat
     me.family_id,
     "activities",
     activity.id,
-    { title, startAt: when.startAt, endAt: when.endAt, location },
+    { title, startAt: when.startAt, endAt: when.endAt, location, recurrence: recurrenceOf({ repeat, repeat_days, repeat_until }, when.startAt, tz) },
     activityTarget(wholeFamily, who),
   );
 
@@ -76,6 +96,7 @@ export async function createActivityAction(_prev: ActionState, formData: FormDat
 }
 
 export async function updateActivityAction(activityId: string, _prev: ActionState, formData: FormData): Promise<ActionState> {
+  const tz = await householdZone();
   const me = await requireCurrentMember();
   const supabase = await createClient();
 
@@ -83,15 +104,30 @@ export async function updateActivityAction(activityId: string, _prev: ActionStat
   const date = String(formData.get("date") ?? "");
   const from = String(formData.get("from") ?? "09:00");
   const to = String(formData.get("to") ?? "");
-  const repeat = String(formData.get("repeat") ?? "once");
+  const rule = readRepeatFields({
+    repeat: String(formData.get("repeat") ?? "once"),
+    days: formData.getAll("repeat_days").map(String),
+    until: String(formData.get("repeat_until") ?? ""),
+    date: String(formData.get("date") ?? ""),
+  });
   const location = clamp(String(formData.get("location") ?? ""), 200) || null;
   const notes = clamp(String(formData.get("notes") ?? ""), 1000) || null;
   const wholeFamily = formData.get("whole_family") === "on";
   const who = formData.getAll("who").map(String);
 
   if (!title || !date) return { error: "Title and date are required." };
-  const when = activityInstants(date, from, to);
+  if ("error" in rule) return { error: rule.error };
+  // A weekly task starts on its first chosen day (lib/activity-repeat), and
+  // its date and times are read on the household's clock, as the form shows
+  // them.
+  const when = activityInstants(rule.date, from, to, tz);
   if ("error" in when) return { error: when.error };
+  const { repeat, repeat_days, repeat_until } = rule;
+
+  // Google is updated with a PATCH, which leaves a field it is not sent as it
+  // was -- so a task that stops repeating would keep repeating on the phone.
+  // Read what it was, to take the old event down below and put up a new one.
+  const { data: before } = await supabase.from("activities").select("repeat").eq("id", activityId).eq("family_id", me.family_id).maybeSingle();
 
   const { error, count } = await supabase
     .from("activities")
@@ -101,6 +137,8 @@ export async function updateActivityAction(activityId: string, _prev: ActionStat
         start_at: when.startAt.toISOString(),
         end_at: when.endAt ? when.endAt.toISOString() : null,
         repeat,
+        repeat_days,
+        repeat_until,
         location,
         notes,
         applies_to_whole_family: wholeFamily,
@@ -130,11 +168,12 @@ export async function updateActivityAction(activityId: string, _prev: ActionStat
     if (whoError) return { error: `The activity was saved, but it is no longer marked for anyone. ${whoError.message}` };
   }
 
+  if (repeat === "once" && before && before.repeat !== "once") await removeRowFromCalendars(me.family_id, "activities", activityId);
   await syncRowToCalendars(
     me.family_id,
     "activities",
     activityId,
-    { title, startAt: when.startAt, endAt: when.endAt, location },
+    { title, startAt: when.startAt, endAt: when.endAt, location, recurrence: recurrenceOf({ repeat, repeat_days, repeat_until }, when.startAt, tz) },
     activityTarget(wholeFamily, who),
   );
 
