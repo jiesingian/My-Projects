@@ -7,6 +7,13 @@ import { DetailHeader } from "@/components/hub-header";
 import { DocumentsLock } from "@/components/documents-lock";
 import { DocumentsLockSettings } from "@/components/documents-lock-settings";
 import { keepKidViewOut } from "@/lib/kid-view";
+import { isGrownUp } from "@/lib/roles";
+import { readAccess } from "@/lib/access";
+import { householdZone } from "@/lib/household-zone";
+import { getEmergencyOwnerView, getEmergencyTrustedView } from "@/lib/queries/vault-emergency";
+import { VaultEmergencySettings } from "@/components/vault-emergency-settings";
+import { VaultEmergencyTrusted } from "@/components/vault-emergency-trusted";
+import { householdPhrase, openedLine, ownerStatusLine, trustedStatusLine } from "@/lib/vault-emergency";
 
 /** The lock on the family's documents, reachable from Settings as well as
  * from Family → Vault, where it has always lived and still does.
@@ -15,13 +22,27 @@ import { keepKidViewOut } from "@/lib/kid-view";
  * shows the unlock prompt and nothing else. The settings below it can add a
  * face, fingerprint or device passcode, and that alone would open the
  * documents -- so offering them to someone who has not unlocked would turn
- * "set up a lock" into a way around it. */
+ * "set up a lock" into a way around it.
+ *
+ * Emergency access (20261014205000) lives here too, both sides of it: who
+ * this household trusts from outside it, and -- for a grown-up another
+ * household named -- the way to ask for theirs. Naming someone, Allow now and
+ * the log of what was opened wait for the lock; Deny and Take back do not,
+ * because the push about a request lands here. */
 export default async function PrivacySettingsPage() {
   await keepKidViewOut();
   const me = await getCurrentMember();
   if (!me) redirect("/onboarding/profile");
 
   const lock = await getLockState(me.id);
+  const grownUp = isGrownUp(me.role);
+  const tz = await householdZone();
+  const [owner, trusted] = await Promise.all([
+    grownUp ? getEmergencyOwnerView(me.family_id, lock.unlocked) : Promise.resolve(null),
+    grownUp ? getEmergencyTrustedView(me.id) : Promise.resolve(null),
+  ]);
+
+  const dates = (r: { opensAt: string; endsAt: string }) => ({ opensAt: new Date(r.opensAt), endsAt: new Date(r.endsAt) });
 
   return (
     <div>
@@ -40,6 +61,44 @@ export default async function PrivacySettingsPage() {
           <div className="kin-docs-state">
             <DocumentsLock hasPin={lock.hasPin} hasBiometric={lock.credentialCount > 0} />
           </div>
+        )}
+
+        {owner && (
+          <VaultEmergencySettings
+            trusted={owner.trusted}
+            candidates={owner.candidates}
+            plus={readAccess(me.families).plus}
+            unlocked={lock.unlocked}
+            requests={owner.requests.map((r) => ({
+              id: r.id,
+              who: r.memberName,
+              household: r.memberHousehold,
+              reason: r.reason,
+              status: r.status,
+              line: ownerStatusLine({ status: r.status, ...dates(r), answeredBy: r.answeredBy }, tz),
+            }))}
+            opened={owner.opened.map((o) => ({ id: o.id, line: openedLine(o.who, o.label, new Date(o.at), tz) }))}
+          />
+        )}
+
+        {trusted && trusted.namedBy.length > 0 && (
+          <VaultEmergencyTrusted
+            households={trusted.namedBy.map((n) => {
+              const mine = trusted.requests.filter((r) => r.familyId === n.familyId);
+              const latest = mine[0];
+              // A grant still open while a newer request (to renew it) waits:
+              // the way in stays on the card.
+              const open = mine.find((r) => r.status === "open");
+              const view = (r: (typeof mine)[number]) => ({ id: r.id, status: r.status, line: trustedStatusLine({ status: r.status, ...dates(r) }, tz) });
+              return {
+                familyId: n.familyId,
+                title: `Emergency access to ${householdPhrase(n.familyName)}'s vault`,
+                waitDays: n.waitDays,
+                latest: latest ? view(latest) : null,
+                open: open ? view(open) : null,
+              };
+            })}
+          />
         )}
       </div>
     </div>

@@ -21,7 +21,7 @@ export async function POST(request: Request) {
   const supabase = createClient<Database>(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!, {
     auth: { persistSession: false, autoRefreshToken: false },
   });
-  const [main, pantry, trial, week, promises, scheduled, billsAhead, letters, rsvps, missed, refills] = await Promise.all([
+  const [main, pantry, trial, week, promises, scheduled, billsAhead, letters, rsvps, missed, refills, vault] = await Promise.all([
     supabase.rpc("due_reminders", { p_secret: secret }),
     // What is running low, once a day from 09:00 (20260928100000).
     supabase.rpc("due_pantry_reminders", { p_secret: secret }),
@@ -51,6 +51,10 @@ export async function POST(request: Request) {
     // A medicine with 7 days or fewer left: on the To-Buy list and the
     // grown-ups told, once per supply cycle, from 09:00 (20261014201000).
     supabase.rpc("due_refill_reminders", { p_secret: secret }),
+    // Emergency access to the vault (20261014205000): every grown-up of the
+    // household, at once when someone asks, daily while it waits, and when it
+    // opens. Sent as urgent below.
+    supabase.rpc("due_vault_emergency_reminders", { p_secret: secret }),
   ]);
   if (main.error) {
     console.error("Reminders: due_reminders failed", main.error.message);
@@ -66,7 +70,8 @@ export async function POST(request: Request) {
   if (rsvps.error) console.error("Reminders: due_rsvp_reminders failed", rsvps.error.message);
   if (missed.error) console.error("Reminders: due_missed_dose_alerts failed", missed.error.message);
   if (refills.error) console.error("Reminders: due_refill_reminders failed", refills.error.message);
-  const due = [...(main.data ?? []), ...(pantry.data ?? []), ...(trial.data ?? []), ...(week.data ?? []), ...(promises.data ?? []), ...(scheduled.data ?? []), ...(billsAhead.data ?? []), ...(letters.data ?? []), ...(rsvps.data ?? []), ...(missed.data ?? []), ...(refills.data ?? [])];
+  if (vault.error) console.error("Reminders: due_vault_emergency_reminders failed", vault.error.message);
+  const due = [...(main.data ?? []), ...(pantry.data ?? []), ...(trial.data ?? []), ...(week.data ?? []), ...(promises.data ?? []), ...(scheduled.data ?? []), ...(billsAhead.data ?? []), ...(letters.data ?? []), ...(rsvps.data ?? []), ...(missed.data ?? []), ...(refills.data ?? []), ...(vault.data ?? [])];
 
   vapidReady();
   // One payload per reminder, sent to all of its devices together through the
@@ -77,8 +82,12 @@ export async function POST(request: Request) {
   await Promise.all(
     [...byKey.values()].map(async (rows) => {
       const r = rows[0];
-      const payload = JSON.stringify({ title: r.title.slice(0, 80), body: r.body.slice(0, 180), url: r.url.startsWith("/") ? r.url : "/today", tag: r.key });
-      const result = await deliver(rows, payload, { TTL: 60 * 60 }, async (endpoint) => {
+      // Someone asking to open the vault wakes the phone and stays on screen,
+      // like an SOS, and is kept for longer if the phone is off.
+      const urgent = r.key.startsWith("vault-emergency:");
+      const payload = JSON.stringify({ title: r.title.slice(0, 80), body: r.body.slice(0, 180), url: r.url.startsWith("/") ? r.url : "/today", tag: r.key, urgent: urgent || undefined });
+      const options = urgent ? { TTL: 60 * 60 * 12, urgency: "high" as const } : { TTL: 60 * 60 };
+      const result = await deliver(rows, payload, options, async (endpoint) => {
         await supabase.rpc("cron_forget_endpoint", { p_secret: secret, p_endpoint: endpoint });
       });
       sent += result.sent;

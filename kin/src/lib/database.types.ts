@@ -6272,6 +6272,140 @@ export type Database = {
           },
         ]
       }
+      // Emergency access to the vault (20261014205000). Read-only from the
+      // app: every write goes through the functions further down.
+      vault_emergency_contacts: {
+        Row: {
+          added_by: string | null
+          added_by_name: string
+          created_at: string
+          family_id: string
+          family_name: string
+          id: string
+          member_family_id: string
+          member_household_name: string
+          member_id: string
+          member_name: string
+          wait_days: number
+        }
+        Insert: {
+          added_by?: string | null
+          added_by_name?: string
+          created_at?: string
+          family_id: string
+          family_name: string
+          id?: string
+          member_family_id: string
+          member_household_name: string
+          member_id: string
+          member_name: string
+          wait_days?: number
+        }
+        Update: {
+          added_by?: string | null
+          added_by_name?: string
+          created_at?: string
+          family_id?: string
+          family_name?: string
+          id?: string
+          member_family_id?: string
+          member_household_name?: string
+          member_id?: string
+          member_name?: string
+          wait_days?: number
+        }
+        Relationships: []
+      }
+      vault_emergency_requests: {
+        Row: {
+          allowed_at: string | null
+          allowed_by_name: string | null
+          contact_id: string | null
+          denied_at: string | null
+          denied_by_name: string | null
+          family_id: string
+          family_name: string
+          id: string
+          member_household_name: string
+          member_id: string | null
+          member_name: string
+          reason: string
+          requested_at: string
+          revoked_at: string | null
+          revoked_by_name: string | null
+          wait_days: number
+        }
+        Insert: {
+          allowed_at?: string | null
+          allowed_by_name?: string | null
+          contact_id?: string | null
+          denied_at?: string | null
+          denied_by_name?: string | null
+          family_id: string
+          family_name: string
+          id?: string
+          member_household_name: string
+          member_id?: string | null
+          member_name: string
+          reason: string
+          requested_at?: string
+          revoked_at?: string | null
+          revoked_by_name?: string | null
+          wait_days: number
+        }
+        Update: {
+          allowed_at?: string | null
+          allowed_by_name?: string | null
+          contact_id?: string | null
+          denied_at?: string | null
+          denied_by_name?: string | null
+          family_id?: string
+          family_name?: string
+          id?: string
+          member_household_name?: string
+          member_id?: string | null
+          member_name?: string
+          reason?: string
+          requested_at?: string
+          revoked_at?: string | null
+          revoked_by_name?: string | null
+          wait_days?: number
+        }
+        Relationships: []
+      }
+      vault_emergency_opens: {
+        Row: {
+          family_id: string
+          id: string
+          item_id: string
+          item_kind: string
+          item_label: string
+          member_name: string
+          opened_at: string
+          request_id: string | null
+        }
+        Insert: {
+          family_id: string
+          id?: string
+          item_id: string
+          item_kind: string
+          item_label: string
+          member_name: string
+          opened_at?: string
+          request_id?: string | null
+        }
+        Update: {
+          family_id?: string
+          id?: string
+          item_id?: string
+          item_kind?: string
+          item_label?: string
+          member_name?: string
+          opened_at?: string
+          request_id?: string | null
+        }
+        Relationships: []
+      }
       wealth_targets: {
         Row: {
           family_id: string
@@ -6629,6 +6763,58 @@ export type Database = {
       due_trial_reminders: {
         Args: { p_secret: string; p_now?: string }
         Returns: { key: string; member_id: string; endpoint: string; p256dh: string; auth: string; title: string; body: string; url: string }[]
+      }
+      // Emergency access to the vault (20261014205000).
+      due_vault_emergency_reminders: {
+        Args: { p_secret: string; p_now?: string }
+        Returns: { key: string; member_id: string; endpoint: string; p256dh: string; auth: string; title: string; body: string; url: string }[]
+      }
+      vault_emergency_candidates: {
+        Args: never
+        Returns: { member_id: string; full_name: string; household_name: string }[]
+      }
+      name_vault_emergency_contact: {
+        Args: { p_member: string; p_wait_days?: number }
+        Returns: string
+      }
+      remove_vault_emergency_contact: {
+        Args: { p_contact: string }
+        Returns: undefined
+      }
+      answer_vault_emergency_request: {
+        Args: { p_request: string; p_answer: string }
+        Returns: string
+      }
+      request_vault_emergency_access: {
+        Args: { p_family: string; p_reason: string }
+        Returns: string
+      }
+      vault_emergency_items: {
+        Args: { p_request: string }
+        Returns: { kind: string; id: string; grp: string; label: string; owner_name: string | null; file_count: number }[]
+      }
+      open_vault_emergency_item: {
+        Args: { p_request: string; p_kind: string; p_id: string }
+        Returns: Json
+      }
+      vault_emergency_request_list: {
+        Args: never
+        Returns: {
+          id: string
+          family_id: string
+          family_name: string
+          contact_id: string | null
+          member_name: string
+          member_household_name: string
+          reason: string
+          wait_days: number
+          requested_at: string
+          opens_at: string
+          ends_at: string
+          status: string
+          mine: boolean
+          answered_by_name: string | null
+        }[]
       }
       move_to_household: {
         Args: { p_invite_code: string }

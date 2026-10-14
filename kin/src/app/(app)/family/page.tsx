@@ -13,6 +13,8 @@ import { DocumentsLock } from "@/components/documents-lock";
 import { DocumentsLockSettings } from "@/components/documents-lock-settings";
 import { getLockState } from "@/lib/security/gate";
 import { getVaultItems } from "@/lib/queries/vault";
+import { getEmergencyTrustedView } from "@/lib/queries/vault-emergency";
+import { householdPhrase } from "@/lib/vault-emergency";
 import { FamilyVault } from "@/components/family-vault";
 import { inKidView } from "@/lib/kid-view";
 import { VaultBar } from "@/components/vault-bar";
@@ -273,10 +275,13 @@ async function VaultPane({ familyId, who, tab, meId, myRole }: { familyId: strin
   }
 
   const members = (await getMembers(familyId)).filter((m) => m.status !== "pending" && !isGone(m.status));
-  const [folders, devices, vault] = await Promise.all([
+  const [folders, devices, vault, emergency] = await Promise.all([
     tab === "documents" ? getDocFolders(familyId) : Promise.resolve([]),
     getEnrolledDevices(meId),
     tab === "passwords" ? getVaultItems(familyId) : Promise.resolve([]),
+    // Households that named this grown-up for emergency access to theirs
+    // (20261014205000): asked for, and read, from Settings -> Privacy & lock.
+    isGrownUp(myRole) ? getEmergencyTrustedView(meId) : Promise.resolve(null),
   ]);
   const filtered =
     who === "all"
@@ -354,6 +359,11 @@ async function VaultPane({ familyId, who, tab, meId, myRole }: { familyId: strin
         </>
       )}
 
+      {emergency?.namedBy.map((n) => (
+        <Link key={n.familyId} href="/settings/privacy" className="kin-vault-sub" style={{ display: "flex", alignItems: "center", gap: "0.375rem", margin: "0 0 0.75rem", color: "var(--color-accent-700)" }}>
+          <Icon name="shieldCheck" size={14} /> Emergency access to {householdPhrase(n.familyName)}&rsquo;s vault
+        </Link>
+      ))}
       <VaultBar expiresAt={lock.expiresAt} />
       <DocumentsLockSettings hasPin={lock.hasPin} devices={devices} unlocked={lock.unlocked} />
     </div>
