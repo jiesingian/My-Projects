@@ -1,7 +1,7 @@
 import { test, expect } from "@playwright/test";
 import { PRIORITIES } from "@/lib/first-open";
 import { QUESTIONS, type Answers, PRIORITY_IN_KIN, answerTip, answered, oneAppLine, wantsPrivacyFirst, areaScores, questionsFor, readinessScore, scoreCategory, toggle, topThree } from "@/lib/check-up";
-import { FEATURES, PRIORITY_PROFILE, PROFILES, blueprintFeatures, blueprintProfile, blueprintWhy } from "@/lib/blueprint";
+import { FEATURES, PRIORITY_PROFILE, PROFILES, blueprintFeatures, blueprintProfile } from "@/lib/blueprint";
 
 const q = (id: string) => QUESTIONS.find((x) => x.id === id)!;
 
@@ -243,14 +243,10 @@ test("spread priorities: the other answers break the tie, and if they can't, All
   expect(readinessScore({ ...a, chat: ["albums"] })).toBe(readinessScore(a));
 });
 
-test("the explanation is the family's own, and the hub is three to five of the profile's features, theirs first", () => {
+test("the hub is three to five of the profile's features, theirs first", () => {
   const a: Answers = { top3: ["travel", "money", "plans"], busy: ["bills"] };
   const p = blueprintProfile(a);
   expect(p).toBe("planning");
-  const why = blueprintWhy(a, p);
-  expect(why).toContain("travel and family adventures, financial planning and budgeting and schedules, appointments and events");
-  expect(why).toContain("bills and the budget");
-  expect(why).not.toBe(blueprintWhy({ top3: ["money", "travel"] }, p));
   const hub = blueprintFeatures(a, p);
   expect(hub[0].id).toBe("trips");
   for (const id of Object.keys(PROFILES) as (keyof typeof PROFILES)[]) {

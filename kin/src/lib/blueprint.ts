@@ -1,19 +1,19 @@
-import { PRIORITY_LABELS, topThree, type Answers } from "@/lib/check-up";
+import { topThree, type Answers } from "@/lib/check-up";
 import type { Priority } from "@/lib/first-open";
 
 /** The Family Digital Blueprint on the check-up's results page (Janine,
- * 14 October): one of six profiles, a few lines on why it fits, and three
+ * 14 October): one of six profiles with its tagline, and three
  * to five Kin features to start with. Worked out here in the browser from
  * the answers; nothing is sent. The profile never changes the score.
  *
  * Question 3 (the top 3) decides the profile. The daily check-in and the
  * family-chat question, with questions 4 and 5, only refine it: they break
- * a tie between the profiles the top 3 points to, and add a line to the
- * explanation. They are never read as who a family is. */
+ * a tie between the profiles the top 3 points to. They are never read as
+ * who a family is. */
 
 export type ProfileId = "organized" | "planning" | "prepared" | "connected" | "memories" | "allInOne";
 
-export type Profile = { id: ProfileId; name: string; tagline: string; cta: string; why: string; features: FeatureId[] };
+export type Profile = { id: ProfileId; name: string; tagline: string; cta: string; features: FeatureId[] };
 
 export type FeatureId =
   | "profiles"
@@ -61,7 +61,6 @@ export const PROFILES: Record<ProfileId, Profile> = {
     name: "The Organized Family",
     tagline: "Your family’s world, in order.",
     cta: "Explore your family hub",
-    why: "Keeping schedules, appointments and the running of the house in one shared place looks like it would help your household most.",
     features: ["profiles", "calendar", "reminders", "household"],
   },
   planning: {
@@ -69,7 +68,6 @@ export const PROFILES: Record<ProfileId, Profile> = {
     name: "The Planning Family",
     tagline: "Always thinking one step ahead.",
     cta: "Plan your family’s next chapter",
-    why: "Budgets, plans and what’s coming next seem to be on your mind, so seeing them together could make the planning lighter.",
     features: ["money", "household", "reminders", "trips", "goals"],
   },
   prepared: {
@@ -77,7 +75,6 @@ export const PROFILES: Record<ProfileId, Profile> = {
     name: "The Prepared Family",
     tagline: "Peace of mind starts with being prepared.",
     cta: "Organize what matters",
-    why: "Keeping health details, emergency contacts and important papers organized seems to matter to your household, so they’re easier to find when you need them.",
     features: ["health", "medicines", "emergency", "vault"],
   },
   connected: {
@@ -85,7 +82,6 @@ export const PROFILES: Record<ProfileId, Profile> = {
     name: "The Connected Family",
     tagline: "Everyone on the same page.",
     cta: "Bring your family together",
-    why: "Keeping everyone informed and in step looks important to your household. Explore ways to bring your family’s updates, plans and shared information together.",
     features: ["chat", "calendar", "household", "location"],
   },
   memories: {
@@ -93,7 +89,6 @@ export const PROFILES: Record<ProfileId, Profile> = {
     name: "The Memory-Keeping Family",
     tagline: "Every moment is part of your story.",
     cta: "Create your family space",
-    why: "The moments, milestones and adventures you share seem to matter most, so keeping them together could make them easier to look back on.",
     features: ["occasions", "journal", "trips", "profiles"],
   },
   allInOne: {
@@ -101,7 +96,6 @@ export const PROFILES: Record<ProfileId, Profile> = {
     name: "The All-in-One Family",
     tagline: "One family. One connected space.",
     cta: "Build your family hub",
-    why: "Your priorities reach across several parts of family life, so one place for all of it may suit your household best.",
     features: ["profiles", "health", "vault", "money", "trips", "chat", "journal"],
   },
 };
@@ -157,33 +151,6 @@ export function blueprintProfile(answers: Answers): ProfileId {
   const best = Math.max(...tied.map((p) => n[p] ?? 0));
   const leaders = tied.filter((p) => (n[p] ?? 0) === best);
   return best > 0 && leaders.length === 1 ? leaders[0] : "allInOne";
-}
-
-const lower = (s: string) => s.charAt(0).toLowerCase() + s.slice(1);
-
-function list(items: string[]): string {
-  if (items.length <= 1) return items.join("");
-  return `${items.slice(0, -1).join(", ")} and ${items[items.length - 1]}`;
-}
-
-const BUSY_WORDS: Record<string, string> = {
-  meals: "groceries and meals",
-  chores: "chores",
-  school: "school and schedules",
-  bills: "bills and the budget",
-  savings: "savings goals",
-};
-
-/** Why this profile, from this family's own answers: their top 3 by name,
- * what keeps coming up day to day, and then the profile's own sentence. */
-export function blueprintWhy(answers: Answers, profile: ProfileId): string {
-  const top = topThree(answers).map((p) => lower(PRIORITY_LABELS[p]));
-  const busy = (answers.busy ?? []).map((b) => BUSY_WORDS[b]).filter(Boolean);
-  const parts: string[] = [];
-  if (top.length) parts.push(`You put ${list(top)} at the top of your list.`);
-  if (busy.length) parts.push(`${busy.length === 1 ? "It sounds like" : "And"} ${list(busy)} ${busy.length === 1 ? "comes" : "come"} up a lot in your family conversations.`);
-  parts.push(PROFILES[profile].why);
-  return parts.join(" ");
 }
 
 /** Three to five features: the profile's own, the ones that answer the

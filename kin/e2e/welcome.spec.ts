@@ -120,7 +120,8 @@ test("the check-up: one question per screen, kids only with kids, and the answer
   await expect(page.getByText(/informal self-check/)).toBeVisible();
   await expect(page.getByRole("heading", { name: "The Prepared Family" })).toBeVisible();
   await expect(page.getByText("“Peace of mind starts with being prepared.”")).toBeVisible();
-  await expect(page.locator(".kin-check-profile")).toContainText("You put travel and family adventures, family health and wellness and important documents and records at the top of your list.");
+  // The tagline only: no explanation under it.
+  await expect(page.locator(".kin-check-profile p")).toHaveCount(2);
   const hub = page.locator(".kin-check-hub li");
   expect(await hub.count()).toBeGreaterThanOrEqual(3);
   expect(await hub.count()).toBeLessThanOrEqual(5);
