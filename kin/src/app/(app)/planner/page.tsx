@@ -43,6 +43,7 @@ import { cookies } from "next/headers";
 import { familyDate } from "@/lib/format-family";
 import { nextEventDate } from "@/lib/grocery";
 import { eventIsOver, eventMatches, eventWhen, showsDone, taskIsFinished, type EventWhen } from "@/lib/planner-done";
+import { askedMembers, eventTakesRsvps, rsvpLine, summarizeRsvps } from "@/lib/event-rsvp";
 import { CompletedToggle } from "@/components/completed-toggle";
 import { EventToJournal } from "@/components/event-to-journal";
 import { GoalsPane } from "./goals-pane";
@@ -1012,14 +1013,23 @@ async function EventsPane({ familyId, who, when }: { familyId: string; who: stri
   const fmtDate = await familyDate();
   const today = familyDay(new Date(), await householdZone());
   const supabase = await createClient();
-  const [allEvents, members, { data: photoRows }, { data: journalled }] = await Promise.all([
+  const [allEvents, members, { data: photoRows }, { data: journalled }, { data: rsvpRows }] = await Promise.all([
     getEvents(familyId),
     getMembers(familyId),
     supabase.from("event_photos").select("event_id").eq("family_id", familyId),
     // Entries already made from an event's photos, found by title and day
     // (addEventToJournalAction), so the row can open the entry instead.
     supabase.from("journal_entries").select("id, title, entry_date").eq("family_id", familyId).eq("source", "manual"),
+    // Who's coming (20261014090000): counted per row, among the people asked.
+    supabase.from("event_rsvps").select("event_id, member_id, answer").eq("family_id", familyId),
   ]);
+  const answersFor = new Map<string, { member_id: string; answer: string }[]>();
+  for (const r of rsvpRows ?? []) answersFor.set(r.event_id, [...(answersFor.get(r.event_id) ?? []), r]);
+  const rsvps = (e: { id: string; memberIds: string[]; applies_to_whole_family: boolean; event_date: string; recurs_yearly: boolean }) => {
+    if (!eventTakesRsvps(e) || !answersFor.has(e.id)) return "";
+    const line = rsvpLine(summarizeRsvps(askedMembers(e, e.memberIds, members), answersFor.get(e.id) ?? []));
+    return line ? ` · ${line}` : "";
+  };
   const entryFor = new Map((journalled ?? []).map((j) => [`${j.title}|${j.entry_date}`, j.id]));
   const photoCount = new Map<string, number>();
   for (const r of photoRows ?? []) photoCount.set(r.event_id, (photoCount.get(r.event_id) ?? 0) + 1);
@@ -1088,6 +1098,7 @@ async function EventsPane({ familyId, who, when }: { familyId: string; who: stri
             {row.event.applies_to_whole_family || row.event.who.length === 0 ? "Whole family" : row.event.who.map((n) => n.split(" ")[0]).join(", ")}
             {row.event.sub_note ? ` · ${row.event.sub_note}` : ""}
             {photos(row.event.id)}
+            {rsvps(row.event)}
           </div>
           {toJournal(row.event, row.over)}
         </div>
@@ -1122,6 +1133,7 @@ async function EventsPane({ familyId, who, when }: { familyId: string; who: stri
             {row.trip.end_date && row.trip.end_date !== row.trip.event_date ? ` · until ${fmtDate(row.trip.end_date)}` : ""}
             {row.trip.sub_note ? ` · ${row.trip.sub_note}` : ""}
             {photos(row.trip.id)}
+            {rsvps(row.trip)}
           </div>
           {toJournal(row.trip, row.over)}
         </div>

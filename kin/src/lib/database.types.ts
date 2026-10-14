@@ -3309,6 +3309,33 @@ export type Database = {
         }
         Relationships: []
       }
+      event_rsvps: {
+        Row: {
+          answer: string
+          answered_by: string | null
+          event_id: string
+          family_id: string
+          member_id: string
+          updated_at: string
+        }
+        Insert: {
+          answer: string
+          answered_by?: string | null
+          event_id: string
+          family_id: string
+          member_id: string
+          updated_at?: string
+        }
+        Update: {
+          answer?: string
+          answered_by?: string | null
+          event_id?: string
+          family_id?: string
+          member_id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       health_labs: {
         Row: {
           created_at: string
@@ -6295,6 +6322,10 @@ export type Database = {
         Returns: { key: string; member_id: string; endpoint: string; p256dh: string; auth: string; title: string; body: string; url: string }[]
       }
       due_goal_reward_reminders: {
+        Args: { p_secret: string; p_now?: string }
+        Returns: { key: string; member_id: string; endpoint: string; p256dh: string; auth: string; title: string; body: string; url: string }[]
+      }
+      due_rsvp_reminders: {
         Args: { p_secret: string; p_now?: string }
         Returns: { key: string; member_id: string; endpoint: string; p256dh: string; auth: string; title: string; body: string; url: string }[]
       }
