@@ -4566,6 +4566,23 @@ button.kin-initial:focus-visible {
 .kin-check-top li > span:first-child { font: 600 0.9375rem/1.25 var(--font-heading); }
 .kin-check-top li > span:last-child { font-size: 0.875rem; line-height: 1.45; color: var(--color-neutral-700); }
 .kin-check-top .kin-plus-badge { margin-left: 0.375rem; vertical-align: middle; }
+.kin-check-intro { text-align: center; display: grid; gap: 0.25rem; }
+.kin-check-eyebrow { margin: 0; font: 700 0.75rem/1.2 var(--font-heading); letter-spacing: 0.08em; text-transform: uppercase; color: var(--color-accent-700); }
+.kin-check-score .kin-check-eyebrow { margin-top: 0.5rem; }
+.kin-check-score .kin-check-bar { margin: 0.75rem auto 0; max-width: 16rem; }
+.kin-check-score p.kin-check-category-line, .kin-check-score p.kin-check-note { margin-top: 0.375rem; font-size: 0.9375rem; line-height: 1.45; color: var(--color-neutral-700); }
+.kin-check-score p.kin-check-note { font-size: 0.8125rem; color: var(--color-neutral-600); }
+.kin-check-category { margin: 1rem 0 0; font: 700 1.25rem/1.2 var(--font-heading); }
+.kin-check-profile { padding: 1rem; border-radius: var(--radius-card); background: var(--color-surface); border: 1px solid var(--color-divider); display: grid; gap: 0.375rem; }
+.kin-check-profile h3 { margin: 0; font: 700 1.375rem/1.2 var(--font-heading); text-transform: uppercase; letter-spacing: 0.02em; }
+.kin-check-profile p { margin: 0; font-size: 0.9375rem; line-height: 1.5; color: var(--color-neutral-700); }
+.kin-check-profile p.kin-check-tagline { font: 600 1rem/1.4 var(--font-heading); color: var(--color-text); }
+.kin-check-hub { list-style: none; margin: 0; padding: 0; display: grid; gap: 0.625rem; }
+.kin-check-hub li { display: grid; gap: 0.25rem; padding: 0.75rem 0.875rem; border-radius: 0.875rem; background: var(--color-surface); border: 1px solid var(--color-divider); }
+.kin-check-hub li > span:first-child { font: 600 0.9375rem/1.25 var(--font-heading); }
+.kin-check-hub li > span:last-child { font-size: 0.875rem; line-height: 1.45; color: var(--color-neutral-700); }
+.kin-check-hub .kin-plus-badge { margin-left: 0.375rem; vertical-align: middle; }
+.kin-check-profile-cta { text-transform: uppercase; letter-spacing: 0.04em; }
 .kin-check-callout { margin: 0; padding: 0.75rem 0.875rem; border-radius: 0.875rem; background: var(--color-accent-100); font: 600 0.9375rem/1.4 var(--font-heading); color: var(--color-text); }
 /* The check-up: what Kin does about the answer just given. The box keeps its
    place before an answer so Next doesn't jump when the tip appears. */
