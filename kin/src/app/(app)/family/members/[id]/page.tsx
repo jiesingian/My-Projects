@@ -36,6 +36,7 @@ import { Segmented } from "@/components/segmented";
 import { getPersonMoments } from "@/lib/queries/journal";
 import { memberColourVar } from "@/lib/member-colours";
 import { PersonActions, ProfileMoreMenu, CoverPicker } from "@/components/person-profile";
+import { storyCountLabel } from "@/lib/tree-stories";
 
 const SEGMENTS = ["schedule", "medicines", "illness", "conditions", "labs", "vitals"] as const;
 type Seg = (typeof SEGMENTS)[number];
@@ -88,16 +89,26 @@ export default async function MemberDetailPage({
   // Everyone's pictures, not only your own: on someone else's profile they
   // open read-only, for the household to react to and comment on.
   let photos: AlbumPhoto[] = [];
+  // Where they are on the household's tree, if they are, and how many
+  // stories it keeps about them (20261014204000_tree_person_stories).
+  let treeStories: { personId: string; count: number } | null = null;
   {
     const supabase = await createClient();
-    const { data: albumRows } = await supabase
-      .from("member_avatars")
-      .select("id, storage_path, drive_file_id")
-      .eq("member_id", member.id)
-      .order("created_at", { ascending: false });
+    const [{ data: albumRows }, { data: treeRow }] = await Promise.all([
+      supabase
+        .from("member_avatars")
+        .select("id, storage_path, drive_file_id")
+        .eq("member_id", member.id)
+        .order("created_at", { ascending: false }),
+      supabase.from("family_tree_people").select("id").eq("family_id", me.family_id).eq("member_id", member.id).limit(1).maybeSingle(),
+    ]);
     photos = (albumRows ?? [])
       .map((row) => ({ id: row.id, url: resolvePhotoUrl(supabase, row) }))
       .filter((p): p is AlbumPhoto => p.url !== null);
+    if (treeRow) {
+      const { count } = await supabase.from("tree_person_stories").select("id", { count: "exact", head: true }).eq("person_id", treeRow.id);
+      treeStories = { personId: treeRow.id, count: count ?? 0 };
+    }
   }
 
   const coverUrl = photos.find((p) => p.id === member.cover_avatar_id)?.url ?? null;
@@ -191,6 +202,16 @@ export default async function MemberDetailPage({
               ]}
             />
             <div style={{ marginTop: "1.125rem" }}>
+              {tab === "moments" && treeStories && (
+                <Link href={`/family/stories/${treeStories.personId}?from=member`} className="kin-treepanel-stories" style={{ marginBottom: "1rem" }}>
+                  <Icon name="mic" size="1rem" />
+                  <span>
+                    <strong>Stories about {member.full_name.split(" ")[0]}</strong>
+                    <small>{storyCountLabel(treeStories.count)}</small>
+                  </span>
+                  <span className="kin-treepanel-stories-go">{treeStories.count > 0 ? "Open" : "Add one"}</span>
+                </Link>
+              )}
               {tab === "moments" ? (
                 <MomentsPane memberId={member.id} familyId={me.family_id} firstName={member.full_name.split(" ")[0]} isSelf={isSelf} fmtDate={fmtDate} />
               ) : isSelf ? (

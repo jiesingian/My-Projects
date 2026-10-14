@@ -18,6 +18,7 @@ import { getSharedBranchAction, offerTreePersonAction, withdrawTreeMatchAction }
 import { confirm } from "@/components/confirm-sheet";
 import { InviteQr } from "@/components/invite-qr";
 import { toast } from "@/components/toast";
+import { storyCountLabel, storyMark } from "@/lib/tree-stories";
 
 /** Layout units are px at the default text size; the chart draws them in rem,
  * so the whole tree -- cards, text and lines -- grows with the reader's text
@@ -660,6 +661,10 @@ export function FamilyTreeChart({
   const hasUnmarried = layout.couples.some((c) => !c.married && !c.ghost);
   const notPlaced = linkedFamilies.filter((f) => !groups.some((g) => g.id === f.name));
 
+  // How many stories the household keeps about each of its own people
+  // (20261014204000): a small count on their tile.
+  const storiesOf = new Map(people.map((p) => [p.id, p.storyCount ?? 0]));
+
   const tile = (spot: PlacedPerson) => {
     const style = { left: rem(spot.x), top: rem(spot.y), width: rem(TILE_W), height: rem(TILE_H) };
     if (ghost && spot.id === ghost.id) {
@@ -677,6 +682,7 @@ export function FamilyTreeChart({
     const isMe = p.id === meTreeId;
     const alsoLinked = status.kind === "mine" ? linkedTo.get(p.id) : undefined;
     const word = relation.get(p.id);
+    const stories = p.fromHousehold ? 0 : (storiesOf.get(p.id) ?? 0);
     const where =
       status.kind === "mine"
         ? `in your household on Kin${alsoLinked ? ` and linked with ${alsoLinked}` : ""}`
@@ -711,7 +717,7 @@ export function FamilyTreeChart({
           setSelected(p.id);
           setAdding(null);
         }}
-        aria-label={`${p.fullName}${word && !isMe ? `, your ${word.toLowerCase()}` : ""}${isMe ? ", you" : ""}${p.birthYear ? `, born ${p.birthYear}` : ""}, ${where}`}
+        aria-label={`${p.fullName}${word && !isMe ? `, your ${word.toLowerCase()}` : ""}${isMe ? ", you" : ""}${p.birthYear ? `, born ${p.birthYear}` : ""}, ${where}${stories > 0 ? `, ${storyCountLabel(stories).toLowerCase()}` : ""}`}
       >
         <span className="kin-tp-av" aria-hidden="true">
           {p.avatarUrl ? (
@@ -725,6 +731,9 @@ export function FamilyTreeChart({
               <Icon name="users" size="0.625rem" />
             </span>
           )}
+          {/* Opposite the linked badge, so the two never sit on each other,
+              and one or two characters at most, so the tile never widens. */}
+          {stories > 0 && <span className="kin-tp-stories">{storyMark(stories)}</span>}
         </span>
         <span className="kin-tp-name">{p.fullName}</span>
         <span className="kin-tp-rel">{isMe ? "You" : (word ?? (p.birthYear ? `b. ${p.birthYear}` : ""))}</span>
@@ -1107,6 +1116,17 @@ function SelectedPanel({
       {showQr && <InviteQr code={inviteCode!} />}
 
       {!person.memberId && unaddedMembers.length > 0 && <LinkProfile person={person} unaddedMembers={unaddedMembers} />}
+
+      {/* Stories about them (14 October): the household's own, kept on a
+          page of their own where there is room to listen and read. */}
+      <Link href={`/family/stories/${person.id}`} className="kin-treepanel-stories">
+        <Icon name="mic" size="1rem" />
+        <span>
+          <strong>Stories</strong>
+          <small>{storyCountLabel(person.storyCount ?? 0)}</small>
+        </span>
+        <span className="kin-treepanel-stories-go">{(person.storyCount ?? 0) > 0 ? "Open" : "Add one"}</span>
+      </Link>
 
       <LinkedSection person={person} matches={matches} linkedFamilies={linkedFamilies} shownBranches={shownBranches} onToggleBranch={onToggleBranch} />
 

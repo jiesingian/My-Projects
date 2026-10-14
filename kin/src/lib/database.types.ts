@@ -132,6 +132,134 @@ export type Database = {
           },
         ]
       }
+      tree_person_stories: {
+        Row: {
+          body: string | null
+          created_at: string
+          created_by: string | null
+          family_id: string
+          happened_on: string | null
+          happened_precision: string
+          id: string
+          person_id: string
+          title: string
+          told_by_member_id: string | null
+          told_by_name: string | null
+          updated_at: string
+        }
+        Insert: {
+          body?: string | null
+          created_at?: string
+          created_by?: string | null
+          family_id: string
+          happened_on?: string | null
+          happened_precision?: string
+          id?: string
+          person_id: string
+          title: string
+          told_by_member_id?: string | null
+          told_by_name?: string | null
+          updated_at?: string
+        }
+        Update: {
+          body?: string | null
+          created_at?: string
+          created_by?: string | null
+          family_id?: string
+          happened_on?: string | null
+          happened_precision?: string
+          id?: string
+          person_id?: string
+          title?: string
+          told_by_member_id?: string | null
+          told_by_name?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tree_person_stories_family_id_fkey"
+            columns: ["family_id"]
+            isOneToOne: false
+            referencedRelation: "families"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tree_person_stories_person_id_fkey"
+            columns: ["person_id"]
+            isOneToOne: false
+            referencedRelation: "family_tree_people"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tree_person_stories_told_by_member_id_fkey"
+            columns: ["told_by_member_id"]
+            isOneToOne: false
+            referencedRelation: "members"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tree_person_stories_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "members"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tree_person_story_files: {
+        Row: {
+          created_at: string
+          duration_seconds: number | null
+          family_id: string
+          file_name: string
+          id: string
+          mime_type: string
+          position: number
+          storage_path: string
+          story_id: string
+          transcript: string | null
+        }
+        Insert: {
+          created_at?: string
+          duration_seconds?: number | null
+          family_id: string
+          file_name?: string
+          id?: string
+          mime_type: string
+          position?: number
+          storage_path: string
+          story_id: string
+          transcript?: string | null
+        }
+        Update: {
+          created_at?: string
+          duration_seconds?: number | null
+          family_id?: string
+          file_name?: string
+          id?: string
+          mime_type?: string
+          position?: number
+          storage_path?: string
+          story_id?: string
+          transcript?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tree_person_story_files_story_id_fkey"
+            columns: ["story_id"]
+            isOneToOne: false
+            referencedRelation: "tree_person_stories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tree_person_story_files_family_id_fkey"
+            columns: ["family_id"]
+            isOneToOne: false
+            referencedRelation: "families"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       highlights: {
         Row: {
           created_at: string
@@ -6274,6 +6402,14 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      can_add_tree_stories: {
+        Args: never
+        Returns: boolean
+      }
+      tree_story_fits: {
+        Args: { p_family: string; p_person: string; p_teller: string | null }
+        Returns: boolean
+      }
       children_connections: {
         Args: never
         Returns: { id: string; child_person_id: string; child_name: string; other_person_id: string; other_name: string; other_household: string | null; status: string; requested_at: string }[]

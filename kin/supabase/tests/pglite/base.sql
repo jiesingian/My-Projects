@@ -346,3 +346,12 @@ create policy hmd_all on health_medicine_doses for all using (family_id = curren
 alter table members add column if not exists sex text;
 -- Who added a shopping line (20261014202000_list_add_link.sql writes it).
 alter table buy_items add column if not exists created_by uuid references members(id);
+-- Stories on the tree (for 20261014204000_tree_person_stories): kid view on
+-- the member row, as 20260925120000_kid_view made it, and the tree's own
+-- delete policy (household-only, as the real table has). The documents
+-- bucket can be written and read only in the household's own folder, as
+-- documents_family_insert and documents_family_rw allow on production.
+alter table members add column if not exists kid_view boolean not null default false;
+create policy ftp_delete on family_tree_people for delete using (family_id = current_family_id());
+grant insert on storage.objects to authenticated;
+create policy documents_own_folder_insert on storage.objects for insert to authenticated with check (bucket_id = 'documents' and split_part(name, '/', 1) = public.current_family_id()::text);

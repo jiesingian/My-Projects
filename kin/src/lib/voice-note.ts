@@ -6,36 +6,36 @@ import { listen, speechSupported } from "@/lib/speech";
  * (29 September). The browser's own speech recognition, the same as Ask
  * Kin's microphone -- best effort, and simply absent where the browser has
  * none. Start it when recording starts; `finish()` stops it and hands back
- * whatever it heard. */
-export function startTranscript(): { finish: () => string } {
+ * whatever it heard, up to `maxChars` (a chat voice note's 5,000 unless the
+ * caller keeps more -- a story on the tree runs to twenty minutes). */
+export function startTranscript(maxChars = 5000): { finish: () => string } {
   // A phone that has already lost a recording to this keeps its sound from
   // now on (rememberTranscriptConflict): no transcript, never a silent note.
   if (transcriptConflicts()) return { finish: () => "" };
   let heard = "";
   let listener: ReturnType<typeof listen> = null;
   let stopped = false;
+  // Some browsers end a session after every long pause, and a story told by
+  // Lola has many. Each new session carries on after what was already
+  // heard. Bounded, so a browser that ends every session at once (a refused
+  // microphone) does not start one after another for twenty minutes.
+  let restarts = 0;
+  let quickEnds = 0;
   const begin = () => {
     if (stopped || !speechSupported()) return;
+    const kept = heard;
+    const startedAt = Date.now();
     listener = listen(
       (text) => {
         // Continuous results arrive as the whole session so far.
-        if (text) heard = text;
+        if (text) heard = kept ? `${kept} ${text}` : text;
       },
       () => {},
       () => {
-        // Some browsers end a session after a long pause; carry on, keeping
-        // what was already heard in front of what comes next.
-        if (!stopped) {
-          const kept = heard;
-          listener = listen(
-            (text) => {
-              if (text) heard = kept ? `${kept} ${text}` : text;
-            },
-            () => {},
-            () => {},
-            true,
-          );
-        }
+        if (stopped) return;
+        quickEnds = Date.now() - startedAt < 1000 ? quickEnds + 1 : 0;
+        if (quickEnds >= 3 || ++restarts > 60) return;
+        begin();
       },
       true,
     );
@@ -45,7 +45,7 @@ export function startTranscript(): { finish: () => string } {
     finish: () => {
       stopped = true;
       listener?.stop();
-      return heard.trim().slice(0, 5000);
+      return heard.trim().slice(0, maxChars);
     },
   };
 }

@@ -35,6 +35,18 @@ scanning wait for the AI key.
   setup steps in Settings -> Action Button & widget. Branch kin/siri-add-to-
   list, migration 20261014202000_list_add_link.sql.
 
+- **Done:** Stories on the tree (14 October, kin/tree-stories,
+  20261014204000_tree_person_stories): photos, scanned papers and recorded
+  stories (with on-device transcript) on anyone on the tree, at
+  /family/stories/<person>, with a count on the tile and a Stories row in
+  the panel and on a member's profile. Household only, Kin Free, files under
+  <household>/stories/ counting toward storage. Grown-ups and teens
+  (child_self, not kid view) add; the author edits; author or a grown-up
+  deletes. Removing a person cascades their stories; children cannot remove
+  someone who has stories. Open: sharing stories with linked households
+  (needs its own read path, storage policy and switch); a push when a story
+  is added; testing a long recording on a real iPhone.
+
 ## Agreed 13 October: first open (Jonathan)
 
 Why: not everyone who opens Kin came by referral or is sure they want it.
