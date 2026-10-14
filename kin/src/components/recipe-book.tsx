@@ -17,6 +17,8 @@ import { MARKET_SECTIONS, UNITS } from "@/lib/grocery";
 import { MEAL_SLOTS, MEAL_SLOT_LABEL, type MealSlot } from "@/lib/recipes";
 import { plateAt, plateTone } from "@/lib/meal-photos";
 import { ZoomableImage } from "@/components/zoomable-image";
+import { readRecipeFromLinkAction } from "@/lib/actions/recipe-link";
+import type { RecipeDraft } from "@/lib/recipe-import";
 
 function useAct() {
   const router = useRouter();
@@ -46,7 +48,18 @@ export type EditableRecipe = {
   steps: string[];
   ingredients: { name: string; qty: number | null; unit: string | null; section: string }[];
   origin: "own" | "edited" | "shipped";
+  /** The page it was read from (Save a recipe from a link). */
+  sourceUrl?: string | null;
 };
+
+/** "panlasangpinoy.com" from a recipe's link, for the line that credits it. */
+function hostOf(url: string): string {
+  try {
+    return new URL(url).hostname.replace(/^www\./, "");
+  } catch {
+    return url;
+  }
+}
 
 const ORIGIN_LABEL: Record<EditableRecipe["origin"], string> = {
   own: "Yours",
@@ -61,6 +74,9 @@ const ORIGIN_LABEL: Record<EditableRecipe["origin"], string> = {
 export function RecipeBook({ recipes, categories: known }: { recipes: EditableRecipe[]; categories: CategoryView[] }) {
   const [editing, setEditing] = useState<EditableRecipe | null>(null);
   const [creating, setCreating] = useState(false);
+  // Save a recipe from a link: the box is open, and what was read from it.
+  const [linking, setLinking] = useState(false);
+  const [draft, setDraft] = useState<RecipeDraft | null>(null);
   const [query, setQuery] = useState("");
   const [category, setCategory] = useState<string | null>(null);
   const [naming, setNaming] = useState(false);
@@ -69,10 +85,12 @@ export function RecipeBook({ recipes, categories: known }: { recipes: EditableRe
     return (
       <RecipeEditor
         recipe={editing}
+        draft={editing ? null : draft}
         known={known}
         onDone={() => {
           setEditing(null);
           setCreating(false);
+          setDraft(null);
         }}
       />
     );
@@ -111,6 +129,20 @@ export function RecipeBook({ recipes, categories: known }: { recipes: EditableRe
       <button type="button" className="btn btn-primary btn-block" style={{ minHeight: "2.875rem", fontSize: "0.9375rem", marginBottom: "0.75rem" }} onClick={() => setCreating(true)}>
         <Icon name="plus" size={16} /> Write a new recipe
       </button>
+      {linking ? (
+        <FromLink
+          onCancel={() => setLinking(false)}
+          onRead={(d) => {
+            setLinking(false);
+            setDraft(d);
+            setCreating(true);
+          }}
+        />
+      ) : (
+        <button type="button" className="btn btn-secondary btn-block" style={{ minHeight: "2.625rem", fontSize: "0.875rem", marginBottom: "0.75rem" }} onClick={() => setLinking(true)}>
+          <Icon name="external" size={14} /> Save a recipe from a link
+        </button>
+      )}
 
       <input
         className="input"
@@ -368,6 +400,11 @@ function RecipeRow({ recipe: r, onEdit }: { recipe: EditableRecipe; onEdit: () =
           {r.ingredients.length} ingredients · {r.slots.map((s) => MEAL_SLOT_LABEL[s]).join(", ")}
           {r.minutes ? ` · ${r.minutes} min` : ""}
         </div>
+        {r.sourceUrl && (
+          <a href={r.sourceUrl} target="_blank" rel="noopener noreferrer nofollow" style={{ fontSize: "0.75rem", color: "var(--color-accent-700)" }}>
+            From {hostOf(r.sourceUrl)} ↗
+          </a>
+        )}
       </div>
       <span
         style={{
@@ -388,20 +425,22 @@ function RecipeRow({ recipe: r, onEdit }: { recipe: EditableRecipe; onEdit: () =
   );
 }
 
-function RecipeEditor({ recipe, known, onDone }: { recipe: EditableRecipe | null; known: CategoryView[]; onDone: () => void }) {
+function RecipeEditor({ recipe, draft, known, onDone }: { recipe: EditableRecipe | null; draft?: RecipeDraft | null; known: CategoryView[]; onDone: () => void }) {
   const uid = useId();
   const { pending, error, run } = useAct();
-  const [name, setName] = useState(recipe?.name ?? "");
+  // A new recipe read from a link starts from what the page said.
+  const start = recipe ?? (draft ? { ...draft, serves: draft.serves ?? 4 } : null);
+  const [name, setName] = useState(start?.name ?? "");
   const [slots, setSlots] = useState<MealSlot[]>(recipe?.slots ?? ["dinner"]);
   const [categories, setCategories] = useState<string[]>(recipe?.categories ?? []);
-  const [serves, setServes] = useState(String(recipe?.serves ?? 4));
-  const [minutes, setMinutes] = useState(recipe?.minutes == null ? "" : String(recipe.minutes));
-  const [steps, setSteps] = useState((recipe?.steps ?? []).join("\n"));
-  const [ingredients, setIngredients] = useState<{ name: string; qty: string; unit: string; section: string }[]>(
-    recipe?.ingredients.map((i) => ({ name: i.name, qty: i.qty == null ? "" : String(i.qty), unit: i.unit ?? "pc", section: i.section })) ?? [
-      { name: "", qty: "", unit: "pc", section: "Other" },
-    ],
-  );
+  const [serves, setServes] = useState(String(start?.serves ?? 4));
+  const [minutes, setMinutes] = useState(start?.minutes == null ? "" : String(start.minutes));
+  const [steps, setSteps] = useState((start?.steps ?? []).join("\n"));
+  const [ingredients, setIngredients] = useState<{ name: string; qty: string; unit: string; section: string }[]>(() => {
+    const rows = (start?.ingredients ?? []).map((i) => ({ name: i.name, qty: i.qty == null ? "" : String(i.qty), unit: i.unit ?? "pc", section: i.section }));
+    return rows.length > 0 ? rows : [{ name: "", qty: "", unit: "pc", section: "Other" }];
+  });
+  const sourceUrl = recipe ? (recipe.sourceUrl ?? null) : (draft?.sourceUrl ?? null);
 
   const setIng = (idx: number, patch: Partial<(typeof ingredients)[number]>) =>
     setIngredients((prev) => prev.map((row, i) => (i === idx ? { ...row, ...patch } : row)));
@@ -414,6 +453,14 @@ function RecipeEditor({ recipe, known, onDone }: { recipe: EditableRecipe | null
         </button>
         <span style={{ flex: 1, font: "600 0.9375rem/1.2 var(--font-heading)" }}>{recipe ? recipe.name : "New recipe"}</span>
       </div>
+
+      {draft && !recipe && (
+        <p style={{ fontSize: "0.78125rem", color: "var(--color-neutral-700)", margin: "0 0 12px", lineHeight: 1.45 }}>
+          {draft.found
+            ? <>Read from <a href={draft.sourceUrl} target="_blank" rel="noopener noreferrer nofollow">{hostOf(draft.sourceUrl)}</a>. Check the amounts and steps, then save.</>
+            : <>That page had no recipe Kin could read, only its title. Write the ingredients and steps in; the link is kept with it.</>}
+        </p>
+      )}
 
       {recipe?.origin === "shipped" && (
         <p style={{ fontSize: "0.78125rem", color: "var(--color-neutral-700)", margin: "0 0 12px", lineHeight: 1.45 }}>
@@ -545,6 +592,8 @@ function RecipeEditor({ recipe, known, onDone }: { recipe: EditableRecipe | null
                 serves: Number(serves) || 4,
                 minutes: minutes === "" ? null : Number(minutes),
                 steps: steps.split("\n"),
+                // Only a new recipe from a link sets it; an edit leaves it.
+                sourceUrl: !recipe && sourceUrl ? sourceUrl : undefined,
                 ingredients: ingredients.map((i) => ({
                   name: i.name,
                   qty: i.qty === "" ? null : Number(i.qty),
@@ -645,5 +694,48 @@ export function IngredientChip({ name, inPantry, onList }: { name: string; inPan
       {inPantry && <Icon name="check" size={10} style={{ color: "var(--color-switch-on)" }} />}
       {name}
     </button>
+  );
+}
+
+/** Paste a recipe's address; Kin reads it on the server (readRecipeFromLinkAction)
+ * and opens the editor filled in. Nothing is saved until Save there. */
+function FromLink({ onRead, onCancel }: { onRead: (draft: RecipeDraft) => void; onCancel: () => void }) {
+  const uid = useId();
+  const [url, setUrl] = useState("");
+  const [error, setError] = useState<string | null>(null);
+  const [pending, startTransition] = useTransition();
+  const read = () =>
+    startTransition(async () => {
+      setError(null);
+      const r = await readRecipeFromLinkAction(url);
+      if (r.error || !r.draft) setError(r.error ?? "Kin couldn't read that page.");
+      else onRead(r.draft);
+    });
+  return (
+    <form
+      onSubmit={(e) => {
+        e.preventDefault();
+        read();
+      }}
+      style={{ marginBottom: "0.75rem" }}
+    >
+      <div className="field" style={{ marginBottom: "0.5rem" }}>
+        <label htmlFor={`${uid}-url`}>Recipe link</label>
+        <input id={`${uid}-url`} className="input" type="url" inputMode="url" autoFocus value={url} onChange={(e) => setUrl(e.target.value)} placeholder="https://www.panlasangpinoy.com/…" style={{ minHeight: "2.75rem" }} />
+      </div>
+      {error && (
+        <p role="alert" style={{ fontSize: "0.8125rem", color: "var(--color-danger)", margin: "0 0 0.5rem" }}>
+          {error}
+        </p>
+      )}
+      <div style={{ display: "flex", gap: "0.5rem" }}>
+        <button type="submit" className="btn btn-primary" style={{ flex: 1, minHeight: "2.625rem" }} disabled={pending || !url.trim()}>
+          {pending ? "Reading…" : "Read the recipe"}
+        </button>
+        <button type="button" className="btn btn-ghost" style={{ minHeight: "2.625rem" }} onClick={onCancel}>
+          Cancel
+        </button>
+      </div>
+    </form>
   );
 }

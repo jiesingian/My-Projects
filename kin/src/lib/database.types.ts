@@ -2612,6 +2612,7 @@ export type Database = {
           name: string
           serves: number
           slots: string[]
+          source_url: string | null
           steps: string[]
           updated_at: string
         }
@@ -2626,6 +2627,7 @@ export type Database = {
           name: string
           serves?: number
           slots?: string[]
+          source_url?: string | null
           steps?: string[]
           updated_at?: string
         }
@@ -2640,6 +2642,7 @@ export type Database = {
           name?: string
           serves?: number
           slots?: string[]
+          source_url?: string | null
           steps?: string[]
           updated_at?: string
         }
