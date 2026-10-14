@@ -125,8 +125,8 @@ export const QUESTIONS: Question[] = [
   },
   {
     id: "busy",
-    title: "What takes the most back-and-forth at home?",
-    hint: "Up to 3.",
+    title: "The Daily Check-In",
+    hint: "What’s always coming up in your family conversations?",
     kind: "ranked",
     max: 3,
     alone: "smooth",

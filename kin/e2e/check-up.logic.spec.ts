@@ -217,7 +217,7 @@ test("every answer to every question shows what Kin does about it, in English", 
   for (const w of ["Walang", "sagot", "Kasambahay", "yaya", "Lolo", "bunso", "Sulit"]) expect(words).not.toContain(w);
 });
 
-test("questions 3, 4 and 5 are Janine's wording, and question 4 keeps its scores fastest first", () => {
+test("questions 3 to 6 are Janine's wording, and question 4 keeps its scores fastest first", () => {
   expect(q("top3").title).toBe("What are your family’s top 3 priorities?");
   expect(q("top3").options.map((o) => o.label)).toEqual([
     "Family health and wellness",
@@ -240,6 +240,8 @@ test("questions 3, 4 and 5 are Janine's wording, and question 4 keeps its scores
   ]);
   expect(q("papers").title).toBe("Where’s that document?");
   expect(q("papers").hint).toBe("Think birth certificates, passports, insurance policies, IDs and other records.");
+  expect(q("busy").title).toBe("The Daily Check-In");
+  expect(q("busy").hint).toBe("What’s always coming up in your family conversations?");
   const health = q("sick").options.map((o) => areaScores({ sick: [o.id] }).health!);
   expect([...health].sort((a, b) => b - a)).toEqual(health);
 });
