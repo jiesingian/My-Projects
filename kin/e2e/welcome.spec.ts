@@ -15,7 +15,7 @@ async function expectTapTargets(page: Page) {
 
 test("the first screen offers the check-up, an invite code and Sign in", async ({ page }) => {
   await page.goto("/");
-  await expect(page.getByRole("button", { name: "Take the 1-minute family check-up" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Find out your Family’s Digital Blueprint!" })).toBeVisible();
   await expect(page.getByRole("link", { name: "Sign in" })).toBeVisible();
   await expect(page.locator(".kin-house")).toHaveCount(1);
   await expectTapTargets(page);
@@ -31,7 +31,7 @@ test("the first screen offers the check-up, an invite code and Sign in", async (
 
 test("/?start=quiz opens at question 1, without the house", async ({ page }) => {
   await page.goto("/?start=quiz");
-  await expect(page.getByRole("heading", { name: "Who’s at home?" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Who makes up your household?" })).toBeVisible();
   // No total yet: it depends on the answer (kids at home or not).
   await expect(page.getByText("Question 1", { exact: true })).toBeVisible();
   await expect(page.locator(".kin-house")).toHaveCount(0);
@@ -42,15 +42,15 @@ test("/?start=quiz opens at question 1, without the house", async ({ page }) => 
 
 test("the check-up: one question per screen, kids only with kids, and the answers saved in this browser", async ({ page }) => {
   await page.goto("/");
-  await page.getByRole("button", { name: "Take the 1-minute family check-up" }).click();
+  await page.getByRole("button", { name: "Find out your Family’s Digital Blueprint!" }).click();
 
   // 1: many. The count has no total until it's answered, so it never
   // changes under the visitor's thumb. Each answer shows what Kin does
   // about it, and nothing moves on until Next.
-  await expect(page.getByRole("heading", { name: "Who’s at home?" })).toBeFocused();
+  await expect(page.getByRole("heading", { name: "Who makes up your household?" })).toBeFocused();
   await expect(page.getByRole("button", { name: "Next" })).toBeDisabled();
-  await page.getByRole("button", { name: "Partner" }).click();
-  await page.getByRole("button", { name: "Kids under 13" }).click();
+  await page.getByRole("button", { name: "My Spouse or Partner" }).click();
+  await page.getByRole("button", { name: "My Kids under 18" }).click();
   await expect(page.getByText("Question 1", { exact: true })).toBeVisible();
   await expect(page.locator(".kin-check-tip")).toContainText("Kids get their own kid view");
   await page.getByRole("button", { name: "Next" }).click();
@@ -155,7 +155,7 @@ test("the check-up: one question per screen, kids only with kids, and the answer
 
 test("no kids at home: question 6 is skipped", async ({ page }) => {
   await page.goto("/?start=quiz");
-  await page.getByRole("button", { name: "Just me for now" }).click();
+  await page.getByRole("button", { name: "Just me" }).click();
   await page.getByRole("button", { name: "Next" }).click();
   await page.getByRole("button", { name: "We remember and remind each other" }).click();
   await page.getByRole("button", { name: "Next" }).click();

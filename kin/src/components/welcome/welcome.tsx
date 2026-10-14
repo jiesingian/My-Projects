@@ -106,9 +106,9 @@ export function Welcome({ startQuiz = false }: { startQuiz?: boolean }) {
         <section className="kin-welcome-hero">
           <House3D />
           <h1 ref={heading} tabIndex={-1}>
-            Your family, in one home.
+            Family Life, Decoded
           </h1>
-          <p>How ready is your family for the 2 a.m. emergency, the lost passport, the busy week? Find out in a minute, then see where Kin helps.</p>
+          <p>Discover a smarter way to bring together the information, plans, and moments that make up your family’s life.</p>
           <button
             type="button"
             className="btn btn-primary btn-block kin-welcome-cta"
@@ -117,7 +117,7 @@ export function Welcome({ startQuiz = false }: { startQuiz?: boolean }) {
               setStep("quiz");
             }}
           >
-            Take the 1-minute family check-up
+            Find out your Family’s Digital Blueprint!
           </button>
           {joining ? (
             <form
