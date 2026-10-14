@@ -3252,6 +3252,42 @@ export type Database = {
         }
         Relationships: []
       }
+      health_medicine_supply: {
+        Row: {
+          counted: number
+          counted_at: string
+          family_id: string
+          list_item_id: string | null
+          medicine_id: string
+          per_dose: number
+          set_by: string | null
+          unit: string
+          updated_at: string
+        }
+        Insert: {
+          counted: number
+          counted_at?: string
+          family_id: string
+          list_item_id?: string | null
+          medicine_id: string
+          per_dose?: number
+          set_by?: string | null
+          unit?: string
+          updated_at?: string
+        }
+        Update: {
+          counted?: number
+          counted_at?: string
+          family_id?: string
+          list_item_id?: string | null
+          medicine_id?: string
+          per_dose?: number
+          set_by?: string | null
+          unit?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       health_illness_logs: {
         Row: {
           created_at: string
@@ -6580,6 +6616,18 @@ export type Database = {
       medicine_alert_receiver_ok: {
         Args: { p_medicine: string; p_receiver: string }
         Returns: boolean
+      }
+      due_refill_reminders: {
+        Args: { p_secret: string; p_now?: string }
+        Returns: { key: string; member_id: string; endpoint: string; p256dh: string; auth: string; title: string; body: string; url: string }[]
+      }
+      medicine_on_hand: {
+        Args: { p_medicine: string }
+        Returns: number | null
+      }
+      add_to_medicine_supply: {
+        Args: { p_medicine: string; p_add: number }
+        Returns: number
       }
       due_reminders: {
         Args: { p_secret: string; p_now?: string }

@@ -19,6 +19,14 @@ scanning wait for the AI key.
   turned on are never reported. The card says who is told. Plus area.
   Migration 20261014200000_missed_dose_alerts.sql.
 
+- **Done:** Pills left and refill: optional on-hand count, unit and per-dose
+  amount on a medicine. On hand = count minus doses ticked Taken since it
+  was counted, never counted down. The card shows days left. At 7 days or
+  fewer, the reminders job adds it to the To-Buy list (Personal Care,
+  "<medicine> · for <name>, refill") unless an open item is there, and tells
+  the grown-ups once per supply cycle. Refilled takes a new count or adds a
+  box. Plus area. Migration 20261014201000_medicine_supply.sql.
+
 ## Agreed 13 October: first open (Jonathan)
 
 Why: not everyone who opens Kin came by referral or is sure they want it.

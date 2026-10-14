@@ -9,6 +9,7 @@ import { visibilityOptions } from "@/lib/visibility";
 import { dosesFor, FEVER_C, type Dose, type Medicine } from "@/lib/health-plan";
 import { alertLine, canBeTold, DEFAULT_MISSED_DELAY, delayWords, MISSED_DELAYS } from "@/lib/missed-dose";
 import { isGrownUp } from "@/lib/roles";
+import { amountWords, daysLeft, daysLeftWords, guessFromDose, isSupplyUnit, needsRefill, SUPPLY_UNITS, type SupplyUnit } from "@/lib/medicine-supply";
 import { ageInMonths, growthPercentile, percentileLabel, valueAtPercentile, type Sex } from "@/lib/growth";
 import {
   addIllnessLogAction,
@@ -18,6 +19,9 @@ import {
   setDoseTakenAction,
   setMemberSexAction,
   setMissedDoseAlertAction,
+  setMedicineSupplyAction,
+  addToMedicineSupplyAction,
+  stopMedicineSupplyAction,
   stopMedicineAction,
 } from "@/lib/actions/health-care";
 
@@ -60,6 +64,7 @@ export function MedicinesPanel({
   medicines,
   doses,
   missedAlerts,
+  supply,
   grownUps,
   today,
   now,
@@ -70,6 +75,7 @@ export function MedicinesPanel({
   medicines: (Medicine & { notes: string | null; visibility: string; created_by: string | null })[];
   doses: Dose[];
   missedAlerts: MissedAlert[];
+  supply: Supply[];
   grownUps: GrownUp[];
   today: string;
   now: string;
@@ -129,6 +135,7 @@ export function MedicinesPanel({
               {m.end_date ? ` · until ${m.end_date}` : ""}
               {m.notes ? ` · ${m.notes}` : ""}
             </div>
+            <SupplyLine medicine={m} memberId={memberId} supply={supply.find((x) => x.medicine_id === m.id) ?? null} canChange={isGrownUp(role)} />
             {m.times.length > 0 && (
               <MissedDoseAlert
                 medicine={m}
@@ -292,6 +299,122 @@ function MissedDoseAlert({
           </button>
         )}
         <button type="submit" className="btn btn-primary" style={{ flex: 1 }} disabled={pending || !who}>
+          {pending ? "Saving…" : "Save"}
+        </button>
+      </div>
+    </form>
+  );
+}
+
+export type Supply = { medicine_id: string; counted: number; unit: string; per_dose: number; onHand: number | null };
+
+/** Pills left (20261014201000). What is left is worked out by the database
+ * from the doses ticked since the count; this says it in days. Refilled
+ * starts again from a new count, or adds a box to what is left. */
+function SupplyLine({ medicine, memberId, supply, canChange }: { medicine: Medicine & { visibility: string }; memberId: string; supply: Supply | null; canChange: boolean }) {
+  const { pending, run } = useAct();
+  const guess = guessFromDose(medicine.dose);
+  const unit: SupplyUnit = supply && isSupplyUnit(supply.unit) ? supply.unit : guess.unit;
+  const [open, setOpen] = useState(false);
+  const [f, setF] = useState({ counted: "", unit: unit as string, perDose: String(supply?.per_dose ?? guess.perDose) });
+  const box = unit === "ml" ? 60 : 30;
+
+  if (!open) {
+    if (!supply && !canChange) return null;
+    const days = supply && supply.onHand !== null ? daysLeft(supply.onHand, supply.per_dose, medicine.times.length) : null;
+    const words = daysLeftWords(days);
+    return (
+      <div className="kin-care-muted" style={{ marginTop: "0.25rem" }}>
+        {supply && supply.onHand === null && <span>Kin couldn&apos;t work out what&apos;s left just now. </span>}
+        {supply && supply.onHand !== null && (
+          <span data-low={needsRefill(days) || undefined} className="kin-care-supply">
+            {words ? `${words} · ` : ""}
+            {amountWords(supply.onHand, unit)}
+            {words ? "" : " left"}.{" "}
+          </span>
+        )}
+        {canChange && (
+          <button type="button" className="kin-care-link" onClick={() => setOpen(true)}>
+            {supply ? "Refilled" : "Track how many are left"}
+          </button>
+        )}
+      </div>
+    );
+  }
+  return (
+    <form
+      className="kin-care-form"
+      onSubmit={(e) => {
+        e.preventDefault();
+        run(async () => {
+          const r = await setMedicineSupplyAction({ medicineId: medicine.id, memberId, ...f });
+          if (!r.error) {
+            setOpen(false);
+            setF({ ...f, counted: "" });
+          }
+          return r;
+        }, "Saved");
+      }}
+    >
+      {/* Wraps: the card's column is narrow on a small phone. */}
+      <div style={{ display: "flex", flexWrap: "wrap", gap: "0.5rem" }}>
+        <label className="kin-care-label" style={{ minWidth: "6rem" }}>
+          {supply ? "New count on hand" : "On hand now"}
+          <input className="input" inputMode="decimal" placeholder="e.g. 30" value={f.counted} onChange={(e) => setF({ ...f, counted: e.target.value })} required />
+        </label>
+        <label className="kin-care-label" style={{ minWidth: "6rem" }}>
+          Counted in
+          <select className="input" value={f.unit} onChange={(e) => setF({ ...f, unit: e.target.value })} style={{ minHeight: "2.75rem" }}>
+            {SUPPLY_UNITS.map((u) => (
+              <option key={u} value={u}>
+                {u === "ml" ? "ml" : `${u}s`}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label className="kin-care-label" style={{ minWidth: "6rem" }}>
+          Per dose
+          <input className="input" inputMode="decimal" value={f.perDose} onChange={(e) => setF({ ...f, perDose: e.target.value })} />
+        </label>
+      </div>
+      <p className="kin-care-muted" style={{ margin: 0 }}>
+        Each dose ticked Taken comes off what&apos;s left.{" "}
+        {medicine.visibility === "family"
+          ? "At 7 days left it goes on the To-Buy list."
+          : "At 7 days left the grown-ups who can see it are told. It isn't shown to everyone, so it stays off the To-Buy list."}
+      </p>
+      {supply && (
+        <button
+          type="button"
+          className="btn btn-secondary btn-block"
+          disabled={pending}
+          onClick={() =>
+            run(async () => {
+              const r = await addToMedicineSupplyAction(medicine.id, memberId, box);
+              if (!r.error) setOpen(false);
+              return r;
+            }, `Added ${amountWords(box, unit)}`)
+          }
+        >
+          <Icon name="plus" size="0.9375rem" /> Add a box of {amountWords(box, unit)} to what&apos;s left
+        </button>
+      )}
+      <div style={{ display: "flex", flexWrap: "wrap", gap: "0.5rem" }}>
+        {supply ? (
+          <button
+            type="button"
+            className="btn btn-secondary"
+            style={{ flex: "1 1 100%" }}
+            disabled={pending}
+            onClick={async () => (await confirm({ title: "Stop counting what's left?", description: "Kin stops working out the days left and won't put it on the list.", confirmLabel: "Stop counting" })) && run(() => stopMedicineSupplyAction(medicine.id, memberId))}
+          >
+            Stop counting
+          </button>
+        ) : null}
+        <button type="button" className="btn btn-secondary" style={{ flex: 1 }} onClick={() => setOpen(false)}>
+          Cancel
+        </button>
+        <button type="submit" className="btn btn-primary" style={{ flex: 1 }} disabled={pending}>
           {pending ? "Saving…" : "Save"}
         </button>
       </div>

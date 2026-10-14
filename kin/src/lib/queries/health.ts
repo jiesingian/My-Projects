@@ -31,11 +31,16 @@ export async function getMemberDetail(memberId: string, familyId: string) {
   // Medicines, their doses from the last week (enough for "today" and
   // "missed yesterday"), the illness log, and which visits have photos.
   const weekAgo = new Date(Date.now() - 8 * 86_400_000).toISOString().slice(0, 10);
-  const [{ data: medicines }, { data: illness }, { data: visitPhotos }] = await Promise.all([
+  const [{ data: medicines }, { data: illness }, { data: visitPhotos }, { data: householdSupply }] = await Promise.all([
     supabase.from("health_medicines").select("*").eq("member_id", memberId).order("created_at", { ascending: true }),
     supabase.from("health_illness_logs").select("*").eq("member_id", memberId).order("logged_at", { ascending: false }).limit(60),
     supabase.from("health_visit_photos").select("appointment_id").in("appointment_id", (appointments ?? []).map((a) => a.id)),
+    // Pills left (20261014201000): the household's counts, few rows; this
+    // person's are picked out below.
+    supabase.from("health_medicine_supply").select("medicine_id, counted, counted_at, unit, per_dose").eq("family_id", familyId),
   ]);
+  const medicineIds = new Set((medicines ?? []).map((m) => m.id));
+  const supply = (householdSupply ?? []).filter((s) => medicineIds.has(s.medicine_id));
   // Who is told when a dose is missed (20261014200000), and the household's
   // grown-ups who could be: only whether they have a login leaves the server.
   const [{ data: doses }, { data: missedAlerts }, { data: grownUps }] = await Promise.all([
@@ -47,6 +52,12 @@ export async function getMemberDetail(memberId: string, familyId: string) {
       : Promise.resolve({ data: [] }),
     supabase.from("members").select("id, full_name, role, auth_user_id").eq("family_id", familyId).eq("status", "active").in("role", ["parent", "adult"]),
   ]);
+  // What is left, from the database's own sum (medicine_on_hand): every dose
+  // ticked since the count, however long ago that was, which a page of dose
+  // rows could cut short. Null when it could not be read, and the card says
+  // so rather than show the bare count as if nothing had been taken.
+  const onHand = await Promise.all(supply.map((s) => supabase.rpc("medicine_on_hand", { p_medicine: s.medicine_id })));
+  const supplyNow = supply.map((s, i) => ({ ...s, counted: Number(s.counted), per_dose: Number(s.per_dose), onHand: onHand[i].error || onHand[i].data === null ? null : Number(onHand[i].data) }));
   const photoCount = new Map<string, number>();
   for (const p of visitPhotos ?? []) photoCount.set(p.appointment_id, (photoCount.get(p.appointment_id) ?? 0) + 1);
 
@@ -61,6 +72,7 @@ export async function getMemberDetail(memberId: string, familyId: string) {
     medicines: medicines ?? [],
     doses: doses ?? [],
     missedAlerts: missedAlerts ?? [],
+    supply: supplyNow,
     grownUps: (grownUps ?? []).map((g) => ({ id: g.id, firstName: g.full_name.split(" ")[0], role: g.role, hasLogin: g.auth_user_id !== null })),
     illness: illness ?? [],
     photoCount,

@@ -11,6 +11,7 @@ import { clamp } from "@/lib/text";
 import { familyDay } from "@/lib/time";
 import { parseTimes } from "@/lib/health-plan";
 import { isMissedDelay } from "@/lib/missed-dose";
+import { isSupplyUnit } from "@/lib/medicine-supply";
 import { isGrownUp } from "@/lib/roles";
 import { UUID } from "@/lib/ids";
 
@@ -128,6 +129,50 @@ export async function setMissedDoseAlertAction(input: { medicineId: string; memb
   // medicine is hidden from, all with the same row-level refusal.
   if (error && /row-level security/i.test(error.message)) return { error: "That person can't be told about this medicine. Choose a grown-up with a login who can see it." };
   return done(input.memberId, error ? say(error.message) : null);
+}
+
+/** Pills left (20261014201000): a new count, and how many go per dose. A
+ * count already there is changed in place (a new count starts a new supply
+ * cycle; the table sets when); only a first count is a new row, which is
+ * what Kin Plus guards. */
+export async function setMedicineSupplyAction(input: { medicineId: string; memberId: string; counted: string; unit: string; perDose: string }): Promise<ActionState> {
+  const me = await requireCurrentMember();
+  if (!isGrownUp(me.role)) return { error: "Only a grown-up can change what's left." };
+  if (!UUID.test(input.medicineId)) return { error: "That medicine could not be found." };
+  const counted = Number(input.counted.trim().replace(",", "."));
+  if (!input.counted.trim() || !Number.isFinite(counted) || counted < 0 || counted > 100000) return { error: "Write how many are on hand, e.g. 30." };
+  const perDose = input.perDose.trim() ? Number(input.perDose.trim().replace(",", ".")) : 1;
+  if (!Number.isFinite(perDose) || perDose <= 0 || perDose > 1000) return { error: "Write how many go per dose, e.g. 1." };
+  const unit = isSupplyUnit(input.unit) ? input.unit : "tablet";
+  const supabase = await createClient();
+  const fields = { counted, unit, per_dose: perDose, set_by: me.id };
+  // A count, not .select(): KNOWN_RISKS, "Actions that reported success".
+  const { count, error } = await supabase.from("health_medicine_supply").update(fields, { count: "exact" }).eq("medicine_id", input.medicineId);
+  if (error) return done(input.memberId, say(error.message));
+  if (count) return done(input.memberId, null);
+  const { error: insertError } = await supabase.from("health_medicine_supply").insert({ medicine_id: input.medicineId, family_id: me.family_id, ...fields });
+  return done(input.memberId, insertError ? say(insertError.message) : null);
+}
+
+/** "Refilled: add a box". The database adds it to what is left now, so a
+ * dose ticked a moment ago is not lost. */
+export async function addToMedicineSupplyAction(medicineId: string, memberId: string, add: number): Promise<ActionState> {
+  const me = await requireCurrentMember();
+  if (!isGrownUp(me.role)) return { error: "Only a grown-up can change what's left." };
+  if (!UUID.test(medicineId) || !Number.isFinite(add) || add <= 0 || add > 10000) return { error: "That couldn't be added." };
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("add_to_medicine_supply", { p_medicine: medicineId, p_add: add });
+  if (!error && data === null) return { error: "That couldn't be added. Count what's left instead." };
+  return done(memberId, error ? say(error.message) : null);
+}
+
+export async function stopMedicineSupplyAction(medicineId: string, memberId: string): Promise<ActionState> {
+  const me = await requireCurrentMember();
+  if (!isGrownUp(me.role)) return { error: "Only a grown-up can change what's left." };
+  if (!UUID.test(medicineId)) return { error: "That medicine could not be found." };
+  const supabase = await createClient();
+  const { error } = await supabase.from("health_medicine_supply").delete().eq("medicine_id", medicineId);
+  return done(memberId, error ? say(error.message) : null);
 }
 
 // ── the illness log ──────────────────────────────────────────────────────────
