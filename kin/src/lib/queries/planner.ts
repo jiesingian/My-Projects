@@ -8,6 +8,9 @@ import { getHouseholdSpecialDays } from "@/lib/queries/special-days";
 import { expandRoutine, assigneeFor, type RoutineRule } from "@/lib/routines";
 import { loanPaymentDates, paidFromVisibleFilter } from "@/lib/wealth";
 import { formatCurrency } from "@/lib/format";
+import { householdZone } from "@/lib/household-zone";
+import { familyDay } from "@/lib/time";
+import { describeActivityRepeat, occurrenceStarts } from "@/lib/activity-repeat";
 
 export type PlannerCalendarItem = {
   id: string;
@@ -24,6 +27,10 @@ export type PlannerCalendarItem = {
    * day's worth of them into one line rather than letting them bury the
    * one-off plans (agreed 28 September). */
   chore?: boolean;
+  /** A repeating task's rule in words ("Every Mon, Wed · until 30 Nov"). */
+  repeatWords?: string;
+  /** The row behind a repeated occurrence, whose own id is per day. */
+  sourceId?: string;
 };
 
 function firstNames(names: (string | undefined)[]): string {
@@ -44,12 +51,14 @@ async function fetchCalendarItems(familyId: string, rangeStart: Date, rangeEnd: 
   // No trips fetch: travel is a kind of event now, so it arrives with the
   // events and needs no second query or second loop.
   const [{ data: activities }, { data: events }, { data: allBills }, { data: meals }, { data: goals }, { data: routines }, holidays, { data: seenAccounts }, { data: loans }, currency] = await Promise.all([
+    // Tasks that start in range, and repeating ones that started before it
+    // and have not ended -- expanded below into the days they fall on.
     supabase
       .from("activities")
       .select("*, activity_members(members(id, full_name))")
       .eq("family_id", familyId)
-      .gte("start_at", startISO)
-      .lt("start_at", endISO),
+      .lt("start_at", endISO)
+      .or(`start_at.gte.${startISO},and(repeat.neq.once,or(repeat_until.is.null,repeat_until.gte.${startDate}))`),
     supabase
       .from("events")
       .select("*, event_members(members(id, full_name))")
@@ -103,6 +112,9 @@ async function fetchCalendarItems(familyId: string, rangeStart: Date, rangeEnd: 
 
   const items: PlannerCalendarItem[] = [];
 
+  const tz = await householdZone();
+  const fromDay = familyDay(rangeStart, tz);
+  const toDay = familyDay(new Date(rangeEnd.getTime() - 1), tz);
   for (const a of activities ?? []) {
     const memberIds = (a.activity_members ?? [])
       .map((m) => (m.members as unknown as { id: string } | null)?.id)
@@ -110,18 +122,27 @@ async function fetchCalendarItems(familyId: string, rangeStart: Date, rangeEnd: 
     const who = a.applies_to_whole_family
       ? "WHOLE FAMILY"
       : firstNames((a.activity_members ?? []).map((m) => (m.members as unknown as { full_name: string } | null)?.full_name)) || "HOUSE";
-    items.push({
-      id: a.id,
-      table: "activities",
-      date: new Date(a.start_at),
-      allDay: false,
-      title: a.title,
-      location: a.location,
-      who,
-      memberIds,
-      appliesToAll: a.applies_to_whole_family,
-      href: `/planner/add?type=task&id=${a.id}`,
-    });
+    // Once: its own day. Repeating: every day of the range it falls on
+    // (lib/activity-repeat), at the first one's time on the household clock.
+    const start = new Date(a.start_at);
+    const repeatWords = describeActivityRepeat(a, familyDay(start, tz)) ?? undefined;
+    for (const at of occurrenceStarts(a, start, fromDay, toDay, tz)) {
+      if (at < rangeStart || at >= rangeEnd) continue;
+      items.push({
+        id: at.getTime() === start.getTime() ? a.id : `${a.id}:${familyDay(at, tz)}`,
+        table: "activities",
+        date: at,
+        allDay: false,
+        title: a.title,
+        location: a.location,
+        who,
+        memberIds,
+        appliesToAll: a.applies_to_whole_family,
+        href: `/planner/add?type=task&id=${a.id}`,
+        repeatWords,
+        sourceId: a.id,
+      });
+    }
   }
 
   for (const e of events ?? []) {
@@ -438,7 +459,8 @@ export async function getOneOffTasks(familyId: string, fromISO: string) {
     .from("activities")
     .select("*, activity_members(members(id, full_name))")
     .eq("family_id", familyId)
-    .gte("start_at", fromISO)
+    // A repeating task stays while it has days left to come.
+    .or(`start_at.gte.${fromISO},and(repeat.neq.once,or(repeat_until.is.null,repeat_until.gte.${fromISO.slice(0, 10)}))`)
     .order("start_at", { ascending: true });
   return (data ?? []).map((a) => ({
     ...a,

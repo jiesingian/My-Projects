@@ -29,7 +29,8 @@ import { AddToJournalButton } from "@/components/add-to-journal-button";
 import { Icon } from "@/components/icons";
 import { CALENDAR_LEGEND, styleFor } from "@/lib/calendar-style";
 import { parseHidden, serializeHidden, toggledHidden, type CalendarGroup } from "@/lib/calendar-groups";
-import { familyClock, familyDateLong, familyDay } from "@/lib/time";
+import { addDays, familyClock, familyDateLong, familyDay } from "@/lib/time";
+import { describeActivityRepeat, occurrenceStarts } from "@/lib/activity-repeat";
 import { bonusOn } from "@/lib/streaks";
 import { dayColumn, startOfWeek, weekdayInitials, weekStartOf, type WeekStart } from "@/lib/week";
 import { CalendarJump, CalendarPeriod, DateRail, MonthScroller, TodayButton } from "@/components/calendar-nav";
@@ -299,10 +300,11 @@ async function AgendaRow({ item }: { item: PlannerCalendarItem }) {
               {style.label}
               {item.location ? ` · ${item.location}` : ""}
               {item.who ? ` · ${item.who.toLowerCase()}` : ""}
+              {item.repeatWords ? ` · ${item.repeatWords}` : ""}
             </span>
           </span>
         </Link>
-        {isPastActivity && <AddToJournalButton activityId={item.id} />}
+        {isPastActivity && <AddToJournalButton activityId={item.sourceId ?? item.id} />}
       </div>
     </div>
   );
@@ -715,10 +717,14 @@ async function OneOffTasks({ tasks }: { tasks: Awaited<ReturnType<typeof getOneO
   return (
     <div style={{ marginBottom: "1.125rem" }}>
       <div style={{ fontSize: "0.75rem", letterSpacing: ".04em", textTransform: "uppercase", color: "var(--color-neutral-600)", marginBottom: "0.5rem" }}>
-        One-off · {tasks.length}
+        {tasks.some((t) => t.repeat !== "once") ? "Planned" : "One-off"} · {tasks.length}
       </div>
       {tasks.map((t) => {
-        const start = new Date(t.start_at);
+        // A repeating one shows its next day, and its rule in words.
+        const first = new Date(t.start_at);
+        const today = familyDay(new Date(), tz);
+        const start = occurrenceStarts(t, first, today, addDays(today, 400) ?? today, tz)[0] ?? first;
+        const repeatWords = describeActivityRepeat(t, familyDay(first, tz));
         const meta = ROUTINE_KIND_META[(t.kind as RoutineKind) ?? "other"] ?? ROUTINE_KIND_META.other;
         const whoFor = t.applies_to_whole_family ? "Whole family" : shortNames(t.who) || "House";
 
@@ -746,6 +752,7 @@ async function OneOffTasks({ tasks }: { tasks: Awaited<ReturnType<typeof getOneO
                   {familyDateLong(start, tz)} · {familyClock(start, tz)}
                   {t.location ? ` · ${t.location}` : ""}
                 </div>
+                {repeatWords && <div style={{ fontSize: "0.8125rem", color: "var(--color-neutral-600)" }}>{repeatWords}</div>}
                 <div style={{ fontSize: "0.8125rem", color: "var(--color-neutral-600)" }}>{whoFor}</div>
               </div>
               <Icon name="chevronLeft" size={15} style={{ transform: "rotate(180deg)", color: "var(--color-neutral-600)", flex: "none" }} />

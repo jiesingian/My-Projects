@@ -18,6 +18,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/lib/database.types";
 import { familyDay, FAMILY_TZ } from "@/lib/time";
 import { eventStartEnd, allDayEvent, syncLinkPatch, isQuarantined, QUARANTINE_AFTER } from "@/lib/calendar-shape";
+import { activityRRule } from "@/lib/activity-repeat";
 
 type Db = SupabaseClient<Database>;
 type SourceTable = "activities" | "events" | "health_schedule" | "health_appointments" | "doc_entries" | "bills" | "meal_plans" | "goals" | "routines" | "income_schedules";
@@ -185,7 +186,8 @@ const todayTimestamp = () => new Date().toISOString();
 type BackfillDescriptor = {
   table: SourceTable;
   dateColumn: string;
-  toInput: (row: Record<string, unknown>) => CalendarEventInput | null;
+  /** `tz` is the household's zone, for a rule that needs one. */
+  toInput: (row: Record<string, unknown>, tz: string) => CalendarEventInput | null;
   toTarget: (row: Record<string, unknown>) => CalendarTarget;
 };
 
@@ -193,7 +195,11 @@ const BACKFILL_DESCRIPTORS: BackfillDescriptor[] = [
   {
     table: "activities",
     dateColumn: "start_at",
-    toInput: (r) => ({ title: r.title as string, startAt: new Date(r.start_at as string), endAt: r.end_at ? new Date(r.end_at as string) : null, location: r.location as string | null }),
+    toInput: (r, tz) => {
+      const startAt = new Date(r.start_at as string);
+      const rrule = activityRRule({ repeat: r.repeat as string, repeat_days: r.repeat_days as number[] | null, repeat_until: r.repeat_until as string | null }, startAt, tz);
+      return { title: r.title as string, startAt, endAt: r.end_at ? new Date(r.end_at as string) : null, location: r.location as string | null, recurrence: rrule ? [rrule] : null };
+    },
     toTarget: (r) =>
       r.applies_to_whole_family
         ? { kind: "all" }
@@ -252,6 +258,7 @@ const BACKFILL_DESCRIPTORS: BackfillDescriptor[] = [
  * up automatically. */
 async function backfillFamily(supabase: Db, familyId: string): Promise<number> {
   let pushed = 0;
+  const tz = await familyZone(supabase, familyId);
   for (const desc of BACKFILL_DESCRIPTORS) {
     const selectCols = desc.table === "activities" ? "*, activity_members(member_id)" : desc.table === "events" ? "*, event_members(member_id)" : "*";
     const fromDate = desc.dateColumn === "start_at" || desc.dateColumn === "when_at" ? todayTimestamp() : todayDate();
@@ -266,7 +273,7 @@ async function backfillFamily(supabase: Db, familyId: string): Promise<number> {
         .eq("source_id", rowId);
       if (count && count > 0) continue;
 
-      const input = desc.toInput(row);
+      const input = desc.toInput(row, tz);
       if (!input) continue;
       await syncRowToCalendars(familyId, desc.table, rowId, input, desc.toTarget(row));
       pushed++;

@@ -499,6 +499,8 @@ export type Database = {
           location: string | null
           notes: string | null
           repeat: string
+          repeat_days: number[] | null
+          repeat_until: string | null
           start_at: string
           status: string
           title: string
@@ -515,6 +517,8 @@ export type Database = {
           location?: string | null
           notes?: string | null
           repeat?: string
+          repeat_days?: number[] | null
+          repeat_until?: string | null
           start_at: string
           status?: string
           title: string
@@ -531,6 +535,8 @@ export type Database = {
           location?: string | null
           notes?: string | null
           repeat?: string
+          repeat_days?: number[] | null
+          repeat_until?: string | null
           start_at?: string
           status?: string
           title?: string
@@ -6592,6 +6598,9 @@ export type Database = {
           repeat: string | null
           location: string | null
           notes: string | null
+          repeat_days: number[] | null
+          repeat_until: string | null
+          time_zone: string
         }[]
       }
       offer_tree_person: {

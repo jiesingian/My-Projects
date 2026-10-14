@@ -224,9 +224,17 @@ export function describeRule(rule: RoutineRule, timeOfDay: string | null = null)
     when = every ? `Every ${rule.repeat_interval} months on the ${day}` : `Monthly on the ${day}`;
   }
 
+  // When it stops, if it does: "· until 30 Nov" (Janine, 14 October).
+  if (!isOnce(rule) && rule.end_date) {
+    const [y, m, d] = rule.end_date.split("-").map(Number);
+    when += ` · until ${d} ${MONTHS_SHORT[m - 1]}${rule.end_date.slice(0, 4) === rule.start_date.slice(0, 4) ? "" : ` ${y}`}`;
+  }
+
   const at = formatTimeOfDay(timeOfDay);
   return at ? `${when} · ${at}` : when;
 }
+
+const MONTHS_SHORT = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
 /** Whose turn it is for a given occurrence. Members are taken in their
  * stored order and cycled, so the rota is the same for everyone looking. */

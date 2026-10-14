@@ -273,7 +273,7 @@ export async function previewBriefAction(): Promise<{ text: string }> {
   const since = new Date(Date.now() - 2 * 86_400_000).toISOString();
   const today = familyDay(new Date(), tz);
   const [{ data: acts }, { data: evs }, { data: rts }, { data: pantry }, { data: buy }] = await Promise.all([
-    supabase.from("activities").select("title, start_at, end_at, repeat, location, applies_to_whole_family, activity_members(member_id)").eq("family_id", me.family_id).or(`repeat.neq.once,start_at.gt.${since}`),
+    supabase.from("activities").select("title, start_at, end_at, repeat, repeat_days, repeat_until, location, applies_to_whole_family, activity_members(member_id)").eq("family_id", me.family_id).or(`repeat.neq.once,start_at.gt.${since}`),
     supabase.from("events").select("title, event_date, end_date, recurs_yearly, applies_to_whole_family, event_members(member_id)").eq("family_id", me.family_id),
     supabase
       .from("routines")
@@ -305,12 +305,12 @@ export async function previewBriefAction(): Promise<{ text: string }> {
   const items: BriefItem[] = [
     ...(acts ?? [])
       .filter((a) => mine(a.applies_to_whole_family, a.activity_members))
-      .map((a) => ({ title: a.title, starts_at: a.start_at, ends_at: a.end_at, all_day: null, all_day_end: null, yearly: false, repeat: a.repeat, location: a.location })),
+      .map((a) => ({ title: a.title, starts_at: a.start_at, ends_at: a.end_at, all_day: null, all_day_end: null, yearly: false, repeat: a.repeat, repeat_days: a.repeat_days, repeat_until: a.repeat_until, location: a.location })),
     ...(evs ?? [])
       .filter((e) => mine(e.applies_to_whole_family, e.event_members))
       .map((e) => ({ title: e.title, starts_at: null, ends_at: null, all_day: e.event_date, all_day_end: e.end_date, yearly: e.recurs_yearly, repeat: null, location: null })),
   ];
-  return { text: buildBrief(me.full_name, items, new Date(), undefined, { me: me.id, routines, low }) };
+  return { text: buildBrief(me.full_name, items, new Date(), tz, { me: me.id, routines, low }) };
 }
 
 /** Hides "Start here" on Today for this member, on every device. */

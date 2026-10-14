@@ -11,17 +11,10 @@ import { DateInput } from "@/components/date-input";
 import { RoutineAttachments } from "@/components/routine-attachments";
 import type { RoutineAttachment } from "@/lib/queries/routines";
 import { scrollBehavior } from "@/lib/motion";
+import { WeekdayPicker } from "@/components/weekday-picker";
+import { weekdayOf } from "@/lib/time";
 
 const initialState: RoutineActionState = { error: null, field: null };
-const WEEKDAYS = [
-  { value: 0, label: "S", full: "Sunday" },
-  { value: 1, label: "M", full: "Monday" },
-  { value: 2, label: "T", full: "Tuesday" },
-  { value: 3, label: "W", full: "Wednesday" },
-  { value: 4, label: "T", full: "Thursday" },
-  { value: 5, label: "F", full: "Friday" },
-  { value: 6, label: "S", full: "Saturday" },
-];
 
 const REMINDERS = [
   { value: "", label: "None" },
@@ -151,7 +144,9 @@ export function RoutineForm({
   const [title, setTitle] = useState(edit?.title ?? "");
   // "once" is a task that doesn't repeat: saved as one day (lib/routines isOnce).
   const [freq, setFreq] = useState(edit && isOnce(edit) ? "once" : (edit?.freq ?? "weekly"));
-  const [byweekday, setByweekday] = useState<number[]>(edit?.byweekday ?? [1, 3, 5]);
+  // A new weekly task starts on today's weekday, the day it starts (Janine,
+  // 14 October); a template or a tap changes it.
+  const [byweekday, setByweekday] = useState<number[]>(edit?.byweekday ?? [weekdayOf(today) ?? 1]);
   const [time, setTime] = useState(edit?.time_of_day?.slice(0, 5) ?? "");
   const [reminder, setReminder] = useState(edit?.reminder_minutes == null ? "" : String(edit.reminder_minutes));
   const [duration, setDuration] = useState(edit?.duration_minutes == null ? "" : String(edit.duration_minutes));
@@ -226,36 +221,8 @@ export function RoutineForm({
           </div>
 
           {freq === "weekly" && (
-            <div data-field="byweekday" style={{ display: "flex", gap: "0.3125rem", marginBottom: "0.875rem", ...(bad("byweekday") ? { boxShadow: "0 0 0 2px var(--cal-occasion)", borderRadius: 999, padding: "0.375rem", margin: "-6px -6px 8px" } : null) }}>
-              {WEEKDAYS.map((d) => {
-                const on = byweekday.includes(d.value);
-                return (
-                  <button
-                    key={d.value}
-                    type="button"
-                    onClick={() => toggleDay(d.value)}
-                    aria-pressed={on}
-                    aria-label={d.full}
-                    style={{
-                      flex: 1,
-                      minHeight: "2.5rem",
-                      borderRadius: 999,
-                      border: 0,
-                      cursor: "pointer",
-                      fontFamily: "var(--font-body)",
-                      fontSize: "0.875rem",
-                      fontWeight: on ? 600 : 500,
-                      background: on ? "var(--color-accent-solid)" : "color-mix(in srgb, var(--color-text) 6%, transparent)",
-                      color: on ? "#fff" : "var(--color-text)",
-                    }}
-                  >
-                    {d.label}
-                  </button>
-                );
-              })}
-              {byweekday.map((d) => (
-                <input key={d} type="hidden" name="byweekday" value={d} />
-              ))}
+            <div data-field="byweekday" style={{ marginBottom: "0.875rem", ...(bad("byweekday") ? { boxShadow: "0 0 0 2px var(--cal-occasion)", borderRadius: 999, padding: "0.375rem", margin: "-6px -6px 8px" } : null) }}>
+              <WeekdayPicker name="byweekday" value={byweekday} onToggle={toggleDay} />
             </div>
           )}
 
