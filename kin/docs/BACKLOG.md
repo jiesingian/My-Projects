@@ -19,6 +19,22 @@ scanning wait for the AI key.
   turned on are never reported. The card says who is told. Plus area.
   Migration 20261014200000_missed_dose_alerts.sql.
 
+- **Done:** Pills left and refill: optional on-hand count, unit and per-dose
+  amount on a medicine. On hand = count minus doses ticked Taken since it
+  was counted, never counted down. The card shows days left. At 7 days or
+  fewer, the reminders job adds it to the To-Buy list (Personal Care,
+  "<medicine> · for <name>, refill") unless an open item is there, and tells
+  the grown-ups once per supply cycle. Refilled takes a new count or adds a
+  box. Plus area. Migration 20261014201000_medicine_supply.sql.
+
+- **Done:** Hey Siri, add to the list (14 Oct): "Add to Kin" iPhone Shortcut
+  posts spoken words to a private per-member add-to-list link (separate from
+  the brief link, hashed in list_add_tokens); add_to_list_by_link() adds up
+  to 20 items to the owner's household; words split on
+  commas/and/at/saka/tsaka via lib/list-add.ts + quick-line readShopping;
+  setup steps in Settings -> Action Button & widget. Branch kin/siri-add-to-
+  list, migration 20261014202000_list_add_link.sql.
+
 ## Agreed 13 October: first open (Jonathan)
 
 Why: not everyone who opens Kin came by referral or is sure they want it.

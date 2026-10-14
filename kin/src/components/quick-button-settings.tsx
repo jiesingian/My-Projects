@@ -2,7 +2,14 @@
 
 import { useEffect, useState, useSyncExternalStore, useTransition } from "react";
 import { Icon, type IconName } from "@/components/icons";
-import { createBriefLinkAction, previewBriefAction, removeBriefLinkAction, setQuickButtonAction } from "@/lib/actions/settings";
+import {
+  createBriefLinkAction,
+  createListAddLinkAction,
+  previewBriefAction,
+  removeBriefLinkAction,
+  removeListAddLinkAction,
+  setQuickButtonAction,
+} from "@/lib/actions/settings";
 import { speak, speechOutSupported, stopSpeaking } from "@/lib/speech";
 import { MENU_MAX, QUICK_ACTIONS, WIDGET_MAX, quickAction, type QuickActionId, type QuickPrefs } from "@/lib/quick-button";
 
@@ -21,7 +28,7 @@ const ICONS: Record<QuickActionId, IconName> = {
 
 /** Settings → Action Button & widget: what the Action Button's pop-up and the
  * Home Screen widget offer, a picture of each, and the one-time setup. */
-export function QuickButtonSettings({ initial, briefOn }: { initial: QuickPrefs; briefOn: boolean }) {
+export function QuickButtonSettings({ initial, briefOn, listAddOn }: { initial: QuickPrefs; briefOn: boolean; listAddOn: boolean }) {
   const [prefs, setPrefs] = useState<QuickPrefs>(initial);
   const [pending, startTransition] = useTransition();
   const [failed, setFailed] = useState<string | null>(null);
@@ -49,6 +56,7 @@ export function QuickButtonSettings({ initial, briefOn }: { initial: QuickPrefs;
   return (
     <div className="kin-quickbtn">
       <TodayBrief initialOn={briefOn} origin={origin} />
+      <AddToKin initialOn={listAddOn} origin={origin} />
 
       <section className="kin-quickbtn-section" aria-labelledby="qb-menu">
         <h2 id="qb-menu" className="kin-quickbtn-h">Action Button</h2>
@@ -311,6 +319,109 @@ function CopyLink({ label, url }: { label: string; url: string }) {
         </button>
       </div>
     </div>
+  );
+}
+
+/** "Add to Kin": "Hey Siri, Add to Kin", say "rice and eggs", and they're on
+ * the shopping list. A Shortcut asks what you need, sends the words to the
+ * member's private add-to-list link, and speaks back what was added
+ * (lib/list-add.ts). Its own link, made and turned off here, never the
+ * "Today in Kin" one: that link only reads, and this one writes. */
+function AddToKin({ initialOn, origin }: { initialOn: boolean; origin: string }) {
+  const [on, setOn] = useState(initialOn);
+  const [url, setUrl] = useState<string | null>(null);
+  const [pending, startTransition] = useTransition();
+  const [failed, setFailed] = useState<string | null>(null);
+
+  function make() {
+    startTransition(async () => {
+      const r = await createListAddLinkAction();
+      setFailed(r.error);
+      if (r.url) {
+        setUrl(r.url);
+        setOn(true);
+      }
+    });
+  }
+
+  return (
+    <section className="kin-quickbtn-section" aria-labelledby="qb-listadd">
+      <h2 id="qb-listadd" className="kin-quickbtn-h">Add to the list by voice</h2>
+      <p className="kin-quickbtn-lead">
+        Say &ldquo;Hey Siri, Add to Kin&rdquo;, then what you need: &ldquo;rice 2 kilos, eggs at milk&rdquo;. Your iPhone says back what it put on the shopping list. Up to 20
+        things at a time.
+      </p>
+
+      {url ? (
+        <>
+          <p className="kin-quickbtn-lead">
+            <b>Your private link.</b> Copy it now: Kin shows it only once. Anyone with it can add to your family&rsquo;s list, so keep it in the Shortcut and nowhere else.
+          </p>
+          <CopyLink label="Add to Kin" url={url} />
+        </>
+      ) : (
+        <div className="kin-quickbtn-row">
+          <button type="button" className="btn btn-primary" onClick={make} disabled={pending}>
+            {on ? "Make a new link" : "Make my link"}
+          </button>
+          {on && (
+            <button
+              type="button"
+              className="btn btn-secondary"
+              disabled={pending}
+              onClick={() =>
+                startTransition(async () => {
+                  const r = await removeListAddLinkAction();
+                  setFailed(r.error);
+                  if (!r.error) setOn(false);
+                })
+              }
+            >
+              Turn it off
+            </button>
+          )}
+        </div>
+      )}
+      {on && !url && (
+        <p className="kin-quickbtn-note">Your link is on. A new link replaces it, and the old one stops working. It&rsquo;s separate from the Today in Kin link.</p>
+      )}
+      {failed && (
+        <p role="alert" className="kin-quickbtn-error">
+          {failed}
+        </p>
+      )}
+
+      <ol className="kin-quickbtn-sub kin-quickbtn-brief-steps">
+        <li>
+          In Shortcuts, tap <b>+</b>, tap the name at the top and call it <b>Add to Kin</b>.
+        </li>
+        <li>
+          Add <b>Ask for Input</b>. Tap <b>Prompt</b> and type <b>What do you need?</b>
+        </li>
+        <li>
+          Add <b>Get Contents of URL</b> and paste your link. Tap the arrow to show more, then set <b>Method</b> to <b>POST</b> and <b>Request Body</b> to <b>JSON</b>.
+        </li>
+        <li>
+          Under Request Body tap <b>Add new field → Text</b>. Type <b>text</b> as the key; for the value, tap <b>Select Variable</b> and pick <b>Provided Input</b>.
+        </li>
+        <li>
+          Add <b>Speak Text</b> under it. It reads out what Kin added.
+        </li>
+        <li>
+          <b>Hands-free:</b> say &ldquo;Hey Siri, Add to Kin&rdquo;. Siri asks what you need; answer, and it&rsquo;s on the list.
+        </li>
+        <li>
+          <b>Action Button:</b> in the <b>Kin</b> shortcut&rsquo;s menu add an item <b>Add to the list</b>, with the action <b>Run Shortcut → Add to Kin</b>.
+        </li>
+        <li>
+          <b>Widget:</b> move it into your <b>Kin</b> folder, and it&rsquo;s one tap on the Home Screen.
+        </li>
+      </ol>
+      <p className="kin-quickbtn-note">
+        Works on iOS 17 and 18. Rather skip the question? Use <b>Dictate Text</b> in place of Ask for Input, and pick <b>Dictated Text</b> as the value.
+      </p>
+      {origin && <OpenShortcuts />}
+    </section>
   );
 }
 
