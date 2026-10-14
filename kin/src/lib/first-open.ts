@@ -9,8 +9,10 @@
  * window, or someone who skipped the check-up. */
 export const FIRST_OPEN_KEY = "kin-first-open";
 
-/** The eight things question 3 ranks. Order here is the order on screen. */
-export const PRIORITIES = ["health", "documents", "emergency", "kids", "plans", "meals", "money", "memories"] as const;
+/** The ten things question 3 ranks. Order here is the order on screen.
+ * Janine's list of 14 October. Ids carried over where the meaning did, so a
+ * top 3 saved before then still reads: "meals" is now Household management. */
+export const PRIORITIES = ["health", "money", "documents", "plans", "travel", "memories", "meals", "together", "emergency", "kids"] as const;
 export type Priority = (typeof PRIORITIES)[number];
 
 /** The five bars on the results page. */

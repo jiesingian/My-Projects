@@ -65,14 +65,14 @@ test("the check-up: one question per screen, kids only with kids, and the answer
   await page.getByRole("button", { name: "Next" }).click();
 
   // 3: the order tapped is the rank, and a fourth can't be picked.
-  await expect(page.getByRole("heading", { name: "Your top 3, in order" })).toBeFocused();
-  for (const p of ["Kids’ safety & location", "Health & medicines", "Documents"]) await page.getByRole("button", { name: p }).click();
-  await expect(page.getByRole("button", { name: "Money & bills" })).toBeDisabled();
-  await expect(page.getByRole("button", { name: /Kids’ safety & location/ })).toHaveAttribute("aria-pressed", "true");
+  await expect(page.getByRole("heading", { name: "What are your family’s top 3 priorities?" })).toBeFocused();
+  for (const p of ["Travel and family adventures", "Family health and wellness", "Important documents and records"]) await page.getByRole("button", { name: p }).click();
+  await expect(page.getByRole("button", { name: "Financial planning and budgeting" })).toBeDisabled();
+  await expect(page.getByRole("button", { name: "Travel and family adventures" })).toHaveAttribute("aria-pressed", "true");
   await page.getByRole("button", { name: "Next" }).click();
 
   // A single answer waits for Next too, so its tip can be read.
-  await page.getByRole("button", { name: "I couldn’t" }).click();
+  await page.getByRole("button", { name: "We’re not sure where everything is" }).click();
   await expect(page.locator(".kin-check-tip")).toContainText("emergency card");
   await page.getByRole("button", { name: "Next" }).click();
   await page.getByRole("button", { name: "In different places" }).click();
@@ -100,7 +100,7 @@ test("the check-up: one question per screen, kids only with kids, and the answer
 
   const saved = await page.evaluate(() => JSON.parse(localStorage.getItem("kin-first-open") ?? "null"));
   expect(saved.version).toBe(1);
-  expect(saved.top3).toEqual(["kids", "health", "documents"]);
+  expect(saved.top3).toEqual(["travel", "health", "documents"]);
   expect(saved.answers.home).toEqual(["partner", "kids"]);
   expect(saved.answers.ai).toEqual(["privacy"]);
   expect(saved.score).toBeGreaterThanOrEqual(0);
@@ -115,7 +115,7 @@ test("the check-up: one question per screen, kids only with kids, and the answer
   await expect(page.getByRole("meter")).toHaveCount(5);
   await expect(page.getByRole("meter", { name: "Health & safety" })).toHaveAttribute("aria-valuenow", String(saved.areas.health));
   await expect(page.locator(".kin-check-top li")).toHaveCount(3);
-  await expect(page.locator(".kin-check-top li").first()).toContainText("You said Kids’ safety & location");
+  await expect(page.locator(".kin-check-top li").first()).toContainText("You said Travel and family adventures");
   await expect(page.getByText("4 places to keep track in today. In Kin, it’s one.")).toBeVisible();
   await expect(page.getByText("Private to your family. Nothing is sold, and your records never train AI.")).toBeVisible();
   expect(await page.locator(".kin-check-bars p").allTextContents()).not.toContain(expect.stringMatching(/fail|easy win/i));
@@ -126,7 +126,7 @@ test("the check-up: one question per screen, kids only with kids, and the answer
   await expect(page.getByRole("heading", { name: "How Kin helps" })).toBeFocused();
   const slides = page.locator(".kin-check-slide h3");
   await expect(slides).toHaveCount(4);
-  expect(await slides.allTextContents()).toEqual(["Home safe, without ten calls", "Everyone’s health, one tap away", "Papers you can findPLUS", "One app, private to your family"]);
+  expect(await slides.allTextContents()).toEqual(["Trips, planned together", "Everyone’s health, one tap away", "Papers you can findPLUS", "One app, private to your family"]);
   // Only the sample household, never anyone real.
   for (const phone of await page.locator(".kin-check-phone").all()) await expect(phone).toHaveAttribute("aria-label", /sample household$/);
   await expectTapTargets(page);
@@ -159,9 +159,9 @@ test("no kids at home: question 6 is skipped", async ({ page }) => {
   await page.getByRole("button", { name: "Next" }).click();
   await page.getByRole("button", { name: "We remember and remind each other" }).click();
   await page.getByRole("button", { name: "Next" }).click();
-  await page.getByRole("button", { name: "Plans & schedules" }).click();
+  await page.getByRole("button", { name: "Schedules, appointments and events" }).click();
   await page.getByRole("button", { name: "Next" }).click();
-  await page.getByRole("button", { name: "Under a minute" }).click();
+  await page.getByRole("button", { name: /^In seconds/ }).click();
   await page.getByRole("button", { name: "Next" }).click();
   // Originals kept in a safe are an answer of their own.
   await page.getByRole("button", { name: "In a safe or locked cabinet" }).click();

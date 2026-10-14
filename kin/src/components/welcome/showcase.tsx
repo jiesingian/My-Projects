@@ -31,19 +31,6 @@ const SLIDES: Record<Priority, Slide> = {
       { main: "PhilHealth", side: "•••• 2041" },
     ],
   },
-  emergency: {
-    id: "emergency",
-    icon: "shieldCheck",
-    title: "The emergency card",
-    line: "Blood type, allergies, doctor and insurance on one screen that reads at arm’s length.",
-    screen: "Emergency · Quinn",
-    rows: [
-      { main: "Blood type", side: "A+" },
-      { main: "Allergies", side: "None known" },
-      { main: "Doctor", side: "Dr. Lim" },
-      { main: "Insurance", side: "Policy 88-1032" },
-    ],
-  },
   documents: {
     id: "documents",
     icon: "fileText",
@@ -57,15 +44,16 @@ const SLIDES: Record<Priority, Slide> = {
       { main: "Home insurance", sub: "Policy", side: "to Mar" },
     ],
   },
-  kids: {
-    id: "kids",
-    icon: "mapPin",
-    title: "Home safe, without ten calls",
-    line: "Location sharing that each person switches on for themselves, next to the family calendar.",
-    screen: "Places",
+  travel: {
+    id: "travel",
+    icon: "plane",
+    title: "Trips, planned together",
+    line: "Who’s going, what to pack, and the budget beside what was spent, in the same planner as everything else.",
+    screen: "Planner · Trip",
     rows: [
-      { main: "Pat", sub: "Home", side: "now" },
-      { main: "Quinn", sub: "Work", side: "12 min" },
+      { main: "Baguio weekend", sub: "Pat, Quinn", side: "Nov 21" },
+      { main: "Packing list", side: "8 of 12" },
+      { main: "Budget", sub: "Spent ₱6,200", side: "₱15,000" },
     ],
   },
   plans: {
@@ -115,6 +103,41 @@ const SLIDES: Record<Priority, Slide> = {
     rows: [
       { main: "First night in the new house", sub: "Quinn · 3 photos" },
       { main: "Pat’s birthday", sub: "4 reactions" },
+    ],
+  },
+  together: {
+    id: "together",
+    icon: "message",
+    title: "Time together, easier to arrange",
+    line: "A family chat with polls and voice and video calls, next to the calendar of what you’re doing together.",
+    screen: "Family chat",
+    rows: [
+      { main: "Poll", sub: "Movie night: Friday or Saturday?", side: "3 votes" },
+      { main: "Quinn", sub: "Video call · 24 min" },
+    ],
+  },
+  emergency: {
+    id: "emergency",
+    icon: "shieldCheck",
+    title: "The emergency card",
+    line: "Blood type, allergies, doctor and insurance on one screen that reads at arm’s length.",
+    screen: "Emergency · Quinn",
+    rows: [
+      { main: "Blood type", side: "A+" },
+      { main: "Allergies", side: "None known" },
+      { main: "Doctor", side: "Dr. Lim" },
+      { main: "Insurance", side: "Policy 88-1032" },
+    ],
+  },
+  kids: {
+    id: "kids",
+    icon: "mapPin",
+    title: "Home safe, without ten calls",
+    line: "Location sharing that each person switches on for themselves, next to the family calendar.",
+    screen: "Places",
+    rows: [
+      { main: "Pat", sub: "Home", side: "now" },
+      { main: "Quinn", sub: "Work", side: "12 min" },
     ],
   },
 };
