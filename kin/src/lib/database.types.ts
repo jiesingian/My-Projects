@@ -3309,6 +3309,44 @@ export type Database = {
         }
         Relationships: []
       }
+      event_comments: {
+        Row: {
+          body: string
+          created_at: string
+          edited_at: string | null
+          event_id: string
+          family_id: string
+          id: string
+          member_id: string
+        }
+        Insert: {
+          body: string
+          created_at?: string
+          edited_at?: string | null
+          event_id: string
+          family_id: string
+          id?: string
+          member_id: string
+        }
+        Update: {
+          body?: string
+          created_at?: string
+          edited_at?: string | null
+          event_id?: string
+          family_id?: string
+          id?: string
+          member_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "event_comments_member_id_fkey"
+            columns: ["member_id"]
+            isOneToOne: false
+            referencedRelation: "members"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       event_rsvps: {
         Row: {
           answer: string

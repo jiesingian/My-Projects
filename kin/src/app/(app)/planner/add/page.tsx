@@ -9,6 +9,7 @@ import { inKidView } from "@/lib/kid-view";
 import { EventPhotos } from "@/components/event-photos";
 import { getSignedUrls } from "@/lib/storage";
 import { EventRsvp } from "@/components/event-rsvp";
+import { EventThread, type EventComment } from "@/components/event-thread";
 import { askedMembers, canAnswerFor, eventTakesRsvps, rsvpOpen, summarizeRsvps, type RsvpAnswer } from "@/lib/event-rsvp";
 import { householdZone } from "@/lib/household-zone";
 import { familyDay } from "@/lib/time";
@@ -87,6 +88,26 @@ export default async function AddPlannerPage({
     };
   }
 
+  // The event's thread (20261014100000_event_comments.sql), oldest first.
+  let thread: EventComment[] = [];
+  if (editEvent) {
+    const supabase = await createClient();
+    const { data: rows } = await supabase
+      .from("event_comments")
+      .select("id, body, created_at, edited_at, member_id, members(full_name)")
+      .eq("event_id", editEvent.id)
+      .order("created_at", { ascending: true })
+      .limit(300);
+    thread = (rows ?? []).map((c) => ({
+      id: c.id,
+      body: c.body,
+      createdAt: c.created_at,
+      edited: !!c.edited_at,
+      author: c.member_id === me.id ? "You" : ((c.members as unknown as { full_name: string } | null)?.full_name ?? "Someone").split(" ")[0],
+      mine: c.member_id === me.id,
+    }));
+  }
+
   return (
     <>
     <AddPlannerForm
@@ -109,6 +130,15 @@ export default async function AddPlannerPage({
           WHO&apos;S COMING
         </div>
         <EventRsvp {...rsvp} />
+      </div>
+    )}
+    {editEvent && (
+      <div style={{ padding: "0 var(--gutter) 1.25rem" }}>
+        <div className="kin-eyebrow" style={{ marginBottom: "0.5rem" }}>
+          THREAD
+        </div>
+        {/* eslint-disable-next-line react-hooks/purity -- the server's "now", passed down so the client's ages match it */}
+        <EventThread eventId={editEvent.id} comments={thread} now={Date.now()} />
       </div>
     )}
     {editEvent && (
