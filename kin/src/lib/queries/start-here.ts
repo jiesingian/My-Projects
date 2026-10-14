@@ -109,11 +109,11 @@ export async function getStartHere(me: CurrentMember): Promise<StartHere | null>
   // Inviting a partner, the kids, and the check-up's extras: wanted, but not
   // what the bonus counts (a household of one can earn it).
   const invite: StartStep = { id: "invite", title: "Invite your partner", hint: "Kin is better with two. They join with one tap.", href: null, done: any(people) };
-  const kids: StartStep = { id: "children", title: "Add the kids", hint: "A profile for each, with or without a login of their own.", href: "/family?seg=profile", done: any(children), priority: "kids" };
+  const kids: StartStep = { id: "children", title: "Add the kids", hint: "A profile for each, with or without a login of their own.", href: "/family?seg=profile", done: any(children) };
   const extras: StartStep[] = [
     { id: "health", title: "Add allergies and blood type", hint: "The first things a doctor asks, ready at 2 a.m.", href: `/family/members/${me.id}`, done: any(health), priority: "health", extra: true },
-    { id: "location", title: "Turn on location sharing", hint: "Each person switches it on for themselves, and can pause it.", href: "/family?seg=quicklinks", done: any(sharing), priority: "kids", extra: true },
-    { id: "emergency", title: "Fill in the emergency card", hint: "Who to call when you can't be reached.", href: "/family?seg=quicklinks", done: any(emergency), priority: "emergency", extra: true },
+    { id: "location", title: "Turn on location sharing", hint: "Each person switches it on for themselves, and can pause it.", href: "/family?seg=quicklinks", done: any(sharing), priority: "together", extra: true },
+    { id: "emergency", title: "Fill in the emergency card", hint: "Who to call when you can't be reached.", href: "/family?seg=quicklinks", done: any(emergency), priority: "health", extra: true },
   ];
 
   // The days, once every one of the eight is done in time. The database

@@ -26,14 +26,14 @@ export type Question = {
 };
 
 export const PRIORITY_LABELS: Record<Priority, string> = {
-  health: "Health & medicines",
-  documents: "Documents",
-  emergency: "Emergency info",
-  kids: "Kids’ safety & location",
-  plans: "Plans & schedules",
-  meals: "Groceries & meals",
-  money: "Money & bills",
-  memories: "Family memories",
+  health: "Family health and wellness",
+  money: "Financial planning and budgeting",
+  documents: "Important documents and records",
+  plans: "Schedules, appointments and events",
+  travel: "Travel and family adventures",
+  memories: "Family memories and milestones",
+  meals: "Household management",
+  together: "Family connection and quality time",
 };
 
 export const QUESTIONS: Question[] = [
@@ -77,21 +77,24 @@ export const QUESTIONS: Question[] = [
   },
   {
     id: "top3",
-    title: "Your top 3, in order",
-    hint: "Tap the one that matters most first. Tap again to take it back.",
+    title: "What are your family’s top 3 priorities?",
+    hint: "Choose the three areas of family life that matter most to you.",
     kind: "ranked",
     max: 3,
     options: PRIORITIES.map((p) => ({ id: p, label: PRIORITY_LABELS[p] })),
   },
   {
     id: "sick",
-    title: "If someone got sick at 2 a.m., how fast could you find their allergies, medicines, blood type and HMO card?",
+    title: "If a medical emergency happened today, how quickly can you access your family’s health history and records?",
+    hint: "Think medical records, allergies, and medications.",
     kind: "one",
+    // Janine, 14 October: the same four steps as before, fastest first, so
+    // the ids and their scores carry over.
     options: [
-      { id: "minute", label: "Under a minute" },
-      { id: "look", label: "I’d have to look" },
-      { id: "ask", label: "I’d have to ask someone" },
-      { id: "cant", label: "I couldn’t" },
+      { id: "minute", label: "In seconds—we have everything organized and ready" },
+      { id: "look", label: "Within a few minutes—we know where to look" },
+      { id: "ask", label: "It would take some searching—I need to ask someone" },
+      { id: "cant", label: "We’re not sure where everything is" },
     ],
   },
   {
@@ -191,17 +194,18 @@ export function topThree(answers: Answers): Priority[] {
   return (answers.top3 ?? []).filter((p): p is Priority => (PRIORITIES as readonly string[]).includes(p)).slice(0, 3);
 }
 
-/** Which bar each priority belongs to. Emergency info is part of Health &
- * safety; plans, meals and money are all running the home. */
+/** Which bar each priority belongs to. Plans, the household and money are
+ * all running the home; travel, memories and time together are staying
+ * close. No priority is about the kids now, so their bar weighs the least. */
 export const PRIORITY_AREA: Record<Priority, Area> = {
   health: "health",
-  emergency: "health",
   documents: "documents",
-  kids: "kids",
   plans: "home",
   meals: "home",
   money: "home",
+  travel: "close",
   memories: "close",
+  together: "close",
 };
 
 /** Where an unanswered question leaves its bar: the middle, neither praise
@@ -357,14 +361,14 @@ export function areaLine(area: Area, score: number): string {
  * ones that are Kin Plus after the trial, so nobody meets Plus later as a
  * surprise. */
 export const PRIORITY_IN_KIN: Record<Priority, { line: string; plus?: boolean }> = {
-  health: { line: "a health profile for each person: allergies, blood type, doctor, PhilHealth and insurance, on everyone’s phone." },
-  documents: { line: "the vault: PSA certificates, passports and policies, behind Face ID or a PIN.", plus: true },
-  emergency: { line: "the emergency card: blood type, allergies, doctor and insurance on one screen that reads at arm’s length." },
-  kids: { line: "location sharing, which each person switches on for themselves, beside the family calendar." },
-  plans: { line: "one family calendar, synced with Google Calendar, with routines and chores the kids earn stars for." },
-  meals: { line: "a shared shopping list with prices, the pantry, and meal plans for the week." },
+  health: { line: "a health profile for each person: allergies, blood type, doctor, PhilHealth and insurance, and an emergency card that reads at arm’s length." },
   money: { line: "Wealth: accounts, budgets and bills with reminders, and who’s paying what.", plus: true },
+  documents: { line: "the vault: PSA certificates, passports and policies, behind Face ID or a PIN.", plus: true },
+  plans: { line: "one family calendar, synced with Google Calendar, with appointments, routines and chores the kids earn stars for." },
+  travel: { line: "trips in the planner: who’s going, a packing list, and the budget beside what was spent." },
   memories: { line: "the family journal: photos, milestones and first days, shared with relatives." },
+  meals: { line: "a shared shopping list with prices, the pantry, meal plans and chores, so the house runs from one list." },
+  together: { line: "the family chat, with polls and voice and video calls, right beside the calendar of what you’re doing together." },
 };
 
 /** From question 2: what Kin brings together. */

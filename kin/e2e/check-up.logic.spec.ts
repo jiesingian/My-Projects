@@ -34,12 +34,13 @@ test("question 1 is Janine's household list, and the helper answer lives on as '
 test("the top 3 rank in the order tapped, and stop at three", () => {
   const top = q("top3");
   let picked: string[] = [];
-  for (const p of ["money", "health", "kids", "meals"]) picked = toggle(top, picked, p);
-  expect(picked).toEqual(["money", "health", "kids"]);
+  for (const p of ["money", "health", "travel", "meals"]) picked = toggle(top, picked, p);
+  expect(picked).toEqual(["money", "health", "travel"]);
   // Taking one back closes the gap: the rest move up a place.
   picked = toggle(top, picked, "money");
-  expect(picked).toEqual(["health", "kids"]);
-  expect(topThree({ top3: [...picked, "nonsense"] })).toEqual(["health", "kids"]);
+  expect(picked).toEqual(["health", "travel"]);
+  // Anything that isn't a priority now (like "kids", saved before 14 October) is dropped.
+  expect(topThree({ top3: [...picked, "nonsense", "kids"] })).toEqual(["health", "travel"]);
 });
 
 test("a single answer replaces, and 'Just me' and the other 'none' answers stand alone", () => {
@@ -79,7 +80,7 @@ test("every score and bar stays within 0-100, whatever the answers", () => {
     {
       home: ["kids", "grown", "parents", "relatives", "helper"],
       tools: ["none"],
-      top3: ["kids", "health", "documents"],
+      top3: ["together", "health", "documents"],
       sick: ["cant"],
       papers: ["scattered"],
       kids: ["worry"],
@@ -103,7 +104,7 @@ test("a family that has it together scores well connected; one that doesn't, get
   const organised = {
     home: ["partner", "kids"],
     tools: ["calendar"],
-    top3: ["health", "kids", "money"],
+    top3: ["health", "plans", "money"],
     sick: ["minute"],
     papers: ["safe"],
     kids: ["app"],
@@ -114,7 +115,7 @@ test("a family that has it together scores well connected; one that doesn't, get
   const scattered = {
     home: ["partner", "kids", "parents"],
     tools: ["chat", "notes", "sheet", "paper"],
-    top3: ["health", "kids", "documents"],
+    top3: ["health", "travel", "documents"],
     sick: ["cant"],
     papers: ["scattered"],
     kids: ["worry"],
@@ -141,8 +142,9 @@ test("the top 3 weigh most, first choice heaviest", () => {
     kids: 1,
     home: 1,
   });
-  // Emergency info is part of Health & safety, so it adds to the same bar.
-  expect(areaWeights({ top3: ["emergency", "health"] }).health).toBe(6);
+  // Travel, memories and time together are all staying close, so they add
+  // to the same bar.
+  expect(areaWeights({ top3: ["travel", "together", "memories"] }).close).toBe(7);
   // The same answers, but health first rather than last: a weak health bar
   // pulls the score down further.
   const base = {
@@ -211,4 +213,27 @@ test("every answer to every question shows what Kin does about it, in English", 
   // English only: none of the Tagalog the first draft had.
   const words = JSON.stringify(QUESTIONS);
   for (const w of ["Walang", "sagot", "Kasambahay", "yaya", "Lolo", "bunso", "Sulit"]) expect(words).not.toContain(w);
+});
+
+test("questions 3 and 4 are Janine's wording, and question 4 keeps its scores fastest first", () => {
+  expect(q("top3").title).toBe("What are your family’s top 3 priorities?");
+  expect(q("top3").options.map((o) => o.label)).toEqual([
+    "Family health and wellness",
+    "Financial planning and budgeting",
+    "Important documents and records",
+    "Schedules, appointments and events",
+    "Travel and family adventures",
+    "Family memories and milestones",
+    "Household management",
+    "Family connection and quality time",
+  ]);
+  expect(q("sick").title).toBe("If a medical emergency happened today, how quickly can you access your family’s health history and records?");
+  expect(q("sick").options.map((o) => o.label)).toEqual([
+    "In seconds—we have everything organized and ready",
+    "Within a few minutes—we know where to look",
+    "It would take some searching—I need to ask someone",
+    "We’re not sure where everything is",
+  ]);
+  const health = q("sick").options.map((o) => areaScores({ sick: [o.id] }).health!);
+  expect([...health].sort((a, b) => b - a)).toEqual(health);
 });
