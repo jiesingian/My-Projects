@@ -21,7 +21,7 @@ export async function POST(request: Request) {
   const supabase = createClient<Database>(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!, {
     auth: { persistSession: false, autoRefreshToken: false },
   });
-  const [main, pantry, trial, week, promises, scheduled, billsAhead, letters, rsvps] = await Promise.all([
+  const [main, pantry, trial, week, promises, scheduled, billsAhead, letters, rsvps, missed] = await Promise.all([
     supabase.rpc("due_reminders", { p_secret: secret }),
     // What is running low, once a day from 09:00 (20260928100000).
     supabase.rpc("due_pantry_reminders", { p_secret: secret }),
@@ -45,6 +45,9 @@ export async function POST(request: Request) {
     // Who's coming: two days before a one-off event, from 09:00, to each
     // person asked who hasn't answered (20261014090000).
     supabase.rpc("due_rsvp_reminders", { p_secret: secret }),
+    // A dose still not ticked its chosen time after it was due: the one
+    // grown-up named on the medicine, once per dose (20261014200000).
+    supabase.rpc("due_missed_dose_alerts", { p_secret: secret }),
   ]);
   if (main.error) {
     console.error("Reminders: due_reminders failed", main.error.message);
@@ -58,7 +61,8 @@ export async function POST(request: Request) {
   if (billsAhead.error) console.error("Reminders: due_bill_ahead_reminders failed", billsAhead.error.message);
   if (letters.error) console.error("Reminders: due_letter_notifications failed", letters.error.message);
   if (rsvps.error) console.error("Reminders: due_rsvp_reminders failed", rsvps.error.message);
-  const due = [...(main.data ?? []), ...(pantry.data ?? []), ...(trial.data ?? []), ...(week.data ?? []), ...(promises.data ?? []), ...(scheduled.data ?? []), ...(billsAhead.data ?? []), ...(letters.data ?? []), ...(rsvps.data ?? [])];
+  if (missed.error) console.error("Reminders: due_missed_dose_alerts failed", missed.error.message);
+  const due = [...(main.data ?? []), ...(pantry.data ?? []), ...(trial.data ?? []), ...(week.data ?? []), ...(promises.data ?? []), ...(scheduled.data ?? []), ...(billsAhead.data ?? []), ...(letters.data ?? []), ...(rsvps.data ?? []), ...(missed.data ?? [])];
 
   vapidReady();
   // One payload per reminder, sent to all of its devices together through the

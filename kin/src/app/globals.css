@@ -5040,6 +5040,21 @@ button.kin-initial:focus-visible {
   text-decoration: none;
   margin-top: 0.125rem;
 }
+/* A quiet text button inside a medicine's card ("Change", "Tell someone if a
+   dose is missed"), the same colour as the visit links. */
+.kin-care-link {
+  all: unset;
+  cursor: pointer;
+  font-size: 0.78125rem;
+  font-weight: 600;
+  color: var(--color-accent-700);
+  padding: 0.25rem 0;
+}
+.kin-care-link:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+  border-radius: 0.25rem;
+}
 .kin-care-photos {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(min(100%, 6.5rem), 1fr));

@@ -10,6 +10,8 @@ import { explainVisibilityRefusal } from "@/lib/visibility";
 import { clamp } from "@/lib/text";
 import { familyDay } from "@/lib/time";
 import { parseTimes } from "@/lib/health-plan";
+import { isMissedDelay } from "@/lib/missed-dose";
+import { isGrownUp } from "@/lib/roles";
 import { UUID } from "@/lib/ids";
 
 /** Medicines, the illness log, and notes and photos on a visit (26
@@ -95,6 +97,36 @@ export async function setDoseTakenAction(input: { medicineId: string; memberId: 
     return done(input.memberId, error ? say(error.message) : null);
   }
   const { error } = await supabase.from("health_medicine_doses").delete().eq("medicine_id", input.medicineId).eq("dose_date", input.day).eq("dose_time", input.time);
+  return done(input.memberId, error ? say(error.message) : null);
+}
+
+/** "Tell someone if a dose is missed" (20261014200000): name one grown-up of
+ * the household and how long to wait, or pass null to turn it off. The table
+ * decides who may set it and who may be told; this says it in words first. */
+export async function setMissedDoseAlertAction(input: { medicineId: string; memberId: string; notifyMemberId: string | null; delayMinutes: number }): Promise<ActionState> {
+  const me = await requireCurrentMember();
+  if (!isGrownUp(me.role)) return { error: "Only a grown-up can change who is told." };
+  if (!UUID.test(input.medicineId)) return { error: "That medicine could not be found." };
+  const supabase = await createClient();
+  if (input.notifyMemberId === null) {
+    const { error } = await supabase.from("health_medicine_alerts").delete().eq("medicine_id", input.medicineId);
+    return done(input.memberId, error ? say(error.message) : null);
+  }
+  if (!UUID.test(input.notifyMemberId)) return { error: "Choose who to tell." };
+  if (!isMissedDelay(input.delayMinutes)) return { error: "Choose how long to wait." };
+  // One already on is changed in place; only turning it on is a new row,
+  // which is what Kin Plus guards (an upsert would meet that guard on its
+  // insert step even when it only changes who is told). A count, not
+  // .select(): KNOWN_RISKS, "Actions that reported success".
+  const fields = { notify_member_id: input.notifyMemberId, delay_minutes: input.delayMinutes, set_by: me.id };
+  const { count, error: updateError } = await supabase.from("health_medicine_alerts").update(fields, { count: "exact" }).eq("medicine_id", input.medicineId);
+  const { error } =
+    updateError || count
+      ? { error: updateError }
+      : await supabase.from("health_medicine_alerts").insert({ medicine_id: input.medicineId, family_id: me.family_id, ...fields });
+  // The table refuses a child, someone without a login, or someone the
+  // medicine is hidden from, all with the same row-level refusal.
+  if (error && /row-level security/i.test(error.message)) return { error: "That person can't be told about this medicine. Choose a grown-up with a login who can see it." };
   return done(input.memberId, error ? say(error.message) : null);
 }
 

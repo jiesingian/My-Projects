@@ -338,3 +338,9 @@ create function public.family_has_plus(p_family uuid) returns boolean language s
 create table public.event_members (event_id uuid not null references events(id) on delete cascade, member_id uuid not null references members(id) on delete cascade, primary key (event_id, member_id));
 alter table event_members enable row level security;
 create policy em_all on event_members for all using (exists (select 1 from events e where e.id = event_id and e.family_id = current_family_id())) with check (exists (select 1 from events e where e.id = event_id and e.family_id = current_family_id()));
+-- A medicine's doses and the member's sex (20260926110000, pre-pipeline), for
+-- the missed-dose alerts (20261014200000).
+create table if not exists public.health_medicine_doses (id uuid primary key default gen_random_uuid(), family_id uuid references families(id), medicine_id uuid references health_medicines(id) on delete cascade, dose_date date not null, dose_time text not null, taken_at timestamptz not null default now(), taken_by uuid, unique (medicine_id, dose_date, dose_time));
+alter table health_medicine_doses enable row level security;
+create policy hmd_all on health_medicine_doses for all using (family_id = current_family_id()) with check (family_id = current_family_id());
+alter table members add column if not exists sex text;
