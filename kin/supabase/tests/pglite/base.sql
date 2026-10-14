@@ -333,3 +333,8 @@ create policy household_offers_select on household_offers for select to authenti
 create function public.kin_offer_catalog() returns table (code text, days integer, plus_only boolean) language sql immutable as $$ values ('profile', 1, false), ('emergency', 2, false), ('goal', 1, false) $$;
 create function public.kin_offer_done(p_family uuid, p_code text) returns boolean language sql stable as $$ select false $$;
 create function public.family_has_plus(p_family uuid) returns boolean language sql stable as $$ select true $$;
+-- Who an event is for (pre-pipeline table), household-wide as shipped; for
+-- event_rsvps (20261014090000).
+create table public.event_members (event_id uuid not null references events(id) on delete cascade, member_id uuid not null references members(id) on delete cascade, primary key (event_id, member_id));
+alter table event_members enable row level security;
+create policy em_all on event_members for all using (exists (select 1 from events e where e.id = event_id and e.family_id = current_family_id())) with check (exists (select 1 from events e where e.id = event_id and e.family_id = current_family_id()));

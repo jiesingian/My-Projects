@@ -8,6 +8,10 @@ import { LogSpendControl } from "@/components/money-actions";
 import { inKidView } from "@/lib/kid-view";
 import { EventPhotos } from "@/components/event-photos";
 import { getSignedUrls } from "@/lib/storage";
+import { EventRsvp } from "@/components/event-rsvp";
+import { askedMembers, canAnswerFor, eventTakesRsvps, rsvpOpen, summarizeRsvps, type RsvpAnswer } from "@/lib/event-rsvp";
+import { householdZone } from "@/lib/household-zone";
+import { familyDay } from "@/lib/time";
 
 export default async function AddPlannerPage({
   searchParams,
@@ -59,6 +63,30 @@ export default async function AddPlannerPage({
     eventPhotos = (rows ?? []).filter((r) => urls[r.storage_path]).map((r) => ({ id: r.id, url: urls[r.storage_path] }));
   }
 
+  // Who's coming (20261014090000_event_rsvps.sql): one-off events and trips
+  // only; a yearly one has no single date to answer for.
+  let rsvp: React.ComponentProps<typeof EventRsvp> | null = null;
+  const rsvpEvent = editEvent && {
+    event_date: editEvent.event_date,
+    end_date: editEvent.end_date,
+    recurs_yearly: editEvent.recurs_yearly,
+    applies_to_whole_family: editEvent.applies_to_whole_family,
+  };
+  if (editEvent && rsvpEvent && eventTakesRsvps(rsvpEvent)) {
+    const supabase = await createClient();
+    const { data: answers } = await supabase.from("event_rsvps").select("member_id, answer").eq("event_id", editEvent.id);
+    const asked = askedMembers(rsvpEvent, editEvent.memberIds as string[], members);
+    const summary = summarizeRsvps(asked, answers ?? []);
+    const answerOf = new Map((answers ?? []).map((a) => [a.member_id, a.answer as RsvpAnswer]));
+    const person = (m: (typeof members)[number]) => ({ id: m.id, name: m.full_name });
+    rsvp = {
+      eventId: editEvent.id,
+      open: rsvpOpen(rsvpEvent, familyDay(new Date(), await householdZone())),
+      mine: asked.filter((m) => canAnswerFor(me, m)).map((m) => ({ ...person(m), answer: answerOf.get(m.id) ?? null })),
+      groups: { going: summary.going.map(person), maybe: summary.maybe.map(person), no: summary.no.map(person), waiting: summary.waiting.map(person) },
+    };
+  }
+
   return (
     <>
     <AddPlannerForm
@@ -75,6 +103,14 @@ export default async function AddPlannerPage({
       // which needs ANTHROPIC_API_KEY in Vercel (docs/SETUP_FOR_JONATHAN.md).
       scanReady={!!process.env.ANTHROPIC_API_KEY}
     />
+    {rsvp && (
+      <div style={{ padding: "0 var(--gutter) 1.25rem" }}>
+        <div className="kin-eyebrow" style={{ marginBottom: "0.5rem" }}>
+          WHO&apos;S COMING
+        </div>
+        <EventRsvp {...rsvp} />
+      </div>
+    )}
     {editEvent && (
       <div style={{ padding: "0 var(--gutter) 1.25rem" }}>
         <div className="kin-eyebrow" style={{ marginBottom: "0.5rem" }}>
