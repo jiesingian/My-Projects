@@ -12,6 +12,7 @@ import { keepKidViewOut } from "@/lib/kid-view";
 import { isGrownUp } from "@/lib/roles";
 import { SpecialDays } from "@/components/special-days";
 import { getHouseholdSpecialDays } from "@/lib/queries/special-days";
+import { HouseholdHelpers, type HouseholdHelper } from "@/components/household-helpers";
 
 /** The household's name, members, invite code, organizer role, currency and
  * calendar preferences, and -- last, for the organizer -- deleting it. The
@@ -38,6 +39,27 @@ export default async function HouseholdSettingsPage() {
   // or tidy (20260930171000). Past ones stay on the Planner where they fell.
   const today = new Date().toLocaleDateString("en-CA", { timeZone: me.families.time_zone });
   const specialDays = isGrownUp(me.role) ? await getHouseholdSpecialDays(me.family_id, today, "9999-12-31") : [];
+
+  // The household's helpers, for a grown-up to add, change or remove
+  // (20261014206000) -- the table shows them to nobody else. And, member
+  // first: someone who is in this household and also helps another one
+  // reaches that household's helper page from here.
+  const [{ data: helperRows }, { data: helping }] = await Promise.all([
+    isGrownUp(me.role)
+      ? supabase
+          .from("household_helpers")
+          .select("id, display_name, can_see_list, can_see_meals, can_see_kids_plans, claimed_at, invite_code, invite_expires_at")
+          .eq("family_id", me.family_id)
+          .is("removed_at", null)
+          .order("created_at")
+      : Promise.resolve({ data: [] as never[] }),
+    supabase.rpc("my_helper_households"),
+  ]);
+  const now = new Date();
+  const helpers: HouseholdHelper[] = (helperRows ?? []).map(({ invite_expires_at, ...h }) => ({
+    ...h,
+    link_live: !h.claimed_at && !!h.invite_code && !!invite_expires_at && new Date(invite_expires_at) > now,
+  }));
 
   return (
     <div>
@@ -88,6 +110,22 @@ export default async function HouseholdSettingsPage() {
             </p>
             <SpecialDays days={specialDays} />
           </div>
+        )}
+
+        {isGrownUp(me.role) && (
+          <div style={{ marginBottom: "1.25rem" }}>
+            <div style={{ fontSize: "0.8125rem", color: "var(--color-neutral-700)", marginBottom: "0.375rem" }}>Helpers</div>
+            <p style={{ fontSize: "0.8125rem", color: "var(--color-neutral-600)", margin: "0 0 0.5rem" }}>
+              Your kasambahay, yaya or driver. They get a link of their own and see only what you switch on, never money, health, chat or photos.
+            </p>
+            <HouseholdHelpers helpers={helpers} householdName={me.families.name} />
+          </div>
+        )}
+
+        {(helping ?? []).length > 0 && (
+          <Link href="/helper" className="btn btn-secondary btn-block" style={{ minHeight: "2.5rem", fontSize: "0.84375rem", marginBottom: "1.25rem" }}>
+            You also help {(helping ?? []).map((h) => h.household).join(", ")}: open
+          </Link>
         )}
 
         <div style={{ fontSize: "0.8125rem", color: "var(--color-neutral-700)", marginBottom: "0.375rem" }}>Your own household</div>

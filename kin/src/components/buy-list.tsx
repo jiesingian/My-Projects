@@ -479,6 +479,13 @@ export function BuyList({
                     }}
                   >
                     <span className="kin-strike" data-on={isChecked(item)} style={{ display: "block", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{item.name}</span>
+                    {/* Added by the household's helper (20261014206000): the
+                        name comes from their helper row, never typed. */}
+                    {item.helper_name ? (
+                      <span style={{ display: "block", marginTop: "0.125rem", fontSize: "0.71875rem", color: "var(--color-neutral-600)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                        Added by {item.helper_name}
+                      </span>
+                    ) : null}
                     {/* The meals this line is for, so nobody wonders why there
                         is a kilo of beef shank on the list. */}
                     {mealsFor[item.id]?.length ? (
