@@ -4,12 +4,31 @@ import { QUESTIONS, type Answers, PRIORITY_IN_KIN, answerTip, answered, areaLine
 
 const q = (id: string) => QUESTIONS.find((x) => x.id === id)!;
 
-test("nine questions, and question 6 only when there are kids or teens at home", () => {
+test("nine questions, and question 6 only when there are kids under 18 at home", () => {
   expect(QUESTIONS).toHaveLength(9);
   expect(questionsFor({}).map((x) => x.id)).not.toContain("kids");
-  expect(questionsFor({ home: ["partner", "lolo"] })).toHaveLength(8);
+  expect(questionsFor({ home: ["partner", "parents"] })).toHaveLength(8);
   expect(questionsFor({ home: ["kids"] })).toHaveLength(9);
-  expect(questionsFor({ home: ["teens"] })).toHaveLength(9);
+  // Grown-up kids don't bring the "when the kids are out" question.
+  expect(questionsFor({ home: ["grown", "siblings"] })).toHaveLength(8);
+});
+
+test("question 1 is Janine's household list, and the helper answer lives on as 'Other household members'", () => {
+  const home = q("home");
+  expect(home.title).toBe("Who makes up your household?");
+  expect(home.options.map((o) => o.label)).toEqual([
+    "Just me",
+    "My Spouse or Partner",
+    "My Kids under 18",
+    "My Kids 18y/o up",
+    "My Siblings",
+    "My Parents",
+    "Other relatives",
+    "Other household members",
+  ]);
+  expect(home.options.find((o) => o.id === "helper")?.label).toBe("Other household members");
+  expect(home.alone).toBe("solo");
+  expect(answerTip("home", { home: ["helper"] })?.line).toMatch(/shopping list/);
 });
 
 test("the top 3 rank in the order tapped, and stop at three", () => {
@@ -23,7 +42,7 @@ test("the top 3 rank in the order tapped, and stop at three", () => {
   expect(topThree({ top3: [...picked, "nonsense"] })).toEqual(["health", "kids"]);
 });
 
-test("a single answer replaces, and 'Just me for now' and the other 'none' answers stand alone", () => {
+test("a single answer replaces, and 'Just me' and the other 'none' answers stand alone", () => {
   expect(toggle(q("sick"), ["minute"], "cant")).toEqual(["cant"]);
   expect(toggle(q("tools"), ["chat", "paper"], "none")).toEqual(["none"]);
   expect(toggle(q("busy"), ["meals"], "smooth")).toEqual(["smooth"]);
@@ -31,6 +50,8 @@ test("a single answer replaces, and 'Just me for now' and the other 'none' answe
   const home = q("home");
   expect(toggle(home, ["partner", "kids"], "solo")).toEqual(["solo"]);
   expect(toggle(home, ["solo"], "partner")).toEqual(["partner"]);
+  expect(toggle(home, ["siblings", "parents", "helper"], "solo")).toEqual(["solo"]);
+  expect(toggle(home, ["solo"], "grown")).toEqual(["grown"]);
 });
 
 test("labels change at 40 and 70", () => {
@@ -56,7 +77,7 @@ test("every score and bar stays within 0-100, whatever the answers", () => {
       ai: ["ready"],
     },
     {
-      home: ["kids", "abroad"],
+      home: ["kids", "grown", "parents", "relatives", "helper"],
       tools: ["none"],
       top3: ["kids", "health", "documents"],
       sick: ["cant"],
@@ -91,7 +112,7 @@ test("a family that has it together scores well connected; one that doesn't, get
     ai: ["ready"],
   };
   const scattered = {
-    home: ["partner", "kids", "abroad"],
+    home: ["partner", "kids", "parents"],
     tools: ["chat", "notes", "sheet", "paper"],
     top3: ["health", "kids", "documents"],
     sick: ["cant"],

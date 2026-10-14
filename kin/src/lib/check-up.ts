@@ -39,18 +39,24 @@ export const PRIORITY_LABELS: Record<Priority, string> = {
 export const QUESTIONS: Question[] = [
   {
     id: "home",
-    title: "Who’s at home?",
-    hint: "Pick everyone you live with. There’s no wrong answer.",
+    title: "Who makes up your household?",
+    hint: "Every family is different. Let’s start with the people who share your home. Select everyone who currently lives with you.",
     kind: "many",
     alone: "solo",
+    // Janine, 14 October. The ids carry on from the old list where the
+    // answer means the same: "kids" (now under 18) still brings question 6,
+    // and "helper" (the old "Household helper or nanny") is now "Other
+    // household members". Grandparents became parents; "Someone working
+    // abroad" went, since it isn't someone who lives with you.
     options: [
-      { id: "partner", label: "Partner" },
-      { id: "kids", label: "Kids under 13" },
-      { id: "teens", label: "Teens" },
-      { id: "lolo", label: "Grandparents" },
-      { id: "helper", label: "Household helper or nanny" },
-      { id: "abroad", label: "Someone working abroad" },
-      { id: "solo", label: "Just me for now" },
+      { id: "solo", label: "Just me" },
+      { id: "partner", label: "My Spouse or Partner" },
+      { id: "kids", label: "My Kids under 18" },
+      { id: "grown", label: "My Kids 18y/o up" },
+      { id: "siblings", label: "My Siblings" },
+      { id: "parents", label: "My Parents" },
+      { id: "relatives", label: "Other relatives" },
+      { id: "helper", label: "Other household members" },
     ],
   },
   {
@@ -157,10 +163,9 @@ export const QUESTIONS: Question[] = [
 
 export type Answers = Record<string, string[]>;
 
-/** Question 6 is only for homes with children in them. */
+/** Question 6 is only for homes with children under 18 in them. */
 export function hasKids(answers: Answers): boolean {
-  const home = answers.home ?? [];
-  return home.includes("kids") || home.includes("teens");
+  return (answers.home ?? []).includes("kids");
 }
 
 /** The questions this visitor is asked, given what they have said so far. */
@@ -170,7 +175,7 @@ export function questionsFor(answers: Answers): Question[] {
 
 /** What a tap on `option` makes of the current picks for `q`. A single
  * answer replaces; a ranked one appends (up to its max) or comes out, the
- * rest closing up behind it; "Just me for now" stands alone. */
+ * rest closing up behind it; "Just me" stands alone. */
 export function toggle(q: Question, picked: string[], option: string): string[] {
   if (q.kind === "one") return [option];
   if (picked.includes(option)) return picked.filter((p) => p !== option);
@@ -268,11 +273,9 @@ export function areaScores(answers: Answers): Partial<Record<Area, number>> {
   out.home = Math.round((toolsScore(answers) + busyScore(answers)) / 2);
 
   // Staying close: each thing they would use in a family chat is something
-  // they don't have in one place yet, and someone working abroad makes it
-  // matter more.
+  // they don't have in one place yet.
   const chat = (answers.chat ?? []).filter((c) => c !== "nothing");
-  const close = answers.chat?.length ? 75 - 10 * chat.length : UNKNOWN;
-  out.close = Math.max(20, close - ((answers.home ?? []).includes("abroad") ? 10 : 0));
+  out.close = Math.max(20, answers.chat?.length ? 75 - 10 * chat.length : UNKNOWN);
 
   return out;
 }
@@ -390,12 +393,13 @@ export function wantsPrivacyFirst(answers: Answers): boolean {
 export type Tip = { line: string; plus?: boolean };
 
 const HOME_TIPS: [string, Tip][] = [
-  ["abroad", { line: "Someone abroad sees the same calendar, lists and family chat, with voice and video calls built in." }],
-  ["lolo", { line: "Each person gets a health profile with their medicines and allergies, and an emergency card that reads at arm’s length." }],
+  ["parents", { line: "Each person gets a health profile with their medicines and allergies, and an emergency card that reads at arm’s length." }],
   ["kids", { line: "Kids get their own kid view: chores they earn stars for, and rewards they can save up for." }],
-  ["teens", { line: "Teens get the family calendar and chores on their own phone, and choose for themselves whether to share their location." }],
+  ["grown", { line: "Grown-up kids get the family calendar, lists and chat on their own phone, and choose for themselves whether to share their location." }],
   ["helper", { line: "One shared shopping list, pantry and meal plan, so everyone who runs the house works from the same list." }],
-  ["partner", { line: "You and your partner see the same calendar, lists and bills, so nobody has to ask twice." }],
+  ["siblings", { line: "Brothers and sisters see the same calendar, lists and bills, so nobody has to ask twice." }],
+  ["relatives", { line: "Everyone under one roof sees the same calendar, lists and family chat, from their own phone." }],
+  ["partner", { line: "You and your spouse or partner see the same calendar, lists and bills, so nobody has to ask twice." }],
   ["solo", { line: "Start on your own, and invite the others with a code whenever you’re ready." }],
 ];
 

@@ -4,7 +4,7 @@ import { Welcome } from "@/components/welcome/welcome";
 import { paletteCss } from "@/lib/palettes";
 
 export const metadata = {
-  title: "Kin: your family, in one home",
+  title: "Kin: Family Life, Decoded",
   description: "Money, plans, memories, health and the people you love, in one place everyone in the house shares.",
 };
 
