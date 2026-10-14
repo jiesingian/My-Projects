@@ -87,7 +87,7 @@ test("the check-up: one question per screen, kids only with kids, and the answer
   await page.getByRole("button", { name: "Next" }).click();
 
   // 7: nothing can be skipped; there's an answer for a home that runs smoothly.
-  await expect(page.getByRole("heading", { name: /back-and-forth/ })).toBeFocused();
+  await expect(page.getByRole("heading", { name: "The Daily Check-In" })).toBeFocused();
   await expect(page.getByRole("button", { name: "Skip" })).toHaveCount(0);
   await expect(page.getByRole("button", { name: "Next" })).toBeDisabled();
   await page.getByRole("button", { name: "Groceries & meals" }).click();
@@ -167,7 +167,7 @@ test("no kids at home: question 6 is skipped", async ({ page }) => {
   await page.getByRole("button", { name: "In a safe or locked cabinet" }).click();
   await expect(page.locator(".kin-check-tip")).toContainText("Keep the originals where they are");
   await page.getByRole("button", { name: "Next" }).click();
-  await expect(page.getByRole("heading", { name: /back-and-forth/ })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "The Daily Check-In" })).toBeVisible();
   await expect(page.getByText("Question 6 of 8")).toBeVisible();
   await page.getByRole("button", { name: "Not much, it runs smoothly" }).click();
   await page.getByRole("button", { name: "Next" }).click();
