@@ -36,9 +36,17 @@ export async function getMemberDetail(memberId: string, familyId: string) {
     supabase.from("health_illness_logs").select("*").eq("member_id", memberId).order("logged_at", { ascending: false }).limit(60),
     supabase.from("health_visit_photos").select("appointment_id").in("appointment_id", (appointments ?? []).map((a) => a.id)),
   ]);
-  const { data: doses } = medicines?.length
-    ? await supabase.from("health_medicine_doses").select("medicine_id, dose_date, dose_time").in("medicine_id", medicines.map((m) => m.id)).gte("dose_date", weekAgo)
-    : { data: [] };
+  // Who is told when a dose is missed (20261014200000), and the household's
+  // grown-ups who could be: only whether they have a login leaves the server.
+  const [{ data: doses }, { data: missedAlerts }, { data: grownUps }] = await Promise.all([
+    medicines?.length
+      ? supabase.from("health_medicine_doses").select("medicine_id, dose_date, dose_time").in("medicine_id", medicines.map((m) => m.id)).gte("dose_date", weekAgo)
+      : Promise.resolve({ data: [] }),
+    medicines?.length
+      ? supabase.from("health_medicine_alerts").select("medicine_id, notify_member_id, delay_minutes").in("medicine_id", medicines.map((m) => m.id))
+      : Promise.resolve({ data: [] }),
+    supabase.from("members").select("id, full_name, role, auth_user_id").eq("family_id", familyId).eq("status", "active").in("role", ["parent", "adult"]),
+  ]);
   const photoCount = new Map<string, number>();
   for (const p of visitPhotos ?? []) photoCount.set(p.appointment_id, (photoCount.get(p.appointment_id) ?? 0) + 1);
 
@@ -52,6 +60,8 @@ export async function getMemberDetail(memberId: string, familyId: string) {
     omron,
     medicines: medicines ?? [],
     doses: doses ?? [],
+    missedAlerts: missedAlerts ?? [],
+    grownUps: (grownUps ?? []).map((g) => ({ id: g.id, firstName: g.full_name.split(" ")[0], role: g.role, hasLogin: g.auth_user_id !== null })),
     illness: illness ?? [],
     photoCount,
   };

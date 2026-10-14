@@ -3,6 +3,22 @@
 What is agreed but not built yet, and what is waiting on somebody. Update
 it in the same pull request that finishes or adds an item.
 
+## Agreed 14 October: the top 10 from the review (Jonathan)
+
+Jonathan picked the free items of the review's top 10
+(https://claude.ai/artifact/NP1D1E7BMNpfAty9BnSRMM). Each is its own pull
+request, stacked in this order. "Who's coming" and the event thread were
+already built by Janine (#618, #621), and so was saving a recipe from a
+link (#630); Ask Kin's 2 a.m. answer and receipt
+scanning wait for the AI key.
+
+- **Done:** Missed-dose alert to a family member (Medfriend): a grown-up
+  names one grown-up with a login and a delay (30 min / 1 h / 2 h) on a
+  medicine. One push per untaken dose, from the reminders job, in the
+  household's zone and respecting the Health switch. Doses before it was
+  turned on are never reported. The card says who is told. Plus area.
+  Migration 20261014200000_missed_dose_alerts.sql.
+
 ## Agreed 13 October: first open (Jonathan)
 
 Why: not everyone who opens Kin came by referral or is sure they want it.

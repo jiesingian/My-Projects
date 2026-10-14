@@ -7,6 +7,8 @@ import { toast } from "@/components/toast";
 import { confirm } from "@/components/confirm-sheet";
 import { visibilityOptions } from "@/lib/visibility";
 import { dosesFor, FEVER_C, type Dose, type Medicine } from "@/lib/health-plan";
+import { alertLine, canBeTold, DEFAULT_MISSED_DELAY, delayWords, MISSED_DELAYS } from "@/lib/missed-dose";
+import { isGrownUp } from "@/lib/roles";
 import { ageInMonths, growthPercentile, percentileLabel, valueAtPercentile, type Sex } from "@/lib/growth";
 import {
   addIllnessLogAction,
@@ -15,6 +17,7 @@ import {
   deleteMedicineAction,
   setDoseTakenAction,
   setMemberSexAction,
+  setMissedDoseAlertAction,
   stopMedicineAction,
 } from "@/lib/actions/health-care";
 
@@ -56,14 +59,18 @@ export function MedicinesPanel({
   firstName,
   medicines,
   doses,
+  missedAlerts,
+  grownUps,
   today,
   now,
   role,
 }: {
   memberId: string;
   firstName: string;
-  medicines: (Medicine & { notes: string | null })[];
+  medicines: (Medicine & { notes: string | null; visibility: string; created_by: string | null })[];
   doses: Dose[];
+  missedAlerts: MissedAlert[];
+  grownUps: GrownUp[];
   today: string;
   now: string;
   role: string;
@@ -122,6 +129,15 @@ export function MedicinesPanel({
               {m.end_date ? ` · until ${m.end_date}` : ""}
               {m.notes ? ` · ${m.notes}` : ""}
             </div>
+            {m.times.length > 0 && (
+              <MissedDoseAlert
+                medicine={m}
+                memberId={memberId}
+                alert={missedAlerts.find((a) => a.medicine_id === m.id) ?? null}
+                grownUps={grownUps}
+                canChange={isGrownUp(role)}
+              />
+            )}
           </div>
           {/* Added today: most likely a mistake, so it can go entirely. */}
           {m.start_date >= today ? (
@@ -163,6 +179,123 @@ export function MedicinesPanel({
         </details>
       )}
     </div>
+  );
+}
+
+export type MissedAlert = { medicine_id: string; notify_member_id: string; delay_minutes: number };
+export type GrownUp = { id: string; firstName: string; role: string; hasLogin: boolean };
+
+/** "Tell someone if a dose is missed" (20261014200000). Who is told is
+ * written on the card for everyone who can see the medicine, so it never
+ * feels like hidden watching; only a grown-up can change it. */
+function MissedDoseAlert({
+  medicine,
+  memberId,
+  alert,
+  grownUps,
+  canChange,
+}: {
+  medicine: Medicine & { visibility: string; created_by: string | null };
+  memberId: string;
+  alert: MissedAlert | null;
+  grownUps: GrownUp[];
+  canChange: boolean;
+}) {
+  const { pending, run } = useAct();
+  const choices = grownUps.filter((g) => canBeTold(g, medicine));
+  const [open, setOpen] = useState(false);
+  // The person named may since have lost their login, stopped being a
+  // grown-up or lost sight of the medicine; the job then tells nobody, and
+  // the card says so rather than name them.
+  const told = alert ? choices.find((g) => g.id === alert.notify_member_id) : undefined;
+  const [who, setWho] = useState(told?.id ?? choices[0]?.id ?? "");
+  const [delay, setDelay] = useState<number>(alert?.delay_minutes ?? DEFAULT_MISSED_DELAY);
+
+  if (!open) {
+    if (!alert && !canChange) return null;
+    return (
+      <div className="kin-care-muted" style={{ marginTop: "0.25rem" }}>
+        {alert ? <span>{told ? `${alertLine(told.firstName, alert.delay_minutes)}.` : "Nobody can be told about a missed dose now: choose someone else."} </span> : null}
+        {canChange && (
+          <button type="button" className="kin-care-link" onClick={() => setOpen(true)}>
+            {alert ? "Change" : "Tell someone if a dose is missed"}
+          </button>
+        )}
+      </div>
+    );
+  }
+  if (choices.length === 0) {
+    return (
+      <div className="kin-care-muted" style={{ marginTop: "0.25rem" }}>
+        Nobody else can be told yet: it needs a grown-up with their own Kin login who can see this medicine.{" "}
+        <button type="button" className="kin-care-link" onClick={() => setOpen(false)}>
+          Close
+        </button>
+      </div>
+    );
+  }
+  return (
+    <form
+      className="kin-care-form"
+      onSubmit={(e) => {
+        e.preventDefault();
+        run(async () => {
+          const r = await setMissedDoseAlertAction({ medicineId: medicine.id, memberId, notifyMemberId: who, delayMinutes: delay });
+          if (!r.error) setOpen(false);
+          return r;
+        }, "Saved");
+      }}
+    >
+      <label className="kin-care-label">
+        Who to tell
+        <select className="input" value={who} onChange={(e) => setWho(e.target.value)} style={{ minHeight: "2.75rem" }}>
+          {choices.map((g) => (
+            <option key={g.id} value={g.id}>
+              {g.firstName}
+            </option>
+          ))}
+        </select>
+      </label>
+      <label className="kin-care-label">
+        If a dose isn&apos;t ticked after
+        <select className="input" value={delay} onChange={(e) => setDelay(Number(e.target.value))} style={{ minHeight: "2.75rem" }}>
+          {MISSED_DELAYS.map((d) => (
+            <option key={d} value={d}>
+              {delayWords(d).replace(/^./, (c) => c.toUpperCase())}
+            </option>
+          ))}
+        </select>
+      </label>
+      <p className="kin-care-muted" style={{ margin: 0 }}>
+        They get one notification per missed dose. Everyone who can see this medicine sees who is told.
+      </p>
+      <div style={{ display: "flex", gap: "0.5rem" }}>
+        {alert ? (
+          <button
+            type="button"
+            className="btn btn-secondary"
+            style={{ flex: 1 }}
+            disabled={pending}
+            onClick={() =>
+              run(async () => {
+                const r = await setMissedDoseAlertAction({ medicineId: medicine.id, memberId, notifyMemberId: null, delayMinutes: delay });
+                if (!r.error) setOpen(false);
+                return r;
+              }, "Turned off")
+            }
+          >
+            Turn off
+          </button>
+        ) : (
+          <button type="button" className="btn btn-secondary" style={{ flex: 1 }} onClick={() => setOpen(false)}>
+            Cancel
+          </button>
+        )}
+        <button type="submit" className="btn btn-primary" style={{ flex: 1 }} disabled={pending || !who}>
+          {pending ? "Saving…" : "Save"}
+        </button>
+      </div>
+    </form>
   );
 }
 

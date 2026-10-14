@@ -3192,6 +3192,36 @@ export type Database = {
         }
         Relationships: []
       }
+      health_medicine_alerts: {
+        Row: {
+          active_since: string
+          delay_minutes: number
+          family_id: string
+          medicine_id: string
+          notify_member_id: string
+          set_by: string | null
+          updated_at: string
+        }
+        Insert: {
+          active_since?: string
+          delay_minutes?: number
+          family_id: string
+          medicine_id: string
+          notify_member_id: string
+          set_by?: string | null
+          updated_at?: string
+        }
+        Update: {
+          active_since?: string
+          delay_minutes?: number
+          family_id?: string
+          medicine_id?: string
+          notify_member_id?: string
+          set_by?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       health_medicine_doses: {
         Row: {
           dose_date: string
@@ -6542,6 +6572,14 @@ export type Database = {
       cron_retry_reminder: {
         Args: { p_secret: string; p_key: string }
         Returns: undefined
+      }
+      due_missed_dose_alerts: {
+        Args: { p_secret: string; p_now?: string }
+        Returns: { key: string; member_id: string; endpoint: string; p256dh: string; auth: string; title: string; body: string; url: string }[]
+      }
+      medicine_alert_receiver_ok: {
+        Args: { p_medicine: string; p_receiver: string }
+        Returns: boolean
       }
       due_reminders: {
         Args: { p_secret: string; p_now?: string }
