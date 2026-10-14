@@ -44,6 +44,7 @@ import { familyDate } from "@/lib/format-family";
 import { nextEventDate } from "@/lib/grocery";
 import { eventIsOver, eventMatches, eventWhen, showsDone, taskIsFinished, type EventWhen } from "@/lib/planner-done";
 import { askedMembers, eventTakesRsvps, rsvpLine, summarizeRsvps } from "@/lib/event-rsvp";
+import { commentCountLine } from "@/lib/event-thread";
 import { CompletedToggle } from "@/components/completed-toggle";
 import { EventToJournal } from "@/components/event-to-journal";
 import { GoalsPane } from "./goals-pane";
@@ -1013,7 +1014,7 @@ async function EventsPane({ familyId, who, when }: { familyId: string; who: stri
   const fmtDate = await familyDate();
   const today = familyDay(new Date(), await householdZone());
   const supabase = await createClient();
-  const [allEvents, members, { data: photoRows }, { data: journalled }, { data: rsvpRows }] = await Promise.all([
+  const [allEvents, members, { data: photoRows }, { data: journalled }, { data: rsvpRows }, { data: commentRows }] = await Promise.all([
     getEvents(familyId),
     getMembers(familyId),
     supabase.from("event_photos").select("event_id").eq("family_id", familyId),
@@ -1022,7 +1023,15 @@ async function EventsPane({ familyId, who, when }: { familyId: string; who: stri
     supabase.from("journal_entries").select("id, title, entry_date").eq("family_id", familyId).eq("source", "manual"),
     // Who's coming (20261014090000): counted per row, among the people asked.
     supabase.from("event_rsvps").select("event_id, member_id, answer").eq("family_id", familyId),
+    // The thread on each event (20261014100000), counted per row.
+    supabase.from("event_comments").select("event_id").eq("family_id", familyId),
   ]);
+  const commentCount = new Map<string, number>();
+  for (const r of commentRows ?? []) commentCount.set(r.event_id, (commentCount.get(r.event_id) ?? 0) + 1);
+  const comments = (id: string) => {
+    const line = commentCountLine(commentCount.get(id) ?? 0);
+    return line ? ` · ${line}` : "";
+  };
   const answersFor = new Map<string, { member_id: string; answer: string }[]>();
   for (const r of rsvpRows ?? []) answersFor.set(r.event_id, [...(answersFor.get(r.event_id) ?? []), r]);
   const rsvps = (e: { id: string; memberIds: string[]; applies_to_whole_family: boolean; event_date: string; recurs_yearly: boolean }) => {
@@ -1099,6 +1108,7 @@ async function EventsPane({ familyId, who, when }: { familyId: string; who: stri
             {row.event.sub_note ? ` · ${row.event.sub_note}` : ""}
             {photos(row.event.id)}
             {rsvps(row.event)}
+            {comments(row.event.id)}
           </div>
           {toJournal(row.event, row.over)}
         </div>
@@ -1134,6 +1144,7 @@ async function EventsPane({ familyId, who, when }: { familyId: string; who: stri
             {row.trip.sub_note ? ` · ${row.trip.sub_note}` : ""}
             {photos(row.trip.id)}
             {rsvps(row.trip)}
+            {comments(row.trip.id)}
           </div>
           {toJournal(row.trip, row.over)}
         </div>

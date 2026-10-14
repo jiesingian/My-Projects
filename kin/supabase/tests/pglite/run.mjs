@@ -74,6 +74,7 @@ const MIGRATIONS = [
   "20261013190000_account_viewers.sql",
   "20261013200000_families_chosen_plan.sql",
   "20261014090000_event_rsvps.sql",
+  "20261014100000_event_comments.sql",
 ];
 
 const only = process.argv[2];
