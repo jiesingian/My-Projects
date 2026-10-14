@@ -101,7 +101,8 @@ export const QUESTIONS: Question[] = [
   },
   {
     id: "papers",
-    title: "Where are the PSA certificates, passports and insurance policies?",
+    title: "Where’s that document?",
+    hint: "Think birth certificates, passports, insurance policies, IDs and other records.",
     kind: "one",
     options: [
       { id: "safe", label: "In a safe or locked cabinet" },
