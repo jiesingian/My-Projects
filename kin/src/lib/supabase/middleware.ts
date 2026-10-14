@@ -55,6 +55,9 @@ export async function updateSession(request: NextRequest) {
     // Same for the spoken plan (app/api/brief): fetched by an iPhone Shortcut,
     // which sends no cookie.
     path.startsWith("/api/brief/") ||
+    // And "Add to Kin" (app/api/list-add): the Shortcut posts what was said
+    // to the member's own add-to-list link, again with no cookie.
+    path.startsWith("/api/list-add/") ||
     // Likewise an iPhone Shortcut sending Apple Health readings: the link's
     // key is the credential (app/api/health/apple).
     path.startsWith("/api/health/apple/") ||

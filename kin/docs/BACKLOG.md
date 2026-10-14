@@ -27,6 +27,14 @@ scanning wait for the AI key.
   the grown-ups once per supply cycle. Refilled takes a new count or adds a
   box. Plus area. Migration 20261014201000_medicine_supply.sql.
 
+- **Done:** Hey Siri, add to the list (14 Oct): "Add to Kin" iPhone Shortcut
+  posts spoken words to a private per-member add-to-list link (separate from
+  the brief link, hashed in list_add_tokens); add_to_list_by_link() adds up
+  to 20 items to the owner's household; words split on
+  commas/and/at/saka/tsaka via lib/list-add.ts + quick-line readShopping;
+  setup steps in Settings -> Action Button & widget. Branch kin/siri-add-to-
+  list, migration 20261014202000_list_add_link.sql.
+
 ## Agreed 13 October: first open (Jonathan)
 
 Why: not everyone who opens Kin came by referral or is sure they want it.

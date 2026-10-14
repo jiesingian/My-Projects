@@ -6674,6 +6674,10 @@ export type Database = {
         Returns: { endpoint: string; p256dh: string; auth: string }[]
       }
       today_brief: { Args: { p_hash: string }; Returns: Json }
+      set_list_add_token: { Args: { p_token_hash: string }; Returns: undefined }
+      clear_list_add_token: { Args: never; Returns: undefined }
+      list_add_link_on: { Args: never; Returns: boolean }
+      add_to_list_by_link: { Args: { p_token_hash: string; p_items: Json }; Returns: number }
       calendar_feed: {
         Args: { feed_hash: string }
         Returns: {

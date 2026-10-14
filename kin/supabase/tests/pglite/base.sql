@@ -344,3 +344,5 @@ create table if not exists public.health_medicine_doses (id uuid primary key def
 alter table health_medicine_doses enable row level security;
 create policy hmd_all on health_medicine_doses for all using (family_id = current_family_id()) with check (family_id = current_family_id());
 alter table members add column if not exists sex text;
+-- Who added a shopping line (20261014202000_list_add_link.sql writes it).
+alter table buy_items add column if not exists created_by uuid references members(id);

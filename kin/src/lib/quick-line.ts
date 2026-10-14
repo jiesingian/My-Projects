@@ -215,7 +215,10 @@ function unitOf(word: string): string | null {
   return exact ?? UNIT_ALIASES[w] ?? null;
 }
 
-function readShopping(text: string): { name: string; quantity: number | null; unit: string | null } {
+/** One thing to buy, "rice 2kg" or "2 kilos of rice", as name, quantity and
+ * unit. Also what the add-to-list link reads each spoken item with
+ * (lib/list-add.ts). */
+export function readShopping(text: string): { name: string; quantity: number | null; unit: string | null } {
   let rest = text;
   let quantity: number | null = null;
   let unit: string | null = null;

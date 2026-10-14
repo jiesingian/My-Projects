@@ -262,6 +262,35 @@ export async function removeBriefLinkAction(): Promise<ActionState> {
   return { error: null };
 }
 
+/** Makes the member a new private "Add to Kin" link, the one an iPhone
+ * Shortcut sends spoken words to for the shopping list, replacing any earlier
+ * one. Its own token, never the "Today in Kin" one: that link only reads, and
+ * a read link that leaked must never be able to write. Only the hash is
+ * stored (20261014202000_list_add_link.sql); this is the one moment the link
+ * exists readable. */
+export async function createListAddLinkAction(): Promise<{ error: string | null; url?: string }> {
+  await requireCurrentMember();
+  const token = randomToken();
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("set_list_add_token", { p_token_hash: toBase64Url(sha256(token)) });
+  if (error) return { error: `That did not save. ${humanDatabaseError(error.message)}` };
+  const h = await headers();
+  const host = h.get("x-forwarded-host") ?? h.get("host") ?? "";
+  revalidatePath("/settings", "layout");
+  return { error: null, url: `https://${host}/api/list-add/${token}` };
+}
+
+/** Turns the "Add to Kin" link off. The Shortcut then says the link isn't
+ * working any more. */
+export async function removeListAddLinkAction(): Promise<ActionState> {
+  await requireCurrentMember();
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("clear_list_add_token");
+  if (error) return { error: `That did not save. ${humanDatabaseError(error.message)}` };
+  revalidatePath("/settings", "layout");
+  return { error: null };
+}
+
 /** What "Today in Kin" would say right now, for the Hear it button in
  * Settings -- read as the member through row-level security, with the same
  * reach as the link: whole-family items and the ones tagged to them, today's
