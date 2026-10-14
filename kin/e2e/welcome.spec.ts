@@ -107,22 +107,30 @@ test("the check-up: one question per screen, kids only with kids, and the answer
   expect(saved.score).toBeLessThan(40);
   expect(Object.keys(saved.areas).sort()).toEqual(["close", "documents", "health", "home", "kids"]);
 
-  // The result: score and label, five bars, the top 3 in Kin, and the
-  // privacy line because question 9 was "privacy first".
-  await expect(page.getByRole("heading", { name: "Your family check-up" })).toBeFocused();
+  // The result: Your Family’s Digital Blueprint. The score is questions 2,
+  // 4 and 5 only: four places (25), "not sure where everything is" (0) and
+  // papers in different places (0) make 8. Two of the top 3 are health and
+  // documents, so The Prepared Family, with its own button. The privacy line
+  // because question 9 was "privacy first".
+  await expect(page.getByRole("heading", { name: "Your Family’s Digital Blueprint" })).toBeFocused();
+  expect(saved.score).toBe(8);
   await expect(page.getByText(`${saved.score}/100`)).toBeVisible();
-  await expect(page.getByText("Family Readiness: Getting started")).toBeVisible();
-  await expect(page.getByRole("meter")).toHaveCount(5);
-  await expect(page.getByRole("meter", { name: "Health & safety" })).toHaveAttribute("aria-valuenow", String(saved.areas.health));
-  await expect(page.locator(".kin-check-top li")).toHaveCount(3);
-  await expect(page.locator(".kin-check-top li").first()).toContainText("You said Travel and family adventures");
+  await expect(page.getByRole("meter", { name: "Family Digital Readiness Score" })).toHaveAttribute("aria-valuenow", "8");
+  await expect(page.getByRole("heading", { name: "The Fresh Start" })).toBeVisible();
+  await expect(page.getByText(/informal self-check/)).toBeVisible();
+  await expect(page.getByRole("heading", { name: "The Prepared Family" })).toBeVisible();
+  await expect(page.getByText("“Peace of mind starts with being prepared.”")).toBeVisible();
+  await expect(page.locator(".kin-check-profile")).toContainText("You put travel and family adventures, family health and wellness and important documents and records at the top of your list.");
+  const hub = page.locator(".kin-check-hub li");
+  expect(await hub.count()).toBeGreaterThanOrEqual(3);
+  expect(await hub.count()).toBeLessThanOrEqual(5);
+  await expect(hub.first()).toContainText("Health profiles");
   await expect(page.getByText("4 places to keep track in today. In Kin, it’s one.")).toBeVisible();
   await expect(page.getByText("Private to your family. Nothing is sold, and your records never train AI.")).toBeVisible();
-  expect(await page.locator(".kin-check-bars p").allTextContents()).not.toContain(expect.stringMatching(/fail|easy win/i));
   await expectTapTargets(page);
 
   // The showcase: the top 3 first, then one app, private to your family.
-  await page.getByRole("button", { name: "See how it works" }).click();
+  await page.getByRole("button", { name: "Organize what matters" }).click();
   await expect(page.getByRole("heading", { name: "How Kin helps" })).toBeFocused();
   const slides = page.locator(".kin-check-slide h3");
   await expect(slides).toHaveCount(4);
@@ -175,13 +183,15 @@ test("no kids at home: question 6 is skipped", async ({ page }) => {
   await page.getByRole("button", { name: "Next" }).click();
   await page.getByRole("button", { name: "Ready to try" }).click();
   await page.getByRole("button", { name: "See my results" }).click();
-  // No kids: four bars, no privacy line, and the one priority picked.
-  await expect(page.getByRole("meter")).toHaveCount(4);
+  // Remembering (25), in seconds (100), a safe (75): 67, The Connected
+  // Path. Plans alone picked: The Organized Family. No privacy line.
+  await expect(page.getByText("67/100")).toBeVisible();
+  await expect(page.getByRole("heading", { name: "The Connected Path" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "The Organized Family" })).toBeVisible();
   await expect(page.getByText(/Private to your family/)).toHaveCount(0);
-  await expect(page.locator(".kin-check-top li")).toHaveCount(1);
 
   // The showcase can be skipped, and Kin Free is a real choice.
-  await page.getByRole("button", { name: "See how it works" }).click();
+  await page.getByRole("button", { name: "Explore your family hub" }).click();
   await page.getByRole("button", { name: "Skip" }).click();
   await page.getByText("Just Kin Free").click();
   await page.getByRole("button", { name: "Create your account" }).click();

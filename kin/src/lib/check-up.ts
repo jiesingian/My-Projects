@@ -1,7 +1,7 @@
-import { AREAS, PRIORITIES, type Area, type Priority } from "@/lib/first-open";
+import { PRIORITIES, type Area, type Priority } from "@/lib/first-open";
 
 /** The family check-up on the signed-out home page (agreed 13 October, Group A
- * in docs/BACKLOG.md): nine questions, one per screen, and a Family Readiness
+ * in docs/BACKLOG.md): nine questions, one per screen, and a Family Digital Readiness
  * score worked out here in the browser by fixed rules. No AI, nothing sent.
  *
  * There is no wrong answer. A low bar means "this is where Kin helps most",
@@ -197,22 +197,6 @@ export function topThree(answers: Answers): Priority[] {
   return (answers.top3 ?? []).filter((p): p is Priority => (PRIORITIES as readonly string[]).includes(p)).slice(0, 3);
 }
 
-/** Which bar each priority belongs to. Emergency information is part of
- * Health & safety; plans, the household and money are all running the home;
- * travel, memories and time together are staying close. */
-export const PRIORITY_AREA: Record<Priority, Area> = {
-  health: "health",
-  emergency: "health",
-  kids: "kids",
-  documents: "documents",
-  plans: "home",
-  meals: "home",
-  money: "home",
-  travel: "close",
-  memories: "close",
-  together: "close",
-};
-
 /** Where an unanswered question leaves its bar: the middle, neither praise
  * nor alarm. Only answers saved before a question changed get here now. */
 const UNKNOWN = 50;
@@ -289,78 +273,51 @@ export function areaScores(answers: Answers): Partial<Record<Area, number>> {
   return out;
 }
 
-/** Each bar counts once; the bars behind the visitor's top 3 count 3, 2 and
- * 1 more on top of that, first choice heaviest. */
-export function areaWeights(answers: Answers): Record<Area, number> {
-  const w = Object.fromEntries(AREAS.map((a) => [a, 1])) as Record<Area, number>;
-  topThree(answers).forEach((p, i) => {
-    w[PRIORITY_AREA[p]] += 3 - i;
-  });
-  return w;
+/** The Family Digital Readiness Score (Janine, 14 October): questions 2, 4
+ * and 5 only, each 0-100 and weighted the same, (q2 × 0.25 + q4 × 0.25 +
+ * q5 × 0.25) / 0.75, rounded. An informal self-check of how easily the
+ * family can organise and find its information, nothing more; the profile
+ * never changes it.
+ *
+ * Each question runs the full 0-100 here (the bars' tables above stop short
+ * of both ends), so the four categories can all be reached. */
+const SICK_READY: Record<string, number> = { minute: 100, look: 67, ask: 33, cant: 0 };
+// One known place, locked or in a folder, is easy to find; a copy online is
+// findable from anywhere; photos on a phone and "all over" are the hard ones.
+const PAPERS_READY: Record<string, number> = { cloud: 100, safe: 75, folder: 75, photos: 40, scattered: 0 };
+
+/** Question 2: one place is best; every extra place is one more to check;
+ * remembering is better than nothing at all. */
+function toolsReady(answers: Answers): number {
+  const tools = answers.tools;
+  if (!tools?.length) return UNKNOWN;
+  const places = trackingPlaces(answers).length;
+  if (places === 0) return tools.includes("memory") ? 25 : 0;
+  return [100, 100, 75, 50, 25][Math.min(places, 4)];
 }
 
-/** The Family Readiness score out of 100. */
 export function readinessScore(answers: Answers): number {
-  const areas = areaScores(answers);
-  const weights = areaWeights(answers);
-  let sum = 0;
-  let total = 0;
-  for (const a of AREAS) {
-    const v = areas[a];
-    if (v === undefined) continue;
-    sum += v * weights[a];
-    total += weights[a];
-  }
-  return total ? Math.round(sum / total) : UNKNOWN;
+  const q2 = toolsReady(answers);
+  const q4 = one(answers, "sick", SICK_READY) ?? UNKNOWN;
+  const q5 = one(answers, "papers", PAPERS_READY) ?? UNKNOWN;
+  return Math.round((q2 * 0.25 + q4 * 0.25 + q5 * 0.25) / 0.75);
 }
 
-export type ScoreLabel = "Getting started" | "On the way" | "Well connected";
+export type ScoreCategory = { name: string; line: string };
 
-export function scoreLabel(score: number): ScoreLabel {
-  if (score >= 70) return "Well connected";
-  if (score >= 40) return "On the way";
-  return "Getting started";
+/** Janine's four categories, 14 October. Encouraging at every level: a
+ * lower score is where Kin can help most, never a verdict on the family. */
+export function scoreCategory(score: number): ScoreCategory {
+  if (score >= 80)
+    return { name: "The Well-Organized Family", line: "Your family reports strong organizational habits. A centralized digital space could help you maintain those systems as your family’s needs evolve." };
+  if (score >= 60)
+    return { name: "The Connected Path", line: "Your family has a foundation to build on. Connecting the tools and information you already use could make family life feel more streamlined." };
+  if (score >= 40)
+    return { name: "The Work in Progress", line: "You already have ways of managing family life. Bringing important details together could help make everyday coordination easier." };
+  return { name: "The Fresh Start", line: "Your family may benefit from a simpler, more consistent way to keep important information and everyday plans together." };
 }
 
-/** The results page's words (agreed 13 October). */
-
-export const AREA_LABELS: Record<Area, string> = {
-  health: "Health & safety",
-  documents: "Documents",
-  kids: "Kids & location",
-  home: "Running the home",
-  close: "Staying close",
-};
-
-/** One line under each bar. Below 70 it names what could be easier and
- * how; from 70 it says what is already working. It never tells a family it
- * is doing badly: the point is to notice, not to be told. */
-const AREA_LINES: Record<Area, [string, string]> = {
-  health: [
-    "At 2 a.m., finding it shouldn’t depend on who’s awake. With everyone’s allergies, medicines, blood type and HMO card in one place, anyone at home can open it.",
-    "You could find it fast. Kin makes that true for everyone at home, not just you.",
-  ],
-  documents: [
-    "The originals can stay safely where they are. What helps is knowing what you have, and a copy you can reach when you’re away from home.",
-    "Your papers are well kept. A copy in Kin’s vault, behind Face ID or a PIN, means you have them even when you’re away from home.",
-  ],
-  kids: [
-    "Knowing they got home safe shouldn’t take ten calls. Location that each person chooses to share can do the asking for you.",
-    "You’ve got a system. Kin puts it beside the family’s calendar and chat.",
-  ],
-  home: [
-    "When plans, lists and bills live in different places, someone always ends up asking twice. One shared place takes that off everyone.",
-    "The home runs well. Kin can save the last few back-and-forths.",
-  ],
-  close: [
-    "Photos, polls and calls are easier to share when they sit next to everything else, from the grandparents to the youngest.",
-    "You’re close already. Kin gives it a home, photos and all.",
-  ],
-};
-
-export function areaLine(area: Area, score: number): string {
-  return AREA_LINES[area][score >= 70 ? 1 : 0];
-}
+export const SELF_CHECK_LINE = "An informal self-check from your own answers, not a measure of how prepared your family is.";
 
 /** "You said X -> in Kin, Y", naming the real feature. `plus` marks the
  * ones that are Kin Plus after the trial, so nobody meets Plus later as a

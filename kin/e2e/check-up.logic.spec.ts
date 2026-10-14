@@ -1,6 +1,7 @@
 import { test, expect } from "@playwright/test";
-import { AREAS, PRIORITIES } from "@/lib/first-open";
-import { QUESTIONS, type Answers, PRIORITY_IN_KIN, answerTip, answered, areaLine, oneAppLine, wantsPrivacyFirst, areaScores, areaWeights, questionsFor, readinessScore, scoreLabel, toggle, topThree } from "@/lib/check-up";
+import { PRIORITIES } from "@/lib/first-open";
+import { QUESTIONS, type Answers, PRIORITY_IN_KIN, answerTip, answered, oneAppLine, wantsPrivacyFirst, areaScores, questionsFor, readinessScore, scoreCategory, toggle, topThree } from "@/lib/check-up";
+import { FEATURES, PRIORITY_PROFILE, PROFILES, blueprintFeatures, blueprintProfile, blueprintWhy } from "@/lib/blueprint";
 
 const q = (id: string) => QUESTIONS.find((x) => x.id === id)!;
 
@@ -54,13 +55,17 @@ test("a single answer replaces, and 'Just me' and the other 'none' answers stand
   expect(toggle(home, ["solo"], "grown")).toEqual(["grown"]);
 });
 
-test("labels change at 40 and 70", () => {
-  expect(scoreLabel(0)).toBe("Getting started");
-  expect(scoreLabel(39)).toBe("Getting started");
-  expect(scoreLabel(40)).toBe("On the way");
-  expect(scoreLabel(69)).toBe("On the way");
-  expect(scoreLabel(70)).toBe("Well connected");
-  expect(scoreLabel(100)).toBe("Well connected");
+test("the categories change at 40, 60 and 80", () => {
+  expect(scoreCategory(0).name).toBe("The Fresh Start");
+  expect(scoreCategory(39).name).toBe("The Fresh Start");
+  expect(scoreCategory(40).name).toBe("The Work in Progress");
+  expect(scoreCategory(59).name).toBe("The Work in Progress");
+  expect(scoreCategory(60).name).toBe("The Connected Path");
+  expect(scoreCategory(79).name).toBe("The Connected Path");
+  expect(scoreCategory(80).name).toBe("The Well-Organized Family");
+  expect(scoreCategory(100).name).toBe("The Well-Organized Family");
+  // Encouraging at every level: nothing that talks down to a family.
+  for (const v of [0, 40, 60, 80]) expect(scoreCategory(v).line).not.toMatch(/fail|bad|poor|behind/i);
 });
 
 test("every score and bar stays within 0-100, whatever the answers", () => {
@@ -99,64 +104,33 @@ test("every score and bar stays within 0-100, whatever the answers", () => {
   }
 });
 
-test("a family that has it together scores well connected; one that doesn't, getting started", () => {
-  const organised = {
-    home: ["partner", "kids"],
-    tools: ["calendar"],
-    top3: ["health", "plans", "money"],
-    sick: ["minute"],
-    papers: ["safe"],
-    kids: ["app"],
-    busy: ["smooth"],
-    chat: ["polls"],
-    ai: ["ready"],
-  };
-  const scattered = {
-    home: ["partner", "kids", "parents"],
-    tools: ["chat", "notes", "sheet", "paper"],
+test("the score is questions 2, 4 and 5 only, a quarter each, divided by three quarters", () => {
+  // Best answer to all three: 100. Worst: 0. Every category can be reached.
+  expect(readinessScore({ tools: ["calendar"], sick: ["minute"], papers: ["cloud"] })).toBe(100);
+  expect(readinessScore({ tools: ["none"], sick: ["cant"], papers: ["scattered"] })).toBe(0);
+  // (75 × 0.25 + 67 × 0.25 + 75 × 0.25) / 0.75 = 72.33 -> 72
+  expect(readinessScore({ tools: ["chat", "calendar"], sick: ["look"], papers: ["safe"] })).toBe(72);
+  // Questions 1, 3, 6, 7 (and the kids and AI questions) change nothing.
+  const base = { tools: ["notes"], sick: ["ask"], papers: ["folder"] };
+  const others: Answers = {
+    home: ["kids", "parents"],
     top3: ["health", "travel", "documents"],
-    sick: ["cant"],
-    papers: ["scattered"],
     kids: ["worry"],
     busy: ["meals", "chores", "bills"],
-    chat: ["albums", "polls", "calls", "journal"],
-    ai: ["privacy"],
+    chat: ["albums", "polls"],
+    ai: ["no"],
   };
-  expect(scoreLabel(readinessScore(organised))).toBe("Well connected");
-  expect(scoreLabel(readinessScore(scattered))).toBe("Getting started");
+  expect(readinessScore({ ...base, ...others })).toBe(readinessScore(base));
+  expect(readinessScore({ ...base, ...others, top3: ["memories"], ai: ["ready"] })).toBe(readinessScore(base));
 });
 
-test("no kids at home: no kids bar, and it doesn't count", () => {
-  const a = { home: ["partner"], kids: ["worry"], sick: ["minute"] };
-  expect(areaScores(a).kids).toBeUndefined();
-  // An answer left over from before Q1 changed is ignored, not scored.
-  expect(readinessScore(a)).toBe(readinessScore({ home: ["partner"], sick: ["minute"] }));
+test("a family that says it's organised reaches the top category; one starting out, The Fresh Start", () => {
+  expect(scoreCategory(readinessScore({ tools: ["calendar"], sick: ["minute"], papers: ["safe"] })).name).toBe("The Well-Organized Family");
+  expect(scoreCategory(readinessScore({ tools: ["chat", "notes", "sheet", "paper"], sick: ["cant"], papers: ["scattered"] })).name).toBe("The Fresh Start");
 });
 
-test("the top 3 weigh most, first choice heaviest", () => {
-  expect(areaWeights({ top3: ["health", "documents", "memories"] })).toEqual({
-    health: 4,
-    documents: 3,
-    close: 2,
-    kids: 1,
-    home: 1,
-  });
-  // Travel, memories and time together are all staying close, so they add
-  // to the same bar.
-  expect(areaWeights({ top3: ["travel", "together", "memories"] }).close).toBe(7);
-  // Emergency information is part of Health & safety too.
-  expect(areaWeights({ top3: ["emergency", "health"] }).health).toBe(6);
-  expect(areaWeights({ top3: ["kids"] }).kids).toBe(4);
-  // The same answers, but health first rather than last: a weak health bar
-  // pulls the score down further.
-  const base = {
-    sick: ["cant"],
-    papers: ["cloud"],
-    tools: ["calendar"],
-    busy: ["smooth"],
-    chat: ["nothing"],
-  };
-  expect(readinessScore({ ...base, top3: ["health", "documents", "money"] })).toBeLessThan(readinessScore({ ...base, top3: ["documents", "money", "health"] }));
+test("no kids at home: no kids bar is saved", () => {
+  expect(areaScores({ home: ["partner"], kids: ["worry"] }).kids).toBeUndefined();
 });
 
 test("question 9 doesn't change the score", () => {
@@ -164,11 +138,7 @@ test("question 9 doesn't change the score", () => {
   expect(readinessScore({ ...a, ai: ["ready"] })).toBe(readinessScore({ ...a, ai: ["no"] }));
 });
 
-test("results: no bar's line talks down to the family, and 'one place' follows question 2", () => {
-  for (const a of AREAS) {
-    for (const v of [0, 20, 69, 70, 100]) expect(areaLine(a, v)).not.toMatch(/easy win|fail/i);
-    expect(areaLine(a, 20)).not.toBe(areaLine(a, 70));
-  }
+test("results: 'one place' follows question 2, and the privacy line follows question 9", () => {
   expect(oneAppLine({ tools: ["chat", "notes", "paper"] })).toBe("3 places to keep track in today. In Kin, it’s one.");
   expect(oneAppLine({ tools: ["calendar", "memory"] })).toMatch(/^Already one place\?/);
   expect(oneAppLine({ tools: ["memory"] })).toMatch(/^Less to carry in your heads/);
@@ -244,4 +214,52 @@ test("questions 3 to 6 are Janine's wording, and question 4 keeps its scores fas
   expect(q("busy").hint).toBe("What’s always coming up in your family conversations?");
   const health = q("sick").options.map((o) => areaScores({ sick: [o.id] }).health!);
   expect([...health].sort((a, b) => b - a)).toEqual(health);
+});
+
+test("the profile follows the top 3: two pointing the same way decide it", () => {
+  expect(blueprintProfile({ top3: ["plans", "meals", "health"] })).toBe("organized");
+  expect(blueprintProfile({ top3: ["money", "travel", "memories"] })).toBe("planning");
+  expect(blueprintProfile({ top3: ["health", "documents", "together"] })).toBe("prepared");
+  expect(blueprintProfile({ top3: ["emergency", "health", "documents"] })).toBe("prepared");
+  expect(blueprintProfile({ top3: ["together", "kids", "money"] })).toBe("connected");
+  expect(blueprintProfile({ top3: ["memories"] })).toBe("memories");
+  // Every priority favours one of the five, never All-in-One.
+  for (const p of PRIORITIES) expect(PRIORITY_PROFILE[p]).not.toBe("allInOne");
+});
+
+test("spread priorities: the other answers break the tie, and if they can't, All-in-One", () => {
+  const spread = { top3: ["health", "money", "memories"] };
+  expect(blueprintProfile(spread)).toBe("allInOne");
+  // Photo albums and the shared journal lean to the memories.
+  expect(blueprintProfile({ ...spread, chat: ["albums", "journal"] })).toBe("memories");
+  // Bills and savings keep coming up: planning.
+  expect(blueprintProfile({ ...spread, busy: ["bills", "savings"] })).toBe("planning");
+  // A pull both ways evenly is still a tie.
+  expect(blueprintProfile({ ...spread, busy: ["bills"], chat: ["albums"] })).toBe("allInOne");
+  // A nudge toward a profile the top 3 didn't name doesn't count.
+  expect(blueprintProfile({ ...spread, chat: ["polls", "calls"] })).toBe("allInOne");
+  // The other answers never change the score.
+  const a: Answers = { tools: ["notes"], sick: ["look"], papers: ["folder"], ...spread };
+  expect(readinessScore({ ...a, chat: ["albums"] })).toBe(readinessScore(a));
+});
+
+test("the explanation is the family's own, and the hub is three to five of the profile's features, theirs first", () => {
+  const a: Answers = { top3: ["travel", "money", "plans"], busy: ["bills"] };
+  const p = blueprintProfile(a);
+  expect(p).toBe("planning");
+  const why = blueprintWhy(a, p);
+  expect(why).toContain("travel and family adventures, financial planning and budgeting and schedules, appointments and events");
+  expect(why).toContain("bills and the budget");
+  expect(why).not.toBe(blueprintWhy({ top3: ["money", "travel"] }, p));
+  const hub = blueprintFeatures(a, p);
+  expect(hub[0].id).toBe("trips");
+  for (const id of Object.keys(PROFILES) as (keyof typeof PROFILES)[]) {
+    const n = blueprintFeatures({}, id).length;
+    expect(n).toBeGreaterThanOrEqual(3);
+    expect(n).toBeLessThanOrEqual(5);
+    for (const f of PROFILES[id].features) expect(FEATURES[f]).toBeTruthy();
+  }
+  // The Prepared Family never promises to make anyone safe.
+  const prepared = JSON.stringify([PROFILES.prepared, ...PROFILES.prepared.features.map((f) => FEATURES[f])]);
+  expect(prepared).not.toMatch(/guarantee|always ready|instant|never miss/i);
 });
