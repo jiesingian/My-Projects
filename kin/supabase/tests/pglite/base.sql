@@ -254,6 +254,9 @@ alter table routines add column created_at timestamptz not null default now();
 create table public.activities (id uuid primary key default gen_random_uuid(), family_id uuid references families(id), title text, start_at timestamptz, location text, status text default 'upcoming', applies_to_whole_family boolean default true, created_at timestamptz not null default now());
 alter table activities enable row level security;
 create policy act_all on activities for all using (family_id = current_family_id()) with check (family_id = current_family_id());
+-- How a task repeats (20261014120000) and Today's per-day marks (20260928170000), as the reminder pushes read them.
+alter table activities add column repeat text not null default 'once', add column repeat_days smallint[], add column repeat_until date;
+create table public.today_marks (family_id uuid, item_key text, day date, state text);
 create table public.kin_plus_awards (id uuid primary key default gen_random_uuid(), family_id uuid not null references families(id) on delete cascade, reason text not null, source_family uuid references families(id) on delete set null, days integer not null, created_at timestamptz not null default now(), constraint kin_plus_awards_days_sane check (days between 1 and 60));
 create unique index kin_plus_awards_once on kin_plus_awards (family_id, reason, coalesce(source_family, '00000000-0000-0000-0000-000000000000'::uuid));
 alter table kin_plus_awards enable row level security;
