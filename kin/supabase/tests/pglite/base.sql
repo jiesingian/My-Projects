@@ -365,3 +365,14 @@ create table public.doc_files (id uuid primary key default gen_random_uuid(), en
 alter table doc_folders enable row level security; alter table doc_files enable row level security;
 create policy df_all on doc_folders for all using (family_id = current_family_id()) with check (family_id = current_family_id());
 create policy dfi_all on doc_files for all using (family_id = current_family_id()) with check (family_id = current_family_id());
+-- Helper access (20261015121000_household_helpers): the Planner's activities
+-- with the columns the children's plans read, who each is for, and the meal
+-- plan's order -- as the real tables have them.
+alter table activities add column if not exists end_at timestamptz, add column if not exists repeat text not null default 'once', add column if not exists notes text, add column if not exists budget numeric;
+-- 20261014120000_activity_repeat_days, merged to main alongside this work.
+alter table activities add column if not exists repeat_days smallint[], add column if not exists repeat_until date;
+create table if not exists public.activity_members (activity_id uuid not null references activities(id) on delete cascade, member_id uuid not null references members(id) on delete cascade, primary key (activity_id, member_id));
+alter table activity_members enable row level security;
+create policy am_all on activity_members for all using (exists (select 1 from activities a where a.id = activity_id and a.family_id = current_family_id()));
+alter table meal_plans add column if not exists position integer not null default 0, add column if not exists note text;
+alter table buy_items add column if not exists checked_at timestamptz, add column if not exists created_by uuid;

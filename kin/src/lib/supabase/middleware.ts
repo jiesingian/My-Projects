@@ -71,6 +71,10 @@ export async function updateSession(request: NextRequest) {
     // An invite link has to reach someone with no account yet; it only
     // remembers the code and redirects (app/join/[code]/route.ts).
     path.startsWith("/join/") ||
+    // So does a helper link (app/helper/join/[code]/route.ts): it remembers
+    // the code and sends them to sign up. Only this one route under /helper
+    // is open; the helper's page itself needs a session.
+    path.startsWith("/helper/join/") ||
     // Likewise a connection link (app/connect/[code]/route.ts): remembers
     // the code and redirects; the other person still has to accept.
     path.startsWith("/connect/") ||

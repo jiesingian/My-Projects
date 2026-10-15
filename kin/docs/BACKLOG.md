@@ -67,6 +67,17 @@ scanning wait for the AI key.
   excluded. Migration 20261015120000_vault_emergency_access.sql; probe
   vault-emergency-access.mjs. Not yet verified on dev or a phone.
 
+- **Done:** Helper access (14 Oct, kin/helper-access): grown-ups add a
+  kasambahay/yaya/driver in Settings -> Household with three switches (To-
+  Buy list, meals, children's plans) and a one-time 7-day helper link + QR.
+  Helper signs up through the normal account screens, accepts at
+  /helper/accept and uses /helper (outside the app layout): tick/untick/add
+  on the open list, today's and tomorrow's meals, children's plans for those
+  two days. Not a member; household_helpers + security-definer functions
+  only (20261015121000). Removal ends access at once. Kin Free. Follow-ups:
+  use lib/activity-repeat.ts in helper-access.ts after rebase; optional push
+  to the helper when a line is added; live list updates.
+
 ## Agreed 13 October: first open (Jonathan)
 
 Why: not everyone who opens Kin came by referral or is sure they want it.

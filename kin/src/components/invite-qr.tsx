@@ -2,7 +2,7 @@
 
 import { useMemo, useState, useSyncExternalStore } from "react";
 import { Icon } from "@/components/icons";
-import { joinUrl, qrModules, qrPath } from "@/lib/qr";
+import { helperJoinUrl, joinUrl, qrModules, qrPath } from "@/lib/qr";
 
 const MARGIN = 4;
 const noSubscribe = () => () => {};
@@ -14,12 +14,15 @@ const noSubscribe = () => () => {};
  *
  * "Save image" hands over a PNG -- to the share sheet where the phone has
  * one, so it can go straight to Viber or Messenger or Photos, and as a
- * download where it does not. */
-export function InviteQr({ code, householdName }: { code: string; householdName?: string }) {
+ * download where it does not.
+ *
+ * `helper` draws the household's helper link instead (app/helper/join), for
+ * the kasambahay, yaya or driver: a different link, with words to match. */
+export function InviteQr({ code, householdName, helper = false }: { code: string; householdName?: string; helper?: boolean }) {
   // The origin is only known in the browser; until then nothing is drawn,
   // rather than a code for the wrong address.
   const origin = useSyncExternalStore(noSubscribe, () => window.location.origin, () => null);
-  const url = origin ? joinUrl(origin, code) : null;
+  const url = origin ? (helper ? helperJoinUrl(origin, code) : joinUrl(origin, code)) : null;
   const [saved, setSaved] = useState(false);
 
   const modules = useMemo(() => (url ? qrModules(url) : null), [url]);
@@ -44,10 +47,14 @@ export function InviteQr({ code, householdName }: { code: string; householdName?
 
   const save = async () => {
     const blob = await toPng();
-    const file = new File([blob], "kin-invite.png", { type: "image/png" });
+    const file = new File([blob], helper ? "kin-helper-link.png" : "kin-invite.png", { type: "image/png" });
     if (navigator.canShare?.({ files: [file] })) {
       try {
-        await navigator.share({ files: [file], title: "Join our family on Kin", text: `Scan to join ${householdName ?? "our household"} on Kin` });
+        await navigator.share(
+          helper
+            ? { files: [file], title: "Kin helper link", text: `Scan to help ${householdName ?? "our household"} on Kin` }
+            : { files: [file], title: "Join our family on Kin", text: `Scan to join ${householdName ?? "our household"} on Kin` },
+        );
         return;
       } catch {
         // Cancelled, or refused: save it instead.
@@ -66,12 +73,12 @@ export function InviteQr({ code, householdName }: { code: string; householdName?
   return (
     <figure className="kin-qr">
       <div className="kin-qr-frame">
-        <svg viewBox={`0 0 ${size} ${size}`} role="img" aria-label="QR code that opens Kin's join page for this household" shapeRendering="crispEdges">
+        <svg viewBox={`0 0 ${size} ${size}`} role="img" aria-label={helper ? "QR code that opens this household's helper link" : "QR code that opens Kin's join page for this household"} shapeRendering="crispEdges">
           <rect width={size} height={size} fill="#fff" />
           <path d={path} fill="#000" />
         </svg>
       </div>
-      <figcaption className="kin-qr-caption">Scan with a phone camera to join</figcaption>
+      <figcaption className="kin-qr-caption">{helper ? "Scan with the helper's phone camera" : "Scan with a phone camera to join"}</figcaption>
       <button type="button" className="btn btn-secondary" style={{ minHeight: "2.5rem", gap: "0.375rem" }} onClick={() => void save()}>
         <Icon name={saved ? "check" : "download"} size={16} />
         {saved ? "Saved" : "Save image"}

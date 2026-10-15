@@ -90,6 +90,69 @@ export type Database = {
           },
         ]
       }
+      household_helpers: {
+        Row: {
+          can_see_kids_plans: boolean
+          can_see_list: boolean
+          can_see_meals: boolean
+          claimed_at: string | null
+          created_at: string
+          display_name: string
+          family_id: string
+          id: string
+          invite_code: string | null
+          invite_expires_at: string | null
+          invited_by: string | null
+          removed_at: string | null
+          user_id: string | null
+        }
+        Insert: {
+          can_see_kids_plans?: boolean
+          can_see_list?: boolean
+          can_see_meals?: boolean
+          claimed_at?: string | null
+          created_at?: string
+          display_name: string
+          family_id: string
+          id?: string
+          invite_code?: string | null
+          invite_expires_at?: string | null
+          invited_by?: string | null
+          removed_at?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          can_see_kids_plans?: boolean
+          can_see_list?: boolean
+          can_see_meals?: boolean
+          claimed_at?: string | null
+          created_at?: string
+          display_name?: string
+          family_id?: string
+          id?: string
+          invite_code?: string | null
+          invite_expires_at?: string | null
+          invited_by?: string | null
+          removed_at?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "household_helpers_family_id_fkey"
+            columns: ["family_id"]
+            isOneToOne: false
+            referencedRelation: "families"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "household_helpers_invited_by_fkey"
+            columns: ["invited_by"]
+            isOneToOne: false
+            referencedRelation: "members"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       household_special_days: {
         Row: {
           created_at: string
@@ -1130,6 +1193,8 @@ export type Database = {
           created_by: string | null
           event_id: string | null
           family_id: string
+          helper_id: string | null
+          helper_name: string | null
           id: string
           member_id: string | null
           name: string
@@ -1150,6 +1215,8 @@ export type Database = {
           created_by?: string | null
           event_id?: string | null
           family_id: string
+          helper_id?: string | null
+          helper_name?: string | null
           id?: string
           member_id?: string | null
           name: string
@@ -1170,6 +1237,8 @@ export type Database = {
           created_by?: string | null
           event_id?: string | null
           family_id?: string
+          helper_id?: string | null
+          helper_name?: string | null
           id?: string
           member_id?: string | null
           name?: string
@@ -1193,6 +1262,13 @@ export type Database = {
             columns: ["family_id"]
             isOneToOne: false
             referencedRelation: "families"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "buy_items_helper_id_fkey"
+            columns: ["helper_id"]
+            isOneToOne: false
+            referencedRelation: "household_helpers"
             referencedColumns: ["id"]
           },
           {
@@ -6597,6 +6673,54 @@ export type Database = {
       tree_story_fits: {
         Args: { p_family: string; p_person: string; p_teller: string | null }
         Returns: boolean
+      }
+      create_helper_invite: {
+        Args: { p_name: string; p_list: boolean; p_meals: boolean; p_kids: boolean }
+        Returns: { helper_id: string; code: string }[]
+      }
+      renew_helper_invite: {
+        Args: { p_helper: string }
+        Returns: string
+      }
+      set_helper_access: {
+        Args: { p_helper: string; p_list: boolean; p_meals: boolean; p_kids: boolean }
+        Returns: undefined
+      }
+      remove_helper: {
+        Args: { p_helper: string }
+        Returns: undefined
+      }
+      helper_invite_preview: {
+        Args: { p_code: string }
+        Returns: { household: string; helper_name: string; can_see_list: boolean; can_see_meals: boolean; can_see_kids_plans: boolean }[]
+      }
+      claim_helper_invite: {
+        Args: { p_code: string }
+        Returns: string
+      }
+      my_helper_households: {
+        Args: never
+        Returns: { helper_id: string; family_id: string; household: string; helper_name: string; time_zone: string; can_see_list: boolean; can_see_meals: boolean; can_see_kids_plans: boolean }[]
+      }
+      helper_buy_items: {
+        Args: { p_family: string }
+        Returns: { item_id: string; item_name: string; quantity: number | null; unit: string | null; section: string; checked: boolean; added_by: string | null }[]
+      }
+      helper_add_buy_item: {
+        Args: { p_family: string; p_name: string; p_section: string }
+        Returns: string
+      }
+      helper_tick_buy_item: {
+        Args: { p_item: string; p_checked: boolean }
+        Returns: undefined
+      }
+      helper_meals: {
+        Args: { p_family: string }
+        Returns: { plan_date: string; slot: string; dish: string; meal_position: number }[]
+      }
+      helper_kids_plans: {
+        Args: { p_family: string }
+        Returns: { title: string; start_at: string; end_at: string | null; repeat: string | null; repeat_days: number[] | null; repeat_until: string | null; place: string | null; children: string[] }[]
       }
       children_connections: {
         Args: never

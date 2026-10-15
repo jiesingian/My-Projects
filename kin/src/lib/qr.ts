@@ -31,3 +31,9 @@ export function qrPath(modules: boolean[][], margin = 4): string {
 export function joinUrl(origin: string, code: string): string {
   return `${origin}/join/${code.replace(/[^A-Za-z0-9]/g, "")}`;
 }
+
+/** The household's helper link, for the kasambahay, yaya or driver
+ * (app/helper/join): kin.app/helper/join/K7M2QDXP4R. */
+export function helperJoinUrl(origin: string, code: string): string {
+  return `${origin}/helper/join/${code.replace(/[^A-Za-z0-9]/g, "")}`;
+}
