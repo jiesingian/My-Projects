@@ -58,6 +58,15 @@ scanning wait for the AI key.
   (needs its own read path, storage policy and switch); a push when a story
   is added; testing a long recording on a real iPhone.
 
+- **Done:** Vault emergency access (14 Oct): a household names up to 2
+  trusted grown-ups from linked households (Settings -> Privacy & lock),
+  with a 1/3/7-day wait. The trusted person asks with a reason; grown-ups
+  get an urgent push at once and daily, and can Deny or Allow now. If nobody
+  denies, access opens read-only for 30 days or until revoked; every item
+  opened is logged for the household. Kin-stored documents only; Drive is
+  excluded. Migration 20261015120000_vault_emergency_access.sql; probe
+  vault-emergency-access.mjs. Not yet verified on dev or a phone.
+
 ## Agreed 13 October: first open (Jonathan)
 
 Why: not everyone who opens Kin came by referral or is sure they want it.

@@ -355,3 +355,13 @@ alter table members add column if not exists kid_view boolean not null default f
 create policy ftp_delete on family_tree_people for delete using (family_id = current_family_id());
 grant insert on storage.objects to authenticated;
 create policy documents_own_folder_insert on storage.objects for insert to authenticated with check (bucket_id = 'documents' and split_part(name, '/', 1) = public.current_family_id()::text);
+-- The vault as emergency access reads it (20261015120000): the columns of
+-- family_vault_items, doc_entries, doc_folders and doc_files it hands over,
+-- with the household-only policies the real tables have.
+alter table family_vault_items add column if not exists group_name text not null default 'Wi-Fi', add column if not exists username text, add column if not exists secret text not null default 'secret', add column if not exists note text, add column if not exists visibility text not null default 'everyone';
+create table public.doc_folders (id uuid primary key default gen_random_uuid(), family_id uuid not null references families(id), name text not null, drive_folder_id text, created_at timestamptz not null default now());
+alter table doc_entries add column if not exists folder_id uuid references doc_folders(id), add column if not exists owner_member_id uuid references members(id), add column if not exists doc_type text, add column if not exists reference_no text, add column if not exists expires_at date, add column if not exists note text;
+create table public.doc_files (id uuid primary key default gen_random_uuid(), entry_id uuid not null references doc_entries(id), family_id uuid not null references families(id), file_name text not null, mime_type text, size_bytes bigint, storage_provider text not null default 'supabase', storage_path text, drive_file_id text, drive_view_link text, created_at timestamptz not null default now());
+alter table doc_folders enable row level security; alter table doc_files enable row level security;
+create policy df_all on doc_folders for all using (family_id = current_family_id()) with check (family_id = current_family_id());
+create policy dfi_all on doc_files for all using (family_id = current_family_id()) with check (family_id = current_family_id());
