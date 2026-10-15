@@ -15,7 +15,7 @@ const DAY_LABEL: Record<HelperDay, string> = { today: "Today", tomorrow: "Tomorr
 const heading = { font: "600 0.8125rem/1 var(--font-heading)", letterSpacing: ".02em", color: "var(--color-accent-700)", margin: "1.75rem 0 0.625rem" } as const;
 const quiet = { fontSize: "0.8125rem", color: "var(--color-neutral-600)" } as const;
 
-/** The helper's page: the kasambahay, yaya or driver (20261014206000).
+/** The helper's page: the kasambahay, yaya or driver (20261015121000).
  *
  * Outside the (app) layout on purpose -- nothing here assumes a member, and
  * nothing a member sees is fetched. Every section comes from one of the

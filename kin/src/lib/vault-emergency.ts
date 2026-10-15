@@ -1,4 +1,4 @@
-/** Emergency access to the vault, in words (20261014205000).
+/** Emergency access to the vault, in words (20261015120000).
  *
  * Who may name, ask, allow or read is the database's call, and so is the
  * state of a request: waiting, open, denied, revoked or expired is worked

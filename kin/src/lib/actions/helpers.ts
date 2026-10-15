@@ -9,7 +9,7 @@ import { isGrownUp } from "@/lib/roles";
 import { guessSection } from "@/lib/grocery";
 import { HELPER_INVITE_COOKIE, normaliseHelperCode, type HelperSwitches } from "@/lib/helper-access";
 
-/** Helper access (20261014206000_household_helpers.sql). Two sides:
+/** Helper access (20261015121000_household_helpers.sql). Two sides:
  *
  * - the household's grown-ups add a helper, change what they see, renew an
  *   unused link and remove them (Settings, Household);

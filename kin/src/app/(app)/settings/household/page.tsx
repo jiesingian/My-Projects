@@ -41,7 +41,7 @@ export default async function HouseholdSettingsPage() {
   const specialDays = isGrownUp(me.role) ? await getHouseholdSpecialDays(me.family_id, today, "9999-12-31") : [];
 
   // The household's helpers, for a grown-up to add, change or remove
-  // (20261014206000) -- the table shows them to nobody else. And, member
+  // (20261015121000) -- the table shows them to nobody else. And, member
   // first: someone who is in this household and also helps another one
   // reaches that household's helper page from here.
   const [{ data: helperRows }, { data: helping }] = await Promise.all([

@@ -10,6 +10,7 @@ import { dosesFor, FEVER_C, type Dose, type Medicine } from "@/lib/health-plan";
 import { alertLine, canBeTold, DEFAULT_MISSED_DELAY, delayWords, MISSED_DELAYS } from "@/lib/missed-dose";
 import { isGrownUp } from "@/lib/roles";
 import { amountWords, daysLeft, daysLeftWords, guessFromDose, isSupplyUnit, needsRefill, SUPPLY_UNITS, type SupplyUnit } from "@/lib/medicine-supply";
+import { doseName, type GuideDose } from "@/lib/vaccine-schedule";
 import { ageInMonths, growthPercentile, percentileLabel, valueAtPercentile, type Sex } from "@/lib/growth";
 import {
   addIllnessLogAction,
@@ -24,6 +25,7 @@ import {
   stopMedicineSupplyAction,
   stopMedicineAction,
 } from "@/lib/actions/health-care";
+import { markVaccineGivenAction } from "@/lib/actions/health";
 
 /** The Health tab's medicines, illness log and growth chart (26 September).
  * Times and days are the family's (Asia/Manila), worked out on the server and
@@ -609,6 +611,113 @@ function GrowthChart({ title, unit, kind, dob, sex, points, firstName }: { title
       <div className="kin-care-muted" style={{ fontSize: "0.75rem" }}>
         Middle line: the 50th percentile. Dashed: the 3rd and 97th. Most healthy children stay between them.
       </div>
+    </div>
+  );
+}
+
+const GUIDE_TAG: Record<GuideDose["status"], string> = { done: "Done", due: "Due", overdue: "Past due", upcoming: "Later" };
+
+/** A child's vaccine guide (lib/vaccine-schedule.ts), worked out on the
+ * server against the vaccinations this viewer can see. "Mark as given" is on
+ * each vaccine's first dose not yet recorded: recorded doses count in date
+ * order, so marking a later one first would tick the wrong one. */
+export function VaccineGuidePanel({ memberId, firstName, guide, today, role }: { memberId: string; firstName: string; guide: (GuideDose & { dueWords: string; givenWords: string | null })[]; today: string; role: string }) {
+  const [showLater, setShowLater] = useState(false);
+  const firstOpen = new Set<string>();
+  const seen = new Set<string>();
+  for (const d of guide) {
+    if (d.status !== "done" && !seen.has(d.vaccine.name)) firstOpen.add(d.key);
+    if (d.status !== "done") seen.add(d.vaccine.name);
+  }
+  const now = guide.filter((d) => d.status !== "upcoming");
+  const later = guide.filter((d) => d.status === "upcoming");
+  return (
+    <div>
+      <p className="kin-care-muted" style={{ margin: "0 0 0.75rem" }}>
+        A guide to the usual Philippine schedule (DOH and the Philippine Pediatric Society), not medical advice. {firstName}&apos;s paediatrician decides
+        what and when. Flu shots are yearly from 6 months. Vaccinations recorded under Conditions count here.
+      </p>
+      {now.map((d) => (
+        <GuideRow key={d.key} d={d} memberId={memberId} canMark={isGrownUp(role) && firstOpen.has(d.key)} today={today} role={role} />
+      ))}
+      {now.length === 0 && <p className="kin-care-empty">Nothing due yet.</p>}
+      {later.length > 0 && (
+        <>
+          <button type="button" className="kin-care-link" style={{ margin: "0.75rem 0" }} onClick={() => setShowLater(!showLater)}>
+            {showLater ? "Hide what comes later" : `Coming later (${later.length})`}
+          </button>
+          {showLater && later.map((d) => <GuideRow key={d.key} d={d} memberId={memberId} canMark={isGrownUp(role) && firstOpen.has(d.key)} today={today} role={role} />)}
+        </>
+      )}
+    </div>
+  );
+}
+
+function GuideRow({ d, memberId, canMark, today, role }: { d: GuideDose & { dueWords: string; givenWords: string | null }; memberId: string; canMark: boolean; today: string; role: string }) {
+  const { pending, run } = useAct();
+  const [open, setOpen] = useState(false);
+  const [date, setDate] = useState(today);
+  const [visibility, setVisibility] = useState("family");
+  return (
+    <div className="kin-care-row" data-status={d.status}>
+      <div style={{ flex: 1 }}>
+        <div className="kin-care-row-title">
+          {doseName(d)}
+          <span className="kin-care-muted"> · {d.vaccine.what}</span>
+        </div>
+        <div className="kin-care-muted">
+          {d.status === "done" ? `Given ${d.givenWords}` : `${d.label} · ${d.dueWords}`}
+          {d.vaccine.source === "PPS" ? " · PPS recommended" : " · DOH (free at health centres)"}
+        </div>
+        {canMark && !open && (d.status === "due" || d.status === "overdue") && (
+          <button type="button" className="kin-care-link" onClick={() => setOpen(true)}>
+            Mark as given
+          </button>
+        )}
+        {canMark && !open && d.status === "upcoming" && (
+          <button type="button" className="kin-care-link" onClick={() => setOpen(true)}>
+            Given early? Mark it
+          </button>
+        )}
+        {open && (
+          <form
+            className="kin-care-form"
+            onSubmit={(e) => {
+              e.preventDefault();
+              run(async () => {
+                const r = await markVaccineGivenAction({ memberId, vaccine: d.vaccine.name, n: d.n, date, visibility });
+                if (!r.error) setOpen(false);
+                return r;
+              }, "Recorded");
+            }}
+          >
+            <div style={{ display: "flex", flexWrap: "wrap", gap: "0.5rem" }}>
+              <label className="kin-care-label" style={{ minWidth: "8rem" }}>
+                Given on
+                <input className="input" type="date" max={today} value={date} onChange={(e) => setDate(e.target.value)} required />
+              </label>
+              <label className="kin-care-label" style={{ minWidth: "8rem" }}>
+                Who can see it
+                <VisibilitySelect role={role} value={visibility} onChange={setVisibility} />
+              </label>
+            </div>
+            <p className="kin-care-muted" style={{ margin: 0 }}>
+              Recorded under {d.vaccine.name} in Conditions. If {d.vaccine.name} is already there, who can see it stays as it is.
+            </p>
+            <div style={{ display: "flex", gap: "0.5rem" }}>
+              <button type="submit" className="btn btn-primary" style={{ flex: 1 }} disabled={pending}>
+                Save
+              </button>
+              <button type="button" className="btn btn-secondary" onClick={() => setOpen(false)}>
+                Cancel
+              </button>
+            </div>
+          </form>
+        )}
+      </div>
+      <span className="kin-care-guide-tag" data-status={d.status}>
+        {GUIDE_TAG[d.status]}
+      </span>
     </div>
   );
 }

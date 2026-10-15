@@ -24,7 +24,7 @@ import { householdPhrase, openedLine, ownerStatusLine, trustedStatusLine } from 
  * documents -- so offering them to someone who has not unlocked would turn
  * "set up a lock" into a way around it.
  *
- * Emergency access (20261014205000) lives here too, both sides of it: who
+ * Emergency access (20261015120000) lives here too, both sides of it: who
  * this household trusts from outside it, and -- for a grown-up another
  * household named -- the way to ask for theirs. Naming someone, Allow now and
  * the log of what was opened wait for the lock; Deny and Take back do not,

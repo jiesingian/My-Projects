@@ -11,6 +11,8 @@ import { SubmitButton, ErrorText } from "@/components/form";
 import { Blueprint } from "@/components/ui";
 import { Icon } from "@/components/icons";
 import { ShoppingDayControl } from "@/components/shopping-day";
+import { CheckoutCards, LoyaltyCardsButton } from "@/components/loyalty-cards";
+import type { LoyaltyCard } from "@/lib/loyalty-cards";
 import { formatCurrency } from "@/lib/format";
 import { confirm } from "@/components/confirm-sheet";
 import type { PickableAccount } from "@/components/money-actions";
@@ -100,6 +102,9 @@ export function BuyList({
   unpriced,
   trip,
   pricesSlot,
+  cards = [],
+  canEditCards = false,
+  tripIsToday = false,
   startAdding = false,
 }: {
   groups: BuyGroup[];
@@ -130,6 +135,12 @@ export function BuyList({
   } | null;
   /** The Prices & pantry sheet, built on the server and passed in. */
   pricesSlot: React.ReactNode;
+  /** The household's suki and loyalty cards, for the counter. */
+  cards?: LoyaltyCard[];
+  /** Grown-ups add and change cards; everyone else shows them. */
+  canEditCards?: boolean;
+  /** The shopping day is today: the cards come out on the list itself. */
+  tripIsToday?: boolean;
 }) {
   // Which sections are open. Empty means all closed, which is how the list
   // starts: a shopping list is read one aisle at a time.
@@ -303,7 +314,10 @@ export function BuyList({
 
           <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", flexWrap: "wrap", marginTop: "0.125rem" }}>
             <ShoppingDayControl run={trip} />
-            <span style={{ marginLeft: "auto" }}>{pricesSlot}</span>
+            <span style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: "0.375rem" }}>
+              <LoyaltyCardsButton cards={cards} tripTitle={trip?.title ?? null} canEdit={canEditCards} />
+              {pricesSlot}
+            </span>
           </div>
         </div>
 
@@ -321,6 +335,11 @@ export function BuyList({
           </button>
         )}
       </Blueprint>
+
+      {/* At the store: the day's cards come out on the list itself, the
+          store's own first, while the shopping day is on or the basket is
+          being checked out. */}
+      {(tripIsToday || checkingOut) && <CheckoutCards cards={cards} tripTitle={trip?.title ?? null} />}
 
       {checkingOut && (
         <ClearCheckedPanel
@@ -479,7 +498,7 @@ export function BuyList({
                     }}
                   >
                     <span className="kin-strike" data-on={isChecked(item)} style={{ display: "block", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{item.name}</span>
-                    {/* Added by the household's helper (20261014206000): the
+                    {/* Added by the household's helper (20261015121000): the
                         name comes from their helper row, never typed. */}
                     {item.helper_name ? (
                       <span style={{ display: "block", marginTop: "0.125rem", fontSize: "0.71875rem", color: "var(--color-neutral-600)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>

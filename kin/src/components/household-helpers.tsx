@@ -150,7 +150,7 @@ function HelperRow({ helper, householdName }: { helper: HouseholdHelper; househo
   );
 }
 
-/** Settings → Household: the kasambahay, yaya or driver (20261014206000).
+/** Settings → Household: the kasambahay, yaya or driver (20261015121000).
  * A helper is not a member. They get a link of their own and see only what
  * is switched on here: the To-Buy list, the meals, the children's plans --
  * never money, health, chat, photos or anyone's details. */

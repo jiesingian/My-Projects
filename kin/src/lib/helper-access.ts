@@ -1,7 +1,7 @@
 import { addDays, familyDay, weekdayOf } from "@/lib/time";
 import { MEAL_SLOTS, MEAL_SLOT_LABEL, type MealSlot } from "@/lib/recipes";
 
-/** Helper access for the kasambahay, yaya or driver (20261014206000).
+/** Helper access for the kasambahay, yaya or driver (20261015121000).
  *
  * A helper is not a member of the household. The database gives them three
  * things through its own functions -- the open To-Buy list, today's and

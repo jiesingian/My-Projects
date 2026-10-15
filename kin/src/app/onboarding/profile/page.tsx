@@ -10,7 +10,7 @@ import { HELPER_INVITE_COOKIE, helperLanding } from "@/lib/helper-access";
  *
  * Every signed-in person with no member row ends up here -- after sign-up,
  * sign-in, the email link, or any app page -- which makes it the one place a
- * household's helper is told apart (20261014206000): a helper link waiting
+ * household's helper is told apart (20261015121000): a helper link waiting
  * goes to /helper/accept, and someone who already helps a household goes to
  * /helper. A household invite link still comes first, so a helper who is
  * asked to join a family of their own can, and so does ?own=1 -- the helper

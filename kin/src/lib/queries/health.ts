@@ -2,6 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import { formatDate } from "@/lib/format";
 import { addDays, dosesFor, FEVER_C, highBloodPressure } from "@/lib/health-plan";
 import { isGone } from "@/lib/member-status";
+import { doseName, guideApplies, nextVaccine, vaccineGuide } from "@/lib/vaccine-schedule";
 
 export async function getMemberDetail(memberId: string, familyId: string) {
   const supabase = await createClient();
@@ -101,7 +102,8 @@ export type WeekItem = { memberId: string; firstName: string; text: string; href
 
 /** The Health tab's "This week": what needs someone across the household,
  * in one short list -- check-ups and vaccinations due within a week, visits
- * coming up, medicine doses missed yesterday or late today, a fever in the
+ * coming up, a child's next vaccine from the guide when it is due within the
+ * week or past its usual age, medicine doses missed yesterday or late today, a fever in the
  * last three days, and a latest blood pressure that is high. Each line opens
  * the place to deal with it. Read under the caller's own RLS, so nobody sees
  * a line about a record they couldn't open. */
@@ -109,13 +111,15 @@ export async function getHealthWeek(familyId: string, today: string, now: string
   const supabase = await createClient();
   const inWeek = addDays(today, 7);
   const yesterday = addDays(today, -1);
-  const [{ data: members }, { data: schedule }, { data: visits }, { data: medicines }, { data: fevers }, { data: bp }] = await Promise.all([
-    supabase.from("members").select("id, full_name, status").eq("family_id", familyId),
+  const [{ data: members }, { data: schedule }, { data: visits }, { data: medicines }, { data: fevers }, { data: bp }, { data: vaccinations }] = await Promise.all([
+    supabase.from("members").select("id, full_name, status, role, dob").eq("family_id", familyId),
     supabase.from("health_schedule").select("member_id, what, when_date, status").eq("family_id", familyId).in("status", ["due", "due_soon", "planned", "scheduled"]).lte("when_date", inWeek),
     supabase.from("health_appointments").select("member_id, what, when_at").eq("family_id", familyId).gte("when_at", `${today}T00:00:00+08:00`).lte("when_at", `${inWeek}T23:59:59+08:00`),
     supabase.from("health_medicines").select("id, member_id, name, dose, times, start_date, end_date").eq("family_id", familyId),
     supabase.from("health_illness_logs").select("member_id, temperature_c, logged_at").eq("family_id", familyId).gte("temperature_c", FEVER_C).gte("logged_at", `${addDays(today, -3)}T00:00:00+08:00`).order("temperature_c", { ascending: false }),
     supabase.from("health_vitals").select("member_id, value_text, reading_date").eq("family_id", familyId).eq("vital_type", "blood_pressure").order("reading_date", { ascending: false }).limit(40),
+    // Vaccinations are "routine" groups with an entry per dose.
+    supabase.from("health_conditions").select("member_id, name, health_condition_entries(entry_date)").eq("family_id", familyId).eq("status", "routine"),
   ]);
   const { data: doses } = medicines?.length
     ? await supabase.from("health_medicine_doses").select("medicine_id, dose_date, dose_time").in("medicine_id", medicines.map((m) => m.id)).gte("dose_date", yesterday)
@@ -147,6 +151,15 @@ export async function getHealthWeek(familyId: string, today: string, now: string
     if (bpSeen.has(r.member_id)) continue;
     bpSeen.add(r.member_id);
     if (highBloodPressure(r.value_text)) add(r.member_id, `Last blood pressure ${r.value_text} is high`, "vitals", "alert");
+  }
+  // One line per child at most: the guide's next dose, not the whole list.
+  for (const m of members ?? []) {
+    if (!people.has(m.id) || !guideApplies(m.role, m.dob, today)) continue;
+    const recorded = (vaccinations ?? []).filter((v) => v.member_id === m.id).map((v) => ({ name: v.name, dates: (v.health_condition_entries ?? []).map((e) => e.entry_date) }));
+    const next = nextVaccine(vaccineGuide(m.dob, recorded, today), today);
+    if (!next) continue;
+    if (next.status === "overdue") add(m.id, `${doseName(next)}: past its usual age (vaccine guide)`, "vaccines", "alert");
+    else add(m.id, `${doseName(next)} due ${next.dueDate <= today ? "now" : formatDate(next.dueDate)} (vaccine guide)`, "vaccines", "info");
   }
   for (const s of schedule ?? []) add(s.member_id, `${s.what}${s.when_date ? (s.when_date < today ? " is overdue" : ` due ${formatDate(s.when_date)}`) : " due"}`, "schedule", s.when_date && s.when_date < today ? "alert" : "info");
   for (const v of visits ?? []) add(v.member_id, `${v.what}, ${formatDate(v.when_at.slice(0, 10))}`, "schedule", "info");

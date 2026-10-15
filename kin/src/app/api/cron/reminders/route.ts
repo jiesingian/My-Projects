@@ -51,7 +51,7 @@ export async function POST(request: Request) {
     // A medicine with 7 days or fewer left: on the To-Buy list and the
     // grown-ups told, once per supply cycle, from 09:00 (20261014201000).
     supabase.rpc("due_refill_reminders", { p_secret: secret }),
-    // Emergency access to the vault (20261014205000): every grown-up of the
+    // Emergency access to the vault (20261015120000): every grown-up of the
     // household, at once when someone asks, daily while it waits, and when it
     // opens. Sent as urgent below.
     supabase.rpc("due_vault_emergency_reminders", { p_secret: secret }),

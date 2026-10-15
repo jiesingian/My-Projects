@@ -280,7 +280,7 @@ async function VaultPane({ familyId, who, tab, meId, myRole }: { familyId: strin
     getEnrolledDevices(meId),
     tab === "passwords" ? getVaultItems(familyId) : Promise.resolve([]),
     // Households that named this grown-up for emergency access to theirs
-    // (20261014205000): asked for, and read, from Settings -> Privacy & lock.
+    // (20261015120000): asked for, and read, from Settings -> Privacy & lock.
     isGrownUp(myRole) ? getEmergencyTrustedView(meId) : Promise.resolve(null),
   ]);
   const filtered =

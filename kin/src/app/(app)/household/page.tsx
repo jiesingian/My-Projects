@@ -2,7 +2,8 @@ import { formatCurrency } from "@/lib/format";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getCurrentMember } from "@/lib/session";
-import { getBuyItems, getBuyItemMeals, getBuyListEvents, getMealsForDay, type PlannedMeal } from "@/lib/queries/household";
+import { getBuyItems, getBuyItemMeals, getBuyListEvents, getLoyaltyCards, getMealsForDay, type PlannedMeal } from "@/lib/queries/household";
+import { isGrownUp } from "@/lib/roles";
 import { getMembers } from "@/lib/queries/family";
 import { MealWhoPicker } from "@/components/meal-who-picker";
 import { MealWhoEditor } from "@/components/meal-who-editor";
@@ -48,21 +49,36 @@ export default async function HouseholdPage({ searchParams }: { searchParams: Pr
     <div>
       <HubHeader n="04" title="Household" segments={segments} dateFormat={me.families.date_format} />
       <div style={{ padding: "0 var(--gutter) 1.375rem" }}>
-        {seg === "buy" && <BuyPane familyId={me.family_id} memberId={me.id} currency={me.families.currency} startAdding={sp.add === "1"} />}
+        {seg === "buy" && (
+          <BuyPane familyId={me.family_id} memberId={me.id} canEditCards={isGrownUp(me.role)} currency={me.families.currency} startAdding={sp.add === "1"} />
+        )}
         {seg === "meals" && <MealsPane familyId={me.family_id} currency={me.families.currency} anchor={anchor} who={sp.who ?? "all"} />}
       </div>
     </div>
   );
 }
 
-async function BuyPane({ familyId, memberId, currency, startAdding }: { familyId: string; memberId: string; currency: string; startAdding: boolean }) {
-  const [{ groups, openCount, doneCount }, accounts, priced, run, mealsFor, events] = await Promise.all([
+async function BuyPane({
+  familyId,
+  memberId,
+  canEditCards,
+  currency,
+  startAdding,
+}: {
+  familyId: string;
+  memberId: string;
+  canEditCards: boolean;
+  currency: string;
+  startAdding: boolean;
+}) {
+  const [{ groups, openCount, doneCount }, accounts, priced, run, mealsFor, events, cards] = await Promise.all([
     getBuyItems(familyId),
     getAccounts(familyId),
     getPricedBuyList(familyId),
     getNextShoppingRun(familyId),
     getBuyItemMeals(familyId),
     getBuyListEvents(familyId),
+    getLoyaltyCards(familyId),
   ]);
 
   // Whichever comes first is what the list counts down to, and either can be
@@ -91,6 +107,9 @@ async function BuyPane({ familyId, memberId, currency, startAdding }: { familyId
         currency={currency}
         unpriced={priced.unpricedCount}
         trip={trip}
+        cards={cards}
+        canEditCards={canEditCards}
+        tripIsToday={trip != null && trip.iso === toISODate(new Date())}
         /* Server-rendered, handed to the client card as a slot: the sheet's
            contents are a server component and cannot be built inside one. */
         pricesSlot={

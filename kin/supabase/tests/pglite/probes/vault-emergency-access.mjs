@@ -1,4 +1,4 @@
-// Emergency access to the vault (20261014205000). House A names Ben (House B,
+// Emergency access to the vault (20261015120000). House A names Ben (House B,
 // linked and sharing) as its trusted person. Ben asks; A's grown-ups can deny,
 // allow now or let the wait run out; once open Ben reads A's vault through
 // the logged functions only, never writes, and sees nobody else's. Cat (House
