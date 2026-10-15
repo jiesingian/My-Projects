@@ -27,6 +27,17 @@ scanning wait for the AI key.
   the grown-ups once per supply cycle. Refilled takes a new count or adds a
   box. Plus area. Migration 20261014201000_medicine_supply.sql.
 
+- **Done:** Kid's vaccine schedule (15 October, Janine): a Vaccines
+  segment on a child's Health page (child role, birthday, under 18). The
+  DOH EPI schedule plus the usual PPS extras are data in
+  lib/vaccine-schedule.ts with their sources; done / due / past due / later
+  against the vaccinations recorded under Conditions (any of a vaccine's
+  usual names, doses in date order). "Mark as given" adds an entry the way
+  the Add form's Vaccination does. The next dose shows in the Health tab's
+  "This week" for 90 days from its age. Says it is a guide, not medical
+  advice. No migration. Not checked: the PPS ages against this year's
+  printed schedule.
+
 - **Done:** Hey Siri, add to the list (14 Oct): "Add to Kin" iPhone Shortcut
   posts spoken words to a private per-member add-to-list link (separate from
   the brief link, hashed in list_add_tokens); add_to_list_by_link() adds up
