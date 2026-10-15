@@ -23,6 +23,7 @@ export function PhotoStrip({
   label,
   onAdd,
   onDelete,
+  scan = false,
 }: {
   kind: "event_photo" | "visit_photo";
   /** The event's or visit's id. */
@@ -31,9 +32,14 @@ export function PhotoStrip({
   label: string;
   onAdd: (path: string) => Promise<{ error: string | null }>;
   onDelete: (id: string) => Promise<{ error: string | null }>;
+  /** A "Scan" tile beside "Add photo" that opens the phone's back camera
+   * straight away (a prescription, a slip). On a computer it is a file
+   * picker like the other. */
+  scan?: boolean;
 }) {
   const router = useRouter();
   const input = useRef<HTMLInputElement>(null);
+  const camera = useRef<HTMLInputElement>(null);
   const [busy, setBusy] = useState(false);
   const [open, setOpen] = useState<number | null>(null);
   const [pending, start] = useTransition();
@@ -69,6 +75,7 @@ export function PhotoStrip({
     }
     setBusy(false);
     if (input.current) input.current.value = "";
+    if (camera.current) camera.current.value = "";
     if (added) {
       toast.success(added === 1 ? "Photo added" : `${added} photos added`);
       router.refresh();
@@ -102,12 +109,19 @@ export function PhotoStrip({
             </button>
           </div>
         ))}
+        {scan && (
+          <button type="button" className="kin-care-photo kin-care-photo-add" onClick={() => camera.current?.click()} disabled={busy}>
+            <Icon name="camera" size="1.375rem" />
+            <span>{busy ? "Uploading…" : "Scan"}</span>
+          </button>
+        )}
         <button type="button" className="kin-care-photo kin-care-photo-add" onClick={() => input.current?.click()} disabled={busy}>
-          <Icon name="camera" size="1.375rem" />
-          <span>{busy ? "Uploading…" : "Add photo"}</span>
+          <Icon name={scan ? "plus" : "camera"} size="1.375rem" />
+          <span>{busy ? "Uploading…" : scan ? "Upload" : "Add photo"}</span>
         </button>
       </div>
       <input ref={input} type="file" accept="image/*" multiple hidden onChange={(e) => void upload(e.target.files)} />
+      {scan && <input ref={camera} type="file" accept="image/*" capture="environment" hidden onChange={(e) => void upload(e.target.files)} />}
       {open !== null && <PhotoViewer items={photos.map((p, i) => ({ url: p.url, alt: `${label} ${i + 1}` }))} startIndex={open} onClose={() => setOpen(null)} label={label} />}
     </div>
   );

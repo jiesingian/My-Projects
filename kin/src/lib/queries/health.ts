@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { getSignedUrls } from "@/lib/storage";
 import { formatDate } from "@/lib/format";
 import { addDays, dosesFor, FEVER_C, highBloodPressure } from "@/lib/health-plan";
 import { isGone } from "@/lib/member-status";
@@ -44,7 +45,7 @@ export async function getMemberDetail(memberId: string, familyId: string) {
   const supply = (householdSupply ?? []).filter((s) => medicineIds.has(s.medicine_id));
   // Who is told when a dose is missed (20261014200000), and the household's
   // grown-ups who could be: only whether they have a login leaves the server.
-  const [{ data: doses }, { data: missedAlerts }, { data: grownUps }] = await Promise.all([
+  const [{ data: doses }, { data: missedAlerts }, { data: grownUps }, { data: prescriptionRows }] = await Promise.all([
     medicines?.length
       ? supabase.from("health_medicine_doses").select("medicine_id, dose_date, dose_time").in("medicine_id", medicines.map((m) => m.id)).gte("dose_date", weekAgo)
       : Promise.resolve({ data: [] }),
@@ -52,7 +53,17 @@ export async function getMemberDetail(memberId: string, familyId: string) {
       ? supabase.from("health_medicine_alerts").select("medicine_id, notify_member_id, delay_minutes").in("medicine_id", medicines.map((m) => m.id))
       : Promise.resolve({ data: [] }),
     supabase.from("members").select("id, full_name, role, auth_user_id").eq("family_id", familyId).eq("status", "active").in("role", ["parent", "adult"]),
+    // Prescription photos (20261015130000), seen by whoever sees the medicine.
+    medicines?.length
+      ? supabase.from("health_medicine_photos").select("id, medicine_id, storage_path").in("medicine_id", medicines.map((m) => m.id)).order("created_at")
+      : Promise.resolve({ data: [] as { id: string; medicine_id: string; storage_path: string }[] }),
   ]);
+  const prescriptionUrls = await getSignedUrls("journal", (prescriptionRows ?? []).map((r) => r.storage_path));
+  const prescriptions: Record<string, { id: string; url: string }[]> = {};
+  for (const r of prescriptionRows ?? []) {
+    const url = prescriptionUrls[r.storage_path];
+    if (url) (prescriptions[r.medicine_id] ??= []).push({ id: r.id, url });
+  }
   // What is left, from the database's own sum (medicine_on_hand): every dose
   // ticked since the count, however long ago that was, which a page of dose
   // rows could cut short. Null when it could not be read, and the card says
@@ -74,6 +85,7 @@ export async function getMemberDetail(memberId: string, familyId: string) {
     doses: doses ?? [],
     missedAlerts: missedAlerts ?? [],
     supply: supplyNow,
+    prescriptions,
     grownUps: (grownUps ?? []).map((g) => ({ id: g.id, firstName: g.full_name.split(" ")[0], role: g.role, hasLogin: g.auth_user_id !== null })),
     illness: illness ?? [],
     photoCount,

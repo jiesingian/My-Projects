@@ -3534,6 +3534,33 @@ export type Database = {
         }
         Relationships: []
       }
+      health_medicine_photos: {
+        Row: {
+          medicine_id: string
+          created_at: string
+          created_by: string | null
+          family_id: string
+          id: string
+          storage_path: string
+        }
+        Insert: {
+          medicine_id: string
+          created_at?: string
+          created_by?: string | null
+          family_id: string
+          id?: string
+          storage_path: string
+        }
+        Update: {
+          medicine_id?: string
+          created_at?: string
+          created_by?: string | null
+          family_id?: string
+          id?: string
+          storage_path?: string
+        }
+        Relationships: []
+      }
       health_visit_photos: {
         Row: {
           appointment_id: string

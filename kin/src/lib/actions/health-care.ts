@@ -15,6 +15,9 @@ import { isSupplyUnit } from "@/lib/medicine-supply";
 import { isGrownUp } from "@/lib/roles";
 import { UUID } from "@/lib/ids";
 
+/** Front and back of a slip, a refill or two: plenty for one medicine. */
+const MAX_PRESCRIPTION_PHOTOS = 6;
+
 /** Medicines, the illness log, and notes and photos on a visit (26
  * September). Who may see and change each is the tables' own business
  * (20260926110000_health_medicines_illness_visits.sql); these shape the
@@ -82,7 +85,34 @@ export async function deleteMedicineAction(id: string, memberId: string): Promis
   await requireCurrentMember();
   if (!UUID.test(id)) return { error: "That medicine could not be found." };
   const supabase = await createClient();
+  // Its prescription photos' rows go with it (on delete cascade); their files
+  // are read first so they can be removed once the medicine is gone.
+  const { data: photos } = await supabase.from("health_medicine_photos").select("storage_path").eq("medicine_id", id);
   const { error } = await supabase.from("health_medicines").delete().eq("id", id);
+  if (!error && photos?.length) await supabase.storage.from("journal").remove(photos.map((p) => p.storage_path));
+  return done(memberId, error ? say(error.message) : null);
+}
+
+/** Records a prescription photo the browser has already put in Storage,
+ * under <family id>/health/<medicine id>/ (the upload session's visit_photo
+ * folder, keyed on the medicine). The table checks the path is this
+ * household's and this medicine's, and that the caller can see it. */
+export async function addMedicinePhotoAction(medicineId: string, memberId: string, storagePath: string): Promise<ActionState> {
+  const me = await requireCurrentMember();
+  if (!UUID.test(medicineId) || !storagePath.startsWith(`${me.family_id}/health/${medicineId}/`)) return { error: "That photo could not be saved." };
+  const supabase = await createClient();
+  const { count } = await supabase.from("health_medicine_photos").select("id", { count: "exact", head: true }).eq("medicine_id", medicineId);
+  if ((count ?? 0) >= MAX_PRESCRIPTION_PHOTOS) return { error: `A medicine keeps up to ${MAX_PRESCRIPTION_PHOTOS} prescription photos. Delete an old one first.` };
+  const { error } = await supabase.from("health_medicine_photos").insert({ family_id: me.family_id, medicine_id: medicineId, storage_path: storagePath, created_by: me.id });
+  return done(memberId, error ? say(error.message) : null);
+}
+
+export async function deleteMedicinePhotoAction(id: string, memberId: string): Promise<ActionState> {
+  await requireCurrentMember();
+  if (!UUID.test(id)) return { error: "That photo could not be found." };
+  const supabase = await createClient();
+  const { data, error } = await supabase.from("health_medicine_photos").delete().eq("id", id).select("storage_path").maybeSingle();
+  if (!error && data?.storage_path) await supabase.storage.from("journal").remove([data.storage_path]);
   return done(memberId, error ? say(error.message) : null);
 }
 
