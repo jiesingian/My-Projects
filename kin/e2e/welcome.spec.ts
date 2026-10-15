@@ -126,7 +126,8 @@ test("the check-up: one question per screen, kids only with kids, and the answer
   expect(await hub.count()).toBeGreaterThanOrEqual(3);
   expect(await hub.count()).toBeLessThanOrEqual(5);
   await expect(hub.first()).toContainText("Health profiles");
-  await expect(page.getByText("4 places to keep track in today. In Kin, it’s one.")).toBeVisible();
+  // No "N places to keep track" line any more (Janine, 15 October).
+  await expect(page.getByText(/places to keep track/)).toHaveCount(0);
   await expect(page.getByText("Private to your family. Nothing is sold, and your records never train AI.")).toBeVisible();
   await expectTapTargets(page);
 

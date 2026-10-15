@@ -1,15 +1,15 @@
 "use client";
 
 import type { Ref } from "react";
-import { PRIVACY_LINE, SELF_CHECK_LINE, oneAppLine, readinessScore, scoreCategory, wantsPrivacyFirst, type Answers } from "@/lib/check-up";
+import { PRIVACY_LINE, SELF_CHECK_LINE, readinessScore, scoreCategory, wantsPrivacyFirst, type Answers } from "@/lib/check-up";
 import { PROFILES, blueprintFeatures, blueprintProfile } from "@/lib/blueprint";
 
 /** The check-up's result: Your Family’s Digital Blueprint (Janine, 14
  * October). The Family Digital Readiness Score and its category, the
  * family's profile and its tagline (Janine, 14 October: no explanation,
  * it read too heavy), and three to five Kin features to start
- * with; then what Kin replaces and, for anyone who said "privacy first",
- * the privacy promise. Worked out here from the answers; nothing is sent. */
+ * with (Janine, 15 October: no "N places to keep track" line); then, for
+ * anyone who said "privacy first", the privacy promise. Worked out here from the answers; nothing is sent. */
 export function Results({ answers, onNext, onBack, heading }: { answers: Answers; onNext: () => void; onBack: () => void; heading: Ref<HTMLHeadingElement> }) {
   const score = readinessScore(answers);
   const category = scoreCategory(score);
@@ -59,7 +59,6 @@ export function Results({ answers, onNext, onBack, heading }: { answers: Answers
         ))}
       </ul>
 
-      <p className="kin-check-callout">{oneAppLine(answers)}</p>
       {wantsPrivacyFirst(answers) && <p className="kin-check-callout">{PRIVACY_LINE}</p>}
 
       <button type="button" className="btn btn-primary btn-block kin-welcome-cta kin-check-profile-cta" onClick={onNext}>

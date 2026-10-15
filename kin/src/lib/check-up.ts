@@ -335,17 +335,6 @@ export const PRIORITY_IN_KIN: Record<Priority, { line: string; plus?: boolean }>
   together: { line: "the family chat, with polls and voice and video calls, right beside the calendar of what you’re doing together." },
 };
 
-/** From question 2: what Kin brings together. */
-export function oneAppLine(answers: Answers): string {
-  const tools = answers.tools ?? [];
-  const places = trackingPlaces(answers).length;
-  if (tools.includes("none")) return "One place to start, without having to set up a system first.";
-  if (places === 0 && tools.includes("memory")) return "Less to carry in your heads: the dates, lists and bills in one place everyone can check.";
-  if (places === 1) return "Already one place? Kin keeps it that way, with the calendar, lists and bills side by side.";
-  if (places > 1) return `${places} places to keep track in today. In Kin, it’s one.`;
-  return "One place for the whole family, instead of five.";
-}
-
 /** Shown when question 9 is "Curious but privacy first": the promise as
  * /legal/privacy makes it. */
 export const PRIVACY_LINE = "Private to your family. Nothing is sold, and your records never train AI.";
