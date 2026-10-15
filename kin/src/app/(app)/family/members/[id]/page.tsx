@@ -9,7 +9,8 @@ import { getAccounts } from "@/lib/queries/wealth";
 import { LogSpendControl } from "@/components/money-actions";
 import { DetailHeader } from "@/components/hub-header";
 import { ChipRow } from "@/components/segmented";
-import { MedicinesPanel, IllnessPanel, GrowthPanel } from "@/components/health-care";
+import { MedicinesPanel, IllnessPanel, GrowthPanel, VaccineGuidePanel } from "@/components/health-care";
+import { guideApplies, vaccineGuide } from "@/lib/vaccine-schedule";
 import { ageInMonths } from "@/lib/growth";
 import { familyDay, familyClock } from "@/lib/time";
 import { Blueprint, Tag } from "@/components/ui";
@@ -38,7 +39,7 @@ import { memberColourVar } from "@/lib/member-colours";
 import { PersonActions, ProfileMoreMenu, CoverPicker } from "@/components/person-profile";
 import { storyCountLabel } from "@/lib/tree-stories";
 
-const SEGMENTS = ["schedule", "medicines", "illness", "conditions", "labs", "vitals"] as const;
+const SEGMENTS = ["schedule", "vaccines", "medicines", "illness", "conditions", "labs", "vitals"] as const;
 type Seg = (typeof SEGMENTS)[number];
 
 export default async function MemberDetailPage({
@@ -135,7 +136,19 @@ export default async function MemberDetailPage({
   const heartSeries = buildBarSeries(recent("heart_rate"), (v) => parseInt(v, 10), 30, dateFormat);
   const sleepSeries = buildBarSeries(recent("sleep"), (v) => parseFloat(v), 20, dateFormat);
 
-  const segments = SEGMENTS.map((s) => ({
+  // The vaccine guide (lib/vaccine-schedule.ts) is for a child with a
+  // birthday; it reads the vaccinations recorded under Conditions.
+  const today = familyDay(new Date(), tz);
+  const showGuide = guideApplies(member.role, member.dob, today);
+  const guide =
+    showGuide && member.dob
+      ? vaccineGuide(
+          member.dob,
+          conditions.filter((c) => c.status === "routine").map((c) => ({ name: c.name, dates: (c.health_condition_entries ?? []).map((e) => e.entry_date) })),
+          today,
+        ).map((d) => ({ ...d, dueWords: d.status === "overdue" ? `usually by ${fmtDate(d.byDate)}` : `from ${fmtDate(d.dueDate)}`, givenWords: d.givenOn ? fmtDate(d.givenOn) : null }))
+      : [];
+  const segments = SEGMENTS.filter((s) => s !== "vaccines" || showGuide).map((s) => ({
     label: s[0].toUpperCase() + s.slice(1),
     href: `/family/members/${id}?view=health&seg=${s}`,
     active: s === seg,
@@ -339,6 +352,12 @@ export default async function MemberDetailPage({
               {schedule.length === 0 && appointments.length === 0 && <EmptyNote text="No check-ups or appointments scheduled. Adding one puts it in the Planner and on Today when it comes due." />}
             </>
           )}
+
+          {seg === "vaccines" && (showGuide ? (
+            <VaccineGuidePanel memberId={member.id} firstName={member.full_name.split(" ")[0]} guide={guide} today={today} role={me.role} />
+          ) : (
+            <EmptyNote text="The vaccine guide is for children with a birthday set." />
+          ))}
 
           {seg === "medicines" && (
             <MedicinesPanel
