@@ -7,6 +7,15 @@ import { formatTimeOfDay } from "@/lib/routines";
 import type { IconName } from "@/components/icons";
 import { isForMe, taggedFrom, whoseFor, type Whose } from "@/lib/for-me";
 import { DEFAULT_BILL_REMIND_DAYS } from "@/lib/wealth";
+import { occurrenceStarts } from "@/lib/activity-repeat";
+
+/** Tasks that start in [fromISO, …), or repeating ones that have not ended
+ * by `fromDay` -- a weekly task's later days are on its rule, not its row
+ * (lib/activity-repeat), so they are fetched and expanded here. */
+const startsOrRepeats = (fromISO: string, fromDay: string) =>
+  `start_at.gte.${fromISO},and(repeat.neq.once,or(repeat_until.is.null,repeat_until.gte.${fromDay}))`;
+
+const repeats = (a: { repeat: string | null }) => !!a.repeat && a.repeat !== "once";
 
 /** Who is looking: Today shows them what is theirs (lib/for-me). */
 type Viewer = { id: string; role: string };
@@ -90,20 +99,31 @@ export async function getGlance(familyId: string, currency: string, me: Viewer):
     // (29 September): theirs, the family's or a child's -- lib/for-me.
     supabase
       .from("activities")
-      .select("title, start_at, applies_to_whole_family, activity_members(member_id, members(role))")
+      .select("title, start_at, repeat, repeat_days, repeat_until, applies_to_whole_family, activity_members(member_id, members(role))")
       .eq("family_id", familyId)
       .eq("status", "upcoming")
-      .gte("start_at", now.toISOString())
+      .or(startsOrRepeats(now.toISOString(), localDay(now, tz)))
       .order("start_at", { ascending: true })
-      .limit(25),
+      .limit(50),
   ]);
 
-  const nextMine = (upcoming.data ?? []).find((a) => isForMe(me, a.applies_to_whole_family, taggedFrom(a.activity_members)));
+  // Each plan at its next time from now: a repeating one's next day on its
+  // rule, looked for over the coming fortnight.
+  const today = localDay(now, tz);
+  const nextMine = (upcoming.data ?? [])
+    .filter((a) => isForMe(me, a.applies_to_whole_family, taggedFrom(a.activity_members)))
+    .map((a) => {
+      const start = new Date(a.start_at);
+      const at = repeats(a) ? occurrenceStarts(a, start, today, addDays(today, 14), tz).find((d) => d >= now) : start >= now ? start : undefined;
+      return at ? { title: a.title, at } : null;
+    })
+    .filter((x): x is { title: string; at: Date } => x !== null)
+    .sort((a, b) => a.at.getTime() - b.at.getTime())[0];
   const next: GlanceTile | null = nextMine
     ? {
         id: "next",
         icon: "calendarDays",
-        value: `${new Intl.DateTimeFormat("en-GB", { timeZone: tz, weekday: "short" }).format(new Date(nextMine.start_at))} ${localTime(new Date(nextMine.start_at), tz)}`,
+        value: `${new Intl.DateTimeFormat("en-GB", { timeZone: tz, weekday: "short" }).format(nextMine.at)} ${localTime(nextMine.at, tz)}`,
         label: `next: ${nextMine.title}`,
         href: "/planner",
       }
@@ -162,13 +182,13 @@ export async function getTodayBriefing(familyId: string, currency: string, me: V
   const [activities, events, bills, health, meals, buyCount, marks] = await Promise.all([
     supabase
       .from("activities")
-      .select("id, title, start_at, location, status, applies_to_whole_family, activity_members(member_id, members(role))")
+      .select("id, title, start_at, location, status, repeat, repeat_days, repeat_until, applies_to_whole_family, activity_members(member_id, members(role))")
       .eq("family_id", familyId)
       // Completed and cancelled ones come back too, so a plan ticked off
       // today stays on Today as done (with Undo) instead of vanishing.
       .in("status", ["upcoming", "completed", "cancelled"])
-      .gte("start_at", windowStart)
       .lt("start_at", windowEnd)
+      .or(startsOrRepeats(windowStart, today))
       .order("start_at", { ascending: true }),
     // Birthdays and anniversaries are stored on the date they first happened
     // and marked recurring, so matching on event_date alone would only ever
@@ -216,13 +236,17 @@ export async function getTodayBriefing(familyId: string, currency: string, me: V
   const items: BriefItem[] = [];
 
   for (const a of activities.data ?? []) {
-    const start = new Date(a.start_at);
-    if (localDay(start, tz) !== today) continue;
+    // A repeating plan is here on each day its rule falls (lib/activity-repeat),
+    // at its usual time; a one-off only on its own day.
+    const start = repeats(a) ? occurrenceStarts(a, new Date(a.start_at), today, today, tz)[0] : new Date(a.start_at);
+    if (!start || localDay(start, tz) !== today) continue;
     if (!isForMe(me, a.applies_to_whole_family, taggedFrom(a.activity_members))) continue;
     const key = `activity-${a.id}`;
     // A plan completed or cancelled on another day, or from the Planner
-    // without a mark here, is not today's business any more.
-    if (a.status !== "upcoming" && !marked.has(key)) continue;
+    // without a mark here, is not today's business any more. A repeating
+    // one is marked a day at a time (today_marks), never as a whole, so its
+    // row's status does not hide it.
+    if (!repeats(a) && a.status !== "upcoming" && !marked.has(key)) continue;
     items.push({
       id: key,
       action: "done",
@@ -381,11 +405,11 @@ export async function getComingUp(familyId: string, currency: string, me: Viewer
       .limit(3),
     supabase
       .from("activities")
-      .select("id, title, start_at, location, applies_to_whole_family, activity_members(member_id, members(role))")
+      .select("id, title, start_at, location, status, repeat, repeat_days, repeat_until, applies_to_whole_family, activity_members(member_id, members(role))")
       .eq("family_id", familyId)
-      .eq("status", "upcoming")
-      .gte("start_at", new Date(now.getTime() + 6 * 3600_000).toISOString())
+      .in("status", ["upcoming", "completed", "cancelled"])
       .lt("start_at", new Date(now.getTime() + 54 * 3600_000).toISOString())
+      .or(startsOrRepeats(new Date(now.getTime() + 6 * 3600_000).toISOString(), tomorrow))
       .order("start_at", { ascending: true }),
     supabase
       .from("meal_plans")
@@ -437,8 +461,10 @@ export async function getComingUp(familyId: string, currency: string, me: Viewer
   // Every early start tomorrow: there are only ever a few, and the Who
   // dropdown shows whichever are wanted.
   for (const a of tasks.data ?? []) {
-    const start = new Date(a.start_at);
-    if (localDay(start, tz) !== tomorrow || Number(localTime(start, tz).slice(0, 2)) >= 10) continue;
+    // A one-off still to do, or a repeating one whose rule falls tomorrow.
+    if (!repeats(a) && a.status !== "upcoming") continue;
+    const start = repeats(a) ? occurrenceStarts(a, new Date(a.start_at), tomorrow, tomorrow, tz)[0] : new Date(a.start_at);
+    if (!start || localDay(start, tz) !== tomorrow || Number(familyClock(start, tz).slice(0, 2)) >= 10) continue;
     const tagged = taggedFrom(a.activity_members);
     const whose = whoseFor(me, a.applies_to_whole_family, tagged);
     items.push({ id: `soon-task-${a.id}`, icon: "clock", tint: "schedule", title: a.title, meta: ["Early start tomorrow", localTime(start, tz), a.location].filter(Boolean).join(" · "), href: "/planner", at: 1, whose, memberIds: a.applies_to_whole_family ? [] : tagged.map((t) => t.id) });

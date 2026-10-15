@@ -27,6 +27,12 @@ import type { ActionState } from "@/lib/actions/auth";
 
 const KEY = /^(activity|bill|health)-[0-9a-f-]{36}$|^buy$/;
 
+/** Does this plan repeat (lib/activity-repeat)? */
+async function isRepeating(supabase: Awaited<ReturnType<typeof createClient>>, id: string, familyId: string): Promise<boolean> {
+  const { data } = await supabase.from("activities").select("repeat").eq("id", id).eq("family_id", familyId).maybeSingle();
+  return !!data?.repeat && data.repeat !== "once";
+}
+
 export async function markTodayItemAction(itemKey: string, state: "done" | "skipped"): Promise<ActionState> {
   const tz = await householdZone();
   if (!KEY.test(itemKey) || (state !== "done" && state !== "skipped")) return { error: "That can't be marked." };
@@ -37,7 +43,9 @@ export async function markTodayItemAction(itemKey: string, state: "done" | "skip
 
   if (kind === "bill" && state === "done") return { error: "Pay a bill from Wealth, so the money is recorded." };
 
-  if (kind === "activity") {
+  // A repeating plan is marked a day at a time (today_marks, below); setting
+  // its row's status would close the whole series.
+  if (kind === "activity" && !(await isRepeating(supabase, id, me.family_id))) {
     const { error } = await supabase
       .from("activities")
       .update({ status: state === "done" ? "completed" : "cancelled" })
@@ -67,7 +75,7 @@ export async function unmarkTodayItemAction(itemKey: string): Promise<ActionStat
   const [kind, ...rest] = itemKey.split("-");
   const id = rest.join("-");
 
-  if (kind === "activity") {
+  if (kind === "activity" && !(await isRepeating(supabase, id, me.family_id))) {
     const { error } = await supabase.from("activities").update({ status: "upcoming" }).eq("id", id).eq("family_id", me.family_id);
     if (error) return { error: humanDatabaseError(error.message) };
   }
