@@ -375,16 +375,27 @@ export async function addActivityToJournalAction(activityId: string): Promise<Ac
   const { data: activity } = await supabase.from("activities").select("*").eq("id", activityId).eq("family_id", me.family_id).single();
   if (!activity) return { error: "That activity is no longer there." };
 
-  const { error } = await supabase.from("journal_entries").insert({
+  const entry = {
     family_id: me.family_id,
     entry_date: familyDay(new Date(activity.start_at), tz),
     title: activity.title,
     note: activity.notes,
-    source: "from_plan",
     source_activity_id: activity.id,
     created_by: me.id,
-  });
-  if (error) return { error: humanDatabaseError(error.message) };
+  };
+  // 'from_plan' gives the entry its "from the planner" mark in the Journal.
+  // The journal_entries source check is older than supabase/migrations and
+  // refused that value for an event's photos (12 October), so if it refuses
+  // it here too the entry is still kept, as 'manual', rather than lost.
+  let { error } = await supabase.from("journal_entries").insert({ ...entry, source: "from_plan" });
+  if (error && /violates check constraint/i.test(error.message)) {
+    console.error("addActivityToJournal: from_plan refused", error.message);
+    ({ error } = await supabase.from("journal_entries").insert({ ...entry, source: "manual" }));
+  }
+  if (error) {
+    console.error("addActivityToJournal", error.message);
+    return { error: humanDatabaseError(error.message) };
+  }
 
   revalidatePath("/journal");
   revalidatePath("/planner");
