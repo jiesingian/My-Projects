@@ -27,6 +27,12 @@ scanning wait for the AI key.
   the grown-ups once per supply cycle. Refilled takes a new count or adds a
   box. Plus area. Migration 20261014201000_medicine_supply.sql.
 
+- **Done:** Prescription photos on a medicine (15 October, Janine): on a
+  medicine's card, "Add the prescription" opens Scan (the phone's camera)
+  and Upload. Up to 6 photos per medicine, seen by whoever can see the
+  medicine, in its own household only. Kin Plus, like medicines. Migration
+  20261015130000_medicine_prescription_photos.sql.
+
 - **Done:** Kid's vaccine schedule (15 October, Janine): a Vaccines
   segment on a child's Health page (child role, birthday, under 18). The
   DOH EPI schedule plus the usual PPS extras are data in

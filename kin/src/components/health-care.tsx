@@ -24,7 +24,10 @@ import {
   addToMedicineSupplyAction,
   stopMedicineSupplyAction,
   stopMedicineAction,
+  addMedicinePhotoAction,
+  deleteMedicinePhotoAction,
 } from "@/lib/actions/health-care";
+import { PhotoStrip } from "@/components/photo-strip";
 import { markVaccineGivenAction } from "@/lib/actions/health";
 
 /** The Health tab's medicines, illness log and growth chart (26 September).
@@ -67,6 +70,7 @@ export function MedicinesPanel({
   doses,
   missedAlerts,
   supply,
+  prescriptions,
   grownUps,
   today,
   now,
@@ -78,6 +82,7 @@ export function MedicinesPanel({
   doses: Dose[];
   missedAlerts: MissedAlert[];
   supply: Supply[];
+  prescriptions: Record<string, { id: string; url: string }[]>;
   grownUps: GrownUp[];
   today: string;
   now: string;
@@ -138,6 +143,7 @@ export function MedicinesPanel({
               {m.notes ? ` · ${m.notes}` : ""}
             </div>
             <SupplyLine medicine={m} memberId={memberId} supply={supply.find((x) => x.medicine_id === m.id) ?? null} canChange={isGrownUp(role)} />
+            <PrescriptionLine medicine={m} memberId={memberId} photos={prescriptions[m.id] ?? []} />
             {m.times.length > 0 && (
               <MissedDoseAlert
                 medicine={m}
@@ -179,6 +185,7 @@ export function MedicinesPanel({
                 <div className="kin-care-muted">
                   {m.start_date} to {m.end_date}
                 </div>
+                {(prescriptions[m.id]?.length ?? 0) > 0 && <PrescriptionLine medicine={m} memberId={memberId} photos={prescriptions[m.id]} />}
               </div>
               <button type="button" className="btn btn-ghost" disabled={pending} onClick={async () => (await confirm({ title: `Delete ${m.name}?`, description: "Its doses go with it. This can't be undone.", confirmLabel: "Delete", danger: true })) && run(() => deleteMedicineAction(m.id, memberId))}>
                 Delete
@@ -186,6 +193,34 @@ export function MedicinesPanel({
             </div>
           ))}
         </details>
+      )}
+    </div>
+  );
+}
+
+/** The prescription on a medicine's card (20261015130000): "Prescription · 2
+ * photos" opens the photos; with none yet, "Add the prescription". Scan opens
+ * the phone's camera; Upload picks a photo already taken. Seen by whoever
+ * can see the medicine. */
+function PrescriptionLine({ medicine, memberId, photos }: { medicine: Medicine; memberId: string; photos: { id: string; url: string }[] }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <div className="kin-care-muted" style={{ marginTop: "0.25rem" }}>
+      <button type="button" className="kin-care-link" aria-expanded={open} onClick={() => setOpen(!open)}>
+        {open ? "Hide the prescription" : photos.length ? `Prescription · ${photos.length} photo${photos.length === 1 ? "" : "s"}` : "Add the prescription"}
+      </button>
+      {open && (
+        <div style={{ marginTop: "0.5rem" }}>
+          <PhotoStrip
+            kind="visit_photo"
+            ownerId={medicine.id}
+            photos={photos}
+            label={`${medicine.name} prescription`}
+            scan
+            onAdd={(path) => addMedicinePhotoAction(medicine.id, memberId, path)}
+            onDelete={(id) => deleteMedicinePhotoAction(id, memberId)}
+          />
+        </div>
       )}
     </div>
   );
