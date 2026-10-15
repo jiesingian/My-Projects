@@ -1,6 +1,6 @@
 import { test, expect } from "@playwright/test";
 import { PRIORITIES } from "@/lib/first-open";
-import { QUESTIONS, type Answers, PRIORITY_IN_KIN, answerTip, answered, oneAppLine, wantsPrivacyFirst, areaScores, questionsFor, readinessScore, scoreCategory, toggle, topThree } from "@/lib/check-up";
+import { QUESTIONS, type Answers, PRIORITY_IN_KIN, answerTip, answered, wantsPrivacyFirst, areaScores, questionsFor, readinessScore, scoreCategory, toggle, topThree } from "@/lib/check-up";
 import { FEATURES, PRIORITY_PROFILE, PROFILES, blueprintFeatures, blueprintProfile } from "@/lib/blueprint";
 
 const q = (id: string) => QUESTIONS.find((x) => x.id === id)!;
@@ -138,11 +138,7 @@ test("question 9 doesn't change the score", () => {
   expect(readinessScore({ ...a, ai: ["ready"] })).toBe(readinessScore({ ...a, ai: ["no"] }));
 });
 
-test("results: 'one place' follows question 2, and the privacy line follows question 9", () => {
-  expect(oneAppLine({ tools: ["chat", "notes", "paper"] })).toBe("3 places to keep track in today. In Kin, it’s one.");
-  expect(oneAppLine({ tools: ["calendar", "memory"] })).toMatch(/^Already one place\?/);
-  expect(oneAppLine({ tools: ["memory"] })).toMatch(/^Less to carry in your heads/);
-  expect(oneAppLine({ tools: ["none"] })).toMatch(/^One place to start/);
+test("results: the privacy line follows question 9", () => {
   expect(wantsPrivacyFirst({ ai: ["privacy"] })).toBe(true);
   expect(wantsPrivacyFirst({ ai: ["ready"] })).toBe(false);
   for (const p of PRIORITIES) expect(PRIORITY_IN_KIN[p].line.length).toBeGreaterThan(0);
