@@ -4778,6 +4778,60 @@ export type Database = {
           },
         ]
       }
+      loyalty_cards: {
+        Row: {
+          card_name: string
+          card_number: string
+          code_format: string
+          created_at: string
+          created_by: string | null
+          family_id: string
+          id: string
+          note: string | null
+          store: string
+          updated_at: string
+        }
+        Insert: {
+          card_name?: string
+          card_number: string
+          code_format?: string
+          created_at?: string
+          created_by?: string | null
+          family_id: string
+          id?: string
+          note?: string | null
+          store: string
+          updated_at?: string
+        }
+        Update: {
+          card_name?: string
+          card_number?: string
+          code_format?: string
+          created_at?: string
+          created_by?: string | null
+          family_id?: string
+          id?: string
+          note?: string | null
+          store?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "loyalty_cards_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "members"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "loyalty_cards_family_id_fkey"
+            columns: ["family_id"]
+            isOneToOne: false
+            referencedRelation: "families"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       members: {
         Row: {
           cover_avatar_id: string | null
