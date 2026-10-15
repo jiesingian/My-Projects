@@ -1,5 +1,5 @@
 import { test, expect } from "@playwright/test";
-import { clampServings, findDurations, formatClock, formatDuration, roundForCooking, scaleFactor, scaleIngredient, toFraction } from "@/lib/cook";
+import { clampServings, findDurations, mealAmountFor, formatClock, formatDuration, roundForCooking, scaleFactor, scaleIngredient, toFraction } from "@/lib/cook";
 import { RECIPES } from "@/lib/recipes";
 
 /** Cook mode and servings: scaling a recipe to the people at the table,
@@ -93,4 +93,18 @@ test("timers read like a kitchen clock", () => {
   expect(formatClock(65)).toBe("1:05");
   expect(formatClock(3725)).toBe("1:02:05");
   expect(formatClock(-3)).toBe("0:00");
+});
+
+test("a meal planned for N people stores the scaled amount the Buy list reads", () => {
+  const chicken = { name: "Chicken thigh", qty: 1, unit: "kg" };
+  // Not set: exactly what the recipe says, as before.
+  expect(mealAmountFor(chicken, 5, null)).toEqual({ amount: 1, qty: "1 kg" });
+  expect(mealAmountFor(chicken, 5, 8)).toEqual({ amount: 1.6, qty: "1.6 kg" });
+  expect(mealAmountFor({ name: "Soy sauce", qty: 0.5, unit: "bottle" }, 5, 8)).toEqual({ amount: 0.75, qty: "0.75 bottle" });
+  expect(mealAmountFor({ name: "Vinegar", qty: 0.3, unit: "bottle" }, 5, 8)).toEqual({ amount: 0.5, qty: "0.5 bottle" });
+  expect(mealAmountFor({ name: "Eggs", qty: 2, unit: "pc" }, 4, 5)).toEqual({ amount: 3, qty: "3 pc" });
+  // ⅔ is stored to three places, not as a repeating decimal.
+  expect(mealAmountFor({ name: "Soy sauce", qty: 0.5, unit: "bottle" }, 5, 7).amount).toBe(0.667);
+  // Out of range people are clamped like the stepper.
+  expect(mealAmountFor(chicken, 5, 100).amount).toBe(6);
 });

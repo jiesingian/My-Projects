@@ -28,6 +28,7 @@ import { humanDatabaseError } from "@/lib/db-errors";
 import { clamp } from "@/lib/text";
 import { getRecipeBook } from "@/lib/queries/recipes";
 import { planDinners, rankByPantry } from "@/lib/pantry-match";
+import { mealAmountFor } from "@/lib/cook";
 import { planAdd, planRemove } from "@/lib/meal-shopping";
 import { isGrownUp } from "@/lib/roles";
 
@@ -497,6 +498,10 @@ export async function addMealFromRecipeAction(input: {
   recipeKey?: string | null;
   dish?: string | null;
   note?: string | null;
+  /** How many it is cooked for. Set, the recipe's amounts are scaled from
+   * its own `serves` before they are copied onto the meal, so the Buy list
+   * gets the scaled ones. Not set, they are copied as written. */
+  people?: number | null;
 }): Promise<ActionState> {
   const me = await requireCurrentMember();
   const supabase = await createClient();
@@ -506,6 +511,8 @@ export async function addMealFromRecipeAction(input: {
   if (!input.date || !dish) return { error: "Pick a day and a dish." };
   if (!MEAL_SLOTS.includes(input.slot as MealSlot)) return { error: "Pick which part of the day it is for." };
   const note = input.note ? clamp(input.note, 300) || null : null;
+  const people = input.people == null ? null : Math.round(Number(input.people));
+  if (people != null && !(people >= 1 && people <= 30)) return { error: "Cook for between 1 and 30 people." };
 
   // Sits after whatever is already in that slot.
   const { count } = await supabase
@@ -533,16 +540,19 @@ export async function addMealFromRecipeAction(input: {
 
   if (recipe) {
     const { error: ingredientError } = await supabase.from("meal_ingredients").insert(
-      recipe.ingredients.map((ing) => ({
-        meal_plan_id: plan.id,
-        family_id: me.family_id,
-        ingredient_name: ing.name,
-        item_key: normalizeKey(ing.name),
-        qty_amount: ing.qty,
-        unit: ing.unit,
-        section: ing.section,
-        qty: `${ing.qty} ${ing.unit}`,
-      })),
+      recipe.ingredients.map((ing) => {
+        const { amount, qty } = mealAmountFor(ing, recipe.serves, people);
+        return {
+          meal_plan_id: plan.id,
+          family_id: me.family_id,
+          ingredient_name: ing.name,
+          item_key: normalizeKey(ing.name),
+          qty_amount: amount,
+          unit: ing.unit,
+          section: ing.section,
+          qty,
+        };
+      }),
     );
     if (ingredientError) return { error: `The meal was saved, but not what it needs. ${ingredientError.message}` };
     // Picking the meal is writing the shopping list. A day already past is a
