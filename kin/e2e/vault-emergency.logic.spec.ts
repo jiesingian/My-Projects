@@ -14,7 +14,7 @@ import {
 } from "@/lib/vault-emergency";
 
 /** Emergency access to the vault: the words around what the database decides
- * (20261014205000). Who may do what is proved in PGlite
+ * (20261015120000). Who may do what is proved in PGlite
  * (supabase/tests/pglite/probes/vault-emergency-access.mjs). */
 
 const MANILA = "Asia/Manila";

@@ -11,6 +11,7 @@ import { type LiquidIntakeType, type LiquidIntakeMember } from "@/lib/liquid-int
 import { householdZone } from "@/lib/household-zone";
 import { familyDay } from "@/lib/time";
 import { nextEventDate } from "@/lib/grocery";
+import type { LoyaltyCard } from "@/lib/loyalty-cards";
 
 /** The open list, grouped by market section and ordered the way the sections
  * are walked, so it can be shopped straight down. */
@@ -232,4 +233,18 @@ export async function getBuyItemMeals(familyId: string): Promise<Record<string, 
   }
   for (const list of Object.values(out)) list.sort((a, b) => a.date.localeCompare(b.date) || a.dish.localeCompare(b.dish));
   return out;
+}
+
+/** The household's suki and loyalty cards, by store, for the Buy list's
+ * checkout (lib/loyalty-cards picks which show). RLS keeps them to the
+ * household and out of kid view. */
+export async function getLoyaltyCards(familyId: string): Promise<LoyaltyCard[]> {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("loyalty_cards")
+    .select("id, store, card_name, card_number, code_format, note")
+    .eq("family_id", familyId)
+    .order("store")
+    .order("created_at");
+  return (data ?? []).map((c) => ({ ...c, code_format: c.code_format === "none" ? "none" : "qr" }));
 }

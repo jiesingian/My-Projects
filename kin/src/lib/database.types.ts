@@ -4778,6 +4778,60 @@ export type Database = {
           },
         ]
       }
+      loyalty_cards: {
+        Row: {
+          card_name: string
+          card_number: string
+          code_format: string
+          created_at: string
+          created_by: string | null
+          family_id: string
+          id: string
+          note: string | null
+          store: string
+          updated_at: string
+        }
+        Insert: {
+          card_name?: string
+          card_number: string
+          code_format?: string
+          created_at?: string
+          created_by?: string | null
+          family_id: string
+          id?: string
+          note?: string | null
+          store: string
+          updated_at?: string
+        }
+        Update: {
+          card_name?: string
+          card_number?: string
+          code_format?: string
+          created_at?: string
+          created_by?: string | null
+          family_id?: string
+          id?: string
+          note?: string | null
+          store?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "loyalty_cards_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "members"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "loyalty_cards_family_id_fkey"
+            columns: ["family_id"]
+            isOneToOne: false
+            referencedRelation: "families"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       members: {
         Row: {
           cover_avatar_id: string | null
@@ -6272,7 +6326,7 @@ export type Database = {
           },
         ]
       }
-      // Emergency access to the vault (20261014205000). Read-only from the
+      // Emergency access to the vault (20261015120000). Read-only from the
       // app: every write goes through the functions further down.
       vault_emergency_contacts: {
         Row: {
@@ -6764,7 +6818,7 @@ export type Database = {
         Args: { p_secret: string; p_now?: string }
         Returns: { key: string; member_id: string; endpoint: string; p256dh: string; auth: string; title: string; body: string; url: string }[]
       }
-      // Emergency access to the vault (20261014205000).
+      // Emergency access to the vault (20261015120000).
       due_vault_emergency_reminders: {
         Args: { p_secret: string; p_now?: string }
         Returns: { key: string; member_id: string; endpoint: string; p256dh: string; auth: string; title: string; body: string; url: string }[]

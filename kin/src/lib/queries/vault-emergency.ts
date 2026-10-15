@@ -1,7 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { asStatus, type EmergencyStatus } from "@/lib/vault-emergency";
 
-/** Emergency access to the vault (20261014205000), read for either side.
+/** Emergency access to the vault (20261015120000), read for either side.
  * Which rows come back is row-level security's call: a household's
  * grown-ups get their own list, requests and log; a trusted person gets the
  * rows that name them; anyone else gets nothing. The status of each request

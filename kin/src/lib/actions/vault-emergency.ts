@@ -8,7 +8,7 @@ import { isGrownUp } from "@/lib/roles";
 import { emergencyError, isWaitDays, reasonProblem } from "@/lib/vault-emergency";
 import type { ActionState } from "@/lib/actions/auth";
 
-// Emergency access to the vault (20261014205000). Every rule -- who may name,
+// Emergency access to the vault (20261015120000). Every rule -- who may name,
 // ask, answer or read, and whether a request is open -- is enforced by the
 // database's own functions; the browser could call them directly and get the
 // same answers. What these add is the lock (a person's own PIN or Face ID)

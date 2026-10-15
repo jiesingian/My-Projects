@@ -19,6 +19,7 @@ import { plateAt, plateTone } from "@/lib/meal-photos";
 import { ZoomableImage } from "@/components/zoomable-image";
 import { readRecipeFromLinkAction } from "@/lib/actions/recipe-link";
 import type { RecipeDraft } from "@/lib/recipe-import";
+import { CookMode, ScaledIngredients, ServingsStepper } from "@/components/cook-mode";
 
 function useAct() {
   const router = useRouter();
@@ -74,6 +75,8 @@ const ORIGIN_LABEL: Record<EditableRecipe["origin"], string> = {
 export function RecipeBook({ recipes, categories: known }: { recipes: EditableRecipe[]; categories: CategoryView[] }) {
   const [editing, setEditing] = useState<EditableRecipe | null>(null);
   const [creating, setCreating] = useState(false);
+  // The recipe opened to read or cook from, by id so a refresh keeps it current.
+  const [viewingId, setViewingId] = useState<string | null>(null);
   // Save a recipe from a link: the box is open, and what was read from it.
   const [linking, setLinking] = useState(false);
   const [draft, setDraft] = useState<RecipeDraft | null>(null);
@@ -91,6 +94,21 @@ export function RecipeBook({ recipes, categories: known }: { recipes: EditableRe
           setEditing(null);
           setCreating(false);
           setDraft(null);
+        }}
+      />
+    );
+  }
+
+  const viewing = viewingId ? recipes.find((r) => r.id === viewingId) : null;
+  if (viewing) {
+    return (
+      <RecipeDetail
+        key={viewing.id}
+        recipe={viewing}
+        onBack={() => setViewingId(null)}
+        onEdit={() => {
+          setViewingId(null);
+          setEditing(viewing);
         }}
       />
     );
@@ -182,17 +200,17 @@ export function RecipeBook({ recipes, categories: known }: { recipes: EditableRe
           So is one category — the tile above says what you are looking at. */}
       {matches ? (
         matches.length > 0 ? (
-          matches.map((r) => <RecipeRow key={r.id} recipe={r} onEdit={() => setEditing(r)} />)
+          matches.map((r) => <RecipeRow key={r.id} recipe={r} onOpen={() => setViewingId(r.id)} onEdit={() => setEditing(r)} />)
         ) : (
           <p style={{ fontSize: "0.84375rem", color: "var(--color-neutral-600)" }}>No recipe matches that.</p>
         )
       ) : chosen ? (
-        chosen.items.map((r) => <RecipeRow key={r.id} recipe={r} onEdit={() => setEditing(r)} />)
+        chosen.items.map((r) => <RecipeRow key={r.id} recipe={r} onOpen={() => setViewingId(r.id)} onEdit={() => setEditing(r)} />)
       ) : (
         groups.map((g) => (
           <Collapsible key={g.key} title={g.title} meta={String(g.items.length)}>
             {g.items.map((r) => (
-              <RecipeRow key={r.id} recipe={r} onEdit={() => setEditing(r)} />
+              <RecipeRow key={r.id} recipe={r} onOpen={() => setViewingId(r.id)} onEdit={() => setEditing(r)} />
             ))}
           </Collapsible>
         ))
@@ -377,7 +395,7 @@ function CategoryTile({
   );
 }
 
-function RecipeRow({ recipe: r, onEdit }: { recipe: EditableRecipe; onEdit: () => void }) {
+function RecipeRow({ recipe: r, onOpen, onEdit }: { recipe: EditableRecipe; onOpen: () => void; onEdit: () => void }) {
   const tone = plateTone(r.name);
   return (
     <div style={{ display: "flex", alignItems: "center", gap: "0.625rem", padding: "0.5625rem 0", borderBottom: "1px solid var(--color-divider)" }}>
@@ -395,11 +413,18 @@ function RecipeRow({ recipe: r, onEdit }: { recipe: EditableRecipe; onEdit: () =
         )}
       </span>
       <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ fontSize: "0.9375rem", fontWeight: 500 }}>{r.name}</div>
-        <div style={{ fontSize: "0.78125rem", color: "var(--color-neutral-600)" }}>
-          {r.ingredients.length} ingredients · {r.slots.map((s) => MEAL_SLOT_LABEL[s]).join(", ")}
-          {r.minutes ? ` · ${r.minutes} min` : ""}
-        </div>
+        {/* The name opens the recipe to read, scale and cook from. */}
+        <button
+          type="button"
+          onClick={onOpen}
+          style={{ display: "block", width: "100%", textAlign: "left", border: 0, background: "none", padding: 0, color: "inherit", font: "inherit", cursor: "pointer" }}
+        >
+          <span style={{ display: "block", fontSize: "0.9375rem", fontWeight: 500 }}>{r.name}</span>
+          <span style={{ display: "block", fontSize: "0.78125rem", color: "var(--color-neutral-600)" }}>
+            {r.ingredients.length} ingredients · {r.slots.map((s) => MEAL_SLOT_LABEL[s]).join(", ")}
+            {r.minutes ? ` · ${r.minutes} min` : ""}
+          </span>
+        </button>
         {r.sourceUrl && (
           <a href={r.sourceUrl} target="_blank" rel="noopener noreferrer nofollow" style={{ fontSize: "0.75rem", color: "var(--color-accent-700)" }}>
             From {hostOf(r.sourceUrl)} ↗
@@ -421,6 +446,80 @@ function RecipeRow({ recipe: r, onEdit }: { recipe: EditableRecipe; onEdit: () =
       <button type="button" className="btn btn-ghost" style={{ minHeight: "2rem", fontSize: "0.78125rem", padding: "0 0.5rem" }} onClick={onEdit}>
         Edit
       </button>
+    </div>
+  );
+}
+
+/** One recipe to read and cook from: the ingredients at however many people
+ * are eating, the steps, and the way into cook mode. The servings stepper is
+ * a view; the recipe keeps its own `serves` until someone edits it. */
+function RecipeDetail({ recipe: r, onBack, onEdit }: { recipe: EditableRecipe; onBack: () => void; onEdit: () => void }) {
+  const serves = r.serves > 0 ? r.serves : 4;
+  const [servings, setServings] = useState(serves);
+  const [cooking, setCooking] = useState(false);
+  const steps = r.steps.map((s) => s.trim()).filter(Boolean);
+  const scaled = servings !== serves;
+
+  return (
+    <div>
+      <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", marginBottom: "0.75rem" }}>
+        <button type="button" className="btn btn-ghost" style={{ minHeight: "2.125rem", fontSize: "0.8125rem", padding: "0 0.5rem", gap: "0.25rem" }} onClick={onBack}>
+          <Icon name="chevronLeft" size={14} /> Back
+        </button>
+        <span style={{ flex: 1, minWidth: 0, font: "600 0.9375rem/1.2 var(--font-heading)" }}>{r.name}</span>
+        <button type="button" className="btn btn-ghost" style={{ minHeight: "2.125rem", fontSize: "0.8125rem", padding: "0 0.5rem" }} onClick={onEdit}>
+          Edit
+        </button>
+      </div>
+
+      {r.minutes ? <p style={{ fontSize: "0.8125rem", color: "var(--color-neutral-600)", margin: "0 0 0.75rem" }}>About {r.minutes} min</p> : null}
+
+      {steps.length > 0 && (
+        <button type="button" className="btn btn-primary btn-block" style={{ minHeight: "3rem", fontSize: "1rem", marginBottom: "1rem", gap: "0.375rem" }} onClick={() => setCooking(true)}>
+          <Icon name="utensils" size={17} /> Cook
+        </button>
+      )}
+
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "0.5rem", flexWrap: "wrap", marginBottom: "0.25rem" }}>
+        <span style={{ font: "600 0.9375rem/1.2 var(--font-heading)" }}>Ingredients</span>
+        <ServingsStepper servings={servings} onChange={setServings} />
+      </div>
+      {scaled && (
+        <p style={{ fontSize: "0.75rem", color: "var(--color-neutral-600)", margin: "0.25rem 0 0" }}>
+          Scaled from {serves}. The recipe itself is unchanged.{" "}
+          <button type="button" onClick={() => setServings(serves)} style={{ border: 0, background: "none", padding: 0, color: "var(--color-accent-700)", font: "inherit", cursor: "pointer", textDecoration: "underline" }}>
+            Back to {serves}
+          </button>
+        </p>
+      )}
+      {r.ingredients.length > 0 ? (
+        <ScaledIngredients ingredients={r.ingredients} serves={serves} servings={servings} />
+      ) : (
+        <p style={{ fontSize: "0.8125rem", color: "var(--color-neutral-600)" }}>No ingredients written down yet.</p>
+      )}
+
+      <div style={{ font: "600 0.9375rem/1.2 var(--font-heading)", margin: "1.25rem 0 0.5rem" }}>How to cook it</div>
+      {steps.length > 0 ? (
+        <ol style={{ margin: 0, paddingLeft: "1.25rem", fontSize: "0.9375rem", lineHeight: 1.5 }}>
+          {steps.map((s, i) => (
+            <li key={i} style={{ marginBottom: "0.5rem" }}>
+              {s}
+            </li>
+          ))}
+        </ol>
+      ) : (
+        <p style={{ fontSize: "0.8125rem", color: "var(--color-neutral-600)" }}>No steps written down yet. Edit the recipe to add them, one per line.</p>
+      )}
+
+      {r.sourceUrl && (
+        <a href={r.sourceUrl} target="_blank" rel="noopener noreferrer nofollow" style={{ display: "inline-block", marginTop: "0.75rem", fontSize: "0.75rem", color: "var(--color-accent-700)" }}>
+          From {hostOf(r.sourceUrl)} ↗
+        </a>
+      )}
+
+      {cooking && (
+        <CookMode name={r.name} steps={steps} ingredients={r.ingredients} serves={serves} servings={servings} onServings={setServings} onClose={() => setCooking(false)} />
+      )}
     </div>
   );
 }

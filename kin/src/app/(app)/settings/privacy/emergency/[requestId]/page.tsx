@@ -11,7 +11,7 @@ import { EmergencyVaultViewer } from "@/components/vault-emergency-viewer";
 import { householdPhrase } from "@/lib/vault-emergency";
 
 /** Another household's vault, read-only, while the emergency access it gave
- * this person is open (20261014205000).
+ * this person is open (20261015120000).
  *
  * The reader's own lock comes first, as it does for their own vault: nothing
  * of the other household is fetched until it is open. Whether the access is

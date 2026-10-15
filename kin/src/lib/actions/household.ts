@@ -29,6 +29,7 @@ import { clamp } from "@/lib/text";
 import { getRecipeBook } from "@/lib/queries/recipes";
 import { planDinners, rankByPantry } from "@/lib/pantry-match";
 import { planAdd, planRemove } from "@/lib/meal-shopping";
+import { isGrownUp } from "@/lib/roles";
 
 /** An event id from a form or the editor; anything else is "no event". */
 function asEventId(value: unknown): string | null {
@@ -1188,6 +1189,57 @@ export async function setMealMembersAction(mealPlanId: string, memberIds: string
     if (error) return { error: humanDatabaseError(error.message) };
   }
 
+  revalidatePath("/household");
+  return { error: null };
+}
+
+/** Add or change one of the household's suki and loyalty cards. Grown-ups
+ * only; the database says so too (20261015090000_loyalty_cards). */
+export async function saveLoyaltyCardAction(input: {
+  id?: string | null;
+  store: string;
+  cardName: string;
+  cardNumber: string;
+  showQr: boolean;
+  note: string;
+}): Promise<ActionState> {
+  const me = await requireCurrentMember();
+  if (!isGrownUp(me.role)) return { error: "Ask a grown-up to add or change a card." };
+  const store = input.store.trim().slice(0, 80);
+  const cardNumber = input.cardNumber.trim().slice(0, 64);
+  if (!store) return { error: "Which store is the card for?" };
+  if (!cardNumber) return { error: "Type the number on the card." };
+  const row = {
+    store,
+    card_name: input.cardName.trim().slice(0, 80),
+    card_number: cardNumber,
+    code_format: input.showQr ? "qr" : "none",
+    note: input.note.trim().slice(0, 200) || null,
+  };
+
+  const supabase = await createClient();
+  if (input.id) {
+    const { error, count } = await supabase
+      .from("loyalty_cards")
+      .update(row, { count: "exact" })
+      .eq("id", input.id)
+      .eq("family_id", me.family_id);
+    if (error) return { error: humanDatabaseError(error.message) };
+    if (count === 0) return { error: "That card is no longer there — someone may have removed it." };
+  } else {
+    const { error } = await supabase.from("loyalty_cards").insert({ ...row, family_id: me.family_id, created_by: me.id });
+    if (error) return { error: humanDatabaseError(error.message) };
+  }
+  revalidatePath("/household");
+  return { error: null };
+}
+
+export async function removeLoyaltyCardAction(id: string): Promise<ActionState> {
+  const me = await requireCurrentMember();
+  if (!isGrownUp(me.role)) return { error: "Ask a grown-up to take a card off." };
+  const supabase = await createClient();
+  const { error } = await supabase.from("loyalty_cards").delete().eq("id", id).eq("family_id", me.family_id);
+  if (error) return { error: humanDatabaseError(error.message) };
   revalidatePath("/household");
   return { error: null };
 }

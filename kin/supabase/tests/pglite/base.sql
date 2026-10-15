@@ -355,7 +355,7 @@ alter table members add column if not exists kid_view boolean not null default f
 create policy ftp_delete on family_tree_people for delete using (family_id = current_family_id());
 grant insert on storage.objects to authenticated;
 create policy documents_own_folder_insert on storage.objects for insert to authenticated with check (bucket_id = 'documents' and split_part(name, '/', 1) = public.current_family_id()::text);
--- The vault as emergency access reads it (20261014205000): the columns of
+-- The vault as emergency access reads it (20261015120000): the columns of
 -- family_vault_items, doc_entries, doc_folders and doc_files it hands over,
 -- with the household-only policies the real tables have.
 alter table family_vault_items add column if not exists group_name text not null default 'Wi-Fi', add column if not exists username text, add column if not exists secret text not null default 'secret', add column if not exists note text, add column if not exists visibility text not null default 'everyone';

@@ -8,8 +8,10 @@ import { requireCurrentMember } from "@/lib/session";
 import type { ActionState } from "@/lib/actions/auth";
 import { familyDay } from "@/lib/time";
 import { humanDatabaseError } from "@/lib/db-errors";
-import { explainVisibilityRefusal } from "@/lib/visibility";
+import { explainVisibilityRefusal, visibilityOptions } from "@/lib/visibility";
 import { clamp } from "@/lib/text";
+import { isGrownUp } from "@/lib/roles";
+import { doseName, VACCINES, vaccineFor } from "@/lib/vaccine-schedule";
 
 const GROUPED_TYPES = new Set(["illness", "checkup", "medication", "vaccination"]);
 
@@ -92,6 +94,54 @@ export async function createHealthEntryAction(_prev: ActionState, formData: Form
 
   revalidatePath(`/family/members/${memberId}`);
   redirect(`/family/members/${memberId}?view=health`);
+}
+
+/** "Mark as given" on a child's vaccine guide: one more entry under the
+ * vaccination of that name, as the Add form's Vaccination does -- under the
+ * child's existing group for it when there is one (any name the guide reads
+ * as this vaccine, e.g. "Penta"), else a new group named as the guide names
+ * it. So the record and the guide stay one thing. */
+export async function markVaccineGivenAction(input: { memberId: string; vaccine: string; n: number; date: string; visibility: string }): Promise<ActionState> {
+  const tz = await householdZone();
+  const me = await requireCurrentMember();
+  if (!isGrownUp(me.role)) return { error: "The grown-ups keep the health records." };
+  const v = VACCINES.find((x) => x.name === input.vaccine);
+  if (!v || !(input.n >= 1 && input.n <= v.doses.length)) return { error: "That vaccine isn't in the guide." };
+  const today = familyDay(new Date(), tz);
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(input.date) || input.date > today) return { error: "Pick the day it was given (today or before)." };
+  // Only for a new group: one already recorded keeps who can see it.
+  if (!visibilityOptions(me.role).some((o) => o.value === input.visibility)) return { error: "Choose who can see it." };
+  const supabase = await createClient();
+
+  const { data: groups, error: readErr } = await supabase
+    .from("health_conditions")
+    .select("id, name, created_at")
+    .eq("member_id", input.memberId)
+    .eq("family_id", me.family_id)
+    .eq("status", "routine")
+    .order("created_at", { ascending: true });
+  if (readErr) return { error: humanDatabaseError(readErr.message) };
+  let groupId = (groups ?? []).find((g) => vaccineFor(g.name)?.name === v.name)?.id;
+  if (!groupId) {
+    const { data: group, error } = await supabase
+      .from("health_conditions")
+      .insert({ family_id: me.family_id, member_id: input.memberId, name: v.name, status: "routine", visibility: input.visibility, created_by: me.id })
+      .select("id")
+      .single();
+    if (error) return { error: explainVisibilityRefusal(error.message) };
+    groupId = group.id;
+  }
+  const { error } = await supabase.from("health_condition_entries").insert({
+    condition_id: groupId,
+    family_id: me.family_id,
+    entry_date: input.date,
+    note: `${doseName({ vaccine: v, n: input.n, of: v.doses.length })} — marked from the vaccine guide`,
+    created_by: me.id,
+  });
+  if (error) return { error: humanDatabaseError(error.message) };
+  revalidatePath(`/family/members/${input.memberId}`);
+  revalidatePath("/family");
+  return { error: null };
 }
 
 export async function updateConditionEntryAction(input: { entryId: string; memberId: string; date: string; note: string }): Promise<ActionState> {
