@@ -76,7 +76,7 @@ concurrency:
 
 jobs:
   # One run on dev at a time, the rest waiting their turn (8 October; it was
-  # two until that afternoon -- see the end of this comment).
+  # two until that afternoon).
   #
   # Smoke opens every hub at every width in both themes -- about forty page
   # loads, each signing in and firing twenty-odd queries -- against the one
@@ -87,64 +87,38 @@ jobs:
   # (worst ~2 minutes) on every table alike -- not one slow query, just too
   # many at once -- and every run, main's own included, timed out page by
   # page and was cancelled at twenty minutes. Nothing failed; dev never
-  # returned an error; it was simply queued solid.
+  # returned an error; it was simply queued solid. From 10:07 UTC the same
+  # day, with two e2e runs and a couple of Schema checks going, dev stopped
+  # answering altogether: sign-in 504s for minutes, and statements timing out
+  # on every table, Supabase's own `SELECT version();` included.
   #
-  # So a run waits here, before it builds, until no e2e run that started
-  # before it is still going -- first come, first served, nothing
-  # cancelled, no test dropped. The wait is its own job so it never eats into
-  # the suite's twenty minutes. After forty minutes it goes anyway and says
-  # so, rather than holding a pull request forever behind a stuck run.
+  # How the waiting is done changed on 18 October. Until then a separate
+  # `turn` job polled the API every 30 seconds until nothing was ahead of it,
+  # for up to forty minutes -- and GitHub bills a job for every minute it
+  # sleeps. It was the largest single use of the repository's Actions
+  # minutes: 464 of 1,157 measured over 13-15 October went to this workflow,
+  # much of it waiting, and the month's allowance ran out on the 15th with
+  # every check on every pull request failing in two seconds.
   #
-  # Two was still too many. From 10:07 UTC the same day, with two e2e runs
-  # and a couple of Schema checks going, dev stopped answering: sign-in 504s
-  # for minutes, and statements timing out on every table, Supabase's own
-  # `SELECT version();` included. One at a time is slower through a backlog
-  # (about eight minutes a pull request) but a run that finishes beats two
-  # that both time out.
-  turn:
-    runs-on: ubuntu-latest
-    timeout-minutes: 45
-    permissions:
-      actions: read
-    steps:
-      - name: Wait for a turn on dev
-        env:
-          GH_TOKEN: ${{ github.token }}
-          REPO: ${{ github.repository }}
-          RUN_ID: ${{ github.run_id }}
-          SLOTS: "1"
-        run: |
-          set -euo pipefail
-          # run_started_at, not created_at: a re-run attempt starts afresh
-          # and joins the back of the queue.
-          mine=$(gh api "repos/$REPO/actions/runs/$RUN_ID" --jq .run_started_at)
-          deadline=$(( $(date +%s) + 40 * 60 ))
-          while :; do
-            # in_progress AND queued (13 October). A run reads "queued", not
-            # "in_progress", for the few seconds between its turn job ending
-            # and its e2e job getting a runner. Counting only in_progress let
-            # main's run look exactly then, see nobody ahead, and start beside
-            # #597's: both ran chat-live.spec.ts in the one shared "E2E live
-            # chat" group at once and failed each other (runs 38364749584 and
-            # 38365163363, 07:50-07:57 UTC). Queued runs that have not started
-            # yet carry a later run_started_at, so they still wait behind us.
-            ahead=$(for status in in_progress queued; do
-                gh api "repos/$REPO/actions/workflows/e2e.yml/runs?status=$status&per_page=100" --jq '.workflow_runs[]'
-              done | jq -s "[.[] | select(.id != $RUN_ID) | select(.run_started_at < \"$mine\" or (.run_started_at == \"$mine\" and .id < $RUN_ID))] | unique_by(.id) | length")
-            if [ "$ahead" -lt "$SLOTS" ]; then
-              echo "Dev has room: $ahead e2e run(s) ahead of this one."
-              break
-            fi
-            if [ "$(date +%s)" -ge "$deadline" ]; then
-              echo "::warning::Waited 40 minutes for a turn on dev ($ahead runs still ahead); running anyway."
-              break
-            fi
-            echo "$ahead e2e runs ahead of this one on dev; waiting for a turn."
-            sleep 30
-          done
-
+  # Now the e2e job itself sits in one repository-wide concurrency group.
+  # A job waiting on a concurrency group has no runner and costs nothing.
+  # The catch, and why the polling existed: GitHub keeps only ONE waiting run
+  # per group, and a newer waiter cancels the older one ("Canceling since a
+  # higher priority waiting request ... exists"). So with three pull requests
+  # pushed at once, the middle one is cancelled rather than queued. That
+  # cancelled run is not lost: automerge.yml's 15-minute sweep finds a pull
+  # request whose End-to-end on its current head was cancelled with nothing
+  # else running, and re-runs it (at most three attempts per commit, so a run
+  # that is cancelled for some other reason cannot loop). Slower through a
+  # backlog than the old first-come queue; nothing skipped, nothing paid for
+  # waiting.
+  #
+  # The workflow-level group above still cancels a pull request's own
+  # superseded runs; this one only decides whose turn it is on dev.
   e2e:
-    needs: turn
+    concurrency:
+      group: e2e-dev
+      cancel-in-progress: false
     runs-on: ubuntu-latest
     # Minutes, not the old suite's seven-plus -- see the header. The default
     # job limit is six hours, which is how a hung browser quietly spends a

@@ -233,6 +233,30 @@ jobs:
               if [ "$(ran "$W")" -eq 0 ]; then MISSING="$MISSING [$W: never ran]"; continue; fi
               if [ "$(passed "$W")" -eq 0 ]; then MISSING="$MISSING [$W: not green]"; fi
             done <<< "$(echo "$REQUIRED" | tr '|' '\n')"
+            # End-to-end waits for its turn on dev in one concurrency group
+            # (e2e.yml, 18 October), and GitHub keeps only one waiting run per
+            # group: a newer waiter cancels the older one. Nothing else would
+            # ever start that pull request's run again, so it would sit here
+            # "not green" for good. Re-run it when the latest End-to-end on
+            # this head was cancelled and none is queued, running or green --
+            # at most three attempts per commit, so a run cancelled for any
+            # other reason (a timeout, a person) cannot loop and spend the
+            # month's minutes. A waiting run costs nothing; only the run that
+            # finally gets its turn is billed.
+            if echo "$REQUIRED" | grep -q "End-to-end"; then
+              E2E=$(jq -c '[.workflow_runs[] | select(.name=="End-to-end")] | sort_by(.created_at) | reverse' /tmp/runs.json)
+              ACTIVE=$(echo "$E2E" | jq '[.[] | select(.status != "completed" or .conclusion == "success")] | length')
+              LATEST=$(echo "$E2E" | jq -r '.[0] | if . == null then "" else "\(.id) \(.conclusion) \(.run_attempt)" end')
+              if [ "$ACTIVE" -eq 0 ] && [ -n "$LATEST" ]; then
+                read -r RUN_ID CONCLUSION ATTEMPT <<< "$LATEST"
+                if [ "$CONCLUSION" = "cancelled" ] && [ "$ATTEMPT" -lt 3 ]; then
+                  gh run rerun "$RUN_ID" --repo "$REPO" \
+                    && echo "PR #$PR: End-to-end was cancelled waiting for its turn on dev — queued it again (attempt $((ATTEMPT + 1)))." \
+                    || echo "PR #$PR: End-to-end was cancelled and could not be re-run — re-run it by hand."
+                fi
+              fi
+            fi
+
             if [ -n "$MISSING" ]; then
               echo "PR #$PR: not merging —$MISSING."
               echo "A check that did not run is not a check that passed."
