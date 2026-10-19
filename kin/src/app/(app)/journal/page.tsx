@@ -225,6 +225,10 @@ async function EntriesPane({ familyId, me, mine, milestonesOnly = false }: { fam
           <Link href="/journal?view=milestones" className="chip" data-active={milestonesOnly} aria-current={milestonesOnly ? "page" : undefined}>
             <span aria-hidden="true">★</span> Milestones
           </Link>
+          {/* The year's milestones and best photos as a PDF to print (Plus). */}
+          <Link href="/journal/year-book" className="chip">
+            Year book
+          </Link>
         </nav>
       )}
       {withLetters && <SealedEnvelopes envelopes={envelopes} openWhen={openWhen} />}

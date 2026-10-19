@@ -6257,6 +6257,70 @@ button.kin-initial:focus-visible {
 .kin-journal-filter .chip[data-active="true"] span {
   color: inherit;
 }
+/* The year book (19 October): the entries to tick, then the pages. */
+.kin-yearbook-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.375rem;
+}
+.kin-yearbook-list label {
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+  padding: 0.5rem;
+  border-radius: 0.75rem;
+  background: var(--color-surface, var(--color-bg));
+  cursor: pointer;
+}
+.kin-yearbook-list input {
+  width: 1.25rem;
+  height: 1.25rem;
+  flex: none;
+}
+.kin-yearbook-list img,
+.kin-yearbook-nophoto {
+  width: 3.25rem;
+  height: 3.25rem;
+  flex: none;
+  border-radius: 0.5rem;
+  object-fit: cover;
+}
+.kin-yearbook-nophoto {
+  display: grid;
+  place-items: center;
+  font-size: 1.25rem;
+  color: var(--color-accent-700);
+  background: var(--color-bg);
+}
+.kin-yearbook-list label > span:last-child {
+  display: grid;
+  gap: 0.125rem;
+  min-width: 0;
+}
+.kin-yearbook-date,
+.kin-yearbook-meta {
+  font-size: 0.75rem;
+  color: var(--color-neutral-600);
+}
+.kin-yearbook-title {
+  font-size: 0.9375rem;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+.kin-yearbook-pages {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(8rem, 1fr));
+  gap: 0.625rem;
+  margin-top: 0.75rem;
+}
+.kin-yearbook-pages img {
+  width: 100%;
+  aspect-ratio: 210 / 297;
+  border-radius: 0.25rem;
+  box-shadow: 0 1px 4px rgb(0 0 0 / 0.18);
+}
 /* The ★ on an entry card. */
 .kin-entry-star {
   display: inline-flex;
