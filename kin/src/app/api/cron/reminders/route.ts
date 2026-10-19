@@ -55,7 +55,7 @@ export async function POST(request: Request) {
     // household, at once when someone asks, daily while it waits, and when it
     // opens. Sent as urgent below.
     supabase.rpc("due_vault_emergency_reminders", { p_secret: secret }),
-    // Relatives on the tree who have passed (20261019131000): the grown-ups,
+    // Relatives on the tree who have passed (20261019170000): the grown-ups,
     // from 09:00, three days before Undas and on each one's 40th day, first
     // year and anniversaries, unless the household turned it off.
     supabase.rpc("due_remembrance_reminders", { p_secret: secret }),

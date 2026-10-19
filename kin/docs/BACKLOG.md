@@ -19,7 +19,7 @@ the potluck, the monito-monita draw, and the Christmas gift list.
   and on each day, respecting "Events and schedules". A lit candle sits on
   their tree tile on 1-2 November. Settings -> Household -> "Remember
   relatives who have passed" turns all of it off (the organizer's, like
-  sharing). Migration 20261019131000_remembrance_undas.sql. Not checked: the
+  sharing). Migration 20261019170000_remembrance_undas.sql. Not checked: the
   push on a real phone; a relative who is also a Kin member (their tree
   entry follows their profile, so it takes no date of passing).
 - Potluck sign-up on an event (who brings what).

@@ -65,7 +65,7 @@ export type TreePerson = {
   fullName: string;
   dob: string | null;
   /** The date of passing, for a tree-only relative
-   * (20261019131000_remembrance_undas). */
+   * (20261019170000_remembrance_undas). */
   diedOn?: string | null;
   notes: string | null;
   avatarUrl: string | null;
