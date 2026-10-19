@@ -9,6 +9,8 @@ import { Avatar } from "@/components/avatar";
 import { TreeStories } from "@/components/tree-stories";
 import { getMembers } from "@/lib/queries/family";
 import { getPersonStories } from "@/lib/queries/tree-stories";
+import { getRecipesByPerson } from "@/lib/queries/recipes";
+import { PersonRecipes } from "@/components/person-recipes";
 import { canAddStories, storyCountLabel } from "@/lib/tree-stories";
 import { promptForWeek } from "@/lib/story-prompts";
 import { isGrownUp } from "@/lib/roles";
@@ -42,7 +44,12 @@ export default async function TreeStoriesPage({
     .maybeSingle();
   if (!person) redirect("/family?seg=tree");
 
-  const [stories, allMembers, tz] = await Promise.all([getPersonStories(person.id, me.family_id), getMembers(me.family_id), householdZone()]);
+  const [stories, allMembers, tz, recipesOf] = await Promise.all([
+    getPersonStories(person.id, me.family_id),
+    getMembers(me.family_id),
+    householdZone(),
+    getRecipesByPerson(me.family_id),
+  ]);
   const members = allMembers.filter((m) => m.status !== "pending" && !isGone(m.status));
   const member = person.member_id ? allMembers.find((m) => m.id === person.member_id) : undefined;
   const fullName = member?.full_name ?? person.full_name ?? "Unnamed";
@@ -68,6 +75,7 @@ export default async function TreeStoriesPage({
           </div>
         </div>
         <p className="kin-stories-note">Kept by your household and seen only by it. Recordings and photos count toward your Kin storage.</p>
+        <PersonRecipes recipes={recipesOf.get(person.id) ?? []} firstName={firstName} />
         {stories === null ? (
           <p role="alert" className="kin-stories-empty">
             {firstName}&rsquo;s stories couldn&rsquo;t be loaded just now. Try again in a moment.

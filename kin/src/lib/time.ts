@@ -94,10 +94,23 @@ export function familyInstant(day: string, time: string, tz: string = FAMILY_TZ)
   const hours = Number(m[1]), minutes = Number(m[2]), seconds = Number(m[3] ?? "0");
   if (hours > 23 || minutes > 59 || seconds > 59) return null;
 
-  // Midnight in the household's zone is already the right instant to count
-  // from, so the time of day is simple arithmetic on top of it. Doing it this
-  // way means a zone whose offset is not a whole hour needs no special case.
-  return new Date(midnight.getTime() + ((hours * 60 + minutes) * 60 + seconds) * 1000);
+  // The wall-clock time read as if it were UTC, then moved by the zone's
+  // offset *at that time*, asked twice so the second asks at the right
+  // instant. Counting hours on from midnight was right in Manila, which never
+  // changes its clocks, and an hour out on the day a zone does: 9:00 in New
+  // York on 1 November 2026 is 14:00 UTC, but midnight that day was still
+  // summer time (19 October). A zone whose offset is not a whole hour needs no
+  // special case either way.
+  const [y, mo, d] = day.trim().split("-").map(Number);
+  const asUtc = Date.UTC(y, mo - 1, d, hours, minutes, seconds);
+  const first = asUtc - zoneOffsetMs(new Date(asUtc), tz);
+  return new Date(asUtc - zoneOffsetMs(new Date(first), tz));
+}
+
+/** How far a zone sits from UTC at an instant, in milliseconds, asked of the
+ * zone by name. */
+function zoneOffsetMs(at: Date, tz: string): number {
+  return new Date(at.toLocaleString("en-US", { timeZone: tz })).getTime() - new Date(at.toLocaleString("en-US", { timeZone: "UTC" })).getTime();
 }
 
 /** Day arithmetic on a plain date, with no clock involved at all.

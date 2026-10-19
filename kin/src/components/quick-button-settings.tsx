@@ -20,6 +20,7 @@ const ICONS: Record<QuickActionId, IconName> = {
   ask: "sparkle",
   talk: "mic",
   "family-chat": "message",
+  arrived: "mapPin",
   buy: "basket",
   expense: "receipt",
   event: "calendarDays",

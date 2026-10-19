@@ -31,7 +31,6 @@ import {
 const MESSAGES = 50;
 const OTHER_CONVERSATIONS = 3;
 
-const iso = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 const words = (body: string, files: number) => mediaSummary(body) ?? (body || (files > 0 ? "Sent an attachment" : ""));
 
 /** Everything offline Kin shows, for this member, read in their own session
@@ -124,9 +123,9 @@ async function shoppingList(familyId: string) {
 
 async function plannerWeek(me: CurrentMember) {
   const tz = await householdZone();
-  const { days } = await getWeekAgenda(me.family_id, undefined, new Date(), undefined, 0, weekStartOf(me.families.week_start));
+  const { days } = await getWeekAgenda(me.family_id, undefined, undefined, undefined, 0, weekStartOf(me.families.week_start));
   return days.map((d) => ({
-    date: iso(d.date),
+    date: d.day,
     isToday: d.isToday,
     items: d.activities.map((a) => ({
       id: `${a.table}-${a.id}`,

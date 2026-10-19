@@ -12,6 +12,7 @@ import { LettersOpeningToday } from "@/components/letters-opening";
 import { getAlkansya } from "@/lib/queries/alkansya";
 import { formatCurrency } from "@/lib/format";
 import { JARS, JAR_LABEL } from "@/lib/alkansya";
+import { ArrivedButton } from "@/components/arrived-button";
 
 /** Things a child in kid view should not be sent to: money, the household's
  * running, and anybody's health records. */
@@ -23,7 +24,7 @@ function forAChild(b: BriefItem): boolean {
 /** Today in kid view (K2, 25 September): their own jobs with big ticks, their
  * stars and what they can spend them on, and what is coming up -- nothing
  * about money or the running of the house. */
-export async function KidToday({ me }: { me: { id: string; role: string; family_id: string; full_name: string; families: { currency: string; name: string } } }) {
+export async function KidToday({ me, arrivedNow = false }: { arrivedNow?: boolean; me: { id: string; role: string; family_id: string; full_name: string; families: { currency: string; name: string } } }) {
   const [tasks, scores, rewards, brief, comingUp, checkIns, alkansya] = await Promise.all([
     getRoutinesNeedingAttention(me.family_id, me.id),
     getMemberScores(me.family_id),
@@ -50,6 +51,8 @@ export async function KidToday({ me }: { me: { id: string; role: string; family_
       </div>
       <h2 style={{ fontSize: "min(2.25rem, 12vw)", margin: "0 0 0.5rem" }}>Hi {first}!</h2>
       <CheckInPrompt checkIns={checkIns} />
+      {/* "Nakarating na ako": at school, at Lola's -- one tap tells home. */}
+      <ArrivedButton auto={arrivedNow} big />
       {/* A letter written to them years ago, on the day it opens. */}
       <LettersOpeningToday familyId={me.family_id} />
       <Link href="/planner?seg=routines" className="kin-kid-stars">
