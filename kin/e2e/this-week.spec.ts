@@ -16,7 +16,11 @@ import { expandAllCollapsedGroups } from "./support/collapsible-groups";
  * a printed year book -- is listed in docs/BACKLOG.md for the weekly check on
  * a real iPhone. */
 
-const RUN = `E2EWK${Date.now().toString(36)}`;
+/** Rows are named after this run; tidy-ups match the fixed prefix, so a run
+ * that died before its own tidy-up is swept by the next one (writes.spec's
+ * habit too). */
+const PREFIX = "E2EWK";
+const RUN = `${PREFIX}${Date.now().toString(36)}`;
 
 /** A REST session as the sample household for each test, disposed with it,
  * for the tidy-up. RLS-bound like the browser; no service key. */
@@ -29,11 +33,12 @@ test.afterEach(async () => {
   rest = null;
 });
 
-/** Deletes what `query` finds in `table`, then proves it is gone. */
-async function removeRows(table: string, query: string) {
+/** Deletes what `query` finds in `table`, then proves it is gone. `key` is a
+ * column the table has, for the second look (alkansya_plans has no id). */
+async function removeRows(table: string, query: string, key = "id") {
   if (!rest) return;
   await rest.ctx.delete(`${rest.url}/rest/v1/${table}?${query}`, { headers: rest.headers });
-  const left = await rest.ctx.get(`${rest.url}/rest/v1/${table}?${query}&select=id`, { headers: rest.headers });
+  const left = await rest.ctx.get(`${rest.url}/rest/v1/${table}?${query}&select=${key}`, { headers: rest.headers });
   expect(await left.json(), `${table} rows from this run are still in the sample household`).toEqual([]);
 }
 
@@ -52,7 +57,8 @@ test("utang: lend, get paid back in full, settled", async ({ page }) => {
     await page.getByLabel("Lent to").fill(who);
     await page.getByLabel("How much").fill("1500");
     await page.getByRole("button", { name: "Save", exact: true }).click();
-    const row = page.locator("li, article, div").filter({ hasText: `${who} owes us` }).last();
+    const payButton = page.getByRole("button", { name: "Record a payment" });
+    const row = page.locator("div").filter({ hasText: `${who} owes us` }).filter({ has: payButton }).last();
     await expect(row).toBeVisible();
 
     await row.getByRole("button", { name: "Record a payment" }).click();
@@ -60,7 +66,7 @@ test("utang: lend, get paid back in full, settled", async ({ page }) => {
     await page.getByRole("button", { name: "Save payment" }).click();
     await expect(page.locator("body")).toContainText("Settled");
   } finally {
-    await removeRows("utang_entries", `person_name=like.*${RUN}*`);
+    await removeRows("utang_entries", `person_name=like.*${PREFIX}*`);
   }
 });
 
@@ -82,7 +88,7 @@ test("paluwagan: start one, mark our hulog paid for round 1", async ({ page }) =
     await us.click();
     await expect(page.getByRole("button", { name: "✓ Us" }).first()).toHaveAttribute("aria-pressed", "true");
   } finally {
-    await removeRows("paluwagan_groups", `name=eq.${encodeURIComponent(name)}`);
+    await removeRows("paluwagan_groups", `name=like.${PREFIX}*`);
   }
 });
 
@@ -95,6 +101,18 @@ test("alkansya: money in, money out, the line taken off again", async ({ page })
     test.skip((await child.count()) === 0, "the sample household has no children");
     await child.click();
     await page.waitForURL(/\/planner\/alkansya\/.+/);
+    await page.waitForLoadState("networkidle");
+    await expect(page.getByRole("heading", { name: /alkansya/i })).toBeVisible();
+
+    // The jars open once a plan exists ("Add money" waits for one). A child
+    // without one gets a ₱100 weekly baon, and keeps it: a plan is paused,
+    // never deleted (alkansya_plans has no delete policy), so the sample
+    // child simply has one from the first run on.
+    if (!(await page.getByRole("button", { name: "Add money" }).isVisible())) {
+      await page.getByRole("textbox", { name: "Weekly baon" }).fill("100");
+      await page.getByRole("button", { name: "Save", exact: true }).click();
+      await expect(page.getByRole("button", { name: "Add money" })).toBeVisible();
+    }
 
     await page.getByRole("button", { name: "Add money" }).click();
     await page.getByLabel("How much").fill("200");
@@ -108,7 +126,7 @@ test("alkansya: money in, money out, the line taken off again", async ({ page })
     await page.getByRole("button", { name: "Take out" }).click();
     await expect(page.locator("body")).toContainText(`${RUN} merienda`);
   } finally {
-    await removeRows("alkansya_entries", `note=like.*${RUN}*`);
+    await removeRows("alkansya_entries", `note=like.*${PREFIX}*`);
   }
 });
 
@@ -151,10 +169,8 @@ test("statement import: a BPI CSV becomes three transactions, and only once", as
     await importOnce();
     await expect(page.getByText("ALREADY IN", { exact: false }).first()).toBeVisible();
   } finally {
-    if (accountId) {
-      await removeRows("wealth_transactions", `account_id=eq.${accountId}`);
-      await removeRows("accounts", `id=eq.${accountId}`);
-    }
+    await removeRows("wealth_transactions", `particulars=like.*${PREFIX}*`);
+    await removeRows("accounts", `name=like.${PREFIX}*`);
   }
 });
 
@@ -177,7 +193,7 @@ test("helper access: a link is made for the helper, then taken back", async ({ p
     // A helper is never deleted, only marked removed (remove_helper), so
     // "gone" here means no live row left under this run's name.
     if (rest) {
-      const live = `display_name=eq.${encodeURIComponent(name)}&removed_at=is.null&select=id`;
+      const live = `display_name=like.*${PREFIX}*&removed_at=is.null&select=id`;
       for (const { id } of await (await rest.ctx.get(`${rest.url}/rest/v1/household_helpers?${live}`, { headers: rest.headers })).json()) {
         await rest.ctx.post(`${rest.url}/rest/v1/rpc/remove_helper`, { headers: rest.headers, data: { p_helper: id } });
       }
@@ -201,8 +217,15 @@ test("stories on the tree: a story kept with a person", async ({ page }) => {
   const title = `${RUN} how we came to Manila`;
   try {
     await page.goto("/family?seg=tree", { waitUntil: "networkidle" });
+    // An empty tree starts with whoever opens it. The sample login stays on
+    // the tree afterwards, as a person would -- the tree is the household's.
+    const addMe = page.getByRole("button", { name: /add me to the tree/i });
+    if (await addMe.isVisible()) {
+      await addMe.click();
+      await page.waitForLoadState("networkidle");
+    }
     const me = page.getByRole("button", { name: /, you/ }).first();
-    test.skip((await me.count()) === 0, "the sample household's login is not on the tree");
+    await expect(me, "the sample household's login is on the tree").toBeVisible();
     await me.click();
     await page.locator('a[href^="/family/stories/"]').first().click();
     await page.waitForURL(/\/family\/stories\//);
@@ -213,17 +236,18 @@ test("stories on the tree: a story kept with a person", async ({ page }) => {
     await page.getByRole("button", { name: "Keep this story" }).click();
     await expect(page.getByRole("heading", { name: title })).toBeVisible();
   } finally {
-    await removeRows("tree_person_stories", `title=eq.${encodeURIComponent(title)}`);
+    await removeRows("tree_person_stories", `title=like.${PREFIX}*`);
   }
 });
 
 test('chat "To buy": a written list in a message goes on the To-Buy list', async ({ page }) => {
+  test.slow(); // send, menu, sheet, the list, back to unsend: five round trips
   test.skip(!rest, "No Supabase details -- see kin/e2e/README.md.");
   const items = [`${RUN} rice 2kg`, `${RUN} eggs`];
   try {
     await page.goto("/chat/household", { waitUntil: "networkidle" });
     await page.locator("textarea.kin-composer-field").fill(items.map((i) => `- ${i}`).join("\n"));
-    await page.getByRole("button", { name: "Send" }).click();
+    await page.getByRole("button", { name: "Send", exact: true }).click();
     const bubble = page.locator("button.kin-bubble").filter({ hasText: items[1] }).last();
     await expect(bubble).toBeVisible();
 
@@ -233,9 +257,10 @@ test('chat "To buy": a written list in a message goes on the To-Buy list', async
     await page.getByRole("button", { name: "Add 2 things" }).click();
     await expect(page.getByText(/Added 2 things to the To-Buy list/)).toBeVisible();
 
-    await page.goto("/household", { waitUntil: "networkidle" });
-    await expandAllCollapsedGroups(page);
-    for (const i of items) await expect(page.locator("body")).toContainText(i.replace(/ 2kg$/, ""));
+    // On the list itself: read back as the household, the way /household
+    // reads it (its groups start collapsed, so the page text would not say).
+    const onList = await rest!.ctx.get(`${rest!.url}/rest/v1/buy_items?name=like.*${RUN}*&select=name`, { headers: rest!.headers });
+    expect((await onList.json()).length, "both things are on the To-Buy list").toBe(2);
 
     // Messages are never deleted, only unsent -- by their writer, the way the
     // menu does it -- so that is how this one leaves the room.
@@ -246,7 +271,7 @@ test('chat "To buy": a written list in a message goes on the To-Buy list', async
     if (await confirm.isVisible()) await confirm.getByRole("button", { name: /unsend/i }).click();
     await expect(page.locator("button.kin-bubble").filter({ hasText: items[1] })).toHaveCount(0);
   } finally {
-    await removeRows("buy_items", `name=like.*${RUN}*`);
+    await removeRows("buy_items", `name=like.*${PREFIX}*`);
   }
 });
 
@@ -267,7 +292,7 @@ test("password health: two entries sharing a weak password are both flagged", as
     await expect(health).toContainText(/are worth changing/);
     await expect(page.locator("body")).toContainText(`Also used for ${RUN}`);
   } finally {
-    await removeRows("family_vault_items", `label=like.*${RUN}*`);
+    await removeRows("family_vault_items", `label=like.*${PREFIX}*`);
   }
 });
 
@@ -286,8 +311,8 @@ test("sinking fund: a yearly cost says what to set aside each payday", async ({ 
     await page.waitForURL(/seg=assets/);
     await expandAllCollapsedGroups(page);
     await expect(page.locator("body")).toContainText(title);
-    await expect(page.locator("body")).toContainText(/Set aside ₱[\d,]+ a payday/);
+    await expect(page.locator("body")).toContainText(/Set aside ₱[\d,.]+ a payday/);
   } finally {
-    await removeRows("goals", `title=eq.${encodeURIComponent(title)}`);
+    await removeRows("goals", `title=like.${PREFIX}*`);
   }
 });
