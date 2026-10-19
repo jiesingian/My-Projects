@@ -219,8 +219,11 @@ Four free items, each its own pull request.
   map link. Nothing is stored but the message (no member_locations write),
   so it works without sharing on and leaves no trail (lib/arrived.ts).
 
-- **Not yet:** Private notes screen (`personal_notes`): a Today quick
-  button and a list screen, author-only.
+- **Done:** My notes (`personal_notes`): /notes lists the person's own
+  notes with write, search, edit and delete; Today's quick add has "Note"
+  (/notes?new=1) and Kid view "My notes". Author-only was already the
+  table's policy (no migration); probes/personal-notes.mjs proves a parent,
+  child, linked household and stranger see and change nothing of another's.
 
 - **Done:** Password health in the Vault: after unlocking, grown-ups see
   which passwords are reused, easy to guess, or in known breaches, each
@@ -498,8 +501,8 @@ session (see the root CLAUDE.md on session cost).
    personal space with them; the parents' household keeps its shared history;
    the family tree links the two so the feed still reaches them. Design and
    what moves: docs/PERSONAL_SPACE.md (#298 data model, #306 moving, #318
-   goals fix). Private notes have their table (`personal_notes`) but no
-   screen yet; the journal's Mine tab (item 3) is where personal entries get
+   goals fix). Private notes have their screen, My notes (/notes, 19
+   October); the journal's Mine tab (item 3) is where personal entries get
    written.
 2. **Done: household name from both surnames, as an editable suggestion:** the
    wife's maiden surname and the husband's surname, the Filipino way

@@ -254,7 +254,7 @@ export default async function TodayPage({ searchParams }: { searchParams: Promis
         </div>
       </section>
 
-      {/* Quick add: the four things a family writes down most, each straight
+      {/* Quick add: the things a family writes down most, and a private note, each straight
           into its form. Actions, not places -- the bottom bar already has the
           places. Above them, one-line add: type it and Kin files it. */}
       <QuickLine members={people.map((m) => ({ id: m.id, name: m.full_name }))} meId={me.id} today={familyDay()} />
@@ -278,6 +278,11 @@ export default async function TodayPage({ searchParams }: { searchParams: Promis
         <Link href="/wealth/transact?mode=out" className="kin-quick-btn">
           <span className="kin-quick-ico" data-tint="money"><Icon name="receipt" size={18} /></span>
           Expense
+        </Link>
+        {/* A private note (19 October): only the writer ever sees it. */}
+        <Link href="/notes?new=1" className="kin-quick-btn">
+          <span className="kin-quick-ico"><Icon name="fileText" size={18} /></span>
+          Note
         </Link>
       </nav>
 
