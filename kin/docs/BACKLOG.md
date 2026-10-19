@@ -88,6 +88,27 @@ scanning wait for the AI key.
   beside the children's; a grown-up's own stay hidden (helper_family_plans,
   20261019090000).
 
+## Agreed 19 October: from the 14 October "What's Left" review (Jonathan)
+
+Four free items, each its own pull request.
+
+- **Done:** To buy from a chat message: a message's Make it row offers "To
+  buy" beside Task, Event and Expense. "pabili ng gatas at itlog" reads as
+  gatas and itlog (new lines, commas, "at", "and", "&"; "pabili (po) ng",
+  "bili", "buy" and a pasted list's bullets dropped; "rice 2kg" read the
+  way quick add reads it, lib/list-add.ts readWrittenList). A sheet shows
+  the lines for a quick edit before anything is added. Replaces the old
+  one-tap "Buy list" chip, which added unseen.
+
+- **Not yet:** "Nakarating na ako" check-in from Today, Kid view and the
+  Action Button menu.
+
+- **Not yet:** Private notes screen (`personal_notes`): a Today quick
+  button and a list screen, author-only.
+
+- **Not yet:** Password health in the Vault: reused, weak and breached
+  (Have I Been Pwned range API, k-anonymity) after unlocking.
+
 ## Agreed 13 October: first open (Jonathan)
 
 Why: not everyone who opens Kin came by referral or is sure they want it.
@@ -784,8 +805,7 @@ Decided against in the same review: revising Journal (item 6) and Planner
   3 days; Settings → Your plan shows both plans. The old "trialing, no end
   date = forever" bug is gone. Also: the sign-in and onboarding screens wear
   Kin Coral, fixing the 4.01:1 button contrast on Kin Classic blue.
-  Not yet: event and visit photos (photo-strip.tsx) upload straight to
-  storage and are not counted against the storage size.
+  Event and visit photos count against the storage size too (#453).
 
 - Family tree: a dashed "Add brother / Add sister" place beside whoever is
   selected, and parents drawn close above their own child -- a married

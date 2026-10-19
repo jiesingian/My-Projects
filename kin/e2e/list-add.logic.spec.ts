@@ -1,5 +1,5 @@
 import { test, expect } from "@playwright/test";
-import { readSpokenList, addedSentence, joinSpoken, shortcutText, LIST_ADD_MAX_ITEMS } from "@/lib/list-add";
+import { readSpokenList, readWrittenList, readListLine, itemLine, addedSentence, joinSpoken, shortcutText, LIST_ADD_MAX_ITEMS } from "@/lib/list-add";
 
 /** "Hey Siri, add rice to Kin" (14 October): what the Shortcut heard, read
  * into shopping-list items, and what the iPhone says back. */
@@ -88,4 +88,37 @@ test("the words arrive as JSON, a form or plain text", () => {
   expect(shortcutText("text=rice+and+eggs", "application/x-www-form-urlencoded")).toBe("rice and eggs");
   expect(shortcutText("rice and eggs", "text/plain")).toBe("rice and eggs");
   expect(shortcutText("rice", null)).toBe("rice");
+});
+
+/** "To buy" from a chat message (19 October): the same rules, plus what a
+ * written message has that speech doesn't. */
+const written = (s: string) => readWrittenList(s).items.map((i) => i.name);
+
+test("a pabili message is its things", () => {
+  expect(written("pabili ng gatas at itlog")).toEqual(["Gatas", "Itlog"]);
+  expect(written("Pabili po ng suka, toyo & asin po")).toEqual(["Suka", "Toyo", "Asin"]);
+  expect(written("bili ng bigas")).toEqual(["Bigas"]);
+  expect(written("buy milk and bread pls")).toEqual(["Milk", "Bread"]);
+});
+
+test("each line is its own thing, and a pasted list loses its bullets", () => {
+  expect(written("- rice\n• soy sauce\n3. calamansi\n4) dish soap")).toEqual(["Rice", "Soy sauce", "Calamansi", "Dish soap"]);
+  expect(written("pabili ng gatas\nbuy eggs")).toEqual(["Gatas", "Eggs"]);
+  expect(written("milk\n\nMilk\neggs")).toEqual(["Milk", "Eggs"]);
+});
+
+test("a quantity is read the way quick add reads it, and reads back the same", () => {
+  const items = readWrittenList("rice 2kg, 12 eggs\ngatas").items;
+  expect(items.map(itemLine)).toEqual(["Rice 2 kg", "Eggs 12", "Gatas"]);
+  // What the sheet shows is what is added once the person presses Add.
+  for (const item of items) expect(readListLine(itemLine(item))).toEqual(item);
+  // And an edit there is read by the same rules: "itlog 12" is 12 itlog.
+  expect(readListLine("itlog 12")).toMatchObject({ name: "Itlog", quantity: 12, unit: null });
+  expect(readListLine("  ")).toBeNull();
+});
+
+test("a message with nothing to buy offers nothing", () => {
+  expect(readWrittenList("").items).toEqual([]);
+  expect(readWrittenList(" , ; \n ").items).toEqual([]);
+  expect(readWrittenList(Array.from({ length: 40 }, (_, i) => `thing ${String.fromCharCode(97 + (i % 26))}${i}`).join("\n")).items).toHaveLength(LIST_ADD_MAX_ITEMS);
 });
