@@ -110,7 +110,8 @@ test("the check-up: one question per screen, kids only with kids, and the answer
   // The result: Your Family’s Digital Blueprint. The score is questions 2,
   // 4 and 5 only: four places (25), "not sure where everything is" (0) and
   // papers in different places (0) make 8. Two of the top 3 are health and
-  // documents, so The Prepared Family, with its own button. The privacy line
+  // documents, so The Prepared Family's features and button; the profile
+  // itself isn't shown (Janine, 19 October). The privacy line
   // because question 9 was "privacy first".
   await expect(page.getByRole("heading", { name: "Your Family’s Digital Blueprint" })).toBeFocused();
   expect(saved.score).toBe(8);
@@ -118,10 +119,8 @@ test("the check-up: one question per screen, kids only with kids, and the answer
   await expect(page.getByRole("meter", { name: "Family Digital Readiness Score" })).toHaveAttribute("aria-valuenow", "8");
   await expect(page.getByRole("heading", { name: "The Fresh Start" })).toBeVisible();
   await expect(page.getByText(/informal self-check/)).toBeVisible();
-  await expect(page.getByRole("heading", { name: "The Prepared Family" })).toBeVisible();
-  await expect(page.getByText("“Peace of mind starts with being prepared.”")).toBeVisible();
-  // The tagline only: no explanation under it.
-  await expect(page.locator(".kin-check-profile p")).toHaveCount(2);
+  await expect(page.getByText(/family profile/i)).toHaveCount(0);
+  await expect(page.getByRole("heading", { name: "The Prepared Family" })).toHaveCount(0);
   const hub = page.locator(".kin-check-hub li");
   expect(await hub.count()).toBeGreaterThanOrEqual(3);
   expect(await hub.count()).toBeLessThanOrEqual(5);
@@ -186,10 +185,9 @@ test("no kids at home: question 6 is skipped", async ({ page }) => {
   await page.getByRole("button", { name: "Ready to try" }).click();
   await page.getByRole("button", { name: "See my results" }).click();
   // Remembering (25), in seconds (100), a safe (75): 67, The Connected
-  // Path. Plans alone picked: The Organized Family. No privacy line.
+  // Path. Plans alone picked: The Organized Family's button. No privacy line.
   await expect(page.getByText("67/100")).toBeVisible();
   await expect(page.getByRole("heading", { name: "The Connected Path" })).toBeVisible();
-  await expect(page.getByRole("heading", { name: "The Organized Family" })).toBeVisible();
   await expect(page.getByText(/Private to your family/)).toHaveCount(0);
 
   // The showcase can be skipped, and Kin Free is a real choice.

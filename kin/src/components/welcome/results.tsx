@@ -5,11 +5,12 @@ import { PRIVACY_LINE, SELF_CHECK_LINE, readinessScore, scoreCategory, wantsPriv
 import { PROFILES, blueprintFeatures, blueprintProfile } from "@/lib/blueprint";
 
 /** The check-up's result: Your Family’s Digital Blueprint (Janine, 14
- * October). The Family Digital Readiness Score and its category, the
- * family's profile and its tagline (Janine, 14 October: no explanation,
- * it read too heavy), and three to five Kin features to start
- * with (Janine, 15 October: no "N places to keep track" line); then, for
- * anyone who said "privacy first", the privacy promise. Worked out here from the answers; nothing is sent. */
+ * October). The Family Digital Readiness Score and its category, and three
+ * to five Kin features to start with (Janine, 15 October: no "N places to
+ * keep track" line; 19 October: no Family Profile shown, the score and its
+ * line say enough). The profile still picks the features and the button's
+ * words. Then, for anyone who said "privacy first", the privacy promise.
+ * Worked out here from the answers; nothing is sent. */
 export function Results({ answers, onNext, onBack, heading }: { answers: Answers; onNext: () => void; onBack: () => void; heading: Ref<HTMLHeadingElement> }) {
   const score = readinessScore(answers);
   const category = scoreCategory(score);
@@ -38,12 +39,6 @@ export function Results({ answers, onNext, onBack, heading }: { answers: Answers
         <h3 className="kin-check-category">{category.name}</h3>
         <p className="kin-check-category-line">{category.line}</p>
         <p className="kin-check-note">{SELF_CHECK_LINE}</p>
-      </div>
-
-      <div className="kin-check-profile">
-        <p className="kin-check-eyebrow">Your family profile</p>
-        <h3>{profile.name}</h3>
-        <p className="kin-check-tagline">“{profile.tagline}”</p>
       </div>
 
       <h3 className="kin-check-sub">Your recommended family hub</h3>
