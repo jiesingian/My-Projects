@@ -22,16 +22,29 @@ APP_SKIP='^kin/(docs|e2e|supabase|graphify-out)/|\.md$|^kin/playwright\.config\.
 
 build() { echo "Building: $1"; exit 1; }
 
+# main, from origin or -- when Vercel's clone has no origin it can fetch
+# from, as on #720's first deployment (19 October: "no earlier commit to
+# compare with" on a BACKLOG-only branch) -- from the public repository
+# Vercel names. The repository is public, so no credential is needed.
+fetch_main() {
+  git fetch -q --depth=200 origin main 2>/dev/null && return 0
+  echo "origin has no main to fetch; trying the public repository."
+  [ -n "${VERCEL_GIT_REPO_OWNER:-}" ] && [ -n "${VERCEL_GIT_REPO_SLUG:-}" ] || return 1
+  git fetch -q --depth=200 "https://github.com/$VERCEL_GIT_REPO_OWNER/$VERCEL_GIT_REPO_SLUG.git" main 2>/dev/null
+}
+
 # The last commit this branch deployed (empty on its first deployment), else
 # where the branch left main.
 BASE="${VERCEL_GIT_PREVIOUS_SHA:-}"
 if [ -z "$BASE" ] || ! git cat-file -e "$BASE^{commit}" 2>/dev/null; then
   BASE=""
-  if [ "${VERCEL_GIT_COMMIT_REF:-}" != "main" ] && git fetch -q --depth=200 origin main 2>/dev/null; then
-    BASE=$(git merge-base FETCH_HEAD HEAD 2>/dev/null || true)
+  if [ "${VERCEL_GIT_COMMIT_REF:-}" = "main" ]; then
+    build "main with no earlier deployment to compare with."
   fi
+  fetch_main || build "couldn't fetch main to find where this branch left it."
+  BASE=$(git merge-base FETCH_HEAD HEAD 2>/dev/null || true)
+  [ -n "$BASE" ] || build "main and this branch share no commit in the fetched history."
 fi
-[ -n "$BASE" ] || build "no earlier commit to compare with."
 
 CHANGED=$(git diff --name-only "$BASE" HEAD) || build "can't compare with $BASE."
 APP=$(printf '%s\n' "$CHANGED" | grep '^kin/' | grep -Ev "$APP_SKIP" || true)

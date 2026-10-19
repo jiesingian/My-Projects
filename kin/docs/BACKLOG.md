@@ -804,6 +804,16 @@ Decided against in the same review: revising Journal (item 6) and Planner
 
 ## Done
 
+- Vercel builds only what the app is built from (#716, 19 October): docs,
+  tests, migrations, any .md and everything outside kin/ skip the preview
+  build (kin/scripts/vercel-ignore.sh), so the Hobby plan's 100 deployments a
+  day go to app changes; production on main still builds whenever app files
+  change, and anything the script can't compare builds. A branch's first
+  deployment compares with where it left main, fetched from the public
+  repository when Vercel's clone has no origin to fetch from (#720 found
+  that path always built). What GitHub shows for a skipped build is checked
+  on the first docs-only branch after #720.
+
 - Also merged 14-19 October, without a line of their own above: suki and
   loyalty cards at checkout on the Buy list (#641,
   20261015090000_loyalty_cards.sql); cook mode and servings (#645) and
