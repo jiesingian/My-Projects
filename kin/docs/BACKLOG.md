@@ -20,7 +20,24 @@ Each its own pull request, in this order.
   library: lib/year-book.ts writes the PDF. No print partner. Kin Free sees
   the Plus note instead. Not checked: a 60-page book on an older iPhone
   (memory), a Drive-backed household's photos.
-- Import or export a tree file (GEDCOM), Family -> Tree, Kin Plus.
+- **Done:** Import or export a tree file (GEDCOM 5.5.1, Family -> Tree,
+  Kin Plus, grown-ups): /family/tree-file, linked under the tree. Export:
+  the household's tree and the linked branches it already reads (joined
+  once, as "Show their side" does). Anyone who may be alive (no death
+  recorded; born in the last 110 years, or birth unknown) goes out as a
+  name and a birth year only, Kin's rule for what leaves the household.
+  Import: the file is read in the browser and everyone in it is shown;
+  who is already on the tree is found by the "Is this the same Stella?"
+  rule (same name, and the same full birth date or the same four parents'
+  names), then their parents and spouse with the same names (as
+  matchBranch), so a file imported twice adds nobody. "Not the same
+  person" and unticking change it; nothing is written until "Add". People
+  already on the tree only gain a parent or spouse they had none of. Loose
+  dates ("ABT 1920"), places and deaths go into notes, since dob is a
+  date. Up to 1,000 people a file. No migration (lib/gedcom.ts,
+  lib/actions/gedcom.ts). Not checked: a real MyHeritage, FamilySearch or
+  Ancestry export, or an ANSEL-encoded (old) file, which reads with its
+  accents garbled.
 - **Done:** Shareable check-up result image (Kin Free): "Share your
   result" on the check-up's results page draws a 1080x1350 card on the
   phone in the page's own colours: the score and its category (ticked to
