@@ -129,11 +129,18 @@ export async function saveWishesAction(id: string, personId: string, text: strin
   if (!UUID.test(id) || !UUID.test(personId)) return { error: "That wish list could not be found." };
   const wishes = parseWishes(text);
   const supabase = await createClient();
-  const { error: cleared } = await supabase.from("gift_draw_wishes").delete().eq("person_id", personId);
-  if (cleared) return { error: humanDatabaseError(cleared.message) };
+  // The new list goes in before the old one comes out, so a refused insert
+  // (taken out of the draw meanwhile, say) leaves the list as it was rather
+  // than empty.
+  const { data: old, error: read } = await supabase.from("gift_draw_wishes").select("id").eq("person_id", personId);
+  if (read) return { error: humanDatabaseError(read.message) };
   if (wishes.length) {
     const { error } = await supabase.from("gift_draw_wishes").insert(wishes.map((body) => ({ draw_id: id, person_id: personId, body })));
     if (error) return { error: humanDatabaseError(error.message) };
+  }
+  if (old?.length) {
+    const { error: cleared } = await supabase.from("gift_draw_wishes").delete().eq("person_id", personId).in("id", old.map((w) => w.id));
+    if (cleared) return { error: humanDatabaseError(cleared.message) };
   }
   refresh(id);
   return { error: null };
