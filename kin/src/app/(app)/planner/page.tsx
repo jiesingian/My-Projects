@@ -28,6 +28,7 @@ import { shortNames, selfLabel } from "@/lib/format";
 import { AddToJournalButton } from "@/components/add-to-journal-button";
 import { Icon } from "@/components/icons";
 import { getRelativesPotlucks } from "@/lib/queries/potluck";
+import { getMyDraws } from "@/lib/queries/gift-draw";
 import { CALENDAR_LEGEND, styleFor } from "@/lib/calendar-style";
 import { parseHidden, serializeHidden, toggledHidden, type CalendarGroup } from "@/lib/calendar-groups";
 import { addDays, familyClock, familyDateLong, familyDay, familyMidnight } from "@/lib/time";
@@ -119,7 +120,7 @@ export default async function PlannerPage({
           />
         )}
         {seg === "routines" && <RoutinesPane familyId={me.family_id} who={who} currency={me.families.currency} justSaved={sp.saved === "1"} done={done} />}
-        {seg === "events" && <EventsPane familyId={me.family_id} who={who} when={eventWhen(sp.when)} />}
+        {seg === "events" && <EventsPane familyId={me.family_id} who={who} when={eventWhen(sp.when)} grownUp={isGrownUp(me.role)} />}
         {seg === "goals" && (
           <GoalsPane
             familyId={me.family_id}
@@ -1010,11 +1011,11 @@ function concerns(memberIds: string[], appliesToAll: boolean, who: string): bool
  * packing list, travellers). Every event and trip is one merged, date-ordered
  * list; a trip's extra detail (budget, spend, invitation card) is on its own
  * screen. */
-async function EventsPane({ familyId, who, when }: { familyId: string; who: string; when: EventWhen }) {
+async function EventsPane({ familyId, who, when, grownUp }: { familyId: string; who: string; when: EventWhen; grownUp: boolean }) {
   const fmtDate = await familyDate();
   const today = familyDay(new Date(), await householdZone());
   const supabase = await createClient();
-  const [allEvents, members, { data: photoRows }, { data: journalled }, { data: rsvpRows }, { data: commentRows }, relativesPotlucks] = await Promise.all([
+  const [allEvents, members, { data: photoRows }, { data: journalled }, { data: rsvpRows }, { data: commentRows }, relativesPotlucks, draws] = await Promise.all([
     getEvents(familyId),
     getMembers(familyId),
     supabase.from("event_photos").select("event_id").eq("family_id", familyId),
@@ -1027,6 +1028,8 @@ async function EventsPane({ familyId, who, when }: { familyId: string; who: stri
     supabase.from("event_comments").select("event_id").eq("family_id", familyId),
     // Linked households' potlucks this household is asked to (20261019233100).
     getRelativesPotlucks(),
+    // Monito-monita draws the household is in (20261019233200).
+    getMyDraws(),
   ]);
   const commentCount = new Map<string, number>();
   for (const r of commentRows ?? []) commentCount.set(r.event_id, (commentCount.get(r.event_id) ?? 0) + 1);
@@ -1186,6 +1189,29 @@ async function EventsPane({ familyId, who, when }: { familyId: string; who: stri
             </span>
           </Link>
         ))}
+      {/* Christmas gifts and aguinaldo (20261019233300): grown-ups only. */}
+      {when === "upcoming" && grownUp && (
+        <Link href="/planner/gifts" className="kin-potluck-invite">
+          <Icon name="gift" size={18} />
+          <span style={{ flex: 1, minWidth: 0 }}>
+            <span style={{ display: "block", fontWeight: 600 }}>Christmas gifts and aguinaldo</span>
+            <span style={{ display: "block", fontSize: "0.8125rem", color: "var(--color-neutral-600)" }}>A budget for each person and inaanak, ticked when bought</span>
+          </span>
+        </Link>
+      )}
+      {/* Monito-monita (20261019233200): the household's draws and linked
+          households' it is asked to, or a way to start one. */}
+      {when === "upcoming" && (
+        <Link href="/planner/monito" className="kin-potluck-invite">
+          <Icon name="gift" size={18} />
+          <span style={{ flex: 1, minWidth: 0 }}>
+            <span style={{ display: "block", fontWeight: 600 }}>Monito-monita</span>
+            <span style={{ display: "block", fontSize: "0.8125rem", color: "var(--color-neutral-600)" }}>
+              {draws.length > 0 ? draws.map((d) => `${d.title}${d.drawn ? " · drawn" : d.mine ? "" : ` · ${d.hostName}`}`).join(", ") : "Draw names for the gift exchange"}
+            </span>
+          </span>
+        </Link>
+      )}
       {rows.length === 0 && (
         <p style={{ fontSize: "0.84375rem", color: "var(--color-neutral-600)" }}>
           {allEvents.length === 0 ? "Nothing planned yet." : visible.length === 0 ? "Nothing planned for this person." : empty[when]}

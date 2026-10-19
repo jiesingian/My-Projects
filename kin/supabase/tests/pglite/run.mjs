@@ -95,6 +95,8 @@ const MIGRATIONS = [
   "20261019212500_buy_list_live_and_helper_push.sql",
   "20261019233000_remembrance_undas.sql",
   "20261019233100_event_potluck.sql",
+  "20261019233200_gift_draw.sql",
+  "20261019233300_gift_list.sql",
 ];
 
 const only = process.argv[2];

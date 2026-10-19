@@ -36,8 +36,34 @@ the potluck, the monito-monita draw, and the Christmas gift list.
   Migration 20261019233100_event_potluck.sql. No push yet: a claim tells
   nobody (the thread does that job). Not checked: two households on real
   phones.
-- Monito-monita draw across the household and linked households.
-- Christmas gift and aguinaldo list.
+- **Done:** Monito-monita draw (Kin Free): Planner -> Events -> Monito-monita
+  (/planner/monito). A grown-up starts a draw: a name, a price cap, the
+  exchange day (24 December to begin with), "Nobody picks someone from
+  their own household" and "On the day, show everyone who picked whom"
+  (both on to begin with). They ask linked households in; each household
+  puts in its own people (a grown-up anyone, managed children too; a teen
+  only themselves). The organizer household's grown-up draws, in the
+  database (draw_gift_draw): one loop through everyone, so nobody picks
+  themselves and no pick says anything about another; households kept
+  apart whenever none is more than half. Each person reads only their own
+  pick (a grown-up also their managed child's) behind a "Show my pick" tap,
+  with that person's wish list; wish lists are read by their owner and
+  whoever drew them, no one else, the organizer included. Draw again
+  before the day; call it off. Migration 20261019233200_gift_draw.sql. No
+  push yet. Not checked: three households on real phones.
+- **Done:** Christmas gift and aguinaldo list (Kin Free, grown-ups only):
+  Planner -> Events -> Christmas gifts and aguinaldo (/planner/gifts), a
+  list per year. Add a person (someone at home, a relative, or an
+  inaanak) with a budget; ideas in one box ("Lego set 1,200", "Aguinaldo
+  500" is cash), ticked when bought; each card says bought of planned and
+  what is left of (or over) the budget, and the top says the year's
+  bought, planned, budget, people done and the aguinaldo set aside. A
+  bought idea can be recorded in Wealth like other expenses ("Record",
+  category Gifts, a new category), and the entry says "Christmas gift" or
+  "Aguinaldo", never a name. Children never see the list; anyone on it
+  never sees their own row or its ideas, a grown-up included. Migration
+  20261019233300_gift_list.sql (also adds gift_list_items to
+  wealth_transactions' source_table check). Not checked: a real phone.
 
 ## Approved 19 October: four for money and health (Jonathan)
 

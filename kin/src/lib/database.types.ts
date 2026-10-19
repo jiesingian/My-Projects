@@ -4366,6 +4366,356 @@ export type Database = {
           },
         ]
       }
+      gift_draws: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          currency: string
+          drawn_at: string | null
+          exchange_date: string
+          family_id: string
+          id: string
+          not_own_household: boolean
+          price_cap: number | null
+          reveal_on_day: boolean
+          title: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          currency?: string
+          drawn_at?: string | null
+          exchange_date: string
+          family_id: string
+          id?: string
+          not_own_household?: boolean
+          price_cap?: number | null
+          reveal_on_day?: boolean
+          title?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          currency?: string
+          drawn_at?: string | null
+          exchange_date?: string
+          family_id?: string
+          id?: string
+          not_own_household?: boolean
+          price_cap?: number | null
+          reveal_on_day?: boolean
+          title?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "gift_draws_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "members"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "gift_draws_family_id_fkey"
+            columns: ["family_id"]
+            isOneToOne: false
+            referencedRelation: "families"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      gift_draw_households: {
+        Row: {
+          draw_id: string
+          family_id: string
+          household_name: string
+        }
+        Insert: {
+          draw_id: string
+          family_id: string
+          household_name?: string
+        }
+        Update: {
+          draw_id?: string
+          family_id?: string
+          household_name?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "gift_draw_households_draw_id_fkey"
+            columns: ["draw_id"]
+            isOneToOne: false
+            referencedRelation: "gift_draws"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "gift_draw_households_family_id_fkey"
+            columns: ["family_id"]
+            isOneToOne: false
+            referencedRelation: "families"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      gift_draw_people: {
+        Row: {
+          added_by: string | null
+          created_at: string
+          draw_id: string
+          family_id: string
+          household_name: string
+          id: string
+          member_id: string
+          name: string
+        }
+        Insert: {
+          added_by?: string | null
+          created_at?: string
+          draw_id: string
+          family_id: string
+          household_name?: string
+          id?: string
+          member_id: string
+          name?: string
+        }
+        Update: {
+          added_by?: string | null
+          created_at?: string
+          draw_id?: string
+          family_id?: string
+          household_name?: string
+          id?: string
+          member_id?: string
+          name?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "gift_draw_people_added_by_fkey"
+            columns: ["added_by"]
+            isOneToOne: false
+            referencedRelation: "members"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "gift_draw_people_draw_id_fkey"
+            columns: ["draw_id"]
+            isOneToOne: false
+            referencedRelation: "gift_draws"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "gift_draw_people_family_id_fkey"
+            columns: ["family_id"]
+            isOneToOne: false
+            referencedRelation: "families"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "gift_draw_people_member_id_fkey"
+            columns: ["member_id"]
+            isOneToOne: false
+            referencedRelation: "members"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      gift_draw_picks: {
+        Row: {
+          draw_id: string
+          giver_id: string
+          receiver_id: string
+        }
+        Insert: {
+          draw_id: string
+          giver_id: string
+          receiver_id: string
+        }
+        Update: {
+          draw_id?: string
+          giver_id?: string
+          receiver_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "gift_draw_picks_draw_id_fkey"
+            columns: ["draw_id"]
+            isOneToOne: false
+            referencedRelation: "gift_draws"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "gift_draw_picks_giver_id_fkey"
+            columns: ["giver_id"]
+            isOneToOne: false
+            referencedRelation: "gift_draw_people"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "gift_draw_picks_receiver_id_fkey"
+            columns: ["receiver_id"]
+            isOneToOne: false
+            referencedRelation: "gift_draw_people"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      gift_draw_wishes: {
+        Row: {
+          body: string
+          created_at: string
+          draw_id: string
+          id: string
+          person_id: string
+        }
+        Insert: {
+          body: string
+          created_at?: string
+          draw_id: string
+          id?: string
+          person_id: string
+        }
+        Update: {
+          body?: string
+          created_at?: string
+          draw_id?: string
+          id?: string
+          person_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "gift_draw_wishes_draw_id_fkey"
+            columns: ["draw_id"]
+            isOneToOne: false
+            referencedRelation: "gift_draws"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "gift_draw_wishes_person_id_fkey"
+            columns: ["person_id"]
+            isOneToOne: false
+            referencedRelation: "gift_draw_people"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      gift_list_people: {
+        Row: {
+          budget: number | null
+          created_at: string
+          created_by: string | null
+          family_id: string
+          id: string
+          kind: string
+          member_id: string | null
+          name: string
+          year: number
+        }
+        Insert: {
+          budget?: number | null
+          created_at?: string
+          created_by?: string | null
+          family_id: string
+          id?: string
+          kind?: string
+          member_id?: string | null
+          name: string
+          year: number
+        }
+        Update: {
+          budget?: number | null
+          created_at?: string
+          created_by?: string | null
+          family_id?: string
+          id?: string
+          kind?: string
+          member_id?: string | null
+          name?: string
+          year?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "gift_list_people_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "members"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "gift_list_people_family_id_fkey"
+            columns: ["family_id"]
+            isOneToOne: false
+            referencedRelation: "families"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "gift_list_people_member_id_fkey"
+            columns: ["member_id"]
+            isOneToOne: false
+            referencedRelation: "members"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      gift_list_items: {
+        Row: {
+          bought: boolean
+          bought_at: string | null
+          cost: number | null
+          created_at: string
+          created_by: string | null
+          family_id: string
+          id: string
+          is_cash: boolean
+          label: string
+          person_id: string
+        }
+        Insert: {
+          bought?: boolean
+          bought_at?: string | null
+          cost?: number | null
+          created_at?: string
+          created_by?: string | null
+          family_id: string
+          id?: string
+          is_cash?: boolean
+          label: string
+          person_id: string
+        }
+        Update: {
+          bought?: boolean
+          bought_at?: string | null
+          cost?: number | null
+          created_at?: string
+          created_by?: string | null
+          family_id?: string
+          id?: string
+          is_cash?: boolean
+          label?: string
+          person_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "gift_list_items_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "members"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "gift_list_items_family_id_fkey"
+            columns: ["family_id"]
+            isOneToOne: false
+            referencedRelation: "families"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "gift_list_items_person_id_fkey"
+            columns: ["person_id"]
+            isOneToOne: false
+            referencedRelation: "gift_list_people"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       event_rsvps: {
         Row: {
           answer: string
@@ -7703,6 +8053,14 @@ export type Database = {
       potluck_visible: {
         Args: { p_event: string }
         Returns: boolean
+      }
+      draw_gift_draw: {
+        Args: { p_draw: string }
+        Returns: number
+      }
+      my_gift_draws: {
+        Args: never
+        Returns: { draw_id: string; title: string; exchange_date: string; host_name: string; mine: boolean; drawn: boolean; people: number; ours: number }[]
       }
       due_remembrance_reminders: {
         Args: { p_secret: string; p_now?: string }
