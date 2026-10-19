@@ -3,7 +3,7 @@ import type { GiftKind, GiftPerson } from "@/lib/gift-list";
 
 export type GiftListPerson = GiftPerson & { memberId: string | null };
 
-/** The household's gift list for a year (20261019170300), as the viewer may
+/** The household's gift list for a year (20261019233300), as the viewer may
  * see it -- a grown-up's, without anything for themselves -- and which ideas
  * already have their spend recorded in Wealth. */
 export async function getGiftList(familyId: string, year: number): Promise<{ people: GiftListPerson[]; recorded: Set<string> }> {

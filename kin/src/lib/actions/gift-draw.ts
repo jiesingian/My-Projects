@@ -12,7 +12,7 @@ import { familyDay, familyMidnight } from "@/lib/time";
 import { householdZone } from "@/lib/household-zone";
 import { parseWishes } from "@/lib/gift-draw";
 
-/** Monito-monita (20261019170200_gift_draw.sql). The policies decide who may
+/** Monito-monita (20261019233200_gift_draw.sql). The policies decide who may
  * do what -- a grown-up starts a draw and asks linked households in, each
  * household puts in its own people, only the organizer's grown-up draws (in
  * the database, so no phone ever sees anyone else's pick); these actions

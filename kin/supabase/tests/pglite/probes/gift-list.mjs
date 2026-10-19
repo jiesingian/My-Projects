@@ -1,4 +1,4 @@
-// Christmas gifts and aguinaldo (20261019170300): the household's grown-ups
+// Christmas gifts and aguinaldo (20261019233300): the household's grown-ups
 // keep the list; children never see it; the person a row is for never sees
 // it or its ideas, a grown-up included; other households see nothing; and a
 // bought gift can be recorded in Wealth under its own source.

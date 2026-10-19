@@ -10,7 +10,7 @@ import { clamp } from "@/lib/text";
 import { isGrownUp } from "@/lib/roles";
 import { parseGiftIdea, type GiftKind } from "@/lib/gift-list";
 
-/** Christmas gifts and aguinaldo (20261019170300_gift_list.sql): the
+/** Christmas gifts and aguinaldo (20261019233300_gift_list.sql): the
  * household's grown-ups only, and never the person a row is for -- the
  * policies say so; these actions shape the rows and say no in words. */
 

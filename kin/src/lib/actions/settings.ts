@@ -135,7 +135,7 @@ export async function updateShareWithRelativesAction(on: boolean): Promise<Actio
 }
 
 /** Undas and babang-luksa reminders for relatives on the tree who have passed
- * (20261019170000): Today's lines, the morning push and the candle on the
+ * (20261019233000): Today's lines, the morning push and the candle on the
  * tree. The organizer's, like what the household shares. */
 export async function updateRememberTheDepartedAction(on: boolean): Promise<ActionState> {
   const me = await requireCurrentMember();

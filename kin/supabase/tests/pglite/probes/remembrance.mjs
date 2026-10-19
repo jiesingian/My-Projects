@@ -1,4 +1,4 @@
-// Undas and babang-luksa reminders (20261019170000): the grown-ups of a
+// Undas and babang-luksa reminders (20261019233000): the grown-ups of a
 // household with someone on its tree who has passed hear of Undas three days
 // ahead and of each person's day (40th day, first year, anniversaries), from
 // 09:00 in their own zone, once; a child does not; a household that turned

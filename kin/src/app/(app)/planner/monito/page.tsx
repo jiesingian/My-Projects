@@ -9,7 +9,7 @@ import { familyDay } from "@/lib/time";
 import { householdZone } from "@/lib/household-zone";
 import { isGrownUp } from "@/lib/roles";
 
-/** Monito-monita (20261019170200): the draws the household is in, its own
+/** Monito-monita (20261019233200): the draws the household is in, its own
  * and linked households', and a grown-up's way to start one. */
 export default async function MonitoPage() {
   const me = await getCurrentMember();

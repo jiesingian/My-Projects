@@ -38,6 +38,7 @@ import { ThemePicker } from "@/components/chat-theme-picker";
 import { setHouseholdChatThemeAction } from "@/lib/actions/chat-theme";
 import Link from "next/link";
 import { Highlighted, LinkPreviewCard, MessageAttachments, MessageBody, PollBuilder, PollCard } from "@/components/chat-message-parts";
+import { scrollBehavior } from "@/lib/motion";
 
 // Rendered from the same list the action checks against, so a reaction the
 // composer offers can never be one the server refuses.
@@ -404,7 +405,7 @@ export function ChatThread({
     setQuery("");
     setHits(null);
     setHighlight(id);
-    el.scrollIntoView({ block: "center", behavior: "smooth" });
+    el.scrollIntoView({ block: "center", behavior: scrollBehavior() });
     setTimeout(() => setHighlight((h) => (h === id ? null : h)), 2000);
     return true;
   };
@@ -740,7 +741,7 @@ export function ChatThread({
           <button
             type="button"
             className="kin-chatpin-body"
-            onClick={() => document.getElementById(`msg-${pinned.id}`)?.scrollIntoView({ block: "center", behavior: "smooth" })}
+            onClick={() => document.getElementById(`msg-${pinned.id}`)?.scrollIntoView({ block: "center", behavior: scrollBehavior() })}
           >
             <span className="kin-chatpin-who">{pinned.memberId ? (byId.get(pinned.memberId)?.label ?? "Someone") : "Someone"}</span>
             <span className="kin-chatpin-text">{pinned.deleted ? "Message removed" : pinned.body}</span>
@@ -800,7 +801,7 @@ export function ChatThread({
                       type="button"
                       className="kin-quote"
                       data-mine={mine || undefined}
-                      onClick={() => document.getElementById(`msg-${m.replyTo!.id}`)?.scrollIntoView({ block: "center", behavior: "smooth" })}
+                      onClick={() => document.getElementById(`msg-${m.replyTo!.id}`)?.scrollIntoView({ block: "center", behavior: scrollBehavior() })}
                     >
                       <span className="kin-quote-who">
                         {m.replyTo.memberId ? (byId.get(m.replyTo.memberId)?.label ?? "Someone") : "Someone"}

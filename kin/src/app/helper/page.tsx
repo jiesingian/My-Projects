@@ -7,6 +7,7 @@ import { OnboardingShell, Wordmark } from "@/components/onboarding-shell";
 import { familyDay, familyTime } from "@/lib/time";
 import { mealsForTwoDays, namesSaid, plansForTwoDays, type HelperDay } from "@/lib/helper-access";
 import { HelperBuyList } from "./helper-buy-list";
+import { HelperPush } from "./helper-push";
 
 export const metadata = { title: "Helper · Kin" };
 
@@ -70,6 +71,7 @@ export default async function HelperPage({ searchParams }: { searchParams: Promi
           ) : (
             <HelperBuyList familyId={home.family_id} items={list?.data ?? []} />
           )}
+          <HelperPush familyId={home.family_id} />
         </section>
       )}
 
@@ -128,7 +130,8 @@ export default async function HelperPage({ searchParams }: { searchParams: Promi
         </section>
       )}
 
-      <p style={{ ...quiet, margin: "2rem 0 0.75rem", lineHeight: 1.5 }}>As of {familyTime(now, tz)}. Reopen the page to see the latest.</p>
+      <p style={{ ...quiet, margin: "2rem 0 0.75rem", lineHeight: 1.5 }}>{home.can_see_list ? "The list keeps itself up to date. " : ""}
+        {home.can_see_meals || home.can_see_kids_plans ? `${home.can_see_list ? "Meals and plans as" : "As"} of ${familyTime(now, tz)}. Reopen the page to see the latest.` : ""}</p>
       {member ? (
         <Link href="/today" className="btn btn-secondary btn-block" style={{ minHeight: "2.75rem" }}>
           Back to your own Kin

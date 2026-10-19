@@ -2,6 +2,7 @@
 
 import { useActionState, useId, useOptimistic, useState, useSyncExternalStore, useTransition } from "react";
 import { useRouter } from "next/navigation";
+import { useBuyListLive } from "@/lib/buy-list-live";
 import { addBuyItemAction, toggleBuyItemAction, clearCheckedAction, updateBuyItemAction, removeBuyItemAction } from "@/lib/actions/household";
 import { postHubExpenseAction } from "@/lib/actions/wealth";
 import { MARKET_SECTIONS, UNITS, guessSection, formatQuantity, groupByAisle } from "@/lib/grocery";
@@ -91,6 +92,7 @@ function sourcesOf(items: Tables<"buy_items">[]): string {
 }
 
 export function BuyList({
+  familyId,
   groups,
   openCount,
   doneCount,
@@ -107,6 +109,8 @@ export function BuyList({
   tripIsToday = false,
   startAdding = false,
 }: {
+  /** The household, for the list's live channel (lib/buy-list-live). */
+  familyId: string;
   groups: BuyGroup[];
   openCount: number;
   doneCount: number;
@@ -218,6 +222,9 @@ export function BuyList({
   }, initialState);
   const [editing, setEditing] = useState<string | null>(null);
   const [adding, setAdding] = useState(startAdding);
+  // Someone else's tick or add -- the helper's at the market included --
+  // shows without reopening the page.
+  useBuyListLive(familyId);
   // Walked aisle by aisle, or read in the order things were added. Starts by
   // aisle -- which is also what the server draws -- and the choice is
   // remembered on this phone only.

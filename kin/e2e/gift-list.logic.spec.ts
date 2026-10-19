@@ -1,7 +1,7 @@
 import { test, expect } from "@playwright/test";
 import { listTotals, parseGiftIdea, personTotals, spendParticulars, type GiftPerson } from "@/lib/gift-list";
 
-/** Christmas gifts and aguinaldo (20261019170300_gift_list.sql): what the
+/** Christmas gifts and aguinaldo (20261019233300_gift_list.sql): what the
  * list adds up to, and what the Wealth entry says. */
 
 const mia: GiftPerson = {

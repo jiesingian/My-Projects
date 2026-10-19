@@ -90,10 +90,13 @@ const MIGRATIONS = [
   "20261019120000_statement_import.sql",
   "20261019140000_this_weeks_fk_indexes.sql",
   "20261019152700_recipe_tree_person.sql",
-  "20261019170000_remembrance_undas.sql",
-  "20261019170100_event_potluck.sql",
-  "20261019170200_gift_draw.sql",
-  "20261019170300_gift_list.sql",
+  "20261019153000_shared_costs.sql",
+  "20261019211500_tree_stories_shared.sql",
+  "20261019212500_buy_list_live_and_helper_push.sql",
+  "20261019233000_remembrance_undas.sql",
+  "20261019233100_event_potluck.sql",
+  "20261019233200_gift_draw.sql",
+  "20261019233300_gift_list.sql",
 ];
 
 const only = process.argv[2];

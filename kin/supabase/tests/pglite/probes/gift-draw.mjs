@@ -1,4 +1,4 @@
-// Monito-monita (20261019170200): a grown-up starts a draw and asks linked
+// Monito-monita (20261019233200): a grown-up starts a draw and asks linked
 // households in; each household puts in only its own people; only the
 // organizer household's grown-up draws; each person reads only their own pick
 // (a grown-up also their managed child's), never anyone else's -- the

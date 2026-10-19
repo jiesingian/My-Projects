@@ -1,4 +1,4 @@
-/** Undas and babang-luksa (20261019170000_remembrance_undas.sql): the days a
+/** Undas and babang-luksa (20261019233000_remembrance_undas.sql): the days a
  * household remembers relatives on its tree who have passed. Pure, so Today,
  * Coming up and the tree's candle read the same rules as the morning push
  * (due_remembrance_reminders), which the logic tests hold them to.

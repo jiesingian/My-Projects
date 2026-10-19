@@ -136,6 +136,63 @@ export async function sendCardStartedPush(card: { recipientId: string; opensOn: 
   }
 }
 
+/** "Ann added a story about Lola" (20261019211500), to the rest of the
+ * household when a story is new, and "Ann shared a story about Lola" to the
+ * linked households that have Lola on their own tree when it is shared --
+ * each opened at their own Lola. tree_story_push_targets() answers only to
+ * the story's writer, for a few minutes, honouring each "journal" switch.
+ * Same promises as sendPush: never throws, call in after(). */
+export async function sendTreeStoryPush(story: { id: string; personId: string; isNew: boolean; title: string; writerFirst: string; personFirst: string }): Promise<void> {
+  if (!vapidReady()) return;
+  try {
+    const supabase = await createClient();
+    const { data: targets, error } = await supabase.rpc("tree_story_push_targets", { p_story: story.id, p_new: story.isNew });
+    if (error || !targets?.length) return;
+    const forget = async (endpoint: string) => {
+      await supabase.rpc("forget_push_endpoint", { p_endpoint: endpoint });
+    };
+    const byPerson = new Map<string, typeof targets>();
+    for (const t of targets) byPerson.set(t.person_id, [...(byPerson.get(t.person_id) ?? []), t]);
+    for (const [personId, devices] of byPerson) {
+      const ours = personId === story.personId;
+      const payload = JSON.stringify({
+        title: `${story.writerFirst} ${ours ? "added" : "shared"} a story about ${story.personFirst}`.slice(0, 80),
+        body: story.title.slice(0, 180),
+        url: `/family/stories/${personId}`,
+        tag: `tree-story:${story.id}`,
+      });
+      await deliver(devices, payload, { TTL: 60 * 60 * 12 }, forget);
+    }
+  } catch (err) {
+    console.error("Story push failed", err);
+  }
+}
+
+/** "Added to the list: Itlog · by Ann", to the household's helpers who can
+ * see the list and asked to be told (20261019212500). Helpers are not
+ * members, so their phones live apart from push_subscriptions and
+ * helper_push_targets() says which, only for a line the caller just added.
+ * Same promises as sendPush: never throws, call in after(). */
+export async function sendHelperListPush(item: { id: string; familyId: string; name: string; by: string }): Promise<void> {
+  if (!vapidReady()) return;
+  try {
+    const supabase = await createClient();
+    const { data: targets, error } = await supabase.rpc("helper_push_targets", { p_item: item.id });
+    if (error || !targets?.length) return;
+    const payload = JSON.stringify({
+      title: "Added to the list",
+      body: `${item.name} · by ${item.by}`.slice(0, 180),
+      url: `/helper?h=${item.familyId}`,
+      tag: `helper-list-${item.familyId}`,
+    });
+    await deliver(targets, payload, { TTL: 60 * 60 * 12 }, async (endpoint) => {
+      await supabase.rpc("forget_helper_push_endpoint", { p_endpoint: endpoint });
+    });
+  } catch (err) {
+    console.error("Helper push failed", err);
+  }
+}
+
 export type PushDevice = { endpoint: string; p256dh: string; auth: string };
 
 /** Sends one payload to each device and says what happened to each. A device

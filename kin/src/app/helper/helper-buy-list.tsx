@@ -4,13 +4,16 @@ import { useOptimistic, useState, useTransition } from "react";
 import { Icon } from "@/components/icons";
 import { formatQuantity } from "@/lib/grocery";
 import { helperAddAction, helperTickAction } from "@/lib/actions/helpers";
+import { useBuyListLive } from "@/lib/buy-list-live";
 
 type Item = { item_id: string; item_name: string; quantity: number | null; unit: string | null; section: string; checked: boolean; added_by: string | null };
 
 /** The household's open To-Buy list, as the helper sees it: the same rows the
  * family sees, so a tick here is a tick on their list. Tick, untick, add --
- * no prices, no amounts to change, nothing to delete. */
+ * no prices, no amounts to change, nothing to delete. Live: what the family
+ * adds or ticks shows here without reopening the page (lib/buy-list-live). */
 export function HelperBuyList({ familyId, items }: { familyId: string; items: Item[] }) {
+  useBuyListLive(familyId);
   const [shown, setShown] = useOptimistic(items, (list, { id, checked }: { id: string; checked: boolean }) =>
     list.map((i) => (i.item_id === id ? { ...i, checked } : i)),
   );

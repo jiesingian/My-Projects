@@ -8,7 +8,7 @@ import { getLinkedFamilies } from "@/lib/queries/tree-links";
 export type DrawSummary = { id: string; title: string; exchangeDate: string; hostName: string; mine: boolean; drawn: boolean; people: number; ours: number };
 
 /** The draws the viewer's household is in, its own and linked households'
- * (20261019170200), soonest first; a month after the day they drop off. */
+ * (20261019233200), soonest first; a month after the day they drop off. */
 export async function getMyDraws(): Promise<DrawSummary[]> {
   const supabase = await createClient();
   const { data } = await supabase.rpc("my_gift_draws");

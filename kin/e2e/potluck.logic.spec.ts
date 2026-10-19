@@ -1,7 +1,7 @@
 import { test, expect } from "@playwright/test";
 import { claimLimit, parsePotluckItem, potluckLines, potluckSummary } from "@/lib/potluck";
 
-/** Potluck on an event (20261019170100_event_potluck.sql): what the event
+/** Potluck on an event (20261019233100_event_potluck.sql): what the event
  * screen shows of who brings what. The database keeps the same limits
  * (potluck_claims_fill); the PGlite probe holds it to them. */
 

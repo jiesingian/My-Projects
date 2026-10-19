@@ -7,6 +7,7 @@ import { confirm } from "@/components/confirm-sheet";
 import { addVaultItemAction, updateVaultItemAction, removeVaultItemAction, type VaultFields } from "@/lib/actions/vault";
 import type { VaultItem } from "@/lib/queries/vault";
 import { PasswordHealth } from "@/components/password-health";
+import { scrollBehavior } from "@/lib/motion";
 
 /** The groups most households start with. Any other name works too -- these
  * are suggestions in the picker, not a list the database knows about. */
@@ -259,7 +260,7 @@ export function FamilyVault({ items, canEdit }: { items: VaultItem[]; canEdit: b
             const item = items.find((i) => i.id === id);
             if (!item) return;
             startEdit(item);
-            requestAnimationFrame(() => document.getElementById(`vault-${id}`)?.scrollIntoView({ behavior: "smooth", block: "center" }));
+            requestAnimationFrame(() => document.getElementById(`vault-${id}`)?.scrollIntoView({ behavior: scrollBehavior(), block: "center" }));
           }}
         />
       )}

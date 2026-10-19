@@ -7,7 +7,7 @@ import { capLine, drawProblem } from "@/lib/gift-draw";
 import { familyDate } from "@/lib/format-family";
 import { UUID } from "@/lib/ids";
 
-/** One monito-monita draw (20261019170200): who is in, the household's own
+/** One monito-monita draw (20261019233200): who is in, the household's own
  * controls, and -- once drawn -- the viewer's pick (and their managed
  * children's) with that person's wish list, and their own wish list. On the
  * day, if the draw reveals, everyone's. */

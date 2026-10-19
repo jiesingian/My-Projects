@@ -1026,9 +1026,9 @@ async function EventsPane({ familyId, who, when, grownUp }: { familyId: string; 
     supabase.from("event_rsvps").select("event_id, member_id, answer").eq("family_id", familyId),
     // The thread on each event (20261014100000), counted per row.
     supabase.from("event_comments").select("event_id").eq("family_id", familyId),
-    // Linked households' potlucks this household is asked to (20261019170100).
+    // Linked households' potlucks this household is asked to (20261019233100).
     getRelativesPotlucks(),
-    // Monito-monita draws the household is in (20261019170200).
+    // Monito-monita draws the household is in (20261019233200).
     getMyDraws(),
   ]);
   const commentCount = new Map<string, number>();
@@ -1189,7 +1189,7 @@ async function EventsPane({ familyId, who, when, grownUp }: { familyId: string; 
             </span>
           </Link>
         ))}
-      {/* Christmas gifts and aguinaldo (20261019170300): grown-ups only. */}
+      {/* Christmas gifts and aguinaldo (20261019233300): grown-ups only. */}
       {when === "upcoming" && grownUp && (
         <Link href="/planner/gifts" className="kin-potluck-invite">
           <Icon name="gift" size={18} />
@@ -1199,7 +1199,7 @@ async function EventsPane({ familyId, who, when, grownUp }: { familyId: string; 
           </span>
         </Link>
       )}
-      {/* Monito-monita (20261019170200): the household's draws and linked
+      {/* Monito-monita (20261019233200): the household's draws and linked
           households' it is asked to, or a way to start one. */}
       {when === "upcoming" && (
         <Link href="/planner/monito" className="kin-potluck-invite">

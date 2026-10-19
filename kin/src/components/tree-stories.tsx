@@ -8,10 +8,12 @@ import { toast } from "@/components/toast";
 import { uploadFileDirect } from "@/lib/upload-client";
 import { recordingIsSilent, rememberTranscriptConflict, startTranscript } from "@/lib/voice-note";
 import { deleteTreeStoryAction, saveTreeStoryAction, type NewStoryFile } from "@/lib/actions/tree-stories";
-import type { TreeStory } from "@/lib/queries/tree-stories";
+import type { LinkedStory, TreeStory } from "@/lib/queries/tree-stories";
 import {
   formatStoryWhen,
+  linkedStoryFoot,
   parseStoryWhen,
+  storyShareHint,
   storyWhenInput,
   tellerLabel,
   STORY_BODY_MAX,
@@ -32,6 +34,8 @@ export function TreeStories({
   personId,
   firstName,
   stories,
+  linkedStories,
+  sharedWith,
   members,
   meId,
   canAdd,
@@ -42,6 +46,10 @@ export function TreeStories({
   personId: string;
   firstName: string;
   stories: TreeStory[];
+  /** Shared by linked households about the same person: read only. */
+  linkedStories: LinkedStory[];
+  /** The linked households that have this person on their tree. */
+  sharedWith: string[];
   members: Member[];
   meId: string;
   /** A grown-up, or a teen with a login who is not in kid view. */
@@ -59,14 +67,22 @@ export function TreeStories({
     <div className="kin-stories">
       {canAdd &&
         (adding ? (
-          <StoryForm personId={personId} firstName={firstName} members={members} prompt={prompt} today={today} onDone={() => setAdding(false)} />
+          <StoryForm
+            personId={personId}
+            firstName={firstName}
+            members={members}
+            sharedWith={sharedWith}
+            prompt={prompt}
+            today={today}
+            onDone={() => setAdding(false)}
+          />
         ) : (
           <button type="button" className="btn btn-primary btn-block" onClick={() => setAdding(true)}>
             <Icon name="plus" size="1rem" /> Add a story about {firstName}
           </button>
         ))}
 
-      {stories.length === 0 ? (
+      {stories.length === 0 && linkedStories.length === 0 ? (
         <p className="kin-stories-empty">
           No stories about {firstName} yet. Ask someone who knew them, and record them telling it: how they met, where they lived, what they
           used to cook.
@@ -79,6 +95,7 @@ export function TreeStories({
               personId={personId}
               firstName={firstName}
               members={members}
+              sharedWith={sharedWith}
               prompt={prompt}
               today={today}
               story={s}
@@ -95,38 +112,22 @@ export function TreeStories({
           ),
         )
       )}
+
+      {linkedStories.map((s) => (
+        <LinkedStoryCard key={s.id} story={s} />
+      ))}
     </div>
   );
 }
 
-function StoryCard({ story, canEdit, canDelete, onEdit }: { story: TreeStory; canEdit: boolean; canDelete: boolean; onEdit: () => void }) {
-  const router = useRouter();
-  const [pending, startTransition] = useTransition();
-  const when = formatStoryWhen(story.happenedOn, story.happenedPrecision);
-  const teller = tellerLabel(story.tellerMemberName, story.tellerName);
+/** A story's recordings, words, photos and papers, the same on ours and on
+ * one a linked household shared. */
+function StoryContent({ story }: { story: { body: string | null; files: TreeStory["files"] } }) {
   const audio = story.files.filter((f) => f.kind === "audio");
   const photos = story.files.filter((f) => f.kind === "photo");
   const papers = story.files.filter((f) => f.kind === "document");
-
-  const remove = async () => {
-    const ok = await confirm({
-      title: `Delete "${story.title}"?`,
-      description: story.files.length > 0 ? "Its recordings, photos and papers go too. This can't be undone." : "This can't be undone.",
-      confirmLabel: "Delete",
-      danger: true,
-    });
-    if (!ok) return;
-    startTransition(async () => {
-      const result = await deleteTreeStoryAction(story.id);
-      if (result.error) toast.error(result.error);
-      else router.refresh();
-    });
-  };
-
   return (
-    <article className="kin-story" aria-busy={pending || undefined}>
-      <h3 className="kin-story-title">{story.title}</h3>
-      {(teller || when) && <div className="kin-story-meta">{[teller, when].filter(Boolean).join(" · ")}</div>}
+    <>
       {audio.map((f) =>
         f.url ? (
           <div key={f.id} className="kin-story-audio">
@@ -165,8 +166,55 @@ function StoryCard({ story, canEdit, canDelete, onEdit }: { story: TreeStory; ca
           </a>
         ) : null,
       )}
+    </>
+  );
+}
+
+/** A story a linked household shared: to read and listen to, not to change. */
+function LinkedStoryCard({ story }: { story: LinkedStory }) {
+  const when = formatStoryWhen(story.happenedOn, story.happenedPrecision);
+  const teller = tellerLabel(null, story.teller);
+  return (
+    <article className="kin-story" data-linked="">
+      <h3 className="kin-story-title">{story.title}</h3>
+      {(teller || when) && <div className="kin-story-meta">{[teller, when].filter(Boolean).join(" · ")}</div>}
+      <StoryContent story={story} />
       <div className="kin-story-foot">
-        <span>{story.createdByName ? `Added by ${story.createdByName.split(" ")[0]}` : ""}</span>
+        <span>{linkedStoryFoot(story.familyName, story.createdByName)}</span>
+      </div>
+    </article>
+  );
+}
+
+function StoryCard({ story, canEdit, canDelete, onEdit }: { story: TreeStory; canEdit: boolean; canDelete: boolean; onEdit: () => void }) {
+  const router = useRouter();
+  const [pending, startTransition] = useTransition();
+  const when = formatStoryWhen(story.happenedOn, story.happenedPrecision);
+  const teller = tellerLabel(story.tellerMemberName, story.tellerName);
+  const remove = async () => {
+    const ok = await confirm({
+      title: `Delete "${story.title}"?`,
+      description: story.files.length > 0 ? "Its recordings, photos and papers go too. This can't be undone." : "This can't be undone.",
+      confirmLabel: "Delete",
+      danger: true,
+    });
+    if (!ok) return;
+    startTransition(async () => {
+      const result = await deleteTreeStoryAction(story.id);
+      if (result.error) toast.error(result.error);
+      else router.refresh();
+    });
+  };
+
+  return (
+    <article className="kin-story" aria-busy={pending || undefined}>
+      <h3 className="kin-story-title">{story.title}</h3>
+      {(teller || when) && <div className="kin-story-meta">{[teller, when].filter(Boolean).join(" · ")}</div>}
+      <StoryContent story={story} />
+      <div className="kin-story-foot">
+        <span>
+          {[story.createdByName ? `Added by ${story.createdByName.split(" ")[0]}` : "", story.shared ? "Shared with linked households" : ""].filter(Boolean).join(" · ")}
+        </span>
         {canEdit && (
           <button type="button" className="btn btn-ghost" onClick={onEdit} disabled={pending}>
             Edit
@@ -191,6 +239,7 @@ function StoryForm({
   personId,
   firstName,
   members,
+  sharedWith,
   prompt,
   today,
   story,
@@ -199,6 +248,7 @@ function StoryForm({
   personId: string;
   firstName: string;
   members: Member[];
+  sharedWith: string[];
   prompt: string;
   today: string;
   story?: TreeStory;
@@ -210,6 +260,7 @@ function StoryForm({
   const [tellerName, setTellerName] = useState(story?.tellerName ?? "");
   const [when, setWhen] = useState(story ? storyWhenInput(story.happenedOn, story.happenedPrecision) : "");
   const [body, setBody] = useState(story?.body ?? "");
+  const [shared, setShared] = useState(story?.shared ?? false);
   const [picked, setPicked] = useState<Picked[]>([]);
   const [removing, setRemoving] = useState<string[]>([]);
   const [error, setError] = useState<string | null>(null);
@@ -336,6 +387,7 @@ function StoryForm({
         when,
         files,
         removeFileIds: removing,
+        shared,
       });
       if (result.error) {
         setError(result.error);
@@ -466,6 +518,12 @@ function StoryForm({
         <input ref={fileInput} type="file" accept="image/*,application/pdf,audio/*" multiple hidden onChange={(e) => pick(e.target.files)} />
       </div>
       {recording && <p className="kin-story-hint">Recording. Up to {STORY_RECORDING_MAX_SECONDS / 60} minutes; the words are written down as it goes where this phone can.</p>}
+
+      <label className="kin-story-share">
+        <input type="checkbox" checked={shared} onChange={(e) => setShared(e.target.checked)} disabled={saving} />
+        <span>Share with linked households</span>
+      </label>
+      <p className="kin-story-hint">{shared ? storyShareHint(firstName, sharedWith) : "Only your household sees it."}</p>
 
       {error && (
         <p role="alert" className="kin-story-hint" data-error="">

@@ -108,7 +108,7 @@ export const EXPENSE_CATEGORIES = [
   "Shopping",
   "Insurance",
   "Debt",
-  // Christmas gifts and aguinaldo (20261019170300_gift_list.sql).
+  // Christmas gifts and aguinaldo (20261019233300_gift_list.sql).
   "Gifts",
   "Other",
 ] as const;

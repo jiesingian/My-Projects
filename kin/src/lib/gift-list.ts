@@ -1,4 +1,4 @@
-/** Christmas gifts and aguinaldo (20261019170300_gift_list.sql): what the
+/** Christmas gifts and aguinaldo (20261019233300_gift_list.sql): what the
  * list adds up to. Pure, so the screen and the logic tests agree. */
 
 export type GiftKind = "family" | "inaanak" | "other";

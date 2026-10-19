@@ -14,7 +14,7 @@ import { isGrownUp } from "@/lib/roles";
 import { isGone } from "@/lib/member-status";
 import { inKidView } from "@/lib/kid-view";
 
-/** Christmas gifts and aguinaldo (20261019170300): the grown-ups' list for
+/** Christmas gifts and aguinaldo (20261019233300): the grown-ups' list for
  * a year -- per person and per inaanak, a budget, ideas ticked when bought,
  * the totals against the budgets -- hidden from whoever each row is for. */
 export default async function GiftsPage({ searchParams }: { searchParams: Promise<{ year?: string }> }) {
