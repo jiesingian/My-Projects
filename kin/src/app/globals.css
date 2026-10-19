@@ -4272,6 +4272,17 @@ button.kin-initial:focus-visible {
 .kin-vault-who legend { font: 600 0.75rem/1 var(--font-heading); letter-spacing: .02em; color: var(--color-neutral-600); margin-bottom: 0.375rem; padding: 0; }
 .kin-vault-who label { display: inline-flex; align-items: center; gap: 0.375rem; min-height: 2rem; }
 .kin-vault-error { color: var(--color-accent-700); font-size: 0.8125rem; margin: 0 0 0.5rem; }
+/* Password health (components/password-health.tsx): a calm card above the
+   groups, not a warning banner. */
+.kin-vault-health {
+  padding: 0.75rem 0.875rem; margin-bottom: 0.5rem;
+  border-radius: var(--radius-card); background: var(--color-surface); box-shadow: var(--shadow-sm);
+}
+.kin-vault-health h4 {
+  display: flex; align-items: center; gap: 0.375rem;
+  font: 600 0.875rem/1.2 var(--font-heading); margin: 0 0 0.375rem; color: var(--color-neutral-700);
+}
+.kin-vault-health h4 svg { color: var(--color-accent-700); }
 .kin-vault-empty { font-size: 0.84375rem; color: var(--color-neutral-600); margin-bottom: 0.625rem; }
 .kin-vault-starters { display: flex; flex-wrap: wrap; gap: 0.375rem; margin-top: 0.625rem; }
 .kin-vault-chip {
