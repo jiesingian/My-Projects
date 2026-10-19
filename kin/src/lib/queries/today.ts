@@ -543,7 +543,7 @@ export async function getComingUp(familyId: string, currency: string, me: Viewer
 
 /** The household's relatives on the tree who have passed, for Undas and
  * their days (lib/remembrance) -- none when the household turned remembering
- * off (families.remember_the_departed, 20261019170000). */
+ * off (families.remember_the_departed, 20261019233000). */
 async function departedOnTree(supabase: Awaited<ReturnType<typeof createClient>>, familyId: string): Promise<Departed[]> {
   const [{ data: family }, { data: rows }] = await Promise.all([
     supabase.from("families").select("remember_the_departed").eq("id", familyId).maybeSingle(),

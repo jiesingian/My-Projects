@@ -841,7 +841,7 @@ export function ShareWithRelativesSwitch({ on, canChange }: { on: boolean; canCh
 }
 
 /** Undas and babang-luksa reminders, the household's switch
- * (families.remember_the_departed, 20261019170000). */
+ * (families.remember_the_departed, 20261019233000). */
 export function RememberTheDepartedSwitch({ on, canChange }: { on: boolean; canChange: boolean }) {
   const [value, setValue] = useState(on !== false); // unset reads as the column's default, on
   const [pending, startTransition] = useTransition();

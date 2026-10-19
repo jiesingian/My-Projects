@@ -1,4 +1,5 @@
-import { addDays, familyDay, weekdayOf } from "@/lib/time";
+import { addDays, familyDay } from "@/lib/time";
+import { occurrenceStarts } from "@/lib/activity-repeat";
 import { MEAL_SLOTS, MEAL_SLOT_LABEL, type MealSlot } from "@/lib/recipes";
 
 /** Helper access for the kasambahay, yaya or driver (20261015121000).
@@ -71,48 +72,28 @@ export type HelperPlanRow = {
 };
 export type HelperPlan = { day: HelperDay; title: string; at: Date; endAt: Date | null; place: string | null; children: string[]; forWholeFamily: boolean };
 
-const DAY_MS = 86_400_000;
-
-/** Does a plan that started on `first` fall on `day`? Once, weekly, monthly
- * or yearly -- the Planner's four repeats -- with a weekly one's chosen days
- * and any repeat's last day (20261014120000), read as that change's
- * lib/activity-repeat.ts reads them: no days chosen means the first day's own
- * weekday, no last day means it never ends. */
-function fallsOn(r: HelperPlanRow, first: string, day: string): boolean {
-  if (day < first) return false;
-  const repeat = r.repeat ?? "once";
-  if (!["weekly", "monthly", "yearly"].includes(repeat)) return day === first;
-  if (r.repeat_until && day > r.repeat_until) return false;
-  if (repeat === "weekly") {
-    const chosen = (r.repeat_days ?? []).filter((d) => Number.isInteger(d) && d >= 0 && d <= 6);
-    const wd = weekdayOf(day);
-    return wd !== null && (chosen.length ? chosen.includes(wd) : wd === weekdayOf(first));
-  }
-  if (repeat === "monthly") return day.slice(8) === first.slice(8);
-  return day.slice(5) === first.slice(5);
-}
-
-/** The family's plans (the children's and the whole family's) for today and tomorrow, in time order. The database
- * sends every repeating plan that has started; this picks the days it lands
- * on and moves it there, keeping its wall-clock time (the household's zone
- * is shifted by whole days, as brief.ts does). */
+/** The family's plans (the children's and the whole family's) for today
+ * and tomorrow, in time order. The database sends every repeating plan that
+ * has started; lib/activity-repeat.ts -- the same rules the Planner, the
+ * brief and the calendar feed use -- says which of the two days it lands on
+ * (a weekly plan's chosen days, any plan's last day) and at what instant,
+ * keeping its wall-clock time in the household's zone. */
 export function plansForTwoDays(rows: HelperPlanRow[], now: Date, tz: string): HelperPlan[] {
   const today = familyDay(now, tz);
   const tomorrow = addDays(today, 1);
+  if (!tomorrow) return [];
   const out: HelperPlan[] = [];
   for (const r of rows) {
     const start = new Date(r.start_at);
     if (Number.isNaN(start.getTime())) continue;
-    const first = familyDay(start, tz);
     const end = r.end_at ? new Date(r.end_at) : null;
-    for (const [label, day] of [["today", today], ["tomorrow", tomorrow]] as const) {
-      if (!day || !fallsOn(r, first, day)) continue;
-      const shift = Math.round((Date.parse(day) - Date.parse(first)) / DAY_MS) * DAY_MS;
+    const length = end && !Number.isNaN(end.getTime()) ? end.getTime() - start.getTime() : null;
+    for (const at of occurrenceStarts(r, start, today, tomorrow, tz)) {
       out.push({
-        day: label,
+        day: familyDay(at, tz) === today ? "today" : "tomorrow",
         title: r.title,
-        at: new Date(start.getTime() + shift),
-        endAt: end && !Number.isNaN(end.getTime()) ? new Date(end.getTime() + shift) : null,
+        at,
+        endAt: length === null ? null : new Date(at.getTime() + length),
         place: r.place?.trim() || null,
         children: r.children ?? [],
         forWholeFamily: r.for_whole_family === true,
