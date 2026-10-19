@@ -40,9 +40,12 @@ test.describe("Simple Kin's Today", () => {
     const res = await api.get(`${SUPABASE_URL}/rest/v1/members?auth_user_id=eq.${session.user.id}&select=id,simple_mode,text_scale`, {
       headers: { apikey: SUPABASE_KEY!, Authorization: `Bearer ${token}` },
     });
+    // Read before dispose(): disposing the context throws away the body too
+    // ("Response has been disposed", weekly check 19 October).
+    const rows = res.ok() ? ((await res.json()) as { id: string; simple_mode: boolean; text_scale: number }[]) : [];
     await api.dispose();
     test.skip(!res.ok(), "simple_mode is not on this database yet (migration 20261019235700); skipping.");
-    const [row] = (await res.json()) as { id: string; simple_mode: boolean; text_scale: number }[];
+    const [row] = rows;
     memberId = row.id;
     original = { simple_mode: row.simple_mode, text_scale: row.text_scale };
     expect(await patchMe({ simple_mode: true, text_scale: 130 })).toBeTruthy();
