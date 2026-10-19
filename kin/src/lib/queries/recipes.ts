@@ -12,6 +12,7 @@ import type { IconName } from "@/components/icons";
 import type { MarketSection } from "@/lib/grocery";
 import { getSignedUrls } from "@/lib/storage";
 import { recipeRef, RECIPE_PHOTO_BUCKET } from "@/lib/meal-photos";
+import { recipesByPerson, type PersonRecipe } from "@/lib/recipe-person";
 
 export type RecipeView = {
   /** The shipped key, or the family row's id for one of their own. */
@@ -34,6 +35,8 @@ export type RecipeView = {
   origin: "own" | "edited" | "shipped";
   /** The page a recipe was read from (Save a recipe from a link). */
   sourceUrl: string | null;
+  /** Whose recipe it is: somebody on the tree (20261019150000). */
+  personId: string | null;
 };
 
 export type CategoryView = {
@@ -106,6 +109,7 @@ export async function getRecipeBook(familyId: string): Promise<RecipeView[]> {
       photoUrl: null,
       origin: r.base_key ? "edited" : "own",
       sourceUrl: r.source_url ?? null,
+      personId: r.tree_person_id ?? null,
     };
   });
 
@@ -123,6 +127,7 @@ export async function getRecipeBook(familyId: string): Promise<RecipeView[]> {
     photoUrl: null,
     origin: "shipped",
     sourceUrl: null,
+    personId: null,
   }));
 
   const all = [...own, ...shipped].sort((a, b) => a.name.localeCompare(b.name));
@@ -138,4 +143,28 @@ export async function getRecipeBook(familyId: string): Promise<RecipeView[]> {
   }
 
   return all;
+}
+
+/** The household's recipes that name somebody on the tree, by person
+ * (20261019150000), for their panel, profile and stories page. An empty map
+ * when the read fails: the recipes are an extra there, never the point. */
+export async function getRecipesByPerson(familyId: string): Promise<Map<string, PersonRecipe[]>> {
+  const supabase = await createClient();
+  const { data, error } = await supabase.from("family_recipes").select("id, name, tree_person_id").eq("family_id", familyId).not("tree_person_id", "is", null);
+  if (error) console.error("recipes by person could not be read", error.message);
+  return recipesByPerson(data ?? []);
+}
+
+/** Everyone on the household's tree, by the name the household has for
+ * them, for a recipe's "Whose recipe" (20261019150000). */
+export async function getRecipePeople(familyId: string): Promise<{ id: string; name: string }[]> {
+  const supabase = await createClient();
+  const [{ data: people }, { data: members }] = await Promise.all([
+    supabase.from("family_tree_people").select("id, full_name, member_id").eq("family_id", familyId),
+    supabase.from("members").select("id, full_name").eq("family_id", familyId),
+  ]);
+  const memberName = new Map((members ?? []).map((m) => [m.id, m.full_name]));
+  return (people ?? [])
+    .map((p) => ({ id: p.id, name: (p.member_id ? memberName.get(p.member_id) : null) ?? p.full_name ?? "Unnamed" }))
+    .sort((a, b) => a.name.localeCompare(b.name));
 }

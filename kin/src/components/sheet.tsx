@@ -14,6 +14,7 @@ export function SheetButton({
   className = "btn btn-secondary",
   style,
   children,
+  defaultOpen = false,
 }: {
   label: string;
   title: string;
@@ -21,8 +22,10 @@ export function SheetButton({
   className?: string;
   style?: React.CSSProperties;
   children: React.ReactNode;
+  /** Open as the page loads -- a link straight to what is inside. */
+  defaultOpen?: boolean;
 }) {
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState(defaultOpen);
   const titleId = useId();
 
   return (

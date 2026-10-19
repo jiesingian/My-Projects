@@ -19,6 +19,7 @@ import { confirm } from "@/components/confirm-sheet";
 import { InviteQr } from "@/components/invite-qr";
 import { toast } from "@/components/toast";
 import { storyCountLabel, storyMark } from "@/lib/tree-stories";
+import { PersonRecipes } from "@/components/person-recipes";
 
 /** Layout units are px at the default text size; the chart draws them in rem,
  * so the whole tree -- cards, text and lines -- grows with the reader's text
@@ -1127,6 +1128,9 @@ function SelectedPanel({
         </span>
         <span className="kin-treepanel-stories-go">{(person.storyCount ?? 0) > 0 ? "Open" : "Add one"}</span>
       </Link>
+
+      {/* Their recipes (19 October): Lola's adobo, kept in the Meals book. */}
+      <PersonRecipes recipes={person.recipes ?? []} firstName={person.fullName.split(" ")[0]} />
 
       <LinkedSection person={person} matches={matches} linkedFamilies={linkedFamilies} shownBranches={shownBranches} onToggleBranch={onToggleBranch} />
 

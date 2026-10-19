@@ -6,6 +6,7 @@ import { after } from "next/server";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { sendPush } from "@/lib/push";
+import { UUID } from "@/lib/ids";
 import { requireCurrentMember } from "@/lib/session";
 import { syncRowToCalendars, removeRowFromCalendars } from "@/lib/actions/calendar-sync";
 import { MARKET_SECTIONS, guessSection } from "@/lib/grocery";
@@ -721,6 +722,10 @@ export async function saveRecipeAction(input: {
   /** The page it was read from (Save a recipe from a link). Left alone when
    * not given, so editing a linked recipe keeps its link. */
   sourceUrl?: string | null;
+  /** Whose recipe it is, somebody on the tree (20261019150000); null for
+   * nobody. Left alone when not given. The database checks they are on
+   * this household's tree. */
+  treePersonId?: string | null;
 }): Promise<ActionState> {
   const me = await requireCurrentMember();
   const name = clamp(input.name, 150);
@@ -743,6 +748,7 @@ export async function saveRecipeAction(input: {
     steps: input.steps.map((s) => clamp(s, 1000)).filter(Boolean),
     updated_at: new Date().toISOString(),
     ...(input.sourceUrl !== undefined ? { source_url: input.sourceUrl && /^https:\/\//.test(input.sourceUrl) ? input.sourceUrl.slice(0, 2000) : null } : {}),
+    ...(input.treePersonId !== undefined ? { tree_person_id: input.treePersonId && UUID.test(input.treePersonId) ? input.treePersonId : null } : {}),
   };
 
   let recipeId = input.id ?? null;
@@ -765,6 +771,8 @@ export async function saveRecipeAction(input: {
   const ingredientsFailed = await saveRecipeIngredients(recipeId, me.family_id, input.ingredients);
   if (ingredientsFailed) return { error: ingredientsFailed };
   revalidatePath("/household");
+  // Whose recipe it is shows on the tree, the profile and the stories page.
+  if (input.treePersonId !== undefined) revalidatePath("/family", "layout");
   return { error: null };
 }
 

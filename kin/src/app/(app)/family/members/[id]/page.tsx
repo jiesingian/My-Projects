@@ -38,6 +38,9 @@ import { getPersonMoments } from "@/lib/queries/journal";
 import { memberColourVar } from "@/lib/member-colours";
 import { PersonActions, ProfileMoreMenu, CoverPicker } from "@/components/person-profile";
 import { storyCountLabel } from "@/lib/tree-stories";
+import { PersonRecipes } from "@/components/person-recipes";
+import { getRecipesByPerson } from "@/lib/queries/recipes";
+import type { PersonRecipe } from "@/lib/recipe-person";
 
 const SEGMENTS = ["schedule", "vaccines", "medicines", "illness", "conditions", "labs", "vitals"] as const;
 type Seg = (typeof SEGMENTS)[number];
@@ -93,6 +96,8 @@ export default async function MemberDetailPage({
   // Where they are on the household's tree, if they are, and how many
   // stories it keeps about them (20261014204000_tree_person_stories).
   let treeStories: { personId: string; count: number } | null = null;
+  // And the household's recipes that name them (20261019150000).
+  let recipes: PersonRecipe[] = [];
   {
     const supabase = await createClient();
     const [{ data: albumRows }, { data: treeRow }] = await Promise.all([
@@ -107,8 +112,12 @@ export default async function MemberDetailPage({
       .map((row) => ({ id: row.id, url: resolvePhotoUrl(supabase, row) }))
       .filter((p): p is AlbumPhoto => p.url !== null);
     if (treeRow) {
-      const { count } = await supabase.from("tree_person_stories").select("id", { count: "exact", head: true }).eq("person_id", treeRow.id);
+      const [{ count }, byPerson] = await Promise.all([
+        supabase.from("tree_person_stories").select("id", { count: "exact", head: true }).eq("person_id", treeRow.id),
+        getRecipesByPerson(me.family_id),
+      ]);
       treeStories = { personId: treeRow.id, count: count ?? 0 };
+      recipes = byPerson.get(treeRow.id) ?? [];
     }
   }
 
@@ -225,6 +234,7 @@ export default async function MemberDetailPage({
                   <span className="kin-treepanel-stories-go">{treeStories.count > 0 ? "Open" : "Add one"}</span>
                 </Link>
               )}
+              {tab === "moments" && <PersonRecipes recipes={recipes} firstName={member.full_name.split(" ")[0]} />}
               {tab === "moments" ? (
                 <MomentsPane memberId={member.id} familyId={me.family_id} firstName={member.full_name.split(" ")[0]} isSelf={isSelf} fmtDate={fmtDate} />
               ) : isSelf ? (
