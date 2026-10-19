@@ -111,9 +111,12 @@ for (const { name: widthName, width, height } of WIDTHS) {
   }
 }
 
-/** The screens shipped 14-19 October, each loaded once per theme at phone
- * width only -- the width the household uses them at, and the hubs above
- * already cover tablet and desktop for the shared chrome. Loading, not using:
+/** The screens shipped 14-19 October, each loaded once at phone width -- the
+ * width the household uses them at -- in light and dark by turns down the
+ * list. Once, not once per theme, because this tier has a twenty-minute cap
+ * on a dev that is sometimes slow (e2e.yml): the hubs above already prove
+ * both themes and every width for the shared chrome, and what these add is
+ * each screen's own first paint. Loading, not using:
  * anything that writes a row belongs in weekly-check.yml.
  *
  * A screen behind an id is reached the way a person reaches it: open `from`,
@@ -145,33 +148,32 @@ const NEW_SCREENS: NewScreen[] = [
 test.describe(`new screens · phone`, () => {
   test.use({ viewport: { width: WIDTHS[0].width, height: WIDTHS[0].height } });
 
-  for (const theme of THEMES) {
-    for (const screen of NEW_SCREENS) {
-      test(`${screen.name} is sound · ${theme}`, async ({ page, context, baseURL }) => {
-        await context.addCookies([{ name: "kin-theme", value: theme, url: baseURL! }]);
-        await page.emulateMedia({ colorScheme: theme });
+  NEW_SCREENS.forEach((screen, i) => {
+    const theme = THEMES[i % THEMES.length];
+    test(`${screen.name} is sound · ${theme}`, async ({ page, context, baseURL }) => {
+      await context.addCookies([{ name: "kin-theme", value: theme, url: baseURL! }]);
+      await page.emulateMedia({ colorScheme: theme });
 
-        let path = screen.path;
-        if (!path) {
-          let at = screen.from!;
-          for (const link of screen.links!) {
-            await page.goto(at, { waitUntil: "networkidle" });
-            const href = await page.locator(`a[href^="${link}"]`).first().getAttribute("href", { timeout: 2_000 }).catch(() => null);
-            test.skip(!href, `the sample household has no link to ${link} on ${at}`);
-            at = href!;
-          }
-          path = new URL(at, baseURL).pathname + (screen.then ?? "");
+      let path = screen.path;
+      if (!path) {
+        let at = screen.from!;
+        for (const link of screen.links!) {
+          await page.goto(at, { waitUntil: "networkidle" });
+          const href = await page.locator(`a[href^="${link}"]`).first().getAttribute("href", { timeout: 2_000 }).catch(() => null);
+          test.skip(!href, `the sample household has no link to ${link} on ${at}`);
+          at = href!;
         }
+        path = new URL(at, baseURL).pathname + (screen.then ?? "");
+      }
 
-        // Watching starts here, so a complaint is this screen's and not its parent's.
-        const seen = watch(page);
-        const response = await page.goto(path, { waitUntil: "networkidle" });
-        expect(response?.status(), `${path} should serve 200`).toBe(200);
-        const landsOn = screen.landsOn ?? new URL(path, baseURL).pathname;
-        expect(new URL(page.url()).pathname, `${path} should land on ${landsOn}`).toBe(landsOn);
+      // Watching starts here, so a complaint is this screen's and not its parent's.
+      const seen = watch(page);
+      const response = await page.goto(path, { waitUntil: "networkidle" });
+      expect(response?.status(), `${path} should serve 200`).toBe(200);
+      const landsOn = screen.landsOn ?? new URL(path, baseURL).pathname;
+      expect(new URL(page.url()).pathname, `${path} should land on ${landsOn}`).toBe(landsOn);
 
-        await expectSound(page, seen, path, theme, WIDTHS[0].width);
-      });
-    }
-  }
+      await expectSound(page, seen, path, theme, WIDTHS[0].width);
+    });
+  });
 });
