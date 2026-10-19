@@ -129,7 +129,20 @@ request, in this order.
   Migration 20261019100000_alkansya.sql; probe alkansya.mjs; logic
   e2e/alkansya.logic.spec.ts.
 
-- Utang and paluwagan ledger (Wealth, Kin Plus).
+- **Done:** Utang and paluwagan (Wealth, Kin Plus), at /wealth/utang.
+  Utang: money lent to or borrowed from a relative, with partial payments
+  (never more than the amount), a due date, a note; owed-to-us and we-owe
+  totals. Paluwagan: name, hulog per member, weekly / twice a month
+  (kinsenas) / monthly, first round, members in turn order with the
+  household's own slot; each round shows its date, whose pot it is, and a
+  tick per member's hulog (/wealth/paluwagan/<id>). Each entry is
+  "Household grown-ups" or "Just me" (the recorder only; only the recorder
+  can switch it); children never see either. Reminders are opt-in per
+  entry: Kin writes a polite Taglish message (lib/utang.ts) for the
+  grown-up to Share or Copy themselves -- for money lent and still owed, and
+  for a due hulog not in yet -- and never contacts anyone. Migration
+  20261019110000_utang_paluwagan.sql; probe utang-paluwagan.mjs; logic
+  e2e/utang.logic.spec.ts.
 
 - Import a statement (Wealth, Kin Plus).
 
