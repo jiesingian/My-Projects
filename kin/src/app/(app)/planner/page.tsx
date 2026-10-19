@@ -115,7 +115,7 @@ export default async function PlannerPage({
           />
         )}
         {seg === "routines" && <RoutinesPane familyId={me.family_id} who={who} currency={me.families.currency} justSaved={sp.saved === "1"} done={done} />}
-        {seg === "events" && <EventsPane familyId={me.family_id} who={who} when={eventWhen(sp.when)} />}
+        {seg === "events" && <EventsPane familyId={me.family_id} who={who} when={eventWhen(sp.when)} grownUp={isGrownUp(me.role)} />}
         {seg === "goals" && (
           <GoalsPane
             familyId={me.family_id}
@@ -1031,7 +1031,7 @@ function concerns(memberIds: string[], appliesToAll: boolean, who: string): bool
  * packing list, travellers). Every event and trip is one merged, date-ordered
  * list; a trip's extra detail (budget, spend, invitation card) is on its own
  * screen. */
-async function EventsPane({ familyId, who, when }: { familyId: string; who: string; when: EventWhen }) {
+async function EventsPane({ familyId, who, when, grownUp }: { familyId: string; who: string; when: EventWhen; grownUp: boolean }) {
   const fmtDate = await familyDate();
   const today = familyDay(new Date(), await householdZone());
   const supabase = await createClient();
@@ -1209,6 +1209,16 @@ async function EventsPane({ familyId, who, when }: { familyId: string; who: stri
             </span>
           </Link>
         ))}
+      {/* Christmas gifts and aguinaldo (20261019170300): grown-ups only. */}
+      {when === "upcoming" && grownUp && (
+        <Link href="/planner/gifts" className="kin-potluck-invite">
+          <Icon name="gift" size={18} />
+          <span style={{ flex: 1, minWidth: 0 }}>
+            <span style={{ display: "block", fontWeight: 600 }}>Christmas gifts and aguinaldo</span>
+            <span style={{ display: "block", fontSize: "0.8125rem", color: "var(--color-neutral-600)" }}>A budget for each person and inaanak, ticked when bought</span>
+          </span>
+        </Link>
+      )}
       {/* Monito-monita (20261019170200): the household's draws and linked
           households' it is asked to, or a way to start one. */}
       {when === "upcoming" && (

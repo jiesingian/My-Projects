@@ -4439,6 +4439,125 @@ export type Database = {
           },
         ]
       }
+      gift_list_people: {
+        Row: {
+          budget: number | null
+          created_at: string
+          created_by: string | null
+          family_id: string
+          id: string
+          kind: string
+          member_id: string | null
+          name: string
+          year: number
+        }
+        Insert: {
+          budget?: number | null
+          created_at?: string
+          created_by?: string | null
+          family_id: string
+          id?: string
+          kind?: string
+          member_id?: string | null
+          name: string
+          year: number
+        }
+        Update: {
+          budget?: number | null
+          created_at?: string
+          created_by?: string | null
+          family_id?: string
+          id?: string
+          kind?: string
+          member_id?: string | null
+          name?: string
+          year?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "gift_list_people_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "members"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "gift_list_people_family_id_fkey"
+            columns: ["family_id"]
+            isOneToOne: false
+            referencedRelation: "families"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "gift_list_people_member_id_fkey"
+            columns: ["member_id"]
+            isOneToOne: false
+            referencedRelation: "members"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      gift_list_items: {
+        Row: {
+          bought: boolean
+          bought_at: string | null
+          cost: number | null
+          created_at: string
+          created_by: string | null
+          family_id: string
+          id: string
+          is_cash: boolean
+          label: string
+          person_id: string
+        }
+        Insert: {
+          bought?: boolean
+          bought_at?: string | null
+          cost?: number | null
+          created_at?: string
+          created_by?: string | null
+          family_id: string
+          id?: string
+          is_cash?: boolean
+          label: string
+          person_id: string
+        }
+        Update: {
+          bought?: boolean
+          bought_at?: string | null
+          cost?: number | null
+          created_at?: string
+          created_by?: string | null
+          family_id?: string
+          id?: string
+          is_cash?: boolean
+          label?: string
+          person_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "gift_list_items_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "members"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "gift_list_items_family_id_fkey"
+            columns: ["family_id"]
+            isOneToOne: false
+            referencedRelation: "families"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "gift_list_items_person_id_fkey"
+            columns: ["person_id"]
+            isOneToOne: false
+            referencedRelation: "gift_list_people"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       event_rsvps: {
         Row: {
           answer: string

@@ -8137,3 +8137,23 @@ button.kin-room-quote { font: inherit; font-size: 0.78125rem; text-align: left; 
   background: var(--color-surface);
   box-shadow: 0 0 0 1px var(--color-neutral-200);
 }
+
+/* ── Christmas gifts and aguinaldo (19 October) ─────────────────────────── */
+.kin-gift-card {
+  padding: 0.75rem 0.875rem;
+  margin-bottom: 0.625rem;
+  border-radius: 0.875rem;
+  background: var(--color-surface);
+  box-shadow: 0 0 0 1px var(--color-neutral-200);
+}
+.kin-gift-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.3125rem 0;
+  font-size: 0.875rem;
+}
+.kin-gift-add {
+  padding: 0.75rem 0;
+  margin-bottom: 0.75rem;
+}

@@ -51,7 +51,19 @@ the potluck, the monito-monita draw, and the Christmas gift list.
   whoever drew them, no one else, the organizer included. Draw again
   before the day; call it off. Migration 20261019170200_gift_draw.sql. No
   push yet. Not checked: three households on real phones.
-- Christmas gift and aguinaldo list.
+- **Done:** Christmas gift and aguinaldo list (Kin Free, grown-ups only):
+  Planner -> Events -> Christmas gifts and aguinaldo (/planner/gifts), a
+  list per year. Add a person (someone at home, a relative, or an
+  inaanak) with a budget; ideas in one box ("Lego set 1,200", "Aguinaldo
+  500" is cash), ticked when bought; each card says bought of planned and
+  what is left of (or over) the budget, and the top says the year's
+  bought, planned, budget, people done and the aguinaldo set aside. A
+  bought idea can be recorded in Wealth like other expenses ("Record",
+  category Gifts, a new category), and the entry says "Christmas gift" or
+  "Aguinaldo", never a name. Children never see the list; anyone on it
+  never sees their own row or its ideas, a grown-up included. Migration
+  20261019170300_gift_list.sql (also adds gift_list_items to
+  wealth_transactions' source_table check). Not checked: a real phone.
 
 ## Approved 19 October: four for money and health (Jonathan)
 
