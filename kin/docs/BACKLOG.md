@@ -815,6 +815,18 @@ Decided against in the same review: revising Journal (item 6) and Planner
   per-PR smoke tier (#687) and used once each as the sample household in the
   weekly check (e2e/this-week.spec.ts).
 
+- Offline ticks for medicines and chores (Jonathan, 19 October; item 4 of
+  "easier to use, faster, and offline"). Three more changes wait on the
+  phone with no signal and replay on reconnect through app/api/offline/replay:
+  a medicine dose ticked or unticked (Health), a chore marked done or skipped
+  on the Planner for any day, and a grown-up's yes or no to a chore waiting
+  for approval. Each shows "waiting to send" until then. Same rules as
+  before (lib/offline/rules.ts): the later tick wins, an answer someone
+  already gave stands, a second tick on the same dose replaces the first in
+  the queue. The offline line on the Planner and a member's page says chores
+  and medicine ticks wait. e2e/offline-ticks.logic.spec.ts; the Planner case
+  end to end in e2e/offline.spec.ts.
+
 - Accessibility sweep (Jonathan, 19 October; item 2 of "easier to use,
   faster, and offline"). On a touch screen every button, and every chip that
   does something, answers a finger 44px across through an invisible hit area
