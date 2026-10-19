@@ -184,8 +184,12 @@ Four free items, each its own pull request.
   the lines for a quick edit before anything is added. Replaces the old
   one-tap "Buy list" chip, which added unseen.
 
-- **Not yet:** "Nakarating na ako" check-in from Today, Kid view and the
-  Action Button menu.
+- **Done:** "Nakarating na ako": a button on Today and in Kid view, and an
+  Action Button menu item (/go/arrived), reads the position once at the tap
+  and posts "Lia is at School, 7:12 AM" to the household chat with an
+  arrival push: the saved place it is inside (Who's where's rule), else a
+  map link. Nothing is stored but the message (no member_locations write),
+  so it works without sharing on and leaves no trail (lib/arrived.ts).
 
 - **Not yet:** Private notes screen (`personal_notes`): a Today quick
   button and a list screen, author-only.
