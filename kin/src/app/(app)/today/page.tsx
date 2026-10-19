@@ -125,7 +125,10 @@ export default async function TodayPage({ searchParams }: { searchParams: Promis
   const entries = ranked.sort((a, b) => a.group - b.group || a.at - b.at).map((r) => r.entry);
   const behind = tasks.filter((t) => !t.today && t.overdue.length > 0).length;
 
+  // The household's day, not the server's (which is pinned to Manila): a
+  // household abroad saw Manila's date here until the clock agreed.
   const todayLabel = new Date().toLocaleDateString("en-GB", {
+    timeZone: tz,
     weekday: "long",
     day: "2-digit",
     month: "2-digit",
@@ -203,7 +206,7 @@ export default async function TodayPage({ searchParams }: { searchParams: Promis
 
       {/* From 6pm: what got done, what is open, and one tap to move the open
           plans to tomorrow (lib/wrap-up.ts). */}
-      {entries.length > 0 && isWrapUpTime(familyClock(new Date())) && <EveningWrapUp wrap={wrapUp(entries)} />}
+      {entries.length > 0 && isWrapUpTime(familyClock(new Date(), tz)) && <EveningWrapUp wrap={wrapUp(entries)} />}
 
       {entries.length === 0 ? (
         <p className="kin-allclear">
@@ -260,7 +263,7 @@ export default async function TodayPage({ searchParams }: { searchParams: Promis
       {/* Quick add: the things a family writes down most, and a private note, each straight
           into its form. Actions, not places -- the bottom bar already has the
           places. Above them, one-line add: type it and Kin files it. */}
-      <QuickLine members={people.map((m) => ({ id: m.id, name: m.full_name }))} meId={me.id} today={familyDay()} />
+      <QuickLine members={people.map((m) => ({ id: m.id, name: m.full_name }))} meId={me.id} today={familyDay(new Date(), tz)} />
       <nav aria-label="Quick add" className="kin-quick">
         {/* In the order of the tabs, as At a glance is: Journal, Planner,
             Household, Wealth. */}
