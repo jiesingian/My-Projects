@@ -698,6 +698,18 @@ Decided against in the same review: revising Journal (item 6) and Planner
 
 ## Done
 
+- Accessibility sweep (Jonathan, 19 October; item 2 of "easier to use,
+  faster, and offline"). On a touch screen every button, and every chip that
+  does something, answers a finger 44px across through an invisible hit area
+  (globals.css, "Tap targets"); nothing is drawn bigger. The keyboard focus
+  ring is accent-700, not the accent (under 3:1 on ten dark themes). Every
+  colour theme passes axe as a member on it sees Today (and Chat on Coral and
+  Classic), in light and dark: five link colours moved a step, the overdue
+  orange is 55% money colour, the SOS word and a late dose take the red into
+  the text colour. Jump-to scrolls follow Reduce Motion. Held by
+  e2e/palettes.logic.spec.ts, e2e/tap-targets.logic.spec.ts (the compiled
+  stylesheet, no server) and e2e/a11y.spec.ts (seven pages plus a theme pass).
+
 - Event and visit photos count against the storage allowance (6 October,
   #453): the photo strip on a calendar event or a doctor's visit asks
   /api/uploads/session like the journal and chat, so Kin Free's 1 GB and
