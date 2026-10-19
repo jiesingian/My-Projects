@@ -239,7 +239,9 @@ scanning wait for the AI key.
   denies, access opens read-only for 30 days or until revoked; every item
   opened is logged for the household. Kin-stored documents only; Drive is
   excluded. Migration 20261015120000_vault_emergency_access.sql; probe
-  vault-emergency-access.mjs. Not yet verified on dev or a phone.
+  vault-emergency-access.mjs. On dev, the card is checked weekly
+  (e2e/this-week.spec.ts); naming someone and asking need a linked
+  household, so they are under "Needs a real phone".
 
 - **Done:** Helper access (14 Oct, kin/helper-access): grown-ups add a
   kasambahay/yaya/driver in Settings -> Household with three switches (To-
@@ -765,13 +767,27 @@ Added 26 September, second list:
     an emergency card per person (share as text, print), WHO growth charts
     for children under five, notes and photos on each visit, and an illness
     log with a temperature chart. A push at each dose time is in the
-    reminders (Next up), and starts once the reminder secret is set.
+    reminders (Next up), which run every five minutes.
 
 Decided against in the same review: revising Journal (item 6) and Planner
 (item 7). Done already: no hub numbers and no "five ledgers" motto (item 9,
 #209).
 
 ## Done
+
+- Also merged 14-19 October, without a line of their own above: suki and
+  loyalty cards at checkout on the Buy list (#641,
+  20261015090000_loyalty_cards.sql); cook mode and servings (#645) and
+  planning a meal for N people (#654); repeating tasks on each day they fall
+  on Today (#653), with the reminder pushes following them (#655,
+  20261019090001_reminders_follow_repeating_tasks.sql); "Add to journal" on a
+  past activity always keeps the entry (#652); the check-up result's
+  Digital Blueprint, tagline and savings tip (#627, #629, #651, #658, #663);
+  the three foreign keys from this week's tables indexed after Supabase's
+  advisors were run on dev and production (#688,
+  20261019140000_this_weeks_fk_indexes.sql); this week's new screens in the
+  per-PR smoke tier (#687) and used once each as the sample household in the
+  weekly check (e2e/this-week.spec.ts).
 
 - Accessibility sweep (Jonathan, 19 October; item 2 of "easier to use,
   faster, and offline"). On a touch screen every button, and every chip that
@@ -1304,8 +1320,8 @@ What only Jonathan can check, on his iPhone with Kin on the Home Screen:
 - **Done 28 September: running low.** Tap a pantry item (Household, Prices
   & pantry) to mark it running low: it shows on Today's Coming up, one tap
   adds everything low to the list, buying it clears it, and the grown-ups
-  get one push a morning from 09:00 (their Shopping list switch) once the
-  reminder secret is set. A true leave-by time still needs travel times
+  get one push a morning from 09:00 (their Shopping list switch). A true
+  leave-by time still needs travel times
   from a maps service, which is a key and a bill.
 - **Done 26 September: call notifications.** Calls have their own switch
   (muting the chat no longer silences them); the ring is sent urgent, stays

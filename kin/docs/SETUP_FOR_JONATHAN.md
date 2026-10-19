@@ -4,7 +4,7 @@ Each item here is a secret, an outside account or money, which `CLAUDE.md`
 keeps with Jonathan. Everything else is already built and merged; these
 steps switch it on. Each says what it is for and what is safe.
 
-**Where things stand (29 September):**
+**Where things stand (checked 19 October; nothing changed since 29 September):**
 
 | | |
 |---|---|
