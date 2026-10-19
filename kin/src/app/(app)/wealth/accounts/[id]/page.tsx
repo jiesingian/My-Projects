@@ -119,6 +119,19 @@ export default async function AccountPage({ params, searchParams }: { params: Pr
           label={(account.institution ?? account.name).toUpperCase()}
         />
 
+        {/* A bank or GCash CSV, read on the device (20261019120000). Offered
+            to whoever may write to the account: grown-ups on a joint one,
+            the owner on their own. */}
+        {!account.is_archived && (account.is_joint ? isGrownUp(me.role) : account.owner_member_id === me.id) && (
+          <Link
+            href={`/wealth/accounts/${account.id}/import`}
+            className="btn btn-ghost"
+            style={{ minHeight: "2.25rem", fontSize: "0.8125rem", gap: "0.375rem", marginBottom: "0.5rem" }}
+          >
+            <Icon name="upload" size={15} /> Import a statement (CSV)
+          </Link>
+        )}
+
         {pending.length > 0 && (
           <>
             <SectionLabel>WAITING ON CONFIRMATION</SectionLabel>

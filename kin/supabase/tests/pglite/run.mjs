@@ -87,6 +87,7 @@ const MIGRATIONS = [
   "20261019090001_reminders_follow_repeating_tasks.sql",
   "20261019100000_alkansya.sql",
   "20261019110000_utang_paluwagan.sql",
+  "20261019120000_statement_import.sql",
 ];
 
 const only = process.argv[2];
