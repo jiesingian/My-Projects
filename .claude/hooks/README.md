@@ -3,7 +3,7 @@
 ## `session-start.sh`
 
 Gets a fresh Claude Code **web** session to the point where it can check its
-own work — `npm run lint`, `npx tsc --noEmit`, `npm run build`, `npm run e2e` —
+own work — `npm run lint`, `npx tsc --noEmit`, `npm run build`, `npm run test:logic` —
 without spending the first ten minutes rediscovering the setup.
 
 It installs npm dependencies, recreates the gitignored `kin/.env.local` from

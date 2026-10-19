@@ -117,4 +117,4 @@ if [ -f "$PROXY_CA" ]; then
   fi
 fi
 
-echo "kin is ready: npm run lint · npx tsc --noEmit · npm run build · npm run e2e"
+echo "kin is ready: npm run lint · npx tsc --noEmit · npm run build · npm run test:logic"
