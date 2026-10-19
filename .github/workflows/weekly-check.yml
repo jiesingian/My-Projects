@@ -62,19 +62,71 @@ permissions:
   issues: write
 
 # The suite writes into the shared throwaway household, so this must queue
-# behind any other run rather than race it. Same group name as e2e.yml used
-# to share, kept here since this file is now the only one still doing that
-# kind of write. Not cancel-in-progress: a cancelled suite can leave a
-# preference it meant to restore.
-concurrency:
-  group: e2e
-  cancel-in-progress: false
-
+# behind any other run rather than race it -- see `turn` and `check` below.
+#
+# Until 19 October this said `concurrency: group: e2e`, "the same group name
+# as e2e.yml used to share". e2e.yml had long since moved to per-branch
+# groups, and on 18 October (#656) to `e2e-dev`, so `e2e` held nobody back.
+# Run 38909472349 (attempt 2, 03:36-04:02 UTC 19 October) ran its 24 minutes
+# beside five pull requests' End-to-end runs and seven Migrate runs on the
+# same dev project and the same QA household. 791 passed; five failed the
+# way an overloaded dev fails, and none failed locally on the same code:
+# two `networkidle` page loads past 60s (the member profile, /today), two
+# offline specs whose snapshot -- some forty reads, 8s after the page opens
+# -- never landed in 45s, and a chat composer that never rendered.
 jobs:
+  # Waits, before the suite builds, until no End-to-end run is queued or
+  # going. Not simply the `e2e-dev` group on its own: GitHub keeps one
+  # waiting run per group and a newer waiter cancels the older one, so a
+  # weekly check that had to wait behind a pull request would be cancelled by
+  # the next pull request to queue -- and unlike theirs (automerge.yml re-runs
+  # those), nothing re-runs this one. A week would pass with no check and no
+  # issue. Polling costs runner minutes, but once a week, for a few of them;
+  # e2e.yml dropped it (#656) because it ran on every push.
+  turn:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    permissions:
+      actions: read
+    steps:
+      - name: Wait for a turn on dev
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          deadline=$(( $(date +%s) + 40 * 60 ))
+          while :; do
+            # in_progress AND queued: a pull request's run waiting on the
+            # e2e-dev group reads "queued", and it would go before us.
+            busy=$(for status in in_progress queued; do
+                gh api "repos/$REPO/actions/workflows/e2e.yml/runs?status=$status&per_page=100" --jq '.workflow_runs[]'
+              done | jq -s 'unique_by(.id) | length')
+            if [ "$busy" -eq 0 ]; then
+              echo "Dev is free: no End-to-end run queued or going."
+              break
+            fi
+            if [ "$(date +%s)" -ge "$deadline" ]; then
+              echo "::warning::Waited 40 minutes for dev ($busy End-to-end runs still queued or going); taking the e2e-dev slot as it comes."
+              break
+            fi
+            echo "$busy End-to-end run(s) on dev; waiting."
+            sleep 30
+          done
+
   check:
     name: the whole setup, against main
+    needs: turn
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    # The slot e2e.yml's runs take turns on: while this holds it, a pull
+    # request's End-to-end waits (and if it is cancelled as an older waiter,
+    # automerge.yml re-runs it). `turn` above means this almost never has
+    # to wait for it itself. Not cancel-in-progress: a cancelled suite can
+    # leave a preference it meant to restore.
+    concurrency:
+      group: e2e-dev
+      cancel-in-progress: false
     steps:
       - uses: actions/checkout@v5
         with:

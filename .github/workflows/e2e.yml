@@ -68,8 +68,9 @@ permissions:
 # specs: nothing here writes a row, so two different pull requests' runs
 # genuinely cannot collide, and a pull request pushed to five times in ten
 # minutes can safely cancel the first four instead of queueing behind them.
-# The comprehensive suite that DOES write, in weekly-check.yml, keeps the old
-# global queued lock -- it still needs it.
+# The comprehensive suite that DOES write, in weekly-check.yml, takes its
+# turn in the same `e2e-dev` group as the job below (19 October: it was in
+# an `e2e` group nobody else used any more, and raced these runs on dev).
 concurrency:
   group: e2e-${{ github.ref }}
   cancel-in-progress: true
