@@ -1,3 +1,5 @@
+import { readableDay } from "@/lib/time";
+
 /** The year book (19 October, Kin Plus): a print-ready PDF of a household's
  * year -- its ★ milestones and the entries with the best photos -- to print
  * at a local shop or a photobook service. No print partner.
@@ -130,11 +132,10 @@ export function wrapText(text: string, width: number, measure: (s: string) => nu
 
 export const MONTHS = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
 
-/** "Saturday, 14 March" -- the date on an entry page. */
+/** "Saturday 14 March" -- the date on an entry page. readableDay spells it
+ * out by hand, so the list renders the same on the server and the phone. */
 export function bookDate(date: string): string {
-  const d = new Date(`${date}T12:00:00Z`);
-  const day = d.toLocaleDateString("en-GB", { weekday: "long", timeZone: "UTC" });
-  return `${day}, ${d.getUTCDate()} ${MONTHS[d.getUTCMonth()]}`;
+  return readableDay(date, { long: true });
 }
 
 /** The file's name: "Santos family year book 2026.pdf". */

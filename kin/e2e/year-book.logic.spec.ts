@@ -82,7 +82,7 @@ test("words wrap to the width and a cut-off line ends in an ellipsis", () => {
 
 test("years, dates and the file's name", () => {
   expect(bookYears(["2025-01-01", "2026-03-01", "2026-04-01"])).toEqual([2026, 2025]);
-  expect(bookDate("2026-03-14")).toBe("Saturday, 14 March");
+  expect(bookDate("2026-03-14")).toBe("Saturday 14 March");
   expect(bookFileName("Santos / Reyes", 2026)).toBe("Santos Reyes year book 2026.pdf");
   expect(pagePixels(200)).toEqual({ w: 1654, h: 2339 });
 });
