@@ -5,7 +5,7 @@ import { MEAL_SLOTS, MEAL_SLOT_LABEL, type MealSlot } from "@/lib/recipes";
  *
  * A helper is not a member of the household. The database gives them three
  * things through its own functions -- the open To-Buy list, today's and
- * tomorrow's meals, and the children's plans for those two days -- each behind
+ * tomorrow's meals, and the family's plans for those two days -- each behind
  * a switch the grown-ups set. This file is the arithmetic around those: the
  * link, the code, and which day each plan falls on. */
 
@@ -19,7 +19,7 @@ export type HelperSwitches = { list: boolean; meals: boolean; kids: boolean };
 export const HELPER_SWITCH_LABEL: Record<keyof HelperSwitches, string> = {
   list: "To-Buy list",
   meals: "Meals",
-  kids: "Children's plans",
+  kids: "Family plans",
 };
 
 /** A helper code as typed or scanned: ten characters, no 0/O or 1/I. Spaces,
@@ -66,8 +66,10 @@ export type HelperPlanRow = {
   repeat_until?: string | null;
   place: string | null;
   children: string[];
+  /** For the whole family or tagged to nobody (20261019090000). */
+  for_whole_family?: boolean;
 };
-export type HelperPlan = { day: HelperDay; title: string; at: Date; endAt: Date | null; place: string | null; children: string[] };
+export type HelperPlan = { day: HelperDay; title: string; at: Date; endAt: Date | null; place: string | null; children: string[]; forWholeFamily: boolean };
 
 const DAY_MS = 86_400_000;
 
@@ -90,7 +92,7 @@ function fallsOn(r: HelperPlanRow, first: string, day: string): boolean {
   return day.slice(5) === first.slice(5);
 }
 
-/** The children's plans for today and tomorrow, in time order. The database
+/** The family's plans (the children's and the whole family's) for today and tomorrow, in time order. The database
  * sends every repeating plan that has started; this picks the days it lands
  * on and moves it there, keeping its wall-clock time (the household's zone
  * is shifted by whole days, as brief.ts does). */
@@ -112,7 +114,8 @@ export function plansForTwoDays(rows: HelperPlanRow[], now: Date, tz: string): H
         at: new Date(start.getTime() + shift),
         endAt: end && !Number.isNaN(end.getTime()) ? new Date(end.getTime() + shift) : null,
         place: r.place?.trim() || null,
-        children: r.children,
+        children: r.children ?? [],
+        forWholeFamily: r.for_whole_family === true,
       });
     }
   }

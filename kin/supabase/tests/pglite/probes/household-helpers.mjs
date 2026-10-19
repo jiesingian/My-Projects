@@ -51,6 +51,14 @@ export default async function ({ db, as, check, refused }) {
       ('ac000000-0000-0000-0000-000000000005', '${P("d2")}'),
       ('ac000000-0000-0000-0000-000000000006', '${P("a2")}'),
       ('ac000000-0000-0000-0000-000000000007', '${P("a2")}');
+    insert into activities (id, family_id, title, start_at, location, repeat, status) values
+      ('ac000000-0000-0000-0000-000000000008', '${A}', 'Lunch at Lola''s', ${AT(1, "12:00")}, 'Lola''s house', 'once', 'upcoming'),
+      ('ac000000-0000-0000-0000-000000000009', '${A}', 'Town fiesta', ${AT(0, "08:00")}, 'Plaza', 'once', 'upcoming');
+    insert into activity_members (activity_id, member_id) values ('ac000000-0000-0000-0000-000000000008', '${P("a1")}');
+    -- "Whole family" ticked only on the lunch (tagged to a grown-up); the
+    -- fiesta is tagged to nobody. The rest are not for the whole family, as
+    -- the Planner saves a plan with that box left unticked.
+    update activities set applies_to_whole_family = (id = 'ac000000-0000-0000-0000-000000000008');
     insert into health_vitals (family_id, member_id, vital_type, reading_date, value_text) values ('${A}', '${P("a1")}', 'bp', current_date, '120/80');
     insert into health_medicines (family_id, member_id) values ('${A}', '${P("a1")}');
     insert into family_vault_items (family_id, label) values ('${A}', 'Passport');
@@ -170,20 +178,24 @@ export default async function ({ db, as, check, refused }) {
     return r.length === 2 && r.map((m) => m.dish).join() === "Sinigang,Adobo" && !("note" in r[0]);
   });
   await check("House D's meals are refused to her", async () => refused(() => as(HANA, "select * from helper_meals($1)", [D])));
-  await check("The children's plans are refused while that switch is off", async () => refused(() => as(HANA, "select * from helper_kids_plans($1)", [A]), "not shared"));
+  await check("The children's plans are refused while that switch is off", async () => refused(() => as(HANA, "select * from helper_family_plans($1)", [A]), "not shared"));
   await check("A child cannot switch it on; Dan from House D cannot either", async () =>
     (await refused(() => as(kid, "select set_helper_access($1, true, true, true)", [hanaId]))) === true &&
     (await refused(() => as(dan, "select set_helper_access($1, true, true, true)", [hanaId]))) === true);
   await as(ann, "select set_helper_access($1, true, true, true)", [hanaId]);
-  await check("Switched on: the children's plans only (not the grown-ups', a cancelled one or a repeat that has ended), with title, time, place and first names", async () => {
-    const r = await as(HANA, "select * from helper_kids_plans($1)", [A]);
+  await check("Switched on: the children's and the whole family's plans (not a grown-up's own, a cancelled one or a repeat that has ended), with title, time, place and first names", async () => {
+    const r = await as(HANA, "select * from helper_family_plans($1)", [A]);
     const titles = r.map((x) => x.title).sort().join();
-    return titles === "School pick-up,Swimming"
-      && Object.keys(r[0]).sort().join() === "children,end_at,place,repeat,repeat_days,repeat_until,start_at,title"
+    return titles === "Lunch at Lola's,School pick-up,Swimming,Town fiesta"
+      && Object.keys(r[0]).sort().join() === "children,end_at,for_whole_family,place,repeat,repeat_days,repeat_until,start_at,title"
+      && r.find((x) => x.title === "Lunch at Lola's").for_whole_family === true
+      && r.find((x) => x.title === "Town fiesta").for_whole_family === true
+      && r.find((x) => x.title === "Town fiesta").children.length === 0
+      && r.find((x) => x.title === "School pick-up").for_whole_family === false
       && r.find((x) => x.title === "School pick-up").children.join() === "Kid"
       && r.find((x) => x.title === "School pick-up").place === "Ateneo Grade School";
   });
-  await check("House D's children's plans are refused to her", async () => refused(() => as(HANA, "select * from helper_kids_plans($1)", [D])));
+  await check("House D's children's plans are refused to her", async () => refused(() => as(HANA, "select * from helper_family_plans($1)", [D])));
 
   // -- Switches off, Kin Free, removal ---------------------------------------
   await as(ann, "select set_helper_access($1, false, true, true)", [hanaId]);
@@ -212,7 +224,7 @@ export default async function ({ db, as, check, refused }) {
     (await refused(() => as(HANA, "select helper_tick_buy_item($1, true)", ["b1000000-0000-0000-0000-000000000002"]))) === true &&
     (await refused(() => as(HANA, "select helper_add_buy_item($1, 'After', null)", [A]))) === true &&
     (await refused(() => as(HANA, "select * from helper_meals($1)", [A]))) === true &&
-    (await refused(() => as(HANA, "select * from helper_kids_plans($1)", [A]))) === true);
+    (await refused(() => as(HANA, "select * from helper_family_plans($1)", [A]))) === true);
   await check("Her lines keep her name on the family's list", async () => (await as(ann, "select helper_name from buy_items where name = 'Itlog'"))[0].helper_name === "Hana");
   await check("Removed twice is refused, and the old code still does nothing", async () =>
     (await refused(() => as(ann, "select remove_helper($1)", [hanaId]))) === true &&
@@ -227,7 +239,7 @@ export default async function ({ db, as, check, refused }) {
     "create_helper_invite(text,boolean,boolean,boolean)", "renew_helper_invite(uuid)", "set_helper_access(uuid,boolean,boolean,boolean)",
     "remove_helper(uuid)", "helper_invite_preview(text)", "claim_helper_invite(text)", "my_helper_households()",
     "helper_buy_items(uuid)", "helper_add_buy_item(uuid,text,text)", "helper_tick_buy_item(uuid,boolean)",
-    "helper_meals(uuid)", "helper_kids_plans(uuid)",
+    "helper_meals(uuid)", "helper_family_plans(uuid)",
   ];
   const internalFns = ["new_helper_code()", "helper_row_for(uuid,text)", "buy_items_helper_author()"];
   await check("Signed-out visitors cannot run any helper function; nobody but the functions runs the internal ones", async () => {

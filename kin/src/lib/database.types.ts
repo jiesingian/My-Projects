@@ -6745,9 +6745,9 @@ export type Database = {
         Args: { p_family: string }
         Returns: { plan_date: string; slot: string; dish: string; meal_position: number }[]
       }
-      helper_kids_plans: {
+      helper_family_plans: {
         Args: { p_family: string }
-        Returns: { title: string; start_at: string; end_at: string | null; repeat: string | null; repeat_days: number[] | null; repeat_until: string | null; place: string | null; children: string[] }[]
+        Returns: { title: string; start_at: string; end_at: string | null; repeat: string | null; repeat_days: number[] | null; repeat_until: string | null; place: string | null; children: string[]; for_whole_family: boolean }[]
       }
       children_connections: {
         Args: never
