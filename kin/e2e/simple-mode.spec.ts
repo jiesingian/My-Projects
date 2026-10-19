@@ -6,7 +6,7 @@ import AxeBuilder from "@axe-core/playwright";
  * Turns the sample household's own member to Simple Kin through the API (as
  * themself, under their own row-level security), looks at Today at 320px and
  * 390px, and puts the switch and the text size back afterwards. Before the
- * migration (20261019224300) has reached the database it runs against, the
+ * migration (20261019235700) has reached the database it runs against, the
  * column is not there and this skips. */
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -41,7 +41,7 @@ test.describe("Simple Kin's Today", () => {
       headers: { apikey: SUPABASE_KEY!, Authorization: `Bearer ${token}` },
     });
     await api.dispose();
-    test.skip(!res.ok(), "simple_mode is not on this database yet (migration 20261019224300); skipping.");
+    test.skip(!res.ok(), "simple_mode is not on this database yet (migration 20261019235700); skipping.");
     const [row] = (await res.json()) as { id: string; simple_mode: boolean; text_scale: number }[];
     memberId = row.id;
     original = { simple_mode: row.simple_mode, text_scale: row.text_scale };

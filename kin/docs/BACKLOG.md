@@ -83,7 +83,7 @@ Plus at the database, so items 1 and 3 are for households that have it).
   the payment there in its category, so the account ends where it was and
   the month's spending shows it; a yearly fund then moves a year on (and
   its calendar event with it). A yearly fund whose date passes unpaid says
-  so rather than moving on. Migration 20261019224300_sinking_funds.sql
+  so rather than moving on. Migration 20261019235700_sinking_funds.sql
   (one column, no policy change); logic e2e/sinking-fund.logic.spec.ts.
   Chosen: kinsenas rather than a per-goal pay rhythm, since income
   schedules carry no payday frequency.
@@ -305,7 +305,7 @@ Four free items, each its own pull request.
 Four free items, each its own pull request, in this order.
 
 - **Done:** Simple Kin, for grown-ups over 60: Settings -> Appearance ->
-  Simple Kin, a per-person switch (members.simple_mode, 20261019224300).
+  Simple Kin, a per-person switch (members.simple_mode, 20261019235700).
   On, it raises their text size to at least 130%, makes buttons, icon
   buttons, chips and fields bigger across the app (.kin-simple), and Today
   becomes four things: their own medicines to tick with big ticks, today's
