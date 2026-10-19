@@ -51,6 +51,21 @@ const RULES: Rule[] = [
     text: "That is more than is left on this utang.",
   },
   {
+    // P0001 / 42501 / 22023 -- raised by import_wealth_transactions
+    // (20261019120000): too many lines, an account the caller cannot write
+    // to, or a line without a date, direction, amount or description.
+    match: /statement_too_long/i,
+    text: "That is more than 2000 lines. Import the statement in parts.",
+  },
+  {
+    match: /statement_account/i,
+    text: "That account can't take an import: it is archived, or it isn't one you can add to.",
+  },
+  {
+    match: /statement_row/i,
+    text: "One of the lines is missing its date, amount or description. Untick it and try again.",
+  },
+  {
     // 23505 -- duplicate key value violates unique constraint "..."
     match: /duplicate key value violates unique constraint/i,
     text: "That looks like something you already have — check the list before adding it again.",

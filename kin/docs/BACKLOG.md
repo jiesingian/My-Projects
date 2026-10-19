@@ -190,7 +190,24 @@ request, in this order.
   20261019110000_utang_paluwagan.sql; probe utang-paluwagan.mjs; logic
   e2e/utang.logic.spec.ts.
 
-- Import a statement (Wealth, Kin Plus).
+- **Done:** Import a statement (Wealth, Kin Plus): "Import a statement
+  (CSV)" on an account (/wealth/accounts/<id>/import), for whoever may
+  write to it (grown-ups on a joint account, the owner on a personal one).
+  Pick BPI, BDO, UnionBank, GCash or another bank and a CSV; it is read on
+  the device (lib/statement-import.ts) and never uploaded or kept. The
+  columns are guessed from the header (preamble lines skipped; debit and
+  credit, or one signed amount; month-first, day-first or ISO dates) and
+  can be corrected with a preview; the review screen lists every line,
+  unticks those already in the account (same day, direction, amount and
+  description, counted) and says why an unreadable line is left out. Only
+  the ticked lines are sent, to import_wealth_transactions(), which checks
+  the account, skips duplicates the same way and saves them in one go.
+  Migration 20261019120000_statement_import.sql; probe
+  statement-import.mjs; logic e2e/statement-import.logic.spec.ts.
+  Waiting on the AI key: GCash only exports its history as a
+  password-protected PDF, and reading PDFs needs Kin AI; a PDF picked now
+  is told so. Not checked: the presets against a real download from each
+  bank this month (the mapping step covers a changed export).
 
 ## Agreed 13 October: first open (Jonathan)
 

@@ -7106,6 +7106,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      import_wealth_transactions: {
+        Args: { p_account: string; p_rows: Json }
+        Returns: { imported: number; skipped: number }[]
+      }
       alkansya_pay_allowances: { Args: never; Returns: number }
       alkansya_points_used: {
         Args: never
