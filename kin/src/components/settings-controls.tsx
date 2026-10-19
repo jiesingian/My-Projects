@@ -2,7 +2,7 @@
 
 import { useHouseholdZone } from "@/components/household-zone";
 import { useEffect, useId, useTransition } from "react";
-import { setThemeAction, setTextScaleAction, setPaletteAction, createCalendarFeedAction, removeCalendarFeedAction, toggleNotificationAction, updateHouseholdNameAction, updateHouseholdPrefsAction, updateShareWithRelativesAction, updateRememberTheDepartedAction, setKidViewAction } from "@/lib/actions/settings";
+import { setThemeAction, setTextScaleAction, setPaletteAction, createCalendarFeedAction, removeCalendarFeedAction, toggleNotificationAction, updateHouseholdNameAction, updateHouseholdPrefsAction, updateShareWithRelativesAction, updateRememberTheDepartedAction, setKidViewAction, setSimpleModeAction } from "@/lib/actions/settings";
 import { regenerateInviteCodeAction } from "@/lib/actions/family";
 import { disconnectDriveAction } from "@/lib/actions/drive";
 import { migrateProfilePhotosToDriveAction } from "@/lib/actions/photo-migration";
@@ -10,6 +10,7 @@ import { disconnectCalendarAction, syncGoogleCalendarAction } from "@/lib/action
 import { useState } from "react";
 import { confirm } from "@/components/confirm-sheet";
 import { TEXT_SCALE_DEFAULT, TEXT_SCALE_MAX, TEXT_SCALE_MIN } from "@/lib/text-scale";
+import { SIMPLE_TEXT_SCALE } from "@/lib/simple-mode";
 import { CopyInviteCode } from "@/components/copy-invite-code";
 import { Blueprint } from "@/components/ui";
 import { NOTIFICATION_DEFS } from "@/lib/notifications";
@@ -250,6 +251,72 @@ export function TextSizeControl({ current }: { current: number }) {
           </button>
         )}
       </div>
+      <DidNotSave message={failed} />
+    </>
+  );
+}
+
+/** Simple Kin (lib/simple-mode): the person's own switch. Like text size it
+ * takes effect on the next load, so it asks whether to restart now. */
+export function SimpleModeSwitch({ on }: { on: boolean }) {
+  const [value, setValue] = useState(on === true);
+  const [pending, startTransition] = useTransition();
+  const [failed, setFailed] = useState<string | null>(null);
+  return (
+    <>
+      <Blueprint style={{ padding: "0 0 0 0.9375rem", marginBottom: "0.875rem" }}>
+        <button
+          type="button"
+          role="switch"
+          aria-checked={value}
+          disabled={pending}
+          onClick={() => {
+            const next = !value;
+            setValue(next);
+            setFailed(null);
+            startTransition(async () => {
+              const result = await setSimpleModeAction(next);
+              if (result.error) {
+                setValue(!next);
+                setFailed(result.error);
+                return;
+              }
+              const restart = await confirm({
+                title: next ? "Restart Kin in Simple Kin?" : "Restart Kin to leave Simple Kin?",
+                description: next
+                  ? `Bigger buttons, text at least ${SIMPLE_TEXT_SCALE}%, and a Today with just your medicines, today's plans, calling family and SOS. It takes effect when Kin reloads.`
+                  : "Everything comes back to Today. Your text size stays as it is; change it below.",
+                confirmLabel: "Restart",
+                cancelLabel: "Later",
+              });
+              if (restart) window.location.reload();
+            });
+          }}
+          style={{
+            width: "100%",
+            textAlign: "left",
+            cursor: "pointer",
+            background: "none",
+            border: 0,
+            padding: "0.6875rem 0.9375rem 0.6875rem 0",
+            display: "flex",
+            flexWrap: "wrap",
+            gap: "0.375rem 0.875rem",
+            alignItems: "center",
+            minHeight: "3.5rem",
+            font: "inherit",
+            color: "inherit",
+          }}
+        >
+          <span style={{ flex: "1 1 9rem", minWidth: 0 }}>
+            <span style={{ fontSize: "1.0625rem", display: "block" }}>Simple Kin</span>
+            <span style={{ fontSize: "0.8125rem", color: "var(--color-neutral-600)" }}>
+              Larger text and bigger buttons, and a Today with only medicines, today&apos;s plans, calling family and SOS. Made for lolo and lola.
+            </span>
+          </span>
+          <span className="kin-switch" data-on={value} />
+        </button>
+      </Blueprint>
       <DidNotSave message={failed} />
     </>
   );

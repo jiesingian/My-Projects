@@ -83,7 +83,7 @@ Plus at the database, so items 1 and 3 are for households that have it).
   the payment there in its category, so the account ends where it was and
   the month's spending shows it; a yearly fund then moves a year on (and
   its calendar event with it). A yearly fund whose date passes unpaid says
-  so rather than moving on. Migration 20261019130000_sinking_funds.sql
+  so rather than moving on. Migration 20261019235700_sinking_funds.sql
   (one column, no policy change); logic e2e/sinking-fund.logic.spec.ts.
   Chosen: kinsenas rather than a per-goal pay rhythm, since income
   schedules carry no payday frequency.
@@ -301,6 +301,32 @@ Four free items, each its own pull request.
   daylight-saving change. Tested under four process zones
   (e2e/planner-days.logic.spec.ts). See KNOWN_RISKS "The Planner groups its
   calendar in the household's zone".
+
+## Agreed 19 October: easier to use, faster, and offline (Jonathan)
+
+Four free items, each its own pull request, in this order.
+
+- **Done:** Simple Kin, for grown-ups over 60: Settings -> Appearance ->
+  Simple Kin, a per-person switch (members.simple_mode, 20261019235700).
+  On, it raises their text size to at least 130%, makes buttons, icon
+  buttons, chips and fields bigger across the app (.kin-simple), and Today
+  becomes four things: their own medicines to tick with big ticks, today's
+  plans (no bills or the shopping row), Message the family plus Call and
+  Video for each person with a Kin to ring, and a large SOS. Kid view wins
+  where both are on. iOS Dynamic Type: on an iPhone set to a larger text
+  size than Kin's slider, Kin follows the phone (only ever larger), layout
+  switches included (lib/text-scale dynamicTypeScale). Set by the person
+  themself; a grown-up cannot switch it on for someone else yet.
+
+- **Done:** Accessibility sweep (#707): 44px tap areas on touch, a focus
+  ring every theme can see, and every colour theme passing axe as its member
+  sees it. Details under Done below.
+
+- **Not yet:** Speed pass for a mid-range Android on 4G: Today and Chat,
+  measured before and after.
+
+- **Not yet:** Offline ticks for medicine doses and chore done/approve, in
+  the existing offline queue.
 
 ## Agreed 19 October: leaders' features for a Filipino family (Jonathan)
 
@@ -1242,6 +1268,10 @@ What only Jonathan can check, on his iPhone with Kin on the Home Screen:
   profile photos; tiles, regions and the panel should read well.
 - **Apple Health via Shortcut:** Settings -> Connected apps -> Apple Health,
   set up the Shortcut as written, run it, and see steps and weight on Health.
+- **Dynamic Type:** in iPhone Settings -> Accessibility -> Display & Text
+  Size -> Larger Text, pick a larger size; open Kin and the text should be
+  larger to match (only checked in a desktop browser, which has no Dynamic
+  Type).
 - **The "K" home-screen icon:** remove the old Kin icon and add Kin to the
   Home Screen again; it should show the house icon.
 - **This week's features (14-19 October), the parts a browser on dev cannot

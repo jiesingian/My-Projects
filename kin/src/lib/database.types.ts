@@ -6043,6 +6043,7 @@ export type Database = {
           look_offer_answered_at: string | null
           start_here_dismissed_at: string | null
           text_scale: number
+          simple_mode: boolean
           text_size: string
           theme: string
           tin_number: string | null
@@ -6097,6 +6098,7 @@ export type Database = {
           look_offer_answered_at?: string | null
           start_here_dismissed_at?: string | null
           text_scale?: number
+          simple_mode?: boolean
           text_size?: string
           theme?: string
           tin_number?: string | null
@@ -6151,6 +6153,7 @@ export type Database = {
           look_offer_answered_at?: string | null
           start_here_dismissed_at?: string | null
           text_scale?: number
+          simple_mode?: boolean
           text_size?: string
           theme?: string
           tin_number?: string | null

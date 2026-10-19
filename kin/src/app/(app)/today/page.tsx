@@ -35,6 +35,8 @@ import { PALETTE_DEFAULT } from "@/lib/palettes";
 import { getFamilyPanel } from "@/lib/queries/family-panel";
 import { inKidView } from "@/lib/kid-view";
 import { KidToday } from "@/components/kid-today";
+import { SimpleToday } from "@/components/simple-today";
+import { inSimpleMode } from "@/lib/simple-mode";
 import { StartHere } from "@/components/start-here";
 import { getStartHere } from "@/lib/queries/start-here";
 import { PlusTrialCard } from "@/components/plus-trial-card";
@@ -54,6 +56,7 @@ export default async function TodayPage({ searchParams }: { searchParams: Promis
   // The Action Button's "Nakarating na ako" (/go/arrived) sends on arrival.
   const arrivedNow = params.arrived === "1";
   if (inKidView(me)) return <KidToday me={me} arrivedNow={arrivedNow} />;
+  if (inSimpleMode(me)) return <SimpleToday me={me} />;
   // Settings -> Show me around replays the guided tour.
   const replayTour = params.tour === "1";
 
