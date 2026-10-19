@@ -18,6 +18,8 @@ import { paletteCss } from "@/lib/palettes";
 import { CallProvider, type CallMember } from "@/components/call-provider";
 import { createClient } from "@/lib/supabase/server";
 import { OfflineSync } from "@/components/offline-sync";
+import { DynamicType } from "@/components/dynamic-type";
+import { inSimpleMode } from "@/lib/simple-mode";
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const member = await getCurrentMember();
@@ -54,7 +56,9 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   const callMembers: CallMember[] = (people ?? []).map((m) => ({ id: m.id, name: m.full_name, photoUrl: m.avatar_url, callable: m.status === "active" }));
 
   return (
-    <div className="kin-shell">
+    // Simple Kin (lib/simple-mode): bigger tap targets everywhere, from one
+    // class on the shell (globals.css, "Simple Kin").
+    <div className={inSimpleMode(member) ? "kin-shell kin-simple" : "kin-shell"}>
       <PushKeepAlive />
       {/* The member's text size, and the three layout switches that have to
           answer it -- see text-scale.ts for why they are generated rather than
@@ -66,6 +70,8 @@ export default async function AppLayout({ children }: { children: React.ReactNod
           never updated. Changing the setting re-rendered the layout and the
           old size stayed on screen until a full reload. */}
       <style>{textScaleCss(member.text_scale)}</style>
+      {/* The phone's own text size, on an iPhone set larger than this. */}
+      <DynamicType scale={member.text_scale} />
       {/* The member's colour theme (palettes.ts). Empty for Kin Classic. */}
       <style>{paletteCss(member.palette)}</style>
       {/* Clears the fixed navigation so the last row of any page stays

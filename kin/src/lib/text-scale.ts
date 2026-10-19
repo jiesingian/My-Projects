@@ -120,3 +120,24 @@ export function textScaleCss(scale: number): string {
   });
   return root + blocks.join("\n");
 }
+
+/** iOS Dynamic Type (Settings, Display & Brightness, Text Size, and the larger
+ * sizes under Accessibility). Safari exposes the reader's choice as the size of
+ * the `-apple-system-body` font, which is 17px at the iPhone's default; Kin's
+ * body text is that same 17px at 100%, so the ratio is the scale the phone is
+ * asking for. Rounded to the slider's own steps of five.
+ *
+ * Only ever upward (effectiveTextScale): someone who set Kin's slider to 150%
+ * keeps 150% on a phone at the default size, and someone who turned their
+ * iPhone's text up gets that in Kin without finding the slider. */
+export const DYNAMIC_TYPE_BASE_PX = 17;
+
+export function dynamicTypeScale(bodyPx: number): number | null {
+  if (!Number.isFinite(bodyPx) || bodyPx <= 0) return null;
+  return clampTextScale(Math.round((bodyPx / DYNAMIC_TYPE_BASE_PX) * 20) * 5);
+}
+
+export function effectiveTextScale(slider: number, dynamicType: number | null): number {
+  const own = clampTextScale(slider);
+  return dynamicType === null ? own : Math.max(own, clampTextScale(dynamicType));
+}

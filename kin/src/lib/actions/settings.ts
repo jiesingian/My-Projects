@@ -11,6 +11,7 @@ import { isNotificationKey } from "@/lib/notifications";
 import { humanDatabaseError } from "@/lib/db-errors";
 import { isCountryCode } from "@/lib/countries";
 import { TEXT_SCALE_MAX, TEXT_SCALE_MIN } from "@/lib/text-scale";
+import { simpleModeTextScale } from "@/lib/simple-mode";
 import { PALETTE_DEFAULT, PALETTE_NEW_MEMBER, isPaletteId } from "@/lib/palettes";
 import { randomToken, sha256, toBase64Url } from "@/lib/security/crypto";
 import { isCurrencyCode, isDateFormat, isWeekStart, isTimeZone } from "@/lib/household-prefs";
@@ -47,6 +48,19 @@ export async function setTextScaleAction(percent: number): Promise<ActionState> 
   }
   const supabase = await createClient();
   const { error } = await supabase.from("members").update({ text_scale: value }).eq("id", me.id);
+  if (error) return { error: `That did not save. ${error.message}` };
+  return { error: null };
+}
+
+/** Simple Kin, on or off, for the member themself (lib/simple-mode). On also
+ * raises their text size to at least 130%; off leaves the size as it is.
+ * Like text size, it arrives with the next load. */
+export async function setSimpleModeAction(on: boolean): Promise<ActionState> {
+  const me = await requireCurrentMember();
+  const patch: { simple_mode: boolean; text_scale?: number } = { simple_mode: on === true };
+  if (on === true) patch.text_scale = Math.min(TEXT_SCALE_MAX, simpleModeTextScale(me.text_scale));
+  const supabase = await createClient();
+  const { error } = await supabase.from("members").update(patch).eq("id", me.id);
   if (error) return { error: `That did not save. ${error.message}` };
   return { error: null };
 }
