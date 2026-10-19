@@ -7433,6 +7433,26 @@ export type Database = {
         Args: { p_story: string; p_new: boolean }
         Returns: { endpoint: string; p256dh: string; auth: string; person_id: string }[]
       }
+      save_helper_push: {
+        Args: { p_family: string; p_endpoint: string; p_p256dh: string; p_auth: string }
+        Returns: undefined
+      }
+      remove_helper_push: {
+        Args: { p_family: string; p_endpoint: string }
+        Returns: undefined
+      }
+      helper_push_saved: {
+        Args: { p_family: string; p_endpoint: string }
+        Returns: boolean
+      }
+      helper_push_targets: {
+        Args: { p_item: string }
+        Returns: { endpoint: string; p256dh: string; auth: string }[]
+      }
+      forget_helper_push_endpoint: {
+        Args: { p_endpoint: string }
+        Returns: undefined
+      }
       my_open_when_letters: {
         Args: Record<PropertyKey, never>
         Returns: { id: string; writer_name: string; open_when: string }[]
