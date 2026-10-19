@@ -44,7 +44,14 @@ async function fetchPage(start: URL): Promise<{ html: string; url: URL } | { err
     }
     if (res.status >= 300 && res.status < 400) {
       const next = res.headers.get("location");
-      const moved = next ? recipeLink(new URL(next, url).toString()) : null;
+      // A Location that isn't a URL at all throws in new URL(); that is a
+      // link Kin can't follow, not a crash.
+      let moved: URL | null = null;
+      try {
+        moved = next ? recipeLink(new URL(next, url).toString()) : null;
+      } catch {
+        moved = null;
+      }
       if (!moved) return { error: "That link goes somewhere Kin can't follow." };
       url = moved;
       continue;
@@ -55,15 +62,21 @@ async function fetchPage(start: URL): Promise<{ html: string; url: URL } | { err
     if (!reader) return { error: "That page came back empty." };
     const chunks: Uint8Array[] = [];
     let size = 0;
-    for (;;) {
-      const { done, value } = await reader.read();
-      if (done) break;
-      size += value.byteLength;
-      if (size > MAX_BYTES) {
-        await reader.cancel();
-        break;
+    // The 8-second timeout covers the body too; when it fires mid-page the
+    // read throws, which is the same "didn't answer" as a failed fetch.
+    try {
+      for (;;) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        size += value.byteLength;
+        if (size > MAX_BYTES) {
+          await reader.cancel();
+          break;
+        }
+        chunks.push(value);
       }
-      chunks.push(value);
+    } catch {
+      return { error: "That page didn't answer. Check the link, or try again in a moment." };
     }
     return { html: new TextDecoder().decode(Buffer.concat(chunks)), url };
   }
