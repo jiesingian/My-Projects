@@ -1189,9 +1189,9 @@ What only Jonathan can check, on his iPhone with Kin on the Home Screen:
     from Files on the import screen.
   - **Stories on the tree:** record a story with the microphone (Kin asks for
     it once) and play it back.
-  - **Utang and paluwagan reminders:** "Prepare a gentle reminder I can send
-    myself" -- the reminder arrives as a push at its time, and its text
-    shares to Messenger or SMS.
+  - **Utang and paluwagan reminders:** with "Prepare a gentle reminder I can
+    send myself" ticked, the polite message Kin writes shares to Messenger or
+    SMS from the share sheet (Kin never sends it itself).
   - **Password health's breach check:** a password seen in breaches is
     flagged on the phone (it asks Have I Been Pwned with five characters of
     a hash; nothing else leaves the phone).
