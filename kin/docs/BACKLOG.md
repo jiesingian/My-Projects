@@ -316,8 +316,9 @@ Four free items, each its own pull request, in this order.
   switches included (lib/text-scale dynamicTypeScale). Set by the person
   themself; a grown-up cannot switch it on for someone else yet.
 
-- **Not yet:** Accessibility sweep: contrast on every theme, labels on icon
-  buttons, focus, 44px targets, reduced motion; axe on the main screens.
+- **Done:** Accessibility sweep (#707): 44px tap areas on touch, a focus
+  ring every theme can see, and every colour theme passing axe as its member
+  sees it. Details under Done below.
 
 - **Not yet:** Speed pass for a mid-range Android on 4G: Today and Chat,
   measured before and after.
