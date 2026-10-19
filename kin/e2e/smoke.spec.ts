@@ -134,6 +134,8 @@ const NEW_SCREENS: NewScreen[] = [
   // A member who helps nowhere is sent to their own Kin; that hop has to be clean too.
   { name: "Helper page, as a member", path: "/helper", landsOn: "/today" },
   { name: "Vault emergency access", path: "/settings/privacy" },
+  // Password health sits at the top of the vault, for whoever can edit it.
+  { name: "Vault password health", path: "/family?seg=documents" },
   { name: "An emergency request", from: "/settings/privacy", links: ["/settings/privacy/emergency/"] },
   { name: "Stories on the tree", from: "/family", links: ["/family/members/", "/family/stories/"] },
   // Where "To buy" opens from a message.
@@ -165,7 +167,8 @@ test.describe(`new screens · phone`, () => {
         const seen = watch(page);
         const response = await page.goto(path, { waitUntil: "networkidle" });
         expect(response?.status(), `${path} should serve 200`).toBe(200);
-        expect(new URL(page.url()).pathname, `${path} should land on ${screen.landsOn ?? path}`).toBe(screen.landsOn ?? path);
+        const landsOn = screen.landsOn ?? new URL(path, baseURL).pathname;
+        expect(new URL(page.url()).pathname, `${path} should land on ${landsOn}`).toBe(landsOn);
 
         await expectSound(page, seen, path, theme, WIDTHS[0].width);
       });
