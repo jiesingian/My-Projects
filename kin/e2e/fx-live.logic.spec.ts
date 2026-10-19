@@ -23,11 +23,25 @@ async function reachable(): Promise<boolean> {
   }
 }
 
+/** Frankfurter answering /latest does not mean it answers the next request in
+ * time: pesoRate gives up after 6 seconds and on any non-200, and returns null
+ * -- right for the app, where the form still works without a rate. Here a
+ * slow or refused reply failed three pull requests on 19 October that touched
+ * nothing near FX, so each lookup gets three tries, two seconds apart. A
+ * wrong rate still fails at once; only "no answer" is tried again. */
+async function settled<T>(lookup: () => Promise<T | null>): Promise<T | null> {
+  for (let attempt = 1; ; attempt++) {
+    const r = await lookup();
+    if (r || attempt === 3) return r;
+    await new Promise((done) => setTimeout(done, 2000));
+  }
+}
+
 test("Frankfurter quotes pesos the way the remittance log reads them", async () => {
   test.skip(!(await reachable()), "Frankfurter is not reachable from here; nothing live to check.");
 
   // A Sunday: the rate comes back for the Friday before, and says so.
-  const usd = await pesoRate("USD", "2026-09-27");
+  const usd = await settled(() => pesoRate("USD", "2026-09-27"));
   expect(usd, "a USD rate for a past day").not.toBeNull();
   expect(usd!.source).toBe("ecb");
   expect(usd!.rateDate).toBe("2026-09-25");
@@ -36,11 +50,11 @@ test("Frankfurter quotes pesos the way the remittance log reads them", async () 
   expect(usd!.rate).toBeGreaterThan(40);
   expect(usd!.rate).toBeLessThan(80);
 
-  const sar = await pesoRate("SAR", "2026-09-27");
+  const sar = await settled(() => pesoRate("SAR", "2026-09-27"));
   expect(sar?.source).toBe("usd_peg");
   expect(sar!.rate).toBeCloseTo(usd!.rate / USD_PEGS.SAR, 6);
 
-  const jpy = await pesoRate("JPY", "2026-09-25");
+  const jpy = await settled(() => pesoRate("JPY", "2026-09-25"));
   expect(jpy?.source).toBe("ecb");
   expect(jpy!.rate).toBeGreaterThan(0.1);
   expect(jpy!.rate).toBeLessThan(1);
