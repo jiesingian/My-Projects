@@ -6,6 +6,7 @@ import { Icon, type IconName } from "@/components/icons";
 import { confirm } from "@/components/confirm-sheet";
 import { addVaultItemAction, updateVaultItemAction, removeVaultItemAction, type VaultFields } from "@/lib/actions/vault";
 import type { VaultItem } from "@/lib/queries/vault";
+import { PasswordHealth } from "@/components/password-health";
 
 /** The groups most households start with. Any other name works too -- these
  * are suggestions in the picker, not a list the database knows about. */
@@ -249,6 +250,20 @@ export function FamilyVault({ items, canEdit }: { items: VaultItem[]; canEdit: b
     <div className="kin-vault">
       {error && editingId === null && <p className="kin-vault-error">{error}</p>}
 
+      {/* Only to whoever can change them: a child who can read the Wi-Fi
+          password has nothing to do about it being weak. */}
+      {canEdit && (
+        <PasswordHealth
+          items={items}
+          onChange={(id) => {
+            const item = items.find((i) => i.id === id);
+            if (!item) return;
+            startEdit(item);
+            requestAnimationFrame(() => document.getElementById(`vault-${id}`)?.scrollIntoView({ behavior: "smooth", block: "center" }));
+          }}
+        />
+      )}
+
       {items.length === 0 && editingId !== "new" && (
         <div className="kin-vault-empty">
           {canEdit
@@ -275,7 +290,7 @@ export function FamilyVault({ items, canEdit }: { items: VaultItem[]; canEdit: b
             .filter((i) => i.group === group)
             .map((i) =>
               editingId === i.id ? (
-                <div key={i.id}>{form}</div>
+                <div key={i.id} id={`vault-${i.id}`}>{form}</div>
               ) : (
                 <SecretRow key={i.id} item={i} canEdit={canEdit} onEdit={() => startEdit(i)} onRemove={() => remove(i)} />
               ),

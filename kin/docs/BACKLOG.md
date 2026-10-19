@@ -106,8 +106,13 @@ Four free items, each its own pull request.
 - **Not yet:** Private notes screen (`personal_notes`): a Today quick
   button and a list screen, author-only.
 
-- **Not yet:** Password health in the Vault: reused, weak and breached
-  (Have I Been Pwned range API, k-anonymity) after unlocking.
+- **Done:** Password health in the Vault: after unlocking, grown-ups see
+  which passwords are reused, easy to guess, or in known breaches, each
+  with "Change it" (opens its edit form). Breach check on the phone via the
+  Have I Been Pwned range API: SHA-1, only the first 5 hex characters sent
+  (padded), nothing stored. Door and gate codes are only flagged when
+  reused or plainly guessable, never sent (lib/password-health.ts). Not
+  yet tried on a phone against the live API.
 
 ## Agreed 13 October: first open (Jonathan)
 
