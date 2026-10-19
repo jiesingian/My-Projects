@@ -205,9 +205,11 @@ export function MedicinesPanel({
 function PrescriptionLine({ medicine, memberId, photos }: { medicine: Medicine; memberId: string; photos: { id: string; url: string }[] }) {
   const [open, setOpen] = useState(false);
   return (
-    <div className="kin-care-muted" style={{ marginTop: "0.25rem" }}>
-      <button type="button" className="kin-care-link" aria-expanded={open} onClick={() => setOpen(!open)}>
-        {open ? "Hide the prescription" : photos.length ? `Prescription · ${photos.length} photo${photos.length === 1 ? "" : "s"}` : "Add the prescription"}
+    <div style={{ marginTop: "0.5rem" }}>
+      {/* A real button, not a text link (Janine, 19 October: easy to miss). */}
+      <button type="button" className="kin-care-rx" aria-expanded={open} data-open={open || undefined} onClick={() => setOpen(!open)}>
+        <Icon name="camera" size="1rem" />
+        {open ? "Hide prescription" : photos.length ? `Prescription · ${photos.length} photo${photos.length === 1 ? "" : "s"}` : "Add prescription"}
       </button>
       {open && (
         <div style={{ marginTop: "0.5rem" }}>

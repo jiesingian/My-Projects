@@ -5295,6 +5295,34 @@ button.kin-initial:focus-visible {
   outline-offset: 2px;
   border-radius: 0.25rem;
 }
+/* The prescription on a medicine's card: a button you can see and hit with
+   a thumb (44px tall), outlined so it sits below the card's own Stop. */
+.kin-care-rx {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4375rem;
+  min-height: 2.75rem;
+  padding: 0 0.875rem;
+  border: 1.5px solid var(--color-accent);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--color-accent-700);
+  font: 600 0.84375rem/1 var(--font-body, inherit);
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+.kin-care-rx[data-open] {
+  background: var(--color-accent-100);
+}
+@media (hover: hover) {
+  .kin-care-rx:hover {
+    background: var(--color-accent-100);
+  }
+}
+.kin-care-rx:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+}
 /* Pills left: a week or less reads in the same red as a late dose. */
 .kin-care-supply[data-low] {
   color: #e5484d;
