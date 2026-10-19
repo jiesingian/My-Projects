@@ -424,6 +424,30 @@ button,
   outline-offset: 2px;
 }
 
+/* Tap targets (accessibility pass, 19 October). Many of Kin's buttons are
+   drawn smaller than a finger -- a 32px "Done" on a row, a 30px chip -- and
+   making each one 44px would re-lay hundreds of screens. Instead, on a touch
+   screen every .btn, and every .chip that does something (a button, link or
+   label -- not one that only names a thing), carries an invisible hit area at least 44px
+   square, centred on it, so the target is a finger's size while the drawing
+   stays as it was. Where two small buttons sit closer than that, the later
+   one wins the overlap, as on iOS. :where() keeps the position at zero
+   specificity, so any button that positions itself still does. */
+@media (pointer: coarse) {
+  :where(.btn, button.chip, a.chip, label.chip) {
+    position: relative;
+  }
+  :where(.btn, button.chip, a.chip, label.chip)::before {
+    content: "";
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: max(100%, 44px);
+    height: max(100%, 44px);
+    transform: translate(-50%, -50%);
+  }
+}
+
 /* Frosted card. Keeps the .blueprint name so every existing call site inherits
    the new look; the old registration-mark corners are no longer rendered. */
 .blueprint {
