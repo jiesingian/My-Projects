@@ -291,7 +291,7 @@ export async function getMemberScores(familyId: string): Promise<MemberScore[]> 
  * but given back if it is declined). */
 export type PointsEntry = {
   date: string;
-  kind: "chore" | "streak" | "goal" | "reward";
+  kind: "chore" | "streak" | "goal" | "reward" | "alkansya";
   title: string;
   points: number;
   status: "counted" | "waiting" | "granted" | "held" | "declined";
@@ -438,6 +438,21 @@ async function loadPoints(familyId: string, historyFor?: string): Promise<{ scor
         points: -r.cost_points,
         status: r.status === "granted" ? "granted" : r.status === "pending" ? "held" : "declined",
       });
+    }
+  }
+  // Points a grown-up changed into pesos for the alkansya (20261019100000)
+  // are spent too. The totals come through a definer function, because a
+  // child may read only their own peso rows but the scoreboard is everyone's.
+  const { data: used } = await supabase.rpc("alkansya_points_used");
+  for (const u of used ?? []) spentBy.set(u.member_id, (spentBy.get(u.member_id) ?? 0) + Number(u.points));
+  if (historyFor) {
+    const { data: changed } = await supabase
+      .from("alkansya_entries")
+      .select("occurred_on, points")
+      .eq("member_id", historyFor)
+      .gt("points", 0);
+    for (const c of changed ?? []) {
+      entries.push({ date: c.occurred_on, kind: "alkansya", title: "Changed into pesos for the alkansya", points: -c.points, status: "granted" });
     }
   }
   entries.sort((a, b) => b.date.localeCompare(a.date));

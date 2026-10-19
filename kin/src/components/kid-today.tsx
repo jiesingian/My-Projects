@@ -9,6 +9,9 @@ import { SosButton } from "@/components/sos-button";
 import { CheckInPrompt } from "@/components/check-in-prompt";
 import { getMyPendingCheckIns } from "@/lib/queries/member-card";
 import { LettersOpeningToday } from "@/components/letters-opening";
+import { getAlkansya } from "@/lib/queries/alkansya";
+import { formatCurrency } from "@/lib/format";
+import { JARS, JAR_LABEL } from "@/lib/alkansya";
 
 /** Things a child in kid view should not be sent to: money, the household's
  * running, and anybody's health records. */
@@ -21,13 +24,14 @@ function forAChild(b: BriefItem): boolean {
  * stars and what they can spend them on, and what is coming up -- nothing
  * about money or the running of the house. */
 export async function KidToday({ me }: { me: { id: string; role: string; family_id: string; full_name: string; families: { currency: string; name: string } } }) {
-  const [tasks, scores, rewards, brief, comingUp, checkIns] = await Promise.all([
+  const [tasks, scores, rewards, brief, comingUp, checkIns, alkansya] = await Promise.all([
     getRoutinesNeedingAttention(me.family_id, me.id),
     getMemberScores(me.family_id),
     getRewards(me.family_id),
     getTodayBriefing(me.family_id, me.families.currency, me),
     getComingUp(me.family_id, me.families.currency, me),
     getMyPendingCheckIns(me.id),
+    getAlkansya(me.family_id, me.id),
   ]);
   const mine = scores.find((s) => s.id === me.id);
   const stars = mine?.spendable ?? 0;
@@ -52,6 +56,24 @@ export async function KidToday({ me }: { me: { id: string; role: string; family_
         <span aria-hidden="true">⭐</span> {stars} star{stars === 1 ? "" : "s"}
         <span className="kin-kid-stars-go">Rewards ›</span>
       </Link>
+
+      {/* Their own alkansya (20261019100000), once a grown-up has set one
+          up: cash kept at home, in the three jars. */}
+      {alkansya && (alkansya.plan || alkansya.balances.total > 0) && (
+        <Link href={`/planner/alkansya/${me.id}`} className="blueprint" style={{ display: "block", padding: "0.75rem 0.875rem", marginTop: "0.75rem", textDecoration: "none", color: "inherit" }}>
+          <span style={{ display: "flex", alignItems: "baseline" }}>
+            <span style={{ fontWeight: 600 }}>My alkansya</span>
+            <span style={{ marginLeft: "auto", fontFamily: "var(--font-numeric)", fontWeight: 600 }}>{formatCurrency(alkansya.balances.total, me.families.currency)}</span>
+          </span>
+          <span style={{ display: "flex", gap: "0.75rem", fontSize: "0.8125rem", color: "var(--color-neutral-600)", marginTop: "0.25rem" }}>
+            {JARS.map((j) => (
+              <span key={j}>
+                {JAR_LABEL[j].name} {formatCurrency(alkansya.balances[j], me.families.currency)}
+              </span>
+            ))}
+          </span>
+        </Link>
+      )}
 
       <div style={{ marginTop: "1.5rem" }}>
         {tasks.length === 0 ? (
