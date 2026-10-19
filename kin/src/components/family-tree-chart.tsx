@@ -77,7 +77,11 @@ export function FamilyTreeChart({
   unaddedMembers = [],
   open = null,
   connections = [],
+  candles = false,
 }: {
+  /** Undas, with the household's remembering on: a lit candle on the tile
+   * of each of our own relatives who has passed (lib/remembrance). */
+  candles?: boolean;
   /** Accepted connections, shown under the tree when it shows All. */
   connections?: { id: string; fullName: string; avatarUrl: string | null; householdName: string | null }[];
   /** Arrive with a linked relative picked (from their profile's "Show in
@@ -127,6 +131,7 @@ export function FamilyTreeChart({
         color: p.color ?? null,
         sex: p.sex ?? null,
         fromHousehold: null,
+        diedOn: p.diedOn ?? null,
       }));
     for (const id of shown) {
       const m = accepted.find((x) => x.matchId === id);
@@ -684,6 +689,7 @@ export function FamilyTreeChart({
     const alsoLinked = status.kind === "mine" ? linkedTo.get(p.id) : undefined;
     const word = relation.get(p.id);
     const stories = p.fromHousehold ? 0 : (storiesOf.get(p.id) ?? 0);
+    const candle = candles && !p.fromHousehold && !!p.diedOn;
     const where =
       status.kind === "mine"
         ? `in your household on Kin${alsoLinked ? ` and linked with ${alsoLinked}` : ""}`
@@ -718,7 +724,7 @@ export function FamilyTreeChart({
           setSelected(p.id);
           setAdding(null);
         }}
-        aria-label={`${p.fullName}${word && !isMe ? `, your ${word.toLowerCase()}` : ""}${isMe ? ", you" : ""}${p.birthYear ? `, born ${p.birthYear}` : ""}, ${where}${stories > 0 ? `, ${storyCountLabel(stories).toLowerCase()}` : ""}`}
+        aria-label={`${p.fullName}${word && !isMe ? `, your ${word.toLowerCase()}` : ""}${isMe ? ", you" : ""}${p.birthYear ? `, born ${p.birthYear}` : ""}, ${where}${stories > 0 ? `, ${storyCountLabel(stories).toLowerCase()}` : ""}${candle ? ", remembered this Undas" : ""}`}
       >
         <span className="kin-tp-av" aria-hidden="true">
           {p.avatarUrl ? (
@@ -735,6 +741,11 @@ export function FamilyTreeChart({
           {/* Opposite the linked badge, so the two never sit on each other,
               and one or two characters at most, so the tile never widens. */}
           {stories > 0 && <span className="kin-tp-stories">{storyMark(stories)}</span>}
+          {candle && (
+            <span className="kin-tp-candle">
+              <Icon name="candle" size="0.6875rem" />
+            </span>
+          )}
         </span>
         <span className="kin-tp-name">{p.fullName}</span>
         <span className="kin-tp-rel">{isMe ? "You" : (word ?? (p.birthYear ? `b. ${p.birthYear}` : ""))}</span>

@@ -8,6 +8,8 @@ import type { IconName } from "@/components/icons";
 import { isForMe, taggedFrom, whoseFor, type Whose } from "@/lib/for-me";
 import { DEFAULT_BILL_REMIND_DAYS } from "@/lib/wealth";
 import { occurrenceStarts } from "@/lib/activity-repeat";
+import { remembranceItems, type Departed } from "@/lib/remembrance";
+import { getRelativesPotlucks } from "@/lib/queries/potluck";
 
 /** Tasks that start in [fromISO, …), or repeating ones that have not ended
  * by `fromDay` -- a weekly task's later days are on its rule, not its row
@@ -179,7 +181,7 @@ export async function getTodayBriefing(familyId: string, currency: string, me: V
   const windowStart = new Date(now.getTime() - 36 * 3600_000).toISOString();
   const windowEnd = new Date(now.getTime() + 48 * 3600_000).toISOString();
 
-  const [activities, events, bills, health, meals, buyCount, marks] = await Promise.all([
+  const [activities, events, bills, health, meals, buyCount, marks, departed] = await Promise.all([
     supabase
       .from("activities")
       .select("id, title, start_at, location, status, repeat, repeat_days, repeat_until, applies_to_whole_family, activity_members(member_id, members(role))")
@@ -227,6 +229,7 @@ export async function getTodayBriefing(familyId: string, currency: string, me: V
       .eq("checked", false)
       .eq("cleared", false),
     supabase.from("today_marks").select("item_key, state").eq("family_id", familyId).eq("day", today),
+    departedOnTree(supabase, familyId),
   ]);
 
   // What the household has already done or skipped today. A table that is not
@@ -279,6 +282,12 @@ export async function getTodayBriefing(familyId: string, currency: string, me: V
       meta: [ordinal, e.sub_note].filter(Boolean).join(" · "),
       href: "/planner",
     });
+  }
+
+  // Undas, a 40th day, a babang-luksa or an anniversary: seen, never ticked,
+  // like a birthday.
+  for (const r of remembranceItems(departed, today, 0)) {
+    items.push({ id: r.id, icon: "candle", tint: "occasion", title: r.title, meta: r.meta, href: "/family?seg=tree" });
   }
 
   for (const b of bills.data ?? []) {
@@ -378,7 +387,7 @@ export async function getComingUp(familyId: string, currency: string, me: Viewer
   const dayIndex = new Map<string, number>();
   for (let i = 1; i <= 7; i++) dayIndex.set(addDays(today, i).slice(5), i);
 
-  const [events, bills, health, tasks, meals] = await Promise.all([
+  const [events, bills, health, tasks, meals, departed, potlucks] = await Promise.all([
     supabase
       .from("events")
       .select("id, title, kind, event_date, recurs_yearly, applies_to_whole_family, event_members(member_id, members(role))")
@@ -416,9 +425,26 @@ export async function getComingUp(familyId: string, currency: string, me: Viewer
       .select("id, dish, meal_ingredients(item_key, ingredient_name)")
       .eq("family_id", familyId)
       .eq("plan_date", tomorrow),
+    departedOnTree(supabase, familyId),
+    getRelativesPotlucks(),
   ]);
 
   const items: BriefItem[] = [];
+
+  // A linked household's potluck this week that still needs things
+  // (20261019233100): the family's, like a whole-family plan.
+  for (const p of potlucks) {
+    const inDays = Math.round((Date.parse(p.eventDate) - Date.parse(today)) / 86_400_000);
+    if (inDays < 0 || inDays > 7 || p.openItems === 0) continue;
+    const on = inDays === 0 ? "today" : inDays === 1 ? "tomorrow" : `on ${weekdayOf(p.eventDate)}`;
+    items.push({ id: `soon-potluck-${p.eventId}`, icon: "bowl", tint: "occasion", title: p.title, meta: `${p.hostName} household, ${on} · who brings what? ${p.openItems} still needed`, href: `/planner/potluck/${p.eventId}`, at: Math.max(inDays, 0.5), whose: "family", memberIds: [] });
+  }
+
+  // Undas ahead (time for candles and flowers) and each remembered relative's
+  // day this week; the family's, like a whole-family plan.
+  for (const r of remembranceItems(departed, today, 7)) {
+    if (r.inDays > 0) items.push({ id: `soon-${r.id}`, icon: "candle", tint: "occasion", title: r.title, meta: r.meta, href: "/family?seg=tree", at: r.inDays, whose: "family", memberIds: [] });
+  }
 
   for (const e of events.data ?? []) {
     const tagged = taggedFrom(e.event_members);
@@ -524,4 +550,16 @@ export async function getComingUp(familyId: string, currency: string, me: Viewer
       perPage.set(i.whose, n + 1);
       return n < 6;
     });
+}
+
+/** The household's relatives on the tree who have passed, for Undas and
+ * their days (lib/remembrance) -- none when the household turned remembering
+ * off (families.remember_the_departed, 20261019233000). */
+async function departedOnTree(supabase: Awaited<ReturnType<typeof createClient>>, familyId: string): Promise<Departed[]> {
+  const [{ data: family }, { data: rows }] = await Promise.all([
+    supabase.from("families").select("remember_the_departed").eq("id", familyId).maybeSingle(),
+    supabase.from("family_tree_people").select("id, full_name, died_on, members!family_tree_people_member_id_fkey(full_name)").eq("family_id", familyId).not("died_on", "is", null),
+  ]);
+  if (!family || family.remember_the_departed === false) return [];
+  return (rows ?? []).map((r) => ({ id: r.id, name: r.members?.full_name ?? r.full_name ?? "Someone dear", diedOn: r.died_on! }));
 }

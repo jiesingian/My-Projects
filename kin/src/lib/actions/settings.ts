@@ -134,6 +134,20 @@ export async function updateShareWithRelativesAction(on: boolean): Promise<Actio
   return { error: error ? humanDatabaseError(error.message) : null };
 }
 
+/** Undas and babang-luksa reminders for relatives on the tree who have passed
+ * (20261019233000): Today's lines, the morning push and the candle on the
+ * tree. The organizer's, like what the household shares. */
+export async function updateRememberTheDepartedAction(on: boolean): Promise<ActionState> {
+  const me = await requireCurrentMember();
+  if (!me.is_organiser) return { error: "Only the organizer can change this for the household." };
+  const supabase = await createClient();
+  const { error } = await supabase.from("families").update({ remember_the_departed: on === true }).eq("id", me.family_id);
+  revalidatePath("/settings", "layout");
+  revalidatePath("/today");
+  revalidatePath("/family");
+  return { error: error ? humanDatabaseError(error.message) : null };
+}
+
 /** Kid view on or off for one child with a login of their own (K1). Only a
  * grown-up asks; the database refuses anyone else too (members_guard_kid_view),
  * so this check is for a clear message, not the protection. */

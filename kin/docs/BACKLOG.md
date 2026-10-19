@@ -3,6 +3,42 @@
 What is agreed but not built yet, and what is waiting on somebody. Update
 it in the same pull request that finishes or adds an item.
 
+## Approved 19 October: four for the season, Kin Free (Jonathan)
+
+Each its own pull request, in date order: Undas first (1-2 November), then
+the potluck, the monito-monita draw, and the Christmas gift list.
+
+- **Done:** Undas and babang-luksa reminders: a "Date of passing" on a
+  tree-only relative (Family -> Tree, Manage people), never in the future
+  or before their birth. Today lists "Undas · remembering ..." on 1 and 2
+  November, and "Remembering <name>" on their 40th day (the day of passing
+  counted as the first), the first year ("babang-luksa") and every
+  anniversary after (a 29 February one on the 28th in other years); Coming
+  up has Undas and those days a week ahead ("candles and flowers?"). The
+  grown-ups with a phone get one push from 09:00 their time on 29 October
+  and on each day, respecting "Events and schedules". A lit candle sits on
+  their tree tile on 1-2 November. Settings -> Household -> "Remember
+  relatives who have passed" turns all of it off (the organizer's, like
+  sharing). Migration 20261019233000_remembrance_undas.sql. Not checked: the
+  push on a real phone; a relative who is also a Kin member (their tree
+  entry follows their profile, so it takes no date of passing).
+- **Done:** Potluck: who brings what, on an event (Kin Free). On a one-off
+  event's screen, under Who's coming and above the thread: the household
+  (not a child in kid view) lists what is needed in one box ("Pancit x2",
+  up to 50 of a thing, 60 things); anyone who sees it taps "I'll bring it"
+  and + / - for how many, never past what is wanted (the database locks the
+  item, so two people can't take the last tray). A grown-up ticks "Ask
+  linked households too": linked households then see the list and the
+  event's name, date and host only (potluck_event), from a card on their
+  Planner's Events and a Coming up line the week of it, and claim in their
+  own name (names travel on the claim). Closed once the event is over;
+  yearly events take none. The host's grown-ups may take a claim off.
+  Migration 20261019233100_event_potluck.sql. No push yet: a claim tells
+  nobody (the thread does that job). Not checked: two households on real
+  phones.
+- Monito-monita draw across the household and linked households.
+- Christmas gift and aguinaldo list.
+
 ## Approved 19 October: four for money and health (Jonathan)
 
 Each its own pull request, in this order. No new Kin Plus gate and no paid

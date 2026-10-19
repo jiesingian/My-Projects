@@ -66,6 +66,9 @@ export type TreePerson = {
   memberId: string | null;
   fullName: string;
   dob: string | null;
+  /** The date of passing, for a tree-only relative
+   * (20261019233000_remembrance_undas). */
+  diedOn?: string | null;
   notes: string | null;
   avatarUrl: string | null;
   fatherId: string | null;
@@ -191,6 +194,7 @@ export async function getFamilyTree(familyId: string, centerMemberId: string | n
       memberId: r.member_id,
       fullName: member?.full_name ?? r.full_name ?? "Unnamed",
       dob: member?.dob ?? r.dob,
+      diedOn: r.died_on,
       notes: r.notes,
       avatarUrl: member?.avatar_url ?? null,
       color: member?.color ?? null,

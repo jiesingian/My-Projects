@@ -17,6 +17,7 @@ import { clamp } from "@/lib/text";
 import { isCountryCode } from "@/lib/countries";
 import { birthdayProblem, familyDay, familyMidnight } from "@/lib/time";
 import { isGone } from "@/lib/member-status";
+import { diedOnProblem } from "@/lib/remembrance";
 
 // Onboarding was the one path with no ceiling on what it stored: every other
 // form in the app clamps, but the first three screens a new household ever
@@ -892,7 +893,8 @@ export async function addTreeMemberAction(memberId: string): Promise<ActionState
   return { error: error ? humanDatabaseError(error.message) : null };
 }
 
-export type TreePersonFields = { fullName: string; dob: string; notes: string };
+/** diedOn: the date of passing, optional (20261019233000_remembrance_undas). */
+export type TreePersonFields = { fullName: string; dob: string; notes: string; diedOn?: string };
 
 /** Adds someone who has never had a Kin login -- a grandparent, an aunt, a
  * cousin -- as a tree-only entry. */
@@ -901,9 +903,14 @@ export async function addTreePersonAction(fields: TreePersonFields): Promise<Act
   const fullName = clamp(fields.fullName, TREE_NAME_MAX);
   const dob = clamp(fields.dob, 10);
   const notes = clamp(fields.notes, TREE_NOTES_MAX);
+  const diedOn = clamp(fields.diedOn ?? "", 10);
   if (!fullName) return { error: "Give them a name." };
   if (dob) {
     const problem = treeDateProblem(dob);
+    if (problem) return { error: problem };
+  }
+  if (diedOn) {
+    const problem = diedOnProblem(diedOn, dob || null, familyDay());
     if (problem) return { error: problem };
   }
 
@@ -912,6 +919,7 @@ export async function addTreePersonAction(fields: TreePersonFields): Promise<Act
     family_id: me.family_id,
     full_name: fullName,
     dob: dob || null,
+    died_on: diedOn || null,
     notes: notes || null,
     created_by: me.id,
   });
@@ -927,9 +935,14 @@ export async function updateTreePersonAction(id: string, fields: TreePersonField
   const fullName = clamp(fields.fullName, TREE_NAME_MAX);
   const dob = clamp(fields.dob, 10);
   const notes = clamp(fields.notes, TREE_NOTES_MAX);
+  const diedOn = clamp(fields.diedOn ?? "", 10);
   if (!fullName) return { error: "Give them a name." };
   if (dob) {
     const problem = treeDateProblem(dob);
+    if (problem) return { error: problem };
+  }
+  if (diedOn) {
+    const problem = diedOnProblem(diedOn, dob || null, familyDay());
     if (problem) return { error: problem };
   }
 
@@ -940,7 +953,7 @@ export async function updateTreePersonAction(id: string, fields: TreePersonField
 
   const { error } = await supabase
     .from("family_tree_people")
-    .update({ full_name: fullName, dob: dob || null, notes: notes || null })
+    .update({ full_name: fullName, dob: dob || null, died_on: diedOn || null, notes: notes || null })
     .eq("id", id);
   revalidatePath("/family");
   return { error: error ? humanDatabaseError(error.message) : null };
