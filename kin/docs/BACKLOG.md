@@ -734,8 +734,11 @@ Decided against in the same review: revising Journal (item 6) and Planner
   beside long lines (plan screen); the journal's "ADDED DIRECTLY" badge;
   a styled "Add photos or videos" button instead of the browser's bare file
   picker; a slimmer empty household photo; children's profiles no longer
-  list empty Work and Government IDs. Still open: a React hydration
-  mismatch on Planner → Tasks (harmless, a re-render).
+  list empty Work and Government IDs. The React hydration mismatch on
+  Planner → Tasks no longer happens: on 19 October a production build
+  loaded every Planner tab (Calendar, Tasks with and without done ones,
+  Events, Goals) as the QA household, browser in New York, with no console
+  error at all.
 
 - Pinch to zoom on photos (28 September): page zoom stays off everywhere
   (item 21), and the full-screen photo viewer -- journal, Gallery, profile,
