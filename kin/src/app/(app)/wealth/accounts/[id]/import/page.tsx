@@ -9,6 +9,7 @@ import { PlusNote } from "@/components/plus";
 import { readAccess } from "@/lib/access";
 import { isGrownUp } from "@/lib/roles";
 import { familyDay } from "@/lib/time";
+import { allRows } from "@/lib/queries/all-rows";
 import { StatementImporter } from "./import-client";
 
 /** Import a statement into one account: pick a CSV, check the columns,
@@ -43,8 +44,10 @@ export default async function ImportStatementPage({ params }: { params: Promise<
   // the household's day, direction, amount, description.
   const tz = me.families.time_zone || undefined;
   const supabase = await createClient();
-  const { data } = await supabase.from("wealth_transactions").select("occurred_at, direction, amount, particulars").eq("account_id", id).eq("family_id", me.family_id);
-  const existing = (data ?? []).map((t) => ({ date: familyDay(new Date(t.occurred_at), tz), direction: t.direction, amount: Number(t.amount), particulars: t.particulars }));
+  const data = await allRows((a, b) =>
+    supabase.from("wealth_transactions").select("occurred_at, direction, amount, particulars").eq("account_id", id).eq("family_id", me.family_id).order("id").range(a, b),
+  );
+  const existing = data.map((t) => ({ date: familyDay(new Date(t.occurred_at), tz), direction: t.direction, amount: Number(t.amount), particulars: t.particulars }));
 
   return (
     <div>
