@@ -421,6 +421,10 @@ async function TreePane({ familyId, householdName, myId, inviteCode, open }: { f
         <summary>Manage people</summary>
         <FamilyTreeEditor people={tree.people} unaddedMembers={unaddedMembers} />
       </details>
+      {/* GEDCOM in and out, for MyHeritage, FamilySearch and Ancestry (Plus). */}
+      <Link href="/family/tree-file" className="kin-treefile-link">
+        Import or export a tree file (GEDCOM)
+      </Link>
     </>
   );
 }
