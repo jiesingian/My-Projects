@@ -3,7 +3,7 @@ import Link from "next/link";
 import { getCurrentMember } from "@/lib/session";
 import { createClient } from "@/lib/supabase/server";
 import { DetailHeader } from "@/components/hub-header";
-import { InviteCodeCard, HouseholdNameForm, HouseholdPrefsForm, ShareWithRelativesSwitch } from "@/components/settings-controls";
+import { InviteCodeCard, HouseholdNameForm, HouseholdPrefsForm, ShareWithRelativesSwitch, RememberTheDepartedSwitch } from "@/components/settings-controls";
 import { DeleteHouseholdButton } from "@/components/delete-household-button";
 import { TransferOrganizerRole } from "@/components/transfer-organizer-role";
 import { countryLabel } from "@/lib/countries";
@@ -91,6 +91,8 @@ export default async function HouseholdSettingsPage() {
         )}
         <div style={{ fontSize: "0.8125rem", color: "var(--color-neutral-700)", marginBottom: "0.375rem" }}>Linked relatives</div>
         <ShareWithRelativesSwitch on={me.families.share_with_relatives} canChange={me.is_organiser} />
+        <div style={{ fontSize: "0.8125rem", color: "var(--color-neutral-700)", marginBottom: "0.375rem" }}>Undas and babang-luksa</div>
+        <RememberTheDepartedSwitch on={me.families.remember_the_departed} canChange={me.is_organiser} />
         <div style={{ fontSize: "0.8125rem", color: "var(--color-neutral-700)", marginBottom: "0.375rem" }}>Currency, dates, week start and country</div>
         {me.is_organiser ? (
           <HouseholdPrefsForm currency={me.families.currency} dateFormat={me.families.date_format} weekStart={me.families.week_start} country={me.families.country} timeZone={me.families.time_zone} />

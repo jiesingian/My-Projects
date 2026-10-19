@@ -2535,6 +2535,7 @@ export type Database = {
           id: string
           invite_code: string
           name: string
+          remember_the_departed: boolean
           share_with_relatives: boolean
           time_zone: string
           week_start: string
@@ -2558,6 +2559,7 @@ export type Database = {
           id?: string
           invite_code: string
           name: string
+          remember_the_departed?: boolean
           share_with_relatives?: boolean
           time_zone?: string
           week_start?: string
@@ -2581,6 +2583,7 @@ export type Database = {
           id?: string
           invite_code?: string
           name?: string
+          remember_the_departed?: boolean
           share_with_relatives?: boolean
           time_zone?: string
           week_start?: string
@@ -3368,6 +3371,7 @@ export type Database = {
         Row: {
           created_at: string
           created_by: string | null
+          died_on: string | null
           dob: string | null
           family_id: string
           father_id: string | null
@@ -3381,6 +3385,7 @@ export type Database = {
         Insert: {
           created_at?: string
           created_by?: string | null
+          died_on?: string | null
           dob?: string | null
           family_id: string
           father_id?: string | null
@@ -3394,6 +3399,7 @@ export type Database = {
         Update: {
           created_at?: string
           created_by?: string | null
+          died_on?: string | null
           dob?: string | null
           family_id?: string
           father_id?: string | null
@@ -7340,6 +7346,10 @@ export type Database = {
         Returns: { key: string; member_id: string; endpoint: string; p256dh: string; auth: string; title: string; body: string; url: string }[]
       }
       due_rsvp_reminders: {
+        Args: { p_secret: string; p_now?: string }
+        Returns: { key: string; member_id: string; endpoint: string; p256dh: string; auth: string; title: string; body: string; url: string }[]
+      }
+      due_remembrance_reminders: {
         Args: { p_secret: string; p_now?: string }
         Returns: { key: string; member_id: string; endpoint: string; p256dh: string; auth: string; title: string; body: string; url: string }[]
       }

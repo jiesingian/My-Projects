@@ -17,7 +17,7 @@ import { buildChart } from "@/lib/tree-chart";
 
 type MemberOption = { id: string; full_name: string };
 
-const emptyFields: TreePersonFields = { fullName: "", dob: "", notes: "" };
+const emptyFields: TreePersonFields = { fullName: "", dob: "", notes: "", diedOn: "" };
 
 function personLabel(p: TreePerson): string {
   return p.dob ? `${p.fullName} (b. ${p.dob.slice(0, 4)})` : p.fullName;
@@ -84,6 +84,11 @@ function PersonForm({
         <label htmlFor={`${uid}-dob`}>Date of birth (optional)</label>
         <input id={`${uid}-dob`} aria-label="Date of birth" className="input" type="date" value={fields.dob} onChange={(e) => set("dob", e.target.value)} style={{ minHeight: "2.5rem" }} disabled={busy} />
       </div>
+      {/* Remembered on Today at Undas and on their day (lib/remembrance). */}
+      <div className="field" style={{ marginBottom: "0.5rem" }}>
+        <label htmlFor={`${uid}-died`}>Date of passing (if they have passed)</label>
+        <input id={`${uid}-died`} aria-label="Date of passing" className="input" type="date" value={fields.diedOn ?? ""} onChange={(e) => set("diedOn", e.target.value)} style={{ minHeight: "2.5rem" }} disabled={busy} />
+      </div>
       <div className="field" style={{ marginBottom: "0.5rem" }}>
         <label htmlFor={`${uid}-notes`}>Notes (optional)</label>
         <input id={`${uid}-notes`} aria-label="Notes" className="input" placeholder="e.g. Emigrated in 1978" value={fields.notes} onChange={(e) => set("notes", e.target.value)} style={{ minHeight: "2.5rem" }} disabled={busy} />
@@ -139,7 +144,7 @@ export function FamilyTreeEditor({ people, unaddedMembers }: { people: TreePerso
   }
 
   function startEditName(p: TreePerson) {
-    setFields({ fullName: p.fullName, dob: p.dob ?? "", notes: p.notes ?? "" });
+    setFields({ fullName: p.fullName, dob: p.dob ?? "", notes: p.notes ?? "", diedOn: p.diedOn ?? "" });
     setError(null);
     setMode({ editName: p.id });
   }

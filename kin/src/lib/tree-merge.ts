@@ -18,6 +18,8 @@ export type ChartPerson = {
   hasAccount?: boolean;
   /** Set for somebody from a linked household's branch, drawn read-only. */
   fromHousehold: string | null;
+  /** Our own relative's date of passing, for the candle at Undas. */
+  diedOn?: string | null;
 };
 
 /** Join a linked household's branch onto our tree.

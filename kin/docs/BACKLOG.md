@@ -3,6 +3,29 @@
 What is agreed but not built yet, and what is waiting on somebody. Update
 it in the same pull request that finishes or adds an item.
 
+## Approved 19 October: four for the season, Kin Free (Jonathan)
+
+Each its own pull request, in date order: Undas first (1-2 November), then
+the potluck, the monito-monita draw, and the Christmas gift list.
+
+- **Done:** Undas and babang-luksa reminders: a "Date of passing" on a
+  tree-only relative (Family -> Tree, Manage people), never in the future
+  or before their birth. Today lists "Undas · remembering ..." on 1 and 2
+  November, and "Remembering <name>" on their 40th day (the day of passing
+  counted as the first), the first year ("babang-luksa") and every
+  anniversary after (a 29 February one on the 28th in other years); Coming
+  up has Undas and those days a week ahead ("candles and flowers?"). The
+  grown-ups with a phone get one push from 09:00 their time on 29 October
+  and on each day, respecting "Events and schedules". A lit candle sits on
+  their tree tile on 1-2 November. Settings -> Household -> "Remember
+  relatives who have passed" turns all of it off (the organizer's, like
+  sharing). Migration 20261019131000_remembrance_undas.sql. Not checked: the
+  push on a real phone; a relative who is also a Kin member (their tree
+  entry follows their profile, so it takes no date of passing).
+- Potluck sign-up on an event (who brings what).
+- Monito-monita draw across the household and linked households.
+- Christmas gift and aguinaldo list.
+
 ## Approved 19 October: four for money and health (Jonathan)
 
 Each its own pull request, in this order. No new Kin Plus gate and no paid

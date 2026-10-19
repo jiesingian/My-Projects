@@ -40,6 +40,7 @@ import { FamilyTreeEditor } from "@/components/family-tree-editor";
 import { AddMeToTreeButton } from "@/components/add-me-to-tree-button";
 import { formatAge, initials } from "@/lib/format";
 import { isGone } from "@/lib/member-status";
+import { isUndas } from "@/lib/remembrance";
 import { getConnections, getGuardianWaitingCount, getIncomingConnectionCount } from "@/lib/queries/connections";
 
 const SEGMENTS = ["profile", "health", "documents", "tree", "quicklinks"] as const;
@@ -80,7 +81,7 @@ export default async function FamilyPage({
         {seg === "health" && <HealthPane familyId={me.family_id} />}
         {seg === "documents" && !readAccess(me.families).plus && <PlusNote area="The vault" />}
         {seg === "documents" && <VaultPane familyId={me.family_id} who={who} tab={sp.tab === "passwords" ? "passwords" : "documents"} meId={me.id} myRole={me.role} />}
-        {seg === "tree" && <TreePane familyId={me.family_id} householdName={me.families.name} myId={me.id} inviteCode={me.is_organiser ? me.families.invite_code : null} open={sp.branch && sp.person ? { matchId: sp.branch, personId: sp.person } : null} />}
+        {seg === "tree" && <TreePane familyId={me.family_id} householdName={me.families.name} myId={me.id} inviteCode={me.is_organiser ? me.families.invite_code : null} open={sp.branch && sp.person ? { matchId: sp.branch, personId: sp.person } : null} remembering={me.families.remember_the_departed !== false} />}
         {seg === "quicklinks" && <QuicklinksPane familyId={me.family_id} meId={me.id} myRole={me.role} />}
       </div>
     </div>
@@ -375,7 +376,10 @@ async function VaultPane({ familyId, who, tab, meId, myRole }: { familyId: strin
  * different person, which made a single family look like several trees. The
  * only thing that differs between members now is that each sees themselves
  * highlighted. */
-async function TreePane({ familyId, householdName, myId, inviteCode, open }: { familyId: string; householdName: string; myId: string; inviteCode: string | null; open: { matchId: string; personId: string } | null }) {
+async function TreePane({ familyId, householdName, myId, inviteCode, open, remembering }: { familyId: string; householdName: string; myId: string; inviteCode: string | null; open: { matchId: string; personId: string } | null; remembering: boolean }) {
+  // Undas in the household's own zone, with its remembering on: a candle on
+  // the tile of each relative who has passed (lib/remembrance).
+  const candles = remembering && isUndas(familyDay(new Date(), await householdZone()));
   const [tree, allMembers, matches, allOffers, linkedFamilies, suggestions, blocks, allConnections] = await Promise.all([
     getFamilyTree(familyId, myId),
     getMembers(familyId),
@@ -411,10 +415,10 @@ async function TreePane({ familyId, householdName, myId, inviteCode, open }: { f
             line="Add yourself, then your father, your mother, and anyone else you know -- the tree grows from there, and everybody in the house sees the same one."
           />
           <AddMeToTreeButton memberId={myId} />
-          {tree.people.length > 0 && <FamilyTreeChart people={tree.people} meTreeId={null} householdName={householdName} matches={matches} linkedFamilies={linkedFamilies} inviteCode={inviteCode} unaddedMembers={unaddedMembers} open={open} connections={connections} />}
+          {tree.people.length > 0 && <FamilyTreeChart people={tree.people} meTreeId={null} householdName={householdName} matches={matches} linkedFamilies={linkedFamilies} inviteCode={inviteCode} unaddedMembers={unaddedMembers} open={open} connections={connections} candles={candles} />}
         </>
       ) : (
-        <FamilyTreeChart people={tree.people} meTreeId={meInTree.id} householdName={householdName} matches={matches} linkedFamilies={linkedFamilies} inviteCode={inviteCode} unaddedMembers={unaddedMembers} open={open} connections={connections} />
+        <FamilyTreeChart people={tree.people} meTreeId={meInTree.id} householdName={householdName} matches={matches} linkedFamilies={linkedFamilies} inviteCode={inviteCode} unaddedMembers={unaddedMembers} open={open} connections={connections} candles={candles} />
       )}
 
       <details className="kin-fold" style={{ marginTop: "1.25rem" }}>
