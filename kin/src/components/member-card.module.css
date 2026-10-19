@@ -132,7 +132,7 @@
   text-decoration: line-through;
 }
 .late {
-  color: #d13438;
+  color: color-mix(in srgb, #e5484d 45%, var(--color-text));
   font-weight: 600;
 }
 
@@ -247,12 +247,26 @@
   border-radius: 999px;
   border: 1.5px solid #e5484d;
   background: transparent;
-  color: #d13438;
+  /* The red taken toward the theme's own text colour, so the word reads at
+     4.5:1 on every theme's page and card (a fixed #d13438 was 3.1:1 on Clay
+     dark and 1.9:1 on Antarctic's card). The border keeps the bright red. */
+  color: color-mix(in srgb, #e5484d 45%, var(--color-text));
   font: 700 0.6875rem/1 var(--font-heading);
+  position: relative;
   letter-spacing: 0.08em;
   cursor: pointer;
   -webkit-tap-highlight-color: transparent;
   transition: transform 140ms cubic-bezier(0.23, 1, 0.32, 1);
+}
+/* Drawn 27px tall; a finger gets 44px (globals.css, "Tap targets"). */
+.sosTrigger::before {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: max(100%, 44px);
+  height: max(100%, 44px);
+  transform: translate(-50%, -50%);
 }
 .sosTrigger:active {
   transform: scale(0.95);
@@ -338,7 +352,8 @@
 
 .count {
   font: 800 4rem/1 var(--font-numeric, var(--font-heading));
-  color: #d13438;
+  /* Large text, so 3:1; at 60% it is at least 3.8:1 on every theme. */
+  color: color-mix(in srgb, #e5484d 60%, var(--color-text));
   font-variant-numeric: tabular-nums;
 }
 .cancel {
