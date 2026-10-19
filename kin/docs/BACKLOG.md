@@ -3,6 +3,35 @@
 What is agreed but not built yet, and what is waiting on somebody. Update
 it in the same pull request that finishes or adds an item.
 
+## Approved 19 October: four for money and health (Jonathan)
+
+Each its own pull request, in this order. No new Kin Plus gate and no paid
+service or AI key: each lives where its area already is (Wealth is Kin
+Plus at the database, so items 1 and 3 are for households that have it).
+
+- **Done:** Sinking funds (Wealth -> Assets & liabilities -> Savings goals).
+  A savings goal can be "Every year" (goals.repeats_yearly), with quick
+  picks for tuition, car registration, an insurance premium and Christmas.
+  Each dated goal says what to set aside a payday (kinsenas: the 15th and
+  the month's last day) and a month to have it by the date, and whether it
+  is on track: by each payday a steady saver has that many shares of the
+  target (lib/sinking-fund.ts). Contributions are the same "Put money in"
+  ledger movements as any goal. "Paid it" (from a month before the date)
+  takes the money back out of the goal into the paying account and records
+  the payment there in its category, so the account ends where it was and
+  the month's spending shows it; a yearly fund then moves a year on (and
+  its calendar event with it). A yearly fund whose date passes unpaid says
+  so rather than moving on. Migration 20261019130000_sinking_funds.sql
+  (one column, no policy change); logic e2e/sinking-fund.logic.spec.ts.
+  Chosen: kinsenas rather than a per-goal pay rhythm, since income
+  schedules carry no payday frequency.
+
+- **Not yet:** Siblings sharing a parent's costs across linked households.
+
+- **Not yet:** Monthly money recap (rule-based, the 1st).
+
+- **Not yet:** Doctor-visit sheet.
+
 ## Approved 19 October: three from the 14 October "What's Left" review (Jonathan)
 
 Each its own pull request, in this order.

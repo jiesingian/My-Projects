@@ -3517,6 +3517,7 @@ export type Database = {
           linked_account_id: string | null
           owner_member_id: string | null
           owner_person_id: string | null
+          repeats_yearly: boolean
           sub_note: string | null
           target_amount: number | null
           target_date: string | null
@@ -3533,6 +3534,7 @@ export type Database = {
           linked_account_id?: string | null
           owner_member_id?: string | null
           owner_person_id?: string | null
+          repeats_yearly?: boolean
           sub_note?: string | null
           target_amount?: number | null
           target_date?: string | null
@@ -3549,6 +3551,7 @@ export type Database = {
           linked_account_id?: string | null
           owner_member_id?: string | null
           owner_person_id?: string | null
+          repeats_yearly?: boolean
           sub_note?: string | null
           target_amount?: number | null
           target_date?: string | null
