@@ -11,6 +11,7 @@ import {
   PayBillControl,
   ReceiveIncomeControl,
   GoalContributeControl,
+  FundPaidControl,
   PendingEntryActions,
   ValueUpdateControl,
   AssetBreakdownControl,
@@ -58,6 +59,7 @@ import { ScrollIntoView } from "@/components/scroll-into-view";
 import { CashFlowChart, CashTrendLine, CategoryDonut, NetWorthLine, SpendingByPerson } from "@/components/wealth-charts";
 import { isGrownUp } from "@/lib/roles";
 import { isGone } from "@/lib/member-status";
+import { canMarkPaid, cycleStart, fundPlan, STATUS_TEXT } from "@/lib/sinking-fund";
 
 /* Joint and Mine were the same page twice; they are one Accounts tab now,
    with a Who button of the kind the Planner uses. Bills moved into Cash
@@ -929,6 +931,8 @@ async function AssetsPane({ familyId, memberId, currency, scope }: { familyId: s
         const current = Number(g.current_amount);
         const pct = target > 0 ? Math.min(100, Math.round((current / target) * 100)) : 0;
         const owner = (g.owner as unknown as { full_name: string } | null)?.full_name?.split(" ")[0]?.toUpperCase();
+        const plan = g.target_date && target > 0 ? fundPlan({ target, saved: current, due: g.target_date, today, cycleStart: cycleStart({ createdDay: g.created_at.slice(0, 10), due: g.target_date, repeatsYearly: g.repeats_yearly }) }) : null;
+        const payable = !!g.target_date && current > 0 && canMarkPaid(g.target_date, today);
         return (
           <Blueprint key={g.id} style={{ padding: "0.8125rem", marginBottom: "0.8125rem" }}>
             <div style={{ display: "flex", alignItems: "baseline", gap: "0.5rem" }}>
@@ -949,8 +953,21 @@ async function AssetsPane({ familyId, memberId, currency, scope }: { familyId: s
             </div>
             {g.target_date && (
               <div style={{ fontSize: "0.78125rem", color: "var(--color-neutral-600)", marginTop: "0.3125rem" }}>
-                Target date {fmtDate(g.target_date)}
+                {g.repeats_yearly ? "Due every year · next" : "Target date"} {fmtDate(g.target_date)}
                 {target > current ? ` · ${formatCurrency(target - current, currency)} to go` : " · funded"}
+              </div>
+            )}
+            {plan && plan.status !== "funded" && (
+              <div style={{ display: "flex", gap: "0.5rem", alignItems: "baseline", fontSize: "0.78125rem", marginTop: "0.3125rem" }}>
+                <span style={{ flex: 1, color: "var(--color-neutral-600)" }}>
+                  {plan.status === "overdue"
+                    ? "The date has passed. Record the payment, or put the rest in."
+                    : plan.paydays === 0
+                      ? `Set aside ${formatCurrency(plan.perPayday, currency)} now — no payday left before it’s due`
+                      : `Set aside ${formatCurrency(plan.perPayday, currency)} a payday (15th and end of month) · ${formatCurrency(plan.perMonth, currency)} a month`}
+                  {plan.status === "behind" ? ` · ${formatCurrency(plan.shouldHave, currency)} by now keeps it on track` : ""}
+                </span>
+                <Tag variant={plan.status === "on_track" ? "accent" : "neutral"}>{STATUS_TEXT[plan.status].toUpperCase()}</Tag>
               </div>
             )}
             {g.linked_account_id && (
@@ -959,6 +976,7 @@ async function AssetsPane({ familyId, memberId, currency, scope }: { familyId: s
               </div>
             )}
             <GoalContributeControl goalId={g.id} accounts={pickableCash} currency={currency} linkedAccountId={g.linked_account_id} />
+            {payable && <FundPaidControl goalId={g.id} title={g.title} accounts={pickableCash} currency={currency} saved={current} target={target} linkedAccountId={g.linked_account_id} repeatsYearly={g.repeats_yearly} />}
             <div style={{ display: "flex", justifyContent: "flex-end", marginTop: "0.5rem" }}>
               <RemoveButton id={g.id} kind="goal" label={`Delete "${g.title}"`} />
             </div>

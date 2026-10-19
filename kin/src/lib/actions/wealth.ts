@@ -16,6 +16,7 @@ import { isGrownUp } from "@/lib/roles";
 import { pesoRate, type PesoRate } from "@/lib/fx";
 import { householdZone } from "@/lib/household-zone";
 import { familyDay } from "@/lib/time";
+import { addYears } from "@/lib/sinking-fund";
 
 type Db = SupabaseClient<Database>;
 
@@ -999,8 +1000,10 @@ export async function createGoalAction(_prev: ActionState, formData: FormData): 
   const targetAmount = formData.get("target_amount") ? Number(formData.get("target_amount")) : null;
   const targetDate = String(formData.get("target_date") ?? "") || null;
   const requestedAccountId = String(formData.get("linked_account_id") ?? "") || null;
+  const repeatsYearly = formData.get("repeats_yearly") === "on";
   if (!title) return { error: "Give the goal a title." };
   if (!targetAmount || targetAmount <= 0) return { error: "Set the amount you're saving towards." };
+  if (repeatsYearly && !targetDate) return { error: "A yearly cost needs the date it is due." };
 
   let linkedAccountId: string | null = null;
   if (requestedAccountId) {
@@ -1020,6 +1023,7 @@ export async function createGoalAction(_prev: ActionState, formData: FormData): 
       target_amount: targetAmount,
       target_date: targetDate,
       linked_account_id: linkedAccountId,
+      repeats_yearly: repeatsYearly,
       created_by: me.id,
     })
     .select()
@@ -1073,6 +1077,62 @@ export async function contributeToGoalAction(input: {
 
   revalidateWealth();
   return { error: null, appUrl: input.viaApp ? account.linked_app_url : null };
+}
+
+/** A sinking fund's cost has come due and been paid. Two movements on the
+ * paying account, so its balance ends where it was: the money comes back
+ * out of the goal (an "in" carrying goal_id, which recalc_goal_total reads
+ * as progress undone), then goes out as the expense it was saved for, in
+ * its category, so the month's spending shows it. A yearly fund then moves
+ * its date a year on; what was saved beyond the cost stays in the goal as
+ * a head start. */
+export async function payFromFundAction(input: { goalId: string; accountId: string; amount: number; category: string }): Promise<{ error: string | null }> {
+  const me = await requireCurrentMember();
+  const supabase = await createClient();
+
+  const [{ data: goal }, { data: account }] = await Promise.all([
+    supabase.from("goals").select("title, current_amount, target_date, repeats_yearly, is_joint, owner_member_id").eq("id", input.goalId).eq("family_id", me.family_id).maybeSingle(),
+    supabase.from("accounts").select("id").eq("id", input.accountId).eq("family_id", me.family_id).maybeSingle(),
+  ]);
+  if (!goal) return { error: "Goal not found." };
+  if (!account) return { error: "Choose the account it was paid from." };
+  if (!(input.amount > 0)) return { error: "Enter what was paid." };
+  const category = clamp(input.category, 40) || "Other";
+  const fromFund = Math.min(input.amount, Math.max(0, Number(goal.current_amount)));
+
+  if (fromFund > 0) {
+    const { data: back, error } = await insertEntry(supabase, me.family_id, me.id, {
+      accountId: input.accountId,
+      direction: "in",
+      amount: fromFund,
+      particulars: `From ${goal.title}`,
+      category: GOAL_CATEGORY,
+      goalId: input.goalId,
+    });
+    if (error) return { error: explainLedgerRefusal(error.message) };
+    const settled = await applySettlement(supabase, me.id, back);
+    if (settled) return { error: settled };
+  }
+
+  const { error: paidError } = await insertEntry(supabase, me.family_id, me.id, {
+    accountId: input.accountId,
+    direction: "out",
+    amount: input.amount,
+    particulars: goal.title,
+    category,
+  });
+  if (paidError) return { error: `The money came out of the goal, but the payment was not recorded. ${explainLedgerRefusal(paidError.message)}` };
+
+  if (goal.repeats_yearly && goal.target_date) {
+    const next = addYears(goal.target_date, 1);
+    const { error } = await supabase.from("goals").update({ target_date: next }).eq("id", input.goalId).eq("family_id", me.family_id);
+    if (error) return { error: `Paid, but the next due date was not set. ${humanDatabaseError(error.message)}` };
+    const target: CalendarTarget = goal.is_joint ? { kind: "all" } : { kind: "member", memberId: goal.owner_member_id };
+    await syncRowToCalendars(me.family_id, "goals", input.goalId, allDayEvent(goal.title, next), target);
+  }
+
+  revalidateWealth();
+  return { error: null };
 }
 
 export async function deleteGoalAction(goalId: string): Promise<ActionState> {

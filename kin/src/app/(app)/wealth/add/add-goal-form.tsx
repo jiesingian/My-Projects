@@ -7,22 +7,58 @@ import { SubmitButton, ErrorText } from "@/components/form";
 import { formatCurrency, currencySymbol } from "@/lib/format";
 import type { PickableAccount } from "@/components/money-actions";
 import { DateInput } from "@/components/date-input";
+import { SINKING_FUND_PRESETS } from "@/lib/sinking-fund";
 
 const initialState: ActionState = { error: null };
 
 export function AddGoalForm({ accounts, currency }: { accounts: PickableAccount[]; currency: string }) {
   const [state, formAction] = useActionState(createGoalAction, initialState);
   const [isJoint, setIsJoint] = useState(true);
+  const [yearly, setYearly] = useState(false);
+  const [title, setTitle] = useState("");
+  const [note, setNote] = useState("");
 
   return (
     <form action={formAction}>
       <input type="hidden" name="is_joint" value={isJoint ? "on" : ""} />
+      <input type="hidden" name="repeats_yearly" value={yearly ? "on" : ""} />
       <ErrorText message={state.error} />
+      <div style={{ display: "flex", gap: "0.4375rem", marginBottom: "0.5rem" }}>
+        <button type="button" className="chip" data-active={!yearly} onClick={() => setYearly(false)}>
+          Once
+        </button>
+        <button type="button" className="chip" data-active={yearly} onClick={() => setYearly(true)}>
+          Every year
+        </button>
+      </div>
+      {yearly && (
+        <>
+          <p style={{ fontSize: "0.8125rem", color: "var(--color-neutral-600)", margin: "0 0 0.5rem" }}>
+            A sinking fund for a cost that comes back every year. Kin works out what to set aside each payday to have it by the date.
+          </p>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: "0.375rem", marginBottom: "0.875rem" }}>
+            {SINKING_FUND_PRESETS.map((p) => (
+              <button
+                key={p.title}
+                type="button"
+                className="chip"
+                data-active={title === p.title}
+                onClick={() => {
+                  setTitle(p.title);
+                  setNote(p.note);
+                }}
+              >
+                {p.title}
+              </button>
+            ))}
+          </div>
+        </>
+      )}
       <Field label="Title">
-        <input className="input" name="title" placeholder="Emergency fund · six months" required style={{ minHeight: "2.75rem" }} />
+        <input className="input" name="title" value={title} onChange={(e) => setTitle(e.target.value)} placeholder={yearly ? "Tuition · school year 2027–28" : "Emergency fund · six months"} required style={{ minHeight: "2.75rem" }} />
       </Field>
       <Field label="Note">
-        <input className="input" name="sub_note" placeholder="Six months of household costs" style={{ minHeight: "2.75rem" }} />
+        <input className="input" name="sub_note" value={note} onChange={(e) => setNote(e.target.value)} placeholder="Six months of household costs" style={{ minHeight: "2.75rem" }} />
       </Field>
       <div style={{ display: "flex", gap: "0.4375rem", marginBottom: "1rem" }}>
         <button type="button" className="chip" data-active={isJoint} onClick={() => setIsJoint(true)}>
@@ -36,8 +72,8 @@ export function AddGoalForm({ accounts, currency }: { accounts: PickableAccount[
         <Field label={`Target amount (${currencySymbol(currency)})`} style={{ flex: 1 }}>
           <input className="input" type="number" step="0.01" min="0" name="target_amount" required style={{ minHeight: "2.75rem" }} />
         </Field>
-        <Field label="Target date" style={{ flex: 1 }}>
-          <DateInput className="input" name="target_date" style={{ minHeight: "2.75rem" }} />
+        <Field label={yearly ? "Next due" : "Target date"} style={{ flex: 1 }}>
+          <DateInput className="input" name="target_date" required={yearly} style={{ minHeight: "2.75rem" }} />
         </Field>
       </div>
       {accounts.length > 0 && (

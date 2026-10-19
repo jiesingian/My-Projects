@@ -7,6 +7,7 @@ import {
   payBillAction,
   receiveIncomeAction,
   contributeToGoalAction,
+  payFromFundAction,
   confirmTransactionAction,
   deleteTransactionAction,
   updateAssetValueAction,
@@ -32,8 +33,9 @@ import { formatCurrency, currencySymbol } from "@/lib/format";
 import { Icon } from "@/components/icons";
 import { confirm } from "@/components/confirm-sheet";
 import { AmountInput } from "@/components/amount-input";
-import { accountAudienceLabel, type AccountAudienceMember } from "@/lib/wealth";
+import { accountAudienceLabel, EXPENSE_CATEGORIES, type AccountAudienceMember } from "@/lib/wealth";
 import { DateInput } from "@/components/date-input";
+import { fundCategory } from "@/lib/sinking-fund";
 import { ASSET_ITEM_KINDS, ASSET_ITEM_KIND_HINTS, ASSET_ITEM_KIND_LABELS, type AssetItemKind } from "@/lib/wealth";
 
 export type PickableAccount = {
@@ -272,6 +274,90 @@ export function GoalContributeControl({
               onClick={() => run(() => contributeToGoalAction({ goalId, accountId, amount, viaApp: viaApp && !!account?.linked_app_url }), () => setOpen(false))}
             >
               {pending ? "…" : viaApp && account?.linked_app_url ? "Open app & log" : "Add to goal"}
+            </button>
+            <button type="button" className="btn btn-secondary" style={{ flex: 1, minHeight: "2.5rem", fontSize: "0.84375rem" }} onClick={() => setOpen(false)}>
+              Cancel
+            </button>
+          </div>
+        </div>
+      </FormSheet>
+    </>
+  );
+}
+
+/** "Paid it", on a sinking fund whose cost has come due: what was paid, from
+ * which account, in which category. The money comes back out of the goal and
+ * goes out as the expense; a yearly fund moves on to next year's date. */
+export function FundPaidControl({
+  goalId,
+  title,
+  accounts,
+  currency,
+  saved,
+  target,
+  linkedAccountId,
+  repeatsYearly,
+}: {
+  goalId: string;
+  title: string;
+  accounts: PickableAccount[];
+  currency: string;
+  saved: number;
+  target: number;
+  linkedAccountId?: string | null;
+  repeatsYearly: boolean;
+}) {
+  const [open, setOpen] = useState(false);
+  const defaultAccountId = (linkedAccountId && accounts.some((a) => a.id === linkedAccountId) ? linkedAccountId : accounts[0]?.id) ?? "";
+  const [accountId, setAccountId] = useState(defaultAccountId);
+  const [amount, setAmount] = useState(Math.min(saved, target) || target);
+  const [category, setCategory] = useState<string>(fundCategory(title));
+  const { error, pending, run } = useMoneyAction();
+  const uid = useId();
+
+  if (accounts.length === 0) return null;
+
+  return (
+    <>
+      <button type="button" className="btn btn-secondary btn-block" style={{ minHeight: "2.375rem", fontSize: "0.8125rem", marginTop: "0.5rem" }} onClick={() => setOpen(true)}>
+        PAID IT
+      </button>
+      <FormSheet open={open} onClose={() => setOpen(false)} title={`Paid ${title}`}>
+        <div style={{ marginTop: "0.75rem", paddingTop: "0.625rem", borderTop: "1px solid var(--color-divider)" }}>
+          <Err message={error} />
+          <div style={{ display: "flex", gap: "0.5rem", marginBottom: "0.5rem" }}>
+            <div className="field" style={{ flex: 1, margin: 0 }}>
+              <label htmlFor={`${uid}-account`}>Paid from</label>
+              <AccountSelect id={`${uid}-account`} accounts={accounts} value={accountId} onChange={setAccountId} currency={currency} />
+            </div>
+            <div className="field" style={{ width: 110, margin: 0 }}>
+              <label htmlFor={`${uid}-amount`}>Amount</label>
+              <AmountInput id={`${uid}-amount`} ariaLabel="Amount paid" defaultValue={amount} onValueChange={setAmount} style={{ minHeight: "2.625rem" }} />
+            </div>
+          </div>
+          <div className="field" style={{ marginBottom: "0.5rem" }}>
+            <label htmlFor={`${uid}-category`}>Category</label>
+            <select id={`${uid}-category`} className="input" value={category} onChange={(e) => setCategory(e.target.value)} style={{ minHeight: "2.625rem" }}>
+              {EXPENSE_CATEGORIES.map((c) => (
+                <option key={c} value={c}>
+                  {c}
+                </option>
+              ))}
+            </select>
+          </div>
+          <p style={{ fontSize: "0.78125rem", color: "var(--color-neutral-600)", margin: "0 0 0.625rem" }}>
+            Up to {formatCurrency(saved, currency)} comes out of the fund into this account, and the payment goes out of it.
+            {repeatsYearly ? " The fund then starts again for next year’s date." : ""}
+          </p>
+          <div style={{ display: "flex", gap: "0.5rem" }}>
+            <button
+              type="button"
+              className="btn btn-primary"
+              disabled={pending}
+              style={{ flex: 1, minHeight: "2.5rem", fontSize: "0.84375rem" }}
+              onClick={() => run(() => payFromFundAction({ goalId, accountId, amount, category }), () => setOpen(false))}
+            >
+              {pending ? "…" : "Record payment"}
             </button>
             <button type="button" className="btn btn-secondary" style={{ flex: 1, minHeight: "2.5rem", fontSize: "0.84375rem" }} onClick={() => setOpen(false)}>
               Cancel
