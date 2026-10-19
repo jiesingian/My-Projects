@@ -1166,6 +1166,37 @@ What only Jonathan can check, on his iPhone with Kin on the Home Screen:
   set up the Shortcut as written, run it, and see steps and weight on Health.
 - **The "K" home-screen icon:** remove the old Kin icon and add Kin to the
   Home Screen again; it should show the house icon.
+- **This week's features (14-19 October), the parts a browser on dev cannot
+  reach.** `e2e/this-week.spec.ts` uses each one as the sample household every
+  week; these need the phone, a second person, or both:
+  - **Helper link, accepted:** Settings -> Household -> Helpers, make a link
+    and send it with the share sheet; on a phone that has no Kin account,
+    open it, sign up, Accept, and see only the To-Buy list (and Meals or
+    Family plans if they were ticked). Tick something there and see it ticked
+    on your own list.
+  - **Vault emergency access:** needs a relative in a household linked with
+    yours. Name them under Settings -> Privacy -> Emergency access; on their
+    phone, Request access; see the request on yours; Allow now; see their
+    read-only vault open, then Revoke.
+  - **Check-up "share as a picture":** finish the check-up on the welcome
+    page, share the result; the share sheet offers the picture, and it saves
+    to Photos and sends in Messenger.
+  - **Year book:** Journal -> Year book -> print; Safari's print sheet makes a
+    PDF that reads well (photos, page breaks).
+  - **Tree file:** Family -> Tree file, export lands in Files; import a .ged
+    picked from Files.
+  - **Statement import:** a CSV downloaded from BPI's or GCash's app, picked
+    from Files on the import screen.
+  - **Stories on the tree:** record a story with the microphone (Kin asks for
+    it once) and play it back.
+  - **Utang and paluwagan reminders:** "Prepare a gentle reminder I can send
+    myself" -- the reminder arrives as a push at its time, and its text
+    shares to Messenger or SMS.
+  - **Password health's breach check:** a password seen in breaches is
+    flagged on the phone (it asks Have I Been Pwned with five characters of
+    a hash; nothing else leaves the phone).
+  - **Alkansya on a child's phone:** in kid view, the child sees their jars and
+    the next baon, and cannot change either.
 
 ## Next up
 
