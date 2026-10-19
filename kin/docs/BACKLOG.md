@@ -21,7 +21,16 @@ Each its own pull request, in this order.
   the Plus note instead. Not checked: a 60-page book on an older iPhone
   (memory), a Drive-backed household's photos.
 - Import or export a tree file (GEDCOM), Family -> Tree, Kin Plus.
-- Shareable check-up result image (free).
+- **Done:** Shareable check-up result image (Kin Free): "Share your
+  result" on the check-up's results page draws a 1080x1350 card on the
+  phone in the page's own colours: the score and its category (ticked to
+  begin with), the family profile and tagline only if ticked (Janine took
+  the profile off the page itself on 19 October), Kin's name and the
+  /?start=quiz link. None of the answers. The preview is the picture
+  itself; "Share the picture" sends a PNG to the share sheet with a line
+  and the link, or downloads it. Nothing is sent by Kin
+  (lib/check-up-share.ts, components/welcome/share-result.tsx). Not
+  checked: Facebook's in-app browser's share sheet on a real phone.
 
 ## Agreed 14 October: the top 10 from the review (Jonathan)
 
@@ -217,7 +226,7 @@ name / who / wants / tour / why steps (answer 13).
   said X -> in Kin, Y" naming the real feature, "One app instead of N" from
   Q2, and the privacy line when Q9 is "privacy first" ("Private to your
   family. Nothing is sold, and your records never train AI."). Then "See how
-  it works". (A shareable result image: later, not this series.)
+  it works". (A shareable result image: built 19 October, see above.)
 - Showcase (answer 5): three slides from the top 3 plus one "one app,
   private to your family", each a real phone screenshot of the sample
   household (QA_HOUSEHOLDS.md), swipeable, skippable.
