@@ -89,6 +89,7 @@ const MIGRATIONS = [
   "20261019110000_utang_paluwagan.sql",
   "20261019120000_statement_import.sql",
   "20261019140000_this_weeks_fk_indexes.sql",
+  "20261019152700_recipe_tree_person.sql",
   "20261019170000_remembrance_undas.sql",
   "20261019170100_event_potluck.sql",
 ];

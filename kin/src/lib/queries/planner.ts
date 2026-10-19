@@ -9,12 +9,20 @@ import { expandRoutine, assigneeFor, type RoutineRule } from "@/lib/routines";
 import { loanPaymentDates, paidFromVisibleFilter } from "@/lib/wealth";
 import { formatCurrency } from "@/lib/format";
 import { householdZone } from "@/lib/household-zone";
-import { familyDay } from "@/lib/time";
+import { addDays, familyDay, familyInstant, familyMidnight } from "@/lib/time";
+import { bucketByDay, countsByMonth, dayAfterMonths, daysFrom, monthsAround, weekStartDay, type PlannerMonth } from "@/lib/planner-days";
+import { parseISODate, toISODate } from "@/lib/routines";
 import { describeActivityRepeat, occurrenceStarts } from "@/lib/activity-repeat";
 
 export type PlannerCalendarItem = {
   id: string;
   table: CalendarTable;
+  /** The household day it falls on, "YYYY-MM-DD" -- what the calendar files
+   * it under (lib/planner-days). */
+  day: string;
+  /** When it is: the real instant for a timed item, the start of its
+   * household day for an all-day one. For the time and for ordering, never
+   * for working out which day it is. */
   date: Date;
   allDay: boolean;
   title: string;
@@ -40,13 +48,16 @@ function firstNames(names: (string | undefined)[]): string {
 /** Every date-bearing record across the app — activities, events,
  * bills, meal plans, and goals with a target date — normalized into one list
  * so the Planner Calendar view reflects everything with a date, not just
- * activities. `rangeEnd` is exclusive. */
-async function fetchCalendarItems(familyId: string, rangeStart: Date, rangeEnd: Date): Promise<PlannerCalendarItem[]> {
+ * activities. Household days from `startDate` to `endDate`, exclusive, in the
+ * household's own zone: the process's clock has no say (lib/planner-days). */
+async function fetchCalendarItems(familyId: string, startDate: string, endDate: string, tz: string): Promise<PlannerCalendarItem[]> {
   const supabase = await createClient();
+  const rangeStart = familyMidnight(startDate, tz)!;
+  const rangeEnd = familyMidnight(endDate, tz)!;
   const startISO = rangeStart.toISOString();
   const endISO = rangeEnd.toISOString();
-  const startDate = toISODate(rangeStart);
-  const endDate = toISODate(rangeEnd);
+  // An all-day item's instant: the start of its day, in the household's zone.
+  const dayStart = (day: string) => familyMidnight(day, tz) ?? new Date(`${day}T00:00:00Z`);
 
   // No trips fetch: travel is a kind of event now, so it arrives with the
   // events and needs no second query or second loop.
@@ -112,9 +123,8 @@ async function fetchCalendarItems(familyId: string, rangeStart: Date, rangeEnd: 
 
   const items: PlannerCalendarItem[] = [];
 
-  const tz = await householdZone();
-  const fromDay = familyDay(rangeStart, tz);
-  const toDay = familyDay(new Date(rangeEnd.getTime() - 1), tz);
+  const fromDay = startDate;
+  const toDay = addDays(endDate, -1) ?? startDate;
   for (const a of activities ?? []) {
     const memberIds = (a.activity_members ?? [])
       .map((m) => (m.members as unknown as { id: string } | null)?.id)
@@ -131,6 +141,7 @@ async function fetchCalendarItems(familyId: string, rangeStart: Date, rangeEnd: 
       items.push({
         id: at.getTime() === start.getTime() ? a.id : `${a.id}:${familyDay(at, tz)}`,
         table: "activities",
+        day: familyDay(at, tz),
         date: at,
         allDay: false,
         title: a.title,
@@ -155,7 +166,8 @@ async function fetchCalendarItems(familyId: string, rangeStart: Date, rangeEnd: 
     items.push({
       id: e.id,
       table: "events",
-      date: new Date(`${e.event_date}T00:00:00`),
+      day: e.event_date,
+      date: dayStart(e.event_date),
       allDay: true,
       title: e.title,
       location: null,
@@ -170,7 +182,8 @@ async function fetchCalendarItems(familyId: string, rangeStart: Date, rangeEnd: 
     items.push({
       id: `holiday-${h.date}-${h.name}`,
       table: "holidays",
-      date: new Date(`${h.date}T00:00:00`),
+      day: h.date,
+      date: dayStart(h.date),
       allDay: true,
       title: h.name,
       location: null,
@@ -186,7 +199,8 @@ async function fetchCalendarItems(familyId: string, rangeStart: Date, rangeEnd: 
     items.push({
       id: b.id,
       table: "bills",
-      date: new Date(`${b.due_date}T00:00:00`),
+      day: b.due_date!,
+      date: dayStart(b.due_date!),
       allDay: true,
       title: `${b.name} due`,
       location: null,
@@ -211,7 +225,8 @@ async function fetchCalendarItems(familyId: string, rangeStart: Date, rangeEnd: 
       items.push({
         id: `liability-${l.id}-${day}`,
         table: "bills",
-        date: new Date(`${day}T00:00:00`),
+        day,
+        date: dayStart(day),
         allDay: true,
         title: `${l.name} payment${amount}`,
         location: null,
@@ -227,7 +242,8 @@ async function fetchCalendarItems(familyId: string, rangeStart: Date, rangeEnd: 
     items.push({
       id: m.id,
       table: "meal_plans",
-      date: new Date(`${m.plan_date}T00:00:00`),
+      day: m.plan_date,
+      date: dayStart(m.plan_date),
       allDay: true,
       title: m.dish,
       location: null,
@@ -243,7 +259,8 @@ async function fetchCalendarItems(familyId: string, rangeStart: Date, rangeEnd: 
     items.push({
       id: g.id,
       table: "goals",
-      date: new Date(`${g.target_date}T00:00:00`),
+      day: g.target_date!,
+      date: dayStart(g.target_date!),
       allDay: true,
       title: g.title,
       location: null,
@@ -273,7 +290,11 @@ async function fetchCalendarItems(familyId: string, rangeStart: Date, rangeEnd: 
       end_date: r.end_date,
     };
 
-    for (const occ of expandRoutine(rule, rangeStart, rangeEnd)) {
+    // expandRoutine counts whole days on local midnights; handed the range
+    // as those same local midnights of the household days, it never meets
+    // the process's zone, and its days come back as the household's.
+    for (const occ of expandRoutine(rule, parseISODate(startDate), parseISODate(endDate))) {
+      const day = toISODate(occ.date);
       // Whose turn it is only means anything when the routine rotates;
       // otherwise everyone named on it is on for every occurrence.
       const turn = r.rotate_assignee ? assigneeFor(roster, occ.index) : null;
@@ -284,10 +305,11 @@ async function fetchCalendarItems(familyId: string, rangeStart: Date, rangeEnd: 
           ? turn.name.split(" ")[0].toUpperCase()
           : firstNames(roster.map((m) => m.name)) || "HOUSE";
 
-      const at = r.time_of_day ? new Date(`${toISODate(occ.date)}T${r.time_of_day}`) : occ.date;
+      const at = (r.time_of_day ? familyInstant(day, r.time_of_day.slice(0, 8), tz) : null) ?? dayStart(day);
       items.push({
-        id: `${r.id}:${toISODate(occ.date)}`,
+        id: `${r.id}:${day}`,
         table: "routines",
+        day,
         date: at,
         allDay: !r.time_of_day,
         title: r.title,
@@ -320,69 +342,60 @@ function shown(item: PlannerCalendarItem, memberId?: string, hidden?: Set<Calend
   return !hidden?.has(GROUP_OF[item.table]);
 }
 
-function toISODate(d: Date): string {
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
-}
-
-/** The week containing `anchor` (defaults to today), plus a longer strip of
- * days either side of it. The strip is what the date rail scrolls through, so
- * the user can swipe weeks forward and back without a page load; the week
- * itself is the agenda beneath. One query covers both. */
+/** The week containing `anchor` (a household day; today by default), plus a
+ * longer strip of days either side of it. The strip is what the date rail
+ * scrolls through, so the user can swipe weeks forward and back without a
+ * page load; the week itself is the agenda beneath. One query covers both.
+ * Every day is the household's own (lib/planner-days). */
 export async function getWeekAgenda(
   familyId: string,
   memberId?: string,
-  anchor: Date = new Date(),
+  anchor?: string,
   hidden?: Set<CalendarGroup>,
   stripWeeksEachSide = 6,
   // Named for the preference, not for the Date this returns under the same
   // word: 0 is Sunday, 1 is Monday.
   weekStartsOn: WeekStart = 0,
 ) {
-  const today = new Date();
-  const startOfWeek = firstDayOfWeek(anchor, weekStartsOn);
-
-  const stripStart = new Date(startOfWeek);
-  stripStart.setDate(startOfWeek.getDate() - 7 * stripWeeksEachSide);
+  const tz = await householdZone();
+  const today = familyDay(new Date(), tz);
+  const selected = anchor ?? today;
+  const weekFirst = weekStartDay(selected, weekStartsOn);
+  const stripStart = addDays(weekFirst, -7 * stripWeeksEachSide) ?? weekFirst;
   const stripLength = 7 * (stripWeeksEachSide * 2 + 1);
-  const stripEnd = new Date(stripStart);
-  stripEnd.setDate(stripStart.getDate() + stripLength);
+  const stripDays = daysFrom(stripStart, stripLength);
+  const stripEnd = addDays(stripStart, stripLength) ?? stripStart;
 
-  const all = await fetchCalendarItems(familyId, stripStart, stripEnd);
-  const rows = all.filter((it) => shown(it, memberId, hidden));
+  const all = await fetchCalendarItems(familyId, stripStart, stripEnd, tz);
+  const byDay = bucketByDay(all.filter((it) => shown(it, memberId, hidden)));
 
-  const byDay = new Map<string, PlannerCalendarItem[]>();
-  for (const it of rows) {
-    const key = toISODate(it.date);
-    const bucket = byDay.get(key);
-    if (bucket) bucket.push(it);
-    else byDay.set(key, [it]);
-  }
-
-  const strip = Array.from({ length: stripLength }, (_, i) => {
-    const d = new Date(stripStart);
-    d.setDate(stripStart.getDate() + i);
-    return {
-      date: d,
-      isToday: d.toDateString() === today.toDateString(),
-      isSelected: d.toDateString() === anchor.toDateString(),
-      items: byDay.get(toISODate(d)) ?? [],
-    };
-  });
+  const strip = stripDays.map((day) => ({
+    day,
+    isToday: day === today,
+    isSelected: day === selected,
+    items: byDay.get(day) ?? [],
+  }));
 
   const weekOffset = 7 * stripWeeksEachSide;
   const days = strip.slice(weekOffset, weekOffset + 7).map((d) => ({
-    date: d.date,
+    day: d.day,
     isToday: d.isToday,
     isSelected: d.isSelected,
     activities: d.items,
   }));
 
-  return { weekStart: days[0].date, weekEnd: days[6].date, days, strip };
+  return { weekStart: days[0].day, weekEnd: days[6].day, today, days, strip };
 }
 
-/** Consecutive months around `anchor`, each with its own days' items, so the
- * month grid can scroll continuously from one month into the next instead of
- * paging one month at a time. One query spans the whole run.
+export type PlannerMonthDays = PlannerMonth & {
+  /** Indexed by the day of the month, 1 to daysInMonth. */
+  itemsByDay: PlannerCalendarItem[][];
+};
+
+/** Consecutive months around `anchor` (a household day), each with its own
+ * days' items, so the month grid can scroll continuously from one month into
+ * the next instead of paging one month at a time. One query spans the whole
+ * run.
  *
  * The window is two years wide, and weighted forward: a calendar is read
  * ahead far more than behind, and it has to carry on through a December into
@@ -390,56 +403,31 @@ export async function getWeekAgenda(
  * couple of taps away in the header's jump sheet. */
 export async function getMonthsOverview(
   familyId: string,
-  anchor: Date,
+  anchor: string,
   memberId?: string,
   hidden?: Set<CalendarGroup>,
   before = 6,
   after = 17,
 ) {
-  const first = new Date(anchor.getFullYear(), anchor.getMonth() - before, 1);
-  const end = new Date(anchor.getFullYear(), anchor.getMonth() + after + 1, 1);
+  const tz = await householdZone();
+  const runs = monthsAround(anchor, before, after);
+  const all = await fetchCalendarItems(familyId, runs[0].first, dayAfterMonths(runs), tz);
+  const byDay = bucketByDay(all.filter((it) => shown(it, memberId, hidden)));
 
-  const all = await fetchCalendarItems(familyId, first, end);
-  const rows = all.filter((it) => shown(it, memberId, hidden));
+  const months: PlannerMonthDays[] = runs.map((m) => ({
+    ...m,
+    itemsByDay: Array.from({ length: m.daysInMonth + 1 }, (_, d) => (d === 0 ? [] : (byDay.get(`${m.key}-${String(d).padStart(2, "0")}`) ?? []))),
+  }));
 
-  // Bucket the rows once by month rather than re-scanning them for each of
-  // the two dozen months in the window.
-  const byMonth = new Map<string, PlannerCalendarItem[]>();
-  for (const it of rows) {
-    const key = `${it.date.getFullYear()}-${it.date.getMonth()}`;
-    const bucket = byMonth.get(key);
-    if (bucket) bucket.push(it);
-    else byMonth.set(key, [it]);
-  }
-
-  const months = Array.from({ length: before + after + 1 }, (_, i) => {
-    const monthStart = new Date(first.getFullYear(), first.getMonth() + i, 1);
-    const daysInMonth = new Date(monthStart.getFullYear(), monthStart.getMonth() + 1, 0).getDate();
-    const itemsByDay: PlannerCalendarItem[][] = Array.from({ length: daysInMonth + 1 }, () => []);
-    for (const it of byMonth.get(`${monthStart.getFullYear()}-${monthStart.getMonth()}`) ?? []) {
-      itemsByDay[it.date.getDate()].push(it);
-    }
-    return { monthStart, daysInMonth, itemsByDay };
-  });
-
-  return { months };
+  return { months, today: familyDay(new Date(), tz) };
 }
 
-/** Per-month item counts for the whole year containing `anchor`, for the
- * year overview. */
-export async function getYearOverview(familyId: string, anchor: Date, memberId?: string, hidden?: Set<CalendarGroup>) {
-  const year = anchor.getFullYear();
-  const yearStart = new Date(year, 0, 1);
-  const yearEnd = new Date(year + 1, 0, 1);
-
-  const all = await fetchCalendarItems(familyId, yearStart, yearEnd);
-  const countsByMonth = new Array(12).fill(0);
-  for (const it of all) {
-    if (!shown(it, memberId, hidden)) continue;
-    countsByMonth[it.date.getMonth()]++;
-  }
-
-  return { year, countsByMonth };
+/** Per-month item counts for `year`, in the household's days, for the year
+ * overview. */
+export async function getYearOverview(familyId: string, year: number, memberId?: string, hidden?: Set<CalendarGroup>) {
+  const tz = await householdZone();
+  const all = await fetchCalendarItems(familyId, `${year}-01-01`, `${year + 1}-01-01`, tz);
+  return { year, countsByMonth: countsByMonth(all.filter((it) => shown(it, memberId, hidden)), year), today: familyDay(new Date(), tz) };
 }
 
 /** One-off tasks: the `activities` table. The recurring kind are routines and
@@ -453,14 +441,14 @@ export async function getYearOverview(familyId: string, anchor: Date, memberId?:
  *
  * From the start of today onward. What is already past is history and the
  * calendar still holds it; a tab called Tasks is for what is still to do. */
-export async function getOneOffTasks(familyId: string, fromISO: string) {
+export async function getOneOffTasks(familyId: string, fromISO: string, fromDay: string = fromISO.slice(0, 10)) {
   const supabase = await createClient();
   const { data } = await supabase
     .from("activities")
     .select("*, activity_members(members(id, full_name))")
     .eq("family_id", familyId)
     // A repeating task stays while it has days left to come.
-    .or(`start_at.gte.${fromISO},and(repeat.neq.once,or(repeat_until.is.null,repeat_until.gte.${fromISO.slice(0, 10)}))`)
+    .or(`start_at.gte.${fromISO},and(repeat.neq.once,or(repeat_until.is.null,repeat_until.gte.${fromDay}))`)
     .order("start_at", { ascending: true });
   return (data ?? []).map((a) => ({
     ...a,

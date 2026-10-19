@@ -41,17 +41,21 @@ import { PlusTrialCard } from "@/components/plus-trial-card";
 import { getPlusTrialCard } from "@/lib/queries/plus-trial";
 import { HolidayLine } from "@/components/holiday-line";
 import { WhosWhere } from "@/components/whos-where";
+import { ArrivedButton } from "@/components/arrived-button";
 import { getMyPendingCheckIns } from "@/lib/queries/member-card";
 import { LettersOpeningToday } from "@/components/letters-opening";
 import { GuidedTour } from "@/components/guided-tour";
 
-export default async function TodayPage({ searchParams }: { searchParams: Promise<{ tour?: string }> }) {
+export default async function TodayPage({ searchParams }: { searchParams: Promise<{ tour?: string; arrived?: string }> }) {
   const tz = await householdZone();
   const me = await getCurrentMember();
   if (!me) redirect("/onboarding/profile");
-  if (inKidView(me)) return <KidToday me={me} />;
+  const params = await searchParams;
+  // The Action Button's "Nakarating na ako" (/go/arrived) sends on arrival.
+  const arrivedNow = params.arrived === "1";
+  if (inKidView(me)) return <KidToday me={me} arrivedNow={arrivedNow} />;
   // Settings -> Show me around replays the guided tour.
-  const replayTour = (await searchParams).tour === "1";
+  const replayTour = params.tour === "1";
 
   const supabase = await createClient();
   const [{ data: members }, glance, brief, tasks, awaitingApproval, awaitingRedemption, familyPanel, comingUp, memories, recap, startHere, goalRequests, rewardDuties, goals, kinOffer, checkIns, plusTrial, goalClaims] = await Promise.all([
@@ -276,6 +280,9 @@ export default async function TodayPage({ searchParams }: { searchParams: Promis
           Expense
         </Link>
       </nav>
+
+      {/* "Nakarating na ako": one tap tells the household where you are. */}
+      <ArrivedButton auto={arrivedNow} />
 
       {/* Who's where: only when someone in the household shares (item 10). */}
       <WhosWhere familyId={me.family_id} meId={me.id} tz={me.families.time_zone} />

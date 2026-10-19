@@ -30,10 +30,11 @@ import { Icon } from "@/components/icons";
 import { getRelativesPotlucks } from "@/lib/queries/potluck";
 import { CALENDAR_LEGEND, styleFor } from "@/lib/calendar-style";
 import { parseHidden, serializeHidden, toggledHidden, type CalendarGroup } from "@/lib/calendar-groups";
-import { addDays, familyClock, familyDateLong, familyDay } from "@/lib/time";
+import { addDays, familyClock, familyDateLong, familyDay, familyMidnight } from "@/lib/time";
 import { describeActivityRepeat, occurrenceStarts } from "@/lib/activity-repeat";
 import { bonusOn } from "@/lib/streaks";
-import { dayColumn, startOfWeek, weekdayInitials, weekStartOf, type WeekStart } from "@/lib/week";
+import { weekdayInitials, weekStartOf, type WeekStart } from "@/lib/week";
+import { dayColumnOf, dayHeading, isPastDay, monthLong, monthShort, sameDayIn, weekdayInitial, weekLabel, weekStartDay } from "@/lib/planner-days";
 import { CalendarJump, CalendarPeriod, DateRail, MonthScroller, TodayButton } from "@/components/calendar-nav";
 import { AddToCalendar } from "@/components/add-to-calendar";
 import { getRoutines, getMemberScores, getRewards, getStreakBonusRates, type MemberScore } from "@/lib/queries/routines";
@@ -71,7 +72,11 @@ export default async function PlannerPage({
   // Finished events and goals are folded away unless asked for (12 October).
   const done = showsDone(sp.done);
   const view: CalendarView = (CALENDAR_VIEWS as readonly string[]).includes(sp.view ?? "") ? (sp.view as CalendarView) : "week";
-  const anchor = sp.date ? new Date(`${sp.date}T00:00:00`) : new Date();
+  // The day the calendar is opened at, as a household day: the one asked
+  // for, or today where the household is -- never the server's today
+  // (lib/planner-days).
+  const tz = await householdZone();
+  const anchor = sp.date && addDays(sp.date, 0) === sp.date ? sp.date : familyDay(new Date(), tz);
   // An absent param means "no preference stated" — fall back to what was
   // last chosen. An empty one (from Show all) means "explicitly nothing".
   const remembered = sp.hide === undefined ? (await cookies()).get("kin_cal_hide")?.value : undefined;
@@ -133,14 +138,10 @@ export default async function PlannerPage({
   );
 }
 
-function toISODate(d: Date) {
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
-}
-
 /** `hide` is always present, even when empty: that is how "Show all" is told
  * apart from arriving fresh with no preference stated. */
-function calendarHref(who: string, view: CalendarView, date: Date, hide = "") {
-  return `${calendarBase(who, view, hide)}${toISODate(date)}`;
+function calendarHref(who: string, view: CalendarView, day: string, hide = "") {
+  return `${calendarBase(who, view, hide)}${day}`;
 }
 
 /** The same URL up to the date, for the controls that append their own. */
@@ -148,7 +149,7 @@ function calendarBase(who: string, view: CalendarView, hide = "") {
   return `/planner?seg=calendar&who=${who}&view=${view}&hide=${hide}&date=`;
 }
 
-async function CalendarPane({ familyId, meId, who, view, anchor, hidden, weekStart, showChores }: { familyId: string; meId: string; who: string; view: CalendarView; anchor: Date; hidden: Set<CalendarGroup>; weekStart: WeekStart; showChores: boolean }) {
+async function CalendarPane({ familyId, meId, who, view, anchor, hidden, weekStart, showChores }: { familyId: string; meId: string; who: string; view: CalendarView; anchor: string; hidden: Set<CalendarGroup>; weekStart: WeekStart; showChores: boolean }) {
   const hide = serializeHidden(hidden);
   const [members, sync] = await Promise.all([getMembers(familyId), getCalendarSyncStatus(familyId)]);
   const activeMembers = members.filter((m) => m.status !== "pending" && !isGone(m.status));
@@ -159,28 +160,16 @@ async function CalendarPane({ familyId, meId, who, view, anchor, hidden, weekSta
 
   // The title names the period, and stays on one line: the dates themselves
   // are on the rail below, so the week view needs the month, not a range.
-  const label =
-    view === "week"
-      ? (() => {
-          const start = startOfWeek(anchor, weekStart);
-          const end = new Date(start);
-          end.setDate(start.getDate() + 6);
-          return start.getMonth() === end.getMonth()
-            ? start.toLocaleDateString("en-GB", { month: "long", year: "numeric" })
-            : `${start.toLocaleDateString("en-GB", { month: "short" })} – ${end.toLocaleDateString("en-GB", { month: "short", year: "numeric" })}`;
-        })()
-      : view === "month"
-        ? anchor.toLocaleDateString("en-GB", { month: "long", year: "numeric" })
-        : String(anchor.getFullYear());
+  const label = view === "week" ? weekLabel(weekStartDay(anchor, weekStart)) : view === "month" ? monthLong(anchor) : anchor.slice(0, 4);
 
   return (
     // Keyed on what the server anchored: a new anchor starts the header off
     // naming that period again, rather than wherever it had been scrolled.
-    <CalendarPeriod key={`${view}-${toISODate(anchor)}`} label={label} iso={toISODate(anchor)}>
+    <CalendarPeriod key={`${view}-${anchor}`} label={label} iso={anchor}>
       {/* The period, and the way to any other. */}
       <div style={{ display: "flex", alignItems: "center", gap: "0.375rem", marginBottom: "0.5rem" }}>
         {/* The title is the jump control: month, year or exact day in one tap. */}
-        <CalendarJump label={label} hrefBase={calendarBase(who, view, hide)} anchor={toISODate(anchor)} weekStart={weekStart} />
+        <CalendarJump label={label} hrefBase={calendarBase(who, view, hide)} anchor={anchor} weekStart={weekStart} />
         {/* Straight back to the current date. The prev/next arrows that used
             to sit here are gone: the week rail and the month scroller both
             scroll, and the title's sheet reaches any date at all, so the
@@ -270,7 +259,7 @@ async function CalendarPane({ familyId, meId, who, view, anchor, hidden, weekSta
       {view !== "year" && !hidden.has("routines") && <ShowChoresSwitch on={showChores} />}
 
       {/* Add anything the calendar can show, on the day being looked at. */}
-      <AddToCalendar date={toISODate(anchor)} members={activeMembers.map((m) => ({ id: m.id, name: m.full_name }))} meId={meId} today={familyDay()} />
+      <AddToCalendar date={anchor} members={activeMembers.map((m) => ({ id: m.id, name: m.full_name }))} meId={meId} today={familyDay()} />
 
       {sync.connected > 0 && <CalendarSyncStatus lastSyncedISO={sync.lastSyncedAt?.toISOString() ?? null} />}
 
@@ -348,13 +337,6 @@ function DayAgenda({ items, showChores }: { items: PlannerCalendarItem[]; showCh
   );
 }
 
-/** Whether a date is wholly in the past — compared by day, so today never
- * counts as past however late it is. */
-function isPast(date: Date, today: Date): boolean {
-  const d = new Date(date.getFullYear(), date.getMonth(), date.getDate());
-  const t = new Date(today.getFullYear(), today.getMonth(), today.getDate());
-  return d < t;
-}
 
 /** "Nothing this week" and "nothing ever" deserve different words: the first
  * is a quiet week, the second is a calendar nobody has started. */
@@ -385,34 +367,33 @@ async function EmptyCalendar({ familyId, scope }: { familyId: string; scope: str
   );
 }
 
-function DayHeading({ date, isToday }: { date: Date; isToday: boolean }) {
+function DayHeading({ day, isToday }: { day: string; isToday: boolean }) {
   return (
     <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", margin: "14px 0 4px" }}>
       <span style={{ fontSize: "0.8125rem", fontWeight: 600, color: isToday ? "var(--color-accent)" : "var(--color-neutral-600)" }}>
-        {isToday ? "Today" : date.toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "short" })}
+        {isToday ? "Today" : dayHeading(day)}
       </span>
       <span style={{ flex: 1, height: 1, background: "var(--color-divider)" }} />
     </div>
   );
 }
 
-async function WeekView({ familyId, memberId, who, anchor, hidden, hide, weekStart, showChores }: { familyId: string; memberId?: string; who: string; anchor: Date; hidden: Set<CalendarGroup>; hide: string; weekStart: WeekStart; showChores: boolean }) {
-  const { days, strip } = await getWeekAgenda(familyId, memberId, anchor, hidden, undefined, weekStart);
+async function WeekView({ familyId, memberId, who, anchor, hidden, hide, weekStart, showChores }: { familyId: string; memberId?: string; who: string; anchor: string; hidden: Set<CalendarGroup>; hide: string; weekStart: WeekStart; showChores: boolean }) {
+  const { days, strip, today } = await getWeekAgenda(familyId, memberId, anchor, hidden, undefined, weekStart);
   const selected = days.find((d) => d.isSelected);
-  const today = new Date();
 
   return (
     <>
       {/* A rail of weeks, not a fixed seven days: it scrolls sideways through
           about two months, opens centred on the selected day, and any date on
           it can be tapped to select. */}
-      <DateRail anchor={toISODate(anchor)}>
+      <DateRail anchor={anchor}>
         {strip.map((d, i) => {
-          const first = i === 0 || d.date.getDate() === 1;
+          const first = i === 0 || d.day.endsWith("-01");
           return (
             <Link
               key={i}
-              href={calendarHref(who, "week", d.date, hide)}
+              href={calendarHref(who, "week", d.day, hide)}
               data-selected={d.isSelected}
               aria-current={d.isSelected ? "date" : undefined}
               style={{
@@ -427,14 +408,14 @@ async function WeekView({ familyId, memberId, who, anchor, hidden, hide, weekSta
                 padding: "0.25rem 0 0.3125rem",
                 borderRadius: 12,
                 background: d.isSelected && !d.isToday ? "color-mix(in srgb, var(--color-text) 7%, transparent)" : "transparent",
-                opacity: isPast(d.date, today) ? 0.55 : 1,
+                opacity: isPastDay(d.day, today) ? 0.55 : 1,
               }}
             >
               {/* The label and the day number stop growing at what a seventh of a
                   phone can hold, so "Sept" and "25" never break at a large
                   text size. */}
               <span style={{ fontSize: "min(0.6875rem, 3vw)", color: "var(--color-neutral-600)", height: "0.8125rem" }}>
-                {first ? d.date.toLocaleDateString("en-GB", { month: "short" }) : d.date.toLocaleDateString("en-GB", { weekday: "short" }).slice(0, 1)}
+                {first ? monthShort(d.day) : weekdayInitial(d.day)}
               </span>
               <span
                 style={{
@@ -451,7 +432,7 @@ async function WeekView({ familyId, memberId, who, anchor, hidden, hide, weekSta
                   boxShadow: d.isSelected && !d.isToday ? "inset 0 0 0 1.5px var(--color-accent)" : "none",
                 }}
               >
-                {d.date.getDate()}
+                {Number(d.day.slice(8))}
               </span>
               <span style={{ display: "flex", gap: "0.125rem", height: 4 }}>
                 {(showChores ? d.items : d.items.filter((i) => !i.chore)).slice(0, 3).map((a) => (
@@ -465,8 +446,8 @@ async function WeekView({ familyId, memberId, who, anchor, hidden, hide, weekSta
 
       {/* The tapped day comes first and in full, then the rest of its week. */}
       {selected && (
-        <div style={{ opacity: isPast(selected.date, today) ? 0.62 : 1 }}>
-          <DayHeading date={selected.date} isToday={selected.isToday} />
+        <div style={{ opacity: isPastDay(selected.day, today) ? 0.62 : 1 }}>
+          <DayHeading day={selected.day} isToday={selected.isToday} />
           {selected.activities.length === 0 ? (
             <p style={{ fontSize: "0.9375rem", color: "var(--color-neutral-600)", padding: "0.375rem 0" }}>Nothing on this day.</p>
           ) : (
@@ -480,8 +461,8 @@ async function WeekView({ familyId, memberId, who, anchor, hidden, hide, weekSta
         .map((d) => (
           // Days already gone read a step back, so the eye lands on what is
           // still to come.
-          <div key={d.date.toISOString()} style={{ opacity: isPast(d.date, today) ? 0.62 : 1 }}>
-            <DayHeading date={d.date} isToday={d.isToday} />
+          <div key={d.day} style={{ opacity: isPastDay(d.day, today) ? 0.62 : 1 }}>
+            <DayHeading day={d.day} isToday={d.isToday} />
             <DayAgenda items={d.activities} showChores={showChores} />
           </div>
         ))}
@@ -489,13 +470,11 @@ async function WeekView({ familyId, memberId, who, anchor, hidden, hide, weekSta
   );
 }
 
-async function MonthView({ familyId, memberId, who, anchor, hidden, hide, weekStart, showChores }: { familyId: string; memberId?: string; who: string; anchor: Date; hidden: Set<CalendarGroup>; hide: string; weekStart: WeekStart; showChores: boolean }) {
-  const { months } = await getMonthsOverview(familyId, anchor, memberId, hidden);
-  const today = new Date();
-  const anchorMonth = months.find(
-    (m) => m.monthStart.getFullYear() === anchor.getFullYear() && m.monthStart.getMonth() === anchor.getMonth(),
-  );
-  const selectedItems = anchorMonth?.itemsByDay[anchor.getDate()] ?? [];
+async function MonthView({ familyId, memberId, who, anchor, hidden, hide, weekStart, showChores }: { familyId: string; memberId?: string; who: string; anchor: string; hidden: Set<CalendarGroup>; hide: string; weekStart: WeekStart; showChores: boolean }) {
+  const { months, today } = await getMonthsOverview(familyId, anchor, memberId, hidden);
+  const anchorDate = Number(anchor.slice(8));
+  const anchorMonth = months.find((m) => m.key === anchor.slice(0, 7));
+  const selectedItems = anchorMonth?.itemsByDay[anchorDate] ?? [];
 
   return (
     <div style={{ marginBottom: "0.5rem" }}>
@@ -510,17 +489,17 @@ async function MonthView({ familyId, memberId, who, anchor, hidden, hide, weekSt
 
       {/* Months run continuously: September scrolls straight into October
           rather than needing a Next tap, opened at the anchored month. */}
-      <MonthScroller anchor={toISODate(anchor)}>
+      <MonthScroller anchor={anchor}>
         {months.map((m) => {
           const isAnchorMonth = m === anchorMonth;
-          const isThisMonth = m.monthStart.getFullYear() === today.getFullYear() && m.monthStart.getMonth() === today.getMonth();
-          const monthLabel = m.monthStart.toLocaleDateString("en-GB", { month: "long", year: "numeric" });
+          const isThisMonth = m.key === today.slice(0, 7);
+          const monthLabel = monthLong(m.first);
           // What the header should name, and jump to, once this month is the
           // one on screen — the same day of the month, where it exists.
-          const monthIso = toISODate(new Date(m.monthStart.getFullYear(), m.monthStart.getMonth(), Math.min(anchor.getDate(), m.daysInMonth)));
+          const monthIso = sameDayIn(m, anchorDate);
           return (
             <div
-              key={m.monthStart.toISOString()}
+              key={m.key}
               data-anchor-month={isAnchorMonth}
               data-month-label={monthLabel}
               data-month-iso={monthIso}
@@ -537,13 +516,13 @@ async function MonthView({ familyId, memberId, who, anchor, hidden, hide, weekSt
                 {monthLabel.toUpperCase()}
               </div>
               <div style={{ display: "grid", gridTemplateColumns: "repeat(7, minmax(0, 1fr))", gap: "0.125rem" }}>
-                {Array.from({ length: dayColumn(m.monthStart, weekStart) }, (_, i) => (
+                {Array.from({ length: dayColumnOf(m.first, weekStart) }, (_, i) => (
                   <div key={`b${i}`} />
                 ))}
                 {Array.from({ length: m.daysInMonth }, (_, i) => i + 1).map((day) => {
-                  const date = new Date(m.monthStart.getFullYear(), m.monthStart.getMonth(), day);
-                  const isToday = date.toDateString() === today.toDateString();
-                  const isSelected = date.toDateString() === anchor.toDateString();
+                  const date = sameDayIn(m, day);
+                  const isToday = date === today;
+                  const isSelected = date === anchor;
                   const dayItems = m.itemsByDay[day] ?? [];
                   // Folded, a day's plans take its two chips before any chore does.
                   const items = showChores ? dayItems : [...dayItems.filter((i) => !i.chore), ...dayItems.filter((i) => i.chore)];
@@ -565,7 +544,7 @@ async function MonthView({ familyId, memberId, who, anchor, hidden, hide, weekSt
                         background: isSelected && !isToday ? "color-mix(in srgb, var(--color-text) 7%, transparent)" : "transparent",
                         textDecoration: "none",
                         color: "inherit",
-                        opacity: isPast(date, today) ? 0.55 : 1,
+                        opacity: isPastDay(date, today) ? 0.55 : 1,
                       }}
                     >
                       <span
@@ -628,7 +607,7 @@ async function MonthView({ familyId, memberId, who, anchor, hidden, hide, weekSt
 
       {/* The selected day's agenda stays put below the scroller. */}
       <div style={{ marginTop: "0.375rem" }}>
-        <DayHeading date={anchor} isToday={anchor.toDateString() === today.toDateString()} />
+        <DayHeading day={anchor} isToday={anchor === today} />
         {selectedItems.length === 0 ? (
           months.every((m) => m.itemsByDay.every((d) => d.length === 0)) ? (
             <EmptyCalendar familyId={familyId} scope="on this day" />
@@ -643,21 +622,20 @@ async function MonthView({ familyId, memberId, who, anchor, hidden, hide, weekSt
   );
 }
 
-async function YearView({ familyId, memberId, who, anchor, hidden, hide }: { familyId: string; memberId?: string; who: string; anchor: Date; hidden: Set<CalendarGroup>; hide: string }) {
-  const { year, countsByMonth } = await getYearOverview(familyId, anchor, memberId, hidden);
-  const today = new Date();
+async function YearView({ familyId, memberId, who, anchor, hidden, hide }: { familyId: string; memberId?: string; who: string; anchor: string; hidden: Set<CalendarGroup>; hide: string }) {
+  const { year, countsByMonth, today } = await getYearOverview(familyId, Number(anchor.slice(0, 4)), memberId, hidden);
   const busiest = Math.max(1, ...countsByMonth);
 
   return (
     <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "0.5rem", marginBottom: "0.5rem" }}>
       {countsByMonth.map((count, i) => {
-        const monthDate = new Date(year, i, 1);
-        const isThisMonth = year === today.getFullYear() && i === today.getMonth();
+        const monthDate = `${year}-${String(i + 1).padStart(2, "0")}-01`;
+        const isThisMonth = monthDate.slice(0, 7) === today.slice(0, 7);
         return (
           <Link key={i} href={calendarHref(who, "month", monthDate, hide)} style={{ textDecoration: "none", color: "inherit" }}>
             <Blueprint style={{ padding: "0.6875rem 0.625rem 0.75rem", textAlign: "center" }}>
               <div style={{ fontSize: "0.9375rem", fontWeight: 600, color: isThisMonth ? "var(--color-accent)" : "var(--color-text)" }}>
-                {monthDate.toLocaleDateString("en-GB", { month: "short" })}
+                {monthShort(monthDate)}
               </div>
               <div style={{ height: 4, borderRadius: 999, marginTop: "0.4375rem", background: "color-mix(in srgb, var(--color-text) 8%, transparent)" }}>
                 <div style={{ height: "100%", borderRadius: 999, width: `${(count / busiest) * 100}%`, background: "var(--cal-schedule)" }} />
@@ -772,7 +750,9 @@ async function RoutinesPane({ familyId, who, currency, justSaved, done }: { fami
   // called activities and could be read back nowhere but the calendar.
   const [allRoutines, allOneOffs, scores, rewards, me, bonusRates] = await Promise.all([
     getRoutines(familyId, memberId),
-    getOneOffTasks(familyId, `${familyDay(new Date(), tz)}T00:00:00.000Z`),
+    // From the start of the household's today, not midnight UTC (which in
+    // Manila is 8 AM and hid the morning's tasks).
+    getOneOffTasks(familyId, (familyMidnight(familyDay(new Date(), tz), tz) ?? new Date()).toISOString(), familyDay(new Date(), tz)),
     getMemberScores(familyId),
     getRewards(familyId),
     getCurrentMember(),
@@ -1118,9 +1098,9 @@ async function EventsPane({ familyId, who, when }: { familyId: string; who: stri
             borderLeft: stripeFor(row.event) ? `3px solid ${stripeFor(row.event)}` : undefined,
           }}
         >
-          <span style={{ font: "600 1.125rem/1 var(--font-heading)" }}>{new Date(row.event.event_date).getDate()}</span>
+          <span style={{ font: "600 1.125rem/1 var(--font-heading)" }}>{Number(row.event.event_date.slice(8, 10))}</span>
           <span style={{ fontSize: "0.53125rem", letterSpacing: ".02em", color: "var(--color-neutral-600)" }}>
-            {new Date(row.event.event_date).toLocaleDateString("en-GB", { month: "short" }).toUpperCase()}
+            {monthShort(row.event.event_date).toUpperCase()}
           </span>
         </Blueprint>
         <div style={{ flex: 1, minWidth: 0 }}>
@@ -1153,9 +1133,9 @@ async function EventsPane({ familyId, who, when }: { familyId: string; who: stri
             borderLeft: stripeFor(row.trip) ? `3px solid ${stripeFor(row.trip)}` : undefined,
           }}
         >
-          <span style={{ font: "600 1.125rem/1 var(--font-heading)" }}>{new Date(row.trip.event_date).getDate()}</span>
+          <span style={{ font: "600 1.125rem/1 var(--font-heading)" }}>{Number(row.trip.event_date.slice(8, 10))}</span>
           <span style={{ fontSize: "0.53125rem", letterSpacing: ".02em", color: "var(--color-neutral-600)" }}>
-            {new Date(row.trip.event_date).toLocaleDateString("en-GB", { month: "short" }).toUpperCase()}
+            {monthShort(row.trip.event_date).toUpperCase()}
           </span>
         </Blueprint>
         <div style={{ flex: 1, minWidth: 0 }}>
