@@ -9,7 +9,7 @@ The gate is CI plus `automerge.yml`; nobody approves anything. Your job ends
 when the PR has merged -- not when it is opened (Jonathan, 19 October).
 
 1. **Branch.** Never commit to `main`. `git fetch origin main && git rebase origin/main`.
-2. **Checks, from the project folder** (e.g. `kin/`): `npx tsc --noEmit`, `npm run lint`, `npm run build`. Run `npm run e2e` if QA credentials exist; if not, say so in the PR body. Database changes: `npm run test:rls` (PGlite, no credentials needed).
+2. **Checks, from the project folder** (e.g. `kin/`): `npx tsc --noEmit`, `npm run lint`, `npm run build`, `npm run test:logic` (no app, no database). Database changes: `npm run test:rls` (PGlite, no credentials needed). Never the full `npm run e2e`: dev is shared and CI's smoke run is the browser gate (root `CLAUDE.md`, "Dev is shared"); one spec at most, and say so in the PR body.
 3. **Migrations.** A new `.sql` in `<project>/supabase/migrations/` must be named later than main's newest:
    `git ls-tree --name-only origin/main <project>/supabase/migrations/ | tail -2`.
    Automerge holds a PR whose migration is older and comments the exact `git mv`.

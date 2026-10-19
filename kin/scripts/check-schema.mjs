@@ -258,12 +258,18 @@ async function checkOne(label, url, key, email, password, tables) {
   // timeout"), answered 504 for a few minutes, and every check that signed in
   // during them failed -- none of them about the schema. A wrong password
   // (400) is not retried: that answer will not change.
+  //
+  // Each attempt gives up after 20 seconds (19 October). fetch has no timeout
+  // of its own: with dev's Auth hung, every attempt waited about five minutes
+  // for the connection to drop, so each pull request held a runner, and kept
+  // knocking on dev, for some twenty-two minutes to learn nothing.
   let auth;
   for (let attempt = 1; attempt <= 4; attempt++) {
     auth = await fetch(`${url}/auth/v1/token?grant_type=password`, {
       method: "POST",
       headers: { apikey: key, "Content-Type": "application/json" },
       body: JSON.stringify({ email, password }),
+      signal: AbortSignal.timeout(20_000),
     }).catch((e) => ({ ok: false, status: String(e.message ?? e) }));
     const busy = !auth.ok && (typeof auth.status !== "number" || auth.status >= 500);
     if (!busy || attempt === 4) break;

@@ -79,9 +79,15 @@ if (target.includes(PRODUCTION_REF)) {
   );
 }
 
+/** `npm run test:logic` (only the `*.logic.spec.ts` project) needs no app and
+ * no database: the logic specs import pure functions. Starting the server for
+ * them would sign nothing in, but it needs a build first, and it is one more
+ * thing pointed at dev (19 October: see CLAUDE.md, "Dev is shared"). */
+const logicOnly = process.argv.includes("--project=logic");
+
 export default defineConfig({
   testDir: "./e2e",
-  webServer: runningElsewhere
+  webServer: runningElsewhere || logicOnly
     ? undefined
     : {
         command: "npm run start",

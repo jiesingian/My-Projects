@@ -55,14 +55,14 @@ something else.
 
 ### Before you open the pull request
 
-- From `kin/`: `npx tsc --noEmit`, `npm run lint`, `npm run build` (and `npm run e2e` if you have QA credentials). CI repeats them; it is the real gate.
-- Can't run the suite? Open the PR anyway and say so in the body.
+- From `kin/`: `npx tsc --noEmit`, `npm run lint`, `npm run build`, `npm run test:logic`, and `npm run test:rls` for a migration. CI repeats them; it is the real gate.
+- Dev is shared: a session never runs the full `npm run e2e` against it. CI's smoke run and `weekly-check.yml` are the only browser suites on dev, one at a time (`e2e-dev` group). On 19 October several sessions running the full suite at once, outside that queue, beside CI, overloaded free-plan dev until its Auth stopped and every PR went red. To see a page, use one spec (`npx playwright test e2e/<spec>.spec.ts`) and say so in the PR.
 - `git pull --rebase origin main` before opening. Never force-push `main`.
 - Step by step: the `ship` skill.
 
 <!--
 Run the checks locally first, from `kin/`: `npx tsc --noEmit`, `npm run lint`,
-`npm run build`, `npm run e2e`. CI runs them again — that is the actual gate —
+`npm run build`, `npm run test:logic`. CI runs them again — that is the actual gate —
 but a failure found on your own machine costs a minute and the same failure
 found in CI costs ten.
 
