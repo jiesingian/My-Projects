@@ -3,6 +3,26 @@
 What is agreed but not built yet, and what is waiting on somebody. Update
 it in the same pull request that finishes or adds an item.
 
+## Approved 19 October: three from the 14 October "What's Left" review (Jonathan)
+
+Each its own pull request, in this order.
+
+- **Done:** Year book for Christmas (Journal, Kin Plus): /journal/year-book,
+  from the Year book chip beside Milestones. Pick the year; every ★ milestone
+  is ticked, then the 40 photo entries with the most reactions (then the
+  most photos); untick anything. Preview draws the pages; Make the PDF draws
+  them at A4, 200 dpi, one JPEG a page, and hands the file to the share sheet
+  or saves it. Cover (the first milestone's photo), a page per month, one
+  page per entry (date, title, ★, up to four photos, the words, who was
+  there), an end page. Household-journal entries only, read with the
+  viewer's own client, so nothing they can't open goes in; "Just me" entries
+  stay out. Made on the phone, never stored, so no storage is used. No
+  library: lib/year-book.ts writes the PDF. No print partner. Kin Free sees
+  the Plus note instead. Not checked: a 60-page book on an older iPhone
+  (memory), a Drive-backed household's photos.
+- Import or export a tree file (GEDCOM), Family -> Tree, Kin Plus.
+- Shareable check-up result image (free).
+
 ## Agreed 14 October: the top 10 from the review (Jonathan)
 
 Jonathan picked the free items of the review's top 10
