@@ -113,6 +113,12 @@
   --space-8: 2rem;
 
   --color-switch-on: #34c759;
+  /* The focus ring. Not the accent: a theme's accent is chosen to hold white
+     text on a button, and on ten dark themes it sat under 3:1 against the
+     page or the card (Nord 1.8:1, Antarctic 1.8:1) -- a ring a keyboard user
+     could not see (WCAG 1.4.11). accent-700 is the link colour, which every
+     theme is tested to read at 4.5:1 on both (e2e/palettes.logic.spec.ts). */
+  --color-focus: var(--color-accent-700);
 
   /* The fill behind a white label on a selected pill. systemBlue itself only
      reaches 4.02:1 against white, under AA for text this size; this holds
@@ -414,7 +420,7 @@ button,
   outline: none;
 }
 :focus-visible {
-  outline: 2px solid var(--color-accent);
+  outline: 2px solid var(--color-focus);
   outline-offset: 2px;
 }
 
@@ -1346,7 +1352,7 @@ textarea.input {
   box-shadow: var(--shadow-sm);
 }
 .kin-scale-track input[type="range"]:focus-visible {
-  outline: 2px solid var(--color-accent);
+  outline: 2px solid var(--color-focus);
   outline-offset: 2px;
   border-radius: 999px;
 }
@@ -1550,7 +1556,7 @@ textarea.input {
   }
 }
 .kin-tp:focus-visible {
-  outline: 2px solid var(--color-accent);
+  outline: 2px solid var(--color-focus);
   outline-offset: -2px;
 }
 .kin-tp-av {
@@ -1680,7 +1686,7 @@ div.kin-tp-ghost {
   transform: scale(0.96);
 }
 .kin-tp-choices button:focus-visible {
-  outline: 2px solid var(--color-accent);
+  outline: 2px solid var(--color-focus);
   outline-offset: 1px;
 }
 
@@ -1797,7 +1803,7 @@ div.kin-tp-ghost {
   }
 }
 .kin-treechart-group > button:focus-visible {
-  outline: 2px solid var(--color-accent);
+  outline: 2px solid var(--color-focus);
   outline-offset: -2px;
 }
 .kin-treechart-group > button[data-on] {
@@ -3801,7 +3807,7 @@ div.kin-tp-ghost {
   cursor: pointer;
 }
 button.kin-initial:focus-visible {
-  outline: 2px solid var(--color-accent);
+  outline: 2px solid var(--color-focus);
   outline-offset: 2px;
   position: relative;
   z-index: 1;
@@ -5338,7 +5344,7 @@ button.kin-initial:focus-visible {
   padding: 0.25rem 0;
 }
 .kin-care-link:focus-visible {
-  outline: 2px solid var(--color-accent);
+  outline: 2px solid var(--color-focus);
   outline-offset: 2px;
   border-radius: 0.25rem;
 }
@@ -5367,7 +5373,7 @@ button.kin-initial:focus-visible {
   }
 }
 .kin-care-rx:focus-visible {
-  outline: 2px solid var(--color-accent);
+  outline: 2px solid var(--color-focus);
   outline-offset: 2px;
 }
 /* Pills left: a week or less reads in the same red as a late dose. */

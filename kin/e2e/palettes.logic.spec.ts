@@ -20,6 +20,9 @@ for (const p of PALETTES) {
       expect(contrast(m.muted, m.surface), "caption on card").toBeGreaterThanOrEqual(4.5);
       expect(contrast(m.ink, m.surface), "link on card").toBeGreaterThanOrEqual(4.5);
       expect(contrast("#ffffff", m.accent), "white on button").toBeGreaterThanOrEqual(4.5);
+      // The focus ring is accent-700 (ink), not the accent: on ten dark
+      // themes the accent was under 3:1 against the page (WCAG 1.4.11).
+      expect(contrast(m.ink, m.bg), "focus ring and link on page").toBeGreaterThanOrEqual(4.5);
     });
   }
 }
