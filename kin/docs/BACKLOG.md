@@ -189,6 +189,14 @@ Four free items, each its own pull request.
   reused or plainly guessable, never sent (lib/password-health.ts). Not
   yet tried on a phone against the live API.
 
+- **Done:** The Planner groups its days in the household's zone (19
+  October, kin/planner-household-zone): the calendar's week rail, month run,
+  year counts, headings and "today" are household days (lib/planner-days.ts),
+  never the server's clock; familyInstant keeps a wall-clock time across a
+  daylight-saving change. Tested under four process zones
+  (e2e/planner-days.logic.spec.ts). See KNOWN_RISKS "The Planner groups its
+  calendar in the household's zone".
+
 ## Agreed 19 October: leaders' features for a Filipino family (Jonathan)
 
 From the 14 October "What's Left" review. Three items, each its own pull

@@ -28,7 +28,9 @@ import { PRICE_BOOK_SET_ON } from "@/lib/pricebook";
 import { plateTone } from "@/lib/meal-photos";
 import { MEAL_SLOTS, MEAL_SLOT_LABEL } from "@/lib/recipes";
 import { MARKET_SECTIONS } from "@/lib/grocery";
-import { toISODate } from "@/lib/routines";
+import { parseISODate, toISODate } from "@/lib/routines";
+import { householdZone } from "@/lib/household-zone";
+import { addDays, familyDay } from "@/lib/time";
 import { ZoomableImage } from "@/components/zoomable-image";
 
 const SEGMENTS = ["buy", "meals"] as const;
@@ -41,7 +43,11 @@ export default async function HouseholdPage({ searchParams }: { searchParams: Pr
   if (!me) redirect("/onboarding/profile");
   const sp = await searchParams;
   const seg: Seg = (SEGMENTS as readonly string[]).includes(sp.seg ?? "") ? (sp.seg as Seg) : "buy";
-  const anchor = sp.date ? new Date(`${sp.date}T00:00:00`) : new Date();
+  // A day of the Meals tab, held as a local midnight the way lib/routines
+  // counts days, and seeded from the household's own day: today where the
+  // household is, not where the server is (docs/KNOWN_RISKS.md).
+  const tz = await householdZone();
+  const anchor = parseISODate(sp.date && addDays(sp.date, 0) === sp.date ? sp.date : familyDay(new Date(), tz));
 
   const segments = SEGMENTS.map((s) => ({ label: SEGMENT_LABEL[s], href: `/household?seg=${s}`, active: s === seg }));
 
@@ -226,7 +232,7 @@ async function MealsPane({
   // selected. That is the "shared by the family" case from the request, and
   // it is why filtering is an OR rather than an equality.
   const meals = who === "all" ? allMeals : allMeals.filter((m) => m.memberIds.length === 0 || m.memberIds.includes(who));
-  const today = new Date();
+  const today = parseISODate(familyDay(new Date(), await householdZone()));
   const isToday = anchor.toDateString() === today.toDateString();
   // The title names the day itself, since the day is all this page shows.
   // The year only when it isn't this one — it is noise the rest of the time.

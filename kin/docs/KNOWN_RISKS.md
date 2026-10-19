@@ -1144,27 +1144,50 @@ the household's zone, not an item on the wrong day.
 
 ---
 
-## The Planner groups its calendar in the process's clock, not the household's
+## The Planner groups its calendar in the household's zone — fixed 19 October
 
-Noticed while closing the all-day date bugs, and **left alone deliberately**.
+Until 19 October `src/lib/queries/planner.ts` built each item's `date` with
+`new Date(`${column}T00:00:00`)` and grouped by `getFullYear()`, `getMonth()`,
+`getDate()` — local getters — and the page anchors in `planner/page.tsx` and
+`household/page.tsx` were the same. Construction and reading used the same
+clock, so it was right only because `instrumentation.ts` puts the process in
+`Asia/Manila`. It was left alone because swapping half of it would have broken
+the grid outright; this is the whole of it, done at once.
 
-`src/lib/queries/planner.ts` builds each item's `date` with
-`new Date(`${column}T00:00:00`)` and then groups by `getFullYear()`,
-`getMonth()`, `getDate()` — local getters. Construction and reading use the
-same clock, so the module is internally consistent and correct in production,
-where `instrumentation.ts` puts the process in `Asia/Manila`. The two page
-anchors in `planner/page.tsx` and `household/page.tsx` are the same.
+**Now.** The calendar is laid out in household days: plain `"YYYY-MM-DD"`
+strings, the one `familyDay()` gives in the household's zone
+(`householdZone()`). `src/lib/planner-days.ts` holds everything that lays it
+out — the week rail and its first day, the month run, the year's counts, the
+headings, which day is today, which are past — and it touches no clock at
+all. Each `PlannerCalendarItem` carries the `day` it is filed under; its
+`date` is the real instant (a timed item's own, an all-day one's household
+midnight) and is used for the time and for ordering only. The query range is
+the household's midnights. Routines are expanded on the local midnights of
+household days (`parseISODate`), which is arithmetic on whole days and comes
+back as the same household days in any process zone. The week digest and the
+offline snapshot read the same days. The Planner's Tasks tab starts "today" at
+the household's midnight (it used midnight UTC, 8 AM in Manila, which hid the
+morning's tasks), and the events list reads a date's day and month from the
+date itself. The Meals tab's day is seeded from the household's day.
 
-It is left because a partial change would be worse than none: swapping the
-construction to `familyMidnight` without also moving every getter would break
-the calendar grid outright. Doing it properly is a refactor of the whole
-display module, with real regression risk, to buy robustness against a
-`KIN_TZ` that nobody has moved.
+`familyInstant()` in `lib/time.ts` was an hour out on the day a zone changes
+its clocks (it counted hours on from midnight's offset); it now asks the
+zone's offset at the wall-clock time itself. Manila has no daylight saving,
+so nothing in production moved.
 
-The everything-else of this class *is* closed: no calendar path, query bound
-or all-day sync builds a date from the process clock any more, and `addDays`
-and `weekdayOf` in `lib/time.ts` do day arithmetic with no clock involved at
-all.
+**Tested** in `e2e/planner-days.logic.spec.ts`, every case run under
+`UTC`, `America/Los_Angeles`, `Pacific/Kiritimati` and `Asia/Manila` as the
+process zone (Node reads `TZ` afresh when it changes; the first test proves
+it does), plus a household in Los Angeles and New York's clock changes. CI's
+runners are UTC, so the whole logic suite is a non-Manila run too.
+
+**Still on the process clock, outside the Planner:** `lib/week.ts`
+(`startOfWeek`, `dayColumn` on Dates, used by Goals) and `lib/wealth.ts`'s
+`dayKey` — both are fed Dates built the same way they read them, so they agree
+with themselves, but `e2e/week-start.logic.spec.ts` and
+`e2e/cash-flow-ranges.logic.spec.ts` fail when the logic suite is run with
+`TZ=America/Los_Angeles` because their fixtures are written in UTC. Nobody has
+moved `KIN_TZ`; they are the next ones if anybody does.
 
 ---
 
