@@ -3,13 +3,15 @@
 import type { Ref } from "react";
 import { PRIVACY_LINE, SELF_CHECK_LINE, readinessScore, scoreCategory, wantsPrivacyFirst, type Answers } from "@/lib/check-up";
 import { PROFILES, blueprintFeatures, blueprintProfile } from "@/lib/blueprint";
+import { ShareResult } from "@/components/welcome/share-result";
 
 /** The check-up's result: Your Family’s Digital Blueprint (Janine, 14
  * October). The Family Digital Readiness Score and its category, and three
  * to five Kin features to start with (Janine, 15 October: no "N places to
  * keep track" line; 19 October: no Family Profile shown, the score and its
  * line say enough). The profile still picks the features and the button's
- * words. Then, for anyone who said "privacy first", the privacy promise.
+ * words. Then, for anyone who said "privacy first", the privacy promise, and
+ * "Share your result" (19 October), a picture of it to send.
  * Worked out here from the answers; nothing is sent. */
 export function Results({ answers, onNext, onBack, heading }: { answers: Answers; onNext: () => void; onBack: () => void; heading: Ref<HTMLHeadingElement> }) {
   const score = readinessScore(answers);
@@ -55,6 +57,8 @@ export function Results({ answers, onNext, onBack, heading }: { answers: Answers
       </ul>
 
       {wantsPrivacyFirst(answers) && <p className="kin-check-callout">{PRIVACY_LINE}</p>}
+
+      <ShareResult answers={answers} />
 
       <button type="button" className="btn btn-primary btn-block kin-welcome-cta kin-check-profile-cta" onClick={onNext}>
         {profile.cta}

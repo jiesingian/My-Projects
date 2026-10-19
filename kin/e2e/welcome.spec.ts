@@ -130,6 +130,18 @@ test("the check-up: one question per screen, kids only with kids, and the answer
   await expect(page.getByText("Private to your family. Nothing is sold, and your records never train AI.")).toBeVisible();
   await expectTapTargets(page);
 
+  // Share your result (19 October): a picture of the score, the profile only
+  // if ticked, to the share sheet -- a download where there is none, as here.
+  await page.getByRole("button", { name: "Share your result" }).click();
+  await expect(page.getByRole("img", { name: "Preview of the picture to share" })).toBeVisible();
+  await expect(page.getByLabel("Our score")).toBeChecked();
+  await page.getByLabel("Our family profile").check();
+  const download = page.waitForEvent("download");
+  await page.getByRole("button", { name: "Share the picture" }).click();
+  expect((await download).suggestedFilename()).toBe("kin-family-blueprint.png");
+  await expect(page.getByText("Saved to your downloads.")).toBeVisible();
+  await expectTapTargets(page);
+
   // The showcase: the top 3 first, then one app, private to your family.
   await page.getByRole("button", { name: "Organize what matters" }).click();
   await expect(page.getByRole("heading", { name: "How Kin helps" })).toBeFocused();
