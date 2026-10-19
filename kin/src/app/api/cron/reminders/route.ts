@@ -64,10 +64,11 @@ export async function POST(request: Request) {
     // each grown-up's own session (20261020001000).
     supabase.rpc("due_money_recap_reminders", { p_secret: secret }),
   ]);
-  if (main.error) {
-    console.error("Reminders: due_reminders failed", main.error.message);
-    return Response.json({ error: "Try again later." }, { status: 503 });
-  }
+  // Logged and carried on like the rest, never an early return: each due_*()
+  // has already written its reminder_sends keys by now, so leaving here sent
+  // nothing for the other kinds and their keys kept them from going again --
+  // one bad medicine time lost every household's Undas, recap and doses.
+  if (main.error) console.error("Reminders: due_reminders failed", main.error.message);
   if (pantry.error) console.error("Reminders: due_pantry_reminders failed", pantry.error.message);
   if (trial.error) console.error("Reminders: due_trial_reminders failed", trial.error.message);
   if (week.error) console.error("Reminders: due_week_ahead_reminders failed", week.error.message);
