@@ -1183,11 +1183,12 @@ runners are UTC, so the whole logic suite is a non-Manila run too.
 
 **Still on the process clock, outside the Planner:** `lib/week.ts`
 (`startOfWeek`, `dayColumn` on Dates, used by Goals) and `lib/wealth.ts`'s
-`dayKey` — both are fed Dates built the same way they read them, so they agree
-with themselves, but `e2e/week-start.logic.spec.ts` and
-`e2e/cash-flow-ranges.logic.spec.ts` fail when the logic suite is run with
-`TZ=America/Los_Angeles` because their fixtures are written in UTC. Nobody has
-moved `KIN_TZ`; they are the next ones if anybody does.
+`dayKey` for a Date. Both are fed Dates built the same way they read them, so
+they agree with themselves. `dayKey` given a plain "YYYY-MM-DD" now returns it
+as it is (it parsed it as midnight UTC, the day before west of UTC), and the
+week-start fixtures are local dates, so the whole logic suite also passes run
+with `TZ=America/Los_Angeles` or `TZ=Pacific/Kiritimati`. Nobody has moved
+`KIN_TZ`; these two are the next ones if anybody does.
 
 ---
 
