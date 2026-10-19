@@ -649,6 +649,282 @@ export type Database = {
           },
         ]
       }
+      paluwagan_groups: {
+        Row: {
+          contribution: number
+          created_at: string
+          family_id: string
+          frequency: string
+          id: string
+          is_private: boolean
+          name: string
+          note: string | null
+          recorded_by: string | null
+          remind: boolean
+          starts_on: string
+        }
+        Insert: {
+          contribution: number
+          created_at?: string
+          family_id: string
+          frequency?: string
+          id?: string
+          is_private?: boolean
+          name: string
+          note?: string | null
+          recorded_by?: string | null
+          remind?: boolean
+          starts_on: string
+        }
+        Update: {
+          contribution?: number
+          created_at?: string
+          family_id?: string
+          frequency?: string
+          id?: string
+          is_private?: boolean
+          name?: string
+          note?: string | null
+          recorded_by?: string | null
+          remind?: boolean
+          starts_on?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "paluwagan_groups_family_id_fkey"
+            columns: ["family_id"]
+            isOneToOne: false
+            referencedRelation: "families"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "paluwagan_groups_recorded_by_fkey"
+            columns: ["recorded_by"]
+            isOneToOne: false
+            referencedRelation: "members"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      paluwagan_members: {
+        Row: {
+          created_at: string
+          family_id: string
+          group_id: string
+          id: string
+          is_us: boolean
+          name: string
+          turn: number
+        }
+        Insert: {
+          created_at?: string
+          family_id: string
+          group_id: string
+          id?: string
+          is_us?: boolean
+          name: string
+          turn: number
+        }
+        Update: {
+          created_at?: string
+          family_id?: string
+          group_id?: string
+          id?: string
+          is_us?: boolean
+          name?: string
+          turn?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "paluwagan_members_family_id_fkey"
+            columns: ["family_id"]
+            isOneToOne: false
+            referencedRelation: "families"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "paluwagan_members_group_id_fkey"
+            columns: ["group_id"]
+            isOneToOne: false
+            referencedRelation: "paluwagan_groups"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      paluwagan_payments: {
+        Row: {
+          created_at: string
+          family_id: string
+          group_id: string
+          member_id: string
+          paid_on: string
+          recorded_by: string | null
+          round: number
+        }
+        Insert: {
+          created_at?: string
+          family_id: string
+          group_id: string
+          member_id: string
+          paid_on?: string
+          recorded_by?: string | null
+          round: number
+        }
+        Update: {
+          created_at?: string
+          family_id?: string
+          group_id?: string
+          member_id?: string
+          paid_on?: string
+          recorded_by?: string | null
+          round?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "paluwagan_payments_family_id_fkey"
+            columns: ["family_id"]
+            isOneToOne: false
+            referencedRelation: "families"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "paluwagan_payments_group_id_fkey"
+            columns: ["group_id"]
+            isOneToOne: false
+            referencedRelation: "paluwagan_groups"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "paluwagan_payments_member_id_fkey"
+            columns: ["member_id"]
+            isOneToOne: false
+            referencedRelation: "paluwagan_members"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "paluwagan_payments_recorded_by_fkey"
+            columns: ["recorded_by"]
+            isOneToOne: false
+            referencedRelation: "members"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      utang_entries: {
+        Row: {
+          amount: number
+          created_at: string
+          direction: string
+          due_on: string | null
+          family_id: string
+          id: string
+          is_private: boolean
+          note: string | null
+          person_name: string
+          recorded_by: string | null
+          remind: boolean
+          started_on: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          direction: string
+          due_on?: string | null
+          family_id: string
+          id?: string
+          is_private?: boolean
+          note?: string | null
+          person_name: string
+          recorded_by?: string | null
+          remind?: boolean
+          started_on?: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          direction?: string
+          due_on?: string | null
+          family_id?: string
+          id?: string
+          is_private?: boolean
+          note?: string | null
+          person_name?: string
+          recorded_by?: string | null
+          remind?: boolean
+          started_on?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "utang_entries_family_id_fkey"
+            columns: ["family_id"]
+            isOneToOne: false
+            referencedRelation: "families"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "utang_entries_recorded_by_fkey"
+            columns: ["recorded_by"]
+            isOneToOne: false
+            referencedRelation: "members"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      utang_payments: {
+        Row: {
+          amount: number
+          created_at: string
+          family_id: string
+          id: string
+          note: string | null
+          paid_on: string
+          recorded_by: string | null
+          utang_id: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          family_id: string
+          id?: string
+          note?: string | null
+          paid_on?: string
+          recorded_by?: string | null
+          utang_id: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          family_id?: string
+          id?: string
+          note?: string | null
+          paid_on?: string
+          recorded_by?: string | null
+          utang_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "utang_payments_family_id_fkey"
+            columns: ["family_id"]
+            isOneToOne: false
+            referencedRelation: "families"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "utang_payments_recorded_by_fkey"
+            columns: ["recorded_by"]
+            isOneToOne: false
+            referencedRelation: "members"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "utang_payments_utang_id_fkey"
+            columns: ["utang_id"]
+            isOneToOne: false
+            referencedRelation: "utang_entries"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       accounts: {
         Row: {
           account_type: string

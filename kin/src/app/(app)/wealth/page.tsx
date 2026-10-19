@@ -509,6 +509,18 @@ async function CashFlowPane({ familyId, memberId, currency, range, scope, grownU
           <span aria-hidden="true" style={{ color: "var(--color-neutral-600)" }}>›</span>
         </Link>
       )}
+      {/* Money lent to and borrowed from relatives, and paluwagan groups
+          (20261019110000). Grown-ups only, like remittances. */}
+      {grownUp && (
+        <Link
+          href="/wealth/utang"
+          style={{ display: "flex", alignItems: "center", gap: "0.5rem", padding: "0.75rem 0", fontSize: "0.875rem", color: "inherit", textDecoration: "none", borderTop: "1px solid color-mix(in srgb, var(--color-text) 10%, transparent)" }}
+        >
+          <Icon name="users" size={18} />
+          <span style={{ flex: 1 }}>Utang &amp; paluwagan</span>
+          <span aria-hidden="true" style={{ color: "var(--color-neutral-600)" }}>›</span>
+        </Link>
+      )}
       </CollapsibleGroup>
 
       <CollapsibleGroup title="EXPENSES" defaultOpen={false}>

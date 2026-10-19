@@ -45,6 +45,12 @@ const RULES: Rule[] = [
     text: "There isn't that much in the jar.",
   },
   {
+    // P0001 -- raised by utang_payments_not_over (20261019110000) when
+    // payments would add up to more than was lent or borrowed.
+    match: /utang_overpaid/i,
+    text: "That is more than is left on this utang.",
+  },
+  {
     // 23505 -- duplicate key value violates unique constraint "..."
     match: /duplicate key value violates unique constraint/i,
     text: "That looks like something you already have — check the list before adding it again.",
