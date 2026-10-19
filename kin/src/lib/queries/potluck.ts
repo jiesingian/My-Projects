@@ -16,7 +16,7 @@ export type Potluck = {
   lines: PotluckLine[];
 };
 
-/** One event's potluck (20261019140000), as the viewer may see it: the
+/** One event's potluck (20261019170100), as the viewer may see it: the
  * host's event and list, or a linked household's that asks relatives. Null
  * when they may not. Names come from the rows, never from another
  * household's members. */

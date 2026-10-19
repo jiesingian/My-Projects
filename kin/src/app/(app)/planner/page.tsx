@@ -1045,7 +1045,7 @@ async function EventsPane({ familyId, who, when }: { familyId: string; who: stri
     supabase.from("event_rsvps").select("event_id, member_id, answer").eq("family_id", familyId),
     // The thread on each event (20261014100000), counted per row.
     supabase.from("event_comments").select("event_id").eq("family_id", familyId),
-    // Linked households' potlucks this household is asked to (20261019140000).
+    // Linked households' potlucks this household is asked to (20261019170100).
     getRelativesPotlucks(),
   ]);
   const commentCount = new Map<string, number>();

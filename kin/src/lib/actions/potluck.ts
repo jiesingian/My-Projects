@@ -10,7 +10,7 @@ import { isGrownUp } from "@/lib/roles";
 import { inKidView } from "@/lib/kid-view";
 import { POTLUCK_WANTED_MAX, parsePotluckItem } from "@/lib/potluck";
 
-/** Potluck on an event (20261019140000_event_potluck.sql). The policies and
+/** Potluck on an event (20261019170100_event_potluck.sql). The policies and
  * triggers decide who may do what -- the host household lists, anyone who
  * can see it claims in their own name, never past what is wanted; these
  * actions shape the rows and say no in words. */

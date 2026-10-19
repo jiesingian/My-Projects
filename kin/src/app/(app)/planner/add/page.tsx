@@ -111,7 +111,7 @@ export default async function AddPlannerPage({
     }));
   }
 
-  // Who brings what (20261019140000_event_potluck.sql): one-off events only.
+  // Who brings what (20261019170100_event_potluck.sql): one-off events only.
   const potluck: Potluck | null = editEvent && !editEvent.recurs_yearly ? await getPotluck(editEvent.id, me) : null;
 
   return (

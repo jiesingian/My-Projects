@@ -1,4 +1,4 @@
-/** Potluck on an event (20261019140000_event_potluck.sql): who brings what.
+/** Potluck on an event (20261019170100_event_potluck.sql): who brings what.
  * Pure, so the event screen, the relatives' list and the logic tests read
  * the same rules the database keeps (potluck_claims_fill). */
 
