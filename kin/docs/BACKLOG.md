@@ -201,6 +201,15 @@ scanning wait for the AI key.
   (needs its own read path, storage policy and switch); a push when a story
   is added; testing a long recording on a real iPhone.
 
+- **Done:** Family recipes on the tree (19 October, kin/recipes-on-the-tree,
+  20261019152700_recipe_tree_person): a recipe in the Meals book can say
+  whose it is ("Whose recipe", anyone on the tree, a relative who has passed
+  included), shown as "Lola Remedios's recipe" on it, and listed as "Lola's
+  recipes" on their panel on the tree, their profile and their stories page,
+  each opening the book at that recipe (/household?seg=meals&recipe=<id>).
+  Taking the person off the tree keeps the recipe without the name. Kin
+  Free; household only, on family_recipes' existing policies.
+
 - **Done:** Vault emergency access (14 Oct): a household names up to 2
   trusted grown-ups from linked households (Settings -> Privacy & lock),
   with a 1/3/7-day wait. The trusted person asks with a reason; grown-ups
@@ -237,8 +246,12 @@ Four free items, each its own pull request.
   the lines for a quick edit before anything is added. Replaces the old
   one-tap "Buy list" chip, which added unseen.
 
-- **Not yet:** "Nakarating na ako" check-in from Today, Kid view and the
-  Action Button menu.
+- **Done:** "Nakarating na ako": a button on Today and in Kid view, and an
+  Action Button menu item (/go/arrived), reads the position once at the tap
+  and posts "Lia is at School, 7:12 AM" to the household chat with an
+  arrival push: the saved place it is inside (Who's where's rule), else a
+  map link. Nothing is stored but the message (no member_locations write),
+  so it works without sharing on and leaves no trail (lib/arrived.ts).
 
 - **Not yet:** Private notes screen (`personal_notes`): a Today quick
   button and a list screen, author-only.
@@ -250,6 +263,14 @@ Four free items, each its own pull request.
   (padded), nothing stored. Door and gate codes are only flagged when
   reused or plainly guessable, never sent (lib/password-health.ts). Not
   yet tried on a phone against the live API.
+
+- **Done:** The Planner groups its days in the household's zone (19
+  October, kin/planner-household-zone): the calendar's week rail, month run,
+  year counts, headings and "today" are household days (lib/planner-days.ts),
+  never the server's clock; familyInstant keeps a wall-clock time across a
+  daylight-saving change. Tested under four process zones
+  (e2e/planner-days.logic.spec.ts). See KNOWN_RISKS "The Planner groups its
+  calendar in the household's zone".
 
 ## Agreed 19 October: leaders' features for a Filipino family (Jonathan)
 

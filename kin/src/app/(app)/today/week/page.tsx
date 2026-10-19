@@ -1,5 +1,6 @@
 import { householdZone } from "@/lib/household-zone";
 import Link from "next/link";
+import { dayHeading } from "@/lib/planner-days";
 import { redirect } from "next/navigation";
 import { getCurrentMember } from "@/lib/session";
 import { DetailHeader } from "@/components/hub-header";
@@ -94,8 +95,8 @@ export default async function WeekDigestPage() {
             <p className="kin-digest-quiet">Nothing planned yet.</p>
           ) : (
             d.nextWeek.map((day) => (
-              <div key={day.date.toISOString()} className="kin-digest-day">
-                <div className="kin-digest-dayname">{day.date.toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "short" })}</div>
+              <div key={day.day} className="kin-digest-day">
+                <div className="kin-digest-dayname">{dayHeading(day.day)}</div>
                 <ul className="kin-digest-list">
                   {day.items.map((it) => (
                     <li key={`${it.table}-${it.id}`}>

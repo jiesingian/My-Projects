@@ -1,8 +1,9 @@
 import { householdZone } from "@/lib/household-zone";
 import { createClient } from "@/lib/supabase/server";
 import { getSignedUrls } from "@/lib/storage";
-import { familyDay } from "@/lib/time";
-import { startOfWeek, weekStartOf } from "@/lib/week";
+import { addDays, familyDay } from "@/lib/time";
+import { weekStartOf } from "@/lib/week";
+import { weekStartDay } from "@/lib/planner-days";
 import { getWeekRecap, type WeekRecap } from "@/lib/queries/memories";
 import { getRoutines } from "@/lib/queries/routines";
 import { getGoals, type GoalView } from "@/lib/queries/goals";
@@ -16,7 +17,7 @@ export type WeeklyDigest = {
   highlights: { id: string; title: string; milestone: boolean; date: string }[];
   streaks: { id: string; title: string; who: string; days: number }[];
   goals: GoalView[];
-  nextWeek: { date: Date; items: PlannerCalendarItem[] }[];
+  nextWeek: { day: string; items: PlannerCalendarItem[] }[];
 };
 
 type Reader = { id: string; role: string; family_id: string; kid_view?: boolean | null; families: { week_start?: string | null } };
@@ -39,7 +40,8 @@ export async function getWeeklyDigest(me: Reader): Promise<WeeklyDigest> {
   const weekStart = weekStartOf(me.families.week_start);
   const since = new Date(Date.now() - 7 * 86_400_000);
   const sinceDay = familyDay(since, tz);
-  const nextWeekAnchor = startOfWeek(new Date(Date.now() + 7 * 86_400_000), weekStart);
+  // Next week's first day, in the household's own days (lib/planner-days).
+  const nextWeekAnchor = weekStartDay(addDays(familyDay(new Date(), tz), 7) ?? familyDay(new Date(), tz), weekStart);
 
   const [recap, { data: media }, { data: entries }, routines, goals, agenda, { data: members }] = await Promise.all([
     getWeekRecap(me.family_id),
@@ -88,7 +90,7 @@ export async function getWeeklyDigest(me: Reader): Promise<WeeklyDigest> {
 
   const roles = new Map((members ?? []).map((m) => [m.id, m.role as string]));
   const nextWeek = agenda.days
-    .map((d) => ({ date: d.date, items: nextWeekFor(d.activities, me, (id) => roles.get(id), kid) }))
+    .map((d) => ({ day: d.day, items: nextWeekFor(d.activities, me, (id) => roles.get(id), kid) }))
     .filter((d) => d.items.length > 0);
 
   return {
