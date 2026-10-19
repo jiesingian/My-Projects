@@ -7,6 +7,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { sendPush } from "@/lib/push";
 import { UUID } from "@/lib/ids";
+import { sendHelperListPush, sendPush } from "@/lib/push";
 import { requireCurrentMember } from "@/lib/session";
 import { syncRowToCalendars, removeRowFromCalendars } from "@/lib/actions/calendar-sync";
 import { MARKET_SECTIONS, guessSection } from "@/lib/grocery";
@@ -58,23 +59,30 @@ export async function addBuyItemAction(_prev: ActionState, formData: FormData): 
   // An empty section means the member didn't pick one — file it themselves.
   const section = (MARKET_SECTIONS as readonly string[]).includes(sectionRaw) ? sectionRaw : guessSection(name);
 
-  const { error } = await supabase.from("buy_items").insert({
-    ...(id ? { id } : {}),
-    family_id: me.family_id,
-    name,
-    quantity: quantityRaw ? Number(quantityRaw) : null,
-    unit,
-    section,
-    source,
-    // Only sent when chosen, so adding a plain item never depends on it.
-    ...(eventId ? { event_id: eventId } : {}),
-    created_by: me.id,
-  });
+  const { data: added, error } = await supabase
+    .from("buy_items")
+    .insert({
+      ...(id ? { id } : {}),
+      family_id: me.family_id,
+      name,
+      quantity: quantityRaw ? Number(quantityRaw) : null,
+      unit,
+      section,
+      source,
+      // Only sent when chosen, so adding a plain item never depends on it.
+      ...(eventId ? { event_id: eventId } : {}),
+      created_by: me.id,
+    })
+    .select("id")
+    .single();
   // Already added by an earlier send of the same offline change.
   if (error && id && error.code === "23505") return { error: null };
   if (error) return { error: humanDatabaseError(error.message) };
   revalidatePath("/household");
-  after(() => sendPush({ kind: "shopping", title: "Added to the list", body: `${name} · by ${me.full_name.split(" ")[0]}`, url: "/household", tag: `list-${me.family_id}` }));
+  const by = me.full_name.split(" ")[0];
+  after(() => sendPush({ kind: "shopping", title: "Added to the list", body: `${name} · by ${by}`, url: "/household", tag: `list-${me.family_id}` }));
+  // And the helper, if they asked to be told (20261019140000).
+  after(() => sendHelperListPush({ id: added.id, familyId: me.family_id, name, by }));
   return { error: null };
 }
 

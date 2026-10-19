@@ -121,3 +121,35 @@ export async function helperAddAction(familyId: string, name: string): Promise<R
   revalidatePath("/helper");
   return { error: null };
 }
+
+const UUID_SHAPE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+/** "Tell me when the family adds to the list" (20261019140000), for this
+ * phone and this household. save_helper_push() checks the helper again. */
+export async function saveHelperPushAction(familyId: string, sub: { endpoint: string; keys: { p256dh: string; auth: string } }): Promise<Result> {
+  if (!(await getSessionUser())) return { error: "Sign in again." };
+  if (!UUID_SHAPE.test(familyId)) return { error: "This list is not shared with you." };
+  const fits = (v: unknown, max: number) => typeof v === "string" && v.length > 0 && v.length <= max;
+  if (!/^https:\/\//.test(sub?.endpoint ?? "") || sub.endpoint.length > 1000) return { error: "This phone didn't give a usable address." };
+  if (!fits(sub.keys?.p256dh, 200) || !fits(sub.keys?.auth, 100)) return { error: "This phone didn't give usable keys." };
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("save_helper_push", { p_family: familyId, p_endpoint: sub.endpoint, p_p256dh: sub.keys.p256dh, p_auth: sub.keys.auth });
+  if (error) return { error: said(error.message, "It didn't save. Try again.") };
+  return { error: null };
+}
+
+export async function removeHelperPushAction(familyId: string, endpoint: string): Promise<Result> {
+  if (!(await getSessionUser())) return { error: "Sign in again." };
+  if (!UUID_SHAPE.test(familyId)) return { error: null };
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("remove_helper_push", { p_family: familyId, p_endpoint: endpoint });
+  if (error) return { error: "It didn't save. Try again." };
+  return { error: null };
+}
+
+export async function helperPushSavedAction(familyId: string, endpoint: string): Promise<boolean> {
+  if (!(await getSessionUser()) || !UUID_SHAPE.test(familyId)) return false;
+  const supabase = await createClient();
+  const { data } = await supabase.rpc("helper_push_saved", { p_family: familyId, p_endpoint: endpoint });
+  return data === true;
+}

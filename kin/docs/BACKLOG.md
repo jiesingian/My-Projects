@@ -186,9 +186,15 @@ scanning wait for the AI key.
   /helper/accept and uses /helper (outside the app layout): tick/untick/add
   on the open list, today's and tomorrow's meals, children's plans for those
   two days. Not a member; household_helpers + security-definer functions
-  only (20261015121000). Removal ends access at once. Kin Free. Follow-ups:
-  use lib/activity-repeat.ts in helper-access.ts after rebase; optional push
-  to the helper when a line is added; live list updates.
+  only (20261015121000). Removal ends access at once. Kin Free.
+  Follow-ups done 19 October (kin/helper-followups, 20261019140000): the
+  helper's plans come from lib/activity-repeat.ts, as the Planner's do; the
+  To-Buy list is live on both the family's and the helper's screen (an
+  empty nudge on the private Realtime topic buy-list:<household>, sent by a
+  statement trigger on buy_items, heard by members and helpers who can see
+  the list); and "Tell me when the family adds to the list" on /helper, the
+  helper's own opt-in per phone (helper_push_subscriptions), pushed when a
+  member adds a line by hand, as the family's own "Added to the list" is.
   Since 19 October (Jonathan: "both for plans") the plans switch shows the
   whole family's plans too -- "Whole family" ticked, or tagged to nobody --
   beside the children's; a grown-up's own stay hidden (helper_family_plans,
