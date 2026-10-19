@@ -27,6 +27,9 @@ on:
 
 permissions:
   contents: read
+  # Only so the dev pre-flight below can cancel its own run when dev is down
+  # (kin/scripts/dev-preflight.sh, 19 October). Nothing else uses it.
+  actions: write
 
 # One at a time. This only reads, and only the shape of the schema rather than
 # any row, so it cannot disturb the end-to-end suite -- but two of these racing
@@ -130,6 +133,16 @@ jobs:
             echo "::warning::PROD_SUPABASE_* are unset — production's schema is NOT being checked."
           fi
 
+      # Is dev answering at all? (kin/scripts/dev-preflight.sh, 19 October.)
+      # Waits up to ~4 minutes, then cancels rather than fails; automerge.yml
+      # re-runs a cancelled Schema check, as it does End-to-end.
+      - name: Dev is answering
+        working-directory: kin
+        env:
+          GH_TOKEN: ${{ github.token }}
+          URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          ANON: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+        run: bash scripts/dev-preflight.sh "$URL" "$ANON"
       - name: Ask both databases
         working-directory: kin
         env:

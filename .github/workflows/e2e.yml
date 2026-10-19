@@ -59,6 +59,9 @@ on:
 
 permissions:
   contents: read
+  # Only so the dev pre-flight below can cancel its own run when dev is down
+  # (kin/scripts/dev-preflight.sh, 19 October). Nothing else uses it.
+  actions: write
 
 # Per branch, and cancelling a superseded run outright rather than letting it
 # finish. This was global and queued until 18 September -- every spec wrote
@@ -155,6 +158,17 @@ jobs:
             exit 1
           fi
 
+      # Is dev answering at all? On 19 October dev's Auth stopped and every
+      # PR's run failed at sign-in. This waits up to ~4 minutes for it, then
+      # cancels the run instead of failing it; automerge.yml re-runs it later.
+      # Skipped when a base_url was given (then dev is not what is tested).
+      - name: Dev is answering
+        if: ${{ !inputs.base_url }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+          URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          ANON: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+        run: bash scripts/dev-preflight.sh "$URL" "$ANON"
       - run: npm ci
 
       # Caches only the browser binary, not the OS packages `--with-deps`
@@ -222,5 +236,123 @@ jobs:
         if: ${{ !cancelled() }}
         with:
           name: playwright-report
+          path: kin/playwright-report/
+          retention-days: 7
+
+  # ── The same smoke run on a private database (19 October, trial) ──────────
+  #
+  # Every check above shares one free-plan dev project with every other pull
+  # request and every Claude session. On 19 October that sharing overloaded
+  # it until its Auth stopped, and fifteen PRs went red at once. Larger teams
+  # do not share: each run gets its own database. This job does that for free
+  # (Actions minutes cost nothing while the repo is public):
+  #
+  #   1. start Supabase inside this runner (Docker; gone when the run ends);
+  #   2. copy dev's schema into it -- structure only, `supabase db dump`, no
+  #      rows: no household's data leaves dev, and dev only answers one dump;
+  #   3. record which migrations dev already has, then let scripts/migrate.mjs
+  #      add this PR's new ones -- so a migration is tested before it merges;
+  #   4. make the QA account and its household through the app's own
+  #      create_family(), as a person signing up would;
+  #   5. build against it and run the same smoke + logic specs.
+  #
+  # It is a TRIAL: continue-on-error, so it can never block a merge while it
+  # proves itself. Once it has run green for a while, the job above can be
+  # pointed at it and dev left to people. Nothing here writes to dev.
+  smoke-private-db:
+    if: ${{ !inputs.base_url }}
+    continue-on-error: true
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    defaults:
+      run:
+        working-directory: kin
+    env:
+      E2E_EMAIL: qa-private@example.com
+      # A throwaway password for a database that exists for one run.
+      E2E_PASSWORD: private-db-${{ github.run_id }}
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: kin/package-lock.json
+      - uses: supabase/setup-cli@v1
+        with:
+          version: latest
+      - name: Start a private Supabase (only what Kin's pages use)
+        working-directory: ${{ runner.temp }}
+        run: |
+          # Its own folder, so `supabase start` does not try to run
+          # kin/supabase/migrations on an empty database (they assume the
+          # hand-built tables from September). The schema comes from dev below.
+          mkdir -p ci-db/supabase && cp "$GITHUB_WORKSPACE/kin/supabase/config.toml" ci-db/supabase/
+          cd ci-db
+          supabase start -x studio,imgproxy,edge-runtime,logflare,vector,supavisor,postgres-meta,mailpit
+          supabase status -o env > "$RUNNER_TEMP/local.env"
+      - name: Copy dev's schema (structure only, no rows)
+        env:
+          DEV_DB_URL: ${{ secrets.DEV_DB_URL }}
+        run: |
+          set -euo pipefail
+          [ -n "$DEV_DB_URL" ] || { echo "::error::DEV_DB_URL is not set, so there is no schema to copy."; exit 1; }
+          supabase db dump --db-url "$DEV_DB_URL" --schema public -f "$RUNNER_TEMP/schema.sql"
+          psql "$DEV_DB_URL" -Atc "select version from supabase_migrations.schema_migrations order by version" > "$RUNNER_TEMP/applied.txt"
+          echo "Schema: $(grep -c '^CREATE TABLE' "$RUNNER_TEMP/schema.sql") tables; dev has $(wc -l < "$RUNNER_TEMP/applied.txt") migrations recorded."
+      - name: Load it, then add this PR's migrations
+        run: |
+          set -euo pipefail
+          LOCAL_DB=postgresql://postgres:postgres@127.0.0.1:54322/postgres
+          psql "$LOCAL_DB" -v ON_ERROR_STOP=1 -q -f "$RUNNER_TEMP/schema.sql"
+          psql "$LOCAL_DB" -v ON_ERROR_STOP=1 -q -c "create schema if not exists supabase_migrations; create table if not exists supabase_migrations.schema_migrations (version text primary key, name text, statements text[]);"
+          while read -r v; do
+            [ -n "$v" ] && psql "$LOCAL_DB" -q -c "insert into supabase_migrations.schema_migrations (version) values ('$v') on conflict do nothing"
+          done < "$RUNNER_TEMP/applied.txt"
+          MIGRATE_DB_URL="$LOCAL_DB" MIGRATE_LABEL=private node scripts/migrate.mjs
+      - name: Make the QA account and its household
+        run: |
+          set -euo pipefail
+          . "$RUNNER_TEMP/local.env"
+          curl -sf -X POST "$API_URL/auth/v1/admin/users" \
+            -H "apikey: $SERVICE_ROLE_KEY" -H "Authorization: Bearer $SERVICE_ROLE_KEY" -H "Content-Type: application/json" \
+            -d "{\"email\":\"$E2E_EMAIL\",\"password\":\"$E2E_PASSWORD\",\"email_confirm\":true}" > /dev/null
+          TOKEN=$(curl -sf -X POST "$API_URL/auth/v1/token?grant_type=password" \
+            -H "apikey: $ANON_KEY" -H "Content-Type: application/json" \
+            -d "{\"email\":\"$E2E_EMAIL\",\"password\":\"$E2E_PASSWORD\"}" | jq -r .access_token)
+          curl -sf -X POST "$API_URL/rest/v1/rpc/create_family" \
+            -H "apikey: $ANON_KEY" -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" \
+            -d '{"p_household_name":"QA Private","p_full_name":"Quinn Private"}' > /dev/null
+          echo "QA account and household made."
+      - run: npm ci
+      - name: Playwright version
+        id: pw-version
+        run: echo "version=$(node -e "console.log(require('@playwright/test/package.json').version)")" >> "$GITHUB_OUTPUT"
+      - uses: actions/cache@v4
+        id: pw-cache
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ steps.pw-version.outputs.version }}
+      - name: Install the browser
+        if: steps.pw-cache.outputs.cache-hit != 'true'
+        run: npx playwright install --with-deps chromium
+      - name: Install just the OS packages the cached browser still needs
+        if: steps.pw-cache.outputs.cache-hit == 'true'
+        run: npx playwright install-deps chromium
+      - name: Build and start against the private database
+        run: |
+          set -euo pipefail
+          . "$RUNNER_TEMP/local.env"
+          export NEXT_PUBLIC_SUPABASE_URL="$API_URL" NEXT_PUBLIC_SUPABASE_ANON_KEY="$ANON_KEY"
+          printf 'NEXT_PUBLIC_SUPABASE_URL=%s\nNEXT_PUBLIC_SUPABASE_ANON_KEY=%s\n' "$API_URL" "$ANON_KEY" >> "$GITHUB_ENV"
+          npm run build
+          npm run start &
+          npx wait-on http://localhost:3000/login --timeout 120000
+      - name: Run smoke + logic on it
+        run: npx playwright test e2e/smoke.spec.ts e2e/*.logic.spec.ts --workers=2
+      - uses: actions/upload-artifact@v6
+        if: ${{ !cancelled() }}
+        with:
+          name: playwright-report-private-db
           path: kin/playwright-report/
           retention-days: 7
