@@ -93,6 +93,7 @@ const MIGRATIONS = [
   "20261019153000_shared_costs.sql",
   "20261019130000_tree_stories_shared.sql",
   "20261019131000_tree_stories_shared.sql",
+  "20261019131500_tree_stories_shared.sql",
 ];
 
 const only = process.argv[2];

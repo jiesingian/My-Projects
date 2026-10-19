@@ -51,7 +51,7 @@ export type StoryInput = {
   /** Files on the story to take off, when changing it. */
   removeFileIds?: string[];
   /** Shared with linked households that have this person on their tree
-   * (20261019131000). Off unless ticked. */
+   * (20261019131500). Off unless ticked. */
   shared?: boolean;
 };
 

@@ -151,7 +151,7 @@ scanning wait for the AI key.
   (child_self, not kid view) add; the author edits; author or a grown-up
   deletes. Removing a person cascades their stories; children cannot remove
   someone who has stories. Open: testing a long recording on a real iPhone.
-  Since 19 October (kin/tree-stories-shared, 20261019131000): a per-story
+  Since 19 October (kin/tree-stories-shared, 20261019131500): a per-story
   "Share with linked households" switch, off by default, set by whoever
   added it. A shared story shows, read only, on the stories page of a
   linked household that has matched the person on its own tree

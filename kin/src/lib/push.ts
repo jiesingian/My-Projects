@@ -136,7 +136,7 @@ export async function sendCardStartedPush(card: { recipientId: string; opensOn: 
   }
 }
 
-/** "Ann added a story about Lola" (20261019131000), to the rest of the
+/** "Ann added a story about Lola" (20261019131500), to the rest of the
  * household when a story is new, and "Ann shared a story about Lola" to the
  * linked households that have Lola on their own tree when it is shared --
  * each opened at their own Lola. tree_story_push_targets() answers only to

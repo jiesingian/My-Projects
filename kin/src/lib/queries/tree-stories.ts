@@ -3,7 +3,7 @@ import { getSignedUrls } from "@/lib/storage";
 import { orderStories, storyFileKind, type StoryFileKind } from "@/lib/tree-stories";
 
 /** Stories on the tree (20261014204000_tree_person_stories). The household's
- * own, and (20261019131000_tree_stories_shared) the ones a linked household
+ * own, and (20261019131500_tree_stories_shared) the ones a linked household
  * shared about the same person, read through linked_tree_stories(). */
 
 export type StoryFile = {
