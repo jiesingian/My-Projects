@@ -26,7 +26,22 @@ Plus at the database, so items 1 and 3 are for households that have it).
   Chosen: kinsenas rather than a per-goal pay rhythm, since income
   schedules carry no payday frequency.
 
-- **Not yet:** Siblings sharing a parent's costs across linked households.
+- **Done:** Shared costs between linked households (Family -> Shared
+  costs, /family/shared-costs): siblings sharing a parent's costs, Lola's
+  medicines and check-ups. A grown-up starts a pot with households theirs
+  is linked to (every pair in the pot must be linked; up to eight). Each
+  household records what it paid ("We paid a cost") and payments it made
+  to another ("We paid them back"); shares are equal or weighted in parts;
+  Kin shows each one's share, who owes whom and the fewest payments that
+  settle it (lib/shared-costs.ts, centavo-exact). Only the grown-ups of the
+  households in a pot see it, and only while theirs is still linked with
+  every other in it: revoking a link hides it at once. Names travel on the
+  rows; create_shared_pot() and set_shared_pot_share() are definer
+  functions that re-check the caller. Each household takes back only its
+  own entries; the household that started a pot can delete it until
+  another has recorded in it. A record only: Kin moves no money. No push
+  to the other household yet. Migration 20261019153000_shared_costs.sql;
+  probe shared-costs.mjs; logic e2e/shared-costs.logic.spec.ts.
 
 - **Not yet:** Monthly money recap (rule-based, the 1st).
 
