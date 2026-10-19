@@ -1,7 +1,7 @@
 import { test, expect } from "@playwright/test";
 import { canKeepApart, capLine, drawLoop, drawProblem, parseWishes, type DrawPerson } from "@/lib/gift-draw";
 
-/** Monito-monita (20261019170200_gift_draw.sql): the draw's rules. The
+/** Monito-monita (20261019233200_gift_draw.sql): the draw's rules. The
  * database runs the real draw (draw_gift_draw) the same way; the PGlite
  * probe holds it to the same rules. */
 

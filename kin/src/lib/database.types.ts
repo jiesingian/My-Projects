@@ -205,6 +205,7 @@ export type Database = {
           happened_precision: string
           id: string
           person_id: string
+          shared_at: string | null
           title: string
           told_by_member_id: string | null
           told_by_name: string | null
@@ -219,6 +220,7 @@ export type Database = {
           happened_precision?: string
           id?: string
           person_id: string
+          shared_at?: string | null
           title: string
           told_by_member_id?: string | null
           told_by_name?: string | null
@@ -233,6 +235,7 @@ export type Database = {
           happened_precision?: string
           id?: string
           person_id?: string
+          shared_at?: string | null
           title?: string
           told_by_member_id?: string | null
           told_by_name?: string | null
@@ -1071,6 +1074,158 @@ export type Database = {
         Insert: { id?: string; family_id: string; asked_by: string; member_id: string; asked_at?: string; answer?: string | null; answered_at?: string | null }
         Update: { id?: string; family_id?: string; asked_by?: string; member_id?: string; asked_at?: string; answer?: string | null; answered_at?: string | null }
         Relationships: []
+      }
+      shared_pot_entries: {
+        Row: {
+          amount: number
+          author_name: string
+          created_at: string
+          description: string
+          family_id: string
+          id: string
+          kind: string
+          member_id: string | null
+          pot_id: string
+          spent_on: string
+          to_family_id: string | null
+        }
+        Insert: {
+          amount: number
+          author_name?: string
+          created_at?: string
+          description?: string
+          family_id: string
+          id?: string
+          kind: string
+          member_id?: string | null
+          pot_id: string
+          spent_on?: string
+          to_family_id?: string | null
+        }
+        Update: {
+          amount?: number
+          author_name?: string
+          created_at?: string
+          description?: string
+          family_id?: string
+          id?: string
+          kind?: string
+          member_id?: string | null
+          pot_id?: string
+          spent_on?: string
+          to_family_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "shared_pot_entries_family_id_fkey"
+            columns: ["family_id"]
+            isOneToOne: false
+            referencedRelation: "families"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "shared_pot_entries_member_id_fkey"
+            columns: ["member_id"]
+            isOneToOne: false
+            referencedRelation: "members"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "shared_pot_entries_pot_id_fkey"
+            columns: ["pot_id"]
+            isOneToOne: false
+            referencedRelation: "shared_pots"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "shared_pot_entries_to_family_id_fkey"
+            columns: ["to_family_id"]
+            isOneToOne: false
+            referencedRelation: "families"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      shared_pot_households: {
+        Row: {
+          family_id: string
+          family_name: string
+          joined_at: string
+          pot_id: string
+          share: number
+        }
+        Insert: {
+          family_id: string
+          family_name?: string
+          joined_at?: string
+          pot_id: string
+          share?: number
+        }
+        Update: {
+          family_id?: string
+          family_name?: string
+          joined_at?: string
+          pot_id?: string
+          share?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "shared_pot_households_family_id_fkey"
+            columns: ["family_id"]
+            isOneToOne: false
+            referencedRelation: "families"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "shared_pot_households_pot_id_fkey"
+            columns: ["pot_id"]
+            isOneToOne: false
+            referencedRelation: "shared_pots"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      shared_pots: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          created_by_family: string
+          id: string
+          note: string | null
+          title: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          created_by_family: string
+          id?: string
+          note?: string | null
+          title: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          created_by_family?: string
+          id?: string
+          note?: string | null
+          title?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "shared_pots_created_by_family_fkey"
+            columns: ["created_by_family"]
+            isOneToOne: false
+            referencedRelation: "families"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "shared_pots_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "members"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       sos_alerts: {
         Row: { id: string; family_id: string; member_id: string; created_at: string; lat: number | null; lng: number | null; accuracy_m: number | null; notified: number; handled_by: string | null; handled_at: string | null; resolved_at: string | null }
@@ -7616,6 +7771,58 @@ export type Database = {
         Args: { p_recipient: string; p_opens: string }
         Returns: { endpoint: string; p256dh: string; auth: string }[]
       }
+      linked_tree_stories: {
+        Args: { p_person: string }
+        Returns: {
+          id: string
+          family_name: string
+          title: string
+          body: string | null
+          teller: string | null
+          happened_on: string | null
+          happened_precision: string
+          created_by_name: string | null
+          created_at: string
+          updated_at: string
+        }[]
+      }
+      linked_tree_story_files: {
+        Args: { p_person: string }
+        Returns: {
+          id: string
+          story_id: string
+          storage_path: string
+          mime_type: string
+          file_name: string
+          transcript: string | null
+          position: number
+          created_at: string
+        }[]
+      }
+      tree_story_push_targets: {
+        Args: { p_story: string; p_new: boolean }
+        Returns: { endpoint: string; p256dh: string; auth: string; person_id: string }[]
+      }
+      save_helper_push: {
+        Args: { p_family: string; p_endpoint: string; p_p256dh: string; p_auth: string }
+        Returns: undefined
+      }
+      remove_helper_push: {
+        Args: { p_family: string; p_endpoint: string }
+        Returns: undefined
+      }
+      helper_push_saved: {
+        Args: { p_family: string; p_endpoint: string }
+        Returns: boolean
+      }
+      helper_push_targets: {
+        Args: { p_item: string }
+        Returns: { endpoint: string; p256dh: string; auth: string }[]
+      }
+      forget_helper_push_endpoint: {
+        Args: { p_endpoint: string }
+        Returns: undefined
+      }
       my_open_when_letters: {
         Args: Record<PropertyKey, never>
         Returns: { id: string; writer_name: string; open_when: string }[]
@@ -8122,6 +8329,14 @@ export type Database = {
       }
       withdraw_tree_match: {
         Args: { match: string }
+        Returns: undefined
+      }
+      create_shared_pot: {
+        Args: { p_families: string[]; p_note: string | null; p_title: string }
+        Returns: string
+      }
+      set_shared_pot_share: {
+        Args: { p_family: string; p_pot: string; p_share: number }
         Returns: undefined
       }
       request_family_link: {

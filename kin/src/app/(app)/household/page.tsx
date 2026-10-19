@@ -106,6 +106,7 @@ async function BuyPane({
   return (
     <>
       <BuyList
+        familyId={familyId}
         startAdding={startAdding}
         groups={groups}
         openCount={openCount}

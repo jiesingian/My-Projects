@@ -1,4 +1,4 @@
-/** Monito-monita (20261019170200_gift_draw.sql): the rules of the draw as
+/** Monito-monita (20261019233200_gift_draw.sql): the rules of the draw as
  * the screens read them. The draw itself runs in the database
  * (draw_gift_draw), so nobody's phone ever holds anyone else's pick; this
  * mirrors it -- the same loop and the same "keep households apart" layout --

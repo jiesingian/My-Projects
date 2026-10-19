@@ -893,7 +893,7 @@ export async function addTreeMemberAction(memberId: string): Promise<ActionState
   return { error: error ? humanDatabaseError(error.message) : null };
 }
 
-/** diedOn: the date of passing, optional (20261019170000_remembrance_undas). */
+/** diedOn: the date of passing, optional (20261019233000_remembrance_undas). */
 export type TreePersonFields = { fullName: string; dob: string; notes: string; diedOn?: string };
 
 /** Adds someone who has never had a Kin login -- a grandparent, an aunt, a

@@ -432,7 +432,7 @@ export async function getComingUp(familyId: string, currency: string, me: Viewer
   const items: BriefItem[] = [];
 
   // A linked household's potluck this week that still needs things
-  // (20261019170100): the family's, like a whole-family plan.
+  // (20261019233100): the family's, like a whole-family plan.
   for (const p of potlucks) {
     const inDays = Math.round((Date.parse(p.eventDate) - Date.parse(today)) / 86_400_000);
     if (inDays < 0 || inDays > 7 || p.openItems === 0) continue;
@@ -554,7 +554,7 @@ export async function getComingUp(familyId: string, currency: string, me: Viewer
 
 /** The household's relatives on the tree who have passed, for Undas and
  * their days (lib/remembrance) -- none when the household turned remembering
- * off (families.remember_the_departed, 20261019170000). */
+ * off (families.remember_the_departed, 20261019233000). */
 async function departedOnTree(supabase: Awaited<ReturnType<typeof createClient>>, familyId: string): Promise<Departed[]> {
   const [{ data: family }, { data: rows }] = await Promise.all([
     supabase.from("families").select("remember_the_departed").eq("id", familyId).maybeSingle(),

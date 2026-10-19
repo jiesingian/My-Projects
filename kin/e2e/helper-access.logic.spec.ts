@@ -1,6 +1,7 @@
 import { test, expect } from "@playwright/test";
 import { helperLanding, mealsForTwoDays, namesSaid, normaliseHelperCode, plansForTwoDays, switchesSummary } from "@/lib/helper-access";
 import { helperJoinUrl } from "@/lib/qr";
+import { occurrenceStarts } from "@/lib/activity-repeat";
 
 /** Helper access for the kasambahay, yaya or driver (14 October). The
  * database decides what a helper may see; these are the sums around it. */
@@ -89,6 +90,26 @@ test("the day is Manila's, not the server's", () => {
   const late = new Date("2026-10-14T16:30:00Z");
   const rows = [{ title: "Early bus", start_at: "2026-10-14T22:00:00Z", end_at: null, repeat: "once", place: null, children: ["Ana"] }];
   expect(plansForTwoDays(rows, late, TZ).map((p) => p.day)).toEqual(["today"]);
+});
+
+test("the helper sees each repeat on the days the Planner does (lib/activity-repeat)", () => {
+  const rows = [
+    { title: "Tutor", start_at: "2026-10-04T23:00:00Z", end_at: null, repeat: "weekly", repeat_days: [3, 4], repeat_until: null, place: null, children: ["Ana"] },
+    { title: "Rent day", start_at: "2026-09-15T01:00:00Z", end_at: null, repeat: "monthly", place: null, children: [] },
+    { title: "Lola's birthday", start_at: "2025-10-14T00:00:00Z", end_at: null, repeat: "yearly", place: null, children: [] },
+    { title: "Stopped", start_at: "2026-09-01T00:00:00Z", end_at: null, repeat: "weekly", repeat_days: [3, 4], repeat_until: "2026-10-14", place: null, children: [] },
+  ];
+  const planner = rows.flatMap((r) => occurrenceStarts(r, new Date(r.start_at), "2026-10-14", "2026-10-15", TZ).map((at) => `${r.title} ${at.toISOString()}`));
+  const helper = plansForTwoDays(rows, NOW, TZ).map((p) => `${p.title} ${p.at.toISOString()}`);
+  expect(helper.sort()).toEqual(planner.sort());
+  expect(helper).toHaveLength(5);
+});
+
+test("a monthly plan on a date a month doesn't have shows on neither day", () => {
+  // First on 31 August; 30 September has no 31st, so nothing on the 30th or 1 October.
+  const now = new Date("2026-09-30T02:00:00Z");
+  const rows = [{ title: "Allowance", start_at: "2026-08-31T01:00:00Z", end_at: null, repeat: "monthly", place: null, children: ["Ben"] }];
+  expect(plansForTwoDays(rows, now, TZ)).toEqual([]);
 });
 
 test("a whole-family plan says so; a child's plan keeps its names (20261019090000)", () => {
