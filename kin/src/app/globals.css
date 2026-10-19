@@ -5806,7 +5806,7 @@ button.kin-initial:focus-visible {
   padding: 0 0.5625rem;
   border-radius: 999px;
   font-weight: 600;
-  color: color-mix(in srgb, var(--cal-money) 70%, var(--color-text));
+  color: color-mix(in srgb, var(--cal-money) 55%, var(--color-text));
   background: color-mix(in srgb, var(--cal-money) 14%, transparent);
 }
 .kin-streak-note {
@@ -6759,7 +6759,7 @@ button.kin-initial:focus-visible {
 }
 .kin-clash-title {
   font-weight: 650;
-  color: color-mix(in srgb, var(--cal-money) 70%, var(--color-text));
+  color: color-mix(in srgb, var(--cal-money) 55%, var(--color-text));
 }
 .kin-clash ul {
   margin: 0.375rem 0 0;

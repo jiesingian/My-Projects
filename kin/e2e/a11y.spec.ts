@@ -66,8 +66,11 @@ test.describe("every colour theme", () => {
   test.beforeAll(async () => {
     qa = await restAsQa();
     test.skip(!qa, "Supabase values are not set; skipping.");
-    const res = await qa!.ctx.get(`${qa!.url}/rest/v1/members?select=id,palette&auth_user_id=not.is.null`, { headers: qa!.headers });
+    // The signed-in member's own row: the household has more than one login.
+    const user = (await (await qa!.ctx.get(`${qa!.url}/auth/v1/user`, { headers: qa!.headers })).json()) as { id: string };
+    const res = await qa!.ctx.get(`${qa!.url}/rest/v1/members?select=id,palette&auth_user_id=eq.${user.id}`, { headers: qa!.headers });
     const me = ((await res.json()) as { id: string; palette: string }[])[0];
+    expect(me, "the sample account has no member row").toBeTruthy();
     memberId = me.id;
     original = me.palette;
   });
@@ -79,8 +82,10 @@ test.describe("every colour theme", () => {
   for (const p of PALETTES) {
     test(`${p.name} reads at WCAG AA`, async ({ page, context }) => {
       test.setTimeout(180_000);
-      const set = await qa!.ctx.patch(`${qa!.url}/rest/v1/members?id=eq.${memberId}`, { headers: { ...qa!.headers, "Content-Type": "application/json" }, data: { palette: p.id } });
-      expect(set.ok(), await set.text()).toBeTruthy();
+      const set = await qa!.ctx.patch(`${qa!.url}/rest/v1/members?id=eq.${memberId}`, { headers: { ...qa!.headers, "Content-Type": "application/json", Prefer: "return=representation" }, data: { palette: p.id } });
+      // Row-level security answers a refused update with 200 and no rows, so
+      // the row coming back is the proof the theme changed.
+      expect((await set.json()) as unknown[], "the theme did not change").toHaveLength(1);
       // The cookie the root layout reads to put a dark-only theme in dark.
       await context.addCookies([{ name: "kin-palette", value: p.id, url: test.info().project.use.baseURL ?? "http://localhost:3000" }]);
       const paths = p.id === "coral" || p.id === "classic" ? ["/today", "/chat"] : ["/today"];
