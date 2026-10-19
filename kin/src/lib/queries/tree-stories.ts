@@ -3,7 +3,8 @@ import { getSignedUrls } from "@/lib/storage";
 import { orderStories, storyFileKind, type StoryFileKind } from "@/lib/tree-stories";
 
 /** Stories on the tree (20261014204000_tree_person_stories). The household's
- * own; nothing here crosses to a linked household. */
+ * own, and (20261019211500_tree_stories_shared) the ones a linked household
+ * shared about the same person, read through linked_tree_stories(). */
 
 export type StoryFile = {
   id: string;
@@ -28,6 +29,23 @@ export type TreeStory = {
   createdByName: string | null;
   createdAt: string;
   updatedAt: string;
+  /** Shared with linked households that have this person on their tree. */
+  shared: boolean;
+  files: StoryFile[];
+};
+
+/** A story another household shared about the same person: read only, with
+ * the names as that household has them. */
+export type LinkedStory = {
+  id: string;
+  familyName: string;
+  title: string;
+  body: string | null;
+  teller: string | null;
+  happenedOn: string | null;
+  happenedPrecision: string;
+  createdByName: string | null;
+  createdAt: string;
   files: StoryFile[];
 };
 
@@ -50,7 +68,7 @@ export async function getPersonStories(personId: string, familyId: string): Prom
   const supabase = await createClient();
   const { data: rows, error } = await supabase
     .from("tree_person_stories")
-    .select("id, title, body, told_by_member_id, told_by_name, happened_on, happened_precision, created_by, created_at, updated_at")
+    .select("id, title, body, told_by_member_id, told_by_name, happened_on, happened_precision, created_by, created_at, updated_at, shared_at")
     .eq("family_id", familyId)
     .eq("person_id", personId);
   if (error) {
@@ -93,7 +111,48 @@ export async function getPersonStories(personId: string, familyId: string): Prom
     createdByName: s.created_by ? (nameOf.get(s.created_by) ?? null) : null,
     createdAt: s.created_at,
     updatedAt: s.updated_at,
+    shared: s.shared_at !== null,
     files: (fileRows ?? [])
+      .filter((f) => f.story_id === s.id)
+      .flatMap((f) => {
+        const kind = storyFileKind(f.mime_type);
+        return kind
+          ? [{ id: f.id, kind, mimeType: f.mime_type, fileName: f.file_name, storagePath: f.storage_path, url: urls[f.storage_path] ?? null, transcript: f.transcript }]
+          : [];
+      }),
+  }));
+}
+
+/** The stories linked households have shared about one person on this
+ * household's tree, in the order of a life, with their files signed. Empty
+ * when there are none or the read failed: they are an addition to the page,
+ * and the household's own stories still show. */
+export async function getLinkedStories(personId: string): Promise<LinkedStory[]> {
+  const supabase = await createClient();
+  const [{ data: rows, error }, { data: fileRows, error: fileError }] = await Promise.all([
+    supabase.rpc("linked_tree_stories", { p_person: personId }),
+    supabase.rpc("linked_tree_story_files", { p_person: personId }),
+  ]);
+  if (error) console.error("linked tree stories could not be read", error.message);
+  if (fileError) console.error("linked tree story files could not be read", fileError.message);
+  const stories = orderStories(rows ?? []);
+  if (stories.length === 0) return [];
+  const files = fileRows ?? [];
+  const urls = await getSignedUrls(
+    "documents",
+    files.map((f) => f.storage_path),
+  );
+  return stories.map((s) => ({
+    id: s.id,
+    familyName: s.family_name,
+    title: s.title,
+    body: s.body,
+    teller: s.teller,
+    happenedOn: s.happened_on,
+    happenedPrecision: s.happened_precision,
+    createdByName: s.created_by_name,
+    createdAt: s.created_at,
+    files: files
       .filter((f) => f.story_id === s.id)
       .flatMap((f) => {
         const kind = storyFileKind(f.mime_type);

@@ -29,6 +29,7 @@ import { uploadFileDirect } from "@/lib/upload-client";
 import { CONFLICT_MESSAGE, recordingIsSilent, rememberTranscriptConflict, startTranscript } from "@/lib/voice-note";
 import type { RoomMessage, RoomPoll } from "@/lib/queries/chat-rooms";
 import type { RoomPhoto } from "@/lib/actions/chat-rooms";
+import { scrollBehavior } from "@/lib/motion";
 
 /** As in the household chat: beyond this a message becomes an album. */
 const MAX_PHOTOS = 10;
@@ -482,7 +483,7 @@ export function RoomThread({
   const jumpTo = (id: string) => {
     const el = document.getElementById(`msg-${id}`);
     if (!el) return;
-    el.scrollIntoView({ block: "center", behavior: "smooth" });
+    el.scrollIntoView({ block: "center", behavior: scrollBehavior() });
     setFound(id);
     setTimeout(() => setFound((f) => (f === id ? null : f)), 1600);
   };

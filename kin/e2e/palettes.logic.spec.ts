@@ -10,6 +10,17 @@ import { PALETTES, REMOVED_PALETTES, contrast, paletteById, paletteCss } from "@
  * dark); since the accessibility pass its blue is #0068d9 (5.3:1), so every
  * palette, Classic included, meets 4.5:1. */
 
+/** `pct` of one colour over another, as color-mix(in srgb) paints it. */
+function mix(a: string, pct: number, b: string): string {
+  const rgb = (h: string) => [1, 3, 5].map((i) => parseInt(h.slice(i, i + 2), 16));
+  const [x, y] = [rgb(a), rgb(b)];
+  return "#" + x.map((v, i) => Math.round((v * pct) / 100 + (y[i] * (100 - pct)) / 100).toString(16).padStart(2, "0")).join("");
+}
+/** The text colour at 6% over a ground, as .btn-secondary paints it. */
+const wash = (text: string, ground: string) => mix(text, 6, ground);
+/** globals.css's --cal-money, light and dark. */
+const MONEY = { light: "#e8590c", dark: "#ff922b" };
+
 for (const p of PALETTES) {
   for (const mode of ["light", "dark"] as const) {
     const m = p[mode];
@@ -20,6 +31,20 @@ for (const p of PALETTES) {
       expect(contrast(m.muted, m.surface), "caption on card").toBeGreaterThanOrEqual(4.5);
       expect(contrast(m.ink, m.surface), "link on card").toBeGreaterThanOrEqual(4.5);
       expect(contrast("#ffffff", m.accent), "white on button").toBeGreaterThanOrEqual(4.5);
+      // The focus ring is accent-700 (ink), not the accent: on ten dark
+      // themes the accent was under 3:1 against the page (WCAG 1.4.11).
+      expect(contrast(m.ink, m.bg), "focus ring and link on page").toBeGreaterThanOrEqual(4.5);
+      // A secondary button's label is ink on a 6% wash of the text colour,
+      // over the page or a card. Solarized's sat at 4.46:1 (19 October).
+      for (const ground of [m.bg, m.surface]) {
+        expect(contrast(m.ink, wash(m.text, ground)), `secondary button label on ${ground}`).toBeGreaterThanOrEqual(4.5);
+        // An overdue line's orange: --cal-money 55% into the text colour.
+        // At 70% it was 4.2:1 on Catppuccin's page and 4.35:1 on Premium Card.
+        const urgent = mix(MONEY[p.darkOnly ? "dark" : mode], 55, m.text);
+        expect(contrast(urgent, ground), `overdue line on ${ground}`).toBeGreaterThanOrEqual(4.5);
+        // The SOS button's word and a late dose: red 45% into the text colour.
+        expect(contrast(mix("#e5484d", 45, m.text), ground), `SOS on ${ground}`).toBeGreaterThanOrEqual(4.5);
+      }
     });
   }
 }

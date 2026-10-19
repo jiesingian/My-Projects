@@ -19,7 +19,7 @@ the potluck, the monito-monita draw, and the Christmas gift list.
   and on each day, respecting "Events and schedules". A lit candle sits on
   their tree tile on 1-2 November. Settings -> Household -> "Remember
   relatives who have passed" turns all of it off (the organizer's, like
-  sharing). Migration 20261019170000_remembrance_undas.sql. Not checked: the
+  sharing). Migration 20261019233000_remembrance_undas.sql. Not checked: the
   push on a real phone; a relative who is also a Kin member (their tree
   entry follows their profile, so it takes no date of passing).
 - **Done:** Potluck: who brings what, on an event (Kin Free). On a one-off
@@ -33,7 +33,7 @@ the potluck, the monito-monita draw, and the Christmas gift list.
   Planner's Events and a Coming up line the week of it, and claim in their
   own name (names travel on the claim). Closed once the event is over;
   yearly events take none. The host's grown-ups may take a claim off.
-  Migration 20261019170100_event_potluck.sql. No push yet: a claim tells
+  Migration 20261019233100_event_potluck.sql. No push yet: a claim tells
   nobody (the thread does that job). Not checked: two households on real
   phones.
 - Monito-monita draw across the household and linked households.
@@ -62,7 +62,22 @@ Plus at the database, so items 1 and 3 are for households that have it).
   Chosen: kinsenas rather than a per-goal pay rhythm, since income
   schedules carry no payday frequency.
 
-- **Not yet:** Siblings sharing a parent's costs across linked households.
+- **Done:** Shared costs between linked households (Family -> Shared
+  costs, /family/shared-costs): siblings sharing a parent's costs, Lola's
+  medicines and check-ups. A grown-up starts a pot with households theirs
+  is linked to (every pair in the pot must be linked; up to eight). Each
+  household records what it paid ("We paid a cost") and payments it made
+  to another ("We paid them back"); shares are equal or weighted in parts;
+  Kin shows each one's share, who owes whom and the fewest payments that
+  settle it (lib/shared-costs.ts, centavo-exact). Only the grown-ups of the
+  households in a pot see it, and only while theirs is still linked with
+  every other in it: revoking a link hides it at once. Names travel on the
+  rows; create_shared_pot() and set_shared_pot_share() are definer
+  functions that re-check the caller. Each household takes back only its
+  own entries; the household that started a pot can delete it until
+  another has recorded in it. A record only: Kin moves no money. No push
+  to the other household yet. Migration 20261019153000_shared_costs.sql;
+  probe shared-costs.mjs; logic e2e/shared-costs.logic.spec.ts.
 
 - **Not yet:** Monthly money recap (rule-based, the 1st).
 
@@ -171,9 +186,16 @@ scanning wait for the AI key.
   <household>/stories/ counting toward storage. Grown-ups and teens
   (child_self, not kid view) add; the author edits; author or a grown-up
   deletes. Removing a person cascades their stories; children cannot remove
-  someone who has stories. Open: sharing stories with linked households
-  (needs its own read path, storage policy and switch); a push when a story
-  is added; testing a long recording on a real iPhone.
+  someone who has stories. Open: testing a long recording on a real iPhone.
+  Since 19 October (kin/tree-stories-shared, 20261019211500): a per-story
+  "Share with linked households" switch, off by default, set by whoever
+  added it. A shared story shows, read only, on the stories page of a
+  linked household that has matched the person on its own tree
+  (linked_tree_stories / linked_tree_story_files; one storage policy for
+  that story's files); unticking, withdrawing the match or revoking the
+  link closes it at once. A push ("journal" switch) to the rest of the
+  household when a story is added, and to the matched households when one
+  is shared, each opened at their own person.
 
 - **Done:** Family recipes on the tree (19 October, kin/recipes-on-the-tree,
   20261019152700_recipe_tree_person): a recipe in the Meals book can say
@@ -200,9 +222,15 @@ scanning wait for the AI key.
   /helper/accept and uses /helper (outside the app layout): tick/untick/add
   on the open list, today's and tomorrow's meals, children's plans for those
   two days. Not a member; household_helpers + security-definer functions
-  only (20261015121000). Removal ends access at once. Kin Free. Follow-ups:
-  use lib/activity-repeat.ts in helper-access.ts after rebase; optional push
-  to the helper when a line is added; live list updates.
+  only (20261015121000). Removal ends access at once. Kin Free.
+  Follow-ups done 19 October (kin/helper-followups, 20261019212500): the
+  helper's plans come from lib/activity-repeat.ts, as the Planner's do; the
+  To-Buy list is live on both the family's and the helper's screen (an
+  empty nudge on the private Realtime topic buy-list:<household>, sent by a
+  statement trigger on buy_items, heard by members and helpers who can see
+  the list); and "Tell me when the family adds to the list" on /helper, the
+  helper's own opt-in per phone (helper_push_subscriptions), pushed when a
+  member adds a line by hand, as the family's own "Added to the list" is.
   Since 19 October (Jonathan: "both for plans") the plans switch shows the
   whole family's plans too -- "Whole family" ticked, or tagged to nobody --
   beside the children's; a grown-up's own stay hidden (helper_family_plans,
@@ -719,6 +747,18 @@ Decided against in the same review: revising Journal (item 6) and Planner
 
 ## Done
 
+- Accessibility sweep (Jonathan, 19 October; item 2 of "easier to use,
+  faster, and offline"). On a touch screen every button, and every chip that
+  does something, answers a finger 44px across through an invisible hit area
+  (globals.css, "Tap targets"); nothing is drawn bigger. The keyboard focus
+  ring is accent-700, not the accent (under 3:1 on ten dark themes). Every
+  colour theme passes axe as a member on it sees Today (and Chat on Coral and
+  Classic), in light and dark: five link colours moved a step, the overdue
+  orange is 55% money colour, the SOS word and a late dose take the red into
+  the text colour. Jump-to scrolls follow Reduce Motion. Held by
+  e2e/palettes.logic.spec.ts, e2e/tap-targets.logic.spec.ts (the compiled
+  stylesheet, no server) and e2e/a11y.spec.ts (seven pages plus a theme pass).
+
 - Event and visit photos count against the storage allowance (6 October,
   #453): the photo strip on a calendar event or a doctor's visit asks
   /api/uploads/session like the journal and chat, so Kin Free's 1 GB and
@@ -1162,6 +1202,37 @@ What only Jonathan can check, on his iPhone with Kin on the Home Screen:
   set up the Shortcut as written, run it, and see steps and weight on Health.
 - **The "K" home-screen icon:** remove the old Kin icon and add Kin to the
   Home Screen again; it should show the house icon.
+- **This week's features (14-19 October), the parts a browser on dev cannot
+  reach.** `e2e/this-week.spec.ts` uses each one as the sample household every
+  week; these need the phone, a second person, or both:
+  - **Helper link, accepted:** Settings -> Household -> Helpers, make a link
+    and send it with the share sheet; on a phone that has no Kin account,
+    open it, sign up, Accept, and see only the To-Buy list (and Meals or
+    Family plans if they were ticked). Tick something there and see it ticked
+    on your own list.
+  - **Vault emergency access:** needs a relative in a household linked with
+    yours. Name them under Settings -> Privacy -> Emergency access; on their
+    phone, Request access; see the request on yours; Allow now; see their
+    read-only vault open, then Revoke.
+  - **Check-up "share as a picture":** finish the check-up on the welcome
+    page, share the result; the share sheet offers the picture, and it saves
+    to Photos and sends in Messenger.
+  - **Year book:** Journal -> Year book -> print; Safari's print sheet makes a
+    PDF that reads well (photos, page breaks).
+  - **Tree file:** Family -> Tree file, export lands in Files; import a .ged
+    picked from Files.
+  - **Statement import:** a CSV downloaded from BPI's or GCash's app, picked
+    from Files on the import screen.
+  - **Stories on the tree:** record a story with the microphone (Kin asks for
+    it once) and play it back.
+  - **Utang and paluwagan reminders:** with "Prepare a gentle reminder I can
+    send myself" ticked, the polite message Kin writes shares to Messenger or
+    SMS from the share sheet (Kin never sends it itself).
+  - **Password health's breach check:** a password seen in breaches is
+    flagged on the phone (it asks Have I Been Pwned with five characters of
+    a hash; nothing else leaves the phone).
+  - **Alkansya on a child's phone:** in kid view, the child sees their jars and
+    the next baon, and cannot change either.
 
 ## Next up
 

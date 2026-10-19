@@ -86,7 +86,7 @@ export const PALETTES: Palette[] = [
     name: "Nord",
     blurb: "Calm arctic blues and frost",
     light: { bg: "#eceff4", surface: "#ffffff", text: "#2e3440", muted: "#4c566a", accent: "#4a6a94", ink: "#3b5b85", accent2: "#88c0d0", divider: "#d8dee9" },
-    dark: { bg: "#2e3440", surface: "#3b4252", text: "#eceff4", muted: "#b4bccb", accent: "#4a6a94", ink: "#88c0d0", accent2: "#81a1c1", divider: "#4c566a" },
+    dark: { bg: "#2e3440", surface: "#3b4252", text: "#eceff4", muted: "#b4bccb", accent: "#4a6a94", ink: "#94c6d4", accent2: "#81a1c1", divider: "#4c566a" },
   },
   {
     id: "catppuccin",
@@ -99,7 +99,7 @@ export const PALETTES: Palette[] = [
     id: "solarized",
     name: "Solarized",
     blurb: "The classic parchment and teal",
-    light: { bg: "#fdf6e3", surface: "#fffbf0", text: "#073642", muted: "#586e75", accent: "#1f6fa8", ink: "#1f6fa8", accent2: "#2aa198", divider: "#eee8d5" },
+    light: { bg: "#fdf6e3", surface: "#fffbf0", text: "#073642", muted: "#586e75", accent: "#1f6fa8", ink: "#1e6da4", accent2: "#2aa198", divider: "#eee8d5" },
     dark: { bg: "#002b36", surface: "#073642", text: "#eee8d5", muted: "#93a1a1", accent: "#1f6fa8", ink: "#6cb8ea", accent2: "#2aa198", divider: "#0f4a57" },
   },
   {
@@ -113,7 +113,7 @@ export const PALETTES: Palette[] = [
     id: "ocean",
     name: "Ocean",
     blurb: "Sea glass and deep teal",
-    light: { bg: "#f0f7fa", surface: "#ffffff", text: "#0b2530", muted: "#4e6b77", accent: "#0e7490", ink: "#0e7490", accent2: "#67e8f9", divider: "#d6e8ef" },
+    light: { bg: "#f0f7fa", surface: "#ffffff", text: "#0b2530", muted: "#4e6b77", accent: "#0e7490", ink: "#0e708b", accent2: "#67e8f9", divider: "#d6e8ef" },
     dark: { bg: "#06141a", surface: "#0e222b", text: "#e3f4f8", muted: "#93b4bf", accent: "#0e7490", ink: "#5ec8e0", accent2: "#22d3ee", divider: "#1b3a46" },
   },
   {
@@ -135,8 +135,8 @@ export const PALETTES: Palette[] = [
     name: "Antarctic",
     blurb: "Deep grey with woodland green, for dark rooms",
     darkOnly: true,
-    light: { bg: "#3a3c42", surface: "#45474e", text: "#f2f3ef", muted: "#c6c9cf", accent: "#3d7a1f", ink: "#9ccd62", accent2: "#9ccd62", divider: "#55585f" },
-    dark: { bg: "#3a3c42", surface: "#45474e", text: "#f2f3ef", muted: "#c6c9cf", accent: "#3d7a1f", ink: "#9ccd62", accent2: "#9ccd62", divider: "#55585f" },
+    light: { bg: "#3a3c42", surface: "#45474e", text: "#f2f3ef", muted: "#c6c9cf", accent: "#3d7a1f", ink: "#a9d377", accent2: "#9ccd62", divider: "#55585f" },
+    dark: { bg: "#3a3c42", surface: "#45474e", text: "#f2f3ef", muted: "#c6c9cf", accent: "#3d7a1f", ink: "#a9d377", accent2: "#9ccd62", divider: "#55585f" },
   },
   // Four from Aura design systems, added 1 October from the DESIGN.md files
   // Janine downloaded (aura.build itself only renders in a browser); a fifth,
@@ -195,8 +195,8 @@ export const PALETTES: Palette[] = [
     name: "Dracula",
     blurb: "The developers' favourite dark theme",
     darkOnly: true,
-    light: { bg: "#282a36", surface: "#343746", text: "#f8f8f2", muted: "#b4b8cf", accent: "#7c3aed", ink: "#bd93f9", accent2: "#ff79c6", divider: "#44475a" },
-    dark: { bg: "#282a36", surface: "#343746", text: "#f8f8f2", muted: "#b4b8cf", accent: "#7c3aed", ink: "#bd93f9", accent2: "#ff79c6", divider: "#44475a" },
+    light: { bg: "#282a36", surface: "#343746", text: "#f8f8f2", muted: "#b4b8cf", accent: "#7c3aed", ink: "#c6a2f8", accent2: "#ff79c6", divider: "#44475a" },
+    dark: { bg: "#282a36", surface: "#343746", text: "#f8f8f2", muted: "#b4b8cf", accent: "#7c3aed", ink: "#c6a2f8", accent2: "#ff79c6", divider: "#44475a" },
   },
   {
     id: "contrast",
