@@ -25,7 +25,7 @@ test("the helper link is its own path, not the household's join link", () => {
 
 test("what a helper sees, in a few words", () => {
   expect(switchesSummary({ list: true, meals: true, kids: false })).toBe("To-Buy list · Meals");
-  expect(switchesSummary({ list: false, meals: false, kids: true })).toBe("Children's plans");
+  expect(switchesSummary({ list: false, meals: false, kids: true })).toBe("Family plans");
   expect(switchesSummary({ list: false, meals: false, kids: false })).toBe("Sees nothing yet");
 });
 
@@ -89,6 +89,20 @@ test("the day is Manila's, not the server's", () => {
   const late = new Date("2026-10-14T16:30:00Z");
   const rows = [{ title: "Early bus", start_at: "2026-10-14T22:00:00Z", end_at: null, repeat: "once", place: null, children: ["Ana"] }];
   expect(plansForTwoDays(rows, late, TZ).map((p) => p.day)).toEqual(["today"]);
+});
+
+test("a whole-family plan says so; a child's plan keeps its names (20261019090000)", () => {
+  const now = new Date("2026-10-14T02:00:00Z");
+  const rows = [
+    { title: "Lunch at Lola's", start_at: "2026-10-14T04:00:00Z", end_at: null, repeat: "once", place: null, children: [], for_whole_family: true },
+    { title: "School pick-up", start_at: "2026-10-14T07:30:00Z", end_at: null, repeat: "once", place: null, children: ["Ana"], for_whole_family: false },
+    { title: "Older row", start_at: "2026-10-14T08:00:00Z", end_at: null, repeat: "once", place: null, children: ["Ben"] },
+  ];
+  expect(plansForTwoDays(rows, now, TZ).map((p) => [p.title, p.forWholeFamily, p.children.join()])).toEqual([
+    ["Lunch at Lola's", true, ""],
+    ["School pick-up", false, "Ana"],
+    ["Older row", false, "Ben"],
+  ]);
 });
 
 test("children's names said plainly", () => {

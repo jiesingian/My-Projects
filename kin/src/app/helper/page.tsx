@@ -38,7 +38,7 @@ export default async function HelperPage({ searchParams }: { searchParams: Promi
   const [list, meals, plans] = await Promise.all([
     home.can_see_list ? supabase.rpc("helper_buy_items", { p_family: home.family_id }) : null,
     home.can_see_meals ? supabase.rpc("helper_meals", { p_family: home.family_id }) : null,
-    home.can_see_kids_plans ? supabase.rpc("helper_kids_plans", { p_family: home.family_id }) : null,
+    home.can_see_kids_plans ? supabase.rpc("helper_family_plans", { p_family: home.family_id }) : null,
   ]);
   const mealDays = mealsForTwoDays(meals?.data ?? [], today);
   const kidsPlans = plansForTwoDays(plans?.data ?? [], now, tz);
@@ -98,7 +98,7 @@ export default async function HelperPage({ searchParams }: { searchParams: Promi
 
       {home.can_see_kids_plans && (
         <section aria-labelledby="helper-kids">
-          <h2 id="helper-kids" style={heading}>CHILDREN&apos;S PLANS</h2>
+          <h2 id="helper-kids" style={heading}>FAMILY PLANS</h2>
           {(["today", "tomorrow"] as const).map((d) => {
             const day = kidsPlans.filter((p) => p.day === d);
             return (
@@ -113,7 +113,7 @@ export default async function HelperPage({ searchParams }: { searchParams: Promi
                           {p.endAt ? `–${familyTime(p.endAt, tz)}` : ""} · {p.title}
                         </div>
                         <div style={quiet}>
-                          {namesSaid(p.children)}
+                          {p.forWholeFamily ? "Whole family" : namesSaid(p.children)}
                           {p.place ? ` · ${p.place}` : ""}
                         </div>
                       </li>

@@ -83,6 +83,10 @@ scanning wait for the AI key.
   only (20261015121000). Removal ends access at once. Kin Free. Follow-ups:
   use lib/activity-repeat.ts in helper-access.ts after rebase; optional push
   to the helper when a line is added; live list updates.
+  Since 19 October (Jonathan: "both for plans") the plans switch shows the
+  whole family's plans too -- "Whole family" ticked, or tagged to nobody --
+  beside the children's; a grown-up's own stay hidden (helper_family_plans,
+  20261019090000).
 
 ## Agreed 13 October: first open (Jonathan)
 
