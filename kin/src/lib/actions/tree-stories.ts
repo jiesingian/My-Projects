@@ -1,5 +1,6 @@
 "use server";
 
+import { after } from "next/server";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { requireCurrentMember } from "@/lib/session";
@@ -8,6 +9,7 @@ import { familyDay } from "@/lib/time";
 import { humanDatabaseError } from "@/lib/db-errors";
 import { clamp } from "@/lib/text";
 import { UUID } from "@/lib/ids";
+import { sendTreeStoryPush } from "@/lib/push";
 import type { ActionState } from "@/lib/actions/auth";
 import {
   canAddStories,
@@ -48,6 +50,9 @@ export type StoryInput = {
   files: NewStoryFile[];
   /** Files on the story to take off, when changing it. */
   removeFileIds?: string[];
+  /** Shared with linked households that have this person on their tree
+   * (20261019211500). Off unless ticked. */
+  shared?: boolean;
 };
 
 const revalidate = (personId: string) => {
@@ -105,7 +110,11 @@ export async function saveTreeStoryAction(input: StoryInput): Promise<ActionStat
   const removeIds = (input.removeFileIds ?? []).filter((id) => UUID.test(id));
 
   const supabase = await createClient();
-  const { data: person, error: personError } = await supabase.from("family_tree_people").select("id, family_id").eq("id", input.personId).maybeSingle();
+  const { data: person, error: personError } = await supabase
+    .from("family_tree_people")
+    .select("id, family_id, full_name, member_id")
+    .eq("id", input.personId)
+    .maybeSingle();
   if (personError) return { error: humanDatabaseError(personError.message) };
   if (!person || person.family_id !== me.family_id) return { error: "That person could not be found." };
 
@@ -117,12 +126,18 @@ export async function saveTreeStoryAction(input: StoryInput): Promise<ActionStat
     happened_on: when.on,
     happened_precision: when.precision,
     person_id: person.id,
+    // The database dates the share itself and keeps that date while it
+    // stays on; this only says on or off.
+    shared_at: input.shared ? new Date().toISOString() : null,
   };
 
   const uploads = files.map((f) => f.storagePath);
   let storyId: string;
   // New files go after the ones already there.
-  let after = 0;
+  let firstPosition = 0;
+  // Whether the linked households hear of it: when it is new and shared, or
+  // shared now and wasn't before.
+  let newlyShared = !!input.shared;
   if (input.storyId) {
     const { count, error: countError } = await supabase
       .from("tree_person_story_files")
@@ -136,7 +151,11 @@ export async function saveTreeStoryAction(input: StoryInput): Promise<ActionStat
       await discardUploads(supabase, uploads);
       return { error: `A story can hold ${STORY_FILES_MAX} files.` };
     }
-    after = count ?? 0;
+    firstPosition = count ?? 0;
+    if (input.shared) {
+      const { data: before } = await supabase.from("tree_person_stories").select("shared_at").eq("id", input.storyId).maybeSingle();
+      newlyShared = !before?.shared_at;
+    }
 
     // Only its writer can change it; the policy says so too, and an update
     // that matched nothing is said rather than reported as saved.
@@ -197,7 +216,7 @@ export async function saveTreeStoryAction(input: StoryInput): Promise<ActionStat
         transcript: f.transcript ? clamp(f.transcript, STORY_TRANSCRIPT_MAX) || null : null,
         duration_seconds:
           typeof f.durationSeconds === "number" && f.durationSeconds > 0 ? Math.min(f.durationSeconds, STORY_RECORDING_MAX_SECONDS) : null,
-        position: after + i,
+        position: firstPosition + i,
       })),
     );
     if (fileError) {
@@ -210,7 +229,22 @@ export async function saveTreeStoryAction(input: StoryInput): Promise<ActionStat
   }
 
   revalidate(person.id);
+  if (!input.storyId || newlyShared) {
+    const personFirst = (await personName(supabase, person)).split(" ")[0];
+    const isNew = !input.storyId;
+    after(() => sendTreeStoryPush({ id: storyId, personId: person.id, isNew, title, writerFirst: me.full_name.split(" ")[0], personFirst }));
+  }
   return { error: null, id: storyId };
+}
+
+/** The name the household has for someone on its tree: their member name
+ * when they are a member, the tree's otherwise. */
+async function personName(supabase: Awaited<ReturnType<typeof createClient>>, person: { full_name: string | null; member_id: string | null }) {
+  if (person.member_id) {
+    const { data } = await supabase.from("members").select("full_name").eq("id", person.member_id).maybeSingle();
+    if (data?.full_name) return data.full_name;
+  }
+  return person.full_name || "them";
 }
 
 /** Deletes a story and its files. Whoever added it may; so may a grown-up. */

@@ -150,9 +150,16 @@ scanning wait for the AI key.
   <household>/stories/ counting toward storage. Grown-ups and teens
   (child_self, not kid view) add; the author edits; author or a grown-up
   deletes. Removing a person cascades their stories; children cannot remove
-  someone who has stories. Open: sharing stories with linked households
-  (needs its own read path, storage policy and switch); a push when a story
-  is added; testing a long recording on a real iPhone.
+  someone who has stories. Open: testing a long recording on a real iPhone.
+  Since 19 October (kin/tree-stories-shared, 20261019211500): a per-story
+  "Share with linked households" switch, off by default, set by whoever
+  added it. A shared story shows, read only, on the stories page of a
+  linked household that has matched the person on its own tree
+  (linked_tree_stories / linked_tree_story_files; one storage policy for
+  that story's files); unticking, withdrawing the match or revoking the
+  link closes it at once. A push ("journal" switch) to the rest of the
+  household when a story is added, and to the matched households when one
+  is shared, each opened at their own person.
 
 - **Done:** Family recipes on the tree (19 October, kin/recipes-on-the-tree,
   20261019152700_recipe_tree_person): a recipe in the Meals book can say
