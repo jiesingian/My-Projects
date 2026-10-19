@@ -105,6 +105,13 @@ export type QueuedOp =
       eventId?: string;
     }
   | { id: string; at: string; kind: "today.mark"; key: string; day: string; date?: string; label: string }
+  /** A medicine dose ticked taken, or unticked, from Health or the simple
+   * Today (19 October). `day` is the dose's own day, not the day it was sent. */
+  | { id: string; at: string; kind: "dose.set"; medicineId: string; memberId: string; day: string; time: string; taken: boolean; label: string }
+  /** A chore marked done or skipped from the Planner, for any day it shows. */
+  | { id: string; at: string; kind: "chore.log"; routineId: string; date: string; status: "done" | "skipped"; label: string }
+  /** A grown-up's yes or no to a child's chore waiting for approval. */
+  | { id: string; at: string; kind: "chore.answer"; routineId: string; date: string; approve: boolean; label: string }
   | {
       id: string;
       at: string;

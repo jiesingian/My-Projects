@@ -4,7 +4,9 @@ import { createClient } from "@/lib/supabase/server";
 import { getCurrentMember } from "@/lib/session";
 import { addBuyItemAction, toggleBuyItemAction } from "@/lib/actions/household";
 import { markTodayItemAction } from "@/lib/actions/today";
-import { logRoutineAction } from "@/lib/actions/routines";
+import { approveRoutineLogAction, logRoutineAction, rejectRoutineLogAction } from "@/lib/actions/routines";
+import { setDoseTakenAction } from "@/lib/actions/health-care";
+import { choreAnswerVerdict, choreLogVerdict, doseVerdict, type Verdict } from "@/lib/offline/rules";
 import { sendMessageAction } from "@/lib/actions/chat";
 import { familyDay } from "@/lib/time";
 import { MAX_QUEUE, type QueuedOp, type ReplayResult } from "@/lib/offline/types";
@@ -26,12 +28,16 @@ import { MAX_QUEUE, type QueuedOp, type ReplayResult } from "@/lib/offline/types
  *   already answered it (done or skipped), their answer stands.
  * - Adding an item, or a household chat message: always added, once. The id
  *   made on the phone is the row's id, so a second send finds the first.
+ * - A medicine dose, a chore done or skipped from the Planner, and a yes or no
+ *   to a chore waiting for approval (19 October): lib/offline/rules.ts, the
+ *   same rules -- the later tick wins, an answer already given stands.
  *
  * Changes are applied one at a time. The first that fails for a reason that
  * might pass (the database, a timeout) stops the run, and it and everything
  * after it stay queued, so a later message never overtakes an earlier one.
  */
 
+const DAY = /^\d{4}-\d{2}-\d{2}$/;
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 export async function POST(request: Request) {
@@ -127,6 +133,43 @@ async function apply(op: QueuedOp, memberId: string, familyId: string): Promise<
       return r.error ? skip(r.error) : done;
     }
 
+    case "dose.set": {
+      if (!UUID.test(op.medicineId) || !UUID.test(op.memberId) || !DAY.test(op.day) || !/^\d{2}:\d{2}$/.test(op.time)) return skip("That dose could not be found.");
+      const { data: row, error } = await supabase
+        .from("health_medicine_doses")
+        .select("taken_at")
+        .eq("medicine_id", op.medicineId)
+        .eq("dose_date", op.day)
+        .eq("dose_time", op.time)
+        .maybeSingle();
+      if (error) return { id: op.id, outcome: "retry" };
+      return settle(op.id, doseVerdict({ at: op.at, taken: op.taken === true, label: op.label }, row), () =>
+        setDoseTakenAction({ medicineId: op.medicineId, memberId: op.memberId, day: op.day, time: op.time, taken: op.taken === true }),
+      );
+    }
+
+    case "chore.log": {
+      if (!UUID.test(op.routineId) || !DAY.test(op.date) || (op.status !== "done" && op.status !== "skipped")) return skip("That chore could not be found.");
+      const { data: logged, error } = await supabase.from("routine_log").select("logged_by").eq("routine_id", op.routineId).eq("occurrence_date", op.date).maybeSingle();
+      if (error) return { id: op.id, outcome: "retry" };
+      return settle(op.id, choreLogVerdict(op, logged, memberId), () => logRoutineAction({ routineId: op.routineId, date: op.date, status: op.status, note: null }));
+    }
+
+    case "chore.answer": {
+      if (!UUID.test(op.routineId) || !DAY.test(op.date)) return skip("That chore could not be found.");
+      const { data: log, error } = await supabase
+        .from("routine_log")
+        .select("approval, approved_by")
+        .eq("routine_id", op.routineId)
+        .eq("occurrence_date", op.date)
+        .eq("family_id", familyId)
+        .maybeSingle();
+      if (error) return { id: op.id, outcome: "retry" };
+      return settle(op.id, choreAnswerVerdict({ approve: op.approve === true, label: op.label }, log, memberId), () =>
+        op.approve === true ? approveRoutineLogAction(op.routineId, op.date) : rejectRoutineLogAction(op.routineId, op.date),
+      );
+    }
+
     case "chat.send": {
       // Tags and the answered message travel as the composer had them;
       // sendMessageAction keeps only tags of people in this household, and
@@ -146,4 +189,12 @@ async function apply(op: QueuedOp, memberId: string, familyId: string): Promise<
     default:
       return skip("Kin doesn't save that offline.");
   }
+}
+
+/** Applies a change the rules said to apply, through the same action a tap
+ * online would use; otherwise reports what the rules decided. */
+async function settle(id: string, verdict: Verdict, run: () => Promise<{ error: string | null }>): Promise<ReplayResult> {
+  if (!verdict.apply) return { id, outcome: verdict.outcome, note: verdict.note };
+  const r = await run();
+  return r.error ? { id, outcome: "skipped", note: r.error } : { id, outcome: "applied" };
 }

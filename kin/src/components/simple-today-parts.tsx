@@ -6,15 +6,19 @@ import { Icon } from "@/components/icons";
 import { useCalls } from "@/components/call-provider";
 import { setDoseTakenAction } from "@/lib/actions/health-care";
 import { initials } from "@/lib/format";
+import { newOpId, sendOrQueue, useQueue } from "@/lib/offline/live";
 
 export type SimpleDose = { medicineId: string; name: string; dose: string | null; time: string; taken: boolean; late: boolean };
 
 /** Today's doses as big ticks, one per line. Shown ticked the moment it is
- * tapped; put back, with the reason, if the tick did not save. */
+ * tapped; put back, with the reason, if the tick did not save. With no
+ * signal the tick waits on the phone (lib/offline) and says so. */
 export function SimpleDoses({ memberId, day, doses }: { memberId: string; day: string; doses: SimpleDose[] }) {
   const [taken, setTaken] = useState(() => new Map(doses.map((d) => [`${d.medicineId}|${d.time}`, d.taken])));
   const [failed, setFailed] = useState<string | null>(null);
   const [, startTransition] = useTransition();
+  // Ticks waiting to send, by dose: they show as ticked, marked as waiting.
+  const waiting = new Set(useQueue().flatMap((q) => (q.kind === "dose.set" && q.day === day ? [`${q.medicineId}|${q.time}`] : [])));
 
   const toggle = (d: SimpleDose) => {
     const key = `${d.medicineId}|${d.time}`;
@@ -22,7 +26,10 @@ export function SimpleDoses({ memberId, day, doses }: { memberId: string; day: s
     setTaken((m) => new Map(m).set(key, next));
     setFailed(null);
     startTransition(async () => {
-      const { error } = await setDoseTakenAction({ medicineId: d.medicineId, memberId, day, time: d.time, taken: next });
+      const { error } = await sendOrQueue(
+        () => setDoseTakenAction({ medicineId: d.medicineId, memberId, day, time: d.time, taken: next }),
+        () => ({ id: newOpId(), at: new Date().toISOString(), kind: "dose.set", medicineId: d.medicineId, memberId, day, time: d.time, taken: next, label: `${d.name} at ${d.time}` }),
+      );
       if (error) {
         setTaken((m) => new Map(m).set(key, !next));
         setFailed(error);
@@ -46,7 +53,7 @@ export function SimpleDoses({ memberId, day, doses }: { memberId: string; day: s
                   {d.dose ? ` · ${d.dose}` : ""}
                 </span>
                 <span className="kin-simple-row-meta">
-                  {d.time} · {on ? "Taken" : d.late ? "Late, tap when taken" : "Tap when taken"}
+                  {d.time} · {waiting.has(`${d.medicineId}|${d.time}`) ? "Waiting to send" : on ? "Taken" : d.late ? "Late, tap when taken" : "Tap when taken"}
                 </span>
               </span>
             </button>

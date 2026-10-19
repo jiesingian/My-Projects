@@ -69,3 +69,22 @@ export function useQueue(): Queued[] {
   }, []);
   return queue;
 }
+
+/** Sends a change now, or, with no signal, keeps it in the queue: for the
+ * ticks added on 19 October (doses, chores from the Planner, approvals).
+ * `queued` says it is waiting rather than saved, so the page can show it as
+ * done and say it will send. */
+export async function sendOrQueue(send: () => Promise<{ error: string | null }>, op: () => QueuedOp): Promise<{ error: string | null; queued: boolean }> {
+  const later = async () => {
+    const why = await queueOffline(op());
+    return { error: why, queued: why === null };
+  };
+  if (isOffline()) return later();
+  try {
+    const r = await send();
+    return { error: r.error, queued: false };
+  } catch (e) {
+    if (isNetworkFailure(e)) return later();
+    return { error: "That didn't save. Try again.", queued: false };
+  }
+}

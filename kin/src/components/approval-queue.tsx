@@ -11,6 +11,7 @@ import type { PendingApproval, PendingRedemption } from "@/lib/queries/routines"
 import type { PendingGoalChange, PendingGoalClaim, PendingGoalReward } from "@/lib/queries/goals";
 import { REWARD_TERMS } from "@/lib/goals";
 import { readableDay } from "@/lib/time";
+import { newOpId, sendOrQueue, useQueue } from "@/lib/offline/live";
 
 /** What this person still has to answer for. Chores and redemptions come
  * only to a parent or an adult (a child sees their own chore waiting on the
@@ -371,11 +372,22 @@ function ApprovalRow({ item }: { item: PendingApproval }) {
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const [leaving, setLeaving] = useState(false);
+  // An answer given with no signal, waiting to send (lib/offline).
+  const waiting = useQueue().find((q) => q.kind === "chore.answer" && q.routineId === item.routineId && q.date === item.date);
 
-  const run = (fn: () => Promise<{ error: string | null }>) => {
+  const answer = (approve: boolean) =>
+    sendOrQueue(
+      () => (approve ? approveRoutineLogAction(item.routineId, item.date) : rejectRoutineLogAction(item.routineId, item.date)),
+      () => ({ id: newOpId(), at: new Date().toISOString(), kind: "chore.answer", routineId: item.routineId, date: item.date, approve, label: item.title }),
+    );
+
+  const run = (fn: () => Promise<{ error: string | null; queued?: boolean }>) => {
     setError(null);
     startTransition(async () => {
       const result = await fn();
+      // Kept for later: stays on screen, marked as waiting, with no refresh
+      // (there is no network to refresh from).
+      if (result.queued) return;
       if (result.error) {
         setError(result.error);
         router.refresh();
@@ -419,12 +431,17 @@ function ApprovalRow({ item }: { item: PendingApproval }) {
         </div>
       </div>
 
+      {waiting?.kind === "chore.answer" ? (
+        <div style={{ fontSize: "0.8125rem", color: "var(--color-neutral-700)", marginTop: "0.625rem" }}>
+          {waiting.approve ? "Approved" : "Not yet"} · waiting to send
+        </div>
+      ) : (
       <div style={{ display: "flex", gap: "0.375rem", marginTop: "0.625rem", flexWrap: "wrap" }}>
         <button
           type="button"
           className="btn btn-primary"
           disabled={pending}
-          onClick={() => run(() => approveRoutineLogAction(item.routineId, item.date))}
+          onClick={() => run(() => answer(true))}
           style={{ minHeight: "2rem", fontSize: "0.8125rem", padding: "0 0.875rem", gap: "0.3125rem" }}
         >
           <Icon name="check" size={14} />
@@ -434,12 +451,13 @@ function ApprovalRow({ item }: { item: PendingApproval }) {
           type="button"
           className="btn btn-secondary"
           disabled={pending}
-          onClick={() => run(() => rejectRoutineLogAction(item.routineId, item.date))}
+          onClick={() => run(() => answer(false))}
           style={{ minHeight: "2rem", fontSize: "0.8125rem", padding: "0 0.75rem" }}
         >
           Not yet
         </button>
       </div>
+      )}
       {error && <div style={{ fontSize: "0.78125rem", color: "var(--cal-occasion)", marginTop: "0.375rem" }}>{error}</div>}
     </Blueprint>
   );
