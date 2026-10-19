@@ -56,6 +56,9 @@ export function CallProvider({ familyId, me, members, children }: { familyId: st
   const [fxOpen, setFxOpen] = useState(false);
   const [fxLoading, setFxLoading] = useState(false);
   const effects = useRef<EffectsPipeline | null>(null);
+  // The pipeline being built while its code loads (#710 made that a lazy
+  // import): every tap waits on this one rather than building its own.
+  const effectsLoading = useRef<{ raw: MediaStreamTrack; pipe: Promise<EffectsPipeline> } | null>(null);
   const preview = useRef<MediaStream | null>(null);
   const [now, setNow] = useState(0);
 
@@ -95,6 +98,7 @@ export function CallProvider({ familyId, me, members, children }: { familyId: st
     local.current = null;
     effects.current?.stop();
     effects.current = null;
+    effectsLoading.current = null;
     preview.current = null;
     remote.current = null;
     pendingIce.current = [];
@@ -485,6 +489,24 @@ export function CallProvider({ familyId, me, members, children }: { familyId: st
   // `faceNow`, `hairNow`: the face and hair choices as they are about to be,
   // since the state update from applyFace/applyHair has not landed yet when
   // they call this.
+  /** The one effects pipeline for this camera track, built once. Null when
+   * the call ended or the camera changed while it loaded: a pipeline on a
+   * stopped track would be sent as a frozen picture on the next call. */
+  const pipelineFor = async (raw: MediaStreamTrack): Promise<EffectsPipeline | null> => {
+    if (effects.current) return effects.current;
+    if (effectsLoading.current?.raw !== raw) effectsLoading.current = { raw, pipe: newPipeline(raw) };
+    const loading = effectsLoading.current;
+    const pipe = await loading.pipe;
+    if (effectsLoading.current === loading) effectsLoading.current = null;
+    if (effects.current === pipe) return pipe;
+    if (effects.current || local.current?.getVideoTracks()[0] !== raw) {
+      pipe.stop();
+      return effects.current;
+    }
+    effects.current = pipe;
+    return pipe;
+  };
+
   const applyEffects = async (filter: FilterId, background: BackgroundId, photo?: HTMLImageElement | null, faceNow: FaceId = face, hairNow = hair) => {
     const raw = local.current?.getVideoTracks()[0];
     if (!raw) return;
@@ -500,8 +522,8 @@ export function CallProvider({ familyId, me, members, children }: { familyId: st
       setFx({ filter, background });
       return;
     }
-    if (!effects.current) effects.current = await newPipeline(raw);
-    const pipe = effects.current;
+    const pipe = await pipelineFor(raw);
+    if (!pipe) return;
     setFxLoading(background !== "none");
     try {
       await pipe.set(filter, background, photo);
@@ -530,8 +552,8 @@ export function CallProvider({ familyId, me, members, children }: { familyId: st
       await effects.current?.setFace("none");
       return void applyEffects("none", "none", undefined, "none");
     }
-    if (!effects.current) effects.current = await newPipeline(raw);
-    const pipe = effects.current;
+    const pipe = await pipelineFor(raw);
+    if (!pipe) return;
     setFxLoading(next !== "none");
     try {
       await pipe.setFace(next);
@@ -550,8 +572,8 @@ export function CallProvider({ familyId, me, members, children }: { familyId: st
     const raw = local.current?.getVideoTracks()[0];
     if (!raw) return;
     let next = { style, colour };
-    if (!effects.current) effects.current = await newPipeline(raw);
-    const pipe = effects.current;
+    const pipe = await pipelineFor(raw);
+    if (!pipe) return;
     setFxLoading(style !== "none" || colour !== "none");
     try {
       await pipe.setHair(style, colour);
