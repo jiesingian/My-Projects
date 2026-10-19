@@ -194,3 +194,12 @@ export function formatClock(seconds: number): string {
   const pad = (n: number) => String(n).padStart(2, "0");
   return h > 0 ? `${h}:${pad(m)}:${pad(s)}` : `${m}:${pad(s)}`;
 }
+
+/** The amount a planned meal stores for one of its recipe's ingredients when
+ * it is cooked for `people` (null: as the recipe says). This is what the Buy
+ * list reads, so it is a plain number — three places at most, as the meal
+ * amount editor expects — with the old "1 kg" text beside it. */
+export function mealAmountFor(ing: { name: string; qty: number; unit: string }, recipeServes: number, people: number | null): { amount: number; qty: string } {
+  const amount = people == null ? ing.qty : Number((scaleIngredient(ing, recipeServes, clampServings(people)).qty ?? ing.qty).toFixed(3));
+  return { amount, qty: `${amount} ${ing.unit}` };
+}

@@ -300,7 +300,7 @@ async function MealsPane({
               <DishCard key={m.id} meal={m} members={members} currency={currency} />
             ))}
 
-            <AddMealControl date={anchorISO} slot={slot} />
+            <AddMealControl date={anchorISO} slot={slot} householdSize={members.length} />
           </div>
         );
       })}

@@ -6,6 +6,8 @@ import { useRouter } from "next/navigation";
 import { addMealFromRecipeAction, removeMealAction } from "@/lib/actions/household";
 import { Icon } from "@/components/icons";
 import { MEAL_SLOTS, MEAL_SLOT_LABEL, RECIPES, type MealSlot } from "@/lib/recipes";
+import { ServingsStepper } from "@/components/cook-mode";
+import { clampServings } from "@/lib/cook";
 
 function useMealAction() {
   const router = useRouter();
@@ -25,11 +27,15 @@ function useMealAction() {
 /** Plan a meal. The library is the fast path — pick a dish and its
  * ingredients come with it — with a free-text fallback for anything the
  * library has never heard of. */
-export function AddMealControl({ date, slot }: { date: string; slot: MealSlot }) {
+export function AddMealControl({ date, slot, householdSize = 0 }: { date: string; slot: MealSlot; householdSize?: number }) {
   const { pending, error, run } = useMealAction();
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
   const [custom, setCustom] = useState("");
+  // How many it is cooked for. Not set, a recipe brings its amounts as
+  // written; set, they are scaled from its own serves before the meal (and
+  // so the Buy list) gets them.
+  const [people, setPeople] = useState<number | null>(null);
 
   const suggestions = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -64,6 +70,27 @@ export function AddMealControl({ date, slot }: { date: string; slot: MealSlot })
             aria-label="Search the recipe library"
           />
 
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "0.5rem", flexWrap: "wrap", marginBottom: "0.5rem" }}>
+            <span style={{ fontSize: "0.8125rem", color: "var(--color-neutral-700)" }}>Cooking for</span>
+            {people == null ? (
+              <button
+                type="button"
+                className="btn btn-secondary"
+                style={{ minHeight: "2.375rem", fontSize: "0.8125rem", padding: "0 0.75rem" }}
+                onClick={() => setPeople(clampServings(householdSize > 0 ? householdSize : 4))}
+              >
+                As the recipe says · change
+              </button>
+            ) : (
+              <span style={{ display: "inline-flex", alignItems: "center", gap: "0.375rem" }}>
+                <ServingsStepper servings={people} onChange={setPeople} />
+                <button type="button" className="btn btn-ghost" style={{ minHeight: "2.375rem", fontSize: "0.75rem", padding: "0 0.375rem" }} onClick={() => setPeople(null)}>
+                  Reset
+                </button>
+              </span>
+            )}
+          </div>
+
           <div style={{ maxHeight: "13.75rem", overflowY: "auto", marginBottom: "0.625rem" }}>
             {suggestions.slice(0, 40).map((r) => (
               <button
@@ -72,7 +99,7 @@ export function AddMealControl({ date, slot }: { date: string; slot: MealSlot })
                 disabled={pending}
                 onClick={() =>
                   run(async () => {
-                    const result = await addMealFromRecipeAction({ date, slot, recipeKey: r.key });
+                    const result = await addMealFromRecipeAction({ date, slot, recipeKey: r.key, people });
                     if (!result.error) setOpen(false);
                     return result;
                   })
@@ -94,7 +121,7 @@ export function AddMealControl({ date, slot }: { date: string; slot: MealSlot })
                 <span style={{ flex: 1, minWidth: 0 }}>
                   <span style={{ display: "block", fontSize: "0.9375rem", fontWeight: 500 }}>{r.name}</span>
                   <span style={{ display: "block", fontSize: "0.78125rem", color: "var(--color-neutral-600)" }}>
-                    {r.ingredients.length} ingredients · {r.minutes} min · serves {r.serves}
+                    {r.ingredients.length} ingredients · {r.minutes} min · {people == null || people === r.serves ? `serves ${r.serves}` : `scaled from ${r.serves} to ${people}`}
                   </span>
                 </span>
                 <Icon name="plus" size={15} style={{ color: "var(--color-accent-700)", flex: "none" }} />
