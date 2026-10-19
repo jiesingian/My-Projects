@@ -36,7 +36,21 @@ the potluck, the monito-monita draw, and the Christmas gift list.
   Migration 20261019140000_event_potluck.sql. No push yet: a claim tells
   nobody (the thread does that job). Not checked: two households on real
   phones.
-- Monito-monita draw across the household and linked households.
+- **Done:** Monito-monita draw (Kin Free): Planner -> Events -> Monito-monita
+  (/planner/monito). A grown-up starts a draw: a name, a price cap, the
+  exchange day (24 December to begin with), "Nobody picks someone from
+  their own household" and "On the day, show everyone who picked whom"
+  (both on to begin with). They ask linked households in; each household
+  puts in its own people (a grown-up anyone, managed children too; a teen
+  only themselves). The organizer household's grown-up draws, in the
+  database (draw_gift_draw): one loop through everyone, so nobody picks
+  themselves and no pick says anything about another; households kept
+  apart whenever none is more than half. Each person reads only their own
+  pick (a grown-up also their managed child's) behind a "Show my pick" tap,
+  with that person's wish list; wish lists are read by their owner and
+  whoever drew them, no one else, the organizer included. Draw again
+  before the day; call it off. Migration 20261019170200_gift_draw.sql. No
+  push yet. Not checked: three households on real phones.
 - Christmas gift and aguinaldo list.
 
 ## Approved 19 October: four for money and health (Jonathan)
