@@ -136,7 +136,6 @@ export async function sendCardStartedPush(card: { recipientId: string; opensOn: 
   }
 }
 
-<<<<<<< HEAD
 /** "Ann added a story about Lola" (20261019211500), to the rest of the
  * household when a story is new, and "Ann shared a story about Lola" to the
  * linked households that have Lola on their own tree when it is shared --
@@ -166,7 +165,9 @@ export async function sendTreeStoryPush(story: { id: string; personId: string; i
     }
   } catch (err) {
     console.error("Story push failed", err);
-=======
+  }
+}
+
 /** "Added to the list: Itlog · by Ann", to the household's helpers who can
  * see the list and asked to be told (20261019212500). Helpers are not
  * members, so their phones live apart from push_subscriptions and
@@ -189,7 +190,6 @@ export async function sendHelperListPush(item: { id: string; familyId: string; n
     });
   } catch (err) {
     console.error("Helper push failed", err);
->>>>>>> bf94279 (Helper: the plans follow the Planner's repeats, the To-Buy list is live, and a push when the family adds to it)
   }
 }
 

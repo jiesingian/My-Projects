@@ -7401,7 +7401,6 @@ export type Database = {
         Args: { p_recipient: string; p_opens: string }
         Returns: { endpoint: string; p256dh: string; auth: string }[]
       }
-<<<<<<< HEAD
       linked_tree_stories: {
         Args: { p_person: string }
         Returns: {
@@ -7433,7 +7432,7 @@ export type Database = {
       tree_story_push_targets: {
         Args: { p_story: string; p_new: boolean }
         Returns: { endpoint: string; p256dh: string; auth: string; person_id: string }[]
-=======
+      }
       save_helper_push: {
         Args: { p_family: string; p_endpoint: string; p_p256dh: string; p_auth: string }
         Returns: undefined
@@ -7453,7 +7452,6 @@ export type Database = {
       forget_helper_push_endpoint: {
         Args: { p_endpoint: string }
         Returns: undefined
->>>>>>> bf94279 (Helper: the plans follow the Planner's repeats, the To-Buy list is live, and a push when the family adds to it)
       }
       my_open_when_letters: {
         Args: Record<PropertyKey, never>
