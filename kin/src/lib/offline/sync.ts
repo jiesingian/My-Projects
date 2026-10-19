@@ -1,7 +1,6 @@
 "use client";
 
 import { clearAll, getOwner, listQueue, removeQueued, saveSnapshot, updateQueued, type Queued } from "@/lib/offline/store";
-import { uploadFileDirect } from "@/lib/upload-client";
 import { SNAPSHOT_VERSION, type OfflineSnapshot, type ReplayResult } from "@/lib/offline/types";
 
 /** Talking to the server on offline Kin's behalf: fetching the snapshot, and
@@ -100,6 +99,9 @@ async function uploadQueuedFiles(queue: Queued[]): Promise<{ ready: Queued[]; re
     }
     const pending = q.files;
     try {
+      // Imported only when there are files to send: the upload client brings
+      // supabase-js, which this module would otherwise put on every page.
+      const { uploadFileDirect } = await import("@/lib/upload-client");
       const up = await Promise.all(pending.map((f) => uploadFileDirect(new File([f.blob], f.name, { type: f.type }), "chat")));
       if (up.some((u) => u.provider !== "supabase")) throw new Error("Chat files go to Kin's own storage.");
       const done: Queued = {

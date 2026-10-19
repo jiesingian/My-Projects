@@ -325,8 +325,8 @@ Four free items, each its own pull request, in this order.
   ring every theme can see, and every colour theme passing axe as its member
   sees it. Details under Done below.
 
-- **Not yet:** Speed pass for a mid-range Android on 4G: Today and Chat,
-  measured before and after.
+- **Done:** Speed pass for a mid-range Android on 4G (#710): the shell every
+  page loads 247 -> 176 KB, Today 280 -> 208 KB. Details under Done below.
 
 - **Done:** Offline ticks for medicine doses and chore done/approve (#709),
   Simple Kin's big dose ticks included. Details under Done below.
@@ -839,6 +839,16 @@ Decided against in the same review: revising Journal (item 6) and Planner
   the queue. The offline line on the Planner and a member's page says chores
   and medicine ticks wait. e2e/offline-ticks.logic.spec.ts; the Planner case
   end to end in e2e/offline.spec.ts.
+
+- Speed pass for a mid-range Android on 4G (Jonathan, 19 October; item 3 of
+  "easier to use, faster, and offline"). The JavaScript every page loads
+  first went from 247 to 176 KB (gzipped); Today's from 280 to 208 KB.
+  supabase-js left that first load: the call provider's realtime channel and
+  the offline queue's photo upload now import it when they use it, as do
+  the call video effects and the Ask Kin sheet. Held by
+  e2e/bundle-budget.logic.spec.ts (the build, no server); timed under 4x CPU
+  and Fast 4G by e2e/speed.spec.ts. Chat's thread was already mostly
+  supabase-js, which it needs for live messages, so it barely moved.
 
 - Accessibility sweep (Jonathan, 19 October; item 2 of "easier to use,
   faster, and offline"). On a touch screen every button, and every chip that
