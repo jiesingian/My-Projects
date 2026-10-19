@@ -187,3 +187,23 @@ export function storySafeFileName(name: string): string {
   const safe = name.replace(/[^\w.-]+/g, "_").replace(/\.{2,}/g, ".").slice(-80);
   return safe.replace(/^[._]+/, "") || "file";
 }
+
+/** What the "Share with linked households" switch says under it: who will
+ * see the story, by household, or that nobody will until a linked household
+ * has this person on its own tree too (20261019130000). */
+export function storyShareHint(firstName: string, households: string[]): string {
+  const names = [...new Set(households.map((h) => h.trim()).filter(Boolean))];
+  if (names.length === 0) {
+    return `No linked household has ${firstName} on their tree yet. Once one matches ${firstName} with you, they'll see the stories you share.`;
+  }
+  const list = names.length === 1 ? names[0] : `${names.slice(0, -1).join(", ")} and ${names[names.length - 1]}`;
+  return `${list} ${names.length === 1 ? "has" : "have"} ${firstName} on their tree and will see it, with its recordings and photos. They can't change it.`;
+}
+
+/** Under a story another household shared: "From the Reyes household ·
+ * added by Tess". */
+export function linkedStoryFoot(familyName: string, createdByName: string | null): string {
+  const from = `From ${familyName.trim() || "a linked household"}`;
+  const by = (createdByName ?? "").trim().split(" ")[0];
+  return by ? `${from} · added by ${by}` : from;
+}

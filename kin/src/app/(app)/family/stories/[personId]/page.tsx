@@ -11,6 +11,8 @@ import { getMembers } from "@/lib/queries/family";
 import { getPersonStories } from "@/lib/queries/tree-stories";
 import { getRecipesByPerson } from "@/lib/queries/recipes";
 import { PersonRecipes } from "@/components/person-recipes";
+import { getLinkedStories, getPersonStories } from "@/lib/queries/tree-stories";
+import { getTreeMatches } from "@/lib/queries/tree-links";
 import { canAddStories, storyCountLabel } from "@/lib/tree-stories";
 import { promptForWeek } from "@/lib/story-prompts";
 import { isGrownUp } from "@/lib/roles";
@@ -20,8 +22,10 @@ import { initials } from "@/lib/format";
 /** Stories about one person on the household's tree (14 October): a
  * relative who is only a name, somebody who has passed, or a member. Reached
  * from their panel on the tree, and from a member's profile -- two places,
- * so the crumbs say which (docs/PAGE_PATTERNS.md). The household's own:
- * nothing here is shown to a linked household. */
+ * so the crumbs say which (docs/PAGE_PATTERNS.md). The household's own,
+ * unless whoever added a story shared it with the linked households that
+ * have this person on their tree too (19 October); theirs show here below
+ * ours, read only. */
 export default async function TreeStoriesPage({
   params,
   searchParams,
@@ -50,6 +54,10 @@ export default async function TreeStoriesPage({
     householdZone(),
     getRecipesByPerson(me.family_id),
   ]);
+  const [stories, linkedStories, matches, allMembers, tz] = await Promise.all([
+    getLinkedStories(person.id),
+    getTreeMatches(me.family_id),
+  const sharedWith = matches.filter((m) => m.status === "accepted" && m.ourPersonId === person.id).map((m) => m.otherFamilyName);
   const members = allMembers.filter((m) => m.status !== "pending" && !isGone(m.status));
   const member = person.member_id ? allMembers.find((m) => m.id === person.member_id) : undefined;
   const fullName = member?.full_name ?? person.full_name ?? "Unnamed";
@@ -70,12 +78,16 @@ export default async function TreeStoriesPage({
           <div style={{ minWidth: 0 }}>
             <h1 className="kin-stories-name">{fullName}</h1>
             <div className="kin-stories-meta">
-              {[dob ? `Born ${dob.slice(0, 4)}` : null, stories ? storyCountLabel(stories.length) : null].filter(Boolean).join(" · ")}
+              {[dob ? `Born ${dob.slice(0, 4)}` : null, stories ? storyCountLabel(stories.length + linkedStories.length) : null].filter(Boolean).join(" · ")}
             </div>
           </div>
         </div>
         <p className="kin-stories-note">Kept by your household and seen only by it. Recordings and photos count toward your Kin storage.</p>
         <PersonRecipes recipes={recipesOf.get(person.id) ?? []} firstName={firstName} />
+        <p className="kin-stories-note">
+          Kept by your household and seen only by it, unless whoever adds a story shares it with linked households. Recordings and photos count
+          toward your Kin storage.
+        </p>
         {stories === null ? (
           <p role="alert" className="kin-stories-empty">
             {firstName}&rsquo;s stories couldn&rsquo;t be loaded just now. Try again in a moment.
@@ -85,6 +97,8 @@ export default async function TreeStoriesPage({
             personId={person.id}
             firstName={firstName}
             stories={stories}
+            linkedStories={linkedStories}
+            sharedWith={sharedWith}
             members={members.map((m) => ({ id: m.id, fullName: m.full_name }))}
             meId={me.id}
             canAdd={canAddStories(me)}

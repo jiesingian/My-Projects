@@ -205,6 +205,7 @@ export type Database = {
           happened_precision: string
           id: string
           person_id: string
+          shared_at: string | null
           title: string
           told_by_member_id: string | null
           told_by_name: string | null
@@ -219,6 +220,7 @@ export type Database = {
           happened_precision?: string
           id?: string
           person_id: string
+          shared_at?: string | null
           title: string
           told_by_member_id?: string | null
           told_by_name?: string | null
@@ -233,6 +235,7 @@ export type Database = {
           happened_precision?: string
           id?: string
           person_id?: string
+          shared_at?: string | null
           title?: string
           told_by_member_id?: string | null
           told_by_name?: string | null
@@ -7397,6 +7400,38 @@ export type Database = {
       card_started_push_targets: {
         Args: { p_recipient: string; p_opens: string }
         Returns: { endpoint: string; p256dh: string; auth: string }[]
+      }
+      linked_tree_stories: {
+        Args: { p_person: string }
+        Returns: {
+          id: string
+          family_name: string
+          title: string
+          body: string | null
+          teller: string | null
+          happened_on: string | null
+          happened_precision: string
+          created_by_name: string | null
+          created_at: string
+          updated_at: string
+        }[]
+      }
+      linked_tree_story_files: {
+        Args: { p_person: string }
+        Returns: {
+          id: string
+          story_id: string
+          storage_path: string
+          mime_type: string
+          file_name: string
+          transcript: string | null
+          position: number
+          created_at: string
+        }[]
+      }
+      tree_story_push_targets: {
+        Args: { p_story: string; p_new: boolean }
+        Returns: { endpoint: string; p256dh: string; auth: string; person_id: string }[]
       }
       my_open_when_letters: {
         Args: Record<PropertyKey, never>

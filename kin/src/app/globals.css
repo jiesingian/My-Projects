@@ -2176,6 +2176,17 @@ div.kin-tp-ghost {
 .kin-story-hint[data-error] {
   color: var(--cal-occasion);
 }
+.kin-story-share {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: var(--text-sm);
+  min-height: 2.75rem;
+}
+.kin-story-share input {
+  width: 1.125rem;
+  height: 1.125rem;
+}
 .kin-story-files {
   list-style: none;
   margin: 0;
