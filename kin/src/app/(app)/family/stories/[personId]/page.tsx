@@ -8,7 +8,6 @@ import { DetailHeader } from "@/components/hub-header";
 import { Avatar } from "@/components/avatar";
 import { TreeStories } from "@/components/tree-stories";
 import { getMembers } from "@/lib/queries/family";
-import { getPersonStories } from "@/lib/queries/tree-stories";
 import { getRecipesByPerson } from "@/lib/queries/recipes";
 import { PersonRecipes } from "@/components/person-recipes";
 import { getLinkedStories, getPersonStories } from "@/lib/queries/tree-stories";
@@ -48,15 +47,14 @@ export default async function TreeStoriesPage({
     .maybeSingle();
   if (!person) redirect("/family?seg=tree");
 
-  const [stories, allMembers, tz, recipesOf] = await Promise.all([
+  const [stories, linkedStories, matches, allMembers, tz, recipesOf] = await Promise.all([
     getPersonStories(person.id, me.family_id),
+    getLinkedStories(person.id),
+    getTreeMatches(me.family_id),
     getMembers(me.family_id),
     householdZone(),
     getRecipesByPerson(me.family_id),
   ]);
-  const [stories, linkedStories, matches, allMembers, tz] = await Promise.all([
-    getLinkedStories(person.id),
-    getTreeMatches(me.family_id),
   const sharedWith = matches.filter((m) => m.status === "accepted" && m.ourPersonId === person.id).map((m) => m.otherFamilyName);
   const members = allMembers.filter((m) => m.status !== "pending" && !isGone(m.status));
   const member = person.member_id ? allMembers.find((m) => m.id === person.member_id) : undefined;
@@ -82,7 +80,6 @@ export default async function TreeStoriesPage({
             </div>
           </div>
         </div>
-        <p className="kin-stories-note">Kept by your household and seen only by it. Recordings and photos count toward your Kin storage.</p>
         <PersonRecipes recipes={recipesOf.get(person.id) ?? []} firstName={firstName} />
         <p className="kin-stories-note">
           Kept by your household and seen only by it, unless whoever adds a story shares it with linked households. Recordings and photos count
