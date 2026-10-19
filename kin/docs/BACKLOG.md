@@ -325,8 +325,8 @@ Four free items, each its own pull request, in this order.
 - **Not yet:** Speed pass for a mid-range Android on 4G: Today and Chat,
   measured before and after.
 
-- **Not yet:** Offline ticks for medicine doses and chore done/approve, in
-  the existing offline queue.
+- **Done:** Offline ticks for medicine doses and chore done/approve (#709),
+  Simple Kin's big dose ticks included. Details under Done below.
 
 ## Agreed 19 October: leaders' features for a Filipino family (Jonathan)
 
