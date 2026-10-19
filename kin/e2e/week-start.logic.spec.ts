@@ -14,9 +14,11 @@ import { startOfWeek, weekStartOf, dayColumn } from "@/lib/week";
  */
 
 // A Sunday and the Monday after it, stated rather than computed, so a bug in
-// the arithmetic below cannot also produce the fixture that hides it.
-const SUNDAY = new Date("2026-09-13T12:00:00+08:00");
-const MONDAY = new Date("2026-09-14T12:00:00+08:00");
+// the arithmetic below cannot also produce the fixture that hides it. Noon on
+// the process's own clock, which is the clock lib/week reads: written as a
+// Manila instant, "Sunday" was Saturday under TZ=America/Los_Angeles.
+const SUNDAY = new Date(2026, 8, 13, 12);
+const MONDAY = new Date(2026, 8, 14, 12);
 
 test("the preference is read, and anything unrecognised is Sunday", () => {
   expect(weekStartOf("monday")).toBe(1);
