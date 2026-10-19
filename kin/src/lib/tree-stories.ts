@@ -190,7 +190,7 @@ export function storySafeFileName(name: string): string {
 
 /** What the "Share with linked households" switch says under it: who will
  * see the story, by household, or that nobody will until a linked household
- * has this person on its own tree too (20261019131500). */
+ * has this person on its own tree too (20261019143500). */
 export function storyShareHint(firstName: string, households: string[]): string {
   const names = [...new Set(households.map((h) => h.trim()).filter(Boolean))];
   if (names.length === 0) {
