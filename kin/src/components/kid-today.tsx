@@ -59,6 +59,10 @@ export async function KidToday({ me, arrivedNow = false }: { arrivedNow?: boolea
         <span aria-hidden="true">⭐</span> {stars} star{stars === 1 ? "" : "s"}
         <span className="kin-kid-stars-go">Rewards ›</span>
       </Link>
+      {/* Their own notes: only they can read them, not a parent. */}
+      <Link href="/notes" className="btn btn-secondary" style={{ width: "100%", marginTop: "0.75rem", gap: "0.5rem" }}>
+        <Icon name="fileText" size={16} /> My notes
+      </Link>
 
       {/* Their own alkansya (20261019100000), once a grown-up has set one
           up: cash kept at home, in the three jars. */}
