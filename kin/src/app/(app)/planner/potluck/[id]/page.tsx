@@ -6,7 +6,7 @@ import { getPotluck } from "@/lib/queries/potluck";
 import { familyDate } from "@/lib/format-family";
 import { UUID } from "@/lib/ids";
 
-/** One potluck on its own (20261019140000): how a linked household that is
+/** One potluck on its own (20261019170100): how a linked household that is
  * asked sees the host's list and claims on it -- the event's name, date and
  * host, nothing else of it. The host's own household reaches the same list
  * on the event's screen; here it is the same, for a link that lands here. */

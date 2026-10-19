@@ -19,7 +19,7 @@ the potluck, the monito-monita draw, and the Christmas gift list.
   and on each day, respecting "Events and schedules". A lit candle sits on
   their tree tile on 1-2 November. Settings -> Household -> "Remember
   relatives who have passed" turns all of it off (the organizer's, like
-  sharing). Migration 20261019131000_remembrance_undas.sql. Not checked: the
+  sharing). Migration 20261019170000_remembrance_undas.sql. Not checked: the
   push on a real phone; a relative who is also a Kin member (their tree
   entry follows their profile, so it takes no date of passing).
 - **Done:** Potluck: who brings what, on an event (Kin Free). On a one-off
@@ -33,7 +33,7 @@ the potluck, the monito-monita draw, and the Christmas gift list.
   Planner's Events and a Coming up line the week of it, and claim in their
   own name (names travel on the claim). Closed once the event is over;
   yearly events take none. The host's grown-ups may take a claim off.
-  Migration 20261019140000_event_potluck.sql. No push yet: a claim tells
+  Migration 20261019170100_event_potluck.sql. No push yet: a claim tells
   nobody (the thread does that job). Not checked: two households on real
   phones.
 - **Done:** Monito-monita draw (Kin Free): Planner -> Events -> Monito-monita

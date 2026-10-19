@@ -1,7 +1,7 @@
 import { test, expect } from "@playwright/test";
 import { diedOnProblem, fortiethDay, isUndas, namesLine, remembranceItems, remembranceOn } from "@/lib/remembrance";
 
-/** Undas and babang-luksa (20261019131000_remembrance_undas.sql): the days
+/** Undas and babang-luksa (20261019170000_remembrance_undas.sql): the days
  * Today, Coming up and the tree's candle read. The morning push
  * (due_remembrance_reminders) keeps the same days; the PGlite probe holds it
  * to them. */

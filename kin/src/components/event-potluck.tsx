@@ -7,7 +7,7 @@ import { Icon } from "@/components/icons";
 import { addPotluckItemAction, claimPotluckAction, removePotluckItemAction, setPotluckRelativesAction } from "@/lib/actions/potluck";
 import { claimLimit, potluckSummary, type PotluckLine } from "@/lib/potluck";
 
-/** Who brings what, on an event's own screen (20261019140000): the host
+/** Who brings what, on an event's own screen (20261019170100): the host
  * lists what is needed ("Pancit x2"), and anyone who can see the potluck --
  * the household, and linked households when the host asks them -- claims an
  * item with how many they'll bring. Read-only once the event is over. */

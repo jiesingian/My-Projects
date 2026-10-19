@@ -1,4 +1,4 @@
-// Potluck on an event (20261019140000): the host household lists what is
+// Potluck on an event (20261019170100): the host household lists what is
 // needed; it and, when asked, linked households claim in their own names, up
 // to what is wanted; strangers and unlinked households see nothing; a child
 // in kid view cannot change the list; names cross on the row.
