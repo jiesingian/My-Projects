@@ -52,21 +52,25 @@ function lastDay(year: number, month: number): number {
  *  - weekly: every 7 days;
  *  - monthly: the same day each month, or the month's last day when it is
  *    shorter (a group started on the 31st pays on 30 April);
- *  - semi_monthly: twice a month, on the start day and fifteen days later
- *    (or the month's last day) -- the kinsenas rhythm of a 15th/30th pay. */
+ *  - semi_monthly: twice a month, the kinsenas rhythm of a 15th/30th pay.
+ *    From the 15th or before: the start day and fifteen days later (or the
+ *    month's last day). After the 15th: the start day, then fifteen days
+ *    before it in the next month -- so a group started on the 30th pays the
+ *    30th and the 15th, not the 30th and the 31st (or 28 Feb twice). */
 export function roundDate(startsOn: string, frequency: PaluwaganFrequency, round: number): string {
   const start = new Date(`${startsOn}T00:00:00Z`);
   if (frequency === "weekly") {
     start.setUTCDate(start.getUTCDate() + 7 * (round - 1));
     return iso(start);
   }
-  const monthsOn = frequency === "monthly" ? round - 1 : Math.floor((round - 1) / 2);
   const second = frequency === "semi_monthly" && (round - 1) % 2 === 1;
+  const late = start.getUTCDate() > 15;
+  const monthsOn = (frequency === "monthly" ? round - 1 : Math.floor((round - 1) / 2)) + (second && late ? 1 : 0);
   const y = start.getUTCFullYear();
   const m = start.getUTCMonth() + monthsOn;
   const year = y + Math.floor(m / 12);
   const month = ((m % 12) + 12) % 12;
-  const day = Math.min(start.getUTCDate() + (second ? 15 : 0), lastDay(year, month));
+  const day = Math.min(start.getUTCDate() + (second ? (late ? -15 : 15) : 0), lastDay(year, month));
   return iso(new Date(Date.UTC(year, month, day)));
 }
 
