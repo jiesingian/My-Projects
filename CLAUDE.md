@@ -7,7 +7,7 @@ this file, so they cost no tokens but stay here for people. Edit both together.
 
 ## Working sessions
 
-- One job per session; end it once the PR is open and its checks have started. A job can be a series of related PRs (a numbered feature list on one area, each item its own PR): keep the whole series in one session, since the items share the context it took to learn the area; end once the last PR is open. See "What a session costs" below.
+- One job per session; it is done when its PR has merged, not when it is opened (Jonathan, 19 October). A job can be a series of related PRs (a numbered feature list on one area, each item its own PR): keep the whole series in one session, since the items share the context it took to learn the area; done once the last PR has merged. See "What a session costs" below.
 - Procedures live in skills: `ship` (open a PR), `migrations`, `ask-a-person`, `new-project`.
 - Path-scoped rules load from `.claude/rules/` when you touch those files.
 
@@ -339,8 +339,9 @@ corrupted record is somebody's actual life.
 ## What a session costs, and what it costs it in
 
 - The plan has a usage limit; a long session re-reads its whole context every turn, so cost grows ~with length². Most usage is re-reading, not output.
-- **One job per session.** Done = PR open with checks started (or merged). A series of related PRs on one area is one job (Jonathan, 30 September): re-learning the area in a fresh session costs more than carrying it, so stay until the series is done. Unrelated jobs still get their own sessions. Then end the session; `automerge.yml` and `migrate.yml` finish without anyone watching. Come back only if something fails.
-- Don't wait on CI inside a working session: no polling, no acknowledging notifications turn by turn.
+- **One job per session.** Done = PR merged (Jonathan, 19 October). Until then it was "PR open with checks started", and a red PR sat unmerged with nobody told: nothing wakes a session that has stopped, and `automerge.yml` only merges green. A series of related PRs on one area is one job (Jonathan, 30 September): re-learning the area in a fresh session costs more than carrying it, so stay until the series is done. Unrelated jobs still get their own sessions.
+- **Follow each PR to merge.** After opening it, subscribe the session to the PR's activity: CI results, reviews and the merge each wake it, and an idle session costs nothing while it waits. Red CI: fix and push; a failure that is not the PR's (dev slow, a check red on `main` too) gets one comment saying so and at most one re-run. Can't be fixed from the session: one comment on the PR naming what blocks it and what a person must do (the `ask-a-person` skill). Then merged is done.
+- Waiting is by subscription, not by polling: no `sleep` loops, no turns spent re-checking status. A safety-net self check-in (~50 minutes, then a few hours apart) covers a lost event.
 - Independent tool calls in one block. Read schemas/constraints before writing against them. Don't re-read files you just edited or re-check settled state.
 - Opus is Jonathan's choice for this project; routine reading (logs, CI status) can go to a cheaper subagent where he agrees.
 - The long comments in `.github/workflows/` stay; they are how failures get recognised.
@@ -392,6 +393,11 @@ So:
   where every turn of the sixth paid to re-read the first. End a session when its
   job is done, at a point where nothing is half-finished: merged, verified, and
   nothing waiting on a check. Nothing else on this list is worth as much.
+  For a while the short rule said "PR open with checks started" instead, and on
+  19 October #665 sat red for an hour with nobody told: the session had stopped,
+  and nothing wakes a stopped session. So a session now subscribes to its PR
+  and follows it to merge. Waiting on a subscription costs no turns; only the
+  events that arrive do.
 - **Spend turns deliberately.** A turn costs the full context as it stands, so a
   one-line `git status` late in a long session draws down as much as the hardest
   question in it. Independent calls go in one block; waiting goes in a background
