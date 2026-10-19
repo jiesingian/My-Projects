@@ -78,7 +78,7 @@ export type TreePerson = {
   /** How many stories the household keeps about them
    * (20261014204000_tree_person_stories). */
   storyCount?: number;
-  /** The household's recipes that name them (20261019150000). */
+  /** The household's recipes that name them (20261019152700). */
   recipes?: PersonRecipe[];
 };
 

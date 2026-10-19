@@ -96,7 +96,7 @@ export default async function MemberDetailPage({
   // Where they are on the household's tree, if they are, and how many
   // stories it keeps about them (20261014204000_tree_person_stories).
   let treeStories: { personId: string; count: number } | null = null;
-  // And the household's recipes that name them (20261019150000).
+  // And the household's recipes that name them (20261019152700).
   let recipes: PersonRecipe[] = [];
   {
     const supabase = await createClient();

@@ -380,7 +380,7 @@ create policy am_all on activity_members for all using (exists (select 1 from ac
 alter table meal_plans add column if not exists position integer not null default 0, add column if not exists note text;
 alter table buy_items add column if not exists checked_at timestamptz, add column if not exists created_by uuid;
 
--- The recipe book (pre-pipeline table), for 20261019150000_recipe_tree_person.
+-- The recipe book (pre-pipeline table), for 20261019152700_recipe_tree_person.
 create table if not exists public.family_recipes (id uuid primary key default gen_random_uuid(), family_id uuid not null references families(id), name text not null, base_key text, slots text[] not null default '{}', categories text[] not null default '{}', serves int not null default 4, minutes int, steps text[] not null default '{}', source_url text, created_by uuid references members(id), created_at timestamptz not null default now(), updated_at timestamptz not null default now());
 alter table family_recipes enable row level security;
 create policy fr_all on family_recipes for all using (family_id = current_family_id()) with check (family_id = current_family_id());

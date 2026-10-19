@@ -52,7 +52,7 @@ export type EditableRecipe = {
   origin: "own" | "edited" | "shipped";
   /** The page it was read from (Save a recipe from a link). */
   sourceUrl?: string | null;
-  /** Whose recipe it is: somebody on the tree (20261019150000). */
+  /** Whose recipe it is: somebody on the tree (20261019152700). */
   personId?: string | null;
 };
 

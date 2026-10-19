@@ -35,7 +35,7 @@ export type RecipeView = {
   origin: "own" | "edited" | "shipped";
   /** The page a recipe was read from (Save a recipe from a link). */
   sourceUrl: string | null;
-  /** Whose recipe it is: somebody on the tree (20261019150000). */
+  /** Whose recipe it is: somebody on the tree (20261019152700). */
   personId: string | null;
 };
 
@@ -146,7 +146,7 @@ export async function getRecipeBook(familyId: string): Promise<RecipeView[]> {
 }
 
 /** The household's recipes that name somebody on the tree, by person
- * (20261019150000), for their panel, profile and stories page. An empty map
+ * (20261019152700), for their panel, profile and stories page. An empty map
  * when the read fails: the recipes are an extra there, never the point. */
 export async function getRecipesByPerson(familyId: string): Promise<Map<string, PersonRecipe[]>> {
   const supabase = await createClient();
@@ -156,7 +156,7 @@ export async function getRecipesByPerson(familyId: string): Promise<Map<string, 
 }
 
 /** Everyone on the household's tree, by the name the household has for
- * them, for a recipe's "Whose recipe" (20261019150000). */
+ * them, for a recipe's "Whose recipe" (20261019152700). */
 export async function getRecipePeople(familyId: string): Promise<{ id: string; name: string }[]> {
   const supabase = await createClient();
   const [{ data: people }, { data: members }] = await Promise.all([

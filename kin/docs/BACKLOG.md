@@ -140,7 +140,7 @@ scanning wait for the AI key.
   is added; testing a long recording on a real iPhone.
 
 - **Done:** Family recipes on the tree (19 October, kin/recipes-on-the-tree,
-  20261019150000_recipe_tree_person): a recipe in the Meals book can say
+  20261019152700_recipe_tree_person): a recipe in the Meals book can say
   whose it is ("Whose recipe", anyone on the tree, a relative who has passed
   included), shown as "Lola Remedios's recipe" on it, and listed as "Lola's
   recipes" on their panel on the tree, their profile and their stories page,
