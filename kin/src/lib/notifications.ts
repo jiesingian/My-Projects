@@ -27,6 +27,9 @@ export const NOTIFICATION_DEFS = [
   // at Home, School or Work. Nobody is sent it unless someone is sharing.
   { key: "arrivals", name: "Arrivals", sub: "When someone arrives at a saved place" },
   { key: "week_ahead", name: "The week ahead", sub: "Sunday at 7pm: plans, bills and birthdays", grownUps: true },
+  // The 1st of the month, to grown-ups with Wealth (20261020001000): last
+  // month's money recap is ready. No amounts in the notification itself.
+  { key: "money_recap", name: "Monthly money recap", sub: "On the 1st: last month's spending, bills and savings", grownUps: true },
 ] as const;
 
 export type NotificationKey = (typeof NOTIFICATION_DEFS)[number]["key"];
