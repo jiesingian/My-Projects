@@ -2,12 +2,21 @@
 
 import { createContext, useCallback, useContext, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { createClient } from "@/lib/supabase/client";
+import type { RealtimeChannel, SupabaseClient } from "@supabase/supabase-js";
+import dynamic from "next/dynamic";
 import { Avatar } from "@/components/avatar";
 import { Icon, type IconName } from "@/components/icons";
 import { toast } from "@/components/toast";
-import { CallEffectsTray } from "@/components/call-effects-tray";
-import { EffectsPipeline, type BackgroundId, type FaceId, type FilterId, type HairColourId, type HairStyleId } from "@/lib/call-effects";
+import type { BackgroundId, EffectsPipeline, FaceId, FilterId, HairColourId, HairStyleId } from "@/lib/call-effects";
+
+// The effects tray and the pipeline behind it are only for a video call in
+// progress, so they load then -- not on every page this provider wraps,
+// which is every page (speed pass, 19 October).
+const CallEffectsTray = dynamic(() => import("@/components/call-effects-tray").then((m) => m.CallEffectsTray), { ssr: false });
+async function newPipeline(raw: MediaStreamTrack): Promise<EffectsPipeline> {
+  const { EffectsPipeline } = await import("@/lib/call-effects");
+  return new EffectsPipeline(raw);
+}
 import { initials } from "@/lib/format";
 import { callClock, endLine, ended, forThisDevice, onSignal, RING_SECONDS, type CallState, type EndReason, type Signal } from "@/lib/calls";
 import { iceServersAction, missedCallAction, ringAction } from "@/lib/actions/calls";
@@ -52,7 +61,7 @@ export function CallProvider({ familyId, me, members, children }: { familyId: st
 
   const stateRef = useRef<CallState>(call);
   const finishedCalls = useRef(new Set<string>());
-  const channel = useRef<ReturnType<ReturnType<typeof createClient>["channel"]> | null>(null);
+  const channel = useRef<RealtimeChannel | null>(null);
   const pc = useRef<RTCPeerConnection | null>(null);
   const local = useRef<MediaStream | null>(null);
   const remote = useRef<MediaStream | null>(null);
@@ -293,10 +302,16 @@ export function CallProvider({ familyId, me, members, children }: { familyId: st
   }, [handle]);
 
   useEffect(() => {
-    const supabase = createClient();
     let cancelled = false;
-    let ch: ReturnType<typeof supabase.channel> | null = null;
+    let supabase: SupabaseClient | null = null;
+    let ch: RealtimeChannel | null = null;
     void (async () => {
+      // Imported here rather than at the top: supabase-js is the largest
+      // thing this provider would otherwise put on every page's first load,
+      // and the call channel can open a moment after the page is usable.
+      const { createClient } = await import("@/lib/supabase/client");
+      if (cancelled) return;
+      supabase = createClient();
       // A private channel checks the member's login against the household's
       // policy (20260926090000_call_signalling.sql), so it needs the token.
       await supabase.realtime.setAuth().catch(() => {});
@@ -310,7 +325,7 @@ export function CallProvider({ familyId, me, members, children }: { familyId: st
     return () => {
       cancelled = true;
       channel.current = null;
-      if (ch) void supabase.removeChannel(ch);
+      if (ch && supabase) void supabase.removeChannel(ch);
     };
   }, [familyId]);
 
@@ -485,7 +500,8 @@ export function CallProvider({ familyId, me, members, children }: { familyId: st
       setFx({ filter, background });
       return;
     }
-    const pipe = (effects.current ??= new EffectsPipeline(raw));
+    if (!effects.current) effects.current = await newPipeline(raw);
+    const pipe = effects.current;
     setFxLoading(background !== "none");
     try {
       await pipe.set(filter, background, photo);
@@ -514,7 +530,8 @@ export function CallProvider({ familyId, me, members, children }: { familyId: st
       await effects.current?.setFace("none");
       return void applyEffects("none", "none", undefined, "none");
     }
-    const pipe = (effects.current ??= new EffectsPipeline(raw));
+    if (!effects.current) effects.current = await newPipeline(raw);
+    const pipe = effects.current;
     setFxLoading(next !== "none");
     try {
       await pipe.setFace(next);
@@ -533,7 +550,8 @@ export function CallProvider({ familyId, me, members, children }: { familyId: st
     const raw = local.current?.getVideoTracks()[0];
     if (!raw) return;
     let next = { style, colour };
-    const pipe = (effects.current ??= new EffectsPipeline(raw));
+    if (!effects.current) effects.current = await newPipeline(raw);
+    const pipe = effects.current;
     setFxLoading(style !== "none" || colour !== "none");
     try {
       await pipe.setHair(style, colour);
