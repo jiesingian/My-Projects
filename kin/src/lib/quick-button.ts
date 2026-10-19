@@ -16,13 +16,15 @@
  * setup guide in Settings walks them through adding.
  */
 
-export type QuickActionId = "open" | "ask" | "talk" | "family-chat" | "buy" | "expense" | "event" | "journal";
+export type QuickActionId = "open" | "ask" | "talk" | "family-chat" | "arrived" | "buy" | "expense" | "event" | "journal";
 
 export const QUICK_ACTIONS: { id: QuickActionId; name: string; path: string; kid: boolean }[] = [
   { id: "open", name: "Open Kin", path: "/today", kid: true },
   { id: "ask", name: "Chat with Kin", path: "/today?kin=chat", kid: false },
   { id: "talk", name: "Talk to Kin", path: "/today?kin=voice", kid: false },
   { id: "family-chat", name: "Family chat", path: "/chat", kid: true },
+  // One press tells the household where you are (lib/arrived.ts).
+  { id: "arrived", name: "Nakarating na ako", path: "/today?arrived=1", kid: true },
   { id: "buy", name: "Shopping list", path: "/household?seg=buy", kid: false },
   { id: "expense", name: "Add an expense", path: "/wealth/transact?mode=out", kid: false },
   { id: "event", name: "Add to the calendar", path: "/planner/add", kid: false },
