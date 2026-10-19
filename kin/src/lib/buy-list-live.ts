@@ -4,7 +4,7 @@ import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 
-/** The To-Buy list, live (20261019140000_buy_list_live_and_helper_push): any
+/** The To-Buy list, live (20261019141500_buy_list_live_and_helper_push): any
  * change to the household's list sends an empty nudge on the private topic
  * "buy-list:<household>", heard by its members and by its helpers who can
  * see the list. The nudge says nothing; the page reads the list again under

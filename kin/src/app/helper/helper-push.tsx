@@ -13,7 +13,7 @@ function keyBytes(b64: string): Uint8Array {
 
 type State = "unsupported" | "needs-install" | "blocked" | "off" | "on";
 
-/** "Tell me when the family adds to the list" (20261019140000): the helper's
+/** "Tell me when the family adds to the list" (20261019141500): the helper's
  * own choice, for this phone and this household. Shown only where it can
  * work -- a browser that can be told things, with Kin's notifications set
  * up -- and, on an iPhone, says to add Kin to the Home Screen first, as

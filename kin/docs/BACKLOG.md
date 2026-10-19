@@ -187,7 +187,7 @@ scanning wait for the AI key.
   on the open list, today's and tomorrow's meals, children's plans for those
   two days. Not a member; household_helpers + security-definer functions
   only (20261015121000). Removal ends access at once. Kin Free.
-  Follow-ups done 19 October (kin/helper-followups, 20261019140000): the
+  Follow-ups done 19 October (kin/helper-followups, 20261019141500): the
   helper's plans come from lib/activity-repeat.ts, as the Planner's do; the
   To-Buy list is live on both the family's and the helper's screen (an
   empty nudge on the private Realtime topic buy-list:<household>, sent by a
