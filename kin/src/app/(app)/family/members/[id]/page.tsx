@@ -126,6 +126,7 @@ export default async function MemberDetailPage({
   const moreLinks = [
     ...(grownUpView ? [{ label: "Health records", href: `/family/members/${member.id}?view=health`, icon: "activity" as const }] : []),
     ...(grownUpView ? [{ label: "Emergency card", href: `/family/members/${member.id}/emergency`, icon: "shieldCheck" as const }] : []),
+    ...((grownUpView || (isSelf && !inKidView(me))) ? [{ label: "Doctor-visit sheet", href: `/family/members/${member.id}/visit-sheet`, icon: "activity" as const }] : []),
     ...(cameFromTree ? [] : [{ label: "Show in the family tree", href: "/family?seg=tree", icon: "users" as const }]),
   ];
   // Remove used to sit in red on every row of the Family list; it lives here now.
@@ -318,6 +319,11 @@ export default async function MemberDetailPage({
         <Link href={`/family/members/${member.id}/emergency`} className="btn btn-secondary btn-block kin-care-sos">
           <Icon name="shieldCheck" size="1rem" /> Emergency card
         </Link>
+        {(grownUpView || isSelf) && (
+          <Link href={`/family/members/${member.id}/visit-sheet`} className="btn btn-secondary btn-block" style={{ marginTop: "0.5rem" }}>
+            <Icon name="fileText" size="1rem" /> Doctor-visit sheet
+          </Link>
+        )}
         <ChipRow items={segments} />
         <div style={{ marginTop: "1.125rem" }}>
           {seg === "schedule" && (

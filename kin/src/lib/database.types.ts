@@ -4872,6 +4872,58 @@ export type Database = {
           },
         ]
       }
+      health_visit_questions: {
+        Row: {
+          body: string
+          created_at: string
+          created_by: string | null
+          done: boolean
+          family_id: string
+          id: string
+          member_id: string
+        }
+        Insert: {
+          body: string
+          created_at?: string
+          created_by?: string | null
+          done?: boolean
+          family_id: string
+          id?: string
+          member_id: string
+        }
+        Update: {
+          body?: string
+          created_at?: string
+          created_by?: string | null
+          done?: boolean
+          family_id?: string
+          id?: string
+          member_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "health_visit_questions_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "members"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "health_visit_questions_family_id_fkey"
+            columns: ["family_id"]
+            isOneToOne: false
+            referencedRelation: "families"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "health_visit_questions_member_id_fkey"
+            columns: ["member_id"]
+            isOneToOne: false
+            referencedRelation: "members"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       health_vitals: {
         Row: {
           created_at: string
