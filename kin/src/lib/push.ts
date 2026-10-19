@@ -168,7 +168,7 @@ export async function sendTreeStoryPush(story: { id: string; personId: string; i
     console.error("Story push failed", err);
 =======
 /** "Added to the list: Itlog · by Ann", to the household's helpers who can
- * see the list and asked to be told (20261019141500). Helpers are not
+ * see the list and asked to be told (20261019212500). Helpers are not
  * members, so their phones live apart from push_subscriptions and
  * helper_push_targets() says which, only for a line the caller just added.
  * Same promises as sendPush: never throws, call in after(). */

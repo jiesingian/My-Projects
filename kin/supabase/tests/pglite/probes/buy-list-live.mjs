@@ -1,4 +1,4 @@
-// The To-Buy list, live, and the helper's push (20261019141500): one empty
+// The To-Buy list, live, and the helper's push (20261019212500): one empty
 // nudge per household per change, heard only by the household and its
 // helpers who can see the list; and a push to a helper who asked for one,
 // only for a line a member just added.
@@ -7,7 +7,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
-const MIGRATION = path.join(here, "..", "..", "..", "migrations", "20261019141500_buy_list_live_and_helper_push.sql");
+const MIGRATION = path.join(here, "..", "..", "..", "migrations", "20261019212500_buy_list_live_and_helper_push.sql");
 const U = (s) => `10000000-0000-0000-0000-0000000000${s}`;
 const M = (s) => `00000000-0000-0000-0000-0000000000${s}`;
 const A = "a0000000-0000-0000-0000-000000000000";

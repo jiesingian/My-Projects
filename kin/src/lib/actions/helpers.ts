@@ -124,7 +124,7 @@ export async function helperAddAction(familyId: string, name: string): Promise<R
 
 const UUID_SHAPE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
-/** "Tell me when the family adds to the list" (20261019141500), for this
+/** "Tell me when the family adds to the list" (20261019212500), for this
  * phone and this household. save_helper_push() checks the helper again. */
 export async function saveHelperPushAction(familyId: string, sub: { endpoint: string; keys: { p256dh: string; auth: string } }): Promise<Result> {
   if (!(await getSessionUser())) return { error: "Sign in again." };
