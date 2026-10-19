@@ -124,7 +124,23 @@ Plus at the database, so items 1 and 3 are for households that have it).
   money-recap-push.mjs; logic e2e/money-recap.logic.spec.ts; render
   e2e/money-recap.spec.ts.
 
-- **Not yet:** Doctor-visit sheet.
+- **Done:** Doctor-visit sheet (a person's Health -> Doctor-visit sheet,
+  /family/members/<id>/visit-sheet). One page for a check-up: allergies
+  (always, "None recorded" if empty), blood type, usual doctor, medicines
+  being taken now with dose and times, ongoing conditions, the latest of
+  each reading in 90 days with two before it (steps left off), illness log
+  entries from 60 days, lab results from 6 months, and for a child under 18
+  the vaccines given and due now (lib/vaccine-schedule.ts). The family's
+  questions to ask are kept per person (health_visit_questions): add, edit,
+  tick once asked, remove; an unasked one waits for the next visit. Share
+  sends it as text, Print prints it (controls and ticked questions left
+  off). Every row is read as the viewer, so a parents-only or private
+  record is on it only for someone allowed to see it. Grown-ups and the
+  person themself; another child is shown "For grown-ups"; kid view never
+  reaches it. Kin Free (medicines, readings and illness are Kin Plus data,
+  so on Free those sections are empty). Migration
+  20261020002000_visit_questions.sql; probe visit-questions.mjs; logic
+  e2e/visit-sheet.logic.spec.ts; render e2e/visit-sheet.spec.ts.
 
 ## Approved 19 October: three from the 14 October "What's Left" review (Jonathan)
 

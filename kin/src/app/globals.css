@@ -5656,9 +5656,31 @@ button.kin-initial:focus-visible {
   font: 600 1rem/1.3 var(--font-numeric);
   color: var(--color-accent-700);
 }
+/* ── Doctor-visit sheet (/family/members/<id>/visit-sheet) ───────────────────
+   One page to bring to a check-up. On screen a card; printed, plain black on
+   white with the editing controls and ticked questions left off. */
+.kin-visit-sheet { border: 1px solid var(--color-divider); background: var(--color-surface, var(--color-bg)); padding: 1rem; }
+.kin-visit-head h3 { font-size: 1.625rem; margin: 0.25rem 0 0.125rem; overflow-wrap: anywhere; }
+.kin-visit-sub { font-size: 0.8125rem; color: var(--color-neutral-600); }
+.kin-visit-section { margin-top: 0.875rem; padding-top: 0.625rem; border-top: 1px solid var(--color-divider); }
+.kin-visit-section h4 { font: 600 0.75rem/1.2 var(--font-heading); letter-spacing: .06em; text-transform: uppercase; margin: 0 0 0.375rem; }
+.kin-visit-section p, .kin-visit-section li { font-size: 0.9375rem; line-height: 1.45; margin: 0; }
+.kin-visit-section ul { margin: 0; padding-left: 1.125rem; }
+.kin-visit-section[data-alert] p { font-weight: 600; color: var(--color-accent-700); }
+.kin-visit-none { color: var(--color-neutral-600); }
+.kin-visit-questions { list-style: none; padding-left: 0 !important; }
+.kin-visit-questions li { display: flex; gap: 0.375rem; align-items: center; padding: 0.25rem 0; }
+.kin-visit-questions li[data-done] { color: var(--color-neutral-600); }
+
 @media print {
   .kin-tabbar, .kin-fab, nav, .btn, header { display: none !important; }
   .kin-sos { break-inside: avoid; }
+  /* The sheet's own header is an <header> too; keep it. */
+  .kin-visit-sheet header.kin-visit-head { display: block !important; }
+  .kin-visit-sheet { border: 0; padding: 0; background: #fff; color: #000; }
+  .kin-visit-section { break-inside: avoid; }
+  .kin-print-hide, .kin-visit-questions li[data-done] { display: none !important; }
+  .kin-visit-questions li { display: list-item; list-style: disc; margin-left: 1.125rem; }
 }
 
 /* ── Large text on a narrow phone ─────────────────────────────────────────
