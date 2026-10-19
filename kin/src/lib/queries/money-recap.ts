@@ -3,6 +3,7 @@ import { getAccounts } from "@/lib/queries/wealth";
 import { familyDay, familyMidnight } from "@/lib/time";
 import { inTotalsScope, paidFromVisibleFilter } from "@/lib/wealth";
 import { buildRecap, monthBefore, type Recap, type RecapTxn } from "@/lib/money-recap";
+import { allRows } from "@/lib/queries/all-rows";
 
 /** One month's money recap, read as the viewer: accounts row-level security
  * lets them see, the same All view as Wealth's (their own private accounts
@@ -20,14 +21,19 @@ export async function getMoneyRecap(me: { id: string; family_id: string; wealth_
   const leaveOut = me.wealth_include_private === false ? me.id : null;
   const counted = new Set(accounts.filter((a) => inTotalsScope(a, "all", leaveOut)).map((a) => a.id));
 
-  const [{ data: txns }, { data: period }, { data: bills }, { data: goals }, { data: snapshots }] = await Promise.all([
-    supabase
-      .from("wealth_transactions")
-      .select("account_id, direction, amount, category, goal_id, occurred_at")
-      .eq("family_id", me.family_id)
-      .eq("status", "confirmed")
-      .gte("occurred_at", from.toISOString())
-      .lt("occurred_at", to.toISOString()),
+  const [txns, { data: period }, { data: bills }, { data: goals }, { data: snapshots }] = await Promise.all([
+    // Two months of movements: one imported statement can pass 1000 rows.
+    allRows((a, b) =>
+      supabase
+        .from("wealth_transactions")
+        .select("account_id, direction, amount, category, goal_id, occurred_at")
+        .eq("family_id", me.family_id)
+        .eq("status", "confirmed")
+        .gte("occurred_at", from.toISOString())
+        .lt("occurred_at", to.toISOString())
+        .order("id")
+        .range(a, b),
+    ),
     supabase.from("budget_periods").select("budget_allocations(category, amount)").eq("family_id", me.family_id).eq("period_year", y).eq("period_month", m).maybeSingle(),
     supabase
       .from("bills")
@@ -40,7 +46,7 @@ export async function getMoneyRecap(me: { id: string; family_id: string; wealth_
     supabase.from("net_worth_snapshots").select("month, net_worth").eq("viewer_member_id", me.id).eq("scope", "all").in("month", [`${month}-01`, `${prev}-01`]),
   ]);
 
-  const rows = (txns ?? []).filter((t) => counted.has(t.account_id));
+  const rows = txns.filter((t) => counted.has(t.account_id));
   const recapTxns: RecapTxn[] = rows.map((t) => ({
     month: familyDay(new Date(t.occurred_at), tz).slice(0, 7),
     direction: t.direction === "in" ? "in" : "out",
