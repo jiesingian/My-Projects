@@ -24,7 +24,7 @@ export const LIST_ADD_MAX_CHARS = 500;
 export type ListAddItem = { name: string; quantity: number | null; unit: string | null; section: string };
 
 // "Add …", "We need …", "Pabili ng …": the asking, not the thing.
-const LEAD = /^(?:(?:please|pls|hey kin|kin)[,\s]+)?(?:(?:can you|could you)\s+)?(?:add|buy|get|grab|pick up|we need|i need|need|we(?:'re| are) out of|out of|pabili(?:\s+ng)?|bili(?:\s+ng)?)\s+/i;
+const LEAD = /^(?:(?:please|pls|hey kin|kin)[,\s]+)?(?:(?:can you|could you)\s+)?(?:add|buy|get|grab|pick up|we need|i need|need|we(?:'re| are) out of|out of|pabili(?:\s+po)?(?:\s+ng)?|bili(?:\s+po)?(?:\s+ng)?)\s+/i;
 // "… to the list", "… to Kin", "… sa listahan".
 const TAIL = /(?:^|\s+)(?:(?:to|on|onto)\s+(?:the\s+|my\s+|our\s+)?(?:shopping\s+|grocery\s+)?(?:list|kin)|sa\s+(?:listahan|lista))$/i;
 // Where one thing ends and the next begins. "&" and "+" only with spaces
@@ -34,8 +34,10 @@ const NUMBER_WORDS: Record<string, number> = {
   one: 1, two: 2, three: 3, four: 4, five: 5, six: 6, seven: 7, eight: 8, nine: 9, ten: 10, eleven: 11, twelve: 12,
 };
 
-/** One spoken piece as an item, or null when nothing is left of it. */
-function readPiece(piece: string): ListAddItem | null {
+/** One piece as an item, or null when nothing is left of it. Also how each
+ * line of the chat's To-buy sheet is read once a person has edited it, so
+ * "itlog 12" typed there lands as 12 itlog. */
+export function readListLine(piece: string): ListAddItem | null {
   let text = piece
     .replace(/^(?:and|at|also|then|saka|tsaka)\s+/i, "")
     .replace(/[.!?]+$/g, "")
@@ -60,19 +62,25 @@ function readPiece(piece: string): ListAddItem | null {
   return { name, quantity, unit: quantity === null ? null : read.unit, section: guessSection(name) };
 }
 
-/** What was said, as items: duplicates (by name) kept once, and at most
- * LIST_ADD_MAX_ITEMS of them. `extra` is how many more there were. */
-export function readSpokenList(spoken: string): { items: ListAddItem[]; extra: number } {
-  const text = spoken
+/** The pieces of one line: the asking and the "… to the list" taken off,
+ * then split where one thing ends and the next begins. */
+function piecesOf(line: string): string[] {
+  return line
     .replace(/\s+/g, " ")
     .trim()
     .replace(/[.!?]+$/g, "")
     .replace(LEAD, "")
-    .replace(TAIL, "");
+    .replace(TAIL, "")
+    .split(SPLIT);
+}
+
+/** Pieces as items: duplicates (by name) kept once, and at most
+ * LIST_ADD_MAX_ITEMS of them. `extra` is how many more there were. */
+function itemsOf(pieces: string[]): { items: ListAddItem[]; extra: number } {
   const items: ListAddItem[] = [];
   const seen = new Set<string>();
-  for (const piece of text.split(SPLIT)) {
-    const item = readPiece(piece);
+  for (const piece of pieces) {
+    const item = readListLine(piece);
     if (!item) continue;
     const key = item.name.toLowerCase();
     if (seen.has(key)) continue;
@@ -80,6 +88,38 @@ export function readSpokenList(spoken: string): { items: ListAddItem[]; extra: n
     items.push(item);
   }
   return { items: items.slice(0, LIST_ADD_MAX_ITEMS), extra: Math.max(0, items.length - LIST_ADD_MAX_ITEMS) };
+}
+
+/** What was said, as items. */
+export function readSpokenList(spoken: string): { items: ListAddItem[]; extra: number } {
+  return itemsOf(piecesOf(spoken));
+}
+
+/** A chat message, as things for the To-Buy list: "pabili ng gatas at itlog"
+ * is gatas and itlog. The same rules as a spoken list, plus what writing has
+ * and speech doesn't: each new line is its own thing (or its own "pabili ng
+ * …"), and a pasted list's bullets, numbering and closing "pls" or "po" are
+ * not part of the thing. The chat shows the result for a quick edit before
+ * anything is added, which is what makes rules, not AI, good enough here. */
+export function readWrittenList(text: string): { items: ListAddItem[]; extra: number } {
+  const pieces = text
+    .split(/\r?\n/)
+    .map((line) =>
+      line
+        // "- milk", "• eggs", "3. bread", "1) rice".
+        .replace(/^\s*(?:[-*•·]+\s*|\d+[.)]\s+)/, "")
+        .replace(/[\s.!?]+$/, "")
+        .replace(/\s+(?:pls|please|po)$/i, ""),
+    )
+    .flatMap(piecesOf);
+  return itemsOf(pieces);
+}
+
+/** An item as one editable line that reads back the same: "Rice 2 kg",
+ * "Eggs 12", "Gatas". */
+export function itemLine(item: Pick<ListAddItem, "name" | "quantity" | "unit">): string {
+  if (item.quantity === null) return item.name;
+  return `${item.name} ${item.quantity}${item.unit ? ` ${item.unit}` : ""}`;
 }
 
 // Units as they are said, one and many: the iPhone reads "pc" as "P C".

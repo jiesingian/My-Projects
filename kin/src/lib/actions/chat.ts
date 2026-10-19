@@ -7,7 +7,8 @@ import { sendPush } from "@/lib/push";
 import { requireCurrentMember } from "@/lib/session";
 import type { ActionState } from "@/lib/actions/auth";
 import { humanDatabaseError } from "@/lib/db-errors";
-import { isReaction, splitShoppingItems, firstUrl, type LinkPreview } from "@/lib/chat";
+import { isReaction, firstUrl, type LinkPreview } from "@/lib/chat";
+import { readListLine, LIST_ADD_MAX_ITEMS } from "@/lib/list-add";
 import { fetchLinkPreview } from "@/lib/link-preview";
 import { mediaSummary } from "@/lib/chat-media";
 import { addBuyItemAction } from "@/lib/actions/household";
@@ -276,42 +277,36 @@ export async function unpinMessageAction(): Promise<ActionState> {
   return { error: null };
 }
 
-/** "We need milk, eggs and bread" onto the Buy list as three items, from the
- * message itself.
- *
- * Read from the database rather than taken from the client: the text has to
- * be a message this household can actually see, which is row-level security's
- * job, not a string somebody posted to this endpoint. Each item then goes
- * through addBuyItemAction -- the same path the Buy list's own form uses -- so
- * it gets the same length rule and the same aisle guess, and there is one way
- * an item reaches the list rather than two that could drift.
- */
-export async function addMessageToBuyListAction(messageId: string): Promise<ActionState & { added?: string[] }> {
-  const me = await requireCurrentMember();
-  const supabase = await createClient();
-
-  const { data: message } = await supabase
-    .from("family_messages")
-    .select("body, deleted_at")
-    .eq("id", messageId)
-    .eq("family_id", me.family_id)
-    .maybeSingle();
-  if (!message || message.deleted_at) return { error: "That message isn't there any more." };
-
-  const items = splitShoppingItems(message.body);
-  if (items.length === 0) return { error: "There's nothing in that message to put on the list." };
+/** A message's things onto the To-Buy list, after the person has looked at
+ * them: the chat reads "pabili ng gatas at itlog" into lines
+ * (readWrittenList), shows them for a quick edit, and sends back what was
+ * kept. The lines are what the person confirmed, not the message, so they
+ * are read again here by the same rules (readListLine) rather than trusted,
+ * and each goes through addBuyItemAction -- the same path the Buy list's own
+ * form uses -- so there is one way an item reaches the list. */
+export async function addLinesToBuyListAction(lines: unknown): Promise<ActionState & { added?: string[] }> {
+  await requireCurrentMember();
+  if (!Array.isArray(lines)) return { error: "There's nothing to add." };
+  const items = lines
+    .filter((l): l is string => typeof l === "string")
+    .map((l) => readListLine(l.slice(0, 200)))
+    .filter((i): i is NonNullable<typeof i> => i !== null)
+    .slice(0, LIST_ADD_MAX_ITEMS);
+  if (items.length === 0) return { error: "There's nothing to add." };
 
   const added: string[] = [];
-  for (const name of items) {
+  for (const item of items) {
     const form = new FormData();
-    form.set("name", name);
+    form.set("name", item.name);
+    if (item.quantity !== null) form.set("quantity", String(item.quantity));
+    if (item.unit) form.set("unit", item.unit);
     const result = await addBuyItemAction({ error: null }, form);
     if (result.error) {
       return added.length
-        ? { error: `Added ${added.join(", ")}, then stopped at "${name}": ${result.error}`, added }
+        ? { error: `Added ${added.join(", ")}, then stopped at "${item.name}": ${result.error}`, added }
         : { error: result.error };
     }
-    added.push(name);
+    added.push(item.name);
   }
   return { error: null, added };
 }

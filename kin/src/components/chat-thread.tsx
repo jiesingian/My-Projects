@@ -1,6 +1,7 @@
 "use client";
 
 import { ForwardSheet } from "@/components/forward-sheet";
+import { ToBuySheet } from "@/components/to-buy-sheet";
 import { ScheduleMessage } from "@/components/schedule-message";
 import { AlbumPrompt } from "@/components/album-prompt";
 import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from "react";
@@ -21,14 +22,14 @@ import {
   markChatReadAction,
   pinMessageAction,
   unpinMessageAction,
-  addMessageToBuyListAction,
   searchChatAction,
   sendPollAction,
   votePollAction,
   type ChatSearchHit,
 } from "@/lib/actions/chat";
 import type { ChatMember, ChatMessage, ChatPin } from "@/lib/queries/chat";
-import { REACTIONS, amountIn, splitShoppingItems, firstUrl } from "@/lib/chat";
+import { REACTIONS, amountIn, firstUrl } from "@/lib/chat";
+import { readWrittenList, itemLine } from "@/lib/list-add";
 import { toast } from "@/components/toast";
 import { CONFLICT_MESSAGE, recordingIsSilent, rememberTranscriptConflict, startTranscript } from "@/lib/voice-note";
 import { ChatMediaView, MediaPicker } from "@/components/chat-media";
@@ -180,6 +181,7 @@ export function ChatThread({
   const [editing, setEditing] = useState<{ id: string; body: string } | null>(null);
   const [replyingTo, setReplyingTo] = useState<ChatMessage | null>(null);
   const [forwarding, setForwarding] = useState<ChatMessage | null>(null);
+  const [toBuy, setToBuy] = useState<string[] | null>(null);
   /** Files picked and not yet sent, with a local preview for the images. */
   const [picked, setPicked] = useState<{ file: File; preview: string | null; transcript?: string }[]>([]);
   const [albumFor, setAlbumFor] = useState<string[] | null>(null);
@@ -666,6 +668,7 @@ export function ChatThread({
         }
         onClose={() => setForwarding(null)}
       />
+      <ToBuySheet lines={toBuy} onClose={() => setToBuy(null)} />
       <div className="kin-chatsearch">
         {searching ? (
           <>
@@ -1023,7 +1026,8 @@ export function ChatThread({
 
                     {/* The part a generic messenger cannot have: a message is
                         usually about something, and here that something has a
-                        home. Shopping goes straight onto the list; the rest
+                        home. Shopping is read into things and shown for a
+                        quick edit before it goes on the list; the rest
                         open their own form filled in, since a date, an amount
                         or an account is exactly what a message does not
                         reliably contain. */}
@@ -1036,26 +1040,16 @@ export function ChatThread({
                         <Link className="chip" href={handoffs(m, author?.label ?? (mine ? "you" : "someone")).event}>
                           <Icon name="calendarDays" size="0.875rem" /> Event
                         </Link>
-                        {splitShoppingItems(m.body).length > 0 && (
+                        {readWrittenList(m.body).items.length > 0 && (
                           <button
                             type="button"
                             className="chip"
                             onClick={() => {
                               setOpenFor(null);
-                              startTransition(async () => {
-                                const result = await addMessageToBuyListAction(m.id);
-                                if (result.error) toast.error(result.error);
-                                else if (result.added?.length) {
-                                  toast.success(
-                                    result.added.length === 1
-                                      ? `Added ${result.added[0]} to the Buy list.`
-                                      : `Added ${result.added.length} things to the Buy list: ${result.added.join(", ")}.`,
-                                  );
-                                }
-                              });
+                              setToBuy(readWrittenList(m.body).items.map(itemLine));
                             }}
                           >
-                            <Icon name="basket" size="0.875rem" /> Buy list
+                            <Icon name="basket" size="0.875rem" /> To buy
                           </button>
                         )}
                         <Link className="chip" href={handoffs(m, author?.label ?? (mine ? "you" : "someone")).expense}>
