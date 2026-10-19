@@ -105,7 +105,24 @@ Plus at the database, so items 1 and 3 are for households that have it).
   to the other household yet. Migration 20261019153000_shared_costs.sql;
   probe shared-costs.mjs; logic e2e/shared-costs.logic.spec.ts.
 
-- **Not yet:** Monthly money recap (rule-based, the 1st).
+- **Done:** Monthly money recap (Wealth -> Cash flow -> Monthly recap,
+  /wealth/recap?month=YYYY-MM; grown-ups). Rule-based, no AI
+  (lib/money-recap.ts): spent against budget by category (over flagged),
+  the biggest changes from the month before (at least P500 and a fifth,
+  three at most), bills that fell due (on time, late, not paid), what went
+  into each savings goal, and net worth from the viewer's own monthly
+  snapshots (shown only when both months have one). Transfers are not
+  spending; money into a goal is savings; a sinking fund's payment is
+  spending. Read in the viewer's own session: only accounts they can see,
+  their own private ones left out if they chose that for All; bills paid
+  from an account they cannot see are left out. On the 1st from 08:00
+  (household zone) each grown-up of a household with Wealth that recorded
+  money that month gets a push naming the month only -- no amounts, since
+  the sender reads every account -- that opens the page; Settings ->
+  Notifications -> Monthly money recap turns it off. Migration
+  20261020001000_money_recap_push.sql (due_money_recap_reminders); probe
+  money-recap-push.mjs; logic e2e/money-recap.logic.spec.ts; render
+  e2e/money-recap.spec.ts.
 
 - **Not yet:** Doctor-visit sheet.
 

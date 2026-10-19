@@ -8113,6 +8113,10 @@ export type Database = {
         Args: never
         Returns: { event_id: string; family_id: string; household_name: string; title: string; kind: string; years: number | null; is_ours: boolean }[]
       }
+      due_money_recap_reminders: {
+        Args: { p_secret: string; p_now?: string }
+        Returns: { key: string; member_id: string; endpoint: string; p256dh: string; auth: string; title: string; body: string; url: string }[]
+      }
       due_week_ahead_reminders: {
         Args: { p_secret: string; p_now?: string }
         Returns: { key: string; member_id: string; endpoint: string; p256dh: string; auth: string; title: string; body: string; url: string }[]

@@ -578,6 +578,19 @@ async function CashFlowPane({ familyId, memberId, currency, range, scope, grownU
 
       <SectionLabel>BILLS</SectionLabel>
       <CashFlowSources sources={cf.sources} currency={currency} />
+      {/* Last month in one page, for the grown-ups (19 October): the same
+          page the push on the 1st opens. */}
+      {grownUp && (
+        <Link
+          href="/wealth/recap"
+          style={{ display: "flex", alignItems: "center", gap: "0.5rem", padding: "0.75rem 0", fontSize: "0.875rem", color: "inherit", textDecoration: "none", borderBottom: "1px solid color-mix(in srgb, var(--color-text) 10%, transparent)" }}
+        >
+          <Icon name="calendarDays" size={18} />
+          <span style={{ flex: 1 }}>Monthly recap: last month against its budget</span>
+          <span aria-hidden="true" style={{ color: "var(--color-neutral-600)" }}>›</span>
+        </Link>
+      )}
+
       {/* Everything that repeats -- monthly, quarterly, yearly -- and what it
           all comes to in a year, built from these same bills. */}
       <Link

@@ -21,7 +21,7 @@ export async function POST(request: Request) {
   const supabase = createClient<Database>(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!, {
     auth: { persistSession: false, autoRefreshToken: false },
   });
-  const [main, pantry, trial, week, promises, scheduled, billsAhead, letters, rsvps, missed, refills, vault, remembrance] = await Promise.all([
+  const [main, pantry, trial, week, promises, scheduled, billsAhead, letters, rsvps, missed, refills, vault, remembrance, recap] = await Promise.all([
     supabase.rpc("due_reminders", { p_secret: secret }),
     // What is running low, once a day from 09:00 (20260928100000).
     supabase.rpc("due_pantry_reminders", { p_secret: secret }),
@@ -59,6 +59,10 @@ export async function POST(request: Request) {
     // from 09:00, three days before Undas and on each one's 40th day, first
     // year and anniversaries, unless the household turned it off.
     supabase.rpc("due_remembrance_reminders", { p_secret: secret }),
+    // The grown-ups, on the 1st from 08:00: last month's money recap is
+    // ready. Names the month only; the figures are on the page, read in
+    // each grown-up's own session (20261020001000).
+    supabase.rpc("due_money_recap_reminders", { p_secret: secret }),
   ]);
   if (main.error) {
     console.error("Reminders: due_reminders failed", main.error.message);
@@ -76,7 +80,8 @@ export async function POST(request: Request) {
   if (refills.error) console.error("Reminders: due_refill_reminders failed", refills.error.message);
   if (vault.error) console.error("Reminders: due_vault_emergency_reminders failed", vault.error.message);
   if (remembrance.error) console.error("Reminders: due_remembrance_reminders failed", remembrance.error.message);
-  const due = [...(main.data ?? []), ...(pantry.data ?? []), ...(trial.data ?? []), ...(week.data ?? []), ...(promises.data ?? []), ...(scheduled.data ?? []), ...(billsAhead.data ?? []), ...(letters.data ?? []), ...(rsvps.data ?? []), ...(missed.data ?? []), ...(refills.data ?? []), ...(vault.data ?? []), ...(remembrance.data ?? [])];
+  if (recap.error) console.error("Reminders: due_money_recap_reminders failed", recap.error.message);
+  const due = [...(main.data ?? []), ...(pantry.data ?? []), ...(trial.data ?? []), ...(week.data ?? []), ...(promises.data ?? []), ...(scheduled.data ?? []), ...(billsAhead.data ?? []), ...(letters.data ?? []), ...(rsvps.data ?? []), ...(missed.data ?? []), ...(refills.data ?? []), ...(vault.data ?? []), ...(remembrance.data ?? []), ...(recap.data ?? [])];
 
   vapidReady();
   // One payload per reminder, sent to all of its devices together through the
