@@ -90,6 +90,7 @@ const MIGRATIONS = [
   "20261019120000_statement_import.sql",
   "20261019140000_this_weeks_fk_indexes.sql",
   "20261019152700_recipe_tree_person.sql",
+  "20261019153000_shared_costs.sql",
 ];
 
 const only = process.argv[2];

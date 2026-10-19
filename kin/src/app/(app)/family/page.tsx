@@ -175,6 +175,20 @@ async function ProfilePane({ familyId, isOrganiser, myRole }: { familyId: string
         </Blueprint>
       </Link>
 
+      {/* Siblings sharing a parent's costs across linked households
+          (19 October). Grown-ups only, as the pots themselves are. */}
+      {isGrownUp(myRole) && (
+        <Link href="/family/shared-costs" style={{ textDecoration: "none", color: "inherit", display: "block", marginTop: "0.625rem" }}>
+          <Blueprint style={{ padding: "0.8125rem 0.875rem", display: "flex", alignItems: "center", gap: "0.75rem" }}>
+            <Icon name="wallet" size={18} />
+            <span style={{ flex: 1, minWidth: 0 }}>
+              <span style={{ font: "600 0.9375rem/1.1 var(--font-heading)", display: "block" }}>Shared costs</span>
+              <span style={{ fontSize: "0.78125rem", color: "var(--color-neutral-600)" }}>Split a parent&apos;s costs with a linked household, and see who owes whom</span>
+            </span>
+          </Blueprint>
+        </Link>
+      )}
+
       {/* A child arrives long after the household is set up — a baby, or one
           who was simply missed. This used to live only in onboarding, a page
           nobody can return to, so the only apparent way to add a daughter was
