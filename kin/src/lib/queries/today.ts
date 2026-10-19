@@ -9,6 +9,7 @@ import { isForMe, taggedFrom, whoseFor, type Whose } from "@/lib/for-me";
 import { DEFAULT_BILL_REMIND_DAYS } from "@/lib/wealth";
 import { occurrenceStarts } from "@/lib/activity-repeat";
 import { remembranceItems, type Departed } from "@/lib/remembrance";
+import { getRelativesPotlucks } from "@/lib/queries/potluck";
 
 /** Tasks that start in [fromISO, …), or repeating ones that have not ended
  * by `fromDay` -- a weekly task's later days are on its rule, not its row
@@ -386,7 +387,7 @@ export async function getComingUp(familyId: string, currency: string, me: Viewer
   const dayIndex = new Map<string, number>();
   for (let i = 1; i <= 7; i++) dayIndex.set(addDays(today, i).slice(5), i);
 
-  const [events, bills, health, tasks, meals, departed] = await Promise.all([
+  const [events, bills, health, tasks, meals, departed, potlucks] = await Promise.all([
     supabase
       .from("events")
       .select("id, title, kind, event_date, recurs_yearly, applies_to_whole_family, event_members(member_id, members(role))")
@@ -425,9 +426,19 @@ export async function getComingUp(familyId: string, currency: string, me: Viewer
       .eq("family_id", familyId)
       .eq("plan_date", tomorrow),
     departedOnTree(supabase, familyId),
+    getRelativesPotlucks(),
   ]);
 
   const items: BriefItem[] = [];
+
+  // A linked household's potluck this week that still needs things
+  // (20261019140000): the family's, like a whole-family plan.
+  for (const p of potlucks) {
+    const inDays = Math.round((Date.parse(p.eventDate) - Date.parse(today)) / 86_400_000);
+    if (inDays < 0 || inDays > 7 || p.openItems === 0) continue;
+    const on = inDays === 0 ? "today" : inDays === 1 ? "tomorrow" : `on ${weekdayOf(p.eventDate)}`;
+    items.push({ id: `soon-potluck-${p.eventId}`, icon: "bowl", tint: "occasion", title: p.title, meta: `${p.hostName} household, ${on} · who brings what? ${p.openItems} still needed`, href: `/planner/potluck/${p.eventId}`, at: Math.max(inDays, 0.5), whose: "family", memberIds: [] });
+  }
 
   // Undas ahead (time for candles and flowers) and each remembered relative's
   // day this week; the family's, like a whole-family plan.

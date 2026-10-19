@@ -2306,6 +2306,7 @@ export type Database = {
           packed_count: number
           packed_total: number
           photo_storage_path: string | null
+          potluck_relatives: boolean
           recurs_yearly: boolean
           storage_provider: string
           sub_note: string | null
@@ -2329,6 +2330,7 @@ export type Database = {
           packed_count?: number
           packed_total?: number
           photo_storage_path?: string | null
+          potluck_relatives?: boolean
           recurs_yearly?: boolean
           storage_provider?: string
           sub_note?: string | null
@@ -2352,6 +2354,7 @@ export type Database = {
           packed_count?: number
           packed_total?: number
           photo_storage_path?: string | null
+          potluck_relatives?: boolean
           recurs_yearly?: boolean
           storage_provider?: string
           sub_note?: string | null
@@ -4068,6 +4071,136 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "event_comments_member_id_fkey"
+            columns: ["member_id"]
+            isOneToOne: false
+            referencedRelation: "members"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      potluck_items: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          event_id: string
+          family_id: string
+          id: string
+          label: string
+          position: number
+          wanted: number
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          event_id: string
+          family_id: string
+          id?: string
+          label: string
+          position?: number
+          wanted?: number
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          event_id?: string
+          family_id?: string
+          id?: string
+          label?: string
+          position?: number
+          wanted?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "potluck_items_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "members"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "potluck_items_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "potluck_items_family_id_fkey"
+            columns: ["family_id"]
+            isOneToOne: false
+            referencedRelation: "families"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      potluck_claims: {
+        Row: {
+          created_at: string
+          event_family_id: string
+          event_id: string
+          family_id: string
+          household_name: string
+          id: string
+          item_id: string
+          member_id: string
+          member_name: string
+          qty: number
+        }
+        Insert: {
+          created_at?: string
+          event_family_id: string
+          event_id: string
+          family_id: string
+          household_name?: string
+          id?: string
+          item_id: string
+          member_id: string
+          member_name?: string
+          qty?: number
+        }
+        Update: {
+          created_at?: string
+          event_family_id?: string
+          event_id?: string
+          family_id?: string
+          household_name?: string
+          id?: string
+          item_id?: string
+          member_id?: string
+          member_name?: string
+          qty?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "potluck_claims_event_family_id_fkey"
+            columns: ["event_family_id"]
+            isOneToOne: false
+            referencedRelation: "families"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "potluck_claims_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "potluck_claims_family_id_fkey"
+            columns: ["family_id"]
+            isOneToOne: false
+            referencedRelation: "families"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "potluck_claims_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "potluck_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "potluck_claims_member_id_fkey"
             columns: ["member_id"]
             isOneToOne: false
             referencedRelation: "members"
@@ -7348,6 +7481,18 @@ export type Database = {
       due_rsvp_reminders: {
         Args: { p_secret: string; p_now?: string }
         Returns: { key: string; member_id: string; endpoint: string; p256dh: string; auth: string; title: string; body: string; url: string }[]
+      }
+      potluck_event: {
+        Args: { p_event: string }
+        Returns: { event_id: string; title: string; event_date: string; end_date: string | null; host_family_id: string; host_name: string; mine: boolean; relatives: boolean; open: boolean }[]
+      }
+      relatives_potlucks: {
+        Args: never
+        Returns: { event_id: string; title: string; event_date: string; host_name: string; items: number; open_items: number }[]
+      }
+      potluck_visible: {
+        Args: { p_event: string }
+        Returns: boolean
       }
       due_remembrance_reminders: {
         Args: { p_secret: string; p_now?: string }

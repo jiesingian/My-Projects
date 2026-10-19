@@ -22,7 +22,20 @@ the potluck, the monito-monita draw, and the Christmas gift list.
   sharing). Migration 20261019131000_remembrance_undas.sql. Not checked: the
   push on a real phone; a relative who is also a Kin member (their tree
   entry follows their profile, so it takes no date of passing).
-- Potluck sign-up on an event (who brings what).
+- **Done:** Potluck: who brings what, on an event (Kin Free). On a one-off
+  event's screen, under Who's coming and above the thread: the household
+  (not a child in kid view) lists what is needed in one box ("Pancit x2",
+  up to 50 of a thing, 60 things); anyone who sees it taps "I'll bring it"
+  and + / - for how many, never past what is wanted (the database locks the
+  item, so two people can't take the last tray). A grown-up ticks "Ask
+  linked households too": linked households then see the list and the
+  event's name, date and host only (potluck_event), from a card on their
+  Planner's Events and a Coming up line the week of it, and claim in their
+  own name (names travel on the claim). Closed once the event is over;
+  yearly events take none. The host's grown-ups may take a claim off.
+  Migration 20261019140000_event_potluck.sql. No push yet: a claim tells
+  nobody (the thread does that job). Not checked: two households on real
+  phones.
 - Monito-monita draw across the household and linked households.
 - Christmas gift and aguinaldo list.
 

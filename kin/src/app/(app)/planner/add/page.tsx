@@ -10,6 +10,9 @@ import { EventPhotos } from "@/components/event-photos";
 import { getSignedUrls } from "@/lib/storage";
 import { EventRsvp } from "@/components/event-rsvp";
 import { EventThread, type EventComment } from "@/components/event-thread";
+import { EventPotluck } from "@/components/event-potluck";
+import { getPotluck, type Potluck } from "@/lib/queries/potluck";
+import { isGrownUp } from "@/lib/roles";
 import { askedMembers, canAnswerFor, eventTakesRsvps, rsvpOpen, summarizeRsvps, type RsvpAnswer } from "@/lib/event-rsvp";
 import { householdZone } from "@/lib/household-zone";
 import { familyDay } from "@/lib/time";
@@ -108,6 +111,9 @@ export default async function AddPlannerPage({
     }));
   }
 
+  // Who brings what (20261019140000_event_potluck.sql): one-off events only.
+  const potluck: Potluck | null = editEvent && !editEvent.recurs_yearly ? await getPotluck(editEvent.id, me) : null;
+
   return (
     <>
     <AddPlannerForm
@@ -130,6 +136,21 @@ export default async function AddPlannerPage({
           WHO&apos;S COMING
         </div>
         <EventRsvp {...rsvp} />
+      </div>
+    )}
+    {potluck && (
+      <div id="potluck" style={{ padding: "0 var(--gutter) 1.25rem" }}>
+        <div className="kin-eyebrow" style={{ marginBottom: "0.5rem" }}>
+          WHO BRINGS WHAT
+        </div>
+        <EventPotluck
+          eventId={potluck.eventId}
+          lines={potluck.lines}
+          open={potluck.open}
+          canList={!inKidView(me)}
+          canAskRelatives={isGrownUp(me.role)}
+          relatives={potluck.relatives}
+        />
       </div>
     )}
     {editEvent && (

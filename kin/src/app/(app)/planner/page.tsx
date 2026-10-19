@@ -27,6 +27,7 @@ import { Blueprint, Tag } from "@/components/ui";
 import { shortNames, selfLabel } from "@/lib/format";
 import { AddToJournalButton } from "@/components/add-to-journal-button";
 import { Icon } from "@/components/icons";
+import { getRelativesPotlucks } from "@/lib/queries/potluck";
 import { CALENDAR_LEGEND, styleFor } from "@/lib/calendar-style";
 import { parseHidden, serializeHidden, toggledHidden, type CalendarGroup } from "@/lib/calendar-groups";
 import { addDays, familyClock, familyDateLong, familyDay } from "@/lib/time";
@@ -1033,7 +1034,7 @@ async function EventsPane({ familyId, who, when }: { familyId: string; who: stri
   const fmtDate = await familyDate();
   const today = familyDay(new Date(), await householdZone());
   const supabase = await createClient();
-  const [allEvents, members, { data: photoRows }, { data: journalled }, { data: rsvpRows }, { data: commentRows }] = await Promise.all([
+  const [allEvents, members, { data: photoRows }, { data: journalled }, { data: rsvpRows }, { data: commentRows }, relativesPotlucks] = await Promise.all([
     getEvents(familyId),
     getMembers(familyId),
     supabase.from("event_photos").select("event_id").eq("family_id", familyId),
@@ -1044,6 +1045,8 @@ async function EventsPane({ familyId, who, when }: { familyId: string; who: stri
     supabase.from("event_rsvps").select("event_id, member_id, answer").eq("family_id", familyId),
     // The thread on each event (20261014100000), counted per row.
     supabase.from("event_comments").select("event_id").eq("family_id", familyId),
+    // Linked households' potlucks this household is asked to (20261019140000).
+    getRelativesPotlucks(),
   ]);
   const commentCount = new Map<string, number>();
   for (const r of commentRows ?? []) commentCount.set(r.event_id, (commentCount.get(r.event_id) ?? 0) + 1);
@@ -1189,6 +1192,20 @@ async function EventsPane({ familyId, who, when }: { familyId: string; who: stri
           }))}
         />
       </MemberChips>
+      {/* Relatives asking who brings what: their event's name, date and list
+          only (potluck_event), opened on its own page. */}
+      {when === "upcoming" &&
+        relativesPotlucks.map((p) => (
+          <Link key={p.eventId} href={`/planner/potluck/${p.eventId}`} className="kin-potluck-invite">
+            <Icon name="bowl" size={18} />
+            <span style={{ flex: 1, minWidth: 0 }}>
+              <span style={{ display: "block", fontWeight: 600 }}>{p.title}</span>
+              <span style={{ display: "block", fontSize: "0.8125rem", color: "var(--color-neutral-600)" }}>
+                {fmtDate(p.eventDate)} · {p.hostName} household · {p.openItems > 0 ? `${p.openItems} of ${p.items} still needed` : "all covered"}
+              </span>
+            </span>
+          </Link>
+        ))}
       {rows.length === 0 && (
         <p style={{ fontSize: "0.84375rem", color: "var(--color-neutral-600)" }}>
           {allEvents.length === 0 ? "Nothing planned yet." : visible.length === 0 ? "Nothing planned for this person." : empty[when]}
