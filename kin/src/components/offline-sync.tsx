@@ -5,6 +5,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { toast } from "@/components/toast";
 import { refreshSnapshot, replayQueue, describeSync } from "@/lib/offline/sync";
 import { getSnapshot } from "@/lib/offline/store";
+import { offlineLine } from "@/lib/offline/rules";
 
 /** Keeps offline Kin current while the app is online, and says so when it
  * is not (mounted once, in the app layout).
@@ -14,10 +15,9 @@ import { getSnapshot } from "@/lib/offline/store";
  * returning to the app, at most every three minutes. Offline, on a live page: a calm line at the top,
  * with the way to the saved copy. On Today, the shopping list and the
  * household chat it says what waits for a connection (lib/offline/live
- * queues it); anywhere else, that changes there won't save. */
+ * queues it); on the Planner and a member's page, that chores and medicine
+ * ticks wait (19 October); anywhere else, that changes there won't save. */
 
-/** The live pages that queue their changes offline. */
-const QUEUES_HERE = /^\/(today|household|chat\/household)$/;
 
 const REFRESH_EVERY_MS = 3 * 60_000;
 /** How long a page is open, and visible, before the snapshot is refreshed. */
@@ -110,9 +110,7 @@ export function OfflineSync({ userId }: { userId: string }) {
   return (
     <div className="kin-offline-bar" role="status">
       <span>
-        {QUEUES_HERE.test(pathname)
-          ? "Offline — Done, ticks, new items and messages wait here and send when you’re back."
-          : "Offline — changes on this screen won’t save."}
+        {offlineLine(pathname)}
       </span>
       <a
         href="/offline"

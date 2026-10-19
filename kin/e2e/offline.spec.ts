@@ -198,12 +198,14 @@ test.describe("offline Kin", () => {
       await page.waitForTimeout(1500);
       await page.reload();
       await waitForOfflineReady(page);
-      const card = page.locator(".blueprint, div").filter({ hasText: title }).filter({ has: page.getByRole("button", { name: "Done" }) }).last();
-      await expect(card).toBeVisible();
+      // The chore's own Done: the one in the row its title heads.
+      const done = page.locator("div").filter({ has: page.getByText(title, { exact: true }) }).getByRole("button", { name: "Done", exact: true }).last();
+      await expect(done).toBeVisible();
 
       await context.setOffline(true);
-      await card.getByRole("button", { name: "Done" }).click();
-      await expect(card.getByText("waiting to send")).toBeVisible();
+      await expect(page.getByText("chores and medicine ticks wait here")).toBeVisible();
+      await done.click();
+      await expect(page.getByText("Done today · waiting to send")).toBeVisible();
       await expect(page).toHaveURL(/\/planner/);
       await shot(page, "10-planner-chore-offline");
 

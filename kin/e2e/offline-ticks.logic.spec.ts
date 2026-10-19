@@ -1,5 +1,5 @@
 import { test, expect } from "@playwright/test";
-import { choreAnswerVerdict, choreLogVerdict, doseVerdict, toggleTarget } from "@/lib/offline/rules";
+import { choreAnswerVerdict, choreLogVerdict, doseVerdict, offlineLine, toggleTarget } from "@/lib/offline/rules";
 
 /** Offline ticks for medicines and chores (19 October): who wins when a
  * change made with no signal meets what happened in the meantime. The same
@@ -47,4 +47,14 @@ test("a second tick on the same dose or item replaces the first in the queue", (
   expect(toggleTarget({ kind: "buy.toggle", itemId: "i1" })).toBe("buy|i1");
   // A chore answered for two days is two changes, not one.
   expect(toggleTarget({ kind: "chore.log" })).toBeNull();
+});
+
+test("the offline line says what waits, page by page", () => {
+  expect(offlineLine("/today")).toMatch(/wait here/);
+  expect(offlineLine("/chat/household")).toMatch(/wait here/);
+  // Chores and doses queue there now; nothing else on those pages does.
+  expect(offlineLine("/planner")).toMatch(/chores and medicine ticks wait here.*Other changes won’t save/);
+  expect(offlineLine("/family/members/6f1c2b9e-0000-4000-a000-000000000001")).toMatch(/medicine ticks wait here/);
+  expect(offlineLine("/wealth")).toBe("Offline — changes on this screen won’t save.");
+  expect(offlineLine("/planner/alkansya/x")).toBe("Offline — changes on this screen won’t save.");
 });

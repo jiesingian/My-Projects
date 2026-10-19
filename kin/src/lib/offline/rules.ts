@@ -49,3 +49,11 @@ export function toggleTarget(op: { kind: string; itemId?: string; medicineId?: s
   if (op.kind === "dose.set") return `dose|${op.medicineId}|${op.day}|${op.time}`;
   return null;
 }
+
+/** What the offline line at the top of a live page says, by page. */
+export function offlineLine(pathname: string): string {
+  if (/^\/(today|household|chat\/household)$/.test(pathname)) return "Offline — Done, ticks, new items and messages wait here and send when you’re back.";
+  // Chores and approvals on the Planner; a member's medicine doses.
+  if (/^\/planner$/.test(pathname) || /^\/family\/members\/[^/]+$/.test(pathname)) return "Offline — chores and medicine ticks wait here and send when you’re back. Other changes won’t save.";
+  return "Offline — changes on this screen won’t save.";
+}
