@@ -56,7 +56,7 @@ export default async function TodayPage({ searchParams }: { searchParams: Promis
   // The Action Button's "Nakarating na ako" (/go/arrived) sends on arrival.
   const arrivedNow = params.arrived === "1";
   if (inKidView(me)) return <KidToday me={me} arrivedNow={arrivedNow} />;
-  if (inSimpleMode(me)) return <SimpleToday me={me} />;
+  if (inSimpleMode(me)) return <SimpleToday me={me} arrivedNow={arrivedNow} />;
   // Settings -> Show me around replays the guided tour.
   const replayTour = params.tour === "1";
 
