@@ -167,6 +167,9 @@ export function yearKey(date: Date | string): string {
 }
 
 export function dayKey(date: Date | string): string {
+  // A plain date is already its own key. Parsed, "2026-09-09" is midnight UTC,
+  // which local getters west of UTC read as the 8th (19 October).
+  if (typeof date === "string" && /^\d{4}-\d{2}-\d{2}$/.test(date)) return date;
   const d = typeof date === "string" ? new Date(date) : date;
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 }

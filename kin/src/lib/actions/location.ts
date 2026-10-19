@@ -10,6 +10,8 @@ import { after } from "next/server";
 import { sendPush } from "@/lib/push";
 import { placeAt, arrivalAt, PAUSE_HOURS, type SavedPlace } from "@/lib/location-places";
 import { familyClock, familyDay, familyInstant, addDays } from "@/lib/time";
+import { arrivedMessage, isRealPosition } from "@/lib/arrived";
+import { markChatReadAction } from "@/lib/actions/chat";
 
 /** Sharing where you are is the person's own decision, so the only member
  * anybody can switch on is themselves -- with one exception, which is a
@@ -194,4 +196,32 @@ export async function removePlaceAction(placeId: string): Promise<ActionState> {
   if (!data?.length) return { error: "Only a grown-up can remove places." };
   revalidatePath("/family");
   return { error: null };
+}
+
+/** "Nakarating na ako" (lib/arrived.ts): one reading, taken at the tap, read
+ * against the saved places and sent to the household as a family chat
+ * message plus an arrival push. The position goes no further than the
+ * message: nothing is written to member_locations, so it works whether or
+ * not this person shares where they are, and leaves no trail. */
+export async function arrivedAction(lat: number, lng: number, accuracyM: number | null): Promise<ActionState & { sent?: string }> {
+  const me = await requireCurrentMember();
+  if (!isRealPosition(lat, lng)) return { error: "That reading didn't look like a real position." };
+  const accuracy = accuracyM !== null && Number.isFinite(accuracyM) && accuracyM >= 0 ? accuracyM : null;
+
+  const supabase = await createClient();
+  const { data: placeRows } = await supabase.from("household_places").select("id, name, lat, lng, radius_m, notify").eq("family_id", me.family_id);
+  const places: SavedPlace[] = (placeRows ?? []).map((p) => ({ id: p.id, name: p.name, lat: p.lat, lng: p.lng, radiusM: p.radius_m, notify: p.notify }));
+  const first = me.full_name.split(" ")[0];
+  const message = arrivedMessage({ first, lat, lng, accuracyM: accuracy, places, at: new Date(), tz: me.families.time_zone });
+
+  const { error } = await supabase.from("family_messages").insert({ family_id: me.family_id, member_id: me.id, body: message.body, mentions: [] });
+  if (error) return { error: humanDatabaseError(error.message) };
+  // Your own words are never waiting for you to read them.
+  await markChatReadAction();
+
+  // Arrivals, not chat: it is the notice somebody waiting for "nakarating
+  // na" turned on, and one push rather than two.
+  after(() => sendPush({ kind: "arrivals", title: message.title, body: message.body, url: "/chat/household", tag: `arrived-${me.id}` }));
+  revalidatePath("/chat", "layout");
+  return { error: null, sent: message.body };
 }

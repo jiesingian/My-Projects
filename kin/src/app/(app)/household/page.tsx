@@ -19,7 +19,7 @@ import { RecipeBook, AddIngredientsToBuyButton } from "@/components/recipe-book"
 import { CookFromPantry } from "@/components/cook-from-pantry";
 import { rankByPantry } from "@/lib/pantry-match";
 import { createClient } from "@/lib/supabase/server";
-import { getRecipeBook, getRecipeCategories } from "@/lib/queries/recipes";
+import { getRecipeBook, getRecipeCategories, getRecipePeople } from "@/lib/queries/recipes";
 import { AddMealControl, RemoveMealButton } from "@/components/meal-controls";
 import { CalendarJump, TodayButton } from "@/components/calendar-nav";
 import { MealPhotoControl, IngredientAmountRow, AddIngredientRow } from "@/components/meal-day";
@@ -28,7 +28,9 @@ import { PRICE_BOOK_SET_ON } from "@/lib/pricebook";
 import { plateTone } from "@/lib/meal-photos";
 import { MEAL_SLOTS, MEAL_SLOT_LABEL } from "@/lib/recipes";
 import { MARKET_SECTIONS } from "@/lib/grocery";
-import { toISODate } from "@/lib/routines";
+import { parseISODate, toISODate } from "@/lib/routines";
+import { householdZone } from "@/lib/household-zone";
+import { addDays, familyDay } from "@/lib/time";
 import { ZoomableImage } from "@/components/zoomable-image";
 
 const SEGMENTS = ["buy", "meals"] as const;
@@ -36,12 +38,16 @@ type Seg = (typeof SEGMENTS)[number];
 
 const SEGMENT_LABEL: Record<Seg, string> = { buy: "To-buy", meals: "Meals" };
 
-export default async function HouseholdPage({ searchParams }: { searchParams: Promise<{ seg?: string; date?: string; who?: string; add?: string }> }) {
+export default async function HouseholdPage({ searchParams }: { searchParams: Promise<{ seg?: string; date?: string; who?: string; add?: string; recipe?: string }> }) {
   const me = await getCurrentMember();
   if (!me) redirect("/onboarding/profile");
   const sp = await searchParams;
   const seg: Seg = (SEGMENTS as readonly string[]).includes(sp.seg ?? "") ? (sp.seg as Seg) : "buy";
-  const anchor = sp.date ? new Date(`${sp.date}T00:00:00`) : new Date();
+  // A day of the Meals tab, held as a local midnight the way lib/routines
+  // counts days, and seeded from the household's own day: today where the
+  // household is, not where the server is (docs/KNOWN_RISKS.md).
+  const tz = await householdZone();
+  const anchor = parseISODate(sp.date && addDays(sp.date, 0) === sp.date ? sp.date : familyDay(new Date(), tz));
 
   const segments = SEGMENTS.map((s) => ({ label: SEGMENT_LABEL[s], href: `/household?seg=${s}`, active: s === seg }));
 
@@ -52,7 +58,7 @@ export default async function HouseholdPage({ searchParams }: { searchParams: Pr
         {seg === "buy" && (
           <BuyPane familyId={me.family_id} memberId={me.id} canEditCards={isGrownUp(me.role)} currency={me.families.currency} startAdding={sp.add === "1"} />
         )}
-        {seg === "meals" && <MealsPane familyId={me.family_id} currency={me.families.currency} anchor={anchor} who={sp.who ?? "all"} />}
+        {seg === "meals" && <MealsPane familyId={me.family_id} currency={me.families.currency} anchor={anchor} who={sp.who ?? "all"} openRecipe={sp.recipe ?? null} />}
       </div>
     </div>
   );
@@ -196,20 +202,25 @@ async function MealsPane({
   currency,
   anchor,
   who,
+  openRecipe,
 }: {
   familyId: string;
   currency: string;
   anchor: Date;
   who: string;
+  /** A recipe to open the book at: a link from somebody's panel on the tree. */
+  openRecipe: string | null;
 }) {
   const supabase = await createClient();
-  const [{ meals: allMeals, anchorISO }, recipes, categories, memberRows, { data: pantryRows }] = await Promise.all([
+  const [{ meals: allMeals, anchorISO }, recipes, categories, memberRows, { data: pantryRows }, recipePeople] = await Promise.all([
     getMealsForDay(familyId, anchor),
     getRecipeBook(familyId),
     getRecipeCategories(familyId),
     getMembers(familyId),
     supabase.from("pantry_items").select("item_key").eq("family_id", familyId),
+    getRecipePeople(familyId),
   ]);
+  const opening = openRecipe && recipes.some((r) => r.id === openRecipe) ? openRecipe : null;
   const suggestions = rankByPantry(recipes, new Set((pantryRows ?? []).map((p) => p.item_key))).map((m) => ({
     key: m.recipe.key,
     name: m.recipe.name,
@@ -226,7 +237,7 @@ async function MealsPane({
   // selected. That is the "shared by the family" case from the request, and
   // it is why filtering is an OR rather than an equality.
   const meals = who === "all" ? allMeals : allMeals.filter((m) => m.memberIds.length === 0 || m.memberIds.includes(who));
-  const today = new Date();
+  const today = parseISODate(familyDay(new Date(), await householdZone()));
   const isToday = anchor.toDateString() === today.toDateString();
   // The title names the day itself, since the day is all this page shows.
   // The year only when it isn't this one — it is noise the rest of the time.
@@ -262,8 +273,9 @@ async function MealsPane({
           icon="utensils"
           className="btn btn-secondary"
           style={{ minHeight: "2.125rem", fontSize: "0.8125rem", padding: "0 0.625rem", gap: "0.3125rem" }}
+          defaultOpen={!!opening}
         >
-          <RecipeBook recipes={recipes} categories={categories} />
+          <RecipeBook recipes={recipes} categories={categories} people={recipePeople} openId={opening} />
         </SheetButton>
         <TodayButton hrefBase={MEALS_HREF_BASE} />
       </div>

@@ -1,6 +1,7 @@
 "use client";
 
 import { useId, useState, useTransition } from "react";
+import { whoseRecipeLabel } from "@/lib/recipe-person";
 import { useRouter } from "next/navigation";
 import {
   saveRecipeAction,
@@ -51,7 +52,12 @@ export type EditableRecipe = {
   origin: "own" | "edited" | "shipped";
   /** The page it was read from (Save a recipe from a link). */
   sourceUrl?: string | null;
+  /** Whose recipe it is: somebody on the tree (20261019152700). */
+  personId?: string | null;
 };
+
+/** Somebody on the household's tree a recipe can be named for. */
+export type RecipePerson = { id: string; name: string };
 
 /** "panlasangpinoy.com" from a recipe's link, for the line that credits it. */
 function hostOf(url: string): string {
@@ -72,11 +78,24 @@ const ORIGIN_LABEL: Record<EditableRecipe["origin"], string> = {
  * Editing one Kin ships saves the household's version, which stands in for it
  * from then on — the shipped library is never mutated, so it stays
  * upgradeable. */
-export function RecipeBook({ recipes, categories: known }: { recipes: EditableRecipe[]; categories: CategoryView[] }) {
+export function RecipeBook({
+  recipes,
+  categories: known,
+  people = [],
+  openId = null,
+}: {
+  recipes: EditableRecipe[];
+  categories: CategoryView[];
+  /** Everyone on the tree, for "Whose recipe". */
+  people?: RecipePerson[];
+  /** A recipe to open at, from a link on somebody's panel. */
+  openId?: string | null;
+}) {
   const [editing, setEditing] = useState<EditableRecipe | null>(null);
   const [creating, setCreating] = useState(false);
   // The recipe opened to read or cook from, by id so a refresh keeps it current.
-  const [viewingId, setViewingId] = useState<string | null>(null);
+  const [viewingId, setViewingId] = useState<string | null>(openId);
+  const nameOf = (id: string | null | undefined) => (id ? (people.find((p) => p.id === id)?.name ?? null) : null);
   // Save a recipe from a link: the box is open, and what was read from it.
   const [linking, setLinking] = useState(false);
   const [draft, setDraft] = useState<RecipeDraft | null>(null);
@@ -90,6 +109,7 @@ export function RecipeBook({ recipes, categories: known }: { recipes: EditableRe
         recipe={editing}
         draft={editing ? null : draft}
         known={known}
+        people={people}
         onDone={() => {
           setEditing(null);
           setCreating(false);
@@ -105,6 +125,7 @@ export function RecipeBook({ recipes, categories: known }: { recipes: EditableRe
       <RecipeDetail
         key={viewing.id}
         recipe={viewing}
+        whose={whoseRecipeLabel(nameOf(viewing.personId))}
         onBack={() => setViewingId(null)}
         onEdit={() => {
           setViewingId(null);
@@ -453,7 +474,7 @@ function RecipeRow({ recipe: r, onOpen, onEdit }: { recipe: EditableRecipe; onOp
 /** One recipe to read and cook from: the ingredients at however many people
  * are eating, the steps, and the way into cook mode. The servings stepper is
  * a view; the recipe keeps its own `serves` until someone edits it. */
-function RecipeDetail({ recipe: r, onBack, onEdit }: { recipe: EditableRecipe; onBack: () => void; onEdit: () => void }) {
+function RecipeDetail({ recipe: r, whose, onBack, onEdit }: { recipe: EditableRecipe; whose: string; onBack: () => void; onEdit: () => void }) {
   const serves = r.serves > 0 ? r.serves : 4;
   const [servings, setServings] = useState(serves);
   const [cooking, setCooking] = useState(false);
@@ -472,6 +493,7 @@ function RecipeDetail({ recipe: r, onBack, onEdit }: { recipe: EditableRecipe; o
         </button>
       </div>
 
+      {whose && <p style={{ font: "500 0.875rem/1.3 var(--font-heading)", color: "var(--color-accent-700)", margin: "0 0 0.375rem" }}>{whose}</p>}
       {r.minutes ? <p style={{ fontSize: "0.8125rem", color: "var(--color-neutral-600)", margin: "0 0 0.75rem" }}>About {r.minutes} min</p> : null}
 
       {steps.length > 0 && (
@@ -524,7 +546,19 @@ function RecipeDetail({ recipe: r, onBack, onEdit }: { recipe: EditableRecipe; o
   );
 }
 
-function RecipeEditor({ recipe, draft, known, onDone }: { recipe: EditableRecipe | null; draft?: RecipeDraft | null; known: CategoryView[]; onDone: () => void }) {
+function RecipeEditor({
+  recipe,
+  draft,
+  known,
+  people,
+  onDone,
+}: {
+  recipe: EditableRecipe | null;
+  draft?: RecipeDraft | null;
+  known: CategoryView[];
+  people: RecipePerson[];
+  onDone: () => void;
+}) {
   const uid = useId();
   const { pending, error, run } = useAct();
   // A new recipe read from a link starts from what the page said.
@@ -540,6 +574,8 @@ function RecipeEditor({ recipe, draft, known, onDone }: { recipe: EditableRecipe
     return rows.length > 0 ? rows : [{ name: "", qty: "", unit: "pc", section: "Other" }];
   });
   const sourceUrl = recipe ? (recipe.sourceUrl ?? null) : (draft?.sourceUrl ?? null);
+  // A name kept for someone since taken off the tree reads as nobody's.
+  const [personId, setPersonId] = useState(recipe?.personId && people.some((p) => p.id === recipe.personId) ? recipe.personId : "");
 
   const setIng = (idx: number, patch: Partial<(typeof ingredients)[number]>) =>
     setIngredients((prev) => prev.map((row, i) => (i === idx ? { ...row, ...patch } : row)));
@@ -669,6 +705,23 @@ function RecipeEditor({ recipe, draft, known, onDone }: { recipe: EditableRecipe
         <Icon name="plus" size={13} /> Add ingredient
       </button>
 
+      {people.length > 0 && (
+        <div className="field" style={{ marginBottom: "0.875rem" }}>
+          <label htmlFor={`${uid}-whose`}>Whose recipe</label>
+          <select id={`${uid}-whose`} className="input" value={personId} onChange={(e) => setPersonId(e.target.value)} style={{ minHeight: "2.75rem" }}>
+            <option value="">Nobody in particular</option>
+            {people.map((p) => (
+              <option key={p.id} value={p.id}>
+                {p.name}
+              </option>
+            ))}
+          </select>
+          <p style={{ fontSize: "0.75rem", color: "var(--color-neutral-600)", margin: "0.25rem 0 0" }}>
+            Lola&rsquo;s adobo: it shows with them on the tree, even if they have passed.
+          </p>
+        </div>
+      )}
+
       <div className="field" style={{ marginBottom: "0.875rem" }}>
         <label htmlFor={`${uid}-steps`}>How to cook it — one step per line</label>
         <textarea id={`${uid}-steps`} aria-label="How To Cook It — One Step Per Line" className="input" value={steps} onChange={(e) => setSteps(e.target.value)} maxLength={8000} rows={5} />
@@ -693,6 +746,7 @@ function RecipeEditor({ recipe, draft, known, onDone }: { recipe: EditableRecipe
                 steps: steps.split("\n"),
                 // Only a new recipe from a link sets it; an edit leaves it.
                 sourceUrl: !recipe && sourceUrl ? sourceUrl : undefined,
+                treePersonId: people.length > 0 ? personId || null : undefined,
                 ingredients: ingredients.map((i) => ({
                   name: i.name,
                   qty: i.qty === "" ? null : Number(i.qty),

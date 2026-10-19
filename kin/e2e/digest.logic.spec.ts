@@ -3,7 +3,7 @@ import { nextWeekFor } from "@/lib/digest";
 import type { PlannerCalendarItem } from "@/lib/queries/planner";
 
 const item = (id: string, over: Partial<PlannerCalendarItem>): PlannerCalendarItem => ({
-  id, table: "activities", date: new Date("2026-10-05T09:00:00"), allDay: false, title: id, location: null, who: "", memberIds: [], appliesToAll: false, href: "/planner", ...over,
+  id, table: "activities", day: "2026-10-05", date: new Date("2026-10-05T01:00:00Z"), allDay: false, title: id, location: null, who: "", memberIds: [], appliesToAll: false, href: "/planner", ...over,
 });
 const roles: Record<string, string> = { mum: "parent", dad: "adult", lia: "child_self" };
 const roleOf = (id: string) => roles[id];
