@@ -115,6 +115,8 @@ export default async function PointsHistoryPage({
                 name={
                   e.kind === "reward"
                     ? "gift"
+                    : e.kind === "alkansya"
+                      ? "wallet"
                     : e.kind === "streak"
                       ? "sparkle"
                       : e.kind === "goal"

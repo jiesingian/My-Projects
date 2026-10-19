@@ -5,7 +5,7 @@ import { Fragment } from "react";
 import { redirect } from "next/navigation";
 import { after } from "next/server";
 import { getCurrentMember } from "@/lib/session";
-import { isGrownUp } from "@/lib/roles";
+import { isChild, isGrownUp } from "@/lib/roles";
 import { memberColourVar } from "@/lib/member-colours";
 import { RewardsShelf } from "@/components/rewards-shelf";
 import {
@@ -817,6 +817,18 @@ async function RoutinesPane({ familyId, who, currency, justSaved, done }: { fami
         canManage={isGrownUp(me?.role ?? "")}
         streakBonus={isGrownUp(me?.role ?? "") ? bonusOn(bonusRates, familyDay()) : undefined}
       />
+
+      {/* Baon and the jars the points can be changed into (20261019100000).
+          A grown-up sees every child's; a child goes to their own. */}
+      {me && (isGrownUp(me.role) || isChild(me.role)) && (
+        <Link
+          href={isGrownUp(me.role) ? "/planner/alkansya" : `/planner/alkansya/${me.id}`}
+          className="btn btn-secondary"
+          style={{ minHeight: "2.25rem", fontSize: "0.8125rem", padding: "0 0.75rem", gap: "0.375rem", marginBottom: "1.125rem" }}
+        >
+          <Icon name="wallet" size={15} /> Alkansya · baon, gastos, ipon, bigay
+        </Link>
+      )}
 
       <OneOffTasks tasks={oneOffs} />
 

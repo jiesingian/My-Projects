@@ -109,6 +109,30 @@ Four free items, each its own pull request.
 - **Not yet:** Password health in the Vault: reused, weak and breached
   (Have I Been Pwned range API, k-anonymity) after unlocking.
 
+## Agreed 19 October: leaders' features for a Filipino family (Jonathan)
+
+From the 14 October "What's Left" review. Three items, each its own pull
+request, in this order.
+
+- **Done:** Allowance and alkansya, in pesos (Kids, Kin Free). A grown-up
+  sets a child's weekly baon and its day, a split into gastos / ipon /
+  bigay (default 70/20/10), what a chore point is worth in pesos, and an
+  interest rate on ipon. The baon pays itself on its day (written by
+  alkansya_pay_allowances() before the jars are read, up to twelve weeks
+  caught up, never back pay before the plan existed or while paused).
+  "Change points" turns points into pesos split the same way; those points
+  are spent like a reward. Grown-ups add money, record spending (gastos or
+  ipon) and giving (bigay), add interest, and take a line off; a jar never
+  goes below nothing. A child sees their own alkansya (kid view's Today and
+  /planner/alkansya/<them>) and no sibling's, and writes nothing. Says on
+  screen that it is a record of cash at home and moves no real money.
+  Migration 20261019100000_alkansya.sql; probe alkansya.mjs; logic
+  e2e/alkansya.logic.spec.ts.
+
+- Utang and paluwagan ledger (Wealth, Kin Plus).
+
+- Import a statement (Wealth, Kin Plus).
+
 ## Agreed 13 October: first open (Jonathan)
 
 Why: not everyone who opens Kin came by referral or is sure they want it.

@@ -8,6 +8,7 @@ import { FREE_AI_PER_MONTH } from "@/lib/access";
 export const FREE_FEATURES: string[] = [
   "Family calendar, planner and Google Calendar sync",
   "Chores, stars, rewards and kid view",
+  "Weekly baon and the alkansya: gastos, ipon, bigay",
   "Shopping list, pantry and meal plans",
   "Family chat, polls, voice and video calls",
   "Journal and photos, 1 GB",

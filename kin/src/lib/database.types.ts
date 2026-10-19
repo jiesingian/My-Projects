@@ -512,6 +512,143 @@ export type Database = {
         }
         Relationships: []
       }
+      alkansya_entries: {
+        Row: {
+          amount: number
+          created_at: string
+          family_id: string
+          id: string
+          jar: string
+          kind: string
+          member_id: string
+          note: string | null
+          occurred_on: string
+          points: number
+          recorded_by: string | null
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          family_id: string
+          id?: string
+          jar: string
+          kind: string
+          member_id: string
+          note?: string | null
+          occurred_on?: string
+          points?: number
+          recorded_by?: string | null
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          family_id?: string
+          id?: string
+          jar?: string
+          kind?: string
+          member_id?: string
+          note?: string | null
+          occurred_on?: string
+          points?: number
+          recorded_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "alkansya_entries_family_id_fkey"
+            columns: ["family_id"]
+            isOneToOne: false
+            referencedRelation: "families"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "alkansya_entries_member_id_fkey"
+            columns: ["member_id"]
+            isOneToOne: false
+            referencedRelation: "members"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "alkansya_entries_recorded_by_fkey"
+            columns: ["recorded_by"]
+            isOneToOne: false
+            referencedRelation: "members"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      alkansya_plans: {
+        Row: {
+          active: boolean
+          bigay_pct: number
+          created_at: string
+          created_by: string | null
+          family_id: string
+          gastos_pct: number
+          interest_pct: number
+          ipon_pct: number
+          member_id: string
+          paid_through: string | null
+          pay_weekday: number
+          peso_per_point: number
+          updated_at: string
+          weekly_amount: number
+        }
+        Insert: {
+          active?: boolean
+          bigay_pct?: number
+          created_at?: string
+          created_by?: string | null
+          family_id: string
+          gastos_pct?: number
+          interest_pct?: number
+          ipon_pct?: number
+          member_id: string
+          paid_through?: string | null
+          pay_weekday?: number
+          peso_per_point?: number
+          updated_at?: string
+          weekly_amount?: number
+        }
+        Update: {
+          active?: boolean
+          bigay_pct?: number
+          created_at?: string
+          created_by?: string | null
+          family_id?: string
+          gastos_pct?: number
+          interest_pct?: number
+          ipon_pct?: number
+          member_id?: string
+          paid_through?: string | null
+          pay_weekday?: number
+          peso_per_point?: number
+          updated_at?: string
+          weekly_amount?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "alkansya_plans_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "members"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "alkansya_plans_family_id_fkey"
+            columns: ["family_id"]
+            isOneToOne: false
+            referencedRelation: "families"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "alkansya_plans_member_id_fkey"
+            columns: ["member_id"]
+            isOneToOne: true
+            referencedRelation: "members"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       accounts: {
         Row: {
           account_type: string
@@ -6693,6 +6830,12 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      alkansya_pay_allowances: { Args: never; Returns: number }
+      alkansya_points_used: {
+        Args: never
+        Returns: { member_id: string; points: number }[]
+      }
+      is_child_of_my_household: { Args: { p_member: string }; Returns: boolean }
       can_add_tree_stories: {
         Args: never
         Returns: boolean

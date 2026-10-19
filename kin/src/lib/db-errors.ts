@@ -39,6 +39,12 @@ const RULES: Rule[] = [
     text: "That's part of Kin Plus. Everything already here stays yours to read — see Settings → Your plan to add more.",
   },
   {
+    // P0001 -- raised by alkansya_entries_not_overdrawn (20261019100000)
+    // when money taken out of a jar is more than it holds.
+    match: /alkansya_not_enough/i,
+    text: "There isn't that much in the jar.",
+  },
+  {
     // 23505 -- duplicate key value violates unique constraint "..."
     match: /duplicate key value violates unique constraint/i,
     text: "That looks like something you already have — check the list before adding it again.",
