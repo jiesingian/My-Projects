@@ -238,7 +238,7 @@ export function RoutineOccurrences({
   // Days answered with no signal, waiting to send, drop out of "unanswered".
   const queued = useQueuedChore(routineId);
   const overdue = overdueAll.filter((d) => !queued.has(d));
-  const choices = [...overdue, ...upcoming];
+  const choices = [...overdue, ...upcoming.filter((d) => !queued.has(d))];
 
   return (
     <div>
