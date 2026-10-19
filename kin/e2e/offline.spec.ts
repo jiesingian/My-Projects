@@ -179,6 +179,44 @@ test.describe("offline Kin", () => {
     }
   });
 
+  test("a chore done on the Planner offline is saved once on reconnect", async ({ page, context }) => {
+    test.setTimeout(180_000);
+    const qa = await restAsQa();
+    test.skip(!qa, "Supabase values are not set; skipping.");
+    const run = Date.now().toString(36);
+    const title = `Offline chore ${run}`;
+    const [me] = await (await qa!.ctx.get(`${qa!.url}/rest/v1/members?select=id,family_id&auth_user_id=not.is.null&limit=1`, { headers: qa!.headers })).json();
+    const today = new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Manila" }).format(new Date());
+    const made = await qa!.ctx.post(`${qa!.url}/rest/v1/routines`, {
+      headers: { ...qa!.headers, "Content-Type": "application/json", Prefer: "return=representation" },
+      data: { family_id: me.family_id, title, freq: "daily", start_date: today },
+    });
+    expect(made.ok(), await made.text()).toBeTruthy();
+    const [routine] = await made.json();
+    try {
+      await page.goto("/planner?seg=routines");
+      await page.waitForTimeout(1500);
+      await page.reload();
+      await waitForOfflineReady(page);
+      const card = page.locator(".blueprint, div").filter({ hasText: title }).filter({ has: page.getByRole("button", { name: "Done" }) }).last();
+      await expect(card).toBeVisible();
+
+      await context.setOffline(true);
+      await card.getByRole("button", { name: "Done" }).click();
+      await expect(card.getByText("waiting to send")).toBeVisible();
+      await expect(page).toHaveURL(/\/planner/);
+      await shot(page, "10-planner-chore-offline");
+
+      await context.setOffline(false);
+      await expect(page.getByText(/Back online · 1 change saved/)).toBeVisible({ timeout: 30_000 });
+      const logs = await (await qa!.ctx.get(`${qa!.url}/rest/v1/routine_log?select=status&routine_id=eq.${routine.id}`, { headers: qa!.headers })).json();
+      expect(logs).toEqual([{ status: "done" }]);
+    } finally {
+      // Tidy the throwaway household: this test's chore and its log.
+      await qa!.ctx.delete(`${qa!.url}/rest/v1/routines?id=eq.${routine.id}`, { headers: qa!.headers });
+    }
+  });
+
   test("a reply with an @tag written offline keeps both when it sends", async ({ page, context }) => {
     test.setTimeout(180_000);
     const qa = await restAsQa();

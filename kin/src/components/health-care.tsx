@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import { newOpId, sendOrQueue, useQueue } from "@/lib/offline/live";
 import { useRouter } from "next/navigation";
 import { Icon } from "@/components/icons";
 import { toast } from "@/components/toast";
@@ -37,11 +38,13 @@ import { markVaccineGivenAction } from "@/lib/actions/health";
 function useAct() {
   const router = useRouter();
   const [pending, start] = useTransition();
-  const run = (fn: () => Promise<{ error: string | null }>, ok?: string) =>
+  // `queued`: kept on the phone with no signal (lib/offline). Nothing to
+  // refresh from, and a refresh with no network would leave the page.
+  const run = (fn: () => Promise<{ error: string | null; queued?: boolean }>, ok?: string) =>
     start(async () => {
-      const { error } = await fn();
+      const { error, queued } = await fn();
       if (error) toast.error(error);
-      else {
+      else if (!queued) {
         if (ok) toast.success(ok);
         router.refresh();
       }
@@ -91,6 +94,21 @@ export function MedicinesPanel({
   const { pending, run } = useAct();
   const [adding, setAdding] = useState(medicines.length === 0);
   const due = dosesFor(medicines, doses, today, now);
+  // Ticks made with no signal, waiting to send (lib/offline): shown as they
+  // will be, with "Waiting to send" in place of Taken/Due.
+  const waiting = new Map(
+    useQueue()
+      .filter((q) => q.kind === "dose.set" && q.day === today)
+      .map((q) => (q.kind === "dose.set" ? [`${q.medicineId}|${q.time}`, q.taken] : ["", false])),
+  );
+  const tick = (d: (typeof due)[number], taken: boolean) =>
+    run(async () => {
+      const r = await sendOrQueue(
+        () => setDoseTakenAction({ medicineId: d.medicineId, memberId, day: today, time: d.time, taken }),
+        () => ({ id: newOpId(), at: new Date().toISOString(), kind: "dose.set", medicineId: d.medicineId, memberId, day: today, time: d.time, taken, label: `${d.name} at ${d.time}` }),
+      );
+      return r;
+    });
   const current = medicines.filter((m) => m.end_date === null || m.end_date >= today);
   const finished = medicines.filter((m) => m.end_date !== null && m.end_date < today);
 
@@ -100,28 +118,32 @@ export function MedicinesPanel({
         <>
           <div className="kin-eyebrow">TODAY</div>
           <div className="kin-care-doses">
-            {due.map((d) => (
+            {due.map((d) => {
+              const queued = waiting.get(`${d.medicineId}|${d.time}`);
+              const taken = queued ?? d.taken;
+              return (
               <button
                 key={`${d.medicineId}-${d.time}`}
                 type="button"
                 className="kin-care-dose"
-                data-taken={d.taken || undefined}
-                data-late={d.late || undefined}
-                aria-pressed={d.taken}
+                data-taken={taken || undefined}
+                data-late={(!taken && d.late) || undefined}
+                aria-pressed={taken}
                 disabled={pending}
-                onClick={() => run(() => setDoseTakenAction({ medicineId: d.medicineId, memberId, day: today, time: d.time, taken: !d.taken }))}
+                onClick={() => tick(d, !taken)}
               >
                 <span className="kin-care-dose-tick" aria-hidden="true">
-                  {d.taken && <Icon name="check" size="0.875rem" />}
+                  {taken && <Icon name="check" size="0.875rem" />}
                 </span>
                 <span className="kin-care-dose-time">{d.time}</span>
                 <span className="kin-care-dose-name">
                   {d.name}
                   {d.dose ? ` · ${d.dose}` : ""}
                 </span>
-                <span className="kin-care-dose-state">{d.taken ? "Taken" : d.late ? "Late" : "Due"}</span>
+                <span className="kin-care-dose-state">{queued !== undefined ? "Waiting to send" : taken ? "Taken" : d.late ? "Late" : "Due"}</span>
               </button>
-            ))}
+              );
+            })}
           </div>
         </>
       )}

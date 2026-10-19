@@ -917,6 +917,7 @@ async function RoutinesPane({ familyId, who, currency, justSaved, done }: { fami
                           )}
                           <RoutineTick
                             routineId={r.id}
+                            title={r.title}
                             date={r.today.date}
                             status={r.today.status}
                             cost={r.expectedCost}
@@ -928,6 +929,7 @@ async function RoutinesPane({ familyId, who, currency, justSaved, done }: { fami
                           ahead of it, or afterwards against the day it happened. */}
                       <RoutineOccurrences
                         routineId={r.id}
+                        title={r.title}
                         overdue={r.overdue}
                         upcoming={r.upcoming}
                         cost={r.expectedCost}

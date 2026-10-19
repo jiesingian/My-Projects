@@ -6,34 +6,56 @@ import { logRoutineAction, clearRoutineLogAction, setRoutinePausedAction, delete
 import { Icon } from "@/components/icons";
 import { formatCurrency } from "@/lib/format";
 import { familyDay, daysBetween, readableDay } from "@/lib/time";
+import { newOpId, sendOrQueue, useQueue } from "@/lib/offline/live";
 
 function useRoutineAction() {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
 
-  const run = (fn: () => Promise<{ error: string | null }>) => {
+  // `queued`: kept on the phone with no signal (lib/offline); a refresh with
+  // no network would leave the page, so it waits for the replay instead.
+  const run = (fn: () => Promise<{ error: string | null; queued?: boolean }>) => {
     setError(null);
     startTransition(async () => {
       const result = await fn();
       if (result.error) setError(result.error);
-      router.refresh();
+      if (!result.queued) router.refresh();
     });
   };
 
   return { pending, error, run };
 }
 
+/** Done or skipped for one day: sent now, or with no signal kept in the
+ * offline queue (app/api/offline/replay decides who wins on reconnect). */
+function logChore(routineId: string, title: string, date: string, status: "done" | "skipped") {
+  return sendOrQueue(
+    () => logRoutineAction({ routineId, date, status }),
+    () => ({ id: newOpId(), at: new Date().toISOString(), kind: "chore.log", routineId, date, status, label: title }),
+  );
+}
+
+/** What this phone has waiting to send for a chore, by day. */
+function useQueuedChore(routineId: string): Map<string, "done" | "skipped"> {
+  const queue = useQueue();
+  const out = new Map<string, "done" | "skipped">();
+  for (const q of queue) if (q.kind === "chore.log" && q.routineId === routineId) out.set(q.date, q.status);
+  return out;
+}
+
 /** Done or skipped for today's occurrence, and a way back if it was a
  * mis-tap. What is already answered for reads as a state, not a button. */
 export function RoutineTick({
   routineId,
+  title = "A chore",
   date,
   status,
   cost,
   currency,
 }: {
   routineId: string;
+  title?: string;
   date: string;
   status: "done" | "skipped" | null;
   cost: number | null;
@@ -46,7 +68,9 @@ export function RoutineTick({
   const [celebrate, setCelebrate] = useState(false);
   // The answer shows the moment it is tapped; the server's replaces it when
   // it comes back (or the old state returns, with the error, if it fails).
-  const [shown, setShown] = useOptimistic(status);
+  const [optimistic, setShown] = useOptimistic(status);
+  const queued = useQueuedChore(routineId).get(date);
+  const shown = queued ?? optimistic;
 
   if (shown) {
     return (
@@ -68,7 +92,9 @@ export function RoutineTick({
         >
           <Icon name={shown === "done" ? "check" : "x"} size={14} />
           {shown === "done" ? "Done today" : "Skipped today"}
+          {queued && " · waiting to send"}
         </span>
+        {!queued && (
         <button
           type="button"
           className="btn btn-ghost"
@@ -78,6 +104,7 @@ export function RoutineTick({
         >
           Undo
         </button>
+        )}
         {error && <span style={{ fontSize: "0.78125rem", color: "var(--color-neutral-700)" }}>{error}</span>}
       </div>
     );
@@ -95,7 +122,7 @@ export function RoutineTick({
           // A short tick of haptic feedback where the phone offers it (Android);
           // iOS Safari has no vibration API and simply skips this.
           navigator.vibrate?.(12);
-          run(async () => { setShown("done"); return logRoutineAction({ routineId, date, status: "done" }); });
+          run(async () => { setShown("done"); return logChore(routineId, title, date, "done"); });
         }}
       >
         <Icon name="check" size={14} />
@@ -106,7 +133,7 @@ export function RoutineTick({
         className="btn btn-secondary"
         style={{ minHeight: "2rem", fontSize: "0.8125rem", padding: "0 0.75rem" }}
         disabled={pending}
-        onClick={() => run(async () => { setShown("skipped"); return logRoutineAction({ routineId, date, status: "skipped" }); })}
+        onClick={() => run(async () => { setShown("skipped"); return logChore(routineId, title, date, "skipped"); })}
       >
         Skip
       </button>
@@ -190,12 +217,14 @@ function daysAgo(iso: string): number {
  * rather than the day it was remembered. */
 export function RoutineOccurrences({
   routineId,
-  overdue,
+  title = "A chore",
+  overdue: overdueAll,
   upcoming,
   cost,
   currency,
 }: {
   routineId: string;
+  title?: string;
   overdue: string[];
   upcoming: string[];
   cost: number | null;
@@ -203,9 +232,12 @@ export function RoutineOccurrences({
 }) {
   const { pending, error, run } = useRoutineAction();
   const [picking, setPicking] = useState(false);
-  const [chosen, setChosen] = useState(upcoming[0] ?? overdue[0] ?? "");
+  const [chosen, setChosen] = useState(upcoming[0] ?? overdueAll[0] ?? "");
 
-  const log = (date: string, status: "done" | "skipped") => run(() => logRoutineAction({ routineId, date, status }));
+  const log = (date: string, status: "done" | "skipped") => run(() => logChore(routineId, title, date, status));
+  // Days answered with no signal, waiting to send, drop out of "unanswered".
+  const queued = useQueuedChore(routineId);
+  const overdue = overdueAll.filter((d) => !queued.has(d));
   const choices = [...overdue, ...upcoming];
 
   return (

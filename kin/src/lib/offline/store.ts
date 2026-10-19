@@ -2,6 +2,7 @@
 
 import type { OfflineSnapshot, QueuedOp } from "@/lib/offline/types";
 import { MAX_QUEUE, MAX_QUEUED_FILE_BYTES } from "@/lib/offline/types";
+import { toggleTarget } from "@/lib/offline/rules";
 
 /** The phone's copy of Kin for offline use, in IndexedDB.
  *
@@ -113,15 +114,16 @@ export async function listQueue(): Promise<Queued[]> {
   return ((await run<Queued[]>([QUEUE], "readonly", (tx) => tx.objectStore(QUEUE).getAll()).catch(() => undefined)) ?? []) as Queued[];
 }
 
-/** Adds a change to the end of the queue. A tick on an item that already has
- * one waiting replaces it, keeping its place: only where the item ends up
+/** Adds a change to the end of the queue. A tick on an item (or a dose) that
+ * already has one waiting replaces it, keeping its place: only where the item ends up
  * matters, and two ticks replayed in turn would each look like the other had
  * been overtaken (app/api/offline/replay). Returns false when the queue is
  * full, which the caller says in words. */
 export async function enqueue(op: QueuedOp): Promise<boolean> {
   const waiting = await listQueue();
-  if (op.kind === "buy.toggle") {
-    const earlier = waiting.find((w) => w.kind === "buy.toggle" && w.itemId === op.itemId);
+  const target = toggleTarget(op);
+  if (target) {
+    const earlier = waiting.find((w) => toggleTarget(w) === target);
     if (earlier) {
       await run([QUEUE], "readwrite", (tx) => {
         tx.objectStore(QUEUE).put({ ...op, seq: earlier.seq });
