@@ -5,7 +5,6 @@ import { revalidatePath } from "next/cache";
 import { after } from "next/server";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { sendPush } from "@/lib/push";
 import { UUID } from "@/lib/ids";
 import { sendHelperListPush, sendPush } from "@/lib/push";
 import { requireCurrentMember } from "@/lib/session";
