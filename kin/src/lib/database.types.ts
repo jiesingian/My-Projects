@@ -3231,6 +3231,7 @@ export type Database = {
           slots: string[]
           source_url: string | null
           steps: string[]
+          tree_person_id: string | null
           updated_at: string
         }
         Insert: {
@@ -3246,6 +3247,7 @@ export type Database = {
           slots?: string[]
           source_url?: string | null
           steps?: string[]
+          tree_person_id?: string | null
           updated_at?: string
         }
         Update: {
@@ -3261,6 +3263,7 @@ export type Database = {
           slots?: string[]
           source_url?: string | null
           steps?: string[]
+          tree_person_id?: string | null
           updated_at?: string
         }
         Relationships: [

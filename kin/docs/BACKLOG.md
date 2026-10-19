@@ -139,6 +139,15 @@ scanning wait for the AI key.
   (needs its own read path, storage policy and switch); a push when a story
   is added; testing a long recording on a real iPhone.
 
+- **Done:** Family recipes on the tree (19 October, kin/recipes-on-the-tree,
+  20261019152700_recipe_tree_person): a recipe in the Meals book can say
+  whose it is ("Whose recipe", anyone on the tree, a relative who has passed
+  included), shown as "Lola Remedios's recipe" on it, and listed as "Lola's
+  recipes" on their panel on the tree, their profile and their stories page,
+  each opening the book at that recipe (/household?seg=meals&recipe=<id>).
+  Taking the person off the tree keeps the recipe without the name. Kin
+  Free; household only, on family_recipes' existing policies.
+
 - **Done:** Vault emergency access (14 Oct): a household names up to 2
   trusted grown-ups from linked households (Settings -> Privacy & lock),
   with a 1/3/7-day wait. The trusted person asks with a reason; grown-ups

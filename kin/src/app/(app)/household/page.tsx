@@ -19,7 +19,7 @@ import { RecipeBook, AddIngredientsToBuyButton } from "@/components/recipe-book"
 import { CookFromPantry } from "@/components/cook-from-pantry";
 import { rankByPantry } from "@/lib/pantry-match";
 import { createClient } from "@/lib/supabase/server";
-import { getRecipeBook, getRecipeCategories } from "@/lib/queries/recipes";
+import { getRecipeBook, getRecipeCategories, getRecipePeople } from "@/lib/queries/recipes";
 import { AddMealControl, RemoveMealButton } from "@/components/meal-controls";
 import { CalendarJump, TodayButton } from "@/components/calendar-nav";
 import { MealPhotoControl, IngredientAmountRow, AddIngredientRow } from "@/components/meal-day";
@@ -38,7 +38,7 @@ type Seg = (typeof SEGMENTS)[number];
 
 const SEGMENT_LABEL: Record<Seg, string> = { buy: "To-buy", meals: "Meals" };
 
-export default async function HouseholdPage({ searchParams }: { searchParams: Promise<{ seg?: string; date?: string; who?: string; add?: string }> }) {
+export default async function HouseholdPage({ searchParams }: { searchParams: Promise<{ seg?: string; date?: string; who?: string; add?: string; recipe?: string }> }) {
   const me = await getCurrentMember();
   if (!me) redirect("/onboarding/profile");
   const sp = await searchParams;
@@ -58,7 +58,7 @@ export default async function HouseholdPage({ searchParams }: { searchParams: Pr
         {seg === "buy" && (
           <BuyPane familyId={me.family_id} memberId={me.id} canEditCards={isGrownUp(me.role)} currency={me.families.currency} startAdding={sp.add === "1"} />
         )}
-        {seg === "meals" && <MealsPane familyId={me.family_id} currency={me.families.currency} anchor={anchor} who={sp.who ?? "all"} />}
+        {seg === "meals" && <MealsPane familyId={me.family_id} currency={me.families.currency} anchor={anchor} who={sp.who ?? "all"} openRecipe={sp.recipe ?? null} />}
       </div>
     </div>
   );
@@ -202,20 +202,25 @@ async function MealsPane({
   currency,
   anchor,
   who,
+  openRecipe,
 }: {
   familyId: string;
   currency: string;
   anchor: Date;
   who: string;
+  /** A recipe to open the book at: a link from somebody's panel on the tree. */
+  openRecipe: string | null;
 }) {
   const supabase = await createClient();
-  const [{ meals: allMeals, anchorISO }, recipes, categories, memberRows, { data: pantryRows }] = await Promise.all([
+  const [{ meals: allMeals, anchorISO }, recipes, categories, memberRows, { data: pantryRows }, recipePeople] = await Promise.all([
     getMealsForDay(familyId, anchor),
     getRecipeBook(familyId),
     getRecipeCategories(familyId),
     getMembers(familyId),
     supabase.from("pantry_items").select("item_key").eq("family_id", familyId),
+    getRecipePeople(familyId),
   ]);
+  const opening = openRecipe && recipes.some((r) => r.id === openRecipe) ? openRecipe : null;
   const suggestions = rankByPantry(recipes, new Set((pantryRows ?? []).map((p) => p.item_key))).map((m) => ({
     key: m.recipe.key,
     name: m.recipe.name,
@@ -268,8 +273,9 @@ async function MealsPane({
           icon="utensils"
           className="btn btn-secondary"
           style={{ minHeight: "2.125rem", fontSize: "0.8125rem", padding: "0 0.625rem", gap: "0.3125rem" }}
+          defaultOpen={!!opening}
         >
-          <RecipeBook recipes={recipes} categories={categories} />
+          <RecipeBook recipes={recipes} categories={categories} people={recipePeople} openId={opening} />
         </SheetButton>
         <TodayButton hrefBase={MEALS_HREF_BASE} />
       </div>

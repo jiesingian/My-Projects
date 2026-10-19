@@ -4,6 +4,8 @@ import { resolvePhotoUrl } from "@/lib/photo-url";
 import type { Tables } from "@/lib/database.types";
 import { familyDate } from "@/lib/format-family";
 import { getStoryCounts } from "@/lib/queries/tree-stories";
+import { getRecipesByPerson } from "@/lib/queries/recipes";
+import type { PersonRecipe } from "@/lib/recipe-person";
 
 export async function getFamilyProfile(familyId: string) {
   const supabase = await createClient();
@@ -76,6 +78,8 @@ export type TreePerson = {
   /** How many stories the household keeps about them
    * (20261014204000_tree_person_stories). */
   storyCount?: number;
+  /** The household's recipes that name them (20261019152700). */
+  recipes?: PersonRecipe[];
 };
 
 export type FamilyTree = {
@@ -172,10 +176,11 @@ export function buildFamilyTree(people: TreePerson[], centerMemberId: string | n
 
 export async function getFamilyTree(familyId: string, centerMemberId: string | null): Promise<FamilyTree> {
   const supabase = await createClient();
-  const [{ data: rows }, members, storyCounts] = await Promise.all([
+  const [{ data: rows }, members, storyCounts, recipesOf] = await Promise.all([
     supabase.from("family_tree_people").select("*").eq("family_id", familyId),
     getMembers(familyId),
     getStoryCounts(familyId),
+    getRecipesByPerson(familyId),
   ]);
 
   const memberById = new Map(members.map((m) => [m.id, m]));
@@ -194,6 +199,7 @@ export async function getFamilyTree(familyId: string, centerMemberId: string | n
       motherId: r.mother_id,
       spouseId: r.spouse_id,
       storyCount: storyCounts.get(r.id) ?? 0,
+      recipes: recipesOf.get(r.id) ?? [],
     };
   });
 
