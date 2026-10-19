@@ -8,7 +8,8 @@
  *   ticked and is done. An untick finds it ticked after the offline tap --
  *   someone ticked it since -- and their tick stands.
  * - A chore marked done or skipped: if somebody already answered that day's
- *   chore, their answer stands (or it was this person, and it is done).
+ *   chore, their answer stands. If it was this person with the same answer,
+ *   it is done; with the other answer, this later one is applied.
  * - A yes or no to a chore waiting for approval: only while it still waits.
  *   Another grown-up's answer stands; a chore un-done since has nothing to
  *   answer.
@@ -27,9 +28,12 @@ export function doseVerdict(op: { at: string; taken: boolean; label: string }, e
   return APPLY;
 }
 
-export function choreLogVerdict(op: { label: string }, logged: { logged_by: string | null } | null, me: string): Verdict {
+export function choreLogVerdict(op: { label: string; status?: string }, logged: { logged_by: string | null; status?: string | null } | null, me: string): Verdict {
   if (!logged) return APPLY;
-  return logged.logged_by === me ? ALREADY : skip(`${op.label} was already answered by someone else.`);
+  if (logged.logged_by !== me) return skip(`${op.label} was already answered by someone else.`);
+  // Their own earlier answer, changed since (done, then skipped): the later
+  // one is what they meant. Reporting it "sent" left the first one saved.
+  return op.status && logged.status && op.status !== logged.status ? APPLY : ALREADY;
 }
 
 export function choreAnswerVerdict(op: { approve: boolean; label: string }, log: { approval: string; approved_by: string | null } | null, me: string): Verdict {
@@ -42,11 +46,13 @@ export function choreAnswerVerdict(op: { approve: boolean; label: string }, log:
 }
 
 /** What a tick is a tick of, for changes where only the last one matters: a
- * list item, or one dose. A second tick on the same thing replaces the first
- * in the queue (lib/offline/store). Null for everything else. */
-export function toggleTarget(op: { kind: string; itemId?: string; medicineId?: string; day?: string; time?: string }): string | null {
+ * list item, one dose, or one day of a chore. A second tick on the same thing
+ * replaces the first in the queue (lib/offline/store). Null for everything
+ * else. */
+export function toggleTarget(op: { kind: string; itemId?: string; medicineId?: string; day?: string; time?: string; routineId?: string; date?: string }): string | null {
   if (op.kind === "buy.toggle") return `buy|${op.itemId}`;
   if (op.kind === "dose.set") return `dose|${op.medicineId}|${op.day}|${op.time}`;
+  if (op.kind === "chore.log" && op.routineId && op.date) return `chore|${op.routineId}|${op.date}`;
   return null;
 }
 
