@@ -34,6 +34,14 @@ export default async function ({ db, as, check, refused }) {
     return (await as(ann, "select paid_through::text p from alkansya_plans where member_id = $1", [kidM]))[0].p === today.d;
   });
 
+  await check("Switching the baon off and on again on a payday does not pay it twice", async () => {
+    const count = async () => Number((await db.query(`select count(*) n from alkansya_entries where member_id = '${kidM}' and kind = 'allowance'`)).rows[0].n);
+    const before = await count();
+    await as(ann, "update alkansya_plans set active = false where member_id = $1", [kidM]);
+    await as(ann, "update alkansya_plans set active = true where member_id = $1", [kidM]);
+    const n = (await as(ann, "select alkansya_pay_allowances() n"))[0].n;
+    return (n === 0 && (await count()) === before) || { n, before, after: await count() };
+  });
   await check("Ann records points changed into pesos, a spend and a gift", async () =>
     (await entry(ann, { kind: "points", amount: 15, points: 30 })).length === 1 &&
     (await entry(ann, { kind: "spend", amount: -25 })).length === 1 &&

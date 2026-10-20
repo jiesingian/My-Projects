@@ -104,6 +104,7 @@ const MIGRATIONS = [
   "20261020090200_medicine_times_hhmm.sql",
   "20261020090300_reminders_done_plans_refills_spring_forward.sql",
   "20261020090400_money_recap_key_needs_device.sql",
+  "20261020090500_alkansya_reactivation_keeps_paid_day.sql",
 ];
 
 const only = process.argv[2];
