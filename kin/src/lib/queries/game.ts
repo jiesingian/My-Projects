@@ -3,7 +3,7 @@ import { householdZone } from "@/lib/household-zone";
 import { familyDay } from "@/lib/time";
 import { windowStart, clamp01 } from "@/lib/goals";
 import { getMemberScores } from "@/lib/queries/routines";
-import { isGameCategory, levelFromXp, xpTotal, type GameCategory } from "@/lib/game";
+import { asksOn, isGameCategory, levelFromXp, xpTotal, type GameCategory } from "@/lib/game";
 import type { WeekStart } from "@/lib/week";
 
 /** Planner → Goals → Game: everything its screens show, read once.
@@ -37,6 +37,14 @@ export type GameGoalView = {
   claim: ClaimStatus | null;
   /** Steps only: the claim at 50%. */
   half: ClaimStatus | null;
+  /** ISO weekdays it is asked for (1 = Monday); null: every day. */
+  days: number[] | null;
+  /** A busy day's backup (20261020210000). */
+  backup: boolean;
+  /** Whose the XP and coins are: the owner's, or whoever ticked it. */
+  creditTo: "owner" | "logger";
+  /** A child's sticker. */
+  emoji: string | null;
 };
 
 export type PlayerView = {
@@ -80,11 +88,13 @@ export async function getGame(familyId: string, weekStart: WeekStart): Promise<G
     supabase.from("members").select("id, full_name, role, status").eq("family_id", familyId).not("status", "in", "(pending,removed)").order("created_at"),
     supabase
       .from("planner_goals")
-      .select("id, title, kind, category, period, target, unit, owner_member_id, xp, points, active, created_at")
+      .select("id, title, kind, category, period, target, unit, owner_member_id, xp, points, active, created_at, days, backup, credit_to, emoji")
       .eq("family_id", familyId)
       .not("category", "is", null)
+      // Removed goals keep what they earned, and are seen no more.
+      .is("removed_at", null)
       .order("created_at"),
-    supabase.from("planner_goal_completions").select("goal_id, member_id, period_start, xp, status, part").eq("family_id", familyId),
+    supabase.from("planner_goal_completions").select("goal_id, member_id, credited_to, period_start, xp, status, part").eq("family_id", familyId),
     supabase.from("game_awards").select("member_id, xp").eq("family_id", familyId),
     supabase.from("game_streaks").select("member_id, streak, best_streak, freezes").eq("family_id", familyId),
     supabase.from("game_family_streaks").select("streak, best_streak").eq("family_id", familyId).maybeSingle(),
@@ -134,14 +144,21 @@ export async function getGame(familyId: string, weekStart: WeekStart): Promise<G
       fraction: clamp01(current / target),
       reached: current >= target,
       claim: claimOf(steps ? "rest" : "whole"),
+      days: g.days,
+      backup: g.backup,
+      creditTo: g.credit_to === "logger" ? "logger" : "owner",
+      emoji: g.emoji,
       half: steps ? claimOf("half") : null,
     });
   }
 
   const players: PlayerView[] = (members ?? []).map((m) => {
     const mine = views.filter((g) => g.ownerId === m.id);
-    const dailies = mine.filter((g) => g.active && g.period === "day");
-    const myClaims = (claims ?? []).filter((c) => c.member_id === m.id);
+    // Today's dailies: asked for today, backups aside (20261020210000).
+    const dailies = mine.filter((g) => g.active && g.period === "day" && !g.backup && asksOn(g.days, today));
+    // XP is whose the claim credits: a baby's goal ticked by a grown-up is
+    // the grown-up's XP, the baby's progress.
+    const myClaims = (claims ?? []).filter((c) => (c.credited_to ?? c.member_id) === m.id);
     const xp = xpTotal(myClaims, (awards ?? []).filter((a) => a.member_id === m.id));
     const s = (streaks ?? []).find((r) => r.member_id === m.id);
     return {

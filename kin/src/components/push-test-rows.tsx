@@ -5,7 +5,7 @@ import { Blueprint } from "@/components/ui";
 import { sendTestKindPushAction } from "@/lib/actions/push";
 import { PUSH_TEST_KINDS, PUSH_TESTS_PER_MINUTE } from "@/lib/push-test";
 
-/** "Send me a test", one row per kind of push (20261020190000): each sends
+/** "Send me a test", one row per kind of push (20261020210000): each sends
  * that kind's real words, link and icon, marked "Test: ", to this person's
  * own devices. Grown-ups only; the page does not render it for anyone
  * else, and the database refuses them anyway. */

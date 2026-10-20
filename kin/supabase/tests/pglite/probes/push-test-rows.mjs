@@ -1,4 +1,4 @@
-// "Send me a test" (20261020190000): a grown-up samples each kind of push the
+// "Send me a test" (20261020210000): a grown-up samples each kind of push the
 // database words, with their own first name; a child, kid view or not, and a
 // signed-out visitor are refused; five a minute per person. The due_*()
 // functions re-created to call the same words are pinned by their own probes

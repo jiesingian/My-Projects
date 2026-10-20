@@ -75,6 +75,17 @@ export async function getChatUnread(familyId: string, memberId: string): Promise
   return { count: unread.length, mentioned: unread.some((m) => (m.mentions ?? []).includes(memberId)) };
 }
 
+/** For "What did I miss?" (components/missed-summary.tsx): the same count
+ * as the badge, with the last-read time it was counted from -- captured
+ * here, at render, before the thread marks itself read. */
+export async function getHouseholdUnreadWindow(familyId: string, memberId: string): Promise<{ count: number; since: string }> {
+  const supabase = await createClient();
+  const { data: read } = await supabase.from("family_message_reads").select("last_read_at").eq("member_id", memberId).maybeSingle();
+  const since = read?.last_read_at ?? "1970-01-01T00:00:00Z";
+  const { count } = await supabase.from("family_messages").select("id", { count: "exact", head: true }).eq("family_id", familyId).is("deleted_at", null).gt("created_at", since).neq("member_id", memberId);
+  return { count: count ?? 0, since };
+}
+
 /** The thread, oldest last — the newest at the bottom, where a conversation
  * is read from. `limit` is a window, not the whole history. */
 export async function getChatThread(familyId: string, limit = 200): Promise<ChatMessage[]> {

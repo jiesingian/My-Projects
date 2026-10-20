@@ -8,7 +8,7 @@ import { inKidView } from "@/lib/kid-view";
 
 /** Push notifications on this device, and which kinds of news reach you --
  * the Notifications group of the old single Settings page. For a grown-up,
- * "Send me a test" per kind of push (20261020190000). */
+ * "Send me a test" per kind of push (20261020210000). */
 export default async function NotificationSettingsPage() {
   const me = await getCurrentMember();
   if (!me) redirect("/onboarding/profile");

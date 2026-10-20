@@ -7,7 +7,8 @@ import { Icon } from "@/components/icons";
 import { Blueprint } from "@/components/ui";
 import { SubmitButton, ErrorText } from "@/components/form";
 import { confirm } from "@/components/confirm-sheet";
-import { addRewardAction, retireRewardAction, redeemRewardAction, setStreakBonusAction } from "@/lib/actions/rewards";
+import { addRewardAction, retireRewardAction, redeemRewardAction, setStreakBonusAction, updateRewardAction } from "@/lib/actions/rewards";
+import { formatCurrency } from "@/lib/format";
 import type { ActionState } from "@/lib/actions/auth";
 import type { RewardView, MemberScore } from "@/lib/queries/routines";
 import type { StreakBonus } from "@/lib/streaks";
@@ -24,8 +25,11 @@ export function RewardsShelf({
   me,
   canManage,
   streakBonus,
+  currency = "PHP",
 }: {
   rewards: RewardView[];
+  /** For a reward's money note. */
+  currency?: string;
   me: MemberScore | undefined;
   canManage: boolean;
   /** Passed only where a grown-up may change it. */
@@ -83,7 +87,7 @@ export function RewardsShelf({
       ) : (
         <div style={{ display: "flex", flexDirection: "column", gap: "0.4375rem" }}>
           {rewards.map((r) => (
-            <RewardRow key={r.id} reward={r} spendable={spendable} canManage={canManage} />
+            <RewardRow key={r.id} reward={r} spendable={spendable} canManage={canManage} currency={currency} />
           ))}
         </div>
       )}
@@ -160,10 +164,14 @@ function StreakBonusForm({ bonus }: { bonus: StreakBonus }) {
   );
 }
 
-function RewardRow({ reward, spendable, canManage }: { reward: RewardView; spendable: number; canManage: boolean }) {
+function RewardRow({ reward, spendable, canManage, currency }: { reward: RewardView; spendable: number; canManage: boolean; currency: string }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
+  const [editing, setEditing] = useState(false);
+  const [cost, setCost] = useState(String(reward.costPoints));
+  const [budget, setBudget] = useState(reward.budgetAmount === null ? "" : String(reward.budgetAmount));
+  const uid = useId();
   const affordable = spendable >= reward.costPoints;
 
   const run = (fn: () => Promise<{ error: string | null }>) => {
@@ -182,6 +190,9 @@ function RewardRow({ reward, spendable, canManage }: { reward: RewardView; spend
         <span style={{ display: "block", fontSize: "0.78125rem", color: affordable ? "var(--color-accent-700)" : "var(--color-neutral-600)" }}>
           {reward.costPoints} points{affordable ? "" : ` · ${reward.costPoints - spendable} more to go`}
         </span>
+        {reward.budgetAmount !== null && reward.budgetAmount > 0 && (
+          <span style={{ display: "block", fontSize: "0.71875rem", color: "var(--color-neutral-600)" }}>{formatCurrency(reward.budgetAmount, currency)} from the family budget</span>
+        )}
       </span>
 
       <button
@@ -199,6 +210,19 @@ function RewardRow({ reward, spendable, canManage }: { reward: RewardView; spend
           type="button"
           className="btn btn-ghost"
           disabled={pending}
+          aria-expanded={editing}
+          onClick={() => setEditing((e) => !e)}
+          style={{ minHeight: "1.875rem", fontSize: "0.75rem", padding: "0 0.5rem", color: "var(--color-neutral-700)" }}
+        >
+          Edit
+        </button>
+      )}
+
+      {canManage && (
+        <button
+          type="button"
+          className="btn btn-ghost"
+          disabled={pending}
           onClick={async () => {
             if (!(await confirm({ title: `Take "${reward.title}" off the list?`, description: "Requests already made keep working.", confirmLabel: "Take it off" }))) return;
             run(() => retireRewardAction(reward.id));
@@ -207,6 +231,34 @@ function RewardRow({ reward, spendable, canManage }: { reward: RewardView; spend
         >
           Remove
         </button>
+      )}
+
+      {editing && (
+        <div style={{ flexBasis: "100%", display: "flex", gap: "0.4375rem", alignItems: "flex-end", flexWrap: "wrap" }}>
+          <span style={{ width: 92 }}>
+            <label htmlFor={`${uid}-cost`} style={{ display: "block", fontSize: "0.71875rem", color: "var(--color-neutral-600)", marginBottom: "0.1875rem" }}>Points</label>
+            <input id={`${uid}-cost`} className="input" type="number" min="1" max="10000" value={cost} onChange={(e) => setCost(e.target.value)} style={{ minHeight: "2.5rem", fontSize: "1rem" }} />
+          </span>
+          <span style={{ width: 120 }}>
+            <label htmlFor={`${uid}-budget`} style={{ display: "block", fontSize: "0.71875rem", color: "var(--color-neutral-600)", marginBottom: "0.1875rem" }}>Costs us (optional)</label>
+            <input id={`${uid}-budget`} className="input" type="number" min="0" inputMode="decimal" placeholder="0" value={budget} onChange={(e) => setBudget(e.target.value)} style={{ minHeight: "2.5rem", fontSize: "1rem" }} />
+          </span>
+          <button
+            type="button"
+            className="btn btn-primary"
+            disabled={pending}
+            onClick={() =>
+              run(async () => {
+                const r = await updateRewardAction(reward.id, Math.round(Number(cost)), budget.trim() === "" ? null : Number(budget));
+                if (!r.error) setEditing(false);
+                return r;
+              })
+            }
+            style={{ minHeight: "2.5rem", fontSize: "0.8125rem", padding: "0 0.75rem" }}
+          >
+            Save
+          </button>
+        </div>
       )}
 
       {error && <div style={{ flexBasis: "100%", fontSize: "0.75rem", color: "var(--cal-occasion)" }}>{error}</div>}

@@ -1,6 +1,6 @@
 /** The words of the pushes the app itself sends (not the five-minute tick):
  * built here, once, so the real sender and "Send me a test" (Settings ->
- * Notifications, 20261020190000) say the same thing. Each returns what the
+ * Notifications, 20261020210000) say the same thing. Each returns what the
  * sender puts in the payload: title, body, the deep link, the tag, and the
  * flags that shape delivery. Nothing here sends; lib/push.ts does. */
 

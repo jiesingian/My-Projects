@@ -3,7 +3,7 @@ import { PUSH_TEST_KINDS, PUSH_TESTS_PER_MINUTE, isPushTestKind, testTitle } fro
 import { arrivedWords, helperListWords, pushPayload, sosWords, treeStoryWords } from "@/lib/push-words";
 import { checkInAskPush } from "@/lib/member-card";
 
-/** "Send me a test" per kind of push (20261020190000): the kinds, the words
+/** "Send me a test" per kind of push (20261020210000): the kinds, the words
  * the app's own senders and the tests share, and the "Test: " mark. The
  * kinds worded in the database are sampled by sample_push(), proved in
  * supabase/tests/pglite/probes/push-test-rows.mjs. */

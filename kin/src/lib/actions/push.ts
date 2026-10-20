@@ -62,7 +62,7 @@ export async function sendTestPushAction(): Promise<{ error: string | null; sent
   return { error: `The phone's notification service refused it (${result.failed.join(", ")}). Try turning notifications off and on again here.`, sent: 0 };
 }
 
-/** "Send me a test" for one kind of push (20261020190000): the real words,
+/** "Send me a test" for one kind of push (20261020210000): the real words,
  * link and icon for that kind, marked "Test: ", to the signed-in grown-up's
  * own devices only. A kind worded in the database is sampled by
  * sample_push(); one worded in the app by the builder its sender uses. The

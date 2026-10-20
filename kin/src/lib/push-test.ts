@@ -1,4 +1,4 @@
-/** "Send me a test" (Settings -> Notifications, 20261020190000): one row per
+/** "Send me a test" (Settings -> Notifications, 20261020210000): one row per
  * kind of push the household can receive. A kind worded in the database is
  * sampled by sample_push(); one worded in the app by its own builder
  * (lib/push-words.ts, lib/member-card.ts). Either way the test is the real

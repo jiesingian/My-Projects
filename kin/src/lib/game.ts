@@ -9,7 +9,7 @@ import { stepsForDay } from "@/lib/goals";
  * bar, "finish your dailies for +20 XP") and so they can be tested without a
  * database. Change one, change the other. */
 
-export const GAME_CATEGORIES = ["water", "move", "food", "sleep", "hygiene", "family"] as const;
+export const GAME_CATEGORIES = ["water", "move", "food", "sleep", "hygiene", "family", "outdoor", "reading", "unplug"] as const;
 export type GameCategory = (typeof GAME_CATEGORIES)[number];
 
 export const GAME_CATEGORY_META: Record<GameCategory, { label: string; emoji: string }> = {
@@ -19,6 +19,9 @@ export const GAME_CATEGORY_META: Record<GameCategory, { label: string; emoji: st
   sleep: { label: "Sleep", emoji: "😴" },
   hygiene: { label: "Hygiene", emoji: "🪥" },
   family: { label: "Family", emoji: "🏡" },
+  outdoor: { label: "Outdoor", emoji: "🌳" },
+  reading: { label: "Reading", emoji: "📚" },
+  unplug: { label: "Unplug", emoji: "📵" },
 };
 
 export function isGameCategory(v: string): v is GameCategory {
@@ -87,13 +90,39 @@ export function wholeFamilyDone(players: { done: boolean }[]): boolean {
 
 export type StreakState = { streak: number; best: number; freezes: number };
 
+/** Is a daily goal asked for on this day? `days` are ISO weekdays (1 =
+ * Monday ... 7 = Sunday); null is every day. `day` is YYYY-MM-DD. */
+export function asksOn(days: readonly number[] | null | undefined, day: string): boolean {
+  if (!days || days.length === 0) return true;
+  const [y, m, d] = day.split("-").map(Number);
+  const iso = ((new Date(Date.UTC(y, m - 1, d)).getUTCDay() + 6) % 7) + 1;
+  return days.includes(iso);
+}
+
+/** How a player's day went: every daily asked for that day done ("all"); not
+ * all, but the backup goal met ("backup": the streak goes on, no bonus); or
+ * neither. */
+export function dayOutcome(dailies: { done: boolean; backup: boolean }[]): "all" | "backup" | "missed" {
+  const asked = dailies.filter((d) => !d.backup);
+  if (asked.length > 0 && asked.every((d) => d.done)) return "all";
+  return dailies.some((d) => d.backup && d.done) ? "backup" : "missed";
+}
+
+/** Whose a claim's XP and coins are: the owner's, or on a goal that credits
+ * whoever ticked it (a baby's), the grown-up's who did -- never both. */
+export function creditedTo(claim: { memberId: string; loggedBy: string | null }, creditTo: "owner" | "logger"): string {
+  return creditTo === "logger" && claim.loggedBy && claim.loggedBy !== claim.memberId ? claim.loggedBy : claim.memberId;
+}
+
 /** One player's day closing. All done: one more day. Not done: a freeze, if
  * there is one and a streak worth keeping, keeps it; otherwise back to 0. At
  * the end of a Sunday the freeze is refilled for the new week. `day` is the
  * day being closed, YYYY-MM-DD. */
-export function closeDay(state: StreakState, done: boolean, day: string): StreakState & { freezeUsed: boolean } {
+export function closeDay(state: StreakState, done: boolean | "backup", day: string): StreakState & { freezeUsed: boolean } {
   let { streak, best, freezes } = state;
   let freezeUsed = false;
+  // A backup day keeps the streak going like a done one; only the bonus
+  // differs, and that is paid elsewhere (dayOutcome).
   if (done) {
     streak += 1;
     best = Math.max(best, streak);
