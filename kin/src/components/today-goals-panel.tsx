@@ -5,6 +5,7 @@ import { useId, useState, type ReactNode } from "react";
 import { Icon, type IconName } from "@/components/icons";
 import { ProgressBar } from "@/components/progress-bar";
 import { GoalQuickAdd, type GoalQuickAddHow } from "@/components/goal-controls";
+import { KidGoalBoard, type KidBoardGoal } from "@/components/kid-goal-board";
 import { GOALS_COOKIE_MAX_AGE, goalsCookieName, goalsSummary } from "@/lib/today-goals";
 
 export type TodayGoalRow = {
@@ -31,7 +32,7 @@ export type TodayGoalRow = {
  * motion); the member's choice is kept on this device in a cookie the
  * server reads, so the page arrives already open or closed. */
 /** A child with no login, whose goals a grown-up ticks (20261020190000). */
-export type TodayGoalGroup = { id: string; name: string; todo: TodayGoalRow[]; done: TodayGoalRow[] };
+export type TodayGoalGroup = { id: string; name: string; todo: TodayGoalRow[]; done: TodayGoalRow[]; board?: KidBoardGoal[] };
 
 export function TodayGoalsPanel({
   memberId,
@@ -94,10 +95,17 @@ export function TodayGoalsPanel({
                 <div className="kin-goals-sub">
                   {group.name} · {group.done.length} of {group.todo.length + group.done.length} done
                 </div>
-                {group.todo.map((g) => (
-                  <GoalRow key={g.id} row={g} />
-                ))}
-                {group.done.length > 0 && <DoneGroup rows={group.done} />}
+                {group.board ? (
+                  // A young child's own goals: a sticker board.
+                  <KidGoalBoard name={group.name} goals={group.board} />
+                ) : (
+                  <>
+                    {group.todo.map((g) => (
+                      <GoalRow key={g.id} row={g} />
+                    ))}
+                    {group.done.length > 0 && <DoneGroup rows={group.done} />}
+                  </>
+                )}
               </div>
             ))}
             <Link href="/planner?seg=goals" className="kin-goals-all">

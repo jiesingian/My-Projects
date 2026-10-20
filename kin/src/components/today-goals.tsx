@@ -4,6 +4,7 @@ import { TodayGoalsPanel, type TodayGoalGroup, type TodayGoalRow } from "@/compo
 import type { GoalQuickAddHow } from "@/components/goal-controls";
 import { ClaimLine, caption } from "@/app/(app)/planner/goals-pane";
 import { GOAL_KIND_META, goalNumber, isEverydayGoal } from "@/lib/goals";
+import { isBoard } from "@/lib/kid-board";
 import { asksToday, childGoals, progressText, splitDone, startsOpen } from "@/lib/today-goals";
 import { createClient } from "@/lib/supabase/server";
 import { isGrownUp } from "@/lib/roles";
@@ -47,7 +48,9 @@ export async function TodayGoals({ goals, me, today, plus, currency, saved }: { 
   const { open, done } = splitDone(rows);
   const childGroups: TodayGoalGroup[] = groups.map(({ child, goals: gs }) => {
     const split = splitDone(gs);
-    return { id: child.id, name: child.full_name.split(" ")[0], todo: split.open.map(toRow), done: split.done.map(toRow) };
+    // A young child's own goals, each with a picture, are a sticker board.
+    const board = isBoard(gs) ? gs.map((g) => ({ id: g.id, title: g.title, emoji: g.emoji ?? "⭐", current: g.current, target: g.target, reached: g.reached })) : undefined;
+    return { id: child.id, name: child.full_name.split(" ")[0], todo: split.open.map(toRow), done: split.done.map(toRow), board };
   });
   return (
     <TodayGoalsPanel
