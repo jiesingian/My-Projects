@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { FEATURE_PAGES } from "@/lib/feature-pages";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { House3D } from "@/components/welcome/house-3d";
@@ -152,6 +153,13 @@ export function Welcome({ startQuiz = false }: { startQuiz?: boolean }) {
             </button>
           )}
           <p className="kin-welcome-small">Your answers stay on this phone. Nothing is sent anywhere.</p>
+          <nav className="kin-welcome-legal kin-welcome-features" aria-label="What Kin does">
+            {FEATURE_PAGES.map((p) => (
+              <Link key={p.slug} href={`/features/${p.slug}`}>
+                {p.name}
+              </Link>
+            ))}
+          </nav>
           <nav className="kin-welcome-legal" aria-label="Legal">
             <Link href="/legal/privacy">Privacy</Link>
             <Link href="/legal/terms">Terms</Link>

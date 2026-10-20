@@ -78,6 +78,10 @@ export async function updateSession(request: NextRequest) {
     // Likewise a connection link (app/connect/[code]/route.ts): remembers
     // the code and redirects; the other person still has to accept.
     path.startsWith("/connect/") ||
+    // The public feature pages (app/features, lib/feature-pages.ts) and
+    // their Open Graph images: what people find from a search, before an
+    // account exists.
+    path.startsWith("/features/") ||
     // The privacy notice, terms and refund policy: read before an account
     // exists, and by app-store reviewers who never have one (app/legal).
     path.startsWith("/legal/") ||
