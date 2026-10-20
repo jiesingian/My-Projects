@@ -389,25 +389,30 @@ async function loadPoints(familyId: string, historyFor?: string): Promise<{ scor
   // claims earns the same 7- and 30-day bonus a daily chore does.
   const { data: goalClaims } = await supabase
     .from("planner_goal_completions")
-    .select("goal_id, member_id, period_start, points, status, planner_goals(title, period)")
+    .select("goal_id, member_id, credited_to, period_start, points, status, planner_goals(title, period, credit_to)")
     .eq("family_id", familyId)
     .neq("status", "refused");
   const dailyCounted = new Map<string, { member: string; title: string; days: string[] }>();
   for (const c of goalClaims ?? []) {
-    const g = c.planner_goals as unknown as { title: string; period: string } | null;
-    const tally = byMember.get(c.member_id) ?? { points: 0, done: 0, awaiting: 0 };
+    const g = c.planner_goals as unknown as { title: string; period: string; credit_to: string } | null;
+    // Whose the points are (20261020190000): the owner's, or -- on a goal
+    // that credits whoever ticked it, a baby's -- the grown-up's who did.
+    const whose = c.credited_to ?? c.member_id;
+    const tally = byMember.get(whose) ?? { points: 0, done: 0, awaiting: 0 };
     if (c.status === "pending") tally.awaiting += 1;
     else {
       tally.points += c.points;
       tally.done += 1;
-      if (g?.period === "day") {
+      // The 7- and 30-day bonus is the owner's own run: not for a goal
+      // whose points go to whoever ticked it.
+      if (g?.period === "day" && g.credit_to !== "logger") {
         const run = dailyCounted.get(c.goal_id) ?? { member: c.member_id, title: g.title, days: [] };
         run.days.push(c.period_start);
         dailyCounted.set(c.goal_id, run);
       }
     }
-    byMember.set(c.member_id, tally);
-    if (c.member_id === historyFor && c.points > 0) {
+    byMember.set(whose, tally);
+    if (whose === historyFor && c.points > 0) {
       entries.push({ date: c.period_start, kind: "goal", title: g?.title ?? "A goal", points: c.points, status: c.status === "pending" ? "waiting" : "counted" });
     }
   }

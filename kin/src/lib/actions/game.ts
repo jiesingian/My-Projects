@@ -47,23 +47,18 @@ async function periodTotal(supabase: Awaited<ReturnType<typeof createClient>>, g
 /** "+": one more, today. When that fills the goal, it is claimed for its
  * owner -- a grown-up's claim (their own, or for a child with no login)
  * counts at once; a child's own waits for a grown-up's yes. */
-export async function gameTapAction(goalId: string): Promise<{ error: string | null }> {
-  const { me, supabase, goal, today, start } = await gameGoal(goalId);
+export async function gameTapAction(goalId: string, steps?: number): Promise<{ error: string | null }> {
+  const { me, goal } = await gameGoal(goalId);
   if (!goal) return { error: "That goal is no longer here." };
   if (!goal.active) return { error: "This goal is paused." };
   if (goal.kind === "steps") return { error: "Steps are typed in, not tapped." };
-  const { error } = await supabase.from("planner_goal_entries").insert({ family_id: me.family_id, goal_id: goal.id, member_id: me.id, entry_date: today, amount: 1 });
+  if (steps && !readAccess(me.families).plus) return { error: "Steps are part of Kin Plus." };
+  // One log, counted wherever it belongs (20261020190000 game_log): this
+  // goal, the goals linked to it that the caller may log, the claims any of
+  // them now reach -- and the walk's steps, if given, added to the caller's.
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("game_log", { p_goal: goal.id, p_steps: steps && steps > 0 ? Math.round(steps) : undefined });
   if (error) return { error: humanDatabaseError(error.message) };
-
-  if (goal.owner_member_id && (await periodTotal(supabase, goal.id, start, today)) >= Number(goal.target)) {
-    const { data: claimed } = await supabase.from("planner_goal_completions").select("id").eq("goal_id", goal.id).eq("period_start", start).maybeSingle();
-    if (!claimed) {
-      const { error: claimError } = await supabase
-        .from("planner_goal_completions")
-        .insert({ family_id: me.family_id, goal_id: goal.id, member_id: goal.owner_member_id, period_start: start });
-      if (claimError) return { error: humanDatabaseError(claimError.message) };
-    }
-  }
   done();
   return { error: null };
 }
