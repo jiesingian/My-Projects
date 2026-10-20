@@ -39,13 +39,13 @@ export async function getMemberDetail(memberId: string, familyId: string) {
     supabase.from("health_visit_photos").select("appointment_id").in("appointment_id", (appointments ?? []).map((a) => a.id)),
     // Pills left (20261014201000): the household's counts, few rows; this
     // person's are picked out below.
-    supabase.from("health_medicine_supply").select("medicine_id, counted, counted_at, unit, per_dose").eq("family_id", familyId),
+    supabase.from("health_medicine_supply").select("medicine_id, counted, counted_at, unit, per_dose, show_name_to_helper, store").eq("family_id", familyId),
   ]);
   const medicineIds = new Set((medicines ?? []).map((m) => m.id));
   const supply = (householdSupply ?? []).filter((s) => medicineIds.has(s.medicine_id));
   // Who is told when a dose is missed (20261014200000), and the household's
   // grown-ups who could be: only whether they have a login leaves the server.
-  const [{ data: doses }, { data: missedAlerts }, { data: grownUps }, { data: prescriptionRows }] = await Promise.all([
+  const [{ data: doses }, { data: missedAlerts }, { data: grownUps }, { data: prescriptionRows }, { count: listHelpers }] = await Promise.all([
     medicines?.length
       ? supabase.from("health_medicine_doses").select("medicine_id, dose_date, dose_time").in("medicine_id", medicines.map((m) => m.id)).gte("dose_date", weekAgo)
       : Promise.resolve({ data: [] }),
@@ -57,6 +57,11 @@ export async function getMemberDetail(memberId: string, familyId: string) {
     medicines?.length
       ? supabase.from("health_medicine_photos").select("id, medicine_id, storage_path").in("medicine_id", medicines.map((m) => m.id)).order("created_at")
       : Promise.resolve({ data: [] as { id: string; medicine_id: string; storage_path: string }[] }),
+    // Does a helper see the To-Buy list (20261015121000)? Grown-ups read the
+    // helper rows; anyone else gets 0, and the card says nothing of helpers.
+    supply.length
+      ? supabase.from("household_helpers").select("id", { count: "exact", head: true }).eq("family_id", familyId).eq("can_see_list", true).not("claimed_at", "is", null).is("removed_at", null)
+      : Promise.resolve({ count: 0 }),
   ]);
   const prescriptionUrls = await getSignedUrls("journal", (prescriptionRows ?? []).map((r) => r.storage_path));
   const prescriptions: Record<string, { id: string; url: string }[]> = {};
@@ -85,6 +90,7 @@ export async function getMemberDetail(memberId: string, familyId: string) {
     doses: doses ?? [],
     missedAlerts: missedAlerts ?? [],
     supply: supplyNow,
+    hasListHelper: (listHelpers ?? 0) > 0,
     prescriptions,
     grownUps: (grownUps ?? []).map((g) => ({ id: g.id, firstName: g.full_name.split(" ")[0], role: g.role, hasLogin: g.auth_user_id !== null })),
     illness: illness ?? [],

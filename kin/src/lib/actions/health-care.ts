@@ -11,7 +11,7 @@ import { clamp } from "@/lib/text";
 import { familyDay } from "@/lib/time";
 import { parseTimes } from "@/lib/health-plan";
 import { isMissedDelay } from "@/lib/missed-dose";
-import { isSupplyUnit } from "@/lib/medicine-supply";
+import { isSupplyUnit, STORE_MAX } from "@/lib/medicine-supply";
 import { isGrownUp } from "@/lib/roles";
 import { UUID } from "@/lib/ids";
 
@@ -194,6 +194,24 @@ export async function addToMedicineSupplyAction(medicineId: string, memberId: st
   const { data, error } = await supabase.rpc("add_to_medicine_supply", { p_medicine: medicineId, p_add: add });
   if (!error && data === null) return { error: "That couldn't be added. Count what's left instead." };
   return done(memberId, error ? say(error.message) : null);
+}
+
+/** What the household's helper reads for this medicine's refill line
+ * (20261020160000): "Medicine refill", with the store it is usually bought
+ * at, or the medicine's name once a grown-up says so. Only these two columns
+ * move, so the supply cycle (counted, counted_at) stays as it is. */
+export async function setMedicineHelperLineAction(input: { medicineId: string; memberId: string; showName: boolean; store: string }): Promise<ActionState> {
+  const me = await requireCurrentMember();
+  if (!isGrownUp(me.role)) return { error: "Only a grown-up can change what the helper sees." };
+  if (!UUID.test(input.medicineId)) return { error: "That medicine could not be found." };
+  const store = clamp(input.store, STORE_MAX);
+  const supabase = await createClient();
+  const { count, error } = await supabase
+    .from("health_medicine_supply")
+    .update({ show_name_to_helper: input.showName === true, store: store || null, set_by: me.id }, { count: "exact" })
+    .eq("medicine_id", input.medicineId);
+  if (!error && !count) return { error: "Count what's left first; the refill line comes from that." };
+  return done(input.memberId, error ? say(error.message) : null);
 }
 
 export async function stopMedicineSupplyAction(medicineId: string, memberId: string): Promise<ActionState> {
