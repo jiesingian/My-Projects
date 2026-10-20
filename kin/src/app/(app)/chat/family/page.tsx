@@ -1,7 +1,11 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getCurrentMember } from "@/lib/session";
-import { getFamilyRoom, getThreadPrefs } from "@/lib/queries/chat-rooms";
+import { getFamilyRoom, getReadMarks, getRoomUnread, getThreadPrefs, unreadFloor } from "@/lib/queries/chat-rooms";
+import { MissedSummary } from "@/components/missed-summary";
+import { shouldOfferSummary } from "@/lib/chat-summary";
+import { readAccess } from "@/lib/access";
+import { kinAiReady } from "@/lib/kin-ai";
 import { ThreadMenu } from "@/components/thread-menu";
 import { RoomThread } from "@/components/room-thread";
 
@@ -12,8 +16,9 @@ export const dynamic = "force-dynamic";
 export default async function FamilyRoomPage() {
   const me = await getCurrentMember();
   if (!me) redirect("/onboarding/profile");
-  const [{ messages, households }, prefs] = await Promise.all([getFamilyRoom(me), getThreadPrefs()]);
+  const [{ messages, households }, prefs, unread, marks] = await Promise.all([getFamilyRoom(me), getThreadPrefs(), getRoomUnread(), getReadMarks()]);
   const pref = prefs.get("family");
+  const missed = unread.get("family") ?? 0;
 
   const reach =
     households.length === 0
@@ -32,6 +37,7 @@ export default async function FamilyRoomPage() {
       <p style={{ fontSize: "0.78125rem", color: "var(--color-neutral-600)", margin: "4px 0 0.75rem", lineHeight: 1.45 }}>
         {reach} Everyone in those households can read and write here.
       </p>
+      {shouldOfferSummary(missed) && <MissedSummary thread="family" since={marks.get("family") ?? unreadFloor()} count={missed} threadName="Family" plus={readAccess(me.families).plus} ready={kinAiReady()} />}
       <RoomThread
         me={{ personId: me.person_id, firstName: me.full_name.split(" ")[0] }}
         saveFrom="the Family chat"
