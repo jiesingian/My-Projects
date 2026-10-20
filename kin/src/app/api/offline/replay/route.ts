@@ -150,7 +150,7 @@ async function apply(op: QueuedOp, memberId: string, familyId: string): Promise<
 
     case "chore.log": {
       if (!UUID.test(op.routineId) || !DAY.test(op.date) || (op.status !== "done" && op.status !== "skipped")) return skip("That chore could not be found.");
-      const { data: logged, error } = await supabase.from("routine_log").select("logged_by").eq("routine_id", op.routineId).eq("occurrence_date", op.date).maybeSingle();
+      const { data: logged, error } = await supabase.from("routine_log").select("logged_by, status").eq("routine_id", op.routineId).eq("occurrence_date", op.date).maybeSingle();
       if (error) return { id: op.id, outcome: "retry" };
       return settle(op.id, choreLogVerdict(op, logged, memberId), () => logRoutineAction({ routineId: op.routineId, date: op.date, status: op.status, note: null }));
     }
