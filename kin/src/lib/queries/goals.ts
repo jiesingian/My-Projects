@@ -68,6 +68,14 @@ export type GoalView = {
   category: string | null;
   /** A game goal's XP each time it is met (0 otherwise). */
   xp: number;
+  /** Game goals (20261020190000): the ISO weekdays it is asked for (null:
+   * every day), a busy day's backup, whose the credit is, a child's picture. */
+  days: number[] | null;
+  backup: boolean;
+  /** Off (paused) goals ask nothing of today. */
+  active: boolean;
+  creditTo: "owner" | "logger";
+  emoji: string | null;
   /** What meeting it each period is worth (0: nothing), and the first day
    * of the period now running -- what a claim is for. */
   points: number;
@@ -243,6 +251,11 @@ export async function getGoals(familyId: string, viewer: Viewer, weekStart: 0 | 
       points: g.points ?? 0,
       category: g.category,
       xp: g.xp ?? 0,
+      days: g.days,
+      backup: g.backup,
+      active: g.active,
+      creditTo: g.credit_to === "logger" ? "logger" : "owner",
+      emoji: g.emoji,
       periodStart: g.from,
       ...claimState(g.id, g.period, g.from),
       change: c

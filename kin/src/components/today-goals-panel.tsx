@@ -11,6 +11,8 @@ export type TodayGoalRow = {
   id: string;
   title: string;
   icon: IconName;
+  /** A child's picture, shown instead of the icon. */
+  emoji?: string | null;
   /** "5/8". */
   progress: string;
   fraction: number;
@@ -28,11 +30,28 @@ export type TodayGoalRow = {
  * slides open and shut (instantly for anyone who asks their phone for less
  * motion); the member's choice is kept on this device in a cookie the
  * server reads, so the page arrives already open or closed. */
-export function TodayGoalsPanel({ memberId, open: initiallyOpen, todo, done }: { memberId: string; open: boolean; todo: TodayGoalRow[]; done: TodayGoalRow[] }) {
+/** A child with no login, whose goals a grown-up ticks (20261020190000). */
+export type TodayGoalGroup = { id: string; name: string; todo: TodayGoalRow[]; done: TodayGoalRow[] };
+
+export function TodayGoalsPanel({
+  memberId,
+  open: initiallyOpen,
+  todo,
+  done,
+  groups = [],
+  backups = [],
+}: {
+  memberId: string;
+  open: boolean;
+  todo: TodayGoalRow[];
+  done: TodayGoalRow[];
+  groups?: TodayGoalGroup[];
+  backups?: TodayGoalRow[];
+}) {
   const [open, setOpen] = useState(initiallyOpen);
   const regionId = useId();
   const total = todo.length + done.length;
-  const allDone = todo.length === 0;
+  const allDone = total > 0 && todo.length === 0;
 
   const toggle = () => {
     const next = !open;
@@ -62,6 +81,25 @@ export function TodayGoalsPanel({ memberId, open: initiallyOpen, todo, done }: {
               <GoalRow key={g.id} row={g} />
             ))}
             {done.length > 0 && <DoneGroup rows={done} />}
+            {backups.length > 0 && (
+              <div className="kin-goals-backup">
+                <div className="kin-goals-sub">Busy day? This keeps your streak going</div>
+                {backups.map((g) => (
+                  <GoalRow key={g.id} row={g} />
+                ))}
+              </div>
+            )}
+            {groups.map((group) => (
+              <div key={group.id} className="kin-goals-child">
+                <div className="kin-goals-sub">
+                  {group.name} · {group.done.length} of {group.todo.length + group.done.length} done
+                </div>
+                {group.todo.map((g) => (
+                  <GoalRow key={g.id} row={g} />
+                ))}
+                {group.done.length > 0 && <DoneGroup rows={group.done} />}
+              </div>
+            ))}
             <Link href="/planner?seg=goals" className="kin-goals-all">
               All goals
             </Link>
@@ -105,7 +143,7 @@ function GoalRow({ row }: { row: TodayGoalRow }) {
       <div className="kin-goal-line">
         <button type="button" className="kin-goal-main" aria-expanded={open} aria-controls={detailsId} onClick={() => setOpen((o) => !o)}>
           <span className="kin-goal-icon" aria-hidden>
-            {row.reached ? <Icon name="check" size={16} /> : <Icon name={row.icon} size={16} />}
+            {row.reached ? <Icon name="check" size={16} /> : row.emoji ? <span className="kin-goal-emoji">{row.emoji}</span> : <Icon name={row.icon} size={16} />}
           </span>
           <span className="kin-goal-body">
             <span className="kin-goal-name-line">

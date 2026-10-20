@@ -1,3 +1,5 @@
+import { asksOn } from "@/lib/game";
+
 /** Today's Goals as a collapsible section (Janine, 20 October): the rules,
  * as pure functions, so they can be tested without a browser. */
 
@@ -34,4 +36,26 @@ export function startsOpen(saved: string | undefined, done: number, total: numbe
 export function progressText(current: number, target: number): string {
   const n = (v: number) => (Math.round(v * 10) / 10).toLocaleString("en-PH", { maximumFractionDigits: 1 });
   return `${n(current)}/${n(target)}`;
+}
+
+/** Is a goal asked of today? On, and -- for a goal on some weekdays only --
+ * one of its days (20261020190000). */
+export function asksToday(g: { active: boolean; period: string; days: readonly number[] | null }, today: string): boolean {
+  return g.active && (g.period !== "day" || asksOn(g.days, today));
+}
+
+/** The game goals of the children with no login, a group per child in the
+ * household's order, for a grown-up's Today: today's dailies and this
+ * week's weeklies. A child with none asked today has no group. */
+export function childGoals<G extends { ownerId: string | null; category: string | null; active: boolean; period: string; days: readonly number[] | null; backup: boolean }>(
+  goals: G[],
+  children: { id: string; full_name: string }[],
+  today: string,
+): { child: { id: string; full_name: string }; goals: G[] }[] {
+  return children
+    .map((child) => ({
+      child,
+      goals: goals.filter((g) => g.ownerId === child.id && g.category !== null && !g.backup && (g.period === "day" || g.period === "week") && asksToday(g, today)),
+    }))
+    .filter((c) => c.goals.length > 0);
 }
