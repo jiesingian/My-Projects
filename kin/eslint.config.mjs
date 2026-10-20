@@ -15,6 +15,8 @@ const eslintConfig = defineConfig([
     // MediaPipe's engine, copied from node_modules at build time
     // (scripts/copy-mediapipe.mjs) -- third-party output, not Kin's code.
     "public/mediapipe/**",
+    // pdf.js's worker, copied the same way (#679) -- a minified bundle.
+    "public/pdfjs/**",
   ]),
   {
     // A "use server" file may export nothing but async functions. Exporting a

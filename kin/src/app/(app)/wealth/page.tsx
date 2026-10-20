@@ -591,6 +591,17 @@ async function CashFlowPane({ familyId, memberId, currency, range, scope, grownU
         </Link>
       )}
 
+      {/* Snap a receipt or an e-wallet screenshot (20 October, Kin Plus):
+          Kin AI reads it, the member checks it, an expense or bill is saved. */}
+      <Link
+        href="/wealth/scan"
+        style={{ display: "flex", alignItems: "center", gap: "0.5rem", padding: "0.75rem 0", fontSize: "0.875rem", color: "inherit", textDecoration: "none", borderBottom: "1px solid color-mix(in srgb, var(--color-text) 10%, transparent)" }}
+      >
+        <Icon name="camera" size={18} />
+        <span style={{ flex: 1 }}>Snap a receipt or GCash screenshot</span>
+        <span aria-hidden="true" style={{ color: "var(--color-neutral-600)" }}>›</span>
+      </Link>
+
       {/* Everything that repeats -- monthly, quarterly, yearly -- and what it
           all comes to in a year, built from these same bills. */}
       <Link

@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getCurrentMember } from "@/lib/session";
 import { getAccounts, getAttributableTargets, getAccountNumbers } from "@/lib/queries/wealth";
@@ -24,7 +25,10 @@ export default async function TransactPage({
           page), so back returns to the Accounts list rather than Cash Flow. */}
       <DetailHeader backHref={fromAccount ? "/wealth?seg=accounts" : "/wealth"} eyebrow="Wealth" />
       <div style={{ padding: "0 var(--gutter) 1.375rem" }}>
-        <h3 style={{ fontSize: "2rem", margin: "0 0 14px" }}>Move money</h3>
+        <h3 style={{ fontSize: "2rem", margin: "0 0 6px" }}>Move money</h3>
+        <p style={{ fontSize: "0.8125rem", color: "var(--color-neutral-600)", margin: "0 0 14px" }}>
+          Got a receipt or a GCash screenshot? <Link href="/wealth/scan">Snap it</Link> and Kin fills this in.
+        </p>
         <TransactForm
           accounts={accounts.map((a) => ({
             id: a.id,

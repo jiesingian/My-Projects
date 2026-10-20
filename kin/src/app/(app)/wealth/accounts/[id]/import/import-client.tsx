@@ -7,6 +7,8 @@ import { Blueprint, Tag } from "@/components/ui";
 import { ErrorText } from "@/components/form";
 import { formatCurrency } from "@/lib/format";
 import { importStatementAction } from "@/lib/actions/statement-import";
+import { mapStatementTextAction } from "@/lib/actions/statement-ai";
+import { KIN_AI_PRIVACY } from "@/lib/kin-ai";
 import {
   BANKS,
   MAX_STATEMENT_BYTES,
@@ -19,6 +21,7 @@ import {
   type DateFormat,
   type ExistingMovement,
   type Mapping,
+  type ParsedRow,
 } from "@/lib/statement-import";
 
 const label = { display: "block", fontSize: "0.71875rem", color: "var(--color-neutral-600)", marginBottom: "0.1875rem", marginTop: "0.5rem" } as const;
@@ -30,19 +33,28 @@ type Step = "pick" | "map" | "review" | "done";
 /** Pick a file → check the columns → review the lines → save. Everything
  * before the save happens in this browser tab; the file is read with
  * FileReader and dropped when the tab is. */
-export function StatementImporter({ accountId, existing, currency }: { accountId: string; existing: ExistingMovement[]; currency: string }) {
+export function StatementImporter({ accountId, existing, currency, aiReady }: { accountId: string; existing: ExistingMovement[]; currency: string; aiReady: boolean }) {
   const [step, setStep] = useState<Step>("pick");
   const [bank, setBank] = useState<Bank>("bpi");
   const [table, setTable] = useState<string[][]>([]);
   const [map, setMap] = useState<Mapping | null>(null);
   const [ticked, setTicked] = useState<boolean[]>([]);
+  // A PDF's rows come from Kin AI rather than from a column mapping (#679).
+  // The PDF is read on this device (lib/pdf-text.ts); only its text lines
+  // are sent. GCash's PDF needs the password from GCash's email, asked for
+  // here and never sent anywhere.
+  const [pdfRows, setPdfRows] = useState<ParsedRow[] | null>(null);
+  const [pdfFile, setPdfFile] = useState<File | null>(null);
+  const [password, setPassword] = useState("");
+  const [needsPassword, setNeedsPassword] = useState(false);
+  const [reading, setReading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<{ imported: number; skipped: number } | null>(null);
   const [pending, startTransition] = useTransition();
   const router = useRouter();
   const uid = useId();
 
-  const rows = useMemo(() => (map ? readRows(table, map) : []), [table, map]);
+  const rows = useMemo(() => pdfRows ?? (map ? readRows(table, map) : []), [pdfRows, table, map]);
   const dup = useMemo(() => markDuplicates(rows, existing), [rows, existing]);
   const howTo = BANKS.find((b) => b.value === bank)!.howTo;
 
@@ -50,7 +62,18 @@ export function StatementImporter({ accountId, existing, currency }: { accountId
     setError(null);
     if (!file) return;
     if (/\.pdf$/i.test(file.name) || file.type === "application/pdf") {
-      setError("That is a PDF. Reading PDF statements needs Kin AI, which isn't switched on yet — download the CSV instead, where your bank offers one.");
+      if (!aiReady) {
+        setError("That is a PDF. Reading a PDF statement needs Kin AI, which isn't switched on yet — a CSV, where your bank offers one, imports without it.");
+        return;
+      }
+      if (file.size > MAX_STATEMENT_BYTES * 5) {
+        setError("That PDF is bigger than 10 MB. Download a shorter period.");
+        return;
+      }
+      setPdfFile(file);
+      setNeedsPassword(false);
+      setPassword("");
+      void readPdf(file, "");
       return;
     }
     if (file.size > MAX_STATEMENT_BYTES) {
@@ -59,6 +82,7 @@ export function StatementImporter({ accountId, existing, currency }: { accountId
     }
     const reader = new FileReader();
     reader.onload = () => {
+      setPdfRows(null);
       const parsed = parseCsv(String(reader.result ?? ""));
       if (parsed.length < 2) {
         setError("That file has no lines Kin can read. Is it a CSV?");
@@ -70,6 +94,37 @@ export function StatementImporter({ accountId, existing, currency }: { accountId
     };
     reader.onerror = () => setError("That file could not be read.");
     reader.readAsText(file);
+  };
+
+  const readPdf = async (file: File, pw: string) => {
+    setError(null);
+    setReading(true);
+    try {
+      const { pdfTextLines } = await import("@/lib/pdf-text");
+      const read = await pdfTextLines(file, pw);
+      if (!read.ok) {
+        if (read.reason === "password") setNeedsPassword(true);
+        else if (read.reason === "wrong-password") {
+          setNeedsPassword(true);
+          setError("That password didn't open it. GCash's is in the email that brought the PDF.");
+        } else setError("That PDF could not be read. If it is a scan of a printout, Kin cannot read it yet.");
+        return;
+      }
+      const r = await mapStatementTextAction(read.lines, BANKS.find((b) => b.value === bank)?.label ?? "bank");
+      if (r.error) {
+        setError(r.error);
+        return;
+      }
+      const already = markDuplicates(r.rows, existing);
+      setPdfRows(r.rows);
+      setMap(null);
+      setTicked(r.rows.map((row, i) => !row.problem && !already[i]));
+      setNeedsPassword(false);
+      setPdfFile(null);
+      setStep("review");
+    } finally {
+      setReading(false);
+    }
   };
 
   const toReview = () => {
@@ -136,12 +191,28 @@ export function StatementImporter({ accountId, existing, currency }: { accountId
             ))}
           </select>
           <p style={{ fontSize: "0.78125rem", color: "var(--color-neutral-600)", lineHeight: 1.45, margin: "0.5rem 0" }}>{howTo}</p>
-          <label htmlFor={`${uid}-file`} style={label}>The CSV file</label>
-          <input id={`${uid}-file`} type="file" accept=".csv,text/csv,.txt,application/pdf,.pdf" className="input" onChange={(e) => onFile(e.target.files?.[0])} style={{ ...field, padding: "0.5rem" }} />
+          <label htmlFor={`${uid}-file`} style={label}>The CSV or PDF file</label>
+          <input id={`${uid}-file`} type="file" accept=".csv,text/csv,.txt,application/pdf,.pdf" className="input" onChange={(e) => onFile(e.target.files?.[0])} disabled={reading} style={{ ...field, padding: "0.5rem" }} />
+          {reading && <p style={{ fontSize: "0.8125rem", margin: "0.5rem 0 0" }}>Reading the PDF…</p>}
+          {needsPassword && pdfFile && (
+            <div style={{ marginTop: "0.5rem" }}>
+              <label htmlFor={`${uid}-pw`} style={label}>The PDF&rsquo;s password</label>
+              <div style={{ display: "flex", gap: "0.375rem" }}>
+                <input id={`${uid}-pw`} type="password" className="input" value={password} onChange={(e) => setPassword(e.target.value)} autoComplete="off" style={{ ...field, flex: 1 }} />
+                <button type="button" className="btn btn-primary" style={small} disabled={reading || !password} onClick={() => void readPdf(pdfFile, password)}>
+                  Open
+                </button>
+              </div>
+              <p style={{ fontSize: "0.75rem", color: "var(--color-neutral-600)", margin: "0.375rem 0 0" }}>Used on this phone to open the file, then forgotten. It is not sent to Kin.</p>
+            </div>
+          )}
+          <p style={{ fontSize: "0.75rem", color: "var(--color-neutral-600)", margin: "0.5rem 0 0", lineHeight: 1.45 }}>
+            A CSV is read entirely on this device. A PDF is read on this device too, and its text lines go to Kin AI to sort into rows (Kin Plus). {KIN_AI_PRIVACY}
+          </p>
         </Blueprint>
       )}
 
-      {step === "map" && map && (
+      {step === "map" && map && !pdfRows && (
         <MapStep table={table} map={map} onChange={setMap} onBack={() => setStep("pick")} onNext={toReview} currency={currency} />
       )}
 
@@ -183,8 +254,8 @@ export function StatementImporter({ accountId, existing, currency }: { accountId
             Already in: the account has a movement that day, the same way, for the same amount and description. Those stay unticked, and are skipped again on saving.
           </p>
           <div style={{ display: "flex", gap: "0.375rem" }}>
-            <button type="button" className="btn btn-secondary" style={small} onClick={() => setStep("map")} disabled={pending}>
-              Back
+            <button type="button" className="btn btn-secondary" style={small} onClick={() => (pdfRows ? (setPdfRows(null), setStep("pick")) : setStep("map"))} disabled={pending}>
+              {pdfRows ? "Another file" : "Back"}
             </button>
             <button type="button" className="btn btn-primary" style={small} onClick={save} disabled={pending || chosen.length === 0}>
               {pending ? "…" : `Import ${chosen.length} line${chosen.length === 1 ? "" : "s"}`}

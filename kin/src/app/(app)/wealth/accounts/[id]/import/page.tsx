@@ -11,6 +11,7 @@ import { isGrownUp } from "@/lib/roles";
 import { familyDay } from "@/lib/time";
 import { allRows } from "@/lib/queries/all-rows";
 import { StatementImporter } from "./import-client";
+import { kinAiReady } from "@/lib/kin-ai";
 
 /** Import a statement into one account: pick a CSV, check the columns,
  * review, save. The file is read in the browser and never uploaded; the
@@ -57,7 +58,7 @@ export default async function ImportStatementPage({ params }: { params: Promise<
         <p style={{ fontSize: "0.84375rem", color: "var(--color-neutral-600)", margin: "0 0 1rem", lineHeight: 1.45 }}>
           Into <b>{account.name}</b>. The file is read on this device and never uploaded or kept; only the lines you tick are saved. Lines already in the account are left out.
         </p>
-        <StatementImporter accountId={id} existing={existing} currency={me.families.currency} />
+        <StatementImporter accountId={id} existing={existing} currency={me.families.currency} aiReady={kinAiReady()} />
       </div>
     </div>
   );

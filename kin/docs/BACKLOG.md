@@ -117,10 +117,28 @@ says so in one line, with "never trains AI". Kid view is refused everywhere.
   with nothing Haiku rejects (no `effort`, no `fallbacks`). Not checked
   against the real model (no key): the answers' wording, and whether Haiku
   picks `get_health` over `search` for "allergy ni Lia".
-- Snap a receipt or e-wallet screenshot (Wealth, Plus): a receipt, a GCash /
-  Maya / InstaPay confirmation or a Meralco bill → amount, date, payee,
-  category, account guess → review → an expense or a bill; GCash's PDF
-  history joins the statement import (#679) by the same path.
+- **Done:** Snap a receipt or e-wallet screenshot (Wealth → Cash Flow →
+  "Snap a receipt or GCash screenshot", and a line on Move money; Kin
+  Plus): a photo of a store receipt, a screenshot of a GCash / Maya /
+  InstaPay / bank confirmation, or a Meralco or water bill → Kin AI reads
+  amount, date, payee, category, a reference and a guess at the account (a
+  single clear match or nothing) → one review card, every field editable,
+  "Paid already" or "A bill to pay" → recordMovementAction (money out,
+  confirmed) or addBillAction (once), the same rows Move money and Bills
+  write. A Free household sees the card and what Plus unlocks; nothing is
+  sent or counted. **GCash's PDF history (#679):** the import page takes
+  the PDF, opens it on the phone with pdf.js (new dependency pdfjs-dist
+  4.10.38, loaded only when a PDF is picked; the password from GCash's
+  email is typed there and never sent), and sends only the text lines to
+  Kin AI, which maps them to rows; the rows join the ordinary review step
+  and import_wealth_transactions(), duplicates skipped the same way.
+  Logic specs e2e/receipt-scan.logic.spec.ts and
+  e2e/statement-ai.logic.spec.ts. Not checked against the real model (no
+  key): whether Haiku reads a crumpled thermal receipt's total right, and
+  the GCash PDF's actual layout (the mapping prompt describes it from
+  memory of the export; the review step is where a wrong column shows).
+  Not checked: pdf.js on a real phone (the worker is served from
+  public/pdfjs/, copied at build like MediaPipe's engine).
 - "What did I miss?" in chat (Plus): at about 30 unread messages, one tap
   gives a short Taglish summary, never stored, shown once.
 - Send it to Kin (Plus): an iPhone Shortcut in the share sheet or an in-app
