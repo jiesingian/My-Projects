@@ -14,7 +14,8 @@
     "check:schema": "node scripts/check-schema.mjs",
     "e2e:ui": "playwright test --ui",
     "test:logic": "playwright test --project=logic",
-    "test:rls": "node supabase/tests/pglite/run.mjs"
+    "test:rls": "node supabase/tests/pglite/run.mjs",
+    "bundle:baseline": "npm run build && node scripts/bundle-budget.mjs --write"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.123.0",

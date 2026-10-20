@@ -27,6 +27,14 @@ concurrency:
   group: ci-${{ github.ref }}
   cancel-in-progress: true
 
+# Read everything, write only pull-request comments: the bundle budget below
+# posts its table on the pull request when a route's first-load JS changed.
+# Before this block the token had the repository's default, which this makes
+# explicit rather than wider; every other step only reads.
+permissions:
+  contents: read
+  pull-requests: write
+
 jobs:
   kin:
     name: kin — typecheck, lint, build
@@ -95,3 +103,49 @@ jobs:
           NEXT_PUBLIC_SUPABASE_URL: https://placeholder.supabase.co
           NEXT_PUBLIC_SUPABASE_ANON_KEY: placeholder-anon-key-for-build-only
         run: npm run build
+
+      - name: Client bundle budget
+        # What a phone downloads before each page is usable, per route,
+        # against kin/bundle-baseline.json (20 October). #710 took the shell
+        # from 247 KB to 176 KB by keeping supabase-js out of the layouts;
+        # one innocent import at the top of a layout would put it back on
+        # every page, and nothing else here would notice. A route may grow by
+        # 10% or 25 KB, whichever is larger; more than that fails, with the
+        # one-line fix in the message (`npm run bundle:baseline` in kin/, in
+        # the same pull request, saying why). A route the baseline does not
+        # have yet is reported, not failed. The script's header has the rest.
+        id: bundle
+        run: node scripts/bundle-budget.mjs --report "$RUNNER_TEMP/bundle-report.md"
+
+      - name: Say the numbers on the pull request, only when they changed
+        # One comment per pull request, edited in place on later pushes, and
+        # only when some route moved by a kilobyte or more (or went over). A
+        # pull request that leaves the bundles alone gets no comment at all.
+        # `|| true` throughout: a comment that could not be posted (a fork's
+        # read-only token, the API being slow) must never fail the build.
+        if: ${{ always() && github.event_name == 'pull_request' && steps.bundle.outcome != 'skipped' && steps.bundle.outcome != 'cancelled' }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          PR: ${{ github.event.pull_request.number }}
+          CHANGED: ${{ steps.bundle.outputs.changed }}
+          OVER: ${{ steps.bundle.outputs.over }}
+        run: |
+          set -uo pipefail
+          MARK="<!-- bundle-budget -->"
+          EXISTING=$(gh api "repos/$REPO/issues/$PR/comments?per_page=100" --jq ".[] | select(.body | startswith(\"$MARK\")) | .id" 2>/dev/null | head -1 || true)
+          if [ "$CHANGED" != "true" ] && [ -z "$EXISTING" ]; then
+            echo "Nothing changed by a kilobyte; no comment."
+            exit 0
+          fi
+          if [ "$CHANGED" = "true" ] && [ -f "$RUNNER_TEMP/bundle-report.md" ]; then
+            if [ "$OVER" = "true" ]; then HEAD="### Bundle budget: over"; else HEAD="### Bundle budget: changed"; fi
+            BODY=$(printf '%s\n%s\n\n%s\n' "$MARK" "$HEAD" "$(cat "$RUNNER_TEMP/bundle-report.md")")
+          else
+            BODY=$(printf '%s\n### Bundle budget: back to the baseline\n\nThe latest push changes no route by a kilobyte or more.\n' "$MARK")
+          fi
+          if [ -n "$EXISTING" ]; then
+            gh api -X PATCH "repos/$REPO/issues/comments/$EXISTING" -f body="$BODY" >/dev/null && echo "Updated the comment." || echo "Could not update the comment (not fatal)."
+          else
+            gh api -X POST "repos/$REPO/issues/$PR/comments" -f body="$BODY" >/dev/null && echo "Posted the comment." || echo "Could not post the comment (not fatal)."
+          fi
