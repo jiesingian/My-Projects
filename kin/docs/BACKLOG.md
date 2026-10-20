@@ -56,7 +56,15 @@ sample household: no sideways scroll and no console errors.
   covered by PGlite for Manila and Los Angeles, and production's tick is
   answering. The first real one is 29 October (see "Needs a real phone").
 - **Design questions, not fixed:**
-  - A helper sees medicine names on To-Buy refill lines.
+  - ~~A helper sees medicine names on To-Buy refill lines.~~ Done 20
+    October (kin/helper-refill-lines, 20261020160000): the line the job adds
+    carries the medicine's id (buy_items.medicine_id), and helper_buy_items()
+    reads it as "Medicine refill", with the store the family names
+    ("Medicine refill · Mercury Drug"); the family's own list still names
+    it. A grown-up chooses per medicine, on the card's "Helper's list" line
+    (only shown while a helper sees the list), to show the name after all
+    (health_medicine_supply.show_name_to_helper, off to begin with). Probe
+    helper-refill-lines.mjs. Not checked: on a helper's real phone.
   - Vault emergency access shows parents-only documents to the trusted
     relative.
   - `tree_story_push_targets` / `helper_push_targets` hand device

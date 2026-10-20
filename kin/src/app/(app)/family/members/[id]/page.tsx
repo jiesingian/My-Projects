@@ -64,7 +64,7 @@ export default async function MemberDetailPage({
   // Health records are kept by the grown-ups; kid view shows the profile.
   if (view === "health" && inKidView(me)) redirect(`/family/members/${id}`);
 
-  const { member, schedule, appointments, conditions, labs, vitals, omron, medicines, doses, missedAlerts, supply, prescriptions, grownUps, illness, photoCount } = await getMemberDetail(id, me.family_id);
+  const { member, schedule, appointments, conditions, labs, vitals, omron, medicines, doses, missedAlerts, supply, hasListHelper, prescriptions, grownUps, illness, photoCount } = await getMemberDetail(id, me.family_id);
   if (!member) redirect("/family?seg=profile");
   const isSelf = me.id === member.id;
 
@@ -383,6 +383,7 @@ export default async function MemberDetailPage({
               doses={doses}
               missedAlerts={missedAlerts}
               supply={supply}
+              hasListHelper={hasListHelper}
               prescriptions={prescriptions}
               grownUps={grownUps}
               today={familyDay(new Date(), tz)}

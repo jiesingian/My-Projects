@@ -124,7 +124,7 @@ export default async function ({ db, as, check, refused }) {
     return r.length === 1 && r[0].family_id === A && r[0].household === "House A" && r[0].can_see_list && r[0].can_see_meals && !r[0].can_see_kids_plans
       && Object.keys(r[0]).sort().join() === "can_see_kids_plans,can_see_list,can_see_meals,family_id,helper_id,helper_name,household,time_zone";
   });
-  for (const table of ["members", "families", "accounts", "wealth_transactions", "health_vitals", "health_medicines", "family_vault_items", "journal_entries", "activities", "activity_members", "events", "meal_plans", "buy_items", "household_helpers", "assets", "planner_goals", "member_locations", "storage.objects", "family_link_messages"]) {
+  for (const table of ["members", "families", "accounts", "wealth_transactions", "health_vitals", "health_medicines", "health_medicine_supply", "family_vault_items", "journal_entries", "activities", "activity_members", "events", "meal_plans", "buy_items", "household_helpers", "assets", "planner_goals", "member_locations", "storage.objects", "family_link_messages"]) {
     await check(`Hana reads nothing from ${table} directly`, async () => (await as(HANA, `select 1 from ${table}`)).length === 0);
   }
   await check("Hana cannot make herself a member or a grown-up", async () =>
