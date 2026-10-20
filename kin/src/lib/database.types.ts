@@ -4290,6 +4290,60 @@ export type Database = {
           },
         ]
       }
+      event_guests: {
+        Row: {
+          answer: string | null
+          created_at: string
+          event_id: string
+          family_id: string
+          headcount: number
+          id: string
+          name: string
+          name_key: string
+          token_hash: string
+          updated_at: string
+        }
+        Insert: {
+          answer?: string | null
+          created_at?: string
+          event_id: string
+          family_id: string
+          headcount?: number
+          id?: string
+          name: string
+          name_key: string
+          token_hash: string
+          updated_at?: string
+        }
+        Update: {
+          answer?: string | null
+          created_at?: string
+          event_id?: string
+          family_id?: string
+          headcount?: number
+          id?: string
+          name?: string
+          name_key?: string
+          token_hash?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "event_guests_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "event_guests_family_id_fkey"
+            columns: ["family_id"]
+            isOneToOne: false
+            referencedRelation: "families"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       potluck_items: {
         Row: {
           created_at: string
@@ -4300,6 +4354,7 @@ export type Database = {
           label: string
           position: number
           wanted: number
+          guest_id: string | null
         }
         Insert: {
           created_at?: string
@@ -4310,6 +4365,7 @@ export type Database = {
           label: string
           position?: number
           wanted?: number
+          guest_id?: string | null
         }
         Update: {
           created_at?: string
@@ -4320,6 +4376,7 @@ export type Database = {
           label?: string
           position?: number
           wanted?: number
+          guest_id?: string | null
         }
         Relationships: [
           {
@@ -4354,9 +4411,10 @@ export type Database = {
           household_name: string
           id: string
           item_id: string
-          member_id: string
+          member_id: string | null
           member_name: string
           qty: number
+          guest_id: string | null
         }
         Insert: {
           created_at?: string
@@ -4366,9 +4424,10 @@ export type Database = {
           household_name?: string
           id?: string
           item_id: string
-          member_id: string
+          member_id: string | null
           member_name?: string
           qty?: number
+          guest_id?: string | null
         }
         Update: {
           created_at?: string
@@ -4378,9 +4437,10 @@ export type Database = {
           household_name?: string
           id?: string
           item_id?: string
-          member_id?: string
+          member_id?: string | null
           member_name?: string
           qty?: number
+          guest_id?: string | null
         }
         Relationships: [
           {
@@ -4719,8 +4779,9 @@ export type Database = {
           family_id: string
           household_name: string
           id: string
-          member_id: string
+          member_id: string | null
           name: string
+          guest_id: string | null
         }
         Insert: {
           added_by?: string | null
@@ -4729,8 +4790,9 @@ export type Database = {
           family_id: string
           household_name?: string
           id?: string
-          member_id: string
+          member_id: string | null
           name?: string
+          guest_id?: string | null
         }
         Update: {
           added_by?: string | null
@@ -4739,8 +4801,9 @@ export type Database = {
           family_id?: string
           household_name?: string
           id?: string
-          member_id?: string
+          member_id?: string | null
           name?: string
+          guest_id?: string | null
         }
         Relationships: [
           {
@@ -8778,6 +8841,41 @@ export type Database = {
       }
       today_brief: { Args: { p_hash: string }; Returns: Json }
       set_list_add_token: { Args: { p_token_hash: string }; Returns: undefined }
+      set_event_guest_link: { Args: { p_event: string; p_token_hash: string; p_draw?: string | null }; Returns: undefined }
+      set_event_guest_link_draw: { Args: { p_event: string; p_draw: string | null }; Returns: undefined }
+      clear_event_guest_link: { Args: { p_event: string }; Returns: undefined }
+      event_guest_link: {
+        Args: { p_event: string }
+        Returns: { draw_id: string | null; created_at: string; last_used_at: string | null }[]
+      }
+      guest_event: {
+        Args: { p_token_hash: string }
+        Returns: {
+          title: string
+          event_date: string
+          end_date: string | null
+          host_name: string
+          open: boolean
+          coming: number
+          guests: number
+          draw_id: string | null
+          draw_title: string | null
+          draw_exchange_date: string | null
+          draw_price_cap: number | null
+          draw_currency: string | null
+          draw_drawn: boolean | null
+          draw_open: boolean | null
+        }[]
+      }
+      guest_potluck: {
+        Args: { p_token_hash: string }
+        Returns: { item_id: string; label: string; wanted: number; taken: number; sort_order: number }[]
+      }
+      guest_hello: { Args: { p_token_hash: string; p_name: string }; Returns: Json }
+      guest_answer: { Args: { p_token_hash: string; p_name: string; p_answer: string | null; p_headcount: number | null }; Returns: Json }
+      guest_claim: { Args: { p_token_hash: string; p_name: string; p_item: string; p_qty: number }; Returns: Json }
+      guest_add_dish: { Args: { p_token_hash: string; p_name: string; p_label: string; p_wanted: number }; Returns: Json }
+      guest_join_draw: { Args: { p_token_hash: string; p_name: string; p_in: boolean }; Returns: Json }
       clear_list_add_token: { Args: never; Returns: undefined }
       list_add_link_on: { Args: never; Returns: boolean }
       set_send_to_kin_token: { Args: { p_token_hash: string }; Returns: undefined }

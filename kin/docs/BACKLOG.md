@@ -215,6 +215,31 @@ says so in one line, with "never trains AI". Kid view is refused everywhere.
   Not checked: the Shortcut itself on an iPhone (the steps are written on
   the settings page the way the other two links' are), and Haiku's reading
   of a Messenger screenshot (no key).
+- **Done:** Answer from a link, no sign-up (name only, event only). On a
+  one-off event's screen, "Guests by link": a grown-up makes a guest link
+  (32 random bytes shown once, only the hash kept, like Add to Kin), shares
+  it with a ready message, points it at one of the household's monito-monita
+  draws, replaces it or turns it off. A relative opens /guest/<token> in any
+  browser, types their name, and can say Going / Maybe / Can't go with how
+  many they are (1 to 20), take a dish on the potluck or add up to three of
+  their own, and put themselves in the draw (reading their own pick, with
+  that person's wish list, once drawn). They see the event's name, dates
+  and host, how many are coming and the potluck list with counts, nothing
+  else: not the thread, the photos, the people asked, nor any household
+  data. The link stops working seven days after the event's last day
+  (host's zone); viewing stays open to then, answering through the last day.
+  The household sees guests as "Tita Baby (by link) ×4" under Who's coming
+  (the Going count adds headcounts), in the potluck's bringers and in the
+  draw; the host's grown-ups take one off (not once drawn). One row per
+  event and name (case and spacing aside), 40 guests per event, no < > or
+  control characters in a name, 60 items per event; wrong, turned-off and
+  expired links all answer the same nothing. Events have no place column,
+  so none is shown. Migration 20261020231000_event_guest_links.sql
+  (guest_id beside member_id on potluck_claims and gift_draw_people; the
+  draw counts guests in); probe event-guest-link.mjs; logic
+  e2e/event-guests.logic.spec.ts. No push: a guest's answer tells nobody
+  (the event screen does). Not checked: a real phone's share sheet; the
+  guest page in Facebook's in-app browser.
 
 ## Approved 20 October: four for reach and the season, Kin Free (Jonathan)
 

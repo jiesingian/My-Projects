@@ -5,6 +5,7 @@ import { useState, useTransition } from "react";
 import { toast } from "@/components/toast";
 import { Icon } from "@/components/icons";
 import {
+  removeDrawPersonAction,
   createGiftDrawAction,
   deleteGiftDrawAction,
   runGiftDrawAction,
@@ -98,7 +99,7 @@ export function DrawSetup({
   grownUp: boolean;
   notOwnHousehold: boolean;
   revealOnDay: boolean;
-  people: { id: string; memberId: string; familyId: string; name: string; householdName: string }[];
+  people: { id: string; memberId: string | null; familyId: string; name: string; householdName: string; guest?: boolean }[];
   households: { familyId: string; name: string }[];
   canPutIn: { id: string; name: string }[];
   canAsk: { id: string; name: string }[];
@@ -122,9 +123,16 @@ export function DrawSetup({
           <div style={{ display: "flex", flexWrap: "wrap", gap: "0.375rem", marginTop: "0.25rem" }}>
             {list.map((p) => (
               <span key={p.id} className="chip" data-active>
-                {first(p.name)}
-                {!drawn && p.familyId === myFamilyId && (grownUp || p.memberId === meId) && (
-                  <button type="button" className="kin-draw-x" aria-label={`Take ${p.name} out`} disabled={pending} onClick={() => run(() => setInDrawAction(drawId, p.memberId, false))}>
+                {p.guest ? p.name : first(p.name)}
+                {!drawn && p.familyId === myFamilyId && (grownUp || (p.memberId !== null && p.memberId === meId)) && (
+                  <button
+                    type="button"
+                    className="kin-draw-x"
+                    aria-label={`Take ${p.name} out`}
+                    disabled={pending}
+                    // A guest by link (20261020231000) has no member row: taken out by their place in the draw.
+                    onClick={() => run(() => (p.memberId ? setInDrawAction(drawId, p.memberId, false) : removeDrawPersonAction(drawId, p.id)))}
+                  >
                     <Icon name="x" size={12} />
                   </button>
                 )}

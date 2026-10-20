@@ -112,6 +112,20 @@ export async function setInDrawAction(id: string, memberId: string, on: boolean)
   return { error: null };
 }
 
+/** Take a place out of the draw by its own id: a guest by link
+ * (20261020231000) has no member row to name. The policy decides who may
+ * (their household's grown-ups, before the draw). */
+export async function removeDrawPersonAction(id: string, personId: string): Promise<ActionState> {
+  await requireCurrentMember();
+  if (!UUID.test(id) || !UUID.test(personId)) return { error: "That person could not be found." };
+  const supabase = await createClient();
+  const { data, error } = await supabase.from("gift_draw_people").delete().eq("draw_id", id).eq("id", personId).select("id");
+  refresh(id);
+  if (error) return { error: humanDatabaseError(error.message) };
+  if (!data?.length) return { error: "That can't be changed now: the draw is done, or they're not yours to take out." };
+  return { error: null };
+}
+
 /** Draw (or draw again before the day): in the database. */
 export async function runGiftDrawAction(id: string): Promise<ActionState> {
   await requireCurrentMember();

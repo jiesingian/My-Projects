@@ -6,7 +6,7 @@ export const POTLUCK_LABEL_MAX = 80;
 export const POTLUCK_WANTED_MAX = 50;
 
 export type PotluckItemRow = { id: string; label: string; wanted: number; position: number };
-export type PotluckClaimRow = { id: string; item_id: string; member_id: string; member_name: string; household_name: string; family_id: string; qty: number };
+export type PotluckClaimRow = { id: string; item_id: string; member_id: string | null; guest_id?: string | null; member_name: string; household_name: string; family_id: string; qty: number };
 
 export type PotluckLine = {
   id: string;
@@ -17,7 +17,8 @@ export type PotluckLine = {
   /** The viewer's own claim on it, if any. */
   mine: { id: string; qty: number } | null;
   /** Who is bringing it: first names, and the household when it is not the
-   * viewer's own ("Ben · House B"). */
+   * viewer's own ("Ben · House B"); a guest by link with their whole name
+   * ("Tita Baby (by link)", 20261020231000). */
   bringers: { id: string; name: string; qty: number }[];
 };
 
@@ -38,7 +39,11 @@ export function potluckLines(items: PotluckItemRow[], claims: PotluckClaimRow[],
         mine: mine ? { id: mine.id, qty: mine.qty } : null,
         bringers: on.map((c) => ({
           id: c.id,
-          name: c.member_id === me.id ? "You" : `${firstName(c.member_name)}${c.family_id !== me.familyId && c.household_name ? ` · ${c.household_name}` : ""}`,
+          name: c.guest_id
+            ? `${c.member_name.trim() || "A guest"} (by link)`
+            : c.member_id === me.id
+              ? "You"
+              : `${firstName(c.member_name)}${c.family_id !== me.familyId && c.household_name ? ` · ${c.household_name}` : ""}`,
           qty: c.qty,
         })),
       };
