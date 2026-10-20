@@ -117,7 +117,7 @@ export function GameGoalForm({ people }: { people: { id: string; label: string }
   if (!open) {
     return (
       <button type="button" className="btn btn-secondary btn-block" onClick={() => setOpen(true)} style={{ gap: "0.375rem" }}>
-        <Icon name="plus" size={17} /> New game goal
+        <Icon name="plus" size={17} /> New target
       </button>
     );
   }
@@ -284,7 +284,7 @@ export function StepsGoalForm({ people }: { people: { id: string; label: string;
   if (!open) {
     return (
       <button type="button" className="btn btn-secondary btn-block" onClick={() => setOpen(true)} style={{ gap: "0.375rem" }}>
-        🏃 New steps goal
+        🏃 New steps target
       </button>
     );
   }
