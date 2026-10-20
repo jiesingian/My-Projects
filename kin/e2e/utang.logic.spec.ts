@@ -27,6 +27,12 @@ test("roundDate: weekly, monthly (clamped to a short month), and kinsenas", () =
   expect(roundDate("2026-10-15", "semi_monthly", 2)).toBe("2026-10-30");
   expect(roundDate("2026-10-15", "semi_monthly", 3)).toBe("2026-11-15");
   expect(roundDate("2027-02-15", "semi_monthly", 2)).toBe("2027-02-28");
+  // Started after the 15th: the 30th and the 15th, every round on its own day.
+  const from30 = [1, 2, 3, 4, 5, 6].map((r) => roundDate("2026-01-30", "semi_monthly", r));
+  expect(from30).toEqual(["2026-01-30", "2026-02-15", "2026-02-28", "2026-03-15", "2026-03-30", "2026-04-15"]);
+  const from31 = [1, 2, 3, 4].map((r) => roundDate("2026-12-31", "semi_monthly", r));
+  expect(from31).toEqual(["2026-12-31", "2027-01-16", "2027-01-31", "2027-02-16"]);
+  expect(new Set(from30).size).toBe(from30.length);
 });
 
 test("currentRound is the latest round that has come, up to the last", () => {
