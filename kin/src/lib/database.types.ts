@@ -8588,6 +8588,14 @@ export type Database = {
         Args: { p_code: string }
         Returns: string
       }
+      claim_referral: {
+        Args: { p_code: string }
+        Returns: string
+      }
+      referral_stats: {
+        Args: never
+        Returns: { joined: number; rewarded: number; cap: number }[]
+      }
       decide_goal_change: {
         Args: { p_approve: boolean; p_change: string }
         Returns: undefined

@@ -87,6 +87,9 @@ export async function updateSession(request: NextRequest) {
     // and guest_event() decides what it opens (20261020231000).
     path.startsWith("/guest/") ||
     path.startsWith("/api/guest/") ||
+    // And a referral link (app/r/[code]/route.ts): remembers the family's
+    // code and sends the person to the home page; finishing setup claims it.
+    path.startsWith("/r/") ||
     // The privacy notice, terms and refund policy: read before an account
     // exists, and by app-store reviewers who never have one (app/legal).
     path.startsWith("/legal/") ||

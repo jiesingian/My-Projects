@@ -247,7 +247,12 @@ alter table families add column created_at timestamptz not null default now(),
   add column access_status text not null default 'trialing',
   add column access_source text,
   add column access_expires_at timestamptz default (now() + interval '7 days'),
-  add column plus_credit_days integer not null default 0;
+  add column plus_credit_days integer not null default 0,
+  -- Referrals, as 20260929020000 added them (the guard trigger on these
+  -- columns is not stood in; invite-a-family.mjs checks the functions).
+  add column referred_by uuid references families(id) on delete set null,
+  add column referral_code text not null default upper(substr(md5(random()::text || clock_timestamp()::text), 1, 8));
+create unique index families_referral_code_key on families (referral_code);
 alter table events add column created_at timestamptz not null default now();
 alter table buy_items add column created_at timestamptz not null default now();
 alter table routines add column created_at timestamptz not null default now();
