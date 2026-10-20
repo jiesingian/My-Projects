@@ -35,4 +35,13 @@ export default async function ({ db, check }) {
     await db.query("insert into wealth_transactions (family_id, account_id, direction, amount, particulars, occurred_at) values ($1, 'e0000000-0000-0000-0000-000000000001', 'out', 50, 'Load', '2026-09-30 17:00+00')", [A]);
     return (await run("2026-10-01 02:00+00")).length === 0;
   });
+  await check("A grown-up with no device yet keeps the month: once they turn push on that day, they hear it", async () => {
+    await db.exec("delete from reminder_sends; delete from wealth_transactions; delete from push_subscriptions where endpoint = 'https://push/Abe A'");
+    await db.exec("update members set notification_prefs = '{}' where full_name = 'Abe A'");
+    await db.query("insert into wealth_transactions (family_id, account_id, direction, amount, particulars, occurred_at) values ($1, 'e0000000-0000-0000-0000-000000000001', 'out', 80, 'Jeep', '2026-09-10 03:00+00')", [A]);
+    const before = who(await run("2026-10-01 02:00+00"));
+    await db.exec("insert into push_subscriptions (member_id, family_id, endpoint, p256dh, auth) select id, family_id, 'https://push/Abe A', 'k', 'a' from members where full_name = 'Abe A'");
+    const after = who(await run("2026-10-01 06:00+00"));
+    return (before === "Ann A" && after === "Abe A") || [before, after];
+  });
 }
