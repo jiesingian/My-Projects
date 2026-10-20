@@ -72,6 +72,26 @@ sample household: no sideways scroll and no console errors.
   - A Today "Done" and a Planner chore answer for the same day, both
     offline, go through separate paths.
 
+## Approved 20 October: four CI and upkeep changes (Jonathan)
+
+Each its own pull request. New gates warn on existing debt and fail only on
+new debt, compared with `main`, so no other session's PR goes red for it.
+
+- **Done: no new table without an RLS probe.** `ci.yml` runs
+  `kin/scripts/check-rls-probes.mjs` after `test:rls`: a table, view or
+  security-definer function first created by a migration on the branch, and
+  mentioned by no probe under `supabase/tests/pglite/probes/`, fails the
+  check. What existed on 20 October is grandfathered in
+  `supabase/tests/pglite/no-probe-yet.txt` (136 entries: 23 tables, 113
+  definer functions); each line is a probe still to write. The gate for
+  #728 and #730.
+- **A bundle-size budget in CI:** per-route first-load JS against a stored
+  baseline; fail when a route grows by more than 10% or 25 KB.
+- **Phone-width screenshots compared with main:** Today, Chat, Planner,
+  To-Buy, Wealth at 390px, Simple Kin off and on; warn-only for a week.
+- **Safe dependency updates:** patch and minor only, lockfile by npm, the
+  `url.parse()` warning gone from production's log.
+
 ## Approved 19 October: four for the season, Kin Free (Jonathan)
 
 Each its own pull request, in date order: Undas first (1-2 November), then
