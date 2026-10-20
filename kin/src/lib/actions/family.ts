@@ -840,6 +840,19 @@ export async function deleteHouseholdAction(): Promise<ActionState> {
 
   const supabase = await createClient();
   try {
+    // Health photos first (20261020180000): their files are removable only
+    // by whoever can see their row, so another member's private medicine's
+    // slip was left behind when the organizer swept the buckets. The
+    // database forgets every health photo row of the household for its
+    // organizer and hands back the paths; with no row naming them the files
+    // are the household's to remove, and the sweep below catches any the
+    // list missed.
+    const { data: healthFiles, error: forgetError } = await supabase.rpc("forget_household_health_photos");
+    if (forgetError) console.error(`Health photo rows could not be forgotten while deleting household ${me.family_id}: ${forgetError.message}`);
+    for (let i = 0; i < (healthFiles ?? []).length; i += 100) {
+      const { error: removeError } = await supabase.storage.from("journal").remove((healthFiles ?? []).slice(i, i + 100));
+      if (removeError) console.error(`Health photo files were left behind while deleting household ${me.family_id}: ${removeError.message}`);
+    }
     // Every bucket, every level. This used to list one level of journal,
     // trip-photos and avatars and two of documents, so event and visit photos
     // (journal/<family>/events/<id>/…, …/health/<id>/…) and every recipe photo

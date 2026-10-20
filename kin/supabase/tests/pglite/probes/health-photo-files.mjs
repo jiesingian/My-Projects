@@ -3,12 +3,16 @@
 // row -- so a parents-only or private medicine's slip is hidden from a child
 // in the same household, as the row already was -- while a file no row names
 // (just uploaded, or its row just deleted) stays the household's, so the app
-// can still record it and clean it up.
+// can still record it and clean it up. And when the organizer deletes the
+// household (20261020180000), every health photo row goes with it, so the
+// files a private row hid from them can be removed too.
 const A = "a0000000-0000-0000-0000-000000000000";
 const ANN = "10000000-0000-0000-0000-0000000000a1"; // parent in A
 const KID = "10000000-0000-0000-0000-0000000000a2"; // child in A, own login
 const DAN = "10000000-0000-0000-0000-0000000000d1"; // a stranger to A
+const ABE = "10000000-0000-0000-0000-0000000000a4"; // adult in A, not the organizer
 const ANN_M = "00000000-0000-0000-0000-0000000000a1";
+const VISIT = "e3100000-0000-0000-0000-0000000000a1";
 const LOLA_M = "00000000-0000-0000-0000-0000000000f6";
 const MED = "e3100000-0000-0000-0000-000000000001"; // Lola's, whole family
 const PAR = "e3100000-0000-0000-0000-000000000002"; // Lola's, parents only
@@ -28,6 +32,10 @@ export default async function ({ db, as, check }) {
     create policy journal_own_family_delete on storage.objects for delete to authenticated
       using (bucket_id = 'journal' and split_part(name, '/', 1) = public.current_family_id()::text);
     insert into members (id, family_id, auth_user_id, full_name, role) values ('${LOLA_M}', '${A}', null, 'Lola Cruz', 'adult');
+    -- The organizer flag (pre-pipeline), which delete_household and now
+    -- forget_household_health_photos() turn on.
+    alter table members add column if not exists is_organiser boolean not null default false;
+    update members set is_organiser = true where id = '${ANN_M}';
     insert into health_medicines (id, family_id, member_id, name, times, start_date, visibility, created_by) values
       ('${MED}', '${A}', '${LOLA_M}', 'Amlodipine', '{08:00}', current_date - 3, 'family', '${ANN_M}'),
       ('${PAR}', '${A}', '${LOLA_M}', 'Insulin', '{08:00}', current_date - 3, 'parents', '${ANN_M}');
@@ -57,5 +65,53 @@ export default async function ({ db, as, check }) {
     await as(ANN, "delete from health_medicine_photos where storage_path = $1", [parFile]);
     await as(ANN, "delete from storage.objects where name = $1", [parFile]);
     return (await db.query("select 1 from storage.objects where name = $1", [parFile])).rows.length === 0;
+  });
+
+  // -- Deleting the household (20261020180000) ----------------------------------
+  const privFile = `${A}/health/${PAR}/private-slip.jpg`;
+  const visitFile = `${A}/health/${VISIT}/visit.jpg`;
+  await db.query("insert into storage.objects (bucket_id, name) values ('journal', $1), ('journal', $2)", [privFile, visitFile]);
+  await db.query("insert into health_medicine_photos (family_id, medicine_id, storage_path, created_by) values ($1, $2, $3, $4)", [A, PAR, privFile, ANN_M]);
+  await db.query("insert into health_visit_photos (family_id, appointment_id, storage_path, created_by) values ($1, $2, $3, $4)", [A, VISIT, visitFile, ANN_M]);
+  await db.query("update health_medicines set visibility = 'private', created_by = null where id = $1", [PAR]);
+  const D = "d0000000-0000-0000-0000-000000000000";
+  const DMED = "e3100000-0000-0000-0000-0000000000d1";
+  await db.query("insert into health_medicines (id, family_id, member_id, name, times, start_date, visibility) values ($1, $2, $3, 'Dan med', '{08:00}', current_date, 'family')", [DMED, D, "00000000-0000-0000-0000-0000000000d1"]);
+  await db.query("insert into health_medicine_photos (family_id, medicine_id, storage_path) values ($1, $2, $3)", [D, DMED, `${D}/health/${DMED}/slip.jpg`]);
+  const forget = (who) => as(who, "select forget_household_health_photos() as p");
+  await check("The organizer cannot see a private medicine's slip, nor remove its file, while its row stands", async () =>
+    !(await files(ANN)).includes(privFile) &&
+    (await as(ANN, "delete from storage.objects where name = $1 returning name", [privFile])).length === 0);
+  await check("A child, an adult who is not the organizer, and a stranger cannot forget the household's photos", async () => {
+    const kid = (await forget(KID).catch((e) => e.message)) ;
+    const abe = (await forget(ABE).catch((e) => e.message));
+    const dan = (await forget(DAN).catch((e) => e.message));
+    const rows = (await db.query("select count(*)::int as n from health_medicine_photos where family_id = $1", [A])).rows[0].n;
+    return ([kid, abe, dan].every((r) => typeof r === "string" && /organizer/.test(r)) && rows === 2) || { kid, abe, dan, rows };
+  });
+  await check("The organizer gets every health photo's path, the private slip and the visit photo included, and the rows are gone", async () => {
+    const paths = (await forget(ANN)).map((r) => r.p).sort();
+    const left = (await db.query("select count(*)::int as n from health_medicine_photos where family_id = $1", [A])).rows[0].n
+      + (await db.query("select count(*)::int as n from health_visit_photos where family_id = $1", [A])).rows[0].n;
+    return (paths.join() === [famFile, privFile, visitFile].sort().join() && left === 0) || { paths, left };
+  });
+  await check("With no row naming them, the organizer removes those files", async () => {
+    await as(ANN, "delete from storage.objects where name = any($1)", [[famFile, privFile, visitFile]]);
+    return (await db.query("select count(*)::int as n from storage.objects where name = any($1)", [[famFile, privFile, visitFile]])).rows[0].n === 0;
+  });
+  await check("Another household's photo rows are untouched", async () =>
+    (await db.query("select count(*)::int as n from health_medicine_photos where family_id = $1", [D])).rows[0].n === 1);
+  await check("Signed out, nothing is forgotten", async () => {
+    await db.exec("reset role");
+    await db.query("select set_config('request.jwt.claims', '{}', false)");
+    await db.exec("set role anon");
+    try {
+      await db.query("select forget_household_health_photos()");
+      return false;
+    } catch {
+      return true;
+    } finally {
+      await db.exec("reset role");
+    }
   });
 }

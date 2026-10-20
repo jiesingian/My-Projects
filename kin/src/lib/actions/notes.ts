@@ -43,8 +43,11 @@ export async function updateNoteAction(id: string, body: string): Promise<Action
 export async function deleteNoteAction(id: string): Promise<ActionState> {
   await requireCurrentMember();
   const supabase = await createClient();
-  const { error } = await supabase.from("personal_notes").delete().eq("id", id);
-  if (error) return { error: humanDatabaseError(error.message) };
+  // The rows actually removed: a note already gone (another tab, another
+  // device) says so rather than reporting success.
+  const { data, error } = await supabase.from("personal_notes").delete().eq("id", id).select("id");
   revalidatePath("/notes");
+  if (error) return { error: humanDatabaseError(error.message) };
+  if (!data?.length) return { error: "That note was already removed." };
   return { error: null };
 }

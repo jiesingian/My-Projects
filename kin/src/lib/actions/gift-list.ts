@@ -65,9 +65,11 @@ export async function removeGiftPersonAction(personId: string): Promise<ActionSt
   await requireCurrentMember();
   if (!UUID.test(personId)) return { error: "That person could not be found." };
   const supabase = await createClient();
-  const { error } = await supabase.from("gift_list_people").delete().eq("id", personId);
+  const { data, error } = await supabase.from("gift_list_people").delete().eq("id", personId).select("id");
   refresh();
-  return { error: error ? humanDatabaseError(error.message) : null };
+  if (error) return { error: humanDatabaseError(error.message) };
+  if (!data?.length) return { error: "That person was already taken off the list." };
+  return { error: null };
 }
 
 /** "Lego set 1,200", "Aguinaldo 500": the idea, its cost, cash or not. */
@@ -99,7 +101,9 @@ export async function removeGiftIdeaAction(itemId: string): Promise<ActionState>
   await requireCurrentMember();
   if (!UUID.test(itemId)) return { error: "That idea could not be found." };
   const supabase = await createClient();
-  const { error } = await supabase.from("gift_list_items").delete().eq("id", itemId);
+  const { data, error } = await supabase.from("gift_list_items").delete().eq("id", itemId).select("id");
   refresh();
-  return { error: error ? humanDatabaseError(error.message) : null };
+  if (error) return { error: humanDatabaseError(error.message) };
+  if (!data?.length) return { error: "That idea was already removed." };
+  return { error: null };
 }

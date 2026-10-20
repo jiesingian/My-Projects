@@ -8052,6 +8052,10 @@ export type Database = {
         Args: never
         Returns: { helper_id: string; family_id: string; household: string; helper_name: string; time_zone: string; can_see_list: boolean; can_see_meals: boolean; can_see_kids_plans: boolean }[]
       }
+      forget_household_health_photos: {
+        Args: never
+        Returns: string[]
+      }
       helper_buy_items: {
         Args: { p_family: string }
         Returns: { item_id: string; item_name: string; quantity: number | null; unit: string | null; section: string; checked: boolean; added_by: string | null }[]

@@ -72,11 +72,16 @@ sample household: no sideways scroll and no console errors.
     `push_targets`, needed because the app sends pushes without a
     service-role key.
 - **Minor, left:**
-  - Deleting a note, question or gift row that's already gone reports
-    success.
-  - `/api/list-add` reads the body before its size check.
-  - Deleting a household leaves another member's private prescription
-    file behind (#730).
+  - ~~Deleting a note, question or gift row that's already gone reports
+    success.~~ Done 20 October (kin/small-leftovers): "already removed".
+  - ~~`/api/list-add` reads the body before its size check.~~ Done 20
+    October: a declared Content-Length over the limit is refused unread;
+    a body with none declared is read only up to the limit.
+  - ~~Deleting a household leaves another member's private prescription
+    file behind (#730).~~ Done 20 October (20261020180000): the organizer's
+    delete first forgets every health photo row of the household
+    (prescription and visit photos, the journal bucket's health/ folders)
+    and removes the files, then sweeps the buckets as before.
   - A Today "Done" and a Planner chore answer for the same day, both
     offline, go through separate paths.
 
