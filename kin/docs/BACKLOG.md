@@ -100,6 +100,59 @@ new debt, compared with `main`, so no other session's PR goes red for it.
 - **Safe dependency updates:** patch and minor only, lockfile by npm, the
   `url.parse()` warning gone from production's log.
 
+## Decided 20 October: Kin AI on Haiku, and four things it can do (Jonathan)
+
+Each its own pull request, in this order, built without the key
+(`ANTHROPIC_API_KEY` is not on Vercel; Jonathan adds it himself): every
+screen is visible and says *Kin AI isn't switched on yet*. Every Kin AI
+call -- Ask Kin, the flyer scan, and the three below -- goes to **Claude
+Haiku 4.5**, the model named once in `src/lib/kin-ai.ts`, with the prompts
+written for it. The three new features are **Kin Plus only**: a Free
+household sees the entry point and what Plus unlocks, and spends none of
+its five flyer scans. Every screen that sends family records to the model
+says so in one line, with "never trains AI". Kid view is refused everywhere.
+
+- **Done:** Haiku switch and "Answer the 2 a.m. question" (#699): a new
+  Ask Kin tool, `get_health`, for grown-ups only, returns one member's
+  allergies, blood type, medicines being taken now with doses and times,
+  conditions, HMO/insurance, PhilHealth, usual doctor, who to call (the
+  emergency card's list), health checks due, recent readings, recent
+  illness, lab results, a child's vaccines and the saved doctor's-visit
+  questions -- read as the asker, so a parents-only or private record of
+  someone else's is not in the answer, as on the Health screens. Counts as
+  an assistant question, as today. The Ask Kin panel carries the privacy
+  line. Logic spec e2e/kin-ai.logic.spec.ts holds every call to Haiku 4.5
+  with nothing Haiku rejects (no `effort`, no `fallbacks`). Not checked
+  against the real model (no key): the answers' wording, and whether Haiku
+  picks `get_health` over `search` for "allergy ni Lia".
+- **Done:** Snap a receipt or e-wallet screenshot (Wealth → Cash Flow →
+  "Snap a receipt or GCash screenshot", and a line on Move money; Kin
+  Plus): a photo of a store receipt, a screenshot of a GCash / Maya /
+  InstaPay / bank confirmation, or a Meralco or water bill → Kin AI reads
+  amount, date, payee, category, a reference and a guess at the account (a
+  single clear match or nothing) → one review card, every field editable,
+  "Paid already" or "A bill to pay" → recordMovementAction (money out,
+  confirmed) or addBillAction (once), the same rows Move money and Bills
+  write. A Free household sees the card and what Plus unlocks; nothing is
+  sent or counted. **GCash's PDF history (#679):** the import page takes
+  the PDF, opens it on the phone with pdf.js (new dependency pdfjs-dist
+  4.10.38, loaded only when a PDF is picked; the password from GCash's
+  email is typed there and never sent), and sends only the text lines to
+  Kin AI, which maps them to rows; the rows join the ordinary review step
+  and import_wealth_transactions(), duplicates skipped the same way.
+  Logic specs e2e/receipt-scan.logic.spec.ts and
+  e2e/statement-ai.logic.spec.ts. Not checked against the real model (no
+  key): whether Haiku reads a crumpled thermal receipt's total right, and
+  the GCash PDF's actual layout (the mapping prompt describes it from
+  memory of the export; the review step is where a wrong column shows).
+  Not checked: pdf.js on a real phone (the worker is served from
+  public/pdfjs/, copied at build like MediaPipe's engine).
+- "What did I miss?" in chat (Plus): at about 30 unread messages, one tap
+  gives a short Taglish summary, never stored, shown once.
+- Send it to Kin (Plus): an iPhone Shortcut in the share sheet or an in-app
+  "Paste a screenshot" button; a school circular or a Viber/Messenger
+  screenshot → dates, places, tasks → the flyer-scan review → plans.
+
 ## Approved 19 October: four for the season, Kin Free (Jonathan)
 
 Each its own pull request, in date order: Undas first (1-2 November), then
@@ -812,8 +865,9 @@ docs/SETUP_FOR_JONATHAN.md.
 - **Business registration for the legal pages** (DTI business name, BIR),
   which the payment providers also ask for. The details go in
   `src/lib/legal.ts`; until then the pages say "Being registered".
-- **Kin AI switches from Opus to Haiku 4.5 with a monthly spend cap when the
-  key is added** (Jonathan, 30 September).
+- **Done (20 October):** Kin AI switched from Opus to Haiku 4.5, the model
+  named once in `src/lib/kin-ai.ts`; the monthly spend cap is a Console
+  setting for Jonathan when the key is added (SETUP section 4).
 
 ## Native app stage
 

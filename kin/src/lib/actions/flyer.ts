@@ -11,6 +11,7 @@ import { activityInstants } from "@/lib/planner-time";
 import { familyDay } from "@/lib/time";
 import { SCAN_SCHEMA, normaliseScan, scanPrompt, type ScannedItem } from "@/lib/flyer-scan";
 import { takeKinAiUse } from "@/lib/kin-ai-allowance";
+import { kinAiReady, kinAiRequest, textOf } from "@/lib/kin-ai";
 
 const IMAGE_TYPES = ["image/jpeg", "image/png", "image/webp", "image/gif"] as const;
 type ImageType = (typeof IMAGE_TYPES)[number];
@@ -22,7 +23,7 @@ const MAX_BYTES = 5 * 1024 * 1024;
 export async function scanFlyerAction(formData: FormData): Promise<{ error: string | null; items: ScannedItem[] }> {
   const tz = await householdZone();
   await requireCurrentMember();
-  if (!process.env.ANTHROPIC_API_KEY) return { error: "Scanning isn't switched on yet. Fill in the event below for now.", items: [] };
+  if (!kinAiReady()) return { error: "Scanning isn't switched on yet. Fill in the event below for now.", items: [] };
 
   const file = formData.get("photo");
   if (!(file instanceof File) || file.size === 0) return { error: "Choose a photo first.", items: [] };
@@ -36,30 +37,25 @@ export async function scanFlyerAction(formData: FormData): Promise<{ error: stri
   const data = Buffer.from(await file.arrayBuffer()).toString("base64");
   const client = new Anthropic();
   try {
-    const response = await client.beta.messages.create({
-      model: "claude-opus-5",
-      max_tokens: 4096,
-      betas: ["server-side-fallback-2026-07-01"],
-      fallbacks: "default",
-      output_config: { effort: "medium", format: { type: "json_schema", schema: SCAN_SCHEMA } },
-      messages: [
-        {
-          role: "user",
-          content: [
-            { type: "image", source: { type: "base64", media_type: file.type as ImageType, data } },
-            { type: "text", text: scanPrompt(familyDay(new Date(), tz)) },
-          ],
-        },
-      ],
-    });
+    // The model (Haiku 4.5) and the request shape are lib/kin-ai.ts's.
+    const response = await client.beta.messages.create(
+      kinAiRequest({
+        output_config: { format: { type: "json_schema", schema: SCAN_SCHEMA } },
+        messages: [
+          {
+            role: "user",
+            content: [
+              { type: "image", source: { type: "base64", media_type: file.type as ImageType, data } },
+              { type: "text", text: scanPrompt(familyDay(new Date(), tz)) },
+            ],
+          },
+        ],
+      }),
+    );
     if (response.stop_reason === "refusal") return { error: "Kin couldn't read that one. Try another photo.", items: [] };
-    const text = response.content
-      .filter((b): b is Anthropic.Beta.BetaTextBlock => b.type === "text")
-      .map((b) => b.text)
-      .join("");
     let parsed: unknown = null;
     try {
-      parsed = JSON.parse(text);
+      parsed = JSON.parse(textOf(response.content));
     } catch {
       return { error: "Kin couldn't make sense of that photo. Try a sharper one.", items: [] };
     }

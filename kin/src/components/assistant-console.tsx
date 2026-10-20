@@ -6,6 +6,7 @@ import { Blueprint } from "@/components/ui";
 import { Icon } from "@/components/icons";
 import { listen, speak, speechOutSupported, speechSupported, stopSpeaking, type Listener } from "@/lib/speech";
 import { scrollBehavior } from "@/lib/motion";
+import { KIN_AI_PRIVACY } from "@/lib/kin-ai";
 
 type Turn = { role: "user" | "assistant"; content: string };
 
@@ -261,6 +262,11 @@ export function AssistantConsole({ memberName, start }: { memberName: string; st
           Listening — say what you need, then pause.
         </p>
       )}
+
+      {/* The one line every screen that sends family records to the model
+          carries (Jonathan, 20 October). Ask Kin reads the household's
+          plans, money and, for a grown-up, health to answer. */}
+      <p style={{ fontSize: "0.75rem", color: "var(--color-neutral-600)", margin: "8px 0 0", lineHeight: 1.45 }}>{KIN_AI_PRIVACY}</p>
 
       {/* Said once, the first time somebody presses it, because "the browser
           did the transcribing" is not the same as "nothing left the room"
