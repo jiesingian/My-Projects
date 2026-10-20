@@ -1,5 +1,5 @@
 import { test, expect } from "@playwright/test";
-import { BONUSES, DEFAULT_FAMILY_WEEK_STEPS, DEFAULT_STEP_TARGET, FAMILY_STEPS_BONUS, STEP_QUICK_ADDS, allDailiesDone, familyStepsTotal, partWorth, stepParts, closeDay, earnedBadges, levelFromXp, nextMilestone, wholeFamilyDone, xpTotal, type BadgeRule } from "@/lib/game";
+import { BONUSES, asksOn, creditedTo, dayOutcome, DEFAULT_FAMILY_WEEK_STEPS, DEFAULT_STEP_TARGET, FAMILY_STEPS_BONUS, STEP_QUICK_ADDS, allDailiesDone, familyStepsTotal, partWorth, stepParts, closeDay, earnedBadges, levelFromXp, nextMilestone, wholeFamilyDone, xpTotal, type BadgeRule } from "@/lib/game";
 
 /** Goals and Rewards as a game (Janine, 20 October). The same rules the
  * nightly job runs in the database (20261020120000; its PGlite probe
@@ -141,4 +141,40 @@ test("the family steps bonus and the starting targets", () => {
   expect(FAMILY_STEPS_BONUS).toEqual({ xp: 50, coins: 25 });
   expect(DEFAULT_STEP_TARGET).toEqual({ child: 6000, grownUp: 8000 });
   expect(STEP_QUICK_ADDS).toEqual([500, 1000]);
+});
+
+// --- A family's own plan (20261020190000) -----------------------------------------
+
+test("parent-managed: a baby's goal ticked by a parent credits the parent, never both", () => {
+  expect(creditedTo({ memberId: "keira", loggedBy: "janine" }, "logger")).toBe("janine");
+  expect(creditedTo({ memberId: "keira", loggedBy: "jonathan" }, "logger")).toBe("jonathan");
+  // Erynne's own goals stay hers, whoever ticked them.
+  expect(creditedTo({ memberId: "erynne", loggedBy: "janine" }, "owner")).toBe("erynne");
+  // Nobody logged it (the nightly job): the owner's.
+  expect(creditedTo({ memberId: "keira", loggedBy: null }, "logger")).toBe("keira");
+});
+
+test("minimum day: the backup alone keeps the streak going (+1), with no bonus", () => {
+  expect(dayOutcome([{ done: false, backup: false }, { done: true, backup: true }])).toBe("backup");
+  expect(closeDay({ streak: 4, best: 4, freezes: 1 }, "backup", "2026-10-21")).toEqual({ streak: 5, best: 5, freezes: 1, freezeUsed: false });
+});
+
+test("minimum day: all dailies done is a full day, backup or not", () => {
+  expect(dayOutcome([{ done: true, backup: false }, { done: false, backup: true }])).toBe("all");
+  expect(dayOutcome([{ done: true, backup: false }, { done: true, backup: true }])).toBe("all");
+});
+
+test("minimum day: neither the dailies nor the backup is a missed day", () => {
+  expect(dayOutcome([{ done: false, backup: false }, { done: false, backup: true }])).toBe("missed");
+  expect(dayOutcome([{ done: true, backup: true }])).toBe("backup");
+});
+
+test("weekdays only: asked Monday to Friday, not at the weekend", () => {
+  const weekdays = [1, 2, 3, 4, 5];
+  expect(asksOn(weekdays, "2026-10-19")).toBe(true); // Monday
+  expect(asksOn(weekdays, "2026-10-23")).toBe(true); // Friday
+  expect(asksOn(weekdays, "2026-10-24")).toBe(false); // Saturday
+  expect(asksOn(weekdays, "2026-10-25")).toBe(false); // Sunday
+  expect(asksOn(null, "2026-10-25")).toBe(true);
+  expect(asksOn([7], "2026-10-25")).toBe(true);
 });

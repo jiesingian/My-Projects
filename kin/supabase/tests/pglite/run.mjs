@@ -109,6 +109,7 @@ const MIGRATIONS = [
   "20261020150000_goals_game_steps.sql",
   "20261020160000_helper_refill_lines.sql",
   "20261020180000_delete_household_forgets_health_photos.sql",
+  "20261020190000_goals_family_pack.sql",
 ];
 
 const only = process.argv[2];

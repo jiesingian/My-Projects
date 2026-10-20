@@ -92,7 +92,8 @@ export async function getGoals(familyId: string, viewer: Viewer, weekStart: 0 | 
   const tz = await householdZone();
   const supabase = await createClient();
   const [{ data: goals }, { data: rewards }, { data: members }, { data: changes }] = await Promise.all([
-    supabase.from("planner_goals").select("*").eq("family_id", familyId).order("created_at", { ascending: true }),
+    // A removed game goal keeps its history and is shown no more.
+    supabase.from("planner_goals").select("*").eq("family_id", familyId).is("removed_at", null).order("created_at", { ascending: true }),
     supabase.from("planner_goal_rewards").select("*").eq("family_id", familyId),
     supabase.from("members").select("id, full_name").eq("family_id", familyId),
     supabase.from("planner_goal_changes").select("*").eq("family_id", familyId).eq("status", "pending").order("created_at", { ascending: false }),
