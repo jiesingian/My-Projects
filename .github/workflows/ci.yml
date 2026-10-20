@@ -57,6 +57,35 @@ jobs:
         # can read and write what. No network, no real database, ~20 seconds.
         run: npm run test:rls
 
+      - name: Every new table has a row-level security probe
+        # No new table, view or security-definer function without a probe
+        # under kin/supabase/tests/pglite/probes/ that mentions it (20
+        # October). #728 and #730 in the stabilisation pass were tables whose
+        # policies shipped unprobed: a monito-monita organizer could open
+        # every pick early, a child could read a parents-only prescription.
+        #
+        # Fails only on NEW debt: an object first created by a migration that
+        # is on this branch and not on main. Everything that existed on 20
+        # October is grandfathered in no-probe-yet.txt, so this passes on
+        # main and on every other open pull request; an unprobed object that
+        # reaches main without an allowlist line is a warning, never a red
+        # main. The script's header has the rules; `--update-allowlist`
+        # rewrites the list when a grandfathered entry is added on purpose.
+        #
+        # `git fetch --depth=1` of the base branch is all it needs: the
+        # script compares file names against main's tree, not history, so
+        # the checkout above can stay shallow. On a push to main BASE is
+        # empty and nothing is new, so it can only warn.
+        env:
+          BASE: ${{ github.event_name == 'pull_request' && github.base_ref || '' }}
+        run: |
+          if [ -n "$BASE" ]; then
+            git fetch --no-tags --depth=1 origin "$BASE"
+            node scripts/check-rls-probes.mjs --base "origin/$BASE"
+          else
+            node scripts/check-rls-probes.mjs
+          fi
+
       - name: Build
         # Every page in Kin is server-rendered on demand, so nothing is
         # prerendered and no real database is touched here. The placeholders
