@@ -238,7 +238,7 @@ export default async function TodayPage({ searchParams }: { searchParams: Promis
           steps or a session right here. */}
       <TodayGoals
         goals={goals}
-        meId={me.id}
+        me={{ id: me.id, role: me.role, family_id: me.family_id }}
         today={familyDay(new Date(), tz)}
         plus={readAccess(me.families).plus}
         currency={me.families.currency}
