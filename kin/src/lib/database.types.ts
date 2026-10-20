@@ -3940,6 +3940,48 @@ export type Database = {
           },
         ]
       }
+      sent_screenshots: {
+        Row: {
+          created_at: string
+          data: string
+          family_id: string
+          id: string
+          member_id: string
+          mime: string
+        }
+        Insert: {
+          created_at?: string
+          data: string
+          family_id: string
+          id?: string
+          member_id: string
+          mime: string
+        }
+        Update: {
+          created_at?: string
+          data?: string
+          family_id?: string
+          id?: string
+          member_id?: string
+          mime?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sent_screenshots_family_id_fkey"
+            columns: ["family_id"]
+            isOneToOne: false
+            referencedRelation: "families"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sent_screenshots_member_id_fkey"
+            columns: ["member_id"]
+            isOneToOne: false
+            referencedRelation: "members"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       health_medicines: {
         Row: {
           created_at: string
@@ -8738,6 +8780,11 @@ export type Database = {
       set_list_add_token: { Args: { p_token_hash: string }; Returns: undefined }
       clear_list_add_token: { Args: never; Returns: undefined }
       list_add_link_on: { Args: never; Returns: boolean }
+      set_send_to_kin_token: { Args: { p_token_hash: string }; Returns: undefined }
+      clear_send_to_kin_token: { Args: never; Returns: undefined }
+      send_to_kin_link_on: { Args: never; Returns: boolean }
+      send_to_kin_by_link: { Args: { p_token_hash: string; p_mime: string; p_data_base64: string }; Returns: Json }
+      sweep_sent_screenshots: { Args: never; Returns: undefined }
       add_to_list_by_link: { Args: { p_token_hash: string; p_items: Json }; Returns: number }
       calendar_feed: {
         Args: { feed_hash: string }

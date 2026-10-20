@@ -52,6 +52,8 @@ export function AddPlannerForm({
   prefill,
   householdCurrency,
   scanReady,
+  sentScreenshot,
+  plus,
 }: {
   members: Tables<"members">[];
   defaultType: string;
@@ -64,6 +66,10 @@ export function AddPlannerForm({
   householdCurrency: string;
   /** False until the scanner's key is set; the card says so instead. */
   scanReady: boolean;
+  /** A screenshot a Shortcut left waiting ("Send it to Kin"), by id. */
+  sentScreenshot?: string | null;
+  /** Kin Plus: the sent and pasted screenshots are Plus; the photo is not. */
+  plus?: boolean;
 }) {
   const isEditing = !!editActivity || !!editEvent;
   const [type, setType] = useState<PlannerType>(TYPES.includes(defaultType as PlannerType) ? (defaultType as PlannerType) : "task");
@@ -74,7 +80,7 @@ export function AddPlannerForm({
       <DetailHeader backHref="/planner" eyebrow="Planner" />
       <div style={{ padding: "0 var(--gutter) 1.375rem" }}>
         <h3 style={{ fontSize: "2rem", margin: "0 0 14px" }}>{isEditing ? "Edit" : "Add to"} Planner</h3>
-        {!isEditing && <FlyerScanner ready={scanReady} />}
+        {!isEditing && <FlyerScanner ready={scanReady} sent={sentScreenshot} plus={plus} />}
         {!isEditing && (
           <div className="seg" style={{ marginBottom: "1.125rem", marginTop: 0 }}>
             {TYPES.map((t) => (

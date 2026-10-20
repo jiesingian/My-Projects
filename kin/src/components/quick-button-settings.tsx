@@ -5,6 +5,8 @@ import { Icon, type IconName } from "@/components/icons";
 import {
   createBriefLinkAction,
   createListAddLinkAction,
+  createSendToKinLinkAction,
+  removeSendToKinLinkAction,
   previewBriefAction,
   removeBriefLinkAction,
   removeListAddLinkAction,
@@ -29,7 +31,7 @@ const ICONS: Record<QuickActionId, IconName> = {
 
 /** Settings → Action Button & widget: what the Action Button's pop-up and the
  * Home Screen widget offer, a picture of each, and the one-time setup. */
-export function QuickButtonSettings({ initial, briefOn, listAddOn }: { initial: QuickPrefs; briefOn: boolean; listAddOn: boolean }) {
+export function QuickButtonSettings({ initial, briefOn, listAddOn, sendOn, plus }: { initial: QuickPrefs; briefOn: boolean; listAddOn: boolean; sendOn: boolean; plus: boolean }) {
   const [prefs, setPrefs] = useState<QuickPrefs>(initial);
   const [pending, startTransition] = useTransition();
   const [failed, setFailed] = useState<string | null>(null);
@@ -58,6 +60,7 @@ export function QuickButtonSettings({ initial, briefOn, listAddOn }: { initial: 
     <div className="kin-quickbtn">
       <TodayBrief initialOn={briefOn} origin={origin} />
       <AddToKin initialOn={listAddOn} origin={origin} />
+      <SendToKin initialOn={sendOn} plus={plus} />
 
       <section className="kin-quickbtn-section" aria-labelledby="qb-menu">
         <h2 id="qb-menu" className="kin-quickbtn-h">Action Button</h2>
@@ -320,6 +323,103 @@ function CopyLink({ label, url }: { label: string; url: string }) {
         </button>
       </div>
     </div>
+  );
+}
+
+/** "Send it to Kin" (20 October, Kin Plus): from the share sheet, a
+ * screenshot of a school circular or a Viber / Messenger message goes to the
+ * member's private link; Kin opens Planner -> Add with the dates, places and
+ * tasks read off it, to tick (lib/send-to-kin.ts). A third link, separate
+ * from the other two: this one spends Kin AI. */
+function SendToKin({ initialOn, plus }: { initialOn: boolean; plus: boolean }) {
+  const [on, setOn] = useState(initialOn);
+  const [url, setUrl] = useState<string | null>(null);
+  const [pending, startTransition] = useTransition();
+  const [failed, setFailed] = useState<string | null>(null);
+
+  function make() {
+    startTransition(async () => {
+      const r = await createSendToKinLinkAction();
+      setFailed(r.error);
+      if (r.url) {
+        setUrl(r.url);
+        setOn(true);
+      }
+    });
+  }
+
+  return (
+    <section className="kin-quickbtn-section" aria-labelledby="qb-send">
+      <h2 id="qb-send" className="kin-quickbtn-h">Send it to Kin</h2>
+      <p className="kin-quickbtn-lead">
+        A school circular, a Viber or Messenger message with a date in it: take a screenshot, tap Share, tap <b>Send it to Kin</b>. Kin opens with the dates, places and things to
+        bring already read off it, for you to check and add to the Planner. Nothing is added until you tick it.
+      </p>
+      {!plus ? (
+        <p className="kin-quickbtn-note">
+          <b>Part of Kin Plus.</b> Reading a screenshot is a Kin AI call. With Plus, make the link here and set up the Shortcut below.
+        </p>
+      ) : url ? (
+        <>
+          <p className="kin-quickbtn-lead">
+            <b>Your private link.</b> Copy it now: Kin shows it only once. Anyone with it can send pictures to your Planner&rsquo;s Add page, so keep it in the Shortcut and nowhere else.
+          </p>
+          <CopyLink label="Send it to Kin" url={url} />
+        </>
+      ) : (
+        <div className="kin-quickbtn-row">
+          <button type="button" className="btn btn-primary" onClick={make} disabled={pending}>
+            {on ? "Make a new link" : "Make my link"}
+          </button>
+          {on && (
+            <button
+              type="button"
+              className="btn btn-secondary"
+              disabled={pending}
+              onClick={() =>
+                startTransition(async () => {
+                  const r = await removeSendToKinLinkAction();
+                  setFailed(r.error);
+                  if (!r.error) setOn(false);
+                })
+              }
+            >
+              Turn it off
+            </button>
+          )}
+        </div>
+      )}
+      {on && !url && plus && <p className="kin-quickbtn-note">Your link is on. A new link replaces it, and the old one stops working. It&rsquo;s separate from the other two links.</p>}
+      {failed && (
+        <p role="alert" className="kin-quickbtn-error">
+          {failed}
+        </p>
+      )}
+      <p className="kin-quickbtn-note">
+        What is sent: the one screenshot, to Kin, then to Claude (Anthropic) only to read the dates off it, and never used to train AI. It is deleted once read, or after a day.
+      </p>
+
+      <ol className="kin-quickbtn-sub kin-quickbtn-brief-steps">
+        <li>
+          In Shortcuts, tap <b>+</b>, tap the name at the top and call it <b>Send it to Kin</b>.
+        </li>
+        <li>
+          Tap the <b>i</b> at the bottom, turn on <b>Show in Share Sheet</b>, and under <b>Share Sheet Types</b> keep only <b>Images</b>.
+        </li>
+        <li>
+          Add <b>Get Contents of URL</b> and paste your link. Tap the arrow to show more, set <b>Method</b> to <b>POST</b> and <b>Request Body</b> to <b>File</b>, then for the file tap <b>Select Variable</b> and pick <b>Shortcut Input</b>.
+        </li>
+        <li>
+          Add <b>Open URLs</b> under it. It opens Kin on the Add page with the screenshot read.
+        </li>
+        <li>
+          <b>To use it:</b> on any screenshot or picture, tap Share, scroll to <b>Send it to Kin</b>. The first time, Shortcuts asks to allow the link; say Always Allow.
+        </li>
+        <li>
+          No Shortcut? On Planner → Add, <b>Paste a screenshot</b> reads the picture you copied.
+        </li>
+      </ol>
+    </section>
   );
 }
 

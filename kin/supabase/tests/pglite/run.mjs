@@ -112,6 +112,7 @@ const MIGRATIONS = [
   "20261020190000_goals_family_pack.sql",
   "20261020210000_push_test_rows.sql",
   "20261020212000_christmas_on_today.sql",
+  "20261020230000_send_to_kin.sql",
 ];
 
 const only = process.argv[2];

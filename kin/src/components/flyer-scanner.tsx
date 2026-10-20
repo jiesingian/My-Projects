@@ -4,15 +4,21 @@ import { useEffect, useId, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Icon } from "@/components/icons";
 import { PhotoViewer } from "@/components/photo-viewer";
-import { scanFlyerAction, addScannedItemsAction } from "@/lib/actions/flyer";
+import { scanFlyerAction, addScannedItemsAction, scanSentScreenshotAction } from "@/lib/actions/flyer";
+import { KIN_AI_PRIVACY } from "@/lib/kin-ai";
 import type { ScannedItem } from "@/lib/flyer-scan";
 import { shrink } from "@/lib/shrink-photo";
 
 type Row = ScannedItem & { keep: boolean };
 
 /** Photograph a school memo, an invitation or a poster, and get calendar
- * entries back to check before anything is saved. */
-export function FlyerScanner({ ready }: { ready: boolean }) {
+ * entries back to check before anything is saved.
+ *
+ * `sent` is a screenshot a Shortcut left waiting ("Send it to Kin",
+ * lib/send-to-kin.ts): it is read once on arrival and lands on the same
+ * review list. "Paste a screenshot" reads the clipboard's image into the
+ * same scan. Both are Kin Plus; `plus` says whether this household has it. */
+export function FlyerScanner({ ready, sent, plus }: { ready: boolean; sent?: string | null; plus?: boolean }) {
   const uid = useId();
   const router = useRouter();
   const input = useRef<HTMLInputElement>(null);
@@ -21,6 +27,50 @@ export function FlyerScanner({ ready }: { ready: boolean }) {
   const [done, setDone] = useState<string | null>(null);
   const [scanning, startScan] = useTransition();
   const [saving, startSave] = useTransition();
+  const [plusNote, setPlusNote] = useState(false);
+
+  // A screenshot sent from the share sheet: read it as soon as the page is
+  // open, once. The action deletes it whether or not dates were found.
+  const sentOnce = useRef<string | null>(null);
+  useEffect(() => {
+    if (!sent || sentOnce.current === sent) return;
+    sentOnce.current = sent;
+    setError(null);
+    setDone(null);
+    startScan(async () => {
+      const result = await scanSentScreenshotAction(sent);
+      setError(result.error);
+      if (!result.error) setRows(result.items.map((it) => ({ ...it, keep: true })));
+    });
+    // The id is dropped from the address so a refresh or Back does not try
+    // a screenshot that is gone.
+    const url = new URL(window.location.href);
+    url.searchParams.delete("sent");
+    router.replace(url.pathname + url.search, { scroll: false });
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- once per sent id
+  }, [sent]);
+
+  // "Paste a screenshot": the clipboard's image, read like a chosen photo.
+  const paste = async () => {
+    if (!plus) {
+      setPlusNote(true);
+      return;
+    }
+    setError(null);
+    try {
+      const items = await navigator.clipboard.read();
+      for (const item of items) {
+        const type = item.types.find((t) => t.startsWith("image/"));
+        if (!type) continue;
+        const blob = await item.getType(type);
+        pick(new File([blob], "pasted.png", { type }));
+        return;
+      }
+      setError("Nothing to paste: copy a screenshot first (press and hold it, Copy).");
+    } catch {
+      setError("This browser won't let Kin read the clipboard. Choose the screenshot from Photos instead.");
+    }
+  };
 
   // Until scanning is switched on, the chosen photo is shown here to copy
   // from while filling in the event below (26 September). It stays on the
@@ -98,6 +148,17 @@ export function FlyerScanner({ ready }: { ready: boolean }) {
       <label htmlFor={`${uid}-file`} className="btn btn-secondary btn-block" aria-disabled={scanning || saving}>
         {scanning ? "Reading the photo…" : rows || preview ? (ready ? "Scan another" : "Choose another photo") : "Take or choose a photo"}
       </label>
+      {ready && (
+        <button type="button" className="btn btn-secondary btn-block" style={{ marginTop: "0.5rem" }} onClick={() => void paste()} disabled={scanning || saving}>
+          Paste a screenshot
+        </button>
+      )}
+      {plusNote && (
+        <p className="kin-scan-off" role="note" style={{ marginTop: "0.5rem" }}>
+          Reading a screenshot you paste, or send from the share sheet, is part of Kin Plus. Choosing a photo above still works on Kin Free (five a month).
+        </p>
+      )}
+      {ready && <p className="kin-scan-privacy">{KIN_AI_PRIVACY}</p>}
       {!ready && (
         // Said up front: until the key is added, the photo can be looked at
         // but not read for dates.
