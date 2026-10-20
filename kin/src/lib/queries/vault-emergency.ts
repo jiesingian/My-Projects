@@ -25,6 +25,11 @@ export type EmergencyRequest = {
   answeredBy: string | null;
 };
 export type OpenedItem = { id: string; who: string; label: string; at: string };
+/** One line to the household's grown-ups (20261020170000): why a trusted
+ * person from another household came off the list. */
+export type EmergencyNotice = { id: string; body: string };
+/** A parents-only document, and whether emergency access may open it. */
+export type ParentsOnlyDoc = { id: string; folderId: string | null; title: string; owner: string | null; shared: boolean };
 /** A household that named the signed-in person. */
 export type NamedBy = { familyId: string; familyName: string; waitDays: number };
 
@@ -57,9 +62,11 @@ export async function getEmergencyOwnerView(familyId: string, unlocked: boolean)
   candidates: Candidate[];
   requests: EmergencyRequest[];
   opened: OpenedItem[];
+  notices: EmergencyNotice[];
+  parentsOnly: ParentsOnlyDoc[];
 }> {
   const supabase = await createClient();
-  const [{ data: trusted }, { data: candidates }, all, { data: opened }] = await Promise.all([
+  const [{ data: trusted }, { data: candidates }, all, { data: opened }, { data: notices }, { data: parentsOnly }] = await Promise.all([
     supabase
       .from("vault_emergency_contacts")
       .select("id, member_id, member_name, member_household_name, wait_days")
@@ -75,12 +82,32 @@ export async function getEmergencyOwnerView(familyId: string, unlocked: boolean)
           .order("opened_at", { ascending: false })
           .limit(50)
       : Promise.resolve({ data: [] }),
+    supabase.from("vault_emergency_notices").select("id, body").eq("family_id", familyId).is("dismissed_at", null).order("created_at"),
+    // The parents-only documents, which the documents' own policy hands to
+    // a parent and to nobody else: the list under "Share in an emergency".
+    unlocked
+      ? supabase
+          .from("doc_entries")
+          .select("id, folder_id, title, share_in_emergency, owner:owner_member_id(full_name)")
+          .eq("family_id", familyId)
+          .eq("visibility", "parents")
+          .order("title")
+          .limit(100)
+      : Promise.resolve({ data: [] }),
   ]);
   return {
     trusted: (trusted ?? []).map((t) => ({ id: t.id, memberId: t.member_id, name: t.member_name, household: t.member_household_name, waitDays: t.wait_days })),
     candidates: (candidates ?? []).map((c) => ({ memberId: c.member_id, name: c.full_name, household: c.household_name })),
     requests: all.filter((r) => r.familyId === familyId && !r.mine),
     opened: (opened ?? []).map((o) => ({ id: o.id, who: o.member_name, label: o.item_label, at: o.opened_at })),
+    notices: (notices ?? []).map((n) => ({ id: n.id, body: n.body })),
+    parentsOnly: (parentsOnly ?? []).map((d) => ({
+      id: d.id,
+      folderId: d.folder_id,
+      title: d.title,
+      owner: (d.owner as unknown as { full_name: string } | null)?.full_name ?? null,
+      shared: d.share_in_emergency,
+    })),
   };
 }
 
@@ -100,7 +127,7 @@ export async function getEmergencyTrustedView(memberId: string): Promise<{ named
 
 export type EmergencyItem = { kind: "password" | "document"; id: string; group: string; label: string; owner: string | null; fileCount: number };
 
-/** The names in the other household's vault, while access is open. Null
+/** The names in the household's vault, while access is open. Null
  * when it is not open (the database refuses, and says so). */
 export async function getEmergencyItems(requestId: string): Promise<EmergencyItem[] | null> {
   const supabase = await createClient();

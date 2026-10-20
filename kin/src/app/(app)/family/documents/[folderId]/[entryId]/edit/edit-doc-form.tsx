@@ -8,6 +8,7 @@ import { DetailHeader } from "@/components/hub-header";
 import type { Tables } from "@/lib/database.types";
 import { DateInput } from "@/components/date-input";
 import { visibilityOptions } from "@/lib/visibility";
+import { SHARE_IN_EMERGENCY_HINT } from "@/lib/vault-emergency";
 
 export function EditDocForm({
   entry,
@@ -46,6 +47,7 @@ export function EditDocForm({
       referenceNo: String(fd.get("reference_no") ?? "").trim() || null,
       visibility,
       note: String(fd.get("note") ?? "").trim() || null,
+      shareInEmergency: fd.get("share_in_emergency") === "on",
     });
     if (result.error) {
       setError(result.error);
@@ -115,6 +117,16 @@ export function EditDocForm({
               </button>
             ))}
           </div>
+
+          {visibility === "parents" && (
+            <label style={{ display: "flex", alignItems: "flex-start", gap: "0.5rem", fontSize: "0.84375rem", lineHeight: 1.4, margin: "-0.5rem 0 1rem" }}>
+              <input type="checkbox" name="share_in_emergency" defaultChecked={entry.share_in_emergency} style={{ marginTop: "0.2rem" }} />
+              <span>
+                Share in an emergency
+                <span style={{ display: "block", fontSize: "0.78125rem", color: "var(--color-neutral-600)" }}>{SHARE_IN_EMERGENCY_HINT}</span>
+              </span>
+            </label>
+          )}
 
           <div className="field" style={{ marginBottom: "1.125rem" }}>
             <label htmlFor={`${uid}-note`}>Note</label>

@@ -24,6 +24,9 @@ export async function createDocEntryAction(input: {
   referenceNo: string | null;
   visibility: string;
   note: string | null;
+  /** "Share in an emergency" (20261020170000): a parents-only document
+   * that emergency access may open. Off unless parents-only and ticked. */
+  shareInEmergency?: boolean;
 }): Promise<{ error: string | null; entryId?: string; folderId?: string }> {
   const me = await requireCurrentMember();
   const supabase = await createClient();
@@ -55,6 +58,7 @@ export async function createDocEntryAction(input: {
       reference_no: input.referenceNo && clamp(input.referenceNo, 100),
       visibility: input.visibility,
       note: input.note && clamp(input.note, 1000),
+      share_in_emergency: input.visibility === "parents" && input.shareInEmergency === true,
       created_by: me.id,
     })
     .select()
@@ -88,6 +92,7 @@ export async function updateDocEntryAction(input: {
   referenceNo: string | null;
   visibility: string;
   note: string | null;
+  shareInEmergency?: boolean;
 }): Promise<{ error: string | null }> {
   const me = await requireCurrentMember();
   const supabase = await createClient();
@@ -105,6 +110,7 @@ export async function updateDocEntryAction(input: {
       reference_no: input.referenceNo && clamp(input.referenceNo, 100),
       visibility: input.visibility,
       note: input.note && clamp(input.note, 1000),
+      share_in_emergency: input.visibility === "parents" && input.shareInEmergency === true,
     }, { count: "exact" })
     .eq("id", input.entryId)
     .eq("family_id", me.family_id);

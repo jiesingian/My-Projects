@@ -5,7 +5,7 @@ import { Icon } from "@/components/icons";
 import { openEmergencyItemAction, emergencyFileUrlAction, type OpenedDocument, type OpenedPassword } from "@/lib/actions/vault-emergency";
 import type { EmergencyItem } from "@/lib/queries/vault-emergency";
 
-/** Another household's vault, read-only, while emergency access is open.
+/** The household's vault, read-only, while emergency access is open.
  * The list carries names only. Each item is fetched when it is opened, and
  * the database logs that opening as it hands the item over, so the
  * household sees exactly what was looked at. There is no add, edit or
@@ -15,7 +15,7 @@ export function EmergencyVaultViewer({ requestId, items }: { requestId: string; 
   const documents = items.filter((i) => i.kind === "document");
   const groups = (list: EmergencyItem[]) => [...new Set(list.map((i) => i.group))];
 
-  if (items.length === 0) return <p className="kin-vault-empty">Their vault is empty.</p>;
+  if (items.length === 0) return <p className="kin-vault-empty">Nothing to show: the vault is empty, or nothing in it is shared this way.</p>;
 
   return (
     <div className="kin-vault">

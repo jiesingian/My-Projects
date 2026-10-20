@@ -57,8 +57,9 @@ sample household: no sideways scroll and no console errors.
   answering. The first real one is 29 October (see "Needs a real phone").
 - **Design questions, not fixed:**
   - A helper sees medicine names on To-Buy refill lines.
-  - Vault emergency access shows parents-only documents to the trusted
-    relative.
+  - ~~Vault emergency access shows parents-only documents to the trusted
+    relative.~~ Done 20 October (kin/vault-emergency-household,
+    20261020170000): see "Vault emergency access" under Agreed 14 October.
   - `tree_story_push_targets` / `helper_push_targets` hand device
     subscriptions to the signed-in sender. This is the same pattern as
     `push_targets`, needed because the app sends pushes without a
@@ -355,15 +356,30 @@ scanning wait for the AI key.
   Free; household only, on family_recipes' existing policies.
 
 - **Done:** Vault emergency access (14 Oct): a household names up to 2
-  trusted grown-ups from linked households (Settings -> Privacy & lock),
-  with a 1/3/7-day wait. The trusted person asks with a reason; grown-ups
-  get an urgent push at once and daily, and can Deny or Allow now. If nobody
-  denies, access opens read-only for 30 days or until revoked; every item
-  opened is logged for the household. Kin-stored documents only; Drive is
-  excluded. Migration 20261015120000_vault_emergency_access.sql; probe
+  trusted grown-ups (Settings -> Privacy & lock), with a 1/3/7-day wait. The
+  trusted person asks with a reason; the other grown-ups get an urgent push
+  at once and daily, and can Deny or Allow now. If nobody denies, access
+  opens read-only for 30 days or until revoked; every item opened is logged
+  for the household. Kin-stored documents only; Drive is excluded. Migration
+  20261015120000_vault_emergency_access.sql; probe
   vault-emergency-access.mjs. On dev, the card is checked weekly
-  (e2e/this-week.spec.ts); naming someone and asking need a linked
-  household, so they are under "Needs a real phone".
+  (e2e/this-week.spec.ts).
+  **Changed 20 October (Jonathan; kin/vault-emergency-household,
+  20261020170000):** (a) the trusted person must be a grown-up of the
+  *same* household -- "Parents only" is whoever set the household up, so
+  the worst day is the other parent's -- and a relative from a linked
+  household can no longer be named. Anyone named from another household
+  came off the list in the migration, their requests ended, and the
+  household's grown-ups got one notice on the card saying why
+  (vault_emergency_notices, "Got it"). The asker, a grown-up here now, is
+  left out of the pushes about their own request and gets "The vault is
+  open to you" when it opens. (b) A parents-only document is left out when
+  access opens unless a parent ticked "Share in an emergency" on it
+  (doc_entries.share_in_emergency, off to begin with): on the document's
+  form under Parents only, as a tag in the folder, and as a list with
+  ticks under Settings -> Privacy & lock -> Emergency access (parents only
+  see it; behind the lock). Whole-family documents and the passwords are
+  shared as before. Not checked: on a phone (under "Needs a real phone").
 
 - **Done:** Helper access (14 Oct, kin/helper-access): grown-ups add a
   kasambahay/yaya/driver in Settings -> Household with three switches (To-
@@ -1439,10 +1455,23 @@ What only Jonathan can check, on his iPhone with Kin on the Home Screen:
     open it, sign up, Accept, and see only the To-Buy list (and Meals or
     Family plans if they were ticked). Tick something there and see it ticked
     on your own list.
-  - **Vault emergency access:** needs a relative in a household linked with
-    yours. Name them under Settings -> Privacy -> Emergency access; on their
-    phone, Request access; see the request on yours; Allow now; see their
-    read-only vault open, then Revoke.
+  - **Vault emergency access (within the household since 20 October):**
+    needs a second grown-up of your household with Kin on their phone (the
+    other parent, who joined by code and so is an "adult"). As the parent:
+    1. Mark one parents-only document "Share in an emergency" (its Edit form,
+       or the list under Settings -> Privacy & lock -> Emergency access) and
+       leave another parents-only document unmarked.
+    2. Name them under Settings -> Privacy & lock -> Emergency access (the
+       list offers only this household's grown-ups).
+    3. On their phone, Settings -> Privacy & lock, Request access with a
+       reason. Your phone (not theirs) gets "Urgent: ... asks to open the
+       vault".
+    4. Allow now. Their phone gets "The vault is open to you"; yours "The
+       vault is open to ...".
+    5. On their phone, open the read-only vault: the passwords, the
+       whole-family documents and the marked parents-only one are listed;
+       the unmarked one is not. Open one; see it in your log. Then Take
+       back access.
   - **Check-up "share as a picture":** finish the check-up on the welcome
     page, share the result; the share sheet offers the picture, and it saves
     to Photos and sends in Messenger.

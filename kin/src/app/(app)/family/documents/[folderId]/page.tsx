@@ -72,7 +72,10 @@ export default async function DocFolderPage({
                     <DocEntryDeleteButton entryId={entry.id} folderId={folder.id} hasFiles={(entry.doc_files ?? []).length > 0} />
                   </div>
                 </div>
-                <Tag variant={entry.visibility === "family" ? "neutral" : "outline"}>{entry.visibility}</Tag>
+                <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: "0.25rem" }}>
+                  <Tag variant={entry.visibility === "family" ? "neutral" : "outline"}>{entry.visibility}</Tag>
+                  {entry.visibility === "parents" && entry.share_in_emergency && <Tag variant="outline">shared in an emergency</Tag>}
+                </div>
               </div>
               {(entry.doc_files ?? []).length > 0 && (
                 <div style={{ marginTop: "0.5rem", display: "flex", flexDirection: "column", gap: "0.375rem", paddingLeft: "1.75rem" }}>

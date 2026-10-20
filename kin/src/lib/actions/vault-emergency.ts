@@ -60,6 +60,35 @@ export async function answerEmergencyRequestAction(requestId: string, answer: "d
   return error ? { error: emergencyError(error.message) } : done();
 }
 
+/** "Got it" on the notice that a trusted person from another household came
+ * off the list (20261020170000). Any grown-up, once for the household. */
+export async function dismissEmergencyNoticeAction(noticeId: string): Promise<ActionState> {
+  await requireCurrentMember();
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("dismiss_vault_emergency_notice", { p_notice: noticeId });
+  return error ? { error: emergencyError(error.message) } : done();
+}
+
+/** "Share in an emergency" on a parents-only document, from the list under
+ * Settings (20261020170000). The documents' own policy decides who may: a
+ * parents-only document is the parent's to change. Ticking it widens what
+ * emergency access opens, so it meets the lock. */
+export async function setDocShareInEmergencyAction(entryId: string, shared: boolean): Promise<ActionState> {
+  const g = await unlockedGrownUp();
+  if ("error" in g) return g;
+  const supabase = await createClient();
+  const { error, count } = await supabase
+    .from("doc_entries")
+    .update({ share_in_emergency: shared === true }, { count: "exact" })
+    .eq("id", entryId)
+    .eq("family_id", g.familyId)
+    .eq("visibility", "parents");
+  if (error) return { error: emergencyError(error.message) };
+  if (!count) return { error: "That document is not yours to change, or is no longer parents-only." };
+  revalidatePath("/family", "layout");
+  return done();
+}
+
 export async function requestEmergencyAccessAction(familyId: string, reason: string): Promise<ActionState> {
   const me = await requireCurrentMember();
   if (!isGrownUp(me.role)) return { error: "Only grown-ups can ask for emergency access." };
@@ -85,7 +114,7 @@ export type OpenedDocument = {
   files: OpenedFile[];
 };
 
-/** Open one item of the other household's vault. The database logs the
+/** Open one item of the household's vault. The database logs the
  * opening in the same step as handing it over, so it cannot be read without
  * the household seeing that it was. Behind the reader's own lock. */
 export async function openEmergencyItemAction(

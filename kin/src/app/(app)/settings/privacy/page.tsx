@@ -24,11 +24,12 @@ import { householdPhrase, openedLine, ownerStatusLine, trustedStatusLine } from 
  * documents -- so offering them to someone who has not unlocked would turn
  * "set up a lock" into a way around it.
  *
- * Emergency access (20261015120000) lives here too, both sides of it: who
- * this household trusts from outside it, and -- for a grown-up another
- * household named -- the way to ask for theirs. Naming someone, Allow now and
- * the log of what was opened wait for the lock; Deny and Take back do not,
- * because the push about a request lands here. */
+ * Emergency access (20261015120000; within the household since
+ * 20261020170000) lives here too, both sides of it: which grown-up of this
+ * household it trusts, which parents-only documents may open, and -- for
+ * the grown-up named -- the way to ask. Naming someone, Allow now, the share
+ * list and the log of what was opened wait for the lock; Deny and Take back
+ * do not, because the push about a request lands here. */
 export default async function PrivacySettingsPage() {
   await keepKidViewOut();
   const me = await getCurrentMember();
@@ -67,6 +68,9 @@ export default async function PrivacySettingsPage() {
           <VaultEmergencySettings
             trusted={owner.trusted}
             candidates={owner.candidates}
+            notices={owner.notices}
+            parentsOnly={owner.parentsOnly}
+            isParent={me.role === "parent"}
             plus={readAccess(me.families).plus}
             unlocked={lock.unlocked}
             requests={owner.requests.map((r) => ({
