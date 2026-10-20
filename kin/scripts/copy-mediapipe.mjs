@@ -20,3 +20,16 @@ for (const file of fs.readdirSync(from)) {
   fs.copyFileSync(path.join(from, file), path.join(to, file));
 }
 console.log("copy-mediapipe: engine copied to public/mediapipe/");
+
+// pdf.js's worker, for reading a PDF statement on the device (lib/pdf-text.ts,
+// #679). Served from public/pdfjs/ so the library can load it as a module
+// worker; public/pdfjs/ is ignored like public/mediapipe/.
+const pdfWorker = path.join(here, "..", "node_modules", "pdfjs-dist", "build", "pdf.worker.min.mjs");
+if (fs.existsSync(pdfWorker)) {
+  const pdfTo = path.join(here, "..", "public", "pdfjs");
+  fs.mkdirSync(pdfTo, { recursive: true });
+  fs.copyFileSync(pdfWorker, path.join(pdfTo, "pdf.worker.min.mjs"));
+  console.log("copy-mediapipe: pdf.js worker copied to public/pdfjs/");
+} else {
+  console.warn("copy-mediapipe: pdfjs-dist is not installed; PDF statements will not be readable.");
+}

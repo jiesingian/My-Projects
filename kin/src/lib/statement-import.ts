@@ -21,7 +21,7 @@ export const BANKS: { value: Bank; label: string; howTo: string }[] = [
     value: "gcash",
     label: "GCash",
     howTo:
-      "GCash sends its transaction history as a password-protected PDF by email. Reading PDFs needs Kin AI, which isn't switched on yet — if you have a CSV of it (for example saved from a spreadsheet), it works here.",
+      "GCash app → Profile → Transaction History → Email, then choose the month. It arrives as a password-protected PDF; pick that PDF here and type its password (the one in GCash's email). The PDF and the password stay on this phone — Kin AI reads only the text lines (Kin Plus). A CSV of it works too.",
   },
   { value: "other", label: "Another bank", howTo: "Any CSV with a date, a description and an amount (or debit and credit) column." },
 ];

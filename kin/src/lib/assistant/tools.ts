@@ -6,7 +6,10 @@ import { MARKET_SECTIONS, UNITS, guessSection, formatQuantity } from "@/lib/groc
 import type { CurrentMember } from "@/lib/session";
 import { familyDay, addDays, familyMidnight, familyInstant } from "@/lib/time";
 import { allDayEvent } from "@/lib/calendar-shape";
-import { GONE_STATUSES } from "@/lib/member-status";
+import { GONE_STATUSES, isGone } from "@/lib/member-status";
+import { inKidView } from "@/lib/kid-view";
+import { isGrownUp } from "@/lib/roles";
+import { healthAnswer, mayAskHealth } from "@/lib/assistant/health-answer";
 
 /** Every tool the Today assistant can reach. Each one is scoped to the
  * signed-in member's household by the executor — the model never supplies a
@@ -52,6 +55,18 @@ export const ASSISTANT_TOOLS: Anthropic.Beta.BetaToolUnion[] = [
     name: "get_family",
     description: "Who is in the household, plus any health checks that are due.",
     input_schema: { type: "object", properties: {} },
+  },
+  {
+    name: "get_health",
+    description:
+      "One household member's health facts, for a grown-up: allergies, blood type, the medicines they take now with doses and times, conditions, HMO or insurance, PhilHealth, usual doctor, who to call in an emergency, health checks due, recent readings, recent illness, lab results, a child's vaccines, and the questions saved for the next doctor's visit. Use for any question about someone's allergy, blood type, medicine, dose, condition, HMO, doctor or emergency details. Only a parent or adult may ask; the tool says so otherwise.",
+    input_schema: {
+      type: "object",
+      properties: {
+        member_name: { type: "string", description: "The member's first name as used in the household, e.g. 'Lia', 'Lolo', 'Dad'. Use get_family first if unsure who is who." },
+      },
+      required: ["member_name"],
+    },
   },
   {
     name: "add_activity",
@@ -436,6 +451,63 @@ export async function runAssistantTool(name: string, rawInput: unknown, me: Curr
           status: h.status,
         })),
       });
+    }
+
+    case "get_health": {
+      // The 2 a.m. question (#699). Grown-ups only: a child, or anyone in kid
+      // view, is told so and nothing is read. Every row below is read as the
+      // asker, so health_can_see() keeps a parents-only or private record of
+      // someone else's out of the answer, exactly as on the Health screens.
+      if (!mayAskHealth({ role: me.role, kidView: inKidView(me) })) {
+        return fail("Health details are for the household's grown-ups. A grown-up can ask, or open the person's Health page.");
+      }
+      const wanted = str(input, "member_name");
+      if (!wanted) return fail("Whose health details? Give me a first name.");
+      const { data: household } = await supabase.from("members").select("id, full_name, role, status").eq("family_id", familyId);
+      const living = (household ?? []).filter((m) => !isGone(m.status));
+      const [targetId] = matchMembers(living, [wanted]);
+      if (!targetId) return fail(`Nobody in the household matches "${wanted}". Members are: ${living.map((m) => m.full_name).join(", ")}.`);
+
+      const tz = me.families.time_zone || undefined;
+      const today = familyDay(new Date(), tz);
+      const since = (days: number) => addDays(today, -days) ?? today;
+      const [member, medicines, conditions, vitals, illness, labs, checks, questions, contacts] = await Promise.all([
+        supabase.from("members").select("full_name, role, dob, blood_type, allergies, physician_name, insurance_info, philhealth_number, mobile").eq("id", targetId).eq("family_id", familyId).maybeSingle(),
+        supabase.from("health_medicines").select("name, dose, times, start_date, end_date, notes").eq("member_id", targetId).order("name"),
+        supabase.from("health_conditions").select("name, status, meta_note, health_condition_entries(entry_date)").eq("member_id", targetId),
+        supabase.from("health_vitals").select("vital_type, reading_date, value_text, unit").eq("member_id", targetId).gte("reading_date", since(90)),
+        supabase.from("health_illness_logs").select("logged_at, temperature_c, symptoms, given, note").eq("member_id", targetId).gte("logged_at", `${since(61)}T00:00:00Z`),
+        supabase.from("health_labs").select("name, result, flag, test_date").eq("member_id", targetId).gte("test_date", since(180)).order("test_date", { ascending: false }),
+        supabase.from("health_schedule").select("what, when_date, status").eq("member_id", targetId).in("status", ["due", "due_soon"]),
+        supabase.from("health_visit_questions").select("body, done").eq("member_id", targetId).order("created_at"),
+        supabase.from("emergency_contacts").select("name, relationship, phone").eq("family_id", familyId).order("name"),
+      ]);
+      if (!member.data) return fail("That person's profile could not be read.");
+
+      // The other grown-ups with a number first, as on the emergency card.
+      const { data: grownUps } = await supabase.from("members").select("id, full_name, relationship, role, mobile, status").eq("family_id", familyId);
+      const calls = [
+        ...(grownUps ?? [])
+          .filter((m) => isGrownUp(m.role) && m.id !== targetId && m.mobile?.trim() && !isGone(m.status))
+          .map((m) => ({ name: m.full_name, relationship: m.relationship ?? m.role, phone: m.mobile!.trim() })),
+        ...(contacts.data ?? []).map((c) => ({ name: c.name, relationship: c.relationship, phone: c.phone })),
+      ];
+
+      return done(
+        healthAnswer({
+          member: member.data,
+          medicines: medicines.data ?? [],
+          conditions: conditions.data ?? [],
+          vitals: vitals.data ?? [],
+          illness: illness.data ?? [],
+          labs: labs.data ?? [],
+          calls,
+          checks: checks.data ?? [],
+          questions: (questions.data ?? []).filter((q) => !q.done).map((q) => q.body),
+          today,
+          dayOf: (iso) => familyDay(new Date(iso), tz),
+        }),
+      );
     }
 
     case "add_activity": {

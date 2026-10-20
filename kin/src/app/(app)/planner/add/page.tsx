@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/server";
 import { AddPlannerForm } from "./add-planner-form";
 import { getAccounts } from "@/lib/queries/wealth";
 import { LogSpendControl } from "@/components/money-actions";
+import { kinAiReady } from "@/lib/kin-ai";
 import { inKidView } from "@/lib/kid-view";
 import { EventPhotos } from "@/components/event-photos";
 import { getSignedUrls } from "@/lib/storage";
@@ -128,7 +129,7 @@ export default async function AddPlannerPage({
       householdCurrency={me.families.currency}
       // Whether the photo scanner can run: it reads the photo with Claude,
       // which needs ANTHROPIC_API_KEY in Vercel (docs/SETUP_FOR_JONATHAN.md).
-      scanReady={!!process.env.ANTHROPIC_API_KEY}
+      scanReady={kinAiReady()}
     />
     {rsvp && (
       <div style={{ padding: "0 var(--gutter) 1.25rem" }}>

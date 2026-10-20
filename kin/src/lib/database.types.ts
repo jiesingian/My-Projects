@@ -8081,6 +8081,10 @@ export type Database = {
         Args: { p_kind: string }
         Returns: { title: string; body: string; url: string; tag: string }[]
       }
+      forget_household_health_photos: {
+        Args: never
+        Returns: string[]
+      }
       helper_buy_items: {
         Args: { p_family: string }
         Returns: { item_id: string; item_name: string; quantity: number | null; unit: string | null; section: string; checked: boolean; added_by: string | null }[]
