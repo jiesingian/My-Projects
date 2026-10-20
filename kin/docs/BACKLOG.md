@@ -97,8 +97,19 @@ new debt, compared with `main`, so no other session's PR goes red for it.
   baseline; fail when a route grows by more than 10% or 25 KB.
 - **Phone-width screenshots compared with main:** Today, Chat, Planner,
   To-Buy, Wealth at 390px, Simple Kin off and on; warn-only for a week.
-- **Safe dependency updates:** patch and minor only, lockfile by npm, the
-  `url.parse()` warning gone from production's log.
+- **Done: safe dependency updates.** Patch and minor only, lockfile by npm:
+  Next 16.4.2 (its critical advisory), React 19.3.1, supabase-js 2.118,
+  Playwright 1.64, pglite 0.5.10 and the rest. `npm audit` 9 → 5; the 5
+  left are the `braces` chain under `eslint-config-next` (dev only, fix is
+  a downgrade to 14.x). Not done, majors: `@types/node` 26, `eslint` 10,
+  `typescript` 7; also `@anthropic-ai/sdk` 0.135 (a 0.x minor is a major)
+  and `@mediapipe/tasks-vision` 1.1 (pinned for the wasm files
+  `copy-mediapipe.mjs` expects; no camera to test with). **The
+  `url.parse()` warning** is web-push 3.6.7, which Turbopack bundled into
+  the server chunks; Node 24 only warns for `url.parse()` outside
+  `node_modules`, so `serverExternalPackages: ["web-push"]` in
+  `next.config.ts` makes it load from `node_modules` and the warning stops.
+  web-push's own fix (`new URL`) is on its master, unreleased since 3.6.7.
 
 ## Decided 20 October: Kin AI on Haiku, and four things it can do (Jonathan)
 
