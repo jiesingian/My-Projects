@@ -1,5 +1,5 @@
 import { test, expect } from "@playwright/test";
-import { readSpokenList, readWrittenList, readListLine, itemLine, addedSentence, joinSpoken, shortcutText, LIST_ADD_MAX_ITEMS } from "@/lib/list-add";
+import { readSpokenList, readWrittenList, readListLine, itemLine, addedSentence, joinSpoken, shortcutText, declaredTooLarge, LIST_ADD_MAX_BODY_BYTES, LIST_ADD_MAX_ITEMS } from "@/lib/list-add";
 
 /** "Hey Siri, add rice to Kin" (14 October): what the Shortcut heard, read
  * into shopping-list items, and what the iPhone says back. */
@@ -121,4 +121,13 @@ test("a message with nothing to buy offers nothing", () => {
   expect(readWrittenList("").items).toEqual([]);
   expect(readWrittenList(" , ; \n ").items).toEqual([]);
   expect(readWrittenList(Array.from({ length: 40 }, (_, i) => `thing ${String.fromCharCode(97 + (i % 26))}${i}`).join("\n")).items).toHaveLength(LIST_ADD_MAX_ITEMS);
+});
+
+test("the size is checked from the declared length before the body is read", () => {
+  expect(declaredTooLarge(null)).toBe(false);
+  expect(declaredTooLarge("")).toBe(false);
+  expect(declaredTooLarge("abc")).toBe(false);
+  expect(declaredTooLarge(String(LIST_ADD_MAX_BODY_BYTES))).toBe(false);
+  expect(declaredTooLarge(String(LIST_ADD_MAX_BODY_BYTES + 1))).toBe(true);
+  expect(declaredTooLarge(" 999999 ")).toBe(true);
 });
