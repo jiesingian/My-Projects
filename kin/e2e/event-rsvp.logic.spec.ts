@@ -9,7 +9,8 @@ const today = "2026-10-14";
 const ann = { id: "ann", role: "parent", status: "active" };
 const abe = { id: "abe", role: "adult", status: "active" };
 const kid = { id: "kid", role: "child_self", status: "active" };
-const baby = { id: "baby", role: "child_managed", status: "active" };
+// A managed child has status "managed" in the real schema (20261021000500).
+const baby = { id: "baby", role: "child_managed", status: "managed" };
 const gone = { id: "gone", role: "adult", status: "moved" };
 const household = [ann, abe, kid, baby, gone];
 

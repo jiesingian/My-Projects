@@ -352,6 +352,13 @@ the potluck, the monito-monita draw, and the Christmas gift list.
   whoever drew them, no one else, the organizer included. Draw again
   before the day; call it off. Migration 20261019233200_gift_draw.sql. No
   push yet. Not checked: three households on real phones.
+- **Fixed 20 October:** managed children (no login, status 'managed')
+  could not be answered for under Who's coming, put in a monito-monita
+  draw, or drawn: event_rsvp_allowed, the gift_draw_people insert policy and
+  draw_gift_draw (and lib/event-rsvp's askedMembers) only took 'active'.
+  The PGlite stand-in's managed child was 'active', so no probe saw it.
+  Migration 20261021000500_managed_children_count.sql; probe
+  managed-children-count.mjs (sets the real status).
 - **Done:** Christmas gift and aguinaldo list (Kin Free, grown-ups only):
   Planner -> Events -> Christmas gifts and aguinaldo (/planner/gifts), a
   list per year. Add a person (someone at home, a relative, or an
