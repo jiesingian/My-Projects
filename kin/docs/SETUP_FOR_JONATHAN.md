@@ -250,7 +250,7 @@ as before, a minute or two after the merge.
 When you do want to try a pull request on your phone before it merges, ask
 for its preview. Each one costs a single deployment.
 
-- **From a Claude session (tried on #751):** say "make a Vercel preview of
+- **From a Claude session (tried on #755):** say "make a Vercel preview of
   PR #N". The session creates it with the Vercel connector, from the pull
   request's branch, and posts the link.
 - **From the Vercel dashboard:** open
