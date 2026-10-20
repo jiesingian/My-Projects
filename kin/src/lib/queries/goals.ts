@@ -64,6 +64,8 @@ export type GoalView = {
   manualToday: number | null;
   /** "household" or "private" (Just me: the owner and the reward's giver). */
   visibility: "household" | "private";
+  /** A goals-game goal (20261020120000): its category; null otherwise. */
+  category: string | null;
   /** What meeting it each period is worth (0: nothing), and the first day
    * of the period now running -- what a claim is for. */
   points: number;
@@ -236,6 +238,7 @@ export async function getGoals(familyId: string, viewer: Viewer, weekStart: 0 | 
       manualToday,
       visibility: g.visibility === "private" ? "private" : "household",
       points: g.points ?? 0,
+      category: g.category,
       periodStart: g.from,
       ...claimState(g.id, g.period, g.from),
       change: c
@@ -378,7 +381,7 @@ export async function getPendingGoalClaims(familyId: string, viewer: Viewer): Pr
   const supabase = await createClient();
   const { data: claims } = await supabase
     .from("planner_goal_completions")
-    .select("id, goal_id, member_id, period_start, points")
+    .select("id, goal_id, member_id, period_start, points, part")
     .eq("family_id", familyId)
     .eq("status", "pending")
     .neq("member_id", viewer.id)
@@ -393,6 +396,8 @@ export async function getPendingGoalClaims(familyId: string, viewer: Viewer): Pr
   return claims.flatMap((c) => {
     const g = goalOf.get(c.goal_id);
     if (!g || !isGoalPeriod(g.period)) return [];
-    return [{ id: c.id, goalTitle: g.title, who: nameOf.get(c.member_id) ?? "Someone", points: c.points, periodStart: c.period_start, period: g.period }];
+    // A steps goal is claimed in halves (20261020150000).
+    const goalTitle = c.part === "half" ? `${g.title} (halfway)` : c.part === "rest" ? `${g.title} (all the way)` : g.title;
+    return [{ id: c.id, goalTitle, who: nameOf.get(c.member_id) ?? "Someone", points: c.points, periodStart: c.period_start, period: g.period }];
   });
 }

@@ -125,7 +125,7 @@ export default async function PlannerPage({
         {seg === "routines" && <RoutinesPane familyId={me.family_id} who={who} currency={me.families.currency} justSaved={sp.saved === "1"} done={done} />}
         {seg === "events" && <EventsPane familyId={me.family_id} who={who} when={eventWhen(sp.when)} grownUp={isGrownUp(me.role)} />}
         {seg === "goals" && gameView !== "goals" && (
-          <GamePane familyId={me.family_id} me={{ id: me.id, role: me.role }} view={gameView} as={sp.as} weekStart={weekStartOf(me.families.week_start)} />
+          <GamePane familyId={me.family_id} me={{ id: me.id, role: me.role }} view={gameView} as={sp.as} weekStart={weekStartOf(me.families.week_start)} plus={readAccess(me.families).plus} />
         )}
         {seg === "goals" && gameView === "goals" && (
           <GoalsPane

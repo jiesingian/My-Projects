@@ -1,5 +1,5 @@
 import { test, expect } from "@playwright/test";
-import { BONUSES, allDailiesDone, closeDay, earnedBadges, levelFromXp, nextMilestone, wholeFamilyDone, xpTotal, type BadgeRule } from "@/lib/game";
+import { BONUSES, DEFAULT_FAMILY_WEEK_STEPS, DEFAULT_STEP_TARGET, FAMILY_STEPS_BONUS, STEP_QUICK_ADDS, allDailiesDone, familyStepsTotal, partWorth, stepParts, closeDay, earnedBadges, levelFromXp, nextMilestone, wholeFamilyDone, xpTotal, type BadgeRule } from "@/lib/game";
 
 /** Goals and Rewards as a game (Janine, 20 October). The same rules the
  * nightly job runs in the database (20261020120000; its PGlite probe
@@ -93,4 +93,52 @@ test("the next milestone ahead", () => {
   expect(nextMilestone(3)).toBe(7);
   expect(nextMilestone(29)).toBe(30);
   expect(nextMilestone(100)).toBe(null);
+});
+
+// --- Steps (20261020150000) ---------------------------------------------------
+
+test("steps: nothing below half the target, the half at 50%, both at 100%", () => {
+  expect(stepParts(2999, 6000)).toEqual([]);
+  expect(stepParts(3000, 6000)).toEqual(["half"]);
+  expect(stepParts(5999, 6000)).toEqual(["half"]);
+  expect(stepParts(6000, 6000)).toEqual(["half", "rest"]);
+  expect(stepParts(12000, 6000)).toEqual(["half", "rest"]);
+  expect(stepParts(100, 0)).toEqual([]);
+});
+
+test("partial credit: half the XP and coins at 50%, rounded down", () => {
+  expect(partWorth(10, "half")).toBe(5);
+  expect(partWorth(15, "half")).toBe(7);
+  expect(partWorth(5, "half")).toBe(2);
+  expect(partWorth(1, "half")).toBe(0);
+});
+
+test("full credit: the rest at 100% makes the whole, odd amounts included", () => {
+  for (const whole of [0, 1, 5, 10, 15, 999]) {
+    expect(partWorth(whole, "half") + partWorth(whole, "rest")).toBe(whole);
+  }
+  expect(partWorth(15, "rest")).toBe(8);
+  expect(partWorth(15, "whole")).toBe(15);
+});
+
+test("the weekly family total adds everyone's days, each day counted once", () => {
+  const total = familyStepsTotal([
+    // Ann on Monday: typed 4,000 and the watch sent 5,200 -- the walk once.
+    { memberId: "ann", day: "2026-10-19", source: "manual", value: 4000 },
+    { memberId: "ann", day: "2026-10-19", source: "apple_health", value: 5200 },
+    // Ann on Tuesday, and a second Shortcut run that day: the larger.
+    { memberId: "ann", day: "2026-10-20", source: "apple_health", value: 3000 },
+    { memberId: "ann", day: "2026-10-20", source: "apple_health", value: 6100 },
+    // Kid on Monday.
+    { memberId: "kid", day: "2026-10-19", source: "manual", value: 7000 },
+  ]);
+  expect(total).toBe(5200 + 6100 + 7000);
+  expect(total >= DEFAULT_FAMILY_WEEK_STEPS).toBe(false);
+  expect(familyStepsTotal([])).toBe(0);
+});
+
+test("the family steps bonus and the starting targets", () => {
+  expect(FAMILY_STEPS_BONUS).toEqual({ xp: 50, coins: 25 });
+  expect(DEFAULT_STEP_TARGET).toEqual({ child: 6000, grownUp: 8000 });
+  expect(STEP_QUICK_ADDS).toEqual([500, 1000]);
 });

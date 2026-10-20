@@ -154,7 +154,8 @@ function GoalCard({ goal, index, meId, today, plus, currency, colour, appleHealt
         </div>
       </div>
 
-      {goal.period !== "total" && goal.ownerId && (goal.points > 0 || goal.streak > 0 || goal.claim || goal.reached) && <ClaimLine goal={goal} meId={meId} />}
+      {/* A steps game goal is claimed in halves, on Planner → Game and Today. */}
+      {!(goal.kind === "steps" && goal.category) && goal.period !== "total" && goal.ownerId && (goal.points > 0 || goal.streak > 0 || goal.claim || goal.reached) && <ClaimLine goal={goal} meId={meId} />}
       {goal.reward && <RewardLine goal={goal} meId={meId} />}
       {goal.change && <ChangeLine goal={goal} />}
 

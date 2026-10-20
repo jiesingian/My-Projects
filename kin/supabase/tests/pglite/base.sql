@@ -391,3 +391,5 @@ create table if not exists public.health_visit_photos (id uuid primary key defau
 alter table health_visit_photos enable row level security;
 create policy hvp_select on health_visit_photos for select using (family_id = current_family_id());
 grant select on health_visit_photos to authenticated;
+-- The household's "Week starts on" (the real families table has it; 'sunday' unless 'monday').
+alter table public.families add column if not exists week_start text not null default 'sunday';

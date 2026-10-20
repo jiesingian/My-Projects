@@ -3,11 +3,12 @@ import { Blueprint } from "@/components/ui";
 import { ChipRow } from "@/components/segmented";
 import { RewardsShelf } from "@/components/rewards-shelf";
 import { ApprovalQueue } from "@/components/approval-queue";
-import { GameGoalForm, GameGoalPause, GameTap, SampleGameButton } from "@/components/game-controls";
+import { GameGoalForm, GameGoalPause, GameSteps, GameTap, SampleGameButton, StepsGoalForm } from "@/components/game-controls";
+import { ProgressBar } from "@/components/progress-bar";
 import { getGame, type GameGoalView, type GameView, type PlayerView } from "@/lib/queries/game";
 import { getMemberScores, getPendingRedemptions, getRewards } from "@/lib/queries/routines";
 import { getPendingGoalClaims } from "@/lib/queries/goals";
-import { BONUSES, GAME_CATEGORY_META, nextMilestone } from "@/lib/game";
+import { BONUSES, FAMILY_STEPS_BONUS, GAME_CATEGORY_META, nextMilestone, partWorth } from "@/lib/game";
 import { goalNumber } from "@/lib/goals";
 import { isGrownUp } from "@/lib/roles";
 import type { WeekStart } from "@/lib/week";
@@ -39,12 +40,15 @@ export async function GamePane({
   view,
   as,
   weekStart,
+  plus,
 }: {
   familyId: string;
   me: { id: string; role: string };
   view: Exclude<GameViewName, "goals">;
   as?: string;
   weekStart: WeekStart;
+  /** Kin Plus: steps goals (20261020150000). */
+  plus: boolean;
 }) {
   const grownUp = isGrownUp(me.role);
   const game = await getGame(familyId, weekStart);
@@ -70,7 +74,7 @@ export async function GamePane({
       {view === "game" && <TodayView game={game} player={player} grownUp={grownUp} />}
       {view === "badges" && player && <BadgesView game={game} player={player} />}
       {view === "shop" && <ShopView familyId={familyId} me={me} player={game.players.find((p) => p.id === me.id)} />}
-      {view === "setup" && grownUp && <SetupView game={game} />}
+      {view === "setup" && grownUp && <SetupView game={game} plus={plus} />}
     </>
   );
 }
@@ -84,13 +88,7 @@ function Stat({ label, value }: { label: string; value: string }) {
   );
 }
 
-function Bar({ fraction, label }: { fraction: number; label: string }) {
-  return (
-    <div role="progressbar" aria-label={label} aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(fraction * 100)} style={{ height: 8, borderRadius: 999, background: "color-mix(in srgb, var(--color-text) 10%, transparent)", overflow: "hidden" }}>
-      <div style={{ width: `${Math.round(fraction * 100)}%`, height: "100%", borderRadius: 999, background: "var(--color-accent-solid)", transition: "width 240ms ease-out" }} />
-    </div>
-  );
-}
+const Bar = ProgressBar;
 
 function PlayerCard({ player }: { player: PlayerView }) {
   const lvl = player.level;
@@ -120,10 +118,23 @@ function PlayerCard({ player }: { player: PlayerView }) {
   );
 }
 
+/** What a steps goal has earned today, and what is still to earn. */
+function stepsStatus(goal: GameGoalView): string {
+  if (!goal.ownerId) return `Everyone's steps this week · +${FAMILY_STEPS_BONUS.xp} XP and +${FAMILY_STEPS_BONUS.coins} coins each when reached`;
+  const worth = (part: "half" | "rest") => `+${partWorth(goal.xp, part)} XP${goal.points ? ` · +${partWorth(goal.points, part)} coins` : ""}`;
+  if (goal.claim === "counted") return `All the way! ${worth("half")} and ${worth("rest")}`;
+  if (goal.claim === "pending") return "All the way · waiting for a grown-up’s yes";
+  if (goal.half === "counted") return `Halfway: ${worth("half")} · ${worth("rest")} more at ${goalNumber(goal.target)}`;
+  if (goal.half === "pending") return "Halfway · waiting for a grown-up’s yes";
+  return `${worth("half")} at ${goalNumber(goal.target / 2)}, ${worth("rest")} more at ${goalNumber(goal.target)}`;
+}
+
 function GoalRow({ goal, canTap }: { goal: GameGoalView; canTap: boolean }) {
   const meta = GAME_CATEGORY_META[goal.category];
-  const status =
-    goal.claim === "counted"
+  const steps = goal.type === "steps";
+  const status = steps
+    ? stepsStatus(goal)
+    : goal.claim === "counted"
       ? `Done! +${goal.xp} XP${goal.points ? ` · +${goal.points} coins` : ""}`
       : goal.claim === "pending"
         ? "Done · waiting for a grown-up’s yes"
@@ -133,14 +144,14 @@ function GoalRow({ goal, canTap }: { goal: GameGoalView; canTap: boolean }) {
             ? `+${goal.xp} XP${goal.points ? ` · +${goal.points} coins` : ""} when done`
             : "Everyone adds to this one";
   return (
-    <div style={{ display: "flex", alignItems: "center", gap: "0.75rem", padding: "0.625rem 0", borderTop: "1px solid color-mix(in srgb, var(--color-text) 8%, transparent)", opacity: goal.active ? 1 : 0.55 }}>
+    <div style={{ display: "flex", flexWrap: steps ? "wrap" : undefined, alignItems: "center", gap: "0.75rem", padding: "0.625rem 0", borderTop: "1px solid color-mix(in srgb, var(--color-text) 8%, transparent)", opacity: goal.active ? 1 : 0.55 }}>
       <div aria-hidden style={{ fontSize: "1.5rem", width: "2rem", textAlign: "center" }}>
-        {goal.reached ? "✅" : meta.emoji}
+        {goal.reached ? "✅" : steps ? "👟" : meta.emoji}
       </div>
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ fontWeight: 600, fontSize: "0.9375rem" }}>{goal.title}</div>
         <div style={{ margin: "0.25rem 0" }}>
-          <Bar fraction={goal.fraction} label={`${goal.title}: ${goalNumber(goal.current)} of ${goalNumber(goal.target)}`} />
+          <Bar fraction={goal.fraction} label={`${goal.title}: ${goalNumber(goal.current)} of ${goalNumber(goal.target)}`} mark={steps && goal.ownerId ? 0.5 : undefined} />
         </div>
         <div style={{ fontSize: "0.75rem", color: "var(--color-neutral-600)" }}>
           {goalNumber(goal.current)} / {goalNumber(goal.target)}
@@ -148,7 +159,12 @@ function GoalRow({ goal, canTap }: { goal: GameGoalView; canTap: boolean }) {
           {!goal.active && " · paused"}
         </div>
       </div>
-      {canTap && goal.active && <GameTap goalId={goal.id} title={goal.title} canUndo={goal.current > 0} />}
+      {canTap && goal.active && !steps && <GameTap goalId={goal.id} title={goal.title} canUndo={goal.current > 0} />}
+      {canTap && goal.active && steps && goal.ownerId && (
+        <div style={{ flexBasis: "100%", paddingLeft: "2.75rem" }}>
+          <GameSteps goalId={goal.id} title={goal.title} />
+        </div>
+      )}
     </div>
   );
 }
@@ -274,7 +290,7 @@ async function ShopView({ familyId, me, player }: { familyId: string; me: { id: 
   );
 }
 
-function SetupView({ game }: { game: GameView }) {
+function SetupView({ game, plus }: { game: GameView; plus: boolean }) {
   const all = [...game.players.flatMap((p) => p.goals.map((g) => ({ g, who: p.name.split(" ")[0] }))), ...game.familyGoals.map((g) => ({ g, who: "Whole family" }))];
   return (
     <>
@@ -285,6 +301,13 @@ function SetupView({ game }: { game: GameView }) {
       )}
       <div style={{ marginBottom: "1rem" }}>
         <GameGoalForm people={game.players.map((p) => ({ id: p.id, label: p.name.split(" ")[0] }))} />
+      </div>
+      <div style={{ marginBottom: "1rem" }}>
+        {plus ? (
+          <StepsGoalForm people={game.players.map((p) => ({ id: p.id, label: p.name.split(" ")[0], child: p.role === "child_self" || p.role === "child_managed" }))} />
+        ) : (
+          <p style={{ fontSize: "0.8125rem", color: "var(--color-neutral-600)", margin: 0, lineHeight: 1.45 }}>🏃 Steps goals, and the family&rsquo;s weekly steps, are part of Kin Plus.</p>
+        )}
       </div>
       <Section title={`Game goals · ${all.length}`}>
         {all.length === 0 && <Empty text="None yet." />}

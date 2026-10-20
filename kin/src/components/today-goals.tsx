@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { GoalRing } from "@/components/goal-ring";
 import { GoalLog } from "@/components/goal-controls";
+import { GameSteps } from "@/components/game-controls";
+import { ProgressBar } from "@/components/progress-bar";
 import { Icon } from "@/components/icons";
 import { Blueprint } from "@/components/ui";
 import { ClaimLine, caption } from "@/app/(app)/planner/goals-pane";
@@ -29,6 +31,9 @@ export function TodayGoals({ goals, meId, today, plus, currency }: { goals: Goal
       {rows.map((g, i) => {
         const meta = GOAL_KIND_META[g.kind];
         const pct = Math.round(g.fraction * 100);
+        // A goals-game steps goal (20261020150000): a bar with its 50% mark,
+        // and the same steps field and +500 / +1,000 as Planner → Game.
+        const gameSteps = g.kind === "steps" && g.category !== null && g.ownerId !== null;
         return (
           <Blueprint key={g.id} style={{ padding: "0.75rem", marginBottom: "0.5rem" }}>
             <div style={{ display: "flex", gap: "0.75rem", alignItems: "center" }}>
@@ -43,9 +48,16 @@ export function TodayGoals({ goals, meId, today, plus, currency }: { goals: Goal
                 </div>
                 <div style={{ font: "600 0.96875rem/1.25 var(--font-heading)" }}>{g.title}</div>
                 <div style={{ fontSize: "0.78125rem", color: "var(--color-neutral-700)" }}>{caption(g, currency)}</div>
+                {gameSteps && (
+                  <div style={{ marginTop: "0.375rem" }}>
+                    <ProgressBar fraction={g.fraction} mark={0.5} label={`${g.title}: ${pct}%`} />
+                    <div style={{ fontSize: "0.6875rem", color: "var(--color-neutral-600)", marginTop: "0.25rem" }}>Half the XP and coins at 50%, the rest at 100%.</div>
+                  </div>
+                )}
               </div>
             </div>
-            {!g.savingsTitle && (
+            {gameSteps && plus && <GameSteps goalId={g.id} title={g.title} />}
+            {!g.savingsTitle && !gameSteps && (
               <div style={{ marginTop: "0.5rem" }}>
                 <GoalLog
                   goalId={g.id}
@@ -57,7 +69,7 @@ export function TodayGoals({ goals, meId, today, plus, currency }: { goals: Goal
                 />
               </div>
             )}
-            {g.period !== "total" && g.ownerId && (g.points > 0 || g.streak > 0 || g.claim || g.reached) && <ClaimLine goal={g} meId={meId} />}
+            {!gameSteps && g.period !== "total" && g.ownerId && (g.points > 0 || g.streak > 0 || g.claim || g.reached) && <ClaimLine goal={g} meId={meId} />}
           </Blueprint>
         );
       })}
