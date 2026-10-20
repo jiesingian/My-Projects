@@ -3,12 +3,16 @@ import { Blueprint } from "@/components/ui";
 import { ChipRow } from "@/components/segmented";
 import { RewardsShelf } from "@/components/rewards-shelf";
 import { ApprovalQueue } from "@/components/approval-queue";
-import { GameGoalForm, GameGoalPause, GameSteps, GameTap, SampleGameButton, StepsGoalForm } from "@/components/game-controls";
+import { createClient } from "@/lib/supabase/server";
+import { FamilyTreatUsed } from "@/components/game-controls";
+import { FamilyPackForm, GameGoalEdit, GameGoalForm, GameGoalPause, GameSteps, GameTap, SampleGameButton, StepsGoalForm } from "@/components/game-controls";
 import { ProgressBar } from "@/components/progress-bar";
 import { getGame, type GameGoalView, type GameView, type PlayerView } from "@/lib/queries/game";
 import { getMemberScores, getPendingRedemptions, getRewards } from "@/lib/queries/routines";
 import { getPendingGoalClaims } from "@/lib/queries/goals";
-import { BONUSES, FAMILY_STEPS_BONUS, GAME_CATEGORY_META, nextMilestone, partWorth } from "@/lib/game";
+import { KidGoalBoard } from "@/components/kid-goal-board";
+import { isBoard } from "@/lib/kid-board";
+import { BONUSES, asksOn, FAMILY_STEPS_BONUS, GAME_CATEGORY_META, nextMilestone, partWorth } from "@/lib/game";
 import { goalNumber } from "@/lib/goals";
 import { isGrownUp } from "@/lib/roles";
 import type { WeekStart } from "@/lib/week";
@@ -182,8 +186,13 @@ function TodayView({ game, player, grownUp }: { game: GameView; player: PlayerVi
     );
   }
   if (!player) return null;
-  const dailies = player.goals.filter((g) => g.period === "day");
+  // Today's dailies: on, asked today (weekdays-only goals rest at the
+  // weekend), the busy-day backup on its own line (20261020190000).
+  const dailies = player.goals.filter((g) => g.period === "day" && !g.backup && (!g.active || asksOn(g.days, game.today)));
+  const backups = player.goals.filter((g) => g.period === "day" && g.backup && g.active && asksOn(g.days, game.today));
   const weekly = player.goals.filter((g) => g.period === "week");
+  // A young child's own goals, each with a picture: the sticker board.
+  const board = player.role === "child_managed" && isBoard(dailies.filter((g) => g.active)) ? dailies.filter((g) => g.active) : null;
   const players = game.players.filter((p) => p.dailiesTotal > 0);
   const allDone = player.dailiesTotal > 0 && player.dailiesDone === player.dailiesTotal;
 
@@ -197,9 +206,14 @@ function TodayView({ game, player, grownUp }: { game: GameView; player: PlayerVi
             : `${player.dailiesDone} of ${player.dailiesTotal} dailies done. Finish them all for +${BONUSES.allDailiesDone.xp} XP and +${BONUSES.allDailiesDone.coins} coins tonight.`}
         </p>
       )}
-      <Section title="Today">
-        {dailies.length === 0 ? <Empty text="No daily goals yet." /> : dailies.map((g) => <GoalRow key={g.id} goal={g} canTap />)}
-      </Section>
+      {board ? (
+        <KidGoalBoard name={player.name.split(" ")[0]} goals={board.map((g) => ({ id: g.id, title: g.title, emoji: g.emoji ?? "⭐", current: g.current, target: g.target, reached: g.reached }))} />
+      ) : (
+        <Section title="Today">
+          {dailies.length === 0 ? <Empty text="No daily goals yet." /> : dailies.map((g) => <GoalRow key={g.id} goal={g} canTap />)}
+        </Section>
+      )}
+      {backups.length > 0 && <Section title="Busy day? This keeps your streak going">{backups.map((g) => <GoalRow key={g.id} goal={g} canTap />)}</Section>}
       {weekly.length > 0 && <Section title="This week">{weekly.map((g) => <GoalRow key={g.id} goal={g} canTap />)}</Section>}
       {game.familyGoals.length > 0 && <Section title="Family goals">{game.familyGoals.map((g) => <GoalRow key={g.id} goal={g} canTap />)}</Section>}
       {players.length > 0 && (
@@ -264,12 +278,19 @@ function BadgesView({ game, player }: { game: GameView; player: PlayerView }) {
 
 async function ShopView({ familyId, me, player }: { familyId: string; me: { id: string; role: string }; player: PlayerView | undefined }) {
   const grownUp = isGrownUp(me.role);
-  const [rewards, scores, redemptions, claims] = await Promise.all([
+  const supabase = await createClient();
+  const [rewards, scores, redemptions, claims, { data: treats }, { data: weeks }] = await Promise.all([
     getRewards(familyId),
     getMemberScores(familyId),
     grownUp ? getPendingRedemptions(familyId) : Promise.resolve([]),
     grownUp ? getPendingGoalClaims(familyId, me) : Promise.resolve([]),
+    // The family-week treat (20261020190000): unlocked by a week of every
+    // family goal met, never bought with coins.
+    supabase.from("rewards").select("id, title, budget_amount").eq("family_id", familyId).eq("active", true).eq("unlock", "family_week").limit(1),
+    supabase.from("game_family_weeks").select("week_start, all_done, treat_used_at").eq("family_id", familyId).order("week_start", { ascending: false }).limit(1),
   ]);
+  const treat = treats?.[0];
+  const week = weeks?.[0];
   return (
     <>
       <Blueprint style={{ padding: "0.875rem", marginBottom: "0.875rem", display: "flex", alignItems: "center", gap: "0.75rem" }}>
@@ -281,6 +302,19 @@ async function ShopView({ familyId, me, player }: { familyId: string; me: { id: 
           <div style={{ fontSize: "0.75rem", color: "var(--color-neutral-600)" }}>Coins are your points. A request waits for a grown-up’s yes.</div>
         </div>
       </Blueprint>
+      {treat && (
+        <Blueprint style={{ padding: "0.75rem 0.875rem", marginBottom: "0.875rem" }}>
+          <div style={{ fontWeight: 600, fontSize: "0.9375rem" }}>🎉 {treat.title}</div>
+          <div style={{ fontSize: "0.78125rem", color: "var(--color-neutral-600)", marginTop: "0.125rem", lineHeight: 1.4 }}>
+            {week?.all_done && !week.treat_used_at
+              ? "Unlocked! Every family goal was met last week."
+              : week?.all_done && week.treat_used_at
+                ? "Enjoyed. Meet every family goal again this week to unlock it again."
+                : "Unlocks when every family goal of the week is met."}
+          </div>
+          {grownUp && week?.all_done && !week.treat_used_at && <FamilyTreatUsed week={week.week_start} />}
+        </Blueprint>
+      )}
       <RewardsShelf rewards={rewards} me={scores.find((s) => s.id === me.id)} canManage={grownUp} />
       {grownUp && <ApprovalQueue pending={[]} redemptions={redemptions} goalClaims={claims} />}
       <Link href="/planner?seg=routines" style={{ fontSize: "0.8125rem", color: "var(--color-accent-solid)", fontWeight: 600 }}>
@@ -299,6 +333,9 @@ function SetupView({ game, plus }: { game: GameView; plus: boolean }) {
           <SampleGameButton />
         </div>
       )}
+      <div style={{ marginBottom: "0.75rem" }}>
+        <FamilyPackForm people={game.players.map((p) => ({ id: p.id, label: p.name.split(" ")[0], grownUp: isGrownUp(p.role) }))} plus={plus} />
+      </div>
       <div style={{ marginBottom: "1rem" }}>
         <GameGoalForm people={game.players.map((p) => ({ id: p.id, label: p.name.split(" ")[0] }))} />
       </div>
@@ -312,15 +349,20 @@ function SetupView({ game, plus }: { game: GameView; plus: boolean }) {
       <Section title={`Game goals · ${all.length}`}>
         {all.length === 0 && <Empty text="None yet." />}
         {all.map(({ g, who }) => (
-          <div key={g.id} style={{ display: "flex", alignItems: "center", gap: "0.5rem", padding: "0.5rem 0", borderTop: "1px solid color-mix(in srgb, var(--color-text) 8%, transparent)", opacity: g.active ? 1 : 0.55 }}>
+          <div key={g.id} style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: "0.5rem", padding: "0.5rem 0", borderTop: "1px solid color-mix(in srgb, var(--color-text) 8%, transparent)", opacity: g.active ? 1 : 0.55 }}>
             <span aria-hidden>{GAME_CATEGORY_META[g.category].emoji}</span>
             <div style={{ flex: 1, minWidth: 0 }}>
               <div style={{ fontSize: "0.875rem", fontWeight: 600 }}>{g.title}</div>
               <div style={{ fontSize: "0.75rem", color: "var(--color-neutral-600)" }}>
-                {who} · {goalNumber(g.target)} {g.unit ?? ""} a {g.period} · {g.xp} XP · {g.points} coins{g.active ? "" : " · paused"}
+                {who} · {goalNumber(g.target)} {g.unit ?? ""} a {g.period} · {g.xp} XP · {g.points} coins
+                {g.days ? ` · ${daysText(g.days)}` : ""}
+                {g.backup ? " · backup" : ""}
+                {g.creditTo === "logger" ? " · credits whoever ticks it" : ""}
+                {g.active ? "" : " · paused"}
               </div>
             </div>
             <GameGoalPause goalId={g.id} active={g.active} />
+            <GameGoalEdit goal={{ id: g.id, title: g.title, category: g.category, period: g.period, target: g.target, xp: g.xp, points: g.points, days: g.days, emoji: g.emoji, owned: g.ownerId !== null }} />
           </div>
         ))}
       </Section>
@@ -329,4 +371,12 @@ function SetupView({ game, plus }: { game: GameView; plus: boolean }) {
       </p>
     </>
   );
+}
+
+/** "weekdays", "Mon, Wed, Fri". */
+function daysText(days: number[]): string {
+  const sorted = [...days].sort();
+  if (sorted.join() === "1,2,3,4,5") return "weekdays";
+  if (sorted.join() === "6,7") return "weekends";
+  return sorted.map((d) => ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"][d - 1]).join(", ");
 }

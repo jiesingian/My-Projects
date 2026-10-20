@@ -58,9 +58,18 @@ on:
         type: string
 
 permissions:
-  contents: read
+  # WRITE, since 20 October, for one thing: the phone-width screenshots push
+  # their before/after pictures to the `ci-screenshots` branch (an orphan
+  # branch of nothing but PNGs; kin/scripts/visual-comment.sh), because the
+  # API cannot attach an image to a comment. The token still cannot touch
+  # main: pushing there goes through automerge.yml, and nothing here checks
+  # out a branch to write to. Forks get a read-only token regardless.
+  contents: write
+  # The same step edits its one comment on the pull request.
+  pull-requests: write
   # Only so the dev pre-flight below can cancel its own run when dev is down
-  # (kin/scripts/dev-preflight.sh, 19 October). Nothing else uses it.
+  # (kin/scripts/dev-preflight.sh, 19 October), and, since 20 October, so a
+  # pull request can download main's `visual-baseline` artifact.
   actions: write
 
 # Per branch, and cancelling a superseded run outright rather than letting it
@@ -237,6 +246,87 @@ jobs:
         with:
           name: playwright-report
           path: kin/playwright-report/
+          retention-days: 7
+
+      # ── Phone-width screenshots, compared with main (20 October) ──────────
+      #
+      # Five screens (Today, Chat, Planner, To-Buy, Wealth) at 390px, Simple
+      # Kin off and on, as the sample household, each compared with the same
+      # picture from main's last run here. e2e/visual.spec.ts has the why and
+      # the threshold. Three rules of the house hold:
+      #
+      #   - It runs INSIDE this job, after the smoke run, with one worker: no
+      #     new job racing the e2e-dev turn-lock (#656/#701/#704), ten page
+      #     loads on top of smoke's forty-odd, and Simple Kin is flipped on
+      #     the sample member only while nothing else is loading pages. The
+      #     private-database trial below is not its home yet: that database
+      #     has an empty household, and an empty Today looks the same on
+      #     every branch.
+      #   - WARN-ONLY FOR THE FIRST WEEK. Dates and the household's rows move
+      #     pixels too; the week is for tuning the threshold on real runs.
+      #     ON 27 OCTOBER 2026, DELETE THE `VISUAL_WARN_ONLY` LINE BELOW and
+      #     a screen that differs from main by more than the threshold fails
+      #     this job. Until then it is written down and shown, nothing more.
+      #   - The baseline is an artifact, not a file in the repository: main's
+      #     run (automerge.yml dispatches this workflow on main after each
+      #     merge) uploads `visual-baseline`; a pull request's run downloads
+      #     the newest one. No artifact yet (the first run, a new screen):
+      #     the pictures are taken and recorded, compared with nothing.
+      #
+      # When a screen differs, kin/scripts/visual-comment.sh pushes the
+      # before/after/diff PNGs to the `ci-screenshots` branch and puts one
+      # comment on the pull request, edited in place on later pushes. Nothing
+      # changed: no pictures pushed, no comment (or the earlier comment says
+      # "back to main"). Every one of these steps is skipped when a base_url
+      # was given: then dev is not what is tested.
+      - name: Main's screenshots, to compare with
+        if: ${{ !inputs.base_url && github.event_name == 'pull_request' }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+        run: bash scripts/visual-baseline.sh
+
+      - name: Phone-width screenshots (five screens, Simple Kin off and on)
+        if: ${{ !inputs.base_url }}
+        env:
+          E2E_EMAIL: ${{ secrets.E2E_EMAIL }}
+          E2E_PASSWORD: ${{ secrets.E2E_PASSWORD }}
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+          # Warn-only until 27 October 2026 -- see the comment above. Delete
+          # this line on that date; nothing else needs to change.
+          VISUAL_WARN_ONLY: "1"
+          # Its own report folder, so the smoke run's report above is not
+          # overwritten before it is uploaded.
+          PLAYWRIGHT_HTML_OUTPUT_DIR: playwright-report-visual
+        run: npx playwright test e2e/visual.spec.ts --workers=1
+
+      - name: Keep these as main's baseline
+        if: ${{ !inputs.base_url && github.ref == 'refs/heads/main' && !cancelled() }}
+        uses: actions/upload-artifact@v6
+        with:
+          name: visual-baseline
+          path: |
+            kin/visual-out/*.png
+            !kin/visual-out/*-diff.png
+          retention-days: 30
+
+      - name: Before and after, on the pull request
+        if: ${{ !inputs.base_url && github.event_name == 'pull_request' && !cancelled() }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          PR: ${{ github.event.pull_request.number }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: bash scripts/visual-comment.sh
+
+      - uses: actions/upload-artifact@v6
+        if: ${{ !inputs.base_url && !cancelled() }}
+        with:
+          name: visual-screenshots
+          path: |
+            kin/visual-out/
+            kin/playwright-report-visual/
           retention-days: 7
 
   # ── The same smoke run on a private database (19 October, trial) ──────────

@@ -117,7 +117,6 @@ function  time_capsule_card_open                 # 20261009090200_letter_cards.s
 function  time_capsule_can_reply                 # 20261012090100_letter_replies.sql
 function  account_is_joint                       # 20261012210000_joint_accounts_grownups_only.sql
 function  planner_goal_visible                   # 20261013170000_goal_visibility.sql
-function  planner_goal_completions_fix           # 20261013171000_goal_points.sql
 function  account_shared_with_me                 # 20261013190000_account_viewers.sql
 function  account_open_to_me                     # 20261013190000_account_viewers.sql
 function  guard_family_chosen_plan               # 20261013200000_families_chosen_plan.sql

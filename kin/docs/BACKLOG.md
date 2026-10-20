@@ -105,8 +105,14 @@ new debt, compared with `main`, so no other session's PR goes red for it.
   than 10% or 25 KB fails `ci.yml`, a new route is only reported, and the
   numbers are posted on the PR only when a route moved by a kilobyte or
   more. `npm run bundle:baseline` refreshes the baseline on purpose.
-- **Phone-width screenshots compared with main:** Today, Chat, Planner,
-  To-Buy, Wealth at 390px, Simple Kin off and on; warn-only for a week.
+- **Done: phone-width screenshots compared with main.** `e2e/visual.spec.ts`
+  shoots Today, Chat, Planner, To-Buy and Wealth at 390px, Simple Kin off
+  and on, inside the e2e job after the smoke run, and compares each with
+  main's last run (the `visual-baseline` artifact). A screen that differs by
+  more than 3% of its pixels is shown before/after on the PR
+  (`ci-screenshots` branch, `kin/scripts/visual-comment.sh`). **Warn-only
+  until 27 October 2026:** on that day delete the `VISUAL_WARN_ONLY` line in
+  `e2e.yml`.
 - **Done: safe dependency updates.** Patch and minor only, lockfile by npm:
   Next 16.4.2 (its critical advisory), React 19.3.1, supabase-js 2.118,
   Playwright 1.64, pglite 0.5.10 and the rest. `npm audit` 9 → 5; the 5
@@ -168,8 +174,18 @@ says so in one line, with "never trains AI". Kid view is refused everywhere.
   memory of the export; the review step is where a wrong column shows).
   Not checked: pdf.js on a real phone (the worker is served from
   public/pdfjs/, copied at build like MediaPipe's engine).
-- "What did I miss?" in chat (Plus): at about 30 unread messages, one tap
-  gives a short Taglish summary, never stored, shown once.
+- **Done:** "What did I miss?" in chat (Kin Plus): above the household,
+  Family, one-to-one and group threads, when about 30 or more messages
+  are unread (the badge's count, taken at render before the thread marks
+  itself read), a card says how many and offers one tap; Kin AI reads
+  only those messages (as the viewer, the newest 300 at most) and answers
+  in Taglish -- what it was about, then up to six lines of decisions,
+  asks with who, dates and places, open questions. Shown once on the
+  card, kept nowhere (nothing is written; close it and it is gone). The
+  count and the privacy line are on the card. A Free household sees the
+  card and what Plus unlocks; kid view is refused by the action. Logic
+  spec e2e/chat-summary.logic.spec.ts. Not checked against the real model
+  (no key): the Taglish, and whether Haiku keeps to six lines.
 - Send it to Kin (Plus): an iPhone Shortcut in the share sheet or an in-app
   "Paste a screenshot" button; a school circular or a Viber/Messenger
   screenshot → dates, places, tasks → the flyer-scan review → plans.

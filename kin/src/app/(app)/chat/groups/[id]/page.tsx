@@ -1,7 +1,11 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { getCurrentMember } from "@/lib/session";
-import { getGroupRoom, getThreadPrefs } from "@/lib/queries/chat-rooms";
+import { getGroupRoom, getReadMarks, getRoomUnread, getThreadPrefs, unreadFloor } from "@/lib/queries/chat-rooms";
+import { MissedSummary } from "@/components/missed-summary";
+import { shouldOfferSummary } from "@/lib/chat-summary";
+import { readAccess } from "@/lib/access";
+import { kinAiReady } from "@/lib/kin-ai";
 import { RoomThread } from "@/components/room-thread";
 import { ThreadMenu } from "@/components/thread-menu";
 
@@ -14,9 +18,10 @@ export default async function GroupPage({ params }: { params: Promise<{ id: stri
   if (!me) redirect("/onboarding/profile");
   const { id } = await params;
   if (!/^[0-9a-f-]{36}$/i.test(id)) notFound();
-  const [room, prefs] = await Promise.all([getGroupRoom(me.person_id, id), getThreadPrefs()]);
+  const [room, prefs, unread, marks] = await Promise.all([getGroupRoom(me.person_id, id), getThreadPrefs(), getRoomUnread(), getReadMarks()]);
   if (!room) notFound();
   const pref = prefs.get(`group:${id}`);
+  const missed = unread.get(`group:${id}`) ?? 0;
   const names = room.members.map((m) => (m.personId === me.person_id ? "You" : m.fullName.split(" ")[0]));
 
   return (
@@ -35,6 +40,7 @@ export default async function GroupPage({ params }: { params: Promise<{ id: stri
         {names.slice(0, 6).join(", ")}
         {names.length > 6 ? ` and ${names.length - 6} more` : ""} · <span style={{ color: "var(--color-accent-700)", fontWeight: 600 }}>Members</span>
       </Link>
+      {shouldOfferSummary(missed) && <MissedSummary thread={`group:${id}`} since={marks.get(`group:${id}`) ?? unreadFloor()} count={missed} threadName={room.group.name} plus={readAccess(me.families).plus} ready={kinAiReady()} />}
       <RoomThread
         me={{ personId: me.person_id, firstName: me.full_name.split(" ")[0] }}
         seenBy={room.seenBy}

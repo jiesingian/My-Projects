@@ -55,3 +55,7 @@ playwright-report/
 test-results/
 /public/mediapipe/
 /public/pdfjs/
+
+# visual.spec.ts: main's screenshots (downloaded by e2e.yml) and this run's
+/e2e/visual-baseline/
+/visual-out/

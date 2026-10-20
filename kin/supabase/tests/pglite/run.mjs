@@ -110,6 +110,7 @@ const MIGRATIONS = [
   "20261020160000_helper_refill_lines.sql",
   "20261020170000_vault_emergency_same_household.sql",
   "20261020180000_delete_household_forgets_health_photos.sql",
+  "20261020190000_goals_family_pack.sql",
 ];
 
 const only = process.argv[2];

@@ -4492,6 +4492,36 @@ export type Database = {
         }
         Relationships: []
       }
+      game_family_weeks: {
+        Row: {
+          all_done: boolean
+          closed_at: string
+          family_id: string
+          goals: number
+          treat_used_at: string | null
+          treat_used_by: string | null
+          week_start: string
+        }
+        Insert: {
+          all_done?: boolean
+          closed_at?: string
+          family_id: string
+          goals?: number
+          treat_used_at?: string | null
+          treat_used_by?: string | null
+          week_start: string
+        }
+        Update: {
+          all_done?: boolean
+          closed_at?: string
+          family_id?: string
+          goals?: number
+          treat_used_at?: string | null
+          treat_used_by?: string | null
+          week_start?: string
+        }
+        Relationships: []
+      }
       game_member_badges: {
         Row: {
           badge_id: string
@@ -6818,6 +6848,7 @@ export type Database = {
       }
       planner_goal_completions: {
         Row: {
+          credited_to: string | null
           created_at: string
           decided_at: string | null
           decided_by: string | null
@@ -6832,6 +6863,7 @@ export type Database = {
           xp: number
         }
         Insert: {
+          credited_to?: string | null
           created_at?: string
           decided_at?: string | null
           decided_by?: string | null
@@ -6846,6 +6878,7 @@ export type Database = {
           xp?: number
         }
         Update: {
+          credited_to?: string | null
           created_at?: string
           decided_at?: string | null
           decided_by?: string | null
@@ -6888,6 +6921,30 @@ export type Database = {
           goal_id?: string
           id?: string
           member_id?: string | null
+        }
+        Relationships: []
+      }
+      planner_goal_links: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          family_id: string
+          goal_id: string
+          linked_goal_id: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          family_id: string
+          goal_id: string
+          linked_goal_id: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          family_id?: string
+          goal_id?: string
+          linked_goal_id?: string
         }
         Relationships: []
       }
@@ -6941,6 +6998,11 @@ export type Database = {
       }
       planner_goals: {
         Row: {
+          backup: boolean
+          credit_to: string
+          days: number[] | null
+          emoji: string | null
+          removed_at: string | null
           active: boolean
           category: string | null
           created_at: string
@@ -6961,6 +7023,11 @@ export type Database = {
           xp: number
         }
         Insert: {
+          backup?: boolean
+          credit_to?: string
+          days?: number[] | null
+          emoji?: string | null
+          removed_at?: string | null
           active?: boolean
           category?: string | null
           created_at?: string
@@ -6981,6 +7048,11 @@ export type Database = {
           xp?: number
         }
         Update: {
+          backup?: boolean
+          credit_to?: string
+          days?: number[] | null
+          emoji?: string | null
+          removed_at?: string | null
           active?: boolean
           category?: string | null
           created_at?: string
@@ -7270,6 +7342,8 @@ export type Database = {
       }
       rewards: {
         Row: {
+          budget_amount: number | null
+          unlock: string | null
           active: boolean
           cost_points: number
           created_at: string
@@ -7279,6 +7353,8 @@ export type Database = {
           title: string
         }
         Insert: {
+          budget_amount?: number | null
+          unlock?: string | null
           active?: boolean
           cost_points: number
           created_at?: string
@@ -7288,6 +7364,8 @@ export type Database = {
           title: string
         }
         Update: {
+          budget_amount?: number | null
+          unlock?: string | null
           active?: boolean
           cost_points?: number
           created_at?: string
@@ -8350,6 +8428,15 @@ export type Database = {
         Args: { p_secret: string; p_now?: string }
         Returns: { key: string; member_id: string; endpoint: string; p256dh: string; auth: string; title: string; body: string; url: string }[]
       }
+      game_log: {
+        Args: { p_goal: string; p_steps?: number }
+        Returns: undefined
+      }
+      game_today: { Args: never; Returns: string }
+      game_may_log: { Args: { p_goal: string }; Returns: boolean }
+      game_period_start: { Args: { p_goal: string }; Returns: string }
+      game_settle_my_steps: { Args: never; Returns: undefined }
+      game_use_family_treat: { Args: { p_week: string }; Returns: undefined }
       game_steps_days: {
         Args: { p_from: string; p_to: string }
         Returns: { member_id: string; day: string; steps: number }[]

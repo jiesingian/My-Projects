@@ -51,6 +51,23 @@ export async function setStreakBonusAction(_prev: ActionState, formData: FormDat
   return { error: null };
 }
 
+/** A reward's price in points, and what it costs the family in money (a note,
+ * nothing taken from Wealth). Requests already made keep the price they were
+ * made at: each copies it (reward_redemptions.cost_points). */
+export async function updateRewardAction(rewardId: string, cost: number, budget: number | null): Promise<ActionState> {
+  const me = await requireCurrentMember();
+  if (!isGrownUp(me.role)) return { error: "Only a parent or another adult can change a reward." };
+  if (!(Number.isInteger(cost) && cost > 0 && cost <= 10000)) return { error: "The cost has to be a whole number between 1 and 10000 points." };
+  if (budget !== null && !(Number.isFinite(budget) && budget >= 0 && budget <= 10_000_000)) return { error: "That amount doesn't look right." };
+
+  const supabase = await createClient();
+  const { error } = await supabase.from("rewards").update({ cost_points: cost, budget_amount: budget }).eq("id", rewardId).eq("family_id", me.family_id);
+  if (error) return { error: humanDatabaseError(error.message) };
+  revalidatePath("/planner");
+  revalidatePath("/today");
+  return { error: null };
+}
+
 /** Retired, not deleted: a redemption from last month still has to be able
  * to say what it was for. */
 export async function retireRewardAction(rewardId: string): Promise<ActionState> {

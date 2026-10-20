@@ -2,7 +2,11 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { Icon } from "@/components/icons";
 import { getCurrentMember } from "@/lib/session";
-import { getChatMembers, getChatThread, getChatPin, getHouseholdChatTheme } from "@/lib/queries/chat";
+import { getChatMembers, getChatThread, getChatPin, getHouseholdChatTheme, getHouseholdUnreadWindow } from "@/lib/queries/chat";
+import { MissedSummary } from "@/components/missed-summary";
+import { shouldOfferSummary } from "@/lib/chat-summary";
+import { readAccess } from "@/lib/access";
+import { kinAiReady } from "@/lib/kin-ai";
 import { ChatThread } from "@/components/chat-thread";
 import { shortNames } from "@/lib/format";
 import { CallButtons } from "@/components/call-buttons";
@@ -25,13 +29,15 @@ export default async function HouseholdChatPage({ searchParams }: { searchParams
   // Message, on a profile, lands here addressed to that person.
   const { to } = await searchParams;
 
-  const [members, thread, pin, theme, highlights, prefs] = await Promise.all([
+  const [members, thread, pin, theme, highlights, prefs, unread] = await Promise.all([
     getChatMembers(me.family_id),
     getChatThread(me.family_id),
     getChatPin(me.family_id),
     getHouseholdChatTheme(me.family_id),
     getHighlights(me.family_id),
     getThreadPrefs(),
+    // Taken here, before ChatThread marks the thread read (20 October).
+    getHouseholdUnreadWindow(me.family_id, me.id),
   ]);
   // Expired highlights' files go the next time anyone at home opens the
   // household chat (they are already hidden: the table only returns live ones).
@@ -73,6 +79,7 @@ export default async function HouseholdChatPage({ searchParams }: { searchParams
         />
       </div>
 
+      {shouldOfferSummary(unread.count) && <MissedSummary thread="household" since={unread.since} count={unread.count} threadName={me.families.name} plus={readAccess(me.families).plus} ready={kinAiReady()} />}
       <ChatThread theme={theme} me={me.id} familyId={me.family_id} members={labelled} initial={thread} pin={pin} addressTo={to} gifReady={!!process.env.GIPHY_API_KEY} />
     </div>
   );
