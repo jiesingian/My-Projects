@@ -66,6 +66,8 @@ export type GoalView = {
   visibility: "household" | "private";
   /** A goals-game goal (20261020120000): its category; null otherwise. */
   category: string | null;
+  /** A game goal's XP each time it is met (0 otherwise). */
+  xp: number;
   /** What meeting it each period is worth (0: nothing), and the first day
    * of the period now running -- what a claim is for. */
   points: number;
@@ -239,6 +241,7 @@ export async function getGoals(familyId: string, viewer: Viewer, weekStart: 0 | 
       visibility: g.visibility === "private" ? "private" : "household",
       points: g.points ?? 0,
       category: g.category,
+      xp: g.xp ?? 0,
       periodStart: g.from,
       ...claimState(g.id, g.period, g.from),
       change: c
