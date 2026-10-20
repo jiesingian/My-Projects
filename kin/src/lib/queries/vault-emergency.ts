@@ -25,7 +25,7 @@ export type EmergencyRequest = {
   answeredBy: string | null;
 };
 export type OpenedItem = { id: string; who: string; label: string; at: string };
-/** One line to the household's grown-ups (20261020170000): why a trusted
+/** One line to the household's grown-ups (20261020200000): why a trusted
  * person from another household came off the list. */
 export type EmergencyNotice = { id: string; body: string };
 /** A parents-only document, and whether emergency access may open it. */

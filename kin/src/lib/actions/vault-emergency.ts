@@ -61,7 +61,7 @@ export async function answerEmergencyRequestAction(requestId: string, answer: "d
 }
 
 /** "Got it" on the notice that a trusted person from another household came
- * off the list (20261020170000). Any grown-up, once for the household. */
+ * off the list (20261020200000). Any grown-up, once for the household. */
 export async function dismissEmergencyNoticeAction(noticeId: string): Promise<ActionState> {
   await requireCurrentMember();
   const supabase = await createClient();
@@ -70,7 +70,7 @@ export async function dismissEmergencyNoticeAction(noticeId: string): Promise<Ac
 }
 
 /** "Share in an emergency" on a parents-only document, from the list under
- * Settings (20261020170000). The documents' own policy decides who may: a
+ * Settings (20261020200000). The documents' own policy decides who may: a
  * parents-only document is the parent's to change. Ticking it widens what
  * emergency access opens, so it meets the lock. */
 export async function setDocShareInEmergencyAction(entryId: string, shared: boolean): Promise<ActionState> {

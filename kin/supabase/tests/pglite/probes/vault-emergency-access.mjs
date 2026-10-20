@@ -1,5 +1,5 @@
 // Emergency access to the vault (20261015120000, within the household since
-// 20261020170000). Ann, the parent of House A -- the one person who reads its
+// 20261020200000). Ann, the parent of House A -- the one person who reads its
 // "Parents only" documents -- names Abe, an adult of the same house, as its
 // trusted person. Abe asks; A's other grown-ups can deny, allow now or let the
 // wait run out; once open Abe reads A's vault through the logged functions
@@ -31,7 +31,7 @@ const D_PDF = `${D}/docs/title.pdf`;
 
 const realPlus = `create or replace function public.family_has_plus(p_family uuid) returns boolean language sql stable set search_path = public as $$
   select exists (select 1 from families f where f.id = p_family and f.access_status in ('trialing', 'comped', 'active', 'past_due')) $$`;
-const MIGRATION = fs.readFileSync(new URL("../../../migrations/20261020170000_vault_emergency_same_household.sql", import.meta.url), "utf8");
+const MIGRATION = fs.readFileSync(new URL("../../../migrations/20261020200000_vault_emergency_same_household.sql", import.meta.url), "utf8");
 
 export default async function ({ db, as, check, refused }) {
   const ann = U("a1"), kid = U("a2"), abe = U("a4"), ada = U("a5"), ben = U("b1"), cat = U("c1"), dan = U("d1");

@@ -25,7 +25,7 @@ import { householdPhrase, openedLine, ownerStatusLine, trustedStatusLine } from 
  * "set up a lock" into a way around it.
  *
  * Emergency access (20261015120000; within the household since
- * 20261020170000) lives here too, both sides of it: which grown-up of this
+ * 20261020200000) lives here too, both sides of it: which grown-up of this
  * household it trusts, which parents-only documents may open, and -- for
  * the grown-up named -- the way to ask. Naming someone, Allow now, the share
  * list and the log of what was opened wait for the lock; Deny and Take back

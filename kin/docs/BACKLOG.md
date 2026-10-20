@@ -67,7 +67,7 @@ sample household: no sideways scroll and no console errors.
     helper-refill-lines.mjs. Not checked: on a helper's real phone.
   - ~~Vault emergency access shows parents-only documents to the trusted
     relative.~~ Done 20 October (kin/vault-emergency-household,
-    20261020170000): see "Vault emergency access" under Agreed 14 October.
+    20261020200000): see "Vault emergency access" under Agreed 14 October.
   - `tree_story_push_targets` / `helper_push_targets` hand device
     subscriptions to the signed-in sender. This is the same pattern as
     `push_targets`, needed because the app sends pushes without a
@@ -462,7 +462,7 @@ scanning wait for the AI key.
   vault-emergency-access.mjs. On dev, the card is checked weekly
   (e2e/this-week.spec.ts).
   **Changed 20 October (Jonathan; kin/vault-emergency-household,
-  20261020170000):** (a) the trusted person must be a grown-up of the
+  20261020200000):** (a) the trusted person must be a grown-up of the
   *same* household -- "Parents only" is whoever set the household up, so
   the worst day is the other parent's -- and a relative from a linked
   household can no longer be named. Anyone named from another household

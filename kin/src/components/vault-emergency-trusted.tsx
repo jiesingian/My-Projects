@@ -21,7 +21,7 @@ export type NamedByView = {
 };
 
 /** Emergency access, the trusted person's side: the card for the household
- * that named them (their own, since 20261020170000). Asking needs a short
+ * that named them (their own, since 20261020200000). Asking needs a short
  * reason, which every other grown-up sees in the push. Once open, the card
  * leads to a read-only view of the vault, parents-only documents marked to
  * share included. */
