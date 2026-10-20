@@ -15,7 +15,8 @@ export async function getMyDraws(): Promise<DrawSummary[]> {
   return (data ?? []).map((d) => ({ id: d.draw_id, title: d.title, exchangeDate: d.exchange_date, hostName: d.host_name, mine: d.mine, drawn: d.drawn, people: d.people, ours: d.ours }));
 }
 
-export type DrawPersonView = { id: string; memberId: string; familyId: string; name: string; householdName: string };
+/** `memberId` is null for a guest by link (20261020231000), who has no member row. */
+export type DrawPersonView = { id: string; memberId: string | null; familyId: string; name: string; householdName: string; guest: boolean };
 
 export type DrawView = {
   id: string;
@@ -59,29 +60,30 @@ export async function getDraw(
   if (!d) return null;
   const [{ data: households }, { data: people }, { data: picks }, { data: wishes }, { data: members }] = await Promise.all([
     supabase.from("gift_draw_households").select("family_id, household_name").eq("draw_id", id),
-    supabase.from("gift_draw_people").select("id, member_id, family_id, name, household_name").eq("draw_id", id).order("created_at"),
+    supabase.from("gift_draw_people").select("id, member_id, guest_id, family_id, name, household_name").eq("draw_id", id).order("created_at"),
     supabase.from("gift_draw_picks").select("giver_id, receiver_id").eq("draw_id", id),
     supabase.from("gift_draw_wishes").select("person_id, body").eq("draw_id", id).order("created_at"),
     supabase.from("members").select("id, full_name, role, status").eq("family_id", me.family_id).order("created_at"),
   ]);
-  const view = (p: { id: string; member_id: string; family_id: string; name: string; household_name: string }): DrawPersonView => ({
+  const view = (p: { id: string; member_id: string | null; guest_id: string | null; family_id: string; name: string; household_name: string }): DrawPersonView => ({
     id: p.id,
     memberId: p.member_id,
     familyId: p.family_id,
-    name: p.name,
+    name: p.guest_id ? `${p.name} (by link)` : p.name,
     householdName: p.household_name,
+    guest: !!p.guest_id,
   });
   const all = (people ?? []).map(view);
   const byId = new Map(all.map((p) => [p.id, p]));
   const wishesOf = (personId: string) => (wishes ?? []).filter((w) => w.person_id === personId).map((w) => w.body);
   const grownUp = isGrownUp(me.role);
   const managed = new Set((members ?? []).filter((m) => m.role === "child_managed").map((m) => m.id));
-  const speaksFor = (p: DrawPersonView) => p.memberId === me.id || (grownUp && p.familyId === me.family_id && managed.has(p.memberId));
+  const speaksFor = (p: DrawPersonView) => p.memberId !== null && (p.memberId === me.id || (grownUp && p.familyId === me.family_id && managed.has(p.memberId)));
   const mine = d.family_id === me.family_id;
   const ourDraw = mine || (households ?? []).some((h) => h.family_id === me.family_id);
   const hostName = mine ? me.families.name : ((await supabase.rpc("my_gift_draws")).data?.find((x) => x.draw_id === id)?.host_name ?? "");
 
-  const inIds = new Set(all.map((p) => p.memberId));
+  const inIds = new Set(all.map((p) => p.memberId).filter((id): id is string => id !== null));
   const canPutIn = ourDraw && !d.drawn_at
     ? (members ?? [])
         .filter((m) => m.status !== "pending" && !isGone(m.status) && !inIds.has(m.id) && (grownUp || m.id === me.id))

@@ -5,8 +5,11 @@ import { useTransition } from "react";
 import { toast } from "@/components/toast";
 import { setRsvpAction } from "@/lib/actions/event-rsvp";
 import { RSVP_ANSWERS, type RsvpAnswer } from "@/lib/event-rsvp";
+import { guestHeadsLabel, headsIn } from "@/lib/event-guests";
 
-type Person = { id: string; name: string };
+/** `heads`: how many this one stands for -- a guest by link answers for
+ * their whole party (20261020231000); a member is one. */
+type Person = { id: string; name: string; heads?: number };
 
 /** Who's coming, on an event's own screen (20261014090000): a Going / Maybe /
  * Can't go choice for each person `me` answers for (themselves, and a
@@ -34,13 +37,15 @@ export function EventRsvp({
       router.refresh();
     });
   const first = (n: string) => n.split(" ")[0];
+  // A guest's name is shown whole, with "(by link)" and how many they are.
+  const shown = (p: Person) => (p.heads !== undefined ? guestHeadsLabel(p.name, p.heads) : first(p.name));
   const line = (label: string, people: Person[]) =>
     people.length > 0 && (
       <div style={{ fontSize: "0.84375rem", marginTop: "0.375rem" }}>
         <span style={{ fontWeight: 600 }}>
-          {label} · {people.length}
+          {label} · {headsIn(people)}
         </span>
-        <span style={{ color: "var(--color-neutral-600)" }}> {people.map((p) => first(p.name)).join(", ")}</span>
+        <span style={{ color: "var(--color-neutral-600)" }}> {people.map(shown).join(", ")}</span>
       </div>
     );
 
