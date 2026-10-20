@@ -10,7 +10,9 @@ import { ProgressBar } from "@/components/progress-bar";
 import { getGame, type GameGoalView, type GameView, type PlayerView } from "@/lib/queries/game";
 import { getMemberScores, getPendingRedemptions, getRewards } from "@/lib/queries/routines";
 import { getPendingGoalClaims } from "@/lib/queries/goals";
-import { BONUSES, FAMILY_STEPS_BONUS, GAME_CATEGORY_META, nextMilestone, partWorth } from "@/lib/game";
+import { KidGoalBoard } from "@/components/kid-goal-board";
+import { isBoard } from "@/lib/kid-board";
+import { BONUSES, asksOn, FAMILY_STEPS_BONUS, GAME_CATEGORY_META, nextMilestone, partWorth } from "@/lib/game";
 import { goalNumber } from "@/lib/goals";
 import { isGrownUp } from "@/lib/roles";
 import type { WeekStart } from "@/lib/week";
@@ -184,8 +186,13 @@ function TodayView({ game, player, grownUp }: { game: GameView; player: PlayerVi
     );
   }
   if (!player) return null;
-  const dailies = player.goals.filter((g) => g.period === "day");
+  // Today's dailies: on, asked today (weekdays-only goals rest at the
+  // weekend), the busy-day backup on its own line (20261020190000).
+  const dailies = player.goals.filter((g) => g.period === "day" && !g.backup && (!g.active || asksOn(g.days, game.today)));
+  const backups = player.goals.filter((g) => g.period === "day" && g.backup && g.active && asksOn(g.days, game.today));
   const weekly = player.goals.filter((g) => g.period === "week");
+  // A young child's own goals, each with a picture: the sticker board.
+  const board = player.role === "child_managed" && isBoard(dailies.filter((g) => g.active)) ? dailies.filter((g) => g.active) : null;
   const players = game.players.filter((p) => p.dailiesTotal > 0);
   const allDone = player.dailiesTotal > 0 && player.dailiesDone === player.dailiesTotal;
 
@@ -199,9 +206,14 @@ function TodayView({ game, player, grownUp }: { game: GameView; player: PlayerVi
             : `${player.dailiesDone} of ${player.dailiesTotal} dailies done. Finish them all for +${BONUSES.allDailiesDone.xp} XP and +${BONUSES.allDailiesDone.coins} coins tonight.`}
         </p>
       )}
-      <Section title="Today">
-        {dailies.length === 0 ? <Empty text="No daily goals yet." /> : dailies.map((g) => <GoalRow key={g.id} goal={g} canTap />)}
-      </Section>
+      {board ? (
+        <KidGoalBoard name={player.name.split(" ")[0]} goals={board.map((g) => ({ id: g.id, title: g.title, emoji: g.emoji ?? "⭐", current: g.current, target: g.target, reached: g.reached }))} />
+      ) : (
+        <Section title="Today">
+          {dailies.length === 0 ? <Empty text="No daily goals yet." /> : dailies.map((g) => <GoalRow key={g.id} goal={g} canTap />)}
+        </Section>
+      )}
+      {backups.length > 0 && <Section title="Busy day? This keeps your streak going">{backups.map((g) => <GoalRow key={g.id} goal={g} canTap />)}</Section>}
       {weekly.length > 0 && <Section title="This week">{weekly.map((g) => <GoalRow key={g.id} goal={g} canTap />)}</Section>}
       {game.familyGoals.length > 0 && <Section title="Family goals">{game.familyGoals.map((g) => <GoalRow key={g.id} goal={g} canTap />)}</Section>}
       {players.length > 0 && (
