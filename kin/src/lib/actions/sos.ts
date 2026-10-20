@@ -6,6 +6,7 @@ import { createClient } from "@/lib/supabase/server";
 import { requireCurrentMember } from "@/lib/session";
 import { humanDatabaseError } from "@/lib/db-errors";
 import { sendPush } from "@/lib/push";
+import { sosWords } from "@/lib/push-words";
 import { cleanPosition } from "@/lib/member-card";
 import type { ActionState } from "@/lib/actions/auth";
 
@@ -53,16 +54,7 @@ export async function sendSosAction(position: { lat: number; lng: number; accura
 
   const name = me.full_name.split(" ")[0];
   const notified = grownUps.length
-    ? await sendPush({
-        kind: "sos",
-        memberIds: grownUps,
-        title: `SOS from ${name}`,
-        body: where ? `${name} needs help now. Tap for where they are and to call.` : `${name} needs help now. Their phone didn't share a location. Tap to call.`,
-        url: `/today/sos/${data.id}`,
-        tag: `sos-${data.id}`,
-        urgent: true,
-        icon: me.avatar_url,
-      })
+    ? await sendPush({ kind: "sos", memberIds: grownUps, ...sosWords({ id: data.id, first: name, where: Boolean(where), icon: me.avatar_url }) })
     : 0;
   if (notified > 0) await supabase.rpc("sos_record_notified", { p_id: data.id, p_count: notified });
 

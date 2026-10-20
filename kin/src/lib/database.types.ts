@@ -7921,6 +7921,27 @@ export type Database = {
         }
         Relationships: []
       }
+      push_tests: {
+        Row: {
+          id: number
+          kind: string
+          member_id: string
+          sent_at: string
+        }
+        Insert: {
+          id?: never
+          kind: string
+          member_id: string
+          sent_at?: string
+        }
+        Update: {
+          id?: never
+          kind?: string
+          member_id?: string
+          sent_at?: string
+        }
+        Relationships: []
+      }
       vault_emergency_opens: {
         Row: {
           family_id: string
@@ -8129,6 +8150,14 @@ export type Database = {
       my_helper_households: {
         Args: never
         Returns: { helper_id: string; family_id: string; household: string; helper_name: string; time_zone: string; can_see_list: boolean; can_see_meals: boolean; can_see_kids_plans: boolean }[]
+      }
+      push_test_allowed: {
+        Args: { p_kind: string }
+        Returns: boolean
+      }
+      sample_push: {
+        Args: { p_kind: string }
+        Returns: { title: string; body: string; url: string; tag: string }[]
       }
       forget_household_health_photos: {
         Args: never

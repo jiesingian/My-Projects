@@ -49,6 +49,18 @@ sample household: no sideways scroll and no console errors.
   - #739: the weekly suite's Simple Kin spec.
   - This PR: an Undas probe for a non-Manila household.
 
+**Done 20 October: "Send me a test" for each push** (kin/push-test-rows,
+20261020210000). Settings -> Notifications, for a grown-up: one row per
+kind Kin sends (a dose, a missed dose, a refill, Undas, a remembrance day,
+the money recap, the week ahead, a plan in 30 minutes, a tree story, the
+helper's line, Nakarating, an SOS, "Are you okay?"), each sending that
+kind's real words, link and icon, marked "Test: ", to the person's own
+devices only; five a minute. The words of the database-sent kinds moved
+into push_words_*() functions that the due_*() senders and sample_push()
+share; the app-sent kinds come from lib/push-words.ts, which their senders
+now use too. Not the cron path: no secret, no ledger. Kid view and children
+are refused. Not checked: on a phone (see "Needs a real phone").
+
 **Still unverified or left as is:**
 - **Undas end to end.** No push left a server for it. Dev's Vault has no
   `kin_cron_url`/`kin_cron_secret`, so dev's tick never calls the app (by
@@ -1587,6 +1599,13 @@ What only Jonathan can check, on his iPhone with Kin on the Home Screen:
     the next baon, and cannot change either.
 - **Needs a real phone (Friday check), from the 19–20 October stabilisation
   pass:**
+  - **Undas, before 29 October: "Send me a test".** On your phone, Settings
+    -> Notifications -> Send me a test -> Undas. Within seconds a push
+    "Test: Undas is on Sunday", "Remembering Lolo Pedro, Lola Remedios.
+    Time to plan the visit: candles and flowers." should arrive; tapping it
+    opens Today. Those are the real words from the same function the 29
+    October push uses, with sample names. If nothing arrives, the row says
+    why (no device, an expired address, the phone's refusal).
   - **Undas push, Thursday 29 October from 09:00 Manila.** Beforehand:
     1. Your household has "Remember the departed" on (Settings).
     2. Someone on the tree has a date of passing.

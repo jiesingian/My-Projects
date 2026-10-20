@@ -8,6 +8,7 @@ import { isGrownUp } from "@/lib/roles";
 import type { ActionState } from "@/lib/actions/auth";
 import { after } from "next/server";
 import { sendPush } from "@/lib/push";
+import { arrivedWords } from "@/lib/push-words";
 import { placeAt, arrivalAt, PAUSE_HOURS, type SavedPlace } from "@/lib/location-places";
 import { familyClock, familyDay, familyInstant, addDays } from "@/lib/time";
 import { arrivedMessage, isRealPosition } from "@/lib/arrived";
@@ -221,7 +222,7 @@ export async function arrivedAction(lat: number, lng: number, accuracyM: number 
 
   // Arrivals, not chat: it is the notice somebody waiting for "nakarating
   // na" turned on, and one push rather than two.
-  after(() => sendPush({ kind: "arrivals", title: message.title, body: message.body, url: "/chat/household", tag: `arrived-${me.id}` }));
+  after(() => sendPush({ kind: "arrivals", ...arrivedWords(message, me.id) }));
   revalidatePath("/chat", "layout");
   return { error: null, sent: message.body };
 }

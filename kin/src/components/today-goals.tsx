@@ -17,7 +17,7 @@ import type { GoalView } from "@/lib/queries/goals";
  * the ones done today folded under "Done".
  *
  * A grown-up also sees, under each child's name, the game goals of the
- * children with no login of their own (20261020190000): their "+" is the
+ * children with no login of their own (20261020210000): their "+" is the
  * grown-up's tick -- a baby's goal credits the grown-up, a young child's
  * stays hers. A goal linked to others (the family's stroller walk) logs them
  * all at once, with the walk's steps. A busy day's backup goal sits on its

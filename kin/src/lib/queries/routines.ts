@@ -395,7 +395,7 @@ async function loadPoints(familyId: string, historyFor?: string): Promise<{ scor
   const dailyCounted = new Map<string, { member: string; title: string; days: string[] }>();
   for (const c of goalClaims ?? []) {
     const g = c.planner_goals as unknown as { title: string; period: string; credit_to: string } | null;
-    // Whose the points are (20261020190000): the owner's, or -- on a goal
+    // Whose the points are (20261020210000): the owner's, or -- on a goal
     // that credits whoever ticked it, a baby's -- the grown-up's who did.
     const whose = c.credited_to ?? c.member_id;
     const tally = byMember.get(whose) ?? { points: 0, done: 0, awaiting: 0 };
@@ -521,7 +521,7 @@ export async function getPendingApprovals(familyId: string): Promise<PendingAppr
   }));
 }
 
-/** budgetAmount: what it costs the family in money, a note (20261020190000). */
+/** budgetAmount: what it costs the family in money, a note (20261020210000). */
 export type RewardView = { id: string; title: string; costPoints: number; budgetAmount: number | null };
 
 export async function getRewards(familyId: string): Promise<RewardView[]> {

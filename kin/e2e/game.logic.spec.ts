@@ -143,7 +143,7 @@ test("the family steps bonus and the starting targets", () => {
   expect(STEP_QUICK_ADDS).toEqual([500, 1000]);
 });
 
-// --- A family's own plan (20261020190000) -----------------------------------------
+// --- A family's own plan (20261020210000) -----------------------------------------
 
 test("parent-managed: a baby's goal ticked by a parent credits the parent, never both", () => {
   expect(creditedTo({ memberId: "keira", loggedBy: "janine" }, "logger")).toBe("janine");

@@ -408,7 +408,7 @@ export async function updateGameGoalAction(goalId: string, formData: FormData): 
   return { error: null };
 }
 
-/** Removed, not deleted (20261020190000): it leaves every list, and what it
+/** Removed, not deleted (20261020210000): it leaves every list, and what it
  * earned stays earned. */
 export async function removeGameGoalAction(goalId: string): Promise<{ error: string | null }> {
   const me = await requireCurrentMember();

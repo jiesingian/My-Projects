@@ -188,7 +188,7 @@ function TodayView({ game, player, grownUp }: { game: GameView; player: PlayerVi
   }
   if (!player) return null;
   // Today's dailies: on, asked today (weekdays-only goals rest at the
-  // weekend), the busy-day backup on its own line (20261020190000).
+  // weekend), the busy-day backup on its own line (20261020210000).
   const dailies = player.goals.filter((g) => g.period === "day" && !g.backup && (!g.active || asksOn(g.days, game.today)));
   const backups = player.goals.filter((g) => g.period === "day" && g.backup && g.active && asksOn(g.days, game.today));
   const weekly = player.goals.filter((g) => g.period === "week");
@@ -285,7 +285,7 @@ async function ShopView({ familyId, me, player }: { familyId: string; me: { id: 
     getMemberScores(familyId),
     grownUp ? getPendingRedemptions(familyId) : Promise.resolve([]),
     grownUp ? getPendingGoalClaims(familyId, me) : Promise.resolve([]),
-    // The family-week treat (20261020190000): unlocked by a week of every
+    // The family-week treat (20261020210000): unlocked by a week of every
     // family goal met, never bought with coins.
     supabase.from("rewards").select("id, title, budget_amount").eq("family_id", familyId).eq("active", true).eq("unlock", "family_week").limit(1),
     supabase.from("game_family_weeks").select("week_start, all_done, treat_used_at").eq("family_id", familyId).order("week_start", { ascending: false }).limit(1),

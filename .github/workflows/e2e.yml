@@ -368,9 +368,16 @@ jobs:
           node-version: 22
           cache: npm
           cache-dependency-path: kin/package-lock.json
+      # A fixed version, not `latest` (20 October). `latest` is resolved
+      # through api.github.com without a token, and GitHub's hosted runners
+      # share that unauthenticated quota: from 11:56 UTC on 20 October this
+      # step died in its first second on every run ("Failed to resolve latest
+      # Supabase CLI release: rate limit exceeded"), on pull requests whose
+      # diffs never touched it. A fixed version is fetched from npm, which has
+      # no such limit. Bump it by hand when a newer CLI is wanted.
       - uses: supabase/setup-cli@v1
         with:
-          version: latest
+          version: 2.121.0
       - name: Start a private Supabase (only what Kin's pages use)
         working-directory: ${{ runner.temp }}
         run: |

@@ -1,4 +1,4 @@
-// Goals game, what a family's own plan needs (20261020190000, Janine 20
+// Goals game, what a family's own plan needs (20261020210000, Janine 20
 // October): a goal for some weekdays only; a backup goal that keeps a busy
 // day's streak (+1, no bonus); credit to whoever ticked a baby's goal (the
 // baby gets the progress, the grown-up the XP and coins -- never both);

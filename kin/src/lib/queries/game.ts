@@ -39,7 +39,7 @@ export type GameGoalView = {
   half: ClaimStatus | null;
   /** ISO weekdays it is asked for (1 = Monday); null: every day. */
   days: number[] | null;
-  /** A busy day's backup (20261020190000). */
+  /** A busy day's backup (20261020210000). */
   backup: boolean;
   /** Whose the XP and coins are: the owner's, or whoever ticked it. */
   creditTo: "owner" | "logger";
@@ -154,7 +154,7 @@ export async function getGame(familyId: string, weekStart: WeekStart): Promise<G
 
   const players: PlayerView[] = (members ?? []).map((m) => {
     const mine = views.filter((g) => g.ownerId === m.id);
-    // Today's dailies: asked for today, backups aside (20261020190000).
+    // Today's dailies: asked for today, backups aside (20261020210000).
     const dailies = mine.filter((g) => g.active && g.period === "day" && !g.backup && asksOn(g.days, today));
     // XP is whose the claim credits: a baby's goal ticked by a grown-up is
     // the grown-up's XP, the baby's progress.
