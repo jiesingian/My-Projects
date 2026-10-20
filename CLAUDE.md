@@ -13,7 +13,7 @@ this file, so they cost no tokens but stay here for people. Edit both together.
 
 ## How a change reaches main
 
-- Branch → pull request → checks (`ci.yml`, `e2e.yml` smoke tier, `schema-check.yml`, `secret-scan.yml`, Vercel) → `automerge.yml` merges when all green and no conflict.
+- Branch → pull request → checks (`ci.yml`, `e2e.yml` smoke tier, `schema-check.yml`, `secret-scan.yml`) → `automerge.yml` merges when all green and no conflict. Vercel deploys `main` only; a PR gets a preview only when someone asks (`kin/docs/SETUP_FOR_JONATHAN.md`, section 8).
 - Never commit to `main`. No manual approvals, ever; nobody hand-merges.
 - The comprehensive write-heavy e2e suite runs weekly (`weekly-check.yml`), not per PR.
 
@@ -32,8 +32,9 @@ and every Claude session on either machine:
    function specs; the comprehensive write-heavy suite moved to
    `weekly-check.yml`, see below, on 18 September so a merge gate would not
    cost minutes it could not afford), `schema-check.yml` (does the database
-   have what the code believes in), `secret-scan.yml`, and Vercel's
-   deployment.
+   have what the code believes in) and `secret-scan.yml`. Vercel deploys
+   only `main` on its own (20 October); a pull request's preview, when
+   someone asks for one, must be green too.
 4. **`automerge.yml` merges it** once every check is green and there is no
    conflict. Nobody presses a button. A red check or a conflict simply means
    it does not merge.

@@ -238,3 +238,28 @@ Switching custom SMTP off returns to Supabase's built-in sender.
 
 Later, for better delivery: a sender on Kin's own domain (e.g. through
 Resend) once Kin has one.
+
+## 8. A preview of a pull request, on request
+
+Since 20 October only `main` deploys on its own (`kin/vercel.json`,
+`git.deploymentEnabled`). A pull request no longer gets a preview link on
+every push: those used up the Hobby plan's 100 deployments a day on 19 and 20
+October, and nobody opened them. Merging still updates the live app exactly
+as before, a minute or two after the merge.
+
+When you do want to try a pull request on your phone before it merges, ask
+for its preview. Each one costs a single deployment.
+
+- **From a Claude session (tried on #751):** say "make a Vercel preview of
+  PR #N". The session creates it with the Vercel connector, from the pull
+  request's branch, and posts the link.
+- **From the Vercel dashboard:** open
+  [kin-family-app → Deployments](https://vercel.com/jisingian/kin-family-app/deployments)
+  and look for **Create Deployment** (in the **⋯** menu at the top right on
+  the dashboards seen so far); give it the pull request's branch name, shown
+  at the top of the pull request (e.g. `fix/recipe-link-bad-redirect`).
+
+What's safe: a preview is a separate copy with its own link, built with the
+Preview environment variables in Vercel; it never replaces the live site. A
+preview that fails shows red on its pull request and automerge waits; fix it
+and ask again, or close the pull request.
