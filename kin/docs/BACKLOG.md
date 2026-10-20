@@ -50,7 +50,7 @@ sample household: no sideways scroll and no console errors.
   - This PR: an Undas probe for a non-Manila household.
 
 **Done 20 October: "Send me a test" for each push** (kin/push-test-rows,
-20261020190000). Settings -> Notifications, for a grown-up: one row per
+20261020210000). Settings -> Notifications, for a grown-up: one row per
 kind Kin sends (a dose, a missed dose, a refill, Undas, a remembrance day,
 the money recap, the week ahead, a plan in 30 minutes, a tree story, the
 helper's line, Nakarating, an SOS, "Are you okay?"), each sending that
