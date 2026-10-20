@@ -189,6 +189,31 @@ says so in one line, with "never trains AI". Kid view is refused everywhere.
   "Paste a screenshot" button; a school circular or a Viber/Messenger
   screenshot → dates, places, tasks → the flyer-scan review → plans.
 
+## Approved 20 October: four for reach and the season, Kin Free (Jonathan)
+
+Each its own pull request, run without questions (tag `next-20-series`):
+a guest link on an event, inviting another family, public pages for what
+people search for, and Christmas on Today.
+
+- **Done:** Public pages people search for: /features/paluwagan, /utang,
+  /family-tree, /medicine-reminders and /monito-monita, under the public
+  look (the legal pages' frame), outside the app's shell and with no client
+  code of their own. Each: what it is in plain English, how Kin does it,
+  three phone screenshots of the sample household on dev (Playwright, the
+  tab bar and Ask Kin hidden, seeded rows removed after; never a real
+  family's), the Kin Free or Plus line from plans.ts, a few questions
+  people ask, "Start with Kin" to the home page, and links between them.
+  Titles, descriptions, canonical URLs, an Open Graph image per page drawn
+  at build time (text only, no screenshot), sitemap.xml and robots.txt
+  (the app, the API and guest links kept out), metadataBase on the root
+  layout (lib/site.ts: NEXT_PUBLIC_SITE_URL, else production's address),
+  and a row of the five under the home page's footer. The words and
+  screenshots live in one list, lib/feature-pages.ts; logic
+  e2e/feature-pages.logic.spec.ts checks lengths, files and the plan
+  lines. Not checked: how Facebook renders the previews; whether Google
+  indexes them (Search Console is Jonathan's).
+- **Next:** Christmas on Today from 1 December.
+
 ## Approved 19 October: four for the season, Kin Free (Jonathan)
 
 Each its own pull request, in date order: Undas first (1-2 November), then
