@@ -43,9 +43,9 @@ export const SCAN_SCHEMA = {
 } as const;
 
 export function scanPrompt(today: string): string {
-  return `This is a photo a parent took of a flyer, school memo, invitation, notice or schedule. Today is ${today} (Asia/Manila).
+  return `This is a photo or screenshot a parent shared: a flyer, school memo or circular, invitation, notice, schedule, or a Viber / Messenger / group-chat message with plans in it. Today is ${today} (Asia/Manila).
 
-List every dated thing on it that belongs on a family calendar: events, deadlines, payment due dates, practices, rehearsals, exam days, "no classes" days. One item per date; a multi-day event is one item per day only if the days have different details, otherwise one item on the first day with the range in the notes.
+List every dated thing on it that belongs on a family calendar: events, deadlines, payment due dates, practices, rehearsals, exam days, "no classes" days, and things to do or bring by a date (a task goes on its due date, titled as the task: "Bring 2 photos for the ID"). One item per date; a multi-day event is one item per day only if the days have different details, otherwise one item on the first day with the range in the notes. In a chat screenshot, read only the messages' content; who sent them and the chat's own buttons and times are not events.
 
 Rules:
 - Resolve every date to YYYY-MM-DD. A date with no year is the next one on or after today.

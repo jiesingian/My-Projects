@@ -197,9 +197,24 @@ says so in one line, with "never trains AI". Kid view is refused everywhere.
   card and what Plus unlocks; kid view is refused by the action. Logic
   spec e2e/chat-summary.logic.spec.ts. Not checked against the real model
   (no key): the Taglish, and whether Haiku keeps to six lines.
-- Send it to Kin (Plus): an iPhone Shortcut in the share sheet or an in-app
-  "Paste a screenshot" button; a school circular or a Viber/Messenger
-  screenshot → dates, places, tasks → the flyer-scan review → plans.
+- **Done:** Send it to Kin (Kin Plus): a third private link per member
+  (Settings → Action Button & widget, "Send it to Kin"), for an iPhone
+  Shortcut in the share sheet. The Shortcut posts the shared screenshot
+  to api/send-to-kin/<token>; send_to_kin_by_link() keeps it for the
+  member who made the link (sent_screenshots, up to five, a day at most,
+  swept hourly) and the Shortcut opens Planner → Add?sent=<id>, where the
+  flyer scanner reads it once as that member, deletes it, and shows the
+  dates, places and tasks on the flyer-scan review screen; nothing is saved
+  until ticked. An in-app "Paste a screenshot" button on the same card
+  reads the clipboard's image into the same scan. The scan prompt now
+  names chat screenshots and circulars, and puts a task on its due date.
+  A Free household is told it is Plus (by the Shortcut and the card);
+  kid view can neither make a link nor use one. Migration
+  20261020230000_send_to_kin.sql, probe send-to-kin.mjs (11 checks), logic
+  spec e2e/send-to-kin.logic.spec.ts. Screenshots only; no inbound email.
+  Not checked: the Shortcut itself on an iPhone (the steps are written on
+  the settings page the way the other two links' are), and Haiku's reading
+  of a Messenger screenshot (no key).
 
 ## Approved 20 October: four for reach and the season, Kin Free (Jonathan)
 

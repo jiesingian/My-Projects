@@ -6,6 +6,8 @@ import { AddPlannerForm } from "./add-planner-form";
 import { getAccounts } from "@/lib/queries/wealth";
 import { LogSpendControl } from "@/components/money-actions";
 import { kinAiReady } from "@/lib/kin-ai";
+import { sentIdFrom } from "@/lib/send-to-kin";
+import { readAccess } from "@/lib/access";
 import { inKidView } from "@/lib/kid-view";
 import { EventPhotos } from "@/components/event-photos";
 import { getSignedUrls } from "@/lib/storage";
@@ -21,11 +23,11 @@ import { familyDay } from "@/lib/time";
 export default async function AddPlannerPage({
   searchParams,
 }: {
-  searchParams: Promise<{ type?: string; id?: string; date?: string; title?: string; notes?: string }>;
+  searchParams: Promise<{ type?: string; id?: string; date?: string; title?: string; notes?: string; sent?: string }>;
 }) {
   const me = await getCurrentMember();
   if (!me) redirect("/onboarding/profile");
-  const { type: rawType, id, date, title, notes } = await searchParams;
+  const { type: rawType, id, date, title, notes, sent } = await searchParams;
   // "activity" was the old name for what is now a one-off task. Links out in
   // the wild -- a bookmark, a Google Calendar description, a chat message --
   // still carry it, and they should keep working.
@@ -130,6 +132,9 @@ export default async function AddPlannerPage({
       // Whether the photo scanner can run: it reads the photo with Claude,
       // which needs ANTHROPIC_API_KEY in Vercel (docs/SETUP_FOR_JONATHAN.md).
       scanReady={kinAiReady()}
+      // "Send it to Kin" (lib/send-to-kin.ts): a screenshot waiting to be read.
+      sentScreenshot={sentIdFrom(sent)}
+      plus={readAccess(me.families).plus}
     />
     {rsvp && (
       <div style={{ padding: "0 var(--gutter) 1.25rem" }}>
