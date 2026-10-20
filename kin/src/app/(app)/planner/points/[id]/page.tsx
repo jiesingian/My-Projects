@@ -117,7 +117,7 @@ export default async function PointsHistoryPage({
                     ? "gift"
                     : e.kind === "alkansya"
                       ? "wallet"
-                    : e.kind === "streak"
+                    : e.kind === "streak" || e.kind === "game"
                       ? "sparkle"
                       : e.kind === "goal"
                         ? "target"

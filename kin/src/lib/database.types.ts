@@ -4366,6 +4366,177 @@ export type Database = {
           },
         ]
       }
+      game_awards: {
+        Row: {
+          created_at: string
+          day: string
+          family_id: string
+          id: string
+          kind: string
+          member_id: string
+          points: number
+          xp: number
+        }
+        Insert: {
+          created_at?: string
+          day: string
+          family_id: string
+          id?: string
+          kind: string
+          member_id: string
+          points?: number
+          xp?: number
+        }
+        Update: {
+          created_at?: string
+          day?: string
+          family_id?: string
+          id?: string
+          kind?: string
+          member_id?: string
+          points?: number
+          xp?: number
+        }
+        Relationships: []
+      }
+      game_badges: {
+        Row: {
+          category: string | null
+          description: string
+          icon: string
+          id: string
+          rule: string
+          sort: number
+          threshold: number
+          title: string
+        }
+        Insert: {
+          category?: string | null
+          description: string
+          icon: string
+          id: string
+          rule: string
+          sort?: number
+          threshold: number
+          title: string
+        }
+        Update: {
+          category?: string | null
+          description?: string
+          icon?: string
+          id?: string
+          rule?: string
+          sort?: number
+          threshold?: number
+          title?: string
+        }
+        Relationships: []
+      }
+      game_days: {
+        Row: {
+          closed_at: string
+          day: string
+          everyone_done: boolean
+          family_id: string
+          players: number
+        }
+        Insert: {
+          closed_at?: string
+          day: string
+          everyone_done?: boolean
+          family_id: string
+          players?: number
+        }
+        Update: {
+          closed_at?: string
+          day?: string
+          everyone_done?: boolean
+          family_id?: string
+          players?: number
+        }
+        Relationships: []
+      }
+      game_family_streaks: {
+        Row: {
+          best_streak: number
+          family_id: string
+          last_day: string | null
+          streak: number
+          updated_at: string
+        }
+        Insert: {
+          best_streak?: number
+          family_id: string
+          last_day?: string | null
+          streak?: number
+          updated_at?: string
+        }
+        Update: {
+          best_streak?: number
+          family_id?: string
+          last_day?: string | null
+          streak?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      game_member_badges: {
+        Row: {
+          badge_id: string
+          created_at: string
+          earned_on: string
+          family_id: string
+          member_id: string
+        }
+        Insert: {
+          badge_id: string
+          created_at?: string
+          earned_on: string
+          family_id: string
+          member_id: string
+        }
+        Update: {
+          badge_id?: string
+          created_at?: string
+          earned_on?: string
+          family_id?: string
+          member_id?: string
+        }
+        Relationships: []
+      }
+      game_streaks: {
+        Row: {
+          best_streak: number
+          family_id: string
+          freeze_used_on: string | null
+          freezes: number
+          last_day: string | null
+          member_id: string
+          streak: number
+          updated_at: string
+        }
+        Insert: {
+          best_streak?: number
+          family_id: string
+          freeze_used_on?: string | null
+          freezes?: number
+          last_day?: string | null
+          member_id: string
+          streak?: number
+          updated_at?: string
+        }
+        Update: {
+          best_streak?: number
+          family_id?: string
+          freeze_used_on?: string | null
+          freezes?: number
+          last_day?: string | null
+          member_id?: string
+          streak?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       gift_draws: {
         Row: {
           created_at: string
@@ -6645,6 +6816,7 @@ export type Database = {
           period_start: string
           points: number
           status: string
+          xp: number
         }
         Insert: {
           created_at?: string
@@ -6657,6 +6829,7 @@ export type Database = {
           period_start: string
           points?: number
           status?: string
+          xp?: number
         }
         Update: {
           created_at?: string
@@ -6669,6 +6842,7 @@ export type Database = {
           period_start?: string
           points?: number
           status?: string
+          xp?: number
         }
         Relationships: []
       }
@@ -6752,6 +6926,8 @@ export type Database = {
       }
       planner_goals: {
         Row: {
+          active: boolean
+          category: string | null
           created_at: string
           created_by: string | null
           due_date: string | null
@@ -6767,8 +6943,11 @@ export type Database = {
           title: string
           unit: string | null
           visibility: string
+          xp: number
         }
         Insert: {
+          active?: boolean
+          category?: string | null
           created_at?: string
           created_by?: string | null
           due_date?: string | null
@@ -6784,8 +6963,11 @@ export type Database = {
           title: string
           unit?: string | null
           visibility?: string
+          xp?: number
         }
         Update: {
+          active?: boolean
+          category?: string | null
           created_at?: string
           created_by?: string | null
           due_date?: string | null
@@ -6801,6 +6983,7 @@ export type Database = {
           title?: string
           unit?: string | null
           visibility?: string
+          xp?: number
         }
         Relationships: []
       }
