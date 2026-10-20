@@ -30,7 +30,9 @@ export function eventTakesRsvps(e: RsvpEvent): boolean {
  * is for the whole family or names nobody (the Planner reads both that way).
  * Only active members, in the household's own order. */
 export function askedMembers<M extends RsvpMember>(e: RsvpEvent, memberIds: string[], members: M[]): M[] {
-  const active = members.filter((m) => !m.status || m.status === "active");
+  // A managed child (no login) is "managed", not "active", and is asked too:
+  // a grown-up answers for them (20261021000500).
+  const active = members.filter((m) => !m.status || m.status === "active" || m.status === "managed");
   if (e.applies_to_whole_family || memberIds.length === 0) return active;
   return active.filter((m) => memberIds.includes(m.id));
 }
