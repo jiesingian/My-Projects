@@ -98,6 +98,13 @@ export default async function ({ db, as, check, refused }) {
     return (abeRows === 0 && kidRows === 0 && kidFamily === true && flags.filter((f) => f.share_in_emergency).map((f) => f.id).join() === DEED) || { abeRows, kidRows, kidFamily, flags };
   });
 
+  await check("doc_entries_share_in_emergency_guard(), the trigger behind the flag, is not callable and runs as definer with an empty search_path", async () => {
+    const r = (await db.query(`select p.prosecdef as definer, coalesce(p.proconfig, '{}') @> array['search_path=""'] as path,
+        has_function_privilege('authenticated', p.oid, 'execute') as a, has_function_privilege('anon', p.oid, 'execute') as b
+      from pg_proc p join pg_namespace n on n.oid = p.pronamespace where n.nspname = 'public' and p.proname = 'doc_entries_share_in_emergency_guard'`)).rows[0];
+    return (r && r.definer && r.path && !r.a && !r.b) || r;
+  });
+
   // -- Naming ----------------------------------------------------------------
   await check("Ann's candidates are Abe and Ada, the household's other grown-ups with a login: not Ben, Cat, Dan, Kid, Baby or herself", async () => {
     const names = (await as(ann, "select full_name, household_name from vault_emergency_candidates()")).map((r) => `${r.full_name}@${r.household_name}`).sort();
