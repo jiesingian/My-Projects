@@ -291,7 +291,7 @@ export async function getMemberScores(familyId: string): Promise<MemberScore[]> 
  * but given back if it is declined). */
 export type PointsEntry = {
   date: string;
-  kind: "chore" | "streak" | "goal" | "reward" | "alkansya";
+  kind: "chore" | "streak" | "goal" | "game" | "reward" | "alkansya";
   title: string;
   points: number;
   status: "counted" | "waiting" | "granted" | "held" | "declined";
@@ -416,6 +416,18 @@ async function loadPoints(familyId: string, historyFor?: string): Promise<{ scor
       const points = bonusOn(rates, m.date)[m.reached];
       bonusBy.set(run.member, (bonusBy.get(run.member) ?? 0) + points);
       if (run.member === historyFor) entries.push({ date: m.date, kind: "streak", title: `${run.title} — ${m.reached}-day streak bonus`, points, status: "counted" });
+    }
+  }
+
+  // The game's bonuses (20261020120000): every daily done, the whole family
+  // done. Coins are points, so they land in the same balance.
+  const { data: gameAwards } = await supabase.from("game_awards").select("member_id, day, kind, points").eq("family_id", familyId).gt("points", 0);
+  for (const a of gameAwards ?? []) {
+    const tally = byMember.get(a.member_id) ?? { points: 0, done: 0, awaiting: 0 };
+    tally.points += a.points;
+    byMember.set(a.member_id, tally);
+    if (a.member_id === historyFor) {
+      entries.push({ date: a.day, kind: "game", title: a.kind === "whole_family" ? "The whole family finished the day" : "Every daily goal done", points: a.points, status: "counted" });
     }
   }
 
