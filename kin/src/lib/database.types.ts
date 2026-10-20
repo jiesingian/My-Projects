@@ -6813,6 +6813,7 @@ export type Database = {
           goal_id: string
           id: string
           member_id: string
+          part: string
           period_start: string
           points: number
           status: string
@@ -6826,6 +6827,7 @@ export type Database = {
           goal_id: string
           id?: string
           member_id: string
+          part?: string
           period_start: string
           points?: number
           status?: string
@@ -6839,6 +6841,7 @@ export type Database = {
           goal_id?: string
           id?: string
           member_id?: string
+          part?: string
           period_start?: string
           points?: number
           status?: string
@@ -8303,6 +8306,14 @@ export type Database = {
       due_remembrance_reminders: {
         Args: { p_secret: string; p_now?: string }
         Returns: { key: string; member_id: string; endpoint: string; p256dh: string; auth: string; title: string; body: string; url: string }[]
+      }
+      game_steps_days: {
+        Args: { p_from: string; p_to: string }
+        Returns: { member_id: string; day: string; steps: number }[]
+      }
+      game_family_steps: {
+        Args: { p_from: string; p_to: string }
+        Returns: number
       }
       planner_goal_readings: {
         Args: { p_since: string }

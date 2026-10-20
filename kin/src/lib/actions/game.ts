@@ -11,7 +11,8 @@ import { windowStart } from "@/lib/goals";
 import { isGrownUp } from "@/lib/roles";
 import { weekStartOf } from "@/lib/week";
 import type { TablesInsert } from "@/lib/database.types";
-import { DEFAULT_GOAL_COINS, DEFAULT_GOAL_XP, MAX_GOAL_XP, isGameCategory, type GameCategory } from "@/lib/game";
+import { readAccess } from "@/lib/access";
+import { DEFAULT_GOAL_COINS, DEFAULT_GOAL_XP, MAX_GOAL_XP, isGameCategory, stepParts, type GameCategory } from "@/lib/game";
 
 /** Planner → Goals → Game. The database holds every rule that matters
  * (20261020120000): who may tap for whom, only today, only a grown-up sets
@@ -28,7 +29,7 @@ async function gameGoal(goalId: string) {
   const supabase = await createClient();
   const { data: goal } = await supabase
     .from("planner_goals")
-    .select("id, owner_member_id, period, target, category, active")
+    .select("id, kind, owner_member_id, period, target, category, active")
     .eq("id", goalId)
     .eq("family_id", me.family_id)
     .not("category", "is", null)
@@ -50,6 +51,7 @@ export async function gameTapAction(goalId: string): Promise<{ error: string | n
   const { me, supabase, goal, today, start } = await gameGoal(goalId);
   if (!goal) return { error: "That goal is no longer here." };
   if (!goal.active) return { error: "This goal is paused." };
+  if (goal.kind === "steps") return { error: "Steps are typed in, not tapped." };
   const { error } = await supabase.from("planner_goal_entries").insert({ family_id: me.family_id, goal_id: goal.id, member_id: me.id, entry_date: today, amount: 1 });
   if (error) return { error: humanDatabaseError(error.message) };
 
@@ -191,4 +193,94 @@ export async function startSampleGameAction(): Promise<{ error: string | null }>
   }
   done();
   return { error: null };
+}
+
+/** Today's steps on a steps game goal (20261020150000): "set" replaces the
+ * day's typed number, "add" adds to it (the +500 and +1,000). Saved where
+ * steps always live -- a 'manual' reading in health_vitals, beside whatever
+ * Apple Health sends -- then the halves the day has reached are claimed and
+ * any it no longer reaches are taken back. The nightly job settles the same
+ * way, so steps from a sync earn too. Kin Plus, as steps goals are. */
+export async function gameStepsAction(goalId: string, value: number, mode: "set" | "add"): Promise<{ error: string | null }> {
+  const { me, supabase, goal, today } = await gameGoal(goalId);
+  if (!goal || goal.kind !== "steps" || !goal.owner_member_id) return { error: "That goal is no longer here." };
+  if (!goal.active) return { error: "This goal is paused." };
+  if (!readAccess(me.families).plus) return { error: "Steps are part of Kin Plus." };
+  const owner = goal.owner_member_id;
+  if (owner !== me.id) {
+    const { data: child } = await supabase.from("members").select("role").eq("id", owner).eq("family_id", me.family_id).maybeSingle();
+    if (!(isGrownUp(me.role) && child?.role === "child_managed")) return { error: "Only the person whose goal it is types their steps (a grown-up may for a child without a login)." };
+  }
+  if (!(Number.isFinite(value) && Number.isInteger(value) && value >= 0 && value <= 200_000)) return { error: "That many steps doesn't look right." };
+
+  const { data: existing } = await supabase
+    .from("health_vitals")
+    .select("id, value_text")
+    .eq("family_id", me.family_id)
+    .eq("member_id", owner)
+    .eq("vital_type", "steps")
+    .eq("source", "manual")
+    .eq("created_by", me.id)
+    .eq("reading_date", today)
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  const next = Math.min(200_000, mode === "add" ? (Number(existing?.value_text) || 0) + value : value);
+  const { error } = existing
+    ? await supabase.from("health_vitals").update({ value_text: String(next) }).eq("id", existing.id).eq("family_id", me.family_id)
+    : await supabase.from("health_vitals").insert({ family_id: me.family_id, member_id: owner, vital_type: "steps", reading_date: today, value_text: String(next), unit: "steps", source: "manual", visibility: "family", created_by: me.id });
+  if (error) return { error: humanDatabaseError(error.message) };
+
+  // The day as the game counts it: the larger of typed and synced.
+  const { data: days } = await supabase.rpc("game_steps_days", { p_from: today, p_to: today });
+  const steps = Number((days ?? []).find((d) => d.member_id === owner)?.steps ?? next);
+  const reached = new Set(stepParts(steps, Number(goal.target)));
+  const { data: claimed } = await supabase.from("planner_goal_completions").select("part, status").eq("goal_id", goal.id).eq("period_start", today);
+  const have = new Set((claimed ?? []).map((c) => c.part));
+  for (const part of ["half", "rest"] as const) {
+    if (reached.has(part) && !have.has(part)) {
+      const { error: claimError } = await supabase.from("planner_goal_completions").insert({ family_id: me.family_id, goal_id: goal.id, member_id: owner, period_start: today, part });
+      if (claimError) return { error: humanDatabaseError(claimError.message) };
+    }
+    if (!reached.has(part) && have.has(part)) {
+      await supabase.from("planner_goal_completions").delete().eq("goal_id", goal.id).eq("period_start", today).eq("part", part).neq("status", "refused");
+    }
+  }
+  done();
+  return { error: null };
+}
+
+/** A grown-up sets up steps: one daily goal per person, each with its own
+ * target (target_<member id>), or the household's weekly total. Kin Plus. */
+export async function createStepsGoalAction(_prev: GameGoalFormState, formData: FormData): Promise<GameGoalFormState> {
+  const me = await requireCurrentMember();
+  if (!isGrownUp(me.role)) return { error: "Game goals are a grown-up's to set up." };
+  if (!readAccess(me.families).plus) return { error: "Steps are part of Kin Plus." };
+  const title = clamp(String(formData.get("title") ?? "").trim(), 80) || "Steps";
+  const xp = Math.round(Number(formData.get("xp") ?? DEFAULT_GOAL_XP));
+  const points = Math.round(Number(formData.get("points") ?? DEFAULT_GOAL_COINS));
+  const who = formData.getAll("who").map(String);
+  if (!(xp >= 0 && xp <= MAX_GOAL_XP) || !(points >= 0 && points <= 1000)) return { error: "XP and coins are from 0 to 1,000." };
+  if (who.length === 0) return { error: "Choose who it is for." };
+  const sane = (n: number, max: number) => Number.isInteger(n) && n >= 100 && n <= max;
+
+  const base = { family_id: me.family_id, title, kind: "steps", unit: "steps", created_by: me.id };
+  let rows: TablesInsert<"planner_goals">[];
+  if (who.includes("family")) {
+    const target = Number(formData.get("family_target"));
+    if (!sane(target, 5_000_000)) return { error: "The family's weekly target is from 100 to 5,000,000 steps." };
+    rows = [{ ...base, category: "family", period: "week", target, owner_member_id: null, xp: 0, points: 0 }];
+  } else {
+    rows = [];
+    for (const id of who) {
+      const target = Number(formData.get(`target_${id}`));
+      if (!sane(target, 100_000)) return { error: "Each daily target is from 100 to 100,000 steps." };
+      rows.push({ ...base, category: "move", period: "day", target, owner_member_id: id, xp, points });
+    }
+  }
+  const supabase = await createClient();
+  const { error } = await supabase.from("planner_goals").insert(rows);
+  if (error) return { error: humanDatabaseError(error.message) };
+  done();
+  return { error: null, saved: rows.length };
 }

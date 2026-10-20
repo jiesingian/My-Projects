@@ -13,9 +13,14 @@ import type { WeekStart } from "@/lib/week";
  * computed from XP; streaks and badges are what the nightly job wrote
  * (20261020120000). */
 
+type ClaimStatus = "counted" | "pending" | "refused";
+
 export type GameGoalView = {
   id: string;
   title: string;
+  /** Counted by taps, or steps (20261020150000): a person's daily steps, or
+   * the household's weekly total. */
+  type: "tap" | "steps";
   category: GameCategory;
   period: "day" | "week";
   target: number;
@@ -28,7 +33,10 @@ export type GameGoalView = {
   current: number;
   fraction: number;
   reached: boolean;
-  claim: "counted" | "pending" | "refused" | null;
+  /** This period's claim -- for steps, the one at 100% ("rest"). */
+  claim: ClaimStatus | null;
+  /** Steps only: the claim at 50%. */
+  half: ClaimStatus | null;
 };
 
 export type PlayerView = {
@@ -72,11 +80,11 @@ export async function getGame(familyId: string, weekStart: WeekStart): Promise<G
     supabase.from("members").select("id, full_name, role, status").eq("family_id", familyId).not("status", "in", "(pending,removed)").order("created_at"),
     supabase
       .from("planner_goals")
-      .select("id, title, category, period, target, unit, owner_member_id, xp, points, active, created_at")
+      .select("id, title, kind, category, period, target, unit, owner_member_id, xp, points, active, created_at")
       .eq("family_id", familyId)
       .not("category", "is", null)
       .order("created_at"),
-    supabase.from("planner_goal_completions").select("goal_id, member_id, period_start, xp, status").eq("family_id", familyId),
+    supabase.from("planner_goal_completions").select("goal_id, member_id, period_start, xp, status, part").eq("family_id", familyId),
     supabase.from("game_awards").select("member_id, xp").eq("family_id", familyId),
     supabase.from("game_streaks").select("member_id, streak, best_streak, freezes").eq("family_id", familyId),
     supabase.from("game_family_streaks").select("streak, best_streak").eq("family_id", familyId).maybeSingle(),
@@ -85,21 +93,34 @@ export async function getGame(familyId: string, weekStart: WeekStart): Promise<G
     getMemberScores(familyId),
   ]);
 
-  const goalIds = (goals ?? []).map((g) => g.id);
-  const { data: entries } = goalIds.length
-    ? await supabase.from("planner_goal_entries").select("goal_id, entry_date, amount").in("goal_id", goalIds).gte("entry_date", weekFrom < today ? weekFrom : today)
-    : { data: [] as { goal_id: string; entry_date: string; amount: number }[] };
+  const goalIds = (goals ?? []).filter((g) => g.kind !== "steps").map((g) => g.id);
+  const hasSteps = (goals ?? []).some((g) => g.kind === "steps" && g.owner_member_id);
+  const hasFamilySteps = (goals ?? []).some((g) => g.kind === "steps" && !g.owner_member_id);
+  const [{ data: entries }, { data: stepDays }, { data: familySteps }] = await Promise.all([
+    goalIds.length
+      ? supabase.from("planner_goal_entries").select("goal_id, entry_date, amount").in("goal_id", goalIds).gte("entry_date", weekFrom < today ? weekFrom : today)
+      : Promise.resolve({ data: [] as { goal_id: string; entry_date: string; amount: number }[] }),
+    // Steps as the game counts them (20261020150000): today's, per person.
+    hasSteps ? supabase.rpc("game_steps_days", { p_from: today, p_to: today }) : Promise.resolve({ data: [] as { member_id: string; day: string; steps: number }[] }),
+    hasFamilySteps ? supabase.rpc("game_family_steps", { p_from: weekFrom, p_to: today }) : Promise.resolve({ data: 0 }),
+  ]);
 
   const views: GameGoalView[] = [];
   for (const g of goals ?? []) {
     if (!g.category || !isGameCategory(g.category) || (g.period !== "day" && g.period !== "week")) continue;
     const start = windowStart(g.period, today, weekStart, today);
-    const current = (entries ?? []).filter((e) => e.goal_id === g.id && e.entry_date >= start && e.entry_date <= today).reduce((a, e) => a + Number(e.amount), 0);
-    const claim = (claims ?? []).find((c) => c.goal_id === g.id && c.period_start === start);
+    const steps = g.kind === "steps";
+    const current = steps
+      ? g.owner_member_id
+        ? Number((stepDays ?? []).find((d) => d.member_id === g.owner_member_id)?.steps ?? 0)
+        : Number(familySteps ?? 0)
+      : (entries ?? []).filter((e) => e.goal_id === g.id && e.entry_date >= start && e.entry_date <= today).reduce((a, e) => a + Number(e.amount), 0);
+    const claimOf = (part: string) => ((claims ?? []).find((c) => c.goal_id === g.id && c.period_start === start && c.part === part)?.status as ClaimStatus | undefined) ?? null;
     const target = Number(g.target);
     views.push({
       id: g.id,
       title: g.title,
+      type: steps ? "steps" : "tap",
       category: g.category,
       period: g.period,
       target,
@@ -112,7 +133,8 @@ export async function getGame(familyId: string, weekStart: WeekStart): Promise<G
       current,
       fraction: clamp01(current / target),
       reached: current >= target,
-      claim: (claim?.status as GameGoalView["claim"]) ?? null,
+      claim: claimOf(steps ? "rest" : "whole"),
+      half: steps ? claimOf("half") : null,
     });
   }
 

@@ -1,3 +1,5 @@
+import { stepsForDay } from "@/lib/goals";
+
 /** Goals and Rewards as a game (Janine, 20 October): the rules, as pure
  * functions.
  *
@@ -28,6 +30,17 @@ export const BONUSES = {
   allDailiesDone: { xp: 20, coins: 10 },
   wholeFamilyDone: { xp: 30, coins: 15 },
 } as const;
+
+/** The week's family steps reaching its target: to everyone with a game
+ * goal, once a week (20261020150000). */
+export const FAMILY_STEPS_BONUS = { xp: 50, coins: 25 } as const;
+
+/** Where a parent's step targets start (they change them per person). */
+export const DEFAULT_STEP_TARGET = { child: 6000, grownUp: 8000 } as const;
+export const DEFAULT_FAMILY_WEEK_STEPS = 150_000;
+
+/** The quick-add buttons beside the steps field. */
+export const STEP_QUICK_ADDS = [500, 1000] as const;
 
 export const STREAK_MILESTONES = [3, 7, 14, 30, 60, 100] as const;
 
@@ -127,4 +140,36 @@ export function earnedBadges(
 /** The next streak milestone ahead, for "3 more days to 🔥 7". */
 export function nextMilestone(streak: number): number | null {
   return STREAK_MILESTONES.find((m) => m > streak) ?? null;
+}
+
+/** A steps goal is claimed in halves: the first at 50% of the target, the
+ * rest at 100%. Which parts a day's steps have reached. */
+export function stepParts(steps: number, target: number): ("half" | "rest")[] {
+  if (!(target > 0) || !Number.isFinite(steps)) return [];
+  const parts: ("half" | "rest")[] = [];
+  if (steps >= target / 2) parts.push("half");
+  if (steps >= target) parts.push("rest");
+  return parts;
+}
+
+/** What a part is worth: the half is rounded down, the rest is what is left,
+ * so the two always add up to the whole (15 XP: 7 + 8). The same sums as
+ * planner_goal_completions_fix. */
+export function partWorth(whole: number, part: "whole" | "half" | "rest"): number {
+  const half = Math.floor(whole / 2);
+  return part === "half" ? half : part === "rest" ? whole - half : whole;
+}
+
+/** The family's steps for a span of days: each person's day counted once
+ * (lib/goals stepsForDay: the larger source, never a sum of sources), then
+ * everyone's days added up. `readings` may hold any members and days. */
+export function familyStepsTotal(readings: { memberId: string; day: string; source: string; value: number }[]): number {
+  const byPersonDay = new Map<string, { source: string; value: number }[]>();
+  for (const r of readings) {
+    const key = `${r.memberId}|${r.day}`;
+    byPersonDay.set(key, [...(byPersonDay.get(key) ?? []), { source: r.source, value: r.value }]);
+  }
+  let total = 0;
+  for (const day of byPersonDay.values()) total += stepsForDay(day);
+  return total;
 }
