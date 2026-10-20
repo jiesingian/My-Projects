@@ -44,6 +44,7 @@ import { getStartHere } from "@/lib/queries/start-here";
 import { PlusTrialCard } from "@/components/plus-trial-card";
 import { getPlusTrialCard } from "@/lib/queries/plus-trial";
 import { HolidayLine } from "@/components/holiday-line";
+import { ChristmasOnToday } from "@/components/christmas-on-today";
 import { WhosWhere } from "@/components/whos-where";
 import { ArrivedButton } from "@/components/arrived-button";
 import { getMyPendingCheckIns } from "@/lib/queries/member-card";
@@ -168,6 +169,9 @@ export default async function TodayPage({ searchParams }: { searchParams: Promis
       {/* A promised reward that is due, or given and waiting for a word. First
           on the page and not dismissible: it goes when the promise is settled. */}
       <PromiseBanner duties={rewardDuties} />
+      {/* 1 December to 1 January: sleeps to Noche Buena, the Noche Buena plan, the
+          gift list and the monito-monita (lib/christmas.ts); a household switch. */}
+      <ChristmasOnToday />
 
       {/* Offered once, to people still on Kin Classic from before the new
           look became the default. Anyone who picked another theme chose it,

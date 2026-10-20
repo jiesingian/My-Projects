@@ -12,6 +12,7 @@ import { ArrivedButton } from "@/components/arrived-button";
 import { CheckInPrompt } from "@/components/check-in-prompt";
 import { ApprovalQueue } from "@/components/approval-queue";
 import { PromiseBanner } from "@/components/promise-banner";
+import { ChristmasOnToday } from "@/components/christmas-on-today";
 import { getMyPendingCheckIns } from "@/lib/queries/member-card";
 import { getPendingApprovals, getPendingRedemptions } from "@/lib/queries/routines";
 import { getGoalRequestsFor, getPendingGoalClaims, getRewardDuties } from "@/lib/queries/goals";
@@ -59,6 +60,8 @@ export async function SimpleToday({ me, arrivedNow = false }: { arrivedNow?: boo
 
       <CheckInPrompt checkIns={checkIns} />
       <PromiseBanner duties={rewardDuties} />
+      {/* Pasko, 1 December to 1 January (lib/christmas.ts): the same big rows. */}
+      <ChristmasOnToday simple />
 
       <section aria-labelledby="simple-meds">
         <h3 id="simple-meds" className="kin-simple-h">My medicines today</h3>

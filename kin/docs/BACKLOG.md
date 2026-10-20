@@ -224,7 +224,25 @@ people search for, and Christmas on Today.
   e2e/feature-pages.logic.spec.ts checks lengths, files and the plan
   lines. Not checked: how Facebook renders the previews; whether Google
   indexes them (Search Console is Jonathan's).
-- **Next:** Christmas on Today from 1 December.
+- **Done:** Christmas on Today, 1 December to 1 January (the household's
+  zone; off by itself on 2 January). Today starts with "Pasko": the count
+  of sleeps to Noche Buena ("Noche Buena tonight!", "Maligayang Pasko!",
+  then sleeps to Media Noche, "Manigong Bagong Taon!" on the 1st); a ready
+  Noche Buena plan (hamon, queso de bola, Filipino spaghetti, fruit salad,
+  lumpiang Shanghai; four new recipes in lib/recipes.ts) a grown-up unticks
+  and plans in one tap, which puts the dishes on the 24 December dinner
+  through addMealFromRecipeAction so their ingredients reach the To-Buy
+  list by the meal-plan path; once planned, what is on that dinner and a
+  link to Meals; the gift list (grown-ups, "3 of 5 done · bought of
+  budget") and the monito-monita cards. Simple Kin's Today gets the same
+  as big rows. Settings -> Household -> "Pasko": Christmas on Today, the
+  organizer's switch (families.christmas_on_today, on to begin with).
+  Checked at 320px, Simple Kin on and off. Migration
+  20261020212000_christmas_on_today.sql; probe christmas-on-today.mjs;
+  logic e2e/christmas.logic.spec.ts. Not now: a push on 1 December; Media
+  Noche as a second ready plan. Not checked: a real December (the dates
+  are covered by the logic tests; the screens were checked with the
+  season forced).
 
 ## Approved 19 October: four for the season, Kin Free (Jonathan)
 

@@ -8295,6 +8295,18 @@ button.kin-room-quote { font: inherit; font-size: 0.78125rem; text-align: left; 
   color: var(--color-neutral-600);
   cursor: pointer;
 }
+/* Christmas on Today (lib/christmas.ts, 20 October): the count of sleeps,
+   the Noche Buena card and the two gift links. Everything wraps at 320px;
+   Simple Kin reuses its big rows (.kin-simple-row). */
+.kin-pasko-count { display: flex; align-items: center; gap: 0.625rem; margin: 0 0 0.75rem; }
+.kin-pasko-count > svg { flex: none; color: var(--cal-occasion, var(--color-accent-700)); }
+.kin-pasko-card { padding: 0.875rem; border-radius: var(--radius-card, 1rem); background: color-mix(in srgb, var(--color-text) 4%, transparent); margin-bottom: 0.625rem; }
+.kin-pasko-card a { color: var(--color-accent-700); }
+.kin-pasko-dishes { list-style: none; margin: 0; padding: 0; display: grid; gap: 0.25rem; }
+.kin-pasko-dishes label { display: flex; gap: 0.625rem; align-items: center; min-height: 2.5rem; font-size: 0.9375rem; cursor: pointer; }
+.kin-pasko-dishes input { width: 1.25rem; height: 1.25rem; flex: none; accent-color: var(--color-accent-700); }
+.kin-pasko-links { display: grid; gap: 0.5rem; }
+.kin-pasko-simple { margin-bottom: 1.5rem; }
 .kin-potluck-invite {
   display: flex;
   align-items: center;

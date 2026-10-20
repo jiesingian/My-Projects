@@ -2,7 +2,8 @@
 
 import { useHouseholdZone } from "@/components/household-zone";
 import { useEffect, useId, useTransition } from "react";
-import { setThemeAction, setTextScaleAction, setPaletteAction, createCalendarFeedAction, removeCalendarFeedAction, toggleNotificationAction, updateHouseholdNameAction, updateHouseholdPrefsAction, updateShareWithRelativesAction, updateRememberTheDepartedAction, setKidViewAction, setSimpleModeAction } from "@/lib/actions/settings";
+import { setThemeAction, setTextScaleAction, setPaletteAction, createCalendarFeedAction, removeCalendarFeedAction, toggleNotificationAction, updateHouseholdNameAction, updateHouseholdPrefsAction, updateShareWithRelativesAction, updateRememberTheDepartedAction,
+  updateChristmasOnTodayAction, setKidViewAction, setSimpleModeAction } from "@/lib/actions/settings";
 import { regenerateInviteCodeAction } from "@/lib/actions/family";
 import { disconnectDriveAction } from "@/lib/actions/drive";
 import { migrateProfilePhotosToDriveAction } from "@/lib/actions/photo-migration";
@@ -952,6 +953,62 @@ export function RememberTheDepartedSwitch({ on, canChange }: { on: boolean; canC
           <span style={{ fontSize: "1.0625rem", display: "block" }}>Remember relatives who have passed</span>
           <span style={{ fontSize: "0.8125rem", color: "var(--color-neutral-600)", display: "block", lineHeight: 1.4, marginTop: "0.125rem" }}>
             At Undas and on their day (the 40th day, the first year, each anniversary), Today says who is remembered and the grown-ups get a reminder that morning. A candle is lit on their tree tile during Undas. Add a date of passing on the tree.
+            {!canChange && " Only the organizer can change this."}
+          </span>
+        </span>
+        <span className="kin-switch" data-on={value} />
+      </button>
+      <DidNotSave message={failed} />
+    </Blueprint>
+  );
+}
+
+/** Christmas on Today (20261020212000): from 1 December to 1 January, Today
+ * starts with the countdown to Noche Buena, the Noche Buena plan, the gift
+ * list and the monito-monita. The organizer's switch, like the Undas one. */
+export function ChristmasOnTodaySwitch({ on, canChange }: { on: boolean; canChange: boolean }) {
+  const [value, setValue] = useState(on !== false);
+  const [pending, startTransition] = useTransition();
+  const [failed, setFailed] = useState<string | null>(null);
+  return (
+    <Blueprint style={{ padding: "0 0 0 0.9375rem", marginBottom: "0.875rem" }}>
+      <button
+        type="button"
+        role="switch"
+        aria-checked={value}
+        disabled={!canChange || pending}
+        onClick={() => {
+          const next = !value;
+          setValue(next);
+          setFailed(null);
+          startTransition(async () => {
+            const result = await updateChristmasOnTodayAction(next);
+            if (result.error) {
+              setValue(!next);
+              setFailed(result.error);
+            }
+          });
+        }}
+        style={{
+          width: "100%",
+          textAlign: "left",
+          cursor: canChange ? "pointer" : "default",
+          background: "none",
+          border: 0,
+          padding: "0.6875rem 0.9375rem 0.6875rem 0",
+          display: "flex",
+          flexWrap: "wrap",
+          gap: "0.375rem 0.875rem",
+          alignItems: "center",
+          minHeight: "3.5rem",
+          font: "inherit",
+          color: "inherit",
+        }}
+      >
+        <span style={{ flex: "1 1 9rem", minWidth: 0 }}>
+          <span style={{ fontSize: "1.0625rem", display: "block" }}>Christmas on Today</span>
+          <span style={{ fontSize: "0.8125rem", color: "var(--color-neutral-600)", display: "block", lineHeight: 1.4, marginTop: "0.125rem" }}>
+            From 1 December to 1 January, Today starts with the count of sleeps to Noche Buena, a ready Noche Buena meal plan that fills the To-Buy list, the gift list and the monito-monita.
             {!canChange && " Only the organizer can change this."}
           </span>
         </span>
