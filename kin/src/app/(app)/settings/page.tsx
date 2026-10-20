@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation";
+import { referralLine } from "@/lib/referral";
 import Link from "next/link";
 import { getCurrentMember } from "@/lib/session";
 import { inKidView } from "@/lib/kid-view";
@@ -62,6 +63,7 @@ export default async function SettingsPage({
     ? await supabase.from("members").select("id", { count: "exact", head: true }).eq("family_id", me.family_id).eq("role", "child_self")
     : { count: 0 };
   const quick = readQuickPrefs(me.quick_actions);
+  const referral = kid ? null : (await supabase.rpc("referral_stats")).data?.[0];
   const allGroups: { href: string; icon: IconName; tint: "money" | "schedule" | "occasion" | "home" | undefined; title: string; value: string }[][] = [
     [
       { href: "/settings/appearance", icon: "sparkle", tint: "occasion", title: "Appearance", value: `${themeLabel} · ${paletteById(me.palette).name} · ${me.text_scale ?? 100}%${me.simple_mode ? " · Simple Kin" : ""}` },
@@ -76,6 +78,9 @@ export default async function SettingsPage({
       { href: "/subscribe", icon: "sparkle", tint: "money", title: "Your plan", value: planLabel(readAccess(me.families)) },
       { href: "/settings/household", icon: "house", tint: "home", title: "Household", value: `${me.families.name} · ${me.families.currency} · ${me.families.week_start === "monday" ? "Mon start" : "Sun start"}` },
       { href: "/settings/privacy", icon: "keyRound", tint: undefined, title: "Privacy & lock", value: lockOn ? "Vault lock on" : "Vault lock off" },
+      // The family's referral link (20261020180000): Kin Plus days for both
+      // households when the invited one finishes setup.
+      { href: "/settings/invite", icon: "users", tint: "home", title: "Invite a family", value: referralLine(referral?.joined ?? 0) },
       ...((childLogins ?? 0) > 0 ? [{ href: "/settings/kid-view", icon: "gift" as IconName, tint: "occasion" as const, title: "Kid view", value: "A simpler Kin for children" }] : []),
     ],
     [{ href: "/settings/account", icon: "users", tint: undefined, title: "Account", value: authUser.user?.email ?? "Sign out" }],

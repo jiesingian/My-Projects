@@ -72,7 +72,6 @@ function  guard_family_access_columns            # 20260929020000_kin_offers.sql
 function  kin_offer_done                         # 20260929020000_kin_offers.sql
 function  respond_kin_offer                      # 20260929020000_kin_offers.sql
 function  check_kin_offers                       # 20260929020000_kin_offers.sql
-function  set_referrer                           # 20260929020000_kin_offers.sql
 function  families_reward_referrer               # 20260929020000_kin_offers.sql
 function  journal_file_kept_by_another_household # 20260929021700_journal_personal_photos_shared.sql
 function  relative_profile                       # 20260929024500_relative_profile.sql

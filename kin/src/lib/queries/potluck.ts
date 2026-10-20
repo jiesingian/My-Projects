@@ -25,7 +25,7 @@ export async function getPotluck(eventId: string, me: { id: string; family_id: s
   const [{ data: events }, { data: items }, { data: claims }] = await Promise.all([
     supabase.rpc("potluck_event", { p_event: eventId }),
     supabase.from("potluck_items").select("id, label, wanted, position").eq("event_id", eventId),
-    supabase.from("potluck_claims").select("id, item_id, member_id, member_name, household_name, family_id, qty").eq("event_id", eventId).order("created_at"),
+    supabase.from("potluck_claims").select("id, item_id, member_id, guest_id, member_name, household_name, family_id, qty").eq("event_id", eventId).order("created_at"),
   ]);
   const e = events?.[0];
   if (!e) return null;

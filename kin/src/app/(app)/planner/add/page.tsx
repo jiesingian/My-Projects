@@ -6,6 +6,8 @@ import { AddPlannerForm } from "./add-planner-form";
 import { getAccounts } from "@/lib/queries/wealth";
 import { LogSpendControl } from "@/components/money-actions";
 import { kinAiReady } from "@/lib/kin-ai";
+import { sentIdFrom } from "@/lib/send-to-kin";
+import { readAccess } from "@/lib/access";
 import { inKidView } from "@/lib/kid-view";
 import { EventPhotos } from "@/components/event-photos";
 import { getSignedUrls } from "@/lib/storage";
@@ -16,16 +18,19 @@ import { getPotluck, type Potluck } from "@/lib/queries/potluck";
 import { isGrownUp } from "@/lib/roles";
 import { askedMembers, canAnswerFor, eventTakesRsvps, rsvpOpen, summarizeRsvps, type RsvpAnswer } from "@/lib/event-rsvp";
 import { householdZone } from "@/lib/household-zone";
-import { familyDay } from "@/lib/time";
+import { familyDay, readableDay } from "@/lib/time";
+import { EventGuestLink } from "@/components/event-guest-link";
+import { groupGuests, guestLinkCanBeMade, type GuestRow } from "@/lib/event-guests";
+import { getMyDraws } from "@/lib/queries/gift-draw";
 
 export default async function AddPlannerPage({
   searchParams,
 }: {
-  searchParams: Promise<{ type?: string; id?: string; date?: string; title?: string; notes?: string }>;
+  searchParams: Promise<{ type?: string; id?: string; date?: string; title?: string; notes?: string; sent?: string }>;
 }) {
   const me = await getCurrentMember();
   if (!me) redirect("/onboarding/profile");
-  const { type: rawType, id, date, title, notes } = await searchParams;
+  const { type: rawType, id, date, title, notes, sent } = await searchParams;
   // "activity" was the old name for what is now a one-off task. Links out in
   // the wild -- a bookmark, a Google Calendar description, a chat message --
   // still carry it, and they should keep working.
@@ -68,6 +73,33 @@ export default async function AddPlannerPage({
     eventPhotos = (rows ?? []).filter((r) => urls[r.storage_path]).map((r) => ({ id: r.id, url: urls[r.storage_path] }));
   }
 
+  // Guests by link (20261020231000_event_guest_links.sql): relatives with no
+  // account who answered through the event's guest link, and the link
+  // itself (whether on, which draw). One-off events only, never in kid view.
+  const today = familyDay(new Date(), await householdZone());
+  let guests: GuestRow[] = [];
+  let guestLink: React.ComponentProps<typeof EventGuestLink> | null = null;
+  if (editEvent && !editEvent.recurs_yearly && !inKidView(me)) {
+    const supabase = await createClient();
+    const [{ data: guestRows }, { data: links }, draws] = await Promise.all([
+      supabase.from("event_guests").select("id, name, answer, headcount").eq("event_id", editEvent.id).order("created_at"),
+      supabase.rpc("event_guest_link", { p_event: editEvent.id }),
+      isGrownUp(me.role) ? getMyDraws() : Promise.resolve([]),
+    ]);
+    guests = guestRows ?? [];
+    const link = links?.[0];
+    guestLink = {
+      eventId: editEvent.id,
+      eventTitle: editEvent.title,
+      when: readableDay(editEvent.event_date, { long: true }),
+      link: link ? { drawId: link.draw_id, createdAt: link.created_at, lastUsedAt: link.last_used_at } : null,
+      draws: draws.filter((d) => d.mine && !d.drawn).map((d) => ({ id: d.id, title: d.title })),
+      guests,
+      canMake: isGrownUp(me.role) && guestLinkCanBeMade({ event_date: editEvent.event_date, end_date: editEvent.end_date, recurs_yearly: editEvent.recurs_yearly }, today),
+      canChange: isGrownUp(me.role),
+    };
+  }
+
   // Who's coming (20261014090000_event_rsvps.sql): one-off events and trips
   // only; a yearly one has no single date to answer for.
   let rsvp: React.ComponentProps<typeof EventRsvp> | null = null;
@@ -84,11 +116,18 @@ export default async function AddPlannerPage({
     const summary = summarizeRsvps(asked, answers ?? []);
     const answerOf = new Map((answers ?? []).map((a) => [a.member_id, a.answer as RsvpAnswer]));
     const person = (m: (typeof members)[number]) => ({ id: m.id, name: m.full_name });
+    // Guests by link join the groups after the household, each with their headcount.
+    const byLink = groupGuests(guests);
     rsvp = {
       eventId: editEvent.id,
-      open: rsvpOpen(rsvpEvent, familyDay(new Date(), await householdZone())),
+      open: rsvpOpen(rsvpEvent, today),
       mine: asked.filter((m) => canAnswerFor(me, m)).map((m) => ({ ...person(m), answer: answerOf.get(m.id) ?? null })),
-      groups: { going: summary.going.map(person), maybe: summary.maybe.map(person), no: summary.no.map(person), waiting: summary.waiting.map(person) },
+      groups: {
+        going: [...summary.going.map(person), ...byLink.going],
+        maybe: [...summary.maybe.map(person), ...byLink.maybe],
+        no: [...summary.no.map(person), ...byLink.no],
+        waiting: summary.waiting.map(person),
+      },
     };
   }
 
@@ -130,6 +169,9 @@ export default async function AddPlannerPage({
       // Whether the photo scanner can run: it reads the photo with Claude,
       // which needs ANTHROPIC_API_KEY in Vercel (docs/SETUP_FOR_JONATHAN.md).
       scanReady={kinAiReady()}
+      // "Send it to Kin" (lib/send-to-kin.ts): a screenshot waiting to be read.
+      sentScreenshot={sentIdFrom(sent)}
+      plus={readAccess(me.families).plus}
     />
     {rsvp && (
       <div style={{ padding: "0 var(--gutter) 1.25rem" }}>
@@ -152,6 +194,14 @@ export default async function AddPlannerPage({
           canAskRelatives={isGrownUp(me.role)}
           relatives={potluck.relatives}
         />
+      </div>
+    )}
+    {guestLink && (guestLink.canMake || guestLink.link || guests.length > 0) && (
+      <div id="guest-link" style={{ padding: "0 var(--gutter) 1.25rem" }}>
+        <div className="kin-eyebrow" style={{ marginBottom: "0.5rem" }}>
+          GUESTS BY LINK
+        </div>
+        <EventGuestLink {...guestLink} />
       </div>
     )}
     {editEvent && (

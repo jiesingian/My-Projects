@@ -82,6 +82,14 @@ export async function updateSession(request: NextRequest) {
     // their Open Graph images: what people find from a search, before an
     // account exists.
     path.startsWith("/features/") ||
+    // A guest link on an event (app/guest/[token] and app/api/guest): a
+    // relative with no account answers by name; the link's token is the key
+    // and guest_event() decides what it opens (20261020231000).
+    path.startsWith("/guest/") ||
+    path.startsWith("/api/guest/") ||
+    // And a referral link (app/r/[code]/route.ts): remembers the family's
+    // code and sends the person to the home page; finishing setup claims it.
+    path.startsWith("/r/") ||
     // The privacy notice, terms and refund policy: read before an account
     // exists, and by app-store reviewers who never have one (app/legal).
     path.startsWith("/legal/") ||

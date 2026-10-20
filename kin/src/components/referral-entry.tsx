@@ -5,8 +5,9 @@ import { useRouter } from "next/navigation";
 import { setReferrerAction } from "@/lib/actions/offers";
 
 /** A new household's first 14 days: "Did another family invite you?" Their
- * code earns them Kin Plus days (7 now, 30 more if this household
- * subscribes). Asked once, and gone once answered. */
+ * code earns both households 7 days of Kin Plus (and the inviter 30 more
+ * if this household subscribes; 20261020180000). Asked once, and gone once
+ * answered. */
 export function ReferralEntry() {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
@@ -17,7 +18,7 @@ export function ReferralEntry() {
   if (done) {
     return (
       <p role="status" style={{ fontSize: "0.84375rem", margin: "0 0 1.125rem" }}>
-        Thanks — {done} gets Kin Plus days for inviting you.
+        Thanks — you and {done} both get 7 days of Kin Plus.
       </p>
     );
   }
@@ -42,7 +43,7 @@ export function ReferralEntry() {
         Did another family invite you to Kin?
       </label>
       <span style={{ display: "block", fontSize: "0.75rem", color: "var(--color-neutral-600)", margin: "0.125rem 0 0.5rem" }}>
-        Enter their family&rsquo;s code and they get Kin Plus days for it.
+        Enter their family&rsquo;s code and you both get 7 days of Kin Plus.
       </span>
       <div style={{ display: "flex", gap: "0.375rem" }}>
         <input

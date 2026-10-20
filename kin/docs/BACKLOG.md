@@ -79,7 +79,7 @@ are refused. Not checked: on a phone (see "Needs a real phone").
     helper-refill-lines.mjs. Not checked: on a helper's real phone.
   - ~~Vault emergency access shows parents-only documents to the trusted
     relative.~~ Done 20 October (kin/vault-emergency-household,
-    20261020220000): see "Vault emergency access" under Agreed 14 October.
+    20261020235000): see "Vault emergency access" under Agreed 14 October.
   - `tree_story_push_targets` / `helper_push_targets` hand device
     subscriptions to the signed-in sender. This is the same pattern as
     `push_targets`, needed because the app sends pushes without a
@@ -198,9 +198,49 @@ says so in one line, with "never trains AI". Kid view is refused everywhere.
   card and what Plus unlocks; kid view is refused by the action. Logic
   spec e2e/chat-summary.logic.spec.ts. Not checked against the real model
   (no key): the Taglish, and whether Haiku keeps to six lines.
-- Send it to Kin (Plus): an iPhone Shortcut in the share sheet or an in-app
-  "Paste a screenshot" button; a school circular or a Viber/Messenger
-  screenshot → dates, places, tasks → the flyer-scan review → plans.
+- **Done:** Send it to Kin (Kin Plus): a third private link per member
+  (Settings → Action Button & widget, "Send it to Kin"), for an iPhone
+  Shortcut in the share sheet. The Shortcut posts the shared screenshot
+  to api/send-to-kin/<token>; send_to_kin_by_link() keeps it for the
+  member who made the link (sent_screenshots, up to five, a day at most,
+  swept hourly) and the Shortcut opens Planner → Add?sent=<id>, where the
+  flyer scanner reads it once as that member, deletes it, and shows the
+  dates, places and tasks on the flyer-scan review screen; nothing is saved
+  until ticked. An in-app "Paste a screenshot" button on the same card
+  reads the clipboard's image into the same scan. The scan prompt now
+  names chat screenshots and circulars, and puts a task on its due date.
+  A Free household is told it is Plus (by the Shortcut and the card);
+  kid view can neither make a link nor use one. Migration
+  20261020230000_send_to_kin.sql, probe send-to-kin.mjs (11 checks), logic
+  spec e2e/send-to-kin.logic.spec.ts. Screenshots only; no inbound email.
+  Not checked: the Shortcut itself on an iPhone (the steps are written on
+  the settings page the way the other two links' are), and Haiku's reading
+  of a Messenger screenshot (no key).
+- **Done:** Answer from a link, no sign-up (name only, event only). On a
+  one-off event's screen, "Guests by link": a grown-up makes a guest link
+  (32 random bytes shown once, only the hash kept, like Add to Kin), shares
+  it with a ready message, points it at one of the household's monito-monita
+  draws, replaces it or turns it off. A relative opens /guest/<token> in any
+  browser, types their name, and can say Going / Maybe / Can't go with how
+  many they are (1 to 20), take a dish on the potluck or add up to three of
+  their own, and put themselves in the draw (reading their own pick, with
+  that person's wish list, once drawn). They see the event's name, dates
+  and host, how many are coming and the potluck list with counts, nothing
+  else: not the thread, the photos, the people asked, nor any household
+  data. The link stops working seven days after the event's last day
+  (host's zone); viewing stays open to then, answering through the last day.
+  The household sees guests as "Tita Baby (by link) ×4" under Who's coming
+  (the Going count adds headcounts), in the potluck's bringers and in the
+  draw; the host's grown-ups take one off (not once drawn). One row per
+  event and name (case and spacing aside), 40 guests per event, no < > or
+  control characters in a name, 60 items per event; wrong, turned-off and
+  expired links all answer the same nothing. Events have no place column,
+  so none is shown. Migration 20261020231000_event_guest_links.sql
+  (guest_id beside member_id on potluck_claims and gift_draw_people; the
+  draw counts guests in); probe event-guest-link.mjs; logic
+  e2e/event-guests.logic.spec.ts. No push: a guest's answer tells nobody
+  (the event screen does). Not checked: a real phone's share sheet; the
+  guest page in Facebook's in-app browser.
 
 ## Approved 20 October: four for reach and the season, Kin Free (Jonathan)
 
@@ -244,6 +284,25 @@ people search for, and Christmas on Today.
   Noche as a second ready plan. Not checked: a real December (the dates
   are covered by the logic tests; the screens were checked with the
   season forced).
+- **Done:** Invite a family. Settings -> Invite a family (/settings/invite):
+  a ready message with the family's referral link (kin.app/r/<code>, the
+  referral_code from 29 September) for the share sheet or the clipboard,
+  "N families joined through you", and what each invite earns. The link
+  remembers the code in a cookie for 14 days and sends the person to the
+  home page (setup if they signed up already, Today if they are in a
+  household); finishing setup (createFamilyAction, after create_family)
+  claims it by itself. Both households get 7 days of Kin Plus through
+  grant_plus_days (a trial pushed back, Kin Free a taste of Plus, a paying
+  or comped household banks them in plus_credit_days): the newcomer always
+  ('refer:welcome'), the inviter for its first 5 households ('refer:join';
+  the sixth still counts as joined). One referral per new household, in
+  its first 14 days; self-referral refused; typing the code on Today
+  (set_referrer) now goes the same way; the Kin offer card shares the link.
+  The 30 more days when the invited household subscribes stay as they were.
+  Migration 20261020232000_invite_a_family.sql (claim_referral,
+  referral_stats); probe invite-a-family.mjs; logic
+  e2e/referral.logic.spec.ts. Not checked: the share sheet on a real phone;
+  the cookie surviving Facebook's in-app browser through sign-up.
 
 ## Approved 19 October: four for the season, Kin Free (Jonathan)
 
@@ -517,7 +576,7 @@ scanning wait for the AI key.
   vault-emergency-access.mjs. On dev, the card is checked weekly
   (e2e/this-week.spec.ts).
   **Changed 20 October (Jonathan; kin/vault-emergency-household,
-  20261020220000):** (a) the trusted person must be a grown-up of the
+  20261020235000):** (a) the trusted person must be a grown-up of the
   *same* household -- "Parents only" is whoever set the household up, so
   the worst day is the other parent's -- and a relative from a linked
   household can no longer be named. Anyone named from another household

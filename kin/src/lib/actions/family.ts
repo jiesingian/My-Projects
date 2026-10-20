@@ -14,6 +14,7 @@ import type { UploadedFile } from "@/lib/upload-client";
 import type { TablesInsert } from "@/lib/database.types";
 import { humanDatabaseError } from "@/lib/db-errors";
 import { clamp } from "@/lib/text";
+import { REFERRAL_COOKIE, cleanReferralCode } from "@/lib/referral";
 import { isCountryCode } from "@/lib/countries";
 import { birthdayProblem, familyDay, familyMidnight } from "@/lib/time";
 import { isGone } from "@/lib/member-status";
@@ -123,6 +124,20 @@ export async function createFamilyAction(_prev: ActionState, formData: FormData)
       household: householdName,
       reason: grantError.message,
     });
+  }
+
+  // The family that invited this one, if they came by its link (app/r/[code]
+  // set the cookie): claimed now that the household exists, and both get
+  // their Kin Plus days (20261020180000_invite_a_family.sql). Not fatal: a
+  // code that doesn't match, or a cookie from a household that was already
+  // referred, leaves the household as it is; they can still type a code on
+  // Today in the first 14 days.
+  const jar = await cookies();
+  const referral = cleanReferralCode(jar.get(REFERRAL_COOKIE)?.value);
+  if (referral) {
+    const { error: referralError } = await supabase.rpc("claim_referral", { p_code: referral });
+    if (referralError) console.error("claim_referral failed during signup", { reason: referralError.message });
+    jar.delete(REFERRAL_COOKIE);
   }
 
   // Straight to Today: adding the kids and inviting a partner are Start here
