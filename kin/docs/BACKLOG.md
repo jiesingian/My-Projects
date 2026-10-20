@@ -173,8 +173,18 @@ says so in one line, with "never trains AI". Kid view is refused everywhere.
   memory of the export; the review step is where a wrong column shows).
   Not checked: pdf.js on a real phone (the worker is served from
   public/pdfjs/, copied at build like MediaPipe's engine).
-- "What did I miss?" in chat (Plus): at about 30 unread messages, one tap
-  gives a short Taglish summary, never stored, shown once.
+- **Done:** "What did I miss?" in chat (Kin Plus): above the household,
+  Family, one-to-one and group threads, when about 30 or more messages
+  are unread (the badge's count, taken at render before the thread marks
+  itself read), a card says how many and offers one tap; Kin AI reads
+  only those messages (as the viewer, the newest 300 at most) and answers
+  in Taglish -- what it was about, then up to six lines of decisions,
+  asks with who, dates and places, open questions. Shown once on the
+  card, kept nowhere (nothing is written; close it and it is gone). The
+  count and the privacy line are on the card. A Free household sees the
+  card and what Plus unlocks; kid view is refused by the action. Logic
+  spec e2e/chat-summary.logic.spec.ts. Not checked against the real model
+  (no key): the Taglish, and whether Haiku keeps to six lines.
 - Send it to Kin (Plus): an iPhone Shortcut in the share sheet or an in-app
   "Paste a screenshot" button; a school circular or a Viber/Messenger
   screenshot → dates, places, tasks → the flyer-scan review → plans.

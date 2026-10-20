@@ -1,7 +1,11 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { getCurrentMember } from "@/lib/session";
-import { getDirectThread, getThreadPrefs, pairOf } from "@/lib/queries/chat-rooms";
+import { getDirectThread, getReadMarks, getRoomUnread, getThreadPrefs, pairOf, unreadFloor } from "@/lib/queries/chat-rooms";
+import { MissedSummary } from "@/components/missed-summary";
+import { shouldOfferSummary } from "@/lib/chat-summary";
+import { readAccess } from "@/lib/access";
+import { kinAiReady } from "@/lib/kin-ai";
 import { ThreadMenu } from "@/components/thread-menu";
 import { RoomThread } from "@/components/room-thread";
 import { Avatar } from "@/components/avatar";
@@ -16,8 +20,9 @@ export default async function DirectThreadPage({ params }: { params: Promise<{ p
   if (!me) redirect("/onboarding/profile");
   const { person } = await params;
   if (!/^[0-9a-f-]{36}$/i.test(person) || person === me.person_id) notFound();
-  const [thread, prefs] = await Promise.all([getDirectThread(me.person_id, person), getThreadPrefs()]);
+  const [thread, prefs, unread, marks] = await Promise.all([getDirectThread(me.person_id, person), getThreadPrefs(), getRoomUnread(), getReadMarks()]);
   const pref = prefs.get(`dm:${person}`);
+  const missed = unread.get(`dm:${person}`) ?? 0;
   if (!thread) notFound();
   const [low, high] = pairOf(me.person_id, person);
   const first = thread.peer.fullName.split(" ")[0];
@@ -37,6 +42,7 @@ export default async function DirectThreadPage({ params }: { params: Promise<{ p
         </div>
         <ThreadMenu thread={`dm:${person}`} muted={pref?.muted ?? false} pinned={pref?.pinned ?? false} mutedUntil={pref?.mutedUntil ?? null} />
       </div>
+      {shouldOfferSummary(missed) && <MissedSummary thread={`dm:${person}`} since={marks.get(`dm:${person}`) ?? unreadFloor()} count={missed} threadName={thread.peer.fullName} peerName={thread.peer.fullName} plus={readAccess(me.families).plus} ready={kinAiReady()} />}
       <RoomThread
         me={{ personId: me.person_id, firstName: me.full_name.split(" ")[0] }}
         saveFrom={thread.peer.fullName}

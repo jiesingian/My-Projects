@@ -269,6 +269,22 @@ export async function getRoomUnread(): Promise<Map<string, number>> {
   return new Map((data ?? []).map((r) => [r.thread, Number(r.unread) || 0]));
 }
 
+/** Conversation key -> when this person last read it (chat_reads), for
+ * "What did I miss?": the window the unread count was taken over. A
+ * conversation never opened reads from the same 14-day floor as
+ * my_chat_unread(). */
+export async function getReadMarks(): Promise<Map<string, string>> {
+  const supabase = await createClient();
+  const { data } = await supabase.from("chat_reads").select("thread, last_read_at");
+  return new Map((data ?? []).map((r) => [r.thread, r.last_read_at]));
+}
+
+/** The 14-day floor my_chat_unread() counts from when a conversation has
+ * never been marked read. */
+export function unreadFloor(now = new Date()): string {
+  return new Date(now.getTime() - 14 * 24 * 60 * 60 * 1000).toISOString();
+}
+
 /** Conversation key -> this person's mute and pin choices. */
 export type ThreadPref = { muted: boolean; pinned: boolean; mutedUntil: string | null };
 
