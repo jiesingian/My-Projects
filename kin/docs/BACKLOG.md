@@ -93,8 +93,12 @@ new debt, compared with `main`, so no other session's PR goes red for it.
   `supabase/tests/pglite/no-probe-yet.txt` (136 entries: 23 tables, 113
   definer functions); each line is a probe still to write. The gate for
   #728 and #730.
-- **A bundle-size budget in CI:** per-route first-load JS against a stored
-  baseline; fail when a route grows by more than 10% or 25 KB.
+- **Done: a bundle-size budget in CI.** `kin/scripts/bundle-budget.mjs`
+  measures every route's first-load client JS (gzipped) from the build and
+  compares it with `kin/bundle-baseline.json`; a route that grows by more
+  than 10% or 25 KB fails `ci.yml`, a new route is only reported, and the
+  numbers are posted on the PR only when a route moved by a kilobyte or
+  more. `npm run bundle:baseline` refreshes the baseline on purpose.
 - **Phone-width screenshots compared with main:** Today, Chat, Planner,
   To-Buy, Wealth at 390px, Simple Kin off and on; warn-only for a week.
 - **Safe dependency updates:** patch and minor only, lockfile by npm, the
