@@ -20,11 +20,11 @@ import type { WeekStart } from "@/lib/week";
 export const GAME_VIEWS = ["goals", "game", "badges", "shop", "setup"] as const;
 export type GameViewName = (typeof GAME_VIEWS)[number];
 
-/** Goals · Game · Badges · Shop (and Set up, for a grown-up): the switch at
+/** Goals · Target · Badges · Shop (and Set up, for a grown-up): the switch at
  * the top of Planner → Goals. */
 export function GameSwitch({ view, grownUp }: { view: GameViewName; grownUp: boolean }) {
   const items = (["goals", "game", "badges", "shop", ...(grownUp ? (["setup"] as const) : [])] as GameViewName[]).map((v) => ({
-    label: v === "goals" ? "Goals" : v === "game" ? "🎮 Game" : v === "badges" ? "🏅 Badges" : v === "shop" ? "🪙 Shop" : "Set up",
+    label: v === "goals" ? "Goals" : v === "game" ? "🎯 Target" : v === "badges" ? "🏅 Badges" : v === "shop" ? "🪙 Shop" : "Set up",
     href: `/planner?seg=goals&g=${v}`,
     active: v === view,
   }));
@@ -35,7 +35,8 @@ export function GameSwitch({ view, grownUp }: { view: GameViewName; grownUp: boo
   );
 }
 
-/** Planner → Goals → Game, Badges, Shop and Set up (Janine, 20 October).
+/** Planner → Goals → Target, Badges, Shop and Set up (Janine, 20 October;
+ * "Target", not "Game", since 21 October).
  * The same goals, points and rewards as the rest of Planner, played as a
  * game. A grown-up can play for a child with no login (`as`). */
 export async function GamePane({
@@ -177,17 +178,17 @@ function TodayView({ game, player, grownUp }: { game: GameView; player: PlayerVi
   if (!game.hasGoals) {
     return (
       <Blueprint style={{ padding: "1.125rem" }}>
-        <div style={{ font: "600 1.125rem/1.2 var(--font-heading)", marginBottom: "0.375rem" }}>Make healthy habits a family game</div>
+        <div style={{ font: "600 1.125rem/1.2 var(--font-heading)", marginBottom: "0.375rem" }}>Daily targets for the whole family</div>
         <p style={{ fontSize: "0.875rem", color: "var(--color-neutral-600)", margin: "0 0 0.875rem", lineHeight: 1.45 }}>
           Daily goals like water, brushing teeth and moving earn XP and coins. Finish all of yours for a bonus. When the whole family finishes, everyone gets an extra bonus. Coins buy rewards in the Shop.
         </p>
-        {grownUp ? <SampleGameButton /> : <p style={{ fontSize: "0.875rem", margin: 0 }}>Ask a grown-up to set up the game.</p>}
+        {grownUp ? <SampleGameButton /> : <p style={{ fontSize: "0.875rem", margin: 0 }}>Ask a grown-up to set up the targets.</p>}
       </Blueprint>
     );
   }
   if (!player) return null;
   // Today's dailies: on, asked today (weekdays-only goals rest at the
-  // weekend), the busy-day backup on its own line (20261020190000).
+  // weekend), the busy-day backup on its own line (20261020210000).
   const dailies = player.goals.filter((g) => g.period === "day" && !g.backup && (!g.active || asksOn(g.days, game.today)));
   const backups = player.goals.filter((g) => g.period === "day" && g.backup && g.active && asksOn(g.days, game.today));
   const weekly = player.goals.filter((g) => g.period === "week");
@@ -284,7 +285,7 @@ async function ShopView({ familyId, me, player }: { familyId: string; me: { id: 
     getMemberScores(familyId),
     grownUp ? getPendingRedemptions(familyId) : Promise.resolve([]),
     grownUp ? getPendingGoalClaims(familyId, me) : Promise.resolve([]),
-    // The family-week treat (20261020190000): unlocked by a week of every
+    // The family-week treat (20261020210000): unlocked by a week of every
     // family goal met, never bought with coins.
     supabase.from("rewards").select("id, title, budget_amount").eq("family_id", familyId).eq("active", true).eq("unlock", "family_week").limit(1),
     supabase.from("game_family_weeks").select("week_start, all_done, treat_used_at").eq("family_id", familyId).order("week_start", { ascending: false }).limit(1),
@@ -346,7 +347,7 @@ function SetupView({ game, plus }: { game: GameView; plus: boolean }) {
           <p style={{ fontSize: "0.8125rem", color: "var(--color-neutral-600)", margin: 0, lineHeight: 1.45 }}>🏃 Steps goals, and the family&rsquo;s weekly steps, are part of Kin Plus.</p>
         )}
       </div>
-      <Section title={`Game goals · ${all.length}`}>
+      <Section title={`Targets · ${all.length}`}>
         {all.length === 0 && <Empty text="None yet." />}
         {all.map(({ g, who }) => (
           <div key={g.id} style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: "0.5rem", padding: "0.5rem 0", borderTop: "1px solid color-mix(in srgb, var(--color-text) 8%, transparent)", opacity: g.active ? 1 : 0.55 }}>
@@ -367,7 +368,7 @@ function SetupView({ game, plus }: { game: GameView; plus: boolean }) {
         ))}
       </Section>
       <p style={{ fontSize: "0.75rem", color: "var(--color-neutral-600)", lineHeight: 1.45 }}>
-        To remove a goal for good, or rename it, use Goals. Rewards are added and retired in the Shop. Streaks, bonuses and badges are worked out at midnight.
+        Rename, change, pause or remove a target with Edit and Pause above. Rewards are added and retired in the Shop. Streaks, bonuses and badges are worked out at midnight.
       </p>
     </>
   );

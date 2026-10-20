@@ -49,6 +49,18 @@ sample household: no sideways scroll and no console errors.
   - #739: the weekly suite's Simple Kin spec.
   - This PR: an Undas probe for a non-Manila household.
 
+**Done 20 October: "Send me a test" for each push** (kin/push-test-rows,
+20261020210000). Settings -> Notifications, for a grown-up: one row per
+kind Kin sends (a dose, a missed dose, a refill, Undas, a remembrance day,
+the money recap, the week ahead, a plan in 30 minutes, a tree story, the
+helper's line, Nakarating, an SOS, "Are you okay?"), each sending that
+kind's real words, link and icon, marked "Test: ", to the person's own
+devices only; five a minute. The words of the database-sent kinds moved
+into push_words_*() functions that the due_*() senders and sample_push()
+share; the app-sent kinds come from lib/push-words.ts, which their senders
+now use too. Not the cron path: no secret, no ledger. Kid view and children
+are refused. Not checked: on a phone (see "Needs a real phone").
+
 **Still unverified or left as is:**
 - **Undas end to end.** No push left a server for it. Dev's Vault has no
   `kin_cron_url`/`kin_cron_secret`, so dev's tick never calls the app (by
@@ -67,7 +79,7 @@ sample household: no sideways scroll and no console errors.
     helper-refill-lines.mjs. Not checked: on a helper's real phone.
   - ~~Vault emergency access shows parents-only documents to the trusted
     relative.~~ Done 20 October (kin/vault-emergency-household,
-    20261020200000): see "Vault emergency access" under Agreed 14 October.
+    20261020220000): see "Vault emergency access" under Agreed 14 October.
   - `tree_story_push_targets` / `helper_push_targets` hand device
     subscriptions to the signed-in sender. This is the same pattern as
     `push_targets`, needed because the app sends pushes without a
@@ -189,6 +201,31 @@ says so in one line, with "never trains AI". Kid view is refused everywhere.
 - Send it to Kin (Plus): an iPhone Shortcut in the share sheet or an in-app
   "Paste a screenshot" button; a school circular or a Viber/Messenger
   screenshot → dates, places, tasks → the flyer-scan review → plans.
+
+## Approved 20 October: four for reach and the season, Kin Free (Jonathan)
+
+Each its own pull request, run without questions (tag `next-20-series`):
+a guest link on an event, inviting another family, public pages for what
+people search for, and Christmas on Today.
+
+- **Done:** Public pages people search for: /features/paluwagan, /utang,
+  /family-tree, /medicine-reminders and /monito-monita, under the public
+  look (the legal pages' frame), outside the app's shell and with no client
+  code of their own. Each: what it is in plain English, how Kin does it,
+  three phone screenshots of the sample household on dev (Playwright, the
+  tab bar and Ask Kin hidden, seeded rows removed after; never a real
+  family's), the Kin Free or Plus line from plans.ts, a few questions
+  people ask, "Start with Kin" to the home page, and links between them.
+  Titles, descriptions, canonical URLs, an Open Graph image per page drawn
+  at build time (text only, no screenshot), sitemap.xml and robots.txt
+  (the app, the API and guest links kept out), metadataBase on the root
+  layout (lib/site.ts: NEXT_PUBLIC_SITE_URL, else production's address),
+  and a row of the five under the home page's footer. The words and
+  screenshots live in one list, lib/feature-pages.ts; logic
+  e2e/feature-pages.logic.spec.ts checks lengths, files and the plan
+  lines. Not checked: how Facebook renders the previews; whether Google
+  indexes them (Search Console is Jonathan's).
+- **Next:** Christmas on Today from 1 December.
 
 ## Approved 19 October: four for the season, Kin Free (Jonathan)
 
@@ -462,7 +499,7 @@ scanning wait for the AI key.
   vault-emergency-access.mjs. On dev, the card is checked weekly
   (e2e/this-week.spec.ts).
   **Changed 20 October (Jonathan; kin/vault-emergency-household,
-  20261020200000):** (a) the trusted person must be a grown-up of the
+  20261020220000):** (a) the trusted person must be a grown-up of the
   *same* household -- "Parents only" is whoever set the household up, so
   the worst day is the other parent's -- and a relative from a linked
   household can no longer be named. Anyone named from another household
@@ -1591,6 +1628,13 @@ What only Jonathan can check, on his iPhone with Kin on the Home Screen:
     the next baon, and cannot change either.
 - **Needs a real phone (Friday check), from the 19–20 October stabilisation
   pass:**
+  - **Undas, before 29 October: "Send me a test".** On your phone, Settings
+    -> Notifications -> Send me a test -> Undas. Within seconds a push
+    "Test: Undas is on Sunday", "Remembering Lolo Pedro, Lola Remedios.
+    Time to plan the visit: candles and flowers." should arrive; tapping it
+    opens Today. Those are the real words from the same function the 29
+    October push uses, with sample names. If nothing arrives, the row says
+    why (no device, an expired address, the phone's refusal).
   - **Undas push, Thursday 29 October from 09:00 Manila.** Beforehand:
     1. Your household has "Remember the departed" on (Settings).
     2. Someone on the tree has a date of passing.

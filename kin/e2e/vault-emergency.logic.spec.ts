@@ -73,7 +73,7 @@ test("the database's refusals become sentences, and unknown ones never leak", ()
   expect(emergencyError("kin_plus_required: The vault is part of Kin Plus")).toBe("Naming someone is part of Kin Plus.");
   expect(emergencyError("One request a day")).toContain("tomorrow");
   expect(emergencyError("That household has not named you")).toBe("That household has not named you.");
-  // Within the household since 20261020200000.
+  // Within the household since 20261020220000.
   expect(emergencyError("That person cannot be named: only another grown-up of this household with Kin")).toBe("Only another grown-up of this household with Kin can be named.");
   expect(emergencyError("You are no longer in this household")).toBe("You are no longer in that household.");
   expect(emergencyError('relation "x" does not exist')).toBe("That didn't work. Try again in a moment.");

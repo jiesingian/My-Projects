@@ -4,10 +4,15 @@ import { cookies } from "next/headers";
 import "./globals.css";
 import { ServiceWorker } from "@/components/service-worker";
 import { paletteById } from "@/lib/palettes";
+import { SITE_URL } from "@/lib/site";
 
 export const metadata: Metadata = {
+  // Absolute URLs for Open Graph and the sitemap (lib/site.ts); the public
+  // feature pages set their own titles and descriptions on top of these.
+  metadataBase: new URL(SITE_URL),
   title: "Kin — your family, in one place",
   description: "Your family's calendar, chores, chat, memories and money. Private, in one place.",
+  openGraph: { siteName: "Kin", type: "website", locale: "en_PH" },
   manifest: "/manifest.webmanifest",
   // Kin gets opened from a home screen far more often than from a browser
   // tab, so it asks to be installed like an app: its own name under the icon

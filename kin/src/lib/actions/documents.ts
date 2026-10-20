@@ -24,7 +24,7 @@ export async function createDocEntryAction(input: {
   referenceNo: string | null;
   visibility: string;
   note: string | null;
-  /** "Share in an emergency" (20261020200000): a parents-only document
+  /** "Share in an emergency" (20261020220000): a parents-only document
    * that emergency access may open. Off unless parents-only and ticked. */
   shareInEmergency?: boolean;
 }): Promise<{ error: string | null; entryId?: string; folderId?: string }> {

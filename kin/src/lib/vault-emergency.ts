@@ -18,7 +18,7 @@ export const REASON_MAX = 300;
 
 export type EmergencyStatus = "waiting" | "open" | "denied" | "revoked" | "expired";
 
-/** Under "Parents only" on a document (20261020200000). */
+/** Under "Parents only" on a document (20261020220000). */
 export const SHARE_IN_EMERGENCY_HINT =
   "Parents only is left out of emergency access unless this is ticked. Ticked, a grown-up of this household you have named can read it once their request opens.";
 

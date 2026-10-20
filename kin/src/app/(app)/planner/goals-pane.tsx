@@ -45,7 +45,7 @@ export async function GoalsPane({
   plus: boolean;
 }) {
   const supabase = await createClient();
-  const [goals, members, tz, { data: link }] = await Promise.all([
+  const [allGoals, members, tz, { data: link }] = await Promise.all([
     getGoals(familyId, me, weekStart),
     getMembers(familyId),
     householdZone(),
@@ -53,6 +53,10 @@ export async function GoalsPane({
     // weight goals (only their own is theirs to know).
     supabase.rpc("apple_health_status"),
   ]);
+  // Daily targets (the goals game: a goal with a category) live under
+  // Target, not here -- one place each, so nothing reads twice (Janine, 21
+  // October).
+  const goals = allGoals.filter((g) => g.category === null);
   const appleHealth: AppleHealthLink = link?.[0] ? { lastUsedAt: link[0].last_used_at } : null;
   const today = familyDay(new Date(), tz);
   const colourOf = new Map(members.map((m) => [m.id, memberColourVar(m.id, m.color)]));
@@ -76,7 +80,7 @@ export async function GoalsPane({
       {open.length === 0 && (
         <p style={{ fontSize: "0.84375rem", color: "var(--color-neutral-600)", lineHeight: 1.45 }}>
           {goals.length === 0
-            ? "No goals yet. Set one for yourself, for someone else or for the whole household — eight glasses a day, three gym sessions a week, a first ₱10,000 saved."
+            ? "No goals yet. Set one for yourself, for someone else or for the whole household — a first ₱10,000 saved, 12 books this year, a target weight — with a reward if you like."
             : finished.length > 0
               ? "Every goal here is reached."
               : "No goals for this person."}

@@ -1,5 +1,6 @@
 import webpush from "web-push";
 import { createClient } from "@/lib/supabase/server";
+import { helperListWords, pushPayload, treeStoryWords } from "@/lib/push-words";
 
 /** Web Push, in the session of whoever caused it.
  *
@@ -154,13 +155,7 @@ export async function sendTreeStoryPush(story: { id: string; personId: string; i
     const byPerson = new Map<string, typeof targets>();
     for (const t of targets) byPerson.set(t.person_id, [...(byPerson.get(t.person_id) ?? []), t]);
     for (const [personId, devices] of byPerson) {
-      const ours = personId === story.personId;
-      const payload = JSON.stringify({
-        title: `${story.writerFirst} ${ours ? "added" : "shared"} a story about ${story.personFirst}`.slice(0, 80),
-        body: story.title.slice(0, 180),
-        url: `/family/stories/${personId}`,
-        tag: `tree-story:${story.id}`,
-      });
+      const payload = pushPayload(treeStoryWords({ ...story, personId, ours: personId === story.personId }));
       await deliver(devices, payload, { TTL: 60 * 60 * 12 }, forget);
     }
   } catch (err) {
@@ -179,12 +174,7 @@ export async function sendHelperListPush(item: { id: string; familyId: string; n
     const supabase = await createClient();
     const { data: targets, error } = await supabase.rpc("helper_push_targets", { p_item: item.id });
     if (error || !targets?.length) return;
-    const payload = JSON.stringify({
-      title: "Added to the list",
-      body: `${item.name} · by ${item.by}`.slice(0, 180),
-      url: `/helper?h=${item.familyId}`,
-      tag: `helper-list-${item.familyId}`,
-    });
+    const payload = pushPayload(helperListWords(item));
     await deliver(targets, payload, { TTL: 60 * 60 * 12 }, async (endpoint) => {
       await supabase.rpc("forget_helper_push_endpoint", { p_endpoint: endpoint });
     });

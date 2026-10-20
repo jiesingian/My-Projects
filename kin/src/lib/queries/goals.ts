@@ -68,7 +68,7 @@ export type GoalView = {
   category: string | null;
   /** A game goal's XP each time it is met (0 otherwise). */
   xp: number;
-  /** Game goals (20261020190000): the ISO weekdays it is asked for (null:
+  /** Game goals (20261020210000): the ISO weekdays it is asked for (null:
    * every day), a busy day's backup, whose the credit is, a child's picture. */
   days: number[] | null;
   backup: boolean;

@@ -96,7 +96,7 @@ export type GameGoalFormState = { error: string | null; saved?: number };
  * it to). */
 export async function createGameGoalAction(_prev: GameGoalFormState, formData: FormData): Promise<GameGoalFormState> {
   const me = await requireCurrentMember();
-  if (!isGrownUp(me.role)) return { error: "Game goals are a grown-up's to set up." };
+  if (!isGrownUp(me.role)) return { error: "Targets are a grown-up's to set up." };
   const title = clamp(String(formData.get("title") ?? "").trim(), 80);
   const category = String(formData.get("category") ?? "");
   const period = String(formData.get("period") ?? "day");
@@ -158,7 +158,7 @@ export async function startSampleGameAction(): Promise<{ error: string | null }>
   if (!isGrownUp(me.role)) return { error: "A grown-up sets up the game." };
   const supabase = await createClient();
   const { count } = await supabase.from("planner_goals").select("id", { count: "exact", head: true }).eq("family_id", me.family_id).not("category", "is", null);
-  if ((count ?? 0) > 0) return { error: "This household already has game goals." };
+  if ((count ?? 0) > 0) return { error: "This household already has targets." };
   const { data: members } = await supabase.from("members").select("id, role").eq("family_id", me.family_id).not("status", "in", "(pending,removed)");
 
   const goals: TablesInsert<"planner_goals">[] = (members ?? []).flatMap((m) =>
@@ -250,7 +250,7 @@ export async function gameStepsAction(goalId: string, value: number, mode: "set"
  * target (target_<member id>), or the household's weekly total. Kin Plus. */
 export async function createStepsGoalAction(_prev: GameGoalFormState, formData: FormData): Promise<GameGoalFormState> {
   const me = await requireCurrentMember();
-  if (!isGrownUp(me.role)) return { error: "Game goals are a grown-up's to set up." };
+  if (!isGrownUp(me.role)) return { error: "Targets are a grown-up's to set up." };
   if (!readAccess(me.families).plus) return { error: "Steps are part of Kin Plus." };
   const title = clamp(String(formData.get("title") ?? "").trim(), 80) || "Steps";
   const xp = Math.round(Number(formData.get("xp") ?? DEFAULT_GOAL_XP));
@@ -363,7 +363,7 @@ export async function addFamilyPackAction(roles: Partial<Record<PackRole, string
  * links over, and removes the old (its earnings stay). */
 export async function updateGameGoalAction(goalId: string, formData: FormData): Promise<{ error: string | null }> {
   const me = await requireCurrentMember();
-  if (!isGrownUp(me.role)) return { error: "Game goals are a grown-up's to change." };
+  if (!isGrownUp(me.role)) return { error: "Targets are a grown-up's to change." };
   const supabase = await createClient();
   const { data: goal } = await supabase.from("planner_goals").select("*").eq("id", goalId).eq("family_id", me.family_id).not("category", "is", null).is("removed_at", null).maybeSingle();
   if (!goal) return { error: "That goal is no longer here." };
@@ -408,11 +408,11 @@ export async function updateGameGoalAction(goalId: string, formData: FormData): 
   return { error: null };
 }
 
-/** Removed, not deleted (20261020190000): it leaves every list, and what it
+/** Removed, not deleted (20261020210000): it leaves every list, and what it
  * earned stays earned. */
 export async function removeGameGoalAction(goalId: string): Promise<{ error: string | null }> {
   const me = await requireCurrentMember();
-  if (!isGrownUp(me.role)) return { error: "Game goals are a grown-up's to remove." };
+  if (!isGrownUp(me.role)) return { error: "Targets are a grown-up's to remove." };
   const supabase = await createClient();
   const { error } = await supabase.from("planner_goals").update({ active: false, removed_at: new Date().toISOString() }).eq("id", goalId).eq("family_id", me.family_id).not("category", "is", null);
   if (error) return { error: humanDatabaseError(error.message) };

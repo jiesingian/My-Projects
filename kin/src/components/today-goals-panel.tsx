@@ -31,7 +31,7 @@ export type TodayGoalRow = {
  * slides open and shut (instantly for anyone who asks their phone for less
  * motion); the member's choice is kept on this device in a cookie the
  * server reads, so the page arrives already open or closed. */
-/** A child with no login, whose goals a grown-up ticks (20261020190000). */
+/** A child with no login, whose goals a grown-up ticks (20261020210000). */
 export type TodayGoalGroup = { id: string; name: string; todo: TodayGoalRow[]; done: TodayGoalRow[]; board?: KidBoardGoal[] };
 
 export function TodayGoalsPanel({

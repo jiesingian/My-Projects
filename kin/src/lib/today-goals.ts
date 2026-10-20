@@ -39,7 +39,7 @@ export function progressText(current: number, target: number): string {
 }
 
 /** Is a goal asked of today? On, and -- for a goal on some weekdays only --
- * one of its days (20261020190000). */
+ * one of its days (20261020210000). */
 export function asksToday(g: { active: boolean; period: string; days: readonly number[] | null }, today: string): boolean {
   return g.active && (g.period !== "day" || asksOn(g.days, today));
 }

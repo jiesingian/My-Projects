@@ -43,7 +43,7 @@ test("progress reads as done/target", () => {
   expect(progressText(72.44, 70)).toBe("72.4/70");
 });
 
-// --- A family's own plan (20261020190000) -----------------------------------------
+// --- A family's own plan (20261020210000) -----------------------------------------
 
 const g = (over: Partial<{ ownerId: string | null; category: string | null; active: boolean; period: string; days: number[] | null; backup: boolean; id: string }>) => ({
   id: "g",
