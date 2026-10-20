@@ -521,17 +521,20 @@ export async function getPendingApprovals(familyId: string): Promise<PendingAppr
   }));
 }
 
-export type RewardView = { id: string; title: string; costPoints: number };
+/** budgetAmount: what it costs the family in money, a note (20261020190000). */
+export type RewardView = { id: string; title: string; costPoints: number; budgetAmount: number | null };
 
 export async function getRewards(familyId: string): Promise<RewardView[]> {
   const supabase = await createClient();
   const { data } = await supabase
     .from("rewards")
-    .select("id, title, cost_points")
+    .select("id, title, cost_points, budget_amount")
     .eq("family_id", familyId)
     .eq("active", true)
+    // A family-week treat is unlocked, never bought with coins: not on the shelf.
+    .is("unlock", null)
     .order("cost_points", { ascending: true });
-  return (data ?? []).map((r) => ({ id: r.id, title: r.title, costPoints: r.cost_points }));
+  return (data ?? []).map((r) => ({ id: r.id, title: r.title, costPoints: r.cost_points, budgetAmount: r.budget_amount === null ? null : Number(r.budget_amount) }));
 }
 
 export type PendingRedemption = { id: string; title: string; costPoints: number; who: string; askedAt: string };
