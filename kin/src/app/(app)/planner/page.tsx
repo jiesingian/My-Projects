@@ -52,6 +52,7 @@ import { commentCountLine } from "@/lib/event-thread";
 import { CompletedToggle } from "@/components/completed-toggle";
 import { EventToJournal } from "@/components/event-to-journal";
 import { GoalsPane } from "./goals-pane";
+import { GAME_VIEWS, GamePane, GameSwitch, type GameViewName } from "./game-pane";
 import { readAccess } from "@/lib/access";
 import { isGone } from "@/lib/member-status";
 
@@ -63,13 +64,15 @@ type CalendarView = (typeof CALENDAR_VIEWS)[number];
 export default async function PlannerPage({
   searchParams,
 }: {
-  searchParams: Promise<{ seg?: string; who?: string; view?: string; date?: string; hide?: string; saved?: string; asked?: string; done?: string; when?: string }>;
+  searchParams: Promise<{ seg?: string; g?: string; as?: string; who?: string; view?: string; date?: string; hide?: string; saved?: string; asked?: string; done?: string; when?: string }>;
 }) {
   const me = await getCurrentMember();
   if (!me) redirect("/onboarding/profile");
   const sp = await searchParams;
   const seg: Seg = (SEGMENTS as readonly string[]).includes(sp.seg ?? "") ? (sp.seg as Seg) : "calendar";
   const who = sp.who ?? "all";
+  // Planner → Goals → Game, Badges, Shop, Set up (Janine, 20 October).
+  const gameView: GameViewName = (GAME_VIEWS as readonly string[]).includes(sp.g ?? "") ? (sp.g as GameViewName) : "goals";
   // Finished events and goals are folded away unless asked for (12 October).
   const done = showsDone(sp.done);
   const view: CalendarView = (CALENDAR_VIEWS as readonly string[]).includes(sp.view ?? "") ? (sp.view as CalendarView) : "week";
@@ -121,14 +124,22 @@ export default async function PlannerPage({
         )}
         {seg === "routines" && <RoutinesPane familyId={me.family_id} who={who} currency={me.families.currency} justSaved={sp.saved === "1"} done={done} />}
         {seg === "events" && <EventsPane familyId={me.family_id} who={who} when={eventWhen(sp.when)} grownUp={isGrownUp(me.role)} />}
-        {seg === "goals" && (
+        {seg === "goals" && gameView !== "goals" && (
+          <GamePane familyId={me.family_id} me={{ id: me.id, role: me.role }} view={gameView} as={sp.as} weekStart={weekStartOf(me.families.week_start)} />
+        )}
+        {seg === "goals" && gameView === "goals" && (
           <GoalsPane
             familyId={me.family_id}
             me={{ id: me.id, role: me.role }}
             who={who}
             currency={me.families.currency}
             weekStart={weekStartOf(me.families.week_start)}
-            filter={<MemberChips familyId={me.family_id} seg="goals" who={who} done={done} />}
+            filter={
+              <>
+                <GameSwitch view="goals" grownUp={isGrownUp(me.role)} />
+                <MemberChips familyId={me.family_id} seg="goals" who={who} done={done} />
+              </>
+            }
             done={done}
             justAsked={sp.asked === "1"}
             plus={readAccess(me.families).plus}
