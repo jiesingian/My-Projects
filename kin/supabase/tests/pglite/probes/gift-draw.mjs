@@ -115,8 +115,16 @@ export default async function ({ db, as, check, refused }) {
     await db.query("update gift_draws set reveal_on_day = true where id = $1", [d]);
     return (await picks(ben, d)).length === 1;
   });
+  await check("After the draw, the organizer's grown-up cannot bring the day forward to read every pick", async () => {
+    const r = await refused(() => as(ann, `update gift_draws set exchange_date = ${today} where id = $1 returning id`, [d]), "not earlier");
+    return r === true && (await picks(ann, d)).length < 4;
+  });
+  await check("After the draw, the party can still be postponed", async () =>
+    (await as(ann, "update gift_draws set exchange_date = exchange_date + 7 where id = $1 returning id", [d])).length === 1);
   await check("On the day, everyone in the draw sees who picked whom; a stranger still does not", async () => {
-    await db.query(`update gift_draws set exchange_date = ${today} where id = $1`, [d]);
+    // The day coming, not anyone moving it: the clock can't be turned here,
+    // so the date is set past the trigger that now refuses an earlier one.
+    await db.exec(`alter table gift_draws disable trigger gift_draws_fixed; update gift_draws set exchange_date = ${today} where id = '${d}'; alter table gift_draws enable trigger gift_draws_fixed;`);
     return (await picks(ben, d)).length === 4 && (await picks(dan, d)).length === 0;
   });
 
