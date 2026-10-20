@@ -20,9 +20,11 @@ export type NamedByView = {
   open: { id: string; status: EmergencyStatus; line: string } | null;
 };
 
-/** Emergency access, the trusted person's side: one card per household that
- * named them. Asking needs a short reason, which every grown-up there sees
- * in the push. Once open, the card leads to a read-only view of that vault. */
+/** Emergency access, the trusted person's side: the card for the household
+ * that named them (their own, since 20261020235000). Asking needs a short
+ * reason, which every other grown-up sees in the push. Once open, the card
+ * leads to a read-only view of the vault, parents-only documents marked to
+ * share included. */
 export function VaultEmergencyTrusted({ households }: { households: NamedByView[] }) {
   return (
     <>
@@ -78,8 +80,8 @@ function Card({ h }: { h: NamedByView }) {
         <>
           <p style={{ fontSize: "0.8125rem", lineHeight: 1.45, color: "var(--color-neutral-700)", margin: h.open ? "0.75rem 0 0.625rem" : "0 0 0.625rem" }}>
             {h.open
-              ? `Still need it after that? Ask again. They are told again and can say no, and if nobody does within ${waitLabel(h.waitDays)}, it runs another 30 days from then.`
-              : `Only for when nobody there can be reached. Every grown-up there is told at once and can say no. If nobody does within ${waitLabel(h.waitDays)}, you can read their vault for 30 days, and they see each item you open.`}
+              ? `Still need it after that? Ask again. The other grown-ups are told again and can say no, and if nobody does within ${waitLabel(h.waitDays)}, it runs another 30 days from then.`
+              : `Only for when the parent who keeps the vault can't be reached. Every other grown-up here is told at once and can say no. If nobody does within ${waitLabel(h.waitDays)}, you can read the vault for 30 days, parents-only documents marked to share included, and they see each item you open.`}
           </p>
           <div className="kin-vault-form">
             <div className="field">

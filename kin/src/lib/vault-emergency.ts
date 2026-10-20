@@ -18,6 +18,10 @@ export const REASON_MAX = 300;
 
 export type EmergencyStatus = "waiting" | "open" | "denied" | "revoked" | "expired";
 
+/** Under "Parents only" on a document (20261020235000). */
+export const SHARE_IN_EMERGENCY_HINT =
+  "Parents only is left out of emergency access unless this is ticked. Ticked, a grown-up of this household you have named can read it once their request opens.";
+
 export function isWaitDays(n: number): n is WaitDays {
   return (WAIT_DAYS as readonly number[]).includes(n);
 }
@@ -107,11 +111,11 @@ export function trustedStatusLine(r: { status: EmergencyStatus; opensAt: Date; e
  * on as a generic line rather than as Postgres's own words. */
 export function emergencyError(message: string): string {
   if (message.includes("kin_plus_required")) return "Naming someone is part of Kin Plus.";
-  if (message.includes("cannot be named")) return "Only a grown-up with Kin in a linked household can be named.";
+  if (message.includes("cannot be named")) return "Only another grown-up of this household with Kin can be named.";
   if (message.includes("Two people at most")) return "Two people at most. Remove one first.";
   if (message.includes("1, 3 or 7")) return "Choose a wait of 1, 3 or 7 days.";
   if (message.includes("has not named you")) return "That household has not named you.";
-  if (message.includes("no longer linked")) return "Your households are no longer linked.";
+  if (message.includes("no longer in this household")) return "You are no longer in that household.";
   if (message.includes("few words")) return "Say in a few words why you need it.";
   if (message.includes("already waiting")) return "Your request is already waiting.";
   if (message.includes("One request a day")) return "You can ask once a day. Try again tomorrow.";

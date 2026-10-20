@@ -2021,6 +2021,7 @@ export type Database = {
           note: string | null
           owner_member_id: string | null
           reference_no: string | null
+          share_in_emergency: boolean
           title: string
           visibility: string
         }
@@ -2035,6 +2036,7 @@ export type Database = {
           note?: string | null
           owner_member_id?: string | null
           reference_no?: string | null
+          share_in_emergency?: boolean
           title: string
           visibility?: string
         }
@@ -2049,6 +2051,7 @@ export type Database = {
           note?: string | null
           owner_member_id?: string | null
           reference_no?: string | null
+          share_in_emergency?: boolean
           title?: string
           visibility?: string
         }
@@ -8050,6 +8053,33 @@ export type Database = {
         }
         Relationships: []
       }
+      vault_emergency_notices: {
+        Row: {
+          body: string
+          created_at: string
+          dismissed_at: string | null
+          dismissed_by_name: string | null
+          family_id: string
+          id: string
+        }
+        Insert: {
+          body: string
+          created_at?: string
+          dismissed_at?: string | null
+          dismissed_by_name?: string | null
+          family_id: string
+          id?: string
+        }
+        Update: {
+          body?: string
+          created_at?: string
+          dismissed_at?: string | null
+          dismissed_by_name?: string | null
+          family_id?: string
+          id?: string
+        }
+        Relationships: []
+      }
       vault_emergency_opens: {
         Row: {
           family_id: string
@@ -8620,6 +8650,10 @@ export type Database = {
       due_vault_emergency_reminders: {
         Args: { p_secret: string; p_now?: string }
         Returns: { key: string; member_id: string; endpoint: string; p256dh: string; auth: string; title: string; body: string; url: string }[]
+      }
+      dismiss_vault_emergency_notice: {
+        Args: { p_notice: string }
+        Returns: undefined
       }
       vault_emergency_candidates: {
         Args: never

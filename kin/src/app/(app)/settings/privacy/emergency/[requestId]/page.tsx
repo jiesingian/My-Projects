@@ -10,11 +10,11 @@ import { getEmergencyItems, getEmergencyTrustedView } from "@/lib/queries/vault-
 import { EmergencyVaultViewer } from "@/components/vault-emergency-viewer";
 import { householdPhrase } from "@/lib/vault-emergency";
 
-/** Another household's vault, read-only, while the emergency access it gave
- * this person is open (20261015120000).
+/** The household's vault, read-only, while the emergency access it gave this
+ * person is open (20261015120000; within the household since 20261020235000).
  *
  * The reader's own lock comes first, as it does for their own vault: nothing
- * of the other household is fetched until it is open. Whether the access is
+ * is fetched until it is open. Whether the access is
  * open at all is the database's answer, asked fresh on every load -- a grant
  * that was taken back or ran out a minute ago shows nothing. */
 export default async function EmergencyVaultPage({ params }: { params: Promise<{ requestId: string }> }) {
@@ -30,7 +30,7 @@ export default async function EmergencyVaultPage({ params }: { params: Promise<{
       <div>
         <DetailHeader backHref="/settings/privacy" eyebrow="Emergency access" />
         <div className="kin-docs-state" style={{ padding: "0 var(--gutter) 1.375rem" }}>
-          <DocumentsLock hasPin={lock.hasPin} hasBiometric={lock.credentialCount > 0} title="Unlock first" blurb="Your own lock comes before anyone else's vault." />
+          <DocumentsLock hasPin={lock.hasPin} hasBiometric={lock.credentialCount > 0} title="Unlock first" blurb="Your own lock comes before the vault." />
         </div>
       </div>
     );
@@ -57,7 +57,7 @@ export default async function EmergencyVaultPage({ params }: { params: Promise<{
               {household.charAt(0).toUpperCase() + household.slice(1)}&rsquo;s vault
             </h2>
             <p style={{ fontSize: "0.8125rem", lineHeight: 1.45, color: "var(--color-neutral-700)", margin: "0 0 0.75rem" }}>
-              Read-only. Each item you open is shown to their grown-ups, with the time.
+              Read-only. Each item you open is shown to the household&rsquo;s grown-ups, with the time.
             </p>
             <EmergencyVaultViewer requestId={requestId} items={items} />
           </>
