@@ -11,7 +11,10 @@ import { familyDay } from "@/lib/time";
 import { getMoneyRecap } from "@/lib/queries/money-recap";
 import { isRecapMonth, monthBefore, monthLabel, recapMonthFor, type BillLine } from "@/lib/money-recap";
 
-const row = { display: "flex", gap: "0.625rem", alignItems: "baseline", padding: "0.5rem 0", borderBottom: "1px solid color-mix(in srgb, var(--color-text) 10%, transparent)" } as const;
+// A row may wrap, and its label keeps 8rem before it gives way: with Simple
+// Kin's larger text at 320px, a label squeezed beside a tag and an amount
+// broke mid-word ("Grocer / ies", "15/09/20 / 26").
+const row = { display: "flex", flexWrap: "wrap", columnGap: "0.625rem", rowGap: "0.125rem", alignItems: "baseline", padding: "0.5rem 0", borderBottom: "1px solid color-mix(in srgb, var(--color-text) 10%, transparent)" } as const;
 const sub = { fontSize: "0.78125rem", color: "var(--color-neutral-600)" } as const;
 const num = { fontFamily: "var(--font-numeric)", fontSize: "0.84375rem", flex: "none" } as const;
 
@@ -57,7 +60,7 @@ export default async function MoneyRecapPage({ searchParams }: { searchParams: P
           <Link href={`/wealth/recap?month=${monthBefore(month)}`} className="btn btn-secondary" aria-label="The month before" style={{ minHeight: "2.25rem", padding: "0 0.625rem" }}>
             ‹
           </Link>
-          <h3 style={{ fontSize: "1.75rem", margin: 0, flex: 1, textAlign: "center" }}>{monthLabel(month)}</h3>
+          <h3 style={{ fontSize: "min(1.75rem, 8vw)", margin: 0, flex: 1, textAlign: "center" }}>{monthLabel(month)}</h3>
           {next ? (
             <Link href={`/wealth/recap?month=${next}`} className="btn btn-secondary" aria-label="The month after" style={{ minHeight: "2.25rem", padding: "0 0.625rem" }}>
               ›
@@ -74,12 +77,12 @@ export default async function MoneyRecapPage({ searchParams }: { searchParams: P
             <div style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: "0.5rem", marginBottom: "0.875rem" }}>
               <Blueprint style={{ padding: "0.8125rem" }}>
                 <div className="kin-eyebrow">SPENT</div>
-                <div style={{ font: "600 1.375rem/1.1 var(--font-heading)", marginTop: "0.375rem", overflowWrap: "anywhere" }}>{money(r.spent)}</div>
+                <div style={{ font: "600 min(1.375rem, 5.75vw)/1.1 var(--font-heading)", marginTop: "0.375rem", overflowWrap: "anywhere" }}>{money(r.spent)}</div>
                 <div style={sub}>{r.budget > 0 ? `of ${money(r.budget)} budgeted` : "no budget set"}</div>
               </Blueprint>
               <Blueprint style={{ padding: "0.8125rem" }}>
                 <div className="kin-eyebrow">CAME IN</div>
-                <div style={{ font: "600 1.375rem/1.1 var(--font-heading)", marginTop: "0.375rem", overflowWrap: "anywhere" }}>{money(r.income)}</div>
+                <div style={{ font: "600 min(1.375rem, 5.75vw)/1.1 var(--font-heading)", marginTop: "0.375rem", overflowWrap: "anywhere" }}>{money(r.income)}</div>
                 <div style={sub}>{r.spentLastMonth > 0 ? `spent ${money(r.spentLastMonth)} the month before` : " "}</div>
               </Blueprint>
             </div>
@@ -89,7 +92,7 @@ export default async function MoneyRecapPage({ searchParams }: { searchParams: P
                 <div className="kin-eyebrow" style={{ margin: "1rem 0 0.375rem" }}>BIGGEST CHANGES FROM {monthLabel(monthBefore(month)).split(" ")[0].toUpperCase()}</div>
                 {r.changes.map((c) => (
                   <div key={c.category} style={row}>
-                    <span style={{ flex: 1, minWidth: 0, fontSize: "0.9375rem" }}>{c.category}</span>
+                    <span style={{ flex: "1 1 8rem", minWidth: 0, fontSize: "0.9375rem" }}>{c.category}</span>
                     <span style={sub}>
                       {c.kind === "new" ? "new this month" : c.kind === "gone" ? "nothing this month" : `${money(c.before)} → ${money(c.now)}`}
                     </span>
@@ -108,8 +111,8 @@ export default async function MoneyRecapPage({ searchParams }: { searchParams: P
               const pct = c.budget ? Math.min(100, Math.round((c.spent / c.budget) * 100)) : 0;
               return (
                 <div key={c.category} style={{ padding: "0.5rem 0", borderBottom: "1px solid color-mix(in srgb, var(--color-text) 10%, transparent)" }}>
-                  <div style={{ display: "flex", gap: "0.5rem", alignItems: "baseline" }}>
-                    <span style={{ flex: 1, minWidth: 0, fontSize: "0.9375rem" }}>{c.category}</span>
+                  <div style={{ display: "flex", flexWrap: "wrap", columnGap: "0.5rem", alignItems: "baseline" }}>
+                    <span style={{ flex: "1 1 8rem", minWidth: 0, fontSize: "0.9375rem" }}>{c.category}</span>
                     {c.over && <Tag variant="accent">OVER</Tag>}
                     <span style={num}>
                       {money(c.spent)}
@@ -131,7 +134,7 @@ export default async function MoneyRecapPage({ searchParams }: { searchParams: P
             {r.bills.length === 0 && <p style={sub}>No bills fell due that month.</p>}
             {r.bills.map((b, i) => (
               <div key={`${b.name}-${i}`} style={row}>
-                <span style={{ flex: 1, minWidth: 0 }}>
+                <span style={{ flex: "1 1 8rem", minWidth: 0 }}>
                   <span style={{ fontSize: "0.9375rem", display: "block" }}>{b.name}</span>
                   <span style={sub}>
                     Due {fmtDate(b.dueDate)}
@@ -147,7 +150,7 @@ export default async function MoneyRecapPage({ searchParams }: { searchParams: P
             {r.goals.length === 0 && <p style={sub}>No savings goals yet.</p>}
             {r.goals.map((g) => (
               <div key={g.id} style={row}>
-                <span style={{ flex: 1, minWidth: 0 }}>
+                <span style={{ flex: "1 1 8rem", minWidth: 0 }}>
                   <span style={{ fontSize: "0.9375rem", display: "block" }}>{g.title}</span>
                   <span style={sub}>
                     {money(g.current)} of {money(g.target)} now · {g.pct}%
@@ -160,7 +163,7 @@ export default async function MoneyRecapPage({ searchParams }: { searchParams: P
             <div className="kin-eyebrow" style={{ margin: "1rem 0 0.375rem" }}>NET WORTH</div>
             {r.netWorth ? (
               <div style={row}>
-                <span style={{ flex: 1, minWidth: 0, fontSize: "0.9375rem" }}>
+                <span style={{ flex: "1 1 8rem", minWidth: 0, fontSize: "0.9375rem" }}>
                   {money(r.netWorth.start)} → {money(r.netWorth.end)}
                 </span>
                 <span style={num}>

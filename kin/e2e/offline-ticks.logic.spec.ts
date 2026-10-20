@@ -25,6 +25,9 @@ test("an untick loses to someone who ticked the dose after it", () => {
 test("a chore already answered by someone else keeps their answer", () => {
   expect(choreLogVerdict({ label: "Dishes" }, null, "me")).toEqual({ apply: true });
   expect(choreLogVerdict({ label: "Dishes" }, { logged_by: "me" }, "me")).toEqual({ apply: false, outcome: "applied" });
+  expect(choreLogVerdict({ label: "Dishes", status: "done" }, { logged_by: "me", status: "done" }, "me")).toEqual({ apply: false, outcome: "applied" });
+  // Their own answer, changed since: the later one is applied, not reported sent.
+  expect(choreLogVerdict({ label: "Dishes", status: "skipped" }, { logged_by: "me", status: "done" }, "me")).toEqual({ apply: true });
   expect(choreLogVerdict({ label: "Dishes" }, { logged_by: "lola" }, "me")).toEqual({ apply: false, outcome: "skipped", note: "Dishes was already answered by someone else." });
 });
 
@@ -45,8 +48,10 @@ test("a second tick on the same dose or item replaces the first in the queue", (
   expect(toggleTarget(dose)).toBe(toggleTarget({ ...dose }));
   expect(toggleTarget(dose)).not.toBe(toggleTarget({ ...dose, time: "20:00" }));
   expect(toggleTarget({ kind: "buy.toggle", itemId: "i1" })).toBe("buy|i1");
-  // A chore answered for two days is two changes, not one.
-  expect(toggleTarget({ kind: "chore.log" })).toBeNull();
+  // A chore answered for two days is two changes; twice for one day, one.
+  const chore = { kind: "chore.log", routineId: "r1", date: "2026-10-19" };
+  expect(toggleTarget(chore)).toBe("chore|r1|2026-10-19");
+  expect(toggleTarget({ ...chore, date: "2026-10-20" })).not.toBe(toggleTarget(chore));
 });
 
 test("the offline line says what waits, page by page", () => {
