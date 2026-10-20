@@ -66,4 +66,19 @@ export default async function ({ db, check, refused }) {
   await check("A date of passing before the birth is refused", async () =>
     refused(() => db.query("insert into family_tree_people (family_id, full_name, dob, died_on) values ($1, 'Wrong', '2000-01-01', '1999-01-01')", [A])),
   );
+  await check("A household in Los Angeles hears it at 09:00 its own time, not Manila's, and once", async () => {
+    // 29 Oct 2028 (2027's key is spent above): 09:00 PDT is 16:00 UTC, when
+    // Manila is already past midnight into the 30th.
+    const old = (await db.query("select time_zone from families where id = $1", [D])).rows[0]?.time_zone ?? null;
+    await db.query("update families set time_zone = 'America/Los_Angeles' where id = $1", [D]);
+    try {
+      const dan = (rows) => rows.filter((x) => x.endpoint.endsWith("Dan D")).length;
+      const before = dan(await run("2028-10-29 15:55+00"));
+      const at = dan(await run("2028-10-29 16:05+00"));
+      const again = dan(await run("2028-10-29 16:10+00"));
+      return (before === 0 && at === 1 && again === 0) || { before, at, again };
+    } finally {
+      await db.query("update families set time_zone = $2 where id = $1", [D, old]);
+    }
+  });
 }

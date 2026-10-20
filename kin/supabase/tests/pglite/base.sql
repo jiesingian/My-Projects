@@ -385,3 +385,9 @@ create table if not exists public.family_recipes (id uuid primary key default ge
 alter table family_recipes enable row level security;
 create policy fr_all on family_recipes for all using (family_id = current_family_id()) with check (family_id = current_family_id());
 grant select, insert, update, delete on family_recipes to authenticated;
+-- A visit photo's row (20260926110000), only as far as 20261020090100's
+-- storage policy needs it: which file it names, seen in its own household.
+create table if not exists public.health_visit_photos (id uuid primary key default gen_random_uuid(), family_id uuid references families(id), appointment_id uuid, storage_path text not null, created_by uuid, created_at timestamptz not null default now());
+alter table health_visit_photos enable row level security;
+create policy hvp_select on health_visit_photos for select using (family_id = current_family_id());
+grant select on health_visit_photos to authenticated;

@@ -3,6 +3,75 @@
 What is agreed but not built yet, and what is waiting on somebody. Update
 it in the same pull request that finishes or adds an item.
 
+## Stabilisation pass, 19–20 October (bugs only, no features)
+
+After ~35 PRs merged 14–19 October from eight sessions (#618–#720).
+
+**Checked:** Vercel production errors since 14 October (one group only:
+Node's `url.parse()` deprecation warning from a dependency; Hobby keeps
+logs for one hour, so older detail is gone). Supabase advisors and
+Postgres logs on dev and production (the "column does not exist" errors
+were app-before-migration windows on the 19th; the steady "permission
+denied" on the token tables is `check-schema.mjs` proving they're locked).
+Dev and production have the same migrations. pg_cron ran on both, and
+production's reminders tick answered 200 every time. The weekly suite ran
+on `main` (1025 passed, 1 test bug); `test:rls` and every
+`*.logic.spec.ts` ran locally. A code review of the week's diffs covered
+visibility, time zones, reminders, offline, money, and merge collisions.
+22 screens were loaded at 320px and 390px, Simple Kin off and on, as the
+sample household: no sideways scroll and no console errors.
+
+**Fixed:**
+- **Visibility:**
+  - #728: a monito-monita organizer could open every pick early.
+  - #730: a child could read or delete a parents-only medicine's
+    prescription file.
+- **Pushes:**
+  - #727: one failing kind lost every other push, Undas included.
+  - #732: a malformed medicine time broke reminders for every household.
+  - #735: "In 30 minutes" for a plan already done; refills every 40 days;
+    doses in a DST gap.
+  - #736: the money recap used up a grown-up's month before they had a
+    device.
+- **Lost data and wrong numbers:**
+  - #737: the baon was paid twice.
+  - #738: an offline chore answered twice kept the first answer.
+  - #742: paluwagan dates after the 15th.
+  - #743: the recap and the import stopped at 1000 movements.
+  - #744: a wish list was emptied by a failed save.
+- **Broken flows:**
+  - #733: Simple Kin lost "Nakarating", "Are you okay?" and approvals.
+  - #740: the call effects race.
+  - #745: Today's date for households abroad.
+  - #746: a crash on a bad recipe link.
+- **Layout and tests:**
+  - #747: the recap at 320px with Simple Kin.
+  - #739: the weekly suite's Simple Kin spec.
+  - This PR: an Undas probe for a non-Manila household.
+
+**Still unverified or left as is:**
+- **Undas end to end.** No push left a server for it. Dev's Vault has no
+  `kin_cron_url`/`kin_cron_secret`, so dev's tick never calls the app (by
+  design, but it means a push can't be tried on dev). The function is
+  covered by PGlite for Manila and Los Angeles, and production's tick is
+  answering. The first real one is 29 October (see "Needs a real phone").
+- **Design questions, not fixed:**
+  - A helper sees medicine names on To-Buy refill lines.
+  - Vault emergency access shows parents-only documents to the trusted
+    relative.
+  - `tree_story_push_targets` / `helper_push_targets` hand device
+    subscriptions to the signed-in sender. This is the same pattern as
+    `push_targets`, needed because the app sends pushes without a
+    service-role key.
+- **Minor, left:**
+  - Deleting a note, question or gift row that's already gone reports
+    success.
+  - `/api/list-add` reads the body before its size check.
+  - Deleting a household leaves another member's private prescription
+    file behind (#730).
+  - A Today "Done" and a Planner chore answer for the same day, both
+    offline, go through separate paths.
+
 ## Approved 19 October: four for the season, Kin Free (Jonathan)
 
 Each its own pull request, in date order: Undas first (1-2 November), then
@@ -1373,6 +1442,39 @@ What only Jonathan can check, on his iPhone with Kin on the Home Screen:
     a hash; nothing else leaves the phone).
   - **Alkansya on a child's phone:** in kid view, the child sees their jars and
     the next baon, and cannot change either.
+- **Needs a real phone (Friday check), from the 19–20 October stabilisation
+  pass:**
+  - **Undas push, Thursday 29 October from 09:00 Manila.** Beforehand:
+    1. Your household has "Remember the departed" on (Settings).
+    2. Someone on the tree has a date of passing.
+    3. Kin notifications are allowed on the iPhone.
+
+    Between 09:00 and 09:05 one push should arrive: "Undas is on Sunday",
+    naming the first three remembered. Tapping it opens Today. There
+    should be no second push that day, and nothing on a child's phone.
+  - **Simple Kin "Nakarating na ako" (#733):**
+    1. Turn on Simple Kin for yourself (Settings -> Appearance).
+    2. Set the Action Button to Kin's "Nakarating na ako".
+    3. Press it.
+
+    Today opens and sends the check-in. The household sees where you are.
+  - **Simple Kin approvals (#733):** with a child's chore waiting for
+    approval, open Today in Simple Kin. "Waiting on you" is at the bottom,
+    and Approve works.
+  - **Offline chore, answered twice (#738):**
+    1. In Airplane Mode, on the Planner, mark a chore's upcoming day Done.
+       That day leaves the choices.
+    2. Turn Airplane Mode off.
+
+    The chore shows Done once.
+  - **Call effects (#740):**
+    1. On a slow connection, start a video call.
+    2. Tap a filter and a face quickly, then hang up straight away.
+    3. Call again.
+
+    The other phone sees your live camera, not a frozen picture.
+  - **Money recap at the largest text (#747):** iPhone Larger Text at its
+    biggest, Simple Kin on, Wealth -> recap. Nothing breaks mid-word.
 
 ## Next up
 

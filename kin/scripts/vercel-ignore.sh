@@ -18,7 +18,7 @@
 # wrong skip would hide a broken one.
 set -uo pipefail
 
-APP_SKIP='^kin/(docs|e2e|supabase|graphify-out)/|\.md$|^kin/playwright\.config\.ts$'
+APP_SKIP='^kin/(docs|e2e|supabase|graphify-out)/|\.md$|^kin/playwright\.config\.ts$|^kin/scripts/vercel-ignore\.sh$'
 
 build() { echo "Building: $1"; exit 1; }
 
@@ -33,9 +33,17 @@ fetch_main() {
   git fetch -q --depth=200 "https://github.com/$VERCEL_GIT_REPO_OWNER/$VERCEL_GIT_REPO_SLUG.git" main 2>/dev/null
 }
 
-# The last commit this branch deployed (empty on its first deployment), else
-# where the branch left main.
-BASE="${VERCEL_GIT_PREVIOUS_SHA:-}"
+# main: the last commit it deployed. A pull request branch: where it left
+# main, so only its own changes count. Comparing a branch with its last
+# deployment counted everything a merge of main brought in (20 October: each
+# SQL-only fix, brought up to date with main to settle its migration list,
+# built a preview of main's app changes, spent the day's 100 deployments, and
+# automerge held all of them on a rate-limited Vercel). What main brings is
+# built and tested when it lands on main.
+BASE=""
+if [ "${VERCEL_GIT_COMMIT_REF:-}" = "main" ]; then
+  BASE="${VERCEL_GIT_PREVIOUS_SHA:-}"
+fi
 if [ -z "$BASE" ] || ! git cat-file -e "$BASE^{commit}" 2>/dev/null; then
   BASE=""
   if [ "${VERCEL_GIT_COMMIT_REF:-}" = "main" ]; then
