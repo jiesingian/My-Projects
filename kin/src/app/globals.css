@@ -8320,3 +8320,120 @@ button.kin-room-quote { font: inherit; font-size: 0.78125rem; text-align: left; 
   padding: 0.75rem 0;
   margin-bottom: 0.75rem;
 }
+
+/* ── Today's Goals, collapsible (Janine, 20 October) ─────────────────────
+   One card: a header button with a thin progress bar, and compact goal
+   rows that slide open. The slide animates grid-template-rows from 0fr to
+   1fr, so it follows the content's real height with no measuring. */
+.kin-goals {
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-card);
+  background: var(--glass-bg);
+  -webkit-backdrop-filter: var(--glass-blur);
+  backdrop-filter: var(--glass-blur);
+  box-shadow: var(--shadow-sm);
+  margin-bottom: 1.625rem;
+}
+.kin-goals-head {
+  all: unset;
+  box-sizing: border-box;
+  display: grid;
+  grid-template-columns: 1fr auto;
+  grid-template-areas: "text chevron" "bar chevron";
+  align-items: center;
+  column-gap: 0.75rem;
+  row-gap: 0.4375rem;
+  width: 100%;
+  min-height: 3rem;
+  padding: 0.75rem 0.875rem;
+  cursor: pointer;
+  border-radius: var(--radius-card);
+  color: var(--color-text);
+  -webkit-tap-highlight-color: transparent;
+}
+.kin-goals-head:focus-visible { outline: 2px solid var(--color-accent-solid); outline-offset: 2px; }
+.kin-goals-head-text { grid-area: text; font-size: 0.875rem; line-height: 1.25; }
+.kin-goals-title { font: 600 0.96875rem/1.25 var(--font-heading); }
+.kin-goals-count { color: var(--color-neutral-600); }
+.kin-goals-count-done { color: var(--color-text); font-weight: 600; }
+.kin-goals-head-bar { grid-area: bar; }
+.kin-goals-head .kin-chevron { grid-area: chevron; }
+.kin-chevron {
+  display: inline-flex;
+  color: var(--color-neutral-600);
+  transform: rotate(-90deg);
+  transition: transform 220ms cubic-bezier(0.2, 0, 0, 1);
+}
+.kin-chevron[data-open="true"] { transform: rotate(90deg); }
+
+.kin-collapse {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows 260ms cubic-bezier(0.2, 0, 0, 1);
+}
+.kin-collapse[data-open="true"] { grid-template-rows: 1fr; }
+.kin-collapse > div { overflow: hidden; min-height: 0; }
+
+.kin-goals-list { padding: 0 0.875rem 0.625rem; }
+.kin-goal-row { border-top: 1px solid var(--color-divider); }
+.kin-goal-line { display: flex; align-items: center; gap: 0.5rem; }
+.kin-goal-main {
+  all: unset;
+  box-sizing: border-box;
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+  min-height: 3rem;
+  padding: 0.375rem 0;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+.kin-goal-main:focus-visible { outline: 2px solid var(--color-accent-solid); outline-offset: 2px; border-radius: 8px; }
+.kin-goal-icon {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.75rem;
+  height: 1.75rem;
+  border-radius: 999px;
+  color: var(--color-accent-solid);
+  background: color-mix(in srgb, var(--color-accent-solid) 12%, transparent);
+}
+.kin-goal-body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 0.3125rem; }
+.kin-goal-name-line { display: flex; align-items: baseline; justify-content: space-between; gap: 0.5rem; }
+.kin-goal-name { font-size: 0.875rem; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.kin-goal-progress { flex: none; font-size: 0.75rem; color: var(--color-neutral-600); font-variant-numeric: tabular-nums; }
+.kin-goal-row[data-done="true"] .kin-goal-name { color: var(--color-neutral-600); }
+.kin-goal-plus { min-height: 2.5rem; min-width: 2.5rem; padding: 0; border-radius: 999px; }
+.kin-goal-details { padding: 0 0 0.75rem 2.375rem; }
+
+.kin-goals-done { border-top: 1px solid var(--color-divider); }
+.kin-goals-done-head {
+  all: unset;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  min-height: 2.75rem;
+  cursor: pointer;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--color-neutral-600);
+}
+.kin-goals-done-head:focus-visible { outline: 2px solid var(--color-accent-solid); outline-offset: 2px; border-radius: 8px; }
+.kin-goals-all {
+  display: inline-block;
+  margin-top: 0.5rem;
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--color-accent-700);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .kin-collapse,
+  .kin-chevron { transition: none; }
+}

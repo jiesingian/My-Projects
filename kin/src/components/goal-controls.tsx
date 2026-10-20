@@ -26,6 +26,7 @@ import {
   withdrawGoalChangeAction,
   withdrawGoalRewardAction,
 } from "@/lib/actions/goals";
+import { gameStepsAction, gameTapAction } from "@/lib/actions/game";
 
 function useGoalAction() {
   const router = useRouter();
@@ -381,5 +382,41 @@ export function GoalClaim({ goalId, periodStart, label, claimed }: { goalId: str
       )}
       <ErrorLine error={error} />
     </div>
+  );
+}
+
+/** What "+" does on a compact goal row on Today: a glass, a session or one
+ * more of a count; +500 on a goals-game steps goal; and for a goal that
+ * needs a number typed (steps outside the game, weight, money) it opens
+ * the row, where the field is. */
+export type GoalQuickAddHow = "water" | "tap" | "gameTap" | "gameSteps" | "open";
+
+export function GoalQuickAdd({ goalId, title, how, onOpen }: { goalId: string; title: string; how: GoalQuickAddHow; onOpen: () => void }) {
+  const { pending, error, run } = useGoalAction();
+  const add = () => {
+    if (how === "open") return onOpen();
+    run(() =>
+      how === "water"
+        ? stepGoalWaterAction(goalId, 1)
+        : how === "gameTap"
+          ? gameTapAction(goalId)
+          : how === "gameSteps"
+            ? gameStepsAction(goalId, 500, "add")
+            : logGoalAction(goalId, 1),
+    );
+  };
+  return (
+    <span style={{ display: "inline-flex", flexDirection: "column", alignItems: "flex-end" }}>
+      <button
+        type="button"
+        className="btn btn-primary kin-goal-plus"
+        disabled={pending}
+        onClick={add}
+        aria-label={how === "gameSteps" ? `Add 500 steps: ${title}` : how === "open" ? `Log ${title}` : `Add one: ${title}`}
+      >
+        <Icon name="plus" size={18} />
+      </button>
+      <ErrorLine error={error} />
+    </span>
   );
 }
