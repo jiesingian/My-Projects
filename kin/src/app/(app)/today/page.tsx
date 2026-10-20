@@ -197,7 +197,7 @@ export default async function TodayPage({ searchParams }: { searchParams: Promis
 
       {/* Kin's own offers: days of Plus for trying something new, one at a
           time (20260929020000_kin_offers.sql). */}
-      <KinOfferCard state={kinOffer} plus={readAccess(me.families).plus} referralCode={me.families.referral_code} />
+      <KinOfferCard state={kinOffer} plus={readAccess(me.families).plus} referralCode={me.families.referral_code} householdName={me.families.name} />
 
       {/* Today, as one list (Jonathan, 28 September: "shouldn't they be the
           same and prioritized at the top?"). What used to be "Needs you

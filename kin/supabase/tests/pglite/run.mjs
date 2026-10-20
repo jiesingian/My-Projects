@@ -114,6 +114,7 @@ const MIGRATIONS = [
   "20261020212000_christmas_on_today.sql",
   "20261020230000_send_to_kin.sql",
   "20261020231000_event_guest_links.sql",
+  "20261020232000_invite_a_family.sql",
 ];
 
 const only = process.argv[2];

@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { referralMessage, referralUrl } from "@/lib/referral";
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Icon } from "@/components/icons";
@@ -13,7 +14,7 @@ const small = { minHeight: "2rem", fontSize: "0.8125rem", padding: "0 0.875rem",
 /** One of Kin's offers, on Today: take it or skip it. Taken, it stays until
  * it is done (then the days are earned) or its week runs out. The days go to
  * Kin Plus: a taste of it on Kin Free, added on to it otherwise. */
-export function KinOfferCard({ state, plus, referralCode }: { state: KinOfferState; plus: boolean; referralCode: string }) {
+export function KinOfferCard({ state, plus, referralCode, householdName }: { state: KinOfferState; plus: boolean; referralCode: string; householdName: string }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
@@ -32,7 +33,9 @@ export function KinOfferCard({ state, plus, referralCode }: { state: KinOfferSta
   };
 
   const share = async () => {
-    const text = `Join us on Kin, the family app. When you set up your household, enter our family's code: ${referralCode}`;
+    // The referral link (20261020180000): finishing setup through it claims
+    // the code by itself, and both households get their Kin Plus days.
+    const text = referralMessage(householdName, referralUrl(window.location.origin, referralCode));
     try {
       if (navigator.share) await navigator.share({ text });
       else {
@@ -86,7 +89,7 @@ export function KinOfferCard({ state, plus, referralCode }: { state: KinOfferSta
               </div>
               <button type="button" className="btn btn-primary" onClick={share} style={{ ...small, marginTop: "0.5rem" }}>
                 <Icon name="upload" size={14} />
-                {copied ? "Copied" : "Share the code"}
+                {copied ? "Copied" : "Share the link"}
               </button>
               <div style={{ fontSize: "0.75rem", color: "var(--color-neutral-600)", marginTop: "0.375rem" }}>Taken · {daysLeft} day{daysLeft === 1 ? "" : "s"} left to share it</div>
             </div>

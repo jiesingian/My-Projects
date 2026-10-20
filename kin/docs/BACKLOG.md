@@ -283,6 +283,25 @@ people search for, and Christmas on Today.
   Noche as a second ready plan. Not checked: a real December (the dates
   are covered by the logic tests; the screens were checked with the
   season forced).
+- **Done:** Invite a family. Settings -> Invite a family (/settings/invite):
+  a ready message with the family's referral link (kin.app/r/<code>, the
+  referral_code from 29 September) for the share sheet or the clipboard,
+  "N families joined through you", and what each invite earns. The link
+  remembers the code in a cookie for 14 days and sends the person to the
+  home page (setup if they signed up already, Today if they are in a
+  household); finishing setup (createFamilyAction, after create_family)
+  claims it by itself. Both households get 7 days of Kin Plus through
+  grant_plus_days (a trial pushed back, Kin Free a taste of Plus, a paying
+  or comped household banks them in plus_credit_days): the newcomer always
+  ('refer:welcome'), the inviter for its first 5 households ('refer:join';
+  the sixth still counts as joined). One referral per new household, in
+  its first 14 days; self-referral refused; typing the code on Today
+  (set_referrer) now goes the same way; the Kin offer card shares the link.
+  The 30 more days when the invited household subscribes stay as they were.
+  Migration 20261020232000_invite_a_family.sql (claim_referral,
+  referral_stats); probe invite-a-family.mjs; logic
+  e2e/referral.logic.spec.ts. Not checked: the share sheet on a real phone;
+  the cookie surviving Facebook's in-app browser through sign-up.
 
 ## Approved 19 October: four for the season, Kin Free (Jonathan)
 
