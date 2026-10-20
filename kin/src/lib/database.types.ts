@@ -1764,6 +1764,7 @@ export type Database = {
           helper_id: string | null
           helper_name: string | null
           id: string
+          medicine_id: string | null
           member_id: string | null
           name: string
           planned_for: string | null
@@ -1786,6 +1787,7 @@ export type Database = {
           helper_id?: string | null
           helper_name?: string | null
           id?: string
+          medicine_id?: string | null
           member_id?: string | null
           name: string
           planned_for?: string | null
@@ -1808,6 +1810,7 @@ export type Database = {
           helper_id?: string | null
           helper_name?: string | null
           id?: string
+          medicine_id?: string | null
           member_id?: string | null
           name?: string
           planned_for?: string | null
@@ -4051,6 +4054,8 @@ export type Database = {
           medicine_id: string
           per_dose: number
           set_by: string | null
+          show_name_to_helper: boolean
+          store: string | null
           unit: string
           updated_at: string
         }
@@ -4062,6 +4067,8 @@ export type Database = {
           medicine_id: string
           per_dose?: number
           set_by?: string | null
+          show_name_to_helper?: boolean
+          store?: string | null
           unit?: string
           updated_at?: string
         }
@@ -4073,6 +4080,8 @@ export type Database = {
           medicine_id?: string
           per_dose?: number
           set_by?: string | null
+          show_name_to_helper?: boolean
+          store?: string | null
           unit?: string
           updated_at?: string
         }

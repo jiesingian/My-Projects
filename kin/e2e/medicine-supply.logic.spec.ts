@@ -1,5 +1,5 @@
 import { test, expect } from "@playwright/test";
-import { amountWords, daysLeft, daysLeftWords, guessFromDose, needsRefill, onHand } from "@/lib/medicine-supply";
+import { amountWords, daysLeft, daysLeftWords, guessFromDose, helperRefillLine, needsRefill, onHand } from "@/lib/medicine-supply";
 
 // Pills left and refill (20261014201000). Which doses count since the
 // count (due after it, in the household's zone; unticked ones come back) is
@@ -50,4 +50,15 @@ test("amounts and the first guess from the dose as typed", () => {
   expect(guessFromDose("500 mg, 2 tabs")).toEqual({ unit: "tablet", perDose: 2 });
   expect(guessFromDose("50 mg")).toEqual({ unit: "tablet", perDose: 1 });
   expect(guessFromDose(null)).toEqual({ unit: "tablet", perDose: 1 });
+});
+
+// A helper's list says "Medicine refill" (20261020160000), with the store
+// once the family names one, and the medicine's name only when a grown-up
+// chose to show it. The SQL writes the same line (helper_buy_items); the
+// probe supabase/tests/pglite/probes/helper-refill-lines.mjs checks that.
+test("the helper's line for a refill hides the medicine unless the family shows it", () => {
+  expect(helperRefillLine(null, false, "Losartan · for Lola, refill")).toBe("Medicine refill");
+  expect(helperRefillLine("  ", false, "Losartan · for Lola, refill")).toBe("Medicine refill");
+  expect(helperRefillLine(" Mercury Drug ", false, "Losartan · for Lola, refill")).toBe("Medicine refill · Mercury Drug");
+  expect(helperRefillLine("Mercury Drug", true, "Losartan · for Lola, refill")).toBe("Losartan · for Lola, refill");
 });

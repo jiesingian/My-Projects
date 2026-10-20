@@ -67,3 +67,17 @@ export function guessFromDose(dose: string | null): { unit: SupplyUnit; perDose:
   const perDose = m ? Number(m[1].replace(",", ".")) : 1;
   return { unit, perDose: perDose > 0 && perDose <= 1000 ? perDose : 1 };
 }
+
+/** The most a store's name can be (health_medicine_supply.store). */
+export const STORE_MAX = 60;
+
+/** What the household's helper reads on the To-Buy list for a refill line
+ * Kin added (20261020160000, helper_buy_items): "Medicine refill", with the
+ * store it is usually bought at when the family has said one. The medicine
+ * is named to the helper only when a grown-up ticked "show the name" for
+ * it. The database writes the same words; this is the card's preview. */
+export function helperRefillLine(store: string | null | undefined, showName: boolean, name: string): string {
+  if (showName) return name;
+  const shop = (store ?? "").trim();
+  return shop ? `Medicine refill · ${shop}` : "Medicine refill";
+}

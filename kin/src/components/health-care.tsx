@@ -10,7 +10,7 @@ import { visibilityOptions } from "@/lib/visibility";
 import { dosesFor, FEVER_C, type Dose, type Medicine } from "@/lib/health-plan";
 import { alertLine, canBeTold, DEFAULT_MISSED_DELAY, delayWords, MISSED_DELAYS } from "@/lib/missed-dose";
 import { isGrownUp } from "@/lib/roles";
-import { amountWords, daysLeft, daysLeftWords, guessFromDose, isSupplyUnit, needsRefill, SUPPLY_UNITS, type SupplyUnit } from "@/lib/medicine-supply";
+import { amountWords, daysLeft, daysLeftWords, guessFromDose, helperRefillLine, isSupplyUnit, needsRefill, STORE_MAX, SUPPLY_UNITS, type SupplyUnit } from "@/lib/medicine-supply";
 import { doseName, type GuideDose } from "@/lib/vaccine-schedule";
 import { ageInMonths, growthPercentile, percentileLabel, valueAtPercentile, type Sex } from "@/lib/growth";
 import {
@@ -22,6 +22,7 @@ import {
   setMemberSexAction,
   setMissedDoseAlertAction,
   setMedicineSupplyAction,
+  setMedicineHelperLineAction,
   addToMedicineSupplyAction,
   stopMedicineSupplyAction,
   stopMedicineAction,
@@ -73,6 +74,7 @@ export function MedicinesPanel({
   doses,
   missedAlerts,
   supply,
+  hasListHelper = false,
   prescriptions,
   grownUps,
   today,
@@ -85,6 +87,9 @@ export function MedicinesPanel({
   doses: Dose[];
   missedAlerts: MissedAlert[];
   supply: Supply[];
+  /** A helper sees the To-Buy list (20261015121000): the card then says what
+   * they read for a refill line. */
+  hasListHelper?: boolean;
   prescriptions: Record<string, { id: string; url: string }[]>;
   grownUps: GrownUp[];
   today: string;
@@ -164,7 +169,7 @@ export function MedicinesPanel({
               {m.end_date ? ` · until ${m.end_date}` : ""}
               {m.notes ? ` · ${m.notes}` : ""}
             </div>
-            <SupplyLine medicine={m} memberId={memberId} supply={supply.find((x) => x.medicine_id === m.id) ?? null} canChange={isGrownUp(role)} />
+            <SupplyLine medicine={m} memberId={memberId} supply={supply.find((x) => x.medicine_id === m.id) ?? null} canChange={isGrownUp(role)} hasListHelper={hasListHelper} firstName={firstName} />
             <PrescriptionLine medicine={m} memberId={memberId} photos={prescriptions[m.id] ?? []} />
             {m.times.length > 0 && (
               <MissedDoseAlert
@@ -367,12 +372,12 @@ function MissedDoseAlert({
   );
 }
 
-export type Supply = { medicine_id: string; counted: number; unit: string; per_dose: number; onHand: number | null };
+export type Supply = { medicine_id: string; counted: number; unit: string; per_dose: number; onHand: number | null; show_name_to_helper: boolean; store: string | null };
 
 /** Pills left (20261014201000). What is left is worked out by the database
  * from the doses ticked since the count; this says it in days. Refilled
  * starts again from a new count, or adds a box to what is left. */
-function SupplyLine({ medicine, memberId, supply, canChange }: { medicine: Medicine & { visibility: string }; memberId: string; supply: Supply | null; canChange: boolean }) {
+function SupplyLine({ medicine, memberId, supply, canChange, hasListHelper, firstName }: { medicine: Medicine & { visibility: string }; memberId: string; supply: Supply | null; canChange: boolean; hasListHelper: boolean; firstName: string }) {
   const { pending, run } = useAct();
   const guess = guessFromDose(medicine.dose);
   const unit: SupplyUnit = supply && isSupplyUnit(supply.unit) ? supply.unit : guess.unit;
@@ -399,6 +404,7 @@ function SupplyLine({ medicine, memberId, supply, canChange }: { medicine: Medic
             {supply ? "Refilled" : "Track how many are left"}
           </button>
         )}
+        {supply && canChange && hasListHelper && medicine.visibility === "family" && <HelperRefillLine medicine={medicine} memberId={memberId} supply={supply} firstName={firstName} />}
       </div>
     );
   }
@@ -472,6 +478,61 @@ function SupplyLine({ medicine, memberId, supply, canChange }: { medicine: Medic
             Stop counting
           </button>
         ) : null}
+        <button type="button" className="btn btn-secondary" style={{ flex: 1 }} onClick={() => setOpen(false)}>
+          Cancel
+        </button>
+        <button type="submit" className="btn btn-primary" style={{ flex: 1 }} disabled={pending}>
+          {pending ? "Saving…" : "Save"}
+        </button>
+      </div>
+    </form>
+  );
+}
+
+/** What the helper reads for this medicine's refill line (20261020160000):
+ * "Medicine refill", with the store once named, or the medicine's name once
+ * a grown-up ticks it. Only shown while a helper sees the list. */
+function HelperRefillLine({ medicine, memberId, supply, firstName }: { medicine: Medicine; memberId: string; supply: Supply; firstName: string }) {
+  const { pending, run } = useAct();
+  const [open, setOpen] = useState(false);
+  const [f, setF] = useState({ showName: supply.show_name_to_helper, store: supply.store ?? "" });
+  // The job's own words for the line (20261014201000).
+  const refillName = `${medicine.name} · for ${firstName}, refill`;
+  if (!open) {
+    return (
+      <span style={{ display: "block" }}>
+        Helper&apos;s list: {helperRefillLine(supply.store, supply.show_name_to_helper, refillName)}.{" "}
+        <button type="button" className="kin-care-link" onClick={() => setOpen(true)}>
+          Change
+        </button>
+      </span>
+    );
+  }
+  return (
+    <form
+      className="kin-care-form"
+      style={{ marginTop: "0.5rem" }}
+      onSubmit={(e) => {
+        e.preventDefault();
+        run(async () => {
+          const r = await setMedicineHelperLineAction({ medicineId: medicine.id, memberId, ...f });
+          if (!r.error) setOpen(false);
+          return r;
+        }, "Saved");
+      }}
+    >
+      <p className="kin-care-muted" style={{ margin: 0 }}>
+        When it runs low, the helper&apos;s To-Buy list shows &ldquo;Medicine refill&rdquo; and not its name; the family&apos;s own list always names it.
+      </p>
+      <label className="kin-care-label">
+        Usually bought at
+        <input className="input" placeholder="e.g. Mercury Drug" maxLength={STORE_MAX} value={f.store} onChange={(e) => setF({ ...f, store: e.target.value })} />
+      </label>
+      <label style={{ display: "flex", alignItems: "center", gap: "0.5rem", fontSize: "0.875rem", minHeight: "2.75rem" }}>
+        <input type="checkbox" checked={f.showName} onChange={(e) => setF({ ...f, showName: e.target.checked })} />
+        Show its name to the helper
+      </label>
+      <div style={{ display: "flex", gap: "0.5rem" }}>
         <button type="button" className="btn btn-secondary" style={{ flex: 1 }} onClick={() => setOpen(false)}>
           Cancel
         </button>
