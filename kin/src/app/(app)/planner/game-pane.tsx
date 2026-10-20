@@ -283,7 +283,9 @@ function SetupView({ game }: { game: GameView }) {
           <SampleGameButton />
         </div>
       )}
-      <GameGoalForm people={game.players.map((p) => ({ id: p.id, label: p.name.split(" ")[0] }))} />
+      <div style={{ marginBottom: "1rem" }}>
+        <GameGoalForm people={game.players.map((p) => ({ id: p.id, label: p.name.split(" ")[0] }))} />
+      </div>
       <Section title={`Game goals · ${all.length}`}>
         {all.length === 0 && <Empty text="None yet." />}
         {all.map(({ g, who }) => (

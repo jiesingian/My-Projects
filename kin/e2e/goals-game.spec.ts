@@ -25,6 +25,7 @@ for (const v of VIEWS) {
 
 test("the ordinary Goals view keeps its switch to the game", async ({ page }) => {
   await page.goto("/planner?seg=goals");
-  await expect(page.getByRole("link", { name: "Goals", exact: true })).toBeVisible();
+  // Planner's own "Goals" tab and the switch's: both lead here.
+  await expect(page.locator('a[href="/planner?seg=goals&g=goals"]')).toBeVisible();
   await expect(page.getByRole("link", { name: "🎮 Game" })).toBeVisible();
 });
