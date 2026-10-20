@@ -2697,6 +2697,7 @@ export type Database = {
           invite_code: string
           name: string
           remember_the_departed: boolean
+          christmas_on_today: boolean
           share_with_relatives: boolean
           time_zone: string
           week_start: string
@@ -2721,6 +2722,7 @@ export type Database = {
           invite_code: string
           name: string
           remember_the_departed?: boolean
+          christmas_on_today?: boolean
           share_with_relatives?: boolean
           time_zone?: string
           week_start?: string
@@ -2745,6 +2747,7 @@ export type Database = {
           invite_code?: string
           name?: string
           remember_the_departed?: boolean
+          christmas_on_today?: boolean
           share_with_relatives?: boolean
           time_zone?: string
           week_start?: string
