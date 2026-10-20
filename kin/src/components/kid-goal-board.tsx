@@ -67,7 +67,7 @@ export function KidGoalBoard({ name, goals }: { name: string; goals: KidBoardGoa
   return (
     <div className="kin-kid-board" aria-label={`${name}'s goals`}>
       <div className="kin-kid-board-head">
-        <span>{showing.length === 0 ? `${name} did everything today! 🎉` : `${name}'s goals`}</span>
+        <span>{showing.length === 0 ? `${name} did everything today! 🎉` : "Tap a picture when it’s done"}</span>
         <button type="button" className="kin-kid-mute" onClick={toggleMute} aria-pressed={muted} aria-label={muted ? "Turn sounds on" : "Turn sounds off"}>
           {muted ? "🔇" : "🔊"}
         </button>
