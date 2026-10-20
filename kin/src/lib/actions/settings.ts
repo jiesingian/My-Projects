@@ -162,6 +162,19 @@ export async function updateRememberTheDepartedAction(on: boolean): Promise<Acti
   return { error: error ? humanDatabaseError(error.message) : null };
 }
 
+/** Christmas on Today (20261020212000): the household's switch for the
+ * countdown, the Noche Buena plan and the gift lists on Today from 1
+ * December to 1 January. The organizer's, like the Undas switch. */
+export async function updateChristmasOnTodayAction(on: boolean): Promise<ActionState> {
+  const me = await requireCurrentMember();
+  if (!me.is_organiser) return { error: "Only the organizer can change this for the household." };
+  const supabase = await createClient();
+  const { error } = await supabase.from("families").update({ christmas_on_today: on === true }).eq("id", me.family_id);
+  revalidatePath("/settings", "layout");
+  revalidatePath("/today");
+  return { error: error ? humanDatabaseError(error.message) : null };
+}
+
 /** Kid view on or off for one child with a login of their own (K1). Only a
  * grown-up asks; the database refuses anyone else too (members_guard_kid_view),
  * so this check is for a clear message, not the protection. */
