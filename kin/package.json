@@ -14,7 +14,8 @@
     "check:schema": "node scripts/check-schema.mjs",
     "e2e:ui": "playwright test --ui",
     "test:logic": "playwright test --project=logic",
-    "test:rls": "node supabase/tests/pglite/run.mjs"
+    "test:rls": "node supabase/tests/pglite/run.mjs",
+    "bundle:baseline": "npm run build && node scripts/bundle-budget.mjs --write"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.123.0",
@@ -24,10 +25,11 @@
     "@visx/group": "4.0.0",
     "@visx/scale": "4.0.0",
     "@visx/shape": "4.0.0",
-    "next": "16.3.4",
+    "next": "16.4.2",
+    "pdfjs-dist": "^4.10.38",
     "qrcode-generator": "2.0.4",
-    "react": "19.2.8",
-    "react-dom": "19.2.8",
+    "react": "19.3.1",
+    "react-dom": "19.3.1",
     "vaul": "1.1.2",
     "web-push": "^3.6.7"
   },
@@ -41,7 +43,7 @@
     "@types/react-dom": "^19",
     "@types/web-push": "^3.6.4",
     "eslint": "^9",
-    "eslint-config-next": "16.3.4",
+    "eslint-config-next": "16.4.2",
     "tailwindcss": "^4",
     "typescript": "^5"
   }

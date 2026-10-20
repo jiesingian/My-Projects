@@ -133,21 +133,39 @@ Safe: nothing is deleted; switching it back on undoes it.
 
 ---
 
-## 4. Scanning a flyer or invitation (Planner → Add)
+## 4. Kin AI: Ask Kin, scanning a flyer, and the rest (one key)
 
-**What it switches on.** Planner → Add → *Scan a flyer or invitation*: take
-or choose a photo of a school memo, an invite or a poster, and Kin reads the
-dates off it and offers them as calendar entries to tick. It reads the photo
-with Claude (`src/lib/actions/flyer.ts`). Until the key below exists the card
-just says scanning isn't switched on, and nothing is sent anywhere.
+**What it switches on.** Everything in Kin that reads with Claude, all on
+the one key:
 
-**What it costs.** Roughly US$0.02–0.06 a scan (a phone photo shrunk to
-1600px, read by Claude Opus 5 at medium effort) -- a few pesos. A monthly
-spend limit caps it; US$5 is hundreds of scans.
+- **Ask Kin** (the sparkle button on every page): questions and additions
+  in Taglish or English, and since 20 October the 2 a.m. question -- "Ano
+  ang allergy ni Lia?", "Anong gamot ni Lolo?" -- answered for grown-ups
+  from Health (`src/lib/assistant/tools.ts`, `get_health`).
+- **Planner → Add → *Scan a flyer or invitation***: a photo of a school memo,
+  an invite or a poster, read for dates and offered as calendar entries to
+  tick (`src/lib/actions/flyer.ts`).
+- The Kin Plus features built on the same path (receipt and e-wallet
+  scans, the chat summary, Send it to Kin), as each lands.
 
-**Safe to do.** Only the one photo being scanned is sent, and nothing is
-saved until someone ticks what to add. Deleting the key switches scanning
-off again.
+Until the key exists every one of them is visible and says *Kin AI isn't
+switched on yet*; nothing is sent anywhere.
+
+**What it costs.** Every Kin AI call uses **Claude Haiku 4.5**
+(`src/lib/kin-ai.ts`, one model name for the whole app; Jonathan, 30
+September and 20 October). At US$1 per million words in and US$5 out, a
+question is well under a centavo and a photo scan is about US$0.005–0.01:
+roughly a tenth of what Opus cost. **Set a monthly spend cap** in the
+Console (step 3): US$5 a month is thousands of questions and scans, and
+when it is reached Kin AI says it couldn't be reached until the 1st rather
+than spending more. Kin Free households are also held to five questions or
+scans a month by Kin itself (`use_kin_ai()`); Plus is unlimited.
+
+**Safe to do.** Only the one question, with the records Kin looked up to
+answer it, or the one photo being scanned is sent, and nothing is saved
+until someone ticks what to add. Every screen that sends family records
+says so in one line, and that Kin never trains AI on them. Deleting the
+key switches all of it off again.
 
 1. Open the [Claude Console](https://console.anthropic.com/) and sign in (or
    sign up) with the account that should be billed.
@@ -156,11 +174,12 @@ off again.
 3. [Limits](https://console.anthropic.com/settings/limits): set a monthly
    spend limit, e.g. US$5.
 4. [API keys](https://console.anthropic.com/settings/keys) → **Create key**,
-   name it `kin-flyer-scan`, copy it (it is shown once).
+   name it `kin-ai`, copy it (it is shown once).
 5. In [Vercel → Environment Variables](https://vercel.com/jisingian/kin-family-app/settings/environment-variables)
    add `ANTHROPIC_API_KEY` = the key, Environment **Production** (and Preview
    if you want scans on preview links), Sensitive on, Save.
-6. **Redeploy** as in 1.3. The card then shows *Take or choose a photo*.
+6. **Redeploy** as in 1.3. The flyer card then shows *Take or choose a
+   photo*, and Ask Kin answers.
 
 ---
 

@@ -20,6 +20,18 @@ import { readShopping } from "@/lib/quick-line";
  * the same item limit (add_to_list_by_link) without trusting this file. */
 export const LIST_ADD_MAX_ITEMS = 20;
 export const LIST_ADD_MAX_CHARS = 500;
+/** The most the Shortcut's request body may be, in bytes: room for the JSON
+ * or form around the words, which are held to LIST_ADD_MAX_CHARS. */
+export const LIST_ADD_MAX_BODY_BYTES = LIST_ADD_MAX_CHARS * 4;
+
+/** Is the request too big to read at all? Decided from the Content-Length
+ * the sender declared, before the body is read; a sender that declares
+ * nothing is read up to the limit and cut off there (readBodyUpTo). */
+export function declaredTooLarge(contentLength: string | null, max = LIST_ADD_MAX_BODY_BYTES): boolean {
+  if (contentLength === null) return false;
+  const n = Number(contentLength.trim());
+  return Number.isFinite(n) && n > max;
+}
 
 export type ListAddItem = { name: string; quantity: number | null; unit: string | null; section: string };
 

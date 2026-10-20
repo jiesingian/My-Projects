@@ -56,8 +56,9 @@ export async function removeVisitQuestionAction(memberId: string, id: string): P
   const { ok } = await allowed(memberId);
   if (!ok) return { error: "Only a grown-up, or the person themself, can remove these." };
   const supabase = await createClient();
-  const { error } = await supabase.from("health_visit_questions").delete().eq("id", id).eq("member_id", memberId);
-  if (error) return { error: humanDatabaseError(error.message) };
+  const { data, error } = await supabase.from("health_visit_questions").delete().eq("id", id).eq("member_id", memberId).select("id");
   refresh(memberId);
+  if (error) return { error: humanDatabaseError(error.message) };
+  if (!data?.length) return { error: "That question was already removed." };
   return { error: null };
 }
