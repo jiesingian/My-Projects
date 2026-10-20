@@ -104,8 +104,14 @@ new debt, compared with `main`, so no other session's PR goes red for it.
   than 10% or 25 KB fails `ci.yml`, a new route is only reported, and the
   numbers are posted on the PR only when a route moved by a kilobyte or
   more. `npm run bundle:baseline` refreshes the baseline on purpose.
-- **Phone-width screenshots compared with main:** Today, Chat, Planner,
-  To-Buy, Wealth at 390px, Simple Kin off and on; warn-only for a week.
+- **Done: phone-width screenshots compared with main.** `e2e/visual.spec.ts`
+  shoots Today, Chat, Planner, To-Buy and Wealth at 390px, Simple Kin off
+  and on, inside the e2e job after the smoke run, and compares each with
+  main's last run (the `visual-baseline` artifact). A screen that differs by
+  more than 3% of its pixels is shown before/after on the PR
+  (`ci-screenshots` branch, `kin/scripts/visual-comment.sh`). **Warn-only
+  until 27 October 2026:** on that day delete the `VISUAL_WARN_ONLY` line in
+  `e2e.yml`.
 - **Done: safe dependency updates.** Patch and minor only, lockfile by npm:
   Next 16.4.2 (its critical advisory), React 19.3.1, supabase-js 2.118,
   Playwright 1.64, pglite 0.5.10 and the rest. `npm audit` 9 → 5; the 5

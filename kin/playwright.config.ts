@@ -107,6 +107,11 @@ export default defineConfig({
   timeout: 60_000,
   expect: { timeout: 15_000 },
   reporter: process.env.CI ? [["list"], ["html", { open: "never" }]] : [["list"]],
+  // Only visual.spec.ts compares pictures. Its baseline is main's screenshots,
+  // downloaded by e2e.yml into e2e/visual-baseline/ (gitignored) -- one flat
+  // folder, no platform suffix, so the file a run uploads is the file the
+  // next run compares with.
+  snapshotPathTemplate: "{testDir}/visual-baseline/{arg}{ext}",
   use: {
     baseURL,
     launchOptions: executablePath ? { executablePath } : undefined,
