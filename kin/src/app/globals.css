@@ -5639,6 +5639,13 @@ button.kin-initial:focus-visible {
 .kin-sos-facts > div[data-alert] dd {
   color: #d13438;
 }
+/* How much of the card is filled in; sits under the facts, inside the card. */
+.kin-sos-filled {
+  margin: 0;
+  padding: 0.625rem 1rem 0.25rem;
+  font-size: 0.8125rem;
+  color: var(--color-neutral-600);
+}
 .kin-sos-calls {
   padding: 0.75rem 1rem 1rem;
 }

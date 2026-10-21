@@ -239,32 +239,44 @@ async function HealthPane({ familyId }: { familyId: string }) {
         )}
       </Blueprint>
       {rows.map(({ member, nextDue, hasAlert }) => (
-        <Link key={member.id} href={`/family/members/${member.id}?view=health`} style={{ color: "inherit", textDecoration: "none" }}>
-          <Blueprint style={{ padding: "0.8125rem", marginBottom: "0.75rem" }}>
-            <div style={{ display: "flex", flexWrap: "wrap", alignItems: "baseline", gap: "0.375rem 0.5rem", marginBottom: "0.5rem" }}>
-              <span style={{ font: "600 1.1875rem/1 var(--font-heading)" }}>{member.full_name.split(" ")[0]}</span>
-              <Tag variant={hasAlert ? "accent" : "neutral"} className="ml-auto">
-                {nextDue}
-              </Tag>
-            </div>
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 9rem), 1fr))", gap: "0.4375rem 0.875rem", fontSize: "0.8125rem" }}>
-              <Fact k="Blood type" v={member.blood_type} />
-              <Fact k="Allergies" v={member.allergies} />
-              <Fact k="Insurance" v={member.insurance_info} />
-              <Fact k="Physician" v={member.physician_name} />
-            </div>
-          </Blueprint>
-        </Link>
+        /* The name and the due tag open the health page; each empty fact
+           opens the About tab where it is filled in. The card itself is no
+           longer one link, so the two can sit side by side. */
+        <Blueprint key={member.id} style={{ padding: "0.8125rem", marginBottom: "0.75rem" }}>
+          <Link href={`/family/members/${member.id}?view=health`} style={{ color: "inherit", textDecoration: "none", display: "flex", flexWrap: "wrap", alignItems: "baseline", gap: "0.375rem 0.5rem", marginBottom: "0.5rem" }}>
+            <span style={{ font: "600 1.1875rem/1 var(--font-heading)" }}>{member.full_name.split(" ")[0]}</span>
+            <Tag variant={hasAlert ? "accent" : "neutral"} className="ml-auto">
+              {nextDue}
+            </Tag>
+          </Link>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 9rem), 1fr))", gap: "0.4375rem 0.875rem", fontSize: "0.8125rem" }}>
+            <Fact k="Blood type" v={member.blood_type} addHref={`/family/members/${member.id}?tab=about`} />
+            <Fact k="Allergies" v={member.allergies} addHref={`/family/members/${member.id}?tab=about`} />
+            <Fact k="Insurance" v={member.insurance_info} addHref={`/family/members/${member.id}?tab=about`} />
+            <Fact k="Physician" v={member.physician_name} addHref={`/family/members/${member.id}?tab=about`} />
+          </div>
+        </Blueprint>
       ))}
     </>
   );
 }
 
-function Fact({ k, v }: { k: string; v: string | null }) {
+/** `addHref`: where an empty fact is filled in. "Not recorded" used to be
+ * plain text three screens from the field it named (21 October audit); now
+ * it is the way there. */
+function Fact({ k, v, addHref }: { k: string; v: string | null; addHref?: string }) {
   return (
     <div>
       <span style={{ color: "var(--color-neutral-600)", fontSize: "0.8125rem", display: "block" }}>{k}</span>
-      <span style={{ color: v ? "var(--color-text)" : "var(--color-neutral-500)" }}>{v || "Not recorded"}</span>
+      {v ? (
+        <span style={{ color: "var(--color-text)" }}>{v}</span>
+      ) : addHref ? (
+        <Link href={addHref} style={{ color: "var(--color-accent-700)" }} aria-label={`Add ${k.toLowerCase()}`}>
+          Not recorded · add
+        </Link>
+      ) : (
+        <span style={{ color: "var(--color-neutral-500)" }}>Not recorded</span>
+      )}
     </div>
   );
 }
