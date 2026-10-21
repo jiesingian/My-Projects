@@ -269,9 +269,16 @@ new debt, compared with `main`, so no other session's PR goes red for it.
   and on, inside the e2e job after the smoke run, and compares each with
   main's last run (the `visual-baseline` artifact). A screen that differs by
   more than 3% of its pixels is shown before/after on the PR
-  (`ci-screenshots` branch, `kin/scripts/visual-comment.sh`). **Warn-only
-  until 27 October 2026:** on that day delete the `VISUAL_WARN_ONLY` line in
-  `e2e.yml`.
+  (`ci-screenshots` branch, `kin/scripts/visual-comment.sh`). **Clock
+  frozen (21 October):** the warn-only days counted 4 warnings in 35 PR runs,
+  1 real (#814's Today offer card) and 3 the clock (main's baseline from an
+  earlier Manila day or time of day: the date, Planner's Today list, Today's
+  "This evening" card), 5-9% of pixels against the real one's 6%, so no
+  threshold separates them. The server now runs under libfaketime from the
+  last 06:00 Manila and the browser's Date is fixed to it; only a baseline
+  from the same frozen moment is compared. **Next:** once main has a frozen
+  baseline, a second PR deletes `VISUAL_WARN_ONLY` (Jonathan moved this up
+  from 27 October).
 - **Done: safe dependency updates.** Patch and minor only, lockfile by npm:
   Next 16.4.2 (its critical advisory), React 19.3.1, supabase-js 2.118,
   Playwright 1.64, pglite 0.5.10 and the rest. `npm audit` 9 → 5; the 5

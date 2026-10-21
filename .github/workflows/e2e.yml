@@ -267,6 +267,13 @@ jobs:
       #     ON 27 OCTOBER 2026, DELETE THE `VISUAL_WARN_ONLY` LINE BELOW and
       #     a screen that differs from main by more than the threshold fails
       #     this job. Until then it is written down and shown, nothing more.
+      #   - THE CLOCK IS FROZEN (21 October). The warn-only days counted 4
+      #     warnings in 35 pull-request runs, 3 of them the clock: main's
+      #     picture from an earlier Manila day or time of day. The server runs
+      #     under libfaketime from VISUAL_FROZEN_AT, the last 06:00 in Manila,
+      #     and only a baseline from that same moment is compared (the spec
+      #     has the details). Main idle since before 06:00: nothing to compare
+      #     with until main's next run.
       #   - The baseline is an artifact, not a file in the repository: main's
       #     run (automerge.yml dispatches this workflow on main after each
       #     merge) uploads `visual-baseline`; a pull request's run downloads
@@ -285,6 +292,18 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           REPO: ${{ github.repository }}
         run: bash scripts/visual-baseline.sh
+
+      # The last 06:00 in Manila (22:00 UTC), for every run that day, main's
+      # and pull requests' alike. Behind real time, never ahead: a session
+      # token minted now must not look expired to the frozen server. 06:00
+      # is the quietest hour to have the day turn over.
+      - name: Freeze the clock for the screenshots
+        if: ${{ !inputs.base_url }}
+        run: |
+          (sudo apt-get install -y -q faketime >/dev/null 2>&1 || (sudo apt-get update -q >/dev/null && sudo apt-get install -y -q faketime >/dev/null)) && command -v faketime
+          if [ "$(date -u +%H)" -ge 22 ]; then day=$(date -u +%F); else day=$(date -u -d yesterday +%F); fi
+          echo "VISUAL_FROZEN_AT=$day 22:00:00" >> "$GITHUB_ENV"
+          echo "Screenshots at $day 22:00 UTC (06:00 the next morning in Manila)."
 
       - name: Phone-width screenshots (five screens, Simple Kin off and on)
         if: ${{ !inputs.base_url }}
@@ -308,6 +327,7 @@ jobs:
           name: visual-baseline
           path: |
             kin/visual-out/*.png
+            kin/visual-out/frozen-at.txt
             !kin/visual-out/*-diff.png
           retention-days: 30
 
