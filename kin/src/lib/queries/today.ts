@@ -10,6 +10,8 @@ import { DEFAULT_BILL_REMIND_DAYS } from "@/lib/wealth";
 import { occurrenceStarts } from "@/lib/activity-repeat";
 import { remembranceItems, type Departed } from "@/lib/remembrance";
 import { getRelativesPotlucks } from "@/lib/queries/potluck";
+import { isGrownUp } from "@/lib/roles";
+import { isGone } from "@/lib/member-status";
 
 /** Tasks that start in [fromISO, …), or repeating ones that have not ended
  * by `fromDay` -- a weekly task's later days are on its rule, not its row
@@ -392,7 +394,7 @@ export async function getComingUp(familyId: string, currency: string, me: Viewer
   const dayIndex = new Map<string, number>();
   for (let i = 1; i <= 7; i++) dayIndex.set(addDays(today, i).slice(5), i);
 
-  const [events, bills, health, tasks, meals, departed, potlucks] = await Promise.all([
+  const [events, bills, health, tasks, meals, departed, potlucks, members] = await Promise.all([
     supabase
       .from("events")
       .select("id, title, kind, event_date, recurs_yearly, applies_to_whole_family, event_members(member_id, members(role))")
@@ -432,9 +434,36 @@ export async function getComingUp(familyId: string, currency: string, me: Viewer
       .eq("plan_date", tomorrow),
     departedOnTree(supabase, familyId),
     getRelativesPotlucks(),
+    supabase.from("members").select("id, full_name, dob, role, status").eq("family_id", familyId),
   ]);
 
   const items: BriefItem[] = [];
+
+  // A managed child turning 13: "children graduate to their own login at
+  // 13" (Family tab), but nothing said when (21 October audit). The week
+  // before, and for a month after while they are still managed, the
+  // grown-ups see it here; the invite code is on Settings -> Household.
+  if (isGrownUp(me.role)) {
+    for (const m of members.data ?? []) {
+      if (m.role !== "child_managed" || !m.dob || m.status === "pending" || isGone(m.status)) continue;
+      const thirteenth = `${Number(m.dob.slice(0, 4)) + 13}${m.dob.slice(4)}`;
+      const inDays = Math.round((Date.parse(thirteenth) - Date.parse(today)) / 86_400_000);
+      if (!Number.isFinite(inDays) || inDays > 7 || inDays < -30) continue;
+      const first = m.full_name.split(" ")[0];
+      const when = inDays <= 0 ? "Turned 13" : `Turns 13 ${inDays === 1 ? "tomorrow" : `on ${weekdayOf(addDays(today, inDays))}`}`;
+      items.push({
+        id: `soon-login-${m.id}`,
+        icon: "users",
+        tint: "occasion",
+        title: `${first} can have a login of their own`,
+        meta: `${when} · share the invite code and they sign up themselves`,
+        href: "/settings/household",
+        at: Math.max(inDays, 0.5),
+        whose: "family",
+        memberIds: [m.id],
+      });
+    }
+  }
 
   // A linked household's potluck this week that still needs things
   // (20261019233100): the family's, like a whole-family plan.
