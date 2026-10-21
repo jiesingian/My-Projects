@@ -8,6 +8,9 @@ import { DeleteAccountButton } from "@/components/delete-account-button";
 import { ExportData } from "@/components/export-data";
 import { isGrownUp } from "@/lib/roles";
 import { inKidView } from "@/lib/kid-view";
+import { planSentence, deletionDay, type HandoverPlan } from "@/lib/account-deletion";
+import { pendingDeletion } from "@/lib/account-deletion-server";
+import { keepAccountAction } from "@/lib/actions/account-deletion";
 
 /** The email you sign in with, signing out, and deleting your account -- the
  * Account group of the old single Settings page. */
@@ -16,10 +19,15 @@ export default async function AccountSettingsPage() {
   if (!me) redirect("/onboarding/profile");
 
   const supabase = await createClient();
-  const [authUser, { count: otherActiveCount }] = await Promise.all([
-    getSessionUser(),
-    supabase.from("members").select("id", { count: "exact", head: true }).eq("family_id", me.family_id).in("status", ["active", "managed"]).neq("id", me.id),
-  ]);
+  const [authUser, { data: planData }, deleteAfter] = await Promise.all([getSessionUser(), supabase.rpc("my_account_deletion_plan"), pendingDeletion(supabase)]);
+  // What deleting this account would do to the household, said before asking.
+  const plan = (planData ?? { kind: "none" }) as HandoverPlan;
+  const toName =
+    plan.kind === "handover" ? (await supabase.from("members").select("full_name").eq("id", plan.to_member).maybeSingle()).data?.full_name : null;
+  const keep = async () => {
+    "use server";
+    await keepAccountAction();
+  };
 
   return (
     <div>
@@ -34,10 +42,22 @@ export default async function AccountSettingsPage() {
             Sign out
           </button>
         </form>
-        {/* Grown-ups only; the action refuses anyone else as well. */}
-        {isGrownUp(me.role) && !inKidView(me) && <ExportData />}
+        {/* Anyone signed in as themselves; a child gets only their own part
+            (lib/actions/export.ts). Never in kid view. */}
+        {!inKidView(me) && me.role !== "child_managed" && <ExportData grownUp={isGrownUp(me.role)} />}
         <div style={{ marginTop: "0.75rem" }}>
-          <DeleteAccountButton isSoleMember={(otherActiveCount ?? 0) === 0} />
+          {deleteAfter ? (
+            <form action={keep} style={{ border: "1px solid var(--color-accent-700)", padding: "0.875rem" }}>
+              <p style={{ fontSize: "0.875rem", lineHeight: 1.5, margin: "0 0 10px" }}>
+                Your account will be deleted on <strong>{deletionDay(deleteAfter)}</strong>. Nothing has been removed yet.
+              </p>
+              <button type="submit" className="btn btn-primary btn-block" style={{ minHeight: "2.625rem" }}>
+                Keep my account
+              </button>
+            </form>
+          ) : (
+            <DeleteAccountButton householdNote={planSentence(plan, toName)} />
+          )}
         </div>
         <nav aria-label="Legal" style={{ display: "flex", justifyContent: "center", gap: "1.25rem", marginTop: "1.25rem", fontSize: "0.84375rem" }}>
           <Link href="/legal/privacy">Privacy</Link>

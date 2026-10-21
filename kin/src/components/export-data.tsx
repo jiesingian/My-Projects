@@ -10,7 +10,7 @@ import { exportMyDataAction, type ExportResult } from "@/lib/actions/export";
  * door like the vault's: nothing is read until the password is typed and
  * the server has checked it (actions/export.ts). The file is handed to the
  * browser to save; nothing is kept anywhere else. */
-export function ExportData() {
+export function ExportData({ grownUp = true }: { grownUp?: boolean }) {
   const [state, action] = useActionState<ExportResult, FormData>(exportMyDataAction, { error: null });
   const form = useRef<HTMLFormElement>(null);
   const uid = useId();
@@ -37,8 +37,9 @@ export function ExportData() {
         <div style={{ minWidth: 0, flex: 1 }}>
           <h3 style={{ font: "600 1.125rem/1.2 var(--font-heading)", margin: 0 }}>Download my data</h3>
           <p style={{ fontSize: "0.84375rem", lineHeight: 1.45, color: "var(--color-neutral-700)", margin: "0.25rem 0 0.75rem" }}>
-            Everything you can see in Kin, as spreadsheets in one ZIP file. It holds your family&rsquo;s health and money
-            records, so enter your password first. Vault passwords are not included.
+            {grownUp
+              ? "Everything you can see in Kin as spreadsheets, and the files you uploaded, in one ZIP. It holds your family\u2019s health and money records, so enter your password first. Vault passwords are not included."
+              : "What you wrote and the files you uploaded, in one ZIP. Enter your password first."}
           </p>
         </div>
       </div>

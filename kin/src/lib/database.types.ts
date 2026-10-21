@@ -8924,6 +8924,12 @@ export type Database = {
       clear_send_to_kin_token: { Args: never; Returns: undefined }
       send_to_kin_link_on: { Args: never; Returns: boolean }
       send_to_kin_by_link: { Args: { p_token_hash: string; p_mime: string; p_data_base64: string }; Returns: Json }
+      request_account_deletion: { Args: never; Returns: Json }
+      cancel_account_deletion: { Args: never; Returns: boolean }
+      my_account_deletion_plan: { Args: never; Returns: Json }
+      due_account_deletions: { Args: never; Returns: string[] }
+      finalize_account_deletion: { Args: { p_user: string }; Returns: Json }
+      delete_household_for_account_deletion: { Args: { p_family: string }; Returns: string[] }
       sweep_sent_screenshots: { Args: never; Returns: undefined }
       log_app_error: { Args: { p_fingerprint: string; p_kind: string; p_route: string; p_message: string; p_version: string }; Returns: undefined }
       app_error_digest: {

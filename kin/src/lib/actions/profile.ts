@@ -1,9 +1,7 @@
 "use server";
 
-import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
-import { createAdminClient } from "@/lib/supabase/admin";
 import { requireCurrentMember } from "@/lib/session";
 import { getValidDriveAccessToken, deleteDriveFile } from "@/lib/google-drive";
 import { resolvePhotoUrl } from "@/lib/photo-url";
@@ -178,33 +176,6 @@ export async function transferOrganiserRoleAction(newOrganiserMemberId: string):
   revalidatePath("/family");
   revalidatePath("/settings", "layout");
   return { error: error ? humanDatabaseError(error.message) : null };
-}
-
-/** Deletes the caller's own account — removes their household membership
- * (or the whole household, if they're its sole member) and then deletes
- * their Supabase Auth user entirely via the admin client, so they can't
- * sign back in. */
-export async function deleteOwnAccountAction(): Promise<ActionState> {
-  const me = await requireCurrentMember();
-  const supabase = await createClient();
-
-  const { error } = await supabase.rpc("leave_household_self");
-  if (error) return { error: humanDatabaseError(error.message) };
-
-  if (me.auth_user_id) {
-    const admin = createAdminClient();
-    // They have left the household; a login left behind cannot reach anything,
-    // but it does keep the address claimed.
-    if (admin) {
-      await admin.auth.admin
-        .deleteUser(me.auth_user_id)
-        .catch((err) => console.error(`Login ${me.auth_user_id} was left behind after the account was deleted`, err));
-    }
-  }
-
-  const { error: signOutError } = await supabase.auth.signOut();
-  if (signOutError) console.error("Sign out did not complete", signOutError.message);
-  redirect("/login");
 }
 
 /** Your own colour, or a managed child's. Nothing else about the member row

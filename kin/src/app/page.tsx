@@ -2,6 +2,8 @@ import { redirect } from "next/navigation";
 import { getCurrentMember, getSessionUser } from "@/lib/session";
 import { Welcome } from "@/components/welcome/welcome";
 import { paletteCss } from "@/lib/palettes";
+import { createClient } from "@/lib/supabase/server";
+import { pendingDeletion } from "@/lib/account-deletion-server";
 
 export const metadata = {
   title: "Kin: Family Life, Decoded",
@@ -24,6 +26,9 @@ export default async function RootPage({ searchParams }: { searchParams: Promise
       </>
     );
   }
+
+  // Signing in while the account waits to be deleted: offer to keep it.
+  if (await pendingDeletion(await createClient())) redirect("/keep-account");
 
   const member = await getCurrentMember();
   if (!member) redirect("/onboarding/profile");
