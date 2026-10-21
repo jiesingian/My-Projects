@@ -1,3 +1,4 @@
+import { pendingDeletion } from "@/lib/account-deletion-server";
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 
@@ -30,6 +31,7 @@ export async function GET(request: Request) {
         data: { user },
       } = await supabase.auth.getUser();
       if (user) {
+        if (await pendingDeletion(supabase)) return NextResponse.redirect(new URL("/keep-account", request.url));
         if (next) return NextResponse.redirect(new URL(next, request.url));
         const { data: member } = await supabase
           .from("members")

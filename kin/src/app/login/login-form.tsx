@@ -12,7 +12,7 @@ const CALLBACK_ERROR_MESSAGES: Record<string, string> = {
   confirmation_failed: "That confirmation link didn't work — it may have expired. Try signing in, or request a new one from the sign-up page.",
 };
 
-export function LoginForm({ callbackError }: { callbackError?: string }) {
+export function LoginForm({ callbackError, deleting }: { callbackError?: string; deleting?: boolean }) {
   const [state, formAction] = useActionState(signIn, initialState);
   const uid = useId();
 
@@ -20,6 +20,11 @@ export function LoginForm({ callbackError }: { callbackError?: string }) {
     <OnboardingShell>
       <Wordmark />
       <h2 style={{ fontSize: "2rem", margin: "30px 0 20px" }}>Welcome back</h2>
+      {deleting && (
+        <p role="status" style={{ fontSize: "0.875rem", lineHeight: 1.5, margin: "0 0 1rem" }}>
+          Your account will be deleted in 7 days. Changed your mind? Sign in before then and choose <strong>Keep my account</strong>.
+        </p>
+      )}
       {callbackError && <ErrorText message={CALLBACK_ERROR_MESSAGES[callbackError] ?? "Something went wrong — please try again."} />}
       <form action={formAction}>
         <ErrorText message={state.error} />

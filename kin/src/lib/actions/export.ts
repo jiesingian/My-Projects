@@ -7,6 +7,7 @@ import { isGrownUp } from "@/lib/roles";
 import { inKidView } from "@/lib/kid-view";
 import { buildZip } from "@/lib/export/zip";
 import { toCsv, withoutSecrets } from "@/lib/export/csv";
+import { myData } from "@/lib/export/my-files";
 
 /** "Download my data" (approved by Jonathan, 28 September): the household's
  * records as a ZIP of spreadsheets, after the member types their password.
@@ -20,8 +21,12 @@ import { toCsv, withoutSecrets } from "@/lib/export/csv";
  *   including the "just me" and grown-ups-only records they are allowed,
  *   and nothing else.
  * - Vault secrets, tokens, hashes and billing ids are withheld
- *   (csv.ts, withoutSecrets). Photos and files are listed by name and path;
- *   the files themselves stay in Kin or the family's Google Drive.
+ *   (csv.ts, withoutSecrets). The household's photos and files are listed
+ *   by name and path; the files stay in Kin or the family's Google Drive.
+ * - Since 21 October, a mine/ folder for everyone who signs in themselves,
+ *   a child with their own login included: what they own or wrote, and
+ *   their own files themselves (lib/export/my-files.ts). A child gets only
+ *   that part; the household's records stay for grown-ups.
  *
  * This is the Data Privacy Act's right to a copy of one's data, which the
  * privacy notice (/legal/privacy) promises. */
@@ -87,7 +92,8 @@ export type ExportResult = { error: string | null; filename?: string; base64?: s
 
 export async function exportMyDataAction(_prev: unknown, formData: FormData): Promise<ExportResult> {
   const me = await requireCurrentMember();
-  if (!isGrownUp(me.role) || inKidView(me)) return { error: "Downloading the household's data is for grown-ups." };
+  if (inKidView(me) || me.role === "child_managed") return { error: "Downloading data is for the person signed in." };
+  const grownUp = isGrownUp(me.role);
 
   const password = String(formData.get("password") ?? "");
   if (!password) return { error: "Enter your password." };
@@ -112,7 +118,7 @@ export async function exportMyDataAction(_prev: unknown, formData: FormData): Pr
   const counts: string[] = [];
 
   const { data: family } = await db.from("families").select("*").eq("id", me.family_id).maybeSingle();
-  if (family) files.push({ name: "household.csv", data: enc.encode(toCsv(withoutSecrets([family]))) });
+  if (family && grownUp) files.push({ name: "household.csv", data: enc.encode(toCsv(withoutSecrets([family]))) });
 
   // A bill paid from, or an income landing in, an account this member
   // cannot see -- someone else's private account -- is not theirs to
@@ -123,7 +129,7 @@ export async function exportMyDataAction(_prev: unknown, formData: FormData): Pr
   const canSee = new Set(((seenAccounts ?? []) as { id: string }[]).map((a) => a.id));
   const tiedTo: Record<string, string> = { bills: "paid_from_account_id", income_schedules: "account_id" };
 
-  for (const [file, table] of SECTIONS) {
+  for (const [file, table] of grownUp ? SECTIONS : []) {
     let rows: Record<string, unknown>[] = [];
     for (let from = 0; from < MAX_ROWS; from += PAGE) {
       const { data, error } = await db.from(table).select("*").eq("family_id", me.family_id).range(from, from + PAGE - 1);
@@ -143,6 +149,10 @@ export async function exportMyDataAction(_prev: unknown, formData: FormData): Pr
     counts.push(`  ${file.padEnd(30)} ${rows.length} row${rows.length === 1 ? "" : "s"}`);
   }
 
+  const mine = await myData(db, me);
+  files.push(...mine.files);
+  counts.push(...mine.counts);
+
   const today = new Date().toISOString().slice(0, 10);
   const readme = [
     `${me.families.name} on Kin`,
@@ -155,8 +165,12 @@ export async function exportMyDataAction(_prev: unknown, formData: FormData): Pr
     "usernames are in vault-passwords-list.csv; open the vault to copy one),",
     "and sign-in keys, tokens and billing ids.",
     "",
-    "Photos and files are listed with their names and where they are kept.",
-    "The files themselves stay in Kin, or on your Google Drive if connected.",
+    "The household's photos and files are listed with their names and where",
+    "they are kept. The files you uploaded yourself, and your personal space's,",
+    "are in mine/files/; what you own or wrote alone is in mine/.",
+    ...(mine.leftOut.length
+      ? ["", `Too large to include (over 25 MB in all), still in Kin: ${mine.leftOut.length} file(s):`, ...mine.leftOut.map((k) => `  ${k}`)]
+      : []),
     "",
     "What is in this download:",
     ...counts,

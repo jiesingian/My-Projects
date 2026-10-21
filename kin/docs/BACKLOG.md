@@ -43,7 +43,36 @@ adding a paid service. Payments (PayMongo) are not part of this.
   checked: that production's QA account is `kin-e2e-qa@example.com` (the
   digest allows that and `kin-dev-qa@`; if not, the section says "not
   read" and the address needs adding in a migration).
-- Delete my account, and download my data.
+- **Done:** Delete my account, and download my data (Settings → Account).
+  **Delete:** the words "delete my account" typed out; the screen says
+  first what happens to the household. Nothing is removed for 7 days; the
+  person is signed out, the login page says how to change their mind, and
+  signing in (root page or the sign-in callback) lands on "Keep my account"
+  (`/keep-account`); the Account page offers it too. Then the daily
+  `kin-account-deletions` job (pg_cron → `/api/cron/account-deletions`,
+  CRON_SECRET, as the reminders) runs `finalize_account_deletion`: their
+  personal space (every `owner_person_id` table), health records about
+  them and their photos, connections, saved/scheduled messages, chat
+  prefs, push subscriptions; their member row is kept but renamed "Former
+  member" and emptied (email, phone, birthday, IDs, sizes…), so shared
+  records (plans, lists, money, chat, DMs to others) keep an author. If they
+  were the last grown-up organizer, the next active grown-up (a parent
+  before an adult, longest in the household first) becomes organizer; with
+  no grown-up left, the household is deleted as Delete household does it
+  (#777's health photo paths, every household folder). Managed children's
+  profiles are never touched by an account deletion, only by that
+  household deletion. The route removes files and the login with the
+  service-role key (as the old immediate delete did). The old immediate
+  delete is gone. **Download:** the existing ZIP gains `mine/`: own profile,
+  personal notes/journal/goals, saved messages, and the files themselves
+  (personal-space folder and what they uploaded), up to 25 MB, the rest
+  listed; a child with their own login can now download that part.
+  Probe: delete-my-account.mjs; spec: e2e/account-deletion.logic.spec.ts.
+  Not checked: the job against a real deletion (dev has no due request;
+  real households are never a test target), and whether Vault's
+  `kin_cron_url`/`kin_cron_secret` and Vercel's `SUPABASE_SERVICE_ROLE_KEY`
+  are set in production; until they are, requests wait and nothing is
+  removed.
 - Consent banner and privacy section for the ad stage, built switched off.
 
 ## Stabilisation pass, 19–20 October (bugs only, no features)
@@ -1693,6 +1722,10 @@ Decided against in the same review: revising Journal (item 6) and Planner
 
 What only Jonathan can check, on his iPhone with Kin on the Home Screen:
 
+- **Delete my account (21 October), with a throwaway account only:** ask to
+  delete it, check you are signed out and the login page says 7 days; sign
+  in again and choose Keep my account. Download my data on the phone and
+  open the ZIP in Files: `mine/files/` should hold your photos.
 - **Error capture (21 October):** with Kin on the Home Screen, open a page
   that breaks (or wait for one); the next Friday's "Errors this week" should
   list it once, with a count, and no name, email or id in it.
