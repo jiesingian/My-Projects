@@ -54,7 +54,7 @@ export async function sendSosAction(position: { lat: number; lng: number; accura
 
   const name = me.full_name.split(" ")[0];
   const notified = grownUps.length
-    ? await sendPush({ kind: "sos", memberIds: grownUps, ...sosWords({ id: data.id, first: name, where: Boolean(where), icon: me.avatar_url }) })
+    ? await sendPush({ kind: "sos", source: data.id, memberIds: grownUps, ...sosWords({ id: data.id, first: name, where: Boolean(where), icon: me.avatar_url }) })
     : 0;
   if (notified > 0) await supabase.rpc("sos_record_notified", { p_id: data.id, p_count: notified });
 
@@ -83,6 +83,7 @@ export async function sosAction(id: string, action: "safe" | "handling"): Promis
   after(() =>
     sendPush({
       kind: "sos",
+      source: id,
       memberIds: reach,
       title: action === "safe" ? `${myName} is safe` : `${myName} is responding`,
       body: action === "safe" ? `${myName} ended their SOS.` : `${myName} is dealing with ${senderName}'s SOS.`,

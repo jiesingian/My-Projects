@@ -5,7 +5,7 @@ export const COMMENT_MAX = 1000;
 
 /** Who hears about a new comment: the people the event is for, or -- a
  * "Whole family" event, or one naming nobody -- the whole household
- * (`undefined`, which push_targets reads as everyone). The writer is never
+ * (`undefined`, which sendPush reads as the whole household). The writer is never
  * among them; push_targets leaves the caller out. */
 export function threadAudience(e: { applies_to_whole_family: boolean }, memberIds: string[]): string[] | undefined {
   return e.applies_to_whole_family || memberIds.length === 0 ? undefined : memberIds;

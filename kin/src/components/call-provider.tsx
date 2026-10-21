@@ -386,7 +386,7 @@ export function CallProvider({ familyId, me, members, children }: { familyId: st
           if (stateRef.current === outgoing) {
             send({ t: "cancel", call: id, from: me });
             end("no-answer");
-            void missedCallAction(to, video);
+            void missedCallAction(to, video, id);
           }
         }, RING_SECONDS * 1000),
       );
@@ -445,7 +445,7 @@ export function CallProvider({ familyId, me, members, children }: { familyId: st
     if (s.phase === "outgoing") {
       send({ t: "cancel", call: s.call, from: me });
       end("cancelled");
-      void missedCallAction(s.peer, s.video);
+      void missedCallAction(s.peer, s.video, s.call);
     } else if (s.phase === "connecting" || s.phase === "active") {
       send({ t: "hangup", call: s.call, from: me });
       end("hung-up");

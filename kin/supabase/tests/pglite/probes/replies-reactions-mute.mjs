@@ -60,10 +60,15 @@ export default async function ({ db, as, check, refused }) {
   });
   await check("Household mute: push_targets('chat') skips Ann for Kid's message", async () => {
     await db.exec(`update members set notification_prefs = '{}' where full_name = 'Kid A'`);
-    const before = (await as(kid, "select endpoint from push_targets('chat')")).map((x) => x.endpoint);
+    // Each push is about one message Kid has just posted (20261021130000).
+    const say = async () => (await db.query(`insert into family_messages (family_id, member_id, body) select family_id, id, 'hi' from members where full_name = 'Kid A' returning id`)).rows[0].id;
+    const ids = (await db.query("select array_agg(id) ids from members where family_id = (select family_id from members where full_name = 'Kid A')")).rows[0].ids;
+    const before = (await as(kid, "select endpoint from push_targets('chat', $1::uuid[], $2)", [ids, await say()])).map((x) => x.endpoint);
     await as(ann, "insert into chat_thread_prefs (person_id, thread, muted) values ($1, 'household', true)", [P("a1")]);
-    const after = (await as(kid, "select endpoint from push_targets('chat')")).map((x) => x.endpoint);
-    const other = (await as(kid, "select endpoint from push_targets('events')")).map((x) => x.endpoint);
+    const after = (await as(kid, "select endpoint from push_targets('chat', $1::uuid[], $2)", [ids, await say()])).map((x) => x.endpoint);
+    await db.exec(`insert into events (family_id) select family_id from members where full_name = 'Kid A'`);
+    const comment = (await db.query(`insert into event_comments (event_id, family_id, member_id, body) select e.id, m.family_id, m.id, 'hi' from members m cross join lateral (select id from events where family_id = m.family_id limit 1) e where m.full_name = 'Kid A' returning id`)).rows[0]?.id;
+    const other = (await as(kid, "select endpoint from push_targets('events', $1::uuid[], $2)", [ids, comment])).map((x) => x.endpoint);
     return (before.includes("https://push/Ann A") && !after.includes("https://push/Ann A") && other.includes("https://push/Ann A")) || { before, after, other };
   });
 }
