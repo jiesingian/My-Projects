@@ -345,7 +345,15 @@ export async function getPublicFeed(personId: string, familyId: string): Promise
     supabase.rpc("my_connections"),
   ]);
   const names = new Map((connections ?? []).filter((c) => c.status === "accepted").map((c) => [c.person_id, c.full_name ?? "Someone"]));
-  const rows = (data ?? []).filter((r) => r.owner_person_id === personId || (r.owner_person_id && names.has(r.owner_person_id)));
+  // The feed is the writer's own, their connections', and those of
+  // households whose tree the viewer is linked on (20261021120000) -- not
+  // every Public row RLS also lets through as a household or linked-household
+  // entry. One question per household, not per entry.
+  const otherFamilies = [...new Set((data ?? []).filter((r) => r.owner_person_id !== personId && !(r.owner_person_id && names.has(r.owner_person_id))).map((r) => r.family_id))];
+  const onTree = new Set(
+    (await Promise.all(otherFamilies.map(async (f) => ((await supabase.rpc("on_family_tree_as_me", { p_family_id: f })).data === true ? f : null)))).filter(Boolean),
+  );
+  const rows = (data ?? []).filter((r) => r.owner_person_id === personId || (r.owner_person_id && names.has(r.owner_person_id)) || onTree.has(r.family_id));
   const [photosOf, videos] = await Promise.all([publicPhotos(rows, familyId), getEntryVideos(rows.map((r) => r.id))]);
   return rows.map((r) => ({
     id: r.id,
@@ -353,7 +361,7 @@ export async function getPublicFeed(personId: string, familyId: string): Promise
     note: r.note,
     entryDate: r.entry_date,
     milestone: r.milestone,
-    author: r.owner_person_id === personId ? "You" : (names.get(r.owner_person_id as string) ?? "Someone"),
+    author: r.owner_person_id === personId ? "You" : (names.get(r.owner_person_id as string) ?? "A relative"),
     mine: r.owner_person_id === personId,
     photos: photosOf(r),
     video: videos.get(r.id) ?? null,

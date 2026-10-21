@@ -35,9 +35,24 @@ the same day.
   the 3-days-before push and Cash Flow. Proposed: when a repeating bill is
   paid (either way), add the next one at its due date unless the household
   already has it.
-- **Decision for Jonathan:** with household grown-ups connected (#824),
-  Journal "Public" entries reach the other grown-up like any connection.
-  Kept that way unless he says otherwise.
+- **Decided and done (Jonathan, 21 October): Journal "Public" entries reach
+  connections only, strictly.** A Public entry reaches the writer's accepted
+  connections (are_connected: mutual and live, the household's other
+  grown-up included, #824) and the linked people on the writer's family tree,
+  nobody else: not a connection's connections, a pending, declined or
+  removed connection, or a stranger. Every read path was audited
+  (20261021120000_journal_public_tree_linked.sql says what each does): the
+  entries' Public policy and entry_public_to_me() (photos, file rows, the
+  journal bucket) were narrower than the rule (no tree-linked person), and
+  now include one; the Public feed shows them, as "A relative" when not also
+  a connection. Every other path (On this day, the week in numbers, digests,
+  the year book, the assistant's search, the Family feed, a relative's
+  moments) reads only the reader's own household or linked households'
+  shared entries; comments and reactions don't follow Public; no push or
+  definer function returns entries. "Tree-linked": on the entry household's
+  tree as the reader's own member row, or matched to it on the reader's
+  household tree while the households are linked. Probe:
+  journal-public-reach.mjs. Not checked: on a phone.
 - **Not built, on purpose:** the grocery section guesser and a visible Who
   chevron (both already existed); starter rewards (#813 reworked that
   shelf); the Privacy & lock wording (Session A).

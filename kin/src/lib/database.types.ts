@@ -8520,6 +8520,10 @@ export type Database = {
         Args: { a: string; b: string }
         Returns: boolean
       }
+      on_family_tree_as_me: {
+        Args: { p_family_id: string }
+        Returns: boolean
+      }
       my_connected_person_ids: {
         Args: never
         Returns: string[]
