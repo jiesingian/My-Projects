@@ -35,8 +35,9 @@ export default async function ConnectionsPage({ searchParams }: { searchParams: 
       <div style={{ padding: "0 var(--gutter) 1.375rem" }}>
         <h2 style={{ fontSize: "1.5rem", margin: "0 0 0.25rem" }}>Connections</h2>
         <p style={{ fontSize: "0.8125rem", lineHeight: 1.45, color: "var(--color-neutral-600)", margin: "0 0 1rem" }}>
-          People you can message one to one, inside your family or outside it. Nobody is connected until they say yes,
-          and either of you can remove it at any time.
+          People you can message one to one, inside your family or outside it. The grown-ups of your own household are
+          connected from the start; everyone else is connected only once they say yes, and either of you can remove it
+          at any time.
         </p>
         <ConnectionsManager
           connections={connections}
