@@ -12,8 +12,7 @@ import { isGrownUp } from "@/lib/roles";
 import { weekStartOf } from "@/lib/week";
 import type { TablesInsert } from "@/lib/database.types";
 import { readAccess } from "@/lib/access";
-import { PACK_FAMILY_GOALS, PACK_GOALS, PACK_REWARDS, PACK_ROLE_LABEL, packGoalsFor, type PackGoal, type PackRole } from "@/lib/family-pack";
-import { DEFAULT_GOAL_COINS, DEFAULT_GOAL_XP, MAX_GOAL_XP, isGameCategory, stepParts, type GameCategory } from "@/lib/game";
+import { DEFAULT_GOAL_COINS, DEFAULT_GOAL_XP, MAX_GOAL_XP, isGameCategory, stepParts } from "@/lib/game";
 
 /** Planner → Goals → Game. The database holds every rule that matters
  * (20261020120000): who may tap for whom, only today, only a grown-up sets
@@ -100,6 +99,10 @@ async function helpsFor(supabase: Awaited<ReturnType<typeof createClient>>, fami
   return (owner) => (goal.owner_member_id === null || goal.owner_member_id === owner ? goal.id : null);
 }
 
+/** Every target comes from a goal (Janine, 21 October): a new one is
+ * refused unless each copy of it helps a goal its person may have. */
+const NEEDS_A_GOAL = "Choose the goal this target helps. A goal for one person takes targets for that person alone; a whole-family goal takes anyone's.";
+
 export type GameGoalFormState = { error: string | null; saved?: number };
 
 /** A grown-up sets up a game goal for one or more people: one goal each,
@@ -130,6 +133,7 @@ export async function createGameGoalAction(_prev: GameGoalFormState, formData: F
   const rows: TablesInsert<"planner_goals">[] = who.includes("family")
     ? [{ ...base, owner_member_id: null, xp: 0, points: 0, helps_goal_id: helps(null) }]
     : who.map((id) => ({ ...base, owner_member_id: id, xp, points, helps_goal_id: helps(id) }));
+  if (rows.some((r) => !r.helps_goal_id)) return { error: NEEDS_A_GOAL };
   const { error } = await supabase.from("planner_goals").insert(rows);
   if (error) return { error: humanDatabaseError(error.message) };
   done();
@@ -142,64 +146,6 @@ export async function setGameGoalActiveAction(goalId: string, active: boolean): 
   const supabase = await createClient();
   const { error } = await supabase.from("planner_goals").update({ active }).eq("id", goalId).eq("family_id", me.family_id).not("category", "is", null);
   if (error) return { error: humanDatabaseError(error.message) };
-  done();
-  return { error: null };
-}
-
-/** Starter content, in the caller's own household only (RLS keeps it there):
- * a few habit goals for each person and a few rewards. Run once -- it adds
- * nothing if the household already has game goals. Habits only: no weight,
- * calorie or body-size goals. */
-const SAMPLE_GOALS: { title: string; category: GameCategory; target: number; unit: string; forKids: boolean; forGrownUps: boolean }[] = [
-  { title: "Drink water", category: "water", target: 6, unit: "glasses", forKids: true, forGrownUps: false },
-  { title: "Drink water", category: "water", target: 8, unit: "glasses", forKids: false, forGrownUps: true },
-  { title: "Brush teeth", category: "hygiene", target: 2, unit: "times", forKids: true, forGrownUps: true },
-  { title: "Play or move for 30 minutes", category: "move", target: 1, unit: "times", forKids: true, forGrownUps: true },
-  { title: "Eat a fruit or vegetable", category: "food", target: 2, unit: "servings", forKids: true, forGrownUps: true },
-  { title: "In bed on time", category: "sleep", target: 1, unit: "night", forKids: true, forGrownUps: true },
-];
-
-const SAMPLE_REWARDS: { title: string; cost: number }[] = [
-  { title: "Pick the family movie", cost: 30 },
-  { title: "Extra 30 minutes of screen time", cost: 40 },
-  { title: "Ice cream treat", cost: 50 },
-  { title: "Choose Sunday lunch", cost: 60 },
-];
-
-export async function startSampleGameAction(): Promise<{ error: string | null }> {
-  const me = await requireCurrentMember();
-  if (!isGrownUp(me.role)) return { error: "A grown-up sets up the game." };
-  const supabase = await createClient();
-  const { count } = await supabase.from("planner_goals").select("id", { count: "exact", head: true }).eq("family_id", me.family_id).not("category", "is", null);
-  if ((count ?? 0) > 0) return { error: "This household already has targets." };
-  const { data: members } = await supabase.from("members").select("id, role").eq("family_id", me.family_id).not("status", "in", "(pending,removed)");
-
-  const goals: TablesInsert<"planner_goals">[] = (members ?? []).flatMap((m) =>
-    SAMPLE_GOALS.filter((g) => (isGrownUp(m.role) ? g.forGrownUps : g.forKids)).map((g) => ({
-      family_id: me.family_id,
-      title: g.title,
-      kind: "custom",
-      category: g.category,
-      period: "day",
-      target: g.target,
-      unit: g.unit,
-      owner_member_id: m.id,
-      xp: DEFAULT_GOAL_XP,
-      points: DEFAULT_GOAL_COINS,
-      created_by: me.id,
-    })),
-  );
-  goals.push({ family_id: me.family_id, title: "Family walk", kind: "custom", category: "family", period: "week", target: 2, unit: "walks", owner_member_id: null, xp: 0, points: 0, created_by: me.id });
-  const { error } = await supabase.from("planner_goals").insert(goals);
-  if (error) return { error: humanDatabaseError(error.message) };
-
-  const { data: existing } = await supabase.from("rewards").select("title").eq("family_id", me.family_id).eq("active", true);
-  const have = new Set((existing ?? []).map((r) => r.title.toLowerCase()));
-  const rewards = SAMPLE_REWARDS.filter((r) => !have.has(r.title.toLowerCase())).map((r) => ({ family_id: me.family_id, title: r.title, cost_points: r.cost, created_by: me.id }));
-  if (rewards.length) {
-    const { error: rewardError } = await supabase.from("rewards").insert(rewards);
-    if (rewardError) return { error: humanDatabaseError(rewardError.message) };
-  }
   done();
   return { error: null };
 }
@@ -289,86 +235,11 @@ export async function createStepsGoalAction(_prev: GameGoalFormState, formData: 
       rows.push({ ...base, category: "move", period: "day", target, owner_member_id: id, xp, points, helps_goal_id: helps(id) });
     }
   }
+  if (rows.some((r) => !r.helps_goal_id)) return { error: NEEDS_A_GOAL };
   const { error } = await supabase.from("planner_goals").insert(rows);
   if (error) return { error: humanDatabaseError(error.message) };
   done();
   return { error: null, saved: rows.length };
-}
-
-/** The family starter pack (lib/family-pack), into the caller's own
- * household: a grown-up says who is who, and the pack adds their goals,
- * the family's weekly goals (the stroller walk linked to the baby's
- * outdoor time) and, if asked, the rewards. Steps goals need Kin Plus and
- * are left out without it. Anything already there by the same name is left
- * alone. */
-export async function addFamilyPackAction(roles: Partial<Record<PackRole, string>>, withRewards: boolean): Promise<{ error: string | null; added?: number; skippedForPlus?: number }> {
-  const me = await requireCurrentMember();
-  if (!isGrownUp(me.role)) return { error: "A grown-up sets up the family's goals." };
-  const supabase = await createClient();
-  const { data: members } = await supabase.from("members").select("id, role").eq("family_id", me.family_id).not("status", "in", "(pending,removed)");
-  const roleOf = new Map((members ?? []).map((m) => [m.id, m.role]));
-  const chosen = Object.entries(roles).filter(([, id]) => id) as [PackRole, string][];
-  if (chosen.length === 0) return { error: "Choose at least one person." };
-  if (new Set(chosen.map(([, id]) => id)).size !== chosen.length) return { error: "Choose a different person for each." };
-  for (const [role, id] of chosen) {
-    const r = roleOf.get(id);
-    if (!r) return { error: "That person is not in this household." };
-    if ((role === "mum" || role === "dad") && !isGrownUp(r)) return { error: `${PACK_ROLE_LABEL[role]} has to be a grown-up.` };
-    if ((role === "child" || role === "baby") && r !== "child_managed" && r !== "child_self") return { error: `${PACK_ROLE_LABEL[role]} has to be a child.` };
-  }
-  if (roles.baby && roleOf.get(roles.baby) !== "child_managed") return { error: "The baby's goals are ticked by a grown-up, so the baby has to be a child without a login." };
-
-  const { data: existing } = await supabase.from("planner_goals").select("owner_member_id, title").eq("family_id", me.family_id).not("category", "is", null).is("removed_at", null);
-  const plus = readAccess(me.families).plus;
-  const { personal, family, skippedForPlus } = packGoalsFor(roles, { plus, existing: (existing ?? []).map((e) => ({ ownerId: e.owner_member_id, title: e.title })) });
-  const row = (g: PackGoal, owner: string | null): TablesInsert<"planner_goals"> => ({
-    family_id: me.family_id,
-    title: g.title,
-    kind: g.kind,
-    category: g.category,
-    period: g.period,
-    target: g.target,
-    unit: g.unit,
-    owner_member_id: owner,
-    xp: owner ? g.xp : 0,
-    points: owner ? g.coins : 0,
-    days: g.days ?? null,
-    backup: g.backup ?? false,
-    credit_to: owner ? (g.creditTo ?? "owner") : "owner",
-    emoji: g.emoji ?? null,
-    created_by: me.id,
-  });
-  const rows = [...personal.map((g) => row(g, g.owner)), ...family.map((g) => row(g, null))];
-  let added = 0;
-  if (rows.length > 0) {
-    const { data: made, error } = await supabase.from("planner_goals").insert(rows).select("id, title, owner_member_id");
-    if (error) return { error: humanDatabaseError(error.message) };
-    added = made?.length ?? 0;
-  }
-
-  // The stroller walk, logged once, also ticks the baby's outdoor time.
-  if (roles.baby) {
-    const { data: goals } = await supabase.from("planner_goals").select("id, title, owner_member_id").eq("family_id", me.family_id).is("removed_at", null).not("category", "is", null);
-    const walk = (goals ?? []).find((g) => g.owner_member_id === null && g.title === PACK_FAMILY_GOALS.find((f) => f.stroller)!.title);
-    const outdoor = (goals ?? []).find((g) => g.owner_member_id === roles.baby && g.title === PACK_GOALS.baby.find((b) => b.strollerLinked)!.title);
-    if (walk && outdoor) {
-      await supabase.from("planner_goal_links").upsert({ goal_id: walk.id, linked_goal_id: outdoor.id, family_id: me.family_id, created_by: me.id }, { onConflict: "goal_id,linked_goal_id", ignoreDuplicates: true });
-    }
-  }
-
-  if (withRewards) {
-    const { data: have } = await supabase.from("rewards").select("title").eq("family_id", me.family_id).eq("active", true);
-    const taken = new Set((have ?? []).map((r) => r.title.toLowerCase()));
-    const rewards = [...(roles.child ? PACK_REWARDS.child : []), ...PACK_REWARDS.grownUps, ...PACK_REWARDS.family]
-      .filter((r) => !taken.has(r.title.toLowerCase()))
-      .map((r) => ({ family_id: me.family_id, title: r.title, cost_points: r.coins, budget_amount: r.budget ?? null, unlock: r.unlock ?? null, created_by: me.id }));
-    if (rewards.length > 0) {
-      const { error } = await supabase.from("rewards").insert(rewards);
-      if (error) return { error: humanDatabaseError(error.message) };
-    }
-  }
-  done();
-  return { error: null, added, skippedForPlus };
 }
 
 /** Editing a game goal. Its name, worth, days, category and picture change
@@ -435,6 +306,56 @@ export async function removeGameGoalAction(goalId: string): Promise<{ error: str
   if (error) return { error: humanDatabaseError(error.message) };
   done();
   return { error: null };
+}
+
+/** The starter rewards the sample game and the family pack used to add, by
+ * name: what "Start fresh from my goals" takes off the Shop. */
+const STARTER_REWARDS = [
+  "Pick the family movie",
+  "Extra 30 minutes of screen time",
+  "Ice cream treat",
+  "Choose Sunday lunch",
+  "Choose the bedtime story",
+  "An extra park trip",
+  "Pick the weekend snack",
+  "A new sticker sheet",
+  "Solo coffee break",
+  "Sleep in on a weekend",
+  "Choose the family movie",
+  "Date night",
+  "Special breakfast out (all family goals this week)",
+].map((t) => t.toLowerCase());
+
+/** Start fresh from my goals (Janine, 21 October): every target that helps
+ * no goal -- the starter pack's and the sample game's -- is removed the way
+ * Remove removes one (it leaves every list; what it earned stays earned),
+ * and, if asked, the starter rewards come off the Shop. Pressed by a
+ * grown-up, in their own household only. */
+export async function startFreshFromGoalsAction(withRewards: boolean): Promise<{ error: string | null; targets?: number; rewards?: number }> {
+  const me = await requireCurrentMember();
+  if (!isGrownUp(me.role)) return { error: "A grown-up clears the targets." };
+  const supabase = await createClient();
+  const { data: gone, error } = await supabase
+    .from("planner_goals")
+    .update({ active: false, removed_at: new Date().toISOString() })
+    .eq("family_id", me.family_id)
+    .not("category", "is", null)
+    .is("helps_goal_id", null)
+    .is("removed_at", null)
+    .select("id");
+  if (error) return { error: humanDatabaseError(error.message) };
+  let rewards = 0;
+  if (withRewards) {
+    const { data: shelf } = await supabase.from("rewards").select("id, title").eq("family_id", me.family_id).eq("active", true);
+    const ids = (shelf ?? []).filter((r) => STARTER_REWARDS.includes(r.title.toLowerCase())).map((r) => r.id);
+    if (ids.length > 0) {
+      const { data: retired, error: rewardError } = await supabase.from("rewards").update({ active: false }).eq("family_id", me.family_id).in("id", ids).select("id");
+      if (rewardError) return { error: humanDatabaseError(rewardError.message) };
+      rewards = retired?.length ?? 0;
+    }
+  }
+  done();
+  return { error: null, targets: gone?.length ?? 0, rewards };
 }
 
 /** The family-week treat, enjoyed: marked by a grown-up, once a week

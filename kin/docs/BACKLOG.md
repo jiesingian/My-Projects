@@ -29,12 +29,21 @@ the same day.
   turns 13 that they can have a login.
 - **Done (#824, migration):** The grown-ups of one household are connected
   from the start. Applied to dev and production 21 October.
-- **Decision for Jonathan:** recurring bills roll forward. A paid monthly
-  bill stays paid and nothing makes next month's (lib/subscriptions.ts
-  says so on purpose), so after the first payment the bill drops off Today,
-  the 3-days-before push and Cash Flow. Proposed: when a repeating bill is
-  paid (either way), add the next one at its due date unless the household
-  already has it.
+- **Decided and done (Jonathan, 21 October): recurring bills roll forward,
+  approved by the user.** When a repeating bill is paid (Mark paid, or Paid
+  outside Kin), a sheet asks "Add next month's <bill> for <date>?" with the
+  amount and date prefilled and editable, Add / Not now; Cash Flow (under
+  the bills) and Today ("Bills that repeat") list every paid repeating bill
+  that has no next one yet, so earlier ones catch up. Nothing is added
+  without Add (addNextBillAction, which refuses a second copy). Grown-ups on
+  Plus only. Not offered when the household already has the next one (same
+  name and repeat, still open or due later). The date is one period after
+  the paid one's, from the original day (31st → 30th/28th, back to the 31st);
+  periods wholly gone are skipped, the current one kept even if its day
+  passed. Bills repeat monthly, quarterly or yearly; there is no weekly
+  bill. Not now hides it on that phone for a week (localStorage). A bill
+  paid in another app ("Open app & log") is offered once it is confirmed,
+  on Cash Flow and Today, not in the sheet. Logic: e2e/bill-roll.logic.spec.ts.
 - **Decided and done (Jonathan, 21 October): Journal "Public" entries reach
   connections only, strictly.** A Public entry reaches the writer's accepted
   connections (are_connected: mutual and live, the household's other
@@ -291,9 +300,12 @@ new debt, compared with `main`, so no other session's PR goes red for it.
   "This evening" card), 5-9% of pixels against the real one's 6%, so no
   threshold separates them. The server now runs under libfaketime from the
   last 06:00 Manila and the browser's Date is fixed to it; only a baseline
-  from the same frozen moment is compared. **Next:** once main has a frozen
-  baseline, a second PR deletes `VISUAL_WARN_ONLY` (Jonathan moved this up
-  from 27 October).
+  from the same frozen moment is compared (#830). **Fails on a real
+  difference since 21 October** (Jonathan moved it up from 27 October): an
+  intended change is accepted with a `<slug> #<PR>` line in
+  `kin/e2e/visual-accept.txt` in the same PR, as the failure message says.
+  `VISUAL_WARN_ONLY: "1"` on the e2e.yml step goes back to warning if noise
+  returns.
 - **Done: safe dependency updates.** Patch and minor only, lockfile by npm:
   Next 16.4.2 (its critical advisory), React 19.3.1, supabase-js 2.118,
   Playwright 1.64, pglite 0.5.10 and the rest. `npm audit` 9 → 5; the 5

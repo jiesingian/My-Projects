@@ -5,14 +5,15 @@ import { RewardsShelf } from "@/components/rewards-shelf";
 import { ApprovalQueue } from "@/components/approval-queue";
 import { createClient } from "@/lib/supabase/server";
 import { FamilyTreatUsed } from "@/components/game-controls";
-import { FamilyPackForm, GameGoalEdit, GameGoalForm, GameGoalPause, GameSteps, GameTap, SampleGameButton, StepsGoalForm } from "@/components/game-controls";
+import { GameGoalEdit, GameGoalForm, GameGoalPause, GameSteps, GameTap, StartFreshButton, StepsGoalForm } from "@/components/game-controls";
+import { targetGroups } from "@/lib/goal-groups";
 import { ProgressBar } from "@/components/progress-bar";
 import { getGame, type GameGoalView, type GameView, type PlayerView } from "@/lib/queries/game";
 import { getMemberScores, getPendingRedemptions, getRewards, getStreakBonusRates } from "@/lib/queries/routines";
 import { getPendingGoalClaims } from "@/lib/queries/goals";
 import { KidGoalBoard } from "@/components/kid-goal-board";
 import { isBoard } from "@/lib/kid-board";
-import { BONUSES, asksOn, FAMILY_STEPS_BONUS, GAME_CATEGORY_META, nextMilestone, partWorth } from "@/lib/game";
+import { BONUSES, asksOn, GAME_CATEGORY_META, nextMilestone } from "@/lib/game";
 import { daysLeftText, goalNumber } from "@/lib/goals";
 import { getGoals } from "@/lib/queries/goals";
 import { caption } from "./goals-pane";
@@ -97,147 +98,183 @@ export async function GamePane({
   );
 }
 
-function Stat({ label, value }: { label: string; value: string }) {
-  return (
-    <div style={{ flex: 1, minWidth: 0, textAlign: "center", padding: "0.5rem 0.25rem", borderRadius: 12, background: "color-mix(in srgb, var(--cal-goal) 9%, transparent)" }}>
-      <div style={{ font: "600 1.125rem/1.2 var(--font-heading)" }}>{value}</div>
-      <div style={{ fontSize: "0.6875rem", color: "var(--color-neutral-600)", textTransform: "uppercase", letterSpacing: ".04em" }}>{label}</div>
-    </div>
-  );
-}
-
 const Bar = ProgressBar;
 
+/** Level, XP, streak, coins and freeze: kept, in one small card (Janine, 21
+ * October). The next badge is on Badges. */
 function PlayerCard({ player }: { player: PlayerView }) {
   const lvl = player.level;
-  const next = nextMilestone(player.streak);
+  const stat = { display: "inline-flex", alignItems: "center", gap: "0.25rem", fontSize: "0.875rem", fontWeight: 600 } as const;
   return (
-    <Blueprint style={{ padding: "0.875rem", marginBottom: "0.75rem" }}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: "0.5rem" }}>
-        <div style={{ font: "600 1.125rem/1.2 var(--font-heading)" }}>{player.name.split(" ")[0]}</div>
-        <div style={{ fontSize: "0.8125rem", fontWeight: 600 }}>Level {lvl.level}</div>
+    <Blueprint style={{ padding: "0.75rem 0.875rem", marginBottom: "0.875rem" }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: "0.5rem", marginBottom: "0.375rem" }}>
+        <div style={{ font: "600 1rem/1.2 var(--font-heading)" }}>
+          {player.name.split(" ")[0]} · Level {lvl.level}
+        </div>
+        <div style={{ fontSize: "0.75rem", color: "var(--color-neutral-600)" }}>
+          {lvl.into}/{lvl.needed} XP
+        </div>
       </div>
       <Bar fraction={lvl.into / lvl.needed} label={`Level ${lvl.level}: ${lvl.into} of ${lvl.needed} XP`} />
-      <div style={{ fontSize: "0.75rem", color: "var(--color-neutral-600)", marginTop: "0.25rem" }}>
-        {lvl.into} / {lvl.needed} XP to level {lvl.level + 1}
-        {player.xpWaiting > 0 && ` · ${player.xpWaiting} XP waiting for a grown-up’s yes`}
+      <div style={{ display: "flex", justifyContent: "space-between", gap: "0.5rem", marginTop: "0.625rem" }}>
+        <span style={stat} aria-label={`${player.streak}-day streak`}>
+          🔥 {player.streak} <span style={{ fontWeight: 400, color: "var(--color-neutral-600)", fontSize: "0.75rem" }}>streak</span>
+        </span>
+        <span style={stat} aria-label={`${player.coins} coins`}>
+          🪙 {player.coins} <span style={{ fontWeight: 400, color: "var(--color-neutral-600)", fontSize: "0.75rem" }}>coins</span>
+        </span>
+        <span style={stat} aria-label={`${player.freezes > 0 ? 1 : 0} freeze`}>
+          ❄️ {player.freezes > 0 ? 1 : 0} <span style={{ fontWeight: 400, color: "var(--color-neutral-600)", fontSize: "0.75rem" }}>freeze</span>
+        </span>
       </div>
-      <div style={{ display: "flex", gap: "0.5rem", marginTop: "0.75rem" }}>
-        <Stat label="Streak" value={`🔥 ${player.streak}`} />
-        <Stat label="Coins" value={`🪙 ${player.coins}`} />
-        <Stat label="Freeze" value={player.freezes > 0 ? "❄️ 1" : "❄️ 0"} />
-      </div>
-      {next && player.streak > 0 && (
-        <div style={{ fontSize: "0.75rem", color: "var(--color-neutral-600)", marginTop: "0.5rem" }}>
-          {next - player.streak} more day{next - player.streak === 1 ? "" : "s"} to a {next}-day badge.
-        </div>
-      )}
+      {player.xpWaiting > 0 && <div style={{ fontSize: "0.75rem", color: "var(--color-neutral-600)", marginTop: "0.375rem" }}>{player.xpWaiting} XP waiting for a grown-up’s yes</div>}
     </Blueprint>
   );
 }
 
-/** What a steps goal has earned today, and what is still to earn. */
-function stepsStatus(goal: GameGoalView): string {
-  if (!goal.ownerId) return `Everyone's steps this week · +${FAMILY_STEPS_BONUS.xp} XP and +${FAMILY_STEPS_BONUS.coins} coins each when reached`;
-  const worth = (part: "half" | "rest") => `+${partWorth(goal.xp, part)} XP${goal.points ? ` · +${partWorth(goal.points, part)} coins` : ""}`;
-  if (goal.claim === "counted") return `All the way! ${worth("half")} and ${worth("rest")}`;
-  if (goal.claim === "pending") return "All the way · waiting for a grown-up’s yes";
-  if (goal.half === "counted") return `Halfway: ${worth("half")} · ${worth("rest")} more at ${goalNumber(goal.target)}`;
-  if (goal.half === "pending") return "Halfway · waiting for a grown-up’s yes";
-  return `${worth("half")} at ${goalNumber(goal.target / 2)}, ${worth("rest")} more at ${goalNumber(goal.target)}`;
+/** Done for this day or week: met, or claimed (a child's, waiting for a yes). */
+function isDone(g: GameGoalView): boolean {
+  return g.reached || g.claim === "counted" || g.claim === "pending";
 }
 
-function GoalRow({ goal, canTap, helps }: { goal: GameGoalView; canTap: boolean; helps?: string }) {
+/** One slim line a target (Janine, 21 October): its picture, its name, a
+ * count when there is more than one to do, and the button. What it is worth
+ * is on Set up and in the "+XP" when it is ticked. Steps open their own
+ * logging under "Log steps". */
+function GoalRow({ goal, canTap }: { goal: GameGoalView; canTap: boolean }) {
   const meta = GAME_CATEGORY_META[goal.category];
   const steps = goal.type === "steps";
-  const status = steps
-    ? stepsStatus(goal)
-    : goal.claim === "counted"
-      ? `Done! +${goal.xp} XP${goal.points ? ` · +${goal.points} coins` : ""}`
-      : goal.claim === "pending"
-        ? "Done · waiting for a grown-up’s yes"
-        : goal.claim === "refused"
-          ? "Not counted this time"
-          : goal.ownerId
-            ? `+${goal.xp} XP${goal.points ? ` · +${goal.points} coins` : ""} when done`
-            : "Everyone adds to this one";
+  const notes = [
+    steps || goal.target > 1 ? `${goalNumber(goal.current)}/${goalNumber(goal.target)}${goal.unit && goal.unit !== "done" ? ` ${goal.unit}` : ""}${goal.period === "week" ? " this week" : ""}` : goal.period === "week" ? "this week" : null,
+    goal.backup ? "busy-day backup" : null,
+    !goal.ownerId ? "everyone adds" : null,
+    goal.claim === "pending" || goal.half === "pending" ? "waiting for a grown-up’s yes" : null,
+    goal.claim === "refused" ? "not counted this time" : null,
+  ].filter(Boolean);
   return (
-    <div style={{ display: "flex", flexWrap: steps ? "wrap" : undefined, alignItems: "center", gap: "0.75rem", padding: "0.625rem 0", borderTop: "1px solid color-mix(in srgb, var(--color-text) 8%, transparent)", opacity: goal.active ? 1 : 0.55 }}>
-      <div aria-hidden style={{ fontSize: "1.5rem", width: "2rem", textAlign: "center" }}>
-        {goal.reached ? "✅" : steps ? "👟" : meta.emoji}
-      </div>
-      <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ fontWeight: 600, fontSize: "0.9375rem" }}>{goal.title}</div>
-        <div style={{ margin: "0.25rem 0" }}>
-          <Bar fraction={goal.fraction} label={`${goal.title}: ${goalNumber(goal.current)} of ${goalNumber(goal.target)}`} mark={steps && goal.ownerId ? 0.5 : undefined} />
+    <div style={{ borderTop: "1px solid color-mix(in srgb, var(--color-text) 8%, transparent)" }}>
+      <div style={{ display: "flex", alignItems: "center", gap: "0.625rem", minHeight: 52, padding: "0.375rem 0" }}>
+        <div aria-hidden style={{ fontSize: "1.25rem", width: "1.75rem", textAlign: "center", flex: "none" }}>
+          {isDone(goal) ? "✅" : steps ? "👟" : (goal.emoji ?? meta.emoji)}
         </div>
-        <div style={{ fontSize: "0.75rem", color: "var(--color-neutral-600)" }}>
-          {goalNumber(goal.current)} / {goalNumber(goal.target)}
-          {goal.unit ? ` ${goal.unit}` : ""} · {status}
-          {!goal.active && " · paused"}
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ fontWeight: 600, fontSize: "0.9375rem", lineHeight: 1.25 }}>{goal.title}</div>
+          {notes.length > 0 && <div style={{ fontSize: "0.75rem", color: "var(--color-neutral-600)" }}>{notes.join(" · ")}</div>}
         </div>
-        {helps && (
-          <Link href={`/planner?seg=goals&g=game&goal=${goal.helpsGoalId}`} style={{ display: "inline-block", fontSize: "0.71875rem", color: "var(--color-accent-solid)", fontWeight: 600, marginTop: "0.125rem" }}>
-            For: {helps} ›
-          </Link>
-        )}
+        {canTap && goal.active && !steps && <GameTap goalId={goal.id} title={goal.title} canUndo={goal.current > 0} />}
       </div>
-      {canTap && goal.active && !steps && <GameTap goalId={goal.id} title={goal.title} canUndo={goal.current > 0} />}
       {canTap && goal.active && steps && goal.ownerId && (
-        <div style={{ flexBasis: "100%", paddingLeft: "2.75rem" }}>
+        <details className="kin-target-log" style={{ padding: "0 0 0.5rem 2.375rem" }}>
+          <summary style={{ minHeight: 44, display: "flex", alignItems: "center", cursor: "pointer", fontSize: "0.8125rem", fontWeight: 600, color: "var(--color-accent-solid)" }}>Log steps</summary>
           <GameSteps goalId={goal.id} title={goal.title} />
-        </div>
+        </details>
       )}
     </div>
   );
 }
 
+/** A goal's targets on Target: still to do, then -- folded -- done. */
+function TargetList({ targets, canTap }: { targets: GameGoalView[]; canTap: (g: GameGoalView) => boolean }) {
+  const open = targets.filter((g) => !isDone(g));
+  const finished = targets.filter(isDone);
+  return (
+    <>
+      {open.map((g) => (
+        <GoalRow key={g.id} goal={g} canTap={canTap(g)} />
+      ))}
+      {finished.length > 0 && (
+        <details className="kin-fold" style={{ marginTop: "0.25rem" }}>
+          <summary style={{ minHeight: 44, fontSize: "0.8125rem", borderBottom: 0 }}>
+            <Icon name="chevronLeft" size={14} className="kin-fold-mark" />
+            <span>Done ({finished.length})</span>
+          </summary>
+          {finished.map((g) => (
+            <GoalRow key={g.id} goal={g} canTap={canTap(g)} />
+          ))}
+        </details>
+      )}
+    </>
+  );
+}
+
+/** Target (Janine, 21 October): the player's card, then their targets
+ * grouped by the goal each one helps -- today's dailies and this week's
+ * weeklies -- and the household's shared targets with them. Targets that
+ * help no goal (from before) wait, folded, at the end. */
 function TodayView({ game, player, grownUp }: { game: GameView; player: PlayerView | undefined; grownUp: boolean }) {
   if (!game.hasGoals) {
     return (
       <Blueprint style={{ padding: "1.125rem" }}>
-        <div style={{ font: "600 1.125rem/1.2 var(--font-heading)", marginBottom: "0.375rem" }}>Daily targets for the whole family</div>
+        <div style={{ font: "600 1.125rem/1.2 var(--font-heading)", marginBottom: "0.375rem" }}>Targets come from your goals</div>
         <p style={{ fontSize: "0.875rem", color: "var(--color-neutral-600)", margin: "0 0 0.875rem", lineHeight: 1.45 }}>
-          Daily goals like water, brushing teeth and moving earn XP and coins. Finish all of yours for a bonus. When the whole family finishes, everyone gets an extra bonus. Coins buy rewards in the Shop.
+          Set a goal, then add the daily and weekly things that get you there — they earn XP and coins here, and coins buy rewards in the Shop.
         </p>
-        {grownUp ? <SampleGameButton /> : <p style={{ fontSize: "0.875rem", margin: 0 }}>Ask a grown-up to set up the targets.</p>}
+        {grownUp ? (
+          <Link href="/planner?seg=goals" className="btn btn-primary btn-block">
+            Go to Goals
+          </Link>
+        ) : (
+          <p style={{ fontSize: "0.875rem", margin: 0 }}>Ask a grown-up to set up the targets.</p>
+        )}
       </Blueprint>
     );
   }
   if (!player) return null;
-  // Today's dailies: on, asked today (weekdays-only goals rest at the
-  // weekend), the busy-day backup on its own line (20261020210000).
-  const dailies = player.goals.filter((g) => g.period === "day" && !g.backup && (!g.active || asksOn(g.days, game.today)));
-  const backups = player.goals.filter((g) => g.period === "day" && g.backup && g.active && asksOn(g.days, game.today));
-  const weekly = player.goals.filter((g) => g.period === "week");
+  // On today: a daily asked today (weekdays-only ones rest at the weekend),
+  // or a weekly; paused ones wait in Set up.
+  const live = (g: GameGoalView) => g.active && (g.period === "week" || asksOn(g.days, game.today));
+  const dailies = player.goals.filter((g) => live(g) && g.period === "day" && !g.backup);
   // A young child's own goals, each with a picture: the sticker board.
-  const board = player.role === "child_managed" && isBoard(dailies.filter((g) => g.active)) ? dailies.filter((g) => g.active) : null;
+  const board = player.role === "child_managed" && isBoard(dailies) ? dailies : null;
+  const mine = [...player.goals.filter((g) => live(g) && !(board && board.includes(g))), ...game.familyGoals.filter(live)];
+  const groups = targetGroups(mine, game.bigGoals);
   const players = game.players.filter((p) => p.dailiesTotal > 0);
-  const helpsOf = (g: GameGoalView) => (g.helpsGoalId ? game.bigGoals.find((b) => b.id === g.helpsGoalId)?.title : undefined);
-  const allDone = player.dailiesTotal > 0 && player.dailiesDone === player.dailiesTotal;
+  const roleOf = new Map(game.players.map((p) => [p.id, p.role]));
+  const canTap = (g: GameGoalView) => g.ownerId === null || g.ownerId === player.id || (grownUp && roleOf.get(g.ownerId) === "child_managed");
 
   return (
     <>
       <PlayerCard player={player} />
-      {player.dailiesTotal > 0 && (
-        <p role="status" style={{ fontSize: "0.84375rem", margin: "0 0 0.75rem", padding: "0.5625rem 0.75rem", borderRadius: 12, background: "color-mix(in srgb, var(--cal-goal) 12%, transparent)", lineHeight: 1.45 }}>
-          {allDone
-            ? `All dailies done! 🎉 +${BONUSES.allDailiesDone.xp} XP and +${BONUSES.allDailiesDone.coins} coins come at midnight.`
-            : `${player.dailiesDone} of ${player.dailiesTotal} dailies done. Finish them all for +${BONUSES.allDailiesDone.xp} XP and +${BONUSES.allDailiesDone.coins} coins tonight.`}
-        </p>
-      )}
-      {board ? (
+      {board && (
         <KidGoalBoard name={player.name.split(" ")[0]} goals={board.map((g) => ({ id: g.id, title: g.title, emoji: g.emoji ?? "⭐", current: g.current, target: g.target, reached: g.reached }))} />
-      ) : (
-        <Section title="Today">
-          {dailies.length === 0 ? <Empty text="No daily goals yet." /> : dailies.map((g) => <GoalRow key={g.id} goal={g} canTap helps={helpsOf(g)} />)}
-        </Section>
       )}
-      {backups.length > 0 && <Section title="Busy day? This keeps your streak going">{backups.map((g) => <GoalRow key={g.id} goal={g} canTap helps={helpsOf(g)} />)}</Section>}
-      {weekly.length > 0 && <Section title="This week">{weekly.map((g) => <GoalRow key={g.id} goal={g} canTap helps={helpsOf(g)} />)}</Section>}
-      {game.familyGoals.length > 0 && <Section title="Family goals">{game.familyGoals.map((g) => <GoalRow key={g.id} goal={g} canTap helps={helpsOf(g)} />)}</Section>}
+      {player.dailiesTotal > 0 && (
+        <div style={{ fontSize: "0.8125rem", fontWeight: 600, margin: "0 0 0.5rem" }}>
+          Today · {player.dailiesDone} of {player.dailiesTotal} done{player.dailiesDone === player.dailiesTotal ? " 🎉" : ""}
+        </div>
+      )}
+      {groups.length === 0 && <Empty text="Nothing to do here today. Add targets from a goal on the Goals tab." />}
+      {groups.map(({ goal, targets }) =>
+        goal ? (
+          <section key={goal.id} style={{ marginBottom: "1rem" }}>
+            <Link href={`/planner?seg=goals&g=game&goal=${goal.id}`} style={{ display: "flex", alignItems: "baseline", gap: "0.375rem", minHeight: 32, color: "inherit", textDecoration: "none" }}>
+              <span style={{ fontSize: "0.75rem", letterSpacing: ".04em", textTransform: "uppercase", fontWeight: 600 }}>{goal.title}</span>
+              {daysLeftText(goal.dueDate, game.today) && <span style={{ fontSize: "0.75rem", color: "var(--color-neutral-600)" }}>· {daysLeftText(goal.dueDate, game.today)}</span>}
+              <span aria-hidden style={{ marginLeft: "auto", color: "var(--color-neutral-600)" }}>
+                ›
+              </span>
+            </Link>
+            <TargetList targets={targets} canTap={canTap} />
+          </section>
+        ) : (
+          <details key="loose" className="kin-fold" style={{ marginBottom: "1rem" }}>
+            <summary style={{ minHeight: 44, fontSize: "0.875rem" }}>
+              <Icon name="chevronLeft" size={14} className="kin-fold-mark" />
+              <span>Not linked to a goal ({targets.length})</span>
+            </summary>
+            <p style={{ fontSize: "0.75rem", color: "var(--color-neutral-600)", margin: "0.375rem 0", lineHeight: 1.4 }}>
+              From before targets came from goals. Link each one to a goal with Edit in Set up, or remove them all there.
+            </p>
+            <TargetList targets={targets} canTap={canTap} />
+          </details>
+        ),
+      )}
       {players.length > 0 && (
-        <Section title={`The family today · 🏡 ${game.familyStreak}-day family streak`}>
+        <details className="kin-fold" style={{ marginBottom: "0.75rem" }}>
+          <summary style={{ minHeight: 44, fontSize: "0.875rem" }}>
+            <Icon name="chevronLeft" size={14} className="kin-fold-mark" />
+            <span>The family today · 🏡 {game.familyStreak}-day streak</span>
+          </summary>
           <div style={{ display: "flex", flexWrap: "wrap", gap: "0.5rem", paddingTop: "0.5rem" }}>
             {players.map((p) => {
               const finished = p.dailiesDone === p.dailiesTotal;
@@ -251,7 +288,12 @@ function TodayView({ game, player, grownUp }: { game: GameView; player: PlayerVi
           <p style={{ fontSize: "0.75rem", color: "var(--color-neutral-600)", margin: "0.5rem 0 0", lineHeight: 1.4 }}>
             When everyone finishes, everyone gets +{BONUSES.wholeFamilyDone.xp} XP and +{BONUSES.wholeFamilyDone.coins} coins.
           </p>
-        </Section>
+        </details>
+      )}
+      {player.dailiesTotal > 0 && (
+        <p style={{ fontSize: "0.75rem", color: "var(--color-neutral-600)", lineHeight: 1.45 }}>
+          Finish all of today&rsquo;s for +{BONUSES.allDailiesDone.xp} XP and +{BONUSES.allDailiesDone.coins} coins at midnight.
+        </p>
       )}
     </>
   );
@@ -297,8 +339,16 @@ async function GoalFocus({ game, goalId, familyId, me, weekStart, currency }: { 
         )}
       </Blueprint>
       {all.length === 0 && <Empty text="No targets for this goal yet. Add the daily and weekly things that get you there: a diet, a steps target, a sport twice a week." />}
-      {daily.length > 0 && <Section title="Every day">{daily.map((g) => <GoalRow key={g.id} goal={g} canTap={canTap(g)} />)}</Section>}
-      {weekly.length > 0 && <Section title="Every week">{weekly.map((g) => <GoalRow key={g.id} goal={g} canTap={canTap(g)} />)}</Section>}
+      {daily.length > 0 && (
+        <Section title="Every day">
+          <TargetList targets={daily} canTap={canTap} />
+        </Section>
+      )}
+      {weekly.length > 0 && (
+        <Section title="Every week">
+          <TargetList targets={weekly} canTap={canTap} />
+        </Section>
+      )}
       {grownUp && (
         <Link href={`/planner?seg=goals&g=setup&goal=${goalId}`} className="btn btn-secondary btn-block" style={{ gap: "0.375rem", minHeight: 44 }}>
           + Add a target for this goal
@@ -323,10 +373,12 @@ function Empty({ text }: { text: string }) {
 
 function BadgesView({ game, player }: { game: GameView; player: PlayerView }) {
   const earned = new Map(player.badges.map((b) => [b.id, b.earnedOn]));
+  const next = nextMilestone(player.streak);
   return (
     <>
       <p style={{ fontSize: "0.84375rem", color: "var(--color-neutral-600)", margin: "0 0 0.75rem" }}>
         {player.name.split(" ")[0]} has {earned.size} of {game.badges.length} badges. New ones arrive at midnight.
+        {next && player.streak > 0 && ` ${next - player.streak} more day${next - player.streak === 1 ? "" : "s"} to a ${next}-day badge.`}
       </p>
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(7.5rem, 1fr))", gap: "0.5rem" }}>
         {game.badges.map((b) => {
@@ -435,18 +487,20 @@ async function ShopView({ familyId, me, player }: { familyId: string; me: { id: 
 function SetupView({ game, plus, focus }: { game: GameView; plus: boolean; focus?: GameView["bigGoals"][number] }) {
   const preset = focus ? { goalId: focus.id, who: focus.ownerId ?? "family" } : undefined;
   const all = [...game.players.flatMap((p) => p.goals.map((g) => ({ g, who: p.name.split(" ")[0] }))), ...game.familyGoals.map((g) => ({ g, who: "Whole family" }))];
+  const loose = all.filter(({ g }) => !g.helpsGoalId).length;
   return (
     <>
-      {/* Opened from a goal: straight to its new target. */}
-      {!game.hasGoals && !focus && (
-        <div style={{ marginBottom: "0.75rem" }}>
-          <SampleGameButton />
+      {/* Every target comes from a goal (Janine, 21 October): the ones from
+          before, which help none, can all go at once. */}
+      {!focus && loose > 0 && (
+        <div style={{ marginBottom: "0.875rem" }}>
+          <StartFreshButton count={loose} />
         </div>
       )}
-      {!focus && (
-        <div style={{ marginBottom: "0.75rem" }}>
-          <FamilyPackForm people={game.players.map((p) => ({ id: p.id, label: p.name.split(" ")[0], grownUp: isGrownUp(p.role) }))} plus={plus} />
-        </div>
+      {game.bigGoals.length === 0 && (
+        <p style={{ fontSize: "0.84375rem", lineHeight: 1.45, margin: "0 0 0.875rem" }}>
+          Targets come from goals. <Link href="/planner/goals/new" style={{ color: "var(--color-accent-solid)", fontWeight: 600 }}>Set a goal</Link> first, then add the daily and weekly things that get you there.
+        </p>
       )}
       <div style={{ marginBottom: "1rem" }}>
         {focus && (

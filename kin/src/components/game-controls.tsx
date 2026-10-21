@@ -1,12 +1,12 @@
 "use client";
 
 import { useActionState, useId, useState, useTransition } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Icon } from "@/components/icons";
 import { ErrorText, SubmitButton } from "@/components/form";
-import { addFamilyPackAction, markFamilyTreatAction, createGameGoalAction, createStepsGoalAction, gameStepsAction, gameTapAction, gameUntapAction, removeGameGoalAction, setGameGoalActiveAction, startSampleGameAction, updateGameGoalAction, type GameGoalFormState } from "@/lib/actions/game";
+import { markFamilyTreatAction, createGameGoalAction, createStepsGoalAction, gameStepsAction, gameTapAction, gameUntapAction, removeGameGoalAction, setGameGoalActiveAction, startFreshFromGoalsAction, updateGameGoalAction, type GameGoalFormState } from "@/lib/actions/game";
 import { confirm } from "@/components/confirm-sheet";
-import { PACK_ROLES, PACK_ROLE_LABEL, type PackRole } from "@/lib/family-pack";
 import { goalsATargetCanHelp } from "@/lib/goals";
 import { DEFAULT_FAMILY_WEEK_STEPS, DEFAULT_GOAL_COINS, DEFAULT_GOAL_XP, DEFAULT_STEP_TARGET, GAME_CATEGORIES, GAME_CATEGORY_META, STEP_QUICK_ADDS } from "@/lib/game";
 
@@ -41,28 +41,47 @@ export function GameTap({ goalId, title, canUndo }: { goalId: string; title: str
   );
 }
 
-export function SampleGameButton() {
+/** Start fresh from my goals (Janine, 21 October): removes every target
+ * that helps no goal -- the starter pack's, the sample game's -- and, if
+ * ticked, the starter rewards. Asks first; what they earned stays earned. */
+export function StartFreshButton({ count }: { count: number }) {
   const router = useRouter();
   const [pending, start] = useTransition();
-  const [error, setError] = useState<string | null>(null);
+  const [withRewards, setWithRewards] = useState(true);
+  const [result, setResult] = useState<{ error: string | null; text?: string }>({ error: null });
   return (
-    <>
+    <div style={{ border: "1px solid color-mix(in srgb, var(--color-text) 12%, transparent)", borderRadius: 14, padding: "0.875rem" }}>
+      <div style={{ fontWeight: 600, fontSize: "0.9375rem" }}>Start fresh from your goals</div>
+      <p style={{ fontSize: "0.8125rem", color: "var(--color-neutral-600)", margin: "0.25rem 0 0.5rem", lineHeight: 1.45 }}>
+        {count} target{count === 1 ? "" : "s"} help{count === 1 ? "s" : ""} no goal — the starter pack&rsquo;s and the sample&rsquo;s. Remove them, then add your own from each goal. XP, coins and badges already earned stay.
+      </p>
+      <label style={{ display: "flex", alignItems: "center", gap: "0.5rem", minHeight: 44, fontSize: "0.8125rem" }}>
+        <input type="checkbox" checked={withRewards} onChange={(e) => setWithRewards(e.target.checked)} />
+        Also take the starter rewards off the Shop
+      </label>
       <button
         type="button"
-        className="btn btn-primary btn-block"
+        className="btn btn-secondary btn-block"
         disabled={pending}
-        onClick={() =>
+        style={{ color: "var(--cal-occasion)" }}
+        onClick={async () => {
+          if (!(await confirm({ title: `Remove ${count} target${count === 1 ? "" : "s"}?`, description: "They leave every list. What they earned stays earned.", confirmLabel: "Remove" }))) return;
           start(async () => {
-            const r = await startSampleGameAction();
-            setError(r.error);
+            const r = await startFreshFromGoalsAction(withRewards);
+            setResult(r.error ? { error: r.error } : { error: null, text: `Removed ${r.targets} target${r.targets === 1 ? "" : "s"}${withRewards ? ` and ${r.rewards} reward${r.rewards === 1 ? "" : "s"}` : ""}.` });
             if (!r.error) router.refresh();
-          })
-        }
+          });
+        }}
       >
-        <Icon name="sparkle" size={17} /> {pending ? "Setting up…" : "Start with sample goals and rewards"}
+        {pending ? "Removing…" : `Remove ${count} target${count === 1 ? "" : "s"}`}
       </button>
-      <ErrorText message={error} />
-    </>
+      <ErrorText message={result.error} />
+      {result.text && (
+        <p role="status" style={{ fontSize: "0.8125rem", margin: "0.375rem 0 0" }}>
+          {result.text}
+        </p>
+      )}
+    </div>
   );
 }
 
@@ -95,16 +114,31 @@ export type HelpsGoal = { id: string; title: string; ownerId: string | null };
 export type TargetPreset = { goalId: string; who: string };
 
 /** "Helps with": the goals this target may help, given who it is for -- that
- * person's own, or the whole household's. Left out when there are none. */
+ * person's own, or the whole household's. Every target comes from a goal
+ * (Janine, 21 October), so it is required; with none to choose, it says
+ * where to set one. */
 function HelpsPicker({ goals, who, defaultValue }: { goals: HelpsGoal[]; who: string[]; defaultValue?: string | null }) {
   const uid = useId();
   const fits = goalsATargetCanHelp(goals, who);
-  if (fits.length === 0) return null;
+  if (who.length === 0) return null;
+  if (fits.length === 0) {
+    return (
+      <p style={{ fontSize: "0.8125rem", lineHeight: 1.45, margin: "0 0 0.75rem", padding: "0.5rem 0.625rem", borderRadius: 10, background: "color-mix(in srgb, var(--cal-goal) 12%, transparent)" }}>
+        Every target helps a goal. Set a goal for {who.length > 1 ? "the whole family" : "this person"} first on{" "}
+        <Link href="/planner/goals/new" style={{ color: "var(--color-accent-solid)", fontWeight: 600 }}>
+          Goals → Set a goal
+        </Link>
+        .
+      </p>
+    );
+  }
   return (
     <div className="field" style={{ marginBottom: "0.75rem" }}>
       <label htmlFor={`${uid}-helps`}>Helps with goal</label>
-      <select id={`${uid}-helps`} className="input" name="helps" defaultValue={defaultValue ?? ""} key={fits.map((g) => g.id).join()} style={{ minHeight: "2.75rem" }}>
-        <option value="">No goal in particular</option>
+      <select id={`${uid}-helps`} className="input" name="helps" required defaultValue={defaultValue && fits.some((g) => g.id === defaultValue) ? defaultValue : fits.length === 1 ? fits[0].id : ""} key={fits.map((g) => g.id).join()} style={{ minHeight: "2.75rem" }}>
+        <option value="" disabled>
+          Choose a goal
+        </option>
         {fits.map((g) => (
           <option key={g.id} value={g.id}>
             {g.title}
@@ -380,88 +414,6 @@ export function StepsGoalForm({ people, goals = [], preset }: { people: { id: st
         </button>
       </div>
     </form>
-  );
-}
-
-/** The family starter pack (lib/family-pack): a grown-up says who is who
- * and the pack adds their goals, the family's weekly goals and the rewards
- * -- into this household only. Everything it adds can be edited, turned
- * off or removed afterwards. */
-export function FamilyPackForm({ people, plus }: { people: { id: string; label: string; grownUp: boolean }[]; plus: boolean }) {
-  const uid = useId();
-  const router = useRouter();
-  const [open, setOpen] = useState(false);
-  const grownUps = people.filter((p) => p.grownUp);
-  const [roles, setRoles] = useState<Partial<Record<PackRole, string>>>({ mum: grownUps[0]?.id, dad: grownUps[1]?.id });
-  const [withRewards, setWithRewards] = useState(true);
-  const [pending, start] = useTransition();
-  const [result, setResult] = useState<{ error: string | null; added?: number; skippedForPlus?: number } | null>(null);
-
-  if (!open) {
-    return (
-      <button type="button" className="btn btn-secondary btn-block" onClick={() => setOpen(true)} style={{ gap: "0.375rem" }}>
-        <Icon name="sparkle" size={17} /> Family starter pack
-      </button>
-    );
-  }
-  return (
-    <div style={{ border: "1px solid color-mix(in srgb, var(--color-text) 12%, transparent)", borderRadius: 14, padding: "0.875rem" }}>
-      <div style={{ font: "600 1rem/1.25 var(--font-heading)", marginBottom: "0.25rem" }}>Family starter pack</div>
-      <p style={{ fontSize: "0.78125rem", color: "var(--color-neutral-600)", margin: "0 0 0.75rem", lineHeight: 1.45 }}>
-        Daily and weekly goals for two grown-ups, a young child and a baby, the family&rsquo;s weekly goals and rewards. Choose who is who; leave anyone out. Everything can be changed, turned off or removed later.
-      </p>
-      {PACK_ROLES.map((role) => (
-        <div key={role} className="field" style={{ marginBottom: "0.5rem" }}>
-          <label htmlFor={`${uid}-${role}`}>{PACK_ROLE_LABEL[role]}</label>
-          <select
-            id={`${uid}-${role}`}
-            className="input"
-            value={roles[role] ?? ""}
-            onChange={(e) => setRoles((r) => ({ ...r, [role]: e.target.value || undefined }))}
-            style={{ minHeight: "2.75rem" }}
-          >
-            <option value="">— not included —</option>
-            {people
-              .filter((p) => (role === "mum" || role === "dad" ? p.grownUp : !p.grownUp))
-              .map((p) => (
-                <option key={p.id} value={p.id}>
-                  {p.label}
-                </option>
-              ))}
-          </select>
-        </div>
-      ))}
-      <label style={{ display: "flex", alignItems: "center", gap: "0.5rem", fontSize: "0.84375rem", margin: "0.5rem 0" }}>
-        <input type="checkbox" checked={withRewards} onChange={(e) => setWithRewards(e.target.checked)} /> Add the starter rewards too
-      </label>
-      {!plus && <p style={{ fontSize: "0.75rem", color: "var(--color-neutral-600)", margin: "0 0 0.5rem" }}>Steps goals are part of Kin Plus, so they are left out for now.</p>}
-      {result?.error && <ErrorText message={result.error} />}
-      {result && !result.error && (
-        <p role="status" style={{ fontSize: "0.8125rem", margin: "0 0 0.5rem" }}>
-          Added {result.added ?? 0} goal{result.added === 1 ? "" : "s"}.{result.skippedForPlus ? ` ${result.skippedForPlus} steps goal${result.skippedForPlus === 1 ? "" : "s"} left out (Kin Plus).` : ""}
-        </p>
-      )}
-      <div style={{ display: "flex", gap: "0.5rem" }}>
-        <button
-          type="button"
-          className="btn btn-primary"
-          style={{ flex: 1 }}
-          disabled={pending}
-          onClick={() =>
-            start(async () => {
-              const r = await addFamilyPackAction(roles, withRewards);
-              setResult(r);
-              if (!r.error) router.refresh();
-            })
-          }
-        >
-          {pending ? "Adding…" : "Add the pack"}
-        </button>
-        <button type="button" className="btn btn-ghost" onClick={() => setOpen(false)}>
-          Close
-        </button>
-      </div>
-    </div>
   );
 }
 
