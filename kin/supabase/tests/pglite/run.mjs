@@ -122,6 +122,7 @@ const MIGRATIONS = [
   "20261021030000_goals_drive_targets.sql",
   "20261021040000_household_grownups_connected.sql",
   "20261021130000_push_targets_per_push.sql",
+  "20261021140000_journal_public_tree_linked.sql",
 ];
 
 const only = process.argv[2];

@@ -89,7 +89,6 @@ table     highlights                             # 20260929100100_highlights.sql
 function  expired_highlights                     # 20260929100100_highlights.sql
 function  forget_expired_highlights              # 20260929100100_highlights.sql
 function  journal_public_by_owner                # 20260929100200_journal_public_to_connections.sql
-function  entry_public_to_me                     # 20260929100200_journal_public_to_connections.sql
 function  media_public_to_me                     # 20260929100200_journal_public_to_connections.sql
 function  journal_object_public_to_me            # 20260929100200_journal_public_to_connections.sql
 function  chat_reply_allowed                     # 20260929161000_chat_room_replies_reactions_mute.sql
