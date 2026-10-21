@@ -1,4 +1,3 @@
-import { cookies } from "next/headers";
 import { householdZone } from "@/lib/household-zone";
 import Link from "next/link";
 import { redirect } from "next/navigation";
@@ -9,20 +8,14 @@ import { isForMe } from "@/lib/for-me";
 import { createClient } from "@/lib/supabase/server";
 import { getOnThisDay, getWeekRecap } from "@/lib/queries/memories";
 import { OnThisDay, WeekRecapCard } from "@/components/memories";
-import { getGlance, getTodayBriefing, getComingUp, type GlanceTile } from "@/lib/queries/today";
-import { getRoutinesNeedingAttention, getPendingApprovals, getPendingRedemptions } from "@/lib/queries/routines";
+import { getGlance, getMedicineTile, getTodayBriefing, getComingUp, type GlanceTile } from "@/lib/queries/today";
+import { getRoutinesNeedingAttention } from "@/lib/queries/routines";
 import { TodayList, type TodayEntry } from "@/components/today-list";
 import { familyClock, familyDay } from "@/lib/time";
 import { QuickLine } from "@/components/quick-line";
 import { wrapUp, isWrapUpTime } from "@/lib/wrap-up";
 import { EveningWrapUp } from "@/components/evening-wrap-up";
-import { ApprovalQueue } from "@/components/approval-queue";
-import { TodayGoals } from "@/components/today-goals";
-import { goalsCookieName } from "@/lib/today-goals";
-import { getGoalRequestsFor, getGoals, getPendingGoalClaims, getRewardDuties, type GoalView } from "@/lib/queries/goals";
-import { weekStartOf } from "@/lib/week";
 import { ComingUpPager } from "@/components/coming-up-pager";
-import { PromiseBanner } from "@/components/promise-banner";
 import { getKinOffer } from "@/lib/queries/offers";
 import { canNameReferrer } from "@/lib/offers";
 import { KinOfferCard } from "@/components/kin-offer-card";
@@ -66,17 +59,15 @@ export default async function TodayPage({ searchParams }: { searchParams: Promis
   const replayTour = params.tour === "1";
 
   const supabase = await createClient();
-  const [{ data: members }, glance, brief, tasks, awaitingApproval, awaitingRedemption, familyPanel, comingUp, memories, recap, startHere, goalRequests, rewardDuties, goals, kinOffer, checkIns, plusTrial, goalClaims, nextBills] = await Promise.all([
+  const [{ data: members }, glance, brief, tasks, medicine, familyPanel, comingUp, memories, recap, startHere, kinOffer, checkIns, plusTrial, nextBills] = await Promise.all([
     supabase.from("members").select("id, full_name, status").eq("family_id", me.family_id).order("created_at"),
-    getGlance(me.family_id, me.families.currency, me),
+    getGlance(me.family_id, me.families.currency),
     getTodayBriefing(me.family_id, me.families.currency, me),
     // Chores that are the reader's (lib/for-me): theirs, the whole family's,
     // and for a grown-up the children's -- not another grown-up's own.
     getRoutinesNeedingAttention(me.family_id).then((all) => all.filter((r) => isForMe(me, r.appliesToAll, r.members))),
-    // Only a grown-up is ever asked to answer for a chore, so only a
-    // grown-up pays for the query.
-    isGrownUp(me.role) ? getPendingApprovals(me.family_id) : Promise.resolve([]),
-    isGrownUp(me.role) ? getPendingRedemptions(me.family_id) : Promise.resolve([]),
+    // The reader's own medicines today, for "At a glance" (21 October).
+    getMedicineTile(me),
     getFamilyPanel(me.family_id),
     getComingUp(me.family_id, me.families.currency, me),
     getOnThisDay(me.family_id),
@@ -87,22 +78,12 @@ export default async function TodayPage({ searchParams }: { searchParams: Promis
       : Promise.resolve(null),
     // A new family's first steps; null for everyone else (queries/start-here).
     getStartHere(me),
-    // Goal rewards this person has been asked to give, and changes to goals
-    // whose reward they give -- for anyone, child or grown-up.
-    getGoalRequestsFor(me.family_id, me),
-    // Promises due or waiting on this person's word: the banner that stays.
-    getRewardDuties(me.family_id, me),
-    // The goal tile in "At a glance" (28 September): it took the next-plan
-    // tile's place, since the Planner and Coming up already show the plans.
-    getGoals(me.family_id, me, weekStartOf(me.families.week_start)),
     // Kin's offer, if it's time for one; credits any taken offer now done.
     getKinOffer(me.role),
     // "Are you okay?" asks waiting on this person (the member card, 30 September).
     getMyPendingCheckIns(me.id),
     // The first days of a Kin Plus trial: three Plus things to try.
     getPlusTrialCard(me),
-    // Children's claims that a repeating goal was met: a grown-up's to answer.
-    isGrownUp(me.role) ? getPendingGoalClaims(me.family_id, me) : Promise.resolve([]),
     // A paid repeating bill with no next one: "Add the next one?" (21
     // October), for a grown-up on Plus, where Wealth is theirs.
     isGrownUp(me.role) && readAccess(me.families).plus ? getNextBillOffers(me.family_id) : Promise.resolve([]),
@@ -143,26 +124,18 @@ export default async function TodayPage({ searchParams }: { searchParams: Promis
     year: "numeric",
   }).toUpperCase();
 
-  // The fourth glance tile is built from what Today already asked for: the
-  // chores and rewards waiting on a grown-up's OK, else the household's
-  // chores due today or overdue.
-  const toApprove = awaitingApproval.length + awaitingRedemption.length + goalRequests.rewards.length + goalRequests.changes.length + goalClaims.length;
-  const overdueTasks = tasks.filter((t) => t.overdue.length > 0).length;
-  const waiting: GlanceTile =
-    toApprove > 0
-      ? { id: "waiting", icon: "check", value: `${toApprove} to approve`, label: "chores and rewards waiting for you", href: "#approvals" }
-      : tasks.length > 0
-        ? { id: "waiting", icon: "check", value: `${tasks.length} chore${tasks.length === 1 ? "" : "s"}`, label: overdueTasks > 0 ? `${overdueTasks} overdue` : "due today", href: "#tasks", warn: overdueTasks > 0 }
-        : // Nothing to tick or answer: the next plan of the reader's instead.
-          (glance.next ?? { id: "waiting", icon: "check", value: "All done", label: "nothing planned or waiting", href: "/planner" });
+  // At a glance (Janine, 21 October): the reader's medicines today, a way to
+  // Goals, the shopping and the money. Approvals and rewards are the Shop's
+  // (Planner → Goals → Shop), not Today's.
+  const goalsTile: GlanceTile = { id: "goal", icon: "target", value: "Goals", label: "your goals and targets", href: "/planner?seg=goals" };
   // Today's meal stands in for an empty shopping list: the Household tile
   // still says something worth a glance.
   const meal = brief.find((b) => b.id.startsWith("meal-"));
   const shopOrMeal: GlanceTile =
     glance.shop.value === "List clear" && meal ? { id: "shop", icon: "bowl", value: meal.title, label: `on today's menu · list clear`, href: "/household?seg=meals" } : glance.shop;
-  // In the order of the tabs (29 September): Planner's waiting-or-next and
-  // goal, Household's shopping, Wealth's money.
-  const tiles = [waiting, goalTile(goals, me.id), shopOrMeal, glance.money];
+  // Medicine, then in the order of the tabs: Planner's Goals, Household's
+  // shopping, Wealth's money.
+  const tiles = [medicine, goalsTile, shopOrMeal, glance.money];
   // Coming up's Who dropdown: the same names, and "Me", as the Planner's.
   const people = (members ?? []).filter((m) => m.status !== "pending" && !isGone(m.status));
   const peopleLabels = shortNames(people.map((m) => m.full_name)).map((l, i) => ({ id: people[i].id, label: selfLabel(l, people[i].id === me.id) }));
@@ -171,9 +144,6 @@ export default async function TodayPage({ searchParams }: { searchParams: Promis
     <div style={{ padding: "1.5rem var(--gutter) 1.25rem" }}>
       <TodayHeader dateLabel={todayLabel} familyName={me.families.name} data={familyPanel} fallbackPeople={members ?? []} me={{ id: me.id, timezone: me.timezone }} checkIns={checkIns} />
 
-      {/* A promised reward that is due, or given and waiting for a word. First
-          on the page and not dismissible: it goes when the promise is settled. */}
-      <PromiseBanner duties={rewardDuties} />
       {/* 1 December to 1 January: sleeps to Noche Buena, the Noche Buena plan, the
           gift list and the monito-monita (lib/christmas.ts); a household switch. */}
       <ChristmasOnToday />
@@ -243,18 +213,6 @@ export default async function TodayPage({ searchParams }: { searchParams: Promis
       )}
 
       {nextBills.length > 0 && <NextBillOffers offers={nextBills} currency={me.families.currency} heading="Bills that repeat" />}
-
-      {/* Today's goals (Jonathan, 13 October): the viewer's own and the
-          household's goals that move day to day, with a glass, the day's
-          steps or a session right here. */}
-      <TodayGoals
-        goals={goals}
-        me={{ id: me.id, role: me.role, family_id: me.family_id }}
-        today={familyDay(new Date(), tz)}
-        plus={readAccess(me.families).plus}
-        currency={me.families.currency}
-        saved={(await cookies()).get(goalsCookieName(me.id))?.value}
-      />
 
       {/* At a glance: one figure from each part of the household. These took
           the place of five hub cards that opened the same places as the
@@ -333,34 +291,9 @@ export default async function TodayPage({ searchParams }: { searchParams: Promis
 
       <OnThisDay memories={memories} />
 
-      <div id="approvals">
-        <ApprovalQueue pending={awaitingApproval} redemptions={awaitingRedemption} goalRewards={goalRequests.rewards} goalChanges={goalRequests.changes} goalClaims={goalClaims} />
-      </div>
-
       {/* Five spotlight steps, once per member and from Settings (guided-tour.tsx). */}
       <GuidedTour memberId={me.id} memberSince={me.created_at} replay={replayTour} />
 
     </div>
   );
-}
-
-/** The reader's goal for "At a glance": their own unfinished one due soonest,
- * else a household goal still going, else their own finished one -- the
- * Planner's Goals, with the same ring. None yet: a way to set one. */
-function goalTile(goals: GoalView[], meId: string): GlanceTile {
-  const soonest = (list: GoalView[]) =>
-    list
-      .filter((g) => !g.reached)
-      .sort((a, b) => (a.dueDate ?? "9999").localeCompare(b.dueDate ?? "9999"))[0];
-  const mine = goals.filter((g) => g.ownerId === meId);
-  const g = soonest(mine) ?? soonest(goals.filter((x) => x.ownerId === null)) ?? mine[0];
-  if (!g) return { id: "goal", icon: "target", value: "No goal yet", label: "set one in the Planner", href: "/planner/goals/new" };
-  return {
-    id: "goal",
-    icon: "target",
-    value: g.reached ? "Reached!" : g.noData ? "Not started" : `${Math.round(g.fraction * 100)}%`,
-    label: g.title,
-    href: "/planner?seg=goals",
-    progress: g.noData ? undefined : g.fraction,
-  };
 }

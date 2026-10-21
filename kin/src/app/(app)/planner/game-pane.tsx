@@ -9,7 +9,7 @@ import { GameGoalEdit, GameGoalForm, GameGoalPause, GameSteps, GameTap, StartFre
 import { targetGroups } from "@/lib/goal-groups";
 import { ProgressBar } from "@/components/progress-bar";
 import { getGame, type GameGoalView, type GameView, type PlayerView } from "@/lib/queries/game";
-import { getMemberScores, getPendingRedemptions, getRewards, getStreakBonusRates } from "@/lib/queries/routines";
+import { getMemberScores, getPendingApprovals, getPendingRedemptions, getRewards, getStreakBonusRates } from "@/lib/queries/routines";
 import { getPendingGoalClaims } from "@/lib/queries/goals";
 import { KidGoalBoard } from "@/components/kid-goal-board";
 import { isBoard } from "@/lib/kid-board";
@@ -402,10 +402,13 @@ function BadgesView({ game, player }: { game: GameView; player: PlayerView }) {
 async function ShopView({ familyId, me, player }: { familyId: string; me: { id: string; role: string }; player: PlayerView | undefined }) {
   const grownUp = isGrownUp(me.role);
   const supabase = await createClient();
-  const [rewards, scores, bonusRates, redemptions, claims, { data: treats }, { data: weeks }] = await Promise.all([
+  const [rewards, scores, bonusRates, chores, redemptions, claims, { data: treats }, { data: weeks }] = await Promise.all([
     getRewards(familyId),
     getMemberScores(familyId),
     grownUp ? getStreakBonusRates(familyId) : Promise.resolve(null),
+    // Chores waiting for a grown-up's OK: here with the rewards since 21
+    // October, when approvals left Today (Janine).
+    grownUp ? getPendingApprovals(familyId) : Promise.resolve([]),
     grownUp ? getPendingRedemptions(familyId) : Promise.resolve([]),
     grownUp ? getPendingGoalClaims(familyId, me) : Promise.resolve([]),
     // The family-week treat (20261020210000): unlocked by a week of every
@@ -467,7 +470,7 @@ async function ShopView({ familyId, me, player }: { familyId: string; me: { id: 
         canManage={grownUp}
         streakBonus={bonusRates ? bonusOn(bonusRates, familyDay()) : undefined}
       />
-      {grownUp && <ApprovalQueue pending={[]} redemptions={redemptions} goalClaims={claims} />}
+      {grownUp && <ApprovalQueue pending={chores} redemptions={redemptions} goalClaims={claims} />}
       {/* Baon and the jars the coins can be changed into (20261019100000),
           here since 21 October beside the rest of the spending. A grown-up
           sees every child's; a child goes to their own. */}

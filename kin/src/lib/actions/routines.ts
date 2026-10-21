@@ -449,7 +449,8 @@ export async function logRoutineAction(input: {
         source: routine.id,
         title: `${me.full_name.split(" ")[0]} finished a chore`,
         body: `${routine.title} · tap to approve`,
-        url: "/today",
+        // Approvals live in the Shop since 21 October.
+        url: "/planner?seg=goals&g=shop",
         memberIds: (grownUps ?? []).map((g) => g.id),
       });
     });
