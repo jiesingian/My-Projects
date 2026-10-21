@@ -42,6 +42,7 @@ import { formatAge, initials } from "@/lib/format";
 import { isGone } from "@/lib/member-status";
 import { isUndas } from "@/lib/remembrance";
 import { getConnections, getGuardianWaitingCount, getIncomingConnectionCount } from "@/lib/queries/connections";
+import { createClient } from "@/lib/supabase/server";
 
 const SEGMENTS = ["profile", "health", "documents", "tree", "quicklinks"] as const;
 type Seg = (typeof SEGMENTS)[number];
@@ -290,14 +291,20 @@ async function VaultPane({ familyId, who, tab, meId, myRole }: { familyId: strin
   }
 
   const members = (await getMembers(familyId)).filter((m) => m.status !== "pending" && !isGone(m.status));
-  const [folders, devices, vault, emergency] = await Promise.all([
+  const supabase = await createClient();
+  const [folders, devices, vault, emergency, driveLink] = await Promise.all([
     tab === "documents" ? getDocFolders(familyId) : Promise.resolve([]),
     getEnrolledDevices(meId),
     tab === "passwords" ? getVaultItems(familyId) : Promise.resolve([]),
     // Households that named this grown-up for emergency access to theirs
     // (20261015120000): asked for, and read, from Settings -> Privacy & lock.
     isGrownUp(myRole) ? getEmergencyTrustedView(meId) : Promise.resolve(null),
+    // Whether files go to Drive or stay in Kin decides the line above the
+    // folders. The tab used to say "Files stay in your connected Drive" to
+    // households that had never connected one (21 October audit).
+    tab === "documents" ? supabase.from("drive_links").select("connected").eq("family_id", familyId).maybeSingle() : Promise.resolve({ data: null }),
   ]);
+  const driveConnected = driveLink.data?.connected === true;
   const filtered =
     who === "all"
       ? folders
@@ -322,7 +329,17 @@ async function VaultPane({ familyId, who, tab, meId, myRole }: { familyId: strin
         <>
           <Blueprint className="bg-[var(--color-accent-100)] mb-4" style={{ padding: "0.75rem", display: "flex", gap: "0.625rem", alignItems: "center" }}>
             <span style={{ fontSize: "0.8125rem", lineHeight: 1.35 }}>
-              Files stay in your connected Drive. Kin holds the index and the expiry dates only.
+              {driveConnected ? (
+                "Files stay in your connected Drive. Kin holds the index and the expiry dates only."
+              ) : (
+                <>
+                  Files are kept in Kin and count toward your storage.{" "}
+                  <Link href="/settings/connected" style={{ color: "var(--color-accent-700)" }}>
+                    Connect Google Drive
+                  </Link>{" "}
+                  to keep them there instead.
+                </>
+              )}
             </span>
           </Blueprint>
           {filtered.map((folder) => (

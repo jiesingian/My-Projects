@@ -69,10 +69,15 @@ const SEGMENTS = ["cashflow", "accounts", "assets"] as const;
 type Seg = (typeof SEGMENTS)[number];
 const SEGMENT_LABELS: Record<Seg, string> = { cashflow: "Cash Flow", accounts: "Accounts", assets: "A&L" };
 
-export default async function WealthPage({ searchParams }: { searchParams: Promise<{ seg?: string; who?: string; range?: string; new?: string }> }) {
+export default async function WealthPage({ searchParams }: { searchParams: Promise<{ seg?: string; who?: string; range?: string; new?: string; open?: string; bill?: string }> }) {
   const me = await getCurrentMember();
   if (!me) redirect("/onboarding/profile");
   const sp = await searchParams;
+  // `open=expenses&bill=<id>` arrives from Today's Pay button: the group has
+  // to be open on first paint, and the row is scrolled to once it is there
+  // (a `#` anchor landed only when the streamed pane beat the browser to it).
+  const openExpenses = sp.open === "expenses";
+  const billId = sp.bill?.trim() || null;
   const seg: Seg = (SEGMENTS as readonly string[]).includes(sp.seg ?? "") ? (sp.seg as Seg) : "cashflow";
   const who = sp.who ?? "all";
   const range: CashFlowRange = (CASH_FLOW_RANGES as readonly string[]).includes(sp.range ?? "") ? (sp.range as CashFlowRange) : "month";
@@ -84,7 +89,7 @@ export default async function WealthPage({ searchParams }: { searchParams: Promi
     <div>
       <HubHeader n="05" title="Wealth" segments={segments} dateFormat={me.families.date_format} />
       <div style={{ padding: "0 var(--gutter) 1.375rem" }}>
-        {seg === "cashflow" && <CashFlowPane familyId={me.family_id} memberId={me.id} currency={currency} range={range} scope={who} grownUp={isGrownUp(me.role)} />}
+        {seg === "cashflow" && <CashFlowPane familyId={me.family_id} memberId={me.id} currency={currency} range={range} scope={who} grownUp={isGrownUp(me.role)} openExpenses={openExpenses} billId={billId} />}
         {seg === "accounts" && <ScopePane scope={who} familyId={me.family_id} memberId={me.id} currency={currency} range={range} newAccountId={sp.new} includePrivate={me.wealth_include_private} grownUp={isGrownUp(me.role)} />}
         {seg === "assets" && <AssetsPane familyId={me.family_id} memberId={me.id} currency={currency} scope={who} />}
       </div>
@@ -143,10 +148,18 @@ function Hero({ label, amount, currency, caption, delta }: { label: string; amou
  * nothing to say. Up reads as the app's own accent, the way a positive
  * number already does elsewhere on this page; down stays neutral rather
  * than reaching for a red this app has never used -- a lighter grocery
- * month is not an error state. */
+ * month is not an error state.
+ *
+ * It shows last period's net, not the difference between the two nets. The
+ * difference was right and read wrong: after a salary month, "▼ ₱132,119.5
+ * (101%)" looked like ₱132k had vanished when October was simply −₱1,890
+ * against September's +₱130,229 (21 October audit). The arrow still says
+ * which way it went; the number is one a family can check against the bar. */
 function DeltaBadge({ change, currency, noun }: { change: ReturnType<typeof periodOverPeriodChange>; currency: string; noun: string }) {
   if (!change || change.netDelta === 0) return null;
   const up = change.netDelta > 0;
+  const prev = change.previousNet;
+  const prevLabel = `${prev > 0 ? "+" : prev < 0 ? "−" : ""}${formatCurrency(Math.abs(prev), currency)}`;
   return (
     <span
       style={{
@@ -162,11 +175,10 @@ function DeltaBadge({ change, currency, noun }: { change: ReturnType<typeof peri
       }}
     >
       <span aria-hidden="true">{up ? "▲" : "▼"}</span>
-      {formatCurrency(Math.abs(change.netDelta), currency)}
-      {change.pctChange !== null && ` (${Math.abs(Math.round(change.pctChange))}%)`}
+      {noun} {prevLabel}
       <span className="sr-only">
         {" "}
-        {up ? "up" : "down"} from {noun}
+        — {up ? "up" : "down"} from {noun}
       </span>
     </span>
   );
@@ -372,7 +384,7 @@ function UpcomingBills<T extends { id: string; name: string; amount: number | st
 
 /* ----------------------------------------------------------------- cash flow */
 
-async function CashFlowPane({ familyId, memberId, currency, range, scope, grownUp }: { familyId: string; memberId: string; currency: string; range: CashFlowRange; scope: WealthScope; grownUp: boolean }) {
+async function CashFlowPane({ familyId, memberId, currency, range, scope, grownUp, openExpenses = false, billId = null }: { familyId: string; memberId: string; currency: string; range: CashFlowRange; scope: WealthScope; grownUp: boolean; openExpenses?: boolean; billId?: string | null }) {
   const [fmtDate, dateFormat] = await Promise.all([familyDate(), householdDateFormat()]);
   const [cf, budget, accounts, who] = await Promise.all([
     getCashFlowPane(familyId, range, scope),
@@ -419,9 +431,9 @@ async function CashFlowPane({ familyId, memberId, currency, range, scope, grownU
       <div style={{ display: "flex", alignItems: "center", flexWrap: "wrap", gap: "0.5rem", margin: "4px 0 10px" }}>
         <span style={{ fontSize: "0.8125rem", color: "var(--color-neutral-600)" }}>
           {cf.net > 0
-            ? `More came in than went out this ${periodNoun}.`
+            ? `More came in than went out this ${periodNoun}: net +${formatCurrency(cf.net, currency)}.`
             : cf.net < 0
-              ? `More went out than came in this ${periodNoun}.`
+              ? `More went out than came in this ${periodNoun}: net −${formatCurrency(Math.abs(cf.net), currency)}.`
               : `Income and expenses came out even this ${periodNoun}.`}
         </span>
         <DeltaBadge change={momChange} currency={currency} noun={`last ${periodNoun}`} />
@@ -525,7 +537,7 @@ async function CashFlowPane({ familyId, memberId, currency, range, scope, grownU
       )}
       </CollapsibleGroup>
 
-      <CollapsibleGroup title="EXPENSES" defaultOpen={false}>
+      <CollapsibleGroup title="EXPENSES" defaultOpen={openExpenses}>
       {isJoint && (
         <>
           <Meter label="Spent of budget" value={budget.monthExpense} cap={budget.budgetAmount} currency={currency} note="Set the month's ceiling below." />
@@ -617,8 +629,10 @@ async function CashFlowPane({ familyId, memberId, currency, range, scope, grownU
       {cf.openBills.length === 0 && cf.settledBills.length === 0 && cf.recentExpense.length === 0 && (
         <Empty icon={<Icon name="receipt" size={26} />} title="Nothing recorded yet" line="Mortgage payments, groceries, checkups, meals, travel, fuel — anything the household spends on." />
       )}
+      {billId && cf.openBills.some((b) => b.id === billId) && <ScrollIntoView targetId={`bill-${billId}`} />}
       {cf.openBills.map((b) => (
-        <div key={b.id} style={{ padding: "0.75rem 0", borderBottom: "1px solid color-mix(in srgb, var(--color-text) 10%, transparent)" }}>
+        // The id is what Today's Pay button lands on.
+        <div key={b.id} id={`bill-${b.id}`} style={{ padding: "0.75rem 0", borderBottom: "1px solid color-mix(in srgb, var(--color-text) 10%, transparent)" }}>
           <div style={{ display: "flex", gap: "0.6875rem", alignItems: "baseline" }}>
             <span style={{ flex: 1, minWidth: 0 }}>
               <span style={{ font: "600 1.0625rem/1.1 var(--font-heading)", display: "block" }}>{b.name}</span>

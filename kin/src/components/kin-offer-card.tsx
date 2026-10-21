@@ -13,8 +13,11 @@ const small = { minHeight: "2rem", fontSize: "0.8125rem", padding: "0 0.875rem",
 
 /** One of Kin's offers, on Today: take it or skip it. Taken, it stays until
  * it is done (then the days are earned) or its week runs out. The days go to
- * Kin Plus: a taste of it on Kin Free, added on to it otherwise. */
-export function KinOfferCard({ state, plus, referralCode, householdName }: { state: KinOfferState; plus: boolean; referralCode: string; householdName: string }) {
+ * Kin Plus: a taste of it on Kin Free, added on to it otherwise. A household
+ * with Plus for good (`comped`) has nothing to earn, so for it the card is a
+ * suggestion and never mentions days: promising them would be a promise Kin
+ * cannot keep (found by the 21 October audit). */
+export function KinOfferCard({ state, plus, comped = false, referralCode, householdName }: { state: KinOfferState; plus: boolean; comped?: boolean; referralCode: string; householdName: string }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
@@ -56,7 +59,7 @@ export function KinOfferCard({ state, plus, referralCode, householdName }: { sta
         <div key={e.code} role="status" style={{ padding: "0.6875rem 0.8125rem", borderRadius: 14, background: "color-mix(in srgb, var(--cal-money) 14%, transparent)", fontSize: "0.875rem", display: "flex", gap: "0.5rem", alignItems: "center" }}>
           <Icon name="sparkle" size={16} style={{ color: "var(--cal-money)", flex: "none" }} />
           <span>
-            <strong>Done — {e.days} day{e.days === 1 ? "" : "s"} of Kin Plus earned.</strong> {OFFER_META[e.code].title}.
+            <strong>{comped ? "Done." : `Done — ${e.days} day${e.days === 1 ? "" : "s"} of Kin Plus earned.`}</strong> {OFFER_META[e.code].title}.
           </span>
         </div>
       ))}
@@ -64,12 +67,19 @@ export function KinOfferCard({ state, plus, referralCode, householdName }: { sta
         <div style={{ padding: "0.8125rem", borderRadius: 14, border: "1px solid color-mix(in srgb, var(--color-accent-solid) 30%, transparent)", background: "color-mix(in srgb, var(--color-accent-solid) 7%, transparent)" }}>
           <div style={{ display: "flex", alignItems: "center", gap: "0.375rem", fontSize: "0.71875rem", letterSpacing: ".04em", textTransform: "uppercase", color: "var(--color-neutral-600)" }}>
             <span className="kin-plus-badge">PLUS</span>
-            An offer from Kin · {offer.days} day{offer.days === 1 ? "" : "s"}
-            {offer.code === "refer" ? " + 30" : ""}
+            {comped ? (
+              "A suggestion from Kin"
+            ) : (
+              <>
+                An offer from Kin · {offer.days} day{offer.days === 1 ? "" : "s"}
+                {offer.code === "refer" ? " + 30" : ""}
+              </>
+            )}
           </div>
           <div style={{ font: "600 1.0625rem/1.25 var(--font-heading)", marginTop: "0.375rem" }}>{meta.title}</div>
           <p style={{ fontSize: "0.8125rem", color: "var(--color-neutral-700)", margin: "0.25rem 0 0", lineHeight: 1.45 }}>
-            {meta.body} {plus ? "The days are added to your Kin Plus." : "The days give your household Kin Plus for that long."}
+            {meta.body}{" "}
+            {comped ? "Your household has Kin Plus for good, so there is nothing to earn; it is still worth doing." : plus ? "The days are added to your Kin Plus." : "The days give your household Kin Plus for that long."}
           </p>
 
           {offer.status === "offered" ? (

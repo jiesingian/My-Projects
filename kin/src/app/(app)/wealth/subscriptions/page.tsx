@@ -63,7 +63,14 @@ export default async function SubscriptionsPage() {
 }
 
 function Row({ s, currency, fmtDate, income }: { s: Subscription; currency: string; fmtDate: (d: string) => string; income?: boolean }) {
-  const when = s.next ? `${s.overdue ? "overdue since" : income ? "next expected" : "next charge"} ${fmtDate(s.next)}` : "no date set";
+  // Income cannot be overdue: a salary past its day has not been logged yet,
+  // which is on the household, not the employer (21 October audit, where
+  // "Salary · OVERDUE" sat under "Comes in every year").
+  const late = s.overdue && !income;
+  const notLogged = s.overdue && !!income;
+  const when = s.next
+    ? `${late ? "overdue since" : notLogged ? "not logged yet · expected" : income ? "next expected" : "next charge"} ${fmtDate(s.next)}`
+    : "no date set";
   return (
     <div style={{ display: "flex", gap: "0.6875rem", alignItems: "baseline", padding: "0.75rem 0", borderBottom: "1px solid color-mix(in srgb, var(--color-text) 10%, transparent)" }}>
       <span style={{ flex: 1, minWidth: 0 }}>
@@ -79,9 +86,14 @@ function Row({ s, currency, fmtDate, income }: { s: Subscription; currency: stri
           <span style={{ fontSize: "0.75rem", fontWeight: 400, color: "var(--color-neutral-600)" }}> /mo</span>
         </span>
         <span style={{ fontSize: "0.78125rem", color: "var(--color-neutral-600)" }}>{formatCurrency(s.yearly, currency)} a year</span>
-        {s.overdue && (
+        {late && (
           <span style={{ display: "block", marginTop: "0.25rem" }}>
             <Tag variant="accent">OVERDUE</Tag>
+          </span>
+        )}
+        {notLogged && (
+          <span style={{ display: "block", marginTop: "0.25rem" }}>
+            <Tag variant="outline">NOT LOGGED</Tag>
           </span>
         )}
       </span>
