@@ -39,7 +39,7 @@ export default async function ChatListPage({ searchParams }: { searchParams: Pro
       </ul>
 
       <div className="kin-threadlist-actions">
-        <Link href="/family/connections" className="kin-threadlist-more">
+        <Link href="/chat/new" className="kin-threadlist-more">
           <Icon name="message" size={16} />
           <span>New message</span>
         </Link>
