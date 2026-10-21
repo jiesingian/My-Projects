@@ -7110,6 +7110,7 @@ export type Database = {
           credit_to: string
           days: number[] | null
           emoji: string | null
+          helps_goal_id: string | null
           removed_at: string | null
           active: boolean
           category: string | null
@@ -7135,6 +7136,7 @@ export type Database = {
           credit_to?: string
           days?: number[] | null
           emoji?: string | null
+          helps_goal_id?: string | null
           removed_at?: string | null
           active?: boolean
           category?: string | null
@@ -7160,6 +7162,7 @@ export type Database = {
           credit_to?: string
           days?: number[] | null
           emoji?: string | null
+          helps_goal_id?: string | null
           removed_at?: string | null
           active?: boolean
           category?: string | null

@@ -6,7 +6,8 @@ import { Icon } from "@/components/icons";
 import { GoalRing } from "@/components/goal-ring";
 import { GoalChangeAnswer, GoalClaim, GoalDeleteButton, GoalLog, GoalRewardAnswer, GoalRewardClaim, GoalRewardConfirm, GoalRewardGiven, GoalRewardWithdraw } from "@/components/goal-controls";
 import { getGoals, type GoalView } from "@/lib/queries/goals";
-import { GOAL_KIND_META, PERIOD_NOW, goalNumber, goalSource, type AppleHealthLink } from "@/lib/goals";
+import { GOAL_KIND_META, PERIOD_NOW, daysLeftText, goalNumber, goalSource, type AppleHealthLink } from "@/lib/goals";
+import { goalGroups } from "@/lib/goal-groups";
 import { createClient } from "@/lib/supabase/server";
 import { formatCurrency } from "@/lib/format";
 import { memberColourVar } from "@/lib/member-colours";
@@ -45,14 +46,19 @@ export async function GoalsPane({
   plus: boolean;
 }) {
   const supabase = await createClient();
-  const [allGoals, members, tz, { data: link }] = await Promise.all([
+  const [allGoals, members, tz, { data: link }, { data: helping }] = await Promise.all([
     getGoals(familyId, me, weekStart),
     getMembers(familyId),
     householdZone(),
     // The viewer's own Apple Health link, for "Fills from" on their steps and
     // weight goals (only their own is theirs to know).
     supabase.rpc("apple_health_status"),
+    // The targets that help each goal (20261021030000), counted for "3
+    // targets ›".
+    supabase.from("planner_goals").select("helps_goal_id").eq("family_id", familyId).not("helps_goal_id", "is", null).is("removed_at", null),
   ]);
+  const targetCount = new Map<string, number>();
+  for (const h of helping ?? []) if (h.helps_goal_id) targetCount.set(h.helps_goal_id, (targetCount.get(h.helps_goal_id) ?? 0) + 1);
   // Daily targets (the goals game: a goal with a category) live under
   // Target, not here -- one place each, so nothing reads twice (Janine, 21
   // October).
@@ -68,6 +74,10 @@ export async function GoalsPane({
   // under its own heading at the end, the same as past events.
   const open = visible.filter((g) => !goalIsFinished(g));
   const finished = visible.filter((g) => goalIsFinished(g));
+  // One collapsible group per person, the whole household's last; the first
+  // starts open (Janine, 21 October).
+  const groups = goalGroups(open, members.map((m) => ({ id: m.id, name: m.full_name })), me.id);
+  let index = 0;
 
   return (
     <>
@@ -86,13 +96,23 @@ export async function GoalsPane({
               : "No goals for this person."}
         </p>
       )}
-      {open.map((g, i) => (
-        <GoalCard key={g.id} goal={g} index={i} meId={me.id} today={today} plus={plus} appleHealth={appleHealth} currency={currency} colour={g.ownerId ? (colourOf.get(g.ownerId) ?? null) : null} />
+      {groups.map((group, gi) => (
+        <details key={group.key} open={gi === 0} className="kin-fold" style={{ marginBottom: "0.625rem" }}>
+          <summary style={{ minHeight: 44, marginBottom: "0.5rem" }}>
+            <Icon name="chevronLeft" size={14} className="kin-fold-mark" />
+            <span style={{ flex: 1, minWidth: 0 }}>
+              {group.label} · {group.goals.length} goal{group.goals.length === 1 ? "" : "s"}
+            </span>
+          </summary>
+          {group.goals.map((g) => (
+            <GoalCard key={g.id} goal={g} index={index++} meId={me.id} today={today} plus={plus} appleHealth={appleHealth} currency={currency} colour={g.ownerId ? (colourOf.get(g.ownerId) ?? null) : null} targets={targetCount.get(g.id) ?? 0} />
+          ))}
+        </details>
       ))}
       <CompletedToggle seg="goals" who={who} count={finished.length} shown={done} />
       {done &&
         finished.map((g, i) => (
-          <GoalCard key={g.id} goal={g} index={open.length + i} meId={me.id} today={today} plus={plus} appleHealth={appleHealth} currency={currency} colour={g.ownerId ? (colourOf.get(g.ownerId) ?? null) : null} />
+          <GoalCard key={g.id} goal={g} index={open.length + i} meId={me.id} today={today} plus={plus} appleHealth={appleHealth} currency={currency} colour={g.ownerId ? (colourOf.get(g.ownerId) ?? null) : null} targets={targetCount.get(g.id) ?? 0} />
         ))}
       <Link href="/planner/goals/new" className="btn btn-secondary" style={{ width: "100%", gap: "0.375rem", marginTop: "0.25rem" }}>
         <Icon name="plus" size={17} /> Set a goal
@@ -124,7 +144,7 @@ export function caption(goal: GoalView, currency: string): string {
   return `${goalNumber(goal.current)} of ${goalNumber(goal.target)}${unit ? ` ${unit}` : ""} ${PERIOD_NOW[goal.period]}`;
 }
 
-function GoalCard({ goal, index, meId, today, plus, currency, colour, appleHealth }: { goal: GoalView; index: number; meId: string; today: string; plus: boolean; currency: string; colour: string | null; appleHealth: AppleHealthLink }) {
+function GoalCard({ goal, index, meId, today, plus, currency, colour, appleHealth, targets }: { goal: GoalView; index: number; meId: string; today: string; plus: boolean; currency: string; colour: string | null; appleHealth: AppleHealthLink; targets: number }) {
   const meta = GOAL_KIND_META[goal.kind];
   const whose = goal.ownerId === null ? "Whole household" : goal.ownerId === meId ? "You" : (goal.ownerName?.split(" ")[0] ?? "Someone");
   const pct = Math.round(goal.fraction * 100);
@@ -132,10 +152,16 @@ function GoalCard({ goal, index, meId, today, plus, currency, colour, appleHealt
   // only fills itself: money goes in on Wealth.
   const logs = !goal.savingsTitle;
   const ringColour = colour ?? "var(--color-accent-solid)";
+  const left = daysLeftText(goal.dueDate, today);
 
   return (
     <Blueprint style={{ padding: "0.875rem", marginBottom: "0.625rem" }}>
-      <div style={{ display: "flex", gap: "0.875rem", alignItems: "center" }}>
+      {/* The goal opens its targets on Target (20261021030000). */}
+      <Link
+        href={`/planner?seg=goals&g=game&goal=${goal.id}`}
+        aria-label={`${goal.title}: ${pct}%${left ? `, ${left}` : ""}. ${targets > 0 ? `${targets} target${targets === 1 ? "" : "s"}` : "No targets yet"}`}
+        style={{ display: "flex", gap: "0.875rem", alignItems: "center", color: "inherit", textDecoration: "none" }}
+      >
         <GoalRing fraction={goal.fraction} index={index} colour={ringColour} label={`${goal.title}: ${pct}%`}>
           {goal.reached ? <Icon name="check" size={22} style={{ color: ringColour }} /> : `${pct}%`}
         </GoalRing>
@@ -153,10 +179,18 @@ function GoalCard({ goal, index, meId, today, plus, currency, colour, appleHealt
           </div>
           <div style={{ font: "600 1.0625rem/1.25 var(--font-heading)", marginTop: "0.125rem" }}>{goal.title}</div>
           <div style={{ fontSize: "0.8125rem", color: "var(--color-neutral-700)", marginTop: "0.125rem" }}>{caption(goal, currency)}</div>
-          {goal.dueDate && <div style={{ fontSize: "0.75rem", color: "var(--color-neutral-600)", marginTop: "0.125rem" }}>By {readableDate(goal.dueDate)}</div>}
-          <SourceLine goal={goal} meId={meId} appleHealth={appleHealth} />
+          {goal.dueDate && (
+            <div style={{ fontSize: "0.75rem", color: "var(--color-neutral-600)", marginTop: "0.125rem" }}>
+              {left && !goal.reached && <strong style={{ color: left.includes("past") ? "var(--cal-occasion)" : "var(--color-neutral-800)" }}>{left} · </strong>}
+              by {readableDate(goal.dueDate)}
+            </div>
+          )}
+          <div style={{ fontSize: "0.78125rem", color: "var(--color-accent-solid)", fontWeight: 600, marginTop: "0.25rem" }}>
+            {targets > 0 ? `${targets} target${targets === 1 ? "" : "s"} ›` : "Add targets ›"}
+          </div>
         </div>
-      </div>
+      </Link>
+      <SourceLine goal={goal} meId={meId} appleHealth={appleHealth} />
 
       {/* A steps game goal is claimed in halves, on Planner → Game and Today. */}
       {!(goal.kind === "steps" && goal.category) && goal.period !== "total" && goal.ownerId && (goal.points > 0 || goal.streak > 0 || goal.claim || goal.reached) && <ClaimLine goal={goal} meId={meId} />}

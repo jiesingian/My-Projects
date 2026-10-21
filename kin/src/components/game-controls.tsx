@@ -7,6 +7,7 @@ import { ErrorText, SubmitButton } from "@/components/form";
 import { addFamilyPackAction, markFamilyTreatAction, createGameGoalAction, createStepsGoalAction, gameStepsAction, gameTapAction, gameUntapAction, removeGameGoalAction, setGameGoalActiveAction, startSampleGameAction, updateGameGoalAction, type GameGoalFormState } from "@/lib/actions/game";
 import { confirm } from "@/components/confirm-sheet";
 import { PACK_ROLES, PACK_ROLE_LABEL, type PackRole } from "@/lib/family-pack";
+import { goalsATargetCanHelp } from "@/lib/goals";
 import { DEFAULT_FAMILY_WEEK_STEPS, DEFAULT_GOAL_COINS, DEFAULT_GOAL_XP, DEFAULT_STEP_TARGET, GAME_CATEGORIES, GAME_CATEGORY_META, STEP_QUICK_ADDS } from "@/lib/game";
 
 /** The "+" and "−" on a game goal. The database decides who may tap for
@@ -88,13 +89,39 @@ export function GameGoalPause({ goalId, active }: { goalId: string; active: bool
 
 const initial: GameGoalFormState = { error: null };
 
+/** A goal on Planner → Goals a target can help (20261021030000). */
+export type HelpsGoal = { id: string; title: string; ownerId: string | null };
+/** Opened from a goal: the form starts open, for that goal's person. */
+export type TargetPreset = { goalId: string; who: string };
+
+/** "Helps with": the goals this target may help, given who it is for -- that
+ * person's own, or the whole household's. Left out when there are none. */
+function HelpsPicker({ goals, who, defaultValue }: { goals: HelpsGoal[]; who: string[]; defaultValue?: string | null }) {
+  const uid = useId();
+  const fits = goalsATargetCanHelp(goals, who);
+  if (fits.length === 0) return null;
+  return (
+    <div className="field" style={{ marginBottom: "0.75rem" }}>
+      <label htmlFor={`${uid}-helps`}>Helps with goal</label>
+      <select id={`${uid}-helps`} className="input" name="helps" defaultValue={defaultValue ?? ""} key={fits.map((g) => g.id).join()} style={{ minHeight: "2.75rem" }}>
+        <option value="">No goal in particular</option>
+        {fits.map((g) => (
+          <option key={g.id} value={g.id}>
+            {g.title}
+          </option>
+        ))}
+      </select>
+    </div>
+  );
+}
+
 /** A grown-up's form for a new game goal. Several people → one goal each,
  * so each can be changed on its own later. */
-export function GameGoalForm({ people }: { people: { id: string; label: string }[] }) {
+export function GameGoalForm({ people, goals = [], preset }: { people: { id: string; label: string }[]; goals?: HelpsGoal[]; preset?: TargetPreset }) {
   const uid = useId();
   const router = useRouter();
-  const [open, setOpen] = useState(false);
-  const [who, setWho] = useState<Set<string>>(new Set());
+  const [open, setOpen] = useState(!!preset);
+  const [who, setWho] = useState<Set<string>>(new Set(preset ? [preset.who] : []));
   const [state, formAction] = useActionState(async (prev: GameGoalFormState, formData: FormData) => {
     const r = await createGameGoalAction(prev, formData);
     if (r.saved) {
@@ -186,6 +213,7 @@ export function GameGoalForm({ people }: { people: { id: string; label: string }
           {family ? "Everyone's taps add to one target. A shared goal earns no XP or coins." : "Each person gets their own copy, so you can give a child and a grown-up different targets."}
         </p>
       </fieldset>
+      <HelpsPicker goals={goals} who={[...who]} defaultValue={preset?.goalId} />
       <ErrorText message={state.error} />
       <div style={{ display: "flex", gap: "0.5rem" }}>
         <SubmitButton className="btn btn-primary" style={{ flex: 1 }}>
@@ -257,11 +285,11 @@ export function GameSteps({ goalId, title }: { goalId: string; title: string }) 
 /** A grown-up's form for steps: a daily goal per person with their own
  * target (6,000 for a child, 8,000 for a grown-up to start), or the
  * family's weekly total. */
-export function StepsGoalForm({ people }: { people: { id: string; label: string; child: boolean }[] }) {
+export function StepsGoalForm({ people, goals = [], preset }: { people: { id: string; label: string; child: boolean }[]; goals?: HelpsGoal[]; preset?: TargetPreset }) {
   const uid = useId();
   const router = useRouter();
   const [open, setOpen] = useState(false);
-  const [who, setWho] = useState<Set<string>>(new Set());
+  const [who, setWho] = useState<Set<string>>(new Set(preset ? [preset.who] : []));
   const [state, formAction] = useActionState(async (prev: GameGoalFormState, formData: FormData) => {
     const r = await createStepsGoalAction(prev, formData);
     if (r.saved) {
@@ -341,6 +369,7 @@ export function StepsGoalForm({ people }: { people: { id: string; label: string;
           <p style={{ fontSize: "0.75rem", color: "var(--color-neutral-600)", margin: "0 0 0.75rem", lineHeight: 1.4 }}>Half the XP and coins at 50% of the target, the rest at 100%.</p>
         </>
       )}
+      <HelpsPicker goals={goals} who={[...who]} defaultValue={preset?.goalId} />
       <ErrorText message={state.error} />
       <div style={{ display: "flex", gap: "0.5rem" }}>
         <SubmitButton className="btn btn-primary" style={{ flex: 1 }}>
@@ -442,8 +471,10 @@ const WEEKDAY_LETTERS = ["M", "T", "W", "T", "F", "S", "S"];
  * (what was earned on the old one stays); everything else changes in place. */
 export function GameGoalEdit({
   goal,
+  goals = [],
 }: {
-  goal: { id: string; title: string; category: string; period: "day" | "week"; target: number; xp: number; points: number; days: number[] | null; emoji: string | null; owned: boolean };
+  goal: { id: string; title: string; category: string; period: "day" | "week"; target: number; xp: number; points: number; days: number[] | null; emoji: string | null; owned: boolean; ownerId: string | null; helpsGoalId: string | null };
+  goals?: HelpsGoal[];
 }) {
   const uid = useId();
   const router = useRouter();
@@ -521,6 +552,7 @@ export function GameGoalEdit({
               </div>
             </fieldset>
           )}
+          <HelpsPicker goals={goals} who={[goal.ownerId ?? "family"]} defaultValue={goal.helpsGoalId} />
           <p style={{ fontSize: "0.71875rem", color: "var(--color-neutral-600)", margin: "0 0 0.5rem", lineHeight: 1.4 }}>A new target starts a fresh goal; what the old one earned stays earned.</p>
           {error && <ErrorText message={error} />}
           <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>

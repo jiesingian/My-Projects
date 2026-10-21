@@ -119,6 +119,7 @@ const MIGRATIONS = [
   "20261021000500_managed_children_count.sql",
   "20261021010000_app_errors.sql",
   "20261021020000_delete_my_account.sql",
+  "20261021030000_goals_drive_targets.sql",
 ];
 
 const only = process.argv[2];
