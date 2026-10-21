@@ -262,11 +262,19 @@ jobs:
       #     private-database trial below is not its home yet: that database
       #     has an empty household, and an empty Today looks the same on
       #     every branch.
-      #   - WARN-ONLY FOR THE FIRST WEEK. Dates and the household's rows move
-      #     pixels too; the week is for tuning the threshold on real runs.
-      #     ON 27 OCTOBER 2026, DELETE THE `VISUAL_WARN_ONLY` LINE BELOW and
-      #     a screen that differs from main by more than the threshold fails
-      #     this job. Until then it is written down and shown, nothing more.
+      #   - IT FAILS ON A REAL DIFFERENCE (since 21 October). It was warn-only
+      #     from 20 October, meant to last until 27 October; Jonathan moved
+      #     the date up. The warn-only days: 4 warnings in 35 pull-request
+      #     runs, 1 real (#814's Today offer card), 3 the clock (next bullet),
+      #     none from live data, animation or fonts. With the clock frozen
+      #     (#830) the noise had no cause left; the pull request that turned
+      #     this on was itself the first run compared with a frozen baseline.
+      #     A screen over the threshold now fails this job; the failure says
+      #     how to accept an intended change: a line in
+      #     kin/e2e/visual-accept.txt in the same pull request, since the
+      #     baseline is main's run and refreshes itself on merge. If noise
+      #     comes back, set `VISUAL_WARN_ONLY: "1"` on the step below to go
+      #     back to warning while it is found.
       #   - THE CLOCK IS FROZEN (21 October). The warn-only days counted 4
       #     warnings in 35 pull-request runs, 3 of them the clock: main's
       #     picture from an earlier Manila day or time of day. The server runs
@@ -312,9 +320,8 @@ jobs:
           E2E_PASSWORD: ${{ secrets.E2E_PASSWORD }}
           NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
           NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
-          # Warn-only until 27 October 2026 -- see the comment above. Delete
-          # this line on that date; nothing else needs to change.
-          VISUAL_WARN_ONLY: "1"
+          # Which pull request is under test, for kin/e2e/visual-accept.txt.
+          VISUAL_PR: ${{ github.event.pull_request.number }}
           # Its own report folder, so the smoke run's report above is not
           # overwritten before it is uploaded.
           PLAYWRIGHT_HTML_OUTPUT_DIR: playwright-report-visual
