@@ -1,3 +1,4 @@
+import type { Instrumentation } from "next";
 import { FAMILY_TZ } from "@/lib/time";
 
 /** Runs once, before the server takes its first request.
@@ -46,3 +47,19 @@ export function register() {
   // mistake that made the first CI run of the suite fail, one file over.
   process.env.TZ = process.env.KIN_TZ?.trim() || FAMILY_TZ;
 }
+
+/** Every server error Next catches -- a page or layout render, a route
+ * handler, a server action, the proxy -- goes to public.app_errors, scrubbed
+ * (lib/error-capture.ts). `routePath` is the route's file pattern
+ * (/family/members/[id]), so no id reaches it; the request's path, headers
+ * and body are not read. Vercel Hobby keeps logs for an hour; this keeps the
+ * fingerprint and a count for 30 days, for the weekly check. */
+export const onRequestError: Instrumentation.onRequestError = async (err, _request, context) => {
+  const { recordError } = await import("@/lib/error-capture-server");
+  const thrown = err instanceof Error ? err : new Error(String(err));
+  const digest = typeof err === "object" && err !== null && "digest" in err ? String((err as { digest: unknown }).digest) : "";
+  // React replaces a server component's message in production; the digest
+  // is then the only thing that tells one error from another.
+  const message = thrown.message || (digest ? `digest ${digest}` : "(no message)");
+  await recordError("server", `${context.routeType} ${context.routePath}`, `${thrown.name}: ${message}`, thrown.stack ?? digest);
+};
