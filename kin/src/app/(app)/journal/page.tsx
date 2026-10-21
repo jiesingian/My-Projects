@@ -76,7 +76,7 @@ export default async function JournalPage({
       <HubHeader n="02" title="Journal" segments={segments} dateFormat={me.families.date_format} />
       <div style={{ padding: "0 var(--gutter) 1.375rem" }}>
         <Segmented items={views} />
-        {view === "public" && <PublicPane personId={me.person_id} familyId={me.family_id} />}
+        {view === "public" && <PublicPane personId={me.person_id} familyId={me.family_id} grownUp={reader.grownUp} />}
         {view === "household" && <EntriesPane familyId={me.family_id} me={reader} />}
         {view === "mine" && <EntriesPane familyId={me.family_id} me={reader} mine={{ personId: me.person_id }} />}
         {view === "milestones" && <EntriesPane familyId={me.family_id} me={reader} milestonesOnly />}
@@ -99,14 +99,16 @@ async function FeedPane({ meId, familyId, inviteCode, canManage }: { meId: strin
 /** Public: what the people you are connected with chose to share with their
  * connections, and what you did. Row-level security decides what is in here
  * (20260929100200); nobody who is not connected with the writer can read it. */
-async function PublicPane({ personId, familyId }: { personId: string; familyId: string }) {
+async function PublicPane({ personId, familyId, grownUp }: { personId: string; familyId: string; grownUp: boolean }) {
   const fmtDate = await familyDate();
-  const [entries, connections] = await Promise.all([getPublicFeed(personId, familyId), getConnections()]);
+  const [entries, connections] = await Promise.all([getPublicFeed(personId, familyId, grownUp), getConnections()]);
   const connected = connections.filter((c) => c.status === "accepted").length;
   return (
     <>
       <p style={{ fontSize: "0.84375rem", lineHeight: 1.5, color: "var(--color-neutral-700)", margin: "0.875rem 0 0.75rem" }}>
-        Moments marked <strong>Public</strong> by the people you&apos;re connected with, and yours. Only your connections see what you share here.
+        {grownUp
+          ? <>Moments marked <strong>Public</strong> by the people you&apos;re connected with, and yours. Only grown-ups you&apos;re connected with, or linked to on your family tree, see what you share here.</>
+          : <>Your moments marked <strong>Public</strong>. Grown-ups you&apos;re connected with can see them; what your family shares with you is in Household.</>}
       </p>
       {entries.length === 0 && (
         <div style={{ marginBottom: "1rem" }}>

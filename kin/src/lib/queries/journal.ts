@@ -333,7 +333,7 @@ export type PublicFeedEntry = {
  * connected with -- the household can see those anyway, but in Household,
  * not here. Names come from my_connections(), which gives one only for a
  * connection both people accepted. */
-export async function getPublicFeed(personId: string, familyId: string): Promise<PublicFeedEntry[]> {
+export async function getPublicFeed(personId: string, familyId: string, grownUp = true): Promise<PublicFeedEntry[]> {
   const supabase = await createClient();
   const [{ data }, { data: connections }] = await Promise.all([
     supabase
@@ -349,11 +349,13 @@ export async function getPublicFeed(personId: string, familyId: string): Promise
   // households whose tree the viewer is linked on (20261021140000) -- not
   // every Public row RLS also lets through as a household or linked-household
   // entry. One question per household, not per entry.
-  const otherFamilies = [...new Set((data ?? []).filter((r) => r.owner_person_id !== personId && !(r.owner_person_id && names.has(r.owner_person_id))).map((r) => r.family_id))];
+  // A child sees only their own here: Public reaches grown-ups only
+  // (20261022010000). What the household shares they still read, in Household.
+  const otherFamilies = !grownUp ? [] : [...new Set((data ?? []).filter((r) => r.owner_person_id !== personId && !(r.owner_person_id && names.has(r.owner_person_id))).map((r) => r.family_id))];
   const onTree = new Set(
     (await Promise.all(otherFamilies.map(async (f) => ((await supabase.rpc("on_family_tree_as_me", { p_family_id: f })).data === true ? f : null)))).filter(Boolean),
   );
-  const rows = (data ?? []).filter((r) => r.owner_person_id === personId || (r.owner_person_id && names.has(r.owner_person_id)) || onTree.has(r.family_id));
+  const rows = (data ?? []).filter((r) => r.owner_person_id === personId || (grownUp && ((r.owner_person_id && names.has(r.owner_person_id)) || onTree.has(r.family_id))));
   const [photosOf, videos] = await Promise.all([publicPhotos(rows, familyId), getEntryVideos(rows.map((r) => r.id))]);
   return rows.map((r) => ({
     id: r.id,

@@ -109,9 +109,9 @@ export function EntryShareOptions({
         title: "Make this public?",
         description: `${
           connectionCount > 0
-            ? `The ${connectionCount === 1 ? "person" : `${connectionCount} people`} you're connected with will see it in their Public feed, with the photos you added.`
+            ? "The grown-ups you're connected with will see it in their Public feed, with the photos you added."
             : "It'll be in your Public feed. Nobody else sees it until you connect with someone."
-        } Only your connections — never anyone else. You can take it back at any time.`,
+        } Only grown-ups you're connected with or linked to on your family tree — never children, never anyone else. You can take it back at any time.`,
         confirmLabel: "Make public",
       }))
     )
