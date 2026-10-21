@@ -1,5 +1,6 @@
 import { householdZone } from "@/lib/household-zone";
 import { redirect } from "next/navigation";
+import Link from "next/link";
 import { keepKidViewOut } from "@/lib/kid-view";
 import { getCurrentMember } from "@/lib/session";
 import { createClient } from "@/lib/supabase/server";
@@ -39,14 +40,19 @@ export default async function EmergencyCardPage({ params }: { params: Promise<{ 
   const parents = members.filter((m) => (m.role === "parent" || m.role === "adult") && m.id !== member.id && m.mobile?.trim() && !isGone(m.status));
   const calls = [...parents.map((p) => ({ name: p.full_name, relationship: p.relationship ?? p.role, phone: p.mobile!.trim() })), ...contacts.map((c) => ({ name: c.name, relationship: c.relationship, phone: c.phone }))];
 
-  const facts: [string, string | null][] = [
-    ["Blood type", member.blood_type],
-    ["Allergies", member.allergies],
-    ["Medicines now", current.map((m) => `${m.name}${m.dose ? ` ${m.dose}` : ""}${m.times.length ? ` (${m.times.join(", ")})` : ""}`).join("; ") || null],
-    ["Conditions", ongoing.map((c) => c.name).join(", ") || null],
-    ["Doctor", member.physician_name],
-    ["Insurance", member.insurance_info],
+  // The third column is where an empty line is filled in: the card is what a
+  // nurse is handed, so a blank must be one tap from its field (21 October
+  // audit, where every line of the sample read "Not recorded").
+  const about = `/family/members/${id}?tab=about`;
+  const facts: [string, string | null, string][] = [
+    ["Blood type", member.blood_type, about],
+    ["Allergies", member.allergies, about],
+    ["Medicines now", current.map((m) => `${m.name}${m.dose ? ` ${m.dose}` : ""}${m.times.length ? ` (${m.times.join(", ")})` : ""}`).join("; ") || null, `/family/members/${id}?view=health&seg=medicines`],
+    ["Conditions", ongoing.map((c) => c.name).join(", ") || null, `/family/members/${id}?view=health&seg=conditions`],
+    ["Doctor", member.physician_name, about],
+    ["Insurance", member.insurance_info, about],
   ];
+  const filled = facts.filter(([, v]) => v).length;
   const text = [
     `EMERGENCY CARD: ${member.full_name}${member.dob ? `, born ${member.dob}` : ""}`,
     ...facts.map(([k, v]) => `${k}: ${v ?? "not recorded"}`),
@@ -66,13 +72,24 @@ export default async function EmergencyCardPage({ params }: { params: Promise<{ 
             </div>
           </div>
           <dl className="kin-sos-facts">
-            {facts.map(([k, v]) => (
+            {facts.map(([k, v, addHref]) => (
               <div key={k} data-empty={!v || undefined} data-alert={(k === "Allergies" && v) || undefined}>
                 <dt>{k}</dt>
-                <dd>{v ?? "Not recorded"}</dd>
+                <dd>
+                  {v ?? (
+                    <Link href={addHref} style={{ color: "var(--color-accent-700)" }} aria-label={`Add ${k.toLowerCase()}`}>
+                      Not recorded · add
+                    </Link>
+                  )}
+                </dd>
               </div>
             ))}
           </dl>
+          {filled < facts.length && (
+            <p className="kin-sos-filled" role="status">
+              {filled} of {facts.length} filled in. {filled === 0 ? "A blank card is no help at the hospital; " : ""}Tap a line to add it.
+            </p>
+          )}
           {calls.length > 0 && (
             <div className="kin-sos-calls">
               <div className="kin-sos-calls-title">Who to call</div>
