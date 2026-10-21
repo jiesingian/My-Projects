@@ -8,13 +8,16 @@ import { FamilyTreatUsed } from "@/components/game-controls";
 import { FamilyPackForm, GameGoalEdit, GameGoalForm, GameGoalPause, GameSteps, GameTap, SampleGameButton, StepsGoalForm } from "@/components/game-controls";
 import { ProgressBar } from "@/components/progress-bar";
 import { getGame, type GameGoalView, type GameView, type PlayerView } from "@/lib/queries/game";
-import { getMemberScores, getPendingRedemptions, getRewards } from "@/lib/queries/routines";
+import { getMemberScores, getPendingRedemptions, getRewards, getStreakBonusRates } from "@/lib/queries/routines";
 import { getPendingGoalClaims } from "@/lib/queries/goals";
 import { KidGoalBoard } from "@/components/kid-goal-board";
 import { isBoard } from "@/lib/kid-board";
 import { BONUSES, asksOn, FAMILY_STEPS_BONUS, GAME_CATEGORY_META, nextMilestone, partWorth } from "@/lib/game";
 import { goalNumber } from "@/lib/goals";
-import { isGrownUp } from "@/lib/roles";
+import { isChild, isGrownUp } from "@/lib/roles";
+import { bonusOn } from "@/lib/streaks";
+import { familyDay } from "@/lib/time";
+import { Icon } from "@/components/icons";
 import type { WeekStart } from "@/lib/week";
 
 export const GAME_VIEWS = ["goals", "game", "badges", "shop", "setup"] as const;
@@ -280,9 +283,10 @@ function BadgesView({ game, player }: { game: GameView; player: PlayerView }) {
 async function ShopView({ familyId, me, player }: { familyId: string; me: { id: string; role: string }; player: PlayerView | undefined }) {
   const grownUp = isGrownUp(me.role);
   const supabase = await createClient();
-  const [rewards, scores, redemptions, claims, { data: treats }, { data: weeks }] = await Promise.all([
+  const [rewards, scores, bonusRates, redemptions, claims, { data: treats }, { data: weeks }] = await Promise.all([
     getRewards(familyId),
     getMemberScores(familyId),
+    grownUp ? getStreakBonusRates(familyId) : Promise.resolve(null),
     grownUp ? getPendingRedemptions(familyId) : Promise.resolve([]),
     grownUp ? getPendingGoalClaims(familyId, me) : Promise.resolve([]),
     // The family-week treat (20261020210000): unlocked by a week of every
@@ -292,17 +296,39 @@ async function ShopView({ familyId, me, player }: { familyId: string; me: { id: 
   ]);
   const treat = treats?.[0];
   const week = weeks?.[0];
+  const others = scores.filter((s) => s.id !== me.id && (s.points > 0 || s.awaiting > 0));
   return (
     <>
       <Blueprint style={{ padding: "0.875rem", marginBottom: "0.875rem", display: "flex", alignItems: "center", gap: "0.75rem" }}>
         <div aria-hidden style={{ fontSize: "1.75rem" }}>
           🪙
         </div>
-        <div>
+        <div style={{ flex: 1 }}>
           <div style={{ font: "600 1.25rem/1.2 var(--font-heading)" }}>{player?.coins ?? 0} coins</div>
-          <div style={{ fontSize: "0.75rem", color: "var(--color-neutral-600)" }}>Coins are your points. A request waits for a grown-up’s yes.</div>
+          <div style={{ fontSize: "0.75rem", color: "var(--color-neutral-600)" }}>From goals and chores. A request waits for a grown-up’s yes.</div>
         </div>
+        <Link href={`/planner/points/${me.id}`} style={{ display: "flex", alignItems: "center", minHeight: 44, fontSize: "0.8125rem", color: "var(--color-accent-solid)", fontWeight: 600 }}>
+          History ›
+        </Link>
       </Blueprint>
+      {/* Everyone's coins, for a grown-up: what the Tasks scoreboard showed
+          until 21 October, each opening that person's history. */}
+      {grownUp && others.length > 0 && (
+        <div style={{ display: "flex", gap: "0.5rem", overflowX: "auto", paddingBottom: "0.25rem", marginBottom: "0.875rem" }}>
+          {others.map((s) => (
+            <Link
+              key={s.id}
+              href={`/planner/points/${s.id}`}
+              aria-label={`${s.name}: ${s.spendable} coins, history`}
+              className="btn btn-secondary"
+              style={{ flex: "none", minHeight: 44, fontSize: "0.8125rem", padding: "0 0.75rem", gap: "0.375rem" }}
+            >
+              {s.name.split(" ")[0]} · 🪙 {s.spendable}
+              {s.awaiting > 0 && <span style={{ color: "var(--cal-money)" }}>· {s.awaiting} waiting</span>}
+            </Link>
+          ))}
+        </div>
+      )}
       {treat && (
         <Blueprint style={{ padding: "0.75rem 0.875rem", marginBottom: "0.875rem" }}>
           <div style={{ fontWeight: 600, fontSize: "0.9375rem" }}>🎉 {treat.title}</div>
@@ -316,11 +342,25 @@ async function ShopView({ familyId, me, player }: { familyId: string; me: { id: 
           {grownUp && week?.all_done && !week.treat_used_at && <FamilyTreatUsed week={week.week_start} />}
         </Blueprint>
       )}
-      <RewardsShelf rewards={rewards} me={scores.find((s) => s.id === me.id)} canManage={grownUp} />
+      <RewardsShelf
+        rewards={rewards}
+        me={scores.find((s) => s.id === me.id)}
+        canManage={grownUp}
+        streakBonus={bonusRates ? bonusOn(bonusRates, familyDay()) : undefined}
+      />
       {grownUp && <ApprovalQueue pending={[]} redemptions={redemptions} goalClaims={claims} />}
-      <Link href="/planner?seg=routines" style={{ fontSize: "0.8125rem", color: "var(--color-accent-solid)", fontWeight: 600 }}>
-        Points from chores and the full scoreboard → Tasks
-      </Link>
+      {/* Baon and the jars the coins can be changed into (20261019100000),
+          here since 21 October beside the rest of the spending. A grown-up
+          sees every child's; a child goes to their own. */}
+      {(grownUp || isChild(me.role)) && (
+        <Link
+          href={grownUp ? "/planner/alkansya" : `/planner/alkansya/${me.id}`}
+          className="btn btn-secondary"
+          style={{ minHeight: 44, fontSize: "0.8125rem", padding: "0 0.75rem", gap: "0.375rem", marginTop: "0.25rem" }}
+        >
+          <Icon name="wallet" size={15} /> Alkansya · baon, gastos, ipon, bigay
+        </Link>
+      )}
     </>
   );
 }

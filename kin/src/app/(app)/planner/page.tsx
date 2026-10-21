@@ -5,9 +5,8 @@ import { Fragment } from "react";
 import { redirect } from "next/navigation";
 import { after } from "next/server";
 import { getCurrentMember } from "@/lib/session";
-import { isChild, isGrownUp } from "@/lib/roles";
+import { isGrownUp } from "@/lib/roles";
 import { memberColourVar } from "@/lib/member-colours";
-import { RewardsShelf } from "@/components/rewards-shelf";
 import {
   getWeekAgenda,
   getMonthsOverview,
@@ -33,12 +32,11 @@ import { CALENDAR_LEGEND, styleFor } from "@/lib/calendar-style";
 import { parseHidden, serializeHidden, toggledHidden, type CalendarGroup } from "@/lib/calendar-groups";
 import { addDays, familyClock, familyDateLong, familyDay, familyMidnight } from "@/lib/time";
 import { describeActivityRepeat, occurrenceStarts } from "@/lib/activity-repeat";
-import { bonusOn } from "@/lib/streaks";
 import { weekdayInitials, weekStartOf, type WeekStart } from "@/lib/week";
 import { dayColumnOf, dayHeading, isPastDay, monthLong, monthShort, sameDayIn, weekdayInitial, weekLabel, weekStartDay } from "@/lib/planner-days";
 import { CalendarJump, CalendarPeriod, DateRail, MonthScroller, TodayButton } from "@/components/calendar-nav";
 import { AddToCalendar } from "@/components/add-to-calendar";
-import { getRoutines, getMemberScores, getRewards, getStreakBonusRates, type MemberScore } from "@/lib/queries/routines";
+import { getRoutines, getMemberScores, type MemberScore } from "@/lib/queries/routines";
 import { describeRule, formatTimeOfDay, ROUTINE_KIND_META, type RoutineKind } from "@/lib/routines";
 import { RoutineTick, RoutineOccurrences, RoutinePauseButton, RoutineDeleteButton } from "@/components/routine-controls";
 import { CalendarSyncStatus, RememberFilter } from "@/components/calendar-sync-status";
@@ -661,38 +659,28 @@ async function YearView({ familyId, memberId, who, anchor, hidden, hide }: { fam
   );
 }
 
-/** What everyone has earned. Deliberately small and always present rather
- * than a page of its own: a scoreboard nobody passes is a scoreboard nobody
- * plays for, and one that needs opening is the same as not having one.
+/** Chores still earn coins, but spending them, the history and the
+ * household's rewards live in one place now: Planner → Goals → Shop (Janine,
+ * 21 October -- a scoreboard and a rewards shelf here as well as there read
+ * as two separate systems). One line, so Tasks stays about the tasks.
  *
- * Hidden entirely when nothing has ever been earned, so a household that
- * does not want points never has to look at a row of zeroes. */
-function Scoreboard({ scores }: { scores: MemberScore[] }) {
-  const worth = scores.filter((s) => s.points > 0 || s.awaiting > 0);
-  if (worth.length === 0) return null;
-
+ * Hidden when nobody has earned anything yet, so a household that does not
+ * play for coins never sees it. */
+function CoinsLine({ scores, me }: { scores: MemberScore[]; me: MemberScore | undefined }) {
+  if (!scores.some((s) => s.points > 0 || s.awaiting > 0)) return null;
+  const coins = me?.spendable ?? 0;
   return (
-    <div style={{ display: "flex", gap: "0.5rem", overflowX: "auto", paddingBottom: "0.25rem", marginBottom: "0.875rem" }}>
-      {worth.map((s) => (
-        <Link key={s.id} href={`/planner/points/${s.id}`} aria-label={`${s.name}: points and history`} style={{ textDecoration: "none", color: "inherit", flex: "none" }}>
-        <Blueprint style={{ padding: "0.5625rem 0.75rem", minWidth: 96 }}>
-          <div style={{ fontSize: "0.78125rem", color: "var(--color-neutral-600)" }}>{s.name.split(" ")[0]}</div>
-          <div style={{ display: "flex", alignItems: "baseline", gap: "0.3125rem" }}>
-            <span style={{ font: "600 1.375rem/1.1 var(--font-heading)", color: "var(--color-accent-700)" }}>{s.points}</span>
-            <span style={{ fontSize: "0.71875rem", letterSpacing: ".04em", textTransform: "uppercase", color: "var(--color-neutral-600)" }}>pts</span>
-          </div>
-          {s.awaiting > 0 && (
-            <div style={{ fontSize: "0.71875rem", color: "var(--cal-money)", marginTop: "0.125rem" }}>
-              {s.awaiting} waiting
-            </div>
-          )}
-          {s.spent > 0 && (
-            <div style={{ fontSize: "0.71875rem", color: "var(--color-neutral-600)", marginTop: "0.125rem" }}>{s.spendable} to spend</div>
-          )}
-        </Blueprint>
-        </Link>
-      ))}
-    </div>
+    <Link
+      href="/planner?seg=goals&g=shop"
+      aria-label={`${coins} coin${coins === 1 ? "" : "s"} to spend. Open the Shop`}
+      style={{ display: "flex", alignItems: "center", gap: "0.5rem", minHeight: 44, padding: "0 0.75rem", marginBottom: "0.875rem", borderRadius: 12, background: "var(--color-accent-100)", color: "inherit", textDecoration: "none", fontSize: "0.875rem" }}
+    >
+      <span aria-hidden>🪙</span>
+      <span style={{ flex: 1 }}>
+        <strong>{coins}</strong> coin{coins === 1 ? "" : "s"} to spend
+      </span>
+      <span style={{ color: "var(--color-accent-700)", fontWeight: 600 }}>Shop ›</span>
+    </Link>
   );
 }
 
@@ -760,15 +748,13 @@ async function RoutinesPane({ familyId, who, currency, justSaved, done }: { fami
   const memberId = who === "all" ? undefined : who;
   // Both kinds of task: the recurring ones, and the one-offs that used to be
   // called activities and could be read back nowhere but the calendar.
-  const [allRoutines, allOneOffs, scores, rewards, me, bonusRates] = await Promise.all([
+  const [allRoutines, allOneOffs, scores, me] = await Promise.all([
     getRoutines(familyId, memberId),
     // From the start of the household's today, not midnight UTC (which in
     // Manila is 8 AM and hid the morning's tasks).
     getOneOffTasks(familyId, (familyMidnight(familyDay(new Date(), tz), tz) ?? new Date()).toISOString(), familyDay(new Date(), tz)),
     getMemberScores(familyId),
-    getRewards(familyId),
     getCurrentMember(),
-    getStreakBonusRates(familyId),
   ]);
   const oneOffs = allOneOffs.filter((t) => concerns(t.memberIds, t.applies_to_whole_family, who));
   // A task that has run its course -- a one-off answered for, or one whose
@@ -802,26 +788,7 @@ async function RoutinesPane({ familyId, who, currency, justSaved, done }: { fami
 
       <MemberChips familyId={familyId} seg="routines" who={who} done={done} />
 
-      <Scoreboard scores={scores} />
-
-      <RewardsShelf
-        rewards={rewards}
-        me={scores.find((s) => s.id === me?.id)}
-        canManage={isGrownUp(me?.role ?? "")}
-        streakBonus={isGrownUp(me?.role ?? "") ? bonusOn(bonusRates, familyDay()) : undefined}
-      />
-
-      {/* Baon and the jars the points can be changed into (20261019100000).
-          A grown-up sees every child's; a child goes to their own. */}
-      {me && (isGrownUp(me.role) || isChild(me.role)) && (
-        <Link
-          href={isGrownUp(me.role) ? "/planner/alkansya" : `/planner/alkansya/${me.id}`}
-          className="btn btn-secondary"
-          style={{ minHeight: "2.25rem", fontSize: "0.8125rem", padding: "0 0.75rem", gap: "0.375rem", marginBottom: "1.125rem" }}
-        >
-          <Icon name="wallet" size={15} /> Alkansya · baon, gastos, ipon, bigay
-        </Link>
-      )}
+      <CoinsLine scores={scores} me={scores.find((s) => s.id === me?.id)} />
 
       <OneOffTasks tasks={oneOffs} />
 

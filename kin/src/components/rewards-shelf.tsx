@@ -15,7 +15,7 @@ import type { StreakBonus } from "@/lib/streaks";
 
 const initialState: ActionState = { error: null };
 
-/** What the points are for. Sits under the scoreboard, because a number with
+/** What the coins are for. Sits under the coins card in Goals → Shop, because a number with
  * nothing to spend it on is not a reward system -- it is a scoreboard.
  *
  * Everyone sees the list and what they can afford. Only a grown-up can add
@@ -81,7 +81,7 @@ export function RewardsShelf({
 
       {rewards.length === 0 ? (
         <p style={{ fontSize: "0.78125rem", color: "var(--color-neutral-600)", margin: 0 }}>
-          Nothing to spend points on yet. An hour of screen time, choosing Friday&rsquo;s dinner, a trip to the shop —
+          Nothing to spend coins on yet. An hour of screen time, choosing Friday&rsquo;s dinner, a trip to the shop —
           whatever the house agrees is worth earning.
         </p>
       ) : (
@@ -118,7 +118,7 @@ function AddReward({ onDone }: { onDone: () => void }) {
           <input id={`${uid}-title`} className="input" name="title" required maxLength={100} placeholder="An hour of screen time" style={{ minHeight: "2.5rem", fontSize: "0.8125rem" }} />
         </span>
         <span style={{ width: 92 }}>
-          <label htmlFor={`${uid}-cost`} style={{ display: "block", fontSize: "0.71875rem", color: "var(--color-neutral-600)", marginBottom: "0.1875rem" }}>Points</label>
+          <label htmlFor={`${uid}-cost`} style={{ display: "block", fontSize: "0.71875rem", color: "var(--color-neutral-600)", marginBottom: "0.1875rem" }}>Coins</label>
           <input id={`${uid}-cost`} className="input" name="cost_points" type="number" min="1" max="10000" required defaultValue={10} style={{ minHeight: "2.5rem", fontSize: "0.8125rem" }} />
         </span>
         <SubmitButton style={{ minHeight: "2.5rem", fontSize: "0.8125rem", padding: "0 0.75rem" }}>Save</SubmitButton>
@@ -188,7 +188,7 @@ function RewardRow({ reward, spendable, canManage, currency }: { reward: RewardV
       <span style={{ flex: 1, minWidth: 110 }}>
         <span style={{ display: "block", fontSize: "0.875rem", fontWeight: 500 }}>{reward.title}</span>
         <span style={{ display: "block", fontSize: "0.78125rem", color: affordable ? "var(--color-accent-700)" : "var(--color-neutral-600)" }}>
-          {reward.costPoints} points{affordable ? "" : ` · ${reward.costPoints - spendable} more to go`}
+          {reward.costPoints} coins{affordable ? "" : ` · ${reward.costPoints - spendable} more to go`}
         </span>
         {reward.budgetAmount !== null && reward.budgetAmount > 0 && (
           <span style={{ display: "block", fontSize: "0.71875rem", color: "var(--color-neutral-600)" }}>{formatCurrency(reward.budgetAmount, currency)} from the family budget</span>
@@ -236,7 +236,7 @@ function RewardRow({ reward, spendable, canManage, currency }: { reward: RewardV
       {editing && (
         <div style={{ flexBasis: "100%", display: "flex", gap: "0.4375rem", alignItems: "flex-end", flexWrap: "wrap" }}>
           <span style={{ width: 92 }}>
-            <label htmlFor={`${uid}-cost`} style={{ display: "block", fontSize: "0.71875rem", color: "var(--color-neutral-600)", marginBottom: "0.1875rem" }}>Points</label>
+            <label htmlFor={`${uid}-cost`} style={{ display: "block", fontSize: "0.71875rem", color: "var(--color-neutral-600)", marginBottom: "0.1875rem" }}>Coins</label>
             <input id={`${uid}-cost`} className="input" type="number" min="1" max="10000" value={cost} onChange={(e) => setCost(e.target.value)} style={{ minHeight: "2.5rem", fontSize: "1rem" }} />
           </span>
           <span style={{ width: 120 }}>
