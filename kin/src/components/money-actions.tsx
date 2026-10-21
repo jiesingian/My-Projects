@@ -38,14 +38,11 @@ import { DateInput } from "@/components/date-input";
 import { fundCategory } from "@/lib/sinking-fund";
 import { ASSET_ITEM_KINDS, ASSET_ITEM_KIND_HINTS, ASSET_ITEM_KIND_LABELS, type AssetItemKind } from "@/lib/wealth";
 
-export type PickableAccount = {
-  id: string;
-  name: string;
-  institution?: string | null;
-  linked_app_url: string | null;
-  balance: number;
-  is_joint: boolean;
-};
+/** Lives in lib/account-picker now, where the ordering and grouping rules
+ * are; re-exported so the forms that import it from here keep working. */
+export type { PickableAccount } from "@/lib/account-picker";
+import type { PickableAccount } from "@/lib/account-picker";
+import { AccountOptions } from "@/components/account-options";
 
 /** Kin starts the payment, the member's own banking app finishes it, then
  * they come back and confirm — so nothing is counted as moved until it
@@ -84,11 +81,7 @@ function AccountSelect({
 }) {
   return (
     <select id={id} className="input" value={value} onChange={(e) => onChange(e.target.value)} style={{ minHeight: "2.625rem" }}>
-      {accounts.map((a) => (
-        <option key={a.id} value={a.id}>
-          {a.name} · {formatCurrency(a.balance, currency)}
-        </option>
-      ))}
+      <AccountOptions accounts={accounts} currency={currency} />
     </select>
   );
 }

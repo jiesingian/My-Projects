@@ -2,7 +2,8 @@ import Link from "next/link";
 import { Icon } from "@/components/icons";
 import { redirect } from "next/navigation";
 import { getCurrentMember } from "@/lib/session";
-import { getWealthPane, getAccountViewers, getNetWorth, getAccounts, getArchivedAccounts, getCashFlowPane, getBudgetHistory, getSpendingByMember, recordAndGetNetWorthHistory, type WealthScope, type LedgerEntry, type AccountWithBalance } from "@/lib/queries/wealth";
+import { toPickable } from "@/lib/account-picker";
+import { getWealthPane, getAccountViewers, getNetWorth, getAccounts, getArchivedAccounts, getCashFlowPane, getBudgetHistory, getSpendingByMember, recordAndGetNetWorthHistory, type WealthScope, type LedgerEntry } from "@/lib/queries/wealth";
 import { CashFlowSources } from "@/components/cashflow-sources";
 import { HubHeader } from "@/components/hub-header";
 import { Blueprint, Tag, Empty } from "@/components/ui";
@@ -22,7 +23,6 @@ import {
   IncludePrivateToggle,
   RestoreAccountButton,
   DeleteAccountButton,
-  type PickableAccount,
 } from "@/components/money-actions";
 import { formatCurrency, formatDate, shortNames, selfLabel, selfPossessive } from "@/lib/format";
 import { getMembers } from "@/lib/queries/family";
@@ -1179,15 +1179,4 @@ function LoanScheduleLine({
   );
 }
 
-function toPickable(accounts: AccountWithBalance[], memberId: string): PickableAccount[] {
-  return accounts
-    .filter((a) => a.is_joint || a.owner_member_id === memberId)
-    .map((a) => ({
-      id: a.id,
-      name: a.name,
-      institution: a.institution,
-      linked_app_url: a.linked_app_url,
-      balance: a.balance,
-      is_joint: a.is_joint,
-    }));
-}
+

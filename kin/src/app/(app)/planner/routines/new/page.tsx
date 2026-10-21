@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { getCurrentMember } from "@/lib/session";
+import { toPickable } from "@/lib/account-picker";
 import { getMembers } from "@/lib/queries/family";
 import { getAccounts } from "@/lib/queries/wealth";
 import { createClient } from "@/lib/supabase/server";
@@ -43,9 +44,7 @@ export default async function RoutinePage({ searchParams }: { searchParams: Prom
   return (
     <RoutineForm
       members={activeMembers}
-      accounts={accounts
-        .filter((a) => a.is_joint || a.owner_member_id === me.id)
-        .map((a) => ({ id: a.id, name: a.name, institution: a.institution }))}
+      accounts={toPickable(accounts, me.id)}
       edit={edit}
       attachments={attachments}
       today={toISODate(new Date())}

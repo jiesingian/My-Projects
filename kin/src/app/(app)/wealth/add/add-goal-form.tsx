@@ -4,8 +4,9 @@ import { useActionState, useState } from "react";
 import { createGoalAction } from "@/lib/actions/wealth";
 import type { ActionState } from "@/lib/actions/auth";
 import { SubmitButton, ErrorText } from "@/components/form";
-import { formatCurrency, currencySymbol } from "@/lib/format";
+import { currencySymbol } from "@/lib/format";
 import type { PickableAccount } from "@/components/money-actions";
+import { AccountOptions } from "@/components/account-options";
 import { DateInput } from "@/components/date-input";
 import { SINKING_FUND_PRESETS } from "@/lib/sinking-fund";
 
@@ -80,11 +81,7 @@ export function AddGoalForm({ accounts, currency }: { accounts: PickableAccount[
         <Field label="Saved in (optional)">
           <select className="input" name="linked_account_id" defaultValue="" style={{ minHeight: "2.75rem" }}>
             <option value="">No account yet</option>
-            {accounts.map((a) => (
-              <option key={a.id} value={a.id}>
-                {a.name} · {formatCurrency(a.balance, currency)}
-              </option>
-            ))}
+            <AccountOptions accounts={accounts} currency={currency} />
           </select>
         </Field>
       )}

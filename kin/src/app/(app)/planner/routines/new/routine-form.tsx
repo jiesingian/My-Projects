@@ -13,6 +13,8 @@ import type { RoutineAttachment } from "@/lib/queries/routines";
 import { scrollBehavior } from "@/lib/motion";
 import { WeekdayPicker } from "@/components/weekday-picker";
 import { weekdayOf } from "@/lib/time";
+import type { PickableAccount } from "@/lib/account-picker";
+import { AccountOptions } from "@/components/account-options";
 
 const initialState: RoutineActionState = { error: null, field: null };
 
@@ -85,7 +87,7 @@ function FieldBlock({
 }
 
 type Member = { id: string; full_name: string };
-type Account = { id: string; name: string; institution: string | null };
+type Account = PickableAccount;
 
 export type EditRoutine = {
   id: string;
@@ -390,12 +392,7 @@ export function RoutineForm({
               <label htmlFor={`${uid}-cost-account`}>From account</label>
               <select id={`${uid}-cost-account`} aria-label="From Account" className="input" name="cost_account_id" defaultValue={edit?.cost_account_id ?? ""} style={{ minHeight: "2.75rem" }}>
                 <option value="">—</option>
-                {accounts.map((a) => (
-                  <option key={a.id} value={a.id}>
-                    {a.name}
-                    {a.institution ? ` · ${a.institution}` : ""}
-                  </option>
-                ))}
+                <AccountOptions accounts={accounts} detail="institution" />
               </select>
             </FieldBlock>
           </div>

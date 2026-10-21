@@ -1,4 +1,5 @@
 import { householdZone } from "@/lib/household-zone";
+import { toPickable } from "@/lib/account-picker";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { getCurrentMember } from "@/lib/session";
@@ -86,9 +87,7 @@ export default async function MemberDetailPage({
   const from = cameFromSettings ? "&from=settings" : cameFromTree ? "&from=tree" : "";
 
   const accounts = await getAccounts(me.family_id);
-  const payableAccounts = accounts
-    .filter((a) => a.is_joint || a.owner_member_id === me.id)
-    .map((a) => ({ id: a.id, name: a.name, institution: a.institution, linked_app_url: a.linked_app_url, balance: a.balance, is_joint: a.is_joint }));
+  const payableAccounts = toPickable(accounts, me.id);
 
   // Everyone's pictures, not only your own: on someone else's profile they
   // open read-only, for the household to react to and comment on.

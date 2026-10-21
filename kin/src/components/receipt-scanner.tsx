@@ -14,6 +14,7 @@ import { scanReceiptAction } from "@/lib/actions/receipt";
 import { recordMovementAction, addBillAction } from "@/lib/actions/wealth";
 import { receiptParticulars, type ReceiptKind, type ScannedReceipt } from "@/lib/receipt-scan";
 import type { PickableAccount } from "@/components/money-actions";
+import { AccountOptions } from "@/components/account-options";
 
 const SOURCE_LABEL: Record<ScannedReceipt["source"], string> = {
   receipt: "a receipt",
@@ -216,11 +217,7 @@ export function ReceiptScanner({ accounts, currency, ready, plus }: { accounts: 
                 <p style={{ fontSize: "0.8125rem", color: "var(--color-neutral-600)", margin: 0 }}>Add an account in Wealth first.</p>
               ) : (
                 <select className="input" value={accountId} onChange={(e) => setAccountId(e.target.value)} style={{ minHeight: "2.75rem" }}>
-                  {accounts.map((a) => (
-                    <option key={a.id} value={a.id}>
-                      {a.name} · {formatCurrency(a.balance, currency)}
-                    </option>
-                  ))}
+                  <AccountOptions accounts={accounts} currency={currency} />
                 </select>
               )}
               {draft.account_id === null && <p style={{ fontSize: "0.75rem", color: "var(--color-neutral-600)", margin: "0.25rem 0 0" }}>Kin couldn&apos;t tell which account; check this one.</p>}

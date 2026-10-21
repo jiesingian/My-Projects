@@ -8,6 +8,8 @@ import { formatCurrency } from "@/lib/format";
 import { ErrorText } from "@/components/form";
 import { DateInput } from "@/components/date-input";
 import type { PesoRate } from "@/lib/fx";
+import type { PickableAccount } from "@/lib/account-picker";
+import { AccountOptions } from "@/components/account-options";
 
 const SOMEONE_ELSE = "__other";
 const NOTE: React.CSSProperties = { fontSize: "0.78125rem", color: "var(--color-neutral-600)", lineHeight: 1.45, margin: "0 0 0.875rem" };
@@ -33,7 +35,7 @@ export function RemittanceForm({
 }: {
   members: { id: string; label: string }[];
   /** Accounts this grown-up may pay into: joint ones, and their own. */
-  accounts: { id: string; name: string; isJoint: boolean }[];
+  accounts: PickableAccount[];
   currencies: readonly string[];
   meId: string;
 }) {
@@ -195,12 +197,7 @@ export function RemittanceForm({
       <Field label="Landed in (optional)">
         <select className="input" value={accountId} onChange={(e) => setAccountId(e.target.value)}>
           <option value="">Not in an account on Kin</option>
-          {accounts.map((a) => (
-            <option key={a.id} value={a.id} disabled={justMe && a.isJoint}>
-              {a.name}
-              {a.isJoint ? " · joint" : ""}
-            </option>
-          ))}
+          <AccountOptions accounts={accounts} detail="joint" disableJoint={justMe} />
         </select>
       </Field>
       {selectedAccount && (
@@ -269,7 +266,7 @@ export function RemittanceForm({
           checked={justMe}
           onChange={(e) => {
             setJustMe(e.target.checked);
-            if (e.target.checked && selectedAccount?.isJoint) setAccountId("");
+            if (e.target.checked && selectedAccount?.is_joint) setAccountId("");
           }}
           style={{ marginTop: "0.2rem" }}
         />

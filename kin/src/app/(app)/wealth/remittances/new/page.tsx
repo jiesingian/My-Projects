@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { getCurrentMember } from "@/lib/session";
+import { toPickable } from "@/lib/account-picker";
 import { getAccounts } from "@/lib/queries/wealth";
 import { getMembers } from "@/lib/queries/family";
 import { DetailHeader } from "@/components/hub-header";
@@ -28,7 +29,7 @@ export default async function NewRemittancePage() {
           members={active.map((m, i) => ({ id: m.id, label: labels[i] }))}
           // Only accounts this grown-up can pay into; the database refuses the
           // rest anyway, and offering them would only produce that refusal.
-          accounts={accounts.filter((a) => a.is_joint || a.owner_member_id === me.id).map((a) => ({ id: a.id, name: a.name, isJoint: a.is_joint }))}
+          accounts={toPickable(accounts, me.id)}
           currencies={REMITTANCE_CURRENCIES}
         />
       </div>

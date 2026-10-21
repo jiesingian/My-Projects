@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getCurrentMember } from "@/lib/session";
+import { toPickable } from "@/lib/account-picker";
 import { getAccounts, getAttributableTargets, getAccountNumbers } from "@/lib/queries/wealth";
 import { DetailHeader } from "@/components/hub-header";
 import { TransactForm } from "./transact-form";
@@ -30,14 +31,7 @@ export default async function TransactPage({
           Got a receipt or a GCash screenshot? <Link href="/wealth/scan">Snap it</Link> and Kin fills this in.
         </p>
         <TransactForm
-          accounts={accounts.map((a) => ({
-            id: a.id,
-            name: a.name,
-            linked_app_url: a.linked_app_url,
-            institution: a.institution,
-            balance: a.balance,
-            is_joint: a.is_joint,
-          }))}
+          accounts={toPickable(accounts, me.id, { everyone: true })}
           currency={me.families.currency}
           defaultMode={mode ?? "in"}
           defaultAccountId={fromAccount}
