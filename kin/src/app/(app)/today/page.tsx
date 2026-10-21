@@ -50,6 +50,8 @@ import { ArrivedButton } from "@/components/arrived-button";
 import { getMyPendingCheckIns } from "@/lib/queries/member-card";
 import { LettersOpeningToday } from "@/components/letters-opening";
 import { GuidedTour } from "@/components/guided-tour";
+import { NextBillOffers } from "@/components/next-bill-offer";
+import { getNextBillOffers } from "@/lib/queries/wealth";
 
 export default async function TodayPage({ searchParams }: { searchParams: Promise<{ tour?: string; arrived?: string }> }) {
   const tz = await householdZone();
@@ -64,7 +66,7 @@ export default async function TodayPage({ searchParams }: { searchParams: Promis
   const replayTour = params.tour === "1";
 
   const supabase = await createClient();
-  const [{ data: members }, glance, brief, tasks, awaitingApproval, awaitingRedemption, familyPanel, comingUp, memories, recap, startHere, goalRequests, rewardDuties, goals, kinOffer, checkIns, plusTrial, goalClaims] = await Promise.all([
+  const [{ data: members }, glance, brief, tasks, awaitingApproval, awaitingRedemption, familyPanel, comingUp, memories, recap, startHere, goalRequests, rewardDuties, goals, kinOffer, checkIns, plusTrial, goalClaims, nextBills] = await Promise.all([
     supabase.from("members").select("id, full_name, status").eq("family_id", me.family_id).order("created_at"),
     getGlance(me.family_id, me.families.currency, me),
     getTodayBriefing(me.family_id, me.families.currency, me),
@@ -101,6 +103,9 @@ export default async function TodayPage({ searchParams }: { searchParams: Promis
     getPlusTrialCard(me),
     // Children's claims that a repeating goal was met: a grown-up's to answer.
     isGrownUp(me.role) ? getPendingGoalClaims(me.family_id, me) : Promise.resolve([]),
+    // A paid repeating bill with no next one: "Add the next one?" (21
+    // October), for a grown-up on Plus, where Wealth is theirs.
+    isGrownUp(me.role) && readAccess(me.families).plus ? getNextBillOffers(me.family_id) : Promise.resolve([]),
   ]);
 
   // Today's one list, ordered here on the server so the phone never re-sorts
@@ -236,6 +241,8 @@ export default async function TodayPage({ searchParams }: { searchParams: Promis
           )}
         </section>
       )}
+
+      {nextBills.length > 0 && <NextBillOffers offers={nextBills} currency={me.families.currency} heading="Bills that repeat" />}
 
       {/* Today's goals (Jonathan, 13 October): the viewer's own and the
           household's goals that move day to day, with a glass, the day's

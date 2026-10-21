@@ -29,12 +29,21 @@ the same day.
   turns 13 that they can have a login.
 - **Done (#824, migration):** The grown-ups of one household are connected
   from the start. Applied to dev and production 21 October.
-- **Decision for Jonathan:** recurring bills roll forward. A paid monthly
-  bill stays paid and nothing makes next month's (lib/subscriptions.ts
-  says so on purpose), so after the first payment the bill drops off Today,
-  the 3-days-before push and Cash Flow. Proposed: when a repeating bill is
-  paid (either way), add the next one at its due date unless the household
-  already has it.
+- **Decided and done (Jonathan, 21 October): recurring bills roll forward,
+  approved by the user.** When a repeating bill is paid (Mark paid, or Paid
+  outside Kin), a sheet asks "Add next month's <bill> for <date>?" with the
+  amount and date prefilled and editable, Add / Not now; Cash Flow (under
+  the bills) and Today ("Bills that repeat") list every paid repeating bill
+  that has no next one yet, so earlier ones catch up. Nothing is added
+  without Add (addNextBillAction, which refuses a second copy). Grown-ups on
+  Plus only. Not offered when the household already has the next one (same
+  name and repeat, still open or due later). The date is one period after
+  the paid one's, from the original day (31st → 30th/28th, back to the 31st);
+  periods wholly gone are skipped, the current one kept even if its day
+  passed. Bills repeat monthly, quarterly or yearly; there is no weekly
+  bill. Not now hides it on that phone for a week (localStorage). A bill
+  paid in another app ("Open app & log") is offered once it is confirmed,
+  on Cash Flow and Today, not in the sheet. Logic: e2e/bill-roll.logic.spec.ts.
 - **Decision for Jonathan:** with household grown-ups connected (#824),
   Journal "Public" entries reach the other grown-up like any connection.
   Kept that way unless he says otherwise.

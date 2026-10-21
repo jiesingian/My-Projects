@@ -17,6 +17,7 @@ import { pesoRate, type PesoRate } from "@/lib/fx";
 import { householdZone } from "@/lib/household-zone";
 import { familyDay } from "@/lib/time";
 import { addYears } from "@/lib/sinking-fund";
+import { hasNextBill, nextBillDate, nextBillOffer, type NextBillOffer } from "@/lib/bill-roll";
 
 type Db = SupabaseClient<Database>;
 
@@ -713,7 +714,7 @@ export async function addBillAction(_prev: ActionState, formData: FormData): Pro
  * no ledger entry and no account, so the balances stay honest and the bill
  * stops shouting on Today (21 October audit: three overdue utilities on the
  * sample household with no way to say "already paid"). */
-export async function settleBillOutsideKinAction(billId: string): Promise<ActionState> {
+export async function settleBillOutsideKinAction(billId: string): Promise<ActionState & { next?: NextBillOffer | null }> {
   const me = await requireCurrentMember();
   const supabase = await createClient();
   const { data, error } = await supabase
@@ -727,7 +728,7 @@ export async function settleBillOutsideKinAction(billId: string): Promise<Action
   if (!data?.length) return { error: "Bill not found, or already paid." };
   revalidateWealth();
   revalidatePath("/today");
-  return { error: null };
+  return { error: null, next: await offerNextBill(supabase, me, billId) };
 }
 
 export async function payBillAction(input: {
@@ -735,7 +736,7 @@ export async function payBillAction(input: {
   accountId: string;
   amount: number;
   viaApp: boolean;
-}): Promise<{ error: string | null; appUrl?: string | null }> {
+}): Promise<{ error: string | null; appUrl?: string | null; next?: NextBillOffer | null }> {
   const me = await requireCurrentMember();
   const supabase = await createClient();
 
@@ -768,7 +769,63 @@ export async function payBillAction(input: {
   else await supabase.from("bills").update({ status: "scheduled" }).eq("id", bill.id);
 
   revalidateWealth();
-  return { error: null, appUrl: input.viaApp ? account.linked_app_url : null };
+  // Paid in another app it is only scheduled until confirmed; the offer
+  // comes on Cash Flow and Today once it is paid.
+  return { error: null, appUrl: input.viaApp ? account.linked_app_url : null, next: status === "confirmed" ? await offerNextBill(supabase, me, bill.id) : null };
+}
+
+/** The same name and repeat, every one the household has: what decides
+ * whether the next one already exists. */
+async function sameNamedBills(supabase: SupabaseClient<Database>, familyId: string, name: string) {
+  const { data } = await supabase.from("bills").select("id, name, amount, due_date, recurrence, status").eq("family_id", familyId).ilike("name", name.trim().replace(/[\\%_]/g, "\\$&"));
+  return data ?? [];
+}
+
+/** "Add next month's Meralco?" for a bill just paid -- for a grown-up only
+ * (Wealth is theirs), and only when the household has no next one yet. */
+async function offerNextBill(supabase: SupabaseClient<Database>, me: { family_id: string; role: string }, billId: string): Promise<NextBillOffer | null> {
+  if (!isGrownUp(me.role)) return null;
+  const { data: bill } = await supabase.from("bills").select("id, name, amount, due_date, recurrence, status").eq("id", billId).eq("family_id", me.family_id).maybeSingle();
+  if (!bill) return null;
+  return nextBillOffer(bill, await sameNamedBills(supabase, me.family_id, bill.name), familyDay(new Date(), await householdZone()));
+}
+
+/** The grown-up said Add (21 October): the next one of a paid repeating
+ * bill, at the date and amount they confirmed. Same name, category, repeat
+ * and reminder as the paid one. Refused when the next one is already there,
+ * so a double tap or a second phone adds one bill, not two. */
+export async function addNextBillAction(input: { fromBillId: string; amount: number; dueDate: string }): Promise<ActionState> {
+  const me = await requireCurrentMember();
+  if (!isGrownUp(me.role)) return { error: "Only a grown-up can add bills." };
+  if (!(input.amount > 0)) return { error: "Enter an amount greater than zero." };
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(input.dueDate)) return { error: "Choose the date it is due." };
+  const supabase = await createClient();
+
+  const { data: from } = await supabase.from("bills").select("*").eq("id", input.fromBillId).eq("family_id", me.family_id).maybeSingle();
+  if (!from || !nextBillDate(from.due_date, from.recurrence, familyDay(new Date(), await householdZone()))) return { error: "Bill not found." };
+  if (hasNextBill(from, await sameNamedBills(supabase, me.family_id, from.name))) return { error: "The next one is already there." };
+
+  const { data: bill, error } = await supabase
+    .from("bills")
+    .insert({
+      family_id: me.family_id,
+      name: from.name,
+      amount: input.amount,
+      due_date: input.dueDate,
+      category: from.category,
+      recurrence: from.recurrence,
+      remind_days_before: from.remind_days_before,
+      status: "unpaid",
+      created_by: me.id,
+    })
+    .select()
+    .single();
+  if (error) return { error: humanDatabaseError(error.message) };
+
+  await syncRowToCalendars(me.family_id, "bills", bill.id, allDayEvent(`${from.name} due`, input.dueDate), { kind: "all" });
+  revalidateWealth();
+  revalidatePath("/today");
+  return { error: null };
 }
 
 /** How many days ahead this bill's first reminder comes, changed on the bill
