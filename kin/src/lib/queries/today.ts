@@ -14,6 +14,7 @@ import { isGrownUp } from "@/lib/roles";
 import { isGone } from "@/lib/member-status";
 import { dosesFor } from "@/lib/health-plan";
 import { medicineGlance } from "@/lib/medicine-glance";
+import { shopGlance } from "@/lib/shop-glance";
 
 /** Tasks that start in [fromISO, …), or repeating ones that have not ended
  * by `fromDay` -- a weekly task's later days are on its rule, not its row
@@ -84,7 +85,7 @@ export async function getGlance(familyId: string, currency: string): Promise<{ m
   const [year, month] = localDay(now, tz).split("-").map(Number);
   const startOfMonth = (familyMidnight(`${year}-${String(month).padStart(2, "0")}-01`, tz) ?? now).toISOString();
 
-  const [budgetPeriod, monthSpend, shop] = await Promise.all([
+  const [budgetPeriod, monthSpend, shop, { data: low }] = await Promise.all([
     supabase
       .from("budget_periods")
       .select("budget_amount")
@@ -100,6 +101,8 @@ export async function getGlance(familyId: string, currency: string): Promise<{ m
       .eq("status", "confirmed")
       .gte("occurred_at", startOfMonth),
     getPricedBuyList(familyId),
+    // Running low in the pantry: said on the tile, not a card of its own.
+    supabase.from("pantry_items").select("name").eq("family_id", familyId).eq("running_low", true),
   ]);
 
   const spent = (monthSpend.data ?? []).reduce((sum, t) => sum + Number(t.amount), 0);
@@ -111,19 +114,12 @@ export async function getGlance(familyId: string, currency: string): Promise<{ m
         : { id: "money", icon: "wallet", value: formatAccounting(target - spent, currency), label: "left this month", href: "/wealth", progress: spent / target }
       : { id: "money", icon: "wallet", value: formatAccounting(spent, currency), label: "spent this month", href: "/wealth" };
 
+  // Today's one mention of the shopping list (Janine, 21 October).
   const open = shop.items.filter((i) => !i.checked);
-  const shopTile: GlanceTile = {
-    id: "shop",
-    icon: "basket",
-    value: open.length === 0 ? "List clear" : `${open.length} to buy`,
-    label:
-      open.length === 0
-        ? "shopping list is empty"
-        : shop.estimatedRemaining > 0
-          ? `about ${formatAccounting(shop.estimatedRemaining, currency)}${shop.unpricedCount > 0 ? " + unpriced" : ""}`
-          : open.slice(0, 3).map((i) => i.name).join(", "),
-    href: "/household?seg=buy",
-  };
+  const listed = new Set(open.map((i) => i.name.trim().toLowerCase()));
+  const lowCount = (low ?? []).filter((p) => !listed.has(p.name.trim().toLowerCase())).length;
+  const said = shopGlance({ open: open.map((i) => i.name), estimate: shop.estimatedRemaining, unpriced: shop.unpricedCount, low: lowCount }, (n) => formatAccounting(n, currency));
+  const shopTile: GlanceTile = { id: "shop", icon: "basket", value: said.value, label: said.label, href: "/household?seg=buy" };
 
   return { money, shop: shopTile };
 }
@@ -152,7 +148,7 @@ export async function getTodayBriefing(familyId: string, currency: string, me: V
   const windowStart = new Date(now.getTime() - 36 * 3600_000).toISOString();
   const windowEnd = new Date(now.getTime() + 48 * 3600_000).toISOString();
 
-  const [activities, events, bills, health, meals, buyCount, marks, departed] = await Promise.all([
+  const [activities, events, bills, health, meals, marks, departed] = await Promise.all([
     supabase
       .from("activities")
       .select("id, title, start_at, location, status, repeat, repeat_days, repeat_until, applies_to_whole_family, activity_members(member_id, members(role))")
@@ -193,12 +189,6 @@ export async function getTodayBriefing(familyId: string, currency: string, me: V
       .eq("family_id", familyId)
       .eq("plan_date", today)
       .order("position", { ascending: true }),
-    supabase
-      .from("buy_items")
-      .select("id", { count: "exact", head: true })
-      .eq("family_id", familyId)
-      .eq("checked", false)
-      .eq("cleared", false),
     supabase.from("today_marks").select("item_key, state").eq("family_id", familyId).eq("day", today),
     departedOnTree(supabase, familyId),
   ]);
@@ -309,19 +299,6 @@ export async function getTodayBriefing(familyId: string, currency: string, me: V
       tint: "home",
       title: m.dish,
       meta: m.slot ? String(m.slot) : "Planned today",
-      href: "/household",
-    });
-  }
-
-  if ((buyCount.count ?? 0) > 0) {
-    items.push({
-      id: "buy",
-      action: "shop",
-      mark: marked.get("buy"),
-      icon: "house",
-      tint: "home",
-      title: `${buyCount.count} thing${buyCount.count === 1 ? "" : "s"} to buy`,
-      meta: "Shopping list",
       href: "/household",
     });
   }
@@ -521,25 +498,6 @@ export async function getComingUp(familyId: string, currency: string, me: Viewer
         at: 1,
       });
     }
-  }
-
-  // Running low in the pantry and not yet on the list (20260928100000).
-  const [{ data: low }, { data: openList }] = await Promise.all([
-    supabase.from("pantry_items").select("name").eq("family_id", familyId).eq("running_low", true).order("name"),
-    supabase.from("buy_items").select("name").eq("family_id", familyId).eq("checked", false).eq("cleared", false),
-  ]);
-  const listed = new Set((openList ?? []).map((b) => b.name.trim().toLowerCase()));
-  const lowNames = (low ?? []).map((p) => p.name).filter((n) => !listed.has(n.trim().toLowerCase()));
-  if (lowNames.length > 0) {
-    items.push({
-      id: "soon-pantry-low",
-      icon: "basket",
-      tint: "home",
-      title: lowNames.length === 1 ? `Running low: ${lowNames[0]}` : `Running low on ${lowNames.length} things`,
-      meta: `${lowNames.slice(0, 4).join(", ")}${lowNames.length > 4 ? "…" : ""} · not on the list yet`,
-      href: "/household?seg=buy",
-      at: 0.5,
-    });
   }
 
   // Six a page at most, each page in date order. Anything without a page
