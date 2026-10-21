@@ -38,6 +38,8 @@ import { TreeSuggestions } from "@/components/tree-suggestions";
 import { getTreeMatches, getTreeOffers, getTreeOfferBlocks, getLinkedFamilies, getTreeSuggestions } from "@/lib/queries/tree-links";
 import { FamilyTreeEditor } from "@/components/family-tree-editor";
 import { AddMeToTreeButton } from "@/components/add-me-to-tree-button";
+import { SeedHouseholdTreeButton } from "@/components/seed-household-tree-button";
+import { planHouseholdSeed, seedPlanIsEmpty, describeSeedPlan } from "@/lib/tree-seed";
 import { formatAge, initials } from "@/lib/format";
 import { isGone } from "@/lib/member-status";
 import { isUndas } from "@/lib/remembrance";
@@ -82,7 +84,7 @@ export default async function FamilyPage({
         {seg === "health" && <HealthPane familyId={me.family_id} />}
         {seg === "documents" && !readAccess(me.families).plus && <PlusNote area="The vault" />}
         {seg === "documents" && <VaultPane familyId={me.family_id} who={who} tab={sp.tab === "passwords" ? "passwords" : "documents"} meId={me.id} myRole={me.role} />}
-        {seg === "tree" && <TreePane familyId={me.family_id} householdName={me.families.name} myId={me.id} inviteCode={me.is_organiser ? me.families.invite_code : null} open={sp.branch && sp.person ? { matchId: sp.branch, personId: sp.person } : null} remembering={me.families.remember_the_departed !== false} />}
+        {seg === "tree" && <TreePane familyId={me.family_id} householdName={me.families.name} myId={me.id} myRole={me.role} inviteCode={me.is_organiser ? me.families.invite_code : null} open={sp.branch && sp.person ? { matchId: sp.branch, personId: sp.person } : null} remembering={me.families.remember_the_departed !== false} />}
         {seg === "quicklinks" && <QuicklinksPane familyId={me.family_id} meId={me.id} myRole={me.role} />}
       </div>
     </div>
@@ -237,32 +239,44 @@ async function HealthPane({ familyId }: { familyId: string }) {
         )}
       </Blueprint>
       {rows.map(({ member, nextDue, hasAlert }) => (
-        <Link key={member.id} href={`/family/members/${member.id}?view=health`} style={{ color: "inherit", textDecoration: "none" }}>
-          <Blueprint style={{ padding: "0.8125rem", marginBottom: "0.75rem" }}>
-            <div style={{ display: "flex", flexWrap: "wrap", alignItems: "baseline", gap: "0.375rem 0.5rem", marginBottom: "0.5rem" }}>
-              <span style={{ font: "600 1.1875rem/1 var(--font-heading)" }}>{member.full_name.split(" ")[0]}</span>
-              <Tag variant={hasAlert ? "accent" : "neutral"} className="ml-auto">
-                {nextDue}
-              </Tag>
-            </div>
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 9rem), 1fr))", gap: "0.4375rem 0.875rem", fontSize: "0.8125rem" }}>
-              <Fact k="Blood type" v={member.blood_type} />
-              <Fact k="Allergies" v={member.allergies} />
-              <Fact k="Insurance" v={member.insurance_info} />
-              <Fact k="Physician" v={member.physician_name} />
-            </div>
-          </Blueprint>
-        </Link>
+        /* The name and the due tag open the health page; each empty fact
+           opens the About tab where it is filled in. The card itself is no
+           longer one link, so the two can sit side by side. */
+        <Blueprint key={member.id} style={{ padding: "0.8125rem", marginBottom: "0.75rem" }}>
+          <Link href={`/family/members/${member.id}?view=health`} style={{ color: "inherit", textDecoration: "none", display: "flex", flexWrap: "wrap", alignItems: "baseline", gap: "0.375rem 0.5rem", marginBottom: "0.5rem" }}>
+            <span style={{ font: "600 1.1875rem/1 var(--font-heading)" }}>{member.full_name.split(" ")[0]}</span>
+            <Tag variant={hasAlert ? "accent" : "neutral"} className="ml-auto">
+              {nextDue}
+            </Tag>
+          </Link>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 9rem), 1fr))", gap: "0.4375rem 0.875rem", fontSize: "0.8125rem" }}>
+            <Fact k="Blood type" v={member.blood_type} addHref={`/family/members/${member.id}?tab=about`} />
+            <Fact k="Allergies" v={member.allergies} addHref={`/family/members/${member.id}?tab=about`} />
+            <Fact k="Insurance" v={member.insurance_info} addHref={`/family/members/${member.id}?tab=about`} />
+            <Fact k="Physician" v={member.physician_name} addHref={`/family/members/${member.id}?tab=about`} />
+          </div>
+        </Blueprint>
       ))}
     </>
   );
 }
 
-function Fact({ k, v }: { k: string; v: string | null }) {
+/** `addHref`: where an empty fact is filled in. "Not recorded" used to be
+ * plain text three screens from the field it named (21 October audit); now
+ * it is the way there. */
+function Fact({ k, v, addHref }: { k: string; v: string | null; addHref?: string }) {
   return (
     <div>
       <span style={{ color: "var(--color-neutral-600)", fontSize: "0.8125rem", display: "block" }}>{k}</span>
-      <span style={{ color: v ? "var(--color-text)" : "var(--color-neutral-500)" }}>{v || "Not recorded"}</span>
+      {v ? (
+        <span style={{ color: "var(--color-text)" }}>{v}</span>
+      ) : addHref ? (
+        <Link href={addHref} style={{ color: "var(--color-accent-700)" }} aria-label={`Add ${k.toLowerCase()}`}>
+          Not recorded · add
+        </Link>
+      ) : (
+        <span style={{ color: "var(--color-neutral-500)" }}>Not recorded</span>
+      )}
     </div>
   );
 }
@@ -407,7 +421,7 @@ async function VaultPane({ familyId, who, tab, meId, myRole }: { familyId: strin
  * different person, which made a single family look like several trees. The
  * only thing that differs between members now is that each sees themselves
  * highlighted. */
-async function TreePane({ familyId, householdName, myId, inviteCode, open, remembering }: { familyId: string; householdName: string; myId: string; inviteCode: string | null; open: { matchId: string; personId: string } | null; remembering: boolean }) {
+async function TreePane({ familyId, householdName, myId, myRole, inviteCode, open, remembering }: { familyId: string; householdName: string; myId: string; myRole: string; inviteCode: string | null; open: { matchId: string; personId: string } | null; remembering: boolean }) {
   // Undas in the household's own zone, with its remembering on: a candle on
   // the tile of each relative who has passed (lib/remembrance).
   const candles = remembering && isUndas(familyDay(new Date(), await householdZone()));
@@ -432,6 +446,16 @@ async function TreePane({ familyId, householdName, myId, inviteCode, open, remem
   const memberIdsInTree = new Set(tree.people.filter((p) => p.memberId).map((p) => p.memberId));
   const unaddedMembers = members.filter((m) => !memberIdsInTree.has(m.id)).map((m) => ({ id: m.id, full_name: m.full_name }));
   const meInTree = tree.people.find((p) => p.memberId === myId) ?? null;
+  // What one tap would put on the tree from the member list (lib/tree-seed):
+  // shown as a sentence above the button, and the button only when the
+  // sentence has something to say. Grown-ups only, like the action.
+  const seedPlan = isGrownUp(myRole)
+    ? planHouseholdSeed(
+        members.map((m) => ({ id: m.id, full_name: m.full_name, role: m.role, sex: m.sex })),
+        tree.people.map((p) => ({ id: p.id, memberId: p.memberId, fatherId: p.fatherId, motherId: p.motherId, spouseId: p.spouseId })),
+      )
+    : null;
+  const seedSummary = seedPlan && !seedPlanIsEmpty(seedPlan) ? describeSeedPlan(seedPlan, myId) : "";
 
   return (
     <>
@@ -445,11 +469,14 @@ async function TreePane({ familyId, householdName, myId, inviteCode, open, remem
             title={tree.people.length === 0 ? "Start the family tree" : "You're not in the tree yet"}
             line="Add yourself, then your father, your mother, and anyone else you know -- the tree grows from there, and everybody in the house sees the same one."
           />
-          <AddMeToTreeButton memberId={myId} />
+          {seedSummary ? <SeedHouseholdTreeButton summary={seedSummary} /> : <AddMeToTreeButton memberId={myId} />}
           {tree.people.length > 0 && <FamilyTreeChart people={tree.people} meTreeId={null} householdName={householdName} matches={matches} linkedFamilies={linkedFamilies} inviteCode={inviteCode} unaddedMembers={unaddedMembers} open={open} connections={connections} candles={candles} />}
         </>
       ) : (
-        <FamilyTreeChart people={tree.people} meTreeId={meInTree.id} householdName={householdName} matches={matches} linkedFamilies={linkedFamilies} inviteCode={inviteCode} unaddedMembers={unaddedMembers} open={open} connections={connections} candles={candles} />
+        <>
+          <FamilyTreeChart people={tree.people} meTreeId={meInTree.id} householdName={householdName} matches={matches} linkedFamilies={linkedFamilies} inviteCode={inviteCode} unaddedMembers={unaddedMembers} open={open} connections={connections} candles={candles} />
+          {seedSummary && <SeedHouseholdTreeButton summary={seedSummary} />}
+        </>
       )}
 
       <details className="kin-fold" style={{ marginTop: "1.25rem" }}>

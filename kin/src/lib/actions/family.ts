@@ -18,8 +18,10 @@ import { REFERRAL_COOKIE, cleanReferralCode } from "@/lib/referral";
 import { isCountryCode } from "@/lib/countries";
 import { birthdayProblem, familyDay, familyMidnight } from "@/lib/time";
 import { isGone } from "@/lib/member-status";
+import { isGrownUp } from "@/lib/roles";
 import { HOUSEHOLD_BUCKETS, removeFolder } from "@/lib/storage-sweep";
 import { diedOnProblem } from "@/lib/remembrance";
+import { planHouseholdSeed, seedPlanIsEmpty } from "@/lib/tree-seed";
 
 // Onboarding was the one path with no ceiling on what it stored: every other
 // form in the app clamps, but the first three screens a new household ever
@@ -887,6 +889,67 @@ export async function addTreeMemberAction(memberId: string): Promise<ActionState
   const { error } = await supabase.from("family_tree_people").insert({ family_id: me.family_id, member_id: memberId, created_by: me.id });
   revalidatePath("/family");
   return { error: error ? humanDatabaseError(error.message) : null };
+}
+
+/** Puts the whole household on the tree in one go: a row for each active
+ * member not on it, the two parents as spouses, the children as theirs
+ * (lib/tree-seed decides what; this only writes it). Grown-ups only, and
+ * nothing already recorded is overwritten: the plan skips a spouse or a
+ * parent that is already set. Several writes with no transaction, like
+ * addRelativeAction: an insert that fails stops before any link is made,
+ * and a link that fails leaves rows that Manage people can still link. */
+export async function seedHouseholdTreeAction(): Promise<ActionState & { added?: number; linked?: number }> {
+  const me = await requireCurrentMember();
+  if (!isGrownUp(me.role)) return { error: "Only a grown-up can add the household to the tree." };
+  const supabase = await createClient();
+  const [{ data: members }, { data: rows }] = await Promise.all([
+    supabase.from("members").select("id, full_name, role, sex, status").eq("family_id", me.family_id).order("created_at"),
+    supabase.from("family_tree_people").select("id, member_id, father_id, mother_id, spouse_id").eq("family_id", me.family_id),
+  ]);
+  const active = (members ?? []).filter((m) => m.status !== "pending" && !isGone(m.status));
+  const plan = planHouseholdSeed(
+    active.map((m) => ({ id: m.id, full_name: m.full_name, role: m.role, sex: m.sex })),
+    (rows ?? []).map((r) => ({ id: r.id, memberId: r.member_id, fatherId: r.father_id, motherId: r.mother_id, spouseId: r.spouse_id })),
+  );
+  if (seedPlanIsEmpty(plan)) return { error: null, added: 0, linked: 0 };
+
+  const rowByMember = new Map((rows ?? []).filter((r) => r.member_id).map((r) => [r.member_id as string, r.id]));
+  if (plan.insert.length) {
+    const { data: created, error } = await supabase
+      .from("family_tree_people")
+      .insert(plan.insert.map((m) => ({ family_id: me.family_id, member_id: m.id, created_by: me.id })))
+      .select("id, member_id");
+    if (error) return { error: humanDatabaseError(error.message) };
+    for (const r of created ?? []) if (r.member_id) rowByMember.set(r.member_id, r.id);
+  }
+
+  let linked = 0;
+  if (plan.spouse) {
+    const a = rowByMember.get(plan.spouse.a.id);
+    const b = rowByMember.get(plan.spouse.b.id);
+    if (a && b) {
+      const [ra, rb] = await Promise.all([
+        supabase.from("family_tree_people").update({ spouse_id: b }).eq("id", a).eq("family_id", me.family_id),
+        supabase.from("family_tree_people").update({ spouse_id: a }).eq("id", b).eq("family_id", me.family_id),
+      ]);
+      const err = ra.error ?? rb.error;
+      if (err) return { error: humanDatabaseError(err.message) };
+      linked++;
+    }
+  }
+  for (const c of plan.children) {
+    const child = rowByMember.get(c.child.id);
+    if (!child) continue;
+    const { error } = await supabase
+      .from("family_tree_people")
+      .update({ father_id: c.father ? (rowByMember.get(c.father.id) ?? null) : null, mother_id: c.mother ? (rowByMember.get(c.mother.id) ?? null) : null })
+      .eq("id", child)
+      .eq("family_id", me.family_id);
+    if (error) return { error: humanDatabaseError(error.message) };
+    linked++;
+  }
+  revalidatePath("/family");
+  return { error: null, added: plan.insert.length, linked };
 }
 
 /** diedOn: the date of passing, optional (20261019233000_remembrance_undas). */
