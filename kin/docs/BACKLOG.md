@@ -3,6 +3,45 @@
 What is agreed but not built yet, and what is waiting on somebody. Update
 it in the same pull request that finishes or adds an item.
 
+## Feature audit, 21 October (Jonathan: "proceed all recommended tasks")
+
+Every screen opened as the QA household at phone width; the findings and
+what to do with each feature are at
+https://claude.ai/artifact/JVRkQkdCaNsw9rtxHc5XfX. All built items merged
+the same day.
+
+- **Done (#814):** Today's Pay opens Cash Flow on that bill's row; Done on
+  a health item opens the person's schedule. Cash Flow says the period's
+  net and last period's net, not "▼ ₱132,119.5 (101%)". Repeating income
+  past its day reads "not logged yet", not OVERDUE. A Plus-for-good
+  household's offer card promises no days. The Vault says files are kept in
+  Kin until Drive is connected.
+- **Done (#816):** Two or more unsent messages in a row fold into "N
+  messages removed"; a new group warns when the name is already in use.
+- **Done (#818):** Every account picker (8 forms) lists the most-used
+  first, with Joint, Mine and Not used yet once there are more than three.
+- **Done (#819):** "Add my household to the tree": every member placed, the
+  two parents as spouses, the children as theirs.
+- **Done (#821):** Each "Not recorded" on Health and the Emergency card
+  links to its field; the card says how much of it is filled in.
+- **Done (#822):** "Paid outside Kin" settles a bill with no account.
+- **Done (#823):** Coming up tells the grown-ups the week a managed child
+  turns 13 that they can have a login.
+- **Done (#824, migration):** The grown-ups of one household are connected
+  from the start. Applied to dev and production 21 October.
+- **Decision for Jonathan:** recurring bills roll forward. A paid monthly
+  bill stays paid and nothing makes next month's (lib/subscriptions.ts
+  says so on purpose), so after the first payment the bill drops off Today,
+  the 3-days-before push and Cash Flow. Proposed: when a repeating bill is
+  paid (either way), add the next one at its due date unless the household
+  already has it.
+- **Decision for Jonathan:** with household grown-ups connected (#824),
+  Journal "Public" entries reach the other grown-up like any connection.
+  Kept that way unless he says otherwise.
+- **Not built, on purpose:** the grocery section guesser and a visible Who
+  chevron (both already existed); starter rewards (#813 reworked that
+  shelf); the Privacy & lock wording (Session A).
+
 ## Approved 21 October: four for launch readiness (Jonathan)
 
 Each its own pull request, in this order, built without spending money or
