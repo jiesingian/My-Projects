@@ -53,7 +53,7 @@ export function transcript(messages: SummaryLine[], stamp: (iso: string) => stri
   return { text: lines.join("\n"), included: lines.length, skipped: messages.length - lines.length };
 }
 
-/** Short and explicit, for Haiku 4.5 (lib/kin-ai.ts). */
+/** Short and explicit, for Haiku 5.5 (lib/kin-ai.ts). */
 export function summaryPrompt(opts: { memberName: string; threadName: string; included: number; skipped: number; today: string }): string {
   return `You are Kin, a family app's assistant. ${opts.memberName} has not read the last ${opts.included} messages in "${opts.threadName}"${opts.skipped > 0 ? ` (and ${opts.skipped} older ones not shown here)` : ""}. Today is ${opts.today}. The messages follow, oldest first, each as [time] Name: text. "You" is ${opts.memberName}.
 

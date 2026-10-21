@@ -37,7 +37,7 @@ export const STATEMENT_SCHEMA = {
   additionalProperties: false,
 } as const;
 
-/** Short and explicit, for Haiku 4.5 (lib/kin-ai.ts). */
+/** Short and explicit, for Haiku 5.5 (lib/kin-ai.ts). */
 export function statementPrompt(today: string, bank: string): string {
   return `Below is the text of a ${bank} transaction history, one line per text line of the PDF, in page order. Today is ${today} (Asia/Manila).
 

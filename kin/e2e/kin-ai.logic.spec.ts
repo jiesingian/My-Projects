@@ -1,30 +1,44 @@
 import { test, expect } from "@playwright/test";
-import { KIN_AI_MODEL, KIN_AI_OFF, KIN_AI_PRIVACY, kinAiRequest, textOf } from "@/lib/kin-ai";
+import { KIN_AI_EFFORT, KIN_AI_MIN_TOKENS, KIN_AI_MODEL, KIN_AI_OFF, KIN_AI_PRIVACY, kinAiRequest, textOf } from "@/lib/kin-ai";
 import { healthAnswer, mayAskHealth, type HealthRows } from "@/lib/assistant/health-answer";
 
 /** Kin AI without a key: the request every feature sends, and the health
  * answer the assistant reads from (#699). No network, no database. */
 
-test("every Kin AI call goes to Haiku 4.5, with nothing Haiku rejects", () => {
+test("every Kin AI call goes to Haiku 5.5 at low effort, with nothing Haiku 5.5 rejects", () => {
   const req = kinAiRequest({ messages: [{ role: "user", content: "hi" }] });
-  expect(KIN_AI_MODEL).toBe("claude-haiku-4-5");
+  expect(KIN_AI_MODEL).toBe("claude-haiku-5-5");
   expect(req.model).toBe(KIN_AI_MODEL);
   expect(req.max_tokens).toBe(4096);
-  // Haiku 4.5 has no effort levels and no server-side fallback; sending
-  // either is a 400 (claude-api skill, model table). The Opus calls had both.
-  expect(req.output_config?.effort).toBeUndefined();
+  // Haiku 5.5 takes effort (default medium); Kin sends low. It rejects
+  // budget_tokens, sampling settings, and server-side fallbacks (claude-api
+  // skill, "Migrating to Claude Haiku 5.5"). Thinking is left at its default.
+  expect(KIN_AI_EFFORT).toBe("low");
+  expect(req.output_config?.effort).toBe("low");
+  expect("thinking" in req).toBe(false);
+  expect("temperature" in req).toBe(false);
+  expect("top_p" in req).toBe(false);
+  expect("top_k" in req).toBe(false);
   expect("fallbacks" in req).toBe(false);
   expect("betas" in req).toBe(false);
 });
 
-test("a caller's own settings ride along, and max_tokens can be raised", () => {
+test("a caller's own settings ride along, effort stays low unless asked, and max_tokens leaves room for thinking", () => {
   const req = kinAiRequest({
-    max_tokens: 1024,
+    max_tokens: 16000,
     output_config: { format: { type: "json_schema", schema: { type: "object", properties: {}, additionalProperties: false } } },
     messages: [{ role: "user", content: "hi" }],
   });
-  expect(req.max_tokens).toBe(1024);
+  expect(req.max_tokens).toBe(16000);
   expect(req.output_config?.format?.type).toBe("json_schema");
+  expect(req.output_config?.effort).toBe("low");
+  // Thinking counts toward max_tokens: a small cap is raised to the floor.
+  expect(kinAiRequest({ max_tokens: 600, messages: [{ role: "user", content: "hi" }] }).max_tokens).toBe(KIN_AI_MIN_TOKENS);
+  expect(kinAiRequest({ output_config: { effort: "medium" }, messages: [{ role: "user", content: "hi" }] }).output_config?.effort).toBe("medium");
+});
+
+test("an answer that starts with a thinking block is read by type, not position", () => {
+  expect(textOf([{ type: "thinking" }, { type: "text", text: "Lia is allergic to peanuts." }])).toBe("Lia is allergic to peanuts.");
 });
 
 test("the off and privacy lines say what Jonathan asked for", () => {
