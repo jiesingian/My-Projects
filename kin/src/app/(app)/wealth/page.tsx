@@ -2,8 +2,10 @@ import Link from "next/link";
 import { Icon } from "@/components/icons";
 import { redirect } from "next/navigation";
 import { getCurrentMember } from "@/lib/session";
+import { readAccess } from "@/lib/access";
+import { NextBillOffers } from "@/components/next-bill-offer";
 import { toPickable } from "@/lib/account-picker";
-import { getWealthPane, getAccountViewers, getNetWorth, getAccounts, getArchivedAccounts, getCashFlowPane, getBudgetHistory, getSpendingByMember, recordAndGetNetWorthHistory, type WealthScope, type LedgerEntry } from "@/lib/queries/wealth";
+import { getWealthPane, getAccountViewers, getNetWorth, getAccounts, getArchivedAccounts, getCashFlowPane, getNextBillOffers, getBudgetHistory, getSpendingByMember, recordAndGetNetWorthHistory, type WealthScope, type LedgerEntry } from "@/lib/queries/wealth";
 import { CashFlowSources } from "@/components/cashflow-sources";
 import { HubHeader } from "@/components/hub-header";
 import { Blueprint, Tag, Empty } from "@/components/ui";
@@ -89,7 +91,7 @@ export default async function WealthPage({ searchParams }: { searchParams: Promi
     <div>
       <HubHeader n="05" title="Wealth" segments={segments} dateFormat={me.families.date_format} />
       <div style={{ padding: "0 var(--gutter) 1.375rem" }}>
-        {seg === "cashflow" && <CashFlowPane familyId={me.family_id} memberId={me.id} currency={currency} range={range} scope={who} grownUp={isGrownUp(me.role)} openExpenses={openExpenses} billId={billId} />}
+        {seg === "cashflow" && <CashFlowPane familyId={me.family_id} memberId={me.id} currency={currency} range={range} scope={who} grownUp={isGrownUp(me.role)} plus={readAccess(me.families).plus} openExpenses={openExpenses} billId={billId} />}
         {seg === "accounts" && <ScopePane scope={who} familyId={me.family_id} memberId={me.id} currency={currency} range={range} newAccountId={sp.new} includePrivate={me.wealth_include_private} grownUp={isGrownUp(me.role)} />}
         {seg === "assets" && <AssetsPane familyId={me.family_id} memberId={me.id} currency={currency} scope={who} />}
       </div>
@@ -384,13 +386,15 @@ function UpcomingBills<T extends { id: string; name: string; amount: number | st
 
 /* ----------------------------------------------------------------- cash flow */
 
-async function CashFlowPane({ familyId, memberId, currency, range, scope, grownUp, openExpenses = false, billId = null }: { familyId: string; memberId: string; currency: string; range: CashFlowRange; scope: WealthScope; grownUp: boolean; openExpenses?: boolean; billId?: string | null }) {
+async function CashFlowPane({ familyId, memberId, currency, range, scope, grownUp, plus = false, openExpenses = false, billId = null }: { familyId: string; memberId: string; currency: string; range: CashFlowRange; scope: WealthScope; grownUp: boolean; plus?: boolean; openExpenses?: boolean; billId?: string | null }) {
   const [fmtDate, dateFormat] = await Promise.all([familyDate(), householdDateFormat()]);
-  const [cf, budget, accounts, who] = await Promise.all([
+  const [cf, budget, accounts, who, nextBills] = await Promise.all([
     getCashFlowPane(familyId, range, scope),
     getWealthPane(familyId, memberId, scope),
     getAccounts(familyId),
     whoPicker(familyId, memberId, scope, (w) => `/wealth?seg=cashflow&range=${range}&who=${w}`),
+    // "Add the next one?" for paid repeating bills: a grown-up's, on Plus.
+    grownUp && plus ? getNextBillOffers(familyId) : Promise.resolve([]),
   ]);
   // The band behind the cash-flow bars: each month's budget, household or
   // personal to match the Who picker. Monthly only -- a budget is a month's.
@@ -626,6 +630,7 @@ async function CashFlowPane({ familyId, memberId, currency, range, scope, grownU
       </Link>
 
       <UpcomingBills bills={cf.openBills} currency={currency} fmtDate={fmtDate} />
+      {grownUp && plus && <NextBillOffers offers={nextBills} currency={currency} />}
       {cf.openBills.length === 0 && cf.settledBills.length === 0 && cf.recentExpense.length === 0 && (
         <Empty icon={<Icon name="receipt" size={26} />} title="Nothing recorded yet" line="Mortgage payments, groceries, checkups, meals, travel, fuel — anything the household spends on." />
       )}

@@ -44,6 +44,7 @@ import { ASSET_ITEM_KINDS, ASSET_ITEM_KIND_HINTS, ASSET_ITEM_KIND_LABELS, type A
 export type { PickableAccount } from "@/lib/account-picker";
 import type { PickableAccount } from "@/lib/account-picker";
 import { AccountOptions } from "@/components/account-options";
+import { raiseNextBill } from "@/components/next-bill-offer";
 
 /** Kin starts the payment, the member's own banking app finishes it, then
  * they come back and confirm — so nothing is counted as moved until it
@@ -53,13 +54,13 @@ function useMoneyAction() {
   const [pending, startTransition] = useTransition();
   const router = useRouter();
 
-  function run(fn: () => Promise<{ error: string | null; appUrl?: string | null }>, onDone?: () => void) {
+  function run<R extends { error: string | null; appUrl?: string | null }>(fn: () => Promise<R>, onDone?: (res: R) => void) {
     startTransition(async () => {
       const res = await fn();
       setError(res.error);
       if (res.error) return;
       if (res.appUrl) window.open(res.appUrl, "_blank", "noopener,noreferrer");
-      onDone?.();
+      onDone?.(res);
       router.refresh();
     });
   }
@@ -139,7 +140,7 @@ export function PayBillControl({ billId, amount, accounts, currency }: { billId:
               className="btn btn-primary"
               disabled={pending}
               style={{ flex: 1, minHeight: "2.5rem", fontSize: "0.84375rem" }}
-              onClick={() => run(() => payBillAction({ billId, accountId, amount: payAmount, viaApp: viaApp && !!account?.linked_app_url }), () => setOpen(false))}
+              onClick={() => run(() => payBillAction({ billId, accountId, amount: payAmount, viaApp: viaApp && !!account?.linked_app_url }), (res) => { setOpen(false); raiseNextBill(res.next); })}
             >
               {pending ? "…" : viaApp && account?.linked_app_url ? "Open app & log" : "Mark paid"}
             </button>
@@ -154,7 +155,7 @@ export function PayBillControl({ billId, amount, accounts, currency }: { billId:
             className="btn btn-ghost"
             disabled={pending}
             style={{ width: "100%", minHeight: "2.25rem", fontSize: "0.8125rem", marginTop: "0.375rem", color: "var(--color-neutral-700)" }}
-            onClick={() => run(() => settleBillOutsideKinAction(billId), () => setOpen(false))}
+            onClick={() => run(() => settleBillOutsideKinAction(billId), (res) => { setOpen(false); raiseNextBill(res.next); })}
           >
             Paid outside Kin — no account to take it from
           </button>

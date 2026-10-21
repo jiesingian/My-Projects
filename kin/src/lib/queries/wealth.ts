@@ -1,6 +1,9 @@
 import { createClient } from "@/lib/supabase/server";
 import type { Tables } from "@/lib/database.types";
 import { getCurrentMember } from "@/lib/session";
+import { catchUpOffers, type NextBillOffer } from "@/lib/bill-roll";
+import { familyDay } from "@/lib/time";
+import { householdZone } from "@/lib/household-zone";
 import { monthKey, recentMonths, signedAmount, recentPeriods, periodKey, periodHistory, cashFlowRangeCount, inScope, inTotalsScope, assetWorth, itemWorth, isHouseholdScope, TRANSFER_CATEGORY, type CashFlowRange, type WealthScope } from "@/lib/wealth";
 
 // Re-exported so the page keeps importing its scope type from the module it
@@ -225,6 +228,18 @@ export async function getBills(familyId: string) {
     ...b,
     paidFromName: (b.paid_from as unknown as { name: string } | null)?.name ?? null,
   }));
+}
+
+/** Paid repeating bills with no next one yet, for "Add the next one?" on
+ * Cash Flow and Today (lib/bill-roll.ts). A bill paid from an account the
+ * viewer cannot see is left out, as on Cash Flow. */
+export async function getNextBillOffers(familyId: string): Promise<NextBillOffer[]> {
+  const supabase = await createClient();
+  const [bills, { data: seen }, tz] = await Promise.all([getBills(familyId), supabase.from("accounts").select("id").eq("family_id", familyId), householdZone()]);
+  const canSee = new Set((seen ?? []).map((a) => a.id));
+  const offers = catchUpOffers(bills, familyDay(new Date(), tz));
+  const hidden = new Set(bills.filter((b) => b.paid_from_account_id && !canSee.has(b.paid_from_account_id)).map((b) => b.id));
+  return offers.filter((o) => !hidden.has(o.billId));
 }
 
 export async function getGoals(familyId: string) {
