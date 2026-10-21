@@ -35,6 +35,8 @@ export const iconPaths = {
   stop: "M7 7h10v10H7z",
   paperclip: "M20.5 11.5 12.4 19.6a5 5 0 0 1-7.1-7.1l8.5-8.5a3.3 3.3 0 0 1 4.7 4.7l-8.5 8.5a1.7 1.7 0 0 1-2.4-2.4l7.8-7.8",
   activity: "M3 12h3.5l2.5-7 4 14 2.5-7H21",
+  // A capsule: Today's medicine tile (21 October).
+  pill: "M4.9 12.1 12.1 4.9a4.6 4.6 0 0 1 6.5 6.5l-7.2 7.2a4.6 4.6 0 0 1-6.5-6.5zM8.5 8.5l7 7",
   plus: "M12 4.5v15M4.5 12h15",
   trash: "M4 7h16M9 7V4.5h6V7M6 7l1 13h10l1-13",
   check: "M4 12.5 9.5 18 20 6",

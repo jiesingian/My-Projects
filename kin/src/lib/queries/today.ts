@@ -12,6 +12,8 @@ import { remembranceItems, type Departed } from "@/lib/remembrance";
 import { getRelativesPotlucks } from "@/lib/queries/potluck";
 import { isGrownUp } from "@/lib/roles";
 import { isGone } from "@/lib/member-status";
+import { dosesFor } from "@/lib/health-plan";
+import { medicineGlance } from "@/lib/medicine-glance";
 
 /** Tasks that start in [fromISO, …), or repeating ones that have not ended
  * by `fromDay` -- a weekly task's later days are on its rule, not its row
@@ -56,7 +58,7 @@ export type BriefItem = {
  * cards, which only repeated the bottom bar -- a tile answers a question
  * ("how much is left?") where a hub card only named a place. */
 export type GlanceTile = {
-  id: "money" | "goal" | "shop" | "waiting" | "next";
+  id: "money" | "goal" | "shop" | "waiting" | "next" | "medicine";
   icon: IconName;
   /** The figure itself, short enough to read at a glance: "₱18,400". */
   value: string;
@@ -69,12 +71,11 @@ export type GlanceTile = {
   warn?: boolean;
 };
 
-/** The pieces of "At a glance" that need their own reads: money, the
- * shopping list, and the reader's next plan. The page puts them in the
- * order of the tabs (29 September, Janine): what is waiting or next
- * (Planner), the goal (Planner), shopping or today's meal (Household), money
+/** The pieces of "At a glance" that need their own reads: money and the
+ * shopping list. The page puts them after the medicine tile and Goals
+ * (Janine, 21 October): shopping or today's meal (Household), money
  * (Wealth). */
-export async function getGlance(familyId: string, currency: string, me: Viewer): Promise<{ money: GlanceTile; shop: GlanceTile; next: GlanceTile | null }> {
+export async function getGlance(familyId: string, currency: string): Promise<{ money: GlanceTile; shop: GlanceTile }> {
   const tz = await householdZone();
   const supabase = await createClient();
   const now = new Date();
@@ -83,7 +84,7 @@ export async function getGlance(familyId: string, currency: string, me: Viewer):
   const [year, month] = localDay(now, tz).split("-").map(Number);
   const startOfMonth = (familyMidnight(`${year}-${String(month).padStart(2, "0")}-01`, tz) ?? now).toISOString();
 
-  const [budgetPeriod, monthSpend, shop, upcoming] = await Promise.all([
+  const [budgetPeriod, monthSpend, shop] = await Promise.all([
     supabase
       .from("budget_periods")
       .select("budget_amount")
@@ -99,39 +100,7 @@ export async function getGlance(familyId: string, currency: string, me: Viewer):
       .eq("status", "confirmed")
       .gte("occurred_at", startOfMonth),
     getPricedBuyList(familyId),
-    // The reader's next plan, for the first tile when no chore is waiting
-    // (29 September): theirs, the family's or a child's -- lib/for-me.
-    supabase
-      .from("activities")
-      .select("title, start_at, repeat, repeat_days, repeat_until, applies_to_whole_family, activity_members(member_id, members(role))")
-      .eq("family_id", familyId)
-      .eq("status", "upcoming")
-      .or(startsOrRepeats(now.toISOString(), localDay(now, tz)))
-      .order("start_at", { ascending: true })
-      .limit(50),
   ]);
-
-  // Each plan at its next time from now: a repeating one's next day on its
-  // rule, looked for over the coming fortnight.
-  const today = localDay(now, tz);
-  const nextMine = (upcoming.data ?? [])
-    .filter((a) => isForMe(me, a.applies_to_whole_family, taggedFrom(a.activity_members)))
-    .map((a) => {
-      const start = new Date(a.start_at);
-      const at = repeats(a) ? occurrenceStarts(a, start, today, addDays(today, 14), tz).find((d) => d >= now) : start >= now ? start : undefined;
-      return at ? { title: a.title, at } : null;
-    })
-    .filter((x): x is { title: string; at: Date } => x !== null)
-    .sort((a, b) => a.at.getTime() - b.at.getTime())[0];
-  const next: GlanceTile | null = nextMine
-    ? {
-        id: "next",
-        icon: "calendarDays",
-        value: `${new Intl.DateTimeFormat("en-GB", { timeZone: tz, weekday: "short" }).format(nextMine.at)} ${localTime(nextMine.at, tz)}`,
-        label: `next: ${nextMine.title}`,
-        href: "/planner",
-      }
-    : null;
 
   const spent = (monthSpend.data ?? []).reduce((sum, t) => sum + Number(t.amount), 0);
   const target = budgetPeriod.data ? Number(budgetPeriod.data.budget_amount) : 0;
@@ -156,7 +125,7 @@ export async function getGlance(familyId: string, currency: string, me: Viewer):
     href: "/household?seg=buy",
   };
 
-  return { money, shop: shopTile, next };
+  return { money, shop: shopTile };
 }
 
 /** What actually needs the household today, gathered from every hub into one
@@ -596,4 +565,19 @@ async function departedOnTree(supabase: Awaited<ReturnType<typeof createClient>>
   ]);
   if (!family || family.remember_the_departed === false) return [];
   return (rows ?? []).map((r) => ({ id: r.id, name: r.members?.full_name ?? r.full_name ?? "Someone dear", diedOn: r.died_on! }));
+}
+
+/** "At a glance": the reader's own medicines today (Janine, 21 October) --
+ * a late dose, the next one, or all taken -- opening their Health →
+ * Medicines, where a dose is ticked. */
+export async function getMedicineTile(me: { id: string }): Promise<GlanceTile> {
+  const supabase = await createClient();
+  const tz = await householdZone();
+  const today = localDay(new Date(), tz);
+  const { data: medicines } = await supabase.from("health_medicines").select("id, member_id, name, dose, times, start_date, end_date").eq("member_id", me.id);
+  const { data: doses } = medicines?.length
+    ? await supabase.from("health_medicine_doses").select("medicine_id, dose_date, dose_time").in("medicine_id", medicines.map((m) => m.id)).eq("dose_date", today)
+    : { data: [] };
+  const g = medicineGlance(dosesFor(medicines ?? [], doses ?? [], today, familyClock(new Date(), tz)));
+  return { id: "medicine", icon: "pill", value: g.value, label: g.label, href: `/family/members/${me.id}?view=health&seg=medicines`, warn: g.warn || undefined };
 }
