@@ -346,7 +346,7 @@ export async function getPublicFeed(personId: string, familyId: string): Promise
   ]);
   const names = new Map((connections ?? []).filter((c) => c.status === "accepted").map((c) => [c.person_id, c.full_name ?? "Someone"]));
   // The feed is the writer's own, their connections', and those of
-  // households whose tree the viewer is linked on (20261021120000) -- not
+  // households whose tree the viewer is linked on (20261021140000) -- not
   // every Public row RLS also lets through as a household or linked-household
   // entry. One question per household, not per entry.
   const otherFamilies = [...new Set((data ?? []).filter((r) => r.owner_person_id !== personId && !(r.owner_person_id && names.has(r.owner_person_id))).map((r) => r.family_id))];

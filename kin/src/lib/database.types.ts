@@ -8885,7 +8885,7 @@ export type Database = {
         Returns: undefined
       }
       push_targets: {
-        Args: { p_kind: string; p_member_ids?: string[] }
+        Args: { p_kind: string; p_member_ids: string[]; p_source: string }
         Returns: { endpoint: string; p256dh: string; auth: string }[]
       }
       today_brief: { Args: { p_hash: string }; Returns: Json }

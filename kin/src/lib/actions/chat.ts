@@ -115,7 +115,8 @@ export async function sendMessageAction(input: {
       body: text,
       url: "/chat/household",
       tag: `chat-${me.family_id}`,
-      memberIds: named.length ? [...known].filter((id) => !named.includes(id)) : undefined,
+      source: data.id,
+      memberIds: named.length ? [...known].filter((id) => !named.includes(id)) : "household",
     });
     if (named.length)
       await sendPush({
@@ -124,6 +125,7 @@ export async function sendMessageAction(input: {
         body: text,
         url: "/chat/household",
         tag: `mention-${data.id}`,
+        source: data.id,
         memberIds: named,
       });
   });

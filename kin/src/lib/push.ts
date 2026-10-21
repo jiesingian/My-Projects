@@ -8,8 +8,10 @@ import { helperListWords, pushPayload, treeStoryWords } from "@/lib/push-words";
  * VAPID_PRIVATE_KEY in Vercel): without them this does nothing and says
  * nothing, so the app ships and runs the same before and after they are
  * added. Who is reached is the database's decision -- push_targets() returns
- * the other members of the caller's own household whose switch for `kind`
- * is on -- so there is no list here to get wrong.
+ * the devices of only the members this one push is for: those named, that
+ * the event `source` warrants (the message, entry, alert or call the caller
+ * has just caused), whose switch for `kind` is on, each once
+ * (20261021130000) -- so there is no list here to get wrong.
  *
  * Never throws: a notification that fails must not fail the message, post or
  * chore that caused it. Call it inside `after()` so it never slows a reply.
@@ -31,10 +33,15 @@ export function pushConfigured(): boolean {
  * how long an undelivered notification is kept (12 hours otherwise). */
 export async function sendPush(input: {
   kind: PushKind;
+  /** The one thing this push is about, which the caller just caused: the
+   * message, entry, list line, comment, routine, alert, check-in, place or
+   * call id. */
+  source: string;
+  /** Who it is for: these members, or everyone else in the household. */
+  memberIds: string[] | "household";
   title: string;
   body: string;
   url: string;
-  memberIds?: string[];
   tag?: string;
   ring?: boolean;
   ttlSeconds?: number;
@@ -49,7 +56,8 @@ export async function sendPush(input: {
   if (!vapidReady()) return 0;
   try {
     const supabase = await createClient();
-    const { data: targets, error } = await supabase.rpc("push_targets", { p_kind: input.kind, p_member_ids: input.memberIds ?? undefined });
+    const memberIds = input.memberIds === "household" ? ((await supabase.from("members").select("id").eq("status", "active")).data ?? []).map((m) => m.id) : input.memberIds;
+    const { data: targets, error } = await supabase.rpc("push_targets", { p_kind: input.kind, p_member_ids: memberIds, p_source: input.source });
     if (error || !targets?.length) return 0;
     const payload = JSON.stringify({
       title: input.title.slice(0, 80),

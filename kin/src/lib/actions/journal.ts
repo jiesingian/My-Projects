@@ -60,7 +60,7 @@ export async function createJournalEntryAction(input: {
   revalidatePath("/journal");
   // A personal entry is nobody else's business, so nobody else is told.
   if (entry.visibility === "household") {
-    after(() => sendPush({ kind: "journal", title: `${me.full_name.split(" ")[0]} added to the journal`, body: title, url: "/journal" }));
+    after(() => sendPush({ kind: "journal", source: entry.id, memberIds: "household", title: `${me.full_name.split(" ")[0]} added to the journal`, body: title, url: "/journal" }));
   }
   return { error: null, entryId: entry.id };
 }
@@ -164,7 +164,7 @@ export async function addEntryToHouseholdAction(entryId: string): Promise<{ erro
   }
 
   revalidatePath("/journal");
-  after(() => sendPush({ kind: "journal", title: `${me.full_name.split(" ")[0]} added to the journal`, body: entry.title, url: "/journal" }));
+  after(() => sendPush({ kind: "journal", source: entry.id, memberIds: "household", title: `${me.full_name.split(" ")[0]} added to the journal`, body: entry.title, url: "/journal" }));
   return { error: null };
 }
 

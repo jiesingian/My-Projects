@@ -1,6 +1,6 @@
 // Journal "Public" entries reach the writer's accepted connections and the
 // linked people on the writer's tree, nobody else
-// (20261021120000_journal_public_tree_linked.sql).
+// (20261021140000_journal_public_tree_linked.sql).
 const U = (s) => `10000000-0000-0000-0000-0000000000${s}`;
 const P = (s) => `00000000-0000-0000-0000-0000000000${s}`;
 const F = (s) => `${s}0000000-0000-0000-0000-000000000000`;
