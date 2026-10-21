@@ -22,7 +22,27 @@ adding a paid service. Payments (PayMongo) are not part of this.
   e2e/kin-ai.logic.spec.ts holds it. Not checked against the real model
   (no key): whether `low` is enough for a crumpled receipt or for picking
   `get_health`; raise one call's effort in its own `output_config` if not.
-- Error capture that outlives Vercel's one hour of logs.
+- **Done:** Error capture that outlives Vercel's one hour of logs. Client
+  errors (the root error boundary, `window.onerror`, unhandled rejections,
+  via `components/error-reporter.tsx` → `/api/errors`) and server errors
+  (`instrumentation.ts` `onRequestError`: renders, route handlers, server
+  actions, the proxy) go to `public.app_errors`: time, route as a pattern
+  (`/family/members/[id]`), message, a 16-hex fingerprint of the message and
+  top stack frames (no line numbers, so it survives a rebuild), count, app
+  version. Scrubbed twice, in `lib/error-capture.ts` and again in
+  `log_app_error` (emails, ids, query strings, numbers of 4+ digits, long
+  tokens), because anyone can call the function. Rate-limited to 120 a
+  minute in the database (and 60 a minute per server instance); capped at
+  5,000 rows; the `kin-app-errors` pg_cron job (daily, 03:17 Manila) removes
+  rows older than 30 days. Nobody reads it from the app: `app_error_digest`
+  answers only the two QA accounts the weekly check signs in as, and
+  `weekly-check.yml` puts "Errors this week" in the run summary, in the
+  failure issue, and in an issue of its own when production recorded any.
+  Probe: app-errors.mjs. Spec: e2e/error-capture.logic.spec.ts. Not
+  recorded: an error a server action catches itself and only logs. Not
+  checked: that production's QA account is `kin-e2e-qa@example.com` (the
+  digest allows that and `kin-dev-qa@`; if not, the section says "not
+  read" and the address needs adding in a migration).
 - Delete my account, and download my data.
 - Consent banner and privacy section for the ad stage, built switched off.
 
@@ -1673,6 +1693,9 @@ Decided against in the same review: revising Journal (item 6) and Planner
 
 What only Jonathan can check, on his iPhone with Kin on the Home Screen:
 
+- **Error capture (21 October):** with Kin on the Home Screen, open a page
+  that breaks (or wait for one); the next Friday's "Errors this week" should
+  list it once, with a count, and no name, email or id in it.
 - **Journal video:** make a video from an entry's photos, watch it record,
   then Save Video from the share sheet and find it in Photos.
 - **Offline mode:** with Kin open, turn on Airplane Mode; tick the list,
