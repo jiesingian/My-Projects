@@ -13,8 +13,6 @@ import { getRoutinesNeedingAttention } from "@/lib/queries/routines";
 import { TodayList, type TodayEntry } from "@/components/today-list";
 import { familyClock, familyDay } from "@/lib/time";
 import { QuickLine } from "@/components/quick-line";
-import { wrapUp, isWrapUpTime } from "@/lib/wrap-up";
-import { EveningWrapUp } from "@/components/evening-wrap-up";
 import { ComingUpPager } from "@/components/coming-up-pager";
 import { getKinOffer } from "@/lib/queries/offers";
 import { canNameReferrer } from "@/lib/offers";
@@ -184,10 +182,6 @@ export default async function TodayPage({ searchParams }: { searchParams: Promis
           header's "Eating today". On a quiet day it is one line. */}
       {/* A public holiday today or this week (lib/holidays). */}
       <HolidayLine />
-
-      {/* From 6pm: what got done, what is open, and one tap to move the open
-          plans to tomorrow (lib/wrap-up.ts). */}
-      {entries.length > 0 && isWrapUpTime(familyClock(new Date(), tz)) && <EveningWrapUp wrap={wrapUp(entries)} />}
 
       {entries.length === 0 ? (
         <p className="kin-allclear">
