@@ -68,7 +68,7 @@ export async function summariseThreadAction(input: { thread: string; since: stri
   try {
     const response = await client.beta.messages.create(
       kinAiRequest({
-        max_tokens: 600,
+        max_tokens: 2048,
         system: summaryPrompt({ memberName: me.full_name.split(" ")[0], threadName: String(input.threadName ?? "").slice(0, 80) || "this chat", included: t.included, skipped: t.skipped, today: familyDay(new Date(), tz) }),
         messages: [{ role: "user", content: t.text }],
       }),

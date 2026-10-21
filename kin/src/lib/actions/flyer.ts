@@ -29,7 +29,7 @@ type ScanResult = { error: string | null; items: ScannedItem[] };
 async function readPicture(data: string, mediaType: ImageType, tz: string): Promise<ScanResult> {
   const client = new Anthropic();
   try {
-    // The model (Haiku 4.5) and the request shape are lib/kin-ai.ts's.
+    // The model (Haiku 5.5) and the request shape are lib/kin-ai.ts's.
     const response = await client.beta.messages.create(
       kinAiRequest({
         output_config: { format: { type: "json_schema", schema: SCAN_SCHEMA } },

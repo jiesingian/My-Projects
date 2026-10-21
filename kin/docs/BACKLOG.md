@@ -3,6 +3,29 @@
 What is agreed but not built yet, and what is waiting on somebody. Update
 it in the same pull request that finishes or adds an item.
 
+## Approved 21 October: four for launch readiness (Jonathan)
+
+Each its own pull request, in this order, built without spending money or
+adding a paid service. Payments (PayMongo) are not part of this.
+
+- **Done:** Haiku 5.5 instead of Haiku 4.5. `KIN_AI_MODEL` in
+  `src/lib/kin-ai.ts` is `claude-haiku-5-5`; every call is sent at effort
+  `low` (Haiku 5.5's default is `medium`), thinking left at its default
+  (adaptive), and never below 2,048 `max_tokens`, because thinking counts
+  toward the cap (the receipt scan's 1,024 and the chat summary's 600 were
+  raised to 2,048). Nothing Haiku 5.5 rejects is sent: no `budget_tokens`,
+  no `temperature`/`top_p`/`top_k`, no prefill, no `fallbacks` (it has no
+  server-side fallback; every caller already handles `stop_reason:
+  "refusal"`). Ask Kin passes the whole assistant turn back with tool
+  results, thinking blocks included, and reads answers by block type.
+  SETUP section 4: about a tenth of Haiku 4.5's price, spend cap US$2.
+  e2e/kin-ai.logic.spec.ts holds it. Not checked against the real model
+  (no key): whether `low` is enough for a crumpled receipt or for picking
+  `get_health`; raise one call's effort in its own `output_config` if not.
+- Error capture that outlives Vercel's one hour of logs.
+- Delete my account, and download my data.
+- Consent banner and privacy section for the ad stage, built switched off.
+
 ## Stabilisation pass, 19–20 October (bugs only, no features)
 
 After ~35 PRs merged 14–19 October from eight sessions (#618–#720).
@@ -1038,8 +1061,8 @@ docs/SETUP_FOR_JONATHAN.md.
 - **Business registration for the legal pages** (DTI business name, BIR),
   which the payment providers also ask for. The details go in
   `src/lib/legal.ts`; until then the pages say "Being registered".
-- **Done (20 October):** Kin AI switched from Opus to Haiku 4.5, the model
-  named once in `src/lib/kin-ai.ts`; the monthly spend cap is a Console
+- **Done (20 October, 21 October):** Kin AI switched from Opus to Haiku 4.5,
+  then to Haiku 5.5, the model named once in `src/lib/kin-ai.ts`; the monthly spend cap is a Console
   setting for Jonathan when the key is added (SETUP section 4).
 
 ## Native app stage

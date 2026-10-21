@@ -61,7 +61,7 @@ export const RECEIPT_SCHEMA = {
   additionalProperties: false,
 } as const;
 
-/** Short and explicit, for Haiku 4.5 (lib/kin-ai.ts). */
+/** Short and explicit, for Haiku 5.5 (lib/kin-ai.ts). */
 export function receiptPrompt(today: string, accounts: ReceiptAccount[]): string {
   const names = accounts.map((a) => (a.institution ? `${a.name} (${a.institution})` : a.name)).join("; ") || "none listed";
   return `This is a photo or screenshot a family member took of one of: a store receipt, a GCash / Maya / InstaPay / bank transfer confirmation, or a bill (Meralco, water, internet, tuition). Today is ${today} (Asia/Manila). Currency is Philippine pesos unless the picture says otherwise.

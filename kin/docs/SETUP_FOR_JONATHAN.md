@@ -151,14 +151,18 @@ the one key:
 Until the key exists every one of them is visible and says *Kin AI isn't
 switched on yet*; nothing is sent anywhere.
 
-**What it costs.** Every Kin AI call uses **Claude Haiku 4.5**
+**What it costs.** Every Kin AI call uses **Claude Haiku 5.5**
 (`src/lib/kin-ai.ts`, one model name for the whole app; Jonathan, 30
-September and 20 October). At US$1 per million words in and US$5 out, a
-question is well under a centavo and a photo scan is about US$0.005–0.01:
-roughly a tenth of what Opus cost. **Set a monthly spend cap** in the
-Console (step 3): US$5 a month is thousands of questions and scans, and
-when it is reached Kin AI says it couldn't be reached until the 1st rather
-than spending more. Kin Free households are also held to five questions or
+September, 20 and 21 October), at its cheapest thinking level (`low`). At
+US$0.10 per million tokens in and US$0.50 out (prompts under 100,000
+tokens, which every Kin call is), a question is a few hundredths of a
+centavo and a photo scan about US$0.001: roughly a tenth of Haiku 4.5, a
+hundredth of Opus. Haiku 5.5 counts the same text as about 30% more tokens
+than 4.5 and thinks a little before answering; both are inside those
+figures. **Set a monthly spend cap** in the Console (step 3): US$2 a month
+is tens of thousands of questions and scans, and when it is reached Kin AI
+says it couldn't be reached until the 1st rather than spending more. Kin
+Free households are also held to five questions or
 scans a month by Kin itself (`use_kin_ai()`); Plus is unlimited.
 
 **Safe to do.** Only the one question, with the records Kin looked up to
@@ -172,7 +176,7 @@ key switches all of it off again.
 2. [Billing](https://console.anthropic.com/settings/billing): add a card and a
    small amount of credit.
 3. [Limits](https://console.anthropic.com/settings/limits): set a monthly
-   spend limit, e.g. US$5.
+   spend limit, e.g. US$2.
 4. [API keys](https://console.anthropic.com/settings/keys) → **Create key**,
    name it `kin-ai`, copy it (it is shown once).
 5. In [Vercel → Environment Variables](https://vercel.com/jisingian/kin-family-app/settings/environment-variables)

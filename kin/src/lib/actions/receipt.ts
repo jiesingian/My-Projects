@@ -47,7 +47,7 @@ export async function scanReceiptAction(formData: FormData): Promise<{ error: st
   try {
     const response = await client.beta.messages.create(
       kinAiRequest({
-        max_tokens: 1024,
+        max_tokens: 2048,
         output_config: { format: { type: "json_schema", schema: RECEIPT_SCHEMA } },
         messages: [
           {

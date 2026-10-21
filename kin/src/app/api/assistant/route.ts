@@ -12,7 +12,7 @@ import { GONE_STATUSES } from "@/lib/member-status";
  * report back, without ever looping unbounded on a user's request. */
 const MAX_TURNS = 8;
 
-/** Written for Haiku 4.5 (lib/kin-ai.ts): short rules, each one explicit,
+/** Written for Haiku (5.5 since 21 October; (lib/kin-ai.ts): short rules, each one explicit,
  * and the tool to reach for named next to the kind of question. */
 function systemPrompt(opts: { memberName: string; familyName: string; today: string; currency: string; members: string }) {
   return `You are Kin, the in-app assistant of a family app used by the ${opts.familyName} household.
