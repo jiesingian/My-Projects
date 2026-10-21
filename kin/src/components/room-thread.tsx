@@ -21,6 +21,7 @@ import {
 import { REACTIONS } from "@/lib/chat";
 import { familyClock, familyDateLong } from "@/lib/time";
 import { Icon } from "@/components/icons";
+import { collapseRemoved, removedRunLabel } from "@/lib/chat-collapse";
 import { PhotoViewer } from "@/components/photo-viewer";
 import { SaveToJournalButton } from "@/components/save-to-journal";
 import { ForwardSheet } from "@/components/forward-sheet";
@@ -535,10 +536,15 @@ export function RoomThread({
     return { id: m.id, label: names.length <= 3 ? names.join(", ") : `${names.slice(0, 2).join(", ")} and ${names.length - 2} more` };
   })();
 
-  const rows = messages.map((m, i) => {
+  // Two or more unsent messages in a row fold into one quiet line
+  // (lib/chat-collapse); the run's first message stands for it here.
+  const display = collapseRemoved(messages, (x) => x.removed);
+  const rows = display.map((d, i) => {
+    const m = d.kind === "one" ? d.m : d.first;
     const day = familyDateLong(new Date(m.createdAt));
-    const prev = messages[i - 1];
-    return { m, day, showDay: !prev || familyDateLong(new Date(prev.createdAt)) !== day };
+    const prevRow = display[i - 1];
+    const prev = prevRow ? (prevRow.kind === "one" ? prevRow.m : prevRow.last) : undefined;
+    return { m, day, showDay: !prev || familyDateLong(new Date(prev.createdAt)) !== day, removedRun: d.kind === "removed" ? d.count : 0 };
   });
 
   return (
@@ -611,7 +617,12 @@ export function RoomThread({
         {messages.length === 0 && (
           <p style={{ fontSize: "0.875rem", color: "var(--color-neutral-600)", textAlign: "center", padding: "2rem 1rem", lineHeight: 1.5 }}>{emptyText}</p>
         )}
-        {rows.map(({ m, day, showDay }) => (
+        {rows.map(({ m, day, showDay, removedRun }) => removedRun ? (
+          <div key={m.id} id={`msg-${m.id}`}>
+            {showDay && <div className="kin-linkthread-day">{day}</div>}
+            <p className="kin-removed-run">{removedRunLabel(removedRun)}</p>
+          </div>
+        ) : (
           <div key={m.id} id={`msg-${m.id}`} className={found === m.id ? "kin-msg-found" : undefined}>
             {showDay && <div className="kin-linkthread-day">{day}</div>}
             <div style={{ display: "flex", justifyContent: m.mine ? "flex-end" : "flex-start", marginTop: "0.5rem" }}>

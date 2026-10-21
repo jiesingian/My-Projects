@@ -7,6 +7,7 @@ import { AlbumPrompt } from "@/components/album-prompt";
 import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Icon } from "@/components/icons";
+import { collapseRemoved, removedRunLabel } from "@/lib/chat-collapse";
 import { familyDay, familyClock, familyDateLong } from "@/lib/time";
 import { Avatar } from "@/components/avatar";
 import { createClient } from "@/lib/supabase/client";
@@ -647,11 +648,16 @@ export function ChatThread({
 
   // Day breaks and speaker runs are worked out up front: a conversation is
   // read as turns, and the previous message is what decides where one ends.
-  const rows = messages.map((m, i) => {
-    const prev = messages[i - 1];
+  // Two or more unsent messages in a row fold into one quiet line
+  // (lib/chat-collapse); the run's first message stands for it here.
+  const display = collapseRemoved(messages, (x) => x.deleted);
+  const rows = display.map((d, i) => {
+    const m = d.kind === "one" ? d.m : d.first;
+    const prevRow = display[i - 1];
+    const prev = prevRow ? (prevRow.kind === "one" ? prevRow.m : prevRow.last) : undefined;
     const day = dayLabel(m.createdAt);
     const showDay = !prev || dayLabel(prev.createdAt) !== day;
-    return { m, day, showDay, runStart: showDay || prev?.memberId !== m.memberId };
+    return { m, day, showDay, runStart: showDay || prev?.memberId !== m.memberId, removed: d.kind === "removed" ? d.count : 0 };
   });
 
   return (
@@ -759,10 +765,25 @@ export function ChatThread({
           </p>
         )}
 
-        {rows.map(({ m, day, showDay, runStart }) => {
+        {rows.map(({ m, day, showDay, runStart, removed }) => {
           const mine = m.memberId === me;
           const author = m.memberId ? byId.get(m.memberId) : undefined;
           const tagsMe = m.mentions.includes(me);
+
+          if (removed) {
+            return (
+              <div key={m.id} id={`msg-${m.id}`}>
+                {showDay && (
+                  <div style={{ display: "flex", alignItems: "center", gap: "0.625rem", margin: "16px 0 10px" }}>
+                    <span style={{ flex: 1, height: 1, background: "var(--color-divider)" }} />
+                    <span style={{ fontSize: "0.71875rem", color: "var(--color-neutral-600)" }}>{day}</span>
+                    <span style={{ flex: 1, height: 1, background: "var(--color-divider)" }} />
+                  </div>
+                )}
+                <p className="kin-removed-run">{removedRunLabel(removed)}</p>
+              </div>
+            );
+          }
 
           return (
             <div key={m.id} id={`msg-${m.id}`} className={highlight === m.id ? "kin-msg-found" : undefined}>
