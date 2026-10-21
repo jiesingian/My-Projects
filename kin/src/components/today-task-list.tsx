@@ -2,12 +2,11 @@
 
 import { useHouseholdZone } from "@/components/household-zone";
 import { useState, useTransition } from "react";
-import { useId } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Icon } from "@/components/icons";
 import { Blueprint } from "@/components/ui";
-import { logRoutineAction, clearRoutineLogAction, setRoutineLogNoteAction } from "@/lib/actions/routines";
+import { logRoutineAction, clearRoutineLogAction } from "@/lib/actions/routines";
 import { isNetworkFailure, isOffline, newOpId, queueOffline } from "@/lib/offline/live";
 import { ROUTINE_KIND_META, formatTimeOfDay, type RoutineKind } from "@/lib/routines";
 import { familyDay } from "@/lib/time";
@@ -64,11 +63,6 @@ export function TaskRow({ task, queued = false }: { task: RoutineView; queued?: 
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
-  const [noteOpen, setNoteOpen] = useState(false);
-  const [noteDraft, setNoteDraft] = useState("");
-  const [editingNote, setEditingNote] = useState(false);
-  const noteId = useId();
-  const editId = useId();
 
   const today = task.today!;
   const meta = ROUTINE_KIND_META[(task.kind as RoutineKind) ?? "other"] ?? ROUTINE_KIND_META.other;
@@ -78,30 +72,26 @@ export function TaskRow({ task, queued = false }: { task: RoutineView; queued?: 
       ? `Taking turns · ${task.members.map((m) => m.name.split(" ")[0]).join(", ")}`
       : task.members.map((m) => m.name.split(" ")[0]).join(", ") || "House";
 
-  // Offline, Done waits in the queue (lib/offline/live) -- without a note,
-  // as the saved copy's does; the replay logs it as done.
+  // Offline, Done waits in the queue (lib/offline/live); the replay logs it
+  // as done.
   const later = async (status: "done" | "skipped") => {
-    if (status !== "done" || noteDraft.trim()) return setError(status === "done" ? "You're offline. Done can wait to send, but not with a note — clear the note or try again with a signal." : OFFLINE_ONLY_DONE);
+    if (status !== "done") return setError(OFFLINE_ONLY_DONE);
     const why = await queueOffline({ id: newOpId(), at: new Date().toISOString(), kind: "today.mark", key: `chore-${task.id}`, day: familyDay(new Date(), tz), date: today.date, label: task.title });
     if (why) setError(why);
-    else setNoteOpen(false);
   };
 
   const log = (status: "done" | "skipped") => {
     setError(null);
-    const note = noteDraft;
     startTransition(async () => {
       if (isOffline()) return later(status);
       try {
-        const result = await logRoutineAction({ routineId: task.id, date: today.date, status, note: note || null });
+        const result = await logRoutineAction({ routineId: task.id, date: today.date, status, note: null });
         if (result.error) setError(result.error);
       } catch (e) {
         if (isNetworkFailure(e)) return later(status);
         setError("That didn't save. Try again.");
         return;
       }
-      setNoteOpen(false);
-      setNoteDraft("");
       router.refresh();
     });
   };
@@ -117,16 +107,6 @@ export function TaskRow({ task, queued = false }: { task: RoutineView; queued?: 
       } catch {
         setError(isOffline() ? OFFLINE_ONLY_DONE : "That didn't save. Try again.");
       }
-    });
-  };
-
-  const saveNote = () => {
-    setError(null);
-    startTransition(async () => {
-      const result = await setRoutineLogNoteAction(task.id, today.date, noteDraft);
-      if (result.error) setError(result.error);
-      setEditingNote(false);
-      router.refresh();
     });
   };
 
@@ -195,33 +175,7 @@ export function TaskRow({ task, queued = false }: { task: RoutineView; queued?: 
               >
                 Skip
               </button>
-              <button
-                type="button"
-                className="btn btn-ghost"
-                onClick={() => setNoteOpen((o) => !o)}
-                style={{ minHeight: "2rem", fontSize: "0.78125rem", padding: "0 0.5rem", gap: "0.25rem" }}
-              >
-                <Icon name="fileText" size={13} />
-                {noteOpen ? "Hide note" : "Add a note"}
-              </button>
             </div>
-            {noteOpen && (
-              <>
-                <label htmlFor={noteId} className="sr-only">
-                  A note on {task.title}
-                </label>
-                <textarea
-                  id={noteId}
-                  className="input"
-                  value={noteDraft}
-                  onChange={(e) => setNoteDraft(e.target.value)}
-                  placeholder="A word on how it went — applies to whichever you tap"
-                  rows={2}
-                  maxLength={500}
-                  style={{ marginTop: "0.4375rem", fontSize: "0.8125rem", width: "100%", resize: "vertical" }}
-                />
-              </>
-            )}
           </>
         ) : (
           <div style={{ display: "flex", flexDirection: "column", gap: "0.4375rem" }}>
@@ -261,74 +215,9 @@ export function TaskRow({ task, queued = false }: { task: RoutineView; queued?: 
               </button>
             </div>
 
-            {editingNote ? (
-              <div style={{ display: "flex", gap: "0.375rem", alignItems: "flex-start" }}>
-                <label htmlFor={editId} className="sr-only">
-                  Edit the note on {task.title}
-                </label>
-                <textarea
-                  id={editId}
-                  className="input"
-                  value={noteDraft}
-                  onChange={(e) => setNoteDraft(e.target.value)}
-                  rows={2}
-                  maxLength={500}
-                  autoFocus
-                  style={{ fontSize: "0.8125rem", flex: 1, resize: "vertical" }}
-                />
-                <div style={{ display: "flex", flexDirection: "column", gap: "0.25rem" }}>
-                  <button
-                    type="button"
-                    className="btn btn-primary"
-                    disabled={pending}
-                    onClick={saveNote}
-                    style={{ minHeight: "1.75rem", fontSize: "0.75rem", padding: "0 0.625rem" }}
-                  >
-                    Save
-                  </button>
-                  <button
-                    type="button"
-                    className="btn btn-ghost"
-                    onClick={() => setEditingNote(false)}
-                    style={{ minHeight: "1.75rem", fontSize: "0.75rem", padding: "0 0.5rem" }}
-                  >
-                    Cancel
-                  </button>
-                </div>
-              </div>
-            ) : today.note ? (
-              <button
-                type="button"
-                onClick={() => {
-                  setNoteDraft(today.note ?? "");
-                  setEditingNote(true);
-                }}
-                style={{
-                  textAlign: "left",
-                  background: "none",
-                  border: 0,
-                  padding: 0,
-                  cursor: "pointer",
-                  fontSize: "0.8125rem",
-                  color: "var(--color-neutral-700)",
-                  lineHeight: 1.4,
-                }}
-              >
-                &ldquo;{today.note}&rdquo; <span style={{ fontSize: "0.71875rem", color: "var(--color-neutral-600)" }}>· edit</span>
-              </button>
-            ) : (
-              <button
-                type="button"
-                className="btn btn-ghost"
-                onClick={() => {
-                  setNoteDraft("");
-                  setEditingNote(true);
-                }}
-                style={{ minHeight: "1.75rem", fontSize: "0.75rem", padding: "0 0.5rem", alignSelf: "flex-start" }}
-              >
-                + Add a note
-              </button>
-            )}
+            {/* A note written before 21 October still shows; new ones are
+                no longer added here (Janine: more room on Today). */}
+            {today.note && <p style={{ margin: 0, fontSize: "0.8125rem", color: "var(--color-neutral-700)", lineHeight: 1.4 }}>&ldquo;{today.note}&rdquo;</p>}
           </div>
         )}
         {error && <div style={{ fontSize: "0.78125rem", color: "var(--cal-occasion)", marginTop: "0.375rem" }}>{error}</div>}

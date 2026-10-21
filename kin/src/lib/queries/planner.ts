@@ -1,3 +1,4 @@
+import { keysFromMarks } from "@/lib/week-done";
 import { createClient } from "@/lib/supabase/server";
 import { getSignedUrls } from "@/lib/storage";
 import { GROUP_OF, type CalendarGroup, type CalendarTable } from "@/lib/calendar-groups";
@@ -522,4 +523,16 @@ export async function hasAnyCalendarRecords(familyId: string): Promise<boolean> 
     supabase.from("goals").select("id", { count: "exact", head: true }).eq("family_id", familyId).not("target_date", "is", null),
   ]);
   return counts.some((c) => (c.count ?? 0) > 0);
+}
+
+/** What was ticked done today, as calendar item keys (lib/week-done): a
+ * plan, event or bill marked done on Today, and a chore logged done. Read
+ * under the caller's own RLS. */
+export async function getDoneToday(familyId: string, today: string): Promise<Set<string>> {
+  const supabase = await createClient();
+  const [{ data: marks }, { data: chores }] = await Promise.all([
+    supabase.from("today_marks").select("item_key, state").eq("family_id", familyId).eq("day", today),
+    supabase.from("routine_log").select("routine_id").eq("family_id", familyId).eq("occurrence_date", today).eq("status", "done"),
+  ]);
+  return new Set([...keysFromMarks(marks ?? []), ...(chores ?? []).map((c) => `routines:${c.routine_id}`)]);
 }

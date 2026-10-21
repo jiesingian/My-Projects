@@ -11,6 +11,9 @@ import { OnThisDay, WeekRecapCard } from "@/components/memories";
 import { getGlance, getMedicineTile, getTodayBriefing, getComingUp, type GlanceTile } from "@/lib/queries/today";
 import { getRoutinesNeedingAttention } from "@/lib/queries/routines";
 import { TodayList, type TodayEntry } from "@/components/today-list";
+import { TodayFold } from "@/components/today-fold";
+import { todayCookieName, todayCounts, todaySummary } from "@/lib/today-fold";
+import { cookies } from "next/headers";
 import { familyClock, familyDay } from "@/lib/time";
 import { QuickLine } from "@/components/quick-line";
 import { ComingUpPager } from "@/components/coming-up-pager";
@@ -111,6 +114,7 @@ export default async function TodayPage({ searchParams }: { searchParams: Promis
   ];
   const entries = ranked.sort((a, b) => a.group - b.group || a.at - b.at).map((r) => r.entry);
   const behind = tasks.filter((t) => !t.today && t.overdue.length > 0).length;
+  const counts = todayCounts(entries);
 
   // The household's day, not the server's (which is pinned to Manila): a
   // household abroad saw Manila's date here until the clock agreed.
@@ -189,8 +193,7 @@ export default async function TodayPage({ searchParams }: { searchParams: Promis
           Nothing needs you today
         </p>
       ) : (
-        <section id="tasks" style={{ marginBottom: "1.625rem" }}>
-          <h3 className="kin-eyebrow">Today</h3>
+        <TodayFold memberId={me.id} open={(await cookies()).get(todayCookieName(me.id))?.value !== "0"} summary={todaySummary(counts)} urgent={counts.urgent > 0}>
           <TodayList entries={entries} />
           {behind > 0 && (
             <p style={{ display: "flex", gap: "0.5rem", alignItems: "center", fontSize: "0.84375rem", margin: "0.25rem 0 0" }}>
@@ -203,7 +206,7 @@ export default async function TodayPage({ searchParams }: { searchParams: Promis
               </span>
             </p>
           )}
-        </section>
+        </TodayFold>
       )}
 
       {nextBills.length > 0 && <NextBillOffers offers={nextBills} currency={me.families.currency} heading="Bills that repeat" />}

@@ -15,9 +15,11 @@ import {
   getOneOffTasks,
   getCalendarSyncStatus,
   hasAnyCalendarRecords,
+  getDoneToday,
   FAMILY_FILTER,
   type PlannerCalendarItem,
 } from "@/lib/queries/planner";
+import { splitDoneToday, weekRest } from "@/lib/week-done";
 import { getMembers } from "@/lib/queries/family";
 import { syncGoogleCalendarIfStale } from "@/lib/actions/calendar-sync";
 import { HubHeader } from "@/components/hub-header";
@@ -391,6 +393,8 @@ function DayHeading({ day, isToday }: { day: string; isToday: boolean }) {
 async function WeekView({ familyId, memberId, who, anchor, hidden, hide, weekStart, showChores }: { familyId: string; memberId?: string; who: string; anchor: string; hidden: Set<CalendarGroup>; hide: string; weekStart: WeekStart; showChores: boolean }) {
   const { days, strip, today } = await getWeekAgenda(familyId, memberId, anchor, hidden, undefined, weekStart);
   const selected = days.find((d) => d.isSelected);
+  // What was ticked done today folds under "Done today" (Janine, 21 October).
+  const doneToday = await getDoneToday(familyId, today);
 
   return (
     <>
@@ -461,21 +465,43 @@ async function WeekView({ familyId, memberId, who, anchor, hidden, hide, weekSta
           {selected.activities.length === 0 ? (
             <p style={{ fontSize: "0.9375rem", color: "var(--color-neutral-600)", padding: "0.375rem 0" }}>Nothing on this day.</p>
           ) : (
-            <DayAgenda items={selected.activities} showChores={showChores} />
+            <DayItems items={selected.activities} isToday={selected.isToday} doneToday={doneToday} showChores={showChores} />
           )}
         </div>
       )}
 
-      {days
-        .filter((d) => !d.isSelected && d.activities.length > 0)
-        .map((d) => (
-          // Days already gone read a step back, so the eye lands on what is
-          // still to come.
-          <div key={d.day} style={{ opacity: isPastDay(d.day, today) ? 0.62 : 1 }}>
-            <DayHeading day={d.day} isToday={d.isToday} />
-            <DayAgenda items={d.activities} showChores={showChores} />
+      {/* Then today and the days still to come. A day already gone is not
+          listed (Janine, 21 October): tap it on the rail to look back. */}
+      {weekRest(days, today).map((d) => (
+        <div key={d.day}>
+          <DayHeading day={d.day} isToday={d.isToday} />
+          <DayItems items={d.activities} isToday={d.isToday} doneToday={doneToday} showChores={showChores} />
+        </div>
+      ))}
+    </>
+  );
+}
+
+/** A day's agenda; today's already-ticked items fold under "Done today". */
+function DayItems({ items, isToday, doneToday, showChores }: { items: PlannerCalendarItem[]; isToday: boolean; doneToday: Set<string>; showChores: boolean }) {
+  if (!isToday) return <DayAgenda items={items} showChores={showChores} />;
+  const { open, done } = splitDoneToday(items, doneToday);
+  return (
+    <>
+      <DayAgenda items={open} showChores={showChores} />
+      {done.length > 0 && (
+        <details className="kin-fold" style={{ margin: "0.25rem 0 0.5rem" }}>
+          <summary style={{ minHeight: 44, fontSize: "0.875rem" }}>
+            <Icon name="chevronLeft" size={14} className="kin-fold-mark" />
+            <span>Done today ({done.length})</span>
+          </summary>
+          <div style={{ opacity: 0.7 }}>
+            {done.map((a) => (
+              <AgendaRow key={`${a.table}-${a.id}`} item={a} />
+            ))}
           </div>
-        ))}
+        </details>
+      )}
     </>
   );
 }
