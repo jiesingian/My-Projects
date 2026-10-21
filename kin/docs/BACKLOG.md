@@ -88,6 +88,29 @@ adding a paid service. Payments (PayMongo) are not part of this.
   To do when switching on: the Pixel and Conversions API code itself, and
   the registered business name and address in `src/lib/legal.ts`.
 
+**Left after the four (checked 21 October), all for a person:**
+
+- **Kin AI on:** Jonathan adds `ANTHROPIC_API_KEY` on Vercel when he wants
+  it (SETUP section 4, spend cap US$2 a month). Never asked for by a session.
+- **First "Errors this week" (Friday):** confirm the production section is
+  read, not "Not read". Production has a `kin-e2e-qa@example.com` account;
+  if `PROD_E2E_EMAIL` is a different address, add it to `app_error_digest`
+  in a new migration.
+- **First account deletion:** nothing to set up (Vercel has `CRON_SECRET`
+  and `SUPABASE_SERVICE_ROLE_KEY`, Vault has `kin_cron_url` and
+  `kin_cron_secret`). When the first request passes 7 days, check the next
+  day that `/api/cron/account-deletions` ran without errors in Vercel's logs.
+- **Ad stage, when Jonathan decides:** write the Meta Pixel and Conversions
+  API code (loading only when `mayLoadAdTracking()` allows), fill in the
+  registered business name and address in `src/lib/legal.ts`, then set
+  `NEXT_PUBLIC_AD_TRACKING=on` on Vercel and redeploy.
+- **Phone checks:** the 21 October lines under "Needs a real phone" (error
+  capture; delete my account with a throwaway account; download my data).
+- **Dev QA passwords:** the passwords of `kin-dev-qa@` and
+  `kin-dev-qa-partner@` were shown in a chat on 21 October; change them in
+  the dev Supabase project if those screenshots went anywhere else, and
+  update `.env.local` and the `E2E_*` secrets to match.
+
 ## Stabilisation pass, 19–20 October (bugs only, no features)
 
 After ~35 PRs merged 14–19 October from eight sessions (#618–#720).
