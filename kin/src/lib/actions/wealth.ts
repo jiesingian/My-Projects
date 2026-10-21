@@ -708,6 +708,28 @@ export async function addBillAction(_prev: ActionState, formData: FormData): Pro
 
 /** Settling a bill is just a ledger entry that happens to close the bill —
  * the account it came out of drops by exactly what was paid. */
+/** The bill was paid with money Kin does not track: cash at the sari-sari
+ * store's Bayad Center, a relative's GCash, the office. Marks it paid with
+ * no ledger entry and no account, so the balances stay honest and the bill
+ * stops shouting on Today (21 October audit: three overdue utilities on the
+ * sample household with no way to say "already paid"). */
+export async function settleBillOutsideKinAction(billId: string): Promise<ActionState> {
+  const me = await requireCurrentMember();
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("bills")
+    .update({ status: "paid", paid_at: familyDay(), paid_by_member_id: me.id, paid_from_account_id: null, transaction_id: null })
+    .eq("id", billId)
+    .eq("family_id", me.family_id)
+    .in("status", ["unpaid", "scheduled"])
+    .select("id");
+  if (error) return { error: humanDatabaseError(error.message) };
+  if (!data?.length) return { error: "Bill not found, or already paid." };
+  revalidateWealth();
+  revalidatePath("/today");
+  return { error: null };
+}
+
 export async function payBillAction(input: {
   billId: string;
   accountId: string;
