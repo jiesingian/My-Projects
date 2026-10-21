@@ -1,6 +1,6 @@
 import { test, expect } from "@playwright/test";
 import { daysLeftText, goalsATargetCanHelp } from "@/lib/goals";
-import { goalGroups } from "@/lib/goal-groups";
+import { goalGroups, targetGroups } from "@/lib/goal-groups";
 
 /** A goal and the targets that get you there (Janine, 21 October): the
  * countdown on a goal, which goals a new target may help, and the Goals
@@ -58,4 +58,29 @@ test("groups: the viewer first, then the household's order, the whole family las
 test("groups: someone with no login of their own still gets theirs", () => {
   const g = goalGroups([{ ownerId: "gone" }], people, "ann");
   expect(g.map((x) => [x.key, x.label])).toEqual([["gone", "Someone"]]);
+});
+
+test("Target: grouped by goal in the goals' order, targets in theirs, goals with none left out", () => {
+  const big = [{ id: "weight" }, { id: "books" }, { id: "empty" }];
+  const t = [
+    { id: "diet", helpsGoalId: "weight" },
+    { id: "read", helpsGoalId: "books" },
+    { id: "steps", helpsGoalId: "weight" },
+  ];
+  expect(targetGroups(t, big).map((g) => [g.goal?.id ?? null, g.targets.map((x) => x.id)])).toEqual([
+    ["weight", ["diet", "steps"]],
+    ["books", ["read"]],
+  ]);
+});
+
+test("Target: a target that helps no goal -- or one the viewer cannot see -- comes last", () => {
+  const t = [
+    { id: "old", helpsGoalId: null },
+    { id: "hidden", helpsGoalId: "private" },
+    { id: "diet", helpsGoalId: "weight" },
+  ];
+  expect(targetGroups(t, [{ id: "weight" }]).map((g) => [g.goal?.id ?? null, g.targets.map((x) => x.id)])).toEqual([
+    ["weight", ["diet"]],
+    [null, ["old", "hidden"]],
+  ]);
 });

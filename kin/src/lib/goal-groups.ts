@@ -17,3 +17,14 @@ export function goalGroups<G extends { ownerId: string | null }>(
   const family = goals.filter((g) => g.ownerId === null);
   return family.length > 0 ? [...groups, { key: "family", label: "Whole family", goals: family }] : groups;
 }
+
+/** Planner → Goals → Target, grouped by the goal each target helps (Janine,
+ * 21 October): the goals in their own order, each with its targets in
+ * theirs; goals with no target here are left out, and targets that help no
+ * goal come last under `goal: null`. */
+export function targetGroups<T extends { helpsGoalId: string | null }, G extends { id: string }>(targets: T[], goals: G[]): { goal: G | null; targets: T[] }[] {
+  const groups = goals.map((goal) => ({ goal, targets: targets.filter((t) => t.helpsGoalId === goal.id) })).filter((g) => g.targets.length > 0);
+  const known = new Set(goals.map((g) => g.id));
+  const loose = targets.filter((t) => !t.helpsGoalId || !known.has(t.helpsGoalId));
+  return loose.length > 0 ? [...groups, { goal: null, targets: loose }] : groups;
+}

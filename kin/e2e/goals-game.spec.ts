@@ -6,7 +6,7 @@ import { test, expect } from "@playwright/test";
  * (supabase/tests/pglite/probes/goals-game.mjs) and e2e/game.logic.spec.ts. */
 
 const VIEWS = [
-  { g: "game", expect: /Level \d|Daily targets for the whole family/ },
+  { g: "game", expect: /Level \d|Targets come from your goals/ },
   { g: "badges", expect: /badges/ },
   { g: "shop", expect: /coins/ },
   { g: "setup", expect: /Targets ·/ },
