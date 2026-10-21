@@ -88,6 +88,18 @@ export async function gameUntapAction(goalId: string): Promise<{ error: string |
   return { error: null };
 }
 
+/** Which goal a new target helps (20261021030000), for each person it is
+ * made for: the goal's own person, or anyone when it is the whole
+ * household's. Read through the caller's own access; the database checks the
+ * same rule again (planner_goals_helps_check). */
+async function helpsFor(supabase: Awaited<ReturnType<typeof createClient>>, familyId: string, formData: FormData): Promise<(owner: string | null) => string | null> {
+  const id = String(formData.get("helps") ?? "");
+  if (!id) return () => null;
+  const { data: goal } = await supabase.from("planner_goals").select("id, owner_member_id").eq("id", id).eq("family_id", familyId).is("category", null).maybeSingle();
+  if (!goal) return () => null;
+  return (owner) => (goal.owner_member_id === null || goal.owner_member_id === owner ? goal.id : null);
+}
+
 export type GameGoalFormState = { error: string | null; saved?: number };
 
 /** A grown-up sets up a game goal for one or more people: one goal each,
@@ -113,10 +125,11 @@ export async function createGameGoalAction(_prev: GameGoalFormState, formData: F
   if (who.length === 0) return { error: "Choose who it is for." };
 
   const supabase = await createClient();
+  const helps = await helpsFor(supabase, me.family_id, formData);
   const base = { family_id: me.family_id, title, kind: "custom", category, period, target, unit, created_by: me.id };
   const rows: TablesInsert<"planner_goals">[] = who.includes("family")
-    ? [{ ...base, owner_member_id: null, xp: 0, points: 0 }]
-    : who.map((id) => ({ ...base, owner_member_id: id, xp, points }));
+    ? [{ ...base, owner_member_id: null, xp: 0, points: 0, helps_goal_id: helps(null) }]
+    : who.map((id) => ({ ...base, owner_member_id: id, xp, points, helps_goal_id: helps(id) }));
   const { error } = await supabase.from("planner_goals").insert(rows);
   if (error) return { error: humanDatabaseError(error.message) };
   done();
@@ -260,21 +273,22 @@ export async function createStepsGoalAction(_prev: GameGoalFormState, formData: 
   if (who.length === 0) return { error: "Choose who it is for." };
   const sane = (n: number, max: number) => Number.isInteger(n) && n >= 100 && n <= max;
 
+  const supabase = await createClient();
+  const helps = await helpsFor(supabase, me.family_id, formData);
   const base = { family_id: me.family_id, title, kind: "steps", unit: "steps", created_by: me.id };
   let rows: TablesInsert<"planner_goals">[];
   if (who.includes("family")) {
     const target = Number(formData.get("family_target"));
     if (!sane(target, 5_000_000)) return { error: "The family's weekly target is from 100 to 5,000,000 steps." };
-    rows = [{ ...base, category: "family", period: "week", target, owner_member_id: null, xp: 0, points: 0 }];
+    rows = [{ ...base, category: "family", period: "week", target, owner_member_id: null, xp: 0, points: 0, helps_goal_id: helps(null) }];
   } else {
     rows = [];
     for (const id of who) {
       const target = Number(formData.get(`target_${id}`));
       if (!sane(target, 100_000)) return { error: "Each daily target is from 100 to 100,000 steps." };
-      rows.push({ ...base, category: "move", period: "day", target, owner_member_id: id, xp, points });
+      rows.push({ ...base, category: "move", period: "day", target, owner_member_id: id, xp, points, helps_goal_id: helps(id) });
     }
   }
-  const supabase = await createClient();
   const { error } = await supabase.from("planner_goals").insert(rows);
   if (error) return { error: humanDatabaseError(error.message) };
   done();
@@ -381,7 +395,10 @@ export async function updateGameGoalAction(goalId: string, formData: FormData): 
   if (!(target > 0 && target <= (goal.kind === "steps" ? 5_000_000 : 1000))) return { error: "That target doesn't look right." };
   if (!(xp >= 0 && xp <= MAX_GOAL_XP) || !(points >= 0 && points <= 1000)) return { error: "XP and coins are from 0 to 1,000." };
   const owned = goal.owner_member_id !== null;
-  const changes = { title, category, xp: owned ? xp : 0, points: owned ? points : 0, emoji, days };
+  // "Helps with" (20261021030000): only when the form has the picker; the
+  // database refuses a goal of someone else's.
+  const helps_goal_id = formData.has("helps") ? String(formData.get("helps") ?? "") || null : goal.helps_goal_id;
+  const changes = { title, category, xp: owned ? xp : 0, points: owned ? points : 0, emoji, days, helps_goal_id };
 
   if (target === Number(goal.target)) {
     const { error } = await supabase.from("planner_goals").update(changes).eq("id", goal.id).eq("family_id", me.family_id);

@@ -227,3 +227,22 @@ export function isEverydayGoal(g: { kind: GoalKind; period: GoalPeriod; ownerId:
   if (g.period === "day") return true;
   return g.period === "week" && (g.kind === "gym" || g.kind === "custom");
 }
+
+/** "45 days left", "1 day left", "Due today", "3 days past the date" -- a
+ * goal's countdown to its "by" date (Janine, 21 October). Whole days in the
+ * household's calendar; no date, no countdown. */
+export function daysLeftText(dueDate: string | null, today: string): string | null {
+  if (!dueDate || !/^\d{4}-\d{2}-\d{2}$/.test(dueDate)) return null;
+  const days = Math.round((Date.parse(`${dueDate}T00:00:00Z`) - Date.parse(`${today}T00:00:00Z`)) / 86_400_000);
+  if (days === 0) return "Due today";
+  if (days > 0) return `${days} day${days === 1 ? "" : "s"} left`;
+  return `${-days} day${days === -1 ? "" : "s"} past the date`;
+}
+
+/** The goals a target can help (20261021030000): the whole household's, or
+ * -- when the target is one person's -- that person's own. The database
+ * holds the same rule; this keeps the form from offering what it refuses. */
+export function goalsATargetCanHelp<G extends { ownerId: string | null }>(goals: G[], owners: string[]): G[] {
+  const one = owners.length === 1 && owners[0] !== "family" ? owners[0] : null;
+  return goals.filter((g) => g.ownerId === null || (one !== null && g.ownerId === one));
+}

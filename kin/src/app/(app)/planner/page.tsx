@@ -62,7 +62,7 @@ type CalendarView = (typeof CALENDAR_VIEWS)[number];
 export default async function PlannerPage({
   searchParams,
 }: {
-  searchParams: Promise<{ seg?: string; g?: string; as?: string; who?: string; view?: string; date?: string; hide?: string; saved?: string; asked?: string; done?: string; when?: string }>;
+  searchParams: Promise<{ seg?: string; g?: string; as?: string; goal?: string; who?: string; view?: string; date?: string; hide?: string; saved?: string; asked?: string; done?: string; when?: string }>;
 }) {
   const me = await getCurrentMember();
   if (!me) redirect("/onboarding/profile");
@@ -123,7 +123,7 @@ export default async function PlannerPage({
         {seg === "routines" && <RoutinesPane familyId={me.family_id} who={who} currency={me.families.currency} justSaved={sp.saved === "1"} done={done} />}
         {seg === "events" && <EventsPane familyId={me.family_id} who={who} when={eventWhen(sp.when)} grownUp={isGrownUp(me.role)} />}
         {seg === "goals" && gameView !== "goals" && (
-          <GamePane familyId={me.family_id} me={{ id: me.id, role: me.role }} view={gameView} as={sp.as} weekStart={weekStartOf(me.families.week_start)} plus={readAccess(me.families).plus} />
+          <GamePane familyId={me.family_id} me={{ id: me.id, role: me.role }} view={gameView} as={sp.as} weekStart={weekStartOf(me.families.week_start)} plus={readAccess(me.families).plus} forGoal={sp.goal} currency={me.families.currency} />
         )}
         {seg === "goals" && gameView === "goals" && (
           <GoalsPane

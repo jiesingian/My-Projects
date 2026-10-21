@@ -13,7 +13,9 @@ import { getPendingGoalClaims } from "@/lib/queries/goals";
 import { KidGoalBoard } from "@/components/kid-goal-board";
 import { isBoard } from "@/lib/kid-board";
 import { BONUSES, asksOn, FAMILY_STEPS_BONUS, GAME_CATEGORY_META, nextMilestone, partWorth } from "@/lib/game";
-import { goalNumber } from "@/lib/goals";
+import { daysLeftText, goalNumber } from "@/lib/goals";
+import { getGoals } from "@/lib/queries/goals";
+import { caption } from "./goals-pane";
 import { isChild, isGrownUp } from "@/lib/roles";
 import { bonusOn } from "@/lib/streaks";
 import { familyDay } from "@/lib/time";
@@ -49,6 +51,8 @@ export async function GamePane({
   as,
   weekStart,
   plus,
+  forGoal,
+  currency,
 }: {
   familyId: string;
   me: { id: string; role: string };
@@ -57,6 +61,10 @@ export async function GamePane({
   weekStart: WeekStart;
   /** Kin Plus: steps goals (20261020150000). */
   plus: boolean;
+  /** Opened from a goal on Planner → Goals (20261021030000): its targets
+   * alone, and Set up ready to add one for it. */
+  forGoal?: string;
+  currency: string;
 }) {
   const grownUp = isGrownUp(me.role);
   const game = await getGame(familyId, weekStart);
@@ -64,11 +72,12 @@ export async function GamePane({
   // grown-up plays for (no login of their own).
   const playable = game.players.filter((p) => p.id === me.id || (grownUp && p.role === "child_managed"));
   const player = playable.find((p) => p.id === as) ?? playable.find((p) => p.id === me.id) ?? game.players[0];
+  const focus = forGoal ? game.bigGoals.find((g) => g.id === forGoal) : undefined;
 
   return (
     <>
       <GameSwitch view={view} grownUp={grownUp} />
-      {(view === "game" || view === "badges") && playable.length > 1 && (
+      {(view === "badges" || (view === "game" && !focus)) && playable.length > 1 && (
         <div style={{ marginBottom: "0.75rem" }}>
           <ChipRow
             items={playable.map((p) => ({
@@ -79,10 +88,11 @@ export async function GamePane({
           />
         </div>
       )}
-      {view === "game" && <TodayView game={game} player={player} grownUp={grownUp} />}
+      {view === "game" && focus && <GoalFocus game={game} goalId={focus.id} familyId={familyId} me={me} weekStart={weekStart} currency={currency} />}
+      {view === "game" && !focus && <TodayView game={game} player={player} grownUp={grownUp} />}
       {view === "badges" && player && <BadgesView game={game} player={player} />}
       {view === "shop" && <ShopView familyId={familyId} me={me} player={game.players.find((p) => p.id === me.id)} />}
-      {view === "setup" && grownUp && <SetupView game={game} plus={plus} />}
+      {view === "setup" && grownUp && <SetupView game={game} plus={plus} focus={focus} />}
     </>
   );
 }
@@ -137,7 +147,7 @@ function stepsStatus(goal: GameGoalView): string {
   return `${worth("half")} at ${goalNumber(goal.target / 2)}, ${worth("rest")} more at ${goalNumber(goal.target)}`;
 }
 
-function GoalRow({ goal, canTap }: { goal: GameGoalView; canTap: boolean }) {
+function GoalRow({ goal, canTap, helps }: { goal: GameGoalView; canTap: boolean; helps?: string }) {
   const meta = GAME_CATEGORY_META[goal.category];
   const steps = goal.type === "steps";
   const status = steps
@@ -166,6 +176,11 @@ function GoalRow({ goal, canTap }: { goal: GameGoalView; canTap: boolean }) {
           {goal.unit ? ` ${goal.unit}` : ""} · {status}
           {!goal.active && " · paused"}
         </div>
+        {helps && (
+          <Link href={`/planner?seg=goals&g=game&goal=${goal.helpsGoalId}`} style={{ display: "inline-block", fontSize: "0.71875rem", color: "var(--color-accent-solid)", fontWeight: 600, marginTop: "0.125rem" }}>
+            For: {helps} ›
+          </Link>
+        )}
       </div>
       {canTap && goal.active && !steps && <GameTap goalId={goal.id} title={goal.title} canUndo={goal.current > 0} />}
       {canTap && goal.active && steps && goal.ownerId && (
@@ -198,6 +213,7 @@ function TodayView({ game, player, grownUp }: { game: GameView; player: PlayerVi
   // A young child's own goals, each with a picture: the sticker board.
   const board = player.role === "child_managed" && isBoard(dailies.filter((g) => g.active)) ? dailies.filter((g) => g.active) : null;
   const players = game.players.filter((p) => p.dailiesTotal > 0);
+  const helpsOf = (g: GameGoalView) => (g.helpsGoalId ? game.bigGoals.find((b) => b.id === g.helpsGoalId)?.title : undefined);
   const allDone = player.dailiesTotal > 0 && player.dailiesDone === player.dailiesTotal;
 
   return (
@@ -214,12 +230,12 @@ function TodayView({ game, player, grownUp }: { game: GameView; player: PlayerVi
         <KidGoalBoard name={player.name.split(" ")[0]} goals={board.map((g) => ({ id: g.id, title: g.title, emoji: g.emoji ?? "⭐", current: g.current, target: g.target, reached: g.reached }))} />
       ) : (
         <Section title="Today">
-          {dailies.length === 0 ? <Empty text="No daily goals yet." /> : dailies.map((g) => <GoalRow key={g.id} goal={g} canTap />)}
+          {dailies.length === 0 ? <Empty text="No daily goals yet." /> : dailies.map((g) => <GoalRow key={g.id} goal={g} canTap helps={helpsOf(g)} />)}
         </Section>
       )}
-      {backups.length > 0 && <Section title="Busy day? This keeps your streak going">{backups.map((g) => <GoalRow key={g.id} goal={g} canTap />)}</Section>}
-      {weekly.length > 0 && <Section title="This week">{weekly.map((g) => <GoalRow key={g.id} goal={g} canTap />)}</Section>}
-      {game.familyGoals.length > 0 && <Section title="Family goals">{game.familyGoals.map((g) => <GoalRow key={g.id} goal={g} canTap />)}</Section>}
+      {backups.length > 0 && <Section title="Busy day? This keeps your streak going">{backups.map((g) => <GoalRow key={g.id} goal={g} canTap helps={helpsOf(g)} />)}</Section>}
+      {weekly.length > 0 && <Section title="This week">{weekly.map((g) => <GoalRow key={g.id} goal={g} canTap helps={helpsOf(g)} />)}</Section>}
+      {game.familyGoals.length > 0 && <Section title="Family goals">{game.familyGoals.map((g) => <GoalRow key={g.id} goal={g} canTap helps={helpsOf(g)} />)}</Section>}
       {players.length > 0 && (
         <Section title={`The family today · 🏡 ${game.familyStreak}-day family streak`}>
           <div style={{ display: "flex", flexWrap: "wrap", gap: "0.5rem", paddingTop: "0.5rem" }}>
@@ -236,6 +252,57 @@ function TodayView({ game, player, grownUp }: { game: GameView; player: PlayerVi
             When everyone finishes, everyone gets +{BONUSES.wholeFamilyDone.xp} XP and +{BONUSES.wholeFamilyDone.coins} coins.
           </p>
         </Section>
+      )}
+    </>
+  );
+}
+
+/** Target, opened from a goal (Janine, 21 October): the goal at the top --
+ * where it stands, what it aims at, the days left -- and only the targets
+ * that help it. Ticking is the same as anywhere: whose a target is decides
+ * who may tick it (game_log). */
+async function GoalFocus({ game, goalId, familyId, me, weekStart, currency }: { game: GameView; goalId: string; familyId: string; me: { id: string; role: string }; weekStart: WeekStart; currency: string }) {
+  const grownUp = isGrownUp(me.role);
+  const goal = (await getGoals(familyId, me, weekStart)).find((g) => g.id === goalId);
+  const all = [...game.players.flatMap((p) => p.goals), ...game.familyGoals].filter((g) => g.helpsGoalId === goalId);
+  const roleOf = new Map(game.players.map((p) => [p.id, p.role]));
+  const canTap = (g: GameGoalView) => g.ownerId === null || g.ownerId === me.id || (grownUp && roleOf.get(g.ownerId) === "child_managed");
+  const left = goal ? daysLeftText(goal.dueDate, game.today) : null;
+  const daily = all.filter((g) => g.period === "day");
+  const weekly = all.filter((g) => g.period === "week");
+  return (
+    <>
+      <Blueprint style={{ padding: "0.875rem", marginBottom: "0.875rem" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: "0.5rem" }}>
+          <div style={{ minWidth: 0 }}>
+            <div style={{ fontSize: "0.75rem", color: "var(--color-neutral-600)" }}>For the goal</div>
+            <div style={{ font: "600 1.125rem/1.25 var(--font-heading)" }}>{goal?.title ?? game.bigGoals.find((b) => b.id === goalId)?.title}</div>
+          </div>
+          <Link href="/planner?seg=goals&g=game" className="btn btn-ghost" style={{ minHeight: 44, fontSize: "0.8125rem", padding: "0 0.5rem", flex: "none" }}>
+            ✕ Show all
+          </Link>
+        </div>
+        {goal && (
+          <>
+            <div style={{ margin: "0.5rem 0 0.25rem" }}>
+              <Bar fraction={goal.fraction} label={`${goal.title}: ${Math.round(goal.fraction * 100)}%`} />
+            </div>
+            <div style={{ fontSize: "0.8125rem", color: "var(--color-neutral-700)" }}>{caption(goal, currency)}</div>
+            {left && (
+              <div style={{ fontSize: "0.8125rem", fontWeight: 600, marginTop: "0.125rem", color: left.includes("past") ? "var(--cal-occasion)" : undefined }}>
+                {left}
+              </div>
+            )}
+          </>
+        )}
+      </Blueprint>
+      {all.length === 0 && <Empty text="No targets for this goal yet. Add the daily and weekly things that get you there: a diet, a steps target, a sport twice a week." />}
+      {daily.length > 0 && <Section title="Every day">{daily.map((g) => <GoalRow key={g.id} goal={g} canTap={canTap(g)} />)}</Section>}
+      {weekly.length > 0 && <Section title="Every week">{weekly.map((g) => <GoalRow key={g.id} goal={g} canTap={canTap(g)} />)}</Section>}
+      {grownUp && (
+        <Link href={`/planner?seg=goals&g=setup&goal=${goalId}`} className="btn btn-secondary btn-block" style={{ gap: "0.375rem", minHeight: 44 }}>
+          + Add a target for this goal
+        </Link>
       )}
     </>
   );
@@ -365,24 +432,33 @@ async function ShopView({ familyId, me, player }: { familyId: string; me: { id: 
   );
 }
 
-function SetupView({ game, plus }: { game: GameView; plus: boolean }) {
+function SetupView({ game, plus, focus }: { game: GameView; plus: boolean; focus?: GameView["bigGoals"][number] }) {
+  const preset = focus ? { goalId: focus.id, who: focus.ownerId ?? "family" } : undefined;
   const all = [...game.players.flatMap((p) => p.goals.map((g) => ({ g, who: p.name.split(" ")[0] }))), ...game.familyGoals.map((g) => ({ g, who: "Whole family" }))];
   return (
     <>
-      {!game.hasGoals && (
+      {/* Opened from a goal: straight to its new target. */}
+      {!game.hasGoals && !focus && (
         <div style={{ marginBottom: "0.75rem" }}>
           <SampleGameButton />
         </div>
       )}
-      <div style={{ marginBottom: "0.75rem" }}>
-        <FamilyPackForm people={game.players.map((p) => ({ id: p.id, label: p.name.split(" ")[0], grownUp: isGrownUp(p.role) }))} plus={plus} />
-      </div>
+      {!focus && (
+        <div style={{ marginBottom: "0.75rem" }}>
+          <FamilyPackForm people={game.players.map((p) => ({ id: p.id, label: p.name.split(" ")[0], grownUp: isGrownUp(p.role) }))} plus={plus} />
+        </div>
+      )}
       <div style={{ marginBottom: "1rem" }}>
-        <GameGoalForm people={game.players.map((p) => ({ id: p.id, label: p.name.split(" ")[0] }))} />
+        {focus && (
+          <p role="status" style={{ fontSize: "0.84375rem", margin: "0 0 0.5rem", lineHeight: 1.45 }}>
+            A new target for <strong>{focus.title}</strong>.
+          </p>
+        )}
+        <GameGoalForm people={game.players.map((p) => ({ id: p.id, label: p.name.split(" ")[0] }))} goals={game.bigGoals} preset={preset} />
       </div>
       <div style={{ marginBottom: "1rem" }}>
         {plus ? (
-          <StepsGoalForm people={game.players.map((p) => ({ id: p.id, label: p.name.split(" ")[0], child: p.role === "child_self" || p.role === "child_managed" }))} />
+          <StepsGoalForm people={game.players.map((p) => ({ id: p.id, label: p.name.split(" ")[0], child: p.role === "child_self" || p.role === "child_managed" }))} goals={game.bigGoals} preset={preset} />
         ) : (
           <p style={{ fontSize: "0.8125rem", color: "var(--color-neutral-600)", margin: 0, lineHeight: 1.45 }}>🏃 Steps goals, and the family&rsquo;s weekly steps, are part of Kin Plus.</p>
         )}
@@ -400,10 +476,11 @@ function SetupView({ game, plus }: { game: GameView; plus: boolean }) {
                 {g.backup ? " · backup" : ""}
                 {g.creditTo === "logger" ? " · credits whoever ticks it" : ""}
                 {g.active ? "" : " · paused"}
+                {g.helpsGoalId && game.bigGoals.find((b) => b.id === g.helpsGoalId) ? ` · for ${game.bigGoals.find((b) => b.id === g.helpsGoalId)?.title}` : ""}
               </div>
             </div>
             <GameGoalPause goalId={g.id} active={g.active} />
-            <GameGoalEdit goal={{ id: g.id, title: g.title, category: g.category, period: g.period, target: g.target, xp: g.xp, points: g.points, days: g.days, emoji: g.emoji, owned: g.ownerId !== null }} />
+            <GameGoalEdit goal={{ id: g.id, title: g.title, category: g.category, period: g.period, target: g.target, xp: g.xp, points: g.points, days: g.days, emoji: g.emoji, owned: g.ownerId !== null, ownerId: g.ownerId, helpsGoalId: g.helpsGoalId }} goals={game.bigGoals} />
           </div>
         ))}
       </Section>

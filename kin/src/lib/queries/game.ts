@@ -45,6 +45,8 @@ export type GameGoalView = {
   creditTo: "owner" | "logger";
   /** A child's sticker. */
   emoji: string | null;
+  /** The goal on Planner → Goals this target helps (20261021030000). */
+  helpsGoalId: string | null;
 };
 
 export type PlayerView = {
@@ -76,6 +78,9 @@ export type GameView = {
   badges: BadgeView[];
   /** Any game goal at all in the household (for the empty state). */
   hasGoals: boolean;
+  /** The goals on Planner → Goals the viewer can see, for "Helps with"
+   * (20261021030000). */
+  bigGoals: { id: string; title: string; ownerId: string | null }[];
 };
 
 export async function getGame(familyId: string, weekStart: WeekStart): Promise<GameView> {
@@ -84,11 +89,11 @@ export async function getGame(familyId: string, weekStart: WeekStart): Promise<G
   const today = familyDay(new Date(), tz);
   const weekFrom = windowStart("week", today, weekStart, today);
 
-  const [{ data: members }, { data: goals }, { data: claims }, { data: awards }, { data: streaks }, { data: family }, { data: badges }, { data: earned }, scores] = await Promise.all([
+  const [{ data: members }, { data: goals }, { data: claims }, { data: awards }, { data: streaks }, { data: family }, { data: badges }, { data: earned }, scores, { data: bigGoals }] = await Promise.all([
     supabase.from("members").select("id, full_name, role, status").eq("family_id", familyId).not("status", "in", "(pending,removed)").order("created_at"),
     supabase
       .from("planner_goals")
-      .select("id, title, kind, category, period, target, unit, owner_member_id, xp, points, active, created_at, days, backup, credit_to, emoji")
+      .select("id, title, kind, category, period, target, unit, owner_member_id, xp, points, active, created_at, days, backup, credit_to, emoji, helps_goal_id")
       .eq("family_id", familyId)
       .not("category", "is", null)
       // Removed goals keep what they earned, and are seen no more.
@@ -101,6 +106,7 @@ export async function getGame(familyId: string, weekStart: WeekStart): Promise<G
     supabase.from("game_badges").select("id, title, icon, description").order("sort"),
     supabase.from("game_member_badges").select("member_id, badge_id, earned_on").eq("family_id", familyId),
     getMemberScores(familyId),
+    supabase.from("planner_goals").select("id, title, owner_member_id").eq("family_id", familyId).is("category", null).order("created_at"),
   ]);
 
   const goalIds = (goals ?? []).filter((g) => g.kind !== "steps").map((g) => g.id);
@@ -149,6 +155,7 @@ export async function getGame(familyId: string, weekStart: WeekStart): Promise<G
       creditTo: g.credit_to === "logger" ? "logger" : "owner",
       emoji: g.emoji,
       half: steps ? claimOf("half") : null,
+      helpsGoalId: g.helps_goal_id,
     });
   }
 
@@ -187,5 +194,6 @@ export async function getGame(familyId: string, weekStart: WeekStart): Promise<G
     familyBest: family?.best_streak ?? 0,
     badges: badges ?? [],
     hasGoals: views.length > 0,
+    bigGoals: (bigGoals ?? []).map((g) => ({ id: g.id, title: g.title, ownerId: g.owner_member_id })),
   };
 }
