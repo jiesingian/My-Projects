@@ -12,8 +12,15 @@ import { test, expect, request as playwrightRequest, type Page } from "@playwrig
  * with Simple Kin on, and compares each with the same screenshot from main
  * (CI's last run on main uploads them; e2e.yml downloads them here into
  * e2e/visual-baseline/). A difference above the threshold fails the test
- * -- or, while VISUAL_WARN_ONLY is set, is written down and shown on the
- * pull request without failing anything.
+ * (since 21 October; warn-only before) unless the screen is accepted for
+ * this pull request in e2e/visual-accept.txt. VISUAL_WARN_ONLY=1 still turns
+ * failing off, for a run that must only look.
+ *
+ * Accepting an intended change: the baseline is main's last run, not a file,
+ * so it refreshes itself once the pull request merges. Until then add a line
+ * "<slug> #<pull request number>" to e2e/visual-accept.txt in the same pull
+ * request (the failure message prints the exact line). It counts only for
+ * that pull request; later ones are compared with the new picture.
  *
  * The clock is frozen (21 October). In the warn-only week, 3 of the 4
  * warnings across 35 pull-request runs were the clock, not the pull
@@ -60,6 +67,19 @@ const SCREENS = [
 const MAX_DIFF_RATIO = 0.03;
 
 const WARN_ONLY = process.env.VISUAL_WARN_ONLY === "1";
+/** The pull request under test (e2e.yml); unset on main and locally. */
+const PR = process.env.VISUAL_PR ?? "";
+const ACCEPTED = new Set(
+  (() => {
+    try {
+      return fs.readFileSync(path.join(process.cwd(), "e2e", "visual-accept.txt"), "utf8").split("\n");
+    } catch {
+      return [];
+    }
+  })()
+    .map((l) => l.replace(/\s+/g, " ").trim())
+    .filter((l) => l && !l.startsWith("//")),
+);
 const OUT = path.join(process.cwd(), "visual-out");
 const BASELINE = path.join(process.cwd(), "e2e", "visual-baseline");
 /** "YYYY-MM-DD HH:MM:SS", UTC, from e2e.yml; unset locally (real clock). */
@@ -72,7 +92,7 @@ const baselineFrozenAt = () => {
   }
 };
 
-type Row = { name: string; mode: "off" | "on"; slug: string; status: "same" | "changed" | "no-baseline"; ratio: number | null; detail?: string };
+type Row = { name: string; mode: "off" | "on"; slug: string; status: "same" | "changed" | "accepted" | "no-baseline"; ratio: number | null; detail?: string };
 const rows: Row[] = [];
 const slugOf = (name: string, mode: "off" | "on") => `${name.toLowerCase().replace(/[^a-z0-9]+/g, "-")}-simple-${mode}`;
 
@@ -134,12 +154,24 @@ async function shoot(page: Page, context: Parameters<Parameters<typeof test>[2]>
     const ratio = Number(message.match(/ratio ([\d.]+) of all image pixels/)?.[1] ?? NaN);
     const diff = fs.readdirSync(test.info().outputDir).find((f) => f.startsWith(slug) && f.endsWith("-diff.png"));
     if (diff) fs.copyFileSync(path.join(test.info().outputDir, diff), path.join(OUT, `${slug}-diff.png`));
-    rows.push({ name: screen.name, mode, slug, status: "changed", ratio: Number.isNaN(ratio) ? null : ratio, detail });
+    const acceptLine = `${slug} #${PR || "<pull request number>"}`;
+    const accepted = PR !== "" && ACCEPTED.has(acceptLine);
+    rows.push({ name: screen.name, mode, slug, status: accepted ? "accepted" : "changed", ratio: Number.isNaN(ratio) ? null : ratio, detail });
+    if (accepted) {
+      test.info().annotations.push({ type: "changed (accepted)", description: `${slug}: ${detail}` });
+      return;
+    }
     if (WARN_ONLY) {
       test.info().annotations.push({ type: "changed (warn-only)", description: `${slug}: ${detail}` });
       return;
     }
-    throw e;
+    throw new Error(
+      `${screen.name} (Simple Kin ${mode}) at 390px differs from main's: ${detail}\n\n` +
+        `Look at the before/after pictures in this pull request's "Phone screenshots" comment. ` +
+        `If the change is the one this pull request means to make, accept it here by adding this line ` +
+        `to kin/e2e/visual-accept.txt and pushing:\n\n    ${acceptLine}\n\n` +
+        `Main's screenshots become the new baseline once this merges. If the change is not intended, it is a layout bug.`,
+    );
   }
 }
 

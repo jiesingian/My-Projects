@@ -27,7 +27,7 @@ BRANCH="ci-screenshots"
 if [ ! -f "$REPORT" ]; then echo "No $REPORT: the screenshots did not run."; exit 0; fi
 
 EXISTING=$(gh api "repos/$REPO/issues/$PR/comments?per_page=100" --jq ".[] | select(.body | startswith(\"$MARK\")) | .id" 2>/dev/null | head -1 || true)
-CHANGED=$(jq -r '[.screens[] | select(.status == "changed")] | length' "$REPORT")
+CHANGED=$(jq -r '[.screens[] | select(.status == "changed" or .status == "accepted")] | length' "$REPORT")
 NOBASE=$(jq -r '[.screens[] | select(.status == "no-baseline")] | length' "$REPORT")
 TOTAL=$(jq -r '.screens | length' "$REPORT")
 WARN=$(jq -r '.warnOnly' "$REPORT")
@@ -71,7 +71,7 @@ URL_BASE=""
   rm -rf "$DIR" && mkdir -p "$DIR"
 ) || { echo "Could not prepare the $BRANCH branch (not fatal)."; }
 if [ -d "$WORK/$DIR" ]; then
-  for slug in $(jq -r '.screens[] | select(.status == "changed") | .slug' "$REPORT"); do
+  for slug in $(jq -r '.screens[] | select(.status == "changed" or .status == "accepted") | .slug' "$REPORT"); do
     cp "visual-out/$slug.png" "$WORK/$DIR/$slug-after.png" 2>/dev/null || true
     cp "e2e/visual-baseline/$slug.png" "$WORK/$DIR/$slug-before.png" 2>/dev/null || true
     cp "visual-out/$slug-diff.png" "$WORK/$DIR/$slug-diff.png" 2>/dev/null || true
@@ -88,10 +88,11 @@ fi
 {
   echo "$MARK"
   if [ "$WARN" = "true" ]; then echo "### Phone screenshots: $CHANGED of $TOTAL differ from main (warn-only, nothing fails yet)"; else echo "### Phone screenshots: $CHANGED of $TOTAL differ from main"; fi
+  if [ "$WARN" != "true" ]; then echo; echo "A difference not accepted fails the e2e job. Intended? Add the line its failure prints (\`<slug> #$PR\`) to \`kin/e2e/visual-accept.txt\` in this pull request; main's pictures refresh themselves once it merges."; fi
   echo
   echo "390px, light, as the sample household. A screen counts as changed above $THRESH of its pixels; the clock is frozen, so the date and time of day match main's. Look at each pair: is it the change this pull request meant to make?"
   echo
-  jq -r '.screens[] | select(.status == "changed") | "\(.name) · Simple Kin \(.mode)|\(.slug)|\(.ratio // "size changed")"' "$REPORT" | while IFS='|' read -r title slug ratio; do
+  jq -r '.screens[] | select(.status == "changed" or .status == "accepted") | "\(.name) · Simple Kin \(.mode)\(if .status == "accepted" then " (accepted for this pull request)" else "" end)|\(.slug)|\(.ratio // "size changed")"' "$REPORT" | while IFS='|' read -r title slug ratio; do
     echo "<details><summary><b>$title</b> — differing pixels: $ratio</summary>"
     echo
     if [ -n "$URL_BASE" ]; then
