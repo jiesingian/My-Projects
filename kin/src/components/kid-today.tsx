@@ -55,7 +55,7 @@ export async function KidToday({ me, arrivedNow = false }: { arrivedNow?: boolea
       <ArrivedButton auto={arrivedNow} big />
       {/* A letter written to them years ago, on the day it opens. */}
       <LettersOpeningToday familyId={me.family_id} />
-      <Link href="/planner?seg=routines" className="kin-kid-stars">
+      <Link href="/planner?seg=goals&g=shop" className="kin-kid-stars">
         <span aria-hidden="true">⭐</span> {stars} star{stars === 1 ? "" : "s"}
         <span className="kin-kid-stars-go">Rewards ›</span>
       </Link>

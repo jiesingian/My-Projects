@@ -21,7 +21,7 @@ export default async function AlkansyaPage() {
 
   return (
     <div>
-      <DetailHeader backHref="/planner?seg=routines" eyebrow="Tasks" />
+      <DetailHeader backHref="/planner?seg=goals&g=shop" eyebrow="Shop" />
       <div style={{ padding: "0 var(--gutter) 1.375rem" }}>
         <h3 style={{ fontSize: "2rem", margin: "0 0 0.375rem" }}>Alkansya</h3>
         <p style={{ fontSize: "0.84375rem", color: "var(--color-neutral-600)", margin: "0 0 1rem", lineHeight: 1.45 }}>

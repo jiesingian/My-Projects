@@ -42,7 +42,7 @@ export default async function PointsHistoryPage({
       }}
     >
       <Link
-        href="/planner?seg=routines"
+        href="/planner?seg=goals&g=shop"
         className="btn btn-ghost"
         style={{
           minHeight: "2rem",
@@ -52,7 +52,7 @@ export default async function PointsHistoryPage({
           marginBottom: "0.5rem",
         }}
       >
-        <Icon name="chevronLeft" size={14} /> Tasks
+        <Icon name="chevronLeft" size={14} /> Shop
       </Link>
       <h1 style={{ fontSize: "1.5rem", margin: "0 0 0.75rem" }}>
         {id === me.id ? "Your points" : `${first}’s points`}
