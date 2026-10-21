@@ -1,11 +1,13 @@
 import Link from "next/link";
 import { paletteCss, PALETTE_NEW_MEMBER } from "@/lib/palettes";
 import { FEATURE_PAGES } from "@/lib/feature-pages";
+import { ConsentBanner } from "@/components/consent-banner";
 
 /** The public feature pages (lib/feature-pages.ts): outside the app's shell,
  * like the legal pages and the home page, because the reader has no
- * account yet. Kin Coral, the public look. Server-rendered, no client code
- * of its own, so it adds nothing to what the app downloads. */
+ * account yet. Kin Coral, the public look. Server-rendered; its one piece of
+ * client code is the consent banner, which renders nothing while the ad
+ * stage is off (lib/legal.ts, AD_TRACKING_ON). */
 export default function FeaturesLayout({ children }: { children: React.ReactNode }) {
   return (
     <main className="kin-legal kin-feature">
@@ -34,6 +36,7 @@ export default function FeaturesLayout({ children }: { children: React.ReactNode
           <Link href="/legal/refunds">Refunds</Link>
         </nav>
       </footer>
+      <ConsentBanner />
     </main>
   );
 }

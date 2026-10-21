@@ -4,6 +4,7 @@ import { Welcome } from "@/components/welcome/welcome";
 import { paletteCss } from "@/lib/palettes";
 import { createClient } from "@/lib/supabase/server";
 import { pendingDeletion } from "@/lib/account-deletion-server";
+import { ConsentBanner } from "@/components/consent-banner";
 
 export const metadata = {
   title: "Kin: Family Life, Decoded",
@@ -23,6 +24,7 @@ export default async function RootPage({ searchParams }: { searchParams: Promise
         {/* Kin Coral, the icon's look: what a new profile starts on. */}
         <style>{paletteCss("coral")}</style>
         <Welcome startQuiz={(await searchParams).start === "quiz"} />
+        <ConsentBanner />
       </>
     );
   }

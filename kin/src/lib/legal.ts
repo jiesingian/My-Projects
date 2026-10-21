@@ -26,4 +26,14 @@ export const OPERATOR: {
 };
 
 /** The date the current wording took effect. Change it whenever the words do. */
-export const LEGAL_UPDATED = "28 September 2026";
+export const LEGAL_UPDATED = "21 October 2026";
+
+/** The ad stage (Jonathan, 21 October): one switch for the consent banner on
+ * the public pages (components/consent-banner.tsx) and the privacy notice's
+ * "Advertising" section. Off unless NEXT_PUBLIC_AD_TRACKING is "on" on
+ * Vercel (a build-time variable: set it, then redeploy). While it is off,
+ * nothing shows and nothing loads. There is no Meta Pixel or Conversions API
+ * code yet: switching this on before that code exists only asks the
+ * question; whatever is added later loads only after "Accept"
+ * (lib/consent.ts, mayLoadAdTracking). */
+export const AD_TRACKING_ON = process.env.NEXT_PUBLIC_AD_TRACKING === "on";

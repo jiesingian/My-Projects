@@ -73,7 +73,20 @@ adding a paid service. Payments (PayMongo) are not part of this.
   `kin_cron_url`/`kin_cron_secret` and Vercel's `SUPABASE_SERVICE_ROLE_KEY`
   are set in production; until they are, requests wait and nothing is
   removed.
-- Consent banner and privacy section for the ad stage, built switched off.
+- **Done:** Consent banner and privacy section for the ad stage, built
+  switched off. One switch: `AD_TRACKING_ON` in `src/lib/legal.ts`, on only
+  when Vercel has `NEXT_PUBLIC_AD_TRACKING=on` (then redeploy); default
+  off, so nothing shows and nothing loads. When on: an Accept / Decline
+  banner on the public pages only (home and `/features/*`, never the app),
+  kept per browser in localStorage (`kin-ad-consent`), and a privacy notice
+  section "Advertising on our public pages" naming the Meta Pixel and the
+  Conversions API, with the business name/address from `OPERATOR` and a
+  "Change my choice" button. No Meta code at all yet: whatever is added
+  must load only when `mayLoadAdTracking()` (lib/consent.ts) says so. The
+  privacy notice's "How long we keep it" now describes the 7-day account
+  deletion (LEGAL_UPDATED 21 October). Spec: e2e/consent.logic.spec.ts.
+  To do when switching on: the Pixel and Conversions API code itself, and
+  the registered business name and address in `src/lib/legal.ts`.
 
 ## Stabilisation pass, 19–20 October (bugs only, no features)
 

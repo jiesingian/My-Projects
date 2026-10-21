@@ -1,5 +1,7 @@
 import Link from "next/link";
 import { OperatorDetails } from "@/components/legal-operator";
+import { ConsentReset } from "@/components/consent-banner";
+import { AD_TRACKING_ON, OPERATOR } from "@/lib/legal";
 
 export const metadata = {
   title: "Privacy notice · Kin",
@@ -94,11 +96,36 @@ export default function PrivacyPage() {
         providers who protect it to a standard comparable to the Data Privacy Act.
       </p>
 
+      {/* The ad stage (21 October): shown only once Jonathan switches it on
+          (lib/legal.ts, AD_TRACKING_ON), with the banner that asks. */}
+      {AD_TRACKING_ON && (
+        <>
+          <h2 id="advertising">Advertising on our public pages</h2>
+          <p>
+            {OPERATOR.name ?? "Kin's operator"}
+            {OPERATOR.address ? `, ${OPERATOR.address},` : ""} advertises Kin on Facebook and Instagram. To learn which ads
+            bring people to Kin, the home page and the feature pages can use the <strong>Meta Pixel</strong> and Meta&rsquo;s{" "}
+            <strong>Conversions API</strong>, from Meta Platforms Ireland Ltd. They do so only if you choose{" "}
+            <strong>Accept</strong> on the banner those pages show; until then, or if you choose Decline, nothing is sent to
+            Meta.
+          </p>
+          <p>
+            If you accept, Meta receives that this browser visited the page, which page, and whether you went on to create
+            an account, with the technical details any web visit carries (address, browser). Meta may link that to your
+            Facebook or Instagram account under its own policy. Nothing from inside Kin, your household or your records is
+            ever sent, and the app itself never loads either one.
+          </p>
+          <p>Your choice is kept in this browser only. You can change it at any time:</p>
+          <ConsentReset />
+        </>
+      )}
+
       <h2>How long we keep it</h2>
       <p>
-        For as long as your account and household exist. Deleting your account (Settings → Account) removes you from the
-        household and deletes your sign-in. When the last member leaves, the household and everything in it, including
-        its files, is deleted. Providers&rsquo; backups can keep a copy for a short time after that before it is
+        For as long as your account and household exist. Deleting your account (Settings → Account) takes effect after 7
+        days, in case you change your mind: then your sign-in, your personal space, the health records about you and
+        your details are deleted, and what you added for the household stays under &ldquo;Former member&rdquo;. When no
+        grown-up is left, the household and everything in it, including its files, is deleted. Providers&rsquo; backups can keep a copy for a short time after that before it is
         overwritten.
       </p>
 
