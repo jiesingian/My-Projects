@@ -5,6 +5,7 @@ import { useId, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import {
   payBillAction,
+  settleBillOutsideKinAction,
   receiveIncomeAction,
   contributeToGoalAction,
   payFromFundAction,
@@ -146,6 +147,17 @@ export function PayBillControl({ billId, amount, accounts, currency }: { billId:
               Cancel
             </button>
           </div>
+          {/* Paid with money Kin doesn't track (cash at a Bayad Center, a
+              relative's GCash): the bill is settled, no account moves. */}
+          <button
+            type="button"
+            className="btn btn-ghost"
+            disabled={pending}
+            style={{ width: "100%", minHeight: "2.25rem", fontSize: "0.8125rem", marginTop: "0.375rem", color: "var(--color-neutral-700)" }}
+            onClick={() => run(() => settleBillOutsideKinAction(billId), () => setOpen(false))}
+          >
+            Paid outside Kin — no account to take it from
+          </button>
         </div>
       </FormSheet>
     </>
