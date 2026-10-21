@@ -90,7 +90,14 @@ export default defineConfig({
   webServer: runningElsewhere || logicOnly
     ? undefined
     : {
-        command: "npm run start",
+        // VISUAL_FROZEN_AT (e2e.yml, visual.spec.ts only): the server's clock
+        // starts at that UTC moment and ticks from there, so "today" and the
+        // time of day are the same on main's run and the pull request's.
+        // libfaketime fakes the wall clock for the process and its children;
+        // the monotonic clock stays real, or timers would stall.
+        command: process.env.VISUAL_FROZEN_AT
+          ? `FAKETIME_DONT_FAKE_MONOTONIC=1 TZ=UTC faketime "${process.env.VISUAL_FROZEN_AT}" npm run start`
+          : "npm run start",
         url: "http://localhost:3000/login",
         reuseExistingServer: true,
         timeout: 120_000,

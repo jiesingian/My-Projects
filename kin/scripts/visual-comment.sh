@@ -89,7 +89,7 @@ fi
   echo "$MARK"
   if [ "$WARN" = "true" ]; then echo "### Phone screenshots: $CHANGED of $TOTAL differ from main (warn-only, nothing fails yet)"; else echo "### Phone screenshots: $CHANGED of $TOTAL differ from main"; fi
   echo
-  echo "390px, light, as the sample household. A screen counts as changed above $THRESH of its pixels; dates and new rows are well under that. Look at each pair: is it the change this pull request meant to make?"
+  echo "390px, light, as the sample household. A screen counts as changed above $THRESH of its pixels; the clock is frozen, so the date and time of day match main's. Look at each pair: is it the change this pull request meant to make?"
   echo
   jq -r '.screens[] | select(.status == "changed") | "\(.name) · Simple Kin \(.mode)|\(.slug)|\(.ratio // "size changed")"' "$REPORT" | while IFS='|' read -r title slug ratio; do
     echo "<details><summary><b>$title</b> — differing pixels: $ratio</summary>"

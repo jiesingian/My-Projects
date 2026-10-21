@@ -15,12 +15,26 @@ import { test, expect, request as playwrightRequest, type Page } from "@playwrig
  * -- or, while VISUAL_WARN_ONLY is set, is written down and shown on the
  * pull request without failing anything.
  *
- * What is NOT fixed: the clock and the household's data. Today's date, a
- * chore ticked yesterday, a new message in Chat all move pixels. Hence a
- * ratio threshold rather than pixel-perfect, the viewport only rather than
- * the whole page (a longer list is not a layout bug), light theme only
- * (smoke covers dark), and the warn-only week to tune it. A baseline that
- * does not exist yet (the first run, a new screen) is noted, not failed.
+ * The clock is frozen (21 October). In the warn-only week, 3 of the 4
+ * warnings across 35 pull-request runs were the clock, not the pull
+ * request: main's baseline was from an earlier Manila day (the date, the
+ * Planner's Today list) or an earlier time of day (Today's "This evening"
+ * card comes and goes and moves every card below it). Those differed by
+ * 5-9% of pixels, the one real change (#814's offer card) by 6%, so no
+ * threshold tells them apart. Now e2e.yml sets VISUAL_FROZEN_AT to the
+ * last 06:00 in Manila (22:00 UTC): the server starts at that moment under
+ * libfaketime (playwright.config.ts) and the browser's Date is fixed to it.
+ * Behind real time, never ahead: a session token from now is still unexpired
+ * on a clock up to a day behind, and rows written since (smoke's ticks)
+ * fall in the frozen clock's future, out of view. A baseline is compared
+ * only if it was taken at the same frozen moment (frozen-at.txt beside it);
+ * one from another day is recorded as no baseline, not failed.
+ *
+ * What is NOT fixed: the household's data. A new message in Chat would move
+ * pixels; in 35 runs none did. Hence a ratio threshold rather than
+ * pixel-perfect, the viewport only rather than the whole page (a longer list
+ * is not a layout bug), and light theme only (smoke covers dark). A baseline
+ * that does not exist yet (the first run, a new screen) is noted, not failed.
  *
  * Everything this writes to the sample household is one member row's
  * simple_mode and text_scale, and it puts them back. It runs on its own,
@@ -28,8 +42,9 @@ import { test, expect, request as playwrightRequest, type Page } from "@playwrig
  * loads Today in parallel would change what smoke sees.
  *
  * Output, for e2e.yml: visual-out/<slug>.png for every screen (main's run
- * keeps these as the next baseline), visual-out/<slug>-diff.png where one
- * differed, and visual-out/report.json saying which did and by how much. */
+ * keeps these as the next baseline, with visual-out/frozen-at.txt),
+ * visual-out/<slug>-diff.png where one differed, and visual-out/report.json
+ * saying which did and by how much. */
 
 const SCREENS = [
   { name: "Today", path: "/today" },
@@ -47,6 +62,15 @@ const MAX_DIFF_RATIO = 0.03;
 const WARN_ONLY = process.env.VISUAL_WARN_ONLY === "1";
 const OUT = path.join(process.cwd(), "visual-out");
 const BASELINE = path.join(process.cwd(), "e2e", "visual-baseline");
+/** "YYYY-MM-DD HH:MM:SS", UTC, from e2e.yml; unset locally (real clock). */
+const FROZEN_AT = process.env.VISUAL_FROZEN_AT ?? "";
+const baselineFrozenAt = () => {
+  try {
+    return fs.readFileSync(path.join(BASELINE, "frozen-at.txt"), "utf8").trim();
+  } catch {
+    return "";
+  }
+};
 
 type Row = { name: string; mode: "off" | "on"; slug: string; status: "same" | "changed" | "no-baseline"; ratio: number | null; detail?: string };
 const rows: Row[] = [];
@@ -57,17 +81,24 @@ test.use({ viewport: { width: 390, height: 844 }, colorScheme: "light" });
 
 test.beforeAll(() => {
   fs.mkdirSync(OUT, { recursive: true });
+  fs.writeFileSync(path.join(OUT, "frozen-at.txt"), FROZEN_AT);
 });
 
 test.afterAll(() => {
-  fs.writeFileSync(path.join(OUT, "report.json"), JSON.stringify({ warnOnly: WARN_ONLY, maxDiffRatio: MAX_DIFF_RATIO, screens: rows }, null, 2));
+  fs.writeFileSync(path.join(OUT, "report.json"), JSON.stringify({ warnOnly: WARN_ONLY, maxDiffRatio: MAX_DIFF_RATIO, frozenAt: FROZEN_AT, baselineFrozenAt: baselineFrozenAt(), screens: rows }, null, 2));
 });
 
 async function shoot(page: Page, context: Parameters<Parameters<typeof test>[2]>[0]["context"], baseURL: string, screen: (typeof SCREENS)[number], mode: "off" | "on") {
   await context.addCookies([{ name: "kin-theme", value: "light", url: baseURL }]);
   await page.emulateMedia({ colorScheme: "light", reducedMotion: "reduce" });
+  // The browser's half of the frozen clock: client components that read
+  // new Date() see the same moment the server started at. Timers still run.
+  if (FROZEN_AT) await page.clock.setFixedTime(new Date(`${FROZEN_AT.replace(" ", "T")}Z`));
   const response = await page.goto(screen.path, { waitUntil: "networkidle" });
   expect(response?.status(), `${screen.path} should serve 200`).toBe(200);
+  // A session the server would not accept ends on /login, which also serves
+  // 200; a picture of the sign-in form compared with main's proves nothing.
+  expect(new URL(page.url()).pathname, `${screen.path} should not redirect`).toBe(screen.path.split("?")[0]);
   // Lazy images and the last layout pass; the smoke run has already proved
   // the page itself is sound, so this is only about the picture settling.
   await page.waitForTimeout(500);
@@ -80,6 +111,15 @@ async function shoot(page: Page, context: Parameters<Parameters<typeof test>[2]>
   if (!fs.existsSync(baseline)) {
     rows.push({ name: screen.name, mode, slug, status: "no-baseline", ratio: null });
     test.info().annotations.push({ type: "no baseline", description: `${slug}: nothing from main to compare with yet` });
+    return;
+  }
+  // Main's last run was at another frozen moment (before today's 06:00 in
+  // Manila, or before the clock was frozen at all): its date and time of day
+  // differ from this run's, which is exactly the noise freezing removed.
+  if (baselineFrozenAt() !== FROZEN_AT) {
+    const detail = `main's screenshots are from ${baselineFrozenAt() || "an unfrozen clock"}, this run from ${FROZEN_AT || "an unfrozen clock"}`;
+    rows.push({ name: screen.name, mode, slug, status: "no-baseline", ratio: null, detail });
+    test.info().annotations.push({ type: "no baseline", description: `${slug}: ${detail}` });
     return;
   }
   try {
