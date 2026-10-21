@@ -227,10 +227,21 @@ are refused. Not checked: on a phone (see "Needs a real phone").
   - ~~Vault emergency access shows parents-only documents to the trusted
     relative.~~ Done 20 October (kin/vault-emergency-household,
     20261020235000): see "Vault emergency access" under Agreed 14 October.
-  - `tree_story_push_targets` / `helper_push_targets` hand device
-    subscriptions to the signed-in sender. This is the same pattern as
-    `push_targets`, needed because the app sends pushes without a
-    service-role key.
+  - ~~`tree_story_push_targets` / `helper_push_targets` hand device
+    subscriptions to the signed-in sender.~~ Decided and done 21 October
+    (Jonathan: subscriptions are per user; 20261021130000): push_targets()
+    now takes the one event the push is about (message, entry, list line,
+    comment, chore, alert, check-in, place or call), checks the caller
+    caused it in the last five minutes, and returns only the named members
+    that event warrants (the household, the grown-ups, the one asked, the
+    callee), never the caller, each once (push_handouts). A call rings its
+    first callee for two minutes, 30 new calls an hour at most
+    (push_call_rings). The two-argument form is gone. The story and helper
+    functions were already tied to one story or line; they now hand each
+    device out once. Sending was already server-side: no client code
+    receives a subscription. The cron path is unchanged apart from
+    due_scheduled_messages() asking the new way. Probe:
+    push-targets-per-push.mjs. Not checked: a real push on a phone.
 - **Minor, left:**
   - ~~Deleting a note, question or gift row that's already gone reports
     success.~~ Done 20 October (kin/small-leftovers): "already removed".

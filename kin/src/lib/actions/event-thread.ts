@@ -29,7 +29,7 @@ export async function addEventCommentAction(eventId: string, body: string): Prom
     .eq("family_id", me.family_id)
     .maybeSingle();
   if (!event) return { error: "That event is no longer there." };
-  const { error } = await supabase.from("event_comments").insert({ event_id: eventId, family_id: me.family_id, member_id: me.id, body: text });
+  const { data: comment, error } = await supabase.from("event_comments").insert({ event_id: eventId, family_id: me.family_id, member_id: me.id, body: text }).select("id").single();
   if (error) return { error: humanDatabaseError(error.message) };
   revalidatePath("/planner");
   // The event's people hear of it, under their "Events and schedules" switch.
@@ -41,7 +41,8 @@ export async function addEventCommentAction(eventId: string, body: string): Prom
       body: text,
       url: `/planner/add?type=event&id=${eventId}#thread`,
       tag: `event-thread-${eventId}`,
-      memberIds: audience,
+      source: comment.id,
+      memberIds: audience ?? "household",
     }),
   );
   return { error: null };

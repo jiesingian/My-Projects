@@ -34,7 +34,7 @@ export async function ringAction(to: string, video: boolean, callId: string, aga
   // Whether any of their devices will get the ring when Kin isn't open on it:
   // the same question push_targets() answers for the send itself, asked first
   // so the caller can be told rather than left wondering (26 September).
-  const { data: devices } = !again && pushConfigured() ? await supabase.rpc("push_targets", { p_kind: "calls", p_member_ids: [to] }) : { data: [] };
+  const { data: devices } = !again && pushConfigured() ? await supabase.rpc("push_targets", { p_kind: "calls", p_member_ids: [to], p_source: callId }) : { data: [] };
   const reachable = again || (devices?.length ?? 0) > 0;
   const caller = first(me.full_name);
   const watchers = again ? [] : callWatchers(household ?? [], me.id, to);
@@ -42,6 +42,7 @@ export async function ringAction(to: string, video: boolean, callId: string, aga
     Promise.all([
       sendPush({
         kind: "calls",
+        source: callId,
         memberIds: [to],
         // Laid out like a phone's incoming call: who, what kind, what to do.
         title: `${caller} is calling`,
@@ -55,6 +56,7 @@ export async function ringAction(to: string, video: boolean, callId: string, aga
       watchers.length > 0 &&
         sendPush({
           kind: "family_calls",
+          source: callId,
           memberIds: watchers,
           title: `${caller} is calling ${first(callee.full_name)}`,
           body: video ? "Video call in Kin" : "Voice call in Kin",
@@ -71,12 +73,13 @@ export async function ringAction(to: string, video: boolean, callId: string, aga
 /** The ring nobody picked up becomes "Missed call from Janine", in the same
  * place on the lock screen (same tag), so it does not keep saying "calling"
  * after the caller has given up. */
-export async function missedCallAction(to: string, video: boolean): Promise<void> {
+export async function missedCallAction(to: string, video: boolean, callId: string): Promise<void> {
   const me = await requireCurrentMember();
-  if (!UUID.test(to) || to === me.id) return;
+  if (!UUID.test(to) || to === me.id || !UUID.test(callId)) return;
   after(() =>
     sendPush({
       kind: "calls",
+      source: callId,
       memberIds: [to],
       title: `Missed ${video ? "video" : "voice"} call from ${first(me.full_name)}`,
       body: "Open Kin to call back.",

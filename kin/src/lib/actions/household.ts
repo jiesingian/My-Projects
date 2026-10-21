@@ -79,7 +79,7 @@ export async function addBuyItemAction(_prev: ActionState, formData: FormData): 
   if (error) return { error: humanDatabaseError(error.message) };
   revalidatePath("/household");
   const by = me.full_name.split(" ")[0];
-  after(() => sendPush({ kind: "shopping", title: "Added to the list", body: `${name} · by ${by}`, url: "/household", tag: `list-${me.family_id}` }));
+  after(() => sendPush({ kind: "shopping", source: added.id, memberIds: "household", title: "Added to the list", body: `${name} · by ${by}`, url: "/household", tag: `list-${me.family_id}` }));
   // And the helper, if they asked to be told (20261019212500).
   after(() => sendHelperListPush({ id: added.id, familyId: me.family_id, name, by }));
   return { error: null };

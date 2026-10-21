@@ -104,7 +104,7 @@ export async function reportMyLocationAction(lat: number, lng: number, accuracyM
     const first = me.full_name.split(" ")[0];
     const tz = me.families.time_zone;
     after(() =>
-      sendPush({ kind: "arrivals", title: `${first} arrived at ${arrived.name}`, body: `At ${familyClock(new Date(), tz)}`, url: "/family?seg=quicklinks", tag: `arrive-${me.id}` }),
+      sendPush({ kind: "arrivals", source: arrived.id, memberIds: "household", title: `${first} arrived at ${arrived.name}`, body: `At ${familyClock(new Date(), tz)}`, url: "/family?seg=quicklinks", tag: `arrive-${me.id}` }),
     );
   }
 
@@ -215,14 +215,14 @@ export async function arrivedAction(lat: number, lng: number, accuracyM: number 
   const first = me.full_name.split(" ")[0];
   const message = arrivedMessage({ first, lat, lng, accuracyM: accuracy, places, at: new Date(), tz: me.families.time_zone });
 
-  const { error } = await supabase.from("family_messages").insert({ family_id: me.family_id, member_id: me.id, body: message.body, mentions: [] });
+  const { data: posted, error } = await supabase.from("family_messages").insert({ family_id: me.family_id, member_id: me.id, body: message.body, mentions: [] }).select("id").single();
   if (error) return { error: humanDatabaseError(error.message) };
   // Your own words are never waiting for you to read them.
   await markChatReadAction();
 
   // Arrivals, not chat: it is the notice somebody waiting for "nakarating
   // na" turned on, and one push rather than two.
-  after(() => sendPush({ kind: "arrivals", ...arrivedWords(message, me.id) }));
+  after(() => sendPush({ kind: "arrivals", source: posted.id, memberIds: "household", ...arrivedWords(message, me.id) }));
   revalidatePath("/chat", "layout");
   return { error: null, sent: message.body };
 }

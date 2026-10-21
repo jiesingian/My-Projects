@@ -179,6 +179,7 @@ export function mapLink(lat: number, lng: number): string {
 export function checkInAskPush(askerName: string, memberId: string, checkInId: string) {
   return {
     kind: "checkins" as const,
+    source: checkInId,
     memberIds: [memberId],
     title: `${askerName.split(" ")[0]} asks: are you okay?`,
     body: "One tap to answer.",
@@ -194,6 +195,7 @@ export function checkInAnswerPush(answererName: string, askerId: string, checkIn
   const first = answererName.split(" ")[0];
   return {
     kind: "checkins" as const,
+    source: checkInId,
     memberIds: [askerId],
     title: answer === "ok" ? `${first} is okay` : `${first} asked you to call`,
     body: answer === "ok" ? "Answered your check-in just now." : "Answered your check-in: call me. Tap to open Kin.",
