@@ -6,10 +6,15 @@ import { ErrorText } from "@/components/form";
 import { GroupPeoplePicker, type PickablePerson } from "@/components/group-people-picker";
 import { createGroupAction } from "@/lib/actions/chat-rooms";
 
-/** A new group chat, or an announcement channel where only admins post. */
-export function GroupCreateForm({ people, announce }: { people: PickablePerson[]; announce: boolean }) {
+/** A new group chat, or an announcement channel where only admins post.
+ * `existingNames` are the groups the person is already in: a second "Tester
+ * family" is allowed (a cousins' group and a siblings' group can share a
+ * name by accident) but it is said before it happens, because two identical
+ * rows in the conversation list cannot be told apart (21 October audit). */
+export function GroupCreateForm({ people, announce, existingNames = [] }: { people: PickablePerson[]; announce: boolean; existingNames?: string[] }) {
   const router = useRouter();
   const [name, setName] = useState("");
+  const duplicate = name.trim() !== "" && existingNames.some((n) => n.trim().toLowerCase() === name.trim().toLowerCase());
   const [announceOnly, setAnnounceOnly] = useState(announce);
   const [chosen, setChosen] = useState<string[]>([]);
   const [error, setError] = useState<string | null>(null);
@@ -36,7 +41,13 @@ export function GroupCreateForm({ people, announce }: { people: PickablePerson[]
           onChange={(e) => setName(e.target.value)}
           placeholder={announceOnly ? "Family news" : "Cousins, Siblings, Lola's 80th…"}
           style={{ width: "100%" }}
+          aria-describedby={duplicate ? "group-name-duplicate" : undefined}
         />
+        {duplicate && (
+          <span id="group-name-duplicate" role="status" style={{ display: "block", fontSize: "0.78125rem", color: "var(--color-neutral-700)", marginTop: "0.375rem", lineHeight: 1.4 }}>
+            You already have a group called &ldquo;{name.trim()}&rdquo;. Two with the same name look identical in the list; a word that tells them apart helps.
+          </span>
+        )}
       </label>
       <label style={{ display: "flex", gap: "0.625rem", alignItems: "flex-start", marginBottom: "1rem" }}>
         <input type="checkbox" checked={announceOnly} onChange={(e) => setAnnounceOnly(e.target.checked)} style={{ width: "1.25rem", height: "1.25rem", marginTop: "0.125rem" }} />

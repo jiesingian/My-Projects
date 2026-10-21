@@ -7220,6 +7220,9 @@ button.kin-room-quote { font: inherit; font-size: 0.78125rem; text-align: left; 
 .kin-recap-more { display: block; color: var(--color-accent-700); font-weight: 600; text-decoration: none; }
 /* Edit and unsend in the family room, one to one and groups (20260930150100). */
 .kin-bubble-removed { font-style: italic; opacity: 0.65; cursor: default; }
+/* A run of unsent messages, folded (lib/chat-collapse): one quiet centred
+   line, read like a day separator rather than a bubble. */
+.kin-removed-run { margin: 0.5rem 0 0; text-align: center; font-size: var(--text-2xs); font-style: italic; color: var(--color-neutral-600); }
 .kin-room-edit { display: flex; flex-direction: column; gap: 0.375rem; width: min(100%, 22rem); }
 .kin-room-edit textarea { font-size: 1rem; resize: none; }
 .kin-room-edit-row { display: flex; justify-content: flex-end; gap: 0.375rem; }
