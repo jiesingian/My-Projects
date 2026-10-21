@@ -68,6 +68,9 @@ export async function updateSession(request: NextRequest) {
     // Vercel Authentication already guards; in production it asks for a
     // member itself (app/api/upstream-check).
     path === "/api/upstream-check" ||
+    // A browser's error report (app/api/errors): the login page and the
+    // landing page have no session and can break too.
+    path === "/api/errors" ||
     // An invite link has to reach someone with no account yet; it only
     // remembers the code and redirects (app/join/[code]/route.ts).
     path.startsWith("/join/") ||

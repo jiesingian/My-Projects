@@ -8925,6 +8925,12 @@ export type Database = {
       send_to_kin_link_on: { Args: never; Returns: boolean }
       send_to_kin_by_link: { Args: { p_token_hash: string; p_mime: string; p_data_base64: string }; Returns: Json }
       sweep_sent_screenshots: { Args: never; Returns: undefined }
+      log_app_error: { Args: { p_fingerprint: string; p_kind: string; p_route: string; p_message: string; p_version: string }; Returns: undefined }
+      app_error_digest: {
+        Args: { p_days?: number }
+        Returns: { fingerprint: string; kind: string; route: string; message: string; app_version: string; count: number; first_seen: string; last_seen: string }[]
+      }
+      sweep_app_errors: { Args: never; Returns: undefined }
       add_to_list_by_link: { Args: { p_token_hash: string; p_items: Json }; Returns: number }
       calendar_feed: {
         Args: { feed_hash: string }

@@ -3,6 +3,7 @@ import { NoPageZoom } from "@/components/no-page-zoom";
 import { cookies } from "next/headers";
 import "./globals.css";
 import { ServiceWorker } from "@/components/service-worker";
+import { ErrorReporter } from "@/components/error-reporter";
 import { paletteById } from "@/lib/palettes";
 import { SITE_URL } from "@/lib/site";
 
@@ -84,6 +85,7 @@ export default async function RootLayout({
         {children}
         <ServiceWorker />
         <NoPageZoom />
+        <ErrorReporter />
       </body>
     </html>
   );

@@ -117,6 +117,7 @@ const MIGRATIONS = [
   "20261020232000_invite_a_family.sql",
   "20261020235000_vault_emergency_same_household.sql",
   "20261021000500_managed_children_count.sql",
+  "20261021010000_app_errors.sql",
 ];
 
 const only = process.argv[2];

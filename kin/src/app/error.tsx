@@ -4,6 +4,7 @@ import { useEffect } from "react";
 import Link from "next/link";
 import { Blueprint } from "@/components/ui";
 import { Icon } from "@/components/icons";
+import { reportClientError } from "@/components/error-reporter";
 
 /** Root error boundary. Without this, an unhandled error anywhere below it
  * falls through to Next's default screen -- a stack trace or a blank page
@@ -14,6 +15,7 @@ import { Icon } from "@/components/icons";
 export default function Error({ error, reset }: { error: Error & { digest?: string }; reset: () => void }) {
   useEffect(() => {
     console.error(error);
+    reportClientError(error);
   }, [error]);
 
   return (
