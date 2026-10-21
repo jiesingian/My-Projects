@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { getCurrentMember } from "@/lib/session";
+import { toPickable } from "@/lib/account-picker";
 import { getMembers } from "@/lib/queries/family";
 import { createClient } from "@/lib/supabase/server";
 import { AddPlannerForm } from "./add-planner-form";
@@ -59,9 +60,7 @@ export default async function AddPlannerPage({
   // Money, so never in kid view (lib/kid-view.ts).
   const isTrip = editEvent?.kind === "travel" && !inKidView(me);
   const pickable = isTrip
-    ? (await getAccounts(me.family_id))
-        .filter((a) => a.is_joint || a.owner_member_id === me.id)
-        .map((a) => ({ id: a.id, name: a.name, institution: a.institution, linked_app_url: a.linked_app_url, balance: a.balance, is_joint: a.is_joint }))
+    ? toPickable(await getAccounts(me.family_id), me.id)
     : [];
 
   // An existing event's photos (20260926150000_event_photos.sql).

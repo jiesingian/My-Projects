@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { getCurrentMember } from "@/lib/session";
+import { toPickable } from "@/lib/account-picker";
 import { getAccounts } from "@/lib/queries/wealth";
 import { DetailHeader } from "@/components/hub-header";
 import { AddGoalForm } from "./add-goal-form";
@@ -15,16 +16,7 @@ export default async function AddGoalPage() {
       <div style={{ padding: "0 var(--gutter) 1.375rem" }}>
         <h3 style={{ fontSize: "2rem", margin: "0 0 14px" }}>Add Goal</h3>
         <AddGoalForm
-          accounts={accounts
-            .filter((a) => a.is_joint || a.owner_member_id === me.id)
-            .map((a) => ({
-              id: a.id,
-              name: a.name,
-              institution: a.institution,
-              linked_app_url: a.linked_app_url,
-              balance: a.balance,
-              is_joint: a.is_joint,
-            }))}
+          accounts={toPickable(accounts, me.id)}
           currency={me.families.currency}
         />
       </div>

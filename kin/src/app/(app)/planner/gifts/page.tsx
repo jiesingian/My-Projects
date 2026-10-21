@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getCurrentMember } from "@/lib/session";
+import { toPickable } from "@/lib/account-picker";
 import { DetailHeader } from "@/components/hub-header";
 import { AddGiftPerson, GiftPersonCard } from "@/components/gift-list";
 import { getGiftList } from "@/lib/queries/gift-list";
@@ -27,7 +28,7 @@ export default async function GiftsPage({ searchParams }: { searchParams: Promis
   const [{ people, recorded }, members, accounts] = await Promise.all([getGiftList(me.family_id, year), getMembers(me.family_id), inKidView(me) ? Promise.resolve([]) : getAccounts(me.family_id)]);
   const onList = new Set(people.map((p) => p.memberId).filter(Boolean));
   const household = members.filter((m) => m.id !== me.id && m.status !== "pending" && !isGone(m.status) && !onList.has(m.id)).map((m) => ({ id: m.id, name: m.full_name }));
-  const pickable = accounts.filter((a) => a.is_joint || a.owner_member_id === me.id).map((a) => ({ id: a.id, name: a.name, institution: a.institution, linked_app_url: a.linked_app_url, balance: a.balance, is_joint: a.is_joint }));
+  const pickable = toPickable(accounts, me.id);
   const t = listTotals(people);
   const money = (n: number) => formatCurrency(n, me.families.currency);
   const recordedIds = [...recorded];

@@ -17,6 +17,7 @@ import type { LoyaltyCard } from "@/lib/loyalty-cards";
 import { formatCurrency } from "@/lib/format";
 import { confirm } from "@/components/confirm-sheet";
 import type { PickableAccount } from "@/components/money-actions";
+import { AccountOptions } from "@/components/account-options";
 import type { Tables } from "@/lib/database.types";
 import { mealDayLabel } from "@/lib/meal-shopping";
 import { isNetworkFailure, isOffline, newOpId, queueOffline, useQueue } from "@/lib/offline/live";
@@ -827,11 +828,7 @@ function ClearCheckedPanel({
           <div className="field" style={{ flex: 1, margin: 0 }}>
             <label htmlFor={`${uid}-account`}>Paid from</label>
             <select id={`${uid}-account`} aria-label="Paid From" className="input" value={accountId} onChange={(e) => setAccountId(e.target.value)} style={{ minHeight: "2.5rem" }}>
-              {accounts.map((a) => (
-                <option key={a.id} value={a.id}>
-                  {a.name} · {formatCurrency(a.balance, currency)}
-                </option>
-              ))}
+              <AccountOptions accounts={accounts} currency={currency} />
             </select>
           </div>
           <div className="field" style={{ width: 106, margin: 0 }}>

@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { getCurrentMember } from "@/lib/session";
+import { toPickable } from "@/lib/account-picker";
 import { getAccounts } from "@/lib/queries/wealth";
 import { readAccess } from "@/lib/access";
 import { kinAiReady } from "@/lib/kin-ai";
@@ -23,7 +24,7 @@ export default async function ScanReceiptPage() {
       <div style={{ padding: "0 var(--gutter) 1.375rem" }}>
         <h3 style={{ fontSize: "2rem", margin: "0 0 14px" }}>Snap a receipt</h3>
         <ReceiptScanner
-          accounts={accounts.map((a) => ({ id: a.id, name: a.name, linked_app_url: a.linked_app_url, institution: a.institution, balance: a.balance, is_joint: a.is_joint }))}
+          accounts={toPickable(accounts, me.id, { everyone: true })}
           currency={me.families.currency}
           ready={kinAiReady()}
           plus={readAccess(me.families).plus}

@@ -4,9 +4,10 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { recordMovementAction, transferAction } from "@/lib/actions/wealth";
 import { EXPENSE_CATEGORIES, INCOME_SOURCES } from "@/lib/wealth";
-import { formatCurrency, currencySymbol } from "@/lib/format";
+import { currencySymbol } from "@/lib/format";
 import { ErrorText } from "@/components/form";
 import type { PickableAccount } from "@/components/money-actions";
+import { AccountOptions } from "@/components/account-options";
 import { DateInput } from "@/components/date-input";
 import { AmountInput } from "@/components/amount-input";
 import { RequiredMark } from "@/components/form";
@@ -130,22 +131,14 @@ export function TransactForm({
 
       <Field label={mode === "transfer" ? "FROM ACCOUNT" : mode === "in" ? "INTO ACCOUNT" : "OUT OF ACCOUNT"}>
         <select className="input" value={accountId} onChange={(e) => setAccountId(e.target.value)} style={{ minHeight: "2.75rem" }}>
-          {accounts.map((a) => (
-            <option key={a.id} value={a.id}>
-              {a.name} · {formatCurrency(a.balance, currency)}
-            </option>
-          ))}
+          <AccountOptions accounts={accounts} currency={currency} />
         </select>
       </Field>
 
       {mode === "transfer" && (
         <Field label="To account">
           <select className="input" value={toAccountId} onChange={(e) => setToAccountId(e.target.value)} style={{ minHeight: "2.75rem" }}>
-            {accounts.map((a) => (
-              <option key={a.id} value={a.id}>
-                {a.name} · {formatCurrency(a.balance, currency)}
-              </option>
-            ))}
+            <AccountOptions accounts={accounts} currency={currency} />
           </select>
         </Field>
       )}

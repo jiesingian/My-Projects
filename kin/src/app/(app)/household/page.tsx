@@ -1,4 +1,5 @@
 import { formatCurrency } from "@/lib/format";
+import { toPickable } from "@/lib/account-picker";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getCurrentMember } from "@/lib/session";
@@ -135,9 +136,7 @@ async function BuyPane({
         prices={Object.fromEntries(
           priced.items.map((it) => [it.id, { estimated: it.estimated, unitPrice: it.unitPrice, source: it.priceSource, inPantry: it.inPantry }]),
         )}
-        accounts={accounts
-          .filter((a) => a.is_joint || a.owner_member_id === memberId)
-          .map((a) => ({ id: a.id, name: a.name, institution: a.institution, linked_app_url: a.linked_app_url, balance: a.balance, is_joint: a.is_joint }))}
+        accounts={toPickable(accounts, memberId)}
       />
 
       <Link href="/wealth?seg=cashflow" style={{ display: "block", fontSize: "0.8125rem", color: "var(--color-neutral-600)", marginTop: "0.875rem" }}>
