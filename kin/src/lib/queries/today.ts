@@ -302,7 +302,10 @@ export async function getTodayBriefing(familyId: string, currency: string, me: V
       tint: "money",
       title: b.name,
       meta: `${formatCurrency(Number(b.amount), currency)} · ${overdue ? "overdue" : "due today"}`,
-      href: "/wealth",
+      // Straight to this bill's Pay row. Bills sit inside Cash Flow's
+      // Expenses group, folded by default, so the link asks for it open and
+      // names the row; "Pay" that lands on a chart costs the tap it saved.
+      href: `/wealth?seg=cashflow&open=expenses&bill=${b.id}`,
       urgent: true,
     });
   }
@@ -320,7 +323,9 @@ export async function getTodayBriefing(familyId: string, currency: string, me: V
       tint: "occasion",
       title: `${who} · ${h.what}`,
       meta: h.when_date && h.when_date < today ? "overdue" : "due",
-      href: "/family",
+      // The person's own schedule, where the appointment is, rather than the
+      // Family tab's front page.
+      href: `/family/members/${h.member_id}?view=health&seg=schedule`,
       urgent: Boolean(h.when_date && h.when_date <= today),
     });
   }
