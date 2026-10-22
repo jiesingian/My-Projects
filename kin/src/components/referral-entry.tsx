@@ -61,7 +61,7 @@ export function ReferralEntry() {
           Add
         </button>
       </div>
-      {error && <div role="alert" style={{ fontSize: "0.78125rem", color: "var(--cal-occasion)", marginTop: "0.375rem" }}>{error}</div>}
+      {error && <div role="alert" style={{ fontSize: "0.78125rem", color: "var(--cal-occasion-ink)", marginTop: "0.375rem" }}>{error}</div>}
     </form>
   );
 }

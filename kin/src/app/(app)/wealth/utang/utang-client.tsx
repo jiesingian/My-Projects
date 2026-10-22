@@ -196,7 +196,7 @@ export function UtangRow({ u, currency, today, reminder }: { u: UtangView; curre
           </button>
         </span>
       </div>
-      {error && <div role="alert" style={{ fontSize: "0.75rem", color: "var(--cal-occasion)", marginTop: "0.25rem" }}>{error}</div>}
+      {error && <div role="alert" style={{ fontSize: "0.75rem", color: "var(--cal-occasion-ink)", marginTop: "0.25rem" }}>{error}</div>}
 
       {paying && (
         <form action={formAction} style={{ marginTop: "0.5rem" }}>

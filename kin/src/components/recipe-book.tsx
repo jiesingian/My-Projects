@@ -343,7 +343,7 @@ function CategoryManager({ categories, onDone }: { categories: CategoryView[]; o
       <p style={{ fontSize: "0.75rem", color: "var(--color-neutral-600)", margin: "10px 0 0", lineHeight: 1.45 }}>
         A new category is empty until you tick it on a recipe, under <strong>Kind of food</strong>.
       </p>
-      {error && <div style={{ fontSize: "0.78125rem", color: "var(--cal-occasion)", marginTop: "0.375rem" }}>{error}</div>}
+      {error && <div style={{ fontSize: "0.78125rem", color: "var(--cal-occasion-ink)", marginTop: "0.375rem" }}>{error}</div>}
     </div>
   );
 }
@@ -765,7 +765,7 @@ function RecipeEditor({
           <button
             type="button"
             className="btn btn-ghost"
-            style={{ minHeight: "2.875rem", fontSize: "0.8125rem", padding: "0 0.75rem", color: "var(--cal-occasion)" }}
+            style={{ minHeight: "2.875rem", fontSize: "0.8125rem", padding: "0 0.75rem", color: "var(--cal-occasion-ink)" }}
             disabled={pending}
             onClick={() =>
               run(async () => {
@@ -779,7 +779,7 @@ function RecipeEditor({
           </button>
         )}
       </div>
-      {error && <div style={{ fontSize: "0.78125rem", color: "var(--cal-occasion)", marginTop: "0.5rem" }}>{error}</div>}
+      {error && <div style={{ fontSize: "0.78125rem", color: "var(--cal-occasion-ink)", marginTop: "0.5rem" }}>{error}</div>}
     </div>
   );
 }
@@ -810,7 +810,7 @@ export function AddIngredientsToBuyButton({ mealId, missing }: { mealId: string;
         Add {missing} to list
       </button>
       {added != null && <span style={{ fontSize: "0.75rem", color: "var(--color-neutral-700)" }}>{added} added</span>}
-      {error && <span style={{ fontSize: "0.75rem", color: "var(--cal-occasion)" }}>{error}</span>}
+      {error && <span style={{ fontSize: "0.75rem", color: "var(--cal-occasion-ink)" }}>{error}</span>}
     </span>
   );
 }

@@ -51,7 +51,7 @@ export function PaluwaganOptions({ groupId, remind, isPrivate, mine }: { groupId
           Remove
         </button>
       </div>
-      {error && <div role="alert" style={{ fontSize: "0.75rem", color: "var(--cal-occasion)", marginTop: "0.25rem" }}>{error}</div>}
+      {error && <div role="alert" style={{ fontSize: "0.75rem", color: "var(--cal-occasion-ink)", marginTop: "0.25rem" }}>{error}</div>}
     </div>
   );
 }
@@ -82,7 +82,7 @@ export function PaidTick({ groupId, memberId, round, name, paid, reminder }: { g
         )}
       </span>
       {showReminder && reminder && <ShareMessage text={reminder} title={`Paluwagan reminder for ${name}`} />}
-      {error && <span role="alert" style={{ fontSize: "0.71875rem", color: "var(--cal-occasion)" }}>{error}</span>}
+      {error && <span role="alert" style={{ fontSize: "0.71875rem", color: "var(--cal-occasion-ink)" }}>{error}</span>}
     </span>
   );
 }

@@ -31,7 +31,7 @@ export function TodayTaskList({ tasks }: { tasks: RoutineView[] }) {
       ))}
       {overdueOnly.length > 0 && (
         <Blueprint style={{ padding: "0.75rem 0.875rem", display: "flex", alignItems: "center", gap: "0.625rem", marginBottom: "0.5625rem" }}>
-          <Icon name="info" size={16} style={{ color: "var(--cal-money)", flex: "none" }} />
+          <Icon name="info" size={16} style={{ color: "var(--cal-money-ink)", flex: "none" }} />
           <span style={{ flex: 1, fontSize: "0.84375rem" }}>
             {overdueOnly.length} task{overdueOnly.length === 1 ? "" : "s"} behind on other days —{" "}
             <Link href="/planner?seg=routines" style={{ color: "var(--color-accent-700)", fontWeight: 500 }}>
@@ -220,7 +220,7 @@ export function TaskRow({ task, queued = false }: { task: RoutineView; queued?: 
             {today.note && <p style={{ margin: 0, fontSize: "0.8125rem", color: "var(--color-neutral-700)", lineHeight: 1.4 }}>&ldquo;{today.note}&rdquo;</p>}
           </div>
         )}
-        {error && <div style={{ fontSize: "0.78125rem", color: "var(--cal-occasion)", marginTop: "0.375rem" }}>{error}</div>}
+        {error && <div style={{ fontSize: "0.78125rem", color: "var(--cal-occasion-ink)", marginTop: "0.375rem" }}>{error}</div>}
       </div>
     </Blueprint>
   );

@@ -1270,7 +1270,7 @@ function AddRelativeForm({
         </>
       )}
       {error && (
-        <p role="alert" style={{ margin: 0, fontSize: "var(--text-sm)", color: "var(--cal-occasion)" }}>
+        <p role="alert" style={{ margin: 0, fontSize: "var(--text-sm)", color: "var(--cal-occasion-ink)" }}>
           {error}
         </p>
       )}
@@ -1324,7 +1324,7 @@ function LinkProfile({ person, unaddedMembers }: { person: TreePerson; unaddedMe
         ))}
       </select>
       {error && (
-        <p role="alert" style={{ margin: 0, flexBasis: "100%", fontSize: "var(--text-sm)", color: "var(--cal-occasion)" }}>
+        <p role="alert" style={{ margin: 0, flexBasis: "100%", fontSize: "var(--text-sm)", color: "var(--cal-occasion-ink)" }}>
           {error}
         </p>
       )}

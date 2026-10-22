@@ -68,7 +68,7 @@ export function MemberColourPicker({
           Currently {MEMBER_COLOUR_LABEL[current].toLowerCase()}, picked automatically. Choose one to keep it.
         </p>
       )}
-      {error && <p style={{ fontSize: "0.75rem", color: "var(--cal-occasion)", margin: "6px 0 0" }}>{error}</p>}
+      {error && <p style={{ fontSize: "0.75rem", color: "var(--cal-occasion-ink)", margin: "6px 0 0" }}>{error}</p>}
     </div>
   );
 }

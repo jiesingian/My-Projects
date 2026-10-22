@@ -84,7 +84,7 @@ export function MealWhoEditor({
           })}
         </span>
       </span>
-      {error && <span style={{ fontSize: "0.75rem", color: "var(--cal-occasion)" }}>{error}</span>}
+      {error && <span style={{ fontSize: "0.75rem", color: "var(--cal-occasion-ink)" }}>{error}</span>}
     </span>
   );
 }

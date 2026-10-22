@@ -93,7 +93,7 @@ export default async function RelativePage({ params }: { params: Promise<{ id: s
                 key={`${m.kind}-${m.id}`}
                 style={{ display: "flex", alignItems: "baseline", gap: "0.625rem", padding: "0.6875rem 0", borderTop: i === 0 ? undefined : "1px solid var(--color-divider)" }}
               >
-                <span aria-hidden="true" style={{ width: "1rem", flex: "none", color: "var(--cal-occasion)" }}>
+                <span aria-hidden="true" style={{ width: "1rem", flex: "none", color: "var(--cal-occasion-ink)" }}>
                   {m.kind === "milestone" ? "★" : ""}
                 </span>
                 <span style={{ flex: 1, minWidth: 0, fontSize: "0.9375rem" }}>{m.title}</span>

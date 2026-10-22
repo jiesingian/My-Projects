@@ -33,7 +33,7 @@ export function GameTap({ goalId, title, canUndo }: { goalId: string; title: str
         <Icon name="plus" size={20} />
       </button>
       {error && (
-        <span role="alert" style={{ fontSize: "0.75rem", color: "var(--cal-occasion)", maxWidth: "10rem" }}>
+        <span role="alert" style={{ fontSize: "0.75rem", color: "var(--cal-occasion-ink)", maxWidth: "10rem" }}>
           {error}
         </span>
       )}
@@ -63,7 +63,7 @@ export function StartFreshButton({ count }: { count: number }) {
         type="button"
         className="btn btn-secondary btn-block"
         disabled={pending}
-        style={{ color: "var(--cal-occasion)" }}
+        style={{ color: "var(--cal-occasion-ink)" }}
         onClick={async () => {
           if (!(await confirm({ title: `Remove ${count} target${count === 1 ? "" : "s"}?`, description: "They leave every list. What they earned stays earned.", confirmLabel: "Remove" }))) return;
           start(async () => {
@@ -308,7 +308,7 @@ export function GameSteps({ goalId, title }: { goalId: string; title: string }) 
         </button>
       ))}
       {error && (
-        <span role="alert" style={{ fontSize: "0.75rem", color: "var(--cal-occasion)", flexBasis: "100%" }}>
+        <span role="alert" style={{ fontSize: "0.75rem", color: "var(--cal-occasion-ink)", flexBasis: "100%" }}>
           {error}
         </span>
       )}
@@ -519,7 +519,7 @@ export function GameGoalEdit({
                 if (!(await confirm({ title: `Remove "${goal.title}"?`, description: "It leaves every list. What it earned stays earned.", confirmLabel: "Remove" }))) return;
                 run(() => removeGameGoalAction(goal.id));
               }}
-              style={{ color: "var(--cal-occasion)" }}
+              style={{ color: "var(--cal-occasion-ink)" }}
             >
               Remove
             </button>
@@ -596,7 +596,7 @@ export function GameWalkLog({ goalId, title, plus }: { goalId: string; title: st
         Log {title.toLowerCase()}
       </button>
       {error && (
-        <span role="alert" style={{ fontSize: "0.75rem", color: "var(--cal-occasion)", flexBasis: "100%" }}>
+        <span role="alert" style={{ fontSize: "0.75rem", color: "var(--cal-occasion-ink)", flexBasis: "100%" }}>
           {error}
         </span>
       )}
