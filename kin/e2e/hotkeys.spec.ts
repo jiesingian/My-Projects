@@ -16,6 +16,13 @@ test("g then p goes to the Planner; ? lists the shortcuts and Esc closes it", as
   const help = page.getByRole("dialog", { name: "Keyboard shortcuts" });
   await expect(help).toBeVisible();
   await expect(help.getByText("Go to Today")).toBeVisible();
+  // Over the open list nothing moves the page behind it (wrap-up check,
+  // 22 October: it did, because Kin's sheets never say aria-modal).
+  await page.keyboard.press("g");
+  await page.keyboard.press("t");
+  await page.waitForTimeout(500);
+  await expect(page).toHaveURL(/\/planner/);
+  await expect(help).toBeVisible();
   await page.keyboard.press("Escape");
   await expect(help).toBeHidden();
 });
